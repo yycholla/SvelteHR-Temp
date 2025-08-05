@@ -1,0 +1,298 @@
+#+TITLE: UI Component Library Reference
+#+AUTHOR: SvelteHR Project
+#+DATE: 2025-01-21
+#+DESCRIPTION: Complete reference of all available UI components
+
+* Overview
+This document provides a comprehensive reference of all UI components available in our SvelteHR project, including both our custom-built components and Skeleton Labs components.
+
+* Our Custom UI Components
+Located in =src/lib/components/ui/=
+
+** Layout & Structure Components
+
+*** Card
+- *Purpose*: Container component with structured layout
+- *Variants*: default, outline, ghost
+- *Sub-components*: CardHeader, CardTitle, CardDescription, CardContent, CardFooter
+- *Import*: ~import { Card, CardHeader, CardContent } from "$lib/components/ui/card";~
+- *Usage*:
+  #+begin_src svelte
+  <Card variant="default">
+    <CardHeader>
+      <CardTitle>Title</CardTitle>
+    </CardHeader>
+    <CardContent>Content here</CardContent>
+  </Card>
+  #+end_src
+
+*** Separator
+- *Purpose*: Visual divider component
+- *Variants*: horizontal, vertical
+- *Import*: ~import { Separator } from "$lib/components/ui/separator";~
+- *Usage*: ~<Separator orientation="horizontal" />~
+
+*** Skeleton
+- *Purpose*: Loading placeholder components
+- *Variants*: default, text, avatar, button, card
+- *Import*: ~import { Skeleton } from "$lib/components/ui/skeleton";~
+- *Usage*: ~<Skeleton variant="text" class="h-4 w-full" />~
+
+** Form Components
+
+*** Button
+- *Purpose*: Clickable button with multiple styles
+- *Variants*: default, destructive, outline, secondary, ghost, link
+- *Sizes*: sm, default, lg, icon
+- *Import*: ~import { Button } from "$lib/components/ui/button";~
+- *Usage*: ~<Button variant="default" size="lg">Click me</Button>~
+
+*** Input
+- *Purpose*: Text input field
+- *Types*: All HTML input types supported
+- *Import*: ~import { Input } from "$lib/components/ui/input";~
+- *Usage*: ~<Input type="email" placeholder="Enter email" bind:value={email} />~
+
+*** Textarea
+- *Purpose*: Multi-line text input
+- *Sizes*: sm, default, lg
+- *Import*: ~import { Textarea } from "$lib/components/ui/textarea";~
+- *Usage*: ~<Textarea placeholder="Enter message" bind:value={message} />~
+
+*** Label
+- *Purpose*: Form field labels with accessibility
+- *Import*: ~import { Label } from "$lib/components/ui/label";~
+- *Usage*: ~<Label for="input-id">Field Label</Label>~
+
+*** Checkbox
+- *Purpose*: Checkbox input with checked state
+- *Sizes*: sm, default, lg
+- *Import*: ~import { Checkbox } from "$lib/components/ui/checkbox";~
+- *Usage*: ~<Checkbox bind:checked={agreed} />~
+
+*** Radio Group
+- *Purpose*: Radio button selection group
+- *Orientations*: vertical, horizontal
+- *Sub-components*: RadioGroup, RadioGroupItem
+- *Import*: ~import { RadioGroup, RadioGroupItem } from "$lib/components/ui/radio-group";~
+- *Usage*:
+  #+begin_src svelte
+  <RadioGroup bind:value={selected}>
+    <RadioGroupItem value="option1" />
+    <RadioGroupItem value="option2" />
+  </RadioGroup>
+  #+end_src
+
+*** Switch
+- *Purpose*: Toggle switch component
+- *Sizes*: sm, default, lg
+- *Import*: ~import { Switch } from "$lib/components/ui/switch";~
+- *Usage*: ~<Switch bind:checked={enabled} />~
+
+*** Select
+- *Purpose*: Dropdown selection component
+- *Sub-components*: Select, SelectTrigger, SelectValue, SelectContent, SelectItem
+- *Import*: ~import { Select, SelectTrigger, SelectContent, SelectItem } from "$lib/components/ui/select";~
+- *Usage*:
+  #+begin_src svelte
+  <Select>
+    <SelectTrigger>
+      <SelectValue placeholder="Choose option" />
+    </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="opt1">Option 1</SelectItem>
+    </SelectContent>
+  </Select>
+  #+end_src
+
+** Feedback & Status Components
+
+*** Alert
+- *Purpose*: Notification messages with different severity levels
+- *Variants*: default, destructive, success, warning, info
+- *Sub-components*: Alert, AlertTitle, AlertDescription
+- *Import*: ~import { Alert, AlertTitle, AlertDescription } from "$lib/components/ui/alert";~
+- *Usage*:
+  #+begin_src svelte
+  <Alert variant="warning">
+    <AlertTitle>Warning</AlertTitle>
+    <AlertDescription>This is a warning message.</AlertDescription>
+  </Alert>
+  #+end_src
+
+*** Badge
+- *Purpose*: Status indicators and tags
+- *Variants*: default, secondary, destructive, outline, success, warning, info
+- *Import*: ~import { Badge } from "$lib/components/ui/badge";~
+- *Usage*: ~<Badge variant="success">Active</Badge>~
+
+*** Progress
+- *Purpose*: Progress bars with different styles
+- *Variants*: default, success, warning, destructive
+- *Sizes*: sm, default, lg
+- *Import*: ~import { Progress } from "$lib/components/ui/progress";~
+- *Usage*: ~<Progress value={75} max={100} variant="success" />~
+
+*** Avatar
+- *Purpose*: User profile images with fallback
+- *Sizes*: sm, default, lg, xl
+- *Sub-components*: Avatar, AvatarImage, AvatarFallback
+- *Import*: ~import { Avatar, AvatarImage, AvatarFallback } from "$lib/components/ui/avatar";~
+- *Usage*:
+  #+begin_src svelte
+  <Avatar>
+    <AvatarImage src="/profile.jpg" alt="User" />
+    <AvatarFallback>JD</AvatarFallback>
+  </Avatar>
+  #+end_src
+
+** Navigation & Interaction Components
+
+*** Tabs
+- *Purpose*: Tabbed interface for organizing content
+- *Sub-components*: Tabs, TabsList, TabsTrigger, TabsContent
+- *Import*: ~import { Tabs, TabsList, TabsTrigger, TabsContent } from "$lib/components/ui/tabs";~
+- *Usage*:
+  #+begin_src svelte
+  <Tabs value="tab1">
+    <TabsList>
+      <TabsTrigger value="tab1">Tab 1</TabsTrigger>
+      <TabsTrigger value="tab2">Tab 2</TabsTrigger>
+    </TabsList>
+    <TabsContent value="tab1">Content 1</TabsContent>
+    <TabsContent value="tab2">Content 2</TabsContent>
+  </Tabs>
+  #+end_src
+
+*** Dialog
+- *Purpose*: Modal dialogs and popups
+- *Sub-components*: Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
+- *Import*: ~import { Dialog, DialogTrigger, DialogContent } from "$lib/components/ui/dialog";~
+- *Usage*:
+  #+begin_src svelte
+  <Dialog>
+    <DialogTrigger>Open Dialog</DialogTrigger>
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Dialog Title</DialogTitle>
+      </DialogHeader>
+      Dialog content here
+    </DialogContent>
+  </Dialog>
+  #+end_src
+
+*** Tooltip
+- *Purpose*: Hover tooltips for additional information
+- *Sub-components*: Tooltip, TooltipTrigger, TooltipContent
+- *Import*: ~import { Tooltip, TooltipTrigger, TooltipContent } from "$lib/components/ui/tooltip";~
+- *Usage*:
+  #+begin_src svelte
+  <Tooltip>
+    <TooltipTrigger>Hover me</TooltipTrigger>
+    <TooltipContent>Tooltip text</TooltipContent>
+  </Tooltip>
+  #+end_src
+
+* Skeleton Labs Components (v3)
+Available via =@skeletonlabs/skeleton-svelte= package
+
+** Core Components
+
+*** Avatar
+- *Purpose*: Profile images with fallback support
+- *Import*: ~import { Avatar } from '@skeletonlabs/skeleton-svelte';~
+- *Usage*: ~<Avatar src={someUrl} alt="Jane" />~
+
+*** FileUpload
+- *Purpose*: File upload component (merged FileButton and FileDropzone)
+- *Features*: Drag & drop, button upload, multiple files
+- *Import*: ~import { FileUpload } from '@skeletonlabs/skeleton-svelte';~
+
+*** Pagination
+- *Purpose*: Page navigation component (formerly Paginator)
+- *Import*: ~import { Pagination } from '@skeletonlabs/skeleton-svelte';~
+
+*** Progress
+- *Purpose*: Linear progress bar (formerly ProgressBar)
+- *Import*: ~import { Progress } from '@skeletonlabs/skeleton-svelte';~
+
+*** ProgressRing
+- *Purpose*: Circular progress indicator (formerly ProgressRadial)
+- *Import*: ~import { ProgressRing } from '@skeletonlabs/skeleton-svelte';~
+
+*** Segment
+- *Purpose*: Segmented control for selection (formerly RadioGroup)
+- *Import*: ~import { Segment } from '@skeletonlabs/skeleton-svelte';~
+
+*** Slider
+- *Purpose*: Range slider input (formerly RangeSlider)
+- *Features*: Single/multiple handles, markers, custom styling
+- *Import*: ~import { Slider } from '@skeletonlabs/skeleton-svelte';~
+- *Usage*:
+  #+begin_src svelte
+  <Slider 
+    name="amount" 
+    value={[15]} 
+    onValueChange={(e) => (value = e.value)} 
+    markers={[25, 50, 75]} 
+  />
+  #+end_src
+
+*** Switch
+- *Purpose*: Toggle switch (formerly SlideToggle)
+- *Import*: ~import { Switch } from '@skeletonlabs/skeleton-svelte';~
+
+*** Tabs
+- *Purpose*: Tabbed interface (formerly TabGroup)
+- *Import*: ~import { Tabs } from '@skeletonlabs/skeleton-svelte';~
+
+*** TagsInput
+- *Purpose*: Input field for managing tags (formerly InputChip)
+- *Features*: Add, remove, validate tags
+- *Import*: ~import { TagsInput } from '@skeletonlabs/skeleton-svelte';~
+
+* Integration Notes
+
+** Component Priority
+When both our custom components and Skeleton components exist for the same purpose:
+1. Use our custom components for consistent styling with bits-ui
+2. Use Skeleton components for advanced functionality not available in our set
+3. Be mindful of naming conflicts (e.g., both have Switch, Tabs, Progress, Avatar)
+
+** Theme Integration
+- All components use the same Tailwind CSS variables defined in =app.css=
+- Dark mode support is automatic for both component sets
+- Custom CSS properties ensure consistent theming
+
+** Accessibility
+- Our components: Built on bits-ui primitives for maximum accessibility
+- Skeleton components: Powered by Zag.js for cross-framework accessibility standards
+
+** TypeScript Support
+- Import types from individual component files
+- Both component libraries provide full TypeScript support
+- Use specific imports to avoid type conflicts
+
+* Best Practices
+
+** Component Selection
+1. Prefer our custom components for standard UI needs
+2. Use Skeleton components for specialized functionality (FileUpload, Slider, Pagination)
+3. Avoid mixing similar components from both libraries in the same view
+
+** Import Strategy
+#+begin_src svelte
+// Specific imports to avoid conflicts
+import { Button } from "$lib/components/ui/button";           // Our custom
+import { Slider } from '@skeletonlabs/skeleton-svelte';       // Skeleton
+#+end_src
+
+** Styling Consistency
+- Both component sets respect the same CSS custom properties
+- Use consistent variant names when available
+- Apply additional Tailwind classes for customization
+
+* Component Count Summary
+- *Our Custom Components*: 15 core components with 45+ sub-components
+- *Skeleton Components*: 10+ specialized components
+- *Total Available*: 25+ unique component types for comprehensive UI development
