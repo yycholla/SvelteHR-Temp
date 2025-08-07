@@ -132,13 +132,14 @@
 									<button
 										type="button"
 										class="ml-1 hover:text-current/70"
+										aria-label="Remove {option.label}"
 										onclick={(e) => {
 											e.stopPropagation();
 											value = value.filter(v => v !== selectedValue);
 											dispatch('change', value);
 										}}
 									>
-										<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+										<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
 											<path d="M18 6L6 18M6 6l12 12"/>
 										</svg>
 									</button>
@@ -159,13 +160,14 @@
 									<button
 										type="button"
 										class="ml-1 hover:text-current/70"
+										aria-label="Remove {option.label}"
 										onclick={(e) => {
 											e.stopPropagation();
 											value = value.filter(v => v !== selectedValue);
 											dispatch('change', value);
 										}}
 									>
-										<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+										<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
 											<path d="M18 6L6 18M6 6l12 12"/>
 										</svg>
 									</button>
@@ -217,7 +219,7 @@
 	/* Custom scrollbar for dropdown */
 	:global(.select-dropdown) {
 		scrollbar-width: thin;
-		scrollbar-color: theme('colors.secondary.300') transparent;
+		scrollbar-color: rgb(156 163 175) transparent; /* gray-400 equivalent */
 	}
 	
 	:global(.select-dropdown::-webkit-scrollbar) {
@@ -229,11 +231,11 @@
 	}
 	
 	:global(.select-dropdown::-webkit-scrollbar-thumb) {
-		background-color: theme('colors.secondary.300');
+		background-color: rgb(156 163 175); /* gray-400 equivalent */
 		border-radius: 3px;
 	}
 	
 	:global(.select-dropdown::-webkit-scrollbar-thumb:hover) {
-		background-color: theme('colors.secondary.400');
+		background-color: rgb(107 114 128); /* gray-500 equivalent */
 	}
 </style>

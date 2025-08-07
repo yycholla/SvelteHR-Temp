@@ -3,9 +3,8 @@
 	import { cn } from "$lib/utils.js";
 
 	let {
-		class: className,
 		ref = $bindable(null),
-		children,
+		class: className,
 		...restProps
 	}: DialogPrimitive.TitleProps = $props();
 </script>
@@ -13,8 +12,6 @@
 <DialogPrimitive.Title
 	bind:ref
 	data-slot="dialog-title"
-	class={cn("text-lg font-semibold leading-none tracking-tight", className)}
+	class={cn("text-lg font-semibold leading-none", className)}
 	{...restProps}
->
-	{@render children?.()}
-</DialogPrimitive.Title>
+/>

@@ -243,7 +243,7 @@
 	};
 </script>
 
-<svelte:window on:click={handleClickOutside} />
+<svelte:window onclick={handleClickOutside} />
 
 <div
 	bind:this={ref}
@@ -279,12 +279,13 @@
 							<button
 								type="button"
 								class="hover:text-secondary-900"
+								aria-label="Remove {option?.label || selectedValue}"
 								onclick={(e) => {
 									e.stopPropagation();
 									selectOption(option || { value: selectedValue, label: selectedValue });
 								}}
 							>
-								<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
 									<path d="M18 6L6 18M6 6l12 12"/>
 								</svg>
 							</button>
@@ -309,20 +310,21 @@
 				<button
 					type="button"
 					class="p-1 hover:bg-secondary-100 rounded text-secondary-400 hover:text-secondary-600"
+					aria-label="Clear selection"
 					onclick={(e) => {
 						e.stopPropagation();
 						clearSelection();
 					}}
 				>
-					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
 						<path d="M18 6L6 18M6 6l12 12"/>
 					</svg>
 				</button>
 			{/if}
 			
 			<svg 
-				width="16" 
-				height="16" 
+				width="20" 
+				height="20" 
 				viewBox="0 0 24 24" 
 				fill="none" 
 				stroke="currentColor" 
@@ -414,7 +416,7 @@
 								</div>
 								
 								{#if selectedValues.includes(option.value)}
-									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-primary-600">
+									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-primary-600">
 										<polyline points="20,6 9,17 4,12"></polyline>
 									</svg>
 								{/if}

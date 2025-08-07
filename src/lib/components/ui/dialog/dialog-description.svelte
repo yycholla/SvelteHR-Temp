@@ -3,9 +3,8 @@
 	import { cn } from "$lib/utils.js";
 
 	let {
-		class: className,
 		ref = $bindable(null),
-		children,
+		class: className,
 		...restProps
 	}: DialogPrimitive.DescriptionProps = $props();
 </script>
@@ -13,8 +12,6 @@
 <DialogPrimitive.Description
 	bind:ref
 	data-slot="dialog-description"
-	class={cn("text-sm text-muted-foreground", className)}
+	class={cn("text-muted-foreground text-sm", className)}
 	{...restProps}
->
-	{@render children?.()}
-</DialogPrimitive.Description>
+/>

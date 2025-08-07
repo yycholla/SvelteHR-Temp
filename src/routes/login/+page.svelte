@@ -91,7 +91,7 @@
 						<Button 
 							variant="ghost" 
 							size="sm" 
-							on:click={fillDemoCredentials}
+							onclick={fillDemoCredentials}
 							class="text-amber-700 hover:text-amber-900 h-6 px-2"
 						>
 							Use Demo
@@ -139,7 +139,7 @@
 							<button
 								slot="suffix"
 								type="button"
-								on:click={togglePasswordVisibility}
+								onclick={togglePasswordVisibility}
 								class="text-gray-400 hover:text-gray-600 focus:outline-none"
 								tabindex="-1"
 							>

@@ -1,25 +1,37 @@
-import Dialog from "./dialog.svelte";
-import DialogContent from "./dialog-content.svelte";
-import DialogDescription from "./dialog-description.svelte";
-import DialogFooter from "./dialog-footer.svelte";
-import DialogHeader from "./dialog-header.svelte";
-import DialogTitle from "./dialog-title.svelte";
-import DialogTrigger from "./dialog-trigger.svelte";
+import { Dialog as DialogPrimitive } from "bits-ui";
+
+import Title from "./dialog-title.svelte";
+import Footer from "./dialog-footer.svelte";
+import Header from "./dialog-header.svelte";
+import Overlay from "./dialog-overlay.svelte";
+import Content from "./dialog-content.svelte";
+import Description from "./dialog-description.svelte";
+import Trigger from "./dialog-trigger.svelte";
+import Close from "./dialog-close.svelte";
+
+const Root = DialogPrimitive.Root;
+const Portal = DialogPrimitive.Portal;
 
 export {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
+	Root,
+	Title,
+	Portal,
+	Footer,
+	Header,
+	Trigger,
+	Overlay,
+	Content,
+	Description,
+	Close,
 	//
-	Dialog as Root,
-	DialogContent as Content,
-	DialogDescription as Description,
-	DialogFooter as Footer,
-	DialogHeader as Header,
-	DialogTitle as Title,
-	DialogTrigger as Trigger,
+	Root as Dialog,
+	Title as DialogTitle,
+	Portal as DialogPortal,
+	Footer as DialogFooter,
+	Header as DialogHeader,
+	Trigger as DialogTrigger,
+	Overlay as DialogOverlay,
+	Content as DialogContent,
+	Description as DialogDescription,
+	Close as DialogClose,
 };

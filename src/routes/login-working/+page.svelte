@@ -6,22 +6,17 @@
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
-	import { createSimpleLoginForm } from '$lib/forms/login-form-simple';
+	// Removed dependency on missing form library
 	import { User, Lock, Eye, EyeOff, Building2, Shield } from 'lucide-svelte';
 
-	// Form setup with simple approach
-	const { form, errors, isSubmitting, message, handleSubmit } = createSimpleLoginForm({
-		onSuccess: (data) => {
-			console.log('Login successful:', data);
-		},
-		onError: (error) => {
-			console.error('Login error:', error);
-		}
-	});
+	// Simple form state
+	let errors = $state({ username: '', password: '' });
+	let isSubmitting = $state(false);
+	let message = $state(null);
 
 	// UI state
-	let showPassword = false;
-	let formData = { username: '', password: '', rememberMe: false };
+	let showPassword = $state(false);
+	let formData = $state({ username: '', password: '', rememberMe: false });
 
 	// Toggle password visibility
 	function togglePasswordVisibility() {
@@ -36,7 +31,32 @@
 
 	// Handle form submission
 	async function onSubmit() {
-		await handleSubmit(formData);
+		isSubmitting = true;
+		errors = { username: '', password: '' };
+		
+		// Simple validation
+		if (!formData.username) {
+			errors.username = 'Username is required';
+		}
+		if (!formData.password) {
+			errors.password = 'Password is required';
+		}
+		
+		if (errors.username || errors.password) {
+			isSubmitting = false;
+			return;
+		}
+		
+		// Simulate API call
+		setTimeout(() => {
+			isSubmitting = false;
+			if (formData.username === 'admin' && formData.password === 'admin123') {
+				message = { type: 'success', text: 'Login successful!' };
+				console.log('Login successful:', formData);
+			} else {
+				message = { type: 'error', text: 'Invalid username or password' };
+			}
+		}, 1000);
 	}
 </script>
 
@@ -76,7 +96,7 @@
 						<Button 
 							variant="ghost" 
 							size="sm" 
-							on:click={fillDemoCredentials}
+							onclick={fillDemoCredentials}
 							class="text-amber-700 hover:text-amber-900 h-6 px-2"
 						>
 							Use Demo
@@ -85,14 +105,14 @@
 				</div>
 
 				<!-- Error Message -->
-				{#if $message && $message.type === 'error'}
+				{#if message && message.type === 'error'}
 					<Alert variant="destructive">
-						<AlertDescription>{$message.text}</AlertDescription>
+						<AlertDescription>{message.text}</AlertDescription>
 					</Alert>
 				{/if}
 
 				<!-- Login Form -->
-				<form on:submit|preventDefault={onSubmit} class="space-y-4">
+				<form onsubmit={(e) => { e.preventDefault(); onSubmit(); }} class="space-y-4">
 					<!-- Username Field -->
 					<div class="space-y-2">
 						<InputGroup
@@ -101,8 +121,8 @@
 							placeholder="Enter your username"
 							prefixIcon={User}
 							bind:value={formData.username}
-							error={$errors.username}
-							disabled={$isSubmitting}
+							error={errors.username}
+							disabled={isSubmitting}
 							autocomplete="username"
 						/>
 					</div>
@@ -115,14 +135,14 @@
 							placeholder="Enter your password"
 							prefixIcon={Lock}
 							bind:value={formData.password}
-							error={$errors.password}
-							disabled={$isSubmitting}
+							error={errors.password}
+							disabled={isSubmitting}
 							autocomplete="current-password"
 						>
 							<button
 								slot="suffix"
 								type="button"
-								on:click={togglePasswordVisibility}
+								onclick={togglePasswordVisibility}
 								class="text-gray-400 hover:text-gray-600 focus:outline-none"
 								tabindex="-1"
 							>
@@ -140,7 +160,7 @@
 						<Checkbox 
 							id="rememberMe" 
 							bind:checked={formData.rememberMe}
-							disabled={$isSubmitting}
+							disabled={isSubmitting}
 						/>
 						<label for="rememberMe" class="text-sm text-gray-700">
 							Remember me for 7 days
@@ -153,9 +173,9 @@
 						variant="default" 
 						size="lg" 
 						class="w-full"
-						disabled={$isSubmitting}
+						disabled={isSubmitting}
 					>
-						{#if $isSubmitting}
+						{#if isSubmitting}
 							Signing in...
 						{:else}
 							Sign In

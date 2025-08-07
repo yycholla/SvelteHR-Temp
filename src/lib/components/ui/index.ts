@@ -36,6 +36,7 @@ export {
 } from "./card/index.js";
 export { Checkbox } from "./checkbox/index.js";
 export { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "./dialog/index.js";
+export { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./dropdown-menu/index.js";
 export { Input, InputGroup } from "./input/index.js";
 export { Label } from "./label/index.js";
 export { Progress } from "./progress/index.js";
