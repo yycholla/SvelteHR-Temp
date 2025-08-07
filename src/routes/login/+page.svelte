@@ -36,6 +36,10 @@
 			await goto(redirectTo, { replaceState: true });
 		} catch (error) {
 			// User not authenticated, show login form
+			// Only log non-authentication errors to avoid spam
+			if (error && typeof error === 'object' && 'code' in error && error.code !== 'UNAUTHORIZED') {
+				console.error('Unexpected auth check error:', error);
+			}
 		}
 	});
 

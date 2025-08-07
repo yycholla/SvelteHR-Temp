@@ -9,22 +9,28 @@ export const loginSchema = z.object({
 	password: z
 		.string()
 		.min(1, 'Password is required')
-		.min(6, 'Password must be at least 6 characters')
 		.max(100, 'Password must be less than 100 characters'),
 	rememberMe: z.boolean().default(false).optional(),
 });
 
 // User profile schema (based on backend User model)
 export const userSchema = z.object({
-	id: z.string(),
+	id: z.union([z.string(), z.number()]).transform(val => String(val)),
 	username: z.string(),
 	email: z.string().email(),
 	firstName: z.string(),
 	lastName: z.string(),
-	isActive: z.boolean(),
-	role: z.enum(['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE']),
-	createdAt: z.string().datetime(),
-	updatedAt: z.string().datetime(),
+	isActive: z.boolean().optional().default(true),
+	role: z.union([
+		z.string(),
+		z.object({
+			name: z.string(),
+			id: z.union([z.string(), z.number()]).optional(),
+			code: z.string().optional()
+		}).transform(obj => obj.name || obj.code || 'EMPLOYEE')
+	]),
+	createdAt: z.string().datetime().optional(),
+	updatedAt: z.string().datetime().optional(),
 });
 
 // JWT token payload schema
