@@ -33,14 +33,24 @@ export const userSchema = z.object({
 	updatedAt: z.string().datetime().optional(),
 });
 
-// JWT token payload schema
+// JWT token payload schema (matching backend structure)
 export const tokenPayloadSchema = z.object({
-	userId: z.string(),
-	username: z.string(),
-	role: z.string(),
+	user_id: z.number().transform(val => String(val)), // Transform to string for consistency
+	email: z.string(),
+	role_id: z.number().transform(val => `ROLE_${val}`), // Transform to role string
+	iss: z.string().optional(),
+	sub: z.string().optional(),
 	exp: z.number(),
+	nbf: z.number().optional(),
 	iat: z.number(),
-});
+}).transform(payload => ({
+	// Transform to the expected frontend format
+	userId: String(payload.user_id),
+	username: payload.email, // Use email as username
+	role: payload.role_id,
+	exp: payload.exp,
+	iat: payload.iat,
+}));
 
 // Password reset schema
 export const passwordResetSchema = z.object({

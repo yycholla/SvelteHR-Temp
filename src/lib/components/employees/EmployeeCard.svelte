@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Mail, Phone, MapPin, MoreHorizontal, Edit, Eye, MessageCircle } from 'lucide-svelte';
+	import { formatHireDate } from '$lib/utils/date';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import Badge from '$lib/components/ui/badge/badge.svelte';
 	import Avatar from '$lib/components/ui/avatar/avatar.svelte';
@@ -10,6 +11,7 @@
 	import DropdownMenuContent from '$lib/components/ui/dropdown-menu/dropdown-menu-content.svelte';
 	import DropdownMenuItem from '$lib/components/ui/dropdown-menu/dropdown-menu-item.svelte';
 	import type { Employee } from '$lib/data/mockEmployees.js';
+	import { goto } from '$app/navigation';
 
 	let { employee }: { employee: Employee } = $props();
 
@@ -41,18 +43,16 @@
 	}
 
 	function viewEmployee() {
-		console.log('Viewing employee:', employee.id);
-		// TODO: Open employee details modal/page
+		goto(`/employees/${employee.id}`);
 	}
 
 	function editEmployee() {
-		console.log('Editing employee:', employee.id);
-		// TODO: Open edit employee modal
+		goto(`/employees/${employee.id}/edit`);
 	}
 
 	function messageEmployee() {
+		// TODO: Implement messaging functionality
 		console.log('Messaging employee:', employee.id);
-		// TODO: Open messaging interface
 	}
 </script>
 
@@ -134,11 +134,7 @@
 
 		<!-- Footer with Hire Date -->
 		<div class="text-xs text-muted-foreground border-t border-border/20 pt-3">
-			Hired {new Date(employee.hireDate).toLocaleDateString('en-US', { 
-				year: 'numeric', 
-				month: 'short', 
-				day: 'numeric' 
-			})}
+Hired {formatHireDate(employee.hireDate)}
 		</div>
 
 		<!-- Quick Actions (visible on hover) -->

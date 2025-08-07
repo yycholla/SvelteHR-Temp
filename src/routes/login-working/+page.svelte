@@ -65,23 +65,23 @@
 	<meta name="description" content="Sign in to your SvelteHR account" />
 </svelte:head>
 
-<div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+<div class="min-h-screen bg-gradient-to-br from-yellow-100/50 via-blue-100/40 to-blue-200/60 dark:from-yellow-900/20 dark:via-blue-900/25 dark:to-blue-800/30 flex items-center justify-center p-4">
 	<div class="w-full max-w-md">
 		<!-- Header -->
 		<div class="text-center mb-8">
-			<div class="mx-auto w-16 h-16 bg-primary-600 rounded-full flex items-center justify-center mb-4">
-				<Building2 class="w-8 h-8 text-white" />
+			<div class="mx-auto w-16 h-16 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center mb-6 shadow-lg backdrop-blur-md border border-border/40">
+				<Building2 class="w-8 h-8 text-primary-foreground" />
 			</div>
-			<h1 class="text-3xl font-bold text-gray-900">Welcome back</h1>
-			<p class="text-gray-600 mt-2">Sign in to your SvelteHR account</p>
+			<h1 class="text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">Welcome back</h1>
+			<p class="text-muted-foreground mt-3 text-lg">Sign in to your SvelteHR account</p>
 		</div>
 
 		<!-- Login Card -->
-		<Card class="shadow-xl border-0">
+		<Card class="bg-background/20 backdrop-blur-md border border-border/40 shadow-xl rounded-2xl">
 			<CardHeader class="space-y-1 pb-6">
-				<CardTitle class="text-2xl text-center">Sign In</CardTitle>
-				<CardDescription class="text-center">
-					Enter your credentials to access your HR dashboard
+				<CardTitle class="text-2xl text-center bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">Sign In</CardTitle>
+				<CardDescription class="text-center text-muted-foreground">
+					Enter your credentials to access your HR portal
 				</CardDescription>
 			</CardHeader>
 

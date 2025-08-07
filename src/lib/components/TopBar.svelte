@@ -6,12 +6,11 @@
 	import AvatarImage from './ui/avatar/avatar-image.svelte';
 	import AvatarFallback from './ui/avatar/avatar-fallback.svelte';
 	import { Dialog, DialogContent, DialogTrigger } from './ui/dialog';
-	import DialogHeader from './ui/dialog/dialog-header.svelte';
-	import DialogTitle from './ui/dialog/dialog-title.svelte';
-	import DialogDescription from './ui/dialog/dialog-description.svelte';
+	import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from './ui/dropdown-menu';
 	import Badge from './ui/badge/badge.svelte';
 	import Separator from './ui/separator/separator.svelte';
 	import { createEventDispatcher } from 'svelte';
+	import { auth } from '$lib/stores/auth';
 
 	const dispatch = createEventDispatcher();
 
@@ -58,9 +57,9 @@
 
 	const unreadCount = notifications.filter((n) => n.unread).length;
 
-	// Navigation items for dashboard
+	// Navigation items
 	const navigationItems = [
-		{ href: '/', label: 'Home', icon: Home },
+		{ href: '/home', label: 'Home', icon: Home },
 		{ href: '/employees', label: 'Employees', icon: Users },
 		{ href: '/calendar', label: 'Calendar', icon: Calendar },
 		{ href: '/reports', label: 'Reports', icon: BarChart3 },
@@ -87,8 +86,8 @@
 	const searchEndX = $derived(searchFitsHorizontally ? Math.min(brandingEndX + (availableSpace / 2), windowWidth / 2) : windowWidth / 2);
 
 	function isActive(href: string) {
-		if (href === '/') {
-			return currentPath === '/';
+		if (href === '/home') {
+			return currentPath === '/home' || currentPath === '/';
 		}
 		return currentPath.startsWith(href);
 	}
@@ -117,6 +116,15 @@
 	function handleSearch() {
 		console.log('Searching for:', searchValue);
 		// Handle search logic here
+	}
+
+	async function handleSignOut() {
+		try {
+			await auth.logout();
+			// User will be redirected to login page automatically
+		} catch (error) {
+			console.error('Sign out error:', error);
+		}
 	}
 </script>
 
@@ -371,8 +379,8 @@
 
 		<!-- Notifications Container (lg+ screens only) -->
 		<div class="hidden lg:flex h-12 w-12 items-center justify-center rounded-full border border-border/40 bg-background/20 backdrop-blur-md shadow-xl">
-			<Dialog bind:open={notificationsOpen}>
-				<DialogTrigger>
+			<DropdownMenu bind:open={notificationsOpen}>
+				<DropdownMenuTrigger asChild>
 					<Button
 						variant="ghost"
 						size="icon"
@@ -388,51 +396,49 @@
 							</Badge>
 						{/if}
 					</Button>
-				</DialogTrigger>
-				<DialogContent class="rounded-2xl sm:max-w-md">
-					<DialogHeader>
-						<DialogTitle class="flex items-center justify-between">
-							Notifications
+				</DropdownMenuTrigger>
+				<DropdownMenuContent class="w-80 max-h-96 overflow-y-auto bg-background/95 backdrop-blur-md border border-border/40 shadow-xl" align="end" sideOffset={8}>
+					<div class="px-3 py-2 border-b border-border/40">
+						<div class="flex items-center justify-between">
+							<h4 class="text-sm font-semibold">Notifications</h4>
 							{#if unreadCount > 0}
-								<Button variant="ghost" size="sm" onclick={markAllRead}>Mark all read</Button>
+								<Button variant="ghost" size="sm" class="h-6 text-xs" onclick={markAllRead}>
+									Mark all read
+								</Button>
 							{/if}
-						</DialogTitle>
-						<DialogDescription>
+						</div>
+						<p class="text-xs text-muted-foreground">
 							You have {unreadCount} unread notifications
-						</DialogDescription>
-					</DialogHeader>
+						</p>
+					</div>
 
-					<div class="max-h-80 space-y-3 overflow-y-auto">
+					<div class="max-h-64 overflow-y-auto">
 						{#each notifications as notification (notification.id)}
-							<div
-								class="flex space-x-3 rounded-lg p-3 hover:bg-muted {notification.unread
-									? 'bg-accent/50'
-									: ''}"
-							>
-								<div class="flex-1">
+							<DropdownMenuItem class="flex-col items-start p-3 h-auto focus:bg-muted/50 {notification.unread ? 'bg-accent/30' : ''}">
+								<div class="w-full">
 									<div class="flex items-start justify-between">
 										<p class="text-sm font-medium">{notification.title}</p>
 										{#if notification.unread}
-											<div class="h-2 w-2 rounded-full bg-blue-500"></div>
+											<div class="h-2 w-2 rounded-full bg-blue-500 mt-1"></div>
 										{/if}
 									</div>
 									<p class="mt-1 text-sm text-muted-foreground">{notification.message}</p>
 									<p class="mt-2 text-xs text-muted-foreground">{notification.time}</p>
 								</div>
-							</div>
+							</DropdownMenuItem>
 							{#if notification !== notifications[notifications.length - 1]}
-								<Separator />
+								<DropdownMenuSeparator />
 							{/if}
 						{/each}
 					</div>
-				</DialogContent>
-			</Dialog>
+				</DropdownMenuContent>
+			</DropdownMenu>
 		</div>
 
 		<!-- User Menu Container (lg+ screens only) -->
 		<div class="hidden lg:flex h-12 w-12 items-center justify-center rounded-full border border-border/40 bg-background/20 backdrop-blur-md shadow-xl">
-			<Dialog bind:open={userMenuOpen}>
-				<DialogTrigger>
+			<DropdownMenu bind:open={userMenuOpen}>
+				<DropdownMenuTrigger asChild>
 					<Button
 						variant="ghost"
 						size="icon"
@@ -443,44 +449,41 @@
 							<AvatarFallback class="bg-primary/10 font-semibold text-primary">JD</AvatarFallback>
 						</Avatar>
 					</Button>
-				</DialogTrigger>
-				<DialogContent class="rounded-2xl sm:max-w-sm">
-					<DialogHeader>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent class="w-56 bg-background/95 backdrop-blur-md border border-border/40 shadow-xl" align="end" sideOffset={8}>
+					<div class="px-3 py-2 border-b border-border/40">
 						<div class="flex items-center space-x-3">
-							<Avatar>
+							<Avatar size="sm">
 								<AvatarImage src="https://github.com/shadcn.png" alt="User" />
-								<AvatarFallback class="bg-primary/10 font-semibold text-primary"
-									>JD</AvatarFallback
-								>
+								<AvatarFallback class="bg-primary/10 font-semibold text-primary">JD</AvatarFallback>
 							</Avatar>
 							<div>
-								<DialogTitle>John Doe</DialogTitle>
-								<DialogDescription>HR Manager</DialogDescription>
+								<p class="text-sm font-medium">John Doe</p>
+								<p class="text-xs text-muted-foreground">HR Manager</p>
 							</div>
 						</div>
-					</DialogHeader>
+					</div>
 
-					<div class="space-y-1">
-						<Button variant="ghost" class="h-9 w-full justify-start rounded-xl">
+					<div class="py-1">
+						<DropdownMenuItem class="cursor-pointer">
 							<User class="mr-3 h-4 w-4" />
 							Profile
-						</Button>
-						<Button variant="ghost" class="h-9 w-full justify-start rounded-xl">
+						</DropdownMenuItem>
+						<DropdownMenuItem class="cursor-pointer">
 							<Settings class="mr-3 h-4 w-4" />
 							Settings
-						</Button>
-						<Separator />
-						<Button
-							variant="ghost"
-							class="h-9 w-full justify-start rounded-xl text-destructive hover:text-destructive"
-							onclick={() => console.log('Sign out')}
+						</DropdownMenuItem>
+						<DropdownMenuSeparator />
+						<DropdownMenuItem 
+							class="cursor-pointer text-destructive focus:text-destructive"
+							onclick={handleSignOut}
 						>
 							<LogOut class="mr-3 h-4 w-4" />
 							Sign out
-						</Button>
+						</DropdownMenuItem>
 					</div>
-				</DialogContent>
-			</Dialog>
+				</DropdownMenuContent>
+			</DropdownMenu>
 		</div>
 		</div>
 	</div>
@@ -533,8 +536,8 @@
 					</Button>
 
 					<!-- Notifications -->
-					<Dialog bind:open={notificationsOpen}>
-						<DialogTrigger>
+					<DropdownMenu bind:open={notificationsOpen}>
+						<DropdownMenuTrigger asChild>
 							<Button
 								variant="ghost"
 								size="icon"
@@ -550,98 +553,91 @@
 									</Badge>
 								{/if}
 							</Button>
-						</DialogTrigger>
-						<DialogContent class="rounded-2xl sm:max-w-md">
-							<DialogHeader>
-								<DialogTitle class="flex items-center justify-between">
-									Notifications
+						</DropdownMenuTrigger>
+						<DropdownMenuContent class="w-80 max-h-96 overflow-y-auto bg-background/95 backdrop-blur-md border border-border/40 shadow-xl" align="end" sideOffset={8}>
+							<div class="px-3 py-2 border-b border-border/40">
+								<div class="flex items-center justify-between">
+									<h4 class="text-sm font-semibold">Notifications</h4>
 									{#if unreadCount > 0}
-										<Button variant="ghost" size="sm" onclick={markAllRead}>Mark all read</Button>
+										<Button variant="ghost" size="sm" class="h-6 text-xs" onclick={markAllRead}>
+											Mark all read
+										</Button>
 									{/if}
-								</DialogTitle>
-								<DialogDescription>
+								</div>
+								<p class="text-xs text-muted-foreground">
 									You have {unreadCount} unread notifications
-								</DialogDescription>
-							</DialogHeader>
+								</p>
+							</div>
 
-							<div class="max-h-80 space-y-3 overflow-y-auto">
+							<div class="max-h-64 overflow-y-auto">
 								{#each notifications as notification (notification.id)}
-									<div
-										class="flex space-x-3 rounded-lg p-3 hover:bg-muted {notification.unread
-											? 'bg-accent/50'
-											: ''}"
-									>
-										<div class="flex-1">
+									<DropdownMenuItem class="flex-col items-start p-3 h-auto focus:bg-muted/50 {notification.unread ? 'bg-accent/30' : ''}">
+										<div class="w-full">
 											<div class="flex items-start justify-between">
 												<p class="text-sm font-medium">{notification.title}</p>
 												{#if notification.unread}
-													<div class="h-2 w-2 rounded-full bg-blue-500"></div>
+													<div class="h-2 w-2 rounded-full bg-blue-500 mt-1"></div>
 												{/if}
 											</div>
 											<p class="mt-1 text-sm text-muted-foreground">{notification.message}</p>
 											<p class="mt-2 text-xs text-muted-foreground">{notification.time}</p>
 										</div>
-									</div>
+									</DropdownMenuItem>
 									{#if notification !== notifications[notifications.length - 1]}
-										<Separator />
+										<DropdownMenuSeparator />
 									{/if}
 								{/each}
 							</div>
-						</DialogContent>
-					</Dialog>
+						</DropdownMenuContent>
+					</DropdownMenu>
 
 					<!-- User Menu -->
-					<Dialog bind:open={userMenuOpen}>
-						<DialogTrigger>
+					<DropdownMenu bind:open={userMenuOpen}>
+						<DropdownMenuTrigger asChild>
 							<Button
 								variant="ghost"
 								class="relative h-9 w-9 rounded-full transition-all duration-200 hover:scale-105"
 							>
 								<Avatar size="sm">
 									<AvatarImage src="https://github.com/shadcn.png" alt="User" />
-									<AvatarFallback class="bg-primary/10 font-semibold text-primary"
-										>JD</AvatarFallback
-									>
+									<AvatarFallback class="bg-primary/10 font-semibold text-primary">JD</AvatarFallback>
 								</Avatar>
 							</Button>
-						</DialogTrigger>
-						<DialogContent class="rounded-2xl sm:max-w-sm">
-							<DialogHeader>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent class="w-56 bg-background/95 backdrop-blur-md border border-border/40 shadow-xl" align="end" sideOffset={8}>
+							<div class="px-3 py-2 border-b border-border/40">
 								<div class="flex items-center space-x-3">
-									<Avatar>
+									<Avatar size="sm">
 										<AvatarImage src="https://github.com/shadcn.png" alt="User" />
-										<AvatarFallback class="bg-primary/10 font-semibold text-primary"
-											>JD</AvatarFallback
-										>
+										<AvatarFallback class="bg-primary/10 font-semibold text-primary">JD</AvatarFallback>
 									</Avatar>
 									<div>
-										<DialogTitle>John Doe</DialogTitle>
-										<DialogDescription>HR Manager</DialogDescription>
+										<p class="text-sm font-medium">John Doe</p>
+										<p class="text-xs text-muted-foreground">HR Manager</p>
 									</div>
 								</div>
-							</DialogHeader>
+							</div>
 
-							<div class="space-y-1">
-								<Button variant="ghost" class="h-9 w-full justify-start rounded-xl">
+							<div class="py-1">
+								<DropdownMenuItem class="cursor-pointer">
 									<User class="mr-3 h-4 w-4" />
 									Profile
-								</Button>
-								<Button variant="ghost" class="h-9 w-full justify-start rounded-xl">
+								</DropdownMenuItem>
+								<DropdownMenuItem class="cursor-pointer">
 									<Settings class="mr-3 h-4 w-4" />
 									Settings
-								</Button>
-								<Separator />
-								<Button
-									variant="ghost"
-									class="h-9 w-full justify-start rounded-xl text-destructive hover:text-destructive"
-									onclick={() => console.log('Sign out')}
+								</DropdownMenuItem>
+								<DropdownMenuSeparator />
+								<DropdownMenuItem 
+									class="cursor-pointer text-destructive focus:text-destructive"
+									onclick={handleSignOut}
 								>
 									<LogOut class="mr-3 h-4 w-4" />
 									Sign out
-								</Button>
+								</DropdownMenuItem>
 							</div>
-						</DialogContent>
-					</Dialog>
+						</DropdownMenuContent>
+					</DropdownMenu>
 				</div>
 			</div>
 		</div>

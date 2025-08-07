@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { ChevronDown, ChevronUp, Mail, Phone, Edit, Eye, MoreHorizontal } from 'lucide-svelte';
+	import { formatHireDate } from '$lib/utils/date';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import Badge from '$lib/components/ui/badge/badge.svelte';
 	import Avatar from '$lib/components/ui/avatar/avatar.svelte';
@@ -10,6 +11,7 @@
 	import DropdownMenuContent from '$lib/components/ui/dropdown-menu/dropdown-menu-content.svelte';
 	import DropdownMenuItem from '$lib/components/ui/dropdown-menu/dropdown-menu-item.svelte';
 	import type { Employee } from '$lib/data/mockEmployees.js';
+	import { goto } from '$app/navigation';
 
 	let { employees }: { employees: Employee[] } = $props();
 
@@ -42,8 +44,8 @@
 					bValue = b.status;
 					break;
 				case 'hireDate':
-					aValue = new Date(a.hireDate);
-					bValue = new Date(b.hireDate);
+					aValue = a.hireDate ? new Date(a.hireDate) : new Date(0);
+					bValue = b.hireDate ? new Date(b.hireDate) : new Date(0);
 					break;
 				default:
 					aValue = '';
@@ -93,13 +95,11 @@
 	}
 
 	function viewEmployee(employee: Employee) {
-		console.log('Viewing employee:', employee.id);
-		// TODO: Open employee details
+		goto(`/employees/${employee.id}`);
 	}
 
 	function editEmployee(employee: Employee) {
-		console.log('Editing employee:', employee.id);
-		// TODO: Open edit modal
+		goto(`/employees/${employee.id}/edit`);
 	}
 </script>
 
@@ -248,11 +248,7 @@
 						<!-- Hire Date -->
 						<td class="p-4">
 							<div class="text-sm text-foreground">
-								{new Date(employee.hireDate).toLocaleDateString('en-US', { 
-									year: 'numeric', 
-									month: 'short', 
-									day: 'numeric' 
-								})}
+{formatHireDate(employee.hireDate)}
 							</div>
 						</td>
 

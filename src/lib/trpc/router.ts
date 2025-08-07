@@ -1,7 +1,7 @@
 import { initTRPC, TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import type { Context } from './context';
-import { api } from '$lib/api/client';
+import { apiClient } from '$lib/api/client';
 import { 
 	userSchema,
 	loginResponseSchema,
@@ -27,7 +27,7 @@ import {
 	employeeFilterSchema,
 	employeeListResponseSchema,
 	departmentSchema,
-	positionSchema,
+	embeddedPositionSchema as positionSchema,
 	type Employee,
 	type EmployeeFilter
 } from '$lib/schemas/employee';
@@ -62,7 +62,7 @@ const authRouter = t.router({
 		.output(loginResponseSchema)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const response = await api.auth.login(input);
+				const response = await apiClient.post('auth/login', input).json();
 				
 				// Set JWT cookie via SvelteKit
 				ctx.event.cookies.set('auth-token', response.token, {
@@ -85,7 +85,24 @@ const authRouter = t.router({
 	logout: protectedProcedure
 		.mutation(async ({ ctx }) => {
 			try {
-				await api.auth.logout();
+				// Get auth token for logout request
+				const token = ctx.event.cookies.get('auth-token');
+				
+				if (token) {
+					// Create server-side API client for logout
+					const serverApiClient = apiClient.extend({
+						hooks: {
+							beforeRequest: [
+								(request) => {
+									request.headers.set('Authorization', `Bearer ${token}`);
+									request.headers.set('Content-Type', 'application/json');
+								}
+							]
+						}
+					});
+					
+					await serverApiClient.post('auth/logout');
+				}
 			} finally {
 				// Clear JWT cookie
 				ctx.event.cookies.delete('auth-token', { path: '/' });
@@ -97,9 +114,32 @@ const authRouter = t.router({
 		.output(userSchema)
 		.query(async ({ ctx }) => {
 			try {
-				const user = await api.auth.getCurrentUser();
+				// Get auth token from cookies
+				const token = ctx.event.cookies.get('auth-token');
+				
+				if (!token) {
+					throw new TRPCError({
+						code: 'UNAUTHORIZED',
+						message: 'Authentication token not found',
+					});
+				}
+
+				// Create server-side API client with proper token handling
+				const serverApiClient = apiClient.extend({
+					hooks: {
+						beforeRequest: [
+							(request) => {
+								request.headers.set('Authorization', `Bearer ${token}`);
+								request.headers.set('Content-Type', 'application/json');
+							}
+						]
+					}
+				});
+
+				const user = await serverApiClient.get('auth/profile').json();
 				return userSchema.parse(user);
 			} catch (error: any) {
+				console.error('tRPC auth.me error:', error);
 				throw new TRPCError({
 					code: 'INTERNAL_SERVER_ERROR',
 					message: 'Failed to fetch user profile',
@@ -113,8 +153,30 @@ const employeeRouter = t.router({
 	list: protectedProcedure
 		.input(employeeFilterSchema)
 		.output(employeeListResponseSchema)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			try {
+				// Get auth token from cookies
+				const token = ctx.event.cookies.get('auth-token');
+				
+				if (!token) {
+					throw new TRPCError({
+						code: 'UNAUTHORIZED',
+						message: 'Authentication token not found',
+					});
+				}
+
+				// Create server-side API client with proper token handling
+				const serverApiClient = apiClient.extend({
+					hooks: {
+						beforeRequest: [
+							(request) => {
+								request.headers.set('Authorization', `Bearer ${token}`);
+								request.headers.set('Content-Type', 'application/json');
+							}
+						]
+					}
+				});
+
 				// Build query parameters
 				const params = new URLSearchParams();
 				if (input.search) params.append('search', input.search);
@@ -129,7 +191,7 @@ const employeeRouter = t.router({
 				params.append('sortBy', input.sortBy);
 				params.append('sortOrder', input.sortOrder);
 				
-				const response = await api.get(`employees?${params.toString()}`);
+				const response = await serverApiClient.get(`employees?${params.toString()}`).json();
 				return employeeListResponseSchema.parse(response);
 			} catch (error: any) {
 				throw new TRPCError({
@@ -142,9 +204,31 @@ const employeeRouter = t.router({
 	getById: protectedProcedure
 		.input(z.object({ id: z.string() }))
 		.output(employeeSchema)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			try {
-				const employee = await api.get(`employees/${input.id}`);
+				// Get auth token from cookies
+				const token = ctx.event.cookies.get('auth-token');
+				
+				if (!token) {
+					throw new TRPCError({
+						code: 'UNAUTHORIZED',
+						message: 'Authentication token not found',
+					});
+				}
+
+				// Create server-side API client with proper token handling
+				const serverApiClient = apiClient.extend({
+					hooks: {
+						beforeRequest: [
+							(request) => {
+								request.headers.set('Authorization', `Bearer ${token}`);
+								request.headers.set('Content-Type', 'application/json');
+							}
+						]
+					}
+				});
+
+				const employee = await serverApiClient.get(`employees/${input.id}`).json();
 				return employeeSchema.parse(employee);
 			} catch (error: any) {
 				if (error.response?.status === 404) {
@@ -165,9 +249,31 @@ const employeeRouter = t.router({
 const departmentRouter = t.router({
 	list: protectedProcedure
 		.output(z.array(departmentSchema))
-		.query(async () => {
+		.query(async ({ ctx }) => {
 			try {
-				const departments = await api.get('departments');
+				// Get auth token from cookies
+				const token = ctx.event.cookies.get('auth-token');
+				
+				if (!token) {
+					throw new TRPCError({
+						code: 'UNAUTHORIZED',
+						message: 'Authentication token not found',
+					});
+				}
+
+				// Create server-side API client with proper token handling
+				const serverApiClient = apiClient.extend({
+					hooks: {
+						beforeRequest: [
+							(request) => {
+								request.headers.set('Authorization', `Bearer ${token}`);
+								request.headers.set('Content-Type', 'application/json');
+							}
+						]
+					}
+				});
+
+				const departments = await serverApiClient.get('departments').json();
 				return z.array(departmentSchema).parse(departments);
 			} catch (error: any) {
 				throw new TRPCError({
@@ -183,12 +289,34 @@ const positionRouter = t.router({
 	list: protectedProcedure
 		.input(z.object({ departmentId: z.string().optional() }))
 		.output(z.array(positionSchema))
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			try {
+				// Get auth token from cookies
+				const token = ctx.event.cookies.get('auth-token');
+				
+				if (!token) {
+					throw new TRPCError({
+						code: 'UNAUTHORIZED',
+						message: 'Authentication token not found',
+					});
+				}
+
+				// Create server-side API client with proper token handling
+				const serverApiClient = apiClient.extend({
+					hooks: {
+						beforeRequest: [
+							(request) => {
+								request.headers.set('Authorization', `Bearer ${token}`);
+								request.headers.set('Content-Type', 'application/json');
+							}
+						]
+					}
+				});
+
 				const endpoint = input.departmentId 
 					? `positions?departmentId=${input.departmentId}`
 					: 'positions';
-				const positions = await api.get(endpoint);
+				const positions = await serverApiClient.get(endpoint).json();
 				return z.array(positionSchema).parse(positions);
 			} catch (error: any) {
 				throw new TRPCError({
@@ -198,6 +326,7 @@ const positionRouter = t.router({
 			}
 		}),
 });
+
 
 // Main app router
 export const appRouter = t.router({

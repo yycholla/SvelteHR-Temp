@@ -1,9 +1,10 @@
 import ky from 'ky';
 import { dev } from '$app/environment';
 import { browser } from '$app/environment';
+import { errorHandler } from '$lib/utils/error-handler';
 
 // Base API configuration
-const API_BASE_URL = dev ? 'http://localhost:8080' : 'https://api.mountainhr.com';
+const API_BASE_URL = dev ? 'http://localhost:8080/api/v1' : 'https://api.mountainhr.com/api/v1';
 
 // Helper to get cookie value in browser
 function getCookie(name: string): string | undefined {
@@ -24,6 +25,8 @@ function removeCookie(name: string): void {
 export const apiClient = ky.create({
 	prefixUrl: API_BASE_URL,
 	timeout: 30000,
+	credentials: 'include', // Important for CORS with cookies
+	mode: 'cors', // Explicitly set CORS mode
 	retry: {
 		limit: 2,
 		methods: ['get'],
@@ -35,8 +38,16 @@ export const apiClient = ky.create({
 				// Add JWT token to requests (browser only)
 				if (browser) {
 					const token = getCookie('auth-token');
+					console.log('🔍 API Client beforeRequest - Token found:', !!token);
+					console.log('🔍 Request URL:', request.url);
+					console.log('🔍 Request method:', request.method);
+					
 					if (token) {
 						request.headers.set('Authorization', `Bearer ${token}`);
+						console.log('✅ Authorization header set for request');
+						console.log('📋 All request headers:', Array.from(request.headers.entries()));
+					} else {
+						console.log('❌ No auth token found in cookie');
 					}
 				}
 				
@@ -64,6 +75,37 @@ export const apiClient = ky.create({
 				return response;
 			},
 		],
+		beforeError: [
+			async (error) => {
+				// Enhanced error handling with context
+				const request = error.request;
+				const response = error.response;
+				
+				const errorContext = {
+					endpoint: request.url.replace(API_BASE_URL, ''),
+					requestData: request.body ? await request.clone().json().catch(() => null) : undefined,
+					userAgent: browser ? navigator.userAgent : undefined
+				};
+
+				// Use centralized error handler
+				const handledError = await errorHandler.handleError(
+					error, 
+					errorContext, 
+					response?.status
+				);
+
+				// Log detailed error information
+				console.error('API Error:', {
+					url: request.url,
+					method: request.method,
+					status: response?.status,
+					statusText: response?.statusText,
+					error: handledError
+				});
+
+				return error;
+			}
+		]
 	},
 });
 
@@ -94,7 +136,7 @@ export const api = {
 			}
 		},
 		
-		getCurrentUser: () => apiClient.get('auth/me').json(),
+		getCurrentUser: () => apiClient.get('auth/profile').json(),
 	},
 	
 	// Generic CRUD operations

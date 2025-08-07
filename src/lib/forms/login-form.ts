@@ -51,7 +51,7 @@ export function createLoginForm(options: LoginFormOptions = {}) {
 				const redirectTo = 
 					options.redirectTo || 
 					currentPage.url.searchParams.get('redirectTo') || 
-					'/dashboard';
+					'/home';
 
 				await goto(redirectTo, { replaceState: true });
 

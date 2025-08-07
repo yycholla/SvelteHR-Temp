@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { ChevronRight, ChevronDown, Mail, Phone, Edit, Eye, MapPin, Calendar, DollarSign, User, Award } from 'lucide-svelte';
+	import { formatHireDate, formatTenure } from '$lib/utils/date';
 	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import Badge from '$lib/components/ui/badge/badge.svelte';
@@ -8,6 +9,7 @@
 	import AvatarFallback from '$lib/components/ui/avatar/avatar-fallback.svelte';
 	import Separator from '$lib/components/ui/separator/separator.svelte';
 	import type { Employee } from '$lib/data/mockEmployees.js';
+	import { goto } from '$app/navigation';
 
 	let {
 		employee,
@@ -72,14 +74,15 @@
 
 	// Action handlers
 	function viewEmployee() {
-		console.log('Viewing employee:', employee.id);
+		goto(`/employees/${employee.id}`);
 	}
 
 	function editEmployee() {
-		console.log('Editing employee:', employee.id);
+		goto(`/employees/${employee.id}/edit`);
 	}
 
 	function messageEmployee() {
+		// TODO: Implement messaging functionality
 		console.log('Messaging employee:', employee.id);
 	}
 </script>
@@ -161,11 +164,7 @@
 
 		<!-- Hire Date -->
 		<div class="text-sm text-foreground whitespace-nowrap">
-			{new Date(employee.hireDate).toLocaleDateString('en-US', { 
-				year: 'numeric', 
-				month: 'short', 
-				day: 'numeric' 
-			})}
+{formatHireDate(employee.hireDate)}
 		</div>
 
 		<!-- Actions -->
@@ -195,11 +194,7 @@
 								<Calendar class="h-3 w-3 text-muted-foreground" />
 								<span class="text-muted-foreground">Hired:</span>
 								<span class="font-medium">
-									{new Date(employee.hireDate).toLocaleDateString('en-US', { 
-										year: 'numeric', 
-										month: 'long', 
-										day: 'numeric' 
-									})}
+									{formatHireDate(employee.hireDate)}
 								</span>
 							</div>
 							{#if employee.salary}
@@ -270,7 +265,7 @@
 					Employee ID: {employee.employeeId} • 
 					Department: {employee.department.name} • 
 					Status: {employee.status.replace('_', ' ')} • 
-					Tenure: {Math.floor((Date.now() - new Date(employee.hireDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000))} year(s)
+Tenure: {formatTenure(employee.hireDate)}
 				</div>
 			</div>
 		</div>
