@@ -15,5 +15,5 @@
 	class={cn("outline-none", className)}
 	{...restProps}
 >
-	{@render children()}
+	{@render children?.()}
 </DropdownMenuPrimitive.Trigger>

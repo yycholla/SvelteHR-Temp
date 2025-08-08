@@ -192,7 +192,8 @@ export const CACHE_KEYS = {
 	EMPLOYEES: 'employees',
 	DEPARTMENTS: 'departments',
 	ROLES: 'roles',
-	EMPLOYEE_DETAIL: 'employee'
+	EMPLOYEE_DETAIL: 'employee',
+	DASHBOARD: 'dashboard'
 } as const;
 
 export const CACHE_TTL = {

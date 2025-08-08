@@ -62,8 +62,8 @@
 		{ href: '/home', label: 'Home', icon: Home },
 		{ href: '/employees', label: 'Employees', icon: Users },
 		{ href: '/calendar', label: 'Calendar', icon: Calendar },
-		{ href: '/reports', label: 'Reports', icon: BarChart3 },
-		{ href: '/settings', label: 'Settings', icon: Settings }
+		{ href: '/hr', label: 'HR', icon: Users },
+		{ href: '/admin', label: 'Admin', icon: Settings }
 	];
 
 	// State for responsive behavior

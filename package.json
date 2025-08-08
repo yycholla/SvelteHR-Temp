@@ -76,6 +76,7 @@
 		"jsonwebtoken": "^9.0.2",
 		"ky": "^1.8.2",
 		"lucide-svelte": "^0.536.0",
+		"svelte-dnd-action": "^0.9.64",
 		"sveltekit-superforms": "^2.27.1",
 		"zod": "^4.0.14"
 	}

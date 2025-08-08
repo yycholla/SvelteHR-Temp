@@ -3,7 +3,7 @@ import { error, redirect } from '@sveltejs/kit';
 import { apiClient } from '$lib/api/client';
 import { employeeSchema, departmentSchema } from '$lib/schemas/employee';
 import { mockEmployees, departments as mockDepartments } from '$lib/data/mockEmployees';
-import { apiCache, CACHE_KEYS } from '$lib/api/cache';
+import { apiCache, CACHE_KEYS, CACHE_TTL } from '$lib/api/cache';
 
 export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 	const { id } = params;
@@ -36,10 +36,11 @@ export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 				}
 			});
 
-			// Check cache first for employee, departments, and roles
+			// Check cache first for employee, departments, roles, and managers
 			const cachedEmployee = apiCache.get(CACHE_KEYS.EMPLOYEE_DETAIL, { id });
 			const cachedDepartments = apiCache.get(CACHE_KEYS.DEPARTMENTS);
 			const cachedRoles = apiCache.get(CACHE_KEYS.ROLES);
+			const cachedManagers = apiCache.get('MANAGERS');
 			
 			// Fetch employee data and form options in parallel (skip if cached)
 			const apiCalls: Promise<any>[] = [];
@@ -62,9 +63,16 @@ export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 				apiCalls.push(Promise.resolve(cachedRoles));
 			}
 			
-			const [employeeResponse, departmentsResponse, rolesResponse] = await Promise.allSettled(apiCalls);
+			if (!cachedManagers) {
+				// Fetch employees with manager roles or who are marked as managers
+				apiCalls.push(serverApiClient.get('employees?pageSize=100').json());
+			} else {
+				apiCalls.push(Promise.resolve(cachedManagers));
+			}
+			
+			const [employeeResponse, departmentsResponse, rolesResponse, managersResponse] = await Promise.allSettled(apiCalls);
 
-			// Check if API calls were successful
+			// Check if critical API calls were successful (managers is optional)
 			if (employeeResponse.status === 'fulfilled' && 
 			    departmentsResponse.status === 'fulfilled' && 
 			    rolesResponse.status === 'fulfilled') {
@@ -84,6 +92,22 @@ export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 				const employee = cachedEmployee || employeeSchema.parse(employeeResponse.value);
 				const departments = cachedDepartments || departmentsResponse.value;
 				const roles = cachedRoles || rolesResponse.value;
+				
+				// Extract managers from employees list or use cached data (fallback to empty array if failed)
+				let managers = [];
+				if (cachedManagers) {
+					managers = cachedManagers;
+				} else if (managersResponse.status === 'fulfilled') {
+					const allEmployeesData = managersResponse.value;
+					managers = (allEmployeesData?.data || allEmployeesData?.employees || [])
+						.filter((emp: any) => emp.IsManager || emp.isManager)
+						.map((emp: any) => ({
+							id: emp.id,
+							firstName: emp.firstName,
+							lastName: emp.lastName,
+							jobTitle: emp.JobInformation?.JobTitle || emp.jobTitle || ''
+						}));
+				}
 				
 				console.log('🔍 Schema-transformed employee (edit):', JSON.stringify(employee, null, 2));
 				console.log('🔍 Schema-transformed keys (edit):', Object.keys(employee));
@@ -105,11 +129,15 @@ export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 				if (!cachedRoles) {
 					apiCache.set(CACHE_KEYS.ROLES, roles, undefined, CACHE_TTL.LONG);
 				}
+				if (!cachedManagers && managers.length > 0) {
+					apiCache.set('MANAGERS', managers, undefined, CACHE_TTL.MEDIUM);
+				}
 
 				return {
 					employee,
 					departments,
 					roles,
+					managers,
 					isUsingMockData: false
 				};
 			} else {
@@ -128,6 +156,9 @@ export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 				}
 				if (rolesResponse.status === 'rejected') {
 					console.error(`❌ Roles API error:`, rolesResponse.reason);
+				}
+				if (managersResponse.status === 'rejected') {
+					console.error(`❌ Managers API error:`, managersResponse.reason);
 				}
 				
 				// Throw error for failed API calls
@@ -197,6 +228,7 @@ export const actions: Actions = {
 				jobTitle: formData.get('jobTitle') as string,
 				departmentId: formData.get('departmentId') ? parseInt(formData.get('departmentId') as string) : null,
 				roleId: formData.get('roleId') ? parseInt(formData.get('roleId') as string) : null,
+				managerId: formData.get('managerId') ? parseInt(formData.get('managerId') as string) : null,
 				employmentType: formData.get('employmentType') as string || null,
 				hireDate: formData.get('hireDate') as string || null,
 				dateOfBirth: formData.get('dateOfBirth') as string || null,

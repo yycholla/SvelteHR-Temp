@@ -5,7 +5,7 @@
 	import Button from '$lib/components/ui/button/button.svelte';
 	import Input from '$lib/components/ui/input/input.svelte';
 	import Label from '$lib/components/ui/label/label.svelte';
-	import Select from '$lib/components/ui/select/select-searchable.svelte';
+	import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '$lib/components/ui/select';
 	import Textarea from '$lib/components/ui/textarea/textarea.svelte';
 	import Card from '$lib/components/ui/card/card.svelte';
 	import CardHeader from '$lib/components/ui/card/card-header.svelte';
@@ -17,7 +17,7 @@
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
-	const { employee, departments, roles } = data;
+	const { employee, departments, roles, managers = [], isUsingMockData } = data;
 	
 	// Debug: Log the actual employee data we receive
 	console.log('🔍 Employee data received:', employee);
@@ -87,6 +87,14 @@
 		label: role.Name || role.name
 	}));
 
+	const managerOptions = [
+		{ value: '', label: 'No Manager' },
+		...managers.map((manager: any) => ({
+			value: manager.id.toString(),
+			label: `${manager.firstName} ${manager.lastName} - ${manager.jobTitle}`
+		}))
+	];
+
 	const employmentTypeOptions = [
 		{ value: 'Full-time', label: 'Full-time' },
 		{ value: 'Part-time', label: 'Part-time' },
@@ -105,6 +113,15 @@
 		{ value: 'Female', label: 'Female' },
 		{ value: 'Non-binary', label: 'Non-binary' },
 		{ value: 'Other', label: 'Other' }
+	];
+
+	const workAuthorizationOptions = [
+		{ value: '', label: 'Not specified' },
+		{ value: 'US_CITIZEN', label: 'US Citizen' },
+		{ value: 'PERMANENT_RESIDENT', label: 'Permanent Resident' },
+		{ value: 'H1B', label: 'H1B Visa' },
+		{ value: 'F1_OPT', label: 'F1 OPT' },
+		{ value: 'OTHER', label: 'Other' }
 	];
 
 	function goBack() {
@@ -154,7 +171,7 @@
 	<!-- Header -->
 	<div class="flex items-center justify-between mb-8">
 		<div class="flex items-center space-x-4">
-			<Button variant="ghost" onclick={goBack} class="rounded-2xl bg-background/20 backdrop-blur-md border-border/40 hover:bg-background/30 transition-all duration-200">
+			<Button variant="ghost" onclick={goBack} class="rounded-2xl bg-background hover:bg-background/90 transition-all duration-200">
 				<ArrowLeft class="h-4 w-4 mr-2" />
 				Cancel
 			</Button>
@@ -162,7 +179,7 @@
 		</div>
 		
 		<div class="flex items-center space-x-3">
-			<Button variant="outline" onclick={goBack} class="rounded-2xl bg-background/20 backdrop-blur-md border-border/40 hover:bg-background/30 transition-all duration-200">
+			<Button variant="outline" onclick={goBack} class="rounded-2xl bg-background hover:bg-background/90 transition-all duration-200">
 				<X class="h-4 w-4 mr-2" />
 				Cancel
 			</Button>
@@ -202,8 +219,9 @@
 			};
 		};
 	}} class="space-y-6">
+		
 		<!-- Basic Information -->
-		<Card class="bg-background/20 backdrop-blur-md border-border/40 shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
+		<Card class="bg-background border-border shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
 			<CardHeader class="pb-4">
 				<CardTitle class="flex items-center text-lg font-semibold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
 					<div class="p-2 bg-primary/10 rounded-full mr-3">
@@ -220,7 +238,7 @@
 							id="firstName" 
 							name="firstName"
 							bind:value={formData.firstName} 
-							class="rounded-xl bg-background/50 backdrop-blur-sm border-border/50 focus:bg-background transition-all duration-200 {errors.firstName ? 'border-red-500' : ''}"
+							class="rounded-xl bg-background border-border focus:bg-background transition-all duration-200 {errors.firstName ? 'border-red-500' : ''}"
 						/>
 						{#if errors.firstName}
 							<p class="text-sm text-red-500 font-medium">{errors.firstName}</p>
@@ -229,7 +247,7 @@
 					
 					<div class="space-y-3">
 						<Label for="middleName" class="font-medium text-foreground">Middle Name</Label>
-						<Input id="middleName" name="middleName" bind:value={formData.middleName} class="rounded-xl bg-background/50 backdrop-blur-sm border-border/50 focus:bg-background transition-all duration-200" />
+						<Input id="middleName" name="middleName" bind:value={formData.middleName} class="rounded-xl bg-background border-border focus:bg-background transition-all duration-200" />
 					</div>
 					
 					<div class="space-y-3">
@@ -238,7 +256,7 @@
 							id="lastName" 
 							name="lastName"
 							bind:value={formData.lastName}
-							class="rounded-xl bg-background/50 backdrop-blur-sm border-border/50 focus:bg-background transition-all duration-200 {errors.lastName ? 'border-red-500' : ''}"
+							class="rounded-xl bg-background border-border focus:bg-background transition-all duration-200 {errors.lastName ? 'border-red-500' : ''}"
 						/>
 						{#if errors.lastName}
 							<p class="text-sm text-red-500 font-medium">{errors.lastName}</p>
@@ -249,26 +267,29 @@
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 					<div class="space-y-3">
 						<Label for="dateOfBirth" class="font-medium text-foreground">Date of Birth</Label>
-						<Input type="date" id="dateOfBirth" name="dateOfBirth" bind:value={formData.dateOfBirth} class="rounded-xl bg-background/50 backdrop-blur-sm border-border/50 focus:bg-background transition-all duration-200" />
+						<Input type="date" id="dateOfBirth" name="dateOfBirth" bind:value={formData.dateOfBirth} class="rounded-xl bg-background border-border focus:bg-background transition-all duration-200" />
 					</div>
 					
 					<div class="space-y-3">
 						<Label for="gender" class="font-medium text-foreground">Gender</Label>
-						<Select 
-							options={genderOptions} 
-							bind:value={formData.gender}
+						<select 
+							id="gender" 
 							name="gender"
-							placeholder="Select gender"
-							searchable={false}
-							class="rounded-xl bg-background/50 backdrop-blur-sm border-border/50 focus:bg-background transition-all duration-200"
-						/>
+							bind:value={formData.gender}
+							class="rounded-xl bg-background border-border focus:bg-background transition-all duration-200 w-full px-3 py-2"
+						>
+							<option value="">Select gender</option>
+							{#each genderOptions as option}
+								<option value={option.value}>{option.label}</option>
+							{/each}
+						</select>
 					</div>
 				</div>
 			</CardContent>
 		</Card>
 
 		<!-- Contact Information -->
-		<Card class="bg-background/20 backdrop-blur-md border-border/40 shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
+		<Card class="bg-background border-border shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
 			<CardHeader class="pb-4">
 				<CardTitle class="flex items-center text-lg font-semibold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
 					<div class="p-2 bg-primary/10 rounded-full mr-3">
@@ -285,7 +306,7 @@
 						id="email" 
 						name="email"
 						bind:value={formData.email}
-						class="rounded-xl bg-background/50 backdrop-blur-sm border-border/50 focus:bg-background transition-all duration-200 {errors.email ? 'border-red-500' : ''}"
+						class="rounded-xl bg-background border-border focus:bg-background transition-all duration-200 {errors.email ? 'border-red-500' : ''}"
 					/>
 					{#if errors.email}
 						<p class="text-sm text-red-500 font-medium">{errors.email}</p>
@@ -364,7 +385,7 @@
 		</Card>
 
 		<!-- Job Information -->
-		<Card class="bg-background/20 backdrop-blur-md border-border/40 shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
+		<Card class="bg-background border-border shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
 			<CardHeader class="pb-4">
 				<CardTitle class="flex items-center text-lg font-semibold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
 					<div class="p-2 bg-primary/10 rounded-full mr-3">
@@ -390,41 +411,67 @@
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div class="space-y-2">
 						<Label for="departmentId">Department</Label>
-						<Select 
-							options={departmentOptions} 
-							bind:value={formData.departmentId}
+						<select 
+							id="departmentId" 
 							name="departmentId"
-							placeholder="Select department"
-							searchable={true}
-						/>
+							bind:value={formData.departmentId}
+							class="rounded-xl bg-background border-border focus:bg-background transition-all duration-200 w-full px-3 py-2"
+						>
+							<option value="">Select department</option>
+							{#each departmentOptions as option}
+								<option value={option.value}>{option.label}</option>
+							{/each}
+						</select>
 					</div>
 					
 					<div class="space-y-2">
 						<Label for="roleId">Role *</Label>
-						<Select 
-							options={roleOptions} 
-							bind:value={formData.roleId}
+						<select 
+							id="roleId" 
 							name="roleId"
-							placeholder="Select role"
-							searchable={true}
-							class={errors.roleId ? 'border-red-500' : ''}
-						/>
+							bind:value={formData.roleId}
+							class="rounded-xl bg-background border-border focus:bg-background transition-all duration-200 w-full px-3 py-2 {errors.roleId ? 'border-red-500' : ''}"
+						>
+							<option value="">Select role</option>
+							{#each roleOptions as option}
+								<option value={option.value}>{option.label}</option>
+							{/each}
+						</select>
 						{#if errors.roleId}
 							<p class="text-sm text-red-500">{errors.roleId}</p>
 						{/if}
 					</div>
 				</div>
 				
+				<div class="space-y-2">
+					<Label for="managerId">Manager</Label>
+					<select 
+						id="managerId" 
+						name="managerId"
+						bind:value={formData.managerId}
+						class="rounded-xl bg-background border-border focus:bg-background transition-all duration-200 w-full px-3 py-2"
+					>
+						<option value="">Select manager</option>
+						{#each managerOptions as option}
+							<option value={option.value}>{option.label}</option>
+						{/each}
+					</select>
+				</div>
+				
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div class="space-y-2">
 						<Label for="employmentType">Employment Type</Label>
-						<Select 
-							options={employmentTypeOptions} 
-							bind:value={formData.employmentType}
+						<select 
+							id="employmentType" 
 							name="employmentType"
-							placeholder="Select employment type"
-							searchable={false}
-						/>
+							bind:value={formData.employmentType}
+							class="rounded-xl bg-background border-border focus:bg-background transition-all duration-200 w-full px-3 py-2"
+						>
+							<option value="">Select employment type</option>
+							{#each employmentTypeOptions as option}
+								<option value={option.value}>{option.label}</option>
+							{/each}
+						</select>
 					</div>
 					
 					<div class="space-y-2">
@@ -444,7 +491,7 @@
 		</Card>
 
 		<!-- Compensation -->
-		<Card class="bg-background/20 backdrop-blur-md border-border/40 shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
+		<Card class="bg-background border-border shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
 			<CardHeader class="pb-4">
 				<CardTitle class="flex items-center text-lg font-semibold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
 					<div class="p-2 bg-primary/10 rounded-full mr-3">
@@ -457,13 +504,17 @@
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div class="space-y-2">
 						<Label for="payType">Pay Type</Label>
-						<Select 
-							options={payTypeOptions} 
-							bind:value={formData.payType}
+						<select 
+							id="payType" 
 							name="payType"
-							placeholder="Select pay type"
-							searchable={false}
-						/>
+							bind:value={formData.payType}
+							class="rounded-xl bg-background border-border focus:bg-background transition-all duration-200 w-full px-3 py-2"
+						>
+							<option value="">Select pay type</option>
+							{#each payTypeOptions as option}
+								<option value={option.value}>{option.label}</option>
+							{/each}
+						</select>
 					</div>
 					
 					<div class="space-y-2">
@@ -484,21 +535,31 @@
 		</Card>
 
 		<!-- Additional Information -->
-		<Card class="bg-background/20 backdrop-blur-md border-border/40 shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
+		<Card class="bg-background border-border shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
 			<CardHeader class="pb-4">
 				<CardTitle class="text-lg font-semibold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">Additional Information</CardTitle>
 			</CardHeader>
 			<CardContent class="space-y-5">
 				<div class="space-y-2">
 					<Label for="workAuthorizationStatus">Work Authorization Status</Label>
-					<Input id="workAuthorizationStatus" name="workAuthorizationStatus" bind:value={formData.workAuthorizationStatus} />
+					<select 
+						id="workAuthorizationStatus" 
+						name="workAuthorizationStatus"
+						bind:value={formData.workAuthorizationStatus}
+						class="rounded-xl bg-background border-border focus:bg-background transition-all duration-200 w-full px-3 py-2"
+					>
+						<option value="">Select work authorization status</option>
+						{#each workAuthorizationOptions as option}
+							<option value={option.value}>{option.label}</option>
+						{/each}
+					</select>
 				</div>
 			</CardContent>
 		</Card>
 
 		<!-- Form Actions -->
 		<div class="flex items-center justify-end space-x-4 pt-8">
-			<Button type="button" variant="outline" onclick={goBack} class="rounded-2xl bg-background/20 backdrop-blur-md border-border/40 hover:bg-background/30 transition-all duration-200">
+			<Button type="button" variant="outline" onclick={goBack} class="rounded-2xl bg-background hover:bg-background/90 transition-all duration-200">
 				Cancel
 			</Button>
 			<Button type="submit" disabled={saving} class="rounded-2xl hover:scale-[1.02] transition-all duration-200">

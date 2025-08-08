@@ -24,8 +24,8 @@
 		'/': 'Dashboard',
 		'/employees': 'Employees',
 		'/calendar': 'Calendar',
-		'/reports': 'Reports',
-		'/settings': 'Settings'
+		'/hr': 'HR Portal',
+		'/admin': 'Admin Portal'
 	};
 	
 	const pageTitle = $derived(pageTitles[currentPath] || '');

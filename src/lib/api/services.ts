@@ -71,33 +71,33 @@ export const EmployeeService = {
 	async list(filter?: EmployeeFilter): Promise<EmployeeListResponse> {
 		try {
 			const params = filter ? buildQueryParams(filter) : undefined;
-			const endpoint = params ? `/employees?${params}` : '/employees';
+			const endpoint = params ? `employees?${params}` : 'employees';
 			const response = await apiClient.get(endpoint);
 			return transformPaginatedResponse(response);
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, '/employees');
+			throw await ErrorUtils.handleApiError(error, 'employees');
 		}
 	},
 
 	async getById(id: string): Promise<Employee> {
 		try {
-			return await apiClient.get(`/employees/${id}`);
+			return await apiClient.get(`employees/${id}`);
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, `/employees/${id}`);
+			throw await ErrorUtils.handleApiError(error, `employees/${id}`);
 		}
 	},
 
 	async create(data: CreateEmployeeInput): Promise<Employee> {
 		try {
-			return await apiClient.post('/employees', { json: data });
+			return await apiClient.post('employees', { json: data });
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, '/employees', { requestData: data });
+			throw await ErrorUtils.handleApiError(error, 'employees', { requestData: data });
 		}
 	},
 
 	async update(id: string, data: UpdateEmployeeInput): Promise<Employee> {
 		try {
-			return await apiClient.put(`/employees/${id}`, { json: data });
+			return await apiClient.put(`employees/${id}`, { json: data });
 		} catch (error) {
 			throw await ErrorUtils.handleApiError(error, `/employees/${id}`, { requestData: data });
 		}
@@ -105,7 +105,7 @@ export const EmployeeService = {
 
 	async delete(id: string): Promise<void> {
 		try {
-			await apiClient.delete(`/employees/${id}`);
+			await apiClient.delete(`employees/${id}`);
 		} catch (error) {
 			throw await ErrorUtils.handleApiError(error, `/employees/${id}`);
 		}
@@ -126,15 +126,15 @@ export const EmployeeService = {
 export const DepartmentService = {
 	async list(): Promise<Department[]> {
 		try {
-			return await apiClient.get('/departments');
+			return await apiClient.get('departments');
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, '/departments');
+			throw await ErrorUtils.handleApiError(error, 'departments');
 		}
 	},
 
 	async getById(id: string): Promise<Department> {
 		try {
-			return await apiClient.get(`/departments/${id}`);
+			return await apiClient.get(`departments/${id}`);
 		} catch (error) {
 			throw await ErrorUtils.handleApiError(error, `/departments/${id}`);
 		}
@@ -142,15 +142,15 @@ export const DepartmentService = {
 
 	async create(data: { name: string; description?: string; managerId?: number }): Promise<Department> {
 		try {
-			return await apiClient.post('/departments', { json: data });
+			return await apiClient.post('departments', { json: data });
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, '/departments', { requestData: data });
+			throw await ErrorUtils.handleApiError(error, 'departments', { requestData: data });
 		}
 	},
 
 	async update(id: string, data: { name?: string; description?: string; managerId?: number }): Promise<Department> {
 		try {
-			return await apiClient.put(`/departments/${id}`, { json: data });
+			return await apiClient.put(`departments/${id}`, { json: data });
 		} catch (error) {
 			throw await ErrorUtils.handleApiError(error, `/departments/${id}`, { requestData: data });
 		}
@@ -163,15 +163,15 @@ export const DepartmentService = {
 export const RoleService = {
 	async list(): Promise<Role[]> {
 		try {
-			return await apiClient.get('/roles');
+			return await apiClient.get('roles');
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, '/roles');
+			throw await ErrorUtils.handleApiError(error, 'roles');
 		}
 	},
 
 	async getById(id: string): Promise<Role> {
 		try {
-			return await apiClient.get(`/roles/${id}`);
+			return await apiClient.get(`roles/${id}`);
 		} catch (error) {
 			throw await ErrorUtils.handleApiError(error, `/roles/${id}`);
 		}
@@ -179,7 +179,7 @@ export const RoleService = {
 
 	async getPermissions(id: string): Promise<any[]> {
 		try {
-			return await apiClient.get(`/roles/${id}/permissions`);
+			return await apiClient.get(`roles/${id}/permissions`);
 		} catch (error) {
 			throw await ErrorUtils.handleApiError(error, `/roles/${id}/permissions`);
 		}
@@ -193,17 +193,17 @@ export const TaskService = {
 	async list(filter?: TaskFilter): Promise<TaskListResponse> {
 		try {
 			const params = filter ? buildQueryParams(filter) : undefined;
-			const endpoint = params ? `/tasks?${params}` : '/tasks';
+			const endpoint = params ? `tasks?${params}` : 'tasks';
 			const response = await apiClient.get(endpoint);
 			return transformPaginatedResponse(response);
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, '/tasks');
+			throw await ErrorUtils.handleApiError(error, 'tasks');
 		}
 	},
 
 	async getById(id: string): Promise<Task> {
 		try {
-			return await apiClient.get(`/tasks/${id}`);
+			return await apiClient.get(`tasks/${id}`);
 		} catch (error) {
 			throw await ErrorUtils.handleApiError(error, `/tasks/${id}`);
 		}
@@ -211,7 +211,7 @@ export const TaskService = {
 
 	async getByEmployee(employeeId: string): Promise<Task[]> {
 		try {
-			return await apiClient.get(`/tasks/employee/${employeeId}`);
+			return await apiClient.get(`tasks/employee/${employeeId}`);
 		} catch (error) {
 			throw await ErrorUtils.handleApiError(error, `/tasks/employee/${employeeId}`);
 		}
@@ -219,15 +219,15 @@ export const TaskService = {
 
 	async create(data: CreateTaskInput): Promise<Task> {
 		try {
-			return await apiClient.post('/tasks', { json: data });
+			return await apiClient.post('tasks', { json: data });
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, '/tasks', { requestData: data });
+			throw await ErrorUtils.handleApiError(error, 'tasks', { requestData: data });
 		}
 	},
 
 	async updateStatus(id: string, data: TaskStatusUpdate): Promise<void> {
 		try {
-			await apiClient.put(`/tasks/${id}/status`, { json: data });
+			await apiClient.put(`tasks/${id}/status`, { json: data });
 		} catch (error) {
 			throw await ErrorUtils.handleApiError(error, `/tasks/${id}/status`, { requestData: data });
 		}
@@ -249,17 +249,17 @@ export const ComplianceService = {
 	async list(filter?: ComplianceFilter): Promise<ComplianceListResponse> {
 		try {
 			const params = filter ? buildQueryParams(filter) : undefined;
-			const endpoint = params ? `/compliance?${params}` : '/compliance';
+			const endpoint = params ? `compliance?${params}` : 'compliance';
 			const response = await apiClient.get(endpoint);
 			return transformPaginatedResponse(response);
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, '/compliance');
+			throw await ErrorUtils.handleApiError(error, 'compliance');
 		}
 	},
 
 	async getById(id: string): Promise<ComplianceItem> {
 		try {
-			return await apiClient.get(`/compliance/${id}`);
+			return await apiClient.get(`compliance/${id}`);
 		} catch (error) {
 			throw await ErrorUtils.handleApiError(error, `/compliance/${id}`);
 		}
@@ -267,15 +267,15 @@ export const ComplianceService = {
 
 	async create(data: CreateComplianceItemInput): Promise<ComplianceItem> {
 		try {
-			return await apiClient.post('/compliance', { json: data });
+			return await apiClient.post('compliance', { json: data });
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, '/compliance', { requestData: data });
+			throw await ErrorUtils.handleApiError(error, 'compliance', { requestData: data });
 		}
 	},
 
 	async update(id: string, data: UpdateComplianceItemInput): Promise<ComplianceItem> {
 		try {
-			return await apiClient.put(`/compliance/${id}`, { json: data });
+			return await apiClient.put(`compliance/${id}`, { json: data });
 		} catch (error) {
 			throw await ErrorUtils.handleApiError(error, `/compliance/${id}`, { requestData: data });
 		}
@@ -297,36 +297,36 @@ export const LeaveService = {
 	async listBalances(filter?: LeaveBalanceFilter): Promise<LeaveBalanceListResponse> {
 		try {
 			const params = filter ? buildQueryParams(filter) : undefined;
-			const endpoint = params ? `/leave/balances?${params}` : '/leave/balances';
+			const endpoint = params ? `leave/balances?${params}` : 'leave/balances';
 			const response = await apiClient.get(endpoint);
 			return transformPaginatedResponse(response);
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, '/leave/balances');
+			throw await ErrorUtils.handleApiError(error, 'leave/balances');
 		}
 	},
 
 	async listRequests(filter?: LeaveFilter): Promise<LeaveListResponse> {
 		try {
 			const params = filter ? buildQueryParams(filter) : undefined;
-			const endpoint = params ? `/leave/requests?${params}` : '/leave/requests';
+			const endpoint = params ? `leave/requests?${params}` : 'leave/requests';
 			const response = await apiClient.get(endpoint);
 			return transformPaginatedResponse(response);
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, '/leave/requests');
+			throw await ErrorUtils.handleApiError(error, 'leave/requests');
 		}
 	},
 
 	async createRequest(data: CreateLeaveInput): Promise<Leave> {
 		try {
-			return await apiClient.post('/leave/requests', { json: data });
+			return await apiClient.post('leave/requests', { json: data });
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, '/leave/requests', { requestData: data });
+			throw await ErrorUtils.handleApiError(error, 'leave/requests', { requestData: data });
 		}
 	},
 
 	async updateRequest(id: string, data: UpdateLeaveInput): Promise<Leave> {
 		try {
-			return await apiClient.put(`/leave/requests/${id}`, { json: data });
+			return await apiClient.put(`leave/requests/${id}`, { json: data });
 		} catch (error) {
 			throw await ErrorUtils.handleApiError(error, `/leave/requests/${id}`, { requestData: data });
 		}
@@ -340,17 +340,17 @@ export const DocumentService = {
 	async list(filter?: DocumentFilter): Promise<DocumentListResponse> {
 		try {
 			const params = filter ? buildQueryParams(filter) : undefined;
-			const endpoint = params ? `/documents?${params}` : '/documents';
+			const endpoint = params ? `documents?${params}` : 'documents';
 			const response = await apiClient.get(endpoint);
 			return transformPaginatedResponse(response);
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, '/documents');
+			throw await ErrorUtils.handleApiError(error, 'documents');
 		}
 	},
 
 	async getById(id: string): Promise<Document> {
 		try {
-			return await apiClient.get(`/documents/${id}`);
+			return await apiClient.get(`documents/${id}`);
 		} catch (error) {
 			throw await ErrorUtils.handleApiError(error, `/documents/${id}`);
 		}
@@ -370,7 +370,7 @@ export const DocumentService = {
 
 	async download(id: string): Promise<Blob> {
 		try {
-			return await apiClient.get(`/documents/${id}/download`);
+			return await apiClient.get(`documents/${id}/download`);
 		} catch (error) {
 			throw await ErrorUtils.handleApiError(error, `/documents/${id}/download`);
 		}
@@ -378,7 +378,7 @@ export const DocumentService = {
 
 	async delete(id: string): Promise<void> {
 		try {
-			await apiClient.delete(`/documents/${id}`);
+			await apiClient.delete(`documents/${id}`);
 		} catch (error) {
 			throw await ErrorUtils.handleApiError(error, `/documents/${id}`);
 		}
@@ -392,11 +392,11 @@ export const NotificationService = {
 	async list(filter?: NotificationFilter): Promise<NotificationListResponse> {
 		try {
 			const params = filter ? buildQueryParams(filter) : undefined;
-			const endpoint = params ? `/notifications?${params}` : '/notifications';
+			const endpoint = params ? `notifications?${params}` : 'notifications';
 			const response = await apiClient.get(endpoint);
 			return transformPaginatedResponse(response);
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, '/notifications');
+			throw await ErrorUtils.handleApiError(error, 'notifications');
 		}
 	},
 
@@ -410,7 +410,7 @@ export const NotificationService = {
 
 	async markAsRead(id: string): Promise<void> {
 		try {
-			await apiClient.put(`/notifications/${id}/read`);
+			await apiClient.put(`notifications/${id}/read`);
 		} catch (error) {
 			throw await ErrorUtils.handleApiError(error, `/notifications/${id}/read`);
 		}
@@ -424,17 +424,17 @@ export const HRRequestService = {
 	async list(filter?: HRRequestFilter): Promise<HRRequestListResponse> {
 		try {
 			const params = filter ? buildQueryParams(filter) : undefined;
-			const endpoint = params ? `/hr-requests?${params}` : '/hr-requests';
+			const endpoint = params ? `hr-requests?${params}` : 'hr-requests';
 			const response = await apiClient.get(endpoint);
 			return transformPaginatedResponse(response);
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, '/hr-requests');
+			throw await ErrorUtils.handleApiError(error, 'hr-requests');
 		}
 	},
 
 	async getById(id: string): Promise<HRRequest> {
 		try {
-			return await apiClient.get(`/hr-requests/${id}`);
+			return await apiClient.get(`hr-requests/${id}`);
 		} catch (error) {
 			throw await ErrorUtils.handleApiError(error, `/hr-requests/${id}`);
 		}
@@ -442,15 +442,15 @@ export const HRRequestService = {
 
 	async create(data: CreateHRRequestInput): Promise<HRRequest> {
 		try {
-			return await apiClient.post('/hr-requests', { json: data });
+			return await apiClient.post('hr-requests', { json: data });
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, '/hr-requests', { requestData: data });
+			throw await ErrorUtils.handleApiError(error, 'hr-requests', { requestData: data });
 		}
 	},
 
 	async respond(id: string, data: CreateHRRequestResponseInput): Promise<void> {
 		try {
-			await apiClient.post(`/hr-requests/${id}/respond`, { json: data });
+			await apiClient.post(`hr-requests/${id}/respond`, { json: data });
 		} catch (error) {
 			throw await ErrorUtils.handleApiError(error, `/hr-requests/${id}/respond`, { requestData: data });
 		}
@@ -463,25 +463,25 @@ export const HRRequestService = {
 export const MonitoringService = {
 	async getMetrics(): Promise<any> {
 		try {
-			return await apiClient.get('/monitoring/metrics');
+			return await apiClient.get('monitoring/metrics');
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, '/monitoring/metrics');
+			throw await ErrorUtils.handleApiError(error, 'monitoring/metrics');
 		}
 	},
 
 	async getHealth(): Promise<any> {
 		try {
-			return await apiClient.get('/monitoring/health');
+			return await apiClient.get('monitoring/health');
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, '/monitoring/health');
+			throw await ErrorUtils.handleApiError(error, 'monitoring/health');
 		}
 	},
 
 	async getSlowQueries(): Promise<any> {
 		try {
-			return await apiClient.get('/monitoring/slow-queries');
+			return await apiClient.get('monitoring/slow-queries');
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, '/monitoring/slow-queries');
+			throw await ErrorUtils.handleApiError(error, 'monitoring/slow-queries');
 		}
 	}
 };
@@ -492,35 +492,35 @@ export const MonitoringService = {
 export const AuthService = {
 	async login(username: string, password: string): Promise<any> {
 		try {
-			return await apiClient.post('/auth/login', { 
+			return await apiClient.post('auth/login', { 
 				json: { username, password } 
 			});
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, '/auth/login');
+			throw await ErrorUtils.handleApiError(error, 'auth/login');
 		}
 	},
 
 	async logout(): Promise<void> {
 		try {
-			await apiClient.post('/auth/logout');
+			await apiClient.post('auth/logout');
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, '/auth/logout');
+			throw await ErrorUtils.handleApiError(error, 'auth/logout');
 		}
 	},
 
 	async refreshToken(): Promise<any> {
 		try {
-			return await apiClient.post('/auth/refresh');
+			return await apiClient.post('auth/refresh');
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, '/auth/refresh');
+			throw await ErrorUtils.handleApiError(error, 'auth/refresh');
 		}
 	},
 
 	async getProfile(): Promise<any> {
 		try {
-			return await apiClient.get('/auth/profile');
+			return await apiClient.get('auth/profile');
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, '/auth/profile');
+			throw await ErrorUtils.handleApiError(error, 'auth/profile');
 		}
 	}
 };

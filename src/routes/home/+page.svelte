@@ -1,309 +1,279 @@
 <script lang="ts">
-	import Card from '$lib/components/ui/card/card.svelte';
-	import CardHeader from '$lib/components/ui/card/card-header.svelte';
-	import CardTitle from '$lib/components/ui/card/card-title.svelte';
-	import CardDescription from '$lib/components/ui/card/card-description.svelte';
-	import CardContent from '$lib/components/ui/card/card-content.svelte';
-	import Badge from '$lib/components/ui/badge/badge.svelte';
-	import Button from '$lib/components/ui/button/button.svelte';
-	import Progress from '$lib/components/ui/progress/progress.svelte';
-	import Avatar from '$lib/components/ui/avatar/avatar.svelte';
-	import AvatarImage from '$lib/components/ui/avatar/avatar-image.svelte';
-	import AvatarFallback from '$lib/components/ui/avatar/avatar-fallback.svelte';
-	import { 
-		Users, 
-		UserPlus, 
-		Calendar, 
-		Clock, 
-		TrendingUp, 
-		TrendingDown,
-		AlertCircle,
-		CheckCircle,
-		BarChart3,
-		PieChart
-	} from 'lucide-svelte';
+	import { onMount } from 'svelte';
+	import { fade } from 'svelte/transition';
+	import DashboardGrid from '$lib/components/dashboard/grid/DashboardGrid.svelte';
+	import DashboardToolbar from '$lib/components/dashboard/DashboardToolbar.svelte';
+	import CardLibrary from '$lib/components/dashboard/CardLibrary.svelte';
+	import { dashboardActions, isEditing, dashboardLayout } from '$lib/stores/dashboard.js';
+	import type { PageData } from './$types';
+	import type { UserRole } from '$lib/components/dashboard/types.js';
 	
-	// Mock data for home page
-	const stats = [
-		{
-			title: 'Your Team',
-			value: '248',
-			change: '+12',
-			changeType: 'positive',
-			icon: Users,
-			description: 'Team members'
-		},
-		{
-			title: 'New Colleagues',
-			value: '16',
-			change: '+4',
-			changeType: 'positive',
-			icon: UserPlus,
-			description: 'Joined this month'
-		},
-		{
-			title: 'Tasks Due',
-			value: '5',
-			change: '-2',
-			changeType: 'positive',
-			icon: Clock,
-			description: 'This week'
-		},
-		{
-			title: 'Time Off',
-			value: '3',
-			change: 'days',
-			changeType: 'neutral',
-			icon: Calendar,
-			description: 'Available'
+	// Page data
+	let { data }: { data: PageData } = $props();
+	
+	// UI State
+	let showCardLibrary = $state(false);
+	let showLayoutManager = $state(false);
+	let showSettings = $state(false);
+	let isLoading = $state(true);
+	let initError = $state<string | null>(null);
+	
+	// Initialize dashboard when component mounts
+	onMount(async () => {
+		// Timeout fallback
+		const timeoutId = setTimeout(() => {
+			if (isLoading) {
+				console.warn('⏰ Dashboard initialization timeout - forcing load');
+				isLoading = false;
+				initError = 'Dashboard took too long to load. Some features may not work properly.';
+			}
+		}, 5000); // 5 second timeout
+		
+		try {
+			console.log('🏠 Initializing dashboard for user:', data.currentUser?.username, 'Role:', data.userRole);
+			
+			// Clear any potentially corrupted localStorage data
+			if (typeof localStorage !== 'undefined') {
+				const saved = localStorage.getItem('dashboard-preferences');
+				if (saved) {
+					try {
+						const parsed = JSON.parse(saved);
+						// Check for duplicate IDs in existing data
+						const ids = new Set();
+						let hasDuplicates = false;
+						
+						if (parsed.layouts) {
+							for (const layout of parsed.layouts) {
+								if (layout.cards) {
+									for (const card of layout.cards) {
+										if (ids.has(card.id)) {
+											hasDuplicates = true;
+											break;
+										}
+										ids.add(card.id);
+									}
+									if (hasDuplicates) break;
+								}
+							}
+						}
+						
+						if (hasDuplicates) {
+							console.warn('🗑️ Clearing dashboard data with duplicate card IDs');
+							localStorage.removeItem('dashboard-preferences');
+						} else {
+							// Temporary: Clear existing data to apply new compact card heights
+							console.warn('🔄 Clearing dashboard data to apply compact card heights and overflow fixes');
+							localStorage.removeItem('dashboard-preferences');
+						}
+					} catch (e) {
+						console.warn('🗑️ Clearing corrupted dashboard preferences');
+						localStorage.removeItem('dashboard-preferences');
+					}
+				}
+			}
+			
+			// Initialize dashboard with user role
+			await dashboardActions.initialize(data.userRole as UserRole, data.currentUser?.id?.toString());
+			
+			console.log('✅ Dashboard initialized successfully');
+			clearTimeout(timeoutId);
+			isLoading = false;
+		} catch (error) {
+			console.error('❌ Failed to initialize dashboard:', error);
+			clearTimeout(timeoutId);
+			initError = 'Failed to load dashboard. Please refresh the page.';
+			isLoading = false;
 		}
-	];
+	});
 	
-	const recentActivities = [
-		{
-			id: 1,
-			type: 'welcome',
-			message: 'Welcome Sarah Johnson, our new Senior Developer!',
-			time: '2 hours ago',
-			avatar: 'SJ'
-		},
-		{
-			id: 2,
-			type: 'achievement',
-			message: 'Congratulations Mike Davis on completing your Q1 goals!',
-			time: '4 hours ago',
-			avatar: 'MD'
-		},
-		{
-			id: 3,
-			type: 'celebration',
-			message: 'Emma Wilson is enjoying her well-deserved vacation',
-			time: '1 day ago',
-			avatar: 'EW'
-		},
-		{
-			id: 4,
-			type: 'birthday',
-			message: 'Don\'t forget to wish John Smith a happy birthday tomorrow! 🎉',
-			time: '1 day ago',
-			avatar: 'JS'
-		}
-	];
-	
-	const upcomingEvents = [
-		{
-			id: 1,
-			title: 'Coffee Chat & Connect',
-			date: 'Today, 2:00 PM',
-			attendees: 15,
-			type: 'social'
-		},
-		{
-			id: 2,
-			title: 'Learning & Development Workshop',
-			date: 'Tomorrow, 9:00 AM',
-			attendees: 12,
-			type: 'learning'
-		},
-		{
-			id: 3,
-			title: 'Welcome New Team Members',
-			date: 'Friday, 10:00 AM',
-			attendees: 5,
-			type: 'welcome'
-		}
-	];
-	
-	const departmentData = [
-		{ name: 'Engineering', employees: 89, budget: 85 },
-		{ name: 'Sales', employees: 45, budget: 92 },
-		{ name: 'Marketing', employees: 32, budget: 78 },
-		{ name: 'HR', employees: 12, budget: 95 },
-		{ name: 'Operations', employees: 28, budget: 68 }
-	];
-	
-	// Reactive window width
-	let windowWidth = $state(1200);
-	
-	function updateWindowWidth() {
-		windowWidth = window.innerWidth;
+	// Handle card library
+	function handleOpenCardLibrary() {
+		showCardLibrary = true;
 	}
 	
-	// Set up window resize listener
-	if (typeof window !== 'undefined') {
-		updateWindowWidth(); // Initialize
-		window.addEventListener('resize', updateWindowWidth);
+	function handleCloseCardLibrary() {
+		showCardLibrary = false;
+	}
+	
+	function handleAddCard(event: CustomEvent<{ cardId: string }>) {
+		console.log('🎯 handleAddCard called with:', event.detail);
+		dashboardActions.addCard(event.detail.cardId);
+		showCardLibrary = false;
+	}
+	
+	// Handle layout management
+	function handleOpenLayoutManager() {
+		showLayoutManager = true;
+		// TODO: Implement layout manager modal
+		console.log('Layout manager - TODO');
+	}
+	
+	// Handle settings
+	function handleOpenSettings() {
+		showSettings = true;
+		// TODO: Implement dashboard settings modal
+		console.log('Dashboard settings - TODO');
+	}
+	
+	// Handle import/export (admin only)
+	function handleExportConfig() {
+		// Handled by toolbar
+	}
+	
+	function handleImportConfig() {
+		// Handled by toolbar
+	}
+	
+	// Get user display name
+	function getUserDisplayName(): string {
+		const user = data.currentUser;
+		if (user?.firstName && user?.lastName) {
+			return `${user.firstName} ${user.lastName}`;
+		}
+		return user?.username || 'User';
+	}
+	
+	// Get role display name
+	function getRoleDisplayName(role: string): string {
+		const roleNames: Record<string, string> = {
+			'Admin': 'Administrator',
+			'HR': 'HR Manager',
+			'Manager': 'Team Manager',
+			'Employee': 'Employee'
+		};
+		return roleNames[role] || role;
 	}
 </script>
 
-<div class="container mx-auto px-6 pb-6 pt-6 space-y-10">
-	<!-- Branding Section -->
-	<div class="fixed left-6 z-40 flex items-center space-x-4" style="top: 16px;">
+<svelte:head>
+	<title>Dashboard - SvelteHR</title>
+	<meta name="description" content="Your personalized HR dashboard" />
+</svelte:head>
+
+<div class="dashboard-page h-screen flex flex-col bg-muted/20">
+	<!-- Fixed Branding Section -->
+	<div class="fixed left-6 top-4 z-40 flex items-center space-x-4">
 		<div class="w-12 h-12 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center shadow-lg">
 			<span class="text-primary-foreground font-bold text-sm">HR</span>
 		</div>
-		{#if windowWidth >= 884}
-			<div class="flex items-center">
-				<h1 class="font-bold text-3xl bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
-					SvelteHR
-				</h1>
-			</div>
-		{/if}
-	</div>
-
-	<!-- Hero Welcome Section -->
-	<div class="text-center space-y-4 py-8">
-		<h2 class="text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-primary via-primary to-primary/70 bg-clip-text text-transparent">
-			Welcome back, John! 
-		</h2>
-		<p class="text-muted-foreground text-xl max-w-2xl mx-auto leading-relaxed">
-			Ready to make today amazing? Here's your personalized workspace with everything you need.
-		</p>
-		<div class="flex items-center justify-center space-x-2 text-muted-foreground">
-			<div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-			<span class="text-sm">All systems running smoothly</span>
+		<div class="hidden md:flex items-center">
+			<h1 class="font-bold text-3xl bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+				SvelteHR
+			</h1>
 		</div>
 	</div>
 
-	<!-- Stats Overview -->
-	<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-		{#each stats as stat}
-			<Card class="bg-background/20 backdrop-blur-md border-border/40 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200 rounded-2xl border">
-				<CardHeader class="flex flex-row items-center justify-between space-y-0 pb-3">
-					<CardTitle class="text-sm font-semibold text-foreground/90">{stat.title}</CardTitle>
-					{@const IconComponent = stat.icon}
-					<div class="p-2 bg-primary/10 rounded-full">
-						<IconComponent class="h-4 w-4 text-primary" />
-					</div>
-				</CardHeader>
-				<CardContent class="pt-0">
-					<div class="text-3xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-						{stat.value}
-					</div>
-					<div class="flex items-center mt-2 gap-1">
-						{#if stat.changeType === 'positive'}
-							<div class="flex items-center px-2 py-1 bg-green-100 dark:bg-green-900/20 rounded-full">
-								<TrendingUp class="h-3 w-3 text-green-600 dark:text-green-400" />
-								<span class="text-xs font-medium text-green-600 dark:text-green-400 ml-1">{stat.change}</span>
-							</div>
-						{:else if stat.changeType === 'negative'}
-							<div class="flex items-center px-2 py-1 bg-red-100 dark:bg-red-900/20 rounded-full">
-								<TrendingDown class="h-3 w-3 text-red-600 dark:text-red-400" />
-								<span class="text-xs font-medium text-red-600 dark:text-red-400 ml-1">{stat.change}</span>
-							</div>
-						{:else}
-							<div class="flex items-center px-2 py-1 bg-muted rounded-full">
-								<span class="text-xs font-medium text-muted-foreground">{stat.change}</span>
-							</div>
-						{/if}
-						<span class="text-xs text-muted-foreground ml-1">{stat.description}</span>
-					</div>
-				</CardContent>
-			</Card>
-		{/each}
-	</div>
-
-	<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-		<!-- Recent Activity -->
-		<Card class="col-span-4 bg-background/20 backdrop-blur-md border-border/40 shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
-			<CardHeader>
-				<CardTitle>What's Happening</CardTitle>
-				<CardDescription>Latest updates and celebrations from your workplace</CardDescription>
-			</CardHeader>
-			<CardContent class="space-y-4">
-				{#each recentActivities as activity}
-					<div class="flex items-center space-x-4 p-3 rounded-2xl hover:bg-muted/50 transition-all duration-200">
-						<Avatar size="sm">
-							<AvatarFallback class="bg-primary/10 text-primary font-semibold">{activity.avatar}</AvatarFallback>
-						</Avatar>
-						<div class="flex-1 space-y-1">
-							<p class="text-sm font-medium">{activity.message}</p>
-							<p class="text-xs text-muted-foreground">{activity.time}</p>
-						</div>
-						{#if activity.type === 'welcome'}
-							<Badge variant="success" class="rounded-full px-3">Welcome</Badge>
-						{:else if activity.type === 'achievement'}
-							<Badge variant="info" class="rounded-full px-3">Achievement</Badge>
-						{:else if activity.type === 'celebration'}
-							<Badge variant="warning" class="rounded-full px-3">Celebration</Badge>
-						{:else if activity.type === 'birthday'}
-							<Badge variant="default" class="rounded-full px-3">🎉 Birthday</Badge>
-						{:else}
-							<Badge variant="default" class="rounded-full px-3">Update</Badge>
-						{/if}
-					</div>
-				{/each}
-				<div class="pt-2">
-					<Button variant="outline" class="w-full rounded-xl hover:scale-[1.02] transition-all duration-200">View All Activities</Button>
-				</div>
-			</CardContent>
-		</Card>
-
-		<!-- Upcoming Events -->
-		<Card class="col-span-3 bg-background/20 backdrop-blur-md border-border/40 shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
-			<CardHeader>
-				<CardTitle>Coming Up</CardTitle>
-				<CardDescription>Events and activities you won't want to miss</CardDescription>
-			</CardHeader>
-			<CardContent class="space-y-4">
-				{#each upcomingEvents as event}
-					<div class="flex items-center justify-between space-x-4">
-						<div class="space-y-1">
-							<p class="text-sm font-medium">{event.title}</p>
-							<p class="text-xs text-muted-foreground">{event.date}</p>
-							<p class="text-xs text-muted-foreground">{event.attendees} attendees</p>
-						</div>
-						{#if event.type === 'social'}
-							<Calendar class="h-4 w-4 text-blue-500" />
-						{:else if event.type === 'learning'}
-							<CheckCircle class="h-4 w-4 text-green-500" />
-						{:else if event.type === 'welcome'}
-							<UserPlus class="h-4 w-4 text-purple-500" />
-						{:else}
-							<Calendar class="h-4 w-4 text-muted-foreground" />
-						{/if}
-					</div>
-				{/each}
-				<div class="pt-2">
-					<Button variant="outline" class="w-full rounded-xl hover:scale-[1.02] transition-all duration-200">View Calendar</Button>
-				</div>
-			</CardContent>
-		</Card>
-	</div>
-
-	<!-- Quick Actions -->
-	<Card class="bg-background/20 backdrop-blur-md border-border/40 shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
-		<CardHeader>
-			<CardTitle>Quick Actions</CardTitle>
-			<CardDescription>Everything you need, right at your fingertips</CardDescription>
-		</CardHeader>
-		<CardContent>
-			<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-				<Button variant="outline" class="h-24 flex-col space-y-3 rounded-xl border-2 hover:scale-105 hover:shadow-md transition-all duration-200 hover:border-primary/50">
-					<div class="p-2 bg-primary/10 rounded-full">
-						<Users class="h-5 w-5 text-primary" />
-					</div>
-					<span class="text-sm font-medium">Find Colleagues</span>
-				</Button>
-				<Button variant="outline" class="h-24 flex-col space-y-3 rounded-xl border-2 hover:scale-105 hover:shadow-md transition-all duration-200 hover:border-primary/50">
-					<div class="p-2 bg-primary/10 rounded-full">
-						<Calendar class="h-5 w-5 text-primary" />
-					</div>
-					<span class="text-sm font-medium">Request Time Off</span>
-				</Button>
-				<Button variant="outline" class="h-24 flex-col space-y-3 rounded-xl border-2 hover:scale-105 hover:shadow-md transition-all duration-200 hover:border-primary/50">
-					<div class="p-2 bg-primary/10 rounded-full">
-						<BarChart3 class="h-5 w-5 text-primary" />
-					</div>
-					<span class="text-sm font-medium">View My Goals</span>
-				</Button>
-				<Button variant="outline" class="h-24 flex-col space-y-3 rounded-xl border-2 hover:scale-105 hover:shadow-md transition-all duration-200 hover:border-primary/50">
-					<div class="p-2 bg-primary/10 rounded-full">
-						<CheckCircle class="h-5 w-5 text-primary" />
-					</div>
-					<span class="text-sm font-medium">Complete Training</span>
-				</Button>
+	<!-- Welcome Section -->
+	{#if !$isEditing}
+		<div class="pt-20 pb-4 px-6 text-center" transition:fade={{ duration: 300 }}>
+			<h2 class="text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-primary via-primary to-primary/70 bg-clip-text text-transparent">
+				Welcome back, {getUserDisplayName()}!
+			</h2>
+			<p class="text-muted-foreground mt-2 max-w-2xl mx-auto">
+				{getRoleDisplayName(data.userRole)} Dashboard • 
+				{#if data.isUsingMockData}
+					Demo Mode - Connect your API for live data
+				{:else}
+					Connected to live data
+				{/if}
+			</p>
+			<div class="flex items-center justify-center space-x-2 text-muted-foreground mt-2">
+				<div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+				<span class="text-sm">Dashboard ready</span>
 			</div>
-		</CardContent>
-	</Card>
+		</div>
+	{/if}
+	
+	<!-- Dashboard Toolbar -->
+	<DashboardToolbar 
+		userRole={data.userRole}
+		showImportExport={data.userRole === 'Admin'}
+		on:openCardLibrary={handleOpenCardLibrary}
+		on:openLayoutManager={handleOpenLayoutManager}
+		on:openSettings={handleOpenSettings}
+		on:exportConfig={handleExportConfig}
+		on:importConfig={handleImportConfig}
+	/>
+	
+	<!-- Main Dashboard Content -->
+	<div class="flex-1 overflow-hidden">
+		{#if isLoading}
+			<!-- Loading State -->
+			<div class="flex items-center justify-center h-full">
+				<div class="text-center space-y-4">
+					<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+					<h3 class="text-lg font-semibold">Setting up your dashboard...</h3>
+					<p class="text-sm text-muted-foreground max-w-md">
+						Loading your personalized workspace with role-specific widgets
+					</p>
+				</div>
+			</div>
+		{:else if initError}
+			<!-- Error State -->
+			<div class="flex items-center justify-center h-full">
+				<div class="text-center space-y-4 max-w-md">
+					<div class="text-6xl opacity-30">⚠️</div>
+					<h3 class="text-lg font-semibold text-destructive">Dashboard Error</h3>
+					<p class="text-sm text-muted-foreground">{initError}</p>
+					<button 
+						class="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+						onclick={() => window.location.reload()}
+					>
+						Refresh Page
+					</button>
+				</div>
+			</div>
+		{:else}
+			<!-- Dashboard Grid -->
+			<div class="h-full">
+				<DashboardGrid />
+			</div>
+		{/if}
+	</div>
+	
+	<!-- Card Library Modal -->
+	<CardLibrary 
+		open={showCardLibrary}
+		on:close={handleCloseCardLibrary}
+		on:addCard={handleAddCard}
+	/>
+	
+	<!-- Debug Panel (Development Only) -->
+	{#if import.meta.env.DEV && $dashboardLayout}
+		<div class="fixed bottom-4 right-4 bg-white border border-border rounded-lg p-3 shadow-lg text-xs max-w-sm">
+			<details>
+				<summary class="font-semibold cursor-pointer">Debug Info</summary>
+				<div class="mt-2 space-y-1">
+					<div><strong>User Role:</strong> {data.userRole}</div>
+					<div><strong>Layout Cards:</strong> {$dashboardLayout.cards.length}</div>
+					<div><strong>Visible Cards:</strong> {$dashboardLayout.cards.filter(c => c.visible).length}</div>
+					<div><strong>Edit Mode:</strong> {$isEditing ? 'On' : 'Off'}</div>
+					<div><strong>Mock Data:</strong> {data.isUsingMockData ? 'Yes' : 'No'}</div>
+				</div>
+			</details>
+		</div>
+	{/if}
 </div>
+
+<style>
+	.dashboard-page {
+		/* Ensure consistent background */
+		min-height: 100vh;
+		background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+	}
+	
+	/* Hide scrollbars but keep functionality */
+	.dashboard-page {
+		scrollbar-width: none;
+		-ms-overflow-style: none;
+	}
+	
+	.dashboard-page::-webkit-scrollbar {
+		display: none;
+	}
+	
+	/* Smooth transitions */
+	* {
+		transition: opacity 0.2s ease, transform 0.2s ease;
+	}
+</style>

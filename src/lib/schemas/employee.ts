@@ -443,17 +443,17 @@ export const employeeFilterSchema = z.object({
 
 // Employee list response schema (matching actual backend response structure)
 export const employeeListResponseSchema = z.object({
-	employees: z.array(employeeSchema), // Backend returns "employees", not "data"
-	totalCount: z.number(),             // Backend returns "totalCount", not "total"
+	data: z.array(employeeSchema),      // Backend returns "data", not "employees"
+	total: z.number(),                  // Backend returns "total", not "totalCount"
 	page: z.number(),
-	limit: z.number(),                  // Backend returns "limit", not "pageSize"  
+	pageSize: z.number(),               // Backend returns "pageSize", not "limit"  
 	totalPages: z.number(),
 	hasMore: z.boolean()
 }).transform((response) => ({
-	employees: response.employees,
-	totalCount: response.totalCount,
+	employees: response.data,           // Transform "data" to "employees" for UI consistency
+	totalCount: response.total,         // Transform "total" to "totalCount" for UI consistency
 	page: response.page,
-	limit: response.limit,
+	limit: response.pageSize,           // Transform "pageSize" to "limit" for UI consistency
 	totalPages: response.totalPages,
 	hasMore: response.hasMore
 }));
