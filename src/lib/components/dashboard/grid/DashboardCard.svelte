@@ -24,7 +24,8 @@
 	export let instance: CardInstance;
 	export let metadata: CardMetadata | undefined;
 	export let editable = false;
-	export const data: any = null; // External reference only
+export const data: any = null; // Non-stream data (API/prefetched)
+export const stream: any = null; // Live stream data injected by grid
 	export let loading = false;
 	export let error: string | null = null;
 	
@@ -233,7 +234,7 @@
 							<div class="animate-pulse text-muted-foreground">Loading...</div>
 						</div>
 					{:then cardComponent}
-						<svelte:component this={cardComponent.default} {instance} {metadata} {data} />
+                <svelte:component this={cardComponent.default} {instance} {metadata} data={stream ?? data} />
 					{:catch}
 						<!-- Fallback content for cards without components -->
 						<div class="space-y-4">

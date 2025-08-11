@@ -9,7 +9,8 @@
 	import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from './ui/dropdown-menu';
 	import Badge from './ui/badge/badge.svelte';
 	import Separator from './ui/separator/separator.svelte';
-	import { createEventDispatcher } from 'svelte';
+    import { createEventDispatcher } from 'svelte';
+    import { goto } from '$app/navigation';
 	import { auth } from '$lib/stores/auth';
 
 	const dispatch = createEventDispatcher();
@@ -70,17 +71,17 @@
 	let showMobileMenu = $state(false);
 	let showActionsMenu = $state(false);
 	let windowWidth = $state(1200); // Default to desktop size
-	
+
 	// Search bar positioning - reactive calculation
 	// Start position: approximate search icon position within navbar
 	const searchStartX = $derived(windowWidth - 24 - 150); // 24px from right edge, minus navbar width
-	
+
 	// Search positioning logic - improved to be more considerate
 	const brandingEndX = windowWidth >= 884 ? 220 : 80; // Branding width with better spacing
 	const navbarStartX = $derived(windowWidth - 24 - (windowWidth >= 1280 ? 420 : windowWidth >= 1024 ? 370 : windowWidth >= 884 ? 320 : 270));
 	const availableSpace = $derived(navbarStartX - brandingEndX);
 	const searchFitsHorizontally = $derived(availableSpace >= 400); // More conservative space check
-	
+
 	// Search positioning - better centered with more space consideration
 	const searchTopPosition = $derived(searchFitsHorizontally ? 16 : 70);
 	const searchEndX = $derived(searchFitsHorizontally ? Math.min(brandingEndX + (availableSpace / 2), windowWidth / 2) : windowWidth / 2);
@@ -101,18 +102,18 @@
 	function toggleSearch() {
 		commandModalOpen = !commandModalOpen;
 	}
-	
+
 	// Update window width for responsive calculations
 	function updateWindowWidth() {
 		windowWidth = window.innerWidth;
 	}
-	
+
 	// Set up window resize listener
 	if (typeof window !== 'undefined') {
 		updateWindowWidth(); // Initialize
 		window.addEventListener('resize', updateWindowWidth);
 	}
-	
+
 	function handleSearch() {
 		console.log('Searching for:', searchValue);
 		// Handle search logic here
@@ -133,12 +134,12 @@
 	<div class="fixed top-4 left-6 right-6 z-50 flex items-center justify-between">
 		<!-- Left: Branding (invisible placeholder to maintain spacing) -->
 		<div class="{windowWidth >= 884 ? 'w-52' : 'w-16'} transition-all duration-300"></div>
-		
+
 		<!-- Center: Search placeholder (invisible endpoint) -->
 		<div class="flex-1 flex justify-center mx-4">
 			<!-- Placeholder for spacing -->
 		</div>
-		
+
 		<!-- Right: Navigation and Actions -->
 		<div class="flex items-center space-x-3 transition-all duration-300">
 
@@ -226,9 +227,9 @@
 					</a>
 				{/each}
 			</nav>
-			
+
 			<!-- Actions Dropdown for md screens -->
-			<div class="relative ml-1">
+            <div class="relative ml-1">
 				<Button
 					variant="ghost"
 					size="icon"
@@ -237,14 +238,14 @@
 				>
 					<Menu class="h-5 w-5" />
 				</Button>
-				
-				{#if showActionsMenu}
+
+                {#if showActionsMenu}
 					<div class="absolute top-8 right-0 bg-background/20 backdrop-blur-md border border-border/40 rounded-2xl shadow-xl p-2 min-w-40">
 						<nav class="flex flex-col space-y-1">
-							<button
-								class="flex items-center space-x-3 rounded-2xl px-3 py-2 transition-all duration-300 hover:bg-background/30 text-muted-foreground hover:text-foreground"
-								onclick={() => showActionsMenu = false}
-							>
+                            <button
+                                class="flex items-center space-x-3 rounded-2xl px-3 py-2 transition-all duration-300 hover:bg-background/30 text-muted-foreground hover:text-foreground"
+                                onclick={() => { showActionsMenu = false; goto('/settings'); }}
+                            >
 								<Settings class="h-4 w-4" />
 								<span class="text-sm font-medium">Settings</span>
 							</button>
@@ -266,13 +267,10 @@
 									</Badge>
 								{/if}
 							</button>
-							<button
-								class="flex items-center space-x-3 rounded-2xl px-3 py-2 transition-all duration-300 hover:bg-background/30 text-muted-foreground hover:text-foreground"
-								onclick={() => {
-									showActionsMenu = false;
-									userMenuOpen = true;
-								}}
-							>
+                            <button
+                                class="flex items-center space-x-3 rounded-2xl px-3 py-2 transition-all duration-300 hover:bg-background/30 text-muted-foreground hover:text-foreground"
+                                onclick={() => { showActionsMenu = false; goto('/profile'); }}
+                            >
 								<User class="h-4 w-4" />
 								<span class="text-sm font-medium">Profile</span>
 							</button>
@@ -321,10 +319,10 @@
 								<span class="text-sm font-medium">{item.label}</span>
 							</a>
 						{/each}
-						
+
 						<!-- Divider -->
 						<div class="h-px bg-border/40 my-2"></div>
-						
+
 						<!-- Action Items -->
 						<button
 							class="flex items-center space-x-3 rounded-2xl px-3 py-2 transition-all duration-300 hover:bg-background/30 text-muted-foreground hover:text-foreground"
@@ -367,37 +365,33 @@
 		</div>
 
 		<!-- Settings Container (lg+ screens only) -->
-		<div class="hidden lg:flex h-12 w-12 items-center justify-center rounded-full border border-border/40 bg-background/20 backdrop-blur-md shadow-xl">
-			<Button
-				variant="ghost"
-				size="icon"
-				class="h-7 w-7 rounded-full transition-all duration-300 hover:scale-[1.02] hover:bg-muted/60"
-			>
-				<Settings class="h-5 w-5" />
-			</Button>
-		</div>
+        <div class="hidden lg:flex h-12 w-12 items-center justify-center rounded-full border border-border/40 bg-background/20 backdrop-blur-md shadow-xl">
+            <a href="/settings" class="h-12 w-12 flex items-center justify-center">
+                <Settings class="h-5 w-5" />
+            </a>
+        </div>
 
 		<!-- Notifications Container (lg+ screens only) -->
-		<div class="hidden lg:flex h-12 w-12 items-center justify-center rounded-full border border-border/40 bg-background/20 backdrop-blur-md shadow-xl">
-			<DropdownMenu bind:open={notificationsOpen}>
-				<DropdownMenuTrigger asChild>
-					<Button
-						variant="ghost"
-						size="icon"
-						class="relative h-7 w-7 rounded-full transition-all duration-300 hover:scale-[1.02] hover:bg-muted/60"
-					>
-						<Bell class="h-5 w-5" />
-						{#if unreadCount > 0}
-							<Badge
-								variant="destructive"
-								class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full p-0 text-xs"
-							>
-								{unreadCount}
-							</Badge>
-						{/if}
-					</Button>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent class="w-80 max-h-96 overflow-y-auto bg-background/95 backdrop-blur-md border border-border/40 shadow-xl" align="end" sideOffset={8}>
+        <div class="hidden lg:flex h-12 w-12 items-center justify-center rounded-full border border-border/40 bg-background/20 backdrop-blur-md shadow-xl">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        class="relative h-7 w-7 rounded-full transition-all duration-300 hover:scale-[1.02] hover:bg-muted/60"
+                    >
+                        <Bell class="h-5 w-5" />
+                        {#if unreadCount > 0}
+                            <Badge
+                                variant="destructive"
+                                class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full p-0 text-xs"
+                            >
+                                {unreadCount}
+                            </Badge>
+                        {/if}
+                    </Button>
+                </DropdownMenuTrigger>
+                        <DropdownMenuContent class="w-80 max-h-96 overflow-y-auto bg-background/95 backdrop-blur-md border border-border/40 shadow-xl" align="end" sideOffset={8}>
 					<div class="px-3 py-2 border-b border-border/40">
 						<div class="flex items-center justify-between">
 							<h4 class="text-sm font-semibold">Notifications</h4>
@@ -414,7 +408,7 @@
 
 					<div class="max-h-64 overflow-y-auto">
 						{#each notifications as notification (notification.id)}
-							<DropdownMenuItem class="flex-col items-start p-3 h-auto focus:bg-muted/50 {notification.unread ? 'bg-accent/30' : ''}">
+                    <DropdownMenuItem class="flex-col items-start p-3 h-auto focus:bg-muted/50 {notification.unread ? 'bg-accent/30' : ''}">
 								<div class="w-full">
 									<div class="flex items-start justify-between">
 										<p class="text-sm font-medium">{notification.title}</p>
@@ -436,21 +430,21 @@
 		</div>
 
 		<!-- User Menu Container (lg+ screens only) -->
-		<div class="hidden lg:flex h-12 w-12 items-center justify-center rounded-full border border-border/40 bg-background/20 backdrop-blur-md shadow-xl">
-			<DropdownMenu bind:open={userMenuOpen}>
-				<DropdownMenuTrigger asChild>
-					<Button
-						variant="ghost"
-						size="icon"
-						class="h-7 w-7 rounded-full transition-all duration-300 hover:scale-[1.02] hover:bg-muted/60"
-					>
-						<Avatar size="sm">
-							<AvatarImage src="https://github.com/shadcn.png" alt="User" />
-							<AvatarFallback class="bg-primary/10 font-semibold text-primary">JD</AvatarFallback>
-						</Avatar>
-					</Button>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent class="w-56 bg-background/95 backdrop-blur-md border border-border/40 shadow-xl" align="end" sideOffset={8}>
+        <div class="hidden lg:flex h-12 w-12 items-center justify-center rounded-full border border-border/40 bg-background/20 backdrop-blur-md shadow-xl">
+            <DropdownMenu>
+                <DropdownMenuTrigger>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        class="h-7 w-7 rounded-full transition-all duration-300 hover:scale-[1.02] hover:bg-muted/60"
+                    >
+                        <Avatar size="sm">
+                            <AvatarImage src="https://github.com/shadcn.png" alt="User" />
+                            <AvatarFallback class="bg-primary/10 font-semibold text-primary">JD</AvatarFallback>
+                        </Avatar>
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent class="w-56 bg-background/95 backdrop-blur-md border border-border/40 shadow-xl" align="end" sideOffset={8}>
 					<div class="px-3 py-2 border-b border-border/40">
 						<div class="flex items-center space-x-3">
 							<Avatar size="sm">
@@ -464,17 +458,17 @@
 						</div>
 					</div>
 
-					<div class="py-1">
-						<DropdownMenuItem class="cursor-pointer">
+                            <div class="py-1">
+                                <DropdownMenuItem class="cursor-pointer" onclick={() => goto('/profile')}>
 							<User class="mr-3 h-4 w-4" />
 							Profile
 						</DropdownMenuItem>
-						<DropdownMenuItem class="cursor-pointer">
+                                <DropdownMenuItem class="cursor-pointer" onclick={() => goto('/settings')}>
 							<Settings class="mr-3 h-4 w-4" />
 							Settings
 						</DropdownMenuItem>
 						<DropdownMenuSeparator />
-						<DropdownMenuItem 
+						<DropdownMenuItem
 							class="cursor-pointer text-destructive focus:text-destructive"
 							onclick={handleSignOut}
 						>
@@ -536,8 +530,8 @@
 					</Button>
 
 					<!-- Notifications -->
-					<DropdownMenu bind:open={notificationsOpen}>
-						<DropdownMenuTrigger asChild>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger>
 							<Button
 								variant="ghost"
 								size="icon"
@@ -553,7 +547,7 @@
 									</Badge>
 								{/if}
 							</Button>
-						</DropdownMenuTrigger>
+                        </DropdownMenuTrigger>
 						<DropdownMenuContent class="w-80 max-h-96 overflow-y-auto bg-background/95 backdrop-blur-md border border-border/40 shadow-xl" align="end" sideOffset={8}>
 							<div class="px-3 py-2 border-b border-border/40">
 								<div class="flex items-center justify-between">
@@ -592,8 +586,8 @@
 					</DropdownMenu>
 
 					<!-- User Menu -->
-					<DropdownMenu bind:open={userMenuOpen}>
-						<DropdownMenuTrigger asChild>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger>
 							<Button
 								variant="ghost"
 								class="relative h-9 w-9 rounded-full transition-all duration-200 hover:scale-105"
@@ -604,7 +598,7 @@
 								</Avatar>
 							</Button>
 						</DropdownMenuTrigger>
-						<DropdownMenuContent class="w-56 bg-background/95 backdrop-blur-md border border-border/40 shadow-xl" align="end" sideOffset={8}>
+                        <DropdownMenuContent class="w-56 bg-background/95 backdrop-blur-md border border-border/40 shadow-xl" align="end" sideOffset={8}>
 							<div class="px-3 py-2 border-b border-border/40">
 								<div class="flex items-center space-x-3">
 									<Avatar size="sm">
@@ -628,7 +622,7 @@
 									Settings
 								</DropdownMenuItem>
 								<DropdownMenuSeparator />
-								<DropdownMenuItem 
+								<DropdownMenuItem
 									class="cursor-pointer text-destructive focus:text-destructive"
 									onclick={handleSignOut}
 								>
@@ -645,12 +639,13 @@
 {/if}
 
 <!-- Command Palette Modal -->
-<Dialog bind:open={commandModalOpen}>
+<Dialog>
 	<DialogContent class="sm:max-w-[500px] p-6 bg-transparent border-0 shadow-none fixed top-20 left-1/2 transform -translate-x-1/2">
 		<ShadcnCommand
-			bind:value={searchValue}
+			value={searchValue}
 			placeholder="Type a command or search..."
 			class="border-0 shadow-none bg-transparent"
+			onValueChange={(v: string) => searchValue = v}
 		/>
 	</DialogContent>
 </Dialog>

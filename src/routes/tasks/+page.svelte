@@ -11,9 +11,10 @@
 	import Badge from '$lib/components/ui/badge/badge.svelte';
 	import Avatar from '$lib/components/ui/avatar/avatar.svelte';
 	import AvatarFallback from '$lib/components/ui/avatar/avatar-fallback.svelte';
-	import { 
-		Search, 
-		Filter, 
+  import TaskCreateForm from '$lib/components/tasks/TaskCreateForm.svelte';
+	import {
+		Search,
+		Filter,
 		Plus,
 		CheckCircle,
 		Clock,
@@ -24,13 +25,17 @@
 	} from 'lucide-svelte';
 	import type { PageData } from './$types';
 
-	let { data }: { data: PageData } = $props();
-	
+  let { data }: { data: PageData } = $props();
+  const filtersSafe = data.filters ?? { search: '', status: '', priority: '' };
+
 	// Form state
-	let searchQuery = $state(data.filters.search || '');
-	let statusFilter = $state(data.filters.status || '');
-	let priorityFilter = $state(data.filters.priority || '');
-	
+  let searchQuery = $state(filtersSafe.search || '');
+  let statusFilter = $state(filtersSafe.status || '');
+  let priorityFilter = $state(filtersSafe.priority || '');
+  let newTaskOpen = $state(false);
+  // Task form
+  let taskForm: any;
+
 	// Filter options
 	const statusOptions = [
 		{ value: '', label: 'All Status' },
@@ -39,7 +44,7 @@
 		{ value: 'completed', label: 'Completed' },
 		{ value: 'cancelled', label: 'Cancelled' }
 	];
-	
+
 	const priorityOptions = [
 		{ value: '', label: 'All Priority' },
 		{ value: 'low', label: 'Low' },
@@ -54,11 +59,11 @@
 		if (searchQuery.trim()) params.append('search', searchQuery);
 		if (statusFilter) params.append('status', statusFilter);
 		if (priorityFilter) params.append('priority', priorityFilter);
-		
+
 		const query = params.toString();
 		goto(`/tasks${query ? '?' + query : ''}`, { replaceState: true });
 	}
-	
+
 	// Clear filters
 	function clearFilters() {
 		searchQuery = '';
@@ -66,29 +71,30 @@
 		priorityFilter = '';
 		goto('/tasks', { replaceState: true });
 	}
-	
+
 	// Get status badge variant
-	function getStatusBadge(status: string) {
+  type BadgeVariant = 'default' | 'destructive' | 'outline' | 'secondary' | 'success' | 'warning' | 'info';
+  function getStatusBadge(status: string) {
 		switch (status.toLowerCase()) {
-			case 'completed': return { variant: 'success', label: 'Completed' };
-			case 'in_progress': return { variant: 'info', label: 'In Progress' };
-			case 'pending': return { variant: 'warning', label: 'Pending' };
-			case 'cancelled': return { variant: 'destructive', label: 'Cancelled' };
-			default: return { variant: 'default', label: status };
+      case 'completed': return { variant: 'success' as BadgeVariant, label: 'Completed' };
+      case 'in_progress': return { variant: 'info' as BadgeVariant, label: 'In Progress' };
+      case 'pending': return { variant: 'warning' as BadgeVariant, label: 'Pending' };
+      case 'cancelled': return { variant: 'destructive' as BadgeVariant, label: 'Cancelled' };
+      default: return { variant: 'default' as BadgeVariant, label: status };
 		}
 	}
-	
+
 	// Get priority badge variant
-	function getPriorityBadge(priority: string) {
+  function getPriorityBadge(priority: string) {
 		switch (priority.toLowerCase()) {
-			case 'urgent': return { variant: 'destructive', label: 'Urgent', icon: AlertTriangle };
-			case 'high': return { variant: 'warning', label: 'High', icon: AlertTriangle };
-			case 'medium': return { variant: 'info', label: 'Medium', icon: Clock };
-			case 'low': return { variant: 'default', label: 'Low', icon: Clock };
-			default: return { variant: 'default', label: priority, icon: Clock };
+      case 'urgent': return { variant: 'destructive' as BadgeVariant, label: 'Urgent', icon: AlertTriangle };
+      case 'high': return { variant: 'warning' as BadgeVariant, label: 'High', icon: AlertTriangle };
+      case 'medium': return { variant: 'info' as BadgeVariant, label: 'Medium', icon: Clock };
+      case 'low': return { variant: 'default' as BadgeVariant, label: 'Low', icon: Clock };
+      default: return { variant: 'default' as BadgeVariant, label: priority, icon: Clock };
 		}
 	}
-	
+
 	// Format date
 	function formatDate(dateString: string) {
 		if (!dateString) return 'No due date';
@@ -99,7 +105,7 @@
 			return 'Invalid date';
 		}
 	}
-	
+
 	// Get initials for avatar
 	function getInitials(name: string) {
 		return name
@@ -118,7 +124,7 @@
 			<h1 class="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">Tasks</h1>
 			<p class="text-muted-foreground mt-2">Manage and track your team's tasks and assignments</p>
 		</div>
-		<Button class="rounded-xl hover:scale-[1.02] transition-all duration-200">
+        <Button class="rounded-xl hover:scale-[1.02] transition-all duration-200" onclick={() => newTaskOpen = true}>
 			<Plus class="h-4 w-4 mr-2" />
 			New Task
 		</Button>
@@ -138,7 +144,7 @@
 					<Label for="search">Search Tasks</Label>
 					<div class="relative">
 						<Search class="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-						<Input 
+						<Input
 							id="search"
 							bind:value={searchQuery}
 							placeholder="Search by title or description..."
@@ -151,10 +157,10 @@
 						/>
 					</div>
 				</div>
-				
+
 				<div class="space-y-2">
 					<Label for="status">Status</Label>
-					<select 
+					<select
 						id="status"
 						bind:value={statusFilter}
 						class="w-full px-3 py-2 rounded-xl bg-background border-border focus:bg-background transition-all duration-200"
@@ -164,10 +170,10 @@
 						{/each}
 					</select>
 				</div>
-				
+
 				<div class="space-y-2">
 					<Label for="priority">Priority</Label>
-					<select 
+					<select
 						id="priority"
 						bind:value={priorityFilter}
 						class="w-full px-3 py-2 rounded-xl bg-background border-border focus:bg-background transition-all duration-200"
@@ -177,7 +183,7 @@
 						{/each}
 					</select>
 				</div>
-				
+
 				<div class="flex items-end space-x-2">
 					<Button onclick={applyFilters} class="rounded-xl flex-1">
 						Apply
@@ -205,13 +211,13 @@
 				</div>
 			</CardContent>
 		</Card>
-		
+
 		<Card class="bg-white border-border shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
 			<CardContent class="p-6">
 				<div class="flex items-center justify-between">
 					<div>
 						<p class="text-sm font-medium text-muted-foreground">In Progress</p>
-						<p class="text-2xl font-bold text-blue-600">{data.tasks.filter(t => t.status === 'in_progress').length}</p>
+                        <p class="text-2xl font-bold text-blue-600">{data.tasks.filter((t: any) => t.status === 'in_progress').length}</p>
 					</div>
 					<div class="p-3 bg-blue-100 rounded-full">
 						<Clock class="h-5 w-5 text-blue-600" />
@@ -219,13 +225,13 @@
 				</div>
 			</CardContent>
 		</Card>
-		
+
 		<Card class="bg-white border-border shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
 			<CardContent class="p-6">
 				<div class="flex items-center justify-between">
 					<div>
 						<p class="text-sm font-medium text-muted-foreground">Completed</p>
-						<p class="text-2xl font-bold text-green-600">{data.tasks.filter(t => t.status === 'completed').length}</p>
+                        <p class="text-2xl font-bold text-green-600">{data.tasks.filter((t: any) => t.status === 'completed').length}</p>
 					</div>
 					<div class="p-3 bg-green-100 rounded-full">
 						<CheckCircle class="h-5 w-5 text-green-600" />
@@ -233,13 +239,13 @@
 				</div>
 			</CardContent>
 		</Card>
-		
+
 		<Card class="bg-white border-border shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
 			<CardContent class="p-6">
 				<div class="flex items-center justify-between">
 					<div>
 						<p class="text-sm font-medium text-muted-foreground">High Priority</p>
-						<p class="text-2xl font-bold text-red-600">{data.tasks.filter(t => t.priority === 'high' || t.priority === 'urgent').length}</p>
+                        <p class="text-2xl font-bold text-red-600">{data.tasks.filter((t: any) => t.priority === 'high' || t.priority === 'urgent').length}</p>
 					</div>
 					<div class="p-3 bg-red-100 rounded-full">
 						<AlertTriangle class="h-5 w-5 text-red-600" />
@@ -252,7 +258,7 @@
 	<!-- Tasks List -->
 	<Card class="bg-white border-border shadow-lg rounded-2xl border">
 		<CardHeader>
-			<CardTitle>Tasks ({data.tasks.length})</CardTitle>
+            <CardTitle>Tasks ({data.tasks.length})</CardTitle>
 		</CardHeader>
 		<CardContent>
 			{#if data.tasks.length === 0}
@@ -266,9 +272,9 @@
 			{:else}
 				<div class="space-y-4">
 					{#each data.tasks as task}
-						{@const statusBadge = getStatusBadge(task.status)}
-						{@const priorityBadge = getPriorityBadge(task.priority)}
-						
+                        {@const statusBadge = getStatusBadge(task.status)}
+                        {@const priorityBadge = getPriorityBadge(task.priority)}
+
 						<div class="p-4 border border-border rounded-xl hover:bg-muted/30 transition-all duration-200">
 							<div class="flex items-start justify-between">
 								<div class="flex-1 space-y-2">
@@ -276,21 +282,23 @@
 										<h3 class="font-semibold text-foreground hover:text-primary cursor-pointer">
 											{task.title}
 										</h3>
-										<Badge variant={statusBadge.variant} class="text-xs">
+                        <Badge variant={statusBadge.variant} class="text-xs">
 											{statusBadge.label}
 										</Badge>
-										<Badge variant={priorityBadge.variant} class="text-xs">
-											<svelte:component this={priorityBadge.icon} class="h-3 w-3 mr-1" />
+                        <Badge variant={priorityBadge.variant} class="text-xs">
+                            {#if priorityBadge.icon}
+                              <svelte:component this={priorityBadge.icon} class="h-3 w-3 mr-1" />
+                            {/if}
 											{priorityBadge.label}
 										</Badge>
 									</div>
-									
+
 									{#if task.description}
 										<p class="text-sm text-muted-foreground line-clamp-2">
 											{task.description}
 										</p>
 									{/if}
-									
+
 									<div class="flex items-center space-x-4 text-xs text-muted-foreground">
 										<div class="flex items-center space-x-1">
 											<User class="h-3 w-3" />
@@ -303,7 +311,7 @@
 										<span>Created by {task.issuedByName}</span>
 									</div>
 								</div>
-								
+
 								<div class="flex items-center space-x-2">
 									<Avatar size="sm">
 										<AvatarFallback class="bg-primary/10 text-primary text-xs">
@@ -318,31 +326,35 @@
 						</div>
 					{/each}
 				</div>
-				
+
 				<!-- Pagination -->
-				{#if data.totalPages > 1}
+                {#if (data.totalPages ?? 0) > 1}
 					<div class="flex items-center justify-between mt-6">
-						<p class="text-sm text-muted-foreground">
-							Showing {((data.page - 1) * data.limit) + 1} to {Math.min(data.page * data.limit, data.totalCount)} of {data.totalCount} tasks
+                        <p class="text-sm text-muted-foreground">
+                            {#key `${data.page}-${data.limit}-${data.totalCount}`}
+                            {@const pageNum = data.page ?? 1}
+                            {@const limitNum = data.limit ?? 20}
+                            Showing {((pageNum - 1) * limitNum) + 1} to {Math.min(pageNum * limitNum, data.totalCount)} of {data.totalCount} tasks
+                            {/key}
 						</p>
 						<div class="flex items-center space-x-2">
-							<Button 
-								variant="outline" 
+							<Button
+								variant="outline"
 								size="sm"
-								disabled={data.page <= 1}
-								onclick={() => goto(`/tasks?page=${data.page - 1}`)}
+                                disabled={(data.page ?? 1) <= 1}
+                                onclick={() => goto(`/tasks?page=${(data.page ?? 1) - 1}`)}
 								class="rounded-lg"
 							>
 								Previous
 							</Button>
 							<span class="text-sm font-medium">
-								Page {data.page} of {data.totalPages}
+                                Page {data.page ?? 1} of {data.totalPages ?? 1}
 							</span>
-							<Button 
-								variant="outline" 
+							<Button
+								variant="outline"
 								size="sm"
 								disabled={!data.hasMore}
-								onclick={() => goto(`/tasks?page=${data.page + 1}`)}
+                                onclick={() => goto(`/tasks?page=${(data.page ?? 1) + 1}`)}
 								class="rounded-lg"
 							>
 								Next
@@ -354,3 +366,14 @@
 		</CardContent>
 	</Card>
 </div>
+
+{#if typeof newTaskOpen === 'undefined'}
+    {@html ''}
+{/if}
+{#if newTaskOpen}
+<div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+  <div class="bg-background rounded-xl border border-border p-6 w-full max-w-md">
+    <TaskCreateForm on:close={() => newTaskOpen = false} />
+  </div>
+</div>
+{/if}

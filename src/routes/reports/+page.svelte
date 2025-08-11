@@ -5,6 +5,8 @@
 	import CardHeader from '$lib/components/ui/card/card-header.svelte';
 	import CardTitle from '$lib/components/ui/card/card-title.svelte';
 	import CardContent from '$lib/components/ui/card/card-content.svelte';
+  import type { PageData } from './$types';
+  let { data }: { data: PageData } = $props();
 </script>
 
 <svelte:head>
@@ -23,7 +25,7 @@
 					Insights and analytics for your organization
 				</p>
 			</div>
-			
+
 			<div class="flex items-center space-x-3">
 				<Button variant="outline" class="rounded-xl">
 					<Filter class="h-4 w-4 mr-2" />
@@ -47,7 +49,7 @@
 				</div>
 			</CardHeader>
 			<CardContent>
-				<div class="text-2xl font-bold">248</div>
+                <div class="text-2xl font-bold">{data.metrics.totalEmployees}</div>
 				<p class="text-xs text-muted-foreground">
 					<TrendingUp class="inline h-3 w-3 mr-1" />
 					+12% from last month
@@ -63,7 +65,7 @@
 				</div>
 			</CardHeader>
 			<CardContent>
-				<div class="text-2xl font-bold">16</div>
+                <div class="text-2xl font-bold">{data.metrics.timeOffRequests}</div>
 				<p class="text-xs text-muted-foreground">
 					<TrendingUp class="inline h-3 w-3 mr-1" />
 					+4 this week
@@ -79,7 +81,7 @@
 				</div>
 			</CardHeader>
 			<CardContent>
-				<div class="text-2xl font-bold">$2.4M</div>
+                <div class="text-2xl font-bold">${data.metrics.payrollTotal?.toLocaleString?.() ?? data.metrics.payrollTotal}</div>
 				<p class="text-xs text-muted-foreground">
 					Monthly total
 				</p>
@@ -94,7 +96,7 @@
 				</div>
 			</CardHeader>
 			<CardContent>
-				<div class="text-2xl font-bold">92%</div>
+                <div class="text-2xl font-bold">{Math.round((data.metrics.performanceCompletion ?? 0) * 100)}%</div>
 				<p class="text-xs text-muted-foreground">
 					Completion rate
 				</p>

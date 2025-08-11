@@ -6,39 +6,40 @@
 	import { eventTypeColors, type Event } from '$lib/schemas/event';
 	import { goto } from '$app/navigation';
 	import type { PageData } from './$types';
-	
+
 	interface Props {
 		data: PageData;
 	}
-	
+
 	let { data }: Props = $props();
-	
+
 	let selectedDate = $state(today(getLocalTimeZone()));
 	let currentView = $state<'month' | 'week' | 'day'>(data.initialView || 'month');
 	let events = $state<Event[]>(data.events || []);
-	let loading = $state(false);
+    let loading = $state(false);
 	let error = $state<string | null>(data.error || null);
-	
+    let newEventOpen = $state(false);
+
 	// Get current week dates for week view
 	let weekStart = $derived(startOfWeek(selectedDate, 'en-US'));
 	let weekDays = $derived(Array.from({ length: 7 }, (_, i) => weekStart.add({ days: i })));
-	
+
 	// Hours for day/week view
 	const hours = Array.from({ length: 24 }, (_, i) => {
 		const hour = i === 0 ? 12 : i > 12 ? i - 12 : i;
 		const ampm = i < 12 ? 'AM' : 'PM';
 		return { value: i, display: `${hour}:00 ${ampm}` };
 	});
-	
+
 	// Load events for different date ranges by navigating to server endpoint
 	async function loadEvents() {
 		loading = true;
 		error = null;
-		
+
 		try {
 			let startDate: string;
 			let endDate: string;
-			
+
 			if (currentView === 'month') {
 				// Load events for the entire month
 				const monthStart = selectedDate.set({ day: 1 });
@@ -55,20 +56,20 @@
 				startDate = selectedDate.toString();
 				endDate = selectedDate.toString();
 			}
-			
+
 			console.log('📅 Loading events for date range:', { startDate, endDate, view: currentView });
-			
+
 			// Navigate to reload page with new date parameters (server-side data loading)
 			const params = new URLSearchParams();
 			params.append('startDate', startDate);
 			params.append('endDate', endDate);
 			params.append('view', currentView);
-			
-			await goto(`/calendar?${params.toString()}`, { 
+
+			await goto(`/calendar?${params.toString()}`, {
 				replaceState: false,
-				noScroll: true 
+				noScroll: true
 			});
-			
+
 		} catch (err: any) {
 			console.error('❌ Failed to load events:', err);
 			error = 'Failed to load events. Please try again.';
@@ -76,77 +77,77 @@
 			loading = false;
 		}
 	}
-	
+
 	// Get events for a specific date and hour
 	function getEventsForDateTime(date: any, hour?: number): Event[] {
 		return events.filter(event => {
 			const eventStart = new Date(event.startDate);
 			const eventEnd = new Date(event.endDate);
 			const targetDate = date.toDate ? date.toDate(getLocalTimeZone()) : date;
-			
+
 			// Check if event occurs on this date
 			const eventDateStart = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate());
 			const targetDateStart = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
-			
+
 			if (eventDateStart.getTime() !== targetDateStart.getTime()) {
 				return false;
 			}
-			
+
 			// If hour is specified, check if event occurs during this hour
 			if (hour !== undefined && !event.allDay) {
 				const eventHour = eventStart.getHours();
 				return eventHour === hour;
 			}
-			
+
 			return true;
 		});
 	}
-	
+
 	// Get events for today (for sidebar)
 	function getTodaysEvents(): Event[] {
 		const todayDate = today(getLocalTimeZone());
 		return getEventsForDateTime(todayDate);
 	}
-	
+
 	// Delete event using form action
 	function deleteEvent(eventId: number) {
 		// Remove the event optimistically from the UI
 		events = events.filter(e => e.id !== eventId);
-		
+
 		// Submit the delete form (will be handled server-side)
 		const form = document.createElement('form');
 		form.method = 'POST';
 		form.action = '?/deleteEvent';
-		
+
 		const eventIdInput = document.createElement('input');
 		eventIdInput.type = 'hidden';
 		eventIdInput.name = 'eventId';
 		eventIdInput.value = eventId.toString();
-		
+
 		form.appendChild(eventIdInput);
 		document.body.appendChild(form);
 		form.submit();
 		document.body.removeChild(form);
 	}
-	
+
 	// Format event time
 	function formatEventTime(event: Event): string {
 		if (event.allDay) return 'All day';
-		
+
 		const start = new Date(event.startDate);
 		const end = new Date(event.endDate);
-		
-		return `${start.toLocaleTimeString('en-US', { 
-			hour: 'numeric', 
+
+		return `${start.toLocaleTimeString('en-US', {
+			hour: 'numeric',
 			minute: '2-digit',
-			hour12: true 
-		})} - ${end.toLocaleTimeString('en-US', { 
-			hour: 'numeric', 
+			hour12: true
+		})} - ${end.toLocaleTimeString('en-US', {
+			hour: 'numeric',
 			minute: '2-digit',
-			hour12: true 
+			hour12: true
 		})}`;
 	}
-	
+
 	// Load events when view or date changes (manually triggered)
 	// Note: Initial events are loaded server-side via +page.server.ts
 </script>
@@ -167,38 +168,38 @@
 					Manage events, meetings, and time off
 				</p>
 			</div>
-			
+
 			<div class="flex items-center space-x-3">
 				<Button variant="outline" class="rounded-xl" onclick={() => selectedDate = today(getLocalTimeZone())}>
 					Today
 				</Button>
 				<div class="flex items-center rounded-xl border border-border/40 bg-background/20 backdrop-blur-sm p-1">
-					<Button 
-						variant={currentView === 'month' ? 'default' : 'ghost'} 
-						size="sm" 
+					<Button
+						variant={currentView === 'month' ? 'default' : 'ghost'}
+						size="sm"
 						class="rounded-lg"
 						onclick={() => currentView = 'month'}
 					>
 						Month
 					</Button>
-					<Button 
-						variant={currentView === 'week' ? 'default' : 'ghost'} 
-						size="sm" 
+					<Button
+						variant={currentView === 'week' ? 'default' : 'ghost'}
+						size="sm"
 						class="rounded-lg"
 						onclick={() => currentView = 'week'}
 					>
 						Week
 					</Button>
-					<Button 
-						variant={currentView === 'day' ? 'default' : 'ghost'} 
-						size="sm" 
+					<Button
+						variant={currentView === 'day' ? 'default' : 'ghost'}
+						size="sm"
 						class="rounded-lg"
 						onclick={() => currentView = 'day'}
 					>
 						Day
 					</Button>
 				</div>
-				<Button class="rounded-xl">
+                <Button class="rounded-xl" onclick={() => newEventOpen = true}>
 					<Plus class="h-4 w-4 mr-2" />
 					New Event
 				</Button>
@@ -214,17 +215,17 @@
 			<div class="flex-1">
 				<Calendar bind:value={selectedDate} class="w-full" />
 			</div>
-			
+
 			<!-- Events Sidebar -->
 			<div class="lg:w-96">
 				<div class="rounded-2xl border border-border/40 bg-background/20 backdrop-blur-md p-6 shadow-xl">
 					<div class="flex items-center justify-between mb-4">
 						<h3 class="text-lg font-semibold">Events</h3>
-						<Button size="sm" class="rounded-xl">
+                        <Button size="sm" class="rounded-xl" onclick={() => newEventOpen = true}>
 							<Plus class="h-4 w-4" />
 						</Button>
 					</div>
-					
+
 					{#if loading}
 						<div class="text-center py-8">
 							<div class="text-muted-foreground">Loading events...</div>
@@ -255,9 +256,9 @@
 												</div>
 												<div class="flex items-center space-x-2 ml-2">
 													<div class="w-2 h-2 rounded-full" style="background-color: {event.color || eventTypeColors[event.type]}"></div>
-													<Button 
-														variant="ghost" 
-														size="sm" 
+													<Button
+														variant="ghost"
+														size="sm"
 														class="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
 														onclick={() => deleteEvent(event.id)}
 													>
@@ -269,7 +270,7 @@
 									{/each}
 								</div>
 							{/if}
-							
+
 							<!-- All Events (if no today events or for other dates) -->
 							{#if todaysEvents.length === 0 && events.length > 0}
 								<div class="text-sm text-muted-foreground mb-2">Events</div>
@@ -289,9 +290,9 @@
 												</div>
 												<div class="flex items-center space-x-2 ml-2">
 													<div class="w-2 h-2 rounded-full" style="background-color: {event.color || eventTypeColors[event.type]}"></div>
-													<Button 
-														variant="ghost" 
-														size="sm" 
+													<Button
+														variant="ghost"
+														size="sm"
 														class="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
 														onclick={() => deleteEvent(event.id)}
 													>
@@ -310,7 +311,7 @@
 							{/if}
 						</div>
 					{/if}
-					
+
 					<div class="mt-6 pt-4 border-t border-border/40">
 						<Button variant="outline" class="w-full rounded-xl">
 							View All Events
@@ -336,7 +337,7 @@
 					</Button>
 				</div>
 			</div>
-			
+
 			<!-- Week Grid -->
 			<div class="border border-border/60 rounded-xl overflow-hidden bg-background/10 backdrop-blur-sm">
 				<div class="grid grid-cols-8">
@@ -350,7 +351,7 @@
 						</div>
 					{/each}
 				</div>
-				
+
 				<!-- Time slots -->
 				{#each hours.slice(8, 18) as hour, hourIndex}
 					<div class="grid grid-cols-8 {hourIndex < 9 ? 'border-b border-border/40' : ''}">
@@ -362,16 +363,16 @@
 							<div class="bg-background/5 backdrop-blur-sm p-1 min-h-16 relative hover:bg-background/20 transition-colors {dayIndex < 6 ? 'border-r border-border/40' : ''}">
 								<!-- Real events -->
 								{#each dayEvents as event}
-									<div 
+									<div
 										class="backdrop-blur-sm text-white text-xs rounded-lg p-2 mb-1 shadow-sm group cursor-pointer"
 										style="background-color: {event.color || eventTypeColors[event.type]}80"
 										title={event.description || event.title}
 									>
 										<div class="flex items-center justify-between">
 											<span class="truncate flex-1">{event.title}</span>
-											<Button 
-												variant="ghost" 
-												size="sm" 
+											<Button
+												variant="ghost"
+												size="sm"
 												class="opacity-0 group-hover:opacity-100 transition-opacity h-4 w-4 p-0 ml-1"
 												onclick={(e) => {
 													e.stopPropagation();
@@ -409,7 +410,7 @@
 					</Button>
 				</div>
 			</div>
-			
+
 			<!-- Day Schedule -->
 			<div class="border border-border/60 rounded-xl overflow-hidden bg-background/10 backdrop-blur-sm">
 				{#each hours as hour, hourIndex}
@@ -419,12 +420,12 @@
 						<div class="col-span-2 bg-background/20 backdrop-blur-sm p-3 text-right text-sm text-muted-foreground border-r border-border/60 h-16 flex items-start pt-2">
 							{hour.display}
 						</div>
-						
+
 						<!-- Events column -->
 						<div class="col-span-10 bg-background/5 backdrop-blur-sm p-1 h-16 relative hover:bg-background/20 transition-colors">
 							<!-- Real events -->
 							{#each hourEvents as event}
-								<div 
+								<div
 									class="absolute inset-x-2 top-1 bottom-1 backdrop-blur-sm border rounded-xl p-3 z-10 group cursor-pointer"
 									style="background-color: {event.color || eventTypeColors[event.type]}20; border-color: {event.color || eventTypeColors[event.type]}40"
 									title={event.description || event.title}
@@ -437,9 +438,9 @@
 												<div class="text-xs text-muted-foreground/80 truncate">{event.location}</div>
 											{/if}
 										</div>
-										<Button 
-											variant="ghost" 
-											size="sm" 
+										<Button
+											variant="ghost"
+											size="sm"
 											class="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0 ml-2"
 											onclick={(e) => {
 												e.stopPropagation();
@@ -458,3 +459,19 @@
 		</div>
 	{/if}
 </div>
+
+<!-- Placeholder New Event Modal -->
+{#if typeof newEventOpen === 'undefined'}
+    {@html ''}
+{/if}
+{#if newEventOpen}
+<div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div class="bg-background rounded-xl border border-border p-6 w-full max-w-md">
+        <h3 class="font-semibold mb-2">Create Event</h3>
+        <p class="text-sm text-muted-foreground mb-4">This is a placeholder modal. Implement your event form here.</p>
+        <div class="flex justify-end">
+            <Button variant="outline" onclick={() => newEventOpen = false}>Close</Button>
+        </div>
+    </div>
+</div>
+{/if}

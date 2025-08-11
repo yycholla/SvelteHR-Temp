@@ -141,24 +141,30 @@
 		<!-- Position -->
 		<div class="min-w-0">
 			<div class="font-medium text-foreground truncate">
-				{employee.position.title}
+				{employee.position?.title || 'No Position'}
 			</div>
 			<div class="text-sm text-muted-foreground truncate">
-				{employee.position.level}
+				{employee.position?.level || 'N/A'}
 			</div>
 		</div>
 
 		<!-- Department -->
 		<div class="flex justify-start">
-			<Badge class="rounded-lg border {getDepartmentColor(employee.department.color)} truncate">
-				{employee.department.name}
-			</Badge>
+			{#if employee.department}
+				<Badge class="rounded-lg border {getDepartmentColor(employee.department.color)} truncate">
+					{employee.department.name}
+				</Badge>
+			{:else}
+				<Badge class="rounded-lg border bg-gray-500/20 text-gray-700 border-gray-500/30 truncate">
+					No Department
+				</Badge>
+			{/if}
 		</div>
 
 		<!-- Status -->
 		<div class="flex justify-start">
-			<Badge class="rounded-lg border {getStatusColor(employee.status)} truncate">
-				{employee.status.replace('_', ' ')}
+			<Badge class="rounded-lg border {getStatusColor(employee.status || 'UNKNOWN')} truncate">
+				{employee.status?.replace('_', ' ') || 'Unknown'}
 			</Badge>
 		</div>
 
@@ -209,7 +215,7 @@
 							<div class="flex items-center space-x-2">
 								<Award class="h-3 w-3 text-muted-foreground" />
 								<span class="text-muted-foreground">Level:</span>
-								<span class="font-medium">{employee.position.level}</span>
+								<span class="font-medium">{employee.position?.level || 'N/A'}</span>
 							</div>
 						</div>
 					</div>
@@ -263,8 +269,8 @@
 				<!-- Additional Stats or Information -->
 				<div class="text-xs text-muted-foreground">
 					Employee ID: {employee.employeeId} • 
-					Department: {employee.department.name} • 
-					Status: {employee.status.replace('_', ' ')} • 
+					Department: {employee.department?.name || 'No Department'} • 
+					Status: {employee.status?.replace('_', ' ') || 'Unknown'} • 
 Tenure: {formatTenure(employee.hireDate)}
 				</div>
 			</div>

@@ -21,11 +21,12 @@
 	let { data }: { data: PageData } = $props();
 
 	// Local filter states (initialized from server data)
-	let searchTerm = $state(data.filters.search);
+  let searchTerm = $state(data.filters.search);
 	let categoryFilter = $state(data.filters.category);
 	let departmentFilter = $state(data.filters.department);
 	let currentPage = $state(data.pagination.currentPage);
 	let pageSize = $state(data.pagination.pageSize);
+  let uploadOpen = $state(false);
 
 	// Derived data from server
 	const documents = $derived(data.documents);
@@ -51,22 +52,22 @@
 	// Apply filters by navigating to new URL with query parameters
 	async function applyFilters() {
 		const params = new URLSearchParams();
-		
+
 		if (searchTerm) params.set('search', searchTerm);
 		if (categoryFilter !== 'all') params.set('category', categoryFilter);
 		if (departmentFilter !== 'all') params.set('department', departmentFilter);
 		params.set('page', currentPage.toString());
 		params.set('pageSize', pageSize.toString());
-		
+
 		const queryString = params.toString();
 		const newUrl = queryString ? `/hr/documents?${queryString}` : '/hr/documents';
-		
+
 		await goto(newUrl);
 	}
 
 	function formatFileSize(bytes: number | null): string {
 		if (!bytes) return 'Unknown size';
-		
+
 		const units = ['B', 'KB', 'MB', 'GB'];
 		let size = bytes;
 		let unitIndex = 0;
@@ -92,12 +93,12 @@
 
 	function getFileIcon(fileType: string | null): string {
 		if (!fileType) return 'text-muted-foreground';
-		
+
 		if (fileType.includes('pdf')) return 'text-red-500';
 		if (fileType.includes('word') || fileType.includes('document')) return 'text-blue-500';
 		if (fileType.includes('excel') || fileType.includes('spreadsheet')) return 'text-green-500';
 		if (fileType.includes('image')) return 'text-purple-500';
-		
+
 		return 'text-muted-foreground';
 	}
 
@@ -112,7 +113,7 @@
 
 	async function handleDelete(document: any) {
 		if (!confirm(`Are you sure you want to delete "${document.title}"?`)) return;
-		
+
 		try {
 			// TODO: Implement server-side document deletion
 			console.log('Delete document:', document.id);
@@ -180,7 +181,7 @@
 				</div>
 
 				<!-- Category Filter -->
-				<select 
+				<select
 					class="px-3 py-2 border border-input rounded-md bg-background text-foreground"
 					bind:value={categoryFilter}
 				>
@@ -191,7 +192,7 @@
 				</select>
 
 				<!-- Department Filter -->
-				<select 
+				<select
 					class="px-3 py-2 border border-input rounded-md bg-background text-foreground"
 					bind:value={departmentFilter}
 				>
@@ -299,12 +300,12 @@
 							? 'Try adjusting your search criteria'
 							: 'Upload your first document to get started'}
 					</p>
-					{#if !(searchTerm || categoryFilter !== 'all' || departmentFilter !== 'all')}
-						<Button class="mt-4">
-							<Upload class="h-4 w-4 mr-2" />
-							Upload Document
-						</Button>
-					{/if}
+                    {#if !(searchTerm || categoryFilter !== 'all' || departmentFilter !== 'all')}
+                        <Button class="mt-4" onclick={() => uploadOpen = true}>
+                            <Upload class="h-4 w-4 mr-2" />
+                            Upload Document
+                        </Button>
+                    {/if}
 				</div>
 			{:else}
 				<div class="space-y-4">
@@ -353,7 +354,7 @@
 												<Eye class="h-4 w-4 mr-2" />
 												View Details
 											</DropdownMenuItem>
-											<DropdownMenuItem 
+											<DropdownMenuItem
 												onclick={() => handleDelete(document)}
 												class="text-destructive focus:text-destructive"
 											>
@@ -375,18 +376,18 @@
 							Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} results
 						</div>
 						<div class="flex items-center space-x-2">
-							<Button 
-								variant="outline" 
-								size="sm" 
+							<Button
+								variant="outline"
+								size="sm"
 								disabled={currentPage <= 1}
 								onclick={() => goToPage(currentPage - 1)}
 							>
 								Previous
 							</Button>
-							
+
 							{#each Array.from({ length: Math.min(5, totalPages) }, (_, i) => i + Math.max(1, currentPage - 2)) as pageNum}
 								{#if pageNum <= totalPages}
-									<Button 
+									<Button
 										variant={currentPage === pageNum ? "default" : "outline"}
 										size="sm"
 										onclick={() => goToPage(pageNum)}
@@ -395,10 +396,10 @@
 									</Button>
 								{/if}
 							{/each}
-							
-							<Button 
-								variant="outline" 
-								size="sm" 
+
+							<Button
+								variant="outline"
+								size="sm"
 								disabled={currentPage >= totalPages}
 								onclick={() => goToPage(currentPage + 1)}
 							>
@@ -413,8 +414,21 @@
 
 	<!-- Fixed position add button in bottom right corner -->
 	<div class="fixed bottom-6 right-6 z-50">
-		<Button class="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200">
+        <Button class="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200" onclick={() => uploadOpen = true}>
 			<Upload class="h-5 w-5" />
 		</Button>
 	</div>
+
+    {#if typeof uploadOpen === 'undefined'}
+        {@html ''}
+    {/if}
+    {#if uploadOpen}
+    <div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div class="bg-background rounded-xl border border-border p-6 w-full max-w-md">
+            <h3 class="font-semibold mb-2">Upload Document</h3>
+            <p class="text-sm text-muted-foreground mb-4">Placeholder modal. Hook up your upload form here.</p>
+            <div class="flex justify-end"><Button variant="outline" onclick={() => uploadOpen = false}>Close</Button></div>
+        </div>
+    </div>
+    {/if}
 </div>

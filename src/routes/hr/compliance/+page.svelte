@@ -1,365 +1,201 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { Shield, AlertTriangle, CheckCircle, Clock, Users, FileCheck } from 'lucide-svelte';
-	import Card from '$lib/components/ui/card/card.svelte';
-	import CardHeader from '$lib/components/ui/card/card-header.svelte';
-	import CardTitle from '$lib/components/ui/card/card-title.svelte';
-	import CardDescription from '$lib/components/ui/card/card-description.svelte';
-	import CardContent from '$lib/components/ui/card/card-content.svelte';
-	import Badge from '$lib/components/ui/badge/badge.svelte';
-	import Button from '$lib/components/ui/button/button.svelte';
-	import Progress from '$lib/components/ui/progress/progress.svelte';
-	import type { PageData } from './$types';
+    import GenericStreamingPage from '$lib/components/streaming/GenericStreamingPage.svelte';
+    import StatCard from '$lib/components/common/StatCard.svelte';
+    import StreamingCard from '$lib/components/common/StreamingCard.svelte';
+    import TaskList from '$lib/components/common/TaskList.svelte';
+    import ActivityFeed from '$lib/components/common/ActivityFeed.svelte';
+    import { Shield, AlertCircle, CheckCircle, Clock } from 'lucide-svelte';
+    import { transformActivityData, hasData } from '$lib/utils/dataTransformers.js';
+    import type { PageData } from './$types';
 
-	// Page data from server
-	let { data }: { data: PageData } = $props();
+    // Page data from server as fallback
+    let { data }: { data: PageData } = $props();
 
-	// Local filter states (initialized from server data)
-	let statusFilter = $state(data.filters.status);
-	let employeeFilter = $state('all');
-	let itemTypeFilter = $state(data.filters.itemType);
-
-	// Derived data from server
-	const complianceItems = $derived(data.complianceItems || []);
-	const serverStats = $derived(data.stats);
-	const loading = $state(false);
-	const error = $derived(data.error || '');
-
-	// Calculate compliance statistics from items
-	const complianceStats = $derived(() => {
-		const items = complianceItems || [];
-		const totalItems = items.length;
-		const activeItems = items.filter(item => item.status === 'Active').length;
-		const expiringSoon = items.filter(item => item.status === 'ExpiringSoon').length;
-		const expired = items.filter(item => item.status === 'Expired').length;
-		const complianceRate = totalItems > 0 ? Math.round((activeItems / totalItems) * 100) : 100;
-		
-		return {
-			totalItems,
-			activeItems,
-			expiringSoon,
-			expired,
-			complianceRate
-		};
-	});
-
-	// Apply filters by navigating to new URL with query parameters
-	async function applyFilters() {
-		const params = new URLSearchParams();
-		
-		if (statusFilter !== 'all') params.set('status', statusFilter);
-		if (itemTypeFilter !== 'all') params.set('itemType', itemTypeFilter);
-		
-		const queryString = params.toString();
-		const newUrl = queryString ? `/hr/compliance?${queryString}` : '/hr/compliance';
-		
-		await goto(newUrl);
-	}
-
-	function getStatusVariant(status: string) {
-		switch (status) {
-			case 'Active': return 'default';
-			case 'ExpiringSoon': return 'secondary';
-			case 'Expired': return 'destructive';
-			case 'PendingReview': return 'outline';
-			default: return 'outline';
-		}
-	}
-
-	function getStatusIcon(status: string) {
-		switch (status) {
-			case 'Active': return CheckCircle;
-			case 'ExpiringSoon': return Clock;
-			case 'Expired': return AlertTriangle;
-			case 'PendingReview': return FileCheck;
-			default: return Shield;
-		}
-	}
-
-	function formatDate(dateString: string | null) {
-		if (!dateString) return 'No date';
-		return new Intl.DateTimeFormat('en-US', {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric'
-		}).format(new Date(dateString));
-	}
-
-	function clearFilters() {
-		statusFilter = 'all';
-		employeeFilter = 'all';
-		itemTypeFilter = 'all';
-		applyFilters();
-	}
-
-	// Apply filters when status or type filter changes
-	$effect(() => {
-		if (statusFilter !== data.filters.status || itemTypeFilter !== data.filters.itemType) {
-			applyFilters();
-		}
-	});
-
-	function getDaysUntilExpiration(dateString: string | Date) {
-		const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
-		const today = new Date();
-		const diffTime = date.getTime() - today.getTime();
-		const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-		return diffDays;
-	}
-
-	// Get compliance items grouped by status
-	const complianceByStatus = $derived(() => {
-		const items = complianceItems || [];
-		const grouped = {
-			active: items.filter(item => item.status === 'Active'),
-			expiringSoon: items.filter(item => item.status === 'ExpiringSoon'),
-			expired: items.filter(item => item.status === 'Expired'),
-			pendingReview: items.filter(item => item.status === 'PendingReview')
-		};
-		return grouped;
-	});
+    // Transform server data to fallback format
+    const fallbackData = {
+        'compliance-items': data.items || [],
+        'compliance-stats': { total: data.stats?.total || 0 },
+        'expiring-items': data.expiring || [],
+        'categories': data.categories || []
+    };
 </script>
 
-<div class="space-y-6">
-	{#if loading}
-		<div class="flex items-center justify-center py-12">
-			<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-		</div>
-	{:else if error}
-		<div class="text-center py-12">
-			<p class="text-destructive">{error}</p>
-			<Button variant="outline" class="mt-4" onclick={() => window.location.reload()}>
-				Retry
-			</Button>
-		</div>
-	{:else}
-		<!-- Compliance Overview -->
-		<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-			<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
-				<CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-					<CardTitle class="text-sm font-medium">Total Items</CardTitle>
-					<Shield class="h-4 w-4 text-muted-foreground" />
-				</CardHeader>
-				<CardContent>
-					<div class="text-2xl font-bold">{complianceStats.totalItems}</div>
-					<p class="text-xs text-muted-foreground">Compliance items tracked</p>
-				</CardContent>
-			</Card>
+<svelte:head>
+	<title>HR - Compliance Management - SvelteHR</title>
+</svelte:head>
 
-			<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
-				<CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-					<CardTitle class="text-sm font-medium">Active</CardTitle>
-					<CheckCircle class="h-4 w-4 text-green-600" />
-				</CardHeader>
-				<CardContent>
-					<div class="text-2xl font-bold">{complianceStats.activeItems}</div>
-					<p class="text-xs text-muted-foreground">Currently compliant</p>
-				</CardContent>
-			</Card>
+<GenericStreamingPage 
+    configKey="compliance" 
+    title="Compliance Management"
+    fallbackData={fallbackData}
+>
+    <div slot="streaming" let:data={streamingData}>
+        <div class="hr-compliance-content">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <StatCard title="Total Items" value={Array.isArray(streamingData['compliance-items']) ? streamingData['compliance-items'].length : 0} icon={Shield} tag="#hr" href="/hr/compliance" loading={!hasData(streamingData['compliance-items'])} />
+                <StatCard title="Compliance Stats" value={streamingData['compliance-stats']?.total || 0} icon={CheckCircle} tag="#hr" href="/hr/compliance" loading={!hasData(streamingData['compliance-stats'])} />
+                <StatCard title="Expiring Soon" value={Array.isArray(streamingData['expiring-items']) ? streamingData['expiring-items'].length : 0} icon={Clock} tag="#hr" href="/hr/compliance" loading={!hasData(streamingData['expiring-items'])} />
+                <StatCard title="Categories" value={Array.isArray(streamingData['categories']) ? streamingData['categories'].length : 0} icon={AlertCircle} tag="#hr" href="/hr/compliance" loading={!hasData(streamingData['categories'])} />
+            </div>
 
-			<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
-				<CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-					<CardTitle class="text-sm font-medium">Expiring Soon</CardTitle>
-					<Clock class="h-4 w-4 text-yellow-600" />
-				</CardHeader>
-				<CardContent>
-					<div class="text-2xl font-bold">{complianceStats.expiringSoon}</div>
-					<p class="text-xs text-muted-foreground">Require attention</p>
-				</CardContent>
-			</Card>
+            <StreamingCard
+                title="Compliance Overview"
+                description="Active compliance items"
+                icon={Shield}
+                tag="#hr"
+                href="/hr/compliance"
+                loading={!hasData(streamingData['compliance-items'])}
+                empty={!Array.isArray(streamingData['compliance-items']) || streamingData['compliance-items'].length === 0}
+                emptyMessage="No compliance items"
+            >
+                {#snippet children()}
+                    <div class="compliance-grid">
+                        {#each (Array.isArray(streamingData['compliance-items']) ? streamingData['compliance-items'] : []) as item}
+                            <div class="compliance-card">
+                                <h4>{item.title || 'Compliance Item'}</h4>
+                                <p class="item-type">{item.itemType || 'General'}</p>
+                                {#if item.dueDate}
+                                    <p class="due-date">Due: {new Date(item.dueDate).toLocaleDateString()}</p>
+                                {/if}
+                                <div class="status-badge {item.status?.toLowerCase() || 'pending'}">
+                                    {item.status || 'Pending'}
+                                </div>
+                            </div>
+                        {/each}
+                    </div>
+                {/snippet}
+            </StreamingCard>
+        </div>
+    </div>
 
-			<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
-				<CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-					<CardTitle class="text-sm font-medium">Compliance Rate</CardTitle>
-					<AlertTriangle class="h-4 w-4 text-muted-foreground" />
-				</CardHeader>
-				<CardContent>
-					<div class="text-2xl font-bold">{complianceStats.complianceRate}%</div>
-					<Progress value={complianceStats.complianceRate} class="mt-2" />
-				</CardContent>
-			</Card>
-		</div>
+    <div slot="static" let:data={fallbackData}>
+        <div class="static-content">
+            <div class="text-center py-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                    <StatCard title="Total Items" value={Array.isArray(fallbackData['compliance-items']) ? fallbackData['compliance-items'].length : 0} icon={Shield} tag="#hr" />
+                    <StatCard title="Compliance Stats" value={fallbackData['compliance-stats']?.total || 0} icon={CheckCircle} tag="#hr" />
+                    <StatCard title="Expiring Soon" value={Array.isArray(fallbackData['expiring-items']) ? fallbackData['expiring-items'].length : 0} icon={Clock} tag="#hr" />
+                    <StatCard title="Categories" value={Array.isArray(fallbackData['categories']) ? fallbackData['categories'].length : 0} icon={AlertCircle} tag="#hr" />
+                </div>
+            </div>
+        </div>
+    </div>
 
-		<!-- Compliance Status Sections -->
-		{#if complianceByStatus.expiringSoon.length > 0}
-			<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-yellow-200/50 dark:border-yellow-800/50 rounded-lg shadow-xl">
-				<CardHeader>
-					<div class="flex items-center space-x-2">
-						<Clock class="h-5 w-5 text-yellow-600" />
-						<CardTitle class="text-yellow-800 dark:text-yellow-200">Items Expiring Soon</CardTitle>
-					</div>
-					<CardDescription>
-						Compliance items that require immediate attention
-					</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<div class="space-y-3">
-						{#each complianceByStatus.expiringSoon as item}
-							{@const daysUntil = getDaysUntilExpiration(item.expirationDate)}
-							<div class="flex items-center justify-between p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-								<div class="flex-1">
-									<div class="flex items-center space-x-3">
-										<div class="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/40 rounded-full flex items-center justify-center">
-											<span class="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-												{item.employee.firstName[0]}{item.employee.lastName[0]}
-											</span>
-										</div>
-										<div>
-											<p class="font-medium text-yellow-900 dark:text-yellow-100">
-												{item.employee.firstName} {item.employee.lastName}
-											</p>
-											<p class="text-sm text-yellow-700 dark:text-yellow-300">{item.itemType}</p>
-										</div>
-									</div>
-								</div>
-								<div class="text-right">
-									<p class="text-sm font-medium text-yellow-900 dark:text-yellow-100">
-										Expires in {daysUntil} days
-									</p>
-									<p class="text-xs text-yellow-700 dark:text-yellow-300">
-										{formatDate(item.expirationDate)}
-									</p>
-								</div>
-							</div>
-						{/each}
-					</div>
-				</CardContent>
-			</Card>
-		{/if}
+    <div slot="fallback">
+        <div class="fallback-content text-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Loading Compliance Data</h3>
+            <p class="text-gray-500">Please wait while we fetch compliance information...</p>
+        </div>
+    </div>
+</GenericStreamingPage>
 
-		{#if complianceByStatus.expired.length > 0}
-			<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-red-200/50 dark:border-red-800/50 rounded-lg shadow-xl">
-				<CardHeader>
-					<div class="flex items-center space-x-2">
-						<AlertTriangle class="h-5 w-5 text-red-600" />
-						<CardTitle class="text-red-800 dark:text-red-200">Expired Items</CardTitle>
-					</div>
-					<CardDescription>
-						Compliance items that have expired and need immediate action
-					</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<div class="space-y-3">
-						{#each complianceByStatus.expired as item}
-							<div class="flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
-								<div class="flex-1">
-									<div class="flex items-center space-x-3">
-										<div class="w-10 h-10 bg-red-100 dark:bg-red-900/40 rounded-full flex items-center justify-center">
-											<span class="text-sm font-medium text-red-800 dark:text-red-200">
-												{item.employee.firstName[0]}{item.employee.lastName[0]}
-											</span>
-										</div>
-										<div>
-											<p class="font-medium text-red-900 dark:text-red-100">
-												{item.employee.firstName} {item.employee.lastName}
-											</p>
-											<p class="text-sm text-red-700 dark:text-red-300">{item.itemType}</p>
-										</div>
-									</div>
-								</div>
-								<div class="text-right">
-									<Badge variant="destructive">Expired</Badge>
-									<p class="text-xs text-red-700 dark:text-red-300 mt-1">
-										{formatDate(item.expirationDate)}
-									</p>
-								</div>
-							</div>
-						{/each}
-					</div>
-				</CardContent>
-			</Card>
-		{/if}
+<style>
+	.hr-compliance-content {
+		max-width: 1400px;
+		margin: 0 auto;
+	}
 
-		<!-- All Compliance Items -->
-		<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
-			<CardHeader>
-				<CardTitle>All Compliance Items</CardTitle>
-				<CardDescription>
-					Complete overview of all compliance tracking items
-				</CardDescription>
-			</CardHeader>
-			<CardContent>
-				{#if complianceItems.length === 0}
-					<div class="text-center py-8">
-						<Shield class="mx-auto h-12 w-12 text-muted-foreground/50" />
-						<h3 class="mt-4 text-lg font-semibold">No compliance items</h3>
-						<p class="mt-2 text-muted-foreground">
-							Start tracking compliance by adding your first item.
-						</p>
-					</div>
-				{:else}
-					<div class="overflow-hidden rounded-md border">
-						<table class="w-full">
-							<thead class="bg-muted/50">
-								<tr class="border-b">
-									<th class="text-left p-4 font-medium">Employee</th>
-									<th class="text-left p-4 font-medium">Item Type</th>
-									<th class="text-left p-4 font-medium">Status</th>
-									<th class="text-left p-4 font-medium">Expiration</th>
-									<th class="text-left p-4 font-medium">Last Review</th>
-									<th class="text-left p-4 font-medium">Notes</th>
-								</tr>
-							</thead>
-							<tbody>
-								{#each complianceItems as item}
-									{@const StatusIcon = getStatusIcon(item.status)}
-									{@const daysUntil = getDaysUntilExpiration(item.expirationDate)}
-									<tr class="border-b hover:bg-muted/30 transition-colors">
-										<td class="p-4">
-											<div class="flex items-center space-x-3">
-												<div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-													<span class="text-xs font-medium text-primary">
-														{item.employee.firstName[0]}{item.employee.lastName[0]}
-													</span>
-												</div>
-												<div>
-													<p class="text-sm font-medium">{item.employee.firstName} {item.employee.lastName}</p>
-												</div>
-											</div>
-										</td>
-										<td class="p-4">
-											<p class="text-sm">{item.itemType}</p>
-										</td>
-										<td class="p-4">
-											<div class="flex items-center space-x-2">
-												<StatusIcon class="h-4 w-4" />
-												<Badge variant={getStatusVariant(item.status)}>
-													{item.status}
-												</Badge>
-											</div>
-										</td>
-										<td class="p-4">
-											<div>
-												<p class="text-sm">{formatDate(item.expirationDate)}</p>
-												{#if item.status !== 'Expired'}
-													<p class="text-xs text-muted-foreground">
-														{daysUntil > 0 ? `${daysUntil} days left` : 'Expired'}
-													</p>
-												{/if}
-											</div>
-										</td>
-										<td class="p-4">
-											<p class="text-sm">{formatDate(item.lastReviewDate)}</p>
-										</td>
-										<td class="p-4">
-											<p class="text-sm text-muted-foreground truncate max-w-xs" title={item.notes}>
-												{item.notes || 'No notes'}
-											</p>
-										</td>
-									</tr>
-								{/each}
-							</tbody>
-						</table>
-					</div>
-				{/if}
-			</CardContent>
-		</Card>
-	{/if}
+    /* Removed bespoke stat/compliance card styles in favor of modular components */
 
-	<!-- Fixed position add button in bottom right corner -->
-	<div class="fixed bottom-6 right-6 z-50">
-		<Button class="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200">
-			<Shield class="h-5 w-5" />
-		</Button>
-	</div>
-</div>
+	.compliance-section {
+		background: white;
+		border-radius: 12px;
+		padding: 1.5rem;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+		border: 1px solid #e5e7eb;
+	}
+
+    /* Removed unused legacy compliance-section styles */
+
+	.compliance-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+		gap: 1rem;
+	}
+
+	.compliance-card {
+		background: #f9fafb;
+		border-radius: 8px;
+		padding: 1rem;
+		border: 1px solid #e5e7eb;
+	}
+
+	.compliance-card h4 {
+		font-weight: 600;
+		color: #1f2937;
+		margin: 0 0 0.5rem 0;
+	}
+
+	.item-type {
+		color: #6b7280;
+		font-size: 0.875rem;
+		margin: 0 0 0.5rem 0;
+	}
+
+	.due-date {
+		color: #9b9b9b;
+		font-size: 0.875rem;
+		margin: 0 0 1rem 0;
+	}
+
+	.status-badge {
+		display: inline-block;
+		padding: 0.25rem 0.75rem;
+		border-radius: 9999px;
+		font-size: 0.75rem;
+		font-weight: 500;
+		text-transform: capitalize;
+	}
+
+	.status-badge.active {
+		background: #dcfce7;
+		color: #166534;
+	}
+
+	.status-badge.pending {
+		background: #fef3c7;
+		color: #d97706;
+	}
+
+	.status-badge.expired {
+		background: #fee2e2;
+		color: #dc2626;
+	}
+
+	.loading-state {
+		margin-top: 1rem;
+	}
+
+	.skeleton-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+		gap: 1rem;
+	}
+
+	.skeleton-card {
+		height: 120px;
+		background: linear-gradient(90deg, #e5e7eb 25%, #d1d5db 50%, #e5e7eb 75%);
+		background-size: 200% 100%;
+		animation: skeleton-loading 1.5s infinite;
+		border-radius: 8px;
+	}
+
+	@keyframes skeleton-loading {
+		0% { background-position: 200% 0; }
+		100% { background-position: -200% 0; }
+	}
+
+	.static-content {
+		text-align: center;
+		padding: 2rem;
+	}
+
+	.fallback-content {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		min-height: 300px;
+	}
+</style>

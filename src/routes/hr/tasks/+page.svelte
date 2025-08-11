@@ -1,354 +1,155 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { CheckSquare, Plus, Filter, Calendar, Clock, User, AlertCircle } from 'lucide-svelte';
-	import Button from '$lib/components/ui/button/button.svelte';
-	import Input from '$lib/components/ui/input/input.svelte';
-	import Card from '$lib/components/ui/card/card.svelte';
-	import CardHeader from '$lib/components/ui/card/card-header.svelte';
-	import CardTitle from '$lib/components/ui/card/card-title.svelte';
-	import CardDescription from '$lib/components/ui/card/card-description.svelte';
-	import CardContent from '$lib/components/ui/card/card-content.svelte';
-	import Badge from '$lib/components/ui/badge/badge.svelte';
-	import {
-		DropdownMenu,
-		DropdownMenuTrigger,
-		DropdownMenuContent,
-		DropdownMenuItem
-	} from '$lib/components/ui/dropdown-menu';
-	import type { PageData } from './$types';
+    import GenericStreamingPage from '$lib/components/streaming/GenericStreamingPage.svelte';
+    import StreamingTasksList from '$lib/components/tasks/StreamingTasksList.svelte';
+    import StatCard from '$lib/components/common/StatCard.svelte';
+    import StreamingCard from '$lib/components/common/StreamingCard.svelte';
+    import TaskList from '$lib/components/common/TaskList.svelte';
+    import { CheckSquare, Clock, Users, AlertCircle } from 'lucide-svelte';
+    import { transformTaskStats, transformTaskData, hasData } from '$lib/utils/dataTransformers.js';
+    import type { PageData } from './$types';
 
-	// Page data from server
-	let { data }: { data: PageData } = $props();
+    // Page data from server as fallback
+    let { data }: { data: PageData } = $props();
 
-	// Local filter states (initialized from server data)
-	let searchTerm = $state('');
-	let statusFilter = $state(data.filters.status);
-	let typeFilter = $state(data.filters.relatedEntityType);
-	let employeeFilter = $state('all');
-
-	// Derived data from server
-	const tasks = $derived(data.tasks);
-	const stats = $derived(data.stats);
-	const loading = $state(false);
-	const error = $derived(data.error || '');
-
-	// Apply filters by navigating to new URL with query parameters
-	async function applyFilters() {
-		const params = new URLSearchParams();
-		
-		if (statusFilter !== 'all') params.set('status', statusFilter);
-		if (typeFilter !== 'all') params.set('relatedEntityType', typeFilter);
-		
-		const queryString = params.toString();
-		const newUrl = queryString ? `/hr/tasks?${queryString}` : '/hr/tasks';
-		
-		await goto(newUrl);
-	}
-
-	// Tasks are already filtered server-side
-	const filteredTasks = $derived(() => tasks);
-
-	function getStatusVariant(status: string) {
-		switch (status) {
-			case 'Completed': return 'default';
-			case 'InProgress': return 'secondary';
-			case 'Pending': return 'outline';
-			case 'Blocked': return 'destructive';
-			default: return 'outline';
-		}
-	}
-
-	function getPriorityVariant(priority: string) {
-		switch (priority) {
-			case 'high': return 'destructive';
-			case 'medium': return 'secondary';
-			case 'low': return 'outline';
-			default: return 'outline';
-		}
-	}
-
-	function getTypeIcon(type: string) {
-		switch (type) {
-			case 'Onboarding': return User;
-			case 'Compliance': return CheckSquare;
-			case 'Offboarding': return User;
-			default: return CheckSquare;
-		}
-	}
-
-	function formatDate(dateString: string | null) {
-		if (!dateString) return 'No due date';
-		return new Intl.DateTimeFormat('en-US', {
-			month: 'short',
-			day: 'numeric',
-			year: 'numeric'
-		}).format(new Date(dateString));
-	}
-
-	function isOverdue(dateString: string | null) {
-		if (!dateString) return false;
-		return new Date(dateString) < new Date();
-	}
-
-	async function handleTaskAction(action: string, task: any) {
-		switch (action) {
-			case 'view':
-				console.log('View task:', task.id);
-				break;
-			case 'edit':
-				console.log('Edit task:', task.id);
-				break;
-			case 'complete':
-				try {
-					// TODO: Implement server-side task status update
-					console.log('Mark task as completed:', task.id);
-				} catch (err: any) {
-					console.error('Error updating task:', err);
-				}
-				break;
-			case 'delete':
-				if (confirm('Are you sure you want to delete this task?')) {
-					// Would call API to delete task
-					console.log('Delete task:', task.id);
-				}
-				break;
-		}
-	}
-
-	function clearFilters() {
-		searchTerm = '';
-		statusFilter = 'all';
-		typeFilter = 'all';
-		employeeFilter = 'all';
-		applyFilters();
-	}
-
-	// Apply filters when status or type filter changes
-	$effect(() => {
-		if (statusFilter !== data.filters.status || typeFilter !== data.filters.relatedEntityType) {
-			applyFilters();
-		}
-	});
+    // Transform server data to fallback format
+    const fallbackData = {
+        'tasks-list': data.tasks || [],
+        'task-stats': { completed: data.stats?.completed || 0 },
+        'assignments': { pending: data.stats?.pending || 0 },
+        'templates': data.templates || []
+    };
 </script>
 
-<div class="space-y-6">
+<svelte:head>
+	<title>HR - Task Management - SvelteHR</title>
+</svelte:head>
 
-	<!-- Summary Cards -->
-	<div class="grid gap-4 md:grid-cols-4">
-		<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
-			<CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-				<CardTitle class="text-sm font-medium">Total Tasks</CardTitle>
-				<CheckSquare class="h-4 w-4 text-muted-foreground" />
-			</CardHeader>
-			<CardContent>
-				<div class="text-2xl font-bold">{stats.total}</div>
-				<p class="text-xs text-muted-foreground">All tasks</p>
-			</CardContent>
-		</Card>
+<GenericStreamingPage 
+    configKey="tasks" 
+    title="Task Management"
+    fallbackData={fallbackData}
+>
+    <div slot="streaming" let:data={streamingData}>
+        {#key streamingData}
+            {@const tasksArray = (Array.isArray(streamingData['tasks-list']) ? streamingData['tasks-list'] : [])}
+            {@const stats = transformTaskStats(tasksArray)}
+            {@const taskItems = transformTaskData(tasksArray, 5)}
+            <div class="hr-tasks-content">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <StatCard title="Total Tasks" value={stats.totalTasks} icon={CheckSquare} tag="#hr" href="/hr/tasks" loading={!hasData(streamingData['tasks-list'])} />
+                    <StatCard title="Completed" value={stats.completedTasks} icon={CheckSquare} tag="#hr" href="/hr/tasks" loading={!hasData(streamingData['tasks-list'])} />
+                    <StatCard title="Pending" value={stats.pendingTasks} icon={Clock} tag="#hr" href="/hr/tasks" loading={!hasData(streamingData['tasks-list'])} />
+                    <StatCard title="In Progress" value={stats.inProgressTasks} icon={Users} tag="#hr" href="/hr/tasks" loading={!hasData(streamingData['tasks-list'])} />
+                </div>
 
-		<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
-			<CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-				<CardTitle class="text-sm font-medium">In Progress</CardTitle>
-				<Clock class="h-4 w-4 text-muted-foreground" />
-			</CardHeader>
-			<CardContent>
-				<div class="text-2xl font-bold">{stats.inProgress}</div>
-				<p class="text-xs text-muted-foreground">Currently active</p>
-			</CardContent>
-		</Card>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    <StreamingCard
+                        title="Priority Tasks"
+                        description="High priority items"
+                        icon={AlertCircle}
+                        tag="#hr"
+                        href="/hr/tasks"
+                        loading={!hasData(streamingData['tasks-list'])}
+                        empty={taskItems.filter(t => t.priority === 'high' || t.priority === 'critical').length === 0}
+                        emptyMessage="No high priority tasks"
+                    >
+                        {#snippet children()}
+                            <TaskList tasks={taskItems.filter(t => t.priority === 'high' || t.priority === 'critical')} showCount={5} showType={true} />
+                        {/snippet}
+                    </StreamingCard>
 
-		<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
-			<CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-				<CardTitle class="text-sm font-medium">Completed</CardTitle>
-				<CheckSquare class="h-4 w-4 text-muted-foreground" />
-			</CardHeader>
-			<CardContent>
-				<div class="text-2xl font-bold">{stats.completed}</div>
-				<p class="text-xs text-muted-foreground">Finished tasks</p>
-			</CardContent>
-		</Card>
+                    <StreamingCard
+                        title="All Tasks"
+                        description="Full task list"
+                        icon={CheckSquare}
+                        tag="#hr"
+                        href="/hr/tasks"
+                        loading={!hasData(streamingData['tasks-list'])}
+                        empty={stats.totalTasks === 0}
+                        emptyMessage="No tasks"
+                        class="lg:col-span-2"
+                    >
+                        {#snippet children()}
+                            <StreamingTasksList data={streamingData} />
+                        {/snippet}
+                    </StreamingCard>
+                </div>
+            </div>
+        {/key}
+    </div>
 
-		<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
-			<CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-				<CardTitle class="text-sm font-medium">Overdue</CardTitle>
-				<AlertCircle class="h-4 w-4 text-muted-foreground" />
-			</CardHeader>
-			<CardContent>
-				<div class="text-2xl font-bold text-red-600 dark:text-red-400">{stats.overdue}</div>
-				<p class="text-xs text-muted-foreground">Past due date</p>
-			</CardContent>
-		</Card>
-	</div>
+    <div slot="static" let:data={fallbackData}>
+        {#key fallbackData}
+            {@const tasksArray = (Array.isArray(fallbackData['tasks-list']) ? fallbackData['tasks-list'] : [])}
+            {@const stats = transformTaskStats(tasksArray)}
+            {@const taskItems = transformTaskData(tasksArray, 5)}
+            <div class="static-content">
+                <div class="text-center py-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                        <StatCard title="Total Tasks" value={stats.totalTasks} icon={CheckSquare} tag="#hr" />
+                        <StatCard title="Completed" value={stats.completedTasks} icon={CheckSquare} tag="#hr" />
+                        <StatCard title="Pending" value={stats.pendingTasks} icon={Clock} tag="#hr" />
+                        <StatCard title="In Progress" value={stats.inProgressTasks} icon={Users} tag="#hr" />
+                    </div>
+                    <div class="mt-6 grid grid-cols-1 gap-6">
+                        <StreamingCard title="All Tasks" description="Cached task list" icon={CheckSquare} tag="#hr" loading={false} empty={stats.totalTasks === 0} emptyMessage="No tasks">
+                            {#snippet children()}
+                                <StreamingTasksList data={fallbackData} />
+                            {/snippet}
+                        </StreamingCard>
+                    </div>
+                </div>
+            </div>
+        {/key}
+    </div>
 
-	<!-- Filters -->
-	<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
-		<CardHeader>
-			<CardTitle>Search and Filters</CardTitle>
-		</CardHeader>
-		<CardContent>
-			<div class="flex flex-col lg:flex-row gap-4">
-				<div class="flex-1">
-					<Input
-						type="text"
-						placeholder="Search tasks..."
-						bind:value={searchTerm}
-					/>
-				</div>
+    <div slot="fallback">
+        <div class="fallback-content text-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Loading Task Data</h3>
+            <p class="text-gray-500">Please wait while we fetch your task information...</p>
+        </div>
+    </div>
+</GenericStreamingPage>
 
-				<select 
-					class="px-3 py-2 border border-input rounded-md bg-background text-foreground"
-					bind:value={statusFilter}
-				>
-					<option value="all">All Statuses</option>
-					<option value="Pending">Pending</option>
-					<option value="InProgress">In Progress</option>
-					<option value="Completed">Completed</option>
-					<option value="Blocked">Blocked</option>
-				</select>
+<style>
+	.hr-tasks-content {
+		max-width: 1400px;
+		margin: 0 auto;
+	}
 
-				<select 
-					class="px-3 py-2 border border-input rounded-md bg-background text-foreground"
-					bind:value={typeFilter}
-				>
-					<option value="all">All Types</option>
-					<option value="Onboarding">Onboarding</option>
-					<option value="Offboarding">Offboarding</option>
-					<option value="Compliance">Compliance</option>
-					<option value="General">General</option>
-				</select>
+    /* Removed bespoke stat/task card styles in favor of modular components */
 
-				<Button variant="outline" onclick={clearFilters}>
-					Clear Filters
-				</Button>
-			</div>
-		</CardContent>
-	</Card>
+	.static-content {
+		text-align: center;
+		padding: 2rem;
+	}
 
-	<!-- Tasks List -->
-	<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
-		<CardHeader>
-			<CardTitle>Tasks ({stats.total})</CardTitle>
-			<CardDescription>
-				Manage and track all HR-related tasks
-			</CardDescription>
-		</CardHeader>
-		<CardContent>
-			{#if loading}
-				<div class="flex items-center justify-center py-8">
-					<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-				</div>
-			{:else if error}
-				<div class="text-center py-8">
-					<p class="text-destructive">{error}</p>
-					<Button variant="outline" class="mt-4" onclick={() => window.location.reload()}>
-						Retry
-					</Button>
-				</div>
-			{:else if filteredTasks.length === 0}
-				<div class="text-center py-8">
-					<CheckSquare class="mx-auto h-12 w-12 text-muted-foreground/50" />
-					<h3 class="mt-4 text-lg font-semibold">No tasks found</h3>
-					<p class="mt-2 text-muted-foreground">
-						{searchTerm || statusFilter !== 'all' || typeFilter !== 'all'
-							? 'Try adjusting your search criteria'
-							: 'Get started by creating your first task'}
-					</p>
-				</div>
-			{:else}
-				<div class="space-y-4">
-					{#each filteredTasks as task}
-						{@const TypeIcon = getTypeIcon(task.relatedEntityType)}
-						<div class="border border-border/50 rounded-lg p-4 hover:bg-accent/30 transition-colors">
-							<div class="flex items-start justify-between">
-								<div class="flex-1 min-w-0">
-									<div class="flex items-center space-x-2 mb-2">
-										<TypeIcon class="h-4 w-4 text-muted-foreground flex-shrink-0" />
-										<h3 class="font-medium text-foreground truncate">{task.title || 'Untitled Task'}</h3>
-										{#if task.requiresVerification}
-											<Badge variant="outline" class="text-xs">
-												Verification Required
-											</Badge>
-										{/if}
-										{#if isOverdue(task.dueDate) && task.status !== 'Completed'}
-											<Badge variant="destructive" class="text-xs">
-												Overdue
-											</Badge>
-										{/if}
-									</div>
-									
-									<p class="text-sm text-muted-foreground mb-3 line-clamp-2">
-										{task.description || 'No description provided'}
-									</p>
+	.stat-grid {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 1rem;
+		margin: 1rem 0;
+	}
 
-									<div class="flex items-center space-x-4 text-sm">
-										<div class="flex items-center space-x-1">
-											<Badge variant={getStatusVariant(task.status)}>
-												{task.status}
-											</Badge>
-										</div>
+	.stat-item {
+		background: #f9fafb;
+		border-radius: 8px;
+		padding: 1rem;
+		border: 1px solid #e5e7eb;
+	}
 
-										<div class="flex items-center space-x-1">
-											<Badge variant="outline">
-												{task.relatedEntityType || 'General'}
-											</Badge>
-										</div>
+	.stat-label {
+		font-size: 0.875rem;
+		color: #6b7280;
+		margin-top: 0.5rem;
+	}
 
-										<div class="flex items-center space-x-1 text-muted-foreground">
-											<User class="h-3 w-3" />
-											<span>
-												{task.assignedTo?.firstName ? 
-													`${task.assignedTo.firstName} ${task.assignedTo.lastName}` : 
-													'Unassigned'}
-											</span>
-										</div>
-
-										<div class="flex items-center space-x-1 text-muted-foreground">
-											<Calendar class="h-3 w-3" />
-											<span>{formatDate(task.dueDate)}</span>
-										</div>
-									</div>
-								</div>
-
-								<div class="ml-4">
-									<DropdownMenu>
-										<DropdownMenuTrigger asChild>
-											<Button variant="ghost" size="sm">
-												Actions
-											</Button>
-										</DropdownMenuTrigger>
-										<DropdownMenuContent align="end">
-											<DropdownMenuItem onclick={() => handleTaskAction('view', task)}>
-												View Details
-											</DropdownMenuItem>
-											<DropdownMenuItem onclick={() => handleTaskAction('edit', task)}>
-												Edit Task
-											</DropdownMenuItem>
-											{#if task.status !== 'Completed'}
-												<DropdownMenuItem onclick={() => handleTaskAction('complete', task)}>
-													Mark Complete
-												</DropdownMenuItem>
-											{/if}
-											<DropdownMenuItem 
-												onclick={() => handleTaskAction('delete', task)}
-												class="text-destructive focus:text-destructive"
-											>
-												Delete
-											</DropdownMenuItem>
-										</DropdownMenuContent>
-									</DropdownMenu>
-								</div>
-							</div>
-						</div>
-					{/each}
-				</div>
-			{/if}
-		</CardContent>
-	</Card>
-
-	<!-- Fixed position add button in bottom right corner -->
-	<div class="fixed bottom-6 right-6 z-50">
-		<Button class="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200">
-			<Plus class="h-5 w-5" />
-		</Button>
-	</div>
-</div>
+	.fallback-content {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		min-height: 300px;
+	}
+</style>

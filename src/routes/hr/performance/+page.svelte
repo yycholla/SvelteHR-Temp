@@ -19,6 +19,7 @@
 	let activeTab = $state('reviews');
 	let statusFilter = $state(data.filters.status);
 	let employeeFilter = $state(data.filters.employeeId);
+  let createReviewOpen = $state(false);
 
 	// Derived data from server
 	const performanceReviews = $derived(data.performanceReviews);
@@ -65,13 +66,13 @@
 	// Apply filters by navigating to new URL with query parameters
 	async function applyFilters() {
 		const params = new URLSearchParams();
-		
+
 		if (statusFilter !== 'all') params.set('status', statusFilter);
 		if (employeeFilter !== 'all') params.set('employeeId', employeeFilter);
-		
+
 		const queryString = params.toString();
 		const newUrl = queryString ? `/hr/performance?${queryString}` : '/hr/performance';
-		
+
 		await goto(newUrl);
 	}
 
@@ -83,7 +84,7 @@
 
 	// Apply filters when any filter changes
 	$effect(() => {
-		if (statusFilter !== data.filters.status || 
+		if (statusFilter !== data.filters.status ||
 		    employeeFilter !== data.filters.employeeId) {
 			applyFilters();
 		}
@@ -157,7 +158,7 @@
 						</CardHeader>
 						<CardContent>
 							<div class="flex gap-4">
-								<select 
+								<select
 									class="px-3 py-2 border border-input rounded-md bg-background text-foreground"
 									bind:value={statusFilter}
 								>
@@ -167,7 +168,7 @@
 									<option value="Completed">Completed</option>
 									<option value="Overdue">Overdue</option>
 								</select>
-								
+
 								<Button variant="outline" onclick={clearFilters}>
 									Clear Filters
 								</Button>
@@ -200,7 +201,7 @@
 									<FileText class="mx-auto h-12 w-12 text-muted-foreground/50" />
 									<h3 class="mt-4 text-lg font-semibold">No performance reviews found</h3>
 									<p class="mt-2 text-muted-foreground">
-										{statusFilter !== 'all' 
+										{statusFilter !== 'all'
 											? 'No reviews match the selected filters'
 											: 'Start by creating your first performance review'}
 									</p>
@@ -216,7 +217,7 @@
 									{#each performanceReviews as review}
 										{@const StatusIcon = getStatusIcon(review.status)}
 										{@const isOverdue = review.status !== 'Completed' && new Date(review.dueDate) < new Date()}
-										
+
 										<div class="border border-border/50 rounded-lg p-4">
 											<div class="flex items-start justify-between mb-4">
 												<div class="flex items-start space-x-4 flex-1">
@@ -357,7 +358,7 @@
 										</span>
 									</div>
 									<Progress value={stats.totalReviews > 0 ? (stats.completed / stats.totalReviews) * 100 : 0} class="h-3" />
-									
+
 									<div class="grid grid-cols-2 gap-4 mt-4">
 										<div class="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
 											<p class="text-2xl font-bold text-green-600 dark:text-green-400">{stats.completed}</p>
@@ -389,9 +390,22 @@
 	</Card>
 
 	<!-- Fixed position add button in bottom right corner -->
-	<div class="fixed bottom-6 right-6 z-50">
-		<Button class="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200">
-			<Plus class="h-5 w-5" />
-		</Button>
-	</div>
+    <div class="fixed bottom-6 right-6 z-50">
+        <Button class="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200" onclick={() => createReviewOpen = true}>
+            <Plus class="h-5 w-5" />
+        </Button>
+    </div>
+
+    {#if typeof createReviewOpen === 'undefined'}
+        {@html ''}
+    {/if}
+    {#if createReviewOpen}
+    <div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div class="bg-background rounded-xl border border-border p-6 w-full max-w-md">
+            <h3 class="font-semibold mb-2">Create Review</h3>
+            <p class="text-sm text-muted-foreground mb-4">Placeholder modal. Hook up your review form here.</p>
+            <div class="flex justify-end"><Button variant="outline" onclick={() => createReviewOpen = false}>Close</Button></div>
+        </div>
+    </div>
+    {/if}
 </div>

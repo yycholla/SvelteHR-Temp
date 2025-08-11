@@ -12,9 +12,9 @@
 	import Progress from '$lib/components/ui/progress/progress.svelte';
 	import Avatar from '$lib/components/ui/avatar/avatar.svelte';
 	import AvatarFallback from '$lib/components/ui/avatar/avatar-fallback.svelte';
-	import { 
-		Search, 
-		Filter, 
+	import {
+		Search,
+		Filter,
 		Plus,
 		CheckCircle,
 		XCircle,
@@ -32,12 +32,13 @@
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
-	
+
 	// Form state
-	let searchQuery = $state(data.filters.search || '');
+  let searchQuery = $state(data.filters.search || '');
 	let statusFilter = $state(data.filters.status || '');
 	let categoryFilter = $state(data.filters.category || '');
-	
+  let newRequirementOpen = $state(false);
+
 	// Filter options
 	const statusOptions = [
 		{ value: '', label: 'All Status' },
@@ -47,7 +48,7 @@
 		{ value: 'in_progress', label: 'In Progress' },
 		{ value: 'overdue', label: 'Overdue' }
 	];
-	
+
 	const categoryOptions = [
 		{ value: '', label: 'All Categories' },
 		{ value: 'safety', label: 'Safety & Health' },
@@ -64,11 +65,11 @@
 		if (searchQuery.trim()) params.append('search', searchQuery);
 		if (statusFilter) params.append('status', statusFilter);
 		if (categoryFilter) params.append('category', categoryFilter);
-		
+
 		const query = params.toString();
 		goto(`/compliance${query ? '?' + query : ''}`, { replaceState: true });
 	}
-	
+
 	// Clear filters
 	function clearFilters() {
 		searchQuery = '';
@@ -76,7 +77,7 @@
 		categoryFilter = '';
 		goto('/compliance', { replaceState: true });
 	}
-	
+
 	// Get status badge variant
 	function getStatusBadge(status: string) {
 		switch (status.toLowerCase()) {
@@ -88,7 +89,7 @@
 			default: return { variant: 'default', label: status, icon: Clock };
 		}
 	}
-	
+
 	// Get category badge
 	function getCategoryBadge(category: string) {
 		switch (category.toLowerCase()) {
@@ -101,7 +102,7 @@
 			default: return { label: category, icon: FileText };
 		}
 	}
-	
+
 	// Format date
 	function formatDate(dateString: string) {
 		if (!dateString) return 'No due date';
@@ -112,7 +113,7 @@
 			return 'Invalid date';
 		}
 	}
-	
+
 	// Check if date is approaching (within 30 days)
 	function isApproaching(dateString: string) {
 		if (!dateString) return false;
@@ -126,7 +127,7 @@
 			return false;
 		}
 	}
-	
+
 	// Get initials for avatar
 	function getInitials(name: string) {
 		return name
@@ -136,7 +137,7 @@
 			.toUpperCase()
 			.slice(0, 2);
 	}
-	
+
 	// Calculate compliance percentage
 	const compliancePercentage = $derived(() => {
 		if (data.stats.totalItems === 0) return 0;
@@ -151,7 +152,7 @@
 			<h1 class="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">Compliance Tracking</h1>
 			<p class="text-muted-foreground mt-2">Monitor and manage compliance requirements and deadlines</p>
 		</div>
-		<Button class="rounded-xl hover:scale-[1.02] transition-all duration-200">
+    <Button class="rounded-xl hover:scale-[1.02] transition-all duration-200" onclick={() => newRequirementOpen = true}>
 			<Plus class="h-4 w-4 mr-2" />
 			New Requirement
 		</Button>
@@ -172,7 +173,7 @@
 				</div>
 			</CardContent>
 		</Card>
-		
+
 		<Card class="bg-white border-border shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
 			<CardContent class="p-6">
 				<div class="flex items-center justify-between">
@@ -186,7 +187,7 @@
 				</div>
 			</CardContent>
 		</Card>
-		
+
 		<Card class="bg-white border-border shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
 			<CardContent class="p-6">
 				<div class="flex items-center justify-between">
@@ -200,7 +201,7 @@
 				</div>
 			</CardContent>
 		</Card>
-		
+
 		<Card class="bg-white border-border shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
 			<CardContent class="p-6">
 				<div class="flex items-center justify-between">
@@ -214,7 +215,7 @@
 				</div>
 			</CardContent>
 		</Card>
-		
+
 		<Card class="bg-white border-border shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
 			<CardContent class="p-6">
 				<div class="flex items-center justify-between">
@@ -266,7 +267,7 @@
 					<Label for="search">Search Requirements</Label>
 					<div class="relative">
 						<Search class="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-						<Input 
+						<Input
 							id="search"
 							bind:value={searchQuery}
 							placeholder="Search by title or description..."
@@ -279,10 +280,10 @@
 						/>
 					</div>
 				</div>
-				
+
 				<div class="space-y-2">
 					<Label for="status">Status</Label>
-					<select 
+					<select
 						id="status"
 						bind:value={statusFilter}
 						class="w-full px-3 py-2 rounded-xl bg-background border-border focus:bg-background transition-all duration-200"
@@ -292,10 +293,10 @@
 						{/each}
 					</select>
 				</div>
-				
+
 				<div class="space-y-2">
 					<Label for="category">Category</Label>
-					<select 
+					<select
 						id="category"
 						bind:value={categoryFilter}
 						class="w-full px-3 py-2 rounded-xl bg-background border-border focus:bg-background transition-all duration-200"
@@ -305,7 +306,7 @@
 						{/each}
 					</select>
 				</div>
-				
+
 				<div class="flex items-end space-x-2 col-span-2">
 					<Button onclick={applyFilters} class="rounded-xl flex-1">
 						Apply
@@ -339,7 +340,7 @@
 						{@const categoryBadge = getCategoryBadge(item.category)}
 						{@const StatusIcon = statusBadge.icon}
 						{@const CategoryIcon = categoryBadge.icon}
-						
+
 						<div class="p-4 border border-border rounded-xl hover:bg-muted/30 transition-all duration-200">
 							<div class="flex items-start justify-between">
 								<div class="flex-1 space-y-3">
@@ -362,13 +363,13 @@
 											</Badge>
 										{/if}
 									</div>
-									
+
 									{#if item.description}
 										<p class="text-sm text-muted-foreground line-clamp-2">
 											{item.description}
 										</p>
 									{/if}
-									
+
 									<div class="flex items-center space-x-6 text-xs text-muted-foreground">
 										<div class="flex items-center space-x-1">
 											<User class="h-3 w-3" />
@@ -394,7 +395,7 @@
 										{/if}
 									</div>
 								</div>
-								
+
 								<div class="flex items-center space-x-2">
 									<Avatar size="sm">
 										<AvatarFallback class="bg-primary/10 text-primary text-xs">
@@ -409,7 +410,7 @@
 						</div>
 					{/each}
 				</div>
-				
+
 				<!-- Pagination -->
 				{#if data.totalPages > 1}
 					<div class="flex items-center justify-between mt-6">
@@ -417,8 +418,8 @@
 							Showing {((data.page - 1) * data.limit) + 1} to {Math.min(data.page * data.limit, data.totalCount)} of {data.totalCount} items
 						</p>
 						<div class="flex items-center space-x-2">
-							<Button 
-								variant="outline" 
+							<Button
+								variant="outline"
 								size="sm"
 								disabled={data.page <= 1}
 								onclick={() => goto(`/compliance?page=${data.page - 1}`)}
@@ -429,8 +430,8 @@
 							<span class="text-sm font-medium">
 								Page {data.page} of {data.totalPages}
 							</span>
-							<Button 
-								variant="outline" 
+							<Button
+								variant="outline"
 								size="sm"
 								disabled={!data.hasMore}
 								onclick={() => goto(`/compliance?page=${data.page + 1}`)}
@@ -445,3 +446,16 @@
 		</CardContent>
 	</Card>
 </div>
+
+{#if typeof newRequirementOpen === 'undefined'}
+    {@html ''}
+{/if}
+{#if newRequirementOpen}
+<div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+  <div class="bg-background rounded-xl border border-border p-6 w-full max-w-md">
+    <h3 class="font-semibold mb-2">Create Compliance Item</h3>
+    <p class="text-sm text-muted-foreground mb-4">Placeholder modal. Hook up your compliance form here.</p>
+    <div class="flex justify-end"><Button variant="outline" onclick={() => newRequirementOpen = false}>Close</Button></div>
+  </div>
+</div>
+{/if}

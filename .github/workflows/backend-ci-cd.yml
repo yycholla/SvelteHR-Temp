@@ -1,0 +1,71 @@
+name: CI (Go Backend)
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'MountainHR-backend/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'MountainHR-backend/**'
+
+jobs:
+  test:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: MountainHR-backend
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: mountainhr_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d mountainhr_test"
+          --health-interval=10s --health-timeout=5s --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Download deps
+        run: go mod download
+
+      - name: Run unit tests
+        env:
+          TEST_DB_HOST: localhost
+          TEST_DB_PORT: '5433'
+          TEST_DB_NAME: mountainhr_test
+          TEST_DB_USER: postgres
+        run: |
+          chmod +x ./run_tests.sh
+          ./run_tests.sh || go test ./... -v -coverprofile=coverage.out
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: MountainHR-backend/coverage.out
+          retention-days: 7
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: MountainHR-backend/coverage.out
+          flags: backend
+          name: go-backend
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

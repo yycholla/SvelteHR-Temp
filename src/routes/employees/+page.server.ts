@@ -48,14 +48,38 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
 			let cachedEmployees = null;
 			let cachedDepartments = null;
 			
-			if (isFirstPageNoFilters) {
-				cachedEmployees = apiCache.get(CACHE_KEYS.EMPLOYEES, { page: 1, limit });
-				console.log(cachedEmployees ? '📋 Using cached employees (first page)' : '🔄 No cached employees, fetching from API');
-			}
+            if (isFirstPageNoFilters) {
+                cachedEmployees = apiCache.get(CACHE_KEYS.EMPLOYEES, { page: 1, limit });
+                // Validate cached employees shape defensively to avoid placeholder fallback
+                if (cachedEmployees) {
+                    try {
+                        const validated = employeeListResponseSchema.parse(cachedEmployees);
+                        cachedEmployees = validated;
+                        console.log('📋 Using validated cached employees (first page)');
+                    } catch (e) {
+                        console.warn('🗑️ Clearing invalid cached employees data (shape mismatch)');
+                        apiCache.invalidate(CACHE_KEYS.EMPLOYEES, { page: 1, limit });
+                        cachedEmployees = null;
+                    }
+                } else {
+                    console.log('🔄 No cached employees, fetching from API');
+                }
+            }
 			
 			// Always try to get departments from cache since they change less frequently
-			cachedDepartments = apiCache.get(CACHE_KEYS.DEPARTMENTS);
-			console.log(cachedDepartments ? '📋 Using cached departments' : '🔄 No cached departments, fetching from API');
+            cachedDepartments = apiCache.get(CACHE_KEYS.DEPARTMENTS);
+            if (cachedDepartments) {
+                try {
+                    cachedDepartments = z.array(departmentSchema).parse(cachedDepartments);
+                    console.log('📋 Using validated cached departments');
+                } catch (e) {
+                    console.warn('🗑️ Clearing invalid cached departments data (shape mismatch)');
+                    apiCache.invalidate(CACHE_KEYS.DEPARTMENTS);
+                    cachedDepartments = null;
+                }
+            } else {
+                console.log('🔄 No cached departments, fetching from API');
+            }
 			
 			// Create server-side API client with proper token handling
 			const serverApiClient = apiClient.extend({
@@ -108,9 +132,10 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
 					console.log(`📊 API data: ${employeesData.employees.length} employees (page ${employeesData.page}/${employeesData.totalPages}), ${departments.length} departments`);
 					
 					// Cache the results for future requests
-					if (isFirstPageNoFilters && !cachedEmployees) {
-						apiCache.set(CACHE_KEYS.EMPLOYEES, employeesData, { page: 1, limit }, CACHE_TTL.MEDIUM);
-					}
+                    if (isFirstPageNoFilters && !cachedEmployees) {
+                        // Store normalized, transformed structure in cache for stability
+                        apiCache.set(CACHE_KEYS.EMPLOYEES, employeesData, { page: 1, limit }, CACHE_TTL.MEDIUM);
+                    }
 					
 					if (!cachedDepartments) {
 						apiCache.set(CACHE_KEYS.DEPARTMENTS, departments, undefined, CACHE_TTL.LONG);

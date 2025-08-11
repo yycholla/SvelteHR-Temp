@@ -1,356 +1,197 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
-	import { Users, Search, Plus, Filter, Download, Eye, Edit, Trash2 } from 'lucide-svelte';
-	import Button from '$lib/components/ui/button/button.svelte';
-	import Input from '$lib/components/ui/input/input.svelte';
-	import Card from '$lib/components/ui/card/card.svelte';
-	import CardHeader from '$lib/components/ui/card/card-header.svelte';
-	import CardTitle from '$lib/components/ui/card/card-title.svelte';
-	import CardDescription from '$lib/components/ui/card/card-description.svelte';
-	import CardContent from '$lib/components/ui/card/card-content.svelte';
-	import Badge from '$lib/components/ui/badge/badge.svelte';
-	import {
-		DropdownMenu,
-		DropdownMenuTrigger,
-		DropdownMenuContent,
-		DropdownMenuItem
-	} from '$lib/components/ui/dropdown-menu';
-	import { Separator } from '$lib/components/ui/separator';
-	import type { Employee, Department } from '$lib/schemas/employee';
-	import type { PageData } from './$types';
+    import GenericStreamingPage from '$lib/components/streaming/GenericStreamingPage.svelte';
+    import StreamingEmployeesList from '$lib/components/employees/StreamingEmployeesList.svelte';
+    import StatCard from '$lib/components/common/StatCard.svelte';
+    import StreamingCard from '$lib/components/common/StreamingCard.svelte';
+    import EmployeeList from '$lib/components/common/EmployeeList.svelte';
+    import DepartmentChart from '$lib/components/common/DepartmentChart.svelte';
+    import { Users, Building, CheckCircle, Clock, Briefcase } from 'lucide-svelte';
+    import { transformEmployeeStats, transformDepartmentData, hasData } from '$lib/utils/dataTransformers.js';
+    import type { PageData } from './$types';
 
-	// Page data from server
-	let { data }: { data: PageData } = $props();
+    // Page data from server as fallback
+    let { data }: { data: PageData } = $props();
 
-	// Local filter states (initialized from server data)
-	let searchTerm = $state(data.filters.search);
-	let statusFilter = $state(data.filters.status);
-	let departmentFilter = $state(data.filters.department);
-	let currentPage = $state(data.pagination.currentPage);
-	let pageSize = $state(data.pagination.pageSize);
-
-	// Derived data from server
-	const employees = $derived(data.employees);
-	const departments = $derived(data.departments);
-	const totalPages = $derived(data.pagination.totalPages);
-	const totalCount = $derived(data.pagination.totalCount);
-	const loading = $state(false);
-	const error = $derived(data.error || '');
-
-	// Apply filters by navigating to new URL with query parameters
-	async function applyFilters() {
-		const params = new URLSearchParams();
-		
-		if (searchTerm) params.set('search', searchTerm);
-		if (statusFilter !== 'all') params.set('status', statusFilter);
-		if (departmentFilter !== 'all') params.set('department', departmentFilter);
-		params.set('page', currentPage.toString());
-		params.set('pageSize', pageSize.toString());
-		
-		const queryString = params.toString();
-		const newUrl = queryString ? `/hr/employees?${queryString}` : '/hr/employees';
-		
-		await goto(newUrl);
-	}
-
-	// All employees are already filtered and paginated on server-side
-	const paginatedEmployees = $derived(() => employees);
-
-	function getStatusVariant(status: string) {
-		switch (status?.toLowerCase()) {
-			case 'active': return 'default';
-			case 'inactive': return 'secondary';
-			case 'onboarding': return 'secondary';
-			case 'terminated': return 'destructive';
-			default: return 'outline';
-		}
-	}
-
-	function formatDate(dateString: string | null) {
-		if (!dateString) return 'N/A';
-		return new Intl.DateTimeFormat('en-US', {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric'
-		}).format(new Date(dateString));
-	}
-
-	function handleEmployeeAction(action: string, employee: any) {
-		switch (action) {
-			case 'view':
-				window.location.href = `/hr/employees/${employee.id}`;
-				break;
-			case 'edit':
-				window.location.href = `/hr/employees/${employee.id}/edit`;
-				break;
-			case 'delete':
-				if (confirm(`Are you sure you want to delete ${employee.firstName} ${employee.lastName}?`)) {
-					// Handle delete
-					console.log('Delete employee:', employee.id);
-				}
-				break;
-		}
-	}
-
-	function goToPage(page: number) {
-		if (page >= 1 && page <= totalPages) {
-			currentPage = page;
-			applyFilters();
-		}
-	}
-
-	function clearFilters() {
-		searchTerm = '';
-		statusFilter = 'all';
-		departmentFilter = 'all';
-		currentPage = 1;
-		applyFilters();
-	}
-
-	// Debounced search - apply filters when search term changes
-	let searchTimeout: NodeJS.Timeout;
-	$effect(() => {
-		if (searchTerm !== data.filters.search) {
-			clearTimeout(searchTimeout);
-			searchTimeout = setTimeout(() => {
-				currentPage = 1; // Reset to first page on search
-				applyFilters();
-			}, 500); // 500ms debounce
-		}
-	});
-
-	// Apply filters when status or department filter changes
-	$effect(() => {
-		if (statusFilter !== data.filters.status || departmentFilter !== data.filters.department) {
-			currentPage = 1; // Reset to first page on filter change
-			applyFilters();
-		}
-	});
+    // Transform server data to fallback format
+    const fallbackData = {
+        'employees-list': {
+            employees: data.employees || [],
+            total: data.pagination?.totalCount || 0
+        },
+        departments: data.departments || [],
+        roles: [],
+        'employee-stats': { total: data.pagination?.totalCount || 0 }
+    };
 </script>
 
-<div class="space-y-6">
+<svelte:head>
+	<title>HR - Employee Management - SvelteHR</title>
+</svelte:head>
 
-	<!-- Filters and Search -->
-	<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
-		<CardHeader>
-			<CardTitle>Search and Filters</CardTitle>
-		</CardHeader>
-		<CardContent>
-			<div class="flex flex-col lg:flex-row gap-4">
-				<!-- Search -->
-				<div class="flex-1">
-					<div class="relative">
-						<Search class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-						<Input
-							type="text"
-							placeholder="Search employees by name or email..."
-							class="pl-9"
-							bind:value={searchTerm}
-						/>
-					</div>
-				</div>
+<GenericStreamingPage 
+    configKey="employees" 
+    title="Employee Management"
+    fallbackData={fallbackData}
+>
+    <div slot="streaming" let:data={streamingData}>
+        {#key streamingData}
+            {@const employeesObj = ({
+                data: streamingData['employees-list']?.employees ?? [],
+                total: streamingData['employees-list']?.total ?? 0
+            })}
+            {@const empStats = transformEmployeeStats(employeesObj)}
+            {@const departmentsData = transformDepartmentData(employeesObj)}
+            <div class="hr-employees-content">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <StatCard
+                        title="Total Employees"
+                        value={empStats.totalEmployees}
+                        icon={Users}
+                        tag="#hr"
+                        href="/hr/employees"
+                        loading={!hasData(streamingData['employees-list'])}
+                    />
+                    <StatCard
+                        title="Departments"
+                        value={Array.isArray(streamingData['departments']) ? streamingData['departments'].length : 0}
+                        icon={Building}
+                        tag="#hr"
+                        href="/hr/employees"
+                        loading={!hasData(streamingData['departments'])}
+                    />
+                    <StatCard
+                        title="Roles"
+                        value={Array.isArray(streamingData['roles']) ? streamingData['roles'].length : 0}
+                        icon={CheckCircle}
+                        tag="#hr"
+                        href="/hr/employees"
+                        loading={!hasData(streamingData['roles'])}
+                    />
+                    <StatCard
+                        title="Active"
+                        value={empStats.activeEmployees}
+                        icon={Clock}
+                        tag="#hr"
+                        href="/hr/employees"
+                        loading={!hasData(streamingData['employees-list'])}
+                    />
+                </div>
 
-				<!-- Status Filter -->
-				<select 
-					class="px-3 py-2 border border-input rounded-md bg-background text-foreground"
-					bind:value={statusFilter}
-				>
-					<option value="all">All Statuses</option>
-					<option value="Active">Active</option>
-					<option value="Inactive">Inactive</option>
-					<option value="Onboarding">Onboarding</option>
-					<option value="Terminated">Terminated</option>
-				</select>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    <StreamingCard
+                        title="Onboarding Employees"
+                        description="New hires currently onboarding"
+                        icon={Users}
+                        tag="#hr"
+                        href="/hr/onboarding"
+                        loading={!hasData(streamingData['employees-list'])}
+                        empty={empStats.onboardingEmployees === 0}
+                        emptyMessage="No employees currently onboarding"
+                    >
+                        {#snippet children()}
+                            <EmployeeList 
+                                employees={employeesObj.data.filter((e: any) => e.status === 'Onboarding')}
+                                showCount={5}
+                                showDepartment={true}
+                            />
+                        {/snippet}
+                    </StreamingCard>
 
-				<!-- Department Filter -->
-				<select 
-					class="px-3 py-2 border border-input rounded-md bg-background text-foreground"
-					bind:value={departmentFilter}
-				>
-					<option value="all">All Departments</option>
-					{#each departments as dept}
-						<option value={dept.name}>{dept.name}</option>
-					{/each}
-				</select>
+                    <StreamingCard
+                        title="Department Distribution"
+                        description="Employee allocation across departments"
+                        icon={Briefcase}
+                        tag="#hr"
+                        href="/hr/reports"
+                        loading={!hasData(streamingData['employees-list'])}
+                        empty={departmentsData.length === 0}
+                        emptyMessage="No department data"
+                        class="lg:col-span-2"
+                    >
+                        {#snippet children()}
+                            <DepartmentChart 
+                                departments={departmentsData}
+                                showPercentage={true}
+                                showProgress={true}
+                            />
+                        {/snippet}
+                    </StreamingCard>
+                </div>
 
-				<Button variant="outline" onclick={clearFilters}>
-					Clear Filters
-				</Button>
+                <StreamingCard
+                    title="All Employees"
+                    description="Complete list with filters and search"
+                    icon={Users}
+                    tag="#hr"
+                    loading={!hasData(streamingData['employees-list'])}
+                    empty={employeesObj.total === 0}
+                    emptyMessage="No employees found"
+                >
+                    {#snippet children()}
+                        <StreamingEmployeesList data={streamingData} />
+                    {/snippet}
+                </StreamingCard>
+            </div>
+        {/key}
+    </div>
 
-				<Button variant="outline">
-					<Download class="h-4 w-4 mr-2" />
-					Export
-				</Button>
-			</div>
-		</CardContent>
-	</Card>
+    <div slot="static" let:data={fallbackData}>
+        {#key fallbackData}
+            {@const employeesObj = ({
+                data: fallbackData['employees-list']?.employees ?? [],
+                total: fallbackData['employees-list']?.total ?? 0
+            })}
+            {@const empStats = transformEmployeeStats(employeesObj)}
+            {@const departmentsData = transformDepartmentData(employeesObj)}
+            <div class="static-content">
+                <div class="text-center py-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                        <StatCard title="Total Employees" value={empStats.totalEmployees} icon={Users} tag="#hr" loading={false} />
+                        <StatCard title="Departments" value={fallbackData.departments?.length || 0} icon={Building} tag="#hr" loading={false} />
+                        <StatCard title="Roles" value={Array.isArray(fallbackData.roles) ? fallbackData.roles.length : 0} icon={CheckCircle} tag="#hr" loading={false} />
+                        <StatCard title="Active" value={empStats.activeEmployees} icon={Clock} tag="#hr" loading={false} />
+                    </div>
+                    <div class="mt-6">
+                        <StreamingCard title="All Employees" description="Cached employee list" icon={Users} tag="#hr" loading={false} empty={employeesObj.total === 0} emptyMessage="No employees">
+                            {#snippet children()}
+                                <StreamingEmployeesList data={fallbackData} />
+                            {/snippet}
+                        </StreamingCard>
+                    </div>
+                </div>
+            </div>
+        {/key}
+    </div>
 
-	<!-- Employee Table -->
-	<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
-		<CardHeader>
-			<div class="flex items-center justify-between">
-				<div>
-					<CardTitle>Employees ({totalCount})</CardTitle>
-					<CardDescription>
-						Showing {employees.length} of {totalCount} employees
-					</CardDescription>
-				</div>
-			</div>
-		</CardHeader>
-		<CardContent>
-			{#if loading}
-				<div class="flex items-center justify-center py-8">
-					<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-				</div>
-			{:else if error}
-				<div class="text-center py-8">
-					<p class="text-destructive">{error}</p>
-					<Button variant="outline" class="mt-4" onclick={() => window.location.reload()}>
-						Retry
-					</Button>
-				</div>
-			{:else if employees.length === 0}
-				<div class="text-center py-8">
-					<Users class="mx-auto h-12 w-12 text-muted-foreground/50" />
-					<h3 class="mt-4 text-lg font-semibold">No employees found</h3>
-					<p class="mt-2 text-muted-foreground">
-						{searchTerm || statusFilter !== 'all' || departmentFilter !== 'all'
-							? 'Try adjusting your search criteria'
-							: 'Get started by adding your first employee'}
-					</p>
-					{#if !(searchTerm || statusFilter !== 'all' || departmentFilter !== 'all')}
-						<Button class="mt-4" onclick={() => window.location.href = '/hr/employees/new'}>
-							<Plus class="h-4 w-4 mr-2" />
-							Add Employee
-						</Button>
-					{/if}
-				</div>
-			{:else}
-				<div class="overflow-hidden rounded-md border">
-					<div class="overflow-x-auto">
-						<table class="w-full">
-							<thead class="bg-muted/50">
-								<tr class="border-b">
-									<th class="text-left p-4 font-medium">Employee</th>
-									<th class="text-left p-4 font-medium">Role</th>
-									<th class="text-left p-4 font-medium">Department</th>
-									<th class="text-left p-4 font-medium">Status</th>
-									<th class="text-left p-4 font-medium">Hire Date</th>
-									<th class="text-right p-4 font-medium">Actions</th>
-								</tr>
-							</thead>
-							<tbody>
-								{#each employees as employee}
-									<tr class="border-b hover:bg-muted/30 transition-colors">
-										<td class="p-4">
-											<div class="flex items-center space-x-3">
-												<div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-													<span class="text-sm font-medium text-primary">
-														{employee.firstName?.[0]}{employee.lastName?.[0]}
-													</span>
-												</div>
-												<div>
-													<p class="font-medium">{employee.firstName} {employee.lastName}</p>
-													<p class="text-sm text-muted-foreground">{employee.email || 'No email'}</p>
-												</div>
-											</div>
-										</td>
-										<td class="p-4">
-											<p class="text-sm">{employee.role?.name || 'N/A'}</p>
-											<p class="text-xs text-muted-foreground">{employee.jobTitle || 'No title'}</p>
-										</td>
-										<td class="p-4">
-											<p class="text-sm">{employee.department?.name || 'N/A'}</p>
-										</td>
-										<td class="p-4">
-											<Badge variant={getStatusVariant(employee.status)}>
-												{employee.status || 'Unknown'}
-											</Badge>
-										</td>
-										<td class="p-4">
-											<p class="text-sm">{formatDate(employee.hireDate)}</p>
-										</td>
-										<td class="p-4 text-right">
-											<DropdownMenu>
-												<DropdownMenuTrigger asChild>
-													<Button variant="ghost" size="sm">
-														Actions
-													</Button>
-												</DropdownMenuTrigger>
-												<DropdownMenuContent align="end">
-													<DropdownMenuItem onclick={() => handleEmployeeAction('view', employee)}>
-														<Eye class="h-4 w-4 mr-2" />
-														View Details
-													</DropdownMenuItem>
-													<DropdownMenuItem onclick={() => handleEmployeeAction('edit', employee)}>
-														<Edit class="h-4 w-4 mr-2" />
-														Edit Employee
-													</DropdownMenuItem>
-													<DropdownMenuItem 
-														onclick={() => handleEmployeeAction('delete', employee)}
-														class="text-destructive focus:text-destructive"
-													>
-														<Trash2 class="h-4 w-4 mr-2" />
-														Delete
-													</DropdownMenuItem>
-												</DropdownMenuContent>
-											</DropdownMenu>
-										</td>
-									</tr>
-								{/each}
-							</tbody>
-						</table>
-					</div>
-				</div>
+    <div slot="fallback">
+        <div class="fallback-content text-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Loading Employee Data</h3>
+            <p class="text-gray-500">Please wait while we fetch your employee information...</p>
+        </div>
+    </div>
+</GenericStreamingPage>
 
-				<!-- Pagination -->
-				{#if totalPages > 1}
-					<div class="flex items-center justify-between px-2 py-4">
-						<div class="text-sm text-muted-foreground">
-							Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} results
-						</div>
-						<div class="flex items-center space-x-2">
-							<Button 
-								variant="outline" 
-								size="sm" 
-								disabled={currentPage <= 1}
-								onclick={() => goToPage(currentPage - 1)}
-							>
-								Previous
-							</Button>
-							
-							{#each Array.from({ length: Math.min(5, totalPages) }, (_, i) => i + Math.max(1, currentPage - 2)) as pageNum}
-								{#if pageNum <= totalPages}
-									<Button 
-										variant={currentPage === pageNum ? "default" : "outline"}
-										size="sm"
-										onclick={() => goToPage(pageNum)}
-									>
-										{pageNum}
-									</Button>
-								{/if}
-							{/each}
-							
-							<Button 
-								variant="outline" 
-								size="sm" 
-								disabled={currentPage >= totalPages}
-								onclick={() => goToPage(currentPage + 1)}
-							>
-								Next
-							</Button>
-						</div>
-					</div>
-				{/if}
-			{/if}
-		</CardContent>
-	</Card>
+<style>
+	.hr-employees-content {
+		max-width: 1400px;
+		margin: 0 auto;
+	}
 
-	<!-- Fixed position add button in bottom right corner -->
-	<div class="fixed bottom-6 right-6 z-50">
-		<Button class="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200" onclick={() => window.location.href = '/hr/employees/new'}>
-			<Plus class="h-5 w-5" />
-		</Button>
-	</div>
-</div>
+    /* Removed bespoke stat card styles in favor of modular components */
+
+	.static-content {
+		text-align: center;
+		padding: 2rem;
+	}
+
+    /* Removed unused legacy stat-grid styles */
+
+	.fallback-content {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		min-height: 300px;
+	}
+</style>

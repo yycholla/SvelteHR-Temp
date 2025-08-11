@@ -4,7 +4,10 @@
 	import { apiClient } from '$lib/api/client.js';
 	import type { CardProps } from '../types.js';
 	
-	let { instance, metadata, data }: CardProps = $props();
+let { instance, metadata, data }: CardProps = $props();
+// If live stream supplied, prefer it
+// Accept shapes: { employees: Employee[] } | Employee[] | { data, total }
+let live = $state<any>(data);
 	
 	// State
 	let loading = $state(true);
@@ -63,9 +66,41 @@
 		}
 	}
 	
-	onMount(() => {
-		fetchEmployeeStats();
-	});
+onMount(() => {
+    if (!live) fetchEmployeeStats();
+});
+
+$: if (data) {
+    // Update from stream when provided
+    const employees = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.employees)
+            ? data.employees
+            : Array.isArray(data?.data)
+                ? data.data
+                : [];
+    if (employees.length) {
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+        const activeEmployees = employees.filter((emp: any) => emp.onboardingStatus === 'Active');
+        const newThisMonth = employees.filter((emp: any) => {
+            if (!emp.hireDate) return false;
+            const hireDate = new Date(emp.hireDate);
+            return hireDate.getMonth() === currentMonth && hireDate.getFullYear() === currentYear;
+        });
+        const inactiveEmployees = employees.filter((emp: any) => emp.onboardingStatus === 'Terminated' || emp.onboardingStatus === 'Inactive');
+        stats = {
+            totalEmployees: employees.length,
+            activeEmployees: activeEmployees.length,
+            newThisMonth: newThisMonth.length,
+            inactiveEmployees: inactiveEmployees.length,
+            averageHireDate: null
+        };
+        loading = false;
+        error = null;
+    }
+}
 </script>
 
 <div class="h-full overflow-hidden">

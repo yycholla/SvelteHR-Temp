@@ -41,21 +41,36 @@ export const nestedDepartmentSchema = z.object({
 }));
 
 // Department schema for direct API responses (lowercase fields)
-export const departmentSchema = z.object({
-	id: z.number(),
-	name: z.string(),
-	description: z.string().nullable().optional(),
-	managerId: z.number().nullable().optional(),
-	createdAt: z.string().optional(),
-	updatedAt: z.string().optional()
+const departmentApiSchema = z.object({
+    id: z.number(),
+    name: z.string(),
+    description: z.string().nullable().optional(),
+    managerId: z.number().nullable().optional(),
+    createdAt: z.string().optional(),
+    updatedAt: z.string().optional()
 }).transform((dept) => ({
-	id: dept.id.toString(),
-	name: dept.name,
-	description: dept.description,
-	managerId: dept.managerId?.toString(),
-	createdAt: dept.createdAt,
-	updatedAt: dept.updatedAt
+    id: dept.id.toString(),
+    name: dept.name,
+    description: dept.description,
+    managerId: dept.managerId?.toString(),
+    createdAt: dept.createdAt,
+    updatedAt: dept.updatedAt
 }));
+
+// Also accept already-transformed department objects from cache
+const departmentTransformedSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    description: z.string().nullable().optional(),
+    managerId: z.string().nullable().optional(),
+    createdAt: z.string().optional(),
+    updatedAt: z.string().optional()
+});
+
+export const departmentSchema = z.union([
+    departmentApiSchema,
+    departmentTransformedSchema
+]);
 
 // Role schema (handles both uppercase and lowercase API response formats)
 export const roleSchema = z.union([
@@ -441,22 +456,36 @@ export const employeeFilterSchema = z.object({
 	order: z.enum(['ASC', 'DESC']).default('ASC'),
 });
 
-// Employee list response schema (matching actual backend response structure)
-export const employeeListResponseSchema = z.object({
-	data: z.array(employeeSchema),      // Backend returns "data", not "employees"
-	total: z.number(),                  // Backend returns "total", not "totalCount"
-	page: z.number(),
-	pageSize: z.number(),               // Backend returns "pageSize", not "limit"  
-	totalPages: z.number(),
-	hasMore: z.boolean()
+// Employee list response schemas supporting multiple API formats
+const employeeListResponseBackendSchema = z.object({
+    data: z.array(employeeSchema),
+    total: z.number(),
+    page: z.number(),
+    pageSize: z.number(),
+    totalPages: z.number(),
+    hasMore: z.boolean()
 }).transform((response) => ({
-	employees: response.data,           // Transform "data" to "employees" for UI consistency
-	totalCount: response.total,         // Transform "total" to "totalCount" for UI consistency
-	page: response.page,
-	limit: response.pageSize,           // Transform "pageSize" to "limit" for UI consistency
-	totalPages: response.totalPages,
-	hasMore: response.hasMore
+    employees: response.data,
+    totalCount: response.total,
+    page: response.page,
+    limit: response.pageSize,
+    totalPages: response.totalPages,
+    hasMore: response.hasMore
 }));
+
+const employeeListResponseAltSchema = z.object({
+    employees: z.array(employeeSchema),
+    totalCount: z.number(),
+    page: z.number(),
+    limit: z.number(),
+    totalPages: z.number(),
+    hasMore: z.boolean()
+});
+
+export const employeeListResponseSchema = z.union([
+    employeeListResponseBackendSchema,
+    employeeListResponseAltSchema
+]);
 
 // Embedded schemas for UI compatibility
 export const embeddedDepartmentSchema = z.object({

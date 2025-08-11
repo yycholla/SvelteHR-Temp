@@ -4,6 +4,8 @@
 	import DashboardGrid from '$lib/components/dashboard/grid/DashboardGrid.svelte';
 	import DashboardToolbar from '$lib/components/dashboard/DashboardToolbar.svelte';
 	import CardLibrary from '$lib/components/dashboard/CardLibrary.svelte';
+    // Streaming integration for dashboard grid
+    import { streamingManager, isStreaming, streamingProgress, streamingMessage, streamingErrors } from '$lib/stores/streaming';
 	import { dashboardActions, isEditing, dashboardLayout } from '$lib/stores/dashboard.js';
 	import type { PageData } from './$types';
 	import type { UserRole } from '$lib/components/dashboard/types.js';
@@ -17,9 +19,10 @@
 	let showSettings = $state(false);
 	let isLoading = $state(true);
 	let initError = $state<string | null>(null);
+    let useStreamingMode = $state(false);
 	
 	// Initialize dashboard when component mounts
-	onMount(async () => {
+    onMount(async () => {
 		// Timeout fallback
 		const timeoutId = setTimeout(() => {
 			if (isLoading) {
@@ -72,12 +75,22 @@
 				}
 			}
 			
-			// Initialize dashboard with user role
+            // Persisted streaming preference
+            if (typeof localStorage !== 'undefined') {
+                const pref = localStorage.getItem('dashboard-streaming-enabled');
+                if (pref != null) useStreamingMode = pref === 'true';
+            }
+
+            // Initialize dashboard with user role
 			await dashboardActions.initialize(data.userRole as UserRole, data.currentUser?.id?.toString());
 			
 			console.log('✅ Dashboard initialized successfully');
 			clearTimeout(timeoutId);
-			isLoading = false;
+            isLoading = false;
+            // Auto-connect streaming if enabled
+            if (useStreamingMode) {
+                streamingManager.connect('/api/stream/dashboard');
+            }
 		} catch (error) {
 			console.error('❌ Failed to initialize dashboard:', error);
 			clearTimeout(timeoutId);
@@ -85,6 +98,19 @@
 			isLoading = false;
 		}
 	});
+
+    // Toggle streaming mode and persist preference
+    function setStreamingMode(enabled: boolean) {
+        useStreamingMode = enabled;
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('dashboard-streaming-enabled', enabled.toString());
+        }
+        if (enabled) {
+            streamingManager.connect('/api/stream/dashboard');
+        } else {
+            streamingManager.disconnect();
+        }
+    }
 	
 	// Handle card library
 	function handleOpenCardLibrary() {
@@ -224,9 +250,42 @@
 				</div>
 			</div>
 		{:else}
-			<!-- Dashboard Grid -->
+			<!-- Mode Toggle -->
+			<div class="mode-toggle-container">
+                <button 
+                    class="mode-toggle" 
+                    class:active={!useStreamingMode}
+                    onclick={() => setStreamingMode(false)}
+                >
+					📊 Static Dashboard
+				</button>
+                <button 
+                    class="mode-toggle" 
+                    class:active={useStreamingMode}
+                    onclick={() => setStreamingMode(true)}
+                >
+					🔄 Streaming Dashboard
+				</button>
+			</div>
+			
+			<!-- Dashboard Content -->
 			<div class="h-full">
-				<DashboardGrid />
+                <!-- Use the same interactive grid for both modes -->
+                <DashboardGrid />
+                
+                {#if useStreamingMode}
+                    <!-- Optional streaming HUD -->
+                    <div class="fixed bottom-4 left-1/2 -translate-x-1/2 bg-white/70 backdrop-blur border border-border rounded px-3 py-2 text-xs flex items-center gap-2">
+                        {#if $isStreaming}
+                            <div class="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
+                            <span>Streaming {$streamingProgress}%</span>
+                            <span class="text-muted-foreground">{$streamingMessage}</span>
+                        {:else}
+                            <div class="w-3 h-3 rounded-full bg-gray-400"></div>
+                            <span>Streaming idle</span>
+                        {/if}
+                    </div>
+                {/if}
 			</div>
 		{/if}
 	</div>
@@ -275,5 +334,51 @@
 	/* Smooth transitions */
 	* {
 		transition: opacity 0.2s ease, transform 0.2s ease;
+	}
+
+	/* Mode Toggle Styles */
+	.mode-toggle-container {
+		display: flex;
+		gap: 0.5rem;
+		margin-bottom: 1.5rem;
+		padding: 0.5rem;
+		background: var(--color-surface-100);
+		border-radius: 8px;
+		border: 1px solid var(--color-surface-300);
+	}
+
+	.mode-toggle {
+		flex: 1;
+		padding: 0.75rem 1rem;
+		border: 1px solid var(--color-surface-300);
+		border-radius: 6px;
+		background: white;
+		color: var(--color-surface-600);
+		font-size: 0.875rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+	}
+
+	.mode-toggle:hover {
+		background: var(--color-surface-50);
+		border-color: var(--color-primary-300);
+		color: var(--color-primary-600);
+	}
+
+	.mode-toggle.active {
+		background: var(--color-primary-500);
+		border-color: var(--color-primary-500);
+		color: white;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	}
+
+	.mode-toggle.active:hover {
+		background: var(--color-primary-600);
+		border-color: var(--color-primary-600);
 	}
 </style>

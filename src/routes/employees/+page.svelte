@@ -7,6 +7,8 @@
 	import AlertDescription from '$lib/components/ui/alert/alert-description.svelte';
 	import AdvancedEmployeeTable from '$lib/components/employees/AdvancedEmployeeTable/AdvancedEmployeeTable.svelte';
 	import FilterPanel from '$lib/components/employees/FilterPanel.svelte';
+	import GenericStreamingPage from '$lib/components/streaming/GenericStreamingPage.svelte';
+	import StreamingEmployeesList from '$lib/components/employees/StreamingEmployeesList.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import type { PageData } from './$types';
@@ -32,7 +34,7 @@
 		// This allows for real-time search without page reload
 		if (searchQuery !== filters.search && searchQuery.trim()) {
 			const query = searchQuery.toLowerCase();
-			employees = employees.filter(emp => 
+			employees = employees.filter(emp =>
 				emp.firstName.toLowerCase().includes(query) ||
 				emp.lastName.toLowerCase().includes(query) ||
 				emp.email.toLowerCase().includes(query) ||
@@ -60,7 +62,7 @@
 	// Handle server-side filtering with URL updates
 	async function applyServerFilters() {
 		const params = new URLSearchParams($page.url.searchParams);
-		
+
 		// Update search param
 		if (searchQuery.trim()) {
 			params.set('search', searchQuery.trim());
@@ -86,9 +88,9 @@
 		params.delete('page');
 
 		// Navigate to update the URL and trigger server reload
-		await goto(`${$page.route.id}?${params.toString()}`, { 
+		await goto(`${$page.route.id}?${params.toString()}`, {
 			keepFocus: true,
-			noScroll: true 
+			noScroll: true
 		});
 	}
 
@@ -96,7 +98,7 @@
 		selectedDepartments = [];
 		selectedStatuses = [];
 		searchQuery = '';
-		
+
 		// Clear URL params and reload
 		goto($page.route.id || '/employees', {
 			keepFocus: true,
@@ -109,16 +111,16 @@
 		// TODO: Implement CSV/Excel export
 	}
 
-	function addEmployee() {
-		console.log('Adding new employee...');
-		// TODO: Open add employee modal
-	}
+    let showAddEmployee = $state(false);
+    function addEmployee() {
+        showAddEmployee = true;
+    }
 
 	// Handle pagination
 	async function handlePageChange(newPage: number) {
 		const params = new URLSearchParams($page.url.searchParams);
 		params.set('page', newPage.toString());
-		
+
 		await goto(`${$page.route.id}?${params.toString()}`, {
 			keepFocus: true,
 			noScroll: true
@@ -175,12 +177,12 @@
 				{/if}
 			</span>
 		</div>
-		
+
 		<!-- Pagination Controls -->
 		{#if employeesData.totalPages > 1}
 			<div class="flex items-center space-x-2">
-				<Button 
-					variant="outline" 
+				<Button
+					variant="outline"
 					size="sm"
 					disabled={employeesData.page <= 1}
 					onclick={() => handlePageChange(employeesData.page - 1)}
@@ -190,8 +192,8 @@
 				<span class="text-sm">
 					{employeesData.page} of {employeesData.totalPages}
 				</span>
-				<Button 
-					variant="outline" 
+				<Button
+					variant="outline"
 					size="sm"
 					disabled={employeesData.page >= employeesData.totalPages}
 					onclick={() => handlePageChange(employeesData.page + 1)}
@@ -203,8 +205,8 @@
 	</div>
 
 	<!-- Advanced Employee Table -->
-	<AdvancedEmployeeTable 
-		employees={localFilteredEmployees} 
+	<AdvancedEmployeeTable
+		employees={localFilteredEmployees}
 		bind:searchQuery
 		bind:showFilters
 		{activeFilters}
@@ -218,3 +220,15 @@
 		onApplyFilters={applyServerFilters}
 	/>
 </div>
+
+{#if showAddEmployee}
+    <div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div class="bg-background rounded-xl border border-border p-6 w-full max-w-md">
+            <h3 class="font-semibold mb-2">Add Employee</h3>
+            <p class="text-sm text-muted-foreground mb-4">This is a placeholder modal. Hook up your form here.</p>
+            <div class="flex justify-end">
+                <button class="px-3 py-2 rounded-lg border" onclick={() => showAddEmployee = false}>Close</button>
+            </div>
+        </div>
+    </div>
+{/if}
