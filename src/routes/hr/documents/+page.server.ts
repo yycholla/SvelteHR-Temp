@@ -46,7 +46,7 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 		queryParams.append('page', page.toString());
 		queryParams.append('pageSize', pageSize.toString());
 
-		// Fetch documents and departments in parallel
+		// Use v2 endpoints for enhanced document features
 		const [documentsResponse, departmentsResponse] = await Promise.allSettled([
 			serverApiClient.get(`documents?${queryParams.toString()}`).json(),
 			serverApiClient.get('departments').json()

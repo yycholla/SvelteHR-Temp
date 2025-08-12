@@ -23,7 +23,7 @@ export function useNotifications(initialFilter?: NotificationFilter) {
 		nextPage,
 		previousPage,
 		refresh
-	} = usePaginatedApi<any>('/notifications', {
+	} = usePaginatedApi<any>('notifications', {
 		pageSize: 20,
 		transform: (response) => response
 	});
@@ -89,7 +89,7 @@ export function useNotifications(initialFilter?: NotificationFilter) {
 
 // Unread count hook
 export function useUnreadCount() {
-	const unreadCount = useApi<UnreadCount>('/notifications/unread-count', {
+	const unreadCount = useApi<UnreadCount>('notifications/unread-count', {
 		cacheDuration: 30 * 1000, // Refresh every 30 seconds
 		onSuccess: (data) => {
 			// Update document title with unread count
@@ -118,7 +118,7 @@ export function useUnreadCount() {
 
 // Mark as read hook
 export function useMarkAsRead() {
-	const markReadMutation = useMutation<string, void>('/notifications/{id}/read', 'PUT', {
+	const markReadMutation = useMutation<string, void>('notifications/{id}/read', 'PUT', {
 		onSuccess: () => {
 			console.log('Notification marked as read');
 		},
@@ -150,7 +150,7 @@ export function useRealTimeNotifications(userId?: string) {
 		
 		const poll = async () => {
 			try {
-				const [notificationsResponse, countResponse] = await Promise.all([
+				const [notificationsResponse, countResponse] = await Promise.allSettled([
 					NotificationService.list({ 
 						employeeId: userId ? parseInt(userId) : undefined,
 						isRead: false,
@@ -160,11 +160,27 @@ export function useRealTimeNotifications(userId?: string) {
 					}),
 					NotificationService.getUnreadCount()
 				]);
-
-				notifications.set(notificationsResponse.notifications);
-				unreadCount.set(countResponse.unreadCount);
+				
+				if (notificationsResponse.status === 'fulfilled') {
+					notifications.set(notificationsResponse.value.notifications);
+				} else {
+					console.error('Failed to fetch notifications:', notificationsResponse.reason);
+					// Use empty array as fallback
+					notifications.set([]);
+				}
+				
+				if (countResponse.status === 'fulfilled') {
+					unreadCount.set(countResponse.value.unreadCount);
+				} else {
+					console.error('Failed to fetch unread count:', countResponse.reason);
+					// Use 0 as fallback
+					unreadCount.set(0);
+				}
 			} catch (error) {
 				console.error('Failed to poll notifications:', error);
+				// Set fallback values
+				notifications.set([]);
+				unreadCount.set(0);
 			}
 		};
 

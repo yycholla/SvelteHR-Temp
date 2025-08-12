@@ -41,7 +41,7 @@ export function transformEmployeeStats(employees: unknown): EmployeeStats {
 			: empArray.length,
 		activeEmployees: empArray.filter((e: any) => e.status === 'Active').length,
 		onboardingEmployees: empArray.filter((e: any) => e.status === 'Onboarding').length,
-		inactiveEmployees: empArray.filter((e: any) => e.status === 'Inactive').length
+		inactiveEmployees: empArray.filter((e: any) => e.status === 'PreHire' || e.status === 'Terminated').length
 	};
 }
 
@@ -84,6 +84,7 @@ export function transformDepartmentData(employees: unknown): DepartmentData[] {
 	if (empArray.length === 0) return [];
 	
 	const deptCounts = empArray.reduce((acc: Record<string, number>, emp: any) => {
+		// Use transformed department field
 		const deptName = emp.department?.name || 'Unassigned';
 		acc[deptName] = (acc[deptName] || 0) + 1;
 		return acc;

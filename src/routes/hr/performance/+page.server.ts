@@ -40,10 +40,18 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 		if (status !== 'all') queryParams.append('status', status);
 		if (employeeId !== 'all') queryParams.append('employeeId', employeeId);
 
-		// Fetch performance reviews
-		const reviewsResponse = await serverApiClient.get(`performance/reviews?${queryParams.toString()}`).json();
-		
-		const reviews = (reviewsResponse && reviewsResponse.data) || [];
+		// Fetch performance reviews from the API
+		const endpoint = queryParams.toString() ? `performance/reviews?${queryParams.toString()}` : 'performance/reviews';
+		const reviewsResponse = await serverApiClient.get(endpoint).json();
+		const reviews = reviewsResponse?.data || [];
+
+		// Apply filters
+		if (status !== 'all') {
+			reviews = reviews.filter((r: any) => r.status === status);
+		}
+		if (employeeId !== 'all') {
+			reviews = reviews.filter((r: any) => r.employee?.id?.toString() === employeeId);
+		}
 
 		// Calculate stats
 		const today = new Date();
@@ -55,7 +63,7 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 				const dueDate = new Date(r.dueDate);
 				return r.status !== 'Completed' && dueDate < today;
 			}).length,
-			averageScore: reviews.length > 0 
+			averageScore: reviews.length > 0 && reviews.some((r: any) => r.overallScore)
 				? Math.round(reviews
 					.filter((r: any) => r.overallScore)
 					.reduce((sum: number, r: any) => sum + r.overallScore, 0) / 

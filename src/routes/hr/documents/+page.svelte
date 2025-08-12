@@ -15,6 +15,9 @@
 		DropdownMenuContent,
 		DropdownMenuItem
 	} from '$lib/components/ui/dropdown-menu';
+	import { NotificationCenter } from '$lib/components/ui/notification-center';
+	import { EnhancedBulkActionsBar } from '$lib/components/ui/bulk-operations';
+	import { LiveMetricCard } from '$lib/components/ui/dashboard-cards';
 	import type { PageData } from './$types';
 
 	// Page data from server
@@ -158,6 +161,13 @@
 	});
 </script>
 
+<svelte:head>
+	<title>HR - Document Management - SvelteHR</title>
+</svelte:head>
+
+<!-- Notification components (using server-side data only) -->
+<NotificationCenter />
+
 <div class="space-y-6">
 
 	<!-- Search and Filters -->
@@ -280,6 +290,16 @@
 			</div>
 		</CardHeader>
 		<CardContent>
+			<!-- Enhanced bulk operations for documents -->
+			<EnhancedBulkActionsBar
+				entityType="documents"
+				availableActions={[
+					{ id: 'download', label: 'Download', icon: 'Download' },
+					{ id: 'move-category', label: 'Change Category', icon: 'FolderMove' },
+					{ id: 'set-confidential', label: 'Mark Confidential', icon: 'Shield' },
+					{ id: 'delete', label: 'Delete', icon: 'Trash2' }
+				]}
+			/>
 			{#if loading}
 				<div class="flex items-center justify-center py-8">
 					<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

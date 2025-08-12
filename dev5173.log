@@ -1,0 +1,9 @@
+
+> sveltehr@0.0.1 dev
+> vite dev --port 5173
+
+
+  VITE v7.0.6  ready in 1963 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose

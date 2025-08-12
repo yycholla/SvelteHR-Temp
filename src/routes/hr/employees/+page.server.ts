@@ -35,7 +35,7 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 	const status = searchParams.get('status') || undefined;
 	const department = searchParams.get('department') || undefined;
 	const page = parseInt(searchParams.get('page') || '1');
-	const pageSize = parseInt(searchParams.get('pageSize') || '10');
+	const pageSize = parseInt(searchParams.get('pageSize') || '50');
 
 	try {
 		// Build query parameters
@@ -46,7 +46,7 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 		queryParams.append('page', page.toString());
 		queryParams.append('pageSize', pageSize.toString());
 
-		// Fetch employees and departments in parallel
+		// Use v1 endpoints (v2 not available)
 		const [employeesResponse, departmentsResponse] = await Promise.allSettled([
 			serverApiClient.get(`employees?${queryParams.toString()}`).json(),
 			serverApiClient.get('departments').json()
@@ -62,10 +62,27 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 			? departmentsResponse.value 
 			: [];
 
-		console.log('✅ Employees page data loaded successfully');
+		console.log('✅ Employees page data loaded successfully:', {
+			employeesCount: employeesData.data?.length || 0,
+			employeesTotal: employeesData.total,
+			firstEmployee: employeesData.data?.[0],
+			departmentsCount: Array.isArray(departmentsData) ? departmentsData.length : departmentsData.data?.length || 0
+		});
+
+		// Transform employee data to match component expectations
+		const transformedEmployees = (employeesData.data || []).map((emp: any) => ({
+			...emp, // Keep all original fields
+			// Add transformed fields for component compatibility
+			jobTitle: emp.JobInformation?.JobTitle || '',
+			status: emp.OnboardingStatus || 'Active',
+			department: emp.JobInformation?.Department ? {
+				id: emp.JobInformation.Department.ID,
+				name: emp.JobInformation.Department.Name
+			} : undefined
+		}));
 
 		return {
-			employees: employeesData.data || [],
+			employees: transformedEmployees,
 			departments: Array.isArray(departmentsData) ? departmentsData : departmentsData.data || [],
 			pagination: {
 				currentPage: page,

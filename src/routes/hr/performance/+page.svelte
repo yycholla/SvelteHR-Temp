@@ -10,6 +10,9 @@
 	import Button from '$lib/components/ui/button/button.svelte';
 	import Progress from '$lib/components/ui/progress/progress.svelte';
 	import { Tabs, TabsList, TabsTrigger, TabsContent } from '$lib/components/ui/tabs';
+	import { NotificationCenter } from '$lib/components/ui/notification-center';
+	import { EnhancedBulkActionsBar } from '$lib/components/ui/bulk-operations';
+	import { LiveMetricCard } from '$lib/components/ui/dashboard-cards';
 	import type { PageData } from './$types';
 
 	// Page data from server
@@ -90,6 +93,20 @@
 		}
 	});
 </script>
+
+<svelte:head>
+	<title>HR - Performance Management - SvelteHR</title>
+</svelte:head>
+
+<!-- Notification components (using server-side data only) -->
+<NotificationCenter />
+
+<div class="container mx-auto px-4 py-8">
+	<div class="mb-8">
+		<h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Performance Management</h1>
+		<p class="text-gray-600 dark:text-gray-400">Track and manage employee performance reviews and evaluations</p>
+	</div>
+
 
 <div class="space-y-6">
 
@@ -185,6 +202,16 @@
 							</CardDescription>
 						</CardHeader>
 						<CardContent>
+							<!-- Enhanced bulk operations for performance reviews -->
+							<EnhancedBulkActionsBar
+								entityType="performance"
+								availableActions={[
+									{ id: 'complete-review', label: 'Complete Review', icon: 'Award' },
+									{ id: 'schedule-followup', label: 'Schedule Follow-up', icon: 'Calendar' },
+									{ id: 'export-reviews', label: 'Export Reviews', icon: 'Download' },
+									{ id: 'send-reminder', label: 'Send Reminder', icon: 'MessageSquare' }
+								]}
+							/>
 							{#if loading}
 								<div class="flex items-center justify-center py-8">
 									<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -408,4 +435,5 @@
         </div>
     </div>
     {/if}
+</div>
 </div>

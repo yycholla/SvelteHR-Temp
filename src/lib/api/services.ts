@@ -402,9 +402,9 @@ export const NotificationService = {
 
 	async getUnreadCount(): Promise<UnreadCount> {
 		try {
-			return await apiClient.get('/notifications/unread-count');
+			return await apiClient.get('notifications/unread-count');
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, '/notifications/unread-count');
+			throw await ErrorUtils.handleApiError(error, 'notifications/unread-count');
 		}
 	},
 
@@ -413,6 +413,88 @@ export const NotificationService = {
 			await apiClient.put(`notifications/${id}/read`);
 		} catch (error) {
 			throw await ErrorUtils.handleApiError(error, `/notifications/${id}/read`);
+		}
+	}
+};
+
+/**
+ * Performance API Service
+ */
+export const PerformanceService = {
+	async listReviews(filter?: { status?: string; employeeId?: string }): Promise<any> {
+		try {
+			const params = filter ? buildQueryParams(filter) : undefined;
+			const endpoint = params ? `performance/reviews?${params}` : 'performance/reviews';
+			const response = await apiClient.get(endpoint);
+			return transformPaginatedResponse(response);
+		} catch (error) {
+			throw await ErrorUtils.handleApiError(error, 'performance/reviews');
+		}
+	},
+
+	async getReviewById(id: string): Promise<any> {
+		try {
+			return await apiClient.get(`performance/reviews/${id}`);
+		} catch (error) {
+			throw await ErrorUtils.handleApiError(error, `/performance/reviews/${id}`);
+		}
+	},
+
+	async createReview(data: any): Promise<any> {
+		try {
+			return await apiClient.post('performance/reviews', { json: data });
+		} catch (error) {
+			throw await ErrorUtils.handleApiError(error, 'performance/reviews', { requestData: data });
+		}
+	},
+
+	async updateReview(id: string, data: any): Promise<any> {
+		try {
+			return await apiClient.put(`performance/reviews/${id}`, { json: data });
+		} catch (error) {
+			throw await ErrorUtils.handleApiError(error, `/performance/reviews/${id}`, { requestData: data });
+		}
+	},
+
+	async submitReview(id: string): Promise<void> {
+		try {
+			await apiClient.post(`performance/reviews/${id}/submit`);
+		} catch (error) {
+			throw await ErrorUtils.handleApiError(error, `/performance/reviews/${id}/submit`);
+		}
+	},
+
+	async approveReview(id: string): Promise<void> {
+		try {
+			await apiClient.post(`performance/reviews/${id}/approve`);
+		} catch (error) {
+			throw await ErrorUtils.handleApiError(error, `/performance/reviews/${id}/approve`);
+		}
+	},
+
+	async listGoals(employeeId?: string): Promise<any> {
+		try {
+			const params = employeeId ? `?employeeId=${employeeId}` : '';
+			const response = await apiClient.get(`performance/goals${params}`);
+			return transformPaginatedResponse(response);
+		} catch (error) {
+			throw await ErrorUtils.handleApiError(error, 'performance/goals');
+		}
+	},
+
+	async createGoal(data: any): Promise<any> {
+		try {
+			return await apiClient.post('performance/goals', { json: data });
+		} catch (error) {
+			throw await ErrorUtils.handleApiError(error, 'performance/goals', { requestData: data });
+		}
+	},
+
+	async updateGoal(id: string, data: any): Promise<any> {
+		try {
+			return await apiClient.put(`performance/goals/${id}`, { json: data });
+		} catch (error) {
+			throw await ErrorUtils.handleApiError(error, `/performance/goals/${id}`, { requestData: data });
 		}
 	}
 };
@@ -535,6 +617,7 @@ export const ApiServices = {
 	leave: LeaveService,
 	documents: DocumentService,
 	notifications: NotificationService,
+	performance: PerformanceService,
 	hrRequests: HRRequestService,
 	monitoring: MonitoringService,
 	auth: AuthService

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { flip } from 'svelte/animate';
 import { dashboardLayout, isDragging, isEditing, dashboardActions, CARD_SIZE_MAP } from '$lib/stores/dashboard.js';
-import { streamingData, isStreaming } from '$lib/stores/streaming';
+// Removed streaming imports - using static data only
 	import { cardRegistry } from '../CardRegistry.js';
 	import DashboardCard from './DashboardCard.svelte';
 	import type { CardInstance, CardPosition } from '../types.js';
@@ -28,16 +28,7 @@ import { streamingData, isStreaming } from '$lib/stores/streaming';
 	// Visible cards for rendering
 	$: visibleCards = $dashboardLayout?.cards.filter(card => card.visible) || [];
 
-// Map dashboard card IDs to streaming keys
-const CARD_STREAM_MAP: Record<string, string> = {
-    'employee-statistics-live': 'employees',
-    'tasks-live': 'tasks',
-    'compliance-status-live': 'compliance',
-    'notifications-live': 'notifications',
-    'calendar-events': 'events',
-    'employee-metrics': 'employees',
-    'leave-overview': 'leave',
-};
+// Streaming functionality removed - using static data only
 
 	// Calculate the actual content height based on card positions
 	$: contentHeight = (() => {
@@ -494,7 +485,7 @@ const CARD_STREAM_MAP: Record<string, string> = {
 						instance={card}
 						metadata={cardRegistry.getCard(card.cardId)}
 						editable={$isEditing}
-                        stream={CARD_STREAM_MAP[card.cardId] ? $streamingData[CARD_STREAM_MAP[card.cardId]] : null}
+                        stream={null}
 						on:remove={() => handleRemoveCard(card.id)}
 						on:configure={(e) => handleConfigureCard(card.id, e.detail)}
 					/>

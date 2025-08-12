@@ -4,8 +4,7 @@
 	import DashboardGrid from '$lib/components/dashboard/grid/DashboardGrid.svelte';
 	import DashboardToolbar from '$lib/components/dashboard/DashboardToolbar.svelte';
 	import CardLibrary from '$lib/components/dashboard/CardLibrary.svelte';
-    // Streaming integration for dashboard grid
-    import { streamingManager, isStreaming, streamingProgress, streamingMessage, streamingErrors } from '$lib/stores/streaming';
+    // Removed streaming - using static data from server
 	import { dashboardActions, isEditing, dashboardLayout } from '$lib/stores/dashboard.js';
 	import type { PageData } from './$types';
 	import type { UserRole } from '$lib/components/dashboard/types.js';
@@ -87,10 +86,7 @@
 			console.log('✅ Dashboard initialized successfully');
 			clearTimeout(timeoutId);
             isLoading = false;
-            // Auto-connect streaming if enabled
-            if (useStreamingMode) {
-                streamingManager.connect('/api/stream/dashboard');
-            }
+            // Streaming disabled - using static data only
 		} catch (error) {
 			console.error('❌ Failed to initialize dashboard:', error);
 			clearTimeout(timeoutId);
@@ -99,17 +95,13 @@
 		}
 	});
 
-    // Toggle streaming mode and persist preference
+    // Streaming mode disabled - using static data only
     function setStreamingMode(enabled: boolean) {
         useStreamingMode = enabled;
         if (typeof localStorage !== 'undefined') {
             localStorage.setItem('dashboard-streaming-enabled', enabled.toString());
         }
-        if (enabled) {
-            streamingManager.connect('/api/stream/dashboard');
-        } else {
-            streamingManager.disconnect();
-        }
+        // Streaming functionality removed
     }
 	
 	// Handle card library
@@ -273,19 +265,7 @@
                 <!-- Use the same interactive grid for both modes -->
                 <DashboardGrid />
                 
-                {#if useStreamingMode}
-                    <!-- Optional streaming HUD -->
-                    <div class="fixed bottom-4 left-1/2 -translate-x-1/2 bg-white/70 backdrop-blur border border-border rounded px-3 py-2 text-xs flex items-center gap-2">
-                        {#if $isStreaming}
-                            <div class="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
-                            <span>Streaming {$streamingProgress}%</span>
-                            <span class="text-muted-foreground">{$streamingMessage}</span>
-                        {:else}
-                            <div class="w-3 h-3 rounded-full bg-gray-400"></div>
-                            <span>Streaming idle</span>
-                        {/if}
-                    </div>
-                {/if}
+                <!-- Streaming HUD removed - static data only -->
 			</div>
 		{/if}
 	</div>

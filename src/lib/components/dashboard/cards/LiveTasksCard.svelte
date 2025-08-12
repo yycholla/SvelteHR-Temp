@@ -80,25 +80,27 @@ onMount(() => {
     if (!data) fetchTasks();
 });
 
-$: if (data) {
-    const taskData = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
-    if (taskData.length) {
-        const stats = {
-            total: taskData.length,
-            completed: taskData.filter((t: any) => t.status === 'Completed').length,
-            inProgress: taskData.filter((t: any) => t.status === 'InProgress').length,
-            pending: taskData.filter((t: any) => t.status === 'Pending').length,
-            blocked: taskData.filter((t: any) => t.status === 'Blocked').length
-        };
-        const recentTasks = taskData
-            .sort((a: any, b: any) => new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime())
-            .slice(0, 4);
-        tasks = recentTasks;
-        taskStats = stats;
-        loading = false;
-        error = null;
+$effect(() => {
+    if (data) {
+        const taskData = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
+        if (taskData.length) {
+            const stats = {
+                total: taskData.length,
+                completed: taskData.filter((t: any) => t.status === 'Completed').length,
+                inProgress: taskData.filter((t: any) => t.status === 'InProgress').length,
+                pending: taskData.filter((t: any) => t.status === 'Pending').length,
+                blocked: taskData.filter((t: any) => t.status === 'Blocked').length
+            };
+            const recentTasks = taskData
+                .sort((a: any, b: any) => new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime())
+                .slice(0, 4);
+            tasks = recentTasks;
+            taskStats = stats;
+            loading = false;
+            error = null;
+        }
     }
-}
+});
 </script>
 
 <div class="h-full overflow-hidden">

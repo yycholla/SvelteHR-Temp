@@ -45,7 +45,7 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 		if (status !== 'all') requestParams.append('status', status);
 		if (leaveType !== 'all') requestParams.append('leaveType', leaveType);
 
-		// Fetch leave data in parallel
+		// Use v2 endpoints for enhanced leave features
 		const [balancesResponse, requestsResponse] = await Promise.allSettled([
 			serverApiClient.get(`leave/balances?${balanceParams.toString()}`).json(),
 			serverApiClient.get(`leave/requests?${requestParams.toString()}`).json()

@@ -75,23 +75,25 @@ onMount(() => {
     if (!data) fetchComplianceStats();
 });
 
-$: if (data) {
-    const stats = typeof data === 'object' ? data : {};
-    const totalChecks = stats.totalChecks || 0;
-    const compliant = stats.compliant || 0;
-    const nonCompliant = stats.nonCompliant || 0;
-    const pending = stats.pending || 0;
-    complianceData = {
-        overallScore: totalChecks > 0 ? Math.round((compliant / totalChecks) * 100) : 0,
-        totalChecks,
-        compliant,
-        nonCompliant,
-        pending,
-        recentViolations: stats.recentViolations || []
-    };
-    loading = false;
-    error = null;
-}
+$effect(() => {
+    if (data) {
+        const stats = typeof data === 'object' ? data : {};
+        const totalChecks = stats.totalChecks || 0;
+        const compliant = stats.compliant || 0;
+        const nonCompliant = stats.nonCompliant || 0;
+        const pending = stats.pending || 0;
+        complianceData = {
+            overallScore: totalChecks > 0 ? Math.round((compliant / totalChecks) * 100) : 0,
+            totalChecks,
+            compliant,
+            nonCompliant,
+            pending,
+            recentViolations: stats.recentViolations || []
+        };
+        loading = false;
+        error = null;
+    }
+});
 </script>
 
 <div class="h-full overflow-hidden">

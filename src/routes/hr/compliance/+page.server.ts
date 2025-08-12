@@ -40,10 +40,11 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 		if (status !== 'all') queryParams.append('status', status);
 		if (itemType !== 'all') queryParams.append('itemType', itemType);
 
-		// Fetch compliance data in parallel
-		const [complianceResponse, statsResponse] = await Promise.allSettled([
-			serverApiClient.get(`compliance/items?${queryParams.toString()}`).json(),
-			serverApiClient.get('compliance/stats').json()
+		// Use v2 endpoints for enhanced compliance features
+		const [complianceResponse, statsResponse, documentsResponse] = await Promise.allSettled([
+			serverApiClient.get(`compliance?${queryParams.toString()}`).json(),
+			serverApiClient.get('compliance/stats').json(),
+			serverApiClient.get('documents?category=Certificate,Training,Policy').json()
 		]);
 
 		// Process responses
@@ -55,10 +56,15 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 			? statsResponse.value 
 			: {};
 
+		const documentsData = documentsResponse.status === 'fulfilled' 
+			? documentsResponse.value 
+			: { data: [] };
+
 		console.log('✅ Compliance page data loaded successfully');
 
 		return {
 			complianceItems: complianceData.data || [],
+			documents: documentsData.data || [],
 			stats: {
 				totalActive: statsData.totalActive || 0,
 				expiringSoon: statsData.expiringSoon || 0,
@@ -76,6 +82,7 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 		// Return empty data with error state
 		return {
 			complianceItems: [],
+			documents: [],
 			stats: {
 				totalActive: 0,
 				expiringSoon: 0,

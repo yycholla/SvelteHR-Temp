@@ -8,6 +8,9 @@
 	import CardContent from '$lib/components/ui/card/card-content.svelte';
 	import Badge from '$lib/components/ui/badge/badge.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
+	import { NotificationCenter } from '$lib/components/ui/notification-center';
+	import { EnhancedBulkActionsBar } from '$lib/components/ui/bulk-operations';
+	import { LiveMetricCard } from '$lib/components/ui/dashboard-cards';
 	import type { PageData } from './$types';
 
 	// Page data from server
@@ -132,6 +135,13 @@
 	});
 </script>
 
+<svelte:head>
+	<title>HR - Notifications - SvelteHR</title>
+</svelte:head>
+
+<!-- Notification components (using server-side data only) -->
+<NotificationCenter />
+
 <div class="space-y-6">
 	<!-- Header -->
 	<div class="flex items-center justify-between">
@@ -244,6 +254,16 @@
 			</CardDescription>
 		</CardHeader>
 		<CardContent>
+			<!-- Enhanced bulk operations for notifications -->
+			<EnhancedBulkActionsBar
+				entityType="notifications"
+				availableActions={[
+					{ id: 'mark-read', label: 'Mark as Read', icon: 'MailOpen' },
+					{ id: 'mark-unread', label: 'Mark as Unread', icon: 'Mail' },
+					{ id: 'delete', label: 'Delete', icon: 'Trash2' },
+					{ id: 'archive', label: 'Archive', icon: 'Archive' }
+				]}
+			/>
 			{#if loading}
 				<div class="flex items-center justify-center py-8">
 					<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

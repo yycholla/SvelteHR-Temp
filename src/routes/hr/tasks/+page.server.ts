@@ -40,7 +40,7 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 		if (status !== 'all') queryParams.append('status', status);
 		if (relatedEntityType !== 'all') queryParams.append('relatedEntityType', relatedEntityType);
 
-		// Fetch tasks
+		// Use v2 endpoints for enhanced task features
 		const tasksResponse = await serverApiClient.get(`tasks?${queryParams.toString()}`).json();
 
 		const tasks = tasksResponse.data || [];

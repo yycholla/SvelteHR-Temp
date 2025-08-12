@@ -101,8 +101,8 @@ export const load: PageServerLoad = async ({ cookies, locals }) => {
 			const dataFetches = [
 				// Basic data for all users
 				serverApiClient.get('employees?pageSize=1').json().catch(() => ({ total: 0 })),
-				serverApiClient.get('events').json().catch(() => []),
-				serverApiClient.get('notifications/unread-count').json().catch(() => ({ count: 0 }))
+				serverApiClient.get('events').json().catch(() => [])
+				// Remove problematic notifications endpoint - will use mock data
 			];
 			
 			// Add role-specific API calls
@@ -130,7 +130,7 @@ export const load: PageServerLoad = async ({ cookies, locals }) => {
 			const responses = await Promise.allSettled(dataFetches);
 
 			// Process responses
-			const [employeesResponse, eventsResponse, notificationsResponse, ...roleSpecificResponses] = responses;
+			const [employeesResponse, eventsResponse, ...roleSpecificResponses] = responses;
 			
 			// Basic data processing
 			const totalEmployees = employeesResponse.status === 'fulfilled' ? 
@@ -139,8 +139,8 @@ export const load: PageServerLoad = async ({ cookies, locals }) => {
 			const events = eventsResponse.status === 'fulfilled' ? 
 				(Array.isArray(eventsResponse.value) ? eventsResponse.value : eventsResponse.value?.data || []) : [];
 			
-			const notifications = notificationsResponse.status === 'fulfilled' ? 
-				(notificationsResponse.value?.count || 0) : 0;
+			// Mock notifications count for now (since the endpoint isn't working)
+			const notifications = 0;
 			
 			// Process role-specific data
 			let monitoringData = null;

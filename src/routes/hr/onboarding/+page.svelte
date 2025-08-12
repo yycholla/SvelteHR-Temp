@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { UserCheck, Clock, CheckCircle, AlertCircle, Users, Calendar, Plus } from 'lucide-svelte';
 	import Card from '$lib/components/ui/card/card.svelte';
 	import CardHeader from '$lib/components/ui/card/card-header.svelte';
@@ -9,48 +8,18 @@
 	import Badge from '$lib/components/ui/badge/badge.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import Progress from '$lib/components/ui/progress/progress.svelte';
-	import { EmployeeService } from '$lib/api/services';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
+	import type { PageData } from './$types';
 	import type { Employee } from '$lib/schemas/employee';
 
-	// Onboarding data state
-	let onboardingEmployees = $state<Employee[]>([]);
-	let loading = $state(true);
-	let error = $state('');
-	let statusFilter = $state('all');
+	// Page data from server
+	let { data }: { data: PageData } = $props();
 
-	// Summary stats
-	let stats = $state({
-		total: 0,
-		preHire: 0,
-		onboarding: 0,
-		active: 0,
-		overdue: 0
-	});
-
-	async function loadOnboardingData() {
-		loading = true;
-		try {
-			// Get employees based on status filter
-			const filter = statusFilter !== 'all' ? { status: statusFilter } : {};
-			const response = await EmployeeService.list(filter);
-			
-			onboardingEmployees = response.data;
-			
-			// Calculate stats
-			stats = {
-				total: response.data.length,
-				preHire: response.data.filter(emp => emp.status === 'PreHire').length,
-				onboarding: response.data.filter(emp => emp.status === 'Onboarding').length,
-				active: response.data.filter(emp => emp.status === 'Active').length,
-				overdue: 0 // Would calculate based on hire date vs current progress
-			};
-		} catch (err: any) {
-			error = err.message || 'Failed to load onboarding data';
-			console.error('Error loading onboarding data:', err);
-		} finally {
-			loading = false;
-		}
-	}
+	// Extract data from server load
+	const onboardingEmployees = data.onboardingEmployees || [];
+	const stats = data.stats || { total: 0, preHire: 0, onboarding: 0, active: 0, overdue: 0 };
+	let statusFilter = $state(data.filters?.status || 'all');
 
 	function getStatusVariant(status: string) {
 		switch (status) {
@@ -98,18 +67,44 @@
 	}
 
 	// Apply filters when status filter changes
-	$effect(() => {
-		if (statusFilter !== data.filters.status) {
-			applyFilters();
+	async function applyFilters() {
+		const params = new URLSearchParams($page.url.searchParams);
+		
+		if (statusFilter !== 'all') {
+			params.set('status', statusFilter);
+		} else {
+			params.delete('status');
 		}
-	});
+
+		await goto(`${$page.route.id}?${params.toString()}`, {
+			keepFocus: true,
+			noScroll: true
+		});
+	}
+
+	// Clear filters
+	function clearFilters() {
+		statusFilter = 'all';
+		goto($page.route.id || '/hr/onboarding', {
+			keepFocus: true,
+			noScroll: true
+		});
+	}
 </script>
 
-<div class="space-y-6">
+<svelte:head>
+	<title>HR - Employee Onboarding - SvelteHR</title>
+</svelte:head>
+
+<div class="container mx-auto px-4 py-8">
+	<div class="mb-8">
+		<h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Employee Onboarding</h1>
+		<p class="text-gray-600 dark:text-gray-400">Track and manage employee onboarding progress</p>
+	</div>
 
 	<!-- Summary Cards -->
-	<div class="grid gap-4 md:grid-cols-4">
-		<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
+	<div class="grid gap-4 md:grid-cols-4 mb-8">
+		<Card class="bg-white dark:bg-gray-800 rounded-lg shadow">
 			<CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
 				<CardTitle class="text-sm font-medium">Total Employees</CardTitle>
 				<Users class="h-4 w-4 text-muted-foreground" />
@@ -120,7 +115,7 @@
 			</CardContent>
 		</Card>
 
-		<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
+		<Card class="bg-white dark:bg-gray-800 rounded-lg shadow">
 			<CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
 				<CardTitle class="text-sm font-medium">Pre-Hire</CardTitle>
 				<UserCheck class="h-4 w-4 text-muted-foreground" />
@@ -131,7 +126,7 @@
 			</CardContent>
 		</Card>
 
-		<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
+		<Card class="bg-white dark:bg-gray-800 rounded-lg shadow">
 			<CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
 				<CardTitle class="text-sm font-medium">In Progress</CardTitle>
 				<Clock class="h-4 w-4 text-muted-foreground" />
@@ -142,7 +137,7 @@
 			</CardContent>
 		</Card>
 
-		<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
+		<Card class="bg-white dark:bg-gray-800 rounded-lg shadow">
 			<CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
 				<CardTitle class="text-sm font-medium">Completed</CardTitle>
 				<CheckCircle class="h-4 w-4 text-muted-foreground" />
@@ -155,7 +150,7 @@
 	</div>
 
 	<!-- Filter Controls -->
-	<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
+	<Card class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
 		<CardHeader>
 			<CardTitle>Filter by Status</CardTitle>
 		</CardHeader>
@@ -164,6 +159,7 @@
 				<select 
 					class="px-3 py-2 border border-input rounded-md bg-background text-foreground"
 					bind:value={statusFilter}
+					onchange={applyFilters}
 				>
 					<option value="all">All Statuses</option>
 					<option value="PreHire">Pre-Hire</option>
@@ -171,7 +167,7 @@
 					<option value="Active">Active</option>
 				</select>
 				
-				<Button variant="outline" onclick={() => { statusFilter = 'all'; }}>
+				<Button variant="outline" onclick={clearFilters}>
 					Clear Filter
 				</Button>
 			</div>
@@ -179,7 +175,7 @@
 	</Card>
 
 	<!-- Onboarding List -->
-	<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
+	<Card class="bg-white dark:bg-gray-800 rounded-lg shadow">
 		<CardHeader>
 			<CardTitle>Employee Onboarding Status</CardTitle>
 			<CardDescription>
@@ -187,13 +183,9 @@
 			</CardDescription>
 		</CardHeader>
 		<CardContent>
-			{#if loading}
-				<div class="flex items-center justify-center py-8">
-					<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-				</div>
-			{:else if error}
+			{#if data.error}
 				<div class="text-center py-8">
-					<p class="text-destructive">{error}</p>
+					<p class="text-destructive">{data.error}</p>
 					<Button variant="outline" class="mt-4" onclick={() => window.location.reload()}>
 						Retry
 					</Button>
@@ -294,7 +286,7 @@
 	</Card>
 
 	<!-- Quick Actions -->
-	<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
+	<Card class="bg-white dark:bg-gray-800 rounded-lg shadow mt-6">
 		<CardHeader>
 			<CardTitle>Quick Actions</CardTitle>
 			<CardDescription>
@@ -349,11 +341,4 @@
 			</div>
 		</CardContent>
 	</Card>
-
-	<!-- Fixed position add button in bottom right corner -->
-	<div class="fixed bottom-6 right-6 z-50">
-		<Button class="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200">
-			<Plus class="h-5 w-5" />
-		</Button>
-	</div>
 </div>

@@ -62,6 +62,71 @@ export { Tabs, TabsContent, TabsList, TabsTrigger } from "./tabs/index.js";
 export { Textarea } from "./textarea/index.js";
 export { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip/index.js";
 
+// v2 API Integration Components
+export { 
+	WebSocketIndicator,
+	type WebSocketIndicatorProps,
+	type WebSocketIndicatorPosition,
+	type WebSocketIndicatorVariant,
+	type WebSocketIndicatorStatus
+} from "./websocket-indicator/index.js";
+
+export { 
+	NotificationCenter,
+	ToastNotification,
+	type NotificationCenterProps,
+	type ToastNotificationProps,
+	type Notification,
+	type NotificationPriority,
+	type NotificationCenterState,
+	type ToastState
+} from "./notification-center/index.js";
+
+export { 
+	JobProgressDashboard,
+	JobProgressCard,
+	type JobProgressDashboardProps,
+	type JobProgressCardProps,
+	type BackgroundJob,
+	type JobStatus,
+	type JobPriority,
+	type JobType,
+	type JobProgressDashboardVariant
+} from "./job-progress/index.js";
+
+export { 
+	EnhancedBulkActionsBar,
+	BulkSelectCheckbox,
+	BulkOperationsContext,
+	getBulkOperationsContext,
+	setBulkOperationsContext,
+	type EnhancedBulkActionsBarProps,
+	type BulkAction,
+	type BulkActionsBarState,
+	type BulkActionVariant,
+	type BulkSelectCheckboxProps,
+	type BulkSelectState,
+	type BulkSelectSize,
+	type BulkOperationsState,
+	type BulkOperationsActions,
+	type BulkOperationsContextType
+} from "./bulk-operations/index.js";
+
+export { 
+	LiveMetricCard,
+	ActivityFeedCard,
+	StatusOverviewCard,
+	type LiveMetricCardProps,
+	type MetricData,
+	type ChartData,
+	type LiveMetricCardStatus,
+	type LiveMetricCardSize,
+	type ActivityFeedCardProps,
+	type ActivityItem,
+	type StatusOverviewCardProps,
+	type StatusItem
+} from "./dashboard-cards/index.js";
+
 // Design system types
 export type * from "$lib/types/design-system.js";
 

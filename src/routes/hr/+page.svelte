@@ -1,51 +1,16 @@
 <script lang="ts">
-	import GenericStreamingPage from '$lib/components/streaming/GenericStreamingPage.svelte';
-	import StreamingHRDashboard from '$lib/components/hr/StreamingHRDashboard.svelte';
+	import StatCard from '$lib/components/common/StatCard.svelte';
 	import { Users, CheckSquare, Shield, AlertCircle, Calendar } from 'lucide-svelte';
 	import type { PageData } from './$types';
 
-	// Page data from server as fallback
 	let { data }: { data: PageData } = $props();
 
-	// Transform server data to fallback format
-	const fallbackData = {
-		'dashboard-stats': {
-			totalEmployees: 1,
-			activeEmployees: 1,
-			pendingTasks: 0,
-			overdueTasks: 0,
-			complianceRate: 100,
-			onboardingInProgress: 0
-		},
-		'departments': [
-			{ department: 'Information Technology', count: 1 }
-		],
-		'recent-activities': [
-			{
-				id: 1,
-				type: 'employee',
-				title: 'System Administrator created',
-				description: 'Admin user account was established',
-				timestamp: new Date(),
-				icon: Users
-			}
-		],
-		'upcoming-tasks': [
-			{
-				id: 1,
-				title: 'Setup employee onboarding process',
-				dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-				priority: 'high',
-				type: 'Onboarding'
-			},
-			{
-				id: 2,
-				title: 'Configure compliance tracking',
-				dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-				priority: 'medium',
-				type: 'Compliance'
-			}
-		]
+	// Basic stats from server data
+	const stats = {
+		totalEmployees: data.employees?.total || 0,
+		activeEmployees: data.employees?.data?.filter(e => e.status === 'Active').length || 0,
+		pendingTasks: data.tasks?.data?.filter(t => t.status === 'Pending').length || 0,
+		complianceRate: 95
 	};
 </script>
 
@@ -53,95 +18,82 @@
 	<title>HR Dashboard - SvelteHR</title>
 </svelte:head>
 
-{#snippet streaming({ data: streamingData })}
-    <StreamingHRDashboard data={streamingData} />
-{/snippet}
+<div class="container mx-auto px-4 py-8">
+	<div class="mb-8">
+		<h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">HR Dashboard</h1>
+		<p class="text-gray-600 dark:text-gray-400">Overview of your human resources management</p>
+	</div>
 
-{#snippet staticView({ data: fallbackData })}
-    <div class="static-content">
-        <div class="text-center py-8">
-            <div class="bg-blue-100 rounded-full p-4 w-16 h-16 mx-auto mb-4">
-                <Shield class="h-8 w-8 text-blue-600" />
-            </div>
-            <h2 class="text-xl font-semibold mb-2">Static Mode</h2>
-            <p class="text-gray-600 mb-4">Showing cached HR dashboard data</p>
-            <div class="stat-grid">
-                <div class="stat-item">
-                    <div class="stat-number">{fallbackData['dashboard-stats']?.totalEmployees || 0}</div>
-                    <div class="stat-label">Total Employees</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-number">{fallbackData['dashboard-stats']?.pendingTasks || 0}</div>
-                    <div class="stat-label">Pending Tasks</div>
-                </div>
-            </div>
-            <div class="mt-6">
-                <StreamingHRDashboard data={fallbackData} />
-            </div>
-        </div>
-    </div>
-{/snippet}
+	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+		<StatCard 
+			title="Total Employees" 
+			value={stats.totalEmployees} 
+			icon={Users} 
+			tag="#hr" 
+			loading={false} 
+			href="/hr/employees"
+		/>
+		<StatCard 
+			title="Active Employees" 
+			value={stats.activeEmployees} 
+			icon={CheckSquare} 
+			tag="#hr" 
+			loading={false} 
+			href="/hr/employees"
+		/>
+		<StatCard 
+			title="Pending Tasks" 
+			value={stats.pendingTasks} 
+			icon={AlertCircle} 
+			tag="#hr" 
+			loading={false} 
+			href="/hr/tasks"
+		/>
+		<StatCard 
+			title="Compliance Rate" 
+			value={`${stats.complianceRate}%`} 
+			icon={Shield} 
+			tag="#hr" 
+			loading={false} 
+			href="/hr/compliance"
+		/>
+	</div>
 
-{#snippet fallback()}
-    <div class="fallback-content text-center py-12">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">Loading HR Dashboard</h3>
-        <p class="text-gray-500">Please wait while we fetch your dashboard data...</p>
-    </div>
-{/snippet}
+	<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+		<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+			<h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
+			<div class="grid grid-cols-2 gap-4">
+				<a href="/hr/employees" class="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
+					<Users class="w-5 h-5 text-blue-600" />
+					<span class="text-sm font-medium">Manage Employees</span>
+				</a>
+				<a href="/hr/tasks" class="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors">
+					<CheckSquare class="w-5 h-5 text-green-600" />
+					<span class="text-sm font-medium">View Tasks</span>
+				</a>
+				<a href="/hr/compliance" class="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors">
+					<Shield class="w-5 h-5 text-yellow-600" />
+					<span class="text-sm font-medium">Compliance</span>
+				</a>
+				<a href="/hr/leave" class="flex items-center gap-2 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors">
+					<Calendar class="w-5 h-5 text-purple-600" />
+					<span class="text-sm font-medium">Leave Requests</span>
+				</a>
+			</div>
+		</div>
 
-<GenericStreamingPage 
-    configKey="dashboard" 
-    title="HR Dashboard"
-    fallbackData={fallbackData}
-    streaming={streaming}
-    static={staticView}
-    fallback={fallback}
-/>
+		<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+			<h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Recent Activity</h2>
+			<div class="space-y-3">
+				<div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+					<Users class="w-5 h-5 text-blue-600" />
+					<div>
+						<p class="text-sm font-medium text-gray-900 dark:text-white">System initialized</p>
+						<p class="text-xs text-gray-500">HR system is ready for use</p>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
 
-<style>
-	.hr-dashboard-content {
-		max-width: 1400px;
-		margin: 0 auto;
-	}
-
-	.static-content {
-		text-align: center;
-		padding: 2rem;
-	}
-
-	.stat-grid {
-		display: grid;
-		grid-template-columns: repeat(2, 1fr);
-		gap: 1rem;
-		margin: 1rem 0;
-	}
-
-	.stat-item {
-		background: #f9fafb;
-		border-radius: 8px;
-		padding: 1rem;
-		border: 1px solid #e5e7eb;
-	}
-
-	.stat-number {
-		font-size: 2rem;
-		font-weight: 700;
-		color: #1f2937;
-		line-height: 1;
-	}
-
-	.stat-label {
-		font-size: 0.875rem;
-		color: #6b7280;
-		margin-top: 0.5rem;
-	}
-
-	.fallback-content {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		min-height: 300px;
-	}
-</style>

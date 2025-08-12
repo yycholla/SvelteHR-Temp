@@ -7,8 +7,6 @@
 	import AlertDescription from '$lib/components/ui/alert/alert-description.svelte';
 	import AdvancedEmployeeTable from '$lib/components/employees/AdvancedEmployeeTable/AdvancedEmployeeTable.svelte';
 	import FilterPanel from '$lib/components/employees/FilterPanel.svelte';
-	import GenericStreamingPage from '$lib/components/streaming/GenericStreamingPage.svelte';
-	import StreamingEmployeesList from '$lib/components/employees/StreamingEmployeesList.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import type { PageData } from './$types';
