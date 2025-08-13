@@ -19,16 +19,10 @@
         total: data.pagination?.totalCount || 0
     };
     
-    // Debug the actual data
-    console.log('🔍 Raw employee data from server:', {
-        employees: data.employees,
-        employeesLength: data.employees?.length,
-        pagination: data.pagination,
-        firstEmployee: data.employees?.[0]
-    });
     
     const empStats = transformEmployeeStats(employeesData);
     const departmentsData = transformDepartmentData(employeesData);
+
 
     // Modal state
     let showEmployeeModal = $state(false);
@@ -40,52 +34,42 @@
     let departmentFilter = $state('');
     let statusFilter = $state('');
 
-    // Filtered employees
-    const filteredEmployees = $derived(() => {
-        let filtered = employeesData.data;
-        
-        console.log('🔍 Starting filter with:', {
-            totalEmployees: filtered.length,
-            searchTerm,
-            departmentFilter,
-            statusFilter,
-            firstEmployee: filtered[0]
+
+    // Filtering function
+    function filterEmployees(employees: any[], search: string, deptFilter: string, statusFilter: string) {
+        return employees.filter(emp => {
+            // Search filter
+            if (search) {
+                const searchLower = search.toLowerCase();
+                const matchesSearch = 
+                    emp.firstName?.toLowerCase().includes(searchLower) ||
+                    emp.lastName?.toLowerCase().includes(searchLower) ||
+                    emp.email?.toLowerCase().includes(searchLower) ||
+                    emp.jobTitle?.toLowerCase().includes(searchLower) ||
+                    emp.username?.toLowerCase().includes(searchLower);
+                
+                if (!matchesSearch) return false;
+            }
+            
+            // Department filter
+            if (deptFilter && deptFilter !== '') {
+                const empDeptName = emp.department?.name || '';
+                if (empDeptName !== deptFilter) return false;
+            }
+            
+            // Status filter
+            if (statusFilter && statusFilter !== '') {
+                if (emp.status !== statusFilter) return false;
+            }
+            
+            return true;
         });
+    }
 
-        // Apply search filter
-        if (searchTerm.trim()) {
-            const search = searchTerm.toLowerCase();
-            const beforeSearch = filtered.length;
-            filtered = filtered.filter(emp => 
-                emp.firstName?.toLowerCase().includes(search) ||
-                emp.lastName?.toLowerCase().includes(search) ||
-                emp.ContactInformation?.Email?.toLowerCase().includes(search) ||
-                emp.jobTitle?.toLowerCase().includes(search)
-            );
-            console.log('🔍 After search filter:', beforeSearch, '->', filtered.length);
-        }
-
-        // Apply department filter  
-        if (departmentFilter) {
-            const beforeDept = filtered.length;
-            filtered = filtered.filter(emp => {
-                // Use transformed department field
-                const deptName = emp.department?.name;
-                return deptName === departmentFilter;
-            });
-            console.log('🔍 After department filter:', beforeDept, '->', filtered.length);
-        }
-
-        // Apply status filter
-        if (statusFilter) {
-            const beforeStatus = filtered.length;
-            filtered = filtered.filter(emp => emp.status === statusFilter);
-            console.log('🔍 After status filter:', beforeStatus, '->', filtered.length);
-        }
-
-        console.log('🔍 Final filtered result:', filtered.length, 'employees');
-        return filtered;
-    });
+    // Apply filtering with $derived for reactivity
+    const filteredEmployees = $derived(
+        filterEmployees(employeesData.data || [], searchTerm, departmentFilter, statusFilter)
+    );
 
     // Subscribe to modal store
     $effect(() => {
@@ -275,13 +259,8 @@
 
             <!-- Results Count -->
             <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-                {#if searchTerm || departmentFilter || statusFilter}
-                    Showing {filteredEmployees.length} of {employeesData.total} employees
-                {:else}
-                    Showing {employeesData.total} employees
-                {/if}
+                Showing {filteredEmployees.length} of {employeesData.total} employees
             </div>
-            
             {#if filteredEmployees.length === 0}
                 <div class="text-center py-8">
                     <Users class="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -313,6 +292,8 @@
     bind:open={showEmployeeModal}
     employee={selectedEmployee}
     mode={modalMode}
+    availableRoles={data.roles || []}
+    availableDepartments={data.departments || []}
     onSuccess={handleEmployeeSuccess}
 />
 

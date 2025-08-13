@@ -184,10 +184,10 @@ const flatEmployeeSchema = z.object({
 	trainingInfo: z.string().nullable().optional(),
 	healthInsuranceInfo: z.string().nullable().optional(),
 	retirementPlanInfo: z.string().nullable().optional(),
-	departmentId: z.number(),
+	departmentId: z.number().nullable().optional(),
 	roleId: z.number(),
-	jobTitle: z.string(),
-	hireDate: z.string(),
+	jobTitle: z.string().nullable().optional(),
+	hireDate: z.string().nullable().optional(),
 	dateOfBirth: z.string().nullable().optional(),
 	gender: z.string().nullable().optional(),
 	employmentType: z.string().nullable().optional(),
@@ -237,104 +237,110 @@ export const employeeSchema = z.union([
 	
 	if (!isNested) {
 		// Handle flat format (your API) - this should be the primary path
+		const flatEmp = emp as z.infer<typeof flatEmployeeSchema>;
 		return {
 			// Core fields
-			id: emp.id.toString(),
-			employeeId: emp.username || emp.id.toString(),
-			firstName: emp.firstName,
-			lastName: emp.lastName,
-			middleName: emp.middleName,
+			id: flatEmp.id.toString(),
+			employeeId: flatEmp.username || flatEmp.id.toString(),
+			firstName: flatEmp.firstName,
+			lastName: flatEmp.lastName,
+			middleName: flatEmp.middleName,
 			
 			// Contact info
-			email: emp.email || '',
-			phone: emp.phoneNumber,
-			phoneNumber: emp.phoneNumber,
-			workPhoneNumber: emp.workPhoneNumber,
+			email: flatEmp.email || '',
+			phone: flatEmp.phoneNumber,
+			phoneNumber: flatEmp.phoneNumber,
+			workPhoneNumber: flatEmp.workPhoneNumber,
 			
 			// Address
-			addressStreet: emp.addressStreet,
-			addressCity: emp.addressCity,
-			addressState: emp.addressState,
-			addressZip: emp.addressZip,
-			location: [emp.addressCity, emp.addressState].filter(Boolean).join(', ') || 'Remote',
+			addressStreet: flatEmp.addressStreet,
+			addressCity: flatEmp.addressCity,
+			addressState: flatEmp.addressState,
+			addressZip: flatEmp.addressZip,
+			location: [flatEmp.addressCity, flatEmp.addressState].filter(Boolean).join(', ') || 'Remote',
 			
 			// Emergency contact
-			emergencyContactName: emp.emergencyContactName,
-			emergencyContactRelationship: emp.emergencyContactRelationship,
-			emergencyContactPhone: emp.emergencyContactPhone,
+			emergencyContactName: flatEmp.emergencyContactName,
+			emergencyContactRelationship: flatEmp.emergencyContactRelationship,
+			emergencyContactPhone: flatEmp.emergencyContactPhone,
 			
 			// Job details
-			jobTitle: emp.jobTitle || '',
-			hireDate: emp.hireDate || '',
-			employmentType: emp.employmentType,
-			departmentId: emp.departmentId?.toString(),
+			jobTitle: flatEmp.jobTitle || '',
+			hireDate: flatEmp.hireDate || '',
+			employmentType: flatEmp.employmentType,
+			departmentId: flatEmp.departmentId?.toString(),
 			managerId: undefined, // Not in flat format
 			
 			// Compensation
-			payType: emp.payType,
-			payRate: emp.payRate,
-			salary: emp.payRate, // Alias for UI
-			bankName: emp.bankName,
-			bankAccountType: emp.bankAccountType,
-			directDepositEnabled: emp.directDepositEnabled,
+			payType: flatEmp.payType,
+			payRate: flatEmp.payRate,
+			salary: flatEmp.payRate, // Alias for UI
+			bankName: flatEmp.bankName,
+			bankAccountType: flatEmp.bankAccountType,
+			directDepositEnabled: flatEmp.directDepositEnabled,
 			
 			// Personal info
-			dateOfBirth: emp.dateOfBirth,
-			gender: emp.gender,
+			dateOfBirth: flatEmp.dateOfBirth,
+			gender: flatEmp.gender,
 			
 			// Status and role
-			onboardingStatus: emp.onboardingStatus || 'Active',
-			status: emp.onboardingStatus || 'Active', // Alias for UI
-			roleId: emp.roleId.toString(),
+			onboardingStatus: flatEmp.onboardingStatus || 'Active',
+			status: flatEmp.onboardingStatus || 'Active', // Alias for UI
+			roleId: flatEmp.roleId.toString(),
 			isManager: false, // Not in flat format
 			
 			// Other info
-			taxWithholdingInfo: emp.taxWithholdingInfo,
-			workAuthorizationStatus: emp.workAuthorizationStatus,
-			trainingInfo: emp.trainingInfo,
-			healthInsuranceInfo: emp.healthInsuranceInfo,
-			retirementPlanInfo: emp.retirementPlanInfo,
+			taxWithholdingInfo: flatEmp.taxWithholdingInfo,
+			workAuthorizationStatus: flatEmp.workAuthorizationStatus,
+			trainingInfo: flatEmp.trainingInfo,
+			healthInsuranceInfo: flatEmp.healthInsuranceInfo,
+			retirementPlanInfo: flatEmp.retirementPlanInfo,
 			
 			// Metadata
-			username: emp.username,
-			createdAt: emp.createdAt,
-			updatedAt: emp.updatedAt,
+			username: flatEmp.username,
+			createdAt: flatEmp.createdAt,
+			updatedAt: flatEmp.updatedAt,
 			
 			// Nested objects for UI compatibility
-			department: emp.department ? {
-				id: emp.department.id.toString(),
-				name: emp.department.name,
+			department: flatEmp.department ? {
+				id: flatEmp.department.id.toString(),
+				name: flatEmp.department.name,
 				color: 'blue' // Default color for UI
+			} : flatEmp.departmentId ? {
+				id: flatEmp.departmentId.toString(),
+				name: 'Unknown Department',
+				color: 'gray' // Gray color for unknown departments
 			} : undefined,
 			
-			position: emp.role ? {
-				id: emp.role.id,
-				title: emp.jobTitle || emp.role.name,
+			position: flatEmp.role ? {
+				id: flatEmp.role.id,
+				title: flatEmp.jobTitle || flatEmp.role.name,
 				level: 'N/A'
 			} : {
-				id: emp.roleId.toString(),
-				title: emp.jobTitle || 'Unknown',
+				id: flatEmp.roleId.toString(),
+				title: flatEmp.jobTitle || 'Unknown',
 				level: 'N/A'
 			},
 			
-			role: emp.role,
+			role: flatEmp.role,
 			
 			// Generated avatar
-			avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.firstName + ' ' + emp.lastName)}&background=random`
+			avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(flatEmp.firstName + ' ' + flatEmp.lastName)}&background=random`
 		};
 	} else if (isNested) {
 		// Handle nested format (original)
-		const contact = emp.ContactInformation || {};
-		const compensation = emp.Compensation || {};
-		const jobInfo = emp.JobInformation || {};
-		const personalInfo = emp.PersonalInformation || {};
+		const nestedEmp = emp as z.infer<typeof nestedEmployeeSchema>;
+		const contact = nestedEmp.ContactInformation || {};
+		const compensation = nestedEmp.Compensation || {};
+		const jobInfo = nestedEmp.JobInformation || {};
+		const personalInfo = nestedEmp.PersonalInformation || {};
 		
 		return {
 			// Core fields
-			id: emp.id.toString(),
-			employeeId: emp.username || emp.id.toString(),
-			firstName: emp.firstName,
-			lastName: emp.lastName,
+			id: nestedEmp.id.toString(),
+			employeeId: nestedEmp.username || nestedEmp.id.toString(),
+			firstName: nestedEmp.firstName,
+			lastName: nestedEmp.lastName,
 			middleName: personalInfo.MiddleName,
 			
 			// Contact info
@@ -375,22 +381,22 @@ export const employeeSchema = z.union([
 			gender: personalInfo.Gender,
 			
 			// Status and role
-			onboardingStatus: emp.OnboardingStatus || 'Active',
-			status: emp.OnboardingStatus || 'Active', // Alias for UI
-			roleId: emp.roleId.toString(),
-			isManager: emp.IsManager || false,
+			onboardingStatus: nestedEmp.OnboardingStatus || 'Active',
+			status: nestedEmp.OnboardingStatus || 'Active', // Alias for UI
+			roleId: nestedEmp.roleId.toString(),
+			isManager: nestedEmp.IsManager || false,
 			
 			// Other info
-			taxWithholdingInfo: emp.TaxWithholdingInfo,
-			workAuthorizationStatus: emp.WorkAuthorizationStatus,
-			trainingInfo: emp.TrainingInfo,
-			healthInsuranceInfo: emp.HealthInsuranceInfo,
-			retirementPlanInfo: emp.RetirementPlanInfo,
+			taxWithholdingInfo: nestedEmp.TaxWithholdingInfo,
+			workAuthorizationStatus: nestedEmp.WorkAuthorizationStatus,
+			trainingInfo: nestedEmp.TrainingInfo,
+			healthInsuranceInfo: nestedEmp.HealthInsuranceInfo,
+			retirementPlanInfo: nestedEmp.RetirementPlanInfo,
 			
 			// Metadata
-			username: emp.username,
-			createdAt: emp.CreatedAt || new Date().toISOString(),
-			updatedAt: emp.UpdatedAt || new Date().toISOString(),
+			username: nestedEmp.username,
+			createdAt: nestedEmp.CreatedAt || new Date().toISOString(),
+			updatedAt: nestedEmp.UpdatedAt || new Date().toISOString(),
 			
 			// Nested objects for UI compatibility
 			department: jobInfo.Department ? {
@@ -399,20 +405,20 @@ export const employeeSchema = z.union([
 				color: 'blue' // Default color for UI
 			} : undefined,
 			
-			position: emp.role ? {
-				id: emp.role.id,
-				title: jobInfo.JobTitle || emp.role.name,
+			position: nestedEmp.role ? {
+				id: nestedEmp.role.id,
+				title: jobInfo.JobTitle || nestedEmp.role.name,
 				level: 'N/A'
 			} : {
-				id: emp.roleId.toString(),
+				id: nestedEmp.roleId.toString(),
 				title: jobInfo.JobTitle || 'Unknown',
 				level: 'N/A'
 			},
 			
-			role: emp.role,
+			role: nestedEmp.role,
 			
 			// Generated avatar
-			avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.firstName + ' ' + emp.lastName)}&background=random`
+			avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(nestedEmp.firstName + ' ' + nestedEmp.lastName)}&background=random`
 		};
 	}
 });

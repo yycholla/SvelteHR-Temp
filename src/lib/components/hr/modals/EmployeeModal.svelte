@@ -2,16 +2,20 @@
 	import { Dialog, DialogContent, DialogHeader, DialogTitle } from '$lib/components/ui/dialog';
 	import { modalStore } from '$lib/stores/hr/modals';
 	import EmployeeForm from '../forms/EmployeeForm.svelte';
-	import type { Employee } from '$lib/schemas/employee';
+	import type { Employee, Role, Department } from '$lib/schemas/employee';
 
 	let { 
 		open = $bindable(false),
 		employee = $bindable<Employee | null>(null),
-		mode = $bindable<'create' | 'edit' | 'view'>('create')
+		mode = $bindable<'create' | 'edit' | 'view'>('create'),
+		availableRoles = [],
+		availableDepartments = []
 	}: {
 		open: boolean;
 		employee?: Employee | null;
 		mode?: 'create' | 'edit' | 'view';
+		availableRoles?: Role[];
+		availableDepartments?: Department[];
 	} = $props();
 
 	const modalTitle = $derived(
@@ -41,6 +45,8 @@
 		<EmployeeForm
 			{employee}
 			{mode}
+			{availableRoles}
+			{availableDepartments}
 			onCancel={handleClose}
 			onSuccess={handleSuccess}
 		/>

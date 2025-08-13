@@ -3,22 +3,34 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
-	import type { Employee } from '$lib/schemas/employee';
+	import { ApiServices } from '$lib/api/services';
+	import type { Employee, Role, Department } from '$lib/schemas/employee';
+	import { onMount } from 'svelte';
 
 	let {
 		employee = null,
 		mode = 'create',
 		onCancel,
-		onSuccess
+		onSuccess,
+		availableRoles = [],
+		availableDepartments = []
 	}: {
 		employee: Employee | null;
 		mode: 'create' | 'edit' | 'view';
 		onCancel: () => void;
 		onSuccess: (employee: Employee) => void;
+		availableRoles?: Role[];
+		availableDepartments?: Department[];
 	} = $props();
 
 	const isReadonly = $derived(mode === 'view');
 	const isEditing = $derived(mode === 'edit');
+
+	// State for roles and departments
+	let roles: Role[] = $state(availableRoles);
+	let departments: Department[] = $state(availableDepartments);
+	let loadingOptions = $state(availableRoles.length === 0 || availableDepartments.length === 0);
+	let errorLoadingOptions = $state(false);
 
 	// Create appropriate form based on mode
 	const form = isEditing && employee 
@@ -32,6 +44,47 @@
 		});
 
 	const { form: formData, errors, enhance, submitting } = form;
+
+	// Load roles and departments on mount if not provided
+	onMount(async () => {
+		// If data is already provided, no need to load
+		if (availableRoles.length > 0 && availableDepartments.length > 0) {
+			loadingOptions = false;
+			return;
+		}
+
+		try {
+			const promises = [];
+			
+			// Only load roles if not provided
+			if (availableRoles.length === 0) {
+				promises.push(ApiServices.roles.list());
+			} else {
+				promises.push(Promise.resolve(availableRoles));
+			}
+			
+			// Only load departments if not provided
+			if (availableDepartments.length === 0) {
+				promises.push(ApiServices.departments.list());
+			} else {
+				promises.push(Promise.resolve(availableDepartments));
+			}
+
+			const [rolesData, departmentsData] = await Promise.all(promises);
+			roles = rolesData;
+			departments = departmentsData;
+			errorLoadingOptions = false;
+		} catch (error) {
+			console.error('Failed to load form options:', error);
+			errorLoadingOptions = true;
+			
+			// If API fails, set fallback data if available
+			if (availableRoles.length > 0) roles = availableRoles;
+			if (availableDepartments.length > 0) departments = availableDepartments;
+		} finally {
+			loadingOptions = false;
+		}
+	});
 
 	// Initialize form data for edit mode
 	$effect(() => {
@@ -75,6 +128,10 @@
 			<div>
 				<Label>Department</Label>
 				<p>{employee.department?.name || 'N/A'}</p>
+			</div>
+			<div>
+				<Label>Role</Label>
+				<p>{employee.role?.name || 'N/A'}</p>
 			</div>
 			<div>
 				<Label>Hire Date</Label>
@@ -179,29 +236,60 @@
 				</select>
 			</div>
 
-			<!-- Role ID -->
+			<!-- Role -->
 			<div>
-				<Label for="roleId">Role ID *</Label>
-				<Input
-					id="roleId"
-					name="roleId"
-					type="number"
-					bind:value={$formData.roleId}
-					placeholder="Enter role ID"
-					error={$errors.roleId}
-				/>
+				<Label for="roleId">Role *</Label>
+				{#if loadingOptions}
+					<div class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm items-center text-muted-foreground">
+						Loading roles...
+					</div>
+				{:else if errorLoadingOptions && roles.length === 0}
+					<div class="flex h-9 w-full rounded-md border border-destructive bg-transparent px-3 py-1 text-sm items-center text-destructive">
+						Failed to load roles. Please refresh the page.
+					</div>
+				{:else}
+					<select
+						id="roleId"
+						name="roleId"
+						class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+						bind:value={$formData.roleId}
+						class:border-destructive={$errors.roleId}
+					>
+						<option value="">Select a role</option>
+						{#each roles as role}
+							<option value={parseInt(role.id)}>{role.name}</option>
+						{/each}
+					</select>
+					{#if $errors.roleId}
+						<p class="text-sm font-medium text-destructive mt-1">{$errors.roleId}</p>
+					{/if}
+				{/if}
 			</div>
 
-			<!-- Department ID -->
+			<!-- Department -->
 			<div>
-				<Label for="departmentId">Department ID</Label>
-				<Input
-					id="departmentId"
-					name="departmentId"
-					type="number"
-					bind:value={$formData.departmentId}
-					placeholder="Enter department ID"
-				/>
+				<Label for="departmentId">Department</Label>
+				{#if loadingOptions}
+					<div class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm items-center text-muted-foreground">
+						Loading departments...
+					</div>
+				{:else if errorLoadingOptions && departments.length === 0}
+					<div class="flex h-9 w-full rounded-md border border-destructive bg-transparent px-3 py-1 text-sm items-center text-destructive">
+						Failed to load departments. Please refresh the page.
+					</div>
+				{:else}
+					<select
+						id="departmentId"
+						name="departmentId"
+						class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+						bind:value={$formData.departmentId}
+					>
+						<option value="">Select a department (optional)</option>
+						{#each departments as department}
+							<option value={parseInt(department.id)}>{department.name}</option>
+						{/each}
+					</select>
+				{/if}
 			</div>
 
 			<!-- Hire Date -->

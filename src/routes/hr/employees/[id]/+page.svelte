@@ -104,6 +104,8 @@
 	bind:open={showEditModal}
 	employee={data.employee}
 	mode="edit"
+	availableRoles={[]}
+	availableDepartments={[]}
 	onSuccess={handleEditSuccess}
 />
 

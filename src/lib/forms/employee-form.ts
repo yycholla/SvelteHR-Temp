@@ -27,13 +27,13 @@ export function createEmployeeForm(options: {
 		resetForm: false,
 		multipleSubmits: 'prevent',
 		clearOnSubmit: 'errors-and-message',
-		validators: createEmployeeSchema,
+		validator: createEmployeeSchema,
 		onUpdate: async ({ form }) => {
 			try {
 				const data = createEmployeeSchema.parse(form.data);
 				
-				// Use MCP HR API to create employee
-				const response = await fetch('/api/hr/employees', {
+				// Use server-side API endpoint as middleman
+				const response = await fetch('/api/employees', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify(data)
@@ -69,12 +69,13 @@ export function updateEmployeeForm(employeeId: number, options: {
 		resetForm: false,
 		multipleSubmits: 'prevent',
 		clearOnSubmit: 'errors-and-message',
-		validators: updateEmployeeSchema,
+		validator: updateEmployeeSchema,
 		onUpdate: async ({ form }) => {
 			try {
 				const data = updateEmployeeSchema.parse({ ...form.data, id: employeeId });
 				
-				const response = await fetch(`/api/hr/employees/${employeeId}`, {
+				// Use server-side API endpoint as middleman
+				const response = await fetch(`/api/employees/${employeeId}`, {
 					method: 'PUT',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify(data)

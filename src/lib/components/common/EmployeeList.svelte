@@ -56,10 +56,10 @@
 		<div class="employee-item">
 			<div class="employee-info">
 				<div class="employee-avatar">
-					{employee.firstName[0]}{employee.lastName[0]}
+					{(employee.firstName?.[0] || '?')}{(employee.lastName?.[0] || '?')}
 				</div>
 				<div class="employee-details">
-					<div class="employee-name">{employee.firstName} {employee.lastName}</div>
+					<div class="employee-name">{employee.firstName || 'Unknown'} {employee.lastName || 'User'}</div>
 					<div class="employee-meta">
 						{employee.jobTitle || 'No Title'}
 						{#if showDepartment && employee.department}

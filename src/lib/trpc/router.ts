@@ -258,6 +258,110 @@ const employeeRouter = t.router({
 				});
 			}
 		}),
+
+	create: protectedProcedure
+		.input(z.object({
+			username: z.string().min(1, 'Username is required'),
+			firstName: z.string().min(1, 'First name is required'),
+			lastName: z.string().min(1, 'Last name is required'),
+			email: z.string().email().optional(),
+			phoneNumber: z.string().optional(),
+			roleId: z.number().min(1, 'Role is required'),
+			departmentId: z.number().optional(),
+			managerId: z.number().optional(),
+			jobTitle: z.string().optional(),
+			hireDate: z.string().optional(),
+			employmentType: z.string().optional(),
+			onboardingStatus: z.string().optional(),
+			isManager: z.boolean().optional(),
+		}))
+		.output(employeeSchema)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				// Get auth token from cookies
+				const token = ctx.event.cookies.get('auth-token');
+
+				if (!token) {
+					throw new TRPCError({
+						code: 'UNAUTHORIZED',
+						message: 'Authentication token not found',
+					});
+				}
+
+				// Create server-side API client with proper token handling
+				const serverApiClient = apiClient.extend({
+					hooks: {
+						beforeRequest: [
+							(request) => {
+								request.headers.set('Authorization', `Bearer ${token}`);
+								request.headers.set('Content-Type', 'application/json');
+							}
+						]
+					}
+				});
+
+				const employee = await serverApiClient.post('employees', { json: input }).json();
+				return employeeSchema.parse(employee);
+			} catch (error: any) {
+				throw new TRPCError({
+					code: 'INTERNAL_SERVER_ERROR',
+					message: 'Failed to create employee',
+				});
+			}
+		}),
+
+	update: protectedProcedure
+		.input(z.object({
+			id: z.string(),
+			username: z.string().optional(),
+			firstName: z.string().optional(),
+			lastName: z.string().optional(),
+			email: z.string().optional(),
+			phoneNumber: z.string().optional(),
+			roleId: z.number().optional(),
+			departmentId: z.number().optional(),
+			managerId: z.number().optional(),
+			jobTitle: z.string().optional(),
+			hireDate: z.string().optional(),
+			employmentType: z.string().optional(),
+			onboardingStatus: z.string().optional(),
+			isManager: z.boolean().optional(),
+		}))
+		.output(employeeSchema)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				// Get auth token from cookies
+				const token = ctx.event.cookies.get('auth-token');
+
+				if (!token) {
+					throw new TRPCError({
+						code: 'UNAUTHORIZED',
+						message: 'Authentication token not found',
+					});
+				}
+
+				// Create server-side API client with proper token handling
+				const serverApiClient = apiClient.extend({
+					hooks: {
+						beforeRequest: [
+							(request) => {
+								request.headers.set('Authorization', `Bearer ${token}`);
+								request.headers.set('Content-Type', 'application/json');
+							}
+						]
+					}
+				});
+
+				const { id, ...updateData } = input;
+				const employee = await serverApiClient.put(`employees/${id}`, { json: updateData }).json();
+				return employeeSchema.parse(employee);
+			} catch (error: any) {
+				throw new TRPCError({
+					code: 'INTERNAL_SERVER_ERROR',
+					message: 'Failed to update employee',
+				});
+			}
+		}),
 });
 
 // Department router
