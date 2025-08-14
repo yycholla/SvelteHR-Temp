@@ -2,6 +2,7 @@ import type { PageServerLoad } from './$types';
 import { apiClient } from '$lib/api/client';
 
 export const load: PageServerLoad = async ({ cookies, url }) => {
+	console.log('🔄 SERVER LOAD: employees page load function called');
 	const token = cookies.get('auth-token');
 	
 
@@ -43,12 +44,14 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 		queryParams.append('page', page.toString());
 		queryParams.append('pageSize', pageSize.toString());
 
-		// Use v1 endpoints (v2 not available)
+		// Use v2 endpoints for better caching and performance
+		console.log('📡 SERVER LOAD: Making API calls to backend...');
 		const [employeesResponse, departmentsResponse, rolesResponse] = await Promise.allSettled([
-			serverApiClient.get(`employees?${queryParams.toString()}`).json(),
+			serverApiClient.get(`v2/employees?${queryParams.toString()}`).json(),
 			serverApiClient.get('departments').json(),
 			serverApiClient.get('roles').json()
 		]);
+		console.log('✅ SERVER LOAD: API calls completed');
 
 		// Process employees response
 		const employeesData = employeesResponse.status === 'fulfilled' 
@@ -147,7 +150,7 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 		});
 
 
-		return {
+		const result = {
 			employees: transformedEmployees,
 			departments: Array.isArray(departmentsData) ? departmentsData : departmentsData.data || [],
 			roles: rolesData,
@@ -163,6 +166,9 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 				department: department || 'all'
 			}
 		};
+		
+		console.log('✅ SERVER LOAD: Returning data with', transformedEmployees.length, 'employees');
+		return result;
 	} catch (error: any) {
 		console.error('❌ Error loading employees data:', error);
 		

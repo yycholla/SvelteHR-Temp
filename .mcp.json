@@ -1,12 +1,11 @@
 {
-    "mcpServers": {
-        "mountaincare-hr-v2": {
-            "command": "/root/MTNCARE/MTNHR/go-backend/mcp-server/mountaincare-hr-mcp-v2",
-            "env": {
-                "HR_API_BASE_URL": "http://localhost:8080/api/v1",
-                "HR_USERNAME": "admin",
-                "HR_PASSWORD": "admin"
-            }
-        }
+  "mcpServers": {
+    "tree_sitter": {
+      "command": "python",
+      "args": [
+        "-m",
+        "mcp_server_tree_sitter.server"
+      ]
     }
+  }
 }

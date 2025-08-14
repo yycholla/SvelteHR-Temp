@@ -8,6 +8,8 @@
     import { Users, Building, CheckCircle, Clock, Briefcase, Plus, Search, Filter } from 'lucide-svelte';
     import { transformEmployeeStats, transformDepartmentData } from '$lib/utils/dataTransformers.js';
     import { modalStore } from '$lib/stores/hr/modals';
+    import { invalidateAll } from '$app/navigation';
+    import { apiCache } from '$lib/api/cache';
     import type { PageData } from './$types';
     import type { Employee } from '$lib/schemas/employee';
 
@@ -70,6 +72,18 @@
     const filteredEmployees = $derived(
         filterEmployees(employeesData.data || [], searchTerm, departmentFilter, statusFilter)
     );
+    
+    // Debug logging
+    $effect(() => {
+        console.log('🔍 Filtering employees:', {
+            totalEmployees: employeesData.data?.length || 0,
+            searchTerm,
+            departmentFilter,
+            statusFilter,
+            filteredCount: filteredEmployees.length,
+            employees: employeesData.data
+        });
+    });
 
     // Subscribe to modal store
     $effect(() => {
@@ -87,9 +101,17 @@
         modalStore.open('employee', null, 'create');
     }
 
-    function handleEmployeeSuccess(employee: Employee) {
-        // Refresh the page or update local data
-        window.location.reload();
+    async function handleEmployeeSuccess(employee: Employee) {
+        console.log('🔄 handleEmployeeSuccess called for:', employee);
+        
+        // Clear cache and refresh server data
+        console.log('🗑️ Invalidating frontend cache patterns...');
+        apiCache.invalidatePattern('employees');
+        apiCache.invalidatePattern('departments');
+        
+        console.log('🔄 Calling invalidateAll()...');
+        await invalidateAll();
+        console.log('✅ invalidateAll() completed');
     }
 
     function handleViewEmployee(employee: Employee) {
@@ -103,7 +125,7 @@
     async function handleDeleteEmployee(employee: Employee) {
         if (confirm(`Are you sure you want to delete ${employee.firstName} ${employee.lastName}? This action cannot be undone.`)) {
             try {
-                const response = await fetch(`/api/v1/employees/${employee.id}`, {
+                const response = await fetch(`/api/v2/employees/${employee.id}`, {
                     method: 'DELETE',
                     headers: {
                         'Content-Type': 'application/json'
@@ -111,8 +133,16 @@
                 });
 
                 if (response.ok) {
-                    // Refresh the page to show updated data
-                    window.location.reload();
+                    console.log('🔄 Employee deleted successfully, refreshing data...');
+                    
+                    // Clear cache and refresh server data
+                    console.log('🗑️ Invalidating frontend cache patterns...');
+                    apiCache.invalidatePattern('employees');
+                    apiCache.invalidatePattern('departments');
+                    
+                    console.log('🔄 Calling invalidateAll()...');
+                    await invalidateAll();
+                    console.log('✅ invalidateAll() completed');
                 } else {
                     const error = await response.text();
                     alert(`Failed to delete employee: ${error}`);

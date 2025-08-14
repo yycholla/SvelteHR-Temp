@@ -243,7 +243,7 @@ const employeeRouter = t.router({
 					}
 				});
 
-				const employee = await serverApiClient.get(`employees/${input.id}`).json();
+				const employee = await serverApiClient.get(`v2/employees/${input.id}`).json();
 				return employeeSchema.parse(employee);
 			} catch (error: any) {
 				if (error.response?.status === 404) {
@@ -300,7 +300,7 @@ const employeeRouter = t.router({
 					}
 				});
 
-				const employee = await serverApiClient.post('employees', { json: input }).json();
+				const employee = await serverApiClient.post('v2/employees', { json: input }).json();
 				return employeeSchema.parse(employee);
 			} catch (error: any) {
 				throw new TRPCError({
@@ -353,7 +353,7 @@ const employeeRouter = t.router({
 				});
 
 				const { id, ...updateData } = input;
-				const employee = await serverApiClient.put(`employees/${id}`, { json: updateData }).json();
+				const employee = await serverApiClient.put(`v2/employees/${id}`, { json: updateData }).json();
 				return employeeSchema.parse(employee);
 			} catch (error: any) {
 				throw new TRPCError({

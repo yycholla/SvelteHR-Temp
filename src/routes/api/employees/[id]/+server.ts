@@ -28,8 +28,8 @@ export const PUT: RequestHandler = async ({ request, cookies, params }) => {
 			}
 		});
 
-		// Update employee via backend API
-		const employee = await serverApiClient.put(`employees/${params.id}`, { json: updateData }).json();
+		// Update employee via backend API (using V2 endpoint)
+		const employee = await serverApiClient.put(`v2/employees/${params.id}`, { json: updateData }).json();
 		
 		return json(employee);
 	} catch (error: any) {

@@ -34,7 +34,18 @@
 
 	// Create appropriate form based on mode
 	const form = isEditing && employee 
-		? updateEmployeeForm(parseInt(employee.id), { 
+		? updateEmployeeForm(parseInt(employee.id), {
+			username: employee.username || '',
+			firstName: employee.firstName || '',
+			lastName: employee.lastName || '',
+			email: employee.email || '',
+			roleId: parseInt(employee.roleId) || 1,
+			departmentId: employee.departmentId ? parseInt(employee.departmentId) : undefined,
+			jobTitle: employee.jobTitle || '',
+			hireDate: employee.hireDate || new Date().toISOString().split('T')[0],
+			employmentType: employee.employmentType || 'Full-time',
+			onboardingStatus: employee.status || 'PreHire'
+		}, { 
 			onSuccess: (emp) => onSuccess(emp),
 			onError: (error) => console.error('Update error:', error)
 		})
@@ -86,23 +97,6 @@
 		}
 	});
 
-	// Initialize form data for edit mode
-	$effect(() => {
-		if (isEditing && employee) {
-			$formData = {
-				username: employee.username || '',
-				firstName: employee.firstName || '',
-				lastName: employee.lastName || '',
-				email: employee.email || '',
-				roleId: parseInt(employee.roleId) || 1,
-				departmentId: parseInt(employee.departmentId) || 1,
-				jobTitle: employee.jobTitle || '',
-				hireDate: employee.hireDate || new Date().toISOString().split('T')[0],
-				employmentType: employee.employmentType || 'Full-time',
-				onboardingStatus: employee.status || 'PreHire'
-			};
-		}
-	});
 </script>
 
 {#if isReadonly && employee}

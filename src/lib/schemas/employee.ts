@@ -440,9 +440,22 @@ export const createEmployeeSchema = z.object({
 	isManager: z.boolean().optional(),
 });
 
-// Update employee schema
-export const updateEmployeeSchema = createEmployeeSchema.partial().extend({
+// Update employee schema - explicit definition for better zod adapter compatibility
+export const updateEmployeeSchema = z.object({
 	id: z.number(),
+	username: z.string().min(1, 'Username is required'),
+	firstName: z.string().min(1, 'First name is required'),
+	lastName: z.string().min(1, 'Last name is required'),
+	email: z.string().email().optional(),
+	phoneNumber: z.string().optional(),
+	roleId: z.number().min(1, 'Role is required'),
+	departmentId: z.number().optional(),
+	managerId: z.number().optional(),
+	jobTitle: z.string().optional(),
+	hireDate: z.string().optional(),
+	employmentType: z.string().optional(),
+	onboardingStatus: employeeStatusSchema.optional(),
+	isManager: z.boolean().optional(),
 });
 
 // Employee filter schema

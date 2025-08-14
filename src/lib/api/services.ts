@@ -81,33 +81,33 @@ export const EmployeeService = {
 
 	async getById(id: string): Promise<Employee> {
 		try {
-			return await apiClient.get(`employees/${id}`);
+			return await apiClient.get(`v2/employees/${id}`);
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, `employees/${id}`);
+			throw await ErrorUtils.handleApiError(error, `v2/employees/${id}`);
 		}
 	},
 
 	async create(data: CreateEmployeeInput): Promise<Employee> {
 		try {
-			return await apiClient.post('employees', { json: data });
+			return await apiClient.post('v2/employees', { json: data });
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, 'employees', { requestData: data });
+			throw await ErrorUtils.handleApiError(error, 'v2/employees', { requestData: data });
 		}
 	},
 
 	async update(id: string, data: UpdateEmployeeInput): Promise<Employee> {
 		try {
-			return await apiClient.put(`employees/${id}`, { json: data });
+			return await apiClient.put(`v2/employees/${id}`, { json: data });
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, `/employees/${id}`, { requestData: data });
+			throw await ErrorUtils.handleApiError(error, `/v2/employees/${id}`, { requestData: data });
 		}
 	},
 
 	async delete(id: string): Promise<void> {
 		try {
-			await apiClient.delete(`employees/${id}`);
+			await apiClient.delete(`v2/employees/${id}`);
 		} catch (error) {
-			throw await ErrorUtils.handleApiError(error, `/employees/${id}`);
+			throw await ErrorUtils.handleApiError(error, `/v2/employees/${id}`);
 		}
 	},
 

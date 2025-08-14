@@ -1,145 +1,272 @@
-# SvelteHR - AI Development Context
+# Claude Code Configuration - SPARC Development Environment
+
+## 🚨 CRITICAL: CONCURRENT EXECUTION & FILE MANAGEMENT
+
+**ABSOLUTE RULES**:
+1. ALL operations MUST be concurrent/parallel in a single message
+2. **NEVER save working files, text/mds and tests to the root folder**
+3. ALWAYS organize files in appropriate subdirectories
+
+### ⚡ GOLDEN RULE: "1 MESSAGE = ALL RELATED OPERATIONS"
+
+**MANDATORY PATTERNS:**
+- **TodoWrite**: ALWAYS batch ALL todos in ONE call (5-10+ todos minimum)
+- **Task tool**: ALWAYS spawn ALL agents in ONE message with full instructions
+- **File operations**: ALWAYS batch ALL reads/writes/edits in ONE message
+- **Bash commands**: ALWAYS batch ALL terminal operations in ONE message
+- **Memory operations**: ALWAYS batch ALL memory store/retrieve in ONE message
+
+### 📁 File Organization Rules
+
+**NEVER save to root folder. Use these directories:**
+- `/src` - Source code files
+- `/tests` - Test files
+- `/docs` - Documentation and markdown files
+- `/config` - Configuration files
+- `/scripts` - Utility scripts
+- `/examples` - Example code
 
 ## Project Overview
-SvelteHR is a comprehensive Human Resources management application built with SvelteKit 5. It's part of the Mountain Care ecosystem, providing enterprise-grade HR functionality with real-time streaming capabilities and AI-assisted development.
 
-## Technology Stack
-- **Frontend**: SvelteKit 5, TypeScript, Tailwind CSS 4.0, Skeleton UI
-- **Backend**: Go REST API (localhost:8080/api/v1)
-- **Database**: PostgreSQL
-- **Authentication**: Better Auth with JWT tokens
-- **Testing**: Playwright (E2E), Vitest (Unit), Storybook (Component)
-- **AI Integration**: MCP server for development assistance
+This project uses SPARC (Specification, Pseudocode, Architecture, Refinement, Completion) methodology with Claude-Flow orchestration for systematic Test-Driven Development.
 
-## Key Commands
+## SPARC Commands
+
+### Core Commands
+- `npx claude-flow sparc modes` - List available modes
+- `npx claude-flow sparc run <mode> "<task>"` - Execute specific mode
+- `npx claude-flow sparc tdd "<feature>"` - Run complete TDD workflow
+- `npx claude-flow sparc info <mode>` - Get mode details
+
+### Batchtools Commands
+- `npx claude-flow sparc batch <modes> "<task>"` - Parallel execution
+- `npx claude-flow sparc pipeline "<task>"` - Full pipeline processing
+- `npx claude-flow sparc concurrent <mode> "<tasks-file>"` - Multi-task processing
+
+### Build Commands
+- `npm run build` - Build project
+- `npm run test` - Run tests
+- `npm run lint` - Linting
+- `npm run typecheck` - Type checking
+
+## SPARC Workflow Phases
+
+1. **Specification** - Requirements analysis (`sparc run spec-pseudocode`)
+2. **Pseudocode** - Algorithm design (`sparc run spec-pseudocode`)
+3. **Architecture** - System design (`sparc run architect`)
+4. **Refinement** - TDD implementation (`sparc tdd`)
+5. **Completion** - Integration (`sparc run integration`)
+
+## Code Style & Best Practices
+
+- **Modular Design**: Files under 500 lines
+- **Environment Safety**: Never hardcode secrets
+- **Test-First**: Write tests before implementation
+- **Clean Architecture**: Separate concerns
+- **Documentation**: Keep updated
+
+## 🚀 Available Agents (54 Total)
+
+### Core Development
+`coder`, `reviewer`, `tester`, `planner`, `researcher`
+
+### Swarm Coordination
+`hierarchical-coordinator`, `mesh-coordinator`, `adaptive-coordinator`, `collective-intelligence-coordinator`, `swarm-memory-manager`
+
+### Consensus & Distributed
+`byzantine-coordinator`, `raft-manager`, `gossip-coordinator`, `consensus-builder`, `crdt-synchronizer`, `quorum-manager`, `security-manager`
+
+### Performance & Optimization
+`perf-analyzer`, `performance-benchmarker`, `task-orchestrator`, `memory-coordinator`, `smart-agent`
+
+### GitHub & Repository
+`github-modes`, `pr-manager`, `code-review-swarm`, `issue-tracker`, `release-manager`, `workflow-automation`, `project-board-sync`, `repo-architect`, `multi-repo-swarm`
+
+### SPARC Methodology
+`sparc-coord`, `sparc-coder`, `specification`, `pseudocode`, `architecture`, `refinement`
+
+### Specialized Development
+`backend-dev`, `mobile-dev`, `ml-developer`, `cicd-engineer`, `api-docs`, `system-architect`, `code-analyzer`, `base-template-generator`
+
+### Testing & Validation
+`tdd-london-swarm`, `production-validator`
+
+### Migration & Planning
+`migration-planner`, `swarm-init`
+
+## 🎯 Claude Code vs MCP Tools
+
+### Claude Code Handles ALL:
+- File operations (Read, Write, Edit, MultiEdit, Glob, Grep)
+- Code generation and programming
+- Bash commands and system operations
+- Implementation work
+- Project navigation and analysis
+- TodoWrite and task management
+- Git operations
+- Package management
+- Testing and debugging
+
+### MCP Tools ONLY:
+- Coordination and planning
+- Memory management
+- Neural features
+- Performance tracking
+- Swarm orchestration
+- GitHub integration
+
+**KEY**: MCP coordinates, Claude Code executes.
+
+## 🚀 Quick Setup
+
 ```bash
-# Development
-npm run dev                 # Start development server
-npm run build              # Build for production
-npm run preview            # Preview production build
-
-# Code Quality
-npm run lint               # Lint code
-npm run format            # Format code
-npm run check             # Type check
-
-# Testing
-npm run test              # Run all tests
-npm run test:e2e          # E2E tests
-npm run test:unit         # Unit tests
-npm run storybook         # Component documentation
-
-# Specific E2E Tests
-npm run test:auth         # Authentication tests
-npm run test:dashboard    # Dashboard tests
-npm run test:streaming    # Streaming tests
-npm run test:employees    # Employee management tests
-npm run test:performance  # Performance tests
+# Add Claude Flow MCP server
+claude mcp add claude-flow npx claude-flow@alpha mcp start
 ```
 
-## Architecture
+## MCP Tool Categories
 
-### Directory Structure
-- `src/routes/` - SvelteKit routing with server-side data loading
-- `src/lib/components/` - Reusable UI and business components
-- `src/lib/api/` - API client and service functions
-- `src/lib/stores/` - Svelte stores for state management
-- `src/lib/schemas/` - Zod validation schemas
-- `e2e/` - End-to-end tests with Playwright
+### Coordination
+`swarm_init`, `agent_spawn`, `task_orchestrate`
 
-### Core Features
-- Employee management with advanced filtering and pagination
-- Real-time streaming dashboard with SSE
-- Task management and assignment
-- Compliance tracking with document management
-- Leave request workflows
-- Authentication and role-based access control
-- Responsive design with dark/light modes
+### Monitoring
+`swarm_status`, `agent_list`, `agent_metrics`, `task_status`, `task_results`
 
-### Streaming Architecture
-The application features advanced real-time capabilities:
-- `GenericStreamingPage.svelte` - Reusable streaming page component
-- `/api/stream/*` - Streaming endpoints for all data types
-- Fallback modes for static/streaming data display
-- Progressive loading with skeleton states
+### Memory & Neural
+`memory_usage`, `neural_status`, `neural_train`, `neural_patterns`
 
-## Development Guidelines
+### GitHub Integration
+`github_swarm`, `repo_analyze`, `pr_enhance`, `issue_triage`, `code_review`
 
-### Code Style
-- TypeScript strict mode throughout
-- Svelte 5 runes syntax ($props, $state, $bindable)
-- TailwindCSS for styling with utility-first approach
-- Component-driven architecture
+### System
+`benchmark_run`, `features_detect`, `swarm_monitor`
 
-### API Integration
-- Backend runs on localhost:8080/api/v1
-- Admin credentials: admin/admin
-- tRPC for type-safe API calls
-- Comprehensive error handling and validation
+## 📋 Agent Coordination Protocol
 
-### Testing Strategy
-- E2E tests cover critical user workflows
-- Unit tests for business logic and utilities
-- Storybook for component development and testing
-- Performance tests for optimization
+### Every Agent MUST:
 
-### Performance Considerations
-- Pagination for large datasets
-- Lazy loading for components
-- API response caching
-- Bundle optimization with Vite
+**1️⃣ BEFORE Work:**
+```bash
+npx claude-flow@alpha hooks pre-task --description "[task]"
+npx claude-flow@alpha hooks session-restore --session-id "swarm-[id]"
+```
 
-## Getting Started
+**2️⃣ DURING Work:**
+```bash
+npx claude-flow@alpha hooks post-edit --file "[file]" --memory-key "swarm/[agent]/[step]"
+npx claude-flow@alpha hooks notify --message "[what was done]"
+```
 
-### Prerequisites
-- Node.js 18+
-- Go backend server running on localhost:8080
-- PostgreSQL database
+**3️⃣ AFTER Work:**
+```bash
+npx claude-flow@alpha hooks post-task --task-id "[task]"
+npx claude-flow@alpha hooks session-end --export-metrics true
+```
 
-### Setup
-1. Install dependencies: `npm install`
-2. Start development server: `npm run dev`
-3. Run tests: `npm run test`
-4. View Storybook: `npm run storybook`
+## 🎯 Concurrent Execution Examples
 
-### Backend Integration
-The Go backend provides:
-- RESTful API with comprehensive HR endpoints
-- Performance monitoring at `/api/v1/performance/metrics`
-- LLM-friendly schema at `/api/v1/llm/schema`
-- MCP server integration for AI development tools
+### ✅ CORRECT (Single Message):
+```javascript
+[BatchTool]:
+  // Initialize swarm
+  mcp__claude-flow__swarm_init { topology: "mesh", maxAgents: 6 }
+  mcp__claude-flow__agent_spawn { type: "researcher" }
+  mcp__claude-flow__agent_spawn { type: "coder" }
+  mcp__claude-flow__agent_spawn { type: "tester" }
+  
+  // Spawn agents with Task tool
+  Task("Research agent: Analyze requirements...")
+  Task("Coder agent: Implement features...")
+  Task("Tester agent: Create test suite...")
+  
+  // Batch todos
+  TodoWrite { todos: [
+    {id: "1", content: "Research", status: "in_progress", priority: "high"},
+    {id: "2", content: "Design", status: "pending", priority: "high"},
+    {id: "3", content: "Implement", status: "pending", priority: "high"},
+    {id: "4", content: "Test", status: "pending", priority: "medium"},
+    {id: "5", content: "Document", status: "pending", priority: "low"}
+  ]}
+  
+  // File operations
+  Bash "mkdir -p app/{src,tests,docs}"
+  Write "app/src/index.js"
+  Write "app/tests/index.test.js"
+  Write "app/docs/README.md"
+```
 
-## AI Development Context
-This project uses MCP (Model Context Protocol) integration for AI-assisted development. Key capabilities include:
-- Component generation and templating
-- API schema analysis and documentation
-- Performance monitoring and optimization
-- Batch operations for data management
+### ❌ WRONG (Multiple Messages):
+```javascript
+Message 1: mcp__claude-flow__swarm_init
+Message 2: Task("agent 1")
+Message 3: TodoWrite { todos: [single todo] }
+Message 4: Write "file.js"
+// This breaks parallel coordination!
+```
 
-### MCP Tools Available
-- Employee and task management operations
-- Compliance and document handling
-- Dashboard metrics and analytics
-- Component template generation
-- API schema introspection
+## Performance Benefits
 
-## Current Focus Areas
-1. **Streaming Architecture**: Real-time data updates and progressive loading
-2. **Performance Optimization**: Bundle size, API efficiency, and caching
-3. **Component Library**: Comprehensive UI system with Storybook
-4. **Testing Coverage**: E2E workflows and component testing
-5. **AI Integration**: Leveraging MCP tools for development efficiency
+- **84.8% SWE-Bench solve rate**
+- **32.3% token reduction**
+- **2.8-4.4x speed improvement**
+- **27+ neural models**
 
-## Important Notes
-- Always run `npm run check` before committing
-- Use streaming endpoints for real-time data when possible
-- Follow component patterns established in existing codebase
-- Test new features with both static and streaming modes
-- Maintain TypeScript strict compliance
+## Hooks Integration
 
-## Troubleshooting
-- Backend API issues: Check localhost:8080 is running
-- Authentication problems: Verify JWT token handling
-- Streaming failures: Check SSE endpoint connectivity
-- Build errors: Run `npm run check` for type issues
-- Test failures: Use `npm run test:e2e:ui` for debugging
+### Pre-Operation
+- Auto-assign agents by file type
+- Validate commands for safety
+- Prepare resources automatically
+- Optimize topology by complexity
+- Cache searches
+
+### Post-Operation
+- Auto-format code
+- Train neural patterns
+- Update memory
+- Analyze performance
+- Track token usage
+
+### Session Management
+- Generate summaries
+- Persist state
+- Track metrics
+- Restore context
+- Export workflows
+
+## Advanced Features (v2.0.0)
+
+- 🚀 Automatic Topology Selection
+- ⚡ Parallel Execution (2.8-4.4x speed)
+- 🧠 Neural Training
+- 📊 Bottleneck Analysis
+- 🤖 Smart Auto-Spawning
+- 🛡️ Self-Healing Workflows
+- 💾 Cross-Session Memory
+- 🔗 GitHub Integration
+
+## Integration Tips
+
+1. Start with basic swarm init
+2. Scale agents gradually
+3. Use memory for context
+4. Monitor progress regularly
+5. Train patterns from success
+6. Enable hooks automation
+7. Use GitHub tools first
+
+## Support
+
+- Documentation: https://github.com/ruvnet/claude-flow
+- Issues: https://github.com/ruvnet/claude-flow/issues
+
+---
+
+Remember: **Claude Flow coordinates, Claude Code creates!**
+
+# important-instruction-reminders
+Do what has been asked; nothing more, nothing less.
+NEVER create files unless they're absolutely necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one.
+NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
+Never save working files, text/mds and tests to the root folder.
