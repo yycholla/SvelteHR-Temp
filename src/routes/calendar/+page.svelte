@@ -6,6 +6,7 @@
 	import { eventTypeColors, type Event } from '$lib/schemas/event';
 	import { goto } from '$app/navigation';
 	import type { PageData } from './$types';
+	import { CreateEventDialog } from '$lib/components/calendar';
 
 	interface Props {
 		data: PageData;
@@ -130,12 +131,22 @@
 		document.body.removeChild(form);
 	}
 
+
+
+
+
 	// Format event time
 	function formatEventTime(event: Event): string {
 		if (event.allDay) return 'All day';
 
 		const start = new Date(event.startDate);
 		const end = new Date(event.endDate);
+
+		// Check if dates are valid
+		if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+			console.warn('Invalid date detected:', { startDate: event.startDate, endDate: event.endDate });
+			return 'Invalid date';
+		}
 
 		return `${start.toLocaleTimeString('en-US', {
 			hour: 'numeric',
@@ -150,6 +161,19 @@
 
 	// Load events when view or date changes (manually triggered)
 	// Note: Initial events are loaded server-side via +page.server.ts
+	
+	// Debug: Log events when they change
+	$effect(() => {
+		if (events.length > 0) {
+			console.log('📅 Events updated:', events);
+			console.log('📅 First event dates:', events[0] ? {
+				startDate: events[0].startDate,
+				endDate: events[0].endDate,
+				startDateParsed: new Date(events[0].startDate),
+				endDateParsed: new Date(events[0].endDate)
+			} : 'No events');
+		}
+	});
 </script>
 
 <svelte:head>
@@ -460,18 +484,8 @@
 	{/if}
 </div>
 
-<!-- Placeholder New Event Modal -->
-{#if typeof newEventOpen === 'undefined'}
-    {@html ''}
-{/if}
-{#if newEventOpen}
-<div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-    <div class="bg-background rounded-xl border border-border p-6 w-full max-w-md">
-        <h3 class="font-semibold mb-2">Create Event</h3>
-        <p class="text-sm text-muted-foreground mb-4">This is a placeholder modal. Implement your event form here.</p>
-        <div class="flex justify-end">
-            <Button variant="outline" onclick={() => newEventOpen = false}>Close</Button>
-        </div>
-    </div>
-</div>
-{/if}
+<!-- Create Event Dialog -->
+<CreateEventDialog 
+	bind:open={newEventOpen} 
+	onClose={() => newEventOpen = false}
+/>

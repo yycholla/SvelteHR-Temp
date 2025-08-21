@@ -4,6 +4,7 @@
 	import DashboardGrid from '$lib/components/dashboard/grid/DashboardGrid.svelte';
 	import DashboardToolbar from '$lib/components/dashboard/DashboardToolbar.svelte';
 	import CardLibrary from '$lib/components/dashboard/CardLibrary.svelte';
+	import ErrorHandlingDemo from '$lib/components/ui/test/ErrorHandlingDemo.svelte';
     // Removed streaming - using static data from server
 	import { dashboardActions, isEditing, dashboardLayout } from '$lib/stores/dashboard.js';
 	import type { PageData } from './$types';
@@ -195,6 +196,12 @@
 					Connected to live data
 				{/if}
 			</p>
+			
+			<!-- Temporary Error Handling Demo -->
+			<div class="mt-6">
+				<ErrorHandlingDemo />
+			</div>
+			
 			<div class="flex items-center justify-center space-x-2 text-muted-foreground mt-2">
 				<div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
 				<span class="text-sm">Dashboard ready</span>

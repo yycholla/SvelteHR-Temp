@@ -11,7 +11,17 @@
 	import Separator from './ui/separator/separator.svelte';
     import { createEventDispatcher } from 'svelte';
     import { goto } from '$app/navigation';
-	import { auth } from '$lib/stores/auth';
+	import { 
+		authActions, 
+		isAdmin, 
+		isHR, 
+		isManager, 
+		currentUser, 
+		canViewEmployees, 
+		canViewReports,
+		canViewDepartments
+	} from '$lib/stores/auth';
+	import { AuthButton } from './auth';
 
 	const dispatch = createEventDispatcher();
 
@@ -58,14 +68,74 @@
 
 	const unreadCount = notifications.filter((n) => n.unread).length;
 
-	// Navigation items
-	const navigationItems = [
+	// Base navigation items available to all authenticated users
+	const baseNavigationItems = [
 		{ href: '/home', label: 'Home', icon: Home },
-		{ href: '/employees', label: 'Employees', icon: Users },
-		{ href: '/calendar', label: 'Calendar', icon: Calendar },
-		{ href: '/hr', label: 'HR', icon: Users },
-		{ href: '/admin', label: 'Admin', icon: Settings }
+		{ href: '/calendar', label: 'Calendar', icon: Calendar }
 	];
+
+	// RBAC-based navigation items using permissions
+	const roleBasedItems = [
+		{ 
+			href: '/employees', 
+			label: 'Employees', 
+			icon: Users, 
+			roles: ['HR', 'HR Manager', 'HR Admin', 'Human Resources', 'Admin', 'Administrator', 'Manager', 'Department Manager'], 
+			permissions: ['employees.read', 'employees.*'] 
+		},
+		{ 
+			href: '/departments', 
+			label: 'Departments', 
+			icon: Users, 
+			roles: ['HR', 'HR Manager', 'HR Admin', 'Human Resources', 'Admin', 'Administrator', 'Manager', 'Department Manager'], 
+			permissions: ['departments.read', 'departments.*'] 
+		},
+		{ 
+			href: '/hr', 
+			label: 'HR', 
+			icon: Users, 
+			roles: ['HR', 'HR Manager', 'HR Admin', 'Human Resources', 'Admin', 'Administrator'] 
+		},
+		{ 
+			href: '/reports', 
+			label: 'Reports', 
+			icon: BarChart3, 
+			roles: ['HR', 'HR Manager', 'HR Admin', 'Human Resources', 'Admin', 'Administrator', 'Manager', 'Department Manager'], 
+			permissions: ['reports.read', 'reports.*'] 
+		},
+		{ 
+			href: '/admin', 
+			label: 'Admin', 
+			icon: Settings, 
+			roles: ['Admin', 'Administrator', 'System Admin'],
+			permissions: ['system.admin', '*'] 
+		}
+	];
+
+	// Filter navigation items based on user roles and permissions
+	const navigationItems = $derived([
+		...baseNavigationItems,
+		...roleBasedItems.filter(item => {
+			if (!$currentUser) return false;
+			
+			const userRoles = $currentUser.roles?.map(r => typeof r === 'string' ? r : r.name) || [];
+			const userPermissions = $currentUser.permissions || [];
+			
+			// Check if user has required role (if specified)
+			const hasRole = !item.roles || item.roles.some(role => userRoles.includes(role));
+			
+			// Check if user has required permission (if specified)
+			const hasPermission = !item.permissions || item.permissions.some(permission => 
+				userPermissions.includes(permission) || 
+				userPermissions.includes(permission.split('.')[0] + '.*') ||
+				userPermissions.includes('*')
+			);
+			
+			// User needs either the role OR the permission (not both)
+			// This allows for flexibility in the RBAC system
+			return hasRole || hasPermission;
+		})
+	]);
 
 	// State for responsive behavior
 	let showMobileMenu = $state(false);
@@ -121,7 +191,7 @@
 
 	async function handleSignOut() {
 		try {
-			await auth.logout();
+			await authActions.logout();
 			// User will be redirected to login page automatically
 		} catch (error) {
 			console.error('Sign out error:', error);
@@ -374,12 +444,7 @@
 		<!-- Notifications Container (lg+ screens only) -->
         <div class="hidden lg:flex h-12 w-12 items-center justify-center rounded-full border border-border/40 bg-background/20 backdrop-blur-md shadow-xl">
                     <DropdownMenu>
-                        <DropdownMenuTrigger>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        class="relative h-7 w-7 rounded-full transition-all duration-300 hover:scale-[1.02] hover:bg-muted/60"
-                    >
+                        <DropdownMenuTrigger class="relative h-7 w-7 rounded-full transition-all duration-300 hover:scale-[1.02] hover:bg-muted/60 flex items-center justify-center">
                         <Bell class="h-5 w-5" />
                         {#if unreadCount > 0}
                             <Badge
@@ -389,8 +454,7 @@
                                 {unreadCount}
                             </Badge>
                         {/if}
-                    </Button>
-                </DropdownMenuTrigger>
+                        </DropdownMenuTrigger>
                         <DropdownMenuContent class="w-80 max-h-96 overflow-y-auto bg-background/95 backdrop-blur-md border border-border/40 shadow-xl" align="end" sideOffset={8}>
 					<div class="px-3 py-2 border-b border-border/40">
 						<div class="flex items-center justify-between">
@@ -432,17 +496,11 @@
 		<!-- User Menu Container (lg+ screens only) -->
         <div class="hidden lg:flex h-12 w-12 items-center justify-center rounded-full border border-border/40 bg-background/20 backdrop-blur-md shadow-xl">
             <DropdownMenu>
-                <DropdownMenuTrigger>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        class="h-7 w-7 rounded-full transition-all duration-300 hover:scale-[1.02] hover:bg-muted/60"
-                    >
+                <DropdownMenuTrigger class="h-7 w-7 rounded-full transition-all duration-300 hover:scale-[1.02] hover:bg-muted/60 flex items-center justify-center">
                         <Avatar size="sm">
                             <AvatarImage src="https://github.com/shadcn.png" alt="User" />
                             <AvatarFallback class="bg-primary/10 font-semibold text-primary">JD</AvatarFallback>
                         </Avatar>
-                    </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent class="w-56 bg-background/95 backdrop-blur-md border border-border/40 shadow-xl" align="end" sideOffset={8}>
 					<div class="px-3 py-2 border-b border-border/40">
@@ -531,12 +589,7 @@
 
 					<!-- Notifications -->
                     <DropdownMenu>
-                        <DropdownMenuTrigger>
-							<Button
-								variant="ghost"
-								size="icon"
-								class="relative rounded-xl transition-all duration-200 hover:scale-105"
-							>
+                        <DropdownMenuTrigger class="relative rounded-xl transition-all duration-200 hover:scale-105 flex items-center justify-center h-9 w-9">
 								<Bell class="h-4 w-4" />
 								{#if unreadCount > 0}
 									<Badge
@@ -546,7 +599,6 @@
 										{unreadCount}
 									</Badge>
 								{/if}
-							</Button>
                         </DropdownMenuTrigger>
 						<DropdownMenuContent class="w-80 max-h-96 overflow-y-auto bg-background/95 backdrop-blur-md border border-border/40 shadow-xl" align="end" sideOffset={8}>
 							<div class="px-3 py-2 border-b border-border/40">
@@ -587,16 +639,11 @@
 
 					<!-- User Menu -->
                     <DropdownMenu>
-                        <DropdownMenuTrigger>
-							<Button
-								variant="ghost"
-								class="relative h-9 w-9 rounded-full transition-all duration-200 hover:scale-105"
-							>
+                        <DropdownMenuTrigger class="relative h-9 w-9 rounded-full transition-all duration-200 hover:scale-105 flex items-center justify-center">
 								<Avatar size="sm">
 									<AvatarImage src="https://github.com/shadcn.png" alt="User" />
 									<AvatarFallback class="bg-primary/10 font-semibold text-primary">JD</AvatarFallback>
 								</Avatar>
-							</Button>
 						</DropdownMenuTrigger>
                         <DropdownMenuContent class="w-56 bg-background/95 backdrop-blur-md border border-border/40 shadow-xl" align="end" sideOffset={8}>
 							<div class="px-3 py-2 border-b border-border/40">

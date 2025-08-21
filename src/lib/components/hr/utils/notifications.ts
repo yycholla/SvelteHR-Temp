@@ -1,4 +1,5 @@
-// Using console.log for now - can be replaced with a proper toast system later
+// Enhanced notification system with proper toast integration
+import { showSuccess, showError, showWarning, showInfo, clearToasts, type Toast } from '$lib/utils/errors';
 
 export type NotificationType = 'success' | 'error' | 'warning' | 'info';
 
@@ -14,25 +15,47 @@ export interface NotificationOptions {
 	};
 }
 
-// Simple notification helpers using console
+// Enhanced notification function with toast support
 export function showNotification(options: NotificationOptions) {
-	const { title, message, type } = options;
-	const fullMessage = title ? `${title}: ${message}` : message;
+	const { title, message, type, duration, persistent, action } = options;
 	
+	const toastOptions = {
+		title,
+		timeout: persistent ? 0 : (duration || getDefaultTimeout(type)),
+		dismissible: true
+	};
+
+	// Convert action to toast action format
+	const actions = action ? [{
+		label: action.label,
+		action: action.handler,
+		variant: 'primary' as const
+	}] : undefined;
+
 	switch (type) {
 		case 'success':
-			console.log(`✅ ${fullMessage}`);
+			showSuccess(message, toastOptions);
 			break;
 		case 'error':
-			console.error(`❌ ${fullMessage}`);
+			showError(message, toastOptions);
 			break;
 		case 'warning':
-			console.warn(`⚠️ ${fullMessage}`);
+			showWarning(message, toastOptions);
 			break;
 		case 'info':
 		default:
-			console.info(`ℹ️ ${fullMessage}`);
+			showInfo(message, toastOptions);
 			break;
+	}
+}
+
+function getDefaultTimeout(type: NotificationType): number {
+	switch (type) {
+		case 'success': return 3000;
+		case 'error': return 5000;
+		case 'warning': return 4000;
+		case 'info': return 4000;
+		default: return 4000;
 	}
 }
 
@@ -144,7 +167,7 @@ export const notifications = {
 
 	// Utility function to clear all toasts
 	clear: () => {
-		toastStore.clear();
+		clearToasts();
 	}
 };
 

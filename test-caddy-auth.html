@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Caddy HTTPS Proxy</title>
+</head>
+<body>
+    <h1>Test Caddy HTTPS Proxy Authentication</h1>
+    <p>Testing: Frontend HTTPS → Caddy HTTPS → Backend HTTP</p>
+    
+    <button onclick="testCaddyAuth()">Test Caddy Proxy Login</button>
+    <button onclick="testDirectHTTP()">Test Direct HTTP (Should Fail)</button>
+    <div id="result"></div>
+
+    <script>
+        async function testCaddyAuth() {
+            const result = document.getElementById('result');
+            result.innerHTML = 'Testing Caddy HTTPS proxy authentication...';
+            
+            try {
+                // Test login through Caddy HTTPS proxy (port 443)
+                const response = await fetch('https://100.71.207.7/api/v2/auth/rbac/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    result.innerHTML = `
+                        <div style="color: green; border: 2px solid green; padding: 10px; margin: 10px 0;">
+                            ✅ Caddy HTTPS Proxy Authentication Successful!<br>
+                            Status: ${response.status}<br>
+                            Token: ${data.token ? 'Received ✓' : 'Not received ✗'}<br>
+                            Expires: ${data.expires_at || 'Not provided'}<br>
+                            <strong>🎉 HTTPS + Tailscale Working!</strong>
+                        </div>
+                    `;
+                    
+                    // Test token refresh if we got a token
+                    if (data.token) {
+                        setTimeout(() => testRefresh(data.token), 1000);
+                    }
+                } else {
+                    result.innerHTML = `
+                        <div style="color: orange; border: 2px solid orange; padding: 10px; margin: 10px 0;">
+                            ⚠️ Caddy Proxy Connected, Auth Issue<br>
+                            Status: ${response.status}<br>
+                            Error: ${data.error || data.message || 'Unknown error'}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                result.innerHTML = `
+                    <div style="color: red; border: 2px solid red; padding: 10px; margin: 10px 0;">
+                        ❌ Caddy Proxy Connection Failed<br>
+                        Error: ${error.message}<br>
+                        Details: ${error.toString()}
+                    </div>
+                `;
+            }
+        }
+        
+        async function testDirectHTTP() {
+            const result = document.getElementById('result');
+            result.innerHTML += '<br><br>Testing direct HTTP (should fail with mixed content)...';
+            
+            try {
+                const response = await fetch('http://100.71.207.7:8080/api/v2/auth/rbac/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+                
+                result.innerHTML += `
+                    <div style="color: red; border: 2px solid red; padding: 10px; margin: 10px 0;">
+                        ❌ Unexpected: Direct HTTP succeeded (this should be blocked)
+                    </div>
+                `;
+            } catch (error) {
+                result.innerHTML += `
+                    <div style="color: blue; border: 2px solid blue; padding: 10px; margin: 10px 0;">
+                        ✅ Expected: Direct HTTP blocked by mixed content policy<br>
+                        Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        async function testRefresh(token) {
+            try {
+                const response = await fetch('https://100.71.207.7/api/v2/auth/rbac/refresh', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('result').innerHTML += `
+                        <div style="color: green; border: 2px solid green; padding: 10px; margin: 10px 0;">
+                            ✅ Token Refresh Successful!<br>
+                            New Token: ${data.token ? 'Received ✓' : 'Not received ✗'}<br>
+                            <strong>🔄 Complete Auth Flow Working!</strong>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('result').innerHTML += `
+                        <div style="color: orange; border: 2px solid orange; padding: 10px; margin: 10px 0;">
+                            ⚠️ Token Refresh Failed<br>
+                            Status: ${response.status}<br>
+                            Error: ${data.error || 'Unknown error'}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('result').innerHTML += `
+                    <div style="color: red; border: 2px solid red; padding: 10px; margin: 10px 0;">
+                        ❌ Token Refresh Connection Failed<br>
+                        Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

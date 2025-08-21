@@ -13,7 +13,6 @@ export {
 	DocumentService,
 	NotificationService,
 	HRRequestService,
-	MonitoringService,
 	AuthService
 } from './services';
 

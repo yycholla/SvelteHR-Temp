@@ -10,22 +10,8 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 		throw new Error('Authentication required');
 	}
 
-	// Create server-side API client with auth token
-	const serverApiClient = apiClient.extend({
-		hooks: {
-			beforeRequest: [
-				(request) => {
-					request.headers.set('Authorization', `Bearer ${token}`);
-					request.headers.set('Content-Type', 'application/json');
-				}
-			],
-			afterResponse: [
-				(request, options, response) => {
-					return response;
-				}
-			]
-		}
-	});
+	// Set token for server-side request
+	apiClient.setToken(token);
 
 	// Get query parameters for filtering and pagination
 	const searchParams = url.searchParams;
@@ -36,38 +22,39 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 	const pageSize = parseInt(searchParams.get('pageSize') || '50');
 
 	try {
-		// Build query parameters
-		const queryParams = new URLSearchParams();
-		if (search) queryParams.append('search', search);
-		if (status && status !== 'all') queryParams.append('status', status);
-		if (department && department !== 'all') queryParams.append('department', department);
-		queryParams.append('page', page.toString());
-		queryParams.append('pageSize', pageSize.toString());
+		// Build query parameters object
+		const queryParams: Record<string, string | number> = {
+			page,
+			pageSize
+		};
+		if (search) queryParams.search = search;
+		if (status && status !== 'all') queryParams.status = status;
+		if (department && department !== 'all') queryParams.department_id = department;
 
-		// Use v2 endpoints for better caching and performance
-		console.log('📡 SERVER LOAD: Making API calls to backend...');
+		// Use v2 endpoints with new API client
+		console.log('📡 SERVER LOAD: Making API calls to v2 backend...');
 		const [employeesResponse, departmentsResponse, rolesResponse] = await Promise.allSettled([
-			serverApiClient.get(`v2/employees?${queryParams.toString()}`).json(),
-			serverApiClient.get('departments').json(),
-			serverApiClient.get('roles').json()
+			apiClient.get('/employees', queryParams),
+			apiClient.get('/organization/departments'),
+			apiClient.get('/organization/roles')
 		]);
 		console.log('✅ SERVER LOAD: API calls completed');
 
 		// Process employees response
-		const employeesData = employeesResponse.status === 'fulfilled' 
-			? employeesResponse.value 
+		const employeesData = employeesResponse.status === 'fulfilled' && employeesResponse.value.success
+			? employeesResponse.value.data 
 			: { data: [], total: 0, totalPages: 1 };
 
 		// Process departments response
-		const departmentsData = departmentsResponse.status === 'fulfilled' 
-			? departmentsResponse.value 
+		const departmentsData = departmentsResponse.status === 'fulfilled' && departmentsResponse.value.success
+			? departmentsResponse.value.data 
 			: [];
 
 		// Process roles response with simple transformation
 		let rolesData = [];
-		if (rolesResponse.status === 'fulfilled') {
+		if (rolesResponse.status === 'fulfilled' && rolesResponse.value.success) {
 			try {
-				const rawRoles = Array.isArray(rolesResponse.value) ? rolesResponse.value : rolesResponse.value.data || [];
+				const rawRoles = Array.isArray(rolesResponse.value.data) ? rolesResponse.value.data : [];
 				rolesData = rawRoles.map((role: any) => ({
 					id: (role.ID || role.id || 0).toString(),
 					name: role.Name || role.name || 'Unknown Role',

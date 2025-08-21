@@ -17,6 +17,9 @@
 	import Button from '$lib/components/ui/button/button.svelte';
 	import Separator from '$lib/components/ui/separator/separator.svelte';
 	import Badge from '$lib/components/ui/badge/badge.svelte';
+	import { RoleGuard } from '$lib/components/auth';
+	import { isAdmin, currentUser } from '$lib/stores/auth';
+	import { roleChecks } from '$lib/auth/guards';
 
 	let { children } = $props();
 	
@@ -99,6 +102,7 @@
 	}
 </script>
 
+<RoleGuard roles={['admin', 'super_admin', 'system_admin']} fallback>
 <div class="flex h-screen bg-gradient-to-br from-yellow-100/50 via-blue-100/40 to-blue-200/60 dark:from-yellow-900/20 dark:via-blue-900/25 dark:to-blue-800/30">
 	<!-- Sidebar -->
 	<aside class="relative transition-all duration-300 {sidebarCollapsed ? 'w-16' : 'w-64'} flex-shrink-0">
@@ -224,3 +228,24 @@
 		</main>
 	</div>
 </div>
+
+<svelte:fragment slot="fallback">
+	<div class="min-h-screen bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 flex items-center justify-center">
+		<div class="max-w-md mx-auto text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-red-200 dark:border-red-700">
+			<Shield class="h-16 w-16 mx-auto text-red-500 mb-4" />
+			<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Access Denied</h1>
+			<p class="text-gray-600 dark:text-gray-300 mb-4">
+				Administrator access is required to view this section.
+			</p>
+			<div class="text-sm text-gray-500 dark:text-gray-400">
+				Current user: <strong>{$currentUser?.full_name || 'Unknown'}</strong>
+				<br />
+				Roles: {$currentUser?.roles?.map(r => r.name).join(', ') || 'None'}
+			</div>
+			<Button variant="outline" href="/home" class="mt-4">
+				Return to Dashboard
+			</Button>
+		</div>
+	</div>
+</svelte:fragment>
+</RoleGuard>

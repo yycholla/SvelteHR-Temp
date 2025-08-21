@@ -3,30 +3,26 @@ import { apiClient } from '$lib/api/client';
 import { apiCache, CACHE_KEYS, CACHE_TTL } from '$lib/api/cache';
 
 export const load: PageServerLoad = async ({ cookies, locals }) => {
-	const token = cookies.get('auth-token');
+	const token = cookies.get('hr_token');
 	
 	console.log('🏠 Dashboard page load - Token present:', !!token);
-	console.log('🏠 Dashboard page load - User authenticated:', !!locals.user);
-	console.log('🏠 Dashboard page load - Raw user role:', locals.user?.role);
+	console.log('🏠 Dashboard page load - User authenticated:', !!locals.isAuthenticated);
+	console.log('🏠 Dashboard page load - User roles:', locals.roles);
+	console.log('🏠 Dashboard page load - User permissions:', locals.permissions);
 
-	// Get user role for dashboard initialization with role mapping
-	const roleMapping: Record<string, string> = {
-		'ROLE_1': 'Admin',
-		'ROLE_2': 'HR', 
-		'ROLE_3': 'Manager',
-		'ROLE_4': 'Employee',
-		'Admin': 'Admin',
-		'HR': 'HR',
-		'Manager': 'Manager', 
-		'Employee': 'Employee'
-	};
-	const userRole = roleMapping[locals.user?.role || 'Employee'] || 'Employee';
-	console.log('🏠 Dashboard page load - Mapped user role:', userRole);
+	// Get primary user role from RBAC roles (highest level)
+	const primaryRole = locals.roles.length > 0 
+		? locals.roles.sort((a, b) => (b.level || 0) - (a.level || 0))[0] 
+		: { name: 'Employee', level: 0 };
+	
+	console.log('🏠 Dashboard page load - Primary role:', primaryRole.name);
 	
 	// Default dashboard data structure with enhanced metrics
 	const defaultData = {
-		userRole,
-		currentUser: locals.user || { username: 'User', role: 'Employee' },
+		userRole: primaryRole.name,
+		currentUser: locals.user || { username: 'User', full_name: 'User' },
+		roles: locals.roles,
+		permissions: locals.permissions,
 		dashboardData: {
 			// Personal stats
 			personalStats: {
@@ -78,100 +74,84 @@ export const load: PageServerLoad = async ({ cookies, locals }) => {
 				return { ...cachedDashboard, isUsingMockData: false };
 			}
 			
-			// Create server-side API client
-			const serverApiClient = apiClient.extend({
-				hooks: {
-					beforeRequest: [
-						(request) => {
-							request.headers.set('Authorization', `Bearer ${token}`);
-							request.headers.set('Content-Type', 'application/json');
-							console.log(`📡 API Request: ${request.method} ${request.url}`);
-						}
-					],
-					afterResponse: [
-						(request, options, response) => {
-							console.log(`📡 API Response: ${response.status} for ${request.url}`);
-							return response;
-						}
-					]
-				}
-			});
+			// Set token for server-side request
+			apiClient.setToken(token);
 
-			// Fetch dashboard data in parallel based on user role
+			// Try to fetch dashboard stats from the dedicated endpoint first
+			let dashboardStats = null;
+			if (primaryRole.name === 'Admin') {
+				try {
+					const statsResponse = await apiClient.get('/admin/dashboard/stats');
+					if (statsResponse.success) {
+						dashboardStats = statsResponse.data;
+						console.log('📊 Dashboard stats loaded from admin endpoint');
+					}
+				} catch (error) {
+					console.log('📊 Admin dashboard stats not available, using individual endpoints');
+				}
+			}
+
+			// Fetch basic dashboard data in parallel
 			const dataFetches = [
 				// Basic data for all users
-				serverApiClient.get('employees?pageSize=1').json().catch(() => ({ total: 0 })),
-				serverApiClient.get('events').json().catch(() => [])
-				// Remove problematic notifications endpoint - will use mock data
+				apiClient.get('/employees', { pageSize: 1 }),
+				apiClient.get('/portal/events'),
+				apiClient.get('/notifications')
 			];
 			
 			// Add role-specific API calls
-			if (userRole === 'Admin') {
-				dataFetches.push(
-					serverApiClient.get('monitoring/metrics').json().catch(() => null),
-					serverApiClient.get('monitoring/health').json().catch(() => null)
-				);
-			}
-			
 			if (userRole === 'HR' || userRole === 'Admin') {
 				dataFetches.push(
-					serverApiClient.get('compliance/stats').json().catch(() => null),
-					serverApiClient.get('hr-requests').json().catch(() => [])
+					apiClient.get('/compliance/stats'),
+					apiClient.get('/hr-requests')
 				);
 			}
 			
 			if (userRole === 'Manager' || userRole === 'HR' || userRole === 'Admin') {
 				dataFetches.push(
-					serverApiClient.get('tasks').json().catch(() => []),
-					serverApiClient.get('leave/requests').json().catch(() => [])
+					apiClient.get('/tasks'),
+					apiClient.get('/leave/requests')
 				);
 			}
 			
 			const responses = await Promise.allSettled(dataFetches);
 
 			// Process responses
-			const [employeesResponse, eventsResponse, ...roleSpecificResponses] = responses;
+			const [employeesResponse, eventsResponse, notificationsResponse, ...roleSpecificResponses] = responses;
 			
 			// Basic data processing
-			const totalEmployees = employeesResponse.status === 'fulfilled' ? 
-				(employeesResponse.value?.total || 0) : 0;
+			const totalEmployees = employeesResponse.status === 'fulfilled' && employeesResponse.value.success ? 
+				(employeesResponse.value.data?.meta?.total || employeesResponse.value.data?.length || 0) : 0;
 			
-			const events = eventsResponse.status === 'fulfilled' ? 
-				(Array.isArray(eventsResponse.value) ? eventsResponse.value : eventsResponse.value?.data || []) : [];
+			const events = eventsResponse.status === 'fulfilled' && eventsResponse.value.success ? 
+				(Array.isArray(eventsResponse.value.data) ? eventsResponse.value.data : []) : [];
 			
-			// Mock notifications count for now (since the endpoint isn't working)
-			const notifications = 0;
+			const notifications = notificationsResponse.status === 'fulfilled' && notificationsResponse.value.success ?
+				(Array.isArray(notificationsResponse.value.data) ? notificationsResponse.value.data.length : 0) : 0;
 			
 			// Process role-specific data
-			let monitoringData = null;
 			let complianceData = null;
+			let hrRequestsData = null;
 			let tasksData = null;
 			let leaveData = null;
 			
 			let responseIndex = 0;
 			
-			if (userRole === 'Admin') {
-				monitoringData = roleSpecificResponses[responseIndex]?.status === 'fulfilled' ? 
-					roleSpecificResponses[responseIndex].value : null;
-				responseIndex++;
-				// Skip health response for now
-				responseIndex++;
-			}
-			
 			if (userRole === 'HR' || userRole === 'Admin') {
-				complianceData = roleSpecificResponses[responseIndex]?.status === 'fulfilled' ? 
-					roleSpecificResponses[responseIndex].value : null;
+				complianceData = roleSpecificResponses[responseIndex]?.status === 'fulfilled' && roleSpecificResponses[responseIndex].value.success ? 
+					roleSpecificResponses[responseIndex].value.data : null;
 				responseIndex++;
-				// Skip HR requests for now
+				hrRequestsData = roleSpecificResponses[responseIndex]?.status === 'fulfilled' && roleSpecificResponses[responseIndex].value.success ? 
+					roleSpecificResponses[responseIndex].value.data : null;
 				responseIndex++;
 			}
 			
 			if (userRole === 'Manager' || userRole === 'HR' || userRole === 'Admin') {
-				tasksData = roleSpecificResponses[responseIndex]?.status === 'fulfilled' ? 
-					roleSpecificResponses[responseIndex].value : null;
+				tasksData = roleSpecificResponses[responseIndex]?.status === 'fulfilled' && roleSpecificResponses[responseIndex].value.success ? 
+					roleSpecificResponses[responseIndex].value.data : null;
 				responseIndex++;
-				leaveData = roleSpecificResponses[responseIndex]?.status === 'fulfilled' ? 
-					roleSpecificResponses[responseIndex].value : null;
+				leaveData = roleSpecificResponses[responseIndex]?.status === 'fulfilled' && roleSpecificResponses[responseIndex].value.success ? 
+					roleSpecificResponses[responseIndex].value.data : null;
 			}
 
 			const dashboardData = {
@@ -192,18 +172,24 @@ export const load: PageServerLoad = async ({ cookies, locals }) => {
 						teamPendingApprovals: leaveData ? Math.floor((Array.isArray(leaveData) ? leaveData.length : leaveData.total || 0) * 0.3) : 0,
 						teamPerformanceScore: Math.floor(Math.random() * 20) + 80
 					},
-					systemStats: {
-						apiRequestCount: monitoringData?.requestCount || 0,
-						averageLatency: monitoringData?.averageLatency ? Math.round(monitoringData.averageLatency / 1000000) : 0, // Convert to ms
+					systemStats: dashboardStats ? {
+						apiRequestCount: dashboardStats.apiRequestCount || 0,
+						averageLatency: dashboardStats.averageLatency || 0,
+						errorRate: dashboardStats.errorRate || 0.1,
+						activeConnections: dashboardStats.activeConnections || 0,
+						systemUptime: dashboardStats.systemUptime || 0
+					} : {
+						apiRequestCount: 0,
+						averageLatency: 0,
 						errorRate: 0.1,
-						activeConnections: monitoringData?.databaseMetrics?.activeConnections || 0,
-						systemUptime: monitoringData?.systemMetrics?.uptimeSeconds || 0
+						activeConnections: 0,
+						systemUptime: 0
 					},
 					hrStats: {
 						totalEmployees,
-						complianceItems: complianceData?.totalActive || 0,
-						leaveRequests: Array.isArray(leaveData) ? leaveData.length : (leaveData?.total || 0),
-						hrRequests: 0
+						complianceItems: complianceData?.total || complianceData?.totalActive || (Array.isArray(complianceData) ? complianceData.length : 0),
+						leaveRequests: Array.isArray(leaveData) ? leaveData.length : (leaveData?.meta?.total || 0),
+						hrRequests: Array.isArray(hrRequestsData) ? hrRequestsData.length : (hrRequestsData?.meta?.total || 0)
 					},
 					recentActivities: [
 						{
@@ -221,7 +207,7 @@ export const load: PageServerLoad = async ({ cookies, locals }) => {
 						attendees: Math.floor(Math.random() * 20) + 5,
 						type: event.eventType || 'general'
 					})),
-					notifications: []
+					notifications: notifications
 				},
 				isUsingMockData: false
 			};

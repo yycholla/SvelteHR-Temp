@@ -7,9 +7,27 @@ declare global {
 			user?: {
 				id: string;
 				username: string;
-				role: string;
+				email?: string;
+				first_name?: string;
+				last_name?: string;
+				full_name?: string;
+				roles?: Array<{
+					id: string;
+					name: string;
+					level: number;
+					description?: string;
+				}>;
+				permissions?: string[];
 			} | null;
 			token?: string | null;
+			isAuthenticated: boolean;
+			permissions: string[];
+			roles: Array<{
+				id: string;
+				name: string;
+				level: number;
+				description?: string;
+			}>;
 		}
 		// interface PageData {}
 		// interface PageState {}

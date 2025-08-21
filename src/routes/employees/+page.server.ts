@@ -1,5 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
+import { EmployeeService, DepartmentService } from '$lib/api/services';
 import { apiClient } from '$lib/api/client';
 import { employeeListResponseSchema, departmentSchema, embeddedPositionSchema as positionSchema } from '$lib/schemas/employee';
 import { mockEmployees, departments as mockDepartments, positions as mockPositions } from '$lib/data/mockEmployees';
@@ -39,11 +40,10 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
 	try {
 		// If we have a token, try to fetch from the real API
 		if (token) {
-			console.log('🔍 Attempting to fetch from API with token...');
+			console.log('🔍 Attempting to fetch from API with MountainHR client...');
 			
 			// Check cache first for employees (only cache first page with no filters for optimal performance)
 			const isFirstPageNoFilters = page === 1 && !search && !departmentId && !status && sortBy === 'lastName' && sortOrder === 'asc';
-			const employeesParams = { page, search, departmentId, status, limit, sortBy, sortOrder };
 			
 			let cachedEmployees = null;
 			let cachedDepartments = null;
@@ -80,40 +80,34 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
             } else {
                 console.log('🔄 No cached departments, fetching from API');
             }
-			
-			// Create server-side API client with proper token handling
-			const serverApiClient = apiClient.extend({
-				hooks: {
-					beforeRequest: [
-						(request) => {
-							// Ensure we're setting the authorization header properly
-							request.headers.set('Authorization', `Bearer ${token}`);
-							request.headers.set('Content-Type', 'application/json');
-							console.log('🔑 Making API request to:', request.url, 'with token:', token.substring(0, 20) + '...');
-						}
-					],
-					afterResponse: [
-						(request, options, response) => {
-							console.log('📡 API Response:', response.status, response.url);
-							return response;
-						}
-					]
-				}
-			});
 
-			// Fetch data from API endpoints with pagination (skip if cached)
+			// For server-side usage, set the token temporarily for this request
+			apiClient.setToken(token);
+
+			// Prepare API calls using the new services
 			const apiCalls: Promise<any>[] = [];
 			
 			if (!cachedEmployees) {
-				apiCalls.push(serverApiClient.get(`employees?${params.toString()}`).json());
+				// Use EmployeeService with the new query builder
+				const employeeOptions = {
+					page,
+					pageSize: limit,
+					search: search || undefined,
+					department_id: departmentId || undefined,
+					status: status as 'active' | 'inactive' | 'terminated' || undefined,
+					fields: ['id', 'full_name', 'email', 'status', 'hire_date'],
+					include: ['department', 'role', 'manager']
+				};
+				
+				apiCalls.push(EmployeeService.list(employeeOptions));
 			} else {
-				apiCalls.push(Promise.resolve(cachedEmployees));
+				apiCalls.push(Promise.resolve({ success: true, data: cachedEmployees }));
 			}
 			
 			if (!cachedDepartments) {
-				apiCalls.push(serverApiClient.get('departments').json());
+				apiCalls.push(DepartmentService.list());
 			} else {
-				apiCalls.push(Promise.resolve(cachedDepartments));
+				apiCalls.push(Promise.resolve({ success: true, data: cachedDepartments }));
 			}
 			
 			const [employeesResponse, departmentsResponse] = await Promise.allSettled(apiCalls);
@@ -122,70 +116,97 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
 			if (employeesResponse.status === 'fulfilled' && 
 			    departmentsResponse.status === 'fulfilled') {
 				
-				console.log('✅ API calls successful, validating data...');
+				const employeesApiResponse = employeesResponse.value;
+				const departmentsApiResponse = departmentsResponse.value;
 				
-				try {
-					// Parse and validate API responses
-					const employeesData = employeeListResponseSchema.parse(employeesResponse.value);
-					const departments = z.array(departmentSchema).parse(departmentsResponse.value);
+				// Check if our API responses were successful
+				if (employeesApiResponse.success && departmentsApiResponse.success) {
+					console.log('✅ API calls successful, transforming data...');
+					
+					try {
+						// Transform backend response to match frontend schema
+						const backendResponse = employeesApiResponse.data;
+						console.log('🔍 Backend response structure:', JSON.stringify(backendResponse, null, 2));
+						
+						// Transform backend response to match the schema expectations
+						const employeesData = {
+							data: backendResponse.data || [],
+							total: backendResponse.meta?.total || 0,
+							page: backendResponse.meta?.page || 1,
+							pageSize: backendResponse.meta?.pageSize || 20,
+							totalPages: backendResponse.meta?.totalPages || 1,
+							hasMore: backendResponse.meta?.hasMore || false
+						};
+						
+						console.log('🔍 Transformed data structure:', JSON.stringify(employeesData, null, 2));
+						
+						// Validate the transformed data
+						const validatedEmployeesData = employeeListResponseSchema.parse(employeesData);
+						const departments = z.array(departmentSchema).parse(departmentsApiResponse.data);
 
-					console.log(`📊 API data: ${employeesData.employees.length} employees (page ${employeesData.page}/${employeesData.totalPages}), ${departments.length} departments`);
-					
-					// Cache the results for future requests
-                    if (isFirstPageNoFilters && !cachedEmployees) {
-                        // Store normalized, transformed structure in cache for stability
-                        apiCache.set(CACHE_KEYS.EMPLOYEES, employeesData, { page: 1, limit }, CACHE_TTL.MEDIUM);
-                    }
-					
-					if (!cachedDepartments) {
-						apiCache.set(CACHE_KEYS.DEPARTMENTS, departments, undefined, CACHE_TTL.LONG);
+						console.log(`📊 API data: ${validatedEmployeesData.employees.length} employees (page ${validatedEmployeesData.page}/${validatedEmployeesData.totalPages}), ${departments.length} departments`);
+						
+						// Cache the results for future requests
+						if (isFirstPageNoFilters && !cachedEmployees) {
+							// Store normalized, transformed structure in cache for stability
+							apiCache.set(CACHE_KEYS.EMPLOYEES, validatedEmployeesData, { page: 1, limit: validatedEmployeesData.limit }, CACHE_TTL.MEDIUM);
+						}
+						
+						if (!cachedDepartments) {
+							apiCache.set(CACHE_KEYS.DEPARTMENTS, departments, undefined, CACHE_TTL.LONG);
+						}
+
+						// Server handles filtering and pagination, so we use the data as-is
+
+						// Create positions from unique job titles
+						const positions = Array.from(
+							new Set(validatedEmployeesData.employees.map((emp: any) => emp.JobInformation?.JobTitle || emp.jobTitle).filter(Boolean))
+						).map((title, index) => ({
+							id: (index + 1).toString(),
+							title,
+							description: '',
+							departmentId: '',
+							level: 'N/A',
+							isActive: true
+						}));
+
+						console.log(`📊 Processed ${validatedEmployeesData.employees.length} employees (page ${validatedEmployeesData.page}/${validatedEmployeesData.totalPages})`);
+
+						return {
+							employeesData: validatedEmployeesData,
+							departments,
+							positions,
+							filters: {
+								search,
+								departmentId,
+								status,
+								page,
+								limit: validatedEmployeesData.limit,
+								sortBy,
+								sortOrder
+							},
+							isUsingMockData: false
+						};
+					} catch (validationError) {
+						console.warn('⚠️ API data validation failed:', validationError);
+						console.warn('Raw API response structure:', JSON.stringify(employeesApiResponse, null, 2));
+						
+						// Clear invalid cached data to prevent repeated failures
+						if (isFirstPageNoFilters && cachedEmployees) {
+							console.log('🗑️ Clearing invalid cached employees data');
+							apiCache.invalidate(CACHE_KEYS.EMPLOYEES, { page: 1, limit });
+						}
+						if (cachedDepartments) {
+							console.log('🗑️ Clearing invalid cached departments data');
+							apiCache.invalidate(CACHE_KEYS.DEPARTMENTS);
+						}
+						
+						// Fall through to mock data
 					}
-
-					// Server handles filtering and pagination, so we use the data as-is
-
-					// Create positions from unique job titles
-					const positions = Array.from(
-						new Set(employeesData.employees.map(emp => emp.jobTitle).filter(Boolean))
-					).map((title, index) => ({
-						id: (index + 1).toString(),
-						title,
-						description: '',
-						departmentId: '',
-						level: 'N/A',
-						isActive: true
-					}));
-
-					console.log(`📊 Processed ${employeesData.employees.length} employees (page ${employeesData.page}/${employeesData.totalPages})`);
-
-					return {
-						employeesData,
-						departments,
-						positions,
-						filters: {
-							search,
-							departmentId,
-							status,
-							page,
-							limit,
-							sortBy,
-							sortOrder
-						},
-						isUsingMockData: false
-					};
-				} catch (validationError) {
-					console.warn('⚠️ API data validation failed:', validationError);
-					console.warn('Raw API response structure:', JSON.stringify(employeesResponse.value, null, 2));
-					
-					// Clear invalid cached data to prevent repeated failures
-					if (isFirstPageNoFilters && cachedEmployees) {
-						console.log('🗑️ Clearing invalid cached employees data');
-						apiCache.invalidate(CACHE_KEYS.EMPLOYEES, { page: 1, limit });
-					}
-					if (cachedDepartments) {
-						console.log('🗑️ Clearing invalid cached departments data');
-						apiCache.invalidate(CACHE_KEYS.DEPARTMENTS);
-					}
-					
+				} else {
+					console.warn('⚠️ API responses were not successful:');
+					console.warn('Employees API response:', employeesApiResponse);
+					console.warn('Departments API response:', departmentsApiResponse);
 					// Fall through to mock data
 				}
 			} else {

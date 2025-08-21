@@ -13,25 +13,115 @@ export const loginSchema = z.object({
 	rememberMe: z.boolean().default(false).optional(),
 });
 
-// User profile schema (based on backend User model)
+// RBAC Role schema
+export const roleSchema = z.object({
+	id: z.string(),
+	name: z.string(),
+	display_name: z.string().optional(),
+	description: z.string().optional(),
+	level: z.number().optional(),
+	is_system: z.boolean().optional(),
+	parent_role: z.string().nullable().optional(),
+	user_count: z.number().optional(),
+	permission_count: z.number().optional(),
+	created_at: z.string().optional(),
+	updated_at: z.string().optional()
+});
+
+// RBAC Permission schema
+export const permissionSchema = z.object({
+	id: z.string(),
+	name: z.string(),
+	display_name: z.string().optional(),
+	description: z.string().optional(),
+	resource: z.string().optional(),
+	action: z.string().optional(),
+	scope: z.string().optional(),
+	is_system: z.boolean().optional(),
+	role_count: z.number().optional(),
+	created_at: z.string().optional(),
+	updated_at: z.string().optional()
+});
+
+// User Role assignment schema
+export const userRoleSchema = z.object({
+	id: z.string(),
+	user_id: z.string(),
+	role_id: z.string(),
+	role: roleSchema,
+	granted_by: z.string().nullable().optional(),
+	expires_at: z.string().nullable().optional(),
+	is_active: z.boolean().optional(),
+	created_at: z.string().optional(),
+	updated_at: z.string().optional()
+});
+
+// RBAC User schema matching new structure
 export const userSchema = z.object({
-	id: z.union([z.string(), z.number()]).transform(val => String(val)),
+	id: z.string(),
 	username: z.string(),
 	email: z.string().email(),
-	firstName: z.string(),
-	lastName: z.string(),
-	isActive: z.boolean().optional().default(true),
-	role: z.union([
-		z.string(),
-		z.object({
-			name: z.string(),
-			id: z.union([z.string(), z.number()]).optional(),
-			code: z.string().optional()
-		}).transform(obj => obj.name || obj.code || 'EMPLOYEE')
-	]),
-	createdAt: z.string().datetime().optional(),
-	updatedAt: z.string().datetime().optional(),
-});
+	first_name: z.string().optional(),
+	last_name: z.string().optional(),
+	middle_name: z.string().optional(),
+	employee_id: z.string().optional(),
+	full_name: z.string().optional(),
+	display_name: z.string().optional(),
+	search_name: z.string().optional(),
+	is_active: z.boolean(),
+	is_verified: z.boolean().optional(),
+	last_login: z.string().nullable().optional(),
+	failed_login_attempts: z.number().optional(),
+	locked_until: z.string().nullable().optional(),
+	onboarding_status: z.string().optional(),
+	manager_id: z.string().nullable().optional(),
+	is_manager: z.boolean().optional(),
+	direct_report_count: z.number().optional(),
+	management_level: z.number().optional(),
+	// Computed HR properties from linked data
+	department_name: z.string().nullable().optional(),
+	job_title: z.string().nullable().optional(),
+	hire_date: z.string().nullable().optional(),
+	employment_type: z.string().nullable().optional(),
+	contact_email: z.string().nullable().optional(),
+	phone_number: z.string().nullable().optional(),
+	created_at: z.string().optional(),
+	updated_at: z.string().optional()
+}).transform(user => ({
+	// Transform to expected frontend format
+	id: user.id,
+	username: user.username,
+	email: user.email,
+	full_name: user.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim(),
+	firstName: user.first_name,
+	lastName: user.last_name,
+	middleName: user.middle_name,
+	employeeId: user.employee_id,
+	displayName: user.display_name,
+	searchName: user.search_name,
+	isActive: user.is_active,
+	isVerified: user.is_verified || false,
+	lastLogin: user.last_login,
+	failedLoginAttempts: user.failed_login_attempts || 0,
+	lockedUntil: user.locked_until,
+	onboardingStatus: user.onboarding_status,
+	managerId: user.manager_id,
+	isManager: user.is_manager || false,
+	directReportCount: user.direct_report_count || 0,
+	managementLevel: user.management_level || 0,
+	// HR properties
+	departmentName: user.department_name,
+	jobTitle: user.job_title,
+	hireDate: user.hire_date,
+	employmentType: user.employment_type,
+	contactEmail: user.contact_email,
+	phoneNumber: user.phone_number,
+	createdAt: user.created_at,
+	updatedAt: user.updated_at,
+	// These will be populated from separate API calls or includes
+	roles: [] as any[],
+	permissions: [] as string[]
+}));
 
 // JWT token payload schema (matching backend structure)
 export const tokenPayloadSchema = z.object({
@@ -73,7 +163,31 @@ export const passwordChangeSchema = z.object({
 	path: ['confirmPassword'],
 });
 
-// API response schemas
+// V2 API response schemas for RBAC
+export const v2LoginResponseSchema = z.object({
+	token: z.string(),
+	token_type: z.string(),
+	expires_at: z.string(),
+	user: userSchema,
+	roles: z.array(userRoleSchema).optional(),
+	permissions: z.array(permissionSchema).optional()
+}).transform(response => {
+	// Combine user, roles, and permissions data into expected format
+	const user = response.user;
+	
+	// Add roles and permissions to user
+	user.roles = response.roles?.map(ur => ur.role) || [];
+	user.permissions = response.permissions?.map(p => p.name) || [];
+	
+	return {
+		token: response.token,
+		token_type: response.token_type,
+		expires_at: response.expires_at,
+		user: user
+	};
+});
+
+// Legacy API response schema (for compatibility)
 export const loginResponseSchema = z.object({
 	token: z.string(),
 	user: userSchema,
@@ -89,8 +203,12 @@ export const authErrorSchema = z.object({
 // Export types
 export type LoginInput = z.infer<typeof loginSchema>;
 export type User = z.infer<typeof userSchema>;
+export type Role = z.infer<typeof roleSchema>;
+export type Permission = z.infer<typeof permissionSchema>;
+export type UserRole = z.infer<typeof userRoleSchema>;
 export type TokenPayload = z.infer<typeof tokenPayloadSchema>;
 export type PasswordResetInput = z.infer<typeof passwordResetSchema>;
 export type PasswordChangeInput = z.infer<typeof passwordChangeSchema>;
 export type LoginResponse = z.infer<typeof loginResponseSchema>;
+export type V2LoginResponse = z.infer<typeof v2LoginResponseSchema>;
 export type AuthError = z.infer<typeof authErrorSchema>;

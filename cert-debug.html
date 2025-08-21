@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Certificate Debug</title>
+</head>
+<body>
+    <h1>🔍 Certificate Debug Tool</h1>
+    <p>This page will help diagnose the certificate issue.</p>
+    
+    <button onclick="testDirectConnection()">Test Direct Connection</button>
+    <button onclick="openBackendInNewTab()">Open Backend in New Tab</button>
+    <div id="results"></div>
+
+    <script>
+        async function testDirectConnection() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>🔍 Testing direct connection...</p>';
+            
+            try {
+                const response = await fetch('https://100.71.207.7:8443/health');
+                if (response.ok) {
+                    const data = await response.text();
+                    results.innerHTML += `<p style="color: green;">✅ Direct connection successful: ${data}</p>`;
+                } else {
+                    results.innerHTML += `<p style="color: orange;">⚠️ Response received but HTTP ${response.status}</p>`;
+                }
+            } catch (error) {
+                results.innerHTML += `<p style="color: red;">❌ Connection failed: ${error.message}</p>`;
+                
+                if (error.message.includes('certificate') || error.message.includes('TLS') || error.message.includes('SSL')) {
+                    results.innerHTML += `<p style="color: blue;">💡 This appears to be a certificate issue. Try clicking "Open Backend in New Tab" and manually accepting the certificate.</p>`;
+                }
+            }
+        }
+        
+        function openBackendInNewTab() {
+            window.open('https://100.71.207.7:8443/health', '_blank');
+        }
+        
+        // Auto-run test on page load
+        window.onload = testDirectConnection;
+    </script>
+</body>
+</html>

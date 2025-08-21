@@ -18,39 +18,22 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
 	const view = url.searchParams.get('view') || 'month';
 
 	try {
-		// Create server-side API client with proper token handling
-		const serverApiClient = apiClient.extend({
-			hooks: {
-				beforeRequest: [
-					(request) => {
-						// Ensure we're setting the authorization header properly
-						request.headers.set('Authorization', `Bearer ${token}`);
-						request.headers.set('Content-Type', 'application/json');
-						console.log('🔑 Making events API request to:', request.url);
-					}
-				],
-				afterResponse: [
-					(request, options, response) => {
-						console.log('📡 Events API Response:', response.status, response.url);
-						return response;
-					}
-				]
-			}
-		});
+		// Set token for server-side request
+		apiClient.setToken(token);
 
 		// Build query parameters for events API
-		const params = new URLSearchParams();
-		if (startDate) params.append('startDate', startDate);
-		if (endDate) params.append('endDate', endDate);
+		const params: Record<string, string> = {};
+		if (startDate) params.startDate = startDate;
+		if (endDate) params.endDate = endDate;
 
-		// Fetch events from API
+		// Fetch events from API using new client
 		console.log('🔍 Fetching events from API...');
-		const eventsResponse = await serverApiClient.get(`events?${params.toString()}`).json();
+		const eventsResponse = await apiClient.get('/portal/events', params);
 		
 		// Transform events to match frontend schema
 		let events: Event[] = [];
-		if (Array.isArray(eventsResponse)) {
-			events = eventsResponse.map((apiEvent: any): Event => {
+		if (eventsResponse.success && Array.isArray(eventsResponse.data)) {
+			events = eventsResponse.data.map((apiEvent: any): Event => {
 				// Convert dates to proper ISO format for frontend
 				const startDateTime = `${apiEvent.startDate}T${apiEvent.startTime || '00:00:00'}.000Z`;
 				const endDateTime = apiEvent.endDate && apiEvent.endTime 
@@ -108,6 +91,70 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
 };
 
 export const actions: Actions = {
+	createEvent: async ({ request, cookies }) => {
+		console.log('🚀 createEvent action started');
+		
+		try {
+			const token = cookies.get('auth-token');
+			console.log('🔑 Token found:', !!token);
+			
+			if (!token) {
+				console.log('❌ No auth token found');
+				return fail(401, { error: 'Authentication required' });
+			}
+
+			const data = await request.formData();
+			console.log('📝 Form data received:', Object.fromEntries(data.entries()));
+			
+			// Set token for server-side request
+			apiClient.setToken(token);
+			console.log('🔑 Token set for API client');
+
+			// Prepare the event data for the backend (CompanyEvent format)
+			console.log('📤 Preparing event data...');
+			
+			// Parse dates properly for GORM
+			const startDate = data.get('startDate') as string;
+			const startTime = data.get('startTime') as string;
+			const endDate = (data.get('endDate') as string) || startDate;
+			const endTime = (data.get('endTime') as string) || '23:59';
+			
+			const eventData = {
+				title: data.get('title'),
+				description: data.get('description') || '',
+				startDate: startDate, // GORM expects separate date field
+				endDate: endDate === startDate ? null : endDate, // Optional end date
+				startTime: startTime, // String format like "09:00"
+				endTime: endTime === '23:59' ? null : endTime, // Optional end time
+				eventType: data.get('type'), // Note: eventType not type for CompanyEvent
+				priority: data.get('priority'),
+				location: data.get('location') || '',
+				isAllDay: data.get('isAllDay') === 'true',
+				isPublic: data.get('isPublic') === 'true'
+			};
+
+			console.log('📤 Backend event data:', eventData);
+			console.log('🚀 Making API call to backend...');
+
+			// Send POST request to create event
+			console.log('🚀 Making API call to backend...');
+			const response = await apiClient.post('/portal/events', eventData);
+			
+			if (response.success) {
+				console.log('✅ Event successfully created in backend:', response.data);
+				return { success: true, event: response.data };
+			} else {
+				console.error('❌ Failed to create event in backend:', response.error);
+				return fail(400, { error: response.error || 'Failed to create event' });
+			}
+
+		} catch (err) {
+			console.error('❌ Error in createEvent action:', err);
+			console.error('❌ Error stack:', err.stack);
+			return fail(500, { error: `Server error: ${err.message}` });
+		}
+	},
+
 	deleteEvent: async ({ request, cookies }) => {
 		const token = cookies.get('auth-token');
 		
@@ -123,24 +170,19 @@ export const actions: Actions = {
 		}
 
 		try {
-			// Create server-side API client with proper token handling
-			const serverApiClient = apiClient.extend({
-				hooks: {
-					beforeRequest: [
-						(request) => {
-							request.headers.set('Authorization', `Bearer ${token}`);
-							request.headers.set('Content-Type', 'application/json');
-						}
-					]
-				}
-			});
+			// Set token for server-side request
+			apiClient.setToken(token);
 
-			// Delete the event
-			await serverApiClient.delete(`events/${eventId}`);
+			// Delete the event using new API client
+			const response = await apiClient.delete(`/portal/events/${eventId}`);
 			
-			console.log(`✅ Successfully deleted event ${eventId}`);
-			
-			return { success: true };
+			if (response.success) {
+				console.log(`✅ Successfully deleted event ${eventId}`);
+				return { success: true };
+			} else {
+				console.error('❌ Error deleting event:', response.error);
+				return fail(400, { error: response.error || 'Failed to delete event' });
+			}
 
 		} catch (err) {
 			console.error('❌ Error deleting event:', err);

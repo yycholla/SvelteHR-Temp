@@ -9,37 +9,27 @@
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
-	import { createLoginForm, getFieldProps } from '$lib/forms/login-form';
-	import { trpc } from '$lib/trpc/client';
+	import { authActions, authStore, isAuthenticated } from '$lib/stores/auth';
 	import { User, Lock, Eye, EyeOff, Building2, Shield } from 'lucide-svelte';
 
-	// Form setup
-	const { form, errors, constraints, message, submitting, isSubmitting, enhance } = createLoginForm({
-		onSuccess: (data) => {
-			console.log('Login successful:', data.user.firstName);
-		},
-		onError: (error) => {
-			console.error('Login error:', error);
-		}
-	});
+	// Form state
+	let username = '';
+	let password = '';
+	let rememberMe = false;
+	let error = '';
 
 	// UI state
 	let showPassword = false;
-	let isLoading = false;
+
+	// Subscribe to auth store
+	$: isLoading = $authStore.isLoading;
 
 	// Check if user is already authenticated
 	onMount(async () => {
-		try {
-			await trpc.auth.me.query();
+		if ($isAuthenticated) {
 			// User is authenticated, redirect to home
 			const redirectTo = $page.url.searchParams.get('redirectTo') || '/home';
 			await goto(redirectTo, { replaceState: true });
-		} catch (error) {
-			// User not authenticated, show login form
-			// Only log non-authentication errors to avoid spam
-			if (error && typeof error === 'object' && 'code' in error && error.code !== 'UNAUTHORIZED') {
-				console.error('Unexpected auth check error:', error);
-			}
 		}
 	});
 
@@ -50,8 +40,28 @@
 
 	// Demo credentials helper
 	function fillDemoCredentials() {
-		$form.username = 'admin';
-		$form.password = 'admin123';
+		username = 'admin';
+		password = 'admin123';
+	}
+
+	// Handle login form submission
+	async function handleLogin(event: SubmitEvent) {
+		event.preventDefault();
+		
+		if (!username || !password) {
+			error = 'Please fill in all fields';
+			return;
+		}
+
+		error = '';
+		const result = await authActions.login({ username, password, rememberMe });
+
+		if (result.success) {
+			const redirectTo = $page.url.searchParams.get('redirectTo') || '/home';
+			await goto(redirectTo, { replaceState: true });
+		} else {
+			error = result.error || 'Login failed';
+		}
 	}
 </script>
 
@@ -102,14 +112,14 @@
 
 			<CardContent class="space-y-6">
 				<!-- Error Message -->
-				{#if $message && $message.type === 'error'}
+				{#if error}
 					<Alert variant="destructive">
-						<AlertDescription>{$message.text}</AlertDescription>
+						<AlertDescription>{error}</AlertDescription>
 					</Alert>
 				{/if}
 
 				<!-- Login Form -->
-				<form id="login-form" method="POST" use:enhance class="space-y-4">
+				<form onsubmit={handleLogin} class="space-y-4">
 					<!-- Username Field -->
 					<div class="space-y-2">
 						<InputGroup
@@ -117,10 +127,9 @@
 							type="text"
 							placeholder="Enter your username"
 							prefixIcon={User}
-							bind:value={$form.username}
-							error={$errors.username?.[0]}
-							required={$constraints.username?.required}
-							disabled={$isSubmitting}
+							bind:value={username}
+							required
+							disabled={isLoading}
 							autocomplete="username"
 						/>
 					</div>
@@ -132,10 +141,9 @@
 							type={showPassword ? 'text' : 'password'}
 							placeholder="Enter your password"
 							prefixIcon={Lock}
-							bind:value={$form.password}
-							error={$errors.password?.[0]}
-							required={$constraints.password?.required}
-							disabled={$isSubmitting}
+							bind:value={password}
+							required
+							disabled={isLoading}
 							autocomplete="current-password"
 						>
 							<button
@@ -158,31 +166,29 @@
 					<div class="flex items-center space-x-3">
 						<Checkbox 
 							id="rememberMe" 
-							bind:checked={$form.rememberMe}
-							disabled={$isSubmitting}
+							bind:checked={rememberMe}
+							disabled={isLoading}
 						/>
 						<label for="rememberMe" class="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 cursor-pointer">
 							Remember me for 7 days
 						</label>
 					</div>
-				</form>
 
-				<!-- Sign In Button -->
-				<Button 
-					type="submit" 
-					form="login-form"
-					variant="default" 
-					size="lg" 
-					class="w-full rounded-2xl hover:scale-[1.02] transition-all duration-200 bg-gradient-to-r from-primary to-primary/90 shadow-lg hover:shadow-xl"
-					loading={$isSubmitting}
-					disabled={$isSubmitting}
-				>
-					{#if $isSubmitting}
-						Signing in...
-					{:else}
-						Sign In
-					{/if}
-				</Button>
+					<!-- Sign In Button -->
+					<Button 
+						type="submit"
+						variant="default" 
+						size="lg" 
+						class="w-full rounded-2xl hover:scale-[1.02] transition-all duration-200 bg-gradient-to-r from-primary to-primary/90 shadow-lg hover:shadow-xl"
+						disabled={isLoading}
+					>
+						{#if isLoading}
+							Signing in...
+						{:else}
+							Sign In
+						{/if}
+					</Button>
+				</form>
 
 				<!-- Separator -->
 				<div class="relative">

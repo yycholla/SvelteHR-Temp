@@ -2,15 +2,16 @@
 	// This import loads the Tailwind CSS styles from your app.postcss file.
 	import '../app.css';
 	import TopBar from '$lib/components/TopBar.svelte';
+	import { ToastContainer } from '$lib/components/ui/toast';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
-	import { auth } from '$lib/stores/auth';
+	import { authActions, isAuthenticated } from '$lib/stores/auth';
 	
 	let { children } = $props();
 	
 	// Initialize auth on app startup
 	onMount(() => {
-		auth.init();
+		authActions.initialize();
 	});
 	
 	// Check if current route matches - only reactive to pathname changes
@@ -59,3 +60,6 @@
 		{@render children?.()}
 	</main>
 {/if}
+
+<!-- Toast Container - Always present for notifications -->
+<ToastContainer />

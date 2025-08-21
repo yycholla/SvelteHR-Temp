@@ -2,6 +2,7 @@ import devtoolsJson from 'vite-plugin-devtools-json';
 import tailwindcss from '@tailwindcss/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
+import fs from 'fs'
 
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit(), devtoolsJson()],
@@ -32,6 +33,19 @@ export default defineConfig({
 					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
 				}
 			}
-		]
-	}
+		],
+	},
+  server: {
+      // https: {
+        // key: fs.readFileSync('../MountainHR-Backend/certs/server.key'),
+        // cert: fs.readFileSync('../MountainHR-Backend/certs/server.crt')
+    // },
+    port: 5173,
+    cors: true,
+      allowedHosts: [
+        'mcp-0085.dropbear-elnath.ts.net',
+        '100.71.207.7', // Tailscale IP
+        'localhost'
+      ]
+    }
 });

@@ -1,6 +1,7 @@
 import type { PageServerLoad, Actions } from './$types';
 import { error, redirect } from '@sveltejs/kit';
-import { apiClient } from '$lib/api/client';
+import ky from 'ky';
+import { PUBLIC_API_URL } from '$env/static/public';
 import { employeeSchema, departmentSchema } from '$lib/schemas/employee';
 import { mockEmployees, departments as mockDepartments } from '$lib/data/mockEmployees';
 import { apiCache, CACHE_KEYS, CACHE_TTL } from '$lib/api/cache';
@@ -18,7 +19,8 @@ export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 			console.log(`🔍 Fetching employee ${id} and form data from API...`);
 			
 			// Create server-side API client with proper token handling
-			const serverApiClient = apiClient.extend({
+			const serverApiClient = ky.create({
+				prefixUrl: PUBLIC_API_URL,
 				hooks: {
 					beforeRequest: [
 						(request) => {
@@ -65,7 +67,7 @@ export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 			
 			if (!cachedManagers) {
 				// Fetch employees with manager roles or who are marked as managers
-				apiCalls.push(serverApiClient.get('employees?pageSize=100').json());
+				apiCalls.push(serverApiClient.get('managers').json());
 			} else {
 				apiCalls.push(Promise.resolve(cachedManagers));
 			}
@@ -93,20 +95,12 @@ export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 				const departments = cachedDepartments || departmentsResponse.value;
 				const roles = cachedRoles || rolesResponse.value;
 				
-				// Extract managers from employees list or use cached data (fallback to empty array if failed)
+				// Extract managers from managers endpoint or use cached data
 				let managers = [];
 				if (cachedManagers) {
 					managers = cachedManagers;
 				} else if (managersResponse.status === 'fulfilled') {
-					const allEmployeesData = managersResponse.value;
-					managers = (allEmployeesData?.data || allEmployeesData?.employees || [])
-						.filter((emp: any) => emp.IsManager || emp.isManager)
-						.map((emp: any) => ({
-							id: emp.id,
-							firstName: emp.firstName,
-							lastName: emp.lastName,
-							jobTitle: emp.JobInformation?.JobTitle || emp.jobTitle || ''
-						}));
+					managers = managersResponse.value || [];
 				}
 				
 				console.log('🔍 Schema-transformed employee (edit):', JSON.stringify(employee, null, 2));
@@ -241,7 +235,8 @@ export const actions: Actions = {
 			console.log('🔄 Saving employee via server action:', payload);
 
 			// Create server-side API client with proper token handling
-			const serverApiClient = apiClient.extend({
+			const serverApiClient = ky.create({
+				prefixUrl: PUBLIC_API_URL,
 				hooks: {
 					beforeRequest: [
 						(request) => {

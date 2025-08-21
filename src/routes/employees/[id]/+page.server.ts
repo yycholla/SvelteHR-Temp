@@ -1,6 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { apiClient } from '$lib/api/client';
+import ky from 'ky';
+import { PUBLIC_API_URL } from '$env/static/public';
 import { employeeSchema } from '$lib/schemas/employee';
 import { mockEmployees } from '$lib/data/mockEmployees';
 import { apiCache, CACHE_KEYS, CACHE_TTL } from '$lib/api/cache';
@@ -28,7 +29,8 @@ export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 			}
 			
 			// Create server-side API client with proper token handling
-			const serverApiClient = apiClient.extend({
+			const serverApiClient = ky.create({
+				prefixUrl: PUBLIC_API_URL,
 				hooks: {
 					beforeRequest: [
 						(request) => {
