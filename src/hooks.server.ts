@@ -31,8 +31,8 @@ export const handle: Handle = async ({ event, resolve }) => {
   
   if (token) {
     try {
-      // Verify JWT token with backend using the RBAC endpoint
-      const response = await fetch(`${PUBLIC_API_URL || 'http://localhost:8080/api/v2'}/auth/rbac/verify`, {
+      // Verify JWT token with backend using the correct RBAC endpoint
+      const response = await fetch(`${PUBLIC_API_URL || 'http://localhost:8080'}/api/v2/auth/rbac/verify`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -40,11 +40,11 @@ export const handle: Handle = async ({ event, resolve }) => {
       });
       
       if (response.ok) {
-        const userData = await response.json();
-        event.locals.user = userData.user;
+        const rbacData = await response.json();
+        event.locals.user = rbacData.user;
         event.locals.isAuthenticated = true;
-        event.locals.permissions = userData.permissions || [];
-        event.locals.roles = userData.roles || [];
+        event.locals.permissions = rbacData.permissions || [];
+        event.locals.roles = rbacData.roles || [];
       } else {
         // Token is invalid, clear it
         cookies.delete('hr_token', { path: '/' });

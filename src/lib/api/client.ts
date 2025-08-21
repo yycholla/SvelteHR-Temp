@@ -35,7 +35,7 @@ export class MountainHRApiClient {
   private token: string | null = null;
 
   constructor(baseURL?: string) {
-    this.baseURL = baseURL || PUBLIC_API_URL || 'http://localhost:8080/api/v2';
+    this.baseURL = baseURL || PUBLIC_API_URL || 'http://localhost:8080';
     
     // Initialize token from localStorage if available
     if (browser) {
@@ -121,7 +121,7 @@ export class MountainHRApiClient {
       if (response.status === 401 && !skipAuth && !skipRefresh && this.token) {
         try {
           // Attempt token refresh
-          const refreshResponse = await this.request<{ token: string }>('/auth/rbac/refresh', { 
+          const refreshResponse = await this.request<{ token: string }>('/api/v2/auth/rbac/refresh', { 
             method: 'POST',
             skipRefresh: true 
           });
@@ -412,7 +412,7 @@ export class MountainHRApiClient {
    */
   auth = {
     login: async (username: string, password: string) => {
-      const response = await this.post<any>('/auth/rbac/login', {
+      const response = await this.post<any>('/api/v2/auth/rbac/login', {
         username,
         password
       });
@@ -444,11 +444,11 @@ export class MountainHRApiClient {
     },
 
     register: async (userData: { email: string; password: string; full_name: string; role_id?: string }) => {
-      return this.post<{ user: any; message: string }>('/auth/rbac/register', userData);
+      return this.post<{ user: any; message: string }>('/auth/v2/register', userData);
     },
 
     logout: async () => {
-      const response = await this.post('/auth/rbac/logout');
+      const response = await this.post('/auth/v2/logout');
       this.clearToken();
       if (browser) {
         await goto('/login');
@@ -457,11 +457,11 @@ export class MountainHRApiClient {
     },
 
     verify: async () => {
-      return this.get<{ user: any; roles: any[]; permissions: string[] }>('/auth/rbac/verify');
+      return this.get<{ user: any; roles: any[]; permissions: string[] }>('/api/v2/auth/rbac/verify');
     },
 
     refresh: async () => {
-      return this.post<{ token: string }>('/auth/rbac/refresh');
+      return this.post<{ token: string }>('/api/v2/auth/rbac/refresh');
     }
   };
 }

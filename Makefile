@@ -1,5 +1,5 @@
 # SvelteHR Development Makefile
-.PHONY: dev dev-local dev-remote build test lint format check clean install help
+.PHONY: dev dev-local dev-remote dev-doppler build test lint format check clean install help doppler-setup doppler-check doppler-secrets
 
 # Default target
 .DEFAULT_GOAL := help
@@ -27,6 +27,11 @@ dev-tailscale: ## Start development server with Tailscale backend API
 	@echo "🚀 Starting development server with TAILSCALE backend..."
 	@echo "📡 API URL: $(TAILSCALE_API_URL)"
 	PUBLIC_API_URL=$(TAILSCALE_API_URL) npm run dev
+
+dev-doppler: ## Start development server with Doppler environment
+	@echo "🚀 Starting development server with DOPPLER environment..."
+	@echo "📡 Using Doppler secrets from mountainhr-frontend/dev"
+	npm run dev
 
 dev-https: ## Start development server with HTTPS enabled
 	@echo "🔒 Starting HTTPS development server with local backend..."
@@ -134,6 +139,44 @@ env-show: ## Show current environment variables
 	@echo "USE_HTTPS: $${USE_HTTPS:-not set}"
 	@echo "NODE_ENV: $${NODE_ENV:-not set}"
 	@if [ -f .env ]; then echo "\n📄 .env file contents:"; cat .env; else echo "\n❌ No .env file found"; fi
+
+## Doppler Commands
+
+doppler-setup: ## Setup Doppler for this project
+	@echo "🔐 Setting up Doppler for SvelteHR frontend..."
+	@echo "Project: mountainhr-frontend, Config: dev"
+	doppler configure set project mountainhr-frontend
+	doppler configure set config dev
+	@echo "✅ Doppler setup complete!"
+
+doppler-check: ## Check Doppler configuration
+	@echo "🔍 Doppler Configuration:"
+	@echo "========================"
+	@doppler configure --all
+	@echo ""
+	@echo "🔐 Available secrets:"
+	@doppler secrets
+
+doppler-secrets: ## List all Doppler secrets
+	@echo "🔐 Current Doppler secrets:"
+	@doppler secrets
+
+doppler-set-api: ## Set PUBLIC_API_URL in Doppler (usage: make doppler-set-api URL=http://localhost:8080)
+	@if [ -z "$(URL)" ]; then \
+		echo "❌ Please provide URL parameter: make doppler-set-api URL=http://localhost:8080"; \
+		exit 1; \
+	fi
+	@echo "🔐 Setting PUBLIC_API_URL to $(URL) in Doppler..."
+	@doppler secrets set PUBLIC_API_URL=$(URL)
+	@echo "✅ PUBLIC_API_URL updated in Doppler!"
+
+doppler-run: ## Run any command with Doppler environment (usage: make doppler-run CMD="your command")
+	@if [ -z "$(CMD)" ]; then \
+		echo "❌ Please provide CMD parameter: make doppler-run CMD='your command'"; \
+		exit 1; \
+	fi
+	@echo "🔐 Running command with Doppler environment..."
+	@doppler run --command='$(CMD)'
 
 ## Utility Commands
 

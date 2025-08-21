@@ -7,17 +7,17 @@ declare global {
 			user?: {
 				id: string;
 				username: string;
-				email?: string;
-				first_name?: string;
-				last_name?: string;
-				full_name?: string;
-				roles?: Array<{
-					id: string;
-					name: string;
-					level: number;
-					description?: string;
-				}>;
-				permissions?: string[];
+				email: string;
+				first_name: string;
+				last_name: string;
+				full_name: string;
+				department_id?: string;
+				hire_date?: string;
+				job_title?: string;
+				status?: string;
+				termination_date?: string;
+				created_at: string;
+				updated_at: string;
 			} | null;
 			token?: string | null;
 			isAuthenticated: boolean;
@@ -25,8 +25,12 @@ declare global {
 			roles: Array<{
 				id: string;
 				name: string;
-				level: number;
 				description?: string;
+				permissions?: Array<{
+					id: string;
+					name: string;
+					description?: string;
+				}>;
 			}>;
 		}
 		// interface PageData {}

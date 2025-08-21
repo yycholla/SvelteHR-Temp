@@ -163,27 +163,84 @@ export const passwordChangeSchema = z.object({
 	path: ['confirmPassword'],
 });
 
-// V2 API response schemas for RBAC
+// V2 API response schemas for RBAC (matching actual backend response)
 export const v2LoginResponseSchema = z.object({
 	token: z.string(),
 	token_type: z.string(),
 	expires_at: z.string(),
-	user: userSchema,
-	roles: z.array(userRoleSchema).optional(),
-	permissions: z.array(permissionSchema).optional()
+	user: z.object({
+		id: z.string(),
+		username: z.string(),
+		email: z.string(),
+		first_name: z.string().optional(),
+		last_name: z.string().optional(),
+		full_name: z.string().optional(),
+		is_active: z.boolean().optional(),
+		is_verified: z.boolean().optional(),
+		last_login: z.string().nullable().optional(),
+		created_at: z.string().optional(),
+		updated_at: z.string().optional(),
+		status: z.string().optional(),
+		hire_date: z.string().nullable().optional(),
+		termination_date: z.string().nullable().optional(),
+		department_id: z.string().nullable().optional(),
+		manager_id: z.string().nullable().optional(),
+		is_manager: z.boolean().optional(),
+		// Nested roles and permissions in user object
+		roles: z.array(z.object({
+			id: z.string(),
+			name: z.string(),
+			display_name: z.string().optional(),
+			description: z.string().optional(),
+			level: z.number().optional(),
+			is_system: z.boolean().optional(),
+			is_active: z.boolean().optional(),
+			created_at: z.string().optional(),
+			updated_at: z.string().optional()
+		})).optional(),
+		permissions: z.array(z.string()).optional()
+	}),
+	// Root level roles and permissions (duplicates of user.roles/permissions)
+	roles: z.array(z.object({
+		id: z.string(),
+		name: z.string(),
+		display_name: z.string().optional(),
+		description: z.string().optional(),
+		level: z.number().optional(),
+		is_system: z.boolean().optional(),
+		is_active: z.boolean().optional(),
+		created_at: z.string().optional(),
+		updated_at: z.string().optional()
+	})).optional(),
+	permissions: z.array(z.string()).optional()
 }).transform(response => {
-	// Combine user, roles, and permissions data into expected format
-	const user = response.user;
-	
-	// Add roles and permissions to user
-	user.roles = response.roles?.map(ur => ur.role) || [];
-	user.permissions = response.permissions?.map(p => p.name) || [];
-	
+	// Transform to expected frontend format
 	return {
 		token: response.token,
 		token_type: response.token_type,
 		expires_at: response.expires_at,
-		user: user
+		user: {
+			id: response.user.id,
+			username: response.user.username,
+			email: response.user.email,
+			full_name: response.user.full_name || `${response.user.first_name || ''} ${response.user.last_name || ''}`.trim(),
+			first_name: response.user.first_name,
+			last_name: response.user.last_name,
+			is_active: response.user.is_active ?? true,
+			is_verified: response.user.is_verified ?? false,
+			last_login: response.user.last_login,
+			created_at: response.user.created_at,
+			updated_at: response.user.updated_at,
+			status: response.user.status,
+			hire_date: response.user.hire_date,
+			termination_date: response.user.termination_date,
+			department_id: response.user.department_id,
+			manager_id: response.user.manager_id,
+			is_manager: response.user.is_manager ?? false,
+			// Use the root level roles/permissions (they're the same as user.roles/permissions)
+			roles: response.roles || response.user.roles || [],
+			permissions: response.permissions || response.user.permissions || []
+		}
 	};
 });
 
