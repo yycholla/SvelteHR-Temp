@@ -2,16 +2,20 @@
 	import { Dialog, DialogContent, DialogHeader, DialogTitle } from '$lib/components/ui/dialog';
 	import { modalStore } from '$lib/stores/hr/modals';
 	import TaskForm from '../forms/TaskForm.svelte';
-	import type { Task } from '$lib/schemas/task';
+	import type { Task, Employee } from '$lib/api/types-v2';
 
 	let { 
 		open = $bindable(false),
 		task = $bindable<Task | null>(null),
-		mode = $bindable<'create' | 'edit' | 'view'>('create')
+		mode = $bindable<'create' | 'edit' | 'view'>('create'),
+		availableEmployees = [],
+		currentUser = null
 	}: {
 		open: boolean;
 		task?: Task | null;
 		mode?: 'create' | 'edit' | 'view';
+		availableEmployees?: Employee[];
+		currentUser?: any;
 	} = $props();
 
 	const modalTitle = $derived(
@@ -41,6 +45,8 @@
 		<TaskForm
 			{task}
 			{mode}
+			{availableEmployees}
+			{currentUser}
 			onCancel={handleClose}
 			onSuccess={handleSuccess}
 		/>

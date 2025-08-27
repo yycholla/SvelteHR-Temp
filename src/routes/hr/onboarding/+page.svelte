@@ -212,15 +212,15 @@
 								<div class="flex items-center space-x-4">
 									<div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
 										<span class="text-sm font-medium text-primary">
-											{employee.firstName[0]}{employee.lastName[0]}
+											{employee.first_name[0]}{employee.last_name[0]}
 										</span>
 									</div>
 									<div>
 										<h3 class="font-medium text-foreground">
-											{employee.firstName} {employee.lastName}
+											{employee.first_name} {employee.last_name}
 										</h3>
 										<p class="text-sm text-muted-foreground">
-											{employee.jobTitle} • {employee.department?.name || 'No department'}
+											{employee.job_title} • {employee.department?.name || 'No department'}
 										</p>
 									</div>
 								</div>

@@ -25,10 +25,12 @@ A modern HR management system built with **SvelteKit 2.22.0**, **Svelte 5.0**, *
 ## Development Commands
 
 **Core Development:**
-- `npm run dev` - Start development server on http://localhost:5173
-- `npm run build` - Production build
-- `npm run preview` - Preview production build
+- `npm run dev` - Start development server using Doppler secrets on http://localhost:5173
+- `npm run dev:local` - Start development server without Doppler for local development
+- `npm run build` - Production build with Doppler secrets
+- `npm run preview` - Preview production build with Doppler secrets
 - `npm run check` - TypeScript and Svelte check (CRITICAL - run before commits)
+- `npm run check:watch` - TypeScript check in watch mode
 - `npm run lint` - Run Prettier check and ESLint (format + lint combined)
 - `npm run format` - Format code with Prettier
 
@@ -61,6 +63,7 @@ A modern HR management system built with **SvelteKit 2.22.0**, **Svelte 5.0**, *
 - **TypeScript 5.0** with strict typing throughout
 - **Tailwind CSS 4.0** with custom design system and Tailwind plugins
 - **Vite 7.0.4** with enhanced performance and modern build optimizations
+- **MDSvex 0.12.3** for Markdown-in-Svelte support (.svx files)
 
 **Backend Integration:**
 - Custom **MountainHRApiClient** (`src/lib/api/client.ts`) with Go backend
@@ -119,17 +122,19 @@ src/
 
 **Bearer Token Authentication:**
 - **Authentication Header**: `Authorization: Bearer <jwt_token>` required for all API calls
-- **JWT tokens** stored securely in HTTP-only cookies (server-side)
+- **JWT tokens** stored in cookies as `hr_token` or `auth-token` (server-side handling)
 - **Server-side verification** via `hooks.server.ts` using `/api/v2/auth/verify`
-- **Automatic token refresh** before expiration
-- **Token validation** on every server-side request
+- **Automatic token cleanup** when invalid or expired tokens are detected
+- **Token validation** on every server-side request with fallback token names
 
 **RBAC Protected Routes:**
-- **All routes except** `/login`, `/privacy`, `/terms` require valid Bearer token
+- **Public routes**: `/login`, `/login-simple`, `/login-working`, `/privacy`, `/terms`, `/api`, and root (`/`)
+- **All other routes** require valid Bearer token and authentication
 - **Role-based access control** with hierarchical permission levels
 - **Admin routes** require `Admin` role with full system permissions
 - **HR routes** require `HR Manager` role with HR-specific permissions
 - **Manager routes** based on role hierarchy and department assignments
+- **Redirect handling**: Unauthenticated users redirected to `/login?redirectTo=<original-path>`
 
 **RBAC Permission System:**
 - **Hierarchical Roles**: Admin > HR Manager > Manager > Employee
@@ -285,14 +290,18 @@ export const load: PageServerLoad = async ({ cookies }) => {
 ## Environment Configuration
 
 **Required Environment Variables:**
-- `PUBLIC_API_URL` - MountainHR backend URL
-- Additional variables for production deployment
+- `PUBLIC_API_URL` - MountainHR backend URL (default: `http://localhost:8080`)
+- **Doppler Integration**: Secrets managed via Doppler CLI for development and production
+- **Local Development**: Use `npm run dev:local` to bypass Doppler for local development
+- **HTTPS Configuration**: Optional HTTPS support via certs in adjacent MountainHR-Backend directory
+- **Tailscale Support**: Remote development via Tailscale with specific allowed hosts
 
 **Development Setup:**
 1. Ensure MountainHR backend is running on port 8080
 2. Install dependencies: `npm install`
-3. Start development server: `npm run dev`
-4. Access application at http://localhost:5173
+3. For secure deployment: Use `npm run dev` with Doppler configuration
+4. For local development: Use `npm run dev:local` 
+5. Access application at http://localhost:5173
 
 **Pre-Commit Quality Gates (CRITICAL):**
 1. `npm run check` - TypeScript compilation must pass
@@ -332,6 +341,7 @@ export const load: PageServerLoad = async ({ cookies }) => {
 **Cookie Management**: `js-cookie 3.0.5` for client-side cookie handling
 **JWT Processing**: `jsonwebtoken 9.0.2` for token validation and parsing
 **Class Management**: `clsx 2.1.1` and `tailwind-merge 3.3.1` for conditional styling
+**Path Aliasing**: `@/+` alias configured in `svelte.config.js` points to `./src/lib/+`
 
 ## RBAC Implementation Guide
 
@@ -842,6 +852,8 @@ archon:manage_task(
 - **Advanced source maps** enabled for production debugging
 - **Hot module replacement (HMR)** with instant updates and state preservation
 - **Vite DevTools** via `vite-plugin-devtools-json` for build analysis
+- **Dual Test Environment**: Browser-based testing for Svelte components, Node-based for server logic
+- **CORS and Tailscale Support**: Remote development capabilities via Tailscale network
 
 # Important Instruction Reminders
 Do what has been asked; nothing more, nothing less.

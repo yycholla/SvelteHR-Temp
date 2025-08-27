@@ -1,90 +1,52 @@
 import type { PageServerLoad } from './$types';
-import { apiClient } from '$lib/api/client';
+import { loadLeaveData, parseSearchParams } from '$lib/api/server-client';
 
 export const load: PageServerLoad = async ({ cookies, url }) => {
-	const token = cookies.get('auth-token');
-	
-	console.log('🏖️ Loading leave page - Token present:', !!token);
-
-	if (!token) {
-		throw new Error('Authentication required');
-	}
-
-	// Create server-side API client with auth token
-	const serverApiClient = apiClient.extend({
-		hooks: {
-			beforeRequest: [
-				(request) => {
-					request.headers.set('Authorization', `Bearer ${token}`);
-					request.headers.set('Content-Type', 'application/json');
-					console.log(`📡 API Request: ${request.method} ${request.url}`);
-				}
-			],
-			afterResponse: [
-				(request, options, response) => {
-					console.log(`📡 API Response: ${response.status} for ${request.url}`);
-					return response;
-				}
-			]
-		}
-	});
+	console.log('🏖️ Loading leave page with new API client');
 
 	// Get query parameters for filtering
-	const searchParams = url.searchParams;
-	const status = searchParams.get('status') || 'all';
-	const leaveType = searchParams.get('leaveType') || 'all';
-	const activeTab = searchParams.get('tab') || 'balances';
+	const urlParams = parseSearchParams(url);
+	const status = url.searchParams.get('status') || 'all';
+	const leaveType = url.searchParams.get('leaveType') || 'all';
+	const activeTab = url.searchParams.get('tab') || 'balances';
 
 	try {
-		// Build query parameters for leave balances
-		const balanceParams = new URLSearchParams();
-		if (leaveType !== 'all') balanceParams.append('leaveType', leaveType);
+		// Build API parameters
+		const apiParams = {
+			page: urlParams.page,
+			limit: urlParams.limit,
+			status: status !== 'all' ? status : undefined,
+			leave_type: leaveType !== 'all' ? leaveType : undefined
+		};
 
-		// Build query parameters for leave requests  
-		const requestParams = new URLSearchParams();
-		if (status !== 'all') requestParams.append('status', status);
-		if (leaveType !== 'all') requestParams.append('leaveType', leaveType);
+		// Load leave data using the centralized helper
+		const leaveData = await loadLeaveData(cookies, apiParams);
 
-		// Use v2 endpoints for enhanced leave features
-		const [balancesResponse, requestsResponse] = await Promise.allSettled([
-			serverApiClient.get(`leave/balances?${balanceParams.toString()}`).json(),
-			serverApiClient.get(`leave/requests?${requestParams.toString()}`).json()
-		]);
-
-		// Process responses with null safety
-		const balancesData = balancesResponse.status === 'fulfilled' && balancesResponse.value
-			? balancesResponse.value 
-			: { data: [] };
-
-		const requestsData = requestsResponse.status === 'fulfilled' && requestsResponse.value
-			? requestsResponse.value 
-			: { data: [] };
-
-		const leaveBalances = (balancesData && balancesData.data) || [];
-		const leaveRequests = (requestsData && requestsData.data) || [];
-
-		// Calculate stats
+		// Calculate stats from the loaded data
 		const stats = {
-			totalEmployees: leaveBalances.length,
-			pendingRequests: leaveRequests.filter((req: any) => req.status === 'Pending').length,
-			approvedRequests: leaveRequests.filter((req: any) => req.status === 'Approved').length,
-			averageBalance: leaveBalances.length > 0 
-				? Math.round(leaveBalances.reduce((sum: number, balance: any) => sum + (balance.available || 0), 0) / leaveBalances.length)
+			totalEmployees: leaveData.employees.length,
+			pendingRequests: leaveData.leaves.filter((req: any) => req.status === 'pending').length,
+			approvedRequests: leaveData.leaves.filter((req: any) => req.status === 'approved').length,
+			averageBalance: leaveData.leaves.length > 0 
+				? Math.round(leaveData.leaves.reduce((sum: number, leave: any) => sum + (leave.days_requested || 0), 0) / leaveData.leaves.length)
 				: 0
 		};
 
-		console.log('✅ Leave page data loaded successfully');
+		console.log('✅ Leave page loaded with', leaveData.leaves.length, 'leave requests');
 
 		return {
-			leaveBalances,
-			leaveRequests,
+			leaveBalances: [], // Could be enhanced if backend provides balance endpoint
+			leaveRequests: leaveData.leaves,
+			employees: leaveData.employees,
 			stats,
+			totalCount: leaveData.totalCount,
 			filters: {
 				status,
 				leaveType,
 				activeTab
 			}
 		};
+
 	} catch (error: any) {
 		console.error('❌ Error loading leave data:', error);
 		
@@ -92,12 +54,14 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 		return {
 			leaveBalances: [],
 			leaveRequests: [],
+			employees: [],
 			stats: {
 				totalEmployees: 0,
 				pendingRequests: 0,
 				approvedRequests: 0,
 				averageBalance: 0
 			},
+			totalCount: 0,
 			filters: {
 				status: 'all',
 				leaveType: 'all',

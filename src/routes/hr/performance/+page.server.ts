@@ -1,91 +1,85 @@
 import type { PageServerLoad } from './$types';
-import { apiClient } from '$lib/api/client';
+import { createAuthenticatedApiClient, parseSearchParams } from '$lib/api/server-client';
 
 export const load: PageServerLoad = async ({ cookies, url }) => {
-	const token = cookies.get('auth-token');
-	
-	console.log('📊 Loading performance page - Token present:', !!token);
-
-	if (!token) {
-		throw new Error('Authentication required');
-	}
-
-	// Create server-side API client with auth token
-	const serverApiClient = apiClient.extend({
-		hooks: {
-			beforeRequest: [
-				(request) => {
-					request.headers.set('Authorization', `Bearer ${token}`);
-					request.headers.set('Content-Type', 'application/json');
-					console.log(`📡 API Request: ${request.method} ${request.url}`);
-				}
-			],
-			afterResponse: [
-				(request, options, response) => {
-					console.log(`📡 API Response: ${response.status} for ${request.url}`);
-					return response;
-				}
-			]
-		}
-	});
+	console.log('📊 Loading performance page with new API client');
 
 	// Get query parameters for filtering
-	const searchParams = url.searchParams;
-	const status = searchParams.get('status') || 'all';
-	const employeeId = searchParams.get('employeeId') || 'all';
+	const urlParams = parseSearchParams(url);
+	const status = url.searchParams.get('status') || 'all';
+	const employeeId = url.searchParams.get('employeeId') || 'all';
 
 	try {
-		// Build query parameters for performance reviews
-		const queryParams = new URLSearchParams();
-		if (status !== 'all') queryParams.append('status', status);
-		if (employeeId !== 'all') queryParams.append('employeeId', employeeId);
+		const apiClient = createAuthenticatedApiClient(cookies);
 
-		// Fetch performance reviews from the API
-		const endpoint = queryParams.toString() ? `performance/reviews?${queryParams.toString()}` : 'performance/reviews';
-		const reviewsResponse = await serverApiClient.get(endpoint).json();
-		const reviews = reviewsResponse?.data || [];
+		// Build API parameters for performance data
+		const apiParams = {
+			page: urlParams.page,
+			limit: urlParams.limit,
+			status: status !== 'all' ? status : undefined,
+			employee_id: employeeId !== 'all' ? employeeId : undefined
+		};
 
-		// Apply filters
-		if (status !== 'all') {
-			reviews = reviews.filter((r: any) => r.status === status);
+		// Load performance reviews and employees in parallel
+		const [reviewsResult, employeesResult] = await Promise.allSettled([
+			// Try to get performance reviews (may not exist as endpoint)
+			apiClient.get('/api/v2/performance/reviews', apiParams),
+			// Get employees for filtering
+			apiClient.employees.list({ limit: 100 })
+		]);
+
+		// Process performance reviews
+		let reviews: any[] = [];
+		if (reviewsResult.status === 'fulfilled' && reviewsResult.value.success) {
+			reviews = reviewsResult.value.data?.data || [];
+		} else {
+			console.log('ℹ️ Performance reviews endpoint not available');
 		}
-		if (employeeId !== 'all') {
-			reviews = reviews.filter((r: any) => r.employee?.id?.toString() === employeeId);
+
+		// Process employees data
+		let employees: any[] = [];
+		if (employeesResult.status === 'fulfilled' && employeesResult.value.success) {
+			employees = employeesResult.value.data?.data || [];
 		}
 
-		// Calculate stats
+		// Calculate performance stats
 		const today = new Date();
 		const stats = {
 			totalReviews: reviews.length,
-			completed: reviews.filter((r: any) => r.status === 'Completed').length,
-			pending: reviews.filter((r: any) => r.status === 'Pending').length,
+			completed: reviews.filter((r: any) => r.status === 'completed').length,
+			pending: reviews.filter((r: any) => r.status === 'pending').length,
 			overdue: reviews.filter((r: any) => {
-				const dueDate = new Date(r.dueDate);
-				return r.status !== 'Completed' && dueDate < today;
+				if (!r.due_date) return false;
+				const dueDate = new Date(r.due_date);
+				return r.status !== 'completed' && dueDate < today;
 			}).length,
-			averageScore: reviews.length > 0 && reviews.some((r: any) => r.overallScore)
+			averageScore: reviews.length > 0 && reviews.some((r: any) => r.overall_score)
 				? Math.round(reviews
-					.filter((r: any) => r.overallScore)
-					.reduce((sum: number, r: any) => sum + r.overallScore, 0) / 
-					reviews.filter((r: any) => r.overallScore).length * 10) / 10
+					.filter((r: any) => r.overall_score)
+					.reduce((sum: number, r: any) => sum + r.overall_score, 0) / 
+					reviews.filter((r: any) => r.overall_score).length * 10) / 10
 				: 0
 		};
 
-		console.log('✅ Performance page data loaded successfully');
+		console.log('✅ Performance page loaded with', reviews.length, 'reviews');
 
 		return {
 			performanceReviews: reviews,
+			employees,
 			stats,
+			totalCount: reviews.length,
 			filters: {
 				status,
 				employeeId
 			}
 		};
+
 	} catch (error: any) {
 		console.error('❌ Error loading performance data:', error);
 		
 		return {
 			performanceReviews: [],
+			employees: [],
 			stats: {
 				totalReviews: 0,
 				completed: 0,
@@ -93,6 +87,7 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 				overdue: 0,
 				averageScore: 0
 			},
+			totalCount: 0,
 			filters: {
 				status: 'all',
 				employeeId: 'all'

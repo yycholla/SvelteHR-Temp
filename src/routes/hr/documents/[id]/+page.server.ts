@@ -1,58 +1,57 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
+import { createAuthenticatedApiClient } from '$lib/api/server-client';
 
-export const load: PageServerLoad = async ({ params, fetch }) => {
+export const load: PageServerLoad = async ({ params, cookies }) => {
 	const { id } = params;
 
 	if (!id) {
 		throw error(400, 'Document ID is required');
 	}
 
-	try {
-		// Fetch document data from the API
-		const documentResponse = await fetch(`http://localhost:8080/api/v1/documents/${id}`, {
-			headers: {
-				'Content-Type': 'application/json'
-			}
-		});
+	console.log(`📄 Loading document detail page for ID: ${id}`);
 
-		if (!documentResponse.ok) {
-			if (documentResponse.status === 404) {
-				throw error(404, 'Document not found');
-			}
-			throw error(documentResponse.status, 'Failed to load document');
+	try {
+		const apiClient = createAuthenticatedApiClient(cookies);
+
+		// Fetch document data
+		const documentResult = await apiClient.documents.getById(id);
+
+		if (!documentResult.success) {
+			throw error(404, 'Document not found');
 		}
 
-		const documentData = await documentResponse.json();
+		const document = documentResult.data;
 
-		// Fetch assigned employee details if document has an assignee
+		// Fetch assigned employee details if document has an employee_id
 		let assignedEmployee = null;
-		if (documentData.data.employee_id) {
+		if (document.employee_id) {
 			try {
-				const employeeResponse = await fetch(`http://localhost:8080/api/v1/employees/${documentData.data.employee_id}`, {
-					headers: {
-						'Content-Type': 'application/json'
-					}
-				});
-
-				if (employeeResponse.ok) {
-					const employeeData = await employeeResponse.json();
-					assignedEmployee = employeeData.data;
+				const employeeResult = await apiClient.employees.getById(document.employee_id);
+				if (employeeResult.success) {
+					assignedEmployee = employeeResult.data;
 				}
 			} catch (err) {
 				console.warn('Failed to load assigned employee:', err);
 			}
 		}
 
+		console.log('✅ Document detail page loaded successfully');
+
 		return {
-			document: documentData.data,
+			document,
 			assignedEmployee
 		};
+
 	} catch (err) {
-		console.error('Error loading document:', err);
-		if (err instanceof Error && err.message.includes('ECONNREFUSED')) {
-			throw error(503, 'Unable to connect to the HR service. Please try again later.');
+		console.error('❌ Error loading document detail:', err);
+		
+		if (err instanceof Error) {
+			if (err.message.includes('ECONNREFUSED')) {
+				throw error(503, 'Unable to connect to the HR service. Please try again later.');
+			}
 		}
+		
 		throw err;
 	}
 };

@@ -1,0 +1,127 @@
+{
+  "name": "Document Upload",
+  "category": "document_management",
+  "version": 1,
+  "description": "Upload and manage HR documents with metadata and access controls",
+  "template_schema": {
+    "fields": [
+      {
+        "id": "file_upload",
+        "name": "file",
+        "type": "file",
+        "label": "Select Document",
+        "required": false,
+        "validation": {
+          "maxValue": 10485760,
+          "pattern": ".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.xlsx,.xls,.ppt,.pptx"
+        },
+        "ui_config": {
+          "accept": ".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.xlsx,.xls,.ppt,.pptx",
+          "dragDrop": true,
+          "preview": true
+        }
+      },
+      {
+        "id": "title",
+        "name": "title",
+        "type": "text",
+        "label": "Document Title",
+        "required": true,
+        "validation": {
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "ui_config": {
+          "placeholder": "Enter document title"
+        }
+      },
+      {
+        "id": "description",
+        "name": "description",
+        "type": "textarea",
+        "label": "Description",
+        "required": false,
+        "validation": {
+          "maxLength": 1000
+        },
+        "ui_config": {
+          "placeholder": "Enter document description (optional)",
+          "rows": 3
+        }
+      },
+      {
+        "id": "category",
+        "name": "category",
+        "type": "select",
+        "label": "Category",
+        "required": true,
+        "options": [
+          { "value": "HR Policies", "label": "HR Policies" },
+          { "value": "Employee Handbook", "label": "Employee Handbook" },
+          { "value": "Job Descriptions", "label": "Job Descriptions" },
+          { "value": "Training Materials", "label": "Training Materials" },
+          { "value": "Forms and Templates", "label": "Forms and Templates" },
+          { "value": "Compliance Documents", "label": "Compliance Documents" },
+          { "value": "Benefits Information", "label": "Benefits Information" },
+          { "value": "Performance Reviews", "label": "Performance Reviews" },
+          { "value": "Contracts", "label": "Contracts" },
+          { "value": "Certificates", "label": "Certificates" },
+          { "value": "Legal Documents", "label": "Legal Documents" },
+          { "value": "Other", "label": "Other" }
+        ],
+        "ui_config": {
+          "placeholder": "Select category"
+        }
+      },
+      {
+        "id": "employee_id",
+        "name": "employee_id",
+        "type": "select",
+        "label": "Assign to Employee (Optional)",
+        "required": false,
+        "options": [
+          { "value": "", "label": "No specific employee" },
+          { "value": "emp-1", "label": "John Doe" },
+          { "value": "emp-2", "label": "Jane Smith" },
+          { "value": "emp-3", "label": "Mike Johnson" }
+        ],
+        "ui_config": {
+          "placeholder": "No specific employee",
+          "searchable": true
+        }
+      },
+      {
+        "id": "is_public",
+        "name": "is_public",
+        "type": "checkbox",
+        "label": "Make this document publicly accessible to all employees",
+        "required": false,
+        "ui_config": {
+          "helpText": "When enabled, all employees can view this document"
+        }
+      }
+    ],
+    "layout": {
+      "sections": [
+        {
+          "title": "File Upload",
+          "fields": ["file_upload"]
+        },
+        {
+          "title": "Document Information",
+          "fields": ["title", "description"]
+        },
+        {
+          "title": "Classification",
+          "fields": [
+            {
+              "type": "row",
+              "fields": ["category", "employee_id"]
+            },
+            "is_public"
+          ]
+        }
+      ]
+    }
+  }
+}

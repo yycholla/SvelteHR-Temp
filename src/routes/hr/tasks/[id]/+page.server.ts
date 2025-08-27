@@ -1,78 +1,78 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
+import { createAuthenticatedApiClient } from '$lib/api/server-client';
 
-export const load: PageServerLoad = async ({ params, fetch }) => {
+export const load: PageServerLoad = async ({ params, cookies }) => {
 	const { id } = params;
 
 	if (!id) {
 		throw error(400, 'Task ID is required');
 	}
 
+	console.log(`✅ Loading task detail page for ID: ${id}`);
+
 	try {
-		// Fetch task data from the API
-		const taskResponse = await fetch(`http://localhost:8080/api/v2/tasks/${id}`, {
-			headers: {
-				'Content-Type': 'application/json'
-			}
-		});
+		const apiClient = createAuthenticatedApiClient(cookies);
 
-		if (!taskResponse.ok) {
-			if (taskResponse.status === 404) {
-				throw error(404, 'Task not found');
-			}
-			throw error(taskResponse.status, 'Failed to load task');
+		// Fetch task data
+		const taskResult = await apiClient.tasks.getById(id);
+
+		if (!taskResult.success) {
+			throw error(404, 'Task not found');
 		}
 
-		const taskData = await taskResponse.json();
+		const task = taskResult.data;
 
-		// Fetch assigned employee details if task has an assignee
-		let assignedEmployee = null;
-		if (taskData.data.assigned_to) {
-			try {
-				const employeeResponse = await fetch(`http://localhost:8080/api/v2/employees/${taskData.data.assigned_to}`, {
-					headers: {
-						'Content-Type': 'application/json'
-					}
-				});
+		// Load related employee data in parallel
+		const employeePromises = [];
 
-				if (employeeResponse.ok) {
-					const employeeData = await employeeResponse.json();
-					assignedEmployee = employeeData.data;
-				}
-			} catch (err) {
-				console.warn('Failed to load assigned employee:', err);
-			}
+		if (task.assigned_to) {
+			employeePromises.push(apiClient.employees.getById(task.assigned_to));
+		} else {
+			employeePromises.push(Promise.resolve({ success: false, data: null }));
 		}
 
-		// Fetch assigned by employee details if task has an assigner
-		let assignedByEmployee = null;
-		if (taskData.data.assigned_by) {
-			try {
-				const employeeResponse = await fetch(`http://localhost:8080/api/v2/employees/${taskData.data.assigned_by}`, {
-					headers: {
-						'Content-Type': 'application/json'
-					}
-				});
-
-				if (employeeResponse.ok) {
-					const employeeData = await employeeResponse.json();
-					assignedByEmployee = employeeData.data;
-				}
-			} catch (err) {
-				console.warn('Failed to load assigning employee:', err);
-			}
+		if (task.assigned_by) {
+			employeePromises.push(apiClient.employees.getById(task.assigned_by));
+		} else {
+			employeePromises.push(Promise.resolve({ success: false, data: null }));
 		}
+
+		const [assignedToResult, assignedByResult] = await Promise.allSettled(employeePromises);
+
+		// Process employee results
+		const assignedEmployee = assignedToResult.status === 'fulfilled' && assignedToResult.value.success 
+			? assignedToResult.value.data 
+			: null;
+
+		const assignedByEmployee = assignedByResult.status === 'fulfilled' && assignedByResult.value.success
+			? assignedByResult.value.data
+			: null;
+
+		if (assignedToResult.status === 'rejected') {
+			console.warn('Failed to load assigned employee:', assignedToResult.reason);
+		}
+		if (assignedByResult.status === 'rejected') {
+			console.warn('Failed to load assigning employee:', assignedByResult.reason);
+		}
+
+		console.log('✅ Task detail page loaded successfully');
 
 		return {
-			task: taskData.data,
+			task,
 			assignedEmployee,
 			assignedByEmployee
 		};
+
 	} catch (err) {
-		console.error('Error loading task:', err);
-		if (err instanceof Error && err.message.includes('ECONNREFUSED')) {
-			throw error(503, 'Unable to connect to the HR service. Please try again later.');
+		console.error('❌ Error loading task detail:', err);
+		
+		if (err instanceof Error) {
+			if (err.message.includes('ECONNREFUSED')) {
+				throw error(503, 'Unable to connect to the HR service. Please try again later.');
+			}
 		}
+		
 		throw err;
 	}
 };

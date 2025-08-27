@@ -119,11 +119,13 @@
 	}
 
 	// Recalculate days when dates change
-	$: if ($form.data.start_date || $form.data.end_date) {
-		calculateDays();
-	}
+	$effect(() => {
+		if ($form.data.start_date || $form.data.end_date) {
+			calculateDays();
+		}
+	});
 
-	$: formState = $form;
+	const formState = $derived($form);
 </script>
 
 <form on:submit|preventDefault={handleSubmit} class="space-y-6">

@@ -4,7 +4,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { ApiServices } from '$lib/api/services';
-	import type { Employee, Role, Department } from '$lib/schemas/employee';
+	import type { Employee, Role, Department } from '$lib/api/types-v2';
 	import { onMount } from 'svelte';
 
 	let {
@@ -36,14 +36,14 @@
 	const form = isEditing && employee 
 		? updateEmployeeForm(parseInt(employee.id), {
 			username: employee.username || '',
-			firstName: employee.firstName || '',
-			lastName: employee.lastName || '',
+			firstName: employee.first_name || '',
+			lastName: employee.last_name || '',
 			email: employee.email || '',
-			roleId: parseInt(employee.roleId) || 1,
-			departmentId: employee.departmentId ? parseInt(employee.departmentId) : undefined,
-			jobTitle: employee.jobTitle || '',
-			hireDate: employee.hireDate || new Date().toISOString().split('T')[0],
-			employmentType: employee.employmentType || 'Full-time',
+			roleId: employee.role_id ? parseInt(employee.role_id) : 1,
+			departmentId: employee.department_id ? parseInt(employee.department_id) : undefined,
+			jobTitle: employee.job_title || '',
+			hireDate: employee.hire_date || new Date().toISOString().split('T')[0],
+			employmentType: employee.employment_type || 'Full-time',
 			onboardingStatus: employee.status || 'PreHire'
 		}, { 
 			onSuccess: (emp) => onSuccess(emp),
@@ -105,7 +105,7 @@
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 			<div>
 				<Label>Name</Label>
-				<p class="font-medium text-lg">{employee.firstName} {employee.lastName}</p>
+				<p class="font-medium text-lg">{employee.first_name} {employee.last_name}</p>
 			</div>
 			<div>
 				<Label>Username</Label>
@@ -117,19 +117,19 @@
 			</div>
 			<div>
 				<Label>Job Title</Label>
-				<p>{employee.jobTitle || 'N/A'}</p>
+				<p>{employee.job_title || employee.role_name || 'N/A'}</p>
 			</div>
 			<div>
 				<Label>Department</Label>
-				<p>{employee.department?.name || 'N/A'}</p>
+				<p>{employee.department?.name || employee.department_name || 'N/A'}</p>
 			</div>
 			<div>
 				<Label>Role</Label>
-				<p>{employee.role?.name || 'N/A'}</p>
+				<p>{employee.roles?.[0]?.display_name || employee.roles?.[0]?.name || employee.role_name || 'N/A'}</p>
 			</div>
 			<div>
 				<Label>Hire Date</Label>
-				<p>{employee.hireDate || 'N/A'}</p>
+				<p>{employee.hire_date || 'N/A'}</p>
 			</div>
 			<div>
 				<Label>Status</Label>
@@ -137,7 +137,7 @@
 			</div>
 			<div>
 				<Label>Employment Type</Label>
-				<p>{employee.employmentType || 'N/A'}</p>
+				<p>{employee.employment_type || 'N/A'}</p>
 			</div>
 		</div>
 		<div class="flex justify-end pt-6 border-t">

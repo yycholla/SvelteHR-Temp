@@ -10,7 +10,7 @@
 	import DropdownMenuTrigger from '$lib/components/ui/dropdown-menu/dropdown-menu-trigger.svelte';
 	import DropdownMenuContent from '$lib/components/ui/dropdown-menu/dropdown-menu-content.svelte';
 	import DropdownMenuItem from '$lib/components/ui/dropdown-menu/dropdown-menu-item.svelte';
-	import type { Employee } from '$lib/data/mockEmployees.js';
+	import type { Employee } from '$lib/api/types-v2';
 	import { goto } from '$app/navigation';
 
 	let { employees }: { employees: Employee[] } = $props();
@@ -28,24 +28,24 @@
 
 			switch (sortField) {
 				case 'name':
-					aValue = `${a.firstName} ${a.lastName}`;
-					bValue = `${b.firstName} ${b.lastName}`;
+					aValue = a.full_name || `${a.first_name || ''} ${a.last_name || ''}`;
+					bValue = b.full_name || `${b.first_name || ''} ${b.last_name || ''}`;
 					break;
 				case 'department':
-					aValue = a.department.name;
-					bValue = b.department.name;
+					aValue = a.department_name || '';
+					bValue = b.department_name || '';
 					break;
 				case 'position':
-					aValue = a.position.title;
-					bValue = b.position.title;
+					aValue = a.job_title || '';
+					bValue = b.job_title || '';
 					break;
 				case 'status':
-					aValue = a.status;
-					bValue = b.status;
+					aValue = a.status || '';
+					bValue = b.status || '';
 					break;
 				case 'hireDate':
-					aValue = a.hireDate ? new Date(a.hireDate) : new Date(0);
-					bValue = b.hireDate ? new Date(b.hireDate) : new Date(0);
+					aValue = a.hire_date ? new Date(a.hire_date) : new Date(0);
+					bValue = b.hire_date ? new Date(b.hire_date) : new Date(0);
 					break;
 				default:
 					aValue = '';
@@ -90,8 +90,10 @@
 		return colors[color] || colors['slate'];
 	}
 
-	function getInitials(firstName: string, lastName: string) {
-		return `${firstName.charAt(0)}${lastName.charAt(0)}`;
+	function getInitials(employee: Employee) {
+		const firstName = employee.first_name || '';
+		const lastName = employee.last_name || '';
+		return `${firstName.charAt(0) || 'U'}${lastName.charAt(0) || 'U'}`;
 	}
 
 	function viewEmployee(employee: Employee) {
@@ -203,19 +205,16 @@
 						<td class="p-4">
 							<div class="flex items-center space-x-3">
 								<Avatar class="h-10 w-10 ring-2 ring-background/50">
-									{#if employee.avatar}
-										<AvatarImage src={employee.avatar} alt="{employee.firstName} {employee.lastName}" />
-									{/if}
 									<AvatarFallback class="bg-primary/10 font-semibold text-primary text-sm">
-										{getInitials(employee.firstName, employee.lastName)}
+										{getInitials(employee)}
 									</AvatarFallback>
 								</Avatar>
 								<div>
 									<div class="font-medium text-foreground">
-										{employee.firstName} {employee.lastName}
+										{employee.full_name || `${employee.first_name || ''} ${employee.last_name || ''}` || 'Unknown User'}
 									</div>
 									<div class="text-sm text-muted-foreground">
-										{employee.employeeId}
+										{employee.employee_id || employee.username || employee.id}
 									</div>
 								</div>
 							</div>
@@ -224,17 +223,17 @@
 						<!-- Position -->
 						<td class="p-4">
 							<div class="font-medium text-foreground">
-								{employee.position.title}
+								{employee.job_title || 'No Title'}
 							</div>
 							<div class="text-sm text-muted-foreground">
-								{employee.position.level}
+								{employee.employment_type || ''}
 							</div>
 						</td>
 
 						<!-- Department -->
 						<td class="p-4">
-							<Badge class="rounded-lg border {getDepartmentColor(employee.department.color)}">
-								{employee.department.name}
+							<Badge class="rounded-lg border {getDepartmentColor('blue')}">
+								{employee.department_name || 'No Department'}
 							</Badge>
 						</td>
 
@@ -248,7 +247,7 @@
 						<!-- Hire Date -->
 						<td class="p-4">
 							<div class="text-sm text-foreground">
-{formatHireDate(employee.hireDate)}
+								{employee.hire_date ? formatHireDate(employee.hire_date) : 'Not set'}
 							</div>
 						</td>
 
@@ -259,10 +258,10 @@
 									<Mail class="h-3 w-3" />
 									<span class="truncate max-w-[150px]">{employee.email}</span>
 								</div>
-								{#if employee.phone}
+								{#if employee.phone_number}
 									<div class="flex items-center space-x-2 text-sm text-muted-foreground">
 										<Phone class="h-3 w-3" />
-										<span>{employee.phone}</span>
+										<span>{employee.phone_number}</span>
 									</div>
 								{/if}
 							</div>

@@ -1,71 +1,60 @@
 import type { PageServerLoad } from './$types';
-import { apiClient } from '$lib/api/client';
+import { loadTaskData, parseSearchParams } from '$lib/api/server-client';
 
-export const load: PageServerLoad = async ({ cookies, url }) => {
-	const token = cookies.get('auth-token');
-	
-	console.log('✅ Loading tasks page - Token present:', !!token);
-
-	if (!token) {
-		throw new Error('Authentication required');
-	}
-
-	// Create server-side API client with auth token
-	const serverApiClient = apiClient.extend({
-		hooks: {
-			beforeRequest: [
-				(request) => {
-					request.headers.set('Authorization', `Bearer ${token}`);
-					request.headers.set('Content-Type', 'application/json');
-					console.log(`📡 API Request: ${request.method} ${request.url}`);
-				}
-			],
-			afterResponse: [
-				(request, options, response) => {
-					console.log(`📡 API Response: ${response.status} for ${request.url}`);
-					return response;
-				}
-			]
-		}
-	});
+export const load: PageServerLoad = async ({ cookies, url, parent }) => {
+	console.log('✅ Loading tasks page with new API client');
 
 	// Get query parameters for filtering
-	const searchParams = url.searchParams;
-	const status = searchParams.get('status') || 'all';
-	const relatedEntityType = searchParams.get('relatedEntityType') || 'all';
+	const urlParams = parseSearchParams(url);
+	const status = url.searchParams.get('status') || 'all';
+	const relatedEntityType = url.searchParams.get('relatedEntityType') || 'all';
 
 	try {
-		// Build query parameters
-		const queryParams = new URLSearchParams();
-		if (status !== 'all') queryParams.append('status', status);
-		if (relatedEntityType !== 'all') queryParams.append('relatedEntityType', relatedEntityType);
+		// Get parent layout data (includes user)
+		const parentData = await parent();
 
-		// Use v2 endpoints for enhanced task features
-		const tasksResponse = await serverApiClient.get(`tasks?${queryParams.toString()}`).json();
+		// Build API parameters
+		const apiParams = {
+			page: urlParams.page,
+			limit: urlParams.limit,
+			status: status !== 'all' ? status : undefined,
+			entity_type: relatedEntityType !== 'all' ? relatedEntityType : undefined
+		};
 
-		const tasks = tasksResponse.data || [];
+		// Load task data using the centralized helper
+		const taskData = await loadTaskData(cookies, apiParams);
 
-		console.log('✅ Tasks page data loaded successfully');
+		// Calculate stats from loaded tasks
+		const stats = {
+			total: taskData.tasks.length,
+			pending: taskData.tasks.filter((task: any) => task.status === 'pending').length,
+			inProgress: taskData.tasks.filter((task: any) => task.status === 'in_progress').length,
+			completed: taskData.tasks.filter((task: any) => task.status === 'completed').length,
+			blocked: taskData.tasks.filter((task: any) => task.status === 'blocked').length
+		};
+
+		console.log('✅ Tasks page loaded with', taskData.tasks.length, 'tasks');
+		console.log('📋 Employees loaded:', taskData.employees.length, 'employees');
+		console.log('👤 Current user from parent:', parentData.user?.full_name || 'None');
 
 		return {
-			tasks,
-			stats: {
-				total: tasks.length,
-				pending: tasks.filter((task: any) => task.status === 'Pending').length,
-				inProgress: tasks.filter((task: any) => task.status === 'InProgress').length,
-				completed: tasks.filter((task: any) => task.status === 'Completed').length,
-				blocked: tasks.filter((task: any) => task.status === 'Blocked').length
-			},
+			...parentData,
+			tasks: taskData.tasks,
+			employees: taskData.employees,
+			stats,
+			totalCount: taskData.totalCount,
 			filters: {
 				status,
 				relatedEntityType
 			}
 		};
+
 	} catch (error: any) {
 		console.error('❌ Error loading tasks data:', error);
 		
 		return {
 			tasks: [],
+			employees: [],
 			stats: {
 				total: 0,
 				pending: 0,
@@ -73,6 +62,7 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 				completed: 0,
 				blocked: 0
 			},
+			totalCount: 0,
 			filters: {
 				status: 'all',
 				relatedEntityType: 'all'

@@ -45,6 +45,7 @@ export const handle: Handle = async ({ event, resolve }) => {
         event.locals.isAuthenticated = true;
         event.locals.permissions = rbacData.permissions || [];
         event.locals.roles = rbacData.roles || [];
+        event.locals.token = token; // Add token to locals for tRPC context
       } else {
         // Token is invalid, clear it
         cookies.delete('hr_token', { path: '/' });

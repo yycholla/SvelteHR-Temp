@@ -1,94 +1,146 @@
 import type { PageServerLoad } from './$types';
-import { apiClient } from '$lib/api/client';
+import { loadAnnouncementData, parseSearchParams, createAuthenticatedApiClient } from '$lib/api/server-client';
 
 export const load: PageServerLoad = async ({ cookies, url }) => {
-	const token = cookies.get('auth-token');
-	
-	console.log('🔔 Loading notifications page - Token present:', !!token);
-
-	if (!token) {
-		throw new Error('Authentication required');
-	}
-
-	// Create server-side API client with auth token
-	const serverApiClient = apiClient.extend({
-		hooks: {
-			beforeRequest: [
-				(request) => {
-					request.headers.set('Authorization', `Bearer ${token}`);
-					request.headers.set('Content-Type', 'application/json');
-					console.log(`📡 API Request: ${request.method} ${request.url}`);
-				}
-			],
-			afterResponse: [
-				(request, options, response) => {
-					console.log(`📡 API Response: ${response.status} for ${request.url}`);
-					return response;
-				}
-			]
-		}
-	});
-
-	// Get query parameters for filtering
-	const searchParams = url.searchParams;
-	const isRead = searchParams.get('isRead');
-	const type = searchParams.get('type') || 'all';
-
-	try {
-		// Build query parameters
-		const queryParams = new URLSearchParams();
-		if (isRead !== null) queryParams.append('isRead', isRead);
-		if (type !== 'all') queryParams.append('type', type);
-
-		// Fetch notifications
-		const notificationsResponse = await serverApiClient.get(`notifications?${queryParams.toString()}`).json();
-
-		const notifications = (notificationsResponse && notificationsResponse.data) || [];
-
-		console.log('✅ Notifications page data loaded successfully');
-
-		// Calculate comprehensive stats
-		const today = new Date();
-		today.setHours(0, 0, 0, 0);
-
-		const stats = {
-			total: notifications.length,
-			unread: notifications.filter((notif: any) => !notif.isRead).length,
-			read: notifications.filter((notif: any) => notif.isRead).length,
-			urgent: notifications.filter((notif: any) => notif.type === 'error' || notif.priority === 'high').length,
-			today: notifications.filter((notif: any) => {
-				if (!notif.createdAt) return false;
-				const notifDate = new Date(notif.createdAt);
-				notifDate.setHours(0, 0, 0, 0);
-				return notifDate.getTime() === today.getTime();
-			}).length
-		};
-
-		return {
-			notifications,
-			stats,
-			filters: {
-				isRead,
-				type
-			}
-		};
-	} catch (error: any) {
-		console.error('❌ Error loading notifications data:', error);
-		
-		return {
-			notifications: [],
-			stats: {
-				total: 0,
-				unread: 0,
-				read: 0,
-				urgent: 0,
-				today: 0
-			},
-			filters: {
-				isRead: null,
-				type: 'all'
-			},
-			error: error.message || 'Failed to load notifications data'
-		};
-	}
+  console.log('🔔 Loading notifications page with new API client');
+  
+  try {
+    // Parse URL parameters for filtering
+    const params = parseSearchParams(url);
+    const isRead = url.searchParams.get('isRead');
+    const type = url.searchParams.get('type') || 'all';
+    
+    // Load announcements as notifications (they serve similar purpose)
+    const announcementData = await loadAnnouncementData(cookies, {
+      limit: params.limit,
+      page: params.page,
+      active_only: true, // Only show active announcements
+      priority: params.priority
+    });
+    
+    // Also try to get any system notifications or alerts
+    const apiClient = createAuthenticatedApiClient(cookies);
+    let systemNotifications: any[] = [];
+    
+    try {
+      // Try to get activity logs as system notifications
+      const activityResult = await apiClient.activityLogs.list({ 
+        limit: 10,
+        action_type: 'system'
+      });
+      if (activityResult.success && activityResult.data) {
+        systemNotifications = activityResult.data.data?.map((log: any) => ({
+          id: `activity-${log.id}`,
+          title: `System Activity: ${log.action_type}`,
+          message: log.details?.message || `${log.action_type} on ${log.resource_type}`,
+          type: 'info',
+          timestamp: log.created_at,
+          isRead: false,
+          category: 'System',
+          priority: 'low'
+        })) || [];
+      }
+    } catch (error) {
+      console.log('ℹ️ No system notifications available');
+    }
+    
+    // Transform announcements to notification format for UI compatibility
+    const announcementNotifications = announcementData.announcements.map((announcement: any) => ({
+      id: announcement.id,
+      title: announcement.title,
+      message: announcement.content,
+      type: getNotificationType(announcement.priority),
+      timestamp: announcement.created_at,
+      isRead: false, // This would come from a user_notifications junction table in real app
+      category: 'Announcements',
+      priority: announcement.priority || 'medium',
+      // Original announcement data
+      announcement
+    }));
+    
+    // Combine all notifications
+    const allNotifications = [...announcementNotifications, ...systemNotifications];
+    
+    // Apply filters
+    let filteredNotifications = allNotifications;
+    if (isRead !== null) {
+      const isReadFilter = isRead === 'true';
+      filteredNotifications = filteredNotifications.filter(n => n.isRead === isReadFilter);
+    }
+    if (type !== 'all') {
+      filteredNotifications = filteredNotifications.filter(n => n.type === type);
+    }
+    
+    // Sort by timestamp (newest first)
+    filteredNotifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    
+    // Calculate stats
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const stats = {
+      total: allNotifications.length,
+      unread: allNotifications.filter(n => !n.isRead).length,
+      read: allNotifications.filter(n => n.isRead).length,
+      urgent: allNotifications.filter(n => n.type === 'error' || n.priority === 'high').length,
+      today: allNotifications.filter(n => {
+        if (!n.timestamp) return false;
+        const notifDate = new Date(n.timestamp);
+        notifDate.setHours(0, 0, 0, 0);
+        return notifDate.getTime() === today.getTime();
+      }).length
+    };
+    
+    console.log('✅ Notifications page loaded with', filteredNotifications.length, 'notifications');
+    
+    return {
+      notifications: filteredNotifications,
+      stats,
+      totalCount: announcementData.totalCount,
+      filters: {
+        isRead,
+        type,
+        priority: params.priority || 'all'
+      }
+    };
+    
+  } catch (error) {
+    console.error('❌ Error loading notifications:', error);
+    
+    // Return empty notifications on error
+    return {
+      notifications: [],
+      stats: {
+        total: 0,
+        unread: 0,
+        read: 0,
+        urgent: 0,
+        today: 0
+      },
+      totalCount: 0,
+      filters: {
+        isRead: null,
+        type: 'all',
+        priority: 'all'
+      },
+      error: 'Failed to load notifications'
+    };
+  }
 };
+
+/**
+ * Convert announcement priority to notification type
+ */
+function getNotificationType(priority?: string): string {
+  switch (priority) {
+    case 'urgent':
+      return 'error';
+    case 'high':
+      return 'warning';
+    case 'medium':
+      return 'info';
+    case 'low':
+    default:
+      return 'reminder';
+  }
+}

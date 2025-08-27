@@ -322,7 +322,7 @@
 												</span>
 												{#if notification.employee}
 													<span class="text-xs text-muted-foreground">
-														From: {notification.employee.firstName} {notification.employee.lastName}
+														From: {notification.employee.first_name} {notification.employee.last_name}
 													</span>
 												{/if}
 											</div>

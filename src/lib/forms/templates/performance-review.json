@@ -1,0 +1,394 @@
+{
+  "name": "Performance Review",
+  "category": "performance_management",
+  "version": 1,
+  "description": "Comprehensive performance evaluation form for employee reviews",
+  "template_schema": {
+    "fields": [
+      {
+        "id": "review_info",
+        "name": "review_info",
+        "type": "section",
+        "label": "Review Information",
+        "description": "Basic information about this performance review",
+        "required": false
+      },
+      {
+        "id": "review_period_start",
+        "name": "reviewPeriodStart",
+        "type": "date",
+        "label": "Review Period Start",
+        "required": true,
+        "ui_config": {
+          "section": "Review Information"
+        }
+      },
+      {
+        "id": "review_period_end",
+        "name": "reviewPeriodEnd",
+        "type": "date",
+        "label": "Review Period End",
+        "required": true,
+        "ui_config": {
+          "section": "Review Information"
+        }
+      },
+      {
+        "id": "review_type",
+        "name": "reviewType",
+        "type": "select",
+        "label": "Review Type",
+        "required": true,
+        "options": [
+          { "value": "annual", "label": "Annual Review" },
+          { "value": "mid_year", "label": "Mid-Year Review" },
+          { "value": "quarterly", "label": "Quarterly Review" },
+          { "value": "probationary", "label": "Probationary Review" },
+          { "value": "project", "label": "Project-Based Review" },
+          { "value": "promotion", "label": "Promotion Review" }
+        ],
+        "ui_config": {
+          "section": "Review Information"
+        }
+      },
+      {
+        "id": "job_performance",
+        "name": "job_performance",
+        "type": "section",
+        "label": "Job Performance",
+        "description": "Evaluate performance in key areas of responsibility",
+        "required": false
+      },
+      {
+        "id": "quality_of_work",
+        "name": "qualityOfWork",
+        "type": "radio",
+        "label": "Quality of Work",
+        "required": true,
+        "options": [
+          { "value": "5", "label": "Exceptional", "description": "Consistently exceeds expectations" },
+          { "value": "4", "label": "Exceeds Expectations", "description": "Often exceeds expectations" },
+          { "value": "3", "label": "Meets Expectations", "description": "Consistently meets expectations" },
+          { "value": "2", "label": "Below Expectations", "description": "Sometimes falls short of expectations" },
+          { "value": "1", "label": "Unsatisfactory", "description": "Consistently below expectations" }
+        ],
+        "ui_config": {
+          "section": "Job Performance"
+        }
+      },
+      {
+        "id": "quality_comments",
+        "name": "qualityComments",
+        "type": "textarea",
+        "label": "Quality of Work - Comments",
+        "required": false,
+        "ui_config": {
+          "section": "Job Performance",
+          "placeholder": "Provide specific examples and feedback regarding work quality...",
+          "size": "medium",
+          "column_span": 2
+        }
+      },
+      {
+        "id": "productivity",
+        "name": "productivity",
+        "type": "radio",
+        "label": "Productivity",
+        "required": true,
+        "options": [
+          { "value": "5", "label": "Exceptional", "description": "Consistently exceeds productivity goals" },
+          { "value": "4", "label": "Exceeds Expectations", "description": "Often exceeds productivity targets" },
+          { "value": "3", "label": "Meets Expectations", "description": "Consistently meets productivity expectations" },
+          { "value": "2", "label": "Below Expectations", "description": "Sometimes falls short of productivity goals" },
+          { "value": "1", "label": "Unsatisfactory", "description": "Consistently below productivity expectations" }
+        ],
+        "ui_config": {
+          "section": "Job Performance"
+        }
+      },
+      {
+        "id": "productivity_comments",
+        "name": "productivityComments",
+        "type": "textarea",
+        "label": "Productivity - Comments",
+        "required": false,
+        "ui_config": {
+          "section": "Job Performance",
+          "placeholder": "Provide specific examples and feedback regarding productivity...",
+          "size": "medium",
+          "column_span": 2
+        }
+      },
+      {
+        "id": "initiative",
+        "name": "initiative",
+        "type": "radio",
+        "label": "Initiative and Innovation",
+        "required": true,
+        "options": [
+          { "value": "5", "label": "Exceptional", "description": "Proactively identifies opportunities and implements solutions" },
+          { "value": "4", "label": "Exceeds Expectations", "description": "Often takes initiative beyond assigned tasks" },
+          { "value": "3", "label": "Meets Expectations", "description": "Shows appropriate level of initiative" },
+          { "value": "2", "label": "Below Expectations", "description": "Rarely takes initiative" },
+          { "value": "1", "label": "Unsatisfactory", "description": "Lacks initiative and requires constant direction" }
+        ],
+        "ui_config": {
+          "section": "Job Performance"
+        }
+      },
+      {
+        "id": "initiative_comments",
+        "name": "initiativeComments",
+        "type": "textarea",
+        "label": "Initiative and Innovation - Comments",
+        "required": false,
+        "ui_config": {
+          "section": "Job Performance",
+          "placeholder": "Provide examples of initiative taken and innovative solutions...",
+          "size": "medium",
+          "column_span": 2
+        }
+      },
+      {
+        "id": "interpersonal_skills",
+        "name": "interpersonal_skills",
+        "type": "section",
+        "label": "Interpersonal Skills",
+        "description": "Evaluate collaboration, communication, and teamwork",
+        "required": false
+      },
+      {
+        "id": "communication",
+        "name": "communication",
+        "type": "radio",
+        "label": "Communication Skills",
+        "required": true,
+        "options": [
+          { "value": "5", "label": "Exceptional", "description": "Outstanding written and verbal communication" },
+          { "value": "4", "label": "Exceeds Expectations", "description": "Strong communication skills" },
+          { "value": "3", "label": "Meets Expectations", "description": "Adequate communication skills" },
+          { "value": "2", "label": "Below Expectations", "description": "Communication could be improved" },
+          { "value": "1", "label": "Unsatisfactory", "description": "Poor communication skills" }
+        ],
+        "ui_config": {
+          "section": "Interpersonal Skills"
+        }
+      },
+      {
+        "id": "teamwork",
+        "name": "teamwork",
+        "type": "radio",
+        "label": "Teamwork and Collaboration",
+        "required": true,
+        "options": [
+          { "value": "5", "label": "Exceptional", "description": "Excellent team player, facilitates collaboration" },
+          { "value": "4", "label": "Exceeds Expectations", "description": "Works well with others" },
+          { "value": "3", "label": "Meets Expectations", "description": "Adequate teamwork skills" },
+          { "value": "2", "label": "Below Expectations", "description": "Teamwork could be improved" },
+          { "value": "1", "label": "Unsatisfactory", "description": "Struggles to work effectively with others" }
+        ],
+        "ui_config": {
+          "section": "Interpersonal Skills"
+        }
+      },
+      {
+        "id": "leadership",
+        "name": "leadership",
+        "type": "radio",
+        "label": "Leadership Qualities",
+        "required": false,
+        "options": [
+          { "value": "5", "label": "Exceptional", "description": "Natural leader, inspires and motivates others" },
+          { "value": "4", "label": "Exceeds Expectations", "description": "Shows strong leadership potential" },
+          { "value": "3", "label": "Meets Expectations", "description": "Demonstrates adequate leadership when needed" },
+          { "value": "2", "label": "Below Expectations", "description": "Limited leadership abilities" },
+          { "value": "1", "label": "Unsatisfactory", "description": "Lacks leadership skills" }
+        ],
+        "ui_config": {
+          "section": "Interpersonal Skills"
+        }
+      },
+      {
+        "id": "goals_achievements",
+        "name": "goals_achievements",
+        "type": "section",
+        "label": "Goals and Achievements",
+        "description": "Review progress on previous goals and notable achievements",
+        "required": false
+      },
+      {
+        "id": "goals_met",
+        "name": "goalsMet",
+        "type": "textarea",
+        "label": "Goals Achievement Summary",
+        "required": true,
+        "validation": {
+          "minLength": 50,
+          "maxLength": 1000
+        },
+        "ui_config": {
+          "section": "Goals and Achievements",
+          "placeholder": "Summarize the employee's progress on previously set goals and objectives...",
+          "size": "large",
+          "column_span": 2,
+          "help_text": "Be specific about which goals were achieved, partially achieved, or not met"
+        }
+      },
+      {
+        "id": "key_achievements",
+        "name": "keyAchievements",
+        "type": "textarea",
+        "label": "Key Achievements and Contributions",
+        "required": false,
+        "validation": {
+          "maxLength": 1000
+        },
+        "ui_config": {
+          "section": "Goals and Achievements",
+          "placeholder": "Highlight significant achievements, projects completed, or special contributions...",
+          "size": "large",
+          "column_span": 2
+        }
+      },
+      {
+        "id": "development_areas",
+        "name": "development_areas",
+        "type": "section",
+        "label": "Development Areas",
+        "description": "Identify areas for improvement and development opportunities",
+        "required": false
+      },
+      {
+        "id": "areas_for_improvement",
+        "name": "areasForImprovement",
+        "type": "textarea",
+        "label": "Areas for Improvement",
+        "required": false,
+        "validation": {
+          "maxLength": 1000
+        },
+        "ui_config": {
+          "section": "Development Areas",
+          "placeholder": "Identify specific areas where the employee could improve or develop...",
+          "size": "medium",
+          "column_span": 2
+        }
+      },
+      {
+        "id": "development_opportunities",
+        "name": "developmentOpportunities",
+        "type": "checkbox",
+        "label": "Recommended Development Opportunities",
+        "required": false,
+        "options": [
+          { "value": "training", "label": "Additional Training", "description": "Skill-building workshops or courses" },
+          { "value": "mentoring", "label": "Mentoring Program", "description": "Pair with experienced colleague" },
+          { "value": "stretch_assignments", "label": "Stretch Assignments", "description": "Challenging projects beyond current role" },
+          { "value": "cross_training", "label": "Cross-Training", "description": "Learn skills from other departments" },
+          { "value": "conference", "label": "Conference/Seminar", "description": "Industry events or professional development" },
+          { "value": "certification", "label": "Professional Certification", "description": "Relevant industry certifications" },
+          { "value": "leadership_program", "label": "Leadership Development", "description": "Management or leadership training" }
+        ],
+        "ui_config": {
+          "section": "Development Areas",
+          "column_span": 2
+        }
+      },
+      {
+        "id": "future_goals",
+        "name": "future_goals",
+        "type": "section",
+        "label": "Future Goals",
+        "description": "Set objectives for the upcoming review period",
+        "required": false
+      },
+      {
+        "id": "next_period_goals",
+        "name": "nextPeriodGoals",
+        "type": "textarea",
+        "label": "Goals for Next Review Period",
+        "required": true,
+        "validation": {
+          "minLength": 100,
+          "maxLength": 1500
+        },
+        "ui_config": {
+          "section": "Future Goals",
+          "placeholder": "Set specific, measurable goals for the upcoming review period...",
+          "size": "large",
+          "column_span": 2,
+          "help_text": "Goals should be SMART: Specific, Measurable, Achievable, Relevant, Time-bound"
+        }
+      },
+      {
+        "id": "career_development",
+        "name": "careerDevelopment",
+        "type": "textarea",
+        "label": "Career Development Discussion",
+        "required": false,
+        "validation": {
+          "maxLength": 1000
+        },
+        "ui_config": {
+          "section": "Future Goals",
+          "placeholder": "Notes from career development discussion, including employee's aspirations and potential growth paths...",
+          "size": "medium",
+          "column_span": 2
+        }
+      },
+      {
+        "id": "overall_rating",
+        "name": "overall_rating",
+        "type": "section",
+        "label": "Overall Rating",
+        "description": "Summary evaluation and rating",
+        "required": false
+      },
+      {
+        "id": "overall_performance_rating",
+        "name": "overallPerformanceRating",
+        "type": "radio",
+        "label": "Overall Performance Rating",
+        "required": true,
+        "options": [
+          { "value": "5", "label": "Exceptional", "description": "Consistently exceeds expectations in all areas" },
+          { "value": "4", "label": "Exceeds Expectations", "description": "Frequently exceeds expectations" },
+          { "value": "3", "label": "Meets Expectations", "description": "Consistently meets job requirements" },
+          { "value": "2", "label": "Below Expectations", "description": "Performance needs improvement" },
+          { "value": "1", "label": "Unsatisfactory", "description": "Significant performance issues" }
+        ],
+        "ui_config": {
+          "section": "Overall Rating"
+        }
+      },
+      {
+        "id": "overall_comments",
+        "name": "overallComments",
+        "type": "textarea",
+        "label": "Overall Comments and Summary",
+        "required": true,
+        "validation": {
+          "minLength": 100,
+          "maxLength": 1500
+        },
+        "ui_config": {
+          "section": "Overall Rating",
+          "placeholder": "Provide an overall summary of the employee's performance, key strengths, and areas of focus...",
+          "size": "large",
+          "column_span": 2
+        }
+      }
+    ],
+    "validation_rules": [
+      {
+        "field": "reviewPeriodEnd",
+        "rule": "date_range",
+        "message": "Review period end date must be after start date"
+      }
+    ],
+    "ui_config": {
+      "layout": "two_column",
+      "show_progress": true
+    }
+  }
+}

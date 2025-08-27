@@ -1,6 +1,8 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { FileText, Upload, Search, Download, Eye, Trash2, Filter, Plus } from 'lucide-svelte';
+	import { goto, invalidateAll } from '$app/navigation';
+	import { FileText, Upload, Search, Download, Eye, Trash2, Filter, Plus, Edit } from 'lucide-svelte';
+	import { modalStore } from '$lib/stores/hr/modals';
+	import DocumentModal from '$lib/components/hr/modals/DocumentModal.svelte';
 	import Card from '$lib/components/ui/card/card.svelte';
 	import CardHeader from '$lib/components/ui/card/card-header.svelte';
 	import CardTitle from '$lib/components/ui/card/card-title.svelte';
@@ -22,6 +24,11 @@
 
 	// Page data from server
 	let { data }: { data: PageData } = $props();
+
+	// Modal state
+	let showDocumentModal = $state(false);
+	let modalMode = $state<'create' | 'edit' | 'view'>('create');
+	let selectedDocument = $state<any | null>(null);
 
 	// Local filter states (initialized from server data)
   let searchTerm = $state(data.filters.search);
@@ -107,22 +114,80 @@
 
 	async function handleDownload(document: any) {
 		try {
-			// TODO: Implement server-side document download
-			console.log('Download document:', document.id);
+			const response = await fetch(`/api/v2/documents/${document.id}/download`, {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			});
+
+			if (response.ok) {
+				// Get the file blob and create a download link
+				const blob = await response.blob();
+				const url = window.URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.style.display = 'none';
+				a.href = url;
+				a.download = document.title || 'document';
+				document.body.appendChild(a);
+				a.click();
+				window.URL.revokeObjectURL(url);
+				document.body.removeChild(a);
+			} else {
+				const error = await response.text();
+				alert(`Failed to download document: ${error}`);
+			}
 		} catch (err: any) {
 			console.error('Error downloading document:', err);
+			alert('Failed to download document. Please try again.');
 		}
 	}
 
 	async function handleDelete(document: any) {
-		if (!confirm(`Are you sure you want to delete "${document.title}"?`)) return;
+		if (!confirm(`Are you sure you want to delete "${document.title}"? This action cannot be undone.`)) return;
 
 		try {
-			// TODO: Implement server-side document deletion
-			console.log('Delete document:', document.id);
+			const response = await fetch(`/api/v2/documents/${document.id}`, {
+				method: 'DELETE',
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			});
+
+			if (response.ok) {
+				console.log('✅ Document deleted successfully, refreshing data...');
+				// Refresh server data
+				await invalidateAll();
+			} else {
+				const error = await response.text();
+				alert(`Failed to delete document: ${error}`);
+			}
 		} catch (err: any) {
 			console.error('Error deleting document:', err);
+			alert('Failed to delete document. Please try again.');
 		}
+	}
+
+	function handleEditDocument(document: any) {
+		modalStore.open('document', document, 'edit');
+	}
+
+	function handleViewDocument(document: any) {
+		modalStore.open('document', document, 'view');
+	}
+
+	function handleAddDocument() {
+		modalStore.open('document', null, 'create');
+	}
+
+	async function handleDocumentSuccess(document: any) {
+		modalStore.close();
+		console.log('✅ Document saved successfully, refreshing data...');
+		await invalidateAll();
+	}
+
+	function handleModalClose() {
+		modalStore.close();
 	}
 
 	function clearFilters() {
@@ -158,6 +223,18 @@
 			currentPage = 1; // Reset to first page on filter change
 			applyFilters();
 		}
+	});
+
+	// Subscribe to modal store
+	$effect(() => {
+		const unsubscribe = modalStore.subscribe((state) => {
+			if (state.type === 'document') {
+				showDocumentModal = state.isOpen;
+				modalMode = state.mode;
+				selectedDocument = state.data;
+			}
+		});
+		return unsubscribe;
 	});
 </script>
 
@@ -214,6 +291,11 @@
 
 				<Button variant="outline" onclick={clearFilters}>
 					Clear Filters
+				</Button>
+
+				<Button onclick={handleAddDocument}>
+					<Plus class="h-4 w-4 mr-2" />
+					Add Document
 				</Button>
 			</div>
 		</CardContent>
@@ -321,7 +403,7 @@
 							: 'Upload your first document to get started'}
 					</p>
                     {#if !(searchTerm || categoryFilter !== 'all' || departmentFilter !== 'all')}
-                        <Button class="mt-4" onclick={() => uploadOpen = true}>
+                        <Button class="mt-4" onclick={handleAddDocument}>
                             <Upload class="h-4 w-4 mr-2" />
                             Upload Document
                         </Button>
@@ -353,7 +435,7 @@
 										</div>
 										<p class="text-sm text-muted-foreground mt-2 truncate">
 											{document.securityLevel ? `${document.securityLevel} • ` : ''}
-											Uploaded by: {document.uploadedBy?.firstName || 'Unknown'}
+											Uploaded by: {document.uploadedBy?.first_name || 'Unknown'}
 										</p>
 									</div>
 								</div>
@@ -370,9 +452,13 @@
 												<Download class="h-4 w-4 mr-2" />
 												Download
 											</DropdownMenuItem>
-											<DropdownMenuItem>
+											<DropdownMenuItem onclick={() => handleViewDocument(document)}>
 												<Eye class="h-4 w-4 mr-2" />
 												View Details
+											</DropdownMenuItem>
+											<DropdownMenuItem onclick={() => handleEditDocument(document)}>
+												<Edit class="h-4 w-4 mr-2" />
+												Edit
 											</DropdownMenuItem>
 											<DropdownMenuItem
 												onclick={() => handleDelete(document)}
@@ -434,21 +520,17 @@
 
 	<!-- Fixed position add button in bottom right corner -->
 	<div class="fixed bottom-6 right-6 z-50">
-        <Button class="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200" onclick={() => uploadOpen = true}>
+        <Button class="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200" onclick={handleAddDocument}>
 			<Upload class="h-5 w-5" />
 		</Button>
 	</div>
 
-    {#if typeof uploadOpen === 'undefined'}
-        {@html ''}
-    {/if}
-    {#if uploadOpen}
-    <div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-        <div class="bg-background rounded-xl border border-border p-6 w-full max-w-md">
-            <h3 class="font-semibold mb-2">Upload Document</h3>
-            <p class="text-sm text-muted-foreground mb-4">Placeholder modal. Hook up your upload form here.</p>
-            <div class="flex justify-end"><Button variant="outline" onclick={() => uploadOpen = false}>Close</Button></div>
-        </div>
-    </div>
-    {/if}
+	<!-- Document Modal -->
+	<DocumentModal
+		bind:open={showDocumentModal}
+		bind:document={selectedDocument}
+		bind:mode={modalMode}
+		onCancel={handleModalClose}
+		onSuccess={handleDocumentSuccess}
+	/>
 </div>

@@ -11,7 +11,7 @@
     import { invalidateAll } from '$app/navigation';
     import { apiCache } from '$lib/api/cache';
     import type { PageData } from './$types';
-    import type { Employee } from '$lib/schemas/employee';
+    import type { Employee } from '$lib/api/types-v2';
 
     let { data }: { data: PageData } = $props();
 
@@ -44,10 +44,10 @@
             if (search) {
                 const searchLower = search.toLowerCase();
                 const matchesSearch = 
-                    emp.firstName?.toLowerCase().includes(searchLower) ||
-                    emp.lastName?.toLowerCase().includes(searchLower) ||
+                    emp.first_name?.toLowerCase().includes(searchLower) ||
+                    emp.last_name?.toLowerCase().includes(searchLower) ||
                     emp.email?.toLowerCase().includes(searchLower) ||
-                    emp.jobTitle?.toLowerCase().includes(searchLower) ||
+                    emp.job_title?.toLowerCase().includes(searchLower) ||
                     emp.username?.toLowerCase().includes(searchLower);
                 
                 if (!matchesSearch) return false;
@@ -75,13 +75,19 @@
     
     // Debug logging
     $effect(() => {
-        console.log('🔍 Filtering employees:', {
+        console.log('🔍 Frontend employee data check:', {
+            rawData: data,
+            employeesData: employeesData,
             totalEmployees: employeesData.data?.length || 0,
             searchTerm,
             departmentFilter,
             statusFilter,
             filteredCount: filteredEmployees.length,
-            employees: employeesData.data
+            firstEmployee: employeesData.data?.[0],
+            employees: employeesData.data,
+            // Log the exact structure of the first employee
+            firstEmployeeKeys: employeesData.data?.[0] ? Object.keys(employeesData.data[0]) : [],
+            firstEmployeeValues: employeesData.data?.[0] ? Object.entries(employeesData.data[0]).slice(0, 10) : []
         });
     });
 
@@ -123,7 +129,7 @@
     }
 
     async function handleDeleteEmployee(employee: Employee) {
-        if (confirm(`Are you sure you want to delete ${employee.firstName} ${employee.lastName}? This action cannot be undone.`)) {
+        if (confirm(`Are you sure you want to delete ${employee.first_name} ${employee.last_name}? This action cannot be undone.`)) {
             try {
                 const response = await fetch(`/api/v2/employees/${employee.id}`, {
                     method: 'DELETE',

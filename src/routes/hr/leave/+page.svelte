@@ -1,9 +1,18 @@
 <script lang="ts">
     import StatCard from '$lib/components/common/StatCard.svelte';
-    import { Calendar, Clock, CheckCircle, AlertCircle, Users, FileText } from 'lucide-svelte';
+    import { Calendar, Clock, CheckCircle, AlertCircle, Users, FileText, Plus, Edit, Eye } from 'lucide-svelte';
+    import { Button } from '$lib/components/ui/button';
+    import { modalStore } from '$lib/stores/hr/modals';
+    import { invalidateAll } from '$app/navigation';
+    import LeaveModal from '$lib/components/hr/modals/LeaveModal.svelte';
     import type { PageData } from './$types';
 
     let { data }: { data: PageData } = $props();
+    
+    // Modal state
+    let showLeaveModal = $state(false);
+    let modalMode = $state<'create' | 'edit' | 'view'>('create');
+    let selectedLeaveRequest = $state<any | null>(null);
     
     // Transform server data for display
     const stats = {
@@ -12,6 +21,92 @@
         approved: data.stats?.approvedRequests || 0,
         avgBalance: data.stats?.averageBalance || 0
     };
+
+    // Subscribe to modal store
+    $effect(() => {
+        const unsubscribe = modalStore.subscribe((state) => {
+            if (state.type === 'leave') {
+                showLeaveModal = state.isOpen;
+                modalMode = state.mode;
+                selectedLeaveRequest = state.data;
+            }
+        });
+        return unsubscribe;
+    });
+
+    // CRUD Operations
+    function handleAddLeaveRequest() {
+        modalStore.open('leave', null, 'create');
+    }
+
+    function handleViewLeaveRequest(request: any) {
+        modalStore.open('leave', request, 'view');
+    }
+
+    function handleEditLeaveRequest(request: any) {
+        modalStore.open('leave', request, 'edit');
+    }
+
+    async function handleLeaveRequestSuccess(leaveRequest: any) {
+        modalStore.close();
+        console.log('✅ Leave request saved successfully, refreshing data...');
+        await invalidateAll();
+    }
+
+    function handleModalClose() {
+        modalStore.close();
+    }
+
+    // Approval workflow functions
+    async function handleApproveRequest(request: any) {
+        if (confirm(`Approve leave request for ${request.employee?.first_name} ${request.employee?.last_name}?`)) {
+            try {
+                const response = await fetch(`/api/v2/leave-requests/${request.id}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status: 'approved' })
+                });
+
+                if (response.ok) {
+                    console.log('✅ Leave request approved successfully');
+                    await invalidateAll();
+                } else {
+                    const error = await response.text();
+                    alert(`Failed to approve request: ${error}`);
+                }
+            } catch (error) {
+                console.error('Approval error:', error);
+                alert('Failed to approve request. Please try again.');
+            }
+        }
+    }
+
+    async function handleRejectRequest(request: any) {
+        if (confirm(`Reject leave request for ${request.employee?.first_name} ${request.employee?.last_name}?`)) {
+            try {
+                const response = await fetch(`/api/v2/leave-requests/${request.id}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status: 'denied' })
+                });
+
+                if (response.ok) {
+                    console.log('✅ Leave request rejected successfully');
+                    await invalidateAll();
+                } else {
+                    const error = await response.text();
+                    alert(`Failed to reject request: ${error}`);
+                }
+            } catch (error) {
+                console.error('Rejection error:', error);
+                alert('Failed to reject request. Please try again.');
+            }
+        }
+    }
 </script>
 
 <svelte:head>
@@ -59,15 +154,25 @@
 	<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 		<!-- Leave Requests -->
 		<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-			<div class="flex items-center gap-2 mb-6">
-				<Calendar class="w-5 h-5 text-blue-600" />
-				<h2 class="text-xl font-semibold text-gray-900 dark:text-white">Leave Requests</h2>
+			<div class="flex items-center justify-between mb-6">
+				<div class="flex items-center gap-2">
+					<Calendar class="w-5 h-5 text-blue-600" />
+					<h2 class="text-xl font-semibold text-gray-900 dark:text-white">Leave Requests</h2>
+				</div>
+				<Button onclick={handleAddLeaveRequest} class="flex items-center gap-2">
+					<Plus class="w-4 h-4" />
+					New Request
+				</Button>
 			</div>
 			
 			{#if stats.totalRequests === 0}
 				<div class="text-center py-8">
 					<Calendar class="w-12 h-12 text-gray-400 mx-auto mb-4" />
-					<p class="text-gray-500">No leave requests found</p>
+					<p class="text-gray-500 mb-4">No leave requests found</p>
+					<Button onclick={handleAddLeaveRequest} class="flex items-center gap-2">
+						<Plus class="w-4 h-4" />
+						Create First Request
+					</Button>
 				</div>
 			{:else}
 				<div class="leave-grid">
@@ -75,9 +180,9 @@
 						<div class="leave-card">
 							<div class="leave-header">
 								<div class="employee-info">
-									<h4>{request.employee?.firstName} {request.employee?.lastName}</h4>
-									{#if request.employee?.jobTitle}
-										<p class="job-title">{request.employee.jobTitle}</p>
+									<h4>{request.employee?.first_name} {request.employee?.last_name}</h4>
+									{#if request.employee?.job_title}
+										<p class="job-title">{request.employee.job_title}</p>
 									{/if}
 								</div>
 								<div class="status-badge {request.status?.toLowerCase() || 'pending'}">
@@ -96,22 +201,28 @@
 								{#if request.approver}
 									<p class="approver-info">
 										<Users class="inline w-4 h-4 mr-1" />
-										Approved by: {request.approver.firstName} {request.approver.lastName}
+										Approved by: {request.approver.first_name} {request.approver.last_name}
 									</p>
 								{/if}
 							</div>
-							{#if request.status === 'Pending'}
-								<div class="action-buttons">
-									<button class="btn-approve">
-										<CheckCircle class="w-4 h-4 mr-1" />
+							<div class="action-buttons">
+								<Button variant="ghost" size="sm" onclick={() => handleViewLeaveRequest(request)} title="View details">
+									<Eye class="w-4 h-4" />
+								</Button>
+								<Button variant="ghost" size="sm" onclick={() => handleEditLeaveRequest(request)} title="Edit request">
+									<Edit class="w-4 h-4" />
+								</Button>
+								{#if request.status === 'Pending'}
+									<Button variant="outline" size="sm" onclick={() => handleApproveRequest(request)} class="text-green-600 hover:text-green-700">
+										<CheckCircle class="w-4 h-4" />
 										Approve
-									</button>
-									<button class="btn-reject">
-										<AlertCircle class="w-4 h-4 mr-1" />
+									</Button>
+									<Button variant="outline" size="sm" onclick={() => handleRejectRequest(request)} class="text-red-600 hover:text-red-700">
+										<AlertCircle class="w-4 h-4" />
 										Reject
-									</button>
-								</div>
-							{/if}
+									</Button>
+								{/if}
+							</div>
 						</div>
 					{/each}
 				</div>
@@ -137,7 +248,7 @@
 							<div class="balance-header">
 								<div class="employee-name">
 									<Users class="w-4 h-4 inline mr-2" />
-									{balance.employee?.firstName} {balance.employee?.lastName}
+									{balance.employee?.first_name} {balance.employee?.last_name}
 								</div>
 								<div class="leave-type-badge">
 									{balance.leaveType}
@@ -170,6 +281,15 @@
 		</div>
 	</div>
 </div>
+
+<!-- Leave Modal -->
+<LeaveModal
+	bind:open={showLeaveModal}
+	bind:leaveRequest={selectedLeaveRequest}
+	bind:mode={modalMode}
+	onCancel={handleModalClose}
+	onSuccess={handleLeaveRequestSuccess}
+/>
 
 <style>
 	.leave-grid {

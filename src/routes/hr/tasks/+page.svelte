@@ -1,15 +1,83 @@
 <script lang="ts">
     import StatCard from '$lib/components/common/StatCard.svelte';
     import TaskList from '$lib/components/common/TaskList.svelte';
-    import { CheckSquare, Clock, Users, AlertCircle } from 'lucide-svelte';
+    import TaskModal from '$lib/components/hr/modals/TaskModal.svelte';
+    import { Button } from '$lib/components/ui/button';
+    import { CheckSquare, Clock, Users, AlertCircle, Plus, Edit, Trash2, Eye } from 'lucide-svelte';
     import { transformTaskStats } from '$lib/utils/dataTransformers.js';
+    import { modalStore } from '$lib/stores/hr/modals';
+    import { invalidateAll } from '$app/navigation';
     import type { PageData } from './$types';
+    import type { Task } from '$lib/api/types-v2';
 
     let { data }: { data: PageData } = $props();
 
     // Transform server data
     const tasksData = data.tasks || [];
     const taskStats = transformTaskStats({ data: tasksData, total: tasksData.length });
+
+    // Modal state
+    let showTaskModal = $state(false);
+    let modalMode = $state<'create' | 'edit' | 'view'>('create');
+    let selectedTask = $state<Task | null>(null);
+
+    // Subscribe to modal store
+    $effect(() => {
+        const unsubscribe = modalStore.subscribe((state) => {
+            if (state.type === 'task') {
+                showTaskModal = state.isOpen;
+                modalMode = state.mode;
+                selectedTask = state.data;
+            }
+        });
+        return unsubscribe;
+    });
+
+    // CRUD Operations
+    function handleAddTask() {
+        modalStore.open('task', null, 'create');
+    }
+
+    function handleViewTask(task: Task) {
+        modalStore.open('task', task, 'view');
+    }
+
+    function handleEditTask(task: Task) {
+        modalStore.open('task', task, 'edit');
+    }
+
+    async function handleDeleteTask(task: Task) {
+        if (confirm(`Are you sure you want to delete "${task.title}"? This action cannot be undone.`)) {
+            try {
+                const response = await fetch(`/api/v2/tasks/${task.id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    console.log('✅ Task deleted successfully, refreshing data...');
+                    await invalidateAll();
+                } else {
+                    const error = await response.text();
+                    alert(`Failed to delete task: ${error}`);
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                alert('Failed to delete task. Please try again.');
+            }
+        }
+    }
+
+    function handleModalClose() {
+        modalStore.close();
+    }
+
+    async function handleTaskSuccess(task: Task) {
+        modalStore.close();
+        await invalidateAll();
+    }
 </script>
 
 <svelte:head>
@@ -54,23 +122,97 @@
 	</div>
 
 	<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-		<div class="flex items-center gap-2 mb-6">
-			<CheckSquare class="w-5 h-5 text-blue-600" />
-			<h2 class="text-xl font-semibold text-gray-900 dark:text-white">All Tasks</h2>
+		<div class="flex items-center justify-between mb-6">
+			<div class="flex items-center gap-2">
+				<CheckSquare class="w-5 h-5 text-blue-600" />
+				<h2 class="text-xl font-semibold text-gray-900 dark:text-white">All Tasks</h2>
+			</div>
+			<Button onclick={handleAddTask} class="flex items-center gap-2">
+				<Plus class="w-4 h-4" />
+				Add Task
+			</Button>
 		</div>
 		
 		{#if taskStats.totalTasks === 0}
 			<div class="text-center py-8">
 				<CheckSquare class="w-12 h-12 text-gray-400 mx-auto mb-4" />
-				<p class="text-gray-500">No tasks found</p>
+				<p class="text-gray-500 mb-4">No tasks found</p>
+				<Button onclick={handleAddTask} class="flex items-center gap-2">
+					<Plus class="w-4 h-4" />
+					Create Your First Task
+				</Button>
 			</div>
 		{:else}
-			<TaskList 
-				tasks={tasksData}
-				showCount={50}
-				showType={true}
-			/>
+			<!-- Enhanced Task List with Action Buttons -->
+			<div class="space-y-4">
+				{#each tasksData as task}
+					<div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+						<div class="flex items-start justify-between">
+							<div class="flex-1 min-w-0">
+								<div class="flex items-center gap-3 mb-2">
+									<h3 class="font-medium text-gray-900 truncate">{task.title}</h3>
+									<span class="px-2 py-1 text-xs rounded-full {
+										task.status === 'completed' ? 'bg-green-100 text-green-800' :
+										task.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+										task.status === 'blocked' ? 'bg-red-100 text-red-800' :
+										'bg-yellow-100 text-yellow-800'
+									}">
+										{task.status}
+									</span>
+									{#if task.priority}
+										<span class="px-2 py-1 text-xs rounded-full {
+											task.priority === 'high' ? 'bg-red-100 text-red-800' :
+											task.priority === 'medium' ? 'bg-orange-100 text-orange-800' :
+											'bg-gray-100 text-gray-800'
+										}">
+											{task.priority}
+										</span>
+									{/if}
+								</div>
+								{#if task.description}
+									<p class="text-sm text-gray-600 mb-2 truncate">{task.description}</p>
+								{/if}
+								<div class="flex items-center gap-4 text-xs text-gray-500">
+									{#if task.due_date}
+										<span class="flex items-center gap-1">
+											<Clock class="w-3 h-3" />
+											Due: {new Date(task.due_date).toLocaleDateString()}
+										</span>
+									{/if}
+									{#if task.assigned_to_name}
+										<span class="flex items-center gap-1">
+											<Users class="w-3 h-3" />
+											Assigned to: {task.assigned_to_name}
+										</span>
+									{/if}
+								</div>
+							</div>
+							<div class="flex items-center gap-2 ml-4">
+								<Button variant="ghost" size="sm" onclick={() => handleViewTask(task)} title="View task">
+									<Eye class="w-4 h-4" />
+								</Button>
+								<Button variant="ghost" size="sm" onclick={() => handleEditTask(task)} title="Edit task">
+									<Edit class="w-4 h-4" />
+								</Button>
+								<Button variant="ghost" size="sm" onclick={() => handleDeleteTask(task)} title="Delete task" class="text-red-600 hover:text-red-700">
+									<Trash2 class="w-4 h-4" />
+								</Button>
+							</div>
+						</div>
+					</div>
+				{/each}
+			</div>
 		{/if}
 	</div>
 </div>
 
+<!-- Task Modal -->
+<TaskModal
+    bind:open={showTaskModal}
+    bind:task={selectedTask}
+    bind:mode={modalMode}
+    availableEmployees={data.employees || []}
+    currentUser={data.user}
+    onCancel={handleModalClose}
+    onSuccess={handleTaskSuccess}
+/>

@@ -1,0 +1,380 @@
+{
+  "name": "Employee Onboarding",
+  "category": "onboarding",
+  "version": 1,
+  "description": "Comprehensive employee onboarding form with personal information, job details, and initial setup requirements",
+  "template_schema": {
+    "fields": [
+      {
+        "id": "personal_section",
+        "name": "personal_section",
+        "type": "section",
+        "label": "Personal Information",
+        "description": "Please provide your basic personal information for our records",
+        "required": false
+      },
+      {
+        "id": "first_name",
+        "name": "firstName",
+        "type": "text",
+        "label": "First Name",
+        "required": true,
+        "validation": {
+          "minLength": 2,
+          "maxLength": 50
+        },
+        "ui_config": {
+          "section": "Personal Information",
+          "placeholder": "Enter your first name"
+        }
+      },
+      {
+        "id": "last_name",
+        "name": "lastName",
+        "type": "text",
+        "label": "Last Name",
+        "required": true,
+        "validation": {
+          "minLength": 2,
+          "maxLength": 50
+        },
+        "ui_config": {
+          "section": "Personal Information",
+          "placeholder": "Enter your last name"
+        }
+      },
+      {
+        "id": "middle_name",
+        "name": "middleName",
+        "type": "text",
+        "label": "Middle Name",
+        "required": false,
+        "validation": {
+          "maxLength": 50
+        },
+        "ui_config": {
+          "section": "Personal Information",
+          "placeholder": "Enter your middle name (optional)"
+        }
+      },
+      {
+        "id": "date_of_birth",
+        "name": "dateOfBirth",
+        "type": "date",
+        "label": "Date of Birth",
+        "required": true,
+        "validation": {
+          "custom": [
+            {
+              "rule": "past_date",
+              "message": "Date of birth must be in the past"
+            }
+          ]
+        },
+        "ui_config": {
+          "section": "Personal Information"
+        }
+      },
+      {
+        "id": "gender",
+        "name": "gender",
+        "type": "select",
+        "label": "Gender",
+        "required": false,
+        "options": [
+          { "value": "male", "label": "Male" },
+          { "value": "female", "label": "Female" },
+          { "value": "non-binary", "label": "Non-binary" },
+          { "value": "prefer-not-to-say", "label": "Prefer not to say" },
+          { "value": "other", "label": "Other" }
+        ],
+        "ui_config": {
+          "section": "Personal Information"
+        }
+      },
+      {
+        "id": "contact_section",
+        "name": "contact_section",
+        "type": "section",
+        "label": "Contact Information",
+        "description": "How can we reach you?",
+        "required": false
+      },
+      {
+        "id": "email",
+        "name": "email",
+        "type": "email",
+        "label": "Personal Email",
+        "required": true,
+        "ui_config": {
+          "section": "Contact Information",
+          "placeholder": "your.email@example.com"
+        }
+      },
+      {
+        "id": "phone_number",
+        "name": "phoneNumber",
+        "type": "phone",
+        "label": "Phone Number",
+        "required": true,
+        "ui_config": {
+          "section": "Contact Information",
+          "placeholder": "Enter your phone number"
+        }
+      },
+      {
+        "id": "address_street",
+        "name": "addressStreet",
+        "type": "text",
+        "label": "Street Address",
+        "required": true,
+        "ui_config": {
+          "section": "Contact Information",
+          "placeholder": "123 Main Street",
+          "column_span": 2
+        }
+      },
+      {
+        "id": "address_city",
+        "name": "addressCity",
+        "type": "text",
+        "label": "City",
+        "required": true,
+        "ui_config": {
+          "section": "Contact Information",
+          "placeholder": "Enter city"
+        }
+      },
+      {
+        "id": "address_state",
+        "name": "addressState",
+        "type": "text",
+        "label": "State/Province",
+        "required": true,
+        "ui_config": {
+          "section": "Contact Information",
+          "placeholder": "Enter state or province"
+        }
+      },
+      {
+        "id": "address_zip",
+        "name": "addressZip",
+        "type": "text",
+        "label": "ZIP/Postal Code",
+        "required": true,
+        "ui_config": {
+          "section": "Contact Information",
+          "placeholder": "Enter ZIP or postal code"
+        }
+      },
+      {
+        "id": "emergency_section",
+        "name": "emergency_section",
+        "type": "section",
+        "label": "Emergency Contact",
+        "description": "Someone we can contact in case of emergency",
+        "required": false
+      },
+      {
+        "id": "emergency_contact_name",
+        "name": "emergencyContactName",
+        "type": "text",
+        "label": "Emergency Contact Name",
+        "required": true,
+        "ui_config": {
+          "section": "Emergency Contact",
+          "placeholder": "Full name"
+        }
+      },
+      {
+        "id": "emergency_contact_relationship",
+        "name": "emergencyContactRelationship",
+        "type": "select",
+        "label": "Relationship",
+        "required": true,
+        "options": [
+          { "value": "spouse", "label": "Spouse" },
+          { "value": "parent", "label": "Parent" },
+          { "value": "sibling", "label": "Sibling" },
+          { "value": "child", "label": "Child" },
+          { "value": "friend", "label": "Friend" },
+          { "value": "other", "label": "Other" }
+        ],
+        "ui_config": {
+          "section": "Emergency Contact"
+        }
+      },
+      {
+        "id": "emergency_contact_phone",
+        "name": "emergencyContactPhone",
+        "type": "phone",
+        "label": "Emergency Contact Phone",
+        "required": true,
+        "ui_config": {
+          "section": "Emergency Contact",
+          "placeholder": "Enter phone number"
+        }
+      },
+      {
+        "id": "job_section",
+        "name": "job_section",
+        "type": "section",
+        "label": "Job Information",
+        "description": "Details about your position and work arrangements",
+        "required": false
+      },
+      {
+        "id": "job_title",
+        "name": "jobTitle",
+        "type": "text",
+        "label": "Job Title",
+        "required": true,
+        "ui_config": {
+          "section": "Job Information",
+          "placeholder": "Your official job title"
+        }
+      },
+      {
+        "id": "department_id",
+        "name": "departmentId",
+        "type": "select",
+        "label": "Department",
+        "required": true,
+        "options": [
+          { "value": "engineering", "label": "Engineering" },
+          { "value": "hr", "label": "Human Resources" },
+          { "value": "marketing", "label": "Marketing" },
+          { "value": "sales", "label": "Sales" },
+          { "value": "finance", "label": "Finance" }
+        ],
+        "ui_config": {
+          "section": "Job Information",
+          "help_text": "Select the department you'll be working in"
+        }
+      },
+      {
+        "id": "hire_date",
+        "name": "hireDate",
+        "type": "date",
+        "label": "Start Date",
+        "required": true,
+        "validation": {
+          "custom": [
+            {
+              "rule": "future_date",
+              "message": "Start date should be today or in the future"
+            }
+          ]
+        },
+        "ui_config": {
+          "section": "Job Information"
+        }
+      },
+      {
+        "id": "employment_type",
+        "name": "employmentType",
+        "type": "radio",
+        "label": "Employment Type",
+        "required": true,
+        "options": [
+          { "value": "Full-time", "label": "Full-time", "description": "Standard 40 hours per week" },
+          { "value": "Part-time", "label": "Part-time", "description": "Less than 40 hours per week" },
+          { "value": "Contract", "label": "Contract", "description": "Fixed-term contract" },
+          { "value": "Intern", "label": "Intern", "description": "Internship position" }
+        ],
+        "ui_config": {
+          "section": "Job Information",
+          "variant": "inline"
+        }
+      },
+      {
+        "id": "work_preferences_section",
+        "name": "work_preferences_section",
+        "type": "section",
+        "label": "Work Preferences",
+        "description": "Tell us about your work style and preferences",
+        "required": false
+      },
+      {
+        "id": "work_location_preference",
+        "name": "workLocationPreference",
+        "type": "checkbox",
+        "label": "Work Location Preferences",
+        "required": false,
+        "options": [
+          { "value": "office", "label": "Office", "description": "Work from the company office" },
+          { "value": "remote", "label": "Remote", "description": "Work from home or remote location" },
+          { "value": "hybrid", "label": "Hybrid", "description": "Mix of office and remote work" }
+        ],
+        "ui_config": {
+          "section": "Work Preferences"
+        }
+      },
+      {
+        "id": "preferred_communication",
+        "name": "preferredCommunication",
+        "type": "select",
+        "label": "Preferred Communication Method",
+        "required": false,
+        "options": [
+          { "value": "email", "label": "Email" },
+          { "value": "slack", "label": "Slack" },
+          { "value": "teams", "label": "Microsoft Teams" },
+          { "value": "phone", "label": "Phone" }
+        ],
+        "ui_config": {
+          "section": "Work Preferences"
+        }
+      },
+      {
+        "id": "additional_info_section",
+        "name": "additional_info_section",
+        "type": "section",
+        "label": "Additional Information",
+        "required": false
+      },
+      {
+        "id": "dietary_restrictions",
+        "name": "dietaryRestrictions",
+        "type": "textarea",
+        "label": "Dietary Restrictions or Allergies",
+        "required": false,
+        "ui_config": {
+          "section": "Additional Information",
+          "placeholder": "Please list any dietary restrictions, food allergies, or special accommodation needs",
+          "size": "medium",
+          "column_span": 2
+        }
+      },
+      {
+        "id": "special_accommodations",
+        "name": "specialAccommodations",
+        "type": "textarea",
+        "label": "Special Accommodations Needed",
+        "required": false,
+        "ui_config": {
+          "section": "Additional Information",
+          "placeholder": "Please describe any workplace accommodations you may need",
+          "size": "medium",
+          "column_span": 2
+        }
+      }
+    ],
+    "validation_rules": [
+      {
+        "field": "emergencyContactPhone",
+        "rule": "conditional_required",
+        "message": "Emergency contact phone is required",
+        "params": {
+          "depends_on": "emergencyContactName",
+          "condition": "not_equals",
+          "value": ""
+        }
+      }
+    ],
+    "ui_config": {
+      "layout": "two_column",
+      "show_progress": true
+    }
+  }
+}

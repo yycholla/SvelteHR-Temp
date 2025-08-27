@@ -1,15 +1,19 @@
 <script lang="ts">
-	import { createTaskForm, updateTaskForm } from '$lib/forms/task-form';
-	import type { Task } from '$lib/schemas/task';
+	import { createTaskForm } from '$lib/forms/task-form';
+	import type { Task, Employee } from '$lib/api/types-v2';
 
 	let {
 		task = null,
 		mode = 'create',
+		availableEmployees = [],
+		currentUser = null,
 		onCancel,
 		onSuccess
 	}: {
 		task: Task | null;
 		mode: 'create' | 'edit' | 'view';
+		availableEmployees?: Employee[];
+		currentUser?: any;
 		onCancel: () => void;
 		onSuccess: (task: Task) => void;
 	} = $props();
@@ -17,21 +21,42 @@
 	const isReadonly = $derived(mode === 'view');
 	const isEditing = $derived(mode === 'edit');
 
-	// Use the existing task form helper
+	// Use the custom task form helper
 	const { form: formData, errors, enhance, submitting } = createTaskForm({ 
 		onSuccess: (createdTask) => onSuccess(createdTask)
 	});
 
-	// Initialize form data for edit mode
+	// Debug logging
 	$effect(() => {
-		if (isEditing && task) {
+		console.log('📋 TaskForm Debug:', {
+			availableEmployees: availableEmployees?.length || 0,
+			currentUser: currentUser?.full_name || 'None',
+			mode
+		});
+	});
+
+	// Initialize form data for create/edit modes  
+	$effect(() => {
+		if (mode === 'create') {
+			// Set default assignee to current user for new tasks
+			$formData = {
+				title: '',
+				description: '',
+				status: 'Pending',
+				dueDate: '',
+				assignedToId: currentUser?.id || '',
+				relatedEntityType: 'General'
+			};
+		} else if (isEditing && task) {
 			$formData = {
 				title: task.title || '',
 				description: task.description || '',
-				status: task.status || 'Pending',
-				dueDate: task.dueDate || '',
-				assignedToId: task.assignedToId || undefined,
-				relatedEntityType: task.relatedEntityType || undefined
+				status: task.status === 'todo' ? 'Pending' : 
+					   task.status === 'in_progress' ? 'InProgress' : 
+					   task.status === 'completed' ? 'Completed' : 'Pending',
+				dueDate: task.due_date || '',
+				assignedToId: task.assigned_to || '',
+				relatedEntityType: 'General' // Default since API doesn't have this field
 			};
 		}
 	});
@@ -42,28 +67,28 @@
 	<div class="space-y-6">
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 			<div>
-				<label class="label"><span>Title</span></label>
+				<div class="label"><span>Title</span></div>
 				<p class="font-medium text-lg">{task.title}</p>
 			</div>
 			<div>
-				<label class="label"><span>Status</span></label>
+				<div class="label"><span>Status</span></div>
 				<p>{task.status}</p>
 			</div>
 			<div class="md:col-span-2">
-				<label class="label"><span>Description</span></label>
+				<div class="label"><span>Description</span></div>
 				<p>{task.description || 'No description provided'}</p>
 			</div>
 			<div>
-				<label class="label"><span>Due Date</span></label>
-				<p>{task.dueDate || 'No due date set'}</p>
+				<div class="label"><span>Due Date</span></div>
+				<p>{task.due_date || 'No due date set'}</p>
 			</div>
 			<div>
-				<label class="label"><span>Assigned To</span></label>
-				<p>{task.assignedToId || 'Unassigned'}</p>
+				<div class="label"><span>Assigned To</span></div>
+				<p>{task.assignee?.full_name || task.assigned_to || 'Unassigned'}</p>
 			</div>
 			<div>
-				<label class="label"><span>Related Entity Type</span></label>
-				<p>{task.relatedEntityType || 'General'}</p>
+				<div class="label"><span>Priority</span></div>
+				<p>{task.priority || 'Normal'}</p>
 			</div>
 		</div>
 		<div class="flex justify-end pt-6 border-t">
@@ -128,19 +153,31 @@
 				/>
 			</div>
 
-			<!-- Assigned To ID -->
+			<!-- Assigned To -->
 			<div>
 				<label class="label" for="assignedToId">
-					<span>Assigned To (Employee ID)</span>
+					<span>Assigned To</span>
 				</label>
-				<input
+				<select
 					id="assignedToId"
 					name="assignedToId"
-					type="number"
-					class="input"
+					class="select"
 					bind:value={$formData.assignedToId}
-					placeholder="Enter employee ID"
-				/>
+				>
+					<option value="">Unassigned</option>
+					<!-- Current User (fallback if no employees in database) -->
+					{#if currentUser && (!availableEmployees?.length || !availableEmployees.some(emp => emp.id === currentUser.id))}
+						<option value={currentUser.id}>
+							{currentUser.full_name || currentUser.username || 'Current User'} (You)
+						</option>
+					{/if}
+					<!-- Regular employees from database -->
+					{#each availableEmployees || [] as employee}
+						<option value={employee.id}>
+							{employee.full_name} ({employee.email})
+						</option>
+					{/each}
+				</select>
 			</div>
 
 			<!-- Related Entity Type -->
@@ -204,6 +241,10 @@
 
 <style>
 	.input-error {
-		@apply !border-error-500 !bg-error-50 dark:!bg-error-900/20;
+		border-color: rgb(239 68 68) !important;
+		background-color: rgb(254 242 242) !important;
+	}
+	:global(.dark) .input-error {
+		background-color: rgb(127 29 29 / 0.2) !important;
 	}
 </style>

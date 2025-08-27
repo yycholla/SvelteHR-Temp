@@ -2,7 +2,7 @@
 	import { Dialog, DialogContent, DialogHeader, DialogTitle } from '$lib/components/ui/dialog';
 	import { modalStore } from '$lib/stores/hr/modals';
 	import EmployeeForm from '../forms/EmployeeForm.svelte';
-	import type { Employee, Role, Department } from '$lib/schemas/employee';
+	import type { Employee, Role, Department } from '$lib/api/types-v2';
 
 	let { 
 		open = $bindable(false),
@@ -20,8 +20,8 @@
 
 	const modalTitle = $derived(
 		mode === 'create' ? 'Add New Employee' :
-		mode === 'edit' ? `Edit Employee: ${employee?.firstName} ${employee?.lastName}` :
-		mode === 'view' ? `Employee Details: ${employee?.firstName} ${employee?.lastName}` :
+		mode === 'edit' ? `Edit Employee: ${employee?.first_name} ${employee?.last_name}` :
+		mode === 'view' ? `Employee Details: ${employee?.first_name} ${employee?.last_name}` :
 		'Employee'
 	);
 

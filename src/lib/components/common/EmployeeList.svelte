@@ -2,17 +2,7 @@
 	import Badge from '$lib/components/ui/badge/badge.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Eye, Edit, Trash2, MoreHorizontal } from 'lucide-svelte';
-
-	interface Employee {
-		id: string | number;
-		firstName: string;
-		lastName: string;
-		jobTitle?: string;
-		status: string;
-		department?: {
-			name: string;
-		};
-	}
+	import type { Employee } from '$lib/api/types-v2';
 
 	interface Props {
 		employees: Employee[];
@@ -56,14 +46,14 @@
 		<div class="employee-item">
 			<div class="employee-info">
 				<div class="employee-avatar">
-					{(employee.firstName?.[0] || '?')}{(employee.lastName?.[0] || '?')}
+					{(employee.first_name?.[0] || '?')}{(employee.last_name?.[0] || '?')}
 				</div>
 				<div class="employee-details">
-					<div class="employee-name">{employee.firstName || 'Unknown'} {employee.lastName || 'User'}</div>
+					<div class="employee-name">{employee.first_name || 'Unknown'} {employee.last_name || 'User'}</div>
 					<div class="employee-meta">
-						{employee.jobTitle || 'No Title'}
-						{#if showDepartment && employee.department}
-							• {employee.department.name}
+						{employee.job_title || employee.role_name || employee.department_name || 'No Title Assigned'}
+						{#if showDepartment && employee.department_name}
+							• {employee.department_name}
 						{/if}
 					</div>
 				</div>

@@ -1,6 +1,8 @@
 <script lang="ts">
     import StatCard from '$lib/components/common/StatCard.svelte';
-    import { Shield, AlertCircle, CheckCircle, Clock, FileText, Upload, Users } from 'lucide-svelte';
+    import { Shield, AlertCircle, CheckCircle, Clock, FileText, Upload, Users, Plus, Edit, Eye, Trash2 } from 'lucide-svelte';
+    import { Button } from '$lib/components/ui/button';
+    import { invalidateAll } from '$app/navigation';
     import type { PageData } from './$types';
 
     let { data }: { data: PageData } = $props();
@@ -12,6 +14,101 @@
         expiringSoon: data.stats?.expiringSoon || 0,
         documents: data.documents?.length || 0
     };
+
+    // CRUD Operations for Compliance Items
+    function handleCreateComplianceItem() {
+        // For now, use a simple prompt-based input - can be enhanced with modal later
+        const title = prompt('Enter compliance item title:');
+        const itemType = prompt('Enter item type (e.g. Training, Certification, Policy):') || 'General';
+        
+        if (title) {
+            // Make API call to create compliance item
+            createComplianceItem({ title, itemType, status: 'Pending' });
+        }
+    }
+
+    function handleViewComplianceItem(item: any) {
+        alert(`Compliance Item: ${item.title}\nType: ${item.itemType}\nStatus: ${item.status}\nDue Date: ${item.dueDate ? new Date(item.dueDate).toLocaleDateString() : 'Not set'}`);
+    }
+
+    function handleEditComplianceItem(item: any) {
+        const newTitle = prompt('Edit title:', item.title);
+        const newStatus = prompt('Edit status (Pending, Active, Completed, Expired):', item.status);
+        
+        if (newTitle && newStatus) {
+            updateComplianceItem(item.id, { title: newTitle, status: newStatus });
+        }
+    }
+
+    async function handleDeleteComplianceItem(item: any) {
+        if (confirm(`Are you sure you want to delete "${item.title}"? This action cannot be undone.`)) {
+            try {
+                const response = await fetch(`/api/v2/compliance-items/${item.id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    console.log('✅ Compliance item deleted successfully');
+                    await invalidateAll();
+                } else {
+                    const error = await response.text();
+                    alert(`Failed to delete compliance item: ${error}`);
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                alert('Failed to delete compliance item. Please try again.');
+            }
+        }
+    }
+
+    async function createComplianceItem(itemData: any) {
+        try {
+            const response = await fetch('/api/v2/compliance-items', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(itemData)
+            });
+
+            if (response.ok) {
+                console.log('✅ Compliance item created successfully');
+                await invalidateAll();
+            } else {
+                const error = await response.text();
+                alert(`Failed to create compliance item: ${error}`);
+            }
+        } catch (error) {
+            console.error('Create error:', error);
+            alert('Failed to create compliance item. Please try again.');
+        }
+    }
+
+    async function updateComplianceItem(itemId: string, updateData: any) {
+        try {
+            const response = await fetch(`/api/v2/compliance-items/${itemId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updateData)
+            });
+
+            if (response.ok) {
+                console.log('✅ Compliance item updated successfully');
+                await invalidateAll();
+            } else {
+                const error = await response.text();
+                alert(`Failed to update compliance item: ${error}`);
+            }
+        } catch (error) {
+            console.error('Update error:', error);
+            alert('Failed to update compliance item. Please try again.');
+        }
+    }
 </script>
 
 <svelte:head>
@@ -78,7 +175,7 @@
 							{#if item.employee}
 								<p class="employee-name">
 									<Users class="inline w-4 h-4 mr-1" />
-									{item.employee.firstName} {item.employee.lastName}
+									{item.employee.first_name} {item.employee.last_name}
 								</p>
 							{/if}
 							{#if item.dueDate}

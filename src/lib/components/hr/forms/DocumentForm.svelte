@@ -215,7 +215,7 @@
 		return employee ? `${employee.first_name} ${employee.last_name}` : 'Unknown Employee';
 	}
 
-	$: formState = $form;
+	const formState = $derived($form);
 </script>
 
 <form on:submit|preventDefault={handleSubmit} class="space-y-6">

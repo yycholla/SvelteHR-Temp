@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { Star, TrendingUp, Calendar, User, FileText, Plus, Filter, Award, AlertCircle } from 'lucide-svelte';
+	import { goto, invalidateAll } from '$app/navigation';
+	import { Star, TrendingUp, Calendar, User, FileText, Plus, Filter, Award, AlertCircle, Edit, Eye, Trash2 } from 'lucide-svelte';
 	import Card from '$lib/components/ui/card/card.svelte';
 	import CardHeader from '$lib/components/ui/card/card-header.svelte';
 	import CardTitle from '$lib/components/ui/card/card-title.svelte';
@@ -22,7 +22,75 @@
 	let activeTab = $state('reviews');
 	let statusFilter = $state(data.filters.status);
 	let employeeFilter = $state(data.filters.employeeId);
-  let createReviewOpen = $state(false);
+	let createReviewOpen = $state(false);
+
+	// CRUD Operations
+	function handleCreateReview() {
+		// For now, use a simple prompt - can be enhanced with modal later
+		console.log('Create review functionality will be implemented');
+		alert('Create Review functionality will be implemented with proper form modal.');
+	}
+
+	function handleViewReview(review: any) {
+		console.log('View review:', review);
+		// Navigate to detailed review page or open modal
+		goto(`/hr/performance/${review.id}`);
+	}
+
+	function handleEditReview(review: any) {
+		console.log('Edit review:', review);
+		// Navigate to edit page or open modal  
+		goto(`/hr/performance/${review.id}/edit`);
+	}
+
+	async function handleDeleteReview(review: any) {
+		if (confirm(`Are you sure you want to delete the performance review for ${review.employee?.first_name} ${review.employee?.last_name}? This action cannot be undone.`)) {
+			try {
+				const response = await fetch(`/api/v2/performance-reviews/${review.id}`, {
+					method: 'DELETE',
+					headers: {
+						'Content-Type': 'application/json'
+					}
+				});
+
+				if (response.ok) {
+					console.log('✅ Performance review deleted successfully');
+					await invalidateAll();
+				} else {
+					const error = await response.text();
+					alert(`Failed to delete review: ${error}`);
+				}
+			} catch (error) {
+				console.error('Delete error:', error);
+				alert('Failed to delete review. Please try again.');
+			}
+		}
+	}
+
+	async function handleCompleteReview(review: any) {
+		if (confirm(`Mark performance review for ${review.employee?.first_name} ${review.employee?.last_name} as completed?`)) {
+			try {
+				const response = await fetch(`/api/v2/performance-reviews/${review.id}`, {
+					method: 'PATCH',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({ status: 'Completed' })
+				});
+
+				if (response.ok) {
+					console.log('✅ Performance review completed successfully');
+					await invalidateAll();
+				} else {
+					const error = await response.text();
+					alert(`Failed to complete review: ${error}`);
+				}
+			} catch (error) {
+				console.error('Complete error:', error);
+				alert('Failed to complete review. Please try again.');
+			}
+		}
+	}
 
 	// Derived data from server
 	const performanceReviews = $derived(data.performanceReviews);
@@ -196,10 +264,18 @@
 					<!-- Reviews List -->
 					<Card class="bg-white/60 dark:bg-slate-700/60 backdrop-blur-sm border border-white/40 dark:border-slate-600/40 rounded-lg">
 						<CardHeader>
-							<CardTitle>Performance Reviews</CardTitle>
-							<CardDescription>
-								Current and past employee performance evaluations
-							</CardDescription>
+							<div class="flex items-center justify-between">
+								<div>
+									<CardTitle>Performance Reviews</CardTitle>
+									<CardDescription>
+										Current and past employee performance evaluations
+									</CardDescription>
+								</div>
+								<Button onclick={handleCreateReview} class="flex items-center gap-2">
+									<Plus class="w-4 h-4" />
+									New Review
+								</Button>
+							</div>
 						</CardHeader>
 						<CardContent>
 							<!-- Enhanced bulk operations for performance reviews -->
@@ -233,7 +309,7 @@
 											: 'Start by creating your first performance review'}
 									</p>
 									{#if statusFilter === 'all'}
-										<Button class="mt-4">
+										<Button class="mt-4" onclick={handleCreateReview}>
 											<Plus class="h-4 w-4 mr-2" />
 											Create Review
 										</Button>
@@ -250,12 +326,12 @@
 												<div class="flex items-start space-x-4 flex-1">
 													<div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
 														<span class="text-sm font-medium text-primary">
-															{review.employee?.firstName?.[0] || ''}{review.employee?.lastName?.[0] || ''}
+															{review.employee?.first_name?.[0] || ''}{review.employee?.last_name?.[0] || ''}
 														</span>
 													</div>
 													<div class="flex-1 min-w-0">
 														<h3 class="font-medium text-foreground">
-															{review.employee?.firstName} {review.employee?.lastName}
+															{review.employee?.first_name} {review.employee?.last_name}
 														</h3>
 														<p class="text-sm text-muted-foreground mt-1">
 															{review.reviewPeriod || 'Annual Review'} • {formatDate(review.reviewDate)}
@@ -281,7 +357,7 @@
 												<div>
 													<span class="font-medium">Reviewer:</span>
 													<p class="text-muted-foreground">
-														{review.reviewer?.firstName} {review.reviewer?.lastName}
+														{review.reviewer?.first_name} {review.reviewer?.last_name}
 													</p>
 												</div>
 												<div>
@@ -314,14 +390,24 @@
 
 											<!-- Actions -->
 											<div class="flex items-center space-x-2 mt-4 pt-2 border-t border-border/30">
-												<Button variant="outline" size="sm">
+												<Button variant="outline" size="sm" onclick={() => handleViewReview(review)} title="View details">
+													<Eye class="w-4 h-4 mr-1" />
 													View Details
 												</Button>
+												<Button variant="outline" size="sm" onclick={() => handleEditReview(review)} title="Edit review">
+													<Edit class="w-4 h-4 mr-1" />
+													Edit
+												</Button>
 												{#if review.status !== 'Completed'}
-													<Button size="sm">
-														Continue Review
+													<Button size="sm" onclick={() => handleCompleteReview(review)} title="Mark as completed">
+														<Award class="w-4 h-4 mr-1" />
+														Complete Review
 													</Button>
 												{/if}
+												<Button variant="outline" size="sm" onclick={() => handleDeleteReview(review)} title="Delete review" class="text-red-600 hover:text-red-700">
+													<Trash2 class="w-4 h-4 mr-1" />
+													Delete
+												</Button>
 											</div>
 										</div>
 									{/each}

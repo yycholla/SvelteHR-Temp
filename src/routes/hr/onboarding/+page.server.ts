@@ -1,72 +1,55 @@
 import type { PageServerLoad } from './$types';
-import { apiClient } from '$lib/api/client';
+import { loadEmployeeData, parseSearchParams } from '$lib/api/server-client';
 
 export const load: PageServerLoad = async ({ cookies, url }) => {
-	const token = cookies.get('auth-token');
-	
-	console.log('🚀 Loading onboarding page - Token present:', !!token);
-
-	if (!token) {
-		throw new Error('Authentication required');
-	}
-
-	// Create server-side API client with auth token
-	const serverApiClient = apiClient.extend({
-		hooks: {
-			beforeRequest: [
-				(request) => {
-					request.headers.set('Authorization', `Bearer ${token}`);
-					request.headers.set('Content-Type', 'application/json');
-					console.log(`📡 API Request: ${request.method} ${request.url}`);
-				}
-			],
-			afterResponse: [
-				(request, options, response) => {
-					console.log(`📡 API Response: ${response.status} for ${request.url}`);
-					return response;
-				}
-			]
-		}
-	});
+	console.log('🚀 Loading onboarding page with new API client');
 
 	// Get query parameters for filtering
-	const searchParams = url.searchParams;
-	const status = searchParams.get('status') || 'all';
+	const urlParams = parseSearchParams(url);
+	const status = url.searchParams.get('status') || 'all';
 
 	try {
-		// Build query parameters
-		const queryParams = new URLSearchParams();
-		if (status !== 'all') queryParams.append('status', status);
-
-		// Fetch onboarding employees
-		const employeesResponse = await serverApiClient.get(`employees?${queryParams.toString()}`).json();
-
-		const employees = employeesResponse.data || [];
-
-		// Calculate onboarding stats
-		const stats = {
-			total: employees.length,
-			preHire: employees.filter((emp: any) => emp.status === 'PreHire').length,
-			onboarding: employees.filter((emp: any) => emp.status === 'Onboarding').length,
-			active: employees.filter((emp: any) => emp.status === 'Active').length,
-			overdue: 0 // Would calculate based on hire date vs current progress
+		// Build API parameters - focus on new/onboarding employees
+		const apiParams = {
+			page: urlParams.page,
+			limit: urlParams.limit,
+			status: status !== 'all' ? status : undefined,
+			// Remove order_by for now due to database schema issues
+			// order_by: 'created_at', // Show recently hired first
+			// order_direction: 'desc'
 		};
 
-		console.log('✅ Onboarding page data loaded successfully');
+		// Load employee data using the centralized helper
+		const employeeData = await loadEmployeeData(cookies, apiParams);
+
+		// Calculate onboarding stats from loaded employees
+		const stats = {
+			total: employeeData.employees.length,
+			preHire: employeeData.employees.filter((emp: any) => emp.status === 'pre_hire').length,
+			onboarding: employeeData.employees.filter((emp: any) => emp.status === 'onboarding').length,
+			active: employeeData.employees.filter((emp: any) => emp.status === 'active').length,
+			overdue: 0 // Could be calculated based on hire date vs current progress
+		};
+
+		console.log('✅ Onboarding page loaded with', employeeData.employees.length, 'employees');
 
 		return {
-			onboardingEmployees: employees,
+			onboardingEmployees: employeeData.employees,
+			departments: employeeData.departments,
 			stats,
+			totalCount: employeeData.pagination.totalCount,
 			filters: {
 				status
 			}
 		};
+
 	} catch (error: any) {
 		console.error('❌ Error loading onboarding data:', error);
 		
 		// Return empty data with error state
 		return {
 			onboardingEmployees: [],
+			departments: [],
 			stats: {
 				total: 0,
 				preHire: 0,
@@ -74,6 +57,7 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 				active: 0,
 				overdue: 0
 			},
+			totalCount: 0,
 			filters: {
 				status: 'all'
 			},
