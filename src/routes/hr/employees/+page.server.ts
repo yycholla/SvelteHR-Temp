@@ -1,17 +1,14 @@
 import type { PageServerLoad } from './$types';
-import { apiClient } from '$lib/api/client';
+import { secureApiClient } from '$lib/utils/secure-fetch';
 
 export const load: PageServerLoad = async ({ cookies, url }) => {
 	console.log('🔄 SERVER LOAD: employees page load function called');
-	const token = cookies.get('auth-token');
+	const token = cookies.get('hr_token');
 	
 
 	if (!token) {
 		throw new Error('Authentication required');
 	}
-
-	// Set token for server-side request
-	apiClient.setToken(token);
 
 	// Get query parameters for filtering and pagination
 	const searchParams = url.searchParams;
@@ -31,31 +28,38 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 		if (status && status !== 'all') queryParams.status = status;
 		if (department && department !== 'all') queryParams.department_id = department;
 
-		// Use v2 endpoints with new API client
-		console.log('📡 SERVER LOAD: Making API calls to v2 backend...');
+		// Use secure API client for production-ready server-side calls
+		console.log('🔒 SERVER LOAD: Making secure API calls to v2 backend...');
 		const [employeesResponse, departmentsResponse, rolesResponse] = await Promise.allSettled([
-			apiClient.get('/employees', queryParams),
-			apiClient.get('/organization/departments'),
-			apiClient.get('/organization/roles')
+			secureApiClient.get('/api/v2/employees', token, queryParams),
+			secureApiClient.get('/api/v2/departments', token),
+			secureApiClient.get('/api/v2/roles', token)
 		]);
-		console.log('✅ SERVER LOAD: API calls completed');
+		console.log('✅ SERVER LOAD: Secure API calls completed');
 
 		// Process employees response
-		const employeesData = employeesResponse.status === 'fulfilled' && employeesResponse.value.success
-			? employeesResponse.value.data 
-			: { data: [], total: 0, totalPages: 1 };
+		let employeesData = { data: [], total: 0, totalPages: 1 };
+		if (employeesResponse.status === 'fulfilled' && employeesResponse.value.success) {
+			employeesData = employeesResponse.value.data || employeesData;
+		} else if (employeesResponse.status === 'fulfilled') {
+			console.error('Employees API error:', employeesResponse.value.error);
+		}
 
 		// Process departments response
-		const departmentsData = departmentsResponse.status === 'fulfilled' && departmentsResponse.value.success
-			? departmentsResponse.value.data 
-			: [];
+		let departmentsData = [];
+		if (departmentsResponse.status === 'fulfilled' && departmentsResponse.value.success) {
+			departmentsData = departmentsResponse.value.data || [];
+		} else if (departmentsResponse.status === 'fulfilled') {
+			console.error('Departments API error:', departmentsResponse.value.error);
+		}
 
 		// Process roles response with simple transformation
 		let rolesData = [];
 		if (rolesResponse.status === 'fulfilled' && rolesResponse.value.success) {
 			try {
-				const rawRoles = Array.isArray(rolesResponse.value.data) ? rolesResponse.value.data : [];
-				rolesData = rawRoles.map((role: any) => ({
+				const rawRoles = rolesResponse.value.data;
+				const rolesArray = Array.isArray(rawRoles) ? rawRoles : [];
+				rolesData = rolesArray.map((role: any) => ({
 					id: (role.ID || role.id || 0).toString(),
 					name: role.Name || role.name || 'Unknown Role',
 					description: role.Description || role.description || null
@@ -64,6 +68,8 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 				console.error('Error processing roles:', error);
 				rolesData = [];
 			}
+		} else if (rolesResponse.status === 'fulfilled') {
+			console.error('Roles API error:', rolesResponse.value.error);
 		}
 
 

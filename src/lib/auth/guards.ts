@@ -92,7 +92,7 @@ export function withAuthGuard<T extends Record<string, any>>(
 ) {
   return async (event: any) => {
     const { cookies, url } = event;
-    const token = cookies.get('auth-token');
+    const token = cookies.get('hr_token');
 
     if (!token) {
       // Redirect to login

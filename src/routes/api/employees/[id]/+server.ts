@@ -6,7 +6,7 @@ import { updateEmployeeSchema } from '$lib/schemas/employee';
 export const PUT: RequestHandler = async ({ request, cookies, params }) => {
 	try {
 		// Get auth token from cookies
-		const token = cookies.get('auth-token');
+		const token = cookies.get('hr_token');
 		
 		if (!token) {
 			return json({ error: 'Authentication required' }, { status: 401 });
@@ -29,7 +29,7 @@ export const PUT: RequestHandler = async ({ request, cookies, params }) => {
 		});
 
 		// Update employee via backend API (using V2 endpoint)
-		const employee = await serverApiClient.put(`v2/employees/${params.id}`, { json: updateData }).json();
+		const employee = await serverApiClient.put(`api/v2/employees/${params.id}`, { json: updateData }).json();
 		
 		return json(employee);
 	} catch (error: any) {

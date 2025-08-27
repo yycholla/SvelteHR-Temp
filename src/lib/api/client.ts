@@ -121,7 +121,7 @@ export class MountainHRApiClient {
       if (response.status === 401 && !skipAuth && !skipRefresh && this.token) {
         try {
           // Attempt token refresh
-          const refreshResponse = await this.request<{ token: string }>('/api/v2/auth/rbac/refresh', { 
+          const refreshResponse = await this.request<{ token: string }>('/api/v2/auth/refresh', { 
             method: 'POST',
             skipRefresh: true 
           });
@@ -412,7 +412,7 @@ export class MountainHRApiClient {
    */
   auth = {
     login: async (username: string, password: string) => {
-      const response = await this.post<any>('/api/v2/auth/rbac/login', {
+      const response = await this.post<any>('/api/v2/auth/login', {
         username,
         password
       });
@@ -457,11 +457,11 @@ export class MountainHRApiClient {
     },
 
     verify: async () => {
-      return this.get<{ user: any; roles: any[]; permissions: string[] }>('/api/v2/auth/rbac/verify');
+      return this.get<{ user: any; roles: any[]; permissions: string[] }>('/api/v2/auth/verify');
     },
 
     refresh: async () => {
-      return this.post<{ token: string }>('/api/v2/auth/rbac/refresh');
+      return this.post<{ token: string }>('/api/v2/auth/refresh');
     }
   };
 }

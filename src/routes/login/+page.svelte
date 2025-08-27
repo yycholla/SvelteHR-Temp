@@ -41,7 +41,7 @@
 	// Demo credentials helper
 	function fillDemoCredentials() {
 		username = 'admin';
-		password = 'admin123';
+		password = 'admin';
 	}
 
 	// Handle login form submission
@@ -56,12 +56,10 @@
 		error = '';
 		const result = await authActions.login({ username, password, rememberMe });
 
-		if (result.success) {
-			const redirectTo = $page.url.searchParams.get('redirectTo') || '/home';
-			await goto(redirectTo, { replaceState: true });
-		} else {
+		if (!result.success) {
 			error = result.error || 'Login failed';
 		}
+		// Note: Redirect is handled by authActions.login() in auth store
 	}
 </script>
 
@@ -239,7 +237,7 @@
 			<div class="inline-flex items-center space-x-4 text-sm text-muted-foreground bg-background/20 backdrop-blur-sm border border-border/40 rounded-2xl px-4 py-2 shadow-lg">
 				<Badge variant="secondary" class="bg-primary/10 text-primary border-primary/20">Demo Available</Badge>
 				<span>Username: admin</span>
-				<span>Password: admin123</span>
+				<span>Password: admin</span>
 			</div>
 		</div>
 

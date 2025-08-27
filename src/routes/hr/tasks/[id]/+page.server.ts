@@ -10,7 +10,7 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 
 	try {
 		// Fetch task data from the API
-		const taskResponse = await fetch(`http://localhost:8080/api/v1/tasks/${id}`, {
+		const taskResponse = await fetch(`http://localhost:8080/api/v2/tasks/${id}`, {
 			headers: {
 				'Content-Type': 'application/json'
 			}
@@ -29,7 +29,7 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 		let assignedEmployee = null;
 		if (taskData.data.assigned_to) {
 			try {
-				const employeeResponse = await fetch(`http://localhost:8080/api/v1/employees/${taskData.data.assigned_to}`, {
+				const employeeResponse = await fetch(`http://localhost:8080/api/v2/employees/${taskData.data.assigned_to}`, {
 					headers: {
 						'Content-Type': 'application/json'
 					}
@@ -48,7 +48,7 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 		let assignedByEmployee = null;
 		if (taskData.data.assigned_by) {
 			try {
-				const employeeResponse = await fetch(`http://localhost:8080/api/v1/employees/${taskData.data.assigned_by}`, {
+				const employeeResponse = await fetch(`http://localhost:8080/api/v2/employees/${taskData.data.assigned_by}`, {
 					headers: {
 						'Content-Type': 'application/json'
 					}

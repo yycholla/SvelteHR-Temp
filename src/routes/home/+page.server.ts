@@ -74,17 +74,21 @@ export const load: PageServerLoad = async ({ cookies, locals }) => {
 				return { ...cachedDashboard, isUsingMockData: false };
 			}
 			
-			// Set token for server-side request
-			apiClient.setToken(token);
+			// Use direct fetch for server-side calls with proper headers
+			const baseURL = 'http://localhost:8080';
+			const headers = {
+				'Authorization': `Bearer ${token}`,
+				'Content-Type': 'application/json'
+			};
 
 			// Try to fetch dashboard stats from the dedicated endpoint first
 			let dashboardStats = null;
 			if (primaryRole.name === 'Admin') {
 				try {
-					const statsResponse = await apiClient.get('/admin/dashboard/stats');
-					if (statsResponse.success) {
-						dashboardStats = statsResponse.data;
-						console.log('📊 Dashboard stats loaded from admin endpoint');
+					const statsResponse = await fetch(`${baseURL}/api/v2/monitoring/application`, { headers });
+					if (statsResponse.ok) {
+						dashboardStats = await statsResponse.json();
+						console.log('📊 Dashboard stats loaded from monitoring endpoint');
 					}
 				} catch (error) {
 					console.log('📊 Admin dashboard stats not available, using individual endpoints');
@@ -94,23 +98,23 @@ export const load: PageServerLoad = async ({ cookies, locals }) => {
 			// Fetch basic dashboard data in parallel
 			const dataFetches = [
 				// Basic data for all users
-				apiClient.get('/employees', { pageSize: 1 }),
-				apiClient.get('/portal/events'),
-				apiClient.get('/notifications')
+				fetch(`${baseURL}/api/v2/employees?pageSize=1`, { headers }),
+				fetch(`${baseURL}/portal/events`, { headers }),
+				fetch(`${baseURL}/notifications`, { headers })
 			];
 			
 			// Add role-specific API calls
-			if (userRole === 'HR' || userRole === 'Admin') {
+			if (primaryRole.name === 'HR' || primaryRole.name === 'Admin') {
 				dataFetches.push(
-					apiClient.get('/compliance/stats'),
-					apiClient.get('/hr-requests')
+					fetch(`${baseURL}/api/v2/monitoring/system`, { headers }),
+					fetch(`${baseURL}/hr-requests`, { headers })
 				);
 			}
 			
-			if (userRole === 'Manager' || userRole === 'HR' || userRole === 'Admin') {
+			if (primaryRole.name === 'Manager' || primaryRole.name === 'HR' || primaryRole.name === 'Admin') {
 				dataFetches.push(
-					apiClient.get('/tasks'),
-					apiClient.get('/leave/requests')
+					fetch(`${baseURL}/api/v2/tasks`, { headers }),
+					fetch(`${baseURL}/leave/requests`, { headers })
 				);
 			}
 			
@@ -120,14 +124,35 @@ export const load: PageServerLoad = async ({ cookies, locals }) => {
 			const [employeesResponse, eventsResponse, notificationsResponse, ...roleSpecificResponses] = responses;
 			
 			// Basic data processing
-			const totalEmployees = employeesResponse.status === 'fulfilled' && employeesResponse.value.success ? 
-				(employeesResponse.value.data?.meta?.total || employeesResponse.value.data?.length || 0) : 0;
+			let totalEmployees = 0;
+			if (employeesResponse.status === 'fulfilled' && employeesResponse.value.ok) {
+				try {
+					const employeesData = await employeesResponse.value.json();
+					totalEmployees = employeesData?.meta?.total || employeesData?.length || 0;
+				} catch (error) {
+					console.error('Error parsing employees response:', error);
+				}
+			}
 			
-			const events = eventsResponse.status === 'fulfilled' && eventsResponse.value.success ? 
-				(Array.isArray(eventsResponse.value.data) ? eventsResponse.value.data : []) : [];
+			let events = [];
+			if (eventsResponse.status === 'fulfilled' && eventsResponse.value.ok) {
+				try {
+					const eventsData = await eventsResponse.value.json();
+					events = Array.isArray(eventsData) ? eventsData : [];
+				} catch (error) {
+					console.error('Error parsing events response:', error);
+				}
+			}
 			
-			const notifications = notificationsResponse.status === 'fulfilled' && notificationsResponse.value.success ?
-				(Array.isArray(notificationsResponse.value.data) ? notificationsResponse.value.data.length : 0) : 0;
+			let notifications = 0;
+			if (notificationsResponse.status === 'fulfilled' && notificationsResponse.value.ok) {
+				try {
+					const notificationsData = await notificationsResponse.value.json();
+					notifications = Array.isArray(notificationsData) ? notificationsData.length : 0;
+				} catch (error) {
+					console.error('Error parsing notifications response:', error);
+				}
+			}
 			
 			// Process role-specific data
 			let complianceData = null;
@@ -137,21 +162,43 @@ export const load: PageServerLoad = async ({ cookies, locals }) => {
 			
 			let responseIndex = 0;
 			
-			if (userRole === 'HR' || userRole === 'Admin') {
-				complianceData = roleSpecificResponses[responseIndex]?.status === 'fulfilled' && roleSpecificResponses[responseIndex].value.success ? 
-					roleSpecificResponses[responseIndex].value.data : null;
+			if (primaryRole.name === 'HR' || primaryRole.name === 'Admin') {
+				if (roleSpecificResponses[responseIndex]?.status === 'fulfilled' && roleSpecificResponses[responseIndex].value.ok) {
+					try {
+						complianceData = await roleSpecificResponses[responseIndex].value.json();
+					} catch (error) {
+						console.error('Error parsing compliance data:', error);
+					}
+				}
 				responseIndex++;
-				hrRequestsData = roleSpecificResponses[responseIndex]?.status === 'fulfilled' && roleSpecificResponses[responseIndex].value.success ? 
-					roleSpecificResponses[responseIndex].value.data : null;
+				
+				if (roleSpecificResponses[responseIndex]?.status === 'fulfilled' && roleSpecificResponses[responseIndex].value.ok) {
+					try {
+						hrRequestsData = await roleSpecificResponses[responseIndex].value.json();
+					} catch (error) {
+						console.error('Error parsing HR requests data:', error);
+					}
+				}
 				responseIndex++;
 			}
 			
-			if (userRole === 'Manager' || userRole === 'HR' || userRole === 'Admin') {
-				tasksData = roleSpecificResponses[responseIndex]?.status === 'fulfilled' && roleSpecificResponses[responseIndex].value.success ? 
-					roleSpecificResponses[responseIndex].value.data : null;
+			if (primaryRole.name === 'Manager' || primaryRole.name === 'HR' || primaryRole.name === 'Admin') {
+				if (roleSpecificResponses[responseIndex]?.status === 'fulfilled' && roleSpecificResponses[responseIndex].value.ok) {
+					try {
+						tasksData = await roleSpecificResponses[responseIndex].value.json();
+					} catch (error) {
+						console.error('Error parsing tasks data:', error);
+					}
+				}
 				responseIndex++;
-				leaveData = roleSpecificResponses[responseIndex]?.status === 'fulfilled' && roleSpecificResponses[responseIndex].value.success ? 
-					roleSpecificResponses[responseIndex].value.data : null;
+				
+				if (roleSpecificResponses[responseIndex]?.status === 'fulfilled' && roleSpecificResponses[responseIndex].value.ok) {
+					try {
+						leaveData = await roleSpecificResponses[responseIndex].value.json();
+					} catch (error) {
+						console.error('Error parsing leave data:', error);
+					}
+				}
 			}
 
 			const dashboardData = {

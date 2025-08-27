@@ -31,8 +31,8 @@ export const handle: Handle = async ({ event, resolve }) => {
   
   if (token) {
     try {
-      // Verify JWT token with backend using the correct RBAC endpoint
-      const response = await fetch(`${PUBLIC_API_URL || 'http://localhost:8080'}/api/v2/auth/rbac/verify`, {
+      // Verify JWT token with backend using the correct endpoint
+      const response = await fetch(`${PUBLIC_API_URL || 'http://localhost:8080'}/api/v2/auth/verify`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

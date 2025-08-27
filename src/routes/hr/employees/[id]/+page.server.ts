@@ -10,7 +10,7 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 
 	try {
 		// Fetch employee data from the API
-		const employeeResponse = await fetch(`http://localhost:8080/api/v1/employees/${id}`, {
+		const employeeResponse = await fetch(`http://localhost:8080/api/v2/employees/${id}`, {
 			headers: {
 				'Content-Type': 'application/json'
 			}
@@ -26,7 +26,7 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 		const employeeData = await employeeResponse.json();
 
 		// Fetch employee's tasks
-		const tasksResponse = await fetch(`http://localhost:8080/api/v1/tasks?assigned_to=${id}&limit=10`, {
+		const tasksResponse = await fetch(`http://localhost:8080/api/v2/tasks?assigned_to=${id}&limit=10`, {
 			headers: {
 				'Content-Type': 'application/json'
 			}
