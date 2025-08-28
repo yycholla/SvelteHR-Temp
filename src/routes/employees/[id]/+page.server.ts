@@ -8,7 +8,7 @@ import { apiCache, CACHE_KEYS, CACHE_TTL } from '$lib/api/cache';
 
 export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 	const { id } = params;
-	const token = cookies.get('auth-token');
+	const token = cookies.get('hr_token');
 
 	console.log(`🔍 Employee ${id} page load - Token present:`, !!token);
 	console.log(`🔍 Employee ${id} page load - User authenticated:`, !!locals.user);

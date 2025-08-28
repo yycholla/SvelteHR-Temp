@@ -100,7 +100,7 @@ export const eventApi = {
 			}
 			
 			// Check if auth token exists
-			const hasAuthToken = document.cookie.includes('auth-token');
+			const hasAuthToken = document.cookie.includes('hr_token');
 			console.error('🔐 Auth token in cookie?', hasAuthToken);
 			
 			throw error;

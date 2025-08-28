@@ -16,7 +16,7 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
 	}
 	
 	// Get authentication token
-	const token = cookies.get('auth-token');
+	const token = cookies.get('hr_token');
 	
 	// Parse URL parameters
 	const page = Number(url.searchParams.get('page')) || 1;

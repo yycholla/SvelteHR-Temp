@@ -6,7 +6,7 @@ import { z } from 'zod';
 
 export const load: PageServerLoad = async ({ url, cookies }) => {
 	// Get authentication token
-	const token = cookies.get('auth-token');
+	const token = cookies.get('hr_token');
 	
 	if (!token) {
 		throw error(401, 'Authentication required');
@@ -95,7 +95,7 @@ export const actions: Actions = {
 		console.log('🚀 createEvent action started');
 		
 		try {
-			const token = cookies.get('auth-token');
+			const token = cookies.get('hr_token');
 			console.log('🔑 Token found:', !!token);
 			
 			if (!token) {
@@ -156,7 +156,7 @@ export const actions: Actions = {
 	},
 
 	deleteEvent: async ({ request, cookies }) => {
-		const token = cookies.get('auth-token');
+		const token = cookies.get('hr_token');
 		
 		if (!token) {
 			return fail(401, { error: 'Authentication required' });

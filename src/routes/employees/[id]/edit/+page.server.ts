@@ -8,7 +8,7 @@ import { apiCache, CACHE_KEYS, CACHE_TTL } from '$lib/api/cache';
 
 export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 	const { id } = params;
-	const token = cookies.get('auth-token');
+	const token = cookies.get('hr_token');
 
 	console.log(`🔍 Employee ${id} edit page load - Token present:`, !!token);
 	console.log(`🔍 Employee ${id} edit page load - User authenticated:`, !!locals.user);
@@ -195,7 +195,7 @@ export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 export const actions: Actions = {
 	save: async ({ params, request, cookies }) => {
 		const { id } = params;
-		const token = cookies.get('auth-token');
+		const token = cookies.get('hr_token');
 
 		if (!token) {
 			throw error(401, { message: 'Authentication required' });

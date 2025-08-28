@@ -34,12 +34,22 @@ export function createEmployeeForm(options: {
 				const formDataObj = Object.fromEntries(formData);
 				console.log('📝 Raw form data:', formDataObj);
 				
-				// Convert string values to appropriate types
-				const processedData = {
-					...formDataObj,
-					roleId: formDataObj.roleId ? parseInt(formDataObj.roleId as string) : undefined,
-					departmentId: formDataObj.departmentId ? parseInt(formDataObj.departmentId as string) : undefined
-				};
+				// Convert string values to appropriate types and clean undefined values
+				const processedData: any = { ...formDataObj };
+				
+				// Handle roleId - required field
+				if (formDataObj.roleId) {
+					processedData.roleId = parseInt(formDataObj.roleId as string);
+				} else {
+					delete processedData.roleId; // Let validation catch this
+				}
+				
+				// Handle departmentId - optional field
+				if (formDataObj.departmentId) {
+					processedData.departmentId = parseInt(formDataObj.departmentId as string);
+				} else {
+					delete processedData.departmentId; // Omit entirely if not provided
+				}
 				console.log('🔄 Processed data:', processedData);
 				
 				const data = createEmployeeSchema.parse(processedData);
@@ -101,13 +111,22 @@ export function updateEmployeeForm(employeeId: number, initialData: any = {}, op
 				const formDataObj = Object.fromEntries(formData);
 				console.log('📝 Raw form data:', formDataObj);
 				
-				// Convert string values to appropriate types
-				const processedData = {
-					...formDataObj,
-					id: employeeId,
-					roleId: formDataObj.roleId ? parseInt(formDataObj.roleId as string) : undefined,
-					departmentId: formDataObj.departmentId ? parseInt(formDataObj.departmentId as string) : undefined
-				};
+				// Convert string values to appropriate types and clean undefined values
+				const processedData: any = { ...formDataObj, id: employeeId };
+				
+				// Handle roleId - required field
+				if (formDataObj.roleId) {
+					processedData.roleId = parseInt(formDataObj.roleId as string);
+				} else {
+					delete processedData.roleId; // Let validation catch this
+				}
+				
+				// Handle departmentId - optional field
+				if (formDataObj.departmentId) {
+					processedData.departmentId = parseInt(formDataObj.departmentId as string);
+				} else {
+					delete processedData.departmentId; // Omit entirely if not provided
+				}
 				console.log('🔄 Processed data:', processedData);
 				
 				const data = updateEmployeeSchema.parse({ ...processedData, id: employeeId });

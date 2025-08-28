@@ -3,7 +3,7 @@ import { apiClient } from '$lib/api/client';
 import { apiCache, CACHE_KEYS, CACHE_TTL } from '$lib/api/cache';
 
 export const load: PageServerLoad = async ({ cookies, locals, url }) => {
-	const token = cookies.get('auth-token');
+	const token = cookies.get('hr_token');
 	
 	// Parse URL parameters for filtering
 	const page = Number(url.searchParams.get('page')) || 1;

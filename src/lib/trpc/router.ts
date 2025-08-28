@@ -76,7 +76,7 @@ const authRouter = t.router({
 				}).json();
 
 				// Set JWT cookie via SvelteKit
-				ctx.event.cookies.set('auth-token', response.token, {
+				ctx.event.cookies.set('hr_token', response.token, {
 					path: '/',
 					httpOnly: true,
 					secure: true,
@@ -97,7 +97,7 @@ const authRouter = t.router({
 		.mutation(async ({ ctx }) => {
 			try {
 				// Get auth token for logout request
-				const token = ctx.event.cookies.get('auth-token');
+				const token = ctx.event.cookies.get('hr_token');
 
 				if (token) {
 					// Create server-side API client for logout
@@ -120,7 +120,7 @@ const authRouter = t.router({
 				}
 			} finally {
 				// Clear JWT cookie
-				ctx.event.cookies.delete('auth-token', { path: '/' });
+				ctx.event.cookies.delete('hr_token', { path: '/' });
 			}
 			return { success: true };
 		}),
@@ -130,7 +130,7 @@ const authRouter = t.router({
 		.query(async ({ ctx }) => {
 			try {
 				// Get auth token from cookies
-				const token = ctx.event.cookies.get('auth-token');
+				const token = ctx.event.cookies.get('hr_token');
 
 				if (!token) {
 					throw new TRPCError({
@@ -171,7 +171,7 @@ const employeeRouter = t.router({
 		.query(async ({ input, ctx }) => {
 			try {
 				// Get auth token from cookies
-				const token = ctx.event.cookies.get('auth-token');
+				const token = ctx.event.cookies.get('hr_token');
 
 				if (!token) {
 					throw new TRPCError({
@@ -222,7 +222,7 @@ const employeeRouter = t.router({
 		.query(async ({ input, ctx }) => {
 			try {
 				// Get auth token from cookies
-				const token = ctx.event.cookies.get('auth-token');
+				const token = ctx.event.cookies.get('hr_token');
 
 				if (!token) {
 					throw new TRPCError({
@@ -279,7 +279,7 @@ const employeeRouter = t.router({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				// Get auth token from cookies
-				const token = ctx.event.cookies.get('auth-token');
+				const token = ctx.event.cookies.get('hr_token');
 
 				if (!token) {
 					throw new TRPCError({
@@ -331,7 +331,7 @@ const employeeRouter = t.router({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				// Get auth token from cookies
-				const token = ctx.event.cookies.get('auth-token');
+				const token = ctx.event.cookies.get('hr_token');
 
 				if (!token) {
 					throw new TRPCError({
@@ -371,7 +371,7 @@ const departmentRouter = t.router({
 		.query(async ({ ctx }) => {
 			try {
 				// Get auth token from cookies
-				const token = ctx.event.cookies.get('auth-token');
+				const token = ctx.event.cookies.get('hr_token');
 
 				if (!token) {
 					throw new TRPCError({
@@ -411,7 +411,7 @@ const positionRouter = t.router({
 		.query(async ({ input, ctx }) => {
 			try {
 				// Get auth token from cookies
-				const token = ctx.event.cookies.get('auth-token');
+				const token = ctx.event.cookies.get('hr_token');
 
 				if (!token) {
 					throw new TRPCError({
@@ -458,7 +458,7 @@ export const appRouter = t.router({
             .input(createTaskSchema)
             .output(taskSchema)
             .mutation(async ({ input, ctx }) => {
-                const token = ctx.event.cookies.get('auth-token');
+                const token = ctx.event.cookies.get('hr_token');
                 if (!token) {
                     throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Authentication token not found' });
                 }
@@ -486,7 +486,7 @@ export const appRouter = t.router({
             .input(z.object({ id: z.number(), data: taskStatusUpdateSchema }))
             .output(z.object({ success: z.boolean() }))
             .mutation(async ({ input, ctx }) => {
-                const token = ctx.event.cookies.get('auth-token');
+                const token = ctx.event.cookies.get('hr_token');
                 if (!token) {
                     throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Authentication token not found' });
                 }

@@ -2,7 +2,7 @@ import type { PageServerLoad } from './$types';
 import { apiClient } from '$lib/api/client';
 
 export const load: PageServerLoad = async ({ cookies }) => {
-  const token = cookies.get('auth-token');
+  const token = cookies.get('hr_token');
   if (!token) {
     return {
       metrics: {

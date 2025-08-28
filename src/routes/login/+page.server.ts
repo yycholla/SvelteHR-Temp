@@ -20,14 +20,14 @@ export const load: PageServerLoad = async ({ cookies }) => {
 	}
 	
 	// Check if user has a valid auth token
-	const authToken = cookies.get('auth-token');
+	const authToken = cookies.get('hr_token');
 	if (authToken) {
 		try {
 			// Validate token format (basic check)
 			const parts = authToken.split('.');
 			if (parts.length !== 3) {
 				// Invalid token format, clear it
-				cookies.delete('auth-token', { 
+				cookies.delete('hr_token', { 
 					path: '/',
 					httpOnly: true,
 					secure: true,
@@ -36,7 +36,7 @@ export const load: PageServerLoad = async ({ cookies }) => {
 			}
 		} catch (error) {
 			// Clear invalid token
-			cookies.delete('auth-token', { 
+			cookies.delete('hr_token', { 
 				path: '/',
 				httpOnly: true,
 				secure: true,
