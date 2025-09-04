@@ -98,32 +98,26 @@ export const canManageDepartments = derived(authStore, ($auth) =>
 let refreshTimer: NodeJS.Timeout;
 
 export const authActions = {
-  // Initialize auth state from localStorage
+  // Initialize auth state from GelDB auth token
   async initialize() {
     if (!browser) return;
 
     authStore.update(state => ({ ...state, isLoading: true }));
 
     try {
-      // Check for existing token in localStorage
-      const token = localStorage.getItem('hr_token');
+      // Check for GelDB auth token in cookies
+      const token = apiClient.auth.checkAuthToken();
+      
       if (token) {
-        // Set token in API client
-        apiClient.setToken(token);
-        
-        // Verify token with backend
+        // Verify token with GelDB
         const response = await apiClient.auth.verify();
         
         if (response.success && response.data) {
-          // Update user with roles and permissions
-          const user = response.data.user;
-          user.roles = response.data.roles || [];
-          user.permissions = response.data.permissions || [];
-          
+          // Set auth data from GelDB response
           this.setAuthData({
             token,
-            user,
-            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // Default 24h if not provided
+            user: response.data.user,
+            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // Default 24h
           });
         } else {
           // Token invalid, clear it
@@ -131,65 +125,68 @@ export const authActions = {
         }
       }
     } catch (error) {
-      console.error('Auth initialization failed:', error);
+      console.error('GelDB auth initialization failed:', error);
       this.clearAuthData();
     } finally {
       authStore.update(state => ({ ...state, isLoading: false }));
     }
   },
 
-  // Login with username and password
-  async login(credentials: { username: string; password: string; rememberMe?: boolean }) {
+  // Redirect to GelDB sign-in
+  async signIn() {
     authStore.update(state => ({ 
       ...state, 
       isLoading: true, 
-      lastLoginError: null,
-      loginAttempts: state.loginAttempts + 1
+      lastLoginError: null
     }));
 
     try {
-      const response = await apiClient.auth.login(credentials.username, credentials.password);
-
-      if (response.success && response.data) {
-        this.setAuthData(response.data);
-        showSuccess('Welcome back! You have been successfully logged in.');
-        
-        // Redirect to intended page or home
-        if (browser) {
-          const redirectTo = new URLSearchParams(window.location.search).get('redirectTo') || '/home';
-          await goto(redirectTo);
-        }
-        
-        return { success: true };
-      } else {
-        const errorMessage = response.error || 'Login failed';
-        authStore.update(state => ({ 
-          ...state, 
-          lastLoginError: errorMessage 
-        }));
-        
-        showError(errorMessage, { title: 'Login Failed' });
-        
-        return { 
-          success: false, 
-          error: errorMessage 
-        };
-      }
+      // Redirect to GelDB built-in sign-in UI
+      apiClient.auth.signInRedirect();
+      return { success: true };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Login failed';
+      const errorMessage = error instanceof Error ? error.message : 'Sign-in redirect failed';
       authStore.update(state => ({ 
         ...state, 
-        lastLoginError: errorMessage 
+        lastLoginError: errorMessage,
+        isLoading: false
       }));
       
-      showError(errorMessage, { title: 'Login Error' });
+      showError(errorMessage, { title: 'Sign-in Error' });
       
       return { 
         success: false, 
         error: errorMessage 
       };
-    } finally {
-      authStore.update(state => ({ ...state, isLoading: false }));
+    }
+  },
+
+  // Redirect to GelDB sign-up
+  async signUp() {
+    authStore.update(state => ({ 
+      ...state, 
+      isLoading: true, 
+      lastLoginError: null
+    }));
+
+    try {
+      // Redirect to GelDB built-in sign-up UI
+      apiClient.auth.signUpRedirect();
+      return { success: true };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Sign-up redirect failed';
+      authStore.update(state => ({ 
+        ...state, 
+        lastLoginError: errorMessage,
+        isLoading: false
+      }));
+      
+      showError(errorMessage, { title: 'Sign-up Error' });
+      
+      return { 
+        success: false, 
+        error: errorMessage 
+      };
     }
   },
 

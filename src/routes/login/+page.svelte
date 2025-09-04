@@ -10,16 +10,10 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
 	import { authActions, authStore, isAuthenticated } from '$lib/stores/auth';
-	import { User, Lock, Eye, EyeOff, Building2, Shield } from 'lucide-svelte';
-
-	// Form state
-	let username = '';
-	let password = '';
-	let rememberMe = false;
-	let error = '';
+	import { Building2, Shield, LogIn, UserPlus } from 'lucide-svelte';
 
 	// UI state
-	let showPassword = false;
+	let error = '';
 
 	// Subscribe to auth store
 	$: isLoading = $authStore.isLoading;
@@ -33,33 +27,24 @@
 		}
 	});
 
-	// Toggle password visibility
-	function togglePasswordVisibility() {
-		showPassword = !showPassword;
-	}
-
-	// Demo credentials helper
-	function fillDemoCredentials() {
-		username = 'admin';
-		password = 'admin';
-	}
-
-	// Handle login form submission
-	async function handleLogin(event: SubmitEvent) {
-		event.preventDefault();
-		
-		if (!username || !password) {
-			error = 'Please fill in all fields';
-			return;
-		}
-
+	// Handle GelDB sign in
+	async function handleSignIn() {
 		error = '';
-		const result = await authActions.login({ username, password, rememberMe });
-
+		const result = await authActions.signIn();
+		
 		if (!result.success) {
-			error = result.error || 'Login failed';
+			error = result.error || 'Sign-in redirect failed';
 		}
-		// Note: Redirect is handled by authActions.login() in auth store
+	}
+
+	// Handle GelDB sign up
+	async function handleSignUp() {
+		error = '';
+		const result = await authActions.signUp();
+		
+		if (!result.success) {
+			error = result.error || 'Sign-up redirect failed';
+		}
 	}
 </script>
 
@@ -79,22 +64,12 @@
 			<p class="text-muted-foreground mt-3 text-lg">Sign in to your SvelteHR account</p>
 		</div>
 
-		<!-- Demo Account Card -->
+		<!-- GelDB Auth Info Card -->
 		<Card class="bg-background/30 backdrop-blur-md border border-border/40 shadow-xl rounded-2xl mb-4">
 			<CardContent class="p-4">
-				<div class="flex items-center justify-between">
-					<div class="flex items-center space-x-3">
-						<Shield class="w-5 h-5 text-primary" />
-						<span class="text-sm text-foreground font-medium">Demo Account Available</span>
-					</div>
-					<Button 
-						variant="ghost" 
-						size="sm" 
-						onclick={fillDemoCredentials}
-						class="rounded-xl hover:scale-105 transition-all duration-200 hover:bg-background/30 h-8 px-3"
-					>
-						Use Demo
-					</Button>
+				<div class="flex items-center space-x-3">
+					<Shield class="w-5 h-5 text-primary" />
+					<span class="text-sm text-foreground font-medium">Secure authentication powered by GelDB</span>
 				</div>
 			</CardContent>
 		</Card>
@@ -116,128 +91,57 @@
 					</Alert>
 				{/if}
 
-				<!-- Login Form -->
-				<form onsubmit={handleLogin} class="space-y-4">
-					<!-- Username Field -->
-					<div class="space-y-2">
-						<InputGroup
-							label="Username"
-							type="text"
-							placeholder="Enter your username"
-							prefixIcon={User}
-							bind:value={username}
-							required
-							disabled={isLoading}
-							autocomplete="username"
-						/>
-					</div>
-
-					<!-- Password Field -->
-					<div class="space-y-2">
-						<InputGroup
-							label="Password"
-							type={showPassword ? 'text' : 'password'}
-							placeholder="Enter your password"
-							prefixIcon={Lock}
-							bind:value={password}
-							required
-							disabled={isLoading}
-							autocomplete="current-password"
-						>
-							<button
-								slot="suffix"
-								type="button"
-								onclick={togglePasswordVisibility}
-								class="text-muted-foreground hover:text-foreground focus:outline-none transition-colors duration-200"
-								tabindex="-1"
-							>
-								{#if showPassword}
-									<EyeOff class="w-4 h-4" />
-								{:else}
-									<Eye class="w-4 h-4" />
-								{/if}
-							</button>
-						</InputGroup>
-					</div>
-
-					<!-- Remember Me -->
-					<div class="flex items-center space-x-3">
-						<Checkbox 
-							id="rememberMe" 
-							bind:checked={rememberMe}
-							disabled={isLoading}
-						/>
-						<label for="rememberMe" class="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 cursor-pointer">
-							Remember me for 7 days
-						</label>
-					</div>
-
+				<!-- GelDB Authentication Buttons -->
+				<div class="space-y-4">
 					<!-- Sign In Button -->
 					<Button 
-						type="submit"
+						type="button"
 						variant="default" 
 						size="lg" 
 						class="w-full rounded-2xl hover:scale-[1.02] transition-all duration-200 bg-gradient-to-r from-primary to-primary/90 shadow-lg hover:shadow-xl"
 						disabled={isLoading}
+						onclick={handleSignIn}
 					>
+						<LogIn class="w-4 h-4 mr-2" />
 						{#if isLoading}
-							Signing in...
+							Redirecting to sign in...
 						{:else}
-							Sign In
+							Sign In with Magic Link
 						{/if}
 					</Button>
-				</form>
 
-				<!-- Separator -->
-				<div class="relative">
-					<Separator />
-					<div class="absolute inset-0 flex justify-center">
-						<span class="bg-background/80 backdrop-blur-sm px-3 text-sm text-muted-foreground">or continue with</span>
-					</div>
-				</div>
-
-				<!-- SSO Options -->
-				<div class="grid grid-cols-2 gap-3">
-					<Button variant="outline" size="lg" class="rounded-2xl bg-background/20 backdrop-blur-sm border-border/40 hover:bg-background/30 hover:scale-[1.02] transition-all duration-200" disabled>
-						<div class="flex items-center space-x-2">
-							<svg class="w-4 h-4" viewBox="0 0 24 24">
-								<path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-								<path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-								<path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-								<path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-							</svg>
-							<span class="hidden sm:inline">Google</span>
-						</div>
-					</Button>
-
-					<Button variant="outline" size="lg" class="rounded-2xl bg-background/20 backdrop-blur-sm border-border/40 hover:bg-background/30 hover:scale-[1.02] transition-all duration-200" disabled>
-						<div class="flex items-center space-x-2">
-							<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-								<path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.024-.105-.949-.199-2.403.041-3.439.219-.937 1.219-5.145 1.219-5.145s-.31-.62-.31-1.536c0-1.438.833-2.512 1.869-2.512.881 0 1.307.663 1.307 1.457 0 .887-.564 2.214-.854 3.444-.243 1.026.514 1.862 1.524 1.862 1.83 0 3.24-1.93 3.24-4.715 0-2.467-1.772-4.192-4.305-4.192-2.932 0-4.657 2.2-4.657 4.472 0 .887.341 1.837.766 2.354.084.099.096.187.071.29-.077.324-.248 1.001-.282 1.14-.043.183-.142.223-.328.134-1.249-.581-2.03-2.407-2.03-3.874 0-3.154 2.292-6.052 6.608-6.052 3.469 0 6.165 2.473 6.165 5.776 0 3.447-2.173 6.22-5.19 6.22-1.013 0-1.966-.527-2.29-1.156l-.622 2.378c-.226.869-.835 1.958-1.244 2.621.937.29 1.931.446 2.962.446 6.624 0 11.99-5.367 11.99-11.987C24.007 5.367 18.641.001 12.017.001z"/>
-							</svg>
-							<span class="hidden sm:inline">Microsoft</span>
-						</div>
+					<!-- Sign Up Button -->
+					<Button 
+						type="button"
+						variant="outline" 
+						size="lg" 
+						class="w-full rounded-2xl hover:scale-[1.02] transition-all duration-200 bg-background/20 backdrop-blur-sm border-border/40 hover:bg-background/30"
+						disabled={isLoading}
+						onclick={handleSignUp}
+					>
+						<UserPlus class="w-4 h-4 mr-2" />
+						{#if isLoading}
+							Redirecting to sign up...
+						{:else}
+							Create New Account
+						{/if}
 					</Button>
 				</div>
 
 				<!-- Help Links -->
 				<div class="text-center space-y-2">
-					<a href="/forgot-password" class="text-sm text-primary hover:text-primary/80 transition-colors duration-200 hover:underline">
-						Forgot your password?
-					</a>
 					<div class="text-xs text-muted-foreground">
-						Need help? Contact your HR administrator
+						Having trouble signing in? Contact your HR administrator for assistance.
 					</div>
 				</div>
 			</CardContent>
 		</Card>
 
-		<!-- Demo Credentials Info -->
+		<!-- GelDB Auth Info -->
 		<div class="mt-6 text-center">
 			<div class="inline-flex items-center space-x-4 text-sm text-muted-foreground bg-background/20 backdrop-blur-sm border border-border/40 rounded-2xl px-4 py-2 shadow-lg">
-				<Badge variant="secondary" class="bg-primary/10 text-primary border-primary/20">Demo Available</Badge>
-				<span>Username: admin</span>
-				<span>Password: admin</span>
+				<Badge variant="secondary" class="bg-primary/10 text-primary border-primary/20">Magic Link</Badge>
+				<span>Secure passwordless authentication</span>
 			</div>
 		</div>
 

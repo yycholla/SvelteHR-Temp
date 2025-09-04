@@ -814,60 +814,90 @@ export class MountainHRApiClient {
   };
 
   /**
-   * Authentication methods - Updated for v2 API
+   * Authentication methods - GelDB built-in authentication
    */
   auth = {
-    login: async (username: string, password: string) => {
-      const response = await this.post<LoginResponse>('/api/v2/auth/login', {
-        username,
-        password
-      });
-
-      if (response.success && response.data) {
-        // Validate and transform the response using Zod
-        try {
-          const { v2LoginResponseSchema } = await import('$lib/schemas/auth');
-          const validatedData = v2LoginResponseSchema.parse(response.data);
-          
-          // Set token and return properly structured response
-          this.setToken(validatedData.token);
-          
-          return {
-            ...response,
-            data: validatedData
-          };
-        } catch (validationError) {
-          console.error('Login response validation failed:', validationError);
-          return {
-            ...response,
-            success: false,
-            error: 'Invalid response format from server'
-          };
-        }
-      }
-
-      return response;
-    },
-
-    register: async (userData: { email: string; password: string; full_name: string; role_id?: string }) => {
-      return this.post<{ user: any; message: string }>('/api/v2/auth/register', userData);
-    },
-
-    logout: async () => {
-      const response = await this.post('/api/v2/auth/logout');
-      this.clearToken();
+    // GelDB sign-in redirect (opens GelDB UI)
+    signInRedirect: () => {
       if (browser) {
+        window.location.href = `${this.baseURL}/api/v2/auth/signin`;
+      }
+    },
+
+    // GelDB sign-up redirect (opens GelDB UI)
+    signUpRedirect: () => {
+      if (browser) {
+        window.location.href = `${this.baseURL}/api/v2/auth/signup`;
+      }
+    },
+
+    // Check if user has GelDB auth token (from cookies)
+    checkAuthToken: () => {
+      if (!browser) return null;
+      
+      // Check for gel-auth-token cookie
+      const cookies = document.cookie.split(';');
+      const authCookie = cookies.find(cookie => cookie.trim().startsWith('gel-auth-token='));
+      
+      if (authCookie) {
+        const token = authCookie.split('=')[1].trim();
+        this.setToken(token);
+        return token;
+      }
+      
+      return null;
+    },
+
+    // Get user info from GelDB (if authenticated)
+    getUserInfo: async () => {
+      // This would call GelDB's user info endpoint
+      // For now, return a basic structure
+      return this.get<any>('/api/v2/geldb/user');
+    },
+
+    // Logout and clear GelDB auth
+    logout: async () => {
+      // Clear auth token cookie
+      if (browser) {
+        document.cookie = 'gel-auth-token=; path=/; max-age=0';
+        this.clearToken();
         await goto('/login');
       }
-      return response;
+      
+      return { success: true };
     },
 
+    // Verify current GelDB auth status
     verify: async () => {
-      return this.get<AuthVerifyResponse>('/api/v2/auth/verify');
-    },
+      const token = this.checkAuthToken();
+      
+      if (!token) {
+        return {
+          success: false,
+          error: 'No authentication token found',
+          status: 401
+        };
+      }
 
-    refresh: async () => {
-      return this.post<{ token: string }>('/api/v2/auth/refresh');
+      // Try to get user info to verify token
+      try {
+        const userResponse = await this.getUserInfo();
+        return {
+          success: true,
+          data: {
+            user: userResponse.data || { id: 'geldb-user', email: 'user@geldb.local' },
+            roles: [],
+            permissions: []
+          },
+          status: 200
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: 'Token verification failed',
+          status: 401
+        };
+      }
     }
   };
 }

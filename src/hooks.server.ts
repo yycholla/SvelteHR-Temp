@@ -20,8 +20,9 @@ function isPublicRoute(pathname: string): boolean {
 export const handle: Handle = async ({ event, resolve }) => {
   const { url, cookies } = event;
   
-  // Get JWT token from cookies (this is what the frontend auth system uses)
-  const token = cookies.get('hr_token') || cookies.get('auth-token');
+  // Get tokens from cookies
+  const jwtToken = cookies.get('hr_token') || cookies.get('auth-token');
+  const gelToken = cookies.get('gel-auth-token');
   
   // Initialize locals with RBAC properties
   event.locals.user = null;
@@ -29,12 +30,43 @@ export const handle: Handle = async ({ event, resolve }) => {
   event.locals.permissions = [];
   event.locals.roles = [];
   
-  if (token) {
+  // Check GelDB token first
+  if (gelToken) {
+    try {
+      // Verify GelDB token with our backend
+      const response = await fetch(`${PUBLIC_API_URL || 'http://localhost:8080'}/api/v2/auth/verify-geldb`, {
+        headers: {
+          'Authorization': `Bearer ${gelToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const gelData = await response.json();
+        if (gelData.success && gelData.user) {
+          event.locals.user = gelData.user;
+          event.locals.isAuthenticated = true;
+          event.locals.permissions = gelData.user.permissions || [];
+          event.locals.roles = gelData.user.roles || [];
+          event.locals.token = gelToken;
+        } else {
+          // Token is invalid, clear it
+          cookies.delete('gel-auth-token', { path: '/' });
+        }
+      } else {
+        // Token is invalid, clear it
+        cookies.delete('gel-auth-token', { path: '/' });
+      }
+    } catch (error) {
+      console.error('GelDB token verification failed:', error);
+      cookies.delete('gel-auth-token', { path: '/' });
+    }
+  } else if (jwtToken) {
     try {
       // Verify JWT token with backend using the correct endpoint
       const response = await fetch(`${PUBLIC_API_URL || 'http://localhost:8080'}/api/v2/auth/verify`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${jwtToken}`,
           'Content-Type': 'application/json'
         }
       });
@@ -45,7 +77,7 @@ export const handle: Handle = async ({ event, resolve }) => {
         event.locals.isAuthenticated = true;
         event.locals.permissions = rbacData.permissions || [];
         event.locals.roles = rbacData.roles || [];
-        event.locals.token = token; // Add token to locals for tRPC context
+        event.locals.token = jwtToken; // Add token to locals for tRPC context
       } else {
         // Token is invalid, clear it
         cookies.delete('hr_token', { path: '/' });
