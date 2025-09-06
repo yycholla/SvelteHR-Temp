@@ -27,13 +27,36 @@
 		}
 	});
 
-	// Handle GelDB sign in
+	// Form state for traditional login
+	let email = '';
+	let password = '';
+	let showLoginForm = false;
+
+	// Handle direct sign in
 	async function handleSignIn() {
 		error = '';
-		const result = await authActions.signIn();
 		
-		if (!result.success) {
-			error = result.error || 'Sign-in redirect failed';
+		if (showLoginForm) {
+			// Traditional email/password login
+			if (!email || !password) {
+				error = 'Please enter both email and password';
+				return;
+			}
+
+			const result = await authActions.loginWithCredentials(email, password);
+			
+			if (!result.success) {
+				error = result.error || 'Login failed';
+			}
+		} else {
+			// Try GelDB redirect (if it becomes available later)
+			const result = await authActions.signIn();
+			
+			if (!result.success) {
+				// Fallback to showing login form if GelDB redirect fails
+				showLoginForm = true;
+				error = '';
+			}
 		}
 	}
 
@@ -45,6 +68,14 @@
 		if (!result.success) {
 			error = result.error || 'Sign-up redirect failed';
 		}
+	}
+
+	// Toggle between magic link and traditional login
+	function toggleLoginForm() {
+		showLoginForm = !showLoginForm;
+		error = '';
+		email = '';
+		password = '';
 	}
 </script>
 
@@ -91,42 +122,108 @@
 					</Alert>
 				{/if}
 
-				<!-- GelDB Authentication Buttons -->
-				<div class="space-y-4">
-					<!-- Sign In Button -->
-					<Button 
-						type="button"
-						variant="default" 
-						size="lg" 
-						class="w-full rounded-2xl hover:scale-[1.02] transition-all duration-200 bg-gradient-to-r from-primary to-primary/90 shadow-lg hover:shadow-xl"
-						disabled={isLoading}
-						onclick={handleSignIn}
-					>
-						<LogIn class="w-4 h-4 mr-2" />
-						{#if isLoading}
-							Redirecting to sign in...
-						{:else}
-							Sign In with Magic Link
-						{/if}
-					</Button>
+				{#if showLoginForm}
+					<!-- Traditional Login Form -->
+					<form on:submit|preventDefault={handleSignIn} class="space-y-4">
+						<InputGroup>
+							<label for="email" class="block text-sm font-medium text-foreground mb-2">Email</label>
+							<input
+								id="email"
+								type="email"
+								bind:value={email}
+								placeholder="Enter your email address"
+								required
+								disabled={isLoading}
+								class="w-full px-4 py-3 rounded-2xl border border-border/40 bg-background/20 backdrop-blur-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+							/>
+						</InputGroup>
 
-					<!-- Sign Up Button -->
-					<Button 
-						type="button"
-						variant="outline" 
-						size="lg" 
-						class="w-full rounded-2xl hover:scale-[1.02] transition-all duration-200 bg-background/20 backdrop-blur-sm border-border/40 hover:bg-background/30"
-						disabled={isLoading}
-						onclick={handleSignUp}
-					>
-						<UserPlus class="w-4 h-4 mr-2" />
-						{#if isLoading}
-							Redirecting to sign up...
-						{:else}
+						<InputGroup>
+							<label for="password" class="block text-sm font-medium text-foreground mb-2">Password</label>
+							<input
+								id="password"
+								type="password"
+								bind:value={password}
+								placeholder="Enter your password"
+								required
+								disabled={isLoading}
+								class="w-full px-4 py-3 rounded-2xl border border-border/40 bg-background/20 backdrop-blur-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+							/>
+						</InputGroup>
+
+						<Button 
+							type="submit"
+							variant="default" 
+							size="lg" 
+							class="w-full rounded-2xl hover:scale-[1.02] transition-all duration-200 bg-gradient-to-r from-primary to-primary/90 shadow-lg hover:shadow-xl"
+							disabled={isLoading || !email || !password}
+						>
+							<LogIn class="w-4 h-4 mr-2" />
+							{#if isLoading}
+								Signing in...
+							{:else}
+								Sign In
+							{/if}
+						</Button>
+
+						<!-- Toggle back to magic link -->
+						<Button 
+							type="button"
+							variant="ghost" 
+							size="sm" 
+							class="w-full rounded-2xl text-muted-foreground hover:text-foreground"
+							onclick={toggleLoginForm}
+						>
+							← Back to Magic Link
+						</Button>
+					</form>
+				{:else}
+					<!-- Magic Link Authentication -->
+					<div class="space-y-4">
+						<!-- Magic Link Sign In Button -->
+						<Button 
+							type="button"
+							variant="default" 
+							size="lg" 
+							class="w-full rounded-2xl hover:scale-[1.02] transition-all duration-200 bg-gradient-to-r from-primary to-primary/90 shadow-lg hover:shadow-xl"
+							disabled={isLoading}
+							onclick={handleSignIn}
+						>
+							<LogIn class="w-4 h-4 mr-2" />
+							{#if isLoading}
+								Processing...
+							{:else}
+								Sign In with Magic Link
+							{/if}
+						</Button>
+
+						<!-- Traditional Login Option -->
+						<Button 
+							type="button"
+							variant="outline" 
+							size="lg" 
+							class="w-full rounded-2xl hover:scale-[1.02] transition-all duration-200 bg-background/20 backdrop-blur-sm border-border/40 hover:bg-background/30"
+							disabled={isLoading}
+							onclick={toggleLoginForm}
+						>
+							<LogIn class="w-4 h-4 mr-2" />
+							Sign In with Email & Password
+						</Button>
+
+						<!-- Sign Up Button -->
+						<Button 
+							type="button"
+							variant="ghost" 
+							size="sm" 
+							class="w-full rounded-2xl text-muted-foreground hover:text-foreground"
+							disabled={isLoading}
+							onclick={handleSignUp}
+						>
+							<UserPlus class="w-4 h-4 mr-2" />
 							Create New Account
-						{/if}
-					</Button>
-				</div>
+						</Button>
+					</div>
+				{/if}
 
 				<!-- Help Links -->
 				<div class="text-center space-y-2">
