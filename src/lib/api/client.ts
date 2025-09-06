@@ -386,8 +386,8 @@ export class MountainHRApiClient {
   /**
    * POST request
    */
-  async post<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, { method: 'POST', body: data });
+  async post<T>(endpoint: string, data?: any, config?: RequestConfig): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: 'POST', body: data, ...config });
   }
 
   /**
@@ -815,35 +815,91 @@ export class MountainHRApiClient {
   };
 
   /**
-   * Authentication methods - GelDB built-in authentication
+   * Authentication methods - MountainHR backend authentication
    */
   auth = {
-    // GelDB sign-in redirect (opens GelDB UI)
+    // Sign in with email/password (traditional form)
+    signIn: async (email: string, password: string) => {
+      try {
+        const response = await this.post<LoginResponse>('/auth/login', {
+          email,
+          password
+        }, { skipAuth: true });
+
+        if (response.success && response.data) {
+          this.setToken(response.data.token);
+          return response;
+        }
+        throw new Error(response.error || 'Sign in failed');
+      } catch (error) {
+        console.error('Sign in error:', error);
+        throw error;
+      }
+    },
+
+    // Magic link sign in (send magic link to email)
+    sendMagicLink: async (email: string) => {
+      try {
+        const response = await this.post<{ message: string }>('/auth/magic-link', {
+          email
+        }, { skipAuth: true });
+
+        return response;
+      } catch (error) {
+        console.error('Magic link error:', error);
+        throw error;
+      }
+    },
+
+    // Verify magic link token
+    verifyMagicLink: async (token: string) => {
+      try {
+        const response = await this.post<LoginResponse>('/auth/magic-link/verify', {
+          token
+        }, { skipAuth: true });
+
+        if (response.success && response.data) {
+          this.setToken(response.data.token);
+          return response;
+        }
+        throw new Error(response.error || 'Magic link verification failed');
+      } catch (error) {
+        console.error('Magic link verification error:', error);
+        throw error;
+      }
+    },
+
+    // Redirect to magic link sign-in page (for now, show a form)
     signInRedirect: () => {
       if (browser) {
-        // Use GelDB auth base URL directly from environment
-        const gelAuthBaseUrl = `${PUBLIC_GELDB_URL}/db/main/ext/auth/`;
-        window.location.href = `${gelAuthBaseUrl}signin`;
+        // For now, redirect to a magic link form - you could replace this with a direct form
+        goto('/login/magic-link');
       }
     },
 
-    // GelDB sign-up redirect (opens GelDB UI)  
+    // Sign up redirect  
     signUpRedirect: () => {
       if (browser) {
-        // Use GelDB auth base URL directly from environment
-        const gelAuthBaseUrl = `${PUBLIC_GELDB_URL}/db/main/ext/auth/`;
-        window.location.href = `${gelAuthBaseUrl}signup`;
+        goto('/register');
       }
     },
 
-    // Check if user has GelDB auth token (from cookies)
+    // Check if user has auth token (from cookies)
     checkAuthToken: () => {
       if (!browser) return null;
       
-      // Check for gel-auth-token cookie
-      const cookies = document.cookie.split(';');
-      const authCookie = cookies.find(cookie => cookie.trim().startsWith('gel-auth-token='));
+      // Check for hr_token cookie (primary)
+      let cookies = document.cookie.split(';');
+      let authCookie = cookies.find(cookie => cookie.trim().startsWith('hr_token='));
       
+      if (authCookie) {
+        const token = authCookie.split('=')[1].trim();
+        this.setToken(token);
+        return token;
+      }
+      
+      // Fallback to auth-token cookie
+      authCookie = cookies.find(cookie => cookie.trim().startsWith('auth-token='));
       if (authCookie) {
         const token = authCookie.split('=')[1].trim();
         this.setToken(token);
@@ -853,28 +909,65 @@ export class MountainHRApiClient {
       return null;
     },
 
-    // Get user info from GelDB (if authenticated)
-    getUserInfo: async () => {
-      // This would call GelDB's user info endpoint
-      // For now, return a basic structure
-      return this.get<any>('/api/v2/geldb/user');
+    // Register new user
+    register: async (userData: {
+      email: string;
+      password: string;
+      full_name: string;
+      role_id?: string;
+    }) => {
+      try {
+        const response = await this.post<LoginResponse>('/auth/register', userData, { skipAuth: true });
+        
+        if (response.success && response.data) {
+          this.setToken(response.data.token);
+          return response;
+        }
+        throw new Error(response.error || 'Registration failed');
+      } catch (error) {
+        console.error('Registration error:', error);
+        throw error;
+      }
     },
 
-    // Logout and clear GelDB auth
+    // Logout and clear auth
     logout: async () => {
-      // Clear auth token cookie
+      try {
+        // Call logout endpoint to invalidate token on server
+        await this.post('/auth/logout', {}, { skipRefresh: true });
+      } catch (error) {
+        console.error('Logout request failed:', error);
+      }
+
+      // Clear auth token cookies
       if (browser) {
-        document.cookie = 'gel-auth-token=; path=/; max-age=0';
+        document.cookie = 'hr_token=; path=/; max-age=0; SameSite=Lax';
+        document.cookie = 'auth-token=; path=/; max-age=0; SameSite=Lax';
         this.clearToken();
-        await goto('/login');
       }
       
       return { success: true };
     },
 
-    // Verify current GelDB auth status
+    // Refresh access token
+    refresh: async () => {
+      try {
+        const response = await this.post<LoginResponse>('/auth/refresh', {}, { skipRefresh: true });
+        
+        if (response.success && response.data) {
+          this.setToken(response.data.token);
+          return response;
+        }
+        throw new Error(response.error || 'Token refresh failed');
+      } catch (error) {
+        console.error('Token refresh error:', error);
+        throw error;
+      }
+    },
+
+    // Verify current auth status
     verify: async () => {
-      const token = this.checkAuthToken();
+      const token = this.auth.checkAuthToken();
       
       if (!token) {
         return {
@@ -884,18 +977,19 @@ export class MountainHRApiClient {
         };
       }
 
-      // Try to get user info to verify token
+      // Try to verify token with backend
       try {
-        const userResponse = await this.getUserInfo();
-        return {
-          success: true,
-          data: {
-            user: userResponse.data || { id: 'geldb-user', email: 'user@geldb.local' },
-            roles: [],
-            permissions: []
-          },
-          status: 200
-        };
+        const response = await this.get<AuthVerifyResponse>('/auth/verify');
+        
+        if (response.success && response.data) {
+          return {
+            success: true,
+            data: response.data,
+            status: 200
+          };
+        }
+        
+        throw new Error(response.error || 'Token verification failed');
       } catch (error) {
         return {
           success: false,

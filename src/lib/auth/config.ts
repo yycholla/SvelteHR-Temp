@@ -4,12 +4,12 @@ import { PUBLIC_API_URL } from "$env/static/public";
 export const auth = betterAuth({
 	baseURL: PUBLIC_API_URL || "http://localhost:8080",
 	
-	// Use our custom GelDB auth endpoints
+	// Use MountainHR backend auth endpoints
 	endpoints: {
-		signIn: "/auth/geldb/signin",
-		signUp: "/auth/geldb/signup",
-		signOut: "/auth/geldb/signout",
-		getSession: "/auth/geldb/verify",
+		signIn: "/auth/login",
+		signUp: "/auth/register", 
+		signOut: "/auth/logout",
+		getSession: "/auth/verify",
 	},
 
 	// Email and password authentication

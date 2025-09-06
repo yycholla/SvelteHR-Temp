@@ -170,6 +170,54 @@ export const authActions = {
 		}
 	},
 
+	// Login with email/password credentials
+	async loginWithCredentials(email: string, password: string) {
+		authStore.update(state => ({ ...state, isLoading: true }));
+		authStore.update(state => ({ ...state, lastLoginError: null }));
+
+		try {
+			// Call the API client's signIn method
+			const response = await apiClient.auth.signIn(email, password);
+
+			if (response.success && response.data) {
+				// Set auth data in store
+				this.setAuthData(response.data);
+				
+				showSuccess('Successfully signed in!');
+
+				// Redirect to home or intended destination
+				if (browser) {
+					const redirectTo = new URLSearchParams(window.location.search).get('redirectTo') || '/home';
+					await goto(redirectTo, { replaceState: true });
+				}
+
+				return { success: true, data: response.data };
+			} else {
+				const errorMessage = response.error || 'Login failed';
+				authStore.update(state => ({ ...state, lastLoginError: errorMessage }));
+				
+				showError(errorMessage, { title: 'Login Failed' });
+
+				return {
+					success: false,
+					error: errorMessage
+				};
+			}
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : 'Login failed';
+			authStore.update(state => ({ ...state, lastLoginError: errorMessage }));
+
+			showError(errorMessage, { title: 'Login Error' });
+
+			return {
+				success: false,
+				error: errorMessage
+			};
+		} finally {
+			authStore.update(state => ({ ...state, isLoading: false }));
+		}
+	},
+
 	// Redirect to GelDB sign-up
 	async signUp() {
 		authStore.update(state => ({ ...state, isLoading: true }));
