@@ -1,6 +1,7 @@
 import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
 import { PUBLIC_API_URL } from '$env/static/public';
+import { PUBLIC_GELDB_URL } from '$env/static/public';
 import type { 
   ApiResponse, 
   PaginatedResponse, 
@@ -820,14 +821,18 @@ export class MountainHRApiClient {
     // GelDB sign-in redirect (opens GelDB UI)
     signInRedirect: () => {
       if (browser) {
-        window.location.href = `${this.baseURL}/api/v2/auth/signin`;
+        // Use GelDB auth base URL directly from environment
+        const gelAuthBaseUrl = `${PUBLIC_GELDB_URL}/db/main/ext/auth/`;
+        window.location.href = `${gelAuthBaseUrl}signin`;
       }
     },
 
-    // GelDB sign-up redirect (opens GelDB UI)
+    // GelDB sign-up redirect (opens GelDB UI)  
     signUpRedirect: () => {
       if (browser) {
-        window.location.href = `${this.baseURL}/api/v2/auth/signup`;
+        // Use GelDB auth base URL directly from environment
+        const gelAuthBaseUrl = `${PUBLIC_GELDB_URL}/db/main/ext/auth/`;
+        window.location.href = `${gelAuthBaseUrl}signup`;
       }
     },
 

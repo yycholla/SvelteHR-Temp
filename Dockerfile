@@ -47,6 +47,10 @@ RUN npx vite build
 # =============================================================================
 FROM node:20-alpine AS runtime
 
+# Install Doppler CLI for production secrets management
+RUN apk add --no-cache curl gnupg && \
+    curl -Ls --tlsv1.2 --proto "=https" --retry 3 https://cli.doppler.com/install.sh | sh
+
 # Create non-root user for security (Factor IX: Disposability)
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S svelte -u 1001
@@ -82,12 +86,17 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD node -e "require('http').get('http://localhost:3000/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
 
 # Start the application (Factor V: Run phase)
-CMD ["node", "build/index.js"]
+# Configure Doppler for production if token provided, then start app
+CMD ["sh", "-c", "if [ -n \"$DOPPLER_TOKEN\" ]; then doppler configure set project mountainhr-frontend --scope / 2>/dev/null || true; doppler configure set config prd --scope / 2>/dev/null || true; doppler configure set token \"$DOPPLER_TOKEN\" --scope / 2>/dev/null || true; fi && node build/index.js"]
 
 # =============================================================================
 # Development Override Stage (Factor X: Dev/Prod Parity)
 # =============================================================================
 FROM node:20-alpine AS development
+
+# Install Doppler CLI for development secrets management
+RUN apk add --no-cache curl gnupg && \
+    curl -Ls --tlsv1.2 --proto "=https" --retry 3 https://cli.doppler.com/install.sh | sh
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
@@ -95,15 +104,21 @@ RUN addgroup -g 1001 -S nodejs && \
 
 WORKDIR /app
 
+# Change ownership of the app directory to svelte user
+RUN chown -R svelte:nodejs /app
+
+# Switch to non-root user before installing dependencies
+USER svelte
+
 # Install all dependencies (including dev dependencies)
-COPY package*.json ./
+COPY --chown=svelte:nodejs package*.json ./
 RUN npm install
 
 # Copy source code
 COPY --chown=svelte:nodejs . .
 
-# Switch to non-root user
-USER svelte
+# Generate SvelteKit files
+RUN npm run prepare
 
 # Expose Vite dev server port
 EXPOSE 5173
@@ -114,7 +129,8 @@ ENV HOST=0.0.0.0
 ENV PORT=5173
 
 # Start development server with hot reload
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+# Configure Doppler project and token if provided, then start dev server
+CMD ["sh", "-c", "if [ -n \"$DOPPLER_TOKEN\" ]; then doppler configure set project mountainhr-frontend --scope / 2>/dev/null || true; doppler configure set config dev --scope / 2>/dev/null || true; doppler configure set token \"$DOPPLER_TOKEN\" --scope / 2>/dev/null || true; fi && npm run dev -- --host 0.0.0.0 --port 5173"]
 
 # =============================================================================
 # Build Instructions & Usage

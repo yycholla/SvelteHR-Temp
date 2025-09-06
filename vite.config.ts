@@ -40,9 +40,15 @@ export default defineConfig({
         // key: fs.readFileSync('../MountainHR-Backend/certs/server.key'),
         // cert: fs.readFileSync('../MountainHR-Backend/certs/server.crt')
     // },
+    host: '0.0.0.0', // Allow external connections (required for Docker)
     port: 5173,
     cors: true,
-      allowedHosts: [
+    watch: {
+      usePolling: true, // Better file watching in Docker environments
+      interval: 100,    // Faster polling for quicker updates
+      ignored: ['!**/node_modules/**']
+    },
+    allowedHosts: [
         'mcp-0085.dropbear-elnath.ts.net',
         '100.71.207.7', // Tailscale IP
         'localhost'
