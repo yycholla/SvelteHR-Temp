@@ -1,4 +1,4 @@
-// Modernized to use Svelte 5 runes instead of Svelte 4 writable stores
+import { writable, derived } from 'svelte/store';
 
 export interface Employee {
 	id: string;
@@ -46,22 +46,22 @@ const initialState: EmployeeState = {
 	total: 0
 };
 
-// Svelte 5 runes-based employee store
-let employeeState = $state<EmployeeState>(initialState);
+// Traditional Svelte store
+const employeeState = writable<EmployeeState>(initialState);
 
-// Derived computed properties
-export const employees = $derived(employeeState.employees);
-export const selectedEmployee = $derived(employeeState.selectedEmployee);
-export const filters = $derived(employeeState.filters);
-export const isLoading = $derived(employeeState.loading);
-export const total = $derived(employeeState.total);
+// Derived stores for computed properties
+export const employees = derived(employeeState, $state => $state.employees);
+export const selectedEmployee = derived(employeeState, $state => $state.selectedEmployee);
+export const filters = derived(employeeState, $state => $state.filters);
+export const isLoading = derived(employeeState, $state => $state.loading);
+export const total = derived(employeeState, $state => $state.total);
 
 // Computed derived values
-export const filteredEmployees = $derived(() => {
-	let filtered = employeeState.employees;
+export const filteredEmployees = derived(employeeState, $state => {
+	let filtered = $state.employees;
 	
-	if (employeeState.filters.search) {
-		const search = employeeState.filters.search.toLowerCase();
+	if ($state.filters.search) {
+		const search = $state.filters.search.toLowerCase();
 		filtered = filtered.filter(emp => 
 			emp.first_name.toLowerCase().includes(search) ||
 			emp.last_name.toLowerCase().includes(search) ||
@@ -69,80 +69,98 @@ export const filteredEmployees = $derived(() => {
 		);
 	}
 	
-	if (employeeState.filters.department) {
-		filtered = filtered.filter(emp => emp.department === employeeState.filters.department);
+	if ($state.filters.department) {
+		filtered = filtered.filter(emp => emp.department === $state.filters.department);
 	}
 	
-	if (employeeState.filters.status) {
-		filtered = filtered.filter(emp => emp.status === employeeState.filters.status);
+	if ($state.filters.status) {
+		filtered = filtered.filter(emp => emp.status === $state.filters.status);
 	}
 	
 	return filtered;
 });
 
-export const activeEmployees = $derived(
-	employeeState.employees.filter(emp => emp.status === 'active')
+export const activeEmployees = derived(employeeState, $state =>
+	$state.employees.filter(emp => emp.status === 'active')
 );
 
-export const hasEmployees = $derived(employeeState.employees.length > 0);
+export const hasEmployees = derived(employeeState, $state => $state.employees.length > 0);
 
 // Store actions
 export const employeeActions = {
 	setEmployees(employees: Employee[], total: number) {
-		employeeState.employees = employees;
-		employeeState.total = total;
-		employeeState.loading = false;
+		employeeState.update(state => ({
+			...state,
+			employees,
+			total,
+			loading: false
+		}));
 	},
 
 	setSelectedEmployee(employee: Employee | null) {
-		employeeState.selectedEmployee = employee;
+		employeeState.update(state => ({
+			...state,
+			selectedEmployee: employee
+		}));
 	},
 
 	updateFilters(newFilters: Partial<EmployeeFilters>) {
-		employeeState.filters = { ...employeeState.filters, ...newFilters };
+		employeeState.update(state => ({
+			...state,
+			filters: { ...state.filters, ...newFilters }
+		}));
 	},
 
 	setLoading(loading: boolean) {
-		employeeState.loading = loading;
+		employeeState.update(state => ({
+			...state,
+			loading
+		}));
 	},
 
 	addEmployee(employee: Employee) {
-		employeeState.employees = [...employeeState.employees, employee];
-		employeeState.total = employeeState.total + 1;
+		employeeState.update(state => ({
+			...state,
+			employees: [...state.employees, employee],
+			total: state.total + 1
+		}));
 	},
 
 	updateEmployee(employee: Employee) {
-		const index = employeeState.employees.findIndex(e => e.id === employee.id);
-		if (index !== -1) {
-			employeeState.employees[index] = employee;
-		}
-		
-		// Update selected employee if it matches
-		if (employeeState.selectedEmployee?.id === employee.id) {
-			employeeState.selectedEmployee = employee;
-		}
+		employeeState.update(state => {
+			const index = state.employees.findIndex(e => e.id === employee.id);
+			const updatedEmployees = [...state.employees];
+			if (index !== -1) {
+				updatedEmployees[index] = employee;
+			}
+			
+			return {
+				...state,
+				employees: updatedEmployees,
+				selectedEmployee: state.selectedEmployee?.id === employee.id ? employee : state.selectedEmployee
+			};
+		});
 	},
 
 	removeEmployee(employeeId: string) {
-		employeeState.employees = employeeState.employees.filter(e => e.id !== employeeId);
-		employeeState.total = employeeState.total - 1;
-		
-		// Clear selected employee if it was deleted
-		if (employeeState.selectedEmployee?.id === employeeId) {
-			employeeState.selectedEmployee = null;
-		}
+		employeeState.update(state => ({
+			...state,
+			employees: state.employees.filter(e => e.id !== employeeId),
+			total: state.total - 1,
+			selectedEmployee: state.selectedEmployee?.id === employeeId ? null : state.selectedEmployee
+		}));
 	},
 
 	clearEmployees() {
-		Object.assign(employeeState, initialState);
-	},
-
-	// Utility methods
-	getEmployeeById(id: string): Employee | undefined {
-		return employeeState.employees.find(e => e.id === id);
-	},
-
-	getEmployeesByDepartment(department: string): Employee[] {
-		return employeeState.employees.filter(e => e.department === department);
+		employeeState.set(initialState);
 	}
+};
+
+// Combined employee store for backwards compatibility
+export const employeeStore = {
+	// Store subscription
+	subscribe: employeeState.subscribe,
+	
+	// Actions
+	...employeeActions
 };

@@ -1,4 +1,4 @@
-// Modernized to use Svelte 5 runes instead of Svelte 4 writable stores
+import { writable, derived } from 'svelte/store';
 
 export interface Task {
 	id: string;
@@ -49,122 +49,136 @@ const initialState: TaskState = {
 	total: 0
 };
 
-// Svelte 5 runes-based task store
-let taskState = $state<TaskState>(initialState);
+// Traditional Svelte store
+const taskState = writable<TaskState>(initialState);
 
-// Derived computed properties
-export const tasks = $derived(taskState.tasks);
-export const selectedTask = $derived(taskState.selectedTask);
-export const filters = $derived(taskState.filters);
-export const isLoading = $derived(taskState.loading);
-export const total = $derived(taskState.total);
+// Derived stores for computed properties
+export const tasks = derived(taskState, $state => $state.tasks);
+export const selectedTask = derived(taskState, $state => $state.selectedTask);
+export const filters = derived(taskState, $state => $state.filters);
+export const isLoading = derived(taskState, $state => $state.loading);
+export const total = derived(taskState, $state => $state.total);
 
 // Computed derived values
-export const filteredTasks = $derived(() => {
-	let filtered = taskState.tasks;
+export const filteredTasks = derived(taskState, $state => {
+	let filtered = $state.tasks;
 	
-	if (taskState.filters.search) {
-		const search = taskState.filters.search.toLowerCase();
+	if ($state.filters.search) {
+		const search = $state.filters.search.toLowerCase();
 		filtered = filtered.filter(task => 
 			task.title.toLowerCase().includes(search) ||
 			task.description.toLowerCase().includes(search)
 		);
 	}
 	
-	if (taskState.filters.status) {
-		filtered = filtered.filter(task => task.status === taskState.filters.status);
+	if ($state.filters.status) {
+		filtered = filtered.filter(task => task.status === $state.filters.status);
 	}
 	
-	if (taskState.filters.priority) {
-		filtered = filtered.filter(task => task.priority === taskState.filters.priority);
+	if ($state.filters.priority) {
+		filtered = filtered.filter(task => task.priority === $state.filters.priority);
 	}
 	
-	if (taskState.filters.assigned_to) {
-		filtered = filtered.filter(task => task.assigned_to === taskState.filters.assigned_to);
+	if ($state.filters.assigned_to) {
+		filtered = filtered.filter(task => task.assigned_to === $state.filters.assigned_to);
 	}
 	
-	if (taskState.filters.category) {
-		filtered = filtered.filter(task => task.category === taskState.filters.category);
+	if ($state.filters.category) {
+		filtered = filtered.filter(task => task.category === $state.filters.category);
 	}
 	
 	return filtered;
 });
 
-export const pendingTasks = $derived(
-	taskState.tasks.filter(task => task.status === 'pending')
+export const pendingTasks = derived(taskState, $state =>
+	$state.tasks.filter(task => task.status === 'pending')
 );
 
-export const completedTasks = $derived(
-	taskState.tasks.filter(task => task.status === 'completed')
+export const completedTasks = derived(taskState, $state =>
+	$state.tasks.filter(task => task.status === 'completed')
 );
 
-export const urgentTasks = $derived(
-	taskState.tasks.filter(task => task.priority === 'urgent')
+export const urgentTasks = derived(taskState, $state =>
+	$state.tasks.filter(task => task.priority === 'urgent')
 );
 
-export const hasTasks = $derived(taskState.tasks.length > 0);
+export const hasTasks = derived(taskState, $state => $state.tasks.length > 0);
 
 // Store actions
 export const taskActions = {
 	setTasks(tasks: Task[], total: number) {
-		taskState.tasks = tasks;
-		taskState.total = total;
-		taskState.loading = false;
+		taskState.update(state => ({
+			...state,
+			tasks,
+			total,
+			loading: false
+		}));
 	},
 
 	setSelectedTask(task: Task | null) {
-		taskState.selectedTask = task;
+		taskState.update(state => ({
+			...state,
+			selectedTask: task
+		}));
 	},
 
 	updateFilters(newFilters: Partial<TaskFilters>) {
-		taskState.filters = { ...taskState.filters, ...newFilters };
+		taskState.update(state => ({
+			...state,
+			filters: { ...state.filters, ...newFilters }
+		}));
 	},
 
 	setLoading(loading: boolean) {
-		taskState.loading = loading;
+		taskState.update(state => ({
+			...state,
+			loading
+		}));
 	},
 
 	addTask(task: Task) {
-		taskState.tasks = [...taskState.tasks, task];
-		taskState.total = taskState.total + 1;
+		taskState.update(state => ({
+			...state,
+			tasks: [...state.tasks, task],
+			total: state.total + 1
+		}));
 	},
 
 	updateTask(task: Task) {
-		const index = taskState.tasks.findIndex(t => t.id === task.id);
-		if (index !== -1) {
-			taskState.tasks[index] = task;
-		}
-		
-		// Update selected task if it matches
-		if (taskState.selectedTask?.id === task.id) {
-			taskState.selectedTask = task;
-		}
+		taskState.update(state => {
+			const index = state.tasks.findIndex(t => t.id === task.id);
+			const updatedTasks = [...state.tasks];
+			if (index !== -1) {
+				updatedTasks[index] = task;
+			}
+			
+			return {
+				...state,
+				tasks: updatedTasks,
+				selectedTask: state.selectedTask?.id === task.id ? task : state.selectedTask
+			};
+		});
 	},
 
 	removeTask(taskId: string) {
-		taskState.tasks = taskState.tasks.filter(t => t.id !== taskId);
-		taskState.total = taskState.total - 1;
-		
-		// Clear selected task if it was deleted
-		if (taskState.selectedTask?.id === taskId) {
-			taskState.selectedTask = null;
-		}
+		taskState.update(state => ({
+			...state,
+			tasks: state.tasks.filter(t => t.id !== taskId),
+			total: state.total - 1,
+			selectedTask: state.selectedTask?.id === taskId ? null : state.selectedTask
+		}));
 	},
 
 	clearTasks() {
-		Object.assign(taskState, initialState);
-	},
-
-	// Utility methods
-	getTaskById(id: string): Task | undefined {
-		return taskState.tasks.find(t => t.id === id);
-	},
-
-	getTasksByStatus(status: Task['status']): Task[] {
-		return taskState.tasks.filter(t => t.status === status);
-	},
-
-	getTasksByPriority(priority: Task['priority']): Task[] {
-		return taskState.tasks.filter(t => t.priority === priority);
+		taskState.set(initialState);
 	}
+};
+
+// Combined task store for backwards compatibility
+export const taskStore = {
+	// Store subscription
+	subscribe: taskState.subscribe,
+	
+	// Actions
+	...taskActions
 };

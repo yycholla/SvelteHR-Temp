@@ -169,13 +169,38 @@ docker-build: ## Build Docker image
 		-f Dockerfile .
 	@echo "✅ Docker image built: $(DOCKER_IMAGE):$(DOCKER_TAG)"
 
-docker-dev: docker-build ## Run development container
-	@echo "🐳 Starting development container..."
-	docker run -it --rm \
+docker-dev: docker-build ## Run development container with hot reload
+	@echo "🐳 Starting development container with volume mounting for hot reload..."
+	docker run -d --rm \
 		-p $(DEV_PORT):$(DEV_PORT) \
 		-e DOPPLER_TOKEN="$(shell doppler configure get token --plain 2>/dev/null || echo '')" \
+		-v $(PWD)/src:/app/src \
+		-v $(PWD)/static:/app/static \
+		-v $(PWD)/package.json:/app/package.json \
+		-v $(PWD)/package-lock.json:/app/package-lock.json \
+		-v $(PWD)/svelte.config.js:/app/svelte.config.js \
+		-v $(PWD)/vite.config.ts:/app/vite.config.ts \
+		-v $(PWD)/tsconfig.json:/app/tsconfig.json \
+		-v $(PWD)/tailwind.config.js:/app/tailwind.config.js \
+		-v $(PWD)/postcss.config.js:/app/postcss.config.js \
 		--name sveltehr-dev \
-		$(DOCKER_IMAGE):$(DOCKER_TAG) npm run dev
+		$(DOCKER_IMAGE):$(DOCKER_TAG)
+	@echo "✅ Container started with hot reload. Use 'make docker-logs' to view logs"
+
+docker-logs: ## View development container logs
+	@echo "📋 Showing development container logs..."
+	docker logs -f sveltehr-dev
+
+docker-stop: ## Stop development container
+	@echo "⏹️  Stopping development container..."
+	docker stop sveltehr-dev 2>/dev/null || true
+	@echo "✅ Container stopped"
+
+docker-restart: docker-stop docker-dev ## Restart development container
+
+docker-shell: ## Open shell in running development container
+	@echo "🐚 Opening shell in development container..."
+	docker exec -it sveltehr-dev sh
 
 docker-prod: docker-build ## Run production container
 	@echo "🐳 Starting production container..."

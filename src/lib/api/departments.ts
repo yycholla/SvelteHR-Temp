@@ -1,4 +1,4 @@
-import { mountianHRApiClient } from './client';
+import { MountainHRApiClient } from './client';
 import type {
 	Department,
 	CreateDepartmentRequest,
