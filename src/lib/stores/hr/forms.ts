@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+// Modernized to use Svelte 5 runes instead of Svelte 4 writable stores
 
 export interface FormState<T = any> {
 	data: T;
@@ -21,6 +21,7 @@ export type ValidationSchema<T> = {
 	[K in keyof T]?: ValidationRule[];
 };
 
+// Form store factory using Svelte 5 runes
 function createFormStore<T extends Record<string, any>>(
 	initialData: T,
 	validationSchema?: ValidationSchema<T>
@@ -34,7 +35,8 @@ function createFormStore<T extends Record<string, any>>(
 		isDirty: false
 	};
 
-	const { subscribe, set, update } = writable<FormState<T>>(initialState);
+	// Create reactive state using Svelte 5 runes
+	let formState = $state<FormState<T>>({ ...initialState, data: { ...initialData } });
 
 	function validateField(fieldName: keyof T, value: any): string[] {
 		const rules = validationSchema?.[fieldName];
@@ -83,87 +85,100 @@ function createFormStore<T extends Record<string, any>>(
 		return allErrors;
 	}
 
+	// Return reactive interface
 	return {
-		subscribe,
+		// Derived values
+		get data() { return formState.data; },
+		get errors() { return formState.errors; },
+		get touched() { return formState.touched; },
+		get isValid() { return formState.isValid; },
+		get isSubmitting() { return formState.isSubmitting; },
+		get isDirty() { return formState.isDirty; },
+
+		// Computed derived values using getters (reactive)
+		get hasErrors() { return Object.keys(formState.errors).length > 0; },
+		get touchedFields() { return Object.keys(formState.touched); },
+		get errorCount() { return Object.keys(formState.errors).length; },
+
+		// Actions
 		updateField: (fieldName: keyof T, value: any) => {
-			update(state => {
-				const newData = { ...state.data, [fieldName]: value };
-				const fieldErrors = validateField(fieldName, value);
-				const newErrors = { ...state.errors };
-				
-				if (fieldErrors.length > 0) {
-					newErrors[fieldName as string] = fieldErrors;
-				} else {
-					delete newErrors[fieldName as string];
-				}
+			const newData = { ...formState.data, [fieldName]: value };
+			const fieldErrors = validateField(fieldName, value);
+			const newErrors = { ...formState.errors };
+			
+			if (fieldErrors.length > 0) {
+				newErrors[fieldName as string] = fieldErrors;
+			} else {
+				delete newErrors[fieldName as string];
+			}
 
-				const isValid = Object.keys(newErrors).length === 0;
+			const isValid = Object.keys(newErrors).length === 0;
 
-				return {
-					...state,
-					data: newData,
-					errors: newErrors,
-					touched: { ...state.touched, [fieldName]: true },
-					isValid,
-					isDirty: true
-				};
-			});
+			// Direct state mutations
+			formState.data = newData;
+			formState.errors = newErrors;
+			formState.touched = { ...formState.touched, [fieldName]: true };
+			formState.isValid = isValid;
+			formState.isDirty = true;
 		},
+
 		setData: (newData: Partial<T>) => {
-			update(state => {
-				const updatedData = { ...state.data, ...newData };
-				const errors = validateForm(updatedData);
-				const isValid = Object.keys(errors).length === 0;
+			const updatedData = { ...formState.data, ...newData };
+			const errors = validateForm(updatedData);
+			const isValid = Object.keys(errors).length === 0;
 
-				return {
-					...state,
-					data: updatedData,
-					errors,
-					isValid,
-					isDirty: true
-				};
-			});
+			formState.data = updatedData;
+			formState.errors = errors;
+			formState.isValid = isValid;
+			formState.isDirty = true;
 		},
+
 		setErrors: (errors: Record<string, string[]>) => {
-			update(state => ({
-				...state,
-				errors,
-				isValid: Object.keys(errors).length === 0
-			}));
+			formState.errors = errors;
+			formState.isValid = Object.keys(errors).length === 0;
 		},
+
 		setSubmitting: (isSubmitting: boolean) => {
-			update(state => ({ ...state, isSubmitting }));
+			formState.isSubmitting = isSubmitting;
 		},
+
 		touchField: (fieldName: keyof T) => {
-			update(state => ({
-				...state,
-				touched: { ...state.touched, [fieldName]: true }
-			}));
+			formState.touched = { ...formState.touched, [fieldName]: true };
 		},
+
 		reset: () => {
-			set({ ...initialState, data: { ...initialData } });
+			Object.assign(formState, { ...initialState, data: { ...initialData } });
 		},
+
 		validate: () => {
-			let isValid = true;
-			update(state => {
-				const errors = validateForm(state.data);
-				const allTouched: Record<string, boolean> = {};
-				
-				// Mark all fields as touched during validation
-				for (const key in state.data) {
-					allTouched[key] = true;
-				}
+			const errors = validateForm(formState.data);
+			const allTouched: Record<string, boolean> = {};
+			
+			// Mark all fields as touched during validation
+			for (const key in formState.data) {
+				allTouched[key] = true;
+			}
 
-				isValid = Object.keys(errors).length === 0;
+			const isValid = Object.keys(errors).length === 0;
 
-				return {
-					...state,
-					errors,
-					touched: allTouched,
-					isValid
-				};
-			});
+			formState.errors = errors;
+			formState.touched = allTouched;
+			formState.isValid = isValid;
+
 			return isValid;
+		},
+
+		// Utility methods
+		getFieldError: (fieldName: keyof T): string[] => {
+			return formState.errors[fieldName as string] || [];
+		},
+
+		isFieldTouched: (fieldName: keyof T): boolean => {
+			return formState.touched[fieldName as string] || false;
+		},
+
+		hasFieldError: (fieldName: keyof T): boolean => {
+			return (formState.errors[fieldName as string]?.length || 0) > 0;
 		}
 	};
 }

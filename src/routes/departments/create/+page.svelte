@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { departmentActions, departments } from '$lib/stores/departments';
 	import { RoleGuard } from '$lib/components/auth';
 	import { Button } from '$lib/components/ui/button';
@@ -127,7 +128,7 @@
 			</CardHeader>
 			
 			<CardContent class="space-y-6">
-				<form onsubmit|preventDefault={handleSubmit} class="space-y-6">
+				<form onsubmit={(e) => { e.preventDefault(); handleSubmit(e); }} class="space-y-6">
 					<!-- Name -->
 					<div class="space-y-2">
 						<Label for="name">Department Name *</Label>

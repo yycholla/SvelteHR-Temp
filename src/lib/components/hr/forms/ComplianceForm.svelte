@@ -135,7 +135,7 @@
 	$: formState = $form;
 </script>
 
-<form on:submit|preventDefault={handleSubmit} class="space-y-6">
+<form onsubmit={(e) => { e.preventDefault(); handleSubmit(e); }} class="space-y-6">
 	<!-- Compliance Type -->
 	<div>
 		<label class="label" for="type">

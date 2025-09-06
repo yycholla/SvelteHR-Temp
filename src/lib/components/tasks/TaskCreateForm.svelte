@@ -20,7 +20,7 @@
 
 <h3 class="font-semibold mb-2">Create Task</h3>
 
-<form class="space-y-4" on:submit|preventDefault>
+<form class="space-y-4" onsubmit={(e) => { e.preventDefault(); }}>
   <div class="space-y-2">
     <Label for="title">Title</Label>
     <Input id="title" bind:value={$form.title} placeholder="Enter task title" class="rounded-xl" />

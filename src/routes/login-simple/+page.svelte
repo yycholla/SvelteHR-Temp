@@ -40,7 +40,7 @@
 			</CardHeader>
 
 			<CardContent class="space-y-6">
-				<form on:submit|preventDefault={handleSubmit} class="space-y-4">
+				<form onsubmit={(e) => { e.preventDefault(); handleSubmit(e); }} class="space-y-4">
 					<div class="space-y-2">
 						<InputGroup
 							label="Username"

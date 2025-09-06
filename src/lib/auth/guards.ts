@@ -1,7 +1,6 @@
 import { redirect } from '@sveltejs/kit';
-import { get } from 'svelte/store';
 import { goto } from '$app/navigation';
-import { authStore } from '$lib/stores/auth';
+import { authActions, isAuthenticated, currentUser } from '$lib/stores/auth';
 import type { User } from '../api/types';
 
 export interface PermissionCheck {
@@ -58,15 +57,14 @@ export async function routeGuard(
     unauthorizedRedirect?: string;
   } = {}
 ): Promise<boolean> {
-  const auth = get(authStore);
   const {
     redirectTo,
     loginRedirect = '/login',
     unauthorizedRedirect = '/unauthorized'
   } = options;
 
-  // Check if user is authenticated
-  if (!auth.isAuthenticated || !auth.user) {
+  // Check if user is authenticated using Svelte 5 derived store
+  if (!isAuthenticated || !currentUser) {
     // Redirect to login with return path
     const returnPath = redirectTo || (typeof window !== 'undefined' ? window.location.pathname : '/');
     await goto(`${loginRedirect}?redirectTo=${encodeURIComponent(returnPath)}`);
@@ -74,7 +72,7 @@ export async function routeGuard(
   }
 
   // Check if user has required access
-  if (!hasAccess(auth.user, check)) {
+  if (!hasAccess(currentUser, check)) {
     await goto(unauthorizedRedirect);
     return false;
   }
@@ -141,8 +139,7 @@ export const permissionChecks = {
  * Check if current user can access a resource
  */
 export function canAccess(check: PermissionCheck): boolean {
-  const auth = get(authStore);
-  return auth.isAuthenticated && hasAccess(auth.user, check);
+  return isAuthenticated && hasAccess(currentUser, check);
 }
 
 // Legacy compatibility exports

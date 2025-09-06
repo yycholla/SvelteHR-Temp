@@ -128,7 +128,7 @@
 	const formState = $derived($form);
 </script>
 
-<form on:submit|preventDefault={handleSubmit} class="space-y-6">
+<form onsubmit={(e) => { e.preventDefault(); handleSubmit(e); }} class="space-y-6">
 	<!-- Employee Selection -->
 	<div>
 		<label class="label" for="employee_id">

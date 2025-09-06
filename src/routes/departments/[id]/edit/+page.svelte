@@ -207,7 +207,7 @@
 				</CardHeader>
 				
 				<CardContent class="space-y-6">
-					<form onsubmit|preventDefault={handleSubmit} class="space-y-6">
+					<form onsubmit={(e) => { e.preventDefault(); handleSubmit(e); }} class="space-y-6">
 						<!-- Name -->
 						<div class="space-y-2">
 							<Label for="name">Department Name *</Label>

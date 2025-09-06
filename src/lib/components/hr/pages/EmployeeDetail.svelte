@@ -405,14 +405,20 @@
 
 <style>
 	.stat {
-		@apply text-center;
+		text-align: center;
 	}
 	
 	.stat-title {
-		@apply text-xs font-semibold text-surface-600-300-token uppercase tracking-wide;
+		font-size: 0.75rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: #6b7280;
 	}
 	
 	.stat-value {
-		@apply text-2xl font-bold mt-1;
+		font-size: 1.5rem;
+		font-weight: 700;
+		margin-top: 0.25rem;
 	}
 </style>

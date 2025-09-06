@@ -1,4 +1,4 @@
-import { writable, derived, get } from 'svelte/store';
+// Modernized to use Svelte 5 runes instead of Svelte 4 writable stores
 import type { 
 	DashboardLayout, 
 	CardInstance, 
@@ -36,32 +36,47 @@ export const CARD_SIZE_MAP: Record<CardSize, { w: number; h: number }> = {
 	'2x3': { w: 4, h: 2 }    // Large tall card - 496px tall (reduced from 3)
 };
 
-// Core dashboard state
-export const dashboardLayout = writable<DashboardLayout | null>(null);
-export const isDragging = writable<boolean>(false);
-export const isEditing = writable<boolean>(false);
-export const userRole = writable<UserRole>('Employee');
+// Dashboard state interface
+interface DashboardState {
+	layout: DashboardLayout | null;
+	isDragging: boolean;
+	isEditing: boolean;
+	userRole: UserRole;
+	preferences: UserDashboardPreferences;
+}
 
-// User preferences
-export const dashboardPreferences = writable<UserDashboardPreferences>({
-	layouts: [],
-	activeLayoutId: '',
-	theme: 'light',
-	autoRefresh: true,
-	refreshInterval: 300 // 5 minutes
+const initialState: DashboardState = {
+	layout: null,
+	isDragging: false,
+	isEditing: false,
+	userRole: 'Employee',
+	preferences: {
+		layouts: [],
+		activeLayoutId: '',
+		theme: 'light',
+		autoRefresh: true,
+		refreshInterval: 300 // 5 minutes
+	}
+};
+
+// Svelte 5 runes-based dashboard store
+let dashboardState = $state<DashboardState>(initialState);
+
+// Derived computed properties
+export const dashboardLayout = $derived(dashboardState.layout);
+export const isDragging = $derived(dashboardState.isDragging);
+export const isEditing = $derived(dashboardState.isEditing);
+export const userRole = $derived(dashboardState.userRole);
+export const dashboardPreferences = $derived(dashboardState.preferences);
+
+// Computed derived values
+export const availableCards = $derived(cardRegistry.getAvailableCards(dashboardState.userRole));
+export const layoutCards = $derived(dashboardState.layout?.cards ?? []);
+export const hasLayout = $derived(dashboardState.layout !== null);
+export const layoutCount = $derived(dashboardState.preferences.layouts.length);
+export const activeLayoutName = $derived(() => {
+	return dashboardState.preferences.layouts.find(l => l.id === dashboardState.preferences.activeLayoutId)?.name || '';
 });
-
-// Available cards based on user role
-export const availableCards = derived(
-	userRole,
-	($userRole) => cardRegistry.getAvailableCards($userRole)
-);
-
-// Current layout cards
-export const layoutCards = derived(
-	dashboardLayout,
-	($layout) => $layout?.cards ?? []
-);
 
 /**
  * Dashboard store actions
@@ -72,7 +87,7 @@ export const dashboardActions = {
 	 */
 	async initialize(role: UserRole, userId?: string) {
 		console.log('🔧 Dashboard initialization started for role:', role);
-		userRole.set(role);
+		dashboardState.userRole = role;
 		
 		try {
 			// Load user preferences from localStorage first
@@ -80,13 +95,13 @@ export const dashboardActions = {
 			const savedPrefs = this.loadPreferencesFromStorage();
 			if (savedPrefs) {
 				console.log('✅ Found saved preferences:', savedPrefs);
-				dashboardPreferences.set(savedPrefs);
+				dashboardState.preferences = savedPrefs;
 				
 				// Load active layout
 				const activeLayout = savedPrefs.layouts.find(l => l.id === savedPrefs.activeLayoutId);
 				if (activeLayout) {
 					console.log('✅ Loading existing layout:', activeLayout.name);
-					dashboardLayout.set(activeLayout);
+					dashboardState.layout = activeLayout;
 					return;
 				}
 			}
@@ -95,14 +110,14 @@ export const dashboardActions = {
 			console.log('🆕 Creating default layout for role:', role);
 			const defaultLayout = this.createDefaultLayout(role);
 			console.log('✅ Default layout created:', defaultLayout);
-			dashboardLayout.set(defaultLayout);
+			dashboardState.layout = defaultLayout;
 			
 			// Save to preferences
-			dashboardPreferences.update(prefs => ({
-				...prefs,
+			dashboardState.preferences = {
+				...dashboardState.preferences,
 				layouts: [defaultLayout],
 				activeLayoutId: defaultLayout.id
-			}));
+			};
 			
 			console.log('💾 Saving preferences to storage...');
 			this.savePreferencesToStorage();
@@ -190,7 +205,7 @@ export const dashboardActions = {
 			return;
 		}
 		
-		const currentLayout = get(dashboardLayout);
+		const currentLayout = dashboardState.layout;
 		if (!currentLayout) {
 			console.error('❌ No current layout found');
 			return;
@@ -200,7 +215,6 @@ export const dashboardActions = {
 		
 		// Find available position if not specified
 		const cardPosition = position || this.findAvailablePosition(cardMeta.defaultSize, currentLayout);
-		const size = CARD_SIZE_MAP[cardMeta.defaultSize];
 		
 		console.log('📍 Card position:', cardPosition);
 		
@@ -215,16 +229,14 @@ export const dashboardActions = {
 		
 		console.log('✨ Created new card instance:', newCard);
 		
-		dashboardLayout.update(layout => {
-			if (!layout) return layout;
-			const updated = {
-				...layout,
-				cards: [...layout.cards, newCard],
-				updatedAt: new Date()
-			};
-			console.log('✅ Updated layout with', updated.cards.length, 'cards');
-			return updated;
-		});
+		// Direct state mutation
+		dashboardState.layout = {
+			...currentLayout,
+			cards: [...currentLayout.cards, newCard],
+			updatedAt: new Date()
+		};
+		
+		console.log('✅ Updated layout with', dashboardState.layout.cards.length, 'cards');
 		
 		this.saveLayout();
 	},
@@ -233,14 +245,13 @@ export const dashboardActions = {
 	 * Remove a card from the layout
 	 */
 	removeCard(cardInstanceId: string) {
-		dashboardLayout.update(layout => {
-			if (!layout) return layout;
-			return {
-				...layout,
-				cards: layout.cards.filter(c => c.id !== cardInstanceId),
-				updatedAt: new Date()
-			};
-		});
+		if (!dashboardState.layout) return;
+		
+		dashboardState.layout = {
+			...dashboardState.layout,
+			cards: dashboardState.layout.cards.filter(c => c.id !== cardInstanceId),
+			updatedAt: new Date()
+		};
 		
 		this.saveLayout();
 	},
@@ -309,13 +320,13 @@ export const dashboardActions = {
 	 * Save current layout to user preferences
 	 */
 	saveLayout() {
-		const layout = get(dashboardLayout);
+		const layout = dashboardState.layout;
 		if (!layout) return;
 		
-		dashboardPreferences.update(prefs => ({
-			...prefs,
-			layouts: prefs.layouts.map(l => l.id === layout.id ? layout : l)
-		}));
+		dashboardState.preferences = {
+			...dashboardState.preferences,
+			layouts: dashboardState.preferences.layouts.map(l => l.id === layout.id ? layout : l)
+		};
 		
 		this.savePreferencesToStorage();
 	},
@@ -460,7 +471,7 @@ export const dashboardActions = {
 	savePreferencesToStorage() {
 		if (typeof localStorage === 'undefined') return;
 		
-		const prefs = get(dashboardPreferences);
+		const prefs = dashboardState.preferences;
 		localStorage.setItem('dashboard-preferences', JSON.stringify(prefs));
 	},
 
