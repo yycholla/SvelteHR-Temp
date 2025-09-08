@@ -6,10 +6,13 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { GraphQLClient, type GraphQLResponse } from '../../lib/graphql/client';
+import { GraphQLClient, type GraphQLResponse, authOperations } from '../../lib/graphql/client';
 
 // Real GraphQL client - will connect to actual GelDB endpoint
 const graphqlClient = new GraphQLClient();
+
+// Authentication token for contract tests
+let contractTestAuthToken: string;
 
 // Employee Management GraphQL Operations
 const EMPLOYEES_QUERY = `
@@ -274,6 +277,20 @@ describe('GraphQL Contract: Employee Management Operations', () => {
 
 	beforeAll(async () => {
 		console.log('🚨 Starting GraphQL Employee Contract Tests - Expected to FAIL initially');
+		
+		// Set up authentication for contract tests
+		try {
+			const loginResponse = await authOperations.login('admin@mountainhr.com', 'admin123');
+			if (loginResponse.data?.login && !loginResponse.errors) {
+				contractTestAuthToken = loginResponse.data.login.token;
+				console.log('✅ Contract test authentication setup complete');
+			} else {
+				throw new Error('Contract test login failed');
+			}
+		} catch (error) {
+			console.error('❌ Contract test authentication setup failed:', error);
+			throw error;
+		}
 	});
 
 	afterAll(async () => {
@@ -292,7 +309,7 @@ describe('GraphQL Contract: Employee Management Operations', () => {
 			};
 
 			// This MUST FAIL until backend implements GraphQL employees query
-			const response = await graphqlClient.request(EMPLOYEES_QUERY, variables);
+			const response = await graphqlClient.authenticatedRequest(EMPLOYEES_QUERY, variables, contractTestAuthToken);
 
 			// Contract expectations for EmployeePage
 			expect(response.data).toBeDefined();
@@ -330,7 +347,7 @@ describe('GraphQL Contract: Employee Management Operations', () => {
 			};
 
 			// This MUST FAIL until backend implements department filtering
-			const response = await graphqlClient.request(EMPLOYEES_QUERY, variables);
+			const response = await graphqlClient.authenticatedRequest(EMPLOYEES_QUERY, variables, contractTestAuthToken);
 
 			expect(response.data).toBeDefined();
 			expect(response.data.employees.employees).toBeDefined();
@@ -351,7 +368,7 @@ describe('GraphQL Contract: Employee Management Operations', () => {
 			};
 
 			// This MUST FAIL until backend implements search functionality
-			const response = await graphqlClient.request(EMPLOYEES_QUERY, variables);
+			const response = await graphqlClient.authenticatedRequest(EMPLOYEES_QUERY, variables, contractTestAuthToken);
 
 			expect(response.data).toBeDefined();
 			expect(response.data.employees).toBeDefined();
@@ -453,7 +470,7 @@ describe('GraphQL Contract: Employee Management Operations', () => {
 			// Contract test: myProfile should return authenticated user's employee data
 			// This MUST FAIL until backend implements @auth directive
 
-			const response = await graphqlClient.request(MY_PROFILE_QUERY);
+			const response = await graphqlClient.authenticatedRequest(MY_PROFILE_QUERY, {}, contractTestAuthToken);
 
 			expect(response.data).toBeDefined();
 			expect(response.data.myProfile).toBeDefined();
@@ -492,9 +509,9 @@ describe('GraphQL Contract: Employee Management Operations', () => {
 			};
 
 			// This MUST FAIL until backend implements createEmployee mutation
-			const response = await graphqlClient.request(CREATE_EMPLOYEE_MUTATION, {
+			const response = await graphqlClient.authenticatedRequest(CREATE_EMPLOYEE_MUTATION, {
 				input: createInput
-			});
+			}, contractTestAuthToken);
 
 			expect(response.data).toBeDefined();
 			expect(response.data.createEmployee).toBeDefined();
@@ -644,7 +661,7 @@ describe('GraphQL Contract: Employee Management Operations', () => {
 			};
 
 			// This MUST FAIL until backend implements proper enum validation
-			const response = await graphqlClient.request(EMPLOYEES_QUERY, variables);
+			const response = await graphqlClient.authenticatedRequest(EMPLOYEES_QUERY, variables, contractTestAuthToken);
 
 			expect(response.errors).toBeDefined();
 			expect(response.errors[0].message).toMatch(/enum|invalid|validation/i);
@@ -658,7 +675,7 @@ describe('GraphQL Contract: Employee Management Operations', () => {
 			};
 
 			// This MUST FAIL until backend implements sort field validation
-			const response = await graphqlClient.request(EMPLOYEES_QUERY, variables);
+			const response = await graphqlClient.authenticatedRequest(EMPLOYEES_QUERY, variables, contractTestAuthToken);
 
 			expect(response.errors).toBeDefined();
 			expect(response.errors[0].message).toMatch(/enum|invalid|validation/i);

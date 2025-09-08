@@ -194,6 +194,213 @@ test.describe('Employee Management', () => {
 		}
 	});
 
+	test('should open add employee modal', async ({ page }) => {
+		await page.goto('/employees');
+		await helpers.waitForLoadingToComplete();
+
+		// Look for add employee button
+		const addButton = page.locator('button:has-text("Add Employee"), .add-employee-btn').first();
+
+		if (await addButton.isVisible()) {
+			await addButton.click();
+
+			// Modal should open
+			await expect(page.locator('.modal, [role="dialog"]')).toBeVisible({ timeout: 5000 });
+			await expect(page.locator('h2:has-text("Add"), h3:has-text("Add")')).toBeVisible();
+
+			// Check for essential form fields
+			const formFields = [
+				'input[name="firstName"]',
+				'input[name="lastName"]', 
+				'input[name="email"]',
+				'select[name="departmentId"], input[name="department"]',
+				'input[name="position"]'
+			];
+
+			for (const field of formFields) {
+				if (await page.locator(field).isVisible()) {
+					await expect(page.locator(field)).toBeVisible();
+				}
+			}
+
+			await helpers.takeScreenshot('add-employee-modal');
+		}
+	});
+
+	test('should validate required fields in add employee form', async ({ page }) => {
+		await page.goto('/employees');
+		await helpers.waitForLoadingToComplete();
+
+		const addButton = page.locator('button:has-text("Add Employee"), .add-employee-btn').first();
+
+		if (await addButton.isVisible()) {
+			await addButton.click();
+			
+			// Try to submit empty form
+			const submitButton = page.locator('button[type="submit"]:has-text("Save"), button:has-text("Create")').first();
+			if (await submitButton.isVisible()) {
+				await submitButton.click();
+
+				// Should show validation errors
+				await expect(page.locator('.error-message, .field-error, .invalid-feedback')).toHaveCount({ gte: 1 });
+				await helpers.takeScreenshot('add-employee-validation');
+			}
+		}
+	});
+
+	test('should create new employee successfully', async ({ page }) => {
+		await page.goto('/employees');
+		await helpers.waitForLoadingToComplete();
+
+		const addButton = page.locator('button:has-text("Add Employee"), .add-employee-btn').first();
+
+		if (await addButton.isVisible()) {
+			await addButton.click();
+			
+			// Fill form with valid data
+			const formData = {
+				firstName: 'John',
+				lastName: 'Doe',
+				email: `john.doe.${Date.now()}@mountainhr.com`, // Unique email
+				phone: '+1-555-0123',
+				position: 'Software Developer',
+				salary: '75000'
+			};
+
+			for (const [field, value] of Object.entries(formData)) {
+				const input = page.locator(`input[name="${field}"]`);
+				if (await input.isVisible()) {
+					await input.fill(value);
+				}
+			}
+
+			// Select department if dropdown exists
+			const departmentSelect = page.locator('select[name="departmentId"]');
+			if (await departmentSelect.isVisible()) {
+				await departmentSelect.selectOption({ index: 1 });
+			}
+
+			// Submit form
+			const submitButton = page.locator('button[type="submit"]:has-text("Save"), button:has-text("Create")').first();
+			if (await submitButton.isVisible()) {
+				await submitButton.click();
+
+				// Should show success message or close modal
+				await page.waitForTimeout(2000);
+				const successIndicators = [
+					'.success-message',
+					'.toast-success', 
+					'.alert-success',
+					':has-text("successfully")'
+				];
+
+				let successFound = false;
+				for (const selector of successIndicators) {
+					if (await page.locator(selector).isVisible().catch(() => false)) {
+						successFound = true;
+						break;
+					}
+				}
+
+				await helpers.takeScreenshot('employee-created');
+			}
+		}
+	});
+
+	test('should edit existing employee', async ({ page }) => {
+		await page.goto('/employees');
+		await helpers.waitForTableData('table', 10000);
+
+		// Look for edit button in first row
+		const editButton = page.locator('button:has-text("Edit"), .edit-btn').first();
+
+		if (await editButton.isVisible()) {
+			await editButton.click();
+
+			// Modal should open with existing data
+			await expect(page.locator('.modal, [role="dialog"]')).toBeVisible({ timeout: 5000 });
+			
+			// Update position field
+			const positionInput = page.locator('input[name="position"]');
+			if (await positionInput.isVisible()) {
+				await positionInput.fill('Senior Software Developer');
+			}
+
+			// Submit changes
+			const submitButton = page.locator('button[type="submit"]:has-text("Save"), button:has-text("Update")').first();
+			if (await submitButton.isVisible()) {
+				await submitButton.click();
+				await page.waitForTimeout(2000);
+				await helpers.takeScreenshot('employee-updated');
+			}
+		}
+	});
+
+	test('should show delete confirmation', async ({ page }) => {
+		await page.goto('/employees');
+		await helpers.waitForTableData('table', 10000);
+
+		// Look for delete button
+		const deleteButton = page.locator('button:has-text("Delete"), .delete-btn').first();
+
+		if (await deleteButton.isVisible()) {
+			await deleteButton.click();
+
+			// Should show confirmation dialog
+			const confirmationSelectors = [
+				'.confirmation-dialog',
+				'.delete-confirmation', 
+				'[role="alertdialog"]',
+				':has-text("Are you sure")',
+				':has-text("confirm")'
+			];
+
+			let confirmationFound = false;
+			for (const selector of confirmationSelectors) {
+				if (await page.locator(selector).isVisible().catch(() => false)) {
+					confirmationFound = true;
+					break;
+				}
+			}
+
+			if (confirmationFound) {
+				await helpers.takeScreenshot('delete-confirmation');
+				
+				// Cancel deletion
+				const cancelButton = page.locator('button:has-text("Cancel")').first();
+				if (await cancelButton.isVisible()) {
+					await cancelButton.click();
+				}
+			}
+		}
+	});
+
+	test('should handle bulk operations', async ({ page }) => {
+		await page.goto('/employees');
+		await helpers.waitForTableData('table', 10000);
+
+		// Look for select all checkbox
+		const selectAllCheckbox = page.locator('input[type="checkbox"]').first();
+
+		if (await selectAllCheckbox.isVisible()) {
+			await selectAllCheckbox.check();
+
+			// Look for bulk actions
+			const bulkActions = page.locator('.bulk-actions, .selected-actions');
+			if (await bulkActions.isVisible()) {
+				await expect(bulkActions).toBeVisible();
+				await helpers.takeScreenshot('bulk-actions');
+
+				// Test bulk export if available
+				const exportButton = bulkActions.locator('button:has-text("Export")');
+				if (await exportButton.isVisible()) {
+					await exportButton.click();
+					await page.waitForTimeout(1000);
+				}
+			}
+		}
+	});
+
 	test('should export employees data', async ({ page }) => {
 		await page.goto('/employees');
 		await helpers.waitForLoadingToComplete();

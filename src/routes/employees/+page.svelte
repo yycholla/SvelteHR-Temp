@@ -1,240 +1,664 @@
+<!--
+	Employee Management Page
+	
+	Comprehensive employee management with search, filtering, and CRUD operations
+	Uses the employee service and data table components
+-->
+
 <script lang="ts">
-	import { Search, Filter, Plus, Download, Users, AlertCircle, Wifi, WifiOff } from 'lucide-svelte';
-	import Button from '$lib/components/ui/button/button.svelte';
-	import Input from '$lib/components/ui/input/input.svelte';
-	import Badge from '$lib/components/ui/badge/badge.svelte';
-	import Alert from '$lib/components/ui/alert/alert.svelte';
-	import AlertDescription from '$lib/components/ui/alert/alert-description.svelte';
-	import AdvancedEmployeeTable from '$lib/components/employees/AdvancedEmployeeTable/AdvancedEmployeeTable.svelte';
-	import FilterPanel from '$lib/components/employees/FilterPanel.svelte';
+	import Button from '$lib/components/ui/Button.svelte';
+	import Input from '$lib/components/ui/Input.svelte';
+	import DataTable from '$lib/components/ui/DataTable.svelte';
+	import Modal from '$lib/components/ui/Modal.svelte';
+	import Form from '$lib/components/ui/Form.svelte';
+	import { employeeService } from '$lib/services/employee.service';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import type { PageData } from './$types';
-	import type { Employee } from '$lib/schemas/employee';
+	import { z } from 'zod';
+	import { onMount } from 'svelte';
 
-	// Get data from server loader
-	let { data }: { data: PageData } = $props();
+	// Props from page data
+	export let data: PageData;
 
-	// Extract data from server load
-	const { employeesData, departments, positions, filters, isUsingMockData } = data;
+	// Employee form schema
+	const employeeSchema = z.object({
+		firstName: z.string().min(1, 'First name is required').max(50, 'First name is too long'),
+		lastName: z.string().min(1, 'Last name is required').max(50, 'Last name is too long'),
+		email: z.string().min(1, 'Email is required').email('Please enter a valid email'),
+		phone: z.string().optional(),
+		department: z.string().min(1, 'Department is required'),
+		position: z.string().min(1, 'Position is required'),
+		startDate: z.string().min(1, 'Start date is required'),
+		salary: z.number().min(0, 'Salary must be positive').optional()
+	});
 
-	// Page state - initialize from server data
-	let searchQuery = $state(filters.search || '');
+	type EmployeeForm = z.infer<typeof employeeSchema>;
+
+	// Component state
+	let employees = $state(data.employees || []);
+	let isLoading = $state(false);
+	let searchQuery = $state('');
+	let selectedEmployees = $state([]);
+	let showAddModal = $state(false);
+	let showEditModal = $state(false);
+	let showDeleteModal = $state(false);
+	let editingEmployee = $state(null);
 	let showFilters = $state(false);
-	let selectedDepartments = $state<string[]>(filters.departmentId ? [filters.departmentId] : []);
-	let selectedStatuses = $state<string[]>(filters.status ? [filters.status] : []);
 
-	// For real-time UI filtering (applied on top of server pagination)
-	let localFilteredEmployees = $derived.by(() => {
-		let employees = employeesData.employees;
+	// Filter states
+	let departmentFilter = $state('');
+	let statusFilter = $state('');
 
-		// Only apply local filters if they're different from server filters
-		// This allows for real-time search without page reload
-		if (searchQuery !== filters.search && searchQuery.trim()) {
-			const query = searchQuery.toLowerCase();
-			employees = employees.filter(
-				(emp) =>
-					emp.firstName.toLowerCase().includes(query) ||
-					emp.lastName.toLowerCase().includes(query) ||
-					emp.email.toLowerCase().includes(query) ||
-					(emp.position?.title || '').toLowerCase().includes(query) ||
-					(emp.department?.name || '').toLowerCase().includes(query) ||
-					emp.employeeId.toLowerCase().includes(query)
-			);
+	// Pagination state
+	let currentPage = $state(1);
+	let pageSize = $state(20);
+	let totalCount = $state(data.total || 0);
+
+	// Employee table columns
+	const employeeColumns = [
+		{
+			key: 'employeeId',
+			label: 'ID',
+			sortable: true,
+			width: '100px'
+		},
+		{
+			key: 'firstName',
+			label: 'First Name',
+			sortable: true,
+			render: (value, row) => `${row.firstName} ${row.lastName}`
+		},
+		{
+			key: 'email',
+			label: 'Email',
+			sortable: true
+		},
+		{
+			key: 'department',
+			label: 'Department',
+			sortable: true,
+			render: (value, row) => row.department?.name || 'N/A'
+		},
+		{
+			key: 'position',
+			label: 'Position',
+			sortable: true,
+			render: (value, row) => row.position?.title || 'N/A'
+		},
+		{
+			key: 'status',
+			label: 'Status',
+			sortable: true,
+			align: 'center',
+			render: (value) => {
+				const statusColors = {
+					ACTIVE: 'bg-green-100 text-green-800',
+					INACTIVE: 'bg-gray-100 text-gray-800',
+					TERMINATED: 'bg-red-100 text-red-800'
+				};
+				return `<span class="px-2 py-1 rounded-full text-xs font-medium ${statusColors[value] || statusColors.ACTIVE}">${value}</span>`;
+			}
+		},
+		{
+			key: 'actions',
+			label: 'Actions',
+			sortable: false,
+			align: 'right',
+			render: (value, row, index) => renderActions(row, index)
 		}
+	];
 
-		return employees;
-	});
-
-	// Active filters for display
-	let activeFilters = $derived(() => {
-		const filters = [];
-		if (selectedDepartments.length > 0) {
-			filters.push(
-				`${selectedDepartments.length} Department${selectedDepartments.length > 1 ? 's' : ''}`
-			);
-		}
-		if (selectedStatuses.length > 0) {
-			filters.push(`${selectedStatuses.length} Status${selectedStatuses.length > 1 ? 'es' : ''}`);
-		}
-		return filters;
-	});
-
-	// Handle server-side filtering with URL updates
-	async function applyServerFilters() {
-		const params = new URLSearchParams($page.url.searchParams);
-
-		// Update search param
-		if (searchQuery.trim()) {
-			params.set('search', searchQuery.trim());
-		} else {
-			params.delete('search');
-		}
-
-		// Update department filter
-		if (selectedDepartments.length === 1) {
-			params.set('departmentId', selectedDepartments[0]);
-		} else {
-			params.delete('departmentId');
-		}
-
-		// Update status filter
-		if (selectedStatuses.length === 1) {
-			params.set('status', selectedStatuses[0]);
-		} else {
-			params.delete('status');
-		}
-
-		// Reset to first page when filters change
-		params.delete('page');
-
-		// Navigate to update the URL and trigger server reload
-		await goto(`${$page.route.id}?${params.toString()}`, {
-			keepFocus: true,
-			noScroll: true
-		});
+	// Render action buttons for each row
+	function renderActions(employee, index) {
+		return `
+			<div class="flex items-center space-x-2">
+				<button 
+					class="text-blue-600 hover:text-blue-900 text-sm font-medium"
+					onclick="editEmployee('${employee.id}')"
+				>
+					Edit
+				</button>
+				<button 
+					class="text-red-600 hover:text-red-900 text-sm font-medium"
+					onclick="deleteEmployee('${employee.id}')"
+				>
+					Delete
+				</button>
+			</div>
+		`;
 	}
 
-	function clearFilters() {
-		selectedDepartments = [];
-		selectedStatuses = [];
-		searchQuery = '';
+	// Filtered employees
+	$: filteredEmployees = employees.filter(employee => {
+		const matchesSearch = !searchQuery || 
+			employee.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+			employee.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+			employee.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+			employee.employeeId.toLowerCase().includes(searchQuery.toLowerCase());
+		
+		const matchesDepartment = !departmentFilter || employee.department?.id === departmentFilter;
+		const matchesStatus = !statusFilter || employee.status === statusFilter;
+		
+		return matchesSearch && matchesDepartment && matchesStatus;
+	});
 
-		// Clear URL params and reload
-		goto($page.route.id || '/employees', {
-			keepFocus: true,
-			noScroll: true
-		});
+	// Load employees from service
+	async function loadEmployees() {
+		isLoading = true;
+		try {
+			const result = await employeeService.getEmployees({
+				page: currentPage,
+				limit: pageSize,
+				search: searchQuery || undefined,
+				departmentId: departmentFilter || undefined,
+				status: statusFilter || undefined
+			});
+
+			if (result.success && result.data) {
+				employees = result.data.employees;
+				totalCount = result.data.total;
+			}
+		} catch (error) {
+			console.error('Failed to load employees:', error);
+		} finally {
+			isLoading = false;
+		}
 	}
 
+	// Handle employee creation
+	async function handleCreateEmployee(formData: EmployeeForm) {
+		isLoading = true;
+		try {
+			const result = await employeeService.createEmployee(formData);
+			
+			if (result.success) {
+				showAddModal = false;
+				await loadEmployees(); // Refresh list
+			} else {
+				console.error('Failed to create employee:', result.error);
+			}
+		} catch (error) {
+			console.error('Error creating employee:', error);
+		} finally {
+			isLoading = false;
+		}
+	}
+
+	// Handle employee update
+	async function handleUpdateEmployee(formData: EmployeeForm) {
+		if (!editingEmployee) return;
+		
+		isLoading = true;
+		try {
+			const result = await employeeService.updateEmployee(editingEmployee.id, formData);
+			
+			if (result.success) {
+				showEditModal = false;
+				editingEmployee = null;
+				await loadEmployees(); // Refresh list
+			} else {
+				console.error('Failed to update employee:', result.error);
+			}
+		} catch (error) {
+			console.error('Error updating employee:', error);
+		} finally {
+			isLoading = false;
+		}
+	}
+
+	// Handle employee deletion
+	async function handleDeleteEmployee() {
+		if (!editingEmployee) return;
+		
+		isLoading = true;
+		try {
+			const result = await employeeService.deleteEmployee(editingEmployee.id);
+			
+			if (result.success) {
+				showDeleteModal = false;
+				editingEmployee = null;
+				await loadEmployees(); // Refresh list
+			} else {
+				console.error('Failed to delete employee:', result.error);
+			}
+		} catch (error) {
+			console.error('Error deleting employee:', error);
+		} finally {
+			isLoading = false;
+		}
+	}
+
+	// Global functions for table actions
+	(globalThis as any).editEmployee = (employeeId: string) => {
+		const employee = employees.find(emp => emp.id === employeeId);
+		if (employee) {
+			editingEmployee = employee;
+			showEditModal = true;
+		}
+	};
+
+	(globalThis as any).deleteEmployee = (employeeId: string) => {
+		const employee = employees.find(emp => emp.id === employeeId);
+		if (employee) {
+			editingEmployee = employee;
+			showDeleteModal = true;
+		}
+	};
+
+	// Handle search
+	function handleSearch() {
+		currentPage = 1; // Reset to first page
+		loadEmployees();
+	}
+
+	// Handle sort
+	function handleSort(sort) {
+		// TODO: Implement sorting
+		console.log('Sort by:', sort);
+	}
+
+	// Handle page change
+	function handlePageChange(page: number) {
+		currentPage = page;
+		loadEmployees();
+	}
+
+	// Handle selection change
+	function handleSelectionChange(selected) {
+		selectedEmployees = selected;
+	}
+
+	// Handle row click
+	function handleRowClick(employee) {
+		goto(`/employees/${employee.id}`);
+	}
+
+	// Export employees
 	function exportEmployees() {
-		console.log('Exporting employees...', localFilteredEmployees);
-		// TODO: Implement CSV/Excel export
+		// TODO: Implement CSV export
+		console.log('Exporting employees...');
 	}
 
-	let showAddEmployee = $state(false);
-	function addEmployee() {
-		showAddEmployee = true;
+	// Clear filters
+	function clearFilters() {
+		searchQuery = '';
+		departmentFilter = '';
+		statusFilter = '';
+		currentPage = 1;
+		loadEmployees();
 	}
 
-	// Handle pagination
-	async function handlePageChange(newPage: number) {
-		const params = new URLSearchParams($page.url.searchParams);
-		params.set('page', newPage.toString());
-
-		await goto(`${$page.route.id}?${params.toString()}`, {
-			keepFocus: true,
-			noScroll: true
-		});
-	}
+	// Initialize
+	onMount(() => {
+		if (!data.employees) {
+			loadEmployees();
+		}
+	});
 </script>
 
 <svelte:head>
-	<title>Employees - SvelteHR</title>
+	<title>Employee Management - MountainHR</title>
+	<meta name="description" content="Manage employees, departments, and organizational structure" />
 </svelte:head>
 
-<div class="container mx-auto px-6 pt-6 pb-6">
-	<!-- Data Source Indicator -->
-	{#if isUsingMockData}
-		<div class="mb-4">
-			<Alert class="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
-				<WifiOff class="h-4 w-4 text-amber-600 dark:text-amber-400" />
-				<AlertDescription class="text-amber-800 dark:text-amber-200">
-					<strong>Demo Mode:</strong> Using mock data. Connect to your backend API for live employee
-					data.
-				</AlertDescription>
-			</Alert>
+<div class="space-y-6">
+	<!-- Header -->
+	<div class="flex items-center justify-between">
+		<div>
+			<h1 class="text-3xl font-bold text-foreground">Employees</h1>
+			<p class="text-muted-foreground mt-1">
+				Manage your organization's employees and their information
+			</p>
 		</div>
-	{:else}
-		<div class="mb-4">
-			<Alert class="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20">
-				<Wifi class="h-4 w-4 text-green-600 dark:text-green-400" />
-				<AlertDescription class="text-green-800 dark:text-green-200">
-					<strong>Live Data:</strong> Connected to backend API and showing real employee data.
-				</AlertDescription>
-			</Alert>
+		
+		<div class="flex items-center space-x-3">
+			<Button variant="outline" onclick={exportEmployees} disabled={isLoading}>
+				📊 Export
+			</Button>
+			<Button onclick={() => showAddModal = true} disabled={isLoading}>
+				👤 Add Employee
+			</Button>
 		</div>
-	{/if}
+	</div>
 
-	<!-- Filter Panel -->
-	{#if showFilters}
-		<div class="mb-6">
-			<FilterPanel
-				bind:selectedDepartments
-				bind:selectedStatuses
-				{departments}
-				onApplyFilters={applyServerFilters}
-			/>
-		</div>
-	{/if}
-
-	<!-- Results Summary -->
-	<div class="mb-4 flex items-center justify-between">
-		<div class="flex items-center space-x-2 text-sm text-muted-foreground">
-			<Users class="h-4 w-4" />
-			<span>
-				Showing {localFilteredEmployees.length} of {employeesData.totalCount} employees
-				{#if employeesData.totalPages > 1}
-					(Page {employeesData.page} of {employeesData.totalPages})
+	<!-- Search and Filters -->
+	<div class="bg-card border rounded-lg p-6">
+		<div class="flex items-center space-x-4 mb-4">
+			<div class="flex-1">
+				<Input
+					type="search"
+					placeholder="Search employees by name, email, or ID..."
+					bind:value={searchQuery}
+					oninput={handleSearch}
+					class="max-w-md"
+				/>
+			</div>
+			
+			<Button
+				variant="outline"
+				onclick={() => showFilters = !showFilters}
+				class="flex items-center space-x-2"
+			>
+				<span>🔍</span>
+				<span>Filters</span>
+				{#if departmentFilter || statusFilter}
+					<span class="bg-primary text-primary-foreground rounded-full px-2 py-1 text-xs">
+						{(departmentFilter ? 1 : 0) + (statusFilter ? 1 : 0)}
+					</span>
 				{/if}
-			</span>
+			</Button>
 		</div>
 
-		<!-- Pagination Controls -->
-		{#if employeesData.totalPages > 1}
-			<div class="flex items-center space-x-2">
-				<Button
-					variant="outline"
-					size="sm"
-					disabled={employeesData.page <= 1}
-					onclick={() => handlePageChange(employeesData.page - 1)}
-				>
-					Previous
-				</Button>
-				<span class="text-sm">
-					{employeesData.page} of {employeesData.totalPages}
-				</span>
-				<Button
-					variant="outline"
-					size="sm"
-					disabled={employeesData.page >= employeesData.totalPages}
-					onclick={() => handlePageChange(employeesData.page + 1)}
-				>
-					Next
-				</Button>
+		<!-- Expanded Filters -->
+		{#if showFilters}
+			<div class="border-t pt-4 mt-4">
+				<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+					<div>
+						<label class="block text-sm font-medium mb-2">Department</label>
+						<select
+							bind:value={departmentFilter}
+							onchange={handleSearch}
+							class="w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+						>
+							<option value="">All Departments</option>
+							<option value="eng">Engineering</option>
+							<option value="hr">Human Resources</option>
+							<option value="sales">Sales</option>
+							<option value="marketing">Marketing</option>
+						</select>
+					</div>
+					
+					<div>
+						<label class="block text-sm font-medium mb-2">Status</label>
+						<select
+							bind:value={statusFilter}
+							onchange={handleSearch}
+							class="w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+						>
+							<option value="">All Statuses</option>
+							<option value="ACTIVE">Active</option>
+							<option value="INACTIVE">Inactive</option>
+							<option value="TERMINATED">Terminated</option>
+						</select>
+					</div>
+					
+					<div class="flex items-end">
+						<Button variant="outline" onclick={clearFilters} class="w-full">
+							Clear Filters
+						</Button>
+					</div>
+				</div>
 			</div>
 		{/if}
 	</div>
 
-	<!-- Advanced Employee Table -->
-	<AdvancedEmployeeTable
-		employees={localFilteredEmployees}
-		bind:searchQuery
-		bind:showFilters
-		{activeFilters}
-		{clearFilters}
-		{addEmployee}
-		{exportEmployees}
-		totalCount={employeesData.totalCount}
-		currentPage={employeesData.page}
-		totalPages={employeesData.totalPages}
-		onPageChange={handlePageChange}
-		onApplyFilters={applyServerFilters}
-	/>
+	<!-- Results Summary -->
+	<div class="flex items-center justify-between text-sm text-muted-foreground">
+		<span>
+			Showing {filteredEmployees.length} of {totalCount} employees
+		</span>
+		
+		{#if selectedEmployees.length > 0}
+			<span class="text-primary font-medium">
+				{selectedEmployees.length} selected
+			</span>
+		{/if}
+	</div>
+
+	<!-- Employee Data Table -->
+	<div class="bg-card border rounded-lg overflow-hidden">
+		<DataTable
+			data={filteredEmployees}
+			columns={employeeColumns}
+			{isLoading}
+			selectable
+			bind:selectedRows={selectedEmployees}
+			pagination={{
+				page: currentPage,
+				limit: pageSize,
+				total: totalCount
+			}}
+			onSort={handleSort}
+			onPageChange={handlePageChange}
+			onSelectionChange={handleSelectionChange}
+			onRowClick={handleRowClick}
+			emptyMessage="No employees found"
+		/>
+	</div>
 </div>
 
-{#if showAddEmployee}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-		<div class="w-full max-w-md rounded-xl border border-border bg-background p-6">
-			<h3 class="mb-2 font-semibold">Add Employee</h3>
-			<p class="mb-4 text-sm text-muted-foreground">
-				This is a placeholder modal. Hook up your form here.
-			</p>
-			<div class="flex justify-end">
-				<button class="rounded-lg border px-3 py-2" onclick={() => (showAddEmployee = false)}
-					>Close</button
-				>
+<!-- Add Employee Modal -->
+<Modal bind:open={showAddModal} title="Add New Employee" size="lg">
+	{#snippet content()}
+		<Form
+			schema={employeeSchema}
+			onSubmit={handleCreateEmployee}
+			class="space-y-4"
+		>
+			{#snippet content({ form, errors, handleChange, handleBlur })}
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					<Input
+						name="firstName"
+						label="First Name"
+						required
+						bind:value={form.firstName}
+						error={errors.firstName}
+						oninput={(e) => handleChange('firstName', e.currentTarget.value)}
+						onblur={(e) => handleBlur('firstName', e.currentTarget.value)}
+					/>
+					
+					<Input
+						name="lastName"
+						label="Last Name"
+						required
+						bind:value={form.lastName}
+						error={errors.lastName}
+						oninput={(e) => handleChange('lastName', e.currentTarget.value)}
+						onblur={(e) => handleBlur('lastName', e.currentTarget.value)}
+					/>
+				</div>
+				
+				<Input
+					name="email"
+					type="email"
+					label="Email Address"
+					required
+					bind:value={form.email}
+					error={errors.email}
+					oninput={(e) => handleChange('email', e.currentTarget.value)}
+					onblur={(e) => handleBlur('email', e.currentTarget.value)}
+				/>
+				
+				<Input
+					name="phone"
+					type="tel"
+					label="Phone Number"
+					bind:value={form.phone}
+					error={errors.phone}
+					oninput={(e) => handleChange('phone', e.currentTarget.value)}
+					onblur={(e) => handleBlur('phone', e.currentTarget.value)}
+				/>
+				
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					<Input
+						name="department"
+						label="Department"
+						required
+						bind:value={form.department}
+						error={errors.department}
+						oninput={(e) => handleChange('department', e.currentTarget.value)}
+						onblur={(e) => handleBlur('department', e.currentTarget.value)}
+					/>
+					
+					<Input
+						name="position"
+						label="Position"
+						required
+						bind:value={form.position}
+						error={errors.position}
+						oninput={(e) => handleChange('position', e.currentTarget.value)}
+						onblur={(e) => handleBlur('position', e.currentTarget.value)}
+					/>
+				</div>
+				
+				<Input
+					name="startDate"
+					type="date"
+					label="Start Date"
+					required
+					bind:value={form.startDate}
+					error={errors.startDate}
+					oninput={(e) => handleChange('startDate', e.currentTarget.value)}
+					onblur={(e) => handleBlur('startDate', e.currentTarget.value)}
+				/>
+			{/snippet}
+		</Form>
+	{/snippet}
+	
+	{#snippet actions()}
+		<Button variant="outline" onclick={() => showAddModal = false}>
+			Cancel
+		</Button>
+		<Button type="submit" loading={isLoading} disabled={isLoading}>
+			Create Employee
+		</Button>
+	{/snippet}
+</Modal>
+
+<!-- Edit Employee Modal -->
+{#if editingEmployee}
+	<Modal bind:open={showEditModal} title="Edit Employee" size="lg">
+		{#snippet content()}
+			<Form
+				schema={employeeSchema}
+				initialValues={{
+					firstName: editingEmployee.firstName,
+					lastName: editingEmployee.lastName,
+					email: editingEmployee.email,
+					phone: editingEmployee.phone,
+					department: editingEmployee.department?.name || '',
+					position: editingEmployee.position?.title || '',
+					startDate: editingEmployee.startDate,
+					salary: editingEmployee.salary
+				}}
+				onSubmit={handleUpdateEmployee}
+				class="space-y-4"
+			>
+				{#snippet content({ form, errors, handleChange, handleBlur })}
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<Input
+							name="firstName"
+							label="First Name"
+							required
+							bind:value={form.firstName}
+							error={errors.firstName}
+							oninput={(e) => handleChange('firstName', e.currentTarget.value)}
+							onblur={(e) => handleBlur('firstName', e.currentTarget.value)}
+						/>
+						
+						<Input
+							name="lastName"
+							label="Last Name"
+							required
+							bind:value={form.lastName}
+							error={errors.lastName}
+							oninput={(e) => handleChange('lastName', e.currentTarget.value)}
+							onblur={(e) => handleBlur('lastName', e.currentTarget.value)}
+						/>
+					</div>
+					
+					<Input
+						name="email"
+						type="email"
+						label="Email Address"
+						required
+						bind:value={form.email}
+						error={errors.email}
+						oninput={(e) => handleChange('email', e.currentTarget.value)}
+						onblur={(e) => handleBlur('email', e.currentTarget.value)}
+					/>
+					
+					<Input
+						name="phone"
+						type="tel"
+						label="Phone Number"
+						bind:value={form.phone}
+						error={errors.phone}
+						oninput={(e) => handleChange('phone', e.currentTarget.value)}
+						onblur={(e) => handleBlur('phone', e.currentTarget.value)}
+					/>
+					
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<Input
+							name="department"
+							label="Department"
+							required
+							bind:value={form.department}
+							error={errors.department}
+							oninput={(e) => handleChange('department', e.currentTarget.value)}
+							onblur={(e) => handleBlur('department', e.currentTarget.value)}
+						/>
+						
+						<Input
+							name="position"
+							label="Position"
+							required
+							bind:value={form.position}
+							error={errors.position}
+							oninput={(e) => handleChange('position', e.currentTarget.value)}
+							onblur={(e) => handleBlur('position', e.currentTarget.value)}
+						/>
+					</div>
+					
+					<Input
+						name="startDate"
+						type="date"
+						label="Start Date"
+						required
+						bind:value={form.startDate}
+						error={errors.startDate}
+						oninput={(e) => handleChange('startDate', e.currentTarget.value)}
+						onblur={(e) => handleBlur('startDate', e.currentTarget.value)}
+					/>
+				{/snippet}
+			</Form>
+		{/snippet}
+		
+		{#snippet actions()}
+			<Button variant="outline" onclick={() => showEditModal = false}>
+				Cancel
+			</Button>
+			<Button type="submit" loading={isLoading} disabled={isLoading}>
+				Update Employee
+			</Button>
+		{/snippet}
+	</Modal>
+{/if}
+
+<!-- Delete Confirmation Modal -->
+{#if editingEmployee}
+	<Modal bind:open={showDeleteModal} title="Delete Employee" size="sm">
+		{#snippet content()}
+			<div class="space-y-4">
+				<p class="text-muted-foreground">
+					Are you sure you want to delete <strong>{editingEmployee.firstName} {editingEmployee.lastName}</strong>?
+				</p>
+				<div class="bg-destructive/10 border border-destructive/20 rounded-md p-3">
+					<p class="text-sm text-destructive">
+						⚠️ This action cannot be undone. All employee data will be permanently removed.
+					</p>
+				</div>
 			</div>
-		</div>
-	</div>
+		{/snippet}
+		
+		{#snippet actions()}
+			<Button variant="outline" onclick={() => showDeleteModal = false}>
+				Cancel
+			</Button>
+			<Button variant="destructive" onclick={handleDeleteEmployee} loading={isLoading}>
+				Delete Employee
+			</Button>
+		{/snippet}
+	</Modal>
 {/if}

@@ -192,7 +192,7 @@
 	const searchStartX = $derived(windowWidth - 24 - 150); // 24px from right edge, minus navbar width
 
 	// Search positioning logic - improved to be more considerate
-	const brandingEndX = windowWidth >= 884 ? 220 : 80; // Branding width with better spacing
+	const brandingEndX = $derived(windowWidth >= 884 ? 220 : 80); // Branding width with better spacing
 	const navbarStartX = $derived(
 		windowWidth -
 			24 -

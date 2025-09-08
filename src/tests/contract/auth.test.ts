@@ -150,8 +150,8 @@ describe('GraphQL Contract: Authentication Operations', () => {
 
 			// Contract: Should return GraphQL errors for invalid credentials
 			expect(response.errors).toBeDefined();
-			expect(response.errors.length).toBeGreaterThan(0);
-			expect(response.errors[0].message).toMatch(/invalid|unauthorized|authentication failed/i);
+			expect(response.errors!.length).toBeGreaterThan(0);
+			expect(response.errors![0].message).toMatch(/invalid|unauthorized|authentication failed/i);
 			expect(response.data?.login).toBeNull();
 		});
 
@@ -168,8 +168,8 @@ describe('GraphQL Contract: Authentication Operations', () => {
 			});
 
 			expect(response.errors).toBeDefined();
-			expect(response.errors.length).toBeGreaterThan(0);
-			expect(response.errors[0].message).toMatch(/validation|required|invalid/i);
+			expect(response.errors!.length).toBeGreaterThan(0);
+			expect(response.errors![0].message).toMatch(/validation|required|invalid/i);
 		});
 	});
 

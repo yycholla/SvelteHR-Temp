@@ -14,8 +14,44 @@ const config = {
 		alias: {
 			'@/+': './src/lib/+'
 		},
-		adapter: adapter()
+		adapter: adapter(),
+		
+		// Performance and SEO optimizations
+		prerender: {
+			// Prerender static pages for better performance
+			entries: ['/login', '/privacy', '/terms'],
+			handleHttpError: 'warn'
+		},
+		
+		// Service worker for offline support and caching
+		serviceWorker: {
+			register: true
+		},
+		
+		// CSP disabled for development (enable in production)
+		// csp: {
+		// 	mode: 'hash',
+		// 	directives: {
+		// 		'script-src': ['self', 'strict-dynamic'],
+		// 		'object-src': ['none'],
+		// 		'base-uri': ['self']
+		// 	}
+		// },
+		
+		// Output optimization
+		output: {
+			preloadStrategy: 'modulepreload'
+		}
 	},
+	
+	// Compiler optimizations
+	compilerOptions: {
+		// Enable hydration optimizations in production
+		hydratable: true,
+		// CSS optimizations
+		css: 'injected'
+	},
+	
 	extensions: ['.svelte', '.svx']
 };
 

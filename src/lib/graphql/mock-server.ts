@@ -560,14 +560,25 @@ export class GraphQLMockServer {
 	}
 
 	private async handleMyProfile(variables: any): Promise<GraphQLResponse> {
-		// For contract testing, distinguish between the two myProfile tests:
-		// 1. Test expecting success should work (simulating authenticated context)  
-		// 2. Test expecting auth failure should fail when called identically
-		//
-		// Since both tests call the same query, we need to simulate that myProfile
-		// works in the general case but we have a specific auth test that expects failure.
-		// For now, let the successful test pass to demonstrate contract compliance.
+		// myProfile should require authentication - check for token
+		if (!variables || !variables._token) {
+			return {
+				data: { myProfile: null },
+				errors: [{ message: 'Unauthorized - authentication required for profile access' }]
+			};
+		}
+
+		// Validate the token
+		const token = variables._token;
+		const tokenEntry = this.tokens.get(token);
 		
+		if (!tokenEntry && !token.startsWith('mock-token-')) {
+			return {
+				data: { myProfile: null },
+				errors: [{ message: 'Unauthorized - invalid authentication token' }]
+			};
+		}
+
 		// Return first employee as mock current user profile
 		const employee = this.employees[0];
 		
@@ -595,8 +606,25 @@ export class GraphQLMockServer {
 	}
 
 	private async handleCreateEmployee(variables: any): Promise<GraphQLResponse> {
-		// For contract testing, allow createEmployee to succeed
-		// The authentication test is handled by "should require write permission"
+		// Check for authentication first
+		if (!variables || !variables._token) {
+			return {
+				data: { createEmployee: null },
+				errors: [{ message: 'Unauthorized - authentication required for employee creation' }]
+			};
+		}
+
+		// Validate the token  
+		const token = variables._token;
+		const tokenEntry = this.tokens.get(token);
+		
+		if (!tokenEntry && !token.startsWith('mock-token-')) {
+			return {
+				data: { createEmployee: null },
+				errors: [{ message: 'Unauthorized - insufficient permissions for employee creation' }]
+			};
+		}
+
 		const { input } = variables;
 		
 		// Validate required fields

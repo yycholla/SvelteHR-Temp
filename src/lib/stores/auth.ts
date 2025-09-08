@@ -1,11 +1,8 @@
 import { writable, derived, get } from 'svelte/store';
 import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
-import { apiClient } from '../api/client';
-import { authOperations } from '../graphql/client';
-import { showError, showSuccess } from '../utils/errors';
-import type { User, AuthResponse } from '../api/types';
-import type { Employee } from '../api/types-v2';
+import { authService } from '$lib/services/auth/auth.service.js';
+import type { SessionUser } from '$lib/services/auth/session.service.js';
 
 export interface AuthState {
 	user: User | null;
@@ -218,12 +215,12 @@ export const authActions = {
 						full_name: `${userData.firstName} ${userData.lastName}`,
 						employee_id: userData.employee?.employeeId || '',
 						is_active: userData.isActive,
-						roles: userData.roles?.map(role => ({
+						roles: userData.roles?.map((role: any) => ({
 							id: role.id,
 							name: role.name,
 							level: role.level
 						})) || [],
-						permissions: userData.roles?.flatMap(role => 
+						permissions: userData.roles?.flatMap((role: any) => 
 							role.permissions?.map(perm => `${perm.resource}:${perm.action}`) || []
 						) || []
 					};
@@ -476,13 +473,13 @@ export const authActions = {
 					full_name: `${userData.firstName} ${userData.lastName}`,
 					employee_id: userData.employee?.employeeId || '',
 					is_active: userData.isActive,
-					roles: userData.roles?.map(role => ({
+					roles: userData.roles?.map((role: any) => ({
 						id: role.id,
 						name: role.name,
 						level: role.level
 					})) || [],
-					permissions: userData.roles?.flatMap(role => 
-						role.permissions?.map(perm => `${perm.resource}:${perm.action}`) || []
+					permissions: userData.roles?.flatMap((role: any) => 
+						role.permissions?.map((perm: any) => `${perm.resource}:${perm.action}`) || []
 					) || []
 				};
 

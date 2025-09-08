@@ -162,4 +162,165 @@
 	html {
 		transition: background-color 0.3s ease;
 	}
+
+	/* Screen reader only text */
+	.sr-only {
+		position: absolute !important;
+		width: 1px !important;
+		height: 1px !important;
+		padding: 0 !important;
+		margin: -1px !important;
+		overflow: hidden !important;
+		clip: rect(0, 0, 0, 0) !important;
+		white-space: nowrap !important;
+		border: 0 !important;
+	}
+
+	/* Show screen reader text when focused */
+	.sr-only:focus,
+	.sr-only:active {
+		position: static !important;
+		width: auto !important;
+		height: auto !important;
+		padding: 0.5rem 1rem !important;
+		margin: 0 !important;
+		overflow: visible !important;
+		clip: auto !important;
+		white-space: normal !important;
+		background-color: hsl(var(--primary)) !important;
+		color: hsl(var(--primary-foreground)) !important;
+		border-radius: 0.25rem !important;
+		z-index: 9999 !important;
+	}
+
+	/* High contrast mode support */
+	@media (prefers-contrast: high) {
+		:root {
+			--border: #000;
+			--input: #000;
+			--ring: #000;
+		}
+		
+		.dark {
+			--border: #fff;
+			--input: #fff;
+			--ring: #fff;
+		}
+	}
+
+	/* Reduce motion for users who prefer it */
+	@media (prefers-reduced-motion: reduce) {
+		*,
+		*::before,
+		*::after {
+			animation-duration: 0.01ms !important;
+			animation-iteration-count: 1 !important;
+			transition-duration: 0.01ms !important;
+			scroll-behavior: auto !important;
+		}
+	}
+
+	/* Focus indicators */
+	:focus-visible {
+		outline: 2px solid hsl(var(--ring));
+		outline-offset: 2px;
+		border-radius: 2px;
+	}
+
+	/* Skip to main content link */
+	.skip-to-main {
+		position: absolute;
+		top: -40px;
+		left: 6px;
+		background: hsl(var(--primary));
+		color: hsl(var(--primary-foreground));
+		padding: 8px;
+		text-decoration: none;
+		z-index: 1000;
+		border-radius: 4px;
+	}
+
+	.skip-to-main:focus {
+		top: 6px;
+	}
+
+	/* Enhanced button focus states */
+	button:focus-visible,
+	[role="button"]:focus-visible {
+		outline: 2px solid hsl(var(--ring));
+		outline-offset: 2px;
+	}
+
+	/* Enhanced link focus states */
+	a:focus-visible {
+		outline: 2px solid hsl(var(--ring));
+		outline-offset: 2px;
+		border-radius: 2px;
+	}
+
+	/* Form control enhancements */
+	input:focus,
+	select:focus,
+	textarea:focus {
+		outline: 2px solid hsl(var(--ring));
+		outline-offset: 0;
+	}
+
+	/* Error state styling */
+	[aria-invalid="true"] {
+		border-color: hsl(var(--destructive));
+		box-shadow: 0 0 0 1px hsl(var(--destructive));
+	}
+
+	/* Live region styling */
+	[aria-live] {
+		font-weight: bold;
+	}
+
+	/* Table accessibility */
+	table {
+		border-collapse: collapse;
+	}
+
+	th[scope="col"] {
+		background-color: hsl(var(--muted));
+	}
+
+	/* Dialog and modal enhancements */
+	[role="dialog"] {
+		box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+	}
+
+	/* Loading indicator accessibility */
+	[aria-busy="true"] {
+		cursor: wait;
+	}
+
+	/* Color contrast improvements for links */
+	a {
+		text-decoration-skip-ink: auto;
+	}
+
+	a:hover,
+	a:focus {
+		text-decoration-thickness: 2px;
+	}
+
+	/* Print styles for accessibility */
+	@media print {
+		.sr-only {
+			position: static !important;
+			width: auto !important;
+			height: auto !important;
+			padding: 0 !important;
+			margin: 0 !important;
+			overflow: visible !important;
+			clip: auto !important;
+			white-space: normal !important;
+		}
+
+		[aria-expanded="false"] .collapsible-content {
+			display: block !important;
+		}
+	}
 }
