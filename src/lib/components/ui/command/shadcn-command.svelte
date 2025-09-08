@@ -1,11 +1,11 @@
 <script lang="ts">
-	import * as Command from "./index.js";
-	import { Calendar, Mail, Smile, Settings, User, Rocket } from "lucide-svelte";
-	import { cn } from "$lib/utils.js";
+	import * as Command from './index.js';
+	import { Calendar, Mail, Smile, Settings, User, Rocket } from 'lucide-svelte';
+	import { cn } from '$lib/utils.js';
 
 	let {
 		class: className,
-		placeholder = "Type a command or search...",
+		placeholder = 'Type a command or search...',
 		value = $bindable(''),
 		onValueChange,
 		...restProps
@@ -13,12 +13,17 @@
 </script>
 
 <div class="relative">
-	<Command.Root class={cn("bg-transparent border-0 shadow-none", className)} bind:value {onValueChange} {...restProps}>
+	<Command.Root
+		class={cn('border-0 bg-transparent shadow-none', className)}
+		bind:value
+		{onValueChange}
+		{...restProps}
+	>
 		<!-- Search Input Bubble - Fixed Position -->
 		<div class="glass-input-bubble-fixed">
 			<Command.Input {placeholder} class="glass-input-separated" />
 		</div>
-		
+
 		<!-- Results Bubble - Positioned Below -->
 		<div class="glass-results-bubble-positioned animate-slide-in">
 			<Command.List class="glass-list-separated">
@@ -74,7 +79,7 @@
 	}
 
 	/* Remove default border from command input wrapper */
-	:global(.glass-input-bubble-fixed [data-slot="command-input-wrapper"]) {
+	:global(.glass-input-bubble-fixed [data-slot='command-input-wrapper']) {
 		border: none !important;
 		border-bottom: none !important;
 		padding: 0 !important;
@@ -84,7 +89,7 @@
 	}
 
 	/* Hide the default search icon */
-	:global(.glass-input-bubble-fixed [data-slot="command-input-wrapper"] svg) {
+	:global(.glass-input-bubble-fixed [data-slot='command-input-wrapper'] svg) {
 		display: none !important;
 	}
 
@@ -144,7 +149,7 @@
 		margin-bottom: 0.5rem !important;
 	}
 
-	:global(.glass-group [data-slot="command-group-heading"]) {
+	:global(.glass-group [data-slot='command-group-heading']) {
 		color: white !important;
 		font-size: 0.75rem !important;
 		font-weight: 600 !important;
@@ -169,7 +174,7 @@
 	}
 
 	:global(.glass-item:hover),
-	:global(.glass-item[data-highlighted="true"]) {
+	:global(.glass-item[data-highlighted='true']) {
 		background: rgba(255, 255, 255, 0.15) !important;
 		backdrop-filter: blur(8px) !important;
 		color: white !important;

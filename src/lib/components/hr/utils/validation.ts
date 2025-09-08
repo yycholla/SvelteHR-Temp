@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // Re-export schemas from the main schemas directory to maintain consistency
-export { 
+export {
 	createEmployeeSchema,
 	updateEmployeeSchema,
 	employeeFilterSchema,
@@ -10,7 +10,7 @@ export {
 	type EmployeeFilter
 } from '$lib/schemas/employee';
 
-export { 
+export {
 	createTaskSchema,
 	updateTaskSchema,
 	taskStatusUpdateSchema,
@@ -20,7 +20,7 @@ export {
 	type TaskFilter
 } from '$lib/schemas/task';
 
-export { 
+export {
 	leaveBalanceSchema,
 	leaveSchema,
 	createLeaveBalanceSchema,
@@ -30,14 +30,14 @@ export {
 	type LeaveBalance
 } from '$lib/schemas/leave';
 
-export { 
+export {
 	complianceItemSchema,
 	createComplianceItemSchema,
 	updateComplianceItemSchema,
 	type ComplianceItem
 } from '$lib/schemas/compliance';
 
-export { 
+export {
 	documentSchema,
 	createDocumentSchema,
 	updateDocumentSchema,
@@ -45,7 +45,10 @@ export {
 } from '$lib/schemas/document';
 
 // Validation helpers
-export function validateField<T>(schema: z.ZodSchema<T>, data: any): { success: boolean; errors: string[] } {
+export function validateField<T>(
+	schema: z.ZodSchema<T>,
+	data: any
+): { success: boolean; errors: string[] } {
 	try {
 		schema.parse(data);
 		return { success: true, errors: [] };
@@ -53,7 +56,7 @@ export function validateField<T>(schema: z.ZodSchema<T>, data: any): { success: 
 		if (error instanceof z.ZodError) {
 			return {
 				success: false,
-				errors: error.errors.map(err => err.message)
+				errors: error.errors.map((err) => err.message)
 			};
 		}
 		return { success: false, errors: ['Validation failed'] };
@@ -62,13 +65,13 @@ export function validateField<T>(schema: z.ZodSchema<T>, data: any): { success: 
 
 export function getFieldErrors(zodError: z.ZodError, fieldPath: string): string[] {
 	return zodError.errors
-		.filter(error => error.path.join('.') === fieldPath)
-		.map(error => error.message);
+		.filter((error) => error.path.join('.') === fieldPath)
+		.map((error) => error.message);
 }
 
 export function formatZodErrors(zodError: z.ZodError): Record<string, string[]> {
 	const errors: Record<string, string[]> = {};
-	
+
 	for (const error of zodError.errors) {
 		const path = error.path.join('.');
 		if (!errors[path]) {
@@ -76,7 +79,7 @@ export function formatZodErrors(zodError: z.ZodError): Record<string, string[]> 
 		}
 		errors[path].push(error.message);
 	}
-	
+
 	return errors;
 }
 
@@ -111,10 +114,10 @@ export function isValidAge(birthDate: string, minAge: number = 16): boolean {
 	const today = new Date();
 	const age = today.getFullYear() - birth.getFullYear();
 	const monthDiff = today.getMonth() - birth.getMonth();
-	
+
 	if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
 		return age - 1 >= minAge;
 	}
-	
+
 	return age >= minAge;
 }

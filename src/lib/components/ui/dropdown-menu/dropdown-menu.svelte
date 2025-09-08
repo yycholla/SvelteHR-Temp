@@ -1,10 +1,7 @@
 <script lang="ts">
-	import { DropdownMenu as DropdownMenuPrimitive } from "bits-ui";
+	import { DropdownMenu as DropdownMenuPrimitive } from 'bits-ui';
 
-	let {
-		children,
-		...restProps
-	} = $props();
+	let { children, ...restProps } = $props();
 </script>
 
 <DropdownMenuPrimitive.Root {...restProps}>

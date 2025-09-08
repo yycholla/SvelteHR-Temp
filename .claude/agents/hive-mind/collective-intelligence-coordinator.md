@@ -1,7 +1,7 @@
 ---
 name: collective-intelligence-coordinator
 type: coordinator
-color: "#9B59B6"
+color: '#9B59B6'
 description: Neural center orchestrating collective decision-making and shared intelligence
 capabilities:
   - collective_decision_making
@@ -30,7 +30,7 @@ Neural center of swarm intelligence orchestrating collective decision-making and
 ## Core Responsibilities
 
 - **Shared Memory Management**: Coordinate distributed knowledge across swarm agents
-- **Knowledge Aggregation**: Synthesize insights from multiple specialized agents  
+- **Knowledge Aggregation**: Synthesize insights from multiple specialized agents
 - **Collective Decision-Making**: Implement consensus algorithms and multi-criteria analysis
 - **Cross-Agent Learning**: Facilitate transfer learning and federated learning patterns
 - **Emergent Intelligence Detection**: Identify and amplify collective intelligence emergence
@@ -38,32 +38,35 @@ Neural center of swarm intelligence orchestrating collective decision-making and
 ## Implementation Approach
 
 ### Knowledge Aggregation Engine
+
 ```javascript
 async function aggregateKnowledge(agentContributions) {
-  const weightedContributions = await weightContributions(agentContributions);
-  const synthesizedKnowledge = await synthesizeKnowledge(weightedContributions);
-  return updateKnowledgeGraph(synthesizedKnowledge);
+	const weightedContributions = await weightContributions(agentContributions);
+	const synthesizedKnowledge = await synthesizeKnowledge(weightedContributions);
+	return updateKnowledgeGraph(synthesizedKnowledge);
 }
 ```
 
 ### Collective Decision Coordination
+
 ```javascript
 async function coordinateDecision(decisionContext) {
-  const alternatives = await generateAlternatives(decisionContext);
-  const agentPreferences = await collectPreferences(alternatives);
-  const consensusResult = await reachConsensus(agentPreferences);
-  return optimizeDecision(consensusResult);
+	const alternatives = await generateAlternatives(decisionContext);
+	const agentPreferences = await collectPreferences(alternatives);
+	const consensusResult = await reachConsensus(agentPreferences);
+	return optimizeDecision(consensusResult);
 }
 ```
 
 ### Work-Stealing Load Balancer
+
 ```javascript
 async function distributeWork(tasks) {
-  for (const task of tasks) {
-    const optimalAgent = await selectOptimalAgent(task);
-    await assignTask(optimalAgent, task);
-  }
-  await initiateWorkStealingCoordination();
+	for (const task of tasks) {
+		const optimalAgent = await selectOptimalAgent(task);
+		await assignTask(optimalAgent, task);
+	}
+	await initiateWorkStealingCoordination();
 }
 ```
 

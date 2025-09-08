@@ -11,7 +11,7 @@ const handler: RequestHandler = async (event) => {
 		createContext: () => createContext(event),
 		onError: ({ error, path }) => {
 			console.error(`❌ tRPC failed on ${path}:`, error);
-		},
+		}
 	});
 
 	return response;

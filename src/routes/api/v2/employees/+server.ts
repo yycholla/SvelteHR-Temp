@@ -7,7 +7,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 	try {
 		// Get auth token from cookies
 		const token = cookies.get('hr_token');
-		
+
 		if (!token) {
 			return json({ error: 'Authentication required' }, { status: 401 });
 		}
@@ -36,20 +36,24 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		// Create employee via backend API using the proper method
 		console.log('📤 Sending to backend:', backendData);
 		const response = await serverApiClient.employees.create(backendData);
-		console.log('📥 Backend response:', { success: response.success, status: response.status, error: response.error });
-		
+		console.log('📥 Backend response:', {
+			success: response.success,
+			status: response.status,
+			error: response.error
+		});
+
 		if (!response.success) {
 			console.error('🚨 Backend API error details:', response);
-			return json({ error: response.error || 'Failed to create employee' }, { status: response.status || 500 });
+			return json(
+				{ error: response.error || 'Failed to create employee' },
+				{ status: response.status || 500 }
+			);
 		}
-		
+
 		return json(response.data);
 	} catch (error: any) {
 		console.error('Employee creation error:', error);
-		
-		return json(
-			{ error: error.message || 'Failed to create employee' }, 
-			{ status: 500 }
-		);
+
+		return json({ error: error.message || 'Failed to create employee' }, { status: 500 });
 	}
 };

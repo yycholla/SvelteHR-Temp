@@ -19,16 +19,20 @@
 </svelte:head>
 
 <!-- Simple loading state while redirecting -->
-<div class="flex items-center justify-center min-h-screen">
-	<div class="text-center space-y-4">
-		<div class="w-12 h-12 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center shadow-lg mx-auto">
-			<span class="text-primary-foreground font-bold text-sm">HR</span>
+<div class="flex min-h-screen items-center justify-center">
+	<div class="space-y-4 text-center">
+		<div
+			class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-lg"
+		>
+			<span class="text-sm font-bold text-primary-foreground">HR</span>
 		</div>
-		<h1 class="font-bold text-3xl bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+		<h1
+			class="bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-3xl font-bold text-transparent"
+		>
 			SvelteHR
 		</h1>
 		<div class="flex items-center justify-center space-x-2 text-muted-foreground">
-			<div class="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+			<div class="h-2 w-2 animate-pulse rounded-full bg-primary"></div>
 			<span class="text-sm">Loading...</span>
 		</div>
 	</div>

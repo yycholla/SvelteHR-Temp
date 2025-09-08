@@ -17,41 +17,41 @@
 
 :root {
 	/* Existing Tailwind variables - keeping for compatibility */
-	--radius: 0.75rem;  /* Updated to match design system */
+	--radius: 0.75rem; /* Updated to match design system */
 	--background: oklch(1 0 0);
 	--foreground: oklch(0.129 0.042 264.695);
 	--card: oklch(1 0 0);
 	--card-foreground: oklch(0.129 0.042 264.695);
 	--popover: oklch(1 0 0);
 	--popover-foreground: oklch(0.129 0.042 264.695);
-	
+
 	/* Updated primary colors to match our design system */
 	--primary: var(--color-primary-500);
 	--primary-foreground: oklch(0.984 0.003 247.858);
-	
-	/* Updated secondary colors */  
+
+	/* Updated secondary colors */
 	--secondary: var(--color-secondary-100);
 	--secondary-foreground: var(--color-secondary-900);
-	
+
 	--muted: var(--color-secondary-100);
 	--muted-foreground: var(--color-secondary-600);
 	--accent: var(--color-secondary-100);
 	--accent-foreground: var(--color-secondary-900);
-	
+
 	/* Updated destructive to use our error colors */
 	--destructive: var(--color-error-500);
-	
+
 	--border: var(--color-secondary-200);
 	--input: var(--color-secondary-200);
 	--ring: var(--color-primary-400);
-	
+
 	/* Chart colors using our system */
 	--chart-1: var(--color-primary-500);
 	--chart-2: var(--color-success-500);
 	--chart-3: var(--color-info-500);
 	--chart-4: var(--color-warning-500);
 	--chart-5: var(--color-error-500);
-	
+
 	/* Sidebar colors */
 	--sidebar: oklch(0.984 0.003 247.858);
 	--sidebar-foreground: oklch(0.129 0.042 264.695);
@@ -70,34 +70,34 @@
 	--card-foreground: oklch(0.984 0.003 247.858);
 	--popover: var(--color-secondary-800);
 	--popover-foreground: oklch(0.984 0.003 247.858);
-	
+
 	/* Primary colors in dark mode */
 	--primary: var(--color-primary-400);
 	--primary-foreground: var(--color-secondary-900);
-	
+
 	/* Secondary colors in dark mode */
 	--secondary: var(--color-secondary-800);
 	--secondary-foreground: oklch(0.984 0.003 247.858);
-	
+
 	--muted: var(--color-secondary-800);
 	--muted-foreground: var(--color-secondary-400);
 	--accent: var(--color-secondary-800);
 	--accent-foreground: oklch(0.984 0.003 247.858);
-	
+
 	/* Destructive in dark mode */
 	--destructive: var(--color-error-500);
-	
+
 	--border: var(--color-secondary-700);
 	--input: var(--color-secondary-700);
 	--ring: var(--color-primary-400);
-	
+
 	/* Chart colors remain consistent */
 	--chart-1: var(--color-primary-400);
 	--chart-2: var(--color-success-500);
 	--chart-3: var(--color-info-500);
 	--chart-4: var(--color-warning-500);
 	--chart-5: var(--color-error-500);
-	
+
 	/* Sidebar in dark mode */
 	--sidebar: var(--color-secondary-800);
 	--sidebar-foreground: oklch(0.984 0.003 247.858);
@@ -153,9 +153,11 @@
 	}
 	body {
 		@apply bg-background text-foreground;
-		transition: background-color 0.3s ease, color 0.3s ease;
+		transition:
+			background-color 0.3s ease,
+			color 0.3s ease;
 	}
-	
+
 	/* Ensure consistent background behavior during navigation */
 	html {
 		transition: background-color 0.3s ease;

@@ -29,37 +29,41 @@ export const leaveSchema = z.object({
 });
 
 // Create leave balance schema
-export const createLeaveBalanceSchema = leaveBalanceSchema.omit({
-	id: true,
-	createdAt: true,
-	updatedAt: true,
-}).extend({
-	employeeId: z.number().min(1, 'Employee ID is required'),
-	leaveType: z.string().min(1, 'Leave type is required'),
-	balance: z.number().min(0, 'Balance must be non-negative'),
-});
+export const createLeaveBalanceSchema = leaveBalanceSchema
+	.omit({
+		id: true,
+		createdAt: true,
+		updatedAt: true
+	})
+	.extend({
+		employeeId: z.number().min(1, 'Employee ID is required'),
+		leaveType: z.string().min(1, 'Leave type is required'),
+		balance: z.number().min(0, 'Balance must be non-negative')
+	});
 
 // Update leave balance schema
 export const updateLeaveBalanceSchema = createLeaveBalanceSchema.partial().extend({
-	id: z.number(),
+	id: z.number()
 });
 
 // Create leave request schema
-export const createLeaveSchema = leaveSchema.omit({
-	id: true,
-	createdAt: true,
-	updatedAt: true,
-	approvedAt: true,
-}).extend({
-	leaveBalanceId: z.number().min(1, 'Leave balance ID is required'),
-	startDate: z.string().min(1, 'Start date is required'),
-	endDate: z.string().min(1, 'End date is required'),
-	status: z.string().default('Pending'),
-});
+export const createLeaveSchema = leaveSchema
+	.omit({
+		id: true,
+		createdAt: true,
+		updatedAt: true,
+		approvedAt: true
+	})
+	.extend({
+		leaveBalanceId: z.number().min(1, 'Leave balance ID is required'),
+		startDate: z.string().min(1, 'Start date is required'),
+		endDate: z.string().min(1, 'End date is required'),
+		status: z.string().default('Pending')
+	});
 
 // Update leave request schema
 export const updateLeaveSchema = createLeaveSchema.partial().extend({
-	id: z.number(),
+	id: z.number()
 });
 
 // Leave balance filter schema
@@ -69,7 +73,7 @@ export const leaveBalanceFilterSchema = z.object({
 	page: z.number().min(1).default(1),
 	pageSize: z.number().min(1).max(100).default(20),
 	sort: z.enum(['leaveType', 'balance', 'lastUpdated']).default('leaveType'),
-	order: z.enum(['ASC', 'DESC']).default('ASC'),
+	order: z.enum(['ASC', 'DESC']).default('ASC')
 });
 
 // Leave request filter schema
@@ -81,42 +85,46 @@ export const leaveFilterSchema = z.object({
 	page: z.number().min(1).default(1),
 	pageSize: z.number().min(1).max(100).default(20),
 	sort: z.enum(['startDate', 'status', 'createdAt']).default('startDate'),
-	order: z.enum(['ASC', 'DESC']).default('DESC'),
+	order: z.enum(['ASC', 'DESC']).default('DESC')
 });
 
 // Leave balance list response schema
-export const leaveBalanceListResponseSchema = z.object({
-	data: z.array(leaveBalanceSchema),
-	page: z.number(),
-	pageSize: z.number(),
-	total: z.number(),
-	totalPages: z.number(),
-	hasMore: z.boolean()
-}).transform((response) => ({
-	leaveBalances: response.data,
-	totalCount: response.total,
-	page: response.page,
-	limit: response.pageSize,
-	totalPages: response.totalPages,
-	hasMore: response.hasMore
-}));
+export const leaveBalanceListResponseSchema = z
+	.object({
+		data: z.array(leaveBalanceSchema),
+		page: z.number(),
+		pageSize: z.number(),
+		total: z.number(),
+		totalPages: z.number(),
+		hasMore: z.boolean()
+	})
+	.transform((response) => ({
+		leaveBalances: response.data,
+		totalCount: response.total,
+		page: response.page,
+		limit: response.pageSize,
+		totalPages: response.totalPages,
+		hasMore: response.hasMore
+	}));
 
 // Leave request list response schema
-export const leaveListResponseSchema = z.object({
-	data: z.array(leaveSchema),
-	page: z.number(),
-	pageSize: z.number(),
-	total: z.number(),
-	totalPages: z.number(),
-	hasMore: z.boolean()
-}).transform((response) => ({
-	leaves: response.data,
-	totalCount: response.total,
-	page: response.page,
-	limit: response.pageSize,
-	totalPages: response.totalPages,
-	hasMore: response.hasMore
-}));
+export const leaveListResponseSchema = z
+	.object({
+		data: z.array(leaveSchema),
+		page: z.number(),
+		pageSize: z.number(),
+		total: z.number(),
+		totalPages: z.number(),
+		hasMore: z.boolean()
+	})
+	.transform((response) => ({
+		leaves: response.data,
+		totalCount: response.total,
+		page: response.page,
+		limit: response.pageSize,
+		totalPages: response.totalPages,
+		hasMore: response.hasMore
+	}));
 
 // Export types
 export type LeaveBalance = z.infer<typeof leaveBalanceSchema>;

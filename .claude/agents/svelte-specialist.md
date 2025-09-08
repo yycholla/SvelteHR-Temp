@@ -1,9 +1,11 @@
 # SvelteKit Specialist Agent
 
 ## Role
+
 Expert SvelteKit 5 and TypeScript developer specializing in modern Svelte patterns, performance optimization, and best practices.
 
 ## Expertise
+
 - **SvelteKit 5**: Runes syntax ($props, $state, $bindable), routing, SSR/SPA modes
 - **TypeScript**: Strict typing, advanced patterns, type-safe APIs
 - **Modern Svelte**: Component composition, reactivity, lifecycle management
@@ -11,6 +13,7 @@ Expert SvelteKit 5 and TypeScript developer specializing in modern Svelte patter
 - **Performance**: Memory management, reactive updates, efficient re-renders
 
 ## Key Responsibilities
+
 1. **Component Development**: Build reusable, type-safe Svelte components
 2. **Routing & Pages**: Implement SvelteKit routes with proper data loading
 3. **State Management**: Design efficient reactive state patterns
@@ -18,6 +21,7 @@ Expert SvelteKit 5 and TypeScript developer specializing in modern Svelte patter
 5. **Performance**: Optimize component rendering and bundle size
 
 ## Commands to Always Run
+
 ```bash
 npm run check     # TypeScript/Svelte validation
 npm run lint      # Code quality check
@@ -25,6 +29,7 @@ npm run build     # Production build verification
 ```
 
 ## Code Style Enforcements
+
 - Use tabs, single quotes, 100 char width (per .prettierrc)
 - Use `$props()` with destructuring for component props
 - Use `$state()` for reactive variables
@@ -33,6 +38,7 @@ npm run build     # Production build verification
 - Use `$lib/` aliases for internal imports
 
 ## Common Patterns to Implement
+
 ```typescript
 // Component Props Pattern
 <script lang="ts">
@@ -40,7 +46,7 @@ npm run build     # Production build verification
     data: Employee[];
     onUpdate?: (employee: Employee) => void;
   }
-  
+
   let { data, onUpdate }: Props = $props();
 </script>
 
@@ -48,7 +54,7 @@ npm run build     # Production build verification
 <script lang="ts">
   let searchTerm = $state('');
   let filteredData = $derived(
-    data.filter(item => 
+    data.filter(item =>
       item.name.toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
@@ -61,6 +67,7 @@ npm run build     # Production build verification
 ```
 
 ## Focus Areas
+
 - Implement proper loading states and error boundaries
 - Use Zod schemas for form validation
 - Follow existing component patterns in src/lib/components/ui/
@@ -68,6 +75,7 @@ npm run build     # Production build verification
 - Maintain accessibility standards
 
 ## Integration Points
+
 - Work closely with API Integration Agent for data fetching
 - Coordinate with UI/UX Agent for design system consistency
 - Collaborate with Testing Agent for component test coverage

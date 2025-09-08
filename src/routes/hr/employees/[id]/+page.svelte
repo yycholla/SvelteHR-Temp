@@ -38,7 +38,7 @@
 			await employeeApi.delete(data.employee.id);
 			notifications.employeeDeleted(`${data.employee.first_name} ${data.employee.last_name}`);
 			employeeStore.removeEmployee(data.employee.id);
-			
+
 			// Navigate back to employees list
 			goto('/hr/employees');
 		} catch (error) {
@@ -58,7 +58,9 @@
 
 <svelte:head>
 	<title>
-		{data.employee ? `${data.employee.first_name} ${data.employee.last_name} - Employee Details` : 'Employee Details'} | SvelteHR
+		{data.employee
+			? `${data.employee.first_name} ${data.employee.last_name} - Employee Details`
+			: 'Employee Details'} | SvelteHR
 	</title>
 	<meta name="description" content="Employee details and information" />
 </svelte:head>
@@ -81,20 +83,14 @@
 
 	<!-- Main Content -->
 	{#if data.employee}
-		<EmployeeDetail
-			employeeId={data.employee.id}
-			onEdit={handleEdit}
-			onDelete={handleDelete}
-		/>
+		<EmployeeDetail employeeId={data.employee.id} onEdit={handleEdit} onDelete={handleDelete} />
 	{:else}
 		<div class="card p-8 text-center">
-			<h2 class="h2 mb-4">Employee Not Found</h2>
+			<h2 class="mb-4 h2">Employee Not Found</h2>
 			<p class="text-surface-600-300-token mb-6">
 				The employee you're looking for could not be found.
 			</p>
-			<a href="/hr/employees" class="btn variant-filled-primary">
-				Back to Employees
-			</a>
+			<a href="/hr/employees" class="variant-filled-primary btn"> Back to Employees </a>
 		</div>
 	{/if}
 </div>
@@ -111,35 +107,27 @@
 
 <!-- Delete Confirmation Modal -->
 {#if showDeleteConfirm}
-	<div class="modal-backdrop fixed inset-0 bg-black/50 z-[999] flex items-center justify-center p-4">
-		<div class="card p-6 w-full max-w-md">
+	<div
+		class="modal-backdrop fixed inset-0 z-[999] flex items-center justify-center bg-black/50 p-4"
+	>
+		<div class="w-full max-w-md card p-6">
 			<header class="mb-4">
 				<h3 class="h3 font-bold text-error-500">Confirm Delete</h3>
 			</header>
-			
+
 			<section class="mb-6">
 				<p class="text-surface-600-300-token">
-					Are you sure you want to delete employee 
+					Are you sure you want to delete employee
 					<strong>{data.employee?.first_name} {data.employee?.last_name}</strong>?
 				</p>
-				<p class="text-sm text-error-500 mt-2">
-					This action cannot be undone.
-				</p>
+				<p class="mt-2 text-sm text-error-500">This action cannot be undone.</p>
 			</section>
-			
+
 			<footer class="flex justify-end gap-3">
-				<button 
-					class="btn variant-ghost-surface" 
-					on:click={() => showDeleteConfirm = false}
-				>
+				<button class="variant-ghost-surface btn" on:click={() => (showDeleteConfirm = false)}>
 					Cancel
 				</button>
-				<button 
-					class="btn variant-filled-error" 
-					on:click={confirmDelete}
-				>
-					Delete Employee
-				</button>
+				<button class="variant-filled-error btn" on:click={confirmDelete}> Delete Employee </button>
 			</footer>
 		</div>
 	</div>

@@ -1,9 +1,9 @@
-import Badge from "./badge.svelte";
+import Badge from './badge.svelte';
 
 export {
 	Badge,
 	//
-	Badge as Root,
+	Badge as Root
 };
 
-export type { BadgeProps, BadgeVariant } from "./badge.svelte";
+export type { BadgeProps, BadgeVariant } from './badge.svelte';

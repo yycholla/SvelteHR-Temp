@@ -13,9 +13,9 @@
 	import Progress from '$lib/components/ui/progress/progress.svelte';
 	import Avatar from '$lib/components/ui/avatar/avatar.svelte';
 	import AvatarFallback from '$lib/components/ui/avatar/avatar-fallback.svelte';
-	import { 
-		Search, 
-		Filter, 
+	import {
+		Search,
+		Filter,
 		Plus,
 		CheckCircle,
 		XCircle,
@@ -33,12 +33,12 @@
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
-	
+
 	// Form state
 	let searchQuery = $state(data.filters.search || '');
 	let statusFilter = $state(data.filters.status || '');
 	let typeFilter = $state(data.filters.type || '');
-	
+
 	// Filter options
 	const statusOptions = [
 		{ value: '', label: 'All Status' },
@@ -47,11 +47,11 @@
 		{ value: 'rejected', label: 'Rejected' },
 		{ value: 'cancelled', label: 'Cancelled' }
 	];
-	
+
 	// Dynamic leave type options from API
 	const typeOptions = $derived([
 		{ value: '', label: 'All Leave Types' },
-		...data.leaveTypes.map(type => ({
+		...data.leaveTypes.map((type) => ({
 			value: type.name.toLowerCase().replace(/\s+/g, '_'),
 			label: type.name
 		}))
@@ -63,11 +63,11 @@
 		if (searchQuery.trim()) params.append('search', searchQuery);
 		if (statusFilter) params.append('status', statusFilter);
 		if (typeFilter) params.append('type', typeFilter);
-		
+
 		const query = params.toString();
 		goto(`/leave${query ? '?' + query : ''}`, { replaceState: true });
 	}
-	
+
 	// Clear filters
 	function clearFilters() {
 		searchQuery = '';
@@ -75,18 +75,23 @@
 		typeFilter = '';
 		goto('/leave', { replaceState: true });
 	}
-	
+
 	// Get status badge variant
 	function getStatusBadge(status: string) {
 		switch (status.toLowerCase()) {
-			case 'approved': return { variant: 'success', label: 'Approved', icon: CheckCircle };
-			case 'rejected': return { variant: 'destructive', label: 'Rejected', icon: XCircle };
-			case 'pending': return { variant: 'warning', label: 'Pending', icon: Clock };
-			case 'cancelled': return { variant: 'default', label: 'Cancelled', icon: XCircle };
-			default: return { variant: 'default', label: status, icon: Clock };
+			case 'approved':
+				return { variant: 'success', label: 'Approved', icon: CheckCircle };
+			case 'rejected':
+				return { variant: 'destructive', label: 'Rejected', icon: XCircle };
+			case 'pending':
+				return { variant: 'warning', label: 'Pending', icon: Clock };
+			case 'cancelled':
+				return { variant: 'default', label: 'Cancelled', icon: XCircle };
+			default:
+				return { variant: 'default', label: status, icon: Clock };
 		}
 	}
-	
+
 	// Format date
 	function formatDate(dateString: string) {
 		if (!dateString) return 'N/A';
@@ -97,7 +102,7 @@
 			return 'Invalid date';
 		}
 	}
-	
+
 	// Calculate date range
 	function formatDateRange(startDate: string, endDate: string) {
 		if (!startDate || !endDate) return 'Invalid range';
@@ -112,17 +117,17 @@
 			return 'Invalid range';
 		}
 	}
-	
+
 	// Get initials for avatar
 	function getInitials(name: string) {
 		return name
 			.split(' ')
-			.map(n => n[0])
+			.map((n) => n[0])
 			.join('')
 			.toUpperCase()
 			.slice(0, 2);
 	}
-	
+
 	// Calculate leave usage percentage
 	const leaveUsagePercentage = $derived(() => {
 		const total = data.stats.myAvailableLeave + data.stats.myUsedLeave;
@@ -131,30 +136,36 @@
 	});
 </script>
 
-<div class="container mx-auto px-6 pb-6 pt-6 space-y-6 max-w-7xl">
+<div class="container mx-auto max-w-7xl space-y-6 px-6 pt-6 pb-6">
 	<!-- Header -->
 	<div class="flex items-center justify-between">
 		<div>
-			<h1 class="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">Leave Management</h1>
-			<p class="text-muted-foreground mt-2">Manage leave requests and track time off for your team</p>
+			<h1
+				class="bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-3xl font-bold text-transparent"
+			>
+				Leave Management
+			</h1>
+			<p class="mt-2 text-muted-foreground">
+				Manage leave requests and track time off for your team
+			</p>
 		</div>
-		<Button class="rounded-xl hover:scale-[1.02] transition-all duration-200">
-			<Plus class="h-4 w-4 mr-2" />
+		<Button class="rounded-xl transition-all duration-200 hover:scale-[1.02]">
+			<Plus class="mr-2 h-4 w-4" />
 			Request Leave
 		</Button>
 	</div>
 
 	<!-- Personal Leave Overview -->
-	<Card class="bg-white border-border shadow-lg rounded-2xl border">
+	<Card class="rounded-2xl border border-border bg-white shadow-lg">
 		<CardHeader>
 			<CardTitle class="flex items-center">
-				<User class="h-5 w-5 mr-2 text-primary" />
+				<User class="mr-2 h-5 w-5 text-primary" />
 				Your Leave Summary
 			</CardTitle>
 			<CardDescription>Track your personal leave balance and usage</CardDescription>
 		</CardHeader>
 		<CardContent>
-			<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+			<div class="grid grid-cols-1 gap-6 md:grid-cols-4">
 				<div class="space-y-2">
 					<p class="text-sm font-medium text-muted-foreground">Available Leave</p>
 					<p class="text-2xl font-bold text-primary">{data.stats.myAvailableLeave} days</p>
@@ -181,57 +192,65 @@
 	</Card>
 
 	<!-- Team Statistics -->
-	<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-		<Card class="bg-white border-border shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
+	<div class="grid grid-cols-1 gap-6 md:grid-cols-4">
+		<Card
+			class="rounded-2xl border border-border bg-white shadow-lg transition-all duration-200 hover:shadow-xl"
+		>
 			<CardContent class="p-6">
 				<div class="flex items-center justify-between">
 					<div>
 						<p class="text-sm font-medium text-muted-foreground">Total Requests</p>
 						<p class="text-2xl font-bold text-foreground">{data.stats.totalRequests}</p>
 					</div>
-					<div class="p-3 bg-primary/10 rounded-full">
+					<div class="rounded-full bg-primary/10 p-3">
 						<FileText class="h-5 w-5 text-primary" />
 					</div>
 				</div>
 			</CardContent>
 		</Card>
-		
-		<Card class="bg-white border-border shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
+
+		<Card
+			class="rounded-2xl border border-border bg-white shadow-lg transition-all duration-200 hover:shadow-xl"
+		>
 			<CardContent class="p-6">
 				<div class="flex items-center justify-between">
 					<div>
 						<p class="text-sm font-medium text-muted-foreground">Approved</p>
 						<p class="text-2xl font-bold text-green-600">{data.stats.approved}</p>
 					</div>
-					<div class="p-3 bg-green-100 rounded-full">
+					<div class="rounded-full bg-green-100 p-3">
 						<CheckCircle class="h-5 w-5 text-green-600" />
 					</div>
 				</div>
 			</CardContent>
 		</Card>
-		
-		<Card class="bg-white border-border shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
+
+		<Card
+			class="rounded-2xl border border-border bg-white shadow-lg transition-all duration-200 hover:shadow-xl"
+		>
 			<CardContent class="p-6">
 				<div class="flex items-center justify-between">
 					<div>
 						<p class="text-sm font-medium text-muted-foreground">Pending</p>
 						<p class="text-2xl font-bold text-yellow-600">{data.stats.pending}</p>
 					</div>
-					<div class="p-3 bg-yellow-100 rounded-full">
+					<div class="rounded-full bg-yellow-100 p-3">
 						<Clock class="h-5 w-5 text-yellow-600" />
 					</div>
 				</div>
 			</CardContent>
 		</Card>
-		
-		<Card class="bg-white border-border shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
+
+		<Card
+			class="rounded-2xl border border-border bg-white shadow-lg transition-all duration-200 hover:shadow-xl"
+		>
 			<CardContent class="p-6">
 				<div class="flex items-center justify-between">
 					<div>
 						<p class="text-sm font-medium text-muted-foreground">Rejected</p>
 						<p class="text-2xl font-bold text-red-600">{data.stats.rejected}</p>
 					</div>
-					<div class="p-3 bg-red-100 rounded-full">
+					<div class="rounded-full bg-red-100 p-3">
 						<XCircle class="h-5 w-5 text-red-600" />
 					</div>
 				</div>
@@ -241,32 +260,34 @@
 
 	<!-- Leave Types -->
 	{#if data.leaveTypes.length > 0}
-		<Card class="bg-white border-border shadow-lg rounded-2xl border">
+		<Card class="rounded-2xl border border-border bg-white shadow-lg">
 			<CardHeader>
 				<CardTitle class="flex items-center">
-					<CalendarDays class="h-5 w-5 mr-2 text-primary" />
+					<CalendarDays class="mr-2 h-5 w-5 text-primary" />
 					Available Leave Types
 				</CardTitle>
 			</CardHeader>
 			<CardContent>
-				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+				<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
 					{#each data.leaveTypes as leaveType}
-						<div class="p-4 border border-border rounded-xl hover:bg-muted/30 transition-all duration-200">
-							<div class="flex items-start justify-between mb-2">
+						<div
+							class="rounded-xl border border-border p-4 transition-all duration-200 hover:bg-muted/30"
+						>
+							<div class="mb-2 flex items-start justify-between">
 								<h3 class="font-semibold text-foreground">{leaveType.name}</h3>
 								<Badge variant="outline" class="text-xs">
 									{leaveType.maxDays} days max
 								</Badge>
 							</div>
 							{#if leaveType.description}
-								<p class="text-sm text-muted-foreground mb-2">{leaveType.description}</p>
+								<p class="mb-2 text-sm text-muted-foreground">{leaveType.description}</p>
 							{/if}
 							<div class="flex items-center text-xs text-muted-foreground">
 								{#if leaveType.requiresApproval}
-									<AlertCircle class="h-3 w-3 mr-1" />
+									<AlertCircle class="mr-1 h-3 w-3" />
 									<span>Requires approval</span>
 								{:else}
-									<CheckCircle class="h-3 w-3 mr-1" />
+									<CheckCircle class="mr-1 h-3 w-3" />
 									<span>Auto-approved</span>
 								{/if}
 							</div>
@@ -278,24 +299,24 @@
 	{/if}
 
 	<!-- Filters -->
-	<Card class="bg-white border-border shadow-lg rounded-2xl border">
+	<Card class="rounded-2xl border border-border bg-white shadow-lg">
 		<CardHeader class="pb-4">
 			<CardTitle class="flex items-center text-lg font-semibold">
-				<Filter class="h-5 w-5 mr-2 text-primary" />
+				<Filter class="mr-2 h-5 w-5 text-primary" />
 				Filters
 			</CardTitle>
 		</CardHeader>
 		<CardContent>
-			<div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+			<div class="grid grid-cols-1 gap-4 md:grid-cols-5">
 				<div class="space-y-2">
 					<Label for="search">Search Requests</Label>
 					<div class="relative">
-						<Search class="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-						<Input 
+						<Search class="absolute top-3 left-3 h-4 w-4 text-muted-foreground" />
+						<Input
 							id="search"
 							bind:value={searchQuery}
 							placeholder="Search by employee or reason..."
-							class="pl-10 rounded-xl"
+							class="rounded-xl pl-10"
 							onkeydown={(e) => {
 								if (e.key === 'Enter') {
 									applyFilters();
@@ -304,57 +325,55 @@
 						/>
 					</div>
 				</div>
-				
+
 				<div class="space-y-2">
 					<Label for="status">Status</Label>
-					<select 
+					<select
 						id="status"
 						bind:value={statusFilter}
-						class="w-full px-3 py-2 rounded-xl bg-background border-border focus:bg-background transition-all duration-200"
+						class="w-full rounded-xl border-border bg-background px-3 py-2 transition-all duration-200 focus:bg-background"
 					>
 						{#each statusOptions as option}
 							<option value={option.value}>{option.label}</option>
 						{/each}
 					</select>
 				</div>
-				
+
 				<div class="space-y-2">
 					<Label for="type">Leave Type</Label>
-					<select 
+					<select
 						id="type"
 						bind:value={typeFilter}
-						class="w-full px-3 py-2 rounded-xl bg-background border-border focus:bg-background transition-all duration-200"
+						class="w-full rounded-xl border-border bg-background px-3 py-2 transition-all duration-200 focus:bg-background"
 					>
 						{#each typeOptions as option}
 							<option value={option.value}>{option.label}</option>
 						{/each}
 					</select>
 				</div>
-				
-				<div class="flex items-end space-x-2 col-span-2">
-					<Button onclick={applyFilters} class="rounded-xl flex-1">
-						Apply
-					</Button>
-					<Button variant="outline" onclick={clearFilters} class="rounded-xl">
-						Clear
-					</Button>
+
+				<div class="col-span-2 flex items-end space-x-2">
+					<Button onclick={applyFilters} class="flex-1 rounded-xl">Apply</Button>
+					<Button variant="outline" onclick={clearFilters} class="rounded-xl">Clear</Button>
 				</div>
 			</div>
 		</CardContent>
 	</Card>
 
 	<!-- Leave Requests List -->
-	<Card class="bg-white border-border shadow-lg rounded-2xl border">
+	<Card class="rounded-2xl border border-border bg-white shadow-lg">
 		<CardHeader>
 			<CardTitle>Leave Requests ({data.leaveRequests.length})</CardTitle>
 		</CardHeader>
 		<CardContent>
 			{#if data.leaveRequests.length === 0}
-				<div class="text-center py-12">
-					<Plane class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-					<h3 class="text-lg font-semibold text-muted-foreground mb-2">No Leave Requests Found</h3>
+				<div class="py-12 text-center">
+					<Plane class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+					<h3 class="mb-2 text-lg font-semibold text-muted-foreground">No Leave Requests Found</h3>
 					<p class="text-muted-foreground">
-						{data.isUsingMockData ? 'Connect to your API to see real leave requests.' : 'No requests match your current filters.'}
+						{data.isUsingMockData
+							? 'Connect to your API to see real leave requests.'
+							: 'No requests match your current filters.'}
 					</p>
 				</div>
 			{:else}
@@ -362,8 +381,10 @@
 					{#each data.leaveRequests as request}
 						{@const statusBadge = getStatusBadge(request.status)}
 						{@const StatusIcon = statusBadge.icon}
-						
-						<div class="p-4 border border-border rounded-xl hover:bg-muted/30 transition-all duration-200">
+
+						<div
+							class="rounded-xl border border-border p-4 transition-all duration-200 hover:bg-muted/30"
+						>
 							<div class="flex items-start justify-between">
 								<div class="flex-1 space-y-3">
 									<div class="flex items-center space-x-3">
@@ -371,18 +392,19 @@
 											{request.employeeName}
 										</h3>
 										<Badge variant={statusBadge.variant} class="text-xs">
-											<StatusIcon class="h-3 w-3 mr-1" />
+											<StatusIcon class="mr-1 h-3 w-3" />
 											{statusBadge.label}
 										</Badge>
 										<Badge variant="outline" class="text-xs">
-											<CalendarDays class="h-3 w-3 mr-1" />
+											<CalendarDays class="mr-1 h-3 w-3" />
 											{request.leaveType}
 										</Badge>
 										<Badge variant="secondary" class="text-xs">
-											{request.days} {request.days === 1 ? 'day' : 'days'}
+											{request.days}
+											{request.days === 1 ? 'day' : 'days'}
 										</Badge>
 									</div>
-									
+
 									<div class="flex items-center space-x-6 text-sm text-muted-foreground">
 										<div class="flex items-center space-x-1">
 											<Calendar class="h-4 w-4" />
@@ -399,23 +421,25 @@
 											</div>
 										{/if}
 									</div>
-									
+
 									{#if request.reason}
-										<div class="bg-muted/50 p-3 rounded-lg">
+										<div class="rounded-lg bg-muted/50 p-3">
 											<p class="text-sm text-foreground">
-												<strong>Reason:</strong> {request.reason}
+												<strong>Reason:</strong>
+												{request.reason}
 											</p>
 										</div>
 									{/if}
-									
+
 									{#if request.comments}
-										<div class="bg-muted/50 p-3 rounded-lg">
+										<div class="rounded-lg bg-muted/50 p-3">
 											<p class="text-sm text-foreground">
-												<strong>Comments:</strong> {request.comments}
+												<strong>Comments:</strong>
+												{request.comments}
 											</p>
 										</div>
 									{/if}
-									
+
 									{#if request.approvedByName && request.approvedByName !== 'N/A'}
 										<div class="flex items-center space-x-2 text-xs text-muted-foreground">
 											<User class="h-3 w-3" />
@@ -423,10 +447,10 @@
 										</div>
 									{/if}
 								</div>
-								
+
 								<div class="flex items-center space-x-2">
 									<Avatar size="sm">
-										<AvatarFallback class="bg-primary/10 text-primary text-xs">
+										<AvatarFallback class="bg-primary/10 text-xs text-primary">
 											{getInitials(request.employeeName)}
 										</AvatarFallback>
 									</Avatar>
@@ -438,16 +462,19 @@
 						</div>
 					{/each}
 				</div>
-				
+
 				<!-- Pagination -->
 				{#if data.totalPages > 1}
-					<div class="flex items-center justify-between mt-6">
+					<div class="mt-6 flex items-center justify-between">
 						<p class="text-sm text-muted-foreground">
-							Showing {((data.page - 1) * data.limit) + 1} to {Math.min(data.page * data.limit, data.totalCount)} of {data.totalCount} requests
+							Showing {(data.page - 1) * data.limit + 1} to {Math.min(
+								data.page * data.limit,
+								data.totalCount
+							)} of {data.totalCount} requests
 						</p>
 						<div class="flex items-center space-x-2">
-							<Button 
-								variant="outline" 
+							<Button
+								variant="outline"
 								size="sm"
 								disabled={data.page <= 1}
 								onclick={() => goto(`/leave?page=${data.page - 1}`)}
@@ -458,8 +485,8 @@
 							<span class="text-sm font-medium">
 								Page {data.page} of {data.totalPages}
 							</span>
-							<Button 
-								variant="outline" 
+							<Button
+								variant="outline"
 								size="sm"
 								disabled={!data.hasMore}
 								onclick={() => goto(`/leave?page=${data.page + 1}`)}

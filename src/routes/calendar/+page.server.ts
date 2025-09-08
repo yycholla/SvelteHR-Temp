@@ -7,7 +7,7 @@ import { z } from 'zod';
 export const load: PageServerLoad = async ({ url, cookies }) => {
 	// Get authentication token
 	const token = cookies.get('hr_token');
-	
+
 	if (!token) {
 		throw error(401, 'Authentication required');
 	}
@@ -29,18 +29,19 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
 		// Fetch events from API using new client
 		console.log('🔍 Fetching events from API...');
 		const eventsResponse = await apiClient.get('/portal/events', params);
-		
+
 		// Transform events to match frontend schema
 		let events: Event[] = [];
 		if (eventsResponse.success && Array.isArray(eventsResponse.data)) {
 			events = eventsResponse.data.map((apiEvent: any): Event => {
 				// Convert dates to proper ISO format for frontend
 				const startDateTime = `${apiEvent.startDate}T${apiEvent.startTime || '00:00:00'}.000Z`;
-				const endDateTime = apiEvent.endDate && apiEvent.endTime 
-					? `${apiEvent.endDate}T${apiEvent.endTime}.000Z`
-					: apiEvent.endDate 
-					? `${apiEvent.endDate}T23:59:59.999Z`
-					: startDateTime;
+				const endDateTime =
+					apiEvent.endDate && apiEvent.endTime
+						? `${apiEvent.endDate}T${apiEvent.endTime}.000Z`
+						: apiEvent.endDate
+							? `${apiEvent.endDate}T23:59:59.999Z`
+							: startDateTime;
 
 				return {
 					id: apiEvent.id || apiEvent.ID,
@@ -52,14 +53,19 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
 					type: apiEvent.type || apiEvent.Type,
 					priority: apiEvent.priority || apiEvent.Priority,
 					location: apiEvent.location || apiEvent.Location,
-					attendees: apiEvent.attendees ? apiEvent.attendees.map((a: any) => a.employeeID || a.EmployeeID).filter(Boolean) : undefined,
+					attendees: apiEvent.attendees
+						? apiEvent.attendees.map((a: any) => a.employeeID || a.EmployeeID).filter(Boolean)
+						: undefined,
 					createdById: apiEvent.createdByID || apiEvent.CreatedByID,
-					createdBy: apiEvent.createdBy || apiEvent.CreatedBy ? {
-						id: (apiEvent.createdBy?.id || apiEvent.CreatedBy?.ID) || 0,
-						firstName: (apiEvent.createdBy?.firstName || apiEvent.CreatedBy?.FirstName) || '',
-						lastName: (apiEvent.createdBy?.lastName || apiEvent.CreatedBy?.LastName) || '',
-						email: (apiEvent.createdBy?.email || apiEvent.CreatedBy?.Email) || ''
-					} : undefined,
+					createdBy:
+						apiEvent.createdBy || apiEvent.CreatedBy
+							? {
+									id: apiEvent.createdBy?.id || apiEvent.CreatedBy?.ID || 0,
+									firstName: apiEvent.createdBy?.firstName || apiEvent.CreatedBy?.FirstName || '',
+									lastName: apiEvent.createdBy?.lastName || apiEvent.CreatedBy?.LastName || '',
+									email: apiEvent.createdBy?.email || apiEvent.CreatedBy?.Email || ''
+								}
+							: undefined,
 					recurrence: 'None',
 					recurrenceEnd: null,
 					color: apiEvent.color || apiEvent.Color || '#3b82f6',
@@ -77,7 +83,6 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
 			initialView: view as 'month' | 'week' | 'day',
 			initialDateRange: startDate && endDate ? { startDate, endDate } : null
 		};
-
 	} catch (err) {
 		console.error('❌ Error loading events:', err);
 		// Return empty events array instead of throwing error to prevent page crash
@@ -93,11 +98,11 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
 export const actions: Actions = {
 	createEvent: async ({ request, cookies }) => {
 		console.log('🚀 createEvent action started');
-		
+
 		try {
 			const token = cookies.get('hr_token');
 			console.log('🔑 Token found:', !!token);
-			
+
 			if (!token) {
 				console.log('❌ No auth token found');
 				return fail(401, { error: 'Authentication required' });
@@ -105,20 +110,20 @@ export const actions: Actions = {
 
 			const data = await request.formData();
 			console.log('📝 Form data received:', Object.fromEntries(data.entries()));
-			
+
 			// Set token for server-side request
 			apiClient.setToken(token);
 			console.log('🔑 Token set for API client');
 
 			// Prepare the event data for the backend (CompanyEvent format)
 			console.log('📤 Preparing event data...');
-			
+
 			// Parse dates properly for GORM
 			const startDate = data.get('startDate') as string;
 			const startTime = data.get('startTime') as string;
 			const endDate = (data.get('endDate') as string) || startDate;
 			const endTime = (data.get('endTime') as string) || '23:59';
-			
+
 			const eventData = {
 				title: data.get('title'),
 				description: data.get('description') || '',
@@ -139,7 +144,7 @@ export const actions: Actions = {
 			// Send POST request to create event
 			console.log('🚀 Making API call to backend...');
 			const response = await apiClient.post('/portal/events', eventData);
-			
+
 			if (response.success) {
 				console.log('✅ Event successfully created in backend:', response.data);
 				return { success: true, event: response.data };
@@ -147,7 +152,6 @@ export const actions: Actions = {
 				console.error('❌ Failed to create event in backend:', response.error);
 				return fail(400, { error: response.error || 'Failed to create event' });
 			}
-
 		} catch (err) {
 			console.error('❌ Error in createEvent action:', err);
 			console.error('❌ Error stack:', err.stack);
@@ -157,7 +161,7 @@ export const actions: Actions = {
 
 	deleteEvent: async ({ request, cookies }) => {
 		const token = cookies.get('hr_token');
-		
+
 		if (!token) {
 			return fail(401, { error: 'Authentication required' });
 		}
@@ -175,7 +179,7 @@ export const actions: Actions = {
 
 			// Delete the event using new API client
 			const response = await apiClient.delete(`/portal/events/${eventId}`);
-			
+
 			if (response.success) {
 				console.log(`✅ Successfully deleted event ${eventId}`);
 				return { success: true };
@@ -183,7 +187,6 @@ export const actions: Actions = {
 				console.error('❌ Error deleting event:', response.error);
 				return fail(400, { error: response.error || 'Failed to delete event' });
 			}
-
 		} catch (err) {
 			console.error('❌ Error deleting event:', err);
 			return fail(500, { error: 'Failed to delete event' });

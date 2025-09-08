@@ -2,8 +2,10 @@ import { writable, derived, get } from 'svelte/store';
 import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
 import { apiClient } from '../api/client';
+import { authOperations } from '../graphql/client';
 import { showError, showSuccess } from '../utils/errors';
 import type { User, AuthResponse } from '../api/types';
+import type { Employee } from '../api/types-v2';
 
 export interface AuthState {
 	user: User | null;
@@ -38,119 +40,220 @@ export const loginAttempts = derived(authStore, ($auth) => $auth.loginAttempts);
 export const lastLoginError = derived(authStore, ($auth) => $auth.lastLoginError);
 
 // Role-based derived stores (using RBAC role names)
-export const isAdmin = derived(authStore, ($auth) => 
-	$auth.user?.roles?.some((role) =>
-		['Admin', 'Administrator', 'System Admin'].includes(role.name)
-	) ?? false
+export const isAdmin = derived(
+	authStore,
+	($auth) =>
+		$auth.user?.roles?.some((role) =>
+			['Admin', 'Administrator', 'System Admin'].includes(role.name)
+		) ?? false
 );
-export const isHR = derived(authStore, ($auth) => 
-	$auth.user?.roles?.some((role) =>
-		['HR', 'HR Manager', 'HR Admin', 'Human Resources'].includes(role.name)
-	) ?? false
+export const isHR = derived(
+	authStore,
+	($auth) =>
+		$auth.user?.roles?.some((role) =>
+			['HR', 'HR Manager', 'HR Admin', 'Human Resources'].includes(role.name)
+		) ?? false
 );
-export const isManager = derived(authStore, ($auth) => 
-	$auth.user?.roles?.some((role) =>
-		['Manager', 'Department Manager', 'Team Lead', 'Supervisor'].includes(role.name)
-	) ?? false
+export const isManager = derived(
+	authStore,
+	($auth) =>
+		$auth.user?.roles?.some((role) =>
+			['Manager', 'Department Manager', 'Team Lead', 'Supervisor'].includes(role.name)
+		) ?? false
 );
-export const isEmployee = derived(authStore, ($auth) => 
-	$auth.user?.roles?.some((role) => ['Employee', 'Staff', 'Team Member'].includes(role.name)) ?? false
+export const isEmployee = derived(
+	authStore,
+	($auth) =>
+		$auth.user?.roles?.some((role) => ['Employee', 'Staff', 'Team Member'].includes(role.name)) ??
+		false
 );
 
 // Permission-based derived stores using resource.action format
-export const canViewEmployees = derived(authStore, ($auth) => 
-	$auth.user?.permissions?.includes('employees.read') ||
-	$auth.user?.permissions?.includes('employees.*') ||
-	$auth.user?.permissions?.includes('*') ||
-	false
+export const canViewEmployees = derived(
+	authStore,
+	($auth) =>
+		$auth.user?.permissions?.includes('employees.read') ||
+		$auth.user?.permissions?.includes('employees.*') ||
+		$auth.user?.permissions?.includes('*') ||
+		false
 );
-export const canEditEmployees = derived(authStore, ($auth) => 
-	$auth.user?.permissions?.includes('employees.write') ||
-	$auth.user?.permissions?.includes('employees.update') ||
-	$auth.user?.permissions?.includes('employees.*') ||
-	$auth.user?.permissions?.includes('*') ||
-	false
+export const canEditEmployees = derived(
+	authStore,
+	($auth) =>
+		$auth.user?.permissions?.includes('employees.write') ||
+		$auth.user?.permissions?.includes('employees.update') ||
+		$auth.user?.permissions?.includes('employees.*') ||
+		$auth.user?.permissions?.includes('*') ||
+		false
 );
-export const canCreateEmployees = derived(authStore, ($auth) => 
-	$auth.user?.permissions?.includes('employees.create') ||
-	$auth.user?.permissions?.includes('employees.*') ||
-	$auth.user?.permissions?.includes('*') ||
-	false
+export const canCreateEmployees = derived(
+	authStore,
+	($auth) =>
+		$auth.user?.permissions?.includes('employees.create') ||
+		$auth.user?.permissions?.includes('employees.*') ||
+		$auth.user?.permissions?.includes('*') ||
+		false
 );
-export const canDeleteEmployees = derived(authStore, ($auth) => 
-	$auth.user?.permissions?.includes('employees.delete') ||
-	$auth.user?.permissions?.includes('employees.*') ||
-	$auth.user?.permissions?.includes('*') ||
-	false
+export const canDeleteEmployees = derived(
+	authStore,
+	($auth) =>
+		$auth.user?.permissions?.includes('employees.delete') ||
+		$auth.user?.permissions?.includes('employees.*') ||
+		$auth.user?.permissions?.includes('*') ||
+		false
 );
-export const canViewReports = derived(authStore, ($auth) => 
-	$auth.user?.permissions?.includes('reports.read') ||
-	$auth.user?.permissions?.includes('reports.*') ||
-	$auth.user?.permissions?.includes('*') ||
-	false
+export const canViewReports = derived(
+	authStore,
+	($auth) =>
+		$auth.user?.permissions?.includes('reports.read') ||
+		$auth.user?.permissions?.includes('reports.*') ||
+		$auth.user?.permissions?.includes('*') ||
+		false
 );
-export const canManageRoles = derived(authStore, ($auth) => 
-	$auth.user?.permissions?.includes('roles.write') ||
-	$auth.user?.permissions?.includes('roles.*') ||
-	$auth.user?.permissions?.includes('system.admin') ||
-	$auth.user?.permissions?.includes('*') ||
-	false
+export const canManageRoles = derived(
+	authStore,
+	($auth) =>
+		$auth.user?.permissions?.includes('roles.write') ||
+		$auth.user?.permissions?.includes('roles.*') ||
+		$auth.user?.permissions?.includes('system.admin') ||
+		$auth.user?.permissions?.includes('*') ||
+		false
 );
-export const canViewDepartments = derived(authStore, ($auth) => 
-	$auth.user?.permissions?.includes('departments.read') ||
-	$auth.user?.permissions?.includes('departments.*') ||
-	$auth.user?.permissions?.includes('*') ||
-	false
+export const canViewDepartments = derived(
+	authStore,
+	($auth) =>
+		$auth.user?.permissions?.includes('departments.read') ||
+		$auth.user?.permissions?.includes('departments.*') ||
+		$auth.user?.permissions?.includes('*') ||
+		false
 );
-export const canManageDepartments = derived(authStore, ($auth) => 
-	$auth.user?.permissions?.includes('departments.write') ||
-	$auth.user?.permissions?.includes('departments.*') ||
-	$auth.user?.permissions?.includes('*') ||
-	false
+export const canManageDepartments = derived(
+	authStore,
+	($auth) =>
+		$auth.user?.permissions?.includes('departments.write') ||
+		$auth.user?.permissions?.includes('departments.*') ||
+		$auth.user?.permissions?.includes('*') ||
+		false
 );
+
+// Helper function to normalize Employee to User
+function normalizeUser(employee: Employee): User {
+	return {
+		id: employee.id,
+		username: employee.username,
+		email: employee.email,
+		first_name: employee.first_name,
+		last_name: employee.last_name,
+		middle_name: employee.middle_name,
+		employee_id: employee.employee_id,
+		full_name: employee.full_name || `${employee.first_name || ''} ${employee.last_name || ''}`.trim() || employee.username,
+		display_name: employee.display_name,
+		search_name: employee.search_name,
+		is_active: employee.is_active,
+		is_verified: employee.is_verified,
+		last_login: employee.last_login,
+		failed_login_attempts: employee.failed_login_attempts,
+		locked_until: employee.locked_until,
+		onboarding_status: employee.onboarding_status,
+		manager_id: employee.manager_id,
+		is_manager: employee.is_manager,
+		direct_report_count: employee.direct_report_count,
+		management_level: employee.management_level,
+		department_name: employee.department_name,
+		job_title: employee.job_title,
+		hire_date: employee.hire_date,
+		employment_type: employee.employment_type,
+		contact_email: employee.contact_email,
+		phone_number: employee.phone_number,
+		created_at: employee.created_at,
+		updated_at: employee.updated_at,
+		roles: employee.roles || [],
+		permissions: employee.permissions || []
+	};
+}
 
 // Auth token management
 let refreshTimer: NodeJS.Timeout;
 
 export const authActions = {
-	// Initialize auth state from GelDB auth token
+	// Initialize auth state from stored token using GraphQL verification
 	async initialize() {
 		if (!browser) return;
 
-		authStore.update(state => ({ ...state, isLoading: true }));
+		authStore.update((state) => ({ ...state, isLoading: true }));
 
 		try {
-			// Check for GelDB auth token in cookies
-			const token = apiClient.auth.checkAuthToken();
+			// Check for auth token in localStorage and cookies
+			let token = localStorage.getItem('hr_token');
+			
+			// Fallback to cookie if localStorage is empty
+			if (!token) {
+				const cookies = document.cookie.split(';');
+				for (const cookie of cookies) {
+					const [name, value] = cookie.trim().split('=');
+					if (name === 'hr_token') {
+						token = value;
+						break;
+					}
+				}
+			}
 
 			if (token) {
-				// Verify token with GelDB
-				const response = await apiClient.auth.verify();
+				console.log('🔄 Initializing auth with stored token');
+				
+				// Verify token with GraphQL Me query
+				const response = await authOperations.me(token);
 
-				if (response.success && response.data) {
-					// Set auth data from GelDB response
+				if (response.data?.me && !response.errors) {
+					const userData = response.data.me;
+					console.log('✅ Auth initialization successful');
+
+					// Transform GraphQL user data to match existing User interface
+					const transformedUser: User = {
+						id: userData.id,
+						username: userData.email,
+						email: userData.email,
+						first_name: userData.firstName,
+						last_name: userData.lastName,
+						full_name: `${userData.firstName} ${userData.lastName}`,
+						employee_id: userData.employee?.employeeId || '',
+						is_active: userData.isActive,
+						roles: userData.roles?.map(role => ({
+							id: role.id,
+							name: role.name,
+							level: role.level
+						})) || [],
+						permissions: userData.roles?.flatMap(role => 
+							role.permissions?.map(perm => `${perm.resource}:${perm.action}`) || []
+						) || []
+					};
+
+					// Set auth data without expiry (will be handled by refresh logic)
 					this.setAuthData({
 						token,
-						user: response.data.user,
+						user: transformedUser,
 						expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // Default 24h
 					});
 				} else {
+					console.warn('❌ Stored token invalid, clearing auth data');
 					// Token invalid, clear it
 					this.clearAuthData();
 				}
+			} else {
+				console.log('🔒 No stored token found');
 			}
 		} catch (error) {
-			console.error('GelDB auth initialization failed:', error);
+			console.error('❌ GraphQL auth initialization failed:', error);
 			this.clearAuthData();
 		} finally {
-			authStore.update(state => ({ ...state, isLoading: false }));
+			authStore.update((state) => ({ ...state, isLoading: false }));
 		}
 	},
 
 	// Redirect to GelDB sign-in
 	async signIn() {
-		authStore.update(state => ({ ...state, isLoading: true }));
-		authStore.update(state => ({ ...state, lastLoginError: null }));
+		authStore.update((state) => ({ ...state, isLoading: true }));
+		authStore.update((state) => ({ ...state, lastLoginError: null }));
 
 		try {
 			// Redirect to GelDB built-in sign-in UI
@@ -158,8 +261,8 @@ export const authActions = {
 			return { success: true };
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : 'Sign-in redirect failed';
-			authStore.update(state => ({ ...state, lastLoginError: errorMessage }));
-			authStore.update(state => ({ ...state, isLoading: false }));
+			authStore.update((state) => ({ ...state, lastLoginError: errorMessage }));
+			authStore.update((state) => ({ ...state, isLoading: false }));
 
 			showError(errorMessage, { title: 'Sign-in Error' });
 
@@ -170,32 +273,63 @@ export const authActions = {
 		}
 	},
 
-	// Login with email/password credentials
+	// Login with email/password credentials using GraphQL
 	async loginWithCredentials(email: string, password: string) {
-		authStore.update(state => ({ ...state, isLoading: true }));
-		authStore.update(state => ({ ...state, lastLoginError: null }));
+		authStore.update((state) => ({ ...state, isLoading: true }));
+		authStore.update((state) => ({ ...state, lastLoginError: null }));
 
 		try {
-			// Call the API client's signIn method
-			const response = await apiClient.auth.signIn(email, password);
+			console.log('🔑 Attempting GraphQL login for:', email);
+			
+			// Call GraphQL login mutation
+			const response = await authOperations.login(email, password);
 
-			if (response.success && response.data) {
-				// Set auth data in store
-				this.setAuthData(response.data);
+			if (response.data?.login && !response.errors) {
+				const loginData = response.data.login;
+				console.log('✅ GraphQL login successful');
+
+				// Transform GraphQL user data to match existing User interface
+				const transformedUser: User = {
+					id: loginData.user.id,
+					username: loginData.user.email, // Use email as username for now
+					email: loginData.user.email,
+					first_name: loginData.user.firstName,
+					last_name: loginData.user.lastName,
+					full_name: `${loginData.user.firstName} ${loginData.user.lastName}`,
+					employee_id: loginData.user.employee?.employeeId || '',
+					is_active: loginData.user.isActive,
+					roles: loginData.user.roles?.map(role => ({
+						id: role.id,
+						name: role.name,
+						level: role.level
+					})) || [],
+					permissions: loginData.user.roles?.flatMap(role => 
+						role.permissions?.map(perm => `${perm.resource}:${perm.action}`) || []
+					) || []
+				};
 				
+				this.setAuthData({
+					token: loginData.token,
+					user: transformedUser,
+					expires_at: loginData.expiresAt
+				});
+
 				showSuccess('Successfully signed in!');
 
 				// Redirect to home or intended destination
 				if (browser) {
-					const redirectTo = new URLSearchParams(window.location.search).get('redirectTo') || '/home';
+					const redirectTo =
+						new URLSearchParams(window.location.search).get('redirectTo') || '/home';
 					await goto(redirectTo, { replaceState: true });
 				}
 
-				return { success: true, data: response.data };
+				return { success: true, data: loginData };
 			} else {
-				const errorMessage = response.error || 'Login failed';
-				authStore.update(state => ({ ...state, lastLoginError: errorMessage }));
+				const errorMessage = response.errors?.[0]?.message || 'Login failed';
+				console.warn('❌ GraphQL login failed:', errorMessage);
 				
+				authStore.update((state) => ({ ...state, lastLoginError: errorMessage }));
+
 				showError(errorMessage, { title: 'Login Failed' });
 
 				return {
@@ -205,7 +339,9 @@ export const authActions = {
 			}
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : 'Login failed';
-			authStore.update(state => ({ ...state, lastLoginError: errorMessage }));
+			console.error('❌ GraphQL login error:', error);
+			
+			authStore.update((state) => ({ ...state, lastLoginError: errorMessage }));
 
 			showError(errorMessage, { title: 'Login Error' });
 
@@ -214,14 +350,14 @@ export const authActions = {
 				error: errorMessage
 			};
 		} finally {
-			authStore.update(state => ({ ...state, isLoading: false }));
+			authStore.update((state) => ({ ...state, isLoading: false }));
 		}
 	},
 
 	// Redirect to GelDB sign-up
 	async signUp() {
-		authStore.update(state => ({ ...state, isLoading: true }));
-		authStore.update(state => ({ ...state, lastLoginError: null }));
+		authStore.update((state) => ({ ...state, isLoading: true }));
+		authStore.update((state) => ({ ...state, lastLoginError: null }));
 
 		try {
 			// Redirect to GelDB built-in sign-up UI
@@ -229,8 +365,8 @@ export const authActions = {
 			return { success: true };
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : 'Sign-up redirect failed';
-			authStore.update(state => ({ ...state, lastLoginError: errorMessage }));
-			authStore.update(state => ({ ...state, isLoading: false }));
+			authStore.update((state) => ({ ...state, lastLoginError: errorMessage }));
+			authStore.update((state) => ({ ...state, isLoading: false }));
 
 			showError(errorMessage, { title: 'Sign-up Error' });
 
@@ -248,8 +384,8 @@ export const authActions = {
 		full_name: string;
 		role_id?: string;
 	}) {
-		authStore.update(state => ({ ...state, isLoading: true }));
-		authStore.update(state => ({ ...state, lastLoginError: null }));
+		authStore.update((state) => ({ ...state, isLoading: true }));
+		authStore.update((state) => ({ ...state, lastLoginError: null }));
 
 		try {
 			const response = await apiClient.auth.register(userData);
@@ -265,7 +401,7 @@ export const authActions = {
 				return { success: true, data: response.data };
 			} else {
 				const errorMessage = response.error || 'Registration failed';
-				authStore.update(state => ({ ...state, lastLoginError: errorMessage }));
+				authStore.update((state) => ({ ...state, lastLoginError: errorMessage }));
 
 				showError(errorMessage, { title: 'Registration Failed' });
 
@@ -276,7 +412,7 @@ export const authActions = {
 			}
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : 'Registration failed';
-			authStore.update(state => ({ ...state, lastLoginError: errorMessage }));
+			authStore.update((state) => ({ ...state, lastLoginError: errorMessage }));
 
 			showError(errorMessage, { title: 'Registration Error' });
 
@@ -285,7 +421,7 @@ export const authActions = {
 				error: errorMessage
 			};
 		} finally {
-			authStore.update(state => ({ ...state, isLoading: false }));
+			authStore.update((state) => ({ ...state, isLoading: false }));
 		}
 	},
 
@@ -297,9 +433,9 @@ export const authActions = {
 			if (response.success && response.data?.token) {
 				// Update token in API client and store
 				apiClient.setToken(response.data.token);
-				authStore.update(state => ({
+				authStore.update((state) => ({
 					...state,
-					token: response.data.token,
+					token: response.data!.token,
 					expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
 				}));
 
@@ -315,33 +451,55 @@ export const authActions = {
 		}
 	},
 
-	// Verify current token
+	// Verify current token using GraphQL
 	async verifyToken() {
-		// Direct access to authState instead of get(authStore)
-		if (!get(authStore).token) return false;
+		const currentToken = get(authStore).token;
+		if (!currentToken) return false;
 
 		try {
-			const response = await apiClient.auth.verify();
+			console.log('🔐 Verifying GraphQL token...');
+			
+			// Call GraphQL me query with current token
+			const response = await authOperations.me(currentToken);
 
-			if (response.success && response.data) {
-				// Update user data with roles and permissions
-				const user = response.data.user;
-				user.roles = response.data.roles || [];
-				user.permissions = response.data.permissions || [];
+			if (response.data?.me && !response.errors) {
+				const userData = response.data.me;
+				console.log('✅ GraphQL token verification successful');
 
-				authStore.update(state => ({
+				// Transform GraphQL user data to match existing User interface
+				const transformedUser: User = {
+					id: userData.id,
+					username: userData.email,
+					email: userData.email,
+					first_name: userData.firstName,
+					last_name: userData.lastName,
+					full_name: `${userData.firstName} ${userData.lastName}`,
+					employee_id: userData.employee?.employeeId || '',
+					is_active: userData.isActive,
+					roles: userData.roles?.map(role => ({
+						id: role.id,
+						name: role.name,
+						level: role.level
+					})) || [],
+					permissions: userData.roles?.flatMap(role => 
+						role.permissions?.map(perm => `${perm.resource}:${perm.action}`) || []
+					) || []
+				};
+
+				authStore.update((state) => ({
 					...state,
-					user: user,
+					user: transformedUser,
 					isAuthenticated: true
 				}));
 
 				return true;
 			} else {
+				console.warn('❌ GraphQL token verification failed:', response.errors);
 				// Try to refresh token
 				return await this.refreshToken();
 			}
 		} catch (error) {
-			console.error('Token verification failed:', error);
+			console.error('❌ GraphQL token verification error:', error);
 			return await this.refreshToken();
 		}
 	},
@@ -388,7 +546,7 @@ export const authActions = {
 	// Set authentication data and schedule refresh
 	setAuthData(data: AuthResponse | { token: string; user: User; expires_at: string }) {
 		const expiresAt = new Date(data.expires_at);
-		const token = 'token' in data ? data.token : data.token;
+		const token = data.token;
 
 		// Set token in API client
 		apiClient.setToken(token);
@@ -403,8 +561,8 @@ export const authActions = {
 		}
 
 		// Update all auth data at once
-		authStore.update(state => ({ 
-			...state, 
+		authStore.update((state) => ({
+			...state,
 			user: data.user,
 			token: token,
 			expiresAt: expiresAt,
@@ -441,7 +599,10 @@ export const authActions = {
 		// Direct access to authState instead of get(authStore)
 		if (!get(authStore).user?.permissions) return false;
 
-		return get(authStore).user!.permissions.includes('*') || get(authStore).user!.permissions.includes(permission);
+		return (
+			get(authStore).user!.permissions.includes('*') ||
+			get(authStore).user!.permissions.includes(permission)
+		);
 	},
 
 	// Check if user has any of the specified roles
@@ -510,7 +671,7 @@ export const authActions = {
 export const authStoreWithActions = {
 	// Store subscription
 	subscribe: authStore.subscribe,
-	
+
 	// Actions
 	...authActions
 };
@@ -522,4 +683,3 @@ export { authStoreWithActions as authStore };
 if (browser) {
 	authActions.initialize();
 }
-

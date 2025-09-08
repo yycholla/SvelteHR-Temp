@@ -1,40 +1,50 @@
 <script lang="ts" module>
-	import { tv, type VariantProps } from "tailwind-variants";
-	import { cn } from "$lib/utils.js";
+	import { tv, type VariantProps } from 'tailwind-variants';
+	import { cn } from '$lib/utils.js';
 
 	export const jobProgressDashboardVariants = tv({
-		base: "w-full rounded-xl border border-border/40 bg-card/50 backdrop-blur-sm shadow-sm",
+		base: 'w-full rounded-xl border border-border/40 bg-card/50 backdrop-blur-sm shadow-sm',
 		variants: {
 			variant: {
-				default: "bg-card/50",
-				compact: "bg-transparent border-0 shadow-none",
-				floating: "fixed bottom-4 right-4 w-96 z-50 shadow-2xl bg-background/95 backdrop-blur-md",
+				default: 'bg-card/50',
+				compact: 'bg-transparent border-0 shadow-none',
+				floating: 'fixed bottom-4 right-4 w-96 z-50 shadow-2xl bg-background/95 backdrop-blur-md'
 			}
 		},
 		defaultVariants: {
-			variant: "default",
-		},
+			variant: 'default'
+		}
 	});
 
 	export const jobItemVariants = tv({
-		base: "flex items-center gap-4 p-4 rounded-lg transition-all duration-200",
+		base: 'flex items-center gap-4 p-4 rounded-lg transition-all duration-200',
 		variants: {
 			status: {
-				pending: "bg-muted/20",
-				running: "bg-blue-50/50 dark:bg-blue-950/10 border border-blue-200/50 dark:border-blue-800/50",
-				completed: "bg-green-50/50 dark:bg-green-950/10 border border-green-200/50 dark:border-green-800/50",
-				failed: "bg-red-50/50 dark:bg-red-950/10 border border-red-200/50 dark:border-red-800/50",
-				cancelled: "bg-gray-50/50 dark:bg-gray-950/10 border border-gray-200/50 dark:border-gray-800/50",
+				pending: 'bg-muted/20',
+				running:
+					'bg-blue-50/50 dark:bg-blue-950/10 border border-blue-200/50 dark:border-blue-800/50',
+				completed:
+					'bg-green-50/50 dark:bg-green-950/10 border border-green-200/50 dark:border-green-800/50',
+				failed: 'bg-red-50/50 dark:bg-red-950/10 border border-red-200/50 dark:border-red-800/50',
+				cancelled:
+					'bg-gray-50/50 dark:bg-gray-950/10 border border-gray-200/50 dark:border-gray-800/50'
 			}
 		},
 		defaultVariants: {
-			status: "pending",
-		},
+			status: 'pending'
+		}
 	});
 
 	export type JobStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
 	export type JobPriority = 'low' | 'normal' | 'high' | 'urgent';
-	export type JobType = 'report' | 'bulk_import' | 'bulk_update' | 'data_archival' | 'compliance_check' | 'notification' | 'export';
+	export type JobType =
+		| 'report'
+		| 'bulk_import'
+		| 'bulk_update'
+		| 'data_archival'
+		| 'compliance_check'
+		| 'notification'
+		| 'export';
 
 	export interface BackgroundJob {
 		id: string;
@@ -58,7 +68,9 @@
 		canRetry?: boolean;
 	}
 
-	export type JobProgressDashboardVariant = VariantProps<typeof jobProgressDashboardVariants>["variant"];
+	export type JobProgressDashboardVariant = VariantProps<
+		typeof jobProgressDashboardVariants
+	>['variant'];
 
 	export type JobProgressDashboardProps = {
 		jobs: BackgroundJob[];
@@ -74,12 +86,12 @@
 </script>
 
 <script lang="ts">
-	import { 
-		Play, 
-		Pause, 
-		CheckCircle, 
-		XCircle, 
-		AlertCircle, 
+	import {
+		Play,
+		Pause,
+		CheckCircle,
+		XCircle,
+		AlertCircle,
 		Clock,
 		FileText,
 		Upload,
@@ -100,36 +112,34 @@
 
 	let {
 		jobs,
-		variant = "default",
+		variant = 'default',
 		showCompleted = true,
 		maxItems = 10,
 		onCancel,
 		onRetry,
 		onView,
 		onClearCompleted,
-		class: className,
+		class: className
 	}: JobProgressDashboardProps = $props();
 
 	const filteredJobs = $derived(() => {
-		let filtered = showCompleted 
-			? jobs 
-			: jobs.filter(job => job.status !== 'completed');
-		
+		let filtered = showCompleted ? jobs : jobs.filter((job) => job.status !== 'completed');
+
 		// Sort by priority and creation time
 		filtered.sort((a, b) => {
 			const priorityOrder = { urgent: 4, high: 3, normal: 2, low: 1 };
 			const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
 			if (priorityDiff !== 0) return priorityDiff;
-			
+
 			return b.createdAt.getTime() - a.createdAt.getTime();
 		});
 
 		return filtered.slice(0, maxItems);
 	});
 
-	const activeJobs = $derived(jobs.filter(job => job.status === 'running').length);
-	const completedJobs = $derived(jobs.filter(job => job.status === 'completed').length);
-	const failedJobs = $derived(jobs.filter(job => job.status === 'failed').length);
+	const activeJobs = $derived(jobs.filter((job) => job.status === 'running').length);
+	const completedJobs = $derived(jobs.filter((job) => job.status === 'completed').length);
+	const failedJobs = $derived(jobs.filter((job) => job.status === 'failed').length);
 
 	function getJobTypeIcon(type: JobType) {
 		switch (type) {
@@ -215,26 +225,26 @@
 
 <div class={cn(jobProgressDashboardVariants({ variant }), className)}>
 	<!-- Header -->
-	<div class="flex items-center justify-between p-4 border-b border-border/40">
+	<div class="flex items-center justify-between border-b border-border/40 p-4">
 		<div class="flex items-center gap-3">
 			<div class="flex items-center gap-2">
-				<div class="h-2 w-2 rounded-full bg-blue-500 animate-pulse"></div>
+				<div class="h-2 w-2 animate-pulse rounded-full bg-blue-500"></div>
 				<h3 class="font-semibold">Background Jobs</h3>
 			</div>
-			
+
 			<div class="flex items-center gap-2 text-sm text-muted-foreground">
 				{#if activeJobs > 0}
 					<Badge variant="secondary" class="text-xs">
 						{activeJobs} active
 					</Badge>
 				{/if}
-				
+
 				{#if completedJobs > 0}
 					<Badge variant="outline" class="text-xs text-green-600">
 						{completedJobs} completed
 					</Badge>
 				{/if}
-				
+
 				{#if failedJobs > 0}
 					<Badge variant="destructive" class="text-xs">
 						{failedJobs} failed
@@ -245,13 +255,8 @@
 
 		<div class="flex items-center gap-2">
 			{#if showCompleted && completedJobs > 0}
-				<Button
-					variant="ghost"
-					size="sm"
-					onclick={onClearCompleted}
-					class="text-xs"
-				>
-					<Trash2 class="h-3 w-3 mr-1" />
+				<Button variant="ghost" size="sm" onclick={onClearCompleted} class="text-xs">
+					<Trash2 class="mr-1 h-3 w-3" />
 					Clear completed
 				</Button>
 			{/if}
@@ -262,47 +267,47 @@
 	<div class="divide-y divide-border/20">
 		{#if filteredJobs().length === 0}
 			<div class="flex flex-col items-center justify-center py-8 text-center">
-				<Clock class="h-8 w-8 text-muted-foreground/50 mb-3" />
+				<Clock class="mb-3 h-8 w-8 text-muted-foreground/50" />
 				<p class="text-sm text-muted-foreground">No background jobs</p>
-				<p class="text-xs text-muted-foreground mt-1">Jobs will appear here when running</p>
+				<p class="mt-1 text-xs text-muted-foreground">Jobs will appear here when running</p>
 			</div>
 		{:else}
 			{#each filteredJobs() as job (job.id)}
 				{@const TypeIcon = getJobTypeIcon(job.type)}
 				{@const StatusIcon = getStatusIcon(job.status)}
-				
+
 				<div class={jobItemVariants({ status: job.status })}>
 					<!-- Job Type Icon -->
 					<div class="flex-shrink-0">
-						<div class="h-10 w-10 rounded-lg bg-muted/50 flex items-center justify-center">
+						<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-muted/50">
 							<TypeIcon class="h-5 w-5 text-muted-foreground" />
 						</div>
 					</div>
 
 					<!-- Job Info -->
-					<div class="flex-1 min-w-0 space-y-2">
+					<div class="min-w-0 flex-1 space-y-2">
 						<div class="flex items-center justify-between">
-							<div class="flex items-center gap-2 min-w-0">
-								<h4 class="font-medium text-sm truncate">{job.title}</h4>
+							<div class="flex min-w-0 items-center gap-2">
+								<h4 class="truncate text-sm font-medium">{job.title}</h4>
 								<Badge variant={getPriorityBadgeVariant(job.priority)} class="text-xs">
 									{job.priority}
 								</Badge>
 							</div>
-							
-							<div class="flex items-center gap-2 flex-shrink-0">
+
+							<div class="flex flex-shrink-0 items-center gap-2">
 								<StatusIcon class="h-4 w-4 {getStatusColor(job.status)}" />
 								<span class="text-xs text-muted-foreground capitalize">{job.status}</span>
 							</div>
 						</div>
 
 						{#if job.description}
-							<p class="text-xs text-muted-foreground line-clamp-1">{job.description}</p>
+							<p class="line-clamp-1 text-xs text-muted-foreground">{job.description}</p>
 						{/if}
 
 						<!-- Progress Bar -->
 						{#if job.status === 'running' || (job.status === 'completed' && job.progress === 100)}
-							<Progress 
-								value={job.progress} 
+							<Progress
+								value={job.progress}
 								variant={getProgressVariant(job.status)}
 								class="h-1.5"
 							/>
@@ -316,11 +321,11 @@
 									{#if job.totalSteps && job.currentStep}
 										<span>Step {job.currentStep} of {job.totalSteps}</span>
 									{/if}
-									
+
 									{#if job.stepDescription}
 										<span>• {job.stepDescription}</span>
 									{/if}
-									
+
 									{#if job.timeRemaining}
 										<span>• {formatDuration(job.timeRemaining)} remaining</span>
 									{/if}
@@ -341,7 +346,7 @@
 					</div>
 
 					<!-- Actions -->
-					<div class="flex items-center gap-1 flex-shrink-0">
+					<div class="flex flex-shrink-0 items-center gap-1">
 						{#if job.status === 'running' && job.canCancel && onCancel}
 							<Button
 								variant="ghost"

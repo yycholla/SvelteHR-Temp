@@ -16,10 +16,10 @@
 		onDelete?: (employee: Employee) => void;
 	}
 
-	let { 
-		employees, 
-		showCount = 0, 
-		showStatus = true, 
+	let {
+		employees,
+		showCount = 0,
+		showStatus = true,
 		showDepartment = false,
 		showActions = false,
 		class: className = '',
@@ -29,14 +29,20 @@
 	}: Props = $props();
 
 	let displayEmployees = $derived(showCount > 0 ? employees.slice(0, showCount) : employees);
-	let remainingCount = $derived(showCount > 0 && employees.length > showCount ? employees.length - showCount : 0);
+	let remainingCount = $derived(
+		showCount > 0 && employees.length > showCount ? employees.length - showCount : 0
+	);
 
 	function getStatusVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
 		switch (status) {
-			case 'Active': return 'default';
-			case 'Onboarding': return 'secondary';
-			case 'Inactive': return 'destructive';
-			default: return 'outline';
+			case 'Active':
+				return 'default';
+			case 'Onboarding':
+				return 'secondary';
+			case 'Inactive':
+				return 'destructive';
+			default:
+				return 'outline';
 		}
 	}
 </script>
@@ -46,12 +52,18 @@
 		<div class="employee-item">
 			<div class="employee-info">
 				<div class="employee-avatar">
-					{(employee.first_name?.[0] || '?')}{(employee.last_name?.[0] || '?')}
+					{employee.first_name?.[0] || '?'}{employee.last_name?.[0] || '?'}
 				</div>
 				<div class="employee-details">
-					<div class="employee-name">{employee.first_name || 'Unknown'} {employee.last_name || 'User'}</div>
+					<div class="employee-name">
+						{employee.first_name || 'Unknown'}
+						{employee.last_name || 'User'}
+					</div>
 					<div class="employee-meta">
-						{employee.job_title || employee.role_name || employee.department_name || 'No Title Assigned'}
+						{employee.job_title ||
+							employee.role_name ||
+							employee.department_name ||
+							'No Title Assigned'}
 						{#if showDepartment && employee.department_name}
 							• {employee.department_name}
 						{/if}
@@ -64,7 +76,7 @@
 						{employee.status}
 					</Badge>
 				{/if}
-				
+
 				{#if showActions}
 					<div class="action-buttons">
 						{#if onView}
@@ -75,10 +87,10 @@
 								class="action-btn"
 								title="View employee details"
 							>
-								<Eye class="w-4 h-4" />
+								<Eye class="h-4 w-4" />
 							</Button>
 						{/if}
-						
+
 						{#if onEdit}
 							<Button
 								variant="ghost"
@@ -87,10 +99,10 @@
 								class="action-btn"
 								title="Edit employee"
 							>
-								<Edit class="w-4 h-4" />
+								<Edit class="h-4 w-4" />
 							</Button>
 						{/if}
-						
+
 						{#if onDelete}
 							<Button
 								variant="ghost"
@@ -99,7 +111,7 @@
 								class="action-btn delete-btn"
 								title="Delete employee"
 							>
-								<Trash2 class="w-4 h-4" />
+								<Trash2 class="h-4 w-4" />
 							</Button>
 						{/if}
 					</div>
@@ -107,7 +119,7 @@
 			</div>
 		</div>
 	{/each}
-	
+
 	{#if remainingCount > 0}
 		<div class="remaining-count">
 			+{remainingCount} more employees

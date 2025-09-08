@@ -34,10 +34,10 @@
 	let { data }: { data: PageData } = $props();
 
 	// Form state
-  let searchQuery = $state(data.filters.search || '');
+	let searchQuery = $state(data.filters.search || '');
 	let statusFilter = $state(data.filters.status || '');
 	let categoryFilter = $state(data.filters.category || '');
-  let newRequirementOpen = $state(false);
+	let newRequirementOpen = $state(false);
 
 	// Filter options
 	const statusOptions = [
@@ -81,25 +81,38 @@
 	// Get status badge variant
 	function getStatusBadge(status: string) {
 		switch (status.toLowerCase()) {
-			case 'compliant': return { variant: 'success', label: 'Compliant', icon: CheckCircle };
-			case 'non_compliant': return { variant: 'destructive', label: 'Non-Compliant', icon: XCircle };
-			case 'pending': return { variant: 'warning', label: 'Pending Review', icon: Clock };
-			case 'in_progress': return { variant: 'info', label: 'In Progress', icon: Clock };
-			case 'overdue': return { variant: 'destructive', label: 'Overdue', icon: AlertTriangle };
-			default: return { variant: 'default', label: status, icon: Clock };
+			case 'compliant':
+				return { variant: 'success', label: 'Compliant', icon: CheckCircle };
+			case 'non_compliant':
+				return { variant: 'destructive', label: 'Non-Compliant', icon: XCircle };
+			case 'pending':
+				return { variant: 'warning', label: 'Pending Review', icon: Clock };
+			case 'in_progress':
+				return { variant: 'info', label: 'In Progress', icon: Clock };
+			case 'overdue':
+				return { variant: 'destructive', label: 'Overdue', icon: AlertTriangle };
+			default:
+				return { variant: 'default', label: status, icon: Clock };
 		}
 	}
 
 	// Get category badge
 	function getCategoryBadge(category: string) {
 		switch (category.toLowerCase()) {
-			case 'safety': return { label: 'Safety & Health', icon: Shield };
-			case 'training': return { label: 'Training', icon: BookOpen };
-			case 'legal': return { label: 'Legal', icon: FileText };
-			case 'financial': return { label: 'Financial', icon: Target };
-			case 'data': return { label: 'Data Protection', icon: Shield };
-			case 'hr': return { label: 'HR Policies', icon: User };
-			default: return { label: category, icon: FileText };
+			case 'safety':
+				return { label: 'Safety & Health', icon: Shield };
+			case 'training':
+				return { label: 'Training', icon: BookOpen };
+			case 'legal':
+				return { label: 'Legal', icon: FileText };
+			case 'financial':
+				return { label: 'Financial', icon: Target };
+			case 'data':
+				return { label: 'Data Protection', icon: Shield };
+			case 'hr':
+				return { label: 'HR Policies', icon: User };
+			default:
+				return { label: category, icon: FileText };
 		}
 	}
 
@@ -132,7 +145,7 @@
 	function getInitials(name: string) {
 		return name
 			.split(' ')
-			.map(n => n[0])
+			.map((n) => n[0])
 			.join('')
 			.toUpperCase()
 			.slice(0, 2);
@@ -145,85 +158,104 @@
 	});
 </script>
 
-<div class="container mx-auto px-6 pb-6 pt-6 space-y-6 max-w-7xl">
+<div class="container mx-auto max-w-7xl space-y-6 px-6 pt-6 pb-6">
 	<!-- Header -->
 	<div class="flex items-center justify-between">
 		<div>
-			<h1 class="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">Compliance Tracking</h1>
-			<p class="text-muted-foreground mt-2">Monitor and manage compliance requirements and deadlines</p>
+			<h1
+				class="bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-3xl font-bold text-transparent"
+			>
+				Compliance Tracking
+			</h1>
+			<p class="mt-2 text-muted-foreground">
+				Monitor and manage compliance requirements and deadlines
+			</p>
 		</div>
-    <Button class="rounded-xl hover:scale-[1.02] transition-all duration-200" onclick={() => newRequirementOpen = true}>
-			<Plus class="h-4 w-4 mr-2" />
+		<Button
+			class="rounded-xl transition-all duration-200 hover:scale-[1.02]"
+			onclick={() => (newRequirementOpen = true)}
+		>
+			<Plus class="mr-2 h-4 w-4" />
 			New Requirement
 		</Button>
 	</div>
 
 	<!-- Stats Overview -->
-	<div class="grid grid-cols-1 md:grid-cols-5 gap-6">
-		<Card class="bg-white border-border shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
+	<div class="grid grid-cols-1 gap-6 md:grid-cols-5">
+		<Card
+			class="rounded-2xl border border-border bg-white shadow-lg transition-all duration-200 hover:shadow-xl"
+		>
 			<CardContent class="p-6">
 				<div class="flex items-center justify-between">
 					<div>
 						<p class="text-sm font-medium text-muted-foreground">Total Items</p>
 						<p class="text-2xl font-bold text-foreground">{data.stats.totalItems}</p>
 					</div>
-					<div class="p-3 bg-primary/10 rounded-full">
+					<div class="rounded-full bg-primary/10 p-3">
 						<FileText class="h-5 w-5 text-primary" />
 					</div>
 				</div>
 			</CardContent>
 		</Card>
 
-		<Card class="bg-white border-border shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
+		<Card
+			class="rounded-2xl border border-border bg-white shadow-lg transition-all duration-200 hover:shadow-xl"
+		>
 			<CardContent class="p-6">
 				<div class="flex items-center justify-between">
 					<div>
 						<p class="text-sm font-medium text-muted-foreground">Compliant</p>
 						<p class="text-2xl font-bold text-green-600">{data.stats.compliant}</p>
 					</div>
-					<div class="p-3 bg-green-100 rounded-full">
+					<div class="rounded-full bg-green-100 p-3">
 						<CheckCircle class="h-5 w-5 text-green-600" />
 					</div>
 				</div>
 			</CardContent>
 		</Card>
 
-		<Card class="bg-white border-border shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
+		<Card
+			class="rounded-2xl border border-border bg-white shadow-lg transition-all duration-200 hover:shadow-xl"
+		>
 			<CardContent class="p-6">
 				<div class="flex items-center justify-between">
 					<div>
 						<p class="text-sm font-medium text-muted-foreground">Non-Compliant</p>
 						<p class="text-2xl font-bold text-red-600">{data.stats.nonCompliant}</p>
 					</div>
-					<div class="p-3 bg-red-100 rounded-full">
+					<div class="rounded-full bg-red-100 p-3">
 						<XCircle class="h-5 w-5 text-red-600" />
 					</div>
 				</div>
 			</CardContent>
 		</Card>
 
-		<Card class="bg-white border-border shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
+		<Card
+			class="rounded-2xl border border-border bg-white shadow-lg transition-all duration-200 hover:shadow-xl"
+		>
 			<CardContent class="p-6">
 				<div class="flex items-center justify-between">
 					<div>
 						<p class="text-sm font-medium text-muted-foreground">Pending</p>
 						<p class="text-2xl font-bold text-yellow-600">{data.stats.pending}</p>
 					</div>
-					<div class="p-3 bg-yellow-100 rounded-full">
+					<div class="rounded-full bg-yellow-100 p-3">
 						<Clock class="h-5 w-5 text-yellow-600" />
 					</div>
 				</div>
 			</CardContent>
 		</Card>
 
-		<Card class="bg-white border-border shadow-lg hover:shadow-xl transition-all duration-200 rounded-2xl border">
+		<Card
+			class="rounded-2xl border border-border bg-white shadow-lg transition-all duration-200 hover:shadow-xl"
+		>
 			<CardContent class="p-6">
 				<div class="flex items-center justify-between">
 					<div>
 						<p class="text-sm font-medium text-muted-foreground">Due Soon</p>
 						<p class="text-2xl font-bold text-orange-600">{data.stats.upcomingDeadlines}</p>
 					</div>
-					<div class="p-3 bg-orange-100 rounded-full">
+					<div class="rounded-full bg-orange-100 p-3">
 						<AlertTriangle class="h-5 w-5 text-orange-600" />
 					</div>
 				</div>
@@ -232,10 +264,10 @@
 	</div>
 
 	<!-- Compliance Rate -->
-	<Card class="bg-white border-border shadow-lg rounded-2xl border">
+	<Card class="rounded-2xl border border-border bg-white shadow-lg">
 		<CardHeader>
 			<CardTitle class="flex items-center">
-				<TrendingUp class="h-5 w-5 mr-2 text-primary" />
+				<TrendingUp class="mr-2 h-5 w-5 text-primary" />
 				Compliance Rate
 			</CardTitle>
 		</CardHeader>
@@ -254,24 +286,24 @@
 	</Card>
 
 	<!-- Filters -->
-	<Card class="bg-white border-border shadow-lg rounded-2xl border">
+	<Card class="rounded-2xl border border-border bg-white shadow-lg">
 		<CardHeader class="pb-4">
 			<CardTitle class="flex items-center text-lg font-semibold">
-				<Filter class="h-5 w-5 mr-2 text-primary" />
+				<Filter class="mr-2 h-5 w-5 text-primary" />
 				Filters
 			</CardTitle>
 		</CardHeader>
 		<CardContent>
-			<div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+			<div class="grid grid-cols-1 gap-4 md:grid-cols-5">
 				<div class="space-y-2">
 					<Label for="search">Search Requirements</Label>
 					<div class="relative">
-						<Search class="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+						<Search class="absolute top-3 left-3 h-4 w-4 text-muted-foreground" />
 						<Input
 							id="search"
 							bind:value={searchQuery}
 							placeholder="Search by title or description..."
-							class="pl-10 rounded-xl"
+							class="rounded-xl pl-10"
 							onkeydown={(e) => {
 								if (e.key === 'Enter') {
 									applyFilters();
@@ -286,7 +318,7 @@
 					<select
 						id="status"
 						bind:value={statusFilter}
-						class="w-full px-3 py-2 rounded-xl bg-background border-border focus:bg-background transition-all duration-200"
+						class="w-full rounded-xl border-border bg-background px-3 py-2 transition-all duration-200 focus:bg-background"
 					>
 						{#each statusOptions as option}
 							<option value={option.value}>{option.label}</option>
@@ -299,7 +331,7 @@
 					<select
 						id="category"
 						bind:value={categoryFilter}
-						class="w-full px-3 py-2 rounded-xl bg-background border-border focus:bg-background transition-all duration-200"
+						class="w-full rounded-xl border-border bg-background px-3 py-2 transition-all duration-200 focus:bg-background"
 					>
 						{#each categoryOptions as option}
 							<option value={option.value}>{option.label}</option>
@@ -307,30 +339,30 @@
 					</select>
 				</div>
 
-				<div class="flex items-end space-x-2 col-span-2">
-					<Button onclick={applyFilters} class="rounded-xl flex-1">
-						Apply
-					</Button>
-					<Button variant="outline" onclick={clearFilters} class="rounded-xl">
-						Clear
-					</Button>
+				<div class="col-span-2 flex items-end space-x-2">
+					<Button onclick={applyFilters} class="flex-1 rounded-xl">Apply</Button>
+					<Button variant="outline" onclick={clearFilters} class="rounded-xl">Clear</Button>
 				</div>
 			</div>
 		</CardContent>
 	</Card>
 
 	<!-- Compliance Items List -->
-	<Card class="bg-white border-border shadow-lg rounded-2xl border">
+	<Card class="rounded-2xl border border-border bg-white shadow-lg">
 		<CardHeader>
 			<CardTitle>Compliance Requirements ({data.complianceItems.length})</CardTitle>
 		</CardHeader>
 		<CardContent>
 			{#if data.complianceItems.length === 0}
-				<div class="text-center py-12">
-					<Shield class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-					<h3 class="text-lg font-semibold text-muted-foreground mb-2">No Compliance Items Found</h3>
+				<div class="py-12 text-center">
+					<Shield class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+					<h3 class="mb-2 text-lg font-semibold text-muted-foreground">
+						No Compliance Items Found
+					</h3>
 					<p class="text-muted-foreground">
-						{data.isUsingMockData ? 'Connect to your API to see real compliance requirements.' : 'No items match your current filters.'}
+						{data.isUsingMockData
+							? 'Connect to your API to see real compliance requirements.'
+							: 'No items match your current filters.'}
 					</p>
 				</div>
 			{:else}
@@ -341,31 +373,33 @@
 						{@const StatusIcon = statusBadge.icon}
 						{@const CategoryIcon = categoryBadge.icon}
 
-						<div class="p-4 border border-border rounded-xl hover:bg-muted/30 transition-all duration-200">
+						<div
+							class="rounded-xl border border-border p-4 transition-all duration-200 hover:bg-muted/30"
+						>
 							<div class="flex items-start justify-between">
 								<div class="flex-1 space-y-3">
 									<div class="flex items-center space-x-3">
-										<h3 class="font-semibold text-foreground hover:text-primary cursor-pointer">
+										<h3 class="cursor-pointer font-semibold text-foreground hover:text-primary">
 											{item.title}
 										</h3>
 										<Badge variant={statusBadge.variant} class="text-xs">
-											<StatusIcon class="h-3 w-3 mr-1" />
+											<StatusIcon class="mr-1 h-3 w-3" />
 											{statusBadge.label}
 										</Badge>
 										<Badge variant="outline" class="text-xs">
-											<CategoryIcon class="h-3 w-3 mr-1" />
+											<CategoryIcon class="mr-1 h-3 w-3" />
 											{categoryBadge.label}
 										</Badge>
 										{#if item.dueDate && isApproaching(item.dueDate)}
 											<Badge variant="warning" class="text-xs">
-												<AlertTriangle class="h-3 w-3 mr-1" />
+												<AlertTriangle class="mr-1 h-3 w-3" />
 												Due Soon
 											</Badge>
 										{/if}
 									</div>
 
 									{#if item.description}
-										<p class="text-sm text-muted-foreground line-clamp-2">
+										<p class="line-clamp-2 text-sm text-muted-foreground">
 											{item.description}
 										</p>
 									{/if}
@@ -398,7 +432,7 @@
 
 								<div class="flex items-center space-x-2">
 									<Avatar size="sm">
-										<AvatarFallback class="bg-primary/10 text-primary text-xs">
+										<AvatarFallback class="bg-primary/10 text-xs text-primary">
 											{getInitials(item.assignedToName)}
 										</AvatarFallback>
 									</Avatar>
@@ -413,9 +447,12 @@
 
 				<!-- Pagination -->
 				{#if data.totalPages > 1}
-					<div class="flex items-center justify-between mt-6">
+					<div class="mt-6 flex items-center justify-between">
 						<p class="text-sm text-muted-foreground">
-							Showing {((data.page - 1) * data.limit) + 1} to {Math.min(data.page * data.limit, data.totalCount)} of {data.totalCount} items
+							Showing {(data.page - 1) * data.limit + 1} to {Math.min(
+								data.page * data.limit,
+								data.totalCount
+							)} of {data.totalCount} items
 						</p>
 						<div class="flex items-center space-x-2">
 							<Button
@@ -448,14 +485,18 @@
 </div>
 
 {#if typeof newRequirementOpen === 'undefined'}
-    {@html ''}
+	{@html ''}
 {/if}
 {#if newRequirementOpen}
-<div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-  <div class="bg-background rounded-xl border border-border p-6 w-full max-w-md">
-    <h3 class="font-semibold mb-2">Create Compliance Item</h3>
-    <p class="text-sm text-muted-foreground mb-4">Placeholder modal. Hook up your compliance form here.</p>
-    <div class="flex justify-end"><Button variant="outline" onclick={() => newRequirementOpen = false}>Close</Button></div>
-  </div>
-</div>
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+		<div class="w-full max-w-md rounded-xl border border-border bg-background p-6">
+			<h3 class="mb-2 font-semibold">Create Compliance Item</h3>
+			<p class="mb-4 text-sm text-muted-foreground">
+				Placeholder modal. Hook up your compliance form here.
+			</p>
+			<div class="flex justify-end">
+				<Button variant="outline" onclick={() => (newRequirementOpen = false)}>Close</Button>
+			</div>
+		</div>
+	</div>
 {/if}

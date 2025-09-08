@@ -1,6 +1,16 @@
 <script lang="ts">
 	import { goto, invalidateAll } from '$app/navigation';
-	import { FileText, Upload, Search, Download, Eye, Trash2, Filter, Plus, Edit } from 'lucide-svelte';
+	import {
+		FileText,
+		Upload,
+		Search,
+		Download,
+		Eye,
+		Trash2,
+		Filter,
+		Plus,
+		Edit
+	} from 'lucide-svelte';
 	import { modalStore } from '$lib/stores/hr/modals';
 	import DocumentModal from '$lib/components/hr/modals/DocumentModal.svelte';
 	import Card from '$lib/components/ui/card/card.svelte';
@@ -31,12 +41,12 @@
 	let selectedDocument = $state<any | null>(null);
 
 	// Local filter states (initialized from server data)
-  let searchTerm = $state(data.filters.search);
+	let searchTerm = $state(data.filters.search);
 	let categoryFilter = $state(data.filters.category);
 	let departmentFilter = $state(data.filters.department);
 	let currentPage = $state(data.pagination.currentPage);
 	let pageSize = $state(data.pagination.pageSize);
-  let uploadOpen = $state(false);
+	let uploadOpen = $state(false);
 
 	// Derived data from server
 	const documents = $derived(data.documents);
@@ -144,7 +154,10 @@
 	}
 
 	async function handleDelete(document: any) {
-		if (!confirm(`Are you sure you want to delete "${document.title}"? This action cannot be undone.`)) return;
+		if (
+			!confirm(`Are you sure you want to delete "${document.title}"? This action cannot be undone.`)
+		)
+			return;
 
 		try {
 			const response = await fetch(`/api/v2/documents/${document.id}`, {
@@ -246,18 +259,21 @@
 <NotificationCenter />
 
 <div class="space-y-6">
-
 	<!-- Search and Filters -->
-	<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
+	<Card
+		class="rounded-lg border border-white/30 bg-white/80 shadow-xl backdrop-blur-xl dark:border-slate-700/50 dark:bg-slate-800/80"
+	>
 		<CardHeader>
 			<CardTitle>Search and Filters</CardTitle>
 		</CardHeader>
 		<CardContent>
-			<div class="flex flex-col lg:flex-row gap-4">
+			<div class="flex flex-col gap-4 lg:flex-row">
 				<!-- Search -->
 				<div class="flex-1">
 					<div class="relative">
-						<Search class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+						<Search
+							class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform text-muted-foreground"
+						/>
 						<Input
 							type="text"
 							placeholder="Search documents by title or description..."
@@ -269,7 +285,7 @@
 
 				<!-- Category Filter -->
 				<select
-					class="px-3 py-2 border border-input rounded-md bg-background text-foreground"
+					class="rounded-md border border-input bg-background px-3 py-2 text-foreground"
 					bind:value={categoryFilter}
 				>
 					<option value="all">All Categories</option>
@@ -280,7 +296,7 @@
 
 				<!-- Department Filter -->
 				<select
-					class="px-3 py-2 border border-input rounded-md bg-background text-foreground"
+					class="rounded-md border border-input bg-background px-3 py-2 text-foreground"
 					bind:value={departmentFilter}
 				>
 					<option value="all">All Departments</option>
@@ -289,12 +305,10 @@
 					{/each}
 				</select>
 
-				<Button variant="outline" onclick={clearFilters}>
-					Clear Filters
-				</Button>
+				<Button variant="outline" onclick={clearFilters}>Clear Filters</Button>
 
 				<Button onclick={handleAddDocument}>
-					<Plus class="h-4 w-4 mr-2" />
+					<Plus class="mr-2 h-4 w-4" />
 					Add Document
 				</Button>
 			</div>
@@ -303,7 +317,9 @@
 
 	<!-- Document Statistics -->
 	<div class="grid gap-4 md:grid-cols-4">
-		<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
+		<Card
+			class="rounded-lg border border-white/30 bg-white/80 shadow-xl backdrop-blur-xl dark:border-slate-700/50 dark:bg-slate-800/80"
+		>
 			<CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
 				<CardTitle class="text-sm font-medium">Total Documents</CardTitle>
 				<FileText class="h-4 w-4 text-muted-foreground" />
@@ -314,40 +330,46 @@
 			</CardContent>
 		</Card>
 
-		<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
+		<Card
+			class="rounded-lg border border-white/30 bg-white/80 shadow-xl backdrop-blur-xl dark:border-slate-700/50 dark:bg-slate-800/80"
+		>
 			<CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
 				<CardTitle class="text-sm font-medium">HR Policies</CardTitle>
 				<FileText class="h-4 w-4 text-muted-foreground" />
 			</CardHeader>
 			<CardContent>
 				<div class="text-2xl font-bold">
-					{documents.filter(doc => doc.documentCategory === 'HR Policies').length}
+					{documents.filter((doc) => doc.documentCategory === 'HR Policies').length}
 				</div>
 				<p class="text-xs text-muted-foreground">Policy documents</p>
 			</CardContent>
 		</Card>
 
-		<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
+		<Card
+			class="rounded-lg border border-white/30 bg-white/80 shadow-xl backdrop-blur-xl dark:border-slate-700/50 dark:bg-slate-800/80"
+		>
 			<CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
 				<CardTitle class="text-sm font-medium">Forms</CardTitle>
 				<FileText class="h-4 w-4 text-muted-foreground" />
 			</CardHeader>
 			<CardContent>
 				<div class="text-2xl font-bold">
-					{documents.filter(doc => doc.documentCategory === 'Forms').length}
+					{documents.filter((doc) => doc.documentCategory === 'Forms').length}
 				</div>
 				<p class="text-xs text-muted-foreground">Available forms</p>
 			</CardContent>
 		</Card>
 
-		<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
+		<Card
+			class="rounded-lg border border-white/30 bg-white/80 shadow-xl backdrop-blur-xl dark:border-slate-700/50 dark:bg-slate-800/80"
+		>
 			<CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
 				<CardTitle class="text-sm font-medium">Recent Uploads</CardTitle>
 				<Upload class="h-4 w-4 text-muted-foreground" />
 			</CardHeader>
 			<CardContent>
 				<div class="text-2xl font-bold">
-					{documents.filter(doc => {
+					{documents.filter((doc) => {
 						const uploadDate = new Date(doc.uploadDate || '');
 						const weekAgo = new Date();
 						weekAgo.setDate(weekAgo.getDate() - 7);
@@ -360,7 +382,9 @@
 	</div>
 
 	<!-- Documents List -->
-	<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
+	<Card
+		class="rounded-lg border border-white/30 bg-white/80 shadow-xl backdrop-blur-xl dark:border-slate-700/50 dark:bg-slate-800/80"
+	>
 		<CardHeader>
 			<div class="flex items-center justify-between">
 				<div>
@@ -384,17 +408,17 @@
 			/>
 			{#if loading}
 				<div class="flex items-center justify-center py-8">
-					<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+					<div class="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
 				</div>
 			{:else if error}
-				<div class="text-center py-8">
+				<div class="py-8 text-center">
 					<p class="text-destructive">{error}</p>
 					<Button variant="outline" class="mt-4" onclick={() => window.location.reload()}>
 						Retry
 					</Button>
 				</div>
 			{:else if documents.length === 0}
-				<div class="text-center py-8">
+				<div class="py-8 text-center">
 					<FileText class="mx-auto h-12 w-12 text-muted-foreground/50" />
 					<h3 class="mt-4 text-lg font-semibold">No documents found</h3>
 					<p class="mt-2 text-muted-foreground">
@@ -402,27 +426,31 @@
 							? 'Try adjusting your search criteria'
 							: 'Upload your first document to get started'}
 					</p>
-                    {#if !(searchTerm || categoryFilter !== 'all' || departmentFilter !== 'all')}
-                        <Button class="mt-4" onclick={handleAddDocument}>
-                            <Upload class="h-4 w-4 mr-2" />
-                            Upload Document
-                        </Button>
-                    {/if}
+					{#if !(searchTerm || categoryFilter !== 'all' || departmentFilter !== 'all')}
+						<Button class="mt-4" onclick={handleAddDocument}>
+							<Upload class="mr-2 h-4 w-4" />
+							Upload Document
+						</Button>
+					{/if}
 				</div>
 			{:else}
 				<div class="space-y-4">
 					{#each documents as document}
-						<div class="border border-border/50 rounded-lg p-4 hover:bg-accent/30 transition-colors">
+						<div
+							class="rounded-lg border border-border/50 p-4 transition-colors hover:bg-accent/30"
+						>
 							<div class="flex items-start justify-between">
-								<div class="flex items-start space-x-4 flex-1 min-w-0">
-									<div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+								<div class="flex min-w-0 flex-1 items-start space-x-4">
+									<div
+										class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10"
+									>
 										<FileText class="h-5 w-5 {getFileIcon(document.fileType)}" />
 									</div>
-									<div class="flex-1 min-w-0">
-										<h3 class="font-medium text-foreground truncate">
+									<div class="min-w-0 flex-1">
+										<h3 class="truncate font-medium text-foreground">
 											{document.title}
 										</h3>
-										<div class="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
+										<div class="mt-1 flex items-center space-x-4 text-sm text-muted-foreground">
 											<span>{formatFileSize(document.fileSize)}</span>
 											<span>•</span>
 											<span>{formatDate(document.uploadDate)}</span>
@@ -433,7 +461,7 @@
 												</Badge>
 											{/if}
 										</div>
-										<p class="text-sm text-muted-foreground mt-2 truncate">
+										<p class="mt-2 truncate text-sm text-muted-foreground">
 											{document.securityLevel ? `${document.securityLevel} • ` : ''}
 											Uploaded by: {document.uploadedBy?.first_name || 'Unknown'}
 										</p>
@@ -443,28 +471,26 @@
 								<div class="ml-4 flex-shrink-0">
 									<DropdownMenu>
 										<DropdownMenuTrigger asChild>
-											<Button variant="ghost" size="sm">
-												Actions
-											</Button>
+											<Button variant="ghost" size="sm">Actions</Button>
 										</DropdownMenuTrigger>
 										<DropdownMenuContent align="end">
 											<DropdownMenuItem onclick={() => handleDownload(document)}>
-												<Download class="h-4 w-4 mr-2" />
+												<Download class="mr-2 h-4 w-4" />
 												Download
 											</DropdownMenuItem>
 											<DropdownMenuItem onclick={() => handleViewDocument(document)}>
-												<Eye class="h-4 w-4 mr-2" />
+												<Eye class="mr-2 h-4 w-4" />
 												View Details
 											</DropdownMenuItem>
 											<DropdownMenuItem onclick={() => handleEditDocument(document)}>
-												<Edit class="h-4 w-4 mr-2" />
+												<Edit class="mr-2 h-4 w-4" />
 												Edit
 											</DropdownMenuItem>
 											<DropdownMenuItem
 												onclick={() => handleDelete(document)}
 												class="text-destructive focus:text-destructive"
 											>
-												<Trash2 class="h-4 w-4 mr-2" />
+												<Trash2 class="mr-2 h-4 w-4" />
 												Delete
 											</DropdownMenuItem>
 										</DropdownMenuContent>
@@ -479,7 +505,10 @@
 				{#if totalPages > 1}
 					<div class="flex items-center justify-between px-2 py-4">
 						<div class="text-sm text-muted-foreground">
-							Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount} results
+							Showing {(currentPage - 1) * pageSize + 1} to {Math.min(
+								currentPage * pageSize,
+								totalCount
+							)} of {totalCount} results
 						</div>
 						<div class="flex items-center space-x-2">
 							<Button
@@ -494,7 +523,7 @@
 							{#each Array.from({ length: Math.min(5, totalPages) }, (_, i) => i + Math.max(1, currentPage - 2)) as pageNum}
 								{#if pageNum <= totalPages}
 									<Button
-										variant={currentPage === pageNum ? "default" : "outline"}
+										variant={currentPage === pageNum ? 'default' : 'outline'}
 										size="sm"
 										onclick={() => goToPage(pageNum)}
 									>
@@ -519,8 +548,11 @@
 	</Card>
 
 	<!-- Fixed position add button in bottom right corner -->
-	<div class="fixed bottom-6 right-6 z-50">
-        <Button class="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200" onclick={handleAddDocument}>
+	<div class="fixed right-6 bottom-6 z-50">
+		<Button
+			class="h-14 w-14 rounded-full shadow-lg transition-all duration-200 hover:shadow-xl"
+			onclick={handleAddDocument}
+		>
 			<Upload class="h-5 w-5" />
 		</Button>
 	</div>

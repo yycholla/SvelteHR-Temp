@@ -1,0 +1,56 @@
+# Base GraphQL Schema with Common Types
+
+# Root Types
+type Query
+type Mutation
+type Subscription
+
+# Common Scalars
+scalar DateTime
+scalar Date
+scalar JSON
+
+# Document Type (for file attachments)
+type Document {
+	id: ID!
+	filename: String!
+	contentType: String!
+	size: Int!
+	url: String!
+	uploadedBy: User!
+	uploadedAt: DateTime!
+}
+
+# Common Input Types
+input DocumentInput {
+	filename: String!
+	contentType: String!
+	size: Int!
+	data: String! # Base64 encoded file data
+}
+
+# Pagination Types
+interface Page {
+	total: Int!
+	page: Int!
+	limit: Int!
+	hasNextPage: Boolean!
+	hasPreviousPage: Boolean!
+}
+
+# Leave Request Types (referenced in contracts)
+type LeaveRequest {
+	id: ID!
+	employee: Employee!
+	startDate: Date!
+	endDate: Date!
+	leaveType: String!
+	status: String!
+	reason: String
+	createdAt: DateTime!
+}
+
+# Common Directives (for authorization)
+directive @auth on FIELD_DEFINITION
+directive @hasPermission(resource: String!, action: String!) on FIELD_DEFINITION
+directive @hasRole(role: String!) on FIELD_DEFINITION

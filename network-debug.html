@@ -1,98 +1,97 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-    <title>Network Debug</title>
-</head>
-<body>
-    <h1>🔍 Network & Certificate Debug</h1>
-    <p>Let's debug the connection issue step by step.</p>
-    
-    <button onclick="testConnections()">Run All Tests</button>
-    <div id="results"></div>
+	<head>
+		<title>Network Debug</title>
+	</head>
+	<body>
+		<h1>🔍 Network & Certificate Debug</h1>
+		<p>Let's debug the connection issue step by step.</p>
 
-    <script>
-        async function testConnections() {
-            const results = document.getElementById('results');
-            results.innerHTML = '<h3>🧪 Running Tests...</h3>';
-            
-            const tests = [
-                {
-                    name: 'Direct HTTP Backend',
-                    url: 'http://100.71.207.7:8080/health',
-                    expected: 'Should fail due to mixed content'
-                },
-                {
-                    name: 'Node.js HTTPS Proxy (port 8443)',
-                    url: 'https://100.71.207.7:8443/health',
-                    expected: 'Should work if certificates are accepted'
-                },
-                {
-                    name: 'Node.js HTTPS Proxy - Auth endpoint',
-                    url: 'https://100.71.207.7:8443/api/v2/auth/rbac/login',
-                    method: 'OPTIONS',
-                    expected: 'Should return CORS headers'
-                }
-            ];
+		<button onclick="testConnections()">Run All Tests</button>
+		<div id="results"></div>
 
-            for (const test of tests) {
-                await runTest(test);
-            }
-            
-            // Browser info
-            results.innerHTML += '<h3>🌐 Browser Information</h3>';
-            results.innerHTML += `<p><strong>User Agent:</strong> ${navigator.userAgent}</p>`;
-            results.innerHTML += `<p><strong>Page URL:</strong> ${window.location.href}</p>`;
-            results.innerHTML += `<p><strong>Protocol:</strong> ${window.location.protocol}</p>`;
-        }
+		<script>
+			async function testConnections() {
+				const results = document.getElementById('results');
+				results.innerHTML = '<h3>🧪 Running Tests...</h3>';
 
-        async function runTest(test) {
-            const results = document.getElementById('results');
-            results.innerHTML += `<h4>Testing: ${test.name}</h4>`;
-            results.innerHTML += `<p>URL: ${test.url}</p>`;
-            results.innerHTML += `<p>Expected: ${test.expected}</p>`;
-            
-            try {
-                const options = {
-                    method: test.method || 'GET',
-                    mode: 'cors'
-                };
+				const tests = [
+					{
+						name: 'Direct HTTP Backend',
+						url: 'http://100.71.207.7:8080/health',
+						expected: 'Should fail due to mixed content'
+					},
+					{
+						name: 'Node.js HTTPS Proxy (port 8443)',
+						url: 'https://100.71.207.7:8443/health',
+						expected: 'Should work if certificates are accepted'
+					},
+					{
+						name: 'Node.js HTTPS Proxy - Auth endpoint',
+						url: 'https://100.71.207.7:8443/api/v2/auth/rbac/login',
+						method: 'OPTIONS',
+						expected: 'Should return CORS headers'
+					}
+				];
 
-                const startTime = performance.now();
-                const response = await fetch(test.url, options);
-                const endTime = performance.now();
-                
-                results.innerHTML += `<p style="color: green;">✅ SUCCESS (${Math.round(endTime - startTime)}ms)</p>`;
-                results.innerHTML += `<p>Status: ${response.status} ${response.statusText}</p>`;
-                
-                // Check CORS headers for OPTIONS requests
-                if (test.method === 'OPTIONS') {
-                    const corsOrigin = response.headers.get('Access-Control-Allow-Origin');
-                    const corsMethods = response.headers.get('Access-Control-Allow-Methods');
-                    results.innerHTML += `<p>CORS Origin: ${corsOrigin}</p>`;
-                    results.innerHTML += `<p>CORS Methods: ${corsMethods}</p>`;
-                }
-                
-                if (response.ok && test.method !== 'OPTIONS') {
-                    const text = await response.text();
-                    if (text.length < 200) {
-                        results.innerHTML += `<p>Response: ${text}</p>`;
-                    }
-                }
-                
-            } catch (error) {
-                results.innerHTML += `<p style="color: red;">❌ FAILED</p>`;
-                results.innerHTML += `<p>Error: ${error.message}</p>`;
-                
-                if (error.message.includes('Failed to fetch')) {
-                    results.innerHTML += `<p style="color: blue;">💡 This usually indicates a certificate or network issue</p>`;
-                }
-            }
-            
-            results.innerHTML += '<hr>';
-        }
+				for (const test of tests) {
+					await runTest(test);
+				}
 
-        // Auto-run on page load
-        window.onload = testConnections;
-    </script>
-</body>
+				// Browser info
+				results.innerHTML += '<h3>🌐 Browser Information</h3>';
+				results.innerHTML += `<p><strong>User Agent:</strong> ${navigator.userAgent}</p>`;
+				results.innerHTML += `<p><strong>Page URL:</strong> ${window.location.href}</p>`;
+				results.innerHTML += `<p><strong>Protocol:</strong> ${window.location.protocol}</p>`;
+			}
+
+			async function runTest(test) {
+				const results = document.getElementById('results');
+				results.innerHTML += `<h4>Testing: ${test.name}</h4>`;
+				results.innerHTML += `<p>URL: ${test.url}</p>`;
+				results.innerHTML += `<p>Expected: ${test.expected}</p>`;
+
+				try {
+					const options = {
+						method: test.method || 'GET',
+						mode: 'cors'
+					};
+
+					const startTime = performance.now();
+					const response = await fetch(test.url, options);
+					const endTime = performance.now();
+
+					results.innerHTML += `<p style="color: green;">✅ SUCCESS (${Math.round(endTime - startTime)}ms)</p>`;
+					results.innerHTML += `<p>Status: ${response.status} ${response.statusText}</p>`;
+
+					// Check CORS headers for OPTIONS requests
+					if (test.method === 'OPTIONS') {
+						const corsOrigin = response.headers.get('Access-Control-Allow-Origin');
+						const corsMethods = response.headers.get('Access-Control-Allow-Methods');
+						results.innerHTML += `<p>CORS Origin: ${corsOrigin}</p>`;
+						results.innerHTML += `<p>CORS Methods: ${corsMethods}</p>`;
+					}
+
+					if (response.ok && test.method !== 'OPTIONS') {
+						const text = await response.text();
+						if (text.length < 200) {
+							results.innerHTML += `<p>Response: ${text}</p>`;
+						}
+					}
+				} catch (error) {
+					results.innerHTML += `<p style="color: red;">❌ FAILED</p>`;
+					results.innerHTML += `<p>Error: ${error.message}</p>`;
+
+					if (error.message.includes('Failed to fetch')) {
+						results.innerHTML += `<p style="color: blue;">💡 This usually indicates a certificate or network issue</p>`;
+					}
+				}
+
+				results.innerHTML += '<hr>';
+			}
+
+			// Auto-run on page load
+			window.onload = testConnections;
+		</script>
+	</body>
 </html>

@@ -5,6 +5,7 @@ This guide provides complete instructions for integrating your SvelteKit fronten
 ## 🎯 **Overview**
 
 The v2 auth system provides:
+
 - **Dual Token System**: Short-lived access tokens + secure refresh tokens
 - **SvelteKit-Optimized**: Works with both CSR and SSR
 - **Security First**: CSRF protection, rate limiting, secure cookies
@@ -93,7 +94,7 @@ export const authActions = {
       if (authInfo) {
         const expiryTimestamp = parseInt(authInfo);
         const expiresAt = new Date(expiryTimestamp * 1000);
-        
+
         if (expiresAt > new Date()) {
           // Token is still valid, verify with server
           await this.verifyToken();
@@ -131,13 +132,13 @@ export const authActions = {
 
       const data = await response.json();
       this.setAuthData(data);
-      
+
       return { success: true };
     } catch (error) {
       this.logout();
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Login failed' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Login failed'
       };
     } finally {
       authStore.update(state => ({ ...state, isLoading: false }));
@@ -172,12 +173,12 @@ export const authActions = {
 
       const data = await response.json();
       this.setAuthData(data);
-      
+
       return { success: true };
     } catch (error) {
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Registration failed' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Registration failed'
       };
     } finally {
       authStore.update(state => ({ ...state, isLoading: false }));
@@ -201,7 +202,7 @@ export const authActions = {
 
       const data = await response.json();
       this.setAuthData(data);
-      
+
       return true;
     } catch (error) {
       console.error('Token refresh failed:', error);
@@ -229,7 +230,7 @@ export const authActions = {
 
       const data = await response.json();
       this.setAuthData(data);
-      
+
       return true;
     } catch (error) {
       console.error('Token verification failed:', error);
@@ -257,7 +258,7 @@ export const authActions = {
 
     // Clear local state regardless of server response
     authStore.set(initialState);
-    
+
     if (browser) {
       goto('/login');
     }
@@ -266,7 +267,7 @@ export const authActions = {
   // Set authentication data and schedule refresh
   setAuthData(data: any) {
     const expiresAt = new Date(data.expires_at);
-    
+
     authStore.update(state => ({
       ...state,
       user: data.user,
@@ -285,9 +286,9 @@ export const authActions = {
   // Schedule automatic token refresh
   scheduleTokenRefresh(expiresAt: Date) {
     clearTimeout(refreshTimer);
-    
+
     const refreshTime = expiresAt.getTime() - Date.now() - (5 * 60 * 1000); // 5 minutes before expiry
-    
+
     if (refreshTime > 0) {
       refreshTimer = setTimeout(() => {
         this.refreshToken();
@@ -299,7 +300,7 @@ export const authActions = {
   hasPermission(permission: string): boolean {
     const state = get(authStore);
     if (!state.user?.permissions) return false;
-    
+
     return state.user.permissions.includes('*') || state.user.permissions.includes(permission);
   },
 
@@ -307,7 +308,7 @@ export const authActions = {
   hasRole(...roles: string[]): boolean {
     const state = get(authStore);
     if (!state.user?.role) return false;
-    
+
     return roles.includes(state.user.role.name);
   }
 };
@@ -340,7 +341,7 @@ class ApiClient {
 
   private async makeRequest(endpoint: string, options: ApiOptions = {}): Promise<Response> {
     const { skipAuth, skipRefresh, ...requestOptions } = options;
-    
+
     const url = \`\${this.baseUrl}\${endpoint}\`;
     const headers = new Headers(requestOptions.headers);
 
@@ -355,7 +356,7 @@ class ApiClient {
       if (auth.accessToken) {
         headers.set('Authorization', \`Bearer \${auth.accessToken}\`);
       }
-      
+
       // Add CSRF token for state-changing operations
       if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(requestOptions.method?.toUpperCase() || 'GET')) {
         if (auth.csrfToken) {
@@ -426,82 +427,82 @@ export const apiClient = new ApiClient(PUBLIC_API_URL);
 ```svelte
 <!-- src/lib/components/auth/LoginForm.svelte -->
 <script lang="ts">
-  import { authActions } from '$lib/stores/auth';
-  import { goto } from '$app/navigation';
+	import { authActions } from '$lib/stores/auth';
+	import { goto } from '$app/navigation';
 
-  let username = '';
-  let password = '';
-  let rememberMe = false;
-  let isLoading = false;
-  let error = '';
+	let username = '';
+	let password = '';
+	let rememberMe = false;
+	let isLoading = false;
+	let error = '';
 
-  async function handleLogin() {
-    if (!username || !password) {
-      error = 'Please fill in all fields';
-      return;
-    }
+	async function handleLogin() {
+		if (!username || !password) {
+			error = 'Please fill in all fields';
+			return;
+		}
 
-    isLoading = true;
-    error = '';
+		isLoading = true;
+		error = '';
 
-    const result = await authActions.login({ username, password, rememberMe });
+		const result = await authActions.login({ username, password, rememberMe });
 
-    if (result.success) {
-      goto('/dashboard');
-    } else {
-      error = result.error || 'Login failed';
-    }
+		if (result.success) {
+			goto('/dashboard');
+		} else {
+			error = result.error || 'Login failed';
+		}
 
-    isLoading = false;
-  }
+		isLoading = false;
+	}
 </script>
 
 <form on:submit|preventDefault={handleLogin} class="space-y-4">
-  <div>
-    <label for="username" class="block text-sm font-medium">Username or Email</label>
-    <input
-      id="username"
-      type="text"
-      bind:value={username}
-      required
-      class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-      placeholder="Enter your username or email"
-    />
-  </div>
+	<div>
+		<label for="username" class="block text-sm font-medium">Username or Email</label>
+		<input
+			id="username"
+			type="text"
+			bind:value={username}
+			required
+			class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+			placeholder="Enter your username or email"
+		/>
+	</div>
 
-  <div>
-    <label for="password" class="block text-sm font-medium">Password</label>
-    <input
-      id="password"
-      type="password"
-      bind:value={password}
-      required
-      class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-      placeholder="Enter your password"
-    />
-  </div>
+	<div>
+		<label for="password" class="block text-sm font-medium">Password</label>
+		<input
+			id="password"
+			type="password"
+			bind:value={password}
+			required
+			class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+			placeholder="Enter your password"
+		/>
+	</div>
 
-  <div class="flex items-center">
-    <input
-      id="remember"
-      type="checkbox"
-      bind:checked={rememberMe}
-      class="rounded border-gray-300"
-    />
-    <label for="remember" class="ml-2 text-sm">Remember me</label>
-  </div>
+	<div class="flex items-center">
+		<input
+			id="remember"
+			type="checkbox"
+			bind:checked={rememberMe}
+			class="rounded border-gray-300"
+		/>
+		<label for="remember" class="ml-2 text-sm">Remember me</label>
+	</div>
 
-  {#if error}
-    <div class="text-red-600 text-sm">{error}</div>
-  {/if}
+	{#if error}
+		<div class="text-sm text-red-600">{error}</div>
+	{/if}
 
-  <button
-    type="submit"
-    disabled={isLoading}
-    class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50"
-  >
-    {isLoading ? 'Signing in...' : 'Sign In'}
-  </button>
+	<button
+		type="submit"
+		disabled={isLoading}
+		class="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+	>
+		{isLoading ? 'Signing in...' : 'Sign In'}
+	</button>
 </form>
 ```
 
@@ -516,47 +517,47 @@ import { get } from 'svelte/store';
 
 export const requireAuth: LayoutLoad = async ({ url }) => {
   const auth = get(authStore);
-  
+
   // Initialize auth if not already done
   if (!auth.isAuthenticated && !auth.isLoading) {
     await authActions.initialize();
   }
-  
+
   const updatedAuth = get(authStore);
-  
+
   if (!updatedAuth.isAuthenticated) {
     throw redirect(302, \`/login?redirect=\${encodeURIComponent(url.pathname)}\`);
   }
-  
+
   return {};
 };
 
 export const requireRole = (...roles: string[]) => {
   const guard: LayoutLoad = async ({ url }) => {
     await requireAuth({ url } as any);
-    
+
     const auth = get(authStore);
     if (!authActions.hasRole(...roles)) {
       throw redirect(302, '/unauthorized');
     }
-    
+
     return {};
   };
-  
+
   return guard;
 };
 
 export const requirePermission = (permission: string) => {
   const guard: LayoutLoad = async ({ url }) => {
     await requireAuth({ url } as any);
-    
+
     if (!authActions.hasPermission(permission)) {
       throw redirect(302, '/unauthorized');
     }
-    
+
     return {};
   };
-  
+
   return guard;
 };
 ```
@@ -572,7 +573,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   // Get auth cookies
   const refreshToken = event.cookies.get('__Host-refresh-token');
   const sessionId = event.cookies.get('__Host-session-id');
-  
+
   if (refreshToken && sessionId) {
     try {
       // Verify session with backend
@@ -581,7 +582,7 @@ export const handle: Handle = async ({ event, resolve }) => {
           'Cookie': \`__Host-refresh-token=\${refreshToken}; __Host-session-id=\${sessionId}\`
         }
       });
-      
+
       if (response.ok) {
         const userData = await response.json();
         event.locals.user = userData.user;
@@ -591,7 +592,7 @@ export const handle: Handle = async ({ event, resolve }) => {
       console.error('SSR auth verification failed:', error);
     }
   }
-  
+
   return resolve(event);
 };
 ```
@@ -601,75 +602,77 @@ export const handle: Handle = async ({ event, resolve }) => {
 ```svelte
 <!-- src/routes/+layout.svelte -->
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { authStore, authActions } from '$lib/stores/auth';
-  
-  onMount(() => {
-    authActions.initialize();
-  });
+	import { onMount } from 'svelte';
+	import { authStore, authActions } from '$lib/stores/auth';
+
+	onMount(() => {
+		authActions.initialize();
+	});
 </script>
 
 <main>
-  <slot />
+	<slot />
 </main>
 ```
 
 ```svelte
 <!-- src/routes/(protected)/+layout.ts -->
 <script lang="ts">
-  import { requireAuth } from '$lib/auth/guards';
-  export const load = requireAuth;
+	import { requireAuth } from '$lib/auth/guards';
+	export const load = requireAuth;
 </script>
 ```
 
 ```svelte
 <!-- src/routes/(protected)/dashboard/+page.svelte -->
 <script lang="ts">
-  import { currentUser, authActions } from '$lib/stores/auth';
-  import { apiClient } from '$lib/api/client';
-  import { onMount } from 'svelte';
-  
-  let employees = [];
-  
-  onMount(async () => {
-    const response = await apiClient.get('/employees');
-    if (response.ok) {
-      employees = await response.json();
-    }
-  });
+	import { currentUser, authActions } from '$lib/stores/auth';
+	import { apiClient } from '$lib/api/client';
+	import { onMount } from 'svelte';
+
+	let employees = [];
+
+	onMount(async () => {
+		const response = await apiClient.get('/employees');
+		if (response.ok) {
+			employees = await response.json();
+		}
+	});
 </script>
 
 <h1>Welcome, {$currentUser?.firstName}!</h1>
 
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-  {#each employees as employee}
-    <div class="card">
-      <h3>{employee.firstName} {employee.lastName}</h3>
-      <p>{employee.role?.name}</p>
-    </div>
-  {/each}
+<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+	{#each employees as employee}
+		<div class="card">
+			<h3>{employee.firstName} {employee.lastName}</h3>
+			<p>{employee.role?.name}</p>
+		</div>
+	{/each}
 </div>
 
-<button on:click={() => authActions.logout()}>
-  Logout
-</button>
+<button on:click={() => authActions.logout()}> Logout </button>
 ```
 
 ## 🔒 **Security Features**
 
 ### CSRF Protection
+
 The auth system automatically handles CSRF tokens:
+
 - Backend sets `__Host-csrf-token` cookie
 - Frontend includes `X-CSRF-Token` header
 - Automatic validation on state-changing requests
 
 ### Token Refresh
+
 - Access tokens expire in 15 minutes
 - Automatic refresh 5 minutes before expiry
 - Refresh tokens stored as secure HttpOnly cookies
 - Failed refresh automatically redirects to login
 
 ### Cookie Security
+
 ```typescript
 // Secure cookie configuration (automatic)
 {
@@ -694,6 +697,7 @@ The auth system automatically handles CSRF tokens:
 ## 🎮 **Advanced Usage**
 
 ### WebSocket Authentication
+
 ```typescript
 // src/lib/websocket/client.ts
 import { get } from 'svelte/store';
@@ -702,69 +706,73 @@ import { PUBLIC_WS_URL } from '$env/static/public';
 
 export function createAuthenticatedWebSocket(endpoint: string) {
   const auth = get(authStore);
-  
+
   if (!auth.accessToken) {
     throw new Error('No access token available');
   }
-  
+
   const ws = new WebSocket(\`\${PUBLIC_WS_URL}\${endpoint}?token=\${auth.accessToken}\`);
-  
+
   return ws;
 }
 ```
 
 ### File Upload with Auth
+
 ```typescript
 // src/lib/api/upload.ts
 import { apiClient } from './client';
 
 export async function uploadFile(file: File, endpoint: string) {
-  const formData = new FormData();
-  formData.append('file', file);
-  
-  return apiClient.post(endpoint, formData, {
-    headers: {
-      // Don't set Content-Type - let browser set it with boundary
-    }
-  });
+	const formData = new FormData();
+	formData.append('file', file);
+
+	return apiClient.post(endpoint, formData, {
+		headers: {
+			// Don't set Content-Type - let browser set it with boundary
+		}
+	});
 }
 ```
 
 ### Role-Based Components
+
 ```svelte
 <!-- src/lib/components/auth/RoleGuard.svelte -->
 <script lang="ts">
-  import { authActions } from '$lib/stores/auth';
-  
-  export let roles: string[] = [];
-  export let permissions: string[] = [];
-  export let fallback: boolean = false;
-  
-  $: hasAccess = roles.some(role => authActions.hasRole(role)) || 
-                 permissions.some(permission => authActions.hasPermission(permission));
+	import { authActions } from '$lib/stores/auth';
+
+	export let roles: string[] = [];
+	export let permissions: string[] = [];
+	export let fallback: boolean = false;
+
+	$: hasAccess =
+		roles.some((role) => authActions.hasRole(role)) ||
+		permissions.some((permission) => authActions.hasPermission(permission));
 </script>
 
 {#if hasAccess}
-  <slot />
+	<slot />
 {:else if fallback}
-  <slot name="fallback" />
+	<slot name="fallback" />
 {/if}
 ```
 
 ## 🚨 **Error Handling**
 
 ### Common Error Patterns
+
 ```typescript
 // Handle API errors consistently
 async function handleApiCall() {
   try {
     const response = await apiClient.get('/employees');
-    
+
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.message || \`HTTP \${response.status}\`);
     }
-    
+
     return await response.json();
   } catch (error) {
     if (error instanceof Error) {
@@ -773,20 +781,20 @@ async function handleApiCall() {
         // Will be handled by auth refresh automatically
         return;
       }
-      
+
       if (error.message.includes('403')) {
         // Permission denied
         goto('/unauthorized');
         return;
       }
-      
+
       if (error.message.includes('429')) {
         // Rate limited
         alert('Too many requests. Please wait before trying again.');
         return;
       }
     }
-    
+
     throw error; // Re-throw for component to handle
   }
 }
@@ -797,34 +805,34 @@ async function handleApiCall() {
 ```typescript
 // src/lib/stores/auth.ts (additions)
 export const authActions = {
-  // ... existing methods
+	// ... existing methods
 
-  // Handle app state changes (mobile)
-  handleAppStateChange(isActive: boolean) {
-    if (isActive) {
-      // App became active - check token validity
-      this.verifyToken();
-    }
-  },
+	// Handle app state changes (mobile)
+	handleAppStateChange(isActive: boolean) {
+		if (isActive) {
+			// App became active - check token validity
+			this.verifyToken();
+		}
+	},
 
-  // Handle network connectivity changes
-  handleNetworkChange(isOnline: boolean) {
-    if (isOnline) {
-      // Network restored - sync auth state
-      this.verifyToken();
-    }
-  }
+	// Handle network connectivity changes
+	handleNetworkChange(isOnline: boolean) {
+		if (isOnline) {
+			// Network restored - sync auth state
+			this.verifyToken();
+		}
+	}
 };
 
 // Listen for visibility changes (mobile/desktop)
 if (browser) {
-  document.addEventListener('visibilitychange', () => {
-    authActions.handleAppStateChange(!document.hidden);
-  });
-  
-  window.addEventListener('online', () => {
-    authActions.handleNetworkChange(true);
-  });
+	document.addEventListener('visibilitychange', () => {
+		authActions.handleAppStateChange(!document.hidden);
+	});
+
+	window.addEventListener('online', () => {
+		authActions.handleNetworkChange(true);
+	});
 }
 ```
 

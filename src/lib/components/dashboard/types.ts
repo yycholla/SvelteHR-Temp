@@ -2,9 +2,9 @@ export type UserRole = 'Admin' | 'Manager' | 'HR' | 'Employee';
 
 export type CardSize = '1x1' | '2x1' | '1x2' | '2x2' | '3x1' | '1x3' | '3x2' | '2x3';
 
-export type CardTag = 
+export type CardTag =
 	| 'personal'
-	| 'team' 
+	| 'team'
 	| 'metrics'
 	| 'reports'
 	| 'admin'

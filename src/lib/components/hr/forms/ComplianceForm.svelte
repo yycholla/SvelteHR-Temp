@@ -97,7 +97,7 @@
 		form.setSubmitting(true);
 
 		try {
-			// Since we don't have a specific compliance API endpoint, 
+			// Since we don't have a specific compliance API endpoint,
 			// this would typically call a compliance API
 			const savedRecord = {
 				id: isEditing ? complianceRecord?.id : 'new-id',
@@ -109,7 +109,9 @@
 			notifications.success(`Compliance record ${isEditing ? 'updated' : 'created'} successfully`);
 			onSuccess(savedRecord);
 		} catch (error) {
-			notifications.apiError(error instanceof Error ? error.message : 'Failed to save compliance record');
+			notifications.apiError(
+				error instanceof Error ? error.message : 'Failed to save compliance record'
+			);
 		} finally {
 			form.setSubmitting(false);
 		}
@@ -121,7 +123,7 @@
 	}
 
 	function getEmployeeName(employeeId: string): string {
-		const employee = employees.find(emp => emp.id === employeeId);
+		const employee = employees.find((emp) => emp.id === employeeId);
 		return employee ? `${employee.first_name} ${employee.last_name}` : 'Unknown Employee';
 	}
 
@@ -135,7 +137,13 @@
 	$: formState = $form;
 </script>
 
-<form onsubmit={(e) => { e.preventDefault(); handleSubmit(e); }} class="space-y-6">
+<form
+	onsubmit={(e) => {
+		e.preventDefault();
+		handleSubmit(e);
+	}}
+	class="space-y-6"
+>
 	<!-- Compliance Type -->
 	<div>
 		<label class="label" for="type">
@@ -156,20 +164,20 @@
 			{/each}
 		</select>
 		{#if formState.errors.type && formState.touched.type}
-			<div class="text-error-500 text-sm mt-1">
+			<div class="mt-1 text-sm text-error-500">
 				{formState.errors.type[0]}
 			</div>
 		{/if}
 	</div>
 
-	<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+	<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 		<!-- Employee (Optional) -->
 		<div>
 			<label class="label" for="employee_id">
 				<span>Employee (Optional)</span>
 			</label>
 			{#if loadingEmployees}
-				<div class="placeholder animate-pulse h-12 rounded"></div>
+				<div class="h-12 placeholder animate-pulse rounded"></div>
 			{:else}
 				<select
 					id="employee_id"
@@ -181,12 +189,13 @@
 					<option value="">All employees / General</option>
 					{#each employees as employee}
 						<option value={employee.id}>
-							{employee.first_name} {employee.last_name} - {employee.department}
+							{employee.first_name}
+							{employee.last_name} - {employee.department}
 						</option>
 					{/each}
 				</select>
 			{/if}
-			<div class="text-sm text-surface-600-300-token mt-1">
+			<div class="text-surface-600-300-token mt-1 text-sm">
 				Leave blank for company-wide compliance
 			</div>
 		</div>
@@ -227,9 +236,7 @@
 				min={getMinDate()}
 			/>
 			{#if isOverdue(formState.data.due_date, formState.data.status)}
-				<div class="text-error-500 text-sm mt-1">
-					This item is overdue
-				</div>
+				<div class="mt-1 text-sm text-error-500">This item is overdue</div>
 			{/if}
 		</div>
 	</div>
@@ -251,11 +258,11 @@
 			placeholder="https://example.com/document.pdf"
 		/>
 		{#if formState.errors.document_url && formState.touched.document_url}
-			<div class="text-error-500 text-sm mt-1">
+			<div class="mt-1 text-sm text-error-500">
 				{formState.errors.document_url[0]}
 			</div>
 		{/if}
-		<div class="text-sm text-surface-600-300-token mt-1">
+		<div class="text-surface-600-300-token mt-1 text-sm">
 			Link to related document or certificate
 		</div>
 	</div>
@@ -278,14 +285,16 @@
 
 	<!-- Status Summary (View mode) -->
 	{#if isReadonly && complianceRecord}
-		<div class="card p-4 bg-surface-100-800-token">
-			<h4 class="h4 mb-2">Compliance Status</h4>
-			<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+		<div class="bg-surface-100-800-token card p-4">
+			<h4 class="mb-2 h4">Compliance Status</h4>
+			<div class="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
 				<div>
 					<span class="font-semibold">Status:</span>
-					<span class="badge variant-filled capitalize ml-2"
+					<span
+						class="variant-filled ml-2 badge capitalize"
 						class:variant-filled-success={complianceRecord.status === 'compliant'}
-						class:variant-filled-error={complianceRecord.status === 'non_compliant' || complianceRecord.status === 'expired'}
+						class:variant-filled-error={complianceRecord.status === 'non_compliant' ||
+							complianceRecord.status === 'expired'}
 						class:variant-filled-warning={complianceRecord.status === 'pending'}
 					>
 						{complianceRecord.status.replace('_', ' ')}
@@ -309,22 +318,24 @@
 				{#if complianceRecord.due_date}
 					<div>
 						<span class="font-semibold">Due Date:</span>
-						<span class:text-error-500={isOverdue(complianceRecord.due_date, complianceRecord.status)}>
+						<span
+							class:text-error-500={isOverdue(complianceRecord.due_date, complianceRecord.status)}
+						>
 							{new Date(complianceRecord.due_date).toLocaleDateString()}
 						</span>
 						{#if isOverdue(complianceRecord.due_date, complianceRecord.status)}
-							<span class="text-error-500 font-semibold">(Overdue)</span>
+							<span class="font-semibold text-error-500">(Overdue)</span>
 						{/if}
 					</div>
 				{/if}
 			</div>
-			
+
 			{#if complianceRecord.document_url}
 				<div class="mt-4">
-					<a 
-						href={complianceRecord.document_url} 
-						target="_blank" 
-						class="btn variant-ghost-primary btn-sm"
+					<a
+						href={complianceRecord.document_url}
+						target="_blank"
+						class="variant-ghost-primary btn btn-sm"
 					>
 						View Document
 					</a>
@@ -335,10 +346,10 @@
 
 	<!-- Form Actions -->
 	{#if !isReadonly}
-		<div class="flex justify-end gap-4 pt-6 border-t">
+		<div class="flex justify-end gap-4 border-t pt-6">
 			<button
 				type="button"
-				class="btn variant-ghost-surface"
+				class="variant-ghost-surface btn"
 				on:click={onCancel}
 				disabled={formState.isSubmitting}
 			>
@@ -346,7 +357,7 @@
 			</button>
 			<button
 				type="submit"
-				class="btn variant-filled-primary"
+				class="variant-filled-primary btn"
 				disabled={formState.isSubmitting || !formState.isValid}
 			>
 				{#if formState.isSubmitting}
@@ -357,14 +368,8 @@
 			</button>
 		</div>
 	{:else}
-		<div class="flex justify-end pt-6 border-t">
-			<button
-				type="button"
-				class="btn variant-ghost-surface"
-				on:click={onCancel}
-			>
-				Close
-			</button>
+		<div class="flex justify-end border-t pt-6">
+			<button type="button" class="variant-ghost-surface btn" on:click={onCancel}> Close </button>
 		</div>
 	{/if}
 </form>

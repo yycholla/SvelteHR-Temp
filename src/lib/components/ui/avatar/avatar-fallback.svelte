@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { Avatar as AvatarPrimitive } from "bits-ui";
-	import { cn } from "$lib/utils.js";
+	import { Avatar as AvatarPrimitive } from 'bits-ui';
+	import { cn } from '$lib/utils.js';
 
 	let {
 		class: className,
@@ -14,7 +14,7 @@
 	bind:ref
 	data-slot="avatar-fallback"
 	class={cn(
-		"flex size-full items-center justify-center rounded-full bg-muted text-sm font-medium",
+		'flex size-full items-center justify-center rounded-full bg-muted text-sm font-medium',
 		className
 	)}
 	{...restProps}

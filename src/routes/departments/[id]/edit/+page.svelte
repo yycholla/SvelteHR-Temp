@@ -2,12 +2,12 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { 
-		departmentActions, 
-		currentDepartment, 
+	import {
+		departmentActions,
+		currentDepartment,
 		departments,
-		isLoading, 
-		error 
+		isLoading,
+		error
 	} from '$lib/stores/departments';
 	import { RoleGuard } from '$lib/components/auth';
 	import { Button } from '$lib/components/ui/button';
@@ -41,20 +41,20 @@
 
 	// Available parent departments (exclude self and descendants)
 	const parentDepartmentOptions = $derived(() => {
-		if (!currentDepartment) return departments.filter(dept => dept.is_active);
-		
+		if (!currentDepartment) return departments.filter((dept) => dept.is_active);
+
 		// Get all descendants to exclude them as potential parents
 		const getDescendants = (parentId: string): string[] => {
-			const children = departments.filter(d => d.parent_id === parentId);
-			const descendants = children.map(c => c.id);
-			children.forEach(child => {
+			const children = departments.filter((d) => d.parent_id === parentId);
+			const descendants = children.map((c) => c.id);
+			children.forEach((child) => {
 				descendants.push(...getDescendants(child.id));
 			});
 			return descendants;
 		};
 
 		const excludeIds = new Set([currentDepartment.id, ...getDescendants(currentDepartment.id)]);
-		return departments.filter(dept => dept.is_active && !excludeIds.has(dept.id));
+		return departments.filter((dept) => dept.is_active && !excludeIds.has(dept.id));
 	});
 
 	onMount(() => {
@@ -120,7 +120,7 @@
 			};
 
 			await departmentActions.updateDepartment(departmentId, submitData);
-			
+
 			// Redirect to the department's detail page
 			await goto(`/departments/${departmentId}`);
 		} catch (error) {
@@ -137,28 +137,30 @@
 </script>
 
 <svelte:head>
-	<title>{currentDepartment?.name ? `Edit ${currentDepartment.name}` : 'Edit Department'} - SvelteHR</title>
+	<title
+		>{currentDepartment?.name ? `Edit ${currentDepartment.name}` : 'Edit Department'} - SvelteHR</title
+	>
 </svelte:head>
 
 <RoleGuard roles={['admin', 'hr', 'hr_admin']} fallback>
-	<div class="container mx-auto py-8 px-4 max-w-4xl">
+	<div class="container mx-auto max-w-4xl px-4 py-8">
 		<!-- Header -->
-		<div class="flex items-center gap-4 mb-8">
+		<div class="mb-8 flex items-center gap-4">
 			<Button variant="ghost" size="icon" onclick={handleCancel}>
 				<ArrowLeft class="h-4 w-4" />
 			</Button>
 			<div>
 				{#if isLoading}
 					<div class="animate-pulse">
-						<div class="h-8 bg-muted rounded w-64 mb-2"></div>
-						<div class="h-4 bg-muted rounded w-48"></div>
+						<div class="mb-2 h-8 w-64 rounded bg-muted"></div>
+						<div class="h-4 w-48 rounded bg-muted"></div>
 					</div>
 				{:else if currentDepartment}
 					<h1 class="text-3xl font-bold text-foreground">Edit Department</h1>
-					<p class="text-muted-foreground mt-2">Update {currentDepartment.name} information</p>
+					<p class="mt-2 text-muted-foreground">Update {currentDepartment.name} information</p>
 				{:else}
 					<h1 class="text-3xl font-bold text-foreground">Edit Department</h1>
-					<p class="text-muted-foreground mt-2">Update department information</p>
+					<p class="mt-2 text-muted-foreground">Update department information</p>
 				{/if}
 			</div>
 		</div>
@@ -168,13 +170,11 @@
 			<Card class="mb-6 border-destructive">
 				<CardContent class="pt-6">
 					<p class="text-destructive">{error}</p>
-					<div class="flex gap-2 mt-4">
+					<div class="mt-4 flex gap-2">
 						<Button variant="outline" onclick={() => departmentActions.clearError()}>
 							Dismiss
 						</Button>
-						<Button variant="outline" onclick={handleCancel}>
-							Back to Department
-						</Button>
+						<Button variant="outline" onclick={handleCancel}>Back to Department</Button>
 					</div>
 				</CardContent>
 			</Card>
@@ -185,14 +185,14 @@
 			<Card>
 				<CardHeader>
 					<div class="animate-pulse">
-						<div class="h-6 bg-muted rounded w-48 mb-2"></div>
+						<div class="mb-2 h-6 w-48 rounded bg-muted"></div>
 					</div>
 				</CardHeader>
 				<CardContent class="space-y-6">
 					{#each Array(5) as _}
 						<div class="animate-pulse space-y-2">
-							<div class="h-4 bg-muted rounded w-24"></div>
-							<div class="h-10 bg-muted rounded"></div>
+							<div class="h-4 w-24 rounded bg-muted"></div>
+							<div class="h-10 rounded bg-muted"></div>
 						</div>
 					{/each}
 				</CardContent>
@@ -205,9 +205,15 @@
 						Department Information
 					</CardTitle>
 				</CardHeader>
-				
+
 				<CardContent class="space-y-6">
-					<form onsubmit={(e) => { e.preventDefault(); handleSubmit(e); }} class="space-y-6">
+					<form
+						onsubmit={(e) => {
+							e.preventDefault();
+							handleSubmit(e);
+						}}
+						class="space-y-6"
+					>
 						<!-- Name -->
 						<div class="space-y-2">
 							<Label for="name">Department Name *</Label>
@@ -311,13 +317,13 @@
 						</div>
 
 						<!-- Actions -->
-						<div class="flex items-center justify-end gap-4 pt-6 border-t">
+						<div class="flex items-center justify-end gap-4 border-t pt-6">
 							<Button variant="outline" onclick={handleCancel} disabled={isSubmitting}>
 								Cancel
 							</Button>
 							<Button type="submit" disabled={isSubmitting} class="gap-2">
 								{#if isSubmitting}
-									<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+									<div class="h-4 w-4 animate-spin rounded-full border-b-2 border-current"></div>
 								{:else}
 									<Save class="h-4 w-4" />
 								{/if}
@@ -331,15 +337,14 @@
 			<!-- Department not found -->
 			<Card>
 				<CardContent class="pt-6">
-					<div class="text-center py-12">
-						<Building2 class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-						<h3 class="text-lg font-semibold mb-2">Department Not Found</h3>
-						<p class="text-muted-foreground mb-4">
-							The department you're trying to edit doesn't exist or you don't have permission to edit it.
+					<div class="py-12 text-center">
+						<Building2 class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+						<h3 class="mb-2 text-lg font-semibold">Department Not Found</h3>
+						<p class="mb-4 text-muted-foreground">
+							The department you're trying to edit doesn't exist or you don't have permission to
+							edit it.
 						</p>
-						<Button href="/departments" variant="outline">
-							Back to Departments
-						</Button>
+						<Button href="/departments" variant="outline">Back to Departments</Button>
 					</div>
 				</CardContent>
 			</Card>
@@ -348,18 +353,14 @@
 
 	<!-- Fallback content -->
 	<svelte:fragment slot="fallback">
-		<div class="container mx-auto py-8 px-4 max-w-4xl">
+		<div class="container mx-auto max-w-4xl px-4 py-8">
 			<Card>
 				<CardContent class="pt-6">
-					<div class="text-center py-12">
-						<Building2 class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-						<h3 class="text-lg font-semibold mb-2">Access Denied</h3>
-						<p class="text-muted-foreground mb-4">
-							You don't have permission to edit departments.
-						</p>
-						<Button href="/departments" variant="outline">
-							Back to Departments
-						</Button>
+					<div class="py-12 text-center">
+						<Building2 class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+						<h3 class="mb-2 text-lg font-semibold">Access Denied</h3>
+						<p class="mb-4 text-muted-foreground">You don't have permission to edit departments.</p>
+						<Button href="/departments" variant="outline">Back to Departments</Button>
 					</div>
 				</CardContent>
 			</Card>

@@ -38,20 +38,22 @@ export const complianceItemSchema = z.object({
 });
 
 // Create compliance item schema
-export const createComplianceItemSchema = complianceItemSchema.omit({
-	id: true,
-	createdAt: true,
-	updatedAt: true,
-}).extend({
-	employeeId: z.number().min(1, 'Employee ID is required'),
-	itemType: z.string().min(1, 'Item type is required'),
-	itemName: z.string().min(1, 'Item name is required'),
-	effectiveDate: z.string().min(1, 'Effective date is required'),
-});
+export const createComplianceItemSchema = complianceItemSchema
+	.omit({
+		id: true,
+		createdAt: true,
+		updatedAt: true
+	})
+	.extend({
+		employeeId: z.number().min(1, 'Employee ID is required'),
+		itemType: z.string().min(1, 'Item type is required'),
+		itemName: z.string().min(1, 'Item name is required'),
+		effectiveDate: z.string().min(1, 'Effective date is required')
+	});
 
 // Update compliance item schema
 export const updateComplianceItemSchema = createComplianceItemSchema.partial().extend({
-	id: z.number(),
+	id: z.number()
 });
 
 // Compliance filter schema
@@ -64,25 +66,27 @@ export const complianceFilterSchema = z.object({
 	page: z.number().min(1).default(1),
 	pageSize: z.number().min(1).max(100).default(20),
 	sort: z.enum(['itemName', 'expirationDate', 'status', 'createdAt']).default('expirationDate'),
-	order: z.enum(['ASC', 'DESC']).default('ASC'),
+	order: z.enum(['ASC', 'DESC']).default('ASC')
 });
 
 // Compliance list response schema
-export const complianceListResponseSchema = z.object({
-	data: z.array(complianceItemSchema),
-	page: z.number(),
-	pageSize: z.number(),
-	total: z.number(),
-	totalPages: z.number(),
-	hasMore: z.boolean()
-}).transform((response) => ({
-	complianceItems: response.data,
-	totalCount: response.total,
-	page: response.page,
-	limit: response.pageSize,
-	totalPages: response.totalPages,
-	hasMore: response.hasMore
-}));
+export const complianceListResponseSchema = z
+	.object({
+		data: z.array(complianceItemSchema),
+		page: z.number(),
+		pageSize: z.number(),
+		total: z.number(),
+		totalPages: z.number(),
+		hasMore: z.boolean()
+	})
+	.transform((response) => ({
+		complianceItems: response.data,
+		totalCount: response.total,
+		page: response.page,
+		limit: response.pageSize,
+		totalPages: response.totalPages,
+		hasMore: response.hasMore
+	}));
 
 // Compliance stats schema
 export const complianceStatsSchema = z.object({
@@ -93,7 +97,7 @@ export const complianceStatsSchema = z.object({
 	pendingReviewItems: z.number(),
 	expiringThisMonth: z.number(),
 	expiringNextMonth: z.number(),
-	complianceRate: z.number(),
+	complianceRate: z.number()
 });
 
 // Export types

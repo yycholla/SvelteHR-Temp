@@ -1,59 +1,59 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-    <title>Test HTTPS Connection</title>
-</head>
-<body>
-    <h1>Test HTTPS Backend Connection</h1>
-    <button onclick="testHttps()">Test HTTPS Login</button>
-    <div id="result"></div>
+	<head>
+		<title>Test HTTPS Connection</title>
+	</head>
+	<body>
+		<h1>Test HTTPS Backend Connection</h1>
+		<button onclick="testHttps()">Test HTTPS Login</button>
+		<div id="result"></div>
 
-    <script>
-        async function testHttps() {
-            const result = document.getElementById('result');
-            result.innerHTML = 'Testing HTTPS connection...';
-            
-            try {
-                // Test login with HTTPS
-                const response = await fetch('https://100.71.207.7:8080/api/v2/auth/rbac/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        username: 'admin',
-                        password: 'admin123'
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    result.innerHTML = `
+		<script>
+			async function testHttps() {
+				const result = document.getElementById('result');
+				result.innerHTML = 'Testing HTTPS connection...';
+
+				try {
+					// Test login with HTTPS
+					const response = await fetch('https://100.71.207.7:8080/api/v2/auth/rbac/login', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify({
+							username: 'admin',
+							password: 'admin123'
+						})
+					});
+
+					const data = await response.json();
+
+					if (response.ok) {
+						result.innerHTML = `
                         <div style="color: green;">
                             ✅ HTTPS Login Successful!<br>
                             Status: ${response.status}<br>
                             Token: ${data.token ? 'Received' : 'Not received'}
                         </div>
                     `;
-                } else {
-                    result.innerHTML = `
+					} else {
+						result.innerHTML = `
                         <div style="color: orange;">
                             ⚠️ HTTPS Connection OK, Auth Issue<br>
                             Status: ${response.status}<br>
                             Error: ${data.error || 'Unknown error'}
                         </div>
                     `;
-                }
-            } catch (error) {
-                result.innerHTML = `
+					}
+				} catch (error) {
+					result.innerHTML = `
                     <div style="color: red;">
                         ❌ Connection Failed<br>
                         Error: ${error.message}
                     </div>
                 `;
-            }
-        }
-    </script>
-</body>
+				}
+			}
+		</script>
+	</body>
 </html>

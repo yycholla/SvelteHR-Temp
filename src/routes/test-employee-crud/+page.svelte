@@ -56,12 +56,12 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(testEmployee)
 			});
-			
+
 			if (!response.ok) {
 				const errorData = await response.json();
 				throw new Error(errorData.error || `Failed to create: ${response.statusText}`);
 			}
-			
+
 			const newEmployee = await response.json();
 			console.log('Created employee:', newEmployee);
 			await fetchEmployees(); // Refresh list
@@ -84,18 +84,18 @@
 				firstName: testEmployee.firstName + ' (Updated)',
 				jobTitle: 'Senior ' + testEmployee.jobTitle
 			};
-			
+
 			const response = await fetch(`/api/employees/${id}`, {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(updateData)
 			});
-			
+
 			if (!response.ok) {
 				const errorData = await response.json();
 				throw new Error(errorData.error || `Failed to update: ${response.statusText}`);
 			}
-			
+
 			const updatedEmployee = await response.json();
 			console.log('Updated employee:', updatedEmployee);
 			await fetchEmployees(); // Refresh list
@@ -110,19 +110,19 @@
 	// Delete employee
 	async function deleteEmployee(id: string) {
 		if (!confirm('Are you sure you want to delete this employee?')) return;
-		
+
 		loading = true;
 		error = '';
 		try {
 			const response = await fetch(`/api/employees/${id}`, {
 				method: 'DELETE'
 			});
-			
+
 			if (!response.ok) {
 				const errorData = await response.json();
 				throw new Error(errorData.error || `Failed to delete: ${response.statusText}`);
 			}
-			
+
 			console.log('Deleted employee:', id);
 			await fetchEmployees(); // Refresh list
 		} catch (err) {
@@ -146,19 +146,19 @@
 	});
 </script>
 
-<div class="container mx-auto p-6 space-y-6">
+<div class="container mx-auto space-y-6 p-6">
 	<h1 class="text-3xl font-bold">Employee CRUD Test Page</h1>
-	
+
 	{#if error}
-		<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+		<div class="rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
 			{error}
 		</div>
 	{/if}
 
 	<!-- Test Create Form -->
 	<Card class="p-6">
-		<h2 class="text-xl font-semibold mb-4">Quick Test - Create Employee</h2>
-		<div class="grid grid-cols-2 gap-4 mb-4">
+		<h2 class="mb-4 text-xl font-semibold">Quick Test - Create Employee</h2>
+		<div class="mb-4 grid grid-cols-2 gap-4">
 			<div>
 				<Label for="username">Username</Label>
 				<Input id="username" bind:value={testEmployee.username} />
@@ -188,21 +188,19 @@
 			<Button onclick={createEmployee} disabled={loading}>
 				{loading ? 'Creating...' : 'Create Employee (Direct API)'}
 			</Button>
-			<Button onclick={() => openModal('create')} variant="outline">
-				Create Employee (Modal)
-			</Button>
+			<Button onclick={() => openModal('create')} variant="outline">Create Employee (Modal)</Button>
 		</div>
 	</Card>
 
 	<!-- Employee List -->
 	<Card class="p-6">
-		<div class="flex justify-between items-center mb-4">
+		<div class="mb-4 flex items-center justify-between">
 			<h2 class="text-xl font-semibold">Employee List</h2>
 			<Button onclick={fetchEmployees} variant="outline" disabled={loading}>
 				{loading ? 'Loading...' : 'Refresh'}
 			</Button>
 		</div>
-		
+
 		{#if employees.length === 0}
 			<p class="text-gray-500">No employees found. Try creating one!</p>
 		{:else}
@@ -211,14 +209,20 @@
 					<thead class="bg-gray-50">
 						<tr>
 							<th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-							<th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Username</th>
+							<th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase"
+								>Username</th
+							>
 							<th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
 							<th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-							<th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Job Title</th>
-							<th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+							<th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase"
+								>Job Title</th
+							>
+							<th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase"
+								>Actions</th
+							>
 						</tr>
 					</thead>
-					<tbody class="bg-white divide-y divide-gray-200">
+					<tbody class="divide-y divide-gray-200 bg-white">
 						{#each employees as employee}
 							<tr>
 								<td class="px-4 py-2 text-sm">{employee.id}</td>
@@ -234,10 +238,19 @@
 										<Button size="sm" variant="outline" onclick={() => openModal('edit', employee)}>
 											Edit
 										</Button>
-										<Button size="sm" onclick={() => updateEmployee(employee.id)} disabled={loading}>
+										<Button
+											size="sm"
+											onclick={() => updateEmployee(employee.id)}
+											disabled={loading}
+										>
 											Quick Update
 										</Button>
-										<Button size="sm" variant="destructive" onclick={() => deleteEmployee(employee.id)} disabled={loading}>
+										<Button
+											size="sm"
+											variant="destructive"
+											onclick={() => deleteEmployee(employee.id)}
+											disabled={loading}
+										>
 											Delete
 										</Button>
 									</div>
@@ -252,17 +265,19 @@
 
 	<!-- API Status -->
 	<Card class="p-6">
-		<h2 class="text-xl font-semibold mb-4">API Connection Status</h2>
+		<h2 class="mb-4 text-xl font-semibold">API Connection Status</h2>
 		<div class="space-y-2">
-			<p>Backend URL: <code class="bg-gray-100 px-2 py-1 rounded">http://localhost:8080/api/v1</code></p>
-			<p>Frontend API: <code class="bg-gray-100 px-2 py-1 rounded">/api/employees</code></p>
+			<p>
+				Backend URL: <code class="rounded bg-gray-100 px-2 py-1">http://localhost:8080/api/v1</code>
+			</p>
+			<p>Frontend API: <code class="rounded bg-gray-100 px-2 py-1">/api/employees</code></p>
 			<p>Total Employees: <strong>{employees.length}</strong></p>
 		</div>
 	</Card>
 </div>
 
 <!-- Employee Modal -->
-<EmployeeModal 
+<EmployeeModal
 	bind:open={modalOpen}
 	bind:employee={selectedEmployee}
 	bind:mode={modalMode}

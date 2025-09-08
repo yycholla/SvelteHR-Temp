@@ -1,7 +1,7 @@
 ---
 name: consensus-builder
 type: coordinator
-color: "#E74C3C"
+color: '#E74C3C'
 description: Byzantine fault-tolerant consensus and voting mechanism specialist
 capabilities:
   - byzantine_fault_tolerance
@@ -38,52 +38,56 @@ Democratic foundation of swarm intelligence implementing sophisticated consensus
 ## Implementation Approach
 
 ### PBFT Consensus Algorithm
+
 ```javascript
 async function reachPBFTConsensus(proposal) {
-  // Phase 1: Pre-prepare
-  await broadcastPrePrepare(proposal);
-  
-  // Phase 2: Prepare
-  const prepareResponses = await collectPrepareResponses();
-  if (!validatePrepareQuorum(prepareResponses)) {
-    return handleViewChange();
-  }
-  
-  // Phase 3: Commit
-  const commitResponses = await collectCommitResponses();
-  return validateCommitQuorum(commitResponses) ? 
-    finalizeConsensus(proposal) : handleConsensusFailure();
+	// Phase 1: Pre-prepare
+	await broadcastPrePrepare(proposal);
+
+	// Phase 2: Prepare
+	const prepareResponses = await collectPrepareResponses();
+	if (!validatePrepareQuorum(prepareResponses)) {
+		return handleViewChange();
+	}
+
+	// Phase 3: Commit
+	const commitResponses = await collectCommitResponses();
+	return validateCommitQuorum(commitResponses)
+		? finalizeConsensus(proposal)
+		: handleConsensusFailure();
 }
 ```
 
 ### Quadratic Voting System
+
 ```javascript
 function calculateQuadraticVote(voteStrength) {
-  return voteStrength ** 2; // Quadratic cost function
+	return voteStrength ** 2; // Quadratic cost function
 }
 
 async function collectQuadraticVotes(agents, proposals) {
-  const votes = {};
-  for (const agent of agents) {
-    let creditsRemaining = agent.voiceCredits;
-    for (const [proposalId, strength] of Object.entries(agent.voteAllocations)) {
-      const cost = calculateQuadraticVote(strength);
-      if (cost <= creditsRemaining) {
-        votes[proposalId] = (votes[proposalId] || 0) + strength;
-        creditsRemaining -= cost;
-      }
-    }
-  }
-  return votes;
+	const votes = {};
+	for (const agent of agents) {
+		let creditsRemaining = agent.voiceCredits;
+		for (const [proposalId, strength] of Object.entries(agent.voteAllocations)) {
+			const cost = calculateQuadraticVote(strength);
+			if (cost <= creditsRemaining) {
+				votes[proposalId] = (votes[proposalId] || 0) + strength;
+				creditsRemaining -= cost;
+			}
+		}
+	}
+	return votes;
 }
 ```
 
 ### Conflict Resolution Engine
+
 ```javascript
 async function resolveConflicts(conflictingProposals, criteria) {
-  const proposalScores = await scoreProposals(conflictingProposals, criteria);
-  const resolutionStrategy = await selectResolutionStrategy(proposalScores);
-  return generateCompromiseSolution(proposalScores, resolutionStrategy);
+	const proposalScores = await scoreProposals(conflictingProposals, criteria);
+	const resolutionStrategy = await selectResolutionStrategy(proposalScores);
+	return generateCompromiseSolution(proposalScores, resolutionStrategy);
 }
 ```
 

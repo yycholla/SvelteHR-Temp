@@ -11,7 +11,7 @@ export async function createContext(event: RequestEvent): Promise<Context> {
 	// Use authentication data from hooks if available
 	const token = event.locals.token;
 	const userId = event.locals.user?.id;
-	
+
 	// Clear any NextAuth or incompatible session cookies
 	const nextAuthToken = event.cookies.get('next-auth.session-token');
 	if (nextAuthToken) {
@@ -24,6 +24,6 @@ export async function createContext(event: RequestEvent): Promise<Context> {
 	return {
 		event,
 		token,
-		userId,
+		userId
 	};
 }

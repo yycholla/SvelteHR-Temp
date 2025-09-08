@@ -1,112 +1,130 @@
 <script lang="ts">
-    import StatCard from '$lib/components/common/StatCard.svelte';
-    import { Calendar, Clock, CheckCircle, AlertCircle, Users, FileText, Plus, Edit, Eye } from 'lucide-svelte';
-    import { Button } from '$lib/components/ui/button';
-    import { modalStore } from '$lib/stores/hr/modals';
-    import { invalidateAll } from '$app/navigation';
-    import LeaveModal from '$lib/components/hr/modals/LeaveModal.svelte';
-    import type { PageData } from './$types';
+	import StatCard from '$lib/components/common/StatCard.svelte';
+	import {
+		Calendar,
+		Clock,
+		CheckCircle,
+		AlertCircle,
+		Users,
+		FileText,
+		Plus,
+		Edit,
+		Eye
+	} from 'lucide-svelte';
+	import { Button } from '$lib/components/ui/button';
+	import { modalStore } from '$lib/stores/hr/modals';
+	import { invalidateAll } from '$app/navigation';
+	import LeaveModal from '$lib/components/hr/modals/LeaveModal.svelte';
+	import type { PageData } from './$types';
 
-    let { data }: { data: PageData } = $props();
-    
-    // Modal state
-    let showLeaveModal = $state(false);
-    let modalMode = $state<'create' | 'edit' | 'view'>('create');
-    let selectedLeaveRequest = $state<any | null>(null);
-    
-    // Transform server data for display
-    const stats = {
-        totalRequests: data.leaveRequests?.length || 0,
-        pendingApproval: data.stats?.pendingRequests || 0,
-        approved: data.stats?.approvedRequests || 0,
-        avgBalance: data.stats?.averageBalance || 0
-    };
+	let { data }: { data: PageData } = $props();
 
-    // Subscribe to modal store
-    $effect(() => {
-        const unsubscribe = modalStore.subscribe((state) => {
-            if (state.type === 'leave') {
-                showLeaveModal = state.isOpen;
-                modalMode = state.mode;
-                selectedLeaveRequest = state.data;
-            }
-        });
-        return unsubscribe;
-    });
+	// Modal state
+	let showLeaveModal = $state(false);
+	let modalMode = $state<'create' | 'edit' | 'view'>('create');
+	let selectedLeaveRequest = $state<any | null>(null);
 
-    // CRUD Operations
-    function handleAddLeaveRequest() {
-        modalStore.open('leave', null, 'create');
-    }
+	// Transform server data for display
+	const stats = {
+		totalRequests: data.leaveRequests?.length || 0,
+		pendingApproval: data.stats?.pendingRequests || 0,
+		approved: data.stats?.approvedRequests || 0,
+		avgBalance: data.stats?.averageBalance || 0
+	};
 
-    function handleViewLeaveRequest(request: any) {
-        modalStore.open('leave', request, 'view');
-    }
+	// Subscribe to modal store
+	$effect(() => {
+		const unsubscribe = modalStore.subscribe((state) => {
+			if (state.type === 'leave') {
+				showLeaveModal = state.isOpen;
+				modalMode = state.mode;
+				selectedLeaveRequest = state.data;
+			}
+		});
+		return unsubscribe;
+	});
 
-    function handleEditLeaveRequest(request: any) {
-        modalStore.open('leave', request, 'edit');
-    }
+	// CRUD Operations
+	function handleAddLeaveRequest() {
+		modalStore.open('leave', null, 'create');
+	}
 
-    async function handleLeaveRequestSuccess(leaveRequest: any) {
-        modalStore.close();
-        console.log('✅ Leave request saved successfully, refreshing data...');
-        await invalidateAll();
-    }
+	function handleViewLeaveRequest(request: any) {
+		modalStore.open('leave', request, 'view');
+	}
 
-    function handleModalClose() {
-        modalStore.close();
-    }
+	function handleEditLeaveRequest(request: any) {
+		modalStore.open('leave', request, 'edit');
+	}
 
-    // Approval workflow functions
-    async function handleApproveRequest(request: any) {
-        if (confirm(`Approve leave request for ${request.employee?.first_name} ${request.employee?.last_name}?`)) {
-            try {
-                const response = await fetch(`/api/v2/leave-requests/${request.id}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ status: 'approved' })
-                });
+	async function handleLeaveRequestSuccess(leaveRequest: any) {
+		modalStore.close();
+		console.log('✅ Leave request saved successfully, refreshing data...');
+		await invalidateAll();
+	}
 
-                if (response.ok) {
-                    console.log('✅ Leave request approved successfully');
-                    await invalidateAll();
-                } else {
-                    const error = await response.text();
-                    alert(`Failed to approve request: ${error}`);
-                }
-            } catch (error) {
-                console.error('Approval error:', error);
-                alert('Failed to approve request. Please try again.');
-            }
-        }
-    }
+	function handleModalClose() {
+		modalStore.close();
+	}
 
-    async function handleRejectRequest(request: any) {
-        if (confirm(`Reject leave request for ${request.employee?.first_name} ${request.employee?.last_name}?`)) {
-            try {
-                const response = await fetch(`/api/v2/leave-requests/${request.id}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ status: 'denied' })
-                });
+	// Approval workflow functions
+	async function handleApproveRequest(request: any) {
+		if (
+			confirm(
+				`Approve leave request for ${request.employee?.first_name} ${request.employee?.last_name}?`
+			)
+		) {
+			try {
+				const response = await fetch(`/api/v2/leave-requests/${request.id}`, {
+					method: 'PATCH',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({ status: 'approved' })
+				});
 
-                if (response.ok) {
-                    console.log('✅ Leave request rejected successfully');
-                    await invalidateAll();
-                } else {
-                    const error = await response.text();
-                    alert(`Failed to reject request: ${error}`);
-                }
-            } catch (error) {
-                console.error('Rejection error:', error);
-                alert('Failed to reject request. Please try again.');
-            }
-        }
-    }
+				if (response.ok) {
+					console.log('✅ Leave request approved successfully');
+					await invalidateAll();
+				} else {
+					const error = await response.text();
+					alert(`Failed to approve request: ${error}`);
+				}
+			} catch (error) {
+				console.error('Approval error:', error);
+				alert('Failed to approve request. Please try again.');
+			}
+		}
+	}
+
+	async function handleRejectRequest(request: any) {
+		if (
+			confirm(
+				`Reject leave request for ${request.employee?.first_name} ${request.employee?.last_name}?`
+			)
+		) {
+			try {
+				const response = await fetch(`/api/v2/leave-requests/${request.id}`, {
+					method: 'PATCH',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({ status: 'denied' })
+				});
+
+				if (response.ok) {
+					console.log('✅ Leave request rejected successfully');
+					await invalidateAll();
+				} else {
+					const error = await response.text();
+					alert(`Failed to reject request: ${error}`);
+				}
+			} catch (error) {
+				console.error('Rejection error:', error);
+				alert('Failed to reject request. Please try again.');
+			}
+		}
+	}
 </script>
 
 <svelte:head>
@@ -115,68 +133,68 @@
 
 <div class="container mx-auto px-4 py-8">
 	<div class="mb-8">
-		<h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Leave Management</h1>
+		<h1 class="mb-2 text-3xl font-bold text-gray-900 dark:text-white">Leave Management</h1>
 		<p class="text-gray-600 dark:text-gray-400">Manage employee leave requests and balances</p>
 	</div>
 
 	<!-- Stats Overview -->
-	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-		<StatCard 
-			title="Total Requests" 
-			value={stats.totalRequests} 
-			icon={Calendar} 
-			tag="#hr" 
-			loading={false} 
+	<div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+		<StatCard
+			title="Total Requests"
+			value={stats.totalRequests}
+			icon={Calendar}
+			tag="#hr"
+			loading={false}
 		/>
-		<StatCard 
-			title="Pending Approval" 
-			value={stats.pendingApproval} 
-			icon={AlertCircle} 
-			tag="#hr" 
-			loading={false} 
+		<StatCard
+			title="Pending Approval"
+			value={stats.pendingApproval}
+			icon={AlertCircle}
+			tag="#hr"
+			loading={false}
 		/>
-		<StatCard 
-			title="Approved" 
-			value={stats.approved} 
-			icon={CheckCircle} 
-			tag="#hr" 
-			loading={false} 
+		<StatCard
+			title="Approved"
+			value={stats.approved}
+			icon={CheckCircle}
+			tag="#hr"
+			loading={false}
 		/>
-		<StatCard 
-			title="Avg Balance" 
-			value={`${stats.avgBalance} days`} 
-			icon={Clock} 
-			tag="#hr" 
-			loading={false} 
+		<StatCard
+			title="Avg Balance"
+			value={`${stats.avgBalance} days`}
+			icon={Clock}
+			tag="#hr"
+			loading={false}
 		/>
 	</div>
 
-	<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+	<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
 		<!-- Leave Requests -->
-		<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-			<div class="flex items-center justify-between mb-6">
+		<div class="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+			<div class="mb-6 flex items-center justify-between">
 				<div class="flex items-center gap-2">
-					<Calendar class="w-5 h-5 text-blue-600" />
+					<Calendar class="h-5 w-5 text-blue-600" />
 					<h2 class="text-xl font-semibold text-gray-900 dark:text-white">Leave Requests</h2>
 				</div>
 				<Button onclick={handleAddLeaveRequest} class="flex items-center gap-2">
-					<Plus class="w-4 h-4" />
+					<Plus class="h-4 w-4" />
 					New Request
 				</Button>
 			</div>
-			
+
 			{#if stats.totalRequests === 0}
-				<div class="text-center py-8">
-					<Calendar class="w-12 h-12 text-gray-400 mx-auto mb-4" />
-					<p class="text-gray-500 mb-4">No leave requests found</p>
+				<div class="py-8 text-center">
+					<Calendar class="mx-auto mb-4 h-12 w-12 text-gray-400" />
+					<p class="mb-4 text-gray-500">No leave requests found</p>
 					<Button onclick={handleAddLeaveRequest} class="flex items-center gap-2">
-						<Plus class="w-4 h-4" />
+						<Plus class="h-4 w-4" />
 						Create First Request
 					</Button>
 				</div>
 			{:else}
 				<div class="leave-grid">
-					{#each (data.leaveRequests || []) as request}
+					{#each data.leaveRequests || [] as request}
 						<div class="leave-card">
 							<div class="leave-header">
 								<div class="employee-info">
@@ -192,7 +210,7 @@
 							<div class="leave-details">
 								<p class="leave-type">{request.leaveType || 'General Leave'}</p>
 								<p class="leave-dates">
-									{new Date(request.startDate).toLocaleDateString()} - 
+									{new Date(request.startDate).toLocaleDateString()} -
 									{new Date(request.endDate).toLocaleDateString()}
 								</p>
 								{#if request.reason}
@@ -200,25 +218,46 @@
 								{/if}
 								{#if request.approver}
 									<p class="approver-info">
-										<Users class="inline w-4 h-4 mr-1" />
-										Approved by: {request.approver.first_name} {request.approver.last_name}
+										<Users class="mr-1 inline h-4 w-4" />
+										Approved by: {request.approver.first_name}
+										{request.approver.last_name}
 									</p>
 								{/if}
 							</div>
 							<div class="action-buttons">
-								<Button variant="ghost" size="sm" onclick={() => handleViewLeaveRequest(request)} title="View details">
-									<Eye class="w-4 h-4" />
+								<Button
+									variant="ghost"
+									size="sm"
+									onclick={() => handleViewLeaveRequest(request)}
+									title="View details"
+								>
+									<Eye class="h-4 w-4" />
 								</Button>
-								<Button variant="ghost" size="sm" onclick={() => handleEditLeaveRequest(request)} title="Edit request">
-									<Edit class="w-4 h-4" />
+								<Button
+									variant="ghost"
+									size="sm"
+									onclick={() => handleEditLeaveRequest(request)}
+									title="Edit request"
+								>
+									<Edit class="h-4 w-4" />
 								</Button>
 								{#if request.status === 'Pending'}
-									<Button variant="outline" size="sm" onclick={() => handleApproveRequest(request)} class="text-green-600 hover:text-green-700">
-										<CheckCircle class="w-4 h-4" />
+									<Button
+										variant="outline"
+										size="sm"
+										onclick={() => handleApproveRequest(request)}
+										class="text-green-600 hover:text-green-700"
+									>
+										<CheckCircle class="h-4 w-4" />
 										Approve
 									</Button>
-									<Button variant="outline" size="sm" onclick={() => handleRejectRequest(request)} class="text-red-600 hover:text-red-700">
-										<AlertCircle class="w-4 h-4" />
+									<Button
+										variant="outline"
+										size="sm"
+										onclick={() => handleRejectRequest(request)}
+										class="text-red-600 hover:text-red-700"
+									>
+										<AlertCircle class="h-4 w-4" />
 										Reject
 									</Button>
 								{/if}
@@ -230,15 +269,15 @@
 		</div>
 
 		<!-- Employee Leave Balances -->
-		<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-			<div class="flex items-center gap-2 mb-6">
-				<Clock class="w-5 h-5 text-green-600" />
+		<div class="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+			<div class="mb-6 flex items-center gap-2">
+				<Clock class="h-5 w-5 text-green-600" />
 				<h2 class="text-xl font-semibold text-gray-900 dark:text-white">Employee Leave Balances</h2>
 			</div>
-			
+
 			{#if !data.leaveBalances || data.leaveBalances.length === 0}
-				<div class="text-center py-8">
-					<Clock class="w-12 h-12 text-gray-400 mx-auto mb-4" />
+				<div class="py-8 text-center">
+					<Clock class="mx-auto mb-4 h-12 w-12 text-gray-400" />
 					<p class="text-gray-500">No leave balances available</p>
 				</div>
 			{:else}
@@ -247,8 +286,9 @@
 						<div class="balance-card">
 							<div class="balance-header">
 								<div class="employee-name">
-									<Users class="w-4 h-4 inline mr-2" />
-									{balance.employee?.first_name} {balance.employee?.last_name}
+									<Users class="mr-2 inline h-4 w-4" />
+									{balance.employee?.first_name}
+									{balance.employee?.last_name}
 								</div>
 								<div class="leave-type-badge">
 									{balance.leaveType}
@@ -265,7 +305,9 @@
 								</div>
 								<div class="balance-item">
 									<span class="balance-label">Total:</span>
-									<span class="balance-value total">{(balance.available || 0) + (balance.used || 0)} days</span>
+									<span class="balance-value total"
+										>{(balance.available || 0) + (balance.used || 0)} days</span
+									>
 								</div>
 							</div>
 						</div>
@@ -273,7 +315,7 @@
 				</div>
 				<div class="mt-4 text-center">
 					<button class="btn-secondary inline-flex items-center gap-2">
-						<FileText class="w-4 h-4" />
+						<FileText class="h-4 w-4" />
 						View All Balances
 					</button>
 				</div>
@@ -398,7 +440,8 @@
 		margin-top: 1rem;
 	}
 
-	.btn-approve, .btn-reject {
+	.btn-approve,
+	.btn-reject {
 		display: inline-flex;
 		align-items: center;
 		padding: 0.375rem 0.75rem;

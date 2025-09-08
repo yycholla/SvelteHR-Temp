@@ -1,0 +1,37 @@
+overwrite: true
+schema:
+  - './specs/001-develop-mountainhr-frontend/contracts/*.graphql'
+documents:
+  - 'src/**/*.graphql'
+  - 'src/**/*.ts'
+  - '!src/lib/generated/**'
+generates:
+  src/lib/generated/graphql.ts:
+    plugins:
+      - 'typescript'
+      - 'typescript-operations'
+    config:
+      skipTypename: false
+      scalars:
+        DateTime: string
+        Date: string
+        JSON: Record<string, any>
+      namingConvention:
+        typeNames: pascal-case#pascalCase
+        enumValues: upper-case#upperCase
+        fieldNames: camelCase
+        variableNames: camelCase
+        transformUnderscore: true
+      avoidOptionals:
+        field: true
+        inputValue: false
+        object: true
+      maybeValue: T | null | undefined
+      inputMaybeValue: T | null | undefined
+      strictScalars: true
+      defaultScalarType: unknown
+      useTypeImports: true
+hooks:
+  afterOneFileWrite:
+    - prettier --write
+watch: false

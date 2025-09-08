@@ -2,7 +2,13 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '$lib/components/ui/card';
+	import {
+		Card,
+		CardHeader,
+		CardContent,
+		CardTitle,
+		CardDescription
+	} from '$lib/components/ui/card';
 	import { Button } from '$lib/components/ui/button';
 	import { InputGroup } from '$lib/components/ui/input';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
@@ -44,7 +50,7 @@
 
 		try {
 			const response = await apiClient.auth.sendMagicLink(email);
-			
+
 			if (response.success) {
 				emailSent = true;
 				showSuccess(`Magic link sent to ${email}! Check your inbox.`);
@@ -61,16 +67,16 @@
 	// Verify magic link token from URL
 	async function verifyMagicLinkToken(token: string) {
 		isLoading = true;
-		
+
 		try {
 			const response = await apiClient.auth.verifyMagicLink(token);
-			
+
 			if (response.success && response.data) {
 				// Set auth data in store
 				authActions.setAuthData(response.data);
-				
+
 				showSuccess('Successfully signed in with magic link!');
-				
+
 				// Redirect to intended destination
 				const redirectTo = $page.url.searchParams.get('redirectTo') || '/home';
 				await goto(redirectTo, { replaceState: true });
@@ -95,21 +101,31 @@
 	<meta name="description" content="Sign in to your SvelteHR account with a magic link" />
 </svelte:head>
 
-<div class="min-h-screen bg-gradient-to-br from-yellow-100/50 via-blue-100/40 to-blue-200/60 dark:from-yellow-900/20 dark:via-blue-900/25 dark:to-blue-800/30 flex items-center justify-center p-4">
+<div
+	class="flex min-h-screen items-center justify-center bg-gradient-to-br from-yellow-100/50 via-blue-100/40 to-blue-200/60 p-4 dark:from-yellow-900/20 dark:via-blue-900/25 dark:to-blue-800/30"
+>
 	<div class="w-full max-w-md">
 		<!-- Header -->
-		<div class="text-center mb-8">
-			<div class="mx-auto w-16 h-16 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center mb-6 shadow-lg backdrop-blur-md border border-border/40">
-				<Mail class="w-8 h-8 text-primary-foreground" />
+		<div class="mb-8 text-center">
+			<div
+				class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-border/40 bg-gradient-to-br from-primary to-primary/80 shadow-lg backdrop-blur-md"
+			>
+				<Mail class="h-8 w-8 text-primary-foreground" />
 			</div>
-			<h1 class="text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">Magic Link</h1>
-			<p class="text-muted-foreground mt-3 text-lg">Passwordless sign-in to SvelteHR</p>
+			<h1
+				class="bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-4xl font-bold text-transparent"
+			>
+				Magic Link
+			</h1>
+			<p class="mt-3 text-lg text-muted-foreground">Passwordless sign-in to SvelteHR</p>
 		</div>
 
 		<!-- Magic Link Form Card -->
-		<Card class="bg-background/20 backdrop-blur-md border border-border/40 shadow-xl rounded-2xl">
+		<Card class="rounded-2xl border border-border/40 bg-background/20 shadow-xl backdrop-blur-md">
 			<CardHeader class="space-y-1 pb-4">
-				<CardTitle class="text-2xl text-center bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+				<CardTitle
+					class="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-center text-2xl text-transparent"
+				>
 					{#if emailSent}
 						Check Your Email
 					{:else}
@@ -143,18 +159,18 @@
 								placeholder="Enter your email address"
 								required
 								disabled={isLoading}
-								class="w-full px-4 py-3 rounded-2xl border border-border/40 bg-background/20 backdrop-blur-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+								class="w-full rounded-2xl border border-border/40 bg-background/20 px-4 py-3 text-foreground backdrop-blur-sm transition-all duration-200 placeholder:text-muted-foreground focus:border-transparent focus:ring-2 focus:ring-primary focus:outline-none"
 							/>
 						</InputGroup>
 
-						<Button 
+						<Button
 							type="submit"
-							variant="default" 
-							size="lg" 
-							class="w-full rounded-2xl hover:scale-[1.02] transition-all duration-200 bg-gradient-to-r from-primary to-primary/90 shadow-lg hover:shadow-xl"
+							variant="default"
+							size="lg"
+							class="w-full rounded-2xl bg-gradient-to-r from-primary to-primary/90 shadow-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-xl"
 							disabled={isLoading || !email}
 						>
-							<Mail class="w-4 h-4 mr-2" />
+							<Mail class="mr-2 h-4 w-4" />
 							{#if isLoading}
 								Sending Magic Link...
 							{:else}
@@ -164,11 +180,13 @@
 					</form>
 				{:else}
 					<!-- Email Sent Success State -->
-					<div class="text-center space-y-4">
-						<div class="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
-							<CheckCircle class="w-8 h-8 text-green-600 dark:text-green-400" />
+					<div class="space-y-4 text-center">
+						<div
+							class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20"
+						>
+							<CheckCircle class="h-8 w-8 text-green-600 dark:text-green-400" />
 						</div>
-						
+
 						<div class="space-y-2">
 							<h3 class="text-lg font-semibold text-foreground">Magic Link Sent!</h3>
 							<p class="text-sm text-muted-foreground">
@@ -184,7 +202,11 @@
 							variant="outline"
 							size="sm"
 							class="rounded-2xl"
-							onclick={() => { emailSent = false; email = ''; error = ''; }}
+							onclick={() => {
+								emailSent = false;
+								email = '';
+								error = '';
+							}}
 						>
 							Send to Different Email
 						</Button>
@@ -200,7 +222,7 @@
 						class="rounded-2xl text-muted-foreground hover:text-foreground"
 						onclick={goBackToLogin}
 					>
-						<ArrowLeft class="w-4 h-4 mr-2" />
+						<ArrowLeft class="mr-2 h-4 w-4" />
 						Back to Login Options
 					</Button>
 				</div>
@@ -209,8 +231,12 @@
 
 		<!-- Info -->
 		<div class="mt-6 text-center">
-			<div class="inline-flex items-center space-x-4 text-sm text-muted-foreground bg-background/20 backdrop-blur-sm border border-border/40 rounded-2xl px-4 py-2 shadow-lg">
-				<Badge variant="secondary" class="bg-primary/10 text-primary border-primary/20">Secure</Badge>
+			<div
+				class="inline-flex items-center space-x-4 rounded-2xl border border-border/40 bg-background/20 px-4 py-2 text-sm text-muted-foreground shadow-lg backdrop-blur-sm"
+			>
+				<Badge variant="secondary" class="border-primary/20 bg-primary/10 text-primary"
+					>Secure</Badge
+				>
 				<span>No password required</span>
 			</div>
 		</div>
@@ -219,8 +245,12 @@
 		<div class="mt-8 text-center text-xs text-muted-foreground">
 			<p>© 2025 SvelteHR. All rights reserved.</p>
 			<div class="mt-2 space-x-4">
-				<a href="/privacy" class="hover:text-foreground transition-colors duration-200">Privacy Policy</a>
-				<a href="/terms" class="hover:text-foreground transition-colors duration-200">Terms of Service</a>
+				<a href="/privacy" class="transition-colors duration-200 hover:text-foreground"
+					>Privacy Policy</a
+				>
+				<a href="/terms" class="transition-colors duration-200 hover:text-foreground"
+					>Terms of Service</a
+				>
 			</div>
 		</div>
 	</div>

@@ -1,29 +1,19 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { 
-		departmentActions, 
-		departments, 
+	import {
+		departmentActions,
+		departments,
 		hierarchy,
-		isLoading, 
-		error 
+		isLoading,
+		error
 	} from '$lib/stores/departments';
 	import { RoleGuard } from '$lib/components/auth';
 	import { Button } from '$lib/components/ui/button';
 	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
-	import { 
-		Plus, 
-		Building2, 
-		Users, 
-		Edit, 
-		Trash2, 
-		Eye,
-		TreePine,
-		List,
-		Search
-	} from 'lucide-svelte';
+	import { Plus, Building2, Users, Edit, Trash2, Eye, TreePine, List, Search } from 'lucide-svelte';
 	import type { Department } from '$lib/types/department';
 	import DepartmentTree from '$lib/components/departments/DepartmentTree.svelte';
 
@@ -33,16 +23,17 @@
 
 	// Derived filtered departments
 	const filteredDepartments = $derived(() => {
-		let filtered = departments.filter(dept => {
-			const matchesSearch = !searchQuery || 
+		let filtered = departments.filter((dept) => {
+			const matchesSearch =
+				!searchQuery ||
 				dept.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
 				dept.description?.toLowerCase().includes(searchQuery.toLowerCase());
-			
+
 			const matchesStatus = showInactiveOnly ? !dept.is_active : dept.is_active;
-			
+
 			return matchesSearch && matchesStatus;
 		});
-		
+
 		return filtered.sort((a, b) => a.name.localeCompare(b.name));
 	});
 
@@ -71,14 +62,15 @@
 	async function handleDeleteDepartment(dept: Department | string) {
 		// Handle both Department object (from list view) and string ID (from tree view)
 		const deptId = typeof dept === 'string' ? dept : dept.id;
-		const deptName = typeof dept === 'string' 
-			? departments.find(d => d.id === deptId)?.name || 'this department'
-			: dept.name;
-		
+		const deptName =
+			typeof dept === 'string'
+				? departments.find((d) => d.id === deptId)?.name || 'this department'
+				: dept.name;
+
 		if (!confirm(`Are you sure you want to delete "${deptName}"? This action cannot be undone.`)) {
 			return;
 		}
-		
+
 		try {
 			await departmentActions.deleteDepartment(deptId);
 			// Refresh data after deletion
@@ -102,14 +94,14 @@
 	<title>Department Management - SvelteHR</title>
 </svelte:head>
 
-<div class="container mx-auto py-8 px-4 max-w-7xl">
+<div class="container mx-auto max-w-7xl px-4 py-8">
 	<!-- Header -->
-	<div class="flex items-center justify-between mb-8">
+	<div class="mb-8 flex items-center justify-between">
 		<div>
 			<h1 class="text-3xl font-bold text-foreground">Department Management</h1>
-			<p class="text-muted-foreground mt-2">Manage organizational departments and hierarchy</p>
+			<p class="mt-2 text-muted-foreground">Manage organizational departments and hierarchy</p>
 		</div>
-		
+
 		<RoleGuard roles={['admin', 'hr', 'hr_admin']}>
 			<Button href="/departments/create" class="gap-2">
 				<Plus class="h-4 w-4" />
@@ -121,15 +113,17 @@
 	<!-- Controls -->
 	<Card class="mb-6">
 		<CardContent class="pt-6">
-			<div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+			<div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
 				<!-- Search -->
-				<div class="relative flex-1 max-w-sm">
-					<Search class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+				<div class="relative max-w-sm flex-1">
+					<Search
+						class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform text-muted-foreground"
+					/>
 					<input
 						type="text"
 						placeholder="Search departments..."
 						bind:value={searchQuery}
-						class="w-full pl-10 pr-4 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+						class="w-full rounded-md border border-input bg-background py-2 pr-4 pl-10 text-foreground placeholder:text-muted-foreground focus:border-transparent focus:ring-2 focus:ring-ring focus:outline-none"
 					/>
 				</div>
 
@@ -146,7 +140,7 @@
 					</label>
 
 					<!-- View Mode Toggle -->
-					<div class="flex items-center space-x-1 bg-muted p-1 rounded-lg">
+					<div class="flex items-center space-x-1 rounded-lg bg-muted p-1">
 						<Button
 							variant={viewMode === 'list' ? 'default' : 'ghost'}
 							size="sm"
@@ -187,7 +181,9 @@
 	{#if isLoading}
 		<div class="flex items-center justify-center py-12">
 			<div class="text-center">
-				<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+				<div
+					class="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-primary"
+				></div>
 				<p class="text-muted-foreground">Loading departments...</p>
 			</div>
 		</div>
@@ -196,11 +192,13 @@
 		{#if filteredDepartments.length === 0}
 			<Card>
 				<CardContent class="pt-6">
-					<div class="text-center py-12">
-						<Building2 class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-						<h3 class="text-lg font-semibold mb-2">No departments found</h3>
-						<p class="text-muted-foreground mb-4">
-							{searchQuery ? 'No departments match your search criteria.' : 'Get started by creating your first department.'}
+					<div class="py-12 text-center">
+						<Building2 class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+						<h3 class="mb-2 text-lg font-semibold">No departments found</h3>
+						<p class="mb-4 text-muted-foreground">
+							{searchQuery
+								? 'No departments match your search criteria.'
+								: 'Get started by creating your first department.'}
 						</p>
 						<RoleGuard roles={['admin', 'hr', 'hr_admin']}>
 							<Button href="/departments/create" class="gap-2">
@@ -214,11 +212,11 @@
 		{:else}
 			<div class="grid gap-6 lg:grid-cols-2">
 				{#each filteredDepartments as dept (dept.id)}
-					<Card class="hover:shadow-md transition-shadow">
+					<Card class="transition-shadow hover:shadow-md">
 						<CardHeader class="pb-3">
 							<div class="flex items-start justify-between">
 								<div class="flex-1">
-									<CardTitle class="text-xl flex items-center gap-2">
+									<CardTitle class="flex items-center gap-2 text-xl">
 										<Building2 class="h-5 w-5 text-primary" />
 										{dept.name}
 										{#if !dept.is_active}
@@ -226,12 +224,12 @@
 										{/if}
 									</CardTitle>
 									{#if dept.description}
-										<p class="text-sm text-muted-foreground mt-1">{dept.description}</p>
+										<p class="mt-1 text-sm text-muted-foreground">{dept.description}</p>
 									{/if}
 								</div>
 							</div>
 						</CardHeader>
-						
+
 						<CardContent>
 							<div class="space-y-3">
 								<!-- Budget -->
@@ -246,7 +244,7 @@
 								{#if dept.employee_count !== undefined}
 									<div class="flex items-center justify-between text-sm">
 										<span class="text-muted-foreground">Employees:</span>
-										<span class="font-medium flex items-center gap-1">
+										<span class="flex items-center gap-1 font-medium">
 											<Users class="h-3 w-3" />
 											{dept.employee_count}
 										</span>
@@ -265,16 +263,11 @@
 
 								<!-- Actions -->
 								<div class="flex items-center justify-end gap-2">
-									<Button
-										variant="ghost"
-										size="sm"
-										href="/departments/{dept.id}"
-										class="gap-1"
-									>
+									<Button variant="ghost" size="sm" href="/departments/{dept.id}" class="gap-1">
 										<Eye class="h-3 w-3" />
 										View
 									</Button>
-									
+
 									<RoleGuard roles={['admin', 'hr', 'hr_admin']}>
 										<Button
 											variant="ghost"
@@ -285,7 +278,7 @@
 											<Edit class="h-3 w-3" />
 											Edit
 										</Button>
-										
+
 										<Button
 											variant="ghost"
 											size="sm"
@@ -314,10 +307,12 @@
 			</CardHeader>
 			<CardContent>
 				{#if hierarchy.length === 0}
-					<div class="text-center py-12">
-						<Building2 class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-						<h3 class="text-lg font-semibold mb-2">No department hierarchy</h3>
-						<p class="text-muted-foreground mb-4">Create departments to see the organizational structure.</p>
+					<div class="py-12 text-center">
+						<Building2 class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+						<h3 class="mb-2 text-lg font-semibold">No department hierarchy</h3>
+						<p class="mb-4 text-muted-foreground">
+							Create departments to see the organizational structure.
+						</p>
 						<RoleGuard roles={['admin', 'hr', 'hr_admin']}>
 							<Button href="/departments/create" class="gap-2">
 								<Plus class="h-4 w-4" />
@@ -327,10 +322,7 @@
 					</div>
 				{:else}
 					<!-- Department Hierarchy Tree -->
-					<DepartmentTree 
-						nodes={hierarchy} 
-						onDelete={handleDeleteDepartment}
-					/>
+					<DepartmentTree nodes={hierarchy} onDelete={handleDeleteDepartment} />
 				{/if}
 			</CardContent>
 		</Card>

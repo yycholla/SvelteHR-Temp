@@ -29,19 +29,21 @@ export interface EmployeeStats {
 }
 
 export function transformEmployeeStats(employees: unknown): EmployeeStats {
-	const employeeData = typeof employees === 'object' && employees !== null 
-		? (employees as any).data || employees 
-		: [];
-	
+	const employeeData =
+		typeof employees === 'object' && employees !== null ? (employees as any).data || employees : [];
+
 	const empArray = safeArray(employeeData);
-	
+
 	return {
-		totalEmployees: typeof employees === 'object' && employees !== null 
-			? (employees as any).total || empArray.length 
-			: empArray.length,
+		totalEmployees:
+			typeof employees === 'object' && employees !== null
+				? (employees as any).total || empArray.length
+				: empArray.length,
 		activeEmployees: empArray.filter((e: any) => e.status === 'Active').length,
 		onboardingEmployees: empArray.filter((e: any) => e.status === 'Onboarding').length,
-		inactiveEmployees: empArray.filter((e: any) => e.status === 'PreHire' || e.status === 'Terminated').length
+		inactiveEmployees: empArray.filter(
+			(e: any) => e.status === 'PreHire' || e.status === 'Terminated'
+		).length
 	};
 }
 
@@ -55,7 +57,7 @@ export interface TaskStats {
 
 export function transformTaskStats(tasks: unknown): TaskStats {
 	const taskArray = safeArray(tasks);
-	
+
 	return {
 		totalTasks: taskArray.length,
 		pendingTasks: taskArray.filter((t: any) => t.status === 'Pending').length,
@@ -75,23 +77,22 @@ export interface DepartmentData {
 }
 
 export function transformDepartmentData(employees: unknown): DepartmentData[] {
-	const employeeData = typeof employees === 'object' && employees !== null 
-		? (employees as any).data || employees 
-		: [];
-	
+	const employeeData =
+		typeof employees === 'object' && employees !== null ? (employees as any).data || employees : [];
+
 	const empArray = safeArray(employeeData);
-	
+
 	if (empArray.length === 0) return [];
-	
+
 	const deptCounts = empArray.reduce((acc: Record<string, number>, emp: any) => {
 		// Use transformed department field
 		const deptName = emp.department?.name || 'Unassigned';
 		acc[deptName] = (acc[deptName] || 0) + 1;
 		return acc;
 	}, {});
-	
+
 	const total = empArray.length;
-	
+
 	return Object.entries(deptCounts).map(([department, count]) => ({
 		department,
 		count,
@@ -128,10 +129,8 @@ export interface TaskItem {
 
 export function transformTaskData(tasks: unknown, limit = 10): TaskItem[] {
 	return safeSlice(
-		safeFilter(tasks, (task: any) => 
-			task.status === 'Pending' || task.status === 'InProgress'
-		), 
-		0, 
+		safeFilter(tasks, (task: any) => task.status === 'Pending' || task.status === 'InProgress'),
+		0,
 		limit
 	).map((task: any) => ({
 		id: task.id || Math.random().toString(36),
@@ -152,7 +151,7 @@ export function formatDate(date: Date | string, options?: Intl.DateTimeFormatOpt
 		hour: 'numeric',
 		minute: '2-digit'
 	};
-	
+
 	return new Intl.DateTimeFormat('en-US', { ...defaultOptions, ...options }).format(dateObj);
 }
 
@@ -193,11 +192,11 @@ export interface TrendData {
 export function calculateTrend(current: number, previous: number): TrendData {
 	const change = current - previous;
 	const changePercent = previous === 0 ? 0 : Math.round((change / previous) * 100);
-	
+
 	let type: 'positive' | 'negative' | 'neutral' = 'neutral';
 	if (change > 0) type = 'positive';
 	else if (change < 0) type = 'negative';
-	
+
 	return {
 		current,
 		previous,

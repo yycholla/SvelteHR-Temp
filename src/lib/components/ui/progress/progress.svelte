@@ -1,39 +1,39 @@
 <script lang="ts" module>
-	import { Progress as ProgressPrimitive } from "bits-ui";
-	import { cn } from "$lib/utils.js";
-	import { type VariantProps, tv } from "tailwind-variants";
+	import { Progress as ProgressPrimitive } from 'bits-ui';
+	import { cn } from '$lib/utils.js';
+	import { type VariantProps, tv } from 'tailwind-variants';
 
 	export const progressVariants = tv({
-		base: "relative h-2 w-full overflow-hidden rounded-full bg-primary/20",
+		base: 'relative h-2 w-full overflow-hidden rounded-full bg-primary/20',
 		variants: {
 			size: {
-				sm: "h-1",
-				default: "h-2",
-				lg: "h-3",
-			},
+				sm: 'h-1',
+				default: 'h-2',
+				lg: 'h-3'
+			}
 		},
 		defaultVariants: {
-			size: "default",
-		},
+			size: 'default'
+		}
 	});
 
 	export const progressIndicatorVariants = tv({
-		base: "h-full w-full flex-1 bg-primary transition-all",
+		base: 'h-full w-full flex-1 bg-primary transition-all',
 		variants: {
 			variant: {
-				default: "bg-primary",
-				success: "bg-green-500",
-				warning: "bg-yellow-500",
-				destructive: "bg-destructive",
-			},
+				default: 'bg-primary',
+				success: 'bg-green-500',
+				warning: 'bg-yellow-500',
+				destructive: 'bg-destructive'
+			}
 		},
 		defaultVariants: {
-			variant: "default",
-		},
+			variant: 'default'
+		}
 	});
 
-	export type ProgressSize = VariantProps<typeof progressVariants>["size"];
-	export type ProgressVariant = VariantProps<typeof progressIndicatorVariants>["variant"];
+	export type ProgressSize = VariantProps<typeof progressVariants>['size'];
+	export type ProgressVariant = VariantProps<typeof progressIndicatorVariants>['variant'];
 
 	export type ProgressProps = ProgressPrimitive.RootProps & {
 		size?: ProgressSize;
@@ -44,8 +44,8 @@
 <script lang="ts">
 	let {
 		class: className,
-		size = "default",
-		variant = "default",
+		size = 'default',
+		variant = 'default',
 		value,
 		max = 100,
 		ref = $bindable(null),

@@ -2,23 +2,18 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { 
-		departmentActions, 
-		currentDepartment, 
-		isLoading, 
-		error 
-	} from '$lib/stores/departments';
+	import { departmentActions, currentDepartment, isLoading, error } from '$lib/stores/departments';
 	import { RoleGuard } from '$lib/components/auth';
 	import { Button } from '$lib/components/ui/button';
 	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
-	import { 
-		ArrowLeft, 
-		Edit, 
-		Trash2, 
-		Building2, 
-		Users, 
+	import {
+		ArrowLeft,
+		Edit,
+		Trash2,
+		Building2,
+		Users,
 		DollarSign,
 		Calendar,
 		User
@@ -34,11 +29,15 @@
 
 	async function handleDelete() {
 		if (!currentDepartment) return;
-		
-		if (!confirm(`Are you sure you want to delete "${currentDepartment.name}"? This action cannot be undone.`)) {
+
+		if (
+			!confirm(
+				`Are you sure you want to delete "${currentDepartment.name}"? This action cannot be undone.`
+			)
+		) {
 			return;
 		}
-		
+
 		try {
 			await departmentActions.deleteDepartment(currentDepartment.id);
 			await goto('/departments');
@@ -70,20 +69,20 @@
 	<title>{currentDepartment?.name || 'Department'} - SvelteHR</title>
 </svelte:head>
 
-<div class="container mx-auto py-8 px-4 max-w-6xl">
+<div class="container mx-auto max-w-6xl px-4 py-8">
 	<!-- Header -->
-	<div class="flex items-center gap-4 mb-8">
+	<div class="mb-8 flex items-center gap-4">
 		<Button variant="ghost" size="icon" href="/departments">
 			<ArrowLeft class="h-4 w-4" />
 		</Button>
 		<div class="flex-1">
 			{#if isLoading}
 				<div class="animate-pulse">
-					<div class="h-8 bg-muted rounded w-64 mb-2"></div>
-					<div class="h-4 bg-muted rounded w-32"></div>
+					<div class="mb-2 h-8 w-64 rounded bg-muted"></div>
+					<div class="h-4 w-32 rounded bg-muted"></div>
 				</div>
 			{:else if currentDepartment}
-				<h1 class="text-3xl font-bold text-foreground flex items-center gap-3">
+				<h1 class="flex items-center gap-3 text-3xl font-bold text-foreground">
 					<Building2 class="h-8 w-8 text-primary" />
 					{currentDepartment.name}
 					{#if !currentDepartment.is_active}
@@ -91,11 +90,11 @@
 					{/if}
 				</h1>
 				{#if currentDepartment.description}
-					<p class="text-muted-foreground mt-2">{currentDepartment.description}</p>
+					<p class="mt-2 text-muted-foreground">{currentDepartment.description}</p>
 				{/if}
 			{/if}
 		</div>
-		
+
 		{#if currentDepartment}
 			<div class="flex items-center gap-2">
 				<RoleGuard roles={['admin', 'hr', 'hr_admin']}>
@@ -103,7 +102,11 @@
 						<Edit class="h-4 w-4" />
 						Edit
 					</Button>
-					<Button variant="outline" onclick={handleDelete} class="gap-2 text-destructive hover:text-destructive">
+					<Button
+						variant="outline"
+						onclick={handleDelete}
+						class="gap-2 text-destructive hover:text-destructive"
+					>
 						<Trash2 class="h-4 w-4" />
 						Delete
 					</Button>
@@ -117,13 +120,9 @@
 		<Card class="mb-6 border-destructive">
 			<CardContent class="pt-6">
 				<p class="text-destructive">{error}</p>
-				<div class="flex gap-2 mt-4">
-					<Button variant="outline" onclick={() => departmentActions.clearError()}>
-						Dismiss
-					</Button>
-					<Button variant="outline" href="/departments">
-						Back to Departments
-					</Button>
+				<div class="mt-4 flex gap-2">
+					<Button variant="outline" onclick={() => departmentActions.clearError()}>Dismiss</Button>
+					<Button variant="outline" href="/departments">Back to Departments</Button>
 				</div>
 			</CardContent>
 		</Card>
@@ -136,14 +135,14 @@
 				<Card>
 					<CardHeader>
 						<div class="animate-pulse">
-							<div class="h-6 bg-muted rounded w-32 mb-2"></div>
-							<div class="h-4 bg-muted rounded w-24"></div>
+							<div class="mb-2 h-6 w-32 rounded bg-muted"></div>
+							<div class="h-4 w-24 rounded bg-muted"></div>
 						</div>
 					</CardHeader>
 					<CardContent>
 						<div class="animate-pulse space-y-3">
-							<div class="h-4 bg-muted rounded"></div>
-							<div class="h-4 bg-muted rounded w-3/4"></div>
+							<div class="h-4 rounded bg-muted"></div>
+							<div class="h-4 w-3/4 rounded bg-muted"></div>
 						</div>
 					</CardContent>
 				</Card>
@@ -164,36 +163,36 @@
 						<span class="text-muted-foreground">Department ID:</span>
 						<span class="font-mono text-sm">{currentDepartment.id}</span>
 					</div>
-					
+
 					<div class="flex items-center justify-between">
 						<span class="text-muted-foreground">Status:</span>
 						<Badge variant={currentDepartment.is_active ? 'default' : 'secondary'}>
 							{currentDepartment.is_active ? 'Active' : 'Inactive'}
 						</Badge>
 					</div>
-					
+
 					{#if currentDepartment.budget}
 						<div class="flex items-center justify-between">
 							<span class="text-muted-foreground">Budget:</span>
-							<span class="font-semibold flex items-center gap-1">
+							<span class="flex items-center gap-1 font-semibold">
 								<DollarSign class="h-4 w-4" />
 								{formatBudget(currentDepartment.budget)}
 							</span>
 						</div>
 					{/if}
-					
+
 					<div class="flex items-center justify-between">
 						<span class="text-muted-foreground">Created:</span>
-						<span class="text-sm flex items-center gap-1">
+						<span class="flex items-center gap-1 text-sm">
 							<Calendar class="h-4 w-4" />
 							{formatDate(currentDepartment.created_at)}
 						</span>
 					</div>
-					
+
 					{#if currentDepartment.updated_at !== currentDepartment.created_at}
 						<div class="flex items-center justify-between">
 							<span class="text-muted-foreground">Last Updated:</span>
-							<span class="text-sm flex items-center gap-1">
+							<span class="flex items-center gap-1 text-sm">
 								<Calendar class="h-4 w-4" />
 								{formatDate(currentDepartment.updated_at)}
 							</span>
@@ -214,7 +213,11 @@
 					{#if currentDepartment.parent}
 						<div class="flex items-center justify-between">
 							<span class="text-muted-foreground">Parent Department:</span>
-							<Button variant="link" href="/departments/{currentDepartment.parent.id}" class="p-0 h-auto">
+							<Button
+								variant="link"
+								href="/departments/{currentDepartment.parent.id}"
+								class="h-auto p-0"
+							>
 								{currentDepartment.parent.name}
 							</Button>
 						</div>
@@ -224,11 +227,15 @@
 							<span class="text-sm">Root Department</span>
 						</div>
 					{/if}
-					
+
 					{#if currentDepartment.manager}
 						<div class="flex items-center justify-between">
 							<span class="text-muted-foreground">Manager:</span>
-							<Button variant="link" href="/employees/{currentDepartment.manager.id}" class="p-0 h-auto flex items-center gap-1">
+							<Button
+								variant="link"
+								href="/employees/{currentDepartment.manager.id}"
+								class="flex h-auto items-center gap-1 p-0"
+							>
 								<User class="h-4 w-4" />
 								{currentDepartment.manager.full_name}
 							</Button>
@@ -239,11 +246,15 @@
 							<span class="text-sm">Not Assigned</span>
 						</div>
 					{/if}
-					
+
 					{#if currentDepartment.employee_count !== undefined}
 						<div class="flex items-center justify-between">
 							<span class="text-muted-foreground">Employees:</span>
-							<Button variant="link" href="/departments/{currentDepartment.id}/employees" class="p-0 h-auto flex items-center gap-1">
+							<Button
+								variant="link"
+								href="/departments/{currentDepartment.id}/employees"
+								class="flex h-auto items-center gap-1 p-0"
+							>
 								<Users class="h-4 w-4" />
 								{currentDepartment.employee_count} employees
 							</Button>
@@ -262,10 +273,14 @@
 				</CardHeader>
 				<CardContent>
 					<!-- TODO: Load and display subdepartments -->
-					<div class="text-center py-8">
+					<div class="py-8 text-center">
 						<p class="text-muted-foreground">Subdepartments will be displayed here</p>
 						<RoleGuard roles={['admin', 'hr', 'hr_admin']}>
-							<Button href="/departments/create?parent={currentDepartment.id}" variant="outline" class="mt-4">
+							<Button
+								href="/departments/create?parent={currentDepartment.id}"
+								variant="outline"
+								class="mt-4"
+							>
 								Add Subdepartment
 							</Button>
 						</RoleGuard>
@@ -283,9 +298,13 @@
 				</CardHeader>
 				<CardContent>
 					<!-- TODO: Load and display department employees -->
-					<div class="text-center py-8">
+					<div class="py-8 text-center">
 						<p class="text-muted-foreground">Department employees will be displayed here</p>
-						<Button href="/employees?department={currentDepartment.id}" variant="outline" class="mt-4">
+						<Button
+							href="/employees?department={currentDepartment.id}"
+							variant="outline"
+							class="mt-4"
+						>
 							View All Employees
 						</Button>
 					</div>
@@ -296,15 +315,13 @@
 		<!-- Department not found -->
 		<Card>
 			<CardContent class="pt-6">
-				<div class="text-center py-12">
-					<Building2 class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-					<h3 class="text-lg font-semibold mb-2">Department Not Found</h3>
-					<p class="text-muted-foreground mb-4">
+				<div class="py-12 text-center">
+					<Building2 class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+					<h3 class="mb-2 text-lg font-semibold">Department Not Found</h3>
+					<p class="mb-4 text-muted-foreground">
 						The department you're looking for doesn't exist or you don't have permission to view it.
 					</p>
-					<Button href="/departments" variant="outline">
-						Back to Departments
-					</Button>
+					<Button href="/departments" variant="outline">Back to Departments</Button>
 				</div>
 			</CardContent>
 		</Card>

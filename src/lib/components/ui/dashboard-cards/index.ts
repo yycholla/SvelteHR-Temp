@@ -10,12 +10,6 @@ export type {
 	LiveMetricCardSize
 } from './live-metric-card.svelte';
 
-export type {
-	ActivityFeedCardProps,
-	ActivityItem
-} from './activity-feed-card.svelte';
+export type { ActivityFeedCardProps, ActivityItem } from './activity-feed-card.svelte';
 
-export type {
-	StatusOverviewCardProps,
-	StatusItem
-} from './status-overview-card.svelte';
+export type { StatusOverviewCardProps, StatusItem } from './status-overview-card.svelte';

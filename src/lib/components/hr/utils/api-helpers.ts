@@ -24,12 +24,9 @@ export interface ApiError {
 }
 
 // Generic API request function
-async function apiRequest<T>(
-	endpoint: string,
-	options: RequestInit = {}
-): Promise<ApiResponse<T>> {
+async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
 	const url = `${API_BASE}${endpoint}`;
-	
+
 	const defaultHeaders = {
 		'Content-Type': 'application/json',
 		...options.headers
@@ -69,7 +66,7 @@ export const employeeApi = {
 				searchParams.append(key, String(value));
 			}
 		});
-		
+
 		const endpoint = `/employees${searchParams.toString() ? `?${searchParams}` : ''}`;
 		return apiRequest<PaginatedResponse<Employee>>(endpoint);
 	},
@@ -108,7 +105,7 @@ export const taskApi = {
 				searchParams.append(key, String(value));
 			}
 		});
-		
+
 		const endpoint = `/tasks${searchParams.toString() ? `?${searchParams}` : ''}`;
 		return apiRequest<PaginatedResponse<Task>>(endpoint);
 	},
@@ -161,7 +158,7 @@ export const leaveApi = {
 				searchParams.append(key, String(value));
 			}
 		});
-		
+
 		const endpoint = `/leave${searchParams.toString() ? `?${searchParams}` : ''}`;
 		return apiRequest<PaginatedResponse<any>>(endpoint);
 	},
@@ -208,7 +205,7 @@ export const documentApi = {
 				searchParams.append(key, String(value));
 			}
 		});
-		
+
 		const endpoint = `/documents${searchParams.toString() ? `?${searchParams}` : ''}`;
 		return apiRequest<PaginatedResponse<any>>(endpoint);
 	},
@@ -245,7 +242,7 @@ export async function withRetry<T>(
 		return await fn();
 	} catch (error) {
 		if (retries > 0) {
-			await new Promise(resolve => setTimeout(resolve, delay));
+			await new Promise((resolve) => setTimeout(resolve, delay));
 			return withRetry(fn, retries - 1, delay * 2);
 		}
 		throw error;
@@ -259,12 +256,12 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 export function getCachedData<T>(key: string): T | null {
 	const cached = cache.get(key);
 	if (!cached) return null;
-	
+
 	if (Date.now() - cached.timestamp > CACHE_DURATION) {
 		cache.delete(key);
 		return null;
 	}
-	
+
 	return cached.data;
 }
 
@@ -277,7 +274,7 @@ export function clearCache(pattern?: string): void {
 		cache.clear();
 		return;
 	}
-	
+
 	for (const key of cache.keys()) {
 		if (key.includes(pattern)) {
 			cache.delete(key);

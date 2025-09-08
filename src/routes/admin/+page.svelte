@@ -1,6 +1,15 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Server, Users, Database, Shield, Activity, AlertTriangle, CheckCircle, Clock } from 'lucide-svelte';
+	import {
+		Server,
+		Users,
+		Database,
+		Shield,
+		Activity,
+		AlertTriangle,
+		CheckCircle,
+		Clock
+	} from 'lucide-svelte';
 	import Card from '$lib/components/ui/card/card.svelte';
 	import CardHeader from '$lib/components/ui/card/card-header.svelte';
 	import CardTitle from '$lib/components/ui/card/card-title.svelte';
@@ -90,19 +99,27 @@
 
 	function getAlertIcon(type: string) {
 		switch (type) {
-			case 'error': return AlertTriangle;
-			case 'warning': return Clock;
-			case 'info': return CheckCircle;
-			default: return CheckCircle;
+			case 'error':
+				return AlertTriangle;
+			case 'warning':
+				return Clock;
+			case 'info':
+				return CheckCircle;
+			default:
+				return CheckCircle;
 		}
 	}
 
 	function getAlertVariant(type: string) {
 		switch (type) {
-			case 'error': return 'destructive';
-			case 'warning': return 'secondary';
-			case 'info': return 'outline';
-			default: return 'outline';
+			case 'error':
+				return 'destructive';
+			case 'warning':
+				return 'secondary';
+			case 'info':
+				return 'outline';
+			default:
+				return 'outline';
 		}
 	}
 
@@ -120,7 +137,7 @@
 	<!-- Welcome Header -->
 	<div class="mb-8">
 		<h2 class="text-3xl font-bold tracking-tight">Welcome to Admin Portal</h2>
-		<p class="text-muted-foreground mt-2">
+		<p class="mt-2 text-muted-foreground">
 			Monitor and manage your system's infrastructure, users, and security.
 		</p>
 	</div>
@@ -129,7 +146,10 @@
 	<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
 		{#each quickStats as stat}
 			{@const IconComponent = stat.icon}
-			<Card class="hover:shadow-md transition-shadow cursor-pointer" onclick={() => window.location.href = stat.href}>
+			<Card
+				class="cursor-pointer transition-shadow hover:shadow-md"
+				onclick={() => (window.location.href = stat.href)}
+			>
 				<CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
 					<CardTitle class="text-sm font-medium">
 						{stat.title}
@@ -139,7 +159,13 @@
 				<CardContent>
 					<div class="text-2xl font-bold">{stat.value}</div>
 					<p class="text-xs text-muted-foreground">
-						<span class="text-{stat.changeType === 'positive' ? 'green' : stat.changeType === 'negative' ? 'red' : 'muted'}-600">
+						<span
+							class="text-{stat.changeType === 'positive'
+								? 'green'
+								: stat.changeType === 'negative'
+									? 'red'
+									: 'muted'}-600"
+						>
 							{stat.change}
 						</span>
 					</p>
@@ -153,14 +179,12 @@
 		<Card>
 			<CardHeader>
 				<CardTitle>System Performance</CardTitle>
-				<CardDescription>
-					Current system resource utilization
-				</CardDescription>
+				<CardDescription>Current system resource utilization</CardDescription>
 			</CardHeader>
 			<CardContent>
 				<div class="space-y-4">
 					<div>
-						<div class="flex items-center justify-between mb-2">
+						<div class="mb-2 flex items-center justify-between">
 							<span class="text-sm font-medium">CPU Usage</span>
 							<span class="text-sm text-muted-foreground">{systemStats.cpuUsage}%</span>
 						</div>
@@ -168,7 +192,7 @@
 					</div>
 
 					<div>
-						<div class="flex items-center justify-between mb-2">
+						<div class="mb-2 flex items-center justify-between">
 							<span class="text-sm font-medium">Memory Usage</span>
 							<span class="text-sm text-muted-foreground">{systemStats.memoryUsage}%</span>
 						</div>
@@ -176,14 +200,14 @@
 					</div>
 
 					<div>
-						<div class="flex items-center justify-between mb-2">
+						<div class="mb-2 flex items-center justify-between">
 							<span class="text-sm font-medium">Disk Usage</span>
 							<span class="text-sm text-muted-foreground">{systemStats.diskUsage}%</span>
 						</div>
 						<Progress value={systemStats.diskUsage} class="h-2" />
 					</div>
 
-					<div class="pt-2 border-t">
+					<div class="border-t pt-2">
 						<div class="flex items-center justify-between">
 							<span class="text-sm font-medium">System Uptime</span>
 							<Badge variant="outline">{systemStats.uptime}</Badge>
@@ -197,34 +221,34 @@
 		<Card>
 			<CardHeader>
 				<CardTitle>System Alerts</CardTitle>
-				<CardDescription>
-					Important system notifications and warnings
-				</CardDescription>
+				<CardDescription>Important system notifications and warnings</CardDescription>
 			</CardHeader>
 			<CardContent>
 				<div class="space-y-4">
 					{#each systemAlerts as alert}
 						{@const AlertIcon = getAlertIcon(alert.type)}
 						<div class="flex items-start space-x-3">
-							<div class="w-9 h-9 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+							<div
+								class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-primary/10"
+							>
 								<AlertIcon class="h-4 w-4 text-primary" />
 							</div>
-							<div class="flex-1 min-w-0">
+							<div class="min-w-0 flex-1">
 								<div class="flex items-center justify-between">
 									<p class="text-sm font-medium">{alert.title}</p>
 									<Badge variant={getAlertVariant(alert.type)}>
 										{alert.type}
 									</Badge>
 								</div>
-								<p class="text-sm text-muted-foreground mt-1">{alert.message}</p>
-								<p class="text-xs text-muted-foreground mt-2">
+								<p class="mt-1 text-sm text-muted-foreground">{alert.message}</p>
+								<p class="mt-2 text-xs text-muted-foreground">
 									{formatDate(alert.timestamp)}
 								</p>
 							</div>
 						</div>
 					{/each}
 					{#if systemAlerts.length === 0}
-						<div class="text-center py-6">
+						<div class="py-6 text-center">
 							<CheckCircle class="mx-auto h-12 w-12 text-muted-foreground/50" />
 							<p class="mt-2 text-sm text-muted-foreground">No system alerts</p>
 						</div>
@@ -238,29 +262,29 @@
 	<Card>
 		<CardHeader>
 			<CardTitle>Recent System Activity</CardTitle>
-			<CardDescription>
-				Latest administrative and system events
-			</CardDescription>
+			<CardDescription>Latest administrative and system events</CardDescription>
 		</CardHeader>
 		<CardContent>
 			<div class="space-y-4">
 				{#each recentActivities as activity}
 					{@const IconComponent = activity.icon}
 					<div class="flex items-start space-x-3">
-						<div class="w-9 h-9 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+						<div
+							class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-primary/10"
+						>
 							<IconComponent class="h-4 w-4 text-primary" />
 						</div>
-						<div class="flex-1 min-w-0">
+						<div class="min-w-0 flex-1">
 							<p class="text-sm font-medium">{activity.title}</p>
 							<p class="text-sm text-muted-foreground">{activity.description}</p>
-							<p class="text-xs text-muted-foreground mt-1">
+							<p class="mt-1 text-xs text-muted-foreground">
 								{formatDate(activity.timestamp)}
 							</p>
 						</div>
 					</div>
 				{/each}
 				{#if recentActivities.length === 0}
-					<div class="text-center py-6">
+					<div class="py-6 text-center">
 						<Activity class="mx-auto h-12 w-12 text-muted-foreground/50" />
 						<p class="mt-2 text-sm text-muted-foreground">No recent activity</p>
 					</div>
@@ -273,54 +297,52 @@
 	<Card>
 		<CardHeader>
 			<CardTitle>Quick Actions</CardTitle>
-			<CardDescription>
-				Common administrative tasks and shortcuts
-			</CardDescription>
+			<CardDescription>Common administrative tasks and shortcuts</CardDescription>
 		</CardHeader>
 		<CardContent>
 			<div class="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-				<Button 
-					variant="outline" 
-					class="justify-start h-auto p-4"
-					onclick={() => window.location.href = '/admin/users'}
+				<Button
+					variant="outline"
+					class="h-auto justify-start p-4"
+					onclick={() => (window.location.href = '/admin/users')}
 				>
-					<Users class="h-5 w-5 mr-3" />
+					<Users class="mr-3 h-5 w-5" />
 					<div class="text-left">
 						<p class="font-medium">Manage Users</p>
 						<p class="text-xs text-muted-foreground">Add or edit user accounts</p>
 					</div>
 				</Button>
 
-				<Button 
-					variant="outline" 
-					class="justify-start h-auto p-4"
-					onclick={() => window.location.href = '/admin/database'}
+				<Button
+					variant="outline"
+					class="h-auto justify-start p-4"
+					onclick={() => (window.location.href = '/admin/database')}
 				>
-					<Database class="h-5 w-5 mr-3" />
+					<Database class="mr-3 h-5 w-5" />
 					<div class="text-left">
 						<p class="font-medium">Database Backup</p>
 						<p class="text-xs text-muted-foreground">Create system backup</p>
 					</div>
 				</Button>
 
-				<Button 
-					variant="outline" 
-					class="justify-start h-auto p-4"
-					onclick={() => window.location.href = '/admin/security'}
+				<Button
+					variant="outline"
+					class="h-auto justify-start p-4"
+					onclick={() => (window.location.href = '/admin/security')}
 				>
-					<Shield class="h-5 w-5 mr-3" />
+					<Shield class="mr-3 h-5 w-5" />
 					<div class="text-left">
 						<p class="font-medium">Security Audit</p>
 						<p class="text-xs text-muted-foreground">Review security logs</p>
 					</div>
 				</Button>
 
-				<Button 
-					variant="outline" 
-					class="justify-start h-auto p-4"
-					onclick={() => window.location.href = '/admin/monitoring'}
+				<Button
+					variant="outline"
+					class="h-auto justify-start p-4"
+					onclick={() => (window.location.href = '/admin/monitoring')}
 				>
-					<Activity class="h-5 w-5 mr-3" />
+					<Activity class="mr-3 h-5 w-5" />
 					<div class="text-left">
 						<p class="font-medium">System Health</p>
 						<p class="text-xs text-muted-foreground">Monitor performance</p>

@@ -3,10 +3,10 @@ import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url, cookies, fetch }) => {
 	const code = url.searchParams.get('code');
-	
+
 	console.log('Callback server load - URL:', url.href);
 	console.log('Auth code:', code);
-	
+
 	if (!code) {
 		console.error('No code in callback URL');
 		throw redirect(302, '/login?error=no_code');
@@ -15,10 +15,10 @@ export const load: PageServerLoad = async ({ url, cookies, fetch }) => {
 	try {
 		// Get the PKCE verifier from the cookie
 		const verifier = cookies.get('gel-pkce-verifier');
-		
+
 		console.log('PKCE verifier cookie:', verifier ? 'found' : 'not found');
 		console.log('All cookies:', Object.keys(cookies.getAll()));
-		
+
 		if (!verifier) {
 			console.error('PKCE verifier cookie not found');
 			throw redirect(302, '/login?error=no_verifier');
@@ -26,14 +26,14 @@ export const load: PageServerLoad = async ({ url, cookies, fetch }) => {
 
 		// Exchange code and verifier for auth token
 		const tokenUrl = `http://localhost:5656/db/main/ext/auth/token?code=${code}&verifier=${verifier}`;
-		
+
 		console.log('Attempting token exchange with URL:', tokenUrl);
-		
+
 		const response = await fetch(tokenUrl, {
 			method: 'GET',
 			headers: {
-				'Content-Type': 'application/json',
-			},
+				'Content-Type': 'application/json'
+			}
 		});
 
 		console.log('Token exchange response status:', response.status);
@@ -45,7 +45,7 @@ export const load: PageServerLoad = async ({ url, cookies, fetch }) => {
 		}
 
 		const tokenData = await response.json();
-		
+
 		if (!tokenData.auth_token) {
 			console.error('No auth token in response:', tokenData);
 			throw redirect(302, '/login?error=no_auth_token');
@@ -57,7 +57,7 @@ export const load: PageServerLoad = async ({ url, cookies, fetch }) => {
 			httpOnly: true,
 			secure: false, // Set to true in production with HTTPS
 			sameSite: 'lax',
-			maxAge: 24 * 60 * 60, // 24 hours
+			maxAge: 24 * 60 * 60 // 24 hours
 		});
 
 		// Clear the PKCE verifier cookie
@@ -65,13 +65,12 @@ export const load: PageServerLoad = async ({ url, cookies, fetch }) => {
 
 		// Redirect to the home page
 		throw redirect(302, '/home');
-
 	} catch (error) {
 		if (error instanceof Response) {
 			// Re-throw redirect responses
 			throw error;
 		}
-		
+
 		console.error('Auth callback error:', error);
 		throw redirect(302, '/login?error=callback_failed');
 	}

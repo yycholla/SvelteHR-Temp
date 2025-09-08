@@ -13,7 +13,7 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 		const apiParams = {
 			page: urlParams.page,
 			limit: urlParams.limit,
-			status: status !== 'all' ? status : undefined,
+			status: status !== 'all' ? status : undefined
 			// Remove order_by for now due to database schema issues
 			// order_by: 'created_at', // Show recently hired first
 			// order_direction: 'desc'
@@ -42,10 +42,9 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 				status
 			}
 		};
-
 	} catch (error: any) {
 		console.error('❌ Error loading onboarding data:', error);
-		
+
 		// Return empty data with error state
 		return {
 			onboardingEmployees: [],

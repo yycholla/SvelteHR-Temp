@@ -27,9 +27,15 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 			totalEmployees: leaveData.employees.length,
 			pendingRequests: leaveData.leaves.filter((req: any) => req.status === 'pending').length,
 			approvedRequests: leaveData.leaves.filter((req: any) => req.status === 'approved').length,
-			averageBalance: leaveData.leaves.length > 0 
-				? Math.round(leaveData.leaves.reduce((sum: number, leave: any) => sum + (leave.days_requested || 0), 0) / leaveData.leaves.length)
-				: 0
+			averageBalance:
+				leaveData.leaves.length > 0
+					? Math.round(
+							leaveData.leaves.reduce(
+								(sum: number, leave: any) => sum + (leave.days_requested || 0),
+								0
+							) / leaveData.leaves.length
+						)
+					: 0
 		};
 
 		console.log('✅ Leave page loaded with', leaveData.leaves.length, 'leave requests');
@@ -46,10 +52,9 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 				activeTab
 			}
 		};
-
 	} catch (error: any) {
 		console.error('❌ Error loading leave data:', error);
-		
+
 		// Return empty data with error state
 		return {
 			leaveBalances: [],

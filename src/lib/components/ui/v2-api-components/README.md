@@ -9,6 +9,7 @@ The v2 API integration introduces real-time capabilities through WebSocket conne
 ## Component Architecture
 
 ### Design Principles
+
 - **Consistency**: All components follow the established Tailwind variants pattern
 - **Accessibility**: WCAG 2.1 AA compliance with proper ARIA attributes
 - **Responsiveness**: Mobile-first design with graceful degradation
@@ -16,6 +17,7 @@ The v2 API integration introduces real-time capabilities through WebSocket conne
 - **Real-time**: WebSocket-powered live updates with fallback states
 
 ### Technology Stack
+
 - **Styling**: Tailwind CSS with tailwind-variants for component variants
 - **Icons**: Lucide Svelte for consistent iconography
 - **Dates**: date-fns for date formatting and manipulation
@@ -28,6 +30,7 @@ The v2 API integration introduces real-time capabilities through WebSocket conne
 **Purpose**: Displays real-time WebSocket connection status across the application.
 
 **Features**:
+
 - Connection states: connected, disconnected, connecting, reconnecting
 - Auto-hide when connected (configurable)
 - Latency display for performance monitoring
@@ -35,24 +38,26 @@ The v2 API integration introduces real-time capabilities through WebSocket conne
 - Customizable positioning (top/bottom + left/right)
 
 **Usage**:
+
 ```svelte
 <script>
-  import { WebSocketIndicator } from '$lib/components/ui';
-  
-  let connectionStatus = 'connected';
-  let latency = 45;
+	import { WebSocketIndicator } from '$lib/components/ui';
+
+	let connectionStatus = 'connected';
+	let latency = 45;
 </script>
 
-<WebSocketIndicator 
-  status={connectionStatus}
-  {latency}
-  position="top-right"
-  variant="detailed"
-  showWhenConnected={false}
+<WebSocketIndicator
+	status={connectionStatus}
+	{latency}
+	position="top-right"
+	variant="detailed"
+	showWhenConnected={false}
 />
 ```
 
 **Accessibility**:
+
 - `role="status"` for screen readers
 - `aria-live="polite"` for status updates
 - `aria-label` describing connection state
@@ -62,6 +67,7 @@ The v2 API integration introduces real-time capabilities through WebSocket conne
 **Purpose**: WebSocket-powered notification system with toast alerts and history.
 
 **Features**:
+
 - Real-time notifications via WebSocket
 - Toast notifications with auto-dismiss
 - Notification categorization and filtering
@@ -71,40 +77,43 @@ The v2 API integration introduces real-time capabilities through WebSocket conne
 - Keyboard navigation support
 
 **Components**:
+
 - `NotificationCenter`: Main panel for notification history
 - `ToastNotification`: Individual toast notification popup
 
 **Usage**:
+
 ```svelte
 <script>
-  import { NotificationCenter, ToastNotification } from '$lib/components/ui';
-  
-  let notifications = [];
-  let notificationCenterOpen = false;
+	import { NotificationCenter, ToastNotification } from '$lib/components/ui';
+
+	let notifications = [];
+	let notificationCenterOpen = false;
 </script>
 
 <!-- Notification Center Panel -->
-<NotificationCenter 
-  {notifications}
-  isOpen={notificationCenterOpen}
-  onClose={() => notificationCenterOpen = false}
-  onMarkRead={markNotificationRead}
-  onMarkAllRead={markAllRead}
-  onClearAll={clearAllNotifications}
+<NotificationCenter
+	{notifications}
+	isOpen={notificationCenterOpen}
+	onClose={() => (notificationCenterOpen = false)}
+	onMarkRead={markNotificationRead}
+	onMarkAllRead={markAllRead}
+	onClearAll={clearAllNotifications}
 />
 
 <!-- Toast Notification -->
 {#each toastNotifications as notification}
-  <ToastNotification 
-    {notification}
-    onDismiss={dismissToast}
-    onAction={handleNotificationAction}
-    autoHideDuration={5000}
-  />
+	<ToastNotification
+		{notification}
+		onDismiss={dismissToast}
+		onAction={handleNotificationAction}
+		autoHideDuration={5000}
+	/>
 {/each}
 ```
 
 **Accessibility**:
+
 - Modal dialog pattern for notification center
 - Keyboard navigation (Tab, Enter, Escape)
 - Screen reader announcements for new notifications
@@ -115,6 +124,7 @@ The v2 API integration introduces real-time capabilities through WebSocket conne
 **Purpose**: Monitor and manage background job processing with real-time updates.
 
 **Features**:
+
 - Job status tracking (pending, running, completed, failed, cancelled)
 - Progress bars with step-by-step updates
 - Time remaining estimation
@@ -124,38 +134,41 @@ The v2 API integration introduces real-time capabilities through WebSocket conne
 - Compact and detailed view modes
 
 **Components**:
+
 - `JobProgressDashboard`: Full dashboard with multiple jobs
 - `JobProgressCard`: Individual job status card
 
 **Usage**:
+
 ```svelte
 <script>
-  import { JobProgressDashboard, JobProgressCard } from '$lib/components/ui';
-  
-  let backgroundJobs = [];
+	import { JobProgressDashboard, JobProgressCard } from '$lib/components/ui';
+
+	let backgroundJobs = [];
 </script>
 
 <!-- Full Dashboard -->
-<JobProgressDashboard 
-  jobs={backgroundJobs}
-  onCancel={cancelJob}
-  onRetry={retryJob}
-  onView={viewJobDetails}
-  onClearCompleted={clearCompletedJobs}
-  showCompleted={true}
-  maxItems={10}
+<JobProgressDashboard
+	jobs={backgroundJobs}
+	onCancel={cancelJob}
+	onRetry={retryJob}
+	onView={viewJobDetails}
+	onClearCompleted={clearCompletedJobs}
+	showCompleted={true}
+	maxItems={10}
 />
 
 <!-- Individual Job Card -->
-<JobProgressCard 
-  job={specificJob}
-  onCancel={cancelJob}
-  onRetry={retryJob}
-  onView={viewJobDetails}
+<JobProgressCard
+	job={specificJob}
+	onCancel={cancelJob}
+	onRetry={retryJob}
+	onView={viewJobDetails}
 />
 ```
 
 **Accessibility**:
+
 - Progress bars with aria-valuenow, aria-valuemin, aria-valuemax
 - Action buttons with descriptive labels
 - Status announcements for screen readers
@@ -165,6 +178,7 @@ The v2 API integration introduces real-time capabilities through WebSocket conne
 **Purpose**: Improved bulk operations with v2 API integration and better UX.
 
 **Features**:
+
 - Multi-select with visual feedback
 - Confirmation dialogs for destructive actions
 - Progress tracking during bulk operations
@@ -173,50 +187,53 @@ The v2 API integration introduces real-time capabilities through WebSocket conne
 - Processing state with progress indicators
 
 **Components**:
+
 - `EnhancedBulkActionsBar`: Floating action bar
 - `BulkSelectCheckbox`: Enhanced checkbox with indeterminate state
 - `BulkOperationsContext`: Svelte context for state management
 
 **Usage**:
+
 ```svelte
 <script>
-  import { 
-    EnhancedBulkActionsBar, 
-    BulkSelectCheckbox, 
-    BulkOperationsContext 
-  } from '$lib/components/ui';
-  
-  let selectedItems = [];
-  let bulkActions = [
-    {
-      id: 'update-status',
-      label: 'Update Status',
-      icon: CheckSquare,
-      variant: 'default',
-      requiresConfirmation: true
-    }
-  ];
+	import {
+		EnhancedBulkActionsBar,
+		BulkSelectCheckbox,
+		BulkOperationsContext
+	} from '$lib/components/ui';
+
+	let selectedItems = [];
+	let bulkActions = [
+		{
+			id: 'update-status',
+			label: 'Update Status',
+			icon: CheckSquare,
+			variant: 'default',
+			requiresConfirmation: true
+		}
+	];
 </script>
 
 <BulkOperationsContext onSelectionChange={handleSelectionChange}>
-  <!-- Table with checkboxes -->
-  <BulkSelectCheckbox 
-    checked={isSelected(item.id)}
-    onCheckedChange={() => toggleSelection(item.id)}
-  />
-  
-  <!-- Bulk Actions Bar -->
-  <EnhancedBulkActionsBar 
-    selectedCount={selectedItems.length}
-    actions={bulkActions}
-    onAction={handleBulkAction}
-    onClear={clearSelection}
-    selectedItems={selectedItems}
-  />
+	<!-- Table with checkboxes -->
+	<BulkSelectCheckbox
+		checked={isSelected(item.id)}
+		onCheckedChange={() => toggleSelection(item.id)}
+	/>
+
+	<!-- Bulk Actions Bar -->
+	<EnhancedBulkActionsBar
+		selectedCount={selectedItems.length}
+		actions={bulkActions}
+		onAction={handleBulkAction}
+		onClear={clearSelection}
+		{selectedItems}
+	/>
 </BulkOperationsContext>
 ```
 
 **Accessibility**:
+
 - Checkbox group semantics
 - Clear selection counts and descriptions
 - Confirmation dialogs for destructive actions
@@ -227,6 +244,7 @@ The v2 API integration introduces real-time capabilities through WebSocket conne
 **Purpose**: Live-updating dashboard components with WebSocket data.
 
 **Features**:
+
 - Real-time metric updates
 - Trend indicators and change calculations
 - Error states with retry functionality
@@ -235,50 +253,53 @@ The v2 API integration introduces real-time capabilities through WebSocket conne
 - Loading and skeleton states
 
 **Components**:
+
 - `LiveMetricCard`: Displays key metrics with trends
 - `ActivityFeedCard`: Shows recent activity with user info
 - `StatusOverviewCard`: System status overview with indicators
 
 **Usage**:
+
 ```svelte
 <script>
-  import { LiveMetricCard, ActivityFeedCard, StatusOverviewCard } from '$lib/components/ui';
+	import { LiveMetricCard, ActivityFeedCard, StatusOverviewCard } from '$lib/components/ui';
 </script>
 
 <!-- Live Metric Card -->
-<LiveMetricCard 
-  title="Active Employees"
-  metric={{
-    value: 1247,
-    previousValue: 1230,
-    change: 1.4,
-    changeType: 'increase',
-    unit: 'employees'
-  }}
-  icon={Users}
-  isLive={true}
-  lastUpdated={new Date()}
+<LiveMetricCard
+	title="Active Employees"
+	metric={{
+		value: 1247,
+		previousValue: 1230,
+		change: 1.4,
+		changeType: 'increase',
+		unit: 'employees'
+	}}
+	icon={Users}
+	isLive={true}
+	lastUpdated={new Date()}
 />
 
 <!-- Activity Feed -->
-<ActivityFeedCard 
-  title="Recent Activity"
-  activities={recentActivities}
-  isLive={true}
-  onItemClick={handleActivityClick}
-  maxItems={5}
+<ActivityFeedCard
+	title="Recent Activity"
+	activities={recentActivities}
+	isLive={true}
+	onItemClick={handleActivityClick}
+	maxItems={5}
 />
 
 <!-- Status Overview -->
-<StatusOverviewCard 
-  title="System Health"
-  items={systemStatusItems}
-  isLive={true}
-  onRefresh={refreshSystemStatus}
+<StatusOverviewCard
+	title="System Health"
+	items={systemStatusItems}
+	isLive={true}
+	onRefresh={refreshSystemStatus}
 />
 ```
 
 **Accessibility**:
+
 - Status updates announced to screen readers
 - Trend indicators with descriptive text
 - Interactive elements with proper focus management
@@ -288,6 +309,7 @@ The v2 API integration introduces real-time capabilities through WebSocket conne
 ### Responsive Design
 
 All components are designed mobile-first with the following breakpoints:
+
 - **Mobile**: < 640px (base styles)
 - **Tablet**: 640px - 1024px (responsive adjustments)
 - **Desktop**: > 1024px (full features)
@@ -295,6 +317,7 @@ All components are designed mobile-first with the following breakpoints:
 ### Dark Mode Support
 
 All components support both light and dark themes using CSS variables:
+
 - Automatic theme detection via `prefers-color-scheme`
 - Manual theme switching via class-based system
 - Consistent color tokens across all components
@@ -309,6 +332,7 @@ All components support both light and dark themes using CSS variables:
 ### Error Handling
 
 All components implement comprehensive error handling:
+
 - **Loading States**: Skeleton screens during data fetching
 - **Error States**: Clear error messages with retry options
 - **Fallback UI**: Graceful degradation when WebSocket unavailable
@@ -317,6 +341,7 @@ All components implement comprehensive error handling:
 ### WebSocket Integration
 
 Components that connect to WebSocket follow these patterns:
+
 - **Connection Management**: Automatic reconnection with exponential backoff
 - **State Synchronization**: Client state synced with server updates
 - **Offline Support**: Graceful handling of offline states
@@ -325,12 +350,14 @@ Components that connect to WebSocket follow these patterns:
 ## Testing Strategy
 
 ### Component Testing
+
 - **Unit Tests**: Individual component logic and rendering
 - **Integration Tests**: Component interaction with contexts
 - **Visual Regression**: Screenshot testing for UI consistency
 - **Accessibility Tests**: Automated a11y testing with axe-core
 
 ### E2E Testing
+
 - **User Workflows**: Complete user journey testing
 - **Real-time Features**: WebSocket connection testing
 - **Cross-browser**: Testing across different browsers
@@ -362,6 +389,7 @@ Components that connect to WebSocket follow these patterns:
 ## Support
 
 For implementation questions or bug reports, please refer to:
+
 - **Component Documentation**: Individual component READMEs
 - **Design System Guide**: `/src/lib/styles/design-tokens.css`
 - **Example Usage**: Storybook stories for each component
@@ -369,4 +397,4 @@ For implementation questions or bug reports, please refer to:
 
 ---
 
-*This documentation is maintained alongside component updates to ensure accuracy and completeness.*
+_This documentation is maintained alongside component updates to ensure accuracy and completeness._

@@ -12,21 +12,10 @@ export const eventTypeSchema = z.enum([
 ]);
 
 // Event priority enum
-export const eventPrioritySchema = z.enum([
-	'Low',
-	'Medium',
-	'High',
-	'Urgent'
-]);
+export const eventPrioritySchema = z.enum(['Low', 'Medium', 'High', 'Urgent']);
 
 // Event recurrence enum
-export const eventRecurrenceSchema = z.enum([
-	'None',
-	'Daily',
-	'Weekly',
-	'Monthly',
-	'Yearly'
-]);
+export const eventRecurrenceSchema = z.enum(['None', 'Daily', 'Weekly', 'Monthly', 'Yearly']);
 
 // Base event schema for API responses (assuming uppercase fields like other APIs)
 export const eventApiSchema = z.object({
@@ -41,12 +30,14 @@ export const eventApiSchema = z.object({
 	Location: z.string().nullable().optional(),
 	Attendees: z.string().nullable().optional(), // JSON string of attendee IDs
 	CreatedByID: z.number(),
-	CreatedBy: z.object({
-		ID: z.number(),
-		FirstName: z.string(),
-		LastName: z.string(),
-		Email: z.string()
-	}).optional(),
+	CreatedBy: z
+		.object({
+			ID: z.number(),
+			FirstName: z.string(),
+			LastName: z.string(),
+			Email: z.string()
+		})
+		.optional(),
 	Recurrence: eventRecurrenceSchema.default('None'),
 	RecurrenceEnd: z.string().nullable().optional(), // ISO date string
 	Color: z.string().default('#3b82f6'), // Hex color for calendar display
@@ -68,12 +59,14 @@ export const eventSchema = z.object({
 	location: z.string().nullable().optional(),
 	attendees: z.array(z.number()).optional(), // Array of employee IDs
 	createdById: z.number(),
-	createdBy: z.object({
-		id: z.number(),
-		firstName: z.string(),
-		lastName: z.string(),
-		email: z.string()
-	}).optional(),
+	createdBy: z
+		.object({
+			id: z.number(),
+			firstName: z.string(),
+			lastName: z.string(),
+			email: z.string()
+		})
+		.optional(),
 	recurrence: eventRecurrenceSchema.default('None'),
 	recurrenceEnd: z.string().nullable().optional(),
 	color: z.string().default('#3b82f6'),

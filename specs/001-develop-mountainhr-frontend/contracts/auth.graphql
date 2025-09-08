@@ -1,0 +1,81 @@
+# Authentication & Authorization GraphQL Schema
+
+# Authentication Mutations
+type Mutation {
+	# User login with credentials
+	login(input: LoginInput!): AuthPayload!
+
+	# Token refresh for session extension
+	refreshToken(refreshToken: String!): AuthPayload!
+
+	# User logout (invalidate session)
+	logout: Boolean!
+
+	# Password reset request
+	requestPasswordReset(email: String!): Boolean!
+
+	# Password reset completion
+	resetPassword(input: ResetPasswordInput!): Boolean!
+}
+
+# Authentication Queries
+type Query {
+	# Get current user context
+	me: User
+
+	# Verify token validity
+	verifyToken: Boolean!
+}
+
+# Input Types
+input LoginInput {
+	email: String!
+	password: String!
+	rememberMe: Boolean = false
+}
+
+input ResetPasswordInput {
+	token: String!
+	newPassword: String!
+}
+
+# Response Types
+type AuthPayload {
+	token: String!
+	refreshToken: String!
+	user: User!
+	expiresAt: DateTime!
+}
+
+type User {
+	id: ID!
+	email: String!
+	firstName: String!
+	lastName: String!
+	isActive: Boolean!
+	roles: [Role!]!
+	employee: Employee
+	permissions: [String!]! # Computed field
+	createdAt: DateTime!
+	updatedAt: DateTime!
+}
+
+type Role {
+	id: ID!
+	name: String!
+	description: String
+	level: Int!
+	permissions: [Permission!]!
+}
+
+type Permission {
+	id: ID!
+	resource: String!
+	action: String!
+	scope: String
+}
+
+# Directives for authorization
+directive @auth on FIELD_DEFINITION
+directive @hasPermission(resource: String!, action: String!) on FIELD_DEFINITION
+directive @hasRole(role: String!) on FIELD_DEFINITION

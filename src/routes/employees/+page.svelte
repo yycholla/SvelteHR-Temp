@@ -32,13 +32,14 @@
 		// This allows for real-time search without page reload
 		if (searchQuery !== filters.search && searchQuery.trim()) {
 			const query = searchQuery.toLowerCase();
-			employees = employees.filter(emp =>
-				emp.firstName.toLowerCase().includes(query) ||
-				emp.lastName.toLowerCase().includes(query) ||
-				emp.email.toLowerCase().includes(query) ||
-				(emp.position?.title || '').toLowerCase().includes(query) ||
-				(emp.department?.name || '').toLowerCase().includes(query) ||
-				emp.employeeId.toLowerCase().includes(query)
+			employees = employees.filter(
+				(emp) =>
+					emp.firstName.toLowerCase().includes(query) ||
+					emp.lastName.toLowerCase().includes(query) ||
+					emp.email.toLowerCase().includes(query) ||
+					(emp.position?.title || '').toLowerCase().includes(query) ||
+					(emp.department?.name || '').toLowerCase().includes(query) ||
+					emp.employeeId.toLowerCase().includes(query)
 			);
 		}
 
@@ -49,7 +50,9 @@
 	let activeFilters = $derived(() => {
 		const filters = [];
 		if (selectedDepartments.length > 0) {
-			filters.push(`${selectedDepartments.length} Department${selectedDepartments.length > 1 ? 's' : ''}`);
+			filters.push(
+				`${selectedDepartments.length} Department${selectedDepartments.length > 1 ? 's' : ''}`
+			);
 		}
 		if (selectedStatuses.length > 0) {
 			filters.push(`${selectedStatuses.length} Status${selectedStatuses.length > 1 ? 'es' : ''}`);
@@ -109,10 +112,10 @@
 		// TODO: Implement CSV/Excel export
 	}
 
-    let showAddEmployee = $state(false);
-    function addEmployee() {
-        showAddEmployee = true;
-    }
+	let showAddEmployee = $state(false);
+	function addEmployee() {
+		showAddEmployee = true;
+	}
 
 	// Handle pagination
 	async function handlePageChange(newPage: number) {
@@ -130,20 +133,21 @@
 	<title>Employees - SvelteHR</title>
 </svelte:head>
 
-<div class="container mx-auto px-6 pb-6 pt-6">
+<div class="container mx-auto px-6 pt-6 pb-6">
 	<!-- Data Source Indicator -->
 	{#if isUsingMockData}
 		<div class="mb-4">
-			<Alert class="bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800">
+			<Alert class="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
 				<WifiOff class="h-4 w-4 text-amber-600 dark:text-amber-400" />
 				<AlertDescription class="text-amber-800 dark:text-amber-200">
-					<strong>Demo Mode:</strong> Using mock data. Connect to your backend API for live employee data.
+					<strong>Demo Mode:</strong> Using mock data. Connect to your backend API for live employee
+					data.
 				</AlertDescription>
 			</Alert>
 		</div>
 	{:else}
 		<div class="mb-4">
-			<Alert class="bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800">
+			<Alert class="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20">
 				<Wifi class="h-4 w-4 text-green-600 dark:text-green-400" />
 				<AlertDescription class="text-green-800 dark:text-green-200">
 					<strong>Live Data:</strong> Connected to backend API and showing real employee data.
@@ -220,13 +224,17 @@
 </div>
 
 {#if showAddEmployee}
-    <div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-        <div class="bg-background rounded-xl border border-border p-6 w-full max-w-md">
-            <h3 class="font-semibold mb-2">Add Employee</h3>
-            <p class="text-sm text-muted-foreground mb-4">This is a placeholder modal. Hook up your form here.</p>
-            <div class="flex justify-end">
-                <button class="px-3 py-2 rounded-lg border" onclick={() => showAddEmployee = false}>Close</button>
-            </div>
-        </div>
-    </div>
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+		<div class="w-full max-w-md rounded-xl border border-border bg-background p-6">
+			<h3 class="mb-2 font-semibold">Add Employee</h3>
+			<p class="mb-4 text-sm text-muted-foreground">
+				This is a placeholder modal. Hook up your form here.
+			</p>
+			<div class="flex justify-end">
+				<button class="rounded-lg border px-3 py-2" onclick={() => (showAddEmployee = false)}
+					>Close</button
+				>
+			</div>
+		</div>
+	</div>
 {/if}

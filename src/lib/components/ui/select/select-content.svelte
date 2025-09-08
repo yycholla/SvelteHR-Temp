@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { Select as SelectPrimitive } from "bits-ui";
-	import { cn } from "$lib/utils.js";
-	import { flyAndScale } from "$lib/utils.js";
+	import { Select as SelectPrimitive } from 'bits-ui';
+	import { cn } from '$lib/utils.js';
+	import { flyAndScale } from '$lib/utils.js';
 
 	let {
 		class: className,
@@ -15,7 +15,7 @@
 	bind:ref
 	data-slot="select-content"
 	class={cn(
-		"absolute z-[9999] max-h-96 min-w-32 overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-lg pointer-events-auto",
+		'pointer-events-auto absolute z-[9999] max-h-96 min-w-32 overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-lg',
 		className
 	)}
 	{...restProps}

@@ -1,5 +1,19 @@
 <script lang="ts">
-	import { ChevronUp, ChevronDown, Settings, Download, Columns, Grid, Users, Search, Filter, Plus, Bell, Sun, Moon } from 'lucide-svelte';
+	import {
+		ChevronUp,
+		ChevronDown,
+		Settings,
+		Download,
+		Columns,
+		Grid,
+		Users,
+		Search,
+		Filter,
+		Plus,
+		Bell,
+		Sun,
+		Moon
+	} from 'lucide-svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
 	import Badge from '$lib/components/ui/badge/badge.svelte';
@@ -47,7 +61,15 @@
 
 	// Column management
 	let visibleColumns = $state([
-		'select', 'expand', 'name', 'position', 'department', 'status', 'location', 'hireDate', 'actions'
+		'select',
+		'expand',
+		'name',
+		'position',
+		'department',
+		'status',
+		'location',
+		'hireDate',
+		'actions'
 	]);
 	let density = $state<'compact' | 'comfortable' | 'spacious'>('comfortable');
 
@@ -86,15 +108,19 @@
 
 	let totalPages = $derived(Math.ceil(sortedEmployees.length / pageSize));
 	let hasSelection = $derived(selectedRows.size > 0);
-	let isAllSelected = $derived(selectedRows.size === paginatedEmployees.length && paginatedEmployees.length > 0);
-	let isIndeterminate = $derived(selectedRows.size > 0 && selectedRows.size < paginatedEmployees.length);
+	let isAllSelected = $derived(
+		selectedRows.size === paginatedEmployees.length && paginatedEmployees.length > 0
+	);
+	let isIndeterminate = $derived(
+		selectedRows.size > 0 && selectedRows.size < paginatedEmployees.length
+	);
 
 	// Selection handlers
 	function toggleSelectAll() {
 		if (isAllSelected) {
 			selectedRows.clear();
 		} else {
-			paginatedEmployees.forEach(emp => selectedRows.add(emp.id));
+			paginatedEmployees.forEach((emp) => selectedRows.add(emp.id));
 		}
 		selectedRows = new Set(selectedRows);
 	}
@@ -128,7 +154,7 @@
 		if (allExpanded) {
 			expandedRows.clear();
 		} else {
-			paginatedEmployees.forEach(emp => expandedRows.add(emp.id));
+			paginatedEmployees.forEach((emp) => expandedRows.add(emp.id));
 		}
 		expandedRows = new Set(expandedRows);
 	}
@@ -164,22 +190,31 @@
 	// Get density classes
 	function getDensityClasses() {
 		switch (density) {
-			case 'compact': return 'text-sm';
-			case 'spacious': return 'text-base py-6';
-			default: return 'text-sm py-4';
+			case 'compact':
+				return 'text-sm';
+			case 'spacious':
+				return 'text-base py-6';
+			default:
+				return 'text-sm py-4';
 		}
 	}
 </script>
 
 <!-- Fixed Table Toolbar -->
-<div class="fixed top-20 left-0 right-0 z-40">
-	<div class="mx-6 rounded-2xl border border-slate-200/40 bg-slate-50/60 backdrop-blur-md shadow-xl">
+<div class="fixed top-20 right-0 left-0 z-40">
+	<div
+		class="mx-6 rounded-2xl border border-slate-200/40 bg-slate-50/60 shadow-xl backdrop-blur-md"
+	>
 		<div class="px-6 py-4">
 			<!-- Table Controls -->
-			<div class="grid grid-cols-[200px_320px_1fr_140px_200px] gap-3 items-center">
+			<div class="grid grid-cols-[200px_320px_1fr_140px_200px] items-center gap-3">
 				<!-- Employee Count / Selection Status -->
 				<div class="flex h-12 items-center justify-center">
-					<h3 class="font-semibold text-lg whitespace-nowrap {hasSelection ? 'text-foreground' : 'text-foreground'}">
+					<h3
+						class="text-lg font-semibold whitespace-nowrap {hasSelection
+							? 'text-foreground'
+							: 'text-foreground'}"
+					>
 						{#if hasSelection}
 							{selectedRows.size} of {sortedEmployees.length} selected
 						{:else}
@@ -189,24 +224,31 @@
 				</div>
 
 				<!-- Search Input with Filters -->
-				<div class="relative flex h-12 items-center rounded-xl bg-background/30 border border-border px-4 gap-3 transition-all duration-200 focus-within:border-primary/50">
-					<Search class="h-5 w-5 text-muted-foreground flex-shrink-0" />
+				<div
+					class="relative flex h-12 items-center gap-3 rounded-xl border border-border bg-background/30 px-4 transition-all duration-200 focus-within:border-primary/50"
+				>
+					<Search class="h-5 w-5 flex-shrink-0 text-muted-foreground" />
 					<input
 						bind:value={searchQuery}
 						placeholder="Search employees..."
-						class="flex-1 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-foreground placeholder:text-muted-foreground text-sm"
+						class="flex-1 border-0 bg-transparent text-sm text-foreground ring-0 outline-none placeholder:text-muted-foreground focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
 					/>
 					<!-- Filters Toggle inside Search -->
 					<Button
 						variant="ghost"
 						size="sm"
-						onclick={() => showFilters = !showFilters}
-						class="h-8 w-8 p-0 rounded-lg transition-all duration-300 hover:scale-[1.02] hover:bg-background/30 {showFilters ? 'bg-background/90 text-foreground' : 'text-muted-foreground hover:text-foreground'} border-0"
+						onclick={() => (showFilters = !showFilters)}
+						class="h-8 w-8 rounded-lg p-0 transition-all duration-300 hover:scale-[1.02] hover:bg-background/30 {showFilters
+							? 'bg-background/90 text-foreground'
+							: 'text-muted-foreground hover:text-foreground'} border-0"
 						title="Toggle filters"
 					>
 						<Filter class="h-5 w-5" />
 						{#if activeFilters.length > 0}
-							<Badge variant="secondary" class="absolute -top-1 -right-1 h-4 w-4 rounded-full p-0 text-xs bg-primary text-primary-foreground border-0">
+							<Badge
+								variant="secondary"
+								class="absolute -top-1 -right-1 h-4 w-4 rounded-full border-0 bg-primary p-0 text-xs text-primary-foreground"
+							>
 								{activeFilters.length}
 							</Badge>
 						{/if}
@@ -214,7 +256,7 @@
 				</div>
 
 				<!-- Spacer for filters -->
-				<div class="flex items-center space-x-2 min-h-[48px]">
+				<div class="flex min-h-[48px] items-center space-x-2">
 					<!-- Active Filters -->
 					{#if activeFilters.length > 0}
 						{#each activeFilters as filter}
@@ -226,7 +268,7 @@
 							variant="ghost"
 							size="sm"
 							onclick={clearFilters}
-							class="h-8 px-3 text-xs rounded-lg transition-all duration-300 hover:bg-background/30 text-muted-foreground hover:text-foreground border-0"
+							class="h-8 rounded-lg border-0 px-3 text-xs text-muted-foreground transition-all duration-300 hover:bg-background/30 hover:text-foreground"
 						>
 							Clear all
 						</Button>
@@ -239,7 +281,9 @@
 						variant="ghost"
 						size="sm"
 						onclick={toggleSelectAll}
-						class="h-10 px-4 rounded-xl transition-all duration-300 hover:bg-background/30 {isAllSelected ? 'text-foreground bg-background/20' : 'text-muted-foreground hover:text-foreground'} whitespace-nowrap border-0"
+						class="h-10 rounded-xl px-4 transition-all duration-300 hover:bg-background/30 {isAllSelected
+							? 'bg-background/20 text-foreground'
+							: 'text-muted-foreground hover:text-foreground'} border-0 whitespace-nowrap"
 					>
 						{#if isAllSelected}
 							Deselect All
@@ -257,7 +301,10 @@
 						variant="ghost"
 						size="sm"
 						onclick={() => handleSort('name')}
-						class="h-10 px-3 rounded-lg text-xs transition-all duration-300 hover:bg-background/30 {sortConfig.field === 'name' ? 'bg-background/60 text-foreground' : 'text-muted-foreground hover:text-foreground'} border-0"
+						class="h-10 rounded-lg px-3 text-xs transition-all duration-300 hover:bg-background/30 {sortConfig.field ===
+						'name'
+							? 'bg-background/60 text-foreground'
+							: 'text-muted-foreground hover:text-foreground'} border-0"
 					>
 						Name {sortConfig.field === 'name' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
 					</Button>
@@ -265,32 +312,46 @@
 						variant="ghost"
 						size="sm"
 						onclick={() => handleSort('department')}
-						class="h-10 px-3 rounded-lg text-xs transition-all duration-300 hover:bg-background/30 {sortConfig.field === 'department' ? 'bg-background/60 text-foreground' : 'text-muted-foreground hover:text-foreground'} border-0"
+						class="h-10 rounded-lg px-3 text-xs transition-all duration-300 hover:bg-background/30 {sortConfig.field ===
+						'department'
+							? 'bg-background/60 text-foreground'
+							: 'text-muted-foreground hover:text-foreground'} border-0"
 					>
-						Dept {sortConfig.field === 'department' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+						Dept {sortConfig.field === 'department'
+							? sortConfig.direction === 'asc'
+								? '↑'
+								: '↓'
+							: ''}
 					</Button>
 					<Button
 						variant="ghost"
 						size="sm"
 						onclick={() => handleSort('hireDate')}
-						class="h-10 px-3 rounded-lg text-xs transition-all duration-300 hover:bg-background/30 {sortConfig.field === 'hireDate' ? 'bg-background/60 text-foreground' : 'text-muted-foreground hover:text-foreground'} border-0"
+						class="h-10 rounded-lg px-3 text-xs transition-all duration-300 hover:bg-background/30 {sortConfig.field ===
+						'hireDate'
+							? 'bg-background/60 text-foreground'
+							: 'text-muted-foreground hover:text-foreground'} border-0"
 					>
-						Date {sortConfig.field === 'hireDate' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+						Date {sortConfig.field === 'hireDate'
+							? sortConfig.direction === 'asc'
+								? '↑'
+								: '↓'
+							: ''}
 					</Button>
 				</div>
 			</div>
-			
+
 			<!-- Table Action Buttons -->
 			<div class="mt-3 flex items-center justify-end space-x-2">
 				<Button
 					variant="ghost"
 					size="sm"
 					onclick={() => {
-						const densities: typeof density[] = ['compact', 'comfortable', 'spacious'];
+						const densities: (typeof density)[] = ['compact', 'comfortable', 'spacious'];
 						const currentIndex = densities.indexOf(density);
 						density = densities[(currentIndex + 1) % densities.length];
 					}}
-					class="h-10 w-10 rounded-lg transition-all duration-300 hover:bg-background/30 text-muted-foreground hover:text-foreground border-0"
+					class="h-10 w-10 rounded-lg border-0 text-muted-foreground transition-all duration-300 hover:bg-background/30 hover:text-foreground"
 					title="Card density: {density}"
 				>
 					<Grid class="h-5 w-5" />
@@ -300,7 +361,7 @@
 					variant="ghost"
 					size="sm"
 					onclick={expandAll}
-					class="h-10 w-10 rounded-lg transition-all duration-300 hover:bg-background/30 text-muted-foreground hover:text-foreground border-0"
+					class="h-10 w-10 rounded-lg border-0 text-muted-foreground transition-all duration-300 hover:bg-background/30 hover:text-foreground"
 					title={expandedRows.size === paginatedEmployees.length ? 'Collapse all' : 'Expand all'}
 				>
 					{#if expandedRows.size === paginatedEmployees.length}
@@ -314,7 +375,7 @@
 					variant="ghost"
 					size="sm"
 					onclick={exportEmployees}
-					class="h-10 w-10 rounded-lg transition-all duration-300 hover:bg-background/30 text-muted-foreground hover:text-foreground border-0"
+					class="h-10 w-10 rounded-lg border-0 text-muted-foreground transition-all duration-300 hover:bg-background/30 hover:text-foreground"
 					title="Export employees"
 				>
 					<Download class="h-5 w-5" />
@@ -324,7 +385,7 @@
 					variant="ghost"
 					size="sm"
 					onclick={addEmployee}
-					class="h-10 w-10 rounded-lg transition-all duration-300 hover:bg-background/30 text-primary hover:text-primary border-0"
+					class="h-10 w-10 rounded-lg border-0 text-primary transition-all duration-300 hover:bg-background/30 hover:text-primary"
 					title="Add employee"
 				>
 					<Plus class="h-5 w-5" />
@@ -341,9 +402,11 @@
 <div class="space-y-4">
 	{#if paginatedEmployees.length === 0}
 		<!-- Empty State -->
-		<div class="text-center py-12 rounded-2xl border border-purple-200/50 bg-gradient-to-br from-purple-50/60 via-blue-50/40 to-indigo-50/60 backdrop-blur-md shadow-xl">
-			<Users class="h-12 w-12 text-purple-500 mx-auto mb-4" />
-			<h3 class="text-lg font-semibold mb-2 text-purple-800">No employees found</h3>
+		<div
+			class="rounded-2xl border border-purple-200/50 bg-gradient-to-br from-purple-50/60 via-blue-50/40 to-indigo-50/60 py-12 text-center shadow-xl backdrop-blur-md"
+		>
+			<Users class="mx-auto mb-4 h-12 w-12 text-purple-500" />
+			<h3 class="mb-2 text-lg font-semibold text-purple-800">No employees found</h3>
 			<p class="text-purple-600">
 				{#if loading}
 					Loading employees...
@@ -369,7 +432,9 @@
 
 <!-- Pagination -->
 {#if totalPages > 1}
-	<div class="mt-6 rounded-2xl border border-slate-200/50 bg-gradient-to-r from-slate-50/60 via-gray-50/40 to-slate-50/60 backdrop-blur-md shadow-xl">
+	<div
+		class="mt-6 rounded-2xl border border-slate-200/50 bg-gradient-to-r from-slate-50/60 via-gray-50/40 to-slate-50/60 shadow-xl backdrop-blur-md"
+	>
 		<TablePagination
 			{currentPage}
 			{totalPages}

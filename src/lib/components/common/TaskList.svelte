@@ -12,9 +12,9 @@
 		class?: string;
 	}
 
-	let { 
-		tasks, 
-		showCount = 0, 
+	let {
+		tasks,
+		showCount = 0,
 		showPriority = true,
 		showType = true,
 		showDueDate = true,
@@ -22,24 +22,36 @@
 	}: Props = $props();
 
 	let displayTasks = $derived(showCount > 0 ? tasks.slice(0, showCount) : tasks);
-	let remainingCount = $derived(showCount > 0 && tasks.length > showCount ? tasks.length - showCount : 0);
+	let remainingCount = $derived(
+		showCount > 0 && tasks.length > showCount ? tasks.length - showCount : 0
+	);
 
-	function getPriorityVariant(priority: string): 'default' | 'secondary' | 'destructive' | 'outline' {
+	function getPriorityVariant(
+		priority: string
+	): 'default' | 'secondary' | 'destructive' | 'outline' {
 		switch (priority) {
 			case 'critical':
-			case 'high': return 'destructive';
-			case 'medium': return 'secondary';
-			case 'low': return 'outline';
-			default: return 'outline';
+			case 'high':
+				return 'destructive';
+			case 'medium':
+				return 'secondary';
+			case 'low':
+				return 'outline';
+			default:
+				return 'outline';
 		}
 	}
 
 	function getTypeVariant(type: string): 'default' | 'secondary' | 'destructive' | 'outline' {
 		switch (type.toLowerCase()) {
-			case 'onboarding': return 'default';
-			case 'compliance': return 'secondary';
-			case 'general': return 'outline';
-			default: return 'outline';
+			case 'onboarding':
+				return 'default';
+			case 'compliance':
+				return 'secondary';
+			case 'general':
+				return 'outline';
+			default:
+				return 'outline';
 		}
 	}
 </script>
@@ -56,7 +68,7 @@
 						</span>
 					{/if}
 				</div>
-				
+
 				{#if showPriority || showType}
 					<div class="task-badges">
 						{#if showType}
@@ -74,7 +86,7 @@
 			</div>
 		</div>
 	{/each}
-	
+
 	{#if remainingCount > 0}
 		<div class="remaining-count">
 			+{remainingCount} more tasks

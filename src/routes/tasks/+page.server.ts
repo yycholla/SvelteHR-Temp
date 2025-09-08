@@ -4,14 +4,14 @@ import { apiCache, CACHE_KEYS, CACHE_TTL } from '$lib/api/cache';
 
 export const load: PageServerLoad = async ({ cookies, locals, url }) => {
 	const token = cookies.get('hr_token');
-	
+
 	// Parse URL parameters for filtering
 	const page = Number(url.searchParams.get('page')) || 1;
 	const search = url.searchParams.get('search') || '';
 	const status = url.searchParams.get('status') || '';
 	const priority = url.searchParams.get('priority') || '';
 	const limit = Number(url.searchParams.get('limit')) || 20;
-	
+
 	console.log('📋 Tasks page load - Token present:', !!token);
 	console.log('📋 Tasks page load - User authenticated:', !!locals.user);
 
@@ -31,7 +31,7 @@ export const load: PageServerLoad = async ({ cookies, locals, url }) => {
 	try {
 		if (token) {
 			console.log('📋 Fetching tasks from API...');
-			
+
 			// Build query parameters
 			const params = new URLSearchParams();
 			if (search) params.append('search', search);
@@ -39,7 +39,7 @@ export const load: PageServerLoad = async ({ cookies, locals, url }) => {
 			if (priority) params.append('priority', priority);
 			params.append('page', page.toString());
 			params.append('pageSize', limit.toString());
-			
+
 			// Check cache
 			const cacheKey = `tasks_${params.toString()}`;
 			const cachedTasks = apiCache.get(cacheKey);
@@ -47,7 +47,7 @@ export const load: PageServerLoad = async ({ cookies, locals, url }) => {
 				console.log('📋 Using cached tasks data');
 				return { ...cachedTasks, isUsingMockData: false };
 			}
-			
+
 			// Create server-side API client
 			const serverApiClient = apiClient.extend({
 				hooks: {
@@ -69,12 +69,12 @@ export const load: PageServerLoad = async ({ cookies, locals, url }) => {
 
 			// Fetch tasks data
 			const tasksResponse = await serverApiClient.get(`tasks?${params.toString()}`).json();
-			
+
 			// Process tasks data
 			const tasksData = Array.isArray(tasksResponse) ? tasksResponse : tasksResponse.data || [];
 			const totalCount = tasksResponse.total || tasksData.length;
 			const totalPages = Math.ceil(totalCount / limit);
-			
+
 			// Format tasks for UI
 			const formattedTasks = tasksData.map((task: any) => ({
 				id: task.id || task.ID,

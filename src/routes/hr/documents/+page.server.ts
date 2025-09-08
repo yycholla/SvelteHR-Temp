@@ -32,7 +32,9 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 				currentPage: urlParams.page,
 				pageSize: urlParams.limit,
 				totalCount: documentData.totalCount,
-				totalPages: documentData.pagination?.totalPages || Math.ceil(documentData.totalCount / urlParams.limit)
+				totalPages:
+					documentData.pagination?.totalPages ||
+					Math.ceil(documentData.totalCount / urlParams.limit)
 			},
 			filters: {
 				search: search || '',
@@ -40,10 +42,9 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 				department
 			}
 		};
-
 	} catch (error: any) {
 		console.error('❌ Error loading documents data:', error);
-		
+
 		// Return empty data with error state
 		return {
 			documents: [],

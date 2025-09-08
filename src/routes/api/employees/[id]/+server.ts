@@ -7,7 +7,7 @@ export const PUT: RequestHandler = async ({ request, cookies, params }) => {
 	try {
 		// Get auth token from cookies
 		const token = cookies.get('hr_token');
-		
+
 		if (!token) {
 			return json({ error: 'Authentication required' }, { status: 401 });
 		}
@@ -35,19 +35,19 @@ export const PUT: RequestHandler = async ({ request, cookies, params }) => {
 
 		// Update employee via backend API using the proper method
 		const response = await serverApiClient.employees.update(params.id, backendData);
-		
+
 		if (!response.success) {
-			return json({ error: response.error || 'Failed to update employee' }, { status: response.status || 500 });
+			return json(
+				{ error: response.error || 'Failed to update employee' },
+				{ status: response.status || 500 }
+			);
 		}
-		
+
 		return json(response.data);
 	} catch (error: any) {
 		console.error('Employee update error:', error);
-		
-		return json(
-			{ error: error.message || 'Failed to update employee' }, 
-			{ status: 500 }
-		);
+
+		return json({ error: error.message || 'Failed to update employee' }, { status: 500 });
 	}
 };
 
@@ -55,7 +55,7 @@ export const DELETE: RequestHandler = async ({ cookies, params }) => {
 	try {
 		// Get auth token from cookies
 		const token = cookies.get('hr_token');
-		
+
 		if (!token) {
 			return json({ error: 'Authentication required' }, { status: 401 });
 		}
@@ -67,20 +67,24 @@ export const DELETE: RequestHandler = async ({ cookies, params }) => {
 		// Delete employee via backend API using the proper method
 		console.log('🗑️ Deleting employee:', params.id);
 		const response = await serverApiClient.employees.delete(params.id);
-		console.log('📥 Delete response:', { success: response.success, status: response.status, error: response.error });
-		
+		console.log('📥 Delete response:', {
+			success: response.success,
+			status: response.status,
+			error: response.error
+		});
+
 		if (!response.success) {
 			console.error('🚨 Backend API error details:', response);
-			return json({ error: response.error || 'Failed to delete employee' }, { status: response.status || 500 });
+			return json(
+				{ error: response.error || 'Failed to delete employee' },
+				{ status: response.status || 500 }
+			);
 		}
-		
+
 		return json({ success: true, message: 'Employee deleted successfully' });
 	} catch (error: any) {
 		console.error('Employee deletion error:', error);
-		
-		return json(
-			{ error: error.message || 'Failed to delete employee' }, 
-			{ status: 500 }
-		);
+
+		return json({ error: error.message || 'Failed to delete employee' }, { status: 500 });
 	}
 };

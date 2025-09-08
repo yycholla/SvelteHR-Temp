@@ -38,7 +38,7 @@
 			await taskApi.delete(data.task.id);
 			notifications.success(`Task "${data.task.title}" has been deleted`);
 			taskStore.removeTask(data.task.id);
-			
+
 			// Navigate back to tasks list
 			goto('/hr/tasks');
 		} catch (error) {
@@ -59,7 +59,7 @@
 		// Update the page data
 		data.task = updatedTask;
 		taskStore.updateTask(updatedTask);
-		
+
 		// Show appropriate notification based on status
 		switch (newStatus) {
 			case 'completed':
@@ -110,56 +110,39 @@
 		/>
 	{:else}
 		<div class="card p-8 text-center">
-			<h2 class="h2 mb-4">Task Not Found</h2>
-			<p class="text-surface-600-300-token mb-6">
-				The task you're looking for could not be found.
-			</p>
-			<a href="/hr/tasks" class="btn variant-filled-primary">
-				Back to Tasks
-			</a>
+			<h2 class="mb-4 h2">Task Not Found</h2>
+			<p class="text-surface-600-300-token mb-6">The task you're looking for could not be found.</p>
+			<a href="/hr/tasks" class="variant-filled-primary btn"> Back to Tasks </a>
 		</div>
 	{/if}
 </div>
 
 <!-- Edit Modal -->
-<TaskModal
-	bind:open={showEditModal}
-	task={data.task}
-	mode="edit"
-	onSuccess={handleEditSuccess}
-/>
+<TaskModal bind:open={showEditModal} task={data.task} mode="edit" onSuccess={handleEditSuccess} />
 
 <!-- Delete Confirmation Modal -->
 {#if showDeleteConfirm}
-	<div class="modal-backdrop fixed inset-0 bg-black/50 z-[999] flex items-center justify-center p-4">
-		<div class="card p-6 w-full max-w-md">
+	<div
+		class="modal-backdrop fixed inset-0 z-[999] flex items-center justify-center bg-black/50 p-4"
+	>
+		<div class="w-full max-w-md card p-6">
 			<header class="mb-4">
 				<h3 class="h3 font-bold text-error-500">Confirm Delete</h3>
 			</header>
-			
+
 			<section class="mb-6">
 				<p class="text-surface-600-300-token">
-					Are you sure you want to delete task 
+					Are you sure you want to delete task
 					<strong>"{data.task?.title}"</strong>?
 				</p>
-				<p class="text-sm text-error-500 mt-2">
-					This action cannot be undone.
-				</p>
+				<p class="mt-2 text-sm text-error-500">This action cannot be undone.</p>
 			</section>
-			
+
 			<footer class="flex justify-end gap-3">
-				<button 
-					class="btn variant-ghost-surface" 
-					on:click={() => showDeleteConfirm = false}
-				>
+				<button class="variant-ghost-surface btn" on:click={() => (showDeleteConfirm = false)}>
 					Cancel
 				</button>
-				<button 
-					class="btn variant-filled-error" 
-					on:click={confirmDelete}
-				>
-					Delete Task
-				</button>
+				<button class="variant-filled-error btn" on:click={confirmDelete}> Delete Task </button>
 			</footer>
 		</div>
 	</div>

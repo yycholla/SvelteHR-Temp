@@ -1,6 +1,6 @@
 <script lang="ts" context="module">
 	import { getContext, setContext } from 'svelte';
-	
+
 	export interface BulkOperationsState {
 		selectedItems: Set<string>;
 		isProcessing: boolean;
@@ -21,9 +21,9 @@
 	}
 
 	export type BulkOperationsContextType = BulkOperationsState & BulkOperationsActions;
-	
+
 	const BULK_OPERATIONS_KEY = Symbol('bulk-operations');
-	
+
 	export function getBulkOperationsContext(): BulkOperationsContextType {
 		const context = getContext<BulkOperationsContextType>(BULK_OPERATIONS_KEY);
 		if (!context) {
@@ -31,7 +31,7 @@
 		}
 		return context;
 	}
-	
+
 	export function setBulkOperationsContext(context: BulkOperationsContextType) {
 		setContext(BULK_OPERATIONS_KEY, context);
 	}
@@ -43,10 +43,7 @@
 		children: any;
 	}
 
-	let {
-		onSelectionChange,
-		children
-	}: BulkOperationsProviderProps = $props();
+	let { onSelectionChange, children }: BulkOperationsProviderProps = $props();
 
 	// State
 	let selectedItems = $state(new Set<string>());
@@ -110,7 +107,7 @@
 		progress,
 		progressMessage,
 		totalItems,
-		
+
 		// Actions
 		selectItem,
 		deselectItem,
@@ -119,7 +116,7 @@
 		toggleItem,
 		isSelected,
 		setProcessing,
-		setTotalItems,
+		setTotalItems
 	};
 
 	// Set context

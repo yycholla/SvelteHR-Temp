@@ -1,5 +1,12 @@
 // Enhanced notification system with proper toast integration
-import { showSuccess, showError, showWarning, showInfo, clearToasts, type Toast } from '$lib/utils/errors';
+import {
+	showSuccess,
+	showError,
+	showWarning,
+	showInfo,
+	clearToasts,
+	type Toast
+} from '$lib/utils/errors';
 
 export type NotificationType = 'success' | 'error' | 'warning' | 'info';
 
@@ -18,19 +25,23 @@ export interface NotificationOptions {
 // Enhanced notification function with toast support
 export function showNotification(options: NotificationOptions) {
 	const { title, message, type, duration, persistent, action } = options;
-	
+
 	const toastOptions = {
 		title,
-		timeout: persistent ? 0 : (duration || getDefaultTimeout(type)),
+		timeout: persistent ? 0 : duration || getDefaultTimeout(type),
 		dismissible: true
 	};
 
 	// Convert action to toast action format
-	const actions = action ? [{
-		label: action.label,
-		action: action.handler,
-		variant: 'primary' as const
-	}] : undefined;
+	const actions = action
+		? [
+				{
+					label: action.label,
+					action: action.handler,
+					variant: 'primary' as const
+				}
+			]
+		: undefined;
 
 	switch (type) {
 		case 'success':
@@ -51,11 +62,16 @@ export function showNotification(options: NotificationOptions) {
 
 function getDefaultTimeout(type: NotificationType): number {
 	switch (type) {
-		case 'success': return 3000;
-		case 'error': return 5000;
-		case 'warning': return 4000;
-		case 'info': return 4000;
-		default: return 4000;
+		case 'success':
+			return 3000;
+		case 'error':
+			return 5000;
+		case 'warning':
+			return 4000;
+		case 'info':
+			return 4000;
+		default:
+			return 4000;
 	}
 }
 
@@ -183,17 +199,17 @@ class NotificationQueue {
 
 	private async process() {
 		if (this.processing || this.queue.length === 0) return;
-		
+
 		this.processing = true;
-		
+
 		while (this.queue.length > 0) {
 			const notification = this.queue.shift()!;
 			showNotification(notification);
-			
+
 			// Add delay between notifications to prevent overwhelming the user
-			await new Promise(resolve => setTimeout(resolve, 500));
+			await new Promise((resolve) => setTimeout(resolve, 500));
 		}
-		
+
 		this.processing = false;
 	}
 }
@@ -202,7 +218,7 @@ export const notificationQueue = new NotificationQueue();
 
 // Batch notification helpers
 export function showBatchNotifications(notifications: NotificationOptions[]) {
-	notifications.forEach(notification => {
+	notifications.forEach((notification) => {
 		notificationQueue.add(notification);
 	});
 }
@@ -214,7 +230,7 @@ export function createNotification(
 	entityName?: string
 ): { success: string; error: string } {
 	const name = entityName ? ` "${entityName}"` : '';
-	
+
 	return {
 		success: `${entity}${name} ${operation} successfully`,
 		error: `Failed to ${operation.toLowerCase()} ${entity.toLowerCase()}${name}`

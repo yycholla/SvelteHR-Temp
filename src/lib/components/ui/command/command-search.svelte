@@ -1,15 +1,15 @@
 <script lang="ts">
-	import * as Command from "./index.js";
-	import { Search } from "lucide-svelte";
+	import * as Command from './index.js';
+	import { Search } from 'lucide-svelte';
 	import { createEventDispatcher } from 'svelte';
 
 	const dispatch = createEventDispatcher();
 
 	let {
-		placeholder = "Search...",
-		value = $bindable(""),
+		placeholder = 'Search...',
+		value = $bindable(''),
 		onValueChange,
-		class: className = "",
+		class: className = '',
 		...restProps
 	} = $props();
 
@@ -20,72 +20,73 @@
 	const searchItems = [
 		{
 			id: 1,
-			title: "Find Employees",
-			description: "Search through employee directory",
-			icon: "👥",
-			group: "Navigation"
+			title: 'Find Employees',
+			description: 'Search through employee directory',
+			icon: '👥',
+			group: 'Navigation'
 		},
 		{
 			id: 2,
-			title: "View Reports",
-			description: "Access analytics and reports",
-			icon: "📊",
-			group: "Navigation"
+			title: 'View Reports',
+			description: 'Access analytics and reports',
+			icon: '📊',
+			group: 'Navigation'
 		},
 		{
 			id: 3,
-			title: "Calendar Events",
-			description: "Check upcoming meetings",
-			icon: "📅",
-			group: "Navigation"
+			title: 'Calendar Events',
+			description: 'Check upcoming meetings',
+			icon: '📅',
+			group: 'Navigation'
 		},
 		{
 			id: 4,
-			title: "Settings",
-			description: "Manage your preferences",
-			icon: "⚙️",
-			group: "Navigation"
+			title: 'Settings',
+			description: 'Manage your preferences',
+			icon: '⚙️',
+			group: 'Navigation'
 		},
 		{
 			id: 5,
-			title: "Submit Time Off",
-			description: "Request vacation or sick leave",
-			icon: "🏖️",
-			group: "Actions"
+			title: 'Submit Time Off',
+			description: 'Request vacation or sick leave',
+			icon: '🏖️',
+			group: 'Actions'
 		},
 		{
 			id: 6,
-			title: "Performance Review",
-			description: "View or submit performance data",
-			icon: "⭐",
-			group: "Actions"
+			title: 'Performance Review',
+			description: 'View or submit performance data',
+			icon: '⭐',
+			group: 'Actions'
 		},
 		{
 			id: 7,
-			title: "Payroll",
-			description: "View pay stubs and tax info",
-			icon: "💰",
-			group: "Employee"
+			title: 'Payroll',
+			description: 'View pay stubs and tax info',
+			icon: '💰',
+			group: 'Employee'
 		},
 		{
 			id: 8,
-			title: "Benefits",
-			description: "Manage health and insurance",
-			icon: "🏥",
-			group: "Employee"
+			title: 'Benefits',
+			description: 'Manage health and insurance',
+			icon: '🏥',
+			group: 'Employee'
 		}
 	];
 
 	let filteredItems = $derived(
-		searchItems.filter(item => 
-			item.title.toLowerCase().includes((value || "").toLowerCase()) ||
-			item.description.toLowerCase().includes((value || "").toLowerCase())
+		searchItems.filter(
+			(item) =>
+				item.title.toLowerCase().includes((value || '').toLowerCase()) ||
+				item.description.toLowerCase().includes((value || '').toLowerCase())
 		)
 	);
 
 	let groupedItems = $derived.by(() => {
 		const groups: Record<string, typeof searchItems> = {};
-		filteredItems.forEach(item => {
+		filteredItems.forEach((item) => {
 			if (!groups[item.group]) {
 				groups[item.group] = [];
 			}
@@ -94,9 +95,9 @@
 		return groups;
 	});
 
-	function handleSelect(item: typeof searchItems[0]) {
+	function handleSelect(item: (typeof searchItems)[0]) {
 		dispatch('select', { item });
-		value = "";
+		value = '';
 		showPalette = false;
 	}
 
@@ -114,8 +115,8 @@
 </script>
 
 <div class="relative w-80">
-	<Command.Root 
-		bind:value 
+	<Command.Root
+		bind:value
 		onValueChange={(newValue) => {
 			value = newValue;
 			onValueChange?.(newValue);
@@ -133,17 +134,17 @@
 		class="command-search-root {className}"
 		{...restProps}
 	>
-		<Command.Input 
-			{placeholder}
-			class="command-search-input"
-		/>
-		
-		<Command.List class="command-search-list" style={showPalette ? "display: block;" : "display: none;"}>
+		<Command.Input {placeholder} class="command-search-input" />
+
+		<Command.List
+			class="command-search-list"
+			style={showPalette ? 'display: block;' : 'display: none;'}
+		>
 			{#if Object.keys(groupedItems).length > 0}
 				{#each Object.entries(groupedItems) as [groupName, items] (groupName)}
 					<Command.Group heading={groupName}>
 						{#each items as item (item.id)}
-							<Command.Item 
+							<Command.Item
 								value={item.title}
 								class="command-search-item"
 								onclick={() => handleSelect(item)}
@@ -173,7 +174,7 @@
 	}
 
 	/* Input wrapper from shadcn */
-	:global([data-slot="command-input-wrapper"]) {
+	:global([data-slot='command-input-wrapper']) {
 		background: rgba(255, 255, 255, 0.2) !important;
 		backdrop-filter: blur(12px) !important;
 		border: 1px solid rgba(255, 255, 255, 0.3) !important;
@@ -187,14 +188,16 @@
 		gap: 0.75rem !important;
 	}
 
-	:global([data-slot="command-input-wrapper"]:focus-within) {
+	:global([data-slot='command-input-wrapper']:focus-within) {
 		background: rgba(255, 255, 255, 0.9) !important;
 		border: 1px solid rgba(255, 255, 255, 0.6) !important;
-		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+		box-shadow:
+			0 25px 50px -12px rgba(0, 0, 0, 0.25),
+			0 0 0 1px rgba(255, 255, 255, 0.1) !important;
 	}
 
 	/* Input styling */
-	:global([data-slot="command-input"]) {
+	:global([data-slot='command-input']) {
 		background: transparent !important;
 		border: none !important;
 		outline: none !important;
@@ -223,10 +226,12 @@
 		z-index: 50;
 		opacity: 0;
 		transform: translateX(20px) translateY(-5px);
-		transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+		transition:
+			opacity 0.3s ease-out,
+			transform 0.3s ease-out;
 	}
 
-	:global(.command-search-list[style*="display: block"]) {
+	:global(.command-search-list[style*='display: block']) {
 		opacity: 1;
 		transform: translateX(0) translateY(0);
 	}
@@ -245,7 +250,7 @@
 	}
 
 	:global(.command-search-item:hover),
-	:global(.command-search-item[aria-selected="true"]) {
+	:global(.command-search-item[aria-selected='true']) {
 		background: rgba(255, 255, 255, 0.3) !important;
 		color: inherit !important;
 	}
@@ -273,11 +278,11 @@
 	}
 
 	/* Group headings */
-	:global([data-slot="command-group"]) {
+	:global([data-slot='command-group']) {
 		background: transparent !important;
 	}
 
-	:global([data-slot="command-group"] .text-muted-foreground) {
+	:global([data-slot='command-group'] .text-muted-foreground) {
 		color: rgb(156 163 175) !important;
 		font-weight: 600 !important;
 		text-transform: uppercase !important;
@@ -287,7 +292,7 @@
 	}
 
 	/* Empty state */
-	:global([data-slot="command-empty"]) {
+	:global([data-slot='command-empty']) {
 		padding: 1.5rem;
 		text-align: center;
 		color: rgb(156 163 175);
@@ -295,10 +300,10 @@
 	}
 
 	/* Override any bits-ui defaults */
-	:global([data-slot="command"]),
-	:global([data-slot="command-list"]),
-	:global([data-slot="command-group"]),
-	:global([data-slot="command-item"]) {
+	:global([data-slot='command']),
+	:global([data-slot='command-list']),
+	:global([data-slot='command-group']),
+	:global([data-slot='command-item']) {
 		background: transparent !important;
 		border: none !important;
 	}

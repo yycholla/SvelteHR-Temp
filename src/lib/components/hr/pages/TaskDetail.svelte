@@ -32,13 +32,13 @@
 		try {
 			const response = await taskApi.getById(taskId);
 			task = response.data;
-			
+
 			// Load employee details
 			if (task.assigned_to) {
 				const assignedResponse = await employeeApi.getById(task.assigned_to);
 				assignedEmployee = assignedResponse.data;
 			}
-			
+
 			if (task.assigned_by) {
 				const assignedByResponse = await employeeApi.getById(task.assigned_by);
 				assignedByEmployee = assignedByResponse.data;
@@ -52,15 +52,15 @@
 
 	async function updateTaskStatus(newStatus: Task['status']) {
 		if (!task) return;
-		
+
 		updatingStatus = true;
 		try {
 			const response = await taskApi.updateStatus(task.id, newStatus);
 			const updatedTask = response.data;
 			task = updatedTask;
-			
+
 			notifications.success(`Task status updated to ${newStatus.replace('_', ' ')}`);
-			
+
 			if (onStatusChange) {
 				onStatusChange(updatedTask, newStatus);
 			}
@@ -125,7 +125,7 @@
 		const now = new Date();
 		const diffInMs = target.getTime() - now.getTime();
 		const diffInDays = Math.ceil(diffInMs / (1000 * 60 * 60 * 24));
-		
+
 		if (diffInDays < 0) {
 			return `${Math.abs(diffInDays)} days overdue`;
 		} else if (diffInDays === 0) {
@@ -151,13 +151,13 @@
 
 {#if loading}
 	<div class="space-y-6">
-		<div class="placeholder animate-pulse h-8 w-64 rounded"></div>
-		<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-			<div class="lg:col-span-2 space-y-6">
+		<div class="h-8 placeholder w-64 animate-pulse rounded"></div>
+		<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+			<div class="space-y-6 lg:col-span-2">
 				<div class="card p-6">
 					<div class="space-y-4">
 						{#each Array(6) as _}
-							<div class="placeholder animate-pulse h-4 w-full rounded"></div>
+							<div class="h-4 placeholder w-full animate-pulse rounded"></div>
 						{/each}
 					</div>
 				</div>
@@ -166,7 +166,7 @@
 				<div class="card p-6">
 					<div class="space-y-4">
 						{#each Array(4) as _}
-							<div class="placeholder animate-pulse h-4 w-full rounded"></div>
+							<div class="h-4 placeholder w-full animate-pulse rounded"></div>
 						{/each}
 					</div>
 				</div>
@@ -176,51 +176,45 @@
 {:else if task}
 	<div class="space-y-6">
 		<!-- Header -->
-		<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+		<div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
 			<div class="flex-1">
-				<h1 class="h1 font-bold mb-2">{task.title}</h1>
-				<div class="flex flex-wrap gap-2 items-center">
+				<h1 class="mb-2 h1 font-bold">{task.title}</h1>
+				<div class="flex flex-wrap items-center gap-2">
 					<span class="badge {getStatusBadgeClass(task.status)}">
 						{task.status.replace('_', ' ')}
 					</span>
 					<span class="badge {getPriorityBadgeClass(task.priority)}">
 						{task.priority} priority
 					</span>
-					<span class="badge variant-soft">
+					<span class="variant-soft badge">
 						{task.category}
 					</span>
 					{#if isOverdue(task.due_date, task.status)}
-						<span class="badge variant-filled-error">
-							Overdue
-						</span>
+						<span class="variant-filled-error badge"> Overdue </span>
 					{/if}
 				</div>
 			</div>
-			
+
 			<div class="flex gap-2">
 				{#if onEdit}
-					<button class="btn variant-filled-primary" on:click={handleEdit}>
-						Edit
-					</button>
+					<button class="variant-filled-primary btn" on:click={handleEdit}> Edit </button>
 				{/if}
 				{#if onDelete}
-					<button class="btn variant-filled-error" on:click={handleDelete}>
-						Delete
-					</button>
+					<button class="variant-filled-error btn" on:click={handleDelete}> Delete </button>
 				{/if}
 			</div>
 		</div>
 
-		<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+		<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
 			<!-- Main Content -->
-			<div class="lg:col-span-2 space-y-6">
+			<div class="space-y-6 lg:col-span-2">
 				<!-- Description -->
 				<div class="card">
 					<header class="card-header">
 						<h3 class="h3 font-semibold">Description</h3>
 					</header>
 					<section class="p-6">
-						<div class="prose prose-sm max-w-none dark:prose-invert">
+						<div class="prose prose-sm dark:prose-invert max-w-none">
 							<p class="whitespace-pre-wrap">{task.description}</p>
 						</div>
 					</section>
@@ -232,60 +226,65 @@
 						<h3 class="h3 font-semibold">Task Information</h3>
 					</header>
 					<section class="p-6">
-						<div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+						<div class="grid grid-cols-1 gap-6 text-sm md:grid-cols-2">
 							<div>
-								<span class="font-semibold text-surface-600-300-token">Assigned To:</span>
+								<span class="text-surface-600-300-token font-semibold">Assigned To:</span>
 								<div class="mt-1 text-base">
-									{assignedEmployee ? `${assignedEmployee.first_name} ${assignedEmployee.last_name}` : 'Unknown'}
+									{assignedEmployee
+										? `${assignedEmployee.first_name} ${assignedEmployee.last_name}`
+										: 'Unknown'}
 									{#if assignedEmployee}
-										<div class="text-xs text-surface-600-300-token">
+										<div class="text-surface-600-300-token text-xs">
 											{assignedEmployee.department} • {assignedEmployee.position}
 										</div>
 									{/if}
 								</div>
 							</div>
-							
+
 							{#if assignedByEmployee}
 								<div>
-									<span class="font-semibold text-surface-600-300-token">Assigned By:</span>
+									<span class="text-surface-600-300-token font-semibold">Assigned By:</span>
 									<div class="mt-1 text-base">
-										{assignedByEmployee.first_name} {assignedByEmployee.last_name}
-										<div class="text-xs text-surface-600-300-token">
+										{assignedByEmployee.first_name}
+										{assignedByEmployee.last_name}
+										<div class="text-surface-600-300-token text-xs">
 											{assignedByEmployee.department} • {assignedByEmployee.position}
 										</div>
 									</div>
 								</div>
 							{/if}
-							
+
 							<div>
-								<span class="font-semibold text-surface-600-300-token">Due Date:</span>
+								<span class="text-surface-600-300-token font-semibold">Due Date:</span>
 								<div class="mt-1 text-base">
 									{new Date(task.due_date).toLocaleDateString()}
-									<div class="text-xs" 
+									<div
+										class="text-xs"
 										class:text-error-500={isOverdue(task.due_date, task.status)}
-										class:text-warning-500={!isOverdue(task.due_date, task.status) && getTimeDifference(task.due_date).includes('today')}
+										class:text-warning-500={!isOverdue(task.due_date, task.status) &&
+											getTimeDifference(task.due_date).includes('today')}
 									>
 										{getTimeDifference(task.due_date)}
 									</div>
 								</div>
 							</div>
-							
+
 							<div>
-								<span class="font-semibold text-surface-600-300-token">Created:</span>
+								<span class="text-surface-600-300-token font-semibold">Created:</span>
 								<div class="mt-1 text-base">
 									{new Date(task.created_at).toLocaleDateString()}
-									<div class="text-xs text-surface-600-300-token">
+									<div class="text-surface-600-300-token text-xs">
 										{new Date(task.created_at).toLocaleTimeString()}
 									</div>
 								</div>
 							</div>
-							
+
 							{#if task.completed_at}
 								<div>
-									<span class="font-semibold text-surface-600-300-token">Completed:</span>
+									<span class="text-surface-600-300-token font-semibold">Completed:</span>
 									<div class="mt-1 text-base">
 										{new Date(task.completed_at).toLocaleDateString()}
-										<div class="text-xs text-surface-600-300-token">
+										<div class="text-surface-600-300-token text-xs">
 											{new Date(task.completed_at).toLocaleTimeString()}
 										</div>
 									</div>
@@ -303,13 +302,13 @@
 					<header class="card-header">
 						<h3 class="h3 font-semibold">Status</h3>
 					</header>
-					<section class="p-6 space-y-4">
+					<section class="space-y-4 p-6">
 						<div class="text-center">
-							<div class="badge {getStatusBadgeClass(task.status)} text-lg px-4 py-2">
+							<div class="badge {getStatusBadgeClass(task.status)} px-4 py-2 text-lg">
 								{task.status.replace('_', ' ')}
 							</div>
 						</div>
-						
+
 						<div class="space-y-2">
 							<label class="label text-sm">Update Status:</label>
 							<div class="grid grid-cols-1 gap-2">
@@ -337,30 +336,24 @@
 					<header class="card-header">
 						<h3 class="h3 font-semibold">Details</h3>
 					</header>
-					<section class="p-6 space-y-4">
+					<section class="space-y-4 p-6">
 						<div>
-							<div class="text-sm font-semibold text-surface-600-300-token mb-2">
-								Priority
-							</div>
+							<div class="text-surface-600-300-token mb-2 text-sm font-semibold">Priority</div>
 							<div class="badge {getPriorityBadgeClass(task.priority)} capitalize">
 								{task.priority}
 							</div>
 						</div>
-						
+
 						<div>
-							<div class="text-sm font-semibold text-surface-600-300-token mb-2">
-								Category
-							</div>
-							<div class="badge variant-soft">
+							<div class="text-surface-600-300-token mb-2 text-sm font-semibold">Category</div>
+							<div class="variant-soft badge">
 								{task.category}
 							</div>
 						</div>
-						
+
 						<div>
-							<div class="text-sm font-semibold text-surface-600-300-token mb-1">
-								Task ID
-							</div>
-							<div class="font-mono text-xs bg-surface-100-800-token px-2 py-1 rounded">
+							<div class="text-surface-600-300-token mb-1 text-sm font-semibold">Task ID</div>
+							<div class="bg-surface-100-800-token rounded px-2 py-1 font-mono text-xs">
 								{task.id}
 							</div>
 						</div>
@@ -373,22 +366,25 @@
 						<header class="card-header">
 							<h3 class="h3 font-semibold">Assignee</h3>
 						</header>
-						<section class="p-6 space-y-3">
+						<section class="space-y-3 p-6">
 							<div class="flex items-center gap-3">
-								<div class="avatar bg-primary-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold">
+								<div
+									class="avatar flex h-10 w-10 items-center justify-center rounded-full bg-primary-500 font-bold text-white"
+								>
 									{assignedEmployee.first_name[0]}{assignedEmployee.last_name[0]}
 								</div>
 								<div>
 									<div class="font-semibold">
-										{assignedEmployee.first_name} {assignedEmployee.last_name}
+										{assignedEmployee.first_name}
+										{assignedEmployee.last_name}
 									</div>
-									<div class="text-sm text-surface-600-300-token">
+									<div class="text-surface-600-300-token text-sm">
 										{assignedEmployee.position}
 									</div>
 								</div>
 							</div>
-							
-							<div class="text-sm space-y-1">
+
+							<div class="space-y-1 text-sm">
 								<div>
 									<span class="font-semibold">Department:</span>
 									{assignedEmployee.department}
@@ -408,10 +404,8 @@
 	</div>
 {:else}
 	<div class="card p-8 text-center">
-		<h2 class="h2 mb-4">Task Not Found</h2>
-		<p class="text-surface-600-300-token">
-			The task you're looking for could not be found.
-		</p>
+		<h2 class="mb-4 h2">Task Not Found</h2>
+		<p class="text-surface-600-300-token">The task you're looking for could not be found.</p>
 	</div>
 {/if}
 

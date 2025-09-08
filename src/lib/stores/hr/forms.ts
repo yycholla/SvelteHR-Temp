@@ -88,24 +88,42 @@ function createFormStore<T extends Record<string, any>>(
 	// Return reactive interface
 	return {
 		// Derived values
-		get data() { return formState.data; },
-		get errors() { return formState.errors; },
-		get touched() { return formState.touched; },
-		get isValid() { return formState.isValid; },
-		get isSubmitting() { return formState.isSubmitting; },
-		get isDirty() { return formState.isDirty; },
+		get data() {
+			return formState.data;
+		},
+		get errors() {
+			return formState.errors;
+		},
+		get touched() {
+			return formState.touched;
+		},
+		get isValid() {
+			return formState.isValid;
+		},
+		get isSubmitting() {
+			return formState.isSubmitting;
+		},
+		get isDirty() {
+			return formState.isDirty;
+		},
 
 		// Computed derived values using getters (reactive)
-		get hasErrors() { return Object.keys(formState.errors).length > 0; },
-		get touchedFields() { return Object.keys(formState.touched); },
-		get errorCount() { return Object.keys(formState.errors).length; },
+		get hasErrors() {
+			return Object.keys(formState.errors).length > 0;
+		},
+		get touchedFields() {
+			return Object.keys(formState.touched);
+		},
+		get errorCount() {
+			return Object.keys(formState.errors).length;
+		},
 
 		// Actions
 		updateField: (fieldName: keyof T, value: any) => {
 			const newData = { ...formState.data, [fieldName]: value };
 			const fieldErrors = validateField(fieldName, value);
 			const newErrors = { ...formState.errors };
-			
+
 			if (fieldErrors.length > 0) {
 				newErrors[fieldName as string] = fieldErrors;
 			} else {
@@ -153,7 +171,7 @@ function createFormStore<T extends Record<string, any>>(
 		validate: () => {
 			const errors = validateForm(formState.data);
 			const allTouched: Record<string, boolean> = {};
-			
+
 			// Mark all fields as touched during validation
 			for (const key in formState.data) {
 				allTouched[key] = true;

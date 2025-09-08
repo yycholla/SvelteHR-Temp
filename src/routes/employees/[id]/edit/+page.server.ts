@@ -17,7 +17,7 @@ export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 	try {
 		if (token) {
 			console.log(`🔍 Fetching employee ${id} and form data from API...`);
-			
+
 			// Create server-side API client with proper token handling
 			const serverApiClient = ky.create({
 				prefixUrl: PUBLIC_API_URL,
@@ -43,44 +43,49 @@ export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 			const cachedDepartments = apiCache.get(CACHE_KEYS.DEPARTMENTS);
 			const cachedRoles = apiCache.get(CACHE_KEYS.ROLES);
 			const cachedManagers = apiCache.get('MANAGERS');
-			
+
 			// Fetch employee data and form options in parallel (skip if cached)
 			const apiCalls: Promise<any>[] = [];
-			
+
 			if (!cachedEmployee) {
 				apiCalls.push(serverApiClient.get(`employees/${id}`).json());
 			} else {
 				apiCalls.push(Promise.resolve(cachedEmployee));
 			}
-			
+
 			if (!cachedDepartments) {
 				apiCalls.push(serverApiClient.get('departments').json());
 			} else {
 				apiCalls.push(Promise.resolve(cachedDepartments));
 			}
-			
+
 			if (!cachedRoles) {
 				apiCalls.push(serverApiClient.get('roles').json());
 			} else {
 				apiCalls.push(Promise.resolve(cachedRoles));
 			}
-			
+
 			if (!cachedManagers) {
 				// Fetch employees with manager roles or who are marked as managers
 				apiCalls.push(serverApiClient.get('managers').json());
 			} else {
 				apiCalls.push(Promise.resolve(cachedManagers));
 			}
-			
-			const [employeeResponse, departmentsResponse, rolesResponse, managersResponse] = await Promise.allSettled(apiCalls);
+
+			const [employeeResponse, departmentsResponse, rolesResponse, managersResponse] =
+				await Promise.allSettled(apiCalls);
 
 			// Check if critical API calls were successful (managers is optional)
-			if (employeeResponse.status === 'fulfilled' && 
-			    departmentsResponse.status === 'fulfilled' && 
-			    rolesResponse.status === 'fulfilled') {
-				
+			if (
+				employeeResponse.status === 'fulfilled' &&
+				departmentsResponse.status === 'fulfilled' &&
+				rolesResponse.status === 'fulfilled'
+			) {
 				console.log(`✅ Employee ${id} and form data fetched from API`);
-				console.log('🔍 Raw API Response for employee:', JSON.stringify(employeeResponse.value, null, 2));
+				console.log(
+					'🔍 Raw API Response for employee:',
+					JSON.stringify(employeeResponse.value, null, 2)
+				);
 				console.log('🔍 API Response keys:', Object.keys(employeeResponse.value));
 				console.log('🔍 Sample API fields:', {
 					middleName: employeeResponse.value.middleName,
@@ -94,7 +99,7 @@ export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 				const employee = cachedEmployee || employeeSchema.parse(employeeResponse.value);
 				const departments = cachedDepartments || departmentsResponse.value;
 				const roles = cachedRoles || rolesResponse.value;
-				
+
 				// Extract managers from managers endpoint or use cached data
 				let managers = [];
 				if (cachedManagers) {
@@ -102,7 +107,7 @@ export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 				} else if (managersResponse.status === 'fulfilled') {
 					managers = managersResponse.value || [];
 				}
-				
+
 				console.log('🔍 Schema-transformed employee (edit):', JSON.stringify(employee, null, 2));
 				console.log('🔍 Schema-transformed keys (edit):', Object.keys(employee));
 				console.log('🔍 Schema-transformed sample fields (edit):', {
@@ -112,7 +117,7 @@ export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 					payRate: employee.payRate,
 					payType: employee.payType
 				});
-				
+
 				// Cache the results for future requests
 				if (!cachedEmployee) {
 					apiCache.set(CACHE_KEYS.EMPLOYEE_DETAIL, employee, { id }, CACHE_TTL.MEDIUM);
@@ -154,7 +159,7 @@ export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 				if (managersResponse.status === 'rejected') {
 					console.error(`❌ Managers API error:`, managersResponse.reason);
 				}
-				
+
 				// Throw error for failed API calls
 				throw error(500, {
 					message: 'Failed to load required data from API'
@@ -163,12 +168,12 @@ export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 		}
 	} catch (err: any) {
 		console.error(`❌ Failed to fetch employee ${id} for editing:`, err);
-		
+
 		// Re-throw SvelteKit errors
 		if (err.status) {
 			throw err;
 		}
-		
+
 		// Handle API errors
 		if (err.response?.status === 404) {
 			throw error(404, {
@@ -180,7 +185,7 @@ export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 				message: `API Error: ${err.message || 'Failed to fetch employee'}`
 			});
 		}
-		
+
 		throw error(500, {
 			message: 'Unexpected error occurred'
 		});
@@ -203,33 +208,36 @@ export const actions: Actions = {
 
 		try {
 			const formData = await request.formData();
-			
+
 			// Extract form data
 			const payload = {
 				firstName: formData.get('firstName') as string,
 				lastName: formData.get('lastName') as string,
-				middleName: formData.get('middleName') as string || null,
+				middleName: (formData.get('middleName') as string) || null,
 				email: formData.get('email') as string,
-				phoneNumber: formData.get('phoneNumber') as string || null,
-				workPhoneNumber: formData.get('workPhoneNumber') as string || null,
-				addressStreet: formData.get('addressStreet') as string || null,
-				addressCity: formData.get('addressCity') as string || null,
-				addressState: formData.get('addressState') as string || null,
-				addressZip: formData.get('addressZip') as string || null,
-				emergencyContactName: formData.get('emergencyContactName') as string || null,
-				emergencyContactRelationship: formData.get('emergencyContactRelationship') as string || null,
-				emergencyContactPhone: formData.get('emergencyContactPhone') as string || null,
+				phoneNumber: (formData.get('phoneNumber') as string) || null,
+				workPhoneNumber: (formData.get('workPhoneNumber') as string) || null,
+				addressStreet: (formData.get('addressStreet') as string) || null,
+				addressCity: (formData.get('addressCity') as string) || null,
+				addressState: (formData.get('addressState') as string) || null,
+				addressZip: (formData.get('addressZip') as string) || null,
+				emergencyContactName: (formData.get('emergencyContactName') as string) || null,
+				emergencyContactRelationship:
+					(formData.get('emergencyContactRelationship') as string) || null,
+				emergencyContactPhone: (formData.get('emergencyContactPhone') as string) || null,
 				jobTitle: formData.get('jobTitle') as string,
-				departmentId: formData.get('departmentId') ? parseInt(formData.get('departmentId') as string) : null,
+				departmentId: formData.get('departmentId')
+					? parseInt(formData.get('departmentId') as string)
+					: null,
 				roleId: formData.get('roleId') ? parseInt(formData.get('roleId') as string) : null,
 				managerId: formData.get('managerId') ? parseInt(formData.get('managerId') as string) : null,
-				employmentType: formData.get('employmentType') as string || null,
-				hireDate: formData.get('hireDate') as string || null,
-				dateOfBirth: formData.get('dateOfBirth') as string || null,
-				gender: formData.get('gender') as string || null,
-				payType: formData.get('payType') as string || null,
+				employmentType: (formData.get('employmentType') as string) || null,
+				hireDate: (formData.get('hireDate') as string) || null,
+				dateOfBirth: (formData.get('dateOfBirth') as string) || null,
+				gender: (formData.get('gender') as string) || null,
+				payType: (formData.get('payType') as string) || null,
 				payRate: formData.get('payRate') ? parseFloat(formData.get('payRate') as string) : null,
-				workAuthorizationStatus: formData.get('workAuthorizationStatus') as string || null
+				workAuthorizationStatus: (formData.get('workAuthorizationStatus') as string) || null
 			};
 
 			console.log('🔄 Saving employee via server action:', payload);
@@ -248,27 +256,28 @@ export const actions: Actions = {
 			});
 
 			// Make API call to update employee
-			const updatedEmployee = await serverApiClient.put(`employees/${id}`, {
-				json: payload
-			}).json();
+			const updatedEmployee = await serverApiClient
+				.put(`employees/${id}`, {
+					json: payload
+				})
+				.json();
 
 			console.log('✅ Employee updated successfully:', updatedEmployee);
-			
+
 			// Invalidate employee caches since data has been updated
 			apiCache.invalidatePattern(CACHE_KEYS.EMPLOYEES); // Clear all employee list caches
 			apiCache.invalidate(CACHE_KEYS.EMPLOYEE_DETAIL, { id }); // Clear specific employee detail cache
 			console.log('🗑️ Employee caches invalidated after update');
-
 		} catch (err: any) {
 			console.error('❌ Failed to save employee:', err);
-			
+
 			// Handle API errors
 			if (err.response?.status >= 400) {
 				throw error(err.response.status, {
 					message: `Failed to update employee: ${err.message}`
 				});
 			}
-			
+
 			throw error(500, {
 				message: 'Failed to save employee changes'
 			});

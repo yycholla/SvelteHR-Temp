@@ -1,11 +1,7 @@
 import { z } from 'zod';
 
 // Priority enum (based on API schema)
-export const prioritySchema = z.enum([
-	'Low',
-	'Medium',
-	'High'
-]);
+export const prioritySchema = z.enum(['Low', 'Medium', 'High']);
 
 // HR Request schema (based on actual API response structure)
 export const hrRequestSchema = z.object({
@@ -33,35 +29,39 @@ export const hrRequestResponseSchema = z.object({
 });
 
 // Create HR Request schema
-export const createHRRequestSchema = hrRequestSchema.omit({
-	id: true,
-	createdAt: true,
-	updatedAt: true,
-}).extend({
-	employeeId: z.number().min(1, 'Employee ID is required'),
-	type: z.string().min(1, 'Request type is required'),
-	subject: z.string().min(1, 'Subject is required'),
-	description: z.string().min(1, 'Description is required'),
-	status: z.string().default('Open'),
-	priority: prioritySchema.default('Medium'),
-});
+export const createHRRequestSchema = hrRequestSchema
+	.omit({
+		id: true,
+		createdAt: true,
+		updatedAt: true
+	})
+	.extend({
+		employeeId: z.number().min(1, 'Employee ID is required'),
+		type: z.string().min(1, 'Request type is required'),
+		subject: z.string().min(1, 'Subject is required'),
+		description: z.string().min(1, 'Description is required'),
+		status: z.string().default('Open'),
+		priority: prioritySchema.default('Medium')
+	});
 
 // Update HR Request schema
 export const updateHRRequestSchema = createHRRequestSchema.partial().extend({
-	id: z.number(),
+	id: z.number()
 });
 
 // Create HR Request Response schema
-export const createHRRequestResponseSchema = hrRequestResponseSchema.omit({
-	id: true,
-	createdAt: true,
-	updatedAt: true,
-}).extend({
-	hrRequestId: z.number().min(1, 'HR Request ID is required'),
-	responderId: z.number().min(1, 'Responder ID is required'),
-	response: z.string().min(1, 'Response is required'),
-	isInternal: z.boolean().default(false),
-});
+export const createHRRequestResponseSchema = hrRequestResponseSchema
+	.omit({
+		id: true,
+		createdAt: true,
+		updatedAt: true
+	})
+	.extend({
+		hrRequestId: z.number().min(1, 'HR Request ID is required'),
+		responderId: z.number().min(1, 'Responder ID is required'),
+		response: z.string().min(1, 'Response is required'),
+		isInternal: z.boolean().default(false)
+	});
 
 // HR Request filter schema
 export const hrRequestFilterSchema = z.object({
@@ -75,41 +75,47 @@ export const hrRequestFilterSchema = z.object({
 	page: z.number().min(1).default(1),
 	pageSize: z.number().min(1).max(100).default(20),
 	sort: z.enum(['subject', 'priority', 'status', 'createdAt']).default('createdAt'),
-	order: z.enum(['ASC', 'DESC']).default('DESC'),
+	order: z.enum(['ASC', 'DESC']).default('DESC')
 });
 
 // HR Request list response schema
-export const hrRequestListResponseSchema = z.object({
-	data: z.array(hrRequestSchema),
-	page: z.number(),
-	pageSize: z.number(),
-	total: z.number(),
-	totalPages: z.number(),
-	hasMore: z.boolean()
-}).transform((response) => ({
-	hrRequests: response.data,
-	totalCount: response.total,
-	page: response.page,
-	limit: response.pageSize,
-	totalPages: response.totalPages,
-	hasMore: response.hasMore
-}));
+export const hrRequestListResponseSchema = z
+	.object({
+		data: z.array(hrRequestSchema),
+		page: z.number(),
+		pageSize: z.number(),
+		total: z.number(),
+		totalPages: z.number(),
+		hasMore: z.boolean()
+	})
+	.transform((response) => ({
+		hrRequests: response.data,
+		totalCount: response.total,
+		page: response.page,
+		limit: response.pageSize,
+		totalPages: response.totalPages,
+		hasMore: response.hasMore
+	}));
 
 // HR Request with responses schema (for detailed view)
 export const hrRequestWithResponsesSchema = hrRequestSchema.extend({
 	responses: z.array(hrRequestResponseSchema).optional(),
-	employee: z.object({
-		id: z.number(),
-		firstName: z.string(),
-		lastName: z.string(),
-		email: z.string().optional(),
-	}).optional(),
-	assignedTo: z.object({
-		id: z.number(),
-		firstName: z.string(),
-		lastName: z.string(),
-		email: z.string().optional(),
-	}).optional(),
+	employee: z
+		.object({
+			id: z.number(),
+			firstName: z.string(),
+			lastName: z.string(),
+			email: z.string().optional()
+		})
+		.optional(),
+	assignedTo: z
+		.object({
+			id: z.number(),
+			firstName: z.string(),
+			lastName: z.string(),
+			email: z.string().optional()
+		})
+		.optional()
 });
 
 // Common HR Request types enum

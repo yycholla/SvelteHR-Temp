@@ -1,6 +1,6 @@
-import Alert from "./alert.svelte";
-import AlertDescription from "./alert-description.svelte";
-import AlertTitle from "./alert-title.svelte";
+import Alert from './alert.svelte';
+import AlertDescription from './alert-description.svelte';
+import AlertTitle from './alert-title.svelte';
 
 export {
 	Alert,
@@ -9,7 +9,7 @@ export {
 	//
 	Alert as Root,
 	AlertDescription as Description,
-	AlertTitle as Title,
+	AlertTitle as Title
 };
 
-export type { AlertProps, AlertVariant } from "./alert.svelte";
+export type { AlertProps, AlertVariant } from './alert.svelte';
