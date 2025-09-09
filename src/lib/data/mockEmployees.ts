@@ -69,7 +69,8 @@ export const mockEmployees: Employee[] = [
 		lastName: 'Johnson',
 		email: 'sarah.johnson@company.com',
 		phone: '+1 (555) 123-4567',
-		avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=400&h=400&fit=crop&crop=face',
+		avatar:
+			'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=400&h=400&fit=crop&crop=face',
 		position: positions[1], // Senior Software Engineer
 		department: departments[0], // Engineering
 		status: 'ACTIVE',
@@ -84,7 +85,8 @@ export const mockEmployees: Employee[] = [
 		lastName: 'Chen',
 		email: 'michael.chen@company.com',
 		phone: '+1 (555) 234-5678',
-		avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face',
+		avatar:
+			'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face',
 		position: positions[3], // Engineering Manager
 		department: departments[0], // Engineering
 		status: 'ACTIVE',
@@ -99,7 +101,8 @@ export const mockEmployees: Employee[] = [
 		lastName: 'Davis',
 		email: 'emily.davis@company.com',
 		phone: '+1 (555) 345-6789',
-		avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&crop=face',
+		avatar:
+			'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&crop=face',
 		position: positions[13], // HR Manager
 		department: departments[1], // Human Resources
 		status: 'ACTIVE',
@@ -114,7 +117,8 @@ export const mockEmployees: Employee[] = [
 		lastName: 'Wilson',
 		email: 'david.wilson@company.com',
 		phone: '+1 (555) 456-7890',
-		avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face',
+		avatar:
+			'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face',
 		position: positions[6], // Senior Designer
 		department: departments[6], // Design
 		status: 'ACTIVE',
@@ -129,7 +133,8 @@ export const mockEmployees: Employee[] = [
 		lastName: 'Martinez',
 		email: 'jessica.martinez@company.com',
 		phone: '+1 (555) 567-8901',
-		avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop&crop=face',
+		avatar:
+			'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop&crop=face',
 		position: positions[9], // Marketing Manager
 		department: departments[2], // Marketing
 		status: 'ON_LEAVE',
@@ -144,7 +149,8 @@ export const mockEmployees: Employee[] = [
 		lastName: 'Brown',
 		email: 'robert.brown@company.com',
 		phone: '+1 (555) 678-9012',
-		avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop&crop=face',
+		avatar:
+			'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop&crop=face',
 		position: positions[11], // Sales Manager
 		department: departments[3], // Sales
 		status: 'ACTIVE',
@@ -159,7 +165,8 @@ export const mockEmployees: Employee[] = [
 		lastName: 'Thompson',
 		email: 'amanda.thompson@company.com',
 		phone: '+1 (555) 789-0123',
-		avatar: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=400&h=400&fit=crop&crop=face',
+		avatar:
+			'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=400&h=400&fit=crop&crop=face',
 		position: positions[14], // Financial Analyst
 		department: departments[4], // Finance
 		status: 'ACTIVE',
@@ -174,7 +181,8 @@ export const mockEmployees: Employee[] = [
 		lastName: 'Lee',
 		email: 'kevin.lee@company.com',
 		phone: '+1 (555) 890-1234',
-		avatar: 'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=400&h=400&fit=crop&crop=face',
+		avatar:
+			'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=400&h=400&fit=crop&crop=face',
 		position: positions[0], // Software Engineer
 		department: departments[0], // Engineering
 		status: 'ACTIVE',
@@ -189,7 +197,8 @@ export const mockEmployees: Employee[] = [
 		lastName: 'Garcia',
 		email: 'lisa.garcia@company.com',
 		phone: '+1 (555) 901-2345',
-		avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop&crop=face',
+		avatar:
+			'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop&crop=face',
 		position: positions[17], // Operations Manager
 		department: departments[5], // Operations
 		status: 'ACTIVE',
@@ -204,7 +213,8 @@ export const mockEmployees: Employee[] = [
 		lastName: 'Anderson',
 		email: 'james.anderson@company.com',
 		phone: '+1 (555) 012-3456',
-		avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop&crop=face',
+		avatar:
+			'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop&crop=face',
 		position: positions[4], // Product Manager
 		department: departments[0], // Engineering
 		status: 'ACTIVE',
@@ -219,7 +229,8 @@ export const mockEmployees: Employee[] = [
 		lastName: 'White',
 		email: 'sophia.white@company.com',
 		phone: '+1 (555) 123-4567',
-		avatar: 'https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?w=400&h=400&fit=crop&crop=face',
+		avatar:
+			'https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?w=400&h=400&fit=crop&crop=face',
 		position: positions[5], // Designer
 		department: departments[6], // Design
 		status: 'ACTIVE',

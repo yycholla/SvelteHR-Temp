@@ -1,9 +1,9 @@
-import Textarea from "./textarea.svelte";
+import Textarea from './textarea.svelte';
 
 export {
 	Textarea,
 	//
-	Textarea as Root,
+	Textarea as Root
 };
 
-export type { TextareaProps, TextareaSize } from "./textarea.svelte";
+export type { TextareaProps, TextareaSize } from './textarea.svelte';

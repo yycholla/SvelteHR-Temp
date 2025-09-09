@@ -22,7 +22,12 @@
 	const isEditing = $derived(mode === 'edit');
 
 	// Use the custom task form helper
-	const { form: formData, errors, enhance, submitting } = createTaskForm({ 
+	const {
+		form: formData,
+		errors,
+		enhance,
+		submitting
+	} = createTaskForm({
 		onSuccess: (createdTask) => onSuccess(createdTask)
 	});
 
@@ -35,7 +40,7 @@
 		});
 	});
 
-	// Initialize form data for create/edit modes  
+	// Initialize form data for create/edit modes
 	$effect(() => {
 		if (mode === 'create') {
 			// Set default assignee to current user for new tasks
@@ -51,9 +56,14 @@
 			$formData = {
 				title: task.title || '',
 				description: task.description || '',
-				status: task.status === 'todo' ? 'Pending' : 
-					   task.status === 'in_progress' ? 'InProgress' : 
-					   task.status === 'completed' ? 'Completed' : 'Pending',
+				status:
+					task.status === 'todo'
+						? 'Pending'
+						: task.status === 'in_progress'
+							? 'InProgress'
+							: task.status === 'completed'
+								? 'Completed'
+								: 'Pending',
 				dueDate: task.due_date || '',
 				assignedToId: task.assigned_to || '',
 				relatedEntityType: 'General' // Default since API doesn't have this field
@@ -65,10 +75,10 @@
 {#if isReadonly && task}
 	<!-- View Mode - Read-only display -->
 	<div class="space-y-6">
-		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+		<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 			<div>
 				<div class="label"><span>Title</span></div>
-				<p class="font-medium text-lg">{task.title}</p>
+				<p class="text-lg font-medium">{task.title}</p>
 			</div>
 			<div>
 				<div class="label"><span>Status</span></div>
@@ -91,16 +101,14 @@
 				<p>{task.priority || 'Normal'}</p>
 			</div>
 		</div>
-		<div class="flex justify-end pt-6 border-t">
-			<button type="button" class="btn variant-ghost-surface" onclick={onCancel}>
-				Close
-			</button>
+		<div class="flex justify-end border-t pt-6">
+			<button type="button" class="variant-ghost-surface btn" onclick={onCancel}> Close </button>
 		</div>
 	</div>
 {:else}
 	<!-- Create/Edit Mode - Form -->
 	<form method="POST" use:enhance class="space-y-6">
-		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+		<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 			<!-- Title -->
 			<div class="md:col-span-2">
 				<label class="label" for="title">
@@ -117,7 +125,7 @@
 					aria-invalid={$errors.title ? 'true' : undefined}
 				/>
 				{#if $errors.title}
-					<div class="text-error-500 text-sm mt-1">{$errors.title}</div>
+					<div class="mt-1 text-sm text-error-500">{$errors.title}</div>
 				{/if}
 			</div>
 
@@ -126,12 +134,7 @@
 				<label class="label" for="status">
 					<span>Status</span>
 				</label>
-				<select
-					id="status"
-					name="status"
-					class="select"
-					bind:value={$formData.status}
-				>
+				<select id="status" name="status" class="select" bind:value={$formData.status}>
 					<option value="Pending">Pending</option>
 					<option value="InProgress">In Progress</option>
 					<option value="Completed">Completed</option>
@@ -166,7 +169,7 @@
 				>
 					<option value="">Unassigned</option>
 					<!-- Current User (fallback if no employees in database) -->
-					{#if currentUser && (!availableEmployees?.length || !availableEmployees.some(emp => emp.id === currentUser.id))}
+					{#if currentUser && (!availableEmployees?.length || !availableEmployees.some((emp) => emp.id === currentUser.id))}
 						<option value={currentUser.id}>
 							{currentUser.full_name || currentUser.username || 'Current User'} (You)
 						</option>
@@ -215,20 +218,16 @@
 		</div>
 
 		<!-- Form Actions -->
-		<div class="flex justify-end gap-4 pt-6 border-t">
+		<div class="flex justify-end gap-4 border-t pt-6">
 			<button
 				type="button"
-				class="btn variant-ghost-surface"
+				class="variant-ghost-surface btn"
 				onclick={onCancel}
 				disabled={$submitting}
 			>
 				Cancel
 			</button>
-			<button
-				type="submit"
-				class="btn variant-filled-primary"
-				disabled={$submitting}
-			>
+			<button type="submit" class="variant-filled-primary btn" disabled={$submitting}>
 				{#if $submitting}
 					<span class="animate-pulse">Saving...</span>
 				{:else}

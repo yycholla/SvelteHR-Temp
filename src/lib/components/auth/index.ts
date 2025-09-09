@@ -5,11 +5,11 @@ export { default as PermissionCheck } from './PermissionCheck.svelte';
 
 // Re-export types and utilities
 export type { PermissionCheck } from '../../auth/guards';
-export { 
-  hasAccess, 
-  canAccess, 
-  routeGuard, 
-  withAuthGuard,
-  roleChecks,
-  permissionChecks
+export {
+	hasAccess,
+	canAccess,
+	routeGuard,
+	withAuthGuard,
+	roleChecks,
+	permissionChecks
 } from '../../auth/guards';

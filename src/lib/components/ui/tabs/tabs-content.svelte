@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { Tabs as TabsPrimitive } from "bits-ui";
-	import { cn } from "$lib/utils.js";
+	import { Tabs as TabsPrimitive } from 'bits-ui';
+	import { cn } from '$lib/utils.js';
 
 	let {
 		class: className,
@@ -14,7 +14,7 @@
 	bind:ref
 	data-slot="tabs-content"
 	class={cn(
-		"mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+		'mt-2 ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
 		className
 	)}
 	{...restProps}

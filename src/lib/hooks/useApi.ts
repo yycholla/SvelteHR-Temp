@@ -1,6 +1,10 @@
 import { writable, derived, type Readable } from 'svelte/store';
 import { apiClient } from '$lib/api/client';
-import { transformErrorResponse, transformSuccessResponse, buildQueryParams } from '$lib/schemas/transformers';
+import {
+	transformErrorResponse,
+	transformSuccessResponse,
+	buildQueryParams
+} from '$lib/schemas/transformers';
 
 /**
  * Generic API state interface
@@ -26,10 +30,7 @@ interface ApiHookOptions<T> {
 /**
  * Generic API hook for data fetching
  */
-export function useApi<T>(
-	endpoint: string,
-	options: ApiHookOptions<T> = {}
-) {
+export function useApi<T>(endpoint: string, options: ApiHookOptions<T> = {}) {
 	const {
 		immediate = true,
 		transform,
@@ -66,21 +67,21 @@ export function useApi<T>(
 		if (isCacheValid(cacheKey)) {
 			const cached = cache.get(cacheKey)!;
 			const transformedData = transform ? transform(cached.data) : cached.data;
-			
-			state.update(s => ({
+
+			state.update((s) => ({
 				...s,
 				data: transformedData,
 				loading: false,
 				error: null,
 				lastUpdated: new Date(cached.timestamp)
 			}));
-			
+
 			onSuccess?.(transformedData);
 			return transformedData;
 		}
 
 		// Set loading state
-		state.update(s => ({ ...s, loading: true, error: null }));
+		state.update((s) => ({ ...s, loading: true, error: null }));
 
 		try {
 			const response = await apiClient.get(fullEndpoint);
@@ -90,7 +91,7 @@ export function useApi<T>(
 			cache.set(cacheKey, { data: response, timestamp: Date.now() });
 
 			// Update state
-			state.update(s => ({
+			state.update((s) => ({
 				...s,
 				data: transformedData,
 				loading: false,
@@ -102,8 +103,8 @@ export function useApi<T>(
 			return transformedData;
 		} catch (error: any) {
 			const errorMessage = error.message || 'Failed to fetch data';
-			
-			state.update(s => ({
+
+			state.update((s) => ({
 				...s,
 				loading: false,
 				error: errorMessage,
@@ -149,7 +150,7 @@ export function usePaginatedApi<T>(
 	options: ApiHookOptions<T> & { pageSize?: number } = {}
 ) {
 	const { pageSize = 20, ...apiOptions } = options;
-	
+
 	const paginationState = writable({
 		page: 1,
 		pageSize,
@@ -173,15 +174,17 @@ export function usePaginatedApi<T>(
 
 		try {
 			const response = await api.fetch(params);
-			
+
 			// Update pagination state if response includes pagination info
 			if (response && typeof response === 'object' && 'totalCount' in response) {
-				paginationState.update(s => ({
+				paginationState.update((s) => ({
 					...s,
 					page,
 					totalCount: (response as any).totalCount,
-					totalPages: (response as any).totalPages || Math.ceil((response as any).totalCount / pageSize),
-					hasMore: (response as any).hasMore || page < Math.ceil((response as any).totalCount / pageSize)
+					totalPages:
+						(response as any).totalPages || Math.ceil((response as any).totalCount / pageSize),
+					hasMore:
+						(response as any).hasMore || page < Math.ceil((response as any).totalCount / pageSize)
 				}));
 			}
 
@@ -193,10 +196,10 @@ export function usePaginatedApi<T>(
 
 	// Load next page
 	async function nextPage(additionalParams: Record<string, any> = {}) {
-		const currentState = derived(paginationState, $state => $state);
+		const currentState = derived(paginationState, ($state) => $state);
 		let currentPage: number;
-		
-		currentState.subscribe(state => {
+
+		currentState.subscribe((state) => {
 			currentPage = state.page;
 		})();
 
@@ -207,10 +210,10 @@ export function usePaginatedApi<T>(
 
 	// Load previous page
 	async function previousPage(additionalParams: Record<string, any> = {}) {
-		const currentState = derived(paginationState, $state => $state);
+		const currentState = derived(paginationState, ($state) => $state);
 		let currentPage: number;
-		
-		currentState.subscribe(state => {
+
+		currentState.subscribe((state) => {
 			currentPage = state.page;
 		})();
 
@@ -256,7 +259,7 @@ export function useMutation<TInput, TOutput>(
 
 	async function mutate(data: TInput, pathParams?: Record<string, string>) {
 		let finalEndpoint = endpoint;
-		
+
 		// Replace path parameters
 		if (pathParams) {
 			Object.entries(pathParams).forEach(([key, value]) => {
@@ -264,11 +267,11 @@ export function useMutation<TInput, TOutput>(
 			});
 		}
 
-		state.update(s => ({ ...s, loading: true, error: null }));
+		state.update((s) => ({ ...s, loading: true, error: null }));
 
 		try {
 			let response;
-			
+
 			switch (method) {
 				case 'POST':
 					response = await apiClient.post(finalEndpoint, { json: data });
@@ -283,7 +286,7 @@ export function useMutation<TInput, TOutput>(
 
 			const transformedData = transform ? transform(response) : response;
 
-			state.update(s => ({
+			state.update((s) => ({
 				...s,
 				data: transformedData,
 				loading: false,
@@ -295,8 +298,8 @@ export function useMutation<TInput, TOutput>(
 			return transformedData;
 		} catch (error: any) {
 			const errorMessage = error.message || 'Mutation failed';
-			
-			state.update(s => ({
+
+			state.update((s) => ({
 				...s,
 				loading: false,
 				error: errorMessage,
@@ -334,14 +337,14 @@ export function useOptimisticMutation<TInput, TOutput>(
 
 	async function mutateOptimistically(data: TInput, pathParams?: Record<string, string>) {
 		// Store current state for potential rollback
-		mutation.subscribe(state => {
+		mutation.subscribe((state) => {
 			previousData = state.data;
 		})();
 
 		// Apply optimistic update
 		if (optimisticUpdate) {
 			const optimisticData = optimisticUpdate(data);
-			mutation.update(s => ({
+			mutation.update((s) => ({
 				...s,
 				data: optimisticData,
 				loading: true,
@@ -356,7 +359,7 @@ export function useOptimisticMutation<TInput, TOutput>(
 		} catch (error: any) {
 			// Rollback function
 			const rollback = () => {
-				mutation.update(s => ({
+				mutation.update((s) => ({
 					...s,
 					data: previousData,
 					loading: false,

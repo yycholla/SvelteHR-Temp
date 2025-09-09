@@ -32,15 +32,15 @@ export class DepartmentApi {
 	 */
 	async list(options?: DepartmentQueryOptions): Promise<DepartmentListResponse> {
 		const params = new URLSearchParams();
-		
+
 		if (options?.active_only) {
 			params.append('active_only', 'true');
 		}
-		
+
 		if (options?.parent_id !== undefined) {
 			params.append('parent_id', options.parent_id || 'null');
 		}
-		
+
 		if (options?.has_manager !== undefined) {
 			params.append('has_manager', String(options.has_manager));
 		}
@@ -63,7 +63,7 @@ export class DepartmentApi {
 
 		const queryString = params.toString();
 		const url = queryString ? `/api/v2/departments?${queryString}` : '/api/v2/departments';
-		
+
 		return this.client.get(url);
 	}
 

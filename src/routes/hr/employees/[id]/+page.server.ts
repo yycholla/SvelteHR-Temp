@@ -53,16 +53,15 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
 			tasks,
 			tasksTotal
 		};
-
 	} catch (err) {
 		console.error('❌ Error loading employee detail:', err);
-		
+
 		if (err instanceof Error) {
 			if (err.message.includes('ECONNREFUSED')) {
 				throw error(503, 'Unable to connect to the HR service. Please try again later.');
 			}
 		}
-		
+
 		throw err;
 	}
 };

@@ -1,9 +1,14 @@
 <script lang="ts">
-
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Textarea } from '$lib/components/ui/textarea';
-	import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '$lib/components/ui/select';
+	import {
+		Select,
+		SelectContent,
+		SelectItem,
+		SelectTrigger,
+		SelectValue
+	} from '$lib/components/ui/select';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { Label } from '$lib/components/ui/label';
 	import {
@@ -65,8 +70,6 @@
 		formData.priority = value;
 	}
 
-	
-
 	function resetForm() {
 		formData = {
 			title: '',
@@ -83,8 +86,6 @@
 		};
 		errors = {};
 	}
-
-
 
 	// Set default start date to today
 	$: if (!formData.startDate) {
@@ -112,7 +113,11 @@
 			<input type="hidden" name="title" value={formData.title} />
 			<input type="hidden" name="description" value={formData.description} />
 			<input type="hidden" name="startDate" value={formData.startDate} />
-			<input type="hidden" name="startTime" value={formData.isAllDay ? '00:00' : formData.startTime} />
+			<input
+				type="hidden"
+				name="startTime"
+				value={formData.isAllDay ? '00:00' : formData.startTime}
+			/>
 			<input type="hidden" name="endDate" value={formData.endDate || formData.startDate} />
 			<input type="hidden" name="endTime" value={formData.isAllDay ? '23:59' : formData.endTime} />
 			<input type="hidden" name="isAllDay" value={formData.isAllDay} />
@@ -162,21 +167,13 @@
 
 				<div class="space-y-2">
 					<Label for="endDate">End Date</Label>
-					<Input
-						id="endDate"
-						type="date"
-						bind:value={formData.endDate}
-						min={formData.startDate}
-					/>
+					<Input id="endDate" type="date" bind:value={formData.endDate} min={formData.startDate} />
 				</div>
 			</div>
 
 			<!-- All Day Toggle -->
 			<div class="flex items-center space-x-2">
-				<Checkbox
-					id="isAllDay"
-					bind:checked={formData.isAllDay}
-				/>
+				<Checkbox id="isAllDay" bind:checked={formData.isAllDay} />
 				<Label for="isAllDay">All Day Event</Label>
 			</div>
 
@@ -211,11 +208,7 @@
 			<!-- Location -->
 			<div class="space-y-2">
 				<Label for="location">Location</Label>
-				<Input
-					id="location"
-					bind:value={formData.location}
-					placeholder="Enter event location"
-				/>
+				<Input id="location" bind:value={formData.location} placeholder="Enter event location" />
 			</div>
 
 			<!-- Event Type and Priority -->
@@ -226,7 +219,7 @@
 						<SelectTrigger>
 							<SelectValue placeholder="Select event type">
 								{#if formData.type}
-									{eventTypes.find(t => t.value === formData.type)?.label || formData.type}
+									{eventTypes.find((t) => t.value === formData.type)?.label || formData.type}
 								{/if}
 							</SelectValue>
 						</SelectTrigger>
@@ -237,7 +230,9 @@
 						</SelectContent>
 					</Select>
 					{#if formData.type}
-						<div class="text-xs text-muted-foreground">Selected: {eventTypes.find(t => t.value === formData.type)?.label}</div>
+						<div class="text-xs text-muted-foreground">
+							Selected: {eventTypes.find((t) => t.value === formData.type)?.label}
+						</div>
 					{/if}
 				</div>
 
@@ -247,7 +242,8 @@
 						<SelectTrigger>
 							<SelectValue placeholder="Select priority">
 								{#if formData.priority}
-									{priorities.find(p => p.value === formData.priority)?.label || formData.priority}
+									{priorities.find((p) => p.value === formData.priority)?.label ||
+										formData.priority}
 								{/if}
 							</SelectValue>
 						</SelectTrigger>
@@ -258,7 +254,9 @@
 						</SelectContent>
 					</Select>
 					{#if formData.priority}
-						<div class="text-xs text-muted-foreground">Selected: {priorities.find(p => p.value === formData.priority)?.label}</div>
+						<div class="text-xs text-muted-foreground">
+							Selected: {priorities.find((p) => p.value === formData.priority)?.label}
+						</div>
 					{/if}
 				</div>
 			</div>
@@ -270,12 +268,8 @@
 			</div>
 
 			<DialogFooter>
-				<Button type="button" variant="outline" onclick={onClose}>
-					Cancel
-				</Button>
-				<Button type="submit">
-					Create Event
-				</Button>
+				<Button type="button" variant="outline" onclick={onClose}>Cancel</Button>
+				<Button type="submit">Create Event</Button>
 			</DialogFooter>
 		</form>
 	</DialogContent>

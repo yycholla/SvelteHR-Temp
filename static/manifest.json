@@ -1,0 +1,115 @@
+{
+	"name": "MountainHR - Modern HR Management System",
+	"short_name": "MountainHR",
+	"description": "Comprehensive HR management system with employee portal, analytics, and communication tools",
+	"start_url": "/",
+	"display": "standalone",
+	"background_color": "#ffffff",
+	"theme_color": "#2563eb",
+	"orientation": "portrait-primary",
+	"scope": "/",
+	"lang": "en-US",
+	"dir": "ltr",
+	"categories": ["business", "productivity", "utilities"],
+	"icons": [
+		{
+			"src": "/favicon-16x16.png",
+			"sizes": "16x16",
+			"type": "image/png"
+		},
+		{
+			"src": "/favicon-32x32.png",
+			"sizes": "32x32",
+			"type": "image/png"
+		},
+		{
+			"src": "/apple-touch-icon.png",
+			"sizes": "180x180",
+			"type": "image/png"
+		},
+		{
+			"src": "/icon-192x192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "any maskable"
+		},
+		{
+			"src": "/icon-512x512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "any maskable"
+		}
+	],
+	"screenshots": [
+		{
+			"src": "/screenshots/desktop-dashboard.png",
+			"sizes": "1280x800",
+			"type": "image/png",
+			"form_factor": "wide",
+			"label": "HR Dashboard - Desktop View"
+		},
+		{
+			"src": "/screenshots/mobile-employees.png",
+			"sizes": "375x667",
+			"type": "image/png",
+			"form_factor": "narrow",
+			"label": "Employee Management - Mobile View"
+		}
+	],
+	"shortcuts": [
+		{
+			"name": "Dashboard",
+			"short_name": "Dashboard",
+			"description": "View HR analytics and insights",
+			"url": "/",
+			"icons": [
+				{
+					"src": "/icons/dashboard-96x96.png",
+					"sizes": "96x96",
+					"type": "image/png"
+				}
+			]
+		},
+		{
+			"name": "Employees",
+			"short_name": "Employees",
+			"description": "Manage employee information",
+			"url": "/employees",
+			"icons": [
+				{
+					"src": "/icons/employees-96x96.png",
+					"sizes": "96x96",
+					"type": "image/png"
+				}
+			]
+		},
+		{
+			"name": "Communications",
+			"short_name": "Communications",
+			"description": "Send announcements and messages",
+			"url": "/communications",
+			"icons": [
+				{
+					"src": "/icons/communications-96x96.png",
+					"sizes": "96x96",
+					"type": "image/png"
+				}
+			]
+		}
+	],
+	"related_applications": [],
+	"prefer_related_applications": false,
+	"edge_side_panel": {
+		"preferred_width": 400
+	},
+	"file_handlers": [
+		{
+			"action": "/import",
+			"accept": {
+				"text/csv": [".csv"],
+				"application/vnd.ms-excel": [".xls"],
+				"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"]
+			}
+		}
+	]
+}

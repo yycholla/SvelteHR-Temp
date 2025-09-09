@@ -102,7 +102,9 @@
 			notifications.leaveRequestSubmitted();
 			onSuccess(savedLeaveRequest);
 		} catch (error) {
-			notifications.apiError(error instanceof Error ? error.message : 'Failed to submit leave request');
+			notifications.apiError(
+				error instanceof Error ? error.message : 'Failed to submit leave request'
+			);
 		} finally {
 			form.setSubmitting(false);
 		}
@@ -114,7 +116,7 @@
 	}
 
 	function getEmployeeName(employeeId: string): string {
-		const employee = employees.find(emp => emp.id === employeeId);
+		const employee = employees.find((emp) => emp.id === employeeId);
 		return employee ? `${employee.first_name} ${employee.last_name}` : 'Unknown Employee';
 	}
 
@@ -128,14 +130,20 @@
 	const formState = $derived($form);
 </script>
 
-<form onsubmit={(e) => { e.preventDefault(); handleSubmit(e); }} class="space-y-6">
+<form
+	onsubmit={(e) => {
+		e.preventDefault();
+		handleSubmit(e);
+	}}
+	class="space-y-6"
+>
 	<!-- Employee Selection -->
 	<div>
 		<label class="label" for="employee_id">
 			<span>Employee *</span>
 		</label>
 		{#if loadingEmployees}
-			<div class="placeholder animate-pulse h-12 rounded"></div>
+			<div class="h-12 placeholder animate-pulse rounded"></div>
 		{:else}
 			<select
 				id="employee_id"
@@ -149,13 +157,14 @@
 				<option value="">Select employee</option>
 				{#each employees as employee}
 					<option value={employee.id}>
-						{employee.first_name} {employee.last_name} - {employee.department}
+						{employee.first_name}
+						{employee.last_name} - {employee.department}
 					</option>
 				{/each}
 			</select>
 		{/if}
 		{#if formState.errors.employee_id && formState.touched.employee_id}
-			<div class="text-error-500 text-sm mt-1">
+			<div class="mt-1 text-sm text-error-500">
 				{formState.errors.employee_id[0]}
 			</div>
 		{/if}
@@ -179,7 +188,7 @@
 		</select>
 	</div>
 
-	<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+	<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 		<!-- Start Date -->
 		<div>
 			<label class="label" for="start_date">
@@ -197,7 +206,7 @@
 				min={getMinDate()}
 			/>
 			{#if formState.errors.start_date && formState.touched.start_date}
-				<div class="text-error-500 text-sm mt-1">
+				<div class="mt-1 text-sm text-error-500">
 					{formState.errors.start_date[0]}
 				</div>
 			{/if}
@@ -220,7 +229,7 @@
 				min={formState.data.start_date || getMinDate()}
 			/>
 			{#if formState.errors.end_date && formState.touched.end_date}
-				<div class="text-error-500 text-sm mt-1">
+				<div class="mt-1 text-sm text-error-500">
 					{formState.errors.end_date[0]}
 				</div>
 			{/if}
@@ -229,11 +238,11 @@
 
 	<!-- Days Calculation -->
 	{#if calculatedDays > 0}
-		<div class="card p-4 bg-primary-100-800-token">
+		<div class="bg-primary-100-800-token card p-4">
 			<div class="flex items-center gap-2">
 				<span class="text-primary-600-300-token font-semibold">Total Days:</span>
 				<span class="text-lg font-bold">{calculatedDays}</span>
-				<span class="text-sm text-surface-600-300-token">
+				<span class="text-surface-600-300-token text-sm">
 					({calculatedDays === 1 ? 'day' : 'days'})
 				</span>
 			</div>
@@ -257,7 +266,7 @@
 			rows="3"
 		></textarea>
 		{#if formState.errors.reason && formState.touched.reason}
-			<div class="text-error-500 text-sm mt-1">
+			<div class="mt-1 text-sm text-error-500">
 				{formState.errors.reason[0]}
 			</div>
 		{/if}
@@ -281,12 +290,13 @@
 
 	<!-- Status Display (View mode) -->
 	{#if isReadonly && leaveRequest}
-		<div class="card p-4 bg-surface-100-800-token">
-			<h4 class="h4 mb-2">Request Status</h4>
-			<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+		<div class="bg-surface-100-800-token card p-4">
+			<h4 class="mb-2 h4">Request Status</h4>
+			<div class="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
 				<div>
 					<span class="font-semibold">Status:</span>
-					<span class="badge variant-filled capitalize"
+					<span
+						class="variant-filled badge capitalize"
 						class:variant-filled-success={leaveRequest.status === 'approved'}
 						class:variant-filled-error={leaveRequest.status === 'denied'}
 						class:variant-filled-warning={leaveRequest.status === 'pending'}
@@ -312,10 +322,10 @@
 
 	<!-- Form Actions -->
 	{#if !isReadonly}
-		<div class="flex justify-end gap-4 pt-6 border-t">
+		<div class="flex justify-end gap-4 border-t pt-6">
 			<button
 				type="button"
-				class="btn variant-ghost-surface"
+				class="variant-ghost-surface btn"
 				on:click={onCancel}
 				disabled={formState.isSubmitting}
 			>
@@ -323,7 +333,7 @@
 			</button>
 			<button
 				type="submit"
-				class="btn variant-filled-primary"
+				class="variant-filled-primary btn"
 				disabled={formState.isSubmitting || !formState.isValid}
 			>
 				{#if formState.isSubmitting}
@@ -334,14 +344,8 @@
 			</button>
 		</div>
 	{:else}
-		<div class="flex justify-end pt-6 border-t">
-			<button
-				type="button"
-				class="btn variant-ghost-surface"
-				on:click={onCancel}
-			>
-				Close
-			</button>
+		<div class="flex justify-end border-t pt-6">
+			<button type="button" class="variant-ghost-surface btn" on:click={onCancel}> Close </button>
 		</div>
 	{/if}
 </form>

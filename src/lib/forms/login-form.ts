@@ -32,29 +32,26 @@ export function createLoginForm(options: LoginFormOptions = {}) {
 		resetForm: false,
 		multipleSubmits: 'prevent',
 		clearOnSubmit: 'errors-and-message',
-		
+
 		onUpdate: async ({ form }) => {
 			// Manual Zod validation since the adapter is problematic
 			try {
 				const validatedData = loginSchema.parse(form.data);
-				
+
 				// Call tRPC login mutation with validated data
 				const result = await trpc.auth.login.mutate(validatedData);
 
-				// Success callback  
+				// Success callback
 				if (options.onSuccess) {
 					options.onSuccess(result);
 				}
 
 				// Redirect
 				const currentPage = get(page);
-				const redirectTo = 
-					options.redirectTo || 
-					currentPage.url.searchParams.get('redirectTo') || 
-					'/home';
+				const redirectTo =
+					options.redirectTo || currentPage.url.searchParams.get('redirectTo') || '/home';
 
 				await goto(redirectTo, { replaceState: true });
-
 			} catch (error: any) {
 				if (error instanceof z.ZodError) {
 					// Handle Zod validation errors
@@ -64,17 +61,17 @@ export function createLoginForm(options: LoginFormOptions = {}) {
 						if (!errors[field]) errors[field] = [];
 						errors[field].push(err.message);
 					});
-					
+
 					// Return validation errors to Superforms
 					return { errors };
 				} else {
 					// Handle login/network errors
 					const errorMessage = error.message || 'Login failed. Please check your credentials.';
-					
+
 					if (options.onError) {
 						options.onError(errorMessage);
 					}
-					
+
 					return { error: errorMessage };
 				}
 			}
@@ -90,12 +87,12 @@ export function createLoginForm(options: LoginFormOptions = {}) {
 // Helper function for field props
 export function getFieldProps(form: any, fieldName: string) {
 	const { form: formData, errors, constraints } = form;
-	
+
 	return {
 		name: fieldName,
 		value: formData[fieldName],
 		error: errors[fieldName]?.[0],
 		required: constraints[fieldName]?.required,
-		...constraints[fieldName],
+		...constraints[fieldName]
 	};
 }

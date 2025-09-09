@@ -1,9 +1,9 @@
-import Root from "./input.svelte";
-import InputGroup from "./input-group.svelte";
+import Root from './input.svelte';
+import InputGroup from './input-group.svelte';
 
 export {
 	Root,
 	InputGroup,
 	//
-	Root as Input,
+	Root as Input
 };

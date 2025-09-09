@@ -42,7 +42,7 @@
 		try {
 			await documentApi.delete(data.document.id);
 			notifications.documentDeleted(data.document.title);
-			
+
 			// Navigate back to documents list
 			goto('/hr/documents');
 		} catch (error) {
@@ -84,20 +84,14 @@
 
 	<!-- Main Content -->
 	{#if data.document}
-		<DocumentViewer
-			documentId={data.document.id}
-			onEdit={handleEdit}
-			onDelete={handleDelete}
-		/>
+		<DocumentViewer documentId={data.document.id} onEdit={handleEdit} onDelete={handleDelete} />
 	{:else}
 		<div class="card p-8 text-center">
-			<h2 class="h2 mb-4">Document Not Found</h2>
+			<h2 class="mb-4 h2">Document Not Found</h2>
 			<p class="text-surface-600-300-token mb-6">
 				The document you're looking for could not be found.
 			</p>
-			<a href="/hr/documents" class="btn variant-filled-primary">
-				Back to Documents
-			</a>
+			<a href="/hr/documents" class="variant-filled-primary btn"> Back to Documents </a>
 		</div>
 	{/if}
 </div>
@@ -112,35 +106,29 @@
 
 <!-- Delete Confirmation Modal -->
 {#if showDeleteConfirm}
-	<div class="modal-backdrop fixed inset-0 bg-black/50 z-[999] flex items-center justify-center p-4">
-		<div class="card p-6 w-full max-w-md">
+	<div
+		class="modal-backdrop fixed inset-0 z-[999] flex items-center justify-center bg-black/50 p-4"
+	>
+		<div class="w-full max-w-md card p-6">
 			<header class="mb-4">
 				<h3 class="h3 font-bold text-error-500">Confirm Delete</h3>
 			</header>
-			
+
 			<section class="mb-6">
 				<p class="text-surface-600-300-token">
-					Are you sure you want to delete document 
+					Are you sure you want to delete document
 					<strong>"{data.document?.title}"</strong>?
 				</p>
-				<p class="text-sm text-error-500 mt-2">
+				<p class="mt-2 text-sm text-error-500">
 					This action cannot be undone and the file will be permanently removed.
 				</p>
 			</section>
-			
+
 			<footer class="flex justify-end gap-3">
-				<button 
-					class="btn variant-ghost-surface" 
-					on:click={() => showDeleteConfirm = false}
-				>
+				<button class="variant-ghost-surface btn" on:click={() => (showDeleteConfirm = false)}>
 					Cancel
 				</button>
-				<button 
-					class="btn variant-filled-error" 
-					on:click={confirmDelete}
-				>
-					Delete Document
-				</button>
+				<button class="variant-filled-error btn" on:click={confirmDelete}> Delete Document </button>
 			</footer>
 		</div>
 	</div>

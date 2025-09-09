@@ -26,7 +26,8 @@
 	}
 
 	function getSortButtonClass(field: keyof Employee | 'name') {
-		const baseClass = "h-full w-full flex items-center justify-start font-medium text-foreground hover:bg-background/20 rounded-lg px-2 py-1 transition-all duration-200";
+		const baseClass =
+			'h-full w-full flex items-center justify-start font-medium text-foreground hover:bg-background/20 rounded-lg px-2 py-1 transition-all duration-200';
 		if (sortConfig.field === field) {
 			return `${baseClass} bg-background/30 shadow-sm`;
 		}
@@ -34,7 +35,7 @@
 	}
 </script>
 
-<thead class="sticky top-0 z-10 bg-background/30 backdrop-blur-lg border-b border-border/20">
+<thead class="sticky top-0 z-10 border-b border-border/20 bg-background/30 backdrop-blur-lg">
 	<tr>
 		<!-- Select All Column -->
 		<th class="w-12 p-4">
@@ -50,12 +51,8 @@
 		<th class="w-8"></th>
 
 		<!-- Name Column -->
-		<th class="text-left p-4 min-w-[200px]">
-			<Button
-				variant="ghost"
-				onclick={() => onSort('name')}
-				class={getSortButtonClass('name')}
-			>
+		<th class="min-w-[200px] p-4 text-left">
+			<Button variant="ghost" onclick={() => onSort('name')} class={getSortButtonClass('name')}>
 				<span class="mr-2">Employee</span>
 				{@const SortIcon = getSortIcon('name')}
 				<SortIcon class="h-4 w-4 flex-shrink-0 opacity-60" />
@@ -63,7 +60,7 @@
 		</th>
 
 		<!-- Position Column -->
-		<th class="text-left p-4 min-w-[150px]">
+		<th class="min-w-[150px] p-4 text-left">
 			<Button
 				variant="ghost"
 				onclick={() => onSort('position')}
@@ -76,7 +73,7 @@
 		</th>
 
 		<!-- Department Column -->
-		<th class="text-left p-4 min-w-[120px]">
+		<th class="min-w-[120px] p-4 text-left">
 			<Button
 				variant="ghost"
 				onclick={() => onSort('department')}
@@ -89,12 +86,8 @@
 		</th>
 
 		<!-- Status Column -->
-		<th class="text-left p-4 min-w-[100px]">
-			<Button
-				variant="ghost"
-				onclick={() => onSort('status')}
-				class={getSortButtonClass('status')}
-			>
+		<th class="min-w-[100px] p-4 text-left">
+			<Button variant="ghost" onclick={() => onSort('status')} class={getSortButtonClass('status')}>
 				<span class="mr-2">Status</span>
 				{@const SortIcon = getSortIcon('status')}
 				<SortIcon class="h-4 w-4 flex-shrink-0 opacity-60" />
@@ -102,7 +95,7 @@
 		</th>
 
 		<!-- Location Column -->
-		<th class="text-left p-4 min-w-[120px]">
+		<th class="min-w-[120px] p-4 text-left">
 			<Button
 				variant="ghost"
 				onclick={() => onSort('location')}
@@ -115,7 +108,7 @@
 		</th>
 
 		<!-- Hire Date Column -->
-		<th class="text-left p-4 min-w-[120px]">
+		<th class="min-w-[120px] p-4 text-left">
 			<Button
 				variant="ghost"
 				onclick={() => onSort('hireDate')}
@@ -128,7 +121,7 @@
 		</th>
 
 		<!-- Actions Column -->
-		<th class="text-right p-4 w-20">
+		<th class="w-20 p-4 text-right">
 			<span class="font-medium text-foreground">Actions</span>
 		</th>
 	</tr>

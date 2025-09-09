@@ -110,7 +110,7 @@
 	function handleFileDrop(event: DragEvent) {
 		event.preventDefault();
 		dragOver = false;
-		
+
 		const file = event.dataTransfer?.files[0];
 		if (file) {
 			validateAndSetFile(file);
@@ -132,7 +132,7 @@
 		}
 
 		selectedFile = file;
-		
+
 		// Auto-fill title if empty
 		if (!$form.data.title) {
 			const nameWithoutExtension = file.name.replace(/\.[^/.]+$/, '');
@@ -194,7 +194,7 @@
 				const response = await documentApi.upload(selectedFile, $form.data);
 				clearInterval(progressInterval);
 				uploadProgress = 100;
-				
+
 				savedDocument = response.data;
 				notifications.documentUploaded(selectedFile.name);
 			} else {
@@ -211,29 +211,35 @@
 	}
 
 	function getEmployeeName(employeeId: string): string {
-		const employee = employees.find(emp => emp.id === employeeId);
+		const employee = employees.find((emp) => emp.id === employeeId);
 		return employee ? `${employee.first_name} ${employee.last_name}` : 'Unknown Employee';
 	}
 
 	const formState = $derived($form);
 </script>
 
-<form onsubmit={(e) => { e.preventDefault(); handleSubmit(e); }} class="space-y-6">
+<form
+	onsubmit={(e) => {
+		e.preventDefault();
+		handleSubmit(e);
+	}}
+	class="space-y-6"
+>
 	<!-- File Upload (Create mode only) -->
 	{#if !isEditing && !isReadonly}
 		<div class="space-y-4">
 			<label class="label">
 				<span>File Upload *</span>
 			</label>
-			
+
 			<!-- File Drop Zone -->
-			<div 
-				class="border-2 border-dashed rounded-lg p-8 text-center transition-colors"
+			<div
+				class="rounded-lg border-2 border-dashed p-8 text-center transition-colors"
 				class:border-primary-500={dragOver}
 				class:bg-primary-50={dragOver}
 				class:border-surface-300={!dragOver}
-				on:dragover|preventDefault={() => dragOver = true}
-				on:dragleave={() => dragOver = false}
+				on:dragover|preventDefault={() => (dragOver = true)}
+				on:dragleave={() => (dragOver = false)}
 				on:drop={handleFileDrop}
 			>
 				{#if selectedFile}
@@ -242,16 +248,12 @@
 							<div class="text-4xl">📄</div>
 							<div>
 								<div class="font-semibold">{selectedFile.name}</div>
-								<div class="text-sm text-surface-600-300-token">
+								<div class="text-surface-600-300-token text-sm">
 									{formatFileSize(selectedFile.size)}
 								</div>
 							</div>
 						</div>
-						<button
-							type="button"
-							class="btn variant-ghost-error btn-sm"
-							on:click={removeFile}
-						>
+						<button type="button" class="variant-ghost-error btn btn-sm" on:click={removeFile}>
 							Remove File
 						</button>
 					</div>
@@ -262,7 +264,7 @@
 							<div class="text-lg font-semibold">Drop your file here</div>
 							<div class="text-surface-600-300-token">or</div>
 						</div>
-						<label class="btn variant-filled-primary cursor-pointer">
+						<label class="variant-filled-primary btn cursor-pointer">
 							Choose File
 							<input
 								id="file"
@@ -272,7 +274,7 @@
 								on:change={handleFileSelect}
 							/>
 						</label>
-						<div class="text-sm text-surface-600-300-token">
+						<div class="text-surface-600-300-token text-sm">
 							Supported: {allowedFileTypes.join(', ')} • Max size: 10MB
 						</div>
 					</div>
@@ -311,7 +313,7 @@
 			placeholder="Enter document title"
 		/>
 		{#if formState.errors.title && formState.touched.title}
-			<div class="text-error-500 text-sm mt-1">
+			<div class="mt-1 text-sm text-error-500">
 				{formState.errors.title[0]}
 			</div>
 		{/if}
@@ -333,7 +335,7 @@
 		></textarea>
 	</div>
 
-	<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+	<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 		<!-- Category -->
 		<div>
 			<label class="label" for="category">
@@ -354,7 +356,7 @@
 				{/each}
 			</select>
 			{#if formState.errors.category && formState.touched.category}
-				<div class="text-error-500 text-sm mt-1">
+				<div class="mt-1 text-sm text-error-500">
 					{formState.errors.category[0]}
 				</div>
 			{/if}
@@ -366,7 +368,7 @@
 				<span>Assign to Employee (Optional)</span>
 			</label>
 			{#if loadingEmployees}
-				<div class="placeholder animate-pulse h-12 rounded"></div>
+				<div class="h-12 placeholder animate-pulse rounded"></div>
 			{:else}
 				<select
 					id="employee_id"
@@ -378,7 +380,8 @@
 					<option value="">No specific employee</option>
 					{#each employees as employee}
 						<option value={employee.id}>
-							{employee.first_name} {employee.last_name} - {employee.department}
+							{employee.first_name}
+							{employee.last_name} - {employee.department}
 						</option>
 					{/each}
 				</select>
@@ -403,9 +406,9 @@
 
 	<!-- Document Info (View mode) -->
 	{#if isReadonly && document}
-		<div class="card p-4 bg-surface-100-800-token">
-			<h4 class="h4 mb-2">Document Information</h4>
-			<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+		<div class="bg-surface-100-800-token card p-4">
+			<h4 class="mb-2 h4">Document Information</h4>
+			<div class="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
 				<div>
 					<span class="font-semibold">File Size:</span>
 					{document.file_size ? formatFileSize(document.file_size) : 'Unknown'}
@@ -420,7 +423,9 @@
 				</div>
 				<div>
 					<span class="font-semibold">Access:</span>
-					<span class="badge variant-filled-{document.is_public ? 'success' : 'warning'} capitalize">
+					<span
+						class="badge variant-filled-{document.is_public ? 'success' : 'warning'} capitalize"
+					>
 						{document.is_public ? 'Public' : 'Private'}
 					</span>
 				</div>
@@ -431,14 +436,10 @@
 					</div>
 				{/if}
 			</div>
-			
+
 			{#if document.file_url}
 				<div class="mt-4">
-					<a 
-						href={document.file_url} 
-						target="_blank" 
-						class="btn variant-filled-primary btn-sm"
-					>
+					<a href={document.file_url} target="_blank" class="variant-filled-primary btn btn-sm">
 						Download Document
 					</a>
 				</div>
@@ -448,10 +449,10 @@
 
 	<!-- Form Actions -->
 	{#if !isReadonly}
-		<div class="flex justify-end gap-4 pt-6 border-t">
+		<div class="flex justify-end gap-4 border-t pt-6">
 			<button
 				type="button"
-				class="btn variant-ghost-surface"
+				class="variant-ghost-surface btn"
 				on:click={onCancel}
 				disabled={formState.isSubmitting}
 			>
@@ -459,7 +460,7 @@
 			</button>
 			<button
 				type="submit"
-				class="btn variant-filled-primary"
+				class="variant-filled-primary btn"
 				disabled={formState.isSubmitting || !formState.isValid || (!selectedFile && !isEditing)}
 			>
 				{#if formState.isSubmitting}
@@ -472,14 +473,8 @@
 			</button>
 		</div>
 	{:else}
-		<div class="flex justify-end pt-6 border-t">
-			<button
-				type="button"
-				class="btn variant-ghost-surface"
-				on:click={onCancel}
-			>
-				Close
-			</button>
+		<div class="flex justify-end border-t pt-6">
+			<button type="button" class="variant-ghost-surface btn" on:click={onCancel}> Close </button>
 		</div>
 	{/if}
 </form>
@@ -490,10 +485,10 @@
 	}
 
 	.progress {
-		@apply w-full bg-surface-200-700-token rounded-full h-2;
+		@apply bg-surface-200-700-token h-2 w-full rounded-full;
 	}
 
 	.progress-bar {
-		@apply bg-primary-500 h-2 rounded-full transition-all duration-300;
+		@apply h-2 rounded-full bg-primary-500 transition-all duration-300;
 	}
 </style>

@@ -1,12 +1,7 @@
 import { z } from 'zod';
 
 // Task status enum (based on API schema)
-export const taskStatusSchema = z.enum([
-	'Pending',
-	'InProgress',
-	'Completed',
-	'Blocked'
-]);
+export const taskStatusSchema = z.enum(['Pending', 'InProgress', 'Completed', 'Blocked']);
 
 // Related entity type enum (based on API schema)
 export const relatedEntityTypeSchema = z.enum([
@@ -35,23 +30,25 @@ export const taskSchema = z.object({
 });
 
 // Create task schema
-export const createTaskSchema = taskSchema.omit({
-	id: true,
-	createdAt: true,
-	updatedAt: true,
-}).extend({
-	title: z.string().min(1, 'Title is required'),
-	status: taskStatusSchema.default('Pending'),
-});
+export const createTaskSchema = taskSchema
+	.omit({
+		id: true,
+		createdAt: true,
+		updatedAt: true
+	})
+	.extend({
+		title: z.string().min(1, 'Title is required'),
+		status: taskStatusSchema.default('Pending')
+	});
 
 // Update task schema
 export const updateTaskSchema = createTaskSchema.partial().extend({
-	id: z.number(),
+	id: z.number()
 });
 
 // Task status update schema
 export const taskStatusUpdateSchema = z.object({
-	status: taskStatusSchema,
+	status: taskStatusSchema
 });
 
 // Task filter schema
@@ -64,25 +61,27 @@ export const taskFilterSchema = z.object({
 	page: z.number().min(1).default(1),
 	pageSize: z.number().min(1).max(100).default(20),
 	sort: z.enum(['title', 'status', 'dueDate', 'createdAt']).default('createdAt'),
-	order: z.enum(['ASC', 'DESC']).default('DESC'),
+	order: z.enum(['ASC', 'DESC']).default('DESC')
 });
 
 // Task list response schema
-export const taskListResponseSchema = z.object({
-	data: z.array(taskSchema),
-	page: z.number(),
-	pageSize: z.number(),
-	total: z.number(),
-	totalPages: z.number(),
-	hasMore: z.boolean()
-}).transform((response) => ({
-	tasks: response.data,
-	totalCount: response.total,
-	page: response.page,
-	limit: response.pageSize,
-	totalPages: response.totalPages,
-	hasMore: response.hasMore
-}));
+export const taskListResponseSchema = z
+	.object({
+		data: z.array(taskSchema),
+		page: z.number(),
+		pageSize: z.number(),
+		total: z.number(),
+		totalPages: z.number(),
+		hasMore: z.boolean()
+	})
+	.transform((response) => ({
+		tasks: response.data,
+		totalCount: response.total,
+		page: response.page,
+		limit: response.pageSize,
+		totalPages: response.totalPages,
+		hasMore: response.hasMore
+	}));
 
 // Export types
 export type TaskStatus = z.infer<typeof taskStatusSchema>;

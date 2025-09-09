@@ -17,7 +17,7 @@ export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 	try {
 		if (token) {
 			console.log(`🔍 Fetching employee ${id} from API...`);
-			
+
 			// Check cache first
 			const cachedEmployee = apiCache.get(CACHE_KEYS.EMPLOYEE_DETAIL, { id });
 			if (cachedEmployee) {
@@ -27,7 +27,7 @@ export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 					isUsingMockData: false
 				};
 			}
-			
+
 			// Create server-side API client with proper token handling
 			const serverApiClient = ky.create({
 				prefixUrl: PUBLIC_API_URL,
@@ -50,7 +50,7 @@ export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 
 			// Fetch employee data
 			const employeeResponse = await serverApiClient.get(`employees/${id}`).json();
-			
+
 			console.log(`✅ Employee ${id} fetched from API`);
 			console.log('🔍 Raw API Response for employee:', JSON.stringify(employeeResponse, null, 2));
 			console.log('🔍 API Response keys:', Object.keys(employeeResponse));
@@ -64,7 +64,7 @@ export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 
 			// Parse and validate API response
 			const employee = employeeSchema.parse(employeeResponse);
-			
+
 			console.log('🔍 Schema-transformed employee:', JSON.stringify(employee, null, 2));
 			console.log('🔍 Schema-transformed keys:', Object.keys(employee));
 			console.log('🔍 Schema-transformed sample fields:', {
@@ -74,7 +74,7 @@ export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 				payRate: employee.payRate,
 				payType: employee.payType
 			});
-			
+
 			// Cache the employee data
 			apiCache.set(CACHE_KEYS.EMPLOYEE_DETAIL, employee, { id }, CACHE_TTL.MEDIUM);
 
@@ -89,7 +89,7 @@ export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 			console.error(`API Response Status: ${err.response.status}`);
 			console.error(`API Response Body:`, err.response.body || 'No body');
 		}
-		
+
 		// Re-throw specific API errors to preserve status codes
 		if (err.response?.status === 404) {
 			throw error(404, {

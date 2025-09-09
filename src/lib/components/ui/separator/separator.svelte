@@ -1,22 +1,22 @@
 <script lang="ts" module>
-	import { Separator as SeparatorPrimitive } from "bits-ui";
-	import { cn } from "$lib/utils.js";
-	import { type VariantProps, tv } from "tailwind-variants";
+	import { Separator as SeparatorPrimitive } from 'bits-ui';
+	import { cn } from '$lib/utils.js';
+	import { type VariantProps, tv } from 'tailwind-variants';
 
 	export const separatorVariants = tv({
-		base: "shrink-0 bg-border",
+		base: 'shrink-0 bg-border',
 		variants: {
 			orientation: {
-				horizontal: "h-px w-full",
-				vertical: "h-full w-px",
-			},
+				horizontal: 'h-px w-full',
+				vertical: 'h-full w-px'
+			}
 		},
 		defaultVariants: {
-			orientation: "horizontal",
-		},
+			orientation: 'horizontal'
+		}
 	});
 
-	export type SeparatorOrientation = VariantProps<typeof separatorVariants>["orientation"];
+	export type SeparatorOrientation = VariantProps<typeof separatorVariants>['orientation'];
 
 	export type SeparatorProps = SeparatorPrimitive.RootProps & {
 		orientation?: SeparatorOrientation;
@@ -26,7 +26,7 @@
 <script lang="ts">
 	let {
 		class: className,
-		orientation = "horizontal",
+		orientation = 'horizontal',
 		decorative = true,
 		...restProps
 	}: SeparatorProps = $props();

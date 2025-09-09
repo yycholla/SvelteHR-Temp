@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { cn, type WithElementRef } from "$lib/utils.js";
-	import type { HTMLAttributes } from "svelte/elements";
+	import { cn, type WithElementRef } from '$lib/utils.js';
+	import type { HTMLAttributes } from 'svelte/elements';
 
 	type Props = WithElementRef<HTMLAttributes<HTMLSpanElement>> & {
 		placeholder?: string;
@@ -15,12 +15,7 @@
 	}: Props = $props();
 </script>
 
-<span
-	bind:this={ref}
-	data-slot="select-value"
-	class={cn("text-sm", className)}
-	{...restProps}
->
+<span bind:this={ref} data-slot="select-value" class={cn('text-sm', className)} {...restProps}>
 	{#if children}
 		{@render children?.()}
 	{:else if placeholder}

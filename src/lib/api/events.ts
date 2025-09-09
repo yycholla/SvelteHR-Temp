@@ -1,16 +1,24 @@
 import { api } from './client';
-import { eventSchema, eventApiSchema, type Event, type EventCreate, type EventUpdate, type EventQuery } from '$lib/schemas/event';
+import {
+	eventSchema,
+	eventApiSchema,
+	type Event,
+	type EventCreate,
+	type EventUpdate,
+	type EventQuery
+} from '$lib/schemas/event';
 import { z } from 'zod';
 
 // Transform API response to UI format (matching actual backend structure)
 function transformEventFromApi(apiEvent: any): Event {
 	// Convert dates to proper ISO format for frontend
 	const startDateTime = `${apiEvent.startDate}T${apiEvent.startTime || '00:00:00'}.000Z`;
-	const endDateTime = apiEvent.endDate && apiEvent.endTime 
-		? `${apiEvent.endDate}T${apiEvent.endTime}.000Z`
-		: apiEvent.endDate 
-		? `${apiEvent.endDate}T23:59:59.999Z`
-		: startDateTime;
+	const endDateTime =
+		apiEvent.endDate && apiEvent.endTime
+			? `${apiEvent.endDate}T${apiEvent.endTime}.000Z`
+			: apiEvent.endDate
+				? `${apiEvent.endDate}T23:59:59.999Z`
+				: startDateTime;
 
 	return {
 		id: apiEvent.id || apiEvent.ID,
@@ -22,14 +30,19 @@ function transformEventFromApi(apiEvent: any): Event {
 		type: apiEvent.type || apiEvent.Type,
 		priority: apiEvent.priority || apiEvent.Priority,
 		location: apiEvent.location || apiEvent.Location,
-		attendees: apiEvent.attendees ? apiEvent.attendees.map((a: any) => a.employeeID || a.EmployeeID).filter(Boolean) : undefined,
+		attendees: apiEvent.attendees
+			? apiEvent.attendees.map((a: any) => a.employeeID || a.EmployeeID).filter(Boolean)
+			: undefined,
 		createdById: apiEvent.createdByID || apiEvent.CreatedByID,
-		createdBy: apiEvent.createdBy || apiEvent.CreatedBy ? {
-			id: (apiEvent.createdBy?.id || apiEvent.CreatedBy?.ID) || 0,
-			firstName: (apiEvent.createdBy?.firstName || apiEvent.CreatedBy?.FirstName) || '',
-			lastName: (apiEvent.createdBy?.lastName || apiEvent.CreatedBy?.LastName) || '',
-			email: (apiEvent.createdBy?.email || apiEvent.CreatedBy?.Email) || ''
-		} : undefined,
+		createdBy:
+			apiEvent.createdBy || apiEvent.CreatedBy
+				? {
+						id: apiEvent.createdBy?.id || apiEvent.CreatedBy?.ID || 0,
+						firstName: apiEvent.createdBy?.firstName || apiEvent.CreatedBy?.FirstName || '',
+						lastName: apiEvent.createdBy?.lastName || apiEvent.CreatedBy?.LastName || '',
+						email: apiEvent.createdBy?.email || apiEvent.CreatedBy?.Email || ''
+					}
+				: undefined,
 		recurrence: 'None', // Backend doesn't have recurrence yet
 		recurrenceEnd: null,
 		color: apiEvent.color || apiEvent.Color || '#3b82f6', // Default blue
@@ -44,7 +57,7 @@ function transformEventToApi(event: EventCreate | EventUpdate): any {
 	// Extract date and time parts from ISO strings
 	const startDate = new Date(event.startDate);
 	const endDate = event.endDate ? new Date(event.endDate) : null;
-	
+
 	return {
 		title: event.title,
 		description: event.description || null,
@@ -72,21 +85,21 @@ export const eventApi = {
 			if (query.isPublic !== undefined) params.append('public', query.isPublic.toString()); // Backend uses 'public' not 'isPublic'
 			if (query.limit) params.append('limit', query.limit.toString());
 			if (query.offset) params.append('offset', query.offset.toString());
-			
+
 			// Debug: Check if we're sending auth header
 			console.log('🔍 Making request to events endpoint with params:', params.toString());
-			
+
 			const response = await api.get(`events?${params.toString()}`);
-			
+
 			// Backend returns array of events directly
 			if (Array.isArray(response)) {
 				return response.map(transformEventFromApi);
 			}
-			
+
 			return [];
 		} catch (error: any) {
 			console.error('❌ Failed to fetch events:', error);
-			
+
 			// Enhanced debugging
 			if (error.response) {
 				console.error('📊 Response status:', error.response.status);
@@ -98,11 +111,11 @@ export const eventApi = {
 					console.error('📄 Unable to read response body');
 				}
 			}
-			
+
 			// Check if auth token exists
 			const hasAuthToken = document.cookie.includes('hr_token');
 			console.error('🔐 Auth token in cookie?', hasAuthToken);
-			
+
 			throw error;
 		}
 	},

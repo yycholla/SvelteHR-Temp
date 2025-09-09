@@ -1,0 +1,179 @@
+# RBAC (Role-Based Access Control) Module
+module rbac {
+    # Abstract base type for auditable entities
+    abstract type Auditable {
+        property created_at -> datetime {
+            default := datetime_current();
+        }
+        property updated_at -> datetime {
+            default := datetime_current();
+            rewrite insert using (datetime_current());
+            rewrite update using (datetime_current());
+        }
+    }
+
+    # User type for authentication, RBAC, and employee management
+    type User extending Auditable {
+        required property username -> str {
+            constraint exclusive;
+        }
+        required property email -> str {
+            constraint exclusive;
+        }
+        property first_name -> str;
+        property last_name -> str;
+        property middle_name -> str;
+        property employee_id -> str {
+            constraint exclusive;
+        }
+        property password_hash -> str;
+        property is_active -> bool {
+            default := true;
+        }
+        property is_verified -> bool {
+            default := false;
+        }
+        property last_login -> datetime;
+        property failed_login_attempts -> int16 {
+            default := 0;
+        }
+        property locked_until -> datetime;
+        
+        # GelDB Identity integration for built-in UI auth
+        property identity_id -> uuid;
+        
+        # HR-specific properties from Employee
+        property onboarding_status -> default::OnboardingStatus {
+            default := default::OnboardingStatus.PreHire;
+        }
+        property job_title -> str;
+        
+        # Management hierarchy
+        link manager -> User;
+        
+        # Computed properties for auth and display
+        property full_name := .first_name ++ ' ' ++ .last_name;
+        property display_name := .full_name if exists .first_name else .username;
+        property search_name := str_lower(.first_name ++ ' ' ++ .last_name ++ ' ' ++ .username);
+        
+        # Management computed properties
+        property is_manager := exists(.<manager[is User]);
+        property direct_report_count := count(.<manager[is User]);
+        property management_level := (
+            1 if exists .manager else 0
+        );
+        
+        # HR computed properties (from linked data)
+        property department_name := (select .<employee[is default::JobInformation].department.name limit 1);
+        property hire_date := (select .<employee[is default::JobInformation].hire_date limit 1);
+        property employment_type := (select .<employee[is default::JobInformation].employment_type limit 1);
+        
+        # Contact computed properties (from linked data) 
+        property contact_email := (select .<employee[is default::ContactInformation].email limit 1);
+        property phone_number := (select .<employee[is default::ContactInformation].phone_number limit 1);
+        
+        # Indexes for performance
+        index on (.username);
+        index on (.email);
+        index on (.employee_id);
+        index on (.is_active);
+        index on ((.onboarding_status, .is_active));
+        index on (.search_name);
+        index on ((.first_name, .last_name));
+        index on (.manager);
+        index on (.identity_id);
+    }
+
+    # Role type with hierarchical support
+    type Role extending Auditable {
+        required property name -> str {
+            constraint exclusive;
+        }
+        property display_name -> str;
+        property description -> str;
+        property level -> int16 {
+            default := 0;
+        }
+        property is_system -> bool {
+            default := false;
+        }
+        link parent_role -> Role;
+        
+        # Computed properties
+        property user_count := count(.<role[is UserRole]);
+        property permission_count := count(.<role[is RolePermission]);
+        
+        # Indexes
+        index on (.name);
+        index on (.level);
+        index on (.is_system);
+    }
+
+    # Permission type
+    type Permission extending Auditable {
+        required property name -> str {
+            constraint exclusive;
+        }
+        property display_name -> str;
+        property description -> str;
+        property resource -> str;
+        property action -> str;
+        property scope -> str;
+        property is_system -> bool {
+            default := false;
+        }
+        
+        # Computed properties
+        property role_count := count(.<permission[is RolePermission]);
+        
+        # Indexes
+        index on (.name);
+        index on ((.resource, .action));
+        index on (.is_system);
+    }
+
+    # Many-to-many relationship between Users and Roles
+    type UserRole extending Auditable {
+        required link user -> User {
+            on target delete delete source;
+        }
+        required link role -> Role {
+            on target delete delete source;
+        }
+        link granted_by -> User;
+        property expires_at -> datetime;
+        property is_active -> bool {
+            default := true;
+        }
+        
+        # Unique constraint to prevent duplicate assignments
+        constraint exclusive on ((.user, .role));
+        
+        # Indexes
+        index on (.user);
+        index on (.role);
+        index on (.is_active);
+    }
+
+    # Many-to-many relationship between Roles and Permissions
+    type RolePermission extending Auditable {
+        required link role -> Role {
+            on target delete delete source;
+        }
+        required link permission -> Permission {
+            on target delete delete source;
+        }
+        link granted_by -> User;
+        property is_active -> bool {
+            default := true;
+        }
+        
+        # Unique constraint to prevent duplicate assignments
+        constraint exclusive on ((.role, .permission));
+        
+        # Indexes
+        index on (.role);
+        index on (.permission);
+        index on (.is_active);
+    }
+}

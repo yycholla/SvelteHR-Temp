@@ -1,255 +1,262 @@
+<!--
+	GelDB Login Page
+	
+	Modern authentication page using GelDB built-in auth with magic link support.
+	Redirects to GelDB auth UI for secure authentication flow.
+-->
+
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '$lib/components/ui/card';
-	import { Button } from '$lib/components/ui/button';
-	import { InputGroup } from '$lib/components/ui/input';
-	import { Checkbox } from '$lib/components/ui/checkbox';
-	import { Alert, AlertDescription } from '$lib/components/ui/alert';
-	import { Badge } from '$lib/components/ui/badge';
-	import { Separator } from '$lib/components/ui/separator';
-	import { authActions, authStore, isAuthenticated } from '$lib/stores/auth';
-	import { Building2, Shield, LogIn, UserPlus } from 'lucide-svelte';
+	import { auth } from '$lib/stores/geldb-auth.js';
+	import Button from '$lib/components/ui/Button.svelte';
+	import { onMount } from 'svelte';
 
-	// UI state
-	let error = '';
+	// Get data from page server load
+	let { data } = $props();
 
-	// Subscribe to auth store
-	$: isLoading = $authStore.isLoading;
+	// Component state
+	let isLoading = $state(false);
+	let error = $state('');
 
-	// Check if user is already authenticated
-	onMount(async () => {
-		if ($isAuthenticated) {
-			// User is authenticated, redirect to home
-			const redirectTo = $page.url.searchParams.get('redirectTo') || '/home';
-			await goto(redirectTo, { replaceState: true });
+	// Extract query parameters for user feedback
+	const loginReason = $derived(data.loginReason);
+	const errorMessage = $derived(data.errorMessage);
+	const redirectTo = $derived(data.redirectTo);
+
+	// Handle login button click
+	async function handleLogin() {
+		isLoading = true;
+		error = '';
+
+		try {
+			// Redirect to custom magic link login
+			await auth.login(redirectTo || undefined);
+		} catch (err) {
+			console.error('Login initiation failed:', err);
+			error = err instanceof Error ? err.message : 'Failed to start authentication process';
+			isLoading = false;
+		}
+	}
+
+	// Set initial error from URL params
+	onMount(() => {
+		if (errorMessage) {
+			error = getErrorMessage(errorMessage);
 		}
 	});
 
-	// Form state for traditional login
-	let email = '';
-	let password = '';
-	let showLoginForm = false;
-
-	// Handle direct sign in
-	async function handleSignIn() {
-		error = '';
-		
-		if (showLoginForm) {
-			// Traditional email/password login
-			if (!email || !password) {
-				error = 'Please enter both email and password';
-				return;
-			}
-
-			const result = await authActions.loginWithCredentials(email, password);
-			
-			if (!result.success) {
-				error = result.error || 'Login failed';
-			}
-		} else {
-			// Try GelDB redirect (if it becomes available later)
-			const result = await authActions.signIn();
-			
-			if (!result.success) {
-				// Fallback to showing login form if GelDB redirect fails
-				showLoginForm = true;
-				error = '';
-			}
+	// Convert error codes to user-friendly messages
+	function getErrorMessage(errorCode: string): string {
+		switch (errorCode) {
+			case 'oauth_error':
+				return 'Authentication failed. Please try again.';
+			case 'missing_code':
+				return 'Authentication was incomplete. Please try again.';
+			case 'invalid_token':
+				return 'Authentication token is invalid. Please try again.';
+			case 'token_exchange_failed':
+				return 'Authentication process failed. Please try again.';
+			case 'sync_failed':
+				return 'Account setup failed. Please contact support.';
+			case 'service_unavailable':
+				return 'Authentication service is temporarily unavailable. Please try again later.';
+			case 'callback_failed':
+				return 'Authentication callback failed. Please try again.';
+			case 'logout_failed':
+				return 'Logout encountered an issue, but you have been signed out.';
+			case 'invalid_magic_link':
+				return 'Invalid magic link. Please request a new one.';
+			case 'magic_link_expired':
+				return 'Magic link has expired. Please request a new one.';
+			case 'magic_link_used':
+				return 'Magic link has already been used. Please request a new one.';
+			case 'magic_link_invalid':
+				return 'Magic link is invalid or corrupted. Please request a new one.';
+			case 'verification_timeout':
+				return 'Magic link verification timed out. Please try again.';
+			default:
+				return 'An error occurred during authentication. Please try again.';
 		}
 	}
 
-	// Handle GelDB sign up
-	async function handleSignUp() {
-		error = '';
-		const result = await authActions.signUp();
-		
-		if (!result.success) {
-			error = result.error || 'Sign-up redirect failed';
+	// Get reason message for display
+	function getReasonMessage(reason: string): string {
+		switch (reason) {
+			case 'expired':
+				return 'Your session has expired. Please sign in again.';
+			case 'logout':
+				return 'You have been successfully signed out.';
+			case 'unauthorized':
+				return 'You need to sign in to access that page.';
+			default:
+				return '';
 		}
-	}
-
-	// Toggle between magic link and traditional login
-	function toggleLoginForm() {
-		showLoginForm = !showLoginForm;
-		error = '';
-		email = '';
-		password = '';
 	}
 </script>
 
 <svelte:head>
 	<title>Sign In - SvelteHR</title>
-	<meta name="description" content="Sign in to your SvelteHR account" />
+	<meta name="description" content="Sign in to access your SvelteHR account using secure magic link authentication" />
 </svelte:head>
 
-<div class="min-h-screen bg-gradient-to-br from-yellow-100/50 via-blue-100/40 to-blue-200/60 dark:from-yellow-900/20 dark:via-blue-900/25 dark:to-blue-800/30 flex items-center justify-center p-4">
-	<div class="w-full max-w-md">
+<div class="min-h-screen flex items-center justify-center bg-background px-4 sm:px-6 lg:px-8">
+	<div class="max-w-md w-full space-y-8">
 		<!-- Header -->
-		<div class="text-center mb-8">
-			<div class="mx-auto w-16 h-16 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center mb-6 shadow-lg backdrop-blur-md border border-border/40">
-				<Building2 class="w-8 h-8 text-primary-foreground" />
+		<div class="text-center">
+			<div class="mx-auto w-16 h-16 bg-primary rounded-xl flex items-center justify-center mb-6">
+				<span class="text-primary-foreground font-bold text-2xl">HR</span>
 			</div>
-			<h1 class="text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">Welcome back</h1>
-			<p class="text-muted-foreground mt-3 text-lg">Sign in to your SvelteHR account</p>
+			<h1 class="text-3xl font-bold text-foreground">
+				Welcome to SvelteHR
+			</h1>
+			<p class="mt-2 text-muted-foreground">
+				Sign in with your email using secure magic link authentication
+			</p>
 		</div>
 
-		<!-- GelDB Auth Info Card -->
-		<Card class="bg-background/30 backdrop-blur-md border border-border/40 shadow-xl rounded-2xl mb-4">
-			<CardContent class="p-4">
-				<div class="flex items-center space-x-3">
-					<Shield class="w-5 h-5 text-primary" />
-					<span class="text-sm text-foreground font-medium">Secure authentication powered by GelDB</span>
-				</div>
-			</CardContent>
-		</Card>
-
-		<!-- Login Form Card -->
-		<Card class="bg-background/20 backdrop-blur-md border border-border/40 shadow-xl rounded-2xl">
-			<CardHeader class="space-y-1 pb-4">
-				<CardTitle class="text-2xl text-center bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">Sign In</CardTitle>
-				<CardDescription class="text-center text-muted-foreground">
-					Enter your credentials to access your HR portal
-				</CardDescription>
-			</CardHeader>
-
-			<CardContent class="space-y-6">
-				<!-- Error Message -->
-				{#if error}
-					<Alert variant="destructive">
-						<AlertDescription>{error}</AlertDescription>
-					</Alert>
-				{/if}
-
-				{#if showLoginForm}
-					<!-- Traditional Login Form -->
-					<form on:submit|preventDefault={handleSignIn} class="space-y-4">
-						<InputGroup>
-							<label for="email" class="block text-sm font-medium text-foreground mb-2">Email</label>
-							<input
-								id="email"
-								type="email"
-								bind:value={email}
-								placeholder="Enter your email address"
-								required
-								disabled={isLoading}
-								class="w-full px-4 py-3 rounded-2xl border border-border/40 bg-background/20 backdrop-blur-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
-							/>
-						</InputGroup>
-
-						<InputGroup>
-							<label for="password" class="block text-sm font-medium text-foreground mb-2">Password</label>
-							<input
-								id="password"
-								type="password"
-								bind:value={password}
-								placeholder="Enter your password"
-								required
-								disabled={isLoading}
-								class="w-full px-4 py-3 rounded-2xl border border-border/40 bg-background/20 backdrop-blur-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
-							/>
-						</InputGroup>
-
-						<Button 
-							type="submit"
-							variant="default" 
-							size="lg" 
-							class="w-full rounded-2xl hover:scale-[1.02] transition-all duration-200 bg-gradient-to-r from-primary to-primary/90 shadow-lg hover:shadow-xl"
-							disabled={isLoading || !email || !password}
-						>
-							<LogIn class="w-4 h-4 mr-2" />
-							{#if isLoading}
-								Signing in...
-							{:else}
-								Sign In
-							{/if}
-						</Button>
-
-						<!-- Toggle back to magic link -->
-						<Button 
-							type="button"
-							variant="ghost" 
-							size="sm" 
-							class="w-full rounded-2xl text-muted-foreground hover:text-foreground"
-							onclick={toggleLoginForm}
-						>
-							← Back to Magic Link
-						</Button>
-					</form>
-				{:else}
-					<!-- Magic Link Authentication -->
-					<div class="space-y-4">
-						<!-- Magic Link Sign In Button -->
-						<Button 
-							type="button"
-							variant="default" 
-							size="lg" 
-							class="w-full rounded-2xl hover:scale-[1.02] transition-all duration-200 bg-gradient-to-r from-primary to-primary/90 shadow-lg hover:shadow-xl"
-							disabled={isLoading}
-							onclick={handleSignIn}
-						>
-							<LogIn class="w-4 h-4 mr-2" />
-							{#if isLoading}
-								Processing...
-							{:else}
-								Sign In with Magic Link
-							{/if}
-						</Button>
-
-						<!-- Traditional Login Option -->
-						<Button 
-							type="button"
-							variant="outline" 
-							size="lg" 
-							class="w-full rounded-2xl hover:scale-[1.02] transition-all duration-200 bg-background/20 backdrop-blur-sm border-border/40 hover:bg-background/30"
-							disabled={isLoading}
-							onclick={toggleLoginForm}
-						>
-							<LogIn class="w-4 h-4 mr-2" />
-							Sign In with Email & Password
-						</Button>
-
-						<!-- Sign Up Button -->
-						<Button 
-							type="button"
-							variant="ghost" 
-							size="sm" 
-							class="w-full rounded-2xl text-muted-foreground hover:text-foreground"
-							disabled={isLoading}
-							onclick={handleSignUp}
-						>
-							<UserPlus class="w-4 h-4 mr-2" />
-							Create New Account
-						</Button>
-					</div>
-				{/if}
-
-				<!-- Help Links -->
-				<div class="text-center space-y-2">
-					<div class="text-xs text-muted-foreground">
-						Having trouble signing in? Contact your HR administrator for assistance.
-					</div>
-				</div>
-			</CardContent>
-		</Card>
-
-		<!-- GelDB Auth Info -->
-		<div class="mt-6 text-center">
-			<div class="inline-flex items-center space-x-4 text-sm text-muted-foreground bg-background/20 backdrop-blur-sm border border-border/40 rounded-2xl px-4 py-2 shadow-lg">
-				<Badge variant="secondary" class="bg-primary/10 text-primary border-primary/20">Magic Link</Badge>
-				<span>Secure passwordless authentication</span>
+		<!-- Status Messages -->
+		{#if loginReason}
+			<div class="p-4 text-sm bg-blue-50 border border-blue-200 rounded-md text-blue-800">
+				{getReasonMessage(loginReason)}
 			</div>
+		{/if}
+
+		{#if error}
+			<div 
+				class="p-4 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md"
+				role="alert"
+				aria-live="polite"
+			>
+				{error}
+			</div>
+		{/if}
+
+		<!-- GelDB Authentication -->
+		<div class="bg-card border rounded-lg shadow-sm p-8">
+			<div class="space-y-6">
+				<!-- Authentication Info -->
+				<div class="text-center space-y-4">
+					<div class="w-12 h-12 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
+						<svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+						</svg>
+					</div>
+					<div>
+						<h2 class="text-lg font-semibold text-foreground">Secure Magic Link Authentication</h2>
+						<p class="text-sm text-muted-foreground mt-1">
+							Sign in securely with a magic link sent to your work email
+						</p>
+					</div>
+				</div>
+
+				<!-- Sign In Button -->
+				<Button
+					variant="primary"
+					size="lg"
+					class="w-full"
+					loading={isLoading}
+					disabled={isLoading}
+					onclick={handleLogin}
+				>
+					{isLoading ? 'Opening sign-in page...' : 'Continue to Sign In'}
+				</Button>
+
+				<!-- How it Works -->
+				<div class="text-center">
+					<details class="text-sm text-muted-foreground">
+						<summary class="cursor-pointer hover:text-foreground mb-2 inline-flex items-center gap-1">
+							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+							</svg>
+							How Magic Link Works
+						</summary>
+						<div class="space-y-2 p-3 bg-muted/50 rounded-md text-left">
+							<div class="flex items-start gap-2">
+								<span class="text-primary font-semibold">1.</span>
+								<span>Enter your work email address</span>
+							</div>
+							<div class="flex items-start gap-2">
+								<span class="text-primary font-semibold">2.</span>
+								<span>Receive a secure sign-in link via email</span>
+							</div>
+							<div class="flex items-start gap-2">
+								<span class="text-primary font-semibold">3.</span>
+								<span>Click the link to instantly sign in</span>
+							</div>
+							<div class="flex items-start gap-2">
+								<span class="text-primary font-semibold">✨</span>
+								<span><strong>Secure:</strong> No passwords needed, links expire after 15 minutes</span>
+							</div>
+						</div>
+					</details>
+				</div>
+
+				<!-- Provider Info -->
+				{#if data.providerInfo}
+					<div class="text-center text-xs text-muted-foreground">
+						<p>
+							Powered by secure GelDB authentication
+							<br>
+							<span class="inline-flex items-center gap-1 mt-1">
+								<svg class="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+									<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+								</svg>
+								End-to-end encrypted • Multiple auth methods
+							</span>
+						</p>
+					</div>
+				{/if}
+			</div>
+		</div>
+
+		<!-- Support Information -->
+		<div class="text-center text-sm">
+			<span class="text-muted-foreground">Need help accessing your account? </span>
+			<a
+				href="/support"
+				class="text-primary hover:text-primary/80 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-sm"
+			>
+				Contact IT Support
+			</a>
 		</div>
 
 		<!-- Footer -->
-		<div class="mt-8 text-center text-xs text-muted-foreground">
-			<p>© 2025 SvelteHR. All rights reserved.</p>
-			<div class="mt-2 space-x-4">
-				<a href="/privacy" class="hover:text-foreground transition-colors duration-200">Privacy Policy</a>
-				<a href="/terms" class="hover:text-foreground transition-colors duration-200">Terms of Service</a>
-			</div>
+		<div class="text-center text-xs text-muted-foreground">
+			<p>
+				By signing in, you agree to our
+				<a href="/terms" class="text-primary hover:text-primary/80">Terms of Service</a>
+				and
+				<a href="/privacy" class="text-primary hover:text-primary/80">Privacy Policy</a>
+			</p>
 		</div>
+
+		{#if redirectTo}
+			<div class="text-center text-xs text-muted-foreground">
+				<p>You'll be redirected to: <code class="bg-muted px-1 rounded">{redirectTo}</code></p>
+			</div>
+		{/if}
 	</div>
 </div>
 
+<style>
+	/* Custom focus styles for better accessibility */
+	a:focus-visible {
+		outline: 2px solid hsl(var(--ring));
+		outline-offset: 2px;
+		border-radius: 0.125rem;
+	}
+
+	/* Loading animation override for better UX */
+	:global(.loading-spinner) {
+		animation: spin 1s linear infinite;
+	}
+
+	@keyframes spin {
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
+	}
+</style>

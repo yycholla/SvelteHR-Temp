@@ -2,15 +2,15 @@
 	import { onMount } from 'svelte';
 	import JobProgressDashboardComponent from './job-progress-dashboard.svelte';
 	import { getMockJobs } from '$lib/hooks/useJobs';
-	import type { 
-		BackgroundJob, 
+	import type {
+		BackgroundJob,
 		JobProgressDashboardVariant,
-		JobProgressDashboardProps 
+		JobProgressDashboardProps
 	} from './job-progress-dashboard.svelte';
 
 	// Props for customization
 	let {
-		variant = "default",
+		variant = 'default',
 		showCompleted = false,
 		maxItems = 5,
 		class: className,
@@ -36,44 +36,53 @@
 	});
 
 	// Transform jobs to ensure they have required Date objects
-	const transformedJobs = $derived(jobs.map(job => ({
-		...job,
-		createdAt: job.createdAt instanceof Date ? job.createdAt : new Date(job.createdAt),
-		startedAt: job.startedAt ? (job.startedAt instanceof Date ? job.startedAt : new Date(job.startedAt)) : undefined,
-		completedAt: job.completedAt ? (job.completedAt instanceof Date ? job.completedAt : new Date(job.completedAt)) : undefined,
-	})));
+	const transformedJobs = $derived(
+		jobs.map((job) => ({
+			...job,
+			createdAt: job.createdAt instanceof Date ? job.createdAt : new Date(job.createdAt),
+			startedAt: job.startedAt
+				? job.startedAt instanceof Date
+					? job.startedAt
+					: new Date(job.startedAt)
+				: undefined,
+			completedAt: job.completedAt
+				? job.completedAt instanceof Date
+					? job.completedAt
+					: new Date(job.completedAt)
+				: undefined
+		}))
+	);
 
 	// Only show if there are active jobs or recent completed/failed jobs
 	const shouldShow = $derived(() => {
 		if (loading) return false;
 		if (transformedJobs.length === 0) return false;
-		
+
 		// Show if there are any active jobs
-		if (transformedJobs.some(job => job.status === 'running' || job.status === 'pending')) {
+		if (transformedJobs.some((job) => job.status === 'running' || job.status === 'pending')) {
 			return true;
 		}
 
 		// Show if there are recent completed or failed jobs (within last 5 minutes)
 		const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-		return transformedJobs.some(job => 
-			(job.status === 'completed' && job.completedAt && job.completedAt > fiveMinutesAgo) ||
-			(job.status === 'failed' && job.createdAt > fiveMinutesAgo)
+		return transformedJobs.some(
+			(job) =>
+				(job.status === 'completed' && job.completedAt && job.completedAt > fiveMinutesAgo) ||
+				(job.status === 'failed' && job.createdAt > fiveMinutesAgo)
 		);
 	});
 
 	async function handleCancel(jobId: string) {
 		console.log('Cancelling job:', jobId);
 		// Mock cancel behavior - remove job from list
-		jobs = jobs.filter(job => job.id !== jobId);
+		jobs = jobs.filter((job) => job.id !== jobId);
 	}
 
 	async function handleRetry(jobId: string) {
 		console.log('Retrying job:', jobId);
 		// Mock retry behavior - update job status
-		jobs = jobs.map(job => 
-			job.id === jobId 
-				? { ...job, status: 'pending' as const, error: undefined }
-				: job
+		jobs = jobs.map((job) =>
+			job.id === jobId ? { ...job, status: 'pending' as const, error: undefined } : job
 		);
 	}
 
@@ -85,13 +94,13 @@
 
 	function handleClearCompleted() {
 		// Filter out completed jobs
-		jobs = jobs.filter(job => job.status !== 'completed');
+		jobs = jobs.filter((job) => job.status !== 'completed');
 	}
 </script>
 
 {#if shouldShow()}
 	<div class="job-progress-wrapper">
-		<JobProgressDashboardComponent 
+		<JobProgressDashboardComponent
 			jobs={transformedJobs}
 			{variant}
 			{showCompleted}

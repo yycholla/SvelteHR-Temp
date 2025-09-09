@@ -2,30 +2,44 @@
 	import type { ComponentType } from 'svelte';
 	import Badge from '$lib/components/ui/badge/badge.svelte';
 
-    interface Props {
-        title: string;
-        value: string | number;
-        icon: ComponentType;
-        trend?: {
-            value: string;
-            type: 'positive' | 'negative' | 'neutral' | 'warning';
-        };
-        tag?: string;
-        href?: string;
-        loading?: boolean;
-        class?: string;
-    }
+	interface Props {
+		title: string;
+		value: string | number;
+		icon: ComponentType;
+		trend?: {
+			value: string;
+			type: 'positive' | 'negative' | 'neutral' | 'warning';
+		};
+		tag?: string;
+		href?: string;
+		loading?: boolean;
+		class?: string;
+	}
 
-    let { title, value, icon, trend, tag, href, loading = false, class: className = '' }: Props = $props();
-    let Icon: ComponentType = icon;
+	let {
+		title,
+		value,
+		icon,
+		trend,
+		tag,
+		href,
+		loading = false,
+		class: className = ''
+	}: Props = $props();
+	let Icon: ComponentType = icon;
 
 	function getTrendClass(type: string): string {
 		switch (type) {
-			case 'positive': return 'text-green-600 bg-green-50';
-			case 'negative': return 'text-red-600 bg-red-50';
-			case 'warning': return 'text-yellow-600 bg-yellow-50';
-			case 'neutral': return 'text-gray-600 bg-gray-50';
-			default: return 'text-gray-600 bg-gray-50';
+			case 'positive':
+				return 'text-green-600 bg-green-50';
+			case 'negative':
+				return 'text-red-600 bg-red-50';
+			case 'warning':
+				return 'text-yellow-600 bg-yellow-50';
+			case 'neutral':
+				return 'text-gray-600 bg-gray-50';
+			default:
+				return 'text-gray-600 bg-gray-50';
 		}
 	}
 
@@ -37,65 +51,65 @@
 </script>
 
 {#if href}
-    <a class="stat-card clickable {className}" href={href}>
-        <div class="stat-header">
-            <div class="stat-info">
-                <Icon class="stat-icon" size={20} />
-                <div class="stat-text">
-                    <h3 class="stat-title">{title}</h3>
-                    {#if tag}
-                        <Badge variant="outline" class="stat-tag">{tag}</Badge>
-                    {/if}
-                </div>
-            </div>
-        </div>
-
-        <div class="stat-content">
-            {#if loading}
-                <div class="stat-skeleton">
-                    <div class="skeleton-value"></div>
-                    <div class="skeleton-trend"></div>
-                </div>
-            {:else}
-                <div class="stat-value">{value}</div>
-                {#if trend}
-                    <div class="stat-trend {getTrendClass(trend.type)}">
-                        {trend.value}
-                    </div>
-                {/if}
-            {/if}
-        </div>
-    </a>
-{:else}
-    <div class="stat-card {className}">
-	<div class="stat-header">
-		<div class="stat-info">
-                <Icon class="stat-icon" size={20} />
-			<div class="stat-text">
-				<h3 class="stat-title">{title}</h3>
-				{#if tag}
-					<Badge variant="outline" class="stat-tag">{tag}</Badge>
-				{/if}
+	<a class="stat-card clickable {className}" {href}>
+		<div class="stat-header">
+			<div class="stat-info">
+				<Icon class="stat-icon" size={20} />
+				<div class="stat-text">
+					<h3 class="stat-title">{title}</h3>
+					{#if tag}
+						<Badge variant="outline" class="stat-tag">{tag}</Badge>
+					{/if}
+				</div>
 			</div>
 		</div>
-	</div>
 
-	<div class="stat-content">
-		{#if loading}
-			<div class="stat-skeleton">
-				<div class="skeleton-value"></div>
-				<div class="skeleton-trend"></div>
-			</div>
-		{:else}
-			<div class="stat-value">{value}</div>
-			{#if trend}
-				<div class="stat-trend {getTrendClass(trend.type)}">
-					{trend.value}
+		<div class="stat-content">
+			{#if loading}
+				<div class="stat-skeleton">
+					<div class="skeleton-value"></div>
+					<div class="skeleton-trend"></div>
 				</div>
+			{:else}
+				<div class="stat-value">{value}</div>
+				{#if trend}
+					<div class="stat-trend {getTrendClass(trend.type)}">
+						{trend.value}
+					</div>
+				{/if}
 			{/if}
-		{/if}
+		</div>
+	</a>
+{:else}
+	<div class="stat-card {className}">
+		<div class="stat-header">
+			<div class="stat-info">
+				<Icon class="stat-icon" size={20} />
+				<div class="stat-text">
+					<h3 class="stat-title">{title}</h3>
+					{#if tag}
+						<Badge variant="outline" class="stat-tag">{tag}</Badge>
+					{/if}
+				</div>
+			</div>
+		</div>
+
+		<div class="stat-content">
+			{#if loading}
+				<div class="stat-skeleton">
+					<div class="skeleton-value"></div>
+					<div class="skeleton-trend"></div>
+				</div>
+			{:else}
+				<div class="stat-value">{value}</div>
+				{#if trend}
+					<div class="stat-trend {getTrendClass(trend.type)}">
+						{trend.value}
+					</div>
+				{/if}
+			{/if}
+		</div>
 	</div>
-    </div>
 {/if}
 
 <style>
@@ -199,7 +213,11 @@
 	}
 
 	@keyframes skeleton-loading {
-		0% { background-position: 200% 0; }
-		100% { background-position: -200% 0; }
+		0% {
+			background-position: 200% 0;
+		}
+		100% {
+			background-position: -200% 0;
+		}
 	}
 </style>

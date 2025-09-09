@@ -1,7 +1,12 @@
 import { writable, derived } from 'svelte/store';
 import { useApi, usePaginatedApi, useMutation } from './useApi';
 import { EmployeeService, DepartmentService, RoleService } from '$lib/api/services';
-import type { Employee, EmployeeFilter, CreateEmployeeInput, UpdateEmployeeInput } from '$lib/schemas/employee';
+import type {
+	Employee,
+	EmployeeFilter,
+	CreateEmployeeInput,
+	UpdateEmployeeInput
+} from '$lib/schemas/employee';
 
 /**
  * Employee management hooks
@@ -9,33 +14,25 @@ import type { Employee, EmployeeFilter, CreateEmployeeInput, UpdateEmployeeInput
 
 // Employee list hook with filtering and pagination
 export function useEmployees(initialFilter?: EmployeeFilter) {
-	const {
-		data,
-		loading,
-		error,
-		pagination,
-		loadPage,
-		nextPage,
-		previousPage,
-		refresh
-	} = usePaginatedApi<any>('/employees', {
-		pageSize: 20,
-		transform: (response) => response // EmployeeService handles transformation
-	});
+	const { data, loading, error, pagination, loadPage, nextPage, previousPage, refresh } =
+		usePaginatedApi<any>('/employees', {
+			pageSize: 20,
+			transform: (response) => response // EmployeeService handles transformation
+		});
 
 	// Current filter state
 	const filter = writable<EmployeeFilter>(initialFilter || {});
-	
+
 	// Load employees with current filter
 	async function loadEmployees(pageNumber = 1) {
 		let currentFilter: EmployeeFilter;
-		filter.subscribe(f => currentFilter = f)();
+		filter.subscribe((f) => (currentFilter = f))();
 		return loadPage(pageNumber, currentFilter!);
 	}
 
 	// Update filter and reload
 	async function updateFilter(newFilter: Partial<EmployeeFilter>) {
-		filter.update(f => ({ ...f, ...newFilter }));
+		filter.update((f) => ({ ...f, ...newFilter }));
 		return loadEmployees(1);
 	}
 
@@ -84,12 +81,9 @@ export function useEmployees(initialFilter?: EmployeeFilter) {
 
 // Single employee hook
 export function useEmployee(employeeId?: string) {
-	const employee = useApi<Employee>(
-		employeeId ? `/employees/${employeeId}` : '',
-		{
-			immediate: !!employeeId
-		}
-	);
+	const employee = useApi<Employee>(employeeId ? `/employees/${employeeId}` : '', {
+		immediate: !!employeeId
+	});
 
 	async function loadEmployee(id: string) {
 		return employee.fetch({ id });
@@ -207,39 +201,42 @@ export function useManagers() {
 export function useEmployeeStats() {
 	const employees = useEmployees();
 
-	const stats = derived(
-		[employees.employees, employees.loading],
-		([$employees, $loading]) => {
-			if ($loading || !$employees?.employees) {
-				return {
-					total: 0,
-					active: 0,
-					onboarding: 0,
-					byDepartment: {},
-					byRole: {},
-					managers: 0
-				};
-			}
-
-			const employeeList = $employees.employees;
+	const stats = derived([employees.employees, employees.loading], ([$employees, $loading]) => {
+		if ($loading || !$employees?.employees) {
 			return {
-				total: employeeList.length,
-				active: employeeList.filter(e => e.status === 'Active').length,
-				onboarding: employeeList.filter(e => e.status === 'Onboarding').length,
-				managers: employeeList.filter(e => e.isManager).length,
-				byDepartment: employeeList.reduce((acc, emp) => {
+				total: 0,
+				active: 0,
+				onboarding: 0,
+				byDepartment: {},
+				byRole: {},
+				managers: 0
+			};
+		}
+
+		const employeeList = $employees.employees;
+		return {
+			total: employeeList.length,
+			active: employeeList.filter((e) => e.status === 'Active').length,
+			onboarding: employeeList.filter((e) => e.status === 'Onboarding').length,
+			managers: employeeList.filter((e) => e.isManager).length,
+			byDepartment: employeeList.reduce(
+				(acc, emp) => {
 					const dept = emp.department?.name || 'Unassigned';
 					acc[dept] = (acc[dept] || 0) + 1;
 					return acc;
-				}, {} as Record<string, number>),
-				byRole: employeeList.reduce((acc, emp) => {
+				},
+				{} as Record<string, number>
+			),
+			byRole: employeeList.reduce(
+				(acc, emp) => {
 					const role = emp.role?.name || 'Unknown';
 					acc[role] = (acc[role] || 0) + 1;
 					return acc;
-				}, {} as Record<string, number>)
-			};
-		}
-	);
+				},
+				{} as Record<string, number>
+			)
+		};
+	});
 
 	return {
 		stats,
@@ -253,8 +250,8 @@ export function useEmployeeValidation() {
 	async function validateUsername(username: string, excludeId?: string): Promise<boolean> {
 		try {
 			const employees = await EmployeeService.list({ search: username });
-			const existing = employees.employees.find(e => 
-				e.username === username && e.id !== excludeId
+			const existing = employees.employees.find(
+				(e) => e.username === username && e.id !== excludeId
 			);
 			return !existing;
 		} catch {
@@ -265,9 +262,7 @@ export function useEmployeeValidation() {
 	async function validateEmail(email: string, excludeId?: string): Promise<boolean> {
 		try {
 			const employees = await EmployeeService.list({ search: email });
-			const existing = employees.employees.find(e => 
-				e.email === email && e.id !== excludeId
-			);
+			const existing = employees.employees.find((e) => e.email === email && e.id !== excludeId);
 			return !existing;
 		} catch {
 			return true; // Assume valid if validation fails

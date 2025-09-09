@@ -2,7 +2,11 @@
 	import { onMount } from 'svelte';
 	import { X, ExternalLink, AlertCircle, Info, CheckCircle, AlertTriangle } from 'lucide-svelte';
 	import Button from '../button/button.svelte';
-	import { toastVariants, type ToastNotificationProps, type ToastState } from './notification-center.svelte';
+	import {
+		toastVariants,
+		type ToastNotificationProps,
+		type ToastState
+	} from './notification-center.svelte';
 	import { cn } from '$lib/utils.js';
 
 	let {
@@ -10,7 +14,7 @@
 		onDismiss,
 		onAction,
 		autoHideDuration = 5000,
-		class: className,
+		class: className
 	}: ToastNotificationProps = $props();
 
 	let state = $state<ToastState>('entering');
@@ -110,7 +114,10 @@
 >
 	<!-- Progress Bar (if auto-hide enabled) -->
 	{#if autoHideDuration > 0}
-		<div class="absolute bottom-0 left-0 h-1 bg-current opacity-30 rounded-b-xl transition-all duration-75" style="width: {progress}%"></div>
+		<div
+			class="absolute bottom-0 left-0 h-1 rounded-b-xl bg-current opacity-30 transition-all duration-75"
+			style="width: {progress}%"
+		></div>
 	{/if}
 
 	<div class="flex items-start gap-3">
@@ -119,38 +126,28 @@
 			{@const IconComponent = getPriorityIcon(notification.priority)}
 			<IconComponent class="h-5 w-5 {getPriorityColor(notification.priority)}" />
 		{/snippet}
-		<div class="flex-shrink-0 mt-0.5">
+		<div class="mt-0.5 flex-shrink-0">
 			{@render priorityIcon()}
 		</div>
 
 		<!-- Content -->
-		<div class="flex-1 min-w-0">
-			<h4 class="font-semibold text-sm line-clamp-1">{notification.title}</h4>
-			<p class="text-sm text-muted-foreground mt-1 line-clamp-2">
+		<div class="min-w-0 flex-1">
+			<h4 class="line-clamp-1 text-sm font-semibold">{notification.title}</h4>
+			<p class="mt-1 line-clamp-2 text-sm text-muted-foreground">
 				{notification.message}
 			</p>
 
 			<!-- Action Button -->
 			{#if notification.actionUrl && notification.actionLabel}
-				<Button
-					variant="outline"
-					size="sm"
-					onclick={handleAction}
-					class="mt-3 h-7 text-xs"
-				>
+				<Button variant="outline" size="sm" onclick={handleAction} class="mt-3 h-7 text-xs">
 					{notification.actionLabel}
-					<ExternalLink class="h-3 w-3 ml-1" />
+					<ExternalLink class="ml-1 h-3 w-3" />
 				</Button>
 			{/if}
 		</div>
 
 		<!-- Dismiss Button -->
-		<Button
-			variant="ghost"
-			size="icon"
-			onclick={handleDismiss}
-			class="h-8 w-8 flex-shrink-0"
-		>
+		<Button variant="ghost" size="icon" onclick={handleDismiss} class="h-8 w-8 flex-shrink-0">
 			<X class="h-4 w-4" />
 		</Button>
 	</div>

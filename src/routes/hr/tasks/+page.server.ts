@@ -48,10 +48,9 @@ export const load: PageServerLoad = async ({ cookies, url, parent }) => {
 				relatedEntityType
 			}
 		};
-
 	} catch (error: any) {
 		console.error('❌ Error loading tasks data:', error);
-		
+
 		return {
 			tasks: [],
 			employees: [],

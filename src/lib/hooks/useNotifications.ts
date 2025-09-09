@@ -1,11 +1,11 @@
 import { writable, derived } from 'svelte/store';
 import { useApi, usePaginatedApi, useMutation } from './useApi';
 import { NotificationService } from '$lib/api/services';
-import type { 
-	Notification, 
-	NotificationFilter, 
+import type {
+	Notification,
+	NotificationFilter,
 	CreateNotificationInput,
-	UnreadCount 
+	UnreadCount
 } from '$lib/schemas/notification';
 
 /**
@@ -14,33 +14,25 @@ import type {
 
 // Notifications list hook with filtering
 export function useNotifications(initialFilter?: NotificationFilter) {
-	const {
-		data,
-		loading,
-		error,
-		pagination,
-		loadPage,
-		nextPage,
-		previousPage,
-		refresh
-	} = usePaginatedApi<any>('notifications', {
-		pageSize: 20,
-		transform: (response) => response
-	});
+	const { data, loading, error, pagination, loadPage, nextPage, previousPage, refresh } =
+		usePaginatedApi<any>('notifications', {
+			pageSize: 20,
+			transform: (response) => response
+		});
 
 	// Current filter state
 	const filter = writable<NotificationFilter>(initialFilter || {});
-	
+
 	// Load notifications with current filter
 	async function loadNotifications(pageNumber = 1) {
 		let currentFilter: NotificationFilter;
-		filter.subscribe(f => currentFilter = f)();
+		filter.subscribe((f) => (currentFilter = f))();
 		return loadPage(pageNumber, currentFilter!);
 	}
 
 	// Update filter and reload
 	async function updateFilter(newFilter: Partial<NotificationFilter>) {
-		filter.update(f => ({ ...f, ...newFilter }));
+		filter.update((f) => ({ ...f, ...newFilter }));
 		return loadNotifications(1);
 	}
 
@@ -141,17 +133,17 @@ export function useMarkAsRead() {
 export function useRealTimeNotifications(userId?: string) {
 	const notifications = writable<Notification[]>([]);
 	const unreadCount = writable<number>(0);
-	
+
 	// Polling implementation (can be replaced with WebSocket)
 	let pollInterval: number;
 
 	async function startPolling() {
 		if (pollInterval) clearInterval(pollInterval);
-		
+
 		const poll = async () => {
 			try {
 				const [notificationsResponse, countResponse] = await Promise.allSettled([
-					NotificationService.list({ 
+					NotificationService.list({
 						employeeId: userId ? parseInt(userId) : undefined,
 						isRead: false,
 						pageSize: 10,
@@ -160,7 +152,7 @@ export function useRealTimeNotifications(userId?: string) {
 					}),
 					NotificationService.getUnreadCount()
 				]);
-				
+
 				if (notificationsResponse.status === 'fulfilled') {
 					notifications.set(notificationsResponse.value.notifications);
 				} else {
@@ -168,7 +160,7 @@ export function useRealTimeNotifications(userId?: string) {
 					// Use empty array as fallback
 					notifications.set([]);
 				}
-				
+
 				if (countResponse.status === 'fulfilled') {
 					unreadCount.set(countResponse.value.unreadCount);
 				} else {
@@ -186,7 +178,7 @@ export function useRealTimeNotifications(userId?: string) {
 
 		// Initial load
 		await poll();
-		
+
 		// Poll every 30 seconds
 		pollInterval = window.setInterval(poll, 30000);
 	}
@@ -251,12 +243,12 @@ export function useNotificationActions() {
 		// Navigate based on notification type and related entity
 		if (notification.relatedEntityType && notification.relatedEntityId) {
 			const routes = {
-				'Employee': `/employees/${notification.relatedEntityId}`,
-				'Task': `/tasks/${notification.relatedEntityId}`,
-				'Leave': `/calendar?leave=${notification.relatedEntityId}`,
-				'HRRequest': `/requests/${notification.relatedEntityId}`,
-				'Document': `/documents/${notification.relatedEntityId}`,
-				'Compliance': `/compliance/${notification.relatedEntityId}`
+				Employee: `/employees/${notification.relatedEntityId}`,
+				Task: `/tasks/${notification.relatedEntityId}`,
+				Leave: `/calendar?leave=${notification.relatedEntityId}`,
+				HRRequest: `/requests/${notification.relatedEntityId}`,
+				Document: `/documents/${notification.relatedEntityId}`,
+				Compliance: `/compliance/${notification.relatedEntityId}`
 			};
 
 			const route = routes[notification.relatedEntityType as keyof typeof routes];
@@ -268,8 +260,8 @@ export function useNotificationActions() {
 
 	// Bulk mark as read
 	async function bulkMarkAsRead(notificationIds: string[]) {
-		const promises = notificationIds.map(id => markAsRead.markAsRead(id));
-		
+		const promises = notificationIds.map((id) => markAsRead.markAsRead(id));
+
 		try {
 			await Promise.all(promises);
 			return true;
@@ -282,14 +274,14 @@ export function useNotificationActions() {
 	// Get notification icon based on type
 	function getNotificationIcon(type: string): string {
 		const icons = {
-			'info': 'ℹ️',
-			'success': '✅',
-			'warning': '⚠️',
-			'error': '❌',
-			'ChangeRequest': '📝',
-			'OnboardingReminder': '👋',
-			'TaskUpdate': '📋',
-			'General': '📢'
+			info: 'ℹ️',
+			success: '✅',
+			warning: '⚠️',
+			error: '❌',
+			ChangeRequest: '📝',
+			OnboardingReminder: '👋',
+			TaskUpdate: '📋',
+			General: '📢'
 		};
 
 		return icons[type as keyof typeof icons] || '📢';
@@ -298,14 +290,14 @@ export function useNotificationActions() {
 	// Get notification color based on type
 	function getNotificationColor(type: string): string {
 		const colors = {
-			'info': 'blue',
-			'success': 'green',
-			'warning': 'yellow',
-			'error': 'red',
-			'ChangeRequest': 'purple',
-			'OnboardingReminder': 'indigo',
-			'TaskUpdate': 'orange',
-			'General': 'gray'
+			info: 'blue',
+			success: 'green',
+			warning: 'yellow',
+			error: 'red',
+			ChangeRequest: 'purple',
+			OnboardingReminder: 'indigo',
+			TaskUpdate: 'orange',
+			General: 'gray'
 		};
 
 		return colors[type as keyof typeof colors] || 'gray';
@@ -319,13 +311,13 @@ export function useNotificationActions() {
 
 		if (diffInMinutes < 1) return 'Just now';
 		if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-		
+
 		const diffInHours = Math.floor(diffInMinutes / 60);
 		if (diffInHours < 24) return `${diffInHours}h ago`;
-		
+
 		const diffInDays = Math.floor(diffInHours / 24);
 		if (diffInDays < 7) return `${diffInDays}d ago`;
-		
+
 		return date.toLocaleDateString();
 	}
 

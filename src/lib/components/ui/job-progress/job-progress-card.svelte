@@ -1,21 +1,21 @@
 <script lang="ts" module>
-	import { tv } from "tailwind-variants";
-	import { cn } from "$lib/utils.js";
+	import { tv } from 'tailwind-variants';
+	import { cn } from '$lib/utils.js';
 
 	export const jobProgressCardVariants = tv({
-		base: "rounded-xl border border-border/40 bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-md",
+		base: 'rounded-xl border border-border/40 bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-md',
 		variants: {
 			status: {
-				pending: "border-l-4 border-l-muted-foreground",
-				running: "border-l-4 border-l-blue-500 bg-blue-50/10 dark:bg-blue-950/10",
-				completed: "border-l-4 border-l-green-500 bg-green-50/10 dark:bg-green-950/10",
-				failed: "border-l-4 border-l-red-500 bg-red-50/10 dark:bg-red-950/10",
-				cancelled: "border-l-4 border-l-gray-500 bg-gray-50/10 dark:bg-gray-950/10",
+				pending: 'border-l-4 border-l-muted-foreground',
+				running: 'border-l-4 border-l-blue-500 bg-blue-50/10 dark:bg-blue-950/10',
+				completed: 'border-l-4 border-l-green-500 bg-green-50/10 dark:bg-green-950/10',
+				failed: 'border-l-4 border-l-red-500 bg-red-50/10 dark:bg-red-950/10',
+				cancelled: 'border-l-4 border-l-gray-500 bg-gray-50/10 dark:bg-gray-950/10'
 			}
 		},
 		defaultVariants: {
-			status: "pending",
-		},
+			status: 'pending'
+		}
 	});
 
 	export type JobProgressCardProps = {
@@ -28,11 +28,11 @@
 </script>
 
 <script lang="ts">
-	import { 
-		Play, 
-		CheckCircle, 
-		XCircle, 
-		AlertCircle, 
+	import {
+		Play,
+		CheckCircle,
+		XCircle,
+		AlertCircle,
 		Clock,
 		X,
 		RotateCcw,
@@ -50,13 +50,7 @@
 	import type { BackgroundJob, JobType } from './job-progress-dashboard.svelte';
 	import { formatDistanceToNow } from 'date-fns';
 
-	let {
-		job,
-		onCancel,
-		onRetry,
-		onView,
-		class: className,
-	}: JobProgressCardProps = $props();
+	let { job, onCancel, onRetry, onView, class: className }: JobProgressCardProps = $props();
 
 	function getJobTypeIcon(type: JobType) {
 		switch (type) {
@@ -142,19 +136,19 @@
 
 <div class={cn(jobProgressCardVariants({ status: job.status }), className)}>
 	<!-- Header -->
-	<div class="flex items-start justify-between mb-3">
+	<div class="mb-3 flex items-start justify-between">
 		<div class="flex items-center gap-3">
 			{#snippet typeIcon()}
 				{@const TypeIcon = getJobTypeIcon(job.type)}
 				<TypeIcon class="h-4 w-4 text-muted-foreground" />
 			{/snippet}
-			<div class="h-8 w-8 rounded-lg bg-muted/50 flex items-center justify-center flex-shrink-0">
+			<div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-muted/50">
 				{@render typeIcon()}
 			</div>
-			
+
 			<div class="min-w-0">
-				<h4 class="font-medium text-sm truncate">{job.title}</h4>
-				<div class="flex items-center gap-2 mt-1">
+				<h4 class="truncate text-sm font-medium">{job.title}</h4>
+				<div class="mt-1 flex items-center gap-2">
 					{#snippet statusIcon()}
 						{@const StatusIcon = getStatusIcon(job.status)}
 						<StatusIcon class="h-3 w-3 {getStatusColor(job.status)}" />
@@ -169,7 +163,7 @@
 		</div>
 
 		<!-- Actions -->
-		<div class="flex items-center gap-1 flex-shrink-0">
+		<div class="flex flex-shrink-0 items-center gap-1">
 			{#if job.status === 'running' && job.canCancel && onCancel}
 				<Button
 					variant="ghost"
@@ -210,18 +204,14 @@
 
 	<!-- Description -->
 	{#if job.description}
-		<p class="text-xs text-muted-foreground mb-3 line-clamp-2">{job.description}</p>
+		<p class="mb-3 line-clamp-2 text-xs text-muted-foreground">{job.description}</p>
 	{/if}
 
 	<!-- Progress -->
 	{#if job.status === 'running' || (job.status === 'completed' && job.progress === 100)}
-		<div class="space-y-2 mb-3">
-			<Progress 
-				value={job.progress} 
-				variant={getProgressVariant(job.status)}
-				class="h-2"
-			/>
-			
+		<div class="mb-3 space-y-2">
+			<Progress value={job.progress} variant={getProgressVariant(job.status)} class="h-2" />
+
 			<!-- Step Info -->
 			{#if job.status === 'running'}
 				<div class="flex items-center justify-between text-xs text-muted-foreground">
@@ -229,15 +219,15 @@
 						{#if job.totalSteps && job.currentStep}
 							<span>Step {job.currentStep}/{job.totalSteps}</span>
 						{/if}
-						
+
 						{#if job.stepDescription}
 							<span>{job.stepDescription}</span>
 						{/if}
 					</div>
-					
+
 					<span class="font-medium">{job.progress}%</span>
 				</div>
-				
+
 				{#if job.timeRemaining}
 					<p class="text-xs text-muted-foreground">
 						{formatDuration(job.timeRemaining)} remaining
@@ -258,7 +248,7 @@
 				Created {formatDistanceToNow(job.createdAt, { addSuffix: true })}
 			{/if}
 		</div>
-		
+
 		{#if job.estimatedDuration && job.status === 'pending'}
 			<span>~{formatDuration(job.estimatedDuration)}</span>
 		{/if}

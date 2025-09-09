@@ -1,0 +1,352 @@
+module portal_communication {
+
+    # Abstract type for entities that can have forms
+    abstract type FormEnabled {
+        multi link forms -> Form;
+        property default_form_id -> uuid;
+    }
+
+    # Company Events
+    type CompanyEvent extending default::Auditable {
+        required property title -> str;
+        property description -> str;
+        required property event_date -> datetime;
+        property end_date -> datetime;
+        property location -> str;
+        property is_virtual -> bool {
+            default := false;
+        }
+        property virtual_link -> str;
+        property max_attendees -> int32;
+        property registration_required -> bool {
+            default := false;
+        }
+        property registration_deadline -> datetime;
+        property is_public -> bool {
+            default := true;
+        }
+        link created_by -> rbac::User;
+        property event_type -> str; # Meeting, Training, Social, All-Hands, etc.
+        property tags -> array<str>;
+        property recurring_pattern -> str; # Daily, Weekly, Monthly, etc.
+        property cost_per_person -> decimal;
+        property budget -> decimal;
+        property status -> str {
+            default := 'scheduled';
+        }
+        
+        # Computed properties
+        property attendee_count := count(.<event[is EventRSVP] filter .status = 'attending');
+        property spots_available := (.max_attendees ?? 0) - .attendee_count if exists .max_attendees else <int32>999999;
+        
+        # Indexes
+        index on (.event_date);
+        index on (.event_type);
+        index on (.status);
+        index on (.is_public);
+    }
+
+    # RSVP responses for events
+    type EventRSVP extending default::Auditable {
+        required link employee -> rbac::User;
+        required link event -> CompanyEvent;
+        required property status -> str; # attending, not_attending, maybe
+        property response_date -> datetime {
+            default := datetime_current();
+        }
+        property notes -> str;
+        property plus_one -> bool {
+            default := false;
+        }
+        property dietary_restrictions -> str;
+        property emergency_contact -> str;
+        
+        # Constraints
+        constraint exclusive on ((.employee, .event));
+        
+        # Computed properties
+        property is_attending := .status = 'attending';
+        
+        # Indexes
+        index on (.event);
+        index on (.status);
+        index on (.employee);
+    }
+
+    # Event Invitations
+    type EventInvitation extending default::Auditable {
+        required link event -> CompanyEvent;
+        required link invited_employee -> rbac::User;
+        link invited_by -> rbac::User;
+        property invitation_sent_at -> datetime {
+            default := datetime_current();
+        }
+        property invitation_method -> str {
+            default := 'email';
+        }
+        property custom_message -> str;
+        property is_required -> bool {
+            default := false;
+        }
+        
+        # Computed properties
+        
+        # Constraints
+        constraint exclusive on ((.event, .invited_employee));
+        
+        # Indexes
+        index on (.event);
+        index on (.invited_employee);
+    }
+
+    # Announcements
+    type Announcement extending default::Auditable {
+        required property title -> str;
+        required property content -> str;
+        property announcement_type -> str {
+            default := 'general';
+        }
+        property priority -> str {
+            default := 'normal';
+        }
+        property is_published -> bool {
+            default := false;
+        }
+        property publish_date -> datetime;
+        property expiry_date -> datetime;
+        link created_by -> rbac::User;
+        property target_audience -> json; # Department IDs, Role IDs, or 'all'
+        property tags -> array<str>;
+        property attachments -> json;
+        property is_pinned -> bool {
+            default := false;
+        }
+        property view_count -> int32 {
+            default := 0;
+        }
+        
+        # Computed properties
+        
+        # Indexes
+        index on (.is_published);
+        index on (.publish_date);
+        index on (.announcement_type);
+        index on (.priority);
+        index on (.is_pinned);
+    }
+
+    # Notifications
+    type Notification extending default::Auditable {
+        link employee -> rbac::User; # null for system-wide notifications
+        required property message -> str;
+        property notification_type -> default::NotificationType {
+            default := default::NotificationType.Info;
+        }
+        property related_entity_type -> str;
+        property related_entity_id -> uuid;
+        property is_read -> bool {
+            default := false;
+        }
+        property read_at -> datetime;
+        property action_url -> str; # URL to navigate to when clicked
+        property action_text -> str; # Text for action button
+        property is_dismissible -> bool {
+            default := true;
+        }
+        property priority -> int32 {
+            default := 5;
+            constraint expression on (__subject__ >= 1 and __subject__ <= 10);
+        }
+        property expires_at -> datetime;
+        
+        # Computed properties
+        property is_unread := not .is_read;
+        property is_high_priority := .priority >= 8;
+        
+        # Indexes
+        index on (.employee);
+        index on (.is_read);
+        index on (.notification_type);
+        index on (.priority);
+        index on (.created_at);
+    }
+
+    # Form Template for reusable form definitions
+    type FormTemplate extending default::Auditable {
+        required property name -> str;
+        required property category -> str; # 'hr', 'performance', 'onboarding', etc.
+        required property template_schema -> json;
+        property description -> str;
+        property is_active -> bool {
+            default := true;
+        }
+        property version -> int32 {
+            default := 1;
+        }
+        link created_by -> rbac::User;
+        
+        # Computed properties
+        property usage_count := count(.<template[is Form]);
+        
+        # Indexes
+        index on (.category);
+        index on (.is_active);
+    }
+
+    # Form Context Mapping - links forms to their usage contexts
+    type FormContext extending default::Auditable {
+        required link form -> Form;
+        required property context_type -> str; # 'performance_review', 'exit_interview', etc.
+        property entity_type -> str; # The geldb type name
+        property entity_id -> uuid; # The specific entity instance
+        property metadata -> json; # Context-specific configuration
+        
+        # Constraints
+        constraint exclusive on ((.form, .context_type, .entity_id));
+        
+        # Indexes
+        index on (.context_type);
+        index on (.entity_type);
+        index on (.entity_id);
+    }
+
+    # Form Versioning for change tracking
+    type FormVersion extending default::Auditable {
+        required link form -> Form;
+        required property version_number -> int32;
+        required property schema_snapshot -> json;
+        property change_description -> str;
+        link created_by -> rbac::User;
+        
+        # Constraints
+        constraint exclusive on ((.form, .version_number));
+        
+        # Indexes
+        index on (.form);
+        index on (.version_number);
+    }
+
+    # Forms for data collection
+    type Form extending default::Auditable {
+        required property title -> str;
+        property description -> str;
+        required property form_schema -> json; # JSON schema for the form fields
+        property is_active -> bool {
+            default := true;
+        }
+        property is_public -> bool {
+            default := false;
+        }
+        property requires_authentication -> bool {
+            default := true;
+        }
+        property submission_limit -> int32; # Max submissions per user
+        property start_date -> datetime;
+        property end_date -> datetime;
+        link created_by -> rbac::User;
+        property target_audience -> json; # Who can see this form
+        property auto_approve -> bool {
+            default := false;
+        }
+        property notification_emails -> array<str>;
+        
+        # New fields for template integration
+        link template -> FormTemplate;
+        property version -> int32 {
+            default := 1;
+        }
+        
+        # Computed properties
+        property submission_count := count(.<form[is FormSubmission]);
+        
+        # Indexes
+        index on (.is_active);
+        index on (.is_public);
+        index on (.created_by);
+        index on (.template);
+    }
+
+    # Form Submissions with multi-context support
+    type FormSubmission extending default::Auditable {
+        required link form -> Form;
+        link submitted_by -> rbac::User; # null for anonymous submissions
+        required property submission_data -> json;
+        property status -> default::ApprovalStatus {
+            default := default::ApprovalStatus.Pending;
+        }
+        property submission_ip -> str;
+        property user_agent -> str;
+        link reviewed_by -> rbac::User;
+        property reviewed_at -> datetime;
+        property review_notes -> str;
+        property is_complete -> bool {
+            default := true;
+        }
+        property submission_id -> str { # User-friendly ID
+            default := <str>uuid_generate_v4();
+        }
+        
+        # Context linking for multi-context support
+        property context_type -> str; # 'performance_review', 'exit_interview', 'onboarding', etc.
+        property context_entity_id -> uuid; # ID of the related entity
+        property context_metadata -> json; # Additional context-specific data
+        
+        # Specific context links (optional - for type safety)
+        link performance_review -> performance::PerformanceReview;
+        link exit_interview -> onboarding_offboarding::ExitInterview;
+        link onboarding_process -> onboarding_offboarding::OnboardingProcess;
+        
+        # Form context relationship
+        link form_context -> FormContext;
+        
+        # Computed properties
+        property is_pending := .status = default::ApprovalStatus.Pending;
+        property submitter_name := .submitted_by.full_name ?? 'Anonymous';
+        property has_context := exists .context_type and exists .context_entity_id;
+        property context_display := .context_type ++ ':' ++ <str>.context_entity_id if .has_context else 'standalone';
+        
+        # Constraints
+        constraint expression on (
+            # If context_type is provided, context_entity_id must also be provided
+            (exists .context_type) = (exists .context_entity_id)
+        );
+        
+        # Indexes
+        index on (.form);
+        index on (.status);
+        index on (.submitted_by);
+        index on (.submission_id);
+        index on (.context_type);
+        index on (.context_entity_id);
+        index on (.form_context);
+    }
+
+    # Activity Log for audit trail
+    type ActivityLog extending default::Auditable {
+        required link employee -> rbac::User; # Who performed the action
+        required property action_type -> str; # login, create, update, delete, etc.
+        property entity_type -> str; # Employee, Task, Document, etc.
+        property entity_id -> uuid;
+        required property description -> str;
+        property details -> json; # Additional context
+        property ip_address -> str;
+        property user_agent -> str;
+        property session_id -> str;
+        property success -> bool {
+            default := true;
+        }
+        property error_message -> str;
+        
+        # Computed properties
+        property action_date := cal::to_local_date(.created_at, 'UTC');
+        property is_security_event := .action_type in {'login', 'logout', 'failed_login', 'password_change', 'permission_change'};
+        property is_data_modification := .action_type in {'create', 'update', 'delete'};
+        
+        # Indexes
+        index on (.employee);
+        index on (.action_type);
+        index on (.entity_type);
+        index on (.created_at);
+        index on (.ip_address);
+    }
+}

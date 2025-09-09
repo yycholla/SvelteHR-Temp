@@ -4,34 +4,34 @@ test.describe('Smoke Tests', () => {
 	test('application should be accessible', async ({ page }) => {
 		// Check if application loads
 		await page.goto('/');
-		
+
 		// Should have a title
 		const title = await page.title();
 		expect(title).toBeTruthy();
 		console.log('Page title:', title);
-		
+
 		// Should have some content
 		const body = page.locator('body');
 		await expect(body).toBeVisible();
-		
+
 		// Take a screenshot for verification
 		await page.screenshot({ path: 'e2e/screenshots/smoke-test.png' });
 	});
 
 	test('login page should load', async ({ page }) => {
 		await page.goto('/login');
-		
+
 		// Should load the login page
 		const body = page.locator('body');
 		await expect(body).toBeVisible();
-		
+
 		// Should have form elements (even if different structure)
 		const inputs = page.locator('input');
 		const inputCount = await inputs.count();
 		expect(inputCount).toBeGreaterThan(0);
-		
+
 		console.log(`Found ${inputCount} input elements on login page`);
-		
+
 		// Take a screenshot
 		await page.screenshot({ path: 'e2e/screenshots/login-page.png' });
 	});
@@ -39,18 +39,18 @@ test.describe('Smoke Tests', () => {
 	test('basic navigation should work', async ({ page }) => {
 		// Start at home page
 		await page.goto('/');
-		
+
 		// Try to navigate to different routes
 		const routes = ['/login', '/home', '/'];
-		
+
 		for (const route of routes) {
 			try {
 				await page.goto(route);
 				await page.waitForLoadState('networkidle', { timeout: 5000 });
-				
+
 				const url = page.url();
 				console.log(`Navigation to ${route} -> ${url}`);
-				
+
 				// Should have loaded something
 				const body = page.locator('body');
 				await expect(body).toBeVisible();
@@ -126,7 +126,7 @@ test.describe('Manual Testing Documentation', () => {
    
 📖 Full documentation available in e2e/README.md
 		`);
-		
+
 		// This passes as documentation
 		expect(true).toBe(true);
 	});

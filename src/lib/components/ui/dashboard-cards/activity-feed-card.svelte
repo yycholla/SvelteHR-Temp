@@ -1,39 +1,39 @@
 <script lang="ts" module>
-	import { tv } from "tailwind-variants";
-	import { cn } from "$lib/utils.js";
+	import { tv } from 'tailwind-variants';
+	import { cn } from '$lib/utils.js';
 
 	export const activityFeedCardVariants = tv({
-		base: "rounded-xl border border-border/40 bg-card shadow-sm",
+		base: 'rounded-xl border border-border/40 bg-card shadow-sm',
 		variants: {
 			size: {
-				sm: "p-4",
-				default: "p-6",
-				lg: "p-8",
+				sm: 'p-4',
+				default: 'p-6',
+				lg: 'p-8'
 			}
 		},
 		defaultVariants: {
-			size: "default",
-		},
+			size: 'default'
+		}
 	});
 
 	export const activityItemVariants = tv({
-		base: "flex items-start gap-3 p-3 rounded-lg transition-colors duration-200",
+		base: 'flex items-start gap-3 p-3 rounded-lg transition-colors duration-200',
 		variants: {
 			priority: {
-				low: "hover:bg-muted/30",
-				normal: "hover:bg-muted/30",
-				high: "hover:bg-yellow-50/50 dark:hover:bg-yellow-950/10",
-				urgent: "hover:bg-red-50/50 dark:hover:bg-red-950/10",
+				low: 'hover:bg-muted/30',
+				normal: 'hover:bg-muted/30',
+				high: 'hover:bg-yellow-50/50 dark:hover:bg-yellow-950/10',
+				urgent: 'hover:bg-red-50/50 dark:hover:bg-red-950/10'
 			},
 			read: {
-				true: "opacity-70",
-				false: "opacity-100",
+				true: 'opacity-70',
+				false: 'opacity-100'
 			}
 		},
 		defaultVariants: {
-			priority: "normal",
-			read: false,
-		},
+			priority: 'normal',
+			read: false
+		}
 	});
 
 	export interface ActivityItem {
@@ -66,7 +66,7 @@
 </script>
 
 <script lang="ts">
-	import { 
+	import {
 		Activity,
 		User,
 		CheckCircle,
@@ -94,11 +94,11 @@
 		onMarkAllRead,
 		onViewAll,
 		class: className,
-		size = "default",
+		size = 'default'
 	}: ActivityFeedCardProps = $props();
 
 	const displayedActivities = $derived(activities.slice(0, maxItems));
-	const unreadCount = $derived(activities.filter(a => !a.read).length);
+	const unreadCount = $derived(activities.filter((a) => !a.read).length);
 	const hasMore = $derived(activities.length > maxItems);
 
 	function getActivityTypeIcon(type: ActivityItem['type']) {
@@ -155,16 +155,16 @@
 
 <div class={cn(activityFeedCardVariants({ size }), className)}>
 	<!-- Header -->
-	<div class="flex items-center justify-between mb-4">
+	<div class="mb-4 flex items-center justify-between">
 		<div class="flex items-center gap-3">
 			<div class="flex items-center gap-2">
 				{#if isLive}
-					<div class="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+					<div class="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
 				{/if}
 				<Activity class="h-5 w-5 text-primary" />
 				<h3 class="font-semibold">{title}</h3>
 			</div>
-			
+
 			{#if unreadCount > 0}
 				<Badge variant="secondary" class="text-xs">
 					{unreadCount} new
@@ -175,14 +175,14 @@
 		<div class="flex items-center gap-2">
 			{#if unreadCount > 0 && onMarkAllRead}
 				<Button variant="ghost" size="sm" onclick={onMarkAllRead} class="text-xs">
-					<EyeOff class="h-3 w-3 mr-1" />
+					<EyeOff class="mr-1 h-3 w-3" />
 					Mark all read
 				</Button>
 			{/if}
-			
+
 			{#if onViewAll}
 				<Button variant="ghost" size="sm" onclick={onViewAll} class="text-xs">
-					<ExternalLink class="h-3 w-3 mr-1" />
+					<ExternalLink class="mr-1 h-3 w-3" />
 					View all
 				</Button>
 			{/if}
@@ -193,14 +193,14 @@
 	<div class="space-y-1">
 		{#if displayedActivities.length === 0}
 			<div class="flex flex-col items-center justify-center py-8 text-center">
-				<Activity class="h-8 w-8 text-muted-foreground/50 mb-3" />
+				<Activity class="mb-3 h-8 w-8 text-muted-foreground/50" />
 				<p class="text-sm text-muted-foreground">No recent activity</p>
-				<p class="text-xs text-muted-foreground mt-1">Activity will appear here</p>
+				<p class="mt-1 text-xs text-muted-foreground">Activity will appear here</p>
 			</div>
 		{:else}
 			{#each displayedActivities as activity (activity.id)}
 				{@const TypeIcon = activity.icon || getActivityTypeIcon(activity.type)}
-				<div 
+				<div
 					class={activityItemVariants({ priority: activity.priority, read: activity.read })}
 					role="button"
 					tabindex="0"
@@ -208,48 +208,55 @@
 					onkeydown={(e) => e.key === 'Enter' && handleItemClick(activity)}
 				>
 					<!-- Priority Indicator -->
-					<div class="flex-shrink-0 relative">
+					<div class="relative flex-shrink-0">
 						{#if activity.user}
 							<Avatar size="sm">
 								{#if activity.user.avatar}
 									<AvatarImage src={activity.user.avatar} alt={activity.user.name} />
 								{/if}
 								<AvatarFallback class="text-xs">
-									{activity.user.name.split(' ').map(n => n[0]).join('')}
+									{activity.user.name
+										.split(' ')
+										.map((n) => n[0])
+										.join('')}
 								</AvatarFallback>
 							</Avatar>
 						{:else}
-							<div class="h-8 w-8 rounded-full bg-muted/50 flex items-center justify-center">
+							<div class="flex h-8 w-8 items-center justify-center rounded-full bg-muted/50">
 								<TypeIcon class="h-4 w-4 {getActivityTypeColor(activity.type)}" />
 							</div>
 						{/if}
-						
+
 						<!-- Priority dot -->
 						{#if activity.priority !== 'normal'}
-							<div class="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full {getPriorityIndicator(activity.priority)}"></div>
+							<div
+								class="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full {getPriorityIndicator(
+									activity.priority
+								)}"
+							></div>
 						{/if}
 					</div>
 
 					<!-- Content -->
-					<div class="flex-1 min-w-0">
+					<div class="min-w-0 flex-1">
 						<div class="flex items-start justify-between gap-2">
-							<h4 class="text-sm font-medium line-clamp-1">{activity.title}</h4>
+							<h4 class="line-clamp-1 text-sm font-medium">{activity.title}</h4>
 							{#if !activity.read}
-								<div class="h-2 w-2 rounded-full bg-primary flex-shrink-0 mt-2"></div>
+								<div class="mt-2 h-2 w-2 flex-shrink-0 rounded-full bg-primary"></div>
 							{/if}
 						</div>
-						
+
 						{#if activity.description}
-							<p class="text-sm text-muted-foreground mt-1 line-clamp-2">
+							<p class="mt-1 line-clamp-2 text-sm text-muted-foreground">
 								{activity.description}
 							</p>
 						{/if}
-						
-						<div class="flex items-center justify-between mt-2">
+
+						<div class="mt-2 flex items-center justify-between">
 							<p class="text-xs text-muted-foreground">
 								{formatDistanceToNow(activity.timestamp, { addSuffix: true })}
 							</p>
-							
+
 							{#if activity.user}
 								<p class="text-xs text-muted-foreground">
 									{activity.user.name}
@@ -259,11 +266,11 @@
 					</div>
 				</div>
 			{/each}
-			
+
 			{#if hasMore}
-				<div class="text-center pt-3 border-t border-border/20">
+				<div class="border-t border-border/20 pt-3 text-center">
 					<Button variant="ghost" size="sm" onclick={onViewAll} class="text-xs">
-						<ExternalLink class="h-3 w-3 mr-1" />
+						<ExternalLink class="mr-1 h-3 w-3" />
 						View {activities.length - maxItems} more
 					</Button>
 				</div>

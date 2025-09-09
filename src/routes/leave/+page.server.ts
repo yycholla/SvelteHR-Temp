@@ -4,14 +4,14 @@ import { apiCache, CACHE_KEYS, CACHE_TTL } from '$lib/api/cache';
 
 export const load: PageServerLoad = async ({ cookies, locals, url }) => {
 	const token = cookies.get('hr_token');
-	
+
 	// Parse URL parameters for filtering
 	const page = Number(url.searchParams.get('page')) || 1;
 	const search = url.searchParams.get('search') || '';
 	const status = url.searchParams.get('status') || '';
 	const type = url.searchParams.get('type') || '';
 	const limit = Number(url.searchParams.get('limit')) || 20;
-	
+
 	console.log('🏖️ Leave page load - Token present:', !!token);
 	console.log('🏖️ Leave page load - User authenticated:', !!locals.user);
 
@@ -41,7 +41,7 @@ export const load: PageServerLoad = async ({ cookies, locals, url }) => {
 	try {
 		if (token) {
 			console.log('🏖️ Fetching leave data from API...');
-			
+
 			// Build query parameters
 			const params = new URLSearchParams();
 			if (search) params.append('search', search);
@@ -49,7 +49,7 @@ export const load: PageServerLoad = async ({ cookies, locals, url }) => {
 			if (type) params.append('type', type);
 			params.append('page', page.toString());
 			params.append('pageSize', limit.toString());
-			
+
 			// Check cache
 			const cacheKey = `leave_${params.toString()}`;
 			const cachedLeave = apiCache.get(cacheKey);
@@ -57,7 +57,7 @@ export const load: PageServerLoad = async ({ cookies, locals, url }) => {
 				console.log('🏖️ Using cached leave data');
 				return { ...cachedLeave, isUsingMockData: false };
 			}
-			
+
 			// Create server-side API client
 			const serverApiClient = apiClient.extend({
 				hooks: {
@@ -79,35 +79,54 @@ export const load: PageServerLoad = async ({ cookies, locals, url }) => {
 
 			// Try to fetch leave data and types in parallel
 			const [leaveResponse, leaveTypesResponse, leaveStatsResponse] = await Promise.allSettled([
-				serverApiClient.get(`leave/requests?${params.toString()}`).json().catch(() => ({ data: [], total: 0 })),
-				serverApiClient.get('leave/types').json().catch(() => []),
-				serverApiClient.get('leave/my-stats').json().catch(() => null)
+				serverApiClient
+					.get(`leave/requests?${params.toString()}`)
+					.json()
+					.catch(() => ({ data: [], total: 0 })),
+				serverApiClient
+					.get('leave/types')
+					.json()
+					.catch(() => []),
+				serverApiClient
+					.get('leave/my-stats')
+					.json()
+					.catch(() => null)
 			]);
-			
+
 			// Process leave requests data
-			const leaveData = leaveResponse.status === 'fulfilled' 
-				? (Array.isArray(leaveResponse.value) ? leaveResponse.value : leaveResponse.value.data || [])
-				: [];
-			const totalCount = leaveResponse.status === 'fulfilled' 
-				? (leaveResponse.value.total || leaveData.length)
-				: 0;
+			const leaveData =
+				leaveResponse.status === 'fulfilled'
+					? Array.isArray(leaveResponse.value)
+						? leaveResponse.value
+						: leaveResponse.value.data || []
+					: [];
+			const totalCount =
+				leaveResponse.status === 'fulfilled' ? leaveResponse.value.total || leaveData.length : 0;
 			const totalPages = Math.ceil(totalCount / limit);
-			
+
 			// Process leave types
-			const leaveTypes = leaveTypesResponse.status === 'fulfilled' 
-				? (Array.isArray(leaveTypesResponse.value) ? leaveTypesResponse.value : leaveTypesResponse.value.data || [])
-				: [];
-			
+			const leaveTypes =
+				leaveTypesResponse.status === 'fulfilled'
+					? Array.isArray(leaveTypesResponse.value)
+						? leaveTypesResponse.value
+						: leaveTypesResponse.value.data || []
+					: [];
+
 			// Process personal leave stats
-			const personalStats = leaveStatsResponse.status === 'fulfilled' && leaveStatsResponse.value 
-				? leaveStatsResponse.value 
-				: null;
-			
+			const personalStats =
+				leaveStatsResponse.status === 'fulfilled' && leaveStatsResponse.value
+					? leaveStatsResponse.value
+					: null;
+
 			// Format leave requests for UI
 			const formattedRequests = leaveData.map((request: any) => ({
 				id: request.id || request.ID,
 				employeeId: request.employeeId || request.employee_id || request.EmployeeId,
-				employeeName: request.employeeName || request.employee_name || request.EmployeeName || 'Unknown Employee',
+				employeeName:
+					request.employeeName ||
+					request.employee_name ||
+					request.EmployeeName ||
+					'Unknown Employee',
 				leaveType: request.leaveType || request.leave_type || request.LeaveType || 'General Leave',
 				startDate: request.startDate || request.start_date || request.StartDate,
 				endDate: request.endDate || request.end_date || request.EndDate,
@@ -127,9 +146,9 @@ export const load: PageServerLoad = async ({ cookies, locals, url }) => {
 			// Calculate stats
 			const stats = {
 				totalRequests: totalCount,
-				approved: formattedRequests.filter(req => req.status === 'approved').length,
-				pending: formattedRequests.filter(req => req.status === 'pending').length,
-				rejected: formattedRequests.filter(req => req.status === 'rejected').length,
+				approved: formattedRequests.filter((req) => req.status === 'approved').length,
+				pending: formattedRequests.filter((req) => req.status === 'pending').length,
+				rejected: formattedRequests.filter((req) => req.status === 'rejected').length,
 				myAvailableLeave: personalStats?.availableLeave || 20,
 				myUsedLeave: personalStats?.usedLeave || 5,
 				myPendingRequests: personalStats?.pendingRequests || 0

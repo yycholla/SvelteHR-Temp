@@ -23,7 +23,7 @@ export const CARD_DEFINITIONS: CardMetadata[] = [
 		component: 'MyTasksCard',
 		tags: ['personal', 'tasks'],
 		requiredRoles: ['Employee', 'Manager', 'HR', 'Admin'],
-		defaultSize: '2x3',  // Increased size for task list
+		defaultSize: '2x3', // Increased size for task list
 		minSize: '2x2',
 		maxSize: '3x2',
 		allowResize: true,
@@ -345,7 +345,7 @@ export class CardRegistry {
 
 	private constructor() {
 		// Initialize with predefined cards
-		CARD_DEFINITIONS.forEach(card => {
+		CARD_DEFINITIONS.forEach((card) => {
 			this.cards.set(card.id, card);
 		});
 	}
@@ -362,7 +362,7 @@ export class CardRegistry {
 	 */
 	getAvailableCards(userRole: UserRole): CardMetadata[] {
 		return Array.from(this.cards.values())
-			.filter(card => card.requiredRoles.includes(userRole))
+			.filter((card) => card.requiredRoles.includes(userRole))
 			.sort((a, b) => a.title.localeCompare(b.title));
 	}
 
@@ -370,8 +370,9 @@ export class CardRegistry {
 	 * Get cards filtered by tags
 	 */
 	getCardsByTags(tags: CardTag[], userRole: UserRole): CardMetadata[] {
-		return this.getAvailableCards(userRole)
-			.filter(card => tags.some(tag => card.tags.includes(tag)));
+		return this.getAvailableCards(userRole).filter((card) =>
+			tags.some((tag) => card.tags.includes(tag))
+		);
 	}
 
 	/**
@@ -400,12 +401,12 @@ export class CardRegistry {
 	 */
 	searchCards(query: string, userRole: UserRole): CardMetadata[] {
 		const lowerQuery = query.toLowerCase();
-		return this.getAvailableCards(userRole)
-			.filter(card => 
+		return this.getAvailableCards(userRole).filter(
+			(card) =>
 				card.title.toLowerCase().includes(lowerQuery) ||
 				card.description.toLowerCase().includes(lowerQuery) ||
-				card.tags.some(tag => tag.includes(lowerQuery))
-			);
+				card.tags.some((tag) => tag.includes(lowerQuery))
+		);
 	}
 
 	/**
@@ -413,7 +414,7 @@ export class CardRegistry {
 	 */
 	getDefaultLayout(userRole: UserRole): CardMetadata[] {
 		const baseCards = ['personal-info', 'my-tasks', 'leave-balance', 'notifications'];
-		
+
 		switch (userRole) {
 			case 'Admin':
 				return this.getCardsByIds([
@@ -441,18 +442,14 @@ export class CardRegistry {
 					'team-performance'
 				]);
 			default:
-				return this.getCardsByIds([
-					...baseCards,
-					'quick-actions',
-					'calendar-events'
-				]);
+				return this.getCardsByIds([...baseCards, 'quick-actions', 'calendar-events']);
 		}
 	}
 
 	private getCardsByIds(ids: string[]): CardMetadata[] {
 		return ids
-			.map(id => this.cards.get(id))
-			.filter(card => card !== undefined) as CardMetadata[];
+			.map((id) => this.cards.get(id))
+			.filter((card) => card !== undefined) as CardMetadata[];
 	}
 }
 

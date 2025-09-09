@@ -33,26 +33,31 @@
 	let errorLoadingOptions = $state(false);
 
 	// Create appropriate form based on mode
-	const form = isEditing && employee 
-		? updateEmployeeForm(parseInt(employee.id), {
-			username: employee.username || '',
-			firstName: employee.first_name || '',
-			lastName: employee.last_name || '',
-			email: employee.email || '',
-			roleId: employee.role_id ? parseInt(employee.role_id) : 1,
-			departmentId: employee.department_id ? parseInt(employee.department_id) : undefined,
-			jobTitle: employee.job_title || '',
-			hireDate: employee.hire_date || new Date().toISOString().split('T')[0],
-			employmentType: employee.employment_type || 'Full-time',
-			onboardingStatus: employee.status || 'PreHire'
-		}, { 
-			onSuccess: (emp) => onSuccess(emp),
-			onError: (error) => console.error('Update error:', error)
-		})
-		: createEmployeeForm({ 
-			onSuccess: (emp) => onSuccess(emp),
-			onError: (error) => console.error('Create error:', error)
-		});
+	const form =
+		isEditing && employee
+			? updateEmployeeForm(
+					parseInt(employee.id),
+					{
+						username: employee.username || '',
+						firstName: employee.first_name || '',
+						lastName: employee.last_name || '',
+						email: employee.email || '',
+						roleId: employee.role_id ? parseInt(employee.role_id) : 1,
+						departmentId: employee.department_id ? parseInt(employee.department_id) : undefined,
+						jobTitle: employee.job_title || '',
+						hireDate: employee.hire_date || new Date().toISOString().split('T')[0],
+						employmentType: employee.employment_type || 'Full-time',
+						onboardingStatus: employee.status || 'PreHire'
+					},
+					{
+						onSuccess: (emp) => onSuccess(emp),
+						onError: (error) => console.error('Update error:', error)
+					}
+				)
+			: createEmployeeForm({
+					onSuccess: (emp) => onSuccess(emp),
+					onError: (error) => console.error('Create error:', error)
+				});
 
 	const { form: formData, errors, enhance, submitting } = form;
 
@@ -66,14 +71,14 @@
 
 		try {
 			const promises = [];
-			
+
 			// Only load roles if not provided
 			if (availableRoles.length === 0) {
 				promises.push(ApiServices.roles.list());
 			} else {
 				promises.push(Promise.resolve(availableRoles));
 			}
-			
+
 			// Only load departments if not provided
 			if (availableDepartments.length === 0) {
 				promises.push(ApiServices.departments.list());
@@ -88,7 +93,7 @@
 		} catch (error) {
 			console.error('Failed to load form options:', error);
 			errorLoadingOptions = true;
-			
+
 			// If API fails, set fallback data if available
 			if (availableRoles.length > 0) roles = availableRoles;
 			if (availableDepartments.length > 0) departments = availableDepartments;
@@ -96,16 +101,15 @@
 			loadingOptions = false;
 		}
 	});
-
 </script>
 
 {#if isReadonly && employee}
 	<!-- View Mode - Read-only display -->
 	<div class="space-y-6">
-		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+		<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 			<div>
 				<Label>Name</Label>
-				<p class="font-medium text-lg">{employee.first_name} {employee.last_name}</p>
+				<p class="text-lg font-medium">{employee.first_name} {employee.last_name}</p>
 			</div>
 			<div>
 				<Label>Username</Label>
@@ -125,7 +129,12 @@
 			</div>
 			<div>
 				<Label>Role</Label>
-				<p>{employee.roles?.[0]?.display_name || employee.roles?.[0]?.name || employee.role_name || 'N/A'}</p>
+				<p>
+					{employee.roles?.[0]?.display_name ||
+						employee.roles?.[0]?.name ||
+						employee.role_name ||
+						'N/A'}
+				</p>
 			</div>
 			<div>
 				<Label>Hire Date</Label>
@@ -140,16 +149,14 @@
 				<p>{employee.employment_type || 'N/A'}</p>
 			</div>
 		</div>
-		<div class="flex justify-end pt-6 border-t">
-			<Button variant="outline" onclick={onCancel}>
-				Close
-			</Button>
+		<div class="flex justify-end border-t pt-6">
+			<Button variant="outline" onclick={onCancel}>Close</Button>
 		</div>
 	</div>
 {:else}
 	<!-- Create/Edit Mode - Form -->
 	<form method="POST" use:enhance class="space-y-6">
-		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+		<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 			<!-- Username -->
 			<div>
 				<Label for="username">Username *</Label>
@@ -220,7 +227,7 @@
 				<select
 					id="employmentType"
 					name="employmentType"
-					class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+					class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 					bind:value={$formData.employmentType}
 				>
 					<option value="Full-time">Full-time</option>
@@ -234,18 +241,22 @@
 			<div>
 				<Label for="roleId">Role *</Label>
 				{#if loadingOptions}
-					<div class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm items-center text-muted-foreground">
+					<div
+						class="flex h-9 w-full items-center rounded-md border border-input bg-transparent px-3 py-1 text-sm text-muted-foreground"
+					>
 						Loading roles...
 					</div>
 				{:else if errorLoadingOptions && roles.length === 0}
-					<div class="flex h-9 w-full rounded-md border border-destructive bg-transparent px-3 py-1 text-sm items-center text-destructive">
+					<div
+						class="flex h-9 w-full items-center rounded-md border border-destructive bg-transparent px-3 py-1 text-sm text-destructive"
+					>
 						Failed to load roles. Please refresh the page.
 					</div>
 				{:else}
 					<select
 						id="roleId"
 						name="roleId"
-						class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+						class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 						bind:value={$formData.roleId}
 						class:border-destructive={$errors.roleId}
 					>
@@ -255,7 +266,7 @@
 						{/each}
 					</select>
 					{#if $errors.roleId}
-						<p class="text-sm font-medium text-destructive mt-1">{$errors.roleId}</p>
+						<p class="mt-1 text-sm font-medium text-destructive">{$errors.roleId}</p>
 					{/if}
 				{/if}
 			</div>
@@ -264,18 +275,22 @@
 			<div>
 				<Label for="departmentId">Department</Label>
 				{#if loadingOptions}
-					<div class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm items-center text-muted-foreground">
+					<div
+						class="flex h-9 w-full items-center rounded-md border border-input bg-transparent px-3 py-1 text-sm text-muted-foreground"
+					>
 						Loading departments...
 					</div>
 				{:else if errorLoadingOptions && departments.length === 0}
-					<div class="flex h-9 w-full rounded-md border border-destructive bg-transparent px-3 py-1 text-sm items-center text-destructive">
+					<div
+						class="flex h-9 w-full items-center rounded-md border border-destructive bg-transparent px-3 py-1 text-sm text-destructive"
+					>
 						Failed to load departments. Please refresh the page.
 					</div>
 				{:else}
 					<select
 						id="departmentId"
 						name="departmentId"
-						class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+						class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 						bind:value={$formData.departmentId}
 					>
 						<option value="">Select a department (optional)</option>
@@ -289,12 +304,7 @@
 			<!-- Hire Date -->
 			<div>
 				<Label for="hireDate">Hire Date</Label>
-				<Input
-					id="hireDate"
-					name="hireDate"
-					type="date"
-					bind:value={$formData.hireDate}
-				/>
+				<Input id="hireDate" name="hireDate" type="date" bind:value={$formData.hireDate} />
 			</div>
 
 			<!-- Onboarding Status -->
@@ -303,7 +313,7 @@
 				<select
 					id="onboardingStatus"
 					name="onboardingStatus"
-					class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+					class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 					bind:value={$formData.onboardingStatus}
 				>
 					<option value="PreHire">Pre-Hire</option>
@@ -315,19 +325,11 @@
 		</div>
 
 		<!-- Form Actions -->
-		<div class="flex justify-end gap-4 pt-6 border-t">
-			<Button
-				type="button"
-				variant="outline"
-				onclick={onCancel}
-				disabled={$submitting}
-			>
+		<div class="flex justify-end gap-4 border-t pt-6">
+			<Button type="button" variant="outline" onclick={onCancel} disabled={$submitting}>
 				Cancel
 			</Button>
-			<Button
-				type="submit"
-				disabled={$submitting}
-			>
+			<Button type="submit" disabled={$submitting}>
 				{#if $submitting}
 					<span class="animate-pulse">Saving...</span>
 				{:else}
@@ -337,4 +339,3 @@
 		</div>
 	</form>
 {/if}
-

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { DropdownMenu as DropdownMenuPrimitive } from "bits-ui";
-	import { cn } from "$lib/utils";
+	import { DropdownMenu as DropdownMenuPrimitive } from 'bits-ui';
+	import { cn } from '$lib/utils';
 
 	let {
 		ref = $bindable(null),
@@ -14,8 +14,8 @@
 <DropdownMenuPrimitive.Item
 	bind:ref
 	class={cn(
-		"relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-		inset && "pl-8",
+		'relative flex cursor-default items-center rounded-sm px-2 py-1.5 text-sm transition-colors outline-none select-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+		inset && 'pl-8',
 		className
 	)}
 	{...restProps}

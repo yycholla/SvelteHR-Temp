@@ -1,25 +1,25 @@
 <script lang="ts" module>
-	import { cn, type WithElementRef } from "$lib/utils.js";
-	import type { HTMLAttributes } from "svelte/elements";
-	import { type VariantProps, tv } from "tailwind-variants";
+	import { cn, type WithElementRef } from '$lib/utils.js';
+	import type { HTMLAttributes } from 'svelte/elements';
+	import { type VariantProps, tv } from 'tailwind-variants';
 
 	export const skeletonVariants = tv({
-		base: "animate-pulse rounded-md bg-muted",
+		base: 'animate-pulse rounded-md bg-muted',
 		variants: {
 			variant: {
-				default: "",
-				text: "h-4 w-full",
-				avatar: "size-10 rounded-full",
-				button: "h-9 px-4",
-				card: "h-32 w-full",
-			},
+				default: '',
+				text: 'h-4 w-full',
+				avatar: 'size-10 rounded-full',
+				button: 'h-9 px-4',
+				card: 'h-32 w-full'
+			}
 		},
 		defaultVariants: {
-			variant: "default",
-		},
+			variant: 'default'
+		}
 	});
 
-	export type SkeletonVariant = VariantProps<typeof skeletonVariants>["variant"];
+	export type SkeletonVariant = VariantProps<typeof skeletonVariants>['variant'];
 
 	export type SkeletonProps = WithElementRef<HTMLAttributes<HTMLDivElement>> & {
 		variant?: SkeletonVariant;
@@ -29,7 +29,7 @@
 <script lang="ts">
 	let {
 		class: className,
-		variant = "default",
+		variant = 'default',
 		ref = $bindable(null),
 		...restProps
 	}: SkeletonProps = $props();

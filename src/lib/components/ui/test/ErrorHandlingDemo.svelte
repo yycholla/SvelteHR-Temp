@@ -22,15 +22,12 @@
 
 	async function testApiError() {
 		// Simulate API call to test error handling
-		const result = await handleApiCall(
-			() => apiClient.get('/nonexistent-endpoint'),
-			{
-				successMessage: 'Data loaded successfully!',
-				errorMessage: 'Failed to load data',
-				showSuccessToast: true,
-				showErrorToast: true
-			}
-		);
+		const result = await handleApiCall(() => apiClient.get('/nonexistent-endpoint'), {
+			successMessage: 'Data loaded successfully!',
+			errorMessage: 'Failed to load data',
+			showSuccessToast: true,
+			showErrorToast: true
+		});
 		console.log('API call result:', result);
 	}
 
@@ -46,7 +43,7 @@
 				status: 0,
 				details: { originalError: error }
 			};
-			
+
 			ApiErrorHandler.handleWithToast(apiError, 'Failed to connect to server');
 		}
 	}
@@ -63,44 +60,32 @@
 			error: 'Validation failed',
 			status: 422
 		};
-		
+
 		ApiErrorHandler.handleWithToast(apiError);
 	}
 </script>
 
-<div class="p-6 space-y-4 max-w-md mx-auto">
+<div class="mx-auto max-w-md space-y-4 p-6">
 	<h3 class="text-lg font-semibold text-foreground">Toast Notification Tests</h3>
-	
+
 	<div class="grid grid-cols-2 gap-2">
-		<Button on:click={testSuccessToast} variant="default" size="sm">
-			Success Toast
-		</Button>
-		
-		<Button on:click={testErrorToast} variant="destructive" size="sm">
-			Error Toast
-		</Button>
-		
-		<Button on:click={testWarningToast} variant="secondary" size="sm">
-			Warning Toast
-		</Button>
-		
-		<Button on:click={testInfoToast} variant="outline" size="sm">
-			Info Toast
-		</Button>
+		<Button on:click={testSuccessToast} variant="default" size="sm">Success Toast</Button>
+
+		<Button on:click={testErrorToast} variant="destructive" size="sm">Error Toast</Button>
+
+		<Button on:click={testWarningToast} variant="secondary" size="sm">Warning Toast</Button>
+
+		<Button on:click={testInfoToast} variant="outline" size="sm">Info Toast</Button>
 	</div>
 
 	<div class="border-t pt-4">
-		<h4 class="text-md font-medium text-foreground mb-2">API Error Tests</h4>
-		
+		<h4 class="text-md mb-2 font-medium text-foreground">API Error Tests</h4>
+
 		<div class="grid grid-cols-1 gap-2">
-			<Button on:click={testApiError} variant="outline" size="sm">
-				Test API 404 Error
-			</Button>
-			
-			<Button on:click={testNetworkError} variant="outline" size="sm">
-				Test Network Error
-			</Button>
-			
+			<Button on:click={testApiError} variant="outline" size="sm">Test API 404 Error</Button>
+
+			<Button on:click={testNetworkError} variant="outline" size="sm">Test Network Error</Button>
+
 			<Button on:click={testValidationError} variant="outline" size="sm">
 				Test Validation Error
 			</Button>
@@ -108,6 +93,7 @@
 	</div>
 
 	<p class="text-sm text-muted-foreground">
-		Click the buttons above to test different types of toast notifications and error handling scenarios.
+		Click the buttons above to test different types of toast notifications and error handling
+		scenarios.
 	</p>
 </div>

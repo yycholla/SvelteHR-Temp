@@ -5,10 +5,12 @@ import { createDocumentSchema, updateDocumentSchema } from '$lib/schemas/documen
 export type DocumentFormInput = z.infer<typeof createDocumentSchema>;
 export type UpdateDocumentFormInput = z.infer<typeof updateDocumentSchema>;
 
-export function createDocumentForm(options: { 
-	onSuccess?: (document: any) => void;
-	onError?: (error: string) => void;
-} = {}) {
+export function createDocumentForm(
+	options: {
+		onSuccess?: (document: any) => void;
+		onError?: (error: string) => void;
+	} = {}
+) {
 	const initialData: DocumentFormInput = {
 		title: '',
 		fileType: '',
@@ -28,7 +30,7 @@ export function createDocumentForm(options: {
 		onUpdate: async ({ form }) => {
 			try {
 				const data = createDocumentSchema.parse(form.data);
-				
+
 				const response = await fetch('/api/hr/documents', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
@@ -56,40 +58,46 @@ export function createDocumentForm(options: {
 	};
 }
 
-export function updateDocumentForm(documentId: number, options: { 
-	onSuccess?: (document: any) => void;
-	onError?: (error: string) => void;
-} = {}) {
-	const sForm = superForm({}, {
-		SPA: true,
-		resetForm: false,
-		multipleSubmits: 'prevent',
-		clearOnSubmit: 'errors-and-message',
-		validators: updateDocumentSchema,
-		onUpdate: async ({ form }) => {
-			try {
-				const data = updateDocumentSchema.parse({ ...form.data, id: documentId });
-				
-				const response = await fetch(`/api/hr/documents/${documentId}`, {
-					method: 'PUT',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(data)
-				});
+export function updateDocumentForm(
+	documentId: number,
+	options: {
+		onSuccess?: (document: any) => void;
+		onError?: (error: string) => void;
+	} = {}
+) {
+	const sForm = superForm(
+		{},
+		{
+			SPA: true,
+			resetForm: false,
+			multipleSubmits: 'prevent',
+			clearOnSubmit: 'errors-and-message',
+			validators: updateDocumentSchema,
+			onUpdate: async ({ form }) => {
+				try {
+					const data = updateDocumentSchema.parse({ ...form.data, id: documentId });
 
-				if (!response.ok) {
-					throw new Error(`Failed to update document: ${response.statusText}`);
+					const response = await fetch(`/api/hr/documents/${documentId}`, {
+						method: 'PUT',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify(data)
+					});
+
+					if (!response.ok) {
+						throw new Error(`Failed to update document: ${response.statusText}`);
+					}
+
+					const document = await response.json();
+					if (options.onSuccess) options.onSuccess(document);
+					return { message: { type: 'success', text: 'Document updated successfully' } };
+				} catch (error) {
+					const errorMessage = error instanceof Error ? error.message : 'Failed to update document';
+					if (options.onError) options.onError(errorMessage);
+					return { message: { type: 'error', text: errorMessage } };
 				}
-
-				const document = await response.json();
-				if (options.onSuccess) options.onSuccess(document);
-				return { message: { type: 'success', text: 'Document updated successfully' } };
-			} catch (error) {
-				const errorMessage = error instanceof Error ? error.message : 'Failed to update document';
-				if (options.onError) options.onError(errorMessage);
-				return { message: { type: 'error', text: errorMessage } };
 			}
 		}
-	});
+	);
 
 	return {
 		...sForm,

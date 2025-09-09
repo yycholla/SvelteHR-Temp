@@ -15,38 +15,38 @@
 	} = $props();
 
 	const bulkActions = [
-		{ 
-			id: 'update-status', 
-			label: 'Update Status', 
-			icon: CheckSquare, 
+		{
+			id: 'update-status',
+			label: 'Update Status',
+			icon: CheckSquare,
 			variant: 'default' as const,
 			description: 'Change employment status'
 		},
-		{ 
-			id: 'edit-bulk', 
-			label: 'Bulk Edit', 
-			icon: Edit, 
+		{
+			id: 'edit-bulk',
+			label: 'Bulk Edit',
+			icon: Edit,
 			variant: 'outline' as const,
 			description: 'Edit multiple employees'
 		},
-		{ 
-			id: 'send-message', 
-			label: 'Send Message', 
-			icon: Send, 
+		{
+			id: 'send-message',
+			label: 'Send Message',
+			icon: Send,
 			variant: 'outline' as const,
 			description: 'Send message to selected'
 		},
-		{ 
-			id: 'export', 
-			label: 'Export', 
-			icon: Download, 
+		{
+			id: 'export',
+			label: 'Export',
+			icon: Download,
 			variant: 'outline' as const,
 			description: 'Export selected employees'
 		},
-		{ 
-			id: 'archive', 
-			label: 'Archive', 
-			icon: Archive, 
+		{
+			id: 'archive',
+			label: 'Archive',
+			icon: Archive,
 			variant: 'outline' as const,
 			description: 'Archive employees'
 		}
@@ -54,8 +54,10 @@
 </script>
 
 <!-- Floating Bulk Actions Bar -->
-<div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 duration-300">
-	<div class="rounded-2xl border border-border/40 bg-background/95 backdrop-blur-xl shadow-2xl p-4">
+<div
+	class="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 animate-in duration-300 slide-in-from-bottom-4"
+>
+	<div class="rounded-2xl border border-border/40 bg-background/95 p-4 shadow-2xl backdrop-blur-xl">
 		<div class="flex items-center space-x-4">
 			<!-- Selection Info -->
 			<div class="flex items-center space-x-2">
@@ -69,7 +71,7 @@
 					class="rounded-xl"
 					title="Clear all selected items"
 				>
-					<X class="h-5 w-5 mr-2" />
+					<X class="mr-2 h-5 w-5" />
 					Clear Selection
 				</Button>
 			</div>
@@ -87,7 +89,7 @@
 						class="rounded-xl"
 						title={action.description}
 					>
-						<IconComponent class="h-5 w-5 mr-2" />
+						<IconComponent class="mr-2 h-5 w-5" />
 						{action.label}
 					</Button>
 				{/each}
@@ -103,7 +105,7 @@
 				class="rounded-xl"
 				title="Delete selected employees"
 			>
-				<Trash2 class="h-5 w-5 mr-2" />
+				<Trash2 class="mr-2 h-5 w-5" />
 				Delete
 			</Button>
 		</div>

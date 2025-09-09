@@ -8,12 +8,7 @@ import type { BackgroundJob } from '$lib/components/ui/job-progress/job-progress
 
 // Jobs list hook
 export function useJobs() {
-	const {
-		data,
-		loading,
-		error,
-		refresh
-	} = useApi<{ jobs: BackgroundJob[] }>('jobs', {
+	const { data, loading, error, refresh } = useApi<{ jobs: BackgroundJob[] }>('jobs', {
 		cacheDuration: 5 * 1000, // Refresh every 5 seconds for real-time updates
 		transform: (response) => response
 	});
@@ -26,13 +21,16 @@ export function useJobs() {
 
 	function startPolling() {
 		if (pollInterval) return; // Already polling
-		
+
 		pollInterval = window.setInterval(() => {
 			let currentJobs: BackgroundJob[];
-			jobs.subscribe(j => currentJobs = j)();
-			
+			jobs.subscribe((j) => (currentJobs = j))();
+
 			// Only poll if there are active jobs
-			if (currentJobs && currentJobs.some(job => job.status === 'running' || job.status === 'pending')) {
+			if (
+				currentJobs &&
+				currentJobs.some((job) => job.status === 'running' || job.status === 'pending')
+			) {
 				refresh();
 			}
 		}, 5000);
@@ -48,7 +46,7 @@ export function useJobs() {
 	// Auto-start polling if we're in the browser
 	if (typeof window !== 'undefined') {
 		startPolling();
-		
+
 		// Cleanup on page unload
 		window.addEventListener('beforeunload', stopPolling);
 	}

@@ -31,14 +31,12 @@
 	let formErrors = $state<Record<string, string>>({});
 
 	// Available parent departments (exclude inactive ones)
-	const parentDepartmentOptions = $derived(
-		departments.filter(dept => dept.is_active)
-	);
+	const parentDepartmentOptions = $derived(departments.filter((dept) => dept.is_active));
 
 	onMount(() => {
 		// Load departments for parent selection
 		departmentActions.loadDepartments({ active_only: true });
-		
+
 		// Check if parent ID is provided in URL query params
 		const parentId = $page.url.searchParams.get('parent');
 		if (parentId) {
@@ -86,7 +84,7 @@
 			};
 
 			const newDepartment = await departmentActions.createDepartment(submitData);
-			
+
 			// Redirect to the new department's detail page
 			await goto(`/departments/${newDepartment.id}`);
 		} catch (error) {
@@ -107,15 +105,15 @@
 </svelte:head>
 
 <RoleGuard roles={['admin', 'hr', 'hr_admin']} fallback>
-	<div class="container mx-auto py-8 px-4 max-w-4xl">
+	<div class="container mx-auto max-w-4xl px-4 py-8">
 		<!-- Header -->
-		<div class="flex items-center gap-4 mb-8">
+		<div class="mb-8 flex items-center gap-4">
 			<Button variant="ghost" size="icon" onclick={handleCancel}>
 				<ArrowLeft class="h-4 w-4" />
 			</Button>
 			<div>
 				<h1 class="text-3xl font-bold text-foreground">Create Department</h1>
-				<p class="text-muted-foreground mt-2">Add a new department to your organization</p>
+				<p class="mt-2 text-muted-foreground">Add a new department to your organization</p>
 			</div>
 		</div>
 
@@ -126,9 +124,15 @@
 					Department Information
 				</CardTitle>
 			</CardHeader>
-			
+
 			<CardContent class="space-y-6">
-				<form onsubmit={(e) => { e.preventDefault(); handleSubmit(e); }} class="space-y-6">
+				<form
+					onsubmit={(e) => {
+						e.preventDefault();
+						handleSubmit(e);
+					}}
+					class="space-y-6"
+				>
 					<!-- Name -->
 					<div class="space-y-2">
 						<Label for="name">Department Name *</Label>
@@ -209,19 +213,15 @@
 								<!-- TODO: Load and display available managers -->
 							</SelectContent>
 						</Select>
-						<p class="text-xs text-muted-foreground">
-							Assign a manager to oversee this department
-						</p>
+						<p class="text-xs text-muted-foreground">Assign a manager to oversee this department</p>
 					</div>
 
 					<!-- Actions -->
-					<div class="flex items-center justify-end gap-4 pt-6 border-t">
-						<Button variant="outline" onclick={handleCancel} disabled={isSubmitting}>
-							Cancel
-						</Button>
+					<div class="flex items-center justify-end gap-4 border-t pt-6">
+						<Button variant="outline" onclick={handleCancel} disabled={isSubmitting}>Cancel</Button>
 						<Button type="submit" disabled={isSubmitting} class="gap-2">
 							{#if isSubmitting}
-								<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+								<div class="h-4 w-4 animate-spin rounded-full border-b-2 border-current"></div>
 							{:else}
 								<Save class="h-4 w-4" />
 							{/if}
@@ -235,18 +235,16 @@
 
 	<!-- Fallback content -->
 	<svelte:fragment slot="fallback">
-		<div class="container mx-auto py-8 px-4 max-w-4xl">
+		<div class="container mx-auto max-w-4xl px-4 py-8">
 			<Card>
 				<CardContent class="pt-6">
-					<div class="text-center py-12">
-						<Building2 class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-						<h3 class="text-lg font-semibold mb-2">Access Denied</h3>
-						<p class="text-muted-foreground mb-4">
+					<div class="py-12 text-center">
+						<Building2 class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+						<h3 class="mb-2 text-lg font-semibold">Access Denied</h3>
+						<p class="mb-4 text-muted-foreground">
 							You don't have permission to create departments.
 						</p>
-						<Button href="/departments" variant="outline">
-							Back to Departments
-						</Button>
+						<Button href="/departments" variant="outline">Back to Departments</Button>
 					</div>
 				</CardContent>
 			</Card>

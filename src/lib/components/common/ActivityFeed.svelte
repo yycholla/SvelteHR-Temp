@@ -8,22 +8,25 @@
 		class?: string;
 	}
 
-	let { 
-		activities, 
-		showCount = 0,
-		class: className = ''
-	}: Props = $props();
+	let { activities, showCount = 0, class: className = '' }: Props = $props();
 
 	let displayActivities = $derived(showCount > 0 ? activities.slice(0, showCount) : activities);
-	let remainingCount = $derived(showCount > 0 && activities.length > showCount ? activities.length - showCount : 0);
+	let remainingCount = $derived(
+		showCount > 0 && activities.length > showCount ? activities.length - showCount : 0
+	);
 
 	function getActivityTypeClass(type?: string): string {
 		switch (type) {
-			case 'employee': return 'bg-blue-100 text-blue-600';
-			case 'task': return 'bg-green-100 text-green-600';
-			case 'compliance': return 'bg-yellow-100 text-yellow-600';
-			case 'system': return 'bg-gray-100 text-gray-600';
-			default: return 'bg-purple-100 text-purple-600';
+			case 'employee':
+				return 'bg-blue-100 text-blue-600';
+			case 'task':
+				return 'bg-green-100 text-green-600';
+			case 'compliance':
+				return 'bg-yellow-100 text-yellow-600';
+			case 'system':
+				return 'bg-gray-100 text-gray-600';
+			default:
+				return 'bg-purple-100 text-purple-600';
 		}
 	}
 </script>
@@ -43,7 +46,7 @@
 			</div>
 		</div>
 	{/each}
-	
+
 	{#if remainingCount > 0}
 		<div class="remaining-count">
 			+{remainingCount} more activities

@@ -1,41 +1,41 @@
 <script lang="ts" module>
-	import { tv, type VariantProps } from "tailwind-variants";
-	import { cn } from "$lib/utils.js";
+	import { tv, type VariantProps } from 'tailwind-variants';
+	import { cn } from '$lib/utils.js';
 
 	export const bulkActionsBarVariants = tv({
-		base: "fixed bottom-6 left-1/2 -translate-x-1/2 z-50 transition-all duration-300",
+		base: 'fixed bottom-6 left-1/2 -translate-x-1/2 z-50 transition-all duration-300',
 		variants: {
 			state: {
-				hidden: "scale-95 opacity-0 translate-y-full pointer-events-none",
-				visible: "scale-100 opacity-100 translate-y-0",
+				hidden: 'scale-95 opacity-0 translate-y-full pointer-events-none',
+				visible: 'scale-100 opacity-100 translate-y-0'
 			}
 		},
 		defaultVariants: {
-			state: "visible",
-		},
+			state: 'visible'
+		}
 	});
 
 	export const bulkActionItemVariants = tv({
-		base: "flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-[1.02]",
+		base: 'flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 hover:scale-[1.02]',
 		variants: {
 			variant: {
-				default: "bg-primary text-primary-foreground hover:bg-primary/90",
-				secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-				outline: "border border-border bg-background hover:bg-muted/50",
-				destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-				ghost: "hover:bg-muted/50",
+				default: 'bg-primary text-primary-foreground hover:bg-primary/90',
+				secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+				outline: 'border border-border bg-background hover:bg-muted/50',
+				destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+				ghost: 'hover:bg-muted/50'
 			}
 		},
 		defaultVariants: {
-			variant: "outline",
-		},
+			variant: 'outline'
+		}
 	});
 
 	export interface BulkAction {
 		id: string;
 		label: string;
 		icon: any; // Lucide icon component
-		variant: VariantProps<typeof bulkActionItemVariants>["variant"];
+		variant: VariantProps<typeof bulkActionItemVariants>['variant'];
 		description?: string;
 		requiresConfirmation?: boolean;
 		confirmationTitle?: string;
@@ -44,8 +44,8 @@
 		shortcut?: string;
 	}
 
-	export type BulkActionsBarState = VariantProps<typeof bulkActionsBarVariants>["state"];
-	export type BulkActionVariant = VariantProps<typeof bulkActionItemVariants>["variant"];
+	export type BulkActionsBarState = VariantProps<typeof bulkActionsBarVariants>['state'];
+	export type BulkActionVariant = VariantProps<typeof bulkActionItemVariants>['variant'];
 
 	export type EnhancedBulkActionsBarProps = {
 		selectedCount: number;
@@ -67,7 +67,14 @@
 	import Badge from '../badge/badge.svelte';
 	import Separator from '../separator/separator.svelte';
 	import Progress from '../progress/progress.svelte';
-	import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../dialog';
+	import {
+		Dialog,
+		DialogContent,
+		DialogHeader,
+		DialogTitle,
+		DialogDescription,
+		DialogFooter
+	} from '../dialog';
 
 	let {
 		selectedCount,
@@ -79,7 +86,7 @@
 		isProcessing = false,
 		progress = 0,
 		progressMessage = '',
-		class: className,
+		class: className
 	}: EnhancedBulkActionsBarProps = $props();
 
 	let confirmationDialog = $state<{
@@ -99,7 +106,9 @@
 				open: true,
 				action,
 				title: action.confirmationTitle || `Confirm ${action.label}`,
-				message: action.confirmationMessage || `Are you sure you want to ${action.label.toLowerCase()} ${selectedCount} items?`
+				message:
+					action.confirmationMessage ||
+					`Are you sure you want to ${action.label.toLowerCase()} ${selectedCount} items?`
 			};
 			return;
 		}
@@ -141,24 +150,26 @@
 		}
 
 		// Handle action shortcuts
-		const action = actions.find(a => a.shortcut && event.key === a.shortcut && (event.ctrlKey || event.metaKey));
+		const action = actions.find(
+			(a) => a.shortcut && event.key === a.shortcut && (event.ctrlKey || event.metaKey)
+		);
 		if (action && !action.disabled) {
 			event.preventDefault();
 			handleAction(action);
 		}
 	}
 
-	const state = $derived(selectedCount > 0 ? "visible" : "hidden");
+	const state = $derived(selectedCount > 0 ? 'visible' : 'hidden');
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
 
 <!-- Floating Bulk Actions Bar -->
 <div class={cn(bulkActionsBarVariants({ state }), className)}>
-	<div class="rounded-2xl border border-border/40 bg-background/95 backdrop-blur-xl shadow-2xl p-4">
+	<div class="rounded-2xl border border-border/40 bg-background/95 p-4 shadow-2xl backdrop-blur-xl">
 		{#if isProcessing}
 			<!-- Processing State -->
-			<div class="flex items-center gap-4 min-w-96">
+			<div class="flex min-w-96 items-center gap-4">
 				<div class="flex items-center gap-3">
 					<Loader class="h-5 w-5 animate-spin text-primary" />
 					<div class="space-y-1">
@@ -168,11 +179,11 @@
 						{/if}
 					</div>
 				</div>
-				
+
 				{#if progress > 0}
 					<div class="flex-1">
 						<Progress value={progress} class="h-2" />
-						<p class="text-xs text-muted-foreground mt-1 text-right">{progress}%</p>
+						<p class="mt-1 text-right text-xs text-muted-foreground">{progress}%</p>
 					</div>
 				{/if}
 			</div>
@@ -181,14 +192,14 @@
 			<div class="flex items-center space-x-4">
 				<!-- Selection Info -->
 				<div class="flex items-center space-x-3">
-					<Badge variant="secondary" class="rounded-lg font-medium px-3 py-1">
-						<CheckSquare class="h-4 w-4 mr-2" />
+					<Badge variant="secondary" class="rounded-lg px-3 py-1 font-medium">
+						<CheckSquare class="mr-2 h-4 w-4" />
 						{selectedCount} selected
 						{#if totalCount}
-							<span class="text-muted-foreground ml-1">of {totalCount}</span>
+							<span class="ml-1 text-muted-foreground">of {totalCount}</span>
 						{/if}
 					</Badge>
-					
+
 					<Button
 						variant="outline"
 						size="sm"
@@ -196,7 +207,7 @@
 						class="rounded-xl px-3 py-2"
 						title="Clear selection (Esc)"
 					>
-						<X class="h-4 w-4 mr-2" />
+						<X class="mr-2 h-4 w-4" />
 						Clear
 					</Button>
 				</div>
@@ -216,9 +227,9 @@
 							title={action.description + (action.shortcut ? ` (${action.shortcut})` : '')}
 						>
 							{#if processingAction === action.id}
-								<Loader class="h-4 w-4 mr-2 animate-spin" />
+								<Loader class="mr-2 h-4 w-4 animate-spin" />
 							{:else}
-								<IconComponent class="h-4 w-4 mr-2" />
+								<IconComponent class="mr-2 h-4 w-4" />
 							{/if}
 							{action.label}
 						</Button>
@@ -238,18 +249,16 @@
 				{confirmationDialog.message}
 			</DialogDescription>
 		</DialogHeader>
-		
+
 		<DialogFooter>
-			<Button variant="outline" onclick={handleCancel}>
-				Cancel
-			</Button>
-			<Button 
+			<Button variant="outline" onclick={handleCancel}>Cancel</Button>
+			<Button
 				variant={confirmationDialog.action?.variant === 'destructive' ? 'destructive' : 'default'}
 				onclick={handleConfirm}
 				disabled={processingAction !== null}
 			>
 				{#if processingAction}
-					<Loader class="h-4 w-4 mr-2 animate-spin" />
+					<Loader class="mr-2 h-4 w-4 animate-spin" />
 				{/if}
 				Confirm
 			</Button>

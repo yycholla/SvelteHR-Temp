@@ -1,0 +1,56 @@
+# Authentication Operations
+mutation Login($input: LoginInput!) {
+	login(input: $input) {
+		token
+		refreshToken
+		user {
+			id
+			email
+			firstName
+			lastName
+			roles {
+				id
+				name
+				level
+			}
+		}
+		expiresAt
+	}
+}
+
+query Me {
+	me {
+		id
+		email
+		firstName
+		lastName
+		isActive
+		roles {
+			id
+			name
+			level
+			permissions {
+				resource
+				action
+				scope
+			}
+		}
+		employee {
+			id
+			employeeId
+			position
+			department {
+				id
+				name
+			}
+		}
+	}
+}
+
+mutation RefreshToken($refreshToken: String!) {
+	refreshToken(refreshToken: $refreshToken) {
+		token
+		refreshToken
+		expiresAt
+	}
+}

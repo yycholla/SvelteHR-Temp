@@ -1,35 +1,35 @@
 <script lang="ts" module>
-	import { tv } from "tailwind-variants";
-	import { cn } from "$lib/utils.js";
+	import { tv } from 'tailwind-variants';
+	import { cn } from '$lib/utils.js';
 
 	export const statusOverviewCardVariants = tv({
-		base: "rounded-xl border border-border/40 bg-card shadow-sm",
+		base: 'rounded-xl border border-border/40 bg-card shadow-sm',
 		variants: {
 			size: {
-				sm: "p-4",
-				default: "p-6",
-				lg: "p-8",
+				sm: 'p-4',
+				default: 'p-6',
+				lg: 'p-8'
 			}
 		},
 		defaultVariants: {
-			size: "default",
-		},
+			size: 'default'
+		}
 	});
 
 	export const statusItemVariants = tv({
-		base: "flex items-center justify-between p-3 rounded-lg transition-all duration-200 hover:bg-muted/30",
+		base: 'flex items-center justify-between p-3 rounded-lg transition-all duration-200 hover:bg-muted/30',
 		variants: {
 			status: {
-				healthy: "border-l-4 border-l-green-500",
-				warning: "border-l-4 border-l-yellow-500",
-				critical: "border-l-4 border-l-red-500",
-				info: "border-l-4 border-l-blue-500",
-				neutral: "border-l-4 border-l-gray-500",
+				healthy: 'border-l-4 border-l-green-500',
+				warning: 'border-l-4 border-l-yellow-500',
+				critical: 'border-l-4 border-l-red-500',
+				info: 'border-l-4 border-l-blue-500',
+				neutral: 'border-l-4 border-l-gray-500'
 			}
 		},
 		defaultVariants: {
-			status: "neutral",
-		},
+			status: 'neutral'
+		}
 	});
 
 	export interface StatusItem {
@@ -58,7 +58,7 @@
 </script>
 
 <script lang="ts">
-	import { 
+	import {
 		BarChart3,
 		TrendingUp,
 		TrendingDown,
@@ -82,7 +82,7 @@
 		lastUpdated,
 		onRefresh,
 		class: className,
-		size = "default",
+		size = 'default'
 	}: StatusOverviewCardProps = $props();
 
 	function getStatusIcon(status: StatusItem['status']) {
@@ -171,17 +171,17 @@
 
 <div class={cn(statusOverviewCardVariants({ size }), className)}>
 	<!-- Header -->
-	<div class="flex items-center justify-between mb-6">
+	<div class="mb-6 flex items-center justify-between">
 		<div class="flex items-center gap-3">
 			<div class="flex items-center gap-2">
 				{#if isLive}
-					<div class="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+					<div class="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
 				{/if}
 				<BarChart3 class="h-5 w-5 text-primary" />
 				<div>
 					<h3 class="font-semibold">{title}</h3>
 					{#if description}
-						<p class="text-xs text-muted-foreground mt-1">{description}</p>
+						<p class="mt-1 text-xs text-muted-foreground">{description}</p>
 					{/if}
 				</div>
 			</div>
@@ -198,35 +198,35 @@
 	<div class="space-y-3">
 		{#if items.length === 0}
 			<div class="flex flex-col items-center justify-center py-8 text-center">
-				<BarChart3 class="h-8 w-8 text-muted-foreground/50 mb-3" />
+				<BarChart3 class="mb-3 h-8 w-8 text-muted-foreground/50" />
 				<p class="text-sm text-muted-foreground">No status data</p>
 			</div>
 		{:else}
 			{#each items as item (item.id)}
 				{@const StatusIcon = item.icon || getStatusIcon(item.status)}
 				{@const TrendIcon = item.trend ? getTrendIcon(item.trend) : null}
-				
-				<div 
+
+				<div
 					class={statusItemVariants({ status: item.status })}
-					role={item.onClick ? "button" : undefined}
+					role={item.onClick ? 'button' : undefined}
 					tabindex={item.onClick ? 0 : undefined}
 					onclick={item.onClick}
 					onkeydown={(e) => item.onClick && e.key === 'Enter' && item.onClick()}
 				>
-					<div class="flex items-center gap-3 flex-1 min-w-0">
+					<div class="flex min-w-0 flex-1 items-center gap-3">
 						<!-- Status Icon -->
 						<StatusIcon class="h-5 w-5 {getStatusColor(item.status)} flex-shrink-0" />
-						
+
 						<!-- Label and Description -->
 						<div class="min-w-0 flex-1">
 							<div class="flex items-center gap-2">
-								<span class="font-medium text-sm">{item.label}</span>
+								<span class="text-sm font-medium">{item.label}</span>
 								{#if item.trend && TrendIcon}
 									<TrendIcon class="h-3 w-3 {getTrendColor(item.trend)}" />
 								{/if}
 							</div>
 							{#if item.description}
-								<p class="text-xs text-muted-foreground mt-1 line-clamp-1">
+								<p class="mt-1 line-clamp-1 text-xs text-muted-foreground">
 									{item.description}
 								</p>
 							{/if}
@@ -234,19 +234,19 @@
 					</div>
 
 					<!-- Value and Progress -->
-					<div class="flex flex-col items-end gap-2 flex-shrink-0">
-						<span class="font-semibold text-sm">
+					<div class="flex flex-shrink-0 flex-col items-end gap-2">
+						<span class="text-sm font-semibold">
 							{formatValue(item.value, item.unit)}
 						</span>
-						
+
 						{#if item.target && typeof item.value === 'number'}
 							<div class="w-16">
-								<Progress 
-									value={getProgressPercentage(item.value, item.target)} 
+								<Progress
+									value={getProgressPercentage(item.value, item.target)}
 									variant={getProgressVariant(item.status)}
 									class="h-1"
 								/>
-								<p class="text-xs text-muted-foreground mt-1 text-right">
+								<p class="mt-1 text-right text-xs text-muted-foreground">
 									of {formatValue(item.target, item.unit)}
 								</p>
 							</div>
@@ -259,7 +259,9 @@
 
 	<!-- Footer -->
 	{#if lastUpdated}
-		<div class="flex items-center justify-between text-xs text-muted-foreground mt-6 pt-4 border-t border-border/20">
+		<div
+			class="mt-6 flex items-center justify-between border-t border-border/20 pt-4 text-xs text-muted-foreground"
+		>
 			<span>Last updated</span>
 			<span>{formatDistanceToNow(lastUpdated, { addSuffix: true })}</span>
 		</div>

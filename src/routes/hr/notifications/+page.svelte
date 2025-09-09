@@ -18,7 +18,9 @@
 
 	// Local filter states
 	let typeFilter = $state(data.filters.type);
-	let readFilter = $state(data.filters.isRead === null ? 'all' : (data.filters.isRead ? 'read' : 'unread'));
+	let readFilter = $state(
+		data.filters.isRead === null ? 'all' : data.filters.isRead ? 'read' : 'unread'
+	);
 
 	// Derived data from server
 	const notifications = $derived(data.notifications);
@@ -28,34 +30,52 @@
 
 	function getTypeIcon(type: string) {
 		switch (type?.toLowerCase()) {
-			case 'error': return AlertTriangle;
-			case 'warning': return AlertTriangle;
-			case 'success': return CheckCircle;
-			case 'info': return Info;
-			case 'changeRequest': return Bell;
-			case 'onboardingreminder': return Bell;
-			case 'taskupdate': return Bell;
-			default: return Bell;
+			case 'error':
+				return AlertTriangle;
+			case 'warning':
+				return AlertTriangle;
+			case 'success':
+				return CheckCircle;
+			case 'info':
+				return Info;
+			case 'changeRequest':
+				return Bell;
+			case 'onboardingreminder':
+				return Bell;
+			case 'taskupdate':
+				return Bell;
+			default:
+				return Bell;
 		}
 	}
 
 	function getTypeVariant(type: string) {
 		switch (type?.toLowerCase()) {
-			case 'error': return 'destructive';
-			case 'warning': return 'destructive';
-			case 'success': return 'default';
-			case 'info': return 'secondary';
-			default: return 'outline';
+			case 'error':
+				return 'destructive';
+			case 'warning':
+				return 'destructive';
+			case 'success':
+				return 'default';
+			case 'info':
+				return 'secondary';
+			default:
+				return 'outline';
 		}
 	}
 
 	function getTypeColor(type: string): string {
 		switch (type?.toLowerCase()) {
-			case 'error': return 'text-red-600 dark:text-red-400';
-			case 'warning': return 'text-yellow-600 dark:text-yellow-400';
-			case 'success': return 'text-green-600 dark:text-green-400';
-			case 'info': return 'text-blue-600 dark:text-blue-400';
-			default: return 'text-gray-600 dark:text-gray-400';
+			case 'error':
+				return 'text-red-600 dark:text-red-400';
+			case 'warning':
+				return 'text-yellow-600 dark:text-yellow-400';
+			case 'success':
+				return 'text-green-600 dark:text-green-400';
+			case 'info':
+				return 'text-blue-600 dark:text-blue-400';
+			default:
+				return 'text-gray-600 dark:text-gray-400';
 		}
 	}
 
@@ -110,13 +130,13 @@
 	// Apply filters by navigating to new URL with query parameters
 	async function applyFilters() {
 		const params = new URLSearchParams();
-		
+
 		if (typeFilter !== 'all') params.set('type', typeFilter);
 		if (readFilter !== 'all') params.set('isRead', readFilter === 'read' ? 'true' : 'false');
-		
+
 		const queryString = params.toString();
 		const newUrl = queryString ? `/hr/notifications?${queryString}` : '/hr/notifications';
-		
+
 		await goto(newUrl);
 	}
 
@@ -128,8 +148,11 @@
 
 	// Apply filters when any filter changes
 	$effect(() => {
-		if (typeFilter !== data.filters.type || 
-		    readFilter !== (data.filters.isRead === null ? 'all' : (data.filters.isRead ? 'read' : 'unread'))) {
+		if (
+			typeFilter !== data.filters.type ||
+			readFilter !==
+				(data.filters.isRead === null ? 'all' : data.filters.isRead ? 'read' : 'unread')
+		) {
 			applyFilters();
 		}
 	});
@@ -147,14 +170,12 @@
 	<div class="flex items-center justify-between">
 		<div>
 			<h2 class="text-2xl font-bold tracking-tight">Notifications</h2>
-			<p class="text-muted-foreground">
-				Stay updated with important HR notifications and alerts.
-			</p>
+			<p class="text-muted-foreground">Stay updated with important HR notifications and alerts.</p>
 		</div>
 		<div class="flex items-center space-x-2">
 			{#if stats.unread > 0}
 				<Button variant="outline" onclick={markAllAsRead}>
-					<CheckCircle class="h-4 w-4 mr-2" />
+					<CheckCircle class="mr-2 h-4 w-4" />
 					Mark All Read
 				</Button>
 			{/if}
@@ -163,7 +184,9 @@
 
 	<!-- Summary Cards -->
 	<div class="grid gap-4 md:grid-cols-4">
-		<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
+		<Card
+			class="rounded-lg border border-white/30 bg-white/80 shadow-xl backdrop-blur-xl dark:border-slate-700/50 dark:bg-slate-800/80"
+		>
 			<CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
 				<CardTitle class="text-sm font-medium">Total Notifications</CardTitle>
 				<Bell class="h-4 w-4 text-muted-foreground" />
@@ -174,7 +197,9 @@
 			</CardContent>
 		</Card>
 
-		<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
+		<Card
+			class="rounded-lg border border-white/30 bg-white/80 shadow-xl backdrop-blur-xl dark:border-slate-700/50 dark:bg-slate-800/80"
+		>
 			<CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
 				<CardTitle class="text-sm font-medium">Unread</CardTitle>
 				<Mail class="h-4 w-4 text-muted-foreground" />
@@ -185,7 +210,9 @@
 			</CardContent>
 		</Card>
 
-		<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
+		<Card
+			class="rounded-lg border border-white/30 bg-white/80 shadow-xl backdrop-blur-xl dark:border-slate-700/50 dark:bg-slate-800/80"
+		>
 			<CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
 				<CardTitle class="text-sm font-medium">Urgent</CardTitle>
 				<AlertTriangle class="h-4 w-4 text-muted-foreground" />
@@ -196,7 +223,9 @@
 			</CardContent>
 		</Card>
 
-		<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
+		<Card
+			class="rounded-lg border border-white/30 bg-white/80 shadow-xl backdrop-blur-xl dark:border-slate-700/50 dark:bg-slate-800/80"
+		>
 			<CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
 				<CardTitle class="text-sm font-medium">Today</CardTitle>
 				<Info class="h-4 w-4 text-muted-foreground" />
@@ -209,14 +238,16 @@
 	</div>
 
 	<!-- Filters -->
-	<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
+	<Card
+		class="rounded-lg border border-white/30 bg-white/80 shadow-xl backdrop-blur-xl dark:border-slate-700/50 dark:bg-slate-800/80"
+	>
 		<CardHeader>
 			<CardTitle>Filter Notifications</CardTitle>
 		</CardHeader>
 		<CardContent>
 			<div class="flex gap-4">
-				<select 
-					class="px-3 py-2 border border-input rounded-md bg-background text-foreground"
+				<select
+					class="rounded-md border border-input bg-background px-3 py-2 text-foreground"
 					bind:value={typeFilter}
 				>
 					<option value="all">All Types</option>
@@ -229,29 +260,27 @@
 					<option value="TaskUpdate">Task Update</option>
 				</select>
 
-				<select 
-					class="px-3 py-2 border border-input rounded-md bg-background text-foreground"
+				<select
+					class="rounded-md border border-input bg-background px-3 py-2 text-foreground"
 					bind:value={readFilter}
 				>
 					<option value="all">All Status</option>
 					<option value="unread">Unread Only</option>
 					<option value="read">Read Only</option>
 				</select>
-				
-				<Button variant="outline" onclick={clearFilters}>
-					Clear Filters
-				</Button>
+
+				<Button variant="outline" onclick={clearFilters}>Clear Filters</Button>
 			</div>
 		</CardContent>
 	</Card>
 
 	<!-- Notifications List -->
-	<Card class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/30 dark:border-slate-700/50 rounded-lg shadow-xl">
+	<Card
+		class="rounded-lg border border-white/30 bg-white/80 shadow-xl backdrop-blur-xl dark:border-slate-700/50 dark:bg-slate-800/80"
+	>
 		<CardHeader>
 			<CardTitle>Recent Notifications</CardTitle>
-			<CardDescription>
-				All HR notifications and system alerts
-			</CardDescription>
+			<CardDescription>All HR notifications and system alerts</CardDescription>
 		</CardHeader>
 		<CardContent>
 			<!-- Enhanced bulk operations for notifications -->
@@ -266,54 +295,60 @@
 			/>
 			{#if loading}
 				<div class="flex items-center justify-center py-8">
-					<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+					<div class="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
 				</div>
 			{:else if error}
-				<div class="text-center py-8">
+				<div class="py-8 text-center">
 					<p class="text-destructive">{error}</p>
 					<Button variant="outline" class="mt-4" onclick={() => window.location.reload()}>
 						Retry
 					</Button>
 				</div>
 			{:else if notifications.length === 0}
-				<div class="text-center py-8">
+				<div class="py-8 text-center">
 					<Bell class="mx-auto h-12 w-12 text-muted-foreground/50" />
 					<h3 class="mt-4 text-lg font-semibold">No notifications found</h3>
 					<p class="mt-2 text-muted-foreground">
 						{typeFilter !== 'all' || readFilter !== 'all'
 							? 'No notifications match the selected filters'
-							: 'You\'re all caught up! No new notifications.'}
+							: "You're all caught up! No new notifications."}
 					</p>
 				</div>
 			{:else}
 				<div class="space-y-3">
 					{#each notifications as notification}
 						{@const TypeIcon = getTypeIcon(notification.type)}
-						
-						<div class="border border-border/50 rounded-lg p-4 transition-colors {
-							!notification.isRead 
-								? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-200/50 dark:border-blue-800/50' 
-								: 'hover:bg-accent/30'
-						}">
+
+						<div
+							class="rounded-lg border border-border/50 p-4 transition-colors {!notification.isRead
+								? 'border-blue-200/50 bg-blue-50/50 dark:border-blue-800/50 dark:bg-blue-950/20'
+								: 'hover:bg-accent/30'}"
+						>
 							<div class="flex items-start space-x-4">
-								<div class="flex-shrink-0 mt-1">
-									<div class="w-8 h-8 rounded-lg flex items-center justify-center {
-										!notification.isRead ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-muted/50'
-									}">
+								<div class="mt-1 flex-shrink-0">
+									<div
+										class="flex h-8 w-8 items-center justify-center rounded-lg {!notification.isRead
+											? 'bg-blue-100 dark:bg-blue-900/30'
+											: 'bg-muted/50'}"
+									>
 										<TypeIcon class="h-4 w-4 {getTypeColor(notification.type)}" />
 									</div>
 								</div>
-								
-								<div class="flex-1 min-w-0">
+
+								<div class="min-w-0 flex-1">
 									<div class="flex items-start justify-between">
-										<div class="flex-1 min-w-0">
-											<h4 class="font-medium text-foreground {!notification.isRead ? 'font-semibold' : ''}">
+										<div class="min-w-0 flex-1">
+											<h4
+												class="font-medium text-foreground {!notification.isRead
+													? 'font-semibold'
+													: ''}"
+											>
 												{notification.title || 'Notification'}
 											</h4>
-											<p class="text-sm text-muted-foreground mt-1">
+											<p class="mt-1 text-sm text-muted-foreground">
 												{notification.message || notification.content || 'No message content'}
 											</p>
-											<div class="flex items-center space-x-3 mt-2">
+											<div class="mt-2 flex items-center space-x-3">
 												<Badge variant={getTypeVariant(notification.type)}>
 													{notification.type || 'General'}
 												</Badge>
@@ -322,28 +357,25 @@
 												</span>
 												{#if notification.employee}
 													<span class="text-xs text-muted-foreground">
-														From: {notification.employee.first_name} {notification.employee.last_name}
+														From: {notification.employee.first_name}
+														{notification.employee.last_name}
 													</span>
 												{/if}
 											</div>
 										</div>
-										
-										<div class="flex items-center space-x-1 ml-4">
+
+										<div class="ml-4 flex items-center space-x-1">
 											{#if !notification.isRead}
-												<Button 
-													variant="ghost" 
-													size="sm" 
+												<Button
+													variant="ghost"
+													size="sm"
 													onclick={() => markAsRead(notification.id)}
 													class="h-8 w-8 p-0"
 												>
 													<CheckCircle class="h-4 w-4" />
 												</Button>
 											{/if}
-											<Button 
-												variant="ghost" 
-												size="sm"
-												class="h-8 w-8 p-0"
-											>
+											<Button variant="ghost" size="sm" class="h-8 w-8 p-0">
 												<X class="h-4 w-4" />
 											</Button>
 										</div>

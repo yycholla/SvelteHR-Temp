@@ -1,5 +1,11 @@
 <script lang="ts">
-	import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '$lib/components/ui/card';
+	import {
+		Card,
+		CardHeader,
+		CardContent,
+		CardTitle,
+		CardDescription
+	} from '$lib/components/ui/card';
 	import { Button } from '$lib/components/ui/button';
 	import { InputGroup } from '$lib/components/ui/input';
 	import { Checkbox } from '$lib/components/ui/checkbox';
@@ -33,7 +39,7 @@
 	async function onSubmit() {
 		isSubmitting = true;
 		errors = { username: '', password: '' };
-		
+
 		// Simple validation
 		if (!formData.username) {
 			errors.username = 'Username is required';
@@ -41,12 +47,12 @@
 		if (!formData.password) {
 			errors.password = 'Password is required';
 		}
-		
+
 		if (errors.username || errors.password) {
 			isSubmitting = false;
 			return;
 		}
-		
+
 		// Simulate API call
 		setTimeout(() => {
 			isSubmitting = false;
@@ -65,21 +71,32 @@
 	<meta name="description" content="Sign in to your SvelteHR account" />
 </svelte:head>
 
-<div class="min-h-screen bg-gradient-to-br from-yellow-100/50 via-blue-100/40 to-blue-200/60 dark:from-yellow-900/20 dark:via-blue-900/25 dark:to-blue-800/30 flex items-center justify-center p-4">
+<div
+	class="flex min-h-screen items-center justify-center bg-gradient-to-br from-yellow-100/50 via-blue-100/40 to-blue-200/60 p-4 dark:from-yellow-900/20 dark:via-blue-900/25 dark:to-blue-800/30"
+>
 	<div class="w-full max-w-md">
 		<!-- Header -->
-		<div class="text-center mb-8">
-			<div class="mx-auto w-16 h-16 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center mb-6 shadow-lg backdrop-blur-md border border-border/40">
-				<Building2 class="w-8 h-8 text-primary-foreground" />
+		<div class="mb-8 text-center">
+			<div
+				class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-border/40 bg-gradient-to-br from-primary to-primary/80 shadow-lg backdrop-blur-md"
+			>
+				<Building2 class="h-8 w-8 text-primary-foreground" />
 			</div>
-			<h1 class="text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">Welcome back</h1>
-			<p class="text-muted-foreground mt-3 text-lg">Sign in to your SvelteHR account</p>
+			<h1
+				class="bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-4xl font-bold text-transparent"
+			>
+				Welcome back
+			</h1>
+			<p class="mt-3 text-lg text-muted-foreground">Sign in to your SvelteHR account</p>
 		</div>
 
 		<!-- Login Card -->
-		<Card class="bg-background/20 backdrop-blur-md border border-border/40 shadow-xl rounded-2xl">
+		<Card class="rounded-2xl border border-border/40 bg-background/20 shadow-xl backdrop-blur-md">
 			<CardHeader class="space-y-1 pb-6">
-				<CardTitle class="text-2xl text-center bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">Sign In</CardTitle>
+				<CardTitle
+					class="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-center text-2xl text-transparent"
+					>Sign In</CardTitle
+				>
 				<CardDescription class="text-center text-muted-foreground">
 					Enter your credentials to access your HR portal
 				</CardDescription>
@@ -87,17 +104,17 @@
 
 			<CardContent class="space-y-6">
 				<!-- Demo Credentials Banner -->
-				<div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
+				<div class="rounded-lg border border-amber-200 bg-amber-50 p-3">
 					<div class="flex items-center justify-between">
 						<div class="flex items-center space-x-2">
-							<Shield class="w-4 h-4 text-amber-600" />
+							<Shield class="h-4 w-4 text-amber-600" />
 							<span class="text-sm text-amber-800">Demo Account Available</span>
 						</div>
-						<Button 
-							variant="ghost" 
-							size="sm" 
+						<Button
+							variant="ghost"
+							size="sm"
 							onclick={fillDemoCredentials}
-							class="text-amber-700 hover:text-amber-900 h-6 px-2"
+							class="h-6 px-2 text-amber-700 hover:text-amber-900"
 						>
 							Use Demo
 						</Button>
@@ -112,7 +129,13 @@
 				{/if}
 
 				<!-- Login Form -->
-				<form onsubmit={(e) => { e.preventDefault(); onSubmit(); }} class="space-y-4">
+				<form
+					onsubmit={(e) => {
+						e.preventDefault();
+						onSubmit();
+					}}
+					class="space-y-4"
+				>
 					<!-- Username Field -->
 					<div class="space-y-2">
 						<InputGroup
@@ -147,9 +170,9 @@
 								tabindex="-1"
 							>
 								{#if showPassword}
-									<EyeOff class="w-4 h-4" />
+									<EyeOff class="h-4 w-4" />
 								{:else}
-									<Eye class="w-4 h-4" />
+									<Eye class="h-4 w-4" />
 								{/if}
 							</button>
 						</InputGroup>
@@ -157,24 +180,12 @@
 
 					<!-- Remember Me -->
 					<div class="flex items-center space-x-2">
-						<Checkbox 
-							id="rememberMe" 
-							bind:checked={formData.rememberMe}
-							disabled={isSubmitting}
-						/>
-						<label for="rememberMe" class="text-sm text-gray-700">
-							Remember me for 7 days
-						</label>
+						<Checkbox id="rememberMe" bind:checked={formData.rememberMe} disabled={isSubmitting} />
+						<label for="rememberMe" class="text-sm text-gray-700"> Remember me for 7 days </label>
 					</div>
 
 					<!-- Submit Button -->
-					<Button 
-						type="submit" 
-						variant="default" 
-						size="lg" 
-						class="w-full"
-						disabled={isSubmitting}
-					>
+					<Button type="submit" variant="default" size="lg" class="w-full" disabled={isSubmitting}>
 						{#if isSubmitting}
 							Signing in...
 						{:else}
@@ -192,13 +203,11 @@
 				</div>
 
 				<!-- Help Links -->
-				<div class="text-center space-y-2">
+				<div class="space-y-2 text-center">
 					<a href="/forgot-password" class="text-sm text-primary-600 hover:text-primary-500">
 						Forgot your password?
 					</a>
-					<div class="text-xs text-gray-500">
-						Need help? Contact your HR administrator
-					</div>
+					<div class="text-xs text-gray-500">Need help? Contact your HR administrator</div>
 				</div>
 			</CardContent>
 		</Card>

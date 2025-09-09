@@ -1,25 +1,25 @@
 <script lang="ts" module>
-	import { tv } from "tailwind-variants";
-	import { cn } from "$lib/utils.js";
+	import { tv } from 'tailwind-variants';
+	import { cn } from '$lib/utils.js';
 
 	export const bulkSelectCheckboxVariants = tv({
-		base: "flex items-center justify-center rounded border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+		base: 'flex items-center justify-center rounded border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
 		variants: {
 			size: {
-				sm: "h-4 w-4",
-				default: "h-5 w-5",
-				lg: "h-6 w-6",
+				sm: 'h-4 w-4',
+				default: 'h-5 w-5',
+				lg: 'h-6 w-6'
 			},
 			state: {
-				unchecked: "border-muted-foreground/30 bg-background hover:border-muted-foreground/50",
-				checked: "border-primary bg-primary text-primary-foreground hover:bg-primary/90",
-				indeterminate: "border-primary bg-primary text-primary-foreground hover:bg-primary/90",
+				unchecked: 'border-muted-foreground/30 bg-background hover:border-muted-foreground/50',
+				checked: 'border-primary bg-primary text-primary-foreground hover:bg-primary/90',
+				indeterminate: 'border-primary bg-primary text-primary-foreground hover:bg-primary/90'
 			}
 		},
 		defaultVariants: {
-			size: "default",
-			state: "unchecked",
-		},
+			size: 'default',
+			state: 'unchecked'
+		}
 	});
 
 	export type BulkSelectState = 'unchecked' | 'checked' | 'indeterminate';
@@ -43,12 +43,12 @@
 	let {
 		checked = false,
 		indeterminate = false,
-		size = "default",
+		size = 'default',
 		disabled = false,
 		onCheckedChange,
 		class: className,
 		id,
-		'aria-label': ariaLabel,
+		'aria-label': ariaLabel
 	}: BulkSelectCheckboxProps = $props();
 
 	const state = $derived<BulkSelectState>(
@@ -87,7 +87,11 @@
 	aria-label={ariaLabel}
 	{id}
 	{disabled}
-	class={cn(bulkSelectCheckboxVariants({ size, state }), className, disabled && 'opacity-50 cursor-not-allowed')}
+	class={cn(
+		bulkSelectCheckboxVariants({ size, state }),
+		className,
+		disabled && 'cursor-not-allowed opacity-50'
+	)}
 	onclick={handleClick}
 	onkeydown={handleKeydown}
 >

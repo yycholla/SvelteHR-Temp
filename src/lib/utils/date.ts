@@ -22,12 +22,12 @@ export function formatDate(
 
 	try {
 		const date = new Date(dateString);
-		
+
 		// Check if date is valid
 		if (isNaN(date.getTime())) {
 			return 'Invalid date';
 		}
-		
+
 		return date.toLocaleDateString('en-US', options);
 	} catch (error) {
 		console.warn('Failed to format date:', dateString, error);
@@ -80,15 +80,15 @@ export function formatHireDate(hireDate: string | null | undefined): string {
  */
 export function calculateTenure(hireDate: string | null | undefined): number {
 	if (!hireDate) return 0;
-	
+
 	try {
 		const hire = new Date(hireDate);
 		if (isNaN(hire.getTime())) return 0;
-		
+
 		const now = new Date();
 		const diffInMs = now.getTime() - hire.getTime();
 		const years = diffInMs / (365.25 * 24 * 60 * 60 * 1000);
-		
+
 		return Math.floor(Math.max(0, years));
 	} catch {
 		return 0;
@@ -148,7 +148,7 @@ export function formatRelativeTime(dateString: string | null | undefined): strin
  */
 export function isValidDate(dateString: string | null | undefined): boolean {
 	if (!dateString) return false;
-	
+
 	try {
 		const date = new Date(dateString);
 		return !isNaN(date.getTime());
@@ -164,11 +164,11 @@ export function isValidDate(dateString: string | null | undefined): boolean {
  */
 export function formatDateForInput(dateString: string | null | undefined): string {
 	if (!dateString) return '';
-	
+
 	try {
 		const date = new Date(dateString);
 		if (isNaN(date.getTime())) return '';
-		
+
 		return date.toISOString().split('T')[0];
 	} catch {
 		return '';
@@ -197,19 +197,19 @@ export function formatDateTime(dateString: string | null | undefined): string {
  */
 export function calculateAge(birthDate: string | null | undefined): number | null {
 	if (!birthDate) return null;
-	
+
 	try {
 		const birth = new Date(birthDate);
 		if (isNaN(birth.getTime())) return null;
-		
+
 		const now = new Date();
 		let age = now.getFullYear() - birth.getFullYear();
 		const monthDiff = now.getMonth() - birth.getMonth();
-		
+
 		if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) {
 			age--;
 		}
-		
+
 		return Math.max(0, age);
 	} catch {
 		return null;

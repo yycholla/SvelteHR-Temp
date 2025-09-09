@@ -82,9 +82,9 @@ class ErrorHandler {
 	private initializeDefaultStrategies() {
 		// Network retry strategy
 		this.strategies.push({
-			canRecover: (error) => 
-				error.type === ErrorType.NETWORK && 
-				error.retryable && 
+			canRecover: (error) =>
+				error.type === ErrorType.NETWORK &&
+				error.retryable &&
 				(error.retryCount || 0) < (error.maxRetries || 3),
 			recover: async (error) => {
 				await this.delay(Math.pow(2, error.retryCount || 0) * 1000); // Exponential backoff
@@ -95,9 +95,7 @@ class ErrorHandler {
 
 		// Auth token refresh strategy
 		this.strategies.push({
-			canRecover: (error) => 
-				error.type === ErrorType.AUTH && 
-				error.statusCode === 401,
+			canRecover: (error) => error.type === ErrorType.AUTH && error.statusCode === 401,
 			recover: async (error) => {
 				try {
 					// Attempt token refresh
@@ -128,7 +126,10 @@ class ErrorHandler {
 	/**
 	 * Classify error based on various factors
 	 */
-	private classifyError(error: any, statusCode?: number): { type: ErrorType; severity: ErrorSeverity } {
+	private classifyError(
+		error: any,
+		statusCode?: number
+	): { type: ErrorType; severity: ErrorSeverity } {
 		// Network errors
 		if (error.name === 'TypeError' && error.message.includes('fetch')) {
 			return { type: ErrorType.NETWORK, severity: ErrorSeverity.HIGH };
@@ -163,13 +164,9 @@ class ErrorHandler {
 	/**
 	 * Create structured error from raw error
 	 */
-	private createAppError(
-		error: any, 
-		context?: ErrorContext,
-		statusCode?: number
-	): AppError {
+	private createAppError(error: any, context?: ErrorContext, statusCode?: number): AppError {
 		const { type, severity } = this.classifyError(error, statusCode);
-		
+
 		return {
 			id: this.generateErrorId(),
 			type,
@@ -223,7 +220,7 @@ class ErrorHandler {
 	 * Delay utility for retries
 	 */
 	private delay(ms: number): Promise<void> {
-		return new Promise(resolve => setTimeout(resolve, ms));
+		return new Promise((resolve) => setTimeout(resolve, ms));
 	}
 
 	/**
@@ -240,21 +237,17 @@ class ErrorHandler {
 		};
 
 		const message = friendlyMessages[error.type] || error.message;
-		
+
 		// Add to error store for UI display
-		errorStore.update(errors => [...errors, { ...error, message }]);
+		errorStore.update((errors) => [...errors, { ...error, message }]);
 	}
 
 	/**
 	 * Handle error with recovery attempts
 	 */
-	async handleError(
-		error: any,
-		context?: ErrorContext,
-		statusCode?: number
-	): Promise<AppError> {
+	async handleError(error: any, context?: ErrorContext, statusCode?: number): Promise<AppError> {
 		const appError = this.createAppError(error, context, statusCode);
-		
+
 		// Log error
 		this.logError(appError);
 
@@ -276,7 +269,7 @@ class ErrorHandler {
 
 		// If no recovery possible, show to user
 		this.showUserFriendlyError(appError);
-		
+
 		return appError;
 	}
 
@@ -285,7 +278,7 @@ class ErrorHandler {
 	 */
 	private logError(error: AppError) {
 		this.errorLog.unshift(error);
-		
+
 		// Maintain max log size
 		if (this.errorLog.length > this.maxLogSize) {
 			this.errorLog = this.errorLog.slice(0, this.maxLogSize);
@@ -317,7 +310,7 @@ class ErrorHandler {
 	 * Clear error from store
 	 */
 	clearError(errorId: string) {
-		errorStore.update(errors => errors.filter(e => e.id !== errorId));
+		errorStore.update((errors) => errors.filter((e) => e.id !== errorId));
 	}
 
 	/**
@@ -347,9 +340,9 @@ class ErrorHandler {
 	getErrorStats() {
 		const now = new Date();
 		const last24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-		
-		const recentErrors = this.errorLog.filter(e => e.timestamp > last24Hours);
-		
+
+		const recentErrors = this.errorLog.filter((e) => e.timestamp > last24Hours);
+
 		return {
 			total: this.errorLog.length,
 			last24Hours: recentErrors.length,
@@ -360,11 +353,14 @@ class ErrorHandler {
 	}
 
 	private groupBy<T>(array: T[], key: keyof T): Record<string, number> {
-		return array.reduce((acc, item) => {
-			const value = item[key] as string;
-			acc[value] = (acc[value] || 0) + 1;
-			return acc;
-		}, {} as Record<string, number>);
+		return array.reduce(
+			(acc, item) => {
+				const value = item[key] as string;
+				acc[value] = (acc[value] || 0) + 1;
+				return acc;
+			},
+			{} as Record<string, number>
+		);
 	}
 }
 
@@ -377,10 +373,14 @@ export const ErrorUtils = {
 	 * Handle API errors consistently
 	 */
 	async handleApiError(error: any, endpoint: string, context?: Partial<ErrorContext>) {
-		return errorHandler.handleError(error, {
-			...context,
-			endpoint
-		}, error.response?.status);
+		return errorHandler.handleError(
+			error,
+			{
+				...context,
+				endpoint
+			},
+			error.response?.status
+		);
 	},
 
 	/**
@@ -402,8 +402,6 @@ export const ErrorUtils = {
 	 * Check if error should trigger logout
 	 */
 	shouldLogout(error: AppError): boolean {
-		return error.type === ErrorType.AUTH && 
-			   error.statusCode === 403 && 
-			   (error.retryCount || 0) > 0;
+		return error.type === ErrorType.AUTH && error.statusCode === 403 && (error.retryCount || 0) > 0;
 	}
 };

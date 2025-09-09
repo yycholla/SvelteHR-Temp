@@ -1,525 +1,484 @@
-import { writable, derived, get } from 'svelte/store';
-import { browser } from '$app/environment';
-import { goto } from '$app/navigation';
-import { apiClient } from '../api/client';
-import { showError, showSuccess } from '../utils/errors';
-import type { User, AuthResponse } from '../api/types';
+/**
+ * Authentication Store - Svelte 5 Runes
+ * 
+ * Modern reactive authentication state management using Svelte 5's new runes syntax.
+ * Handles user authentication, permissions, and RBAC state with server-side integration.
+ */
 
-export interface AuthState {
-	user: User | null;
-	token: string | null;
-	expiresAt: Date | null;
-	isLoading: boolean;
-	isAuthenticated: boolean;
-	loginAttempts: number;
-	lastLoginError: string | null;
+import type { 
+  UserContext, 
+  Role, 
+  AuthState,
+  RoleName 
+} from '$lib/types';
+import { 
+  hasPermission, 
+  hasRole, 
+  getUserRoleLevel,
+  canAccessResource,
+  isValidUserContext 
+} from '$lib/utils/rbac';
+
+// ============================================================================
+// Core Authentication State (Svelte 5 Runes)
+// ============================================================================
+
+/**
+ * Primary authentication state using $state rune
+ */
+const authState = $state<AuthState>({
+  user: null,
+  permissions: [],
+  roles: [],
+  loading: false,
+  error: null
+});
+
+// ============================================================================
+// Derived State (Computed Values)
+// ============================================================================
+
+/**
+ * Check if user is authenticated
+ */
+export const isAuthenticated = $derived(
+  authState.user !== null && authState.user.is_active
+);
+
+/**
+ * Check if user is loading
+ */
+export const isLoading = $derived(authState.loading);
+
+/**
+ * Get current error state
+ */
+export const authError = $derived(authState.error);
+
+/**
+ * Get current user
+ */
+export const currentUser = $derived(authState.user);
+
+/**
+ * Get user permissions
+ */
+export const userPermissions = $derived(authState.permissions);
+
+/**
+ * Get user roles
+ */
+export const userRoles = $derived(authState.roles);
+
+/**
+ * Check if user is admin
+ */
+export const isAdmin = $derived(
+  authState.user ? hasRole(authState.user, 'Admin') : false
+);
+
+/**
+ * Check if user is HR Manager
+ */
+export const isHRManager = $derived(
+  authState.user ? hasRole(authState.user, ['HR_Manager', 'Admin']) : false
+);
+
+/**
+ * Check if user is Manager
+ */
+export const isManager = $derived(
+  authState.user ? hasRole(authState.user, ['Manager', 'HR_Manager', 'Admin']) : false
+);
+
+/**
+ * Get user role level
+ */
+export const userRoleLevel = $derived(
+  authState.user ? getUserRoleLevel(authState.user) : 0
+);
+
+/**
+ * Get primary role (highest level)
+ */
+export const primaryRole = $derived(() => {
+  if (!authState.user || !authState.user.roles.length) return null;
+  
+  return authState.user.roles.reduce((highest, current) => 
+    current.level > highest.level ? current : highest
+  );
+});
+
+/**
+ * Get user display name
+ */
+export const userDisplayName = $derived(
+  authState.user?.full_name || authState.user?.email || 'Unknown User'
+);
+
+/**
+ * Get user initials for avatar
+ */
+export const userInitials = $derived(() => {
+  if (!authState.user?.full_name) return 'UN';
+  
+  return authState.user.full_name
+    .split(' ')
+    .map(name => name.charAt(0).toUpperCase())
+    .join('')
+    .slice(0, 2);
+});
+
+// ============================================================================
+// Authentication Actions
+// ============================================================================
+
+/**
+ * Set loading state
+ */
+function setLoading(loading: boolean) {
+  authState.loading = loading;
 }
 
-const initialState: AuthState = {
-	user: null,
-	token: null,
-	expiresAt: null,
-	isLoading: false,
-	isAuthenticated: false,
-	loginAttempts: 0,
-	lastLoginError: null
-};
-
-// Traditional Svelte store
-const authStore = writable<AuthState>(initialState);
-
-// Derived stores
-export const isAuthenticated = derived(authStore, ($auth) => $auth.isAuthenticated);
-export const currentUser = derived(authStore, ($auth) => $auth.user);
-export const userPermissions = derived(authStore, ($auth) => $auth.user?.permissions || []);
-export const userRoles = derived(authStore, ($auth) => $auth.user?.roles || []);
-export const isLoading = derived(authStore, ($auth) => $auth.isLoading);
-export const loginAttempts = derived(authStore, ($auth) => $auth.loginAttempts);
-export const lastLoginError = derived(authStore, ($auth) => $auth.lastLoginError);
-
-// Role-based derived stores (using RBAC role names)
-export const isAdmin = derived(authStore, ($auth) => 
-	$auth.user?.roles?.some((role) =>
-		['Admin', 'Administrator', 'System Admin'].includes(role.name)
-	) ?? false
-);
-export const isHR = derived(authStore, ($auth) => 
-	$auth.user?.roles?.some((role) =>
-		['HR', 'HR Manager', 'HR Admin', 'Human Resources'].includes(role.name)
-	) ?? false
-);
-export const isManager = derived(authStore, ($auth) => 
-	$auth.user?.roles?.some((role) =>
-		['Manager', 'Department Manager', 'Team Lead', 'Supervisor'].includes(role.name)
-	) ?? false
-);
-export const isEmployee = derived(authStore, ($auth) => 
-	$auth.user?.roles?.some((role) => ['Employee', 'Staff', 'Team Member'].includes(role.name)) ?? false
-);
-
-// Permission-based derived stores using resource.action format
-export const canViewEmployees = derived(authStore, ($auth) => 
-	$auth.user?.permissions?.includes('employees.read') ||
-	$auth.user?.permissions?.includes('employees.*') ||
-	$auth.user?.permissions?.includes('*') ||
-	false
-);
-export const canEditEmployees = derived(authStore, ($auth) => 
-	$auth.user?.permissions?.includes('employees.write') ||
-	$auth.user?.permissions?.includes('employees.update') ||
-	$auth.user?.permissions?.includes('employees.*') ||
-	$auth.user?.permissions?.includes('*') ||
-	false
-);
-export const canCreateEmployees = derived(authStore, ($auth) => 
-	$auth.user?.permissions?.includes('employees.create') ||
-	$auth.user?.permissions?.includes('employees.*') ||
-	$auth.user?.permissions?.includes('*') ||
-	false
-);
-export const canDeleteEmployees = derived(authStore, ($auth) => 
-	$auth.user?.permissions?.includes('employees.delete') ||
-	$auth.user?.permissions?.includes('employees.*') ||
-	$auth.user?.permissions?.includes('*') ||
-	false
-);
-export const canViewReports = derived(authStore, ($auth) => 
-	$auth.user?.permissions?.includes('reports.read') ||
-	$auth.user?.permissions?.includes('reports.*') ||
-	$auth.user?.permissions?.includes('*') ||
-	false
-);
-export const canManageRoles = derived(authStore, ($auth) => 
-	$auth.user?.permissions?.includes('roles.write') ||
-	$auth.user?.permissions?.includes('roles.*') ||
-	$auth.user?.permissions?.includes('system.admin') ||
-	$auth.user?.permissions?.includes('*') ||
-	false
-);
-export const canViewDepartments = derived(authStore, ($auth) => 
-	$auth.user?.permissions?.includes('departments.read') ||
-	$auth.user?.permissions?.includes('departments.*') ||
-	$auth.user?.permissions?.includes('*') ||
-	false
-);
-export const canManageDepartments = derived(authStore, ($auth) => 
-	$auth.user?.permissions?.includes('departments.write') ||
-	$auth.user?.permissions?.includes('departments.*') ||
-	$auth.user?.permissions?.includes('*') ||
-	false
-);
-
-// Auth token management
-let refreshTimer: NodeJS.Timeout;
-
-export const authActions = {
-	// Initialize auth state from GelDB auth token
-	async initialize() {
-		if (!browser) return;
-
-		authStore.update(state => ({ ...state, isLoading: true }));
-
-		try {
-			// Check for GelDB auth token in cookies
-			const token = apiClient.auth.checkAuthToken();
-
-			if (token) {
-				// Verify token with GelDB
-				const response = await apiClient.auth.verify();
-
-				if (response.success && response.data) {
-					// Set auth data from GelDB response
-					this.setAuthData({
-						token,
-						user: response.data.user,
-						expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // Default 24h
-					});
-				} else {
-					// Token invalid, clear it
-					this.clearAuthData();
-				}
-			}
-		} catch (error) {
-			console.error('GelDB auth initialization failed:', error);
-			this.clearAuthData();
-		} finally {
-			authStore.update(state => ({ ...state, isLoading: false }));
-		}
-	},
-
-	// Redirect to GelDB sign-in
-	async signIn() {
-		authStore.update(state => ({ ...state, isLoading: true }));
-		authStore.update(state => ({ ...state, lastLoginError: null }));
-
-		try {
-			// Redirect to GelDB built-in sign-in UI
-			apiClient.auth.signInRedirect();
-			return { success: true };
-		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : 'Sign-in redirect failed';
-			authStore.update(state => ({ ...state, lastLoginError: errorMessage }));
-			authStore.update(state => ({ ...state, isLoading: false }));
-
-			showError(errorMessage, { title: 'Sign-in Error' });
-
-			return {
-				success: false,
-				error: errorMessage
-			};
-		}
-	},
-
-	// Login with email/password credentials
-	async loginWithCredentials(email: string, password: string) {
-		authStore.update(state => ({ ...state, isLoading: true }));
-		authStore.update(state => ({ ...state, lastLoginError: null }));
-
-		try {
-			// Call the API client's signIn method
-			const response = await apiClient.auth.signIn(email, password);
-
-			if (response.success && response.data) {
-				// Set auth data in store
-				this.setAuthData(response.data);
-				
-				showSuccess('Successfully signed in!');
-
-				// Redirect to home or intended destination
-				if (browser) {
-					const redirectTo = new URLSearchParams(window.location.search).get('redirectTo') || '/home';
-					await goto(redirectTo, { replaceState: true });
-				}
-
-				return { success: true, data: response.data };
-			} else {
-				const errorMessage = response.error || 'Login failed';
-				authStore.update(state => ({ ...state, lastLoginError: errorMessage }));
-				
-				showError(errorMessage, { title: 'Login Failed' });
-
-				return {
-					success: false,
-					error: errorMessage
-				};
-			}
-		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : 'Login failed';
-			authStore.update(state => ({ ...state, lastLoginError: errorMessage }));
-
-			showError(errorMessage, { title: 'Login Error' });
-
-			return {
-				success: false,
-				error: errorMessage
-			};
-		} finally {
-			authStore.update(state => ({ ...state, isLoading: false }));
-		}
-	},
-
-	// Redirect to GelDB sign-up
-	async signUp() {
-		authStore.update(state => ({ ...state, isLoading: true }));
-		authStore.update(state => ({ ...state, lastLoginError: null }));
-
-		try {
-			// Redirect to GelDB built-in sign-up UI
-			apiClient.auth.signUpRedirect();
-			return { success: true };
-		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : 'Sign-up redirect failed';
-			authStore.update(state => ({ ...state, lastLoginError: errorMessage }));
-			authStore.update(state => ({ ...state, isLoading: false }));
-
-			showError(errorMessage, { title: 'Sign-up Error' });
-
-			return {
-				success: false,
-				error: errorMessage
-			};
-		}
-	},
-
-	// Register new user
-	async register(userData: {
-		email: string;
-		password: string;
-		full_name: string;
-		role_id?: string;
-	}) {
-		authStore.update(state => ({ ...state, isLoading: true }));
-		authStore.update(state => ({ ...state, lastLoginError: null }));
-
-		try {
-			const response = await apiClient.auth.register(userData);
-
-			if (response.success && response.data) {
-				showSuccess(
-					'Account created successfully! Please check your email for verification instructions.'
-				);
-
-				// For auto-login registration flows, uncomment this:
-				// this.setAuthData(response.data);
-
-				return { success: true, data: response.data };
-			} else {
-				const errorMessage = response.error || 'Registration failed';
-				authStore.update(state => ({ ...state, lastLoginError: errorMessage }));
-
-				showError(errorMessage, { title: 'Registration Failed' });
-
-				return {
-					success: false,
-					error: errorMessage
-				};
-			}
-		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : 'Registration failed';
-			authStore.update(state => ({ ...state, lastLoginError: errorMessage }));
-
-			showError(errorMessage, { title: 'Registration Error' });
-
-			return {
-				success: false,
-				error: errorMessage
-			};
-		} finally {
-			authStore.update(state => ({ ...state, isLoading: false }));
-		}
-	},
-
-	// Refresh access token
-	async refreshToken() {
-		try {
-			const response = await apiClient.auth.refresh();
-
-			if (response.success && response.data?.token) {
-				// Update token in API client and store
-				apiClient.setToken(response.data.token);
-				authStore.update(state => ({
-					...state,
-					token: response.data.token,
-					expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
-				}));
-
-				this.scheduleTokenRefresh();
-				return true;
-			} else {
-				throw new Error('Token refresh failed');
-			}
-		} catch (error) {
-			console.error('Token refresh failed:', error);
-			this.logout();
-			return false;
-		}
-	},
-
-	// Verify current token
-	async verifyToken() {
-		// Direct access to authState instead of get(authStore)
-		if (!get(authStore).token) return false;
-
-		try {
-			const response = await apiClient.auth.verify();
-
-			if (response.success && response.data) {
-				// Update user data with roles and permissions
-				const user = response.data.user;
-				user.roles = response.data.roles || [];
-				user.permissions = response.data.permissions || [];
-
-				authStore.update(state => ({
-					...state,
-					user: user,
-					isAuthenticated: true
-				}));
-
-				return true;
-			} else {
-				// Try to refresh token
-				return await this.refreshToken();
-			}
-		} catch (error) {
-			console.error('Token verification failed:', error);
-			return await this.refreshToken();
-		}
-	},
-
-	// Logout user
-	async logout(showMessage = true) {
-		clearTimeout(refreshTimer);
-
-		try {
-			// Call logout endpoint to invalidate token on server
-			await apiClient.auth.logout();
-		} catch (error) {
-			console.error('Logout request failed:', error);
-		}
-
-		// Clear local state regardless of server response
-		this.clearAuthData();
-
-		if (showMessage) {
-			showSuccess('You have been successfully logged out.');
-		}
-
-		// Redirect to login page
-		if (browser) {
-			await goto('/login');
-		}
-	},
-
-	// Clear authentication data
-	clearAuthData() {
-		clearTimeout(refreshTimer);
-		apiClient.clearToken();
-
-		// Clear localStorage and cookies
-		if (browser) {
-			localStorage.removeItem('hr_token');
-			// Clear the cookie by setting it to expire immediately
-			document.cookie = 'hr_token=; path=/; max-age=0; SameSite=Lax';
-		}
-
-		authStore.set(initialState);
-	},
-
-	// Set authentication data and schedule refresh
-	setAuthData(data: AuthResponse | { token: string; user: User; expires_at: string }) {
-		const expiresAt = new Date(data.expires_at);
-		const token = 'token' in data ? data.token : data.token;
-
-		// Set token in API client
-		apiClient.setToken(token);
-
-		// Store token in localStorage and cookies for server-side access
-		if (browser) {
-			localStorage.setItem('hr_token', token);
-
-			// Set HTTP-only cookie for server-side authentication
-			// Note: This needs to be set by the server, but we'll use a regular cookie for now
-			document.cookie = `hr_token=${token}; path=/; max-age=${24 * 60 * 60}; SameSite=Lax`;
-		}
-
-		// Update all auth data at once
-		authStore.update(state => ({ 
-			...state, 
-			user: data.user,
-			token: token,
-			expiresAt: expiresAt,
-			isAuthenticated: true,
-			isLoading: false,
-			loginAttempts: 0,
-			lastLoginError: null
-		}));
-
-		// Schedule token refresh (5 minutes before expiry)
-		this.scheduleTokenRefresh(expiresAt);
-	},
-
-	// Schedule automatic token refresh
-	scheduleTokenRefresh(expiresAt?: Date) {
-		clearTimeout(refreshTimer);
-
-		// Direct access to authState instead of get(authStore)
-		const expiry = expiresAt || get(authStore).expiresAt;
-
-		if (!expiry) return;
-
-		const refreshTime = expiry.getTime() - Date.now() - 5 * 60 * 1000; // 5 minutes before expiry
-
-		if (refreshTime > 0) {
-			refreshTimer = setTimeout(() => {
-				this.refreshToken();
-			}, refreshTime);
-		}
-	},
-
-	// Check if user has permission
-	hasPermission(permission: string): boolean {
-		// Direct access to authState instead of get(authStore)
-		if (!get(authStore).user?.permissions) return false;
-
-		return get(authStore).user!.permissions.includes('*') || get(authStore).user!.permissions.includes(permission);
-	},
-
-	// Check if user has any of the specified roles
-	hasRole(...roleNames: string[]): boolean {
-		// Direct access to authState instead of get(authStore)
-		if (!get(authStore).user?.roles) return false;
-
-		return get(authStore).user!.roles.some((role) => roleNames.includes(role.name));
-	},
-
-	// Check if user has all specified permissions
-	hasAllPermissions(permissions: string[]): boolean {
-		// Direct access to authState instead of get(authStore)
-		if (!get(authStore).user?.permissions) return false;
-		if (get(authStore).user!.permissions.includes('*')) return true;
-
-		return permissions.every((permission) => get(authStore).user!.permissions.includes(permission));
-	},
-
-	// Get user role names
-	getUserRoles(): string[] {
-		// Direct access to authState instead of get(authStore)
-		return get(authStore).user?.roles?.map((role) => role.name) || [];
-	},
-
-	// Check if user is admin (has any admin-related role)
-	isAdmin(): boolean {
-		return this.hasRole('Admin', 'Administrator', 'System Admin');
-	},
-
-	// Check if user is HR personnel
-	isHR(): boolean {
-		return this.hasRole('HR', 'HR Manager', 'HR Admin', 'Human Resources');
-	},
-
-	// Check if user is manager
-	isManager(): boolean {
-		return this.hasRole('Manager', 'Department Manager', 'Team Lead', 'Supervisor');
-	},
-
-	// Check if user has specific permission
-	hasSpecificPermission(resource: string, action: string): boolean {
-		const permission = `${resource}.${action}`;
-		return (
-			this.hasPermission(permission) ||
-			this.hasPermission(`${resource}.*`) ||
-			this.hasPermission('*')
-		);
-	},
-
-	// Check if user can access a resource with any action
-	canAccessResource(resource: string): boolean {
-		// Direct access to authState instead of get(authStore)
-		if (!get(authStore).user?.permissions) return false;
-
-		return get(authStore).user!.permissions.some(
-			(permission) =>
-				permission.startsWith(`${resource}.`) ||
-				permission === `${resource}.*` ||
-				permission === '*'
-		);
-	}
-};
-
-// Combined auth store for backwards compatibility - export the store with actions
-export const authStoreWithActions = {
-	// Store subscription
-	subscribe: authStore.subscribe,
-	
-	// Actions
-	...authActions
-};
-
-// Export as authStore for backwards compatibility
-export { authStoreWithActions as authStore };
-
-// Auto-initialize when store is created
-if (browser) {
-	authActions.initialize();
+/**
+ * Set error state
+ */
+function setError(error: string | null) {
+  authState.error = error;
 }
 
+/**
+ * Set user and related state
+ */
+function setUser(user: UserContext | null) {
+  if (user && !isValidUserContext(user)) {
+    console.error('Invalid user context provided to auth store');
+    setError('Invalid user data received');
+    return;
+  }
+  
+  authState.user = user;
+  authState.permissions = user?.permissions || [];
+  authState.roles = user?.roles || [];
+  authState.error = null;
+}
+
+/**
+ * Initialize authentication from server-side data
+ * Called from layout server load function
+ */
+export function initializeAuth(userData: {
+  user: UserContext | null;
+  permissions: string[];
+  roles: Role[];
+}) {
+  setLoading(false);
+  
+  if (userData.user) {
+    // Ensure user object has all required fields
+    const completeUser: UserContext = {
+      ...userData.user,
+      permissions: userData.permissions,
+      roles: userData.roles
+    };
+    
+    setUser(completeUser);
+  } else {
+    setUser(null);
+  }
+}
+
+/**
+ * Verify current authentication status
+ * Useful for refreshing auth state
+ */
+export async function verifyAuth(): Promise<boolean> {
+  setLoading(true);
+  setError(null);
+  
+  try {
+    const response = await fetch('/api/v2/auth/verify', {
+      method: 'GET',
+      credentials: 'include', // Include cookies
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      if (response.status === 401) {
+        setUser(null);
+        return false;
+      }
+      throw new Error(`Authentication verification failed: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.user) {
+      const completeUser: UserContext = {
+        ...data.user,
+        permissions: data.permissions || [],
+        roles: data.roles || data.user.roles || []
+      };
+      
+      setUser(completeUser);
+      return true;
+    } else {
+      setUser(null);
+      return false;
+    }
+  } catch (error) {
+    console.error('Auth verification error:', error);
+    setError(error instanceof Error ? error.message : 'Authentication verification failed');
+    setUser(null);
+    return false;
+  } finally {
+    setLoading(false);
+  }
+}
+
+/**
+ * Logout user
+ */
+export async function logout(): Promise<void> {
+  setLoading(true);
+  
+  try {
+    // Call server logout endpoint
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include'
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+  } finally {
+    // Clear auth state regardless of API call result
+    setUser(null);
+    setLoading(false);
+    
+    // Redirect to login page
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
+  }
+}
+
+/**
+ * Refresh user permissions
+ * Call when user roles/permissions might have changed
+ */
+export async function refreshPermissions(): Promise<void> {
+  if (!authState.user) return;
+  
+  await verifyAuth();
+}
+
+// ============================================================================
+// Permission Checking Functions (Derived from Store)
+// ============================================================================
+
+/**
+ * Check if current user has specific permission
+ */
+export const hasCurrentUserPermission = $derived.by(() => {
+  return (permission: string): boolean => {
+    return authState.user ? hasPermission(authState.user, permission) : false;
+  };
+});
+
+/**
+ * Check if current user has specific role
+ */
+export const hasCurrentUserRole = $derived.by(() => {
+  return (role: RoleName | RoleName[]): boolean => {
+    return authState.user ? hasRole(authState.user, role) : false;
+  };
+});
+
+/**
+ * Check if current user can access resource
+ */
+export const canCurrentUserAccessResource = $derived.by(() => {
+  return (resource: string, action = 'read', scope = 'all', resourceOwnerId?: string): boolean => {
+    return authState.user ? 
+      canAccessResource(authState.user, resource, action as any, scope as any, resourceOwnerId) : 
+      false;
+  };
+});
+
+// ============================================================================
+// Route Protection Helpers
+// ============================================================================
+
+/**
+ * Check if current user can access a route
+ */
+export function canAccessCurrentRoute(routePath: string): boolean {
+  if (!authState.user) return false;
+  
+  // Define route permissions mapping
+  const routePermissions: Record<string, { permissions?: string[]; roles?: RoleName[] }> = {
+    '/dashboard': { permissions: ['profile:read'] },
+    '/profile': { permissions: ['profile:read'] },
+    '/timesheet': { permissions: ['timesheet:read'] },
+    '/requests': { permissions: ['requests:read'] },
+    '/hr/employees': { roles: ['HR_Manager', 'Admin'] },
+    '/hr/departments': { roles: ['HR_Manager', 'Admin'] },
+    '/hr/analytics': { roles: ['HR_Manager', 'Admin'] },
+    '/hr/reports': { roles: ['HR_Manager', 'Admin'] },
+    '/admin/users': { roles: ['Admin'] },
+    '/admin/roles': { roles: ['Admin'] },
+    '/admin/system': { roles: ['Admin'] }
+  };
+  
+  const config = routePermissions[routePath];
+  if (!config) return true; // No restrictions defined
+  
+  // Check role requirements
+  if (config.roles && !hasRole(authState.user, config.roles)) {
+    return false;
+  }
+  
+  // Check permission requirements
+  if (config.permissions) {
+    const hasRequiredPermission = config.permissions.some(permission =>
+      hasPermission(authState.user!, permission)
+    );
+    if (!hasRequiredPermission) return false;
+  }
+  
+  return true;
+}
+
+/**
+ * Get redirect URL for unauthorized access
+ */
+export function getUnauthorizedRedirect(attemptedPath: string): string {
+  if (!authState.user) {
+    return `/login?redirectTo=${encodeURIComponent(attemptedPath)}`;
+  }
+  
+  // User is authenticated but lacks permissions
+  return '/dashboard?error=insufficient_permissions';
+}
+
+// ============================================================================
+// Development & Debug Helpers
+// ============================================================================
+
+/**
+ * Debug function to log current auth state (development only)
+ */
+export function debugAuthState() {
+  if (import.meta.env.DEV) {
+    console.log('Auth State:', {
+      user: authState.user,
+      permissions: authState.permissions,
+      roles: authState.roles,
+      loading: authState.loading,
+      error: authState.error,
+      isAuthenticated: isAuthenticated,
+      isAdmin: isAdmin,
+      isHRManager: isHRManager,
+      userRoleLevel: userRoleLevel,
+      primaryRole: primaryRole
+    });
+  }
+}
+
+/**
+ * Mock authentication for development/testing
+ */
+export function mockAuth(role: RoleName = 'Employee') {
+  if (!import.meta.env.DEV) {
+    console.warn('mockAuth should only be used in development');
+    return;
+  }
+  
+  const mockUsers: Record<RoleName, UserContext> = {
+    Employee: {
+      id: 'emp-123',
+      email: 'employee@company.com',
+      full_name: 'John Employee',
+      roles: [{ id: 'role-1', name: 'Employee', level: 25, description: 'Employee', inherits_from: [], is_active: true }],
+      permissions: ['profile:read:own', 'profile:update:own', 'timesheet:*:own'],
+      department_id: 'dept-1',
+      is_active: true,
+      last_login: new Date()
+    },
+    Manager: {
+      id: 'mgr-123',
+      email: 'manager@company.com',
+      full_name: 'Jane Manager',
+      roles: [{ id: 'role-2', name: 'Manager', level: 50, description: 'Manager', inherits_from: ['role-1'], is_active: true }],
+      permissions: ['profile:read:own', 'employees:read:department', 'reports:read:team'],
+      department_id: 'dept-1',
+      is_active: true,
+      last_login: new Date()
+    },
+    HR_Manager: {
+      id: 'hr-123',
+      email: 'hr.manager@company.com',
+      full_name: 'Bob HR Manager',
+      roles: [{ id: 'role-3', name: 'HR_Manager', level: 75, description: 'HR Manager', inherits_from: ['role-2'], is_active: true }],
+      permissions: ['employees:*', 'departments:*', 'reports:hr', 'analytics:*'],
+      department_id: 'dept-hr',
+      is_active: true,
+      last_login: new Date()
+    },
+    Admin: {
+      id: 'admin-123',
+      email: 'admin@company.com',
+      full_name: 'Alice Admin',
+      roles: [{ id: 'role-4', name: 'Admin', level: 100, description: 'Administrator', inherits_from: ['role-3'], is_active: true }],
+      permissions: ['*'],
+      is_active: true,
+      last_login: new Date()
+    }
+  };
+  
+  setUser(mockUsers[role]);
+  console.log(`Mocked auth as ${role}:`, mockUsers[role]);
+}
+
+// ============================================================================
+// Store Subscription Helpers (for legacy compatibility)
+// ============================================================================
+
+/**
+ * Subscribe to auth state changes (legacy compatibility)
+ * For use in components that need to reactively respond to auth changes
+ */
+export function subscribeToAuth(callback: (state: AuthState) => void) {
+  // In Svelte 5, this would typically be handled by reactive statements
+  // This is for compatibility with components that need explicit subscriptions
+  $effect(() => {
+    callback({
+      user: authState.user,
+      permissions: authState.permissions,
+      roles: authState.roles,
+      loading: authState.loading,
+      error: authState.error
+    });
+  });
+}
+
+/**
+ * Get current auth state snapshot
+ */
+export function getAuthSnapshot(): AuthState {
+  return {
+    user: authState.user,
+    permissions: authState.permissions,
+    roles: authState.roles,
+    loading: authState.loading,
+    error: authState.error
+  };
+}
+
+// ============================================================================
+// Type Exports for Components
+// ============================================================================
+
+export type { AuthState, UserContext, Role, RoleName };

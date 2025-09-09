@@ -4,14 +4,14 @@ import { apiCache, CACHE_KEYS, CACHE_TTL } from '$lib/api/cache';
 
 export const load: PageServerLoad = async ({ cookies, locals, url }) => {
 	const token = cookies.get('hr_token');
-	
+
 	// Parse URL parameters for filtering
 	const page = Number(url.searchParams.get('page')) || 1;
 	const search = url.searchParams.get('search') || '';
 	const status = url.searchParams.get('status') || '';
 	const category = url.searchParams.get('category') || '';
 	const limit = Number(url.searchParams.get('limit')) || 20;
-	
+
 	console.log('📋 Compliance page load - Token present:', !!token);
 	console.log('📋 Compliance page load - User authenticated:', !!locals.user);
 
@@ -38,7 +38,7 @@ export const load: PageServerLoad = async ({ cookies, locals, url }) => {
 	try {
 		if (token) {
 			console.log('📋 Fetching compliance data from API...');
-			
+
 			// Build query parameters
 			const params = new URLSearchParams();
 			if (search) params.append('search', search);
@@ -46,7 +46,7 @@ export const load: PageServerLoad = async ({ cookies, locals, url }) => {
 			if (category) params.append('category', category);
 			params.append('page', page.toString());
 			params.append('pageSize', limit.toString());
-			
+
 			// Check cache
 			const cacheKey = `compliance_${params.toString()}`;
 			const cachedCompliance = apiCache.get(cacheKey);
@@ -54,7 +54,7 @@ export const load: PageServerLoad = async ({ cookies, locals, url }) => {
 				console.log('📋 Using cached compliance data');
 				return { ...cachedCompliance, isUsingMockData: false };
 			}
-			
+
 			// Create server-side API client
 			const serverApiClient = apiClient.extend({
 				hooks: {
@@ -82,12 +82,14 @@ export const load: PageServerLoad = async ({ cookies, locals, url }) => {
 				console.log('📋 Compliance API not available, using mock data structure');
 				complianceResponse = { data: [], total: 0 };
 			}
-			
+
 			// Process compliance data
-			const complianceData = Array.isArray(complianceResponse) ? complianceResponse : complianceResponse.data || [];
+			const complianceData = Array.isArray(complianceResponse)
+				? complianceResponse
+				: complianceResponse.data || [];
 			const totalCount = complianceResponse.total || complianceData.length;
 			const totalPages = Math.ceil(totalCount / limit);
-			
+
 			// Format compliance items for UI
 			const formattedItems = complianceData.map((item: any) => ({
 				id: item.id || item.ID,
@@ -109,10 +111,10 @@ export const load: PageServerLoad = async ({ cookies, locals, url }) => {
 			// Calculate stats
 			const stats = {
 				totalItems: totalCount,
-				compliant: formattedItems.filter(item => item.status === 'compliant').length,
-				nonCompliant: formattedItems.filter(item => item.status === 'non_compliant').length,
-				pending: formattedItems.filter(item => item.status === 'pending').length,
-				upcomingDeadlines: formattedItems.filter(item => {
+				compliant: formattedItems.filter((item) => item.status === 'compliant').length,
+				nonCompliant: formattedItems.filter((item) => item.status === 'non_compliant').length,
+				pending: formattedItems.filter((item) => item.status === 'pending').length,
+				upcomingDeadlines: formattedItems.filter((item) => {
 					if (!item.dueDate) return false;
 					const dueDate = new Date(item.dueDate);
 					const now = new Date();

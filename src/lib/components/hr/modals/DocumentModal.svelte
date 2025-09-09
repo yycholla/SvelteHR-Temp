@@ -17,7 +17,7 @@
 		updated_at?: string;
 	}
 
-	let { 
+	let {
 		open = $bindable(false),
 		document = $bindable<Document | null>(null),
 		mode = $bindable<'create' | 'edit' | 'view'>('create')
@@ -51,19 +51,14 @@
 	}
 </script>
 
-<Modal bind:open={open} width="w-modal-wide">
+<Modal bind:open width="w-modal-wide">
 	<div class="card p-6">
 		<header class="card-header mb-6">
 			<h3 class="h3 font-bold">{modalTitle}</h3>
 		</header>
 
 		<section class="card-body">
-			<DocumentForm
-				{document}
-				{mode}
-				onCancel={handleClose}
-				onSuccess={handleSuccess}
-			/>
+			<DocumentForm {document} {mode} onCancel={handleClose} onSuccess={handleSuccess} />
 		</section>
 	</div>
 </Modal>

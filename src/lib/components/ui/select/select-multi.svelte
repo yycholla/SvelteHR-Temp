@@ -1,13 +1,13 @@
 <script lang="ts" module>
-	import type { SelectOption, SearchableSelectProps } from "./select-searchable.svelte";
-	
+	import type { SelectOption, SearchableSelectProps } from './select-searchable.svelte';
+
 	export interface MultiSelectProps extends Omit<SearchableSelectProps, 'multiple' | 'value'> {
 		value?: any[];
 		maxSelections?: number;
 		selectAllEnabled?: boolean;
 		showSelectionCount?: boolean;
-		tagVariant?: "default" | "secondary" | "outline";
-		tagSize?: "sm" | "md";
+		tagVariant?: 'default' | 'secondary' | 'outline';
+		tagSize?: 'sm' | 'md';
 		collapseTags?: boolean;
 		collapseThreshold?: number;
 		onSelectAll?: (options: SelectOption[]) => void;
@@ -17,39 +17,39 @@
 
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
-	import { cn } from "$lib/utils.js";
-	import SelectSearchable from "./select-searchable.svelte";
-	
+	import { cn } from '$lib/utils.js';
+	import SelectSearchable from './select-searchable.svelte';
+
 	let {
 		value = $bindable([]),
 		maxSelections,
 		selectAllEnabled = false,
 		showSelectionCount = true,
-		tagVariant = "default",
-		tagSize = "sm",
+		tagVariant = 'default',
+		tagSize = 'sm',
 		collapseTags = true,
 		collapseThreshold = 3,
 		onSelectAll,
 		onClearAll,
 		options = [],
-		placeholder = "Select multiple options...",
+		placeholder = 'Select multiple options...',
 		...restProps
 	}: MultiSelectProps = $props();
 
 	const dispatch = createEventDispatcher();
 
 	let searchableRef: SelectSearchable;
-	
+
 	// Handle select all functionality
 	function handleSelectAll() {
-		const availableOptions = options.filter(opt => !opt.disabled);
-		const newValue = availableOptions.map(opt => opt.value);
+		const availableOptions = options.filter((opt) => !opt.disabled);
+		const newValue = availableOptions.map((opt) => opt.value);
 		value = newValue;
 		onSelectAll?.(availableOptions);
 		dispatch('selectAll', newValue);
 	}
 
-	// Handle clear all functionality  
+	// Handle clear all functionality
 	function handleClearAll() {
 		value = [];
 		onClearAll?.();
@@ -57,38 +57,49 @@
 	}
 
 	// Check if all available options are selected
-	let allSelected = $derived(options.filter(opt => !opt.disabled).every(opt => value.includes(opt.value)));
+	let allSelected = $derived(
+		options.filter((opt) => !opt.disabled).every((opt) => value.includes(opt.value))
+	);
 	let someSelected = $derived(value.length > 0);
 
 	// Get tag classes based on variant and size
-	let tagClasses = $derived(cn(
-		"inline-flex items-center gap-1 rounded font-medium transition-colors",
-		// Size variants
-		tagSize === "sm" ? "px-2 py-0.5 text-xs" : "px-2.5 py-1 text-sm",
-		// Color variants
-		tagVariant === "default" && "bg-primary-100 text-primary-800 hover:bg-primary-200",
-		tagVariant === "secondary" && "bg-secondary-100 text-secondary-800 hover:bg-secondary-200", 
-		tagVariant === "outline" && "border border-secondary-300 bg-transparent text-secondary-700 hover:bg-secondary-50"
-	));
+	let tagClasses = $derived(
+		cn(
+			'inline-flex items-center gap-1 rounded font-medium transition-colors',
+			// Size variants
+			tagSize === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-sm',
+			// Color variants
+			tagVariant === 'default' && 'bg-primary-100 text-primary-800 hover:bg-primary-200',
+			tagVariant === 'secondary' && 'bg-secondary-100 text-secondary-800 hover:bg-secondary-200',
+			tagVariant === 'outline' &&
+				'border border-secondary-300 bg-transparent text-secondary-700 hover:bg-secondary-50'
+		)
+	);
 
 	// Custom placeholder that shows selection count
-	let customPlaceholder = $derived((() => {
-		if (value.length === 0) return placeholder;
-		if (showSelectionCount) {
-			return `${value.length} option${value.length === 1 ? '' : 's'} selected`;
-		}
-		return placeholder;
-	})());
+	let customPlaceholder = $derived(
+		(() => {
+			if (value.length === 0) return placeholder;
+			if (showSelectionCount) {
+				return `${value.length} option${value.length === 1 ? '' : 's'} selected`;
+			}
+			return placeholder;
+		})()
+	);
 
 	// Enhanced options with select all option
-	let enhancedOptions = $derived(selectAllEnabled ? [
-		{
-			value: '__select_all__',
-			label: allSelected ? 'Deselect All' : 'Select All',
-			group: '_controls'
-		},
-		...options
-	] : options);
+	let enhancedOptions = $derived(
+		selectAllEnabled
+			? [
+					{
+						value: '__select_all__',
+						label: allSelected ? 'Deselect All' : 'Select All',
+						group: '_controls'
+					},
+					...options
+				]
+			: options
+	);
 
 	function handleSelectionChange(newValue: any) {
 		if (newValue === '__select_all__') {
@@ -99,7 +110,7 @@
 			}
 			return;
 		}
-		
+
 		// Handle normal selection
 		value = Array.isArray(newValue) ? newValue : [];
 		dispatch('change', value);
@@ -118,14 +129,14 @@
 		{...restProps}
 	>
 		<!-- Custom trigger slot with tags -->
-		<div class="flex items-center justify-between w-full">
-			<div class="flex items-center flex-1 min-w-0">
+		<div class="flex w-full items-center justify-between">
+			<div class="flex min-w-0 flex-1 items-center">
 				{#if value.length === 0}
 					<span class="text-secondary-500">{placeholder}</span>
 				{:else if collapseTags && value.length > collapseThreshold}
 					<div class="flex items-center gap-1">
 						{#each value.slice(0, collapseThreshold - 1) as selectedValue}
-							{@const option = options.find(opt => opt.value === selectedValue)}
+							{@const option = options.find((opt) => opt.value === selectedValue)}
 							{#if option}
 								<span class={tagClasses}>
 									{option.label}
@@ -135,25 +146,32 @@
 										aria-label="Remove {option.label}"
 										onclick={(e) => {
 											e.stopPropagation();
-											value = value.filter(v => v !== selectedValue);
+											value = value.filter((v) => v !== selectedValue);
 											dispatch('change', value);
 										}}
 									>
-										<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-											<path d="M18 6L6 18M6 6l12 12"/>
+										<svg
+											width="24"
+											height="24"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="3"
+										>
+											<path d="M18 6L6 18M6 6l12 12" />
 										</svg>
 									</button>
 								</span>
 							{/if}
 						{/each}
-						<span class={cn(tagClasses, "bg-secondary-200 text-secondary-700")}>
+						<span class={cn(tagClasses, 'bg-secondary-200 text-secondary-700')}>
 							+{value.length - (collapseThreshold - 1)} more
 						</span>
 					</div>
 				{:else}
 					<div class="flex flex-wrap gap-1">
 						{#each value as selectedValue}
-							{@const option = options.find(opt => opt.value === selectedValue)}
+							{@const option = options.find((opt) => opt.value === selectedValue)}
 							{#if option}
 								<span class={tagClasses}>
 									{option.label}
@@ -163,12 +181,19 @@
 										aria-label="Remove {option.label}"
 										onclick={(e) => {
 											e.stopPropagation();
-											value = value.filter(v => v !== selectedValue);
+											value = value.filter((v) => v !== selectedValue);
 											dispatch('change', value);
 										}}
 									>
-										<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-											<path d="M18 6L6 18M6 6l12 12"/>
+										<svg
+											width="24"
+											height="24"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="3"
+										>
+											<path d="M18 6L6 18M6 6l12 12" />
 										</svg>
 									</button>
 								</span>
@@ -184,23 +209,23 @@
 	{#if showSelectionCount && value.length > 0}
 		<div class="flex items-center justify-between text-xs text-secondary-600">
 			<span>
-				{value.length} of {options.filter(opt => !opt.disabled).length} selected
+				{value.length} of {options.filter((opt) => !opt.disabled).length} selected
 				{#if maxSelections}
 					(max {maxSelections})
 				{/if}
 			</span>
-			
+
 			<div class="flex items-center gap-2">
 				{#if selectAllEnabled}
 					<button
 						type="button"
-						class="text-primary-600 hover:text-primary-700 font-medium"
+						class="font-medium text-primary-600 hover:text-primary-700"
 						onclick={allSelected ? handleClearAll : handleSelectAll}
 					>
 						{allSelected ? 'Deselect All' : 'Select All'}
 					</button>
 				{/if}
-				
+
 				{#if value.length > 0}
 					<button
 						type="button"
@@ -221,20 +246,20 @@
 		scrollbar-width: thin;
 		scrollbar-color: rgb(156 163 175) transparent; /* gray-400 equivalent */
 	}
-	
+
 	:global(.select-dropdown::-webkit-scrollbar) {
 		width: 6px;
 	}
-	
+
 	:global(.select-dropdown::-webkit-scrollbar-track) {
 		background: transparent;
 	}
-	
+
 	:global(.select-dropdown::-webkit-scrollbar-thumb) {
 		background-color: rgb(156 163 175); /* gray-400 equivalent */
 		border-radius: 3px;
 	}
-	
+
 	:global(.select-dropdown::-webkit-scrollbar-thumb:hover) {
 		background-color: rgb(107 114 128); /* gray-500 equivalent */
 	}

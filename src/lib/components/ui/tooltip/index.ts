@@ -1,6 +1,6 @@
-import Tooltip from "./tooltip.svelte";
-import TooltipContent from "./tooltip-content.svelte";
-import TooltipTrigger from "./tooltip-trigger.svelte";
+import Tooltip from './tooltip.svelte';
+import TooltipContent from './tooltip-content.svelte';
+import TooltipTrigger from './tooltip-trigger.svelte';
 
 export {
 	Tooltip,
@@ -9,5 +9,5 @@ export {
 	//
 	Tooltip as Root,
 	TooltipContent as Content,
-	TooltipTrigger as Trigger,
+	TooltipTrigger as Trigger
 };

@@ -11,11 +11,7 @@ export default defineConfig({
 	retries: process.env.CI ? 2 : 0,
 	workers: process.env.CI ? 1 : undefined,
 	// globalSetup: './e2e/global.setup.ts', // Disabled for now
-	reporter: [
-		['html'],
-		['json', { outputFile: 'playwright-results.json' }],
-		['list']
-	],
+	reporter: [['html'], ['json', { outputFile: 'playwright-results.json' }], ['list']],
 	use: {
 		baseURL: 'http://localhost:5173',
 		trace: 'on-first-retry',

@@ -1,7 +1,7 @@
 {
-  "mcpServers": {
-    "archon": {
-      "url": "http://localhost:8051/mcp"
-    }
-  }
+	"mcpServers": {
+		"archon": {
+			"url": "http://localhost:8051/mcp"
+		}
+	}
 }

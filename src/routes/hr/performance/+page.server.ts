@@ -53,12 +53,16 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 				const dueDate = new Date(r.due_date);
 				return r.status !== 'completed' && dueDate < today;
 			}).length,
-			averageScore: reviews.length > 0 && reviews.some((r: any) => r.overall_score)
-				? Math.round(reviews
-					.filter((r: any) => r.overall_score)
-					.reduce((sum: number, r: any) => sum + r.overall_score, 0) / 
-					reviews.filter((r: any) => r.overall_score).length * 10) / 10
-				: 0
+			averageScore:
+				reviews.length > 0 && reviews.some((r: any) => r.overall_score)
+					? Math.round(
+							(reviews
+								.filter((r: any) => r.overall_score)
+								.reduce((sum: number, r: any) => sum + r.overall_score, 0) /
+								reviews.filter((r: any) => r.overall_score).length) *
+								10
+						) / 10
+					: 0
 		};
 
 		console.log('✅ Performance page loaded with', reviews.length, 'reviews');
@@ -73,10 +77,9 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 				employeeId
 			}
 		};
-
 	} catch (error: any) {
 		console.error('❌ Error loading performance data:', error);
-		
+
 		return {
 			performanceReviews: [],
 			employees: [],

@@ -10,8 +10,8 @@
 		class?: string;
 	}
 
-	let { 
-		departments, 
+	let {
+		departments,
 		showPercentage = true,
 		showCount = true,
 		showProgress = true,
@@ -21,13 +21,13 @@
 	function getDepartmentColor(index: number): string {
 		const colors = [
 			'#6366f1', // Indigo
-			'#8b5cf6', // Violet  
+			'#8b5cf6', // Violet
 			'#06b6d4', // Cyan
 			'#10b981', // Emerald
 			'#f59e0b', // Amber
 			'#ef4444', // Red
 			'#84cc16', // Lime
-			'#f97316', // Orange
+			'#f97316' // Orange
 		];
 		return colors[index % colors.length];
 	}
@@ -51,11 +51,11 @@
 					</div>
 				</div>
 			</div>
-			
+
 			{#if showProgress}
 				<div class="progress-container">
 					<div class="progress-bar">
-						<div 
+						<div
 							class="progress-fill"
 							style="width: {dept.percentage}%; background-color: {getDepartmentColor(index)}"
 						></div>
@@ -149,7 +149,9 @@
 	}
 
 	@keyframes expand {
-		from { width: 0; }
+		from {
+			width: 0;
+		}
 	}
 
 	/* Responsive Design */

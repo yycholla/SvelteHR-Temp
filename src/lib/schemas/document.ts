@@ -21,20 +21,22 @@ export const documentSchema = z.object({
 });
 
 // Create document schema (for upload metadata)
-export const createDocumentSchema = documentSchema.omit({
-	id: true,
-	filePath: true, // This is generated on upload
-	uploadDate: true, // This is set server-side
-	createdAt: true,
-	updatedAt: true,
-}).extend({
-	title: z.string().min(1, 'Title is required'),
-	uploadedByEmployeeId: z.number().min(1, 'Uploader ID is required'),
-});
+export const createDocumentSchema = documentSchema
+	.omit({
+		id: true,
+		filePath: true, // This is generated on upload
+		uploadDate: true, // This is set server-side
+		createdAt: true,
+		updatedAt: true
+	})
+	.extend({
+		title: z.string().min(1, 'Title is required'),
+		uploadedByEmployeeId: z.number().min(1, 'Uploader ID is required')
+	});
 
 // Update document schema
 export const updateDocumentSchema = createDocumentSchema.partial().extend({
-	id: z.number(),
+	id: z.number()
 });
 
 // Document filter schema
@@ -51,32 +53,34 @@ export const documentFilterSchema = z.object({
 	page: z.number().min(1).default(1),
 	pageSize: z.number().min(1).max(100).default(20),
 	sort: z.enum(['title', 'uploadDate', 'fileSize', 'documentCategory']).default('uploadDate'),
-	order: z.enum(['ASC', 'DESC']).default('DESC'),
+	order: z.enum(['ASC', 'DESC']).default('DESC')
 });
 
 // Document list response schema
-export const documentListResponseSchema = z.object({
-	data: z.array(documentSchema),
-	page: z.number(),
-	pageSize: z.number(),
-	total: z.number(),
-	totalPages: z.number(),
-	hasMore: z.boolean()
-}).transform((response) => ({
-	documents: response.data,
-	totalCount: response.total,
-	page: response.page,
-	limit: response.pageSize,
-	totalPages: response.totalPages,
-	hasMore: response.hasMore
-}));
+export const documentListResponseSchema = z
+	.object({
+		data: z.array(documentSchema),
+		page: z.number(),
+		pageSize: z.number(),
+		total: z.number(),
+		totalPages: z.number(),
+		hasMore: z.boolean()
+	})
+	.transform((response) => ({
+		documents: response.data,
+		totalCount: response.total,
+		page: response.page,
+		limit: response.pageSize,
+		totalPages: response.totalPages,
+		hasMore: response.hasMore
+	}));
 
 // Document upload response schema
 export const documentUploadResponseSchema = z.object({
 	success: z.boolean(),
 	document: documentSchema.optional(),
 	message: z.string().optional(),
-	error: z.string().optional(),
+	error: z.string().optional()
 });
 
 // Document categories enum (common categories)
@@ -92,12 +96,7 @@ export const documentCategorySchema = z.enum([
 ]);
 
 // Security levels enum
-export const securityLevelSchema = z.enum([
-	'Public',
-	'Internal',
-	'Confidential',
-	'Restricted'
-]);
+export const securityLevelSchema = z.enum(['Public', 'Internal', 'Confidential', 'Restricted']);
 
 // Export types
 export type Document = z.infer<typeof documentSchema>;

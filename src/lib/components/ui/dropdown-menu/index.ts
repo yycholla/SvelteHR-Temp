@@ -1,9 +1,9 @@
-import { DropdownMenu as DropdownMenuPrimitive } from "bits-ui";
+import { DropdownMenu as DropdownMenuPrimitive } from 'bits-ui';
 
-import Root from "./dropdown-menu.svelte";
-import Trigger from "./dropdown-menu-trigger.svelte";
-import Content from "./dropdown-menu-content.svelte";
-import Item from "./dropdown-menu-item.svelte";
+import Root from './dropdown-menu.svelte';
+import Trigger from './dropdown-menu-trigger.svelte';
+import Content from './dropdown-menu-content.svelte';
+import Item from './dropdown-menu-item.svelte';
 
 const Sub = DropdownMenuPrimitive.Sub;
 const SubTrigger = DropdownMenuPrimitive.SubTrigger;
@@ -30,5 +30,5 @@ export {
 	SubTrigger as DropdownMenuSubTrigger,
 	SubContent as DropdownMenuSubContent,
 	Separator as DropdownMenuSeparator,
-	Arrow as DropdownMenuArrow,
+	Arrow as DropdownMenuArrow
 };

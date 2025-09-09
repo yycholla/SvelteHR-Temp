@@ -1,7 +1,13 @@
 <script lang="ts">
 	import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
-	import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '$lib/components/ui/select';
+	import {
+		Select,
+		SelectContent,
+		SelectItem,
+		SelectTrigger,
+		SelectValue
+	} from '$lib/components/ui/select';
 
 	let {
 		currentPage = 1,
@@ -29,7 +35,7 @@
 	let visiblePages = $derived.by(() => {
 		const delta = 2; // Number of pages to show on each side of current page
 		const pages: (number | string)[] = [];
-		
+
 		// Always show first page
 		if (currentPage > delta + 2) {
 			pages.push(1);
@@ -37,15 +43,15 @@
 				pages.push('...');
 			}
 		}
-		
+
 		// Show pages around current page
 		const start = Math.max(1, currentPage - delta);
 		const end = Math.min(totalPages, currentPage + delta);
-		
+
 		for (let i = start; i <= end; i++) {
 			pages.push(i);
 		}
-		
+
 		// Always show last page
 		if (currentPage < totalPages - delta - 1) {
 			if (currentPage < totalPages - delta - 2) {
@@ -53,7 +59,7 @@
 			}
 			pages.push(totalPages);
 		}
-		
+
 		return pages;
 	});
 
@@ -95,7 +101,8 @@
 		{#if totalItems === 0}
 			No results
 		{:else}
-			Showing {startItem.toLocaleString()} to {endItem.toLocaleString()} of {totalItems.toLocaleString()} results
+			Showing {startItem.toLocaleString()} to {endItem.toLocaleString()} of {totalItems.toLocaleString()}
+			results
 		{/if}
 	</div>
 
@@ -105,7 +112,7 @@
 		<div class="flex items-center space-x-2">
 			<span class="text-sm text-muted-foreground">Rows per page:</span>
 			<Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
-				<SelectTrigger class="w-20 h-8 rounded-lg">
+				<SelectTrigger class="h-8 w-20 rounded-lg">
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent class="rounded-xl">
@@ -127,7 +134,7 @@
 					size="sm"
 					onclick={goToFirstPage}
 					disabled={currentPage === 1}
-					class="h-8 w-8 p-0 rounded-lg"
+					class="h-8 w-8 rounded-lg p-0"
 					aria-label="Go to first page"
 				>
 					<ChevronsLeft class="h-4 w-4" />
@@ -139,7 +146,7 @@
 					size="sm"
 					onclick={goToPreviousPage}
 					disabled={currentPage === 1}
-					class="h-8 w-8 p-0 rounded-lg"
+					class="h-8 w-8 rounded-lg p-0"
 					aria-label="Go to previous page"
 				>
 					<ChevronLeft class="h-4 w-4" />
@@ -155,7 +162,7 @@
 								variant={page === currentPage ? 'default' : 'ghost'}
 								size="sm"
 								onclick={() => onPageChange(page as number)}
-								class="h-8 w-8 p-0 rounded-lg"
+								class="h-8 w-8 rounded-lg p-0"
 								aria-label="Go to page {page}"
 								aria-current={page === currentPage ? 'page' : undefined}
 							>
@@ -171,7 +178,7 @@
 					size="sm"
 					onclick={goToNextPage}
 					disabled={currentPage === totalPages}
-					class="h-8 w-8 p-0 rounded-lg"
+					class="h-8 w-8 rounded-lg p-0"
 					aria-label="Go to next page"
 				>
 					<ChevronRight class="h-4 w-4" />
@@ -183,7 +190,7 @@
 					size="sm"
 					onclick={goToLastPage}
 					disabled={currentPage === totalPages}
-					class="h-8 w-8 p-0 rounded-lg"
+					class="h-8 w-8 rounded-lg p-0"
 					aria-label="Go to last page"
 				>
 					<ChevronsRight class="h-4 w-4" />

@@ -21,7 +21,7 @@ class ApiCache {
 		if (!params || Object.keys(params).length === 0) {
 			return baseKey;
 		}
-		
+
 		// Sort params for consistent key generation
 		const sortedParams = Object.keys(params)
 			.sort()
@@ -29,7 +29,7 @@ class ApiCache {
 				result[key] = params[key];
 				return result;
 			}, {});
-		
+
 		const paramString = new URLSearchParams(sortedParams).toString();
 		return `${baseKey}?${paramString}`;
 	}
@@ -47,16 +47,16 @@ class ApiCache {
 	get<T>(endpoint: string, params?: Record<string, any>): T | null {
 		const key = this.generateKey(endpoint, params);
 		const item = this.cache.get(key);
-		
+
 		if (!item) {
 			return null;
 		}
-		
+
 		if (!this.isValid(item)) {
 			this.cache.delete(key);
 			return null;
 		}
-		
+
 		console.log(`📋 Cache HIT: ${key}`);
 		return item.data;
 	}
@@ -71,7 +71,7 @@ class ApiCache {
 			timestamp: Date.now(),
 			ttl: ttl || this.defaultTTL
 		};
-		
+
 		this.cache.set(key, cacheItem);
 		console.log(`💾 Cache SET: ${key} (TTL: ${cacheItem.ttl}ms)`);
 	}
@@ -82,16 +82,16 @@ class ApiCache {
 	has(endpoint: string, params?: Record<string, any>): boolean {
 		const key = this.generateKey(endpoint, params);
 		const item = this.cache.get(key);
-		
+
 		if (!item) {
 			return false;
 		}
-		
+
 		if (!this.isValid(item)) {
 			this.cache.delete(key);
 			return false;
 		}
-		
+
 		return true;
 	}
 
@@ -111,14 +111,14 @@ class ApiCache {
 	invalidatePattern(pattern: string): void {
 		const keys = Array.from(this.cache.keys());
 		const invalidatedKeys: string[] = [];
-		
-		keys.forEach(key => {
+
+		keys.forEach((key) => {
 			if (key.includes(pattern.toLowerCase())) {
 				this.cache.delete(key);
 				invalidatedKeys.push(key);
 			}
 		});
-		
+
 		if (invalidatedKeys.length > 0) {
 			console.log(`🗑️ Cache INVALIDATED pattern "${pattern}":`, invalidatedKeys);
 		}
@@ -140,7 +140,7 @@ class ApiCache {
 		const now = Date.now();
 		let valid = 0;
 		let expired = 0;
-		
+
 		this.cache.forEach((item) => {
 			if (this.isValid(item)) {
 				valid++;
@@ -148,7 +148,7 @@ class ApiCache {
 				expired++;
 			}
 		});
-		
+
 		return {
 			total: this.cache.size,
 			valid,
@@ -162,15 +162,15 @@ class ApiCache {
 	 */
 	cleanup(): void {
 		const expiredKeys: string[] = [];
-		
+
 		this.cache.forEach((item, key) => {
 			if (!this.isValid(item)) {
 				expiredKeys.push(key);
 			}
 		});
-		
-		expiredKeys.forEach(key => this.cache.delete(key));
-		
+
+		expiredKeys.forEach((key) => this.cache.delete(key));
+
 		if (expiredKeys.length > 0) {
 			console.log(`🧹 Cache CLEANUP: ${expiredKeys.length} expired items removed`);
 		}
@@ -182,9 +182,12 @@ export const apiCache = new ApiCache();
 
 // Cleanup expired entries every 10 minutes
 if (typeof setInterval !== 'undefined') {
-	setInterval(() => {
-		apiCache.cleanup();
-	}, 10 * 60 * 1000);
+	setInterval(
+		() => {
+			apiCache.cleanup();
+		},
+		10 * 60 * 1000
+	);
 }
 
 // Cache configuration constants
@@ -197,8 +200,8 @@ export const CACHE_KEYS = {
 } as const;
 
 export const CACHE_TTL = {
-	SHORT: 2 * 60 * 1000,      // 2 minutes
-	MEDIUM: 5 * 60 * 1000,     // 5 minutes
-	LONG: 15 * 60 * 1000,      // 15 minutes
-	VERY_LONG: 60 * 60 * 1000  // 1 hour
+	SHORT: 2 * 60 * 1000, // 2 minutes
+	MEDIUM: 5 * 60 * 1000, // 5 minutes
+	LONG: 15 * 60 * 1000, // 15 minutes
+	VERY_LONG: 60 * 60 * 1000 // 1 hour
 } as const;

@@ -2,11 +2,7 @@ import { initTRPC, TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import type { Context } from './context';
 import { apiClient } from '$lib/api/client';
-import {
-	userSchema,
-	loginResponseSchema,
-	type User
-} from '$lib/schemas/auth';
+import { userSchema, loginResponseSchema, type User } from '$lib/schemas/auth';
 
 // Define loginSchema locally to match login-form.ts
 const loginSchema = z.object({
@@ -18,7 +14,7 @@ const loginSchema = z.object({
 		.string()
 		.min(1, 'Password is required')
 		.max(100, 'Password must be less than 100 characters'),
-	rememberMe: z.boolean().default(false).optional(),
+	rememberMe: z.boolean().default(false).optional()
 });
 
 type LoginInput = z.infer<typeof loginSchema>;
@@ -31,12 +27,7 @@ import {
 	type Employee,
 	type EmployeeFilter
 } from '$lib/schemas/employee';
-import {
-    taskSchema,
-    createTaskSchema,
-    taskStatusUpdateSchema,
-    type Task
-} from '$lib/schemas/task';
+import { taskSchema, createTaskSchema, taskStatusUpdateSchema, type Task } from '$lib/schemas/task';
 
 // Initialize tRPC
 const t = initTRPC.context<Context>().create();
@@ -46,15 +37,15 @@ const isAuthenticated = t.middleware(({ ctx, next }) => {
 	if (!ctx.token || !ctx.userId) {
 		throw new TRPCError({
 			code: 'UNAUTHORIZED',
-			message: 'You must be logged in to access this resource',
+			message: 'You must be logged in to access this resource'
 		});
 	}
 	return next({
 		ctx: {
 			...ctx,
 			userId: ctx.userId,
-			token: ctx.token,
-		},
+			token: ctx.token
+		}
 	});
 });
 
@@ -68,12 +59,14 @@ const authRouter = t.router({
 		.output(loginResponseSchema)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const response = await apiClient.post('auth/login', {
-					json: input,
-					headers: {
-						'Content-Type': 'application/json'
-					}
-				}).json();
+				const response = await apiClient
+					.post('auth/login', {
+						json: input,
+						headers: {
+							'Content-Type': 'application/json'
+						}
+					})
+					.json();
 
 				// Set JWT cookie via SvelteKit
 				ctx.event.cookies.set('hr_token', response.token, {
@@ -81,65 +74,25 @@ const authRouter = t.router({
 					httpOnly: true,
 					secure: true,
 					sameSite: 'strict',
-					maxAge: 60 * 60 * 24 * 7, // 7 days
+					maxAge: 60 * 60 * 24 * 7 // 7 days
 				});
 
 				return response;
 			} catch (error: any) {
 				throw new TRPCError({
 					code: 'UNAUTHORIZED',
-					message: error.message || 'Invalid credentials',
+					message: error.message || 'Invalid credentials'
 				});
 			}
 		}),
 
-	logout: protectedProcedure
-		.mutation(async ({ ctx }) => {
-			try {
-				// Get auth token for logout request
-				const token = ctx.event.cookies.get('hr_token');
+	logout: protectedProcedure.mutation(async ({ ctx }) => {
+		try {
+			// Get auth token for logout request
+			const token = ctx.event.cookies.get('hr_token');
 
-				if (token) {
-					// Create server-side API client for logout
-					const serverApiClient = apiClient.extend({
-						hooks: {
-							beforeRequest: [
-								(request) => {
-									request.headers.set('Authorization', `Bearer ${token}`);
-									request.headers.set('Content-Type', 'application/json');
-								}
-							]
-						}
-					});
-
-					await serverApiClient.post('auth/logout', {
-						headers: {
-							'Content-Type': 'application/json'
-						}
-					});
-				}
-			} finally {
-				// Clear JWT cookie
-				ctx.event.cookies.delete('hr_token', { path: '/' });
-			}
-			return { success: true };
-		}),
-
-	me: protectedProcedure
-		.output(userSchema)
-		.query(async ({ ctx }) => {
-			try {
-				// Get auth token from cookies
-				const token = ctx.event.cookies.get('hr_token');
-
-				if (!token) {
-					throw new TRPCError({
-						code: 'UNAUTHORIZED',
-						message: 'Authentication token not found',
-					});
-				}
-
-				// Create server-side API client with proper token handling
+			if (token) {
+				// Create server-side API client for logout
 				const serverApiClient = apiClient.extend({
 					hooks: {
 						beforeRequest: [
@@ -151,16 +104,53 @@ const authRouter = t.router({
 					}
 				});
 
-				const user = await serverApiClient.get('auth/profile').json();
-				return userSchema.parse(user);
-			} catch (error: any) {
-				console.error('tRPC auth.me error:', error);
-				throw new TRPCError({
-					code: 'INTERNAL_SERVER_ERROR',
-					message: 'Failed to fetch user profile',
+				await serverApiClient.post('auth/logout', {
+					headers: {
+						'Content-Type': 'application/json'
+					}
 				});
 			}
-		}),
+		} finally {
+			// Clear JWT cookie
+			ctx.event.cookies.delete('hr_token', { path: '/' });
+		}
+		return { success: true };
+	}),
+
+	me: protectedProcedure.output(userSchema).query(async ({ ctx }) => {
+		try {
+			// Get auth token from cookies
+			const token = ctx.event.cookies.get('hr_token');
+
+			if (!token) {
+				throw new TRPCError({
+					code: 'UNAUTHORIZED',
+					message: 'Authentication token not found'
+				});
+			}
+
+			// Create server-side API client with proper token handling
+			const serverApiClient = apiClient.extend({
+				hooks: {
+					beforeRequest: [
+						(request) => {
+							request.headers.set('Authorization', `Bearer ${token}`);
+							request.headers.set('Content-Type', 'application/json');
+						}
+					]
+				}
+			});
+
+			const user = await serverApiClient.get('auth/profile').json();
+			return userSchema.parse(user);
+		} catch (error: any) {
+			console.error('tRPC auth.me error:', error);
+			throw new TRPCError({
+				code: 'INTERNAL_SERVER_ERROR',
+				message: 'Failed to fetch user profile'
+			});
+		}
+	})
 });
 
 // Employee router
@@ -176,7 +166,7 @@ const employeeRouter = t.router({
 				if (!token) {
 					throw new TRPCError({
 						code: 'UNAUTHORIZED',
-						message: 'Authentication token not found',
+						message: 'Authentication token not found'
 					});
 				}
 
@@ -211,7 +201,7 @@ const employeeRouter = t.router({
 			} catch (error: any) {
 				throw new TRPCError({
 					code: 'INTERNAL_SERVER_ERROR',
-					message: 'Failed to fetch employees',
+					message: 'Failed to fetch employees'
 				});
 			}
 		}),
@@ -227,7 +217,7 @@ const employeeRouter = t.router({
 				if (!token) {
 					throw new TRPCError({
 						code: 'UNAUTHORIZED',
-						message: 'Authentication token not found',
+						message: 'Authentication token not found'
 					});
 				}
 
@@ -249,32 +239,34 @@ const employeeRouter = t.router({
 				if (error.response?.status === 404) {
 					throw new TRPCError({
 						code: 'NOT_FOUND',
-						message: 'Employee not found',
+						message: 'Employee not found'
 					});
 				}
 				throw new TRPCError({
 					code: 'INTERNAL_SERVER_ERROR',
-					message: 'Failed to fetch employee',
+					message: 'Failed to fetch employee'
 				});
 			}
 		}),
 
 	create: protectedProcedure
-		.input(z.object({
-			username: z.string().min(1, 'Username is required'),
-			firstName: z.string().min(1, 'First name is required'),
-			lastName: z.string().min(1, 'Last name is required'),
-			email: z.string().email().optional(),
-			phoneNumber: z.string().optional(),
-			roleId: z.number().min(1, 'Role is required'),
-			departmentId: z.number().optional(),
-			managerId: z.number().optional(),
-			jobTitle: z.string().optional(),
-			hireDate: z.string().optional(),
-			employmentType: z.string().optional(),
-			onboardingStatus: z.string().optional(),
-			isManager: z.boolean().optional(),
-		}))
+		.input(
+			z.object({
+				username: z.string().min(1, 'Username is required'),
+				firstName: z.string().min(1, 'First name is required'),
+				lastName: z.string().min(1, 'Last name is required'),
+				email: z.string().email().optional(),
+				phoneNumber: z.string().optional(),
+				roleId: z.number().min(1, 'Role is required'),
+				departmentId: z.number().optional(),
+				managerId: z.number().optional(),
+				jobTitle: z.string().optional(),
+				hireDate: z.string().optional(),
+				employmentType: z.string().optional(),
+				onboardingStatus: z.string().optional(),
+				isManager: z.boolean().optional()
+			})
+		)
 		.output(employeeSchema)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -284,7 +276,7 @@ const employeeRouter = t.router({
 				if (!token) {
 					throw new TRPCError({
 						code: 'UNAUTHORIZED',
-						message: 'Authentication token not found',
+						message: 'Authentication token not found'
 					});
 				}
 
@@ -305,28 +297,30 @@ const employeeRouter = t.router({
 			} catch (error: any) {
 				throw new TRPCError({
 					code: 'INTERNAL_SERVER_ERROR',
-					message: 'Failed to create employee',
+					message: 'Failed to create employee'
 				});
 			}
 		}),
 
 	update: protectedProcedure
-		.input(z.object({
-			id: z.string(),
-			username: z.string().optional(),
-			firstName: z.string().optional(),
-			lastName: z.string().optional(),
-			email: z.string().optional(),
-			phoneNumber: z.string().optional(),
-			roleId: z.number().optional(),
-			departmentId: z.number().optional(),
-			managerId: z.number().optional(),
-			jobTitle: z.string().optional(),
-			hireDate: z.string().optional(),
-			employmentType: z.string().optional(),
-			onboardingStatus: z.string().optional(),
-			isManager: z.boolean().optional(),
-		}))
+		.input(
+			z.object({
+				id: z.string(),
+				username: z.string().optional(),
+				firstName: z.string().optional(),
+				lastName: z.string().optional(),
+				email: z.string().optional(),
+				phoneNumber: z.string().optional(),
+				roleId: z.number().optional(),
+				departmentId: z.number().optional(),
+				managerId: z.number().optional(),
+				jobTitle: z.string().optional(),
+				hireDate: z.string().optional(),
+				employmentType: z.string().optional(),
+				onboardingStatus: z.string().optional(),
+				isManager: z.boolean().optional()
+			})
+		)
 		.output(employeeSchema)
 		.mutation(async ({ input, ctx }) => {
 			try {
@@ -336,7 +330,7 @@ const employeeRouter = t.router({
 				if (!token) {
 					throw new TRPCError({
 						code: 'UNAUTHORIZED',
-						message: 'Authentication token not found',
+						message: 'Authentication token not found'
 					});
 				}
 
@@ -353,54 +347,54 @@ const employeeRouter = t.router({
 				});
 
 				const { id, ...updateData } = input;
-				const employee = await serverApiClient.put(`v2/employees/${id}`, { json: updateData }).json();
+				const employee = await serverApiClient
+					.put(`v2/employees/${id}`, { json: updateData })
+					.json();
 				return employeeSchema.parse(employee);
 			} catch (error: any) {
 				throw new TRPCError({
 					code: 'INTERNAL_SERVER_ERROR',
-					message: 'Failed to update employee',
+					message: 'Failed to update employee'
 				});
 			}
-		}),
+		})
 });
 
 // Department router
 const departmentRouter = t.router({
-	list: protectedProcedure
-		.output(z.array(departmentSchema))
-		.query(async ({ ctx }) => {
-			try {
-				// Get auth token from cookies
-				const token = ctx.event.cookies.get('hr_token');
+	list: protectedProcedure.output(z.array(departmentSchema)).query(async ({ ctx }) => {
+		try {
+			// Get auth token from cookies
+			const token = ctx.event.cookies.get('hr_token');
 
-				if (!token) {
-					throw new TRPCError({
-						code: 'UNAUTHORIZED',
-						message: 'Authentication token not found',
-					});
-				}
-
-				// Create server-side API client with proper token handling
-				const serverApiClient = apiClient.extend({
-					hooks: {
-						beforeRequest: [
-							(request) => {
-								request.headers.set('Authorization', `Bearer ${token}`);
-								request.headers.set('Content-Type', 'application/json');
-							}
-						]
-					}
-				});
-
-				const departments = await serverApiClient.get('departments').json();
-				return z.array(departmentSchema).parse(departments);
-			} catch (error: any) {
+			if (!token) {
 				throw new TRPCError({
-					code: 'INTERNAL_SERVER_ERROR',
-					message: 'Failed to fetch departments',
+					code: 'UNAUTHORIZED',
+					message: 'Authentication token not found'
 				});
 			}
-		}),
+
+			// Create server-side API client with proper token handling
+			const serverApiClient = apiClient.extend({
+				hooks: {
+					beforeRequest: [
+						(request) => {
+							request.headers.set('Authorization', `Bearer ${token}`);
+							request.headers.set('Content-Type', 'application/json');
+						}
+					]
+				}
+			});
+
+			const departments = await serverApiClient.get('departments').json();
+			return z.array(departmentSchema).parse(departments);
+		} catch (error: any) {
+			throw new TRPCError({
+				code: 'INTERNAL_SERVER_ERROR',
+				message: 'Failed to fetch departments'
+			});
+		}
+	})
 });
 
 // Position router
@@ -416,7 +410,7 @@ const positionRouter = t.router({
 				if (!token) {
 					throw new TRPCError({
 						code: 'UNAUTHORIZED',
-						message: 'Authentication token not found',
+						message: 'Authentication token not found'
 					});
 				}
 
@@ -440,12 +434,11 @@ const positionRouter = t.router({
 			} catch (error: any) {
 				throw new TRPCError({
 					code: 'INTERNAL_SERVER_ERROR',
-					message: 'Failed to fetch positions',
+					message: 'Failed to fetch positions'
 				});
 			}
-		}),
+		})
 });
-
 
 // Main app router
 export const appRouter = t.router({
@@ -453,63 +446,66 @@ export const appRouter = t.router({
 	employee: employeeRouter,
 	department: departmentRouter,
 	position: positionRouter,
-    task: t.router({
-        create: protectedProcedure
-            .input(createTaskSchema)
-            .output(taskSchema)
-            .mutation(async ({ input, ctx }) => {
-                const token = ctx.event.cookies.get('hr_token');
-                if (!token) {
-                    throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Authentication token not found' });
-                }
+	task: t.router({
+		create: protectedProcedure
+			.input(createTaskSchema)
+			.output(taskSchema)
+			.mutation(async ({ input, ctx }) => {
+				const token = ctx.event.cookies.get('hr_token');
+				if (!token) {
+					throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Authentication token not found' });
+				}
 
-                const serverApiClient = apiClient.extend({
-                    hooks: {
-                        beforeRequest: [
-                            (request) => {
-                                request.headers.set('Authorization', `Bearer ${token}`);
-                                request.headers.set('Content-Type', 'application/json');
-                            }
-                        ]
-                    }
-                });
+				const serverApiClient = apiClient.extend({
+					hooks: {
+						beforeRequest: [
+							(request) => {
+								request.headers.set('Authorization', `Bearer ${token}`);
+								request.headers.set('Content-Type', 'application/json');
+							}
+						]
+					}
+				});
 
-                try {
-                    const created = await serverApiClient.post('tasks', { json: input }).json();
-                    return taskSchema.parse(created);
-                } catch (error: any) {
-                    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to create task' });
-                }
-            }),
+				try {
+					const created = await serverApiClient.post('tasks', { json: input }).json();
+					return taskSchema.parse(created);
+				} catch (error: any) {
+					throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to create task' });
+				}
+			}),
 
-        updateStatus: protectedProcedure
-            .input(z.object({ id: z.number(), data: taskStatusUpdateSchema }))
-            .output(z.object({ success: z.boolean() }))
-            .mutation(async ({ input, ctx }) => {
-                const token = ctx.event.cookies.get('hr_token');
-                if (!token) {
-                    throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Authentication token not found' });
-                }
+		updateStatus: protectedProcedure
+			.input(z.object({ id: z.number(), data: taskStatusUpdateSchema }))
+			.output(z.object({ success: z.boolean() }))
+			.mutation(async ({ input, ctx }) => {
+				const token = ctx.event.cookies.get('hr_token');
+				if (!token) {
+					throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Authentication token not found' });
+				}
 
-                const serverApiClient = apiClient.extend({
-                    hooks: {
-                        beforeRequest: [
-                            (request) => {
-                                request.headers.set('Authorization', `Bearer ${token}`);
-                                request.headers.set('Content-Type', 'application/json');
-                            }
-                        ]
-                    }
-                });
+				const serverApiClient = apiClient.extend({
+					hooks: {
+						beforeRequest: [
+							(request) => {
+								request.headers.set('Authorization', `Bearer ${token}`);
+								request.headers.set('Content-Type', 'application/json');
+							}
+						]
+					}
+				});
 
-                try {
-                    await serverApiClient.put(`tasks/${input.id}/status`, { json: input.data });
-                    return { success: true };
-                } catch (error: any) {
-                    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to update task status' });
-                }
-            })
-    })
+				try {
+					await serverApiClient.put(`tasks/${input.id}/status`, { json: input.data });
+					return { success: true };
+				} catch (error: any) {
+					throw new TRPCError({
+						code: 'INTERNAL_SERVER_ERROR',
+						message: 'Failed to update task status'
+					});
+				}
+			})
+	})
 });
 
 export type AppRouter = typeof appRouter;

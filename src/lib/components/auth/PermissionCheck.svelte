@@ -3,51 +3,51 @@
   Useful for showing permission status or quick checks
 -->
 <script lang="ts">
-  import { isAuthenticated, currentUser } from '$lib/stores/auth';
-  import { canAccess } from '$lib/auth/guards';
-  import type { PermissionCheck } from '$lib/auth/guards';
+	import { isAuthenticated, currentUser } from '$lib/stores/auth';
+	import { canAccess } from '$lib/auth/guards';
+	import type { PermissionCheck } from '$lib/auth/guards';
 
-  // Props
-  export let permissions: string[] = [];
-  export let roles: string[] = [];
-  export let requireAll = false;
-  export let showStatus = false; // Show permission status text
-  export let statusText = 'Access';
-  export let allowedText = 'Allowed';
-  export let deniedText = 'Denied';
+	// Props
+	export let permissions: string[] = [];
+	export let roles: string[] = [];
+	export let requireAll = false;
+	export let showStatus = false; // Show permission status text
+	export let statusText = 'Access';
+	export let allowedText = 'Allowed';
+	export let deniedText = 'Denied';
 
-  // Build permission check
-  $: permissionCheck: PermissionCheck = {
-    permissions: permissions.length > 0 ? permissions : undefined,
-    roles: roles.length > 0 ? roles : undefined,
-    requireAll
-  };
+	// Build permission check
+	$: permissionCheck: PermissionCheck = {
+		permissions: permissions.length > 0 ? permissions : undefined,
+		roles: roles.length > 0 ? roles : undefined,
+		requireAll
+	};
 
-  // Check if user has access
-  $: hasPermission = canAccess(permissionCheck);
+	// Check if user has access
+	$: hasPermission = canAccess(permissionCheck);
 
-  // Export access state for parent components
-  export { hasPermission as allowed };
+	// Export access state for parent components
+	export { hasPermission as allowed };
 </script>
 
 {#if hasPermission}
-  <slot name="allowed" {hasPermission}>
-    {#if showStatus}
-      <span class="text-success-600 text-sm font-medium">
-        {statusText}: {allowedText}
-      </span>
-    {:else}
-      <slot />
-    {/if}
-  </slot>
+	<slot name="allowed" {hasPermission}>
+		{#if showStatus}
+			<span class="text-sm font-medium text-success-600">
+				{statusText}: {allowedText}
+			</span>
+		{:else}
+			<slot />
+		{/if}
+	</slot>
 {:else}
-  <slot name="denied" {hasPermission}>
-    {#if showStatus}
-      <span class="text-error-600 text-sm font-medium">
-        {statusText}: {deniedText}
-      </span>
-    {/if}
-  </slot>
+	<slot name="denied" {hasPermission}>
+		{#if showStatus}
+			<span class="text-sm font-medium text-error-600">
+				{statusText}: {deniedText}
+			</span>
+		{/if}
+	</slot>
 {/if}
 
 <!-- 

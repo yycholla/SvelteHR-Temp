@@ -41,26 +41,27 @@ class ApiTester {
 		};
 
 		// Test employee list
-		suite.results.push(await this.testEndpoint(
-			'GET /employees',
-			() => ApiServices.employees.list()
-		));
+		suite.results.push(
+			await this.testEndpoint('GET /employees', () => ApiServices.employees.list())
+		);
 
 		// Test employee list with filters
-		suite.results.push(await this.testEndpoint(
-			'GET /employees?search=admin',
-			() => ApiServices.employees.list({ search: 'admin' })
-		));
+		suite.results.push(
+			await this.testEndpoint('GET /employees?search=admin', () =>
+				ApiServices.employees.list({ search: 'admin' })
+			)
+		);
 
 		// Test single employee (if any exist)
 		try {
 			const employees = await ApiServices.employees.list({ pageSize: 1 });
 			if (employees.employees.length > 0) {
 				const employeeId = employees.employees[0].id;
-				suite.results.push(await this.testEndpoint(
-					`GET /employees/${employeeId}`,
-					() => ApiServices.employees.getById(employeeId)
-				));
+				suite.results.push(
+					await this.testEndpoint(`GET /employees/${employeeId}`, () =>
+						ApiServices.employees.getById(employeeId)
+					)
+				);
 			}
 		} catch (error) {
 			console.warn('Could not test single employee endpoint:', error);
@@ -84,20 +85,20 @@ class ApiTester {
 		};
 
 		// Test department list
-		suite.results.push(await this.testEndpoint(
-			'GET /departments',
-			() => ApiServices.departments.list()
-		));
+		suite.results.push(
+			await this.testEndpoint('GET /departments', () => ApiServices.departments.list())
+		);
 
 		// Test single department (if any exist)
 		try {
 			const departments = await ApiServices.departments.list();
 			if (departments.length > 0) {
 				const departmentId = departments[0].id;
-				suite.results.push(await this.testEndpoint(
-					`GET /departments/${departmentId}`,
-					() => ApiServices.departments.getById(departmentId)
-				));
+				suite.results.push(
+					await this.testEndpoint(`GET /departments/${departmentId}`, () =>
+						ApiServices.departments.getById(departmentId)
+					)
+				);
 			}
 		} catch (error) {
 			console.warn('Could not test single department endpoint:', error);
@@ -121,25 +122,22 @@ class ApiTester {
 		};
 
 		// Test role list
-		suite.results.push(await this.testEndpoint(
-			'GET /roles',
-			() => ApiServices.roles.list()
-		));
+		suite.results.push(await this.testEndpoint('GET /roles', () => ApiServices.roles.list()));
 
 		// Test single role (if any exist)
 		try {
 			const roles = await ApiServices.roles.list();
 			if (roles.length > 0) {
 				const roleId = roles[0].id;
-				suite.results.push(await this.testEndpoint(
-					`GET /roles/${roleId}`,
-					() => ApiServices.roles.getById(roleId)
-				));
+				suite.results.push(
+					await this.testEndpoint(`GET /roles/${roleId}`, () => ApiServices.roles.getById(roleId))
+				);
 
-				suite.results.push(await this.testEndpoint(
-					`GET /roles/${roleId}/permissions`,
-					() => ApiServices.roles.getPermissions(roleId)
-				));
+				suite.results.push(
+					await this.testEndpoint(`GET /roles/${roleId}/permissions`, () =>
+						ApiServices.roles.getPermissions(roleId)
+					)
+				);
 			}
 		} catch (error) {
 			console.warn('Could not test single role endpoint:', error);
@@ -163,16 +161,14 @@ class ApiTester {
 		};
 
 		// Test task list
-		suite.results.push(await this.testEndpoint(
-			'GET /tasks',
-			() => ApiServices.tasks.list()
-		));
+		suite.results.push(await this.testEndpoint('GET /tasks', () => ApiServices.tasks.list()));
 
 		// Test task list with filters
-		suite.results.push(await this.testEndpoint(
-			'GET /tasks?status=Pending',
-			() => ApiServices.tasks.list({ status: 'Pending' })
-		));
+		suite.results.push(
+			await this.testEndpoint('GET /tasks?status=Pending', () =>
+				ApiServices.tasks.list({ status: 'Pending' })
+			)
+		);
 
 		this.calculateSuiteStats(suite);
 		return suite;
@@ -192,16 +188,16 @@ class ApiTester {
 		};
 
 		// Test notification list
-		suite.results.push(await this.testEndpoint(
-			'GET /notifications',
-			() => ApiServices.notifications.list()
-		));
+		suite.results.push(
+			await this.testEndpoint('GET /notifications', () => ApiServices.notifications.list())
+		);
 
 		// Test unread count
-		suite.results.push(await this.testEndpoint(
-			'GET /notifications/unread-count',
-			() => ApiServices.notifications.getUnreadCount()
-		));
+		suite.results.push(
+			await this.testEndpoint('GET /notifications/unread-count', () =>
+				ApiServices.notifications.getUnreadCount()
+			)
+		);
 
 		this.calculateSuiteStats(suite);
 		return suite;
@@ -221,16 +217,14 @@ class ApiTester {
 		};
 
 		// Test compliance list
-		suite.results.push(await this.testEndpoint(
-			'GET /compliance',
-			() => ApiServices.compliance.list()
-		));
+		suite.results.push(
+			await this.testEndpoint('GET /compliance', () => ApiServices.compliance.list())
+		);
 
 		// Test compliance stats
-		suite.results.push(await this.testEndpoint(
-			'GET /compliance/stats',
-			() => ApiServices.compliance.getStats()
-		));
+		suite.results.push(
+			await this.testEndpoint('GET /compliance/stats', () => ApiServices.compliance.getStats())
+		);
 
 		this.calculateSuiteStats(suite);
 		return suite;
@@ -250,16 +244,14 @@ class ApiTester {
 		};
 
 		// Test leave balances
-		suite.results.push(await this.testEndpoint(
-			'GET /leave/balances',
-			() => ApiServices.leave.listBalances()
-		));
+		suite.results.push(
+			await this.testEndpoint('GET /leave/balances', () => ApiServices.leave.listBalances())
+		);
 
 		// Test leave requests
-		suite.results.push(await this.testEndpoint(
-			'GET /leave/requests',
-			() => ApiServices.leave.listRequests()
-		));
+		suite.results.push(
+			await this.testEndpoint('GET /leave/requests', () => ApiServices.leave.listRequests())
+		);
 
 		this.calculateSuiteStats(suite);
 		return suite;
@@ -279,16 +271,14 @@ class ApiTester {
 		};
 
 		// Test health check
-		suite.results.push(await this.testEndpoint(
-			'GET /monitoring/health',
-			() => ApiServices.monitoring.getHealth()
-		));
+		suite.results.push(
+			await this.testEndpoint('GET /monitoring/health', () => ApiServices.monitoring.getHealth())
+		);
 
 		// Test metrics
-		suite.results.push(await this.testEndpoint(
-			'GET /monitoring/metrics',
-			() => ApiServices.monitoring.getMetrics()
-		));
+		suite.results.push(
+			await this.testEndpoint('GET /monitoring/metrics', () => ApiServices.monitoring.getMetrics())
+		);
 
 		this.calculateSuiteStats(suite);
 		return suite;
@@ -297,16 +287,13 @@ class ApiTester {
 	/**
 	 * Test a single endpoint
 	 */
-	private async testEndpoint(
-		name: string,
-		testFunction: () => Promise<any>
-	): Promise<TestResult> {
+	private async testEndpoint(name: string, testFunction: () => Promise<any>): Promise<TestResult> {
 		const startTime = performance.now();
-		
+
 		try {
 			const data = await testFunction();
 			const endTime = performance.now();
-			
+
 			return {
 				endpoint: name,
 				success: true,
@@ -316,7 +303,7 @@ class ApiTester {
 			};
 		} catch (error: any) {
 			const endTime = performance.now();
-			
+
 			return {
 				endpoint: name,
 				success: false,
@@ -332,8 +319,8 @@ class ApiTester {
 	 */
 	private calculateSuiteStats(suite: TestSuite): void {
 		suite.totalTests = suite.results.length;
-		suite.passedTests = suite.results.filter(r => r.success).length;
-		suite.failedTests = suite.results.filter(r => !r.success).length;
+		suite.passedTests = suite.results.filter((r) => r.success).length;
+		suite.failedTests = suite.results.filter((r) => !r.success).length;
 		suite.totalTime = suite.results.reduce((sum, r) => sum + (r.responseTime || 0), 0);
 	}
 
@@ -342,7 +329,7 @@ class ApiTester {
 	 */
 	async runAllTests(): Promise<TestSuite[]> {
 		console.log('🧪 Starting comprehensive API tests...');
-		
+
 		this.results = [];
 
 		// Run all test suites
@@ -372,7 +359,7 @@ class ApiTester {
 	 */
 	async runConnectivityTest(): Promise<boolean> {
 		console.log('🔌 Testing API connectivity...');
-		
+
 		try {
 			await ApiServices.monitoring.getHealth();
 			console.log('✅ API connectivity test passed');
@@ -397,9 +384,8 @@ class ApiTester {
 		};
 
 		// Test employee schema
-		suite.results.push(await this.testEndpoint(
-			'Employee Schema Validation',
-			async () => {
+		suite.results.push(
+			await this.testEndpoint('Employee Schema Validation', async () => {
 				const employees = await ApiServices.employees.list({ pageSize: 1 });
 				if (employees.employees.length > 0) {
 					const employee = employees.employees[0];
@@ -409,13 +395,12 @@ class ApiTester {
 					}
 				}
 				return { validated: true };
-			}
-		));
+			})
+		);
 
 		// Test department schema
-		suite.results.push(await this.testEndpoint(
-			'Department Schema Validation',
-			async () => {
+		suite.results.push(
+			await this.testEndpoint('Department Schema Validation', async () => {
 				const departments = await ApiServices.departments.list();
 				if (departments.length > 0) {
 					const department = departments[0];
@@ -424,8 +409,8 @@ class ApiTester {
 					}
 				}
 				return { validated: true };
-			}
-		));
+			})
+		);
 
 		this.calculateSuiteStats(suite);
 		return suite;
@@ -436,23 +421,23 @@ class ApiTester {
 	 */
 	private printResults(): void {
 		console.log('\n📊 API Test Results Summary');
-		console.log('=' .repeat(50));
+		console.log('='.repeat(50));
 
 		let totalTests = 0;
 		let totalPassed = 0;
 		let totalFailed = 0;
 		let totalTime = 0;
 
-		this.results.forEach(suite => {
+		this.results.forEach((suite) => {
 			totalTests += suite.totalTests;
 			totalPassed += suite.passedTests;
 			totalFailed += suite.failedTests;
 			totalTime += suite.totalTime;
 
-			const successRate = suite.totalTests > 0 ? 
-				((suite.passedTests / suite.totalTests) * 100).toFixed(1) : '0.0';
-			const avgTime = suite.totalTests > 0 ? 
-				(suite.totalTime / suite.totalTests).toFixed(2) : '0.00';
+			const successRate =
+				suite.totalTests > 0 ? ((suite.passedTests / suite.totalTests) * 100).toFixed(1) : '0.0';
+			const avgTime =
+				suite.totalTests > 0 ? (suite.totalTime / suite.totalTests).toFixed(2) : '0.00';
 
 			console.log(`\n${suite.name}:`);
 			console.log(`  ✅ Passed: ${suite.passedTests}/${suite.totalTests} (${successRate}%)`);
@@ -460,17 +445,16 @@ class ApiTester {
 			console.log(`  ⏱️  Avg Response Time: ${avgTime}ms`);
 
 			// Show failed tests
-			const failedTests = suite.results.filter(r => !r.success);
+			const failedTests = suite.results.filter((r) => !r.success);
 			if (failedTests.length > 0) {
 				console.log('  Failed Tests:');
-				failedTests.forEach(test => {
+				failedTests.forEach((test) => {
 					console.log(`    - ${test.endpoint}: ${test.error}`);
 				});
 			}
 		});
 
-		const overallSuccess = totalTests > 0 ? 
-			((totalPassed / totalTests) * 100).toFixed(1) : '0.0';
+		const overallSuccess = totalTests > 0 ? ((totalPassed / totalTests) * 100).toFixed(1) : '0.0';
 
 		console.log('\n' + '='.repeat(50));
 		console.log(`Overall Results:`);
@@ -478,7 +462,9 @@ class ApiTester {
 		console.log(`  ✅ Passed: ${totalPassed} (${overallSuccess}%)`);
 		console.log(`  ❌ Failed: ${totalFailed}`);
 		console.log(`  ⏱️  Total Time: ${totalTime.toFixed(2)}ms`);
-		console.log(`  🔄 API Status: ${totalFailed === 0 ? 'All systems operational' : 'Some issues detected'}`);
+		console.log(
+			`  🔄 API Status: ${totalFailed === 0 ? 'All systems operational' : 'Some issues detected'}`
+		);
 	}
 
 	/**

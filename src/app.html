@@ -3,9 +3,63 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		
+		<!-- DNS prefetch for performance -->
+		<link rel="dns-prefetch" href="//fonts.googleapis.com" />
+		<link rel="dns-prefetch" href="//fonts.gstatic.com" />
+		
+		<!-- Preconnect to external domains -->
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		
+		<!-- Default SEO fallbacks (overridden by page-specific SEO) -->
+		<title>MountainHR - Modern HR Management System</title>
+		<meta name="description" content="Streamline your HR processes with MountainHR's comprehensive employee management, communication tools, and analytics dashboard." />
+		<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+		
+		<!-- Theme colors -->
+		<meta name="theme-color" content="#2563eb" />
+		<meta name="msapplication-TileColor" content="#2563eb" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+		
+		<!-- Skip to main content for accessibility -->
+		<style>
+			.skip-to-main {
+				position: absolute;
+				top: -40px;
+				left: 6px;
+				background: #2563eb;
+				color: white;
+				padding: 8px;
+				text-decoration: none;
+				z-index: 1000;
+				border-radius: 4px;
+				font-size: 14px;
+			}
+			.skip-to-main:focus {
+				top: 6px;
+			}
+		</style>
+		
 		%sveltekit.head%
 	</head>
-	<body data-sveltekit-preload-data="hover">
+	<body data-sveltekit-preload-data="hover" class="antialiased">
+		<a href="#main" class="skip-to-main">Skip to main content</a>
 		<div style="display: contents">%sveltekit.body%</div>
+		
+		<!-- Service Worker Registration -->
+		<script>
+			if ('serviceWorker' in navigator) {
+				window.addEventListener('load', () => {
+					navigator.serviceWorker.register('/service-worker.js')
+						.then(registration => {
+							console.log('SW registered: ', registration);
+						})
+						.catch(registrationError => {
+							console.log('SW registration failed: ', registrationError);
+						});
+				});
+			}
+		</script>
 	</body>
 </html>

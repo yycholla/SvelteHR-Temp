@@ -2,16 +2,16 @@ import Root, {
 	type ButtonProps,
 	type ButtonSize,
 	type ButtonVariant,
-	buttonVariants,
-} from "./button.svelte";
+	buttonVariants
+} from './button.svelte';
 
 import ButtonGroup, {
 	type ButtonGroupProps,
 	type ButtonGroupOrientation,
 	type ButtonGroupSize,
 	type ButtonGroupVariant,
-	buttonGroupVariants,
-} from "./button-group.svelte";
+	buttonGroupVariants
+} from './button-group.svelte';
 
 export {
 	Root,
@@ -27,5 +27,5 @@ export {
 	type ButtonVariant,
 	type ButtonGroupOrientation,
 	type ButtonGroupSize,
-	type ButtonGroupVariant,
+	type ButtonGroupVariant
 };

@@ -1,0 +1,273 @@
+# Enable GraphQL and Auth extensions for direct database access
+using extension graphql;
+using extension auth;
+
+module default {
+    # Scalar types for enums
+    scalar type OnboardingStatus extending enum<'PreHire', 'Onboarding', 'Active', 'Terminated'>;
+    scalar type TimeEntryType extending enum<'ClockIn', 'ClockOut', 'BreakStart', 'BreakEnd'>;
+    scalar type AttendanceStatus extending enum<'Present', 'Absent', 'Late', 'LeftEarly', 'Holiday'>;
+    scalar type ApprovalStatus extending enum<'Pending', 'Approved', 'Rejected', 'Skipped', 'Escalated'>;
+    scalar type ExpenseStatus extending enum<'Draft', 'Submitted', 'Approved', 'Rejected', 'Reimbursed'>;
+    scalar type ComplianceStatus extending enum<'Active', 'ExpiringSoon', 'Expired', 'PendingReview'>;
+    scalar type RenewalPeriod extending enum<'None', 'Monthly', 'Quarterly', 'SemiAnnually', 'Yearly', 'BiYearly'>;
+    scalar type TaskStatus extending enum<'Pending', 'InProgress', 'Completed', 'Blocked'>;
+    scalar type NotificationType extending enum<'Info', 'Success', 'Warning', 'Error', 'Reminder'>;
+    scalar type PayType extending enum<'Hourly', 'Salary', 'Commission', 'Contractor'>;
+    scalar type BankAccountType extending enum<'Checking', 'Savings'>;
+    scalar type AuthEventType extending enum<'LOGIN_ATTEMPT', 'LOGIN_SUCCESS', 'LOGIN_FAILURE', 'LOGOUT', 'TOKEN_REFRESH', 'SESSION_EXPIRED', 'PERMISSION_DENIED'>;
+
+    # Abstract base type for auditable entities
+    abstract type Auditable {
+        property created_at -> datetime {
+            default := datetime_current();
+        }
+        property updated_at -> datetime {
+            default := datetime_current();
+            rewrite insert using (datetime_current());
+            rewrite update using (datetime_current());
+        }
+    }
+
+    # Permission system and Role management is handled by rbac module
+
+    # Department
+    type Department extending Auditable {
+        required property name -> str {
+            constraint exclusive;
+        }
+        property description -> str;
+        property budget -> decimal;
+        property is_active -> bool {
+            default := true;
+        }
+        link parent_department -> Department;
+        link manager -> rbac::User;
+        
+        # Computed properties for performance optimization
+        property employee_count := count(.<department[is default::JobInformation].employee);
+        property subdepartment_count := count(.<parent_department[is default::Department]);
+        property active_employee_count := count(.<department[is default::JobInformation].employee filter .onboarding_status = OnboardingStatus.Active);
+        property department_hierarchy := .name ++ (
+            ' > ' ++ .parent_department.name if exists .parent_department else ''
+        );
+        property budget_per_employee := (
+            .budget / max({.employee_count, 1}) if exists .budget else <decimal>0
+        );
+        
+        # Strategic indexes for common queries
+        index on (.name);
+        index on (.is_active);
+        index on (.parent_department);
+        index on (.manager);
+    }
+
+    # Employee type removed - now using rbac::User for all user management
+
+    # Contact Information as a separate type
+    type ContactInformation extending Auditable {
+        required link employee -> rbac::User {
+            constraint exclusive;
+        }
+        property email -> str {
+            constraint exclusive;
+        }
+        property phone_number -> str;
+        property work_phone_number -> str;
+        property address_street -> str;
+        property address_city -> str;
+        property address_state -> str;
+        property address_zip -> str;
+        property emergency_contact_name -> str;
+        property emergency_contact_relationship -> str;
+        property emergency_contact_phone -> str;
+        
+        index on (.email);
+    }
+
+    # Personal Information
+    type PersonalInformation extending Auditable {
+        required link employee -> rbac::User {
+            constraint exclusive;
+        }
+        property date_of_birth -> cal::local_date;
+        property gender -> str;
+        property marital_status -> str;
+        property nationality -> str;
+        property social_security_number -> str; # Encrypted in real implementation
+        property passport_number -> str;
+        property drivers_license_number -> str;
+    }
+
+    # Job Information
+    type JobInformation extending Auditable {
+        required link employee -> rbac::User {
+            constraint exclusive;
+        }
+        link department -> Department;
+        property job_title -> str;
+        property hire_date -> cal::local_date;
+        property employment_type -> str; # Full-time, Part-time, Contract, etc.
+        property work_location -> str;
+        property work_schedule -> str;
+        link manager -> rbac::User;
+        property termination_date -> cal::local_date;
+        property is_remote -> bool {
+            default := false;
+        }
+        
+        # Computed properties for quick access
+        property is_current_employee := not exists .termination_date;
+        # property employment_duration_days removed due to datetime_current() volatility
+        # property seniority_level removed due to dependency on volatile employment_duration_days
+        
+        # Indexes for performance
+        index on (.employee);
+        index on ((.department, .is_current_employee));
+        index on ((.job_title, .is_current_employee));
+        index on (.hire_date);
+        index on ((.employment_type, .is_current_employee));
+        index on ((.work_location, .is_current_employee));
+    }
+
+    # Compensation
+    type Compensation extending Auditable {
+        required link employee -> rbac::User {
+            constraint exclusive;
+        }
+        property pay_type -> PayType;
+        property pay_rate -> decimal;
+        property currency -> str {
+            default := 'USD';
+        }
+        property bank_name -> str;
+        property bank_account_type -> BankAccountType;
+        property bank_account_number -> str; # Encrypted in real implementation
+        property bank_routing_number -> str; # Encrypted in real implementation
+        property direct_deposit_enabled -> bool {
+            default := false;
+        }
+        property salary_review_date -> cal::local_date;
+        property bonus_eligible -> bool {
+            default := false;
+        }
+        property overtime_eligible -> bool {
+            default := false;
+        }
+        
+        # Computed properties for compensation analysis
+        property annual_salary := (
+            .pay_rate * 2080 if .pay_type = PayType.Hourly else
+            .pay_rate if .pay_type = PayType.Salary else
+            <decimal>0
+        );
+        # property is_salary_review_due removed due to datetime_current() volatility
+        property pay_frequency := (
+            'Hourly' if .pay_type = PayType.Hourly else
+            'Annual' if .pay_type = PayType.Salary else
+            'Variable'
+        );
+        
+        # Indexes for compensation queries
+        index on (.employee);
+        index on ((.pay_type, .currency));
+        index on (.salary_review_date);
+        index on (.bonus_eligible);
+    }
+
+    # Auth-related types for GraphQL authentication integration
+    type AuthSession extending Auditable {
+        required link user -> rbac::User;
+        required property token_hash -> str;
+        required property expires_at -> datetime;
+        property refresh_token_hash -> str;
+        property user_agent -> str;
+        property ip_address -> str;
+        property is_active -> bool {
+            default := true;
+        };
+        
+        index on (.token_hash);
+        index on ((.user, .is_active));
+        index on ((.expires_at, .is_active));
+        constraint exclusive on (.token_hash);
+    }
+    
+    type OAuthConnection extending Auditable {
+        required link user -> rbac::User;
+        required property provider -> str;
+        required property provider_user_id -> str;
+        property provider_email -> str;
+        property provider_name -> str;
+        property access_token_hash -> str;
+        property refresh_token_hash -> str;
+        property expires_at -> datetime;
+        
+        index on ((.provider, .provider_user_id));
+        index on (.user);
+        constraint exclusive on ((.provider, .provider_user_id));
+    }
+    
+    type PasswordResetToken extending Auditable {
+        required link user -> rbac::User;
+        required property token_hash -> str;
+        required property expires_at -> datetime;
+        property is_used -> bool {
+            default := false;
+        };
+        
+        index on (.token_hash);
+        constraint exclusive on (.token_hash);
+    }
+    
+    type EmailVerificationToken extending Auditable {
+        required link user -> rbac::User;
+        required property token_hash -> str;
+        required property expires_at -> datetime;
+        property is_used -> bool {
+            default := false;
+        };
+        
+        index on (.token_hash);
+        constraint exclusive on (.token_hash);
+    }
+    
+    # PKCE Session Management for OAuth security
+    type PKCESession extending Auditable {
+        required property verifier_hash -> str;
+        required property challenge -> str;
+        required property expires_at -> datetime;
+        property used_at -> datetime;
+        required property ip_address -> str;
+        property is_used -> bool {
+            default := false;
+        };
+        
+        # Indexes for PKCE flow
+        index on (.verifier_hash);
+        index on (.challenge);
+        index on ((.expires_at, .is_used));
+        constraint exclusive on (.verifier_hash);
+        constraint exclusive on (.challenge);
+    }
+    
+    # Authentication Event Logging for security audit
+    type AuthEvent extending Auditable {
+        link user -> rbac::User;  # nullable for failed attempts
+        required property event_type -> AuthEventType;
+        required property success -> bool;
+        required property ip_address -> str;
+        required property user_agent -> str;
+        required property details -> json;
+        required property timestamp -> datetime {
+            default := datetime_current();
+        };
+        
+        # Indexes for audit queries
+        index on (.user);
+        index on (.event_type);
+        index on ((.timestamp, .event_type));
+        index on ((.success, .event_type));
+        index on (.ip_address);
+    }
+}

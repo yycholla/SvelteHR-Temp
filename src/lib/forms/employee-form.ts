@@ -5,10 +5,12 @@ import { createEmployeeSchema, updateEmployeeSchema } from '$lib/schemas/employe
 export type EmployeeFormInput = z.infer<typeof createEmployeeSchema>;
 export type UpdateEmployeeFormInput = z.infer<typeof updateEmployeeSchema>;
 
-export function createEmployeeForm(options: { 
-	onSuccess?: (employee: any) => void;
-	onError?: (error: string) => void;
-} = {}) {
+export function createEmployeeForm(
+	options: {
+		onSuccess?: (employee: any) => void;
+		onError?: (error: string) => void;
+	} = {}
+) {
 	const initialData: EmployeeFormInput = {
 		username: '',
 		firstName: '',
@@ -33,17 +35,17 @@ export function createEmployeeForm(options: {
 			try {
 				const formDataObj = Object.fromEntries(formData);
 				console.log('📝 Raw form data:', formDataObj);
-				
+
 				// Convert string values to appropriate types and clean undefined values
 				const processedData: any = { ...formDataObj };
-				
+
 				// Handle roleId - required field
 				if (formDataObj.roleId) {
 					processedData.roleId = parseInt(formDataObj.roleId as string);
 				} else {
 					delete processedData.roleId; // Let validation catch this
 				}
-				
+
 				// Handle departmentId - optional field
 				if (formDataObj.departmentId) {
 					processedData.departmentId = parseInt(formDataObj.departmentId as string);
@@ -51,17 +53,17 @@ export function createEmployeeForm(options: {
 					delete processedData.departmentId; // Omit entirely if not provided
 				}
 				console.log('🔄 Processed data:', processedData);
-				
+
 				const data = createEmployeeSchema.parse(processedData);
 				console.log('✅ Validated data:', data);
-				
+
 				// Use server-side API endpoint as middleman
 				const response = await fetch('/api/employees', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify(data)
 				});
-				
+
 				console.log('🌐 Response status:', response.status);
 
 				if (!response.ok) {
@@ -72,7 +74,7 @@ export function createEmployeeForm(options: {
 
 				const employee = await response.json();
 				console.log('🎉 Success response:', employee);
-				
+
 				if (options.onSuccess) {
 					console.log('🔄 Calling onSuccess callback');
 					options.onSuccess(employee);
@@ -95,10 +97,14 @@ export function createEmployeeForm(options: {
 	};
 }
 
-export function updateEmployeeForm(employeeId: number, initialData: any = {}, options: { 
-	onSuccess?: (employee: any) => void;
-	onError?: (error: string) => void;
-} = {}) {
+export function updateEmployeeForm(
+	employeeId: number,
+	initialData: any = {},
+	options: {
+		onSuccess?: (employee: any) => void;
+		onError?: (error: string) => void;
+	} = {}
+) {
 	const sForm = superForm(initialData, {
 		SPA: true,
 		resetForm: false,
@@ -110,17 +116,17 @@ export function updateEmployeeForm(employeeId: number, initialData: any = {}, op
 			try {
 				const formDataObj = Object.fromEntries(formData);
 				console.log('📝 Raw form data:', formDataObj);
-				
+
 				// Convert string values to appropriate types and clean undefined values
 				const processedData: any = { ...formDataObj, id: employeeId };
-				
+
 				// Handle roleId - required field
 				if (formDataObj.roleId) {
 					processedData.roleId = parseInt(formDataObj.roleId as string);
 				} else {
 					delete processedData.roleId; // Let validation catch this
 				}
-				
+
 				// Handle departmentId - optional field
 				if (formDataObj.departmentId) {
 					processedData.departmentId = parseInt(formDataObj.departmentId as string);
@@ -128,17 +134,17 @@ export function updateEmployeeForm(employeeId: number, initialData: any = {}, op
 					delete processedData.departmentId; // Omit entirely if not provided
 				}
 				console.log('🔄 Processed data:', processedData);
-				
+
 				const data = updateEmployeeSchema.parse({ ...processedData, id: employeeId });
 				console.log('✅ Validated data:', data);
-				
+
 				// Use server-side API endpoint as middleman
 				const response = await fetch(`/api/employees/${employeeId}`, {
 					method: 'PUT',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify(data)
 				});
-				
+
 				console.log('🌐 Response status:', response.status);
 
 				if (!response.ok) {
@@ -149,7 +155,7 @@ export function updateEmployeeForm(employeeId: number, initialData: any = {}, op
 
 				const employee = await response.json();
 				console.log('🎉 Success response:', employee);
-				
+
 				if (options.onSuccess) {
 					console.log('🔄 Calling onSuccess callback');
 					options.onSuccess(employee);

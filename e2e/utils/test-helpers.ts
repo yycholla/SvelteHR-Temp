@@ -11,7 +11,7 @@ export class TestHelpers {
 		await this.page.fill('input[name="username"]', 'admin');
 		await this.page.fill('input[name="password"]', 'admin');
 		await this.page.click('button[type="submit"]');
-		
+
 		// Wait for redirect to dashboard
 		await this.page.waitForURL('/home', { timeout: 10000 });
 		await expect(this.page.locator('h1')).toContainText('Dashboard', { timeout: 10000 });
@@ -22,7 +22,7 @@ export class TestHelpers {
 	 */
 	async checkAuthenticated() {
 		const cookies = await this.page.context().cookies();
-		const authCookie = cookies.find(cookie => cookie.name === 'auth-token');
+		const authCookie = cookies.find((cookie) => cookie.name === 'auth-token');
 		expect(authCookie).toBeTruthy();
 		return authCookie;
 	}
@@ -48,7 +48,7 @@ export class TestHelpers {
 	 */
 	async checkForApiErrors() {
 		const errorMessages = this.page.locator('.error-section');
-		const hasErrors = await errorMessages.count() > 0;
+		const hasErrors = (await errorMessages.count()) > 0;
 		if (hasErrors) {
 			const errorText = await errorMessages.textContent();
 			console.log('API Errors found:', errorText);
@@ -62,10 +62,10 @@ export class TestHelpers {
 	async waitForTableData(tableSelector: string = 'table', timeout: number = 10000) {
 		// Wait for table to exist
 		await this.page.waitForSelector(tableSelector, { timeout });
-		
+
 		// Wait for at least one data row (not just headers)
 		await this.page.waitForSelector(`${tableSelector} tbody tr`, { timeout });
-		
+
 		// Make sure it's not a loading skeleton
 		await this.page.waitForFunction(
 			(selector) => {
@@ -83,7 +83,7 @@ export class TestHelpers {
 	async waitForLoadingToComplete() {
 		// Wait for any skeleton loaders to disappear
 		await this.page.waitForSelector('.skeleton-loader', { state: 'hidden', timeout: 10000 });
-		
+
 		// Wait for any loading spinners to disappear
 		await this.page.waitForSelector('.animate-spin', { state: 'hidden', timeout: 5000 });
 	}
@@ -92,9 +92,9 @@ export class TestHelpers {
 	 * Take a screenshot with a custom name
 	 */
 	async takeScreenshot(name: string) {
-		await this.page.screenshot({ 
+		await this.page.screenshot({
 			path: `e2e/screenshots/${name}.png`,
-			fullPage: true 
+			fullPage: true
 		});
 	}
 
@@ -130,12 +130,12 @@ export class TestHelpers {
 		// Check for alt text on images
 		const images = this.page.locator('img');
 		const imageCount = await images.count();
-		
+
 		for (let i = 0; i < imageCount; i++) {
 			const img = images.nth(i);
 			const alt = await img.getAttribute('alt');
 			const role = await img.getAttribute('role');
-			
+
 			// Images should have alt text or be marked as decorative
 			expect(alt !== null || role === 'presentation').toBeTruthy();
 		}
@@ -150,7 +150,7 @@ export class TestHelpers {
 		if (await logoutButton.isVisible()) {
 			await logoutButton.click();
 		}
-		
+
 		// Wait for redirect to login or home
 		await this.page.waitForURL(/\/(login|)$/, { timeout: 5000 });
 	}
@@ -160,7 +160,7 @@ export class TestHelpers {
 	 */
 	async checkConsoleErrors() {
 		const logs: string[] = [];
-		
+
 		this.page.on('console', (msg) => {
 			if (msg.type() === 'error') {
 				logs.push(msg.text());

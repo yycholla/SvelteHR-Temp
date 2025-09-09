@@ -5,6 +5,7 @@ This document provides an overview of the modular streaming component system we'
 ## Architecture Overview
 
 ### 🎯 **Goals**
+
 - **Reusability**: Components that can be used across different pages and contexts
 - **Consistency**: Unified design language and behavior patterns
 - **Maintainability**: Centralized logic for common patterns like data transformations
@@ -38,6 +39,7 @@ src/lib/
 A reusable statistics card component with support for trends, icons, and navigation.
 
 **Features:**
+
 - **Trend indicators** with color coding (positive/negative/warning/neutral)
 - **Click navigation** with proper accessibility
 - **Loading states** with skeleton animations
@@ -45,15 +47,16 @@ A reusable statistics card component with support for trends, icons, and navigat
 - **Tag system** for categorization
 
 **Usage:**
+
 ```svelte
 <StatCard
-  title="Total Employees"
-  value={245}
-  icon={Users}
-  trend={{ value: '+12 this month', type: 'positive' }}
-  tag="#hr"
-  href="/hr/employees"
-  loading={false}
+	title="Total Employees"
+	value={245}
+	icon={Users}
+	trend={{ value: '+12 this month', type: 'positive' }}
+	tag="#hr"
+	href="/hr/employees"
+	loading={false}
 />
 ```
 
@@ -62,6 +65,7 @@ A reusable statistics card component with support for trends, icons, and navigat
 A flexible card container for streaming data with built-in loading and empty states.
 
 **Features:**
+
 - **Slot-based content** for maximum flexibility
 - **Loading states** with animated skeletons
 - **Empty states** with customizable messages
@@ -69,20 +73,21 @@ A flexible card container for streaming data with built-in loading and empty sta
 - **Click navigation** support
 
 **Usage:**
+
 ```svelte
 <StreamingCard
-  title="Recent Activities"
-  description="Latest system updates"
-  icon={Clock}
-  tag="#hr"
-  href="/hr/activities"
-  loading={!dataLoaded}
-  empty={activities.length === 0}
-  emptyMessage="No recent activities"
+	title="Recent Activities"
+	description="Latest system updates"
+	icon={Clock}
+	tag="#hr"
+	href="/hr/activities"
+	loading={!dataLoaded}
+	empty={activities.length === 0}
+	emptyMessage="No recent activities"
 >
-  {#snippet children()}
-    <ActivityFeed activities={activities} showCount={5} />
-  {/snippet}
+	{#snippet children()}
+		<ActivityFeed {activities} showCount={5} />
+	{/snippet}
 </StreamingCard>
 ```
 
@@ -91,6 +96,7 @@ A flexible card container for streaming data with built-in loading and empty sta
 Displays employee information with avatars, status badges, and department info.
 
 **Features:**
+
 - **Avatar generation** from initials
 - **Status badges** with semantic colors
 - **Department display** (optional)
@@ -98,12 +104,13 @@ Displays employee information with avatars, status badges, and department info.
 - **Responsive design** for mobile devices
 
 **Usage:**
+
 ```svelte
 <EmployeeList
-  employees={onboardingEmployees}
-  showCount={3}
-  showStatus={true}
-  showDepartment={true}
+	employees={onboardingEmployees}
+	showCount={3}
+	showStatus={true}
+	showDepartment={true}
 />
 ```
 
@@ -112,17 +119,16 @@ Displays employee information with avatars, status badges, and department info.
 Timeline-style display for system activities and events.
 
 **Features:**
+
 - **Colored indicators** based on activity type
 - **Timestamp formatting** with relative dates
 - **Type-based styling** (employee/task/compliance/system)
 - **Truncation support** with remaining count
 
 **Usage:**
+
 ```svelte
-<ActivityFeed
-  activities={recentActivities}
-  showCount={5}
-/>
+<ActivityFeed activities={recentActivities} showCount={5} />
 ```
 
 ### 5. ✅ **TaskList** (`/common/TaskList.svelte`)
@@ -130,19 +136,21 @@ Timeline-style display for system activities and events.
 Task display with priority badges, due dates, and overdue indicators.
 
 **Features:**
+
 - **Priority badges** with color coding
 - **Overdue highlighting** with visual warnings
 - **Type categorization** (onboarding/compliance/general)
 - **Flexible display options** for different contexts
 
 **Usage:**
+
 ```svelte
 <TaskList
-  tasks={priorityTasks}
-  showCount={3}
-  showPriority={true}
-  showType={false}
-  showDueDate={true}
+	tasks={priorityTasks}
+	showCount={3}
+	showPriority={true}
+	showType={false}
+	showDueDate={true}
 />
 ```
 
@@ -151,18 +159,20 @@ Task display with priority badges, due dates, and overdue indicators.
 Visual representation of department distribution with progress bars.
 
 **Features:**
+
 - **Progress bars** with departmental colors
 - **Percentage calculations** and display
 - **Employee counts** with proper pluralization
 - **Animated progress** bars on load
 
 **Usage:**
+
 ```svelte
 <DepartmentChart
-  departments={departmentData}
-  showPercentage={true}
-  showProgress={true}
-  showCount={true}
+	departments={departmentData}
+	showPercentage={true}
+	showProgress={true}
+	showCount={true}
 />
 ```
 
@@ -175,6 +185,7 @@ Centralized data transformation and validation utilities.
 **Key Functions:**
 
 #### Safe Array Operations
+
 ```typescript
 // Safely convert any data to array
 safeArray<T>(data: unknown): T[]
@@ -187,11 +198,12 @@ safeMap<T, R>(data: unknown, mapper: (item: T) => R): R[]
 ```
 
 #### Data Transformers
+
 ```typescript
 // Transform employee data to statistics
 transformEmployeeStats(employees: unknown): EmployeeStats
 
-// Transform task data to statistics  
+// Transform task data to statistics
 transformTaskStats(tasks: unknown): TaskStats
 
 // Transform employee data to department breakdown
@@ -205,6 +217,7 @@ transformTaskData(tasks: unknown, limit?: number): TaskItem[]
 ```
 
 #### Utility Functions
+
 ```typescript
 // Format dates consistently
 formatDate(date: Date | string, options?: Intl.DateTimeFormatOptions): string
@@ -222,45 +235,45 @@ The `StreamingHRDashboard` component demonstrates how to use the modular system:
 
 ```svelte
 <script lang="ts">
-  // Import modular components
-  import StatCard from '$lib/components/common/StatCard.svelte';
-  import StreamingCard from '$lib/components/common/StreamingCard.svelte';
-  import EmployeeList from '$lib/components/common/EmployeeList.svelte';
-  
-  // Import data transformers
-  import { transformEmployeeStats, transformTaskStats, hasData } from '$lib/utils/dataTransformers.js';
+	// Import modular components
+	import StatCard from '$lib/components/common/StatCard.svelte';
+	import StreamingCard from '$lib/components/common/StreamingCard.svelte';
+	import EmployeeList from '$lib/components/common/EmployeeList.svelte';
 
-  // Transform data using utilities
-  let employeeStats = $derived(transformEmployeeStats(employees));
-  let taskStats = $derived(transformTaskStats(tasks));
-  let dataLoaded = $derived(hasData(data['employees']));
+	// Import data transformers
+	import {
+		transformEmployeeStats,
+		transformTaskStats,
+		hasData
+	} from '$lib/utils/dataTransformers.js';
+
+	// Transform data using utilities
+	let employeeStats = $derived(transformEmployeeStats(employees));
+	let taskStats = $derived(transformTaskStats(tasks));
+	let dataLoaded = $derived(hasData(data['employees']));
 </script>
 
 <!-- Use modular components -->
 <StatCard
-  title="Total Employees"
-  value={employeeStats.totalEmployees}
-  icon={Users}
-  tag="#hr"
-  href="/hr/employees"
-  loading={!dataLoaded}
+	title="Total Employees"
+	value={employeeStats.totalEmployees}
+	icon={Users}
+	tag="#hr"
+	href="/hr/employees"
+	loading={!dataLoaded}
 />
 
 <StreamingCard
-  title="Onboarding Pipeline"
-  description="New hire progress tracking"
-  icon={Target}
-  tag="#hr"
-  loading={!dataLoaded}
-  empty={employeeStats.onboardingEmployees === 0}
+	title="Onboarding Pipeline"
+	description="New hire progress tracking"
+	icon={Target}
+	tag="#hr"
+	loading={!dataLoaded}
+	empty={employeeStats.onboardingEmployees === 0}
 >
-  {#snippet children()}
-    <EmployeeList
-      employees={onboardingEmployees}
-      showCount={3}
-      showDepartment={true}
-    />
-  {/snippet}
+	{#snippet children()}
+		<EmployeeList employees={onboardingEmployees} showCount={3} showDepartment={true} />
+	{/snippet}
 </StreamingCard>
 ```
 

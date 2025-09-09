@@ -1,22 +1,22 @@
 <script lang="ts" module>
-	import { RadioGroup as RadioGroupPrimitive } from "bits-ui";
-	import { cn } from "$lib/utils.js";
-	import { type VariantProps, tv } from "tailwind-variants";
+	import { RadioGroup as RadioGroupPrimitive } from 'bits-ui';
+	import { cn } from '$lib/utils.js';
+	import { type VariantProps, tv } from 'tailwind-variants';
 
 	export const radioGroupVariants = tv({
-		base: "grid gap-2",
+		base: 'grid gap-2',
 		variants: {
 			orientation: {
-				vertical: "grid-cols-1",
-				horizontal: "grid-flow-col auto-cols-max",
-			},
+				vertical: 'grid-cols-1',
+				horizontal: 'grid-flow-col auto-cols-max'
+			}
 		},
 		defaultVariants: {
-			orientation: "vertical",
-		},
+			orientation: 'vertical'
+		}
 	});
 
-	export type RadioGroupOrientation = VariantProps<typeof radioGroupVariants>["orientation"];
+	export type RadioGroupOrientation = VariantProps<typeof radioGroupVariants>['orientation'];
 
 	export type RadioGroupProps = RadioGroupPrimitive.RootProps & {
 		orientation?: RadioGroupOrientation;
@@ -26,7 +26,7 @@
 <script lang="ts">
 	let {
 		class: className,
-		orientation = "vertical",
+		orientation = 'vertical',
 		value = $bindable(),
 		ref = $bindable(null),
 		children,

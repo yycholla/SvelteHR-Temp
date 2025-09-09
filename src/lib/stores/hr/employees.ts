@@ -50,46 +50,47 @@ const initialState: EmployeeState = {
 const employeeState = writable<EmployeeState>(initialState);
 
 // Derived stores for computed properties
-export const employees = derived(employeeState, $state => $state.employees);
-export const selectedEmployee = derived(employeeState, $state => $state.selectedEmployee);
-export const filters = derived(employeeState, $state => $state.filters);
-export const isLoading = derived(employeeState, $state => $state.loading);
-export const total = derived(employeeState, $state => $state.total);
+export const employees = derived(employeeState, ($state) => $state.employees);
+export const selectedEmployee = derived(employeeState, ($state) => $state.selectedEmployee);
+export const filters = derived(employeeState, ($state) => $state.filters);
+export const isLoading = derived(employeeState, ($state) => $state.loading);
+export const total = derived(employeeState, ($state) => $state.total);
 
 // Computed derived values
-export const filteredEmployees = derived(employeeState, $state => {
+export const filteredEmployees = derived(employeeState, ($state) => {
 	let filtered = $state.employees;
-	
+
 	if ($state.filters.search) {
 		const search = $state.filters.search.toLowerCase();
-		filtered = filtered.filter(emp => 
-			emp.first_name.toLowerCase().includes(search) ||
-			emp.last_name.toLowerCase().includes(search) ||
-			emp.email.toLowerCase().includes(search)
+		filtered = filtered.filter(
+			(emp) =>
+				emp.first_name.toLowerCase().includes(search) ||
+				emp.last_name.toLowerCase().includes(search) ||
+				emp.email.toLowerCase().includes(search)
 		);
 	}
-	
+
 	if ($state.filters.department) {
-		filtered = filtered.filter(emp => emp.department === $state.filters.department);
+		filtered = filtered.filter((emp) => emp.department === $state.filters.department);
 	}
-	
+
 	if ($state.filters.status) {
-		filtered = filtered.filter(emp => emp.status === $state.filters.status);
+		filtered = filtered.filter((emp) => emp.status === $state.filters.status);
 	}
-	
+
 	return filtered;
 });
 
-export const activeEmployees = derived(employeeState, $state =>
-	$state.employees.filter(emp => emp.status === 'active')
+export const activeEmployees = derived(employeeState, ($state) =>
+	$state.employees.filter((emp) => emp.status === 'active')
 );
 
-export const hasEmployees = derived(employeeState, $state => $state.employees.length > 0);
+export const hasEmployees = derived(employeeState, ($state) => $state.employees.length > 0);
 
 // Store actions
 export const employeeActions = {
 	setEmployees(employees: Employee[], total: number) {
-		employeeState.update(state => ({
+		employeeState.update((state) => ({
 			...state,
 			employees,
 			total,
@@ -98,28 +99,28 @@ export const employeeActions = {
 	},
 
 	setSelectedEmployee(employee: Employee | null) {
-		employeeState.update(state => ({
+		employeeState.update((state) => ({
 			...state,
 			selectedEmployee: employee
 		}));
 	},
 
 	updateFilters(newFilters: Partial<EmployeeFilters>) {
-		employeeState.update(state => ({
+		employeeState.update((state) => ({
 			...state,
 			filters: { ...state.filters, ...newFilters }
 		}));
 	},
 
 	setLoading(loading: boolean) {
-		employeeState.update(state => ({
+		employeeState.update((state) => ({
 			...state,
 			loading
 		}));
 	},
 
 	addEmployee(employee: Employee) {
-		employeeState.update(state => ({
+		employeeState.update((state) => ({
 			...state,
 			employees: [...state.employees, employee],
 			total: state.total + 1
@@ -127,25 +128,26 @@ export const employeeActions = {
 	},
 
 	updateEmployee(employee: Employee) {
-		employeeState.update(state => {
-			const index = state.employees.findIndex(e => e.id === employee.id);
+		employeeState.update((state) => {
+			const index = state.employees.findIndex((e) => e.id === employee.id);
 			const updatedEmployees = [...state.employees];
 			if (index !== -1) {
 				updatedEmployees[index] = employee;
 			}
-			
+
 			return {
 				...state,
 				employees: updatedEmployees,
-				selectedEmployee: state.selectedEmployee?.id === employee.id ? employee : state.selectedEmployee
+				selectedEmployee:
+					state.selectedEmployee?.id === employee.id ? employee : state.selectedEmployee
 			};
 		});
 	},
 
 	removeEmployee(employeeId: string) {
-		employeeState.update(state => ({
+		employeeState.update((state) => ({
 			...state,
-			employees: state.employees.filter(e => e.id !== employeeId),
+			employees: state.employees.filter((e) => e.id !== employeeId),
 			total: state.total - 1,
 			selectedEmployee: state.selectedEmployee?.id === employeeId ? null : state.selectedEmployee
 		}));
@@ -160,7 +162,7 @@ export const employeeActions = {
 export const employeeStore = {
 	// Store subscription
 	subscribe: employeeState.subscribe,
-	
+
 	// Actions
 	...employeeActions
 };

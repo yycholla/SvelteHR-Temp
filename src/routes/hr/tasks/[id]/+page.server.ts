@@ -41,13 +41,15 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
 		const [assignedToResult, assignedByResult] = await Promise.allSettled(employeePromises);
 
 		// Process employee results
-		const assignedEmployee = assignedToResult.status === 'fulfilled' && assignedToResult.value.success 
-			? assignedToResult.value.data 
-			: null;
+		const assignedEmployee =
+			assignedToResult.status === 'fulfilled' && assignedToResult.value.success
+				? assignedToResult.value.data
+				: null;
 
-		const assignedByEmployee = assignedByResult.status === 'fulfilled' && assignedByResult.value.success
-			? assignedByResult.value.data
-			: null;
+		const assignedByEmployee =
+			assignedByResult.status === 'fulfilled' && assignedByResult.value.success
+				? assignedByResult.value.data
+				: null;
 
 		if (assignedToResult.status === 'rejected') {
 			console.warn('Failed to load assigned employee:', assignedToResult.reason);
@@ -63,16 +65,15 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
 			assignedEmployee,
 			assignedByEmployee
 		};
-
 	} catch (err) {
 		console.error('❌ Error loading task detail:', err);
-		
+
 		if (err instanceof Error) {
 			if (err.message.includes('ECONNREFUSED')) {
 				throw error(503, 'Unable to connect to the HR service. Please try again later.');
 			}
 		}
-		
+
 		throw err;
 	}
 };

@@ -1,0 +1,24 @@
+# SvelteHR Monorepo - Root Docker Compose
+# This extends the development configuration from configs/docker/
+
+version: '3.8'
+
+services:
+  # Import development services
+  geldb:
+    extends:
+      file: ./configs/docker/docker-compose.dev.yml
+      service: geldb
+    container_name: svelteHR-geldb
+    
+  redis:
+    extends:
+      file: ./configs/docker/docker-compose.dev.yml
+      service: redis
+    container_name: svelteHR-redis
+
+volumes:
+  gel_data:
+    name: svelteHR-gel-data
+  redis_data:
+    name: svelteHR-redis-data

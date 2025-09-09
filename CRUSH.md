@@ -1,6 +1,7 @@
 # CRUSH.md - SvelteHR Development Guide
 
 ## Build/Test/Lint Commands
+
 - `npm run dev` - Start development server
 - `npm run build` - Production build
 - `npm run check` - TypeScript/Svelte type checking
@@ -14,6 +15,7 @@
 - `npm run storybook` - Start Storybook dev server
 
 ## Code Style Guidelines
+
 - **Formatting**: Tabs (not spaces), single quotes, no trailing commas, 100 char width
 - **Imports**: Use `.js` extension for TypeScript imports, `$lib/` path aliases
 - **Types**: Export types with PascalCase, use `type` for type-only imports

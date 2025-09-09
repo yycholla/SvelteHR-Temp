@@ -11,11 +11,11 @@ export const trpc = createTRPCClient<AppRouter>({
 			fetch: (url, options) => {
 				return fetch(url, {
 					...options,
-					credentials: 'include', // Include cookies for JWT
+					credentials: 'include' // Include cookies for JWT
 				});
-			},
-		}),
-	],
+			}
+		})
+	]
 });
 
 // Export the client type for use in components
