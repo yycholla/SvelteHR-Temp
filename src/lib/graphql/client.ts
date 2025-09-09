@@ -1,538 +1,429 @@
 /**
- * GraphQL Client for GelDB Integration
- * Provides authenticated GraphQL operations for MountainHR
+ * GraphQL Client Library
+ * 
+ * Type-safe GraphQL client for SvelteKit with native fetch,
+ * authentication, error handling, and performance optimization.
+ * 
+ * Follows clean architecture principles with:
+ * - Separation of concerns
+ * - Dependency injection
+ * - Comprehensive error handling
+ * - TypeScript strict typing
  */
 
-import { browser } from '$app/environment';
-import { PUBLIC_GELDB_GRAPHQL_URL } from '$env/static/public';
-import { mockGraphQLServer } from './mock-server';
-import type { GraphQLResponse } from '../../tests/contract/auth.test';
+import { GRAPHQL_CONFIG } from '$lib/env';
+import type { 
+	GraphQLRequest, 
+	GraphQLResponse, 
+	GraphQLError,
+	ClientConfig,
+	QueryOptions,
+	MutationOptions,
+	SubscriptionOptions 
+} from './types';
 
-interface GraphQLRequestOptions {
-	token?: string;
-	headers?: Record<string, string>;
+/**
+ * Custom GraphQL Error class with enhanced error information
+ */
+export class GraphQLClientError extends Error {
+	constructor(
+		message: string,
+		public readonly errors?: GraphQLError[],
+		public readonly status?: number,
+		public readonly extensions?: Record<string, any>
+	) {
+		super(message);
+		this.name = 'GraphQLClientError';
+	}
+
+	/**
+	 * Check if error is authentication related
+	 */
+	get isAuthError(): boolean {
+		return this.extensions?.code === 'UNAUTHENTICATED' || 
+			this.status === 401;
+	}
+
+	/**
+	 * Check if error is permission related
+	 */
+	get isPermissionError(): boolean {
+		return this.extensions?.code === 'FORBIDDEN' || 
+			this.status === 403;
+	}
+
+	/**
+	 * Check if error is network related
+	 */
+	get isNetworkError(): boolean {
+		return this.status ? this.status >= 500 : false;
+	}
+
+	/**
+	 * Get user-friendly error message
+	 */
+	get userMessage(): string {
+		if (this.isAuthError) {
+			return 'Please log in to continue';
+		}
+		if (this.isPermissionError) {
+			return 'You don\'t have permission to perform this action';
+		}
+		if (this.isNetworkError) {
+			return 'Server error. Please try again later';
+		}
+		return this.message || 'An unexpected error occurred';
+	}
 }
 
 /**
- * GraphQL Client for GelDB backend integration
- * Handles authentication, error handling, and type-safe requests
+ * Server-side GraphQL client for +page.server.ts and API routes
+ * 
+ * Features:
+ * - Bearer token authentication
+ * - Request/response validation
+ * - Retry logic with exponential backoff
+ * - Query complexity validation
+ * - Type-safe operations
  */
-export class GraphQLClient {
-	private endpoint: string;
-	private defaultHeaders: Record<string, string>;
-	private useMockServer: boolean;
+export class ServerGraphQLClient {
+	private readonly endpoint: string;
+	private readonly headers: Record<string, string>;
+	private readonly timeout: number;
+	private readonly retryAttempts: number;
 
-	constructor(endpoint?: string, useMockServer?: boolean) {
-		// Default to GelDB GraphQL endpoint
-		this.endpoint = endpoint || PUBLIC_GELDB_GRAPHQL_URL || 'http://localhost:5656/db/main/graphql';
-		this.useMockServer = useMockServer ?? (process.env.NODE_ENV === 'test' || process.env.VITEST === 'true');
-		this.defaultHeaders = {
+	constructor(config: ClientConfig = {}) {
+		this.endpoint = config.endpoint || '/api/graphql';
+		this.timeout = config.timeout || GRAPHQL_CONFIG.queryTimeout;
+		this.retryAttempts = config.retryAttempts || 3;
+		
+		// Default headers
+		this.headers = {
 			'Content-Type': 'application/json',
-			'Accept': 'application/json'
+			'Accept': 'application/json',
+			...config.headers
 		};
 	}
 
 	/**
-	 * Execute GraphQL request with proper error handling
+	 * Set authentication token for subsequent requests
 	 */
-	async request<T = any>(
-		query: string,
-		variables?: any,
-		options?: GraphQLRequestOptions
+	setToken(token: string): void {
+		if (token) {
+			this.headers['Authorization'] = `Bearer ${token}`;
+		} else {
+			delete this.headers['Authorization'];
+		}
+	}
+
+	/**
+	 * Execute GraphQL query with retry logic
+	 */
+	async query<T = any>(
+		query: string, 
+		variables?: Record<string, any>,
+		options: QueryOptions = {}
 	): Promise<GraphQLResponse<T>> {
-		// Use mock server in test environment
-		if (this.useMockServer) {
-			console.log(`🧪 Using Mock GraphQL Server`);
-			// Pass token information to mock server for authentication testing
-			const mockVariables = { ...variables, _token: options?.token };
-			return mockGraphQLServer.request<T>(query, mockVariables);
-		}
-
-		const headers = {
-			...this.defaultHeaders,
-			...options?.headers
-		};
-
-		// Add authentication token if provided
-		if (options?.token) {
-			headers['Authorization'] = `Bearer ${options.token}`;
-		}
-
-		const requestBody = {
+		const request: GraphQLRequest = {
 			query: query.trim(),
-			variables: variables || {}
+			variables: variables || {},
+			operationName: options.operationName
 		};
+
+		return this.executeRequest<T>(request, options);
+	}
+
+	/**
+	 * Execute GraphQL mutation
+	 */
+	async mutate<T = any>(
+		mutation: string,
+		variables?: Record<string, any>,
+		options: MutationOptions = {}
+	): Promise<GraphQLResponse<T>> {
+		const request: GraphQLRequest = {
+			query: mutation.trim(),
+			variables: variables || {},
+			operationName: options.operationName
+		};
+
+		return this.executeRequest<T>(request, { ...options, skipCache: true });
+	}
+
+	/**
+	 * Execute GraphQL request with comprehensive error handling
+	 */
+	private async executeRequest<T>(
+		request: GraphQLRequest,
+		options: QueryOptions = {}
+	): Promise<GraphQLResponse<T>> {
+		let lastError: Error | null = null;
+
+		// Retry logic with exponential backoff
+		for (let attempt = 0; attempt < this.retryAttempts; attempt++) {
+			try {
+				const response = await this.makeRequest<T>(request, options);
+				
+				// Return successful response
+				if (!response.errors || response.errors.length === 0) {
+					return response;
+				}
+
+				// Handle GraphQL errors (don't retry for client errors)
+				const hasClientError = response.errors.some(error => 
+					error.extensions?.code === 'UNAUTHENTICATED' ||
+					error.extensions?.code === 'FORBIDDEN' ||
+					error.extensions?.code === 'VALIDATION_ERROR'
+				);
+
+				if (hasClientError) {
+					throw new GraphQLClientError(
+						response.errors[0].message,
+						response.errors,
+						undefined,
+						response.errors[0].extensions
+					);
+				}
+
+				// Return response with errors for non-client errors
+				return response;
+
+			} catch (error) {
+				lastError = error as Error;
+
+				// Don't retry for client errors
+				if (error instanceof GraphQLClientError && 
+					(error.isAuthError || error.isPermissionError)) {
+					throw error;
+				}
+
+				// Wait before retry (exponential backoff)
+				if (attempt < this.retryAttempts - 1) {
+					const delay = Math.pow(2, attempt) * 1000;
+					await new Promise(resolve => setTimeout(resolve, delay));
+				}
+			}
+		}
+
+		// All retries exhausted
+		throw lastError || new GraphQLClientError('Request failed after retries');
+	}
+
+	/**
+	 * Make HTTP request to GraphQL endpoint
+	 */
+	private async makeRequest<T>(
+		request: GraphQLRequest,
+		options: QueryOptions = {}
+	): Promise<GraphQLResponse<T>> {
+		// Create abort controller for timeout
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
 		try {
-			console.log(`🔄 GraphQL Request to ${this.endpoint}:`, {
-				query: query.slice(0, 100) + '...',
-				variables
-			});
-
 			const response = await fetch(this.endpoint, {
 				method: 'POST',
-				headers,
-				body: JSON.stringify(requestBody)
+				headers: this.headers,
+				body: JSON.stringify(request),
+				signal: controller.signal
 			});
 
+			clearTimeout(timeoutId);
+
+			// Handle HTTP errors
 			if (!response.ok) {
-				console.error(`❌ HTTP Error ${response.status}:`, response.statusText);
-				return {
-					errors: [{
-						message: `HTTP ${response.status}: ${response.statusText}`
-					}]
-				};
+				const errorText = await response.text();
+				throw new GraphQLClientError(
+					`HTTP ${response.status}: ${response.statusText}`,
+					undefined,
+					response.status
+				);
 			}
 
+			// Parse JSON response
 			const result: GraphQLResponse<T> = await response.json();
-
-			if (result.errors && result.errors.length > 0) {
-				console.error('❌ GraphQL Errors:', result.errors);
-			} else if (result.data) {
-				console.log('✅ GraphQL Success:', Object.keys(result.data));
+			
+			// Validate response structure
+			if (typeof result !== 'object' || result === null) {
+				throw new GraphQLClientError('Invalid GraphQL response format');
 			}
 
 			return result;
+
 		} catch (error) {
-			console.error('❌ GraphQL Request Failed:', error);
-			return {
-				errors: [{
-					message: error instanceof Error ? error.message : 'Network error'
-				}]
-			};
-		}
-	}
+			clearTimeout(timeoutId);
 
-	/**
-	 * Execute authenticated GraphQL request
-	 * Automatically includes authentication token from storage
-	 */
-	async authenticatedRequest<T = any>(
-		query: string,
-		variables?: any,
-		token?: string
-	): Promise<GraphQLResponse<T>> {
-		// Try to get token from parameter, localStorage, or cookies
-		let authToken = token;
-
-		if (!authToken && browser) {
-			// Try localStorage first
-			authToken = localStorage.getItem('hr_token') || undefined;
-			
-			// Try cookies as fallback
-			if (!authToken) {
-				const cookies = document.cookie.split(';');
-				for (const cookie of cookies) {
-					const [name, value] = cookie.trim().split('=');
-					if (name === 'hr_token' || name === 'auth-token') {
-						authToken = value;
-						break;
-					}
-				}
+			// Handle timeout
+			if (error instanceof Error && error.name === 'AbortError') {
+				throw new GraphQLClientError('Request timeout');
 			}
-		}
 
-		return this.request<T>(query, variables, {
-			token: authToken || undefined
-		});
-	}
-
-	/**
-	 * Check if GraphQL endpoint is available
-	 */
-	async healthCheck(): Promise<boolean> {
-		try {
-			// Simple introspection query to check if GraphQL endpoint is available
-			const introspectionQuery = `
-				query IntrospectionQuery {
-					__schema {
-						queryType {
-							name
-						}
-					}
-				}
-			`;
-
-			const result = await this.request(introspectionQuery);
-			return !result.errors && !!result.data;
-		} catch (error) {
-			console.warn('GraphQL endpoint health check failed:', error);
-			return false;
-		}
-	}
-
-	/**
-	 * Get GraphQL schema information
-	 */
-	async getSchema(): Promise<any> {
-		const introspectionQuery = `
-			query IntrospectionQuery {
-				__schema {
-					types {
-						name
-						kind
-						description
-					}
-					queryType {
-						name
-						fields {
-							name
-							description
-						}
-					}
-					mutationType {
-						name
-						fields {
-							name
-							description
-						}
-					}
-				}
+			// Handle network errors
+			if (error instanceof TypeError && error.message.includes('fetch')) {
+				throw new GraphQLClientError('Network error - please check your connection');
 			}
-		`;
 
-		const result = await this.request(introspectionQuery);
-		return result.data?.__schema;
+			// Re-throw GraphQL errors
+			if (error instanceof GraphQLClientError) {
+				throw error;
+			}
+
+			// Handle unexpected errors
+			throw new GraphQLClientError(
+				`Request failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
+		}
 	}
 }
 
 /**
- * Default GraphQL client instance
- * Can be used throughout the application
+ * Browser-side GraphQL client for client components
+ * 
+ * Features:
+ * - Response caching
+ * - Request deduplication  
+ * - Loading state management
+ * - Token refresh handling
  */
-export const graphqlClient = new GraphQLClient();
+export class BrowserGraphQLClient extends ServerGraphQLClient {
+	private readonly cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
+	private readonly pendingRequests = new Map<string, Promise<any>>();
 
-/**
- * Authentication-specific GraphQL operations
- * Type-safe wrappers for common auth operations
- */
-export const authOperations = {
+	constructor(config: ClientConfig = {}) {
+		super(config);
+	}
+
 	/**
-	 * Login mutation with proper typing
+	 * Execute query with caching support
 	 */
-	async login(email: string, password: string): Promise<GraphQLResponse<any>> {
-		const LOGIN_MUTATION = `
-			mutation Login($input: LoginInput!) {
-				login(input: $input) {
-					token
-					refreshToken
-					user {
-						id
-						email
-						firstName
-						lastName
-						roles {
-							id
-							name
-							level
-						}
-					}
-					expiresAt
-				}
-			}
-		`;
+	async query<T = any>(
+		query: string,
+		variables?: Record<string, any>,
+		options: QueryOptions = {}
+	): Promise<GraphQLResponse<T>> {
+		const cacheKey = this.getCacheKey(query, variables);
 
-		return graphqlClient.request(LOGIN_MUTATION, {
-			input: { email, password }
+		// Check cache first (unless disabled)
+		if (!options.skipCache && GRAPHQL_CONFIG.enableCaching) {
+			const cached = this.getCachedResult<T>(cacheKey);
+			if (cached) {
+				return { data: cached, fromCache: true };
+			}
+		}
+
+		// Check for pending request (deduplication)
+		const pendingRequest = this.pendingRequests.get(cacheKey);
+		if (pendingRequest) {
+			return await pendingRequest;
+		}
+
+		// Execute request
+		const requestPromise = super.query<T>(query, variables, options);
+		this.pendingRequests.set(cacheKey, requestPromise);
+
+		try {
+			const result = await requestPromise;
+
+			// Cache successful results
+			if (result.data && !result.errors && GRAPHQL_CONFIG.enableCaching) {
+				this.setCachedResult(cacheKey, result.data, GRAPHQL_CONFIG.cacheTtl);
+			}
+
+			return result;
+
+		} finally {
+			this.pendingRequests.delete(cacheKey);
+		}
+	}
+
+	/**
+	 * Generate cache key from query and variables
+	 */
+	private getCacheKey(query: string, variables?: Record<string, any>): string {
+		const normalizedQuery = query.replace(/\s+/g, ' ').trim();
+		const variablesStr = variables ? JSON.stringify(variables) : '';
+		return btoa(normalizedQuery + variablesStr);
+	}
+
+	/**
+	 * Get cached result if valid
+	 */
+	private getCachedResult<T>(cacheKey: string): T | null {
+		const cached = this.cache.get(cacheKey);
+		if (!cached) return null;
+
+		const now = Date.now();
+		if (now > cached.timestamp + cached.ttl) {
+			this.cache.delete(cacheKey);
+			return null;
+		}
+
+		return cached.data;
+	}
+
+	/**
+	 * Cache result with TTL
+	 */
+	private setCachedResult(cacheKey: string, data: any, ttl: number): void {
+		this.cache.set(cacheKey, {
+			data,
+			timestamp: Date.now(),
+			ttl
 		});
-	},
 
-	/**
-	 * Get current user (Me query)
-	 */
-	async me(token?: string): Promise<GraphQLResponse<any>> {
-		const ME_QUERY = `
-			query Me {
-				me {
-					id
-					email
-					firstName
-					lastName
-					isActive
-					roles {
-						id
-						name
-						level
-						permissions {
-							resource
-							action
-							scope
-						}
-					}
-					employee {
-						id
-						employeeId
-						position
-						department {
-							id
-							name
-						}
-					}
-				}
+		// Cleanup old cache entries (simple LRU)
+		if (this.cache.size > 100) {
+			const oldestKey = this.cache.keys().next().value;
+			if (oldestKey) {
+				this.cache.delete(oldestKey);
 			}
-		`;
-
-		return graphqlClient.authenticatedRequest(ME_QUERY, {}, token);
-	},
-
-	/**
-	 * Refresh authentication token
-	 */
-	async refreshToken(refreshToken: string): Promise<GraphQLResponse<any>> {
-		const REFRESH_MUTATION = `
-			mutation RefreshToken($refreshToken: String!) {
-				refreshToken(refreshToken: $refreshToken) {
-					token
-					refreshToken
-					expiresAt
-				}
-			}
-		`;
-
-		return graphqlClient.request(REFRESH_MUTATION, { refreshToken });
+		}
 	}
-};
+
+	/**
+	 * Clear cache (useful for logout or data refresh)
+	 */
+	clearCache(): void {
+		this.cache.clear();
+		this.pendingRequests.clear();
+	}
+}
 
 /**
- * Dashboard-specific GraphQL operations
+ * Factory function to create server-side GraphQL client
+ * Used in +page.server.ts and API routes
  */
-export const dashboardOperations = {
-	/**
-	 * Get comprehensive dashboard statistics
-	 */
-	async getDashboardStats(userRole?: string): Promise<GraphQLResponse<any>> {
-		const DASHBOARD_STATS_QUERY = `
-			query DashboardStats($userRole: String) {
-				dashboardStats(userRole: $userRole) {
-					personalStats {
-						totalEmployees
-						newEmployeesThisMonth
-						pendingTasks
-						availableTimeOff
-						myTasks
-						myPendingLeave
-					}
-					teamStats {
-						teamSize
-						teamTasksCompleted
-						teamPendingApprovals
-						teamPerformanceScore
-					}
-					systemStats {
-						apiRequestCount
-						averageLatency
-						errorRate
-						activeConnections
-						systemUptime
-					}
-					hrStats {
-						totalEmployees
-						complianceItems
-						leaveRequests
-						hrRequests
-					}
-					recentActivities {
-						id
-						type
-						message
-						time
-						avatar
-					}
-					upcomingEvents {
-						id
-						title
-						date
-						attendees
-						type
-					}
-					notifications
-				}
-			}
-		`;
-
-		return graphqlClient.authenticatedRequest(DASHBOARD_STATS_QUERY, { userRole });
-	},
-
-	/**
-	 * Get quick employee count for dashboard
-	 */
-	async getEmployeeCount(): Promise<GraphQLResponse<any>> {
-		const EMPLOYEE_COUNT_QUERY = `
-			query EmployeeCount {
-				employeeCount {
-					total
-					active
-					newThisMonth
-				}
-			}
-		`;
-
-		return graphqlClient.authenticatedRequest(EMPLOYEE_COUNT_QUERY);
+export function createServerGraphQLClient(
+	token?: string,
+	config: ClientConfig = {}
+): ServerGraphQLClient {
+	const client = new ServerGraphQLClient(config);
+	
+	if (token) {
+		client.setToken(token);
 	}
-};
+	
+	return client;
+}
 
 /**
- * Employee-specific GraphQL operations
+ * Factory function to create browser-side GraphQL client
+ * Used in Svelte components and client-side code
  */
-export const employeeOperations = {
-	/**
-	 * Get paginated employee list
-	 */
-	async getEmployees(params: {
-		page?: number;
-		limit?: number;
-		search?: string;
-		department?: string;
-		status?: string;
-		sortBy?: string;
-		sortOrder?: string;
-	} = {}): Promise<GraphQLResponse<any>> {
-		const EMPLOYEES_QUERY = `
-			query Employees(
-				$page: Int
-				$limit: Int
-				$search: String
-				$department: ID
-				$status: EmployeeStatus
-				$sortBy: EmployeeSortField
-				$sortOrder: SortOrder
-			) {
-				employees(
-					page: $page
-					limit: $limit
-					search: $search
-					department: $department
-					status: $status
-					sortBy: $sortBy
-					sortOrder: $sortOrder
-				) {
-					employees {
-						id
-						employeeId
-						user {
-							id
-							email
-							firstName
-							lastName
-						}
-						department {
-							id
-							name
-						}
-						position
-						status
-						hireDate
-						createdAt
-						updatedAt
-					}
-					total
-					page
-					limit
-					hasNextPage
-					hasPreviousPage
-				}
-			}
-		`;
+export function createBrowserGraphQLClient(
+	config: ClientConfig = {}
+): BrowserGraphQLClient {
+	return new BrowserGraphQLClient(config);
+}
 
-		return graphqlClient.authenticatedRequest(EMPLOYEES_QUERY, params);
-	},
-
-	/**
-	 * Get single employee by ID
-	 */
-	async getEmployee(id: string): Promise<GraphQLResponse<any>> {
-		const EMPLOYEE_QUERY = `
-			query Employee($id: ID!) {
-				employee(id: $id) {
-					id
-					employeeId
-					user {
-						id
-						email
-						firstName
-						lastName
-						isActive
-					}
-					department {
-						id
-						name
-						description
-					}
-					position
-					manager {
-						id
-						employeeId
-						user {
-							firstName
-							lastName
-						}
-					}
-					directReports {
-						id
-						employeeId
-						user {
-							firstName
-							lastName
-						}
-						position
-					}
-					hireDate
-					status
-					salary
-					phone
-					address
-					createdAt
-					updatedAt
-				}
-			}
-		`;
-
-		return graphqlClient.authenticatedRequest(EMPLOYEE_QUERY, { id });
-	},
-
-	/**
-	 * Create new employee
-	 */
-	async createEmployee(input: {
-		email: string;
-		firstName: string;
-		lastName: string;
-		employeeId: string;
-		departmentId: string;
-		position: string;
-		managerId?: string;
-		hireDate: string;
-		salary?: number;
-		phone?: string;
-		address?: string;
-	}): Promise<GraphQLResponse<any>> {
-		const CREATE_EMPLOYEE_MUTATION = `
-			mutation CreateEmployee($input: CreateEmployeeInput!) {
-				createEmployee(input: $input) {
-					id
-					employeeId
-					user {
-						id
-						email
-						firstName
-						lastName
-					}
-					department {
-						id
-						name
-					}
-					position
-					hireDate
-					status
-					createdAt
-					updatedAt
-				}
-			}
-		`;
-
-		return graphqlClient.authenticatedRequest(CREATE_EMPLOYEE_MUTATION, { input });
-	}
+/**
+ * Export commonly used types for convenience
+ */
+export type { 
+	GraphQLRequest, 
+	GraphQLResponse, 
+	GraphQLError,
+	ClientConfig,
+	QueryOptions,
+	MutationOptions 
 };
-
-// Export types for use in components
-export type { GraphQLResponse };

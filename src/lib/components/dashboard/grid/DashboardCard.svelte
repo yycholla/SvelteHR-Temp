@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
+	import { createEventDispatcher, onMount, onDestroy } from 'svelte';
 	import { fade, scale } from 'svelte/transition';
 	import Card from '$lib/components/ui/card/card.svelte';
 	import CardHeader from '$lib/components/ui/card/card-header.svelte';
@@ -18,13 +18,37 @@
 		Eye,
 		EyeOff
 	} from 'lucide-svelte';
-	import type { CardInstance, CardMetadata } from '../types.js';
+	import type { CardInstance, CardMetadata, CardProps } from '../types.js';
 
-	// Props
-	export let instance: CardInstance;
-	export let metadata: CardMetadata | undefined;
-	export let editable = false;
-	export const data: any = null; // Non-stream data (API/prefetched)
+	// Props - Enhanced for GraphQL integration
+	interface Props {
+		cardInstance: CardInstance;
+		cardMetadata: CardMetadata;
+		data?: any;
+		isCustomizing?: boolean;
+		component?: any; // Svelte component
+		onRefresh?: () => Promise<void>;
+		onRemove?: () => void;
+		onConfigure?: (config: Record<string, any>) => void;
+		className?: string;
+	}
+	
+	let { 
+		cardInstance, 
+		cardMetadata, 
+		data, 
+		isCustomizing = false,
+		component,
+		onRefresh,
+		onRemove,
+		onConfigure,
+		className = ''
+	}: Props = $props();
+
+	// Legacy props support
+	export let instance: CardInstance = cardInstance;
+	export let metadata: CardMetadata = cardMetadata;
+	export let editable = isCustomizing;
 	export const stream: any = null; // Live stream data injected by grid
 	export let loading = false;
 	export let error: string | null = null;
@@ -43,28 +67,48 @@
 	let isRefreshing = false;
 	let cardElement: HTMLElement;
 
-	// Handle refresh
+	// Enhanced refresh handler with async support
 	async function handleRefresh() {
 		if (isRefreshing) return;
 
 		isRefreshing = true;
-		dispatch('refresh');
-
-		// Show refresh animation for at least 500ms
-		setTimeout(() => {
-			isRefreshing = false;
-		}, 500);
+		
+		try {
+			if (onRefresh) {
+				await onRefresh();
+			} else {
+				dispatch('refresh');
+			}
+		} catch (err) {
+			console.error('Card refresh failed:', err);
+			error = 'Failed to refresh card data';
+		} finally {
+			// Show refresh animation for at least 500ms
+			setTimeout(() => {
+				isRefreshing = false;
+			}, 500);
+		}
 	}
 
-	// Handle remove
+	// Enhanced remove handler
 	function handleRemove() {
-		dispatch('remove');
+		if (onRemove) {
+			onRemove();
+		} else {
+			dispatch('remove');
+		}
 		showMenu = false;
 	}
 
-	// Handle configure
+	// Enhanced configure handler
 	function handleConfigure() {
-		dispatch('configure', instance.config || {});
+		const config = cardInstance.config || {};
+		
+		if (onConfigure) {
+			onConfigure(config);
+		} else {
+			dispatch('configure', config);
+		}
 		showMenu = false;
 	}
 
@@ -143,17 +187,19 @@
 			class="relative flex flex-row items-center justify-between space-y-0 px-4 pt-4 pb-3"
 		>
 			<div class="flex min-w-0 flex-1 items-center space-x-3">
-				{#if metadata?.icon}
-					<span class="flex-shrink-0 text-lg">{getIconComponent(metadata.icon)}</span>
+				{#if cardMetadata?.icon || metadata?.icon}
+					<span class="flex-shrink-0 text-lg">
+						{getIconComponent(cardMetadata?.icon || metadata?.icon)}
+					</span>
 				{/if}
 				<CardTitle class="truncate text-sm font-semibold">
-					{metadata?.title || 'Unknown Card'}
+					{cardMetadata?.title || metadata?.title || 'Unknown Card'}
 				</CardTitle>
 			</div>
 
 			<!-- Card Actions -->
 			<div class="flex items-center space-x-1 opacity-0 transition-opacity group-hover:opacity-100">
-				{#if metadata?.refreshInterval !== undefined}
+				{#if (cardMetadata?.refreshInterval || metadata?.refreshInterval) !== undefined}
 					<Button
 						variant="ghost"
 						size="sm"
@@ -165,7 +211,7 @@
 					</Button>
 				{/if}
 
-				{#if editable}
+				{#if isCustomizing || editable}
 					<div class="relative">
 						<Button
 							variant="ghost"
@@ -181,7 +227,7 @@
 								class="absolute top-8 right-0 z-50 min-w-[120px] rounded-md border border-border bg-white py-1 shadow-lg"
 								transition:scale={{ duration: 150 }}
 							>
-								{#if metadata?.configurable}
+								{#if cardMetadata?.configurable || metadata?.configurable}
 									<button
 										class="flex w-full items-center space-x-2 px-3 py-1 text-left text-sm hover:bg-muted"
 										on:click={handleConfigure}
@@ -195,7 +241,7 @@
 									class="flex w-full items-center space-x-2 px-3 py-1 text-left text-sm hover:bg-muted"
 									on:click={handleToggleVisibility}
 								>
-									{#if instance.visible}
+									{#if cardInstance.visible || instance.visible}
 										<EyeOff class="h-3 w-3" />
 										<span>Hide</span>
 									{:else}
@@ -250,47 +296,71 @@
 			{:else}
 				<!-- Dynamic Card Content -->
 				<div class="h-full w-full overflow-hidden">
-					{#await import(`../cards/${metadata.component}.svelte`)}
-						<div class="flex h-full items-center justify-center">
-							<div class="animate-pulse text-muted-foreground">Loading...</div>
-						</div>
-					{:then cardComponent}
+					{#if component}
+						<!-- Direct component rendering for better performance -->
 						<svelte:component
-							this={cardComponent.default}
-							{instance}
-							{metadata}
-							data={stream ?? data}
+							this={component}
+							instance={cardInstance}
+							metadata={cardMetadata}
+							{data}
+							{loading}
+							{error}
+							onRefresh={handleRefresh}
 						/>
-					{:catch}
-						<!-- Fallback content for cards without components -->
-						<div class="space-y-4">
-							<div class="pt-4 text-center text-sm text-muted-foreground">
-								<div class="mb-2 text-4xl opacity-30">🔧</div>
-								<p>Card implementation coming soon</p>
+					{:else}
+						<!-- Fallback to dynamic import -->
+						{#await import(`../cards/${cardMetadata.component}.svelte`)}
+							<div class="flex h-full items-center justify-center">
+								<div class="animate-pulse text-muted-foreground">Loading component...</div>
 							</div>
-
-							<!-- Debug info in development -->
-							{#if import.meta.env.DEV}
-								<div class="mt-4 border-t border-border pt-2">
-									<details class="text-xs text-muted-foreground">
-										<summary>Debug Info</summary>
-										<pre class="mt-2 overflow-auto text-xs">{JSON.stringify(
-												{ instance, metadata },
-												null,
-												2
-											)}</pre>
-									</details>
+						{:then cardComponent}
+							<svelte:component
+								this={cardComponent.default}
+								instance={cardInstance}
+								metadata={cardMetadata}
+								data={stream ?? data}
+								{loading}
+								{error}
+								onRefresh={handleRefresh}
+							/>
+						{:catch importError}
+							<!-- Enhanced fallback with error details -->
+							<div class="space-y-4">
+								<div class="pt-4 text-center text-sm text-muted-foreground">
+									<div class="mb-2 text-4xl opacity-30">⚠️</div>
+									<p class="font-medium">Component not found</p>
+									<p class="text-xs">
+										{cardMetadata.component}.svelte
+									</p>
 								</div>
-							{/if}
-						</div>
-					{/await}
+
+								<!-- Debug info in development -->
+								{#if import.meta.env.DEV}
+									<div class="mt-4 border-t border-border pt-2">
+										<details class="text-xs text-muted-foreground">
+											<summary>Debug Info</summary>
+											<pre class="mt-2 overflow-auto text-xs">{JSON.stringify(
+													{ 
+														cardInstance, 
+														cardMetadata,
+														importError: importError.message
+													},
+													null,
+													2
+												)}</pre>
+										</details>
+									</div>
+								{/if}
+							</div>
+						{/await}
+					{/if}
 				</div>
 			{/if}
 		</CardContent>
 	</Card>
 
 	<!-- Resize handles for editing mode -->
-	{#if editable && metadata?.allowResize}
+	{#if (isCustomizing || editable) && (cardMetadata?.allowResize || metadata?.allowResize)}
 		<div
 			class="absolute right-0 bottom-0 h-4 w-4 cursor-se-resize opacity-0 transition-opacity group-hover:opacity-50 hover:opacity-100"
 		>

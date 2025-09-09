@@ -18,7 +18,7 @@ import { dev } from '$app/environment';
  */
 
 describe('Contract Test: GET /auth/verify', () => {
-	const baseUrl = dev ? 'http://localhost:5173' : 'https://app.sveltehr.com';
+	const baseUrl = dev ? 'http://localhost:4000' : 'https://app.sveltehr.com';
 
 	beforeEach(() => {
 		// Reset any existing auth state

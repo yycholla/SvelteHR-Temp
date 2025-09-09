@@ -18,7 +18,7 @@ import { dev } from '$app/environment';
  */
 
 describe('Contract Test: GET /api/users/{userId}/permissions', () => {
-	const baseUrl = dev ? 'http://localhost:5173' : 'https://app.sveltehr.com';
+	const baseUrl = dev ? 'http://localhost:4000' : 'https://app.sveltehr.com';
 	const testUserId = '123e4567-e89b-12d3-a456-426614174000'; // Example UUID
 
 	beforeEach(() => {

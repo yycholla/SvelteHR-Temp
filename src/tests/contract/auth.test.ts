@@ -7,7 +7,8 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { LoginInput } from '../../lib/generated/graphql';
-import { GraphQLClient } from '../../lib/graphql/client';
+import { createServerGraphQLClient } from '../../lib/graphql/client';
+import { TEST_CONFIG, waitForServer } from '../config';
 
 // Define GraphQLResponse type locally to avoid circular imports
 interface GraphQLResponse<T = any> {
@@ -15,8 +16,8 @@ interface GraphQLResponse<T = any> {
 	errors?: Array<{ message: string }>;
 }
 
-// Real GraphQL client - will connect to actual GelDB endpoint
-const graphqlClient = new GraphQLClient();
+// Real GraphQL client - will connect to actual SvelteKit server
+const graphqlClient = createServerGraphQLClient();
 
 // Authentication GraphQL operations
 const LOGIN_MUTATION = `

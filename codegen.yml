@@ -1,6 +1,8 @@
 overwrite: true
 schema:
   - './specs/001-develop-mountainhr-frontend/contracts/*.graphql'
+  - './specs/003-graphql-we-need/contracts/*.graphql'
+  - 'http://localhost:5656/db/main/ext/graphql'
 documents:
   - 'src/**/*.graphql'
   - 'src/**/*.ts'
@@ -10,12 +12,17 @@ generates:
     plugins:
       - 'typescript'
       - 'typescript-operations'
+      - 'typed-document-node'
     config:
       skipTypename: false
       scalars:
         DateTime: string
         Date: string
+        Time: string
+        Decimal: number
         JSON: Record<string, any>
+        UUID: string
+        Upload: File
       namingConvention:
         typeNames: pascal-case#pascalCase
         enumValues: upper-case#upperCase

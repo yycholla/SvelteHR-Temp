@@ -10,19 +10,40 @@
 	import DropdownMenuTrigger from '$lib/components/ui/dropdown-menu/dropdown-menu-trigger.svelte';
 	import DropdownMenuContent from '$lib/components/ui/dropdown-menu/dropdown-menu-content.svelte';
 	import DropdownMenuItem from '$lib/components/ui/dropdown-menu/dropdown-menu-item.svelte';
-	import type { Employee } from '$lib/data/mockEmployees.js';
 	import { goto } from '$app/navigation';
+	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
 
-	let { employee }: { employee: Employee } = $props();
+	// Props - Enhanced for GraphQL integration
+	interface Props {
+		employee: any; // Employee from GraphQL
+		selected?: boolean;
+		onToggleSelection?: () => void;
+		onAction?: (action: string) => void;
+		showActions?: boolean;
+		className?: string;
+	}
+
+	let { 
+		employee, 
+		selected = false,
+		onToggleSelection,
+		onAction,
+		showActions = true,
+		className = ''
+	}: Props = $props();
 
 	function getStatusColor(status: string) {
-		switch (status) {
+		const normalizedStatus = status?.toUpperCase();
+		switch (normalizedStatus) {
 			case 'ACTIVE':
 				return 'bg-green-500/20 text-green-700 border-green-500/30';
 			case 'ON_LEAVE':
+			case 'ON LEAVE':
 				return 'bg-orange-500/20 text-orange-700 border-orange-500/30';
 			case 'INACTIVE':
 				return 'bg-gray-500/20 text-gray-700 border-gray-500/30';
+			case 'TERMINATED':
+				return 'bg-red-500/20 text-red-700 border-red-500/30';
 			default:
 				return 'bg-gray-500/20 text-gray-700 border-gray-500/30';
 		}
@@ -42,87 +63,119 @@
 		return colors[color] || colors['slate'];
 	}
 
-	function getInitials(firstName: string, lastName: string) {
-		return `${firstName.charAt(0)}${lastName.charAt(0)}`;
+	function getInitials(name: string) {
+		if (!name) return '?';
+		const parts = name.split(' ');
+		if (parts.length >= 2) {
+			return `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`;
+		}
+		return name.charAt(0);
 	}
 
 	function viewEmployee() {
-		goto(`/employees/${employee.id}`);
+		if (onAction) {
+			onAction('view');
+		} else {
+			goto(`/employees/${employee.id}`);
+		}
 	}
 
 	function editEmployee() {
-		goto(`/employees/${employee.id}/edit`);
+		if (onAction) {
+			onAction('edit');
+		} else {
+			goto(`/employees/${employee.id}/edit`);
+		}
+	}
+
+	function deleteEmployee() {
+		if (onAction) {
+			onAction('delete');
+		}
 	}
 
 	function messageEmployee() {
-		// TODO: Implement messaging functionality
-		console.log('Messaging employee:', employee.id);
+		if (onAction) {
+			onAction('message');
+		}
 	}
 </script>
 
-<div class="group relative">
+<div class="group relative {className}">
 	<div
-		class="rounded-2xl border border-border/40 bg-background/10 p-6 shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:bg-background/20 hover:shadow-xl"
+		class="rounded-2xl border border-border/40 bg-background/10 p-6 shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:bg-background/20 hover:shadow-xl {selected ? 'ring-2 ring-primary/50 bg-primary/5' : ''}"
 	>
+		<!-- Selection Checkbox (top right) -->
+		{#if onToggleSelection}
+			<div class="absolute top-3 left-3">
+				<Checkbox
+					checked={selected}
+					onCheckedChange={onToggleSelection}
+					class="opacity-0 group-hover:opacity-100 transition-opacity {selected ? 'opacity-100' : ''}"
+				/>
+			</div>
+		{/if}
+
 		<!-- Header with Avatar and Actions -->
-		<div class="mb-4 flex items-start justify-between">
+		<div class="mb-4 flex items-start justify-between {onToggleSelection ? 'mt-2' : ''}">
 			<div class="flex items-center space-x-3">
 				<Avatar class="h-12 w-12 ring-2 ring-background/50">
-					{#if employee.avatar}
-						<AvatarImage src={employee.avatar} alt="{employee.firstName} {employee.lastName}" />
+					{#if employee.avatar_url}
+						<AvatarImage src={employee.avatar_url} alt={employee.full_name || `${employee.first_name} ${employee.last_name}`} />
 					{/if}
 					<AvatarFallback class="bg-primary/10 font-semibold text-primary">
-						{getInitials(employee.firstName, employee.lastName)}
+						{getInitials(employee.full_name || `${employee.first_name || ''} ${employee.last_name || ''}`)}
 					</AvatarFallback>
 				</Avatar>
 				<div>
 					<h3 class="text-lg font-semibold text-foreground">
-						{employee.firstName}
-						{employee.lastName}
+						{employee.full_name || `${employee.first_name || ''} ${employee.last_name || ''}`}
 					</h3>
-					<p class="text-sm text-muted-foreground">{employee.employeeId}</p>
+					<p class="text-sm text-muted-foreground">{employee.employee_id}</p>
 				</div>
 			</div>
 
 			<!-- Actions Menu -->
-			<DropdownMenu>
-				<DropdownMenuTrigger asChild>
-					<Button
-						variant="ghost"
-						size="sm"
-						class="rounded-xl opacity-0 transition-opacity group-hover:opacity-100"
+			{#if showActions}
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button
+							variant="ghost"
+							size="sm"
+							class="rounded-xl opacity-0 transition-opacity group-hover:opacity-100"
+						>
+							<MoreHorizontal class="h-4 w-4" />
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent
+						class="w-48 rounded-xl border-border/40 bg-background/95 backdrop-blur-md"
 					>
-						<MoreHorizontal class="h-4 w-4" />
-					</Button>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent
-					class="w-48 rounded-xl border-border/40 bg-background/95 backdrop-blur-md"
-				>
-					<DropdownMenuItem onclick={viewEmployee} class="rounded-lg">
-						<Eye class="mr-2 h-4 w-4" />
-						View Details
-					</DropdownMenuItem>
-					<DropdownMenuItem onclick={editEmployee} class="rounded-lg">
-						<Edit class="mr-2 h-4 w-4" />
-						Edit Employee
-					</DropdownMenuItem>
-					<DropdownMenuItem onclick={messageEmployee} class="rounded-lg">
-						<MessageCircle class="mr-2 h-4 w-4" />
-						Send Message
-					</DropdownMenuItem>
-				</DropdownMenuContent>
-			</DropdownMenu>
+						<DropdownMenuItem onclick={viewEmployee} class="rounded-lg">
+							<Eye class="mr-2 h-4 w-4" />
+							View Details
+						</DropdownMenuItem>
+						<DropdownMenuItem onclick={editEmployee} class="rounded-lg">
+							<Edit class="mr-2 h-4 w-4" />
+							Edit Employee
+						</DropdownMenuItem>
+						<DropdownMenuItem onclick={messageEmployee} class="rounded-lg">
+							<MessageCircle class="mr-2 h-4 w-4" />
+							Send Message
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
+			{/if}
 		</div>
 
 		<!-- Position and Department -->
 		<div class="mb-4">
-			<p class="mb-2 font-medium text-foreground">{employee.position.title}</p>
+			<p class="mb-2 font-medium text-foreground">{employee.position || 'No Position'}</p>
 			<div class="flex items-center justify-between">
-				<Badge class="rounded-lg border {getDepartmentColor(employee.department.color)}">
-					{employee.department.name}
+				<Badge class="rounded-lg border {getDepartmentColor(employee.department?.color || 'slate')}">
+					{employee.department?.name || 'No Department'}
 				</Badge>
 				<Badge class="rounded-lg border {getStatusColor(employee.status)}">
-					{employee.status.replace('_', ' ')}
+					{(employee.status || 'unknown').replace('_', ' ')}
 				</Badge>
 			</div>
 		</div>
@@ -147,7 +200,11 @@
 
 		<!-- Footer with Hire Date -->
 		<div class="border-t border-border/20 pt-3 text-xs text-muted-foreground">
-			Hired {formatHireDate(employee.hireDate)}
+			{#if employee.hire_date}
+				Hired {new Date(employee.hire_date).toLocaleDateString()}
+			{:else}
+				Hire date not available
+			{/if}
 		</div>
 
 		<!-- Quick Actions (visible on hover) -->

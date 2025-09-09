@@ -6,10 +6,11 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { GraphQLClient, type GraphQLResponse, authOperations } from '../../lib/graphql/client';
+import { createServerGraphQLClient, type GraphQLResponse } from '../../lib/graphql/client';
+import { TEST_CONFIG, waitForServer } from '../config';
 
-// Real GraphQL client - will connect to actual GelDB endpoint
-const graphqlClient = new GraphQLClient();
+// Real GraphQL client - will connect to actual SvelteKit server
+const graphqlClient = createServerGraphQLClient();
 
 // Authentication token for contract tests
 let contractTestAuthToken: string;

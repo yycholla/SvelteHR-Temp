@@ -9,12 +9,27 @@
 	import Input from '$lib/components/ui/input/input.svelte';
 	import Badge from '$lib/components/ui/badge/badge.svelte';
 	import { Search, Plus, Filter, X, Tag } from 'lucide-svelte';
-	import { cardRegistry } from './CardRegistry.js';
-	import { availableCards, userRole, dashboardLayout } from '$lib/stores/dashboard.js';
-	import type { CardMetadata, CardTag } from './types.js';
+	import type { CardMetadata, CardTag, CardInstance } from './types.js';
 
-	// Props
-	export let open = false;
+	// Props - Enhanced for new dashboard system
+	interface Props {
+		availableCards: CardMetadata[];
+		existingCards: CardInstance[];
+		onAddCard: (cardId: string) => void;
+		onClose: () => void;
+		className?: string;
+	}
+	
+	let { 
+		availableCards, 
+		existingCards, 
+		onAddCard, 
+		onClose, 
+		className = '' 
+	}: Props = $props();
+
+	// Legacy props support
+	export let open = true;
 
 	// Events
 	const dispatch = createEventDispatcher<{
@@ -28,13 +43,13 @@
 	let viewMode: 'grid' | 'list' = 'grid';
 
 	// Get all available tags
-	$: allTags = Array.from(new Set($availableCards.flatMap((card) => card.tags))).sort();
+	$: allTags = Array.from(new Set(availableCards.flatMap((card) => card.tags))).sort();
 
 	// Get already added card IDs
-	$: addedCardIds = new Set($dashboardLayout?.cards.map((c) => c.cardId) || []);
+	$: addedCardIds = new Set(existingCards.map((c) => c.cardId) || []);
 
 	// Filter cards based on search and tags
-	$: filteredCards = $availableCards.filter((card) => {
+	$: filteredCards = availableCards.filter((card) => {
 		// Search filter
 		const matchesSearch =
 			!searchQuery ||
@@ -75,16 +90,26 @@
 		selectedTags = [];
 	}
 
-	// Handle add card
+	// Handle add card - Enhanced with callback support
 	function handleAddCard(cardId: string) {
 		console.log('📚 CardLibrary handleAddCard called with:', cardId);
-		dispatch('addCard', { cardId });
-		console.log('📤 Dispatched addCard event');
+		
+		if (onAddCard) {
+			onAddCard(cardId);
+		} else {
+			dispatch('addCard', { cardId });
+		}
+		
+		console.log('📤 Card add event processed');
 	}
 
-	// Close library
+	// Close library - Enhanced with callback support
 	function handleClose() {
-		dispatch('close');
+		if (onClose) {
+			onClose();
+		} else {
+			dispatch('close');
+		}
 	}
 
 	// Handle backdrop click
