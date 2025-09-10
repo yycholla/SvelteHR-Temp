@@ -18,6 +18,7 @@
 		onAddCard: (cardId: string) => void;
 		onClose: () => void;
 		className?: string;
+		open?: boolean;
 	}
 	
 	let { 
@@ -25,11 +26,9 @@
 		existingCards, 
 		onAddCard, 
 		onClose, 
-		className = '' 
+		className = '',
+		open = $bindable(true)
 	}: Props = $props();
-
-	// Legacy props support
-	export let open = true;
 
 	// Events
 	const dispatch = createEventDispatcher<{
@@ -38,18 +37,18 @@
 	}>();
 
 	// State
-	let searchQuery = '';
-	let selectedTags: CardTag[] = [];
-	let viewMode: 'grid' | 'list' = 'grid';
+	let searchQuery = $state('');
+	let selectedTags: CardTag[] = $state([]);
+	let viewMode: 'grid' | 'list' = $state('grid');
 
 	// Get all available tags
-	$: allTags = Array.from(new Set(availableCards.flatMap((card) => card.tags))).sort();
+	const allTags = $derived(Array.from(new Set(availableCards.flatMap((card) => card.tags))).sort());
 
 	// Get already added card IDs
-	$: addedCardIds = new Set(existingCards.map((c) => c.cardId) || []);
+	const addedCardIds = $derived(new Set(existingCards.map((c) => c.cardId) || []));
 
 	// Filter cards based on search and tags
-	$: filteredCards = availableCards.filter((card) => {
+	const filteredCards = $derived(availableCards.filter((card) => {
 		// Search filter
 		const matchesSearch =
 			!searchQuery ||
@@ -62,10 +61,10 @@
 			selectedTags.length === 0 || selectedTags.some((tag) => card.tags.includes(tag));
 
 		return matchesSearch && matchesTags;
-	});
+	}));
 
 	// Group cards by category for better organization
-	$: cardsByCategory = filteredCards.reduce(
+	const cardsByCategory = $derived(filteredCards.reduce(
 		(acc, card) => {
 			const primaryTag = card.tags[0] || 'other';
 			if (!acc[primaryTag]) acc[primaryTag] = [];
@@ -73,7 +72,7 @@
 			return acc;
 		},
 		{} as Record<string, CardMetadata[]>
-	);
+	));
 
 	// Handle tag selection
 	function toggleTag(tag: CardTag) {

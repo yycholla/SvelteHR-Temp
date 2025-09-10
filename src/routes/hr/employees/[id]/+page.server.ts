@@ -1,6 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { createAuthenticatedApiClient } from '$lib/api/server-client';
+import { createServerEmployeeService } from '$lib/graphql/services/employee-service';
+import { taskApi } from '$lib/components/hr/utils/api-helpers';
 
 export const load: PageServerLoad = async ({ params, cookies }) => {
 	const { id } = params;
@@ -12,38 +13,30 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
 	console.log(`👤 Loading employee detail page for ID: ${id}`);
 
 	try {
-		const apiClient = createAuthenticatedApiClient(cookies);
+		const employeeService = createServerEmployeeService(cookies);
 
-		// Load employee data and tasks in parallel
-		const [employeeResult, tasksResult] = await Promise.allSettled([
-			apiClient.employees.getById(id),
-			apiClient.tasks.list({ assigned_to: id, limit: 10 })
-		]);
+		// Load employee data using GraphQL service
+		const employeeResult = await employeeService.getEmployeeById(id);
 
-		// Handle employee data
-		if (employeeResult.status === 'rejected') {
-			console.error('❌ Failed to load employee:', employeeResult.reason);
-			if (employeeResult.reason?.status === 404) {
-				throw error(404, 'Employee not found');
-			}
-			throw error(500, 'Failed to load employee data');
-		}
-
-		if (!employeeResult.value.success) {
+		if (!employeeResult.success || !employeeResult.data) {
+			console.error('❌ Failed to load employee:', employeeResult.error);
 			throw error(404, 'Employee not found');
 		}
 
-		const employee = employeeResult.value.data;
+		const employee = employeeResult.data;
 
-		// Handle tasks data (optional, don't fail if tasks can't be loaded)
+		// Load tasks data (keeping old API for now as tasks haven't been migrated to GraphQL yet)
 		let tasks: any[] = [];
 		let tasksTotal = 0;
 
-		if (tasksResult.status === 'fulfilled' && tasksResult.value.success) {
-			tasks = tasksResult.value.data?.data || [];
-			tasksTotal = tasksResult.value.data?.total || 0;
-		} else {
-			console.log('ℹ️ Could not load tasks for employee');
+		try {
+			const tasksResponse = await taskApi.getAll({ assigned_to: id, limit: 10 });
+			if (tasksResponse && tasksResponse.data) {
+				tasks = tasksResponse.data.data || [];
+				tasksTotal = tasksResponse.data.total || 0;
+			}
+		} catch (taskError) {
+			console.log('ℹ️ Could not load tasks for employee:', taskError);
 		}
 
 		console.log('✅ Employee detail page loaded successfully');
@@ -57,8 +50,11 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
 		console.error('❌ Error loading employee detail:', err);
 
 		if (err instanceof Error) {
-			if (err.message.includes('ECONNREFUSED')) {
+			if (err.message.includes('ECONNREFUSED') || err.message.includes('network')) {
 				throw error(503, 'Unable to connect to the HR service. Please try again later.');
+			}
+			if (err.message.includes('not found') || err.message.includes('404')) {
+				throw error(404, 'Employee not found');
 			}
 		}
 

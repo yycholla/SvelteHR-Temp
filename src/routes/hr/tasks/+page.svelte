@@ -5,7 +5,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { CheckSquare, Clock, Users, AlertCircle, Plus, Edit, Trash2, Eye } from 'lucide-svelte';
 	import { transformTaskStats } from '$lib/utils/dataTransformers.js';
-	import { modalStore } from '$lib/stores/hr/modals';
+	import { modalStore } from '$lib/stores/hr/modals.svelte';
 	import { invalidateAll } from '$app/navigation';
 	import type { PageData } from './$types';
 	import type { Task } from '$lib/api/types-v2';

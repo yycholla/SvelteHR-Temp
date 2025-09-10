@@ -31,6 +31,13 @@
 		onRemove?: () => void;
 		onConfigure?: (config: Record<string, any>) => void;
 		className?: string;
+		// Legacy props support
+		instance?: CardInstance;
+		metadata?: CardMetadata;
+		editable?: boolean;
+		stream?: any;
+		loading?: boolean;
+		error?: string | null;
 	}
 	
 	let { 
@@ -42,16 +49,15 @@
 		onRefresh,
 		onRemove,
 		onConfigure,
-		className = ''
+		className = '',
+		// Legacy props support
+		instance = cardInstance,
+		metadata = cardMetadata,
+		editable = isCustomizing,
+		stream = null,
+		loading = false,
+		error = null
 	}: Props = $props();
-
-	// Legacy props support
-	export let instance: CardInstance = cardInstance;
-	export let metadata: CardMetadata = cardMetadata;
-	export let editable = isCustomizing;
-	export const stream: any = null; // Live stream data injected by grid
-	export let loading = false;
-	export let error: string | null = null;
 
 	// Events
 	const dispatch = createEventDispatcher<{
@@ -63,8 +69,8 @@
 	}>();
 
 	// State
-	let showMenu = false;
-	let isRefreshing = false;
+	let showMenu = $state(false);
+	let isRefreshing = $state(false);
 	let cardElement: HTMLElement;
 
 	// Enhanced refresh handler with async support

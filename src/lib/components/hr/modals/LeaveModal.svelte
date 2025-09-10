@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Modal } from '@skeletonlabs/skeleton';
-	import { modalStore } from '$lib/stores/hr/modals';
+	import { modalStore } from '$lib/stores/hr/modals.svelte';
 	import LeaveForm from '../forms/LeaveForm.svelte';
 
 	interface LeaveRequest {

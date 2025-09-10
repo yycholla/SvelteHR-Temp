@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { modalStore } from '$lib/stores/hr/modals';
-	import { taskStore } from '$lib/stores/hr/tasks';
+	import { modalStore } from '$lib/stores/hr/modals.svelte';
+	import { taskStore } from '$lib/stores/hr/tasks.svelte';
 	import { notifications } from '$lib/components/hr/utils/notifications';
 	import { taskApi } from '$lib/components/hr/utils/api-helpers';
 	import TaskDetail from '$lib/components/hr/pages/TaskDetail.svelte';
 	import TaskModal from '$lib/components/hr/modals/TaskModal.svelte';
 	import type { PageData } from './$types';
-	import type { Task } from '$lib/stores/hr/tasks';
+	import type { Task } from '$lib/stores/hr/tasks.svelte';
 
 	let { data }: { data: PageData } = $props();
 

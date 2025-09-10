@@ -1,0 +1,581 @@
+# GraphQL Schema Contract for SvelteHR API Migration
+# Complete API contract ensuring 100% REST API parity with enhanced type safety
+
+scalar Date
+scalar DateTime
+scalar JSON
+
+# ============================================================================
+# Core Entity Types
+# ============================================================================
+
+type Employee {
+  id: ID!
+  employee_id: String!
+  first_name: String!
+  last_name: String!
+  full_name: String!
+  email: String!
+  phone: String
+  address: String
+  position: String!
+  department: Department!
+  manager: Employee
+  status: EmployeeStatus!
+  hire_date: Date!
+  salary: Float
+  currency: String
+  employment_type: EmploymentType!
+  benefits: Benefits
+  performance_reviews: [PerformanceReview!]!
+  emergency_contacts: [EmergencyContact!]!
+  created_at: DateTime!
+  updated_at: DateTime!
+}
+
+type Department {
+  id: ID!
+  name: String!
+  description: String
+  budget_code: String!
+  manager: Employee
+  parent: Department
+  children: [Department!]!
+  employees(first: Int, after: String, filters: EmployeeFilters): EmployeeConnection!
+  employee_count: Int!
+  total_budget: Float
+  is_active: Boolean!
+  metrics: DepartmentMetrics
+  created_at: DateTime!
+  updated_at: DateTime!
+}
+
+type User {
+  id: ID!
+  email: String!
+  name: String!
+  role: String!
+  roles: [Role!]!
+  department_id: ID
+  permissions: [String!]!
+  created_at: DateTime!
+  updated_at: DateTime!
+  last_login: DateTime
+}
+
+type Role {
+  id: ID!
+  name: String!
+  description: String!
+  level: Int!
+  permissions: [Permission!]!
+  created_at: DateTime!
+  updated_at: DateTime!
+}
+
+type Permission {
+  id: ID!
+  name: String!
+  resource: String!
+  action: String!
+  description: String!
+}
+
+# ============================================================================
+# Supporting Types
+# ============================================================================
+
+type Benefits {
+  health_plan: String
+  dental_plan: String
+  retirement_contribution: Float
+  vacation_days: Int
+}
+
+type EmergencyContact {
+  name: String!
+  relationship: String!
+  phone: String!
+  email: String
+}
+
+type PerformanceReview {
+  id: ID!
+  score: Float!
+  review_date: Date!
+  reviewer: Employee!
+  goals: [String!]!
+  achievements: [String!]!
+  areas_for_improvement: [String!]!
+  notes: String
+}
+
+type DepartmentMetrics {
+  total_employees: Int!
+  active_employees: Int!
+  avg_performance_score: Float
+  total_payroll: Float
+  budget_utilization: Float
+}
+
+type Session {
+  id: ID!
+  expires_at: DateTime!
+  last_accessed: DateTime!
+}
+
+# ============================================================================
+# Dashboard & UI Types
+# ============================================================================
+
+type DashboardWidget {
+  id: ID!
+  type: WidgetType!
+  title: String!
+  data: JSON!
+  accessible: Boolean!
+  priority: Int!
+  requires_action: Boolean!
+  sensitive_data: Boolean!
+  last_updated: DateTime!
+}
+
+type DashboardData {
+  widgets: [DashboardWidget!]!
+  user_role: String!
+  access_scope: String!
+  permissions: [String!]!
+  metadata: DashboardMetadata!
+}
+
+type DashboardMetadata {
+  last_updated: DateTime!
+  refresh_interval: Int!
+  realtime_enabled: Boolean!
+}
+
+# ============================================================================
+# Connection Types (for Pagination)
+# ============================================================================
+
+type EmployeeConnection {
+  nodes: [Employee!]!
+  edges: [EmployeeEdge!]!
+  total_count: Int!
+  page_info: PageInfo!
+}
+
+type EmployeeEdge {
+  node: Employee!
+  cursor: String!
+}
+
+type PageInfo {
+  has_next_page: Boolean!
+  has_previous_page: Boolean!
+  start_cursor: String
+  end_cursor: String
+}
+
+# ============================================================================
+# Enums
+# ============================================================================
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+  TERMINATED
+  ON_LEAVE
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERN
+}
+
+enum WidgetType {
+  EMPLOYEE_COUNT
+  DEPARTMENT_STATS
+  PERFORMANCE_METRICS
+  COMPLIANCE_STATUS
+  NOTIFICATIONS
+  RECENT_ACTIVITY
+  API_PERFORMANCE
+}
+
+# ============================================================================
+# Input Types
+# ============================================================================
+
+input EmployeeFilters {
+  search: String
+  status: EmployeeStatus
+  department_id: ID
+  position: String
+  hire_date_from: Date
+  hire_date_to: Date
+  is_active: Boolean
+}
+
+input CreateEmployeeInput {
+  employee_id: String
+  first_name: String!
+  last_name: String!
+  email: String!
+  phone: String
+  address: String
+  position: String!
+  department_id: ID!
+  manager_id: ID
+  hire_date: Date!
+  salary: Float
+  currency: String
+  employment_type: EmploymentType!
+  benefits: BenefitsInput
+  emergency_contacts: [EmergencyContactInput!]
+}
+
+input UpdateEmployeeInput {
+  first_name: String
+  last_name: String
+  email: String
+  phone: String
+  address: String
+  position: String
+  department_id: ID
+  manager_id: ID
+  salary: Float
+  currency: String
+  employment_type: EmploymentType
+  status: EmployeeStatus
+  benefits: BenefitsInput
+  emergency_contacts: [EmergencyContactInput!]
+}
+
+input BenefitsInput {
+  health_plan: String
+  dental_plan: String
+  retirement_contribution: Float
+  vacation_days: Int
+}
+
+input EmergencyContactInput {
+  name: String!
+  relationship: String!
+  phone: String!
+  email: String
+}
+
+input CreateDepartmentInput {
+  name: String!
+  description: String
+  budget_code: String!
+  manager_id: ID
+  parent_id: ID
+  total_budget: Float
+}
+
+input UpdateDepartmentInput {
+  name: String
+  description: String
+  budget_code: String
+  manager_id: ID
+  parent_id: ID
+  total_budget: Float
+  is_active: Boolean
+}
+
+input DashboardPreferencesInput {
+  widget_order: [String!]
+  hidden_widgets: [String!]
+  refresh_interval: Int
+  compact_mode: Boolean
+}
+
+# ============================================================================
+# Query Root
+# ============================================================================
+
+type Query {
+  # Authentication & User Management
+  me: AuthResponse
+  verifyToken: TokenVerification
+  
+  # Employee Operations
+  employee(id: ID!): Employee
+  employees(
+    first: Int = 20
+    after: String
+    search: String
+    filters: EmployeeFilters
+    sort: String = "full_name"
+    order: SortOrder = ASC
+  ): EmployeeConnection!
+  
+  employeesByDepartment(
+    department_id: ID!
+    include_managers: Boolean = false
+  ): [Employee!]!
+  
+  # Department Operations
+  department(id: ID!): Department
+  departments(
+    first: Int = 50
+    search: String
+    is_active: Boolean = true
+  ): [Department!]!
+  
+  departmentMetrics(
+    id: ID!
+    date_range: DateRangeInput
+  ): DepartmentMetrics
+  
+  # Dashboard & UI
+  dashboardData(role: String): DashboardData!
+  dashboardWidget(widget_id: String!): DashboardWidget
+  
+  # RBAC & Permissions
+  roles(include_permissions: Boolean = true): [Role!]!
+  permissions(resource: String): [Permission!]!
+  userPermissions(user_id: ID!): UserPermissions!
+  
+  # System & Health
+  systemHealth: SystemHealth!
+}
+
+# ============================================================================
+# Mutation Root
+# ============================================================================
+
+type Mutation {
+  # Authentication
+  login(email: String!, password: String!, remember: Boolean): LoginResponse!
+  logout(all_devices: Boolean = false): LogoutResponse!
+  refreshToken: TokenRefreshResponse!
+  
+  # Employee Management
+  createEmployee(input: CreateEmployeeInput!): Employee!
+  updateEmployee(id: ID!, input: UpdateEmployeeInput!): Employee!
+  deleteEmployee(id: ID!): DeleteResponse!
+  transferEmployee(
+    employee_id: ID!
+    new_department_id: ID!
+    effective_date: Date
+    reason: String
+  ): TransferResponse!
+  
+  # Department Management
+  createDepartment(input: CreateDepartmentInput!): Department!
+  updateDepartment(id: ID!, input: UpdateDepartmentInput!): Department!
+  deleteDepartment(id: ID!): DeleteResponse!
+  
+  # Dashboard Customization
+  updateDashboardPreferences(preferences: DashboardPreferencesInput!): PreferencesResponse!
+  refreshDashboardWidget(widget_id: String!): WidgetRefreshResponse!
+  
+  # Bulk Operations
+  bulkUpdateEmployees(
+    employee_ids: [ID!]!
+    updates: UpdateEmployeeInput!
+  ): BulkOperationResponse!
+}
+
+# ============================================================================
+# Subscription Root
+# ============================================================================
+
+type Subscription {
+  # Real-time Employee Updates
+  employeeUpdates: EmployeeUpdateEvent!
+  employeeAdded: Employee!
+  employeeUpdated(employee_id: ID): Employee!
+  employeeDeleted: EmployeeDeleteEvent!
+  
+  # Dashboard Real-time Updates
+  dashboardUpdates: DashboardUpdateEvent!
+  
+  # System Notifications
+  notifications: NotificationEvent!
+  
+  # System Health Monitoring
+  systemHealthUpdates: SystemHealthEvent!
+}
+
+# ============================================================================
+# Response Types
+# ============================================================================
+
+type AuthResponse {
+  user: User
+  authenticated: Boolean!
+  permissions: [String!]!
+  roles: [Role!]!
+  session: Session
+}
+
+type TokenVerification {
+  valid: Boolean!
+  user: User
+  expires_at: DateTime
+}
+
+type LoginResponse {
+  success: Boolean!
+  user: User
+  token: String
+  refresh_token: String
+  expires_at: DateTime
+  session_id: String
+  error: String
+}
+
+type LogoutResponse {
+  success: Boolean!
+  message: String!
+}
+
+type TokenRefreshResponse {
+  success: Boolean!
+  token: String
+  expires_at: DateTime
+  error: String
+}
+
+type DeleteResponse {
+  success: Boolean!
+  message: String!
+}
+
+type TransferResponse {
+  success: Boolean!
+  employee: Employee!
+  transfer_record: TransferRecord!
+}
+
+type TransferRecord {
+  id: ID!
+  from_department: Department!
+  to_department: Department!
+  effective_date: Date!
+  reason: String
+}
+
+type PreferencesResponse {
+  success: Boolean!
+  preferences: DashboardPreferences!
+}
+
+type DashboardPreferences {
+  widget_order: [String!]!
+  hidden_widgets: [String!]!
+  refresh_interval: Int!
+  compact_mode: Boolean!
+}
+
+type WidgetRefreshResponse {
+  success: Boolean!
+  widget: DashboardWidget!
+  refresh_time: DateTime!
+}
+
+type BulkOperationResponse {
+  success: Boolean!
+  affected_count: Int!
+  results: [BulkOperationResult!]!
+  operation_id: String!
+}
+
+type BulkOperationResult {
+  employee_id: ID!
+  success: Boolean!
+  error: String
+}
+
+type UserPermissions {
+  user: User!
+  effective_permissions: [Permission!]!
+  role_permissions: [RolePermission!]!
+}
+
+type RolePermission {
+  role: Role!
+  permissions: [Permission!]!
+}
+
+type SystemHealth {
+  overall_status: String!
+  uptime: Int!
+  active_sessions: Int!
+  avg_response_time: Float!
+  database_status: String!
+  api_status: String!
+  background_jobs_status: String!
+  last_updated: DateTime!
+}
+
+# ============================================================================
+# Event Types (for Subscriptions)
+# ============================================================================
+
+type EmployeeUpdateEvent {
+  type: String!
+  employee: Employee!
+  timestamp: DateTime!
+}
+
+type EmployeeDeleteEvent {
+  employee_id: ID!
+  timestamp: DateTime!
+}
+
+type DashboardUpdateEvent {
+  widget_id: String!
+  data: JSON!
+  timestamp: DateTime!
+  update_type: String!
+}
+
+type NotificationEvent {
+  id: ID!
+  type: String!
+  title: String!
+  message: String!
+  priority: String!
+  read: Boolean!
+  action_url: String
+  created_at: DateTime!
+  expires_at: DateTime
+}
+
+type SystemHealthEvent {
+  status: String!
+  metric_name: String!
+  value: Float!
+  timestamp: DateTime!
+  alert_level: String!
+}
+
+# ============================================================================
+# Additional Input Types
+# ============================================================================
+
+input DateRangeInput {
+  start: Date!
+  end: Date!
+}
+
+enum SortOrder {
+  ASC
+  DESC
+}
+
+# ============================================================================
+# Schema Directives
+# ============================================================================
+
+directive @auth(requires: [String!]) on FIELD_DEFINITION
+directive @rateLimit(max: Int!, window: Int!) on FIELD_DEFINITION
+directive @complexity(value: Int!) on FIELD_DEFINITION
+directive @deprecated(reason: String) on FIELD_DEFINITION | ENUM_VALUE

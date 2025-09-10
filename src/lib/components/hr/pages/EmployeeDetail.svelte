@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { employeeApi, taskApi } from '../utils/api-helpers';
+	import { createBrowserEmployeeService, type GraphQLEmployeeService } from '$lib/graphql/services/employee-service';
+	import { taskApi } from '../utils/api-helpers';
 	import { notifications } from '../utils/notifications';
-	import type { Employee } from '$lib/stores/hr/employees';
-	import type { Task } from '$lib/stores/hr/tasks';
+	import type { Employee } from '$lib/stores/hr/employees.svelte';
+	import type { Task } from '$lib/stores/hr/tasks.svelte';
 
 	let {
 		employeeId,
@@ -15,22 +15,40 @@
 		onDelete?: (employee: Employee) => void;
 	} = $props();
 
-	let employee: Employee | null = null;
-	let tasks: Task[] = [];
-	let loading = true;
-	let loadingTasks = false;
+	let employeeService: GraphQLEmployeeService;
+	let employee = $state<Employee | null>(null);
+	let tasks = $state<Task[]>([]);
+	let loading = $state(true);
+	let loadingTasks = $state(false);
+	let error = $state<string | null>(null);
 
-	onMount(async () => {
-		await loadEmployee();
-		await loadEmployeeTasks();
+	// Initialize service
+	$effect(() => {
+		employeeService = createBrowserEmployeeService();
+	});
+
+	// Load data when employeeId changes using $effect
+	$effect(() => {
+		if (employeeId) {
+			loadEmployee();
+			loadEmployeeTasks();
+		}
 	});
 
 	async function loadEmployee() {
+		if (!employeeService) return;
+		
 		loading = true;
+		error = null;
 		try {
-			const response = await employeeApi.getById(employeeId);
-			employee = response.data;
-		} catch (error) {
+			const result = await employeeService.getEmployeeById(employeeId);
+			if (result.success && result.data) {
+				employee = result.data;
+			} else {
+				throw new Error(result.error || 'Failed to load employee');
+			}
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to load employee details';
 			notifications.apiError('Failed to load employee details');
 		} finally {
 			loading = false;
@@ -132,7 +150,15 @@
 	}
 </script>
 
-{#if loading}
+{#if error}
+	<div class="card p-8 text-center">
+		<h2 class="mb-4 h2 text-error-500">Error Loading Employee</h2>
+		<p class="text-surface-600-300-token mb-4">{error}</p>
+		<button class="variant-filled-primary btn" on:click={loadEmployee}>
+			Retry
+		</button>
+	</div>
+{:else if loading}
 	<div class="space-y-6">
 		<div class="h-8 placeholder w-64 animate-pulse rounded"></div>
 		<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">

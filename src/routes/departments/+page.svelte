@@ -6,6 +6,8 @@
 -->
 
 <script lang="ts">
+	import { onMount, onDestroy } from 'svelte';
+	import { browser } from '$app/environment';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import DataTable from '$lib/components/ui/DataTable.svelte';
@@ -14,10 +16,21 @@
 	import { goto } from '$app/navigation';
 	import type { PageData } from './$types';
 	import { z } from 'zod';
-	import { onMount } from 'svelte';
+
+	// GraphQL and Auth
+	import { createBrowserDepartmentService, type GraphQLDepartmentService } from '$lib/graphql/services/department-service';
+	import { isAuthenticated, checkAnyPermission } from '$lib/stores/auth.svelte';
+	import type { Department, DepartmentSortField, SortDirection } from '$lib/graphql/generated/graphql';
 
 	// Props from page data
-	export let data: PageData;
+	interface Props {
+		data: PageData;
+	}
+	
+	let { data }: Props = $props();
+
+	// GraphQL department service
+	let departmentService: GraphQLDepartmentService | null = null;
 
 	// Department form schema
 	const departmentSchema = z.object({
@@ -31,77 +44,45 @@
 	type DepartmentForm = z.infer<typeof departmentSchema>;
 
 	// Component state
-	let departments = $state([
-		{
-			id: '1',
-			name: 'Engineering',
-			description: 'Software development and technical operations',
-			employeeCount: 45,
-			manager: { id: '1', firstName: 'John', lastName: 'Smith', email: 'john.smith@company.com' },
-			budget: 2500000,
-			location: 'Building A, Floor 3',
-			status: 'ACTIVE',
-			createdAt: '2024-01-15'
-		},
-		{
-			id: '2',
-			name: 'Human Resources',
-			description: 'Employee relations, recruitment, and organizational development',
-			employeeCount: 12,
-			manager: { id: '2', firstName: 'Sarah', lastName: 'Johnson', email: 'sarah.j@company.com' },
-			budget: 800000,
-			location: 'Building B, Floor 1',
-			status: 'ACTIVE',
-			createdAt: '2024-01-15'
-		},
-		{
-			id: '3',
-			name: 'Sales',
-			description: 'Revenue generation and client relationship management',
-			employeeCount: 28,
-			manager: { id: '3', firstName: 'Mike', lastName: 'Chen', email: 'mike.chen@company.com' },
-			budget: 1800000,
-			location: 'Building A, Floor 2',
-			status: 'ACTIVE',
-			createdAt: '2024-01-15'
-		},
-		{
-			id: '4',
-			name: 'Marketing',
-			description: 'Brand management, digital marketing, and growth strategies',
-			employeeCount: 18,
-			manager: { id: '4', firstName: 'Lisa', lastName: 'Wong', email: 'lisa.wong@company.com' },
-			budget: 1200000,
-			location: 'Building A, Floor 1',
-			status: 'ACTIVE',
-			createdAt: '2024-02-01'
-		},
-		{
-			id: '5',
-			name: 'Finance',
-			description: 'Financial planning, accounting, and budget management',
-			employeeCount: 8,
-			manager: { id: '5', firstName: 'David', lastName: 'Brown', email: 'david.brown@company.com' },
-			budget: 600000,
-			location: 'Building B, Floor 2',
-			status: 'ACTIVE',
-			createdAt: '2024-01-20'
-		}
-	]);
+	let departments = $state<Department[]>([]);
+	let loading = $state(true);
+	let error = $state<string | null>(null);
+	let lastUpdated = $state<Date | null>(null);
 
-	let isLoading = $state(false);
+	// Search and pagination
+	let currentPage = $state(1);
+	let pageSize = $state(20);
+	let totalCount = $state(0);
+	let hasNextPage = $state(false);
+	let endCursor = $state<string | undefined>(undefined);
+
+	// Sorting
+	let sortField = $state<DepartmentSortField>('name');
+	let sortDirection = $state<SortDirection>('asc');
+
 	let searchQuery = $state('');
 	let showAddModal = $state(false);
 	let showEditModal = $state(false);
 	let showDeleteModal = $state(false);
-	let editingDepartment = $state(null);
+	let editingDepartment = $state<Department | null>(null);
+
+	// Real-time subscriptions
+	let subscriptionUnsubscribe: (() => void) | null = null;
+
+	// Permissions
+	const canCreateDepartments = $derived(() => $checkAnyPermission(['departments:create', 'departments:*', '*']));
+	const canUpdateDepartments = $derived(() => $checkAnyPermission(['departments:update', 'departments:*', '*']));
+	const canDeleteDepartments = $derived(() => $checkAnyPermission(['departments:delete', 'departments:*', '*']));
+	const canViewAllDepartments = $derived(() => $checkAnyPermission(['departments:read', 'departments:*', '*']));
 
 	// Department statistics
-	$: totalEmployees = departments.reduce((sum, dept) => sum + dept.employeeCount, 0);
-	$: totalBudget = departments.reduce((sum, dept) => sum + (dept.budget || 0), 0);
-	$: averageTeamSize = departments.length > 0 ? Math.round(totalEmployees / departments.length) : 0;
-</script>
+	const totalEmployees = $derived(departments.reduce((sum, dept) => sum + (dept.employee_count || 0), 0));
+	const totalBudget = $derived(departments.reduce((sum, dept) => sum + (dept.budget ? parseFloat(dept.budget.toString()) : 0), 0));
+	const averageTeamSize = $derived(departments.length > 0 ? Math.round(totalEmployees / departments.length) : 0);
 
+	// Computed filtered departments (server-side filtering is handled in loadDepartments)
+	const filteredDepartments = $derived(departments);
+	
 	// Department table columns
 	const departmentColumns = [
 		{
@@ -191,76 +172,192 @@
 		}
 	];
 
-	// Filtered departments
-	$: filteredDepartments = departments.filter(department => 
-		!searchQuery || 
-		department.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-		department.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-		(department.manager && 
-			`${department.manager.firstName} ${department.manager.lastName}`.toLowerCase().includes(searchQuery.toLowerCase())
-		)
-	);
+
+	// Initialize component
+	async function initializeComponent() {
+		try {
+			if (browser && !departmentService && $isAuthenticated) {
+				departmentService = createBrowserDepartmentService();
+			}
+
+			await loadDepartments();
+			setupSubscriptions();
+
+		} catch (err) {
+			console.error('Failed to initialize departments:', err);
+			error = 'Failed to initialize departments';
+		}
+	}
+
+	// Load departments with GraphQL service
+	async function loadDepartments() {
+		if (!departmentService || !canViewAllDepartments) return;
+
+		try {
+			loading = true;
+			error = null;
+
+			const result = await departmentService.getDepartments({
+				search: searchQuery || undefined,
+				includeInactive: true,
+				pageSize,
+				after: endCursor,
+				sortField,
+				sortDirection
+			});
+
+			if (result.success && result.data) {
+				departments = result.data.departments || [];
+				totalCount = result.data.totalCount || 0;
+				hasNextPage = result.data.hasNextPage || false;
+				endCursor = result.data.endCursor;
+				lastUpdated = new Date();
+			} else {
+				error = result.error?.message || 'Failed to load departments';
+			}
+
+		} catch (err) {
+			console.error('Failed to load departments:', err);
+			error = 'Failed to load departments';
+		} finally {
+			loading = false;
+		}
+	}
+
+	// Setup real-time subscriptions
+	function setupSubscriptions() {
+		if (!browser || !departmentService || !canViewAllDepartments || subscriptionUnsubscribe) return;
+
+		try {
+			subscriptionUnsubscribe = departmentService.subscribeToDepartmentUpdates(
+				(update) => {
+					handleDepartmentUpdate(update);
+				},
+				(error) => {
+					console.error('Department subscription error:', error);
+				}
+			);
+
+		} catch (err) {
+			console.error('Failed to setup department subscription:', err);
+		}
+	}
+
+	// Handle real-time department updates
+	function handleDepartmentUpdate(update: any) {
+		const { department, action } = update;
+
+		if (action === 'CREATED') {
+			// Add new department to list
+			departments = [department, ...departments];
+			totalCount++;
+		} else if (action === 'UPDATED') {
+			// Update existing department
+			const index = departments.findIndex(dept => dept.id === department.id);
+			if (index !== -1) {
+				departments[index] = department;
+				departments = [...departments];
+			}
+		} else if (action === 'DELETED') {
+			// Remove department from list
+			departments = departments.filter(dept => dept.id !== department.id);
+			totalCount--;
+		}
+
+		lastUpdated = new Date();
+	}
 
 	// Handle department creation
 	async function handleCreateDepartment(formData: DepartmentForm) {
-		isLoading = true;
+		if (!departmentService || !canCreateDepartments) return;
+
+		loading = true;
 		try {
-			// TODO: Implement department creation via service
-			const newDepartment = {
-				id: String(Date.now()),
-				...formData,
-				employeeCount: 0,
-				status: 'ACTIVE',
-				createdAt: new Date().toISOString(),
-				manager: null // Would be set via API
-			};
-			
-			departments = [...departments, newDepartment];
-			showAddModal = false;
+			const result = await departmentService.createDepartment({
+				name: formData.name,
+				description: formData.description,
+				budget: formData.budget?.toString(),
+				location: formData.location,
+				manager_id: formData.managerId
+			});
+
+			if (result.success && result.data) {
+				// Add to local list (real-time update will handle this too)
+				departments = [result.data, ...departments];
+				totalCount++;
+				showAddModal = false;
+			} else {
+				throw new Error(result.error?.message || 'Failed to create department');
+			}
+
 		} catch (error) {
 			console.error('Error creating department:', error);
+			error = error instanceof Error ? error.message : 'Failed to create department';
 		} finally {
-			isLoading = false;
+			loading = false;
 		}
 	}
 
 	// Handle department update
 	async function handleUpdateDepartment(formData: DepartmentForm) {
-		if (!editingDepartment) return;
+		if (!editingDepartment || !departmentService || !canUpdateDepartments) return;
 		
-		isLoading = true;
+		loading = true;
 		try {
-			// TODO: Implement department update via service
-			departments = departments.map(dept => 
-				dept.id === editingDepartment.id 
-					? { ...dept, ...formData }
-					: dept
-			);
-			
-			showEditModal = false;
-			editingDepartment = null;
+			const result = await departmentService.updateDepartment(editingDepartment.id, {
+				name: formData.name,
+				description: formData.description,
+				budget: formData.budget?.toString(),
+				location: formData.location,
+				manager_id: formData.managerId
+			});
+
+			if (result.success && result.data) {
+				// Update local list (real-time update will handle this too)
+				const index = departments.findIndex(dept => dept.id === editingDepartment.id);
+				if (index !== -1) {
+					departments[index] = result.data;
+					departments = [...departments];
+				}
+				
+				showEditModal = false;
+				editingDepartment = null;
+			} else {
+				throw new Error(result.error?.message || 'Failed to update department');
+			}
+
 		} catch (error) {
 			console.error('Error updating department:', error);
+			error = error instanceof Error ? error.message : 'Failed to update department';
 		} finally {
-			isLoading = false;
+			loading = false;
 		}
 	}
 
 	// Handle department deletion
 	async function handleDeleteDepartment() {
-		if (!editingDepartment) return;
+		if (!editingDepartment || !departmentService || !canDeleteDepartments) return;
 		
-		isLoading = true;
+		loading = true;
 		try {
-			// TODO: Implement department deletion via service
-			departments = departments.filter(dept => dept.id !== editingDepartment.id);
-			
-			showDeleteModal = false;
-			editingDepartment = null;
+			const result = await departmentService.deleteDepartment(editingDepartment.id);
+
+			if (result.success) {
+				// Remove from local list (real-time update will handle this too)
+				departments = departments.filter(dept => dept.id !== editingDepartment.id);
+				totalCount--;
+				
+				showDeleteModal = false;
+				editingDepartment = null;
+			} else {
+				throw new Error(result.error?.message || 'Failed to delete department');
+			}
+
 		} catch (error) {
 			console.error('Error deleting department:', error);
+			error = error instanceof Error ? error.message : 'Failed to delete department';
 		} finally {
-			isLoading = false;
+			loading = false;
 		}
 	}
 
@@ -285,21 +382,56 @@
 		}
 	};
 
-	// Handle search
+	// Search handler with debounce
+	let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 	function handleSearch() {
-		// Search is reactive via filteredDepartments
+		if (searchTimeout) {
+			clearTimeout(searchTimeout);
+		}
+
+		searchTimeout = setTimeout(() => {
+			currentPage = 1; // Reset to first page
+			loadDepartments();
+		}, 300);
+	}
+
+	// Refresh data
+	async function refresh() {
+		await loadDepartments();
 	}
 
 	// Handle sort
-	function handleSort(sort) {
-		console.log('Sort by:', sort);
-		// TODO: Implement sorting
+	function handleSort(sort: { field: string; direction: 'asc' | 'desc' }) {
+		sortField = sort.field as DepartmentSortField;
+		sortDirection = sort.direction as SortDirection;
+		loadDepartments();
 	}
 
 	// Handle row click
-	function handleRowClick(department) {
+	function handleRowClick(department: Department) {
 		goto(`/departments/${department.id}`);
 	}
+
+	// Component lifecycle
+	onMount(() => {
+		initializeComponent();
+	});
+
+	onDestroy(() => {
+		if (subscriptionUnsubscribe) {
+			subscriptionUnsubscribe();
+		}
+		if (searchTimeout) {
+			clearTimeout(searchTimeout);
+		}
+	});
+
+	// Reactive effects
+	$effect(() => {
+		if (searchQuery !== undefined) {
+			handleSearch();
+		}
+	});
 </script>
 
 <svelte:head>

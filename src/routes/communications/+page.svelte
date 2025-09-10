@@ -14,10 +14,12 @@
 	import { communicationService } from '$lib/services/communication.service';
 	import type { PageData } from './$types';
 	import { z } from 'zod';
-	import { onMount } from 'svelte';
-
 	// Props from page data
-	export let data: PageData;
+	interface Props {
+		data: PageData;
+	}
+	
+	let { data }: Props = $props();
 
 	// Message composition schema
 	const messageSchema = z.object({
@@ -88,12 +90,12 @@
 	let filterUnread = $state(false);
 
 	// Communication statistics
-	$: totalMessages = communications.length;
-	$: unreadCount = communications.filter(comm => !comm.isRead).length;
-	$: byType = communications.reduce((acc, comm) => {
+	const totalMessages = $derived(communications.length);
+	const unreadCount = $derived(communications.filter(comm => !comm.isRead).length);
+	const byType = $derived(communications.reduce((acc, comm) => {
 		acc[comm.type] = (acc[comm.type] || 0) + 1;
 		return acc;
-	}, {});
+	}, {}));
 
 	// Communications table columns
 	const communicationColumns = [
@@ -198,7 +200,7 @@
 	];
 
 	// Filtered communications
-	$: filteredCommunications = communications.filter(comm => {
+	const filteredCommunications = $derived(communications.filter(comm => {
 		const matchesSearch = !searchQuery || 
 			comm.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
 			comm.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -208,7 +210,7 @@
 		const matchesUnread = !filterUnread || !comm.isRead;
 		
 		return matchesSearch && matchesType && matchesUnread;
-	}).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+	}).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
 
 	// Load communications from service
 	async function loadCommunications() {
@@ -346,7 +348,7 @@
 	}
 
 	// Initialize
-	onMount(() => {
+	$effect(() => {
 		loadCommunications();
 	});
 </script>

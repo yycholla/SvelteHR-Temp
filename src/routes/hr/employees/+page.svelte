@@ -16,7 +16,7 @@
 		Filter
 	} from 'lucide-svelte';
 	import { transformEmployeeStats, transformDepartmentData } from '$lib/utils/dataTransformers.js';
-	import { modalStore } from '$lib/stores/hr/modals';
+	import { modalStore } from '$lib/stores/hr/modals.svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { apiCache } from '$lib/api/cache';
 	import type { PageData } from './$types';

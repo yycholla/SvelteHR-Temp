@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { goto } from '$app/navigation';
 import { get } from 'svelte/store';
-import { authActions, isAuthenticated, currentUser } from '$lib/stores/auth';
+import { authActions, isAuthenticated, currentUser } from '$lib/stores/auth.svelte';
 import type { User } from '../api/types';
 
 export interface PermissionCheck {

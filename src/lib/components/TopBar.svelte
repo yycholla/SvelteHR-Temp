@@ -29,21 +29,17 @@
 	} from './ui/dropdown-menu';
 	import Badge from './ui/badge/badge.svelte';
 	import Separator from './ui/separator/separator.svelte';
-	import { createEventDispatcher } from 'svelte';
 	import { goto } from '$app/navigation';
 	import {
 		authActions,
 		isAdmin,
-		isHR,
+		isHRManager,
 		isManager,
 		currentUser,
-		canViewEmployees,
-		canViewReports,
-		canViewDepartments
-	} from '$lib/stores/auth';
+		userDisplayName,
+		userInitials
+	} from '$lib/stores/auth.svelte';
 	import { AuthButton } from './auth';
-
-	const dispatch = createEventDispatcher();
 
 	let { title = '', showSearch = true, showNavigation = false, currentPath = '/' } = $props();
 
@@ -158,10 +154,10 @@
 	const navigationItems = $derived([
 		...baseNavigationItems,
 		...roleBasedItems.filter((item) => {
-			if (!$currentUser) return false;
+			if (!currentUser()) return false;
 
-			const userRoles = $currentUser.roles?.map((r) => (typeof r === 'string' ? r : r.name)) || [];
-			const userPermissions = $currentUser.permissions || [];
+			const userRoles = currentUser()?.roles?.map((r) => (typeof r === 'string' ? r : r.name)) || [];
+			const userPermissions = currentUser()?.permissions || [];
 
 			// Check if user has required role (if specified)
 			const hasRole = !item.roles || item.roles.some((role) => userRoles.includes(role));
@@ -626,8 +622,8 @@
 						class="flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 hover:scale-[1.02] hover:bg-muted/60"
 					>
 						<Avatar size="sm">
-							<AvatarImage src="https://github.com/shadcn.png" alt="User" />
-							<AvatarFallback class="bg-primary/10 font-semibold text-primary">JD</AvatarFallback>
+							<AvatarImage src={currentUser()?.avatar_url} alt={userDisplayName()} />
+							<AvatarFallback class="bg-primary/10 font-semibold text-primary">{userInitials()}</AvatarFallback>
 						</Avatar>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent
@@ -638,14 +634,16 @@
 						<div class="border-b border-border/40 px-3 py-2">
 							<div class="flex items-center space-x-3">
 								<Avatar size="sm">
-									<AvatarImage src="https://github.com/shadcn.png" alt="User" />
-									<AvatarFallback class="bg-primary/10 font-semibold text-primary"
-										>JD</AvatarFallback
-									>
+									<AvatarImage src={currentUser()?.avatar_url} alt={userDisplayName()} />
+									<AvatarFallback class="bg-primary/10 font-semibold text-primary">
+										{$userInitials}
+									</AvatarFallback>
 								</Avatar>
 								<div>
-									<p class="text-sm font-medium">John Doe</p>
-									<p class="text-xs text-muted-foreground">HR Manager</p>
+									<p class="text-sm font-medium">{userDisplayName()}</p>
+									<p class="text-xs text-muted-foreground">
+										{currentUser()?.roles?.[0]?.name || 'Employee'}
+									</p>
 								</div>
 							</div>
 						</div>
@@ -787,8 +785,8 @@
 							class="relative flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200 hover:scale-105"
 						>
 							<Avatar size="sm">
-								<AvatarImage src="https://github.com/shadcn.png" alt="User" />
-								<AvatarFallback class="bg-primary/10 font-semibold text-primary">JD</AvatarFallback>
+								<AvatarImage src={currentUser()?.avatar_url} alt={userDisplayName()} />
+								<AvatarFallback class="bg-primary/10 font-semibold text-primary">{userInitials()}</AvatarFallback>
 							</Avatar>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent
@@ -799,14 +797,16 @@
 							<div class="border-b border-border/40 px-3 py-2">
 								<div class="flex items-center space-x-3">
 									<Avatar size="sm">
-										<AvatarImage src="https://github.com/shadcn.png" alt="User" />
-										<AvatarFallback class="bg-primary/10 font-semibold text-primary"
-											>JD</AvatarFallback
-										>
+										<AvatarImage src={currentUser()?.avatar_url} alt={userDisplayName()} />
+										<AvatarFallback class="bg-primary/10 font-semibold text-primary">
+											{$userInitials}
+										</AvatarFallback>
 									</Avatar>
 									<div>
-										<p class="text-sm font-medium">John Doe</p>
-										<p class="text-xs text-muted-foreground">HR Manager</p>
+										<p class="text-sm font-medium">{$userDisplayName}</p>
+										<p class="text-xs text-muted-foreground">
+											{$currentUser?.roles?.[0]?.name || 'Employee'}
+										</p>
 									</div>
 								</div>
 							</div>

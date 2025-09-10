@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Dialog, DialogContent, DialogHeader, DialogTitle } from '$lib/components/ui/dialog';
-	import { modalStore } from '$lib/stores/hr/modals';
+	import { modalStore } from '$lib/stores/hr/modals.svelte';
 	import EmployeeForm from '../forms/EmployeeForm.svelte';
 	import type { Employee, Role, Department } from '$lib/api/types-v2';
 

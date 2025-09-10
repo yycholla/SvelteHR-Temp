@@ -110,7 +110,7 @@
 	let indeterminate = $state(false);
 
 	// Update selection state based on selected rows
-	$: {
+	$effect(() => {
 		if (data.length > 0) {
 			const selectedCount = selectedRows?.length || 0;
 			allSelected = selectedCount === data.length;
@@ -119,44 +119,44 @@
 			allSelected = false;
 			indeterminate = false;
 		}
-	}
+	});
 
 	// Table container classes
-	$: containerClasses = cn(
+	const containerClasses = $derived(cn(
 		'relative overflow-auto rounded-md border',
 		maxHeight && 'max-h-[var(--max-height)]',
 		className
-	);
+	));
 
 	// Table classes
-	$: tableClasses = cn(
+	const tableClasses = $derived(cn(
 		'w-full text-sm',
 		bordered && 'border-collapse',
 		!bordered && 'border-separate border-spacing-0'
-	);
+	));
 
 	// Table body classes
-	$: tbodyClasses = cn(
+	const tbodyClasses = $derived(cn(
 		'divide-y divide-border',
 		striped && '[&>tr:nth-child(even)]:bg-muted/50'
-	);
+	));
 
 	// Table row classes
-	$: getRowClasses = (index: number, selected: boolean) => cn(
+	const getRowClasses = $derived((index: number, selected: boolean) => cn(
 		'transition-colors',
 		hover && 'hover:bg-muted/50',
 		selected && 'bg-accent/50',
 		onRowClick && 'cursor-pointer',
 		'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
-	);
+	));
 
 	// Table cell classes
-	$: getCellClasses = (column: TableColumn, isHeader = false) => cn(
+	const getCellClasses = $derived((column: TableColumn, isHeader = false) => cn(
 		isHeader ? 'h-12 px-4 py-3 font-medium' : compact ? 'px-4 py-2' : 'px-4 py-3',
 		column.align === 'center' && 'text-center',
 		column.align === 'right' && 'text-right',
 		isHeader && stickyHeader && 'sticky top-0 bg-background z-10 border-b'
-	);
+	));
 
 	// Handle sort
 	function handleSort(column: string) {

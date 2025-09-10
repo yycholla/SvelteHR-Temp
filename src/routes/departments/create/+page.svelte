@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { departmentActions, departments } from '$lib/stores/departments';
+	import { departmentActions, departments } from '$lib/stores/departments.svelte';
 	import { RoleGuard } from '$lib/components/auth';
 	import { Button } from '$lib/components/ui/button';
 	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';

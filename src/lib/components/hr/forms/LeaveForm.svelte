@@ -1,10 +1,9 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { createFormStore } from '$lib/stores/hr/forms';
+	import { createFormStore } from '$lib/stores/hr/forms.svelte';
 	import { leaveRequestSchema } from '../utils/validation';
 	import { leaveApi, employeeApi } from '../utils/api-helpers';
 	import { notifications } from '../utils/notifications';
-	import type { Employee } from '$lib/stores/hr/employees';
+	import type { Employee } from '$lib/stores/hr/employees.svelte';
 
 	interface LeaveRequest {
 		id?: string;
@@ -45,9 +44,9 @@
 
 	const form = createFormStore(initialData);
 
-	let employees: Employee[] = [];
-	let loadingEmployees = false;
-	let calculatedDays = 0;
+	let employees = $state<Employee[]>([]);
+	let loadingEmployees = $state(false);
+	let calculatedDays = $state(0);
 
 	const leaveTypes = [
 		{ value: 'vacation', label: 'Vacation' },
@@ -58,8 +57,9 @@
 		{ value: 'other', label: 'Other' }
 	];
 
-	onMount(async () => {
-		await loadEmployees();
+	// Load employees when component mounts using $effect
+	$effect(() => {
+		loadEmployees();
 	});
 
 	async function loadEmployees() {

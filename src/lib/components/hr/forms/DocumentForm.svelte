@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { createFormStore } from '$lib/stores/hr/forms';
+	import { createFormStore } from '$lib/stores/hr/forms.svelte';
 	import { documentSchema } from '../utils/validation';
 	import { documentApi, employeeApi } from '../utils/api-helpers';
 	import { notifications } from '../utils/notifications';
-	import type { Employee } from '$lib/stores/hr/employees';
+	import type { Employee } from '$lib/stores/hr/employees.svelte';
 
 	interface Document {
 		id?: string;

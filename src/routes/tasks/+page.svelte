@@ -326,7 +326,8 @@
 										</Badge>
 										<Badge variant={priorityBadge.variant} class="text-xs">
 											{#if priorityBadge.icon}
-												<svelte:component this={priorityBadge.icon} class="mr-1 h-3 w-3" />
+												{@const IconComponent = priorityBadge.icon}
+												<IconComponent class="mr-1 h-3 w-3" />
 											{/if}
 											{priorityBadge.label}
 										</Badge>

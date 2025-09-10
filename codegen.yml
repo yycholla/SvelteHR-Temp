@@ -2,6 +2,7 @@ overwrite: true
 schema:
   - './specs/001-develop-mountainhr-frontend/contracts/*.graphql'
   - './specs/003-graphql-we-need/contracts/*.graphql'
+  - './specs/006-switch-all-api/contracts/*.graphql'
   - 'http://localhost:5656/db/main/ext/graphql'
 documents:
   - 'src/**/*.graphql'
@@ -38,6 +39,25 @@ generates:
       strictScalars: true
       defaultScalarType: unknown
       useTypeImports: true
+  src/lib/generated/resolvers.ts:
+    plugins:
+      - 'typescript'
+      - 'typescript-resolvers'
+    config:
+      scalars:
+        DateTime: string
+        Date: string
+        Time: string
+        Decimal: number
+        JSON: Record<string, any>
+        UUID: string
+        Upload: File
+      useIndexSignature: true
+      contextType: ../graphql/types#RequestContext
+      mappers:
+        Employee: ../api/types-v2#Employee
+        Department: ../api/types-v2#Department
+        User: ../api/types-v2#User
 hooks:
   afterOneFileWrite:
     - prettier --write

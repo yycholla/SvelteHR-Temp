@@ -11,7 +11,7 @@
 		Plus,
 		Edit
 	} from 'lucide-svelte';
-	import { modalStore } from '$lib/stores/hr/modals';
+	import { modalStore } from '$lib/stores/hr/modals.svelte';
 	import DocumentModal from '$lib/components/hr/modals/DocumentModal.svelte';
 	import Card from '$lib/components/ui/card/card.svelte';
 	import CardHeader from '$lib/components/ui/card/card-header.svelte';

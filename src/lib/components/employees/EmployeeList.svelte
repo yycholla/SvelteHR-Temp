@@ -38,10 +38,9 @@
 	} from 'lucide-svelte';
 
 	// GraphQL and Auth
-	import { createBrowserGraphQLClient } from '$lib/graphql/client.js';
-	import { queries } from '$lib/graphql/queries.js';
-	import { createSubscriptionStore } from '$lib/graphql/subscriptions.js';
-	import { authStore, checkPermission, checkAnyPermission } from '$lib/auth/store.js';
+	import { createBrowserEmployeeService, type GraphQLEmployeeService } from '$lib/graphql/services/employee-service';
+	import { isAuthenticated, userPermissions, checkPermission, checkAnyPermission } from '$lib/stores/auth.svelte';
+	import type { Employee, EmployeeStatus, EmploymentType, EmployeeSortField, SortDirection } from '$lib/graphql/generated/graphql';
 
 	// UI Components
 	import Button from '$lib/components/ui/button/button.svelte';
@@ -66,32 +65,30 @@
 
 	// Props
 	interface Props {
-		user: User;
-		initialEmployees?: any[];
+		initialEmployees?: Employee[];
 		viewMode?: 'list' | 'grid' | 'table';
 		showFilters?: boolean;
 		className?: string;
 	}
 
 	let { 
-		user, 
 		initialEmployees = [], 
 		viewMode = 'list',
 		showFilters = false,
 		className = '' 
 	}: Props = $props();
 
-	// GraphQL client setup
-	let graphqlClient: ReturnType<typeof createBrowserGraphQLClient> | null = null;
-	let employeeSubscription: any = null;
+	// GraphQL service setup
+	let employeeService: GraphQLEmployeeService | null = null;
 
 	// State management
-	let employees = $state<any[]>(initialEmployees);
-	let filteredEmployees = $state<any[]>([]);
+	let employees = $state<Employee[]>(initialEmployees);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 	let selectedEmployees = $state<Set<string>>(new Set());
 	let lastUpdated = $state<Date | null>(null);
+	let hasNextPage = $state(false);
+	let endCursor = $state<string | undefined>(undefined);
 
 	// Search and filtering
 	let searchQuery = $state('');
@@ -116,22 +113,18 @@
 	let isRefreshing = $state(false);
 
 	// Permissions
-	const canCreateEmployees = $derived(() => checkAnyPermission(['employees:create', 'employees:*', '*']));
-	const canUpdateEmployees = $derived(() => checkAnyPermission(['employees:update', 'employees:*', '*']));
-	const canDeleteEmployees = $derived(() => checkAnyPermission(['employees:delete', 'employees:*', '*']));
-	const canViewAllEmployees = $derived(() => checkAnyPermission(['employees:read', 'employees:*', '*']));
-	const canExportEmployees = $derived(() => checkAnyPermission(['employees:export', 'employees:*', '*']));
-	const canImportEmployees = $derived(() => checkAnyPermission(['employees:import', 'employees:*', '*']));
+	const canCreateEmployees = $derived(() => $checkAnyPermission(['employees:create', 'employees:*', '*']));
+	const canUpdateEmployees = $derived(() => $checkAnyPermission(['employees:update', 'employees:*', '*']));
+	const canDeleteEmployees = $derived(() => $checkAnyPermission(['employees:delete', 'employees:*', '*']));
+	const canViewAllEmployees = $derived(() => $checkAnyPermission(['employees:read', 'employees:*', '*']));
+	const canExportEmployees = $derived(() => $checkAnyPermission(['employees:export', 'employees:*', '*']));
+	const canImportEmployees = $derived(() => $checkAnyPermission(['employees:import', 'employees:*', '*']));
 
 	// Initialize component
 	async function initializeComponent() {
 		try {
-			if (browser && !graphqlClient) {
-				graphqlClient = createBrowserGraphQLClient();
-				
-				if (authStore.token) {
-					graphqlClient.setToken(authStore.token);
-				}
+			if (browser && !employeeService && $isAuthenticated) {
+				employeeService = createBrowserEmployeeService();
 			}
 
 			await loadEmployees();
@@ -143,38 +136,36 @@
 		}
 	}
 
-	// Load employees with GraphQL
+	// Load employees with GraphQL service
 	async function loadEmployees() {
-		if (!graphqlClient || !canViewAllEmployees) return;
+		if (!employeeService || !canViewAllEmployees) return;
 
 		try {
 			loading = true;
 			error = null;
 
-			const response = await graphqlClient.query(
-				queries.employees.list,
-				{
-					search: searchQuery || null,
-					departments: departmentFilter ? [departmentFilter] : null,
-					statuses: statusFilter ? [statusFilter] : null,
-					locations: locationFilter ? [locationFilter] : null,
-					roles: roleFilter ? [roleFilter] : null,
-					includeInactive: showInactiveEmployees,
-					page: currentPage,
-					limit: pageSize,
-					sortBy: sortField,
-					sortDirection: sortDirection
-				}
-			);
+			const result = await employeeService.getEmployees({
+				search: searchQuery || undefined,
+				departmentIds: departmentFilter ? [departmentFilter] : undefined,
+				statuses: statusFilter ? [statusFilter as EmployeeStatus] : undefined,
+				locations: locationFilter ? [locationFilter] : undefined,
+				roles: roleFilter ? [roleFilter] : undefined,
+				includeInactive: showInactiveEmployees,
+				pageSize,
+				after: endCursor,
+				sortField: sortField as EmployeeSortField,
+				sortDirection: sortDirection as SortDirection
+			});
 
-			if (response.data?.employees) {
-				employees = response.data.employees.data || [];
-				totalCount = response.data.employees.total || 0;
+			if (result.success && result.data) {
+				employees = result.data.employees || [];
+				totalCount = result.data.totalCount || 0;
+				hasNextPage = result.data.hasNextPage || false;
+				endCursor = result.data.endCursor;
 				lastUpdated = new Date();
+			} else {
+				error = result.error?.message || 'Failed to load employees';
 			}
-
-			// Apply client-side filtering if needed
-			applyFilters();
 
 		} catch (err) {
 			console.error('Failed to load employees:', err);
@@ -185,47 +176,18 @@
 	}
 
 	// Setup real-time subscriptions
+	let subscriptionUnsubscribe: (() => void) | null = null;
+
 	function setupSubscriptions() {
-		if (!browser || employeeSubscription || !canViewAllEmployees) return;
+		if (!browser || !employeeService || !canViewAllEmployees || subscriptionUnsubscribe) return;
 
 		try {
-			employeeSubscription = createSubscriptionStore(
-				`subscription EmployeeListUpdates {
-					employeeUpdated {
-						employee {
-							id
-							employee_id
-							first_name
-							last_name
-							full_name
-							email
-							phone
-							position
-							department {
-								id
-								name
-							}
-							status
-							hire_date
-							termination_date
-							avatar_url
-							location
-							employment_type
-						}
-						action
-						timestamp
-					}
-				}`,
-				{},
-				{
-					onData: (data) => {
-						if (data?.employeeUpdated) {
-							handleEmployeeUpdate(data.employeeUpdated);
-						}
-					},
-					onError: (error) => {
-						console.error('Employee subscription error:', error);
-					}
+			subscriptionUnsubscribe = employeeService.subscribeToEmployeeUpdates(
+				(update) => {
+					handleEmployeeUpdate(update);
+				},
+				(error) => {
+					console.error('Employee subscription error:', error);
 				}
 			);
 
@@ -238,62 +200,28 @@
 	function handleEmployeeUpdate(update: any) {
 		const { employee, action } = update;
 
-		if (action === 'created') {
+		if (action === 'CREATED') {
 			// Add new employee to list
 			employees = [employee, ...employees];
 			totalCount++;
-		} else if (action === 'updated') {
+		} else if (action === 'UPDATED') {
 			// Update existing employee
 			const index = employees.findIndex(emp => emp.id === employee.id);
 			if (index !== -1) {
 				employees[index] = employee;
 				employees = [...employees];
 			}
-		} else if (action === 'deleted') {
+		} else if (action === 'DELETED') {
 			// Remove employee from list
 			employees = employees.filter(emp => emp.id !== employee.id);
 			totalCount--;
 		}
 
-		// Reapply filters
-		applyFilters();
 		lastUpdated = new Date();
 	}
 
-	// Apply client-side filters
-	function applyFilters() {
-		filteredEmployees = employees.filter(employee => {
-			// Search filter
-			if (searchQuery) {
-				const query = searchQuery.toLowerCase();
-				const searchMatch = 
-					employee.full_name?.toLowerCase().includes(query) ||
-					employee.email?.toLowerCase().includes(query) ||
-					employee.employee_id?.toLowerCase().includes(query) ||
-					employee.position?.toLowerCase().includes(query) ||
-					employee.department?.name?.toLowerCase().includes(query);
-				
-				if (!searchMatch) return false;
-			}
-
-			// Status filter
-			if (statusFilter && employee.status !== statusFilter) return false;
-
-			// Department filter
-			if (departmentFilter && employee.department?.id !== departmentFilter) return false;
-
-			// Location filter
-			if (locationFilter && employee.location !== locationFilter) return false;
-
-			// Role filter (if available)
-			if (roleFilter && employee.role !== roleFilter) return false;
-
-			// Inactive filter
-			if (!showInactiveEmployees && employee.status !== 'active') return false;
-
-			return true;
-		});
-	}
+	// Computed filtered employees (server-side filtering is handled in loadEmployees)
+	const filteredEmployees = $derived(employees)
 
 	// Search handler with debounce
 	let searchTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -325,7 +253,7 @@
 	}
 
 	function selectAll() {
-		filteredEmployees.forEach(emp => selectedEmployees.add(emp.id));
+		employees.forEach(emp => selectedEmployees.add(emp.id));
 		selectedEmployees = new Set(selectedEmployees);
 	}
 
@@ -389,19 +317,20 @@
 
 	// Delete employee
 	async function handleEmployeeDelete(employeeId: string) {
-		if (!graphqlClient || !canDeleteEmployees) return;
+		if (!employeeService || !canDeleteEmployees) return;
 
 		if (!confirm('Are you sure you want to delete this employee?')) return;
 
 		try {
-			await graphqlClient.mutate(
-				queries.employees.delete,
-				{ employeeId }
-			);
+			const result = await employeeService.deleteEmployee(employeeId);
 
-			// Remove from local list (real-time update will handle this too)
-			employees = employees.filter(emp => emp.id !== employeeId);
-			applyFilters();
+			if (result.success) {
+				// Remove from local list (real-time update will handle this too)
+				employees = employees.filter(emp => emp.id !== employeeId);
+				totalCount--;
+			} else {
+				throw new Error(result.error?.message || 'Failed to delete employee');
+			}
 
 		} catch (err) {
 			console.error('Failed to delete employee:', err);
@@ -411,19 +340,20 @@
 
 	// Bulk delete
 	async function handleBulkDelete(employeeIds: string[]) {
-		if (!graphqlClient || !canDeleteEmployees) return;
+		if (!employeeService || !canDeleteEmployees) return;
 
 		if (!confirm(`Are you sure you want to delete ${employeeIds.length} employees?`)) return;
 
 		try {
-			await graphqlClient.mutate(
-				queries.employees.bulkDelete,
-				{ employeeIds }
-			);
+			const result = await employeeService.bulkDeleteEmployees(employeeIds);
 
-			// Remove from local list
-			employees = employees.filter(emp => !employeeIds.includes(emp.id));
-			applyFilters();
+			if (result.success) {
+				// Remove from local list
+				employees = employees.filter(emp => !employeeIds.includes(emp.id));
+				totalCount -= employeeIds.length;
+			} else {
+				throw new Error(result.error?.message || 'Failed to bulk delete employees');
+			}
 
 		} catch (err) {
 			console.error('Failed to bulk delete employees:', err);
@@ -438,7 +368,7 @@
 		try {
 			const employeeIds = selectedEmployees.size > 0 
 				? Array.from(selectedEmployees)
-				: filteredEmployees.map(emp => emp.id);
+				: employees.map(emp => emp.id);
 
 			// Create export data
 			const exportData = employees
@@ -498,22 +428,21 @@
 
 	// Bulk status update
 	async function handleBulkStatusUpdate(employeeIds: string[], status: string) {
-		if (!graphqlClient || !canUpdateEmployees) return;
+		if (!employeeService || !canUpdateEmployees) return;
 
 		try {
-			await graphqlClient.mutate(
-				queries.employees.bulkUpdate,
-				{
-					employeeIds,
-					updates: { status }
-				}
-			);
+			const result = await employeeService.bulkUpdateEmployees(employeeIds, {
+				status: status as EmployeeStatus
+			});
 
-			// Update local state
-			employees = employees.map(emp => 
-				employeeIds.includes(emp.id) ? { ...emp, status } : emp
-			);
-			applyFilters();
+			if (result.success) {
+				// Update local state
+				employees = employees.map(emp => 
+					employeeIds.includes(emp.id) ? { ...emp, status: status as EmployeeStatus } : emp
+				);
+			} else {
+				throw new Error(result.error?.message || 'Failed to bulk update status');
+			}
 
 		} catch (err) {
 			console.error('Failed to bulk update status:', err);
@@ -523,18 +452,18 @@
 
 	// Bulk department update
 	async function handleBulkDepartmentUpdate(employeeIds: string[], departmentId: string) {
-		if (!graphqlClient || !canUpdateEmployees) return;
+		if (!employeeService || !canUpdateEmployees) return;
 
 		try {
-			await graphqlClient.mutate(
-				queries.employees.bulkUpdate,
-				{
-					employeeIds,
-					updates: { department_id: departmentId }
-				}
-			);
+			const result = await employeeService.bulkUpdateEmployees(employeeIds, {
+				departmentId
+			});
 
-			loadEmployees(); // Reload to get updated department info
+			if (result.success) {
+				loadEmployees(); // Reload to get updated department info
+			} else {
+				throw new Error(result.error?.message || 'Failed to bulk update department');
+			}
 
 		} catch (err) {
 			console.error('Failed to bulk update department:', err);
@@ -544,18 +473,12 @@
 
 	// Bulk notification
 	async function handleBulkNotification(employeeIds: string[], message: string) {
-		if (!graphqlClient) return;
+		if (!employeeService) return;
 
 		try {
-			await graphqlClient.mutate(
-				queries.notifications.sendBulk,
-				{
-					userIds: employeeIds,
-					title: 'HR Notification',
-					message,
-					type: 'announcement'
-				}
-			);
+			// Note: This would need to be implemented in the employee service
+			// or we might need a separate notification service
+			console.warn('Bulk notification not yet implemented with GraphQL service');
 
 		} catch (err) {
 			console.error('Failed to send bulk notification:', err);
@@ -602,8 +525,8 @@
 	});
 
 	onDestroy(() => {
-		if (employeeSubscription) {
-			employeeSubscription.unsubscribe();
+		if (subscriptionUnsubscribe) {
+			subscriptionUnsubscribe();
 		}
 		if (searchTimeout) {
 			clearTimeout(searchTimeout);
@@ -630,7 +553,7 @@
 	const hasSelection = $derived(selectedEmployees.size > 0);
 	const isAllSelected = $derived(
 		selectedEmployees.size > 0 && 
-		selectedEmployees.size === filteredEmployees.length
+		selectedEmployees.size === employees.length
 	);
 </script>
 
@@ -763,7 +686,7 @@
 				}}
 			/>
 			<span class="text-sm font-medium">
-				{selectedEmployees.size} of {filteredEmployees.length} employees selected
+				{selectedEmployees.size} of {employees.length} employees selected
 			</span>
 		</div>
 
@@ -802,7 +725,7 @@
 				</Button>
 			</CardContent>
 		</Card>
-	{:else if filteredEmployees.length === 0}
+	{:else if employees.length === 0}
 		<!-- Empty State -->
 		<Card>
 			<CardContent class="p-12 text-center">

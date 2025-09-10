@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { documentApi, employeeApi } from '../utils/api-helpers';
 	import { notifications } from '../utils/notifications';
-	import type { Employee } from '$lib/stores/hr/employees';
+	import type { Employee } from '$lib/stores/hr/employees.svelte';
 
 	interface Document {
 		id: string;

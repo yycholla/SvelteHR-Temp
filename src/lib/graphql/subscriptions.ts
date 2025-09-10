@@ -528,6 +528,84 @@ export function createSubscriptionClient(config: SubscriptionClientConfig): Subs
 }
 
 /**
+ * Create a Svelte store that manages a GraphQL subscription
+ * This provides a reactive store interface for subscription data
+ */
+export function createSubscriptionStore<TData = any>(
+	query: string,
+	variables?: Record<string, any>,
+	options?: {
+		client?: SubscriptionClient;
+		initialData?: TData;
+		onError?: (error: Error) => void;
+		onComplete?: () => void;
+	}
+) {
+	// Create state using Svelte 5 runes
+	let data = $state<TData | null>(options?.initialData || null);
+	let loading = $state<boolean>(true);
+	let error = $state<Error | null>(null);
+	
+	// Default client configuration (you may want to customize this)
+	const defaultClient = createSubscriptionClient({
+		url: 'ws://localhost:5656/ws/graphql', // Adjust to your GraphQL WebSocket endpoint
+		protocols: ['graphql-ws'],
+		reconnect: true
+	});
+	
+	const client = options?.client || defaultClient;
+	
+	// Create subscription
+	const subscription = client.subscribe(query, variables, {
+		onData: (result) => {
+			loading = false;
+			error = null;
+			data = result.data;
+		},
+		onError: (err) => {
+			loading = false;
+			error = err;
+			if (options?.onError) {
+				options.onError(err);
+			}
+		},
+		onComplete: () => {
+			loading = false;
+			if (options?.onComplete) {
+				options.onComplete();
+			}
+		}
+	});
+	
+	// Return store interface
+	return {
+		// Reactive getters
+		get data() { return data; },
+		get loading() { return loading; },
+		get error() { return error; },
+		
+		// Derived reactive values
+		isLoading: $derived(() => loading),
+		hasError: $derived(() => error !== null),
+		hasData: $derived(() => data !== null),
+		
+		// Actions
+		refetch: () => {
+			loading = true;
+			error = null;
+			// Resubscribe by creating a new subscription
+			subscription.unsubscribe();
+			return client.subscribe(query, variables);
+		},
+		
+		// Cleanup
+		destroy: () => {
+			subscription.unsubscribe();
+		}
+	};
+}
+
+/**
  * Export types for convenience
  */
 export type { 

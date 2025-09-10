@@ -5,7 +5,7 @@
 	import { ToastContainer } from '$lib/components/ui/toast';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
-	import { authActions, isAuthenticated } from '$lib/stores/auth';
+	import { authActions, isAuthenticated } from '$lib/stores/auth.svelte';
 
 	let { children } = $props();
 

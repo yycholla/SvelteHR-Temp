@@ -18,7 +18,7 @@
 	import Separator from '$lib/components/ui/separator/separator.svelte';
 	import Badge from '$lib/components/ui/badge/badge.svelte';
 	import { RoleGuard } from '$lib/components/auth';
-	import { isAdmin, currentUser } from '$lib/stores/auth';
+	import { isAdmin, currentUser } from '$lib/stores/auth.svelte';
 	import { roleChecks } from '$lib/auth/guards';
 
 	let { children } = $props();

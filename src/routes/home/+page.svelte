@@ -6,7 +6,7 @@
 	import CardLibrary from '$lib/components/dashboard/CardLibrary.svelte';
 	import ErrorHandlingDemo from '$lib/components/ui/test/ErrorHandlingDemo.svelte';
 	// Removed streaming - using static data from server
-	import { dashboardActions, isEditing, dashboardLayout } from '$lib/stores/dashboard.js';
+	import { dashboardActions, isEditing, dashboardLayout } from '$lib/stores/dashboard.svelte';
 	import type { PageData } from './$types';
 	import type { UserRole } from '$lib/components/dashboard/types.js';
 

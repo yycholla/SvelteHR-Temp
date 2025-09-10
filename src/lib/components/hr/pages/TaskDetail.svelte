@@ -1,9 +1,8 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { taskApi, employeeApi } from '../utils/api-helpers';
 	import { notifications } from '../utils/notifications';
-	import type { Task } from '$lib/stores/hr/tasks';
-	import type { Employee } from '$lib/stores/hr/employees';
+	import type { Task } from '$lib/stores/hr/tasks.svelte';
+	import type { Employee } from '$lib/stores/hr/employees.svelte';
 
 	let {
 		taskId,
@@ -17,14 +16,17 @@
 		onStatusChange?: (task: Task, newStatus: Task['status']) => void;
 	} = $props();
 
-	let task: Task | null = null;
-	let assignedEmployee: Employee | null = null;
-	let assignedByEmployee: Employee | null = null;
-	let loading = true;
-	let updatingStatus = false;
+	let task = $state<Task | null>(null);
+	let assignedEmployee = $state<Employee | null>(null);
+	let assignedByEmployee = $state<Employee | null>(null);
+	let loading = $state(true);
+	let updatingStatus = $state(false);
 
-	onMount(async () => {
-		await loadTask();
+	// Load data when taskId changes using $effect
+	$effect(() => {
+		if (taskId) {
+			loadTask();
+		}
 	});
 
 	async function loadTask() {

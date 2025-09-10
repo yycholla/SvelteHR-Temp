@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { modalStore } from '$lib/stores/hr/modals';
+	import { modalStore } from '$lib/stores/hr/modals.svelte';
 	import { notifications } from '$lib/components/hr/utils/notifications';
 	import { documentApi } from '$lib/components/hr/utils/api-helpers';
 	import DocumentViewer from '$lib/components/hr/pages/DocumentViewer.svelte';

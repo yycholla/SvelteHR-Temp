@@ -82,16 +82,16 @@
 	};
 
 	// Backdrop classes
-	$: backdropClasses = cn(
+	const backdropClasses = $derived(cn(
 		'fixed inset-0 z-50 flex items-center justify-center',
 		'bg-background/80 backdrop-blur-sm',
 		'data-[state=open]:animate-in data-[state=closed]:animate-out',
 		'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
 		backdropClass
-	);
+	));
 
 	// Content classes
-	$: contentClasses = cn(
+	const contentClasses = $derived(cn(
 		'relative z-50 w-full mx-4 bg-background rounded-lg border shadow-lg',
 		'data-[state=open]:animate-in data-[state=closed]:animate-out',
 		'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
@@ -102,28 +102,30 @@
 		size === 'full' && 'mx-0 rounded-none',
 		contentClass,
 		className
-	);
+	));
 
 	// Header classes
-	$: headerClasses = cn(
+	const headerClasses = $derived(cn(
 		'flex items-center justify-between p-6 pb-4',
 		size === 'sm' && 'p-4 pb-2',
 		headerClass
-	);
+	));
 
 	// Footer classes
-	$: footerClasses = cn(
+	const footerClasses = $derived(cn(
 		'flex items-center justify-end gap-3 p-6 pt-4 border-t',
 		size === 'sm' && 'p-4 pt-2',
 		footerClass
-	);
+	));
 
 	// Handle modal open/close
-	$: if (open) {
-		openModal();
-	} else {
-		closeModal();
-	}
+	$effect(() => {
+		if (open) {
+			openModal();
+		} else {
+			closeModal();
+		}
+	});
 
 	// Open modal
 	function openModal() {

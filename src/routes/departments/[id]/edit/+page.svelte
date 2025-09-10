@@ -1,15 +1,9 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import {
-		departmentActions,
-		currentDepartment,
-		departments,
-		isLoading,
-		error
-	} from '$lib/stores/departments';
+	import { createBrowserDepartmentService, type GraphQLDepartmentService } from '$lib/graphql/services/department-service';
 	import { RoleGuard } from '$lib/components/auth';
+	import type { Department } from '$lib/types/department';
 	import { Button } from '$lib/components/ui/button';
 	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
 	import { Input } from '$lib/components/ui/input';
@@ -27,6 +21,12 @@
 
 	const departmentId = $derived($page.params.id);
 
+	let departmentService: GraphQLDepartmentService;
+	let currentDepartment = $state<Department | null>(null);
+	let departments = $state<Department[]>([]);
+	let isLoading = $state(true);
+	let error = $state<string | null>(null);
+
 	let formData = $state<UpdateDepartmentRequest>({
 		name: '',
 		description: '',
@@ -37,7 +37,48 @@
 	});
 
 	let isSubmitting = $state(false);
-	let formErrors = $state<Record<string, string>>({});
+	let formErrors = $state<Record<string, string>>();
+
+	// Initialize service
+	$effect(() => {
+		departmentService = createBrowserDepartmentService();
+	});
+
+	// Load data when service is ready
+	$effect(() => {
+		if (departmentId && departmentService) {
+			loadData();
+		}
+	});
+
+	async function loadData() {
+		if (!departmentId || !departmentService) return;
+		
+		isLoading = true;
+		error = null;
+		try {
+			// Load department details and all departments in parallel
+			const [departmentResult, departmentsResult] = await Promise.all([
+				departmentService.getDepartmentById(departmentId),
+				departmentService.getDepartments({ activeOnly: true })
+			]);
+
+			if (departmentResult.success && departmentResult.data) {
+				currentDepartment = departmentResult.data;
+			} else {
+				throw new Error(departmentResult.error || 'Failed to load department');
+			}
+
+			if (departmentsResult.success && departmentsResult.data) {
+				departments = departmentsResult.data.departments;
+			}
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to load department data';
+			console.error('Failed to load department data:', err);
+		} finally {
+			isLoading = false;
+		}
+	}
 
 	// Available parent departments (exclude self and descendants)
 	const parentDepartmentOptions = $derived(() => {
@@ -57,14 +98,6 @@
 		return departments.filter((dept) => dept.is_active && !excludeIds.has(dept.id));
 	});
 
-	onMount(() => {
-		if (departmentId) {
-			// Load the department data
-			departmentActions.loadDepartment(departmentId);
-		}
-		// Load all departments for parent selection
-		departmentActions.loadDepartments({ active_only: true });
-	});
 
 	// Update form data when currentDepartment changes
 	$effect(() => {
@@ -119,13 +152,21 @@
 				manager_id: formData.manager_id || null
 			};
 
-			await departmentActions.updateDepartment(departmentId, submitData);
-
-			// Redirect to the department's detail page
-			await goto(`/departments/${departmentId}`);
-		} catch (error) {
-			console.error('Failed to update department:', error);
-			// Error is handled by the store
+			const result = await departmentService.updateDepartment(departmentId, submitData);
+			
+			if (result.success) {
+				// Update current department with the result
+				if (result.data) {
+					currentDepartment = result.data;
+				}
+				// Redirect to the department's detail page
+				await goto(`/departments/${departmentId}`);
+			} else {
+				throw new Error(result.error || 'Failed to update department');
+			}
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to update department';
+			console.error('Failed to update department:', err);
 		} finally {
 			isSubmitting = false;
 		}
@@ -171,9 +212,10 @@
 				<CardContent class="pt-6">
 					<p class="text-destructive">{error}</p>
 					<div class="mt-4 flex gap-2">
-						<Button variant="outline" onclick={() => departmentActions.clearError()}>
+						<Button variant="outline" onclick={() => (error = null)}>
 							Dismiss
 						</Button>
+						<Button variant="outline" onclick={loadData}>Retry</Button>
 						<Button variant="outline" onclick={handleCancel}>Back to Department</Button>
 					</div>
 				</CardContent>

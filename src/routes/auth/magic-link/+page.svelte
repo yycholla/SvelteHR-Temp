@@ -10,8 +10,12 @@
 	import Input from '$lib/components/ui/Input.svelte';
 	import type { PageData, ActionData } from './$types';
 
-	export let data: PageData;
-	export let form: ActionData;
+	interface Props {
+		data: PageData;
+		form: ActionData;
+	}
+
+	let { data, form = $bindable() }: Props = $props();
 
 	let isLoading = $state(false);
 	let email = $state('');

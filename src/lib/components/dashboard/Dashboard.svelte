@@ -15,13 +15,10 @@
 	import { Plus, Settings, RotateCcw, Grid3X3, Maximize2, Download } from 'lucide-svelte';
 	
 	// GraphQL integration
-	import { queries } from '$lib/graphql/queries.js';
-	import { createSubscriptionStore } from '$lib/graphql/subscriptions.js';
-	import { createBrowserGraphQLClient } from '$lib/graphql/client.js';
+	import { createBrowserDashboardService, type GraphQLDashboardService } from '$lib/graphql/services/dashboard-service';
 	
 	// Authentication and RBAC
-	import { authStore } from '$lib/auth/store.js';
-	import { checkPermission, checkAnyPermission } from '$lib/auth/store.js';
+	import { isAuthenticated, checkPermission, checkAnyPermission } from '$lib/stores/auth.svelte';
 	
 	// Dashboard components
 	import DashboardCard from './grid/DashboardCard.svelte';
@@ -78,13 +75,11 @@
 	let preferences = $state<UserDashboardPreferences | null>(null);
 	let gridContainer: HTMLDivElement;
 
-	// GraphQL client setup
-	let graphqlClient: ReturnType<typeof createBrowserGraphQLClient> | null = null;
+	// GraphQL dashboard service setup
+	let dashboardService: GraphQLDashboardService | null = null;
 	
 	// Real-time subscriptions
-	let dashboardSubscription: any = null;
-	let employeeSubscription: any = null;
-	let notificationSubscription: any = null;
+	let subscriptionUnsubscribes: (() => void)[] = [];
 
 	// Role-based card definitions
 	const availableCards: CardMetadata[] = [
@@ -183,15 +178,15 @@
 			
 			// Additional permission-based filtering
 			if (card.tags.includes('hr')) {
-				return hasRole && (checkPermission('employees:read') || checkPermission('*'));
+				return hasRole && ($checkPermission('employees:read') || $checkPermission('*'));
 			}
 			
 			if (card.tags.includes('admin')) {
-				return hasRole && checkPermission('*');
+				return hasRole && $checkPermission('*');
 			}
 			
 			if (card.tags.includes('reports')) {
-				return hasRole && checkAnyPermission(['reports:read', 'reports:hr', 'reports:team']);
+				return hasRole && $checkAnyPermission(['reports:read', 'reports:hr', 'reports:team']);
 			}
 			
 			return hasRole;
@@ -313,14 +308,9 @@
 			loading = true;
 			error = null;
 
-			// Initialize GraphQL client
-			if (browser && !graphqlClient) {
-				graphqlClient = createBrowserGraphQLClient();
-				
-				// Set authentication token if available
-				if (authStore.token) {
-					graphqlClient.setToken(authStore.token);
-				}
+			// Initialize GraphQL dashboard service
+			if (browser && !dashboardService && $isAuthenticated) {
+				dashboardService = createBrowserDashboardService();
 			}
 
 			// Load user preferences or create defaults
@@ -343,29 +333,15 @@
 	// Load user dashboard preferences
 	async function loadUserPreferences() {
 		try {
-			if (!graphqlClient) return;
-
-			const response = await graphqlClient.query(
-				queries.dashboard.userPreferences,
-				{ userId: user.id }
-			);
-
-			if (response.data?.userDashboardPreferences) {
-				preferences = response.data.userDashboardPreferences;
-				selectedLayout = preferences.layouts.find(l => l.id === preferences.activeLayoutId) || null;
-			}
-
-			// Create default layout if none exists
-			if (!selectedLayout) {
-				selectedLayout = generateDefaultLayout();
-				
-				preferences = {
-					layouts: [selectedLayout],
-					activeLayoutId: selectedLayout.id,
-					autoRefresh: true,
-					refreshInterval: 300
-				};
-			}
+			// For now, use default layout since user preferences API isn't implemented yet
+			// TODO: Implement user preferences in GraphQL service
+			selectedLayout = generateDefaultLayout();
+			preferences = {
+				layouts: [selectedLayout],
+				activeLayoutId: selectedLayout.id,
+				autoRefresh: true,
+				refreshInterval: 300
+			};
 
 		} catch (err) {
 			console.error('Failed to load user preferences:', err);
@@ -383,36 +359,39 @@
 	// Load dashboard data
 	async function loadDashboardData() {
 		try {
-			if (!graphqlClient) return;
+			if (!dashboardService) return;
 
-			// Load dashboard metrics based on user permissions
-			const metricsResponse = await graphqlClient.query(
-				queries.dashboard.metrics,
-				{ 
-					userId: user.id,
-					includeTeamData: checkAnyPermission(['team:manage', 'employees:read']),
-					includeHRData: checkAnyPermission(['employees:*', 'reports:hr'])
-				}
-			);
-
-			if (metricsResponse.data) {
-				dashboardData = {
-					...dashboardData,
-					...metricsResponse.data.dashboardMetrics
-				};
+			// Determine which widgets to load based on user permissions
+			const widgetTypes = [];
+			
+			if ($checkAnyPermission(['employees:read', 'employees:*', '*'])) {
+				widgetTypes.push('EMPLOYEE_STATISTICS');
 			}
+			
+			if ($checkAnyPermission(['departments:read', 'departments:*', '*'])) {
+				widgetTypes.push('DEPARTMENT_STATISTICS');
+			}
+			
+			if ($checkAnyPermission(['reports:read', 'reports:*', '*'])) {
+				widgetTypes.push('PERFORMANCE_METRICS');
+			}
+			
+			widgetTypes.push('NOTIFICATIONS'); // Always include notifications
 
-			// Load user-specific data
-			const userDataResponse = await graphqlClient.query(
-				queries.auth.profile,
-				{ userId: user.id }
-			);
+			// Load dashboard data using the service
+			const result = await dashboardService.getDashboardData({
+				period: 'current_month',
+				widgets: widgetTypes
+			});
 
-			if (userDataResponse.data?.user) {
+			if (result.success && result.data) {
 				dashboardData = {
 					...dashboardData,
-					userProfile: userDataResponse.data.user
+					...result.data,
+					userProfile: user // Use the passed user data
 				};
+			} else {
+				console.error('Failed to load dashboard data:', result.error);
 			}
 
 		} catch (err) {
@@ -423,93 +402,60 @@
 
 	// Setup real-time subscriptions
 	function setupSubscriptions() {
-		if (!browser) return;
+		if (!browser || !dashboardService) return;
 
 		try {
-			// Dashboard metrics subscription
-			dashboardSubscription = createSubscriptionStore(
-				`subscription DashboardMetricsUpdates($userId: ID!) {
-					dashboardMetricsUpdated(userId: $userId) {
-						total_employees
-						active_employees
-						new_hires_this_month
-						pending_leave_requests
-						recent_activities {
-							id
-							type
-							title
-							actor { id name }
-							created_at
-						}
-						updated_at
-					}
-				}`,
-				{ userId: user.id },
-				{
-					onData: (data) => {
-						if (data?.dashboardMetricsUpdated) {
-							dashboardData = {
-								...dashboardData,
-								...data.dashboardMetricsUpdated
-							};
-						}
-					},
-					onError: (error) => {
-						console.error('Dashboard subscription error:', error);
-					}
+			// Dashboard updates subscription
+			const widgetTypes = [];
+			
+			if ($checkAnyPermission(['employees:read', 'employees:*', '*'])) {
+				widgetTypes.push('EMPLOYEE_STATISTICS');
+			}
+			
+			if ($checkAnyPermission(['departments:read', 'departments:*', '*'])) {
+				widgetTypes.push('DEPARTMENT_STATISTICS');
+			}
+			
+			if ($checkAnyPermission(['reports:read', 'reports:*', '*'])) {
+				widgetTypes.push('PERFORMANCE_METRICS');
+			}
+			
+			widgetTypes.push('NOTIFICATIONS');
+
+			// Dashboard updates subscription
+			const dashboardUnsubscribe = dashboardService.subscribeToDashboardUpdates(
+				widgetTypes,
+				(data) => {
+					console.log('Dashboard update received:', data);
+					// Update specific widget data
+					dashboardData = {
+						...dashboardData,
+						[data.widget_type]: data.data,
+						lastUpdated: new Date(data.timestamp)
+					};
 				}
 			);
+			
+			subscriptionUnsubscribes.push(dashboardUnsubscribe);
 
-			// Employee updates subscription (for HR/Managers)
-			if (checkAnyPermission(['employees:read', 'team:manage'])) {
-				employeeSubscription = createSubscriptionStore(
-					`subscription EmployeeUpdates {
-						employeeUpdated {
-							employee {
-								id employee_id full_name status
-								department { id name }
-							}
-							action
-							timestamp
-						}
-					}`,
-					{},
-					{
-						onData: (data) => {
-							if (data?.employeeUpdated) {
-								// Trigger dashboard data refresh
-								loadDashboardData();
-							}
-						}
+			// Notifications subscription
+			if (user.id) {
+				const notificationsUnsubscribe = dashboardService.subscribeToNotifications(
+					user.id,
+					(notification) => {
+						console.log('New notification received:', notification);
+						dashboardData = {
+							...dashboardData,
+							notifications: [
+								notification,
+								...(dashboardData.notifications || [])
+							].slice(0, 20) // Keep latest 20
+						};
 					}
 				);
+				
+				subscriptionUnsubscribes.push(notificationsUnsubscribe);
 			}
-
-			// Notification subscription
-			notificationSubscription = createSubscriptionStore(
-				`subscription NotificationUpdates($userId: ID!) {
-					notificationReceived(userId: $userId) {
-						notification {
-							id type title message read created_at
-						}
-						timestamp
-					}
-				}`,
-				{ userId: user.id },
-				{
-					onData: (data) => {
-						if (data?.notificationReceived) {
-							dashboardData = {
-								...dashboardData,
-								notifications: [
-									data.notificationReceived.notification,
-									...(dashboardData.notifications || [])
-								].slice(0, 20) // Keep latest 20
-							};
-						}
-					}
-				}
-			);
 
 		} catch (err) {
 			console.error('Failed to setup subscriptions:', err);
@@ -519,15 +465,8 @@
 	// Save user preferences
 	async function saveUserPreferences() {
 		try {
-			if (!graphqlClient || !preferences) return;
-
-			await graphqlClient.mutate(
-				queries.dashboard.savePreferences,
-				{
-					userId: user.id,
-					preferences: preferences
-				}
-			);
+			// TODO: Implement user preferences saving via dashboard service
+			console.log('Saving user preferences:', preferences);
 
 		} catch (err) {
 			console.error('Failed to save user preferences:', err);
@@ -607,15 +546,14 @@
 
 	onDestroy(() => {
 		// Cleanup subscriptions
-		if (dashboardSubscription) {
-			dashboardSubscription.unsubscribe();
-		}
-		if (employeeSubscription) {
-			employeeSubscription.unsubscribe();
-		}
-		if (notificationSubscription) {
-			notificationSubscription.unsubscribe();
-		}
+		subscriptionUnsubscribes.forEach(unsubscribe => {
+			try {
+				unsubscribe();
+			} catch (err) {
+				console.error('Error cleaning up subscription:', err);
+			}
+		});
+		subscriptionUnsubscribes = [];
 	});
 
 	// Auto-refresh setup
@@ -753,7 +691,9 @@
 	}
 
 	.dashboard-grid.customizing {
-		@apply border-2 border-dashed border-gray-300 rounded-lg p-4;
+		border: 2px dashed #d1d5db;
+		border-radius: 0.5rem;
+		padding: 1rem;
 	}
 
 	@media (max-width: 1024px) {

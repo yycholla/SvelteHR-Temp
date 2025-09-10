@@ -23,14 +23,16 @@ import type {
 } from './types';
 
 /**
- * Custom GraphQL Error class with enhanced error information
+ * Enhanced GraphQL Error class with comprehensive error categorization
  */
 export class GraphQLClientError extends Error {
 	constructor(
 		message: string,
 		public readonly errors?: GraphQLError[],
 		public readonly status?: number,
-		public readonly extensions?: Record<string, any>
+		public readonly extensions?: Record<string, any>,
+		public readonly operationName?: string,
+		public readonly variables?: Record<string, any>
 	) {
 		super(message);
 		this.name = 'GraphQLClientError';
@@ -41,7 +43,9 @@ export class GraphQLClientError extends Error {
 	 */
 	get isAuthError(): boolean {
 		return this.extensions?.code === 'UNAUTHENTICATED' || 
-			this.status === 401;
+			this.status === 401 ||
+			this.message?.toLowerCase().includes('unauthorized') ||
+			this.message?.toLowerCase().includes('authentication');
 	}
 
 	/**
@@ -49,18 +53,68 @@ export class GraphQLClientError extends Error {
 	 */
 	get isPermissionError(): boolean {
 		return this.extensions?.code === 'FORBIDDEN' || 
-			this.status === 403;
+			this.status === 403 ||
+			this.message?.toLowerCase().includes('forbidden') ||
+			this.message?.toLowerCase().includes('permission');
 	}
 
 	/**
 	 * Check if error is network related
 	 */
 	get isNetworkError(): boolean {
-		return this.status ? this.status >= 500 : false;
+		return this.status ? this.status >= 500 : 
+			this.message?.toLowerCase().includes('network') ||
+			this.message?.toLowerCase().includes('timeout') ||
+			this.message?.toLowerCase().includes('connection') ||
+			false;
 	}
 
 	/**
-	 * Get user-friendly error message
+	 * Check if error is validation related
+	 */
+	get isValidationError(): boolean {
+		return this.extensions?.code === 'VALIDATION_ERROR' ||
+			this.extensions?.code === 'BAD_USER_INPUT' ||
+			this.status === 422 ||
+			this.status === 400;
+	}
+
+	/**
+	 * Check if error is rate limiting related
+	 */
+	get isRateLimitError(): boolean {
+		return this.extensions?.code === 'RATE_LIMITED' ||
+			this.status === 429;
+	}
+
+	/**
+	 * Check if this error should be retried
+	 */
+	get isRetryable(): boolean {
+		return this.isNetworkError && !this.isAuthError && !this.isPermissionError;
+	}
+
+	/**
+	 * Get retry delay in milliseconds (null if not retryable)
+	 */
+	get retryAfter(): number | null {
+		if (!this.isRetryable) return null;
+		
+		// Check for Retry-After header or extension
+		const retryAfter = this.extensions?.retryAfter || this.extensions?.retry_after;
+		if (retryAfter) {
+			return parseInt(retryAfter) * 1000; // Convert seconds to milliseconds
+		}
+		
+		// Default retry delays based on error type
+		if (this.isRateLimitError) return 60000; // 1 minute for rate limits
+		if (this.isNetworkError) return 5000;    // 5 seconds for network errors
+		
+		return null;
+	}
+
+	/**
+	 * Get user-friendly error message with actionable guidance
 	 */
 	get userMessage(): string {
 		if (this.isAuthError) {
@@ -69,10 +123,113 @@ export class GraphQLClientError extends Error {
 		if (this.isPermissionError) {
 			return 'You don\'t have permission to perform this action';
 		}
+		if (this.isRateLimitError) {
+			return 'Too many requests. Please wait a moment before trying again';
+		}
+		if (this.isValidationError) {
+			return 'Please check your input and try again';
+		}
 		if (this.isNetworkError) {
-			return 'Server error. Please try again later';
+			return 'Connection problem. Please check your internet connection and try again';
 		}
 		return this.message || 'An unexpected error occurred';
+	}
+
+	/**
+	 * Get error severity level for logging and monitoring
+	 */
+	get severity(): 'low' | 'medium' | 'high' | 'critical' {
+		if (this.isNetworkError && this.status && this.status >= 500) {
+			return 'critical';
+		}
+		if (this.isAuthError || this.isNetworkError) {
+			return 'high';
+		}
+		if (this.isPermissionError || this.isValidationError) {
+			return 'medium';
+		}
+		return 'low';
+	}
+
+	/**
+	 * Get suggested user actions
+	 */
+	get suggestedActions(): string[] {
+		const actions: string[] = [];
+		
+		if (this.isAuthError) {
+			actions.push('Sign in again');
+			actions.push('Check if your session has expired');
+		}
+		
+		if (this.isPermissionError) {
+			actions.push('Contact your administrator for access');
+			actions.push('Verify you have the required permissions');
+		}
+		
+		if (this.isNetworkError) {
+			actions.push('Check your internet connection');
+			actions.push('Try again in a few moments');
+			if (this.isRetryable) {
+				actions.push('The request will be automatically retried');
+			}
+		}
+		
+		if (this.isValidationError) {
+			actions.push('Review the form data');
+			actions.push('Ensure all required fields are completed');
+		}
+		
+		if (this.isRateLimitError) {
+			actions.push(`Wait ${Math.ceil((this.retryAfter || 60000) / 1000)} seconds before retrying`);
+		}
+		
+		if (actions.length === 0) {
+			actions.push('Try refreshing the page');
+			actions.push('Contact support if the problem persists');
+		}
+		
+		return actions;
+	}
+
+	/**
+	 * Convert to enhanced app error format for integration with error system
+	 */
+	toEnhancedError() {
+		// Import here to avoid circular dependency
+		const { createError, ErrorType } = require('../utils/errors');
+		
+		let errorType: any = ErrorType.API_ERROR;
+		
+		if (this.isAuthError) {
+			errorType = ErrorType.AUTHENTICATION_FAILED;
+		} else if (this.isPermissionError) {
+			errorType = ErrorType.ACCESS_DENIED;
+		} else if (this.isValidationError) {
+			errorType = ErrorType.VALIDATION_ERROR;
+		} else if (this.isRateLimitError) {
+			errorType = ErrorType.RATE_LIMITED;
+		} else if (this.isNetworkError) {
+			errorType = ErrorType.NETWORK_ERROR;
+		}
+		
+		return createError(errorType, this.userMessage, {
+			details: {
+				graphql_errors: this.errors,
+				status: this.status,
+				extensions: this.extensions,
+				operation_name: this.operationName,
+				variables: this.variables,
+				suggested_actions: this.suggestedActions
+			},
+			cause: this,
+			recoverable: this.isRetryable,
+			retry_after: this.retryAfter ? Math.ceil(this.retryAfter / 1000) : undefined,
+			context: {
+				action: 'graphql_operation',
+				component: 'graphql_client'
+			}
+		});
 	}
 }
 
@@ -127,7 +284,7 @@ export class ServerGraphQLClient {
 		const request: GraphQLRequest = {
 			query: query.trim(),
 			variables: variables || {},
-			operationName: options.operationName
+			...(options.operationName && { operationName: options.operationName })
 		};
 
 		return this.executeRequest<T>(request, options);
@@ -144,7 +301,7 @@ export class ServerGraphQLClient {
 		const request: GraphQLRequest = {
 			query: mutation.trim(),
 			variables: variables || {},
-			operationName: options.operationName
+			...(options.operationName && { operationName: options.operationName })
 		};
 
 		return this.executeRequest<T>(request, { ...options, skipCache: true });
@@ -158,6 +315,7 @@ export class ServerGraphQLClient {
 		options: QueryOptions = {}
 	): Promise<GraphQLResponse<T>> {
 		let lastError: Error | null = null;
+		const operationName = this.extractOperationName(request.query);
 
 		// Retry logic with exponential backoff
 		for (let attempt = 0; attempt < this.retryAttempts; attempt++) {
@@ -181,7 +339,9 @@ export class ServerGraphQLClient {
 						response.errors[0].message,
 						response.errors,
 						undefined,
-						response.errors[0].extensions
+						response.errors[0].extensions,
+						operationName,
+						request.variables
 					);
 				}
 
@@ -197,10 +357,9 @@ export class ServerGraphQLClient {
 					throw error;
 				}
 
-				// Wait before retry (exponential backoff)
+				// Wait before retry (exponential backoff with jitter)
 				if (attempt < this.retryAttempts - 1) {
-					const delay = Math.pow(2, attempt) * 1000;
-					await new Promise(resolve => setTimeout(resolve, delay));
+					await this.retryWithJitter(attempt);
 				}
 			}
 		}
@@ -210,12 +369,70 @@ export class ServerGraphQLClient {
 	}
 
 	/**
-	 * Make HTTP request to GraphQL endpoint
+	 * Exponential backoff with jitter for retry logic
+	 */
+	private async retryWithJitter(attempt: number): Promise<void> {
+		const baseDelay = Math.pow(2, attempt) * 1000;
+		const jitter = Math.random() * 0.1 * baseDelay; // Add 10% jitter
+		const delay = baseDelay + jitter;
+		
+		console.debug(`⏱️ Retrying GraphQL request in ${Math.round(delay)}ms (attempt ${attempt + 1})`);
+		await new Promise(resolve => setTimeout(resolve, delay));
+	}
+
+	/**
+	 * Health check for GraphQL connection
+	 */
+	async healthCheck(): Promise<boolean> {
+		try {
+			const result = await this.query(`{ __typename }`, {}, { skipCache: true });
+			return result.data?.__typename === 'Query';
+		} catch {
+			return false;
+		}
+	}
+
+	/**
+	 * Track query performance metrics
+	 */
+	private trackQueryPerformance(operationName: string, duration: number, success: boolean): void {
+		if (GRAPHQL_CONFIG.enableTimeoutMetrics) {
+			if (duration > GRAPHQL_CONFIG.slowQueryThreshold) {
+				console.warn(`🐌 Slow GraphQL query: ${operationName} took ${duration}ms`);
+				// In production, send to monitoring service
+				if (typeof window !== 'undefined' && (window as any).analytics) {
+					(window as any).analytics.track('Slow GraphQL Query', {
+						operationName,
+						duration,
+						threshold: GRAPHQL_CONFIG.slowQueryThreshold
+					});
+				}
+			}
+			
+			if (duration > GRAPHQL_CONFIG.timeoutWarningThreshold) {
+				console.warn(`⚠️ Near-timeout GraphQL query: ${operationName} took ${duration}ms (timeout: ${this.timeout}ms)`);
+			}
+		}
+	}
+
+	/**
+	 * Extract operation name from GraphQL query for monitoring
+	 */
+	private extractOperationName(query: string): string {
+		const match = query.match(/(?:query|mutation|subscription)\s+([a-zA-Z_][a-zA-Z0-9_]*)/i);
+		return match ? match[1] : 'UnnamedOperation';
+	}
+
+	/**
+	 * Make HTTP request to GraphQL endpoint with performance monitoring
 	 */
 	private async makeRequest<T>(
 		request: GraphQLRequest,
 		options: QueryOptions = {}
 	): Promise<GraphQLResponse<T>> {
+		const startTime = Date.now();
+		const operationName = this.extractOperationName(request.query);
+		
 		// Create abort controller for timeout
 		const controller = new AbortController();
 		const timeoutId = setTimeout(() => controller.abort(), this.timeout);
@@ -236,7 +453,10 @@ export class ServerGraphQLClient {
 				throw new GraphQLClientError(
 					`HTTP ${response.status}: ${response.statusText}`,
 					undefined,
-					response.status
+					response.status,
+					undefined,
+					operationName,
+					request.variables
 				);
 			}
 
@@ -245,22 +465,51 @@ export class ServerGraphQLClient {
 			
 			// Validate response structure
 			if (typeof result !== 'object' || result === null) {
-				throw new GraphQLClientError('Invalid GraphQL response format');
+				throw new GraphQLClientError(
+					'Invalid GraphQL response format',
+					undefined,
+					undefined,
+					undefined,
+					operationName,
+					request.variables
+				);
 			}
+
+			// Track successful performance metrics
+			const duration = Date.now() - startTime;
+			this.trackQueryPerformance(operationName, duration, true);
 
 			return result;
 
 		} catch (error) {
 			clearTimeout(timeoutId);
+			
+			// Track failed performance metrics
+			const duration = Date.now() - startTime;
+			this.trackQueryPerformance(operationName, duration, false);
 
 			// Handle timeout
 			if (error instanceof Error && error.name === 'AbortError') {
-				throw new GraphQLClientError('Request timeout');
+				throw new GraphQLClientError(
+					`Request timeout after ${duration}ms`,
+					undefined,
+					undefined,
+					undefined,
+					operationName,
+					request.variables
+				);
 			}
 
 			// Handle network errors
 			if (error instanceof TypeError && error.message.includes('fetch')) {
-				throw new GraphQLClientError('Network error - please check your connection');
+				throw new GraphQLClientError(
+					'Network error - please check your connection',
+					undefined,
+					undefined,
+					undefined,
+					operationName,
+					request.variables
+				);
 			}
 
 			// Re-throw GraphQL errors
@@ -270,7 +519,12 @@ export class ServerGraphQLClient {
 
 			// Handle unexpected errors
 			throw new GraphQLClientError(
-				`Request failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+				`Request failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+				undefined,
+				undefined,
+				undefined,
+				operationName,
+				request.variables
 			);
 		}
 	}
@@ -286,7 +540,13 @@ export class ServerGraphQLClient {
  * - Token refresh handling
  */
 export class BrowserGraphQLClient extends ServerGraphQLClient {
-	private readonly cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
+	private readonly cache = new Map<string, { 
+		data: any; 
+		timestamp: number; 
+		ttl: number; 
+		lastAccessed: number;
+		accessCount: number;
+	}>();
 	private readonly pendingRequests = new Map<string, Promise<any>>();
 
 	constructor(config: ClientConfig = {}) {
@@ -296,7 +556,7 @@ export class BrowserGraphQLClient extends ServerGraphQLClient {
 	/**
 	 * Execute query with caching support
 	 */
-	async query<T = any>(
+	override async query<T = any>(
 		query: string,
 		variables?: Record<string, any>,
 		options: QueryOptions = {}
@@ -326,7 +586,7 @@ export class BrowserGraphQLClient extends ServerGraphQLClient {
 
 			// Cache successful results
 			if (result.data && !result.errors && GRAPHQL_CONFIG.enableCaching) {
-				this.setCachedResult(cacheKey, result.data, GRAPHQL_CONFIG.cacheTtl);
+				this.setCachedResult(cacheKey, result.data, GRAPHQL_CONFIG.cacheTTL);
 			}
 
 			return result;
@@ -348,15 +608,46 @@ export class BrowserGraphQLClient extends ServerGraphQLClient {
 	/**
 	 * Get cached result if valid
 	 */
+	/**
+	 * Enhanced LRU cache eviction with access tracking
+	 */
+	private evictLRU(): void {
+		if (this.cache.size <= GRAPHQL_CONFIG.maxCacheSize) return;
+		
+		let oldestTime = Date.now();
+		let oldestKey: string | null = null;
+		let lowestAccessCount = Infinity;
+		
+		// Find least recently used entry with lowest access count
+		for (const [key, entry] of this.cache.entries()) {
+			if (entry.lastAccessed < oldestTime || 
+				(entry.lastAccessed === oldestTime && entry.accessCount < lowestAccessCount)) {
+				oldestTime = entry.lastAccessed;
+				lowestAccessCount = entry.accessCount;
+				oldestKey = key;
+			}
+		}
+		
+		if (oldestKey) {
+			this.cache.delete(oldestKey);
+			console.debug(`📦 Cache evicted LRU entry: ${oldestKey}`);
+		}
+	}
+
 	private getCachedResult<T>(cacheKey: string): T | null {
 		const cached = this.cache.get(cacheKey);
 		if (!cached) return null;
 
 		const now = Date.now();
-		if (now > cached.timestamp + cached.ttl) {
+		if (now > cached.timestamp + cached.ttl * 1000) { // ttl is in seconds
 			this.cache.delete(cacheKey);
 			return null;
 		}
+
+		// Update access tracking for LRU
+		cached.lastAccessed = now;
+		cached.accessCount += 1;
+		this.cache.set(cacheKey, cached); // Update the entry
 
 		return cached.data;
 	}
@@ -365,18 +656,22 @@ export class BrowserGraphQLClient extends ServerGraphQLClient {
 	 * Cache result with TTL
 	 */
 	private setCachedResult(cacheKey: string, data: any, ttl: number): void {
+		const now = Date.now();
+		
 		this.cache.set(cacheKey, {
 			data,
-			timestamp: Date.now(),
-			ttl
+			timestamp: now,
+			ttl,
+			lastAccessed: now,
+			accessCount: 1
 		});
 
-		// Cleanup old cache entries (simple LRU)
-		if (this.cache.size > 100) {
-			const oldestKey = this.cache.keys().next().value;
-			if (oldestKey) {
-				this.cache.delete(oldestKey);
-			}
+		// Use enhanced LRU eviction
+		this.evictLRU();
+		
+		// Optional: Log cache statistics in development
+		if (process.env.NODE_ENV === 'development' && this.cache.size % 10 === 0) {
+			console.debug(`📦 GraphQL Cache stats: ${this.cache.size}/${GRAPHQL_CONFIG.maxCacheSize} entries`);
 		}
 	}
 

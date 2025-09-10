@@ -4,8 +4,8 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { ApiServices } from '$lib/api/services';
+	import { createBrowserDepartmentService } from '$lib/graphql/services/department-service';
 	import type { Employee, Role, Department } from '$lib/api/types-v2';
-	import { onMount } from 'svelte';
 
 	let {
 		employee = null,
@@ -61,45 +61,51 @@
 
 	const { form: formData, errors, enhance, submitting } = form;
 
-	// Load roles and departments on mount if not provided
-	onMount(async () => {
-		// If data is already provided, no need to load
-		if (availableRoles.length > 0 && availableDepartments.length > 0) {
-			loadingOptions = false;
-			return;
-		}
-
-		try {
-			const promises = [];
-
-			// Only load roles if not provided
-			if (availableRoles.length === 0) {
-				promises.push(ApiServices.roles.list());
-			} else {
-				promises.push(Promise.resolve(availableRoles));
+	// Load roles and departments if not provided using $effect
+	$effect(() => {
+		// Load options when component mounts or when available data changes
+		async function loadOptions() {
+			// If data is already provided, no need to load
+			if (availableRoles.length > 0 && availableDepartments.length > 0) {
+				loadingOptions = false;
+				return;
 			}
 
-			// Only load departments if not provided
-			if (availableDepartments.length === 0) {
-				promises.push(ApiServices.departments.list());
-			} else {
-				promises.push(Promise.resolve(availableDepartments));
+			try {
+				// Load roles (keeping old API for now)
+				let rolesData = availableRoles;
+				if (availableRoles.length === 0) {
+					rolesData = await ApiServices.roles.list();
+				}
+
+				// Load departments using GraphQL service
+				let departmentsData = availableDepartments;
+				if (availableDepartments.length === 0) {
+					const departmentService = createBrowserDepartmentService();
+					const departmentsResult = await departmentService.getDepartments({ activeOnly: true });
+					if (departmentsResult.success && departmentsResult.data) {
+						departmentsData = departmentsResult.data.departments;
+					} else {
+						throw new Error(departmentsResult.error || 'Failed to load departments');
+					}
+				}
+
+				roles = rolesData;
+				departments = departmentsData;
+				errorLoadingOptions = false;
+			} catch (error) {
+				console.error('Failed to load form options:', error);
+				errorLoadingOptions = true;
+
+				// If API fails, set fallback data if available
+				if (availableRoles.length > 0) roles = availableRoles;
+				if (availableDepartments.length > 0) departments = availableDepartments;
+			} finally {
+				loadingOptions = false;
 			}
-
-			const [rolesData, departmentsData] = await Promise.all(promises);
-			roles = rolesData;
-			departments = departmentsData;
-			errorLoadingOptions = false;
-		} catch (error) {
-			console.error('Failed to load form options:', error);
-			errorLoadingOptions = true;
-
-			// If API fails, set fallback data if available
-			if (availableRoles.length > 0) roles = availableRoles;
-			if (availableDepartments.length > 0) departments = availableDepartments;
-		} finally {
-			loadingOptions = false;
 		}
+
+		loadOptions();
 	});
 </script>
 

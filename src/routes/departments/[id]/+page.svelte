@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { departmentActions, currentDepartment, isLoading, error } from '$lib/stores/departments';
+	import { createBrowserDepartmentService, type GraphQLDepartmentService } from '$lib/graphql/services/department-service';
 	import { RoleGuard } from '$lib/components/auth';
+	import type { Department } from '$lib/types/department';
 	import { Button } from '$lib/components/ui/button';
 	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
@@ -21,14 +21,45 @@
 
 	const departmentId = $derived($page.params.id);
 
-	onMount(() => {
-		if (departmentId) {
-			departmentActions.loadDepartment(departmentId);
+	let departmentService: GraphQLDepartmentService;
+	let currentDepartment = $state<Department | null>(null);
+	let isLoading = $state(true);
+	let error = $state<string | null>(null);
+
+	// Initialize service
+	$effect(() => {
+		departmentService = createBrowserDepartmentService();
+	});
+
+	// Load department when ID changes
+	$effect(() => {
+		if (departmentId && departmentService) {
+			loadDepartment();
 		}
 	});
 
+	async function loadDepartment() {
+		if (!departmentId || !departmentService) return;
+		
+		isLoading = true;
+		error = null;
+		try {
+			const result = await departmentService.getDepartmentById(departmentId);
+			if (result.success && result.data) {
+				currentDepartment = result.data;
+			} else {
+				throw new Error(result.error || 'Failed to load department');
+			}
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to load department details';
+			console.error('Failed to load department:', err);
+		} finally {
+			isLoading = false;
+		}
+	}
+
 	async function handleDelete() {
-		if (!currentDepartment) return;
+		if (!currentDepartment || !departmentService) return;
 
 		if (
 			!confirm(
@@ -39,10 +70,18 @@
 		}
 
 		try {
-			await departmentActions.deleteDepartment(currentDepartment.id);
-			await goto('/departments');
+			isLoading = true;
+			const result = await departmentService.deleteDepartment(currentDepartment.id);
+			if (result.success) {
+				await goto('/departments');
+			} else {
+				throw new Error(result.error || 'Failed to delete department');
+			}
 		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to delete department';
 			console.error('Failed to delete department:', err);
+		} finally {
+			isLoading = false;
 		}
 	}
 
@@ -121,7 +160,8 @@
 			<CardContent class="pt-6">
 				<p class="text-destructive">{error}</p>
 				<div class="mt-4 flex gap-2">
-					<Button variant="outline" onclick={() => departmentActions.clearError()}>Dismiss</Button>
+					<Button variant="outline" onclick={() => (error = null)}>Dismiss</Button>
+					<Button variant="outline" onclick={loadDepartment}>Retry</Button>
 					<Button variant="outline" href="/departments">Back to Departments</Button>
 				</div>
 			</CardContent>

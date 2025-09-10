@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { modalStore } from '$lib/stores/hr/modals';
-	import { employeeStore } from '$lib/stores/hr/employees';
+	import { modalStore } from '$lib/stores/hr/modals.svelte';
+	import { employeeStore } from '$lib/stores/hr/employees.svelte';
 	import { notifications } from '$lib/components/hr/utils/notifications';
 	import { employeeApi } from '$lib/components/hr/utils/api-helpers';
 	import EmployeeDetail from '$lib/components/hr/pages/EmployeeDetail.svelte';
 	import EmployeeModal from '$lib/components/hr/modals/EmployeeModal.svelte';
 	import type { PageData } from './$types';
-	import type { Employee } from '$lib/stores/hr/employees';
+	import type { Employee } from '$lib/stores/hr/employees.svelte';
 
 	let { data }: { data: PageData } = $props();
 

@@ -269,16 +269,15 @@ export const dashboardActions = {
 	 * Update card position
 	 */
 	updateCardPosition(cardInstanceId: string, position: CardPosition) {
-		dashboardLayout.update((layout) => {
-			if (!layout) return layout;
-			return {
-				...layout,
-				cards: layout.cards.map((c) =>
-					c.id === cardInstanceId ? { ...c, position, size: this.positionToSize(position) } : c
-				),
-				updatedAt: new Date()
-			};
-		});
+		if (!dashboardState.layout) return;
+
+		dashboardState.layout = {
+			...dashboardState.layout,
+			cards: dashboardState.layout.cards.map((c) =>
+				c.id === cardInstanceId ? { ...c, position, size: this.positionToSize(position) } : c
+			),
+			updatedAt: new Date()
+		};
 
 		this.saveLayout();
 	},
@@ -287,16 +286,15 @@ export const dashboardActions = {
 	 * Update card configuration
 	 */
 	updateCardConfig(cardInstanceId: string, config: Record<string, any>) {
-		dashboardLayout.update((layout) => {
-			if (!layout) return layout;
-			return {
-				...layout,
-				cards: layout.cards.map((c) =>
-					c.id === cardInstanceId ? { ...c, config: { ...c.config, ...config } } : c
-				),
-				updatedAt: new Date()
-			};
-		});
+		if (!dashboardState.layout) return;
+
+		dashboardState.layout = {
+			...dashboardState.layout,
+			cards: dashboardState.layout.cards.map((c) =>
+				c.id === cardInstanceId ? { ...c, config: { ...c.config, ...config } } : c
+			),
+			updatedAt: new Date()
+		};
 
 		this.saveLayout();
 	},
@@ -305,16 +303,15 @@ export const dashboardActions = {
 	 * Toggle card visibility
 	 */
 	toggleCardVisibility(cardInstanceId: string) {
-		dashboardLayout.update((layout) => {
-			if (!layout) return layout;
-			return {
-				...layout,
-				cards: layout.cards.map((c) =>
-					c.id === cardInstanceId ? { ...c, visible: !c.visible } : c
-				),
-				updatedAt: new Date()
-			};
-		});
+		if (!dashboardState.layout) return;
+
+		dashboardState.layout = {
+			...dashboardState.layout,
+			cards: dashboardState.layout.cards.map((c) =>
+				c.id === cardInstanceId ? { ...c, visible: !c.visible } : c
+			),
+			updatedAt: new Date()
+		};
 
 		this.saveLayout();
 	},
@@ -338,8 +335,8 @@ export const dashboardActions = {
 	 * Create a new layout
 	 */
 	createLayout(name: string, copyFromCurrent = false): string {
-		const role = get(userRole);
-		const currentLayout = get(dashboardLayout);
+		const role = dashboardState.userRole;
+		const currentLayout = dashboardState.layout;
 		const newId = `layout-${Date.now()}`;
 
 		const newLayout: DashboardLayout = {
@@ -352,13 +349,13 @@ export const dashboardActions = {
 			updatedAt: new Date()
 		};
 
-		dashboardPreferences.update((prefs) => ({
-			...prefs,
-			layouts: [...prefs.layouts, newLayout],
+		dashboardState.preferences = {
+			...dashboardState.preferences,
+			layouts: [...dashboardState.preferences.layouts, newLayout],
 			activeLayoutId: newId
-		}));
+		};
 
-		dashboardLayout.set(newLayout);
+		dashboardState.layout = newLayout;
 		this.savePreferencesToStorage();
 
 		return newId;
@@ -368,12 +365,12 @@ export const dashboardActions = {
 	 * Switch to a different layout
 	 */
 	switchLayout(layoutId: string) {
-		const prefs = get(dashboardPreferences);
+		const prefs = dashboardState.preferences;
 		const layout = prefs.layouts.find((l) => l.id === layoutId);
 
 		if (layout) {
-			dashboardLayout.set(layout);
-			dashboardPreferences.update((p) => ({ ...p, activeLayoutId: layoutId }));
+			dashboardState.layout = layout;
+			dashboardState.preferences = { ...dashboardState.preferences, activeLayoutId: layoutId };
 			this.savePreferencesToStorage();
 		}
 	},
@@ -382,19 +379,22 @@ export const dashboardActions = {
 	 * Delete a layout
 	 */
 	deleteLayout(layoutId: string) {
-		const prefs = get(dashboardPreferences);
+		const prefs = dashboardState.preferences;
 		if (prefs.layouts.length <= 1) return; // Keep at least one layout
 
-		dashboardPreferences.update((p) => ({
-			...p,
-			layouts: p.layouts.filter((l) => l.id !== layoutId),
-			activeLayoutId: p.activeLayoutId === layoutId ? p.layouts[0].id : p.activeLayoutId
-		}));
+		const newLayouts = prefs.layouts.filter((l) => l.id !== layoutId);
+		const newActiveId = prefs.activeLayoutId === layoutId ? newLayouts[0].id : prefs.activeLayoutId;
+
+		dashboardState.preferences = {
+			...prefs,
+			layouts: newLayouts,
+			activeLayoutId: newActiveId
+		};
 
 		// Switch to first layout if current was deleted
 		if (prefs.activeLayoutId === layoutId) {
-			const newActiveLayout = get(dashboardPreferences).layouts[0];
-			dashboardLayout.set(newActiveLayout);
+			const newActiveLayout = dashboardState.preferences.layouts[0];
+			dashboardState.layout = newActiveLayout;
 		}
 
 		this.savePreferencesToStorage();
@@ -404,15 +404,15 @@ export const dashboardActions = {
 	 * Reset to default layout
 	 */
 	resetToDefault() {
-		const role = get(userRole);
+		const role = dashboardState.userRole;
 		const defaultLayout = this.createDefaultLayout(role);
 
-		dashboardLayout.set(defaultLayout);
-		dashboardPreferences.update((prefs) => ({
-			...prefs,
+		dashboardState.layout = defaultLayout;
+		dashboardState.preferences = {
+			...dashboardState.preferences,
 			layouts: [defaultLayout],
 			activeLayoutId: defaultLayout.id
-		}));
+		};
 
 		this.savePreferencesToStorage();
 	},
@@ -518,7 +518,7 @@ export const dashboardActions = {
 	 * Export dashboard configuration
 	 */
 	exportConfig(): string {
-		const prefs = get(dashboardPreferences);
+		const prefs = dashboardState.preferences;
 		return JSON.stringify(prefs, null, 2);
 	},
 
@@ -541,12 +541,12 @@ export const dashboardActions = {
 				updatedAt: new Date(layout.updatedAt)
 			}));
 
-			dashboardPreferences.set(imported);
+			dashboardState.preferences = imported;
 
 			// Load active layout
 			const activeLayout = imported.layouts.find((l: any) => l.id === imported.activeLayoutId);
 			if (activeLayout) {
-				dashboardLayout.set(activeLayout);
+				dashboardState.layout = activeLayout;
 			}
 
 			this.savePreferencesToStorage();

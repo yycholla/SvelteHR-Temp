@@ -15,7 +15,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { apiClient } from '$lib/api/client';
 	import { showError, showSuccess } from '$lib/utils/errors';
-	import { authActions, authStore, isAuthenticated } from '$lib/stores/auth';
+	import { authActions, authStore, isAuthenticated } from '$lib/stores/auth.svelte';
 	import { Building2, Mail, ArrowLeft, CheckCircle } from 'lucide-svelte';
 
 	// UI state

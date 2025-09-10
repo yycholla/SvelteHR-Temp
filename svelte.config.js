@@ -93,26 +93,40 @@ const config = {
 			files: (filepath) => !/\.DS_Store/.test(filepath)
 		},
 		
-		// Production CSP configuration
-		csp: {
-			mode: 'hash',
-			directives: {
-				'default-src': ['self'],
-				'script-src': ['self', 'strict-dynamic'],
-				'style-src': ['self', 'unsafe-inline'],
-				'img-src': ['self', 'data:', 'https:'],
-				'font-src': ['self', 'https:'],
-				'connect-src': ['self', 'wss:', 'https:'],
-				'media-src': ['self'],
-				'object-src': ['none'],
-				'frame-src': ['self'],
-				'worker-src': ['self'],
-				'manifest-src': ['self'],
-				'base-uri': ['self'],
-				'form-action': ['self']
-			},
-			reportOnly: process.env.NODE_ENV === 'development'
-		},
+		// Production CSP configuration - temporarily disabled during migration
+		// csp: {
+		// 	mode: 'hash',
+		// 	directives: {
+		// 		'default-src': ['self'],
+		// 		'script-src': ['self', 'strict-dynamic'],
+		// 		'style-src': ['self', 'unsafe-inline'],
+		// 		'img-src': ['self', 'data:', 'https:'],
+		// 		'font-src': ['self', 'https:'],
+		// 		'connect-src': ['self', 'wss:', 'https:'],
+		// 		'media-src': ['self'],
+		// 		'object-src': ['none'],
+		// 		'frame-src': ['self'],
+		// 		'worker-src': ['self'],
+		// 		'manifest-src': ['self'],
+		// 		'base-uri': ['self'],
+		// 		'form-action': ['self']
+		// 	},
+		// 	reportOnly: process.env.NODE_ENV === 'development' ? {
+		// 		'default-src': ['self'],
+		// 		'script-src': ['self', 'strict-dynamic', 'unsafe-eval'],
+		// 		'style-src': ['self', 'unsafe-inline'],
+		// 		'img-src': ['self', 'data:', 'https:'],
+		// 		'font-src': ['self', 'https:'],
+		// 		'connect-src': ['self', 'wss:', 'https:'],
+		// 		'media-src': ['self'],
+		// 		'object-src': ['none'],
+		// 		'frame-src': ['self'],
+		// 		'worker-src': ['self'],
+		// 		'manifest-src': ['self'],
+		// 		'base-uri': ['self'],
+		// 		'form-action': ['self']
+		// 	} : false
+		// },
 		
 		// Advanced output configuration
 		output: {
@@ -154,22 +168,10 @@ const config = {
 		}
 	},
 	
-	// Svelte 5.0 compiler optimizations
+	// Minimal compiler options for Svelte 5 compatibility
 	compilerOptions: {
-		hydratable: true,
-		css: 'injected',
-		// Enable modern features
-		legacy: false,
-		// Optimize bundle size
-		dev: process.env.NODE_ENV === 'development',
-		// Enhanced error reporting
-		errorMode: 'throw',
-		// CSS scope optimization
-		cssHash: ({ hash, css }) => `svelte-${hash(css)}`,
-		// Component optimization
-		immutable: true,
-		// Accessibility warnings
-		accessibilityWarnings: true
+		// Let Vite and SvelteKit handle optimization
+		dev: process.env.NODE_ENV === 'development'
 	},
 	
 	// File extensions for preprocessing

@@ -12,7 +12,7 @@
 		Eye
 	} from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
-	import { modalStore } from '$lib/stores/hr/modals';
+	import { modalStore } from '$lib/stores/hr/modals.svelte';
 	import { invalidateAll } from '$app/navigation';
 	import LeaveModal from '$lib/components/hr/modals/LeaveModal.svelte';
 	import type { PageData } from './$types';

@@ -9,7 +9,6 @@
 import { writable } from 'svelte/store';
 import type { ApiResponse, ApiError } from '../api/types';
 import type { 
-  AppError, 
   ValidationError, 
   UserContext 
 } from '$lib/types';
@@ -51,7 +50,7 @@ export enum ErrorType {
   UNKNOWN_ERROR = 'unknown_error'
 }
 
-export interface EnhancedAppError extends AppError {
+export interface EnhancedAppError {
   type: ErrorType;
   message: string;
   details?: any;
@@ -108,27 +107,43 @@ export function createError(
     context?: EnhancedAppError['context'];
   }
 ): EnhancedAppError {
-  return {
+  const result: EnhancedAppError = {
     type,
     message,
-    details: options?.details,
-    cause: options?.cause,
     timestamp: new Date(),
-    context: options?.context,
-    recoverable: options?.recoverable ?? isRecoverableError(type),
-    retry_after: options?.retry_after
+    recoverable: options?.recoverable ?? isRecoverableError(type)
   };
+
+  if (options?.details !== undefined) {
+    result.details = options.details;
+  }
+  if (options?.cause !== undefined) {
+    result.cause = options.cause;
+  }
+  if (options?.context !== undefined) {
+    result.context = options.context;
+  }
+  if (options?.retry_after !== undefined) {
+    result.retry_after = options.retry_after;
+  }
+
+  return result;
 }
 
 /**
  * Create authentication error
  */
 export function createAuthError(message: string, cause?: Error): EnhancedAppError {
-  return createError(ErrorType.AUTHENTICATION_FAILED, message, {
-    cause,
+  const options: any = {
     recoverable: true,
     context: { route: globalThis?.location?.pathname }
-  });
+  };
+  
+  if (cause !== undefined) {
+    options.cause = cause;
+  }
+  
+  return createError(ErrorType.AUTHENTICATION_FAILED, message, options);
 }
 
 /**
@@ -139,11 +154,19 @@ export function createAccessDeniedError(resource?: string, action?: string): Enh
     ? `Access denied: Cannot ${action} ${resource}`
     : 'Access denied: Insufficient permissions';
     
-  return createError(ErrorType.ACCESS_DENIED, message, {
+  const options: any = {
     details: { resource, action },
-    recoverable: false,
-    context: { route: globalThis?.location?.pathname, action }
-  });
+    recoverable: false
+  };
+  
+  const route = globalThis?.location?.pathname;
+  if (route !== undefined || action !== undefined) {
+    options.context = {};
+    if (route !== undefined) options.context.route = route;
+    if (action !== undefined) options.context.action = action;
+  }
+  
+  return createError(ErrorType.ACCESS_DENIED, message, options);
 }
 
 /**
@@ -156,20 +179,26 @@ export function createRBACError(
 ): EnhancedAppError {
   const userInfo = user ? `User ${user.email} (roles: ${user.roles.map(r => r.name).join(', ')})` : 'Unauthenticated user';
   
-  return createError(ErrorType.ACCESS_DENIED, 'Insufficient permissions for this action', {
+  const options: any = {
     details: {
       user_info: userInfo,
       required_permission: requiredPermission,
       resource,
       user_permissions: user?.permissions || []
     },
-    recoverable: false,
-    context: {
-      user_id: user?.id,
-      route: globalThis?.location?.pathname,
-      action: 'rbac_check'
-    }
-  });
+    recoverable: false
+  };
+  
+  const context: any = { action: 'rbac_check' };
+  const userId = user?.id;
+  const route = globalThis?.location?.pathname;
+  
+  if (userId !== undefined) context.user_id = userId;
+  if (route !== undefined) context.route = route;
+  
+  options.context = context;
+  
+  return createError(ErrorType.ACCESS_DENIED, 'Insufficient permissions for this action', options);
 }
 
 /**

@@ -3,28 +3,59 @@
   Shows content only if user has required roles or permissions
 -->
 <script lang="ts">
-	import { isAuthenticated, currentUser } from '$lib/stores/auth';
-	import { hasAccess } from '$lib/auth/guards';
-	import type { PermissionCheck } from '$lib/auth/guards';
+	import { isAuthenticated, currentUser, hasCurrentUserPermission, hasCurrentUserRole } from '$lib/stores/auth.svelte';
 
-	// Props
-	export let permissions: string[] = [];
-	export let roles: string[] = [];
-	export let requireAll = false;
-	export let fallback = false; // Show alternative content if access denied
-	export let loading = false; // Show loading state
+	// Props using Svelte 5 $props
+	interface Props {
+		permissions?: string[];
+		roles?: string[];
+		requireAll?: boolean;
+		fallback?: boolean; // Show alternative content if access denied
+		loading?: boolean; // Show loading state
+		children?: any;
+	}
 
-	// Build permission check
-	$: permissionCheck: PermissionCheck = {
-		permissions: permissions.length > 0 ? permissions : undefined,
-		roles: roles.length > 0 ? roles : undefined,
-		requireAll
-	};
+	let {
+		permissions = [],
+		roles = [],
+		requireAll = false,
+		fallback = false,
+		loading = false,
+		children
+	}: Props = $props();
 
-	// Check if user has access
-	$: hasRequiredAccess = $isAuthenticated && hasAccess($currentUser, permissionCheck);
-	$: showContent = hasRequiredAccess;
-	$: showFallback = fallback && !hasRequiredAccess && $isAuthenticated;
+	// Check if user has access using $derived
+	const hasRequiredAccess = $derived(() => {
+		// Must be authenticated first
+		if (!$isAuthenticated) return false;
+
+		// If no restrictions, just need to be authenticated
+		if (permissions.length === 0 && roles.length === 0) {
+			return true;
+		}
+
+		// Check permissions
+		const hasPermissions = permissions.length === 0 || 
+			(requireAll 
+				? permissions.every(permission => $hasCurrentUserPermission(permission))
+				: permissions.some(permission => $hasCurrentUserPermission(permission))
+			);
+
+		// Check roles
+		const hasRoles = roles.length === 0 || 
+			(requireAll 
+				? roles.every(role => $hasCurrentUserRole(role as any))
+				: roles.some(role => $hasCurrentUserRole(role as any))
+			);
+
+		// If requireAll is true, need both permissions and roles (if specified)
+		// If requireAll is false, need either permissions or roles (if specified)
+		return requireAll ? hasPermissions && hasRoles : hasPermissions || hasRoles;
+	});
+
+	// Computed display states
+	const showContent = $derived(hasRequiredAccess());
+	const showFallback = $derived(fallback && !hasRequiredAccess() && $isAuthenticated);
 </script>
 
 {#if loading}
@@ -35,18 +66,20 @@
 	</div>
 {:else if showContent}
 	<!-- Content for authorized users -->
-	<slot />
+	{@render children?.()}
 {:else if showFallback}
 	<!-- Fallback content for unauthorized but authenticated users -->
-	<slot name="fallback">
+	{#if children?.fallback}
+		{@render children.fallback()}
+	{:else}
 		<div class="rounded-lg border border-warning-200 bg-warning-50 p-4 text-center">
 			<p class="text-sm text-warning-700">You don't have permission to view this content.</p>
 		</div>
-	</slot>
+	{/if}
 {/if}
 
 <!-- 
-Usage Examples:
+Usage Examples (Updated for Svelte 5):
 
 Basic role check:
 <RoleGuard roles={['admin', 'hr']}>
@@ -56,13 +89,18 @@ Basic role check:
 Permission check with fallback:
 <RoleGuard permissions={['read:employees']} fallback>
   <EmployeeList />
-  <svelte:fragment slot="fallback">
+  {#snippet fallback()}
     <p>Contact HR to access employee data</p>
-  </svelte:fragment>
+  {/snippet}
 </RoleGuard>
 
 Multiple requirements (all must be met):
 <RoleGuard roles={['manager']} permissions={['write:reports']} requireAll>
   <ReportEditor />
+</RoleGuard>
+
+With loading state:
+<RoleGuard roles={['hr']} loading={isLoadingUserData}>
+  <SensitiveData />
 </RoleGuard>
 -->

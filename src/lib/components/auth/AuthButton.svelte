@@ -3,32 +3,59 @@
   Conditionally renders buttons based on user permissions
 -->
 <script lang="ts">
-	import { isAuthenticated, currentUser } from '$lib/stores/auth';
-	import { hasAccess, canAccess } from '$lib/auth/guards';
-	import type { PermissionCheck } from '$lib/auth/guards';
+	import { isAuthenticated, currentUser, hasCurrentUserPermission, hasCurrentUserRole } from '$lib/stores/auth.svelte';
 
-	// Props
-	export let permissions: string[] = [];
-	export let roles: string[] = [];
-	export let requireAll = false;
-	export let disabled = false;
-	export let variant: 'primary' | 'secondary' | 'tertiary' | 'ghost' | 'warning' | 'danger' =
-		'primary';
-	export let size: 'sm' | 'base' | 'lg' = 'base';
-	export let href: string | undefined = undefined;
+	// Props using Svelte 5 $props
+	interface Props {
+		permissions?: string[];
+		roles?: string[];
+		requireAll?: boolean;
+		disabled?: boolean;
+		variant?: 'primary' | 'secondary' | 'tertiary' | 'ghost' | 'warning' | 'danger';
+		size?: 'sm' | 'base' | 'lg';
+		href?: string;
+		class?: string;
+		[key: string]: any;
+	}
+	
+	let {
+		permissions = [],
+		roles = [],
+		requireAll = false,
+		disabled = false,
+		variant = 'primary',
+		size = 'base',
+		href,
+		class: className,
+		children,
+		...restProps
+	}: Props = $props();
 
-	// Build permission check
-	$: permissionCheck: PermissionCheck = {
-		permissions: permissions.length > 0 ? permissions : undefined,
-		roles: roles.length > 0 ? roles : undefined,
-		requireAll
-	};
+	// Check if user has access using $derived
+	const hasRequiredAccess = $derived(() => {
+		// If no restrictions, just need to be authenticated
+		if (permissions.length === 0 && roles.length === 0) {
+			return $isAuthenticated;
+		}
 
-	// Check if user has access
-	$: hasRequiredAccess =
-		permissions.length === 0 && roles.length === 0
-			? $isAuthenticated // No restrictions, just need to be authenticated
-			: canAccess(permissionCheck);
+		// Check permissions
+		const hasPermissions = permissions.length === 0 || 
+			(requireAll 
+				? permissions.every(permission => $hasCurrentUserPermission(permission))
+				: permissions.some(permission => $hasCurrentUserPermission(permission))
+			);
+
+		// Check roles
+		const hasRoles = roles.length === 0 || 
+			(requireAll 
+				? roles.every(role => $hasCurrentUserRole(role as any))
+				: roles.some(role => $hasCurrentUserRole(role as any))
+			);
+
+		// If requireAll is true, need both permissions and roles (if specified)
+		// If requireAll is false, need either permissions or roles (if specified)
+		return requireAll ? hasPermissions && hasRoles : hasPermissions || hasRoles;
+	});
 
 	// Style variants
 	const variants = {
@@ -46,17 +73,18 @@
 		lg: 'px-6 py-3 text-lg'
 	};
 
-	$: buttonClass = `
+	// Button class using $derived
+	const buttonClass = $derived(() => `
     inline-flex items-center justify-center rounded-lg font-medium 
     border transition-colors duration-200 
     ${variants[variant]}
     ${sizes[size]}
-    ${disabled || !hasRequiredAccess ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-    ${$$props.class || ''}
-  `.trim();
+    ${disabled || !hasRequiredAccess() ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+    ${className || ''}
+  `.trim());
 
 	function handleClick(event: MouseEvent) {
-		if (disabled || !hasRequiredAccess) {
+		if (disabled || !hasRequiredAccess()) {
 			event.preventDefault();
 			return;
 		}
@@ -64,20 +92,20 @@
 	}
 </script>
 
-{#if hasRequiredAccess}
+{#if hasRequiredAccess()}
 	{#if href}
 		<a
 			{href}
-			class={buttonClass}
+			class={buttonClass()}
 			class:pointer-events-none={disabled}
-			on:click={handleClick}
-			{...$$restProps}
+			onclick={handleClick}
+			{...restProps}
 		>
-			<slot />
+			{@render children?.()}
 		</a>
 	{:else}
-		<button type="button" class={buttonClass} {disabled} on:click={handleClick} {...$$restProps}>
-			<slot />
+		<button type="button" class={buttonClass()} {disabled} onclick={handleClick} {...restProps}>
+			{@render children?.()}
 		</button>
 	{/if}
 {/if}

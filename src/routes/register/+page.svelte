@@ -14,7 +14,7 @@
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
 	import { apiClient } from '$lib/api/client';
 	import { showError, showSuccess } from '$lib/utils/errors';
-	import { authActions, isAuthenticated } from '$lib/stores/auth';
+	import { authActions, isAuthenticated } from '$lib/stores/auth.svelte';
 	import { Building2, UserPlus, ArrowLeft } from 'lucide-svelte';
 
 	// Form state

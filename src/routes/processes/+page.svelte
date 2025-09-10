@@ -13,11 +13,14 @@
 	import Form from '$lib/components/ui/Form.svelte';
 	import type { PageData } from './$types';
 	import { z } from 'zod';
-	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 
 	// Props from page data
-	export let data: PageData;
+	interface Props {
+		data: PageData;
+	}
+	
+	let { data }: Props = $props();
 
 	// Process creation schema
 	const processSchema = z.object({
@@ -105,16 +108,16 @@
 	let filterStatus = $state('');
 
 	// Process statistics
-	$: totalProcesses = processes.length;
-	$: activeProcesses = processes.filter(p => !['COMPLETED', 'CANCELLED', 'REJECTED'].includes(p.status)).length;
-	$: byStatus = processes.reduce((acc, process) => {
+	const totalProcesses = $derived(processes.length);
+	const activeProcesses = $derived(processes.filter(p => !['COMPLETED', 'CANCELLED', 'REJECTED'].includes(p.status)).length);
+	const byStatus = $derived(processes.reduce((acc, process) => {
 		acc[process.status] = (acc[process.status] || 0) + 1;
 		return acc;
-	}, {});
-	$: byType = processes.reduce((acc, process) => {
+	}, {}));
+	const byType = $derived(processes.reduce((acc, process) => {
 		acc[process.type] = (acc[process.type] || 0) + 1;
 		return acc;
-	}, {});
+	}, {}));
 
 	// Process table columns
 	const processColumns = [
@@ -202,10 +205,10 @@
 			label: 'Due Date',
 			sortable: true,
 			align: 'right',
-			render: (value) => {
+			render: (value, row) => {
 				if (!value) return '<span class="text-muted-foreground">No due date</span>';
 				const date = new Date(value);
-				const isOverdue = date < new Date() && !['COMPLETED', 'APPROVED', 'REJECTED', 'CANCELLED'].includes(arguments[1].status);
+				const isOverdue = date < new Date() && !['COMPLETED', 'APPROVED', 'REJECTED', 'CANCELLED'].includes(row.status);
 				return `
 					<div class="text-right">
 						<div class="text-sm font-medium ${isOverdue ? 'text-red-600' : 'text-foreground'}">${date.toLocaleDateString()}</div>
@@ -245,7 +248,7 @@
 	];
 
 	// Filtered processes
-	$: filteredProcesses = processes.filter(process => {
+	const filteredProcesses = $derived(processes.filter(process => {
 		const matchesSearch = !searchQuery || 
 			process.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
 			process.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -255,7 +258,7 @@
 		const matchesStatus = !filterStatus || process.status === filterStatus;
 		
 		return matchesSearch && matchesType && matchesStatus;
-	}).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+	}).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
 
 	// Handle process creation
 	async function handleCreateProcess(formData: ProcessForm) {

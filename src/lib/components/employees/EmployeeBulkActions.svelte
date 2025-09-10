@@ -361,16 +361,18 @@
 			<!-- Status Preview -->
 			<div class="flex items-center gap-2 text-sm text-gray-600">
 				<span>Preview:</span>
-				{@const selectedStatus = statusOptions.find(s => s.value === newStatus)}
-				<Badge 
-					variant="secondary" 
-					class={selectedStatus?.color === 'green' ? 'bg-green-100 text-green-800' :
-						   selectedStatus?.color === 'red' ? 'bg-red-100 text-red-800' :
-						   selectedStatus?.color === 'orange' ? 'bg-orange-100 text-orange-800' :
-						   'bg-gray-100 text-gray-800'}
-				>
-					{selectedStatus?.label}
-				</Badge>
+				{#if newStatus}
+					{@const selectedStatus = statusOptions.find(s => s.value === newStatus)}
+					<Badge 
+						variant="secondary" 
+						class={selectedStatus?.color === 'green' ? 'bg-green-100 text-green-800' :
+							   selectedStatus?.color === 'red' ? 'bg-red-100 text-red-800' :
+							   selectedStatus?.color === 'orange' ? 'bg-orange-100 text-orange-800' :
+							   'bg-gray-100 text-gray-800'}
+					>
+						{selectedStatus?.label}
+					</Badge>
+				{/if}
 			</div>
 		</div>
 

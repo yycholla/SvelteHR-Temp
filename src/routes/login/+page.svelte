@@ -7,7 +7,7 @@
 
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { auth } from '$lib/stores/geldb-auth.js';
+	import { authActions } from '$lib/stores/auth.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { onMount } from 'svelte';
 
@@ -30,7 +30,7 @@
 
 		try {
 			// Redirect to custom magic link login
-			await auth.login(redirectTo || undefined);
+			await authActions.login(redirectTo || undefined);
 		} catch (err) {
 			console.error('Login initiation failed:', err);
 			error = err instanceof Error ? err.message : 'Failed to start authentication process';
