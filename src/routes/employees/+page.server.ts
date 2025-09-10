@@ -1,7 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { error, redirect } from '@sveltejs/kit';
-import { createBrowserGraphQLClient } from '$lib/graphql/client.js';
-import { queries } from '$lib/graphql/queries.js';
+import { createServerClient } from '$lib/graphql/client-factory';
+import { queries } from '$lib/graphql/queries';
 
 export const load: PageServerLoad = async ({ url, cookies }) => {
 	const token = cookies.get('hr_token');
@@ -22,66 +22,67 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
 	const sortOrder = url.searchParams.get('sortOrder') || 'asc';
 
 	try {
-		// Create GraphQL client
-		const graphqlClient = createBrowserGraphQLClient();
-		graphqlClient.setToken(token);
+		// Create GraphQL client with server-side authentication
+		const graphqlClient = createServerClient(token);
 
 		// Verify authentication and get user context
-		const authResponse = await graphqlClient.query(
-			queries.auth.verify,
-			{}
-		);
+		const authResponse = await graphqlClient.query(queries.auth.me);
 
-		if (!authResponse.data?.me) {
+		if (!authResponse.data?.me?.authenticated) {
 			throw redirect(303, '/login');
 		}
 
-		const user = authResponse.data.me;
+		const user = authResponse.data.me.user;
+		const permissions = authResponse.data.me.permissions || [];
 
-		// Load employees with GraphQL
+		// Load employees with GraphQL using proper query structure
 		const employeesResponse = await graphqlClient.query(
-			queries.employees.list,
+			queries.employees.employees,
 			{
 				page,
 				limit,
-				search: search || null,
-				departments: departmentId ? [departmentId] : null,
-				statuses: status ? [status] : null,
-				locations: location ? [location] : null,
-				roles: role ? [role] : null,
-				sortBy: sortBy || null,
-				sortOrder: sortOrder?.toUpperCase() || null
+				search: search || undefined,
+				department_id: departmentId || undefined,
+				status: status || undefined,
+				position: role || undefined, // Map role parameter to position
+				sort: sortBy || undefined,
+				order: sortOrder || undefined
 			}
 		);
 
 		// Load departments for filters
 		const departmentsResponse = await graphqlClient.query(
-			queries.departments.list,
-			{ active: true, limit: 100 }
+			queries.departments.departments
 		);
 
-		// Load filter options (locations, roles, etc.)
-		const filterOptionsResponse = await graphqlClient.query(
-			queries.employees.filterOptions,
-			{}
-		);
+		// For filter options, we'll derive them from the current employees data
+		// In a real implementation, this would be a separate GraphQL query
+		const employees = employeesResponse.data?.employees?.data || [];
+		const departments = departmentsResponse.data?.departments || [];
+		
+		// Extract unique filter options from current data
+		const positions = [...new Set(employees.map(emp => emp.position).filter(Boolean))];
+		const statuses = [...new Set(employees.map(emp => emp.status).filter(Boolean))];
 
 		return {
 			user,
-			permissions: user.permissions || [],
-			employees: employeesResponse.data?.employees || {
-				data: [],
-				total: 0,
-				page: 1,
-				limit: 20,
-				totalPages: 1,
-				hasNextPage: false,
-				hasPreviousPage: false
+			permissions,
+			employees: {
+				data: employees,
+				pagination: employeesResponse.data?.employees?.pagination || {
+					page: 1,
+					limit: 20,
+					total: 0,
+					total_pages: 1,
+					has_next: false,
+					has_previous: false
+				}
 			},
-			departments: departmentsResponse.data?.departments?.data || [],
-			filterOptions: filterOptionsResponse.data?.employeeFilterOptions || {
-				locations: [],
-				roles: []
+			departments,
+			filterOptions: {
+				positions,
+				statuses,
+				locations: [] // Would be populated from employee addresses in real implementation
 			},
 			filters: {
 				search,

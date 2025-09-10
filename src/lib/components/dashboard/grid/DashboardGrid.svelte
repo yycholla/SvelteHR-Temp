@@ -6,7 +6,7 @@
 		isEditing,
 		dashboardActions,
 		CARD_SIZE_MAP
-	} from '$lib/stores/dashboard.js';
+	} from '$lib/stores/dashboard.svelte.ts';
 	// Removed streaming imports - using static data only
 	import { cardRegistry } from '../CardRegistry.js';
 	import DashboardCard from './DashboardCard.svelte';

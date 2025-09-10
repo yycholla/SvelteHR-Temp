@@ -1,6 +1,7 @@
 import type { Handle, HandleFetch, HandleServerError } from '@sveltejs/kit';
 import { redirect, error } from '@sveltejs/kit';
 import { backendIntegrationService } from '$lib/services/backend-integration.service.js';
+import { GraphQLAuthService } from '$lib/services/graphql-auth.service.js';
 import type { User } from '$lib/auth';
 
 /**
@@ -31,7 +32,8 @@ const publicRoutes = [
 	'/api/auth/logout', 
 	'/api/auth/refresh',
 	'/api/auth/reset-password',
-	'/api/health'
+	'/api/health',
+	'/api/graphql' // GraphQL endpoint handles its own authentication
 ];
 
 // API routes that should be proxied to backend
@@ -86,22 +88,46 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	let authSuccess = false;
 
-	// Primary auth flow: GelDB token
+	// Initialize GraphQL Auth Service for this request
+	const graphqlAuth = new GraphQLAuthService({
+		endpoint: `${API_URL}/api/graphql`,
+		timeout: 10000,
+		enableCache: false // Disable cache for server-side auth verification
+	});
+
+	// Primary auth flow: GelDB token with GraphQL support
 	if (gelToken) {
 		try {
-			const authResponse = await backendIntegrationService.verifyAuthToken(gelToken);
+			// Try GraphQL authentication first
+			const graphqlAuthResponse = await graphqlAuth.verifyToken(gelToken);
 			
-			if (authResponse.user && authResponse.authenticated) {
-				event.locals.user = authResponse.user;
+			if (graphqlAuthResponse.success && graphqlAuthResponse.authenticated) {
+				event.locals.user = graphqlAuthResponse.user as User;
 				event.locals.isAuthenticated = true;
-				event.locals.permissions = authResponse.permissions || [];
-				event.locals.roles = authResponse.user.roles || [];
+				event.locals.permissions = graphqlAuthResponse.permissions;
+				event.locals.roles = graphqlAuthResponse.user?.roles?.map(r => ({ name: r })) || [];
 				event.locals.token = gelToken;
 				authSuccess = true;
+				
+				console.log(`GraphQL authentication successful for user: ${graphqlAuthResponse.user?.email}`);
+			} else {
+				// Fallback to REST authentication
+				const authResponse = await backendIntegrationService.verifyAuthToken(gelToken);
+				
+				if (authResponse.user && authResponse.authenticated) {
+					event.locals.user = authResponse.user;
+					event.locals.isAuthenticated = true;
+					event.locals.permissions = authResponse.permissions || [];
+					event.locals.roles = authResponse.user.roles || [];
+					event.locals.token = gelToken;
+					authSuccess = true;
+					
+					console.log(`REST fallback authentication successful for user: ${authResponse.user.email}`);
+				}
 			}
 
 		} catch (error: any) {
-			console.error('GelDB token verification failed:', error);
+			console.error('Authentication verification failed (GraphQL + REST):', error);
 			
 			// Clear invalid token
 			cookies.delete('gel-auth-token', {
@@ -113,19 +139,35 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 	} 
 	
-	// Fallback auth flow: Legacy JWT tokens (for backward compatibility)
+	// Fallback auth flow: Legacy JWT tokens with GraphQL support (for backward compatibility)
 	if (!authSuccess && fallbackToken) {
 		try {
-			// First try backend integration service
-			const authResponse = await backendIntegrationService.verifyAuthToken(fallbackToken);
+			// Try GraphQL authentication first
+			const graphqlAuthResponse = await graphqlAuth.verifyToken(fallbackToken);
 			
-			if (authResponse.user && authResponse.authenticated) {
-				event.locals.user = authResponse.user;
+			if (graphqlAuthResponse.success && graphqlAuthResponse.authenticated) {
+				event.locals.user = graphqlAuthResponse.user as User;
 				event.locals.isAuthenticated = true;
-				event.locals.permissions = authResponse.permissions || [];
-				event.locals.roles = authResponse.user.roles || [];
+				event.locals.permissions = graphqlAuthResponse.permissions;
+				event.locals.roles = graphqlAuthResponse.user?.roles?.map(r => ({ name: r })) || [];
 				event.locals.token = fallbackToken;
 				authSuccess = true;
+				
+				console.log(`GraphQL fallback authentication successful for user: ${graphqlAuthResponse.user?.email}`);
+			} else {
+				// Fallback to REST backend integration service
+				const authResponse = await backendIntegrationService.verifyAuthToken(fallbackToken);
+				
+				if (authResponse.user && authResponse.authenticated) {
+					event.locals.user = authResponse.user;
+					event.locals.isAuthenticated = true;
+					event.locals.permissions = authResponse.permissions || [];
+					event.locals.roles = authResponse.user.roles || [];
+					event.locals.token = fallbackToken;
+					authSuccess = true;
+					
+					console.log(`REST backend integration successful for user: ${authResponse.user.email}`);
+				}
 			}
 
 		} catch (backendError: any) {

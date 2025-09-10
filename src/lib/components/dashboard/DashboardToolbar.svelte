@@ -20,7 +20,7 @@
 		dashboardLayout,
 		dashboardPreferences,
 		dashboardActions
-	} from '$lib/stores/dashboard.js';
+	} from '$lib/stores/dashboard.svelte.ts';
 	import type { UserRole } from './types.js';
 
 	// Props

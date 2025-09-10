@@ -1,110 +1,75 @@
 import type { PageServerLoad } from './$types';
-import { error } from '@sveltejs/kit';
-import ky from 'ky';
-import { PUBLIC_API_URL } from '$env/static/public';
-import { employeeSchema } from '$lib/schemas/employee';
-import { mockEmployees } from '$lib/data/mockEmployees';
-import { apiCache, CACHE_KEYS, CACHE_TTL } from '$lib/api/cache';
+import { error, redirect } from '@sveltejs/kit';
+import { createServerClient } from '$lib/graphql/client-factory';
+import { queries } from '$lib/graphql/queries';
 
 export const load: PageServerLoad = async ({ params, cookies, locals }) => {
 	const { id } = params;
 	const token = cookies.get('hr_token');
 
-	console.log(`🔍 Employee ${id} page load - Token present:`, !!token);
-	console.log(`🔍 Employee ${id} page load - User authenticated:`, !!locals.user);
-	console.log(`🔍 Employee ${id} page load - User data:`, locals.user);
+	if (!token) {
+		throw redirect(303, '/login');
+	}
+
+	console.log(`🔍 GraphQL Employee ${id} page load - Token present:`, !!token);
+	console.log(`🔍 GraphQL Employee ${id} page load - User authenticated:`, !!locals.user);
 
 	try {
-		if (token) {
-			console.log(`🔍 Fetching employee ${id} from API...`);
+		// Create GraphQL client with server-side authentication
+		const graphqlClient = createServerClient(token);
 
-			// Check cache first
-			const cachedEmployee = apiCache.get(CACHE_KEYS.EMPLOYEE_DETAIL, { id });
-			if (cachedEmployee) {
-				console.log(`📋 Using cached employee ${id}`);
-				return {
-					employee: cachedEmployee,
-					isUsingMockData: false
-				};
-			}
-
-			// Create server-side API client with proper token handling
-			const serverApiClient = ky.create({
-				prefixUrl: PUBLIC_API_URL,
-				hooks: {
-					beforeRequest: [
-						(request) => {
-							request.headers.set('Authorization', `Bearer ${token}`);
-							request.headers.set('Content-Type', 'application/json');
-							console.log(`📡 API Request: ${request.method} ${request.url}`);
-						}
-					],
-					afterResponse: [
-						(request, options, response) => {
-							console.log(`📡 API Response: ${response.status} for ${request.url}`);
-							return response;
-						}
-					]
-				}
-			});
-
-			// Fetch employee data
-			const employeeResponse = await serverApiClient.get(`employees/${id}`).json();
-
-			console.log(`✅ Employee ${id} fetched from API`);
-			console.log('🔍 Raw API Response for employee:', JSON.stringify(employeeResponse, null, 2));
-			console.log('🔍 API Response keys:', Object.keys(employeeResponse));
-			console.log('🔍 Sample API fields:', {
-				middleName: employeeResponse.middleName,
-				phoneNumber: employeeResponse.phoneNumber,
-				addressStreet: employeeResponse.addressStreet,
-				payRate: employeeResponse.payRate,
-				payType: employeeResponse.payType
-			});
-
-			// Parse and validate API response
-			const employee = employeeSchema.parse(employeeResponse);
-
-			console.log('🔍 Schema-transformed employee:', JSON.stringify(employee, null, 2));
-			console.log('🔍 Schema-transformed keys:', Object.keys(employee));
-			console.log('🔍 Schema-transformed sample fields:', {
-				middleName: employee.middleName,
-				phoneNumber: employee.phoneNumber,
-				addressStreet: employee.addressStreet,
-				payRate: employee.payRate,
-				payType: employee.payType
-			});
-
-			// Cache the employee data
-			apiCache.set(CACHE_KEYS.EMPLOYEE_DETAIL, employee, { id }, CACHE_TTL.MEDIUM);
-
-			return {
-				employee,
-				isUsingMockData: false
-			};
-		}
-	} catch (err: any) {
-		console.error(`❌ Failed to fetch employee ${id}:`, err);
-		if (err.response) {
-			console.error(`API Response Status: ${err.response.status}`);
-			console.error(`API Response Body:`, err.response.body || 'No body');
+		// Verify authentication first
+		const authResponse = await graphqlClient.query(queries.auth.me);
+		
+		if (!authResponse.data?.me?.authenticated) {
+			throw redirect(303, '/login');
 		}
 
-		// Re-throw specific API errors to preserve status codes
-		if (err.response?.status === 404) {
+		const user = authResponse.data.me.user;
+		const permissions = authResponse.data.me.permissions || [];
+
+		console.log(`🔍 Fetching employee ${id} from GraphQL API...`);
+
+		// Fetch employee data via GraphQL
+		const employeeResponse = await graphqlClient.query(
+			queries.employees.employee,
+			{ id }
+		);
+
+		if (!employeeResponse.data?.employee) {
 			throw error(404, {
 				message: `Employee with ID ${id} not found`
 			});
 		}
-		if (err.response?.status >= 400) {
-			throw error(err.response.status, {
-				message: `API Error: ${err.message || 'Failed to fetch employee'}`
+
+		const employee = employeeResponse.data.employee;
+
+		console.log(`✅ Employee ${id} fetched from GraphQL API`);
+		console.log('🔍 GraphQL Employee data:', JSON.stringify(employee, null, 2));
+
+		return {
+			employee,
+			user,
+			permissions,
+			isUsingGraphQL: true
+		};
+
+	} catch (err: any) {
+		console.error(`❌ Failed to fetch employee ${id} via GraphQL:`, err);
+
+		// Handle specific GraphQL errors
+		if (err.message?.includes('not found')) {
+			throw error(404, {
+				message: `Employee with ID ${id} not found`
 			});
 		}
-	}
 
-	// No token available, cannot access employee data
-	throw error(401, {
-		message: 'Authentication required to access employee data'
-	});
+		if (err.message?.includes('auth')) {
+			throw redirect(303, '/login');
+		}
+
+		throw error(500, {
+			message: `Failed to load employee data: ${err.message}`
+		});
+	}
 };

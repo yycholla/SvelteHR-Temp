@@ -1,7 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { redirect, error } from '@sveltejs/kit';
-import { createBrowserGraphQLClient } from '$lib/graphql/client.js';
-import { queries } from '$lib/graphql/queries.js';
+import { createServerClient } from '$lib/graphql/client-factory';
+import { queries } from '$lib/graphql/queries';
 
 export const load: PageServerLoad = async ({ cookies }) => {
 	const token = cookies.get('hr_token');
@@ -11,35 +11,29 @@ export const load: PageServerLoad = async ({ cookies }) => {
 	}
 
 	try {
-		// Create GraphQL client
-		const graphqlClient = createBrowserGraphQLClient();
-		graphqlClient.setToken(token);
+		// Create GraphQL client with server-side authentication
+		const graphqlClient = createServerClient(token);
 
 		// Verify authentication and get user context
-		const authResponse = await graphqlClient.query(
-			queries.auth.verify,
-			{}
-		);
+		const authResponse = await graphqlClient.query(queries.auth.me);
 
-		if (!authResponse.data?.me) {
+		if (!authResponse.data?.me?.authenticated) {
 			throw redirect(303, '/login');
 		}
 
-		const user = authResponse.data.me;
+		const user = authResponse.data.me.user;
+		const permissions = authResponse.data.me.permissions || [];
 
 		// Load dashboard data based on user permissions
 		const dashboardData: any = {
 			user,
-			permissions: user.permissions || [],
+			permissions,
 			roles: user.roles || []
 		};
 
 		// Load dashboard statistics
 		try {
-			const statsResponse = await graphqlClient.query(
-				queries.dashboard.statistics,
-				{}
-			);
+			const statsResponse = await graphqlClient.query(queries.dashboard.stats);
 
 			if (statsResponse.data?.dashboardStats) {
 				dashboardData.statistics = statsResponse.data.dashboardStats;
@@ -59,12 +53,11 @@ export const load: PageServerLoad = async ({ cookies }) => {
 		// Load department data for dashboard widgets
 		try {
 			const departmentsResponse = await graphqlClient.query(
-				queries.departments.list,
-				{ active: true, limit: 10 }
+				queries.departments.departments
 			);
 
 			if (departmentsResponse.data?.departments) {
-				dashboardData.departments = departmentsResponse.data.departments.data;
+				dashboardData.departments = departmentsResponse.data.departments;
 			}
 		} catch (deptError) {
 			console.warn('Failed to load departments for dashboard:', deptError);
@@ -74,16 +67,16 @@ export const load: PageServerLoad = async ({ cookies }) => {
 		// Load recent employees for dashboard
 		try {
 			const recentEmployeesResponse = await graphqlClient.query(
-				queries.employees.list,
+				queries.employees.employees,
 				{ 
 					limit: 5,
-					sortBy: 'createdAt',
-					sortOrder: 'DESC'
+					sort: 'created_at',
+					order: 'desc'
 				}
 			);
 
 			if (recentEmployeesResponse.data?.employees) {
-				dashboardData.recentEmployees = recentEmployeesResponse.data.employees.data;
+				dashboardData.recentEmployees = recentEmployeesResponse.data.employees.data || recentEmployeesResponse.data.employees;
 			}
 		} catch (empError) {
 			console.warn('Failed to load recent employees:', empError);

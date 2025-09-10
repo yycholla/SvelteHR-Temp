@@ -10,6 +10,13 @@ import { browser } from '$app/environment';
 import { GRAPHQL_CONFIG } from '$lib/env';
 import type { ClientConfig } from './types';
 import { ServerGraphQLClient, BrowserGraphQLClient, createServerGraphQLClient, createBrowserGraphQLClient } from './client';
+import type { 
+	Employee, 
+	Department, 
+	User, 
+	AuthPayload,
+	CreateEmployeeInput
+} from '../generated/graphql';
 
 /**
  * Configuration options for client factory
@@ -21,6 +28,37 @@ export interface ClientFactoryConfig {
 	timeout?: number;
 	enableCache?: boolean;
 	retryAttempts?: number;
+}
+
+/**
+ * Enhanced GraphQL client with generated types integration
+ * Provides type-safe methods for common operations
+ */
+export interface TypedGraphQLClient {
+	// Base client methods
+	query<T = any>(query: string, variables?: Record<string, any>): Promise<{ data?: T; errors?: any[] }>;
+	mutate<T = any>(mutation: string, variables?: Record<string, any>): Promise<{ data?: T; errors?: any[] }>;
+	
+	// Authentication operations with generated types
+	me(): Promise<{ data?: any }>;
+	login(email: string, password: string, remember?: boolean): Promise<{ data?: AuthPayload }>;
+	
+	// Employee operations with generated types
+	getEmployee(id: string): Promise<{ data?: { employee: Employee | null } }>;
+	getEmployees(variables?: Record<string, any>): Promise<{ data?: { employees: Employee[] } }>;
+	createEmployee(input: CreateEmployeeInput): Promise<{ data?: { createEmployee: Employee } }>;
+	updateEmployee(id: string, input: Partial<CreateEmployeeInput>): Promise<{ data?: { updateEmployee: Employee } }>;
+	
+	// Department operations with generated types
+	getDepartment(id: string): Promise<{ data?: { department: Department | null } }>;
+	getDepartments(variables?: { 
+		first?: number; 
+		search?: string; 
+		is_active?: boolean; 
+	}): Promise<{ data?: { departments: Department[] } }>;
+	
+	// Dashboard operations with generated types
+	getDashboardData(role?: string): Promise<{ data?: { dashboardData: DashboardData } }>;
 }
 
 /**

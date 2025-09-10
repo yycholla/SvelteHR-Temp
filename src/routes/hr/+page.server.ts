@@ -1,77 +1,85 @@
 import type { PageServerLoad } from './$types';
-import {
-	createAuthenticatedApiClient,
-	loadEmployeeData,
-	loadTaskData,
-	loadAnnouncementData,
-	loadActivityLogData,
-	loadLeaveData
-} from '$lib/api/server-client';
+import { redirect, error } from '@sveltejs/kit';
+import { createServerClient } from '$lib/graphql/client-factory';
+import { queries } from '$lib/graphql/queries';
 
 export const load: PageServerLoad = async ({ cookies }) => {
-	console.log('🏢 Loading HR dashboard with new API client');
+	const token = cookies.get('hr_token');
+	
+	if (!token) {
+		throw redirect(303, '/login');
+	}
+
+	console.log('🏢 Loading HR dashboard with GraphQL');
 
 	try {
-		const apiClient = createAuthenticatedApiClient(cookies);
+		// Create GraphQL client with server-side authentication
+		const graphqlClient = createServerClient(token);
+
+		// Verify authentication and get user context
+		const authResponse = await graphqlClient.query(queries.auth.me);
+
+		if (!authResponse.data?.me?.authenticated) {
+			throw redirect(303, '/login');
+		}
+
+		const user = authResponse.data.me.user;
+		const permissions = authResponse.data.me.permissions || [];
+
+		// Check if user has HR permissions
+		const hasHRAccess = permissions.includes('*') || 
+			permissions.some(p => p.includes('hr') || p.includes('admin') || p.startsWith('employees:'));
+
+		if (!hasHRAccess) {
+			throw error(403, {
+				message: 'Insufficient permissions to access HR dashboard'
+			});
+		}
 
 		// Load comprehensive dashboard data in parallel
-		const [employeeData, taskData, announcementData, activityData, leaveData] =
+		const [employeeData, departmentData, taskData, leaveData] =
 			await Promise.allSettled([
-				loadEmployeeData(cookies, { limit: 10 }),
-				loadTaskData(cookies, { limit: 10 }),
-				loadAnnouncementData(cookies, { limit: 5, active_only: true }),
-				loadActivityLogData(cookies, { limit: 10 }),
-				loadLeaveData(cookies, { limit: 10, status: 'pending' })
+				graphqlClient.query(queries.employees.employees, { limit: 10 }),
+				graphqlClient.query(queries.departments.departments),
+				graphqlClient.query(queries.hr.tasks, { limit: 10 }),
+				graphqlClient.query(queries.hr.leave, { limit: 10, status: 'pending' })
 			]);
 
 		// Process employee data
-		const employees =
-			employeeData.status === 'fulfilled'
-				? employeeData.value
-				: { employees: [], departments: [], roles: [], pagination: { totalCount: 0 } };
+		const employees = employeeData.status === 'fulfilled' && employeeData.value.data?.employees
+			? employeeData.value.data.employees
+			: [];
+
+		// Process department data
+		const departments = departmentData.status === 'fulfilled' && departmentData.value.data?.departments
+			? departmentData.value.data.departments
+			: [];
 
 		// Process task data
-		const tasks =
-			taskData.status === 'fulfilled'
-				? taskData.value
-				: { tasks: [], employees: [], totalCount: 0 };
-
-		// Process announcements
-		const announcements =
-			announcementData.status === 'fulfilled'
-				? announcementData.value
-				: { announcements: [], totalCount: 0 };
-
-		// Process activity logs
-		const activities =
-			activityData.status === 'fulfilled'
-				? activityData.value
-				: { activityLogs: [], totalCount: 0 };
+		const tasks = taskData.status === 'fulfilled' && taskData.value.data?.tasks
+			? taskData.value.data.tasks
+			: [];
 
 		// Process leave requests
-		const leaves =
-			leaveData.status === 'fulfilled'
-				? leaveData.value
-				: { leaves: [], employees: [], totalCount: 0 };
+		const leaves = leaveData.status === 'fulfilled' && leaveData.value.data?.leaves
+			? leaveData.value.data.leaves
+			: [];
 
 		// Calculate dashboard statistics
 		const stats = {
-			totalEmployees: employees.pagination.totalCount,
-			totalDepartments: employees.departments.length,
-			activeTasks: tasks.totalCount,
-			pendingLeaves: leaves.totalCount,
-			recentActivities: activities.totalCount,
-			activeAnnouncements: announcements.totalCount
+			totalEmployees: employees.length,
+			totalDepartments: departments.length,
+			activeTasks: tasks.length,
+			pendingLeaves: leaves.length,
+			recentActivities: 0,
+			activeAnnouncements: 0
 		};
 
-		// Get recent activities for the activity feed
-		const recentActivities = activities.activityLogs.slice(0, 5);
-
 		// Get upcoming tasks
-		const upcomingTasks = tasks.tasks.slice(0, 5);
+		const upcomingTasks = tasks.slice(0, 5);
 
 		// Get recent employees (newly joined)
-		const recentEmployees = employees.employees
+		const recentEmployees = employees
 			.filter((emp) => emp.created_at)
 			.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 			.slice(0, 5);
@@ -79,13 +87,15 @@ export const load: PageServerLoad = async ({ cookies }) => {
 		console.log('✅ HR dashboard loaded with comprehensive data');
 
 		return {
+			user,
+			permissions,
 			// Core data
-			employees: employees.employees.slice(0, 10),
-			departments: employees.departments,
-			tasks: tasks.tasks.slice(0, 10),
-			announcements: announcements.announcements,
-			recentActivities,
-			pendingLeaves: leaves.leaves,
+			employees: employees.slice(0, 10),
+			departments,
+			tasks: tasks.slice(0, 10),
+			announcements: [],
+			recentActivities: [],
+			pendingLeaves: leaves,
 
 			// Dashboard widgets
 			stats,
@@ -94,42 +104,26 @@ export const load: PageServerLoad = async ({ cookies }) => {
 
 			// Quick access data
 			totalCounts: {
-				employees: employees.pagination.totalCount,
-				tasks: tasks.totalCount,
-				leaves: leaves.totalCount,
-				announcements: announcements.totalCount,
-				activities: activities.totalCount
-			}
-		};
-	} catch (error) {
-		console.error('❌ Failed to load HR dashboard data:', error);
-
-		// Return empty dashboard data on error
-		return {
-			employees: [],
-			departments: [],
-			tasks: [],
-			announcements: [],
-			recentActivities: [],
-			pendingLeaves: [],
-			stats: {
-				totalEmployees: 0,
-				totalDepartments: 0,
-				activeTasks: 0,
-				pendingLeaves: 0,
-				recentActivities: 0,
-				activeAnnouncements: 0
-			},
-			recentEmployees: [],
-			upcomingTasks: [],
-			totalCounts: {
-				employees: 0,
-				tasks: 0,
-				leaves: 0,
+				employees: employees.length,
+				tasks: tasks.length,
+				leaves: leaves.length,
 				announcements: 0,
 				activities: 0
-			},
-			error: 'Failed to load dashboard data'
+			}
 		};
+	} catch (err: any) {
+		console.error('❌ Failed to load HR dashboard data:', err);
+
+		if (err.message?.includes('auth')) {
+			throw redirect(303, '/login');
+		}
+
+		if (err.status === 403) {
+			throw err; // Re-throw permission errors
+		}
+
+		throw error(500, {
+			message: `Failed to load HR dashboard: ${err.message}`
+		});
 	}
 };
