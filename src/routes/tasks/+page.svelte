@@ -1,0 +1,450 @@
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import { goto } from '$app/navigation';
+  import { currentUser, hasPermission } from '$lib/services/auth';
+  import { taskService, tasks, isLoadingTasks, taskError } from '$lib/services/taskService';
+  import { userService, users } from '$lib/services/userService';
+  import DataTable from '$lib/components/tables/DataTable.svelte';
+  import Button from '$lib/components/base/Button.svelte';
+  import Input from '$lib/components/base/Input.svelte';
+  import Select from '$lib/components/base/Select.svelte';
+  import Badge from '$lib/components/base/Badge.svelte';
+  import Card from '$lib/components/base/Card.svelte';
+  import type { Column } from '$lib/components/tables/DataTable.svelte';
+  import type { Task, TaskFilter, TaskStatus, TaskPriority } from '$lib/types';
+
+  // Filter state
+  let searchQuery = '';
+  let statusFilter = '';
+  let priorityFilter = '';
+  let assigneeFilter = '';
+  let sortField = 'createdAt';
+  let sortDirection: 'asc' | 'desc' = 'desc';
+  let selectedTasks: Task[] = [];
+
+  // Filter options
+  const statusOptions = [
+    { value: '', label: 'All Status' },
+    { value: 'TODO', label: 'To Do' },
+    { value: 'IN_PROGRESS', label: 'In Progress' },
+    { value: 'REVIEW', label: 'In Review' },
+    { value: 'COMPLETED', label: 'Completed' },
+    { value: 'CANCELLED', label: 'Cancelled' }
+  ];
+
+  const priorityOptions = [
+    { value: '', label: 'All Priority' },
+    { value: 'LOW', label: 'Low' },
+    { value: 'NORMAL', label: 'Normal' },
+    { value: 'HIGH', label: 'High' },
+    { value: 'URGENT', label: 'Urgent' }
+  ];
+
+  // Table columns
+  const columns: Column[] = [
+    {
+      key: 'title',
+      label: 'Task',
+      sortable: true,
+      type: 'text'
+    },
+    {
+      key: 'assignee',
+      label: 'Assignee',
+      sortable: true,
+      type: 'text',
+      format: (value) => value?.displayName || 'Unassigned'
+    },
+    {
+      key: 'priority',
+      label: 'Priority',
+      sortable: true,
+      type: 'badge',
+      badgeVariant: (value) => getPriorityVariant(value)
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: true,
+      type: 'badge',
+      badgeVariant: (value) => getStatusVariant(value)
+    },
+    {
+      key: 'dueDate',
+      label: 'Due Date',
+      sortable: true,
+      type: 'date'
+    },
+    {
+      key: 'progress',
+      label: 'Progress',
+      sortable: true,
+      type: 'text',
+      format: (value) => value ? `${value}%` : '0%'
+    }
+  ];
+
+  // Computed values
+  $: assigneeOptions = [
+    { value: '', label: 'All Assignees' },
+    ...$users.map(user => ({
+      value: user.id,
+      label: user.displayName
+    }))
+  ];
+
+  $: filters = buildFilters();
+  $: hasFiltersApplied = searchQuery || statusFilter || priorityFilter || assigneeFilter;
+
+  function buildFilters(): TaskFilter {
+    return {
+      ...(searchQuery && { searchQuery }),
+      ...(statusFilter && { status: [statusFilter as TaskStatus] }),
+      ...(priorityFilter && { priority: [priorityFilter as TaskPriority] }),
+      ...(assigneeFilter && { assigneeId: assigneeFilter })
+    };
+  }
+
+  async function loadTasks() {
+    try {
+      await taskService.loadTasks({
+        filters,
+        sorting: { field: sortField, direction: sortDirection },
+        reset: true
+      });
+    } catch (error) {
+      console.error('Failed to load tasks:', error);
+    }
+  }
+
+  function getPriorityVariant(priority: TaskPriority): string {
+    const variants = {
+      LOW: 'secondary',
+      NORMAL: 'primary',
+      HIGH: 'warning',
+      URGENT: 'danger'
+    };
+    return variants[priority] || 'secondary';
+  }
+
+  function getStatusVariant(status: TaskStatus): string {
+    const variants = {
+      TODO: 'secondary',
+      IN_PROGRESS: 'primary',
+      REVIEW: 'warning',
+      COMPLETED: 'success',
+      CANCELLED: 'danger'
+    };
+    return variants[status] || 'secondary';
+  }
+
+  function handleSort(event: CustomEvent) {
+    sortField = event.detail.key;
+    sortDirection = event.detail.direction;
+    loadTasks();
+  }
+
+  function handleRowClick(event: CustomEvent) {
+    const { row } = event.detail;
+    goto(`/tasks/${row.id}`);
+  }
+
+  function handleSelectionChange(event: CustomEvent) {
+    selectedTasks = event.detail;
+  }
+
+  function clearFilters() {
+    searchQuery = '';
+    statusFilter = '';
+    priorityFilter = '';
+    assigneeFilter = '';
+  }
+
+  function handleBulkAction(action: string) {
+    if (selectedTasks.length === 0) return;
+
+    switch (action) {
+      case 'complete':
+        // TODO: Implement bulk complete
+        console.log('Bulk complete:', selectedTasks);
+        break;
+      case 'assign':
+        // TODO: Show bulk assign modal
+        console.log('Bulk assign:', selectedTasks);
+        break;
+      case 'delete':
+        // TODO: Show bulk delete confirmation
+        console.log('Bulk delete:', selectedTasks);
+        break;
+    }
+  }
+
+  // Load data when filters change
+  $: if (filters) {
+    loadTasks();
+  }
+
+  onMount(() => {
+    // Load users for assignee dropdown
+    userService.loadUsers();
+    loadTasks();
+  });
+</script>
+
+<svelte:head>
+  <title>Tasks - MountainHR</title>
+  <meta name="description" content="View and manage all tasks in your organization" />
+</svelte:head>
+
+<div class="tasks-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="page-header__content">
+      <h1 class="page-header__title">Tasks</h1>
+      <p class="page-header__subtitle">
+        Manage and track tasks across your organization.
+      </p>
+    </div>
+
+    <div class="page-header__actions">
+      {#if $currentUser && hasPermission('task:create')}
+        <Button
+          variant="primary"
+          leftIcon="plus"
+          on:click={() => goto('/tasks/new')}
+        >
+          Create Task
+        </Button>
+      {/if}
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <Card padding="md" class="filters-card">
+    <div class="filters-grid">
+      <div class="filter-item">
+        <Input
+          type="search"
+          placeholder="Search tasks..."
+          leftIcon="search"
+          bind:value={searchQuery}
+          on:input={loadTasks}
+        />
+      </div>
+
+      <div class="filter-item">
+        <Select
+          options={statusOptions}
+          bind:value={statusFilter}
+          placeholder="Filter by status"
+        />
+      </div>
+
+      <div class="filter-item">
+        <Select
+          options={priorityOptions}
+          bind:value={priorityFilter}
+          placeholder="Filter by priority"
+        />
+      </div>
+
+      <div class="filter-item">
+        <Select
+          options={assigneeOptions}
+          bind:value={assigneeFilter}
+          placeholder="Filter by assignee"
+        />
+      </div>
+
+      {#if hasFiltersApplied}
+        <div class="filter-item">
+          <Button
+            variant="ghost"
+            size="sm"
+            leftIcon="x"
+            on:click={clearFilters}
+          >
+            Clear Filters
+          </Button>
+        </div>
+      {/if}
+    </div>
+  </Card>
+
+  <!-- Bulk Actions -->
+  {#if selectedTasks.length > 0}
+    <Card padding="sm" class="bulk-actions-card">
+      <div class="bulk-actions">
+        <span class="bulk-actions__count">
+          {selectedTasks.length} task{selectedTasks.length === 1 ? '' : 's'} selected
+        </span>
+
+        <div class="bulk-actions__buttons">
+          {#if $currentUser && hasPermission('task:update')}
+            <Button
+              variant="secondary"
+              size="sm"
+              leftIcon="check"
+              on:click={() => handleBulkAction('complete')}
+            >
+              Mark Complete
+            </Button>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              leftIcon="user"
+              on:click={() => handleBulkAction('assign')}
+            >
+              Assign
+            </Button>
+          {/if}
+
+          {#if $currentUser && hasPermission('task:delete')}
+            <Button
+              variant="danger"
+              size="sm"
+              leftIcon="trash-2"
+              on:click={() => handleBulkAction('delete')}
+            >
+              Delete
+            </Button>
+          {/if}
+        </div>
+      </div>
+    </Card>
+  {/if}
+
+  <!-- Tasks Table -->
+  <Card padding="none" class="tasks-table">
+    <DataTable
+      data={$tasks}
+      {columns}
+      loading={$isLoadingTasks}
+      selectable={true}
+      hoverable={true}
+      currentSort={{ key: sortField, direction: sortDirection }}
+      bind:selectedRows={selectedTasks}
+      emptyMessage="No tasks found"
+      on:sort={handleSort}
+      on:rowClick={handleRowClick}
+      on:selectionChange={handleSelectionChange}
+    />
+  </Card>
+
+  <!-- Error State -->
+  {#if $taskError}
+    <Card padding="md" class="error-card">
+      <div class="error-message">
+        <div class="error-icon">
+          <i class="icon-alert-circle"></i>
+        </div>
+        <div class="error-content">
+          <h3 class="error-title">Error Loading Tasks</h3>
+          <p class="error-description">{$taskError}</p>
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon="refresh-cw"
+            on:click={loadTasks}
+          >
+            Retry
+          </Button>
+        </div>
+      </div>
+    </Card>
+  {/if}
+</div>
+
+<style lang="postcss">
+  .tasks-page {
+    @apply space-y-6;
+  }
+
+  /* Page Header */
+  .page-header {
+    @apply flex items-start justify-between;
+  }
+
+  .page-header__content {
+    @apply space-y-2;
+  }
+
+  .page-header__title {
+    @apply text-3xl font-bold text-gray-900;
+  }
+
+  .page-header__subtitle {
+    @apply text-lg text-gray-600;
+  }
+
+  .page-header__actions {
+    @apply flex items-center space-x-3;
+  }
+
+  /* Filters */
+  .filters-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4;
+  }
+
+  .filter-item {
+    @apply min-w-0;
+  }
+
+  /* Bulk Actions */
+  .bulk-actions {
+    @apply flex items-center justify-between bg-blue-50 px-4 py-3 border-b border-blue-200;
+  }
+
+  .bulk-actions__count {
+    @apply text-sm font-medium text-blue-900;
+  }
+
+  .bulk-actions__buttons {
+    @apply flex items-center space-x-2;
+  }
+
+  /* Error State */
+  .error-message {
+    @apply flex items-start space-x-3;
+  }
+
+  .error-icon {
+    @apply flex-shrink-0 text-red-500;
+  }
+
+  .error-icon i {
+    @apply w-5 h-5;
+  }
+
+  .error-content {
+    @apply flex-1;
+  }
+
+  .error-title {
+    @apply text-sm font-medium text-gray-900 mb-1;
+  }
+
+  .error-description {
+    @apply text-sm text-gray-600 mb-3;
+  }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .page-header {
+      @apply flex-col items-start space-y-4;
+    }
+
+    .filters-grid {
+      @apply grid-cols-1;
+    }
+
+    .bulk-actions {
+      @apply flex-col items-start space-y-3 px-3 py-4;
+    }
+
+    .bulk-actions__buttons {
+      @apply w-full justify-start;
+    }
+  }
+</style>

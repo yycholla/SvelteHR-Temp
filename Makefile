@@ -29,6 +29,10 @@ help: ## Show available commands
 	@echo "  make gel-repl      - Open interactive Gel REPL"
 	@echo "  make gel-cli CMD='...' - Run custom gel CLI command"
 	@echo ""
+	@echo "🔐 Environment Management:"
+	@echo "  make doppler-setup - Set up Doppler environment management"
+	@echo "  make doppler-run   - Run commands with Doppler environment"
+	@echo ""
 	@echo "🧹 Maintenance:"
 	@echo "  make clean        - Clean all build artifacts and containers"
 	@echo "  make install      - Install all dependencies"
@@ -38,9 +42,9 @@ help: ## Show available commands
 # =============================================================================
 dev: db-up ## Start development with database
 	@echo "🚀 Starting SvelteHR development..."
-	@echo "📊 GraphQL Endpoint: http://localhost:5656/db/main/ext/graphql"
-	@echo "🔧 Admin UI: http://localhost:5656/ui (admin/admin)"
-	@echo "🌐 Frontend: http://localhost:5173"
+	@echo "📊 GraphQL: http://localhost:5656/db/main/ext/graphql"
+	@echo "🔧 Admin UI: http://localhost:5656/ui (admin/admin)" 
+	@echo "🌐 Frontend: http://localhost:5175"
 	@npm run dev
 
 build: ## Build frontend for production
@@ -58,7 +62,7 @@ db-up: ## Start GelDB and Redis containers
 	@echo "🚀 Starting database services..."
 	@docker compose up -d geldb redis
 	@echo "✅ Services started:"
-	@echo "   📊 GraphQL: http://localhost:5656/db/main/ext/graphql"
+	@echo "   📊 GraphQL: http://localhost:5656/db/main/ext/graphql"  
 	@echo "   🔧 Admin UI: http://localhost:5656/ui (admin/admin)"
 	@echo "   🗄️  Redis: localhost:6379"
 
@@ -117,6 +121,40 @@ gel-cli: ## Run gel CLI commands (usage: make gel-cli CMD="query 'SELECT 1'")
 gel-repl: ## Open interactive Gel REPL
 	@echo "🔧 Opening Gel REPL (type \q to exit)"
 	@docker exec -it svelteHR-geldb gel --dsn "gel://admin:admin@localhost:5656/main?tls_security=insecure"
+
+# =============================================================================
+# Environment Management
+# =============================================================================
+doppler-setup: ## Set up Doppler environment management
+	@echo "🔐 Setting up Doppler environment management..."
+	@echo "📝 This will create a unified 'svelteHR' project in Doppler"
+	@echo "⚠️  Make sure you're logged in: doppler login"
+	@echo ""
+	@echo "Creating project and environments..."
+	@doppler projects create svelteHR --description "SvelteHR - Unified HR Management System" || true
+	@doppler environments create development --project svelteHR || true
+	@doppler environments create staging --project svelteHR || true
+	@doppler environments create production --project svelteHR || true
+	@echo "✅ Doppler project structure created"
+	@echo ""
+	@echo "🔧 Setting up local configuration..."
+	@doppler setup --project svelteHR --environment development --no-interactive
+	@echo "✅ Doppler setup complete"
+	@echo ""
+	@echo "📋 Next steps:"
+	@echo "  1. Set environment variables: doppler secrets set KEY=VALUE"
+	@echo "  2. Use 'make doppler-run' to run commands with environment"
+	@echo "  3. Use 'make dev-with-doppler' for development with Doppler"
+
+doppler-run: ## Run command with Doppler environment (usage: make doppler-run CMD="npm run dev")
+	@doppler run -- $(CMD)
+
+dev-with-doppler: db-up ## Start development with Doppler environment
+	@echo "🚀 Starting SvelteHR development with Doppler..."
+	@echo "📊 GraphQL Endpoint: http://localhost:5656/db/main/ext/graphql"
+	@echo "🔧 Admin UI: http://localhost:5656/ui (admin/admin)"
+	@echo "🌐 Frontend: http://localhost:5173"
+	@doppler run -- npm run dev
 
 # =============================================================================
 # Maintenance

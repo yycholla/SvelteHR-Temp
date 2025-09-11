@@ -22,3 +22,8 @@ volumes:
     name: svelteHR-gel-data
   redis_data:
     name: svelteHR-redis-data
+
+networks:
+  svelteHR-network:
+    driver: bridge
+    name: svelteHR-network

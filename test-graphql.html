@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GraphQL API Test</title>
+    <script>
+        async function testUsers() {
+            const response = await fetch('/api/graphql', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    query: `
+                        query {
+                            users {
+                                id
+                                email
+                                displayName
+                                firstName
+                                lastName
+                                isActive
+                            }
+                        }
+                    `
+                })
+            });
+            
+            const result = await response.json();
+            console.log('Users:', result);
+            document.getElementById('users').textContent = JSON.stringify(result, null, 2);
+        }
+        
+        async function testDepartments() {
+            const response = await fetch('/api/graphql', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    query: `
+                        query {
+                            departments {
+                                id
+                                name
+                                description
+                                isActive
+                                employeeCount
+                            }
+                        }
+                    `
+                })
+            });
+            
+            const result = await response.json();
+            console.log('Departments:', result);
+            document.getElementById('departments').textContent = JSON.stringify(result, null, 2);
+        }
+    </script>
+</head>
+<body>
+    <h1>GraphQL API Test</h1>
+    <button onclick="testUsers()">Test Users Query</button>
+    <button onclick="testDepartments()">Test Departments Query</button>
+    
+    <h2>Users:</h2>
+    <pre id="users"></pre>
+    
+    <h2>Departments:</h2>
+    <pre id="departments"></pre>
+</body>
+</html>

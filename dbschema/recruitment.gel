@@ -1,0 +1,362 @@
+module recruitment {
+    # Job status for tracking posted positions
+    scalar type JobStatus extending enum<Draft, Open, OnHold, Closed, Cancelled>;
+    
+    # Application status for tracking candidate progress
+    scalar type ApplicationStatus extending enum<
+        Applied, 
+        Screening, 
+        PhoneInterview, 
+        TechnicalInterview, 
+        OnSiteInterview, 
+        FinalInterview, 
+        BackgroundCheck, 
+        OfferExtended, 
+        OfferAccepted, 
+        OfferDeclined, 
+        Rejected, 
+        Withdrawn
+    >;
+    
+    # Interview types
+    scalar type InterviewType extending enum<Phone, Video, InPerson, Technical, Behavioral, Panel>;
+    
+    # Interview status
+    scalar type InterviewStatus extending enum<Scheduled, InProgress, Completed, Cancelled, Rescheduled>;
+    
+    # Offer status
+    scalar type OfferStatus extending enum<Draft, Extended, Negotiating, Accepted, Declined, Expired>;
+    
+    # Employment type
+    scalar type EmploymentType extending enum<FullTime, PartTime, Contract, Internship, Temporary>;
+    
+    # Experience level
+    scalar type ExperienceLevel extending enum<EntryLevel, Junior, Mid, Senior, Lead, Principal>;
+
+    # Job posting
+    type JobPosting {
+        required property title -> str;
+        required property description -> str;
+        required property department -> str;
+        required property location -> str;
+        
+        property employment_type -> EmploymentType {
+            default := EmploymentType.FullTime;
+        };
+        
+        property experience_level -> ExperienceLevel {
+            default := ExperienceLevel.Mid;
+        };
+        
+        property salary_min -> int32;
+        property salary_max -> int32;
+        property requirements -> str;
+        property responsibilities -> str;
+        property benefits -> str;
+        
+        required property status -> JobStatus {
+            default := JobStatus.Draft;
+        };
+        
+        property posted_date -> datetime;
+        property closing_date -> datetime;
+        property positions_available -> int32 {
+            default := 1;
+        };
+        
+        # Hiring manager and team
+        link hiring_manager -> rbac::User;
+        link created_by -> rbac::User;
+        
+        # Skills and qualifications
+        property required_skills -> array<str>;
+        property preferred_skills -> array<str>;
+        property education_requirements -> str;
+        property certifications_required -> array<str>;
+        
+        # Remote work options
+        property is_remote -> bool {
+            default := false;
+        };
+        property remote_policy -> str;
+        
+        # Metadata
+        required property created_at -> datetime {
+            default := datetime_current();
+        };
+        required property updated_at -> datetime {
+            default := datetime_current();
+        };
+        
+        # Relationships
+        multi link applications := .<job_posting[is JobApplication];
+    }
+
+    # Candidate profile
+    type Candidate {
+        required property first_name -> str;
+        required property last_name -> str;
+        required property email -> str {
+            constraint exclusive;
+        };
+        
+        property phone -> str;
+        property linkedin_url -> str;
+        property github_url -> str;
+        property portfolio_url -> str;
+        
+        # Personal information
+        property current_title -> str;
+        property current_company -> str;
+        property location -> str;
+        property availability_date -> datetime;
+        property salary_expectation -> int32;
+        
+        # Professional details
+        property years_of_experience -> int32;
+        property skills -> array<str>;
+        property certifications -> array<str>;
+        property education -> str;
+        property summary -> str;
+        
+        # Status and notes
+        property status -> str {
+            default := "Active";
+        };
+        property notes -> str;
+        property source -> str; # How they found us (LinkedIn, referral, etc.)
+        
+        # Metadata
+        required property created_at -> datetime {
+            default := datetime_current();
+        };
+        required property updated_at -> datetime {
+            default := datetime_current();
+        };
+        
+        # Relationships
+        multi link applications := .<candidate[is JobApplication];
+    }
+
+    # Job application linking candidates to job postings
+    type JobApplication {
+        required link candidate -> Candidate;
+        required link job_posting -> JobPosting;
+        
+        required property status -> ApplicationStatus {
+            default := ApplicationStatus.Applied;
+        };
+        
+        property cover_letter -> str;
+        property resume_url -> str;
+        property additional_documents -> array<str>;
+        
+        # Application details
+        property applied_date -> datetime {
+            default := datetime_current();
+        };
+        property source -> str; # How they applied (website, LinkedIn, etc.)
+        link referrer -> rbac::User; # Employee who referred them
+        
+        # Screening information
+        property screening_notes -> str;
+        property screening_score -> int32; # 1-10 rating
+        link screened_by -> rbac::User;
+        property screened_at -> datetime;
+        
+        # Rejection information
+        property rejection_reason -> str;
+        link rejected_by -> rbac::User;
+        property rejected_at -> datetime;
+        
+        # Custom fields for application forms
+        property custom_fields -> json;
+        
+        # Metadata
+        required property created_at -> datetime {
+            default := datetime_current();
+        };
+        required property updated_at -> datetime {
+            default := datetime_current();
+        };
+        
+        # Relationships
+        multi link interviews := .<application[is Interview];
+        multi link offers := .<application[is JobOffer];
+        
+        # Unique constraint to prevent duplicate applications
+        constraint exclusive on ((.candidate, .job_posting));
+    }
+
+    # Interview scheduling and management
+    type Interview {
+        required link application -> JobApplication;
+        link candidate := .application.candidate;
+        link job_posting := .application.job_posting;
+        
+        required property interview_type -> InterviewType;
+        required property status -> InterviewStatus {
+            default := InterviewStatus.Scheduled;
+        };
+        
+        # Scheduling details
+        required property scheduled_date -> datetime;
+        property duration_minutes -> int32 {
+            default := 60;
+        };
+        property location -> str;
+        property meeting_link -> str;
+        property meeting_room -> str;
+        
+        # Interview panel
+        multi link interviewers -> rbac::User;
+        link primary_interviewer -> rbac::User;
+        
+        # Interview content
+        property agenda -> str;
+        property questions -> array<str>;
+        property notes -> str;
+        property feedback -> str;
+        property score -> int32; # 1-10 rating
+        property recommendation -> str; # Hire, No Hire, Maybe
+        
+        # Follow-up
+        property follow_up_required -> bool {
+            default := false;
+        };
+        property next_steps -> str;
+        
+        # Metadata
+        link created_by -> rbac::User;
+        required property created_at -> datetime {
+            default := datetime_current();
+        };
+        required property updated_at -> datetime {
+            default := datetime_current();
+        };
+    }
+
+    # Job offers
+    type JobOffer {
+        required link application -> JobApplication;
+        link candidate := .application.candidate;
+        link job_posting := .application.job_posting;
+        
+        required property status -> OfferStatus {
+            default := OfferStatus.Draft;
+        };
+        
+        # Offer details
+        required property position_title -> str;
+        required property base_salary -> int32;
+        property bonus -> int32;
+        property equity -> str;
+        property benefits_summary -> str;
+        property start_date -> datetime;
+        
+        # Employment terms
+        property employment_type -> EmploymentType {
+            default := EmploymentType.FullTime;
+        };
+        property probation_period_months -> int32;
+        property vacation_days -> int32;
+        property work_location -> str;
+        link reporting_manager -> rbac::User;
+        
+        # Offer timeline
+        property offer_date -> datetime;
+        property expiration_date -> datetime;
+        property response_deadline -> datetime;
+        
+        # Decision tracking
+        property accepted_date -> datetime;
+        property declined_date -> datetime;
+        property decline_reason -> str;
+        property counter_offer_details -> str;
+        
+        # Document management
+        property offer_letter_url -> str;
+        property contract_url -> str;
+        property signed_contract_url -> str;
+        
+        # Approval workflow
+        property requires_approval -> bool {
+            default := true;
+        };
+        link approved_by -> rbac::User;
+        property approved_date -> datetime;
+        property approval_notes -> str;
+        
+        # Metadata
+        link created_by -> rbac::User;
+        required property created_at -> datetime {
+            default := datetime_current();
+        };
+        required property updated_at -> datetime {
+            default := datetime_current();
+        };
+    }
+
+    # Interview feedback from individual interviewers
+    type InterviewFeedback {
+        required link interview -> Interview;
+        required link interviewer -> rbac::User;
+        
+        # Feedback content
+        required property overall_rating -> int32; # 1-5 scale
+        property technical_skills_rating -> int32;
+        property communication_skills_rating -> int32;
+        property cultural_fit_rating -> int32;
+        property problem_solving_rating -> int32;
+        
+        property strengths -> str;
+        property concerns -> str;
+        property detailed_feedback -> str;
+        property recommendation -> str; # Strong Hire, Hire, No Hire, Strong No Hire
+        
+        # Decision factors
+        property would_work_with_again -> bool;
+        property meets_requirements -> bool;
+        property additional_comments -> str;
+        
+        # Metadata
+        required property created_at -> datetime {
+            default := datetime_current();
+        };
+        required property updated_at -> datetime {
+            default := datetime_current();
+        };
+    }
+
+    # Recruitment pipeline stages for tracking
+    type RecruitmentStage {
+        required property name -> str;
+        required property order_index -> int32;
+        property description -> str;
+        property is_active -> bool {
+            default := true;
+        };
+        property color -> str; # For UI display
+        
+        # Stage configuration
+        property requires_interview -> bool {
+            default := false;
+        };
+        property requires_approval -> bool {
+            default := false;
+        };
+        property auto_advance -> bool {
+            default := false;
+        };
+        
+        # Metadata
+        required property created_at -> datetime {
+            default := datetime_current();
+        };
+        required property updated_at -> datetime {
+            default := datetime_current();
+        };
+        
+        constraint exclusive on (.name);
+    }
+}
