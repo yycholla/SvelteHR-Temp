@@ -42,8 +42,8 @@ help: ## Show available commands
 # =============================================================================
 dev: db-up ## Start development with database
 	@echo "🚀 Starting SvelteHR development..."
-	@echo "📊 GraphQL: http://localhost:5656/db/main/ext/graphql"
-	@echo "🔧 Admin UI: http://localhost:5656/ui (admin/admin)" 
+	@echo "📊 GraphQL: http://localhost:5657/db/main/ext/graphql"
+	@echo "🔧 Admin UI: http://localhost:5657/ui (admin/admin)" 
 	@echo "🌐 Frontend: http://localhost:5175"
 	@npm run dev
 
@@ -62,8 +62,8 @@ db-up: ## Start GelDB and Redis containers
 	@echo "🚀 Starting database services..."
 	@docker compose up -d geldb redis
 	@echo "✅ Services started:"
-	@echo "   📊 GraphQL: http://localhost:5656/db/main/ext/graphql"  
-	@echo "   🔧 Admin UI: http://localhost:5656/ui (admin/admin)"
+	@echo "   📊 GraphQL: http://localhost:5657/db/main/ext/graphql"  
+	@echo "   🔧 Admin UI: http://localhost:5657/ui (admin/admin)"
 	@echo "   🗄️  Redis: localhost:6379"
 
 db-down: ## Stop database containers
@@ -88,8 +88,8 @@ db-health: ## Check database health
 	@docker compose ps geldb redis
 	@echo ""
 	@echo "🔧 Testing endpoints..."
-	@curl -s http://localhost:5656/ui >/dev/null && echo "✅ Admin UI: Available" || echo "❌ Admin UI: Not available"
-	@curl -s http://localhost:5656/db/main/ext/graphql >/dev/null && echo "✅ GraphQL: Available" || echo "❌ GraphQL: Not available"
+	@curl -s http://localhost:5657/ui >/dev/null && echo "✅ Admin UI: Available" || echo "❌ Admin UI: Not available"
+	@curl -s http://localhost:5657/db/main/ext/graphql >/dev/null && echo "✅ GraphQL: Available" || echo "❌ GraphQL: Not available"
 
 schema-apply: ## Apply database schema (auto-applied with migrations=always)
 	@echo "📋 Schema is automatically applied on container start"
@@ -97,11 +97,11 @@ schema-apply: ## Apply database schema (auto-applied with migrations=always)
 
 schema-status: ## Check current schema and migration status
 	@echo "📊 Checking schema status..."
-	@docker exec svelteHR-geldb gel migration status --dsn "gel://admin:admin@localhost:5656/main?tls_security=insecure" || echo "No migrations found"
+	@docker exec svelteHR-geldb gel migration status --dsn "gel://admin:admin@localhost:5657/main?tls_security=insecure" || echo "No migrations found"
 
 schema-create: ## Create new migration from schema changes
 	@echo "📝 Creating new migration from schema files..."
-	@docker exec svelteHR-geldb gel migration create --non-interactive --dsn "gel://admin:admin@localhost:5656/main?tls_security=insecure"
+	@docker exec svelteHR-geldb gel migration create --non-interactive --dsn "gel://admin:admin@localhost:5657/main?tls_security=insecure"
 	@echo "✅ Migration created"
 
 schema-reset: ## Reset schema (dangerous - removes all data)
@@ -116,11 +116,11 @@ schema-reset: ## Reset schema (dangerous - removes all data)
 	fi
 
 gel-cli: ## Run gel CLI commands (usage: make gel-cli CMD="query 'SELECT 1'")
-	@docker exec -it svelteHR-geldb gel $(CMD) --dsn "gel://admin:admin@localhost:5656/main?tls_security=insecure"
+	@docker exec -it svelteHR-geldb gel $(CMD) --dsn "gel://admin:admin@localhost:5657/main?tls_security=insecure"
 
 gel-repl: ## Open interactive Gel REPL
 	@echo "🔧 Opening Gel REPL (type \q to exit)"
-	@docker exec -it svelteHR-geldb gel --dsn "gel://admin:admin@localhost:5656/main?tls_security=insecure"
+	@docker exec -it svelteHR-geldb gel --dsn "gel://admin:admin@localhost:5657/main?tls_security=insecure"
 
 # =============================================================================
 # Environment Management
@@ -151,8 +151,8 @@ doppler-run: ## Run command with Doppler environment (usage: make doppler-run CM
 
 dev-with-doppler: db-up ## Start development with Doppler environment
 	@echo "🚀 Starting SvelteHR development with Doppler..."
-	@echo "📊 GraphQL Endpoint: http://localhost:5656/db/main/ext/graphql"
-	@echo "🔧 Admin UI: http://localhost:5656/ui (admin/admin)"
+	@echo "📊 GraphQL Endpoint: http://localhost:5657/db/main/ext/graphql"
+	@echo "🔧 Admin UI: http://localhost:5657/ui (admin/admin)"
 	@echo "🌐 Frontend: http://localhost:5173"
 	@doppler run -- npm run dev
 
