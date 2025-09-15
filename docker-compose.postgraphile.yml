@@ -14,11 +14,8 @@ services:
       POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/init-postgres-user.sql:/docker-entrypoint-initdb.d/000-init-user.sql
-      - ./database/init.sql:/docker-entrypoint-initdb.d/001-init.sql
-      - ./database/migrations/:/docker-entrypoint-initdb.d/migrations/
-      - ./database/functions/:/docker-entrypoint-initdb.d/functions/
-      - ./database/policies/:/docker-entrypoint-initdb.d/policies/
+      - ./database/init-clean.sql:/docker-entrypoint-initdb.d/001-init.sql
+      - ./migrations/:/migrations/:ro
     ports:
       - "5432:5432"
     command: |
@@ -72,8 +69,8 @@ services:
         condition: service_healthy
     environment:
       # Database Configuration
-      DATABASE_URL: postgres://postgraphile_app:dev_password_change_in_production@postgres:5432/hr_system
-      READ_ONLY_DATABASE_URL: postgres://postgraphile_app:dev_password_change_in_production@postgres:5432/hr_system
+      DATABASE_URL: postgres://postgraphile_user:postgraphile_password@postgres:5432/hr_system
+      OWNER_DATABASE_URL: postgres://postgres:postgres123@postgres:5432/hr_system
       
       # JWT Configuration
       JWT_SECRET: your-super-secure-jwt-secret-key-here-minimum-32-characters-required

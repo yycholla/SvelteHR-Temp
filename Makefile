@@ -66,8 +66,8 @@ quick-start: ## Complete setup for first-time users
 	@echo ""
 	@echo "🚀 Next steps:"
 	@echo "   - Run 'make server-dev' to start the GraphQL API"
-	@echo "   - Visit http://localhost:3001/graphiql to explore the API"
-	@echo "   - Test authentication: admin@company.com / AdminPass123!"
+	@echo "   - Visit http://localhost:4000/graphiql to explore the API"
+	@echo "   - Test authentication: admin@postgraphile-hr.com / admin123"
 	@echo "   - Run 'make help' to see all available commands"
 
 env-check: ## Check environment configuration
@@ -102,21 +102,17 @@ env-check: ## Check environment configuration
 
 server-dev: db-up ## Start PostGraphile server in development mode
 	@echo "🚀 Starting PostGraphile Development Server..."
-	@echo "📊 GraphQL API:     http://localhost:3001/graphql"
-	@echo "🔧 GraphiQL IDE:    http://localhost:3001/graphiql"
-	@echo "❤️  Health Check:    http://localhost:3001/health"
-	@echo "📈 Detailed Health: http://localhost:3001/health-detailed"
-	@echo "📊 System Metrics:  http://localhost:3001/metrics"
-	@echo "🚨 Alerts:         http://localhost:3001/alerts"
-	@echo "📈 Prometheus:      http://localhost:9090/metrics"
+	@echo "📊 GraphQL API:     http://localhost:4000/graphql"
+	@echo "🔧 GraphiQL IDE:    http://localhost:4000/graphiql"
+	@echo "❤️  Health Check:    http://localhost:4000/health"
 	@echo ""
 	@mkdir -p backend/logs
-	cd backend && npm run postgraphile:dev
+	cd backend && npm run start:dev
 
 server-prod: db-up ## Start PostGraphile server in production mode
 	@echo "🚀 Starting PostGraphile Production Server..."
 	@echo "⚠️  Make sure production environment variables are set!"
-	cd backend && npm run postgraphile:prod
+	cd backend && npm run start:prod
 
 server-stop: ## Stop all server processes
 	@echo "⏹️  Stopping PostGraphile server processes..."
@@ -127,17 +123,12 @@ server-stop: ## Stop all server processes
 server-status: ## Check if server is running and healthy
 	@echo "🏥 Server Status Check:"
 	@echo "====================="
-	@curl -s http://localhost:3001/health > /dev/null 2>&1 && echo "✅ GraphQL API (Port 3001): Available" || echo "❌ GraphQL API (Port 3001): Not available"
-	@curl -s http://localhost:9090/metrics > /dev/null 2>&1 && echo "✅ Prometheus Metrics (Port 9090): Available" || echo "❌ Prometheus Metrics (Port 9090): Not available"
+	@curl -s http://localhost:4000/health > /dev/null 2>&1 && echo "✅ GraphQL API (Port 4000): Available" || echo "❌ GraphQL API (Port 4000): Not available"
 	@echo ""
 	@echo "📊 Available Endpoints (when running):"
-	@echo "   - GraphQL API:     http://localhost:3001/graphql"
-	@echo "   - GraphiQL IDE:    http://localhost:3001/graphiql"
-	@echo "   - Health Check:    http://localhost:3001/health"
-	@echo "   - Detailed Health: http://localhost:3001/health-detailed"
-	@echo "   - System Metrics:  http://localhost:3001/metrics"
-	@echo "   - Alerts:         http://localhost:3001/alerts"
-	@echo "   - Prometheus:      http://localhost:9090/metrics"
+	@echo "   - GraphQL API:     http://localhost:4000/graphql"
+	@echo "   - GraphiQL IDE:    http://localhost:4000/graphiql"
+	@echo "   - Health Check:    http://localhost:4000/health"
 
 server-logs: ## View server logs
 	@echo "📋 Server Logs:"
@@ -205,10 +196,10 @@ db-health: ## Check database service health
 	@docker exec svelteHR-postgres-postgraphile pg_isready -U postgres -d hr_system || echo "❌ PostgreSQL not ready"
 	@echo ""
 	@echo "🔴 Redis Status:"
-	@docker exec svelteHR-postgres-postgraphile redis-cli ping || echo "❌ Redis not ready"
+	@docker exec svelteHR-redis-postgraphile redis-cli ping || echo "❌ Redis not ready"
 	@echo ""
 	@echo "📊 Database Statistics:"
-	@docker exec svelteHR-postgres-postgraphile psql -U postgres -d hr_system -c "\SELECT 'Employees' as table_name, count(*) as count FROM hr_public.employees UNION ALL SELECT 'Departments', count(*) FROM hr_public.departments UNION ALL SELECT 'Time Off Requests', count(*) FROM hr_public.time_off_requests UNION ALL SELECT 'Performance Reviews', count(*) FROM hr_public.performance_reviews;" 2>/dev/null || echo "⚠️  Database not initialized yet"
+	@docker exec svelteHR-postgres-postgraphile psql -U postgres -d hr_system -c "\SELECT 'Users' as table_name, count(*) as count FROM hr_public.users UNION ALL SELECT 'Departments', count(*) FROM hr_public.departments UNION ALL SELECT 'Job Information', count(*) FROM hr_public.job_information UNION ALL SELECT 'Contact Information', count(*) FROM hr_public.contact_information;" 2>/dev/null || echo "⚠️  Database not initialized yet"
 
 db-shell: ## Open PostgreSQL shell
 	@echo "🔧 Opening PostgreSQL shell (hr_system database)..."
@@ -221,7 +212,7 @@ db-shell: ## Open PostgreSQL shell
 schema-status: ## Check current schema and migration status
 	@echo "📊 Schema Status Check:"
 	@echo "====================="
-	@if docker exec svelteHR-postgres-postgraphile psql -U postgres -d hr_system -c "\d hr_public.employees" >/dev/null 2>&1; then \
+	@if docker exec svelteHR-postgres-postgraphile psql -U postgres -d hr_system -c "\d hr_public.users" >/dev/null 2>&1; then \
 		echo "✅ Database schema is initialized"; \
 		docker exec svelteHR-postgres-postgraphile psql -U postgres -d hr_system -c "\SELECT schemaname, tablename FROM pg_tables WHERE schemaname IN ('hr_public', 'hr_private', 'hr_hidden') ORDER BY schemaname, tablename;"; \
 	else \
@@ -240,16 +231,16 @@ test-graphql: ## Test GraphQL endpoint (requires server running)
 	@curl -s -X POST \
 	  -H "Content-Type: application/json" \
 	  -d '{"query": "query { __schema { types { name } } }"}' \
-	  http://localhost:3001/graphql | jq '.data.__schema.types[0]' 2>/dev/null || echo "❌ GraphQL server not running or not accessible"
+	  http://localhost:4000/graphql | jq '.data.__schema.types[0]' 2>/dev/null || echo "❌ GraphQL server not running or not accessible"
 
 test-auth: ## Test authentication functions via GraphQL
 	@echo "🔐 Testing authentication endpoint..."
 	@curl -s -X POST \
 	  -H "Content-Type: application/json" \
 	  -d '{
-	    "query": "mutation { authenticateEmail(email: \"admin@company.com\", password: \"AdminPass123!\") { token user { id email role } } }"
+	    "query": "mutation { authenticate(input: { email: \"admin@postgraphile-hr.com\", password: \"admin123\" }) { jwtToken { role userId exp iat } } }"
 	  }' \
-	  http://localhost:3001/graphql | jq . 2>/dev/null || echo "❌ Authentication test failed or server not running"
+	  http://localhost:4000/graphql | jq . 2>/dev/null || echo "❌ Authentication test failed or server not running"
 
 test-contract: ## Run GraphQL contract tests
 	@echo "🧪 Running GraphQL contract tests..."
@@ -273,7 +264,7 @@ clean: ## Clean all build artifacts and containers
 sample-query: ## Example GraphQL query to test once server is running
 	@echo "📝 Sample GraphQL Query:"
 	@echo "====================="
-	@echo "Run the following in GraphiQL (http://localhost:3001/graphiql):"
+	@echo "Run the following in GraphiQL (http://localhost:4000/graphiql):"
 	@echo ""
 	@echo "# Get all departments with employee count"
 	@echo "query {"
@@ -293,16 +284,15 @@ sample-query: ## Example GraphQL query to test once server is running
 sample-login: ## Example authentication mutation
 	@echo "🔐 Sample Authentication:"
 	@echo "======================="
-	@echo "Run the following in GraphiQL (http://localhost:3001/graphiql):"
+	@echo "Run the following in GraphiQL (http://localhost:4000/graphiql):"
 	@echo ""
 	@echo "mutation {"
-	@echo "  authenticateEmail(email: \"admin@company.com\", password: \"AdminPass123!\") {"
-	@echo "    token"
-	@echo "    user {"
-	@echo "      id"
-	@echo "      email"
+	@echo "  authenticate(input: { email: \"admin@postgraphile-hr.com\", password: \"admin123\" }) {"
+	@echo "    jwtToken {"
 	@echo "      role"
-	@echo "      roleLevel"
+	@echo "      userId"
+	@echo "      exp"
+	@echo "      iat"
 	@echo "    }"
 	@echo "  }"
 	@echo "}"

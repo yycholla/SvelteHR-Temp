@@ -1,0 +1,22 @@
+{"endpoint":"http://localhost:4000/graphql","environment":"development","graphiql":"http://localhost:4000/graphiql","health_endpoint":"http://localhost:4000/health","level":"info","message":"PostGraphile server started","port":4000,"service":"postgraphile-server","timestamp":"2025-09-15T14:50:54.707Z"}
+{"level":"info","message":"All services started successfully","service":"postgraphile-server","timestamp":"2025-09-15T14:50:54.709Z"}
+{"ip":"::1","level":"info","message":"Request received","method":"GET","service":"postgraphile-server","timestamp":"2025-09-15T14:51:02.608Z","url":"/health","userAgent":"curl/8.15.0"}
+{"ip":"::1","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-15T14:51:07.348Z","url":"/graphql","userAgent":"curl/8.15.0"}
+{"ip":"::1","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-15T14:51:12.868Z","url":"/graphql","userAgent":"curl/8.15.0"}
+{"endpoint":"http://localhost:4000/graphql","environment":"development","graphiql":"http://localhost:4000/graphiql","health_endpoint":"http://localhost:4000/health","level":"info","message":"PostGraphile server started","port":4000,"service":"postgraphile-server","timestamp":"2025-09-15T14:57:06.586Z"}
+{"level":"info","message":"All services started successfully","service":"postgraphile-server","timestamp":"2025-09-15T14:57:06.588Z"}
+{"ip":"::1","level":"info","message":"Request received","method":"GET","service":"postgraphile-server","timestamp":"2025-09-15T14:57:14.151Z","url":"/health","userAgent":"curl/8.15.0"}
+{"ip":"::1","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-15T14:57:18.577Z","url":"/graphql","userAgent":"curl/8.15.0"}
+{"ip":"::1","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-15T14:57:23.540Z","url":"/graphql","userAgent":"curl/8.15.0"}
+{"ip":"::1","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-15T14:57:27.777Z","url":"/graphql","userAgent":"curl/8.15.0"}
+{"ip":"::1","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-15T14:57:34.259Z","url":"/graphql","userAgent":"curl/8.15.0"}
+{"ip":"::1","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-15T14:57:51.843Z","url":"/graphql","userAgent":"curl/8.15.0"}
+{"endpoint":"http://localhost:4000/graphql","environment":"development","graphiql":"http://localhost:4000/graphiql","health_endpoint":"http://localhost:4000/health","level":"info","message":"PostGraphile server started","port":4000,"service":"postgraphile-server","timestamp":"2025-09-15T14:59:20.971Z"}
+{"level":"info","message":"All services started successfully","service":"postgraphile-server","timestamp":"2025-09-15T14:59:20.973Z"}
+{"ip":"::1","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-15T14:59:28.576Z","url":"/graphql","userAgent":"curl/8.15.0"}
+{"ip":"::1","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-15T14:59:36.463Z","url":"/graphql","userAgent":"curl/8.15.0"}
+{"ip":"::1","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-15T14:59:57.394Z","url":"/graphql","userAgent":"curl/8.15.0"}
+{"ip":"::1","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-15T15:01:24.953Z","url":"/graphql","userAgent":"curl/8.15.0"}
+{"ip":"::1","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-15T15:01:24.961Z","url":"/graphql","userAgent":"curl/8.15.0"}
+{"ip":"::1","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-15T15:01:24.975Z","url":"/graphql","userAgent":"curl/8.15.0"}
+{"ip":"::1","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-15T15:01:24.984Z","url":"/graphql","userAgent":"curl/8.15.0"}

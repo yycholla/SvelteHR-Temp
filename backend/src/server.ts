@@ -13,21 +13,13 @@ import helmet from 'helmet';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 
-// These imports will be added back once modules are fixed:
-// import Redis from 'ioredis';
-// import cookieParser from 'cookie-parser';
-// import winston from 'winston';
-// import { createProxyMiddleware } from 'http-proxy-middleware';
-// import CacheService from './cache/cache-service';
-// import { GraphQLQueryCache } from './cache/cache-service';
-// import PerformanceOptimizer from './cache/performance-optimizer';
-// import { hrPlugins } from './postgraphile/hr-plugins';
-// import { securityPlugins } from './postgraphile/security-plugins';
-// import HealthMonitor from './monitoring/health-monitor';
-// import MetricsExporter from './monitoring/metrics-exporter';
+import Redis from 'ioredis';
+import cookieParser from 'cookie-parser';
+import winston from 'winston';
+import jwt from 'jsonwebtoken';
 
 // Environment configuration
-const PORT = parseInt(process.env.PORT || '3001', 10);
+const PORT = parseInt(process.env.PORT || '4000', 10);
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const DATABASE_URL = process.env.DATABASE_URL || 'postgres://postgres:postgres123@localhost:5432/hr_system';
 const JWT_SECRET = process.env.JWT_SECRET || 'development-jwt-secret-change-in-production';
@@ -67,33 +59,6 @@ const pgPool = new Pool({
 
 // Redis client for caching
 const redis = new Redis(REDIS_URL);
-
-// Initialize caching services
-const cacheService = new CacheService(redis, {
-  defaultTTL: 3600,
-  memoryCacheTTL: 300,
-  redisCacheTTL: 3600,
-  enableCompression: false,
-  maxKeys: 5000
-});
-
-// Initialize performance optimizer
-const performanceOptimizer = new PerformanceOptimizer(pgPool, redis, cacheService, {
-  slowQueryThreshold: 1000,
-  highConnectionThreshold: 80,
-  lowCacheHitRateThreshold: 0.7,
-  highMemoryThreshold: 512 * 1024 * 1024,
-  enableAutomaticOptimization: NODE_ENV === 'production'
-});
-
-// GraphQL query cache
-const graphQLQueryCache = performanceOptimizer.getGraphQLCache();
-
-// Initialize health monitoring
-const healthMonitor = new HealthMonitor(pgPool, redis, cacheService);
-
-// Initialize metrics exporter
-const metricsExporter = new MetricsExporter();
 
 // Security middleware
 app.use(helmet({
@@ -143,34 +108,19 @@ app.get('/health', async (req, res) => {
   try {
     // Check database connection
     const dbResult = await pgPool.query('SELECT 1');
-    
+
     // Check Redis connection
     const redisResult = await redis.ping();
-    
-    // Get cache and performance metrics
-    const cacheStats = cacheService.getStats();
-    const performanceReport = performanceOptimizer.getPerformanceReport();
-    
+
     res.json({
       status: 'healthy',
       timestamp: new Date().toISOString(),
       services: {
         database: dbResult.rows.length > 0 ? 'up' : 'down',
         redis: redisResult === 'PONG' ? 'up' : 'down'
-      },
-      performance: {
-        cache: {
-          hitRate: cacheStats.hitRate,
-          hits: cacheStats.hits,
-          misses: cacheStats.misses,
-          memoryUsage: cacheStats.memoryUsage
-        },
-        metrics: performanceReport.metrics,
-        memoryUsage: performanceReport.system.memory,
-        uptime: performanceReport.system.uptime
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Health check failed', error);
     res.status(503).json({
       status: 'unhealthy',
@@ -180,45 +130,13 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// Performance metrics endpoint
+// Basic metrics endpoint
 app.get('/metrics', (req, res) => {
-  const performanceReport = performanceOptimizer.getPerformanceReport();
-  res.json(performanceReport);
-});
-
-// Prometheus metrics endpoint (separate port for security)
-const METRICS_PORT = 9090;
-const metricsApp = metricsExporter.getApp();
-metricsApp.listen(METRICS_PORT, () => {
-  logger.info(`Prometheus metrics server started on port ${METRICS_PORT}`);
-});
-
-// Enhanced health check endpoint
-app.get('/health-detailed', async (req, res) => {
-  try {
-    const healthSummary = await healthMonitor.getHealthSummary();
-    res.json(healthSummary);
-  } catch (error) {
-    logger.error('Detailed health check failed', error);
-    res.status(500).json({
-      status: 'unhealthy',
-      error: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// Alerts endpoint
-app.get('/alerts', (req, res) => {
-  try {
-    const alerts = healthMonitor.getActiveAlerts();
-    res.json(alerts);
-  } catch (error) {
-    logger.error('Failed to get alerts', error);
-    res.status(500).json({
-      error: 'Failed to get alerts'
-    });
-  }
+  res.json({
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    timestamp: new Date().toISOString()
+  });
 });
 
 // JWT authentication middleware
@@ -231,7 +149,6 @@ const jwtAuthMiddleware: any = (build) => {
 
     if (token) {
       try {
-        const jwt = require('jsonwebtoken');
         const decoded = jwt.verify(token, JWT_SECRET) as any;
         
         // Set PostgreSQL session variables from JWT claims
@@ -300,7 +217,6 @@ const postgraphileOptions = {
   
   // Plugin configuration
   appendPlugins: customPlugins,
-  skipPlugins: [require('graphile-build').NodePlugin],
   
   // Development features
   watchPg: NODE_ENV === 'development',
@@ -357,15 +273,13 @@ app.use((req, res) => {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully');
-  
+
   try {
-    healthMonitor.stop();
-    await cacheService.clear();
     await pgPool.end();
     await redis.quit();
     logger.info('Services shutdown complete');
     process.exit(0);
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error during shutdown', error);
     process.exit(1);
   }
@@ -373,34 +287,28 @@ process.on('SIGTERM', async () => {
 
 process.on('SIGINT', async () => {
   logger.info('SIGINT received, shutting down gracefully');
-  
+
   try {
-    healthMonitor.stop();
-    await cacheService.clear();
     await pgPool.end();
     await redis.quit();
     logger.info('Services shutdown complete');
     process.exit(0);
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error during shutdown', error);
     process.exit(1);
   }
 });
 
-// Start server and monitoring
+// Start server
 app.listen(PORT, () => {
   logger.info(`PostGraphile server started`, {
     port: PORT,
     environment: NODE_ENV,
     graphiql: NODE_ENV === 'development' ? `http://localhost:${PORT}/graphiql` : false,
     endpoint: `http://localhost:${PORT}/graphql`,
-    metrics_endpoint: `http://localhost:${METRICS_PORT}/metrics`,
-    health_endpoint: `http://localhost:${PORT}/health-detailed`
+    health_endpoint: `http://localhost:${PORT}/health`
   });
 
-  // Start health monitoring
-  healthMonitor.start();
-  
   logger.info('All services started successfully');
 });
 
