@@ -1,11 +1,11 @@
 /**
- * Departments API Endpoint - Direct EdgeQL Implementation
+ * Departments API Endpoint - Hasura GraphQL Implementation
  */
 
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { geldb } from '$lib/geldb/client';
-import { authService } from '$lib/auth/service';
+import { hasuraAuthService } from '$lib/auth/hasura-service';
+import { HASURA_GRAPHQL_URL, HASURA_ADMIN_SECRET } from '$env/static/private';
 
 export const GET: RequestHandler = async ({ cookies, url }) => {
   // Verify authentication
@@ -14,40 +14,53 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
     return json({ error: 'Not authenticated' }, { status: 401 });
   }
 
-  const user = await authService.verifyToken(token);
+  const user = await hasuraAuthService.verifyToken(token);
   if (!user) {
     return json({ error: 'Invalid token' }, { status: 401 });
   }
 
   try {
-    // Query departments with basic information
-    const departments = await geldb.query<Array<{
-      id: string;
-      name: string;
-      description?: string;
-      budget?: number;
-      is_active: boolean;
-      employee_count: number;
-      manager?: {
-        id: string;
-        display_name: string;
-      };
-    }>>(`
-      SELECT default::Department {
-        id,
-        name,
-        description,
-        budget,
-        is_active,
-        employee_count,
-        manager: {
-          id,
-          display_name
-        }
-      }
-      FILTER .is_active = true
-      ORDER BY .name
-    `);
+    // Query departments with basic information using GraphQL
+
+    const response = await fetch(HASURA_GRAPHQL_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Hasura-Admin-Secret': HASURA_ADMIN_SECRET,
+      },
+      body: JSON.stringify({
+        query: `
+          query GetDepartments {
+            departments(where: {is_active: {_eq: true}}, order_by: {name: asc}) {
+              id
+              name
+              description
+              budget
+              is_active
+              manager {
+                id
+                display_name
+              }
+              employees_aggregate {
+                aggregate {
+                  count
+                }
+              }
+            }
+          }
+        `
+      })
+    });
+
+    const result = await response.json();
+    if (result.errors) {
+      throw new Error(result.errors[0].message);
+    }
+
+    const departments = result.data.departments.map((dept: any) => ({
+      ...dept,
+      employee_count: dept.employees_aggregate.aggregate.count
+    }));
 
     return json({ departments });
   } catch (error) {
@@ -63,7 +76,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
     return json({ error: 'Not authenticated' }, { status: 401 });
   }
 
-  const user = await authService.verifyToken(token);
+  const user = await hasuraAuthService.verifyToken(token);
   if (!user) {
     return json({ error: 'Invalid token' }, { status: 401 });
   }
@@ -81,21 +94,43 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
       return json({ error: 'Department name is required' }, { status: 400 });
     }
 
-    const department = await geldb.querySingle<{
-      id: string;
-      name: string;
-      description?: string;
-      budget?: number;
-    }>(`
-      INSERT default::Department {
-        name := <str>$name,
-        description := <optional str>$description,
-        budget := <optional decimal>$budget,
-        is_active := true
-      }
-    `, { name, description, budget });
+    // Create department using GraphQL
 
-    return json({ department }, { status: 201 });
+    const response = await fetch(HASURA_GRAPHQL_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Hasura-Admin-Secret': HASURA_ADMIN_SECRET,
+      },
+      body: JSON.stringify({
+        query: `
+          mutation CreateDepartment($department: departments_insert_input!) {
+            insert_departments_one(object: $department) {
+              id
+              name
+              description
+              budget
+              is_active
+            }
+          }
+        `,
+        variables: {
+          department: {
+            name,
+            description,
+            budget,
+            is_active: true
+          }
+        }
+      })
+    });
+
+    const result = await response.json();
+    if (result.errors) {
+      throw new Error(result.errors[0].message);
+    }
+
+    return json({ department: result.data.insert_departments_one }, { status: 201 });
   } catch (error) {
     console.error('Department creation error:', error);
     return json({ error: 'Failed to create department' }, { status: 500 });

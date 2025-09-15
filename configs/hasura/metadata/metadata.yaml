@@ -1,0 +1,377 @@
+version: 3
+sources:
+  - name: default
+    kind: postgres
+    configuration:
+      connection_info:
+        database_url:
+          from_env: HASURA_GRAPHQL_DATABASE_URL
+        isolation_level: read-committed
+        use_prepared_statements: false
+    tables:
+      - table:
+          name: audit_log
+          schema: public
+        select_permissions:
+          - role: admin
+            permission:
+              columns: '*'
+              filter: {}
+              
+      - table:
+          name: auth_sessions
+          schema: public
+        select_permissions:
+          - role: admin
+            permission:
+              columns: '*'
+              filter: {}
+          - role: user
+            permission:
+              columns: [id, user_id, expires_at, is_active, created_at]
+              filter:
+                user_id:
+                  _eq: X-Hasura-User-Id
+        update_permissions:
+          - role: admin
+            permission:
+              columns: [is_active]
+              filter: {}
+        delete_permissions:
+          - role: admin
+            permission:
+              filter: {}
+              
+      - table:
+          name: compensation
+          schema: public
+        select_permissions:
+          - role: user
+            permission:
+              columns: [id, pay_rate, pay_type, currency, bonus_eligible, overtime_eligible]
+              filter:
+                employee_id:
+                  _eq: X-Hasura-User-Id
+          - role: hr_admin
+            permission:
+              columns: '*'
+              filter: {}
+          - role: finance
+            permission:
+              columns: '*'
+              filter: {}
+        insert_permissions:
+          - role: hr_admin
+            permission:
+              columns: '*'
+              check: {}
+        update_permissions:
+          - role: hr_admin
+            permission:
+              columns: '*'
+              filter: {}
+          - role: finance
+            permission:
+              columns: [pay_rate, pay_type, currency, bonus_eligible, overtime_eligible, bank_account_number, bank_routing_number, bank_name, direct_deposit_enabled]
+              filter: {}
+        delete_permissions:
+          - role: hr_admin
+            permission:
+              filter: {}
+              
+      - table:
+          name: contact_information
+          schema: public
+        select_permissions:
+          - role: user
+            permission:
+              columns: '*'
+              filter:
+                employee_id:
+                  _eq: X-Hasura-User-Id
+          - role: hr_admin
+            permission:
+              columns: '*'
+              filter: {}
+          - role: hr_manager
+            permission:
+              columns: [id, email, phone_number, work_phone_number, emergency_contact_name, emergency_contact_phone]
+              filter:
+                _or:
+                  - employee_id:
+                      _eq: X-Hasura-User-Id
+                  - employee:
+                      job_information:
+                        department:
+                          manager_id:
+                            _eq: X-Hasura-User-Id
+        insert_permissions:
+          - role: hr_admin
+            permission:
+              columns: '*'
+              check: {}
+        update_permissions:
+          - role: user
+            permission:
+              columns: [email, phone_number, address_street, address_city, address_state, address_zip, emergency_contact_name, emergency_contact_relationship, emergency_contact_phone]
+              filter:
+                employee_id:
+                  _eq: X-Hasura-User-Id
+          - role: hr_admin
+            permission:
+              columns: '*'
+              filter: {}
+        delete_permissions:
+          - role: hr_admin
+            permission:
+              filter: {}
+              
+      - table:
+          name: departments
+          schema: public
+        select_permissions:
+          - role: user
+            permission:
+              columns: [id, name, description, is_active]
+              filter:
+                is_active:
+                  _eq: true
+          - role: hr_manager
+            permission:
+              columns: '*'
+              filter:
+                _or:
+                  - manager_id:
+                      _eq: X-Hasura-User-Id
+                  - is_active:
+                      _eq: true
+          - role: hr_admin
+            permission:
+              columns: '*'
+              filter: {}
+        insert_permissions:
+          - role: hr_admin
+            permission:
+              columns: '*'
+              check: {}
+        update_permissions:
+          - role: hr_manager
+            permission:
+              columns: [description, budget]
+              filter:
+                manager_id:
+                  _eq: X-Hasura-User-Id
+          - role: hr_admin
+            permission:
+              columns: '*'
+              filter: {}
+        delete_permissions:
+          - role: hr_admin
+            permission:
+              filter: {}
+              
+      - table:
+          name: job_information
+          schema: public
+        select_permissions:
+          - role: user
+            permission:
+              columns: [id, job_title, hire_date, employment_type, work_location, work_schedule, is_remote]
+              filter:
+                employee_id:
+                  _eq: X-Hasura-User-Id
+          - role: hr_manager
+            permission:
+              columns: '*'
+              filter:
+                _or:
+                  - employee_id:
+                      _eq: X-Hasura-User-Id
+                  - department:
+                      manager_id:
+                        _eq: X-Hasura-User-Id
+          - role: hr_admin
+            permission:
+              columns: '*'
+              filter: {}
+          - role: finance
+            permission:
+              columns: [id, employee_id, job_title, hire_date, employment_type, department_id]
+              filter: {}
+        insert_permissions:
+          - role: hr_admin
+            permission:
+              columns: '*'
+              check: {}
+        update_permissions:
+          - role: hr_manager
+            permission:
+              columns: [job_title, employment_type, work_location, work_schedule, is_remote]
+              filter:
+                department:
+                  manager_id:
+                    _eq: X-Hasura-User-Id
+          - role: hr_admin
+            permission:
+              columns: '*'
+              filter: {}
+        delete_permissions:
+          - role: hr_admin
+            permission:
+              filter: {}
+              
+      - table:
+          name: personal_information
+          schema: public
+        select_permissions:
+          - role: user
+            permission:
+              columns: '*'
+              filter:
+                employee_id:
+                  _eq: X-Hasura-User-Id
+          - role: hr_admin
+            permission:
+              columns: '*'
+              filter: {}
+        insert_permissions:
+          - role: hr_admin
+            permission:
+              columns: '*'
+              check: {}
+        update_permissions:
+          - role: user
+            permission:
+              columns: '*'
+              filter:
+                employee_id:
+                  _eq: X-Hasura-User-Id
+          - role: hr_admin
+            permission:
+              columns: '*'
+              filter: {}
+        delete_permissions:
+          - role: hr_admin
+            permission:
+              filter: {}
+              
+      - table:
+          name: user_role_assignments
+          schema: public
+        select_permissions:
+          - role: user
+            permission:
+              columns: [id, role_id, assigned_at, is_active]
+              filter:
+                user_id:
+                  _eq: X-Hasura-User-Id
+          - role: hr_admin
+            permission:
+              columns: '*'
+              filter: {}
+        insert_permissions:
+          - role: hr_admin
+            permission:
+              columns: '*'
+              check: {}
+        update_permissions:
+          - role: hr_admin
+            permission:
+              columns: '*'
+              filter: {}
+        delete_permissions:
+          - role: hr_admin
+            permission:
+              filter: {}
+              
+      - table:
+          name: user_roles
+          schema: public
+        select_permissions:
+          - role: user
+            permission:
+              columns: [id, name, description, level]
+              filter: {}
+          - role: admin
+            permission:
+              columns: '*'
+              filter: {}
+        insert_permissions:
+          - role: admin
+            permission:
+              columns: '*'
+              check: {}
+        update_permissions:
+          - role: admin
+            permission:
+              columns: '*'
+              filter: {}
+        delete_permissions:
+          - role: admin
+            permission:
+              filter: {}
+              
+      - table:
+          name: users
+          schema: public
+        select_permissions:
+          - role: user
+            permission:
+              columns: [id, email, display_name, onboarding_status, job_title, is_active, created_at]
+              filter:
+                id:
+                  _eq: X-Hasura-User-Id
+          - role: hr_manager
+            permission:
+              columns: [id, email, display_name, onboarding_status, job_title, is_active, created_at, updated_at]
+              filter:
+                _or:
+                  - id:
+                      _eq: X-Hasura-User-Id
+                  - job_information:
+                      department:
+                        manager_id:
+                          _eq: X-Hasura-User-Id
+          - role: hr_admin
+            permission:
+              columns: '*'
+              filter: {}
+          - role: finance
+            permission:
+              columns: [id, email, display_name, job_title, is_active]
+              filter: {}
+        insert_permissions:
+          - role: hr_admin
+            permission:
+              columns: [email, password_hash, display_name, job_title, onboarding_status, is_active]
+              check: {}
+        update_permissions:
+          - role: user
+            permission:
+              columns: [display_name, job_title]
+              filter:
+                id:
+                  _eq: X-Hasura-User-Id
+              check:
+                id:
+                  _eq: X-Hasura-User-Id
+          - role: hr_manager
+            permission:
+              columns: [display_name, job_title, onboarding_status]
+              filter:
+                job_information:
+                  department:
+                    manager_id:
+                      _eq: X-Hasura-User-Id
+          - role: hr_admin
+            permission:
+              columns: '*'
+              filter: {}
+        delete_permissions:
+          - role: hr_admin
+            permission:
+              filter: {}
+
+    computed_fields: []
+    functions: []
+    remote_relationships: []

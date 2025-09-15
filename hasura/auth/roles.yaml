@@ -1,0 +1,135 @@
+# Role Hierarchy and Permissions for HR System
+# This file defines the role-based access control structure
+
+roles:
+  # Level 10: Basic Employee
+  employee:
+    level: 10
+    description: "Standard employee with basic access to own data"
+    permissions:
+      - "view_own_profile"
+      - "update_own_contact"
+      - "view_active_departments" 
+      - "view_own_compensation"
+      - "view_own_notifications"
+      - "manage_own_sessions"
+    data_access:
+      own_data: true
+      department_data: false
+      company_wide: false
+      
+  # Level 30: Department Manager  
+  manager:
+    level: 30
+    description: "Department manager with team oversight capabilities"
+    inherits_from: "employee"
+    additional_permissions:
+      - "view_team_profiles"
+      - "view_team_contact_info" 
+      - "update_team_schedules"
+      - "view_team_compensation"
+      - "manage_department_info"
+    data_access:
+      own_data: true
+      department_data: true
+      company_wide: false
+      
+  # Level 50: Finance Team
+  finance:
+    level: 50 
+    description: "Finance team with compensation and payroll access"
+    inherits_from: "employee"
+    additional_permissions:
+      - "view_all_compensation"
+      - "update_compensation"
+      - "generate_payroll_reports"
+      - "view_budget_data"
+    data_access:
+      own_data: true
+      department_data: false
+      company_wide: "compensation_only"
+      
+  # Level 60: HR Administrator
+  hr_admin:
+    level: 60
+    description: "HR administrator with full employee lifecycle management"
+    inherits_from: ["employee", "manager"]
+    additional_permissions:
+      - "create_employees"
+      - "update_all_profiles" 
+      - "manage_departments"
+      - "assign_roles"
+      - "view_all_personal_info"
+      - "manage_onboarding"
+      - "generate_hr_reports"
+    data_access:
+      own_data: true
+      department_data: true
+      company_wide: "hr_data"
+      
+  # Level 80: System Administrator
+  admin:
+    level: 80
+    description: "System administrator with full access and user management"
+    permissions: ["*"]  # Full access to everything
+    data_access:
+      own_data: true
+      department_data: true
+      company_wide: true
+      system_admin: true
+
+# Role assignment rules
+role_assignment_rules:
+  # Only higher-level roles can assign lower-level roles
+  hierarchy_enforcement: true
+  
+  # Specific restrictions
+  restrictions:
+    - "hr_admin cannot assign admin role"
+    - "manager cannot assign hr_admin or admin roles"
+    - "employee cannot assign any roles"
+    
+  # Role combinations allowed
+  allowed_combinations:
+    - ["employee", "finance"]  # Employee can also be in finance
+    - ["manager", "finance"]   # Manager can also handle finance
+    
+  # Forbidden combinations  
+  forbidden_combinations:
+    - ["admin", "employee"]    # Admin role supersedes employee
+    - ["admin", "manager"]     # Admin role supersedes manager
+    - ["admin", "hr_admin"]    # Admin role supersedes hr_admin
+
+# Session variable mappings for each role
+session_variables:
+  employee:
+    required:
+      - "X-Hasura-User-Id"
+      - "X-Hasura-Role" 
+    optional:
+      - "X-Hasura-User-Email"
+      
+  manager:
+    required:
+      - "X-Hasura-User-Id"
+      - "X-Hasura-Role"
+      - "X-Hasura-User-Department-Id"
+    optional:
+      - "X-Hasura-User-Email"
+      - "X-Hasura-User-Role-Level"
+      
+  hr_admin:
+    required:
+      - "X-Hasura-User-Id"  
+      - "X-Hasura-Role"
+    optional:
+      - "X-Hasura-User-Email"
+      - "X-Hasura-User-Role-Level"
+      
+  admin:
+    required:
+      - "X-Hasura-User-Id"
+      - "X-Hasura-Role"
+    optional:
+      - "X-Hasura-User-Email"
+      - "X-Hasura-User-Role-Level"

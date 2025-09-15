@@ -1,0 +1,374 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '20'
+  POSTGRES_VERSION: '15'
+  REDIS_VERSION: '7'
+
+jobs:
+  # Test job
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: sveltehr_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    strategy:
+      matrix:
+        test-type: [unit, integration, e2e]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd backend && npm ci
+
+      - name: Setup test environment
+        run: |
+          cp .env.test .env
+          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/sveltehr_test" >> .env
+          echo "REDIS_URL=redis://localhost:6379" >> .env
+
+      - name: Run database migrations
+        run: |
+          npm run db:migrate:test
+
+      - name: Run ${{ matrix.test-type }} tests
+        run: |
+          case "${{ matrix.test-type }}" in
+            unit)
+              npm run test:unit
+              cd backend && npm run test:unit
+              ;;
+            integration)
+              npm run test:integration
+              cd backend && npm run test:integration
+              ;;
+            e2e)
+              npm run test:e2e
+              ;;
+          esac
+
+      - name: Upload coverage reports
+        if: matrix.test-type == 'unit'
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage/lcov.info
+          flags: ${{ matrix.test-type }}
+
+  # Build job
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd backend && npm ci
+
+      - name: Type check
+        run: |
+          npm run type-check
+          cd backend && npm run type-check
+
+      - name: Lint
+        run: |
+          npm run lint
+          cd backend && npm run lint
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Build backend
+        run: cd backend && npm run build
+
+      - name: Build Docker images
+        run: |
+          docker build -t sveltehr-frontend:${{ github.sha }} .
+          docker build -t sveltehr-backend:${{ github.sha }} -f backend/Dockerfile backend/
+
+      - name: Test Docker images
+        run: |
+          docker run --rm sveltehr-frontend:${{ github.sha }} npm run test:unit
+          docker run --rm sveltehr-backend:${{ github.sha }} npm run test:unit
+
+  # Security scan
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd backend && npm ci
+
+      - name: Run security audit
+        run: |
+          npm audit --audit-level high
+          cd backend && npm audit --audit-level high
+
+      - name: Run CodeQL Analysis
+        uses: github/codeql-action/init@v2
+        with:
+          languages: javascript
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+
+      - name: Run Snyk Security Scan
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+
+  # Deploy to staging
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [test, build, security]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    
+    environment:
+      name: staging
+      url: https://staging.sveltehr.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.CONTAINER_REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build and push Docker images
+        run: |
+          # Build and tag images
+          docker buildx build --platform linux/amd64 \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/sveltehr-frontend:staging-${{ github.sha }} \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/sveltehr-frontend:staging-latest \
+            --push .
+          
+          docker buildx build --platform linux/amd64 \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/sveltehr-backend:staging-${{ github.sha }} \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/sveltehr-backend:staging-latest \
+            -f backend/Dockerfile --push backend/
+
+      - name: Deploy to staging server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USERNAME }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          script: |
+            cd /opt/sveltehr
+            
+            # Pull latest images
+            docker pull ${{ secrets.CONTAINER_REGISTRY }}/sveltehr-frontend:staging-latest
+            docker pull ${{ secrets.CONTAINER_REGISTRY }}/sveltehr-backend:staging-latest
+            
+            # Update docker-compose with new images
+            export FRONTEND_IMAGE=${{ secrets.CONTAINER_REGISTRY }}/sveltehr-frontend:staging-latest
+            export BACKEND_IMAGE=${{ secrets.CONTAINER_REGISTRY }}/sveltehr-backend:staging-latest
+            
+            # Run database migrations
+            docker-compose -f docker-compose.staging.yml run --rm hasura-cli migrate apply
+            docker-compose -f docker-compose.staging.yml run --rm hasura-cli metadata apply
+            
+            # Rolling update
+            docker-compose -f docker-compose.staging.yml up -d --no-deps frontend auth-service
+            
+            # Health check
+            sleep 30
+            curl -f http://localhost/health || exit 1
+
+  # Deploy to production
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [test, build, security]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    environment:
+      name: production
+      url: https://app.sveltehr.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.CONTAINER_REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build and push Docker images
+        run: |
+          # Build multi-arch images for production
+          docker buildx build --platform linux/amd64,linux/arm64 \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/sveltehr-frontend:${{ github.sha }} \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/sveltehr-frontend:latest \
+            --push .
+          
+          docker buildx build --platform linux/amd64,linux/arm64 \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/sveltehr-backend:${{ github.sha }} \
+            -t ${{ secrets.CONTAINER_REGISTRY }}/sveltehr-backend:latest \
+            -f backend/Dockerfile --push backend/
+
+      - name: Create deployment package
+        run: |
+          mkdir deploy-package
+          cp docker-compose.prod.yml deploy-package/
+          cp -r nginx deploy-package/
+          cp -r hasura deploy-package/
+          cp -r migrations deploy-package/
+          tar -czf deploy-${{ github.sha }}.tar.gz deploy-package/
+
+      - name: Upload deployment package
+        uses: actions/upload-artifact@v3
+        with:
+          name: deployment-package
+          path: deploy-${{ github.sha }}.tar.gz
+
+      - name: Deploy to production (Blue-Green)
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USERNAME }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          script: |
+            cd /opt/sveltehr
+            
+            # Download and extract deployment package
+            wget ${{ secrets.ARTIFACT_URL }}/deploy-${{ github.sha }}.tar.gz
+            tar -xzf deploy-${{ github.sha }}.tar.gz
+            
+            # Create backup of current deployment
+            docker-compose -f docker-compose.prod.yml exec postgres pg_dump -U postgres sveltehr > backup-$(date +%Y%m%d-%H%M%S).sql
+            
+            # Pull latest images
+            export FRONTEND_IMAGE=${{ secrets.CONTAINER_REGISTRY }}/sveltehr-frontend:${{ github.sha }}
+            export BACKEND_IMAGE=${{ secrets.CONTAINER_REGISTRY }}/sveltehr-backend:${{ github.sha }}
+            
+            docker pull $FRONTEND_IMAGE
+            docker pull $BACKEND_IMAGE
+            
+            # Run database migrations
+            docker-compose -f deploy-package/docker-compose.prod.yml run --rm \
+              -e HASURA_GRAPHQL_ADMIN_SECRET="${{ secrets.HASURA_ADMIN_SECRET }}" \
+              hasura-cli migrate apply --skip-update-check
+            
+            docker-compose -f deploy-package/docker-compose.prod.yml run --rm \
+              -e HASURA_GRAPHQL_ADMIN_SECRET="${{ secrets.HASURA_ADMIN_SECRET }}" \
+              hasura-cli metadata apply --skip-update-check
+            
+            # Blue-green deployment
+            docker-compose -f deploy-package/docker-compose.prod.yml up -d
+            
+            # Health check and smoke tests
+            sleep 60
+            for i in {1..10}; do
+              if curl -f https://app.sveltehr.com/health; then
+                echo "Health check passed"
+                break
+              fi
+              if [ $i -eq 10 ]; then
+                echo "Health check failed, rolling back"
+                docker-compose -f docker-compose.prod.yml up -d
+                exit 1
+              fi
+              sleep 10
+            done
+            
+            # Update symbolic link to new deployment
+            ln -sfn deploy-package docker-compose.prod.yml
+            
+            # Cleanup old images
+            docker image prune -f
+
+      - name: Notify deployment success
+        if: success()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          text: "✅ SvelteHR deployed to production successfully!"
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Notify deployment failure
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          text: "❌ SvelteHR production deployment failed!"
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}

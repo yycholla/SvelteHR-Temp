@@ -1,0 +1,215 @@
+{
+  "title": "JWT Authentication Contract for Hasura HR System",
+  "description": "JWT token structure and claims specification for role-based access control",
+  "version": "1.0.0",
+  
+  "jwt_config": {
+    "type": "HS256",
+    "key": "your-256-bit-secret-key-here",
+    "issuer": "https://svelteHR.com/auth",
+    "audience": "svelteHR-app"
+  },
+  
+  "token_structure": {
+    "header": {
+      "alg": "HS256",
+      "typ": "JWT"
+    },
+    "payload": {
+      "sub": "uuid - User ID from users table",
+      "iss": "https://svelteHR.com/auth - Token issuer",
+      "aud": "svelteHR-app - Intended audience",
+      "exp": "timestamp - Token expiration (15 minutes from issue)",
+      "iat": "timestamp - Issued at time",
+      "jti": "uuid - JWT ID for token tracking",
+      "https://hasura.io/jwt/claims": {
+        "x-hasura-allowed-roles": ["array of strings - All roles user can assume"],
+        "x-hasura-default-role": "string - Default role for session",
+        "x-hasura-user-id": "string - User UUID as string",
+        "x-hasura-department-id": "string - User's department UUID (optional)",
+        "x-hasura-manager-id": "string - User's manager UUID (optional)",
+        "x-hasura-role-level": "string - Numeric role level as string"
+      }
+    }
+  },
+  
+  "example_tokens": {
+    "admin_user": {
+      "sub": "123e4567-e89b-12d3-a456-426614174000",
+      "iss": "https://svelteHR.com/auth",
+      "aud": "svelteHR-app",
+      "exp": 1672531200,
+      "iat": 1672530300,
+      "jti": "456e7890-e12c-34d5-a678-901234567890",
+      "https://hasura.io/jwt/claims": {
+        "x-hasura-allowed-roles": ["admin", "hr_admin", "employee"],
+        "x-hasura-default-role": "admin",
+        "x-hasura-user-id": "123e4567-e89b-12d3-a456-426614174000",
+        "x-hasura-role-level": "100"
+      }
+    },
+    "hr_manager": {
+      "sub": "234e5678-e90c-23d4-a567-890123456789",
+      "iss": "https://svelteHR.com/auth",
+      "aud": "svelteHR-app", 
+      "exp": 1672531200,
+      "iat": 1672530300,
+      "jti": "567e8901-e23d-45e6-a789-012345678901",
+      "https://hasura.io/jwt/claims": {
+        "x-hasura-allowed-roles": ["hr_admin", "manager", "employee"],
+        "x-hasura-default-role": "hr_admin",
+        "x-hasura-user-id": "234e5678-e90c-23d4-a567-890123456789",
+        "x-hasura-department-id": "345e6789-e01d-34e5-a678-901234567890",
+        "x-hasura-role-level": "80"
+      }
+    },
+    "department_manager": {
+      "sub": "345e6789-e01d-34e5-a678-901234567890",
+      "iss": "https://svelteHR.com/auth",
+      "aud": "svelteHR-app",
+      "exp": 1672531200,
+      "iat": 1672530300,
+      "jti": "678e9012-e34e-56f7-a890-123456789012",
+      "https://hasura.io/jwt/claims": {
+        "x-hasura-allowed-roles": ["manager", "employee"],
+        "x-hasura-default-role": "manager",
+        "x-hasura-user-id": "345e6789-e01d-34e5-a678-901234567890",
+        "x-hasura-department-id": "456e7890-e12c-45f6-a789-012345678901",
+        "x-hasura-manager-id": "123e4567-e89b-12d3-a456-426614174000",
+        "x-hasura-role-level": "60"
+      }
+    },
+    "employee": {
+      "sub": "456e7890-e12c-45f6-a789-012345678901",
+      "iss": "https://svelteHR.com/auth",
+      "aud": "svelteHR-app",
+      "exp": 1672531200,
+      "iat": 1672530300,
+      "jti": "789e0123-e45f-67g8-a901-234567890123",
+      "https://hasura.io/jwt/claims": {
+        "x-hasura-allowed-roles": ["employee"],
+        "x-hasura-default-role": "employee",
+        "x-hasura-user-id": "456e7890-e12c-45f6-a789-012345678901",
+        "x-hasura-department-id": "567e8901-e23d-56g7-a890-123456789012",
+        "x-hasura-manager-id": "345e6789-e01d-34e5-a678-901234567890",
+        "x-hasura-role-level": "20"
+      }
+    }
+  },
+  
+  "role_hierarchy": {
+    "admin": {
+      "level": 100,
+      "description": "System administrator with full access",
+      "capabilities": [
+        "Full user management",
+        "System configuration",
+        "All data access",
+        "Audit log access",
+        "Role management"
+      ]
+    },
+    "hr_admin": {
+      "level": 80,
+      "description": "HR administrator with employee data access",
+      "capabilities": [
+        "Employee lifecycle management",
+        "Compensation data access",
+        "Personal information access",
+        "Department management",
+        "Role assignment"
+      ]
+    },
+    "payroll_admin": {
+      "level": 75,
+      "description": "Payroll specialist with compensation access",
+      "capabilities": [
+        "Compensation data access",
+        "Bank information access",
+        "Payroll processing",
+        "Tax document access"
+      ]
+    },
+    "manager": {
+      "level": 60,
+      "description": "Department manager with team access",
+      "capabilities": [
+        "Team member data access",
+        "Department budget access",
+        "Performance review access",
+        "Team scheduling"
+      ]
+    },
+    "employee": {
+      "level": 20,
+      "description": "Regular employee with self-access",
+      "capabilities": [
+        "Own profile access",
+        "Own contact information",
+        "Team directory viewing",
+        "Own compensation viewing"
+      ]
+    }
+  },
+  
+  "refresh_token": {
+    "description": "Refresh token for JWT renewal",
+    "structure": {
+      "sub": "user_id",
+      "jti": "unique_refresh_token_id", 
+      "exp": "30 days from issue",
+      "type": "refresh"
+    },
+    "usage": "Stored in httpOnly cookie, used to generate new access tokens"
+  },
+  
+  "token_lifecycle": {
+    "access_token": {
+      "duration": "15 minutes",
+      "storage": "Memory/localStorage (client)",
+      "usage": "Authorization header: Bearer <token>"
+    },
+    "refresh_token": {
+      "duration": "30 days",
+      "storage": "httpOnly cookie (secure)",
+      "usage": "Automatic renewal via /auth/refresh endpoint"
+    }
+  },
+  
+  "security_considerations": {
+    "token_validation": [
+      "Signature verification with shared secret",
+      "Expiration time checking",
+      "Issuer validation",
+      "Audience validation"
+    ],
+    "session_management": [
+      "Track active sessions in auth_sessions table",
+      "Revoke tokens on logout",
+      "Limit concurrent sessions per user",
+      "Monitor for suspicious activity"
+    ],
+    "best_practices": [
+      "Use HTTPS only for token transmission",
+      "Implement automatic token refresh",
+      "Clear tokens on browser close",
+      "Log authentication events for audit"
+    ]
+  },
+  
+  "hasura_permissions": {
+    "description": "How JWT claims map to Hasura permissions",
+    "session_variables": {
+      "X-Hasura-User-Id": "Used in RLS policies for data isolation",
+      "X-Hasura-Role": "Determines permission set to apply",
+      "X-Hasura-Department-Id": "Used for department-scoped data access",
+      "X-Hasura-Manager-Id": "Used for manager-subordinate relationships",
+      "X-Hasura-Role-Level": "Used for hierarchical permission checks"
+    },
+    "example_rls_policy": {
+      "table": "employees",
+      "policy": "users_select_own_or_managed",
+      "condition": "user_id = current_setting('hasura.user-id')::uuid OR manager_id = current_setting('hasura.user-id')::uuid OR current_setting('hasura.role') IN ('hr_admin', 'admin')"
+    }
+  }
+}

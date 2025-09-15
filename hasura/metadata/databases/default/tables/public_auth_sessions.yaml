@@ -1,0 +1,130 @@
+table:
+  name: auth_sessions
+  schema: public
+configuration:
+  custom_root_fields:
+    select: auth_sessions
+    select_by_pk: auth_session
+    select_aggregate: auth_sessions_aggregate
+  custom_column_names: {}
+object_relationships:
+  - name: user
+    using:
+      foreign_key_constraint_on: user_id
+array_relationships: []
+select_permissions:
+  - role: employee
+    permission:
+      columns:
+        - id
+        - user_id
+        - session_token
+        - expires_at
+        - is_active
+        - created_at
+        - last_accessed_at
+        - ip_address
+        - user_agent
+      filter:
+        user_id: {_eq: "X-Hasura-User-Id"}
+      allow_aggregations: false
+    comment: Users can see their own active sessions
+  - role: manager
+    permission:
+      columns:
+        - id
+        - user_id
+        - session_token
+        - expires_at
+        - is_active
+        - created_at
+        - last_accessed_at
+        - ip_address
+        - user_agent
+      filter:
+        user_id: {_eq: "X-Hasura-User-Id"}
+      allow_aggregations: false
+    comment: Managers can see their own sessions only
+  - role: hr_admin
+    permission:
+      columns:
+        - id
+        - user_id
+        - session_token
+        - expires_at
+        - is_active
+        - created_at
+        - last_accessed_at
+        - ip_address
+        - user_agent
+      filter:
+        user_id: {_eq: "X-Hasura-User-Id"}
+      allow_aggregations: false
+    comment: HR admins can see their own sessions only
+  - role: admin
+    permission:
+      columns:
+        - id
+        - user_id
+        - session_token
+        - expires_at
+        - is_active
+        - created_at
+        - last_accessed_at
+        - revoked_at
+        - ip_address
+        - user_agent
+        - device_info
+      filter: {}
+      allow_aggregations: true
+    comment: Admins can see all sessions for security monitoring
+insert_permissions:
+  - role: admin
+    permission:
+      columns:
+        - user_id
+        - session_token
+        - expires_at
+        - is_active
+        - ip_address
+        - user_agent
+        - device_info
+      check: {}
+    comment: Only system/admin can create sessions (typically via auth service)
+update_permissions:
+  - role: employee
+    permission:
+      columns:
+        - last_accessed_at
+      filter:
+        _and:
+          - user_id: {_eq: "X-Hasura-User-Id"}
+          - is_active: {_eq: true}
+      check:
+        _and:
+          - user_id: {_eq: "X-Hasura-User-Id"}
+          - is_active: {_eq: true}
+    comment: Users can update their own session access time
+  - role: admin
+    permission:
+      columns:
+        - expires_at
+        - is_active
+        - last_accessed_at
+        - revoked_at
+        - ip_address
+        - user_agent
+        - device_info
+      filter: {}
+      check: {}
+    comment: Admins can manage any session
+delete_permissions:
+  - role: employee
+    permission:
+      filter:
+        user_id: {_eq: "X-Hasura-User-Id"}
+    comment: Users can delete (revoke) their own sessions
+  - role: admin
+    permission:
+      filter: {}
+    comment: Admins can delete any session

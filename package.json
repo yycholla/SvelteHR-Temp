@@ -14,11 +14,20 @@
 		"lint": "prettier --check . && eslint .",
 		"test:unit": "vitest",
 		"test": "npm run test:unit -- --run && npm run test:e2e",
-		"test:e2e": "playwright test"
+		"test:e2e": "playwright test",
+		"codegen": "graphql-codegen --config codegen.ts",
+		"codegen:watch": "graphql-codegen --config codegen.ts --watch",
+		"codegen:hasura": "graphql-codegen --config codegen.hasura.ts"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.2.5",
 		"@eslint/js": "^9.18.0",
+		"@graphql-codegen/cli": "^6.0.0",
+		"@graphql-codegen/introspection": "^5.0.0",
+		"@graphql-codegen/schema-ast": "^5.0.0",
+		"@graphql-codegen/typescript": "^5.0.0",
+		"@graphql-codegen/typescript-operations": "^5.0.0",
+		"@graphql-codegen/typescript-urql": "^4.0.1",
 		"@playwright/test": "^1.49.1",
 		"@sveltejs/adapter-auto": "^6.0.0",
 		"@sveltejs/kit": "^2.22.0",
@@ -39,6 +48,7 @@
 		"prettier-plugin-tailwindcss": "^0.6.11",
 		"svelte": "^5.0.0",
 		"svelte-check": "^4.0.0",
+		"svelte2tsx": "^0.7.43",
 		"tailwindcss": "^3.4.17",
 		"typescript": "^5.0.0",
 		"typescript-eslint": "^8.20.0",
@@ -48,7 +58,6 @@
 		"vitest-browser-svelte": "^0.1.0"
 	},
 	"dependencies": {
-		"@graphql-codegen/cli": "^6.0.0",
 		"@graphql-codegen/client-preset": "^5.0.0",
 		"@graphql-tools/schema": "^10.0.25",
 		"@testing-library/svelte": "^5.2.8",

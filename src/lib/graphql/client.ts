@@ -2,29 +2,34 @@ import { Client, cacheExchange, fetchExchange, subscriptionExchange, errorExchan
 import { authExchange } from '@urql/exchange-auth';
 import { retryExchange } from '@urql/exchange-retry';
 import { createClient as createWSClient } from 'graphql-ws';
-import { clientConfig } from '$lib/config.client';
 import { goto } from '$app/navigation';
 import { browser } from '$app/environment';
 
 /**
- * GraphQL Client Configuration for MountainHR
+ * Hasura GraphQL Client Configuration for SvelteHR
  * 
  * Provides authenticated GraphQL client with:
- * - JWT authentication with automatic refresh
+ * - JWT authentication with Hasura permissions
  * - Real-time subscriptions via WebSocket
  * - Intelligent caching and error handling
  * - Retry logic and rate limiting
  */
+
+// Hasura configuration
+const HASURA_GRAPHQL_URL = 'http://localhost:8080/v1/graphql';
+const HASURA_GRAPHQL_WS_URL = 'ws://localhost:8080/v1/graphql';
 
 // WebSocket client for subscriptions
 let wsClient: ReturnType<typeof createWSClient> | null = null;
 
 if (browser) {
   wsClient = createWSClient({
-    url: clientConfig.geldbUrl.replace('http://', 'ws://').replace('https://', 'wss://'),
+    url: HASURA_GRAPHQL_WS_URL,
     connectionParams: () => {
       const token = localStorage.getItem('auth-token');
-      return token ? { Authorization: `Bearer ${token}` } : {};
+      return token ? { 
+        Authorization: `Bearer ${token}`
+      } : {};
     },
     shouldRetry: () => true,
   });
@@ -79,10 +84,10 @@ const setAuthState = (authState: Partial<AuthState>) => {
   }
 };
 
-// Token refresh mutation
+// Token refresh mutation - using Hasura with custom auth logic
 const REFRESH_TOKEN_MUTATION = `
   mutation RefreshToken($refreshToken: String!) {
-    refreshToken(refreshToken: $refreshToken) {
+    refreshAuthToken(refreshToken: $refreshToken) {
       accessToken
       refreshToken
       expiresIn
@@ -156,16 +161,16 @@ const authConfig = authExchange(async (utils) => {
       try {
         // Create a temporary client for token refresh
         const refreshClient = new Client({
-          url: clientConfig.geldbUrl,
-          exchanges: [cacheExchange, fetchExchange],
+          url: HASURA_GRAPHQL_URL,
+          exchanges: [cacheExchange, fetchExchange]
         });
 
         const result = await refreshClient.mutation(REFRESH_TOKEN_MUTATION, {
           refreshToken: authState.refreshToken
         }).toPromise();
 
-        if (result.data?.refreshToken) {
-          const { accessToken, refreshToken: newRefreshToken, expiresIn } = result.data.refreshToken;
+        if (result.data?.refreshAuthToken) {
+          const { accessToken, refreshToken: newRefreshToken, expiresIn } = result.data.refreshAuthToken;
           const expiresAt = Date.now() + (expiresIn * 1000);
 
           authState = {
@@ -245,13 +250,13 @@ export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string) => 
   }
 
   return new Client({
-    url: clientConfig.geldbUrl,
+    url: HASURA_GRAPHQL_URL,
     exchanges,
     fetchOptions: () => {
       return {
         headers: {
           'Content-Type': 'application/json',
-          'X-Client-Name': 'MountainHR',
+          'X-Client-Name': 'SvelteHR',
           'X-Client-Version': '1.0.0',
         },
       };
@@ -280,9 +285,9 @@ export const setAuthTokens = (tokens: {
   if (browser && wsClient) {
     wsClient.dispose();
     wsClient = createWSClient({
-      url: clientConfig.geldbUrl.replace('http://', 'ws://').replace('https://', 'wss://'),
+      url: HASURA_GRAPHQL_WS_URL,
       connectionParams: () => ({
-        Authorization: `Bearer ${tokens.accessToken}`,
+        Authorization: `Bearer ${tokens.accessToken}`
       }),
       shouldRetry: () => true,
     });

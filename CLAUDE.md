@@ -4,17 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-SvelteHR is a comprehensive HR management system built with SvelteKit frontend and GelDB backend. The system provides secure, role-based access to employee lifecycle management including hiring, onboarding, termination processes, and administrative functions. Currently implementing the MountainHR Frontend to integrate with existing GelDB schema.
+SvelteHR is a comprehensive HR management system built with SvelteKit frontend and PostgreSQL backend. The system provides secure, role-based access to employee lifecycle management including hiring, onboarding, termination processes, and administrative functions. Currently migrating from Hasura GraphQL Engine to PostGraphile for enhanced transparency, performance, and to eliminate vendor lock-in.
 
 ## Tech Stack
 
 ### Backend Infrastructure
-- **Database**: GelDB (graph database) - primary data store
-- **Cache**: Redis 7.2 - caching and session storage  
-- **Authentication**: Gel Auth extension with JWT tokens
-- **Config Management**: Doppler CLI for environment variables (exclusive)
-- **Build System**: Make-based workflow automation
-- **Migration**: Gel CLI for database schema management
+- **GraphQL Engine**: PostGraphile 4.x - PostgreSQL-native GraphQL layer (replacing Hasura)
+- **Database**: PostgreSQL 15+ with Row-Level Security - primary data store
+- **Cache**: Redis 7.2 - query caching with graphile-cache integration
+- **Authentication**: PostgreSQL-native JWT with SECURITY DEFINER functions
+- **Config Management**: Environment variables with secure defaults
+- **Build System**: Node.js/TypeScript with Express middleware
+- **Migration**: PostgreSQL native migrations with PostGraphile schema introspection
 
 ### Frontend (In Development)
 - **Framework**: SvelteKit with TypeScript
@@ -53,11 +54,12 @@ SvelteHR is a comprehensive HR management system built with SvelteKit frontend a
 ## Service Endpoints
 
 ### Backend Services
-- **GraphQL API**: http://localhost:5656/db/main/ext/graphql
-- **Admin UI**: http://localhost:5656/ui (admin/admin)
+- **Hasura GraphQL API**: http://localhost:8080/v1/graphql
+- **Hasura Console**: http://localhost:8080/console (admin interface)
+- **PostgreSQL**: localhost:5432 (hasura/hasura123)
 - **Redis**: localhost:6379
 
-### Frontend (Development)
+### Frontend (Development)  
 - **SvelteKit Dev Server**: http://localhost:5173
 - **Frontend API Proxy**: http://localhost:5173/api/graphql
 
@@ -137,6 +139,41 @@ make db-reset
 - **Performance**: Multi-layer caching (Urql + Redis + computed properties)
 
 ### Current Feature Development
-- **Branch**: 001-develop-mountainhr-frontend
-- **Status**: Implementation planning phase
-- **Focus**: SvelteKit frontend integrating with existing GelDB backend
+- **Branch**: 003-now-that-we (PostGraphile Migration)
+- **Status**: Planning phase - Complete Hasura replacement
+- **Focus**: Migration to PostGraphile with PostgreSQL-native authentication and RLS
+- **Key Benefits**: Eliminates vendor lock-in, transparent GraphQL layer, database-first security
+
+## Hasura Development Patterns
+
+### GraphQL Operations
+- **Query Optimization**: Use query limits, depth restrictions, and complexity analysis
+- **Performance Targets**: Sub-200ms response times for all operations
+- **Caching Strategy**: Redis server-side + Urql client-side + query plan caching
+- **Real-time**: WebSocket subscriptions with multiplexing for efficiency
+
+### Authentication & Security
+- **JWT Integration**: HS256/RS256 tokens with Hasura session variables
+- **Row-Level Security**: PostgreSQL RLS policies enforced through Hasura
+- **Role Hierarchy**: Admin (100) → HR Admin (80) → Manager (60) → Employee (20)
+- **Session Management**: 15-minute access tokens, 30-day refresh tokens
+
+### Database Performance  
+- **Connection Pooling**: PgBouncer with transaction-level pooling
+- **Indexing**: HR-specific indexes for employee, department, and role queries
+- **Query Monitoring**: pg_stat_statements for performance analysis
+- **Cache Hit Ratio**: Target >95% for optimal performance
+
+### Development Commands (Hasura)
+```bash
+# Hasura operations
+hasura migrate apply        # Apply database migrations
+hasura metadata apply       # Apply GraphQL metadata
+hasura console             # Open Hasura Console
+hasura migrate create <name> # Create new migration
+hasura metadata export     # Export current metadata
+
+# Performance testing
+npm run test:performance   # Run load tests
+npm run test:graphql      # Run GraphQL contract tests
+```

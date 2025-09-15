@@ -1,8 +1,6 @@
 import { writable, derived, get } from 'svelte/store';
 import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
-import { client, setAuthTokens, clearAuthTokens, getAuthToken, isAuthenticated } from '$lib/graphql/client';
-import type { User } from '$gql/graphql';
 
 /**
  * Authentication Service for MountainHR
@@ -15,153 +13,46 @@ import type { User } from '$gql/graphql';
  * - Password management
  */
 
-// GraphQL mutations and queries
-const LOGIN_MUTATION = `
-  mutation Login($email: String!, $password: String!) {
-    login(email: $email, password: $password) {
-      accessToken
-      refreshToken
-      expiresIn
-      user {
-        id
-        email
-        displayName
-        firstName
-        lastName
-        onboardingStatus
-        isActive
-        roles {
-          id
-          name
-          permissions {
-            name
-            resource
-            action
-            scope
-          }
-        }
-        department {
-          id
-          name
-        }
-        jobInfo {
-          title
-          hireDate
-          employmentType
-        }
-        contactInfo {
-          phoneNumber
-          addressCity
-        }
-      }
-    }
-  }
-`;
-
-const LOGOUT_MUTATION = `
-  mutation Logout {
-    logout
-  }
-`;
-
-const ME_QUERY = `
-  query Me {
-    me {
-      id
-      email
-      displayName
-      firstName
-      lastName
-      onboardingStatus
-      isActive
-      roles {
-        id
-        name
-        permissions {
-          name
-          resource
-          action
-          scope
-        }
-      }
-      department {
-        id
-        name
-      }
-      jobInfo {
-        title
-        hireDate
-        employmentType
-      }
-      contactInfo {
-        phoneNumber
-        addressCity
-      }
-    }
-  }
-`;
-
-const CHANGE_PASSWORD_MUTATION = `
-  mutation ChangePassword($currentPassword: String!, $newPassword: String!) {
-    changePassword(currentPassword: $currentPassword, newPassword: $newPassword) {
-      success
-      requiresReauth
-    }
-  }
-`;
-
-const REQUEST_PASSWORD_RESET_MUTATION = `
-  mutation RequestPasswordReset($email: String!) {
-    requestPasswordReset(email: $email) {
-      success
-      message
-    }
-  }
-`;
-
-const VALIDATE_TOKEN_QUERY = `
-  query ValidateToken {
-    validateToken {
-      id
-      email
-      roles {
-        name
-      }
-    }
-  }
-`;
 
 // Authentication state types
 export interface AuthUser {
   id: string;
   email: string;
-  displayName: string;
-  firstName: string;
-  lastName: string;
-  onboardingStatus: string;
-  isActive: boolean;
-  roles: Array<{
-    id: string;
-    name: string;
-    permissions: Array<{
+  display_name: string;
+  onboarding_status: string;
+  job_title?: string;
+  is_active: boolean;
+  role_assignments: Array<{
+    role: {
+      id: string;
       name: string;
-      resource: string;
-      action: string;
-      scope: string;
-    }>;
+      level: number;
+      description: string;
+    };
   }>;
-  department?: {
+  job_information?: {
     id: string;
-    name: string;
+    job_title: string;
+    hire_date: string;
+    employment_type: string;
+    work_location: string;
+    is_remote: boolean;
+    department?: {
+      id: string;
+      name: string;
+      description: string;
+    };
   };
-  jobInfo?: {
-    title: string;
-    hireDate: string;
-    employmentType: string;
+  contact_information?: {
+    phone_number: string;
+    work_phone_number: string;
+    address_city: string;
+    address_state: string;
   };
-  contactInfo?: {
-    phoneNumber: string;
-    addressCity: string;
+  personal_information?: {
+    date_of_birth: string;
+    gender: string;
+    nationality: string;
   };
 }
 
@@ -191,16 +82,28 @@ const createAuthStore = () => {
       update(state => ({ ...state, isLoading: true, error: null }));
 
       try {
-        const result = await client.mutation(LOGIN_MUTATION, { email, password }).toPromise();
-        
-        if (result.error) {
-          throw new Error(result.error.graphQLErrors[0]?.message || 'Login failed');
+        // Call our authentication API endpoint
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Login failed');
         }
 
-        const { accessToken, refreshToken, expiresIn, user } = result.data.login;
+        const { success, user, accessToken, refreshToken, expiresIn } = result;
         
-        // Store auth tokens
-        setAuthTokens({ accessToken, refreshToken, expiresIn });
+        if (!success) {
+          throw new Error(result.error || 'Login failed');
+        }
+        
+        // Tokens are set as cookies by the server
         
         // Update auth state
         update(state => ({
@@ -230,15 +133,17 @@ const createAuthStore = () => {
       update(state => ({ ...state, isLoading: true }));
 
       try {
-        // Call logout mutation to invalidate server-side session
-        await client.mutation(LOGOUT_MUTATION, {}).toPromise();
+        // Call logout endpoint to invalidate server-side session
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          credentials: 'include', // Include cookies
+        });
       } catch (error) {
         // Continue with client-side logout even if server call fails
         console.warn('Server logout failed:', error);
       }
 
-      // Clear client-side auth state
-      clearAuthTokens();
+      // Cookies are cleared by the server
       
       update(state => ({
         ...state,
@@ -255,21 +160,25 @@ const createAuthStore = () => {
     },
 
     async loadUser() {
-      if (!isAuthenticated()) {
-        update(state => ({ ...state, isAuthenticated: false, user: null }));
-        return;
-      }
-
       update(state => ({ ...state, isLoading: true }));
 
       try {
-        const result = await client.query(ME_QUERY, {}).toPromise();
-        
-        if (result.error) {
-          throw new Error(result.error.graphQLErrors[0]?.message || 'Failed to load user');
+        const response = await fetch('/api/auth/me', {
+          method: 'GET',
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to load user');
         }
 
-        const user = result.data.me;
+        const result = await response.json();
+        
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to load user');
+        }
+
+        const user = result.user;
         
         update(state => ({
           ...state,
@@ -281,8 +190,7 @@ const createAuthStore = () => {
       } catch (error: any) {
         console.error('Failed to load user:', error);
         
-        // Clear invalid auth state
-        clearAuthTokens();
+        // Clear invalid auth state by calling logout endpoint
         
         update(state => ({
           ...state,
@@ -295,71 +203,43 @@ const createAuthStore = () => {
     },
 
     async changePassword(currentPassword: string, newPassword: string) {
-      update(state => ({ ...state, isLoading: true, error: null }));
-
-      try {
-        const result = await client.mutation(CHANGE_PASSWORD_MUTATION, {
-          currentPassword,
-          newPassword
-        }).toPromise();
-        
-        if (result.error) {
-          throw new Error(result.error.graphQLErrors[0]?.message || 'Password change failed');
-        }
-
-        const { success, requiresReauth } = result.data.changePassword;
-        
-        update(state => ({ ...state, isLoading: false }));
-        
-        if (requiresReauth) {
-          // Force re-authentication after password change
-          await this.logout();
-          return { success: true, requiresReauth: true };
-        }
-        
-        return { success, requiresReauth: false };
-      } catch (error: any) {
-        const errorMessage = error.message || 'Password change failed';
-        update(state => ({ ...state, isLoading: false, error: errorMessage }));
-        return { success: false, error: errorMessage };
-      }
+      // TODO: Implement password change functionality when Hasura supports it
+      // For now, redirect to external password change flow or disable feature
+      return {
+        success: false,
+        error: 'Password change not yet implemented with Hasura backend'
+      };
     },
 
     async requestPasswordReset(email: string) {
-      try {
-        const result = await client.mutation(REQUEST_PASSWORD_RESET_MUTATION, { email }).toPromise();
-        
-        if (result.error) {
-          throw new Error(result.error.graphQLErrors[0]?.message || 'Password reset request failed');
-        }
-
-        return {
-          success: true,
-          message: result.data.requestPasswordReset.message
-        };
-      } catch (error: any) {
-        return {
-          success: false,
-          error: error.message || 'Password reset request failed'
-        };
-      }
+      // TODO: Implement password reset functionality when Hasura supports it
+      // For now, redirect to external password reset flow or disable feature
+      return {
+        success: false,
+        error: 'Password reset not yet implemented with Hasura backend'
+      };
     },
 
     async validateToken() {
-      if (!getAuthToken()) {
-        return { isValid: false };
-      }
-
       try {
-        const result = await client.query(VALIDATE_TOKEN_QUERY, {}).toPromise();
+        const response = await fetch('/api/auth/me', {
+          method: 'GET',
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          return { isValid: false };
+        }
+
+        const result = await response.json();
         
-        if (result.error) {
+        if (!result.success) {
           return { isValid: false };
         }
 
         return {
           isValid: true,
-          user: result.data.validateToken
+          user: result.user
         };
       } catch (error) {
         return { isValid: false };
@@ -379,11 +259,8 @@ const createAuthStore = () => {
     async initialize() {
       if (!browser) return;
 
-      if (isAuthenticated()) {
-        await this.loadUser();
-      } else {
-        update(state => ({ ...state, isAuthenticated: false, user: null }));
-      }
+      // Try to load user from server (checks cookie-based auth)
+      await this.loadUser();
     }
   };
 };
@@ -397,13 +274,55 @@ export const currentUser = derived(auth, $auth => $auth.user);
 export const isLoggedIn = derived(auth, $auth => $auth.isAuthenticated);
 
 export const userRoles = derived(currentUser, $user => 
-  $user?.roles?.map(role => role.name) || []
+  $user?.role_assignments?.map(ra => ra.role.name) || []
 );
 
 export const userPermissions = derived(currentUser, $user => {
-  if (!$user?.roles) return [];
+  if (!$user?.role_assignments) return [];
   
-  return $user.roles.flatMap(role => role.permissions || []);
+  // For now, return basic permissions based on role names
+  // This can be expanded when we have a proper permissions system in the database
+  const permissions = [];
+  
+  for (const roleAssignment of $user.role_assignments) {
+    const roleName = roleAssignment.role.name;
+    
+    switch (roleName.toLowerCase()) {
+      case 'admin':
+        permissions.push(
+          { resource: 'users', action: 'read', scope: 'ALL' },
+          { resource: 'users', action: 'write', scope: 'ALL' },
+          { resource: 'departments', action: 'read', scope: 'ALL' },
+          { resource: 'departments', action: 'write', scope: 'ALL' },
+          { resource: 'compensation', action: 'read', scope: 'ALL' },
+          { resource: 'compensation', action: 'write', scope: 'ALL' }
+        );
+        break;
+      case 'hr manager':
+        permissions.push(
+          { resource: 'users', action: 'read', scope: 'ALL' },
+          { resource: 'users', action: 'write', scope: 'DEPARTMENT' },
+          { resource: 'departments', action: 'read', scope: 'ALL' },
+          { resource: 'compensation', action: 'read', scope: 'DEPARTMENT' }
+        );
+        break;
+      case 'manager':
+        permissions.push(
+          { resource: 'users', action: 'read', scope: 'DEPARTMENT' },
+          { resource: 'users', action: 'write', scope: 'TEAM' },
+          { resource: 'departments', action: 'read', scope: 'OWN' }
+        );
+        break;
+      case 'employee':
+        permissions.push(
+          { resource: 'users', action: 'read', scope: 'OWN' },
+          { resource: 'users', action: 'write', scope: 'OWN' }
+        );
+        break;
+    }
+  }
+  
+  return permissions;
 });
 
 // Permission checking utilities
@@ -412,11 +331,43 @@ export const hasRole = (roleName: string): boolean => {
   return roles.includes(roleName);
 };
 
-export const hasPermission = (resource: string, action: string, scope?: string): boolean => {
+export const hasPermission = (resourceOrPermission: string, action?: string, scope?: string): boolean => {
   const permissions = get(userPermissions);
   
+  // Handle both formats: hasPermission('user:update') and hasPermission('users', 'write')
+  if (resourceOrPermission.includes(':') && !action) {
+    const [resource, actionPart] = resourceOrPermission.split(':');
+    
+    // Map legacy permission format to new format
+    const resourceMap: Record<string, string> = {
+      'user': 'users',
+      'users': 'users',
+      'department': 'departments',
+      'departments': 'departments',
+      'compensation': 'compensation'
+    };
+    
+    const actionMap: Record<string, string> = {
+      'read': 'read',
+      'create': 'write',
+      'update': 'write',
+      'delete': 'write',
+      'view_salary': 'read'
+    };
+    
+    const mappedResource = resourceMap[resource] || resource;
+    const mappedAction = actionMap[actionPart] || actionPart;
+    
+    return permissions.some(permission => 
+      permission.resource === mappedResource &&
+      permission.action === mappedAction &&
+      (!scope || permission.scope === scope || permission.scope === 'ALL')
+    );
+  }
+  
+  // Original format: hasPermission('users', 'write', 'ALL')
   return permissions.some(permission => 
-    permission.resource === resource &&
+    permission.resource === resourceOrPermission &&
     permission.action === action &&
     (!scope || permission.scope === scope || permission.scope === 'ALL')
   );

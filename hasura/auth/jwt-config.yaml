@@ -1,0 +1,76 @@
+# JWT Configuration for Hasura GraphQL Engine
+# This configuration enables JWT-based authentication with role-based access control
+
+jwt_config:
+  type: HS256  # HMAC SHA-256 signing algorithm
+  key: "your-jwt-secret-key-here-must-be-at-least-32-chars-long"  # Replace with actual secret from environment
+  
+  # JWT Token Claims Configuration
+  claims:
+    # Required: User ID claim
+    user_id:
+      path: "$.sub"  # Standard JWT subject claim
+      type: "String"
+      
+    # Required: User roles for RBAC
+    allowed_roles:
+      path: "$.hasura.allowed_roles"
+      type: "[String]"
+      
+    # Required: Default role when no X-Hasura-Role header is provided
+    default_role:
+      path: "$.hasura.default_role" 
+      type: "String"
+      
+    # Optional: Additional Hasura session variables
+    user_email:
+      path: "$.hasura.user_email"
+      type: "String"
+      
+    user_department_id:
+      path: "$.hasura.user_department_id"
+      type: "String"
+      
+    user_manager_id:
+      path: "$.hasura.user_manager_id"
+      type: "String"
+      
+    user_role_level:
+      path: "$.hasura.user_role_level"
+      type: "String"
+
+  # Token validation settings
+  audience: "hasura-hr-system"
+  issuer: "hr-auth-service"
+  
+  # Security settings
+  verify_expiry: true
+  verify_signature: true
+  require_nbf: false  # Not Before claim (optional)
+  require_iat: true   # Issued At claim (recommended)
+  
+  # Leeway for clock skew (seconds)
+  leeway: 10
+
+# Environment variable mappings for production
+environment_mappings:
+  jwt_secret: "HASURA_GRAPHQL_JWT_SECRET"
+  database_url: "HASURA_GRAPHQL_DATABASE_URL"
+  admin_secret: "HASURA_GRAPHQL_ADMIN_SECRET"
+  
+# Sample JWT payload structure for reference:
+sample_jwt_payload:
+  sub: "550e8400-e29b-41d4-a716-446655440000"  # User ID
+  email: "john.doe@company.com"
+  iat: 1640995200  # Issued at timestamp
+  exp: 1641001200  # Expires at timestamp (15 minutes later)
+  aud: "hasura-hr-system"
+  iss: "hr-auth-service"
+  hasura:
+    allowed_roles: ["employee", "manager"]
+    default_role: "employee"
+    user_id: "550e8400-e29b-41d4-a716-446655440000"
+    user_email: "john.doe@company.com"
+    user_department_id: "dept-uuid-here"
+    user_manager_id: "manager-uuid-here"
+    user_role_level: "30"

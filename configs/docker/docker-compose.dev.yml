@@ -23,11 +23,11 @@ services:
       - GEL_SERVER_ADMIN_UI=enabled
       - GEL_DATABASE=main
       - GEL_USER=gel
-      # Auth extension configuration
-      - GEL_AUTH_ENABLED=true
-      - GEL_AUTH_UI_ENABLED=true
-      - GEL_AUTH_APP_NAME=MountainHR
-      - GEL_AUTH_SECRET_KEY=dev-secret-key-6e0dda4f623fabf1db71f3c3b8045f66
+      # Temporarily disable Auth extension to test GraphQL in isolation
+      # - GEL_AUTH_ENABLED=true
+      # - GEL_AUTH_UI_ENABLED=true
+      # - GEL_AUTH_APP_NAME=MountainHR
+      # - GEL_AUTH_SECRET_KEY=dev-secret-key-6e0dda4f623fabf1db71f3c3b8045f66
     volumes:
       - gel_data:/var/lib/gel
       - ../../dbschema:/app/dbschema:ro

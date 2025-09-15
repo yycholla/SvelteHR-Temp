@@ -1,0 +1,222 @@
+table:
+  name: users
+  schema: public
+configuration:
+  custom_root_fields:
+    select: users
+    select_by_pk: user
+    select_aggregate: users_aggregate
+    insert: insert_users
+    insert_one: insert_user
+    update: update_users
+    update_by_pk: update_user
+    delete: delete_users
+    delete_by_pk: delete_user
+  custom_column_names: {}
+object_relationships:
+  - name: job_information
+    using:
+      foreign_key_constraint_on:
+        column: employee_id
+        table:
+          name: job_information
+          schema: public
+  - name: contact_information
+    using:
+      foreign_key_constraint_on:
+        column: employee_id
+        table:
+          name: contact_information
+          schema: public
+  - name: personal_information
+    using:
+      foreign_key_constraint_on:
+        column: employee_id
+        table:
+          name: personal_information
+          schema: public
+  - name: compensation
+    using:
+      foreign_key_constraint_on:
+        column: employee_id
+        table:
+          name: compensation
+          schema: public
+array_relationships:
+  - name: user_role_assignments
+    using:
+      foreign_key_constraint_on:
+        column: user_id
+        table:
+          name: user_role_assignments
+          schema: public
+  - name: managed_departments
+    using:
+      foreign_key_constraint_on:
+        column: manager_id
+        table:
+          name: departments
+          schema: public
+  - name: auth_sessions
+    using:
+      foreign_key_constraint_on:
+        column: user_id
+        table:
+          name: auth_sessions
+          schema: public
+  - name: notifications
+    using:
+      foreign_key_constraint_on:
+        column: user_id
+        table:
+          name: notifications
+          schema: public
+computed_fields:
+  - name: current_roles
+    definition:
+      function:
+        name: get_user_current_roles
+        schema: public
+      session_argument: hasura_session
+    comment: Get active roles for the user
+select_permissions:
+  - role: employee
+    permission:
+      columns:
+        - id
+        - email
+        - display_name
+        - job_title
+        - is_active
+        - created_at
+      filter:
+        _or:
+          - id: {_eq: "X-Hasura-User-Id"}
+          - is_active: {_eq: true}
+      limit: 100
+      allow_aggregations: false
+    comment: Employees can see their own data and basic info of active employees
+  - role: manager
+    permission:
+      columns:
+        - id
+        - email
+        - display_name
+        - onboarding_status
+        - job_title
+        - is_active
+        - last_login
+        - created_at
+        - updated_at
+      filter:
+        _or:
+          - id: {_eq: "X-Hasura-User-Id"}
+          - job_information:
+              department:
+                manager_id: {_eq: "X-Hasura-User-Id"}
+      allow_aggregations: true
+    comment: Managers can see employees in their department
+  - role: hr_admin
+    permission:
+      columns:
+        - id
+        - email
+        - display_name
+        - onboarding_status
+        - job_title
+        - is_active
+        - failed_login_attempts
+        - locked_until
+        - last_login
+        - created_at
+        - updated_at
+      filter: {}
+      allow_aggregations: true
+    comment: HR admins can see all user data except sensitive auth fields
+  - role: admin
+    permission:
+      columns: "*"
+      filter: {}
+      allow_aggregations: true
+    comment: Full access for system administrators
+insert_permissions:
+  - role: hr_admin
+    permission:
+      columns:
+        - email
+        - display_name
+        - onboarding_status
+        - job_title
+        - is_active
+      check: {}
+    comment: HR admins can create new users
+  - role: admin
+    permission:
+      columns:
+        - email
+        - password_hash
+        - display_name
+        - onboarding_status
+        - job_title
+        - is_active
+      check: {}
+    comment: Admins can create users with all fields
+update_permissions:
+  - role: employee
+    permission:
+      columns:
+        - display_name
+      filter:
+        id: {_eq: "X-Hasura-User-Id"}
+      check:
+        id: {_eq: "X-Hasura-User-Id"}
+    comment: Employees can update their own basic info
+  - role: manager
+    permission:
+      columns:
+        - display_name
+        - job_title
+        - onboarding_status
+      filter:
+        _or:
+          - id: {_eq: "X-Hasura-User-Id"}
+          - job_information:
+              department:
+                manager_id: {_eq: "X-Hasura-User-Id"}
+      check:
+        _or:
+          - id: {_eq: "X-Hasura-User-Id"}
+          - job_information:
+              department:
+                manager_id: {_eq: "X-Hasura-User-Id"}
+    comment: Managers can update employees in their department
+  - role: hr_admin
+    permission:
+      columns:
+        - email
+        - display_name
+        - onboarding_status
+        - job_title
+        - is_active
+      filter: {}
+      check: {}
+    comment: HR admins can update user information
+  - role: admin
+    permission:
+      columns:
+        - email
+        - password_hash
+        - display_name
+        - onboarding_status
+        - job_title
+        - is_active
+        - failed_login_attempts
+        - locked_until
+      filter: {}
+      check: {}
+    comment: Admins have full update access
+delete_permissions:
+  - role: admin
+    permission:
+      filter: {}
+    comment: Only admins can delete users

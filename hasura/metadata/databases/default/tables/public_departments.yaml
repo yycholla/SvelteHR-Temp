@@ -1,0 +1,169 @@
+table:
+  name: departments
+  schema: public
+configuration:
+  custom_root_fields:
+    select: departments
+    select_by_pk: department
+    select_aggregate: departments_aggregate
+  custom_column_names: {}
+object_relationships:
+  - name: parent_department
+    using:
+      foreign_key_constraint_on: parent_department_id
+  - name: manager
+    using:
+      foreign_key_constraint_on: manager_id
+array_relationships:
+  - name: subdepartments
+    using:
+      foreign_key_constraint_on:
+        column: parent_department_id
+        table:
+          name: departments
+          schema: public
+  - name: employees
+    using:
+      foreign_key_constraint_on:
+        column: department_id
+        table:
+          name: job_information
+          schema: public
+computed_fields:
+  - name: employee_count
+    definition:
+      function:
+        name: get_department_employee_count
+        schema: public
+    comment: Total number of employees in department
+  - name: active_employee_count
+    definition:
+      function:
+        name: get_department_active_employee_count
+        schema: public
+    comment: Number of active employees in department
+  - name: subdepartment_count
+    definition:
+      function:
+        name: get_department_subdepartment_count
+        schema: public
+    comment: Number of direct subdepartments
+  - name: budget_per_employee
+    definition:
+      function:
+        name: get_department_budget_per_employee
+        schema: public
+    comment: Budget divided by employee count
+select_permissions:
+  - role: employee
+    permission:
+      columns:
+        - id
+        - name
+        - description
+        - is_active
+      filter:
+        is_active: {_eq: true}
+      allow_aggregations: false
+    comment: Employees can see active departments
+  - role: manager
+    permission:
+      columns:
+        - id
+        - name
+        - description
+        - budget
+        - parent_department_id
+        - manager_id
+        - is_active
+        - created_at
+        - updated_at
+      filter:
+        _or:
+          - manager_id: {_eq: "X-Hasura-User-Id"}
+          - is_active: {_eq: true}
+      allow_aggregations: true
+    comment: Managers can see departments they manage and all active departments
+  - role: hr_admin
+    permission:
+      columns:
+        - id
+        - name
+        - description
+        - budget
+        - parent_department_id
+        - manager_id
+        - is_active
+        - created_at
+        - updated_at
+      filter: {}
+      allow_aggregations: true
+    comment: HR admins can see all departments
+  - role: admin
+    permission:
+      columns: "*"
+      filter: {}
+      allow_aggregations: true
+    comment: Full access for administrators
+insert_permissions:
+  - role: hr_admin
+    permission:
+      columns:
+        - name
+        - description
+        - budget
+        - parent_department_id
+        - manager_id
+        - is_active
+      check: {}
+    comment: HR admins can create departments
+  - role: admin
+    permission:
+      columns:
+        - name
+        - description
+        - budget
+        - parent_department_id
+        - manager_id
+        - is_active
+      check: {}
+    comment: Admins can create departments
+update_permissions:
+  - role: manager
+    permission:
+      columns:
+        - description
+      filter:
+        manager_id: {_eq: "X-Hasura-User-Id"}
+      check:
+        manager_id: {_eq: "X-Hasura-User-Id"}
+    comment: Managers can update their own department description
+  - role: hr_admin
+    permission:
+      columns:
+        - name
+        - description
+        - budget
+        - parent_department_id
+        - manager_id
+        - is_active
+      filter: {}
+      check: {}
+    comment: HR admins can update all departments
+  - role: admin
+    permission:
+      columns:
+        - name
+        - description
+        - budget
+        - parent_department_id
+        - manager_id
+        - is_active
+      filter: {}
+      check: {}
+    comment: Admins have full update access
+delete_permissions:
+  - role: admin
+    permission:
+      filter: {}
+    comment: Only admins can delete departments

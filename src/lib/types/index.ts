@@ -1,33 +1,47 @@
 /**
- * Core Type Definitions for MountainHR
+ * Core Type Definitions for SvelteHR
  * 
  * Centralized TypeScript interfaces and types for the HR management system.
- * These types align with the GraphQL schema and provide type safety across
+ * These types align with the Hasura GraphQL schema and provide type safety across
  * the frontend application.
  */
 
+// Re-export generated types from GraphQL Code Generator
+export * from '../generated/types';
+
 // =============================================================================
-// Core Entity Types
+// Hasura-aligned Entity Types
 // =============================================================================
 
 export interface User {
   id: string;
-  username: string;
   email: string;
-  displayName: string;
-  firstName: string;
-  lastName: string;
-  onboardingStatus: OnboardingStatus;
-  isActive: boolean;
-  roles: Role[];
-  department?: Department;
-  jobInfo?: JobInfo;
-  contactInfo?: ContactInfo;
-  personalInfo?: PersonalInfo;
-  compensation?: Compensation;
-  createdAt: string;
-  updatedAt: string;
-  lastLoginAt?: string;
+  display_name: string;
+  onboarding_status: 'PreHire' | 'Onboarding' | 'Active' | 'Terminated';
+  job_title?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  role_assignments?: Array<{
+    role: {
+      id: string;
+      name: string;
+      level: number;
+      description?: string;
+    };
+  }>;
+}
+
+export interface UserFilter {
+  isActive?: boolean;
+  onboardingStatus?: string[];
+  departmentId?: string;
+  roleId?: string;
+  searchQuery?: string;
+  hireDate?: {
+    start?: string;
+    end?: string;
+  };
 }
 
 export interface Role {

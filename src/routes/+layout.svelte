@@ -1,57 +1,60 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
-  import { auth, isLoggedIn } from '$lib/services/auth';
-  import { notificationService } from '$lib/services/notificationService';
+  import { isAuthenticated, authStore } from '$lib/stores/auth';
   import DashboardLayout from '$lib/components/layout/DashboardLayout.svelte';
+  import AuthGuard from '$lib/components/auth/AuthGuard.svelte';
+  import { setContextClient } from '@urql/svelte';
+  import { hasuraClient } from '$lib/graphql/hasura-client';
   import '../app.css';
   import favicon from '$lib/assets/favicon.svg';
+
+  // Initialize Hasura GraphQL client for the entire app
+  setContextClient(hasuraClient);
 
   let { children } = $props();
 
   // Track if we're on an auth page  
-  const isAuthPage = $derived($page.url.pathname === '/login' || $page.url.pathname === '/register');
-  const shouldShowLayout = $derived($isLoggedIn && !isAuthPage);
+  const isAuthPage = $derived(
+    $page.url.pathname === '/login' || 
+    $page.url.pathname === '/auth/register' ||
+    $page.url.pathname === '/auth/forgot-password'
+  );
+  const shouldShowLayout = $derived($isAuthenticated && !isAuthPage);
 
   onMount(() => {
-    // Initialize auth service
-    auth.initialize();
-
-    // Subscribe to notifications if logged in
-    if ($isLoggedIn) {
-      notificationService.subscribeToNotifications();
-    }
-
-    // Auto-refresh token every 15 minutes
+    // Auto-refresh token every 14 minutes (before 15 minute expiry)
     const tokenRefreshInterval = setInterval(() => {
-      if ($isLoggedIn) {
-        auth.refreshToken();
+      if ($isAuthenticated) {
+        authStore.refreshAccessToken();
       }
-    }, 15 * 60 * 1000);
+    }, 14 * 60 * 1000);
 
     return () => {
       clearInterval(tokenRefreshInterval);
-      notificationService.unsubscribeFromNotifications();
     };
   });
 </script>
 
 <svelte:head>
-  <title>MountainHR - HR Management System</title>
+  <title>SvelteHR - HR Management System</title>
   <meta name="description" content="Comprehensive HR management system for modern organizations" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" href={favicon} />
 </svelte:head>
 
-{#if shouldShowLayout}
-  <DashboardLayout>
-    {@render children?.()}
-  </DashboardLayout>
-{:else}
-  <main class="auth-layout">
-    {@render children?.()}
-  </main>
-{/if}
+<!-- Wrap entire app with AuthGuard for auth initialization -->
+<AuthGuard>
+  {#if shouldShowLayout}
+    <DashboardLayout>
+      {@render children?.()}
+    </DashboardLayout>
+  {:else}
+    <main class="auth-layout">
+      {@render children?.()}
+    </main>
+  {/if}
+</AuthGuard>
 
 <style>
   :global(html) {

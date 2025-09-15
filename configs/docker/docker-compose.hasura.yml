@@ -1,0 +1,125 @@
+# Hasura GraphQL Engine with PostgreSQL
+# Alternative to GelDB for comparison and evaluation
+
+version: '3.6'
+
+services:
+  # PostgreSQL Database for Hasura
+  hasura-postgres:
+    image: postgres:15
+    container_name: svelteHR-hasura-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: ${HASURA_POSTGRES_PASSWORD}
+      POSTGRES_DB: svelteHR
+      # Security hardening
+      POSTGRES_USER: postgres
+      POSTGRES_INITDB_ARGS: --auth-host=md5
+    volumes:
+      - hasura_db_data:/var/lib/postgresql/data
+    networks:
+      - svelteHR-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Hasura GraphQL Engine
+  hasura-graphql:
+    image: hasura/graphql-engine:v2.36.0
+    container_name: svelteHR-hasura-graphql
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # Database connection
+      HASURA_GRAPHQL_METADATA_DATABASE_URL: postgres://postgres:${HASURA_POSTGRES_PASSWORD}@hasura-postgres:5432/postgres
+      HASURA_GRAPHQL_DATABASE_URL: postgres://postgres:${HASURA_POSTGRES_PASSWORD}@hasura-postgres:5432/svelteHR
+      
+      # Security - JWT Authentication
+      HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_ADMIN_SECRET}
+      HASURA_GRAPHQL_JWT_SECRET: |
+        {
+          "type": "HS256",
+          "key": "${JWT_SECRET}",
+          "claims_format": "json",
+          "audience": "hasura-hr-system",
+          "issuer": "hr-auth-service",
+          "claims_map": {
+            "x-hasura-allowed-roles": {
+              "path": "$.hasura.allowed_roles"
+            },
+            "x-hasura-default-role": {
+              "path": "$.hasura.default_role"
+            },
+            "x-hasura-user-id": {
+              "path": "$.hasura.user_id"
+            },
+            "x-hasura-user-email": {
+              "path": "$.hasura.user_email"
+            },
+            "x-hasura-user-department-id": {
+              "path": "$.hasura.user_department_id"
+            },
+            "x-hasura-user-manager-id": {
+              "path": "$.hasura.user_manager_id"
+            },
+            "x-hasura-user-role-level": {
+              "path": "$.hasura.user_role_level"
+            }
+          }
+        }
+      
+      # Environment-based settings
+      HASURA_GRAPHQL_ENABLE_CONSOLE: "${DEVELOPMENT_MODE:-false}"
+      HASURA_GRAPHQL_DEV_MODE: "${DEVELOPMENT_MODE:-false}"
+      
+      # CORS - restrictive for security
+      HASURA_GRAPHQL_CORS_DOMAIN: "http://localhost:5173,http://localhost:5174,https://*.svelteHR.com"
+      
+      # Security Settings
+      HASURA_GRAPHQL_UNAUTHORIZED_ROLE: anonymous
+      HASURA_GRAPHQL_INFER_FUNCTION_PERMISSIONS: false
+      HASURA_GRAPHQL_ENABLE_REMOTE_SCHEMA_PERMISSIONS: true
+      
+      # Performance & Rate Limiting
+      HASURA_GRAPHQL_QUERY_PLAN_CACHE_SIZE: 4000
+      HASURA_GRAPHQL_LIVE_QUERIES_MULTIPLEXED_REFETCH_INTERVAL: 1000
+      HASURA_GRAPHQL_LIVE_QUERIES_MULTIPLEXED_BATCH_SIZE: 100
+      
+      # Query Analysis & Security
+      HASURA_GRAPHQL_ENABLE_ALLOWLIST: false  # Set to true in production with approved queries
+      HASURA_GRAPHQL_STRINGIFY_NUMERIC_TYPES: false
+      
+      # Connection Limits
+      HASURA_GRAPHQL_CONNECTIONS_PER_READ_REPLICA: 50
+      HASURA_GRAPHQL_STRIPES_PER_READ_REPLICA: 1
+      
+      # Logging - Security focused
+      HASURA_GRAPHQL_ENABLED_LOG_TYPES: startup, http-log, websocket-log, query-log
+      HASURA_GRAPHQL_LOG_LEVEL: info
+      
+      # Privacy
+      HASURA_GRAPHQL_ENABLE_TELEMETRY: "false"
+      
+    depends_on:
+      hasura-postgres:
+        condition: service_healthy
+    networks:
+      - svelteHR-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  hasura_db_data:
+    name: svelteHR-hasura-data
+
+networks:
+  svelteHR-network:
+    external: true

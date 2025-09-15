@@ -1,534 +1,627 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { goto } from '$app/navigation';
-  import { userService, users, isLoadingUsers, userError } from '$lib/services/userService';
-  import { currentUser, hasPermission } from '$lib/services/auth';
-  import DataTable from '../tables/DataTable.svelte';
-  import Button from '../base/Button.svelte';
-  import Input from '../base/Input.svelte';
-  import Select from '../base/Select.svelte';
-  import Badge from '../base/Badge.svelte';
-  import Card from '../base/Card.svelte';
-  import type { Column } from '../tables/DataTable.svelte';
-  import type { User, UserFilter } from '$lib/types';
+  import { query } from '@urql/svelte';
+  import { GET_EMPLOYEES_LIST } from '$lib/graphql/hasura-operations';
+  import { currentUser, hasPermission } from '$lib/stores/auth';
+  import RoleGuard from '$lib/components/auth/RoleGuard.svelte';
 
-  // Props
-  export let showHeader: boolean = true;
-  export let showFilters: boolean = true;
-  export let showActions: boolean = true;
-  export let selectable: boolean = true;
-  export let compact: boolean = false;
+  /**
+   * Employee List Component
+   * Main interface for browsing, searching, and managing employees
+   */
 
-  // Internal state
-  let selectedEmployees: User[] = [];
-  let searchQuery = '';
-  let statusFilter = '';
-  let departmentFilter = '';
-  let roleFilter = '';
-  let sortField = 'displayName';
-  let sortDirection: 'asc' | 'desc' = 'asc';
+  interface Props {
+    initialFilters?: EmployeeFilters;
+    compactView?: boolean;
+    showFilters?: boolean;
+    showAddButton?: boolean;
+    maxHeight?: string;
+  }
 
-  // Filter options
-  const statusOptions = [
-    { value: '', label: 'All Status' },
-    { value: 'true', label: 'Active' },
-    { value: 'false', label: 'Inactive' }
-  ];
+  interface EmployeeFilters {
+    search?: string;
+    department?: string;
+    role?: string;
+    status?: string;
+    manager?: string;
+  }
 
-  const departmentOptions = [
-    { value: '', label: 'All Departments' },
-    { value: 'engineering', label: 'Engineering' },
-    { value: 'hr', label: 'Human Resources' },
-    { value: 'finance', label: 'Finance' },
-    { value: 'marketing', label: 'Marketing' },
-    { value: 'sales', label: 'Sales' }
-  ];
+  interface Employee {
+    id: string;
+    email: string;
+    displayName: string;
+    jobTitle?: string;
+    onboardingStatus: string;
+    createdAt: string;
+    lastLoginAt?: string;
+    departmentId?: string;
+    managerId?: string;
+    roles: Array<{ role: string }>;
+    department?: { id: string; name: string };
+    manager?: { id: string; displayName: string; email: string };
+    directReports: { aggregate: { count: number } };
+  }
 
-  const roleOptions = [
-    { value: '', label: 'All Roles' },
-    { value: 'employee', label: 'Employee' },
-    { value: 'manager', label: 'Manager' },
-    { value: 'hr_manager', label: 'HR Manager' },
-    { value: 'admin', label: 'Admin' }
-  ];
+  let {
+    initialFilters = {},
+    compactView = false,
+    showFilters = true,
+    showAddButton = true,
+    maxHeight = '600px'
+  }: Props = $props();
 
-  // Table columns configuration
-  const columns: Column[] = [
-    {
-      key: 'displayName',
-      label: 'Name',
-      sortable: true,
-      type: 'custom'
-    },
-    {
-      key: 'email',
-      label: 'Email',
-      sortable: true,
-      type: 'text'
-    },
-    {
-      key: 'jobTitle',
-      label: 'Job Title',
-      sortable: true,
-      type: 'text'
-    },
-    {
-      key: 'department',
-      label: 'Department',
-      sortable: true,
-      type: 'text',
-      format: (value) => value?.name || 'N/A'
-    },
-    {
-      key: 'isActive',
-      label: 'Status',
-      sortable: true,
-      type: 'badge',
-      badgeVariant: (value) => value ? 'success' : 'secondary'
-    },
-    {
-      key: 'jobInfo.hireDate',
-      label: 'Hire Date',
-      sortable: true,
-      type: 'date'
+  // State
+  let filters: EmployeeFilters = { ...initialFilters };
+  let currentPage = 1;
+  let itemsPerPage = 20;
+  let viewMode: 'grid' | 'list' = 'grid';
+  let selectedEmployees: string[] = $state([]);
+
+  // Build GraphQL variables
+  $: variables = $derived(() => {
+    const where: any = {};
+    
+    // Search filter
+    if (filters.search) {
+      where._or = [
+        { displayName: { _ilike: `%${filters.search}%` } },
+        { email: { _ilike: `%${filters.search}%` } },
+        { jobTitle: { _ilike: `%${filters.search}%` } }
+      ];
     }
-  ];
 
-  // Add actions column if permissions allow
-  if (showActions && ($currentUser && (hasPermission('user:update') || hasPermission('user:delete')))) {
-    columns.push({
-      key: 'actions',
-      label: 'Actions',
-      sortable: false,
-      type: 'custom',
-      align: 'center',
-      width: '120px'
-    });
-  }
+    // Department filter
+    if (filters.department) {
+      where.departmentId = { _eq: filters.department };
+    }
 
-  // Reactive filters
-  $: filters = buildFilters();
-  $: hasFiltersApplied = searchQuery || statusFilter || departmentFilter || roleFilter;
+    // Status filter
+    if (filters.status) {
+      where.onboardingStatus = { _eq: filters.status };
+    }
 
-  // Load data when filters change
-  $: if (filters) {
-    loadEmployees();
-  }
+    // Role filter
+    if (filters.role) {
+      where.user_roles = { role: { _eq: filters.role } };
+    }
 
-  function buildFilters(): UserFilter {
+    // Manager filter
+    if (filters.manager) {
+      where.managerId = { _eq: filters.manager };
+    }
+
+    // Only show non-terminated users for regular views
+    if (!filters.status || filters.status !== 'terminated') {
+      where.onboardingStatus = { _neq: 'terminated' };
+    }
+
     return {
-      ...(searchQuery && { searchQuery }),
-      ...(statusFilter !== '' && { isActive: statusFilter === 'true' }),
-      ...(departmentFilter && { departmentId: departmentFilter }),
-      ...(roleFilter && { roleId: roleFilter })
+      limit: itemsPerPage,
+      offset: (currentPage - 1) * itemsPerPage,
+      where,
+      orderBy: [{ displayName: 'asc' }]
     };
-  }
+  });
 
-  async function loadEmployees() {
-    try {
-      await userService.loadUsers({
-        filters,
-        sorting: { field: sortField, direction: sortDirection },
-        reset: true
-      });
-    } catch (error) {
-      console.error('Failed to load employees:', error);
+  // Execute query
+  const employeesQuery = query(GET_EMPLOYEES_LIST, variables);
+  $: employees = $employeesQuery.data?.users || [];
+  $: totalCount = $employeesQuery.data?.users_aggregate?.aggregate?.count || 0;
+  $: totalPages = Math.ceil(totalCount / itemsPerPage);
+
+  // Handle filter changes
+  const handleFiltersChange = (newFilters: EmployeeFilters) => {
+    filters = { ...newFilters };
+    currentPage = 1; // Reset to first page
+  };
+
+  // Handle pagination
+  const handlePageChange = (page: number) => {
+    currentPage = page;
+  };
+
+  // Handle selection
+  const toggleSelection = (employeeId: string) => {
+    if (selectedEmployees.includes(employeeId)) {
+      selectedEmployees = selectedEmployees.filter(id => id !== employeeId);
+    } else {
+      selectedEmployees = [...selectedEmployees, employeeId];
     }
-  }
+  };
 
-  function handleSort(event: CustomEvent) {
-    sortField = event.detail.key;
-    sortDirection = event.detail.direction;
-    loadEmployees();
-  }
+  const selectAll = () => {
+    selectedEmployees = employees.map((emp: Employee) => emp.id);
+  };
 
-  function handleRowClick(event: CustomEvent) {
-    const { row } = event.detail;
-    goto(`/employees/${row.id}`);
-  }
+  const clearSelection = () => {
+    selectedEmployees = [];
+  };
 
-  function handleSelectionChange(event: CustomEvent) {
-    selectedEmployees = event.detail;
-  }
-
-  function clearFilters() {
-    searchQuery = '';
-    statusFilter = '';
-    departmentFilter = '';
-    roleFilter = '';
-  }
-
-  function handleBulkAction(action: string) {
-    if (selectedEmployees.length === 0) return;
-
+  // Bulk actions
+  const handleBulkAction = (action: string) => {
     switch (action) {
-      case 'activate':
-        // TODO: Implement bulk activation
-        console.log('Bulk activate:', selectedEmployees);
+      case 'export':
+        exportSelected();
         break;
       case 'deactivate':
-        // TODO: Implement bulk deactivation
-        console.log('Bulk deactivate:', selectedEmployees);
+        deactivateSelected();
         break;
-      case 'export':
-        // TODO: Implement export
-        console.log('Export:', selectedEmployees);
-        break;
+      default:
+        console.log(`Bulk action: ${action} for`, selectedEmployees);
     }
-  }
+  };
 
-  function getEmployeeInitials(employee: User): string {
-    return `${employee.firstName?.charAt(0) || ''}${employee.lastName?.charAt(0) || ''}`;
-  }
+  const exportSelected = () => {
+    // TODO: Implement export functionality
+    console.log('Exporting employees:', selectedEmployees);
+  };
 
-  function getStatusText(isActive: boolean): string {
-    return isActive ? 'Active' : 'Inactive';
-  }
+  const deactivateSelected = () => {
+    // TODO: Implement bulk deactivation
+    console.log('Deactivating employees:', selectedEmployees);
+  };
+
+  // Refresh data
+  const refresh = () => {
+    $employeesQuery.rerun({ requestPolicy: 'network-only' });
+  };
 
   onMount(() => {
-    loadEmployees();
+    // Auto-refresh every 5 minutes
+    const interval = setInterval(refresh, 5 * 60 * 1000);
+    return () => clearInterval(interval);
   });
 </script>
 
-<div class="employee-list">
-  {#if showHeader}
-    <div class="employee-list__header">
-      <div class="employee-list__title">
-        <h1 class="text-2xl font-bold text-gray-900">Employees</h1>
-        <p class="mt-1 text-sm text-gray-600">
-          Manage your organization's employees and their information.
-        </p>
+<div class="employee-list" style:max-height={maxHeight}>
+  <!-- Header -->
+  <div class="header">
+    <div class="title-section">
+      <h2 class="title">
+        Employees 
+        {#if totalCount > 0}
+          <span class="count">({totalCount})</span>
+        {/if}
+      </h2>
+      
+      {#if selectedEmployees.length > 0}
+        <div class="selection-info">
+          <span>{selectedEmployees.length} selected</span>
+          <button class="clear-selection" onclick={clearSelection}>
+            Clear
+          </button>
+        </div>
+      {/if}
+    </div>
+
+    <div class="actions">
+      <!-- View mode toggle -->
+      <div class="view-toggle">
+        <button 
+          class="view-btn"
+          class:active={viewMode === 'grid'}
+          onclick={() => viewMode = 'grid'}
+          title="Grid view"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zM2.5 2a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zM1 10.5A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3z"/>
+          </svg>
+        </button>
+        <button 
+          class="view-btn"
+          class:active={viewMode === 'list'}
+          onclick={() => viewMode = 'list'}
+          title="List view"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M1 2.5A.5.5 0 0 1 1.5 2h13a.5.5 0 0 1 0 1h-13a.5.5 0 0 1-.5-.5zm0 3A.5.5 0 0 1 1.5 5h13a.5.5 0 0 1 0 1h-13a.5.5 0 0 1-.5-.5zm0 3A.5.5 0 0 1 1.5 8h13a.5.5 0 0 1 0 1h-13a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 0 1h-13a.5.5 0 0 1-.5-.5z"/>
+          </svg>
+        </button>
       </div>
 
-      <div class="employee-list__actions">
-        {#if $currentUser && hasPermission('user:create')}
-          <Button
-            variant="primary"
-            leftIcon="plus"
-            on:click={() => goto('/employees/new')}
-          >
+      <!-- Add employee button -->
+      {#if showAddButton}
+        <RoleGuard permissions={['hr:manage', 'admin:*']}>
+          <button class="btn-primary add-btn">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 0a.5.5 0 0 1 .5.5v7h7a.5.5 0 0 1 0 1h-7v7a.5.5 0 0 1-1 0v-7h-7a.5.5 0 0 1 0-1h7v-7A.5.5 0 0 1 8 0z"/>
+            </svg>
             Add Employee
-          </Button>
-        {/if}
-      </div>
+          </button>
+        </RoleGuard>
+      {/if}
+
+      <!-- Refresh button -->
+      <button 
+        class="btn-secondary refresh-btn" 
+        onclick={refresh}
+        disabled={$employeesQuery.fetching}
+        title="Refresh data"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" class:spinning={$employeesQuery.fetching}>
+          <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/>
+          <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading state -->
+  {#if $employeesQuery.fetching && !$employeesQuery.data}
+    <div class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>Loading employees...</p>
     </div>
   {/if}
 
-  {#if showFilters}
-    <Card padding="md" class="employee-list__filters">
-      <div class="filter-grid">
-        <div class="filter-item">
-          <Input
-            type="search"
-            placeholder="Search employees..."
-            leftIcon="search"
-            bind:value={searchQuery}
-            on:input={() => loadEmployees()}
-          />
-        </div>
+  <!-- Error state -->
+  {#if $employeesQuery.error}
+    <div class="error-container">
+      <h3>Failed to load employees</h3>
+      <p>{$employeesQuery.error.message}</p>
+      <button class="btn-secondary" onclick={refresh}>
+        Try Again
+      </button>
+    </div>
+  {/if}
 
-        <div class="filter-item">
-          <Select
-            options={statusOptions}
-            bind:value={statusFilter}
-            placeholder="Filter by status"
-          />
-        </div>
-
-        <div class="filter-item">
-          <Select
-            options={departmentOptions}
-            bind:value={departmentFilter}
-            placeholder="Filter by department"
-          />
-        </div>
-
-        <div class="filter-item">
-          <Select
-            options={roleOptions}
-            bind:value={roleFilter}
-            placeholder="Filter by role"
-          />
-        </div>
-
-        {#if hasFiltersApplied}
-          <div class="filter-item">
-            <Button
-              variant="ghost"
-              size="sm"
-              leftIcon="x"
-              on:click={clearFilters}
-            >
-              Clear Filters
-            </Button>
-          </div>
+  <!-- Employee grid/list -->
+  {#if !$employeesQuery.fetching && !$employeesQuery.error && employees.length === 0}
+    <div class="empty-state">
+      <div class="empty-icon">
+        <svg width="48" height="48" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
+          <path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"/>
+        </svg>
+      </div>
+      <h3>No employees found</h3>
+      <p>
+        {#if Object.values(filters).some(Boolean)}
+          Try adjusting your filters or search terms.
+        {:else}
+          Get started by adding your first employee.
         {/if}
-      </div>
-    </Card>
-  {/if}
-
-  {#if selectedEmployees.length > 0}
-    <Card padding="sm" class="employee-list__bulk-actions">
-      <div class="bulk-actions">
-        <span class="bulk-actions__count">
-          {selectedEmployees.length} employee{selectedEmployees.length === 1 ? '' : 's'} selected
-        </span>
-
-        <div class="bulk-actions__buttons">
-          {#if $currentUser && hasPermission('user:update')}
-            <Button
-              variant="secondary"
-              size="sm"
-              leftIcon="check"
-              on:click={() => handleBulkAction('activate')}
-            >
-              Activate
-            </Button>
-
-            <Button
-              variant="secondary"
-              size="sm"
-              leftIcon="x"
-              on:click={() => handleBulkAction('deactivate')}
-            >
-              Deactivate
-            </Button>
-          {/if}
-
-          <Button
-            variant="secondary"
-            size="sm"
-            leftIcon="download"
-            on:click={() => handleBulkAction('export')}
-          >
-            Export
-          </Button>
-        </div>
-      </div>
-    </Card>
-  {/if}
-
-  <Card padding="none" class="employee-list__table">
-    <DataTable
-      data={$users}
-      {columns}
-      loading={$isLoadingUsers}
-      {selectable}
-      {compact}
-      hoverable={true}
-      currentSort={{ key: sortField, direction: sortDirection }}
-      bind:selectedRows={selectedEmployees}
-      emptyMessage="No employees found"
-      on:sort={handleSort}
-      on:rowClick={handleRowClick}
-      on:selectionChange={handleSelectionChange}
-    >
-      <svelte:fragment slot="cell" let:column let:value let:row>
-        {#if column.key === 'displayName'}
-          <div class="employee-avatar-cell">
+      </p>
+    </div>
+  {:else if employees.length > 0}
+    <!-- Employee cards/rows -->
+    <div class="employee-container" class:grid-view={viewMode === 'grid'} class:list-view={viewMode === 'list'}>
+      {#each employees as employee (employee.id)}
+        <div class="employee-card">
+          <div class="employee-info">
             <div class="employee-avatar">
-              {#if row.profileImage}
-                <img src={row.profileImage} alt={row.displayName} />
-              {:else}
-                <span class="employee-initials">
-                  {getEmployeeInitials(row)}
-                </span>
-              {/if}
+              {employee.displayName?.charAt(0) || '?'}
             </div>
-            <div class="employee-info">
-              <div class="employee-name">{row.displayName}</div>
-              {#if row.jobTitle}
-                <div class="employee-title">{row.jobTitle}</div>
+            <div class="employee-details">
+              <h4 class="employee-name">{employee.displayName}</h4>
+              <p class="employee-email">{employee.email}</p>
+              {#if employee.jobTitle}
+                <p class="employee-title">{employee.jobTitle}</p>
               {/if}
+              {#if employee.department}
+                <p class="employee-department">{employee.department.name}</p>
+              {/if}
+              <div class="employee-status status-{employee.onboardingStatus}">
+                {employee.onboardingStatus}
+              </div>
             </div>
           </div>
-        {:else if column.key === 'isActive'}
-          <Badge
-            variant={row.isActive ? 'success' : 'secondary'}
-            size="sm"
-          >
-            {getStatusText(row.isActive)}
-          </Badge>
-        {:else if column.key === 'actions'}
-          <div class="action-buttons">
-            {#if $currentUser && hasPermission('user:update')}
-              <Button
-                variant="ghost"
-                size="xs"
-                iconOnly
-                leftIcon="edit"
-                on:click={(e) => {
-                  e.stopPropagation();
-                  goto(`/employees/${row.id}/edit`);
-                }}
-              />
-            {/if}
-
-            {#if $currentUser && hasPermission('user:delete')}
-              <Button
-                variant="ghost"
-                size="xs"
-                iconOnly
-                leftIcon="trash-2"
-                on:click={(e) => {
-                  e.stopPropagation();
-                  // TODO: Show delete confirmation modal
-                  console.log('Delete employee:', row);
-                }}
-              />
-            {/if}
-          </div>
-        {/if}
-      </svelte:fragment>
-    </DataTable>
-  </Card>
-
-  {#if $userError}
-    <Card padding="md" class="employee-list__error">
-      <div class="error-message">
-        <div class="error-icon">
-          <i class="icon-alert-circle"></i>
         </div>
-        <div class="error-content">
-          <h3 class="error-title">Error Loading Employees</h3>
-          <p class="error-description">{$userError}</p>
-          <Button
-            variant="secondary"
-            size="sm"
-            leftIcon="refresh-cw"
-            on:click={() => loadEmployees()}
-          >
-            Retry
-          </Button>
-        </div>
+      {/each}
+    </div>
+
+    <!-- Simple pagination -->
+    {#if totalPages > 1}
+      <div class="pagination">
+        <button 
+          class="btn-secondary" 
+          disabled={currentPage === 1}
+          onclick={() => handlePageChange(currentPage - 1)}
+        >
+          Previous
+        </button>
+        <span class="page-info">
+          Page {currentPage} of {totalPages} ({totalCount} total)
+        </span>
+        <button 
+          class="btn-secondary" 
+          disabled={currentPage === totalPages}
+          onclick={() => handlePageChange(currentPage + 1)}
+        >
+          Next
+        </button>
       </div>
-    </Card>
+    {/if}
   {/if}
 </div>
 
-<style lang="postcss">
+<style>
   .employee-list {
-    @apply space-y-6;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    overflow-y: auto;
   }
 
-  /* Header */
-  .employee-list__header {
-    @apply flex items-start justify-between;
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
   }
 
-  .employee-list__title h1 {
-    @apply text-2xl font-bold text-gray-900;
+  .title-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
   }
 
-  .employee-list__title p {
-    @apply mt-1 text-sm text-gray-600;
+  .title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #111827;
   }
 
-  .employee-list__actions {
-    @apply flex items-center space-x-3;
+  .count {
+    font-weight: 400;
+    color: #6b7280;
+    font-size: 1rem;
   }
 
-  /* Filters */
-  .filter-grid {
-    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4;
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
   }
 
-  .filter-item {
-    @apply min-w-0;
+  .view-toggle {
+    display: flex;
+    background-color: #f3f4f6;
+    border-radius: 0.375rem;
+    padding: 0.125rem;
   }
 
-  /* Bulk Actions */
-  .bulk-actions {
-    @apply flex items-center justify-between bg-blue-50 px-4 py-3 border-b border-blue-200;
+  .view-btn {
+    padding: 0.375rem;
+    background: none;
+    border: none;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    color: #6b7280;
+    transition: all 0.15s;
   }
 
-  .bulk-actions__count {
-    @apply text-sm font-medium text-blue-900;
+  .view-btn:hover {
+    color: #111827;
   }
 
-  .bulk-actions__buttons {
-    @apply flex items-center space-x-2;
+  .view-btn.active {
+    background-color: white;
+    color: #111827;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   }
 
-  /* Employee Avatar Cell */
-  .employee-avatar-cell {
-    @apply flex items-center space-x-3;
+  .btn-primary, .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
   }
 
-  .employee-avatar {
-    @apply flex-shrink-0 w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden;
+  .btn-primary {
+    background-color: #3b82f6;
+    color: white;
   }
 
-  .employee-avatar img {
-    @apply w-full h-full object-cover;
+  .btn-primary:hover {
+    background-color: #2563eb;
   }
 
-  .employee-initials {
-    @apply text-sm font-medium text-gray-700;
+  .btn-secondary {
+    background-color: white;
+    color: #374151;
+    border-color: #d1d5db;
+  }
+
+  .btn-secondary:hover {
+    background-color: #f9fafb;
+  }
+
+  .btn-secondary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .loading-container, .error-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    gap: 1rem;
+    color: #6b7280;
+  }
+
+  .loading-spinner {
+    width: 2rem;
+    height: 2rem;
+    border: 2px solid #e5e7eb;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1rem;
+    text-align: center;
+    color: #6b7280;
+  }
+
+  .empty-icon {
+    color: #d1d5db;
+    margin-bottom: 1rem;
+  }
+
+  .empty-state h3 {
+    margin: 0 0 0.5rem;
+    color: #111827;
+    font-size: 1.125rem;
+    font-weight: 600;
+  }
+
+  .empty-state p {
+    margin: 0 0 1.5rem;
+    max-width: 28rem;
+  }
+
+  .employee-container.grid-view {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+
+  .employee-container.list-view {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .employee-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    transition: all 0.15s;
+  }
+
+  .employee-card:hover {
+    border-color: #d1d5db;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
   }
 
   .employee-info {
-    @apply min-w-0 flex-1;
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .employee-avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+    background-color: #3b82f6;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+
+  .employee-details {
+    flex: 1;
+    min-width: 0;
   }
 
   .employee-name {
-    @apply text-sm font-medium text-gray-900 truncate;
+    margin: 0 0 0.25rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #111827;
   }
 
-  .employee-title {
-    @apply text-xs text-gray-500 truncate;
+  .employee-email {
+    margin: 0 0 0.25rem;
+    font-size: 0.875rem;
+    color: #6b7280;
   }
 
-  /* Action Buttons */
-  .action-buttons {
-    @apply flex items-center space-x-1;
+  .employee-title, .employee-department {
+    margin: 0 0 0.25rem;
+    font-size: 0.875rem;
+    color: #374151;
   }
 
-  /* Error State */
-  .error-message {
-    @apply flex items-start space-x-3;
+  .employee-status {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: capitalize;
   }
 
-  .error-icon {
-    @apply flex-shrink-0 text-red-500;
+  .status-active {
+    background-color: #dcfce7;
+    color: #166534;
   }
 
-  .error-icon i {
-    @apply w-5 h-5;
+  .status-invited {
+    background-color: #fef3c7;
+    color: #92400e;
   }
 
-  .error-content {
-    @apply flex-1;
+  .status-in_progress {
+    background-color: #dbeafe;
+    color: #1e40af;
   }
 
-  .error-title {
-    @apply text-sm font-medium text-gray-900;
+  .status-completed {
+    background-color: #dcfce7;
+    color: #166534;
   }
 
-  .error-description {
-    @apply mt-1 text-sm text-gray-600;
+  .status-terminated {
+    background-color: #fee2e2;
+    color: #991b1b;
   }
 
-  .error-content button {
-    @apply mt-3;
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 0;
   }
 
-  /* Responsive */
-  @media (max-width: 640px) {
-    .employee-list__header {
-      @apply flex-col items-start space-y-4;
+  .page-info {
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+
+  .spinning {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @media (max-width: 768px) {
+    .header {
+      flex-direction: column;
+      align-items: stretch;
     }
 
-    .filter-grid {
-      @apply grid-cols-1;
+    .actions {
+      justify-content: space-between;
     }
 
-    .bulk-actions {
-      @apply flex-col items-start space-y-3 px-3 py-4;
-    }
-
-    .bulk-actions__buttons {
-      @apply w-full justify-start;
+    .employee-container.grid-view {
+      grid-template-columns: 1fr;
     }
   }
 </style>

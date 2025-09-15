@@ -1,0 +1,165 @@
+table:
+  name: personal_information
+  schema: public
+configuration:
+  custom_root_fields:
+    select: personal_information
+    select_by_pk: personal_info
+    select_aggregate: personal_information_aggregate
+  custom_column_names: {}
+object_relationships:
+  - name: employee
+    using:
+      foreign_key_constraint_on: employee_id
+array_relationships: []
+select_permissions:
+  - role: employee
+    permission:
+      columns:
+        - id
+        - employee_id
+        - date_of_birth
+        - gender
+        - nationality
+        - marital_status
+        - preferred_language
+      filter:
+        employee_id: {_eq: "X-Hasura-User-Id"}
+      allow_aggregations: false
+    comment: Employees can see their own personal information
+  - role: hr_admin
+    permission:
+      columns:
+        - id
+        - employee_id
+        - date_of_birth
+        - gender
+        - nationality
+        - marital_status
+        - tax_id
+        - passport_number
+        - passport_expiry
+        - visa_status
+        - visa_expiry
+        - preferred_language
+        - dietary_restrictions
+        - medical_conditions
+        - notes
+      filter: {}
+      allow_aggregations: true
+    comment: HR admins have full access to personal information
+  - role: admin
+    permission:
+      columns: "*"
+      filter: {}
+      allow_aggregations: true
+    comment: Full access for administrators
+insert_permissions:
+  - role: employee
+    permission:
+      columns:
+        - date_of_birth
+        - gender
+        - nationality
+        - marital_status
+        - preferred_language
+        - dietary_restrictions
+      check:
+        employee_id: {_eq: "X-Hasura-User-Id"}
+    comment: Employees can create their own personal information (limited fields)
+  - role: hr_admin
+    permission:
+      columns:
+        - employee_id
+        - date_of_birth
+        - gender
+        - nationality
+        - marital_status
+        - tax_id
+        - passport_number
+        - passport_expiry
+        - visa_status
+        - visa_expiry
+        - preferred_language
+        - dietary_restrictions
+        - medical_conditions
+        - notes
+      check: {}
+    comment: HR admins can create personal information for any employee
+  - role: admin
+    permission:
+      columns:
+        - employee_id
+        - date_of_birth
+        - gender
+        - nationality
+        - marital_status
+        - tax_id
+        - passport_number
+        - passport_expiry
+        - visa_status
+        - visa_expiry
+        - preferred_language
+        - dietary_restrictions
+        - medical_conditions
+        - notes
+      check: {}
+    comment: Admins can create any personal information record
+update_permissions:
+  - role: employee
+    permission:
+      columns:
+        - gender
+        - nationality
+        - marital_status
+        - preferred_language
+        - dietary_restrictions
+      filter:
+        employee_id: {_eq: "X-Hasura-User-Id"}
+      check:
+        employee_id: {_eq: "X-Hasura-User-Id"}
+    comment: Employees can update limited personal information fields
+  - role: hr_admin
+    permission:
+      columns:
+        - date_of_birth
+        - gender
+        - nationality
+        - marital_status
+        - tax_id
+        - passport_number
+        - passport_expiry
+        - visa_status
+        - visa_expiry
+        - preferred_language
+        - dietary_restrictions
+        - medical_conditions
+        - notes
+      filter: {}
+      check: {}
+    comment: HR admins can update all personal information
+  - role: admin
+    permission:
+      columns:
+        - employee_id
+        - date_of_birth
+        - gender
+        - nationality
+        - marital_status
+        - tax_id
+        - passport_number
+        - passport_expiry
+        - visa_status
+        - visa_expiry
+        - preferred_language
+        - dietary_restrictions
+        - medical_conditions
+        - notes
+      filter: {}
+      check: {}
+    comment: Admins have full update access
+delete_permissions:
+  - role: admin
+    permission:
+      filter: {}
+    comment: Only admins can delete personal information records

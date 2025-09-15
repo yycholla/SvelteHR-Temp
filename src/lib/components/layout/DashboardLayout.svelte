@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
-  import { auth, currentUser, isLoggedIn } from '$lib/services/auth';
+  import { auth, currentUser, isLoggedIn, hasPermission } from '$lib/services/auth';
+  import { permissionsService, isAdmin, isHRManager, isManager } from '$lib/services/permissionsService';
   import { notifications, unreadCount } from '$lib/services/notificationService';
   import { goto } from '$app/navigation';
   import type { User } from '$lib/types';
@@ -85,6 +86,17 @@
         ]
       },
       {
+        name: 'Onboarding',
+        href: '/onboarding',
+        icon: 'user-plus',
+        children: [
+          { name: 'All Onboarding', href: '/onboarding', icon: 'list', requiredPermission: 'onboarding:read' },
+          { name: 'Start Onboarding', href: '/onboarding/new', icon: 'plus', requiredPermission: 'onboarding:create' },
+          { name: 'My Onboarding Tasks', href: '/onboarding/my-tasks', icon: 'user-check' },
+          { name: 'Templates', href: '/onboarding/templates', icon: 'clipboard', requiredPermission: 'onboarding:update' }
+        ]
+      },
+      {
         name: 'HR Requests',
         href: '/hr-requests',
         icon: 'clipboard-list',
@@ -98,13 +110,13 @@
     ];
 
     // Admin-only items
-    if (user?.roles.some(role => role.name === 'admin')) {
+    if (user && ($isAdmin || permissionsService.hasPermission('system', 'configure'))) {
       items.push({
         name: 'Administration',
         href: '/admin',
         icon: 'settings',
         children: [
-          { name: 'User Management', href: '/admin/users', icon: 'users-cog' },
+          { name: 'Dashboard', href: '/admin', icon: 'layout-dashboard' },
           { name: 'Role Management', href: '/admin/roles', icon: 'shield' },
           { name: 'System Settings', href: '/admin/settings', icon: 'cog' },
           { name: 'Audit Logs', href: '/admin/audit', icon: 'file-search' },
@@ -120,11 +132,25 @@
     if (!user) return false;
     
     if (item.requiredRole) {
-      return user.roles.some(role => role.name === item.requiredRole);
+      // Check using new permissions service role methods
+      switch (item.requiredRole) {
+        case 'admin':
+          return permissionsService.isSuperAdmin(user);
+        case 'hr_manager':
+          return permissionsService.isHRManager(user);
+        case 'manager':
+          return permissionsService.isManager(user);
+        case 'finance_manager':
+          // For now, treat finance_manager as hr_manager
+          return permissionsService.isHRManager(user) || permissionsService.isSuperAdmin(user);
+        default:
+          return false;
+      }
     }
     
     if (item.requiredPermission) {
-      return user.permissions.some(permission => permission.name === item.requiredPermission);
+      // Use the enhanced permission system
+      return hasPermission(item.requiredPermission);
     }
     
     return true;
@@ -159,7 +185,11 @@
       '/admin/roles': 'Role Management',
       '/admin/settings': 'System Settings',
       '/admin/audit': 'Audit Logs',
-      '/admin/analytics': 'Analytics'
+      '/admin/analytics': 'Analytics',
+      '/onboarding': 'Onboarding',
+      '/onboarding/new': 'Start Onboarding',
+      '/onboarding/templates': 'Onboarding Templates',
+      '/onboarding/my-tasks': 'My Onboarding Tasks'
     };
     
     return titles[path] || 'MountainHR';

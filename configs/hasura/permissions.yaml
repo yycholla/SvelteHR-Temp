@@ -1,0 +1,283 @@
+# =============================================================================
+# Hasura Permissions Configuration for SvelteHR
+# This defines GraphQL-level permissions for different user roles
+# Works in conjunction with Row-Level Security policies
+# =============================================================================
+
+# User Role Permissions
+user_permissions:
+  users:
+    select:
+      columns: [id, email, display_name, onboarding_status, job_title, is_active, created_at]
+      filter:
+        id: { _eq: "X-Hasura-User-Id" }
+      limit: 1
+    update:
+      columns: [display_name, job_title]  # Users can only update non-sensitive fields
+      filter:
+        id: { _eq: "X-Hasura-User-Id" }
+      check:
+        id: { _eq: "X-Hasura-User-Id" }
+
+  job_information:
+    select:
+      columns: [id, job_title, hire_date, employment_type, work_location, work_schedule, is_remote]
+      filter:
+        employee_id: { _eq: "X-Hasura-User-Id" }
+
+  compensation:
+    select:
+      columns: [id, pay_rate, pay_type, currency, bonus_eligible, overtime_eligible]
+      filter:
+        employee_id: { _eq: "X-Hasura-User-Id" }
+      # Note: Sensitive fields like bank info are excluded
+
+  contact_information:
+    select:
+      columns: "*"
+      filter:
+        employee_id: { _eq: "X-Hasura-User-Id" }
+    update:
+      columns: [email, phone_number, address_street, address_city, address_state, address_zip, emergency_contact_name, emergency_contact_relationship, emergency_contact_phone]
+      filter:
+        employee_id: { _eq: "X-Hasura-User-Id" }
+
+  departments:
+    select:
+      columns: [id, name, description, is_active]
+      filter:
+        is_active: { _eq: true }
+
+  user_role_assignments:
+    select:
+      columns: [id, role_id, assigned_at, is_active]
+      filter:
+        user_id: { _eq: "X-Hasura-User-Id" }
+
+  user_roles:
+    select:
+      columns: [id, name, description, level]
+
+# HR Manager Role Permissions
+hr_manager_permissions:
+  users:
+    select:
+      columns: [id, email, display_name, onboarding_status, job_title, is_active, created_at, updated_at]
+      filter:
+        _or:
+          - id: { _eq: "X-Hasura-User-Id" }
+          - job_information:
+              department:
+                manager_id: { _eq: "X-Hasura-User-Id" }
+    update:
+      columns: [display_name, job_title, onboarding_status]
+      filter:
+        job_information:
+          department:
+            manager_id: { _eq: "X-Hasura-User-Id" }
+
+  job_information:
+    select:
+      columns: "*"
+      filter:
+        _or:
+          - employee_id: { _eq: "X-Hasura-User-Id" }
+          - department:
+              manager_id: { _eq: "X-Hasura-User-Id" }
+    update:
+      columns: [job_title, employment_type, work_location, work_schedule, is_remote]
+      filter:
+        department:
+          manager_id: { _eq: "X-Hasura-User-Id" }
+
+  contact_information:
+    select:
+      columns: [id, email, phone_number, work_phone_number, emergency_contact_name, emergency_contact_phone]
+      filter:
+        _or:
+          - employee_id: { _eq: "X-Hasura-User-Id" }
+          - employee:
+              job_information:
+                department:
+                  manager_id: { _eq: "X-Hasura-User-Id" }
+
+  departments:
+    select:
+      columns: "*"
+      filter:
+        _or:
+          - manager_id: { _eq: "X-Hasura-User-Id" }
+          - is_active: { _eq: true }
+    update:
+      columns: [description, budget]
+      filter:
+        manager_id: { _eq: "X-Hasura-User-Id" }
+
+# HR Administrator Role Permissions (Full Access)
+hr_admin_permissions:
+  users:
+    select:
+      columns: "*"
+    insert:
+      columns: [email, password_hash, display_name, job_title, onboarding_status, is_active]
+      check: {}
+    update:
+      columns: "*"
+      filter: {}
+    delete:
+      filter: {}
+
+  job_information:
+    select:
+      columns: "*"
+    insert:
+      columns: "*"
+      check: {}
+    update:
+      columns: "*"
+      filter: {}
+    delete:
+      filter: {}
+
+  compensation:
+    select:
+      columns: "*"
+    insert:
+      columns: "*"
+      check: {}
+    update:
+      columns: "*"
+      filter: {}
+    delete:
+      filter: {}
+
+  contact_information:
+    select:
+      columns: "*"
+    insert:
+      columns: "*"
+      check: {}
+    update:
+      columns: "*"
+      filter: {}
+    delete:
+      filter: {}
+
+  personal_information:
+    select:
+      columns: "*"
+    insert:
+      columns: "*"
+      check: {}
+    update:
+      columns: "*"
+      filter: {}
+    delete:
+      filter: {}
+
+  departments:
+    select:
+      columns: "*"
+    insert:
+      columns: "*"
+      check: {}
+    update:
+      columns: "*"
+      filter: {}
+    delete:
+      filter: {}
+
+  user_role_assignments:
+    select:
+      columns: "*"
+    insert:
+      columns: "*"
+      check: {}
+    update:
+      columns: "*"
+      filter: {}
+    delete:
+      filter: {}
+
+# System Administrator Role (Full System Access)
+admin_permissions:
+  # Inherits all hr_admin permissions plus:
+  auth_sessions:
+    select:
+      columns: "*"
+    update:
+      columns: [is_active]
+      filter: {}
+    delete:
+      filter: {}
+
+  user_roles:
+    select:
+      columns: "*"
+    insert:
+      columns: "*"
+      check: {}
+    update:
+      columns: "*"
+      filter: {}
+    delete:
+      filter: {}
+
+  audit_log:
+    select:
+      columns: "*"
+
+# Finance Role Permissions (Limited to Compensation)
+finance_permissions:
+  users:
+    select:
+      columns: [id, email, display_name, job_title, is_active]
+
+  compensation:
+    select:
+      columns: "*"
+    update:
+      columns: [pay_rate, pay_type, currency, bonus_eligible, overtime_eligible, bank_account_number, bank_routing_number, bank_name, direct_deposit_enabled]
+      filter: {}
+
+  job_information:
+    select:
+      columns: [id, employee_id, job_title, hire_date, employment_type, department_id]
+
+# Anonymous Role (Public Access - Very Limited)
+anonymous_permissions:
+  # No table access for anonymous users in HR system
+  # All operations must go through authentication
+
+# Role Hierarchy and Inheritance
+role_hierarchy:
+  - role: anonymous
+    level: 0
+    inherits: []
+    
+  - role: user  
+    level: 10
+    inherits: [anonymous]
+    
+  - role: hr_manager
+    level: 50
+    inherits: [user]
+    
+  - role: finance
+    level: 60
+    inherits: [user]
+    
+  - role: hr_admin
+    level: 80
+    inherits: [hr_manager, finance]
+    
+  - role: admin
+    level: 100
+    inherits: [hr_admin]
+
+# Security Notes:
+# 1. All permissions work with Row-Level Security policies
+# 2. JWT tokens must include proper role claims
+# 3. Sensitive fields are excluded from lower privilege roles
+# 4. Audit trails are admin-only for security
+# 5. Anonymous role has no data access for security

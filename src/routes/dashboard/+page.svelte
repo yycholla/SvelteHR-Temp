@@ -1,57 +1,36 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { currentUser, hasPermission } from '$lib/services/auth';
-  import { 
-    userService, 
-    users, 
-    getActiveUserCount, 
-    getNewHiresCount 
-  } from '$lib/services/userService';
-  import { 
-    taskService, 
-    myTasks, 
-    assignedTasks, 
-    getOverdueTasks,
-    getTasksCompletedThisWeek 
-  } from '$lib/services/taskService';
-  import { 
-    leaveService, 
-    myLeaveRequests,
-    pendingLeaveRequests,
-    getUpcomingLeaves 
-  } from '$lib/services/leaveService';
-  import { 
-    attendanceService, 
-    getTodaysAttendanceStats,
-    getWeeklyAttendanceStats 
-  } from '$lib/services/attendanceService';
-  import { 
-    notificationService, 
-    unreadNotifications, 
-    unreadCount 
-  } from '$lib/services/notificationService';
-  import Card from '$lib/components/base/Card.svelte';
-  import Button from '$lib/components/base/Button.svelte';
-  import Badge from '$lib/components/base/Badge.svelte';
-  import DataTable from '$lib/components/tables/DataTable.svelte';
-  import type { Column } from '$lib/components/tables/DataTable.svelte';
-  import type { Task, LeaveRequest, Notification, AttendanceStats } from '$lib/types';
+  import { query } from '@urql/svelte';
+  import { currentUser, hasPermission, hasRole } from '$lib/stores/auth';
+  import { GET_DASHBOARD_STATS } from '$lib/graphql/hasura-operations';
+  import RoleGuard from '$lib/components/auth/RoleGuard.svelte';
+  import EmployeeList from '$lib/components/employees/EmployeeList.svelte';
 
-  // Dashboard stats
-  let dashboardStats = {
-    totalEmployees: 0,
-    activeEmployees: 0,
-    newHires: 0,
-    myTasks: 0,
-    overdueTasks: 0,
-    pendingLeaveRequests: 0,
-    todaysAttendance: 0,
-    weeklyTasksCompleted: 0
-  };
+  /**
+   * HR Dashboard
+   * Real-time analytics and quick actions for HR management
+   */
 
-  let attendanceStats: AttendanceStats | null = null;
-  let loading = true;
+  // Execute GraphQL query for dashboard stats
+  const dashboardQuery = query(GET_DASHBOARD_STATS, {});
+  $: dashboardData = $dashboardQuery.data;
+  $: loading = $dashboardQuery.fetching;
+
+  // Transform GraphQL data for dashboard stats
+  $: dashboardStats = $derived(() => {
+    if (!dashboardData) return {};
+    
+    return {
+      totalEmployees: dashboardData.totalEmployees?.aggregate?.count || 0,
+      activeEmployees: dashboardData.activeEmployees?.aggregate?.count || 0,
+      pendingOnboarding: dashboardData.pendingOnboarding?.aggregate?.count || 0,
+      departmentCount: dashboardData.departmentCount?.aggregate?.count || 0
+    };
+  });
+
+  // Recent hires from dashboard data
+  $: recentHires = dashboardData?.recentHires || [];
 
   // Quick actions for different user roles
   $: quickActions = getQuickActions($currentUser);
@@ -59,141 +38,58 @@
   function getQuickActions(user: any) {
     const actions = [
       {
-        title: 'Submit Leave Request',
-        description: 'Request time off',
-        icon: 'calendar-plus',
-        href: '/leave/new',
+        title: 'View Profile',
+        description: 'Update your information',
+        icon: 'user',
+        href: '/profile',
         variant: 'primary' as const
       },
       {
-        title: 'View My Tasks',
-        description: 'Check assigned tasks',
-        icon: 'check-square',
-        href: '/tasks/my',
+        title: 'Directory',
+        description: 'Browse employees',
+        icon: 'users',
+        href: '/employees',
         variant: 'secondary' as const
       }
     ];
 
-    if (user && hasPermission('user:create')) {
+    if (user && hasRole('hr_admin')) {
       actions.push({
-        title: 'Add Employee',
-        description: 'Create new employee',
-        icon: 'user-plus',
-        href: '/employees/new',
+        title: 'Manage Employees',
+        description: 'HR management tools',
+        icon: 'user-cog',
+        href: '/admin/employees',
         variant: 'success' as const
+      });
+      actions.push({
+        title: 'Departments',
+        description: 'Manage departments',
+        icon: 'building',
+        href: '/departments',
+        variant: 'warning' as const
       });
     }
 
-    if (user && hasPermission('hr_request:process')) {
+    if (user && hasRole('admin')) {
       actions.push({
-        title: 'HR Requests',
-        description: 'Process requests',
-        icon: 'clipboard-list',
-        href: '/hr-requests/assigned',
-        variant: 'warning' as const
+        title: 'System Admin',
+        description: 'System settings',
+        icon: 'settings',
+        href: '/admin',
+        variant: 'danger' as const
       });
     }
 
     return actions;
   }
 
-  // Table configurations
-  const taskColumns: Column[] = [
-    { key: 'title', label: 'Task', sortable: true, type: 'text' },
-    { key: 'priority', label: 'Priority', sortable: true, type: 'badge' },
-    { key: 'dueDate', label: 'Due Date', sortable: true, type: 'date' },
-    { key: 'status', label: 'Status', sortable: true, type: 'badge' }
-  ];
-
-  const leaveColumns: Column[] = [
-    { key: 'type', label: 'Type', sortable: true, type: 'text' },
-    { key: 'startDate', label: 'Start Date', sortable: true, type: 'date' },
-    { key: 'endDate', label: 'End Date', sortable: true, type: 'date' },
-    { key: 'status', label: 'Status', sortable: true, type: 'badge' }
-  ];
-
-  const notificationColumns: Column[] = [
-    { key: 'title', label: 'Title', sortable: true, type: 'text' },
-    { key: 'message', label: 'Message', sortable: false, type: 'text' },
-    { key: 'createdAt', label: 'Date', sortable: true, type: 'date' }
-  ];
-
-  async function loadDashboardData() {
-    try {
-      loading = true;
-
-      // Load basic data in parallel
-      const [
-        usersResult,
-        myTasksResult,
-        myLeaveResult,
-        notificationsResult
-      ] = await Promise.allSettled([
-        userService.loadUsers({ reset: true }),
-        taskService.loadMyTasks(),
-        leaveService.loadMyLeaveRequests(),
-        notificationService.loadNotifications({ reset: true })
-      ]);
-
-      // Update dashboard stats
-      dashboardStats = {
-        totalEmployees: userService.getTotalUsers(),
-        activeEmployees: userService.getActiveUserCount(),
-        newHires: userService.getNewHiresCount(30),
-        myTasks: $myTasks.filter(t => t.status !== 'COMPLETED').length,
-        overdueTasks: getOverdueTasks().length,
-        pendingLeaveRequests: $pendingLeaveRequests.length,
-        todaysAttendance: 0, // Will be updated below
-        weeklyTasksCompleted: getTasksCompletedThisWeek().length
-      };
-
-      // Load attendance stats if user has permission
-      if ($currentUser && hasPermission('attendance:view_team')) {
-        try {
-          attendanceStats = await getTodaysAttendanceStats();
-          dashboardStats.todaysAttendance = attendanceStats?.presentCount || 0;
-        } catch (error) {
-          console.error('Failed to load attendance stats:', error);
-        }
-      }
-
-    } catch (error) {
-      console.error('Failed to load dashboard data:', error);
-    } finally {
-      loading = false;
-    }
-  }
-
-  function handleTaskRowClick(event: CustomEvent) {
-    const { row } = event.detail;
-    goto(`/tasks/${row.id}`);
-  }
-
-  function handleLeaveRowClick(event: CustomEvent) {
-    const { row } = event.detail;
-    goto(`/leave/requests/${row.id}`);
-  }
-
-  function handleNotificationClick(notification: Notification) {
-    // Mark as read
-    notificationService.markNotificationAsRead(notification.id);
-    
-    // Navigate if there's an action URL
-    if (notification.actionUrl) {
-      goto(notification.actionUrl);
-    }
-  }
-
+  // Utility functions for dashboard stats
   function getStatIcon(statKey: string): string {
     const icons = {
       totalEmployees: 'users',
       activeEmployees: 'user-check',
-      newHires: 'user-plus',
-      myTasks: 'check-square',
-      overdueTasks: 'alert-triangle',
-      pendingLeaveRequests: 'calendar-x',
-      todaysAttendance: 'clock',
-      weeklyTasksCompleted: 'trending-up'
+      pendingOnboarding: 'user-plus',
+      departmentCount: 'building'
     };
     return icons[statKey] || 'help-circle';
   }
@@ -202,12 +98,8 @@
     const colors = {
       totalEmployees: 'blue',
       activeEmployees: 'green',
-      newHires: 'purple',
-      myTasks: 'yellow',
-      overdueTasks: 'red',
-      pendingLeaveRequests: 'orange',
-      todaysAttendance: 'cyan',
-      weeklyTasksCompleted: 'green'
+      pendingOnboarding: 'yellow',
+      departmentCount: 'purple'
     };
     return colors[statKey] || 'gray';
   }
@@ -215,35 +107,47 @@
   function formatStatLabel(statKey: string): string {
     const labels = {
       totalEmployees: 'Total Employees',
-      activeEmployees: 'Active Employees',
-      newHires: 'New Hires (30d)',
-      myTasks: 'My Active Tasks',
-      overdueTasks: 'Overdue Tasks',
-      pendingLeaveRequests: 'Pending Leave',
-      todaysAttendance: 'Present Today',
-      weeklyTasksCompleted: 'Tasks Done This Week'
+      activeEmployees: 'Active Employees', 
+      pendingOnboarding: 'Pending Onboarding',
+      departmentCount: 'Departments'
     };
     return labels[statKey] || statKey;
   }
 
+  // Refresh dashboard data
+  const refreshDashboard = () => {
+    $dashboardQuery.rerun({ requestPolicy: 'network-only' });
+  };
+
   onMount(() => {
-    loadDashboardData();
+    // Dashboard initialization - user data loaded by auth service
   });
 </script>
 
 <div class="dashboard">
-  <div class="dashboard__header">
-    <div class="dashboard__welcome">
-      <h1 class="dashboard__title">
-        Welcome back, {$currentUser?.firstName || 'User'}!
+  <div class="dashboard-header">
+    <div class="welcome-section">
+      <h1 class="dashboard-title">
+        Welcome back, {$currentUser?.displayName || 'User'}!
       </h1>
-      <p class="dashboard__subtitle">
-        Here's what's happening at your organization today.
+      <p class="dashboard-subtitle">
+        Here's your HR dashboard overview for today.
       </p>
     </div>
 
-    <div class="dashboard__date">
-      <span class="dashboard__date-text">
+    <div class="date-section">
+      <button 
+        class="refresh-btn" 
+        onclick={refreshDashboard}
+        disabled={loading}
+        title="Refresh dashboard data"
+      >
+        <svg class="refresh-icon" class:spinning={loading} width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+        </svg>
+        Refresh
+      </button>
+      <span class="date-text">
         {new Date().toLocaleDateString('en-US', {
           weekday: 'long',
           year: 'numeric',
@@ -254,203 +158,355 @@
     </div>
   </div>
 
-  <!-- Quick Stats -->
-  <div class="dashboard__stats">
-    {#each Object.entries(dashboardStats) as [key, value]}
-      {#if key !== 'todaysAttendance' || ($currentUser && hasPermission('attendance:view_team'))}
-        <Card hoverable clickable padding="lg" class="stat-card">
-          <div class="stat-card__content">
-            <div class="stat-card__icon stat-card__icon--{getStatColor(key)}">
-              <i class="icon-{getStatIcon(key)}"></i>
-            </div>
-            <div class="stat-card__info">
-              <div class="stat-card__value">{value}</div>
-              <div class="stat-card__label">{formatStatLabel(key)}</div>
-            </div>
-          </div>
-        </Card>
-      {/if}
-    {/each}
-  </div>
+  <!-- Loading State -->
+  {#if loading && !dashboardData}
+    <div class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>Loading dashboard...</p>
+    </div>
+  {/if}
 
-  <!-- Quick Actions -->
-  <div class="dashboard__section">
-    <h2 class="dashboard__section-title">Quick Actions</h2>
-    <div class="quick-actions">
-      {#each quickActions as action}
-        <Card hoverable clickable padding="lg" class="action-card">
-          <div 
-            class="action-card__content" 
-            on:click={() => goto(action.href)}
-            on:keydown={(e) => e.key === 'Enter' || e.key === ' ' ? goto(action.href) : null}
-            role="button"
-            tabindex="0"
-            aria-label="{action.title} - {action.description}"
-          >
-            <div class="action-card__icon action-card__icon--{action.variant}">
-              <i class="icon-{action.icon}"></i>
+  <!-- Error State -->
+  {#if $dashboardQuery.error}
+    <div class="error-container">
+      <h3>Failed to load dashboard</h3>
+      <p>{$dashboardQuery.error.message}</p>
+      <button class="btn-primary" onclick={refreshDashboard}>
+        Try Again
+      </button>
+    </div>
+  {/if}
+
+  <!-- Dashboard Content -->
+  {#if !loading || dashboardData}
+    <!-- Quick Stats -->
+    <div class="stats-grid">
+      {#each Object.entries(dashboardStats()) as [key, value]}
+        <div class="stat-card">
+          <div class="stat-content">
+            <div class="stat-icon stat-icon--{getStatColor(key)}">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                {#if getStatIcon(key) === 'users'}
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="m22 21-3-3m0 0a2 2 0 0 0 0-4 2 2 0 0 0 0 4z"></path>
+                {:else if getStatIcon(key) === 'user-check'}
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="8.5" cy="7" r="4"></circle>
+                  <path d="m17 11 2 2 4-4"></path>
+                {:else if getStatIcon(key) === 'user-plus'}
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="8.5" cy="7" r="4"></circle>
+                  <line x1="20" x2="20" y1="8" y2="14"></line>
+                  <line x1="23" x2="17" y1="11" y2="11"></line>
+                {:else if getStatIcon(key) === 'building'}
+                  <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path>
+                  <path d="M6 12H4a2 2 0 0 0-2 2v8h4"></path>
+                  <path d="M18 9h2a2 2 0 0 1 2 2v11h-4"></path>
+                  <path d="M10 6h4"></path>
+                  <path d="M10 10h4"></path>
+                  <path d="M10 14h4"></path>
+                  <path d="M10 18h4"></path>
+                {/if}
+              </svg>
             </div>
-            <div class="action-card__info">
-              <div class="action-card__title">{action.title}</div>
-              <div class="action-card__description">{action.description}</div>
-            </div>
-            <div class="action-card__arrow">
-              <i class="icon-arrow-right"></i>
+            <div class="stat-info">
+              <div class="stat-value">{value}</div>
+              <div class="stat-label">{formatStatLabel(key)}</div>
             </div>
           </div>
-        </Card>
+        </div>
       {/each}
     </div>
-  </div>
 
-  <!-- Dashboard Content Grid -->
-  <div class="dashboard__content">
-    <!-- My Tasks -->
-    <div class="dashboard__widget">
-      <Card padding="none" class="widget-card">
-        <div class="widget-header">
-          <h3 class="widget-title">My Recent Tasks</h3>
-          <Button
-            variant="ghost"
-            size="sm"
-            rightIcon="arrow-right"
-            href="/tasks/my"
+    <!-- Quick Actions -->
+    <div class="quick-actions-section">
+      <h2 class="section-title">Quick Actions</h2>
+      <div class="actions-grid">
+        {#each quickActions as action}
+          <button 
+            class="action-card action-card--{action.variant}" 
+            onclick={() => goto(action.href)}
           >
-            View All
-          </Button>
-        </div>
-
-        <div class="widget-content">
-          <DataTable
-            data={$myTasks.slice(0, 5)}
-            columns={taskColumns}
-            {loading}
-            compact={true}
-            hoverable={true}
-            emptyMessage="No tasks assigned"
-            on:rowClick={handleTaskRowClick}
-          />
-        </div>
-      </Card>
+            <div class="action-content">
+              <div class="action-icon">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                  {#if action.icon === 'user'}
+                    <path d="M10 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10Z"/>
+                    <path d="M17.5 18a7.5 7.5 0 1 0-15 0h15Z"/>
+                  {:else if action.icon === 'users'}
+                    <path d="M7 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM14 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/>
+                    <path d="M11 14H3a1 1 0 0 0-1 1v3h20v-3a1 1 0 0 0-1-1h-8a1 1 0 0 1-1-1 1 1 0 0 1 1-1Z"/>
+                  {:else if action.icon === 'user-cog'}
+                    <path d="M10 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10Z"/>
+                    <path d="M17.5 18a7.5 7.5 0 1 0-15 0h15Z"/>
+                    <path d="M15 8a1 1 0 0 1 1-1h2a1 1 0 0 1 0 2h-2a1 1 0 0 1-1-1Z"/>
+                  {:else if action.icon === 'building'}
+                    <path d="M3 21h4V9H3v12ZM9 21h4V3H9v18ZM15 21h4v-8h-4v8Z"/>
+                  {:else if action.icon === 'settings'}
+                    <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-1.42 3.42h-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-3.42-1.42v-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 1.42-3.42h.06a1.65 1.65 0 0 0 1.82.33H8a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 3.42 1.42v.06a1.65 1.65 0 0 0-.33 1.82 1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/>
+                  {/if}
+                </svg>
+              </div>
+              <div class="action-info">
+                <div class="action-title">{action.title}</div>
+                <div class="action-description">{action.description}</div>
+              </div>
+              <div class="action-arrow">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 1 1-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/>
+                </svg>
+              </div>
+            </div>
+          </button>
+        {/each}
+      </div>
     </div>
 
-    <!-- Leave Requests -->
-    <div class="dashboard__widget">
-      <Card padding="none" class="widget-card">
-        <div class="widget-header">
-          <h3 class="widget-title">My Leave Requests</h3>
-          <Button
-            variant="ghost"
-            size="sm"
-            rightIcon="arrow-right"
-            href="/leave/requests"
-          >
-            View All
-          </Button>
-        </div>
-
-        <div class="widget-content">
-          <DataTable
-            data={$myLeaveRequests.slice(0, 5)}
-            columns={leaveColumns}
-            {loading}
-            compact={true}
-            hoverable={true}
-            emptyMessage="No leave requests"
-            on:rowClick={handleLeaveRowClick}
-          />
-        </div>
-      </Card>
-    </div>
-
-    <!-- Recent Notifications -->
-    <div class="dashboard__widget dashboard__widget--full-width">
-      <Card padding="none" class="widget-card">
-        <div class="widget-header">
-          <h3 class="widget-title">
-            Recent Notifications
-            {#if $unreadCount > 0}
-              <Badge variant="danger" size="sm">{$unreadCount}</Badge>
-            {/if}
-          </h3>
-          <Button
-            variant="ghost"
-            size="sm"
-            rightIcon="arrow-right"
-            href="/notifications"
-          >
-            View All
-          </Button>
-        </div>
-
-        <div class="widget-content">
-          {#if $unreadNotifications.length > 0}
-            <div class="notification-list">
-              {#each $unreadNotifications.slice(0, 4) as notification}
-                <div 
-                  class="notification-item"
-                  class:notification-item--unread={!notification.isRead}
-                  on:click={() => handleNotificationClick(notification)}
-                  on:keydown={(e) => e.key === 'Enter' || e.key === ' ' ? handleNotificationClick(notification) : null}
-                  role="button"
-                  tabindex="0"
-                  aria-label="{notification.title} - {notification.message}"
-                >
-                  <div class="notification-item__icon">
-                    <i class="icon-{notification.type}"></i>
-                  </div>
-                  <div class="notification-item__content">
-                    <div class="notification-item__title">{notification.title}</div>
-                    <div class="notification-item__message">{notification.message}</div>
-                    <div class="notification-item__time">
-                      {new Date(notification.createdAt).toLocaleDateString()}
+    <!-- Recent Hires -->
+    <div class="content-section">
+      <div class="content-grid">
+        <div class="content-card">
+          <div class="card-header">
+            <h3 class="card-title">Recent Hires (30 days)</h3>
+            <button class="view-all-link" onclick={() => goto('/employees')}>
+              View All →
+            </button>
+          </div>
+          <div class="card-content">
+            {#if recentHires.length > 0}
+              <div class="hire-list">
+                {#each recentHires as hire}
+                  <div class="hire-item">
+                    <div class="hire-avatar">
+                      {hire.displayName?.charAt(0) || '?'}
+                    </div>
+                    <div class="hire-info">
+                      <div class="hire-name">{hire.displayName}</div>
+                      <div class="hire-title">{hire.jobTitle}</div>
+                      {#if hire.department}
+                        <div class="hire-department">{hire.department.name}</div>
+                      {/if}
+                      <div class="hire-date">
+                        Started: {new Date(hire.createdAt).toLocaleDateString()}
+                      </div>
                     </div>
                   </div>
-                  {#if !notification.isRead}
-                    <div class="notification-item__dot"></div>
-                  {/if}
-                </div>
-              {/each}
-            </div>
-          {:else}
-            <div class="empty-state">
-              <div class="empty-state__icon">
-                <i class="icon-bell-off"></i>
+                {/each}
               </div>
-              <div class="empty-state__message">No new notifications</div>
-            </div>
-          {/if}
+            {:else}
+              <div class="empty-state">
+                <div class="empty-icon">
+                  <svg width="48" height="48" viewBox="0 0 48 48" fill="currentColor">
+                    <path d="M24 30a6 6 0 1 1 0-12 6 6 0 0 1 0 12Z"/>
+                    <path d="M35 42v-4a8 8 0 0 0-8-8h-6a8 8 0 0 0-8 8v4h22Z"/>
+                    <path d="M32 18a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z"/>
+                    <path d="M40 30v4h6v-4h-6ZM36 28h2v8h-2v-8Z"/>
+                  </svg>
+                </div>
+                <div class="empty-message">No new hires in the last 30 days</div>
+              </div>
+            {/if}
+          </div>
         </div>
-      </Card>
+
+        <!-- Employee Directory Preview -->
+        <RoleGuard permissions={['hr:view', 'admin:*']}>
+          <div class="content-card content-card--large">
+            <div class="card-header">
+              <h3 class="card-title">Employee Directory</h3>
+              <button class="view-all-link" onclick={() => goto('/employees')}>
+                Manage All →
+              </button>
+            </div>
+            <div class="card-content">
+              <EmployeeList 
+                compactView={true}
+                showFilters={false}
+                showAddButton={false}
+                maxHeight="400px"
+              />
+            </div>
+          </div>
+        </RoleGuard>
+      </div>
     </div>
-  </div>
+  {/if}
 </div>
 
-<style lang="postcss">
+<style>
   .dashboard {
-    @apply space-y-8;
+    padding: 1.5rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
   }
 
   /* Header */
-  .dashboard__header {
-    @apply flex items-start justify-between;
+  .dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 2rem;
+    flex-wrap: wrap;
   }
 
-  .dashboard__title {
-    @apply text-3xl font-bold text-gray-900;
+  .welcome-section {
+    flex: 1;
   }
 
-  .dashboard__subtitle {
-    @apply mt-1 text-lg text-gray-600;
+  .dashboard-title {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #111827;
+    line-height: 1.2;
   }
 
-  .dashboard__date-text {
-    @apply text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full;
+  .dashboard-subtitle {
+    margin: 0.5rem 0 0;
+    font-size: 1.125rem;
+    color: #6b7280;
+    line-height: 1.4;
+  }
+
+  .date-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .refresh-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    color: #374151;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .refresh-btn:hover {
+    background: #e5e7eb;
+  }
+
+  .refresh-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .refresh-icon.spinning {
+    animation: spin 1s linear infinite;
+  }
+
+  .date-text {
+    font-size: 0.875rem;
+    color: #6b7280;
+    background: #f9fafb;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    border: 1px solid #e5e7eb;
+  }
+
+  /* Loading and Error States */
+  .loading-container, .error-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    gap: 1rem;
+    color: #6b7280;
+  }
+
+  .loading-spinner {
+    width: 2rem;
+    height: 2rem;
+    border: 2px solid #e5e7eb;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  .btn-primary {
+    padding: 0.75rem 1.5rem;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-weight: 500;
+  }
+
+  .btn-primary:hover {
+    background: #2563eb;
   }
 
   /* Stats Grid */
-  .dashboard__stats {
-    @apply grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-4;
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .stat-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    transition: all 0.15s;
+  }
+
+  .stat-card:hover {
+    border-color: #d1d5db;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+
+  .stat-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .stat-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  .stat-icon--blue { background: #dbeafe; color: #2563eb; }
+  .stat-icon--green { background: #dcfce7; color: #16a34a; }
+  .stat-icon--yellow { background: #fef3c7; color: #d97706; }
+  .stat-icon--purple { background: #e9d5ff; color: #9333ea; }
+
+  .stat-info {
+    flex: 1;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #111827;
+    line-height: 1;
+  }
+
+  .stat-label {
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    color: #6b7280;
+    font-weight: 500;
   }
 
   .stat-card__content {
@@ -629,6 +685,92 @@
     .dashboard__widget--full-width {
       @apply col-span-1;
     }
+  }
+
+  /* Task List */
+  .task-list {
+    @apply divide-y divide-gray-200;
+  }
+
+  .task-item {
+    @apply flex items-center justify-between p-4 hover:bg-gray-50;
+  }
+
+  .task-item__content {
+    @apply flex-1;
+  }
+
+  .task-item__title {
+    @apply text-sm font-medium text-gray-900;
+  }
+
+  .task-item__meta {
+    @apply flex items-center space-x-3 mt-1;
+  }
+
+  .task-item__priority {
+    @apply text-xs px-2 py-1 rounded-full;
+  }
+
+  .priority--high {
+    @apply bg-red-100 text-red-800;
+  }
+
+  .priority--medium {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+
+  .priority--low {
+    @apply bg-green-100 text-green-800;
+  }
+
+  .task-item__date {
+    @apply text-xs text-gray-500;
+  }
+
+  .task-item__status {
+    @apply text-xs px-2 py-1 rounded-full;
+  }
+
+  .status--in-progress {
+    @apply bg-blue-100 text-blue-800;
+  }
+
+  .status--pending {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+
+  .status--completed {
+    @apply bg-green-100 text-green-800;
+  }
+
+  .status--approved {
+    @apply bg-green-100 text-green-800;
+  }
+
+  /* Leave List */
+  .leave-list {
+    @apply divide-y divide-gray-200;
+  }
+
+  .leave-item {
+    @apply flex items-center justify-between p-4 hover:bg-gray-50;
+  }
+
+  .leave-item__content {
+    @apply flex-1;
+  }
+
+  .leave-item__title {
+    @apply text-sm font-medium text-gray-900;
+  }
+
+  .leave-item__dates {
+    @apply text-xs text-gray-500 mt-1;
+  }
+
+  .leave-item__status {
+    @apply text-xs px-2 py-1 rounded-full;
   }
 
   /* Line clamp utility */

@@ -1,42 +1,59 @@
+import type { RequestHandler } from './$types';
+import { json } from '@sveltejs/kit';
+
 /**
- * Login API Endpoint - Direct EdgeQL Authentication
- * Handles user login using EdgeQL queries instead of GraphQL
+ * Login API Route
+ * Proxies login requests to the backend authentication service
  */
 
-import { json } from '@sveltejs/kit';
-import type { RequestHandler } from './$types';
-import { authService } from '$lib/auth/service';
+const BACKEND_URL = 'http://localhost:3001';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
   try {
-    const { email, password } = await request.json();
-
-    if (!email || !password) {
-      return json({ error: 'Email and password are required' }, { status: 400 });
-    }
-
-    const authResult = await authService.authenticate(email, password);
-
-    if (!authResult) {
-      return json({ error: 'Invalid email or password' }, { status: 401 });
-    }
-
-    // Set httpOnly cookie with auth token
-    cookies.set('auth-token', authResult.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 15 // 15 minutes
+    const body = await request.json();
+    
+    // Forward request to backend
+    const response = await fetch(`${BACKEND_URL}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
     });
 
-    return json({
-      success: true,
-      user: authResult.user,
-      expiresAt: authResult.expiresAt
-    });
+    const data = await response.json();
+
+    if (response.ok && data.success) {
+      // Set refresh token as httpOnly cookie for security
+      if (data.refreshToken) {
+        cookies.set('refreshToken', data.refreshToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: body.rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60, // 30 days or 7 days
+          path: '/',
+        });
+      }
+
+      // Return response without refresh token (it's in httpOnly cookie)
+      return json({
+        success: true,
+        accessToken: data.accessToken,
+        user: data.user,
+        expiresIn: data.expiresIn,
+        sessionId: data.sessionId,
+      });
+    }
+
+    return json(data, { status: response.status });
   } catch (error) {
-    console.error('Login error:', error);
-    return json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Login API error:', error);
+    return json(
+      { 
+        success: false, 
+        error: 'Authentication service unavailable' 
+      }, 
+      { status: 500 }
+    );
   }
 };

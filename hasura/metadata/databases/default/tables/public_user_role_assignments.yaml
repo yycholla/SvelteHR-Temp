@@ -1,0 +1,132 @@
+table:
+  name: user_role_assignments
+  schema: public
+configuration:
+  custom_root_fields:
+    select: user_role_assignments
+    select_by_pk: user_role_assignment
+    select_aggregate: user_role_assignments_aggregate
+  custom_column_names: {}
+object_relationships:
+  - name: user
+    using:
+      foreign_key_constraint_on: user_id
+  - name: role
+    using:
+      foreign_key_constraint_on: role_id
+  - name: assigned_by_user
+    using:
+      foreign_key_constraint_on: assigned_by
+array_relationships: []
+select_permissions:
+  - role: employee
+    permission:
+      columns:
+        - id
+        - user_id
+        - role_id
+        - is_active
+        - assigned_at
+      filter:
+        user_id: {_eq: "X-Hasura-User-Id"}
+      allow_aggregations: false
+    comment: Employees can only see their own role assignments
+  - role: manager
+    permission:
+      columns:
+        - id
+        - user_id
+        - role_id
+        - is_active
+        - assigned_at
+        - expires_at
+      filter:
+        _or:
+          - user_id: {_eq: "X-Hasura-User-Id"}
+          - user:
+              job_information:
+                department:
+                  manager_id: {_eq: "X-Hasura-User-Id"}
+      allow_aggregations: true
+    comment: Managers can see role assignments for themselves and their department employees
+  - role: hr_admin
+    permission:
+      columns:
+        - id
+        - user_id
+        - role_id
+        - is_active
+        - assigned_at
+        - expires_at
+        - assigned_by
+        - notes
+      filter: {}
+      allow_aggregations: true
+    comment: HR admins can see all role assignments
+  - role: admin
+    permission:
+      columns: "*"
+      filter: {}
+      allow_aggregations: true
+    comment: Full access for administrators
+insert_permissions:
+  - role: hr_admin
+    permission:
+      columns:
+        - user_id
+        - role_id
+        - is_active
+        - expires_at
+        - notes
+      check:
+        role:
+          level: {_lt: 80}  # HR admins cannot assign admin-level roles
+    comment: HR admins can assign non-admin roles
+  - role: admin
+    permission:
+      columns:
+        - user_id
+        - role_id
+        - is_active
+        - expires_at
+        - assigned_by
+        - notes
+      check: {}
+    comment: Admins can assign any role
+update_permissions:
+  - role: hr_admin
+    permission:
+      columns:
+        - is_active
+        - expires_at
+        - notes
+      filter:
+        role:
+          level: {_lt: 80}  # Cannot modify admin-level role assignments
+      check:
+        role:
+          level: {_lt: 80}
+    comment: HR admins can modify non-admin role assignments
+  - role: admin
+    permission:
+      columns:
+        - user_id
+        - role_id
+        - is_active
+        - expires_at
+        - assigned_by
+        - notes
+      filter: {}
+      check: {}
+    comment: Admins have full update access
+delete_permissions:
+  - role: hr_admin
+    permission:
+      filter:
+        role:
+          level: {_lt: 80}  # Cannot delete admin role assignments
+    comment: HR admins can remove non-admin role assignments
+  - role: admin
+    permission:
+      filter: {}
+    comment: Admins can delete any role assignment

@@ -1,0 +1,123 @@
+table:
+  name: user_roles
+  schema: public
+configuration:
+  custom_root_fields:
+    select: user_roles
+    select_by_pk: user_role
+    select_aggregate: user_roles_aggregate
+  custom_column_names: {}
+object_relationships: []
+array_relationships:
+  - name: user_assignments
+    using:
+      foreign_key_constraint_on:
+        column: role_id
+        table:
+          name: user_role_assignments
+          schema: public
+select_permissions:
+  - role: employee
+    permission:
+      columns:
+        - id
+        - name
+        - description
+        - level
+      filter:
+        _and:
+          - is_active: {_eq: true}
+          - level: {_lte: 50}  # Only see roles at or below manager level
+      allow_aggregations: false
+    comment: Employees can see basic role information for lower-level roles
+  - role: manager
+    permission:
+      columns:
+        - id
+        - name
+        - description
+        - level
+        - is_active
+        - created_at
+        - updated_at
+      filter:
+        _and:
+          - is_active: {_eq: true}
+          - level: {_lte: 60}  # Can see up to hr_admin level
+      allow_aggregations: true
+    comment: Managers can see role information for their level and below
+  - role: hr_admin
+    permission:
+      columns:
+        - id
+        - name
+        - description
+        - level
+        - permissions
+        - is_active
+        - created_at
+        - updated_at
+      filter: {}
+      allow_aggregations: true
+    comment: HR admins can see all roles and permissions
+  - role: admin
+    permission:
+      columns: "*"
+      filter: {}
+      allow_aggregations: true
+    comment: Full access for administrators
+insert_permissions:
+  - role: hr_admin
+    permission:
+      columns:
+        - name
+        - description
+        - level
+        - permissions
+        - is_active
+      check:
+        level: {_lt: 80}  # HR admins cannot create admin-level roles
+    comment: HR admins can create roles below admin level
+  - role: admin
+    permission:
+      columns:
+        - name
+        - description
+        - level
+        - permissions
+        - is_active
+      check: {}
+    comment: Admins can create any role
+update_permissions:
+  - role: hr_admin
+    permission:
+      columns:
+        - name
+        - description
+        - permissions
+        - is_active
+      filter:
+        level: {_lt: 80}  # Cannot edit admin-level roles
+      check:
+        level: {_lt: 80}  # Cannot elevate to admin level
+    comment: HR admins can modify non-admin roles
+  - role: admin
+    permission:
+      columns:
+        - name
+        - description
+        - level
+        - permissions
+        - is_active
+      filter: {}
+      check: {}
+    comment: Admins have full update access
+delete_permissions:
+  - role: admin
+    permission:
+      filter:
+        _and:
+          - level: {_neq: 100}  # Cannot delete super admin role
+          - _not:
+              user_assignments: {}  # Cannot delete roles that are in use
+    comment: Only admins can delete unused, non-super-admin roles

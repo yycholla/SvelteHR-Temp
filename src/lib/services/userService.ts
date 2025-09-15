@@ -1,19 +1,12 @@
 import { writable, derived, get } from 'svelte/store';
 import { client } from '$lib/graphql/client';
-import type { User, PaginationInput, SortInput, FilterInput, Connection } from '$lib/types';
 import {
   GET_USERS_QUERY,
-  GET_USER_DETAILS_QUERY,
+  GET_USER_BY_ID_QUERY,
   CREATE_USER_MUTATION,
   UPDATE_USER_MUTATION,
-  DEACTIVATE_USER_MUTATION,
-  ASSIGN_ROLE_MUTATION,
-  buildPaginationVariables,
-  buildSortVariables,
-  buildFilterVariables,
-  extractEdges,
-  extractPageInfo
-} from '$lib/graphql/operations';
+  ASSIGN_USER_ROLE_MUTATION
+} from '$lib/graphql/hasura-operations';
 
 /**
  * User Management Service for MountainHR
@@ -236,17 +229,17 @@ const createUserService = () => {
     // Individual User Management
     // =============================================================================
 
-    async getUserDetails(userId: string): Promise<User> {
+    async getUserDetails(userId: string): Promise<any> {
       update(state => ({ ...state, isLoading: true, error: null }));
 
       try {
-        const result = await client.query(GET_USER_DETAILS_QUERY, { id: userId }).toPromise();
+        const result = await client.query(GET_USER_BY_ID_QUERY, { id: userId }).toPromise();
 
         if (result.error) {
           throw new Error(result.error.graphQLErrors[0]?.message || 'Failed to load user details');
         }
 
-        const user = result.data.user;
+        const user = result.data.users_by_pk;
 
         update(state => ({
           ...state,
@@ -266,17 +259,26 @@ const createUserService = () => {
       }
     },
 
-    async createUser(input: CreateUserInput): Promise<User> {
+    async createUser(input: CreateUserInput): Promise<any> {
       update(state => ({ ...state, isLoading: true, error: null }));
 
       try {
-        const result = await client.mutation(CREATE_USER_MUTATION, { input }).toPromise();
+        // Transform input to Hasura format
+        const hasuraInput = {
+          email: input.email,
+          display_name: `${input.firstName} ${input.lastName}`,
+          job_title: input.jobTitle,
+          onboarding_status: 'PreHire',
+          is_active: true
+        };
+
+        const result = await client.mutation(CREATE_USER_MUTATION, { user: hasuraInput }).toPromise();
 
         if (result.error) {
           throw new Error(result.error.graphQLErrors[0]?.message || 'Failed to create user');
         }
 
-        const newUser = result.data.createUser;
+        const newUser = result.data.insert_users_one;
 
         update(state => ({
           ...state,
@@ -297,20 +299,28 @@ const createUserService = () => {
       }
     },
 
-    async updateUser(userId: string, input: UpdateUserInput): Promise<User> {
+    async updateUser(userId: string, input: UpdateUserInput): Promise<any> {
       update(state => ({ ...state, isLoading: true, error: null }));
 
       try {
+        // Transform input to Hasura format
+        const hasuraChanges: any = {};
+        if (input.firstName && input.lastName) {
+          hasuraChanges.display_name = `${input.firstName} ${input.lastName}`;
+        }
+        if (input.jobTitle) hasuraChanges.job_title = input.jobTitle;
+        if (input.isActive !== undefined) hasuraChanges.is_active = input.isActive;
+
         const result = await client.mutation(UPDATE_USER_MUTATION, {
           id: userId,
-          input
+          changes: hasuraChanges
         }).toPromise();
 
         if (result.error) {
           throw new Error(result.error.graphQLErrors[0]?.message || 'Failed to update user');
         }
 
-        const updatedUser = result.data.updateUser;
+        const updatedUser = result.data.update_users_by_pk;
 
         update(state => ({
           ...state,
