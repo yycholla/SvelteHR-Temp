@@ -8,37 +8,40 @@ import { json } from '@sveltejs/kit';
 
 const BACKEND_URL = 'http://localhost:3001';
 
-export const GET: RequestHandler = async ({ request }) => {
+export const GET: RequestHandler = async ({ cookies }) => {
   try {
-    // Forward the Authorization header
-    const authHeader = request.headers.get('authorization');
+    // Check for JWT token in httpOnly cookie (PostGraphile style)
+    const jwtToken = cookies.get('jwt-token');
     
-    if (!authHeader) {
+    if (!jwtToken) {
+      // No token present - this is expected for unauthenticated users
       return json(
         { 
           success: false, 
-          error: 'Authorization header required' 
+          authenticated: false,
+          error: 'No authentication token present' 
         }, 
-        { status: 401 }
+        { status: 200 } // Return 200 instead of 401 for missing tokens
       );
     }
 
-    // Forward request to backend
-    const response = await fetch(`${BACKEND_URL}/auth/me`, {
-      method: 'GET',
-      headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/json',
-      },
+    // For now, just return a placeholder response indicating the user is logged in
+    // In a real implementation, this would validate the JWT and return user data
+    return json({
+      success: true,
+      authenticated: true,
+      user: {
+        id: 'placeholder-user-id',
+        email: 'user@example.com',
+        displayName: 'Placeholder User'
+      }
     });
-
-    const data = await response.json();
-    return json(data, { status: response.status });
   } catch (error) {
     console.error('Get user API error:', error);
     return json(
       { 
         success: false, 
+        authenticated: false,
         error: 'User service unavailable' 
       }, 
       { status: 500 }

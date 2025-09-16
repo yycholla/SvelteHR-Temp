@@ -1,5 +1,5 @@
 import { metricsService } from '$lib/services/metricsService';
-import { hasuraClient } from '$lib/graphql/hasura-client';
+import { page } from '$app/stores';
 
 /**
  * Client-side hooks for performance monitoring and GraphQL instrumentation
@@ -25,103 +25,29 @@ if (typeof window !== 'undefined') {
   });
 
   // Track route changes via page store
-  import { page } from '$app/stores';
   let previousRoute: string;
   
   page.subscribe(($page) => {
-    if (previousRoute && previousRoute !== $page.route.id) {
+    // Safely access route properties with null checking
+    const currentRoute = $page?.route?.id || 'unknown';
+    
+    if (previousRoute && previousRoute !== currentRoute) {
       const navigationEnd = performance.now();
       const duration = navigationEnd - (navigationStart || navigationEnd);
       
       metricsService.trackNavigation(
-        $page.route.id || 'unknown',
+        currentRoute,
         duration,
         'route'
       );
     }
     
-    previousRoute = $page.route.id || '';
+    previousRoute = currentRoute;
     navigationStart = performance.now();
   });
 }
 
-// Instrument GraphQL client for performance tracking
-if (hasuraClient) {
-  const originalQuery = hasuraClient.query;
-  const originalMutation = hasuraClient.mutation;
-
-  // Intercept queries
-  hasuraClient.query = function(query, variables, context) {
-    const start = performance.now();
-    const operationName = extractOperationName(query);
-    
-    const result = originalQuery.call(this, query, variables, context);
-    
-    // Track async completion
-    if (result && typeof result.then === 'function') {
-      result.then(
-        (response) => {
-          const duration = performance.now() - start;
-          metricsService.trackGraphQLQuery(
-            operationName,
-            duration,
-            variables,
-            response.error ? [response.error] : undefined
-          );
-          return response;
-        },
-        (error) => {
-          const duration = performance.now() - start;
-          metricsService.trackGraphQLQuery(
-            operationName,
-            duration,
-            variables,
-            [error]
-          );
-          throw error;
-        }
-      );
-    }
-    
-    return result;
-  };
-
-  // Intercept mutations
-  hasuraClient.mutation = function(mutation, variables, context) {
-    const start = performance.now();
-    const operationName = extractOperationName(mutation);
-    
-    const result = originalMutation.call(this, mutation, variables, context);
-    
-    // Track async completion
-    if (result && typeof result.then === 'function') {
-      result.then(
-        (response) => {
-          const duration = performance.now() - start;
-          metricsService.trackGraphQLQuery(
-            operationName,
-            duration,
-            variables,
-            response.error ? [response.error] : undefined
-          );
-          return response;
-        },
-        (error) => {
-          const duration = performance.now() - start;
-          metricsService.trackGraphQLQuery(
-            operationName,
-            duration,
-            variables,
-            [error]
-          );
-          throw error;
-        }
-      );
-    }
-    
-    return result;
-  };
-}
+// TODO: Implement GraphQL client instrumentation for PostGraphile
 
 // Extract operation name from GraphQL query/mutation
 function extractOperationName(query: any): string {

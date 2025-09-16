@@ -3,8 +3,38 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 
+// Custom plugin to disable compression completely
+const disableCompression = () => ({
+  name: 'disable-compression',
+  configureServer(server) {
+    // Disable compression middleware at the server level
+    server.middlewares.use((req, res, next) => {
+      // Force identity encoding
+      req.headers['accept-encoding'] = 'identity';
+      
+      // Override write methods to prevent compression
+      const originalWrite = res.write;
+      const originalEnd = res.end;
+      const originalSetHeader = res.setHeader;
+      
+      res.setHeader = function(name, value) {
+        const lowerName = name.toLowerCase();
+        if (lowerName === 'content-encoding' || lowerName === 'transfer-encoding') {
+          return this; // Skip compression headers
+        }
+        return originalSetHeader.call(this, name, value);
+      };
+      
+      // Ensure no compression flags are set
+      res.compress = false;
+      
+      next();
+    });
+  }
+});
+
 export default defineConfig({
-	plugins: [sveltekit(), devtoolsJson()],
+	plugins: [sveltekit(), devtoolsJson(), disableCompression()],
 	
 	// Performance optimizations
 	build: {
@@ -138,6 +168,10 @@ export default defineConfig({
 			// No proxy needed as we have a custom GraphQL server implementation
 		},
 		
+		// Disable compression completely
+		middlewareMode: false,
+		compression: false,
+		
 		// Enable HTTP/2 for development
 		https: false, // Set to true with cert/key for HTTPS
 		
@@ -150,6 +184,11 @@ export default defineConfig({
 		fs: {
 			allow: ['..']
 		}
+	},
+	
+	// Define custom plugin to disable compression
+	define: {
+		'process.env.VITE_DISABLE_COMPRESSION': 'true'
 	},
 	
 	// Performance monitoring

@@ -5,12 +5,12 @@
   import DashboardLayout from '$lib/components/layout/DashboardLayout.svelte';
   import AuthGuard from '$lib/components/auth/AuthGuard.svelte';
   import { setContextClient } from '@urql/svelte';
-  import { hasuraClient } from '$lib/graphql/hasura-client';
+  import { createUrqlClient } from '$lib/graphql/client';
   import '../app.css';
   import favicon from '$lib/assets/favicon.svg';
 
-  // Initialize Hasura GraphQL client for the entire app
-  setContextClient(hasuraClient);
+  // Initialize PostGraphile GraphQL client for the entire app
+  setContextClient(createUrqlClient());
 
   let { children } = $props();
 

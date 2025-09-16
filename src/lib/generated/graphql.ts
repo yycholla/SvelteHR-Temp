@@ -1,4 +1,5 @@
-import * as Urql from '@urql/svelte';
+/* eslint-disable */
+import type { DocumentTypeDecoration } from '@graphql-typed-document-node/core';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
@@ -10,7 +11,6 @@ export type MakeEmpty<T extends { [key: string]: unknown }, K extends keyof T> =
 export type Incremental<T> =
 	| T
 	| { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
-export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
 	ID: { input: string; output: string };
@@ -18,15 +18,35 @@ export type Scalars = {
 	Boolean: { input: boolean; output: boolean };
 	Int: { input: number; output: number };
 	Float: { input: number; output: number };
+	/** A floating point number that requires more precision than IEEE 754 binary 64 */
 	BigFloat: { input: number; output: number };
+	/**
+	 * A signed eight-byte integer. The upper big integer values are greater than the
+	 * max value for a JavaScript number. Therefore all big integers will be output as
+	 * strings and not numbers.
+	 */
 	BigInt: { input: number; output: number };
+	/** A location in a connection that can be used for resuming pagination. */
 	Cursor: { input: string; output: string };
+	/** The day, does not include a time. */
 	Date: { input: string; output: string };
+	/**
+	 * A point in time as described by the [ISO
+	 * 8601](https://en.wikipedia.org/wiki/ISO_8601) standard. May or may not include a timezone.
+	 */
 	Datetime: { input: string; output: string };
+	/** An IPv4 or IPv6 host address, and optionally its subnet. */
 	InternetAddress: { input: any; output: any };
+	/** The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf). */
 	JSON: { input: any; output: any };
+	/**
+	 * A JSON Web Token defined by [RFC 7519](https://tools.ietf.org/html/rfc7519)
+	 * which securely represents claims between two parties.
+	 */
 	JwtToken: { input: any; output: any };
+	/** The exact time of day, does not include the date. May or may not have a timezone offset. */
 	Time: { input: any; output: any };
+	/** A universally unique identifier as defined by [RFC 4122](https://tools.ietf.org/html/rfc4122). */
 	UUID: { input: string; output: string };
 };
 
@@ -20114,7 +20134,26 @@ export type GetSecurityMetricsQuery = {
 	} | null;
 };
 
-export const AuthenticateUserDocument = `
+export class TypedDocumentString<TResult, TVariables>
+	extends String
+	implements DocumentTypeDecoration<TResult, TVariables>
+{
+	__apiType?: NonNullable<DocumentTypeDecoration<TResult, TVariables>['__apiType']>;
+	private value: string;
+	public __meta__?: Record<string, any> | undefined;
+
+	constructor(value: string, __meta__?: Record<string, any> | undefined) {
+		super(value);
+		this.value = value;
+		this.__meta__ = __meta__;
+	}
+
+	override toString(): string & DocumentTypeDecoration<TResult, TVariables> {
+		return this.value;
+	}
+}
+
+export const AuthenticateUserDocument = new TypedDocumentString(`
     mutation AuthenticateUser($email: String!, $password: String!) {
   authenticate(input: {email: $email, password: $password}) {
     jwtToken
@@ -20123,28 +20162,16 @@ export const AuthenticateUserDocument = `
     }
   }
 }
-    `;
-
-export function useAuthenticateUserMutation() {
-	return Urql.useMutation<AuthenticateUserMutation, AuthenticateUserMutationVariables>(
-		AuthenticateUserDocument
-	);
-}
-export const GetCurrentUserDocument = `
+    `) as unknown as TypedDocumentString<
+	AuthenticateUserMutation,
+	AuthenticateUserMutationVariables
+>;
+export const GetCurrentUserDocument = new TypedDocumentString(`
     query GetCurrentUser {
   currentUserId
 }
-    `;
-
-export function useGetCurrentUserQuery(
-	options?: Omit<Urql.UseQueryArgs<GetCurrentUserQueryVariables>, 'query'>
-) {
-	return Urql.useQuery<GetCurrentUserQuery, GetCurrentUserQueryVariables>({
-		query: GetCurrentUserDocument,
-		...options
-	});
-}
-export const GetUserByIdDocument = `
+    `) as unknown as TypedDocumentString<GetCurrentUserQuery, GetCurrentUserQueryVariables>;
+export const GetUserByIdDocument = new TypedDocumentString(`
     query GetUserById($id: UUID!) {
   userById(id: $id) {
     id
@@ -20156,17 +20183,8 @@ export const GetUserByIdDocument = `
     isActive
   }
 }
-    `;
-
-export function useGetUserByIdQuery(
-	options: Omit<Urql.UseQueryArgs<GetUserByIdQueryVariables>, 'query'>
-) {
-	return Urql.useQuery<GetUserByIdQuery, GetUserByIdQueryVariables>({
-		query: GetUserByIdDocument,
-		...options
-	});
-}
-export const GetAllUsersDocument = `
+    `) as unknown as TypedDocumentString<GetUserByIdQuery, GetUserByIdQueryVariables>;
+export const GetAllUsersDocument = new TypedDocumentString(`
     query GetAllUsers($first: Int = 50) {
   allUsers(first: $first) {
     nodes {
@@ -20181,17 +20199,8 @@ export const GetAllUsersDocument = `
     totalCount
   }
 }
-    `;
-
-export function useGetAllUsersQuery(
-	options?: Omit<Urql.UseQueryArgs<GetAllUsersQueryVariables>, 'query'>
-) {
-	return Urql.useQuery<GetAllUsersQuery, GetAllUsersQueryVariables>({
-		query: GetAllUsersDocument,
-		...options
-	});
-}
-export const GetAllDepartmentsDocument = `
+    `) as unknown as TypedDocumentString<GetAllUsersQuery, GetAllUsersQueryVariables>;
+export const GetAllDepartmentsDocument = new TypedDocumentString(`
     query GetAllDepartments {
   allDepartments {
     nodes {
@@ -20205,17 +20214,8 @@ export const GetAllDepartmentsDocument = `
     totalCount
   }
 }
-    `;
-
-export function useGetAllDepartmentsQuery(
-	options?: Omit<Urql.UseQueryArgs<GetAllDepartmentsQueryVariables>, 'query'>
-) {
-	return Urql.useQuery<GetAllDepartmentsQuery, GetAllDepartmentsQueryVariables>({
-		query: GetAllDepartmentsDocument,
-		...options
-	});
-}
-export const GetDepartmentByIdDocument = `
+    `) as unknown as TypedDocumentString<GetAllDepartmentsQuery, GetAllDepartmentsQueryVariables>;
+export const GetDepartmentByIdDocument = new TypedDocumentString(`
     query GetDepartmentById($id: UUID!) {
   departmentById(id: $id) {
     id
@@ -20226,17 +20226,8 @@ export const GetDepartmentByIdDocument = `
     updatedAt
   }
 }
-    `;
-
-export function useGetDepartmentByIdQuery(
-	options: Omit<Urql.UseQueryArgs<GetDepartmentByIdQueryVariables>, 'query'>
-) {
-	return Urql.useQuery<GetDepartmentByIdQuery, GetDepartmentByIdQueryVariables>({
-		query: GetDepartmentByIdDocument,
-		...options
-	});
-}
-export const UpdateUserDocument = `
+    `) as unknown as TypedDocumentString<GetDepartmentByIdQuery, GetDepartmentByIdQueryVariables>;
+export const UpdateUserDocument = new TypedDocumentString(`
     mutation UpdateUser($id: UUID!, $patch: UserPatch!) {
   updateUserById(input: {id: $id, userPatch: $patch}) {
     user {
@@ -20248,12 +20239,8 @@ export const UpdateUserDocument = `
     }
   }
 }
-    `;
-
-export function useUpdateUserMutation() {
-	return Urql.useMutation<UpdateUserMutation, UpdateUserMutationVariables>(UpdateUserDocument);
-}
-export const GetAllRolesDocument = `
+    `) as unknown as TypedDocumentString<UpdateUserMutation, UpdateUserMutationVariables>;
+export const GetAllRolesDocument = new TypedDocumentString(`
     query GetAllRoles {
   allUserRoles(orderBy: NAME_ASC) {
     nodes {
@@ -20266,17 +20253,8 @@ export const GetAllRolesDocument = `
     }
   }
 }
-    `;
-
-export function useGetAllRolesQuery(
-	options?: Omit<Urql.UseQueryArgs<GetAllRolesQueryVariables>, 'query'>
-) {
-	return Urql.useQuery<GetAllRolesQuery, GetAllRolesQueryVariables>({
-		query: GetAllRolesDocument,
-		...options
-	});
-}
-export const GetUserRolesDocument = `
+    `) as unknown as TypedDocumentString<GetAllRolesQuery, GetAllRolesQueryVariables>;
+export const GetUserRolesDocument = new TypedDocumentString(`
     query GetUserRoles($userId: UUID!) {
   allUserRoleAssignments(condition: {userId: $userId}) {
     nodes {
@@ -20307,17 +20285,8 @@ export const GetUserRolesDocument = `
     }
   }
 }
-    `;
-
-export function useGetUserRolesQuery(
-	options: Omit<Urql.UseQueryArgs<GetUserRolesQueryVariables>, 'query'>
-) {
-	return Urql.useQuery<GetUserRolesQuery, GetUserRolesQueryVariables>({
-		query: GetUserRolesDocument,
-		...options
-	});
-}
-export const AssignUserRoleDocument = `
+    `) as unknown as TypedDocumentString<GetUserRolesQuery, GetUserRolesQueryVariables>;
+export const AssignUserRoleDocument = new TypedDocumentString(`
     mutation AssignUserRole($input: CreateUserRoleAssignmentInput!) {
   createUserRoleAssignment(input: $input) {
     userRoleAssignment {
@@ -20343,14 +20312,8 @@ export const AssignUserRoleDocument = `
     }
   }
 }
-    `;
-
-export function useAssignUserRoleMutation() {
-	return Urql.useMutation<AssignUserRoleMutation, AssignUserRoleMutationVariables>(
-		AssignUserRoleDocument
-	);
-}
-export const UpdateUserRoleAssignmentDocument = `
+    `) as unknown as TypedDocumentString<AssignUserRoleMutation, AssignUserRoleMutationVariables>;
+export const UpdateUserRoleAssignmentDocument = new TypedDocumentString(`
     mutation UpdateUserRoleAssignment($id: UUID!, $patch: UserRoleAssignmentPatch!) {
   updateUserRoleAssignmentById(input: {id: $id, userRoleAssignmentPatch: $patch}) {
     userRoleAssignment {
@@ -20364,15 +20327,11 @@ export const UpdateUserRoleAssignmentDocument = `
     }
   }
 }
-    `;
-
-export function useUpdateUserRoleAssignmentMutation() {
-	return Urql.useMutation<
-		UpdateUserRoleAssignmentMutation,
-		UpdateUserRoleAssignmentMutationVariables
-	>(UpdateUserRoleAssignmentDocument);
-}
-export const RevokeUserRoleDocument = `
+    `) as unknown as TypedDocumentString<
+	UpdateUserRoleAssignmentMutation,
+	UpdateUserRoleAssignmentMutationVariables
+>;
+export const RevokeUserRoleDocument = new TypedDocumentString(`
     mutation RevokeUserRole($id: UUID!) {
   updateUserRoleAssignmentById(
     input: {id: $id, userRoleAssignmentPatch: {isActive: false}}
@@ -20390,14 +20349,8 @@ export const RevokeUserRoleDocument = `
     }
   }
 }
-    `;
-
-export function useRevokeUserRoleMutation() {
-	return Urql.useMutation<RevokeUserRoleMutation, RevokeUserRoleMutationVariables>(
-		RevokeUserRoleDocument
-	);
-}
-export const GetWorkflowDefinitionsDocument = `
+    `) as unknown as TypedDocumentString<RevokeUserRoleMutation, RevokeUserRoleMutationVariables>;
+export const GetWorkflowDefinitionsDocument = new TypedDocumentString(`
     query GetWorkflowDefinitions($first: Int = 50) {
   allWorkflowDefinitions(first: $first, orderBy: [NAME_ASC]) {
     nodes {
@@ -20428,17 +20381,11 @@ export const GetWorkflowDefinitionsDocument = `
     totalCount
   }
 }
-    `;
-
-export function useGetWorkflowDefinitionsQuery(
-	options?: Omit<Urql.UseQueryArgs<GetWorkflowDefinitionsQueryVariables>, 'query'>
-) {
-	return Urql.useQuery<GetWorkflowDefinitionsQuery, GetWorkflowDefinitionsQueryVariables>({
-		query: GetWorkflowDefinitionsDocument,
-		...options
-	});
-}
-export const GetWorkflowDefinitionByIdDocument = `
+    `) as unknown as TypedDocumentString<
+	GetWorkflowDefinitionsQuery,
+	GetWorkflowDefinitionsQueryVariables
+>;
+export const GetWorkflowDefinitionByIdDocument = new TypedDocumentString(`
     query GetWorkflowDefinitionById($id: UUID!) {
   workflowDefinitionById(id: $id) {
     id
@@ -20482,17 +20429,11 @@ export const GetWorkflowDefinitionByIdDocument = `
     }
   }
 }
-    `;
-
-export function useGetWorkflowDefinitionByIdQuery(
-	options: Omit<Urql.UseQueryArgs<GetWorkflowDefinitionByIdQueryVariables>, 'query'>
-) {
-	return Urql.useQuery<GetWorkflowDefinitionByIdQuery, GetWorkflowDefinitionByIdQueryVariables>({
-		query: GetWorkflowDefinitionByIdDocument,
-		...options
-	});
-}
-export const GetWorkflowInstancesDocument = `
+    `) as unknown as TypedDocumentString<
+	GetWorkflowDefinitionByIdQuery,
+	GetWorkflowDefinitionByIdQueryVariables
+>;
+export const GetWorkflowInstancesDocument = new TypedDocumentString(`
     query GetWorkflowInstances($first: Int = 50) {
   allWorkflowInstances(first: $first) {
     nodes {
@@ -20519,17 +20460,11 @@ export const GetWorkflowInstancesDocument = `
     totalCount
   }
 }
-    `;
-
-export function useGetWorkflowInstancesQuery(
-	options?: Omit<Urql.UseQueryArgs<GetWorkflowInstancesQueryVariables>, 'query'>
-) {
-	return Urql.useQuery<GetWorkflowInstancesQuery, GetWorkflowInstancesQueryVariables>({
-		query: GetWorkflowInstancesDocument,
-		...options
-	});
-}
-export const GetWorkflowTasksDocument = `
+    `) as unknown as TypedDocumentString<
+	GetWorkflowInstancesQuery,
+	GetWorkflowInstancesQueryVariables
+>;
+export const GetWorkflowTasksDocument = new TypedDocumentString(`
     query GetWorkflowTasks($first: Int = 50, $condition: WorkflowTaskCondition) {
   allWorkflowTasks(first: $first, condition: $condition) {
     nodes {
@@ -20560,17 +20495,8 @@ export const GetWorkflowTasksDocument = `
     totalCount
   }
 }
-    `;
-
-export function useGetWorkflowTasksQuery(
-	options?: Omit<Urql.UseQueryArgs<GetWorkflowTasksQueryVariables>, 'query'>
-) {
-	return Urql.useQuery<GetWorkflowTasksQuery, GetWorkflowTasksQueryVariables>({
-		query: GetWorkflowTasksDocument,
-		...options
-	});
-}
-export const CreateWorkflowDefinitionDocument = `
+    `) as unknown as TypedDocumentString<GetWorkflowTasksQuery, GetWorkflowTasksQueryVariables>;
+export const CreateWorkflowDefinitionDocument = new TypedDocumentString(`
     mutation CreateWorkflowDefinition($input: CreateWorkflowDefinitionInput!) {
   createWorkflowDefinition(input: $input) {
     workflowDefinition {
@@ -20596,15 +20522,11 @@ export const CreateWorkflowDefinitionDocument = `
     }
   }
 }
-    `;
-
-export function useCreateWorkflowDefinitionMutation() {
-	return Urql.useMutation<
-		CreateWorkflowDefinitionMutation,
-		CreateWorkflowDefinitionMutationVariables
-	>(CreateWorkflowDefinitionDocument);
-}
-export const UpdateWorkflowDefinitionDocument = `
+    `) as unknown as TypedDocumentString<
+	CreateWorkflowDefinitionMutation,
+	CreateWorkflowDefinitionMutationVariables
+>;
+export const UpdateWorkflowDefinitionDocument = new TypedDocumentString(`
     mutation UpdateWorkflowDefinition($id: UUID!, $patch: WorkflowDefinitionPatch!) {
   updateWorkflowDefinitionById(input: {id: $id, workflowDefinitionPatch: $patch}) {
     workflowDefinition {
@@ -20621,15 +20543,11 @@ export const UpdateWorkflowDefinitionDocument = `
     }
   }
 }
-    `;
-
-export function useUpdateWorkflowDefinitionMutation() {
-	return Urql.useMutation<
-		UpdateWorkflowDefinitionMutation,
-		UpdateWorkflowDefinitionMutationVariables
-	>(UpdateWorkflowDefinitionDocument);
-}
-export const StartWorkflowInstanceDocument = `
+    `) as unknown as TypedDocumentString<
+	UpdateWorkflowDefinitionMutation,
+	UpdateWorkflowDefinitionMutationVariables
+>;
+export const StartWorkflowInstanceDocument = new TypedDocumentString(`
     mutation StartWorkflowInstance($input: CreateWorkflowInstanceInput!) {
   createWorkflowInstance(input: $input) {
     workflowInstance {
@@ -20646,14 +20564,11 @@ export const StartWorkflowInstanceDocument = `
     }
   }
 }
-    `;
-
-export function useStartWorkflowInstanceMutation() {
-	return Urql.useMutation<StartWorkflowInstanceMutation, StartWorkflowInstanceMutationVariables>(
-		StartWorkflowInstanceDocument
-	);
-}
-export const UpdateWorkflowTaskDocument = `
+    `) as unknown as TypedDocumentString<
+	StartWorkflowInstanceMutation,
+	StartWorkflowInstanceMutationVariables
+>;
+export const UpdateWorkflowTaskDocument = new TypedDocumentString(`
     mutation UpdateWorkflowTask($id: UUID!, $patch: WorkflowTaskPatch!) {
   updateWorkflowTaskById(input: {id: $id, workflowTaskPatch: $patch}) {
     workflowTask {
@@ -20664,14 +20579,11 @@ export const UpdateWorkflowTaskDocument = `
     }
   }
 }
-    `;
-
-export function useUpdateWorkflowTaskMutation() {
-	return Urql.useMutation<UpdateWorkflowTaskMutation, UpdateWorkflowTaskMutationVariables>(
-		UpdateWorkflowTaskDocument
-	);
-}
-export const GetAuditLogsDocument = `
+    `) as unknown as TypedDocumentString<
+	UpdateWorkflowTaskMutation,
+	UpdateWorkflowTaskMutationVariables
+>;
+export const GetAuditLogsDocument = new TypedDocumentString(`
     query GetAuditLogs($first: Int = 50, $orderBy: [AuditLogsOrderBy!] = [ID_DESC]) {
   allAuditLogs(first: $first, orderBy: $orderBy) {
     nodes {
@@ -20700,17 +20612,8 @@ export const GetAuditLogsDocument = `
     totalCount
   }
 }
-    `;
-
-export function useGetAuditLogsQuery(
-	options?: Omit<Urql.UseQueryArgs<GetAuditLogsQueryVariables>, 'query'>
-) {
-	return Urql.useQuery<GetAuditLogsQuery, GetAuditLogsQueryVariables>({
-		query: GetAuditLogsDocument,
-		...options
-	});
-}
-export const GetAuditLogByIdDocument = `
+    `) as unknown as TypedDocumentString<GetAuditLogsQuery, GetAuditLogsQueryVariables>;
+export const GetAuditLogByIdDocument = new TypedDocumentString(`
     query GetAuditLogById($id: UUID!) {
   auditLogById(id: $id) {
     id
@@ -20740,17 +20643,8 @@ export const GetAuditLogByIdDocument = `
     }
   }
 }
-    `;
-
-export function useGetAuditLogByIdQuery(
-	options: Omit<Urql.UseQueryArgs<GetAuditLogByIdQueryVariables>, 'query'>
-) {
-	return Urql.useQuery<GetAuditLogByIdQuery, GetAuditLogByIdQueryVariables>({
-		query: GetAuditLogByIdDocument,
-		...options
-	});
-}
-export const GetSecurityEventsDocument = `
+    `) as unknown as TypedDocumentString<GetAuditLogByIdQuery, GetAuditLogByIdQueryVariables>;
+export const GetSecurityEventsDocument = new TypedDocumentString(`
     query GetSecurityEvents($first: Int = 50, $orderBy: [SecurityEventsOrderBy!] = [ID_DESC]) {
   allSecurityEvents(first: $first, orderBy: $orderBy) {
     nodes {
@@ -20779,17 +20673,8 @@ export const GetSecurityEventsDocument = `
     totalCount
   }
 }
-    `;
-
-export function useGetSecurityEventsQuery(
-	options?: Omit<Urql.UseQueryArgs<GetSecurityEventsQueryVariables>, 'query'>
-) {
-	return Urql.useQuery<GetSecurityEventsQuery, GetSecurityEventsQueryVariables>({
-		query: GetSecurityEventsDocument,
-		...options
-	});
-}
-export const GetSuspiciousActivitiesDocument = `
+    `) as unknown as TypedDocumentString<GetSecurityEventsQuery, GetSecurityEventsQueryVariables>;
+export const GetSuspiciousActivitiesDocument = new TypedDocumentString(`
     query GetSuspiciousActivities($first: Int = 50) {
   allSecurityEvents(first: $first, orderBy: [RISK_SCORE_DESC]) {
     nodes {
@@ -20815,17 +20700,11 @@ export const GetSuspiciousActivitiesDocument = `
     totalCount
   }
 }
-    `;
-
-export function useGetSuspiciousActivitiesQuery(
-	options?: Omit<Urql.UseQueryArgs<GetSuspiciousActivitiesQueryVariables>, 'query'>
-) {
-	return Urql.useQuery<GetSuspiciousActivitiesQuery, GetSuspiciousActivitiesQueryVariables>({
-		query: GetSuspiciousActivitiesDocument,
-		...options
-	});
-}
-export const GetUserActivityLogDocument = `
+    `) as unknown as TypedDocumentString<
+	GetSuspiciousActivitiesQuery,
+	GetSuspiciousActivitiesQueryVariables
+>;
+export const GetUserActivityLogDocument = new TypedDocumentString(`
     query GetUserActivityLog($userId: UUID!, $first: Int = 50) {
   userById(id: $userId) {
     auditLogsByUserId(first: $first, orderBy: [ID_DESC]) {
@@ -20845,17 +20724,8 @@ export const GetUserActivityLogDocument = `
     }
   }
 }
-    `;
-
-export function useGetUserActivityLogQuery(
-	options: Omit<Urql.UseQueryArgs<GetUserActivityLogQueryVariables>, 'query'>
-) {
-	return Urql.useQuery<GetUserActivityLogQuery, GetUserActivityLogQueryVariables>({
-		query: GetUserActivityLogDocument,
-		...options
-	});
-}
-export const GetSecurityMetricsDocument = `
+    `) as unknown as TypedDocumentString<GetUserActivityLogQuery, GetUserActivityLogQueryVariables>;
+export const GetSecurityMetricsDocument = new TypedDocumentString(`
     query GetSecurityMetrics {
   totalUsers: allUsers {
     totalCount
@@ -20879,13 +20749,4 @@ export const GetSecurityMetricsDocument = `
     }
   }
 }
-    `;
-
-export function useGetSecurityMetricsQuery(
-	options?: Omit<Urql.UseQueryArgs<GetSecurityMetricsQueryVariables>, 'query'>
-) {
-	return Urql.useQuery<GetSecurityMetricsQuery, GetSecurityMetricsQueryVariables>({
-		query: GetSecurityMetricsDocument,
-		...options
-	});
-}
+    `) as unknown as TypedDocumentString<GetSecurityMetricsQuery, GetSecurityMetricsQueryVariables>;

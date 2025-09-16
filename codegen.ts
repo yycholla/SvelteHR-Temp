@@ -3,14 +3,14 @@ import type { CodegenConfig } from '@graphql-codegen/cli';
 const config: CodegenConfig = {
   schema: [
     {
-      'http://localhost:8080/v1/graphql': {
+      'http://localhost:4000/graphql': {
         headers: {
-          'X-Hasura-Admin-Secret': process.env.HASURA_ADMIN_SECRET || '',
+          'Content-Type': 'application/json',
         },
       },
     },
   ],
-  documents: ['src/**/*.{ts,svelte}', '!src/lib/generated/**/*'],
+  documents: ['src/**/*.{ts,svelte}', '!src/lib/generated/**/*', '!src/lib/graphql/hasura-operations.ts.old'],
   ignoreNoDocuments: true,
   generates: {
     'src/lib/generated/': {
@@ -19,11 +19,13 @@ const config: CodegenConfig = {
         useTypeImports: true,
         enumsAsTypes: true,
         scalars: {
-          uuid: 'string',
-          timestamptz: 'string',
-          date: 'string',
-          numeric: 'number',
-          jsonb: 'any',
+          UUID: 'string',
+          Datetime: 'string',
+          Date: 'string',
+          BigFloat: 'number',
+          JSON: 'any',
+          BigInt: 'number',
+          Cursor: 'string',
         },
         avoidOptionals: {
           field: true,
@@ -58,11 +60,13 @@ const config: CodegenConfig = {
         useTypeImports: true,
         enumsAsTypes: true,
         scalars: {
-          uuid: 'string',
-          timestamptz: 'string', 
-          date: 'string',
-          numeric: 'number',
-          jsonb: 'any',
+          UUID: 'string',
+          Datetime: 'string', 
+          Date: 'string',
+          BigFloat: 'number',
+          JSON: 'any',
+          BigInt: 'number',
+          Cursor: 'string',
         },
         avoidOptionals: {
           field: true,

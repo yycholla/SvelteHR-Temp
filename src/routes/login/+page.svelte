@@ -11,14 +11,14 @@
    * Handles user authentication and redirects
    */
 
-  // Check if user is already authenticated
-  onMount(() => {
-    if ($isAuthenticated) {
-      // Get redirect URL from query params or default to dashboard
-      const redirectTo = $page.url.searchParams.get('redirect') || '/dashboard';
-      goto(redirectTo);
-    }
-  });
+  let redirected = false;
+
+  // Check if user is already authenticated - only after loading is complete
+  $: if (!redirected && $isAuthenticated) {
+    redirected = true;
+    const redirectTo = $page.url.searchParams.get('redirect') || '/dashboard';
+    goto(redirectTo);
+  }
 
   // Handle successful login
   const handleLoginSuccess = (event: CustomEvent) => {

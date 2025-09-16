@@ -1,16 +1,20 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { isLoggedIn } from '$lib/services/auth';
+  import { browser } from '$app/environment';
+  import { isAuthenticated, isLoading } from '$lib/stores/auth';
 
-  // Redirect based on authentication status
-  onMount(() => {
-    if ($isLoggedIn) {
+  let redirected = false;
+
+  // Redirect based on authentication status - only after loading is complete
+  $: if (browser && !$isLoading && !redirected) {
+    redirected = true;
+    if ($isAuthenticated) {
       goto('/dashboard');
     } else {
       goto('/login');
     }
-  });
+  }
 </script>
 
 <svelte:head>

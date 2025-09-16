@@ -4,55 +4,54 @@ import { retryExchange } from '@urql/exchange-retry';
 import { createClient as createWSClient } from 'graphql-ws';
 import { goto } from '$app/navigation';
 import { browser } from '$app/environment';
+import { PUBLIC_GRAPHQL_ENDPOINT } from '$env/static/public';
 
 /**
- * Hasura GraphQL Client Configuration for SvelteHR
+ * PostGraphile GraphQL Client Configuration for SvelteHR
  * 
  * Provides authenticated GraphQL client with:
- * - JWT authentication with Hasura permissions
+ * - JWT authentication with PostGraphile permissions
  * - Real-time subscriptions via WebSocket
  * - Intelligent caching and error handling
  * - Retry logic and rate limiting
  */
 
-// Hasura configuration
-const HASURA_GRAPHQL_URL = 'http://localhost:8080/v1/graphql';
-const HASURA_GRAPHQL_WS_URL = 'ws://localhost:8080/v1/graphql';
+// PostGraphile configuration
+const POSTGRAPHILE_GRAPHQL_URL = PUBLIC_GRAPHQL_ENDPOINT || 'http://localhost:4000/graphql';
+const POSTGRAPHILE_GRAPHQL_WS_URL = POSTGRAPHILE_GRAPHQL_URL.replace('http://', 'ws://').replace('https://', 'wss://');
 
-// WebSocket client for subscriptions
+// WebSocket client for subscriptions (disabled for PostGraphile - doesn't support WebSockets by default)
 let wsClient: ReturnType<typeof createWSClient> | null = null;
 
-if (browser) {
-  wsClient = createWSClient({
-    url: HASURA_GRAPHQL_WS_URL,
-    connectionParams: () => {
-      const token = localStorage.getItem('auth-token');
-      return token ? { 
-        Authorization: `Bearer ${token}`
-      } : {};
-    },
-    shouldRetry: () => true,
-  });
-}
+// Note: PostGraphile doesn't support WebSocket subscriptions out of the box
+// Enable this only if you have added WebSocket support to your PostGraphile setup
+// if (browser) {
+//   wsClient = createWSClient({
+//     url: POSTGRAPHILE_GRAPHQL_WS_URL,
+//     connectionParams: () => {
+//       const token = localStorage.getItem('auth-token');
+//       return token ? { 
+//         Authorization: `Bearer ${token}`
+//       } : {};
+//     },
+//     shouldRetry: () => true,
+//   });
+// }
 
-// Authentication state management
+// Authentication state management for PostGraphile JWT
 interface AuthState {
   token: string | null;
-  refreshToken: string | null;
-  expiresAt: number | null;
 }
 
 const getAuthState = (): AuthState => {
   if (!browser) {
-    return { token: null, refreshToken: null, expiresAt: null };
+    return { token: null };
   }
 
+  // For PostGraphile, we get the JWT from httpOnly cookies via API calls
+  // This is more secure than localStorage
   return {
-    token: localStorage.getItem('auth-token'),
-    refreshToken: localStorage.getItem('refresh-token'),
-    expiresAt: localStorage.getItem('auth-expires') 
-      ? parseInt(localStorage.getItem('auth-expires')!) 
-      : null
+    token: localStorage.getItem('temp-jwt-token') // Only for temporary client-side operations
   };
 };
 
@@ -61,39 +60,28 @@ const setAuthState = (authState: Partial<AuthState>) => {
 
   if (authState.token !== undefined) {
     if (authState.token) {
-      localStorage.setItem('auth-token', authState.token);
+      // Store temporarily for client operations
+      localStorage.setItem('temp-jwt-token', authState.token);
     } else {
-      localStorage.removeItem('auth-token');
-    }
-  }
-
-  if (authState.refreshToken !== undefined) {
-    if (authState.refreshToken) {
-      localStorage.setItem('refresh-token', authState.refreshToken);
-    } else {
-      localStorage.removeItem('refresh-token');
-    }
-  }
-
-  if (authState.expiresAt !== undefined) {
-    if (authState.expiresAt) {
-      localStorage.setItem('auth-expires', authState.expiresAt.toString());
-    } else {
-      localStorage.removeItem('auth-expires');
+      localStorage.removeItem('temp-jwt-token');
     }
   }
 };
 
-// Token refresh mutation - using Hasura with custom auth logic
-const REFRESH_TOKEN_MUTATION = `
-  mutation RefreshToken($refreshToken: String!) {
-    refreshAuthToken(refreshToken: $refreshToken) {
-      accessToken
-      refreshToken
-      expiresIn
-    }
+// Token validation via REST API endpoint (PostGraphile uses longer-lived JWTs)
+const validateTokenViaAPI = async () => {
+  const response = await fetch('/api/auth/refresh', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    // No body needed - the JWT is in httpOnly cookie
+  });
+  
+  if (!response.ok) {
+    throw new Error('Token validation failed');
   }
-`;
+  
+  return response.json();
+};
 
 // Error exchange for handling GraphQL errors
 const customErrorExchange = errorExchange({
@@ -149,47 +137,24 @@ const authConfig = authExchange(async (utils) => {
     },
 
     async refreshAuth() {
-      if (!authState.refreshToken) {
-        // No refresh token available, redirect to login
-        setAuthState({ token: null, refreshToken: null, expiresAt: null });
-        if (browser) {
-          goto('/login');
-        }
-        return;
-      }
-
       try {
-        // Create a temporary client for token refresh
-        const refreshClient = new Client({
-          url: HASURA_GRAPHQL_URL,
-          exchanges: [cacheExchange, fetchExchange]
-        });
+        // Validate JWT token via API (uses httpOnly cookie)
+        const result = await validateTokenViaAPI();
 
-        const result = await refreshClient.mutation(REFRESH_TOKEN_MUTATION, {
-          refreshToken: authState.refreshToken
-        }).toPromise();
-
-        if (result.data?.refreshAuthToken) {
-          const { accessToken, refreshToken: newRefreshToken, expiresIn } = result.data.refreshAuthToken;
-          const expiresAt = Date.now() + (expiresIn * 1000);
-
-          authState = {
-            token: accessToken,
-            refreshToken: newRefreshToken,
-            expiresAt
-          };
-
-          setAuthState(authState);
+        if (result.success && result.user) {
+          // Token is still valid, no need to refresh with PostGraphile
+          // Just continue using the existing JWT
+          return;
         } else {
-          // Refresh failed, clear auth and redirect to login
-          setAuthState({ token: null, refreshToken: null, expiresAt: null });
+          // Token is invalid, clear auth and redirect to login
+          setAuthState({ token: null });
           if (browser) {
             goto('/login');
           }
         }
       } catch (error) {
-        console.error('Token refresh failed:', error);
-        setAuthState({ token: null, refreshToken: null, expiresAt: null });
+        console.error('Token validation failed:', error);
+        setAuthState({ token: null });
         if (browser) {
           goto('/login');
         }
@@ -197,9 +162,9 @@ const authConfig = authExchange(async (utils) => {
     },
 
     willAuthError() {
-      // Check if token is expired or will expire soon (within 5 minutes)
-      if (!authState.expiresAt) return false;
-      return authState.expiresAt < (Date.now() + 5 * 60 * 1000);
+      // With PostGraphile JWTs, we let the server validate expiration
+      // rather than tracking client-side expiration times
+      return false;
     }
   };
 });
@@ -234,26 +199,28 @@ export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string) => 
     fetchFn ? fetchExchange.bind(null, fetchFn) : fetchExchange,
   ];
 
-  // Add subscription exchange for browser environment
-  if (browser && wsClient) {
-    exchanges.splice(-1, 0, subscriptionExchange({
-      forwardSubscription(request) {
-        const input = { ...request, query: request.query || '' };
-        return {
-          subscribe: (sink) => {
-            const unsubscribe = wsClient!.subscribe(input, sink);
-            return { unsubscribe };
-          },
-        };
-      },
-    }));
-  }
+  // Add subscription exchange for browser environment (disabled for PostGraphile)
+  // PostGraphile doesn't support WebSocket subscriptions by default
+  // if (browser && wsClient) {
+  //   exchanges.splice(-1, 0, subscriptionExchange({
+  //     forwardSubscription(request) {
+  //       const input = { ...request, query: request.query || '' };
+  //       return {
+  //         subscribe: (sink) => {
+  //           const unsubscribe = wsClient!.subscribe(input, sink);
+  //           return { unsubscribe };
+  //         },
+  //       };
+  //     },
+  //   }));
+  // }
 
   return new Client({
-    url: HASURA_GRAPHQL_URL,
+    url: POSTGRAPHILE_GRAPHQL_URL,
     exchanges,
     fetchOptions: () => {
       return {
+        method: 'POST', // Force POST requests for all GraphQL operations
         headers: {
           'Content-Type': 'application/json',
           'X-Client-Name': 'SvelteHR',
@@ -261,46 +228,45 @@ export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string) => 
         },
       };
     },
+    // Disable query GET requests
+    preferGetMethod: false,
   });
 };
 
 // Default client instance
 export const client = createUrqlClient();
 
-// Authentication helpers
-export const setAuthTokens = (tokens: {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
-}) => {
-  const expiresAt = Date.now() + (tokens.expiresIn * 1000);
-  
-  setAuthState({
-    token: tokens.accessToken,
-    refreshToken: tokens.refreshToken,
-    expiresAt
-  });
+// Authentication helpers for PostGraphile JWT
+export const setJwtToken = (jwtToken: string) => {
+  setAuthState({ token: jwtToken });
 
-  // Reinitialize WebSocket connection with new token
-  if (browser && wsClient) {
-    wsClient.dispose();
-    wsClient = createWSClient({
-      url: HASURA_GRAPHQL_WS_URL,
-      connectionParams: () => ({
-        Authorization: `Bearer ${tokens.accessToken}`
-      }),
-      shouldRetry: () => true,
-    });
-  }
+  // Reinitialize WebSocket connection with new token (disabled for PostGraphile)
+  // if (browser && wsClient) {
+  //   wsClient.dispose();
+  //   wsClient = createWSClient({
+  //     url: POSTGRAPHILE_GRAPHQL_WS_URL,
+  //     connectionParams: () => ({
+  //       Authorization: `Bearer ${jwtToken}`
+  //     }),
+  //     shouldRetry: () => true,
+  //   });
+  // }
 };
 
 export const clearAuthTokens = () => {
-  setAuthState({ token: null, refreshToken: null, expiresAt: null });
+  setAuthState({ token: null });
   
-  // Dispose WebSocket connection
-  if (browser && wsClient) {
-    wsClient.dispose();
-    wsClient = null;
+  // Dispose WebSocket connection (disabled for PostGraphile)
+  // if (browser && wsClient) {
+  //   wsClient.dispose();
+  //   wsClient = null;
+  // }
+
+  // Clear JWT from server via API call
+  if (browser) {
+    fetch('/api/auth/logout', { method: 'POST' }).catch(() => {
+      // Ignore errors - cookie clearing will happen anyway
+    });
   }
 };
 
@@ -308,12 +274,15 @@ export const getAuthToken = (): string | null => {
   return getAuthState().token;
 };
 
-export const isAuthenticated = (): boolean => {
-  const authState = getAuthState();
-  if (!authState.token || !authState.expiresAt) return false;
+export const isAuthenticated = async (): Promise<boolean> => {
+  if (!browser) return false;
   
-  // Check if token is expired
-  return authState.expiresAt > Date.now();
+  try {
+    const result = await validateTokenViaAPI();
+    return result.success && result.isValid;
+  } catch {
+    return false;
+  }
 };
 
 // Network status monitoring

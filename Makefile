@@ -237,9 +237,7 @@ test-auth: ## Test authentication functions via GraphQL
 	@echo "🔐 Testing authentication endpoint..."
 	@curl -s -X POST \
 	  -H "Content-Type: application/json" \
-	  -d '{
-	    "query": "mutation { authenticate(input: { email: \"admin@postgraphile-hr.com\", password: \"admin123\" }) { jwtToken { role userId exp iat } } }"
-	  }' \
+	  -d '{"query": "mutation { authenticate(input: { email: \"admin@postgraphile-hr.com\", password: \"admin123\" }) { jwtToken } }"}' \
 	  http://localhost:4000/graphql | jq . 2>/dev/null || echo "❌ Authentication test failed or server not running"
 
 test-contract: ## Run GraphQL contract tests

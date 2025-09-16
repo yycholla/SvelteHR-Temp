@@ -26,7 +26,7 @@ export const handle: Handle = async ({ event, resolve }) => {
             // Critical resource hints
             const link = document.createElement('link');
             link.rel = 'preconnect';
-            link.href = 'http://localhost:8080'; // Hasura endpoint
+            link.href = 'http://localhost:4000'; // PostGraphile endpoint
             document.head.appendChild(link);
           </script>
           </head>`
@@ -61,7 +61,7 @@ export const handle: Handle = async ({ event, resolve }) => {
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https:",
       "font-src 'self' data:",
-      "connect-src 'self' http://localhost:8080 ws://localhost:8080", // Hasura endpoints
+      "connect-src 'self' http://localhost:4000 ws://localhost:4000", // PostGraphile endpoints
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'"

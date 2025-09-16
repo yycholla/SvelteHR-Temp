@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
-  import { authStore, isLoading, authError } from '$lib/stores/auth';
+  import { authStore, authActions, isLoading, authError } from '$lib/stores/auth';
   import { goto } from '$app/navigation';
   import { Eye, EyeOff, Mail, Lock, AlertCircle, Loader2 } from 'lucide-svelte';
 
@@ -55,16 +55,18 @@
     if (!validateForm()) return;
     
     isSubmitting = true;
-    authStore.setError(null);
+    authActions.setError(null);
     
     try {
-      const result = await authStore.login(email, password, rememberMe);
+      const success = await authActions.login(email, password, rememberMe);
       
-      if (result.success) {
-        dispatch('success', { user: result });
+      if (success) {
+        dispatch('success', { user: { email } });
         goto('/dashboard');
       } else {
-        dispatch('error', { message: result.error || 'Login failed' });
+        // Error will be set in the auth store, we can read it from $authError
+        const errorMessage = $authError || 'Login failed';
+        dispatch('error', { message: errorMessage });
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'An unexpected error occurred';
