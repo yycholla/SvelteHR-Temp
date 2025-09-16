@@ -468,8 +468,9 @@ export const stopSessionMonitoring = () => {
   }
 };
 
-// Initialize auth service
-if (browser) {
+// Initialize auth service - DISABLED during PostGraphile migration
+// The application now uses the auth store from $lib/stores/auth instead
+if (false && browser) {
   // Initialize auth state on app start
   auth.initialize();
   

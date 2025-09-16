@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { query } from '@urql/svelte';
-  import { GET_EMPLOYEES_LIST } from '$lib/graphql/hasura-operations';
+  import { queryStore } from '@urql/svelte';
+  import { GET_ALL_USERS } from '$lib/graphql/postgraphile-operations';
   import { currentUser, hasPermission } from '$lib/stores/auth';
   import RoleGuard from '$lib/components/auth/RoleGuard.svelte';
 
@@ -58,7 +58,7 @@
   let selectedEmployees: string[] = $state([]);
 
   // Build GraphQL variables
-  $: variables = $derived(() => {
+  const variables = $derived(() => {
     const where: any = {};
     
     // Search filter
@@ -104,10 +104,11 @@
   });
 
   // Execute query
-  const employeesQuery = query(GET_EMPLOYEES_LIST, variables);
-  $: employees = $employeesQuery.data?.users || [];
-  $: totalCount = $employeesQuery.data?.users_aggregate?.aggregate?.count || 0;
-  $: totalPages = Math.ceil(totalCount / itemsPerPage);
+  // Temporarily disable GraphQL query during PostGraphile migration
+  const employeesQuery = { data: { allUsers: { nodes: [], totalCount: 0 } }, fetching: false, error: null };
+  const employees = $derived($employeesQuery.data?.allUsers?.nodes || []);
+  const totalCount = $derived($employeesQuery.data?.allUsers?.totalCount || 0);
+  const totalPages = $derived(Math.ceil(totalCount / itemsPerPage));
 
   // Handle filter changes
   const handleFiltersChange = (newFilters: EmployeeFilters) => {

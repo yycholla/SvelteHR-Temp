@@ -24,7 +24,7 @@ interface NavigationTiming {
 
 class MetricsService {
   private config: MetricsConfig = {
-    enabled: true,
+    enabled: false, // Disabled during PostGraphile migration
     sampleRate: 1.0, // 100% sampling by default
     maxBufferSize: 1000,
     batchSize: 50,

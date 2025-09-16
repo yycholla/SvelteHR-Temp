@@ -1,429 +1,354 @@
-import { writable, derived, type Readable } from 'svelte/store';
-import { browser } from '$app/environment';
-import { authUtils } from '$lib/graphql/hasura-client';
-
 /**
- * Authentication Store for SvelteHR
- * Manages user authentication state, tokens, and permissions
+ * Authentication and Authorization Store
+ * Manages user authentication state and role-based permissions for PostGraphile
  */
 
-// Types
+import { writable, derived, get } from 'svelte/store';
+import { browser } from '$app/environment';
+import { createUrqlClient } from '$lib/graphql/client';
+import { GET_USER_BY_ID, GET_USER_ROLES } from '$lib/graphql/postgraphile-operations';
+import { createRBACManager, type UserRoleAssignment, type RBACManager } from '$lib/auth/rbac';
+
+// User interface
 export interface User {
   id: string;
   email: string;
   displayName: string;
-  jobTitle?: string;
-  roles: string[];
-  defaultRole: string;
-  departmentId?: string;
-  managerId?: string;
   onboardingStatus: string;
-  lastLoginAt?: string;
+  isActive: boolean;
 }
 
-export interface AuthState {
-  user: User | null;
-  accessToken: string | null;
-  refreshToken: string | null;
+// Authentication state interface
+interface AuthState {
   isAuthenticated: boolean;
+  user: User | null;
+  roles: UserRoleAssignment[];
   isLoading: boolean;
   error: string | null;
-  sessionId?: string;
-  expiresAt?: number;
 }
 
 // Initial state
 const initialState: AuthState = {
-  user: null,
-  accessToken: null,
-  refreshToken: null,
   isAuthenticated: false,
-  isLoading: true, // Start loading to check existing tokens
-  error: null,
+  user: null,
+  roles: [],
+  isLoading: false,
+  error: null
 };
 
-/**
- * Main auth store
- */
-export const authStore = (() => {
-  const { subscribe, set, update } = writable<AuthState>(initialState);
+// Create the main auth store
+export const authStore = writable<AuthState>(initialState);
 
-  return {
-    subscribe,
-    
-    /**
-     * Initialize authentication state on app load
-     */
-    init: async (): Promise<void> => {
-      if (!browser) return;
+// Derived stores for convenience
+export const user = derived(authStore, ($auth) => $auth.user);
+export const currentUser = derived(authStore, ($auth) => $auth.user);
+export const isAuthenticated = derived(authStore, ($auth) => $auth.isAuthenticated);
+export const isLoading = derived(authStore, ($auth) => $auth.isLoading);
+export const authError = derived(authStore, ($auth) => $auth.error);
 
-      try {
-        const accessToken = authUtils.getAccessToken();
-        const refreshToken = authUtils.getRefreshToken();
+// RBAC manager derived store
+export const rbac = derived(authStore, ($auth): RBACManager => {
+  return createRBACManager($auth.roles, $auth.user?.id || null);
+});
 
-        if (accessToken && refreshToken) {
-          // Check if access token is expired
-          if (authUtils.isTokenExpired(accessToken)) {
-            // Try to refresh
-            const newAccessToken = await authUtils.refreshAccessToken();
-            if (newAccessToken) {
-              // Get user info with new token
-              await authStore.fetchCurrentUser();
-              return;
-            }
-          } else {
-            // Token is still valid, get user info
-            await authStore.fetchCurrentUser();
-            return;
-          }
-        }
-
-        // No valid tokens, clear state
-        authStore.clearAuth();
-      } catch (error) {
-        console.error('Auth initialization error:', error);
-        authStore.clearAuth();
-      }
-    },
-
-    /**
-     * Login with email and password
-     */
-    login: async (email: string, password: string, rememberMe = false): Promise<{ success: boolean; error?: string }> => {
-      update(state => ({ ...state, isLoading: true, error: null }));
-
-      try {
-        const response = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({ email, password, rememberMe }),
-        });
-
-        const data = await response.json();
-
-        if (data.success && data.accessToken && data.user) {
-          // Store tokens
-          authUtils.setAccessToken(data.accessToken);
-          if (data.refreshToken) {
-            authUtils.setRefreshToken(data.refreshToken);
-          }
-
-          // Calculate expiry time
-          const expiresAt = Date.now() + (data.expiresIn * 1000);
-
-          // Update store
-          set({
-            user: data.user,
-            accessToken: data.accessToken,
-            refreshToken: data.refreshToken,
-            isAuthenticated: true,
-            isLoading: false,
-            error: null,
-            sessionId: data.sessionId,
-            expiresAt,
-          });
-
-          return { success: true };
-        } else {
-          const error = data.error || 'Login failed';
-          update(state => ({ ...state, isLoading: false, error }));
-          return { success: false, error };
-        }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Network error';
-        update(state => ({ ...state, isLoading: false, error: errorMessage }));
-        return { success: false, error: errorMessage };
-      }
-    },
-
-    /**
-     * Logout user
-     */
-    logout: async (): Promise<void> => {
-      update(state => ({ ...state, isLoading: true }));
-
-      try {
-        // Call backend logout if user is authenticated
-        const currentState = get(authStore);
-        if (currentState.isAuthenticated && currentState.accessToken) {
-          await fetch('/api/auth/logout', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${currentState.accessToken}`,
-            },
-            credentials: 'include',
-          });
-        }
-      } catch (error) {
-        console.error('Logout request failed:', error);
-        // Continue with local cleanup even if server request fails
-      }
-
-      // Clear local state
-      authStore.clearAuth();
-    },
-
-    /**
-     * Clear authentication state
-     */
-    clearAuth: (): void => {
-      authUtils.clearTokens();
-      set({
-        user: null,
-        accessToken: null,
-        refreshToken: null,
-        isAuthenticated: false,
-        isLoading: false,
-        error: null,
-      });
-    },
-
-    /**
-     * Refresh access token
-     */
-    refreshAccessToken: async (): Promise<boolean> => {
-      try {
-        const newToken = await authUtils.refreshAccessToken();
-        
-        if (newToken) {
-          const expiresAt = Date.now() + (15 * 60 * 1000); // 15 minutes
-          
-          update(state => ({
-            ...state,
-            accessToken: newToken,
-            expiresAt,
-            error: null,
-          }));
-          
-          return true;
-        }
-        
-        authStore.clearAuth();
-        return false;
-      } catch (error) {
-        console.error('Token refresh failed:', error);
-        authStore.clearAuth();
-        return false;
-      }
-    },
-
-    /**
-     * Fetch current user data from API
-     */
-    fetchCurrentUser: async (): Promise<void> => {
-      const accessToken = authUtils.getAccessToken();
-      
-      if (!accessToken) {
-        authStore.clearAuth();
-        return;
-      }
-
-      try {
-        const response = await fetch('/api/auth/me', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          
-          if (data.success && data.user) {
-            const expiresAt = Date.now() + (15 * 60 * 1000); // Assume 15 minutes
-            
-            update(state => ({
-              ...state,
-              user: data.user,
-              accessToken,
-              isAuthenticated: true,
-              isLoading: false,
-              error: null,
-              expiresAt,
-            }));
-          } else {
-            throw new Error(data.error || 'Failed to get user info');
-          }
-        } else if (response.status === 401) {
-          // Token is invalid, try to refresh
-          const refreshed = await authStore.refreshAccessToken();
-          if (refreshed) {
-            // Retry fetching user
-            await authStore.fetchCurrentUser();
-          } else {
-            authStore.clearAuth();
-          }
-        } else {
-          throw new Error('Failed to get user info');
-        }
-      } catch (error) {
-        console.error('Fetch current user error:', error);
-        authStore.clearAuth();
-      }
-    },
-
-    /**
-     * Update user data in store
-     */
-    updateUser: (updates: Partial<User>): void => {
-      update(state => ({
-        ...state,
-        user: state.user ? { ...state.user, ...updates } : null,
-      }));
-    },
-
-    /**
-     * Set loading state
-     */
-    setLoading: (loading: boolean): void => {
-      update(state => ({ ...state, isLoading: loading }));
-    },
-
-    /**
-     * Set error state
-     */
-    setError: (error: string | null): void => {
-      update(state => ({ ...state, error }));
-    },
-
-    /**
-     * Change password
-     */
-    changePassword: async (currentPassword: string, newPassword: string): Promise<{ success: boolean; error?: string }> => {
-      const currentState = get(authStore);
-      
-      if (!currentState.isAuthenticated || !currentState.accessToken) {
-        return { success: false, error: 'Not authenticated' };
-      }
-
-      try {
-        const response = await fetch('/api/auth/change-password', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${currentState.accessToken}`,
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            currentPassword,
-            newPassword,
-            confirmPassword: newPassword,
-          }),
-        });
-
-        const data = await response.json();
-        
-        if (data.success) {
-          return { success: true };
-        } else {
-          return { success: false, error: data.error || 'Password change failed' };
-        }
-      } catch (error) {
-        return { success: false, error: 'Network error' };
-      }
-    },
-  };
-})();
-
-/**
- * Derived stores for convenient access to auth state
- */
-
-// Current user
-export const currentUser: Readable<User | null> = derived(
-  authStore,
-  $authStore => $authStore.user
-);
-
-// Authentication status
-export const isAuthenticated: Readable<boolean> = derived(
-  authStore,
-  $authStore => $authStore.isAuthenticated
-);
-
-// Loading state
-export const isLoading: Readable<boolean> = derived(
-  authStore,
-  $authStore => $authStore.isLoading
-);
-
-// Error state
-export const authError: Readable<string | null> = derived(
-  authStore,
-  $authStore => $authStore.error
-);
-
-// User roles
-export const userRoles: Readable<string[]> = derived(
-  authStore,
-  $authStore => $authStore.user?.roles || []
-);
-
-// User permissions (could be enhanced with more complex logic)
-export const userPermissions: Readable<string[]> = derived(
-  userRoles,
-  $roles => {
-    const permissions: string[] = [];
-    
-    // Add role-based permissions
-    if ($roles.includes('admin')) {
-      permissions.push('admin:*', 'hr:*', 'manager:*', 'employee:*');
-    } else if ($roles.includes('hr_admin')) {
-      permissions.push('hr:*', 'manager:*', 'employee:*');
-    } else if ($roles.includes('manager')) {
-      permissions.push('manager:*', 'employee:*');
-    } else if ($roles.includes('employee')) {
-      permissions.push('employee:*');
-    }
-    
-    return permissions;
+// Permission check derived stores for common use cases - using lazy evaluation
+export const canViewUsers = derived(rbac, ($rbac) => {
+  try {
+    return $rbac.hasPermission('view_users');
+  } catch {
+    return false;
   }
-);
+});
+export const canManageUsers = derived(rbac, ($rbac) => {
+  try {
+    return $rbac.hasPermission('update_users');
+  } catch {
+    return false;
+  }
+});
+export const canViewSensitiveData = derived(rbac, ($rbac) => {
+  try {
+    return $rbac.hasPermission('view_sensitive_data');
+  } catch {
+    return false;
+  }
+});
+export const canManageRoles = derived(rbac, ($rbac) => {
+  try {
+    return $rbac.hasPermission('assign_roles');
+  } catch {
+    return false;
+  }
+});
+export const canApproveLeave = derived(rbac, ($rbac) => {
+  try {
+    return $rbac.hasPermission('approve_leave_requests');
+  } catch {
+    return false;
+  }
+});
+export const canManageWorkflows = derived(rbac, ($rbac) => {
+  try {
+    return $rbac.hasPermission('manage_workflows');
+  } catch {
+    return false;
+  }
+});
+export const canManageCompliance = derived(rbac, ($rbac) => {
+  try {
+    return $rbac.hasPermission('manage_compliance');
+  } catch {
+    return false;
+  }
+});
 
-// User role level (highest level)
-export const userRoleLevel: Readable<number> = derived(
-  userRoles,
-  $roles => {
-    const roleLevels: Record<string, number> = {
-      admin: 80,
-      hr_admin: 60,
-      finance: 50,
-      manager: 30,
-      employee: 10,
+// User role information
+export const userHighestRole = derived(rbac, ($rbac) => {
+  try {
+    return {
+      name: $rbac.getHighestRoleName(),
+      level: $rbac.getHighestRoleLevel()
     };
-    
-    return Math.max(...$roles.map(role => roleLevels[role] || 0));
+  } catch {
+    return {
+      name: 'hr_guest',
+      level: 0
+    };
   }
-);
+});
 
-// Convenience function to get current auth state
-export const get = (store: typeof authStore) => {
-  let value: AuthState;
-  store.subscribe(v => value = v)();
-  return value!;
+// Auth actions
+export const authActions = {
+  /**
+   * Set loading state
+   */
+  setLoading: (loading: boolean) => {
+    authStore.update(state => ({ ...state, isLoading: loading }));
+  },
+
+  /**
+   * Set error state
+   */
+  setError: (error: string | null) => {
+    authStore.update(state => ({ ...state, error }));
+  },
+
+  /**
+   * Login with email and password
+   */
+  login: async (email: string, password: string, rememberMe: boolean = false): Promise<boolean> => {
+    authActions.setLoading(true);
+    authActions.setError(null);
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, rememberMe })
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.user) {
+        await authActions.setUser(data.user);
+        return true;
+      } else {
+        authActions.setError(data.error || 'Login failed');
+        return false;
+      }
+    } catch (error) {
+      authActions.setError('Network error during login');
+      return false;
+    } finally {
+      authActions.setLoading(false);
+    }
+  },
+
+  /**
+   * Logout
+   */
+  logout: async (): Promise<void> => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Clear local state regardless of API response
+      authStore.set(initialState);
+    }
+  },
+
+  /**
+   * Set user and load their roles
+   */
+  setUser: async (user: User): Promise<void> => {
+    authStore.update(state => ({
+      ...state,
+      isAuthenticated: true,
+      user,
+      isLoading: true
+    }));
+
+    // Load user roles
+    await authActions.loadUserRoles(user.id);
+  },
+
+  /**
+   * Load user roles from the API
+   */
+  loadUserRoles: async (userId: string): Promise<void> => {
+    try {
+      const client = createUrqlClient();
+      const result = await client.query(GET_USER_ROLES, { userId }).toPromise();
+
+      if (result.data?.allUserRoleAssignments?.nodes) {
+        authStore.update(state => ({
+          ...state,
+          roles: result.data.allUserRoleAssignments.nodes,
+          isLoading: false
+        }));
+      } else {
+        authStore.update(state => ({
+          ...state,
+          roles: [],
+          isLoading: false
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading user roles:', error);
+      authStore.update(state => ({
+        ...state,
+        roles: [],
+        isLoading: false,
+        error: 'Failed to load user permissions'
+      }));
+    }
+  },
+
+  /**
+   * Validate current session
+   */
+  validateSession: async (): Promise<boolean> => {
+    if (!browser) return false;
+
+    authActions.setLoading(true);
+
+    try {
+      const response = await fetch('/api/auth/refresh', { method: 'POST' });
+      const data = await response.json();
+
+      if (data.success && data.user) {
+        await authActions.setUser(data.user);
+        return true;
+      } else {
+        authStore.set(initialState);
+        return false;
+      }
+    } catch (error) {
+      authStore.set(initialState);
+      return false;
+    } finally {
+      authActions.setLoading(false);
+    }
+  },
+
+  /**
+   * Refresh user data and roles
+   */
+  refreshUser: async (): Promise<void> => {
+    const currentState = get(authStore);
+    if (!currentState.user?.id) return;
+
+    authActions.setLoading(true);
+
+    try {
+      const client = createUrqlClient();
+      const userResult = await client.query(GET_USER_BY_ID, { id: currentState.user.id }).toPromise();
+
+      if (userResult.data?.userById) {
+        await authActions.setUser(userResult.data.userById);
+      }
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+      authActions.setError('Failed to refresh user data');
+    } finally {
+      authActions.setLoading(false);
+    }
+  },
+
+  /**
+   * Check if user has specific permission
+   */
+  hasPermission: (permission: string): boolean => {
+    const rbacManager = get(rbac);
+    return rbacManager.hasPermission(permission);
+  },
+
+  /**
+   * Check if user has minimum role level
+   */
+  hasMinimumRoleLevel: (level: number): boolean => {
+    const rbacManager = get(rbac);
+    return rbacManager.hasMinimumRoleLevel(level);
+  },
+
+  /**
+   * Check if user can manage another user
+   */
+  canManageUser: (targetUserId: string, requiredPermission: string): boolean => {
+    const rbacManager = get(rbac);
+    return rbacManager.canManageUser(targetUserId, requiredPermission);
+  }
 };
 
-// Permission checking utilities
+// Initialize auth state on app start
+if (browser) {
+  // Validate session on app load
+  authActions.validateSession();
+}
+
+// Export store as default
+export { authStore as default };
+
+// Utility function to get current auth state
+export const getAuthState = (): AuthState => get(authStore);
+
+// Utility function to get current RBAC manager
+export const getRBACManager = (): RBACManager => get(rbac);
+
+// Export utility functions for components
 export const hasPermission = (permission: string): boolean => {
-  const permissions = get(userPermissions);
-  return permissions.some(p => 
-    p === permission || 
-    p.endsWith(':*') && permission.startsWith(p.slice(0, -1))
-  );
+  return authActions.hasPermission(permission);
 };
 
-export const hasRole = (role: string): boolean => {
-  const roles = get(userRoles);
-  return roles.includes(role);
+export const hasMinimumRoleLevel = (level: number): boolean => {
+  return authActions.hasMinimumRoleLevel(level);
 };
 
-export const hasMinimumRoleLevel = (requiredLevel: number): boolean => {
-  const currentLevel = get(userRoleLevel);
-  return currentLevel >= requiredLevel;
+export const canManageUser = (targetUserId: string, requiredPermission: string): boolean => {
+  return authActions.canManageUser(targetUserId, requiredPermission);
 };
+
+export const hasRole = (roleName: string): boolean => {
+  const currentRoles = get(rbac);
+  try {
+    // Get all roles for the user and check if any match the requested role
+    const userState = get(authStore);
+    if (!userState.roles) return false;
+    
+    return userState.roles.some(roleAssignment => 
+      roleAssignment.role?.name === roleName
+    );
+  } catch {
+    return false;
+  }
+};
+
+// Derived store for user roles
+export const userRoles = derived(authStore, ($authStore) => {
+  if (!$authStore.user || !$authStore.roles) return [];
+  
+  return $authStore.roles.map(roleAssignment => 
+    roleAssignment.role?.name || ''
+  ).filter(Boolean);
+});

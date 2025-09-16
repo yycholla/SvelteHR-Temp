@@ -184,21 +184,18 @@ const createNotificationService = () => {
           )
         };
 
-        const result = await client.query(GET_NOTIFICATIONS_QUERY, variables).toPromise();
-
-        if (result.error) {
-          throw new Error(result.error.graphQLErrors[0]?.message || 'Failed to load notifications');
-        }
-
-        const notifications = extractEdges<Notification>(result.data.notifications);
-        const pageInfo = extractPageInfo(result.data.notifications);
+        // Temporarily disable notifications during PostGraphile migration
+        console.warn('Notifications temporarily disabled during PostGraphile migration');
+        
+        const notifications = [];
+        const pageInfo = { hasNextPage: false, hasPreviousPage: false };
 
         update(state => ({
           ...state,
           notifications: reset ? notifications : [...state.notifications, ...notifications],
           unreadNotifications: notifications.filter(n => !n.isRead),
-          totalCount: result.data.notifications.totalCount,
-          unreadCount: result.data.notifications.unreadCount || notifications.filter(n => !n.isRead).length,
+          totalCount: 0,
+          unreadCount: 0,
           isLoading: false,
           filters: { ...state.filters, ...filters },
           pagination: {
@@ -214,7 +211,7 @@ const createNotificationService = () => {
           }
         }));
 
-        return { notifications, totalCount: result.data.notifications.totalCount };
+        return { notifications, totalCount: 0 };
       } catch (error: any) {
         const errorMessage = error.message || 'Failed to load notifications';
         update(state => ({
@@ -347,13 +344,15 @@ const createNotificationService = () => {
       update(state => ({ ...state, isLoading: true, error: null }));
 
       try {
-        const result = await client.query(GET_NOTIFICATION_PREFERENCES_QUERY).toPromise();
-
-        if (result.error) {
-          throw new Error(result.error.graphQLErrors[0]?.message || 'Failed to load notification preferences');
-        }
-
-        const preferences = result.data.notificationPreferences;
+        // Temporarily disable notification preferences during PostGraphile migration
+        console.warn('Notification preferences temporarily disabled during PostGraphile migration');
+        
+        const preferences = {
+          email: { enabled: false, frequency: 'instant' },
+          push: { enabled: false, frequency: 'instant' },
+          sms: { enabled: false, frequency: 'instant' },
+          inApp: { enabled: false, frequency: 'instant' }
+        };
 
         update(state => ({
           ...state,
@@ -410,38 +409,14 @@ const createNotificationService = () => {
     // =============================================================================
 
     subscribeToNotifications() {
-      const currentState = get({ subscribe });
-      if (currentState.subscriptions.notifications) return;
-
-      try {
-        client.subscription(SUBSCRIBE_NOTIFICATIONS).subscribe(result => {
-          if (result.data?.notificationReceived) {
-            const newNotification = result.data.notificationReceived;
-            
-            update(state => ({
-              ...state,
-              notifications: [newNotification, ...state.notifications],
-              unreadNotifications: !newNotification.isRead 
-                ? [newNotification, ...state.unreadNotifications]
-                : state.unreadNotifications,
-              totalCount: state.totalCount + 1,
-              unreadCount: !newNotification.isRead 
-                ? state.unreadCount + 1 
-                : state.unreadCount
-            }));
-
-            // Show browser notification if permitted and enabled
-            this.showBrowserNotification(newNotification);
-          }
-        });
-
-        update(state => ({
-          ...state,
-          subscriptions: { ...state.subscriptions, notifications: true }
-        }));
-      } catch (error: any) {
-        console.error('Failed to subscribe to notifications:', error);
-      }
+      // Temporarily disabled - PostGraphile doesn't support WebSocket subscriptions by default
+      console.log('WebSocket subscriptions disabled for PostGraphile compatibility');
+      
+      // Mark as subscribed to prevent repeated attempts
+      update(state => ({
+        ...state,
+        subscriptions: { ...state.subscriptions, notifications: true }
+      }));
     },
 
     unsubscribeFromNotifications() {

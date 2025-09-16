@@ -1,9 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { query } from '@urql/svelte';
+  import { writable } from 'svelte/store';
+  import { getContextClient, queryStore } from '@urql/svelte';
   import { currentUser, hasPermission, hasRole } from '$lib/stores/auth';
-  import { GET_DASHBOARD_STATS } from '$lib/graphql/hasura-operations';
+  import { GET_SECURITY_METRICS } from '$lib/graphql/postgraphile-operations';
   import RoleGuard from '$lib/components/auth/RoleGuard.svelte';
   import EmployeeList from '$lib/components/employees/EmployeeList.svelte';
 
@@ -13,27 +14,28 @@
    */
 
   // Execute GraphQL query for dashboard stats
-  const dashboardQuery = query(GET_DASHBOARD_STATS, {});
-  $: dashboardData = $dashboardQuery.data;
-  $: loading = $dashboardQuery.fetching;
+  // Temporarily disable the query during PostGraphile migration
+  const dashboardQuery = writable({ data: null, fetching: false, error: null });
+  const dashboardData = $derived($dashboardQuery.data);
+  const loading = $derived($dashboardQuery.fetching);
 
   // Transform GraphQL data for dashboard stats
-  $: dashboardStats = $derived(() => {
+  const dashboardStats = $derived(() => {
     if (!dashboardData) return {};
     
     return {
-      totalEmployees: dashboardData.totalEmployees?.aggregate?.count || 0,
-      activeEmployees: dashboardData.activeEmployees?.aggregate?.count || 0,
-      pendingOnboarding: dashboardData.pendingOnboarding?.aggregate?.count || 0,
-      departmentCount: dashboardData.departmentCount?.aggregate?.count || 0
+      totalEmployees: dashboardData.totalUsers?.totalCount || 0,
+      activeEmployees: dashboardData.totalUsers?.totalCount || 0,
+      pendingOnboarding: 0,
+      departmentCount: 0
     };
   });
 
   // Recent hires from dashboard data
-  $: recentHires = dashboardData?.recentHires || [];
+  const recentHires = $derived([]);
 
   // Quick actions for different user roles
-  $: quickActions = getQuickActions($currentUser);
+  const quickActions = $derived(getQuickActions($currentUser));
 
   function getQuickActions(user: any) {
     const actions = [
