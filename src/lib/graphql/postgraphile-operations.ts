@@ -32,7 +32,7 @@ export const GET_CURRENT_USER = gql`
 
 export const GET_USER_BY_ID = gql`
   query GetUserById($id: UUID!) {
-    userById(id: $id) {
+    user(id: $id) {
       id
       email
       displayName
@@ -46,7 +46,7 @@ export const GET_USER_BY_ID = gql`
 
 export const GET_ALL_USERS = gql`
   query GetAllUsers($first: Int = 50) {
-    allUsers(first: $first) {
+    users(first: $first) {
       nodes {
         id
         email
@@ -133,7 +133,7 @@ export const GET_ALL_ROLES = gql`
 
 export const GET_USER_ROLES = gql`
   query GetUserRoles($userId: UUID!) {
-    allUserRoleAssignments(condition: { userId: $userId }) {
+    userRoleAssignments(condition: { userId: $userId }) {
       nodes {
         id
         userId
@@ -143,22 +143,6 @@ export const GET_USER_ROLES = gql`
         validFrom
         validUntil
         createdAt
-        userRoleByRoleId {
-          id
-          name
-          description
-          level
-        }
-        userByUserId {
-          id
-          displayName
-          email
-        }
-        userByAssignedBy {
-          id
-          displayName
-          email
-        }
       }
     }
   }
@@ -588,7 +572,7 @@ export const GET_SUSPICIOUS_ACTIVITIES = gql`
 
 export const GET_USER_ACTIVITY_LOG = gql`
   query GetUserActivityLog($userId: UUID!, $first: Int = 50) {
-    userById(id: $userId) {
+    user(id: $userId) {
       auditLogsByUserId(
         first: $first
         orderBy: [ID_DESC]
@@ -613,7 +597,7 @@ export const GET_USER_ACTIVITY_LOG = gql`
 
 export const GET_SECURITY_METRICS = gql`
   query GetSecurityMetrics {
-    totalUsers: allUsers {
+    totalUsers: users {
       totalCount
     }
     

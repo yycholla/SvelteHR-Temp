@@ -13,12 +13,17 @@
 
   let redirected = false;
 
-  // Check if user is already authenticated - only after loading is complete
-  $: if (!redirected && $isAuthenticated) {
-    redirected = true;
-    const redirectTo = $page.url.searchParams.get('redirect') || '/dashboard';
-    goto(redirectTo);
-  }
+  // Check if user is already authenticated on mount
+  onMount(() => {
+    // Use a timeout to allow auth state to stabilize
+    setTimeout(() => {
+      if (!redirected && $isAuthenticated) {
+        redirected = true;
+        const redirectTo = $page.url.searchParams.get('redirect') || '/dashboard';
+        goto(redirectTo);
+      }
+    }, 100);
+  });
 
   // Handle successful login
   const handleLoginSuccess = (event: CustomEvent) => {

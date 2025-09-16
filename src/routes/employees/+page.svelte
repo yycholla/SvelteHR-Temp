@@ -3,19 +3,53 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import EmployeeList from '$lib/components/employees/EmployeeList.svelte';
-  import { currentUser, hasPermission } from '$lib/services/auth';
-  import { userService } from '$lib/services/userService';
+  import {
+    currentUser,
+    hasPermission,
+    isAuthenticated,
+    isLoading,
+    authError,
+    userRoles,
+    getRBACManager
+  } from '$lib/stores/auth';
 
-  // Check permissions on mount
+  let authCheckComplete = false;
+
+  // Use onMount to avoid reactive loops
   onMount(() => {
-    // Redirect if user doesn't have permission to view employees
-    if (!$currentUser || !hasPermission('user:read')) {
-      goto('/dashboard');
-      return;
-    }
+    // Initial auth validation only
+    const validateAccess = async () => {
+      // Wait for auth to initialize
+      let attempts = 0;
+      while ($isLoading && attempts < 50) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
 
-    // Load initial employee data
-    userService.loadUsers({ reset: true });
+      console.log('=== Employee Page Permission Check ===');
+      console.log('currentUser:', $currentUser);
+      console.log('isAuthenticated:', $isAuthenticated);
+      console.log('isLoading:', $isLoading);
+
+      // If still no user after loading, redirect to login
+      if (!$currentUser) {
+        console.log('No current user, redirecting to login');
+        goto('/login');
+        return;
+      }
+
+      // Check if user has permission to view employees
+      if (!hasPermission('view_users')) {
+        console.log('User lacks view_users permission, redirecting to dashboard');
+        goto('/dashboard');
+        return;
+      }
+
+      console.log('Permission check passed, user can view employees');
+      authCheckComplete = true;
+    };
+
+    validateAccess();
   });
 </script>
 

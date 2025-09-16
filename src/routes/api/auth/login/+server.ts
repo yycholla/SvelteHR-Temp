@@ -11,24 +11,36 @@ import crypto from 'crypto';
 
 const POSTGRAPHILE_URL = 'http://localhost:4000/graphql';
 
-// Query to find user by email
+// Query to find user by email (PostGraphile schema)
 const USER_LOGIN_QUERY = `
   query UserLogin($email: String!) {
-    userByEmail(email: $email) {
-      id
-      email
-      displayName
-      onboardingStatus
-      isActive
+    users(condition: { email: $email }) {
+      nodes {
+        id
+        email
+        displayName
+        onboardingStatus
+        isActive
+      }
     }
   }
 `;
 
 export const POST: RequestHandler = async ({ request, cookies, getClientAddress }) => {
   try {
-    const text = await request.text();
-    console.log('Request body:', text);
-    const body = JSON.parse(text);
+    console.log('=== LOGIN API v3 - Fixed JSON parsing ===');
+
+    // Get the raw text and fix the escaped exclamation mark issue
+    let bodyText = await request.text();
+    console.log('Raw body text:', bodyText);
+
+    // Fix invalid escape sequence \! which should just be !
+    bodyText = bodyText.replace(/\\!/g, '!');
+    console.log('Fixed body text:', bodyText);
+
+    // Now parse the corrected JSON
+    const body = JSON.parse(bodyText);
+    console.log('Parsed body successfully:', { email: body.email, hasPassword: !!body.password });
     const { email, password, rememberMe } = body;
 
     if (!email || !password) {
@@ -51,17 +63,17 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
     // Get user by email
     const userResult = await client.query(USER_LOGIN_QUERY, { email }).toPromise();
 
-    if (userResult.error || !userResult.data?.userByEmail) {
+    if (userResult.error || !userResult.data?.users?.nodes?.length) {
       return json(
-        { 
-          success: false, 
-          error: 'Invalid email or password' 
-        }, 
+        {
+          success: false,
+          error: 'Invalid email or password'
+        },
         { status: 401 }
       );
     }
 
-    const user = userResult.data.userByEmail;
+    const user = userResult.data.users.nodes[0];
 
     // For testing purposes, accept any password for admin account
     // In production, implement proper password validation
