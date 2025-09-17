@@ -11,56 +11,68 @@ import { GET_CURRENT_USER, GET_USER_BY_ID } from '$lib/graphql/postgraphile-oper
 
 export const POST: RequestHandler = async ({ cookies }) => {
   try {
-    // Get JWT token from httpOnly cookie
-    const jwtToken = cookies.get('jwt-token');
+    // Get token from httpOnly cookie
+    const token = cookies.get('jwt-token');
 
-    if (!jwtToken) {
+    if (!token) {
       // No token present - this is expected for unauthenticated users
       return json(
-        { 
-          success: false, 
+        {
+          success: false,
           isValid: false,
-          error: 'No authentication token present' 
-        }, 
+          error: 'No authentication token present'
+        },
         { status: 200 } // Return 200 instead of 401 for missing tokens
       );
     }
 
-    // Create authenticated client with the JWT token
-    const client = createUrqlClient(undefined, jwtToken);
-
-    // Validate token by getting current user
-    const currentUserResult = await client.query(GET_CURRENT_USER, {}).toPromise();
-
-    if (currentUserResult.error || !currentUserResult.data?.currentUserId) {
-      // JWT is invalid or expired, clear the cookie
+    // Parse the base64 token created by login
+    let tokenPayload;
+    try {
+      const decoded = Buffer.from(token, 'base64').toString('utf-8');
+      tokenPayload = JSON.parse(decoded);
+    } catch (error) {
+      // Token is malformed, clear it
       cookies.delete('jwt-token', { path: '/' });
       return json(
-        { 
-          success: false, 
-          error: 'Invalid or expired token' 
-        }, 
+        {
+          success: false,
+          error: 'Invalid token format'
+        },
         { status: 401 }
       );
     }
 
-    const userId = currentUserResult.data.currentUserId;
-
-    // Get full user details
-    const userResult = await client.query(GET_USER_BY_ID, { id: userId }).toPromise();
-
-    if (userResult.error || !userResult.data?.userById) {
+    // Check if token is expired
+    if (tokenPayload.exp && tokenPayload.exp < Math.floor(Date.now() / 1000)) {
       cookies.delete('jwt-token', { path: '/' });
       return json(
-        { 
-          success: false, 
-          error: 'Failed to retrieve user information' 
-        }, 
+        {
+          success: false,
+          error: 'Token expired'
+        },
         { status: 401 }
       );
     }
 
-    const user = userResult.data.userById;
+    // Create unauthenticated client to verify user still exists
+    const client = createUrqlClient();
+
+    // Get user details using the user_id from token
+    const userResult = await client.query(GET_USER_BY_ID, { id: tokenPayload.user_id }).toPromise();
+
+    if (userResult.error || !userResult.data?.user) {
+      cookies.delete('jwt-token', { path: '/' });
+      return json(
+        {
+          success: false,
+          error: 'Failed to retrieve user information'
+        },
+        { status: 401 }
+      );
+    }
+
+    const user = userResult.data.user;
 
     // Return success with user info
     return json({

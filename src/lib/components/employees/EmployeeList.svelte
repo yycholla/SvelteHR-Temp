@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { queryStore } from '@urql/svelte';
+  import { createUrqlClient } from '$lib/graphql/client';
   import { GET_ALL_USERS } from '$lib/graphql/postgraphile-operations';
   import { currentUser, hasPermission } from '$lib/stores/auth';
   import RoleGuard from '$lib/components/auth/RoleGuard.svelte';
@@ -51,64 +52,101 @@
   }: Props = $props();
 
   // State
-  let filters: EmployeeFilters = { ...initialFilters };
-  let currentPage = 1;
+  let filters: EmployeeFilters = $state({ ...initialFilters });
+  let currentPage = $state(1);
   let itemsPerPage = 20;
-  let viewMode: 'grid' | 'list' = 'grid';
+  let viewMode: 'grid' | 'list' = $state('grid');
   let selectedEmployees: string[] = $state([]);
 
-  // Build GraphQL variables
-  const variables = $derived(() => {
-    const where: any = {};
-    
-    // Search filter
-    if (filters.search) {
-      where._or = [
-        { displayName: { _ilike: `%${filters.search}%` } },
-        { email: { _ilike: `%${filters.search}%` } },
-        { jobTitle: { _ilike: `%${filters.search}%` } }
-      ];
+  // Direct client instance to avoid context timing issues
+  const client = createUrqlClient();
+
+  // Initialize query store immediately with direct client
+  let usersQuery: any = $state(null);
+  let clientReady = $state(false);
+
+  onMount(() => {
+    // Initialize the query with the direct client
+    try {
+      console.log('URQL client:', client);
+
+      if (!client || !client.createRequestOperation) {
+        throw new Error('URQL client is not properly initialized');
+      }
+
+      console.log('URQL client validated, initializing query...');
+      clientReady = true;
+      usersQuery = queryStore({
+        client,
+        query: GET_ALL_USERS,
+        variables: {
+          first: itemsPerPage,
+          offset: 0
+        }
+      });
+    } catch (error) {
+      console.error('Error initializing query store:', error);
+      clientReady = false;
     }
 
-    // Department filter
-    if (filters.department) {
-      where.departmentId = { _eq: filters.department };
-    }
-
-    // Status filter
-    if (filters.status) {
-      where.onboardingStatus = { _eq: filters.status };
-    }
-
-    // Role filter
-    if (filters.role) {
-      where.user_roles = { role: { _eq: filters.role } };
-    }
-
-    // Manager filter
-    if (filters.manager) {
-      where.managerId = { _eq: filters.manager };
-    }
-
-    // Only show non-terminated users for regular views
-    if (!filters.status || filters.status !== 'terminated') {
-      where.onboardingStatus = { _neq: 'terminated' };
-    }
-
-    return {
-      limit: itemsPerPage,
-      offset: (currentPage - 1) * itemsPerPage,
-      where,
-      orderBy: [{ displayName: 'asc' }]
-    };
+    // Auto-refresh every 5 minutes
+    const interval = setInterval(refresh, 5 * 60 * 1000);
+    return () => clearInterval(interval);
   });
 
-  // Execute query
-  // Temporarily disable GraphQL query during PostGraphile migration
-  const employeesQuery = { data: { allUsers: { nodes: [], totalCount: 0 } }, fetching: false, error: null };
-  const employees = $derived($employeesQuery.data?.allUsers?.nodes || []);
-  const totalCount = $derived($employeesQuery.data?.allUsers?.totalCount || 0);
+  // Client-side search filter
+  const searchFilter = $derived(() => {
+    if (!filters.search) return null;
+    const search = filters.search.toLowerCase();
+    return (employee: any) =>
+      employee.displayName?.toLowerCase().includes(search) ||
+      employee.email?.toLowerCase().includes(search);
+  });
+
+  // Store query state in reactive variables to avoid direct store access in derived
+  let queryState = $state({ fetching: true, error: null, data: null });
+
+  // Update query state when usersQuery changes
+  $effect(() => {
+    if (usersQuery) {
+      // Subscribe to query store changes
+      const unsubscribe = usersQuery.subscribe((state: any) => {
+        queryState = {
+          fetching: state.fetching,
+          error: state.error,
+          data: state.data
+        };
+
+        // Capture the rerun function
+        if (state.rerun) {
+          rerunQuery = () => state.rerun({ requestPolicy: 'network-only' });
+        }
+
+        console.log('URQL Query State:', {
+          fetching: state.fetching,
+          error: state.error,
+          dataNodes: state.data?.users?.nodes?.length || 0
+        });
+      });
+
+      return unsubscribe;
+    }
+  });
+
+  // Filter results client-side for search
+  const filteredEmployees = $derived(() => {
+    if (!queryState.data) return [];
+    const employees = queryState.data?.users?.nodes || [];
+    if (!searchFilter) return employees;
+    return employees.filter(searchFilter);
+  });
+
+  // Derived values for display
+  const employees = $derived(filteredEmployees);
+  const totalCount = $derived(employees.length);
   const totalPages = $derived(Math.ceil(totalCount / itemsPerPage));
+  const loading = $derived(!clientReady || queryState.fetching);
+  const error = $derived(queryState.error);
 
   // Handle filter changes
   const handleFiltersChange = (newFilters: EmployeeFilters) => {
@@ -162,16 +200,18 @@
     console.log('Deactivating employees:', selectedEmployees);
   };
 
+  // Store the rerun function separately to avoid reactive access
+  let rerunQuery: (() => void) | null = null;
+
   // Refresh data
   const refresh = () => {
-    $employeesQuery.rerun({ requestPolicy: 'network-only' });
+    if (rerunQuery) {
+      rerunQuery();
+    }
   };
 
-  onMount(() => {
-    // Auto-refresh every 5 minutes
-    const interval = setInterval(refresh, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  });
+  // Add auto-refresh interval to the existing onMount
+  // (combined with query initialization above)
 </script>
 
 <div class="employee-list" style:max-height={maxHeight}>
@@ -233,13 +273,13 @@
       {/if}
 
       <!-- Refresh button -->
-      <button 
-        class="btn-secondary refresh-btn" 
+      <button
+        class="btn-secondary refresh-btn"
         onclick={refresh}
-        disabled={$employeesQuery.fetching}
+        disabled={loading}
         title="Refresh data"
       >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" class:spinning={$employeesQuery.fetching}>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" class:spinning={loading}>
           <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/>
           <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/>
         </svg>
@@ -248,7 +288,7 @@
   </div>
 
   <!-- Loading state -->
-  {#if $employeesQuery.fetching && !$employeesQuery.data}
+  {#if loading && !queryState.data}
     <div class="loading-container">
       <div class="loading-spinner"></div>
       <p>Loading employees...</p>
@@ -256,10 +296,10 @@
   {/if}
 
   <!-- Error state -->
-  {#if $employeesQuery.error}
+  {#if error}
     <div class="error-container">
       <h3>Failed to load employees</h3>
-      <p>{$employeesQuery.error.message}</p>
+      <p>{error.message}</p>
       <button class="btn-secondary" onclick={refresh}>
         Try Again
       </button>
@@ -267,7 +307,7 @@
   {/if}
 
   <!-- Employee grid/list -->
-  {#if !$employeesQuery.fetching && !$employeesQuery.error && employees.length === 0}
+  {#if !loading && !error && employees.length === 0}
     <div class="empty-state">
       <div class="empty-icon">
         <svg width="48" height="48" viewBox="0 0 16 16" fill="currentColor">

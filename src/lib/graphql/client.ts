@@ -4,11 +4,10 @@ import { retryExchange } from '@urql/exchange-retry';
 import { createClient as createWSClient } from 'graphql-ws';
 import { goto } from '$app/navigation';
 import { browser } from '$app/environment';
-import { PUBLIC_GRAPHQL_ENDPOINT } from '$env/static/public';
 
 /**
  * PostGraphile GraphQL Client Configuration for SvelteHR
- * 
+ *
  * Provides authenticated GraphQL client with:
  * - JWT authentication with PostGraphile permissions
  * - Real-time subscriptions via WebSocket
@@ -16,8 +15,8 @@ import { PUBLIC_GRAPHQL_ENDPOINT } from '$env/static/public';
  * - Retry logic and rate limiting
  */
 
-// PostGraphile configuration
-const POSTGRAPHILE_GRAPHQL_URL = PUBLIC_GRAPHQL_ENDPOINT || 'http://localhost:4000/graphql';
+// PostGraphile configuration - hardcoded for now until env vars are working
+const POSTGRAPHILE_GRAPHQL_URL = 'http://localhost:4000/graphql';
 const POSTGRAPHILE_GRAPHQL_WS_URL = POSTGRAPHILE_GRAPHQL_URL.replace('http://', 'ws://').replace('https://', 'wss://');
 
 // WebSocket client for subscriptions (disabled for PostGraphile - doesn't support WebSockets by default)
@@ -89,7 +88,7 @@ const customErrorExchange = errorExchange({
     // Handle authentication errors
     if (error.graphQLErrors.some(e => e.extensions?.code === 'UNAUTHENTICATED')) {
       // Clear invalid auth state and redirect to login
-      setAuthState({ token: null, refreshToken: null, expiresAt: null });
+      setAuthState({ token: null });
       if (browser) {
         goto('/login?returnUrl=' + encodeURIComponent(window.location.pathname));
       }
@@ -223,8 +222,6 @@ export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string) => 
         method: 'POST', // Force POST requests for all GraphQL operations
         headers: {
           'Content-Type': 'application/json',
-          'X-Client-Name': 'SvelteHR',
-          'X-Client-Version': '1.0.0',
         },
       };
     },

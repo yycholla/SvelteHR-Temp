@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
-  import { isAuthenticated, authStore } from '$lib/stores/auth';
+  import { isAuthenticated, authActions } from '$lib/stores/auth';
   import DashboardLayout from '$lib/components/layout/DashboardLayout.svelte';
   import AuthGuard from '$lib/components/auth/AuthGuard.svelte';
   import { setContextClient } from '@urql/svelte';
@@ -26,7 +26,8 @@
     // Auto-refresh token every 14 minutes (before 15 minute expiry)
     const tokenRefreshInterval = setInterval(() => {
       if ($isAuthenticated) {
-        authStore.refreshAccessToken();
+        // Validate session instead of refreshing (PostGraphile uses long-lived JWTs)
+        authActions.validateSession();
       }
     }, 14 * 60 * 1000);
 

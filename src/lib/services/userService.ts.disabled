@@ -1,12 +1,11 @@
 import { writable, derived, get } from 'svelte/store';
-import { client } from '$lib/graphql/client';
+import { createUrqlClient } from '$lib/graphql/client';
 import {
-  GET_USERS_QUERY,
-  GET_USER_BY_ID_QUERY,
-  CREATE_USER_MUTATION,
-  UPDATE_USER_MUTATION,
-  ASSIGN_USER_ROLE_MUTATION
-} from '$lib/graphql/hasura-operations';
+  GET_ALL_USERS,
+  GET_USER_BY_ID,
+  CREATE_USER,
+  UPDATE_USER_BY_ID
+} from '$lib/graphql/postgraphile-operations';
 
 /**
  * User Management Service for MountainHR

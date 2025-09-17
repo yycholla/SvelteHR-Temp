@@ -72,9 +72,9 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or Postman)
     if (!origin) return callback(null, true);
     
-    const allowedOrigins = NODE_ENV === 'production' 
-      ? ['https://your-production-domain.com'] 
-      : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'];
+    const allowedOrigins = NODE_ENV === 'production'
+      ? ['https://your-production-domain.com']
+      : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000', 'http://localhost:4000'];
     
     if (allowedOrigins.includes(origin)) {
       callback(null, true);

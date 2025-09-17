@@ -1,0 +1,3073 @@
+"""The root query type which gives access points into the data universe."""
+type Query {
+  """
+  Exposes the root query type nested one level down. This is helpful for Relay 1
+  which can only query top level fields if they are in a particular form.
+  """
+  query: Query!
+
+  """Reads and enables pagination through a set of `AuthSession`."""
+  authSessions(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `AuthSession`."""
+    orderBy: [AuthSessionsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: AuthSessionCondition
+  ): AuthSessionsConnection
+
+  """Reads and enables pagination through a set of `ContactInfo`."""
+  contactInfos(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `ContactInfo`."""
+    orderBy: [ContactInfosOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: ContactInfoCondition
+  ): ContactInfosConnection
+
+  """Reads and enables pagination through a set of `Department`."""
+  departments(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `Department`."""
+    orderBy: [DepartmentsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: DepartmentCondition
+  ): DepartmentsConnection
+
+  """Reads and enables pagination through a set of `JobInfo`."""
+  jobInfos(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `JobInfo`."""
+    orderBy: [JobInfosOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: JobInfoCondition
+  ): JobInfosConnection
+
+  """Reads and enables pagination through a set of `Notification`."""
+  notifications(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `Notification`."""
+    orderBy: [NotificationsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: NotificationCondition
+  ): NotificationsConnection
+
+  """Reads and enables pagination through a set of `UserRoleAssignment`."""
+  userRoleAssignments(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `UserRoleAssignment`."""
+    orderBy: [UserRoleAssignmentsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: UserRoleAssignmentCondition
+  ): UserRoleAssignmentsConnection
+
+  """Reads and enables pagination through a set of `UserRole`."""
+  userRoles(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `UserRole`."""
+    orderBy: [UserRolesOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: UserRoleCondition
+  ): UserRolesConnection
+
+  """Reads and enables pagination through a set of `User`."""
+  users(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `User`."""
+    orderBy: [UsersOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: UserCondition
+  ): UsersConnection
+  authSession(id: UUID!): AuthSession
+  contactInfo(id: UUID!): ContactInfo
+  department(id: UUID!): Department
+  jobInfo(id: UUID!): JobInfo
+  notification(id: UUID!): Notification
+  userRoleAssignment(id: UUID!): UserRoleAssignment
+  userRoleAssignmentByUserIdAndRoleId(userId: UUID!, roleId: Int!): UserRoleAssignment
+  userRole(id: Int!): UserRole
+  userRoleByName(name: String!): UserRole
+  user(id: UUID!): User
+  userByEmail(email: String!): User
+
+  """Get the current authenticated user ID from JWT claims"""
+  currentUserId: UUID
+}
+
+"""A connection to a list of `AuthSession` values."""
+type AuthSessionsConnection {
+  """A list of `AuthSession` objects."""
+  nodes: [AuthSession]!
+
+  """
+  A list of edges which contains the `AuthSession` and cursor to aid in pagination.
+  """
+  edges: [AuthSessionsEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The count of *all* `AuthSession` you could get from the connection."""
+  totalCount: Int!
+}
+
+type AuthSession {
+  id: UUID!
+  userId: UUID!
+  tokenHash: String!
+  expiresAt: Datetime!
+  isActive: Boolean
+  userAgent: String
+  ipAddress: InternetAddress
+  createdAt: Datetime
+
+  """Reads a single `User` that is related to this `AuthSession`."""
+  user: User
+}
+
+"""
+A universally unique identifier as defined by [RFC 4122](https://tools.ietf.org/html/rfc4122).
+"""
+scalar UUID
+
+"""
+A point in time as described by the [ISO
+8601](https://en.wikipedia.org/wiki/ISO_8601) standard. May or may not include a timezone.
+"""
+scalar Datetime
+
+"""An IPv4 or IPv6 host address, and optionally its subnet."""
+scalar InternetAddress
+
+"""Core user accounts in the HR system"""
+type User {
+  id: UUID!
+  email: String!
+
+  """Password hash - never exposed via GraphQL"""
+  passwordHash: String!
+  displayName: String
+  isActive: Boolean
+  onboardingStatus: String
+  lastLogin: Datetime
+  createdAt: Datetime
+  updatedAt: Datetime
+
+  """Reads and enables pagination through a set of `Department`."""
+  departmentsByManagerId(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `Department`."""
+    orderBy: [DepartmentsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: DepartmentCondition
+  ): DepartmentsConnection!
+
+  """Reads and enables pagination through a set of `UserRoleAssignment`."""
+  userRoleAssignments(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `UserRoleAssignment`."""
+    orderBy: [UserRoleAssignmentsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: UserRoleAssignmentCondition
+  ): UserRoleAssignmentsConnection!
+
+  """Reads and enables pagination through a set of `UserRoleAssignment`."""
+  userRoleAssignmentsByAssignedBy(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `UserRoleAssignment`."""
+    orderBy: [UserRoleAssignmentsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: UserRoleAssignmentCondition
+  ): UserRoleAssignmentsConnection!
+
+  """Reads and enables pagination through a set of `JobInfo`."""
+  jobInfosByEmployeeId(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `JobInfo`."""
+    orderBy: [JobInfosOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: JobInfoCondition
+  ): JobInfosConnection!
+
+  """Reads and enables pagination through a set of `JobInfo`."""
+  jobInfosByManagerId(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `JobInfo`."""
+    orderBy: [JobInfosOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: JobInfoCondition
+  ): JobInfosConnection!
+
+  """Reads and enables pagination through a set of `JobInfo`."""
+  jobInfosByReportsTo(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `JobInfo`."""
+    orderBy: [JobInfosOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: JobInfoCondition
+  ): JobInfosConnection!
+
+  """Reads and enables pagination through a set of `ContactInfo`."""
+  contactInfosByEmployeeId(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `ContactInfo`."""
+    orderBy: [ContactInfosOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: ContactInfoCondition
+  ): ContactInfosConnection!
+
+  """Reads and enables pagination through a set of `AuthSession`."""
+  authSessions(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `AuthSession`."""
+    orderBy: [AuthSessionsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: AuthSessionCondition
+  ): AuthSessionsConnection!
+
+  """Reads and enables pagination through a set of `Notification`."""
+  notifications(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `Notification`."""
+    orderBy: [NotificationsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: NotificationCondition
+  ): NotificationsConnection!
+  fullName: String @deprecated(reason: "Use display_name directly. Computed field for user full name.")
+}
+
+"""A connection to a list of `Department` values."""
+type DepartmentsConnection {
+  """A list of `Department` objects."""
+  nodes: [Department]!
+
+  """
+  A list of edges which contains the `Department` and cursor to aid in pagination.
+  """
+  edges: [DepartmentsEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The count of *all* `Department` you could get from the connection."""
+  totalCount: Int!
+}
+
+"""Organizational departments with hierarchical structure"""
+type Department {
+  id: UUID!
+  name: String!
+  description: String
+  parentDepartmentId: UUID
+  managerId: UUID
+  budget: BigFloat
+  isActive: Boolean
+  createdAt: Datetime
+  updatedAt: Datetime
+
+  """Reads a single `Department` that is related to this `Department`."""
+  parentDepartment: Department
+
+  """Reads a single `User` that is related to this `Department`."""
+  manager: User
+
+  """Reads and enables pagination through a set of `Department`."""
+  departmentsByParentDepartmentId(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `Department`."""
+    orderBy: [DepartmentsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: DepartmentCondition
+  ): DepartmentsConnection!
+
+  """Reads and enables pagination through a set of `JobInfo`."""
+  jobInfos(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `JobInfo`."""
+    orderBy: [JobInfosOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: JobInfoCondition
+  ): JobInfosConnection!
+
+  """Computed field showing number of active employees in department"""
+  employeeCount: Int
+}
+
+"""
+A floating point number that requires more precision than IEEE 754 binary 64
+"""
+scalar BigFloat
+
+"""A location in a connection that can be used for resuming pagination."""
+scalar Cursor
+
+"""Methods to use when ordering `Department`."""
+enum DepartmentsOrderBy {
+  NATURAL
+  ID_ASC
+  ID_DESC
+  NAME_ASC
+  NAME_DESC
+  DESCRIPTION_ASC
+  DESCRIPTION_DESC
+  PARENT_DEPARTMENT_ID_ASC
+  PARENT_DEPARTMENT_ID_DESC
+  MANAGER_ID_ASC
+  MANAGER_ID_DESC
+  BUDGET_ASC
+  BUDGET_DESC
+  IS_ACTIVE_ASC
+  IS_ACTIVE_DESC
+  CREATED_AT_ASC
+  CREATED_AT_DESC
+  UPDATED_AT_ASC
+  UPDATED_AT_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `Department` object types. All fields are tested
+for equality and combined with a logical ‘and.’
+"""
+input DepartmentCondition {
+  """Checks for equality with the object’s `id` field."""
+  id: UUID
+
+  """Checks for equality with the object’s `name` field."""
+  name: String
+
+  """Checks for equality with the object’s `description` field."""
+  description: String
+
+  """Checks for equality with the object’s `parentDepartmentId` field."""
+  parentDepartmentId: UUID
+
+  """Checks for equality with the object’s `managerId` field."""
+  managerId: UUID
+
+  """Checks for equality with the object’s `budget` field."""
+  budget: BigFloat
+
+  """Checks for equality with the object’s `isActive` field."""
+  isActive: Boolean
+
+  """Checks for equality with the object’s `createdAt` field."""
+  createdAt: Datetime
+
+  """Checks for equality with the object’s `updatedAt` field."""
+  updatedAt: Datetime
+}
+
+"""A connection to a list of `JobInfo` values."""
+type JobInfosConnection {
+  """A list of `JobInfo` objects."""
+  nodes: [JobInfo]!
+
+  """
+  A list of edges which contains the `JobInfo` and cursor to aid in pagination.
+  """
+  edges: [JobInfosEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The count of *all* `JobInfo` you could get from the connection."""
+  totalCount: Int!
+}
+
+"""Employee job details and organizational assignments"""
+type JobInfo {
+  id: UUID!
+  employeeId: UUID!
+  departmentId: UUID
+  jobTitle: String
+  employmentType: String
+  startDate: Date
+  endDate: Date
+  managerId: UUID
+  reportsTo: UUID
+  createdAt: Datetime
+  updatedAt: Datetime
+
+  """Reads a single `User` that is related to this `JobInfo`."""
+  employee: User
+
+  """Reads a single `Department` that is related to this `JobInfo`."""
+  department: Department
+
+  """Reads a single `User` that is related to this `JobInfo`."""
+  manager: User
+
+  """Reads a single `User` that is related to this `JobInfo`."""
+  userByReportsTo: User
+}
+
+"""The day, does not include a time."""
+scalar Date
+
+"""A `JobInfo` edge in the connection."""
+type JobInfosEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `JobInfo` at the end of the edge."""
+  node: JobInfo
+}
+
+"""Information about pagination in a connection."""
+type PageInfo {
+  """When paginating forwards, are there more items?"""
+  hasNextPage: Boolean!
+
+  """When paginating backwards, are there more items?"""
+  hasPreviousPage: Boolean!
+
+  """When paginating backwards, the cursor to continue."""
+  startCursor: Cursor
+
+  """When paginating forwards, the cursor to continue."""
+  endCursor: Cursor
+}
+
+"""Methods to use when ordering `JobInfo`."""
+enum JobInfosOrderBy {
+  NATURAL
+  ID_ASC
+  ID_DESC
+  EMPLOYEE_ID_ASC
+  EMPLOYEE_ID_DESC
+  DEPARTMENT_ID_ASC
+  DEPARTMENT_ID_DESC
+  JOB_TITLE_ASC
+  JOB_TITLE_DESC
+  EMPLOYMENT_TYPE_ASC
+  EMPLOYMENT_TYPE_DESC
+  START_DATE_ASC
+  START_DATE_DESC
+  END_DATE_ASC
+  END_DATE_DESC
+  MANAGER_ID_ASC
+  MANAGER_ID_DESC
+  REPORTS_TO_ASC
+  REPORTS_TO_DESC
+  CREATED_AT_ASC
+  CREATED_AT_DESC
+  UPDATED_AT_ASC
+  UPDATED_AT_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `JobInfo` object types. All fields are tested for equality and combined with a logical ‘and.’
+"""
+input JobInfoCondition {
+  """Checks for equality with the object’s `id` field."""
+  id: UUID
+
+  """Checks for equality with the object’s `employeeId` field."""
+  employeeId: UUID
+
+  """Checks for equality with the object’s `departmentId` field."""
+  departmentId: UUID
+
+  """Checks for equality with the object’s `jobTitle` field."""
+  jobTitle: String
+
+  """Checks for equality with the object’s `employmentType` field."""
+  employmentType: String
+
+  """Checks for equality with the object’s `startDate` field."""
+  startDate: Date
+
+  """Checks for equality with the object’s `endDate` field."""
+  endDate: Date
+
+  """Checks for equality with the object’s `managerId` field."""
+  managerId: UUID
+
+  """Checks for equality with the object’s `reportsTo` field."""
+  reportsTo: UUID
+
+  """Checks for equality with the object’s `createdAt` field."""
+  createdAt: Datetime
+
+  """Checks for equality with the object’s `updatedAt` field."""
+  updatedAt: Datetime
+}
+
+"""A `Department` edge in the connection."""
+type DepartmentsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `Department` at the end of the edge."""
+  node: Department
+}
+
+"""A connection to a list of `UserRoleAssignment` values."""
+type UserRoleAssignmentsConnection {
+  """A list of `UserRoleAssignment` objects."""
+  nodes: [UserRoleAssignment]!
+
+  """
+  A list of edges which contains the `UserRoleAssignment` and cursor to aid in pagination.
+  """
+  edges: [UserRoleAssignmentsEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """
+  The count of *all* `UserRoleAssignment` you could get from the connection.
+  """
+  totalCount: Int!
+}
+
+type UserRoleAssignment {
+  id: UUID!
+  userId: UUID!
+  roleId: Int!
+  assignedBy: UUID
+  isActive: Boolean
+  validFrom: Datetime
+  validUntil: Datetime
+  createdAt: Datetime
+
+  """Reads a single `User` that is related to this `UserRoleAssignment`."""
+  user: User
+
+  """
+  Reads a single `UserRole` that is related to this `UserRoleAssignment`.
+  """
+  role: UserRole
+
+  """Reads a single `User` that is related to this `UserRoleAssignment`."""
+  userByAssignedBy: User
+}
+
+type UserRole {
+  id: Int!
+  name: String!
+  description: String
+  level: Int
+  isActive: Boolean
+  createdAt: Datetime
+  updatedAt: Datetime
+
+  """Reads and enables pagination through a set of `UserRoleAssignment`."""
+  userRoleAssignmentsByRoleId(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """The method to use when ordering `UserRoleAssignment`."""
+    orderBy: [UserRoleAssignmentsOrderBy!] = [PRIMARY_KEY_ASC]
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: UserRoleAssignmentCondition
+  ): UserRoleAssignmentsConnection!
+}
+
+"""Methods to use when ordering `UserRoleAssignment`."""
+enum UserRoleAssignmentsOrderBy {
+  NATURAL
+  ID_ASC
+  ID_DESC
+  USER_ID_ASC
+  USER_ID_DESC
+  ROLE_ID_ASC
+  ROLE_ID_DESC
+  ASSIGNED_BY_ASC
+  ASSIGNED_BY_DESC
+  IS_ACTIVE_ASC
+  IS_ACTIVE_DESC
+  VALID_FROM_ASC
+  VALID_FROM_DESC
+  VALID_UNTIL_ASC
+  VALID_UNTIL_DESC
+  CREATED_AT_ASC
+  CREATED_AT_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `UserRoleAssignment` object types. All fields are
+tested for equality and combined with a logical ‘and.’
+"""
+input UserRoleAssignmentCondition {
+  """Checks for equality with the object’s `id` field."""
+  id: UUID
+
+  """Checks for equality with the object’s `userId` field."""
+  userId: UUID
+
+  """Checks for equality with the object’s `roleId` field."""
+  roleId: Int
+
+  """Checks for equality with the object’s `assignedBy` field."""
+  assignedBy: UUID
+
+  """Checks for equality with the object’s `isActive` field."""
+  isActive: Boolean
+
+  """Checks for equality with the object’s `validFrom` field."""
+  validFrom: Datetime
+
+  """Checks for equality with the object’s `validUntil` field."""
+  validUntil: Datetime
+
+  """Checks for equality with the object’s `createdAt` field."""
+  createdAt: Datetime
+}
+
+"""A `UserRoleAssignment` edge in the connection."""
+type UserRoleAssignmentsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `UserRoleAssignment` at the end of the edge."""
+  node: UserRoleAssignment
+}
+
+"""A connection to a list of `ContactInfo` values."""
+type ContactInfosConnection {
+  """A list of `ContactInfo` objects."""
+  nodes: [ContactInfo]!
+
+  """
+  A list of edges which contains the `ContactInfo` and cursor to aid in pagination.
+  """
+  edges: [ContactInfosEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The count of *all* `ContactInfo` you could get from the connection."""
+  totalCount: Int!
+}
+
+"""Employee contact details and emergency contacts"""
+type ContactInfo {
+  id: UUID!
+  employeeId: UUID!
+  phoneNumber: String
+  emergencyContactName: String
+  emergencyContactPhone: String
+  addressLine1: String
+  addressLine2: String
+  city: String
+  stateProvince: String
+  postalCode: String
+  country: String
+  createdAt: Datetime
+  updatedAt: Datetime
+
+  """Reads a single `User` that is related to this `ContactInfo`."""
+  employee: User
+}
+
+"""A `ContactInfo` edge in the connection."""
+type ContactInfosEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `ContactInfo` at the end of the edge."""
+  node: ContactInfo
+}
+
+"""Methods to use when ordering `ContactInfo`."""
+enum ContactInfosOrderBy {
+  NATURAL
+  ID_ASC
+  ID_DESC
+  EMPLOYEE_ID_ASC
+  EMPLOYEE_ID_DESC
+  PHONE_NUMBER_ASC
+  PHONE_NUMBER_DESC
+  EMERGENCY_CONTACT_NAME_ASC
+  EMERGENCY_CONTACT_NAME_DESC
+  EMERGENCY_CONTACT_PHONE_ASC
+  EMERGENCY_CONTACT_PHONE_DESC
+  ADDRESS_LINE1_ASC
+  ADDRESS_LINE1_DESC
+  ADDRESS_LINE2_ASC
+  ADDRESS_LINE2_DESC
+  CITY_ASC
+  CITY_DESC
+  STATE_PROVINCE_ASC
+  STATE_PROVINCE_DESC
+  POSTAL_CODE_ASC
+  POSTAL_CODE_DESC
+  COUNTRY_ASC
+  COUNTRY_DESC
+  CREATED_AT_ASC
+  CREATED_AT_DESC
+  UPDATED_AT_ASC
+  UPDATED_AT_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `ContactInfo` object types. All fields are tested
+for equality and combined with a logical ‘and.’
+"""
+input ContactInfoCondition {
+  """Checks for equality with the object’s `id` field."""
+  id: UUID
+
+  """Checks for equality with the object’s `employeeId` field."""
+  employeeId: UUID
+
+  """Checks for equality with the object’s `phoneNumber` field."""
+  phoneNumber: String
+
+  """Checks for equality with the object’s `emergencyContactName` field."""
+  emergencyContactName: String
+
+  """Checks for equality with the object’s `emergencyContactPhone` field."""
+  emergencyContactPhone: String
+
+  """Checks for equality with the object’s `addressLine1` field."""
+  addressLine1: String
+
+  """Checks for equality with the object’s `addressLine2` field."""
+  addressLine2: String
+
+  """Checks for equality with the object’s `city` field."""
+  city: String
+
+  """Checks for equality with the object’s `stateProvince` field."""
+  stateProvince: String
+
+  """Checks for equality with the object’s `postalCode` field."""
+  postalCode: String
+
+  """Checks for equality with the object’s `country` field."""
+  country: String
+
+  """Checks for equality with the object’s `createdAt` field."""
+  createdAt: Datetime
+
+  """Checks for equality with the object’s `updatedAt` field."""
+  updatedAt: Datetime
+}
+
+"""Methods to use when ordering `AuthSession`."""
+enum AuthSessionsOrderBy {
+  NATURAL
+  ID_ASC
+  ID_DESC
+  USER_ID_ASC
+  USER_ID_DESC
+  TOKEN_HASH_ASC
+  TOKEN_HASH_DESC
+  EXPIRES_AT_ASC
+  EXPIRES_AT_DESC
+  IS_ACTIVE_ASC
+  IS_ACTIVE_DESC
+  USER_AGENT_ASC
+  USER_AGENT_DESC
+  IP_ADDRESS_ASC
+  IP_ADDRESS_DESC
+  CREATED_AT_ASC
+  CREATED_AT_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `AuthSession` object types. All fields are tested
+for equality and combined with a logical ‘and.’
+"""
+input AuthSessionCondition {
+  """Checks for equality with the object’s `id` field."""
+  id: UUID
+
+  """Checks for equality with the object’s `userId` field."""
+  userId: UUID
+
+  """Checks for equality with the object’s `tokenHash` field."""
+  tokenHash: String
+
+  """Checks for equality with the object’s `expiresAt` field."""
+  expiresAt: Datetime
+
+  """Checks for equality with the object’s `isActive` field."""
+  isActive: Boolean
+
+  """Checks for equality with the object’s `userAgent` field."""
+  userAgent: String
+
+  """Checks for equality with the object’s `ipAddress` field."""
+  ipAddress: InternetAddress
+
+  """Checks for equality with the object’s `createdAt` field."""
+  createdAt: Datetime
+}
+
+"""A connection to a list of `Notification` values."""
+type NotificationsConnection {
+  """A list of `Notification` objects."""
+  nodes: [Notification]!
+
+  """
+  A list of edges which contains the `Notification` and cursor to aid in pagination.
+  """
+  edges: [NotificationsEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The count of *all* `Notification` you could get from the connection."""
+  totalCount: Int!
+}
+
+"""System notifications and alerts for users"""
+type Notification {
+  id: UUID!
+  userId: UUID!
+  title: String!
+  message: String!
+  type: String
+  isRead: Boolean
+  actionUrl: String
+  createdAt: Datetime
+  readAt: Datetime
+
+  """Reads a single `User` that is related to this `Notification`."""
+  user: User
+}
+
+"""A `Notification` edge in the connection."""
+type NotificationsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `Notification` at the end of the edge."""
+  node: Notification
+}
+
+"""Methods to use when ordering `Notification`."""
+enum NotificationsOrderBy {
+  NATURAL
+  ID_ASC
+  ID_DESC
+  USER_ID_ASC
+  USER_ID_DESC
+  TITLE_ASC
+  TITLE_DESC
+  MESSAGE_ASC
+  MESSAGE_DESC
+  TYPE_ASC
+  TYPE_DESC
+  IS_READ_ASC
+  IS_READ_DESC
+  ACTION_URL_ASC
+  ACTION_URL_DESC
+  CREATED_AT_ASC
+  CREATED_AT_DESC
+  READ_AT_ASC
+  READ_AT_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `Notification` object types. All fields are
+tested for equality and combined with a logical ‘and.’
+"""
+input NotificationCondition {
+  """Checks for equality with the object’s `id` field."""
+  id: UUID
+
+  """Checks for equality with the object’s `userId` field."""
+  userId: UUID
+
+  """Checks for equality with the object’s `title` field."""
+  title: String
+
+  """Checks for equality with the object’s `message` field."""
+  message: String
+
+  """Checks for equality with the object’s `type` field."""
+  type: String
+
+  """Checks for equality with the object’s `isRead` field."""
+  isRead: Boolean
+
+  """Checks for equality with the object’s `actionUrl` field."""
+  actionUrl: String
+
+  """Checks for equality with the object’s `createdAt` field."""
+  createdAt: Datetime
+
+  """Checks for equality with the object’s `readAt` field."""
+  readAt: Datetime
+}
+
+"""A `AuthSession` edge in the connection."""
+type AuthSessionsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `AuthSession` at the end of the edge."""
+  node: AuthSession
+}
+
+"""A connection to a list of `UserRole` values."""
+type UserRolesConnection {
+  """A list of `UserRole` objects."""
+  nodes: [UserRole]!
+
+  """
+  A list of edges which contains the `UserRole` and cursor to aid in pagination.
+  """
+  edges: [UserRolesEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The count of *all* `UserRole` you could get from the connection."""
+  totalCount: Int!
+}
+
+"""A `UserRole` edge in the connection."""
+type UserRolesEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `UserRole` at the end of the edge."""
+  node: UserRole
+}
+
+"""Methods to use when ordering `UserRole`."""
+enum UserRolesOrderBy {
+  NATURAL
+  ID_ASC
+  ID_DESC
+  NAME_ASC
+  NAME_DESC
+  DESCRIPTION_ASC
+  DESCRIPTION_DESC
+  LEVEL_ASC
+  LEVEL_DESC
+  IS_ACTIVE_ASC
+  IS_ACTIVE_DESC
+  CREATED_AT_ASC
+  CREATED_AT_DESC
+  UPDATED_AT_ASC
+  UPDATED_AT_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `UserRole` object types. All fields are tested
+for equality and combined with a logical ‘and.’
+"""
+input UserRoleCondition {
+  """Checks for equality with the object’s `id` field."""
+  id: Int
+
+  """Checks for equality with the object’s `name` field."""
+  name: String
+
+  """Checks for equality with the object’s `description` field."""
+  description: String
+
+  """Checks for equality with the object’s `level` field."""
+  level: Int
+
+  """Checks for equality with the object’s `isActive` field."""
+  isActive: Boolean
+
+  """Checks for equality with the object’s `createdAt` field."""
+  createdAt: Datetime
+
+  """Checks for equality with the object’s `updatedAt` field."""
+  updatedAt: Datetime
+}
+
+"""A connection to a list of `User` values."""
+type UsersConnection {
+  """A list of `User` objects."""
+  nodes: [User]!
+
+  """
+  A list of edges which contains the `User` and cursor to aid in pagination.
+  """
+  edges: [UsersEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The count of *all* `User` you could get from the connection."""
+  totalCount: Int!
+}
+
+"""A `User` edge in the connection."""
+type UsersEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `User` at the end of the edge."""
+  node: User
+}
+
+"""Methods to use when ordering `User`."""
+enum UsersOrderBy {
+  NATURAL
+  ID_ASC
+  ID_DESC
+  EMAIL_ASC
+  EMAIL_DESC
+  PASSWORD_HASH_ASC
+  PASSWORD_HASH_DESC
+  DISPLAY_NAME_ASC
+  DISPLAY_NAME_DESC
+  IS_ACTIVE_ASC
+  IS_ACTIVE_DESC
+  ONBOARDING_STATUS_ASC
+  ONBOARDING_STATUS_DESC
+  LAST_LOGIN_ASC
+  LAST_LOGIN_DESC
+  CREATED_AT_ASC
+  CREATED_AT_DESC
+  UPDATED_AT_ASC
+  UPDATED_AT_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+}
+
+"""
+A condition to be used against `User` object types. All fields are tested for equality and combined with a logical ‘and.’
+"""
+input UserCondition {
+  """Checks for equality with the object’s `id` field."""
+  id: UUID
+
+  """Checks for equality with the object’s `email` field."""
+  email: String
+
+  """Checks for equality with the object’s `passwordHash` field."""
+  passwordHash: String
+
+  """Checks for equality with the object’s `displayName` field."""
+  displayName: String
+
+  """Checks for equality with the object’s `isActive` field."""
+  isActive: Boolean
+
+  """Checks for equality with the object’s `onboardingStatus` field."""
+  onboardingStatus: String
+
+  """Checks for equality with the object’s `lastLogin` field."""
+  lastLogin: Datetime
+
+  """Checks for equality with the object’s `createdAt` field."""
+  createdAt: Datetime
+
+  """Checks for equality with the object’s `updatedAt` field."""
+  updatedAt: Datetime
+}
+
+"""
+The root mutation type which contains root level fields which mutate data.
+"""
+type Mutation {
+  """Creates a single `AuthSession`."""
+  createAuthSession(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: CreateAuthSessionInput!
+  ): CreateAuthSessionPayload
+
+  """Creates a single `ContactInfo`."""
+  createContactInfo(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: CreateContactInfoInput!
+  ): CreateContactInfoPayload
+
+  """Creates a single `Department`."""
+  createDepartment(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: CreateDepartmentInput!
+  ): CreateDepartmentPayload
+
+  """Creates a single `JobInfo`."""
+  createJobInfo(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: CreateJobInfoInput!
+  ): CreateJobInfoPayload
+
+  """Creates a single `Notification`."""
+  createNotification(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: CreateNotificationInput!
+  ): CreateNotificationPayload
+
+  """Creates a single `UserRoleAssignment`."""
+  createUserRoleAssignment(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: CreateUserRoleAssignmentInput!
+  ): CreateUserRoleAssignmentPayload
+
+  """Creates a single `UserRole`."""
+  createUserRole(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: CreateUserRoleInput!
+  ): CreateUserRolePayload
+
+  """Creates a single `User`."""
+  createUser(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: CreateUserInput!
+  ): CreateUserPayload
+
+  """Updates a single `AuthSession` using a unique key and a patch."""
+  updateAuthSession(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: UpdateAuthSessionInput!
+  ): UpdateAuthSessionPayload
+
+  """Updates a single `ContactInfo` using a unique key and a patch."""
+  updateContactInfo(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: UpdateContactInfoInput!
+  ): UpdateContactInfoPayload
+
+  """Updates a single `Department` using a unique key and a patch."""
+  updateDepartment(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: UpdateDepartmentInput!
+  ): UpdateDepartmentPayload
+
+  """Updates a single `JobInfo` using a unique key and a patch."""
+  updateJobInfo(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: UpdateJobInfoInput!
+  ): UpdateJobInfoPayload
+
+  """Updates a single `Notification` using a unique key and a patch."""
+  updateNotification(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: UpdateNotificationInput!
+  ): UpdateNotificationPayload
+
+  """Updates a single `UserRoleAssignment` using a unique key and a patch."""
+  updateUserRoleAssignment(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: UpdateUserRoleAssignmentInput!
+  ): UpdateUserRoleAssignmentPayload
+
+  """Updates a single `UserRoleAssignment` using a unique key and a patch."""
+  updateUserRoleAssignmentByUserIdAndRoleId(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: UpdateUserRoleAssignmentByUserIdAndRoleIdInput!
+  ): UpdateUserRoleAssignmentPayload
+
+  """Updates a single `UserRole` using a unique key and a patch."""
+  updateUserRole(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: UpdateUserRoleInput!
+  ): UpdateUserRolePayload
+
+  """Updates a single `UserRole` using a unique key and a patch."""
+  updateUserRoleByName(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: UpdateUserRoleByNameInput!
+  ): UpdateUserRolePayload
+
+  """Updates a single `User` using a unique key and a patch."""
+  updateUser(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: UpdateUserInput!
+  ): UpdateUserPayload
+
+  """Updates a single `User` using a unique key and a patch."""
+  updateUserByEmail(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: UpdateUserByEmailInput!
+  ): UpdateUserPayload
+
+  """Deletes a single `AuthSession` using a unique key."""
+  deleteAuthSession(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: DeleteAuthSessionInput!
+  ): DeleteAuthSessionPayload
+
+  """Deletes a single `ContactInfo` using a unique key."""
+  deleteContactInfo(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: DeleteContactInfoInput!
+  ): DeleteContactInfoPayload
+
+  """Deletes a single `Department` using a unique key."""
+  deleteDepartment(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: DeleteDepartmentInput!
+  ): DeleteDepartmentPayload
+
+  """Deletes a single `JobInfo` using a unique key."""
+  deleteJobInfo(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: DeleteJobInfoInput!
+  ): DeleteJobInfoPayload
+
+  """Deletes a single `Notification` using a unique key."""
+  deleteNotification(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: DeleteNotificationInput!
+  ): DeleteNotificationPayload
+
+  """Deletes a single `UserRoleAssignment` using a unique key."""
+  deleteUserRoleAssignment(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: DeleteUserRoleAssignmentInput!
+  ): DeleteUserRoleAssignmentPayload
+
+  """Deletes a single `UserRoleAssignment` using a unique key."""
+  deleteUserRoleAssignmentByUserIdAndRoleId(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: DeleteUserRoleAssignmentByUserIdAndRoleIdInput!
+  ): DeleteUserRoleAssignmentPayload
+
+  """Deletes a single `UserRole` using a unique key."""
+  deleteUserRole(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: DeleteUserRoleInput!
+  ): DeleteUserRolePayload
+
+  """Deletes a single `UserRole` using a unique key."""
+  deleteUserRoleByName(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: DeleteUserRoleByNameInput!
+  ): DeleteUserRolePayload
+
+  """Deletes a single `User` using a unique key."""
+  deleteUser(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: DeleteUserInput!
+  ): DeleteUserPayload
+
+  """Deletes a single `User` using a unique key."""
+  deleteUserByEmail(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: DeleteUserByEmailInput!
+  ): DeleteUserPayload
+
+  """Authenticate user and return JWT token"""
+  authenticate(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: AuthenticateInput!
+  ): AuthenticatePayload
+
+  """Register a new user account"""
+  registerUser(
+    """
+    The exclusive input argument for this mutation. An object type, make sure to see documentation for this object’s fields.
+    """
+    input: RegisterUserInput!
+  ): RegisterUserPayload
+}
+
+"""The output of our create `AuthSession` mutation."""
+type CreateAuthSessionPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `AuthSession` that was created by this mutation."""
+  authSession: AuthSession
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """Reads a single `User` that is related to this `AuthSession`."""
+  user: User
+
+  """An edge for our `AuthSession`. May be used by Relay 1."""
+  authSessionEdge(
+    """The method to use when ordering `AuthSession`."""
+    orderBy: [AuthSessionsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): AuthSessionsEdge
+}
+
+"""All input for the create `AuthSession` mutation."""
+input CreateAuthSessionInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """The `AuthSession` to be created by this mutation."""
+  authSession: AuthSessionInput!
+}
+
+"""An input for mutations affecting `AuthSession`"""
+input AuthSessionInput {
+  id: UUID
+  userId: UUID!
+  tokenHash: String!
+  expiresAt: Datetime!
+  isActive: Boolean
+  userAgent: String
+  ipAddress: InternetAddress
+  createdAt: Datetime
+}
+
+"""The output of our create `ContactInfo` mutation."""
+type CreateContactInfoPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `ContactInfo` that was created by this mutation."""
+  contactInfo: ContactInfo
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """Reads a single `User` that is related to this `ContactInfo`."""
+  employee: User
+
+  """An edge for our `ContactInfo`. May be used by Relay 1."""
+  contactInfoEdge(
+    """The method to use when ordering `ContactInfo`."""
+    orderBy: [ContactInfosOrderBy!] = [PRIMARY_KEY_ASC]
+  ): ContactInfosEdge
+}
+
+"""All input for the create `ContactInfo` mutation."""
+input CreateContactInfoInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """The `ContactInfo` to be created by this mutation."""
+  contactInfo: ContactInfoInput!
+}
+
+"""An input for mutations affecting `ContactInfo`"""
+input ContactInfoInput {
+  id: UUID
+  employeeId: UUID!
+  phoneNumber: String
+  emergencyContactName: String
+  emergencyContactPhone: String
+  addressLine1: String
+  addressLine2: String
+  city: String
+  stateProvince: String
+  postalCode: String
+  country: String
+  createdAt: Datetime
+  updatedAt: Datetime
+}
+
+"""The output of our create `Department` mutation."""
+type CreateDepartmentPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `Department` that was created by this mutation."""
+  department: Department
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """Reads a single `Department` that is related to this `Department`."""
+  parentDepartment: Department
+
+  """Reads a single `User` that is related to this `Department`."""
+  manager: User
+
+  """An edge for our `Department`. May be used by Relay 1."""
+  departmentEdge(
+    """The method to use when ordering `Department`."""
+    orderBy: [DepartmentsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): DepartmentsEdge
+}
+
+"""All input for the create `Department` mutation."""
+input CreateDepartmentInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """The `Department` to be created by this mutation."""
+  department: DepartmentInput!
+}
+
+"""An input for mutations affecting `Department`"""
+input DepartmentInput {
+  id: UUID
+  name: String!
+  description: String
+  parentDepartmentId: UUID
+  managerId: UUID
+  budget: BigFloat
+  isActive: Boolean
+  createdAt: Datetime
+  updatedAt: Datetime
+}
+
+"""The output of our create `JobInfo` mutation."""
+type CreateJobInfoPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `JobInfo` that was created by this mutation."""
+  jobInfo: JobInfo
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """Reads a single `User` that is related to this `JobInfo`."""
+  employee: User
+
+  """Reads a single `Department` that is related to this `JobInfo`."""
+  department: Department
+
+  """Reads a single `User` that is related to this `JobInfo`."""
+  manager: User
+
+  """Reads a single `User` that is related to this `JobInfo`."""
+  userByReportsTo: User
+
+  """An edge for our `JobInfo`. May be used by Relay 1."""
+  jobInfoEdge(
+    """The method to use when ordering `JobInfo`."""
+    orderBy: [JobInfosOrderBy!] = [PRIMARY_KEY_ASC]
+  ): JobInfosEdge
+}
+
+"""All input for the create `JobInfo` mutation."""
+input CreateJobInfoInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """The `JobInfo` to be created by this mutation."""
+  jobInfo: JobInfoInput!
+}
+
+"""An input for mutations affecting `JobInfo`"""
+input JobInfoInput {
+  id: UUID
+  employeeId: UUID!
+  departmentId: UUID
+  jobTitle: String
+  employmentType: String
+  startDate: Date
+  endDate: Date
+  managerId: UUID
+  reportsTo: UUID
+  createdAt: Datetime
+  updatedAt: Datetime
+}
+
+"""The output of our create `Notification` mutation."""
+type CreateNotificationPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `Notification` that was created by this mutation."""
+  notification: Notification
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """Reads a single `User` that is related to this `Notification`."""
+  user: User
+
+  """An edge for our `Notification`. May be used by Relay 1."""
+  notificationEdge(
+    """The method to use when ordering `Notification`."""
+    orderBy: [NotificationsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): NotificationsEdge
+}
+
+"""All input for the create `Notification` mutation."""
+input CreateNotificationInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """The `Notification` to be created by this mutation."""
+  notification: NotificationInput!
+}
+
+"""An input for mutations affecting `Notification`"""
+input NotificationInput {
+  id: UUID
+  userId: UUID!
+  title: String!
+  message: String!
+  type: String
+  isRead: Boolean
+  actionUrl: String
+  createdAt: Datetime
+  readAt: Datetime
+}
+
+"""The output of our create `UserRoleAssignment` mutation."""
+type CreateUserRoleAssignmentPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `UserRoleAssignment` that was created by this mutation."""
+  userRoleAssignment: UserRoleAssignment
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """Reads a single `User` that is related to this `UserRoleAssignment`."""
+  user: User
+
+  """
+  Reads a single `UserRole` that is related to this `UserRoleAssignment`.
+  """
+  role: UserRole
+
+  """Reads a single `User` that is related to this `UserRoleAssignment`."""
+  userByAssignedBy: User
+
+  """An edge for our `UserRoleAssignment`. May be used by Relay 1."""
+  userRoleAssignmentEdge(
+    """The method to use when ordering `UserRoleAssignment`."""
+    orderBy: [UserRoleAssignmentsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): UserRoleAssignmentsEdge
+}
+
+"""All input for the create `UserRoleAssignment` mutation."""
+input CreateUserRoleAssignmentInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """The `UserRoleAssignment` to be created by this mutation."""
+  userRoleAssignment: UserRoleAssignmentInput!
+}
+
+"""An input for mutations affecting `UserRoleAssignment`"""
+input UserRoleAssignmentInput {
+  id: UUID
+  userId: UUID!
+  roleId: Int!
+  assignedBy: UUID
+  isActive: Boolean
+  validFrom: Datetime
+  validUntil: Datetime
+  createdAt: Datetime
+}
+
+"""The output of our create `UserRole` mutation."""
+type CreateUserRolePayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `UserRole` that was created by this mutation."""
+  userRole: UserRole
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """An edge for our `UserRole`. May be used by Relay 1."""
+  userRoleEdge(
+    """The method to use when ordering `UserRole`."""
+    orderBy: [UserRolesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): UserRolesEdge
+}
+
+"""All input for the create `UserRole` mutation."""
+input CreateUserRoleInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """The `UserRole` to be created by this mutation."""
+  userRole: UserRoleInput!
+}
+
+"""An input for mutations affecting `UserRole`"""
+input UserRoleInput {
+  id: Int
+  name: String!
+  description: String
+  level: Int
+  isActive: Boolean
+  createdAt: Datetime
+  updatedAt: Datetime
+}
+
+"""The output of our create `User` mutation."""
+type CreateUserPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `User` that was created by this mutation."""
+  user: User
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """An edge for our `User`. May be used by Relay 1."""
+  userEdge(
+    """The method to use when ordering `User`."""
+    orderBy: [UsersOrderBy!] = [PRIMARY_KEY_ASC]
+  ): UsersEdge
+}
+
+"""All input for the create `User` mutation."""
+input CreateUserInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """The `User` to be created by this mutation."""
+  user: UserInput!
+}
+
+"""An input for mutations affecting `User`"""
+input UserInput {
+  id: UUID
+  email: String!
+  displayName: String
+  isActive: Boolean
+  onboardingStatus: String
+  lastLogin: Datetime
+  createdAt: Datetime
+  updatedAt: Datetime
+}
+
+"""The output of our update `AuthSession` mutation."""
+type UpdateAuthSessionPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `AuthSession` that was updated by this mutation."""
+  authSession: AuthSession
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """Reads a single `User` that is related to this `AuthSession`."""
+  user: User
+
+  """An edge for our `AuthSession`. May be used by Relay 1."""
+  authSessionEdge(
+    """The method to use when ordering `AuthSession`."""
+    orderBy: [AuthSessionsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): AuthSessionsEdge
+}
+
+"""All input for the `updateAuthSession` mutation."""
+input UpdateAuthSessionInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """
+  An object where the defined keys will be set on the `AuthSession` being updated.
+  """
+  patch: AuthSessionPatch!
+  id: UUID!
+}
+
+"""
+Represents an update to a `AuthSession`. Fields that are set will be updated.
+"""
+input AuthSessionPatch {
+  id: UUID
+  userId: UUID
+  tokenHash: String
+  expiresAt: Datetime
+  isActive: Boolean
+  userAgent: String
+  ipAddress: InternetAddress
+  createdAt: Datetime
+}
+
+"""The output of our update `ContactInfo` mutation."""
+type UpdateContactInfoPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `ContactInfo` that was updated by this mutation."""
+  contactInfo: ContactInfo
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """Reads a single `User` that is related to this `ContactInfo`."""
+  employee: User
+
+  """An edge for our `ContactInfo`. May be used by Relay 1."""
+  contactInfoEdge(
+    """The method to use when ordering `ContactInfo`."""
+    orderBy: [ContactInfosOrderBy!] = [PRIMARY_KEY_ASC]
+  ): ContactInfosEdge
+}
+
+"""All input for the `updateContactInfo` mutation."""
+input UpdateContactInfoInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """
+  An object where the defined keys will be set on the `ContactInfo` being updated.
+  """
+  patch: ContactInfoPatch!
+  id: UUID!
+}
+
+"""
+Represents an update to a `ContactInfo`. Fields that are set will be updated.
+"""
+input ContactInfoPatch {
+  id: UUID
+  employeeId: UUID
+  phoneNumber: String
+  emergencyContactName: String
+  emergencyContactPhone: String
+  addressLine1: String
+  addressLine2: String
+  city: String
+  stateProvince: String
+  postalCode: String
+  country: String
+  createdAt: Datetime
+  updatedAt: Datetime
+}
+
+"""The output of our update `Department` mutation."""
+type UpdateDepartmentPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `Department` that was updated by this mutation."""
+  department: Department
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """Reads a single `Department` that is related to this `Department`."""
+  parentDepartment: Department
+
+  """Reads a single `User` that is related to this `Department`."""
+  manager: User
+
+  """An edge for our `Department`. May be used by Relay 1."""
+  departmentEdge(
+    """The method to use when ordering `Department`."""
+    orderBy: [DepartmentsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): DepartmentsEdge
+}
+
+"""All input for the `updateDepartment` mutation."""
+input UpdateDepartmentInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """
+  An object where the defined keys will be set on the `Department` being updated.
+  """
+  patch: DepartmentPatch!
+  id: UUID!
+}
+
+"""
+Represents an update to a `Department`. Fields that are set will be updated.
+"""
+input DepartmentPatch {
+  id: UUID
+  name: String
+  description: String
+  parentDepartmentId: UUID
+  managerId: UUID
+  budget: BigFloat
+  isActive: Boolean
+  createdAt: Datetime
+  updatedAt: Datetime
+}
+
+"""The output of our update `JobInfo` mutation."""
+type UpdateJobInfoPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `JobInfo` that was updated by this mutation."""
+  jobInfo: JobInfo
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """Reads a single `User` that is related to this `JobInfo`."""
+  employee: User
+
+  """Reads a single `Department` that is related to this `JobInfo`."""
+  department: Department
+
+  """Reads a single `User` that is related to this `JobInfo`."""
+  manager: User
+
+  """Reads a single `User` that is related to this `JobInfo`."""
+  userByReportsTo: User
+
+  """An edge for our `JobInfo`. May be used by Relay 1."""
+  jobInfoEdge(
+    """The method to use when ordering `JobInfo`."""
+    orderBy: [JobInfosOrderBy!] = [PRIMARY_KEY_ASC]
+  ): JobInfosEdge
+}
+
+"""All input for the `updateJobInfo` mutation."""
+input UpdateJobInfoInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """
+  An object where the defined keys will be set on the `JobInfo` being updated.
+  """
+  patch: JobInfoPatch!
+  id: UUID!
+}
+
+"""
+Represents an update to a `JobInfo`. Fields that are set will be updated.
+"""
+input JobInfoPatch {
+  id: UUID
+  employeeId: UUID
+  departmentId: UUID
+  jobTitle: String
+  employmentType: String
+  startDate: Date
+  endDate: Date
+  managerId: UUID
+  reportsTo: UUID
+  createdAt: Datetime
+  updatedAt: Datetime
+}
+
+"""The output of our update `Notification` mutation."""
+type UpdateNotificationPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `Notification` that was updated by this mutation."""
+  notification: Notification
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """Reads a single `User` that is related to this `Notification`."""
+  user: User
+
+  """An edge for our `Notification`. May be used by Relay 1."""
+  notificationEdge(
+    """The method to use when ordering `Notification`."""
+    orderBy: [NotificationsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): NotificationsEdge
+}
+
+"""All input for the `updateNotification` mutation."""
+input UpdateNotificationInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """
+  An object where the defined keys will be set on the `Notification` being updated.
+  """
+  patch: NotificationPatch!
+  id: UUID!
+}
+
+"""
+Represents an update to a `Notification`. Fields that are set will be updated.
+"""
+input NotificationPatch {
+  id: UUID
+  userId: UUID
+  title: String
+  message: String
+  type: String
+  isRead: Boolean
+  actionUrl: String
+  createdAt: Datetime
+  readAt: Datetime
+}
+
+"""The output of our update `UserRoleAssignment` mutation."""
+type UpdateUserRoleAssignmentPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `UserRoleAssignment` that was updated by this mutation."""
+  userRoleAssignment: UserRoleAssignment
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """Reads a single `User` that is related to this `UserRoleAssignment`."""
+  user: User
+
+  """
+  Reads a single `UserRole` that is related to this `UserRoleAssignment`.
+  """
+  role: UserRole
+
+  """Reads a single `User` that is related to this `UserRoleAssignment`."""
+  userByAssignedBy: User
+
+  """An edge for our `UserRoleAssignment`. May be used by Relay 1."""
+  userRoleAssignmentEdge(
+    """The method to use when ordering `UserRoleAssignment`."""
+    orderBy: [UserRoleAssignmentsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): UserRoleAssignmentsEdge
+}
+
+"""All input for the `updateUserRoleAssignment` mutation."""
+input UpdateUserRoleAssignmentInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """
+  An object where the defined keys will be set on the `UserRoleAssignment` being updated.
+  """
+  patch: UserRoleAssignmentPatch!
+  id: UUID!
+}
+
+"""
+Represents an update to a `UserRoleAssignment`. Fields that are set will be updated.
+"""
+input UserRoleAssignmentPatch {
+  id: UUID
+  userId: UUID
+  roleId: Int
+  assignedBy: UUID
+  isActive: Boolean
+  validFrom: Datetime
+  validUntil: Datetime
+  createdAt: Datetime
+}
+
+"""
+All input for the `updateUserRoleAssignmentByUserIdAndRoleId` mutation.
+"""
+input UpdateUserRoleAssignmentByUserIdAndRoleIdInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """
+  An object where the defined keys will be set on the `UserRoleAssignment` being updated.
+  """
+  patch: UserRoleAssignmentPatch!
+  userId: UUID!
+  roleId: Int!
+}
+
+"""The output of our update `UserRole` mutation."""
+type UpdateUserRolePayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `UserRole` that was updated by this mutation."""
+  userRole: UserRole
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """An edge for our `UserRole`. May be used by Relay 1."""
+  userRoleEdge(
+    """The method to use when ordering `UserRole`."""
+    orderBy: [UserRolesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): UserRolesEdge
+}
+
+"""All input for the `updateUserRole` mutation."""
+input UpdateUserRoleInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """
+  An object where the defined keys will be set on the `UserRole` being updated.
+  """
+  patch: UserRolePatch!
+  id: Int!
+}
+
+"""
+Represents an update to a `UserRole`. Fields that are set will be updated.
+"""
+input UserRolePatch {
+  id: Int
+  name: String
+  description: String
+  level: Int
+  isActive: Boolean
+  createdAt: Datetime
+  updatedAt: Datetime
+}
+
+"""All input for the `updateUserRoleByName` mutation."""
+input UpdateUserRoleByNameInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """
+  An object where the defined keys will be set on the `UserRole` being updated.
+  """
+  patch: UserRolePatch!
+  name: String!
+}
+
+"""The output of our update `User` mutation."""
+type UpdateUserPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `User` that was updated by this mutation."""
+  user: User
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """An edge for our `User`. May be used by Relay 1."""
+  userEdge(
+    """The method to use when ordering `User`."""
+    orderBy: [UsersOrderBy!] = [PRIMARY_KEY_ASC]
+  ): UsersEdge
+}
+
+"""All input for the `updateUser` mutation."""
+input UpdateUserInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """
+  An object where the defined keys will be set on the `User` being updated.
+  """
+  patch: UserPatch!
+  id: UUID!
+}
+
+"""Represents an update to a `User`. Fields that are set will be updated."""
+input UserPatch {
+  id: UUID
+  email: String
+  displayName: String
+  isActive: Boolean
+  onboardingStatus: String
+  lastLogin: Datetime
+  createdAt: Datetime
+  updatedAt: Datetime
+}
+
+"""All input for the `updateUserByEmail` mutation."""
+input UpdateUserByEmailInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+
+  """
+  An object where the defined keys will be set on the `User` being updated.
+  """
+  patch: UserPatch!
+  email: String!
+}
+
+"""The output of our delete `AuthSession` mutation."""
+type DeleteAuthSessionPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `AuthSession` that was deleted by this mutation."""
+  authSession: AuthSession
+  deletedAuthSessionNodeId: ID
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """Reads a single `User` that is related to this `AuthSession`."""
+  user: User
+
+  """An edge for our `AuthSession`. May be used by Relay 1."""
+  authSessionEdge(
+    """The method to use when ordering `AuthSession`."""
+    orderBy: [AuthSessionsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): AuthSessionsEdge
+}
+
+"""All input for the `deleteAuthSession` mutation."""
+input DeleteAuthSessionInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+  id: UUID!
+}
+
+"""The output of our delete `ContactInfo` mutation."""
+type DeleteContactInfoPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `ContactInfo` that was deleted by this mutation."""
+  contactInfo: ContactInfo
+  deletedContactInformationNodeId: ID
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """Reads a single `User` that is related to this `ContactInfo`."""
+  employee: User
+
+  """An edge for our `ContactInfo`. May be used by Relay 1."""
+  contactInfoEdge(
+    """The method to use when ordering `ContactInfo`."""
+    orderBy: [ContactInfosOrderBy!] = [PRIMARY_KEY_ASC]
+  ): ContactInfosEdge
+}
+
+"""All input for the `deleteContactInfo` mutation."""
+input DeleteContactInfoInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+  id: UUID!
+}
+
+"""The output of our delete `Department` mutation."""
+type DeleteDepartmentPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `Department` that was deleted by this mutation."""
+  department: Department
+  deletedDepartmentNodeId: ID
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """Reads a single `Department` that is related to this `Department`."""
+  parentDepartment: Department
+
+  """Reads a single `User` that is related to this `Department`."""
+  manager: User
+
+  """An edge for our `Department`. May be used by Relay 1."""
+  departmentEdge(
+    """The method to use when ordering `Department`."""
+    orderBy: [DepartmentsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): DepartmentsEdge
+}
+
+"""All input for the `deleteDepartment` mutation."""
+input DeleteDepartmentInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+  id: UUID!
+}
+
+"""The output of our delete `JobInfo` mutation."""
+type DeleteJobInfoPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `JobInfo` that was deleted by this mutation."""
+  jobInfo: JobInfo
+  deletedJobInformationNodeId: ID
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """Reads a single `User` that is related to this `JobInfo`."""
+  employee: User
+
+  """Reads a single `Department` that is related to this `JobInfo`."""
+  department: Department
+
+  """Reads a single `User` that is related to this `JobInfo`."""
+  manager: User
+
+  """Reads a single `User` that is related to this `JobInfo`."""
+  userByReportsTo: User
+
+  """An edge for our `JobInfo`. May be used by Relay 1."""
+  jobInfoEdge(
+    """The method to use when ordering `JobInfo`."""
+    orderBy: [JobInfosOrderBy!] = [PRIMARY_KEY_ASC]
+  ): JobInfosEdge
+}
+
+"""All input for the `deleteJobInfo` mutation."""
+input DeleteJobInfoInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+  id: UUID!
+}
+
+"""The output of our delete `Notification` mutation."""
+type DeleteNotificationPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `Notification` that was deleted by this mutation."""
+  notification: Notification
+  deletedNotificationNodeId: ID
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """Reads a single `User` that is related to this `Notification`."""
+  user: User
+
+  """An edge for our `Notification`. May be used by Relay 1."""
+  notificationEdge(
+    """The method to use when ordering `Notification`."""
+    orderBy: [NotificationsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): NotificationsEdge
+}
+
+"""All input for the `deleteNotification` mutation."""
+input DeleteNotificationInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+  id: UUID!
+}
+
+"""The output of our delete `UserRoleAssignment` mutation."""
+type DeleteUserRoleAssignmentPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `UserRoleAssignment` that was deleted by this mutation."""
+  userRoleAssignment: UserRoleAssignment
+  deletedUserRoleAssignmentNodeId: ID
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """Reads a single `User` that is related to this `UserRoleAssignment`."""
+  user: User
+
+  """
+  Reads a single `UserRole` that is related to this `UserRoleAssignment`.
+  """
+  role: UserRole
+
+  """Reads a single `User` that is related to this `UserRoleAssignment`."""
+  userByAssignedBy: User
+
+  """An edge for our `UserRoleAssignment`. May be used by Relay 1."""
+  userRoleAssignmentEdge(
+    """The method to use when ordering `UserRoleAssignment`."""
+    orderBy: [UserRoleAssignmentsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): UserRoleAssignmentsEdge
+}
+
+"""All input for the `deleteUserRoleAssignment` mutation."""
+input DeleteUserRoleAssignmentInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+  id: UUID!
+}
+
+"""
+All input for the `deleteUserRoleAssignmentByUserIdAndRoleId` mutation.
+"""
+input DeleteUserRoleAssignmentByUserIdAndRoleIdInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+  userId: UUID!
+  roleId: Int!
+}
+
+"""The output of our delete `UserRole` mutation."""
+type DeleteUserRolePayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `UserRole` that was deleted by this mutation."""
+  userRole: UserRole
+  deletedUserRoleNodeId: ID
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """An edge for our `UserRole`. May be used by Relay 1."""
+  userRoleEdge(
+    """The method to use when ordering `UserRole`."""
+    orderBy: [UserRolesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): UserRolesEdge
+}
+
+"""All input for the `deleteUserRole` mutation."""
+input DeleteUserRoleInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+  id: Int!
+}
+
+"""All input for the `deleteUserRoleByName` mutation."""
+input DeleteUserRoleByNameInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+  name: String!
+}
+
+"""The output of our delete `User` mutation."""
+type DeleteUserPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+
+  """The `User` that was deleted by this mutation."""
+  user: User
+  deletedUserNodeId: ID
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """An edge for our `User`. May be used by Relay 1."""
+  userEdge(
+    """The method to use when ordering `User`."""
+    orderBy: [UsersOrderBy!] = [PRIMARY_KEY_ASC]
+  ): UsersEdge
+}
+
+"""All input for the `deleteUser` mutation."""
+input DeleteUserInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+  id: UUID!
+}
+
+"""All input for the `deleteUserByEmail` mutation."""
+input DeleteUserByEmailInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+  email: String!
+}
+
+"""The output of our `authenticate` mutation."""
+type AuthenticatePayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+  jwtToken: JwtToken
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+}
+
+type JwtToken {
+  role: String
+  userId: UUID
+  exp: Int
+  iat: Int
+}
+
+"""All input for the `authenticate` mutation."""
+input AuthenticateInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+  email: String
+  password: String
+}
+
+"""The output of our `registerUser` mutation."""
+type RegisterUserPayload {
+  """
+  The exact same `clientMutationId` that was provided in the mutation input,
+  unchanged and unused. May be used by a client to track mutations.
+  """
+  clientMutationId: String
+  user: User
+
+  """
+  Our root query field type. Allows us to run any query from our mutation payload.
+  """
+  query: Query
+
+  """An edge for our `User`. May be used by Relay 1."""
+  userEdge(
+    """The method to use when ordering `User`."""
+    orderBy: [UsersOrderBy!] = [PRIMARY_KEY_ASC]
+  ): UsersEdge
+}
+
+"""All input for the `registerUser` mutation."""
+input RegisterUserInput {
+  """
+  An arbitrary string value with no semantic meaning. Will be included in the
+  payload verbatim. May be used to track mutations by the client.
+  """
+  clientMutationId: String
+  email: String
+  password: String
+  displayName: String
+}

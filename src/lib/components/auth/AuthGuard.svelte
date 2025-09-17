@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { authStore } from '$lib/stores/auth';
+  import { authActions } from '$lib/stores/auth';
 
   /**
    * Authentication Guard Component
@@ -11,9 +11,9 @@
   let initComplete = false;
 
   onMount(async () => {
-    // Initialize authentication state using the auth store
+    // Initialize authentication state by validating current session
     try {
-      await authStore.refreshAccessToken();
+      await authActions.validateSession();
     } catch (error) {
       // Ignore initialization errors - user is simply not authenticated
       console.log('Auth initialization: user not authenticated');
