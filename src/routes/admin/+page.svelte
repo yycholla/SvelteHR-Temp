@@ -1,24 +1,51 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { currentUser } from '$lib/services/auth';
+  import { currentUser, isAuthenticated, isLoading } from '$lib/stores/auth';
   import { permissionsService, userRoles, isAdmin } from '$lib/services/permissionsService';
   import { users } from '$lib/services/userService';
   import Button from '$lib/components/base/Button.svelte';
   import Card from '$lib/components/base/Card.svelte';
 
-  // Check permissions on mount
-  onMount(() => {
-    if (!$currentUser) {
+  let hasCheckedAuth = false;
+
+  // Check permissions on mount - wait for auth to complete loading
+  onMount(async () => {
+    // Prevent multiple auth checks
+    if (hasCheckedAuth) return;
+    hasCheckedAuth = true;
+
+    console.log('Admin page onMount - Auth state:', {
+      isLoading: $isLoading,
+      isAuthenticated: $isAuthenticated,
+      currentUser: $currentUser
+    });
+
+    // Wait for auth loading to complete
+    let attempts = 0;
+    const maxAttempts = 50; // 5 seconds max
+
+    while (attempts < maxAttempts) {
+      const loading = $isLoading;
+      if (!loading) break;
+      await new Promise(resolve => setTimeout(resolve, 100));
+      attempts++;
+    }
+
+    if (!$isAuthenticated || !$currentUser) {
+      console.log('Admin page: User not authenticated, redirecting to login');
       goto('/login');
       return;
     }
 
-    // Double-check admin permissions
+    // Double-check admin permissions after auth is fully loaded
     if (!permissionsService.isSuperAdmin($currentUser)) {
+      console.log('Admin page: User is not admin, redirecting to dashboard');
       goto('/dashboard');
       return;
     }
+
+    console.log('Admin page: User is admin, staying on admin page');
   });
 
   // Admin navigation items

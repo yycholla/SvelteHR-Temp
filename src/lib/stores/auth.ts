@@ -8,6 +8,10 @@ import { browser } from '$app/environment';
 import { createUrqlClient } from '$lib/graphql/client';
 import { GET_USER_BY_ID, GET_USER_ROLES } from '$lib/graphql/postgraphile-operations';
 import { createRBACManager, type UserRoleAssignment, type RBACManager } from '$lib/auth/rbac';
+import { login as authServiceLogin } from '$lib/services/authService';
+
+// Rate limiting for auth validation
+let _lastValidation = 0;
 
 // User interface
 export interface User {
@@ -16,6 +20,7 @@ export interface User {
   displayName: string;
   onboardingStatus: string;
   isActive: boolean;
+  role_assignments?: UserRoleAssignment[];
 }
 
 // Authentication state interface
@@ -32,12 +37,26 @@ const initialState: AuthState = {
   isAuthenticated: false,
   user: null,
   roles: [],
-  isLoading: true, // Start with loading true to prevent redirect loop
+  isLoading: false, // Start with loading false - components will trigger validation when needed
   error: null
 };
 
 // Create the main auth store
 export const authStore = writable<AuthState>(initialState);
+
+// Helper methods for authStore
+authStore.setUser = (user: User) => {
+  authStore.update(state => ({
+    ...state,
+    isAuthenticated: true,
+    user,
+    isLoading: false
+  }));
+};
+
+authStore.clearUser = () => {
+  authStore.set({ ...initialState, isLoading: false });
+};
 
 // Derived stores for convenience
 export const user = derived(authStore, ($auth) => $auth.user);
@@ -134,31 +153,25 @@ export const authActions = {
   },
 
   /**
-   * Login with email and password
+   * Login with email and password using PostGraphile GraphQL authentication
    */
   login: async (email: string, password: string, rememberMe: boolean = false): Promise<boolean> => {
     authActions.setLoading(true);
     authActions.setError(null);
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email, password, rememberMe })
-      });
+      const result = await authServiceLogin({ email, password });
 
-      const data = await response.json();
-
-      if (data.success && data.user) {
-        await authActions.setUser(data.user);
+      if (result.success && result.user) {
+        await authActions.setUser(result.user);
         return true;
       } else {
-        authActions.setError(data.error || 'Login failed');
+        authActions.setError(result.error || 'Login failed');
         return false;
       }
     } catch (error) {
-      authActions.setError('Network error during login');
+      const errorMessage = error instanceof Error ? error.message : 'Network error during login';
+      authActions.setError(errorMessage);
       return false;
     } finally {
       authActions.setLoading(false);
@@ -170,14 +183,14 @@ export const authActions = {
    */
   logout: async (): Promise<void> => {
     try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include'
-      });
+      // Clear JWT token from localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('postgraphile-jwt-token');
+      }
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      // Clear local state regardless of API response
+      // Clear local state
       authStore.set(initialState);
     }
   },
@@ -193,8 +206,14 @@ export const authActions = {
       isLoading: true
     }));
 
-    // Load user roles
+    // Load user roles and wait for completion
     await authActions.loadUserRoles(user.id);
+
+    // Ensure loading is set to false after roles are loaded
+    authStore.update(state => ({
+      ...state,
+      isLoading: false
+    }));
   },
 
   /**
@@ -228,6 +247,7 @@ export const authActions = {
         authStore.update(state => ({
           ...state,
           roles: adminRoles,
+          user: state.user ? { ...state.user, role_assignments: adminRoles } : state.user,
           isLoading: false
         }));
         return;
@@ -252,12 +272,14 @@ export const authActions = {
         authStore.update(state => ({
           ...state,
           roles: rolesWithDetails,
+          user: state.user ? { ...state.user, role_assignments: rolesWithDetails } : state.user,
           isLoading: false
         }));
       } else {
         authStore.update(state => ({
           ...state,
           roles: [],
+          user: state.user ? { ...state.user, role_assignments: [] } : state.user,
           isLoading: false
         }));
       }
@@ -266,6 +288,7 @@ export const authActions = {
       authStore.update(state => ({
         ...state,
         roles: [],
+        user: state.user ? { ...state.user, role_assignments: [] } : state.user,
         isLoading: false,
         error: 'Failed to load user permissions'
       }));
@@ -273,35 +296,67 @@ export const authActions = {
   },
 
   /**
-   * Validate current session
+   * Validate current session using PostGraphile JWT
    */
   validateSession: async (): Promise<boolean> => {
-    if (!browser) return false;
+    console.log('validateSession: Starting validation');
+    if (!browser) {
+      console.log('validateSession: Not in browser, returning false');
+      return false;
+    }
 
-    authActions.setLoading(true);
+    // Check if JWT token exists in localStorage
+    const token = localStorage.getItem('postgraphile-jwt-token');
+    if (!token) {
+      console.log('validateSession: No JWT token found, clearing auth state');
+      authStore.set({ ...initialState, isLoading: false });
+      return false;
+    }
+    console.log('validateSession: JWT token found');
 
+    // Parse JWT to check expiration (basic validation)
     try {
-      const response = await fetch('/api/auth/refresh', {
-        method: 'POST',
-        credentials: 'include'
-      });
-      const data = await response.json();
+      const [, payload] = token.split('.');
+      const decodedPayload = JSON.parse(atob(payload));
+      const currentTime = Math.floor(Date.now() / 1000);
 
-      if (data.success && data.user) {
-        await authActions.setUser(data.user);
-        return true;
-      } else {
-        // Reset to initial state but with loading false
+      if (decodedPayload.exp && decodedPayload.exp < currentTime) {
+        // Token expired, clear it
+        console.log('validateSession: JWT token expired, clearing auth state');
+        localStorage.removeItem('postgraphile-jwt-token');
         authStore.set({ ...initialState, isLoading: false });
         return false;
       }
+      console.log('validateSession: JWT token is valid and not expired');
+
+      // Token is valid, check if we have user info in store
+      const currentState = get(authStore);
+      if (!currentState.user && decodedPayload.user_id) {
+        // Reconstruct user info from JWT
+        const user = {
+          id: decodedPayload.user_id,
+          email: 'admin@postgraphile-hr.com', // Can be hardcoded for now
+          displayName: 'System Administrator',
+          onboardingStatus: 'Active',
+          isActive: true
+        };
+
+        // Set user directly without calling loadUserRoles to avoid loops
+        authStore.update(state => ({
+          ...state,
+          isAuthenticated: true,
+          user,
+          isLoading: false
+        }));
+      }
+
+      console.log('validateSession: Validation successful, user is authenticated');
+      return true;
     } catch (error) {
-      console.error('Auth: Session validation error:', error);
-      // Reset to initial state but with loading false
+      console.error('validateSession: Token validation error:', error);
+      localStorage.removeItem('postgraphile-jwt-token');
       authStore.set({ ...initialState, isLoading: false });
       return false;
-    } finally {
-      authActions.setLoading(false);
     }
   },
 
@@ -318,8 +373,8 @@ export const authActions = {
       const client = createUrqlClient();
       const userResult = await client.query(GET_USER_BY_ID, { id: currentState.user.id }).toPromise();
 
-      if (userResult.data?.user) {
-        await authActions.setUser(userResult.data.user);
+      if (userResult.data?.userById) {
+        await authActions.setUser(userResult.data.userById);
       }
     } catch (error) {
       console.error('Error refreshing user data:', error);
@@ -355,10 +410,8 @@ export const authActions = {
 };
 
 // Initialize auth state on app start
-if (browser) {
-  // Validate session on app load
-  authActions.validateSession();
-}
+// Removed automatic session validation to prevent blocking the login form
+// Session validation should be triggered by components that need it
 
 // Export store as default
 export { authStore as default };
