@@ -22,7 +22,7 @@ help: ## Show available commands
 	@echo ""
 	@echo "💾 Database Operations:"
 	@echo "  make db-up        - Start PostgreSQL and Redis containers"
-	@echo "  make db-down      - Stop database containers"  
+	@echo "  make db-down      - Stop database containers (use 'make server-stop' for PostGraphile)"
 	@echo "  make db-reset     - Reset database with fresh data"
 	@echo "  make db-logs      - View database logs"
 	@echo "  make db-health    - Check database health"
@@ -165,9 +165,10 @@ db-up: ## Start PostgreSQL and Redis containers
 	@timeout 30 bash -c 'until docker compose -f docker-compose.postgraphile.yml ps redis | grep "healthy"; do sleep 2; done' || (echo "❌ Redis failed to start" && exit 1)
 	@echo "✅ Database services are ready!"
 
-db-down: ## Stop database containers
+db-down: ## Stop database containers and server processes
 	@echo "⏹️  Stopping database services..."
 	docker compose -f docker-compose.postgraphile.yml down
+	@echo "✅ All services stopped"
 
 db-reset: ## Reset database with fresh data (destructive)
 	@echo "⚠️  WARNING: This will destroy all data!"

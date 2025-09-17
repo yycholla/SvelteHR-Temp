@@ -193,3 +193,30 @@
 {"ip":"::1","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-16T03:06:00.279Z","url":"/graphql","userAgent":"curl/8.16.0"}
 {"ip":"::ffff:127.0.0.1","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-16T03:07:21.593Z","url":"/graphql","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:142.0) Gecko/20100101 Firefox/142.0"}
 {"ip":"::ffff:127.0.0.1","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-16T03:07:30.753Z","url":"/graphql","userAgent":"Mozilla/5.0 (X11; Linux x86_64; rv:142.0) Gecko/20100101 Firefox/142.0"}
+{"endpoint":"http://localhost:4000/graphql","environment":"development","graphiql":"http://localhost:4000/graphiql","health_endpoint":"http://localhost:4000/health","level":"info","message":"PostGraphile server started","port":4000,"service":"postgraphile-server","timestamp":"2025-09-16T23:50:31.686Z"}
+{"level":"info","message":"All services started successfully","service":"postgraphile-server","timestamp":"2025-09-16T23:50:31.687Z"}
+{"level":"info","message":"SIGTERM received, shutting down gracefully","service":"postgraphile-server","timestamp":"2025-09-16T23:51:58.210Z"}
+{"endpoint":"http://localhost:4000/graphql","environment":"development","graphiql":"http://localhost:4000/graphiql","health_endpoint":"http://localhost:4000/health","level":"info","message":"PostGraphile server started","port":4000,"service":"postgraphile-server","timestamp":"2025-09-16T23:53:57.521Z"}
+{"level":"info","message":"All services started successfully","service":"postgraphile-server","timestamp":"2025-09-16T23:53:57.522Z"}
+{"endpoint":"http://localhost:4000/graphql","environment":"development","graphiql":"http://localhost:4000/graphiql","health_endpoint":"http://localhost:4000/health","level":"info","message":"PostGraphile server started","port":4000,"service":"postgraphile-server","timestamp":"2025-09-16T23:55:15.759Z"}
+{"level":"info","message":"All services started successfully","service":"postgraphile-server","timestamp":"2025-09-16T23:55:15.760Z"}
+{"ip":"::1","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-16T23:55:23.569Z","url":"/graphql","userAgent":"curl/8.16.0"}
+{"ip":"::1","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-16T23:57:02.278Z","url":"/graphql","userAgent":"curl/8.16.0"}
+{"ip":"::1","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-16T23:58:18.653Z","url":"/graphql","userAgent":"curl/8.16.0"}
+{"endpoint":"http://localhost:4000/graphql","environment":"development","graphiql":"http://localhost:4000/graphiql","health_endpoint":"http://localhost:4000/health","level":"info","message":"PostGraphile server started","port":4000,"service":"postgraphile-server","timestamp":"2025-09-17T00:06:37.881Z"}
+{"level":"info","message":"All services started successfully","service":"postgraphile-server","timestamp":"2025-09-17T00:06:37.882Z"}
+{"level":"info","message":"SIGTERM received, shutting down gracefully","service":"postgraphile-server","timestamp":"2025-09-17T00:06:47.045Z"}
+{"level":"info","message":"SIGTERM received, shutting down gracefully","service":"postgraphile-server","timestamp":"2025-09-17T00:07:03.352Z"}
+{"endpoint":"http://localhost:4000/graphql","environment":"development","graphiql":"http://localhost:4000/graphiql","health_endpoint":"http://localhost:4000/health","level":"info","message":"PostGraphile server started","port":4000,"service":"postgraphile-server","timestamp":"2025-09-17T00:13:49.578Z"}
+{"level":"info","message":"All services started successfully","service":"postgraphile-server","timestamp":"2025-09-17T00:13:49.580Z"}
+{"level":"info","message":"SIGINT received, shutting down gracefully","service":"postgraphile-server","timestamp":"2025-09-17T00:14:24.141Z"}
+{"level":"info","message":"SIGINT received, shutting down gracefully","service":"postgraphile-server","timestamp":"2025-09-17T00:14:24.171Z"}
+{"endpoint":"http://localhost:4000/graphql","environment":"development","graphiql":"http://localhost:4000/graphiql","health_endpoint":"http://localhost:4000/health","level":"info","message":"PostGraphile server started","port":4000,"service":"postgraphile-server","timestamp":"2025-09-17T00:15:01.466Z"}
+{"level":"info","message":"All services started successfully","service":"postgraphile-server","timestamp":"2025-09-17T00:15:01.468Z"}
+{"level":"info","message":"SIGTERM received, shutting down gracefully","service":"postgraphile-server","timestamp":"2025-09-17T00:17:09.414Z"}
+{"endpoint":"http://localhost:4000/graphql","environment":"development","graphiql":"http://localhost:4000/graphiql","health_endpoint":"http://localhost:4000/health","level":"info","message":"PostGraphile server started","port":4000,"service":"postgraphile-server","timestamp":"2025-09-17T00:17:37.225Z"}
+{"level":"info","message":"All services started successfully","service":"postgraphile-server","timestamp":"2025-09-17T00:17:37.226Z"}
+{"endpoint":"http://localhost:4000/graphql","environment":"development","graphiql":"http://localhost:4000/graphiql","health_endpoint":"http://localhost:4000/health","level":"info","message":"PostGraphile server started","port":4000,"service":"postgraphile-server","timestamp":"2025-09-17T00:17:47.095Z"}
+{"level":"info","message":"All services started successfully","service":"postgraphile-server","timestamp":"2025-09-17T00:17:47.096Z"}
+{"endpoint":"http://localhost:4000/graphql","environment":"development","graphiql":"http://localhost:4000/graphiql","health_endpoint":"http://localhost:4000/health","level":"info","message":"PostGraphile server started","port":4000,"service":"postgraphile-server","timestamp":"2025-09-17T00:44:41.055Z"}
+{"level":"info","message":"All services started successfully","service":"postgraphile-server","timestamp":"2025-09-17T00:44:41.056Z"}

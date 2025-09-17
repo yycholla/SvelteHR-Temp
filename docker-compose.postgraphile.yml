@@ -14,8 +14,7 @@ services:
       POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/init-clean.sql:/docker-entrypoint-initdb.d/001-init.sql
-      - ./migrations/:/migrations/:ro
+      - ./database/init/001-complete-schema.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
     ports:
       - "5432:5432"
     command: |
