@@ -1,17 +1,20 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { currentUser, hasPermission } from '$lib/services/auth';
-  import EmployeeForm from '$lib/components/employees/EmployeeForm.svelte';
-  import Card from '$lib/components/base/Card.svelte';
+  import { currentUser, hasPermission } from '$lib/stores/auth';
+  import ShadcnLayout from '$lib/components/layout/ShadcnLayout.svelte';
+  import EmployeeForm from '$lib/components/employees/EmployeeFormShadcn.svelte';
+  import * as Card from '$lib/components/ui/card';
+  import { Button } from '$lib/components/ui/button';
+  import { ArrowLeft, AlertCircle, UserPlus } from 'lucide-svelte';
   import type { User } from '$lib/types';
 
-  let loading = false;
-  let error: string | null = null;
+  let loading = $state(false);
+  let error: string | null = $state(null);
 
   // Check permissions on mount
   onMount(() => {
-    if (!$currentUser || !hasPermission('user:create')) {
+    if (!$currentUser || !hasPermission('create_users')) {
       goto('/employees');
       return;
     }
@@ -33,116 +36,59 @@
   function handleCancel() {
     goto('/employees');
   }
+
+  function goBack() {
+    goto('/employees');
+  }
 </script>
 
 <svelte:head>
-  <title>Add New Employee - MountainHR</title>
+  <title>Add New Employee - SvelteHR</title>
   <meta name="description" content="Create a new employee profile" />
 </svelte:head>
 
-<div class="add-employee-page">
-  <div class="page-header">
-    <div class="page-header__content">
-      <h1 class="page-header__title">Add New Employee</h1>
-      <p class="page-header__subtitle">
-        Create a comprehensive employee profile with all necessary information.
-      </p>
-    </div>
-  </div>
-
-  {#if error}
-    <Card padding="md" class="error-card">
-      <div class="error-message">
-        <div class="error-icon">
-          <i class="icon-alert-circle"></i>
-        </div>
-        <div class="error-content">
-          <h3 class="error-title">Error Creating Employee</h3>
-          <p class="error-description">{error}</p>
+<ShadcnLayout>
+  <div class="space-y-6">
+    <!-- Header with back button -->
+    <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-4">
+        <Button variant="ghost" size="sm" onclick={goBack}>
+          <ArrowLeft class="h-4 w-4 mr-2" />
+          Back to Employees
+        </Button>
+        <div>
+          <h1 class="text-3xl font-bold tracking-tight flex items-center gap-3">
+            <UserPlus class="h-8 w-8" />
+            Add New Employee
+          </h1>
+          <p class="text-muted-foreground">
+            Create a comprehensive employee profile with all necessary information
+          </p>
         </div>
       </div>
-    </Card>
-  {/if}
+    </div>
 
-  <div class="form-container">
+    {#if error}
+      <Card.Root>
+        <Card.Content class="py-6">
+          <div class="flex items-start space-x-4">
+            <AlertCircle class="h-6 w-6 text-destructive flex-shrink-0 mt-0.5" />
+            <div class="flex-1">
+              <h3 class="text-lg font-semibold">Error Creating Employee</h3>
+              <p class="text-muted-foreground">{error}</p>
+            </div>
+          </div>
+        </Card.Content>
+      </Card.Root>
+    {/if}
+
     <EmployeeForm
       isEditing={false}
       {loading}
-      on:success={handleSuccess}
-      on:error={handleError}
-      on:cancel={handleCancel}
+      onsuccess={handleSuccess}
+      onerror={handleError}
+      oncancel={handleCancel}
     />
   </div>
-</div>
+</ShadcnLayout>
 
-<style lang="postcss">
-  .add-employee-page {
-    @apply space-y-6 max-w-6xl mx-auto;
-  }
-
-  /* Page Header */
-  .page-header {
-    @apply border-b border-gray-200 pb-6;
-  }
-
-  .page-header__content {
-    @apply space-y-2;
-  }
-
-  .page-header__title {
-    @apply text-3xl font-bold text-gray-900;
-  }
-
-  .page-header__subtitle {
-    @apply text-lg text-gray-600;
-  }
-
-  /* Error Card */
-  .error-card {
-    @apply border-l-4 border-red-500 bg-red-50;
-  }
-
-  .error-message {
-    @apply flex items-start space-x-3;
-  }
-
-  .error-icon {
-    @apply flex-shrink-0 text-red-500;
-  }
-
-  .error-icon i {
-    @apply w-5 h-5;
-  }
-
-  .error-content {
-    @apply flex-1;
-  }
-
-  .error-title {
-    @apply text-sm font-medium text-red-900 mb-1;
-  }
-
-  .error-description {
-    @apply text-sm text-red-700;
-  }
-
-  /* Form Container */
-  .form-container {
-    @apply space-y-6;
-  }
-
-  /* Responsive */
-  @media (max-width: 768px) {
-    .add-employee-page {
-      @apply max-w-none mx-4;
-    }
-
-    .page-header__title {
-      @apply text-2xl;
-    }
-
-    .page-header__subtitle {
-      @apply text-base;
-    }
-  }
-</style>

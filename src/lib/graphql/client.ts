@@ -1,7 +1,6 @@
-import { Client, cacheExchange, fetchExchange, subscriptionExchange, errorExchange } from '@urql/core';
+import { Client, cacheExchange, fetchExchange, errorExchange } from '@urql/core';
 import { authExchange } from '@urql/exchange-auth';
 import { retryExchange } from '@urql/exchange-retry';
-import { createClient as createWSClient } from 'graphql-ws';
 import { goto } from '$app/navigation';
 import { browser } from '$app/environment';
 
@@ -15,12 +14,11 @@ import { browser } from '$app/environment';
  * - Retry logic and rate limiting
  */
 
-// PostGraphile configuration - hardcoded for now until env vars are working
-const POSTGRAPHILE_GRAPHQL_URL = 'http://localhost:4000/graphql';
-const POSTGRAPHILE_GRAPHQL_WS_URL = POSTGRAPHILE_GRAPHQL_URL.replace('http://', 'ws://').replace('https://', 'wss://');
+// PostGraphile GraphQL endpoint - use directly for better integration
+const POSTGRAPHILE_GRAPHQL_URL = 'http://localhost:4001/graphql';
+const POSTGRAPHILE_GRAPHQL_WS_URL = 'ws://localhost:4001/graphql'; // Direct to PostGraphile for WebSockets if needed
 
-// WebSocket client for subscriptions (disabled for PostGraphile - doesn't support WebSockets by default)
-let wsClient: ReturnType<typeof createWSClient> | null = null;
+// WebSocket subscriptions are disabled for PostGraphile (doesn't support WebSockets by default)
 
 // Note: PostGraphile doesn't support WebSocket subscriptions out of the box
 // Enable this only if you have added WebSocket support to your PostGraphile setup
@@ -47,11 +45,9 @@ const getAuthState = (): AuthState => {
     return { token: null };
   }
 
-  // For PostGraphile, we get the JWT from httpOnly cookies via API calls
-  // This is more secure than localStorage
-  return {
-    token: localStorage.getItem('temp-jwt-token') // Only for temporary client-side operations
-  };
+  // Get JWT token from localStorage
+  const token = localStorage.getItem('postgraphile-jwt-token');
+  return { token };
 };
 
 const setAuthState = (authState: Partial<AuthState>) => {
@@ -59,10 +55,9 @@ const setAuthState = (authState: Partial<AuthState>) => {
 
   if (authState.token !== undefined) {
     if (authState.token) {
-      // Store temporarily for client operations
-      localStorage.setItem('temp-jwt-token', authState.token);
+      localStorage.setItem('postgraphile-jwt-token', authState.token);
     } else {
-      localStorage.removeItem('temp-jwt-token');
+      localStorage.removeItem('postgraphile-jwt-token');
     }
   }
 };
@@ -87,10 +82,16 @@ const customErrorExchange = errorExchange({
   onError: (error, operation) => {
     // Handle authentication errors
     if (error.graphQLErrors.some(e => e.extensions?.code === 'UNAUTHENTICATED')) {
-      // Clear invalid auth state and redirect to login
-      setAuthState({ token: null });
-      if (browser) {
+      console.warn('GraphQL UNAUTHENTICATED error:', error.graphQLErrors);
+
+      // Only redirect if we're not already on a login/auth related page
+      // This prevents redirect loops when the user is already authenticated
+      if (browser && !window.location.pathname.includes('/login') && !window.location.pathname.includes('/admin')) {
+        console.log('🔴 REDIRECT: GraphQL client UNAUTHENTICATED error calling goto("/login")');
+        setAuthState({ token: null });
         goto('/login?returnUrl=' + encodeURIComponent(window.location.pathname));
+      } else {
+        console.log('Not redirecting - already on auth-related page or admin page');
       }
     }
 
@@ -118,12 +119,11 @@ const customErrorExchange = errorExchange({
   }
 });
 
-// Auth exchange configuration
+// Auth exchange configuration for PostGraphile
 const authConfig = authExchange(async (utils) => {
-  let authState = getAuthState();
-
   return {
     addAuthToOperation(operation) {
+      const authState = getAuthState();
       if (!authState.token) return operation;
 
       return utils.appendHeaders(operation, {
@@ -136,33 +136,17 @@ const authConfig = authExchange(async (utils) => {
     },
 
     async refreshAuth() {
-      try {
-        // Validate JWT token via API (uses httpOnly cookie)
-        const result = await validateTokenViaAPI();
-
-        if (result.success && result.user) {
-          // Token is still valid, no need to refresh with PostGraphile
-          // Just continue using the existing JWT
-          return;
-        } else {
-          // Token is invalid, clear auth and redirect to login
-          setAuthState({ token: null });
-          if (browser) {
-            goto('/login');
-          }
-        }
-      } catch (error) {
-        console.error('Token validation failed:', error);
-        setAuthState({ token: null });
-        if (browser) {
-          goto('/login');
-        }
+      // With PostGraphile, JWT tokens are self-contained and don't refresh
+      // If authentication fails, clear token and redirect to login
+      setAuthState({ token: null });
+      if (browser) {
+        console.log('🔴 REDIRECT: GraphQL client refreshAuth function calling goto("/login")');
+        goto('/login');
       }
     },
 
     willAuthError() {
-      // With PostGraphile JWTs, we let the server validate expiration
-      // rather than tracking client-side expiration times
+      // Let PostGraphile handle JWT validation
       return false;
     }
   };
@@ -219,13 +203,12 @@ export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string) => 
     exchanges,
     fetchOptions: () => {
       return {
-        method: 'POST', // Force POST requests for all GraphQL operations
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
       };
     },
-    // Disable query GET requests
     preferGetMethod: false,
   });
 };
@@ -252,31 +235,30 @@ export const setJwtToken = (jwtToken: string) => {
 
 export const clearAuthTokens = () => {
   setAuthState({ token: null });
-  
+
   // Dispose WebSocket connection (disabled for PostGraphile)
   // if (browser && wsClient) {
   //   wsClient.dispose();
   //   wsClient = null;
   // }
-
-  // Clear JWT from server via API call
-  if (browser) {
-    fetch('/api/auth/logout', { method: 'POST' }).catch(() => {
-      // Ignore errors - cookie clearing will happen anyway
-    });
-  }
 };
 
 export const getAuthToken = (): string | null => {
   return getAuthState().token;
 };
 
-export const isAuthenticated = async (): Promise<boolean> => {
+export const isAuthenticated = (): boolean => {
   if (!browser) return false;
-  
+
+  const token = getAuthState().token;
+  if (!token) return false;
+
   try {
-    const result = await validateTokenViaAPI();
-    return result.success && result.isValid;
+    const [, payload] = token.split('.');
+    const decodedPayload = JSON.parse(atob(payload));
+    const currentTime = Math.floor(Date.now() / 1000);
+
+    return decodedPayload.exp ? decodedPayload.exp > currentTime : false;
   } catch {
     return false;
   }

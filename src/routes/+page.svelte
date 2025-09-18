@@ -2,70 +2,94 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { browser } from '$app/environment';
-  import { isAuthenticated, isLoading } from '$lib/stores/auth';
+  import { page } from '$app/stores';
+  import { isAuthenticated, isLoading, currentUser, authActions } from '$lib/stores/auth';
+  import { permissionsService } from '$lib/services/permissionsService';
+  import { Loading } from 'carbon-components-svelte';
 
-  let redirected = false;
+  // Use session storage to prevent redirect loops across page reloads
+  const REDIRECT_KEY = 'hr_root_redirected';
 
-  // Redirect based on authentication status - only after loading is complete
-  $: if (browser && !$isLoading && !redirected) {
-    redirected = true;
-    if ($isAuthenticated) {
-      goto('/dashboard');
+  onMount(async () => {
+    // Ensure we only run this on the root page
+    if ($page.url.pathname !== '/') return;
+
+    // Small delay to allow AuthGuard to initialize auth state
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    // Now check the auth state (which AuthGuard has already validated)
+    if ($isAuthenticated && $currentUser) {
+      // Clear any lingering redirect flags
+      if (browser) {
+        sessionStorage.removeItem('hr_login_redirected');
+        sessionStorage.removeItem('hr_root_redirected');
+      }
+
+      // Redirect to appropriate default page based on user role
+      const isAdmin = permissionsService.isSuperAdmin($currentUser);
+      await goto(isAdmin ? '/admin' : '/dashboard', { replaceState: true });
     } else {
-      goto('/login');
+      // Not authenticated, redirect to login
+      await goto('/login', { replaceState: true });
     }
+  });
+
+  // Clear redirect flag when navigating away from root
+  $: if (browser && $page.url.pathname !== '/') {
+    sessionStorage.removeItem(REDIRECT_KEY);
   }
 </script>
 
 <svelte:head>
-  <title>MountainHR - HR Management System</title>
+  <title>SvelteHR - HR Management System</title>
   <meta name="description" content="Comprehensive HR management system for modern organizations" />
 </svelte:head>
 
 <!-- Loading state while redirecting -->
-<div class="redirect-loading">
+<div class="redirect-loading carbon-loading-state">
   <div class="loading-spinner">
-    <svg class="animate-spin" viewBox="0 0 24 24">
-      <circle 
-        class="opacity-25" 
-        cx="12" 
-        cy="12" 
-        r="10" 
-        stroke="currentColor" 
-        stroke-width="4" 
-        fill="none"
-      />
-      <path 
-        class="opacity-75" 
-        fill="currentColor" 
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-      />
-    </svg>
+    <Loading withOverlay={false} />
   </div>
-  <p>Loading MountainHR...</p>
+  <p class="loading-text">Loading SvelteHR...</p>
 </div>
 
-<style lang="postcss">
-  .redirect-loading {
-    @apply min-h-screen flex flex-col items-center justify-center;
-    background-color: #f9fafb;
-    color: #6b7280;
+<style>
+  .carbon-loading-state {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--cds-background);
+    color: var(--cds-text-secondary);
+    padding: var(--cds-spacing-06);
+    gap: var(--cds-spacing-06);
   }
 
-  .loading-spinner svg {
-    @apply w-8 h-8 mb-4 text-blue-600;
+  .loading-spinner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  .animate-spin {
-    animation: spin 1s linear infinite;
+  .loading-text {
+    font-size: var(--cds-body-short-01-font-size);
+    font-weight: var(--cds-body-short-01-font-weight);
+    line-height: var(--cds-body-short-01-line-height);
+    color: var(--cds-text-secondary);
+    text-align: center;
   }
 
-  @keyframes spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
+  /* Ensure Carbon loading component is properly styled */
+  :global(.carbon-loading-state .bx--loading) {
+    position: static;
+    transform: none;
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 671px) {
+    .carbon-loading-state {
+      padding: var(--cds-spacing-05);
     }
   }
 </style>

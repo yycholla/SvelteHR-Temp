@@ -12,15 +12,18 @@ SvelteHR is a comprehensive HR management system built with SvelteKit frontend a
 - **GraphQL Engine**: PostGraphile 4.x - PostgreSQL-native GraphQL layer (replacing Hasura)
 - **Database**: PostgreSQL 15+ with Row-Level Security - primary data store
 - **Cache**: Redis 7.2 - query caching with graphile-cache integration
-- **Authentication**: PostgreSQL-native JWT with SECURITY DEFINER functions
+- **Authentication**: JWT with PostGraphile integration, bcryptjs password hashing, httpOnly cookies
+- **Authorization**: 4-tier role system (Admin:100, HR:80, Manager:60, Employee:20) with PostgreSQL RLS
 - **Config Management**: Environment variables with secure defaults
 - **Build System**: Node.js/TypeScript with Express middleware
 - **Migration**: PostgreSQL native migrations with PostGraphile schema introspection
 
-### Frontend (In Development)
+### Frontend (Migrating to shadcn-svelte)
 - **Framework**: SvelteKit with TypeScript
+- **UI Components**: shadcn-svelte (replacing Carbon Design System)
+- **Styling**: TailwindCSS with CSS Variables theming
+- **Icons**: Lucide Svelte for consistent iconography
 - **GraphQL Client**: Urql with SSR support
-- **Styling**: TailwindCSS with responsive design
 - **Testing**: Vitest + Playwright + @testing-library/svelte
 - **Code Generation**: GraphQL Code Generator for type safety
 
@@ -45,6 +48,13 @@ SvelteHR is a comprehensive HR management system built with SvelteKit frontend a
 - `make frontend-build` - Build frontend for production
 - `make frontend-test` - Run frontend tests (unit + e2e)
 - `make frontend-codegen` - Generate GraphQL types
+
+### UI Component Development (shadcn-svelte)
+- `pnpm dlx shadcn-svelte@latest init` - Initialize shadcn-svelte in project
+- `pnpm dlx shadcn-svelte@latest add <component>` - Add specific components
+- `pnpm dlx shadcn-svelte@latest list` - List available components
+- `npm run ui:docs` - Generate component documentation
+- `npm run ui:test` - Run component visual regression tests
 
 ### Development Workflow
 - `make dev` - Start development with database services
@@ -139,10 +149,37 @@ make db-reset
 - **Performance**: Multi-layer caching (Urql + Redis + computed properties)
 
 ### Current Feature Development
-- **Branch**: 003-now-that-we (PostGraphile Migration)
-- **Status**: Planning phase - Complete Hasura replacement
-- **Focus**: Migration to PostGraphile with PostgreSQL-native authentication and RLS
-- **Key Benefits**: Eliminates vendor lock-in, transparent GraphQL layer, database-first security
+- **Branch**: 008-move-from-carbon (UI Migration to shadcn-svelte)
+- **Status**: Design phase - Migration from Carbon Design System to modern shadcn-svelte UI
+- **Focus**: Component-by-component migration with comprehensive documentation and testing
+- **Key Benefits**: Modern UI patterns, better customization, improved accessibility, future-proof design system
+
+### Authentication Testing Workflow
+- **Testing Framework**: Playwright with TypeScript for cross-browser authentication testing
+- **Test Orchestration**: CLI-based test loop execution with configurable retry logic
+- **Pattern Analysis**: Statistical analysis of failures to distinguish flaky vs consistent issues
+- **Automated Reporting**: HTML/JSON reports with health dashboards and trend analysis
+- **CI Integration**: Automated testing loops with email notifications and artifact storage
+
+### Testing Libraries Architecture
+- **auth-test-orchestrator**: Core test execution and loop management (`npx auth-test run`)
+- **test-result-analyzer**: Pattern detection and failure correlation (`npx auth-analyze results`)
+- **auth-test-reporter**: Summary generation and dashboard creation (`npx auth-report generate`)
+
+### Testing Commands
+```bash
+# Execute authentication test loop
+npx auth-test run --suite-config config.json --loop --max-iterations 10
+
+# Analyze test results for patterns
+npx auth-analyze results --pattern-detection --format json
+
+# Generate comprehensive reports
+npx auth-report generate --template summary --format html
+
+# Real-time health dashboard
+npx auth-report dashboard --refresh-interval 30
+```
 
 ## Hasura Development Patterns
 

@@ -131,6 +131,7 @@ export async function logout(): Promise<void> {
   authStore.clearUser();
 
   // Redirect to login
+  console.log('🔴 REDIRECT: authService.ts logout function calling goto("/login")');
   await goto('/login');
 }
 

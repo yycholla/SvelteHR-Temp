@@ -60,8 +60,8 @@ export const handle: Handle = async ({ event, resolve }) => {
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // SvelteKit needs unsafe-inline/eval
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https:",
-      "font-src 'self' data:",
-      "connect-src 'self' http://localhost:4000 ws://localhost:4000", // PostGraphile endpoints
+      "font-src 'self' data: https://1.www.s81c.com", // Allow IBM Plex fonts from Carbon CDN
+      "connect-src 'self' http://localhost:4000 ws://localhost:4000 http://localhost:4001 ws://localhost:4001", // PostGraphile endpoints
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'"

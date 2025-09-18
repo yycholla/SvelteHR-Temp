@@ -1,0 +1,504 @@
+openapi: 3.0.3
+info:
+  title: Test Result Analyzer CLI API
+  description: Command-line interface for analyzing test results and identifying patterns
+  version: 1.0.0
+
+paths:
+  /cli/analyze:
+    post:
+      summary: Analyze test results for patterns
+      description: |
+        Analyzes test execution results to identify failure patterns, trends,
+        and generate actionable insights for issue resolution
+      operationId: analyzeResults
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                executionIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  description: Specific executions to analyze (if omitted, analyzes recent results)
+                timeRange:
+                  type: object
+                  properties:
+                    startTime:
+                      type: string
+                      format: date-time
+                    endTime:
+                      type: string
+                      format: date-time
+                  description: Time range for analysis (alternative to executionIds)
+                patternDetection:
+                  type: boolean
+                  default: true
+                  description: Enable automatic pattern detection
+                correlationAnalysis:
+                  type: boolean
+                  default: true
+                  description: Enable correlation analysis between failures
+                trendAnalysis:
+                  type: boolean
+                  default: true
+                  description: Enable trend analysis over time
+                minOccurrences:
+                  type: integer
+                  minimum: 1
+                  default: 2
+                  description: Minimum occurrences to consider a pattern
+                confidenceThreshold:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                  default: 0.7
+                  description: Confidence threshold for pattern detection
+                format:
+                  type: string
+                  enum: [json, text, html]
+                  default: json
+                  description: Output format for analysis results
+      responses:
+        '200':
+          description: Analysis completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisResult'
+        '400':
+          description: Invalid analysis parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: No test results found for analysis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /cli/patterns:
+    get:
+      summary: Get identified failure patterns
+      description: Returns previously identified failure patterns with current status
+      operationId: getPatterns
+      parameters:
+        - name: severity
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [low, medium, high, critical]
+          description: Filter patterns by severity level
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [active, resolved, investigating]
+          description: Filter patterns by resolution status
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [json, text]
+            default: json
+      responses:
+        '200':
+          description: Patterns retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatternList'
+
+  /cli/correlate:
+    post:
+      summary: Correlate specific failures
+      description: Analyzes correlation between specific test failures
+      operationId: correlateFailures
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                failureIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  description: Specific failure IDs to correlate
+                correlationFactors:
+                  type: array
+                  items:
+                    type: string
+                    enum: [browser, environment, timing, userRole, testStep]
+                  default: [browser, environment, timing]
+                  description: Factors to consider in correlation analysis
+                format:
+                  type: string
+                  enum: [json, text]
+                  default: json
+              required:
+                - failureIds
+      responses:
+        '200':
+          description: Correlation analysis completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CorrelationResult'
+
+components:
+  schemas:
+    AnalysisResult:
+      type: object
+      properties:
+        analysisId:
+          type: string
+          format: uuid
+        analysisTime:
+          type: string
+          format: date-time
+        dataRange:
+          type: object
+          properties:
+            startTime:
+              type: string
+              format: date-time
+            endTime:
+              type: string
+              format: date-time
+            totalResults:
+              type: integer
+              minimum: 0
+            totalFailures:
+              type: integer
+              minimum: 0
+        patterns:
+          type: array
+          items:
+            $ref: '#/components/schemas/FailurePattern'
+        trends:
+          type: array
+          items:
+            $ref: '#/components/schemas/Trend'
+        correlations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Correlation'
+        recommendations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Recommendation'
+        summary:
+          $ref: '#/components/schemas/AnalysisSummary'
+      required:
+        - analysisId
+        - analysisTime
+        - dataRange
+        - patterns
+        - summary
+
+    FailurePattern:
+      type: object
+      properties:
+        patternId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        occurrences:
+          type: integer
+          minimum: 1
+        firstSeen:
+          type: string
+          format: date-time
+        lastSeen:
+          type: string
+          format: date-time
+        affectedScenarios:
+          type: array
+          items:
+            type: string
+        commonFactors:
+          type: object
+          properties:
+            browsers:
+              type: array
+              items:
+                type: string
+            environments:
+              type: array
+              items:
+                type: string
+            userRoles:
+              type: array
+              items:
+                type: string
+            errorTypes:
+              type: array
+              items:
+                type: string
+        reproducibilityRate:
+          type: number
+          minimum: 0
+          maximum: 100
+        suggestedFixes:
+          type: array
+          items:
+            type: string
+        relatedIssues:
+          type: array
+          items:
+            type: string
+            format: uuid
+      required:
+        - patternId
+        - name
+        - severity
+        - confidence
+        - occurrences
+        - firstSeen
+        - lastSeen
+
+    Trend:
+      type: object
+      properties:
+        trendId:
+          type: string
+          format: uuid
+        metric:
+          type: string
+          enum: [successRate, averageDuration, failureCount, stabilityScore]
+        direction:
+          type: string
+          enum: [improving, stable, degrading]
+        magnitude:
+          type: number
+          description: Rate of change
+        timeframe:
+          type: object
+          properties:
+            startTime:
+              type: string
+              format: date-time
+            endTime:
+              type: string
+              format: date-time
+        dataPoints:
+          type: array
+          items:
+            type: object
+            properties:
+              timestamp:
+                type: string
+                format: date-time
+              value:
+                type: number
+        significance:
+          type: string
+          enum: [low, medium, high]
+        description:
+          type: string
+      required:
+        - trendId
+        - metric
+        - direction
+        - timeframe
+        - significance
+
+    Correlation:
+      type: object
+      properties:
+        correlationId:
+          type: string
+          format: uuid
+        factor1:
+          type: string
+        factor2:
+          type: string
+        strength:
+          type: number
+          minimum: -1
+          maximum: 1
+          description: Correlation coefficient (-1 to 1)
+        significance:
+          type: string
+          enum: [low, medium, high]
+        sampleSize:
+          type: integer
+          minimum: 1
+        description:
+          type: string
+        implications:
+          type: array
+          items:
+            type: string
+      required:
+        - correlationId
+        - factor1
+        - factor2
+        - strength
+        - significance
+        - sampleSize
+
+    Recommendation:
+      type: object
+      properties:
+        recommendationId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+        category:
+          type: string
+          enum: [infrastructure, code, testing, process]
+        estimatedImpact:
+          type: string
+          enum: [low, medium, high]
+        implementationComplexity:
+          type: string
+          enum: [low, medium, high]
+        supportingEvidence:
+          type: array
+          items:
+            type: string
+            format: uuid
+            description: References to patterns, trends, or correlations
+        actionItems:
+          type: array
+          items:
+            type: string
+      required:
+        - recommendationId
+        - title
+        - description
+        - priority
+        - category
+        - estimatedImpact
+
+    AnalysisSummary:
+      type: object
+      properties:
+        overallHealth:
+          type: string
+          enum: [healthy, degraded, critical]
+        keyFindings:
+          type: array
+          items:
+            type: string
+        criticalIssues:
+          type: integer
+          minimum: 0
+        highPriorityRecommendations:
+          type: integer
+          minimum: 0
+        stabilityTrend:
+          type: string
+          enum: [improving, stable, degrading]
+        confidenceLevel:
+          type: string
+          enum: [low, medium, high]
+        nextAnalysisRecommended:
+          type: string
+          format: date-time
+      required:
+        - overallHealth
+        - keyFindings
+        - criticalIssues
+        - stabilityTrend
+        - confidenceLevel
+
+    PatternList:
+      type: object
+      properties:
+        patterns:
+          type: array
+          items:
+            $ref: '#/components/schemas/FailurePattern'
+        totalCount:
+          type: integer
+          minimum: 0
+        filteredCount:
+          type: integer
+          minimum: 0
+        lastUpdated:
+          type: string
+          format: date-time
+      required:
+        - patterns
+        - totalCount
+        - filteredCount
+        - lastUpdated
+
+    CorrelationResult:
+      type: object
+      properties:
+        correlationId:
+          type: string
+          format: uuid
+        analysisTime:
+          type: string
+          format: date-time
+        failureCount:
+          type: integer
+          minimum: 1
+        correlations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Correlation'
+        summary:
+          type: string
+        recommendations:
+          type: array
+          items:
+            type: string
+      required:
+        - correlationId
+        - analysisTime
+        - failureCount
+        - correlations
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+      required:
+        - code
+        - message

@@ -1,3 +1,3 @@
-// Main Auth Service - Hasura Implementation
-export * from './hasura-service';
-export { hasuraAuthService as authService } from './hasura-service';
+// Main Auth Service - PostGraphile Implementation
+export * from '$lib/services/authService';
+export { login as authService } from '$lib/services/authService';

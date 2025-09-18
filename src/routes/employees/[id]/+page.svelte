@@ -2,19 +2,21 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
-  import { currentUser, hasPermission } from '$lib/services/auth';
-  import EmployeeProfile from '$lib/components/employees/EmployeeProfile.svelte';
-  import Button from '$lib/components/base/Button.svelte';
-  import Card from '$lib/components/base/Card.svelte';
+  import { currentUser, hasPermission } from '$lib/stores/auth';
+  import ShadcnLayout from '$lib/components/layout/ShadcnLayout.svelte';
+  import EmployeeProfile from '$lib/components/employees/EmployeeProfileShadcn.svelte';
+  import { Button } from '$lib/components/ui/button';
+  import * as Card from '$lib/components/ui/card';
+  import { ArrowLeft, AlertCircle, RefreshCw } from 'lucide-svelte';
 
   // Get employee ID from URL params
-  $: employeeId = $page.params.id;
+  const employeeId = $derived($page.params.id);
 
-  let error: string | null = null;
+  let error: string | null = $state(null);
 
   // Check permissions on mount
   onMount(() => {
-    if (!$currentUser || !hasPermission('user:read')) {
+    if (!$currentUser || !hasPermission('view_users')) {
       goto('/dashboard');
       return;
     }
@@ -37,103 +39,55 @@
 </script>
 
 <svelte:head>
-  <title>Employee Profile - MountainHR</title>
+  <title>Employee Profile - SvelteHR</title>
   <meta name="description" content="View employee profile and details" />
 </svelte:head>
 
-<div class="employee-profile-page">
-  <!-- Navigation Header -->
-  <div class="page-nav">
-    <Button
-      variant="ghost"
-      leftIcon="arrow-left"
-      on:click={goBack}
-    >
-      Back to Employees
-    </Button>
-  </div>
-
-  {#if error}
-    <Card padding="md" class="error-card">
-      <div class="error-message">
-        <div class="error-icon">
-          <i class="icon-alert-circle"></i>
-        </div>
-        <div class="error-content">
-          <h3 class="error-title">Error Loading Profile</h3>
-          <p class="error-description">{error}</p>
-          <Button
-            variant="secondary"
-            size="sm"
-            leftIcon="refresh-cw"
-            on:click={() => window.location.reload()}
-          >
-            Try Again
-          </Button>
+<ShadcnLayout>
+  <div class="space-y-6">
+    <!-- Header with back button -->
+    <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-4">
+        <Button variant="ghost" size="sm" onclick={goBack}>
+          <ArrowLeft class="h-4 w-4 mr-2" />
+          Back to Employees
+        </Button>
+        <div>
+          <h1 class="text-3xl font-bold tracking-tight">Employee Profile</h1>
+          <p class="text-muted-foreground">
+            View and manage employee details and information
+          </p>
         </div>
       </div>
-    </Card>
-  {/if}
+    </div>
 
-  <!-- Employee Profile Component -->
-  <div class="profile-container">
+    {#if error}
+      <Card.Root>
+        <Card.Content class="py-8">
+          <div class="flex items-start space-x-4">
+            <AlertCircle class="h-6 w-6 text-destructive flex-shrink-0 mt-0.5" />
+            <div class="flex-1 space-y-4">
+              <div>
+                <h3 class="text-lg font-semibold">Error Loading Profile</h3>
+                <p class="text-muted-foreground">{error}</p>
+              </div>
+              <Button variant="outline" onclick={() => window.location.reload()}>
+                <RefreshCw class="h-4 w-4 mr-2" />
+                Try Again
+              </Button>
+            </div>
+          </div>
+        </Card.Content>
+      </Card.Root>
+    {/if}
+
+    <!-- Employee Profile Component -->
     <EmployeeProfile
       {employeeId}
       showActions={true}
-      on:edit={handleEdit}
-      on:deactivated={handleDeactivated}
+      onedit={handleEdit}
+      ondeactivated={handleDeactivated}
     />
   </div>
-</div>
+</ShadcnLayout>
 
-<style lang="postcss">
-  .employee-profile-page {
-    @apply space-y-6 max-w-7xl mx-auto;
-  }
-
-  /* Page Navigation */
-  .page-nav {
-    @apply flex items-center;
-  }
-
-  /* Error Card */
-  .error-card {
-    @apply border-l-4 border-red-500 bg-red-50;
-  }
-
-  .error-message {
-    @apply flex items-start space-x-3;
-  }
-
-  .error-icon {
-    @apply flex-shrink-0 text-red-500;
-  }
-
-  .error-icon i {
-    @apply w-5 h-5;
-  }
-
-  .error-content {
-    @apply flex-1;
-  }
-
-  .error-title {
-    @apply text-sm font-medium text-red-900 mb-1;
-  }
-
-  .error-description {
-    @apply text-sm text-red-700 mb-3;
-  }
-
-  /* Profile Container */
-  .profile-container {
-    @apply space-y-6;
-  }
-
-  /* Responsive */
-  @media (max-width: 768px) {
-    .employee-profile-page {
-      @apply max-w-none mx-4;
-    }
-  }
-</style>

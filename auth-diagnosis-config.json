@@ -1,0 +1,204 @@
+{
+  "testSuite": {
+    "id": "auth-redirect-diagnosis",
+    "name": "Authentication Redirect Issue Diagnosis",
+    "version": "1.0.0",
+    "description": "Systematic diagnosis of auth redirect loops in SvelteHR",
+    "baseUrl": "http://localhost:5174",
+    "browsers": ["chromium"],
+    "configuration": {
+      "maxIterations": 5,
+      "retryFailedTests": false,
+      "delayBetweenIterations": 2000,
+      "timeout": 15000,
+      "stopOnConsecutiveFailures": 3
+    },
+    "scenarios": [
+      {
+        "id": "admin-login-diagnosis",
+        "name": "Admin Login Redirect Pattern Analysis",
+        "description": "Diagnose admin login redirect behavior and identify loop patterns",
+        "userRole": "admin",
+        "priority": "critical",
+        "estimatedDuration": 10000,
+        "preconditions": [
+          "Database is running and accessible",
+          "PostGraphile backend is running on port 8000",
+          "Frontend is running on port 5175",
+          "Test user admin@postgraphile-hr.com exists"
+        ],
+        "steps": [
+          {
+            "id": "initial-navigation",
+            "action": "navigate",
+            "target": "/",
+            "description": "Navigate to home page to check initial redirect behavior",
+            "timeout": 5000
+          },
+          {
+            "id": "check-initial-state",
+            "action": "wait",
+            "target": "body",
+            "description": "Wait for page to load and check where we end up",
+            "timeout": 3000
+          },
+          {
+            "id": "navigate-to-login",
+            "action": "navigate",
+            "target": "/login",
+            "description": "Explicitly navigate to login page",
+            "timeout": 5000
+          },
+          {
+            "id": "wait-for-login-form",
+            "action": "wait",
+            "target": "#email, [name='email'], input[type='email']",
+            "description": "Wait for login form to appear",
+            "timeout": 5000
+          },
+          {
+            "id": "fill-email",
+            "action": "fill",
+            "target": "#email, [name='email'], input[type='email']",
+            "value": "admin@postgraphile-hr.com",
+            "description": "Fill admin email",
+            "timeout": 3000
+          },
+          {
+            "id": "fill-password",
+            "action": "fill",
+            "target": "#password, [name='password'], input[type='password']",
+            "value": "admin123",
+            "description": "Fill admin password",
+            "timeout": 3000
+          },
+          {
+            "id": "submit-login",
+            "action": "click",
+            "target": "#submit, button[type='submit'], .login-btn",
+            "description": "Submit login form",
+            "timeout": 3000
+          },
+          {
+            "id": "wait-after-submit",
+            "action": "wait",
+            "target": "body",
+            "description": "Wait to see redirect behavior after login",
+            "timeout": 10000
+          }
+        ],
+        "expectedOutcome": {
+          "finalUrl": "/admin",
+          "authenticationState": "authenticated",
+          "redirectCount": 1,
+          "maxDuration": 15000,
+          "requiredElements": ["body"],
+          "forbiddenElements": [".error", ".login-error"]
+        }
+      },
+      {
+        "id": "employee-login-diagnosis",
+        "name": "Employee Login Redirect Pattern Analysis",
+        "description": "Diagnose employee login redirect behavior",
+        "userRole": "employee",
+        "priority": "high",
+        "estimatedDuration": 10000,
+        "steps": [
+          {
+            "id": "navigate-to-login",
+            "action": "navigate",
+            "target": "/login",
+            "description": "Navigate to login page for employee test",
+            "timeout": 5000
+          },
+          {
+            "id": "wait-for-form",
+            "action": "wait",
+            "target": "#email, [name='email'], input[type='email']",
+            "description": "Wait for login form",
+            "timeout": 5000
+          },
+          {
+            "id": "fill-employee-email",
+            "action": "fill",
+            "target": "#email, [name='email'], input[type='email']",
+            "value": "employee@postgraphile-hr.com",
+            "description": "Fill employee email",
+            "timeout": 3000
+          },
+          {
+            "id": "fill-employee-password",
+            "action": "fill",
+            "target": "#password, [name='password'], input[type='password']",
+            "value": "employee123",
+            "description": "Fill employee password",
+            "timeout": 3000
+          },
+          {
+            "id": "submit-employee-login",
+            "action": "click",
+            "target": "#submit, button[type='submit'], .login-btn",
+            "description": "Submit employee login",
+            "timeout": 3000
+          },
+          {
+            "id": "wait-for-employee-redirect",
+            "action": "wait",
+            "target": "body",
+            "description": "Wait for employee redirect",
+            "timeout": 10000
+          }
+        ],
+        "expectedOutcome": {
+          "finalUrl": "/dashboard",
+          "authenticationState": "authenticated",
+          "redirectCount": 1,
+          "maxDuration": 15000
+        }
+      },
+      {
+        "id": "redirect-loop-detection",
+        "name": "Redirect Loop Detection Test",
+        "description": "Specifically test for redirect loop patterns",
+        "userRole": "admin",
+        "priority": "critical",
+        "estimatedDuration": 20000,
+        "steps": [
+          {
+            "id": "start-at-protected-route",
+            "action": "navigate",
+            "target": "/admin",
+            "description": "Start at protected admin route without auth",
+            "timeout": 5000
+          },
+          {
+            "id": "monitor-redirects-1",
+            "action": "wait",
+            "target": "body",
+            "description": "Monitor initial redirect behavior",
+            "timeout": 5000
+          },
+          {
+            "id": "check-current-url-1",
+            "action": "wait",
+            "target": "body",
+            "description": "Check where we end up after first redirect",
+            "timeout": 2000
+          },
+          {
+            "id": "wait-for-potential-loop",
+            "action": "wait",
+            "target": "body",
+            "description": "Wait to detect potential redirect loops",
+            "timeout": 10000
+          }
+        ],
+        "expectedOutcome": {
+          "finalUrl": "/login",
+          "maxDuration": 20000,
+          "redirectCount": 1
+        }
+      }
+    ]
+  }
+}

@@ -3,6 +3,11 @@
   import { authStore, authActions, isLoading, authError } from '$lib/stores/auth';
   import { goto } from '$app/navigation';
   import { Eye, EyeOff, Mail, Lock, AlertCircle, Loader2 } from 'lucide-svelte';
+  import { Button } from '$lib/components/ui/button';
+  import { Input } from '$lib/components/ui/input';
+  import { Label } from '$lib/components/ui/label';
+  import { Checkbox } from '$lib/components/ui/checkbox';
+  import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
 
   /**
    * Login Form Component
@@ -14,13 +19,14 @@
     error: { message: string };
   }>();
 
-  // Form state
-  let email = '';
-  let password = '';
-  let rememberMe = false;
-  let showPassword = false;
-  let formErrors: Record<string, string> = {};
-  let isSubmitting = false;
+  // Form state using Svelte 5 runes
+  let email = $state('');
+  let password = $state('');
+  let rememberMe = $state(false);
+  let showPassword = $state(false);
+  let formErrors = $state<Record<string, string>>({});
+  let isSubmitting = $state(false);
+  let hasSucceeded = $state(false); // Flag to prevent multiple submissions after success
 
   // Validation rules
   const validateEmail = (email: string): string => {
@@ -51,18 +57,20 @@
   // Handle form submission
   const handleSubmit = async (event: Event) => {
     event.preventDefault();
-    
-    if (!validateForm()) return;
-    
+
+    // Prevent multiple submissions
+    if (isSubmitting || hasSucceeded || !validateForm()) return;
+
     isSubmitting = true;
     authActions.setError(null);
-    
+
     try {
       const success = await authActions.login(email, password, rememberMe);
-      
+
       if (success) {
+        hasSucceeded = true; // Prevent further submissions
         dispatch('success', { user: { email } });
-        goto('/dashboard');
+        // Let the parent component handle navigation
       } else {
         // Error will be set in the auth store, we can read it from $authError
         const errorMessage = $authError || 'Login failed';
@@ -104,52 +112,40 @@
 </script>
 
 <div class="w-full max-w-md mx-auto">
-  <form on:submit={handleSubmit} class="space-y-6" novalidate>
+  <form onsubmit={handleSubmit} class="space-y-6" novalidate>
     <!-- Header -->
     <div class="text-center">
-      <h1 class="text-2xl font-semibold text-gray-900">Sign in to SvelteHR</h1>
-      <p class="mt-2 text-sm text-gray-600">Welcome back! Please sign in to your account.</p>
+      <h1 class="text-2xl font-semibold text-foreground">Sign in to SvelteHR</h1>
+      <p class="mt-2 text-sm text-muted-foreground">Welcome back! Please sign in to your account.</p>
     </div>
 
     <!-- Global Error Message -->
     {#if $authError}
-      <div class="rounded-md bg-red-50 p-4">
-        <div class="flex">
-          <div class="flex-shrink-0">
-            <AlertCircle class="h-5 w-5 text-red-400" />
-          </div>
-          <div class="ml-3">
-            <h3 class="text-sm font-medium text-red-800">Authentication Error</h3>
-            <div class="mt-2 text-sm text-red-700">
-              <p>{$authError}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Alert variant="destructive">
+        <AlertCircle class="h-4 w-4" />
+        <AlertTitle>Authentication Error</AlertTitle>
+        <AlertDescription>{$authError}</AlertDescription>
+      </Alert>
     {/if}
 
     <!-- Email Field -->
-    <div>
-      <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
-        Email address
-      </label>
+    <div class="space-y-2">
+      <Label for="email">Email address</Label>
       <div class="relative">
         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Mail class="h-5 w-5 text-gray-400" />
+          <Mail class="h-4 w-4 text-muted-foreground" />
         </div>
-        <input
+        <Input
           id="email"
           name="email"
           type="email"
           autocomplete="email"
           required
-          class="block w-full pl-10 pr-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors
-                 {formErrors.email ? 'border-red-300 text-red-900 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'}"
-          class:border-red-300={formErrors.email}
+          class="pl-10 {formErrors.email ? 'border-destructive' : ''}"
           placeholder="Enter your email"
           bind:value={email}
-          on:input={handleEmailChange}
-          on:blur={() => {
+          oninput={handleEmailChange}
+          onblur={() => {
             const error = validateEmail(email);
             if (error) formErrors.email = error;
           }}
@@ -157,31 +153,28 @@
         />
       </div>
       {#if formErrors.email}
-        <p class="mt-1 text-sm text-red-600">{formErrors.email}</p>
+        <p class="text-sm text-destructive">{formErrors.email}</p>
       {/if}
     </div>
 
     <!-- Password Field -->
-    <div>
-      <label for="password" class="block text-sm font-medium text-gray-700 mb-1">
-        Password
-      </label>
+    <div class="space-y-2">
+      <Label for="password">Password</Label>
       <div class="relative">
         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Lock class="h-5 w-5 text-gray-400" />
+          <Lock class="h-4 w-4 text-muted-foreground" />
         </div>
-        <input
+        <Input
           id="password"
           name="password"
           type={showPassword ? 'text' : 'password'}
           autocomplete="current-password"
           required
-          class="block w-full pl-10 pr-10 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors
-                 {formErrors.password ? 'border-red-300 text-red-900 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'}"
+          class="pl-10 pr-10 {formErrors.password ? 'border-destructive' : ''}"
           placeholder="Enter your password"
           bind:value={password}
-          on:input={handlePasswordChange}
-          on:blur={() => {
+          oninput={handlePasswordChange}
+          onblur={() => {
             const error = validatePassword(password);
             if (error) formErrors.password = error;
           }}
@@ -190,41 +183,39 @@
         <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
           <button
             type="button"
-            class="text-gray-400 hover:text-gray-600 focus:outline-none focus:text-gray-600 transition-colors"
-            on:click={togglePasswordVisibility}
+            class="text-muted-foreground hover:text-foreground focus:outline-none transition-colors"
+            onclick={togglePasswordVisibility}
             disabled={isSubmitting || $isLoading}
           >
             {#if showPassword}
-              <EyeOff class="h-5 w-5" />
+              <EyeOff class="h-4 w-4" />
             {:else}
-              <Eye class="h-5 w-5" />
+              <Eye class="h-4 w-4" />
             {/if}
           </button>
         </div>
       </div>
       {#if formErrors.password}
-        <p class="mt-1 text-sm text-red-600">{formErrors.password}</p>
+        <p class="text-sm text-destructive">{formErrors.password}</p>
       {/if}
     </div>
 
     <!-- Remember Me & Forgot Password -->
     <div class="flex items-center justify-between">
-      <div class="flex items-center">
-        <input
+      <div class="flex items-center space-x-2">
+        <Checkbox
           id="remember-me"
-          name="remember-me"
-          type="checkbox"
-          class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-          bind:checked={rememberMe}
+          checked={rememberMe}
+          onCheckedChange={(checked) => rememberMe = checked || false}
           disabled={isSubmitting || $isLoading}
         />
-        <label for="remember-me" class="ml-2 block text-sm text-gray-900">
+        <Label for="remember-me" class="text-sm font-normal">
           Remember me
-        </label>
+        </Label>
       </div>
 
       <div class="text-sm">
-        <a href="/auth/forgot-password" class="font-medium text-blue-600 hover:text-blue-500 focus:outline-none focus:underline transition-colors">
+        <a href="/auth/forgot-password" class="font-medium text-primary hover:text-primary/80 focus:outline-none focus:underline transition-colors">
           Forgot your password?
         </a>
       </div>
@@ -232,25 +223,25 @@
 
     <!-- Submit Button -->
     <div>
-      <button
+      <Button
         type="submit"
-        disabled={isSubmitting || $isLoading || Object.keys(formErrors).length > 0}
-        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        disabled={isSubmitting || $isLoading || hasSucceeded || Object.keys(formErrors).length > 0}
+        class="w-full"
       >
         {#if isSubmitting || $isLoading}
-          <Loader2 class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />
+          <Loader2 class="animate-spin mr-2 h-4 w-4" />
           Signing in...
         {:else}
           Sign in
         {/if}
-      </button>
+      </Button>
     </div>
 
     <!-- Sign Up Link -->
     <div class="text-center">
-      <p class="text-sm text-gray-600">
+      <p class="text-sm text-muted-foreground">
         Don't have an account?
-        <a href="/auth/register" class="font-medium text-blue-600 hover:text-blue-500 focus:outline-none focus:underline transition-colors">
+        <a href="/auth/register" class="font-medium text-primary hover:text-primary/80 focus:outline-none focus:underline transition-colors">
           Contact HR to get started
         </a>
       </p>
@@ -258,27 +249,3 @@
   </form>
 </div>
 
-<style>
-  /* Custom focus styles for better accessibility */
-  input:focus {
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-
-  input.border-red-300:focus {
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-  }
-
-  /* Loading animation for better UX */
-  @keyframes pulse {
-    0%, 100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.5;
-    }
-  }
-
-  .animate-pulse {
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-</style>

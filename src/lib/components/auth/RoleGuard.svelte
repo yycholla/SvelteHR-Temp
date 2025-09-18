@@ -74,10 +74,10 @@
 
 <style>
   .access-denied {
-    padding: 1rem;
+    padding: var(--cds-spacing-06);
     text-align: center;
-    border: 1px dashed #d1d5db;
-    border-radius: 0.375rem;
-    background-color: #f9fafb;
+    border: 1px dashed var(--cds-border-subtle);
+    border-radius: var(--cds-border-radius);
+    background-color: var(--cds-layer-01);
   }
 </style>

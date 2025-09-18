@@ -391,29 +391,30 @@ const createPermissionsService = () => {
     // =============================================================================
 
     isSuperAdmin(user: User): boolean {
-      return user.role_assignments?.some(ra => 
-        ra.role.name.toLowerCase() === 'admin' && ra.role.level >= 100
+      return user.role_assignments?.some(ra =>
+        (ra.userRoleByRoleId?.name.toLowerCase().includes('admin') || ra.userRoleByRoleId?.name === 'hr_admin') &&
+        ra.userRoleByRoleId?.level >= 100
       ) || false;
     },
 
     isHRManager(user: User): boolean {
-      return user.role_assignments?.some(ra => 
-        ra.role.name.toLowerCase() === 'hr_manager'
+      return user.role_assignments?.some(ra =>
+        ra.userRoleByRoleId?.name.toLowerCase() === 'hr_manager'
       ) || false;
     },
 
     isManager(user: User): boolean {
-      return user.role_assignments?.some(ra => 
-        ['manager', 'hr_manager', 'admin'].includes(ra.role.name.toLowerCase())
+      return user.role_assignments?.some(ra =>
+        ['manager', 'hr_manager', 'hr_admin', 'admin'].includes(ra.userRoleByRoleId?.name.toLowerCase() || '')
       ) || false;
     },
 
     getUserRoles(user: User): string[] {
-      return user.role_assignments?.map(ra => ra.role.name) || [];
+      return user.role_assignments?.map(ra => ra.userRoleByRoleId?.name || '') || [];
     },
 
     getHighestRoleLevel(user: User): number {
-      return Math.max(...(user.role_assignments?.map(ra => ra.role.level) || [0]));
+      return Math.max(...(user.role_assignments?.map(ra => ra.userRoleByRoleId?.level || 0) || [0]));
     },
 
     // =============================================================================

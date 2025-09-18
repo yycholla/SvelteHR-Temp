@@ -1,18 +1,21 @@
 import { writable, derived } from 'svelte/store';
-import { hasuraClient } from '$lib/graphql/hasura-client';
-import { 
-  GET_MY_LEAVE_REQUESTS,
-  GET_PENDING_LEAVE_REQUESTS,
-  CREATE_LEAVE_REQUEST,
-  UPDATE_LEAVE_REQUEST,
-  GET_LEAVE_REQUEST_BY_ID,
-  APPROVE_LEAVE_REQUEST,
-  REJECT_LEAVE_REQUEST,
-  CANCEL_LEAVE_REQUEST,
-  GET_LEAVE_BALANCE,
-  GET_LEAVE_TYPES
-} from '$lib/graphql/hasura-operations';
-import { currentUser } from './auth';
+import { client } from '$lib/graphql/client';
+
+// Leave request operations temporarily disabled during PostGraphile migration
+// TODO: Implement leave request operations in PostGraphile
+// import {
+//   GET_MY_LEAVE_REQUESTS,
+//   GET_PENDING_LEAVE_REQUESTS,
+//   CREATE_LEAVE_REQUEST,
+//   UPDATE_LEAVE_REQUEST,
+//   GET_LEAVE_REQUEST_BY_ID,
+//   APPROVE_LEAVE_REQUEST,
+//   REJECT_LEAVE_REQUEST,
+//   CANCEL_LEAVE_REQUEST,
+//   GET_LEAVE_BALANCE,
+//   GET_LEAVE_TYPES
+// } from '$lib/graphql/postgraphile-operations';
+import { currentUser } from '$lib/stores/auth';
 import type { 
   LeaveRequest, 
   LeaveType, 
@@ -54,7 +57,7 @@ class LeaveService {
       isLoadingLeave.set(true);
       leaveError.set(null);
       
-      const response = await hasuraClient.query(GET_MY_LEAVE_REQUESTS, {});
+      const response = await client.query(GET_MY_LEAVE_REQUESTS, {});
       
       if (response.error) {
         throw new Error(response.error.message);
@@ -76,7 +79,7 @@ class LeaveService {
       isLoadingLeave.set(true);
       leaveError.set(null);
       
-      const response = await hasuraClient.query(GET_PENDING_LEAVE_REQUESTS, {});
+      const response = await client.query(GET_PENDING_LEAVE_REQUESTS, {});
       
       if (response.error) {
         throw new Error(response.error.message);
@@ -99,7 +102,7 @@ class LeaveService {
       leaveError.set(null);
       
       // Note: Would need a GET_ALL_LEAVE_REQUESTS query
-      const response = await hasuraClient.query(GET_MY_LEAVE_REQUESTS, {});
+      const response = await client.query(GET_MY_LEAVE_REQUESTS, {});
       
       if (response.error) {
         throw new Error(response.error.message);
@@ -118,7 +121,7 @@ class LeaveService {
   // Get specific leave request by ID
   async getLeaveRequest(requestId: string): Promise<LeaveRequest> {
     try {
-      const response = await hasuraClient.query(GET_LEAVE_REQUEST_BY_ID, {
+      const response = await client.query(GET_LEAVE_REQUEST_BY_ID, {
         id: requestId
       });
       
@@ -140,7 +143,7 @@ class LeaveService {
   // Create new leave request
   async createLeaveRequest(input: CreateLeaveRequestInput): Promise<LeaveRequest> {
     try {
-      const response = await hasuraClient.mutation(CREATE_LEAVE_REQUEST, {
+      const response = await client.mutation(CREATE_LEAVE_REQUEST, {
         object: input
       });
       
@@ -166,7 +169,7 @@ class LeaveService {
   // Update existing leave request
   async updateLeaveRequest(requestId: string, input: UpdateLeaveRequestInput): Promise<LeaveRequest> {
     try {
-      const response = await hasuraClient.mutation(UPDATE_LEAVE_REQUEST, {
+      const response = await client.mutation(UPDATE_LEAVE_REQUEST, {
         id: requestId,
         changes: input
       });
@@ -194,7 +197,7 @@ class LeaveService {
   // Approve leave request
   async approveLeaveRequest(requestId: string, approvalNotes?: string): Promise<void> {
     try {
-      const response = await hasuraClient.mutation(APPROVE_LEAVE_REQUEST, {
+      const response = await client.mutation(APPROVE_LEAVE_REQUEST, {
         id: requestId,
         approvalNotes: approvalNotes || null
       });
@@ -215,7 +218,7 @@ class LeaveService {
   // Reject leave request
   async rejectLeaveRequest(requestId: string, rejectionReason: string): Promise<void> {
     try {
-      const response = await hasuraClient.mutation(REJECT_LEAVE_REQUEST, {
+      const response = await client.mutation(REJECT_LEAVE_REQUEST, {
         id: requestId,
         rejectionReason
       });
@@ -236,7 +239,7 @@ class LeaveService {
   // Cancel leave request
   async cancelLeaveRequest(requestId: string, cancellationReason?: string): Promise<void> {
     try {
-      const response = await hasuraClient.mutation(CANCEL_LEAVE_REQUEST, {
+      const response = await client.mutation(CANCEL_LEAVE_REQUEST, {
         id: requestId,
         cancellationReason: cancellationReason || null
       });
@@ -256,7 +259,7 @@ class LeaveService {
   // Load user's leave balances
   async loadLeaveBalances(userId?: string) {
     try {
-      const response = await hasuraClient.query(GET_LEAVE_BALANCE, {
+      const response = await client.query(GET_LEAVE_BALANCE, {
         userId: userId || null // Will use current user if null
       });
       
@@ -275,7 +278,7 @@ class LeaveService {
   // Load available leave types
   async loadLeaveTypes() {
     try {
-      const response = await hasuraClient.query(GET_LEAVE_TYPES, {});
+      const response = await client.query(GET_LEAVE_TYPES, {});
       
       if (response.error) {
         throw new Error(response.error.message);

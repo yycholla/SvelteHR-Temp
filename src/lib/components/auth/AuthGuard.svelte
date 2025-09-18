@@ -8,17 +8,39 @@
    * Use this at the app root level to ensure auth is initialized
    */
 
+  import { browser } from '$app/environment';
+  import { get } from 'svelte/store';
+  import { authStore } from '$lib/stores/auth';
+
   let initComplete = false;
 
   onMount(async () => {
+    console.log('AuthGuard: Starting authentication initialization');
+
+    // Check if auth is already initialized (has user or has been validated)
+    const currentState = get(authStore);
+    if (currentState.isAuthenticated && currentState.user) {
+      console.log('AuthGuard: Auth already initialized with valid user');
+      initComplete = true;
+      return;
+    }
+
     // Initialize authentication state by validating current session
     try {
-      await authActions.validateSession();
+      console.log('AuthGuard: Validating current session');
+      const isValid = await authActions.validateSession();
+
+      if (isValid) {
+        console.log('AuthGuard: Session validation successful');
+      } else {
+        console.log('AuthGuard: No valid session found');
+      }
     } catch (error) {
-      // Ignore initialization errors - user is simply not authenticated
-      console.log('Auth initialization: user not authenticated');
+      // Log the error but don't throw - user is simply not authenticated
+      console.log('AuthGuard: Session validation failed:', error.message);
+    } finally {
+      initComplete = true;
     }
-    initComplete = true;
   });
 </script>
 

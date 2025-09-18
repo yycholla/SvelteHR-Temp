@@ -1,18 +1,3 @@
 {
-  "mcpServers": {
-    "browsermcp": {
-      "command": "npx",
-      "args": [
-        "@browsermcp/mcp@latest"
-      ]
-    }
-  },
-  "browser-tools": {
-    "command": "npx",
-    "args": [
-      "bash",
-      "-c",
-      "cmd /c npx -y @agentdeskai/browser-tools-mcp@latest"
-    ]
-  }
+  "mcpServers": {}
 }

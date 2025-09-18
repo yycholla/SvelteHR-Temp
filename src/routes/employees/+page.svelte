@@ -2,7 +2,8 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
-  import EmployeeList from '$lib/components/employees/EmployeeList.svelte';
+  import ShadcnLayout from '$lib/components/layout/ShadcnLayout.svelte';
+  import EmployeeList from '$lib/components/employees/EmployeeListShadcn.svelte';
   import {
     currentUser,
     hasPermission,
@@ -13,7 +14,7 @@
     getRBACManager
   } from '$lib/stores/auth';
 
-  let authCheckComplete = false;
+  let authCheckComplete = $state(false);
 
   // Use onMount to avoid reactive loops
   onMount(() => {
@@ -54,16 +55,23 @@
 </script>
 
 <svelte:head>
-  <title>Employees - MountainHR</title>
+  <title>Employees - SvelteHR</title>
   <meta name="description" content="View and manage all employees in your organization" />
 </svelte:head>
 
-<div class="employees-page">
-  <EmployeeList />
-</div>
+{#if authCheckComplete}
+  <ShadcnLayout>
+    <div class="space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold tracking-tight">Employees</h1>
+          <p class="text-muted-foreground">
+            View and manage all employees in your organization
+          </p>
+        </div>
+      </div>
 
-<style lang="postcss">
-  .employees-page {
-    @apply w-full;
-  }
-</style>
+      <EmployeeList />
+    </div>
+  </ShadcnLayout>
+{/if}

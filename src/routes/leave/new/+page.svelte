@@ -1,18 +1,23 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { currentUser } from '$lib/services/auth';
-  import { leaveService, myLeaveBalance } from '$lib/services/leaveService';
-  import Button from '$lib/components/base/Button.svelte';
-  import Input from '$lib/components/base/Input.svelte';
-  import Select from '$lib/components/base/Select.svelte';
-  import Textarea from '$lib/components/base/Textarea.svelte';
-  import Card from '$lib/components/base/Card.svelte';
+  import { currentUser } from '$lib/stores/auth';
+  import ShadcnLayout from '$lib/components/layout/ShadcnLayout.svelte';
+  import { Button } from '$lib/components/ui/button';
+  import { Input } from '$lib/components/ui/input';
+  import { Label } from '$lib/components/ui/label';
+  import { Textarea } from '$lib/components/ui/textarea';
+  import { Checkbox } from '$lib/components/ui/checkbox';
+  import * as Card from '$lib/components/ui/card';
+  import * as Select from '$lib/components/ui/select';
+  import { Calendar, ArrowLeft, AlertCircle, Plane, Clock, CheckCircle2 } from 'lucide-svelte';
   import { validateForm } from '$lib/utils/validation';
   import type { LeaveType, SubmitLeaveRequestInput } from '$lib/types';
+  // Leave service temporarily disabled during PostGraphile migration
+  // import { leaveService, myLeaveBalance } from '$lib/services/leaveService';
 
-  // Form data
-  let formData = {
+  // Form data using Svelte 5 runes
+  let formData = $state({
     type: '' as LeaveType | '',
     startDate: '',
     endDate: '',
@@ -21,12 +26,12 @@
     halfDayPeriod: 'MORNING' as 'MORNING' | 'AFTERNOON',
     emergencyContact: '',
     attachments: [] as string[]
-  };
+  });
 
-  let loading = false;
-  let error: string | null = null;
-  let validationErrors: Record<string, string> = {};
-  let calculatedDays = 0;
+  let loading = $state(false);
+  let error = $state<string | null>(null);
+  let validationErrors = $state<Record<string, string>>({});
+  let calculatedDays = $state(0);
 
   // Leave type options
   const leaveTypeOptions = [
@@ -52,18 +57,26 @@
     reason: { required: true, minLength: 10 }
   };
 
-  // Computed values
-  $: {
+  // Computed values using Svelte 5 derived
+  const validationResult = $derived({
     const result = validateForm(formData, validationRules);
     validationErrors = result.errors;
-  }
+    return result;
+  });
 
-  $: isValid = Object.keys(validationErrors).length === 0 && formData.type && formData.startDate && formData.endDate;
+  const isValid = $derived(
+    Object.keys(validationErrors).length === 0 &&
+    formData.type &&
+    formData.startDate &&
+    formData.endDate
+  );
 
   // Calculate days when dates change
-  $: if (formData.startDate && formData.endDate) {
-    calculateLeaveDays();
-  }
+  $effect(() => {
+    if (formData.startDate && formData.endDate) {
+      calculateLeaveDays();
+    }
+  });
 
   function calculateLeaveDays() {
     if (!formData.startDate || !formData.endDate) {
@@ -91,10 +104,11 @@
   }
 
   function getAvailableBalance(leaveType: LeaveType): number {
-    if (!$myLeaveBalance) return 0;
-    
-    const balance = $myLeaveBalance.find(b => b.type === leaveType);
-    return balance?.remaining || 0;
+    // Temporarily disabled during PostGraphile migration
+    // if (!$myLeaveBalance) return 0;
+    // const balance = $myLeaveBalance.find(b => b.type === leaveType);
+    // return balance?.remaining || 0;
+    return 30; // Placeholder value
   }
 
   function getLeaveTypeDescription(leaveType: LeaveType): string {
@@ -128,10 +142,13 @@
         attachments: formData.attachments.length > 0 ? formData.attachments : undefined
       };
 
-      const leaveRequest = await leaveService.submitLeaveRequest(submitData);
-      
-      // Redirect to the new leave request details
-      goto(`/leave/requests/${leaveRequest.id}`);
+      // TODO: Re-enable with PostGraphile leave service
+      // const leaveRequest = await leaveService.submitLeaveRequest(submitData);
+      // goto(`/leave/requests/${leaveRequest.id}`);
+
+      // Temporary: simulate success
+      console.log('Leave request submitted:', submitData);
+      goto('/leave/requests');
     } catch (err: any) {
       error = err.message || 'Failed to submit leave request';
     } finally {
@@ -158,47 +175,53 @@
     error = null;
   }
 
+  function goBack() {
+    goto('/leave/requests');
+  }
+
   onMount(() => {
-    // Load leave balance
-    leaveService.loadMyLeaveBalance();
-    
+    // TODO: Re-enable with PostGraphile leave service
+    // leaveService.loadMyLeaveBalance();
+
     // Set minimum date to today
     const today = new Date().toISOString().split('T')[0];
     const startDateInput = document.querySelector('input[name="startDate"]') as HTMLInputElement;
     const endDateInput = document.querySelector('input[name="endDate"]') as HTMLInputElement;
-    
+
     if (startDateInput) startDateInput.min = today;
     if (endDateInput) endDateInput.min = today;
   });
 </script>
 
 <svelte:head>
-  <title>Request Leave - MountainHR</title>
+  <title>Request Leave - SvelteHR</title>
   <meta name="description" content="Submit a new leave request" />
 </svelte:head>
 
-<div class="new-leave-page">
-  <!-- Page Header -->
-  <div class="page-header">
-    <div class="page-header__content">
-      <h1 class="page-header__title">Request Leave</h1>
-      <p class="page-header__subtitle">
-        Submit a new leave request for approval.
-      </p>
+<ShadcnLayout>
+  <div class="space-y-6">
+    <!-- Header with back button -->
+    <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-4">
+        <Button variant="ghost" size="sm" onclick={goBack}>
+          <ArrowLeft class="h-4 w-4 mr-2" />
+          Back to Requests
+        </Button>
+        <div>
+          <h1 class="text-3xl font-bold tracking-tight flex items-center gap-3">
+            <Plane class="h-8 w-8" />
+            Request Leave
+          </h1>
+          <p class="text-muted-foreground">
+            Submit a new leave request for approval
+          </p>
+        </div>
+      </div>
     </div>
 
-    <div class="page-header__actions">
-      <Button
-        variant="tertiary"
-        leftIcon="arrow-left"
-        on:click={handleCancel}
-      >
-        Back to Requests
-      </Button>
-    </div>
-  </div>
-
-  <!-- Leave Balance Summary -->
+  <!-- Leave Balance Summary - Temporarily disabled during PostGraphile migration -->
+  <!-- TODO: Re-implement with PostGraphile leave balance queries -->
+  <!--
   {#if $myLeaveBalance && $myLeaveBalance.length > 0}
     <Card padding="md" class="balance-card">
       <div class="balance-header">
@@ -214,406 +237,255 @@
       </div>
     </Card>
   {/if}
+  -->
 
-  {#if error}
-    <Card padding="md" class="error-card">
-      <div class="error-message">
-        <div class="error-icon">
-          <i class="icon-alert-circle"></i>
-        </div>
-        <div class="error-content">
-          <h3 class="error-title">Error Submitting Request</h3>
-          <p class="error-description">{error}</p>
-        </div>
-      </div>
-    </Card>
-  {/if}
+    {#if error}
+      <Card.Root>
+        <Card.Content class="py-6">
+          <div class="flex items-start space-x-4">
+            <AlertCircle class="h-6 w-6 text-destructive flex-shrink-0 mt-0.5" />
+            <div class="flex-1">
+              <h3 class="text-lg font-semibold">Error Submitting Request</h3>
+              <p class="text-muted-foreground">{error}</p>
+            </div>
+          </div>
+        </Card.Content>
+      </Card.Root>
+    {/if}
 
-  <!-- Leave Request Form -->
-  <form on:submit|preventDefault={handleSubmit} class="leave-form">
-    <Card padding="lg">
-      <div class="form-section">
-        <h3 class="form-section__title">Leave Details</h3>
-        
-        <div class="form-grid">
-          <div class="form-field form-field--full-width">
-            <Select
-              label="Leave Type"
-              options={leaveTypeOptions}
-              bind:value={formData.type}
-              required
-              errorText={validationErrors.type}
-              placeholder="Select leave type"
-            />
-            
+    <!-- Leave Request Form -->
+    <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="space-y-6">
+      <Card.Root>
+        <Card.Header>
+          <Card.Title class="flex items-center gap-2">
+            <Calendar class="h-5 w-5" />
+            Leave Details
+          </Card.Title>
+        </Card.Header>
+        <Card.Content class="space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2">
+              <Label for="leave-type">Leave Type *</Label>
+              <Select.Root
+                selected={formData.type ? { value: formData.type, label: leaveTypeOptions.find(opt => opt.value === formData.type)?.label || formData.type } : undefined}
+                onSelectedChange={(v) => formData.type = v?.value || ''}
+              >
+                <Select.Trigger>
+                  <Select.Value placeholder="Select leave type" />
+                </Select.Trigger>
+                <Select.Content>
+                  {#each leaveTypeOptions as option}
+                    <Select.Item value={option.value}>{option.label}</Select.Item>
+                  {/each}
+                </Select.Content>
+              </Select.Root>
+              {#if validationErrors.type}
+                <p class="text-sm text-destructive mt-1">{validationErrors.type}</p>
+              {/if}
+
+              {#if formData.type}
+                <div class="mt-3 p-3 bg-muted rounded-md">
+                  <p class="text-sm text-muted-foreground">
+                    {getLeaveTypeDescription(formData.type)}
+                  </p>
+                  <p class="text-sm font-medium mt-1">
+                    Available: {getAvailableBalance(formData.type)} days
+                  </p>
+                </div>
+              {/if}
+            </div>
+
+            <div>
+              <Label for="start-date">Start Date *</Label>
+              <Input
+                id="start-date"
+                type="date"
+                name="startDate"
+                bind:value={formData.startDate}
+                required
+              />
+              {#if validationErrors.startDate}
+                <p class="text-sm text-destructive mt-1">{validationErrors.startDate}</p>
+              {/if}
+            </div>
+
+            <div>
+              <Label for="end-date">End Date *</Label>
+              <Input
+                id="end-date"
+                type="date"
+                name="endDate"
+                bind:value={formData.endDate}
+                required
+              />
+              {#if validationErrors.endDate}
+                <p class="text-sm text-destructive mt-1">{validationErrors.endDate}</p>
+              {/if}
+            </div>
+
+            <div class="md:col-span-2">
+              <div class="flex items-center space-x-2">
+                <Checkbox
+                  id="half-day"
+                  checked={formData.isHalfDay}
+                  onCheckedChange={(checked) => formData.isHalfDay = checked || false}
+                />
+                <Label for="half-day" class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                  Half Day Leave
+                </Label>
+              </div>
+            </div>
+
+            {#if formData.isHalfDay}
+              <div class="md:col-span-2">
+                <Label for="half-day-period">Half Day Period</Label>
+                <Select.Root
+                  selected={{ value: formData.halfDayPeriod, label: halfDayOptions.find(opt => opt.value === formData.halfDayPeriod)?.label || formData.halfDayPeriod }}
+                  onSelectedChange={(v) => formData.halfDayPeriod = v?.value as 'MORNING' | 'AFTERNOON' || 'MORNING'}
+                >
+                  <Select.Trigger>
+                    <Select.Value placeholder="Select period" />
+                  </Select.Trigger>
+                  <Select.Content>
+                    {#each halfDayOptions as option}
+                      <Select.Item value={option.value}>{option.label}</Select.Item>
+                    {/each}
+                  </Select.Content>
+                </Select.Root>
+              </div>
+            {/if}
+
+            <div class="md:col-span-2">
+              <Label for="reason">Reason *</Label>
+              <Textarea
+                id="reason"
+                bind:value={formData.reason}
+                placeholder="Please provide a detailed reason for your leave request..."
+                rows={4}
+                required
+              />
+              {#if validationErrors.reason}
+                <p class="text-sm text-destructive mt-1">{validationErrors.reason}</p>
+              {:else}
+                <p class="text-sm text-muted-foreground mt-1">Minimum 10 characters required</p>
+              {/if}
+            </div>
+
+            <div class="md:col-span-2">
+              <Label for="emergency-contact">Emergency Contact (Optional)</Label>
+              <Input
+                id="emergency-contact"
+                bind:value={formData.emergencyContact}
+                placeholder="Contact person during your absence"
+              />
+              <p class="text-sm text-muted-foreground mt-1">
+                Phone number or email of someone who can be reached in case of emergency
+              </p>
+            </div>
+          </div>
+        </Card.Content>
+      </Card.Root>
+
+      <!-- Leave Summary -->
+      <Card.Root>
+        <Card.Header>
+          <Card.Title class="flex items-center gap-2">
+            <CheckCircle2 class="h-5 w-5" />
+            Leave Summary
+          </Card.Title>
+        </Card.Header>
+        <Card.Content class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <Label class="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Leave Type
+              </Label>
+              <p class="text-sm">
+                {formData.type ? leaveTypeOptions.find(opt => opt.value === formData.type)?.label || formData.type : 'Not selected'}
+              </p>
+            </div>
+
+            <div class="space-y-2">
+              <Label class="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Duration
+              </Label>
+              <p class="text-sm">
+                {formData.startDate && formData.endDate
+                  ? `${formData.startDate} to ${formData.endDate}`
+                  : 'Dates not selected'}
+              </p>
+            </div>
+
+            <div class="space-y-2">
+              <Label class="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Total Days
+              </Label>
+              <p class="text-sm font-semibold text-primary">
+                {calculatedDays} day{calculatedDays !== 1 ? 's' : ''}
+              </p>
+            </div>
+
             {#if formData.type}
-              <div class="leave-type-info">
-                <div class="info-description">
-                  {getLeaveTypeDescription(formData.type)}
-                </div>
-                <div class="info-balance">
-                  Available: {getAvailableBalance(formData.type)} days
-                </div>
+              <div class="space-y-2">
+                <Label class="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Available Balance
+                </Label>
+                <p class="text-sm">
+                  {getAvailableBalance(formData.type)} days
+                </p>
               </div>
             {/if}
           </div>
 
-          <div class="form-field">
-            <Input
-              label="Start Date"
-              type="date"
-              name="startDate"
-              bind:value={formData.startDate}
-              required
-              errorText={validationErrors.startDate}
-            />
-          </div>
-
-          <div class="form-field">
-            <Input
-              label="End Date"
-              type="date"
-              name="endDate"
-              bind:value={formData.endDate}
-              required
-              errorText={validationErrors.endDate}
-            />
-          </div>
-
-          <div class="form-field form-field--checkbox">
-            <label class="checkbox-label">
-              <input
-                type="checkbox"
-                bind:checked={formData.isHalfDay}
-                class="checkbox-input"
-              />
-              <span class="checkbox-text">Half Day Leave</span>
-            </label>
-          </div>
-
-          {#if formData.isHalfDay}
-            <div class="form-field">
-              <Select
-                label="Half Day Period"
-                options={halfDayOptions}
-                bind:value={formData.halfDayPeriod}
-                required
-              />
-            </div>
-          {/if}
-
-          <div class="form-field form-field--full-width">
-            <Textarea
-              label="Reason"
-              bind:value={formData.reason}
-              required
-              errorText={validationErrors.reason}
-              placeholder="Please provide a detailed reason for your leave request..."
-              rows={4}
-              helperText="Minimum 10 characters required"
-            />
-          </div>
-
-          <div class="form-field form-field--full-width">
-            <Input
-              label="Emergency Contact (Optional)"
-              bind:value={formData.emergencyContact}
-              placeholder="Contact person during your absence"
-              helperText="Phone number or email of someone who can be reached in case of emergency"
-            />
-          </div>
-        </div>
-      </div>
-    </Card>
-
-    <!-- Leave Summary -->
-    <Card padding="lg" class="summary-card">
-      <div class="summary-section">
-        <h3 class="summary-title">Leave Summary</h3>
-        
-        <div class="summary-grid">
-          <div class="summary-item">
-            <span class="summary-label">Leave Type:</span>
-            <span class="summary-value">
-              {formData.type ? leaveTypeOptions.find(opt => opt.value === formData.type)?.label || formData.type : 'Not selected'}
-            </span>
-          </div>
-
-          <div class="summary-item">
-            <span class="summary-label">Duration:</span>
-            <span class="summary-value">
-              {formData.startDate && formData.endDate 
-                ? `${formData.startDate} to ${formData.endDate}` 
-                : 'Dates not selected'}
-            </span>
-          </div>
-
-          <div class="summary-item">
-            <span class="summary-label">Total Days:</span>
-            <span class="summary-value summary-value--highlight">
-              {calculatedDays} day{calculatedDays !== 1 ? 's' : ''}
-            </span>
-          </div>
-
           {#if formData.type && getAvailableBalance(formData.type) < calculatedDays}
-            <div class="summary-item summary-item--warning">
-              <span class="summary-label">⚠️ Balance Warning:</span>
-              <span class="summary-value">
-                Insufficient balance ({getAvailableBalance(formData.type)} days available)
-              </span>
+            <div class="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+              <div class="flex items-start space-x-2">
+                <AlertCircle class="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+                <div>
+                  <p class="text-sm font-medium text-destructive">Balance Warning</p>
+                  <p class="text-sm text-destructive/80">
+                    Insufficient balance ({getAvailableBalance(formData.type)} days available)
+                  </p>
+                </div>
+              </div>
             </div>
           {/if}
-        </div>
-      </div>
-    </Card>
+        </Card.Content>
+      </Card.Root>
 
-    <!-- Form Actions -->
-    <div class="form-actions">
-      <div class="form-actions__left">
+      <!-- Form Actions -->
+      <div class="flex justify-between items-center pt-6 border-t">
         <Button
           type="button"
           variant="ghost"
-          on:click={handleReset}
+          onclick={handleReset}
           disabled={loading}
         >
           Reset
         </Button>
+
+        <div class="flex items-center space-x-3">
+          <Button
+            type="button"
+            variant="outline"
+            onclick={handleCancel}
+            disabled={loading}
+          >
+            Cancel
+          </Button>
+
+          <Button
+            type="submit"
+            disabled={!isValid || loading}
+          >
+            {#if loading}
+              <Clock class="h-4 w-4 mr-2 animate-spin" />
+            {/if}
+            Submit Request
+          </Button>
+        </div>
       </div>
+    </form>
+  </div>
+</ShadcnLayout>
 
-      <div class="form-actions__right">
-        <Button
-          type="button"
-          variant="tertiary"
-          on:click={handleCancel}
-          disabled={loading}
-        >
-          Cancel
-        </Button>
-
-        <Button
-          type="submit"
-          variant="primary"
-          disabled={!isValid || loading}
-          {loading}
-        >
-          Submit Request
-        </Button>
-      </div>
-    </div>
-  </form>
-</div>
-
-<style lang="postcss">
-  .new-leave-page {
-    @apply space-y-6 max-w-4xl mx-auto;
-  }
-
-  /* Page Header */
-  .page-header {
-    @apply flex items-start justify-between;
-  }
-
-  .page-header__content {
-    @apply space-y-2;
-  }
-
-  .page-header__title {
-    @apply text-3xl font-bold text-gray-900;
-  }
-
-  .page-header__subtitle {
-    @apply text-lg text-gray-600;
-  }
-
-  .page-header__actions {
-    @apply flex items-center space-x-3;
-  }
-
-  /* Balance Card */
-  .balance-header {
-    @apply mb-4;
-  }
-
-  .balance-title {
-    @apply text-lg font-semibold text-gray-900;
-  }
-
-  .balance-grid {
-    @apply grid grid-cols-2 md:grid-cols-4 gap-4;
-  }
-
-  .balance-item {
-    @apply text-center p-3 bg-gray-50 rounded-lg;
-  }
-
-  .balance-type {
-    @apply text-sm font-medium text-gray-600 uppercase tracking-wide;
-  }
-
-  .balance-remaining {
-    @apply text-2xl font-bold text-gray-900 mt-1;
-  }
-
-  /* Error Card */
-  .error-card {
-    @apply border-l-4 border-red-500 bg-red-50;
-  }
-
-  .error-message {
-    @apply flex items-start space-x-3;
-  }
-
-  .error-icon {
-    @apply flex-shrink-0 text-red-500;
-  }
-
-  .error-icon i {
-    @apply w-5 h-5;
-  }
-
-  .error-content {
-    @apply flex-1;
-  }
-
-  .error-title {
-    @apply text-sm font-medium text-red-900 mb-1;
-  }
-
-  .error-description {
-    @apply text-sm text-red-700;
-  }
-
-  /* Form */
-  .leave-form {
-    @apply space-y-6;
-  }
-
-  .form-section {
-    @apply space-y-6;
-  }
-
-  .form-section__title {
-    @apply text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2;
-  }
-
-  .form-grid {
-    @apply grid grid-cols-1 md:grid-cols-2 gap-4;
-  }
-
-  .form-field {
-    @apply space-y-1;
-  }
-
-  .form-field--full-width {
-    @apply md:col-span-2;
-  }
-
-  .form-field--checkbox {
-    @apply flex items-center md:col-span-2;
-  }
-
-  /* Leave Type Info */
-  .leave-type-info {
-    @apply mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md;
-  }
-
-  .info-description {
-    @apply text-sm text-blue-800;
-  }
-
-  .info-balance {
-    @apply text-sm font-medium text-blue-900 mt-1;
-  }
-
-  /* Checkbox */
-  .checkbox-label {
-    @apply flex items-center space-x-2 cursor-pointer;
-  }
-
-  .checkbox-input {
-    @apply h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded;
-  }
-
-  .checkbox-text {
-    @apply text-sm font-medium text-gray-700;
-  }
-
-  /* Summary Card */
-  .summary-section {
-    @apply space-y-4;
-  }
-
-  .summary-title {
-    @apply text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2;
-  }
-
-  .summary-grid {
-    @apply space-y-3;
-  }
-
-  .summary-item {
-    @apply flex justify-between items-start;
-  }
-
-  .summary-item--warning {
-    @apply bg-yellow-50 border border-yellow-200 rounded-md p-3 -mx-3;
-  }
-
-  .summary-label {
-    @apply text-sm font-medium text-gray-600;
-  }
-
-  .summary-value {
-    @apply text-sm text-gray-900 text-right;
-  }
-
-  .summary-value--highlight {
-    @apply font-bold text-blue-600;
-  }
-
-  /* Form Actions */
-  .form-actions {
-    @apply flex justify-between items-center pt-6 border-t border-gray-200;
-  }
-
-  .form-actions__left {
-    @apply flex items-center space-x-3;
-  }
-
-  .form-actions__right {
-    @apply flex items-center space-x-3;
-  }
-
-  /* Responsive */
-  @media (max-width: 768px) {
-    .new-leave-page {
-      @apply max-w-none mx-4;
-    }
-
-    .page-header {
-      @apply flex-col items-start space-y-4;
-    }
-
-    .form-grid {
-      @apply grid-cols-1;
-    }
-
-    .form-field--full-width,
-    .form-field--checkbox {
-      @apply col-span-1;
-    }
-
-    .balance-grid {
-      @apply grid-cols-2;
-    }
-
-    .form-actions {
-      @apply flex-col space-y-4 items-stretch;
-    }
-
-    .form-actions__left,
-    .form-actions__right {
-      @apply justify-center;
-    }
-  }
-</style>

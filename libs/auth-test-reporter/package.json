@@ -1,0 +1,63 @@
+{
+  "name": "auth-test-reporter",
+  "version": "1.0.0",
+  "description": "Summary generation and dashboard creation for authentication test results",
+  "main": "dist/index.js",
+  "type": "module",
+  "bin": {
+    "auth-report": "./dist/cli/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "test:contract": "vitest tests/contract",
+    "test:unit": "vitest tests/unit",
+    "test:integration": "vitest tests/integration",
+    "lint": "eslint src tests --ext .ts",
+    "lint:fix": "eslint src tests --ext .ts --fix",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "keywords": [
+    "reporting",
+    "dashboard",
+    "html-generation",
+    "health-monitoring",
+    "authentication",
+    "visualization"
+  ],
+  "author": "SvelteHR Team",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^11.1.0",
+    "chalk": "^5.3.0",
+    "uuid": "^9.0.1",
+    "zod": "^3.22.4",
+    "winston": "^3.11.0",
+    "handlebars": "^4.7.8",
+    "express": "^4.18.2",
+    "chart.js": "^4.4.0",
+    "html-pdf": "^3.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/uuid": "^9.0.7",
+    "@types/handlebars": "^4.1.0",
+    "@types/express": "^4.17.21",
+    "@types/html-pdf": "^3.0.3",
+    "@typescript-eslint/eslint-plugin": "^6.12.0",
+    "@typescript-eslint/parser": "^6.12.0",
+    "eslint": "^8.54.0",
+    "typescript": "^5.3.2",
+    "vitest": "^1.0.4"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}

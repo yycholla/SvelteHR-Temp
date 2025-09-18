@@ -2,7 +2,6 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { isAuthenticated, authActions } from '$lib/stores/auth';
-  import DashboardLayout from '$lib/components/layout/DashboardLayout.svelte';
   import AuthGuard from '$lib/components/auth/AuthGuard.svelte';
   import { setContextClient } from '@urql/svelte';
   import { createUrqlClient } from '$lib/graphql/client';
@@ -14,27 +13,22 @@
 
   let { children } = $props();
 
-  // Track if we're on an auth page  
-  const isAuthPage = $derived(
-    $page.url.pathname === '/login' || 
-    $page.url.pathname === '/auth/register' ||
-    $page.url.pathname === '/auth/forgot-password'
-  );
-  const shouldShowLayout = $derived($isAuthenticated && !isAuthPage);
+  // Simplify layout logic to prevent reactive re-mounting issues
+  const isAuthPage = $derived($page.url.pathname === '/login');
+  const shouldShowLayout = $derived(!isAuthPage);
 
-  onMount(() => {
-    // Auto-refresh token every 14 minutes (before 15 minute expiry)
-    const tokenRefreshInterval = setInterval(() => {
-      if ($isAuthenticated) {
-        // Validate session instead of refreshing (PostGraphile uses long-lived JWTs)
-        authActions.validateSession();
-      }
-    }, 14 * 60 * 1000);
-
-    return () => {
-      clearInterval(tokenRefreshInterval);
-    };
+  // Debug layout changes
+  $effect(() => {
+    console.log(`🔵 Root layout reactive update:`, {
+      pathname: $page.url.pathname,
+      isAuthPage,
+      shouldShowLayout,
+      isAuthenticated: $isAuthenticated
+    });
   });
+
+  // Removed token refresh interval since PostGraphile uses long-lived JWTs
+  // The AuthGuard component handles initial session validation
 </script>
 
 <svelte:head>
@@ -46,18 +40,25 @@
 
 <!-- Wrap entire app with AuthGuard for auth initialization -->
 <AuthGuard>
-  {#if shouldShowLayout}
-    <DashboardLayout>
-      {@render children?.()}
-    </DashboardLayout>
-  {:else}
-    <main class="auth-layout">
-      {@render children?.()}
-    </main>
-  {/if}
+  <!-- Always render children - let individual routes handle their own layout -->
+  <main class="app-main">
+    {@render children?.()}
+  </main>
 </AuthGuard>
 
-<style>
+<style global>
+  :global(.app-main) {
+    min-height: 100vh;
+    background-color: var(--cds-background);
+  }
+
+  /* Ensure Carbon design system tokens are properly applied */
+  :global(body) {
+    background-color: var(--cds-background);
+    color: var(--cds-text-primary);
+  }
+
+  /* Global styles merged */
   :global(html) {
     height: 100%;
   }
@@ -65,7 +66,7 @@
   :global(body) {
     height: 100%;
     margin: 0;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    /* Let Carbon design system handle font family */
   }
 
   :global(#app) {

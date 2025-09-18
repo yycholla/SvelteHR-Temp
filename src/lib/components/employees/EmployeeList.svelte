@@ -238,21 +238,23 @@
     <div class="actions">
       <!-- View mode toggle -->
       <div class="view-toggle">
-        <button 
+        <button
           class="view-btn"
           class:active={viewMode === 'grid'}
           onclick={() => viewMode = 'grid'}
           title="Grid view"
+          aria-label="Switch to grid view"
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
             <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zM2.5 2a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zM1 10.5A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3z"/>
           </svg>
         </button>
-        <button 
+        <button
           class="view-btn"
           class:active={viewMode === 'list'}
           onclick={() => viewMode = 'list'}
           title="List view"
+          aria-label="Switch to list view"
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
             <path d="M1 2.5A.5.5 0 0 1 1.5 2h13a.5.5 0 0 1 0 1h-13a.5.5 0 0 1-.5-.5zm0 3A.5.5 0 0 1 1.5 5h13a.5.5 0 0 1 0 1h-13a.5.5 0 0 1-.5-.5zm0 3A.5.5 0 0 1 1.5 8h13a.5.5 0 0 1 0 1h-13a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 0 1h-13a.5.5 0 0 1-.5-.5z"/>
@@ -278,6 +280,7 @@
         onclick={refresh}
         disabled={loading}
         title="Refresh data"
+        aria-label="Refresh employee data"
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" class:spinning={loading}>
           <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/>
@@ -400,15 +403,19 @@
 
   .title {
     margin: 0;
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: #111827;
+    font-size: var(--cds-productive-heading-03-font-size);
+    font-weight: var(--cds-productive-heading-03-font-weight);
+    line-height: var(--cds-productive-heading-03-line-height);
+    letter-spacing: var(--cds-productive-heading-03-letter-spacing);
+    color: var(--cds-text-primary);
   }
 
   .count {
-    font-weight: 400;
-    color: #6b7280;
-    font-size: 1rem;
+    font-size: var(--cds-body-compact-01-font-size);
+    font-weight: var(--cds-body-compact-01-font-weight);
+    line-height: var(--cds-body-compact-01-line-height);
+    letter-spacing: var(--cds-body-compact-01-letter-spacing);
+    color: var(--cds-text-secondary);
   }
 
   .actions {
@@ -421,11 +428,11 @@
     display: flex;
     background-color: #f3f4f6;
     border-radius: 0.375rem;
-    padding: 0.125rem;
+    padding: var(--cds-spacing-02);
   }
 
   .view-btn {
-    padding: 0.375rem;
+    padding: var(--cds-spacing-04);
     background: none;
     border: none;
     border-radius: 0.25rem;
@@ -448,10 +455,12 @@
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.5rem 1rem;
+    padding: var(--cds-spacing-05) var(--cds-spacing-06);
     border-radius: 0.375rem;
-    font-size: 0.875rem;
-    font-weight: 500;
+    font-size: var(--cds-body-compact-01-font-size);
+    font-weight: var(--cds-body-compact-01-font-weight);
+    line-height: var(--cds-body-compact-01-line-height);
+    letter-spacing: var(--cds-body-compact-01-letter-spacing);
     border: 1px solid transparent;
     cursor: pointer;
     transition: all 0.15s;
@@ -486,7 +495,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 2rem;
+    padding: var(--cds-spacing-08);
     gap: 1rem;
     color: #6b7280;
   }
@@ -505,7 +514,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 3rem 1rem;
+    padding: var(--cds-spacing-10) var(--cds-spacing-06);
     text-align: center;
     color: #6b7280;
   }
@@ -517,9 +526,11 @@
 
   .empty-state h3 {
     margin: 0 0 0.5rem;
-    color: #111827;
-    font-size: 1.125rem;
-    font-weight: 600;
+    font-size: var(--cds-productive-heading-02-font-size);
+    font-weight: var(--cds-productive-heading-02-font-weight);
+    line-height: var(--cds-productive-heading-02-line-height);
+    letter-spacing: var(--cds-productive-heading-02-letter-spacing);
+    color: var(--cds-text-primary);
   }
 
   .empty-state p {
@@ -543,7 +554,7 @@
     background: white;
     border: 1px solid #e5e7eb;
     border-radius: 0.5rem;
-    padding: 1rem;
+    padding: var(--cds-spacing-06);
     transition: all 0.15s;
   }
 
@@ -578,29 +589,39 @@
 
   .employee-name {
     margin: 0 0 0.25rem;
-    font-size: 1rem;
-    font-weight: 600;
-    color: #111827;
+    font-size: var(--cds-body-compact-02-font-size);
+    font-weight: var(--cds-body-compact-02-font-weight);
+    line-height: var(--cds-body-compact-02-line-height);
+    letter-spacing: var(--cds-body-compact-02-letter-spacing);
+    color: var(--cds-text-primary);
   }
 
   .employee-email {
     margin: 0 0 0.25rem;
-    font-size: 0.875rem;
-    color: #6b7280;
+    font-size: var(--cds-body-compact-01-font-size);
+    font-weight: var(--cds-body-compact-01-font-weight);
+    line-height: var(--cds-body-compact-01-line-height);
+    letter-spacing: var(--cds-body-compact-01-letter-spacing);
+    color: var(--cds-text-secondary);
   }
 
   .employee-title, .employee-department {
     margin: 0 0 0.25rem;
-    font-size: 0.875rem;
-    color: #374151;
+    font-size: var(--cds-body-compact-01-font-size);
+    font-weight: var(--cds-body-compact-01-font-weight);
+    line-height: var(--cds-body-compact-01-line-height);
+    letter-spacing: var(--cds-body-compact-01-letter-spacing);
+    color: var(--cds-text-secondary);
   }
 
   .employee-status {
     display: inline-block;
-    padding: 0.125rem 0.5rem;
+    padding: var(--cds-spacing-02) var(--cds-spacing-05);
     border-radius: 0.25rem;
-    font-size: 0.75rem;
-    font-weight: 500;
+    font-size: var(--cds-helper-text-01-font-size);
+    font-weight: var(--cds-helper-text-01-font-weight);
+    line-height: var(--cds-helper-text-01-line-height);
+    letter-spacing: var(--cds-helper-text-01-letter-spacing);
     text-transform: capitalize;
   }
 
@@ -634,7 +655,7 @@
     justify-content: center;
     align-items: center;
     gap: 1rem;
-    padding: 1rem 0;
+    padding: var(--cds-spacing-06) 0;
   }
 
   .page-info {

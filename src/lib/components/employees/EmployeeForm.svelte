@@ -7,7 +7,8 @@
   import Select from '../base/Select.svelte';
   import Textarea from '../base/Textarea.svelte';
   import Card from '../base/Card.svelte';
-  import { validateForm, ValidationResult } from '$lib/utils/validation';
+  import { validateForm } from '$lib/utils/validation';
+  import type { ValidationResult } from '$lib/utils/validation';
   import type { User, CreateUserInput, UpdateUserInput } from '$lib/types';
 
   const dispatch = createEventDispatcher();

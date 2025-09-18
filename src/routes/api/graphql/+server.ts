@@ -1,20 +1,16 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { HASURA_GRAPHQL_URL, HASURA_ADMIN_SECRET } from '$env/static/private';
 
 /**
- * Hasura GraphQL Proxy for SvelteHR
- * 
- * Secure proxy that forwards GraphQL requests to Hasura with proper authentication
- * - Uses JWT tokens when available for user operations
- * - Falls back to admin secret for system operations
+ * PostGraphile GraphQL Proxy for SvelteHR
+ *
+ * Secure proxy that forwards GraphQL requests to PostGraphile with proper JWT authentication
+ * - Extracts JWT tokens from httpOnly cookies for security
+ * - Forwards requests with Authorization header to PostGraphile
  * - Implements security headers and validation
  */
 
-// Validate required environment variables
-if (!HASURA_GRAPHQL_URL || !HASURA_ADMIN_SECRET) {
-  throw new Error('Missing required Hasura configuration environment variables');
-}
+const POSTGRAPHILE_URL = 'http://localhost:4001/graphql';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
   try {
@@ -30,28 +26,21 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
       return json({ errors: [{ message: 'Query too large' }] }, { status: 413 });
     }
 
-    // Get auth token from multiple sources (header or cookie)
-    const authHeader = request.headers.get('authorization');
-    const tokenFromCookie = cookies.get('auth-token');
-    
-    // Prepare headers for Hasura request
+    // Get JWT token from httpOnly cookie (more secure than localStorage)
+    const token = cookies.get('jwt-token');
+
+    // Prepare headers for PostGraphile request
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'X-Request-ID': crypto.randomUUID(), // For request tracking
     };
 
-    // Use JWT token if available, otherwise admin secret
-    if (authHeader) {
-      headers['Authorization'] = authHeader;
-    } else if (tokenFromCookie) {
-      headers['Authorization'] = `Bearer ${tokenFromCookie}`;
-    } else {
-      // Fallback to admin secret for unauthenticated requests (anonymous role)
-      headers['X-Hasura-Admin-Secret'] = HASURA_ADMIN_SECRET;
+    // Add JWT token to Authorization header if available
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
-    // Forward GraphQL request to Hasura
-    const hasuraResponse = await fetch(HASURA_GRAPHQL_URL, {
+    // Forward GraphQL request to PostGraphile
+    const postgraphileResponse = await fetch(POSTGRAPHILE_URL, {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -61,11 +50,11 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
       })
     });
 
-    const result = await hasuraResponse.json();
+    const result = await postgraphileResponse.json();
 
-    // Return the result from Hasura
+    // Return the result from PostGraphile
     return json(result, {
-      status: hasuraResponse.status,
+      status: postgraphileResponse.status,
       headers: {
         'Content-Type': 'application/json',
       }
@@ -87,14 +76,14 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 export const GET: RequestHandler = async () => {
   return json({
-    message: 'SvelteHR GraphQL API - Hasura Proxy',
+    message: 'SvelteHR GraphQL API - PostGraphile Proxy',
     endpoint: '/api/graphql',
-    hasuraEndpoint: HASURA_GRAPHQL_URL,
-    description: 'This endpoint proxies GraphQL requests to Hasura with authentication',
+    postgraphileEndpoint: POSTGRAPHILE_URL,
+    description: 'This endpoint proxies GraphQL requests to PostGraphile with JWT authentication',
     examples: {
-      getAllUsers: 'query { users { id email display_name } }',
-      getDepartments: 'query { departments { id name description } }',
-      createUser: 'mutation($user: users_insert_input!) { insert_users_one(object: $user) { id email } }'
+      getAllUsers: 'query { allUsers { nodes { id email displayName } } }',
+      getUserById: 'query($id: UUID!) { userById(id: $id) { id email displayName } }',
+      createUser: 'mutation($input: CreateUserInput!) { createUser(input: $input) { user { id email } } }'
     }
   });
 };

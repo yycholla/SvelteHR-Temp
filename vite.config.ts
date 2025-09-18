@@ -2,6 +2,7 @@ import devtoolsJson from 'vite-plugin-devtools-json';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
+import { optimizeCss } from 'carbon-preprocess-svelte';
 
 // Custom plugin to disable compression completely
 const disableCompression = () => ({
@@ -34,7 +35,15 @@ const disableCompression = () => ({
 });
 
 export default defineConfig({
-	plugins: [sveltekit(), devtoolsJson(), disableCompression()],
+	plugins: [
+		sveltekit(),
+		devtoolsJson(),
+		disableCompression(),
+		optimizeCss({
+			verbose: true, // Enable size logging for development
+			preserveAllIBMFonts: true // Preserve all IBM Plex font face rules
+		})
+	],
 	
 	// Performance optimizations
 	build: {
@@ -43,42 +52,11 @@ export default defineConfig({
 		sourcemap: true,
 		rollupOptions: {
 			output: {
-				// Manual chunk splitting for optimal loading
+				// Manual chunk splitting for optimal loading (simplified for SvelteKit compatibility)
 				manualChunks: {
-					// Vendor chunk for stable dependencies
+					// Only include packages that are not treated as external by SvelteKit
 					vendor: [
-						'svelte',
-						'@sveltejs/kit',
-						'@urql/svelte',
-						'@urql/core',
-						'graphql'
-					],
-					
-					// Auth chunk - loaded early
-					auth: [
-						'src/lib/services/auth.ts',
-						'src/lib/services/userService.ts',
-						'src/lib/components/auth'
-					],
-					
-					// UI components chunk - frequently used
-					ui: [
-						'src/lib/components/base',
-						'src/lib/components/forms',
-						'src/lib/components/tables'
-					],
-					
-					// Admin features - loaded on demand  
-					admin: [
-						'src/lib/components/admin',
-						'src/lib/components/monitoring',
-						'src/routes/admin'
-					],
-					
-					// Analytics and metrics - loaded on demand
-					analytics: [
-						'src/lib/services/metricsService.ts',
-						'src/lib/utils/performance'
+						'svelte'
 					]
 				},
 				
@@ -137,12 +115,15 @@ export default defineConfig({
 	optimizeDeps: {
 		include: [
 			'@urql/svelte',
-			'@urql/core', 
+			'@urql/core',
 			'graphql',
 			'svelte/store',
 			'svelte/animate',
 			'svelte/easing',
-			'svelte/transition'
+			'svelte/transition',
+			'carbon-components-svelte',
+			'carbon-icons-svelte',
+			'@vincjo/datatables'
 		],
 		exclude: [
 			'@sveltejs/kit'
@@ -163,23 +144,25 @@ export default defineConfig({
 	
 	// Development server optimizations
 	server: {
+		port: 5174, // Fixed port to avoid confusion
+
 		proxy: {
 			// Note: GraphQL requests now handled by SvelteKit API route at /api/graphql
 			// No proxy needed as we have a custom GraphQL server implementation
 		},
-		
+
 		// Disable compression completely
 		middlewareMode: false,
 		compression: false,
-		
+
 		// Enable HTTP/2 for development
 		https: false, // Set to true with cert/key for HTTPS
-		
+
 		// Optimize HMR
 		hmr: {
 			overlay: true
 		},
-		
+
 		// Faster rebuilds
 		fs: {
 			allow: ['..']

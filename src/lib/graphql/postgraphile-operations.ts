@@ -13,9 +13,6 @@ export const AUTHENTICATE_USER = gql`
   mutation AuthenticateUser($email: String!, $password: String!) {
     authenticate(input: { email: $email, password: $password }) {
       jwtToken
-      query {
-        currentUserId
-      }
     }
   }
 `;
@@ -26,13 +23,15 @@ export const AUTHENTICATE_USER = gql`
 
 export const GET_CURRENT_USER = gql`
   query GetCurrentUser {
-    currentUserId
+    allUsers(first: 1) {
+      totalCount
+    }
   }
 `;
 
 export const GET_USER_BY_ID = gql`
   query GetUserById($id: UUID!) {
-    user(id: $id) {
+    userById(id: $id) {
       id
       email
       displayName
@@ -97,6 +96,21 @@ export const GET_DEPARTMENT_BY_ID = gql`
 // =============================================================================
 // BASIC MUTATION OPERATIONS
 // =============================================================================
+
+export const CREATE_USER = gql`
+  mutation CreateUser($input: CreateUserInput!) {
+    createUser(input: $input) {
+      user {
+        id
+        email
+        displayName
+        onboardingStatus
+        isActive
+        createdAt
+      }
+    }
+  }
+`;
 
 export const UPDATE_USER = gql`
   mutation UpdateUser($id: UUID!, $patch: UserPatch!) {
