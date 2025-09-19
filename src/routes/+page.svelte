@@ -27,7 +27,7 @@
 
       // Redirect to appropriate default page based on user role
       const isAdmin = permissionsService.isSuperAdmin($currentUser);
-      await goto(isAdmin ? '/admin' : '/dashboard', { replaceState: true });
+      await goto(isAdmin ? '/dashboard/admin' : '/dashboard', { replaceState: true });
     } else {
       // Not authenticated, redirect to login
       await goto('/login', { replaceState: true });

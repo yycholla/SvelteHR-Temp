@@ -40,7 +40,7 @@
         <Button
           variant="secondary"
           leftIcon="arrow-left"
-          on:click={() => goto('/admin')}
+          on:click={() => goto('/dashboard/admin')}
         >
           Back to Admin
         </Button>

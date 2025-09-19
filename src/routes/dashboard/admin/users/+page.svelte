@@ -1,516 +1,831 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { page } from '$app/stores';
-  import { goto } from '$app/navigation';
-  import CarbonDataTable, { type CarbonColumn } from '$lib/components/tables/CarbonDataTable.svelte';
-  import {
-    Button,
-    Modal,
-    InlineNotification,
-    Breadcrumb,
-    BreadcrumbItem,
-    ContentSwitcher,
-    Switch,
-    Grid,
-    Row,
-    Column
-  } from 'carbon-components-svelte';
-  import { Add, Edit, TrashCan, UserProfile, Email, Calendar } from 'carbon-icons-svelte';
+	import { onMount } from 'svelte';
+	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Switch } from '$lib/components/ui/switch';
+	import * as Card from '$lib/components/ui/card';
+	import * as Table from '$lib/components/ui/table';
+	import * as Select from '$lib/components/ui/select';
+	import * as Dialog from '$lib/components/ui/dialog';
+	import * as Tabs from '$lib/components/ui/tabs';
+	import * as Alert from '$lib/components/ui/alert';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
+	import {
+		Users,
+		Plus,
+		Search,
+		Filter,
+		MoreHorizontal,
+		Edit,
+		Trash2,
+		UserPlus,
+		Download,
+		RefreshCw,
+		ArrowLeft,
+		UserCheck,
+		UserX,
+		Mail,
+		Phone,
+		Calendar,
+		Building2,
+		Shield,
+		Eye,
+		Settings,
+		CheckCircle,
+		AlertTriangle
+	} from 'lucide-svelte';
+	import {
+		getAllUsers,
+		getUserById,
+		getUserRoles,
+		updateUserStatus,
+		deleteUser as deleteUserAPI,
+		formatUserRole,
+		getUserRoleLevel,
+		formatUserStatus,
+		getUserDepartment,
+		type User,
+		type UserRole
+	} from '$lib/graphql/user-operations.js';
 
-  // Sample user data - in a real app, this would come from GraphQL
-  let users = [
-    {
-      id: '1',
-      email: 'admin@mountainhr.com',
-      display_name: 'System Administrator',
-      role: 'admin',
-      role_level: 100,
-      is_active: true,
-      last_login: '2024-01-15T10:30:00Z',
-      created_at: '2023-06-01T09:00:00Z',
-      department: 'IT',
-      status: 'active'
-    },
-    {
-      id: '2',
-      email: 'hr.manager@mountainhr.com',
-      display_name: 'HR Manager',
-      role: 'hr_admin',
-      role_level: 80,
-      is_active: true,
-      last_login: '2024-01-14T15:45:00Z',
-      created_at: '2023-07-15T10:30:00Z',
-      department: 'Human Resources',
-      status: 'active'
-    },
-    {
-      id: '3',
-      email: 'john.doe@mountainhr.com',
-      display_name: 'John Doe',
-      role: 'manager',
-      role_level: 60,
-      is_active: true,
-      last_login: '2024-01-13T08:20:00Z',
-      created_at: '2023-08-01T11:00:00Z',
-      department: 'Engineering',
-      status: 'active'
-    },
-    {
-      id: '4',
-      email: 'jane.smith@mountainhr.com',
-      display_name: 'Jane Smith',
-      role: 'employee',
-      role_level: 20,
-      is_active: false,
-      last_login: '2023-12-20T16:30:00Z',
-      created_at: '2023-09-10T14:20:00Z',
-      department: 'Marketing',
-      status: 'inactive'
-    },
-    {
-      id: '5',
-      email: 'mike.johnson@mountainhr.com',
-      display_name: 'Mike Johnson',
-      role: 'employee',
-      role_level: 20,
-      is_active: true,
-      last_login: '2024-01-12T12:15:00Z',
-      created_at: '2023-10-05T13:45:00Z',
-      department: 'Sales',
-      status: 'active'
-    }
-  ];
+	// Real user data from GraphQL API
+	let users: User[] = $state([]);
+	let userRoles: UserRole[] = $state([]);
 
-  // Data table configuration
-  const columns: CarbonColumn[] = [
-    {
-      key: 'display_name',
-      label: 'Name',
-      sortable: true,
-      filterable: true,
-      type: 'text'
-    },
-    {
-      key: 'email',
-      label: 'Email',
-      sortable: true,
-      filterable: true,
-      type: 'text'
-    },
-    {
-      key: 'role',
-      label: 'Role',
-      sortable: true,
-      filterable: true,
-      type: 'tag',
-      tagVariant: (value) => {
-        switch (value) {
-          case 'admin': return 'red';
-          case 'hr_admin': return 'purple';
-          case 'manager': return 'blue';
-          case 'employee': return 'green';
-          default: return 'gray';
-        }
-      },
-      format: (value) => {
-        switch (value) {
-          case 'admin': return 'Administrator';
-          case 'hr_admin': return 'HR Admin';
-          case 'manager': return 'Manager';
-          case 'employee': return 'Employee';
-          default: return value;
-        }
-      }
-    },
-    {
-      key: 'department',
-      label: 'Department',
-      sortable: true,
-      filterable: true,
-      type: 'text'
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      sortable: true,
-      filterable: true,
-      type: 'tag',
-      tagVariant: (value) => value === 'active' ? 'green' : 'red',
-      format: (value) => value === 'active' ? 'Active' : 'Inactive'
-    },
-    {
-      key: 'last_login',
-      label: 'Last Login',
-      sortable: true,
-      type: 'date',
-      format: (value) => value ? new Date(value).toLocaleDateString() : 'Never'
-    },
-    {
-      key: 'created_at',
-      label: 'Created',
-      sortable: true,
-      type: 'date',
-      format: (value) => new Date(value).toLocaleDateString()
-    }
-  ];
+	// State management
+	let searchQuery = $state('');
+	let selectedRole = $state('all');
+	let selectedStatus = $state('all');
+	let selectedDepartment = $state('all');
+	let loading = $state(false);
+	let initialLoading = $state(true);
+	let showUserModal = $state(false);
+	let showDeleteConfirm = $state(false);
+	let selectedUser = $state<User | null>(null);
+	let userToDelete = $state<User | null>(null);
+	let notification = $state<{type: string, title: string, message: string} | null>(null);
 
-  // Table configuration
-  let selectedUsers: any[] = [];
-  let loading = false;
-  let showUserModal = false;
-  let editingUser: any = null;
-  let notification: { kind: 'success' | 'error' | 'warning' | 'info'; title: string; subtitle: string } | null = null;
+	// Load data on component mount
+	onMount(async () => {
+		console.log('🔄 onMount started');
 
-  // View state
-  let currentView = 'all';
+		// Ensure filter defaults are set
+		searchQuery = '';
+		selectedRole = 'all';
+		selectedStatus = 'all';
+		selectedDepartment = 'all';
+		console.log('🔧 Filter defaults set explicitly');
 
-  // Filtered users based on current view
-  $: filteredUsers = users.filter(user => {
-    switch (currentView) {
-      case 'active':
-        return user.is_active;
-      case 'inactive':
-        return !user.is_active;
-      case 'admins':
-        return user.role === 'admin' || user.role === 'hr_admin';
-      default:
-        return true;
-    }
-  });
+		await loadUsers();
+		await loadUserRoles();
+		initialLoading = false;
+		console.log('✅ onMount completed - initialLoading set to false');
+	});
 
-  // Batch actions configuration
-  const batchActions = [
-    { key: 'activate', label: 'Activate Users' },
-    { key: 'deactivate', label: 'Deactivate Users' },
-    { key: 'delete', label: 'Delete Users' }
-  ];
+	async function loadUsers() {
+		try {
+			console.log('📡 loadUsers started - setting loading = true');
+			loading = true;
+			const loadedUsers = await getAllUsers();
+			users = loadedUsers;
+			console.log('✅ Successfully loaded', users.length, 'users');
+		} catch (error) {
+			console.error('❌ Error loading users:', error);
+			showNotification('error', 'Error Loading Users', 'Failed to load user data from the server.');
+		} finally {
+			loading = false;
+			console.log('📡 loadUsers completed - setting loading = false');
+		}
+	}
 
-  // Toolbar actions configuration
-  const toolbarActions = [
-    { key: 'add', label: 'Add User', icon: Add },
-    { key: 'export', label: 'Export Users' }
-  ];
+	async function loadUserRoles() {
+		try {
+			userRoles = await getUserRoles();
+		} catch (error) {
+			console.error('Error loading user roles:', error);
+		}
+	}
 
-  // Event handlers
-  function handleRowClick(event: CustomEvent) {
-    const { row } = event.detail;
-    editingUser = row;
-    showUserModal = true;
-  }
+	// Statistics with real data
+	const userStats = $derived(() => ({
+		total: users.length,
+		active: users.filter(u => u.isActive).length,
+		inactive: users.filter(u => !u.isActive).length,
+		admins: users.filter(u => getUserRoleLevel(u) >= 80).length,
+		managers: users.filter(u => {
+			const level = getUserRoleLevel(u);
+			return level >= 60 && level < 80;
+		}).length,
+		employees: users.filter(u => getUserRoleLevel(u) < 60).length
+	}));
 
-  function handleSelectionChange(event: CustomEvent) {
-    selectedUsers = event.detail.selectedRows || [];
-  }
+	// Filtered users - temporarily simplified to isolate issue
+	let filteredUsers = $state([]);
 
-  function handleBatchAction(event: CustomEvent) {
-    const { action, selectedRows } = event.detail;
+	// Update filtered users whenever relevant data changes
+	$effect(() => {
+		console.log('🔍 EFFECT RUNNING - users.length:', users.length);
+		console.log('🔍 Filter values:', { searchQuery, selectedRole, selectedStatus, selectedDepartment });
+		console.log('🔍 Filter types:', {
+			searchQuery: typeof searchQuery,
+			selectedRole: typeof selectedRole,
+			selectedStatus: typeof selectedStatus,
+			selectedDepartment: typeof selectedDepartment
+		});
 
-    switch (action) {
-      case 'activate':
-        selectedRows.forEach((user: any) => {
-          const index = users.findIndex(u => u.id === user.id);
-          if (index !== -1) {
-            users[index].is_active = true;
-            users[index].status = 'active';
-          }
-        });
-        showNotification('success', 'Users Activated', `${selectedRows.length} user(s) have been activated.`);
-        break;
+		if (users.length === 0) {
+			console.log('❌ No users to filter');
+			filteredUsers = [];
+			return;
+		}
 
-      case 'deactivate':
-        selectedRows.forEach((user: any) => {
-          const index = users.findIndex(u => u.id === user.id);
-          if (index !== -1) {
-            users[index].is_active = false;
-            users[index].status = 'inactive';
-          }
-        });
-        showNotification('success', 'Users Deactivated', `${selectedRows.length} user(s) have been deactivated.`);
-        break;
+		try {
+			const filtered = users.filter(user => {
+				const displayName = user.displayName || user.email;
+				const userRole = formatUserRole(user);
+				const userDept = getUserDepartment(user);
 
-      case 'delete':
-        users = users.filter(user => !selectedRows.some((selected: any) => selected.id === user.id));
-        showNotification('success', 'Users Deleted', `${selectedRows.length} user(s) have been deleted.`);
-        break;
-    }
+				// Search filter
+				const matchesSearch = searchQuery === '' ||
+					displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+					user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+					userDept.toLowerCase().includes(searchQuery.toLowerCase()) ||
+					(user.jobTitle && user.jobTitle.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    selectedUsers = [];
-  }
+				// Role filter - ensure selectedRole is a string
+				const roleStr = typeof selectedRole === 'string' ? selectedRole : 'all';
+				const matchesRole = roleStr === 'all' || userRole.toLowerCase().includes(roleStr.toLowerCase());
 
-  function handleToolbarAction(event: CustomEvent) {
-    const { action } = event.detail;
+				// Status filter - ensure selectedStatus is a string
+				const statusStr = typeof selectedStatus === 'string' ? selectedStatus : 'all';
+				const matchesStatus = statusStr === 'all' ||
+					(statusStr === 'active' && user.isActive) ||
+					(statusStr === 'inactive' && !user.isActive);
 
-    switch (action) {
-      case 'add':
-        editingUser = null;
-        showUserModal = true;
-        break;
+				// Department filter - ensure selectedDepartment is a string
+				const deptStr = typeof selectedDepartment === 'string' ? selectedDepartment : 'all';
+				const matchesDepartment = deptStr === 'all' || userDept === deptStr;
 
-      case 'export':
-        // Export functionality
-        const csvContent = generateCSV(filteredUsers);
-        downloadCSV(csvContent, 'users.csv');
-        showNotification('success', 'Export Complete', 'User data has been exported successfully.');
-        break;
-    }
-  }
+				const passes = matchesSearch && matchesRole && matchesStatus && matchesDepartment;
 
-  function handleExport(event: CustomEvent) {
-    const { data } = event.detail;
-    const csvContent = generateCSV(data);
-    downloadCSV(csvContent, 'users.csv');
-  }
+				if (!passes) {
+					console.log(`❌ ${user.email} filtered out - Search:${matchesSearch} Role:${matchesRole} Status:${matchesStatus} Dept:${matchesDepartment}`);
+				}
 
-  function generateCSV(data: any[]): string {
-    const headers = columns.map(col => col.label).join(',');
-    const rows = data.map(user =>
-      columns.map(col => {
-        let value = user[col.key];
-        if (col.format) {
-          value = col.format(value, user);
-        }
-        return `"${value?.toString().replace(/"/g, '""') || ''}"`;
-      }).join(',')
-    ).join('\n');
+				return passes;
+			});
 
-    return `${headers}\n${rows}`;
-  }
+			console.log('✅ Filtered result:', filtered.length, 'users');
+			filteredUsers = filtered;
+		} catch (error) {
+			console.error('❌ Error in filtering:', error);
+			filteredUsers = [];
+		}
+	});
 
-  function downloadCSV(content: string, filename: string) {
-    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', filename);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
+	// Get unique departments for filter
+	const departments = $derived(() => {
+		if (users.length === 0) return [];
 
-  function showNotification(kind: 'success' | 'error' | 'warning' | 'info', title: string, subtitle: string) {
-    notification = { kind, title, subtitle };
-    setTimeout(() => {
-      notification = null;
-    }, 5000);
-  }
+		try {
+			const deptCounts = users.reduce((acc, user) => {
+				const dept = getUserDepartment(user);
+				if (dept && dept !== 'undefined') {
+					acc[dept] = (acc[dept] || 0) + 1;
+				}
+				return acc;
+			}, {} as Record<string, number>);
 
-  function closeUserModal() {
-    showUserModal = false;
-    editingUser = null;
-  }
+			const deptList = Object.keys(deptCounts).filter(d => d && d.length > 0).sort();
+			console.log('🏢 Departments found:', deptList);
+			return deptList;
+		} catch (error) {
+			console.error('❌ Error getting departments:', error);
+			return [];
+		}
+	});
 
-  // Mock save function
-  function saveUser() {
-    if (editingUser && editingUser.id) {
-      // Update existing user
-      const index = users.findIndex(u => u.id === editingUser.id);
-      if (index !== -1) {
-        users[index] = { ...editingUser };
-      }
-      showNotification('success', 'User Updated', 'User information has been updated successfully.');
-    } else {
-      // Add new user
-      const newUser = {
-        ...editingUser,
-        id: (users.length + 1).toString(),
-        created_at: new Date().toISOString(),
-        last_login: null,
-        status: editingUser.is_active ? 'active' : 'inactive'
-      };
-      users = [...users, newUser];
-      showNotification('success', 'User Created', 'New user has been created successfully.');
-    }
+	function getRoleVariant(role: string) {
+		switch (role) {
+			case 'admin': return 'destructive';
+			case 'hr_admin': return 'secondary';
+			case 'manager': return 'default';
+			case 'employee': return 'outline';
+			default: return 'outline';
+		}
+	}
 
-    closeUserModal();
-  }
+	function getRoleLabel(role: string) {
+		switch (role) {
+			case 'admin': return 'Administrator';
+			case 'hr_admin': return 'HR Admin';
+			case 'manager': return 'Manager';
+			case 'employee': return 'Employee';
+			default: return role;
+		}
+	}
+
+	function formatDate(dateString: string) {
+		return new Date(dateString).toLocaleDateString();
+	}
+
+	function formatLastLogin(dateString: string) {
+		if (!dateString) return 'Never';
+		const date = new Date(dateString);
+		const now = new Date();
+		const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+
+		if (diffInHours < 1) return 'Just now';
+		if (diffInHours < 24) return `${diffInHours}h ago`;
+		if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`;
+		return formatDate(dateString);
+	}
+
+	function viewUser(user: any) {
+		selectedUser = { ...user };
+		showUserModal = true;
+	}
+
+	function editUser(user: any) {
+		selectedUser = { ...user };
+		showUserModal = true;
+	}
+
+	function deleteUser(user: User) {
+		userToDelete = user;
+		showDeleteConfirm = true;
+	}
+
+	async function confirmDelete() {
+		if (userToDelete) {
+			try {
+				await deleteUserAPI(userToDelete.id);
+				users = users.filter(u => u.id !== userToDelete.id);
+				const displayName = userToDelete.displayName || userToDelete.fullName || userToDelete.email;
+				showNotification('success', 'User Deleted', `${displayName} has been deleted successfully.`);
+				userToDelete = null;
+			} catch (error) {
+				console.error('Error deleting user:', error);
+				showNotification('error', 'Delete Failed', 'Failed to delete user. Please try again.');
+			}
+		}
+		showDeleteConfirm = false;
+	}
+
+	async function toggleUserStatus(user: User) {
+		try {
+			const newStatus = !user.isActive;
+			await updateUserStatus(user.id, newStatus);
+
+			// Update local state
+			const index = users.findIndex(u => u.id === user.id);
+			if (index !== -1) {
+				users[index].isActive = newStatus;
+			}
+
+			const displayName = user.displayName || user.fullName || user.email;
+			showNotification('success', 'Status Updated',
+				`${displayName} has been ${newStatus ? 'activated' : 'deactivated'}.`);
+		} catch (error) {
+			console.error('Error updating user status:', error);
+			showNotification('error', 'Update Failed', 'Failed to update user status. Please try again.');
+		}
+	}
+
+	function showNotification(type: string, title: string, message: string) {
+		notification = { type, title, message };
+		setTimeout(() => {
+			notification = null;
+		}, 5000);
+	}
+
+	function exportUsers() {
+		const csvContent = generateCSV(filteredUsers);
+		downloadCSV(csvContent, 'users.csv');
+		showNotification('success', 'Export Complete', 'User data has been exported successfully.');
+	}
+
+	function generateCSV(data: any[]): string {
+		const headers = ['Name', 'Email', 'Role', 'Department', 'Status', 'Last Login', 'Created'].join(',');
+		const rows = data.map(user => [
+			`"${user.display_name}"`,
+			`"${user.email}"`,
+			`"${getRoleLabel(user.role)}"`,
+			`"${user.department}"`,
+			`"${user.is_active ? 'Active' : 'Inactive'}"`,
+			`"${formatLastLogin(user.last_login)}"`,
+			`"${formatDate(user.created_at)}"`
+		].join(',')).join('\n');
+
+		return `${headers}\n${rows}`;
+	}
+
+	function downloadCSV(content: string, filename: string) {
+		const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+		const link = document.createElement('a');
+		const url = URL.createObjectURL(blob);
+		link.setAttribute('href', url);
+		link.setAttribute('download', filename);
+		link.style.visibility = 'hidden';
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+	}
+
+	async function refreshUsers() {
+		await loadUsers();
+		showNotification('success', 'Data Refreshed', 'User data has been refreshed successfully.');
+	}
+
+	function resetFilters() {
+		searchQuery = '';
+		selectedRole = 'all';
+		selectedStatus = 'all';
+		selectedDepartment = 'all';
+		console.log('🔄 Filters reset to defaults');
+	}
+
+	function closeModal() {
+		showUserModal = false;
+		selectedUser = null;
+	}
 </script>
 
 <svelte:head>
-  <title>User Management - Admin Panel</title>
-  <meta name="description" content="Manage user accounts, roles, and permissions" />
+	<title>User Management - Admin Dashboard</title>
 </svelte:head>
 
-<div class="user-management-page">
-  <!-- Breadcrumb Navigation -->
-  <Breadcrumb noTrailingSlash>
-    <BreadcrumbItem href="/admin">Admin</BreadcrumbItem>
-    <BreadcrumbItem href="/admin/users" isCurrentPage>User Management</BreadcrumbItem>
-  </Breadcrumb>
+<div class="space-y-6">
+	<!-- Header -->
+	<div class="flex items-center justify-between">
+		<div>
+			<div class="flex items-center gap-3 mb-2">
+				<Button variant="ghost" size="sm" href="/dashboard/admin" class="p-2">
+					<ArrowLeft class="h-4 w-4" />
+				</Button>
+				<h1 class="text-3xl font-bold tracking-tight flex items-center gap-3">
+					<Users class="h-8 w-8" />
+					User Management
+				</h1>
+			</div>
+			<p class="text-muted-foreground">
+				Manage user accounts, roles, and permissions for your organization
+			</p>
+		</div>
+		<div class="flex items-center gap-3">
+			<Button variant="outline" onclick={refreshUsers} disabled={loading}>
+				{#if loading}
+					<RefreshCw class="h-4 w-4 mr-2 animate-spin" />
+				{:else}
+					<RefreshCw class="h-4 w-4 mr-2" />
+				{/if}
+				Refresh
+			</Button>
+			<Button variant="outline" onclick={exportUsers}>
+				<Download class="h-4 w-4 mr-2" />
+				Export
+			</Button>
+			<Button href="/dashboard/admin/users/new">
+				<Plus class="h-4 w-4 mr-2" />
+				Add User
+			</Button>
+		</div>
+	</div>
 
-  <!-- Page Header -->
-  <div class="page-header">
-    <div class="header-content">
-      <div class="header-text">
-        <h1 class="page-title">User Management</h1>
-        <p class="page-description">Manage user accounts, roles, and permissions for your organization.</p>
-      </div>
-      <div class="header-actions">
-        <Button kind="primary" icon={Add} on:click={() => handleToolbarAction({ detail: { action: 'add' } })}>
-          Add User
-        </Button>
-      </div>
-    </div>
-  </div>
+	<!-- Notification -->
+	{#if notification}
+		<Alert.Root class={notification.type === 'success' ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
+			{#if notification.type === 'success'}
+				<CheckCircle class="h-4 w-4 text-green-600" />
+			{:else}
+				<AlertTriangle class="h-4 w-4 text-red-600" />
+			{/if}
+			<Alert.Title class={notification.type === 'success' ? 'text-green-800' : 'text-red-800'}>
+				{notification.title}
+			</Alert.Title>
+			<Alert.Description class={notification.type === 'success' ? 'text-green-700' : 'text-red-700'}>
+				{notification.message}
+			</Alert.Description>
+		</Alert.Root>
+	{/if}
 
-  <!-- Notifications -->
-  {#if notification}
-    <InlineNotification
-      kind={notification.kind}
-      title={notification.title}
-      subtitle={notification.subtitle}
-      timeout={5000}
-      on:close={() => notification = null}
-    />
-  {/if}
+	<!-- Stats Cards -->
+	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+		<Card.Root>
+			<Card.Content class="p-6">
+				<div class="flex items-center justify-between">
+					<div>
+						<p class="text-sm font-medium text-muted-foreground">Total Users</p>
+						<p class="text-2xl font-bold">{userStats.total}</p>
+					</div>
+					<Users class="h-8 w-8 text-muted-foreground" />
+				</div>
+			</Card.Content>
+		</Card.Root>
+		<Card.Root>
+			<Card.Content class="p-6">
+				<div class="flex items-center justify-between">
+					<div>
+						<p class="text-sm font-medium text-muted-foreground">Active Users</p>
+						<p class="text-2xl font-bold text-green-600">{userStats.active}</p>
+					</div>
+					<UserCheck class="h-8 w-8 text-green-600" />
+				</div>
+			</Card.Content>
+		</Card.Root>
+		<Card.Root>
+			<Card.Content class="p-6">
+				<div class="flex items-center justify-between">
+					<div>
+						<p class="text-sm font-medium text-muted-foreground">Inactive Users</p>
+						<p class="text-2xl font-bold text-red-600">{userStats.inactive}</p>
+					</div>
+					<UserX class="h-8 w-8 text-red-600" />
+				</div>
+			</Card.Content>
+		</Card.Root>
+		<Card.Root>
+			<Card.Content class="p-6">
+				<div class="flex items-center justify-between">
+					<div>
+						<p class="text-sm font-medium text-muted-foreground">Administrators</p>
+						<p class="text-2xl font-bold text-blue-600">{userStats.admins}</p>
+					</div>
+					<Shield class="h-8 w-8 text-blue-600" />
+				</div>
+			</Card.Content>
+		</Card.Root>
+	</div>
 
-  <!-- View Switcher -->
-  <div class="view-controls">
-    <ContentSwitcher selectedIndex={currentView === 'all' ? 0 : currentView === 'active' ? 1 : currentView === 'inactive' ? 2 : 3}>
-      <Switch value="all" on:click={() => currentView = 'all'}>All Users ({users.length})</Switch>
-      <Switch value="active" on:click={() => currentView = 'active'}>Active ({users.filter(u => u.is_active).length})</Switch>
-      <Switch value="inactive" on:click={() => currentView = 'inactive'}>Inactive ({users.filter(u => !u.is_active).length})</Switch>
-      <Switch value="admins" on:click={() => currentView = 'admins'}>Admins ({users.filter(u => u.role === 'admin' || u.role === 'hr_admin').length})</Switch>
-    </ContentSwitcher>
-  </div>
+	<!-- Filters -->
+	<Card.Root>
+		<Card.Header>
+			<Card.Title class="flex items-center gap-2">
+				<Filter class="h-5 w-5" />
+				Filters & Search
+			</Card.Title>
+		</Card.Header>
+		<Card.Content>
+			<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+				<div class="space-y-2">
+					<Label>Search Users</Label>
+					<div class="relative">
+						<Search class="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+						<Input
+							placeholder="Search by name, email..."
+							bind:value={searchQuery}
+							class="pl-10"
+						/>
+					</div>
+				</div>
+				<div class="space-y-2">
+					<Label>Role</Label>
+					<select
+						bind:value={selectedRole}
+						class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+					>
+						<option value="all">All Roles</option>
+						<option value="admin">Administrator</option>
+						<option value="hr">HR</option>
+						<option value="manager">Manager</option>
+						<option value="employee">Employee</option>
+					</select>
+				</div>
+				<div class="space-y-2">
+					<Label>Status</Label>
+					<select
+						bind:value={selectedStatus}
+						class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+					>
+						<option value="all">All Status</option>
+						<option value="active">Active</option>
+						<option value="inactive">Inactive</option>
+					</select>
+				</div>
+				<div class="space-y-2">
+					<Label>Department</Label>
+					<select
+						bind:value={selectedDepartment}
+						class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+					>
+						<option value="all">All Departments</option>
+						{#each departments as dept}
+							<option value={dept}>{dept}</option>
+						{/each}
+					</select>
+				</div>
+			</div>
+		</Card.Content>
+	</Card.Root>
 
-  <!-- Data Table -->
-  <div class="table-container">
-    <CarbonDataTable
-      data={filteredUsers}
-      {columns}
-      {loading}
-      selectable={true}
-      searchable={true}
-      filterable={true}
-      paginated={true}
-      pageSize={10}
-      pageSizes={[10, 25, 50, 100]}
-      title="Users"
-      description="Manage user accounts and their information"
-      {batchActions}
-      {toolbarActions}
-      exportable={true}
-      bind:selectedRowIds={selectedUsers}
-      on:rowClick={handleRowClick}
-      on:selectionChange={handleSelectionChange}
-      on:batchAction={handleBatchAction}
-      on:toolbarAction={handleToolbarAction}
-      on:export={handleExport}
-    />
-  </div>
+	<!-- Users Table -->
+	<Card.Root>
+		<Card.Header>
+			<div class="flex items-center justify-between">
+				<Card.Title>Users ({filteredUsers.length})</Card.Title>
+				<Badge variant="outline">{filteredUsers.length} of {users.length} users</Badge>
+			</div>
+		</Card.Header>
+		<Card.Content>
+			<!-- DEBUG: Loading states -->
+			<div class="mb-4 p-2 bg-yellow-100 text-sm">
+				DEBUG: initialLoading = {initialLoading}, loading = {loading}, users.length = {users.length}
+			</div>
+
+			{#if initialLoading || loading}
+				<div class="space-y-4">
+					{#each Array(5) as _}
+						<div class="h-16 bg-muted rounded animate-pulse"></div>
+					{/each}
+				</div>
+			{:else}
+				<Table.Root>
+					<Table.Header>
+						<Table.Row>
+							<Table.Head>User</Table.Head>
+							<Table.Head>Role</Table.Head>
+							<Table.Head>Department</Table.Head>
+							<Table.Head>Status</Table.Head>
+							<Table.Head>Last Login</Table.Head>
+							<Table.Head>Created</Table.Head>
+							<Table.Head class="text-right">Actions</Table.Head>
+						</Table.Row>
+					</Table.Header>
+					<Table.Body>
+						{#each filteredUsers as user}
+							<Table.Row>
+								<Table.Cell>
+									<div class="flex items-center gap-3">
+										<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+											<span class="text-sm font-medium">
+												{(user.displayName || user.email).split(' ').map(n => n[0]).join('').slice(0, 2)}
+											</span>
+										</div>
+										<div>
+											<div class="font-medium">{user.displayName || user.email}</div>
+											<div class="text-sm text-muted-foreground">{user.email}</div>
+											{#if user.jobTitle}
+												<div class="text-xs text-muted-foreground">{user.jobTitle}</div>
+											{/if}
+										</div>
+									</div>
+								</Table.Cell>
+								<Table.Cell>
+									<Badge variant="outline">
+										{formatUserRole(user)}
+									</Badge>
+								</Table.Cell>
+								<Table.Cell>{getUserDepartment(user)}</Table.Cell>
+								<Table.Cell>
+									<div class="flex items-center gap-2">
+										<Badge variant={user.isActive ? 'default' : 'secondary'}>
+											{user.isActive ? 'Active' : 'Inactive'}
+										</Badge>
+									</div>
+								</Table.Cell>
+								<Table.Cell class="text-sm text-muted-foreground">
+									{user.lastLogin ? formatLastLogin(user.lastLogin) : 'Never'}
+								</Table.Cell>
+								<Table.Cell class="text-sm text-muted-foreground">
+									{formatDate(user.createdAt)}
+								</Table.Cell>
+								<Table.Cell class="text-right">
+									<DropdownMenu.Root>
+										<DropdownMenu.Trigger>
+											<Button variant="ghost" size="sm">
+												<MoreHorizontal class="h-4 w-4" />
+											</Button>
+										</DropdownMenu.Trigger>
+										<DropdownMenu.Content align="end">
+											<DropdownMenu.Item onclick={() => viewUser(user)}>
+												<Eye class="h-4 w-4 mr-2" />
+												View Details
+											</DropdownMenu.Item>
+											<DropdownMenu.Item onclick={() => editUser(user)}>
+												<Edit class="h-4 w-4 mr-2" />
+												Edit User
+											</DropdownMenu.Item>
+											<DropdownMenu.Item onclick={() => toggleUserStatus(user)}>
+												{#if user.isActive}
+													<UserX class="h-4 w-4 mr-2" />
+													Deactivate
+												{:else}
+													<UserCheck class="h-4 w-4 mr-2" />
+													Activate
+												{/if}
+											</DropdownMenu.Item>
+											<DropdownMenu.Separator />
+											<DropdownMenu.Item onclick={() => deleteUser(user)} class="text-red-600">
+												<Trash2 class="h-4 w-4 mr-2" />
+												Delete User
+											</DropdownMenu.Item>
+										</DropdownMenu.Content>
+									</DropdownMenu.Root>
+								</Table.Cell>
+							</Table.Row>
+						{/each}
+					</Table.Body>
+				</Table.Root>
+
+				{#if filteredUsers.length === 0}
+					<div class="text-center py-12">
+						<Users class="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+						<h3 class="text-lg font-medium">No users found</h3>
+						<p class="text-muted-foreground">Try adjusting your search criteria or filters.</p>
+					</div>
+				{/if}
+			{/if}
+		</Card.Content>
+	</Card.Root>
 </div>
 
-<!-- User Modal -->
-<Modal
-  bind:open={showUserModal}
-  modalHeading={editingUser?.id ? "Edit User" : "Add New User"}
-  primaryButtonText="Save"
-  secondaryButtonText="Cancel"
-  on:click:button--secondary={closeUserModal}
-  on:click:button--primary={saveUser}
-  on:close={closeUserModal}
->
-  {#if editingUser}
-    <Grid>
-      <Row>
-        <Column>
-          <div class="modal-form">
-            <!-- User form fields would go here -->
-            <p>User form implementation would go here with Carbon form components.</p>
-            <p>User ID: {editingUser.id || 'New User'}</p>
-            <p>Name: {editingUser.display_name || 'Not set'}</p>
-            <p>Email: {editingUser.email || 'Not set'}</p>
-          </div>
-        </Column>
-      </Row>
-    </Grid>
-  {/if}
-</Modal>
+<!-- User Details Modal -->
+<Dialog.Root bind:open={showUserModal}>
+	<Dialog.Content class="max-w-4xl">
+		<Dialog.Header>
+			<Dialog.Title>User Details</Dialog.Title>
+			<Dialog.Description>
+				View and manage user information and permissions.
+			</Dialog.Description>
+		</Dialog.Header>
+		{#if selectedUser}
+			<Tabs.Root value="details" class="space-y-6">
+				<Tabs.List>
+					<Tabs.Trigger value="details">Personal Details</Tabs.Trigger>
+					<Tabs.Trigger value="employment">Employment</Tabs.Trigger>
+					<Tabs.Trigger value="permissions">Permissions</Tabs.Trigger>
+					<Tabs.Trigger value="activity">Activity</Tabs.Trigger>
+				</Tabs.List>
 
-<style>
-  .user-management-page {
-    padding: var(--cds-spacing-06);
-    space-y: 1.5rem;
-  }
+				<Tabs.Content value="details">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+						<div class="space-y-4">
+							<div>
+								<Label class="text-sm font-medium">Full Name</Label>
+								<p class="text-sm text-muted-foreground">{selectedUser.display_name}</p>
+							</div>
+							<div>
+								<Label class="text-sm font-medium">Email Address</Label>
+								<p class="text-sm text-muted-foreground">{selectedUser.email}</p>
+							</div>
+							<div>
+								<Label class="text-sm font-medium">Phone Number</Label>
+								<p class="text-sm text-muted-foreground">{selectedUser.phone || 'Not provided'}</p>
+							</div>
+						</div>
+						<div class="space-y-4">
+							<div>
+								<Label class="text-sm font-medium">User ID</Label>
+								<p class="text-sm text-muted-foreground">{selectedUser.id}</p>
+							</div>
+							<div>
+								<Label class="text-sm font-medium">Account Status</Label>
+								<Badge variant={selectedUser.is_active ? 'default' : 'secondary'}>
+									{selectedUser.is_active ? 'Active' : 'Inactive'}
+								</Badge>
+							</div>
+							<div>
+								<Label class="text-sm font-medium">Last Login</Label>
+								<p class="text-sm text-muted-foreground">{formatLastLogin(selectedUser.last_login)}</p>
+							</div>
+						</div>
+					</div>
+				</Tabs.Content>
 
-  .page-header {
-    margin: var(--cds-spacing-07) 0;
-  }
+				<Tabs.Content value="employment">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+						<div class="space-y-4">
+							<div>
+								<Label class="text-sm font-medium">Position</Label>
+								<p class="text-sm text-muted-foreground">{selectedUser.position}</p>
+							</div>
+							<div>
+								<Label class="text-sm font-medium">Department</Label>
+								<p class="text-sm text-muted-foreground">{selectedUser.department}</p>
+							</div>
+							<div>
+								<Label class="text-sm font-medium">Manager</Label>
+								<p class="text-sm text-muted-foreground">{selectedUser.manager}</p>
+							</div>
+						</div>
+						<div class="space-y-4">
+							<div>
+								<Label class="text-sm font-medium">Start Date</Label>
+								<p class="text-sm text-muted-foreground">{formatDate(selectedUser.startDate)}</p>
+							</div>
+							<div>
+								<Label class="text-sm font-medium">Employment Type</Label>
+								<Badge variant="outline">{selectedUser.employmentType}</Badge>
+							</div>
+							<div>
+								<Label class="text-sm font-medium">Annual Salary</Label>
+								<p class="text-sm text-muted-foreground">${selectedUser.salary?.toLocaleString() || 'Not specified'}</p>
+							</div>
+						</div>
+					</div>
+				</Tabs.Content>
 
-  .header-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 1rem;
-  }
+				<Tabs.Content value="permissions">
+					<div class="space-y-6">
+						<div>
+							<Label class="text-sm font-medium">Current Role</Label>
+							<div class="flex items-center gap-2 mt-2">
+								<Badge variant={getRoleVariant(selectedUser.role)}>
+									{getRoleLabel(selectedUser.role)}
+								</Badge>
+								<span class="text-sm text-muted-foreground">
+									Level {selectedUser.role_level}
+								</span>
+							</div>
+						</div>
+						<div class="space-y-3">
+							<Label class="text-sm font-medium">System Permissions</Label>
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+								<div class="flex items-center justify-between">
+									<span class="text-sm">Can view all users</span>
+									<Badge variant={selectedUser.role_level >= 80 ? 'default' : 'secondary'}>
+										{selectedUser.role_level >= 80 ? 'Yes' : 'No'}
+									</Badge>
+								</div>
+								<div class="flex items-center justify-between">
+									<span class="text-sm">Can manage users</span>
+									<Badge variant={selectedUser.role_level >= 100 ? 'default' : 'secondary'}>
+										{selectedUser.role_level >= 100 ? 'Yes' : 'No'}
+									</Badge>
+								</div>
+								<div class="flex items-center justify-between">
+									<span class="text-sm">Can view reports</span>
+									<Badge variant={selectedUser.role_level >= 60 ? 'default' : 'secondary'}>
+										{selectedUser.role_level >= 60 ? 'Yes' : 'No'}
+									</Badge>
+								</div>
+								<div class="flex items-center justify-between">
+									<span class="text-sm">Can manage leave</span>
+									<Badge variant={selectedUser.role_level >= 60 ? 'default' : 'secondary'}>
+										{selectedUser.role_level >= 60 ? 'Yes' : 'No'}
+									</Badge>
+								</div>
+							</div>
+						</div>
+					</div>
+				</Tabs.Content>
 
-  .header-text {
-    flex: 1;
-  }
+				<Tabs.Content value="activity">
+					<div class="space-y-4">
+						<div>
+							<Label class="text-sm font-medium">Account Created</Label>
+							<p class="text-sm text-muted-foreground">{formatDate(selectedUser.created_at)}</p>
+						</div>
+						<div>
+							<Label class="text-sm font-medium">Last Login</Label>
+							<p class="text-sm text-muted-foreground">{formatLastLogin(selectedUser.last_login)}</p>
+						</div>
+						<div>
+							<Label class="text-sm font-medium">Recent Activity</Label>
+							<div class="text-sm text-muted-foreground">
+								<p>• Last updated profile information</p>
+								<p>• Submitted leave request</p>
+								<p>• Accessed employee directory</p>
+							</div>
+						</div>
+					</div>
+				</Tabs.Content>
+			</Tabs.Root>
+		{/if}
+		<Dialog.Footer>
+			<Button variant="outline" onclick={closeModal}>Close</Button>
+			<Button onclick={() => { closeModal(); editUser(selectedUser); }}>
+				<Edit class="h-4 w-4 mr-2" />
+				Edit User
+			</Button>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>
 
-  .page-title {
-    font-size: var(--cds-productive-heading-04-font-size);
-    font-weight: var(--cds-productive-heading-04-font-weight);
-    line-height: var(--cds-productive-heading-04-line-height);
-    letter-spacing: var(--cds-productive-heading-04-letter-spacing);
-    color: var(--cds-text-primary);
-    margin-bottom: 0.5rem;
-  }
-
-  .page-description {
-    font-size: var(--cds-body-compact-01-font-size);
-    font-weight: var(--cds-body-compact-01-font-weight);
-    line-height: var(--cds-body-compact-01-line-height);
-    letter-spacing: var(--cds-body-compact-01-letter-spacing);
-    color: var(--cds-text-secondary);
-  }
-
-  .header-actions {
-    flex-shrink: 0;
-  }
-
-  .view-controls {
-    margin: var(--cds-spacing-06) 0;
-  }
-
-  .table-container {
-    margin-top: 1.5rem;
-  }
-
-  .modal-form {
-    padding: var(--cds-spacing-06) 0;
-  }
-
-  /* Responsive adjustments */
-  @media (max-width: 768px) {
-    .header-content {
-      flex-direction: column;
-      align-items: stretch;
-    }
-
-    .header-actions {
-      align-self: stretch;
-    }
-
-    :global(.header-actions .bx--btn) {
-      width: 100%;
-    }
-  }
-
-  /* Notification spacing */
-  :global(.user-management-page .bx--inline-notification) {
-    margin-bottom: 1rem;
-  }
-
-  /* Content switcher styling */
-  :global(.view-controls .bx--content-switcher) {
-    width: 100%;
-  }
-
-  @media (max-width: 640px) {
-    :global(.view-controls .bx--content-switcher) {
-      flex-direction: column;
-    }
-  }
-</style>
+<!-- Delete Confirmation Dialog -->
+<Dialog.Root bind:open={showDeleteConfirm}>
+	<Dialog.Content>
+		<Dialog.Header>
+			<Dialog.Title>Delete User</Dialog.Title>
+			<Dialog.Description>
+				Are you sure you want to delete this user? This action cannot be undone.
+			</Dialog.Description>
+		</Dialog.Header>
+		{#if userToDelete}
+			<div class="py-4">
+				<p class="text-sm">
+					<strong>{userToDelete.display_name}</strong> ({userToDelete.email}) will be permanently deleted.
+				</p>
+			</div>
+		{/if}
+		<Dialog.Footer>
+			<Button variant="outline" onclick={() => showDeleteConfirm = false}>Cancel</Button>
+			<Button variant="destructive" onclick={confirmDelete}>
+				<Trash2 class="h-4 w-4 mr-2" />
+				Delete User
+			</Button>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>

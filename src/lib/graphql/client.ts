@@ -15,8 +15,10 @@ import { browser } from '$app/environment';
  */
 
 // PostGraphile GraphQL endpoint - use directly for better integration
-const POSTGRAPHILE_GRAPHQL_URL = 'http://localhost:4001/graphql';
-const POSTGRAPHILE_GRAPHQL_WS_URL = 'ws://localhost:4001/graphql'; // Direct to PostGraphile for WebSockets if needed
+const POSTGRAPHILE_GRAPHQL_URL = browser
+  ? 'http://localhost:4000/graphql'  // Direct to PostGraphile in browser
+  : 'http://localhost:4000/graphql'; // Direct to PostGraphile on server
+const POSTGRAPHILE_GRAPHQL_WS_URL = 'ws://localhost:4000/graphql'; // Direct to PostGraphile for WebSockets if needed
 
 // WebSocket subscriptions are disabled for PostGraphile (doesn't support WebSockets by default)
 

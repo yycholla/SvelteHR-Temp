@@ -1,0 +1,150 @@
+query GetAllUsers {
+  allUsers {
+    nodes {
+      id
+      email
+      displayName
+      fullName
+      isActive
+      createdAt
+      userRoleAssignmentsByUserId {
+        nodes {
+          userRoleByRoleId {
+            name
+            level
+            description
+          }
+          isActive
+          createdAt
+        }
+      }
+      departmentsByUserId {
+        nodes {
+          name
+          description
+          isActive
+        }
+      }
+    }
+  }
+}
+
+query GetUserById($id: UUID!) {
+  userById(id: $id) {
+    id
+    email
+    displayName
+    fullName
+    isActive
+    createdAt
+    userRoleAssignmentsByUserId {
+      nodes {
+        userRoleByRoleId {
+          name
+          level
+          description
+        }
+        isActive
+        createdAt
+        assignedBy
+        userByAssignedBy {
+          displayName
+          email
+        }
+      }
+    }
+    departmentsByUserId {
+      nodes {
+        name
+        description
+        isActive
+        createdAt
+      }
+    }
+    contactInfosByEmployeeId {
+      nodes {
+        phoneNumber
+        addressLine1
+        addressLine2
+        city
+        stateProvince
+        country
+        postalCode
+        emergencyContactName
+        emergencyContactPhone
+      }
+    }
+    auditLogsByUserId(first: 10, orderBy: [CREATED_AT_DESC]) {
+      nodes {
+        action
+        tableName
+        createdAt
+        ipAddress
+        userAgent
+        httpMethod
+      }
+    }
+  }
+}
+
+query GetUserRoles {
+  allUserRoles {
+    nodes {
+      id
+      name
+      description
+      level
+      isActive
+    }
+  }
+}
+
+mutation CreateUser($input: CreateUserInput!) {
+  createUser(input: $input) {
+    user {
+      id
+      email
+      displayName
+      fullName
+      isActive
+      createdAt
+    }
+  }
+}
+
+mutation UpdateUser($input: UpdateUserInput!) {
+  updateUser(input: $input) {
+    user {
+      id
+      email
+      displayName
+      fullName
+      isActive
+      createdAt
+    }
+  }
+}
+
+mutation DeleteUser($input: DeleteUserInput!) {
+  deleteUser(input: $input) {
+    deletedUserId
+  }
+}
+
+mutation AssignUserRole($input: CreateUserRoleAssignmentInput!) {
+  createUserRoleAssignment(input: $input) {
+    userRoleAssignment {
+      id
+      userId
+      roleId
+      isActive
+      createdAt
+    }
+  }
+}
+
+mutation RemoveUserRole($input: DeleteUserRoleAssignmentInput!) {
+  deleteUserRoleAssignment(input: $input) {
+    deletedUserRoleAssignmentId
+  }
+}

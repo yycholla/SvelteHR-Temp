@@ -37,7 +37,7 @@
         // Redirect directly to appropriate dashboard to avoid loop with root page
         const user = $currentUser;
         const isAdmin = user && permissionsService.isSuperAdmin(user);
-        await goto(isAdmin ? '/admin' : '/dashboard', { replaceState: true });
+        await goto(isAdmin ? '/dashboard/admin' : '/dashboard', { replaceState: true });
       }
     }
   });
@@ -89,8 +89,8 @@
       if (!redirectTo) {
         // Redirect based on user role - now that roles are loaded
         if (user && permissionsService.isSuperAdmin(user)) {
-          console.log('User is admin, redirecting to /admin');
-          redirectTo = '/admin';
+          console.log('User is admin, redirecting to /dashboard/admin');
+          redirectTo = '/dashboard/admin';
         } else {
           console.log('User is not admin, redirecting to /dashboard');
           redirectTo = '/dashboard';

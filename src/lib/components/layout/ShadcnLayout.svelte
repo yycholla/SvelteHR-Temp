@@ -70,7 +70,7 @@
     {
       id: 'admin',
       label: 'Administration',
-      href: '/admin',
+      href: '/dashboard/admin',
       icon: Settings,
       active: false
     }

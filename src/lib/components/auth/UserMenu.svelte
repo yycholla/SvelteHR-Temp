@@ -55,7 +55,7 @@
   };
 
   const handleAdminClick = () => {
-    goto('/admin');
+    goto('/dashboard/admin');
     isOpen = false;
   };
 

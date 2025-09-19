@@ -1,8 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
 	import { currentUser } from '$lib/stores/auth';
-	import ShadcnLayout from '$lib/components/layout/ShadcnLayout.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Progress } from '$lib/components/ui/progress';
@@ -58,7 +55,7 @@
 			subtitle: 'Manage user accounts, roles, and permissions',
 			value: '42',
 			icon: Users,
-			href: '/admin/users',
+			href: '/dashboard/admin/users',
 			color: 'blue' as const,
 			available: true,
 			trend: { direction: 'up' as const, percentage: 5, description: '+2 this week' }
@@ -69,7 +66,7 @@
 			subtitle: 'Monitor application performance and metrics',
 			value: 'Real-time',
 			icon: BarChart3,
-			href: '/admin/monitoring',
+			href: '/dashboard/admin/monitoring',
 			color: 'green' as const,
 			available: true,
 			trend: { direction: 'neutral' as const, description: 'All systems operational' }
@@ -80,7 +77,7 @@
 			subtitle: 'Configure system settings and parameters',
 			value: 'v2.1.0',
 			icon: Settings,
-			href: '/admin/settings',
+			href: '/dashboard/admin/settings',
 			color: 'purple' as const,
 			available: false
 		},
@@ -90,7 +87,7 @@
 			subtitle: 'View system audit logs and user activity',
 			value: '1,284',
 			icon: FileText,
-			href: '/admin/audit',
+			href: '/dashboard/admin/audit',
 			color: 'yellow' as const,
 			available: false,
 			trend: { direction: 'up' as const, percentage: 12, description: 'Events today' }
@@ -101,7 +98,7 @@
 			subtitle: 'Manage departments and system data',
 			value: '8',
 			icon: Database,
-			href: '/admin/data',
+			href: '/dashboard/admin/data',
 			color: 'teal' as const,
 			available: false,
 			trend: { direction: 'neutral' as const, description: 'Departments' }
@@ -112,7 +109,7 @@
 			subtitle: 'Security policies and access control',
 			value: '98%',
 			icon: Shield,
-			href: '/admin/security',
+			href: '/dashboard/admin/security',
 			color: 'red' as const,
 			available: false,
 			trend: { direction: 'up' as const, percentage: 2, description: 'Security score' }
@@ -160,19 +157,19 @@
 		{
 			label: 'Add User',
 			icon: UserCog,
-			href: '/admin/users/new',
+			href: '/dashboard/admin/users/new',
 			variant: 'default' as const
 		},
 		{
 			label: 'View Logs',
 			icon: FileText,
-			href: '/admin/audit',
+			href: '/dashboard/admin/audit',
 			variant: 'outline' as const
 		},
 		{
 			label: 'System Settings',
 			icon: Settings,
-			href: '/admin/settings',
+			href: '/dashboard/admin/settings',
 			variant: 'outline' as const
 		}
 	]);
@@ -252,8 +249,7 @@
 	<meta name="description" content="Administrative dashboard for SvelteHR system" />
 </svelte:head>
 
-<ShadcnLayout>
-	<div class="space-y-6">
+<div class="space-y-6">
 		<!-- Header -->
 		<div class="flex items-center justify-between">
 			<div>
@@ -365,7 +361,7 @@
 							<Clock class="h-5 w-5" />
 							Recent Activity
 						</Card.Title>
-						<Button variant="ghost" size="sm" href="/admin/audit">
+						<Button variant="ghost" size="sm" href="/dashboard/admin/audit">
 							View All
 							<ChevronRight class="h-4 w-4 ml-1" />
 						</Button>
@@ -437,7 +433,7 @@
 						<Users class="h-5 w-5" />
 						Recent Users
 					</Card.Title>
-					<Button href="/admin/users">
+					<Button href="/dashboard/admin/users">
 						<UserCog class="h-4 w-4 mr-2" />
 						Manage Users
 					</Button>
@@ -482,6 +478,5 @@
 				{/if}
 			</Card.Content>
 		</Card.Root>
-	</div>
-</ShadcnLayout>
+</div>
 

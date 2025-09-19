@@ -59,5 +59,14 @@ export default {
       }
     }
   },
-  plugins: []
+  plugins: [
+    require("tailwindcss-animate"),
+    function({ addBase }) {
+      addBase({
+        ':root': {
+          '--spacing': '0.25rem',
+        }
+      });
+    }
+  ]
 }
