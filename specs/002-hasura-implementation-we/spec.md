@@ -6,6 +6,7 @@
 **Input**: User description: "Hasura implementation. We are transitioning from geldb after multiple issues. It appears that hasura with postgres is our best alternative. If you think otherwise please say so. We will need to make sure our schema is effectively mirrored to hasura from gel and hasura is setup with linked properties and tables correctly and in best fashion. I believe that most things should be linked from the user table; however, please research and tell me if I am wrong. I am hoping that Hasura will take over for auth, api, and we can look into any other options hasura offers that would be useful. We will be using websockets from hasura eventually. You should use context7 and the web to familiarize yourself with these implementations in order to build this spec."
 
 ## Execution Flow (main)
+
 ```
 1. Parse user description from Input
    → Feature: Complete migration from GelDB to Hasura GraphQL Engine
@@ -28,18 +29,21 @@
 ---
 
 ## ⚡ Quick Guidelines
+
 - ✅ Focus on WHAT users need and WHY (enhanced API, better performance, real-time features)
 - ❌ Avoid HOW to implement (specific Hasura configurations covered in implementation phase)
 - 👥 Written for business stakeholders, not developers
 
 ---
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### Primary User Story
+
 **As an HR system user**, I need a reliable, high-performance GraphQL API that provides real-time data synchronization, robust authentication, and secure access to employee information, **so that** I can efficiently manage HR operations without system downtime or data inconsistencies that currently plague the GelDB implementation.
 
 ### Acceptance Scenarios
+
 1. **Given** I am an authenticated HR manager, **When** I query employee data through the new GraphQL API, **Then** I receive consistent, up-to-date information with sub-200ms response times
 2. **Given** I am a department manager, **When** employee data changes in my department, **Then** I receive real-time notifications through WebSocket connections without manual refresh
 3. **Given** I am an employee, **When** I access my personal information, **Then** I can only see data I'm authorized to view based on my role and department
@@ -47,18 +51,20 @@
 5. **Given** I am any system user, **When** I authenticate with the system, **Then** I receive a secure JWT token with appropriate role-based permissions that work across all system components
 
 ### Edge Cases
+
 - What happens when PostgreSQL connection is lost during active GraphQL operations?
 - How does the system handle concurrent updates to the same employee record?
 - What occurs when a user's role changes while they have an active session?
 - How are large dataset queries (500+ employees) handled without timeout?
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
+
 - **FR-001**: System MUST provide a GraphQL API endpoint that supports all CRUD operations for employee lifecycle management
 - **FR-002**: System MUST implement role-based access control through PostgreSQL Row-Level Security policies integrated with Hasura permissions
 - **FR-003**: System MUST support real-time data synchronization through GraphQL subscriptions for employee status changes, department updates, and notification delivery
-- **FR-004**: System MUST maintain data integrity during migration from GelDB with zero data loss and verification capabilities  
+- **FR-004**: System MUST maintain data integrity during migration from GelDB with zero data loss and verification capabilities
 - **FR-005**: System MUST implement JWT-based authentication with secure token refresh and session management
 - **FR-006**: System MUST provide WebSocket connections for live dashboard updates and real-time collaboration features
 - **FR-007**: System MUST support complex relational queries across departments, employees, roles, and compensation data through a single GraphQL interface
@@ -66,7 +72,8 @@
 - **FR-009**: System MUST maintain query performance under concurrent load with response times under 200ms for standard operations
 - **FR-010**: System MUST provide backward compatibility layer during migration period to ensure zero downtime transition
 
-### Key Entities *(include if feature involves data)*
+### Key Entities _(include if feature involves data)_
+
 - **User**: Central entity representing employees, managers, and administrators with authentication credentials and profile information
 - **Department**: Organizational units with hierarchical relationships, budget information, and manager assignments
 - **Role**: Permission-based access control definitions with levels and capability matrices
@@ -82,14 +89,16 @@
 ## Review & Acceptance Checklist
 
 ### Content Quality
+
 - [x] No implementation details (languages, frameworks, APIs)
 - [x] Focused on user value and business needs
 - [x] Written for non-technical stakeholders
 - [x] All mandatory sections completed
 
 ### Requirement Completeness
+
 - [x] No [NEEDS CLARIFICATION] markers remain
-- [x] Requirements are testable and unambiguous  
+- [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Scope is clearly bounded
 - [x] Dependencies and assumptions identified
@@ -111,6 +120,7 @@
 ## Technical Assessment & Recommendations
 
 ### Why Hasura is the Correct Choice
+
 Based on research and analysis of existing schema work, **Hasura with PostgreSQL is indeed the optimal solution** for the following reasons:
 
 1. **Proven Schema Migration**: Existing PostgreSQL schema demonstrates successful mapping from GelDB structure
@@ -120,7 +130,9 @@ Based on research and analysis of existing schema work, **Hasura with PostgreSQL
 5. **Scalability**: Battle-tested in enterprise environments with superior concurrent user handling
 
 ### User-Centric Data Model Validation
+
 Your instinct about **linking from the user table is correct**. The existing schema confirms this approach:
+
 - Users table serves as the central hub for all employee relationships
 - Department connections flow through job_information linking to users
 - Contact, personal, and compensation data all reference users as the primary key
@@ -129,12 +141,14 @@ Your instinct about **linking from the user table is correct**. The existing sch
 This user-centric design provides optimal query performance and maintains data consistency across all HR operations.
 
 ### Business Value Delivered
+
 - **Immediate**: Elimination of current GelDB reliability issues and performance bottlenecks
 - **Short-term**: Enhanced developer productivity through GraphQL tooling and type safety
 - **Long-term**: Foundation for advanced HR analytics, mobile applications, and third-party integrations
 - **Strategic**: Modern API architecture supporting future business growth and system scaling
 
 ### Migration Success Criteria
+
 - Zero data loss during transition with full verification
 - No system downtime during business hours
 - All existing functionality preserved with improved performance

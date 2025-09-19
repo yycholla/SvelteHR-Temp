@@ -1,9 +1,11 @@
 # PostGraphile Migration Quickstart Guide
 
 ## Overview
+
 This quickstart guide demonstrates the complete PostGraphile setup for the HR system, replacing Hasura with a PostgreSQL-native GraphQL solution. Follow these steps to validate the migration implementation.
 
 ## Prerequisites
+
 - PostgreSQL 15+ running locally or in Docker
 - Node.js 18+ with npm
 - Redis 7.2+ for caching
@@ -12,6 +14,7 @@ This quickstart guide demonstrates the complete PostGraphile setup for the HR sy
 ## Phase 1: Database Setup
 
 ### 1. Create PostgreSQL Schemas
+
 ```sql
 -- Connect to PostgreSQL as superuser
 psql -U postgres -h localhost
@@ -37,6 +40,7 @@ GRANT ALL ON ALL FUNCTIONS IN SCHEMA hr_public TO postgraphile_app;
 ```
 
 ### 2. Create PostgreSQL Roles
+
 ```sql
 -- Create role hierarchy
 CREATE ROLE hr_guest;
@@ -60,6 +64,7 @@ GRANT hr_super_admin TO postgraphile_app;
 ```
 
 ### 3. Create Core Tables
+
 ```sql
 -- Departments table
 CREATE TABLE hr_public.departments (
@@ -88,8 +93,8 @@ CREATE TABLE hr_public.employees (
 );
 
 -- Add foreign key for department manager
-ALTER TABLE hr_public.departments 
-ADD CONSTRAINT fk_departments_manager 
+ALTER TABLE hr_public.departments
+ADD CONSTRAINT fk_departments_manager
 FOREIGN KEY (manager_id) REFERENCES hr_public.employees(id);
 
 -- Employee accounts (private)
@@ -131,6 +136,7 @@ CREATE TABLE hr_private.employee_compensation (
 ```
 
 ### 4. Create JWT Token Type
+
 ```sql
 -- JWT token composite type
 CREATE TYPE hr_public.jwt_token AS (
@@ -145,6 +151,7 @@ CREATE TYPE hr_public.jwt_token AS (
 ```
 
 ### 5. Create Authentication Function
+
 ```sql
 -- Install pgcrypto extension for password hashing
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
@@ -170,20 +177,20 @@ BEGIN
     SELECT e.* INTO employee
     FROM hr_public.employees e
     WHERE e.id = account.employee_id;
-    
+
     -- Get department
     SELECT d.* INTO dept
     FROM hr_public.departments d
     WHERE d.id = employee.department_id;
-    
+
     -- Update last login
-    UPDATE hr_private.employee_account 
+    UPDATE hr_private.employee_account
     SET last_login = CURRENT_TIMESTAMP, failed_attempts = 0
     WHERE id = account.id;
-    
+
     -- Return JWT token data
     RETURN (
-      CASE 
+      CASE
         WHEN employee.role_level >= 100 THEN 'hr_super_admin'
         WHEN employee.role_level >= 80 THEN 'hr_admin'
         WHEN employee.role_level >= 60 THEN 'hr_manager'
@@ -199,10 +206,10 @@ BEGIN
     )::hr_public.jwt_token;
   ELSE
     -- Increment failed attempts
-    UPDATE hr_private.employee_account 
+    UPDATE hr_private.employee_account
     SET failed_attempts = failed_attempts + 1
     WHERE email = authenticate.email;
-    
+
     RETURN NULL;
   END IF;
 END;
@@ -210,6 +217,7 @@ $$ LANGUAGE plpgsql STRICT SECURITY DEFINER;
 ```
 
 ### 6. Enable Row-Level Security
+
 ```sql
 -- Enable RLS on all public tables
 ALTER TABLE hr_public.employees ENABLE ROW LEVEL SECURITY;
@@ -248,9 +256,10 @@ CREATE POLICY compensation_self_view ON hr_private.employee_compensation
 ```
 
 ### 7. Create Sample Data
+
 ```sql
 -- Insert sample departments
-INSERT INTO hr_public.departments (name, description) VALUES 
+INSERT INTO hr_public.departments (name, description) VALUES
 ('Technology', 'Engineering and IT departments'),
 ('Human Resources', 'HR operations and employee relations'),
 ('Finance', 'Financial planning and accounting'),
@@ -297,6 +306,7 @@ INSERT INTO hr_public.time_off_requests (employee_id, request_type, start_date, 
 ## Phase 2: PostGraphile Server Setup
 
 ### 1. Initialize Node.js Project
+
 ```bash
 mkdir svelteHR-postgraphile
 cd svelteHR-postgraphile
@@ -308,6 +318,7 @@ npm install -D @types/express @types/cors nodemon
 ```
 
 ### 2. Create Environment Configuration
+
 ```bash
 # Create .env file
 cat > .env << EOF
@@ -332,6 +343,7 @@ EOF
 ```
 
 ### 3. Create PostGraphile Server
+
 ```typescript
 // src/server.ts
 import express from 'express';
@@ -343,135 +355,136 @@ import winston from 'winston';
 dotenv.config();
 
 const logger = winston.createLogger({
-  level: 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.json()
-  ),
-  transports: [
-    new winston.transports.Console(),
-    new winston.transports.File({ filename: 'error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'combined.log' })
-  ]
+	level: 'info',
+	format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
+	transports: [
+		new winston.transports.Console(),
+		new winston.transports.File({ filename: 'error.log', level: 'error' }),
+		new winston.transports.File({ filename: 'combined.log' })
+	]
 });
 
 const app = express();
 
 // CORS configuration
-app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000'],
-  credentials: true
-}));
+app.use(
+	cors({
+		origin: ['http://localhost:5173', 'http://localhost:3000'],
+		credentials: true
+	})
+);
 
 // Request logging middleware
 app.use((req, res, next) => {
-  logger.info('HTTP Request', {
-    method: req.method,
-    url: req.url,
-    userAgent: req.get('User-Agent'),
-    ip: req.ip
-  });
-  next();
+	logger.info('HTTP Request', {
+		method: req.method,
+		url: req.url,
+		userAgent: req.get('User-Agent'),
+		ip: req.ip
+	});
+	next();
 });
 
 // PostGraphile middleware
-app.use('/api/graphql', postgraphile(
-  process.env.DATABASE_URL!,
-  ['hr_public', 'hr_private'],
-  {
-    // JWT Configuration
-    jwtSecret: process.env.JWT_SECRET,
-    jwtTokenIdentifier: 'hr_public.jwt_token',
-    defaultRole: 'hr_guest',
-    
-    // Security
-    ignoreRBAC: false,
-    legacyRelations: 'omit',
-    
-    // Performance
-    dynamicJson: true,
-    readOnlyConnection: process.env.READ_ONLY_DATABASE_URL,
-    retryOnInitFail: true,
-    
-    // Development vs Production
-    watchPg: process.env.NODE_ENV === 'development',
-    graphiql: process.env.NODE_ENV === 'development',
-    enhanceGraphiql: process.env.NODE_ENV === 'development',
-    showErrorStack: process.env.NODE_ENV === 'development',
-    extendedErrors: process.env.NODE_ENV === 'development' ? ['hint', 'detail', 'errcode'] : ['errcode'],
-    
-    // Schema customization
-    enableQueryBatching: true,
-    disableQueryLog: process.env.NODE_ENV === 'production',
-    
-    // Custom settings for RLS
-    pgSettings: (req) => {
-      const settings: Record<string, string> = {};
-      
-      // Extract JWT claims from authorization header
-      const authHeader = req.get('Authorization');
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        try {
-          const token = authHeader.substring(7);
-          // JWT verification would happen here in production
-          // For demo, we'll simulate the claims
-          settings['jwt.claims.employee_id'] = '1';
-          settings['jwt.claims.department_id'] = '5';
-          settings['jwt.claims.role_level'] = '60';
-        } catch (error) {
-          logger.error('JWT parsing error', error);
-        }
-      }
-      
-      return settings;
-    },
-    
-    // Error handling
-    handleErrors: (errors) => {
-      logger.error('GraphQL Errors', { errors });
-      return errors;
-    }
-  }
-));
+app.use(
+	'/api/graphql',
+	postgraphile(process.env.DATABASE_URL!, ['hr_public', 'hr_private'], {
+		// JWT Configuration
+		jwtSecret: process.env.JWT_SECRET,
+		jwtTokenIdentifier: 'hr_public.jwt_token',
+		defaultRole: 'hr_guest',
+
+		// Security
+		ignoreRBAC: false,
+		legacyRelations: 'omit',
+
+		// Performance
+		dynamicJson: true,
+		readOnlyConnection: process.env.READ_ONLY_DATABASE_URL,
+		retryOnInitFail: true,
+
+		// Development vs Production
+		watchPg: process.env.NODE_ENV === 'development',
+		graphiql: process.env.NODE_ENV === 'development',
+		enhanceGraphiql: process.env.NODE_ENV === 'development',
+		showErrorStack: process.env.NODE_ENV === 'development',
+		extendedErrors:
+			process.env.NODE_ENV === 'development' ? ['hint', 'detail', 'errcode'] : ['errcode'],
+
+		// Schema customization
+		enableQueryBatching: true,
+		disableQueryLog: process.env.NODE_ENV === 'production',
+
+		// Custom settings for RLS
+		pgSettings: (req) => {
+			const settings: Record<string, string> = {};
+
+			// Extract JWT claims from authorization header
+			const authHeader = req.get('Authorization');
+			if (authHeader && authHeader.startsWith('Bearer ')) {
+				try {
+					const token = authHeader.substring(7);
+					// JWT verification would happen here in production
+					// For demo, we'll simulate the claims
+					settings['jwt.claims.employee_id'] = '1';
+					settings['jwt.claims.department_id'] = '5';
+					settings['jwt.claims.role_level'] = '60';
+				} catch (error) {
+					logger.error('JWT parsing error', error);
+				}
+			}
+
+			return settings;
+		},
+
+		// Error handling
+		handleErrors: (errors) => {
+			logger.error('GraphQL Errors', { errors });
+			return errors;
+		}
+	})
+);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0',
-    postgraphile: 'active'
-  });
+	res.json({
+		status: 'ok',
+		timestamp: new Date().toISOString(),
+		version: '1.0.0',
+		postgraphile: 'active'
+	});
 });
 
 const port = process.env.PORT || 4000;
 
 app.listen(port, () => {
-  logger.info(`PostGraphile server running on port ${port}`);
-  logger.info(`GraphQL endpoint: http://localhost:${port}/api/graphql`);
-  if (process.env.NODE_ENV === 'development') {
-    logger.info(`GraphiQL interface: http://localhost:${port}/api/graphql`);
-  }
+	logger.info(`PostGraphile server running on port ${port}`);
+	logger.info(`GraphQL endpoint: http://localhost:${port}/api/graphql`);
+	if (process.env.NODE_ENV === 'development') {
+		logger.info(`GraphiQL interface: http://localhost:${port}/api/graphql`);
+	}
 });
 ```
 
 ### 4. Create Package Scripts
+
 ```json
 // package.json scripts section
 {
-  "scripts": {
-    "dev": "nodemon --exec ts-node src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "test": "echo \"Tests will be added in Phase 2\"",
-    "schema:watch": "postgraphile --connection $DATABASE_URL --schema hr_public,hr_private --watch --enhance-graphiql"
-  }
+	"scripts": {
+		"dev": "nodemon --exec ts-node src/server.ts",
+		"build": "tsc",
+		"start": "node dist/server.js",
+		"test": "echo \"Tests will be added in Phase 2\"",
+		"schema:watch": "postgraphile --connection $DATABASE_URL --schema hr_public,hr_private --watch --enhance-graphiql"
+	}
 }
 ```
 
 ## Phase 3: Validation Tests
 
 ### 1. Start the Server
+
 ```bash
 # Terminal 1: Start Redis
 redis-server
@@ -481,6 +494,7 @@ npm run dev
 ```
 
 ### 2. Test Authentication
+
 ```bash
 # Test authentication via GraphQL
 curl -X POST http://localhost:4000/api/graphql \
@@ -491,23 +505,25 @@ curl -X POST http://localhost:4000/api/graphql \
 ```
 
 Expected response:
+
 ```json
 {
-  "data": {
-    "authenticate": {
-      "jwtToken": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
-      "employee": {
-        "id": 2,
-        "firstName": "John",
-        "lastName": "Doe",
-        "roleLevel": 60
-      }
-    }
-  }
+	"data": {
+		"authenticate": {
+			"jwtToken": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+			"employee": {
+				"id": 2,
+				"firstName": "John",
+				"lastName": "Doe",
+				"roleLevel": 60
+			}
+		}
+	}
 }
 ```
 
 ### 3. Test Role-Based Access
+
 ```bash
 # Get JWT token from authentication response and test employee access
 JWT_TOKEN="your-jwt-token-here"
@@ -521,6 +537,7 @@ curl -X POST http://localhost:4000/api/graphql \
 ```
 
 ### 4. Test Employee Directory (Manager Access)
+
 ```bash
 curl -X POST http://localhost:4000/api/graphql \
   -H "Content-Type: application/json" \
@@ -531,6 +548,7 @@ curl -X POST http://localhost:4000/api/graphql \
 ```
 
 ### 5. Verify Row-Level Security
+
 ```bash
 # Try to access employee from different department (should be restricted)
 curl -X POST http://localhost:4000/api/graphql \
@@ -544,6 +562,7 @@ curl -X POST http://localhost:4000/api/graphql \
 ## Phase 4: Performance Validation
 
 ### 1. Create Database Indexes
+
 ```sql
 -- Essential PostGraphile performance indexes
 CREATE INDEX idx_employees_department_id ON hr_public.employees(department_id);
@@ -555,6 +574,7 @@ CREATE INDEX idx_time_off_requests_status ON hr_public.time_off_requests(status)
 ```
 
 ### 2. Test Query Performance
+
 ```bash
 # Measure response times
 time curl -X POST http://localhost:4000/api/graphql \
@@ -568,6 +588,7 @@ time curl -X POST http://localhost:4000/api/graphql \
 Target: <200ms for complex queries
 
 ### 3. Verify Schema Generation
+
 ```bash
 # Access GraphiQL interface
 open http://localhost:4000/api/graphql
@@ -586,7 +607,7 @@ open http://localhost:4000/api/graphql
 ✅ **Authorization**: Row-level security enforcing department and role access  
 ✅ **Performance**: Queries responding under 200ms with proper indexing  
 ✅ **Schema**: PostGraphile generating complete GraphQL schema from PostgreSQL  
-✅ **Integration**: Server running with proper CORS, logging, and error handling  
+✅ **Integration**: Server running with proper CORS, logging, and error handling
 
 ## Next Steps
 

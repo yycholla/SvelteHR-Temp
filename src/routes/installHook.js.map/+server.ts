@@ -7,16 +7,19 @@ import type { RequestHandler } from './$types';
  */
 
 export const GET: RequestHandler = async () => {
-  // Return empty source map to prevent 404 errors
-  return json({
-    version: 3,
-    sources: [],
-    names: [],
-    mappings: "",
-    file: "installHook.js"
-  }, {
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  });
+	// Return empty source map to prevent 404 errors
+	return json(
+		{
+			version: 3,
+			sources: [],
+			names: [],
+			mappings: '',
+			file: 'installHook.js'
+		},
+		{
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		}
+	);
 };

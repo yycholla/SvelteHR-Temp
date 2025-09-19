@@ -1,6 +1,6 @@
 /**
  * Comprehensive Health Monitoring System
- * 
+ *
  * Multi-layer health monitoring with:
  * - Service health checks
  * - Performance metrics
@@ -21,7 +21,7 @@ const logger = createLogger({
     format.errors({ stack: true }),
     format.json()
   ),
-  transports: [new transports.Console()]
+  transports: [new transports.Console()],
 });
 
 interface HealthCheck {
@@ -115,8 +115,8 @@ export class HealthMonitor {
       process: {
         uptime: process.uptime(),
         memory: process.memoryUsage(),
-        cpu: process.cpuUsage()
-      }
+        cpu: process.cpuUsage(),
+      },
     };
 
     this.initializeHealthChecks();
@@ -131,7 +131,7 @@ export class HealthMonitor {
       name: 'Database',
       check: async () => this.checkDatabase(),
       critical: true,
-      timeout: 5000
+      timeout: 5000,
     });
 
     // Redis health check
@@ -139,7 +139,7 @@ export class HealthMonitor {
       name: 'Redis Cache',
       check: async () => this.checkRedis(),
       critical: true,
-      timeout: 3000
+      timeout: 3000,
     });
 
     // PostgreSQL connection pool health
@@ -147,7 +147,7 @@ export class HealthMonitor {
       name: 'Connection Pool',
       check: async () => this.checkConnectionPool(),
       critical: true,
-      timeout: 3000
+      timeout: 3000,
     });
 
     // GraphQL endpoint health
@@ -155,7 +155,7 @@ export class HealthMonitor {
       name: 'GraphQL API',
       check: async () => this.checkGraphQL(),
       critical: true,
-      timeout: 5000
+      timeout: 5000,
     });
 
     // Authentication service health
@@ -163,7 +163,7 @@ export class HealthMonitor {
       name: 'Authentication',
       check: async () => this.checkAuthentication(),
       critical: true,
-      timeout: 3000
+      timeout: 3000,
     });
 
     // Cache service health
@@ -171,7 +171,7 @@ export class HealthMonitor {
       name: 'Cache Service',
       check: async () => this.checkCache(),
       critical: false,
-      timeout: 3000
+      timeout: 3000,
     });
 
     // System resources health
@@ -179,7 +179,7 @@ export class HealthMonitor {
       name: 'System Resources',
       check: async () => this.checkResources(),
       critical: false,
-      timeout: 3000
+      timeout: 3000,
     });
   }
 
@@ -221,67 +221,73 @@ export class HealthMonitor {
    * Run all health checks
    */
   private async runHealthChecks(): Promise<void> {
-    const promises = Array.from(this.healthChecks.values()).map(async (healthCheck) => {
-      const startTime = Date.now();
-      
-      try {
-        // Execute check with timeout
-        const checkPromise = Promise.race([
-          healthCheck.check(),
-          new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Health check timeout')), healthCheck.timeout);
-          })
-        ]);
+    const promises = Array.from(this.healthChecks.values()).map(
+      async (healthCheck) => {
+        const startTime = Date.now();
 
-        const isHealthy = await checkPromise;
-        const responseTime = Date.now() - startTime;
+        try {
+          // Execute check with timeout
+          const checkPromise = Promise.race([
+            healthCheck.check(),
+            new Promise((_, reject) => {
+              setTimeout(
+                () => reject(new Error('Health check timeout')),
+                healthCheck.timeout
+              );
+            }),
+          ]);
 
-        const serviceHealth: ServiceHealth = {
-          name: healthCheck.name,
-          status: isHealthy ? 'healthy' : 'unhealthy',
-          lastCheck: new Date(),
-          responseTime
-        };
+          const isHealthy = await checkPromise;
+          const responseTime = Date.now() - startTime;
 
-        this.serviceHealth.set(healthCheck.name, serviceHealth);
+          const serviceHealth: ServiceHealth = {
+            name: healthCheck.name,
+            status: isHealthy ? 'healthy' : 'unhealthy',
+            lastCheck: new Date(),
+            responseTime,
+          };
 
-        // Create alerts for critical failures
-        if (!isHealthy && healthCheck.critical) {
-          this.createAlert({
-            type: 'error',
-            message: `${healthCheck.name} service is unhealthy`,
-            service: healthCheck.name
-          });
-        }
+          this.serviceHealth.set(healthCheck.name, serviceHealth);
 
-      } catch (error) {
-        const responseTime = Date.now() - startTime;
-        const serviceHealth: ServiceHealth = {
-          name: healthCheck.name,
-          status: 'unhealthy',
-          lastCheck: new Date(),
-          responseTime,
-          errorMessage: error.message
-        };
+          // Create alerts for critical failures
+          if (!isHealthy && healthCheck.critical) {
+            this.createAlert({
+              type: 'error',
+              message: `${healthCheck.name} service is unhealthy`,
+              service: healthCheck.name,
+            });
+          }
+        } catch (error) {
+          const responseTime = Date.now() - startTime;
+          const serviceHealth: ServiceHealth = {
+            name: healthCheck.name,
+            status: 'unhealthy',
+            lastCheck: new Date(),
+            responseTime,
+            errorMessage: error.message,
+          };
 
-        this.serviceHealth.set(healthCheck.name, serviceHealth);
+          this.serviceHealth.set(healthCheck.name, serviceHealth);
 
-        // Create alerts for check failures
-        if (healthCheck.critical) {
-          this.createAlert({
-            type: 'error',
-            message: `${healthCheck.name} health check failed: ${error.message}`,
-            service: healthCheck.name
-          });
+          // Create alerts for check failures
+          if (healthCheck.critical) {
+            this.createAlert({
+              type: 'error',
+              message: `${healthCheck.name} health check failed: ${error.message}`,
+              service: healthCheck.name,
+            });
+          }
         }
       }
-    });
+    );
 
     await Promise.all(promises);
 
     logger.debug('Health checks completed', {
       services: Array.from(this.serviceHealth.values()),
-      healthyCount: Array.from(this.serviceHealth.values()).filter(s => s.status === 'healthy').length
+      healthyCount: Array.from(this.serviceHealth.values()).filter(
+        (s) => s.status === 'healthy'
+      ).length,
     });
   }
 
@@ -315,11 +321,10 @@ export class HealthMonitor {
       logger.debug('Database health check passed', {
         version: statsResult.rows[0]?.version,
         tableCount: statsResult.rows[0]?.table_count,
-        activeConnections: connectionResult.rows[0]?.active_connections
+        activeConnections: connectionResult.rows[0]?.active_connections,
       });
 
       return true;
-
     } catch (error) {
       logger.error('Database health check failed', error);
       return false;
@@ -354,7 +359,7 @@ export class HealthMonitor {
           this.createAlert({
             type: 'warning',
             message: `Redis memory usage high: ${percentage.toFixed(1)}%`,
-            service: 'Redis'
+            service: 'Redis',
           });
         }
       }
@@ -362,7 +367,6 @@ export class HealthMonitor {
       logger.debug('Redis health check passed', { responseTime });
 
       return true;
-
     } catch (error) {
       logger.error('Redis health check failed', error);
       return false;
@@ -386,12 +390,11 @@ export class HealthMonitor {
         this.createAlert({
           type: 'warning',
           message: `Connection pool issues - Total: ${total}, Idle: ${idle}, Waiting: ${waiting}`,
-          service: 'Connection Pool'
+          service: 'Connection Pool',
         });
       }
 
       return isHealthy;
-
     } catch (error) {
       logger.error('Connection pool health check failed', error);
       return false;
@@ -419,7 +422,6 @@ export class HealthMonitor {
       const result = await this.pool.query('SELECT 1 as graphql_test');
 
       return result.rows.length > 0;
-
     } catch (error) {
       logger.error('GraphQL health check failed', error);
       return false;
@@ -446,12 +448,11 @@ export class HealthMonitor {
         this.createAlert({
           type: 'error',
           message: 'Authentication function not found',
-          service: 'Authentication'
+          service: 'Authentication',
         });
       }
 
       return exists;
-
     } catch (error) {
       logger.error('Authentication health check failed', error);
       return false;
@@ -472,7 +473,6 @@ export class HealthMonitor {
       await this.cacheService.delete(testKey);
 
       return retrievedValue === testValue;
-
     } catch (error) {
       logger.error('Cache health check failed', error);
       return false;
@@ -485,13 +485,13 @@ export class HealthMonitor {
   private async checkResources(): Promise<boolean> {
     try {
       const metrics = this.systemMetrics;
-      
+
       // Check memory usage
       if (metrics.memory.percentage > 90) {
         this.createAlert({
           type: 'warning',
           message: `High memory usage: ${metrics.memory.percentage.toFixed(1)}%`,
-          service: 'System Resources'
+          service: 'System Resources',
         });
         return false;
       }
@@ -501,7 +501,7 @@ export class HealthMonitor {
         this.createAlert({
           type: 'warning',
           message: `High disk usage: ${metrics.disk.percentage.toFixed(1)}%`,
-          service: 'System Resources'
+          service: 'System Resources',
         });
         return false;
       }
@@ -511,13 +511,12 @@ export class HealthMonitor {
         this.createAlert({
           type: 'warning',
           message: `High CPU usage: ${metrics.cpu.usage.toFixed(1)}%`,
-          service: 'System Resources'
+          service: 'System Resources',
         });
         return false;
       }
 
       return true;
-
     } catch (error) {
       logger.error('System resources health check failed', error);
       return false;
@@ -540,14 +539,16 @@ export class HealthMonitor {
         total: memoryUsage.heapTotal + memoryUsage.external,
         used: memoryUsage.heapUsed + memoryUsage.external,
         free: memoryUsage.heapTotal - memoryUsage.heapUsed,
-        percentage: ((memoryUsage.heapUsed + memoryUsage.external) / 
-                    (memoryUsage.heapTotal + memoryUsage.external)) * 100
+        percentage:
+          ((memoryUsage.heapUsed + memoryUsage.external) /
+            (memoryUsage.heapTotal + memoryUsage.external)) *
+          100,
       };
 
       // CPU usage calculation (simplified)
       this.systemMetrics.cpu = {
         usage: 0, // This would require more complex calculation
-        load: [0, 0, 0] // These would come from OS-level monitoring
+        load: [0, 0, 0], // These would come from OS-level monitoring
       };
 
       // Disk usage (would require additional module)
@@ -555,9 +556,8 @@ export class HealthMonitor {
         total: 0,
         used: 0,
         free: 0,
-        percentage: 0
+        percentage: 0,
       };
-
     } catch (error) {
       logger.error('Failed to update system metrics', error);
     }
@@ -566,13 +566,15 @@ export class HealthMonitor {
   /**
    * Create alert
    */
-  private createAlert(alert: Omit<Alert, 'id' | 'timestamp' | 'resolved'>): void {
+  private createAlert(
+    alert: Omit<Alert, 'id' | 'timestamp' | 'resolved'>
+  ): void {
     const id = `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const fullAlert: Alert = {
       ...alert,
       id,
       timestamp: new Date(),
-      resolved: false
+      resolved: false,
     };
 
     this.alerts.set(id, fullAlert);
@@ -592,12 +594,14 @@ export class HealthMonitor {
    */
   async getHealthSummary(): Promise<HealthSummary> {
     const services = Array.from(this.serviceHealth.values());
-    const criticalServices = services.filter(service => {
+    const criticalServices = services.filter((service) => {
       const healthCheck = this.healthChecks.get(service.name);
       return healthCheck?.critical;
     });
 
-    const hasHealthyCriticals = criticalServices.filter(s => s.status === 'healthy').length;
+    const hasHealthyCriticals = criticalServices.filter(
+      (s) => s.status === 'healthy'
+    ).length;
     const totalCriticals = criticalServices.length;
 
     let overallStatus: 'healthy' | 'degraded' | 'unhealthy';
@@ -615,7 +619,7 @@ export class HealthMonitor {
       metrics: this.systemMetrics,
       timestamp: new Date(),
       uptime: process.uptime(),
-      version: process.env.npm_package_version || '1.0.0'
+      version: process.env.npm_package_version || '1.0.0',
     };
   }
 
@@ -623,7 +627,7 @@ export class HealthMonitor {
    * Get active alerts
    */
   getActiveAlerts(): Alert[] {
-    return Array.from(this.alerts.values()).filter(alert => !alert.resolved);
+    return Array.from(this.alerts.values()).filter((alert) => !alert.resolved);
   }
 
   /**
@@ -634,11 +638,13 @@ export class HealthMonitor {
     if (alert) {
       alert.resolved = true;
       this.alerts.set(alertId, alert);
-      
+
       // Update in Redis
-      this.redis.set(`alert:${alertId}`, JSON.stringify(alert)).catch(error => {
-        logger.error('Failed to update alert in Redis', error);
-      });
+      this.redis
+        .set(`alert:${alertId}`, JSON.stringify(alert))
+        .catch((error) => {
+          logger.error('Failed to update alert in Redis', error);
+        });
 
       logger.info('Alert resolved', alert);
       return true;

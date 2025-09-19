@@ -3,19 +3,19 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 2022,
     sourceType: 'module',
-    project: './tsconfig.json'
+    project: './tsconfig.json',
   },
   plugins: ['@typescript-eslint'],
   extends: [
     'eslint:recommended',
     '@typescript-eslint/recommended',
     '@typescript-eslint/recommended-requiring-type-checking',
-    'prettier'
+    'prettier',
   ],
   root: true,
   env: {
     node: true,
-    es6: true
+    es6: true,
   },
   rules: {
     // TypeScript specific rules
@@ -28,14 +28,14 @@ module.exports = {
     '@typescript-eslint/no-floating-promises': 'error',
     '@typescript-eslint/no-misused-promises': 'error',
     '@typescript-eslint/await-thenable': 'error',
-    
+
     // General rules
     'no-console': 'warn',
     'prefer-const': 'error',
     'no-var': 'error',
     'object-shorthand': 'error',
     'prefer-template': 'error',
-    'no-duplicate-imports': 'error'
+    'no-duplicate-imports': 'error',
   },
-  ignorePatterns: ['dist/', 'node_modules/', '*.js', '!.eslintrc.js']
+  ignorePatterns: ['dist/', 'node_modules/', '*.js', '!.eslintrc.js'],
 };

@@ -11,6 +11,7 @@ This guide provides step-by-step instructions for setting up and running the aut
 ## Prerequisites
 
 ### System Requirements
+
 - Node.js 18+ installed
 - npm 8+ installed
 - Git repository access
@@ -18,7 +19,9 @@ This guide provides step-by-step instructions for setting up and running the aut
 - Active PostGraphile backend server (localhost:4000)
 
 ### Environment Setup
+
 1. Ensure both frontend and backend servers are running:
+
    ```bash
    # Terminal 1: Start SvelteKit frontend
    npm run dev
@@ -138,6 +141,7 @@ open auth-testing/reports/summary.html
 After completing the quick start, you should see:
 
 1. **Test Execution Output** indicating tests are running:
+
    ```
    ✓ Test suite loaded: Basic Authentication Test Suite
    ✓ Starting test loop with 5 max iterations
@@ -145,16 +149,17 @@ After completing the quick start, you should see:
    ```
 
 2. **Analysis Output** showing pattern detection:
+
    ```json
    {
-     "patterns": [
-       {
-         "name": "Authentication Timeout Pattern",
-         "severity": "high",
-         "occurrences": 3,
-         "confidence": 0.85
-       }
-     ]
+   	"patterns": [
+   		{
+   			"name": "Authentication Timeout Pattern",
+   			"severity": "high",
+   			"occurrences": 3,
+   			"confidence": 0.85
+   		}
+   	]
    }
    ```
 
@@ -186,7 +191,7 @@ on:
   push:
     branches: [main, develop]
   schedule:
-    - cron: '0 */6 * * *'  # Every 6 hours
+    - cron: '0 */6 * * *' # Every 6 hours
 
 jobs:
   auth-testing:
@@ -244,61 +249,61 @@ Create custom test scenarios for specific authentication flows:
 
 ```json
 {
-  "scenarios": [
-    {
-      "id": "multi-tab-auth-consistency",
-      "name": "Multi-tab Authentication Consistency",
-      "description": "Verify authentication state consistency across browser tabs",
-      "userRole": "admin",
-      "steps": [
-        {
-          "action": "navigate",
-          "target": "/login",
-          "description": "Navigate to login page"
-        },
-        {
-          "action": "fill",
-          "target": "input[type=\"email\"]",
-          "value": "admin@postgraphile-hr.com",
-          "description": "Enter admin email"
-        },
-        {
-          "action": "fill",
-          "target": "input[type=\"password\"]",
-          "value": "admin123",
-          "description": "Enter admin password"
-        },
-        {
-          "action": "click",
-          "target": "button[type=\"submit\"]",
-          "description": "Submit login form"
-        },
-        {
-          "action": "wait",
-          "target": "/admin",
-          "timeout": 5000,
-          "description": "Wait for redirect to admin page"
-        },
-        {
-          "action": "openNewTab",
-          "target": "/admin",
-          "description": "Open admin page in new tab"
-        },
-        {
-          "action": "assert",
-          "target": "localStorage.getItem('postgraphile-jwt-token')",
-          "value": "not_null",
-          "description": "Verify JWT token exists in new tab"
-        }
-      ],
-      "expectedOutcome": {
-        "finalUrl": "/admin",
-        "authenticationState": "authenticated",
-        "redirectCount": 1,
-        "maxDuration": 10000
-      }
-    }
-  ]
+	"scenarios": [
+		{
+			"id": "multi-tab-auth-consistency",
+			"name": "Multi-tab Authentication Consistency",
+			"description": "Verify authentication state consistency across browser tabs",
+			"userRole": "admin",
+			"steps": [
+				{
+					"action": "navigate",
+					"target": "/login",
+					"description": "Navigate to login page"
+				},
+				{
+					"action": "fill",
+					"target": "input[type=\"email\"]",
+					"value": "admin@postgraphile-hr.com",
+					"description": "Enter admin email"
+				},
+				{
+					"action": "fill",
+					"target": "input[type=\"password\"]",
+					"value": "admin123",
+					"description": "Enter admin password"
+				},
+				{
+					"action": "click",
+					"target": "button[type=\"submit\"]",
+					"description": "Submit login form"
+				},
+				{
+					"action": "wait",
+					"target": "/admin",
+					"timeout": 5000,
+					"description": "Wait for redirect to admin page"
+				},
+				{
+					"action": "openNewTab",
+					"target": "/admin",
+					"description": "Open admin page in new tab"
+				},
+				{
+					"action": "assert",
+					"target": "localStorage.getItem('postgraphile-jwt-token')",
+					"value": "not_null",
+					"description": "Verify JWT token exists in new tab"
+				}
+			],
+			"expectedOutcome": {
+				"finalUrl": "/admin",
+				"authenticationState": "authenticated",
+				"redirectCount": 1,
+				"maxDuration": 10000
+			}
+		}
+	]
 }
 ```
 
@@ -307,6 +312,7 @@ Create custom test scenarios for specific authentication flows:
 ### Common Issues
 
 1. **Servers not running**:
+
    ```bash
    # Check if ports are in use
    lsof -ti:5175  # SvelteKit
@@ -318,6 +324,7 @@ Create custom test scenarios for specific authentication flows:
    ```
 
 2. **Browser dependencies missing**:
+
    ```bash
    # Install Playwright browsers
    npx playwright install
@@ -325,6 +332,7 @@ Create custom test scenarios for specific authentication flows:
    ```
 
 3. **Permission errors**:
+
    ```bash
    # Ensure output directories exist
    mkdir -p auth-testing/{config,results,analysis,reports}

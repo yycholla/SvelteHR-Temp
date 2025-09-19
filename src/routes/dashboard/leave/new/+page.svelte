@@ -1,486 +1,446 @@
 <script lang="ts">
-  import { currentUser } from '$lib/stores/auth';
-  import { Button } from '$lib/components/ui/button';
-  import { Input } from '$lib/components/ui/input';
-  import { Label } from '$lib/components/ui/label';
-  import { Textarea } from '$lib/components/ui/textarea';
-  import { Checkbox } from '$lib/components/ui/checkbox';
-  import * as Card from '$lib/components/ui/card';
-  import * as Select from '$lib/components/ui/select';
-  import { Calendar, ArrowLeft, AlertCircle, Plane, Clock, CheckCircle2 } from 'lucide-svelte';
-  import { validateForm } from '$lib/utils/validation';
-  import type { LeaveType, SubmitLeaveRequestInput } from '$lib/types';
-  // Leave service temporarily disabled during PostGraphile migration
-  // import { leaveService, myLeaveBalance } from '$lib/services/leaveService';
+	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { mutationStore, queryStore } from '@urql/svelte';
+	import { createUrqlClient } from '$lib/graphql/client';
+	import { currentUser } from '$lib/stores/auth';
+	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
+	import { Textarea } from '$lib/components/ui/textarea';
+	import * as Card from '$lib/components/ui/card';
+	import * as Select from '$lib/components/ui/select';
+	import { Calendar, ArrowLeft, AlertCircle, Send, Loader2 } from 'lucide-svelte';
 
-  // Form data using Svelte 5 runes
-  let formData = $state({
-    type: '' as LeaveType | '',
-    startDate: '',
-    endDate: '',
-    reason: '',
-    isHalfDay: false,
-    halfDayPeriod: 'MORNING' as 'MORNING' | 'AFTERNOON',
-    emergencyContact: '',
-    attachments: [] as string[]
-  });
+	// Import GraphQL operations
+	import {
+		CREATE_LEAVE_REQUEST_MUTATION,
+		GET_MY_LEAVE_BALANCE_QUERY,
+		type LeaveRequestType,
+		type CreateLeaveRequestInput
+	} from '$lib/graphql/leave-management-operations';
 
-  let loading = $state(false);
-  let error = $state<string | null>(null);
-  let validationErrors = $state<Record<string, string>>({});
-  let calculatedDays = $state(0);
+	// Form state
+	let formData = $state({
+		type: '' as LeaveRequestType | '',
+		startDate: '',
+		endDate: '',
+		reason: '',
+		isEmergency: false
+	});
 
-  // Leave type options
-  const leaveTypeOptions = [
-    { value: 'VACATION', label: 'Vacation' },
-    { value: 'SICK', label: 'Sick Leave' },
-    { value: 'PERSONAL', label: 'Personal' },
-    { value: 'MATERNITY', label: 'Maternity Leave' },
-    { value: 'PATERNITY', label: 'Paternity Leave' },
-    { value: 'BEREAVEMENT', label: 'Bereavement' },
-    { value: 'OTHER', label: 'Other' }
-  ];
+	let loading = $state(false);
+	let error = $state<string | null>(null);
+	let validationErrors = $state<Record<string, string>>({});
+	let calculatedDays = $state(0);
 
-  const halfDayOptions = [
-    { value: 'MORNING', label: 'Morning (First Half)' },
-    { value: 'AFTERNOON', label: 'Afternoon (Second Half)' }
-  ];
+	// Create client and mutation
+	const client = createUrqlClient();
+	let createLeaveRequestMutation: any = $state(null);
+	let leaveBalanceQuery: any = $state(null);
+	let balanceQueryState = $state({ fetching: true, error: null, data: null });
 
-  // Validation rules
-  const validationRules = {
-    type: { required: true },
-    startDate: { required: true },
-    endDate: { required: true },
-    reason: { required: true, minLength: 10 }
-  };
+	onMount(() => {
+		try {
+			createLeaveRequestMutation = mutationStore({
+				client,
+				query: CREATE_LEAVE_REQUEST_MUTATION
+			});
 
-  // Computed values using Svelte 5 derived
-  const validationResult = $derived(() => {
-    const result = validateForm(formData, validationRules);
-    validationErrors = result.errors;
-    return result;
-  });
+			leaveBalanceQuery = queryStore({
+				client,
+				query: GET_MY_LEAVE_BALANCE_QUERY,
+				variables: {}
+			});
+		} catch (error) {
+			console.error('Error initializing leave form:', error);
+		}
+	});
 
-  const isValid = $derived(
-    Object.keys(validationErrors).length === 0 &&
-    formData.type &&
-    formData.startDate &&
-    formData.endDate
-  );
+	// Update balance query state
+	$effect(() => {
+		if (leaveBalanceQuery) {
+			const unsubscribe = leaveBalanceQuery.subscribe((state: any) => {
+				balanceQueryState = {
+					fetching: state.fetching,
+					error: state.error,
+					data: state.data
+				};
+			});
+			return unsubscribe;
+		}
+	});
 
-  // Calculate days when dates change
-  $effect(() => {
-    if (formData.startDate && formData.endDate) {
-      calculateLeaveDays();
-    }
-  });
+	// Leave type options
+	const leaveTypeOptions = [
+		{ value: 'VACATION', label: 'Vacation' },
+		{ value: 'SICK', label: 'Sick Leave' },
+		{ value: 'PERSONAL', label: 'Personal' },
+		{ value: 'MATERNITY', label: 'Maternity Leave' },
+		{ value: 'PATERNITY', label: 'Paternity Leave' },
+		{ value: 'BEREAVEMENT', label: 'Bereavement' },
+		{ value: 'OTHER', label: 'Other' }
+	];
 
-  function calculateLeaveDays() {
-    if (!formData.startDate || !formData.endDate) {
-      calculatedDays = 0;
-      return;
-    }
+	// Calculate days between dates
+	const calculateDays = $derived(() => {
+		if (!formData.startDate || !formData.endDate) return 0;
 
-    const start = new Date(formData.startDate);
-    const end = new Date(formData.endDate);
-    
-    if (start > end) {
-      calculatedDays = 0;
-      return;
-    }
+		const start = new Date(formData.startDate);
+		const end = new Date(formData.endDate);
 
-    // Basic calculation - would need to account for weekends and holidays
-    const timeDiff = end.getTime() - start.getTime();
-    const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
-    
-    if (formData.isHalfDay) {
-      calculatedDays = 0.5;
-    } else {
-      calculatedDays = daysDiff;
-    }
-  }
+		if (end < start) return 0;
 
-  function getAvailableBalance(leaveType: LeaveType): number {
-    // Temporarily disabled during PostGraphile migration
-    // if (!$myLeaveBalance) return 0;
-    // const balance = $myLeaveBalance.find(b => b.type === leaveType);
-    // return balance?.remaining || 0;
-    return 30; // Placeholder value
-  }
+		const diffTime = Math.abs(end.getTime() - start.getTime());
+		const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+		return diffDays + 1; // Include both start and end dates
+	});
 
-  function getLeaveTypeDescription(leaveType: LeaveType): string {
-    const descriptions = {
-      VACATION: 'Planned time off for rest and recreation',
-      SICK: 'Medical leave for illness or injury',
-      PERSONAL: 'Personal time off for individual needs',
-      MATERNITY: 'Maternity leave for new mothers',
-      PATERNITY: 'Paternity leave for new fathers',
-      BEREAVEMENT: 'Time off due to loss of family member',
-      OTHER: 'Other types of leave not covered above'
-    };
-    return descriptions[leaveType] || '';
-  }
+	// Update calculated days when dates change
+	$effect(() => {
+		calculatedDays = calculateDays;
+	});
 
-  async function handleSubmit() {
-    if (!isValid) return;
+	// Get leave balance for selected type
+	const getLeaveBalance = $derived(() => {
+		if (!formData.type || !balanceQueryState.data) return null;
 
-    try {
-      loading = true;
-      error = null;
+		const balances = balanceQueryState.data?.allLeaveBalances?.nodes || [];
+		return balances.find((balance: any) => balance.type === formData.type);
+	});
 
-      const submitData: SubmitLeaveRequestInput = {
-        type: formData.type as LeaveType,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
-        reason: formData.reason,
-        isHalfDay: formData.isHalfDay,
-        halfDayPeriod: formData.isHalfDay ? formData.halfDayPeriod : undefined,
-        emergencyContact: formData.emergencyContact || undefined,
-        attachments: formData.attachments.length > 0 ? formData.attachments : undefined
-      };
+	// Validate form
+	const validateForm = () => {
+		const errors: Record<string, string> = {};
 
-      // TODO: Re-enable with PostGraphile leave service
-      // const leaveRequest = await leaveService.submitLeaveRequest(submitData);
-      // goto(`/leave/requests/${leaveRequest.id}`);
+		if (!formData.type) {
+			errors.type = 'Please select a leave type';
+		}
 
-      // Temporary: simulate success
-      console.log('Leave request submitted:', submitData);
-      goto('/leave/requests');
-    } catch (err: any) {
-      error = err.message || 'Failed to submit leave request';
-    } finally {
-      loading = false;
-    }
-  }
+		if (!formData.startDate) {
+			errors.startDate = 'Please select a start date';
+		}
 
-  function handleCancel() {
-    goto('/leave/requests');
-  }
+		if (!formData.endDate) {
+			errors.endDate = 'Please select an end date';
+		}
 
-  function handleReset() {
-    formData = {
-      type: '',
-      startDate: '',
-      endDate: '',
-      reason: '',
-      isHalfDay: false,
-      halfDayPeriod: 'MORNING',
-      emergencyContact: '',
-      attachments: []
-    };
-    calculatedDays = 0;
-    error = null;
-  }
+		if (formData.startDate && formData.endDate) {
+			const start = new Date(formData.startDate);
+			const end = new Date(formData.endDate);
 
-  function goBack() {
-    goto('/leave/requests');
-  }
+			if (end < start) {
+				errors.endDate = 'End date must be after start date';
+			}
 
-  onMount(() => {
-    // TODO: Re-enable with PostGraphile leave service
-    // leaveService.loadMyLeaveBalance();
+			// Check if start date is in the past (unless emergency or sick leave)
+			const today = new Date();
+			today.setHours(0, 0, 0, 0);
 
-    // Set minimum date to today
-    const today = new Date().toISOString().split('T')[0];
-    const startDateInput = document.querySelector('input[name="startDate"]') as HTMLInputElement;
-    const endDateInput = document.querySelector('input[name="endDate"]') as HTMLInputElement;
+			if (start < today && formData.type !== 'SICK' && !formData.isEmergency) {
+				errors.startDate = 'Start date cannot be in the past';
+			}
+		}
 
-    if (startDateInput) startDateInput.min = today;
-    if (endDateInput) endDateInput.min = today;
-  });
+		if (!formData.reason?.trim()) {
+			errors.reason = 'Please provide a reason for your leave request';
+		}
+
+		// Check if sufficient balance is available
+		const balance = getLeaveBalance;
+		if (balance && calculatedDays > balance.available) {
+			errors.days = `Insufficient leave balance. Available: ${balance.available} days, Requested: ${calculatedDays} days`;
+		}
+
+		validationErrors = errors;
+		return Object.keys(errors).length === 0;
+	};
+
+	// Submit form
+	const handleSubmit = async () => {
+		if (!validateForm()) return;
+
+		loading = true;
+		error = null;
+
+		try {
+			const input: CreateLeaveRequestInput = {
+				type: formData.type as LeaveRequestType,
+				startDate: formData.startDate,
+				endDate: formData.endDate,
+				reason: formData.reason.trim(),
+				isEmergency: formData.isEmergency
+			};
+
+			const result = await createLeaveRequestMutation.executeMutation({
+				input: { leaveRequest: input }
+			});
+
+			if (result.error) {
+				throw new Error(result.error.message);
+			}
+
+			// Success - redirect to requests page
+			goto('/dashboard/leave/requests');
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to submit leave request';
+		} finally {
+			loading = false;
+		}
+	};
+
+	// Handle form reset
+	const handleReset = () => {
+		formData = {
+			type: '',
+			startDate: '',
+			endDate: '',
+			reason: '',
+			isEmergency: false
+		};
+		validationErrors = {};
+		error = null;
+	};
+
+	// Get minimum date (today or tomorrow depending on type)
+	const getMinDate = $derived(() => {
+		const today = new Date();
+		if (formData.type === 'SICK' || formData.isEmergency) {
+			// Allow backdating for sick leave and emergencies
+			const pastDate = new Date();
+			pastDate.setDate(today.getDate() - 30); // Allow up to 30 days back
+			return pastDate.toISOString().split('T')[0];
+		}
+		// For other types, minimum is today
+		return today.toISOString().split('T')[0];
+	});
 </script>
 
 <svelte:head>
-  <title>Request Leave - SvelteHR</title>
-  <meta name="description" content="Submit a new leave request" />
+	<title>Request Leave - SvelteHR</title>
+	<meta name="description" content="Submit a new leave request" />
 </svelte:head>
 
 <div class="space-y-6">
-    <!-- Header with back button -->
-    <div class="flex items-center justify-between">
-      <div class="flex items-center space-x-4">
-        <Button variant="ghost" size="sm" onclick={goBack}>
-          <ArrowLeft class="h-4 w-4 mr-2" />
-          Back to Requests
-        </Button>
-        <div>
-          <h1 class="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <Plane class="h-8 w-8" />
-            Request Leave
-          </h1>
-          <p class="text-muted-foreground">
-            Submit a new leave request for approval
-          </p>
-        </div>
-      </div>
-    </div>
+	<!-- Header -->
+	<div class="flex items-center space-x-4">
+		<Button variant="outline" size="sm" href="/dashboard/leave/requests">
+			<ArrowLeft class="mr-2 h-4 w-4" />
+			Back to Requests
+		</Button>
 
-  <!-- Leave Balance Summary - Temporarily disabled during PostGraphile migration -->
-  <!-- TODO: Re-implement with PostGraphile leave balance queries -->
-  <!--
-  {#if $myLeaveBalance && $myLeaveBalance.length > 0}
-    <Card padding="md" class="balance-card">
-      <div class="balance-header">
-        <h3 class="balance-title">Your Leave Balance</h3>
-      </div>
-      <div class="balance-grid">
-        {#each $myLeaveBalance as balance}
-          <div class="balance-item">
-            <div class="balance-type">{balance.type}</div>
-            <div class="balance-remaining">{balance.remaining} days</div>
-          </div>
-        {/each}
-      </div>
-    </Card>
-  {/if}
-  -->
+		<div>
+			<h1 class="flex items-center gap-3 text-3xl font-bold tracking-tight">
+				<Calendar class="h-8 w-8" />
+				Request Leave
+			</h1>
+			<p class="text-muted-foreground">Submit a new leave request for approval</p>
+		</div>
+	</div>
 
-    {#if error}
-      <Card.Root>
-        <Card.Content class="py-6">
-          <div class="flex items-start space-x-4">
-            <AlertCircle class="h-6 w-6 text-destructive flex-shrink-0 mt-0.5" />
-            <div class="flex-1">
-              <h3 class="text-lg font-semibold">Error Submitting Request</h3>
-              <p class="text-muted-foreground">{error}</p>
-            </div>
-          </div>
-        </Card.Content>
-      </Card.Root>
-    {/if}
+	<!-- Form -->
+	<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+		<!-- Main Form -->
+		<div class="lg:col-span-2">
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>Leave Request Details</Card.Title>
+					<Card.Description>Fill out the form below to submit your leave request</Card.Description>
+				</Card.Header>
+				<Card.Content class="space-y-6">
+					<!-- Error message -->
+					{#if error}
+						<div class="rounded-lg border border-red-200 bg-red-50 p-4">
+							<div class="flex items-center space-x-2">
+								<AlertCircle class="h-5 w-5 text-red-600" />
+								<span class="text-sm font-medium text-red-800">{error}</span>
+							</div>
+						</div>
+					{/if}
 
-    <!-- Leave Request Form -->
-    <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="space-y-6">
-      <Card.Root>
-        <Card.Header>
-          <Card.Title class="flex items-center gap-2">
-            <Calendar class="h-5 w-5" />
-            Leave Details
-          </Card.Title>
-        </Card.Header>
-        <Card.Content class="space-y-6">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="md:col-span-2">
-              <Label for="leave-type">Leave Type *</Label>
-              <Select.Root
-                selected={formData.type ? { value: formData.type, label: leaveTypeOptions.find(opt => opt.value === formData.type)?.label || formData.type } : undefined}
-                onSelectedChange={(v) => formData.type = v?.value || ''}
-              >
-                <Select.Trigger>
-                  <Select.Value placeholder="Select leave type" />
-                </Select.Trigger>
-                <Select.Content>
-                  {#each leaveTypeOptions as option}
-                    <Select.Item value={option.value}>{option.label}</Select.Item>
-                  {/each}
-                </Select.Content>
-              </Select.Root>
-              {#if validationErrors.type}
-                <p class="text-sm text-destructive mt-1">{validationErrors.type}</p>
-              {/if}
+					<!-- Leave Type -->
+					<div class="space-y-2">
+						<Label for="type">Leave Type *</Label>
+						<Select.Root
+							selected={formData.type
+								? {
+										value: formData.type,
+										label: leaveTypeOptions.find((opt) => opt.value === formData.type)?.label || ''
+									}
+								: undefined}
+							onSelectedChange={(selected) => {
+								formData.type = selected?.value || '';
+							}}
+						>
+							<Select.Trigger>
+								<Select.Value placeholder="Select leave type" />
+							</Select.Trigger>
+							<Select.Content>
+								{#each leaveTypeOptions as option}
+									<Select.Item value={option.value}>{option.label}</Select.Item>
+								{/each}
+							</Select.Content>
+						</Select.Root>
+						{#if validationErrors.type}
+							<p class="text-sm text-red-600">{validationErrors.type}</p>
+						{/if}
+					</div>
 
-              {#if formData.type}
-                <div class="mt-3 p-3 bg-muted rounded-md">
-                  <p class="text-sm text-muted-foreground">
-                    {getLeaveTypeDescription(formData.type)}
-                  </p>
-                  <p class="text-sm font-medium mt-1">
-                    Available: {getAvailableBalance(formData.type)} days
-                  </p>
-                </div>
-              {/if}
-            </div>
+					<!-- Date Range -->
+					<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+						<div class="space-y-2">
+							<Label for="startDate">Start Date *</Label>
+							<Input
+								id="startDate"
+								type="date"
+								bind:value={formData.startDate}
+								min={getMinDate}
+								class={validationErrors.startDate ? 'border-red-500' : ''}
+							/>
+							{#if validationErrors.startDate}
+								<p class="text-sm text-red-600">{validationErrors.startDate}</p>
+							{/if}
+						</div>
 
-            <div>
-              <Label for="start-date">Start Date *</Label>
-              <Input
-                id="start-date"
-                type="date"
-                name="startDate"
-                bind:value={formData.startDate}
-                required
-              />
-              {#if validationErrors.startDate}
-                <p class="text-sm text-destructive mt-1">{validationErrors.startDate}</p>
-              {/if}
-            </div>
+						<div class="space-y-2">
+							<Label for="endDate">End Date *</Label>
+							<Input
+								id="endDate"
+								type="date"
+								bind:value={formData.endDate}
+								min={formData.startDate || getMinDate}
+								class={validationErrors.endDate ? 'border-red-500' : ''}
+							/>
+							{#if validationErrors.endDate}
+								<p class="text-sm text-red-600">{validationErrors.endDate}</p>
+							{/if}
+						</div>
+					</div>
 
-            <div>
-              <Label for="end-date">End Date *</Label>
-              <Input
-                id="end-date"
-                type="date"
-                name="endDate"
-                bind:value={formData.endDate}
-                required
-              />
-              {#if validationErrors.endDate}
-                <p class="text-sm text-destructive mt-1">{validationErrors.endDate}</p>
-              {/if}
-            </div>
+					<!-- Calculated Days -->
+					{#if calculatedDays > 0}
+						<div class="rounded-lg border border-blue-200 bg-blue-50 p-3">
+							<p class="text-sm text-blue-800">
+								<strong>Duration:</strong>
+								{calculatedDays} day{calculatedDays !== 1 ? 's' : ''}
+							</p>
+							{#if validationErrors.days}
+								<p class="mt-1 text-sm text-red-600">{validationErrors.days}</p>
+							{/if}
+						</div>
+					{/if}
 
-            <div class="md:col-span-2">
-              <div class="flex items-center space-x-2">
-                <Checkbox
-                  id="half-day"
-                  checked={formData.isHalfDay}
-                  onCheckedChange={(checked) => formData.isHalfDay = checked || false}
-                />
-                <Label for="half-day" class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  Half Day Leave
-                </Label>
-              </div>
-            </div>
+					<!-- Reason -->
+					<div class="space-y-2">
+						<Label for="reason">Reason *</Label>
+						<Textarea
+							id="reason"
+							placeholder="Please provide a reason for your leave request..."
+							bind:value={formData.reason}
+							rows="4"
+							class={validationErrors.reason ? 'border-red-500' : ''}
+						/>
+						{#if validationErrors.reason}
+							<p class="text-sm text-red-600">{validationErrors.reason}</p>
+						{/if}
+					</div>
 
-            {#if formData.isHalfDay}
-              <div class="md:col-span-2">
-                <Label for="half-day-period">Half Day Period</Label>
-                <Select.Root
-                  selected={{ value: formData.halfDayPeriod, label: halfDayOptions.find(opt => opt.value === formData.halfDayPeriod)?.label || formData.halfDayPeriod }}
-                  onSelectedChange={(v) => formData.halfDayPeriod = v?.value as 'MORNING' | 'AFTERNOON' || 'MORNING'}
-                >
-                  <Select.Trigger>
-                    <Select.Value placeholder="Select period" />
-                  </Select.Trigger>
-                  <Select.Content>
-                    {#each halfDayOptions as option}
-                      <Select.Item value={option.value}>{option.label}</Select.Item>
-                    {/each}
-                  </Select.Content>
-                </Select.Root>
-              </div>
-            {/if}
+					<!-- Emergency checkbox -->
+					<div class="flex items-center space-x-2">
+						<input
+							type="checkbox"
+							id="isEmergency"
+							bind:checked={formData.isEmergency}
+							class="rounded border-input"
+						/>
+						<Label for="isEmergency" class="text-sm">
+							This is an emergency request (allows backdating)
+						</Label>
+					</div>
 
-            <div class="md:col-span-2">
-              <Label for="reason">Reason *</Label>
-              <Textarea
-                id="reason"
-                bind:value={formData.reason}
-                placeholder="Please provide a detailed reason for your leave request..."
-                rows={4}
-                required
-              />
-              {#if validationErrors.reason}
-                <p class="text-sm text-destructive mt-1">{validationErrors.reason}</p>
-              {:else}
-                <p class="text-sm text-muted-foreground mt-1">Minimum 10 characters required</p>
-              {/if}
-            </div>
+					<!-- Actions -->
+					<div class="flex items-center justify-between pt-4">
+						<Button variant="outline" onclick={handleReset} disabled={loading}>Reset Form</Button>
 
-            <div class="md:col-span-2">
-              <Label for="emergency-contact">Emergency Contact (Optional)</Label>
-              <Input
-                id="emergency-contact"
-                bind:value={formData.emergencyContact}
-                placeholder="Contact person during your absence"
-              />
-              <p class="text-sm text-muted-foreground mt-1">
-                Phone number or email of someone who can be reached in case of emergency
-              </p>
-            </div>
-          </div>
-        </Card.Content>
-      </Card.Root>
+						<div class="flex items-center space-x-2">
+							<Button variant="outline" href="/dashboard/leave/requests" disabled={loading}>
+								Cancel
+							</Button>
+							<Button onclick={handleSubmit} disabled={loading || !$currentUser}>
+								{#if loading}
+									<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+								{:else}
+									<Send class="mr-2 h-4 w-4" />
+								{/if}
+								Submit Request
+							</Button>
+						</div>
+					</div>
+				</Card.Content>
+			</Card.Root>
+		</div>
 
-      <!-- Leave Summary -->
-      <Card.Root>
-        <Card.Header>
-          <Card.Title class="flex items-center gap-2">
-            <CheckCircle2 class="h-5 w-5" />
-            Leave Summary
-          </Card.Title>
-        </Card.Header>
-        <Card.Content class="space-y-4">
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div class="space-y-2">
-              <Label class="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Leave Type
-              </Label>
-              <p class="text-sm">
-                {formData.type ? leaveTypeOptions.find(opt => opt.value === formData.type)?.label || formData.type : 'Not selected'}
-              </p>
-            </div>
+		<!-- Sidebar -->
+		<div class="space-y-6">
+			<!-- Leave Balance -->
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>Leave Balance</Card.Title>
+				</Card.Header>
+				<Card.Content>
+					{#if balanceQueryState.fetching}
+						<div class="flex items-center space-x-2">
+							<Loader2 class="h-4 w-4 animate-spin" />
+							<span class="text-sm">Loading balance...</span>
+						</div>
+					{:else if balanceQueryState.error}
+						<p class="text-sm text-red-600">Failed to load balance</p>
+					{:else if formData.type && getLeaveBalance}
+						{@const balance = getLeaveBalance}
+						<div class="space-y-2">
+							<div class="flex justify-between">
+								<span class="text-sm font-medium">Total:</span>
+								<span class="text-sm">{balance.total} days</span>
+							</div>
+							<div class="flex justify-between">
+								<span class="text-sm font-medium">Used:</span>
+								<span class="text-sm">{balance.used} days</span>
+							</div>
+							<div class="flex justify-between">
+								<span class="text-sm font-medium">Available:</span>
+								<span class="text-sm font-bold text-green-600">{balance.available} days</span>
+							</div>
+						</div>
+					{:else}
+						<p class="text-sm text-muted-foreground">Select a leave type to view your balance</p>
+					{/if}
+				</Card.Content>
+			</Card.Root>
 
-            <div class="space-y-2">
-              <Label class="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Duration
-              </Label>
-              <p class="text-sm">
-                {formData.startDate && formData.endDate
-                  ? `${formData.startDate} to ${formData.endDate}`
-                  : 'Dates not selected'}
-              </p>
-            </div>
-
-            <div class="space-y-2">
-              <Label class="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Total Days
-              </Label>
-              <p class="text-sm font-semibold text-primary">
-                {calculatedDays} day{calculatedDays !== 1 ? 's' : ''}
-              </p>
-            </div>
-
-            {#if formData.type}
-              <div class="space-y-2">
-                <Label class="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Available Balance
-                </Label>
-                <p class="text-sm">
-                  {getAvailableBalance(formData.type)} days
-                </p>
-              </div>
-            {/if}
-          </div>
-
-          {#if formData.type && getAvailableBalance(formData.type) < calculatedDays}
-            <div class="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-              <div class="flex items-start space-x-2">
-                <AlertCircle class="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
-                <div>
-                  <p class="text-sm font-medium text-destructive">Balance Warning</p>
-                  <p class="text-sm text-destructive/80">
-                    Insufficient balance ({getAvailableBalance(formData.type)} days available)
-                  </p>
-                </div>
-              </div>
-            </div>
-          {/if}
-        </Card.Content>
-      </Card.Root>
-
-      <!-- Form Actions -->
-      <div class="flex justify-between items-center pt-6 border-t">
-        <Button
-          type="button"
-          variant="ghost"
-          onclick={handleReset}
-          disabled={loading}
-        >
-          Reset
-        </Button>
-
-        <div class="flex items-center space-x-3">
-          <Button
-            type="button"
-            variant="outline"
-            onclick={handleCancel}
-            disabled={loading}
-          >
-            Cancel
-          </Button>
-
-          <Button
-            type="submit"
-            disabled={!isValid || loading}
-          >
-            {#if loading}
-              <Clock class="h-4 w-4 mr-2 animate-spin" />
-            {/if}
-            Submit Request
-          </Button>
-        </div>
-      </div>
-    </form>
+			<!-- Guidelines -->
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>Leave Guidelines</Card.Title>
+				</Card.Header>
+				<Card.Content>
+					<div class="space-y-3 text-sm">
+						<div>
+							<strong>Vacation Leave:</strong>
+							<p class="text-muted-foreground">Must be requested at least 2 weeks in advance</p>
+						</div>
+						<div>
+							<strong>Sick Leave:</strong>
+							<p class="text-muted-foreground">
+								Can be submitted retroactively with medical documentation
+							</p>
+						</div>
+						<div>
+							<strong>Emergency Leave:</strong>
+							<p class="text-muted-foreground">For urgent situations - requires manager approval</p>
+						</div>
+					</div>
+				</Card.Content>
+			</Card.Root>
+		</div>
+	</div>
 </div>
-

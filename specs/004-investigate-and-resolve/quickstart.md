@@ -6,6 +6,7 @@
 ## Test Environment Setup
 
 ### 1. Database Preparation
+
 ```bash
 # Start development database
 make db-up
@@ -24,6 +25,7 @@ psql -h localhost -U postgres -d hr_system -c "
 ```
 
 ### 2. Service Startup
+
 ```bash
 # Start PostGraphile backend (if not already running)
 npm run backend:dev
@@ -39,6 +41,7 @@ curl http://localhost:5173/api/auth/me
 ## Authentication Flow Validation
 
 ### Test Case 1: Admin User Login
+
 **Objective**: Verify admin user can authenticate and access admin functions
 
 ```bash
@@ -71,6 +74,7 @@ curl -X POST http://localhost:5173/api/auth/refresh \
 ```
 
 ### Test Case 2: Employee User Access Control
+
 **Objective**: Verify employee user has restricted access
 
 ```bash
@@ -101,6 +105,7 @@ curl -X GET http://localhost:5173/api/auth/me \
 ```
 
 ### Test Case 3: Session Persistence After Page Refresh
+
 **Objective**: Verify authentication state persists across browser refresh
 
 ```bash
@@ -119,6 +124,7 @@ curl -X POST http://localhost:5173/api/auth/refresh \
 ```
 
 ### Test Case 4: Invalid Authentication Handling
+
 **Objective**: Verify proper error handling for invalid credentials
 
 ```bash
@@ -151,6 +157,7 @@ curl -X GET http://localhost:5173/api/auth/me \
 ## Role-Based Authorization Validation
 
 ### Test Case 5: Role Hierarchy Enforcement
+
 **Objective**: Verify permission levels work correctly
 
 ```bash
@@ -169,6 +176,7 @@ curl -X GET http://localhost:5173/api/admin/system-config -b hr-cookies.txt
 ```
 
 ### Test Case 6: PostgreSQL RLS Policy Verification
+
 **Objective**: Verify database-level security policies work
 
 ```bash
@@ -193,6 +201,7 @@ curl -X POST http://localhost:4000/graphql \
 ## Security Feature Validation
 
 ### Test Case 7: Token Expiration and Refresh
+
 **Objective**: Verify token lifecycle management
 
 ```bash
@@ -211,6 +220,7 @@ curl -X POST http://localhost:5173/api/auth/refresh \
 ```
 
 ### Test Case 8: Logout and Session Cleanup
+
 **Objective**: Verify logout properly clears authentication state
 
 ```bash
@@ -238,9 +248,11 @@ curl -X GET http://localhost:5173/api/auth/me -b logout-test-cookies.txt
 ## Frontend Integration Validation
 
 ### Test Case 9: Browser-Based Flow (Manual Test)
+
 **Objective**: Verify full browser integration works
 
 **Manual Steps**:
+
 1. Open browser to http://localhost:5173
 2. Should redirect to /login if not authenticated
 3. Enter admin credentials: admin@postgraphile-hr.com / AdminPass123!
@@ -251,6 +263,7 @@ curl -X GET http://localhost:5173/api/auth/me -b logout-test-cookies.txt
 8. Back button should not allow access to admin pages
 
 **Expected Results**:
+
 - No authentication loops between login/dashboard
 - Proper role-based routing (admin → /admin, others → /dashboard)
 - Display name shows "System Administrator" not "User"
@@ -258,6 +271,7 @@ curl -X GET http://localhost:5173/api/auth/me -b logout-test-cookies.txt
 - Logout properly clears all access
 
 ### Test Case 10: Error Scenarios
+
 **Objective**: Verify graceful error handling
 
 ```bash

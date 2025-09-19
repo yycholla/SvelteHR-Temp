@@ -3,6 +3,7 @@
 ## Prerequisites
 
 Before starting, ensure you have the following installed:
+
 - Docker and Docker Compose
 - Node.js 18+ and npm
 - Make (for running Makefile commands)
@@ -19,6 +20,7 @@ make dev
 ```
 
 The application will be available at:
+
 - **Frontend**: http://localhost:5173
 - **PostGraphile GraphQL**: http://localhost:5000/graphiql
 - **PostgreSQL**: localhost:5432
@@ -29,6 +31,7 @@ The application will be available at:
 ### Step 1: Environment Setup
 
 Configure Doppler for environment variables:
+
 ```bash
 doppler setup
 doppler run -- npm start
@@ -37,6 +40,7 @@ doppler run -- npm start
 ### Step 2: Database Initialization
 
 #### Start Database Services
+
 ```bash
 # Start GelDB (PostgreSQL) and Redis containers
 make db-up
@@ -46,6 +50,7 @@ make db-health
 ```
 
 #### Initialize Database Schema
+
 ```bash
 # Apply initial schema and migrations
 make schema-status
@@ -55,6 +60,7 @@ make schema-create
 ```
 
 #### Load Sample Data (Optional)
+
 ```bash
 # Access Gel REPL for manual data operations
 make gel-repl
@@ -68,6 +74,7 @@ make gel-cli CMD="query 'SELECT * FROM employees LIMIT 5'"
 PostGraphile automatically introspects your PostgreSQL database and creates a GraphQL API.
 
 #### Start PostGraphile Server
+
 ```bash
 # PostGraphile starts automatically with `make dev`
 # Or start standalone:
@@ -75,13 +82,16 @@ npm run postgraphile
 ```
 
 #### Configuration
+
 PostGraphile configuration is in `.postgraphilerc.js`:
+
 - JWT authentication via PostgreSQL functions
 - Row-Level Security (RLS) enforcement
 - GraphiQL IDE at `/graphiql`
 - Smart query optimization
 
 #### Verify GraphQL Endpoint
+
 ```bash
 # Test GraphQL endpoint
 curl -X POST http://localhost:5000/graphql \
@@ -92,12 +102,14 @@ curl -X POST http://localhost:5000/graphql \
 ### Step 4: Frontend Development Server
 
 #### Start SvelteKit Development Server
+
 ```bash
 # This also starts database if not running
 make frontend-dev
 ```
 
 #### Generate TypeScript Types
+
 ```bash
 # Generate types from GraphQL schema
 make frontend-codegen
@@ -121,6 +133,7 @@ make frontend-codegen
 ## Common Development Workflows
 
 ### Starting Fresh Development Session
+
 ```bash
 # 1. Start all services
 make dev
@@ -133,6 +146,7 @@ make db-logs
 ```
 
 ### After Schema Changes
+
 ```bash
 # 1. Create migration
 make schema-create
@@ -145,6 +159,7 @@ make frontend-codegen
 ```
 
 ### Database Operations
+
 ```bash
 # Interactive database exploration
 make gel-repl
@@ -157,6 +172,7 @@ docker logs geldb-container
 ```
 
 ### Stopping Services
+
 ```bash
 # Stop all services
 make db-down
@@ -169,6 +185,7 @@ docker stop redis-container
 ## Troubleshooting
 
 ### Database Connection Issues
+
 ```bash
 # Check if containers are running
 docker ps
@@ -184,6 +201,7 @@ make db-reset
 ```
 
 ### PostGraphile Issues
+
 ```bash
 # Check PostGraphile logs
 npm run postgraphile -- --show-error-stack
@@ -199,6 +217,7 @@ curl -X POST http://localhost:5000/graphql \
 ```
 
 ### Frontend Issues
+
 ```bash
 # Clear build cache
 rm -rf .svelte-kit
@@ -214,6 +233,7 @@ make frontend-dev
 ## Environment Variables
 
 Required environment variables (managed via Doppler):
+
 ```bash
 # Database
 DATABASE_URL=postgresql://hasura:hasura123@localhost:5432/hasura
@@ -231,6 +251,7 @@ PUBLIC_GRAPHQL_ENDPOINT=http://localhost:5000/graphql
 ## Performance Monitoring
 
 ### Database Performance
+
 ```bash
 # Monitor query performance
 make gel-cli CMD="SELECT * FROM pg_stat_statements ORDER BY total_time DESC LIMIT 10"
@@ -240,6 +261,7 @@ make gel-cli CMD="SELECT sum(heap_blks_hit) / (sum(heap_blks_hit) + sum(heap_blk
 ```
 
 ### GraphQL Performance
+
 ```bash
 # Enable query logging in PostGraphile
 npm run postgraphile -- --export-schema-graphql schema.graphql --show-error-stack --enhanced-graphiql
@@ -268,6 +290,7 @@ After successful initialization:
 ## Support
 
 For issues or questions:
+
 1. Check logs: `make db-logs`
 2. Verify health: `make db-health`
 3. Review CLAUDE.md for project-specific guidance

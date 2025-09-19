@@ -15,15 +15,16 @@ describe('AuthenticationSession Entity', () => {
         id: '550e8400-e29b-41d4-a716-446655440000',
         userId: 'admin@postgraphile-hr.com',
         userRole: 'admin',
-        jwtToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
+        jwtToken:
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
         tokenExpiry: new Date('2025-01-01T12:00:00Z'),
         sessionStorage: {
-          'hr_navigation_state': 'dashboard',
-          'hr_last_activity': '2025-01-01T10:00:00Z'
+          hr_navigation_state: 'dashboard',
+          hr_last_activity: '2025-01-01T10:00:00Z',
         },
         localStorage: {
           'postgraphile-jwt-token': 'eyJhbGciOiJIUzI1NiIs...',
-          'user_preferences': '{"theme":"dark","lang":"en"}'
+          user_preferences: '{"theme":"dark","lang":"en"}',
         },
         cookies: [
           {
@@ -33,12 +34,12 @@ describe('AuthenticationSession Entity', () => {
             path: '/',
             expires: new Date('2025-01-02T00:00:00Z'),
             httpOnly: true,
-            secure: false
-          }
+            secure: false,
+          },
         ],
         isActive: true,
         loginTime: new Date('2025-01-01T10:00:00Z'),
-        lastActivity: new Date('2025-01-01T10:30:00Z')
+        lastActivity: new Date('2025-01-01T10:30:00Z'),
       });
 
       // Validation requirements from data-model.md
@@ -61,7 +62,7 @@ describe('AuthenticationSession Entity', () => {
         jwtToken: 'invalid-jwt-token', // Invalid JWT format
         isActive: true,
         loginTime: new Date(),
-        lastActivity: new Date()
+        lastActivity: new Date(),
       });
 
       expect(invalidTokenSession).toBeUndefined();
@@ -77,11 +78,12 @@ describe('AuthenticationSession Entity', () => {
         id: '550e8400-e29b-41d4-a716-446655440000',
         userId: 'user@example.com',
         userRole: 'employee',
-        jwtToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
+        jwtToken:
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
         tokenExpiry: new Date('2024-01-01T00:00:00Z'), // Past timestamp
         isActive: true,
         loginTime: new Date(),
-        lastActivity: new Date()
+        lastActivity: new Date(),
       });
 
       expect(expiredTokenSession).toBeUndefined();
@@ -99,7 +101,7 @@ describe('AuthenticationSession Entity', () => {
         userRole: 'employee',
         isActive: true,
         loginTime: new Date('2025-01-01T12:00:00Z'),
-        lastActivity: new Date('2025-01-01T10:00:00Z') // Activity before login
+        lastActivity: new Date('2025-01-01T10:00:00Z'), // Activity before login
       });
 
       expect(invalidTimeSession).toBeUndefined();
@@ -120,7 +122,7 @@ describe('AuthenticationSession Entity', () => {
           userRole: role as any,
           isActive: true,
           loginTime: new Date(),
-          lastActivity: new Date()
+          lastActivity: new Date(),
         });
 
         expect(invalidRoleSession).toBeUndefined();
@@ -137,22 +139,24 @@ describe('AuthenticationSession Entity', () => {
         id: '550e8400-e29b-41d4-a716-446655440000',
         userId: 'user@example.com',
         userRole: 'employee',
-        jwtToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
+        jwtToken:
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
         tokenExpiry: new Date('2024-01-01T00:00:00Z'),
         isActive: false,
         loginTime: new Date('2024-01-01T00:00:00Z'),
-        lastActivity: new Date('2024-01-01T01:00:00Z')
+        lastActivity: new Date('2024-01-01T01:00:00Z'),
       });
 
       const activeSession = new AuthenticationSession({
         id: '550e8400-e29b-41d4-a716-446655440001',
         userId: 'user@example.com',
         userRole: 'employee',
-        jwtToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
+        jwtToken:
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
         tokenExpiry: new Date('2026-01-01T00:00:00Z'),
         isActive: true,
         loginTime: new Date(),
-        lastActivity: new Date()
+        lastActivity: new Date(),
       });
 
       // Should check expiration correctly
@@ -172,7 +176,7 @@ describe('AuthenticationSession Entity', () => {
         userRole: 'employee',
         isActive: true,
         loginTime: new Date('2025-01-01T10:00:00Z'),
-        lastActivity: new Date('2025-01-01T10:30:00Z')
+        lastActivity: new Date('2025-01-01T10:30:00Z'),
       });
 
       // Should calculate duration in minutes
@@ -191,16 +195,16 @@ describe('AuthenticationSession Entity', () => {
         userId: 'user@example.com',
         userRole: 'employee',
         sessionStorage: {
-          'valid_key': 'valid_value',
-          'another_key': 'another_value'
+          valid_key: 'valid_value',
+          another_key: 'another_value',
         },
         localStorage: {
           'postgraphile-jwt-token': 'token_value',
-          'user_preferences': '{"theme":"light"}'
+          user_preferences: '{"theme":"light"}',
         },
         isActive: true,
         loginTime: new Date(),
-        lastActivity: new Date()
+        lastActivity: new Date(),
       });
 
       // Should validate storage structure
@@ -225,7 +229,7 @@ describe('AuthenticationSession Entity', () => {
         tokenExpiry: new Date('2025-01-01T11:00:00Z'),
         isActive: true,
         loginTime: new Date('2025-01-01T10:00:00Z'),
-        lastActivity: new Date('2025-01-01T10:30:00Z')
+        lastActivity: new Date('2025-01-01T10:30:00Z'),
       });
 
       // Should renew session with new token
@@ -251,7 +255,7 @@ describe('AuthenticationSession Entity', () => {
         jwtToken: 'active_token',
         isActive: true,
         loginTime: new Date(),
-        lastActivity: new Date()
+        lastActivity: new Date(),
       });
 
       // Should terminate session properly
@@ -273,7 +277,7 @@ describe('AuthenticationSession Entity', () => {
         userRole: 'employee',
         isActive: true,
         loginTime: new Date(),
-        lastActivity: new Date()
+        lastActivity: new Date(),
       });
 
       const json = authSession.toJSON();

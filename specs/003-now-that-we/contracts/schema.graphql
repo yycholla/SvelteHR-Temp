@@ -4,517 +4,531 @@
 
 # ===== AUTHENTICATION =====
 
-"""JWT token payload returned by authentication"""
+"""
+JWT token payload returned by authentication
+"""
 type JwtToken {
-  role: String!
-  exp: Int!
-  employeeId: Int!
-  departmentId: Int!
-  roleLevel: Int!
-  isAdmin: Boolean!
-  permissions: [String!]!
+	role: String!
+	exp: Int!
+	employeeId: Int!
+	departmentId: Int!
+	roleLevel: Int!
+	isAdmin: Boolean!
+	permissions: [String!]!
 }
 
 # ===== CORE ENTITIES =====
 
-"""Employee entity with role-based access control"""
+"""
+Employee entity with role-based access control
+"""
 type Employee {
-  id: Int!
-  firstName: String!
-  lastName: String!
-  email: String!
-  departmentId: Int!
-  managerId: Int
-  roleLevel: Int!
-  status: EmployeeStatus!
-  hireDate: Date!
-  
-  # Computed fields (PostGraphile functions)
-  fullName: String!
-  directReports: [Employee!]!
-  
-  # Relationships
-  department: Department!
-  manager: Employee
-  timeOffRequests: [TimeOffRequest!]!
-  performanceReviews: [PerformanceReview!]!
-  
-  # Sensitive data (restricted by RLS)
-  compensation: EmployeeCompensation
+	id: Int!
+	firstName: String!
+	lastName: String!
+	email: String!
+	departmentId: Int!
+	managerId: Int
+	roleLevel: Int!
+	status: EmployeeStatus!
+	hireDate: Date!
+
+	# Computed fields (PostGraphile functions)
+	fullName: String!
+	directReports: [Employee!]!
+
+	# Relationships
+	department: Department!
+	manager: Employee
+	timeOffRequests: [TimeOffRequest!]!
+	performanceReviews: [PerformanceReview!]!
+
+	# Sensitive data (restricted by RLS)
+	compensation: EmployeeCompensation
 }
 
-"""Department hierarchical structure"""
+"""
+Department hierarchical structure
+"""
 type Department {
-  id: Int!
-  name: String!
-  description: String
-  parentDepartmentId: Int
-  managerId: Int!
-  
-  # Relationships
-  parentDepartment: Department
-  subDepartments: [Department!]!
-  manager: Employee!
-  employees: [Employee!]!
-  
-  # Computed fields
-  employeeCount: Int!
-  departmentPath: [Department!]!
+	id: Int!
+	name: String!
+	description: String
+	parentDepartmentId: Int
+	managerId: Int!
+
+	# Relationships
+	parentDepartment: Department
+	subDepartments: [Department!]!
+	manager: Employee!
+	employees: [Employee!]!
+
+	# Computed fields
+	employeeCount: Int!
+	departmentPath: [Department!]!
 }
 
-"""Time off request with approval workflow"""
+"""
+Time off request with approval workflow
+"""
 type TimeOffRequest {
-  id: Int!
-  employeeId: Int!
-  requestType: TimeOffType!
-  startDate: Date!
-  endDate: Date!
-  daysRequested: Float!
-  reason: String
-  status: RequestStatus!
-  approvedBy: Int
-  approvedAt: DateTime
-  createdAt: DateTime!
-  
-  # Relationships
-  employee: Employee!
-  approver: Employee
-  
-  # Computed fields
-  canApprove: Boolean!
-  canModify: Boolean!
+	id: Int!
+	employeeId: Int!
+	requestType: TimeOffType!
+	startDate: Date!
+	endDate: Date!
+	daysRequested: Float!
+	reason: String
+	status: RequestStatus!
+	approvedBy: Int
+	approvedAt: DateTime
+	createdAt: DateTime!
+
+	# Relationships
+	employee: Employee!
+	approver: Employee
+
+	# Computed fields
+	canApprove: Boolean!
+	canModify: Boolean!
 }
 
-"""Performance review cycle"""
+"""
+Performance review cycle
+"""
 type PerformanceReview {
-  id: Int!
-  employeeId: Int!
-  reviewerId: Int!
-  reviewPeriod: String!
-  status: ReviewStatus!
-  overallRating: Float
-  goals: String
-  feedback: String
-  createdAt: DateTime!
-  completedAt: DateTime
-  
-  # Relationships
-  employee: Employee!
-  reviewer: Employee!
-  
-  # Access control
-  canView: Boolean!
-  canEdit: Boolean!
+	id: Int!
+	employeeId: Int!
+	reviewerId: Int!
+	reviewPeriod: String!
+	status: ReviewStatus!
+	overallRating: Float
+	goals: String
+	feedback: String
+	createdAt: DateTime!
+	completedAt: DateTime
+
+	# Relationships
+	employee: Employee!
+	reviewer: Employee!
+
+	# Access control
+	canView: Boolean!
+	canEdit: Boolean!
 }
 
-"""Employee compensation (highly restricted)"""
+"""
+Employee compensation (highly restricted)
+"""
 type EmployeeCompensation {
-  id: Int!
-  employeeId: Int!
-  baseSalary: Float!
-  currency: String!
-  effectiveDate: Date!
-  
-  # Computed fields
-  annualSalary: Float!
-  
-  # Relationships
-  employee: Employee!
+	id: Int!
+	employeeId: Int!
+	baseSalary: Float!
+	currency: String!
+	effectiveDate: Date!
+
+	# Computed fields
+	annualSalary: Float!
+
+	# Relationships
+	employee: Employee!
 }
 
 # ===== ENUMS =====
 
 enum EmployeeStatus {
-  ACTIVE
-  INACTIVE
-  TERMINATED
-  ON_LEAVE
+	ACTIVE
+	INACTIVE
+	TERMINATED
+	ON_LEAVE
 }
 
 enum TimeOffType {
-  VACATION
-  SICK_LEAVE
-  PERSONAL
-  BEREAVEMENT
-  MATERNITY
-  PATERNITY
+	VACATION
+	SICK_LEAVE
+	PERSONAL
+	BEREAVEMENT
+	MATERNITY
+	PATERNITY
 }
 
 enum RequestStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  CANCELLED
+	PENDING
+	APPROVED
+	REJECTED
+	CANCELLED
 }
 
 enum ReviewStatus {
-  NOT_STARTED
-  IN_PROGRESS
-  COMPLETED
-  OVERDUE
+	NOT_STARTED
+	IN_PROGRESS
+	COMPLETED
+	OVERDUE
 }
 
 # ===== MUTATIONS =====
 
 type Mutation {
-  # Authentication
-  authenticate(input: AuthenticateInput!): AuthenticatePayload
-  refreshToken(input: RefreshTokenInput!): RefreshTokenPayload
-  logout: LogoutPayload
-  
-  # Employee Management
-  createEmployee(input: CreateEmployeeInput!): CreateEmployeePayload
-  updateEmployee(input: UpdateEmployeeInput!): UpdateEmployeePayload
-  updateEmployeeRole(input: UpdateEmployeeRoleInput!): UpdateEmployeeRolePayload
-  terminateEmployee(input: TerminateEmployeeInput!): TerminateEmployeePayload
-  
-  # Time Off Management
-  submitTimeOffRequest(input: SubmitTimeOffRequestInput!): SubmitTimeOffRequestPayload
-  approveTimeOffRequest(input: ApproveTimeOffRequestInput!): ApproveTimeOffRequestPayload
-  rejectTimeOffRequest(input: RejectTimeOffRequestInput!): RejectTimeOffRequestPayload
-  
-  # Performance Reviews
-  createPerformanceReview(input: CreatePerformanceReviewInput!): CreatePerformanceReviewPayload
-  updatePerformanceReview(input: UpdatePerformanceReviewInput!): UpdatePerformanceReviewPayload
-  completePerformanceReview(input: CompletePerformanceReviewInput!): CompletePerformanceReviewPayload
+	# Authentication
+	authenticate(input: AuthenticateInput!): AuthenticatePayload
+	refreshToken(input: RefreshTokenInput!): RefreshTokenPayload
+	logout: LogoutPayload
+
+	# Employee Management
+	createEmployee(input: CreateEmployeeInput!): CreateEmployeePayload
+	updateEmployee(input: UpdateEmployeeInput!): UpdateEmployeePayload
+	updateEmployeeRole(input: UpdateEmployeeRoleInput!): UpdateEmployeeRolePayload
+	terminateEmployee(input: TerminateEmployeeInput!): TerminateEmployeePayload
+
+	# Time Off Management
+	submitTimeOffRequest(input: SubmitTimeOffRequestInput!): SubmitTimeOffRequestPayload
+	approveTimeOffRequest(input: ApproveTimeOffRequestInput!): ApproveTimeOffRequestPayload
+	rejectTimeOffRequest(input: RejectTimeOffRequestInput!): RejectTimeOffRequestPayload
+
+	# Performance Reviews
+	createPerformanceReview(input: CreatePerformanceReviewInput!): CreatePerformanceReviewPayload
+	updatePerformanceReview(input: UpdatePerformanceReviewInput!): UpdatePerformanceReviewPayload
+	completePerformanceReview(
+		input: CompletePerformanceReviewInput!
+	): CompletePerformanceReviewPayload
 }
 
 # ===== QUERIES =====
 
 type Query {
-  # Current user context
-  currentEmployee: Employee
-  myTimeOffBalance: TimeOffBalance!
-  myUpcomingTimeOff: [TimeOffRequest!]!
-  myPerformanceReviews: [PerformanceReview!]!
-  
-  # Employee queries (role-based access)
-  employee(id: Int!): Employee
-  employees(
-    first: Int
-    after: Cursor
-    filter: EmployeeFilter
-    orderBy: [EmployeesOrderBy!]
-  ): EmployeesConnection!
-  
-  # Department queries
-  department(id: Int!): Department
-  departments: [Department!]!
-  departmentTree: [Department!]!
-  
-  # Time off queries
-  timeOffRequest(id: Int!): TimeOffRequest
-  timeOffRequests(
-    first: Int
-    after: Cursor
-    filter: TimeOffRequestFilter
-  ): TimeOffRequestsConnection!
-  
-  # Performance queries
-  performanceReview(id: Int!): PerformanceReview
-  performanceReviews(
-    first: Int
-    after: Cursor
-    filter: PerformanceReviewFilter
-  ): PerformanceReviewsConnection!
-  
-  # Reporting (admin only)
-  departmentReport(departmentId: Int!, dateRange: DateRangeInput!): DepartmentReport
-  payrollSummary(payPeriod: String!): PayrollSummary
+	# Current user context
+	currentEmployee: Employee
+	myTimeOffBalance: TimeOffBalance!
+	myUpcomingTimeOff: [TimeOffRequest!]!
+	myPerformanceReviews: [PerformanceReview!]!
+
+	# Employee queries (role-based access)
+	employee(id: Int!): Employee
+	employees(
+		first: Int
+		after: Cursor
+		filter: EmployeeFilter
+		orderBy: [EmployeesOrderBy!]
+	): EmployeesConnection!
+
+	# Department queries
+	department(id: Int!): Department
+	departments: [Department!]!
+	departmentTree: [Department!]!
+
+	# Time off queries
+	timeOffRequest(id: Int!): TimeOffRequest
+	timeOffRequests(
+		first: Int
+		after: Cursor
+		filter: TimeOffRequestFilter
+	): TimeOffRequestsConnection!
+
+	# Performance queries
+	performanceReview(id: Int!): PerformanceReview
+	performanceReviews(
+		first: Int
+		after: Cursor
+		filter: PerformanceReviewFilter
+	): PerformanceReviewsConnection!
+
+	# Reporting (admin only)
+	departmentReport(departmentId: Int!, dateRange: DateRangeInput!): DepartmentReport
+	payrollSummary(payPeriod: String!): PayrollSummary
 }
 
 # ===== INPUT TYPES =====
 
 input AuthenticateInput {
-  email: String!
-  password: String!
+	email: String!
+	password: String!
 }
 
 input RefreshTokenInput {
-  refreshToken: String!
+	refreshToken: String!
 }
 
 input CreateEmployeeInput {
-  firstName: String!
-  lastName: String!
-  email: String!
-  departmentId: Int!
-  managerId: Int
-  roleLevel: Int!
-  hireDate: Date!
+	firstName: String!
+	lastName: String!
+	email: String!
+	departmentId: Int!
+	managerId: Int
+	roleLevel: Int!
+	hireDate: Date!
 }
 
 input UpdateEmployeeInput {
-  id: Int!
-  firstName: String
-  lastName: String
-  email: String
-  departmentId: Int
-  managerId: Int
+	id: Int!
+	firstName: String
+	lastName: String
+	email: String
+	departmentId: Int
+	managerId: Int
 }
 
 input UpdateEmployeeRoleInput {
-  employeeId: Int!
-  newRoleLevel: Int!
-  effectiveDate: Date!
-  reason: String!
+	employeeId: Int!
+	newRoleLevel: Int!
+	effectiveDate: Date!
+	reason: String!
 }
 
 input TerminateEmployeeInput {
-  employeeId: Int!
-  terminationDate: Date!
-  reason: String!
-  finalPayDate: Date
+	employeeId: Int!
+	terminationDate: Date!
+	reason: String!
+	finalPayDate: Date
 }
 
 input SubmitTimeOffRequestInput {
-  requestType: TimeOffType!
-  startDate: Date!
-  endDate: Date!
-  reason: String
+	requestType: TimeOffType!
+	startDate: Date!
+	endDate: Date!
+	reason: String
 }
 
 input ApproveTimeOffRequestInput {
-  requestId: Int!
-  approvalNotes: String
+	requestId: Int!
+	approvalNotes: String
 }
 
 input RejectTimeOffRequestInput {
-  requestId: Int!
-  rejectionReason: String!
+	requestId: Int!
+	rejectionReason: String!
 }
 
 input CreatePerformanceReviewInput {
-  employeeId: Int!
-  reviewPeriod: String!
-  reviewerId: Int!
+	employeeId: Int!
+	reviewPeriod: String!
+	reviewerId: Int!
 }
 
 input UpdatePerformanceReviewInput {
-  id: Int!
-  overallRating: Float
-  goals: String
-  feedback: String
+	id: Int!
+	overallRating: Float
+	goals: String
+	feedback: String
 }
 
 input CompletePerformanceReviewInput {
-  id: Int!
-  finalRating: Float!
-  finalFeedback: String!
+	id: Int!
+	finalRating: Float!
+	finalFeedback: String!
 }
 
 # ===== FILTER TYPES =====
 
 input EmployeeFilter {
-  status: EmployeeStatus
-  departmentId: Int
-  roleLevel: IntFilter
-  hireDate: DateFilter
-  search: String
+	status: EmployeeStatus
+	departmentId: Int
+	roleLevel: IntFilter
+	hireDate: DateFilter
+	search: String
 }
 
 input TimeOffRequestFilter {
-  employeeId: Int
-  status: RequestStatus
-  requestType: TimeOffType
-  dateRange: DateRangeInput
+	employeeId: Int
+	status: RequestStatus
+	requestType: TimeOffType
+	dateRange: DateRangeInput
 }
 
 input PerformanceReviewFilter {
-  employeeId: Int
-  reviewerId: Int
-  status: ReviewStatus
-  reviewPeriod: String
+	employeeId: Int
+	reviewerId: Int
+	status: ReviewStatus
+	reviewPeriod: String
 }
 
 input DateRangeInput {
-  startDate: Date!
-  endDate: Date!
+	startDate: Date!
+	endDate: Date!
 }
 
 input IntFilter {
-  eq: Int
-  gt: Int
-  gte: Int
-  lt: Int
-  lte: Int
+	eq: Int
+	gt: Int
+	gte: Int
+	lt: Int
+	lte: Int
 }
 
 input DateFilter {
-  eq: Date
-  gt: Date
-  gte: Date
-  lt: Date
-  lte: Date
+	eq: Date
+	gt: Date
+	gte: Date
+	lt: Date
+	lte: Date
 }
 
 # ===== PAYLOAD TYPES =====
 
 type AuthenticatePayload {
-  jwtToken: String
-  refreshToken: String
-  employee: Employee
+	jwtToken: String
+	refreshToken: String
+	employee: Employee
 }
 
 type RefreshTokenPayload {
-  jwtToken: String
-  refreshToken: String
+	jwtToken: String
+	refreshToken: String
 }
 
 type LogoutPayload {
-  success: Boolean!
+	success: Boolean!
 }
 
 type CreateEmployeePayload {
-  employee: Employee
+	employee: Employee
 }
 
 type UpdateEmployeePayload {
-  employee: Employee
+	employee: Employee
 }
 
 type UpdateEmployeeRolePayload {
-  employee: Employee
-  roleChangeAudit: RoleChangeAudit
+	employee: Employee
+	roleChangeAudit: RoleChangeAudit
 }
 
 type TerminateEmployeePayload {
-  employee: Employee
-  terminationAudit: TerminationAudit
+	employee: Employee
+	terminationAudit: TerminationAudit
 }
 
 type SubmitTimeOffRequestPayload {
-  timeOffRequest: TimeOffRequest
+	timeOffRequest: TimeOffRequest
 }
 
 type ApproveTimeOffRequestPayload {
-  timeOffRequest: TimeOffRequest
-  updatedBalance: TimeOffBalance
+	timeOffRequest: TimeOffRequest
+	updatedBalance: TimeOffBalance
 }
 
 type RejectTimeOffRequestPayload {
-  timeOffRequest: TimeOffRequest
+	timeOffRequest: TimeOffRequest
 }
 
 type CreatePerformanceReviewPayload {
-  performanceReview: PerformanceReview
+	performanceReview: PerformanceReview
 }
 
 type UpdatePerformanceReviewPayload {
-  performanceReview: PerformanceReview
+	performanceReview: PerformanceReview
 }
 
 type CompletePerformanceReviewPayload {
-  performanceReview: PerformanceReview
+	performanceReview: PerformanceReview
 }
 
 # ===== CONNECTION TYPES =====
 
 type EmployeesConnection {
-  nodes: [Employee!]!
-  edges: [EmployeeEdge!]!
-  pageInfo: PageInfo!
-  totalCount: Int!
+	nodes: [Employee!]!
+	edges: [EmployeeEdge!]!
+	pageInfo: PageInfo!
+	totalCount: Int!
 }
 
 type EmployeeEdge {
-  cursor: Cursor!
-  node: Employee!
+	cursor: Cursor!
+	node: Employee!
 }
 
 type TimeOffRequestsConnection {
-  nodes: [TimeOffRequest!]!
-  edges: [TimeOffRequestEdge!]!
-  pageInfo: PageInfo!
-  totalCount: Int!
+	nodes: [TimeOffRequest!]!
+	edges: [TimeOffRequestEdge!]!
+	pageInfo: PageInfo!
+	totalCount: Int!
 }
 
 type TimeOffRequestEdge {
-  cursor: Cursor!
-  node: TimeOffRequest!
+	cursor: Cursor!
+	node: TimeOffRequest!
 }
 
 type PerformanceReviewsConnection {
-  nodes: [PerformanceReview!]!
-  edges: [PerformanceReviewEdge!]!
-  pageInfo: PageInfo!
-  totalCount: Int!
+	nodes: [PerformanceReview!]!
+	edges: [PerformanceReviewEdge!]!
+	pageInfo: PageInfo!
+	totalCount: Int!
 }
 
 type PerformanceReviewEdge {
-  cursor: Cursor!
-  node: PerformanceReview!
+	cursor: Cursor!
+	node: PerformanceReview!
 }
 
 # ===== SUPPORTING TYPES =====
 
 type PageInfo {
-  hasNextPage: Boolean!
-  hasPreviousPage: Boolean!
-  startCursor: Cursor
-  endCursor: Cursor
+	hasNextPage: Boolean!
+	hasPreviousPage: Boolean!
+	startCursor: Cursor
+	endCursor: Cursor
 }
 
 type TimeOffBalance {
-  employeeId: Int!
-  vacationDaysTotal: Float!
-  vacationDaysUsed: Float!
-  vacationDaysRemaining: Float!
-  sickDaysTotal: Float!
-  sickDaysUsed: Float!
-  sickDaysRemaining: Float!
-  personalDaysTotal: Float!
-  personalDaysUsed: Float!
-  personalDaysRemaining: Float!
+	employeeId: Int!
+	vacationDaysTotal: Float!
+	vacationDaysUsed: Float!
+	vacationDaysRemaining: Float!
+	sickDaysTotal: Float!
+	sickDaysUsed: Float!
+	sickDaysRemaining: Float!
+	personalDaysTotal: Float!
+	personalDaysUsed: Float!
+	personalDaysRemaining: Float!
 }
 
 type DepartmentReport {
-  departmentId: Int!
-  employeeCount: Int!
-  averageRoleLevel: Float!
-  timeOffUtilization: Float!
-  performanceMetrics: PerformanceMetrics!
+	departmentId: Int!
+	employeeCount: Int!
+	averageRoleLevel: Float!
+	timeOffUtilization: Float!
+	performanceMetrics: PerformanceMetrics!
 }
 
 type PerformanceMetrics {
-  averageRating: Float!
-  reviewsCompleted: Int!
-  reviewsOverdue: Int!
+	averageRating: Float!
+	reviewsCompleted: Int!
+	reviewsOverdue: Int!
 }
 
 type PayrollSummary {
-  payPeriod: String!
-  totalEmployees: Int!
-  totalBaseSalary: Float!
-  averageSalary: Float!
-  departmentBreakdown: [DepartmentPayrollSummary!]!
+	payPeriod: String!
+	totalEmployees: Int!
+	totalBaseSalary: Float!
+	averageSalary: Float!
+	departmentBreakdown: [DepartmentPayrollSummary!]!
 }
 
 type DepartmentPayrollSummary {
-  departmentId: Int!
-  departmentName: String!
-  employeeCount: Int!
-  totalSalary: Float!
-  averageSalary: Float!
+	departmentId: Int!
+	departmentName: String!
+	employeeCount: Int!
+	totalSalary: Float!
+	averageSalary: Float!
 }
 
 type RoleChangeAudit {
-  employeeId: Int!
-  oldRoleLevel: Int!
-  newRoleLevel: Int!
-  changedBy: Int!
-  reason: String!
-  effectiveDate: Date!
-  createdAt: DateTime!
+	employeeId: Int!
+	oldRoleLevel: Int!
+	newRoleLevel: Int!
+	changedBy: Int!
+	reason: String!
+	effectiveDate: Date!
+	createdAt: DateTime!
 }
 
 type TerminationAudit {
-  employeeId: Int!
-  terminationDate: Date!
-  reason: String!
-  terminatedBy: Int!
-  finalPayDate: Date
-  createdAt: DateTime!
+	employeeId: Int!
+	terminationDate: Date!
+	reason: String!
+	terminatedBy: Int!
+	finalPayDate: Date
+	createdAt: DateTime!
 }
 
 # ===== SCALARS =====
@@ -526,14 +540,14 @@ scalar Cursor
 # ===== ORDERING =====
 
 enum EmployeesOrderBy {
-  ID_ASC
-  ID_DESC
-  FIRST_NAME_ASC
-  FIRST_NAME_DESC
-  LAST_NAME_ASC
-  LAST_NAME_DESC
-  HIRE_DATE_ASC
-  HIRE_DATE_DESC
-  ROLE_LEVEL_ASC
-  ROLE_LEVEL_DESC
+	ID_ASC
+	ID_DESC
+	FIRST_NAME_ASC
+	FIRST_NAME_DESC
+	LAST_NAME_ASC
+	LAST_NAME_DESC
+	HIRE_DATE_ASC
+	HIRE_DATE_DESC
+	ROLE_LEVEL_ASC
+	ROLE_LEVEL_DESC
 }

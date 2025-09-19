@@ -11,12 +11,12 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres123
       # Create application user automatically
-      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+      POSTGRES_INITDB_ARGS: '--auth-host=scram-sha-256 --auth-local=scram-sha-256'
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init/001-complete-schema.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
     ports:
-      - "5432:5432"
+      - '5432:5432'
     command: |
       postgres
       -c max_connections=200
@@ -31,7 +31,7 @@ services:
       -c log_disconnections=on
       -c log_statement=mod
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d hr_system"]
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d hr_system']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -42,12 +42,12 @@ services:
     container_name: svelteHR-redis-postgraphile
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes --maxmemory 4gb --maxmemory-policy allkeys-lru
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 5s
       retries: 3
@@ -60,7 +60,7 @@ services:
     container_name: svelteHR-postgraphile
     restart: unless-stopped
     ports:
-      - "4000:4000"
+      - '4000:4000'
     depends_on:
       postgres:
         condition: service_healthy
@@ -70,37 +70,37 @@ services:
       # Database Configuration
       DATABASE_URL: postgres://postgraphile_user:postgraphile_password@postgres:5432/hr_system
       OWNER_DATABASE_URL: postgres://postgres:postgres123@postgres:5432/hr_system
-      
+
       # JWT Configuration
       JWT_SECRET: your-super-secure-jwt-secret-key-here-minimum-32-characters-required
       JWT_EXPIRES_IN: 15m
       REFRESH_TOKEN_EXPIRES_IN: 30d
-      
+
       # Redis Configuration
       REDIS_URL: redis://redis:6379
-      
+
       # Server Configuration
       NODE_ENV: development
       PORT: 4000
       HOST: 0.0.0.0
-      
+
       # PostGraphile Configuration
       POSTGRAPHILE_SCHEMAS: hr_public
       DEFAULT_ROLE: hr_guest
       GRAPHIQL_ENABLED: true
       WATCH_PG: true
       ENABLE_QUERY_BATCHING: true
-      APPEND_PLUGINS: "@graphile/postgraphile-cache,@graphile/operation-hooks"
-      
+      APPEND_PLUGINS: '@graphile/postgraphile-cache,@graphile/operation-hooks'
+
       # Security Configuration
       CORS_ORIGIN: http://localhost:5173,http://localhost:3000
       RATE_LIMIT_WINDOW_MS: 900000
       RATE_LIMIT_MAX_REQUESTS: 100
-      
+
       # Logging Configuration
       LOG_LEVEL: info
       LOG_FORMAT: json
-      
+
       # Database Pool Configuration
       DB_POOL_MIN: 2
       DB_POOL_MAX: 10
@@ -110,9 +110,9 @@ services:
       - ./backend/src:/app/src:ro
       - ./backend/package.json:/app/package.json:ro
       - ./backend/tsconfig.json:/app/tsconfig.json:ro
-    
+
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:4000/health || exit 1"]
+      test: ['CMD-SHELL', 'curl -f http://localhost:4000/health || exit 1']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -127,7 +127,7 @@ services:
       PGADMIN_DEFAULT_EMAIL: admin@svelteHR.com
       PGADMIN_DEFAULT_PASSWORD: admin123
     ports:
-      - "5050:80"
+      - '5050:80'
     depends_on:
       - postgres
     volumes:

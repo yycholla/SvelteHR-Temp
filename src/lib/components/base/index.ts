@@ -8,9 +8,24 @@ export { default as Modal } from './Modal.svelte';
 export { default as Badge } from './Badge.svelte';
 
 // Re-export types if needed
-export type ButtonVariant = 'primary' | 'secondary' | 'tertiary' | 'danger' | 'success' | 'warning' | 'ghost';
+export type ButtonVariant =
+	| 'primary'
+	| 'secondary'
+	| 'tertiary'
+	| 'danger'
+	| 'success'
+	| 'warning'
+	| 'ghost';
 export type ButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 export type InputVariant = 'default' | 'error' | 'success';
 export type InputSize = 'sm' | 'md' | 'lg';
-export type BadgeVariant = 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'info' | 'light' | 'dark';
+export type BadgeVariant =
+	| 'primary'
+	| 'secondary'
+	| 'success'
+	| 'warning'
+	| 'danger'
+	| 'info'
+	| 'light'
+	| 'dark';
 export type BadgeSize = 'xs' | 'sm' | 'md' | 'lg';

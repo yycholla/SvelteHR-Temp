@@ -101,8 +101,9 @@
 
 	// Filter logs based on current filters
 	const filteredLogs = $derived(() => {
-		return auditLogs.filter(log => {
-			const matchesSearch = searchQuery === '' ||
+		return auditLogs.filter((log) => {
+			const matchesSearch =
+				searchQuery === '' ||
 				log.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
 				log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
 				log.details.toLowerCase().includes(searchQuery.toLowerCase());
@@ -116,27 +117,38 @@
 
 	function getSeverityIcon(severity: string) {
 		switch (severity) {
-			case 'error': return AlertTriangle;
-			case 'warning': return XCircle;
-			case 'info': return Info;
-			default: return CheckCircle;
+			case 'error':
+				return AlertTriangle;
+			case 'warning':
+				return XCircle;
+			case 'info':
+				return Info;
+			default:
+				return CheckCircle;
 		}
 	}
 
 	function getSeverityVariant(severity: string) {
 		switch (severity) {
-			case 'error': return 'destructive';
-			case 'warning': return 'secondary';
-			case 'info': return 'outline';
-			default: return 'default';
+			case 'error':
+				return 'destructive';
+			case 'warning':
+				return 'secondary';
+			case 'info':
+				return 'outline';
+			default:
+				return 'default';
 		}
 	}
 
 	function getStatusIcon(status: string) {
 		switch (status) {
-			case 'success': return CheckCircle;
-			case 'failure': return XCircle;
-			default: return Info;
+			case 'success':
+				return CheckCircle;
+			case 'failure':
+				return XCircle;
+			default:
+				return Info;
 		}
 	}
 
@@ -171,33 +183,33 @@
 	<!-- Header -->
 	<div class="flex items-center justify-between">
 		<div>
-			<div class="flex items-center gap-3 mb-2">
+			<div class="mb-2 flex items-center gap-3">
 				<Button variant="ghost" size="sm" href="/dashboard/admin" class="p-2">
 					<ArrowLeft class="h-4 w-4" />
 				</Button>
-				<h1 class="text-3xl font-bold tracking-tight flex items-center gap-3">
+				<h1 class="flex items-center gap-3 text-3xl font-bold tracking-tight">
 					<FileText class="h-8 w-8" />
 					Audit & Logs
 				</h1>
 			</div>
-			<p class="text-muted-foreground">
-				View system audit logs and user activity tracking
-			</p>
+			<p class="text-muted-foreground">View system audit logs and user activity tracking</p>
 		</div>
 		<div class="flex items-center gap-3">
 			<Button variant="outline" onclick={refreshLogs} disabled={loading}>
 				{#if loading}
-					<RefreshCw class="h-4 w-4 mr-2 animate-spin" />
+					<RefreshCw class="mr-2 h-4 w-4 animate-spin" />
 				{:else}
-					<RefreshCw class="h-4 w-4 mr-2" />
+					<RefreshCw class="mr-2 h-4 w-4" />
 				{/if}
 				Refresh
 			</Button>
 			<Button onclick={exportLogs} disabled={loading}>
 				{#if loading}
-					<div class="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+					<div
+						class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+					></div>
 				{:else}
-					<Download class="h-4 w-4 mr-2" />
+					<Download class="mr-2 h-4 w-4" />
 				{/if}
 				Export Logs
 			</Button>
@@ -205,7 +217,7 @@
 	</div>
 
 	<!-- Summary Cards -->
-	<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+	<div class="grid grid-cols-1 gap-6 md:grid-cols-4">
 		<Card.Root>
 			<Card.Content class="p-6">
 				<div class="flex items-center justify-between">
@@ -261,7 +273,7 @@
 			</Card.Title>
 		</Card.Header>
 		<Card.Content>
-			<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+			<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
 				<div class="space-y-2">
 					<Label for="search">Search</Label>
 					<div class="relative">
@@ -333,7 +345,7 @@
 			{#if loading}
 				<div class="space-y-4">
 					{#each Array(5) as _}
-						<div class="h-16 bg-muted rounded animate-pulse"></div>
+						<div class="h-16 animate-pulse rounded bg-muted"></div>
 					{/each}
 				</div>
 			{:else}
@@ -365,7 +377,7 @@
 								<Table.Cell>
 									<div>
 										<div class="font-medium">{log.action}</div>
-										<div class="text-sm text-muted-foreground truncate max-w-xs">
+										<div class="max-w-xs truncate text-sm text-muted-foreground">
 											{log.details}
 										</div>
 									</div>
@@ -374,13 +386,19 @@
 									<Badge variant="outline">{log.resource}</Badge>
 								</Table.Cell>
 								<Table.Cell>
-									<Badge variant={getSeverityVariant(log.severity)} class="flex items-center gap-1 w-fit">
+									<Badge
+										variant={getSeverityVariant(log.severity)}
+										class="flex w-fit items-center gap-1"
+									>
 										<svelte:component this={getSeverityIcon(log.severity)} class="h-3 w-3" />
 										{log.severity}
 									</Badge>
 								</Table.Cell>
 								<Table.Cell>
-									<Badge variant={log.status === 'success' ? 'default' : 'destructive'} class="flex items-center gap-1 w-fit">
+									<Badge
+										variant={log.status === 'success' ? 'default' : 'destructive'}
+										class="flex w-fit items-center gap-1"
+									>
 										<svelte:component this={getStatusIcon(log.status)} class="h-3 w-3" />
 										{log.status}
 									</Badge>
@@ -399,8 +417,8 @@
 				</Table.Root>
 
 				{#if filteredLogs.length === 0}
-					<div class="text-center py-12">
-						<FileText class="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+					<div class="py-12 text-center">
+						<FileText class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
 						<h3 class="text-lg font-medium">No logs found</h3>
 						<p class="text-muted-foreground">Try adjusting your filters or search criteria.</p>
 					</div>

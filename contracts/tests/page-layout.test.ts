@@ -21,7 +21,7 @@ test.describe('PageLayout Component Contract Tests', () => {
 			// Verify navigation items structure
 			if (props.navigationItems) {
 				expect(Array.isArray(props.navigationItems)).toBe(true);
-				props.navigationItems.forEach(item => {
+				props.navigationItems.forEach((item) => {
 					expect(item).toHaveProperty('label');
 					expect(['link', 'menu', 'divider', undefined]).toContain(item.type);
 					if (item.children) {
@@ -33,7 +33,7 @@ test.describe('PageLayout Component Contract Tests', () => {
 			// Verify breadcrumbs structure
 			if (props.breadcrumbs) {
 				expect(Array.isArray(props.breadcrumbs)).toBe(true);
-				props.breadcrumbs.forEach(crumb => {
+				props.breadcrumbs.forEach((crumb) => {
 					expect(crumb).toHaveProperty('label');
 					expect(typeof crumb.label).toBe('string');
 				});
@@ -60,7 +60,7 @@ test.describe('PageLayout Component Contract Tests', () => {
 			// Verify notification structure
 			if (props.notifications) {
 				expect(Array.isArray(props.notifications)).toBe(true);
-				props.notifications.forEach(notification => {
+				props.notifications.forEach((notification) => {
 					expect(notification).toHaveProperty('type');
 					expect(notification).toHaveProperty('title');
 					expect(['info', 'success', 'warning', 'error']).toContain(notification.type);
@@ -104,10 +104,13 @@ test.describe('PageLayout Component Contract Tests', () => {
 
 		await page.goto('/test/page-layout');
 		await page.evaluate((items) => {
-			window.postMessage({
-				type: 'updateProps',
-				props: { navigationItems: items }
-			}, '*');
+			window.postMessage(
+				{
+					type: 'updateProps',
+					props: { navigationItems: items }
+				},
+				'*'
+			);
 		}, navigationItems);
 
 		// Verify navigation links
@@ -132,10 +135,13 @@ test.describe('PageLayout Component Contract Tests', () => {
 
 		await page.goto('/test/page-layout');
 		await page.evaluate((crumbs) => {
-			window.postMessage({
-				type: 'updateProps',
-				props: { breadcrumbs: crumbs }
-			}, '*');
+			window.postMessage(
+				{
+					type: 'updateProps',
+					props: { breadcrumbs: crumbs }
+				},
+				'*'
+			);
 		}, breadcrumbs);
 
 		const breadcrumbItems = await page.locator('.bx--breadcrumb-item').count();
@@ -154,10 +160,13 @@ test.describe('PageLayout Component Contract Tests', () => {
 
 		await page.goto('/test/page-layout');
 		await page.evaluate((notifs) => {
-			window.postMessage({
-				type: 'updateProps',
-				props: { notifications: notifs }
-			}, '*');
+			window.postMessage(
+				{
+					type: 'updateProps',
+					props: { notifications: notifs }
+				},
+				'*'
+			);
 		}, notifications);
 
 		// Check notification badge
@@ -176,10 +185,13 @@ test.describe('PageLayout Component Contract Tests', () => {
 		const themes = ['white', 'g10', 'g80', 'g90', 'g100'];
 		for (const theme of themes) {
 			await page.evaluate((t) => {
-				window.postMessage({
-					type: 'updateProps',
-					props: { theme: t }
-				}, '*');
+				window.postMessage(
+					{
+						type: 'updateProps',
+						props: { theme: t }
+					},
+					'*'
+				);
 			}, theme);
 
 			const dataTheme = await page.locator('.page-layout').getAttribute('data-theme');
@@ -230,7 +242,7 @@ test.describe('PageLayout Component Contract Tests', () => {
 		await page.keyboard.press('Tab');
 		await page.keyboard.press('Tab');
 		const focusedElement = await page.locator(':focus');
-		expect(await focusedElement.evaluate(el => el.tagName)).toBeTruthy();
+		expect(await focusedElement.evaluate((el) => el.tagName)).toBeTruthy();
 
 		// Test ARIA attributes
 		const mainContent = await page.locator('.page-content');
@@ -250,10 +262,13 @@ test.describe('PageLayout Component Contract Tests', () => {
 
 		await page.goto('/test/page-layout');
 		await page.evaluate((user) => {
-			window.postMessage({
-				type: 'updateProps',
-				props: { userInfo: user }
-			}, '*');
+			window.postMessage(
+				{
+					type: 'updateProps',
+					props: { userInfo: user }
+				},
+				'*'
+			);
 		}, userInfo);
 
 		// Click user avatar
@@ -278,7 +293,7 @@ test.describe('PageLayout Component Contract Tests', () => {
 
 		// Listen for search event
 		const searchEvent = await page.evaluate(() => {
-			return new Promise(resolve => {
+			return new Promise((resolve) => {
 				window.addEventListener('search', (e: any) => {
 					resolve(e.detail);
 				});

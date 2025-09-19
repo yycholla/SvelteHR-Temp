@@ -55,10 +55,9 @@ describe('auth-test CLI Contract', () => {
   it('should execute run command with required parameters', () => {
     try {
       const testSuiteId = 'test-suite-uuid';
-      const output = execSync(
-        `node ${cliPath} run --suite-id ${testSuiteId} --format json`,
-        { encoding: 'utf8' }
-      );
+      const output = execSync(`node ${cliPath} run --suite-id ${testSuiteId} --format json`, {
+        encoding: 'utf8',
+      });
 
       // Contract requirement: Must return JSON with execution result
       const result = JSON.parse(output);
@@ -107,10 +106,9 @@ describe('auth-test CLI Contract', () => {
   it('should execute stop command with execution ID', () => {
     try {
       const executionId = 'execution-uuid';
-      const output = execSync(
-        `node ${cliPath} stop --execution-id ${executionId} --format json`,
-        { encoding: 'utf8' }
-      );
+      const output = execSync(`node ${cliPath} stop --execution-id ${executionId} --format json`, {
+        encoding: 'utf8',
+      });
 
       // Contract requirement: Must return stop result
       const result = JSON.parse(output);

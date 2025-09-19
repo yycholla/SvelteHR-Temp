@@ -47,8 +47,8 @@ paths:
                         }
                       }
                     variables:
-                      email: "admin@postgraphile-hr.com"
-                      password: "admin123"
+                      email: 'admin@postgraphile-hr.com'
+                      password: 'admin123'
 
                 getCurrentUser:
                   summary: Get current user query
@@ -112,12 +112,12 @@ paths:
                     value:
                       data:
                         authenticate:
-                          jwtToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                          jwtToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
                           user:
-                            id: "8f845bcd-e9b9-4eff-9d72-562962435248"
-                            email: "admin@postgraphile-hr.com"
-                            displayName: "admin"
-                            role: "hr_admin"
+                            id: '8f845bcd-e9b9-4eff-9d72-562962435248'
+                            email: 'admin@postgraphile-hr.com'
+                            displayName: 'admin'
+                            role: 'hr_admin'
                             roleLevel: 100
                             isActive: true
 
@@ -125,34 +125,34 @@ paths:
                     summary: Failed login response
                     value:
                       errors:
-                        - message: "Invalid credentials"
-                          locations: [{"line": 2, "column": 3}]
-                          path: ["authenticate"]
+                        - message: 'Invalid credentials'
+                          locations: [{ 'line': 2, 'column': 3 }]
+                          path: ['authenticate']
 
                   userQuery:
                     summary: Current user query response
                     value:
                       data:
                         currentUser:
-                          id: "8f845bcd-e9b9-4eff-9d72-562962435248"
-                          email: "admin@postgraphile-hr.com"
-                          displayName: "admin"
-                          role: "hr_admin"
+                          id: '8f845bcd-e9b9-4eff-9d72-562962435248'
+                          email: 'admin@postgraphile-hr.com'
+                          displayName: 'admin'
+                          role: 'hr_admin'
                           roleLevel: 100
                           isActive: true
                           roleAssignments:
                             nodes:
-                              - role: "hr_admin"
+                              - role: 'hr_admin'
                                 level: 100
-                                permissions: ["system:configure", "view_users", "manage_users"]
+                                permissions: ['system:configure', 'view_users', 'manage_users']
 
                   tokenExpired:
                     summary: Expired token response
                     value:
                       errors:
-                        - message: "JWT token expired"
-                          locations: [{"line": 1, "column": 1}]
-                          path: ["currentUser"]
+                        - message: 'JWT token expired'
+                          locations: [{ 'line': 1, 'column': 1 }]
+                          path: ['currentUser']
 
         '400':
           description: Bad request (malformed GraphQL)

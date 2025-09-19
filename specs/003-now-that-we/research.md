@@ -1,6 +1,7 @@
 # Phase 0 Research: PostGraphile Migration for HR Systems
 
 ## Overview
+
 This research phase consolidates technical decisions and best practices for migrating from Hasura GraphQL Engine to PostGraphile 4.x for the SvelteHR system. All research findings support the complete replacement of Hasura with PostGraphile as the GraphQL API layer.
 
 ## Research Findings
@@ -12,25 +13,22 @@ This research phase consolidates technical decisions and best practices for migr
 **Alternatives considered**: CLI mode (rejected due to limited customization), Koa.js (rejected for consistency with existing Node.js ecosystem)
 
 **Production Configuration Pattern:**
+
 ```javascript
-const { postgraphile } = require("postgraphile");
+const { postgraphile } = require('postgraphile');
 
 app.use(
-  postgraphile(
-    DATABASE_URL,
-    ["hr_public", "hr_private"],
-    {
-      jwtSecret: process.env.JWT_SECRET,
-      defaultRole: "guest",
-      ignoreRBAC: false,
-      readOnlyConnection: READ_ONLY_DATABASE_URL,
-      pgSettings: (req) => ({
-        "user.employee_id": req.user?.employee_id,
-        "user.department_id": req.user?.department_id,
-        "user.role_level": req.user?.role_level
-      })
-    }
-  )
+	postgraphile(DATABASE_URL, ['hr_public', 'hr_private'], {
+		jwtSecret: process.env.JWT_SECRET,
+		defaultRole: 'guest',
+		ignoreRBAC: false,
+		readOnlyConnection: READ_ONLY_DATABASE_URL,
+		pgSettings: (req) => ({
+			'user.employee_id': req.user?.employee_id,
+			'user.department_id': req.user?.department_id,
+			'user.role_level': req.user?.role_level
+		})
+	})
 );
 ```
 
@@ -41,6 +39,7 @@ app.use(
 **Alternatives considered**: Single schema (rejected due to security concerns), separate databases (rejected due to operational complexity)
 
 **Schema Structure:**
+
 - `hr_public`: Tables exposed via GraphQL API
 - `hr_private`: Sensitive data (passwords, tokens, audit logs)
 - `hr_hidden`: Business logic functions not exposed to GraphQL
@@ -52,6 +51,7 @@ app.use(
 **Alternatives considered**: Application-level JWT (rejected for security), OAuth2 integration (deferred to future phase)
 
 **JWT Token Structure:**
+
 ```sql
 CREATE TYPE hr_public.jwt_token AS (
   role text,
@@ -71,6 +71,7 @@ CREATE TYPE hr_public.jwt_token AS (
 **Alternatives considered**: Application-level permissions (rejected for security), complex RLS without roles (rejected for maintainability)
 
 **Role Hierarchy:**
+
 - `hr_guest` → `hr_employee` → `hr_manager` → `hr_admin` → `hr_super_admin`
 
 ### 5. Caching Strategy
@@ -80,6 +81,7 @@ CREATE TYPE hr_public.jwt_token AS (
 **Alternatives considered**: No caching (rejected for performance), database-only optimization (partial solution), third-party GraphQL caching (adds complexity)
 
 **Caching Layers:**
+
 1. PostGraphile query compilation optimization
 2. Redis caching for frequently accessed read-only data
 3. PostgreSQL query plan caching
@@ -92,6 +94,7 @@ CREATE TYPE hr_public.jwt_token AS (
 **Alternatives considered**: Application-level optimization (limited impact), CDN for GraphQL (inappropriate for dynamic HR data)
 
 **Critical Indexes:**
+
 ```sql
 -- Foreign keys (PostGraphile requirement)
 CREATE INDEX idx_employees_department_id ON hr_public.employees(department_id);
@@ -109,6 +112,7 @@ CREATE INDEX idx_time_off_status_date ON hr_public.time_off_requests(status, sta
 **Alternatives considered**: Direct replacement (high risk), blue-green deployment (resource intensive)
 
 **Migration Phases:**
+
 1. PostGraphile setup with schema compatibility
 2. Parallel deployment with traffic split
 3. GraphQL client update for new endpoints
@@ -122,6 +126,7 @@ CREATE INDEX idx_time_off_status_date ON hr_public.time_off_requests(status, sta
 **Alternatives considered**: Application-only security (insufficient), database-only security (incomplete)
 
 **Security Layers:**
+
 - PostgreSQL RLS policies for data access
 - JWT token validation with short expiry
 - Database user permissions and grants
@@ -135,6 +140,7 @@ CREATE INDEX idx_time_off_status_date ON hr_public.time_off_requests(status, sta
 **Alternatives considered**: Database mocking (inaccurate), test fixtures (incomplete coverage)
 
 **Testing Strategy:**
+
 - Contract tests for GraphQL schema validation
 - Integration tests with real PostgreSQL and Redis
 - Performance benchmarks for response times
@@ -147,6 +153,7 @@ CREATE INDEX idx_time_off_status_date ON hr_public.time_off_requests(status, sta
 **Alternatives considered**: Database-only monitoring (incomplete), third-party GraphQL monitoring (vendor dependency)
 
 **Observability Stack:**
+
 - Winston for structured JSON logging
 - Express middleware for request tracing
 - PostgreSQL pg_stat_statements for query analysis
@@ -160,11 +167,12 @@ All technical unknowns have been resolved through research. The architecture pro
 ✅ **Performance**: <200ms response times with optimized queries  
 ✅ **Scalability**: Connection pooling and caching strategies  
 ✅ **Maintainability**: Schema-driven development with PostGraphile  
-✅ **Migration Safety**: Parallel deployment strategy  
+✅ **Migration Safety**: Parallel deployment strategy
 
 ## Next Steps
 
 Phase 1 can proceed with:
+
 - Data model design based on research findings
 - GraphQL contract generation using PostGraphile patterns
 - Security policy definition using RLS approach

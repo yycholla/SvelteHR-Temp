@@ -75,14 +75,15 @@ export class AuthService {
    */
   async login(credentials: LoginCredentials): Promise<LoginResult> {
     const client = await this.db.connect();
-    
+
     try {
       // Check if account is locked
       const lockCheck = await this.checkAccountLock(credentials.email);
       if (lockCheck.isLocked) {
         return {
           success: false,
-          error: 'Account temporarily locked due to multiple failed login attempts',
+          error:
+            'Account temporarily locked due to multiple failed login attempts',
           lockedUntil: lockCheck.lockedUntil,
         };
       }
@@ -115,17 +116,20 @@ export class AuthService {
       `;
 
       const userResult = await client.query(userQuery, [credentials.email]);
-      
+
       if (userResult.rows.length === 0) {
         await this.recordFailedLogin(credentials.email);
         return { success: false, error: 'Invalid credentials' };
       }
 
       const userData = userResult.rows[0] as any;
-      
+
       // Verify password
-      const passwordValid = await bcrypt.compare(credentials.password, userData.password_hash);
-      
+      const passwordValid = await bcrypt.compare(
+        credentials.password,
+        userData.password_hash
+      );
+
       if (!passwordValid) {
         await this.recordFailedLogin(credentials.email);
         return { success: false, error: 'Invalid credentials' };
@@ -192,20 +196,22 @@ export class AuthService {
     try {
       const { JWTMiddleware } = await import('../auth/jwt-middleware');
       const userId = JWTMiddleware.verifyRefreshToken(refreshToken);
-      
+
       if (!userId) {
         return { success: false, error: 'Invalid refresh token' };
       }
 
       // Check if refresh token exists in Redis
-      const storedToken = await this.redis.get(`${this.REFRESH_TOKEN_PREFIX}${userId}`);
+      const storedToken = await this.redis.get(
+        `${this.REFRESH_TOKEN_PREFIX}${userId}`
+      );
       if (storedToken !== refreshToken) {
         return { success: false, error: 'Refresh token not found or expired' };
       }
 
       // Generate new access token
       const newAccessToken = await JWTMiddleware.generateToken(userId);
-      
+
       return {
         success: true,
         accessToken: newAccessToken,
@@ -223,7 +229,7 @@ export class AuthService {
     try {
       // Remove refresh token from Redis
       await this.redis.del(`${this.REFRESH_TOKEN_PREFIX}${userId}`);
-      
+
       // Mark user sessions as inactive
       const client = await this.db.connect();
       try {
@@ -247,7 +253,7 @@ export class AuthService {
    */
   async getUserAuthData(userId: string): Promise<UserAuthData | null> {
     const client = await this.db.connect();
-    
+
     try {
       const query = `
         SELECT 
@@ -276,14 +282,14 @@ export class AuthService {
       `;
 
       const result = await client.query(query, [userId]);
-      
+
       if (result.rows.length === 0) {
         return null;
       }
 
       const row = result.rows[0];
       const roles = Array.isArray(row.roles) ? row.roles : [];
-      
+
       return {
         id: row.id,
         email: row.email,
@@ -308,9 +314,11 @@ export class AuthService {
   /**
    * Check if account is locked due to failed login attempts
    */
-  private async checkAccountLock(email: string): Promise<{ isLocked: boolean; lockedUntil?: Date }> {
+  private async checkAccountLock(
+    email: string
+  ): Promise<{ isLocked: boolean; lockedUntil?: Date }> {
     const client = await this.db.connect();
-    
+
     try {
       const result = await client.query(
         'SELECT failed_login_attempts, locked_until FROM users WHERE email = $1',
@@ -322,7 +330,7 @@ export class AuthService {
       }
 
       const { failed_login_attempts, locked_until } = result.rows[0];
-      
+
       if (locked_until && new Date(locked_until) > new Date()) {
         return { isLocked: true, lockedUntil: new Date(locked_until) };
       }
@@ -338,7 +346,7 @@ export class AuthService {
    */
   private async recordFailedLogin(email: string): Promise<void> {
     const client = await this.db.connect();
-    
+
     try {
       const result = await client.query(
         'SELECT id, failed_login_attempts FROM users WHERE email = $1',
@@ -349,16 +357,16 @@ export class AuthService {
 
       const { id, failed_login_attempts } = result.rows[0];
       const newAttempts = failed_login_attempts + 1;
-      
+
       let query = 'UPDATE users SET failed_login_attempts = $1';
       let params = [newAttempts, id];
-      
+
       if (newAttempts >= this.MAX_LOGIN_ATTEMPTS) {
-        query += ', locked_until = NOW() + INTERVAL \'15 minutes\'';
+        query += ", locked_until = NOW() + INTERVAL '15 minutes'";
       }
-      
+
       query += ' WHERE id = $2';
-      
+
       await client.query(query, params);
     } finally {
       client.release();
@@ -370,7 +378,7 @@ export class AuthService {
    */
   private async resetFailedLogins(userId: string): Promise<void> {
     const client = await this.db.connect();
-    
+
     try {
       await client.query(
         'UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE id = $1',
@@ -386,7 +394,7 @@ export class AuthService {
    */
   private getDefaultRole(roles: UserRole[]): string {
     if (roles.length === 0) return 'employee';
-    
+
     // Sort by level descending and return highest level role
     const sortedRoles = roles.sort((a, b) => b.level - a.level);
     return sortedRoles[0].name;
@@ -402,14 +410,17 @@ export class AuthService {
   /**
    * Create new user session record
    */
-  async createSession(userId: string, sessionData: {
-    sessionToken: string;
-    ipAddress?: string;
-    userAgent?: string;
-    deviceInfo?: string;
-  }): Promise<string> {
+  async createSession(
+    userId: string,
+    sessionData: {
+      sessionToken: string;
+      ipAddress?: string;
+      userAgent?: string;
+      deviceInfo?: string;
+    }
+  ): Promise<string> {
     const client = await this.db.connect();
-    
+
     try {
       const result = await client.query(
         `INSERT INTO auth_sessions (

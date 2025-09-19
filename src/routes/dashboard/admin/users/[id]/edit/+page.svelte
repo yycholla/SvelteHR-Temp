@@ -27,7 +27,12 @@
 		Edit
 	} from 'lucide-svelte';
 	import { goto } from '$app/navigation';
-	import { getUserById, updateUser as updateUserAPI, getUserRolesList } from '$lib/graphql/user-operations.js';
+	import {
+		getUserById,
+		updateUser as updateUserAPI,
+		getUserRolesList,
+		updateUserRole
+	} from '$lib/graphql/user-operations.js';
 
 	// Get user ID from URL params
 	const userId = $page.params.id;
@@ -53,6 +58,7 @@
 		department: '',
 		position: '',
 		manager: '',
+		hireDate: '',
 		startDate: '',
 		salary: '',
 		employmentType: 'full-time',
@@ -80,6 +86,7 @@
 	let initialLoading = $state(true);
 	let formErrors = $state<Record<string, string>>({});
 	let showSuccess = $state(false);
+	let originalRole = $state('');
 
 	// Department options
 	const departments = [
@@ -102,13 +109,7 @@
 	];
 
 	// Employment types
-	const employmentTypes = [
-		'full-time',
-		'part-time',
-		'contract',
-		'intern',
-		'consultant'
-	];
+	const employmentTypes = ['full-time', 'part-time', 'contract', 'intern', 'consultant'];
 
 	onMount(async () => {
 		await loadUser();
@@ -127,13 +128,15 @@
 				editUser.lastName = nameParts.slice(1).join(' ') || '';
 				editUser.email = user.email;
 				editUser.isActive = user.isActive;
+				editUser.hireDate = user.hireDate || '';
 
 				// Get current role
 				const roleAssignments = user.userRoleAssignmentsByUserId?.nodes;
 				if (roleAssignments && roleAssignments.length > 0) {
-					const activeRole = roleAssignments.find(r => r.isActive);
+					const activeRole = roleAssignments.find((r) => r.isActive);
 					if (activeRole) {
 						editUser.role = activeRole.userRoleByRoleId.name;
+						originalRole = activeRole.userRoleByRoleId.name;
 					}
 				}
 
@@ -187,12 +190,20 @@
 				id: userId,
 				email: editUser.email,
 				displayName: `${editUser.firstName} ${editUser.lastName}`.trim(),
-				isActive: editUser.isActive
+				isActive: editUser.isActive,
+				hireDate: editUser.hireDate
 			};
 
 			console.log('Updating user with data:', userData);
 			const updatedUser = await updateUserAPI(userData);
 			console.log('User updated successfully:', updatedUser);
+
+			// Handle role assignment if role changed
+			if (editUser.role && editUser.role !== originalRole) {
+				console.log(`Role changed from "${originalRole}" to "${editUser.role}"`);
+				await updateUserRole(userId, editUser.role);
+				console.log(`Successfully updated role to ${editUser.role}`);
+			}
 
 			showSuccess = true;
 
@@ -200,7 +211,6 @@
 			setTimeout(() => {
 				goto('/dashboard/admin/users');
 			}, 2000);
-
 		} catch (error) {
 			console.error('Error updating user:', error);
 			formErrors.general = 'Failed to update user. Please try again.';
@@ -221,11 +231,11 @@
 {#if initialLoading}
 	<div class="space-y-4">
 		<div class="flex items-center gap-3">
-			<div class="h-8 w-8 bg-muted rounded animate-pulse"></div>
-			<div class="h-8 w-64 bg-muted rounded animate-pulse"></div>
+			<div class="h-8 w-8 animate-pulse rounded bg-muted"></div>
+			<div class="h-8 w-64 animate-pulse rounded bg-muted"></div>
 		</div>
 		{#each Array(3) as _}
-			<div class="h-32 bg-muted rounded animate-pulse"></div>
+			<div class="h-32 animate-pulse rounded bg-muted"></div>
 		{/each}
 	</div>
 {:else}
@@ -233,28 +243,26 @@
 		<!-- Header -->
 		<div class="flex items-center justify-between">
 			<div>
-				<div class="flex items-center gap-3 mb-2">
+				<div class="mb-2 flex items-center gap-3">
 					<Button variant="ghost" size="sm" href="/dashboard/admin/users" class="p-2">
 						<ArrowLeft class="h-4 w-4" />
 					</Button>
-					<h1 class="text-3xl font-bold tracking-tight flex items-center gap-3">
+					<h1 class="flex items-center gap-3 text-3xl font-bold tracking-tight">
 						<Edit class="h-8 w-8" />
 						Edit User
 					</h1>
 				</div>
-				<p class="text-muted-foreground">
-					Update user account information and settings
-				</p>
+				<p class="text-muted-foreground">Update user account information and settings</p>
 			</div>
 			<div class="flex items-center gap-3">
-				<Button variant="outline" onclick={cancelEdit}>
-					Cancel
-				</Button>
+				<Button variant="outline" onclick={cancelEdit}>Cancel</Button>
 				<Button onclick={updateUser} disabled={loading}>
 					{#if loading}
-						<div class="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+						<div
+							class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+						></div>
 					{:else}
-						<Save class="h-4 w-4 mr-2" />
+						<Save class="mr-2 h-4 w-4" />
 					{/if}
 					Update User
 				</Button>
@@ -282,7 +290,7 @@
 		{/if}
 
 		<!-- Form Content -->
-		<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+		<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
 			<!-- Personal Information -->
 			<Card.Root>
 				<Card.Header>
@@ -370,11 +378,11 @@
 					</div>
 					<div class="space-y-2">
 						<Label for="position">Position</Label>
-						<Input
-							id="position"
-							bind:value={editUser.position}
-							placeholder="Software Engineer"
-						/>
+						<Input id="position" bind:value={editUser.position} placeholder="Software Engineer" />
+					</div>
+					<div class="space-y-2">
+						<Label for="hireDate">Hire Date</Label>
+						<Input id="hireDate" type="date" bind:value={editUser.hireDate} />
 					</div>
 					<div class="space-y-2">
 						<Label for="employmentType">Employment Type</Label>
@@ -427,24 +435,15 @@
 						<Label>Additional Permissions</Label>
 						<div class="space-y-3">
 							<div class="flex items-center space-x-2">
-								<Checkbox
-									id="canViewReports"
-									bind:checked={editUser.permissions.canViewReports}
-								/>
+								<Checkbox id="canViewReports" bind:checked={editUser.permissions.canViewReports} />
 								<Label for="canViewReports" class="text-sm">Can view reports</Label>
 							</div>
 							<div class="flex items-center space-x-2">
-								<Checkbox
-									id="canManageLeave"
-									bind:checked={editUser.permissions.canManageLeave}
-								/>
+								<Checkbox id="canManageLeave" bind:checked={editUser.permissions.canManageLeave} />
 								<Label for="canManageLeave" class="text-sm">Can manage leave requests</Label>
 							</div>
 							<div class="flex items-center space-x-2">
-								<Checkbox
-									id="canEditProfile"
-									bind:checked={editUser.permissions.canEditProfile}
-								/>
+								<Checkbox id="canEditProfile" bind:checked={editUser.permissions.canEditProfile} />
 								<Label for="canEditProfile" class="text-sm">Can edit own profile</Label>
 							</div>
 							<div class="flex items-center space-x-2">
@@ -455,10 +454,7 @@
 								<Label for="canAccessPayroll" class="text-sm">Can access payroll data</Label>
 							</div>
 							<div class="flex items-center space-x-2">
-								<Checkbox
-									id="canManageTeam"
-									bind:checked={editUser.permissions.canManageTeam}
-								/>
+								<Checkbox id="canManageTeam" bind:checked={editUser.permissions.canManageTeam} />
 								<Label for="canManageTeam" class="text-sm">Can manage team members</Label>
 							</div>
 						</div>

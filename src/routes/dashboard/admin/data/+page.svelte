@@ -136,7 +136,7 @@
 	}
 
 	function deleteDepartment(id: string) {
-		departments = departments.filter(dept => dept.id !== id);
+		departments = departments.filter((dept) => dept.id !== id);
 	}
 
 	function exportData(type: string) {
@@ -159,20 +159,26 @@
 	function getStatusIcon(status: string) {
 		switch (status) {
 			case 'completed':
-			case 'success': return CheckCircle;
+			case 'success':
+				return CheckCircle;
 			case 'failed':
-			case 'error': return AlertTriangle;
-			default: return Clock;
+			case 'error':
+				return AlertTriangle;
+			default:
+				return Clock;
 		}
 	}
 
 	function getStatusVariant(status: string) {
 		switch (status) {
 			case 'completed':
-			case 'success': return 'default';
+			case 'success':
+				return 'default';
 			case 'failed':
-			case 'error': return 'destructive';
-			default: return 'secondary';
+			case 'error':
+				return 'destructive';
+			default:
+				return 'secondary';
 		}
 	}
 </script>
@@ -185,25 +191,23 @@
 	<!-- Header -->
 	<div class="flex items-center justify-between">
 		<div>
-			<div class="flex items-center gap-3 mb-2">
+			<div class="mb-2 flex items-center gap-3">
 				<Button variant="ghost" size="sm" href="/dashboard/admin" class="p-2">
 					<ArrowLeft class="h-4 w-4" />
 				</Button>
-				<h1 class="text-3xl font-bold tracking-tight flex items-center gap-3">
+				<h1 class="flex items-center gap-3 text-3xl font-bold tracking-tight">
 					<Database class="h-8 w-8" />
 					Data Management
 				</h1>
 			</div>
-			<p class="text-muted-foreground">
-				Manage departments, system data, and database operations
-			</p>
+			<p class="text-muted-foreground">Manage departments, system data, and database operations</p>
 		</div>
 		<div class="flex items-center gap-3">
 			<Button variant="outline" onclick={runBackup} disabled={loading}>
 				{#if loading}
-					<RefreshCw class="h-4 w-4 mr-2 animate-spin" />
+					<RefreshCw class="mr-2 h-4 w-4 animate-spin" />
 				{:else}
-					<HardDrive class="h-4 w-4 mr-2" />
+					<HardDrive class="mr-2 h-4 w-4" />
 				{/if}
 				Backup Now
 			</Button>
@@ -211,7 +215,7 @@
 	</div>
 
 	<!-- Database Overview -->
-	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+	<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
 		<Card.Root>
 			<Card.Content class="p-6">
 				<div class="flex items-center justify-between">
@@ -250,7 +254,7 @@
 				<div class="flex items-center justify-between">
 					<div>
 						<p class="text-sm font-medium text-muted-foreground">Performance</p>
-						<p class="text-2xl font-bold text-green-600 capitalize">{databaseInfo.performance}</p>
+						<p class="text-2xl font-bold capitalize text-green-600">{databaseInfo.performance}</p>
 					</div>
 					<BarChart3 class="h-8 w-8 text-green-600" />
 				</div>
@@ -284,8 +288,8 @@
 							<Building2 class="h-5 w-5" />
 							Department Management
 						</Card.Title>
-						<Button onclick={() => showCreateDepartment = true}>
-							<Plus class="h-4 w-4 mr-2" />
+						<Button onclick={() => (showCreateDepartment = true)}>
+							<Plus class="mr-2 h-4 w-4" />
 							Add Department
 						</Button>
 					</div>
@@ -322,7 +326,7 @@
 										</Badge>
 									</Table.Cell>
 									<Table.Cell class="text-right">
-										<div class="flex items-center gap-2 justify-end">
+										<div class="flex items-center justify-end gap-2">
 											<Button variant="ghost" size="sm">
 												<Edit class="h-4 w-4" />
 											</Button>
@@ -341,7 +345,7 @@
 
 		<!-- Data Exports Tab -->
 		<Tabs.Content value="exports">
-			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+			<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
 				<Card.Root>
 					<Card.Header>
 						<Card.Title class="flex items-center gap-2">
@@ -352,11 +356,9 @@
 					</Card.Header>
 					<Card.Content>
 						<div class="space-y-4">
-							<div class="text-sm text-muted-foreground">
-								127 employee records available
-							</div>
+							<div class="text-sm text-muted-foreground">127 employee records available</div>
 							<Button class="w-full" onclick={() => exportData('employees')} disabled={loading}>
-								<Download class="h-4 w-4 mr-2" />
+								<Download class="mr-2 h-4 w-4" />
 								Export Employee Data
 							</Button>
 						</div>
@@ -377,7 +379,7 @@
 								{departments.length} departments available
 							</div>
 							<Button class="w-full" onclick={() => exportData('departments')} disabled={loading}>
-								<Download class="h-4 w-4 mr-2" />
+								<Download class="mr-2 h-4 w-4" />
 								Export Department Data
 							</Button>
 						</div>
@@ -394,11 +396,9 @@
 					</Card.Header>
 					<Card.Content>
 						<div class="space-y-4">
-							<div class="text-sm text-muted-foreground">
-								Full system audit and analytics
-							</div>
+							<div class="text-sm text-muted-foreground">Full system audit and analytics</div>
 							<Button class="w-full" onclick={() => exportData('reports')} disabled={loading}>
-								<Download class="h-4 w-4 mr-2" />
+								<Download class="mr-2 h-4 w-4" />
 								Generate Report
 							</Button>
 						</div>
@@ -439,7 +439,10 @@
 									<Table.Cell>{operation.user}</Table.Cell>
 									<Table.Cell class="font-mono text-sm">{operation.timestamp}</Table.Cell>
 									<Table.Cell>
-										<Badge variant={getStatusVariant(operation.status)} class="flex items-center gap-1 w-fit">
+										<Badge
+											variant={getStatusVariant(operation.status)}
+											class="flex w-fit items-center gap-1"
+										>
 											<svelte:component this={getStatusIcon(operation.status)} class="h-3 w-3" />
 											{operation.status}
 										</Badge>
@@ -459,9 +462,7 @@
 	<Dialog.Content>
 		<Dialog.Header>
 			<Dialog.Title>Create New Department</Dialog.Title>
-			<Dialog.Description>
-				Add a new department to the organization structure.
-			</Dialog.Description>
+			<Dialog.Description>Add a new department to the organization structure.</Dialog.Description>
 		</Dialog.Header>
 		<div class="space-y-4">
 			<div class="space-y-2">
@@ -470,7 +471,11 @@
 			</div>
 			<div class="space-y-2">
 				<Label for="deptDesc">Description</Label>
-				<Input id="deptDesc" bind:value={newDepartment.description} placeholder="Software development and technical operations" />
+				<Input
+					id="deptDesc"
+					bind:value={newDepartment.description}
+					placeholder="Software development and technical operations"
+				/>
 			</div>
 			<div class="space-y-2">
 				<Label for="deptManager">Manager</Label>
@@ -478,16 +483,23 @@
 			</div>
 			<div class="space-y-2">
 				<Label for="deptBudget">Budget</Label>
-				<Input id="deptBudget" type="number" bind:value={newDepartment.budget} placeholder="150000" />
+				<Input
+					id="deptBudget"
+					type="number"
+					bind:value={newDepartment.budget}
+					placeholder="150000"
+				/>
 			</div>
 		</div>
 		<Dialog.Footer>
-			<Button variant="outline" onclick={() => showCreateDepartment = false}>Cancel</Button>
+			<Button variant="outline" onclick={() => (showCreateDepartment = false)}>Cancel</Button>
 			<Button onclick={createDepartment} disabled={loading}>
 				{#if loading}
-					<div class="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+					<div
+						class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+					></div>
 				{:else}
-					<Plus class="h-4 w-4 mr-2" />
+					<Plus class="mr-2 h-4 w-4" />
 				{/if}
 				Create Department
 			</Button>

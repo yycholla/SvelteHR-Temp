@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -12,6 +13,7 @@
 	import * as Tabs from '$lib/components/ui/tabs';
 	import * as Alert from '$lib/components/ui/alert';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
+	import HrAnalyticsCharts from '$lib/components/hr-analytics-charts.svelte';
 	import {
 		Users,
 		Plus,
@@ -65,7 +67,7 @@
 	let showDeleteConfirm = $state(false);
 	let selectedUser = $state<User | null>(null);
 	let userToDelete = $state<User | null>(null);
-	let notification = $state<{type: string, title: string, message: string} | null>(null);
+	let notification = $state<{ type: string; title: string; message: string } | null>(null);
 
 	// Load data on component mount
 	onMount(async () => {
@@ -109,17 +111,47 @@
 	}
 
 	// Statistics with real data
-	const userStats = $derived(() => ({
-		total: users.length,
-		active: users.filter(u => u.isActive).length,
-		inactive: users.filter(u => !u.isActive).length,
-		admins: users.filter(u => getUserRoleLevel(u) >= 80).length,
-		managers: users.filter(u => {
-			const level = getUserRoleLevel(u);
-			return level >= 60 && level < 80;
-		}).length,
-		employees: users.filter(u => getUserRoleLevel(u) < 60).length
-	}));
+	const userStats = $derived(() => {
+		// Ensure we have actual user data before calculating
+		if (!users || users.length === 0) {
+			console.log('⚠️  No users data available for stats calculation');
+			return {
+				total: 0,
+				active: 0,
+				inactive: 0,
+				admins: 0,
+				managers: 0,
+				employees: 0
+			};
+		}
+
+		console.log('📊 Calculating stats for', users.length, 'users');
+		console.log('First user structure:', users[0]);
+
+		const stats = {
+			total: users.length,
+			active: users.filter((u) => u.isActive).length,
+			inactive: users.filter((u) => !u.isActive).length,
+			admins: users.filter((u) => {
+				const level = getUserRoleLevel(u);
+				console.log(
+					`${u.displayName || u.email}: level ${level} (${level >= 80 ? 'admin' : 'not admin'})`
+				);
+				return level >= 80;
+			}).length,
+			managers: users.filter((u) => {
+				const level = getUserRoleLevel(u);
+				return level >= 60 && level < 80;
+			}).length,
+			employees: users.filter((u) => {
+				const level = getUserRoleLevel(u);
+				return level > 0 && level < 60;
+			}).length
+		};
+
+		console.log('📈 Final calculated stats:', stats);
+		return stats;
+	});
 
 	// Filtered users - temporarily simplified to isolate issue
 	let filteredUsers = $state([]);
@@ -127,7 +159,12 @@
 	// Update filtered users whenever relevant data changes
 	$effect(() => {
 		console.log('🔍 EFFECT RUNNING - users.length:', users.length);
-		console.log('🔍 Filter values:', { searchQuery, selectedRole, selectedStatus, selectedDepartment });
+		console.log('🔍 Filter values:', {
+			searchQuery,
+			selectedRole,
+			selectedStatus,
+			selectedDepartment
+		});
 		console.log('🔍 Filter types:', {
 			searchQuery: typeof searchQuery,
 			selectedRole: typeof selectedRole,
@@ -142,13 +179,14 @@
 		}
 
 		try {
-			const filtered = users.filter(user => {
+			const filtered = users.filter((user) => {
 				const displayName = user.displayName || user.email;
 				const userRole = formatUserRole(user);
 				const userDept = getUserDepartment(user);
 
 				// Search filter
-				const matchesSearch = searchQuery === '' ||
+				const matchesSearch =
+					searchQuery === '' ||
 					displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
 					user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
 					userDept.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -156,11 +194,13 @@
 
 				// Role filter - ensure selectedRole is a string
 				const roleStr = typeof selectedRole === 'string' ? selectedRole : 'all';
-				const matchesRole = roleStr === 'all' || userRole.toLowerCase().includes(roleStr.toLowerCase());
+				const matchesRole =
+					roleStr === 'all' || userRole.toLowerCase().includes(roleStr.toLowerCase());
 
 				// Status filter - ensure selectedStatus is a string
 				const statusStr = typeof selectedStatus === 'string' ? selectedStatus : 'all';
-				const matchesStatus = statusStr === 'all' ||
+				const matchesStatus =
+					statusStr === 'all' ||
 					(statusStr === 'active' && user.isActive) ||
 					(statusStr === 'inactive' && !user.isActive);
 
@@ -171,7 +211,9 @@
 				const passes = matchesSearch && matchesRole && matchesStatus && matchesDepartment;
 
 				if (!passes) {
-					console.log(`❌ ${user.email} filtered out - Search:${matchesSearch} Role:${matchesRole} Status:${matchesStatus} Dept:${matchesDepartment}`);
+					console.log(
+						`❌ ${user.email} filtered out - Search:${matchesSearch} Role:${matchesRole} Status:${matchesStatus} Dept:${matchesDepartment}`
+					);
 				}
 
 				return passes;
@@ -190,15 +232,20 @@
 		if (users.length === 0) return [];
 
 		try {
-			const deptCounts = users.reduce((acc, user) => {
-				const dept = getUserDepartment(user);
-				if (dept && dept !== 'undefined') {
-					acc[dept] = (acc[dept] || 0) + 1;
-				}
-				return acc;
-			}, {} as Record<string, number>);
+			const deptCounts = users.reduce(
+				(acc, user) => {
+					const dept = getUserDepartment(user);
+					if (dept && dept !== 'undefined') {
+						acc[dept] = (acc[dept] || 0) + 1;
+					}
+					return acc;
+				},
+				{} as Record<string, number>
+			);
 
-			const deptList = Object.keys(deptCounts).filter(d => d && d.length > 0).sort();
+			const deptList = Object.keys(deptCounts)
+				.filter((d) => d && d.length > 0)
+				.sort();
 			console.log('🏢 Departments found:', deptList);
 			return deptList;
 		} catch (error) {
@@ -209,21 +256,31 @@
 
 	function getRoleVariant(role: string) {
 		switch (role) {
-			case 'admin': return 'destructive';
-			case 'hr_admin': return 'secondary';
-			case 'manager': return 'default';
-			case 'employee': return 'outline';
-			default: return 'outline';
+			case 'admin':
+				return 'destructive';
+			case 'hr_admin':
+				return 'secondary';
+			case 'manager':
+				return 'default';
+			case 'employee':
+				return 'outline';
+			default:
+				return 'outline';
 		}
 	}
 
 	function getRoleLabel(role: string) {
 		switch (role) {
-			case 'admin': return 'Administrator';
-			case 'hr_admin': return 'HR Admin';
-			case 'manager': return 'Manager';
-			case 'employee': return 'Employee';
-			default: return role;
+			case 'admin':
+				return 'Administrator';
+			case 'hr_admin':
+				return 'HR Admin';
+			case 'manager':
+				return 'Manager';
+			case 'employee':
+				return 'Employee';
+			default:
+				return role;
 		}
 	}
 
@@ -249,8 +306,7 @@
 	}
 
 	function editUser(user: any) {
-		selectedUser = { ...user };
-		showUserModal = true;
+		goto(`/dashboard/admin/users/${user.id}/edit`);
 	}
 
 	function deleteUser(user: User) {
@@ -262,9 +318,13 @@
 		if (userToDelete) {
 			try {
 				await deleteUserAPI(userToDelete.id);
-				users = users.filter(u => u.id !== userToDelete.id);
-				const displayName = userToDelete.displayName || userToDelete.fullName || userToDelete.email;
-				showNotification('success', 'User Deleted', `${displayName} has been deleted successfully.`);
+				users = users.filter((u) => u.id !== userToDelete.id);
+				const displayName = userToDelete.displayName || userToDelete.email;
+				showNotification(
+					'success',
+					'User Deleted',
+					`${displayName} has been deleted successfully.`
+				);
 				userToDelete = null;
 			} catch (error) {
 				console.error('Error deleting user:', error);
@@ -280,14 +340,17 @@
 			await updateUserStatus(user.id, newStatus);
 
 			// Update local state
-			const index = users.findIndex(u => u.id === user.id);
+			const index = users.findIndex((u) => u.id === user.id);
 			if (index !== -1) {
 				users[index].isActive = newStatus;
 			}
 
-			const displayName = user.displayName || user.fullName || user.email;
-			showNotification('success', 'Status Updated',
-				`${displayName} has been ${newStatus ? 'activated' : 'deactivated'}.`);
+			const displayName = user.displayName || user.email;
+			showNotification(
+				'success',
+				'Status Updated',
+				`${displayName} has been ${newStatus ? 'activated' : 'deactivated'}.`
+			);
 		} catch (error) {
 			console.error('Error updating user status:', error);
 			showNotification('error', 'Update Failed', 'Failed to update user status. Please try again.');
@@ -308,16 +371,22 @@
 	}
 
 	function generateCSV(data: any[]): string {
-		const headers = ['Name', 'Email', 'Role', 'Department', 'Status', 'Last Login', 'Created'].join(',');
-		const rows = data.map(user => [
-			`"${user.display_name}"`,
-			`"${user.email}"`,
-			`"${getRoleLabel(user.role)}"`,
-			`"${user.department}"`,
-			`"${user.is_active ? 'Active' : 'Inactive'}"`,
-			`"${formatLastLogin(user.last_login)}"`,
-			`"${formatDate(user.created_at)}"`
-		].join(',')).join('\n');
+		const headers = ['Name', 'Email', 'Role', 'Department', 'Status', 'Last Login', 'Created'].join(
+			','
+		);
+		const rows = data
+			.map((user) =>
+				[
+					`"${user.display_name}"`,
+					`"${user.email}"`,
+					`"${getRoleLabel(user.role)}"`,
+					`"${user.department}"`,
+					`"${user.is_active ? 'Active' : 'Inactive'}"`,
+					`"${formatLastLogin(user.last_login)}"`,
+					`"${formatDate(user.created_at)}"`
+				].join(',')
+			)
+			.join('\n');
 
 		return `${headers}\n${rows}`;
 	}
@@ -361,11 +430,11 @@
 	<!-- Header -->
 	<div class="flex items-center justify-between">
 		<div>
-			<div class="flex items-center gap-3 mb-2">
+			<div class="mb-2 flex items-center gap-3">
 				<Button variant="ghost" size="sm" href="/dashboard/admin" class="p-2">
 					<ArrowLeft class="h-4 w-4" />
 				</Button>
-				<h1 class="text-3xl font-bold tracking-tight flex items-center gap-3">
+				<h1 class="flex items-center gap-3 text-3xl font-bold tracking-tight">
 					<Users class="h-8 w-8" />
 					User Management
 				</h1>
@@ -377,26 +446,33 @@
 		<div class="flex items-center gap-3">
 			<Button variant="outline" onclick={refreshUsers} disabled={loading}>
 				{#if loading}
-					<RefreshCw class="h-4 w-4 mr-2 animate-spin" />
+					<RefreshCw class="mr-2 h-4 w-4 animate-spin" />
 				{:else}
-					<RefreshCw class="h-4 w-4 mr-2" />
+					<RefreshCw class="mr-2 h-4 w-4" />
 				{/if}
 				Refresh
 			</Button>
 			<Button variant="outline" onclick={exportUsers}>
-				<Download class="h-4 w-4 mr-2" />
+				<Download class="mr-2 h-4 w-4" />
 				Export
 			</Button>
 			<Button href="/dashboard/admin/users/new">
-				<Plus class="h-4 w-4 mr-2" />
+				<Plus class="mr-2 h-4 w-4" />
 				Add User
 			</Button>
 		</div>
 	</div>
 
+	<!-- Analytics Charts -->
+	<HrAnalyticsCharts {users} />
+
 	<!-- Notification -->
 	{#if notification}
-		<Alert.Root class={notification.type === 'success' ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
+		<Alert.Root
+			class={notification.type === 'success'
+				? 'border-green-200 bg-green-50'
+				: 'border-red-200 bg-red-50'}
+		>
 			{#if notification.type === 'success'}
 				<CheckCircle class="h-4 w-4 text-green-600" />
 			{:else}
@@ -405,14 +481,16 @@
 			<Alert.Title class={notification.type === 'success' ? 'text-green-800' : 'text-red-800'}>
 				{notification.title}
 			</Alert.Title>
-			<Alert.Description class={notification.type === 'success' ? 'text-green-700' : 'text-red-700'}>
+			<Alert.Description
+				class={notification.type === 'success' ? 'text-green-700' : 'text-red-700'}
+			>
 				{notification.message}
 			</Alert.Description>
 		</Alert.Root>
 	{/if}
 
 	<!-- Stats Cards -->
-	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+	<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
 		<Card.Root>
 			<Card.Content class="p-6">
 				<div class="flex items-center justify-between">
@@ -468,16 +546,12 @@
 			</Card.Title>
 		</Card.Header>
 		<Card.Content>
-			<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+			<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
 				<div class="space-y-2">
 					<Label>Search Users</Label>
 					<div class="relative">
 						<Search class="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-						<Input
-							placeholder="Search by name, email..."
-							bind:value={searchQuery}
-							class="pl-10"
-						/>
+						<Input placeholder="Search by name, email..." bind:value={searchQuery} class="pl-10" />
 					</div>
 				</div>
 				<div class="space-y-2">
@@ -530,14 +604,14 @@
 		</Card.Header>
 		<Card.Content>
 			<!-- DEBUG: Loading states -->
-			<div class="mb-4 p-2 bg-yellow-100 text-sm">
+			<div class="mb-4 bg-yellow-100 p-2 text-sm">
 				DEBUG: initialLoading = {initialLoading}, loading = {loading}, users.length = {users.length}
 			</div>
 
 			{#if initialLoading || loading}
 				<div class="space-y-4">
 					{#each Array(5) as _}
-						<div class="h-16 bg-muted rounded animate-pulse"></div>
+						<div class="h-16 animate-pulse rounded bg-muted"></div>
 					{/each}
 				</div>
 			{:else}
@@ -558,9 +632,15 @@
 							<Table.Row>
 								<Table.Cell>
 									<div class="flex items-center gap-3">
-										<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+										<div
+											class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10"
+										>
 											<span class="text-sm font-medium">
-												{(user.displayName || user.email).split(' ').map(n => n[0]).join('').slice(0, 2)}
+												{(user.displayName || user.email)
+													.split(' ')
+													.map((n) => n[0])
+													.join('')
+													.slice(0, 2)}
 											</span>
 										</div>
 										<div>
@@ -600,25 +680,25 @@
 										</DropdownMenu.Trigger>
 										<DropdownMenu.Content align="end">
 											<DropdownMenu.Item onclick={() => viewUser(user)}>
-												<Eye class="h-4 w-4 mr-2" />
+												<Eye class="mr-2 h-4 w-4" />
 												View Details
 											</DropdownMenu.Item>
 											<DropdownMenu.Item onclick={() => editUser(user)}>
-												<Edit class="h-4 w-4 mr-2" />
+												<Edit class="mr-2 h-4 w-4" />
 												Edit User
 											</DropdownMenu.Item>
 											<DropdownMenu.Item onclick={() => toggleUserStatus(user)}>
 												{#if user.isActive}
-													<UserX class="h-4 w-4 mr-2" />
+													<UserX class="mr-2 h-4 w-4" />
 													Deactivate
 												{:else}
-													<UserCheck class="h-4 w-4 mr-2" />
+													<UserCheck class="mr-2 h-4 w-4" />
 													Activate
 												{/if}
 											</DropdownMenu.Item>
 											<DropdownMenu.Separator />
 											<DropdownMenu.Item onclick={() => deleteUser(user)} class="text-red-600">
-												<Trash2 class="h-4 w-4 mr-2" />
+												<Trash2 class="mr-2 h-4 w-4" />
 												Delete User
 											</DropdownMenu.Item>
 										</DropdownMenu.Content>
@@ -630,8 +710,8 @@
 				</Table.Root>
 
 				{#if filteredUsers.length === 0}
-					<div class="text-center py-12">
-						<Users class="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+					<div class="py-12 text-center">
+						<Users class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
 						<h3 class="text-lg font-medium">No users found</h3>
 						<p class="text-muted-foreground">Try adjusting your search criteria or filters.</p>
 					</div>
@@ -646,9 +726,7 @@
 	<Dialog.Content class="max-w-4xl">
 		<Dialog.Header>
 			<Dialog.Title>User Details</Dialog.Title>
-			<Dialog.Description>
-				View and manage user information and permissions.
-			</Dialog.Description>
+			<Dialog.Description>View and manage user information and permissions.</Dialog.Description>
 		</Dialog.Header>
 		{#if selectedUser}
 			<Tabs.Root value="details" class="space-y-6">
@@ -660,7 +738,7 @@
 				</Tabs.List>
 
 				<Tabs.Content value="details">
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+					<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 						<div class="space-y-4">
 							<div>
 								<Label class="text-sm font-medium">Full Name</Label>
@@ -688,14 +766,16 @@
 							</div>
 							<div>
 								<Label class="text-sm font-medium">Last Login</Label>
-								<p class="text-sm text-muted-foreground">{formatLastLogin(selectedUser.last_login)}</p>
+								<p class="text-sm text-muted-foreground">
+									{formatLastLogin(selectedUser.last_login)}
+								</p>
 							</div>
 						</div>
 					</div>
 				</Tabs.Content>
 
 				<Tabs.Content value="employment">
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+					<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 						<div class="space-y-4">
 							<div>
 								<Label class="text-sm font-medium">Position</Label>
@@ -721,7 +801,9 @@
 							</div>
 							<div>
 								<Label class="text-sm font-medium">Annual Salary</Label>
-								<p class="text-sm text-muted-foreground">${selectedUser.salary?.toLocaleString() || 'Not specified'}</p>
+								<p class="text-sm text-muted-foreground">
+									${selectedUser.salary?.toLocaleString() || 'Not specified'}
+								</p>
 							</div>
 						</div>
 					</div>
@@ -731,7 +813,7 @@
 					<div class="space-y-6">
 						<div>
 							<Label class="text-sm font-medium">Current Role</Label>
-							<div class="flex items-center gap-2 mt-2">
+							<div class="mt-2 flex items-center gap-2">
 								<Badge variant={getRoleVariant(selectedUser.role)}>
 									{getRoleLabel(selectedUser.role)}
 								</Badge>
@@ -742,7 +824,7 @@
 						</div>
 						<div class="space-y-3">
 							<Label class="text-sm font-medium">System Permissions</Label>
-							<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+							<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 								<div class="flex items-center justify-between">
 									<span class="text-sm">Can view all users</span>
 									<Badge variant={selectedUser.role_level >= 80 ? 'default' : 'secondary'}>
@@ -780,7 +862,9 @@
 						</div>
 						<div>
 							<Label class="text-sm font-medium">Last Login</Label>
-							<p class="text-sm text-muted-foreground">{formatLastLogin(selectedUser.last_login)}</p>
+							<p class="text-sm text-muted-foreground">
+								{formatLastLogin(selectedUser.last_login)}
+							</p>
 						</div>
 						<div>
 							<Label class="text-sm font-medium">Recent Activity</Label>
@@ -796,8 +880,13 @@
 		{/if}
 		<Dialog.Footer>
 			<Button variant="outline" onclick={closeModal}>Close</Button>
-			<Button onclick={() => { closeModal(); editUser(selectedUser); }}>
-				<Edit class="h-4 w-4 mr-2" />
+			<Button
+				onclick={() => {
+					closeModal();
+					editUser(selectedUser);
+				}}
+			>
+				<Edit class="mr-2 h-4 w-4" />
 				Edit User
 			</Button>
 		</Dialog.Footer>
@@ -816,14 +905,15 @@
 		{#if userToDelete}
 			<div class="py-4">
 				<p class="text-sm">
-					<strong>{userToDelete.display_name}</strong> ({userToDelete.email}) will be permanently deleted.
+					<strong>{userToDelete.display_name}</strong> ({userToDelete.email}) will be permanently
+					deleted.
 				</p>
 			</div>
 		{/if}
 		<Dialog.Footer>
-			<Button variant="outline" onclick={() => showDeleteConfirm = false}>Cancel</Button>
+			<Button variant="outline" onclick={() => (showDeleteConfirm = false)}>Cancel</Button>
 			<Button variant="destructive" onclick={confirmDelete}>
-				<Trash2 class="h-4 w-4 mr-2" />
+				<Trash2 class="mr-2 h-4 w-4" />
 				Delete User
 			</Button>
 		</Dialog.Footer>

@@ -16,7 +16,7 @@ describe('Report Generation Workflow Integration', () => {
         includeCharts: true,
         includeDetailedLogs: true,
         customStyling: true,
-        responsiveDesign: true
+        responsiveDesign: true,
       });
 
       const testData = {
@@ -26,7 +26,7 @@ describe('Report Generation Workflow Integration', () => {
           failedTests: 8,
           passRate: 94.67,
           avgDuration: 3250,
-          totalDuration: 487500
+          totalDuration: 487500,
         },
         patternAnalysis: {
           detectedPatterns: [
@@ -34,15 +34,15 @@ describe('Report Generation Workflow Integration', () => {
               pattern: 'timeout-authentication-chrome',
               frequency: 6,
               severity: 'high',
-              suggestedFixes: ['Increase timeout', 'Optimize login endpoint']
-            }
-          ]
+              suggestedFixes: ['Increase timeout', 'Optimize login endpoint'],
+            },
+          ],
         },
         browserResults: {
           chromium: { passed: 48, failed: 2, passRate: 96 },
           firefox: { passed: 47, failed: 3, passRate: 94 },
-          webkit: { passed: 47, failed: 3, passRate: 94 }
-        }
+          webkit: { passed: 47, failed: 3, passRate: 94 },
+        },
       };
 
       const htmlReport = await reportGenerator.generateReport(testData);
@@ -70,7 +70,7 @@ describe('Report Generation Workflow Integration', () => {
         targetAudience: 'stakeholders',
         includeBusinessImpact: true,
         includeActionItems: true,
-        highlightCriticalIssues: true
+        highlightCriticalIssues: true,
       });
 
       const summaryReport = await reportGenerator.generateExecutiveSummary({
@@ -80,16 +80,16 @@ describe('Report Generation Workflow Integration', () => {
         businessImpact: {
           estimatedDowntime: 0,
           affectedUserSessions: 45,
-          riskLevel: 'low'
+          riskLevel: 'low',
         },
         actionItems: [
           {
             priority: 'high',
             action: 'Optimize Chrome authentication timeout',
             estimatedEffort: '2 days',
-            expectedImpact: 'Reduce authentication failures by 75%'
-          }
-        ]
+            expectedImpact: 'Reduce authentication failures by 75%',
+          },
+        ],
       });
 
       // Should generate stakeholder-friendly summary
@@ -113,7 +113,7 @@ describe('Report Generation Workflow Integration', () => {
         realTimeUpdates: true,
         refreshInterval: 30000, // 30 seconds
         websocketEnabled: true,
-        liveMetrics: true
+        liveMetrics: true,
       });
 
       const dashboard = await reportGenerator.generateDashboard({
@@ -123,8 +123,8 @@ describe('Report Generation Workflow Integration', () => {
           'pass-rate-trend',
           'active-issues',
           'browser-performance',
-          'recent-failures'
-        ]
+          'recent-failures',
+        ],
       });
 
       // Should create interactive dashboard
@@ -148,7 +148,7 @@ describe('Report Generation Workflow Integration', () => {
         outputFormat: 'trend-analysis',
         historicalDataPeriod: '30days',
         includePredictions: true,
-        trendVisualization: true
+        trendVisualization: true,
       });
 
       const trendReport = await reportGenerator.generateTrendAnalysis({
@@ -157,9 +157,9 @@ describe('Report Generation Workflow Integration', () => {
           { date: '2025-01-02', passRate: 94.8, avgDuration: 3150 },
           { date: '2025-01-03', passRate: 96.1, avgDuration: 3050 },
           { date: '2025-01-04', passRate: 93.5, avgDuration: 3400 },
-          { date: '2025-01-05', passRate: 94.7, avgDuration: 3250 }
+          { date: '2025-01-05', passRate: 94.7, avgDuration: 3250 },
         ],
-        metrics: ['passRate', 'avgDuration', 'failureFrequency']
+        metrics: ['passRate', 'avgDuration', 'failureFrequency'],
       });
 
       // Should analyze trends and provide predictions
@@ -185,7 +185,7 @@ describe('Report Generation Workflow Integration', () => {
       const baseReport = {
         title: 'Authentication Test Results',
         summary: { totalTests: 100, passRate: 95 },
-        details: { patterns: [], browserResults: {} }
+        details: { patterns: [], browserResults: {} },
       };
 
       // Export to different formats
@@ -193,19 +193,19 @@ describe('Report Generation Workflow Integration', () => {
         pageSize: 'A4',
         orientation: 'portrait',
         includeCharts: true,
-        headerFooter: true
+        headerFooter: true,
       });
 
       const excelExport = await reportGenerator.exportToExcel(baseReport, {
         worksheets: ['Summary', 'Details', 'Charts'],
         formatting: true,
-        charts: true
+        charts: true,
       });
 
       const jsonExport = await reportGenerator.exportToJSON(baseReport, {
         prettyPrint: true,
         includeMetadata: true,
-        compression: false
+        compression: false,
       });
 
       // Should support multiple export formats
@@ -229,10 +229,10 @@ describe('Report Generation Workflow Integration', () => {
           smtpConfig: {
             host: 'localhost',
             port: 587,
-            secure: false
+            secure: false,
           },
-          templates: ['critical-failures', 'weekly-summary', 'trend-alerts']
-        }
+          templates: ['critical-failures', 'weekly-summary', 'trend-alerts'],
+        },
       });
 
       const emailReport = await reportGenerator.generateEmailReport({
@@ -241,8 +241,8 @@ describe('Report Generation Workflow Integration', () => {
         data: {
           criticalFailures: 3,
           affectedScenarios: ['admin-login', 'employee-dashboard'],
-          urgencyLevel: 'high'
-        }
+          urgencyLevel: 'high',
+        },
       });
 
       // Should generate email-ready reports
@@ -264,8 +264,8 @@ describe('Report Generation Workflow Integration', () => {
         templateEngine: 'handlebars',
         customTemplates: {
           'security-audit': './templates/security-audit.hbs',
-          'performance-review': './templates/performance-review.hbs'
-        }
+          'performance-review': './templates/performance-review.hbs',
+        },
       });
 
       const customReport = await reportGenerator.generateFromTemplate('security-audit', {
@@ -273,12 +273,9 @@ describe('Report Generation Workflow Integration', () => {
           authenticationSecurity: 'passed',
           sessionManagement: 'passed',
           dataEncryption: 'warning',
-          accessControls: 'passed'
+          accessControls: 'passed',
         },
-        recommendations: [
-          'Enable HTTPS-only cookies',
-          'Implement session timeout warnings'
-        ]
+        recommendations: ['Enable HTTPS-only cookies', 'Implement session timeout warnings'],
       });
 
       // Should support custom templates
@@ -300,8 +297,8 @@ describe('Report Generation Workflow Integration', () => {
           enabled: true,
           retentionPeriod: '90days',
           compressionEnabled: true,
-          versionTracking: true
-        }
+          versionTracking: true,
+        },
       });
 
       const reportMetadata = await reportGenerator.archiveReport({
@@ -310,13 +307,13 @@ describe('Report Generation Workflow Integration', () => {
         metadata: {
           generatedAt: new Date(),
           reportType: 'comprehensive',
-          dataSource: 'test-loop-execution'
-        }
+          dataSource: 'test-loop-execution',
+        },
       });
 
       const archivedReports = await reportGenerator.listArchivedReports({
         dateRange: '30days',
-        reportType: 'comprehensive'
+        reportType: 'comprehensive',
       });
 
       // Should manage report archiving

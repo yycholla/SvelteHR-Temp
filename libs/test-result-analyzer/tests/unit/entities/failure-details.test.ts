@@ -19,10 +19,7 @@ describe('FailureDetails Entity', () => {
         actualValue: null,
         expectedValue: '#login-button to be visible',
         retryCount: 3,
-        browserLogs: [
-          'Console: Failed to load resource',
-          'Console: Authentication timeout'
-        ],
+        browserLogs: ['Console: Failed to load resource', 'Console: Authentication timeout'],
         networkLogs: [
           {
             url: '/api/auth/login',
@@ -31,10 +28,10 @@ describe('FailureDetails Entity', () => {
             duration: 2000,
             requestHeaders: { 'Content-Type': 'application/json' },
             responseHeaders: { 'Content-Type': 'application/json' },
-            timestamp: new Date().toISOString()
-          }
+            timestamp: new Date().toISOString(),
+          },
         ],
-        domSnapshot: '<html><body><div id="app">...</div></body></html>'
+        domSnapshot: '<html><body><div id="app">...</div></body></html>',
       });
 
       // Validation requirements from data-model.md
@@ -55,7 +52,7 @@ describe('FailureDetails Entity', () => {
         errorMessage: 'Test error',
         stackTrace: 'Stack trace',
         errorType: 'TestError',
-        retryCount: 0
+        retryCount: 0,
       });
 
       expect(invalidFailureDetails).toBeUndefined();
@@ -75,7 +72,7 @@ describe('FailureDetails Entity', () => {
           errorMessage: 'Test error',
           stackTrace: 'Stack trace',
           errorType: 'TestError',
-          retryCount
+          retryCount,
         });
 
         expect(invalidFailureDetails).toBeUndefined();
@@ -94,7 +91,7 @@ describe('FailureDetails Entity', () => {
         stackTrace: 'Stack trace',
         errorType: 'TestError',
         retryCount: 0,
-        browserLogs: [123, null, undefined] as any // Invalid log types
+        browserLogs: [123, null, undefined] as any, // Invalid log types
       });
 
       expect(invalidFailureDetails).toBeUndefined();
@@ -118,9 +115,9 @@ describe('FailureDetails Entity', () => {
             method: 'INVALID', // Invalid HTTP method
             status: 999, // Invalid status code
             duration: -100, // Invalid duration
-            timestamp: 'invalid-date'
-          }
-        ] as any
+            timestamp: 'invalid-date',
+          },
+        ] as any,
       });
 
       expect(invalidFailureDetails).toBeUndefined();
@@ -137,7 +134,7 @@ describe('FailureDetails Entity', () => {
         errorMessage: 'Timeout waiting for element',
         stackTrace: 'TimeoutError: Waiting for selector',
         errorType: 'Timeout',
-        retryCount: 3
+        retryCount: 3,
       });
 
       const elementFailure = new FailureDetails({
@@ -145,7 +142,7 @@ describe('FailureDetails Entity', () => {
         errorMessage: 'Element not found',
         stackTrace: 'Error: Element not found',
         errorType: 'ElementNotFound',
-        retryCount: 2
+        retryCount: 2,
       });
 
       // Should classify error types
@@ -170,8 +167,8 @@ describe('FailureDetails Entity', () => {
         retryCount: 1,
         browserLogs: [
           'Console: POST /api/auth/login 401 Unauthorized',
-          'Console: Authentication failed'
-        ]
+          'Console: Authentication failed',
+        ],
       });
 
       // Should extract context
@@ -199,9 +196,9 @@ describe('FailureDetails Entity', () => {
             method: 'GET',
             status: 0, // Network error
             duration: 30000, // Very slow
-            timestamp: new Date().toISOString()
-          }
-        ]
+            timestamp: new Date().toISOString(),
+          },
+        ],
       });
 
       const consistentFailure = new FailureDetails({
@@ -209,7 +206,7 @@ describe('FailureDetails Entity', () => {
         errorMessage: 'Invalid selector',
         stackTrace: 'Error: Invalid CSS selector',
         errorType: 'SelectorError',
-        retryCount: 0 // Immediate failure, likely consistent
+        retryCount: 0, // Immediate failure, likely consistent
       });
 
       // Should distinguish flaky from consistent failures
@@ -231,7 +228,7 @@ describe('FailureDetails Entity', () => {
         actualValue: 'Element is covered by overlay',
         expectedValue: 'Element should be clickable',
         retryCount: 2,
-        domSnapshot: '<div class="overlay" style="z-index: 999">...</div>'
+        domSnapshot: '<div class="overlay" style="z-index: 999">...</div>',
       });
 
       // Should generate recommendations
@@ -252,7 +249,7 @@ describe('FailureDetails Entity', () => {
         errorMessage: 'Test error',
         stackTrace: 'Stack trace',
         errorType: 'TestError',
-        retryCount: 1
+        retryCount: 1,
       });
 
       const json = failureDetails.toJSON();

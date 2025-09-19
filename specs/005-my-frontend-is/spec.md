@@ -6,6 +6,7 @@
 **Input**: User description: "My frontend is entering into a redirect loop on login. Please research sveltekit, postgraphile, and postgraphile auth. Do a thorough investigation of the issue and comprehensive testing to ensure the failure is fixed. Make small researched changes to test for the root cause and narrow down the issue. Use Playwright for automated browser testing."
 
 ## Execution Flow (main)
+
 ```
 1. Parse user description from Input
    → Authentication redirect loop identified as critical bug
@@ -31,23 +32,27 @@
 ---
 
 ## ⚡ Quick Guidelines
+
 - ✅ Focus on WHAT users need and WHY
 - ❌ Avoid HOW to implement (no tech stack, APIs, code structure)
 - 👥 Written for business stakeholders, not developers
 
 ### Section Requirements
+
 - **Mandatory sections**: Must be completed for every feature
 - **Optional sections**: Include only when relevant to the feature
 - When a section doesn't apply, remove it entirely (don't leave as "N/A")
 
 ---
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### Primary User Story
+
 As a user of the HR system, I need to be able to successfully log in to the application and be directed to the appropriate dashboard based on my role, without experiencing redirect loops that prevent me from accessing the system.
 
 ### Acceptance Scenarios
+
 1. **Given** a user with valid admin credentials, **When** they log in, **Then** they should be redirected to the admin dashboard without any loops or errors
 2. **Given** a user with valid employee credentials, **When** they log in, **Then** they should be redirected to the employee dashboard without any loops or errors
 3. **Given** an authenticated user on any page, **When** they navigate within the application, **Then** they should not experience unexpected redirects or authentication loops
@@ -55,15 +60,17 @@ As a user of the HR system, I need to be able to successfully log in to the appl
 5. **Given** a user whose session has expired, **When** they attempt to access a protected page, **Then** they should be redirected to login page only once
 
 ### Edge Cases
+
 - What happens when multiple browser tabs are open during login?
 - How does system handle concurrent login attempts from different browsers?
 - What occurs when browser back button is used after login?
 - How does the system behave when cookies or local storage are disabled?
 - What happens if network interruption occurs during authentication redirect?
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
+
 - **FR-001**: System MUST allow users to log in successfully without experiencing redirect loops
 - **FR-002**: System MUST redirect authenticated users to the correct dashboard based on their role (admin, HR, manager, or employee)
 - **FR-003**: System MUST maintain user authentication state consistently across all pages
@@ -75,7 +82,8 @@ As a user of the HR system, I need to be able to successfully log in to the appl
 - **FR-009**: System MUST validate authentication state only once per page load to prevent performance issues
 - **FR-010**: System MUST gracefully handle expired tokens by redirecting to login page exactly once
 
-### Key Entities *(include if feature involves data)*
+### Key Entities _(include if feature involves data)_
+
 - **User Session**: Represents an authenticated user's active session, including authentication status, user information, and role permissions
 - **Authentication Token**: Security credential that validates user identity, with expiration time and scope
 - **Navigation State**: Tracks user's current location and intended destination to manage redirects appropriately
@@ -84,15 +92,18 @@ As a user of the HR system, I need to be able to successfully log in to the appl
 ---
 
 ## Review & Acceptance Checklist
-*GATE: Automated checks run during main() execution*
+
+_GATE: Automated checks run during main() execution_
 
 ### Content Quality
+
 - [x] No implementation details (languages, frameworks, APIs)
 - [x] Focused on user value and business needs
 - [x] Written for non-technical stakeholders
 - [x] All mandatory sections completed
 
 ### Requirement Completeness
+
 - [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
@@ -102,7 +113,8 @@ As a user of the HR system, I need to be able to successfully log in to the appl
 ---
 
 ## Execution Status
-*Updated by main() during processing*
+
+_Updated by main() during processing_
 
 - [x] User description parsed
 - [x] Key concepts extracted

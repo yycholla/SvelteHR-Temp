@@ -15,6 +15,7 @@ This document defines the data structures used for tracking authentication test 
 **Purpose**: Represents a collection of authentication test scenarios with execution metadata
 
 **Fields**:
+
 - `id`: string (UUID) - Unique identifier for the test suite
 - `name`: string - Descriptive name for the test suite
 - `description`: string - Detailed description of test suite purpose
@@ -26,12 +27,14 @@ This document defines the data structures used for tracking authentication test 
 - `tags`: string[] - Categorization tags for organization
 
 **Validation Rules**:
+
 - `id` must be a valid UUID v4
 - `name` must be 1-100 characters, alphanumeric with spaces and hyphens
 - `scenarios` must contain at least 1 scenario
 - `version` must follow semantic versioning format (x.y.z)
 
 **State Transitions**:
+
 - Draft → Active → Archived
 - Active suites can be executed
 - Archived suites are read-only
@@ -41,6 +44,7 @@ This document defines the data structures used for tracking authentication test 
 **Purpose**: Defines individual authentication test cases with expected behaviors
 
 **Fields**:
+
 - `id`: string (UUID) - Unique identifier for the scenario
 - `name`: string - Descriptive name for the scenario
 - `description`: string - Detailed description of what is being tested
@@ -54,6 +58,7 @@ This document defines the data structures used for tracking authentication test 
 - `browsers`: string[] - Target browsers for this scenario
 
 **Validation Rules**:
+
 - `name` must be unique within a test suite
 - `steps` must contain at least 1 step
 - `estimatedDuration` must be positive integer
@@ -64,6 +69,7 @@ This document defines the data structures used for tracking authentication test 
 **Purpose**: Individual action within a test scenario
 
 **Fields**:
+
 - `id`: string (UUID) - Unique identifier for the step
 - `action`: string - Type of action (navigate, fill, click, wait, assert)
 - `target`: string - Element selector or URL target
@@ -73,6 +79,7 @@ This document defines the data structures used for tracking authentication test 
 - `critical`: boolean - Whether failure of this step should fail the entire scenario
 
 **Validation Rules**:
+
 - `action` must be one of predefined action types
 - `timeout` must be positive integer ≤ 30000ms
 - `target` must be valid CSS selector or URL
@@ -82,6 +89,7 @@ This document defines the data structures used for tracking authentication test 
 **Purpose**: Records the outcome of test execution with detailed failure information
 
 **Fields**:
+
 - `id`: string (UUID) - Unique identifier for the result
 - `testSuiteId`: string (UUID) - Reference to the executed test suite
 - `scenarioId`: string (UUID) - Reference to the executed scenario
@@ -99,6 +107,7 @@ This document defines the data structures used for tracking authentication test 
 - `performanceMetrics`: PerformanceMetrics - Timing and resource usage data
 
 **Validation Rules**:
+
 - `duration` must be positive integer
 - `startTime` must be before `endTime`
 - `failureDetails` required when status is 'failed'
@@ -109,6 +118,7 @@ This document defines the data structures used for tracking authentication test 
 **Purpose**: Comprehensive information about test failures for debugging
 
 **Fields**:
+
 - `stepId`: string (UUID) - Which step failed
 - `errorMessage`: string - Primary error message
 - `stackTrace`: string - Full stack trace
@@ -125,6 +135,7 @@ This document defines the data structures used for tracking authentication test 
 **Purpose**: Captures environmental context for test execution
 
 **Fields**:
+
 - `os`: string - Operating system
 - `browserVersion`: string - Browser version information
 - `viewportSize`: object - Screen dimensions {width: number, height: number}
@@ -138,6 +149,7 @@ This document defines the data structures used for tracking authentication test 
 **Purpose**: Tracks authentication state throughout test execution
 
 **Fields**:
+
 - `id`: string (UUID) - Unique session identifier
 - `userId`: string - Test user identifier
 - `userRole`: UserRole - Role of the authenticated user
@@ -151,6 +163,7 @@ This document defines the data structures used for tracking authentication test 
 - `lastActivity`: ISO8601 timestamp - Most recent session activity
 
 **Validation Rules**:
+
 - `jwtToken` must be valid JWT format when present
 - `tokenExpiry` must be future timestamp when token is active
 - `loginTime` must be before `lastActivity`
@@ -160,6 +173,7 @@ This document defines the data structures used for tracking authentication test 
 **Purpose**: Groups test results from a complete testing cycle
 
 **Fields**:
+
 - `id`: string (UUID) - Unique iteration identifier
 - `name`: string - Descriptive name for the iteration
 - `testSuiteId`: string (UUID) - Reference to executed test suite
@@ -172,6 +186,7 @@ This document defines the data structures used for tracking authentication test 
 - `triggeredBy`: string - What triggered this iteration (manual, ci, schedule)
 
 **State Transitions**:
+
 - pending → running → (completed | failed | cancelled)
 - Only running iterations can be updated with new results
 
@@ -180,6 +195,7 @@ This document defines the data structures used for tracking authentication test 
 **Purpose**: Records discovered authentication problems with resolution tracking
 
 **Fields**:
+
 - `id`: string (UUID) - Unique issue identifier
 - `title`: string - Brief description of the issue
 - `description`: string - Detailed issue description
@@ -195,6 +211,7 @@ This document defines the data structures used for tracking authentication test 
 - `tags`: string[] - Categorization tags
 
 **Validation Rules**:
+
 - `reproducibilityRate` must be integer between 0-100
 - `resolution` required when status is 'resolved' or 'closed'
 - `firstSeen` must be before or equal to `lastSeen`
@@ -202,61 +219,67 @@ This document defines the data structures used for tracking authentication test 
 ## Supporting Types
 
 ### UserRole
+
 ```typescript
-type UserRole = 'admin' | 'hr_admin' | 'manager' | 'employee' | 'guest'
+type UserRole = 'admin' | 'hr_admin' | 'manager' | 'employee' | 'guest';
 ```
 
 ### ExpectedOutcome
+
 ```typescript
 interface ExpectedOutcome {
-  finalUrl: string | RegExp
-  authenticationState: 'authenticated' | 'unauthenticated'
-  redirectCount: number
-  maxDuration: number
-  requiredElements: string[]
-  forbiddenElements: string[]
+	finalUrl: string | RegExp;
+	authenticationState: 'authenticated' | 'unauthenticated';
+	redirectCount: number;
+	maxDuration: number;
+	requiredElements: string[];
+	forbiddenElements: string[];
 }
 ```
 
 ### PerformanceMetrics
+
 ```typescript
 interface PerformanceMetrics {
-  pageLoadTime: number
-  authenticationTime: number
-  redirectTime: number
-  totalExecutionTime: number
-  memoryUsage: number
-  networkRequests: number
+	pageLoadTime: number;
+	authenticationTime: number;
+	redirectTime: number;
+	totalExecutionTime: number;
+	memoryUsage: number;
+	networkRequests: number;
 }
 ```
 
 ### FailurePattern
+
 ```typescript
 interface FailurePattern {
-  pattern: string
-  frequency: number
-  conditions: string[]
-  suggestedFixes: string[]
-  relatedIssues: string[]
+	pattern: string;
+	frequency: number;
+	conditions: string[];
+	suggestedFixes: string[];
+	relatedIssues: string[];
 }
 ```
 
 ### NetworkLog
+
 ```typescript
 interface NetworkLog {
-  url: string
-  method: string
-  status: number
-  duration: number
-  requestHeaders: object
-  responseHeaders: object
-  timestamp: string
+	url: string;
+	method: string;
+	status: number;
+	duration: number;
+	requestHeaders: object;
+	responseHeaders: object;
+	timestamp: string;
 }
 ```
 
 ## Relationships
 
 ### Primary Relationships
+
 - **TestSuite** → **TestScenario** (1:many)
 - **TestScenario** → **TestStep** (1:many)
 - **TestingIteration** → **TestResult** (1:many)
@@ -264,6 +287,7 @@ interface NetworkLog {
 - **IssueTracker** → **TestResult** (1:many)
 
 ### Reference Relationships
+
 - **TestResult** references **TestSuite** and **TestScenario**
 - **AuthenticationSession** tracked per **TestResult**
 - **ExecutionEnvironment** captured per **TestResult**
@@ -278,6 +302,7 @@ interface NetworkLog {
 ## Schema Evolution
 
 All entities support versioning through:
+
 - Schema version fields for backward compatibility
 - Optional field migration strategies
 - Graceful handling of unknown fields for forward compatibility

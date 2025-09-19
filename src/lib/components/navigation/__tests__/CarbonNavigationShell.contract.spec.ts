@@ -5,15 +5,15 @@
  * Validates navigation, user context, and accessibility requirements.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/svelte'
+import { describe, it, expect, beforeEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/svelte';
 import type {
-  CarbonNavigationShellContract,
-  UserContext,
-  NavigationItem,
-  BreadcrumbItem,
-  UserAction
-} from '../../../contracts/component-interface'
+	CarbonNavigationShellContract,
+	UserContext,
+	NavigationItem,
+	BreadcrumbItem,
+	UserAction
+} from '../../../contracts/component-interface';
 
 // Mock component for testing contracts
 const mockNavigationShell = `
@@ -257,488 +257,492 @@ const mockNavigationShell = `
     border: 0;
   }
 </style>
-`
+`;
 
 describe('CarbonNavigationShell Contract Tests', () => {
-  const mockUser: UserContext = {
-    id: 'user-123',
-    name: 'John Doe',
-    email: 'john@example.com',
-    role: 'admin',
-    permissions: ['read', 'write', 'admin'],
-    avatar: '/avatars/john.jpg'
-  }
-
-  const mockNavigation: NavigationItem[] = [
-    {
-      id: 'dashboard',
-      label: 'Dashboard',
-      href: '/dashboard',
-      active: true
-    },
-    {
-      id: 'employees',
-      label: 'Employees',
-      href: '/employees',
-      badge: '5',
-      children: [
-        {
-          id: 'all-employees',
-          label: 'All Employees',
-          href: '/employees'
-        },
-        {
-          id: 'add-employee',
-          label: 'Add Employee',
-          href: '/employees/new'
-        }
-      ]
-    },
-    {
-      id: 'admin',
-      label: 'Admin',
-      href: '/admin',
-      permissions: ['admin']
-    }
-  ]
-
-  const mockBreadcrumbs: BreadcrumbItem[] = [
-    { label: 'Home', href: '/' },
-    { label: 'Employees', href: '/employees' },
-    { label: 'John Doe', current: true }
-  ]
-
-  const mockUserActions = [
-    { id: 'profile', label: 'Profile' },
-    { id: 'settings', label: 'Settings' },
-    { id: 'logout', label: 'Sign Out' }
-  ]
-
-  const mockNotifications = [
-    { id: 'notif-1', message: 'New employee added' },
-    { id: 'notif-2', message: 'Report ready for review' }
-  ]
-
-  const defaultAccessibility = {
-    skipToContent: { label: 'Skip to main content', target: '#main-content' },
-    keyboardShortcuts: [
-      { key: 'Alt+1', description: 'Go to main navigation' },
-      { key: 'Alt+2', description: 'Go to main content' }
-    ],
-    landmarks: [
-      { role: 'banner', label: 'Site header' },
-      { role: 'navigation', label: 'Main navigation' },
-      { role: 'main', label: 'Main content' }
-    ]
-  }
-
-  describe('Required Props Contract', () => {
-    it('should accept required user prop', () => {
-      expect(() => {
-        render(mockNavigationShell, {
-          props: {
-            user: mockUser,
-            primaryNavigation: mockNavigation,
-            accessibility: defaultAccessibility
-          }
-        })
-      }).not.toThrow()
-    })
-
-    it('should accept required primaryNavigation prop', () => {
-      expect(() => {
-        render(mockNavigationShell, {
-          props: {
-            user: mockUser,
-            primaryNavigation: mockNavigation,
-            accessibility: defaultAccessibility
-          }
-        })
-      }).not.toThrow()
-    })
-
-    it('should validate user context structure', () => {
-      const component = render(mockNavigationShell, {
-        props: {
-          user: mockUser,
-          primaryNavigation: mockNavigation,
-          accessibility: defaultAccessibility
-        }
-      })
-
-      const userMenuButton = screen.getByTestId('user-menu-button')
-      expect(userMenuButton).toHaveAttribute('aria-label', `User menu for ${mockUser.name}`)
-      expect(screen.getByText(mockUser.name)).toBeInTheDocument()
-    })
-  })
-
-  describe('Optional Props Contract', () => {
-    it('should handle breadcrumbs prop', () => {
-      const component = render(mockNavigationShell, {
-        props: {
-          user: mockUser,
-          primaryNavigation: mockNavigation,
-          breadcrumbs: mockBreadcrumbs,
-          accessibility: defaultAccessibility
-        }
-      })
-
-      expect(screen.getByTestId('breadcrumbs')).toBeInTheDocument()
-      expect(screen.getByLabelText('Breadcrumb')).toBeInTheDocument()
-      expect(screen.getByTestId('breadcrumb-current')).toHaveTextContent('John Doe')
-    })
-
-    it('should handle userActions prop', () => {
-      const component = render(mockNavigationShell, {
-        props: {
-          user: mockUser,
-          primaryNavigation: mockNavigation,
-          userActions: mockUserActions,
-          accessibility: defaultAccessibility
-        }
-      })
-
-      expect(screen.getByTestId('user-actions')).toBeInTheDocument()
-      expect(screen.getByTestId('user-action-profile')).toBeInTheDocument()
-      expect(screen.getByTestId('user-action-logout')).toBeInTheDocument()
-    })
-
-    it('should handle notifications prop', () => {
-      const component = render(mockNavigationShell, {
-        props: {
-          user: mockUser,
-          primaryNavigation: mockNavigation,
-          notifications: mockNotifications,
-          accessibility: defaultAccessibility
-        }
-      })
-
-      expect(screen.getByTestId('notifications')).toBeInTheDocument()
-      expect(screen.getByLabelText(`Notifications (${mockNotifications.length} unread)`))
-        .toBeInTheDocument()
-      expect(screen.getByTestId('notification-notif-1')).toBeInTheDocument()
-    })
-
-    it('should handle searchEnabled prop', () => {
-      const component = render(mockNavigationShell, {
-        props: {
-          user: mockUser,
-          primaryNavigation: mockNavigation,
-          searchEnabled: true,
-          accessibility: defaultAccessibility
-        }
-      })
-
-      expect(screen.getByTestId('search-container')).toBeInTheDocument()
-      expect(screen.getByTestId('search-input')).toBeInTheDocument()
-      expect(screen.getByLabelText('Search the application')).toBeInTheDocument()
-    })
-  })
-
-  describe('Event Emission Contract', () => {
-    it('should emit onNavigate events', async () => {
-      let navigatedItem: NavigationItem | null = null
-      const handleNavigate = (item: NavigationItem) => {
-        navigatedItem = item
-      }
-
-      const component = render(mockNavigationShell, {
-        props: {
-          user: mockUser,
-          primaryNavigation: mockNavigation,
-          accessibility: defaultAccessibility,
-          onNavigate: handleNavigate
-        }
-      })
-
-      const dashboardLink = screen.getByTestId('nav-item-dashboard')
-      await fireEvent.click(dashboardLink)
-
-      expect(navigatedItem).toEqual(mockNavigation[0])
-    })
-
-    it('should emit onUserAction events', async () => {
-      let triggeredAction: any = null
-      const handleUserAction = (action: any) => {
-        triggeredAction = action
-      }
-
-      const component = render(mockNavigationShell, {
-        props: {
-          user: mockUser,
-          primaryNavigation: mockNavigation,
-          userActions: mockUserActions,
-          accessibility: defaultAccessibility,
-          onUserAction: handleUserAction
-        }
-      })
-
-      const profileAction = screen.getByTestId('user-action-profile')
-      await fireEvent.click(profileAction)
-
-      expect(triggeredAction).toEqual(mockUserActions[0])
-    })
-
-    it('should emit onSearch events', async () => {
-      let searchQuery: string = ''
-      const handleSearch = (query: string) => {
-        searchQuery = query
-      }
-
-      const component = render(mockNavigationShell, {
-        props: {
-          user: mockUser,
-          primaryNavigation: mockNavigation,
-          searchEnabled: true,
-          accessibility: defaultAccessibility,
-          onSearch: handleSearch
-        }
-      })
-
-      const searchInput = screen.getByTestId('search-input')
-      const searchSubmit = screen.getByTestId('search-submit')
-
-      await fireEvent.input(searchInput, { target: { value: 'test query' } })
-      await fireEvent.click(searchSubmit)
-
-      expect(searchQuery).toBe('test query')
-    })
-
-    it('should emit onNotificationDismiss events', async () => {
-      let dismissedNotification: any = null
-      const handleNotificationDismiss = (notification: any) => {
-        dismissedNotification = notification
-      }
-
-      const component = render(mockNavigationShell, {
-        props: {
-          user: mockUser,
-          primaryNavigation: mockNavigation,
-          notifications: mockNotifications,
-          accessibility: defaultAccessibility,
-          onNotificationDismiss: handleNotificationDismiss
-        }
-      })
-
-      const dismissButton = screen.getByTestId('dismiss-notification-notif-1')
-      await fireEvent.click(dismissButton)
-
-      expect(dismissedNotification).toEqual(mockNotifications[0])
-    })
-  })
-
-  describe('Navigation Structure Contract', () => {
-    it('should handle navigation items with children', () => {
-      const component = render(mockNavigationShell, {
-        props: {
-          user: mockUser,
-          primaryNavigation: mockNavigation,
-          accessibility: defaultAccessibility
-        }
-      })
-
-      // Parent navigation item
-      const employeesNav = screen.getByTestId('nav-item-employees')
-      expect(employeesNav).toHaveAttribute('aria-haspopup', 'true')
-      expect(employeesNav).toHaveAttribute('aria-expanded', 'false')
-
-      // Child navigation items
-      expect(screen.getByTestId('nav-child-all-employees')).toBeInTheDocument()
-      expect(screen.getByTestId('nav-child-add-employee')).toBeInTheDocument()
-    })
-
-    it('should handle navigation badges', () => {
-      const component = render(mockNavigationShell, {
-        props: {
-          user: mockUser,
-          primaryNavigation: mockNavigation,
-          accessibility: defaultAccessibility
-        }
-      })
-
-      const badgeElement = screen.getByLabelText('Badge: 5')
-      expect(badgeElement).toBeInTheDocument()
-    })
-
-    it('should handle active navigation states', () => {
-      const component = render(mockNavigationShell, {
-        props: {
-          user: mockUser,
-          primaryNavigation: mockNavigation,
-          accessibility: defaultAccessibility
-        }
-      })
-
-      const dashboardLink = screen.getByTestId('nav-item-dashboard')
-      expect(dashboardLink).toHaveAttribute('aria-current', 'page')
-    })
-
-    it('should handle permission-based navigation', () => {
-      // Test with user who has admin permissions
-      const component = render(mockNavigationShell, {
-        props: {
-          user: mockUser,
-          primaryNavigation: mockNavigation,
-          accessibility: defaultAccessibility
-        }
-      })
-
-      // Admin navigation should be present for admin user
-      expect(screen.getByTestId('nav-item-admin')).toBeInTheDocument()
-    })
-  })
-
-  describe('Accessibility Contract', () => {
-    it('should have proper skip link', () => {
-      const component = render(mockNavigationShell, {
-        props: {
-          user: mockUser,
-          primaryNavigation: mockNavigation,
-          accessibility: defaultAccessibility
-        }
-      })
-
-      const skipLink = screen.getByTestId('skip-link')
-      expect(skipLink).toHaveTextContent('Skip to main content')
-      expect(skipLink).toHaveAttribute('href', '#main-content')
-    })
-
-    it('should have proper landmark roles', () => {
-      const component = render(mockNavigationShell, {
-        props: {
-          user: mockUser,
-          primaryNavigation: mockNavigation,
-          accessibility: defaultAccessibility
-        }
-      })
-
-      expect(screen.getByRole('banner')).toBeInTheDocument()
-      expect(screen.getByRole('navigation', { name: 'Main navigation' })).toBeInTheDocument()
-      expect(screen.getByRole('main')).toBeInTheDocument()
-    })
-
-    it('should have proper menu semantics', () => {
-      const component = render(mockNavigationShell, {
-        props: {
-          user: mockUser,
-          primaryNavigation: mockNavigation,
-          accessibility: defaultAccessibility
-        }
-      })
-
-      const menubar = screen.getByRole('menubar')
-      expect(menubar).toBeInTheDocument()
-
-      const menuItems = screen.getAllByRole('menuitem')
-      expect(menuItems.length).toBeGreaterThan(0)
-    })
-
-    it('should have proper breadcrumb semantics', () => {
-      const component = render(mockNavigationShell, {
-        props: {
-          user: mockUser,
-          primaryNavigation: mockNavigation,
-          breadcrumbs: mockBreadcrumbs,
-          accessibility: defaultAccessibility
-        }
-      })
-
-      const breadcrumbNav = screen.getByRole('navigation', { name: 'Breadcrumb' })
-      expect(breadcrumbNav).toBeInTheDocument()
-
-      const currentPage = screen.getByTestId('breadcrumb-current')
-      expect(currentPage).toHaveAttribute('aria-current', 'page')
-    })
-
-    it('should have proper search semantics', () => {
-      const component = render(mockNavigationShell, {
-        props: {
-          user: mockUser,
-          primaryNavigation: mockNavigation,
-          searchEnabled: true,
-          accessibility: defaultAccessibility
-        }
-      })
-
-      const searchRegion = screen.getByRole('search')
-      expect(searchRegion).toBeInTheDocument()
-
-      const searchInput = screen.getByRole('searchbox')
-      expect(searchInput).toHaveAttribute('aria-label', 'Search the application')
-    })
-
-    it('should support keyboard navigation', () => {
-      const component = render(mockNavigationShell, {
-        props: {
-          user: mockUser,
-          primaryNavigation: mockNavigation,
-          accessibility: defaultAccessibility
-        }
-      })
-
-      // All navigation items should be keyboard accessible
-      const menuItems = screen.getAllByRole('menuitem')
-      menuItems.forEach(item => {
-        expect(item.tagName).toMatch(/^(A|BUTTON)$/)
-      })
-    })
-
-    it('should have proper notification accessibility', () => {
-      const component = render(mockNavigationShell, {
-        props: {
-          user: mockUser,
-          primaryNavigation: mockNavigation,
-          notifications: mockNotifications,
-          accessibility: defaultAccessibility
-        }
-      })
-
-      const notificationsRegion = screen.getByRole('region', { name: 'Notifications' })
-      expect(notificationsRegion).toBeInTheDocument()
-
-      const notificationsList = screen.getByRole('list')
-      expect(notificationsList).toBeInTheDocument()
-
-      const dismissButton = screen.getByTestId('dismiss-notification-notif-1')
-      expect(dismissButton).toHaveAttribute('aria-label', 'Dismiss notification: New employee added')
-    })
-  })
-
-  describe('Type Safety Contract', () => {
-    it('should enforce TypeScript contracts', () => {
-      // This test validates that TypeScript compilation would catch contract violations
-      const validProps: CarbonNavigationShellContract = {
-        user: mockUser,
-        primaryNavigation: mockNavigation,
-        breadcrumbs: mockBreadcrumbs,
-        userActions: mockUserActions,
-        notifications: mockNotifications,
-        searchEnabled: true,
-        accessibility: defaultAccessibility,
-        onNavigate: (item) => console.log(item),
-        onUserAction: (action) => console.log(action),
-        onSearch: (query) => console.log(query),
-        onNotificationDismiss: (notification) => console.log(notification)
-      }
-
-      // This test passes if TypeScript compilation succeeds
-      expect(validProps).toBeDefined()
-    })
-  })
-
-  describe('Responsive Behavior Contract', () => {
-    it('should handle responsive navigation collapse', () => {
-      // This would test responsive behavior
-      const component = render(mockNavigationShell, {
-        props: {
-          user: mockUser,
-          primaryNavigation: mockNavigation,
-          accessibility: defaultAccessibility
-        }
-      })
-
-      // Navigation should be present and accessible
-      expect(screen.getByTestId('primary-nav')).toBeInTheDocument()
-    })
-  })
-})
+	const mockUser: UserContext = {
+		id: 'user-123',
+		name: 'John Doe',
+		email: 'john@example.com',
+		role: 'admin',
+		permissions: ['read', 'write', 'admin'],
+		avatar: '/avatars/john.jpg'
+	};
+
+	const mockNavigation: NavigationItem[] = [
+		{
+			id: 'dashboard',
+			label: 'Dashboard',
+			href: '/dashboard',
+			active: true
+		},
+		{
+			id: 'employees',
+			label: 'Employees',
+			href: '/employees',
+			badge: '5',
+			children: [
+				{
+					id: 'all-employees',
+					label: 'All Employees',
+					href: '/employees'
+				},
+				{
+					id: 'add-employee',
+					label: 'Add Employee',
+					href: '/employees/new'
+				}
+			]
+		},
+		{
+			id: 'admin',
+			label: 'Admin',
+			href: '/admin',
+			permissions: ['admin']
+		}
+	];
+
+	const mockBreadcrumbs: BreadcrumbItem[] = [
+		{ label: 'Home', href: '/' },
+		{ label: 'Employees', href: '/employees' },
+		{ label: 'John Doe', current: true }
+	];
+
+	const mockUserActions = [
+		{ id: 'profile', label: 'Profile' },
+		{ id: 'settings', label: 'Settings' },
+		{ id: 'logout', label: 'Sign Out' }
+	];
+
+	const mockNotifications = [
+		{ id: 'notif-1', message: 'New employee added' },
+		{ id: 'notif-2', message: 'Report ready for review' }
+	];
+
+	const defaultAccessibility = {
+		skipToContent: { label: 'Skip to main content', target: '#main-content' },
+		keyboardShortcuts: [
+			{ key: 'Alt+1', description: 'Go to main navigation' },
+			{ key: 'Alt+2', description: 'Go to main content' }
+		],
+		landmarks: [
+			{ role: 'banner', label: 'Site header' },
+			{ role: 'navigation', label: 'Main navigation' },
+			{ role: 'main', label: 'Main content' }
+		]
+	};
+
+	describe('Required Props Contract', () => {
+		it('should accept required user prop', () => {
+			expect(() => {
+				render(mockNavigationShell, {
+					props: {
+						user: mockUser,
+						primaryNavigation: mockNavigation,
+						accessibility: defaultAccessibility
+					}
+				});
+			}).not.toThrow();
+		});
+
+		it('should accept required primaryNavigation prop', () => {
+			expect(() => {
+				render(mockNavigationShell, {
+					props: {
+						user: mockUser,
+						primaryNavigation: mockNavigation,
+						accessibility: defaultAccessibility
+					}
+				});
+			}).not.toThrow();
+		});
+
+		it('should validate user context structure', () => {
+			const component = render(mockNavigationShell, {
+				props: {
+					user: mockUser,
+					primaryNavigation: mockNavigation,
+					accessibility: defaultAccessibility
+				}
+			});
+
+			const userMenuButton = screen.getByTestId('user-menu-button');
+			expect(userMenuButton).toHaveAttribute('aria-label', `User menu for ${mockUser.name}`);
+			expect(screen.getByText(mockUser.name)).toBeInTheDocument();
+		});
+	});
+
+	describe('Optional Props Contract', () => {
+		it('should handle breadcrumbs prop', () => {
+			const component = render(mockNavigationShell, {
+				props: {
+					user: mockUser,
+					primaryNavigation: mockNavigation,
+					breadcrumbs: mockBreadcrumbs,
+					accessibility: defaultAccessibility
+				}
+			});
+
+			expect(screen.getByTestId('breadcrumbs')).toBeInTheDocument();
+			expect(screen.getByLabelText('Breadcrumb')).toBeInTheDocument();
+			expect(screen.getByTestId('breadcrumb-current')).toHaveTextContent('John Doe');
+		});
+
+		it('should handle userActions prop', () => {
+			const component = render(mockNavigationShell, {
+				props: {
+					user: mockUser,
+					primaryNavigation: mockNavigation,
+					userActions: mockUserActions,
+					accessibility: defaultAccessibility
+				}
+			});
+
+			expect(screen.getByTestId('user-actions')).toBeInTheDocument();
+			expect(screen.getByTestId('user-action-profile')).toBeInTheDocument();
+			expect(screen.getByTestId('user-action-logout')).toBeInTheDocument();
+		});
+
+		it('should handle notifications prop', () => {
+			const component = render(mockNavigationShell, {
+				props: {
+					user: mockUser,
+					primaryNavigation: mockNavigation,
+					notifications: mockNotifications,
+					accessibility: defaultAccessibility
+				}
+			});
+
+			expect(screen.getByTestId('notifications')).toBeInTheDocument();
+			expect(
+				screen.getByLabelText(`Notifications (${mockNotifications.length} unread)`)
+			).toBeInTheDocument();
+			expect(screen.getByTestId('notification-notif-1')).toBeInTheDocument();
+		});
+
+		it('should handle searchEnabled prop', () => {
+			const component = render(mockNavigationShell, {
+				props: {
+					user: mockUser,
+					primaryNavigation: mockNavigation,
+					searchEnabled: true,
+					accessibility: defaultAccessibility
+				}
+			});
+
+			expect(screen.getByTestId('search-container')).toBeInTheDocument();
+			expect(screen.getByTestId('search-input')).toBeInTheDocument();
+			expect(screen.getByLabelText('Search the application')).toBeInTheDocument();
+		});
+	});
+
+	describe('Event Emission Contract', () => {
+		it('should emit onNavigate events', async () => {
+			let navigatedItem: NavigationItem | null = null;
+			const handleNavigate = (item: NavigationItem) => {
+				navigatedItem = item;
+			};
+
+			const component = render(mockNavigationShell, {
+				props: {
+					user: mockUser,
+					primaryNavigation: mockNavigation,
+					accessibility: defaultAccessibility,
+					onNavigate: handleNavigate
+				}
+			});
+
+			const dashboardLink = screen.getByTestId('nav-item-dashboard');
+			await fireEvent.click(dashboardLink);
+
+			expect(navigatedItem).toEqual(mockNavigation[0]);
+		});
+
+		it('should emit onUserAction events', async () => {
+			let triggeredAction: any = null;
+			const handleUserAction = (action: any) => {
+				triggeredAction = action;
+			};
+
+			const component = render(mockNavigationShell, {
+				props: {
+					user: mockUser,
+					primaryNavigation: mockNavigation,
+					userActions: mockUserActions,
+					accessibility: defaultAccessibility,
+					onUserAction: handleUserAction
+				}
+			});
+
+			const profileAction = screen.getByTestId('user-action-profile');
+			await fireEvent.click(profileAction);
+
+			expect(triggeredAction).toEqual(mockUserActions[0]);
+		});
+
+		it('should emit onSearch events', async () => {
+			let searchQuery: string = '';
+			const handleSearch = (query: string) => {
+				searchQuery = query;
+			};
+
+			const component = render(mockNavigationShell, {
+				props: {
+					user: mockUser,
+					primaryNavigation: mockNavigation,
+					searchEnabled: true,
+					accessibility: defaultAccessibility,
+					onSearch: handleSearch
+				}
+			});
+
+			const searchInput = screen.getByTestId('search-input');
+			const searchSubmit = screen.getByTestId('search-submit');
+
+			await fireEvent.input(searchInput, { target: { value: 'test query' } });
+			await fireEvent.click(searchSubmit);
+
+			expect(searchQuery).toBe('test query');
+		});
+
+		it('should emit onNotificationDismiss events', async () => {
+			let dismissedNotification: any = null;
+			const handleNotificationDismiss = (notification: any) => {
+				dismissedNotification = notification;
+			};
+
+			const component = render(mockNavigationShell, {
+				props: {
+					user: mockUser,
+					primaryNavigation: mockNavigation,
+					notifications: mockNotifications,
+					accessibility: defaultAccessibility,
+					onNotificationDismiss: handleNotificationDismiss
+				}
+			});
+
+			const dismissButton = screen.getByTestId('dismiss-notification-notif-1');
+			await fireEvent.click(dismissButton);
+
+			expect(dismissedNotification).toEqual(mockNotifications[0]);
+		});
+	});
+
+	describe('Navigation Structure Contract', () => {
+		it('should handle navigation items with children', () => {
+			const component = render(mockNavigationShell, {
+				props: {
+					user: mockUser,
+					primaryNavigation: mockNavigation,
+					accessibility: defaultAccessibility
+				}
+			});
+
+			// Parent navigation item
+			const employeesNav = screen.getByTestId('nav-item-employees');
+			expect(employeesNav).toHaveAttribute('aria-haspopup', 'true');
+			expect(employeesNav).toHaveAttribute('aria-expanded', 'false');
+
+			// Child navigation items
+			expect(screen.getByTestId('nav-child-all-employees')).toBeInTheDocument();
+			expect(screen.getByTestId('nav-child-add-employee')).toBeInTheDocument();
+		});
+
+		it('should handle navigation badges', () => {
+			const component = render(mockNavigationShell, {
+				props: {
+					user: mockUser,
+					primaryNavigation: mockNavigation,
+					accessibility: defaultAccessibility
+				}
+			});
+
+			const badgeElement = screen.getByLabelText('Badge: 5');
+			expect(badgeElement).toBeInTheDocument();
+		});
+
+		it('should handle active navigation states', () => {
+			const component = render(mockNavigationShell, {
+				props: {
+					user: mockUser,
+					primaryNavigation: mockNavigation,
+					accessibility: defaultAccessibility
+				}
+			});
+
+			const dashboardLink = screen.getByTestId('nav-item-dashboard');
+			expect(dashboardLink).toHaveAttribute('aria-current', 'page');
+		});
+
+		it('should handle permission-based navigation', () => {
+			// Test with user who has admin permissions
+			const component = render(mockNavigationShell, {
+				props: {
+					user: mockUser,
+					primaryNavigation: mockNavigation,
+					accessibility: defaultAccessibility
+				}
+			});
+
+			// Admin navigation should be present for admin user
+			expect(screen.getByTestId('nav-item-admin')).toBeInTheDocument();
+		});
+	});
+
+	describe('Accessibility Contract', () => {
+		it('should have proper skip link', () => {
+			const component = render(mockNavigationShell, {
+				props: {
+					user: mockUser,
+					primaryNavigation: mockNavigation,
+					accessibility: defaultAccessibility
+				}
+			});
+
+			const skipLink = screen.getByTestId('skip-link');
+			expect(skipLink).toHaveTextContent('Skip to main content');
+			expect(skipLink).toHaveAttribute('href', '#main-content');
+		});
+
+		it('should have proper landmark roles', () => {
+			const component = render(mockNavigationShell, {
+				props: {
+					user: mockUser,
+					primaryNavigation: mockNavigation,
+					accessibility: defaultAccessibility
+				}
+			});
+
+			expect(screen.getByRole('banner')).toBeInTheDocument();
+			expect(screen.getByRole('navigation', { name: 'Main navigation' })).toBeInTheDocument();
+			expect(screen.getByRole('main')).toBeInTheDocument();
+		});
+
+		it('should have proper menu semantics', () => {
+			const component = render(mockNavigationShell, {
+				props: {
+					user: mockUser,
+					primaryNavigation: mockNavigation,
+					accessibility: defaultAccessibility
+				}
+			});
+
+			const menubar = screen.getByRole('menubar');
+			expect(menubar).toBeInTheDocument();
+
+			const menuItems = screen.getAllByRole('menuitem');
+			expect(menuItems.length).toBeGreaterThan(0);
+		});
+
+		it('should have proper breadcrumb semantics', () => {
+			const component = render(mockNavigationShell, {
+				props: {
+					user: mockUser,
+					primaryNavigation: mockNavigation,
+					breadcrumbs: mockBreadcrumbs,
+					accessibility: defaultAccessibility
+				}
+			});
+
+			const breadcrumbNav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+			expect(breadcrumbNav).toBeInTheDocument();
+
+			const currentPage = screen.getByTestId('breadcrumb-current');
+			expect(currentPage).toHaveAttribute('aria-current', 'page');
+		});
+
+		it('should have proper search semantics', () => {
+			const component = render(mockNavigationShell, {
+				props: {
+					user: mockUser,
+					primaryNavigation: mockNavigation,
+					searchEnabled: true,
+					accessibility: defaultAccessibility
+				}
+			});
+
+			const searchRegion = screen.getByRole('search');
+			expect(searchRegion).toBeInTheDocument();
+
+			const searchInput = screen.getByRole('searchbox');
+			expect(searchInput).toHaveAttribute('aria-label', 'Search the application');
+		});
+
+		it('should support keyboard navigation', () => {
+			const component = render(mockNavigationShell, {
+				props: {
+					user: mockUser,
+					primaryNavigation: mockNavigation,
+					accessibility: defaultAccessibility
+				}
+			});
+
+			// All navigation items should be keyboard accessible
+			const menuItems = screen.getAllByRole('menuitem');
+			menuItems.forEach((item) => {
+				expect(item.tagName).toMatch(/^(A|BUTTON)$/);
+			});
+		});
+
+		it('should have proper notification accessibility', () => {
+			const component = render(mockNavigationShell, {
+				props: {
+					user: mockUser,
+					primaryNavigation: mockNavigation,
+					notifications: mockNotifications,
+					accessibility: defaultAccessibility
+				}
+			});
+
+			const notificationsRegion = screen.getByRole('region', { name: 'Notifications' });
+			expect(notificationsRegion).toBeInTheDocument();
+
+			const notificationsList = screen.getByRole('list');
+			expect(notificationsList).toBeInTheDocument();
+
+			const dismissButton = screen.getByTestId('dismiss-notification-notif-1');
+			expect(dismissButton).toHaveAttribute(
+				'aria-label',
+				'Dismiss notification: New employee added'
+			);
+		});
+	});
+
+	describe('Type Safety Contract', () => {
+		it('should enforce TypeScript contracts', () => {
+			// This test validates that TypeScript compilation would catch contract violations
+			const validProps: CarbonNavigationShellContract = {
+				user: mockUser,
+				primaryNavigation: mockNavigation,
+				breadcrumbs: mockBreadcrumbs,
+				userActions: mockUserActions,
+				notifications: mockNotifications,
+				searchEnabled: true,
+				accessibility: defaultAccessibility,
+				onNavigate: (item) => console.log(item),
+				onUserAction: (action) => console.log(action),
+				onSearch: (query) => console.log(query),
+				onNotificationDismiss: (notification) => console.log(notification)
+			};
+
+			// This test passes if TypeScript compilation succeeds
+			expect(validProps).toBeDefined();
+		});
+	});
+
+	describe('Responsive Behavior Contract', () => {
+		it('should handle responsive navigation collapse', () => {
+			// This would test responsive behavior
+			const component = render(mockNavigationShell, {
+				props: {
+					user: mockUser,
+					primaryNavigation: mockNavigation,
+					accessibility: defaultAccessibility
+				}
+			});
+
+			// Navigation should be present and accessible
+			expect(screen.getByTestId('primary-nav')).toBeInTheDocument();
+		});
+	});
+});

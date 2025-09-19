@@ -5,9 +5,9 @@
  * Validates prop types, event emissions, and accessibility requirements.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/svelte'
-import type { CarbonDataTableContract, CarbonColumn } from '../../../contracts/component-interface'
+import { describe, it, expect, beforeEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/svelte';
+import type { CarbonDataTableContract, CarbonColumn } from '../../../contracts/component-interface';
 
 // Mock component for testing contracts
 const mockCarbonDataTable = `
@@ -190,449 +190,447 @@ const mockCarbonDataTable = `
     </button>
   {/if}
 </div>
-`
+`;
 
 describe('CarbonDataTable Contract Tests', () => {
-  const mockColumns: CarbonColumn[] = [
-    {
-      key: 'name',
-      label: 'Name',
-      sortable: true,
-      filterable: true,
-      type: 'text',
-      accessibility: {
-        description: 'Employee name',
-        sortLabel: 'Sort by name'
-      }
-    },
-    {
-      key: 'email',
-      label: 'Email',
-      sortable: true,
-      type: 'text'
-    },
-    {
-      key: 'role',
-      label: 'Role',
-      type: 'tag',
-      tagVariant: (value) => value === 'admin' ? 'red' : 'blue'
-    }
-  ]
+	const mockColumns: CarbonColumn[] = [
+		{
+			key: 'name',
+			label: 'Name',
+			sortable: true,
+			filterable: true,
+			type: 'text',
+			accessibility: {
+				description: 'Employee name',
+				sortLabel: 'Sort by name'
+			}
+		},
+		{
+			key: 'email',
+			label: 'Email',
+			sortable: true,
+			type: 'text'
+		},
+		{
+			key: 'role',
+			label: 'Role',
+			type: 'tag',
+			tagVariant: (value) => (value === 'admin' ? 'red' : 'blue')
+		}
+	];
 
-  const mockData = [
-    { id: 1, name: 'John Doe', email: 'john@example.com', role: 'admin' },
-    { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'user' },
-    { id: 3, name: 'Bob Wilson', email: 'bob@example.com', role: 'user' }
-  ]
+	const mockData = [
+		{ id: 1, name: 'John Doe', email: 'john@example.com', role: 'admin' },
+		{ id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'user' },
+		{ id: 3, name: 'Bob Wilson', email: 'bob@example.com', role: 'user' }
+	];
 
-  const defaultAccessibility = {
-    tableLabel: 'Employee data table',
-    sortAnnouncements: true,
-    selectionAnnouncements: true,
-    paginationAnnouncements: true
-  }
+	const defaultAccessibility = {
+		tableLabel: 'Employee data table',
+		sortAnnouncements: true,
+		selectionAnnouncements: true,
+		paginationAnnouncements: true
+	};
 
-  describe('Required Props Contract', () => {
-    it('should accept required data prop', () => {
-      expect(() => {
-        render(mockCarbonDataTable, {
-          props: {
-            data: mockData,
-            columns: mockColumns,
-            accessibility: defaultAccessibility
-          }
-        })
-      }).not.toThrow()
-    })
+	describe('Required Props Contract', () => {
+		it('should accept required data prop', () => {
+			expect(() => {
+				render(mockCarbonDataTable, {
+					props: {
+						data: mockData,
+						columns: mockColumns,
+						accessibility: defaultAccessibility
+					}
+				});
+			}).not.toThrow();
+		});
 
-    it('should accept required columns prop', () => {
-      expect(() => {
-        render(mockCarbonDataTable, {
-          props: {
-            data: mockData,
-            columns: mockColumns,
-            accessibility: defaultAccessibility
-          }
-        })
-      }).not.toThrow()
-    })
+		it('should accept required columns prop', () => {
+			expect(() => {
+				render(mockCarbonDataTable, {
+					props: {
+						data: mockData,
+						columns: mockColumns,
+						accessibility: defaultAccessibility
+					}
+				});
+			}).not.toThrow();
+		});
 
-    it('should validate accessibility prop structure', () => {
-      const component = render(mockCarbonDataTable, {
-        props: {
-          data: mockData,
-          columns: mockColumns,
-          accessibility: defaultAccessibility
-        }
-      })
+		it('should validate accessibility prop structure', () => {
+			const component = render(mockCarbonDataTable, {
+				props: {
+					data: mockData,
+					columns: mockColumns,
+					accessibility: defaultAccessibility
+				}
+			});
 
-      const table = screen.getByTestId('carbon-data-table')
-      expect(table).toHaveAttribute('aria-label', defaultAccessibility.tableLabel)
-    })
-  })
+			const table = screen.getByTestId('carbon-data-table');
+			expect(table).toHaveAttribute('aria-label', defaultAccessibility.tableLabel);
+		});
+	});
 
-  describe('Optional Props Contract', () => {
-    it('should handle loading prop', () => {
-      const component = render(mockCarbonDataTable, {
-        props: {
-          data: mockData,
-          columns: mockColumns,
-          accessibility: defaultAccessibility,
-          loading: true
-        }
-      })
+	describe('Optional Props Contract', () => {
+		it('should handle loading prop', () => {
+			const component = render(mockCarbonDataTable, {
+				props: {
+					data: mockData,
+					columns: mockColumns,
+					accessibility: defaultAccessibility,
+					loading: true
+				}
+			});
 
-      expect(screen.getByText('Loading...')).toBeInTheDocument()
-    })
+			expect(screen.getByText('Loading...')).toBeInTheDocument();
+		});
 
-    it('should handle selectable prop', () => {
-      const component = render(mockCarbonDataTable, {
-        props: {
-          data: mockData,
-          columns: mockColumns,
-          accessibility: defaultAccessibility,
-          selectable: true
-        }
-      })
+		it('should handle selectable prop', () => {
+			const component = render(mockCarbonDataTable, {
+				props: {
+					data: mockData,
+					columns: mockColumns,
+					accessibility: defaultAccessibility,
+					selectable: true
+				}
+			});
 
-      // Should have select all checkbox
-      expect(screen.getByLabelText('Select all rows')).toBeInTheDocument()
+			// Should have select all checkbox
+			expect(screen.getByLabelText('Select all rows')).toBeInTheDocument();
 
-      // Should have individual row checkboxes
-      expect(screen.getByLabelText('Select row 1')).toBeInTheDocument()
-      expect(screen.getByLabelText('Select row 2')).toBeInTheDocument()
-    })
+			// Should have individual row checkboxes
+			expect(screen.getByLabelText('Select row 1')).toBeInTheDocument();
+			expect(screen.getByLabelText('Select row 2')).toBeInTheDocument();
+		});
 
-    it('should handle searchable prop', () => {
-      const component = render(mockCarbonDataTable, {
-        props: {
-          data: mockData,
-          columns: mockColumns,
-          accessibility: defaultAccessibility,
-          searchable: true
-        }
-      })
+		it('should handle searchable prop', () => {
+			const component = render(mockCarbonDataTable, {
+				props: {
+					data: mockData,
+					columns: mockColumns,
+					accessibility: defaultAccessibility,
+					searchable: true
+				}
+			});
 
-      expect(screen.getByTestId('search-input')).toBeInTheDocument()
-      expect(screen.getByLabelText('Search table data')).toBeInTheDocument()
-    })
+			expect(screen.getByTestId('search-input')).toBeInTheDocument();
+			expect(screen.getByLabelText('Search table data')).toBeInTheDocument();
+		});
 
-    it('should handle paginated prop', () => {
-      const component = render(mockCarbonDataTable, {
-        props: {
-          data: mockData,
-          columns: mockColumns,
-          accessibility: defaultAccessibility,
-          paginated: true,
-          pageSize: 10,
-          pageSizes: [5, 10, 25]
-        }
-      })
+		it('should handle paginated prop', () => {
+			const component = render(mockCarbonDataTable, {
+				props: {
+					data: mockData,
+					columns: mockColumns,
+					accessibility: defaultAccessibility,
+					paginated: true,
+					pageSize: 10,
+					pageSizes: [5, 10, 25]
+				}
+			});
 
-      expect(screen.getByTestId('pagination')).toBeInTheDocument()
-      expect(screen.getByLabelText('Rows per page')).toBeInTheDocument()
-      expect(screen.getByLabelText('Previous page')).toBeInTheDocument()
-      expect(screen.getByLabelText('Next page')).toBeInTheDocument()
-    })
+			expect(screen.getByTestId('pagination')).toBeInTheDocument();
+			expect(screen.getByLabelText('Rows per page')).toBeInTheDocument();
+			expect(screen.getByLabelText('Previous page')).toBeInTheDocument();
+			expect(screen.getByLabelText('Next page')).toBeInTheDocument();
+		});
 
-    it('should handle toolbarActions prop', () => {
-      const toolbarActions = [
-        { id: 'add', label: 'Add Employee' },
-        { id: 'refresh', label: 'Refresh' }
-      ]
+		it('should handle toolbarActions prop', () => {
+			const toolbarActions = [
+				{ id: 'add', label: 'Add Employee' },
+				{ id: 'refresh', label: 'Refresh' }
+			];
 
-      const component = render(mockCarbonDataTable, {
-        props: {
-          data: mockData,
-          columns: mockColumns,
-          accessibility: defaultAccessibility,
-          toolbarActions
-        }
-      })
+			const component = render(mockCarbonDataTable, {
+				props: {
+					data: mockData,
+					columns: mockColumns,
+					accessibility: defaultAccessibility,
+					toolbarActions
+				}
+			});
 
-      expect(screen.getByTestId('toolbar-action-add')).toBeInTheDocument()
-      expect(screen.getByTestId('toolbar-action-refresh')).toBeInTheDocument()
-    })
+			expect(screen.getByTestId('toolbar-action-add')).toBeInTheDocument();
+			expect(screen.getByTestId('toolbar-action-refresh')).toBeInTheDocument();
+		});
 
-    it('should handle exportable prop', () => {
-      const component = render(mockCarbonDataTable, {
-        props: {
-          data: mockData,
-          columns: mockColumns,
-          accessibility: defaultAccessibility,
-          exportable: true
-        }
-      })
+		it('should handle exportable prop', () => {
+			const component = render(mockCarbonDataTable, {
+				props: {
+					data: mockData,
+					columns: mockColumns,
+					accessibility: defaultAccessibility,
+					exportable: true
+				}
+			});
 
-      expect(screen.getByTestId('export-button')).toBeInTheDocument()
-      expect(screen.getByLabelText('Export table data')).toBeInTheDocument()
-    })
-  })
+			expect(screen.getByTestId('export-button')).toBeInTheDocument();
+			expect(screen.getByLabelText('Export table data')).toBeInTheDocument();
+		});
+	});
 
-  describe('Event Emission Contract', () => {
-    it('should emit onRowClick events', async () => {
-      let clickedRow: any = null
-      const handleRowClick = (row: any) => {
-        clickedRow = row
-      }
+	describe('Event Emission Contract', () => {
+		it('should emit onRowClick events', async () => {
+			let clickedRow: any = null;
+			const handleRowClick = (row: any) => {
+				clickedRow = row;
+			};
 
-      const component = render(mockCarbonDataTable, {
-        props: {
-          data: mockData,
-          columns: mockColumns,
-          accessibility: defaultAccessibility,
-          onRowClick: handleRowClick
-        }
-      })
+			const component = render(mockCarbonDataTable, {
+				props: {
+					data: mockData,
+					columns: mockColumns,
+					accessibility: defaultAccessibility,
+					onRowClick: handleRowClick
+				}
+			});
 
-      const firstRow = screen.getByTestId('table-row-0')
-      await fireEvent.click(firstRow)
+			const firstRow = screen.getByTestId('table-row-0');
+			await fireEvent.click(firstRow);
 
-      expect(clickedRow).toEqual(mockData[0])
-    })
+			expect(clickedRow).toEqual(mockData[0]);
+		});
 
-    it('should emit onToolbarAction events', async () => {
-      let triggeredAction: string = ''
-      const handleToolbarAction = (action: string) => {
-        triggeredAction = action
-      }
+		it('should emit onToolbarAction events', async () => {
+			let triggeredAction: string = '';
+			const handleToolbarAction = (action: string) => {
+				triggeredAction = action;
+			};
 
-      const toolbarActions = [{ id: 'add', label: 'Add Employee' }]
+			const toolbarActions = [{ id: 'add', label: 'Add Employee' }];
 
-      const component = render(mockCarbonDataTable, {
-        props: {
-          data: mockData,
-          columns: mockColumns,
-          accessibility: defaultAccessibility,
-          toolbarActions,
-          onToolbarAction: handleToolbarAction
-        }
-      })
+			const component = render(mockCarbonDataTable, {
+				props: {
+					data: mockData,
+					columns: mockColumns,
+					accessibility: defaultAccessibility,
+					toolbarActions,
+					onToolbarAction: handleToolbarAction
+				}
+			});
 
-      const addButton = screen.getByTestId('toolbar-action-add')
-      await fireEvent.click(addButton)
+			const addButton = screen.getByTestId('toolbar-action-add');
+			await fireEvent.click(addButton);
 
-      expect(triggeredAction).toBe('add')
-    })
+			expect(triggeredAction).toBe('add');
+		});
 
-    it('should emit onExport events', async () => {
-      let exportedData: any[] = []
-      const handleExport = (data: any[]) => {
-        exportedData = data
-      }
+		it('should emit onExport events', async () => {
+			let exportedData: any[] = [];
+			const handleExport = (data: any[]) => {
+				exportedData = data;
+			};
 
-      const component = render(mockCarbonDataTable, {
-        props: {
-          data: mockData,
-          columns: mockColumns,
-          accessibility: defaultAccessibility,
-          exportable: true,
-          onExport: handleExport
-        }
-      })
+			const component = render(mockCarbonDataTable, {
+				props: {
+					data: mockData,
+					columns: mockColumns,
+					accessibility: defaultAccessibility,
+					exportable: true,
+					onExport: handleExport
+				}
+			});
 
-      const exportButton = screen.getByTestId('export-button')
-      await fireEvent.click(exportButton)
+			const exportButton = screen.getByTestId('export-button');
+			await fireEvent.click(exportButton);
 
-      expect(exportedData).toEqual(mockData)
-    })
-  })
+			expect(exportedData).toEqual(mockData);
+		});
+	});
 
-  describe('Column Configuration Contract', () => {
-    it('should validate required column properties', () => {
-      const requiredColumns = [
-        { key: 'id', label: 'ID' },
-        { key: 'name', label: 'Name' }
-      ]
+	describe('Column Configuration Contract', () => {
+		it('should validate required column properties', () => {
+			const requiredColumns = [
+				{ key: 'id', label: 'ID' },
+				{ key: 'name', label: 'Name' }
+			];
 
-      expect(() => {
-        render(mockCarbonDataTable, {
-          props: {
-            data: mockData,
-            columns: requiredColumns,
-            accessibility: defaultAccessibility
-          }
-        })
-      }).not.toThrow()
+			expect(() => {
+				render(mockCarbonDataTable, {
+					props: {
+						data: mockData,
+						columns: requiredColumns,
+						accessibility: defaultAccessibility
+					}
+				});
+			}).not.toThrow();
 
-      // Check that columns are rendered
-      expect(screen.getByTestId('column-header-id')).toBeInTheDocument()
-      expect(screen.getByTestId('column-header-name')).toBeInTheDocument()
-    })
+			// Check that columns are rendered
+			expect(screen.getByTestId('column-header-id')).toBeInTheDocument();
+			expect(screen.getByTestId('column-header-name')).toBeInTheDocument();
+		});
 
-    it('should handle sortable columns', () => {
-      const sortableColumns = [
-        { key: 'name', label: 'Name', sortable: true }
-      ]
+		it('should handle sortable columns', () => {
+			const sortableColumns = [{ key: 'name', label: 'Name', sortable: true }];
 
-      const component = render(mockCarbonDataTable, {
-        props: {
-          data: mockData,
-          columns: sortableColumns,
-          accessibility: defaultAccessibility
-        }
-      })
+			const component = render(mockCarbonDataTable, {
+				props: {
+					data: mockData,
+					columns: sortableColumns,
+					accessibility: defaultAccessibility
+				}
+			});
 
-      const header = screen.getByTestId('column-header-name')
-      expect(header).toHaveAttribute('aria-sort', 'none')
-      expect(screen.getByLabelText('Sort by Name')).toBeInTheDocument()
-    })
+			const header = screen.getByTestId('column-header-name');
+			expect(header).toHaveAttribute('aria-sort', 'none');
+			expect(screen.getByLabelText('Sort by Name')).toBeInTheDocument();
+		});
 
-    it('should handle column types', () => {
-      const typedColumns = [
-        { key: 'name', label: 'Name', type: 'text' as const },
-        { key: 'age', label: 'Age', type: 'number' as const },
-        { key: 'status', label: 'Status', type: 'tag' as const }
-      ]
+		it('should handle column types', () => {
+			const typedColumns = [
+				{ key: 'name', label: 'Name', type: 'text' as const },
+				{ key: 'age', label: 'Age', type: 'number' as const },
+				{ key: 'status', label: 'Status', type: 'tag' as const }
+			];
 
-      expect(() => {
-        render(mockCarbonDataTable, {
-          props: {
-            data: mockData,
-            columns: typedColumns,
-            accessibility: defaultAccessibility
-          }
-        })
-      }).not.toThrow()
-    })
+			expect(() => {
+				render(mockCarbonDataTable, {
+					props: {
+						data: mockData,
+						columns: typedColumns,
+						accessibility: defaultAccessibility
+					}
+				});
+			}).not.toThrow();
+		});
 
-    it('should handle column accessibility properties', () => {
-      const accessibleColumns = [
-        {
-          key: 'name',
-          label: 'Name',
-          accessibility: {
-            description: 'Employee full name',
-            sortLabel: 'Sort employees by name'
-          }
-        }
-      ]
+		it('should handle column accessibility properties', () => {
+			const accessibleColumns = [
+				{
+					key: 'name',
+					label: 'Name',
+					accessibility: {
+						description: 'Employee full name',
+						sortLabel: 'Sort employees by name'
+					}
+				}
+			];
 
-      expect(() => {
-        render(mockCarbonDataTable, {
-          props: {
-            data: mockData,
-            columns: accessibleColumns,
-            accessibility: defaultAccessibility
-          }
-        })
-      }).not.toThrow()
-    })
-  })
+			expect(() => {
+				render(mockCarbonDataTable, {
+					props: {
+						data: mockData,
+						columns: accessibleColumns,
+						accessibility: defaultAccessibility
+					}
+				});
+			}).not.toThrow();
+		});
+	});
 
-  describe('Accessibility Contract', () => {
-    it('should have proper table semantics', () => {
-      const component = render(mockCarbonDataTable, {
-        props: {
-          data: mockData,
-          columns: mockColumns,
-          accessibility: defaultAccessibility
-        }
-      })
+	describe('Accessibility Contract', () => {
+		it('should have proper table semantics', () => {
+			const component = render(mockCarbonDataTable, {
+				props: {
+					data: mockData,
+					columns: mockColumns,
+					accessibility: defaultAccessibility
+				}
+			});
 
-      const table = screen.getByRole('table')
-      expect(table).toBeInTheDocument()
-      expect(table).toHaveAttribute('aria-label', defaultAccessibility.tableLabel)
-    })
+			const table = screen.getByRole('table');
+			expect(table).toBeInTheDocument();
+			expect(table).toHaveAttribute('aria-label', defaultAccessibility.tableLabel);
+		});
 
-    it('should have proper row and cell semantics', () => {
-      const component = render(mockCarbonDataTable, {
-        props: {
-          data: mockData,
-          columns: mockColumns,
-          accessibility: defaultAccessibility
-        }
-      })
+		it('should have proper row and cell semantics', () => {
+			const component = render(mockCarbonDataTable, {
+				props: {
+					data: mockData,
+					columns: mockColumns,
+					accessibility: defaultAccessibility
+				}
+			});
 
-      // Check header row
-      const headerCells = screen.getAllByRole('columnheader')
-      expect(headerCells).toHaveLength(mockColumns.length)
+			// Check header row
+			const headerCells = screen.getAllByRole('columnheader');
+			expect(headerCells).toHaveLength(mockColumns.length);
 
-      // Check data rows
-      const rows = screen.getAllByRole('row')
-      expect(rows).toHaveLength(mockData.length + 1) // +1 for header row
+			// Check data rows
+			const rows = screen.getAllByRole('row');
+			expect(rows).toHaveLength(mockData.length + 1); // +1 for header row
 
-      // Check grid cells
-      const cells = screen.getAllByRole('gridcell')
-      expect(cells.length).toBeGreaterThan(0)
-    })
+			// Check grid cells
+			const cells = screen.getAllByRole('gridcell');
+			expect(cells.length).toBeGreaterThan(0);
+		});
 
-    it('should support keyboard navigation', () => {
-      const component = render(mockCarbonDataTable, {
-        props: {
-          data: mockData,
-          columns: mockColumns,
-          accessibility: defaultAccessibility,
-          selectable: true
-        }
-      })
+		it('should support keyboard navigation', () => {
+			const component = render(mockCarbonDataTable, {
+				props: {
+					data: mockData,
+					columns: mockColumns,
+					accessibility: defaultAccessibility,
+					selectable: true
+				}
+			});
 
-      // All interactive elements should be keyboard accessible
-      const checkboxes = screen.getAllByRole('checkbox')
-      checkboxes.forEach(checkbox => {
-        expect(checkbox).toHaveAttribute('type', 'checkbox')
-      })
-    })
+			// All interactive elements should be keyboard accessible
+			const checkboxes = screen.getAllByRole('checkbox');
+			checkboxes.forEach((checkbox) => {
+				expect(checkbox).toHaveAttribute('type', 'checkbox');
+			});
+		});
 
-    it('should announce sort changes', () => {
-      const component = render(mockCarbonDataTable, {
-        props: {
-          data: mockData,
-          columns: mockColumns,
-          accessibility: {
-            ...defaultAccessibility,
-            sortAnnouncements: true
-          }
-        }
-      })
+		it('should announce sort changes', () => {
+			const component = render(mockCarbonDataTable, {
+				props: {
+					data: mockData,
+					columns: mockColumns,
+					accessibility: {
+						...defaultAccessibility,
+						sortAnnouncements: true
+					}
+				}
+			});
 
-      // Sort buttons should have proper labels
-      const sortButtons = screen.getAllByLabelText(/Sort by/)
-      expect(sortButtons.length).toBeGreaterThan(0)
-    })
+			// Sort buttons should have proper labels
+			const sortButtons = screen.getAllByLabelText(/Sort by/);
+			expect(sortButtons.length).toBeGreaterThan(0);
+		});
 
-    it('should support screen readers', () => {
-      const component = render(mockCarbonDataTable, {
-        props: {
-          data: mockData,
-          columns: mockColumns,
-          accessibility: defaultAccessibility,
-          loading: true
-        }
-      })
+		it('should support screen readers', () => {
+			const component = render(mockCarbonDataTable, {
+				props: {
+					data: mockData,
+					columns: mockColumns,
+					accessibility: defaultAccessibility,
+					loading: true
+				}
+			});
 
-      // Loading state should be announced
-      const loadingCell = screen.getByText('Loading...')
-      expect(loadingCell).toHaveAttribute('aria-live', 'polite')
-    })
-  })
+			// Loading state should be announced
+			const loadingCell = screen.getByText('Loading...');
+			expect(loadingCell).toHaveAttribute('aria-live', 'polite');
+		});
+	});
 
-  describe('Type Safety Contract', () => {
-    it('should enforce TypeScript contracts', () => {
-      // This test validates that TypeScript compilation would catch contract violations
-      const validProps: CarbonDataTableContract = {
-        data: mockData,
-        columns: mockColumns,
-        accessibility: defaultAccessibility,
-        loading: false,
-        selectable: true,
-        searchable: true,
-        filterable: true,
-        paginated: true,
-        pageSize: 10,
-        pageSizes: [10, 25, 50],
-        batchActions: [],
-        toolbarActions: [],
-        exportable: true,
-        onRowClick: (row) => console.log(row),
-        onSelectionChange: (rows) => console.log(rows),
-        onBatchAction: (action, rows) => console.log(action, rows),
-        onToolbarAction: (action) => console.log(action),
-        onExport: (data) => console.log(data)
-      }
+	describe('Type Safety Contract', () => {
+		it('should enforce TypeScript contracts', () => {
+			// This test validates that TypeScript compilation would catch contract violations
+			const validProps: CarbonDataTableContract = {
+				data: mockData,
+				columns: mockColumns,
+				accessibility: defaultAccessibility,
+				loading: false,
+				selectable: true,
+				searchable: true,
+				filterable: true,
+				paginated: true,
+				pageSize: 10,
+				pageSizes: [10, 25, 50],
+				batchActions: [],
+				toolbarActions: [],
+				exportable: true,
+				onRowClick: (row) => console.log(row),
+				onSelectionChange: (rows) => console.log(rows),
+				onBatchAction: (action, rows) => console.log(action, rows),
+				onToolbarAction: (action) => console.log(action),
+				onExport: (data) => console.log(data)
+			};
 
-      // This test passes if TypeScript compilation succeeds
-      expect(validProps).toBeDefined()
-    })
-  })
-})
+			// This test passes if TypeScript compilation succeeds
+			expect(validProps).toBeDefined();
+		});
+	});
+});

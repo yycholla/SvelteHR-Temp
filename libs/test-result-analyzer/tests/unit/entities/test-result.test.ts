@@ -28,7 +28,7 @@ describe('TestResult Entity', () => {
           userAgent: 'Mozilla/5.0...',
           timestamp: new Date().toISOString(),
           baseUrl: 'http://localhost:5175',
-          backendVersion: '1.0.0'
+          backendVersion: '1.0.0',
         },
         screenshots: ['/path/to/screenshot1.png'],
         videos: ['/path/to/video1.webm'],
@@ -37,8 +37,8 @@ describe('TestResult Entity', () => {
             timestamp: new Date().toISOString(),
             level: 'info',
             message: 'Test started',
-            source: 'test-orchestrator'
-          }
+            source: 'test-orchestrator',
+          },
         ],
         performanceMetrics: {
           pageLoadTime: 1200,
@@ -46,8 +46,8 @@ describe('TestResult Entity', () => {
           redirectTime: 300,
           totalExecutionTime: 5000,
           memoryUsage: 45.2,
-          networkRequests: 12
-        }
+          networkRequests: 12,
+        },
       });
 
       // Validation requirements from data-model.md
@@ -76,7 +76,7 @@ describe('TestResult Entity', () => {
           endTime: new Date(),
           duration: 1000,
           browser: 'chromium',
-          environment: {}
+          environment: {},
         });
 
         expect(invalidResult).toBeUndefined();
@@ -102,7 +102,7 @@ describe('TestResult Entity', () => {
           endTime: new Date(),
           duration,
           browser: 'chromium',
-          environment: {}
+          environment: {},
         });
 
         expect(invalidResult).toBeUndefined();
@@ -125,7 +125,7 @@ describe('TestResult Entity', () => {
         endTime: new Date('2025-01-01T10:00:00Z'), // End before start
         duration: 5000,
         browser: 'chromium',
-        environment: {}
+        environment: {},
       });
 
       expect(invalidResult).toBeUndefined();
@@ -148,7 +148,7 @@ describe('TestResult Entity', () => {
         duration: 5000,
         browser: 'chromium',
         environment: {},
-        failureDetails: null // Should be required when status is 'failed'
+        failureDetails: null, // Should be required when status is 'failed'
       });
 
       expect(failedResult).toBeUndefined();
@@ -172,7 +172,7 @@ describe('TestResult Entity', () => {
         browser: 'chromium',
         environment: {},
         screenshots: [''], // Empty path should be invalid
-        videos: ['not-a-valid-path.txt'] // Wrong extension
+        videos: ['not-a-valid-path.txt'], // Wrong extension
       });
 
       expect(resultWithInvalidPaths).toBeUndefined();
@@ -194,7 +194,7 @@ describe('TestResult Entity', () => {
         endTime: new Date('2025-01-01T10:00:03Z'),
         duration: 3000,
         browser: 'chromium',
-        environment: {}
+        environment: {},
       });
 
       // Should calculate duration correctly
@@ -225,8 +225,8 @@ describe('TestResult Entity', () => {
           redirectTime: 2000,
           totalExecutionTime: 15000,
           memoryUsage: 95.0, // High memory usage
-          networkRequests: 50 // Many requests
-        }
+          networkRequests: 50, // Many requests
+        },
       });
 
       // Should detect performance issues
@@ -249,7 +249,7 @@ describe('TestResult Entity', () => {
         endTime: new Date(),
         duration: 1000,
         browser: 'chromium',
-        environment: { os: 'linux' }
+        environment: { os: 'linux' },
       });
 
       const json = testResult.toJSON();

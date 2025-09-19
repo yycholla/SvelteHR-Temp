@@ -22,8 +22,8 @@ describe('TestScenario Entity', () => {
             id: 'step1',
             action: 'navigate',
             target: '/login',
-            description: 'Navigate to login page'
-          }
+            description: 'Navigate to login page',
+          },
         ],
         expectedOutcome: {
           finalUrl: '/admin',
@@ -31,12 +31,12 @@ describe('TestScenario Entity', () => {
           redirectCount: 1,
           maxDuration: 5000,
           requiredElements: ['#admin-dashboard'],
-          forbiddenElements: ['#login-form']
+          forbiddenElements: ['#login-form'],
         },
         tags: ['authentication', 'admin'],
         priority: 'critical',
         estimatedDuration: 10000,
-        browsers: ['chromium', 'firefox']
+        browsers: ['chromium', 'firefox'],
       });
 
       // Validation requirements from data-model.md
@@ -60,7 +60,7 @@ describe('TestScenario Entity', () => {
         userRole: 'admin',
         steps: [{ id: 'step1', action: 'navigate', target: '/' }],
         expectedOutcome: {},
-        priority: 'medium'
+        priority: 'medium',
       });
 
       const scenario2 = new TestScenario({
@@ -70,7 +70,7 @@ describe('TestScenario Entity', () => {
         userRole: 'admin',
         steps: [{ id: 'step1', action: 'navigate', target: '/' }],
         expectedOutcome: {},
-        priority: 'medium'
+        priority: 'medium',
       });
 
       // Name uniqueness should be validated at test suite level
@@ -90,7 +90,7 @@ describe('TestScenario Entity', () => {
         userRole: 'admin',
         steps: [], // Empty steps array should be invalid
         expectedOutcome: {},
-        priority: 'medium'
+        priority: 'medium',
       });
 
       expect(invalidScenario).toBeUndefined();
@@ -113,7 +113,7 @@ describe('TestScenario Entity', () => {
           steps: [{ id: 'step1', action: 'navigate', target: '/' }],
           expectedOutcome: {},
           priority: 'medium',
-          estimatedDuration: duration
+          estimatedDuration: duration,
         });
 
         expect(invalidScenario).toBeUndefined();
@@ -134,7 +134,7 @@ describe('TestScenario Entity', () => {
         steps: [{ id: 'step1', action: 'navigate', target: '/' }],
         expectedOutcome: {},
         priority: 'medium',
-        browsers: ['chromium', 'safari'] // safari not in allowed set
+        browsers: ['chromium', 'safari'], // safari not in allowed set
       });
 
       expect(invalidBrowserScenario).toBeUndefined();
@@ -156,7 +156,7 @@ describe('TestScenario Entity', () => {
           userRole: 'admin',
           steps: [{ id: 'step1', action: 'navigate', target: '/' }],
           expectedOutcome: {},
-          priority: priority as any
+          priority: priority as any,
         });
 
         expect(invalidScenario).toBeUndefined();
@@ -179,7 +179,7 @@ describe('TestScenario Entity', () => {
           userRole: role as any,
           steps: [{ id: 'step1', action: 'navigate', target: '/' }],
           expectedOutcome: {},
-          priority: 'medium'
+          priority: 'medium',
         });
 
         expect(invalidScenario).toBeUndefined();
@@ -200,10 +200,10 @@ describe('TestScenario Entity', () => {
         steps: [
           { id: 'step1', action: 'navigate', target: '/', timeout: 2000 },
           { id: 'step2', action: 'fill', target: '#email', timeout: 1000 },
-          { id: 'step3', action: 'click', target: '#submit', timeout: 3000 }
+          { id: 'step3', action: 'click', target: '#submit', timeout: 3000 },
         ],
         expectedOutcome: {},
-        priority: 'medium'
+        priority: 'medium',
       });
 
       // Should calculate total time from step timeouts
@@ -226,11 +226,11 @@ describe('TestScenario Entity', () => {
             id: 'step1',
             action: 'invalid-action', // Invalid action type
             target: '/',
-            timeout: 2000
-          }
+            timeout: 2000,
+          },
         ],
         expectedOutcome: {},
-        priority: 'medium'
+        priority: 'medium',
       });
 
       expect(scenario).toBeUndefined();
@@ -249,7 +249,7 @@ describe('TestScenario Entity', () => {
         userRole: 'admin',
         steps: [{ id: 'step1', action: 'navigate', target: '/' }],
         expectedOutcome: { finalUrl: '/dashboard' },
-        priority: 'medium'
+        priority: 'medium',
       });
 
       const json = scenario.toJSON();

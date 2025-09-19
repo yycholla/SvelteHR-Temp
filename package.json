@@ -106,6 +106,7 @@
 		"lucide-svelte": "^0.543.0",
 		"postcss": "^8.5.6",
 		"postgraphile": "^4.14.1",
+		"recharts": "^3.2.1",
 		"tailwindcss-animate": "^1.0.7"
 	}
 }

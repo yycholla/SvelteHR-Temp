@@ -7,9 +7,9 @@ import type { LayoutLoad } from './$types';
 export const ssr = false; // Disable SSR for admin routes since they require auth
 
 export const load: LayoutLoad = async ({ parent }) => {
-  console.log('Admin layout load: Skipping auth check - delegating to AuthGuard');
+	console.log('Admin layout load: Skipping auth check - delegating to AuthGuard');
 
-  // Let the AuthGuard handle all authentication logic
-  // This eliminates potential race conditions in the load function
-  return {};
+	// Let the AuthGuard handle all authentication logic
+	// This eliminates potential race conditions in the load function
+	return {};
 };

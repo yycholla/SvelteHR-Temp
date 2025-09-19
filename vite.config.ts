@@ -6,32 +6,32 @@ import { optimizeCss } from 'carbon-preprocess-svelte';
 
 // Custom plugin to disable compression completely
 const disableCompression = () => ({
-  name: 'disable-compression',
-  configureServer(server) {
-    // Disable compression middleware at the server level
-    server.middlewares.use((req, res, next) => {
-      // Force identity encoding
-      req.headers['accept-encoding'] = 'identity';
-      
-      // Override write methods to prevent compression
-      const originalWrite = res.write;
-      const originalEnd = res.end;
-      const originalSetHeader = res.setHeader;
-      
-      res.setHeader = function(name, value) {
-        const lowerName = name.toLowerCase();
-        if (lowerName === 'content-encoding' || lowerName === 'transfer-encoding') {
-          return this; // Skip compression headers
-        }
-        return originalSetHeader.call(this, name, value);
-      };
-      
-      // Ensure no compression flags are set
-      res.compress = false;
-      
-      next();
-    });
-  }
+	name: 'disable-compression',
+	configureServer(server) {
+		// Disable compression middleware at the server level
+		server.middlewares.use((req, res, next) => {
+			// Force identity encoding
+			req.headers['accept-encoding'] = 'identity';
+
+			// Override write methods to prevent compression
+			const originalWrite = res.write;
+			const originalEnd = res.end;
+			const originalSetHeader = res.setHeader;
+
+			res.setHeader = function (name, value) {
+				const lowerName = name.toLowerCase();
+				if (lowerName === 'content-encoding' || lowerName === 'transfer-encoding') {
+					return this; // Skip compression headers
+				}
+				return originalSetHeader.call(this, name, value);
+			};
+
+			// Ensure no compression flags are set
+			res.compress = false;
+
+			next();
+		});
+	}
 });
 
 export default defineConfig({
@@ -44,7 +44,7 @@ export default defineConfig({
 			preserveAllIBMFonts: true // Preserve all IBM Plex font face rules
 		})
 	],
-	
+
 	// Performance optimizations
 	build: {
 		target: 'esnext',
@@ -55,15 +55,13 @@ export default defineConfig({
 				// Manual chunk splitting for optimal loading (simplified for SvelteKit compatibility)
 				manualChunks: {
 					// Only include packages that are not treated as external by SvelteKit
-					vendor: [
-						'svelte'
-					]
+					vendor: ['svelte']
 				},
-				
+
 				// Optimize chunk file names
 				chunkFileNames: (chunkInfo) => {
 					const facadeModuleId = chunkInfo.facadeModuleId || '';
-					
+
 					if (facadeModuleId.includes('node_modules')) {
 						return 'vendor/[name]-[hash].js';
 					} else if (facadeModuleId.includes('src/routes')) {
@@ -71,14 +69,14 @@ export default defineConfig({
 					} else if (facadeModuleId.includes('src/lib/components')) {
 						return 'components/[name]-[hash].js';
 					}
-					
+
 					return 'chunks/[name]-[hash].js';
 				},
-				
+
 				assetFileNames: (assetInfo) => {
 					const info = assetInfo.name!.split('.');
 					const ext = info[info.length - 1];
-					
+
 					if (/png|jpe?g|svg|gif|tiff|bmp|ico/i.test(ext)) {
 						return 'images/[name]-[hash][extname]';
 					} else if (/woff2?|eot|ttf|otf/i.test(ext)) {
@@ -86,11 +84,11 @@ export default defineConfig({
 					} else if (ext === 'css') {
 						return 'styles/[name]-[hash][extname]';
 					}
-					
+
 					return 'assets/[name]-[hash][extname]';
 				}
 			},
-			
+
 			// Optimize tree shaking
 			treeshake: {
 				moduleSideEffects: false,
@@ -98,19 +96,19 @@ export default defineConfig({
 				unknownGlobalSideEffects: false
 			}
 		},
-		
+
 		// Enable compression
 		reportCompressedSize: true,
 		chunkSizeWarningLimit: 1000,
-		
+
 		// Asset optimization
 		assetsInlineLimit: 4096, // Inline assets smaller than 4kb
-		
+
 		// CSS optimization
 		cssCodeSplit: true,
 		cssMinify: true
 	},
-	
+
 	// Optimize dependencies
 	optimizeDeps: {
 		include: [
@@ -125,11 +123,9 @@ export default defineConfig({
 			'carbon-icons-svelte',
 			'@vincjo/datatables'
 		],
-		exclude: [
-			'@sveltejs/kit'
-		]
+		exclude: ['@sveltejs/kit']
 	},
-	
+
 	// Resolve aliases for cleaner imports
 	resolve: {
 		alias: {
@@ -141,7 +137,7 @@ export default defineConfig({
 			$graphql: resolve('./src/lib/graphql')
 		}
 	},
-	
+
 	// Development server optimizations
 	server: {
 		port: 5174, // Fixed port to avoid confusion
@@ -168,12 +164,12 @@ export default defineConfig({
 			allow: ['..']
 		}
 	},
-	
+
 	// Define custom plugin to disable compression
 	define: {
 		'process.env.VITE_DISABLE_COMPRESSION': 'true'
 	},
-	
+
 	// Performance monitoring
 	esbuild: {
 		// Remove console logs in production

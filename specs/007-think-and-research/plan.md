@@ -4,6 +4,7 @@
 **Input**: Feature specification from `/home/chanway/Projects/SvelteHR/specs/007-think-and-research/spec.md`
 
 ## Execution Flow (/plan command scope)
+
 ```
 1. Load feature spec from Input path
    → If not found: ERROR "No feature spec at {path}"
@@ -25,13 +26,16 @@
 ```
 
 **IMPORTANT**: The /plan command STOPS at step 7. Phases 2-4 are executed by other commands:
+
 - Phase 2: /tasks command creates tasks.md
 - Phase 3-4: Implementation execution (manual or via tools)
 
 ## Summary
+
 Implement comprehensive Carbon Design System across all pages of the SvelteHR application to provide consistent, professional, and accessible user interface patterns. This includes unified typography, spacing, color schemes, navigation patterns, form behaviors, data display components, and accessibility features that meet WCAG 2.1 AA standards. The implementation will ensure responsive design across all devices while maintaining enterprise-grade visual appeal and reducing cognitive load for users.
 
 ## Technical Context
+
 **Language/Version**: TypeScript 5.x with SvelteKit framework
 **Primary Dependencies**: carbon-components-svelte, carbon-icons-svelte, carbon-preprocess-svelte, @vincjo/datatables
 **Storage**: PostgreSQL (existing) - not directly impacted by design system
@@ -43,22 +47,26 @@ Implement comprehensive Carbon Design System across all pages of the SvelteHR ap
 **Scale/Scope**: ~15 existing pages/routes, 25+ reusable components, support for 500+ concurrent users
 
 ## Constitution Check
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
-*RE-EVALUATION: ✓ CONFIRMED - Design phase validates constitutional compliance*
+
+_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
+_RE-EVALUATION: ✓ CONFIRMED - Design phase validates constitutional compliance_
 
 **Simplicity**:
+
 - Projects: 1 (frontend design system only)
 - Using framework directly? YES (Carbon Design System components directly, no custom wrappers)
 - Single data model? YES (UI component patterns and design tokens)
 - Avoiding patterns? YES (no unnecessary abstractions, direct component usage)
 
 **Architecture**:
+
 - EVERY feature as library? PARTIAL - Design system components as reusable libraries
 - Libraries listed: carbon-design-system-theme (theming), carbon-layout-system (grids/spacing), carbon-component-library (enhanced components)
 - CLI per library: N/A for design system (browser-based)
 - Library docs: YES - component documentation and usage patterns
 
 **Testing (NON-NEGOTIABLE)**:
+
 - RED-GREEN-Refactor cycle enforced? YES - accessibility and visual regression tests first
 - Git commits show tests before implementation? YES - test-driven development for components
 - Order: Contract→Integration→E2E→Unit strictly followed? YES - visual contracts, component integration, E2E flows, unit component tests
@@ -67,11 +75,13 @@ Implement comprehensive Carbon Design System across all pages of the SvelteHR ap
 - FORBIDDEN: Implementation before test, skipping RED phase - ENFORCED
 
 **Observability**:
+
 - Structured logging included? YES - accessibility warnings, performance metrics
 - Frontend logs → backend? YES - usage analytics and accessibility issues
 - Error context sufficient? YES - component errors and fallback patterns
 
 **Versioning**:
+
 - Version number assigned? 1.0.0 (new design system implementation)
 - BUILD increments on every change? YES
 - Breaking changes handled? YES - gradual migration plan with parallel support
@@ -79,6 +89,7 @@ Implement comprehensive Carbon Design System across all pages of the SvelteHR ap
 ## Project Structure
 
 ### Documentation (this feature)
+
 ```
 specs/[###-feature]/
 ├── plan.md              # This file (/plan command output)
@@ -90,6 +101,7 @@ specs/[###-feature]/
 ```
 
 ### Source Code (repository root)
+
 ```
 # Option 1: Single project (DEFAULT)
 src/
@@ -129,12 +141,14 @@ ios/ or android/
 **Structure Decision**: Option 2 (Web application) - frontend design system with existing backend
 
 ## Phase 0: Outline & Research
+
 1. **Extract unknowns from Technical Context** above:
    - For each NEEDS CLARIFICATION → research task
    - For each dependency → best practices task
    - For each integration → patterns task
 
 2. **Generate and dispatch research agents**:
+
    ```
    For each unknown in Technical Context:
      Task: "Research {unknown} for {feature context}"
@@ -150,7 +164,8 @@ ios/ or android/
 **Output**: research.md with all NEEDS CLARIFICATION resolved
 
 ## Phase 1: Design & Contracts
-*Prerequisites: research.md complete*
+
+_Prerequisites: research.md complete_
 
 1. **Extract entities from feature spec** → `data-model.md`:
    - Entity name, fields, relationships
@@ -179,12 +194,14 @@ ios/ or android/
    - Keep under 150 lines for token efficiency
    - Output to repository root
 
-**Output**: data-model.md, /contracts/*, failing tests, quickstart.md, agent-specific file
+**Output**: data-model.md, /contracts/\*, failing tests, quickstart.md, agent-specific file
 
 ## Phase 2: Task Planning Approach
-*This section describes what the /tasks command will do - DO NOT execute during /plan*
+
+_This section describes what the /tasks command will do - DO NOT execute during /plan_
 
 **Task Generation Strategy**:
+
 - Generate tasks from Phase 1 design docs (contracts, data-model.md, quickstart.md, frontend-developer-focus.md)
 - Component contract → accessibility test + visual regression test [P]
 - Enhanced component → implementation task with Carbon integration
@@ -193,6 +210,7 @@ ios/ or android/
 - Accessibility feature → WCAG compliance task with axe-core testing
 
 **Ordering Strategy**:
+
 - TDD order: Tests before implementation (accessibility, visual regression, performance)
 - Foundation first: Carbon setup, preprocessor, design tokens
 - Component layer: Enhanced Carbon components (CarbonDataTable, CarbonLoginForm, etc.)
@@ -206,25 +224,28 @@ ios/ or android/
 **IMPORTANT**: This phase is executed by the /tasks command, NOT by /plan
 
 ## Phase 3+: Future Implementation
-*These phases are beyond the scope of the /plan command*
+
+_These phases are beyond the scope of the /plan command_
 
 **Phase 3**: Task execution (/tasks command creates tasks.md)  
 **Phase 4**: Implementation (execute tasks.md following constitutional principles)  
 **Phase 5**: Validation (run tests, execute quickstart.md, performance validation)
 
 ## Complexity Tracking
-*Fill ONLY if Constitution Check has violations that must be justified*
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+_Fill ONLY if Constitution Check has violations that must be justified_
 
+| Violation                  | Why Needed         | Simpler Alternative Rejected Because |
+| -------------------------- | ------------------ | ------------------------------------ |
+| [e.g., 4th project]        | [current need]     | [why 3 projects insufficient]        |
+| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient]  |
 
 ## Progress Tracking
-*This checklist is updated during execution flow*
+
+_This checklist is updated during execution flow_
 
 **Phase Status**:
+
 - [ ] Phase 0: Research complete (/plan command)
 - [ ] Phase 1: Design complete (/plan command)
 - [ ] Phase 2: Task planning complete (/plan command - describe approach only)
@@ -233,10 +254,12 @@ ios/ or android/
 - [ ] Phase 5: Validation passed
 
 **Gate Status**:
+
 - [ ] Initial Constitution Check: PASS
 - [ ] Post-Design Constitution Check: PASS
 - [ ] All NEEDS CLARIFICATION resolved
 - [ ] Complexity deviations documented
 
 ---
-*Based on Constitution v2.1.1 - See `/memory/constitution.md`*
+
+_Based on Constitution v2.1.1 - See `/memory/constitution.md`_

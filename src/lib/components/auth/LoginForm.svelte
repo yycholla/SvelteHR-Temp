@@ -1,251 +1,256 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
-  import { authStore, authActions, isLoading, authError } from '$lib/stores/auth';
-  import { goto } from '$app/navigation';
-  import { Eye, EyeOff, Mail, Lock, AlertCircle, Loader2 } from 'lucide-svelte';
-  import { Button } from '$lib/components/ui/button';
-  import { Input } from '$lib/components/ui/input';
-  import { Label } from '$lib/components/ui/label';
-  import { Checkbox } from '$lib/components/ui/checkbox';
-  import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
+	import { createEventDispatcher } from 'svelte';
+	import { authStore, authActions, isLoading, authError } from '$lib/stores/auth';
+	import { goto } from '$app/navigation';
+	import { Eye, EyeOff, Mail, Lock, AlertCircle, Loader2 } from 'lucide-svelte';
+	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
+	import { Checkbox } from '$lib/components/ui/checkbox';
+	import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
 
-  /**
-   * Login Form Component
-   * Handles user authentication with email/password
-   */
+	/**
+	 * Login Form Component
+	 * Handles user authentication with email/password
+	 */
 
-  const dispatch = createEventDispatcher<{
-    success: { user: any };
-    error: { message: string };
-  }>();
+	const dispatch = createEventDispatcher<{
+		success: { user: any };
+		error: { message: string };
+	}>();
 
-  // Form state using Svelte 5 runes
-  let email = $state('');
-  let password = $state('');
-  let rememberMe = $state(false);
-  let showPassword = $state(false);
-  let formErrors = $state<Record<string, string>>({});
-  let isSubmitting = $state(false);
-  let hasSucceeded = $state(false); // Flag to prevent multiple submissions after success
+	// Form state using Svelte 5 runes
+	let email = $state('');
+	let password = $state('');
+	let rememberMe = $state(false);
+	let showPassword = $state(false);
+	let formErrors = $state<Record<string, string>>({});
+	let isSubmitting = $state(false);
+	let hasSucceeded = $state(false); // Flag to prevent multiple submissions after success
 
-  // Validation rules
-  const validateEmail = (email: string): string => {
-    if (!email) return 'Email is required';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Please enter a valid email';
-    return '';
-  };
+	// Validation rules
+	const validateEmail = (email: string): string => {
+		if (!email) return 'Email is required';
+		if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Please enter a valid email';
+		return '';
+	};
 
-  const validatePassword = (password: string): string => {
-    if (!password) return 'Password is required';
-    if (password.length < 8) return 'Password must be at least 8 characters';
-    return '';
-  };
+	const validatePassword = (password: string): string => {
+		if (!password) return 'Password is required';
+		if (password.length < 8) return 'Password must be at least 8 characters';
+		return '';
+	};
 
-  // Form validation
-  const validateForm = (): boolean => {
-    formErrors = {};
-    
-    const emailError = validateEmail(email);
-    const passwordError = validatePassword(password);
-    
-    if (emailError) formErrors.email = emailError;
-    if (passwordError) formErrors.password = passwordError;
-    
-    return Object.keys(formErrors).length === 0;
-  };
+	// Form validation
+	const validateForm = (): boolean => {
+		formErrors = {};
 
-  // Handle form submission
-  const handleSubmit = async (event: Event) => {
-    event.preventDefault();
+		const emailError = validateEmail(email);
+		const passwordError = validatePassword(password);
 
-    // Prevent multiple submissions
-    if (isSubmitting || hasSucceeded || !validateForm()) return;
+		if (emailError) formErrors.email = emailError;
+		if (passwordError) formErrors.password = passwordError;
 
-    isSubmitting = true;
-    authActions.setError(null);
+		return Object.keys(formErrors).length === 0;
+	};
 
-    try {
-      const success = await authActions.login(email, password, rememberMe);
+	// Handle form submission
+	const handleSubmit = async (event: Event) => {
+		event.preventDefault();
 
-      if (success) {
-        hasSucceeded = true; // Prevent further submissions
-        dispatch('success', { user: { email } });
-        // Let the parent component handle navigation
-      } else {
-        // Error will be set in the auth store, we can read it from $authError
-        const errorMessage = $authError || 'Login failed';
-        dispatch('error', { message: errorMessage });
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'An unexpected error occurred';
-      dispatch('error', { message });
-    } finally {
-      isSubmitting = false;
-    }
-  };
+		// Prevent multiple submissions
+		if (isSubmitting || hasSucceeded || !validateForm()) return;
 
-  // Handle input changes with validation
-  const handleEmailChange = (event: Event) => {
-    const target = event.target as HTMLInputElement;
-    email = target.value;
-    if (formErrors.email) {
-      const error = validateEmail(email);
-      if (!error) delete formErrors.email;
-      else formErrors.email = error;
-    }
-  };
+		isSubmitting = true;
+		authActions.setError(null);
 
-  const handlePasswordChange = (event: Event) => {
-    const target = event.target as HTMLInputElement;
-    password = target.value;
-    if (formErrors.password) {
-      const error = validatePassword(password);
-      if (!error) delete formErrors.password;
-      else formErrors.password = error;
-    }
-  };
+		try {
+			const success = await authActions.login(email, password, rememberMe);
 
-  // Toggle password visibility
-  const togglePasswordVisibility = () => {
-    showPassword = !showPassword;
-  };
+			if (success) {
+				hasSucceeded = true; // Prevent further submissions
+				dispatch('success', { user: { email } });
+				// Let the parent component handle navigation
+			} else {
+				// Error will be set in the auth store, we can read it from $authError
+				const errorMessage = $authError || 'Login failed';
+				dispatch('error', { message: errorMessage });
+			}
+		} catch (error) {
+			const message = error instanceof Error ? error.message : 'An unexpected error occurred';
+			dispatch('error', { message });
+		} finally {
+			isSubmitting = false;
+		}
+	};
+
+	// Handle input changes with validation
+	const handleEmailChange = (event: Event) => {
+		const target = event.target as HTMLInputElement;
+		email = target.value;
+		if (formErrors.email) {
+			const error = validateEmail(email);
+			if (!error) delete formErrors.email;
+			else formErrors.email = error;
+		}
+	};
+
+	const handlePasswordChange = (event: Event) => {
+		const target = event.target as HTMLInputElement;
+		password = target.value;
+		if (formErrors.password) {
+			const error = validatePassword(password);
+			if (!error) delete formErrors.password;
+			else formErrors.password = error;
+		}
+	};
+
+	// Toggle password visibility
+	const togglePasswordVisibility = () => {
+		showPassword = !showPassword;
+	};
 </script>
 
-<div class="w-full max-w-md mx-auto">
-  <form onsubmit={handleSubmit} class="space-y-6" novalidate>
-    <!-- Header -->
-    <div class="text-center">
-      <h1 class="text-2xl font-semibold text-foreground">Sign in to SvelteHR</h1>
-      <p class="mt-2 text-sm text-muted-foreground">Welcome back! Please sign in to your account.</p>
-    </div>
+<div class="mx-auto w-full max-w-md">
+	<form onsubmit={handleSubmit} class="space-y-6" novalidate>
+		<!-- Header -->
+		<div class="text-center">
+			<h1 class="text-2xl font-semibold text-foreground">Sign in to SvelteHR</h1>
+			<p class="mt-2 text-sm text-muted-foreground">
+				Welcome back! Please sign in to your account.
+			</p>
+		</div>
 
-    <!-- Global Error Message -->
-    {#if $authError}
-      <Alert variant="destructive">
-        <AlertCircle class="h-4 w-4" />
-        <AlertTitle>Authentication Error</AlertTitle>
-        <AlertDescription>{$authError}</AlertDescription>
-      </Alert>
-    {/if}
+		<!-- Global Error Message -->
+		{#if $authError}
+			<Alert variant="destructive">
+				<AlertCircle class="h-4 w-4" />
+				<AlertTitle>Authentication Error</AlertTitle>
+				<AlertDescription>{$authError}</AlertDescription>
+			</Alert>
+		{/if}
 
-    <!-- Email Field -->
-    <div class="space-y-2">
-      <Label for="email">Email address</Label>
-      <div class="relative">
-        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Mail class="h-4 w-4 text-muted-foreground" />
-        </div>
-        <Input
-          id="email"
-          name="email"
-          type="email"
-          autocomplete="email"
-          required
-          class="pl-10 {formErrors.email ? 'border-destructive' : ''}"
-          placeholder="Enter your email"
-          bind:value={email}
-          oninput={handleEmailChange}
-          onblur={() => {
-            const error = validateEmail(email);
-            if (error) formErrors.email = error;
-          }}
-          disabled={isSubmitting || $isLoading}
-        />
-      </div>
-      {#if formErrors.email}
-        <p class="text-sm text-destructive">{formErrors.email}</p>
-      {/if}
-    </div>
+		<!-- Email Field -->
+		<div class="space-y-2">
+			<Label for="email">Email address</Label>
+			<div class="relative">
+				<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+					<Mail class="h-4 w-4 text-muted-foreground" />
+				</div>
+				<Input
+					id="email"
+					name="email"
+					type="email"
+					autocomplete="email"
+					required
+					class="pl-10 {formErrors.email ? 'border-destructive' : ''}"
+					placeholder="Enter your email"
+					bind:value={email}
+					oninput={handleEmailChange}
+					onblur={() => {
+						const error = validateEmail(email);
+						if (error) formErrors.email = error;
+					}}
+					disabled={isSubmitting || $isLoading}
+				/>
+			</div>
+			{#if formErrors.email}
+				<p class="text-sm text-destructive">{formErrors.email}</p>
+			{/if}
+		</div>
 
-    <!-- Password Field -->
-    <div class="space-y-2">
-      <Label for="password">Password</Label>
-      <div class="relative">
-        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Lock class="h-4 w-4 text-muted-foreground" />
-        </div>
-        <Input
-          id="password"
-          name="password"
-          type={showPassword ? 'text' : 'password'}
-          autocomplete="current-password"
-          required
-          class="pl-10 pr-10 {formErrors.password ? 'border-destructive' : ''}"
-          placeholder="Enter your password"
-          bind:value={password}
-          oninput={handlePasswordChange}
-          onblur={() => {
-            const error = validatePassword(password);
-            if (error) formErrors.password = error;
-          }}
-          disabled={isSubmitting || $isLoading}
-        />
-        <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
-          <button
-            type="button"
-            class="text-muted-foreground hover:text-foreground focus:outline-none transition-colors"
-            onclick={togglePasswordVisibility}
-            disabled={isSubmitting || $isLoading}
-          >
-            {#if showPassword}
-              <EyeOff class="h-4 w-4" />
-            {:else}
-              <Eye class="h-4 w-4" />
-            {/if}
-          </button>
-        </div>
-      </div>
-      {#if formErrors.password}
-        <p class="text-sm text-destructive">{formErrors.password}</p>
-      {/if}
-    </div>
+		<!-- Password Field -->
+		<div class="space-y-2">
+			<Label for="password">Password</Label>
+			<div class="relative">
+				<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+					<Lock class="h-4 w-4 text-muted-foreground" />
+				</div>
+				<Input
+					id="password"
+					name="password"
+					type={showPassword ? 'text' : 'password'}
+					autocomplete="current-password"
+					required
+					class="pl-10 pr-10 {formErrors.password ? 'border-destructive' : ''}"
+					placeholder="Enter your password"
+					bind:value={password}
+					oninput={handlePasswordChange}
+					onblur={() => {
+						const error = validatePassword(password);
+						if (error) formErrors.password = error;
+					}}
+					disabled={isSubmitting || $isLoading}
+				/>
+				<div class="absolute inset-y-0 right-0 flex items-center pr-3">
+					<button
+						type="button"
+						class="text-muted-foreground transition-colors hover:text-foreground focus:outline-none"
+						onclick={togglePasswordVisibility}
+						disabled={isSubmitting || $isLoading}
+					>
+						{#if showPassword}
+							<EyeOff class="h-4 w-4" />
+						{:else}
+							<Eye class="h-4 w-4" />
+						{/if}
+					</button>
+				</div>
+			</div>
+			{#if formErrors.password}
+				<p class="text-sm text-destructive">{formErrors.password}</p>
+			{/if}
+		</div>
 
-    <!-- Remember Me & Forgot Password -->
-    <div class="flex items-center justify-between">
-      <div class="flex items-center space-x-2">
-        <Checkbox
-          id="remember-me"
-          checked={rememberMe}
-          onCheckedChange={(checked) => rememberMe = checked || false}
-          disabled={isSubmitting || $isLoading}
-        />
-        <Label for="remember-me" class="text-sm font-normal">
-          Remember me
-        </Label>
-      </div>
+		<!-- Remember Me & Forgot Password -->
+		<div class="flex items-center justify-between">
+			<div class="flex items-center space-x-2">
+				<Checkbox
+					id="remember-me"
+					checked={rememberMe}
+					onCheckedChange={(checked) => (rememberMe = checked || false)}
+					disabled={isSubmitting || $isLoading}
+				/>
+				<Label for="remember-me" class="text-sm font-normal">Remember me</Label>
+			</div>
 
-      <div class="text-sm">
-        <a href="/auth/forgot-password" class="font-medium text-primary hover:text-primary/80 focus:outline-none focus:underline transition-colors">
-          Forgot your password?
-        </a>
-      </div>
-    </div>
+			<div class="text-sm">
+				<a
+					href="/auth/forgot-password"
+					class="font-medium text-primary transition-colors hover:text-primary/80 focus:underline focus:outline-none"
+				>
+					Forgot your password?
+				</a>
+			</div>
+		</div>
 
-    <!-- Submit Button -->
-    <div>
-      <Button
-        type="submit"
-        disabled={isSubmitting || $isLoading || hasSucceeded || Object.keys(formErrors).length > 0}
-        class="w-full"
-      >
-        {#if isSubmitting || $isLoading}
-          <Loader2 class="animate-spin mr-2 h-4 w-4" />
-          Signing in...
-        {:else}
-          Sign in
-        {/if}
-      </Button>
-    </div>
+		<!-- Submit Button -->
+		<div>
+			<Button
+				type="submit"
+				disabled={isSubmitting || $isLoading || hasSucceeded || Object.keys(formErrors).length > 0}
+				class="w-full"
+			>
+				{#if isSubmitting || $isLoading}
+					<Loader2 class="mr-2 h-4 w-4 animate-spin" />
+					Signing in...
+				{:else}
+					Sign in
+				{/if}
+			</Button>
+		</div>
 
-    <!-- Sign Up Link -->
-    <div class="text-center">
-      <p class="text-sm text-muted-foreground">
-        Don't have an account?
-        <a href="/auth/register" class="font-medium text-primary hover:text-primary/80 focus:outline-none focus:underline transition-colors">
-          Contact HR to get started
-        </a>
-      </p>
-    </div>
-  </form>
+		<!-- Sign Up Link -->
+		<div class="text-center">
+			<p class="text-sm text-muted-foreground">
+				Don't have an account?
+				<a
+					href="/auth/register"
+					class="font-medium text-primary transition-colors hover:text-primary/80 focus:underline focus:outline-none"
+				>
+					Contact HR to get started
+				</a>
+			</p>
+		</div>
+	</form>
 </div>
-

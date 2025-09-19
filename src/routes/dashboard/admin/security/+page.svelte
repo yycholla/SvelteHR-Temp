@@ -141,28 +141,36 @@
 
 	function getSeverityColor(severity: string) {
 		switch (severity) {
-			case 'high': return 'text-red-600';
-			case 'medium': return 'text-yellow-600';
-			case 'low': return 'text-blue-600';
-			default: return 'text-gray-600';
+			case 'high':
+				return 'text-red-600';
+			case 'medium':
+				return 'text-yellow-600';
+			case 'low':
+				return 'text-blue-600';
+			default:
+				return 'text-gray-600';
 		}
 	}
 
 	function getSeverityVariant(severity: string) {
 		switch (severity) {
-			case 'high': return 'destructive';
-			case 'medium': return 'secondary';
-			case 'low': return 'outline';
-			default: return 'outline';
+			case 'high':
+				return 'destructive';
+			case 'medium':
+				return 'secondary';
+			case 'low':
+				return 'outline';
+			default:
+				return 'outline';
 		}
 	}
 
 	function revokeSession(sessionId: string) {
-		activeSessions = activeSessions.filter(session => session.id !== sessionId);
+		activeSessions = activeSessions.filter((session) => session.id !== sessionId);
 	}
 
 	function unblockIP(ip: string) {
-		blockedIPs = blockedIPs.filter(blocked => blocked.ip !== ip);
+		blockedIPs = blockedIPs.filter((blocked) => blocked.ip !== ip);
 	}
 
 	function runSecurityScan() {
@@ -187,11 +195,11 @@
 	<!-- Header -->
 	<div class="flex items-center justify-between">
 		<div>
-			<div class="flex items-center gap-3 mb-2">
+			<div class="mb-2 flex items-center gap-3">
 				<Button variant="ghost" size="sm" href="/dashboard/admin" class="p-2">
 					<ArrowLeft class="h-4 w-4" />
 				</Button>
-				<h1 class="text-3xl font-bold tracking-tight flex items-center gap-3">
+				<h1 class="flex items-center gap-3 text-3xl font-bold tracking-tight">
 					<Shield class="h-8 w-8" />
 					Security Center
 				</h1>
@@ -203,9 +211,9 @@
 		<div class="flex items-center gap-3">
 			<Button variant="outline" onclick={runSecurityScan} disabled={loading}>
 				{#if loading}
-					<RefreshCw class="h-4 w-4 mr-2 animate-spin" />
+					<RefreshCw class="mr-2 h-4 w-4 animate-spin" />
 				{:else}
-					<Shield class="h-4 w-4 mr-2" />
+					<Shield class="mr-2 h-4 w-4" />
 				{/if}
 				Security Scan
 			</Button>
@@ -228,9 +236,9 @@
 						Last scan: {securityOverview.lastScan}
 					</p>
 				</div>
-				<div class="text-right space-y-2">
-					<div class="w-32 h-32 relative">
-						<div class="w-full h-full rounded-full bg-gray-200 flex items-center justify-center">
+				<div class="space-y-2 text-right">
+					<div class="relative h-32 w-32">
+						<div class="flex h-full w-full items-center justify-center rounded-full bg-gray-200">
 							<Shield class="h-16 w-16 text-green-600" />
 						</div>
 					</div>
@@ -240,7 +248,7 @@
 	</Card.Root>
 
 	<!-- Security Metrics -->
-	<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+	<div class="grid grid-cols-1 gap-6 md:grid-cols-3">
 		<Card.Root>
 			<Card.Content class="p-6">
 				<div class="flex items-center justify-between">
@@ -299,7 +307,7 @@
 
 		<!-- Security Policies Tab -->
 		<Tabs.Content value="policies">
-			<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+			<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 				<Card.Root>
 					<Card.Header>
 						<Card.Title>Authentication Policies</Card.Title>
@@ -482,7 +490,10 @@
 										</div>
 									</Table.Cell>
 									<Table.Cell>
-										<Badge variant={getSeverityVariant(event.severity)} class={getSeverityColor(event.severity)}>
+										<Badge
+											variant={getSeverityVariant(event.severity)}
+											class={getSeverityColor(event.severity)}
+										>
 											{event.severity}
 										</Badge>
 									</Table.Cell>

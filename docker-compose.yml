@@ -10,7 +10,7 @@ services:
       file: ./configs/docker/docker-compose.dev.yml
       service: geldb
     container_name: svelteHR-geldb
-    
+
   redis:
     extends:
       file: ./configs/docker/docker-compose.dev.yml

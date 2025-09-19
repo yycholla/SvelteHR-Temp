@@ -17,7 +17,7 @@ const NetworkLogSchema = z.object({
   duration: z.number().min(0),
   requestHeaders: z.record(z.string()).optional(),
   responseHeaders: z.record(z.string()).optional(),
-  timestamp: z.string().datetime()
+  timestamp: z.string().datetime(),
 });
 
 const FailureDetailsSchema = z.object({
@@ -34,7 +34,7 @@ const FailureDetailsSchema = z.object({
   screenshot: z.string().optional(),
   videoPath: z.string().optional(),
   contextData: z.record(z.any()).optional(),
-  relatedFailures: z.array(UUIDSchema).optional()
+  relatedFailures: z.array(UUIDSchema).optional(),
 });
 
 export type NetworkLog = z.infer<typeof NetworkLogSchema>;
@@ -43,13 +43,15 @@ export type FailureDetailsData = z.infer<typeof FailureDetailsSchema>;
 export class FailureDetails {
   private data: FailureDetailsData;
 
-  constructor(input: Partial<FailureDetailsData> & {
-    stepId: string;
-    errorMessage: string;
-    stackTrace: string;
-    errorType: string;
-    retryCount: number;
-  }) {
+  constructor(
+    input: Partial<FailureDetailsData> & {
+      stepId: string;
+      errorMessage: string;
+      stackTrace: string;
+      errorType: string;
+      retryCount: number;
+    }
+  ) {
     // Validate retry count
     if (input.retryCount < 0 || !Number.isInteger(input.retryCount)) {
       throw new Error('retryCount must be non-negative integer');
@@ -84,20 +86,48 @@ export class FailureDetails {
   }
 
   // Getters for accessing properties
-  get stepId(): string { return this.data.stepId; }
-  get errorMessage(): string { return this.data.errorMessage; }
-  get stackTrace(): string { return this.data.stackTrace; }
-  get errorType(): string { return this.data.errorType; }
-  get actualValue(): any { return this.data.actualValue; }
-  get expectedValue(): any { return this.data.expectedValue; }
-  get retryCount(): number { return this.data.retryCount; }
-  get browserLogs(): string[] | undefined { return this.data.browserLogs; }
-  get networkLogs(): NetworkLog[] | undefined { return this.data.networkLogs; }
-  get domSnapshot(): string | undefined { return this.data.domSnapshot; }
-  get screenshot(): string | undefined { return this.data.screenshot; }
-  get videoPath(): string | undefined { return this.data.videoPath; }
-  get contextData(): Record<string, any> | undefined { return this.data.contextData; }
-  get relatedFailures(): string[] | undefined { return this.data.relatedFailures; }
+  get stepId(): string {
+    return this.data.stepId;
+  }
+  get errorMessage(): string {
+    return this.data.errorMessage;
+  }
+  get stackTrace(): string {
+    return this.data.stackTrace;
+  }
+  get errorType(): string {
+    return this.data.errorType;
+  }
+  get actualValue(): any {
+    return this.data.actualValue;
+  }
+  get expectedValue(): any {
+    return this.data.expectedValue;
+  }
+  get retryCount(): number {
+    return this.data.retryCount;
+  }
+  get browserLogs(): string[] | undefined {
+    return this.data.browserLogs;
+  }
+  get networkLogs(): NetworkLog[] | undefined {
+    return this.data.networkLogs;
+  }
+  get domSnapshot(): string | undefined {
+    return this.data.domSnapshot;
+  }
+  get screenshot(): string | undefined {
+    return this.data.screenshot;
+  }
+  get videoPath(): string | undefined {
+    return this.data.videoPath;
+  }
+  get contextData(): Record<string, any> | undefined {
+    return this.data.contextData;
+  }
+  get relatedFailures(): string[] | undefined {
+    return this.data.relatedFailures;
+  }
 
   /**
    * Check if this is a timeout error
@@ -106,9 +136,9 @@ export class FailureDetails {
     const errorType = this.data.errorType.toLowerCase();
     const errorMessage = this.data.errorMessage.toLowerCase();
 
-    return errorType.includes('timeout') ||
-           errorMessage.includes('timeout') ||
-           errorType === 'Timeout';
+    return (
+      errorType.includes('timeout') || errorMessage.includes('timeout') || errorType === 'Timeout'
+    );
   }
 
   /**
@@ -118,9 +148,11 @@ export class FailureDetails {
     const errorType = this.data.errorType.toLowerCase();
     const errorMessage = this.data.errorMessage.toLowerCase();
 
-    return errorType.includes('elementnotfound') ||
-           errorMessage.includes('element not found') ||
-           errorType === 'ElementNotFound';
+    return (
+      errorType.includes('elementnotfound') ||
+      errorMessage.includes('element not found') ||
+      errorType === 'ElementNotFound'
+    );
   }
 
   /**
@@ -130,9 +162,11 @@ export class FailureDetails {
     const errorType = this.data.errorType.toLowerCase();
     const errorMessage = this.data.errorMessage.toLowerCase();
 
-    return errorType.includes('network') ||
-           errorMessage.includes('network') ||
-           (this.data.networkLogs && this.data.networkLogs.some(log => log.status === 0));
+    return (
+      errorType.includes('network') ||
+      errorMessage.includes('network') ||
+      (this.data.networkLogs && this.data.networkLogs.some(log => log.status === 0))
+    );
   }
 
   /**
@@ -142,10 +176,12 @@ export class FailureDetails {
     const errorType = this.data.errorType.toLowerCase();
     const errorMessage = this.data.errorMessage.toLowerCase();
 
-    return errorType.includes('authentication') ||
-           errorMessage.includes('authentication') ||
-           errorMessage.includes('credentials') ||
-           errorType === 'AuthenticationError';
+    return (
+      errorType.includes('authentication') ||
+      errorMessage.includes('authentication') ||
+      errorMessage.includes('credentials') ||
+      errorType === 'AuthenticationError'
+    );
   }
 
   /**
@@ -168,25 +204,41 @@ export class FailureDetails {
     if (this.isTimeoutError()) {
       category = 'timeout';
       severity = 'medium';
-      suggestedFixes.push('Increase timeout values', 'Check server performance', 'Optimize network conditions');
+      suggestedFixes.push(
+        'Increase timeout values',
+        'Check server performance',
+        'Optimize network conditions'
+      );
       rootCause = 'Operation exceeded allowed time limit';
       impact = 'Test execution delayed or failed';
     } else if (this.isElementNotFoundError()) {
       category = 'ui_element';
       severity = 'high';
-      suggestedFixes.push('Verify element selector', 'Check page loading timing', 'Update element locators');
+      suggestedFixes.push(
+        'Verify element selector',
+        'Check page loading timing',
+        'Update element locators'
+      );
       rootCause = 'UI element not available when expected';
       impact = 'Cannot interact with user interface';
     } else if (this.isNetworkError()) {
       category = 'network';
       severity = 'high';
-      suggestedFixes.push('Check network connectivity', 'Verify server availability', 'Review firewall settings');
+      suggestedFixes.push(
+        'Check network connectivity',
+        'Verify server availability',
+        'Review firewall settings'
+      );
       rootCause = 'Network communication failure';
       impact = 'Cannot communicate with server';
     } else if (this.isAuthenticationError()) {
       category = 'authentication';
       severity = 'high';
-      suggestedFixes.push('Check credentials', 'Verify user permissions', 'Review authentication flow');
+      suggestedFixes.push(
+        'Check credentials',
+        'Verify user permissions',
+        'Review authentication flow'
+      );
       rootCause = 'Authentication or authorization failure';
       impact = 'Cannot access secured resources';
     }
@@ -202,7 +254,7 @@ export class FailureDetails {
       severity,
       suggestedFixes,
       rootCause,
-      impact
+      impact,
     };
   }
 
@@ -222,18 +274,16 @@ export class FailureDetails {
 
     // Check for timing-related issues in logs
     if (this.data.browserLogs) {
-      const timingIssues = this.data.browserLogs.some(log =>
-        log.includes('timing') ||
-        log.includes('race condition') ||
-        log.includes('async')
+      const timingIssues = this.data.browserLogs.some(
+        log => log.includes('timing') || log.includes('race condition') || log.includes('async')
       );
       if (timingIssues) return true;
     }
 
     // Network issues with status 0 (no response) are often flaky
     if (this.data.networkLogs) {
-      const networkFailures = this.data.networkLogs.some(log =>
-        log.status === 0 || log.duration > 30000
+      const networkFailures = this.data.networkLogs.some(
+        log => log.status === 0 || log.duration > 30000
       );
       if (networkFailures) return true;
     }
@@ -315,7 +365,7 @@ export class FailureDetails {
     const components = [
       this.data.errorType,
       this.data.errorMessage.replace(/\d+/g, 'NUM'), // Replace numbers with placeholder
-      this.isLikelyFlaky() ? 'FLAKY' : 'CONSISTENT'
+      this.isLikelyFlaky() ? 'FLAKY' : 'CONSISTENT',
     ];
 
     return components.join('|');
@@ -327,10 +377,10 @@ export class FailureDetails {
   getSeverityScore(): number {
     const context = this.extractErrorContext();
     const severityScores = {
-      'low': 25,
-      'medium': 50,
-      'high': 75,
-      'critical': 100
+      low: 25,
+      medium: 50,
+      high: 75,
+      critical: 100,
     };
 
     let score = severityScores[context.severity];
@@ -362,7 +412,7 @@ export class FailureDetails {
       hasVideo: !!this.data.videoPath,
       hasDOMSnapshot: !!this.data.domSnapshot,
       hasNetworkLogs: !!(this.data.networkLogs && this.data.networkLogs.length > 0),
-      hasBrowserLogs: !!(this.data.browserLogs && this.data.browserLogs.length > 0)
+      hasBrowserLogs: !!(this.data.browserLogs && this.data.browserLogs.length > 0),
     };
 
     const availableCount = Object.values(artifacts).filter(Boolean).length;
@@ -370,7 +420,7 @@ export class FailureDetails {
 
     return {
       ...artifacts,
-      completeness
+      completeness,
     };
   }
 
@@ -379,7 +429,7 @@ export class FailureDetails {
    */
   toJSON(): FailureDetailsData {
     return {
-      ...this.data
+      ...this.data,
     };
   }
 

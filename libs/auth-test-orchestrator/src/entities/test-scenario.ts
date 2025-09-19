@@ -12,7 +12,17 @@ const UUIDSchema = z.string().uuid('Must be valid UUID');
 const UserRoleSchema = z.enum(['admin', 'hr_admin', 'manager', 'employee', 'guest']);
 const PrioritySchema = z.enum(['low', 'medium', 'high', 'critical']);
 const BrowserSchema = z.enum(['chromium', 'firefox', 'webkit']);
-const ActionSchema = z.enum(['navigate', 'click', 'fill', 'wait', 'assert', 'hover', 'select', 'upload', 'scroll']);
+const ActionSchema = z.enum([
+  'navigate',
+  'click',
+  'fill',
+  'wait',
+  'assert',
+  'hover',
+  'select',
+  'upload',
+  'scroll',
+]);
 
 const TestStepSchema = z.object({
   id: z.string().min(1, 'Step ID cannot be empty'),
@@ -22,7 +32,7 @@ const TestStepSchema = z.object({
   timeout: z.number().positive().optional(),
   description: z.string().optional(),
   waitCondition: z.string().optional(),
-  retryCount: z.number().min(0).optional()
+  retryCount: z.number().min(0).optional(),
 });
 
 const ExpectedOutcomeSchema = z.object({
@@ -35,7 +45,7 @@ const ExpectedOutcomeSchema = z.object({
   expectedText: z.array(z.string()).optional(),
   statusCode: z.number().optional(),
   cookies: z.array(z.string()).optional(),
-  localStorage: z.record(z.string()).optional()
+  localStorage: z.record(z.string()).optional(),
 });
 
 const TestScenarioSchema = z.object({
@@ -52,7 +62,7 @@ const TestScenarioSchema = z.object({
   browsers: z.array(BrowserSchema).optional(),
   retryOnFailure: z.boolean().default(false),
   maxRetries: z.number().min(0).default(0),
-  dependsOn: z.array(UUIDSchema).optional()
+  dependsOn: z.array(UUIDSchema).optional(),
 });
 
 export type UserRole = z.infer<typeof UserRoleSchema>;
@@ -65,19 +75,21 @@ export type TestScenarioData = z.infer<typeof TestScenarioSchema>;
 export class TestScenario {
   private data: TestScenarioData;
 
-  constructor(input: Partial<TestScenarioData> & {
-    id: string;
-    name: string;
-    userRole: UserRole;
-    steps: TestStep[];
-    expectedOutcome: ExpectedOutcome;
-    priority: Priority;
-  }) {
+  constructor(
+    input: Partial<TestScenarioData> & {
+      id: string;
+      name: string;
+      userRole: UserRole;
+      steps: TestStep[];
+      expectedOutcome: ExpectedOutcome;
+      priority: Priority;
+    }
+  ) {
     // Set defaults
     const scenarioData = {
       ...input,
       retryOnFailure: input.retryOnFailure ?? false,
-      maxRetries: input.maxRetries ?? 0
+      maxRetries: input.maxRetries ?? 0,
     };
 
     // Validate step actions are supported
@@ -92,7 +104,9 @@ export class TestScenario {
       const allowedBrowsers = ['chromium', 'firefox', 'webkit'];
       const invalidBrowsers = scenarioData.browsers.filter(b => !allowedBrowsers.includes(b));
       if (invalidBrowsers.length > 0) {
-        throw new Error(`Invalid browsers: ${invalidBrowsers.join(', ')}. Must be subset of ${allowedBrowsers.join(', ')}`);
+        throw new Error(
+          `Invalid browsers: ${invalidBrowsers.join(', ')}. Must be subset of ${allowedBrowsers.join(', ')}`
+        );
       }
     }
 
@@ -106,20 +120,48 @@ export class TestScenario {
   }
 
   // Getters for accessing properties
-  get id(): string { return this.data.id; }
-  get name(): string { return this.data.name; }
-  get description(): string | undefined { return this.data.description; }
-  get userRole(): UserRole { return this.data.userRole; }
-  get preconditions(): string[] | undefined { return this.data.preconditions; }
-  get steps(): TestStep[] { return this.data.steps; }
-  get expectedOutcome(): ExpectedOutcome { return this.data.expectedOutcome; }
-  get tags(): string[] | undefined { return this.data.tags; }
-  get priority(): Priority { return this.data.priority; }
-  get estimatedDuration(): number | undefined { return this.data.estimatedDuration; }
-  get browsers(): Browser[] | undefined { return this.data.browsers; }
-  get retryOnFailure(): boolean { return this.data.retryOnFailure; }
-  get maxRetries(): number { return this.data.maxRetries; }
-  get dependsOn(): string[] | undefined { return this.data.dependsOn; }
+  get id(): string {
+    return this.data.id;
+  }
+  get name(): string {
+    return this.data.name;
+  }
+  get description(): string | undefined {
+    return this.data.description;
+  }
+  get userRole(): UserRole {
+    return this.data.userRole;
+  }
+  get preconditions(): string[] | undefined {
+    return this.data.preconditions;
+  }
+  get steps(): TestStep[] {
+    return this.data.steps;
+  }
+  get expectedOutcome(): ExpectedOutcome {
+    return this.data.expectedOutcome;
+  }
+  get tags(): string[] | undefined {
+    return this.data.tags;
+  }
+  get priority(): Priority {
+    return this.data.priority;
+  }
+  get estimatedDuration(): number | undefined {
+    return this.data.estimatedDuration;
+  }
+  get browsers(): Browser[] | undefined {
+    return this.data.browsers;
+  }
+  get retryOnFailure(): boolean {
+    return this.data.retryOnFailure;
+  }
+  get maxRetries(): number {
+    return this.data.maxRetries;
+  }
+  get dependsOn(): string[] | undefined {
+    return this.data.dependsOn;
+  }
 
   /**
    * Calculate total timeout for all steps in the scenario
@@ -146,7 +188,7 @@ export class TestScenario {
 
     const updatedData = {
       ...this.data,
-      steps: [...this.data.steps, step]
+      steps: [...this.data.steps, step],
     };
 
     const validation = TestScenarioSchema.safeParse(updatedData);
@@ -173,7 +215,7 @@ export class TestScenario {
 
     this.data = {
       ...this.data,
-      steps: updatedSteps
+      steps: updatedSteps,
     };
   }
 
@@ -189,7 +231,7 @@ export class TestScenario {
     const updatedStep = {
       ...this.data.steps[stepIndex],
       ...updates,
-      id: stepId // Ensure ID cannot be changed
+      id: stepId, // Ensure ID cannot be changed
     };
 
     // Validate the updated step
@@ -202,7 +244,7 @@ export class TestScenario {
 
     const updatedData = {
       ...this.data,
-      steps: updatedSteps
+      steps: updatedSteps,
     };
 
     const validation = TestScenarioSchema.safeParse(updatedData);
@@ -247,14 +289,18 @@ export class TestScenario {
 
     // Validate expected outcome has meaningful criteria
     const outcome = this.data.expectedOutcome;
-    if (!outcome.finalUrl && !outcome.authenticationState &&
-        !outcome.requiredElements && !outcome.expectedText) {
+    if (
+      !outcome.finalUrl &&
+      !outcome.authenticationState &&
+      !outcome.requiredElements &&
+      !outcome.expectedText
+    ) {
       issues.push('Expected outcome should specify at least one validation criteria');
     }
 
     return {
       ready: issues.length === 0,
-      issues
+      issues,
     };
   }
 
@@ -295,22 +341,21 @@ export class TestScenario {
    */
   canRunInParallelWith(otherScenario: TestScenario): boolean {
     // Same user role scenarios might interfere with each other
-    if (this.data.userRole === otherScenario.userRole &&
-        this.data.userRole !== 'guest') {
+    if (this.data.userRole === otherScenario.userRole && this.data.userRole !== 'guest') {
       return false;
     }
 
     // Check for dependencies
-    if (this.data.dependsOn?.includes(otherScenario.id) ||
-        otherScenario.dependsOn?.includes(this.data.id)) {
+    if (
+      this.data.dependsOn?.includes(otherScenario.id) ||
+      otherScenario.dependsOn?.includes(this.data.id)
+    ) {
       return false;
     }
 
     // Check for conflicting browser requirements
     if (this.data.browsers && otherScenario.browsers) {
-      const commonBrowsers = this.data.browsers.filter(b =>
-        otherScenario.browsers!.includes(b)
-      );
+      const commonBrowsers = this.data.browsers.filter(b => otherScenario.browsers!.includes(b));
       if (commonBrowsers.length === 0) {
         return false;
       }
@@ -330,7 +375,7 @@ export class TestScenario {
       ...this.data,
       ...overrides,
       id: newId,
-      name: newName
+      name: newName,
     });
   }
 
@@ -339,7 +384,7 @@ export class TestScenario {
    */
   toJSON(): TestScenarioData {
     return {
-      ...this.data
+      ...this.data,
     };
   }
 

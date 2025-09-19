@@ -4,6 +4,7 @@
 **Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
 
 ## Execution Flow (/plan command scope)
+
 ```
 1. Load feature spec from Input path
    → If not found: ERROR "No feature spec at {path}"
@@ -25,13 +26,16 @@
 ```
 
 **IMPORTANT**: The /plan command STOPS at step 7. Phases 2-4 are executed by other commands:
+
 - Phase 2: /tasks command creates tasks.md
 - Phase 3-4: Implementation execution (manual or via tools)
 
 ## Summary
+
 Migration from Carbon Design System to shadcn-svelte for modern, sleek UI with focus on data presentation. Replace quick navigation cards with efficient sidebar/topbar layout prioritizing data visibility and clean aesthetics. Maintain all HR functionality while upgrading visual presentation using shadcn component patterns.
 
 ## Technical Context
+
 **Language/Version**: TypeScript 5.x with SvelteKit 2.x, Node.js 20+
 **Primary Dependencies**: shadcn-svelte, Lucide icons, TailwindCSS, Svelte 5 runes
 **Storage**: PostgreSQL 15+ with PostGraphile GraphQL (existing system)
@@ -43,21 +47,25 @@ Migration from Carbon Design System to shadcn-svelte for modern, sleek UI with f
 **Scale/Scope**: 127 employees, 8 departments, admin/HR/manager/employee roles
 
 ## Constitution Check
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+
+_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
 **Simplicity**:
+
 - Projects: 1 (frontend UI migration only)
 - Using framework directly? YES (shadcn-svelte components used directly)
 - Single data model? YES (existing PostgreSQL schema preserved)
 - Avoiding patterns? YES (no unnecessary abstractions for UI components)
 
 **Architecture**:
+
 - EVERY feature as library? N/A (UI migration, not new feature libraries)
 - Libraries listed: shadcn-svelte (UI components), Lucide (icons), TailwindCSS (styling)
 - CLI per library: N/A (UI components, not CLI tools)
 - Library docs: YES (shadcn component documentation focus as requested)
 
 **Testing (NON-NEGOTIABLE)**:
+
 - RED-GREEN-Refactor cycle enforced? YES (visual regression tests first)
 - Git commits show tests before implementation? YES (accessibility + visual tests)
 - Order: Contract→Integration→E2E→Unit strictly followed? YES (component contracts → page integration → E2E flows)
@@ -66,11 +74,13 @@ Migration from Carbon Design System to shadcn-svelte for modern, sleek UI with f
 - FORBIDDEN: Implementation before test, skipping RED phase
 
 **Observability**:
+
 - Structured logging included? YES (preserve existing frontend error logging)
 - Frontend logs → backend? YES (existing PostGraphile integration maintained)
 - Error context sufficient? YES (component-level error boundaries)
 
 **Versioning**:
+
 - Version number assigned? 1.0.0 (major UI overhaul)
 - BUILD increments on every change? YES
 - Breaking changes handled? YES (parallel component testing, gradual migration)
@@ -78,6 +88,7 @@ Migration from Carbon Design System to shadcn-svelte for modern, sleek UI with f
 ## Project Structure
 
 ### Documentation (this feature)
+
 ```
 specs/[###-feature]/
 ├── plan.md              # This file (/plan command output)
@@ -89,6 +100,7 @@ specs/[###-feature]/
 ```
 
 ### Source Code (repository root)
+
 ```
 # Option 1: Single project (DEFAULT)
 src/
@@ -128,12 +140,14 @@ ios/ or android/
 **Structure Decision**: Option 2 (Web application) - SvelteKit frontend with PostgreSQL backend via PostGraphile
 
 ## Phase 0: Outline & Research
+
 1. **Extract unknowns from Technical Context** above:
    - For each NEEDS CLARIFICATION → research task
    - For each dependency → best practices task
    - For each integration → patterns task
 
 2. **Generate and dispatch research agents**:
+
    ```
    For each unknown in Technical Context:
      Task: "Research {unknown} for {feature context}"
@@ -149,7 +163,8 @@ ios/ or android/
 **Output**: research.md with all NEEDS CLARIFICATION resolved
 
 ## Phase 1: Design & Contracts
-*Prerequisites: research.md complete*
+
+_Prerequisites: research.md complete_
 
 1. **Extract entities from feature spec** → `data-model.md`:
    - Entity name, fields, relationships
@@ -178,12 +193,14 @@ ios/ or android/
    - Keep under 150 lines for token efficiency
    - Output to repository root
 
-**Output**: data-model.md, /contracts/*, failing tests, quickstart.md, agent-specific file
+**Output**: data-model.md, /contracts/\*, failing tests, quickstart.md, agent-specific file
 
 ## Phase 2: Task Planning Approach
-*This section describes what the /tasks command will do - DO NOT execute during /plan*
+
+_This section describes what the /tasks command will do - DO NOT execute during /plan_
 
 **Task Generation Strategy**:
+
 - Generate tasks from Phase 1 artifacts (contracts, data model, quickstart)
 - Component migration tasks based on contract specifications
 - Testing tasks for visual regression and accessibility
@@ -191,6 +208,7 @@ ios/ or android/
 - Performance optimization tasks for bundle size and loading
 
 **Ordering Strategy**:
+
 - Foundation first: Setup shadcn-svelte, TailwindCSS, theming
 - Layout components: Sidebar, Header, main layout structure
 - Data display: Cards, tables, metrics, progress indicators
@@ -198,6 +216,7 @@ ios/ or android/
 - Polish and optimization: Dark mode, accessibility, performance
 
 **Task Categories**:
+
 1. **Setup Tasks** [P] - Independent installation and configuration
 2. **Layout Tasks** - Sequential component replacement (sidebar → header → layout)
 3. **Component Tasks** [P] - Parallel migration of data display components
@@ -211,25 +230,28 @@ ios/ or android/
 **IMPORTANT**: This phase is executed by the /tasks command, NOT by /plan
 
 ## Phase 3+: Future Implementation
-*These phases are beyond the scope of the /plan command*
+
+_These phases are beyond the scope of the /plan command_
 
 **Phase 3**: Task execution (/tasks command creates tasks.md)  
 **Phase 4**: Implementation (execute tasks.md following constitutional principles)  
 **Phase 5**: Validation (run tests, execute quickstart.md, performance validation)
 
 ## Complexity Tracking
-*Fill ONLY if Constitution Check has violations that must be justified*
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+_Fill ONLY if Constitution Check has violations that must be justified_
 
+| Violation                  | Why Needed         | Simpler Alternative Rejected Because |
+| -------------------------- | ------------------ | ------------------------------------ |
+| [e.g., 4th project]        | [current need]     | [why 3 projects insufficient]        |
+| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient]  |
 
 ## Progress Tracking
-*This checklist is updated during execution flow*
+
+_This checklist is updated during execution flow_
 
 **Phase Status**:
+
 - [x] Phase 0: Research complete (/plan command)
 - [x] Phase 1: Design complete (/plan command)
 - [x] Phase 2: Task planning complete (/plan command - describe approach only)
@@ -238,10 +260,12 @@ ios/ or android/
 - [ ] Phase 5: Validation passed
 
 **Gate Status**:
+
 - [x] Initial Constitution Check: PASS
 - [x] Post-Design Constitution Check: PASS
 - [x] All NEEDS CLARIFICATION resolved
 - [x] Complexity deviations documented (none required)
 
 ---
-*Based on Constitution v2.1.1 - See `/memory/constitution.md`*
+
+_Based on Constitution v2.1.1 - See `/memory/constitution.md`_

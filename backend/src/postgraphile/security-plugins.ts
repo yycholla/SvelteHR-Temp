@@ -1,6 +1,6 @@
 /**
  * Security and Monitoring Plugins for PostGraphile
- * 
+ *
  * Comprehensive security features:
  * - Query rate limiting
  * - Query depth analysis
@@ -21,7 +21,7 @@ const logger = createLogger({
     format.errors({ stack: true }),
     format.json()
   ),
-  transports: [new transports.Console()]
+  transports: [new transports.Console()],
 });
 
 /**
@@ -33,14 +33,25 @@ const SECURITY_CONFIG = {
   requestRateWindow: 60000, // 1 minute
   maxRequestsPerWindow: 100,
   sensitiveFields: [
-    'password', 'passwordHash', 'password_salt', 'ssn',
-    'bankAccount', 'salary', 'personalPhone', 'personalEmail'
+    'password',
+    'passwordHash',
+    'password_salt',
+    'ssn',
+    'bankAccount',
+    'salary',
+    'personalPhone',
+    'personalEmail',
   ],
   privilegedOperations: [
-    'createUser', 'updateUser', 'deleteUser',
-    'createEmployee', 'updateEmployee', 'terminateEmployee',
-    'updateRole', 'updatePermissions'
-  ]
+    'createUser',
+    'updateUser',
+    'deleteUser',
+    'createEmployee',
+    'updateEmployee',
+    'terminateEmployee',
+    'updateRole',
+    'updatePermissions',
+  ],
 };
 
 /**
@@ -49,7 +60,8 @@ const SECURITY_CONFIG = {
  */
 export class QuerySecurityPlugin {
   private redis: Redis;
-  private requestCounts: Map<string, { count: number; resetTime: number }> = new Map();
+  private requestCounts: Map<string, { count: number; resetTime: number }> =
+    new Map();
 
   constructor(redis: Redis) {
     this.redis = redis;
@@ -58,99 +70,133 @@ export class QuerySecurityPlugin {
   createPlugin(): PluginHookFn {
     return (build: Build) => {
       // Query validation before execution
-      build.hook('postgraphile:http:handler', async (req: any, context: any) => {
-        const startTime = Date.now();
-        const clientIp = req.ip || req.headers['x-forwarded-for'] || 'unknown';
-        
-        try {
-          // Rate limiting check
-          if (!(await this.checkRateLimit(clientIp))) {
-            const error = new Error('Rate limit exceeded. Please try again later.');
-            (error as any).statusCode = 429;
+      build.hook(
+        'postgraphile:http:handler',
+        async (req: any, context: any) => {
+          const startTime = Date.now();
+          const clientIp =
+            req.ip || req.headers['x-forwarded-for'] || 'unknown';
+
+          try {
+            // Rate limiting check
+            if (!(await this.checkRateLimit(clientIp))) {
+              const error = new Error(
+                'Rate limit exceeded. Please try again later.'
+              );
+              (error as any).statusCode = 429;
+              throw error;
+            }
+
+            // Parse and validate GraphQL query
+            if (req.body && req.body.query) {
+              const query = req.body.query;
+
+              // Basic security checks
+              this.validateQueryStructure(query);
+
+              // Check for suspicious patterns
+              this.checkForSuspiciousPatterns(query);
+
+              // Query complexity analysis
+              const complexity = this.analyzeComplexity(query);
+              if (complexity > SECURITY_CONFIG.maxComplexity) {
+                const error = new Error(
+                  `Query too complex (cost: ${complexity}). Maximum allowed: ${SECURITY_CONFIG.maxComplexity}`
+                );
+                (error as any).statusCode = 400;
+                throw error;
+              }
+
+              // Query depth analysis
+              const depth = this.analyzeQueryDepth(query);
+              if (depth > SECURITY_CONFIG.maxQueryDepth) {
+                const error = new Error(
+                  `Query too deep (depth: ${depth}). Maximum allowed: ${SECURITY_CONFIG.maxQueryDepth}`
+                );
+                (error as any).statusCode = 400;
+                throw error;
+              }
+
+              logger.debug('Query security validation passed', {
+                ip: clientIp,
+                complexity,
+                depth,
+                queryLength: query.length,
+              });
+            }
+
+            return req;
+          } catch (error) {
+            const duration = Date.now() - startTime;
+            logger.warn('Query security validation failed', {
+              ip: clientIp,
+              error: error.message,
+              duration,
+              statusCode: (error as any).statusCode,
+            });
             throw error;
           }
-
-          // Parse and validate GraphQL query
-          if (req.body && req.body.query) {
-            const query = req.body.query;
-            
-            // Basic security checks
-            this.validateQueryStructure(query);
-            
-            // Check for suspicious patterns
-            this.checkForSuspiciousPatterns(query);
-            
-            // Query complexity analysis
-            const complexity = this.analyzeComplexity(query);
-            if (complexity > SECURITY_CONFIG.maxComplexity) {
-              const error = new Error(`Query too complex (cost: ${complexity}). Maximum allowed: ${SECURITY_CONFIG.maxComplexity}`);
-              (error as any).statusCode = 400;
-              throw error;
-            }
-
-            // Query depth analysis
-            const depth = this.analyzeQueryDepth(query);
-            if (depth > SECURITY_CONFIG.maxQueryDepth) {
-              const error = new Error(`Query too deep (depth: ${depth}). Maximum allowed: ${SECURITY_CONFIG.maxQueryDepth}`);
-              (error as any).statusCode = 400;
-              throw error;
-            }
-
-            logger.debug('Query security validation passed', {
-              ip: clientIp,
-              complexity,
-              depth,
-              queryLength: query.length
-            });
-          }
-
-          return req;
-        } catch (error) {
-          const duration = Date.now() - startTime;
-          logger.warn('Query security validation failed', {
-            ip: clientIp,
-            error: error.message,
-            duration,
-            statusCode: (error as any).statusCode
-          });
-          throw error;
         }
-      });
+      );
 
       // Field-level access control
-      build.hook('GraphQLObjectType:fields:field', (field, build, context: any) => {
-        const fieldName = field.fieldName;
-        
-        // Check for sensitive fields
-        if (SECURITY_CONFIG.sensitiveFields.some(sensitive => 
-          fieldName.toLowerCase().includes(sensitive.toLowerCase()))) {
-          
-          const originalResolve = field.resolve;
-          
-          field.resolve = async (root: any, args: any, context: Context, info: any) => {
-            const userRole = context.pgSettings?.['jwt.claims.role'] || 'hr_guest';
-            const userRoleLevel = parseInt(context.pgSettings?.['jwt.claims.role_level'] || '0', 10);
-            const userId = context.pgSettings?.['jwt.claims.user_id'];
+      build.hook(
+        'GraphQLObjectType:fields:field',
+        (field, build, context: any) => {
+          const fieldName = field.fieldName;
 
-            // Access control logic for sensitive fields
-            if (!this.canAccessSensitiveField(fieldName, userRole, userRoleLevel, userId, root)) {
-              logger.warn('Unauthorized access attempt to sensitive field', {
-                field: fieldName,
-                userRole,
-                userRoleLevel,
-                userId,
-                resourceOwnerId: root?.id
-              });
-              
-              throw new Error(`Access denied for field: ${fieldName}`);
-            }
+          // Check for sensitive fields
+          if (
+            SECURITY_CONFIG.sensitiveFields.some((sensitive) =>
+              fieldName.toLowerCase().includes(sensitive.toLowerCase())
+            )
+          ) {
+            const originalResolve = field.resolve;
 
-            return originalResolve ? originalResolve(root, args, context, info) : root[fieldName];
-          };
+            field.resolve = async (
+              root: any,
+              args: any,
+              context: Context,
+              info: any
+            ) => {
+              const userRole =
+                context.pgSettings?.['jwt.claims.role'] || 'hr_guest';
+              const userRoleLevel = parseInt(
+                context.pgSettings?.['jwt.claims.role_level'] || '0',
+                10
+              );
+              const userId = context.pgSettings?.['jwt.claims.user_id'];
+
+              // Access control logic for sensitive fields
+              if (
+                !this.canAccessSensitiveField(
+                  fieldName,
+                  userRole,
+                  userRoleLevel,
+                  userId,
+                  root
+                )
+              ) {
+                logger.warn('Unauthorized access attempt to sensitive field', {
+                  field: fieldName,
+                  userRole,
+                  userRoleLevel,
+                  userId,
+                  resourceOwnerId: root?.id,
+                });
+
+                throw new Error(`Access denied for field: ${fieldName}`);
+              }
+
+              return originalResolve
+                ? originalResolve(root, args, context, info)
+                : root[fieldName];
+            };
+          }
+
+          return field;
         }
-        
-        return field;
-      });
+      );
 
       return build;
     };
@@ -161,16 +207,21 @@ export class QuerySecurityPlugin {
    */
   private async checkRateLimit(ip: string): Promise<boolean> {
     const key = `rate_limit:${ip}`;
-    const windowStart = Math.floor(Date.now() / SECURITY_CONFIG.requestRateWindow);
-    
+    const windowStart = Math.floor(
+      Date.now() / SECURITY_CONFIG.requestRateWindow
+    );
+
     try {
       const redisKey = `${key}:${windowStart}`;
       const currentCount = await this.redis.incr(redisKey);
-      
+
       if (currentCount === 1) {
-        await this.redis.expire(redisKey, SECURITY_CONFIG.requestRateWindow / 1000);
+        await this.redis.expire(
+          redisKey,
+          SECURITY_CONFIG.requestRateWindow / 1000
+        );
       }
-      
+
       return currentCount <= SECURITY_CONFIG.maxRequestsPerWindow;
     } catch (error) {
       logger.error('Rate limit check failed', { ip, error: error.message });
@@ -192,10 +243,10 @@ export class QuerySecurityPlugin {
       /update\s+.+?set/i,
       /;\s*--/i,
       /;\s*#{/,
-      /`.*`/i
+      /`.*`/i,
     ];
 
-    if (dangerousPatterns.some(pattern => pattern.test(query))) {
+    if (dangerousPatterns.some((pattern) => pattern.test(query))) {
       const error = new Error('Query contains potentially dangerous patterns');
       (error as any).statusCode = 400;
       throw error;
@@ -208,9 +259,9 @@ export class QuerySecurityPlugin {
   private checkForSuspiciousPatterns(query: string): void {
     const suspiciousPatterns = [
       /fragment\s+on\s+\w+/i, // Excessive fragment usage
-      /{[^}]*{[^}]*}/g,      // Nested objects (potential DDoS)
-      /__typename/,          // Potential introspection abuse
-      /IntrospectionQuery/   // Direct introspection
+      /{[^}]*{[^}]*}/g, // Nested objects (potential DDoS)
+      /__typename/, // Potential introspection abuse
+      /IntrospectionQuery/, // Direct introspection
     ];
 
     const warnings = [];
@@ -224,7 +275,7 @@ export class QuerySecurityPlugin {
     if (warnings.length > 0) {
       logger.warn('Suspicious query patterns detected', {
         patterns: warnings,
-        queryLength: query.length
+        queryLength: query.length,
       });
     }
   }
@@ -234,16 +285,16 @@ export class QuerySecurityPlugin {
    */
   private analyzeComplexity(query: string): number {
     let complexity = 0;
-    
+
     // Count fields
     complexity += (query.match(/\w+\s*:/g) || []).length * 2;
-    
+
     // Count nested objects (higher cost)
     complexity += (query.match(/\{[^}]*\{/g) || []).length * 5;
-    
+
     // Count arguments
     complexity += (query.match(/\w+\s*:/g) || []).length * 1;
-    
+
     return complexity;
   }
 
@@ -253,7 +304,7 @@ export class QuerySecurityPlugin {
   private analyzeQueryDepth(query: string): number {
     let maxDepth = 0;
     let currentDepth = 0;
-    
+
     for (const char of query) {
       if (char === '{') {
         currentDepth++;
@@ -262,7 +313,7 @@ export class QuerySecurityPlugin {
         currentDepth--;
       }
     }
-    
+
     return maxDepth;
   }
 
@@ -270,9 +321,9 @@ export class QuerySecurityPlugin {
    * Check if user can access sensitive field
    */
   private canAccessSensitiveField(
-    fieldName: string, 
-    userRole: string, 
-    userRoleLevel: number, 
+    fieldName: string,
+    userRole: string,
+    userRoleLevel: number,
     userId: string,
     resource: any
   ): boolean {
@@ -283,8 +334,9 @@ export class QuerySecurityPlugin {
 
     // HR admins can access most sensitive fields except personal HR data
     if (userRole === 'hr_admin' || userRoleLevel >= 80) {
-      return !['personalPhone', 'personalEmail'].some(field => 
-        fieldName.toLowerCase().includes(field.toLowerCase()));
+      return !['personalPhone', 'personalEmail'].some((field) =>
+        fieldName.toLowerCase().includes(field.toLowerCase())
+      );
     }
 
     // Managers can access employee data for their direct reports
@@ -300,10 +352,11 @@ export class QuerySecurityPlugin {
     if (userRole === 'hr_employee' || userRoleLevel >= 20) {
       const resourceUserId = resource.user_id || resource.userId;
       const resourceEmployeeId = resource.id || resource.employee_id;
-      
+
       return (
         resourceUserId?.toString() === userId ||
-        resourceEmployeeId?.toString() === context.pgSettings?.['jwt.claims.employee_id']
+        resourceEmployeeId?.toString() ===
+          context.pgSettings?.['jwt.claims.employee_id']
       );
     }
 
@@ -332,58 +385,71 @@ export class MonitoringPlugin {
         const originalResolve = field.resolve;
 
         if (originalResolve) {
-          field.resolve = async (root: any, args: any, context: Context, info: any) => {
+          field.resolve = async (
+            root: any,
+            args: any,
+            context: Context,
+            info: any
+          ) => {
             const startTime = Date.now();
             const operationName = info?.operation?.name?.value || 'Anonymous';
-            
+
             try {
               const result = await originalResolve(root, args, context, info);
-              
+
               const duration = Date.now() - startTime;
               await this.recordFieldMetrics(fieldName, operationName, duration);
-              
+
               return result;
             } catch (error) {
               const duration = Date.now() - startTime;
-              await this.recordFieldError(fieldName, operationName, duration, error.message);
+              await this.recordFieldError(
+                fieldName,
+                operationName,
+                duration,
+                error.message
+              );
               throw error;
             }
           };
         }
-        
+
         return field;
       });
 
       // Request lifecycle monitoring
-      build.hook('postgraphile:http:handler', async (req: any, context: any) => {
-        const requestId = this.generateRequestId();
-        const startTime = Date.now();
-        
-        // Add request ID to context
-        req.requestId = requestId;
-        context.requestId = requestId;
-        
-        logger.info('GraphQL request started', {
-          requestId,
-          operation: req.body?.operationName || 'Anonymous',
-          ip: req.ip || req.headers['x-forwarded-for']
-        });
+      build.hook(
+        'postgraphile:http:handler',
+        async (req: any, context: any) => {
+          const requestId = this.generateRequestId();
+          const startTime = Date.now();
 
-        // Set up cleanup handler
-        const originalEnd = req.end;
-        req.end = function(...args: any[]) {
-          logger.info('GraphQL request completed', {
+          // Add request ID to context
+          req.requestId = requestId;
+          context.requestId = requestId;
+
+          logger.info('GraphQL request started', {
             requestId,
-            duration: Date.now() - startTime
+            operation: req.body?.operationName || 'Anonymous',
+            ip: req.ip || req.headers['x-forwarded-for'],
           });
-          
-          if (originalEnd) {
-            return originalEnd.apply(req, args);
-          }
-        };
 
-        return req;
-      });
+          // Set up cleanup handler
+          const originalEnd = req.end;
+          req.end = function (...args: any[]) {
+            logger.info('GraphQL request completed', {
+              requestId,
+              duration: Date.now() - startTime,
+            });
+
+            if (originalEnd) {
+              return originalEnd.apply(req, args);
+            }
+          };
+
+          return req;
+        }
+      );
 
       return build;
     };
@@ -392,26 +458,33 @@ export class MonitoringPlugin {
   /**
    * Record field performance metrics
    */
-  private async recordFieldMetrics(fieldName: string, operation: string, duration: number): Promise<void> {
+  private async recordFieldMetrics(
+    fieldName: string,
+    operation: string,
+    duration: number
+  ): Promise<void> {
     try {
       const metricKey = `metrics:field:${fieldName}:${new Date().toISOString()}`;
-      await this.redis.lpush('metrics:recent', JSON.stringify({
-        type: 'field',
-        field: fieldName,
-        operation,
-        duration,
-        timestamp: new Date().toISOString()
-      }));
-      
+      await this.redis.lpush(
+        'metrics:recent',
+        JSON.stringify({
+          type: 'field',
+          field: fieldName,
+          operation,
+          duration,
+          timestamp: new Date().toISOString(),
+        })
+      );
+
       // Keep only last 1000 metrics
       await this.redis.ltrim('metrics:recent', 0, 999);
-      
+
       // Log slow fields
       if (duration > 500) {
         logger.warn('Slow field resolution', {
           field: fieldName,
           operation,
-          duration
+          duration,
         });
       }
     } catch (error) {
@@ -419,7 +492,7 @@ export class MonitoringPlugin {
         field: fieldName,
         operation,
         duration,
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -427,18 +500,26 @@ export class MonitoringPlugin {
   /**
    * Record field errors
    */
-  private async recordFieldError(fieldName: string, operation: string, duration: number, error: string): Promise<void> {
+  private async recordFieldError(
+    fieldName: string,
+    operation: string,
+    duration: number,
+    error: string
+  ): Promise<void> {
     try {
       const errorKey = `errors:field:${fieldName}:${Date.now()}`;
-      await this.redis.lpush('errors:recent', JSON.stringify({
-        type: 'field',
-        field: fieldName,
-        operation,
-        duration,
-        error,
-        timestamp: new Date().toISOString()
-      }));
-      
+      await this.redis.lpush(
+        'errors:recent',
+        JSON.stringify({
+          type: 'field',
+          field: fieldName,
+          operation,
+          duration,
+          error,
+          timestamp: new Date().toISOString(),
+        })
+      );
+
       // Keep only last 100 errors
       await this.redis.ltrim('errors:recent', 0, 99);
     } catch (error) {
@@ -446,7 +527,7 @@ export class MonitoringPlugin {
         field: fieldName,
         operation,
         duration,
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -477,15 +558,22 @@ export class AuditLoggingPlugin {
       // Monitor privileged operations
       build.hook('GraphQLObject:fields:field', (field, build, context: any) => {
         const fieldName = field.fieldName;
-        
+
         // Check if this is a privileged operation
-        if (SECURITY_CONFIG.privilegedOperations.some(op => 
-          fieldName.toLowerCase().includes(op.toLowerCase()))) {
-          
+        if (
+          SECURITY_CONFIG.privilegedOperations.some((op) =>
+            fieldName.toLowerCase().includes(op.toLowerCase())
+          )
+        ) {
           const originalResolve = field.resolve;
 
           if (originalResolve) {
-            field.resolve = async (root: any, args: any, context: Context, info: any) => {
+            field.resolve = async (
+              root: any,
+              args: any,
+              context: Context,
+              info: any
+            ) => {
               const startTime = Date.now();
               const userId = context.pgSettings?.['jwt.claims.user_id'];
               const userRole = context.pgSettings?.['jwt.claims.role'];
@@ -496,12 +584,12 @@ export class AuditLoggingPlugin {
                 userRole,
                 userId,
                 operationName,
-                arguments: this.sanitizeArgs(args)
+                arguments: this.sanitizeArgs(args),
               });
 
               try {
                 const result = await originalResolve(root, args, context, info);
-                
+
                 // Log successful operation
                 await this.logAuditEvent({
                   type: 'operation_success',
@@ -510,7 +598,7 @@ export class AuditLoggingPlugin {
                   userRole,
                   operationName,
                   duration: Date.now() - startTime,
-                  success: true
+                  success: true,
                 });
 
                 return result;
@@ -524,14 +612,14 @@ export class AuditLoggingPlugin {
                   operationName,
                   duration: Date.now() - startTime,
                   success: false,
-                  error: error.message
+                  error: error.message,
                 });
                 throw error;
               }
             };
           }
         }
-        
+
         return field;
       });
 
@@ -545,19 +633,22 @@ export class AuditLoggingPlugin {
   private async logAuditEvent(event: any): Promise<void> {
     try {
       const auditKey = `audit:${Date.now()}:${Math.random().toString(36).substring(2)}`;
-      await this.redis.lpush('audit:recent', JSON.stringify({
-        ...event,
-        timestamp: new Date().toISOString()
-      }));
-      
+      await this.redis.lpush(
+        'audit:recent',
+        JSON.stringify({
+          ...event,
+          timestamp: new Date().toISOString(),
+        })
+      );
+
       // Keep only last 1000 audit events
       await this.redis.ltrim('audit:recent', 0, 999);
-      
+
       logger.info('Audit event logged', event);
     } catch (error) {
       logger.error('Failed to log audit event', {
         event,
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -572,25 +663,32 @@ export class AuditLoggingPlugin {
 
     const sanitized = { ...args };
     const sensitiveFields = ['password', 'passwordHash', 'ssn', 'token'];
-    
+
     for (const [key, value] of Object.entries(sanitized)) {
-      if (sensitiveFields.some(field => key.toLowerCase().includes(field.toLowerCase()))) {
+      if (
+        sensitiveFields.some((field) =>
+          key.toLowerCase().includes(field.toLowerCase())
+        )
+      ) {
         sanitized[key] = '[REDACTED]';
       }
     }
-    
+
     return sanitized;
   }
 }
 
 // Export plugins
-export const querySecurityPlugin = (redis: Redis) => new QuerySecurityPlugin(redis).createPlugin();
-export const monitoringPlugin = (redis: Redis) => new MonitoringPlugin(redis).createPlugin();
-export const auditLoggingPlugin = (redis: Redis) => new AuditLoggingPlugin(redis).createPlugin();
+export const querySecurityPlugin = (redis: Redis) =>
+  new QuerySecurityPlugin(redis).createPlugin();
+export const monitoringPlugin = (redis: Redis) =>
+  new MonitoringPlugin(redis).createPlugin();
+export const auditLoggingPlugin = (redis: Redis) =>
+  new AuditLoggingPlugin(redis).createPlugin();
 
 // Security plugin bundle
 export const securityPlugins = (redis: Redis) => [
   querySecurityPlugin(redis),
   monitoringPlugin(redis),
-  auditLoggingPlugin(redis)
+  auditLoggingPlugin(redis),
 ];

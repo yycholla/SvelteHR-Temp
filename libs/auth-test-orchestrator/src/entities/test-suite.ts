@@ -18,7 +18,7 @@ const TestStepSchema = z.object({
   target: z.string().min(1, 'Target cannot be empty'),
   value: z.string().optional(),
   timeout: z.number().positive().optional(),
-  description: z.string().optional()
+  description: z.string().optional(),
 });
 
 const ExpectedOutcomeSchema = z.object({
@@ -27,7 +27,7 @@ const ExpectedOutcomeSchema = z.object({
   redirectCount: z.number().min(0).optional(),
   maxDuration: z.number().positive().optional(),
   requiredElements: z.array(z.string()).optional(),
-  forbiddenElements: z.array(z.string()).optional()
+  forbiddenElements: z.array(z.string()).optional(),
 });
 
 const TestScenarioSchema = z.object({
@@ -41,7 +41,7 @@ const TestScenarioSchema = z.object({
   tags: z.array(z.string()).optional(),
   priority: z.enum(['low', 'medium', 'high', 'critical']),
   estimatedDuration: z.number().positive().optional(),
-  browsers: z.array(z.enum(['chromium', 'firefox', 'webkit'])).optional()
+  browsers: z.array(z.enum(['chromium', 'firefox', 'webkit'])).optional(),
 });
 
 const TestSuiteSchema = z.object({
@@ -53,17 +53,19 @@ const TestSuiteSchema = z.object({
   scenarios: z.array(TestScenarioSchema).min(1, 'Must contain at least 1 scenario'),
   browsers: z.array(z.enum(['chromium', 'firefox', 'webkit'])).default(['chromium']),
   baseUrl: z.string().url('Must be valid URL'),
-  configuration: z.object({
-    maxIterations: z.number().positive().default(10),
-    retryFailedTests: z.boolean().default(true),
-    delayBetweenIterations: z.number().min(0).default(1000),
-    stopOnConsecutiveFailures: z.number().positive().optional(),
-    timeout: z.number().positive().default(30000)
-  }).optional(),
+  configuration: z
+    .object({
+      maxIterations: z.number().positive().default(10),
+      retryFailedTests: z.boolean().default(true),
+      delayBetweenIterations: z.number().min(0).default(1000),
+      stopOnConsecutiveFailures: z.number().positive().optional(),
+      timeout: z.number().positive().default(30000),
+    })
+    .optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
   createdBy: z.string().email('Must be valid email address'),
-  tags: z.array(z.string()).optional()
+  tags: z.array(z.string()).optional(),
 });
 
 export type TestSuiteStatus = z.infer<typeof TestSuiteStatusSchema>;
@@ -74,19 +76,21 @@ export type TestSuiteData = z.infer<typeof TestSuiteSchema>;
 export class TestSuite {
   private data: TestSuiteData;
 
-  constructor(input: Partial<TestSuiteData> & {
-    id: string;
-    name: string;
-    version: string;
-    scenarios: TestScenario[];
-    baseUrl: string;
-    createdBy: string;
-  }) {
+  constructor(
+    input: Partial<TestSuiteData> & {
+      id: string;
+      name: string;
+      version: string;
+      scenarios: TestScenario[];
+      baseUrl: string;
+      createdBy: string;
+    }
+  ) {
     // Set defaults and validate input
     const now = new Date();
     const testSuiteData = {
       ...input,
-      status: input.status || 'draft' as TestSuiteStatus,
+      status: input.status || ('draft' as TestSuiteStatus),
       browsers: input.browsers || ['chromium'],
       createdAt: input.createdAt || now,
       updatedAt: input.updatedAt || now,
@@ -95,8 +99,8 @@ export class TestSuite {
         retryFailedTests: true,
         delayBetweenIterations: 1000,
         timeout: 30000,
-        ...input.configuration
-      }
+        ...input.configuration,
+      },
     };
 
     // Validate scenario name uniqueness
@@ -116,32 +120,54 @@ export class TestSuite {
   }
 
   // Getters for accessing properties
-  get id(): string { return this.data.id; }
-  get name(): string { return this.data.name; }
-  get description(): string | undefined { return this.data.description; }
-  get version(): string { return this.data.version; }
-  get status(): TestSuiteStatus { return this.data.status; }
-  get scenarios(): TestScenario[] { return this.data.scenarios; }
-  get browsers(): string[] { return this.data.browsers; }
-  get baseUrl(): string { return this.data.baseUrl; }
-  get configuration(): any { return this.data.configuration; }
-  get createdAt(): Date { return this.data.createdAt; }
-  get updatedAt(): Date { return this.data.updatedAt; }
-  get createdBy(): string { return this.data.createdBy; }
-  get tags(): string[] | undefined { return this.data.tags; }
+  get id(): string {
+    return this.data.id;
+  }
+  get name(): string {
+    return this.data.name;
+  }
+  get description(): string | undefined {
+    return this.data.description;
+  }
+  get version(): string {
+    return this.data.version;
+  }
+  get status(): TestSuiteStatus {
+    return this.data.status;
+  }
+  get scenarios(): TestScenario[] {
+    return this.data.scenarios;
+  }
+  get browsers(): string[] {
+    return this.data.browsers;
+  }
+  get baseUrl(): string {
+    return this.data.baseUrl;
+  }
+  get configuration(): any {
+    return this.data.configuration;
+  }
+  get createdAt(): Date {
+    return this.data.createdAt;
+  }
+  get updatedAt(): Date {
+    return this.data.updatedAt;
+  }
+  get createdBy(): string {
+    return this.data.createdBy;
+  }
+  get tags(): string[] | undefined {
+    return this.data.tags;
+  }
 
   /**
    * Update test suite metadata (name, description, tags)
    */
-  updateMetadata(updates: {
-    name?: string;
-    description?: string;
-    tags?: string[];
-  }): void {
+  updateMetadata(updates: { name?: string; description?: string; tags?: string[] }): void {
     const updatedData = {
       ...this.data,
       ...updates,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     const validation = TestSuiteSchema.safeParse(updatedData);
@@ -164,7 +190,7 @@ export class TestSuite {
     const updatedData = {
       ...this.data,
       scenarios: [...this.data.scenarios, scenario],
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     const validation = TestSuiteSchema.safeParse(updatedData);
@@ -192,7 +218,7 @@ export class TestSuite {
     this.data = {
       ...this.data,
       scenarios: updatedScenarios,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
   }
 
@@ -204,9 +230,9 @@ export class TestSuite {
 
     // Validate status transitions
     const validTransitions: Record<TestSuiteStatus, TestSuiteStatus[]> = {
-      'draft': ['active', 'archived'],
-      'active': ['archived'],
-      'archived': [] // No transitions from archived
+      draft: ['active', 'archived'],
+      active: ['archived'],
+      archived: [], // No transitions from archived
     };
 
     if (!validTransitions[currentStatus].includes(newStatus)) {
@@ -216,7 +242,7 @@ export class TestSuite {
     this.data = {
       ...this.data,
       status: newStatus,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
   }
 
@@ -227,7 +253,7 @@ export class TestSuite {
     return this.data.scenarios.reduce((total, scenario) => {
       const scenarioTime = scenario.estimatedDuration || 0;
       const browsers = scenario.browsers || this.data.browsers;
-      return total + (scenarioTime * browsers.length);
+      return total + scenarioTime * browsers.length;
     }, 0);
   }
 
@@ -241,7 +267,9 @@ export class TestSuite {
   /**
    * Get scenarios by user role
    */
-  getScenariosByUserRole(userRole: 'admin' | 'hr_admin' | 'manager' | 'employee' | 'guest'): TestScenario[] {
+  getScenariosByUserRole(
+    userRole: 'admin' | 'hr_admin' | 'manager' | 'employee' | 'guest'
+  ): TestScenario[] {
     return this.data.scenarios.filter(scenario => scenario.userRole === userRole);
   }
 
@@ -268,7 +296,7 @@ export class TestSuite {
 
     return {
       ready: issues.length === 0,
-      issues
+      issues,
     };
   }
 
@@ -287,7 +315,7 @@ export class TestSuite {
       version: newVersion,
       status: 'draft',
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     });
   }
 
@@ -296,7 +324,7 @@ export class TestSuite {
    */
   toJSON(): TestSuiteData {
     return {
-      ...this.data
+      ...this.data,
     };
   }
 
@@ -307,7 +335,7 @@ export class TestSuite {
     return new TestSuite({
       ...json,
       createdAt: new Date(json.createdAt),
-      updatedAt: new Date(json.updatedAt)
+      updatedAt: new Date(json.updatedAt),
     });
   }
 }

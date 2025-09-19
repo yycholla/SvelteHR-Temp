@@ -22,16 +22,16 @@ describe('IssueTracker Entity', () => {
           frequency: 15,
           conditions: ['browser=chrome', 'action=login', 'duration>10s'],
           suggestedFixes: ['Increase timeout', 'Optimize login endpoint'],
-          relatedIssues: []
+          relatedIssues: [],
         },
         relatedResults: [
           '550e8400-e29b-41d4-a716-446655440001',
-          '550e8400-e29b-41d4-a716-446655440002'
+          '550e8400-e29b-41d4-a716-446655440002',
         ],
         reproducibilityRate: 85,
         firstSeen: new Date('2025-01-01T10:00:00Z'),
         lastSeen: new Date('2025-01-01T15:30:00Z'),
-        tags: ['authentication', 'timeout', 'chrome']
+        tags: ['authentication', 'timeout', 'chrome'],
       });
 
       // Validation requirements from data-model.md
@@ -62,12 +62,12 @@ describe('IssueTracker Entity', () => {
             frequency: 1,
             conditions: [],
             suggestedFixes: [],
-            relatedIssues: []
+            relatedIssues: [],
           },
           relatedResults: [],
           reproducibilityRate: 50,
           firstSeen: new Date(),
-          lastSeen: new Date()
+          lastSeen: new Date(),
         });
 
         expect(invalidIssue).toBeUndefined();
@@ -94,12 +94,12 @@ describe('IssueTracker Entity', () => {
             frequency: 1,
             conditions: [],
             suggestedFixes: [],
-            relatedIssues: []
+            relatedIssues: [],
           },
           relatedResults: [],
           reproducibilityRate: 50,
           firstSeen: new Date(),
-          lastSeen: new Date()
+          lastSeen: new Date(),
         });
 
         expect(invalidIssue).toBeUndefined();
@@ -126,12 +126,12 @@ describe('IssueTracker Entity', () => {
             frequency: 1,
             conditions: [],
             suggestedFixes: [],
-            relatedIssues: []
+            relatedIssues: [],
           },
           relatedResults: [],
           reproducibilityRate: rate,
           firstSeen: new Date(),
-          lastSeen: new Date()
+          lastSeen: new Date(),
         });
 
         expect(invalidIssue).toBeUndefined();
@@ -155,12 +155,12 @@ describe('IssueTracker Entity', () => {
           frequency: 1,
           conditions: [],
           suggestedFixes: [],
-          relatedIssues: []
+          relatedIssues: [],
         },
         relatedResults: [],
         reproducibilityRate: 50,
         firstSeen: new Date('2025-01-02T00:00:00Z'),
-        lastSeen: new Date('2025-01-01T00:00:00Z') // Last seen before first seen
+        lastSeen: new Date('2025-01-01T00:00:00Z'), // Last seen before first seen
       });
 
       expect(invalidIssue).toBeUndefined();
@@ -183,13 +183,13 @@ describe('IssueTracker Entity', () => {
           frequency: 1,
           conditions: [],
           suggestedFixes: [],
-          relatedIssues: []
+          relatedIssues: [],
         },
         relatedResults: [],
         reproducibilityRate: 50,
         firstSeen: new Date(),
         lastSeen: new Date(),
-        resolution: null // Should be required when status is 'resolved'
+        resolution: null, // Should be required when status is 'resolved'
       });
 
       expect(unresolvedIssue).toBeUndefined();
@@ -212,12 +212,12 @@ describe('IssueTracker Entity', () => {
           frequency: 1,
           conditions: [],
           suggestedFixes: [],
-          relatedIssues: []
+          relatedIssues: [],
         },
         relatedResults: [],
         reproducibilityRate: 50,
         firstSeen: new Date('2025-01-01T00:00:00Z'),
-        lastSeen: new Date('2025-01-03T00:00:00Z')
+        lastSeen: new Date('2025-01-03T00:00:00Z'),
       });
 
       // Should calculate age in hours/days
@@ -245,12 +245,12 @@ describe('IssueTracker Entity', () => {
           frequency: 20,
           conditions: [],
           suggestedFixes: [],
-          relatedIssues: []
+          relatedIssues: [],
         },
         relatedResults: [],
         reproducibilityRate: 95,
         firstSeen: new Date(),
-        lastSeen: new Date()
+        lastSeen: new Date(),
       });
 
       const lowMediumReproducibility = new IssueTracker({
@@ -264,12 +264,12 @@ describe('IssueTracker Entity', () => {
           frequency: 2,
           conditions: [],
           suggestedFixes: [],
-          relatedIssues: []
+          relatedIssues: [],
         },
         relatedResults: [],
         reproducibilityRate: 30,
         firstSeen: new Date(),
-        lastSeen: new Date()
+        lastSeen: new Date(),
       });
 
       // Should calculate priority scores
@@ -295,7 +295,7 @@ describe('IssueTracker Entity', () => {
           frequency: 5,
           conditions: [],
           suggestedFixes: [],
-          relatedIssues: []
+          relatedIssues: [],
         },
         relatedResults: [],
         reproducibilityRate: 70,
@@ -306,13 +306,15 @@ describe('IssueTracker Entity', () => {
           resolvedBy: 'developer@example.com',
           solution: 'Fixed timeout issue by increasing wait time',
           verificationSteps: ['Run auth tests', 'Check performance metrics'],
-          relatedCommits: ['abc123', 'def456']
+          relatedCommits: ['abc123', 'def456'],
         },
-        assignedTo: 'developer@example.com'
+        assignedTo: 'developer@example.com',
       });
 
       // Should track resolution details
-      expect(resolvedIssue.resolution?.solution).toBe('Fixed timeout issue by increasing wait time');
+      expect(resolvedIssue.resolution?.solution).toBe(
+        'Fixed timeout issue by increasing wait time'
+      );
       expect(resolvedIssue.isResolved()).toBe(true);
     } catch (error) {
       // EXPECTED TO FAIL: Resolution tracking not implemented yet
@@ -333,12 +335,12 @@ describe('IssueTracker Entity', () => {
           frequency: 1,
           conditions: [],
           suggestedFixes: [],
-          relatedIssues: []
+          relatedIssues: [],
         },
         relatedResults: [],
         reproducibilityRate: 50,
         firstSeen: new Date(),
-        lastSeen: new Date()
+        lastSeen: new Date(),
       });
 
       const json = issueTracker.toJSON();

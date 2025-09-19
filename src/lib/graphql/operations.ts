@@ -1,6 +1,6 @@
 /**
  * GraphQL Operations for MountainHR
- * 
+ *
  * Centralized GraphQL queries, mutations, and subscriptions that align
  * with the contract tests and provide type-safe operations for the frontend.
  */
@@ -1586,133 +1586,134 @@ export const LEAVE_STATUS_SUBSCRIPTION = `
 // =============================================================================
 
 export const buildPaginationVariables = (page: number = 1, pageSize: number = 20) => ({
-  pagination: {
-    first: pageSize,
-    after: page > 1 ? btoa(`cursor:${(page - 1) * pageSize}`) : undefined
-  }
+	pagination: {
+		first: pageSize,
+		after: page > 1 ? btoa(`cursor:${(page - 1) * pageSize}`) : undefined
+	}
 });
 
 export const buildSortVariables = (field: string, direction: 'ASC' | 'DESC' = 'ASC') => ({
-  sort: { field, direction }
+	sort: { field, direction }
 });
 
 export const buildFilterVariables = (filters: Record<string, any>) => ({
-  filter: Object.fromEntries(
-    Object.entries(filters).filter(([_, value]) => 
-      value !== null && value !== undefined && value !== ''
-    )
-  )
+	filter: Object.fromEntries(
+		Object.entries(filters).filter(
+			([_, value]) => value !== null && value !== undefined && value !== ''
+		)
+	)
 });
 
 export const extractEdges = <T>(connection: any): T[] => {
-  return connection?.edges?.map((edge: any) => edge.node) || [];
+	return connection?.edges?.map((edge: any) => edge.node) || [];
 };
 
 export const extractPageInfo = (connection: any) => {
-  return connection?.pageInfo || {
-    hasNextPage: false,
-    hasPreviousPage: false,
-    startCursor: null,
-    endCursor: null
-  };
+	return (
+		connection?.pageInfo || {
+			hasNextPage: false,
+			hasPreviousPage: false,
+			startCursor: null,
+			endCursor: null
+		}
+	);
 };
 
 // Export all operations
 export default {
-  // Authentication
-  LOGIN_MUTATION,
-  REFRESH_TOKEN_MUTATION,
-  LOGOUT_MUTATION,
-  ME_QUERY,
-  VALIDATE_TOKEN_QUERY,
-  MY_PERMISSIONS_QUERY,
+	// Authentication
+	LOGIN_MUTATION,
+	REFRESH_TOKEN_MUTATION,
+	LOGOUT_MUTATION,
+	ME_QUERY,
+	VALIDATE_TOKEN_QUERY,
+	MY_PERMISSIONS_QUERY,
 
-  // Users
-  GET_USERS_QUERY,
-  GET_USER_DETAILS_QUERY,
-  CREATE_USER_MUTATION,
-  UPDATE_USER_MUTATION,
-  DEACTIVATE_USER_MUTATION,
-  ASSIGN_ROLE_MUTATION,
+	// Users
+	GET_USERS_QUERY,
+	GET_USER_DETAILS_QUERY,
+	CREATE_USER_MUTATION,
+	UPDATE_USER_MUTATION,
+	DEACTIVATE_USER_MUTATION,
+	ASSIGN_ROLE_MUTATION,
 
-  // Tasks
-  GET_TASKS_QUERY,
-  GET_TASK_DETAILS_QUERY,
-  CREATE_TASK_MUTATION,
-  UPDATE_TASK_MUTATION,
-  COMPLETE_TASK_MUTATION,
-  DELETE_TASK_MUTATION,
-  GET_MY_TASKS_QUERY,
-  GET_DASHBOARD_TASKS_QUERY,
+	// Tasks
+	GET_TASKS_QUERY,
+	GET_TASK_DETAILS_QUERY,
+	CREATE_TASK_MUTATION,
+	UPDATE_TASK_MUTATION,
+	COMPLETE_TASK_MUTATION,
+	DELETE_TASK_MUTATION,
+	GET_MY_TASKS_QUERY,
+	GET_DASHBOARD_TASKS_QUERY,
 
-  // Departments
-  GET_DEPARTMENTS_QUERY,
-  GET_DEPARTMENT_DETAILS_QUERY,
-  CREATE_DEPARTMENT_MUTATION,
-  UPDATE_DEPARTMENT_MUTATION,
-  ARCHIVE_DEPARTMENT_MUTATION,
-  ASSIGN_DEPARTMENT_HEAD_MUTATION,
-  TRANSFER_EMPLOYEE_MUTATION,
-  GET_DEPARTMENT_BUDGET_QUERY,
-  UPDATE_DEPARTMENT_BUDGET_MUTATION,
-  GET_DEPARTMENT_ANALYTICS_QUERY,
+	// Departments
+	GET_DEPARTMENTS_QUERY,
+	GET_DEPARTMENT_DETAILS_QUERY,
+	CREATE_DEPARTMENT_MUTATION,
+	UPDATE_DEPARTMENT_MUTATION,
+	ARCHIVE_DEPARTMENT_MUTATION,
+	ASSIGN_DEPARTMENT_HEAD_MUTATION,
+	TRANSFER_EMPLOYEE_MUTATION,
+	GET_DEPARTMENT_BUDGET_QUERY,
+	UPDATE_DEPARTMENT_BUDGET_MUTATION,
+	GET_DEPARTMENT_ANALYTICS_QUERY,
 
-  // Leave
-  GET_LEAVE_BALANCES_QUERY,
-  SUBMIT_LEAVE_REQUEST_MUTATION,
-  GET_LEAVE_REQUESTS_QUERY,
-  GET_MY_LEAVE_REQUESTS_QUERY,
-  GET_PENDING_LEAVE_REQUESTS_QUERY,
-  APPROVE_LEAVE_REQUEST_MUTATION,
-  REJECT_LEAVE_REQUEST_MUTATION,
-  SUBMIT_EMERGENCY_LEAVE_MUTATION,
-  CANCEL_LEAVE_REQUEST_MUTATION,
+	// Leave
+	GET_LEAVE_BALANCES_QUERY,
+	SUBMIT_LEAVE_REQUEST_MUTATION,
+	GET_LEAVE_REQUESTS_QUERY,
+	GET_MY_LEAVE_REQUESTS_QUERY,
+	GET_PENDING_LEAVE_REQUESTS_QUERY,
+	APPROVE_LEAVE_REQUEST_MUTATION,
+	REJECT_LEAVE_REQUEST_MUTATION,
+	SUBMIT_EMERGENCY_LEAVE_MUTATION,
+	CANCEL_LEAVE_REQUEST_MUTATION,
 
-  // Attendance
-  CLOCK_IN_MUTATION,
-  CLOCK_OUT_MUTATION,
-  GET_ATTENDANCE_RECORDS_QUERY,
-  CREATE_WORK_SCHEDULE_MUTATION,
-  START_BREAK_MUTATION,
-  GET_OVERTIME_REPORT_QUERY,
-  START_REMOTE_WORK_MUTATION,
+	// Attendance
+	CLOCK_IN_MUTATION,
+	CLOCK_OUT_MUTATION,
+	GET_ATTENDANCE_RECORDS_QUERY,
+	CREATE_WORK_SCHEDULE_MUTATION,
+	START_BREAK_MUTATION,
+	GET_OVERTIME_REPORT_QUERY,
+	START_REMOTE_WORK_MUTATION,
 
-  // HR Requests
-  SUBMIT_HR_REQUEST_MUTATION,
-  GET_HR_REQUESTS_QUERY,
-  APPROVE_HR_REQUEST_MUTATION,
-  REJECT_HR_REQUEST_MUTATION,
-  GET_HR_REQUEST_TEMPLATES_QUERY,
-  GET_REQUEST_STATUS_QUERY,
+	// HR Requests
+	SUBMIT_HR_REQUEST_MUTATION,
+	GET_HR_REQUESTS_QUERY,
+	APPROVE_HR_REQUEST_MUTATION,
+	REJECT_HR_REQUEST_MUTATION,
+	GET_HR_REQUEST_TEMPLATES_QUERY,
+	GET_REQUEST_STATUS_QUERY,
 
-  // Notifications
-  GET_NOTIFICATIONS_QUERY,
-  GET_NOTIFICATION_PREFERENCES_QUERY,
-  UPDATE_NOTIFICATION_PREFERENCES_MUTATION,
-  MARK_NOTIFICATION_READ_MUTATION,
-  MARK_ALL_NOTIFICATIONS_READ_MUTATION,
-  DELETE_NOTIFICATION_MUTATION,
-  SEND_TEST_NOTIFICATION_MUTATION,
-  SUBSCRIBE_NOTIFICATIONS,
-  GET_NOTIFICATION_ANALYTICS_QUERY,
+	// Notifications
+	GET_NOTIFICATIONS_QUERY,
+	GET_NOTIFICATION_PREFERENCES_QUERY,
+	UPDATE_NOTIFICATION_PREFERENCES_MUTATION,
+	MARK_NOTIFICATION_READ_MUTATION,
+	MARK_ALL_NOTIFICATIONS_READ_MUTATION,
+	DELETE_NOTIFICATION_MUTATION,
+	SEND_TEST_NOTIFICATION_MUTATION,
+	SUBSCRIBE_NOTIFICATIONS,
+	GET_NOTIFICATION_ANALYTICS_QUERY,
 
-  // Schema
-  SCHEMA_INTROSPECTION_QUERY,
-  REQUIRED_TYPES_QUERY,
-  QUERY_OPERATIONS_QUERY,
-  MUTATION_OPERATIONS_QUERY,
+	// Schema
+	SCHEMA_INTROSPECTION_QUERY,
+	REQUIRED_TYPES_QUERY,
+	QUERY_OPERATIONS_QUERY,
+	MUTATION_OPERATIONS_QUERY,
 
-  // Subscriptions
-  TASK_UPDATED_SUBSCRIPTION,
-  NOTIFICATION_SUBSCRIPTION,
-  ATTENDANCE_UPDATE_SUBSCRIPTION,
-  LEAVE_STATUS_SUBSCRIPTION,
+	// Subscriptions
+	TASK_UPDATED_SUBSCRIPTION,
+	NOTIFICATION_SUBSCRIPTION,
+	ATTENDANCE_UPDATE_SUBSCRIPTION,
+	LEAVE_STATUS_SUBSCRIPTION,
 
-  // Utilities
-  buildPaginationVariables,
-  buildSortVariables,
-  buildFilterVariables,
-  extractEdges,
-  extractPageInfo
+	// Utilities
+	buildPaginationVariables,
+	buildSortVariables,
+	buildFilterVariables,
+	extractEdges,
+	extractPageInfo
 };
-

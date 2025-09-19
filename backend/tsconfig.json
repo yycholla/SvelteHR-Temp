@@ -4,27 +4,27 @@
     "module": "ESNext",
     "moduleResolution": "node",
     "lib": ["ES2022", "DOM"],
-    
+
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "allowJs": true,
     "checkJs": false,
-    
+
     "strict": false,
     "noEmit": false,
     "declaration": true,
-    
+
     "emitDecoratorMetadata": false,
     "experimentalDecorators": false,
-    
+
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    
+
     "outDir": "./dist",
     "rootDir": "./src",
     "baseUrl": ".",
-    
+
     "paths": {
       "@/*": ["./src/*"],
       "@/auth/*": ["./src/auth/*"],
@@ -32,19 +32,19 @@
       "@/monitoring/*": ["./src/monitoring/*"],
       "@/postgraphile/*": ["./src/postgraphile/*"]
     },
-    
+
     "typeRoots": ["./node_modules/@types", "./src/types"],
-    
+
     "sourceMap": true,
     "inlineSources": true,
-    
+
     "incremental": true,
     "tsBuildInfoFile": "./dist/.tsbuildinfo",
     "removeComments": false,
     "preserveConstEnums": true,
-    
+
     "isolatedModules": true,
-    
+
     "noImplicitAny": false,
     "noImplicitThis": false,
     "noImplicitReturns": false,
@@ -54,7 +54,16 @@
     "useUnknownInCatchVariables": false,
     "alwaysStrict": true
   },
-  
+
   "include": ["src/server-simple.ts"],
-  "exclude": ["node_modules", "dist", "tests", "**/*.test.ts", "**/*.spec.ts", "src/libs", "src/auth", "src/postgraphile"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "tests",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "src/libs",
+    "src/auth",
+    "src/postgraphile"
+  ]
 }

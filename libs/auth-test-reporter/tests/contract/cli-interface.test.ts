@@ -78,10 +78,9 @@ describe('auth-report CLI Contract', () => {
       const templates = ['summary', 'detailed', 'executive', 'technical', 'trending'];
 
       for (const template of templates) {
-        const output = execSync(
-          `node ${cliPath} generate --template ${template} --format json`,
-          { encoding: 'utf8' }
-        );
+        const output = execSync(`node ${cliPath} generate --template ${template} --format json`, {
+          encoding: 'utf8',
+        });
 
         // Contract requirement: Must support all templates
         const result = JSON.parse(output);
@@ -98,10 +97,9 @@ describe('auth-report CLI Contract', () => {
       const formats = ['html', 'json', 'pdf', 'csv'];
 
       for (const format of formats) {
-        const output = execSync(
-          `node ${cliPath} generate --format ${format}`,
-          { encoding: 'utf8' }
-        );
+        const output = execSync(`node ${cliPath} generate --format ${format}`, {
+          encoding: 'utf8',
+        });
 
         // Contract requirement: Must support all formats
         if (format === 'json') {

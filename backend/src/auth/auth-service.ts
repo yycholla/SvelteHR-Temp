@@ -1,6 +1,6 @@
 /**
  * PostgreSQL Native Authentication Service
- * 
+ *
  * Database operations for JWT authentication, user management,
  * and session handling for SvelteHR system
  */
@@ -67,39 +67,39 @@ export class AuthService {
   async login(credentials: LoginCredentials): Promise<AuthResult> {
     try {
       const { email, password, deviceInfo } = credentials;
-      
+
       // Call database authentication function
       const query = `
         SELECT 
           hr_public.authenticate_email($1, $2) as auth_result
       `;
-      
+
       const result = await this.pool.query(query, [email, password]);
       const authResult = result.rows[0]?.auth_result;
 
       if (!authResult) {
-        this.logger.warn('Authentication failed - invalid credentials', { 
+        this.logger.warn('Authentication failed - invalid credentials', {
           email,
-          ip: deviceInfo?.ip 
+          ip: deviceInfo?.ip,
         });
-        
+
         // Track failed login attempt
         await this.trackFailedLogin(email, deviceInfo?.ip);
-        
+
         return {
           success: false,
-          error: 'Invalid email or password'
+          error: 'Invalid email or password',
         };
       }
 
       // Parse authentication result
       const userData = this.parseAuthResult(authResult);
-      
+
       if (userData.error) {
         return {
           success: false,
           error: userData.error,
-          requiresPasswordChange: userData.requiresPasswordChange
+          requiresPasswordChange: userData.requiresPasswordChange,
         };
       }
 
@@ -110,7 +110,7 @@ export class AuthService {
         role: userData.role,
         role_level: userData.role_level,
         email: userData.email,
-        department_id: userData.department_id
+        department_id: userData.department_id,
       };
 
       const accessToken = this.jwtAuth.createToken(jwtPayload);
@@ -124,7 +124,7 @@ export class AuthService {
         user_id: userData.user_id,
         role: userData.role,
         email: userData.email,
-        session_id: sessionId
+        session_id: sessionId,
       });
 
       return {
@@ -132,7 +132,7 @@ export class AuthService {
         tokens: {
           accessToken,
           refreshToken,
-          expiresIn: 900 // 15 minutes
+          expiresIn: 900, // 15 minutes
         },
         user: {
           id: userData.user_id,
@@ -140,20 +140,19 @@ export class AuthService {
           email: userData.email,
           role: userData.role,
           role_level: userData.role_level,
-          department_id: userData.department_id
+          department_id: userData.department_id,
         },
-        requiresPasswordChange: userData.requiresPasswordChange
+        requiresPasswordChange: userData.requiresPasswordChange,
       };
-
     } catch (error) {
       this.logger.error('Login authentication error', {
         error: error.message,
-        email: credentials.email
+        email: credentials.email,
       });
-      
+
       return {
         success: false,
-        error: 'Authentication service temporarily unavailable'
+        error: 'Authentication service temporarily unavailable',
       };
     }
   }
@@ -164,12 +163,12 @@ export class AuthService {
   async refreshAccessToken(refreshToken: string): Promise<AuthResult> {
     try {
       const refreshTokenData = this.jwtAuth.verifyRefreshToken(refreshToken);
-      
+
       if (!refreshTokenData || refreshTokenData.type !== 'refresh') {
         this.logger.warn('Invalid refresh token attempt');
         return {
           success: false,
-          error: 'Invalid refresh token'
+          error: 'Invalid refresh token',
         };
       }
 
@@ -188,22 +187,24 @@ export class AuthService {
         LEFT JOIN hr_public.employees e ON u.employee_id = e.id
         WHERE u.id = $1 AND u.is_active = true
       `;
-      
-      const userResult = await this.pool.query(userQuery, [refreshTokenData.user_id]);
-      
+
+      const userResult = await this.pool.query(userQuery, [
+        refreshTokenData.user_id,
+      ]);
+
       if (userResult.rows.length === 0) {
         this.logger.warn('Refresh token - user not found or inactive', {
-          user_id: refreshTokenData.user_id
+          user_id: refreshTokenData.user_id,
         });
-        
+
         return {
           success: false,
-          error: 'User not found or inactive'
+          error: 'User not found or inactive',
         };
       }
 
       const userData = userResult.rows[0];
-      
+
       // Generate new access token
       const jwtPayload = {
         user_id: userData.id,
@@ -211,14 +212,14 @@ export class AuthService {
         role: userData.role,
         role_level: userData.role_level,
         email: userData.email,
-        department_id: userData.department_id
+        department_id: userData.department_id,
       };
 
       const accessToken = this.jwtAuth.createToken(jwtPayload);
 
       this.logger.debug('Access token refreshed', {
         user_id: userData.id,
-        role: userData.role
+        role: userData.role,
       });
 
       return {
@@ -226,7 +227,7 @@ export class AuthService {
         tokens: {
           accessToken,
           refreshToken, // Keep same refresh token
-          expiresIn: 900
+          expiresIn: 900,
         },
         user: {
           id: userData.id,
@@ -234,16 +235,15 @@ export class AuthService {
           email: userData.email,
           role: userData.role,
           role_level: userData.role_level,
-          department_id: userData.department_id
-        }
+          department_id: userData.department_id,
+        },
       };
-
     } catch (error) {
       this.logger.error('Refresh token error', { error: error.message });
-      
+
       return {
         success: false,
-        error: 'Failed to refresh access token'
+        error: 'Failed to refresh access token',
       };
     }
   }
@@ -251,11 +251,15 @@ export class AuthService {
   /**
    * Logout user - blacklist tokens and cleanup sessions
    */
-  async logout(accessToken: string, sessionId?: string, userId?: number): Promise<boolean> {
+  async logout(
+    accessToken: string,
+    sessionId?: string,
+    userId?: number
+  ): Promise<boolean> {
     try {
       // Blacklist the access token
       await this.jwtAuth.blacklistToken(accessToken);
-      
+
       // Cleanup session if provided
       if (sessionId && userId) {
         await this.sessionManager.terminateSession(userId, sessionId);
@@ -263,13 +267,15 @@ export class AuthService {
 
       this.logger.info('User logged out successfully', {
         user_id: userId,
-        session_id: sessionId
+        session_id: sessionId,
       });
 
       return true;
-      
     } catch (error) {
-      this.logger.error('Logout error', { error: error.message, user_id: userId });
+      this.logger.error('Logout error', {
+        error: error.message,
+        user_id: userId,
+      });
       return false;
     }
   }
@@ -278,41 +284,44 @@ export class AuthService {
    * Change user password
    */
   async changePassword(
-    userId: number, 
-    currentPassword: string, 
+    userId: number,
+    currentPassword: string,
     newPassword: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const query = `
         SELECT hr_public.change_password($1, $2, $3) as result
       `;
-      
-      const result = await this.pool.query(query, [userId, currentPassword, newPassword]);
+
+      const result = await this.pool.query(query, [
+        userId,
+        currentPassword,
+        newPassword,
+      ]);
       const success = result.rows[0]?.result;
 
       if (success) {
         this.logger.info('Password changed successfully', { user_id: userId });
-        
+
         // Blacklist all existing sessions for security
         await this.blacklistAllUserTokens(userId);
-        
+
         return { success: true };
       } else {
         return {
           success: false,
-          error: 'Current password is incorrect'
+          error: 'Current password is incorrect',
         };
       }
-      
     } catch (error) {
       this.logger.error('Password change error', {
         user_id: userId,
-        error: error.message
+        error: error.message,
       });
-      
+
       return {
         success: false,
-        error: 'Failed to change password'
+        error: 'Failed to change password',
       };
     }
   }
@@ -320,12 +329,16 @@ export class AuthService {
   /**
    * Reset password (forgot password flow)
    */
-  async resetPassword(email: string, token: string, newPassword: string): Promise<{ success: boolean; error?: string }> {
+  async resetPassword(
+    email: string,
+    token: string,
+    newPassword: string
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       const query = `
         SELECT hr_public.reset_password($1, $2, $3) as result
       `;
-      
+
       const result = await this.pool.query(query, [email, token, newPassword]);
       const success = result.rows[0]?.result;
 
@@ -335,19 +348,18 @@ export class AuthService {
       } else {
         return {
           success: false,
-          error: 'Invalid or expired reset token'
+          error: 'Invalid or expired reset token',
         };
       }
-      
     } catch (error) {
       this.logger.error('Password reset error', {
         email,
-        error: error.message
+        error: error.message,
       });
-      
+
       return {
         success: false,
-        error: 'Failed to reset password'
+        error: 'Failed to reset password',
       };
     }
   }
@@ -369,8 +381,14 @@ export class AuthService {
   /**
    * Terminate all other sessions (except current)
    */
-  async terminateOtherSessions(userId: number, currentSessionId: string): Promise<number> {
-    return await this.sessionManager.terminateOtherSessions(userId, currentSessionId);
+  async terminateOtherSessions(
+    userId: number,
+    currentSessionId: string
+  ): Promise<number> {
+    return await this.sessionManager.terminateOtherSessions(
+      userId,
+      currentSessionId
+    );
   }
 
   /**
@@ -386,9 +404,9 @@ export class AuthService {
       // If it's already an object, return it
       return authResult;
     } catch (error) {
-      this.logger.error('Failed to parse auth result', { 
-        authResult, 
-        error: error.message 
+      this.logger.error('Failed to parse auth result', {
+        authResult,
+        error: error.message,
       });
       return { error: 'Authentication data parsing failed' };
     }
@@ -407,11 +425,11 @@ export class AuthService {
   private async trackFailedLogin(email: string, ip?: string): Promise<void> {
     const key = `login:failed:${email}`;
     const ipKey = `login:failed:ip:${ip || 'unknown'}`;
-    
+
     // Increment counters with 1-hour TTL
     await this.redis.incr(key);
     await this.redis.expire(key, 3600);
-    
+
     if (ip) {
       await this.redis.incr(ipKey);
       await this.redis.expire(ipKey, 3600);
@@ -421,11 +439,15 @@ export class AuthService {
   /**
    * Helper: Track successful login
    */
-  private async trackSuccessfulLogin(userId: number, sessionId: string, deviceInfo?: any): Promise<void> {
+  private async trackSuccessfulLogin(
+    userId: number,
+    sessionId: string,
+    deviceInfo?: any
+  ): Promise<void> {
     // Clear failed login attempts for this user
     const userEmailKey = `login:failed:user:${userId}`;
     await this.redis.del(userEmailKey);
-    
+
     // Track session
     await this.sessionManager.trackActiveSession(userId, sessionId, deviceInfo);
   }
@@ -436,18 +458,17 @@ export class AuthService {
   private async blacklistAllUserTokens(userId: number): Promise<void> {
     try {
       const sessions = await this.sessionManager.getUserActiveSessions(userId);
-      
+
       for (const session of sessions) {
         // Terminate all sessions
         await this.sessionManager.terminateSession(userId, session.session_id);
       }
-      
+
       this.logger.info('All user sessions terminated', { user_id: userId });
-      
     } catch (error) {
       this.logger.error('Failed to blacklist user tokens', {
         user_id: userId,
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -456,9 +477,9 @@ export class AuthService {
    * Validate user permissions for specific action
    */
   async checkPermission(
-    userId: number, 
-    action: string, 
-    resource: string, 
+    userId: number,
+    action: string,
+    resource: string,
     resourceOwnerId?: number
   ): Promise<{ allowed: boolean; reason?: string }> {
     try {
@@ -470,32 +491,31 @@ export class AuthService {
           p_resource_owner_id := $4
         ) as result
       `;
-      
+
       const result = await this.pool.query(query, [
         userId,
         action,
         resource,
-        resourceOwnerId || null
+        resourceOwnerId || null,
       ]);
-      
+
       const allowed = result.rows[0]?.result || false;
-      
+
       return {
         allowed,
-        reason: allowed ? undefined : 'Permission denied'
+        reason: allowed ? undefined : 'Permission denied',
       };
-      
     } catch (error) {
       this.logger.error('Permission check error', {
         user_id: userId,
         action,
         resource,
-        error: error.message
+        error: error.message,
       });
-      
+
       return {
         allowed: false,
-        reason: 'Permission check failed'
+        reason: 'Permission check failed',
       };
     }
   }

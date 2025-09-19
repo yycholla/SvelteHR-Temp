@@ -6,6 +6,7 @@
 **Input**: User description: "Move from carbon design to a modern, sleek shadcn-svelte site. I would like to have effectively stock components similar to the examples on the shadcn site. I want a sidebar, top bar and a focus on showing data well. I do not want little quick navigation cards as they are a waste of space."
 
 ## Execution Flow (main)
+
 ```
 1. Parse user description from Input
    → Identified: UI framework migration, modern design, data-focused layout
@@ -32,31 +33,36 @@
 ---
 
 ## ⚡ Quick Guidelines
+
 - ✅ Focus on WHAT users need and WHY
 - ❌ Avoid HOW to implement (no tech stack, APIs, code structure)
 - 👥 Written for business stakeholders, not developers
 
 ---
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### Primary User Story
+
 As an HR professional, I want to access employee data and perform HR tasks through a modern, clean interface that prioritizes data visibility and efficient navigation, so that I can make informed decisions quickly without navigating through unnecessary quick-action cards or cluttered layouts.
 
 ### Acceptance Scenarios
+
 1. **Given** I am an authenticated HR user, **When** I access the main dashboard, **Then** I see a clean layout with sidebar navigation and top bar, with primary focus on data tables and analytics
 2. **Given** I am viewing employee data, **When** I interact with the interface, **Then** the modern shadcn-style components provide intuitive feedback and smooth interactions
 3. **Given** I need to navigate between different HR sections, **When** I use the sidebar navigation, **Then** I can efficiently access all HR functions without quick navigation cards cluttering the interface
 4. **Given** I am working with large datasets, **When** I view employee lists or reports, **Then** the data is presented in well-organized, readable formats that prioritize information density
 
 ### Edge Cases
+
 - What happens when the sidebar is collapsed on smaller screens?
 - How does the data display adapt to different screen sizes while maintaining readability?
 - How does the interface handle empty states or loading data?
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
+
 - **FR-001**: System MUST provide a modern sidebar navigation that replaces the current Carbon UI navigation structure
 - **FR-002**: System MUST include a top navigation bar with user context and essential actions
 - **FR-003**: System MUST eliminate quick navigation cards in favor of direct data display areas
@@ -70,7 +76,8 @@ As an HR professional, I want to access employee data and perform HR tasks throu
 - **FR-011**: System MUST [NEEDS CLARIFICATION: animation and transition preferences for modern feel]
 - **FR-012**: System MUST [NEEDS CLARIFICATION: color scheme and theming requirements]
 
-### Key Entities *(include if feature involves data)*
+### Key Entities _(include if feature involves data)_
+
 - **UI Layout Structure**: Top bar, sidebar navigation, main content area optimized for data display
 - **Navigation Components**: Sidebar menu items, breadcrumbs, user profile area
 - **Data Display Components**: Tables, lists, forms, and analytics views using shadcn styling
@@ -80,15 +87,18 @@ As an HR professional, I want to access employee data and perform HR tasks throu
 ---
 
 ## Review & Acceptance Checklist
-*GATE: Automated checks run during main() execution*
+
+_GATE: Automated checks run during main() execution_
 
 ### Content Quality
+
 - [x] No implementation details (languages, frameworks, APIs)
 - [x] Focused on user value and business needs
 - [x] Written for non-technical stakeholders
 - [x] All mandatory sections completed
 
 ### Requirement Completeness
+
 - [ ] No [NEEDS CLARIFICATION] markers remain (3 items need clarification)
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
@@ -98,7 +108,8 @@ As an HR professional, I want to access employee data and perform HR tasks throu
 ---
 
 ## Execution Status
-*Updated by main() during processing*
+
+_Updated by main() during processing_
 
 - [x] User description parsed
 - [x] Key concepts extracted

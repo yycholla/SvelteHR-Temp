@@ -18,7 +18,7 @@ describe('Complete Test Loop Execution Integration', () => {
         stopOnConsecutiveFailures: 2,
         browsers: ['chromium', 'firefox'],
         baseUrl: 'http://localhost:5175',
-        outputDir: './test-results'
+        outputDir: './test-results',
       });
 
       // Load test suite from configuration
@@ -35,14 +35,14 @@ describe('Complete Test Loop Execution Integration', () => {
               { action: 'navigate', target: '/login' },
               { action: 'fill', target: '#email', value: 'admin@postgraphile-hr.com' },
               { action: 'fill', target: '#password', value: 'admin123' },
-              { action: 'click', target: '#submit' }
+              { action: 'click', target: '#submit' },
             ],
             expectedOutcome: {
               finalUrl: '/admin',
-              authenticationState: 'authenticated'
-            }
-          }
-        ]
+              authenticationState: 'authenticated',
+            },
+          },
+        ],
       });
 
       // Execute test loop
@@ -69,8 +69,8 @@ describe('Complete Test Loop Execution Integration', () => {
         baseUrl: 'http://localhost:5175',
         failureHandling: {
           continueOnBrowserFailure: true,
-          requireMinimumBrowsers: 1
-        }
+          requireMinimumBrowsers: 1,
+        },
       });
 
       const results = await orchestrator.executeLoop();
@@ -92,7 +92,7 @@ describe('Complete Test Loop Execution Integration', () => {
         maxIterations: 10,
         stopOnConsecutiveFailures: 3,
         browsers: ['chromium'],
-        baseUrl: 'http://invalid-url:9999' // This will cause failures
+        baseUrl: 'http://invalid-url:9999', // This will cause failures
       });
 
       const results = await orchestrator.executeLoop();
@@ -115,9 +115,9 @@ describe('Complete Test Loop Execution Integration', () => {
         maxIterations: 2,
         browsers: ['chromium'],
         baseUrl: 'http://localhost:5175',
-        onProgress: (update) => {
+        onProgress: update => {
           progressUpdates.push(update);
-        }
+        },
       });
 
       await orchestrator.executeLoop();
@@ -141,7 +141,7 @@ describe('Complete Test Loop Execution Integration', () => {
         browsers: ['chromium'],
         baseUrl: 'http://localhost:5175',
         outputDir: './integration-test-results',
-        saveResultsAfterEachIteration: true
+        saveResultsAfterEachIteration: true,
       });
 
       const results = await orchestrator.executeLoop();
@@ -166,8 +166,8 @@ describe('Complete Test Loop Execution Integration', () => {
           enabled: true,
           persistAcrossIterations: true,
           trackLocalStorage: true,
-          trackCookies: true
-        }
+          trackCookies: true,
+        },
       });
 
       const results = await orchestrator.executeLoop();
@@ -178,7 +178,9 @@ describe('Complete Test Loop Execution Integration', () => {
       expect(results.sessionData.iterations[0]).toHaveProperty('authenticationSession');
       expect(results.sessionData.iterations[0].authenticationSession).toHaveProperty('jwtToken');
       expect(results.sessionData.iterations[0].authenticationSession).toHaveProperty('cookies');
-      expect(results.sessionData.iterations[0].authenticationSession).toHaveProperty('localStorage');
+      expect(results.sessionData.iterations[0].authenticationSession).toHaveProperty(
+        'localStorage'
+      );
     } catch (error) {
       // EXPECTED TO FAIL: Session tracking not implemented yet
       expect(error).toBeDefined();
@@ -195,8 +197,8 @@ describe('Complete Test Loop Execution Integration', () => {
           validateServerHealth: true,
           validateDatabaseConnection: true,
           validateTestData: true,
-          requiredEndpoints: ['/api/graphql', '/login', '/admin']
-        }
+          requiredEndpoints: ['/api/graphql', '/login', '/admin'],
+        },
       });
 
       // Should perform preflight validation

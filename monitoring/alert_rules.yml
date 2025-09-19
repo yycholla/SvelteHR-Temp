@@ -11,9 +11,9 @@ groups:
           severity: critical
           team: sre
         annotations:
-          summary: "Service {{ $labels.instance }} is down"
-          description: "{{ $labels.job }} service on {{ $labels.instance }} has been down for more than 5 minutes."
-          runbook_url: "https://wiki.sveltehr.com/runbooks/service-down"
+          summary: 'Service {{ $labels.instance }} is down'
+          description: '{{ $labels.job }} service on {{ $labels.instance }} has been down for more than 5 minutes.'
+          runbook_url: 'https://wiki.sveltehr.com/runbooks/service-down'
 
       - alert: HighErrorRate
         expr: sveltehr:error_rate > 0.05
@@ -22,9 +22,9 @@ groups:
           severity: critical
           team: engineering
         annotations:
-          summary: "High error rate detected for {{ $labels.service }}"
-          description: "Error rate is {{ $value | humanizePercentage }} for service {{ $labels.service }}, which is above the 5% threshold."
-          runbook_url: "https://wiki.sveltehr.com/runbooks/high-error-rate"
+          summary: 'High error rate detected for {{ $labels.service }}'
+          description: 'Error rate is {{ $value | humanizePercentage }} for service {{ $labels.service }}, which is above the 5% threshold.'
+          runbook_url: 'https://wiki.sveltehr.com/runbooks/high-error-rate'
 
       - alert: HighResponseTime
         expr: sveltehr:http_request_duration_95th > 0.2
@@ -33,9 +33,9 @@ groups:
           severity: warning
           team: engineering
         annotations:
-          summary: "High response time for {{ $labels.service }}"
-          description: "95th percentile response time is {{ $value }}s for service {{ $labels.service }}, exceeding 200ms target."
-          runbook_url: "https://wiki.sveltehr.com/runbooks/high-response-time"
+          summary: 'High response time for {{ $labels.service }}'
+          description: '95th percentile response time is {{ $value }}s for service {{ $labels.service }}, exceeding 200ms target.'
+          runbook_url: 'https://wiki.sveltehr.com/runbooks/high-response-time'
 
   # Database Alerts
   - name: sveltehr.database.health
@@ -47,9 +47,9 @@ groups:
           severity: warning
           team: sre
         annotations:
-          summary: "Database connection utilization is high"
-          description: "Database connection utilization is {{ $value | humanizePercentage }}, which exceeds 80%."
-          runbook_url: "https://wiki.sveltehr.com/runbooks/database-connections"
+          summary: 'Database connection utilization is high'
+          description: 'Database connection utilization is {{ $value | humanizePercentage }}, which exceeds 80%.'
+          runbook_url: 'https://wiki.sveltehr.com/runbooks/database-connections'
 
       - alert: DatabaseConnectionsCritical
         expr: sveltehr:database_connections_utilization > 0.95
@@ -58,9 +58,9 @@ groups:
           severity: critical
           team: sre
         annotations:
-          summary: "Database connection utilization is critical"
-          description: "Database connection utilization is {{ $value | humanizePercentage }}, approaching maximum capacity."
-          runbook_url: "https://wiki.sveltehr.com/runbooks/database-connections"
+          summary: 'Database connection utilization is critical'
+          description: 'Database connection utilization is {{ $value | humanizePercentage }}, approaching maximum capacity.'
+          runbook_url: 'https://wiki.sveltehr.com/runbooks/database-connections'
 
       - alert: PostgreSQLReplicationLag
         expr: pg_stat_replication_replay_lag > 10
@@ -69,9 +69,9 @@ groups:
           severity: warning
           team: sre
         annotations:
-          summary: "PostgreSQL replication lag is high"
-          description: "PostgreSQL replication lag is {{ $value }}s on {{ $labels.instance }}."
-          runbook_url: "https://wiki.sveltehr.com/runbooks/replication-lag"
+          summary: 'PostgreSQL replication lag is high'
+          description: 'PostgreSQL replication lag is {{ $value }}s on {{ $labels.instance }}.'
+          runbook_url: 'https://wiki.sveltehr.com/runbooks/replication-lag'
 
   # System Resource Alerts
   - name: sveltehr.system.resources
@@ -83,9 +83,9 @@ groups:
           severity: warning
           team: sre
         annotations:
-          summary: "High memory usage on {{ $labels.instance }}"
-          description: "Memory usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}."
-          runbook_url: "https://wiki.sveltehr.com/runbooks/high-memory-usage"
+          summary: 'High memory usage on {{ $labels.instance }}'
+          description: 'Memory usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}.'
+          runbook_url: 'https://wiki.sveltehr.com/runbooks/high-memory-usage'
 
       - alert: CriticalMemoryUsage
         expr: sveltehr:memory_usage > 90
@@ -94,9 +94,9 @@ groups:
           severity: critical
           team: sre
         annotations:
-          summary: "Critical memory usage on {{ $labels.instance }}"
-          description: "Memory usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}."
-          runbook_url: "https://wiki.sveltehr.com/runbooks/critical-memory-usage"
+          summary: 'Critical memory usage on {{ $labels.instance }}'
+          description: 'Memory usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}.'
+          runbook_url: 'https://wiki.sveltehr.com/runbooks/critical-memory-usage'
 
       - alert: HighDiskUsage
         expr: sveltehr:disk_usage > 80
@@ -105,9 +105,9 @@ groups:
           severity: warning
           team: sre
         annotations:
-          summary: "High disk usage on {{ $labels.instance }}"
-          description: "Disk usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}."
-          runbook_url: "https://wiki.sveltehr.com/runbooks/high-disk-usage"
+          summary: 'High disk usage on {{ $labels.instance }}'
+          description: 'Disk usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}.'
+          runbook_url: 'https://wiki.sveltehr.com/runbooks/high-disk-usage'
 
       - alert: CriticalDiskUsage
         expr: sveltehr:disk_usage > 90
@@ -116,9 +116,9 @@ groups:
           severity: critical
           team: sre
         annotations:
-          summary: "Critical disk usage on {{ $labels.instance }}"
-          description: "Disk usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}."
-          runbook_url: "https://wiki.sveltehr.com/runbooks/critical-disk-usage"
+          summary: 'Critical disk usage on {{ $labels.instance }}'
+          description: 'Disk usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}.'
+          runbook_url: 'https://wiki.sveltehr.com/runbooks/critical-disk-usage'
 
   # GraphQL Performance Alerts
   - name: sveltehr.graphql.performance
@@ -130,9 +130,9 @@ groups:
           severity: warning
           team: engineering
         annotations:
-          summary: "GraphQL queries are slow"
-          description: "95th percentile GraphQL execution time is {{ $value }}s, exceeding 1 second."
-          runbook_url: "https://wiki.sveltehr.com/runbooks/slow-graphql-queries"
+          summary: 'GraphQL queries are slow'
+          description: '95th percentile GraphQL execution time is {{ $value }}s, exceeding 1 second.'
+          runbook_url: 'https://wiki.sveltehr.com/runbooks/slow-graphql-queries'
 
       - alert: GraphQLErrorRate
         expr: rate(hasura_graphql_requests_total{status="error"}[5m]) / rate(hasura_graphql_requests_total[5m]) > 0.01
@@ -141,9 +141,9 @@ groups:
           severity: warning
           team: engineering
         annotations:
-          summary: "High GraphQL error rate"
-          description: "GraphQL error rate is {{ $value | humanizePercentage }}, exceeding 1%."
-          runbook_url: "https://wiki.sveltehr.com/runbooks/graphql-errors"
+          summary: 'High GraphQL error rate'
+          description: 'GraphQL error rate is {{ $value | humanizePercentage }}, exceeding 1%.'
+          runbook_url: 'https://wiki.sveltehr.com/runbooks/graphql-errors'
 
   # Authentication Service Alerts
   - name: sveltehr.authentication.health
@@ -155,9 +155,9 @@ groups:
           severity: critical
           team: engineering
         annotations:
-          summary: "Authentication service is down"
-          description: "The authentication service has been down for more than 2 minutes."
-          runbook_url: "https://wiki.sveltehr.com/runbooks/auth-service-down"
+          summary: 'Authentication service is down'
+          description: 'The authentication service has been down for more than 2 minutes.'
+          runbook_url: 'https://wiki.sveltehr.com/runbooks/auth-service-down'
 
       - alert: HighFailedLoginAttempts
         expr: rate(auth_login_attempts_total{status="failed"}[5m]) > 10
@@ -166,9 +166,9 @@ groups:
           severity: warning
           team: security
         annotations:
-          summary: "High number of failed login attempts"
-          description: "Failed login attempts rate is {{ $value }} per second, which may indicate a brute force attack."
-          runbook_url: "https://wiki.sveltehr.com/runbooks/failed-logins"
+          summary: 'High number of failed login attempts'
+          description: 'Failed login attempts rate is {{ $value }} per second, which may indicate a brute force attack.'
+          runbook_url: 'https://wiki.sveltehr.com/runbooks/failed-logins'
 
   # Redis Cache Alerts
   - name: sveltehr.cache.health
@@ -180,9 +180,9 @@ groups:
           severity: critical
           team: sre
         annotations:
-          summary: "Redis is down"
-          description: "Redis cache has been down for more than 2 minutes."
-          runbook_url: "https://wiki.sveltehr.com/runbooks/redis-down"
+          summary: 'Redis is down'
+          description: 'Redis cache has been down for more than 2 minutes.'
+          runbook_url: 'https://wiki.sveltehr.com/runbooks/redis-down'
 
       - alert: RedisHighMemoryUsage
         expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.8
@@ -191,9 +191,9 @@ groups:
           severity: warning
           team: sre
         annotations:
-          summary: "Redis memory usage is high"
-          description: "Redis memory usage is {{ $value | humanizePercentage }}."
-          runbook_url: "https://wiki.sveltehr.com/runbooks/redis-memory"
+          summary: 'Redis memory usage is high'
+          description: 'Redis memory usage is {{ $value | humanizePercentage }}.'
+          runbook_url: 'https://wiki.sveltehr.com/runbooks/redis-memory'
 
   # Business Logic Alerts
   - name: sveltehr.business.metrics
@@ -205,9 +205,9 @@ groups:
           severity: warning
           team: product
         annotations:
-          summary: "Daily active users are lower than expected"
-          description: "Only {{ $value }} users have logged in during the last 24 hours."
-          runbook_url: "https://wiki.sveltehr.com/runbooks/low-activity"
+          summary: 'Daily active users are lower than expected'
+          description: 'Only {{ $value }} users have logged in during the last 24 hours.'
+          runbook_url: 'https://wiki.sveltehr.com/runbooks/low-activity'
 
       - alert: DataProcessingDelay
         expr: time() - on() group_right() last_data_sync_timestamp > 3600
@@ -216,9 +216,9 @@ groups:
           severity: warning
           team: engineering
         annotations:
-          summary: "Data synchronization is delayed"
-          description: "Data has not been synchronized for more than 1 hour."
-          runbook_url: "https://wiki.sveltehr.com/runbooks/data-sync-delay"
+          summary: 'Data synchronization is delayed'
+          description: 'Data has not been synchronized for more than 1 hour.'
+          runbook_url: 'https://wiki.sveltehr.com/runbooks/data-sync-delay'
 
   # SSL Certificate Alerts
   - name: sveltehr.security.certificates
@@ -230,9 +230,9 @@ groups:
           severity: warning
           team: sre
         annotations:
-          summary: "SSL certificate expires soon"
-          description: "SSL certificate for {{ $labels.instance }} expires in {{ $value }} days."
-          runbook_url: "https://wiki.sveltehr.com/runbooks/ssl-renewal"
+          summary: 'SSL certificate expires soon'
+          description: 'SSL certificate for {{ $labels.instance }} expires in {{ $value }} days.'
+          runbook_url: 'https://wiki.sveltehr.com/runbooks/ssl-renewal'
 
       - alert: SSLCertificateExpired
         expr: ssl_certificate_expiry_timestamp < time()
@@ -241,6 +241,6 @@ groups:
           severity: critical
           team: sre
         annotations:
-          summary: "SSL certificate has expired"
-          description: "SSL certificate for {{ $labels.instance }} has expired."
-          runbook_url: "https://wiki.sveltehr.com/runbooks/ssl-expired"
+          summary: 'SSL certificate has expired'
+          description: 'SSL certificate for {{ $labels.instance }} has expired.'
+          runbook_url: 'https://wiki.sveltehr.com/runbooks/ssl-expired'

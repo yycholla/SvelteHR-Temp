@@ -48,6 +48,7 @@
 		department: '',
 		position: '',
 		manager: '',
+		hireDate: new Date().toISOString().split('T')[0], // Default to today
 		startDate: '',
 		salary: '',
 		employmentType: 'full-time',
@@ -96,13 +97,7 @@
 	];
 
 	// Employment types
-	const employmentTypes = [
-		'full-time',
-		'part-time',
-		'contract',
-		'intern',
-		'consultant'
-	];
+	const employmentTypes = ['full-time', 'part-time', 'contract', 'intern', 'consultant'];
 
 	function validateForm() {
 		const errors: Record<string, string> = {};
@@ -156,7 +151,8 @@
 				email: newUser.email,
 				displayName: `${newUser.firstName} ${newUser.lastName}`.trim(),
 				role: newUser.role,
-				isActive: newUser.isActive
+				isActive: newUser.isActive,
+				hireDate: newUser.hireDate
 			};
 
 			console.log('Creating user with data:', userData);
@@ -169,7 +165,6 @@
 			setTimeout(() => {
 				goto('/dashboard/admin/users');
 			}, 2000);
-
 		} catch (error) {
 			console.error('Error creating user:', error);
 			formErrors.general = 'Failed to create user. Please try again.';
@@ -198,6 +193,7 @@
 			department: '',
 			position: '',
 			manager: '',
+			hireDate: new Date().toISOString().split('T')[0], // Default to today
 			startDate: '',
 			salary: '',
 			employmentType: 'full-time',
@@ -226,32 +222,30 @@
 	<!-- Header -->
 	<div class="flex items-center justify-between">
 		<div>
-			<div class="flex items-center gap-3 mb-2">
+			<div class="mb-2 flex items-center gap-3">
 				<Button variant="ghost" size="sm" href="/dashboard/admin/users" class="p-2">
 					<ArrowLeft class="h-4 w-4" />
 				</Button>
-				<h1 class="text-3xl font-bold tracking-tight flex items-center gap-3">
+				<h1 class="flex items-center gap-3 text-3xl font-bold tracking-tight">
 					<UserPlus class="h-8 w-8" />
 					Add New User
 				</h1>
 			</div>
-			<p class="text-muted-foreground">
-				Create a new user account and set up their profile
-			</p>
+			<p class="text-muted-foreground">Create a new user account and set up their profile</p>
 		</div>
 		<div class="flex items-center gap-3">
 			<Button variant="outline" onclick={clearForm}>
-				<X class="h-4 w-4 mr-2" />
+				<X class="mr-2 h-4 w-4" />
 				Clear Form
 			</Button>
-			<Button variant="outline" onclick={cancelCreation}>
-				Cancel
-			</Button>
+			<Button variant="outline" onclick={cancelCreation}>Cancel</Button>
 			<Button onclick={createUser} disabled={loading}>
 				{#if loading}
-					<div class="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+					<div
+						class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+					></div>
 				{:else}
-					<Save class="h-4 w-4 mr-2" />
+					<Save class="mr-2 h-4 w-4" />
 				{/if}
 				Create User
 			</Button>
@@ -279,7 +273,7 @@
 	{/if}
 
 	<!-- Form Content -->
-	<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+	<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
 		<!-- Personal Information -->
 		<Card.Root>
 			<Card.Header>
@@ -342,11 +336,7 @@
 				</div>
 				<div class="space-y-2">
 					<Label for="dateOfBirth">Date of Birth</Label>
-					<Input
-						id="dateOfBirth"
-						type="date"
-						bind:value={newUser.dateOfBirth}
-					/>
+					<Input id="dateOfBirth" type="date" bind:value={newUser.dateOfBirth} />
 				</div>
 			</Card.Content>
 		</Card.Root>
@@ -368,9 +358,7 @@
 							bind:value={newUser.employeeId}
 							placeholder="Auto-generated if empty"
 						/>
-						<Button variant="outline" size="sm" onclick={generateEmployeeId}>
-							Generate
-						</Button>
+						<Button variant="outline" size="sm" onclick={generateEmployeeId}>Generate</Button>
 					</div>
 				</div>
 				<div class="space-y-2">
@@ -402,12 +390,20 @@
 					{/if}
 				</div>
 				<div class="space-y-2">
-					<Label for="manager">Manager</Label>
+					<Label for="hireDate">Hire Date *</Label>
 					<Input
-						id="manager"
-						bind:value={newUser.manager}
-						placeholder="Jane Smith"
+						id="hireDate"
+						type="date"
+						bind:value={newUser.hireDate}
+						class={formErrors.hireDate ? 'border-red-500' : ''}
 					/>
+					{#if formErrors.hireDate}
+						<p class="text-sm text-red-600">{formErrors.hireDate}</p>
+					{/if}
+				</div>
+				<div class="space-y-2">
+					<Label for="manager">Manager</Label>
+					<Input id="manager" bind:value={newUser.manager} placeholder="Jane Smith" />
 				</div>
 				<div class="grid grid-cols-2 gap-4">
 					<div class="space-y-2">
@@ -501,38 +497,23 @@
 					<Label>Additional Permissions</Label>
 					<div class="space-y-3">
 						<div class="flex items-center space-x-2">
-							<Checkbox
-								id="canViewReports"
-								bind:checked={newUser.permissions.canViewReports}
-							/>
+							<Checkbox id="canViewReports" bind:checked={newUser.permissions.canViewReports} />
 							<Label for="canViewReports" class="text-sm">Can view reports</Label>
 						</div>
 						<div class="flex items-center space-x-2">
-							<Checkbox
-								id="canManageLeave"
-								bind:checked={newUser.permissions.canManageLeave}
-							/>
+							<Checkbox id="canManageLeave" bind:checked={newUser.permissions.canManageLeave} />
 							<Label for="canManageLeave" class="text-sm">Can manage leave requests</Label>
 						</div>
 						<div class="flex items-center space-x-2">
-							<Checkbox
-								id="canEditProfile"
-								bind:checked={newUser.permissions.canEditProfile}
-							/>
+							<Checkbox id="canEditProfile" bind:checked={newUser.permissions.canEditProfile} />
 							<Label for="canEditProfile" class="text-sm">Can edit own profile</Label>
 						</div>
 						<div class="flex items-center space-x-2">
-							<Checkbox
-								id="canAccessPayroll"
-								bind:checked={newUser.permissions.canAccessPayroll}
-							/>
+							<Checkbox id="canAccessPayroll" bind:checked={newUser.permissions.canAccessPayroll} />
 							<Label for="canAccessPayroll" class="text-sm">Can access payroll data</Label>
 						</div>
 						<div class="flex items-center space-x-2">
-							<Checkbox
-								id="canManageTeam"
-								bind:checked={newUser.permissions.canManageTeam}
-							/>
+							<Checkbox id="canManageTeam" bind:checked={newUser.permissions.canManageTeam} />
 							<Label for="canManageTeam" class="text-sm">Can manage team members</Label>
 						</div>
 					</div>
@@ -550,46 +531,26 @@
 			</Card.Title>
 		</Card.Header>
 		<Card.Content>
-			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+			<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
 				<div class="space-y-2 md:col-span-2">
 					<Label for="address">Street Address</Label>
-					<Input
-						id="address"
-						bind:value={newUser.address}
-						placeholder="123 Main Street"
-					/>
+					<Input id="address" bind:value={newUser.address} placeholder="123 Main Street" />
 				</div>
 				<div class="space-y-2">
 					<Label for="city">City</Label>
-					<Input
-						id="city"
-						bind:value={newUser.city}
-						placeholder="New York"
-					/>
+					<Input id="city" bind:value={newUser.city} placeholder="New York" />
 				</div>
 				<div class="space-y-2">
 					<Label for="state">State/Province</Label>
-					<Input
-						id="state"
-						bind:value={newUser.state}
-						placeholder="NY"
-					/>
+					<Input id="state" bind:value={newUser.state} placeholder="NY" />
 				</div>
 				<div class="space-y-2">
 					<Label for="zipCode">ZIP/Postal Code</Label>
-					<Input
-						id="zipCode"
-						bind:value={newUser.zipCode}
-						placeholder="10001"
-					/>
+					<Input id="zipCode" bind:value={newUser.zipCode} placeholder="10001" />
 				</div>
 				<div class="space-y-2">
 					<Label for="country">Country</Label>
-					<Input
-						id="country"
-						bind:value={newUser.country}
-						placeholder="United States"
-					/>
+					<Input id="country" bind:value={newUser.country} placeholder="United States" />
 				</div>
 			</div>
 		</Card.Content>

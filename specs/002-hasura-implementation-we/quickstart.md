@@ -4,12 +4,13 @@
 
 - Docker & Docker Compose
 - Node.js 20+ and npm
-- PostgreSQL 15+ 
+- PostgreSQL 15+
 - Redis (for caching)
 
 ## Quick Start (5 Minutes)
 
 ### 1. Clone and Setup
+
 ```bash
 git clone <repository-url>
 cd SvelteHR
@@ -20,6 +21,7 @@ npm install
 ```
 
 ### 2. Environment Configuration
+
 ```bash
 # Copy environment template
 cp .env.example .env
@@ -47,6 +49,7 @@ EOF
 ```
 
 ### 3. Start Services
+
 ```bash
 # Start PostgreSQL, Redis, and Hasura
 docker-compose up -d
@@ -61,6 +64,7 @@ npm run hasura:seed
 ```
 
 ### 4. Verify Installation
+
 ```bash
 # Check Hasura is running
 curl -X POST \
@@ -75,12 +79,13 @@ curl -X POST \
 ### 5. Access Applications
 
 - **Hasura Console**: http://localhost:8080/console
-- **GraphQL API**: http://localhost:8080/v1/graphql  
+- **GraphQL API**: http://localhost:8080/v1/graphql
 - **SvelteKit Frontend** (after implementation): http://localhost:5173
 
 ## Performance Validation
 
 ### Test Response Times
+
 ```bash
 # Install performance testing tool
 npm install -g artillery
@@ -95,90 +100,88 @@ artillery run tests/performance/hasura-load-test.yml
 ```
 
 ### Database Performance Check
+
 ```bash
 # Connect to PostgreSQL
 psql $DATABASE_URL
 
 # Check index usage
-SELECT schemaname, tablename, indexname, idx_tup_read, idx_tup_fetch 
-FROM pg_stat_user_indexes 
+SELECT schemaname, tablename, indexname, idx_tup_read, idx_tup_fetch
+FROM pg_stat_user_indexes
 ORDER BY idx_tup_read DESC;
 
 # Check query performance
-SELECT query, mean_exec_time, calls 
-FROM pg_stat_statements 
-ORDER BY mean_exec_time DESC 
+SELECT query, mean_exec_time, calls
+FROM pg_stat_statements
+ORDER BY mean_exec_time DESC
 LIMIT 10;
 ```
 
 ## Common GraphQL Queries
 
 ### Employee Directory (Most Common)
+
 ```graphql
 query EmployeeDirectory($limit: Int = 50) {
-  users(
-    where: { is_active: { _eq: true } }
-    order_by: { display_name: asc }
-    limit: $limit
-  ) {
-    id
-    display_name
-    job_information {
-      job_title
-      department {
-        name
-      }
-    }
-    contact_information {
-      email
-      phone_number
-    }
-  }
+	users(where: { is_active: { _eq: true } }, order_by: { display_name: asc }, limit: $limit) {
+		id
+		display_name
+		job_information {
+			job_title
+			department {
+				name
+			}
+		}
+		contact_information {
+			email
+			phone_number
+		}
+	}
 }
 ```
 
 ### Department Hierarchy
+
 ```graphql
 query DepartmentHierarchy {
-  departments(where: { is_active: { _eq: true } }) {
-    id
-    name
-    budget
-    employee_count
-    manager {
-      display_name
-    }
-    subdepartments {
-      id
-      name
-      employee_count
-    }
-  }
+	departments(where: { is_active: { _eq: true } }) {
+		id
+		name
+		budget
+		employee_count
+		manager {
+			display_name
+		}
+		subdepartments {
+			id
+			name
+			employee_count
+		}
+	}
 }
 ```
 
 ### Real-time Employee Status
+
 ```graphql
 subscription EmployeeStatusUpdates($department_id: uuid!) {
-  users(
-    where: { 
-      job_information: { department_id: { _eq: $department_id } }
-      is_active: { _eq: true }
-    }
-  ) {
-    id
-    display_name
-    onboarding_status
-    job_information {
-      job_title
-    }
-  }
+	users(
+		where: { job_information: { department_id: { _eq: $department_id } }, is_active: { _eq: true } }
+	) {
+		id
+		display_name
+		onboarding_status
+		job_information {
+			job_title
+		}
+	}
 }
 ```
 
 ## Authentication Testing
 
 ### Get JWT Token
+
 ```bash
 # Login endpoint (to be implemented)
 curl -X POST http://localhost:3001/auth/login \
@@ -197,6 +200,7 @@ curl -X POST http://localhost:8080/v1/graphql \
 ## Development Workflow
 
 ### Frontend Development (SvelteKit)
+
 ```bash
 # Start development server
 npm run dev
@@ -208,7 +212,8 @@ npm run codegen
 npm run test:frontend
 ```
 
-### Backend Development 
+### Backend Development
+
 ```bash
 # Apply new migrations
 hasura migrate apply
@@ -225,6 +230,7 @@ hasura metadata reload
 ### Common Issues
 
 #### Hasura Console Not Loading
+
 ```bash
 # Check if Hasura is running
 docker logs hasura-graphql-engine
@@ -234,6 +240,7 @@ docker-compose restart hasura
 ```
 
 #### Slow Query Performance
+
 ```bash
 # Check database connections
 SELECT count(*), state FROM pg_stat_activity GROUP BY state;
@@ -241,12 +248,13 @@ SELECT count(*), state FROM pg_stat_activity GROUP BY state;
 # Should show reasonable connection count (<50% of max_connections)
 
 # Check slow queries
-SELECT query, mean_exec_time FROM pg_stat_statements 
-WHERE mean_exec_time > 200 
+SELECT query, mean_exec_time FROM pg_stat_statements
+WHERE mean_exec_time > 200
 ORDER BY mean_exec_time DESC;
 ```
 
 #### Permission Errors
+
 ```bash
 # Check JWT configuration
 echo $HASURA_GRAPHQL_JWT_SECRET
@@ -259,6 +267,7 @@ curl -H 'x-hasura-admin-secret: your-admin-secret-here' \
 ### Performance Optimization
 
 #### Enable Query Caching (Enterprise)
+
 ```yaml
 # Add to docker-compose.yml
 environment:
@@ -267,6 +276,7 @@ environment:
 ```
 
 #### Monitor Subscription Performance
+
 ```bash
 # Check active subscriptions
 curl -X POST http://localhost:8080/v1/graphql \
@@ -275,13 +285,14 @@ curl -X POST http://localhost:8080/v1/graphql \
 ```
 
 #### Database Optimization
+
 ```sql
 -- Run in PostgreSQL to optimize for HR workload
 ANALYZE;
 VACUUM ANALYZE;
 
 -- Check cache hit ratio (should be >95%)
-SELECT 
+SELECT
   sum(heap_blks_hit) / (sum(heap_blks_hit) + sum(heap_blks_read)) as cache_hit_ratio
 FROM pg_statio_user_tables;
 ```
@@ -289,18 +300,21 @@ FROM pg_statio_user_tables;
 ## Success Criteria
 
 ### Performance Targets ✓
+
 - [ ] P50 response time <100ms
-- [ ] P95 response time <200ms  
+- [ ] P95 response time <200ms
 - [ ] 1000+ concurrent users supported
 - [ ] Database connection usage <80%
 
 ### Feature Validation ✓
+
 - [ ] Employee directory loads <2 seconds
 - [ ] Real-time updates work within 1 second
 - [ ] Department hierarchy navigable
 - [ ] Role-based access control enforced
 
 ### Security Validation ✓
+
 - [ ] JWT authentication working
 - [ ] Row-level security policies active
 - [ ] Sensitive data properly protected

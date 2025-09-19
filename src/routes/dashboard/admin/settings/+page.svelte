@@ -94,32 +94,32 @@
 	<!-- Header -->
 	<div class="flex items-center justify-between">
 		<div>
-			<div class="flex items-center gap-3 mb-2">
+			<div class="mb-2 flex items-center gap-3">
 				<Button variant="ghost" size="sm" href="/dashboard/admin" class="p-2">
 					<ArrowLeft class="h-4 w-4" />
 				</Button>
-				<h1 class="text-3xl font-bold tracking-tight flex items-center gap-3">
+				<h1 class="flex items-center gap-3 text-3xl font-bold tracking-tight">
 					<Settings class="h-8 w-8" />
 					System Configuration
 				</h1>
 			</div>
-			<p class="text-muted-foreground">
-				Configure system settings and application parameters
-			</p>
+			<p class="text-muted-foreground">Configure system settings and application parameters</p>
 		</div>
 		<div class="flex items-center gap-3">
 			{#if unsavedChanges}
 				<Badge variant="secondary">Unsaved Changes</Badge>
 			{/if}
 			<Button variant="outline" onclick={resetSettings}>
-				<RotateCcw class="h-4 w-4 mr-2" />
+				<RotateCcw class="mr-2 h-4 w-4" />
 				Reset
 			</Button>
 			<Button onclick={saveSettings} disabled={loading}>
 				{#if loading}
-					<div class="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+					<div
+						class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+					></div>
 				{:else}
-					<Save class="h-4 w-4 mr-2" />
+					<Save class="mr-2 h-4 w-4" />
 				{/if}
 				Save Changes
 			</Button>
@@ -159,14 +159,10 @@
 					<Card.Description>Basic application configuration and regional settings</Card.Description>
 				</Card.Header>
 				<Card.Content class="space-y-6">
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+					<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 						<div class="space-y-2">
 							<Label for="appName">Application Name</Label>
-							<Input
-								id="appName"
-								bind:value={settings.general.appName}
-								oninput={markAsChanged}
-							/>
+							<Input id="appName" bind:value={settings.general.appName} oninput={markAsChanged} />
 						</div>
 						<div class="space-y-2">
 							<Label for="appVersion">Version</Label>
@@ -216,7 +212,7 @@
 					<Card.Description>Authentication, authorization, and security policies</Card.Description>
 				</Card.Header>
 				<Card.Content class="space-y-6">
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+					<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 						<div class="space-y-2">
 							<Label for="sessionTimeout">Session Timeout (minutes)</Label>
 							<Input
@@ -254,10 +250,7 @@
 								<Label>Require Two-Factor Authentication</Label>
 								<p class="text-sm text-muted-foreground">Enforce 2FA for all users</p>
 							</div>
-							<Switch
-								bind:checked={settings.security.requireTwoFactor}
-								onchange={markAsChanged}
-							/>
+							<Switch bind:checked={settings.security.requireTwoFactor} onchange={markAsChanged} />
 						</div>
 						<div class="flex items-center justify-between">
 							<div class="space-y-1">
@@ -282,14 +275,10 @@
 					<Card.Description>SMTP settings and email notifications</Card.Description>
 				</Card.Header>
 				<Card.Content class="space-y-6">
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+					<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 						<div class="space-y-2">
 							<Label for="smtpHost">SMTP Host</Label>
-							<Input
-								id="smtpHost"
-								bind:value={settings.email.smtpHost}
-								oninput={markAsChanged}
-							/>
+							<Input id="smtpHost" bind:value={settings.email.smtpHost} oninput={markAsChanged} />
 						</div>
 						<div class="space-y-2">
 							<Label for="smtpPort">SMTP Port</Label>
@@ -302,11 +291,7 @@
 						</div>
 						<div class="space-y-2">
 							<Label for="smtpUser">SMTP Username</Label>
-							<Input
-								id="smtpUser"
-								bind:value={settings.email.smtpUser}
-								oninput={markAsChanged}
-							/>
+							<Input id="smtpUser" bind:value={settings.email.smtpUser} oninput={markAsChanged} />
 						</div>
 						<div class="space-y-2">
 							<Label for="smtpPassword">SMTP Password</Label>
@@ -335,10 +320,7 @@
 							<Label>Enable Email Notifications</Label>
 							<p class="text-sm text-muted-foreground">Send automated email notifications</p>
 						</div>
-						<Switch
-							bind:checked={settings.email.enableNotifications}
-							onchange={markAsChanged}
-						/>
+						<Switch bind:checked={settings.email.enableNotifications} onchange={markAsChanged} />
 					</div>
 				</Card.Content>
 			</Card.Root>
@@ -358,20 +340,14 @@
 								<Label>Email Alerts</Label>
 								<p class="text-sm text-muted-foreground">Send email alerts for critical events</p>
 							</div>
-							<Switch
-								bind:checked={settings.notifications.emailAlerts}
-								onchange={markAsChanged}
-							/>
+							<Switch bind:checked={settings.notifications.emailAlerts} onchange={markAsChanged} />
 						</div>
 						<div class="flex items-center justify-between">
 							<div class="space-y-1">
 								<Label>System Alerts</Label>
 								<p class="text-sm text-muted-foreground">Show in-app system notifications</p>
 							</div>
-							<Switch
-								bind:checked={settings.notifications.systemAlerts}
-								onchange={markAsChanged}
-							/>
+							<Switch bind:checked={settings.notifications.systemAlerts} onchange={markAsChanged} />
 						</div>
 						<div class="flex items-center justify-between">
 							<div class="space-y-1">
@@ -388,10 +364,7 @@
 								<Label>Debug Mode</Label>
 								<p class="text-sm text-muted-foreground">Enable debug logging and errors</p>
 							</div>
-							<Switch
-								bind:checked={settings.notifications.debugMode}
-								onchange={markAsChanged}
-							/>
+							<Switch bind:checked={settings.notifications.debugMode} onchange={markAsChanged} />
 						</div>
 					</div>
 				</Card.Content>
@@ -406,7 +379,7 @@
 					<Card.Description>Theme, branding, and visual customization</Card.Description>
 				</Card.Header>
 				<Card.Content class="space-y-6">
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+					<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 						<div class="space-y-2">
 							<Label for="theme">Theme</Label>
 							<Select.Root>
@@ -429,7 +402,7 @@
 									oninput={markAsChanged}
 								/>
 								<div
-									class="w-10 h-10 rounded border"
+									class="h-10 w-10 rounded border"
 									style="background-color: {settings.appearance.primaryColor}"
 								></div>
 							</div>

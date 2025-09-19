@@ -104,9 +104,9 @@
 	$: currentPath = $page.url.pathname;
 
 	// Filter navigation based on user role
-	$: visibleNavigation = user ? navigationItems.filter(item =>
-		item.roles.includes(user.role?.toLowerCase() || 'employee')
-	) : [];
+	$: visibleNavigation = user
+		? navigationItems.filter((item) => item.roles.includes(user.role?.toLowerCase() || 'employee'))
+		: [];
 
 	function toggleSideNav() {
 		isSideNavOpen = !isSideNavOpen;
@@ -186,7 +186,11 @@
 	<SkipToContent />
 {/if}
 
-<div class="page-layout" class:page-layout--no-header={!showHeader} class:page-layout--no-sidebar={!showSidebar}>
+<div
+	class="page-layout"
+	class:page-layout--no-header={!showHeader}
+	class:page-layout--no-sidebar={!showSidebar}
+>
 	{#if showHeader}
 		<Header
 			company="SvelteHR"
@@ -201,24 +205,12 @@
 					text="Dashboard"
 					isSelected={isActiveRoute('/dashboard')}
 				/>
-				<HeaderNavItem
-					href="/leave"
-					text="Leave"
-					isSelected={isActiveRoute('/leave')}
-				/>
+				<HeaderNavItem href="/leave" text="Leave" isSelected={isActiveRoute('/leave')} />
 				{#if user && ['manager', 'hr', 'admin'].includes(user.role?.toLowerCase() || '')}
-					<HeaderNavItem
-						href="/team"
-						text="Team"
-						isSelected={isActiveRoute('/team')}
-					/>
+					<HeaderNavItem href="/team" text="Team" isSelected={isActiveRoute('/team')} />
 				{/if}
 				{#if user && ['hr', 'admin'].includes(user.role?.toLowerCase() || '')}
-					<HeaderNavItem
-						href="/admin"
-						text="Admin"
-						isSelected={isActiveRoute('/admin')}
-					/>
+					<HeaderNavItem href="/admin" text="Admin" isSelected={isActiveRoute('/admin')} />
 				{/if}
 			</HeaderNav>
 
@@ -239,10 +231,7 @@
 									{#if panelItem.divider}
 										<HeaderPanelDivider />
 									{:else}
-										<HeaderPanelLink
-											href={panelItem.href}
-											on:click={panelItem.onClick}
-										>
+										<HeaderPanelLink href={panelItem.href} on:click={panelItem.onClick}>
 											{panelItem.text}
 										</HeaderPanelLink>
 									{/if}
@@ -279,9 +268,7 @@
 							{/each}
 							{#if notifications.length > 5}
 								<HeaderPanelDivider />
-								<HeaderPanelLink href="/notifications">
-									View all notifications
-								</HeaderPanelLink>
+								<HeaderPanelLink href="/notifications">View all notifications</HeaderPanelLink>
 							{/if}
 						</HeaderPanelLinks>
 					</HeaderAction>
@@ -308,9 +295,7 @@
 							<HeaderPanelLink href="/profile">My Profile</HeaderPanelLink>
 							<HeaderPanelLink href="/settings">Settings</HeaderPanelLink>
 							<HeaderPanelDivider />
-							<HeaderPanelLink on:click={handleLogout}>
-								Sign Out
-							</HeaderPanelLink>
+							<HeaderPanelLink on:click={handleLogout}>Sign Out</HeaderPanelLink>
 						</HeaderPanelLinks>
 					</HeaderAction>
 				{/if}
@@ -319,11 +304,7 @@
 	{/if}
 
 	{#if showSidebar}
-		<SideNav
-			bind:isOpen={isSideNavOpen}
-			theme={sidebarTheme}
-			aria-label="Side navigation"
-		>
+		<SideNav bind:isOpen={isSideNavOpen} theme={sidebarTheme} aria-label="Side navigation">
 			<SideNavItems>
 				{#each visibleNavigation as navItem}
 					{#if navItem.submenu}

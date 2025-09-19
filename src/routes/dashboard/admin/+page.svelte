@@ -29,13 +29,21 @@
 		Info,
 		AlertCircle
 	} from 'lucide-svelte';
-	import type { BreadcrumbItem, NotificationItem, UserInfo } from '../../contracts/component-interface';
+	import type {
+		BreadcrumbItem,
+		NotificationItem,
+		UserInfo
+	} from '../../contracts/component-interface';
 	// User info from auth store
-	const user: UserInfo | null = $derived($currentUser ? {
-		name: $currentUser.display_name || 'Admin User',
-		role: 'Administrator',
-		email: $currentUser.email || ''
-	} : null);
+	const user: UserInfo | null = $derived(
+		$currentUser
+			? {
+					name: $currentUser.display_name || 'Admin User',
+					role: 'Administrator',
+					email: $currentUser.email || ''
+				}
+			: null
+	);
 
 	// System notifications
 	let notifications: NotificationItem[] = $state([
@@ -228,18 +236,25 @@
 
 	function getTrendIcon(direction: string) {
 		switch (direction) {
-			case 'up': return ArrowUp;
-			case 'down': return ArrowDown;
-			default: return Minus;
+			case 'up':
+				return ArrowUp;
+			case 'down':
+				return ArrowDown;
+			default:
+				return Minus;
 		}
 	}
 
 	function getStatusVariant(status: string) {
 		switch (status) {
-			case 'success': return 'default';
-			case 'warning': return 'secondary';
-			case 'error': return 'destructive';
-			default: return 'outline';
+			case 'success':
+				return 'default';
+			case 'warning':
+				return 'secondary';
+			case 'error':
+				return 'destructive';
+			default:
+				return 'outline';
 		}
 	}
 </script>
@@ -250,233 +265,231 @@
 </svelte:head>
 
 <div class="space-y-6">
-		<!-- Header -->
-		<div class="flex items-center justify-between">
-			<div>
-				<h1 class="text-3xl font-bold tracking-tight flex items-center gap-3">
-					<UserCog class="h-8 w-8" />
-					Admin Dashboard
-				</h1>
-				<p class="text-muted-foreground">
-					Manage system settings, user roles, and monitor system health
-				</p>
-			</div>
-			<Button variant="outline" onclick={refreshData} disabled={loading}>
-				{#if loading}
-					<RefreshCw class="h-4 w-4 mr-2 animate-spin" />
-				{:else}
-					<RefreshCw class="h-4 w-4 mr-2" />
-				{/if}
-				Refresh
-			</Button>
+	<!-- Header -->
+	<div class="flex items-center justify-between">
+		<div>
+			<h1 class="flex items-center gap-3 text-3xl font-bold tracking-tight">
+				<UserCog class="h-8 w-8" />
+				Admin Dashboard
+			</h1>
+			<p class="text-muted-foreground">
+				Manage system settings, user roles, and monitor system health
+			</p>
 		</div>
-		<!-- Quick Actions -->
-		<div class="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
-			<span class="text-sm font-medium">Quick Actions:</span>
-			{#each quickActions as action}
-				<Button variant={action.variant} size="sm" href={action.href}>
-					<svelte:component this={action.icon} class="h-4 w-4 mr-2" />
-					{action.label}
-				</Button>
+		<Button variant="outline" onclick={refreshData} disabled={loading}>
+			{#if loading}
+				<RefreshCw class="mr-2 h-4 w-4 animate-spin" />
+			{:else}
+				<RefreshCw class="mr-2 h-4 w-4" />
+			{/if}
+			Refresh
+		</Button>
+	</div>
+	<!-- Quick Actions -->
+	<div class="flex items-center gap-3 rounded-lg bg-muted/50 p-4">
+		<span class="text-sm font-medium">Quick Actions:</span>
+		{#each quickActions as action}
+			<Button variant={action.variant} size="sm" href={action.href}>
+				<svelte:component this={action.icon} class="mr-2 h-4 w-4" />
+				{action.label}
+			</Button>
+		{/each}
+	</div>
+
+	<!-- Administrative Functions -->
+	<div>
+		<h2 class="mb-6 text-2xl font-bold">Administrative Functions</h2>
+		<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+			{#each adminSections as section}
+				<Card.Root
+					class={`cursor-pointer transition-all hover:shadow-md ${section.available ? '' : 'opacity-60'}`}
+				>
+					<Card.Header class="pb-3">
+						<div class="flex items-center justify-between">
+							<div class="flex items-center gap-3">
+								<div class="rounded-lg bg-primary/10 p-2">
+									<svelte:component this={section.icon} class="h-6 w-6 text-primary" />
+								</div>
+								<div>
+									<Card.Title class="text-lg">{section.title}</Card.Title>
+								</div>
+							</div>
+							<Badge variant={section.available ? 'default' : 'secondary'}>
+								{section.available ? 'Available' : 'Coming Soon'}
+							</Badge>
+						</div>
+					</Card.Header>
+					<Card.Content>
+						<p class="mb-4 text-sm text-muted-foreground">{section.subtitle}</p>
+						<div class="flex items-center justify-between">
+							<div class="text-2xl font-bold">{section.value}</div>
+							{#if section.trend}
+								<div class="flex items-center gap-1 text-sm text-muted-foreground">
+									{#if section.trend.direction !== 'neutral'}
+										<svelte:component
+											this={getTrendIcon(section.trend.direction)}
+											class="h-3 w-3"
+										/>
+									{/if}
+									<span>{section.trend.description}</span>
+								</div>
+							{/if}
+						</div>
+						{#if section.available}
+							<Button class="mt-4 w-full" variant="outline" href={section.href}>
+								View Details
+								<ChevronRight class="ml-2 h-4 w-4" />
+							</Button>
+						{/if}
+					</Card.Content>
+				</Card.Root>
 			{/each}
 		</div>
+	</div>
 
-		<!-- Administrative Functions -->
-		<div>
-			<h2 class="text-2xl font-bold mb-6">Administrative Functions</h2>
-			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-				{#each adminSections as section}
-					<Card.Root class={`cursor-pointer transition-all hover:shadow-md ${section.available ? '' : 'opacity-60'}`}>
-						<Card.Header class="pb-3">
-							<div class="flex items-center justify-between">
-								<div class="flex items-center gap-3">
-									<div class="p-2 rounded-lg bg-primary/10">
-										<svelte:component this={section.icon} class="h-6 w-6 text-primary" />
-									</div>
-									<div>
-										<Card.Title class="text-lg">{section.title}</Card.Title>
-									</div>
-								</div>
-								<Badge variant={section.available ? 'default' : 'secondary'}>
-									{section.available ? 'Available' : 'Coming Soon'}
-								</Badge>
-							</div>
-						</Card.Header>
-						<Card.Content>
-							<p class="text-muted-foreground text-sm mb-4">{section.subtitle}</p>
-							<div class="flex items-center justify-between">
-								<div class="text-2xl font-bold">{section.value}</div>
-								{#if section.trend}
-									<div class="flex items-center gap-1 text-sm text-muted-foreground">
-										{#if section.trend.direction !== 'neutral'}
-											<svelte:component this={getTrendIcon(section.trend.direction)} class="h-3 w-3" />
-										{/if}
-										<span>{section.trend.description}</span>
-									</div>
-								{/if}
-							</div>
-							{#if section.available}
-								<Button class="w-full mt-4" variant="outline" href={section.href}>
-									View Details
-									<ChevronRight class="h-4 w-4 ml-2" />
-								</Button>
-							{/if}
-						</Card.Content>
-					</Card.Root>
+	<!-- System Health -->
+	<Card.Root>
+		<Card.Header>
+			<Card.Title class="flex items-center gap-2">
+				<Activity class="h-5 w-5" />
+				System Health
+			</Card.Title>
+		</Card.Header>
+		<Card.Content>
+			<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+				{#each Object.entries(systemHealth) as [key, metric]}
+					<div class="space-y-3">
+						<div class="flex items-center justify-between">
+							<span class="text-sm font-medium">{metric.label}</span>
+							<Badge variant={getStatusVariant(metric.status)}>
+								{metric.value}%
+							</Badge>
+						</div>
+						<Progress value={metric.value} class="h-2" />
+					</div>
 				{/each}
 			</div>
-		</div>
+		</Card.Content>
+	</Card.Root>
 
-		<!-- System Health -->
+	<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+		<!-- Recent Activity -->
 		<Card.Root>
 			<Card.Header>
-				<Card.Title class="flex items-center gap-2">
-					<Activity class="h-5 w-5" />
-					System Health
-				</Card.Title>
+				<div class="flex items-center justify-between">
+					<Card.Title class="flex items-center gap-2">
+						<Clock class="h-5 w-5" />
+						Recent Activity
+					</Card.Title>
+					<Button variant="ghost" size="sm" href="/dashboard/admin/audit">
+						View All
+						<ChevronRight class="ml-1 h-4 w-4" />
+					</Button>
+				</div>
 			</Card.Header>
 			<Card.Content>
-				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-					{#each Object.entries(systemHealth) as [key, metric]}
-						<div class="space-y-3">
-							<div class="flex items-center justify-between">
-								<span class="text-sm font-medium">{metric.label}</span>
-								<Badge variant={getStatusVariant(metric.status)}>
-									{metric.value}%
-								</Badge>
+				<div class="space-y-4">
+					{#each recentActivity as activity}
+						<div class="flex items-start gap-3 rounded-lg bg-muted/50 p-3">
+							<div class="rounded-full bg-primary/10 p-2">
+								<svelte:component this={activity.icon} class="h-4 w-4 text-primary" />
 							</div>
-							<Progress value={metric.value} class="h-2" />
+							<div class="min-w-0 flex-1">
+								<p class="text-sm font-medium">{activity.message}</p>
+								<p class="text-xs text-muted-foreground">{activity.time}</p>
+							</div>
 						</div>
 					{/each}
 				</div>
 			</Card.Content>
 		</Card.Root>
 
-		<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-			<!-- Recent Activity -->
-			<Card.Root>
-				<Card.Header>
-					<div class="flex items-center justify-between">
-						<Card.Title class="flex items-center gap-2">
-							<Clock class="h-5 w-5" />
-							Recent Activity
-						</Card.Title>
-						<Button variant="ghost" size="sm" href="/dashboard/admin/audit">
-							View All
-							<ChevronRight class="h-4 w-4 ml-1" />
-						</Button>
-					</div>
-				</Card.Header>
-				<Card.Content>
-					<div class="space-y-4">
-						{#each recentActivity as activity}
-							<div class="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
-								<div class="p-2 rounded-full bg-primary/10">
-									<svelte:component this={activity.icon} class="h-4 w-4 text-primary" />
-								</div>
-								<div class="flex-1 min-w-0">
-									<p class="text-sm font-medium">{activity.message}</p>
-									<p class="text-xs text-muted-foreground">{activity.time}</p>
-								</div>
-							</div>
-						{/each}
-					</div>
-				</Card.Content>
-			</Card.Root>
-
-			<!-- System Alerts -->
-			<Card.Root>
-				<Card.Header>
-					<div class="flex items-center justify-between">
-						<Card.Title class="flex items-center gap-2">
-							<AlertTriangle class="h-5 w-5" />
-							System Alerts
-						</Card.Title>
-						<Badge variant="default">3 Active</Badge>
-					</div>
-				</Card.Header>
-				<Card.Content>
-					<div class="space-y-4">
-						<Alert>
-							<Info class="h-4 w-4" />
-							<AlertTitle>Scheduled Maintenance</AlertTitle>
-							<AlertDescription>
-								System maintenance scheduled for this weekend
-							</AlertDescription>
-						</Alert>
-
-						<Alert>
-							<CheckCircle class="h-4 w-4" />
-							<AlertTitle>Backup Complete</AlertTitle>
-							<AlertDescription>
-								Daily backup completed successfully at 3:00 AM
-							</AlertDescription>
-						</Alert>
-
-						<Alert variant="destructive">
-							<AlertCircle class="h-4 w-4" />
-							<AlertTitle>High Memory Usage</AlertTitle>
-							<AlertDescription>
-								Memory usage at 62% - consider optimization
-							</AlertDescription>
-						</Alert>
-					</div>
-				</Card.Content>
-			</Card.Root>
-		</div>
-
-		<!-- User Overview Table -->
+		<!-- System Alerts -->
 		<Card.Root>
 			<Card.Header>
 				<div class="flex items-center justify-between">
 					<Card.Title class="flex items-center gap-2">
-						<Users class="h-5 w-5" />
-						Recent Users
+						<AlertTriangle class="h-5 w-5" />
+						System Alerts
 					</Card.Title>
-					<Button href="/dashboard/admin/users">
-						<UserCog class="h-4 w-4 mr-2" />
-						Manage Users
-					</Button>
+					<Badge variant="default">3 Active</Badge>
 				</div>
 			</Card.Header>
 			<Card.Content>
-				{#if loading}
-					<div class="space-y-4">
-						{#each Array(3) as _}
-							<div class="h-12 bg-muted rounded animate-pulse"></div>
-						{/each}
-					</div>
-				{:else}
-					<Table.Root>
-						<Table.Header>
-							<Table.Row>
-								<Table.Head>Name</Table.Head>
-								<Table.Head>Email</Table.Head>
-								<Table.Head>Role</Table.Head>
-								<Table.Head>Status</Table.Head>
-								<Table.Head>Last Active</Table.Head>
-							</Table.Row>
-						</Table.Header>
-						<Table.Body>
-							{#each userTableRows as user}
-								<Table.Row>
-									<Table.Cell class="font-medium">{user.name}</Table.Cell>
-									<Table.Cell>{user.email}</Table.Cell>
-									<Table.Cell>
-										<Badge variant="outline">{user.role}</Badge>
-									</Table.Cell>
-									<Table.Cell>
-										<Badge variant={user.status === 'Active' ? 'default' : 'secondary'}>
-											{user.status}
-										</Badge>
-									</Table.Cell>
-									<Table.Cell class="text-muted-foreground">{user.lastActive}</Table.Cell>
-								</Table.Row>
-							{/each}
-						</Table.Body>
-					</Table.Root>
-				{/if}
+				<div class="space-y-4">
+					<Alert>
+						<Info class="h-4 w-4" />
+						<AlertTitle>Scheduled Maintenance</AlertTitle>
+						<AlertDescription>System maintenance scheduled for this weekend</AlertDescription>
+					</Alert>
+
+					<Alert>
+						<CheckCircle class="h-4 w-4" />
+						<AlertTitle>Backup Complete</AlertTitle>
+						<AlertDescription>Daily backup completed successfully at 3:00 AM</AlertDescription>
+					</Alert>
+
+					<Alert variant="destructive">
+						<AlertCircle class="h-4 w-4" />
+						<AlertTitle>High Memory Usage</AlertTitle>
+						<AlertDescription>Memory usage at 62% - consider optimization</AlertDescription>
+					</Alert>
+				</div>
 			</Card.Content>
 		</Card.Root>
-</div>
+	</div>
 
+	<!-- User Overview Table -->
+	<Card.Root>
+		<Card.Header>
+			<div class="flex items-center justify-between">
+				<Card.Title class="flex items-center gap-2">
+					<Users class="h-5 w-5" />
+					Recent Users
+				</Card.Title>
+				<Button href="/dashboard/admin/users">
+					<UserCog class="mr-2 h-4 w-4" />
+					Manage Users
+				</Button>
+			</div>
+		</Card.Header>
+		<Card.Content>
+			{#if loading}
+				<div class="space-y-4">
+					{#each Array(3) as _}
+						<div class="h-12 animate-pulse rounded bg-muted"></div>
+					{/each}
+				</div>
+			{:else}
+				<Table.Root>
+					<Table.Header>
+						<Table.Row>
+							<Table.Head>Name</Table.Head>
+							<Table.Head>Email</Table.Head>
+							<Table.Head>Role</Table.Head>
+							<Table.Head>Status</Table.Head>
+							<Table.Head>Last Active</Table.Head>
+						</Table.Row>
+					</Table.Header>
+					<Table.Body>
+						{#each userTableRows as user}
+							<Table.Row>
+								<Table.Cell class="font-medium">{user.name}</Table.Cell>
+								<Table.Cell>{user.email}</Table.Cell>
+								<Table.Cell>
+									<Badge variant="outline">{user.role}</Badge>
+								</Table.Cell>
+								<Table.Cell>
+									<Badge variant={user.status === 'Active' ? 'default' : 'secondary'}>
+										{user.status}
+									</Badge>
+								</Table.Cell>
+								<Table.Cell class="text-muted-foreground">{user.lastActive}</Table.Cell>
+							</Table.Row>
+						{/each}
+					</Table.Body>
+				</Table.Root>
+			{/if}
+		</Card.Content>
+	</Card.Root>
+</div>

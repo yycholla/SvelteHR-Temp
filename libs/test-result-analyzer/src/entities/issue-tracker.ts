@@ -17,7 +17,7 @@ const FailurePatternSchema = z.object({
   frequency: z.number().positive().int('Frequency must be positive integer'),
   conditions: z.array(z.string()),
   suggestedFixes: z.array(z.string()),
-  relatedIssues: z.array(UUIDSchema)
+  relatedIssues: z.array(UUIDSchema),
 });
 
 const ResolutionSchema = z.object({
@@ -27,7 +27,7 @@ const ResolutionSchema = z.object({
   verificationSteps: z.array(z.string()).optional(),
   relatedCommits: z.array(z.string()).optional(),
   rootCause: z.string().optional(),
-  preventionMeasures: z.array(z.string()).optional()
+  preventionMeasures: z.array(z.string()).optional(),
 });
 
 const IssueTrackerSchema = z.object({
@@ -46,7 +46,7 @@ const IssueTrackerSchema = z.object({
   tags: z.array(z.string()).optional(),
   priority: z.number().min(1).max(10).default(5),
   estimatedEffort: z.string().optional(),
-  businessImpact: z.string().optional()
+  businessImpact: z.string().optional(),
 });
 
 export type Severity = z.infer<typeof SeveritySchema>;
@@ -58,21 +58,26 @@ export type IssueTrackerData = z.infer<typeof IssueTrackerSchema>;
 export class IssueTracker {
   private data: IssueTrackerData;
 
-  constructor(input: Partial<IssueTrackerData> & {
-    id: string;
-    title: string;
-    description: string;
-    severity: Severity;
-    status: Status;
-    failurePattern: FailurePattern;
-    relatedResults: string[];
-    reproducibilityRate: number;
-    firstSeen: Date;
-    lastSeen: Date;
-  }) {
+  constructor(
+    input: Partial<IssueTrackerData> & {
+      id: string;
+      title: string;
+      description: string;
+      severity: Severity;
+      status: Status;
+      failurePattern: FailurePattern;
+      relatedResults: string[];
+      reproducibilityRate: number;
+      firstSeen: Date;
+      lastSeen: Date;
+    }
+  ) {
     // Validate reproducibility rate
-    if (input.reproducibilityRate < 0 || input.reproducibilityRate > 100 ||
-        !Number.isInteger(input.reproducibilityRate)) {
+    if (
+      input.reproducibilityRate < 0 ||
+      input.reproducibilityRate > 100 ||
+      !Number.isInteger(input.reproducibilityRate)
+    ) {
       throw new Error('reproducibilityRate must be integer between 0-100');
     }
 
@@ -89,7 +94,7 @@ export class IssueTracker {
     // Set defaults
     const issueData = {
       ...input,
-      priority: input.priority ?? 5
+      priority: input.priority ?? 5,
     };
 
     // Validate with Zod schema
@@ -102,22 +107,54 @@ export class IssueTracker {
   }
 
   // Getters for accessing properties
-  get id(): string { return this.data.id; }
-  get title(): string { return this.data.title; }
-  get description(): string { return this.data.description; }
-  get severity(): Severity { return this.data.severity; }
-  get status(): Status { return this.data.status; }
-  get failurePattern(): FailurePattern { return this.data.failurePattern; }
-  get relatedResults(): string[] { return this.data.relatedResults; }
-  get reproducibilityRate(): number { return this.data.reproducibilityRate; }
-  get firstSeen(): Date { return this.data.firstSeen; }
-  get lastSeen(): Date { return this.data.lastSeen; }
-  get resolution(): Resolution | undefined { return this.data.resolution; }
-  get assignedTo(): string | undefined { return this.data.assignedTo; }
-  get tags(): string[] | undefined { return this.data.tags; }
-  get priority(): number { return this.data.priority; }
-  get estimatedEffort(): string | undefined { return this.data.estimatedEffort; }
-  get businessImpact(): string | undefined { return this.data.businessImpact; }
+  get id(): string {
+    return this.data.id;
+  }
+  get title(): string {
+    return this.data.title;
+  }
+  get description(): string {
+    return this.data.description;
+  }
+  get severity(): Severity {
+    return this.data.severity;
+  }
+  get status(): Status {
+    return this.data.status;
+  }
+  get failurePattern(): FailurePattern {
+    return this.data.failurePattern;
+  }
+  get relatedResults(): string[] {
+    return this.data.relatedResults;
+  }
+  get reproducibilityRate(): number {
+    return this.data.reproducibilityRate;
+  }
+  get firstSeen(): Date {
+    return this.data.firstSeen;
+  }
+  get lastSeen(): Date {
+    return this.data.lastSeen;
+  }
+  get resolution(): Resolution | undefined {
+    return this.data.resolution;
+  }
+  get assignedTo(): string | undefined {
+    return this.data.assignedTo;
+  }
+  get tags(): string[] | undefined {
+    return this.data.tags;
+  }
+  get priority(): number {
+    return this.data.priority;
+  }
+  get estimatedEffort(): string | undefined {
+    return this.data.estimatedEffort;
+  }
+  get businessImpact(): string | undefined {
+    return this.data.businessImpact;
+  }
 
   /**
    * Calculate issue age in hours from first seen to last seen
@@ -141,10 +178,10 @@ export class IssueTracker {
   calculatePriorityScore(): number {
     // Severity weights
     const severityWeights = {
-      'low': 1,
-      'medium': 2,
-      'high': 3,
-      'critical': 4
+      low: 1,
+      medium: 2,
+      high: 3,
+      critical: 4,
     };
 
     // Base score from severity
@@ -186,10 +223,10 @@ export class IssueTracker {
   updateStatus(newStatus: Status, resolution?: Resolution): void {
     // Validate status transitions
     const validTransitions: Record<Status, Status[]> = {
-      'open': ['investigating', 'resolved', 'closed'],
-      'investigating': ['open', 'resolved', 'closed'],
-      'resolved': ['closed', 'open'], // Can reopen if verification fails
-      'closed': ['open'] // Can reopen if issue recurs
+      open: ['investigating', 'resolved', 'closed'],
+      investigating: ['open', 'resolved', 'closed'],
+      resolved: ['closed', 'open'], // Can reopen if verification fails
+      closed: ['open'], // Can reopen if issue recurs
     };
 
     if (!validTransitions[this.data.status].includes(newStatus)) {
@@ -204,7 +241,7 @@ export class IssueTracker {
     this.data = {
       ...this.data,
       status: newStatus,
-      resolution: resolution || this.data.resolution
+      resolution: resolution || this.data.resolution,
     };
   }
 
@@ -215,7 +252,7 @@ export class IssueTracker {
     if (!this.data.relatedResults.includes(resultId)) {
       this.data = {
         ...this.data,
-        relatedResults: [...this.data.relatedResults, resultId]
+        relatedResults: [...this.data.relatedResults, resultId],
       };
     }
   }
@@ -232,7 +269,7 @@ export class IssueTracker {
 
     this.data = {
       ...this.data,
-      reproducibilityRate: newRate
+      reproducibilityRate: newRate,
     };
   }
 
@@ -246,7 +283,7 @@ export class IssueTracker {
 
     this.data = {
       ...this.data,
-      lastSeen: newTimestamp
+      lastSeen: newTimestamp,
     };
   }
 
@@ -266,13 +303,7 @@ export class IssueTracker {
    * Check if issue affects critical functionality
    */
   affectsCriticalFunctionality(): boolean {
-    const criticalPatterns = [
-      'authentication',
-      'login',
-      'payment',
-      'security',
-      'data-loss'
-    ];
+    const criticalPatterns = ['authentication', 'login', 'payment', 'security', 'data-loss'];
 
     const pattern = this.data.failurePattern.pattern.toLowerCase();
     return criticalPatterns.some(critical => pattern.includes(critical));
@@ -359,7 +390,7 @@ export class IssueTracker {
       businessImpact,
       technicalImpact,
       affectedUsers,
-      estimatedDowntime
+      estimatedDowntime,
     };
   }
 
@@ -386,7 +417,7 @@ export class IssueTracker {
       ageInDays: this.getAgeInDays(),
       priorityScore: this.calculatePriorityScore(),
       urgencyLevel: this.getUrgencyLevel(),
-      isResolved: this.isResolved()
+      isResolved: this.isResolved(),
     };
   }
 
@@ -395,7 +426,7 @@ export class IssueTracker {
    */
   toJSON(): IssueTrackerData {
     return {
-      ...this.data
+      ...this.data,
     };
   }
 
@@ -407,10 +438,12 @@ export class IssueTracker {
       ...json,
       firstSeen: new Date(json.firstSeen),
       lastSeen: new Date(json.lastSeen),
-      resolution: json.resolution ? {
-        ...json.resolution,
-        resolvedAt: new Date(json.resolution.resolvedAt)
-      } : undefined
+      resolution: json.resolution
+        ? {
+            ...json.resolution,
+            resolvedAt: new Date(json.resolution.resolvedAt),
+          }
+        : undefined,
     });
   }
 }

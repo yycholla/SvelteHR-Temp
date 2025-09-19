@@ -6,6 +6,7 @@
 **Input**: User description: "investigate and resolve all problems with authorization between the frontend and postgraphile backend. Stop and wait for user interaction and input when needed for testing. The authorization system is not connecting properly from the front end, seems to allow users in without knowing their information, displays the wrong dashboard for the user, and loops between the login page and these dashboards. Research the correct, idiomatic implementation, make necessary changes to the front and backend, while maintaining security. Ensure that the api connection is fully fleshed out on both ends and set it up properly with no shortcuts, stopgaps, or simple solutions. We are looking for the correct implementation not just something that works for now."
 
 ## Execution Flow (main)
+
 ```
 1. Parse user description from Input
    → Feature focuses on fixing broken authorization system
@@ -30,18 +31,21 @@
 ---
 
 ## ⚡ Quick Guidelines
+
 - ✅ Focus on WHAT users need and WHY
 - ❌ Avoid HOW to implement (no tech stack, APIs, code structure)
 - 👥 Written for business stakeholders, not developers
 
 ---
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### Primary User Story
+
 Users need to securely authenticate with the system, be recognized by their correct identity and role, and be directed to the appropriate interface without authentication loops or incorrect access levels.
 
 ### Acceptance Scenarios
+
 1. **Given** a user has valid credentials, **When** they log in, **Then** they are authenticated and directed to their role-appropriate dashboard with their correct identity displayed
 2. **Given** a user is already authenticated, **When** they refresh the page or navigate directly to a URL, **Then** they remain authenticated and see the correct interface for their role
 3. **Given** a user has admin privileges (level 100), **When** they access the system, **Then** they are directed to admin interfaces with full system access and retain admin privileges after page refreshes
@@ -52,15 +56,17 @@ Users need to securely authenticate with the system, be recognized by their corr
 8. **Given** a user's session is valid, **When** they navigate between different parts of the system, **Then** their identity and role information is correctly maintained and displayed
 
 ### Edge Cases
+
 - What happens when a user's role changes while they have an active session?
 - How does the system handle expired or corrupted authentication tokens?
 - What occurs when authentication service is temporarily unavailable?
 - How does the system prevent authentication bypass or privilege escalation?
 - What happens when a user tries to access a role-specific URL directly?
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
+
 - **FR-001**: System MUST securely authenticate users using their credentials and maintain session state
 - **FR-002**: System MUST correctly identify and display the authenticated user's name and identity
 - **FR-003**: System MUST route users to the appropriate dashboard based on their assigned role (admin vs employee)
@@ -81,7 +87,8 @@ Users need to securely authenticate with the system, be recognized by their corr
 - **FR-018**: System MUST implement database-level security using PostgreSQL Row Level Security (RLS) policies based on JWT claims
 - **FR-019**: System MUST use short-lived access tokens (15-30 minutes) with secure refresh token rotation
 
-### Key Entities *(include if feature involves data)*
+### Key Entities _(include if feature involves data)_
+
 - **User Account**: Represents authenticated users with credentials, personal information, and role assignments with specific permission levels
 - **User Session**: Represents active authenticated sessions with JWT tokens, expiration times, and refresh token rotation
 - **User Role**: Defines four-tier permission hierarchy (Admin 100, HR 80, Manager 60, Employee 20) with specific capability mappings
@@ -91,15 +98,18 @@ Users need to securely authenticate with the system, be recognized by their corr
 ---
 
 ## Review & Acceptance Checklist
-*GATE: Automated checks run during main() execution*
+
+_GATE: Automated checks run during main() execution_
 
 ### Content Quality
+
 - [x] No implementation details (languages, frameworks, APIs)
 - [x] Focused on user value and business needs
 - [x] Written for non-technical stakeholders
 - [x] All mandatory sections completed
 
 ### Requirement Completeness
+
 - [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
@@ -109,7 +119,8 @@ Users need to securely authenticate with the system, be recognized by their corr
 ---
 
 ## Execution Status
-*Updated by main() during processing*
+
+_Updated by main() during processing_
 
 - [x] User description parsed
 - [x] Key concepts extracted

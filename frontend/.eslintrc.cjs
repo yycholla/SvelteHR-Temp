@@ -35,13 +35,13 @@ module.exports = {
 		'@typescript-eslint/no-non-null-assertion': 'warn',
 		'@typescript-eslint/prefer-nullish-coalescing': 'error',
 		'@typescript-eslint/prefer-optional-chain': 'error',
-		
+
 		// Svelte specific rules
 		'svelte/no-at-html-tags': 'error',
 		'svelte/no-target-blank': 'error',
 		'svelte/valid-compile': 'error',
 		'svelte/no-unused-svelte-ignore': 'error',
-		
+
 		// General rules
 		'no-console': 'warn',
 		'prefer-const': 'error',
@@ -49,11 +49,5 @@ module.exports = {
 		'object-shorthand': 'error',
 		'prefer-template': 'error'
 	},
-	ignorePatterns: [
-		'build/',
-		'.svelte-kit/',
-		'dist/',
-		'node_modules/',
-		'src/lib/generated/'
-	]
+	ignorePatterns: ['build/', '.svelte-kit/', 'dist/', 'node_modules/', 'src/lib/generated/']
 };

@@ -6,9 +6,11 @@
 ## Core Entities
 
 ### User Account
+
 **Purpose**: Represents authenticated users with credentials and role assignments
 
 **Fields**:
+
 - `id`: UUID (primary key)
 - `email`: string (unique, not null) - Login identifier
 - `password_hash`: string (not null) - bcrypt hashed password
@@ -20,20 +22,24 @@
 - `updated_at`: timestamp (auto)
 
 **Validation Rules**:
+
 - Email must be valid format and unique
 - Password hash must be bcrypt with salt rounds ≥ 10
 - Display name required for active users
 - Soft delete only (set is_active = false)
 
 **Relationships**:
+
 - One-to-many: User → UserRoleAssignments
 - One-to-many: User → AuthSessions
 - One-to-many: User → RefreshTokens
 
 ### User Role
+
 **Purpose**: Defines permission levels and access rights in four-tier hierarchy
 
 **Fields**:
+
 - `id`: UUID (primary key)
 - `name`: string (unique) - Role identifier ['admin', 'hr', 'manager', 'employee']
 - `description`: string - Human-readable description
@@ -43,18 +49,22 @@
 - `created_at`: timestamp (auto)
 
 **Validation Rules**:
+
 - Name must be lowercase, alphanumeric + underscore
 - Level must be unique and between 1-100
 - System roles cannot be deleted or modified
 - Permissions must be valid permission strings
 
 **Relationships**:
+
 - One-to-many: Role → UserRoleAssignments
 
 ### User Role Assignment
+
 **Purpose**: Links users to roles with temporal validity and audit trail
 
 **Fields**:
+
 - `id`: UUID (primary key)
 - `user_id`: UUID (foreign key → users.id)
 - `role_id`: UUID (foreign key → user_roles.id)
@@ -65,6 +75,7 @@
 - `created_at`: timestamp (auto)
 
 **Validation Rules**:
+
 - User must exist and be active
 - Role must exist
 - Assigned_by must be admin or higher
@@ -72,14 +83,17 @@
 - One active assignment per user-role pair
 
 **Relationships**:
+
 - Many-to-one: Assignment → User (user_id)
 - Many-to-one: Assignment → Role (role_id)
 - Many-to-one: Assignment → User (assigned_by)
 
 ### Authentication Session
+
 **Purpose**: Tracks active user sessions with JWT tokens and security metadata
 
 **Fields**:
+
 - `id`: UUID (primary key)
 - `user_id`: UUID (foreign key → users.id)
 - `token_hash`: string - SHA256 hash of JWT token
@@ -91,18 +105,22 @@
 - `is_revoked`: boolean (default: false) - Manual revocation
 
 **Validation Rules**:
+
 - Token hash must be SHA256 format
 - Expires_at must be future timestamp
 - IP address must be valid IPv4/IPv6
 - Revoked sessions cannot be reactivated
 
 **Relationships**:
+
 - Many-to-one: Session → User
 
 ### Refresh Token
+
 **Purpose**: Manages long-lived refresh tokens for seamless authentication
 
 **Fields**:
+
 - `id`: UUID (primary key)
 - `user_id`: UUID (foreign key → users.id)
 - `token_hash`: string - SHA256 hash of refresh token
@@ -114,19 +132,23 @@
 - `revoked_at`: timestamp (nullable) - Revocation timestamp
 
 **Validation Rules**:
+
 - Token hash must be SHA256 format
 - Expires_at must be future timestamp (max 30 days)
 - Replaced_by must reference valid refresh token
 - Revoked tokens cannot be reactivated
 
 **Relationships**:
+
 - Many-to-one: RefreshToken → User
 - Self-referential: RefreshToken → RefreshToken (replacement chain)
 
 ### OAuth2 Provider
+
 **Purpose**: Configuration for external authentication sources (future enhancement)
 
 **Fields**:
+
 - `id`: UUID (primary key)
 - `name`: string (unique) - Provider identifier ['google', 'microsoft', 'github']
 - `display_name`: string - UI display name
@@ -141,17 +163,20 @@
 - `updated_at`: timestamp (auto)
 
 **Validation Rules**:
+
 - Name must be unique and lowercase
 - URLs must be valid HTTPS endpoints
 - Client_id required when enabled
 - Role mapping must reference valid role names
 
 **Relationships**:
+
 - One-to-many: Provider → OAuth2Authentications (future)
 
 ## State Transitions
 
 ### User Lifecycle
+
 ```
 Registration → Pending → Active → [Suspended] → Inactive
                   ↓
@@ -159,11 +184,13 @@ Registration → Pending → Active → [Suspended] → Inactive
 ```
 
 ### Session Lifecycle
+
 ```
 Created → Active → [Refreshed] → Expired/Revoked
 ```
 
 ### Token Rotation
+
 ```
 RefreshToken → Used → Replaced → [Chain continues] → Expired
 ```
@@ -171,6 +198,7 @@ RefreshToken → Used → Replaced → [Chain continues] → Expired
 ## Security Constraints
 
 ### Database Level (PostgreSQL RLS)
+
 ```sql
 -- Users can only see their own data unless admin/HR
 CREATE POLICY user_own_data ON users
@@ -188,12 +216,14 @@ CREATE POLICY role_assignment_visibility ON user_role_assignments
 ```
 
 ### Application Level
+
 - Password hashing: bcrypt with minimum 10 rounds
 - JWT tokens: HS256 algorithm, 15-minute expiration
 - Refresh tokens: Cryptographically secure random, 30-day max
 - Session tracking: IP and user agent validation
 
 ### Audit Requirements
+
 - All authentication attempts logged
 - Role changes require admin approval
 - Token refresh events tracked
@@ -202,17 +232,20 @@ CREATE POLICY role_assignment_visibility ON user_role_assignments
 ## Performance Considerations
 
 ### Indexing Strategy
+
 - `users.email` - Unique index for login queries
 - `auth_sessions.token_hash` - Index for token validation
 - `user_role_assignments.user_id` - Index for role lookups
 - `refresh_tokens.token_hash` - Index for refresh operations
 
 ### Caching Strategy
+
 - User role data cached in Redis (5-minute TTL)
 - JWT validation results cached (token lifetime)
 - Session data cached for frequently accessed users
 
 ### Scalability Limits
+
 - Target: 10,000 concurrent users
 - JWT validation: <50ms per request
 - Role lookups: <25ms per request

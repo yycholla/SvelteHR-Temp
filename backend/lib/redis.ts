@@ -72,9 +72,13 @@ export class RedisClient {
   /**
    * Set a key-value pair with optional expiration
    */
-  async set(key: string, value: string, expirationSeconds?: number): Promise<void> {
+  async set(
+    key: string,
+    value: string,
+    expirationSeconds?: number
+  ): Promise<void> {
     await this.ensureConnection();
-    
+
     if (expirationSeconds) {
       await this.client.set(key, value, 'EX', expirationSeconds);
     } else {
@@ -268,25 +272,29 @@ export class RedisClient {
   /**
    * Scan for keys with cursor (production-safe alternative to keys)
    */
-  async scan(cursor: number = 0, match?: string, count?: number): Promise<[string, string[]]> {
+  async scan(
+    cursor: number = 0,
+    match?: string,
+    count?: number
+  ): Promise<[string, string[]]> {
     await this.ensureConnection();
     const args: any[] = [cursor];
-    
+
     if (match) {
       args.push('MATCH', match);
     }
-    
+
     if (count) {
       args.push('COUNT', count);
     }
-    
+
     return await this.client.scan(...args);
   }
 
   /**
    * Execute Redis transaction
    */
-  async multi(operations: ((multi: Redis.Pipeline) => void)): Promise<any[]> {
+  async multi(operations: (multi: Redis.Pipeline) => void): Promise<any[]> {
     await this.ensureConnection();
     const multi = this.client.multi();
     operations(multi);
@@ -352,12 +360,20 @@ export class RedisClient {
   /**
    * Session-specific helper methods
    */
-  
+
   /**
    * Store user session
    */
-  async setUserSession(userId: string, sessionData: any, expirationSeconds: number = 900): Promise<void> {
-    await this.set(`session:${userId}`, JSON.stringify(sessionData), expirationSeconds);
+  async setUserSession(
+    userId: string,
+    sessionData: any,
+    expirationSeconds: number = 900
+  ): Promise<void> {
+    await this.set(
+      `session:${userId}`,
+      JSON.stringify(sessionData),
+      expirationSeconds
+    );
   }
 
   /**
@@ -378,7 +394,10 @@ export class RedisClient {
   /**
    * Rate limiting: increment counter
    */
-  async incrementRateLimit(key: string, windowSeconds: number): Promise<number> {
+  async incrementRateLimit(
+    key: string,
+    windowSeconds: number
+  ): Promise<number> {
     const current = await this.incr(key);
     if (current === 1) {
       await this.expire(key, windowSeconds);
@@ -389,8 +408,16 @@ export class RedisClient {
   /**
    * Cache GraphQL query results
    */
-  async cacheGraphQLResult(queryHash: string, result: any, ttlSeconds: number = 300): Promise<void> {
-    await this.setex(`graphql:${queryHash}`, ttlSeconds, JSON.stringify(result));
+  async cacheGraphQLResult(
+    queryHash: string,
+    result: any,
+    ttlSeconds: number = 300
+  ): Promise<void> {
+    await this.setex(
+      `graphql:${queryHash}`,
+      ttlSeconds,
+      JSON.stringify(result)
+    );
   }
 
   /**

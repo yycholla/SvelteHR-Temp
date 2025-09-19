@@ -7,17 +7,20 @@
 ## Prerequisites
 
 ### System Requirements
+
 - Node.js 18+ and npm 8+
 - Docker and Docker Compose
 - Doppler CLI installed and configured
 - Git with SSH access to repositories
 
 ### Required Services
+
 - GelDB running at http://localhost:5656/db/main/ext/graphql
-- Redis running at localhost:6379  
+- Redis running at localhost:6379
 - Existing MountainHR-Backend schema deployed
 
 ### Environment Setup
+
 ```bash
 # Verify Doppler access
 doppler login
@@ -47,7 +50,7 @@ npm install @urql/svelte @urql/exchange-auth @urql/exchange-retry
 npm install zod @graphql-codegen/cli @graphql-codegen/client-preset
 npm install -D @testing-library/svelte vitest jsdom playwright
 
-# Install UI and styling dependencies  
+# Install UI and styling dependencies
 npm install tailwindcss @tailwindcss/forms @tailwindcss/typography
 npm install lucide-svelte @headlessui/svelte
 
@@ -73,7 +76,7 @@ const config: CodegenConfig = {
         useTypeImports: true,
         scalars: {
           DateTime: 'string',
-          Date: 'string', 
+          Date: 'string',
           UUID: 'string',
           JSON: 'Record<string, any>',
         },
@@ -160,15 +163,15 @@ export const config = {
   // Database
   geldbUrl: env.GELDB_URL || 'http://localhost:5656/db/main/ext/graphql',
   redisUrl: env.REDIS_URL || 'redis://localhost:6379',
-  
+
   // Authentication
   jwtSecret: env.JWT_SECRET!,
   jwtExpiresIn: env.JWT_EXPIRES_IN || '15m',
-  
+
   // Application
   environment: env.NODE_ENV || 'development',
   port: parseInt(env.PORT || '5173'),
-  
+
   // Public config (available on client)
   public: {
     apiUrl: publicEnv.PUBLIC_API_URL || 'http://localhost:5173/api',
@@ -187,7 +190,7 @@ EOF
 
 # Configure Doppler for development
 echo "JWT_SECRET=$(openssl rand -base64 32)" | doppler secrets set
-echo "NODE_ENV=development" | doppler secrets set  
+echo "NODE_ENV=development" | doppler secrets set
 echo "PUBLIC_API_URL=http://localhost:5173/api" | doppler secrets set
 echo "PUBLIC_APP_NAME=MountainHR" | doppler secrets set
 ```
@@ -205,7 +208,7 @@ import { config } from '$lib/config';
 
 const authHandler: Handle = async ({ event, resolve }) => {
   const token = event.cookies.get('auth-token');
-  
+
   if (token) {
     try {
       const decoded = jwt.verify(token, config.jwtSecret) as any;
@@ -218,7 +221,7 @@ const authHandler: Handle = async ({ event, resolve }) => {
 
   // Protected route check
   const protectedRoutes = ['/dashboard', '/hr', '/admin'];
-  const isProtectedRoute = protectedRoutes.some(route => 
+  const isProtectedRoute = protectedRoutes.some(route =>
     event.url.pathname.startsWith(route)
   );
 
@@ -260,9 +263,9 @@ cat > src/routes/dashboard/+layout.svelte << 'EOF'
   import { setContextClient } from '@urql/svelte';
   import { createUrqlClient } from '$lib/graphql/client';
   import type { LayoutData } from './$types';
-  
+
   export let data: LayoutData;
-  
+
   const client = createUrqlClient(fetch, data.token);
   setContextClient(client);
 </script>
@@ -283,7 +286,7 @@ cat > src/routes/dashboard/+layout.svelte << 'EOF'
       </div>
     </div>
   </nav>
-  
+
   <main class="max-w-7xl mx-auto py-6 px-4">
     <slot />
   </main>
@@ -295,7 +298,7 @@ cat > src/routes/dashboard/+page.svelte << 'EOF'
 <script lang="ts">
   import { queryStore } from '@urql/svelte';
   import { graphql } from '$gql/gql';
-  
+
   const DashboardQuery = graphql(`
     query GetDashboard {
       dashboardData {
@@ -320,38 +323,38 @@ cat > src/routes/dashboard/+page.svelte << 'EOF'
       }
     }
   `);
-  
+
   $: dashboard = queryStore({ query: DashboardQuery });
 </script>
 
 <div class="space-y-6">
   <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
-  
+
   {#if $dashboard.fetching}
     <div class="animate-pulse">Loading dashboard...</div>
   {:else if $dashboard.error}
     <div class="text-red-600">Error: {$dashboard.error.message}</div>
   {:else if $dashboard.data}
     {@const data = $dashboard.data.dashboardData}
-    
+
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <!-- Stats Cards -->
       <div class="bg-white p-6 rounded-lg shadow">
         <h3 class="text-lg font-medium text-gray-900">Total Employees</h3>
         <p class="text-3xl font-bold text-blue-600">{data.quickStats.totalEmployees}</p>
       </div>
-      
+
       <div class="bg-white p-6 rounded-lg shadow">
         <h3 class="text-lg font-medium text-gray-900">Pending Tasks</h3>
         <p class="text-3xl font-bold text-yellow-600">{data.quickStats.pendingTasks}</p>
       </div>
-      
+
       <div class="bg-white p-6 rounded-lg shadow">
         <h3 class="text-lg font-medium text-gray-900">Pending Approvals</h3>
         <p class="text-3xl font-bold text-red-600">{data.quickStats.pendingApprovals}</p>
       </div>
     </div>
-    
+
     <!-- Upcoming Tasks -->
     <div class="bg-white rounded-lg shadow">
       <div class="px-6 py-4 border-b">
@@ -364,9 +367,9 @@ cat > src/routes/dashboard/+page.svelte << 'EOF'
               <h3 class="font-medium">{task.title}</h3>
               <p class="text-sm text-gray-500">Due: {new Date(task.dueDate).toLocaleDateString()}</p>
             </div>
-            <span class="px-2 py-1 text-xs rounded-full 
-              {task.priority === 'high' ? 'bg-red-100 text-red-800' : 
-               task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' : 
+            <span class="px-2 py-1 text-xs rounded-full
+              {task.priority === 'high' ? 'bg-red-100 text-red-800' :
+               task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
                'bg-green-100 text-green-800'}">
               {task.priority}
             </span>
@@ -389,7 +392,7 @@ import { createUrqlClient } from '$lib/graphql/client';
 
 test('GraphQL schema introspection', async () => {
   const client = createUrqlClient();
-  
+
   const result = await client.query(`
     query {
       __schema {
@@ -400,10 +403,10 @@ test('GraphQL schema introspection', async () => {
       }
     }
   `).toPromise();
-  
+
   expect(result.error).toBeUndefined();
   expect(result.data).toBeDefined();
-  
+
   const types = result.data.__schema.types;
   expect(types.some(t => t.name === 'User')).toBe(true);
   expect(types.some(t => t.name === 'Task')).toBe(true);
@@ -412,7 +415,7 @@ test('GraphQL schema introspection', async () => {
 
 test('Authentication contract', async () => {
   const client = createUrqlClient();
-  
+
   // This should fail without authentication
   const result = await client.query(`
     query {
@@ -423,7 +426,7 @@ test('Authentication contract', async () => {
       }
     }
   `).toPromise();
-  
+
   expect(result.error).toBeDefined();
   expect(result.error.graphQLErrors[0].extensions.code).toBe('UNAUTHENTICATED');
 });
@@ -445,12 +448,12 @@ test.describe('Dashboard Integration', () => {
 
   test('loads dashboard data correctly', async ({ page }) => {
     await page.goto('/dashboard');
-    
+
     // Check that main elements are present
     await expect(page.locator('h1')).toContainText('Dashboard');
     await expect(page.locator('[data-testid="total-employees"]')).toBeVisible();
     await expect(page.locator('[data-testid="pending-tasks"]')).toBeVisible();
-    
+
     // Verify data is loaded (not showing loading state)
     await expect(page.locator('.animate-pulse')).not.toBeVisible();
   });
@@ -479,7 +482,7 @@ EOF
 ```bash
 # Update package.json with all development commands
 npm pkg set scripts.dev="doppler run -- vite dev"
-npm pkg set scripts.build="doppler run -- vite build"  
+npm pkg set scripts.build="doppler run -- vite build"
 npm pkg set scripts.preview="doppler run -- vite preview"
 npm pkg set scripts.test="vitest"
 npm pkg set scripts.test:integration="playwright test"
@@ -518,13 +521,15 @@ EOF
 ## Validation Checklist
 
 ### ✅ Environment Setup
+
 - [ ] Node.js 18+ installed
-- [ ] Doppler CLI configured  
+- [ ] Doppler CLI configured
 - [ ] GelDB service running at localhost:5656
 - [ ] Redis service running at localhost:6379
 - [ ] Environment variables configured
 
-### ✅ Application Setup  
+### ✅ Application Setup
+
 - [ ] SvelteKit project initialized
 - [ ] All dependencies installed
 - [ ] GraphQL codegen configured
@@ -532,6 +537,7 @@ EOF
 - [ ] Directory structure created
 
 ### ✅ Development Workflow
+
 - [ ] Development server starts successfully
 - [ ] GraphQL codegen generates types
 - [ ] Dashboard page renders
@@ -540,6 +546,7 @@ EOF
 - [ ] Integration tests pass
 
 ### ✅ Integration Verification
+
 - [ ] GraphQL endpoint accessible
 - [ ] Authentication tokens valid
 - [ ] Database queries return data
@@ -560,6 +567,7 @@ EOF
 ### Common Issues
 
 **GraphQL Connection Failed**
+
 ```bash
 # Check GelDB service
 make db-health
@@ -567,6 +575,7 @@ curl -X POST http://localhost:5656/db/main/ext/graphql -d '{"query":"{ __schema 
 ```
 
 **Authentication Errors**
+
 ```bash
 # Verify JWT secret is set
 doppler secrets get JWT_SECRET
@@ -576,6 +585,7 @@ node -e "console.log(require('jsonwebtoken').decode('YOUR_TOKEN_HERE'))"
 ```
 
 **Build Errors**
+
 ```bash
 # Clear generated files and rebuild
 rm -rf src/gql .svelte-kit node_modules/.vite
@@ -584,6 +594,7 @@ npm run codegen
 ```
 
 **Type Errors**
+
 ```bash
 # Regenerate GraphQL types
 npm run codegen

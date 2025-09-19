@@ -19,10 +19,10 @@ describe('TestSuite Entity', () => {
         configuration: {
           maxDuration: 30000,
           retryAttempts: 3,
-          screenshotOnFailure: true
+          screenshotOnFailure: true,
         },
         version: '1.0.0',
-        tags: ['authentication', 'core']
+        tags: ['authentication', 'core'],
       });
 
       // Validation requirements from data-model.md
@@ -49,7 +49,7 @@ describe('TestSuite Entity', () => {
         scenarios: [],
         configuration: {},
         version: '1.0.0',
-        tags: []
+        tags: [],
       });
 
       // Should not reach here - validation should fail
@@ -70,7 +70,7 @@ describe('TestSuite Entity', () => {
         scenarios: [],
         configuration: {},
         version: '1.0.0',
-        tags: []
+        tags: [],
       });
 
       expect(shortNameSuite).toBeUndefined();
@@ -88,7 +88,7 @@ describe('TestSuite Entity', () => {
         scenarios: [],
         configuration: {},
         version: '1.0.0',
-        tags: []
+        tags: [],
       });
 
       expect(longNameSuite).toBeUndefined();
@@ -107,7 +107,7 @@ describe('TestSuite Entity', () => {
         scenarios: [], // Empty scenarios array should be invalid
         configuration: {},
         version: '1.0.0',
-        tags: []
+        tags: [],
       });
 
       // Should not reach here - validation should fail
@@ -130,7 +130,7 @@ describe('TestSuite Entity', () => {
           scenarios: [{ id: 'scenario1' }],
           configuration: {},
           version,
-          tags: []
+          tags: [],
         });
 
         expect(invalidVersionSuite).toBeUndefined();
@@ -150,7 +150,7 @@ describe('TestSuite Entity', () => {
         scenarios: [{ id: 'scenario1' }],
         configuration: {},
         version: '1.0.0',
-        tags: []
+        tags: [],
       });
 
       // Initial state should be Draft
@@ -181,7 +181,7 @@ describe('TestSuite Entity', () => {
         scenarios: [{ id: 'scenario1' }],
         configuration: {},
         version: '1.0.0',
-        tags: []
+        tags: [],
       });
 
       const originalUpdatedAt = testSuite.updatedAt;
@@ -206,7 +206,7 @@ describe('TestSuite Entity', () => {
         scenarios: [{ id: 'scenario1' }],
         configuration: { timeout: 5000 },
         version: '1.0.0',
-        tags: ['test']
+        tags: ['test'],
       });
 
       const json = testSuite.toJSON();
@@ -237,7 +237,7 @@ describe('TestSuite Entity', () => {
         version: '1.0.0',
         tags: ['test'],
         createdAt: '2025-01-01T00:00:00.000Z',
-        updatedAt: '2025-01-01T00:00:00.000Z'
+        updatedAt: '2025-01-01T00:00:00.000Z',
       };
 
       const testSuite = TestSuite.fromJSON(jsonData);

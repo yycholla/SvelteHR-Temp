@@ -1,6 +1,6 @@
 /**
  * Performance Optimizer for SvelteHR
- * 
+ *
  * Comprehensive performance optimization including:
  * - Query optimization
  * - Connection pooling
@@ -21,7 +21,7 @@ const logger = createLogger({
     format.errors({ stack: true }),
     format.json()
   ),
-  transports: [new transports.Console()]
+  transports: [new transports.Console()],
 });
 
 interface PerformanceMetrics {
@@ -69,14 +69,14 @@ export class PerformanceOptimizer {
     this.redis = redis;
     this.cacheService = cacheService;
     this.graphQLCache = new GraphQLQueryCache(cacheService);
-    
+
     this.optimizationSettings = {
       slowQueryThreshold: 1000, // 1 second
       highConnectionThreshold: 80, // 80% of max connections
       lowCacheHitRateThreshold: 0.7, // 70% hit rate
       highMemoryThreshold: 512 * 1024 * 1024, // 512MB
       enableAutomaticOptimization: true,
-      ...settings
+      ...settings,
     };
 
     this.startMetricsCollection();
@@ -88,7 +88,7 @@ export class PerformanceOptimizer {
   private startMetricsCollection(): void {
     setInterval(async () => {
       await this.collectMetrics();
-      
+
       // Analyze metrics and generate suggestions
       if (this.optimizationSettings.enableAutomaticOptimization) {
         await this.analyzeAndOptimize();
@@ -97,7 +97,8 @@ export class PerformanceOptimizer {
 
     logger.info('Performance optimizer started', {
       slowQueryThreshold: this.optimizationSettings.slowQueryThreshold,
-      highConnectionThreshold: this.optimizationSettings.highConnectionThreshold
+      highConnectionThreshold:
+        this.optimizationSettings.highConnectionThreshold,
     });
   }
 
@@ -112,18 +113,17 @@ export class PerformanceOptimizer {
         connectionCount: await this.getActiveConnectionCount(),
         cacheHitRate: this.cacheService.getStats().hitRate,
         memoryUsage: this.getTotalMemoryUsage(),
-        cpuUsage: this.getCPUUsage()
+        cpuUsage: this.getCPUUsage(),
       };
 
       this.metrics.push(metrics);
-      
+
       // Keep only recent metrics
       if (this.metrics.length > this.maxMetricsHistory) {
         this.metrics = this.metrics.slice(-this.maxMetricsHistory);
       }
 
       logger.debug('Performance metrics collected', metrics);
-
     } catch (error) {
       logger.error('Metrics collection failed', { error: error.message });
     }
@@ -139,7 +139,7 @@ export class PerformanceOptimizer {
         FROM pg_stat_statements
         WHERE calls > 0
       `);
-      
+
       return parseFloat(result.rows[0]?.avg_latency) || 0;
     } catch (error) {
       logger.debug('Could not get query latency', { error: error.message });
@@ -157,7 +157,7 @@ export class PerformanceOptimizer {
         FROM pg_stat_activity
         WHERE state = 'active'
       `);
-      
+
       return parseInt(result.rows[0]?.active_connections) || 0;
     } catch (error) {
       logger.debug('Could not get connection count', { error: error.message });
@@ -185,13 +185,16 @@ export class PerformanceOptimizer {
   private async analyzeAndOptimize(): Promise<void> {
     try {
       const suggestions = await this.generateOptimizationSuggestions();
-      
+
       // Log suggestions and apply automatic optimizations
       for (const suggestion of suggestions) {
         logger.info('Performance suggestion generated', suggestion);
-        
-        if (this.optimizationSettings.enableAutomaticOptimization && 
-            suggestion.severity === 'high' || suggestion.severity === 'critical') {
+
+        if (
+          (this.optimizationSettings.enableAutomaticOptimization &&
+            suggestion.severity === 'high') ||
+          suggestion.severity === 'critical'
+        ) {
           await this.applyOptimization(suggestion);
         }
       }
@@ -206,7 +209,7 @@ export class PerformanceOptimizer {
   async generateOptimizationSuggestions(): Promise<OptimizationSuggestion[]> {
     const suggestions: OptimizationSuggestion[] = [];
     const recentMetrics = this.metrics.slice(-10); // Last 5 minutes
-    
+
     if (recentMetrics.length === 0) {
       return suggestions;
     }
@@ -214,46 +217,69 @@ export class PerformanceOptimizer {
     const avgMetrics = this.calculateAverageMetrics(recentMetrics);
 
     // Analyze query latency
-    if (avgMetrics.queryLatency > this.optimizationSettings.slowQueryThreshold) {
+    if (
+      avgMetrics.queryLatency > this.optimizationSettings.slowQueryThreshold
+    ) {
       suggestions.push({
         type: 'query',
         severity: 'high',
         message: `Average query latency (${avgMetrics.queryLatency.toFixed(2)}ms) exceeds threshold`,
-        suggestion: 'Review pg_stat_statements for slow queries and add missing indexes',
-        impact: avgMetrics.queryLatency / this.optimizationSettings.slowQueryThreshold
+        suggestion:
+          'Review pg_stat_statements for slow queries and add missing indexes',
+        impact:
+          avgMetrics.queryLatency /
+          this.optimizationSettings.slowQueryThreshold,
       });
     }
 
     // Analyze connection count
-    if (avgMetrics.connectionCount > this.optimizationSettings.highConnectionThreshold) {
+    if (
+      avgMetrics.connectionCount >
+      this.optimizationSettings.highConnectionThreshold
+    ) {
       suggestions.push({
         type: 'connection',
         severity: 'medium',
         message: `High connection count (${avgMetrics.connectionCount})`,
-        suggestion: 'Consider increasing pool size or implementing connection timeout',
-        impact: avgMetrics.connectionCount / this.optimizationSettings.highConnectionThreshold
+        suggestion:
+          'Consider increasing pool size or implementing connection timeout',
+        impact:
+          avgMetrics.connectionCount /
+          this.optimizationSettings.highConnectionThreshold,
       });
     }
 
     // Analyze cache hit rate
-    if (avgMetrics.cacheHitRate < this.optimizationSettings.lowCacheHitRateThreshold) {
+    if (
+      avgMetrics.cacheHitRate <
+      this.optimizationSettings.lowCacheHitRateThreshold
+    ) {
       suggestions.push({
         type: 'cache',
         severity: 'medium',
         message: `Low cache hit rate (${(avgMetrics.cacheHitRate * 100).toFixed(1)}%)`,
-        suggestion: 'Review cache keys and TTLs, implement cache warming for frequently accessed data',
-        impact: 1 - (avgMetrics.cacheHitRate / this.optimizationSettings.lowCacheHitRateThreshold)
+        suggestion:
+          'Review cache keys and TTLs, implement cache warming for frequently accessed data',
+        impact:
+          1 -
+          avgMetrics.cacheHitRate /
+            this.optimizationSettings.lowCacheHitRateThreshold,
       });
     }
 
     // Analyze memory usage
-    if (avgMetrics.memoryUsage > this.optimizationSettings.highMemoryThreshold) {
+    if (
+      avgMetrics.memoryUsage > this.optimizationSettings.highMemoryThreshold
+    ) {
       suggestions.push({
         type: 'memory',
         severity: 'medium',
         message: `High memory usage (${this.formatBytes(avgMetrics.memoryUsage)})`,
-        suggestion: 'Review memory leaks, increase garbage collection frequency, or increase memory limits',
-        impact: avgMetrics.memoryUsage / this.optimizationSettings.highMemoryThreshold
+        suggestion:
+          'Review memory leaks, increase garbage collection frequency, or increase memory limits',
+        impact:
+          avgMetrics.memoryUsage /
+          this.optimizationSettings.highMemoryThreshold,
       });
     }
 
@@ -266,32 +292,39 @@ export class PerformanceOptimizer {
   /**
    * Calculate average metrics from metrics array
    */
-  private calculateAverageMetrics(metrics: PerformanceMetrics[]): Partial<PerformanceMetrics> {
-    const sum = metrics.reduce((acc, metric) => ({
-      queryLatency: acc.queryLatency + metric.queryLatency,
-      connectionCount: acc.connectionCount + metric.connectionCount,
-      cacheHitRate: acc.cacheHitRate + metric.cacheHitRate,
-      memoryUsage: acc.memoryUsage + metric.memoryUsage
-    }), {
-      queryLatency: 0,
-      connectionCount: 0,
-      cacheHitRate: 0,
-      memoryUsage: 0
-    });
+  private calculateAverageMetrics(
+    metrics: PerformanceMetrics[]
+  ): Partial<PerformanceMetrics> {
+    const sum = metrics.reduce(
+      (acc, metric) => ({
+        queryLatency: acc.queryLatency + metric.queryLatency,
+        connectionCount: acc.connectionCount + metric.connectionCount,
+        cacheHitRate: acc.cacheHitRate + metric.cacheHitRate,
+        memoryUsage: acc.memoryUsage + metric.memoryUsage,
+      }),
+      {
+        queryLatency: 0,
+        connectionCount: 0,
+        cacheHitRate: 0,
+        memoryUsage: 0,
+      }
+    );
 
     const count = metrics.length;
     return {
       queryLatency: sum.queryLatency / count,
       connectionCount: sum.connectionCount / count,
       cacheHitRate: sum.cacheHitRate / count,
-      memoryUsage: sum.memoryUsage / count
+      memoryUsage: sum.memoryUsage / count,
     };
   }
 
   /**
    * Check for missing database indexes
    */
-  private async checkDatabaseIndexes(suggestions: OptimizationSuggestion[]): Promise<void> {
+  private async checkDatabaseIndexes(
+    suggestions: OptimizationSuggestion[]
+  ): Promise<void> {
     try {
       // Check for tables without indexes or with missing foreign key indexes
       const result = await this.pool.query(`
@@ -331,7 +364,7 @@ export class PerformanceOptimizer {
             severity: 'high',
             message: `Table ${row.tablename} (${row.row_count?.toLocaleString()} rows) has no indexes`,
             suggestion: `Add primary key indexing and frequently queried fields indexes to ${row.tablename}`,
-            impact: 0.8
+            impact: 0.8,
           });
         } else if (row.has_pk === 0) {
           suggestions.push({
@@ -339,19 +372,23 @@ export class PerformanceOptimizer {
             severity: 'medium',
             message: `Table ${row.tablename} lacks primary key`,
             suggestion: `Add primary key indexing to ${row.tablename}`,
-            impact: 0.5
+            impact: 0.5,
           });
         }
       }
     } catch (error) {
-      logger.debug('Could not check database indexes', { error: error.message });
+      logger.debug('Could not check database indexes', {
+        error: error.message,
+      });
     }
   }
 
   /**
    * Apply automatic optimization
    */
-  private async applyOptimization(suggestion: OptimizationSuggestion): Promise<void> {
+  private async applyOptimization(
+    suggestion: OptimizationSuggestion
+  ): Promise<void> {
     logger.info('Applying automatic optimization', suggestion);
 
     switch (suggestion.type) {
@@ -381,12 +418,17 @@ export class PerformanceOptimizer {
     // Implement cache optimization strategies
     try {
       const stats = this.cacheService.getStats();
-      
-      if (stats.hitRate < 0.5 && stats.memoryUsage < this.cacheService['config'].maxKeys * 0.8) {
+
+      if (
+        stats.hitRate < 0.5 &&
+        stats.memoryUsage < this.cacheService['config'].maxKeys * 0.8
+      ) {
         // Increase memory cache TTL if hit rate is low and we have space
         if (this.cacheService['config'].memoryCacheTTL < 600) {
           this.cacheService['config'].memoryCacheTTL += 60;
-          logger.info('Increased memory cache TTL', { newTTL: this.cacheService['config'].memoryCacheTTL });
+          logger.info('Increased memory cache TTL', {
+            newTTL: this.cacheService['config'].memoryCacheTTL,
+          });
         }
       } else if (stats.hitRate < 0.3) {
         // Clear stale cache if hit rate is very low
@@ -404,10 +446,10 @@ export class PerformanceOptimizer {
     try {
       // Clear poor performing query cache
       await this.cacheService.invalidate('slow_query');
-      
+
       // Run PostgreSQL ANALYZE to update statistics
       await this.pool.query('ANALYZE');
-      
+
       logger.info('Query optimization applied');
     } catch (error) {
       logger.error('Query optimization failed', { error: error.message });
@@ -427,16 +469,17 @@ export class PerformanceOptimizer {
       `);
 
       const totalConnections = parseInt(currentStats.rows[0].total_connections);
-      const activeConnections = parseInt(currentStats.rows[0].active_connections);
+      const activeConnections = parseInt(
+        currentStats.rows[0].active_connections
+      );
 
       // Log connection usage for manual review
       logger.info('Connection pool usage', {
         totalConnections,
         activeConnections,
         poolSize: this.pool.totalCount,
-        idle: this.pool.idleCount
+        idle: this.pool.idleCount,
       });
-
     } catch (error) {
       logger.error('Connection optimization failed', { error: error.message });
     }
@@ -452,7 +495,7 @@ export class PerformanceOptimizer {
         global.gc();
         logger.info('Manual garbage collection triggered');
       }
-      
+
       // Clear old metrics to free memory
       if (this.metrics.length > this.maxMetricsHistory / 2) {
         this.metrics = this.metrics.slice(-this.maxMetricsHistory / 2);
@@ -470,12 +513,12 @@ export class PerformanceOptimizer {
     const units = ['B', 'KB', 'MB', 'GB'];
     let size = bytes;
     let unitIndex = 0;
-    
+
     while (size >= 1024 && unitIndex < units.length - 1) {
       size /= 1024;
       unitIndex++;
     }
-    
+
     return `${size.toFixed(1)} ${units[unitIndex]}`;
   }
 
@@ -494,9 +537,9 @@ export class PerformanceOptimizer {
       system: {
         uptime: process.uptime(),
         memory: process.memoryUsage(),
-        cpu: process.cpuUsage()
+        cpu: process.cpuUsage(),
       },
-      settings: this.optimizationSettings
+      settings: this.optimizationSettings,
     };
   }
 

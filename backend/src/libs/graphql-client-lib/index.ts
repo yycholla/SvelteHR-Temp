@@ -1,9 +1,9 @@
 /**
  * GraphQL Client Library
- * 
+ *
  * High-performance GraphQL client optimized for Hasura integration with
  * advanced caching, subscription management, and query optimization.
- * 
+ *
  * Features:
  * - Intelligent query caching with TTL and invalidation
  * - Real-time subscription multiplexing
@@ -134,28 +134,28 @@ export class GraphQLClientLib extends EventEmitter {
 
   constructor(config: GraphQLClientConfig) {
     super();
-    
+
     this.config = {
       ...config,
       cache: {
         defaultTTL: 300, // 5 minutes
         maxSize: 1000,
         enableInMemory: true,
-        ...config.cache
+        ...config.cache,
       },
       performance: {
         enableMetrics: true,
         slowQueryThreshold: 1000, // 1 second
         enableBatching: false, // Disabled by default for Hasura
         batchInterval: 10,
-        ...config.performance
+        ...config.performance,
       },
       subscriptions: {
         reconnectInterval: 5000,
         maxReconnectAttempts: 10,
         heartbeatInterval: 30000,
-        ...config.subscriptions
-      }
+        ...config.subscriptions,
+      },
     };
 
     this.redis = new Redis(config.redis.connectionString, {
@@ -197,7 +197,7 @@ export class GraphQLClientLib extends EventEmitter {
             cacheHit: true,
             queryHash,
             variables: variables || {},
-            timestamp: new Date()
+            timestamp: new Date(),
           });
 
           return {
@@ -205,8 +205,8 @@ export class GraphQLClientLib extends EventEmitter {
             extensions: {
               ...cachedResult.extensions,
               responseTime: Date.now() - startTime,
-              cacheHit: true
-            }
+              cacheHit: true,
+            },
           };
         }
       }
@@ -214,7 +214,10 @@ export class GraphQLClientLib extends EventEmitter {
       // Execute query
       let result: GraphQLResponse<T>;
 
-      if (this.config.performance.enableBatching && options.priority !== 'high') {
+      if (
+        this.config.performance.enableBatching &&
+        options.priority !== 'high'
+      ) {
         result = await this.executeBatchedQuery<T>(operation, options);
       } else {
         result = await this.executeQuery<T>(operation, options);
@@ -233,7 +236,7 @@ export class GraphQLClientLib extends EventEmitter {
         queryHash,
         variables: variables || {},
         errors: result.errors,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
 
       return {
@@ -241,10 +244,9 @@ export class GraphQLClientLib extends EventEmitter {
         extensions: {
           ...result.extensions,
           responseTime: Date.now() - startTime,
-          cacheHit: false
-        }
+          cacheHit: false,
+        },
       };
-
     } catch (error) {
       this.recordMetrics({
         executionTime: Date.now() - startTime,
@@ -252,7 +254,7 @@ export class GraphQLClientLib extends EventEmitter {
         queryHash,
         variables: variables || {},
         errors: [{ message: error.message }],
-        timestamp: new Date()
+        timestamp: new Date(),
       });
 
       throw error;
@@ -268,7 +270,10 @@ export class GraphQLClientLib extends EventEmitter {
     options: QueryOptions = {}
   ): Promise<GraphQLResponse<T>> {
     const operation: GraphQLQuery = { query: mutation, variables };
-    const result = await this.executeQuery<T>(operation, { ...options, skipCache: true });
+    const result = await this.executeQuery<T>(operation, {
+      ...options,
+      skipCache: true,
+    });
 
     // Invalidate related cache entries
     await this.invalidateCache(mutation, variables);
@@ -292,7 +297,7 @@ export class GraphQLClientLib extends EventEmitter {
       query,
       options,
       reconnectCount: 0,
-      lastActivity: new Date()
+      lastActivity: new Date(),
     };
 
     this.subscriptions.set(subscriptionId, subscriptionInfo);
@@ -304,7 +309,7 @@ export class GraphQLClientLib extends EventEmitter {
 
     return {
       id: subscriptionId,
-      unsubscribe: () => this.unsubscribe(subscriptionId)
+      unsubscribe: () => this.unsubscribe(subscriptionId),
     };
   }
 
@@ -317,10 +322,12 @@ export class GraphQLClientLib extends EventEmitter {
 
     // Send stop message to server
     if (this.wsConnection && this.wsConnection.readyState === WebSocket.OPEN) {
-      this.wsConnection.send(JSON.stringify({
-        id: subscriptionId,
-        type: 'stop'
-      }));
+      this.wsConnection.send(
+        JSON.stringify({
+          id: subscriptionId,
+          type: 'stop',
+        })
+      );
     }
 
     this.subscriptions.delete(subscriptionId);
@@ -358,14 +365,17 @@ export class GraphQLClientLib extends EventEmitter {
           method: 'POST',
           headers,
           body: JSON.stringify(operation),
-          signal: controller.signal
+          signal: controller.signal,
         } as any);
 
         clearTimeout(timeoutId);
 
         if (!response.ok) {
           // Handle authentication errors
-          if (response.status === 401 && this.config.auth.tokenRefreshCallback) {
+          if (
+            response.status === 401 &&
+            this.config.auth.tokenRefreshCallback
+          ) {
             const newToken = await this.config.auth.tokenRefreshCallback();
             if (newToken) {
               headers['Authorization'] = `Bearer ${newToken}`;
@@ -380,9 +390,10 @@ export class GraphQLClientLib extends EventEmitter {
 
         // Check for GraphQL errors
         if (result.errors?.length) {
-          const authError = result.errors.find(error => 
-            error.extensions?.code === 'access-denied' || 
-            error.message.toLowerCase().includes('unauthorized')
+          const authError = result.errors.find(
+            (error) =>
+              error.extensions?.code === 'access-denied' ||
+              error.message.toLowerCase().includes('unauthorized')
           );
 
           if (authError && this.config.auth.tokenRefreshCallback) {
@@ -395,14 +406,13 @@ export class GraphQLClientLib extends EventEmitter {
         }
 
         return result;
-
       } catch (error) {
         lastError = error;
-        
+
         if (attempt < maxRetries && this.isRetryableError(error)) {
           // Exponential backoff
           const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
-          await new Promise(resolve => setTimeout(resolve, delay));
+          await new Promise((resolve) => setTimeout(resolve, delay));
           continue;
         }
 
@@ -426,7 +436,7 @@ export class GraphQLClientLib extends EventEmitter {
         query: operation,
         options,
         resolve: resolve as any,
-        reject
+        reject,
       };
 
       this.batchQueue.push(batchedQuery);
@@ -455,14 +465,14 @@ export class GraphQLClientLib extends EventEmitter {
     if (this.batchQueue.length === 0) return;
 
     const batch = this.batchQueue.splice(0);
-    
+
     try {
       // For Hasura, we'll send individual requests but with connection reuse
       // True batching would require GraphQL batching support
-      const promises = batch.map(item => 
+      const promises = batch.map((item) =>
         this.executeQuery(item.query, item.options)
-          .then(result => ({ item, result }))
-          .catch(error => ({ item, error }))
+          .then((result) => ({ item, result }))
+          .catch((error) => ({ item, error }))
       );
 
       const results = await Promise.all(promises);
@@ -474,33 +484,39 @@ export class GraphQLClientLib extends EventEmitter {
           item.resolve(result);
         }
       });
-
     } catch (error) {
       // Reject all queries in batch
-      batch.forEach(item => item.reject(error));
+      batch.forEach((item) => item.reject(error));
     }
   }
 
   /**
    * Generate cache key for query
    */
-  private generateQueryHash(query: string, variables?: Record<string, any>): string {
+  private generateQueryHash(
+    query: string,
+    variables?: Record<string, any>
+  ): string {
     const normalized = query.replace(/\s+/g, ' ').trim();
     const variablesStr = variables ? JSON.stringify(variables) : '';
-    return createHash('sha256').update(normalized + variablesStr).digest('hex');
+    return createHash('sha256')
+      .update(normalized + variablesStr)
+      .digest('hex');
   }
 
   /**
    * Get cached result
    */
-  private async getCachedResult<T>(queryHash: string): Promise<GraphQLResponse<T> | null> {
+  private async getCachedResult<T>(
+    queryHash: string
+  ): Promise<GraphQLResponse<T> | null> {
     // Check in-memory cache first
     if (this.config.cache.enableInMemory) {
       const cached = this.inMemoryCache.get(queryHash);
       if (cached && cached.expires > Date.now()) {
         return cached.data;
       }
-      
+
       // Remove expired entry
       if (cached) {
         this.inMemoryCache.delete(queryHash);
@@ -512,15 +528,15 @@ export class GraphQLClientLib extends EventEmitter {
       const cached = await this.redis.get(queryHash);
       if (cached) {
         const result = JSON.parse(cached);
-        
+
         // Also store in memory cache if enabled
         if (this.config.cache.enableInMemory) {
           this.inMemoryCache.set(queryHash, {
             data: result,
-            expires: Date.now() + (this.config.cache.defaultTTL! * 1000)
+            expires: Date.now() + this.config.cache.defaultTTL! * 1000,
           });
         }
-        
+
         return result;
       }
     } catch (error) {
@@ -557,7 +573,7 @@ export class GraphQLClientLib extends EventEmitter {
 
       this.inMemoryCache.set(queryHash, {
         data: result,
-        expires: Date.now() + (ttlSeconds * 1000)
+        expires: Date.now() + ttlSeconds * 1000,
       });
     }
   }
@@ -565,13 +581,18 @@ export class GraphQLClientLib extends EventEmitter {
   /**
    * Invalidate cache entries related to mutation
    */
-  private async invalidateCache(mutation: string, variables?: Record<string, any>): Promise<void> {
+  private async invalidateCache(
+    mutation: string,
+    variables?: Record<string, any>
+  ): Promise<void> {
     // Extract table/entity names from mutation
     const tableMatches = mutation.match(/(?:insert|update|delete)_(\w+)/gi);
-    
+
     if (tableMatches) {
-      const tables = tableMatches.map(match => match.split('_').slice(1).join('_'));
-      
+      const tables = tableMatches.map((match) =>
+        match.split('_').slice(1).join('_')
+      );
+
       // Clear Redis cache patterns
       for (const table of tables) {
         try {
@@ -587,7 +608,7 @@ export class GraphQLClientLib extends EventEmitter {
       // Clear in-memory cache entries
       if (this.config.cache.enableInMemory) {
         for (const [key, value] of this.inMemoryCache.entries()) {
-          if (tables.some(table => key.includes(table))) {
+          if (tables.some((table) => key.includes(table))) {
             this.inMemoryCache.delete(key);
           }
         }
@@ -621,7 +642,7 @@ export class GraphQLClientLib extends EventEmitter {
 
         // Send connection init with auth
         const initPayload: any = {};
-        
+
         if (this.config.auth.getToken) {
           const token = await this.config.auth.getToken();
           if (token) {
@@ -629,10 +650,12 @@ export class GraphQLClientLib extends EventEmitter {
           }
         }
 
-        this.wsConnection!.send(JSON.stringify({
-          type: 'connection_init',
-          payload: initPayload
-        }));
+        this.wsConnection!.send(
+          JSON.stringify({
+            type: 'connection_init',
+            payload: initPayload,
+          })
+        );
 
         // Start heartbeat
         this.startHeartbeat();
@@ -646,7 +669,7 @@ export class GraphQLClientLib extends EventEmitter {
       this.wsConnection.on('close', (code: number, reason: string) => {
         console.log(`WebSocket closed: ${code} ${reason}`);
         this.stopHeartbeat();
-        
+
         // Attempt to reconnect
         this.attemptReconnect();
       });
@@ -705,11 +728,13 @@ export class GraphQLClientLib extends EventEmitter {
       return;
     }
 
-    this.wsConnection.send(JSON.stringify({
-      id: subscription.id,
-      type: 'start',
-      payload: subscription.query
-    }));
+    this.wsConnection.send(
+      JSON.stringify({
+        id: subscription.id,
+        type: 'start',
+        payload: subscription.query,
+      })
+    );
   }
 
   /**
@@ -763,7 +788,7 @@ export class GraphQLClientLib extends EventEmitter {
   private reestablishSubscriptions(): void {
     for (const subscription of this.subscriptions.values()) {
       this.sendSubscription(subscription);
-      
+
       if (subscription.options.onReconnect) {
         subscription.options.onReconnect();
       }
@@ -776,7 +801,9 @@ export class GraphQLClientLib extends EventEmitter {
    * Attempt to reconnect WebSocket
    */
   private attemptReconnect(): void {
-    if (this.reconnectAttempts >= this.config.subscriptions.maxReconnectAttempts!) {
+    if (
+      this.reconnectAttempts >= this.config.subscriptions.maxReconnectAttempts!
+    ) {
       console.error('Max reconnection attempts reached');
       this.emit('reconnectFailed', this.reconnectAttempts);
       return;
@@ -784,11 +811,14 @@ export class GraphQLClientLib extends EventEmitter {
 
     this.reconnectAttempts++;
     const delay = Math.min(
-      this.config.subscriptions.reconnectInterval! * Math.pow(2, this.reconnectAttempts - 1),
+      this.config.subscriptions.reconnectInterval! *
+        Math.pow(2, this.reconnectAttempts - 1),
       30000
     );
 
-    console.log(`Attempting reconnect #${this.reconnectAttempts} in ${delay}ms`);
+    console.log(
+      `Attempting reconnect #${this.reconnectAttempts} in ${delay}ms`
+    );
 
     this.reconnectTimer = setTimeout(() => {
       this.ensureWebSocketConnection().catch((error) => {
@@ -803,7 +833,10 @@ export class GraphQLClientLib extends EventEmitter {
    */
   private startHeartbeat(): void {
     this.heartbeatTimer = setInterval(() => {
-      if (this.wsConnection && this.wsConnection.readyState === WebSocket.OPEN) {
+      if (
+        this.wsConnection &&
+        this.wsConnection.readyState === WebSocket.OPEN
+      ) {
         this.wsConnection.ping();
       }
     }, this.config.subscriptions.heartbeatInterval);
@@ -856,16 +889,22 @@ export class GraphQLClientLib extends EventEmitter {
         averageResponseTime: 0,
         cacheHitRate: 0,
         slowQueries: 0,
-        errorRate: 0
+        errorRate: 0,
       };
     }
 
     const totalQueries = this.queryMetrics.length;
-    const averageResponseTime = this.queryMetrics.reduce((sum, m) => sum + m.executionTime, 0) / totalQueries;
-    const cacheHits = this.queryMetrics.filter(m => m.cacheHit).length;
+    const averageResponseTime =
+      this.queryMetrics.reduce((sum, m) => sum + m.executionTime, 0) /
+      totalQueries;
+    const cacheHits = this.queryMetrics.filter((m) => m.cacheHit).length;
     const cacheHitRate = cacheHits / totalQueries;
-    const slowQueries = this.queryMetrics.filter(m => m.executionTime > this.config.performance.slowQueryThreshold!).length;
-    const errorsCount = this.queryMetrics.filter(m => m.errors?.length).length;
+    const slowQueries = this.queryMetrics.filter(
+      (m) => m.executionTime > this.config.performance.slowQueryThreshold!
+    ).length;
+    const errorsCount = this.queryMetrics.filter(
+      (m) => m.errors?.length
+    ).length;
     const errorRate = errorsCount / totalQueries;
 
     return {
@@ -873,7 +912,7 @@ export class GraphQLClientLib extends EventEmitter {
       averageResponseTime: Math.round(averageResponseTime),
       cacheHitRate: Math.round(cacheHitRate * 100) / 100,
       slowQueries,
-      errorRate: Math.round(errorRate * 100) / 100
+      errorRate: Math.round(errorRate * 100) / 100,
     };
   }
 
@@ -882,10 +921,13 @@ export class GraphQLClientLib extends EventEmitter {
    */
   private isRetryableError(error: any): boolean {
     if (error.name === 'AbortError') return false; // Timeout
-    if (error.message?.includes('401') || error.message?.includes('403')) return false; // Auth
-    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') return true; // Network
-    if (error.message?.includes('500') || error.message?.includes('502')) return true; // Server errors
-    
+    if (error.message?.includes('401') || error.message?.includes('403'))
+      return false; // Auth
+    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND')
+      return true; // Network
+    if (error.message?.includes('500') || error.message?.includes('502'))
+      return true; // Server errors
+
     return false;
   }
 
@@ -908,7 +950,7 @@ export class GraphQLClientLib extends EventEmitter {
     // Clean up old metrics every hour
     setInterval(() => {
       const cutoff = new Date(Date.now() - 3600000); // 1 hour ago
-      this.queryMetrics = this.queryMetrics.filter(m => m.timestamp > cutoff);
+      this.queryMetrics = this.queryMetrics.filter((m) => m.timestamp > cutoff);
     }, 3600000);
   }
 

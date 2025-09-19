@@ -3,12 +3,14 @@
 ## Prerequisites
 
 1. **Development Environment**:
+
    ```bash
    npm install
    npm run dev  # SvelteKit on http://localhost:5175
    ```
 
 2. **Database Setup**:
+
    ```bash
    # PostGraphile should be running on http://localhost:4000
    # Verify GraphQL endpoint is accessible
@@ -41,6 +43,7 @@ npm run dev
 ```
 
 **Symptoms to observe**:
+
 - Console shows multiple `validateSession: Starting validation` messages
 - Browser shows rapid redirects between `/login` and `/admin`
 - Network tab shows repeated requests
@@ -62,9 +65,9 @@ Open browser console and check:
 ```javascript
 // Check authentication state
 console.log('Auth state:', {
-  localStorage: localStorage.getItem('postgraphile-jwt-token'),
-  sessionStorage: Object.keys(sessionStorage).filter(k => k.includes('hr_')),
-  currentURL: window.location.href
+	localStorage: localStorage.getItem('postgraphile-jwt-token'),
+	sessionStorage: Object.keys(sessionStorage).filter((k) => k.includes('hr_')),
+	currentURL: window.location.href
 });
 
 // Check for repeated function calls
@@ -76,6 +79,7 @@ console.log('Auth state:', {
 ### Scenario 1: Successful Admin Login (Currently Failing)
 
 **Steps**:
+
 1. Navigate to `http://localhost:5175`
 2. Should redirect to `/login`
 3. Enter admin credentials:
@@ -84,11 +88,13 @@ console.log('Auth state:', {
 4. Click "Sign In"
 
 **Expected Result**:
+
 - JWT token stored in localStorage
 - User redirected to `/admin` dashboard
 - Admin page loads without further redirects
 
 **Current Broken Result**:
+
 - JWT token stored correctly
 - Multiple redirects between pages
 - Application becomes unusable
@@ -96,36 +102,43 @@ console.log('Auth state:', {
 ### Scenario 2: Already Authenticated User (Currently Failing)
 
 **Steps**:
+
 1. Complete Scenario 1 successfully (after fix)
 2. Open new tab to `http://localhost:5175`
 3. Should detect existing authentication
 
 **Expected Result**:
+
 - Immediate redirect to `/admin` (no login required)
 - Single redirect, no loops
 
 **Current Broken Result**:
+
 - Multiple redirects even with valid token
 
 ### Scenario 3: Token Expiration Handling
 
 **Steps**:
+
 1. Login successfully
 2. Manually expire the JWT token in localStorage
 3. Navigate to protected route
 
 **Expected Result**:
+
 - Single redirect to `/login`
 - Clear error message about session expiration
 
 ### Scenario 4: Multiple Browser Tabs
 
 **Steps**:
+
 1. Open application in two browser tabs
 2. Login in one tab
 3. Navigate in both tabs
 
 **Expected Result**:
+
 - Both tabs should share authentication state
 - No redirect conflicts between tabs
 
@@ -198,6 +211,7 @@ After implementing the fix, all of these should work:
 If the fix causes regressions:
 
 1. **Immediate Rollback**:
+
    ```bash
    git checkout [previous-working-commit]
    npm run dev

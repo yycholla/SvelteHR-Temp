@@ -27,8 +27,8 @@ export default defineConfig({
 			command: 'npm run dev',
 			port: 5175,
 			reuseExistingServer: !process.env.CI,
-			timeout: 120 * 1000,
-		},
+			timeout: 120 * 1000
+		}
 		// Uncomment if we need to test against PostGraphile separately
 		// {
 		//   command: 'npm run backend:dev',
@@ -55,25 +55,25 @@ export default defineConfig({
 		navigationTimeout: 30 * 1000,
 
 		// Action timeout
-		actionTimeout: 10 * 1000,
+		actionTimeout: 10 * 1000
 	},
 
 	// Configure projects for major browsers
 	projects: [
 		{
 			name: 'chromium',
-			use: { ...devices['Desktop Chrome'] },
+			use: { ...devices['Desktop Chrome'] }
 		},
 
 		{
 			name: 'firefox',
-			use: { ...devices['Desktop Firefox'] },
+			use: { ...devices['Desktop Firefox'] }
 		},
 
 		{
 			name: 'webkit',
-			use: { ...devices['Desktop Safari'] },
-		},
+			use: { ...devices['Desktop Safari'] }
+		}
 
 		// Mobile testing (uncomment if needed)
 		// {
@@ -91,5 +91,5 @@ export default defineConfig({
 		['html', { outputFolder: 'playwright-report' }],
 		['line'],
 		['json', { outputFile: 'test-results/results.json' }]
-	],
+	]
 });

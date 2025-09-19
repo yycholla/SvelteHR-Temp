@@ -6,9 +6,11 @@
 ## JWT with PostGraphile Integration
 
 ### Decision: PostGraphile Native JWT Authentication
+
 **Rationale**: PostGraphile 4.x has built-in JWT support that integrates directly with PostgreSQL roles and RLS policies, eliminating the need for middleware layers.
 
 **Key Configuration**:
+
 ```bash
 postgraphile \
   --jwt-secret $JWT_SECRET \
@@ -18,14 +20,17 @@ postgraphile \
 ```
 
 **Alternatives Considered**:
+
 - Custom middleware JWT validation: Rejected due to performance overhead
 - Session-based authentication: Rejected due to scaling concerns
 - Third-party auth services: Rejected to maintain data sovereignty
 
 ### Decision: PostgreSQL RLS for Authorization
+
 **Rationale**: Row-Level Security policies provide database-level security that's enforced regardless of application layer bugs.
 
 **Implementation Pattern**:
+
 ```sql
 CREATE FUNCTION current_user_id() RETURNS INTEGER AS $$
   SELECT NULLIF(current_setting('jwt.claims.user_id', TRUE), '')::INTEGER;
@@ -36,59 +41,69 @@ CREATE POLICY user_own_data ON users
 ```
 
 **Alternatives Considered**:
+
 - Application-level authorization: Rejected due to security bypass risk
 - ORM-based policies: Rejected due to PostGraphile's direct SQL approach
 
 ## SvelteKit Authentication Patterns
 
 ### Decision: HttpOnly Cookies + Server-Side Validation
+
 **Rationale**: HttpOnly cookies prevent XSS attacks while server-side validation ensures security on every request.
 
 **Implementation**:
+
 ```typescript
 // Secure cookie setting
 cookies.set('jwt-token', token, {
-  httpOnly: true,
-  secure: true,
-  sameSite: 'strict',
-  maxAge: 60 * 15 // 15 minutes
+	httpOnly: true,
+	secure: true,
+	sameSite: 'strict',
+	maxAge: 60 * 15 // 15 minutes
 });
 ```
 
 **Alternatives Considered**:
+
 - localStorage: Rejected due to XSS vulnerability
 - sessionStorage: Rejected due to same XSS concerns
 - Memory-only storage: Rejected due to refresh issues
 
 ### Decision: Server-Side Route Guards
+
 **Rationale**: Authentication checks in `hooks.server.ts` provide universal protection before any route rendering.
 
 **Implementation Pattern**:
+
 ```typescript
 export const handle: Handle = async ({ event, resolve }) => {
-  const token = event.cookies.get('jwt-token');
-  if (isProtectedPath && !token) {
-    throw redirect(302, '/login');
-  }
-  return resolve(event);
+	const token = event.cookies.get('jwt-token');
+	if (isProtectedPath && !token) {
+		throw redirect(302, '/login');
+	}
+	return resolve(event);
 };
 ```
 
 **Alternatives Considered**:
+
 - Client-side guards: Rejected due to security bypass potential
 - Page-level checks only: Rejected due to code duplication
 
 ## Token Management Strategy
 
 ### Decision: Short-lived Access Tokens with Refresh Rotation
+
 **Rationale**: 15-minute access tokens limit exposure window while refresh token rotation prevents replay attacks.
 
 **Security Model**:
+
 - Access tokens: 15 minutes, stored in httpOnly cookies
 - Refresh tokens: 30 days, stored in separate httpOnly cookies
 - Token rotation: New refresh token issued with each use
 
 **Alternatives Considered**:
+
 - Long-lived tokens: Rejected due to security exposure
 - Stateless refresh: Rejected due to revocation complexity
 - Memory-only tokens: Rejected due to UX impact
@@ -96,15 +111,18 @@ export const handle: Handle = async ({ event, resolve }) => {
 ## Role-Based Access Control
 
 ### Decision: Four-Tier Hierarchy with Numeric Levels
+
 **Rationale**: Numeric levels (100, 80, 60, 20) allow both exact role matching and hierarchical permission checks.
 
 **Role Structure**:
+
 - Admin (100): Full system access
 - HR (80): Employee lifecycle management
 - Manager (60): Team management
 - Employee (20): Self-service access
 
 **JWT Claims Structure**:
+
 ```typescript
 {
   "role": "authenticated",
@@ -116,6 +134,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 ```
 
 **Alternatives Considered**:
+
 - String-only roles: Rejected due to hierarchy complexity
 - Flat permissions: Rejected due to management overhead
 - External role service: Rejected due to latency concerns
@@ -123,18 +142,22 @@ export const handle: Handle = async ({ event, resolve }) => {
 ## Security Architecture
 
 ### Decision: Defense in Depth
+
 **Rationale**: Multiple security layers ensure that single points of failure don't compromise the system.
 
 **Security Layers**:
+
 1. Database level: PostgreSQL RLS policies
 2. Application level: Server-side route guards
 3. Network level: HTTPS, CSRF protection, security headers
 4. Token level: Short expiration, secure storage, rotation
 
 ### Decision: Structured Security Logging
+
 **Rationale**: Comprehensive audit trails enable security monitoring and incident response.
 
 **Logging Events**:
+
 - Authentication attempts (success/failure)
 - Authorization failures
 - Token refresh events
@@ -142,6 +165,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 - Suspicious activity patterns
 
 **Alternatives Considered**:
+
 - Basic logging: Rejected due to inadequate security monitoring
 - External SIEM only: Rejected due to local forensics needs
 - No logging: Rejected due to compliance requirements
@@ -149,22 +173,27 @@ export const handle: Handle = async ({ event, resolve }) => {
 ## Performance Considerations
 
 ### Decision: Token Validation Caching
+
 **Rationale**: Redis caching reduces JWT validation overhead for high-frequency requests.
 
 **Caching Strategy**:
+
 - Valid tokens cached for 5 minutes
 - Cache invalidation on role changes
 - Fallback to JWT validation on cache miss
 
 ### Decision: Connection Pooling
+
 **Rationale**: PostgreSQL connection pooling prevents database exhaustion under load.
 
 **Configuration**:
+
 - PgBouncer transaction-level pooling
 - Max 100 connections per instance
 - Connection timeout: 30 seconds
 
 **Alternatives Considered**:
+
 - No pooling: Rejected due to scalability limits
 - Session-level pooling: Rejected due to RLS context issues
 - Application-level pooling: Rejected due to PostGraphile integration

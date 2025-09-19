@@ -76,10 +76,9 @@ describe('auth-analyze CLI Contract', () => {
 
   it('should execute analyze with pattern detection enabled', () => {
     try {
-      const output = execSync(
-        `node ${cliPath} results --pattern-detection --format json`,
-        { encoding: 'utf8' }
-      );
+      const output = execSync(`node ${cliPath} results --pattern-detection --format json`, {
+        encoding: 'utf8',
+      });
 
       // Contract requirement: Must support pattern detection
       const result = JSON.parse(output);
@@ -92,10 +91,9 @@ describe('auth-analyze CLI Contract', () => {
 
   it('should execute analyze with correlation analysis', () => {
     try {
-      const output = execSync(
-        `node ${cliPath} results --correlation-analysis --format json`,
-        { encoding: 'utf8' }
-      );
+      const output = execSync(`node ${cliPath} results --correlation-analysis --format json`, {
+        encoding: 'utf8',
+      });
 
       // Contract requirement: Must support correlation analysis
       const result = JSON.parse(output);
@@ -167,10 +165,9 @@ describe('auth-analyze CLI Contract', () => {
 
   it('should support confidence threshold configuration', () => {
     try {
-      const output = execSync(
-        `node ${cliPath} results --confidence-threshold 0.8 --format json`,
-        { encoding: 'utf8' }
-      );
+      const output = execSync(`node ${cliPath} results --confidence-threshold 0.8 --format json`, {
+        encoding: 'utf8',
+      });
 
       // Contract requirement: Must support confidence threshold
       const result = JSON.parse(output);

@@ -7,6 +7,7 @@
 ## Authentication Endpoints
 
 ### POST /api/auth/login
+
 **Purpose**: Initial user authentication  
 **Access**: Public
 
@@ -20,7 +21,7 @@ Request:
 Response:
 {
   "accessToken": "eyJhbGciOiJIUzI1NiIs...",
-  "refreshToken": "eyJhbGciOiJIUzI1NiIs...", 
+  "refreshToken": "eyJhbGciOiJIUzI1NiIs...",
   "expiresIn": 900,
   "user": {
     "id": "uuid",
@@ -37,6 +38,7 @@ Errors:
 ```
 
 ### POST /api/auth/refresh
+
 **Purpose**: Refresh access token  
 **Access**: Requires refresh token
 
@@ -57,7 +59,8 @@ Errors:
 500 - Server error
 ```
 
-### POST /api/auth/logout  
+### POST /api/auth/logout
+
 **Purpose**: Invalidate tokens  
 **Access**: Requires access token
 
@@ -74,6 +77,7 @@ Response:
 ## File Upload Endpoints
 
 ### POST /api/files/upload
+
 **Purpose**: Upload files for change requests, documents  
 **Access**: Authenticated users  
 **Content-Type**: multipart/form-data
@@ -101,6 +105,7 @@ Errors:
 ```
 
 ### GET /api/files/{fileId}
+
 **Purpose**: Download/view uploaded files  
 **Access**: Authenticated users with permission
 
@@ -119,6 +124,7 @@ Errors:
 ## Export Endpoints
 
 ### POST /api/exports/create
+
 **Purpose**: Initiate data export job  
 **Access**: HR Admin or Manager with appropriate permissions
 
@@ -152,6 +158,7 @@ Errors:
 ```
 
 ### GET /api/exports/{jobId}/status
+
 **Purpose**: Check export job status  
 **Access**: Job creator
 
@@ -168,6 +175,7 @@ Response:
 ```
 
 ### GET /api/exports/{jobId}/download
+
 **Purpose**: Download completed export  
 **Access**: Job creator, expires after 24 hours
 
@@ -188,6 +196,7 @@ Errors:
 ## Integration Endpoints
 
 ### POST /api/integrations/doppler/webhook
+
 **Purpose**: Receive configuration updates from Doppler  
 **Access**: Doppler webhook signature validation
 
@@ -214,6 +223,7 @@ Response:
 ```
 
 ### GET /api/health
+
 **Purpose**: Health check for monitoring  
 **Access**: Public
 
@@ -224,7 +234,7 @@ Response:
   "timestamp": "2025-09-10T10:30:00Z",
   "services": {
     "database": "healthy",
-    "redis": "healthy", 
+    "redis": "healthy",
     "graphql": "healthy"
   },
   "uptime": 86400
@@ -238,6 +248,7 @@ Status Codes:
 ## Admin Endpoints
 
 ### GET /api/admin/metrics
+
 **Purpose**: System metrics for monitoring dashboard  
 **Access**: Admin role required
 
@@ -263,6 +274,7 @@ Response:
 ```
 
 ### POST /api/admin/maintenance
+
 **Purpose**: Trigger maintenance operations  
 **Access**: Admin role required
 
@@ -282,9 +294,10 @@ Response:
 }
 ```
 
-## Notification Endpoints  
+## Notification Endpoints
 
 ### POST /api/notifications/send
+
 **Purpose**: Send notification to user(s)  
 **Access**: HR Admin or system service
 
@@ -310,13 +323,14 @@ Response:
 ```
 
 ### GET /api/notifications
+
 **Purpose**: Get user notifications  
 **Access**: Authenticated user (own notifications)
 
 ```json
 Query Parameters:
 - limit: number (default: 20, max: 100)
-- offset: number (default: 0) 
+- offset: number (default: 0)
 - unreadOnly: boolean (default: false)
 
 Response:
@@ -338,6 +352,7 @@ Response:
 ```
 
 ### PATCH /api/notifications/{id}/read
+
 **Purpose**: Mark notification as read  
 **Access**: Notification recipient
 
@@ -355,17 +370,17 @@ All endpoints use consistent error response format:
 
 ```json
 {
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Invalid email address",
-    "field": "email",
-    "details": {
-      "provided": "invalid-email",
-      "expected": "valid email format"
-    }
-  },
-  "timestamp": "2025-09-10T10:30:00Z",
-  "path": "/api/auth/login"
+	"error": {
+		"code": "VALIDATION_ERROR",
+		"message": "Invalid email address",
+		"field": "email",
+		"details": {
+			"provided": "invalid-email",
+			"expected": "valid email format"
+		}
+	},
+	"timestamp": "2025-09-10T10:30:00Z",
+	"path": "/api/auth/login"
 }
 ```
 
@@ -388,6 +403,7 @@ All endpoints use consistent error response format:
 - Admin APIs: 50 requests/minute per admin
 
 Rate limit headers included in responses:
+
 ```
 X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 95
@@ -397,6 +413,7 @@ X-RateLimit-Reset: 1641576000
 ## Security Headers
 
 All responses include security headers:
+
 ```
 X-Content-Type-Options: nosniff
 X-Frame-Options: DENY

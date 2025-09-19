@@ -12,10 +12,12 @@ const UUIDSchema = z.string().uuid('Must be valid UUID');
 const UserRoleSchema = z.enum(['admin', 'hr_admin', 'manager', 'employee', 'guest']);
 
 // JWT token validation - basic format check
-const JWTTokenSchema = z.string().regex(
-  /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/,
-  'Must be valid JWT format (header.payload.signature)'
-);
+const JWTTokenSchema = z
+  .string()
+  .regex(
+    /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/,
+    'Must be valid JWT format (header.payload.signature)'
+  );
 
 const CookieSchema = z.object({
   name: z.string().min(1, 'Cookie name cannot be empty'),
@@ -25,7 +27,7 @@ const CookieSchema = z.object({
   expires: z.date().optional(),
   httpOnly: z.boolean().optional(),
   secure: z.boolean().optional(),
-  sameSite: z.enum(['Strict', 'Lax', 'None']).optional()
+  sameSite: z.enum(['Strict', 'Lax', 'None']).optional(),
 });
 
 const AuthenticationSessionSchema = z.object({
@@ -42,7 +44,7 @@ const AuthenticationSessionSchema = z.object({
   lastActivity: z.date(),
   ipAddress: z.string().optional(),
   userAgent: z.string().optional(),
-  sessionMetadata: z.record(z.any()).optional()
+  sessionMetadata: z.record(z.any()).optional(),
 });
 
 export type UserRole = z.infer<typeof UserRoleSchema>;
@@ -52,14 +54,16 @@ export type AuthenticationSessionData = z.infer<typeof AuthenticationSessionSche
 export class AuthenticationSession {
   private data: AuthenticationSessionData;
 
-  constructor(input: Partial<AuthenticationSessionData> & {
-    id: string;
-    userId: string;
-    userRole: UserRole;
-    isActive: boolean;
-    loginTime: Date;
-    lastActivity: Date;
-  }) {
+  constructor(
+    input: Partial<AuthenticationSessionData> & {
+      id: string;
+      userId: string;
+      userRole: UserRole;
+      isActive: boolean;
+      loginTime: Date;
+      lastActivity: Date;
+    }
+  ) {
     // Validate login time vs last activity
     if (input.loginTime > input.lastActivity) {
       throw new Error('loginTime must be before lastActivity');
@@ -87,20 +91,48 @@ export class AuthenticationSession {
   }
 
   // Getters for accessing properties
-  get id(): string { return this.data.id; }
-  get userId(): string { return this.data.userId; }
-  get userRole(): UserRole { return this.data.userRole; }
-  get jwtToken(): string | undefined { return this.data.jwtToken; }
-  get tokenExpiry(): Date | undefined { return this.data.tokenExpiry; }
-  get sessionStorage(): Record<string, string> | undefined { return this.data.sessionStorage; }
-  get localStorage(): Record<string, string> | undefined { return this.data.localStorage; }
-  get cookies(): Cookie[] | undefined { return this.data.cookies; }
-  get isActive(): boolean { return this.data.isActive; }
-  get loginTime(): Date { return this.data.loginTime; }
-  get lastActivity(): Date { return this.data.lastActivity; }
-  get ipAddress(): string | undefined { return this.data.ipAddress; }
-  get userAgent(): string | undefined { return this.data.userAgent; }
-  get sessionMetadata(): Record<string, any> | undefined { return this.data.sessionMetadata; }
+  get id(): string {
+    return this.data.id;
+  }
+  get userId(): string {
+    return this.data.userId;
+  }
+  get userRole(): UserRole {
+    return this.data.userRole;
+  }
+  get jwtToken(): string | undefined {
+    return this.data.jwtToken;
+  }
+  get tokenExpiry(): Date | undefined {
+    return this.data.tokenExpiry;
+  }
+  get sessionStorage(): Record<string, string> | undefined {
+    return this.data.sessionStorage;
+  }
+  get localStorage(): Record<string, string> | undefined {
+    return this.data.localStorage;
+  }
+  get cookies(): Cookie[] | undefined {
+    return this.data.cookies;
+  }
+  get isActive(): boolean {
+    return this.data.isActive;
+  }
+  get loginTime(): Date {
+    return this.data.loginTime;
+  }
+  get lastActivity(): Date {
+    return this.data.lastActivity;
+  }
+  get ipAddress(): string | undefined {
+    return this.data.ipAddress;
+  }
+  get userAgent(): string | undefined {
+    return this.data.userAgent;
+  }
+  get sessionMetadata(): Record<string, any> | undefined {
+    return this.data.sessionMetadata;
+  }
 
   /**
    * Check if session is expired based on token expiry or activity timeout
@@ -197,7 +229,7 @@ export class AuthenticationSession {
       jwtToken: newToken,
       tokenExpiry: newExpiry,
       lastActivity: new Date(),
-      isActive: true
+      isActive: true,
     };
 
     // Update localStorage if present
@@ -215,7 +247,7 @@ export class AuthenticationSession {
       isActive: false,
       jwtToken: undefined,
       tokenExpiry: undefined,
-      lastActivity: new Date()
+      lastActivity: new Date(),
     };
 
     // Clear sensitive data from storage
@@ -239,7 +271,7 @@ export class AuthenticationSession {
 
     this.data = {
       ...this.data,
-      lastActivity: new Date()
+      lastActivity: new Date(),
     };
   }
 
@@ -255,8 +287,8 @@ export class AuthenticationSession {
       ...this.data,
       sessionStorage: {
         ...this.data.sessionStorage,
-        [key]: value
-      }
+        [key]: value,
+      },
     };
   }
 
@@ -272,8 +304,8 @@ export class AuthenticationSession {
       ...this.data,
       localStorage: {
         ...this.data.localStorage,
-        [key]: value
-      }
+        [key]: value,
+      },
     };
   }
 
@@ -298,7 +330,7 @@ export class AuthenticationSession {
 
     this.data = {
       ...this.data,
-      cookies
+      cookies,
     };
   }
 
@@ -325,11 +357,13 @@ export class AuthenticationSession {
   } {
     const hasToken = !!this.data.jwtToken;
     const hasValidToken = hasToken && JWTTokenSchema.safeParse(this.data.jwtToken).success;
-    const hasNonExpiredToken = hasValidToken &&
-      (!this.data.tokenExpiry || this.data.tokenExpiry > new Date());
+    const hasNonExpiredToken =
+      hasValidToken && (!this.data.tokenExpiry || this.data.tokenExpiry > new Date());
 
-    const hasAuthCookies = !!(this.data.cookies &&
-      this.data.cookies.some(c => c.name.includes('session') || c.name.includes('auth')));
+    const hasAuthCookies = !!(
+      this.data.cookies &&
+      this.data.cookies.some(c => c.name.includes('session') || c.name.includes('auth'))
+    );
 
     const isFullyAuthenticated = this.data.isActive && hasNonExpiredToken && !this.isExpired();
 
@@ -338,7 +372,7 @@ export class AuthenticationSession {
       hasValidToken,
       hasNonExpiredToken,
       hasAuthCookies,
-      isFullyAuthenticated
+      isFullyAuthenticated,
     };
   }
 
@@ -365,7 +399,8 @@ export class AuthenticationSession {
 
     // Check for proper session timeout
     const sessionDuration = this.getSessionDurationMinutes();
-    if (sessionDuration < 480) { // Less than 8 hours
+    if (sessionDuration < 480) {
+      // Less than 8 hours
       score += 1;
     }
 
@@ -399,7 +434,7 @@ export class AuthenticationSession {
       durationMinutes: this.getSessionDurationMinutes(),
       securityLevel: this.getSecurityLevel(),
       hasValidArtifacts: artifacts.isFullyAuthenticated,
-      storageValid: this.hasValidStorageStructure()
+      storageValid: this.hasValidStorageStructure(),
     };
   }
 
@@ -408,7 +443,7 @@ export class AuthenticationSession {
    */
   toJSON(): AuthenticationSessionData {
     return {
-      ...this.data
+      ...this.data,
     };
   }
 
@@ -423,8 +458,8 @@ export class AuthenticationSession {
       tokenExpiry: json.tokenExpiry ? new Date(json.tokenExpiry) : undefined,
       cookies: json.cookies?.map(c => ({
         ...c,
-        expires: c.expires ? new Date(c.expires) : undefined
-      }))
+        expires: c.expires ? new Date(c.expires) : undefined,
+      })),
     });
   }
 }

@@ -4,6 +4,7 @@
 **Input**: Feature specification from `/specs/005-my-frontend-is/spec.md`
 
 ## Execution Flow (/plan command scope)
+
 ```
 1. Load feature spec from Input path
    → If not found: ERROR "No feature spec at {path}"
@@ -25,15 +26,18 @@
 ```
 
 **IMPORTANT**: The /plan command STOPS at step 7. Phases 2-4 are executed by other commands:
+
 - Phase 2: /tasks command creates tasks.md
 - Phase 3-4: Implementation execution (manual or via tools)
 
 ## Summary
+
 **Primary Requirement**: Fix authentication redirect loop that prevents users from accessing the application after successful login. Users are experiencing infinite redirects between login and dashboard pages despite having valid credentials and authentication tokens.
 
 **Technical Approach**: Conduct thorough investigation of SvelteKit authentication patterns, PostGraphile integration, and client-side state management. Use Playwright for automated testing to reproduce and validate fixes. Apply incremental changes to isolate root causes while maintaining security.
 
 ## Technical Context
+
 **Language/Version**: TypeScript 5.x, SvelteKit 2.x, Node.js 18+
 **Primary Dependencies**: SvelteKit, PostGraphile, Urql GraphQL client, JWT authentication, Playwright testing
 **Storage**: PostgreSQL via PostGraphile GraphQL API
@@ -45,21 +49,25 @@
 **Scale/Scope**: Multi-role system (admin, HR, manager, employee), session management across tabs, network resilience
 
 ## Constitution Check
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+
+_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
 **Simplicity**:
+
 - Projects: 2 (frontend SvelteKit + backend PostGraphile) - within limit
 - Using framework directly? YES (SvelteKit auth hooks, no wrapper classes)
 - Single data model? YES (unified auth state, JWT tokens)
 - Avoiding patterns? YES (direct Svelte stores, no Repository pattern needed)
 
 **Architecture**:
+
 - EVERY feature as library? This is a bug fix, not new feature - modifying existing auth libraries
 - Libraries affected: auth store, auth service, navigation guards
 - CLI per library: N/A (frontend debugging via browser tools)
 - Library docs: Will update existing component documentation
 
 **Testing (NON-NEGOTIABLE)**:
+
 - RED-GREEN-Refactor cycle enforced? YES - Playwright tests must fail first to reproduce bug
 - Git commits show tests before implementation? YES - test reproduction before fixes
 - Order: Contract→Integration→E2E→Unit strictly followed? YES - E2E reproduction first
@@ -68,11 +76,13 @@
 - FORBIDDEN: Implementation before test, skipping RED phase - WILL ENFORCE
 
 **Observability**:
+
 - Structured logging included? YES (console.log with structured format for auth debugging)
 - Frontend logs → backend? NO (client-side auth issue, frontend logs sufficient)
 - Error context sufficient? YES (auth state, token validity, redirect attempts)
 
 **Versioning**:
+
 - Version number assigned? 0.0.1 (bug fix increment)
 - BUILD increments on every change? YES
 - Breaking changes handled? NO breaking changes expected (internal auth fix)
@@ -80,6 +90,7 @@
 ## Project Structure
 
 ### Documentation (this feature)
+
 ```
 specs/[###-feature]/
 ├── plan.md              # This file (/plan command output)
@@ -91,6 +102,7 @@ specs/[###-feature]/
 ```
 
 ### Source Code (repository root)
+
 ```
 # Option 1: Single project (DEFAULT)
 src/
@@ -130,12 +142,14 @@ ios/ or android/
 **Structure Decision**: Option 2 (Web application) - SvelteKit frontend with PostGraphile backend
 
 ## Phase 0: Outline & Research
+
 1. **Extract unknowns from Technical Context** above:
    - For each NEEDS CLARIFICATION → research task
    - For each dependency → best practices task
    - For each integration → patterns task
 
 2. **Generate and dispatch research agents**:
+
    ```
    For each unknown in Technical Context:
      Task: "Research {unknown} for {feature context}"
@@ -151,7 +165,8 @@ ios/ or android/
 **Output**: research.md with all NEEDS CLARIFICATION resolved
 
 ## Phase 1: Design & Contracts
-*Prerequisites: research.md complete*
+
+_Prerequisites: research.md complete_
 
 1. **Extract entities from feature spec** → `data-model.md`:
    - Entity name, fields, relationships
@@ -180,21 +195,24 @@ ios/ or android/
    - Keep under 150 lines for token efficiency
    - Output to repository root
 
-**Output**: data-model.md, /contracts/*, failing tests, quickstart.md, agent-specific file
+**Output**: data-model.md, /contracts/\*, failing tests, quickstart.md, agent-specific file
 
 ## Phase 2: Task Planning Approach
-*This section describes what the /tasks command will do - DO NOT execute during /plan*
+
+_This section describes what the /tasks command will do - DO NOT execute during /plan_
 
 **Task Generation Strategy**:
+
 - Load `/templates/tasks-template.md` as base
 - Generate tasks from Phase 1 design docs (contracts, data model, quickstart)
 - Each contract → contract test task [P]
-- Each entity → model creation task [P] 
+- Each entity → model creation task [P]
 - Each user story → integration test task
 - Implementation tasks to make tests pass
 
 **Ordering Strategy**:
-- TDD order: Tests before implementation 
+
+- TDD order: Tests before implementation
 - Dependency order: Models before services before UI
 - Mark [P] for parallel execution (independent files)
 
@@ -203,25 +221,28 @@ ios/ or android/
 **IMPORTANT**: This phase is executed by the /tasks command, NOT by /plan
 
 ## Phase 3+: Future Implementation
-*These phases are beyond the scope of the /plan command*
+
+_These phases are beyond the scope of the /plan command_
 
 **Phase 3**: Task execution (/tasks command creates tasks.md)  
 **Phase 4**: Implementation (execute tasks.md following constitutional principles)  
 **Phase 5**: Validation (run tests, execute quickstart.md, performance validation)
 
 ## Complexity Tracking
-*Fill ONLY if Constitution Check has violations that must be justified*
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+_Fill ONLY if Constitution Check has violations that must be justified_
 
+| Violation                  | Why Needed         | Simpler Alternative Rejected Because |
+| -------------------------- | ------------------ | ------------------------------------ |
+| [e.g., 4th project]        | [current need]     | [why 3 projects insufficient]        |
+| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient]  |
 
 ## Progress Tracking
-*This checklist is updated during execution flow*
+
+_This checklist is updated during execution flow_
 
 **Phase Status**:
+
 - [x] Phase 0: Research complete (/plan command)
 - [x] Phase 1: Design complete (/plan command)
 - [x] Phase 2: Task planning complete (/plan command - describe approach only)
@@ -230,10 +251,12 @@ ios/ or android/
 - [ ] Phase 5: Validation passed
 
 **Gate Status**:
+
 - [x] Initial Constitution Check: PASS
 - [x] Post-Design Constitution Check: PASS
 - [x] All NEEDS CLARIFICATION resolved
 - [ ] Complexity deviations documented
 
 ---
-*Based on Constitution v2.1.1 - See `/memory/constitution.md`*
+
+_Based on Constitution v2.1.1 - See `/memory/constitution.md`_

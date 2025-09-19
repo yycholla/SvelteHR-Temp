@@ -1,83 +1,83 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { page } from '$app/stores';
-  import { isAuthenticated, authActions } from '$lib/stores/auth';
-  import AuthGuard from '$lib/components/auth/AuthGuard.svelte';
-  import { setContextClient } from '@urql/svelte';
-  import { createUrqlClient } from '$lib/graphql/client';
-  import '../app.css';
-  import favicon from '$lib/assets/favicon.svg';
+	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
+	import { isAuthenticated, authActions } from '$lib/stores/auth';
+	import AuthGuard from '$lib/components/auth/AuthGuard.svelte';
+	import { setContextClient } from '@urql/svelte';
+	import { createUrqlClient } from '$lib/graphql/client';
+	import '../app.css';
+	import favicon from '$lib/assets/favicon.svg';
 
-  // Initialize PostGraphile GraphQL client for the entire app
-  setContextClient(createUrqlClient());
+	// Initialize PostGraphile GraphQL client for the entire app
+	setContextClient(createUrqlClient());
 
-  let { children } = $props();
+	let { children } = $props();
 
-  // Simplify layout logic to prevent reactive re-mounting issues
-  const isAuthPage = $derived($page.url.pathname === '/login');
-  const shouldShowLayout = $derived(!isAuthPage);
+	// Simplify layout logic to prevent reactive re-mounting issues
+	const isAuthPage = $derived($page.url.pathname === '/login');
+	const shouldShowLayout = $derived(!isAuthPage);
 
-  // Debug layout changes
-  $effect(() => {
-    console.log(`🔵 Root layout reactive update:`, {
-      pathname: $page.url.pathname,
-      isAuthPage,
-      shouldShowLayout,
-      isAuthenticated: $isAuthenticated
-    });
-  });
+	// Debug layout changes
+	$effect(() => {
+		console.log(`🔵 Root layout reactive update:`, {
+			pathname: $page.url.pathname,
+			isAuthPage,
+			shouldShowLayout,
+			isAuthenticated: $isAuthenticated
+		});
+	});
 
-  // Removed token refresh interval since PostGraphile uses long-lived JWTs
-  // The AuthGuard component handles initial session validation
+	// Removed token refresh interval since PostGraphile uses long-lived JWTs
+	// The AuthGuard component handles initial session validation
 </script>
 
 <svelte:head>
-  <title>SvelteHR - HR Management System</title>
-  <meta name="description" content="Comprehensive HR management system for modern organizations" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" href={favicon} />
+	<title>SvelteHR - HR Management System</title>
+	<meta name="description" content="Comprehensive HR management system for modern organizations" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<link rel="icon" href={favicon} />
 </svelte:head>
 
 <!-- Wrap entire app with AuthGuard for auth initialization -->
 <AuthGuard>
-  <!-- Always render children - let individual routes handle their own layout -->
-  <main class="app-main">
-    {@render children?.()}
-  </main>
+	<!-- Always render children - let individual routes handle their own layout -->
+	<main class="app-main">
+		{@render children?.()}
+	</main>
 </AuthGuard>
 
 <style global>
-  :global(.app-main) {
-    min-height: 100vh;
-    background-color: var(--cds-background);
-  }
+	:global(.app-main) {
+		min-height: 100vh;
+		background-color: var(--cds-background);
+	}
 
-  /* Ensure Carbon design system tokens are properly applied */
-  :global(body) {
-    background-color: var(--cds-background);
-    color: var(--cds-text-primary);
-  }
+	/* Ensure Carbon design system tokens are properly applied */
+	:global(body) {
+		background-color: var(--cds-background);
+		color: var(--cds-text-primary);
+	}
 
-  /* Global styles merged */
-  :global(html) {
-    height: 100%;
-  }
+	/* Global styles merged */
+	:global(html) {
+		height: 100%;
+	}
 
-  :global(body) {
-    height: 100%;
-    margin: 0;
-    /* Let Carbon design system handle font family */
-  }
+	:global(body) {
+		height: 100%;
+		margin: 0;
+		/* Let Carbon design system handle font family */
+	}
 
-  :global(#app) {
-    height: 100%;
-  }
+	:global(#app) {
+		height: 100%;
+	}
 
-  .auth-layout {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #f9fafb;
-  }
+	.auth-layout {
+		min-height: 100vh;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background-color: #f9fafb;
+	}
 </style>

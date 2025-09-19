@@ -1,9 +1,9 @@
 /**
  * Authentication JWT Library
- * 
+ *
  * Provides secure JWT token generation, validation, and session management
  * specifically designed for Hasura GraphQL integration with role-based access control.
- * 
+ *
  * Features:
  * - JWT token generation with Hasura claims
  * - Token validation and verification
@@ -160,12 +160,13 @@ export class AuthJWTLib {
 
   constructor(config: AuthConfig) {
     this.config = config;
-    
+
     this.pool = new Pool({
       connectionString: config.database.connectionString,
       max: config.database.poolConfig?.max || 20,
       idleTimeoutMillis: config.database.poolConfig?.idleTimeoutMillis || 30000,
-      connectionTimeoutMillis: config.database.poolConfig?.connectionTimeoutMillis || 2000,
+      connectionTimeoutMillis:
+        config.database.poolConfig?.connectionTimeoutMillis || 2000,
     });
 
     this.redis = new Redis(config.redis.connectionString, {
@@ -282,7 +283,7 @@ export class AuthJWTLib {
           description: `Login attempt rate limited for ${email}`,
           ip_address: clientInfo.ip,
           user_agent: clientInfo.userAgent,
-          success: false
+          success: false,
         });
 
         return {
@@ -290,18 +291,24 @@ export class AuthJWTLib {
           error: 'Too many login attempts. Please try again later.',
           lockout: {
             locked_until: rateLimitResult.lockout_until!,
-            attempts_remaining: 0
-          }
+            attempts_remaining: 0,
+          },
         };
       }
 
       // Get user from database
       const user = await this.getUserByEmail(email);
       if (!user) {
-        await this.recordLoginAttempt(email, clientInfo.ip, false, 'USER_NOT_FOUND', clientInfo.userAgent);
+        await this.recordLoginAttempt(
+          email,
+          clientInfo.ip,
+          false,
+          'USER_NOT_FOUND',
+          clientInfo.userAgent
+        );
         return {
           success: false,
-          error: 'Invalid email or password'
+          error: 'Invalid email or password',
         };
       }
 
@@ -313,7 +320,7 @@ export class AuthJWTLib {
           description: `Login attempt on locked account: ${email}`,
           ip_address: clientInfo.ip,
           user_agent: clientInfo.userAgent,
-          success: false
+          success: false,
         });
 
         return {
@@ -321,29 +328,41 @@ export class AuthJWTLib {
           error: 'Account is temporarily locked',
           lockout: {
             locked_until: user.locked_until,
-            attempts_remaining: 0
-          }
+            attempts_remaining: 0,
+          },
         };
       }
 
       // Verify password
       const passwordValid = await bcrypt.compare(password, user.password_hash);
       if (!passwordValid) {
-        await this.recordLoginAttempt(email, clientInfo.ip, false, 'INVALID_PASSWORD', clientInfo.userAgent);
+        await this.recordLoginAttempt(
+          email,
+          clientInfo.ip,
+          false,
+          'INVALID_PASSWORD',
+          clientInfo.userAgent
+        );
         await this.handleFailedLogin(user.id);
-        
+
         return {
           success: false,
-          error: 'Invalid email or password'
+          error: 'Invalid email or password',
         };
       }
 
       // Check if user is active
       if (!user.is_active) {
-        await this.recordLoginAttempt(email, clientInfo.ip, false, 'INACTIVE_USER', clientInfo.userAgent);
+        await this.recordLoginAttempt(
+          email,
+          clientInfo.ip,
+          false,
+          'INACTIVE_USER',
+          clientInfo.userAgent
+        );
         return {
           success: false,
-          error: 'Account is disabled'
+          error: 'Account is disabled',
         };
       }
 
@@ -351,7 +370,13 @@ export class AuthJWTLib {
       const tokens = await this.generateTokens(user, clientInfo);
 
       // Record successful login
-      await this.recordLoginAttempt(email, clientInfo.ip, true, null, clientInfo.userAgent);
+      await this.recordLoginAttempt(
+        email,
+        clientInfo.ip,
+        true,
+        null,
+        clientInfo.userAgent
+      );
       await this.resetFailedAttempts(user.id);
       await this.updateLastLogin(user.id);
 
@@ -365,22 +390,21 @@ export class AuthJWTLib {
         success: true,
         metadata: {
           login_duration_ms: Date.now() - startTime,
-          has_refresh_token: credentials.remember || false
-        }
+          has_refresh_token: credentials.remember || false,
+        },
       });
 
       return {
         success: true,
-        tokens
+        tokens,
       };
-
     } catch (error) {
       await this.logSecurityEvent({
         event_type: 'AUTH_ERROR',
         description: `Authentication error for ${email}: ${error.message}`,
         ip_address: clientInfo.ip,
         user_agent: clientInfo.userAgent,
-        success: false
+        success: false,
       });
 
       throw new Error(`Authentication failed: ${error.message}`);
@@ -396,10 +420,10 @@ export class AuthJWTLib {
   ): Promise<AuthTokens> {
     // Get user roles and permissions
     const roles = user.roles || [];
-    const permissions = roles.flatMap(role => role.permissions);
-    const allowedRoles = roles.map(role => role.name);
-    const defaultRole = allowedRoles.includes(this.config.hasura.defaultRole) 
-      ? this.config.hasura.defaultRole 
+    const permissions = roles.flatMap((role) => role.permissions);
+    const allowedRoles = roles.map((role) => role.name);
+    const defaultRole = allowedRoles.includes(this.config.hasura.defaultRole)
+      ? this.config.hasura.defaultRole
       : allowedRoles[0] || 'employee';
 
     // Generate JWT ID
@@ -421,8 +445,11 @@ export class AuthJWTLib {
         'x-hasura-allowed-roles': allowedRoles,
         'x-hasura-default-role': defaultRole,
         'x-hasura-user-id': user.id,
-        'x-hasura-role-level': Math.max(...roles.map(r => r.level), 0).toString()
-      }
+        'x-hasura-role-level': Math.max(
+          ...roles.map((r) => r.level),
+          0
+        ).toString(),
+      },
     };
 
     // Add department/organization claims if available
@@ -430,13 +457,9 @@ export class AuthJWTLib {
     // accessTokenPayload['https://hasura.io/jwt/claims']['x-hasura-department-id'] = user.department_id;
 
     // Sign access token
-    const access_token = jwt.sign(
-      accessTokenPayload,
-      this.config.jwt.secret,
-      {
-        algorithm: this.config.jwt.algorithm || 'HS256'
-      }
-    );
+    const access_token = jwt.sign(accessTokenPayload, this.config.jwt.secret, {
+      algorithm: this.config.jwt.algorithm || 'HS256',
+    });
 
     // Generate refresh token
     const refreshTokenPayload = {
@@ -444,19 +467,23 @@ export class AuthJWTLib {
       type: 'refresh',
       jti: crypto.randomBytes(32).toString('hex'),
       iat: now,
-      exp: now + this.parseExpiration(this.config.refresh.expiresIn)
+      exp: now + this.parseExpiration(this.config.refresh.expiresIn),
     };
 
     const refresh_token = jwt.sign(
       refreshTokenPayload,
       this.config.refresh.secret,
       {
-        algorithm: this.config.jwt.algorithm || 'HS256'
+        algorithm: this.config.jwt.algorithm || 'HS256',
       }
     );
 
     // Store session in database
-    const sessionId = await this.createSession(user.id, refresh_token, clientInfo);
+    const sessionId = await this.createSession(
+      user.id,
+      refresh_token,
+      clientInfo
+    );
 
     // Cache user info in Redis for quick access
     await this.cacheUserInfo(user.id, {
@@ -464,7 +491,7 @@ export class AuthJWTLib {
       email: user.email,
       display_name: user.display_name,
       roles: allowedRoles,
-      permissions
+      permissions,
     });
 
     return {
@@ -477,8 +504,8 @@ export class AuthJWTLib {
         email: user.email,
         display_name: user.display_name,
         roles: allowedRoles,
-        permissions
-      }
+        permissions,
+      },
     };
   }
 
@@ -490,7 +517,7 @@ export class AuthJWTLib {
       const payload = jwt.verify(token, this.config.jwt.secret, {
         algorithms: [this.config.jwt.algorithm || 'HS256'],
         issuer: this.config.jwt.issuer,
-        audience: this.config.jwt.audience
+        audience: this.config.jwt.audience,
       }) as JWTPayload;
 
       // Check if token is revoked (blacklisted)
@@ -498,7 +525,7 @@ export class AuthJWTLib {
       if (isRevoked) {
         return {
           valid: false,
-          error: 'Token has been revoked'
+          error: 'Token has been revoked',
         };
       }
 
@@ -507,27 +534,26 @@ export class AuthJWTLib {
       if (!user || !user.is_active) {
         return {
           valid: false,
-          error: 'User not found or inactive'
+          error: 'User not found or inactive',
         };
       }
 
       return {
         valid: true,
-        payload
+        payload,
       };
-
     } catch (error) {
       if (error.name === 'TokenExpiredError') {
         return {
           valid: false,
           error: 'Token has expired',
-          expired: true
+          expired: true,
         };
       }
 
       return {
         valid: false,
-        error: `Token validation failed: ${error.message}`
+        error: `Token validation failed: ${error.message}`,
       };
     }
   }
@@ -541,8 +567,11 @@ export class AuthJWTLib {
   ): Promise<AuthTokens | null> {
     try {
       // Verify refresh token
-      const payload = jwt.verify(refreshToken, this.config.refresh.secret) as any;
-      
+      const payload = jwt.verify(
+        refreshToken,
+        this.config.refresh.secret
+      ) as any;
+
       if (payload.type !== 'refresh') {
         throw new Error('Invalid token type');
       }
@@ -556,7 +585,7 @@ export class AuthJWTLib {
           description: 'Attempt to use invalid or expired refresh token',
           ip_address: clientInfo.ip,
           user_agent: clientInfo.userAgent,
-          success: false
+          success: false,
         });
         return null;
       }
@@ -580,18 +609,17 @@ export class AuthJWTLib {
         description: 'Access token refreshed successfully',
         ip_address: clientInfo.ip,
         user_agent: clientInfo.userAgent,
-        success: true
+        success: true,
       });
 
       return tokens;
-
     } catch (error) {
       await this.logSecurityEvent({
         event_type: 'REFRESH_TOKEN_ERROR',
         description: `Token refresh failed: ${error.message}`,
         ip_address: clientInfo.ip,
         user_agent: clientInfo.userAgent,
-        success: false
+        success: false,
       });
 
       return null;
@@ -631,12 +659,11 @@ export class AuthJWTLib {
           description: 'User logged out successfully',
           ip_address: clientInfo.ip,
           user_agent: clientInfo.userAgent,
-          success: true
+          success: true,
         });
       }
 
       return true;
-
     } catch (error) {
       console.error('Token revocation failed:', error);
       return false;
@@ -650,12 +677,15 @@ export class AuthJWTLib {
     const client = await this.pool.connect();
 
     try {
-      const userResult = await client.query(`
+      const userResult = await client.query(
+        `
         SELECT u.id, u.email, u.password_hash, u.display_name, u.is_active,
                u.onboarding_status, u.failed_login_attempts, u.locked_until, u.last_login
         FROM users u
         WHERE u.email = $1
-      `, [email]);
+      `,
+        [email]
+      );
 
       if (userResult.rows.length === 0) {
         return null;
@@ -664,16 +694,18 @@ export class AuthJWTLib {
       const user = userResult.rows[0];
 
       // Get user roles
-      const rolesResult = await client.query(`
+      const rolesResult = await client.query(
+        `
         SELECT ur.id, ur.name, ur.level, ur.permissions
         FROM user_roles ur
         JOIN user_role_assignments ura ON ur.id = ura.role_id
         WHERE ura.user_id = $1 AND ura.is_active = true
-      `, [user.id]);
+      `,
+        [user.id]
+      );
 
       user.roles = rolesResult.rows;
       return user;
-
     } finally {
       client.release();
     }
@@ -692,11 +724,14 @@ export class AuthJWTLib {
     const client = await this.pool.connect();
 
     try {
-      const userResult = await client.query(`
+      const userResult = await client.query(
+        `
         SELECT u.id, u.email, u.display_name, u.is_active, u.onboarding_status
         FROM users u
         WHERE u.id = $1
-      `, [userId]);
+      `,
+        [userId]
+      );
 
       if (userResult.rows.length === 0) {
         return null;
@@ -705,12 +740,15 @@ export class AuthJWTLib {
       const user = userResult.rows[0];
 
       // Get user roles
-      const rolesResult = await client.query(`
+      const rolesResult = await client.query(
+        `
         SELECT ur.id, ur.name, ur.level, ur.permissions
         FROM user_roles ur
         JOIN user_role_assignments ura ON ur.id = ura.role_id
         WHERE ura.user_id = $1 AND ura.is_active = true
-      `, [userId]);
+      `,
+        [userId]
+      );
 
       user.roles = rolesResult.rows;
 
@@ -718,7 +756,6 @@ export class AuthJWTLib {
       await this.redis.setex(`user:${userId}`, 300, JSON.stringify(user));
 
       return user;
-
     } finally {
       client.release();
     }
@@ -735,15 +772,29 @@ export class AuthJWTLib {
     clientInfo: { ip: string; userAgent: string }
   ): Promise<string> {
     const client = await this.pool.connect();
-    const refreshTokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
-    const expiresAt = new Date(Date.now() + this.parseExpiration(this.config.refresh.expiresIn) * 1000);
+    const refreshTokenHash = crypto
+      .createHash('sha256')
+      .update(refreshToken)
+      .digest('hex');
+    const expiresAt = new Date(
+      Date.now() + this.parseExpiration(this.config.refresh.expiresIn) * 1000
+    );
 
     try {
-      const result = await client.query(`
+      const result = await client.query(
+        `
         INSERT INTO auth_sessions (user_id, ip_address, user_agent, refresh_token_hash, expires_at)
         VALUES ($1, $2, $3, $4, $5)
         RETURNING id
-      `, [userId, clientInfo.ip, clientInfo.userAgent, refreshTokenHash, expiresAt]);
+      `,
+        [
+          userId,
+          clientInfo.ip,
+          clientInfo.userAgent,
+          refreshTokenHash,
+          expiresAt,
+        ]
+      );
 
       return result.rows[0].id;
     } finally {
@@ -760,14 +811,20 @@ export class AuthJWTLib {
     clientInfo: { ip: string; userAgent: string }
   ): Promise<void> {
     const client = await this.pool.connect();
-    const refreshTokenHash = crypto.createHash('sha256').update(newRefreshToken).digest('hex');
+    const refreshTokenHash = crypto
+      .createHash('sha256')
+      .update(newRefreshToken)
+      .digest('hex');
 
     try {
-      await client.query(`
+      await client.query(
+        `
         UPDATE auth_sessions
         SET refresh_token_hash = $1, last_activity_at = NOW(), ip_address = $2
         WHERE id = $3
-      `, [refreshTokenHash, clientInfo.ip, sessionId]);
+      `,
+        [refreshTokenHash, clientInfo.ip, sessionId]
+      );
     } finally {
       client.release();
     }
@@ -776,17 +833,25 @@ export class AuthJWTLib {
   /**
    * Get session by refresh token
    */
-  private async getSessionByRefreshToken(refreshToken: string): Promise<SessionInfo | null> {
+  private async getSessionByRefreshToken(
+    refreshToken: string
+  ): Promise<SessionInfo | null> {
     const client = await this.pool.connect();
-    const refreshTokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+    const refreshTokenHash = crypto
+      .createHash('sha256')
+      .update(refreshToken)
+      .digest('hex');
 
     try {
-      const result = await client.query(`
+      const result = await client.query(
+        `
         SELECT id, user_id, ip_address, user_agent, created_at, last_activity_at,
                expires_at, is_active, refresh_token_hash
         FROM auth_sessions
         WHERE refresh_token_hash = $1 AND is_active = true
-      `, [refreshTokenHash]);
+      `,
+        [refreshTokenHash]
+      );
 
       return result.rows[0] || null;
     } finally {
@@ -797,15 +862,21 @@ export class AuthJWTLib {
   /**
    * Revoke all user sessions
    */
-  private async revokeUserSessions(userId: string, reason: string): Promise<void> {
+  private async revokeUserSessions(
+    userId: string,
+    reason: string
+  ): Promise<void> {
     const client = await this.pool.connect();
 
     try {
-      await client.query(`
+      await client.query(
+        `
         UPDATE auth_sessions
         SET is_active = false, revoked_at = NOW(), revoked_reason = $1
         WHERE user_id = $2 AND is_active = true
-      `, [reason, userId]);
+      `,
+        [reason, userId]
+      );
     } finally {
       client.release();
     }
@@ -814,14 +885,20 @@ export class AuthJWTLib {
   /**
    * Cache user information in Redis
    */
-  private async cacheUserInfo(userId: string, userInfo: PublicUserInfo): Promise<void> {
+  private async cacheUserInfo(
+    userId: string,
+    userInfo: PublicUserInfo
+  ): Promise<void> {
     await this.redis.setex(`user:${userId}`, 300, JSON.stringify(userInfo)); // 5 minute cache
   }
 
   /**
    * Check rate limiting for login attempts
    */
-  private async checkRateLimit(email: string, ip: string): Promise<{
+  private async checkRateLimit(
+    email: string,
+    ip: string
+  ): Promise<{
     allowed: boolean;
     attempts: number;
     lockout_until?: Date;
@@ -834,7 +911,7 @@ export class AuthJWTLib {
 
     const [emailAttempts, ipAttempts] = await Promise.all([
       this.redis.get(emailKey),
-      this.redis.get(ipKey)
+      this.redis.get(ipKey),
     ]);
 
     const emailCount = parseInt(emailAttempts || '0');
@@ -844,13 +921,13 @@ export class AuthJWTLib {
       return {
         allowed: false,
         attempts: Math.max(emailCount, ipCount),
-        lockout_until: new Date(Date.now() + lockoutDuration * 1000)
+        lockout_until: new Date(Date.now() + lockoutDuration * 1000),
       };
     }
 
     return {
       allowed: true,
-      attempts: Math.max(emailCount, ipCount)
+      attempts: Math.max(emailCount, ipCount),
     };
   }
 
@@ -867,21 +944,24 @@ export class AuthJWTLib {
     const client = await this.pool.connect();
 
     try {
-      await client.query(`
+      await client.query(
+        `
         INSERT INTO login_attempts (email, ip_address, success, error_code, user_agent)
         VALUES ($1, $2, $3, $4, $5)
-      `, [email, ip, success, errorCode, userAgent]);
+      `,
+        [email, ip, success, errorCode, userAgent]
+      );
 
       if (!success) {
         // Increment rate limit counters
         const emailKey = `rate_limit:email:${email}`;
         const ipKey = `rate_limit:ip:${ip}`;
-        
+
         await Promise.all([
           this.redis.incr(emailKey),
           this.redis.incr(ipKey),
           this.redis.expire(emailKey, 900), // 15 minutes
-          this.redis.expire(ipKey, 900)
+          this.redis.expire(ipKey, 900),
         ]);
       }
     } finally {
@@ -898,7 +978,8 @@ export class AuthJWTLib {
     const lockoutDuration = this.config.security.lockoutDuration || 900; // 15 minutes
 
     try {
-      const result = await client.query(`
+      const result = await client.query(
+        `
         UPDATE users
         SET failed_login_attempts = COALESCE(failed_login_attempts, 0) + 1,
             locked_until = CASE 
@@ -908,14 +989,16 @@ export class AuthJWTLib {
             END
         WHERE id = $2
         RETURNING failed_login_attempts, locked_until
-      `, [maxAttempts, userId]);
+      `,
+        [maxAttempts, userId]
+      );
 
       if (result.rows[0]?.failed_login_attempts >= maxAttempts) {
         await this.logSecurityEvent({
           user_id: userId,
           event_type: 'ACCOUNT_LOCKED',
           description: `Account locked due to ${maxAttempts} failed login attempts`,
-          success: false
+          success: false,
         });
       }
     } finally {
@@ -930,11 +1013,14 @@ export class AuthJWTLib {
     const client = await this.pool.connect();
 
     try {
-      await client.query(`
+      await client.query(
+        `
         UPDATE users
         SET failed_login_attempts = 0, locked_until = NULL
         WHERE id = $1
-      `, [userId]);
+      `,
+        [userId]
+      );
     } finally {
       client.release();
     }
@@ -947,11 +1033,14 @@ export class AuthJWTLib {
     const client = await this.pool.connect();
 
     try {
-      await client.query(`
+      await client.query(
+        `
         UPDATE users
         SET last_login = NOW()
         WHERE id = $1
-      `, [userId]);
+      `,
+        [userId]
+      );
     } finally {
       client.release();
     }
@@ -976,19 +1065,22 @@ export class AuthJWTLib {
     const client = await this.pool.connect();
 
     try {
-      await client.query(`
+      await client.query(
+        `
         INSERT INTO security_audit_log 
         (user_id, event_type, description, ip_address, user_agent, success, metadata)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
-      `, [
-        event.user_id || null,
-        event.event_type,
-        event.description,
-        event.ip_address || null,
-        event.user_agent || null,
-        event.success,
-        event.metadata ? JSON.stringify(event.metadata) : null
-      ]);
+      `,
+        [
+          event.user_id || null,
+          event.event_type,
+          event.description,
+          event.ip_address || null,
+          event.user_agent || null,
+          event.success,
+          event.metadata ? JSON.stringify(event.metadata) : null,
+        ]
+      );
     } catch (error) {
       console.error('Failed to log security event:', error);
     } finally {
@@ -1007,7 +1099,7 @@ export class AuthJWTLib {
 
     const [, amount, unit] = match;
     const multipliers = { s: 1, m: 60, h: 3600, d: 86400 };
-    
+
     return parseInt(amount) * multipliers[unit as keyof typeof multipliers];
   }
 
@@ -1041,7 +1133,6 @@ export class AuthJWTLib {
         WHERE (used_at IS NOT NULL OR expires_at < NOW()) 
         AND created_at < NOW() - INTERVAL '24 hours'
       `);
-
     } finally {
       client.release();
     }

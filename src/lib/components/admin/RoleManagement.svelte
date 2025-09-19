@@ -1,753 +1,750 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { permissionsService, userPermissions, isAdmin } from '$lib/services/permissionsService';
-  import { currentUser } from '$lib/services/auth';
-  import { userService, users } from '$lib/services/userService';
-  import Button from '../base/Button.svelte';
-  import Card from '../base/Card.svelte';
-  import Badge from '../base/Badge.svelte';
-  import Input from '../base/Input.svelte';
-  import Select from '../base/Select.svelte';
-  import DataTable from '../tables/DataTable.svelte';
-  import type { Column } from '../tables/DataTable.svelte';
-  import type { User, Permission } from '$lib/types';
+	import { onMount } from 'svelte';
+	import { permissionsService, userPermissions, isAdmin } from '$lib/services/permissionsService';
+	import { currentUser } from '$lib/services/auth';
+	import { userService, users } from '$lib/services/userService';
+	import Button from '../base/Button.svelte';
+	import Card from '../base/Card.svelte';
+	import Badge from '../base/Badge.svelte';
+	import Input from '../base/Input.svelte';
+	import Select from '../base/Select.svelte';
+	import DataTable from '../tables/DataTable.svelte';
+	import type { Column } from '../tables/DataTable.svelte';
+	import type { User, Permission } from '$lib/types';
 
-  // Component state
-  let selectedTab: 'users' | 'roles' | 'permissions' = 'users';
-  let selectedUser: User | null = null;
-  let selectedRole: string | null = null;
-  let showUserRoleModal = false;
-  let searchQuery = '';
-  let filterRole = '';
+	// Component state
+	let selectedTab: 'users' | 'roles' | 'permissions' = 'users';
+	let selectedUser: User | null = null;
+	let selectedRole: string | null = null;
+	let showUserRoleModal = false;
+	let searchQuery = '';
+	let filterRole = '';
 
-  // Modal state
-  let modalUser: User | null = null;
-  let modalRoles: string[] = [];
+	// Modal state
+	let modalUser: User | null = null;
+	let modalRoles: string[] = [];
 
-  // Available roles
-  const availableRoles = [
-    { value: 'admin', label: 'Admin', level: 100, description: 'Full system access' },
-    { value: 'hr_manager', label: 'HR Manager', level: 80, description: 'HR operations and user management' },
-    { value: 'manager', label: 'Manager', level: 60, description: 'Team management' },
-    { value: 'employee', label: 'Employee', level: 20, description: 'Standard employee access' }
-  ];
+	// Available roles
+	const availableRoles = [
+		{ value: 'admin', label: 'Admin', level: 100, description: 'Full system access' },
+		{
+			value: 'hr_manager',
+			label: 'HR Manager',
+			level: 80,
+			description: 'HR operations and user management'
+		},
+		{ value: 'manager', label: 'Manager', level: 60, description: 'Team management' },
+		{ value: 'employee', label: 'Employee', level: 20, description: 'Standard employee access' }
+	];
 
-  // Role definitions for display
-  const roleDefinitions = {
-    'admin': {
-      name: 'Administrator',
-      color: 'red',
-      permissions: [
-        'Full system access',
-        'User management',
-        'Department management', 
-        'System configuration',
-        'Audit logs',
-        'Reports generation'
-      ]
-    },
-    'hr_manager': {
-      name: 'HR Manager',
-      color: 'blue',
-      permissions: [
-        'User management',
-        'Onboarding workflows',
-        'Department oversight',
-        'Compensation management',
-        'HR reports'
-      ]
-    },
-    'manager': {
-      name: 'Manager',
-      color: 'green',
-      permissions: [
-        'Team member management',
-        'Team onboarding',
-        'Department visibility',
-        'Team reports'
-      ]
-    },
-    'employee': {
-      name: 'Employee',
-      color: 'gray',
-      permissions: [
-        'Self-service profile',
-        'Own onboarding tasks',
-        'Basic department info'
-      ]
-    }
-  };
+	// Role definitions for display
+	const roleDefinitions = {
+		admin: {
+			name: 'Administrator',
+			color: 'red',
+			permissions: [
+				'Full system access',
+				'User management',
+				'Department management',
+				'System configuration',
+				'Audit logs',
+				'Reports generation'
+			]
+		},
+		hr_manager: {
+			name: 'HR Manager',
+			color: 'blue',
+			permissions: [
+				'User management',
+				'Onboarding workflows',
+				'Department oversight',
+				'Compensation management',
+				'HR reports'
+			]
+		},
+		manager: {
+			name: 'Manager',
+			color: 'green',
+			permissions: [
+				'Team member management',
+				'Team onboarding',
+				'Department visibility',
+				'Team reports'
+			]
+		},
+		employee: {
+			name: 'Employee',
+			color: 'gray',
+			permissions: ['Self-service profile', 'Own onboarding tasks', 'Basic department info']
+		}
+	};
 
-  // Table columns for users
-  const userColumns: Column[] = [
-    {
-      key: 'display_name',
-      label: 'Name',
-      sortable: true,
-      type: 'custom'
-    },
-    {
-      key: 'email',
-      label: 'Email',
-      sortable: true,
-      type: 'text'
-    },
-    {
-      key: 'roles',
-      label: 'Roles',
-      sortable: false,
-      type: 'custom'
-    },
-    {
-      key: 'is_active',
-      label: 'Status',
-      sortable: true,
-      type: 'badge',
-      badgeVariant: (value) => value ? 'success' : 'secondary'
-    },
-    {
-      key: 'actions',
-      label: 'Actions',
-      sortable: false,
-      type: 'custom',
-      align: 'center',
-      width: '120px'
-    }
-  ];
+	// Table columns for users
+	const userColumns: Column[] = [
+		{
+			key: 'display_name',
+			label: 'Name',
+			sortable: true,
+			type: 'custom'
+		},
+		{
+			key: 'email',
+			label: 'Email',
+			sortable: true,
+			type: 'text'
+		},
+		{
+			key: 'roles',
+			label: 'Roles',
+			sortable: false,
+			type: 'custom'
+		},
+		{
+			key: 'is_active',
+			label: 'Status',
+			sortable: true,
+			type: 'badge',
+			badgeVariant: (value) => (value ? 'success' : 'secondary')
+		},
+		{
+			key: 'actions',
+			label: 'Actions',
+			sortable: false,
+			type: 'custom',
+			align: 'center',
+			width: '120px'
+		}
+	];
 
-  // Filtered users based on search and role filter
-  $: filteredUsers = $users.filter(user => {
-    const matchesSearch = !searchQuery || 
-      user.display_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesRole = !filterRole || 
-      user.role_assignments?.some(ra => ra.role.name.toLowerCase() === filterRole.toLowerCase());
-    
-    return matchesSearch && matchesRole;
-  });
+	// Filtered users based on search and role filter
+	$: filteredUsers = $users.filter((user) => {
+		const matchesSearch =
+			!searchQuery ||
+			user.display_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+			user.email.toLowerCase().includes(searchQuery.toLowerCase());
 
-  function getRoleBadgeVariant(roleName: string): 'default' | 'secondary' | 'success' | 'warning' | 'danger' {
-    const role = roleDefinitions[roleName.toLowerCase()];
-    if (!role) return 'default';
-    
-    switch (role.color) {
-      case 'red': return 'danger';
-      case 'blue': return 'secondary';  
-      case 'green': return 'success';
-      default: return 'default';
-    }
-  }
+		const matchesRole =
+			!filterRole ||
+			user.role_assignments?.some((ra) => ra.role.name.toLowerCase() === filterRole.toLowerCase());
 
-  function getUserRoles(user: User): string[] {
-    return user.role_assignments?.map(ra => ra.role.name) || [];
-  }
+		return matchesSearch && matchesRole;
+	});
 
-  function getHighestRole(user: User): string {
-    const roles = getUserRoles(user);
-    const rolesByLevel = availableRoles.filter(r => roles.includes(r.value)).sort((a, b) => b.level - a.level);
-    return rolesByLevel[0]?.label || 'No Role';
-  }
+	function getRoleBadgeVariant(
+		roleName: string
+	): 'default' | 'secondary' | 'success' | 'warning' | 'danger' {
+		const role = roleDefinitions[roleName.toLowerCase()];
+		if (!role) return 'default';
 
-  function openUserRoleModal(user: User) {
-    modalUser = user;
-    modalRoles = getUserRoles(user);
-    showUserRoleModal = true;
-  }
+		switch (role.color) {
+			case 'red':
+				return 'danger';
+			case 'blue':
+				return 'secondary';
+			case 'green':
+				return 'success';
+			default:
+				return 'default';
+		}
+	}
 
-  function closeUserRoleModal() {
-    showUserRoleModal = false;
-    modalUser = null;
-    modalRoles = [];
-  }
+	function getUserRoles(user: User): string[] {
+		return user.role_assignments?.map((ra) => ra.role.name) || [];
+	}
 
-  async function saveUserRoles() {
-    if (!modalUser) return;
+	function getHighestRole(user: User): string {
+		const roles = getUserRoles(user);
+		const rolesByLevel = availableRoles
+			.filter((r) => roles.includes(r.value))
+			.sort((a, b) => b.level - a.level);
+		return rolesByLevel[0]?.label || 'No Role';
+	}
 
-    try {
-      // TODO: Implement role assignment API call
-      console.log('Saving roles for user:', modalUser.id, modalRoles);
-      
-      // For now, just close the modal
-      closeUserRoleModal();
-      
-      // Refresh user data
-      await userService.loadUsers({ reset: true });
-    } catch (error) {
-      console.error('Failed to save user roles:', error);
-    }
-  }
+	function openUserRoleModal(user: User) {
+		modalUser = user;
+		modalRoles = getUserRoles(user);
+		showUserRoleModal = true;
+	}
 
-  function toggleRole(roleName: string) {
-    if (modalRoles.includes(roleName)) {
-      modalRoles = modalRoles.filter(r => r !== roleName);
-    } else {
-      modalRoles = [...modalRoles, roleName];
-    }
-  }
+	function closeUserRoleModal() {
+		showUserRoleModal = false;
+		modalUser = null;
+		modalRoles = [];
+	}
 
-  function getPermissionsList(roleName: string): string[] {
-    return roleDefinitions[roleName.toLowerCase()]?.permissions || [];
-  }
+	async function saveUserRoles() {
+		if (!modalUser) return;
 
-  onMount(() => {
-    // Load users if not already loaded
-    if ($users.length === 0) {
-      userService.loadUsers({ reset: true });
-    }
-  });
+		try {
+			// TODO: Implement role assignment API call
+			console.log('Saving roles for user:', modalUser.id, modalRoles);
+
+			// For now, just close the modal
+			closeUserRoleModal();
+
+			// Refresh user data
+			await userService.loadUsers({ reset: true });
+		} catch (error) {
+			console.error('Failed to save user roles:', error);
+		}
+	}
+
+	function toggleRole(roleName: string) {
+		if (modalRoles.includes(roleName)) {
+			modalRoles = modalRoles.filter((r) => r !== roleName);
+		} else {
+			modalRoles = [...modalRoles, roleName];
+		}
+	}
+
+	function getPermissionsList(roleName: string): string[] {
+		return roleDefinitions[roleName.toLowerCase()]?.permissions || [];
+	}
+
+	onMount(() => {
+		// Load users if not already loaded
+		if ($users.length === 0) {
+			userService.loadUsers({ reset: true });
+		}
+	});
 </script>
 
 {#if $isAdmin}
-  <div class="role-management">
-    <!-- Header -->
-    <div class="management-header">
-      <div class="header-content">
-        <h1 class="text-2xl font-bold text-gray-900">Role & Permission Management</h1>
-        <p class="text-sm text-gray-600 mt-1">
-          Manage user roles and access permissions across the system
-        </p>
-      </div>
-    </div>
+	<div class="role-management">
+		<!-- Header -->
+		<div class="management-header">
+			<div class="header-content">
+				<h1 class="text-2xl font-bold text-gray-900">Role & Permission Management</h1>
+				<p class="mt-1 text-sm text-gray-600">
+					Manage user roles and access permissions across the system
+				</p>
+			</div>
+		</div>
 
-    <!-- Tabs -->
-    <div class="management-tabs">
-      <div class="tab-list">
-        <button
-          class="tab-button"
-          class:active={selectedTab === 'users'}
-          on:click={() => selectedTab = 'users'}
-        >
-          <i class="icon-users w-4 h-4"></i>
-          User Roles
-        </button>
-        <button
-          class="tab-button"
-          class:active={selectedTab === 'roles'}
-          on:click={() => selectedTab = 'roles'}
-        >
-          <i class="icon-shield w-4 h-4"></i>
-          Role Definitions
-        </button>
-        <button
-          class="tab-button"
-          class:active={selectedTab === 'permissions'}
-          on:click={() => selectedTab = 'permissions'}
-        >
-          <i class="icon-lock w-4 h-4"></i>
-          Permission Matrix
-        </button>
-      </div>
-    </div>
+		<!-- Tabs -->
+		<div class="management-tabs">
+			<div class="tab-list">
+				<button
+					class="tab-button"
+					class:active={selectedTab === 'users'}
+					on:click={() => (selectedTab = 'users')}
+				>
+					<i class="icon-users h-4 w-4"></i>
+					User Roles
+				</button>
+				<button
+					class="tab-button"
+					class:active={selectedTab === 'roles'}
+					on:click={() => (selectedTab = 'roles')}
+				>
+					<i class="icon-shield h-4 w-4"></i>
+					Role Definitions
+				</button>
+				<button
+					class="tab-button"
+					class:active={selectedTab === 'permissions'}
+					on:click={() => (selectedTab = 'permissions')}
+				>
+					<i class="icon-lock h-4 w-4"></i>
+					Permission Matrix
+				</button>
+			</div>
+		</div>
 
-    <!-- Tab Content -->
-    <div class="tab-content">
-      {#if selectedTab === 'users'}
-        <!-- Users Tab -->
-        <Card padding="md" class="users-section">
-          <!-- Filters -->
-          <div class="filters-section">
-            <div class="filter-row">
-              <Input
-                type="search"
-                placeholder="Search users..."
-                leftIcon="search"
-                bind:value={searchQuery}
-                class="search-input"
-              />
-              
-              <Select
-                options={[
-                  { value: '', label: 'All Roles' },
-                  ...availableRoles.map(role => ({ value: role.value, label: role.label }))
-                ]}
-                bind:value={filterRole}
-                placeholder="Filter by role"
-                class="role-filter"
-              />
-            </div>
-          </div>
+		<!-- Tab Content -->
+		<div class="tab-content">
+			{#if selectedTab === 'users'}
+				<!-- Users Tab -->
+				<Card padding="md" class="users-section">
+					<!-- Filters -->
+					<div class="filters-section">
+						<div class="filter-row">
+							<Input
+								type="search"
+								placeholder="Search users..."
+								leftIcon="search"
+								bind:value={searchQuery}
+								class="search-input"
+							/>
 
-          <!-- Users Table -->
-          <DataTable
-            data={filteredUsers}
-            columns={userColumns}
-            loading={false}
-            selectable={false}
-            hoverable={true}
-            emptyMessage="No users found"
-          >
-            <svelte:fragment slot="cell" let:column let:value let:row>
-              {#if column.key === 'display_name'}
-                <div class="user-info">
-                  <div class="user-name">{row.display_name}</div>
-                  <div class="user-title">{row.job_title || 'No title'}</div>
-                </div>
-              {:else if column.key === 'roles'}
-                <div class="user-roles">
-                  {#each getUserRoles(row) as roleName}
-                    <Badge variant={getRoleBadgeVariant(roleName)} size="sm">
-                      {roleDefinitions[roleName.toLowerCase()]?.name || roleName}
-                    </Badge>
-                  {:else}
-                    <span class="text-gray-500 text-sm">No roles assigned</span>
-                  {/each}
-                </div>
-              {:else if column.key === 'is_active'}
-                <Badge variant={row.is_active ? 'success' : 'secondary'} size="sm">
-                  {row.is_active ? 'Active' : 'Inactive'}
-                </Badge>
-              {:else if column.key === 'actions'}
-                <Button
-                  variant="secondary"
-                  size="xs"
-                  leftIcon="edit"
-                  on:click={() => openUserRoleModal(row)}
-                >
-                  Edit Roles
-                </Button>
-              {/if}
-            </svelte:fragment>
-          </DataTable>
-        </Card>
+							<Select
+								options={[
+									{ value: '', label: 'All Roles' },
+									...availableRoles.map((role) => ({ value: role.value, label: role.label }))
+								]}
+								bind:value={filterRole}
+								placeholder="Filter by role"
+								class="role-filter"
+							/>
+						</div>
+					</div>
 
-      {:else if selectedTab === 'roles'}
-        <!-- Roles Tab -->
-        <div class="roles-grid">
-          {#each availableRoles as role}
-            <Card padding="md" class="role-card">
-              <div class="role-header">
-                <div class="role-info">
-                  <h3 class="role-name">{role.label}</h3>
-                  <p class="role-description">{role.description}</p>
-                </div>
-                <Badge variant={getRoleBadgeVariant(role.value)} size="sm">
-                  Level {role.level}
-                </Badge>
-              </div>
+					<!-- Users Table -->
+					<DataTable
+						data={filteredUsers}
+						columns={userColumns}
+						loading={false}
+						selectable={false}
+						hoverable={true}
+						emptyMessage="No users found"
+					>
+						<svelte:fragment slot="cell" let:column let:value let:row>
+							{#if column.key === 'display_name'}
+								<div class="user-info">
+									<div class="user-name">{row.display_name}</div>
+									<div class="user-title">{row.job_title || 'No title'}</div>
+								</div>
+							{:else if column.key === 'roles'}
+								<div class="user-roles">
+									{#each getUserRoles(row) as roleName}
+										<Badge variant={getRoleBadgeVariant(roleName)} size="sm">
+											{roleDefinitions[roleName.toLowerCase()]?.name || roleName}
+										</Badge>
+									{:else}
+										<span class="text-gray-500 text-sm">No roles assigned</span>
+									{/each}
+								</div>
+							{:else if column.key === 'is_active'}
+								<Badge variant={row.is_active ? 'success' : 'secondary'} size="sm">
+									{row.is_active ? 'Active' : 'Inactive'}
+								</Badge>
+							{:else if column.key === 'actions'}
+								<Button
+									variant="secondary"
+									size="xs"
+									leftIcon="edit"
+									on:click={() => openUserRoleModal(row)}
+								>
+									Edit Roles
+								</Button>
+							{/if}
+						</svelte:fragment>
+					</DataTable>
+				</Card>
+			{:else if selectedTab === 'roles'}
+				<!-- Roles Tab -->
+				<div class="roles-grid">
+					{#each availableRoles as role}
+						<Card padding="md" class="role-card">
+							<div class="role-header">
+								<div class="role-info">
+									<h3 class="role-name">{role.label}</h3>
+									<p class="role-description">{role.description}</p>
+								</div>
+								<Badge variant={getRoleBadgeVariant(role.value)} size="sm">
+									Level {role.level}
+								</Badge>
+							</div>
 
-              <div class="role-permissions">
-                <h4 class="permissions-title">Key Permissions:</h4>
-                <ul class="permissions-list">
-                  {#each getPermissionsList(role.value) as permission}
-                    <li class="permission-item">
-                      <i class="icon-check w-4 h-4 text-green-600"></i>
-                      {permission}
-                    </li>
-                  {/each}
-                </ul>
-              </div>
+							<div class="role-permissions">
+								<h4 class="permissions-title">Key Permissions:</h4>
+								<ul class="permissions-list">
+									{#each getPermissionsList(role.value) as permission}
+										<li class="permission-item">
+											<i class="icon-check h-4 w-4 text-green-600"></i>
+											{permission}
+										</li>
+									{/each}
+								</ul>
+							</div>
 
-              <div class="role-stats">
-                <div class="stat-item">
-                  <span class="stat-label">Users with this role:</span>
-                  <span class="stat-value">
-                    {$users.filter(u => getUserRoles(u).includes(role.value)).length}
-                  </span>
-                </div>
-              </div>
-            </Card>
-          {/each}
-        </div>
+							<div class="role-stats">
+								<div class="stat-item">
+									<span class="stat-label">Users with this role:</span>
+									<span class="stat-value">
+										{$users.filter((u) => getUserRoles(u).includes(role.value)).length}
+									</span>
+								</div>
+							</div>
+						</Card>
+					{/each}
+				</div>
+			{:else if selectedTab === 'permissions'}
+				<!-- Permissions Matrix Tab -->
+				<Card padding="md" class="permissions-matrix">
+					<div class="matrix-header">
+						<h3 class="text-lg font-semibold text-gray-900">Permission Matrix</h3>
+						<p class="text-sm text-gray-600">View all permissions by role and resource</p>
+					</div>
 
-      {:else if selectedTab === 'permissions'}
-        <!-- Permissions Matrix Tab -->
-        <Card padding="md" class="permissions-matrix">
-          <div class="matrix-header">
-            <h3 class="text-lg font-semibold text-gray-900">Permission Matrix</h3>
-            <p class="text-sm text-gray-600">View all permissions by role and resource</p>
-          </div>
+					<div class="matrix-table">
+						<table class="permissions-table">
+							<thead>
+								<tr>
+									<th class="resource-header">Resource / Action</th>
+									{#each availableRoles as role}
+										<th class="role-header">
+											<div class="role-header-content">
+												<span>{role.label}</span>
+												<Badge variant={getRoleBadgeVariant(role.value)} size="xs">
+													L{role.level}
+												</Badge>
+											</div>
+										</th>
+									{/each}
+								</tr>
+							</thead>
+							<tbody>
+								{#each ['users', 'departments', 'onboarding', 'compensation', 'reports'] as resource}
+									{#each ['create', 'read', 'update', 'delete'] as action}
+										<tr class="matrix-row">
+											<td class="resource-cell">
+												<div class="resource-info">
+													<span class="resource-name">{resource}</span>
+													<span class="action-name">:{action}</span>
+												</div>
+											</td>
+											{#each availableRoles as role}
+												<td class="permission-cell">
+													{#if permissionsService.hasPermission(resource, action)}
+														<i class="icon-check h-4 w-4 text-green-600"></i>
+													{:else}
+														<i class="icon-x h-4 w-4 text-gray-300"></i>
+													{/if}
+												</td>
+											{/each}
+										</tr>
+									{/each}
+								{/each}
+							</tbody>
+						</table>
+					</div>
+				</Card>
+			{/if}
+		</div>
+	</div>
 
-          <div class="matrix-table">
-            <table class="permissions-table">
-              <thead>
-                <tr>
-                  <th class="resource-header">Resource / Action</th>
-                  {#each availableRoles as role}
-                    <th class="role-header">
-                      <div class="role-header-content">
-                        <span>{role.label}</span>
-                        <Badge variant={getRoleBadgeVariant(role.value)} size="xs">
-                          L{role.level}
-                        </Badge>
-                      </div>
-                    </th>
-                  {/each}
-                </tr>
-              </thead>
-              <tbody>
-                {#each ['users', 'departments', 'onboarding', 'compensation', 'reports'] as resource}
-                  {#each ['create', 'read', 'update', 'delete'] as action}
-                    <tr class="matrix-row">
-                      <td class="resource-cell">
-                        <div class="resource-info">
-                          <span class="resource-name">{resource}</span>
-                          <span class="action-name">:{action}</span>
-                        </div>
-                      </td>
-                      {#each availableRoles as role}
-                        <td class="permission-cell">
-                          {#if permissionsService.hasPermission(resource, action)}
-                            <i class="icon-check w-4 h-4 text-green-600"></i>
-                          {:else}
-                            <i class="icon-x w-4 h-4 text-gray-300"></i>
-                          {/if}
-                        </td>
-                      {/each}
-                    </tr>
-                  {/each}
-                {/each}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      {/if}
-    </div>
-  </div>
+	<!-- User Role Assignment Modal -->
+	{#if showUserRoleModal && modalUser}
+		<div class="modal-overlay">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h3 class="modal-title">Edit Roles for {modalUser.display_name}</h3>
+					<button class="modal-close" on:click={closeUserRoleModal}>
+						<i class="icon-x h-5 w-5"></i>
+					</button>
+				</div>
 
-  <!-- User Role Assignment Modal -->
-  {#if showUserRoleModal && modalUser}
-    <div class="modal-overlay">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3 class="modal-title">Edit Roles for {modalUser.display_name}</h3>
-          <button class="modal-close" on:click={closeUserRoleModal}>
-            <i class="icon-x w-5 h-5"></i>
-          </button>
-        </div>
+				<div class="modal-body">
+					<div class="user-info-section">
+						<div class="user-details">
+							<span class="user-email">{modalUser.email}</span>
+							<span class="user-dept"
+								>{modalUser.job_information?.department?.name || 'No department'}</span
+							>
+						</div>
+					</div>
 
-        <div class="modal-body">
-          <div class="user-info-section">
-            <div class="user-details">
-              <span class="user-email">{modalUser.email}</span>
-              <span class="user-dept">{modalUser.job_information?.department?.name || 'No department'}</span>
-            </div>
-          </div>
+					<div class="roles-section">
+						<h4 class="section-title">Assign Roles</h4>
+						<div class="roles-list">
+							{#each availableRoles as role}
+								<label class="role-checkbox">
+									<input
+										type="checkbox"
+										bind:group={modalRoles}
+										value={role.value}
+										class="checkbox"
+									/>
+									<div class="role-option">
+										<div class="role-main">
+											<span class="role-label">{role.label}</span>
+											<Badge variant={getRoleBadgeVariant(role.value)} size="xs">
+												Level {role.level}
+											</Badge>
+										</div>
+										<p class="role-desc">{role.description}</p>
+									</div>
+								</label>
+							{/each}
+						</div>
+					</div>
+				</div>
 
-          <div class="roles-section">
-            <h4 class="section-title">Assign Roles</h4>
-            <div class="roles-list">
-              {#each availableRoles as role}
-                <label class="role-checkbox">
-                  <input
-                    type="checkbox"
-                    bind:group={modalRoles}
-                    value={role.value}
-                    class="checkbox"
-                  />
-                  <div class="role-option">
-                    <div class="role-main">
-                      <span class="role-label">{role.label}</span>
-                      <Badge variant={getRoleBadgeVariant(role.value)} size="xs">
-                        Level {role.level}
-                      </Badge>
-                    </div>
-                    <p class="role-desc">{role.description}</p>
-                  </div>
-                </label>
-              {/each}
-            </div>
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <Button
-            variant="secondary"
-            on:click={closeUserRoleModal}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            leftIcon="save"
-            on:click={saveUserRoles}
-          >
-            Save Roles
-          </Button>
-        </div>
-      </div>
-    </div>
-  {/if}
-
+				<div class="modal-footer">
+					<Button variant="secondary" on:click={closeUserRoleModal}>Cancel</Button>
+					<Button variant="primary" leftIcon="save" on:click={saveUserRoles}>Save Roles</Button>
+				</div>
+			</div>
+		</div>
+	{/if}
 {:else}
-  <!-- Access Denied -->
-  <Card padding="lg" class="access-denied">
-    <div class="denied-content">
-      <i class="icon-shield-off text-red-500 w-12 h-12 mx-auto"></i>
-      <h3 class="mt-4 text-lg font-medium text-gray-900">Access Denied</h3>
-      <p class="mt-2 text-sm text-gray-600">
-        You don't have permission to access role management.
-      </p>
-    </div>
-  </Card>
+	<!-- Access Denied -->
+	<Card padding="lg" class="access-denied">
+		<div class="denied-content">
+			<i class="icon-shield-off mx-auto h-12 w-12 text-red-500"></i>
+			<h3 class="mt-4 text-lg font-medium text-gray-900">Access Denied</h3>
+			<p class="mt-2 text-sm text-gray-600">You don't have permission to access role management.</p>
+		</div>
+	</Card>
 {/if}
 
 <style lang="postcss">
-  .role-management {
-    @apply space-y-6;
-  }
+	.role-management {
+		@apply space-y-6;
+	}
 
-  /* Header */
-  .management-header {
-    @apply flex items-start justify-between;
-  }
+	/* Header */
+	.management-header {
+		@apply flex items-start justify-between;
+	}
 
-  .header-content h1 {
-    @apply text-2xl font-bold text-gray-900;
-  }
+	.header-content h1 {
+		@apply text-2xl font-bold text-gray-900;
+	}
 
-  .header-content p {
-    @apply text-sm text-gray-600 mt-1;
-  }
+	.header-content p {
+		@apply mt-1 text-sm text-gray-600;
+	}
 
-  /* Tabs */
-  .management-tabs {
-    @apply border-b border-gray-200;
-  }
+	/* Tabs */
+	.management-tabs {
+		@apply border-b border-gray-200;
+	}
 
-  .tab-list {
-    @apply flex space-x-8;
-  }
+	.tab-list {
+		@apply flex space-x-8;
+	}
 
-  .tab-button {
-    @apply flex items-center space-x-2 py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors;
-  }
+	.tab-button {
+		@apply flex items-center space-x-2 border-b-2 border-transparent px-1 py-2 text-sm font-medium text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700;
+	}
 
-  .tab-button.active {
-    @apply border-blue-500 text-blue-600;
-  }
+	.tab-button.active {
+		@apply border-blue-500 text-blue-600;
+	}
 
-  /* Filters */
-  .filters-section {
-    @apply mb-6;
-  }
+	/* Filters */
+	.filters-section {
+		@apply mb-6;
+	}
 
-  .filter-row {
-    @apply flex items-center space-x-4;
-  }
+	.filter-row {
+		@apply flex items-center space-x-4;
+	}
 
-  .search-input {
-    @apply flex-1;
-  }
+	.search-input {
+		@apply flex-1;
+	}
 
-  .role-filter {
-    @apply w-48;
-  }
+	.role-filter {
+		@apply w-48;
+	}
 
-  /* Users Table */
-  .user-info {
-    @apply space-y-1;
-  }
+	/* Users Table */
+	.user-info {
+		@apply space-y-1;
+	}
 
-  .user-name {
-    @apply text-sm font-medium text-gray-900;
-  }
+	.user-name {
+		@apply text-sm font-medium text-gray-900;
+	}
 
-  .user-title {
-    @apply text-xs text-gray-500;
-  }
+	.user-title {
+		@apply text-xs text-gray-500;
+	}
 
-  .user-roles {
-    @apply flex items-center space-x-1 flex-wrap gap-1;
-  }
+	.user-roles {
+		@apply flex flex-wrap items-center gap-1 space-x-1;
+	}
 
-  /* Roles Grid */
-  .roles-grid {
-    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6;
-  }
+	/* Roles Grid */
+	.roles-grid {
+		@apply grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3;
+	}
 
-  .role-card {
-    @apply border border-gray-200;
-  }
+	.role-card {
+		@apply border border-gray-200;
+	}
 
-  .role-header {
-    @apply flex items-start justify-between mb-4;
-  }
+	.role-header {
+		@apply mb-4 flex items-start justify-between;
+	}
 
-  .role-name {
-    @apply text-lg font-semibold text-gray-900;
-  }
+	.role-name {
+		@apply text-lg font-semibold text-gray-900;
+	}
 
-  .role-description {
-    @apply text-sm text-gray-600;
-  }
+	.role-description {
+		@apply text-sm text-gray-600;
+	}
 
-  .role-permissions {
-    @apply mb-4;
-  }
+	.role-permissions {
+		@apply mb-4;
+	}
 
-  .permissions-title {
-    @apply text-sm font-medium text-gray-900 mb-2;
-  }
+	.permissions-title {
+		@apply mb-2 text-sm font-medium text-gray-900;
+	}
 
-  .permissions-list {
-    @apply space-y-1;
-  }
+	.permissions-list {
+		@apply space-y-1;
+	}
 
-  .permission-item {
-    @apply flex items-center space-x-2 text-sm text-gray-700;
-  }
+	.permission-item {
+		@apply flex items-center space-x-2 text-sm text-gray-700;
+	}
 
-  .role-stats {
-    @apply pt-3 border-t border-gray-100;
-  }
+	.role-stats {
+		@apply border-t border-gray-100 pt-3;
+	}
 
-  .stat-item {
-    @apply flex items-center justify-between text-sm;
-  }
+	.stat-item {
+		@apply flex items-center justify-between text-sm;
+	}
 
-  .stat-label {
-    @apply text-gray-600;
-  }
+	.stat-label {
+		@apply text-gray-600;
+	}
 
-  .stat-value {
-    @apply font-medium text-gray-900;
-  }
+	.stat-value {
+		@apply font-medium text-gray-900;
+	}
 
-  /* Permissions Matrix */
-  .permissions-matrix {
-    @apply overflow-x-auto;
-  }
+	/* Permissions Matrix */
+	.permissions-matrix {
+		@apply overflow-x-auto;
+	}
 
-  .matrix-header {
-    @apply mb-6;
-  }
+	.matrix-header {
+		@apply mb-6;
+	}
 
-  .permissions-table {
-    @apply min-w-full divide-y divide-gray-200;
-  }
+	.permissions-table {
+		@apply min-w-full divide-y divide-gray-200;
+	}
 
-  .resource-header,
-  .role-header {
-    @apply px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50;
-  }
+	.resource-header,
+	.role-header {
+		@apply bg-gray-50 px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500;
+	}
 
-  .role-header-content {
-    @apply flex flex-col items-center space-y-1;
-  }
+	.role-header-content {
+		@apply flex flex-col items-center space-y-1;
+	}
 
-  .matrix-row {
-    @apply bg-white;
-  }
+	.matrix-row {
+		@apply bg-white;
+	}
 
-  .resource-cell {
-    @apply px-6 py-4 whitespace-nowrap;
-  }
+	.resource-cell {
+		@apply whitespace-nowrap px-6 py-4;
+	}
 
-  .resource-info {
-    @apply flex items-center space-x-1;
-  }
+	.resource-info {
+		@apply flex items-center space-x-1;
+	}
 
-  .resource-name {
-    @apply text-sm font-medium text-gray-900;
-  }
+	.resource-name {
+		@apply text-sm font-medium text-gray-900;
+	}
 
-  .action-name {
-    @apply text-sm text-gray-500;
-  }
+	.action-name {
+		@apply text-sm text-gray-500;
+	}
 
-  .permission-cell {
-    @apply px-6 py-4 whitespace-nowrap text-center;
-  }
+	.permission-cell {
+		@apply whitespace-nowrap px-6 py-4 text-center;
+	}
 
-  /* Modal */
-  .modal-overlay {
-    @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50;
-  }
+	/* Modal */
+	.modal-overlay {
+		@apply fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50;
+	}
 
-  .modal-content {
-    @apply bg-white rounded-lg shadow-lg max-w-lg w-full mx-4;
-  }
+	.modal-content {
+		@apply mx-4 w-full max-w-lg rounded-lg bg-white shadow-lg;
+	}
 
-  .modal-header {
-    @apply flex items-center justify-between p-4 border-b;
-  }
+	.modal-header {
+		@apply flex items-center justify-between border-b p-4;
+	}
 
-  .modal-title {
-    @apply text-lg font-semibold text-gray-900;
-  }
+	.modal-title {
+		@apply text-lg font-semibold text-gray-900;
+	}
 
-  .modal-close {
-    @apply text-gray-400 hover:text-gray-600 p-1;
-  }
+	.modal-close {
+		@apply p-1 text-gray-400 hover:text-gray-600;
+	}
 
-  .modal-body {
-    @apply p-4 space-y-4;
-  }
+	.modal-body {
+		@apply space-y-4 p-4;
+	}
 
-  .user-info-section {
-    @apply bg-gray-50 p-3 rounded;
-  }
+	.user-info-section {
+		@apply rounded bg-gray-50 p-3;
+	}
 
-  .user-details {
-    @apply flex flex-col space-y-1;
-  }
+	.user-details {
+		@apply flex flex-col space-y-1;
+	}
 
-  .user-email {
-    @apply text-sm font-medium text-gray-900;
-  }
+	.user-email {
+		@apply text-sm font-medium text-gray-900;
+	}
 
-  .user-dept {
-    @apply text-xs text-gray-600;
-  }
+	.user-dept {
+		@apply text-xs text-gray-600;
+	}
 
-  .roles-section {
-    @apply space-y-3;
-  }
+	.roles-section {
+		@apply space-y-3;
+	}
 
-  .section-title {
-    @apply text-sm font-medium text-gray-900;
-  }
+	.section-title {
+		@apply text-sm font-medium text-gray-900;
+	}
 
-  .roles-list {
-    @apply space-y-3;
-  }
+	.roles-list {
+		@apply space-y-3;
+	}
 
-  .role-checkbox {
-    @apply flex items-start space-x-3 p-3 border border-gray-200 rounded hover:bg-gray-50 cursor-pointer;
-  }
+	.role-checkbox {
+		@apply flex cursor-pointer items-start space-x-3 rounded border border-gray-200 p-3 hover:bg-gray-50;
+	}
 
-  .checkbox {
-    @apply mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500;
-  }
+	.checkbox {
+		@apply mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500;
+	}
 
-  .role-option {
-    @apply flex-1;
-  }
+	.role-option {
+		@apply flex-1;
+	}
 
-  .role-main {
-    @apply flex items-center justify-between;
-  }
+	.role-main {
+		@apply flex items-center justify-between;
+	}
 
-  .role-label {
-    @apply text-sm font-medium text-gray-900;
-  }
+	.role-label {
+		@apply text-sm font-medium text-gray-900;
+	}
 
-  .role-desc {
-    @apply text-xs text-gray-600 mt-1;
-  }
+	.role-desc {
+		@apply mt-1 text-xs text-gray-600;
+	}
 
-  .modal-footer {
-    @apply flex items-center justify-end space-x-3 p-4 border-t bg-gray-50;
-  }
+	.modal-footer {
+		@apply flex items-center justify-end space-x-3 border-t bg-gray-50 p-4;
+	}
 
-  /* Access Denied */
-  .access-denied .denied-content {
-    @apply text-center py-12;
-  }
+	/* Access Denied */
+	.access-denied .denied-content {
+		@apply py-12 text-center;
+	}
 
-  /* Responsive */
-  @media (max-width: 768px) {
-    .filter-row {
-      @apply flex-col items-stretch space-x-0 space-y-3;
-    }
+	/* Responsive */
+	@media (max-width: 768px) {
+		.filter-row {
+			@apply flex-col items-stretch space-x-0 space-y-3;
+		}
 
-    .roles-grid {
-      @apply grid-cols-1;
-    }
+		.roles-grid {
+			@apply grid-cols-1;
+		}
 
-    .tab-list {
-      @apply space-x-4;
-    }
-  }
+		.tab-list {
+			@apply space-x-4;
+		}
+	}
 </style>

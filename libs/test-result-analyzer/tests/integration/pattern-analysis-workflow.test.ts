@@ -15,7 +15,7 @@ describe('Pattern Analysis Workflow Integration', () => {
         minPatternFrequency: 3,
         confidenceThreshold: 0.8,
         analysisDepth: 'comprehensive',
-        timeWindowDays: 7
+        timeWindowDays: 7,
       });
 
       // Load test results from multiple iterations
@@ -46,26 +46,26 @@ describe('Pattern Analysis Workflow Integration', () => {
           enabled: true,
           crossBrowserCorrelation: true,
           environmentalFactors: true,
-          temporalCorrelation: true
-        }
+          temporalCorrelation: true,
+        },
       });
 
       const correlationResults = await analysisEngine.analyzeCorrelations([
         {
           browser: 'chromium',
           failures: ['timeout-login', 'element-not-found', 'network-error'],
-          environment: { os: 'linux', viewport: '1280x720' }
+          environment: { os: 'linux', viewport: '1280x720' },
         },
         {
           browser: 'firefox',
           failures: ['timeout-login', 'csrf-error', 'network-error'],
-          environment: { os: 'linux', viewport: '1280x720' }
+          environment: { os: 'linux', viewport: '1280x720' },
         },
         {
           browser: 'webkit',
           failures: ['element-not-found', 'navigation-error'],
-          environment: { os: 'linux', viewport: '1280x720' }
-        }
+          environment: { os: 'linux', viewport: '1280x720' },
+        },
       ]);
 
       // Should identify cross-browser patterns
@@ -86,27 +86,33 @@ describe('Pattern Analysis Workflow Integration', () => {
           enabled: true,
           minimumOccurrences: 5,
           consistencyThreshold: 0.9,
-          timeWindowAnalysis: true
-        }
+          timeWindowAnalysis: true,
+        },
       });
 
       const flakinessResults = await analysisEngine.analyzeFlakyTests([
         // Consistent failure - always fails
-        { scenario: 'admin-login', iterations: [
-          { result: 'failed', error: 'Invalid credentials' },
-          { result: 'failed', error: 'Invalid credentials' },
-          { result: 'failed', error: 'Invalid credentials' },
-          { result: 'failed', error: 'Invalid credentials' },
-          { result: 'failed', error: 'Invalid credentials' }
-        ]},
+        {
+          scenario: 'admin-login',
+          iterations: [
+            { result: 'failed', error: 'Invalid credentials' },
+            { result: 'failed', error: 'Invalid credentials' },
+            { result: 'failed', error: 'Invalid credentials' },
+            { result: 'failed', error: 'Invalid credentials' },
+            { result: 'failed', error: 'Invalid credentials' },
+          ],
+        },
         // Flaky failure - sometimes passes
-        { scenario: 'employee-dashboard', iterations: [
-          { result: 'passed' },
-          { result: 'failed', error: 'Timeout waiting for element' },
-          { result: 'passed' },
-          { result: 'failed', error: 'Network timeout' },
-          { result: 'passed' }
-        ]}
+        {
+          scenario: 'employee-dashboard',
+          iterations: [
+            { result: 'passed' },
+            { result: 'failed', error: 'Timeout waiting for element' },
+            { result: 'passed' },
+            { result: 'failed', error: 'Network timeout' },
+            { result: 'passed' },
+          ],
+        },
       ]);
 
       // Should correctly classify failures
@@ -128,8 +134,8 @@ describe('Pattern Analysis Workflow Integration', () => {
           enabled: true,
           prioritizeBySeverity: true,
           includeImplementationSteps: true,
-          estimateEffort: true
-        }
+          estimateEffort: true,
+        },
       });
 
       const recommendations = await analysisEngine.generateRecommendations({
@@ -138,15 +144,15 @@ describe('Pattern Analysis Workflow Integration', () => {
             pattern: 'timeout-authentication-chrome',
             frequency: 15,
             severity: 'high',
-            conditions: ['browser=chrome', 'action=login', 'duration>10s']
+            conditions: ['browser=chrome', 'action=login', 'duration>10s'],
           },
           {
             pattern: 'element-not-found-mobile',
             frequency: 8,
             severity: 'medium',
-            conditions: ['viewport<768px', 'element=submit-button']
-          }
-        ]
+            conditions: ['viewport<768px', 'element=submit-button'],
+          },
+        ],
       });
 
       // Should provide actionable recommendations
@@ -169,14 +175,14 @@ describe('Pattern Analysis Workflow Integration', () => {
           enabled: true,
           trackPatternEvolution: true,
           trendAnalysis: true,
-          seasonalityDetection: true
-        }
+          seasonalityDetection: true,
+        },
       });
 
       const temporalResults = await analysisEngine.analyzeTemporalPatterns({
         timeRange: '30days',
         granularity: 'daily',
-        patterns: ['timeout-errors', 'authentication-failures', 'network-issues']
+        patterns: ['timeout-errors', 'authentication-failures', 'network-issues'],
       });
 
       // Should track pattern changes over time
@@ -197,10 +203,8 @@ describe('Pattern Analysis Workflow Integration', () => {
       const analysisEngine = new PatternAnalysisEngine();
 
       const analysisResults = {
-        detectedPatterns: [
-          { pattern: 'test-pattern', frequency: 5, confidence: 0.85 }
-        ],
-        statisticalSummary: { totalFailures: 20, patternCoverage: 0.75 }
+        detectedPatterns: [{ pattern: 'test-pattern', frequency: 5, confidence: 0.85 }],
+        statisticalSummary: { totalFailures: 20, patternCoverage: 0.75 },
       };
 
       // Export to different formats
@@ -226,21 +230,25 @@ describe('Pattern Analysis Workflow Integration', () => {
           enabled: true,
           significanceLevel: 0.05,
           minimumSampleSize: 10,
-          powerAnalysis: true
-        }
+          powerAnalysis: true,
+        },
       });
 
       const validationResults = await analysisEngine.validatePatternSignificance([
         { pattern: 'high-frequency-pattern', occurrences: 50, totalTests: 100 },
         { pattern: 'low-frequency-pattern', occurrences: 2, totalTests: 100 },
-        { pattern: 'medium-frequency-pattern', occurrences: 15, totalTests: 100 }
+        { pattern: 'medium-frequency-pattern', occurrences: 15, totalTests: 100 },
       ]);
 
       // Should validate statistical significance
       expect(validationResults.significantPatterns).toContain('high-frequency-pattern');
       expect(validationResults.significantPatterns).not.toContain('low-frequency-pattern');
-      expect(validationResults.validationMetrics['high-frequency-pattern'].pValue).toBeLessThan(0.05);
-      expect(validationResults.validationMetrics['low-frequency-pattern'].pValue).toBeGreaterThan(0.05);
+      expect(validationResults.validationMetrics['high-frequency-pattern'].pValue).toBeLessThan(
+        0.05
+      );
+      expect(validationResults.validationMetrics['low-frequency-pattern'].pValue).toBeGreaterThan(
+        0.05
+      );
     } catch (error) {
       // EXPECTED TO FAIL: Statistical validation not implemented yet
       expect(error).toBeDefined();

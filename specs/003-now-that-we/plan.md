@@ -4,6 +4,7 @@
 **Input**: Feature specification from `/specs/003-now-that-we/spec.md`
 
 ## Execution Flow (/plan command scope)
+
 ```
 1. Load feature spec from Input path
    → If not found: ERROR "No feature spec at {path}"
@@ -25,13 +26,16 @@
 ```
 
 **IMPORTANT**: The /plan command STOPS at step 7. Phases 2-4 are executed by other commands:
+
 - Phase 2: /tasks command creates tasks.md
 - Phase 3-4: Implementation execution (manual or via tools)
 
 ## Summary
+
 Complete migration from Hasura GraphQL Engine to PostGraphile with database-first authentication, row-level security, and performance optimization. This migration provides transparent, open-source GraphQL layer with PostgreSQL-native security and eliminates vendor lock-in while maintaining backwards compatibility with existing frontend queries.
 
 ## Technical Context
+
 **Language/Version**: Node.js 18+ with TypeScript 5.x  
 **Primary Dependencies**: PostGraphile 4.x, Express.js, PostgreSQL 15+, Redis 7.2  
 **Storage**: PostgreSQL 15+ with Row-Level Security enabled, Redis for caching  
@@ -40,22 +44,25 @@ Complete migration from Hasura GraphQL Engine to PostGraphile with database-firs
 **Project Type**: web - SvelteKit frontend + PostGraphile backend  
 **Performance Goals**: <200ms GraphQL response time, eliminate N+1 queries, 95% cache hit ratio  
 **Constraints**: Complete migration from Hasura, maintain GraphQL schema compatibility, zero downtime deployment  
-**Scale/Scope**: HR system with 4 user roles, 12 core entities, 50+ GraphQL operations  
+**Scale/Scope**: HR system with 4 user roles, 12 core entities, 50+ GraphQL operations
 
 **Migration Context**: Moving entirely to PostGraphile to replace Hasura GraphQL Engine. This is a complete replacement, not an addition to existing infrastructure.
 
 ## Constitution Check
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+
+_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
 **Simplicity**:
+
 - Projects: 2 (postgraphile-backend, frontend) - under max 3
 - Using framework directly? Yes - PostGraphile middleware in Express
 - Single data model? Yes - PostgreSQL schema drives GraphQL schema
 - Avoiding patterns? Yes - no Repository/UoW, direct PostgreSQL functions
 
 **Architecture**:
+
 - EVERY feature as library? Yes - auth, caching, logging as separate modules
-- Libraries listed: 
+- Libraries listed:
   - postgraphile-auth (JWT validation, role assignment)
   - postgraphile-cache (Redis LRU cache with pg-cache)
   - postgraphile-monitoring (structured logging, observability)
@@ -64,6 +71,7 @@ Complete migration from Hasura GraphQL Engine to PostGraphile with database-firs
 - Library docs: llms.txt format planned for all modules
 
 **Testing (NON-NEGOTIABLE)**:
+
 - RED-GREEN-Refactor cycle enforced? Yes - tests written first for each component
 - Git commits show tests before implementation? Yes - test commits precede implementation
 - Order: Contract→Integration→E2E→Unit strictly followed? Yes
@@ -72,11 +80,13 @@ Complete migration from Hasura GraphQL Engine to PostGraphile with database-firs
 - FORBIDDEN: Implementation before test, skipping RED phase
 
 **Observability**:
+
 - Structured logging included? Yes - Winston with JSON format
 - Frontend logs → backend? Yes - unified logging stream via GraphQL
 - Error context sufficient? Yes - request ID, user context, query tracing
 
 **Versioning**:
+
 - Version number assigned? 1.0.0 (major migration)
 - BUILD increments on every change? Yes
 - Breaking changes handled? Yes - parallel Hasura/PostGraphile during transition
@@ -84,6 +94,7 @@ Complete migration from Hasura GraphQL Engine to PostGraphile with database-firs
 ## Project Structure
 
 ### Documentation (this feature)
+
 ```
 specs/003-now-that-we/
 ├── plan.md              # This file (/plan command output)
@@ -95,6 +106,7 @@ specs/003-now-that-we/
 ```
 
 ### Source Code (repository root)
+
 ```
 # Web application structure (PostGraphile migration)
 backend/
@@ -131,6 +143,7 @@ database/
 **Structure Decision**: Option 2 (Web application) - PostGraphile backend replaces Hasura, SvelteKit frontend maintained with updated GraphQL client
 
 ## Phase 0: Outline & Research
+
 1. **Extract unknowns from Technical Context** above:
    - PostGraphile 4.x configuration and plugin system best practices
    - JWT token validation and PostgreSQL role assignment patterns
@@ -139,6 +152,7 @@ database/
    - Performance optimization strategies for PostgreSQL + PostGraphile
 
 2. **Generate and dispatch research agents**:
+
    ```
    Task: "Research PostGraphile 4.x setup and configuration for HR system migration"
    Task: "Find best practices for JWT authentication with PostGraphile and PostgreSQL roles"
@@ -155,7 +169,8 @@ database/
 **Output**: research.md with all NEEDS CLARIFICATION resolved
 
 ## Phase 1: Design & Contracts
-*Prerequisites: research.md complete*
+
+_Prerequisites: research.md complete_
 
 1. **Extract entities from feature spec** → `data-model.md`:
    - Authentication Token: JWT structure, claims, expiration
@@ -191,12 +206,14 @@ database/
    - Keep under 150 lines for token efficiency
    - Output to repository root as CLAUDE.md
 
-**Output**: data-model.md, /contracts/*, failing tests, quickstart.md, CLAUDE.md
+**Output**: data-model.md, /contracts/\*, failing tests, quickstart.md, CLAUDE.md
 
 ## Phase 2: Task Planning Approach
-*This section describes what the /tasks command will do - DO NOT execute during /plan*
+
+_This section describes what the /tasks command will do - DO NOT execute during /plan_
 
 **Task Generation Strategy**:
+
 - Load `/templates/tasks-template.md` as base
 - Generate tasks from Phase 1 design docs (contracts, data model, quickstart)
 - Each GraphQL contract → contract test task [P]
@@ -208,6 +225,7 @@ database/
 - Frontend migration → GraphQL client update tasks
 
 **Ordering Strategy**:
+
 - TDD order: Tests before implementation
 - Dependency order: Database schema → PostGraphile setup → Authentication → Frontend updates
 - Mark [P] for parallel execution (independent database functions, tests)
@@ -217,19 +235,23 @@ database/
 **IMPORTANT**: This phase is executed by the /tasks command, NOT by /plan
 
 ## Phase 3+: Future Implementation
-*These phases are beyond the scope of the /plan command*
+
+_These phases are beyond the scope of the /plan command_
 
 **Phase 3**: Task execution (/tasks command creates tasks.md)  
 **Phase 4**: Implementation (execute tasks.md following constitutional principles)  
 **Phase 5**: Validation (run tests, execute quickstart.md, performance validation)
 
 ## Complexity Tracking
-*No constitutional violations identified*
+
+_No constitutional violations identified_
 
 ## Progress Tracking
-*This checklist is updated during execution flow*
+
+_This checklist is updated during execution flow_
 
 **Phase Status**:
+
 - [x] Phase 0: Research complete (/plan command)
 - [x] Phase 1: Design complete (/plan command)
 - [x] Phase 2: Task planning complete (/plan command - describe approach only)
@@ -238,10 +260,12 @@ database/
 - [ ] Phase 5: Validation passed
 
 **Gate Status**:
+
 - [x] Initial Constitution Check: PASS
 - [x] Post-Design Constitution Check: PASS
 - [x] All NEEDS CLARIFICATION resolved
 - [x] Complexity deviations documented
 
 ---
-*Based on Constitution v2.1.1 - See `/memory/constitution.md`*
+
+_Based on Constitution v2.1.1 - See `/memory/constitution.md`_

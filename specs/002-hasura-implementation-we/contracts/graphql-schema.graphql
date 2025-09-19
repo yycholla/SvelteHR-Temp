@@ -9,280 +9,377 @@ scalar date
 
 # Enums
 enum onboarding_status_enum {
-  PreHire
-  Onboarding
-  Active
-  Terminated
+	PreHire
+	Onboarding
+	Active
+	Terminated
 }
 
 enum pay_type_enum {
-  Hourly
-  Salary
-  Commission
-  Contractor
+	Hourly
+	Salary
+	Commission
+	Contractor
 }
 
 enum bank_account_type_enum {
-  Checking
-  Savings
+	Checking
+	Savings
 }
 
 # User Entity (Central Hub)
 type users {
-  id: uuid!
-  email: String!
-  display_name: String!
-  onboarding_status: onboarding_status_enum!
-  job_title: String
-  is_active: Boolean!
-  created_at: timestamptz!
-  updated_at: timestamptz!
-  
-  # Relationships
-  job_information: job_information
-  contact_information: contact_information
-  personal_information: personal_information
-  compensation: compensation
-  user_role_assignments(where: user_role_assignments_bool_exp, order_by: [user_role_assignments_order_by!], limit: Int, offset: Int): [user_role_assignments!]!
-  auth_sessions(where: auth_sessions_bool_exp, order_by: [auth_sessions_order_by!], limit: Int, offset: Int): [auth_sessions!]!
-  managed_departments(where: departments_bool_exp, order_by: [departments_order_by!], limit: Int, offset: Int): [departments!]!
+	id: uuid!
+	email: String!
+	display_name: String!
+	onboarding_status: onboarding_status_enum!
+	job_title: String
+	is_active: Boolean!
+	created_at: timestamptz!
+	updated_at: timestamptz!
+
+	# Relationships
+	job_information: job_information
+	contact_information: contact_information
+	personal_information: personal_information
+	compensation: compensation
+	user_role_assignments(
+		where: user_role_assignments_bool_exp
+		order_by: [user_role_assignments_order_by!]
+		limit: Int
+		offset: Int
+	): [user_role_assignments!]!
+	auth_sessions(
+		where: auth_sessions_bool_exp
+		order_by: [auth_sessions_order_by!]
+		limit: Int
+		offset: Int
+	): [auth_sessions!]!
+	managed_departments(
+		where: departments_bool_exp
+		order_by: [departments_order_by!]
+		limit: Int
+		offset: Int
+	): [departments!]!
 }
 
 # Department Entity
 type departments {
-  id: uuid!
-  name: String!
-  description: String
-  budget: numeric
-  is_active: Boolean!
-  parent_department_id: uuid
-  manager_id: uuid
-  created_at: timestamptz!
-  updated_at: timestamptz!
-  
-  # Relationships
-  parent_department: departments
-  manager: users
-  subdepartments(where: departments_bool_exp, order_by: [departments_order_by!], limit: Int, offset: Int): [departments!]!
-  job_informations(where: job_information_bool_exp, order_by: [job_information_order_by!], limit: Int, offset: Int): [job_information!]!
-  
-  # Computed fields (from PostgreSQL views)
-  employee_count: Int
-  active_employee_count: Int
-  subdepartment_count: Int
-  budget_per_employee: numeric
+	id: uuid!
+	name: String!
+	description: String
+	budget: numeric
+	is_active: Boolean!
+	parent_department_id: uuid
+	manager_id: uuid
+	created_at: timestamptz!
+	updated_at: timestamptz!
+
+	# Relationships
+	parent_department: departments
+	manager: users
+	subdepartments(
+		where: departments_bool_exp
+		order_by: [departments_order_by!]
+		limit: Int
+		offset: Int
+	): [departments!]!
+	job_informations(
+		where: job_information_bool_exp
+		order_by: [job_information_order_by!]
+		limit: Int
+		offset: Int
+	): [job_information!]!
+
+	# Computed fields (from PostgreSQL views)
+	employee_count: Int
+	active_employee_count: Int
+	subdepartment_count: Int
+	budget_per_employee: numeric
 }
 
 # Role Entity
 type user_roles {
-  id: uuid!
-  name: String!
-  level: Int!
-  description: String
-  created_at: timestamptz!
-  
-  # Relationships
-  user_role_assignments(where: user_role_assignments_bool_exp, order_by: [user_role_assignments_order_by!], limit: Int, offset: Int): [user_role_assignments!]!
+	id: uuid!
+	name: String!
+	level: Int!
+	description: String
+	created_at: timestamptz!
+
+	# Relationships
+	user_role_assignments(
+		where: user_role_assignments_bool_exp
+		order_by: [user_role_assignments_order_by!]
+		limit: Int
+		offset: Int
+	): [user_role_assignments!]!
 }
 
 # Role Assignment Junction
 type user_role_assignments {
-  id: uuid!
-  user_id: uuid!
-  role_id: uuid!
-  is_active: Boolean!
-  assigned_at: timestamptz!
-  
-  # Relationships
-  user: users!
-  role: user_roles!
+	id: uuid!
+	user_id: uuid!
+	role_id: uuid!
+	is_active: Boolean!
+	assigned_at: timestamptz!
+
+	# Relationships
+	user: users!
+	role: user_roles!
 }
 
 # Job Information
 type job_information {
-  id: uuid!
-  employee_id: uuid!
-  department_id: uuid
-  job_title: String
-  hire_date: date
-  employment_type: String
-  work_location: String
-  work_schedule: String
-  manager_id: uuid
-  termination_date: date
-  is_remote: Boolean!
-  created_at: timestamptz!
-  updated_at: timestamptz!
-  
-  # Relationships
-  employee: users!
-  department: departments
-  manager: users
+	id: uuid!
+	employee_id: uuid!
+	department_id: uuid
+	job_title: String
+	hire_date: date
+	employment_type: String
+	work_location: String
+	work_schedule: String
+	manager_id: uuid
+	termination_date: date
+	is_remote: Boolean!
+	created_at: timestamptz!
+	updated_at: timestamptz!
+
+	# Relationships
+	employee: users!
+	department: departments
+	manager: users
 }
 
 # Compensation (Sensitive Data)
 type compensation {
-  id: uuid!
-  employee_id: uuid!
-  pay_type: pay_type_enum
-  pay_rate: numeric
-  currency: String
-  direct_deposit_enabled: Boolean!
-  salary_review_date: date
-  bonus_eligible: Boolean!
-  overtime_eligible: Boolean!
-  created_at: timestamptz!
-  updated_at: timestamptz!
-  
-  # Relationships
-  employee: users!
-  
-  # Note: Bank information excluded from GraphQL for security
-  # Access only through dedicated secure endpoints
+	id: uuid!
+	employee_id: uuid!
+	pay_type: pay_type_enum
+	pay_rate: numeric
+	currency: String
+	direct_deposit_enabled: Boolean!
+	salary_review_date: date
+	bonus_eligible: Boolean!
+	overtime_eligible: Boolean!
+	created_at: timestamptz!
+	updated_at: timestamptz!
+
+	# Relationships
+	employee: users!
+
+	# Note: Bank information excluded from GraphQL for security
+	# Access only through dedicated secure endpoints
 }
 
 # Contact Information
 type contact_information {
-  id: uuid!
-  employee_id: uuid!
-  email: String
-  phone_number: String
-  work_phone_number: String
-  address_street: String
-  address_city: String
-  address_state: String
-  address_zip: String
-  emergency_contact_name: String
-  emergency_contact_relationship: String
-  emergency_contact_phone: String
-  created_at: timestamptz!
-  updated_at: timestamptz!
-  
-  # Relationships
-  employee: users!
+	id: uuid!
+	employee_id: uuid!
+	email: String
+	phone_number: String
+	work_phone_number: String
+	address_street: String
+	address_city: String
+	address_state: String
+	address_zip: String
+	emergency_contact_name: String
+	emergency_contact_relationship: String
+	emergency_contact_phone: String
+	created_at: timestamptz!
+	updated_at: timestamptz!
+
+	# Relationships
+	employee: users!
 }
 
 # Personal Information (Restricted Access)
 type personal_information {
-  id: uuid!
-  employee_id: uuid!
-  date_of_birth: date
-  gender: String
-  marital_status: String
-  nationality: String
-  # Note: SSN and other sensitive fields excluded from GraphQL
-  # Access only through secure, audited endpoints
-  created_at: timestamptz!
-  updated_at: timestamptz!
-  
-  # Relationships
-  employee: users!
+	id: uuid!
+	employee_id: uuid!
+	date_of_birth: date
+	gender: String
+	marital_status: String
+	nationality: String
+	# Note: SSN and other sensitive fields excluded from GraphQL
+	# Access only through secure, audited endpoints
+	created_at: timestamptz!
+	updated_at: timestamptz!
+
+	# Relationships
+	employee: users!
 }
 
 # Authentication Sessions
 type auth_sessions {
-  id: uuid!
-  user_id: uuid!
-  expires_at: timestamptz!
-  user_agent: String
-  ip_address: String
-  is_active: Boolean!
-  created_at: timestamptz!
-  updated_at: timestamptz!
-  
-  # Relationships
-  user: users!
-  
-  # Note: Token hashes excluded from GraphQL for security
+	id: uuid!
+	user_id: uuid!
+	expires_at: timestamptz!
+	user_agent: String
+	ip_address: String
+	is_active: Boolean!
+	created_at: timestamptz!
+	updated_at: timestamptz!
+
+	# Relationships
+	user: users!
+
+	# Note: Token hashes excluded from GraphQL for security
 }
 
 # Query Root
 type query_root {
-  # Employee Directory (Most Common Query)
-  users(where: users_bool_exp, order_by: [users_order_by!], limit: Int, offset: Int): [users!]!
-  users_by_pk(id: uuid!): users
-  
-  # Department Management
-  departments(where: departments_bool_exp, order_by: [departments_order_by!], limit: Int, offset: Int): [departments!]!
-  departments_by_pk(id: uuid!): departments
-  
-  # Role Management
-  user_roles(where: user_roles_bool_exp, order_by: [user_roles_order_by!], limit: Int, offset: Int): [user_roles!]!
-  user_roles_by_pk(id: uuid!): user_roles
-  
-  # Job Information
-  job_information(where: job_information_bool_exp, order_by: [job_information_order_by!], limit: Int, offset: Int): [job_information!]!
-  job_information_by_pk(id: uuid!): job_information
-  
-  # Contact Information
-  contact_information(where: contact_information_bool_exp, order_by: [contact_information_order_by!], limit: Int, offset: Int): [contact_information!]!
-  contact_information_by_pk(id: uuid!): contact_information
-  
-  # Compensation (Restricted)
-  compensation(where: compensation_bool_exp, order_by: [compensation_order_by!], limit: Int, offset: Int): [compensation!]!
-  compensation_by_pk(id: uuid!): compensation
+	# Employee Directory (Most Common Query)
+	users(where: users_bool_exp, order_by: [users_order_by!], limit: Int, offset: Int): [users!]!
+	users_by_pk(id: uuid!): users
+
+	# Department Management
+	departments(
+		where: departments_bool_exp
+		order_by: [departments_order_by!]
+		limit: Int
+		offset: Int
+	): [departments!]!
+	departments_by_pk(id: uuid!): departments
+
+	# Role Management
+	user_roles(
+		where: user_roles_bool_exp
+		order_by: [user_roles_order_by!]
+		limit: Int
+		offset: Int
+	): [user_roles!]!
+	user_roles_by_pk(id: uuid!): user_roles
+
+	# Job Information
+	job_information(
+		where: job_information_bool_exp
+		order_by: [job_information_order_by!]
+		limit: Int
+		offset: Int
+	): [job_information!]!
+	job_information_by_pk(id: uuid!): job_information
+
+	# Contact Information
+	contact_information(
+		where: contact_information_bool_exp
+		order_by: [contact_information_order_by!]
+		limit: Int
+		offset: Int
+	): [contact_information!]!
+	contact_information_by_pk(id: uuid!): contact_information
+
+	# Compensation (Restricted)
+	compensation(
+		where: compensation_bool_exp
+		order_by: [compensation_order_by!]
+		limit: Int
+		offset: Int
+	): [compensation!]!
+	compensation_by_pk(id: uuid!): compensation
 }
 
 # Mutation Root
 type mutation_root {
-  # User Management
-  insert_users(objects: [users_insert_input!]!, on_conflict: users_on_conflict): users_mutation_response
-  update_users(where: users_bool_exp!, _set: users_set_input): users_mutation_response
-  delete_users(where: users_bool_exp!): users_mutation_response
-  
-  # Department Management
-  insert_departments(objects: [departments_insert_input!]!, on_conflict: departments_on_conflict): departments_mutation_response
-  update_departments(where: departments_bool_exp!, _set: departments_set_input): departments_mutation_response
-  
-  # Role Assignments
-  insert_user_role_assignments(objects: [user_role_assignments_insert_input!]!, on_conflict: user_role_assignments_on_conflict): user_role_assignments_mutation_response
-  update_user_role_assignments(where: user_role_assignments_bool_exp!, _set: user_role_assignments_set_input): user_role_assignments_mutation_response
-  
-  # Job Information Updates
-  insert_job_information(objects: [job_information_insert_input!]!, on_conflict: job_information_on_conflict): job_information_mutation_response
-  update_job_information(where: job_information_bool_exp!, _set: job_information_set_input): job_information_mutation_response
-  
-  # Contact Information Updates
-  insert_contact_information(objects: [contact_information_insert_input!]!, on_conflict: contact_information_on_conflict): contact_information_mutation_response
-  update_contact_information(where: contact_information_bool_exp!, _set: contact_information_set_input): contact_information_mutation_response
+	# User Management
+	insert_users(
+		objects: [users_insert_input!]!
+		on_conflict: users_on_conflict
+	): users_mutation_response
+	update_users(where: users_bool_exp!, _set: users_set_input): users_mutation_response
+	delete_users(where: users_bool_exp!): users_mutation_response
+
+	# Department Management
+	insert_departments(
+		objects: [departments_insert_input!]!
+		on_conflict: departments_on_conflict
+	): departments_mutation_response
+	update_departments(
+		where: departments_bool_exp!
+		_set: departments_set_input
+	): departments_mutation_response
+
+	# Role Assignments
+	insert_user_role_assignments(
+		objects: [user_role_assignments_insert_input!]!
+		on_conflict: user_role_assignments_on_conflict
+	): user_role_assignments_mutation_response
+	update_user_role_assignments(
+		where: user_role_assignments_bool_exp!
+		_set: user_role_assignments_set_input
+	): user_role_assignments_mutation_response
+
+	# Job Information Updates
+	insert_job_information(
+		objects: [job_information_insert_input!]!
+		on_conflict: job_information_on_conflict
+	): job_information_mutation_response
+	update_job_information(
+		where: job_information_bool_exp!
+		_set: job_information_set_input
+	): job_information_mutation_response
+
+	# Contact Information Updates
+	insert_contact_information(
+		objects: [contact_information_insert_input!]!
+		on_conflict: contact_information_on_conflict
+	): contact_information_mutation_response
+	update_contact_information(
+		where: contact_information_bool_exp!
+		_set: contact_information_set_input
+	): contact_information_mutation_response
 }
 
 # Subscription Root (Real-time Features)
 type subscription_root {
-  # Employee Status Changes (Most Common Subscription)
-  users(where: users_bool_exp, order_by: [users_order_by!], limit: Int, offset: Int): [users!]!
-  users_by_pk(id: uuid!): users
-  
-  # Department Updates
-  departments(where: departments_bool_exp, order_by: [departments_order_by!], limit: Int, offset: Int): [departments!]!
-  
-  # Job Information Changes
-  job_information(where: job_information_bool_exp, order_by: [job_information_order_by!], limit: Int, offset: Int): [job_information!]!
-  
-  # Role Assignment Changes
-  user_role_assignments(where: user_role_assignments_bool_exp, order_by: [user_role_assignments_order_by!], limit: Int, offset: Int): [user_role_assignments!]!
+	# Employee Status Changes (Most Common Subscription)
+	users(where: users_bool_exp, order_by: [users_order_by!], limit: Int, offset: Int): [users!]!
+	users_by_pk(id: uuid!): users
+
+	# Department Updates
+	departments(
+		where: departments_bool_exp
+		order_by: [departments_order_by!]
+		limit: Int
+		offset: Int
+	): [departments!]!
+
+	# Job Information Changes
+	job_information(
+		where: job_information_bool_exp
+		order_by: [job_information_order_by!]
+		limit: Int
+		offset: Int
+	): [job_information!]!
+
+	# Role Assignment Changes
+	user_role_assignments(
+		where: user_role_assignments_bool_exp
+		order_by: [user_role_assignments_order_by!]
+		limit: Int
+		offset: Int
+	): [user_role_assignments!]!
 }
 
 # Common Input Types (Simplified - Hasura auto-generates full set)
 input users_bool_exp {
-  _and: [users_bool_exp!]
-  _or: [users_bool_exp!]
-  _not: users_bool_exp
-  id: uuid_comparison_exp
-  email: String_comparison_exp
-  display_name: String_comparison_exp
-  onboarding_status: onboarding_status_enum_comparison_exp
-  is_active: Boolean_comparison_exp
-  job_information: job_information_bool_exp
-  user_role_assignments: user_role_assignments_bool_exp
+	_and: [users_bool_exp!]
+	_or: [users_bool_exp!]
+	_not: users_bool_exp
+	id: uuid_comparison_exp
+	email: String_comparison_exp
+	display_name: String_comparison_exp
+	onboarding_status: onboarding_status_enum_comparison_exp
+	is_active: Boolean_comparison_exp
+	job_information: job_information_bool_exp
+	user_role_assignments: user_role_assignments_bool_exp
 }
 
 input users_order_by {
-  id: order_by
-  email: order_by
-  display_name: order_by
-  created_at: order_by
-  job_information: job_information_order_by
+	id: order_by
+	email: order_by
+	display_name: order_by
+	created_at: order_by
+	job_information: job_information_order_by
 }
 
 # Performance-Optimized Queries (Examples)
@@ -325,7 +422,7 @@ input users_order_by {
 # Real-time Employee Status
 # subscription EmployeeStatusUpdates($department_id: uuid!) {
 #   users(
-#     where: { 
+#     where: {
 #       job_information: { department_id: { _eq: $department_id } }
 #       is_active: { _eq: true }
 #     }

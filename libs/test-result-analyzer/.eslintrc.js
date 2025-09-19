@@ -5,16 +5,16 @@ module.exports = {
   extends: [
     'eslint:recommended',
     '@typescript-eslint/recommended',
-    '@typescript-eslint/recommended-requiring-type-checking'
+    '@typescript-eslint/recommended-requiring-type-checking',
   ],
   parserOptions: {
     ecmaVersion: 2022,
     sourceType: 'module',
-    project: './tsconfig.json'
+    project: './tsconfig.json',
   },
   env: {
     node: true,
-    es2022: true
+    es2022: true,
   },
   rules: {
     '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
@@ -24,7 +24,7 @@ module.exports = {
     '@typescript-eslint/no-non-null-assertion': 'warn',
     'prefer-const': 'error',
     'no-var': 'error',
-    'no-console': 'warn'
+    'no-console': 'warn',
   },
-  ignorePatterns: ['dist/', 'node_modules/', '*.js']
+  ignorePatterns: ['dist/', 'node_modules/', '*.js'],
 };

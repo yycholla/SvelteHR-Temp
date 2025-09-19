@@ -33,12 +33,12 @@ paths:
                 email:
                   type: string
                   format: email
-                  example: "admin@postgraphile-hr.com"
+                  example: 'admin@postgraphile-hr.com'
                 password:
                   type: string
                   format: password
                   minLength: 8
-                  example: "AdminPass123!"
+                  example: 'AdminPass123!'
                 rememberMe:
                   type: boolean
                   default: false
@@ -51,7 +51,7 @@ paths:
               description: JWT access token (httpOnly)
               schema:
                 type: string
-                example: "jwt-token=eyJ...; HttpOnly; Secure; SameSite=Strict"
+                example: 'jwt-token=eyJ...; HttpOnly; Secure; SameSite=Strict'
           content:
             application/json:
               schema:
@@ -139,7 +139,7 @@ paths:
               description: Clear authentication cookies
               schema:
                 type: string
-                example: "jwt-token=; expires=Thu, 01 Jan 1970 00:00:00 GMT"
+                example: 'jwt-token=; expires=Thu, 01 Jan 1970 00:00:00 GMT'
           content:
             application/json:
               schema:
@@ -150,7 +150,7 @@ paths:
                     example: true
                   message:
                     type: string
-                    example: "Logged out successfully"
+                    example: 'Logged out successfully'
 
   /auth/me:
     get:
@@ -221,7 +221,7 @@ paths:
                     example: true
                   message:
                     type: string
-                    example: "Password updated successfully"
+                    example: 'Password updated successfully'
         '400':
           description: Invalid password format
           content:
@@ -243,18 +243,18 @@ components:
         id:
           type: string
           format: uuid
-          example: "44defe38-ac2a-4956-b341-f840d05ef2d3"
+          example: '44defe38-ac2a-4956-b341-f840d05ef2d3'
         email:
           type: string
           format: email
-          example: "admin@postgraphile-hr.com"
+          example: 'admin@postgraphile-hr.com'
         displayName:
           type: string
-          example: "System Administrator"
+          example: 'System Administrator'
         onboardingStatus:
           type: string
-          enum: ["Pending", "Active", "Completed"]
-          example: "Active"
+          enum: ['Pending', 'Active', 'Completed']
+          example: 'Active'
         isActive:
           type: boolean
           example: true
@@ -266,7 +266,7 @@ components:
           type: array
           items:
             type: string
-          example: ["system:configure", "users:manage", "reports:view"]
+          example: ['system:configure', 'users:manage', 'reports:view']
 
     UserRole:
       type: object
@@ -276,11 +276,11 @@ components:
           format: uuid
         name:
           type: string
-          enum: ["admin", "hr", "manager", "employee"]
-          example: "admin"
+          enum: ['admin', 'hr', 'manager', 'employee']
+          example: 'admin'
         description:
           type: string
-          example: "System administrator with full access"
+          example: 'System administrator with full access'
         level:
           type: integer
           minimum: 1
@@ -298,10 +298,10 @@ components:
           example: false
         error:
           type: string
-          example: "Invalid email or password"
+          example: 'Invalid email or password'
         code:
           type: string
-          example: "AUTH_INVALID_CREDENTIALS"
+          example: 'AUTH_INVALID_CREDENTIALS'
         details:
           type: object
           additionalProperties: true

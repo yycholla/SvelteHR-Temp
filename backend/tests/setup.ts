@@ -2,7 +2,8 @@
 import { jest } from '@jest/globals';
 
 // Mock environmental variables for testing
-process.env.DATABASE_URL = 'postgres://postgres:test@localhost:5432/hr_system_test';
+process.env.DATABASE_URL =
+  'postgres://postgres:test@localhost:5432/hr_system_test';
 process.env.REDIS_URL = 'redis://localhost:6379/1';
 process.env.JWT_SECRET = 'test-jwt-secret-for-testing-only';
 process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';

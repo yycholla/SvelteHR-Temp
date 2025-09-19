@@ -1,6 +1,6 @@
 /**
  * Minimal PostGraphile Server Implementation
- * 
+ *
  * Basic Express.js server with PostGraphile middleware.
  * This is a minimal version to get the service running.
  */
@@ -16,7 +16,9 @@ import rateLimit from 'express-rate-limit';
 // Environment configuration
 const PORT = parseInt(process.env.PORT || '3001', 10);
 const NODE_ENV = process.env.NODE_ENV || 'development';
-const DATABASE_URL = process.env.DATABASE_URL || 'postgres://postgres:postgres123@localhost:5432/hr_system';
+const DATABASE_URL =
+  process.env.DATABASE_URL ||
+  'postgres://postgres:postgres123@localhost:5432/hr_system';
 
 // Create Express app
 const app = express();
@@ -30,19 +32,24 @@ const pgPool = new Pool({
 });
 
 // Security middleware
-app.use(helmet({
-  contentSecurityPolicy: false,
-} as any));
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+  } as any)
+);
 
 // CORS configuration
-app.use(cors({
-  origin: NODE_ENV === 'production' 
-    ? ['https://your-production-domain.com'] 
-    : ['http://localhost:5173', 'http://localhost:3000'],
-  credentials: true,
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
+app.use(
+  cors({
+    origin:
+      NODE_ENV === 'production'
+        ? ['https://your-production-domain.com']
+        : ['http://localhost:5173', 'http://localhost:3000'],
+    credentials: true,
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  })
+);
 
 // Rate limiting
 const limiter = rateLimit({
@@ -72,20 +79,20 @@ app.get('/health', async (req, res) => {
       services: {
         database: {
           status: dbHealthy ? 'healthy' : 'unhealthy',
-          details: dbHealthy ? 'Connected' : 'Disconnected'
+          details: dbHealthy ? 'Connected' : 'Disconnected',
         },
         graphql: {
           status: 'healthy',
-          details: 'PostGraphile middleware active'
-        }
-      }
+          details: 'PostGraphile middleware active',
+        },
+      },
     });
   } catch (error) {
     console.error('Health check failed:', error);
     res.status(503).json({
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });
@@ -96,7 +103,7 @@ app.get('/metrics', (req, res) => {
     status: 'minimal',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    memory: process.memoryUsage()
+    memory: process.memoryUsage(),
   });
 });
 
@@ -107,63 +114,72 @@ const postgraphileOptions = {
   jwtSecret: process.env.JWT_SECRET || 'development-jwt-secret',
   jwtRole: ['role'],
   defaultRole: 'hr_guest',
-  
+
   // Development features
   watchPg: NODE_ENV === 'development',
   showErrorStack: NODE_ENV === 'development',
-  extendedErrors: NODE_ENV === 'development' 
-    ? ['hint', 'detail', 'errcode'] 
-    : ['errcode'],
-  
+  extendedErrors:
+    NODE_ENV === 'development' ? ['hint', 'detail', 'errcode'] : ['errcode'],
+
   // Query configuration
   dynamicJson: true,
   ignoreRBAC: false,
   ignoreIndexes: false,
   includeExtensionResources: false,
-  
+
   // Performance and caching
   enableCors: false, // We handle CORS above
   legacyRelations: 'omit' as any,
   setofFunctionsContainNulls: false,
-  
+
   // GraphiQL configuration
   graphiql: true,
   enhanceGraphiql: true,
-  
+
   // Additional options
   allowExplain: NODE_ENV === 'development',
-  
+
   // Production settings
-  ...(NODE_ENV === 'production' ? {
-    retryOnInitFail: true,
-  } : {}),
+  ...(NODE_ENV === 'production'
+    ? {
+        retryOnInitFail: true,
+      }
+    : {}),
 };
 
 // Apply PostGraphile middleware
-app.use(
-  postgraphile(pgPool, 'hr_public', postgraphileOptions)
-);
+app.use(postgraphile(pgPool, 'hr_public', postgraphileOptions));
 
 // Basic request logging
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.url} - ${req.ip}`);
+  console.log(
+    `${new Date().toISOString()} - ${req.method} ${req.url} - ${req.ip}`
+  );
   next();
 });
 
 // Error handling middleware
-app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('Server error:', error);
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: NODE_ENV === 'development' ? error.message : 'Something went wrong'
-  });
-});
+app.use(
+  (
+    error: any,
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ) => {
+    console.error('Server error:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message:
+        NODE_ENV === 'development' ? error.message : 'Something went wrong',
+    });
+  }
+);
 
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({
     error: 'Not Found',
-    message: `Route ${req.method} ${req.path} not found`
+    message: `Route ${req.method} ${req.path} not found`,
   });
 });
 
@@ -175,7 +191,9 @@ const server = app.listen(PORT, () => {
   console.log(`❤️ Health Check:    http://localhost:${PORT}/health`);
   console.log(`📈 Metrics:         http://localhost:${PORT}/metrics`);
   console.log(`🌍 Environment:     ${NODE_ENV}`);
-  console.log(`🗄️ Database:        ${DATABASE_URL.split('@')[1] || DATABASE_URL}`);
+  console.log(
+    `🗄️ Database:        ${DATABASE_URL.split('@')[1] || DATABASE_URL}`
+  );
 });
 
 // Graceful shutdown

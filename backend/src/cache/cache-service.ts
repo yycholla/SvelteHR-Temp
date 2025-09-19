@@ -1,6 +1,6 @@
 /**
  * Redis Caching Service for SvelteHR
- * 
+ *
  * Comprehensive caching strategy with:
  * - Memory cache for hot data
  * - Redis cache for distributed caching
@@ -20,7 +20,7 @@ const logger = createLogger({
     format.errors({ stack: true }),
     format.json()
   ),
-  transports: [new transports.Console()]
+  transports: [new transports.Console()],
 });
 
 interface CacheConfig {
@@ -65,7 +65,7 @@ export class CacheService {
       redisCacheTTL: 3600, // 1 hour
       enableCompression: false,
       maxKeys: 10000,
-      ...config
+      ...config,
     };
 
     // Initialize memory cache (LRU cache for hot data)
@@ -73,7 +73,7 @@ export class CacheService {
       stdTTL: this.config.memoryCacheTTL,
       maxKeys: this.config.maxKeys,
       useClones: false,
-      checkperiod: this.config.memoryCacheTTL / 2
+      checkperiod: this.config.memoryCacheTTL / 2,
     });
 
     // Initialize stats
@@ -83,7 +83,7 @@ export class CacheService {
       errors: 0,
       hitRate: 0,
       memoryUsage: 0,
-      redisUsage: 0
+      redisUsage: 0,
     };
 
     // Set up memory cache event listeners
@@ -100,25 +100,28 @@ export class CacheService {
     logger.info('Cache service initialized', {
       memoryTTL: this.config.memoryCacheTTL,
       redisTTL: this.config.redisCacheTTL,
-      maxKeys: this.config.maxKeys
+      maxKeys: this.config.maxKeys,
     });
   }
 
   /**
    * Generate standardized cache key
    */
-  private generateCacheKey(prefixOrKey: CacheKey | string, identifier?: string): string {
+  private generateCacheKey(
+    prefixOrKey: CacheKey | string,
+    identifier?: string
+  ): string {
     if (typeof prefixOrKey === 'string') {
       return `${prefixOrKey}:${identifier || 'default'}`;
     }
 
     const { prefix, identifier: id, version } = prefixOrKey;
     let key = `${prefix}:${id}`;
-    
+
     if (version) {
       key += `:${version}`;
     }
-    
+
     return key;
   }
 
@@ -128,7 +131,7 @@ export class CacheService {
   async get<T>(key: CacheKey | string, identifier?: string): Promise<T | null> {
     try {
       const cacheKey = this.generateCacheKey(key, identifier);
-      
+
       // Check memory cache first (fastest)
       let value = this.memoryCache.get<T>(cacheKey);
       if (value !== undefined) {
@@ -142,11 +145,11 @@ export class CacheService {
         const redisValue = await this.redis.get(cacheKey);
         if (redisValue) {
           value = JSON.parse(redisValue);
-          
+
           // Store in memory cache for faster subsequent access
           this.memoryCache.set(cacheKey, value);
           this.stats.hits++;
-          
+
           logger.debug('Cache hit - Redis', { key: cacheKey });
           return value;
         }
@@ -154,14 +157,13 @@ export class CacheService {
         this.stats.errors++;
         logger.error('Redis cache read error', {
           key: cacheKey,
-          error: redisError.message
+          error: redisError.message,
         });
       }
 
       this.stats.misses++;
       logger.debug('Cache miss', { key: cacheKey });
       return null;
-
     } finally {
       this.updateHitRate();
     }
@@ -171,9 +173,9 @@ export class CacheService {
    * Set cached value (both memory and Redis)
    */
   async set<T>(
-    key: CacheKey | string, 
-    value: T, 
-    identifier?: string, 
+    key: CacheKey | string,
+    value: T,
+    identifier?: string,
     ttl?: number
   ): Promise<void> {
     try {
@@ -185,26 +187,21 @@ export class CacheService {
 
       // Set in Redis cache
       try {
-        await this.redis.setex(
-          cacheKey,
-          effectiveTTL,
-          JSON.stringify(value)
-        );
-        
+        await this.redis.setex(cacheKey, effectiveTTL, JSON.stringify(value));
+
         logger.debug('Cache set', { key: cacheKey, ttl: effectiveTTL });
       } catch (redisError) {
         this.stats.errors++;
         logger.error('Redis cache write error', {
           key: cacheKey,
-          error: redisError.message
+          error: redisError.message,
         });
         // Continue even if Redis fails (memory cache still works)
       }
-
     } catch (error) {
       this.stats.errors++;
       logger.error('Cache set error', {
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -215,23 +212,22 @@ export class CacheService {
   async delete(key: CacheKey | string, identifier?: string): Promise<boolean> {
     try {
       const cacheKey = this.generateCacheKey(key, identifier);
-      
+
       // Remove from memory cache
       this.memoryCache.del(cacheKey);
-      
+
       // Remove from Redis cache
       await this.redis.del(cacheKey);
-      
+
       this.cacheKeys.delete(cacheKey);
-      
+
       logger.debug('Cache deleted', { key: cacheKey });
       return true;
-
     } catch (error) {
       this.stats.errors++;
       logger.error('Cache delete error', {
         error: error.message,
-        key
+        key,
       });
       return false;
     }
@@ -243,7 +239,7 @@ export class CacheService {
   async invalidate(pattern: string): Promise<number> {
     try {
       let deletedCount = 0;
-      
+
       // Invalidate memory cache keys
       const memoryKeys = this.memoryCache.keys();
       for (const key of memoryKeys) {
@@ -265,22 +261,21 @@ export class CacheService {
         this.stats.errors++;
         logger.error('Redis cache invalidate error', {
           pattern,
-          error: redisError.message
+          error: redisError.message,
         });
       }
 
       logger.info('Cache invalidated by pattern', {
         pattern,
-        deletedCount
+        deletedCount,
       });
 
       return deletedCount;
-
     } catch (error) {
       this.stats.errors++;
       logger.error('Cache invalidate error', {
         pattern,
-        error: error.message
+        error: error.message,
       });
       return 0;
     }
@@ -294,7 +289,7 @@ export class CacheService {
       // Clear memory cache
       this.memoryCache.flushAll();
       this.cacheKeys.clear();
-      
+
       // Clear Redis cache (with prefix to avoid clearing completely)
       try {
         const keys = await this.redis.keys('sveltehr:*');
@@ -304,7 +299,7 @@ export class CacheService {
       } catch (redisError) {
         this.stats.errors++;
         logger.error('Redis cache clear error', {
-          error: redisError.message
+          error: redisError.message,
         });
       }
 
@@ -312,14 +307,13 @@ export class CacheService {
       this.stats.hits = 0;
       this.stats.misses = 0;
       this.stats.errors = 0;
-      
+
       logger.info('Cache cleared');
       return true;
-
     } catch (error) {
       this.stats.errors++;
       logger.error('Cache clear error', {
-        error: error.message
+        error: error.message,
       });
       return false;
     }
@@ -330,19 +324,21 @@ export class CacheService {
    */
   async warmCache(cacheWarmers: Array<() => Promise<void>>): Promise<void> {
     logger.info('Starting cache warming');
-    
+
     for (const warmer of cacheWarmers) {
       try {
         await warmer();
-        logger.debug('Cache warmer executed', { warmer: warmer.name || 'anonymous' });
+        logger.debug('Cache warmer executed', {
+          warmer: warmer.name || 'anonymous',
+        });
       } catch (error) {
         logger.error('Cache warmer failed', {
           warmer: warmer.name || 'anonymous',
-          error: error.message
+          error: error.message,
         });
       }
     }
-    
+
     logger.info('Cache warming completed');
   }
 
@@ -368,18 +364,21 @@ export class CacheService {
    */
   getPerformanceMetrics() {
     const memoryInfo = this.memoryCache.getStats();
-    
+
     return {
       memoryCache: {
         keys: memoryInfo.keys,
         hits: memoryInfo.hits,
         misses: memoryInfo.misses,
-        hitRate: memoryInfo.hits > 0 ? memoryInfo.hits / (memoryInfo.hits + memoryInfo.misses) : 0,
-        vsize: memoryInfo.vsize
+        hitRate:
+          memoryInfo.hits > 0
+            ? memoryInfo.hits / (memoryInfo.hits + memoryInfo.misses)
+            : 0,
+        vsize: memoryInfo.vsize,
       },
       serviceStats: this.stats,
       totalKeys: this.cacheKeys.size,
-      uptime: process.uptime()
+      uptime: process.uptime(),
     };
   }
 }
@@ -401,8 +400,8 @@ export class GraphQLQueryCache {
    * Cache GraphQL query result
    */
   async cacheQueryResult(
-    query: string, 
-    variables: Record<string, any>, 
+    query: string,
+    variables: Record<string, any>,
     result: any,
     userContext?: any
   ): Promise<void> {
@@ -410,7 +409,7 @@ export class GraphQLQueryCache {
       // Parse query to determine cacheability
       const queryHash = this.queryParser.getQueryHash(query, variables);
       const cachePolicy = this.queryParser.getCachePolicy(query);
-      
+
       if (!cachePolicy.cacheable) {
         return; // Don't cache non-cacheable queries
       }
@@ -419,15 +418,14 @@ export class GraphQLQueryCache {
       const cacheKey: CacheKey = {
         prefix: 'graphql_query',
         identifier: queryHash,
-        version: userContext?.userId ? `user:${userContext.userId}` : undefined
+        version: userContext?.userId ? `user:${userContext.userId}` : undefined,
       };
 
       await this.cache.set(cacheKey, result, undefined, cachePolicy.ttl);
-
     } catch (error) {
       logger.error('GraphQL query cache error', {
         error: error.message,
-        query: query.substring(0, 100)
+        query: query.substring(0, 100),
       });
     }
   }
@@ -436,8 +434,8 @@ export class GraphQLQueryCache {
    * Get cached GraphQL query result
    */
   async getCachedQueryResult(
-    query: string, 
-    variables: Record<string, any>, 
+    query: string,
+    variables: Record<string, any>,
     userContext?: any
   ): Promise<any | null> {
     try {
@@ -451,15 +449,14 @@ export class GraphQLQueryCache {
       const cacheKey: CacheKey = {
         prefix: 'graphql_query',
         identifier: queryHash,
-        version: userContext?.userId ? `user:${userContext.userId}` : undefined
+        version: userContext?.userId ? `user:${userContext.userId}` : undefined,
       };
 
       return await this.cache.get<any>(cacheKey);
-
     } catch (error) {
       logger.error('GraphQL cache get error', {
         error: error.message,
-        query: query.substring(0, 100)
+        query: query.substring(0, 100),
       });
       return null;
     }
@@ -485,7 +482,7 @@ class QueryParser {
     const crypto = require('crypto');
     const queryNormalized = query.replace(/\s+/g, ' ').trim();
     const variablesString = JSON.stringify(variables || {});
-    
+
     const hashInput = `${queryNormalized}:${variablesString}`;
     return crypto.createHash('sha256').update(hashInput).digest('hex');
   }
@@ -541,10 +538,10 @@ class QueryParser {
       /secret/i,
       /token/i,
       /auth/i,
-      /sensitive/i
+      /sensitive/i,
     ];
 
-    return sensitivePatterns.some(pattern => pattern.test(query));
+    return sensitivePatterns.some((pattern) => pattern.test(query));
   }
 
   /**
@@ -553,10 +550,10 @@ class QueryParser {
   private isReadOnly(query: string): boolean {
     const readOnlyPatterns = [
       /\bquery\s*[{]/i,
-      /\b(\w+)\s*[({][^}]*\b(id|ids|ids_in|email|email_in)\b/i
+      /\b(\w+)\s*[({][^}]*\b(id|ids|ids_in|email|email_in)\b/i,
     ];
 
-    return readOnlyPatterns.some(pattern => pattern.test(query));
+    return readOnlyPatterns.some((pattern) => pattern.test(query));
   }
 }
 

@@ -16,8 +16,8 @@ import { browser } from '$app/environment';
 
 // PostGraphile GraphQL endpoint - use directly for better integration
 const POSTGRAPHILE_GRAPHQL_URL = browser
-  ? 'http://localhost:4000/graphql'  // Direct to PostGraphile in browser
-  : 'http://localhost:4000/graphql'; // Direct to PostGraphile on server
+	? 'http://localhost:4000/graphql' // Direct to PostGraphile in browser
+	: 'http://localhost:4000/graphql'; // Direct to PostGraphile on server
 const POSTGRAPHILE_GRAPHQL_WS_URL = 'ws://localhost:4000/graphql'; // Direct to PostGraphile for WebSockets if needed
 
 // WebSocket subscriptions are disabled for PostGraphile (doesn't support WebSockets by default)
@@ -29,7 +29,7 @@ const POSTGRAPHILE_GRAPHQL_WS_URL = 'ws://localhost:4000/graphql'; // Direct to 
 //     url: POSTGRAPHILE_GRAPHQL_WS_URL,
 //     connectionParams: () => {
 //       const token = localStorage.getItem('auth-token');
-//       return token ? { 
+//       return token ? {
 //         Authorization: `Bearer ${token}`
 //       } : {};
 //     },
@@ -39,180 +39,189 @@ const POSTGRAPHILE_GRAPHQL_WS_URL = 'ws://localhost:4000/graphql'; // Direct to 
 
 // Authentication state management for PostGraphile JWT
 interface AuthState {
-  token: string | null;
+	token: string | null;
 }
 
 const getAuthState = (): AuthState => {
-  if (!browser) {
-    return { token: null };
-  }
+	if (!browser) {
+		return { token: null };
+	}
 
-  // Get JWT token from localStorage
-  const token = localStorage.getItem('postgraphile-jwt-token');
-  return { token };
+	// Get JWT token from localStorage
+	const token = localStorage.getItem('postgraphile-jwt-token');
+	return { token };
 };
 
 const setAuthState = (authState: Partial<AuthState>) => {
-  if (!browser) return;
+	if (!browser) return;
 
-  if (authState.token !== undefined) {
-    if (authState.token) {
-      localStorage.setItem('postgraphile-jwt-token', authState.token);
-    } else {
-      localStorage.removeItem('postgraphile-jwt-token');
-    }
-  }
+	if (authState.token !== undefined) {
+		if (authState.token) {
+			localStorage.setItem('postgraphile-jwt-token', authState.token);
+		} else {
+			localStorage.removeItem('postgraphile-jwt-token');
+		}
+	}
 };
 
 // Token validation via REST API endpoint (PostGraphile uses longer-lived JWTs)
 const validateTokenViaAPI = async () => {
-  const response = await fetch('/api/auth/refresh', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    // No body needed - the JWT is in httpOnly cookie
-  });
-  
-  if (!response.ok) {
-    throw new Error('Token validation failed');
-  }
-  
-  return response.json();
+	const response = await fetch('/api/auth/refresh', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' }
+		// No body needed - the JWT is in httpOnly cookie
+	});
+
+	if (!response.ok) {
+		throw new Error('Token validation failed');
+	}
+
+	return response.json();
 };
 
 // Error exchange for handling GraphQL errors
 const customErrorExchange = errorExchange({
-  onError: (error, operation) => {
-    // Handle authentication errors
-    if (error.graphQLErrors.some(e => e.extensions?.code === 'UNAUTHENTICATED')) {
-      console.warn('GraphQL UNAUTHENTICATED error:', error.graphQLErrors);
+	onError: (error, operation) => {
+		// Handle authentication errors
+		if (error.graphQLErrors.some((e) => e.extensions?.code === 'UNAUTHENTICATED')) {
+			console.warn('GraphQL UNAUTHENTICATED error:', error.graphQLErrors);
 
-      // Only redirect if we're not already on a login/auth related page
-      // This prevents redirect loops when the user is already authenticated
-      if (browser && !window.location.pathname.includes('/login') && !window.location.pathname.includes('/admin')) {
-        console.log('🔴 REDIRECT: GraphQL client UNAUTHENTICATED error calling goto("/login")');
-        setAuthState({ token: null });
-        goto('/login?returnUrl=' + encodeURIComponent(window.location.pathname));
-      } else {
-        console.log('Not redirecting - already on auth-related page or admin page');
-      }
-    }
+			// Only redirect if we're not already on a login/auth related page
+			// This prevents redirect loops when the user is already authenticated
+			if (
+				browser &&
+				!window.location.pathname.includes('/login') &&
+				!window.location.pathname.includes('/admin')
+			) {
+				console.log('🔴 REDIRECT: GraphQL client UNAUTHENTICATED error calling goto("/login")');
+				setAuthState({ token: null });
+				goto('/login?returnUrl=' + encodeURIComponent(window.location.pathname));
+			} else {
+				console.log('Not redirecting - already on auth-related page or admin page');
+			}
+		}
 
-    // Handle rate limiting
-    if (error.graphQLErrors.some(e => e.extensions?.code === 'RATE_LIMIT_EXCEEDED')) {
-      console.warn('Rate limit exceeded for operation:', operation.key);
-    }
+		// Handle rate limiting
+		if (error.graphQLErrors.some((e) => e.extensions?.code === 'RATE_LIMIT_EXCEEDED')) {
+			console.warn('Rate limit exceeded for operation:', operation.key);
+		}
 
-    // Handle network errors
-    if (error.networkError) {
-      console.error('Network error:', error.networkError);
-      
-      // Dispatch custom event for offline handling
-      if (browser) {
-        window.dispatchEvent(new CustomEvent('network-error', {
-          detail: { error: error.networkError, operation }
-        }));
-      }
-    }
+		// Handle network errors
+		if (error.networkError) {
+			console.error('Network error:', error.networkError);
 
-    // Log other GraphQL errors
-    error.graphQLErrors.forEach(({ message, extensions }) => {
-      console.error('GraphQL error:', message, extensions);
-    });
-  }
+			// Dispatch custom event for offline handling
+			if (browser) {
+				window.dispatchEvent(
+					new CustomEvent('network-error', {
+						detail: { error: error.networkError, operation }
+					})
+				);
+			}
+		}
+
+		// Log other GraphQL errors
+		error.graphQLErrors.forEach(({ message, extensions }) => {
+			console.error('GraphQL error:', message, extensions);
+		});
+	}
 });
 
 // Auth exchange configuration for PostGraphile
 const authConfig = authExchange(async (utils) => {
-  return {
-    addAuthToOperation(operation) {
-      const authState = getAuthState();
-      if (!authState.token) return operation;
+	return {
+		addAuthToOperation(operation) {
+			const authState = getAuthState();
+			if (!authState.token) return operation;
 
-      return utils.appendHeaders(operation, {
-        Authorization: `Bearer ${authState.token}`,
-      });
-    },
+			return utils.appendHeaders(operation, {
+				Authorization: `Bearer ${authState.token}`
+			});
+		},
 
-    didAuthError(error) {
-      return error.graphQLErrors.some(e => e.extensions?.code === 'UNAUTHENTICATED');
-    },
+		didAuthError(error) {
+			return error.graphQLErrors.some((e) => e.extensions?.code === 'UNAUTHENTICATED');
+		},
 
-    async refreshAuth() {
-      // With PostGraphile, JWT tokens are self-contained and don't refresh
-      // If authentication fails, clear token and redirect to login
-      setAuthState({ token: null });
-      if (browser) {
-        console.log('🔴 REDIRECT: GraphQL client refreshAuth function calling goto("/login")');
-        goto('/login');
-      }
-    },
+		async refreshAuth() {
+			// With PostGraphile, JWT tokens are self-contained and don't refresh
+			// If authentication fails, clear token and redirect to login
+			setAuthState({ token: null });
+			if (browser) {
+				console.log('🔴 REDIRECT: GraphQL client refreshAuth function calling goto("/login")');
+				goto('/login');
+			}
+		},
 
-    willAuthError() {
-      // Let PostGraphile handle JWT validation
-      return false;
-    }
-  };
+		willAuthError() {
+			// Let PostGraphile handle JWT validation
+			return false;
+		}
+	};
 });
 
 // Retry exchange configuration
 const retryConfig = retryExchange({
-  initialDelayMs: 1000,
-  maxDelayMs: 15000,
-  randomDelay: true,
-  maxNumberAttempts: 3,
-  retryIf: (error, _operation) => {
-    // Retry on network errors and server errors (not client errors)
-    return !!(error.networkError || error.graphQLErrors.some(e => 
-      e.extensions?.code === 'INTERNAL_ERROR' || 
-      e.extensions?.code === 'RATE_LIMIT_EXCEEDED'
-    ));
-  }
+	initialDelayMs: 1000,
+	maxDelayMs: 15000,
+	randomDelay: true,
+	maxNumberAttempts: 3,
+	retryIf: (error, _operation) => {
+		// Retry on network errors and server errors (not client errors)
+		return !!(
+			error.networkError ||
+			error.graphQLErrors.some(
+				(e) =>
+					e.extensions?.code === 'INTERNAL_ERROR' || e.extensions?.code === 'RATE_LIMIT_EXCEEDED'
+			)
+		);
+	}
 });
 
 // Create the main GraphQL client
 export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string) => {
-  // Override auth token if provided (for testing/SSR)
-  if (authToken && browser) {
-    setAuthState({ token: authToken });
-  }
+	// Override auth token if provided (for testing/SSR)
+	if (authToken && browser) {
+		setAuthState({ token: authToken });
+	}
 
-  const exchanges = [
-    cacheExchange,
-    customErrorExchange,
-    retryConfig,
-    authConfig,
-    fetchFn ? fetchExchange.bind(null, fetchFn) : fetchExchange,
-  ];
+	const exchanges = [
+		cacheExchange,
+		customErrorExchange,
+		retryConfig,
+		authConfig,
+		fetchFn ? fetchExchange.bind(null, fetchFn) : fetchExchange
+	];
 
-  // Add subscription exchange for browser environment (disabled for PostGraphile)
-  // PostGraphile doesn't support WebSocket subscriptions by default
-  // if (browser && wsClient) {
-  //   exchanges.splice(-1, 0, subscriptionExchange({
-  //     forwardSubscription(request) {
-  //       const input = { ...request, query: request.query || '' };
-  //       return {
-  //         subscribe: (sink) => {
-  //           const unsubscribe = wsClient!.subscribe(input, sink);
-  //           return { unsubscribe };
-  //         },
-  //       };
-  //     },
-  //   }));
-  // }
+	// Add subscription exchange for browser environment (disabled for PostGraphile)
+	// PostGraphile doesn't support WebSocket subscriptions by default
+	// if (browser && wsClient) {
+	//   exchanges.splice(-1, 0, subscriptionExchange({
+	//     forwardSubscription(request) {
+	//       const input = { ...request, query: request.query || '' };
+	//       return {
+	//         subscribe: (sink) => {
+	//           const unsubscribe = wsClient!.subscribe(input, sink);
+	//           return { unsubscribe };
+	//         },
+	//       };
+	//     },
+	//   }));
+	// }
 
-  return new Client({
-    url: POSTGRAPHILE_GRAPHQL_URL,
-    exchanges,
-    fetchOptions: () => {
-      return {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      };
-    },
-    preferGetMethod: false,
-  });
+	return new Client({
+		url: POSTGRAPHILE_GRAPHQL_URL,
+		exchanges,
+		fetchOptions: () => {
+			return {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			};
+		},
+		preferGetMethod: false
+	});
 };
 
 // Default client instance
@@ -220,76 +229,80 @@ export const client = createUrqlClient();
 
 // Authentication helpers for PostGraphile JWT
 export const setJwtToken = (jwtToken: string) => {
-  setAuthState({ token: jwtToken });
+	setAuthState({ token: jwtToken });
 
-  // Reinitialize WebSocket connection with new token (disabled for PostGraphile)
-  // if (browser && wsClient) {
-  //   wsClient.dispose();
-  //   wsClient = createWSClient({
-  //     url: POSTGRAPHILE_GRAPHQL_WS_URL,
-  //     connectionParams: () => ({
-  //       Authorization: `Bearer ${jwtToken}`
-  //     }),
-  //     shouldRetry: () => true,
-  //   });
-  // }
+	// Reinitialize WebSocket connection with new token (disabled for PostGraphile)
+	// if (browser && wsClient) {
+	//   wsClient.dispose();
+	//   wsClient = createWSClient({
+	//     url: POSTGRAPHILE_GRAPHQL_WS_URL,
+	//     connectionParams: () => ({
+	//       Authorization: `Bearer ${jwtToken}`
+	//     }),
+	//     shouldRetry: () => true,
+	//   });
+	// }
 };
 
 export const clearAuthTokens = () => {
-  setAuthState({ token: null });
+	setAuthState({ token: null });
 
-  // Dispose WebSocket connection (disabled for PostGraphile)
-  // if (browser && wsClient) {
-  //   wsClient.dispose();
-  //   wsClient = null;
-  // }
+	// Dispose WebSocket connection (disabled for PostGraphile)
+	// if (browser && wsClient) {
+	//   wsClient.dispose();
+	//   wsClient = null;
+	// }
 };
 
 export const getAuthToken = (): string | null => {
-  return getAuthState().token;
+	return getAuthState().token;
 };
 
 export const isAuthenticated = (): boolean => {
-  if (!browser) return false;
+	if (!browser) return false;
 
-  const token = getAuthState().token;
-  if (!token) return false;
+	const token = getAuthState().token;
+	if (!token) return false;
 
-  try {
-    const [, payload] = token.split('.');
-    const decodedPayload = JSON.parse(atob(payload));
-    const currentTime = Math.floor(Date.now() / 1000);
+	try {
+		const [, payload] = token.split('.');
+		const decodedPayload = JSON.parse(atob(payload));
+		const currentTime = Math.floor(Date.now() / 1000);
 
-    return decodedPayload.exp ? decodedPayload.exp > currentTime : false;
-  } catch {
-    return false;
-  }
+		return decodedPayload.exp ? decodedPayload.exp > currentTime : false;
+	} catch {
+		return false;
+	}
 };
 
 // Network status monitoring
 export const networkStatus = {
-  isOnline: browser ? navigator.onLine : true,
-  lastError: null as Error | null,
+	isOnline: browser ? navigator.onLine : true,
+	lastError: null as Error | null
 };
 
 if (browser) {
-  window.addEventListener('online', () => {
-    networkStatus.isOnline = true;
-    window.dispatchEvent(new CustomEvent('network-status-change', {
-      detail: { isOnline: true }
-    }));
-  });
+	window.addEventListener('online', () => {
+		networkStatus.isOnline = true;
+		window.dispatchEvent(
+			new CustomEvent('network-status-change', {
+				detail: { isOnline: true }
+			})
+		);
+	});
 
-  window.addEventListener('offline', () => {
-    networkStatus.isOnline = false;
-    window.dispatchEvent(new CustomEvent('network-status-change', {
-      detail: { isOnline: false }
-    }));
-  });
+	window.addEventListener('offline', () => {
+		networkStatus.isOnline = false;
+		window.dispatchEvent(
+			new CustomEvent('network-status-change', {
+				detail: { isOnline: false }
+			})
+		);
+	});
 
-  window.addEventListener('network-error', ((event: CustomEvent) => {
-    networkStatus.lastError = event.detail.error;
-  }) as EventListener);
+	window.addEventListener('network-error', ((event: CustomEvent) => {
+		networkStatus.lastError = event.detail.error;
+	}) as EventListener);
 }
 
 // Export types for TypeScript support
@@ -297,25 +310,25 @@ export type { Client, OperationResult, CombinedError } from '@urql/core';
 
 // Export common query/mutation helpers
 export const executeQuery = async (client: Client, query: string, variables?: any) => {
-  const result = await client.query(query, variables).toPromise();
-  
-  if (result.error) {
-    throw result.error;
-  }
-  
-  return result.data;
+	const result = await client.query(query, variables).toPromise();
+
+	if (result.error) {
+		throw result.error;
+	}
+
+	return result.data;
 };
 
 export const executeMutation = async (client: Client, mutation: string, variables?: any) => {
-  const result = await client.mutation(mutation, variables).toPromise();
-  
-  if (result.error) {
-    throw result.error;
-  }
-  
-  return result.data;
+	const result = await client.mutation(mutation, variables).toPromise();
+
+	if (result.error) {
+		throw result.error;
+	}
+
+	return result.data;
 };
 
 export const executeSubscription = (client: Client, subscription: string, variables?: any) => {
-  return client.subscription(subscription, variables);
+	return client.subscription(subscription, variables);
 };

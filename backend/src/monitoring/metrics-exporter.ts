@@ -1,6 +1,6 @@
 /**
  * Prometheus Metrics Exporter
- * 
+ *
  * Export SvelteHR metrics in Prometheus format for monitoring and alerting.
  * Compatible with Prometheus, Grafana, and other monitoring systems.
  */
@@ -16,7 +16,7 @@ const logger = createLogger({
     format.errors({ stack: true }),
     format.json()
   ),
-  transports: [new transports.Console()]
+  transports: [new transports.Console()],
 });
 
 /**
@@ -25,38 +25,38 @@ const logger = createLogger({
 export class MetricsExporter {
   private registry: Registry;
   private app: express.Application;
-  
+
   // GraphQL metrics
   private graphqlRequestTotal: Counter;
   private graphqlRequestDuration: Histogram;
   private graphqlErrorsTotal: Counter;
-  
+
   // Authentication metrics
   private authAttemptsTotal: Counter;
   private authSuccessesTotal: Counter;
   private authFailuresTotal: Counter;
   private authLatency: Histogram;
   private activeSessions: Gauge;
-  
+
   // Database metrics
   private dbConnectionsActive: Gauge;
   private dbConnectionsIdle: Gauge;
   private dbConnectionsWaiting: Gauge;
   private dbQueryDuration: Histogram;
   private dbQueryErrorsTotal: Counter;
-  
-  // Cache metrics  
+
+  // Cache metrics
   private cacheHitsTotal: Counter;
   private cacheMissesTotal: Counter;
   private cacheOperationsTotal: Counter;
   private cacheLatency: Histogram;
   private cacheMemoryUsage: Gauge;
-  
+
   // Service metrics
   private serviceHealth: Gauge;
   private serviceLatency: Histogram;
   private serviceErrorsTotal: Counter;
-  
+
   // System metrics
   private processCpuSecondsTotal: Counter;
   private processMemoryBytes: Gauge;
@@ -66,7 +66,7 @@ export class MetricsExporter {
   constructor() {
     this.registry = new Registry();
     this.app = express();
-    
+
     this.initializeMetrics();
     this.setupRoutes();
   }
@@ -80,7 +80,7 @@ export class MetricsExporter {
       name: 'sveltehr_graphql_requests_total',
       help: 'Total number of GraphQL requests',
       labelNames: ['operation', 'status'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.graphqlRequestDuration = new Histogram({
@@ -88,14 +88,14 @@ export class MetricsExporter {
       help: 'GraphQL request duration in seconds',
       labelNames: ['operation'],
       buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.graphqlErrorsTotal = new Counter({
       name: 'sveltehr_graphql_errors_total',
       help: 'Total number of GraphQL errors',
       labelNames: ['operation', 'error_type'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     // Authentication metrics
@@ -103,21 +103,21 @@ export class MetricsExporter {
       name: 'sveltehr_auth_attempts_total',
       help: 'Total authentication attempts',
       labelNames: ['result', 'method'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.authSuccessesTotal = new Counter({
       name: 'sveltehr_auth_successes_total',
       help: 'Total successful authentications',
       labelNames: ['role'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.authFailuresTotal = new Counter({
       name: 'sveltehr_auth_failures_total',
       help: 'Total failed authentications',
       labelNames: ['reason'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.authLatency = new Histogram({
@@ -125,33 +125,33 @@ export class MetricsExporter {
       help: 'Authentication latency in seconds',
       labelNames: ['method'],
       buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.activeSessions = new Gauge({
       name: 'sveltehr_auth_active_sessions',
       help: 'Number of active user sessions',
       labelNames: ['role'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     // Database metrics
     this.dbConnectionsActive = new Gauge({
       name: 'sveltehr_db_connections_active',
       help: 'Number of active database connections',
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.dbConnectionsIdle = new Gauge({
       name: 'sveltehr_db_connections_idle',
       help: 'Number of idle database connections',
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.dbConnectionsWaiting = new Gauge({
       name: 'sveltehr_db_connections_waiting',
       help: 'Number of waiting database connections',
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.dbQueryDuration = new Histogram({
@@ -159,14 +159,14 @@ export class MetricsExporter {
       help: 'Database query duration in seconds',
       labelNames: ['operation', 'table'],
       buckets: [0.001, 0.01, 0.05, 0.1, 0.25, 0.5, 1, 2, 5],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.dbQueryErrorsTotal = new Counter({
       name: 'sveltehr_db_query_errors_total',
       help: 'Total database query errors',
       labelNames: ['operation', 'table', 'error_type'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     // Cache metrics
@@ -174,21 +174,21 @@ export class MetricsExporter {
       name: 'sveltehr_cache_hits_total',
       help: 'Total cache hits',
       labelNames: ['cache_type', 'key_pattern'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.cacheMissesTotal = new Counter({
       name: 'sveltehr_cache_misses_total',
       help: 'Total cache misses',
       labelNames: ['cache_type', 'key_pattern'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.cacheOperationsTotal = new Counter({
       name: 'sveltehr_cache_operations_total',
       help: 'Total cache operations',
       labelNames: ['operation', 'result'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.cacheLatency = new Histogram({
@@ -196,14 +196,14 @@ export class MetricsExporter {
       help: 'Cache operation latency in seconds',
       labelNames: ['operation'],
       buckets: [0.0001, 0.001, 0.01, 0.1, 0.5, 1],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.cacheMemoryUsage = new Gauge({
       name: 'sveltehr_cache_memory_bytes',
       help: 'Cache memory usage in bytes',
       labelNames: ['cache_type'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     // Service metrics
@@ -211,7 +211,7 @@ export class MetricsExporter {
       name: 'sveltehr_service_health',
       help: 'Service health status (1=healthy, 0=unhealthy)',
       labelNames: ['service'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.serviceLatency = new Histogram({
@@ -219,47 +219,47 @@ export class MetricsExporter {
       help: 'Service response time in seconds',
       labelNames: ['service'],
       buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 5],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.serviceErrorsTotal = new Counter({
       name: 'sveltehr_service_errors_total',
       help: 'Total service errors',
       labelNames: ['service', 'error_type'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     // System metrics
     this.processCpuSecondsTotal = new Counter({
       name: 'process_cpu_seconds_total',
       help: 'Total user and system CPU time spent in seconds',
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.processMemoryBytes = new Gauge({
       name: 'process_memory_bytes',
       help: 'Process memory usage in bytes',
       labelNames: ['type'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.processStartTimeSeconds = new Gauge({
       name: 'process_start_time_seconds',
       help: 'Start time of the process since unix epoch in seconds',
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     this.runtimeVersion = new Gauge({
       name: 'sveltehr_runtime_version',
       help: 'SvelteHR runtime version',
       labelNames: ['component'],
-      registers: [this.registry]
+      registers: [this.registry],
     });
 
     // Set initial values
     this.processStartTimeSeconds.set(Date.now() / 1000);
     this.runtimeVersion.set({ component: 'app' }, 1);
-    
+
     logger.info('Prometheus metrics initialized');
   }
 
@@ -272,7 +272,7 @@ export class MetricsExporter {
       try {
         // Update system metrics
         await this.updateSystemMetrics();
-        
+
         res.set('Content-Type', this.registry.contentType);
         res.end(await this.registry.metrics());
       } catch (error) {
@@ -296,10 +296,14 @@ export class MetricsExporter {
   /**
    * GraphQL metrics recording methods
    */
-  recordGraphQLRequest(operation: string, status: 'success' | 'error', duration: number): void {
+  recordGraphQLRequest(
+    operation: string,
+    status: 'success' | 'error',
+    duration: number
+  ): void {
     this.graphqlRequestTotal.inc({ operation, status });
     this.graphqlRequestDuration.observe({ operation }, duration);
-    
+
     if (status === 'error') {
       this.graphqlErrorsTotal.inc({ operation, error_type: 'graphql_error' });
     }
@@ -308,9 +312,14 @@ export class MetricsExporter {
   /**
    * Authentication metrics recording methods
    */
-  recordAuthAttempt(method: string, result: 'success' | 'failure', role?: string, reason?: string): void {
+  recordAuthAttempt(
+    method: string,
+    result: 'success' | 'failure',
+    role?: string,
+    reason?: string
+  ): void {
     this.authAttemptsTotal.inc({ result, method });
-    
+
     if (result === 'success' && role) {
       this.authSuccessesTotal.inc({ role });
     } else if (result === 'failure' && reason) {
@@ -331,15 +340,24 @@ export class MetricsExporter {
   /**
    * Database metrics recording methods
    */
-  updateDatabaseConnections(active: number, idle: number, waiting: number): void {
+  updateDatabaseConnections(
+    active: number,
+    idle: number,
+    waiting: number
+  ): void {
     this.dbConnectionsActive.set(active);
     this.dbConnectionsIdle.set(idle);
     this.dbConnectionsWaiting.set(waiting);
   }
 
-  recordDatabaseQuery(operation: string, table: string, duration: number, error?: string): void {
+  recordDatabaseQuery(
+    operation: string,
+    table: string,
+    duration: number,
+    error?: string
+  ): void {
     this.dbQueryDuration.observe({ operation, table }, duration);
-    
+
     if (error) {
       this.dbQueryErrorsTotal.inc({ operation, table, error_type: error });
     }
@@ -349,14 +367,24 @@ export class MetricsExporter {
    * Cache metrics recording methods
    */
   recordCacheHit(cacheType: string, keyPattern?: string): void {
-    this.cacheHitsTotal.inc({ cache_type: cacheType, key_pattern: keyPattern || 'unknown' });
+    this.cacheHitsTotal.inc({
+      cache_type: cacheType,
+      key_pattern: keyPattern || 'unknown',
+    });
   }
 
   recordCacheMiss(cacheType: string, keyPattern?: string): void {
-    this.cacheMissesTotal.inc({ cache_type: cacheType, key_pattern: keyPattern || 'unknown' });
+    this.cacheMissesTotal.inc({
+      cache_type: cacheType,
+      key_pattern: keyPattern || 'unknown',
+    });
   }
 
-  recordCacheOperation(operation: string, result: 'success' | 'error', duration?: number): void {
+  recordCacheOperation(
+    operation: string,
+    result: 'success' | 'error',
+    duration?: number
+  ): void {
     this.cacheOperationsTotal.inc({ operation, result });
     if (duration !== undefined) {
       this.cacheLatency.observe({ operation }, duration);
@@ -387,13 +415,13 @@ export class MetricsExporter {
    */
   private async updateSystemMetrics(): Promise<void> {
     const memUsage = process.memoryUsage();
-    
+
     // Update process memory metrics
     this.processMemoryBytes.set({ type: 'rss' }, memUsage.rss);
     this.processMemoryBytes.set({ type: 'heap_total' }, memUsage.heapTotal);
     this.processMemoryBytes.set({ type: 'heap_used' }, memUsage.heapUsed);
     this.processMemoryBytes.set({ type: 'external' }, memUsage.external);
-    
+
     // Update CPU time (approximate calculation)
     const cpuUsage = process.cpuUsage();
     // This would need more sophisticated calculation for actual CPU time
@@ -411,12 +439,12 @@ export class MetricsExporter {
       performance: {
         response_time_95th_percentile: this.calculateResponseTimePercentile(95),
         error_rate: this.calculateErrorRate(),
-        cache_hit_rate: this.calculateCacheHitRate()
+        cache_hit_rate: this.calculateCacheHitRate(),
       },
       resources: {
         memory_usage_mb: process.memoryUsage().heapUsed / 1024 / 1024,
-        uptime_seconds: process.uptime()
-      }
+        uptime_seconds: process.uptime(),
+      },
     };
   }
 
@@ -429,7 +457,9 @@ export class MetricsExporter {
     let score = 100;
 
     // Deduct points for service errors
-    const errorMetric = this.registry.getSingleMetric('sveltehr_service_errors_total');
+    const errorMetric = this.registry.getSingleMetric(
+      'sveltehr_service_errors_total'
+    );
     if (errorMetric) {
       const metrics = errorMetric.get();
       // This is a simplified version - in reality, you'd want more complex analysis
@@ -441,22 +471,28 @@ export class MetricsExporter {
   /**
    * Get service health summary
    */
-  private getServiceHealthSummary(): Array<{ service: string; status: string; score: number }> {
+  private getServiceHealthSummary(): Array<{
+    service: string;
+    status: string;
+    score: number;
+  }> {
     const services = [];
-    
+
     // Get service health metrics
-    const healthMetric = this.registry.getSingleMetric('sveltehr_service_health');
+    const healthMetric = this.registry.getSingleMetric(
+      'sveltehr_service_health'
+    );
     if (healthMetric) {
       const metrics = healthMetric.get();
       for (const metric of metrics.values) {
         services.push({
           service: metric.labels.service,
           status: metric.value === 1 ? 'healthy' : 'unhealthy',
-          score: metric.value * 100
+          score: metric.value * 100,
         });
       }
     }
-    
+
     return services;
   }
 
@@ -481,21 +517,31 @@ export class MetricsExporter {
    * Calculate cache hit rate
    */
   private calculateCacheHitRate(): number {
-    const hitsMetric = this.registry.getSingleMetric('sveltehr_cache_hits_total');
-    const missesMetric = this.registry.getSingleMetric('sveltehr_cache_misses_total');
-    
+    const hitsMetric = this.registry.getSingleMetric(
+      'sveltehr_cache_hits_total'
+    );
+    const missesMetric = this.registry.getSingleMetric(
+      'sveltehr_cache_misses_total'
+    );
+
     if (!hitsMetric || !missesMetric) {
       return 0;
     }
-    
+
     const hitsValue = hitsMetric.get() as any;
     const missesValue = missesMetric.get() as any;
-    
-    const totalHits = hitsValue.values?.reduce((sum: number, val: any) => sum + val.value, 0) || 0;
-    const totalMisses = missesValue.values?.reduce((sum: number, val: any) => sum + val.value, 0) || 0;
-    
+
+    const totalHits =
+      hitsValue.values?.reduce((sum: number, val: any) => sum + val.value, 0) ||
+      0;
+    const totalMisses =
+      missesValue.values?.reduce(
+        (sum: number, val: any) => sum + val.value,
+        0
+      ) || 0;
+
     const total = totalHits + totalMisses;
-    
+
     return total > 0 ? (totalHits / total) * 100 : 0;
   }
 

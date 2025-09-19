@@ -31,7 +31,9 @@ interface AuthenticatedRequest extends Request {
 }
 
 export class JWTMiddleware {
-  private static readonly JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret-key-here-must-be-at-least-32-chars-long';
+  private static readonly JWT_SECRET =
+    process.env.JWT_SECRET ||
+    'your-jwt-secret-key-here-must-be-at-least-32-chars-long';
   private static readonly JWT_ALGORITHM = 'HS256';
   private static readonly AUDIENCE = 'hasura-hr-system';
   private static readonly ISSUER = 'hr-auth-service';
@@ -39,39 +41,47 @@ export class JWTMiddleware {
   /**
    * Validate JWT token and extract user information
    */
-  static validateToken = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  static validateToken = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const authHeader = req.headers.authorization;
-      
+
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ 
-          error: 'Missing or invalid authorization header' 
+        return res.status(401).json({
+          error: 'Missing or invalid authorization header',
         });
       }
 
       const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-      
+
       // Verify and decode JWT
       const decoded = jwt.verify(token, JWTMiddleware.JWT_SECRET, {
         algorithms: [JWTMiddleware.JWT_ALGORITHM],
         audience: JWTMiddleware.AUDIENCE,
         issuer: JWTMiddleware.ISSUER,
-        clockTolerance: 10 // 10 seconds leeway for clock skew
+        clockTolerance: 10, // 10 seconds leeway for clock skew
       }) as JWTPayload;
 
       // Validate required Hasura claims
-      if (!decoded.hasura || !decoded.hasura.allowed_roles || !decoded.hasura.default_role) {
-        return res.status(401).json({ 
-          error: 'Invalid JWT: Missing required Hasura claims' 
+      if (
+        !decoded.hasura ||
+        !decoded.hasura.allowed_roles ||
+        !decoded.hasura.default_role
+      ) {
+        return res.status(401).json({
+          error: 'Invalid JWT: Missing required Hasura claims',
         });
       }
 
       // Set user data on request
       req.user = decoded;
-      
+
       // Generate Hasura session headers
       req.hasuraHeaders = JWTMiddleware.generateHasuraHeaders(decoded);
-      
+
       next();
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
@@ -88,7 +98,9 @@ export class JWTMiddleware {
   /**
    * Generate Hasura session headers from JWT payload
    */
-  private static generateHasuraHeaders(payload: JWTPayload): Record<string, string> {
+  private static generateHasuraHeaders(
+    payload: JWTPayload
+  ): Record<string, string> {
     const headers: Record<string, string> = {
       'X-Hasura-User-Id': payload.hasura.user_id,
       'X-Hasura-Role': payload.hasura.default_role,
@@ -99,9 +111,10 @@ export class JWTMiddleware {
 
     // Add optional headers if present
     if (payload.hasura.user_department_id) {
-      headers['X-Hasura-User-Department-Id'] = payload.hasura.user_department_id;
+      headers['X-Hasura-User-Department-Id'] =
+        payload.hasura.user_department_id;
     }
-    
+
     if (payload.hasura.user_manager_id) {
       headers['X-Hasura-User-Manager-Id'] = payload.hasura.user_manager_id;
     }
@@ -117,7 +130,7 @@ export class JWTMiddleware {
       // Get user data and roles from database
       const authService = new AuthService();
       const userData = await authService.getUserAuthData(userId);
-      
+
       if (!userData) {
         throw new Error('User not found');
       }
@@ -126,11 +139,11 @@ export class JWTMiddleware {
         sub: userId,
         email: userData.email,
         iat: Math.floor(Date.now() / 1000),
-        exp: Math.floor(Date.now() / 1000) + (15 * 60), // 15 minutes
+        exp: Math.floor(Date.now() / 1000) + 15 * 60, // 15 minutes
         aud: JWTMiddleware.AUDIENCE,
         iss: JWTMiddleware.ISSUER,
         hasura: {
-          allowed_roles: userData.roles.map(role => role.name),
+          allowed_roles: userData.roles.map((role) => role.name),
           default_role: userData.defaultRole,
           user_id: userId,
           user_email: userData.email,
@@ -157,7 +170,7 @@ export class JWTMiddleware {
       sub: userId,
       type: 'refresh',
       iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60), // 7 days
+      exp: Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60, // 7 days
       aud: JWTMiddleware.AUDIENCE,
       iss: JWTMiddleware.ISSUER,
     };
@@ -198,13 +211,15 @@ export class JWTMiddleware {
       }
 
       const userRoles = req.user.hasura.allowed_roles;
-      const hasPermission = allowedRoles.some(role => userRoles.includes(role));
+      const hasPermission = allowedRoles.some((role) =>
+        userRoles.includes(role)
+      );
 
       if (!hasPermission) {
-        return res.status(403).json({ 
+        return res.status(403).json({
           error: 'Insufficient permissions',
           required: allowedRoles,
-          current: userRoles
+          current: userRoles,
         });
       }
 
@@ -220,7 +235,7 @@ export class JWTMiddleware {
   }
 
   /**
-   * Extract user roles from request (for convenience)  
+   * Extract user roles from request (for convenience)
    */
   static getUserRoles(req: AuthenticatedRequest): string[] {
     return req.user?.hasura.allowed_roles || [];

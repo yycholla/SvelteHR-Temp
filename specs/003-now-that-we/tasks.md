@@ -4,6 +4,7 @@
 **Prerequisites**: plan.md (✓), research.md (✓), data-model.md (✓), contracts/ (✓)
 
 ## Execution Flow (main)
+
 ```
 1. Load plan.md from feature directory
    → ✓ Found: PostGraphile 4.x + Express.js + PostgreSQL 15+ + Redis 7.2
@@ -30,11 +31,14 @@
 ```
 
 ## Format: `[ID] [P?] Description`
+
 - **[P]**: Can run in parallel (different files, no dependencies)
 - Include exact file paths in descriptions
 
 ## Path Conventions
+
 Based on plan.md structure: Web application with `backend/` and `frontend/` directories
+
 - **Backend**: `backend/src/`, `backend/tests/`, `backend/database/`
 - **Frontend**: `frontend/src/`, `frontend/tests/`
 - **Database**: `database/migrations/`, `database/functions/`, `database/policies/`
@@ -110,11 +114,13 @@ Based on plan.md structure: Web application with `backend/` and `frontend/` dire
 ## Dependencies
 
 **Critical Path Dependencies:**
+
 - Database Setup: T001-T003 → T007-T012 → T013-T017 → T018-T023 → T024+
 - Server Setup: T004-T006 → T024 → T025-T030 → T031-T034
 - Frontend: T035-T037 (can run parallel with backend after T024)
 
 **Specific Blockers:**
+
 - T007-T012 (database schema) blocks T013-T017 (RLS policies)
 - T013-T017 (RLS policies) blocks T018-T023 (contract tests)
 - T018-T023 (failing tests) blocks T024-T030 (implementation)
@@ -124,6 +130,7 @@ Based on plan.md structure: Web application with `backend/` and `frontend/` dire
 ## Parallel Execution Examples
 
 ### Phase 3.1 Parallel Setup
+
 ```bash
 # Launch T004-T006 together (different systems):
 Task: "Initialize Node.js backend project with TypeScript and PostGraphile dependencies"
@@ -132,6 +139,7 @@ Task: "Set up Redis container for caching layer"
 ```
 
 ### Phase 3.2 Database Schema Parallel
+
 ```bash
 # Launch T007-T009 together (different migration files):
 Task: "Create core tables in database/migrations/001_create_core_tables.sql"
@@ -140,6 +148,7 @@ Task: "Create JWT token composite type in database/migrations/003_create_jwt_typ
 ```
 
 ### Phase 3.3 RLS Policies Parallel
+
 ```bash
 # Launch T013-T016 together (different policy files):
 Task: "Employee access policies in database/policies/employee_policies.sql"
@@ -149,6 +158,7 @@ Task: "Department access policies in database/policies/department_policies.sql"
 ```
 
 ### Phase 3.4 Contract Tests Parallel
+
 ```bash
 # Launch T018-T023 together (different test files):
 Task: "Authentication contract test in backend/tests/contract/test_authentication_contract.test.ts"
@@ -160,7 +170,8 @@ Task: "Row-level security test in backend/tests/integration/test_rls_policies.te
 ```
 
 ## Validation Checklist
-*GATE: All items must be checked before tasks are considered complete*
+
+_GATE: All items must be checked before tasks are considered complete_
 
 - [x] All contracts have corresponding tests (T018-T020 for 3 contracts)
 - [x] All entities have implementation tasks (JWT token, roles, policies, cache, functions)
