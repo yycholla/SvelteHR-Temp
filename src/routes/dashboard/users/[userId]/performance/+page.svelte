@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
 	import { queryStore } from '@urql/svelte';
 	import { createUrqlClient } from '$lib/graphql/client';
 	import { currentUser, hasRole } from '$lib/stores/auth';
@@ -28,14 +29,19 @@
 
 	// Import our new GraphQL operations
 	import {
-		GET_MY_PERFORMANCE_SUMMARY_QUERY,
-		GET_TEAM_PERFORMANCE_SUMMARY_QUERY,
 		GET_ACTIVE_PERFORMANCE_CYCLES_QUERY,
-		GET_MY_GOALS_QUERY,
+		GET_EMPLOYEE_PERFORMANCE_GOALS_QUERY,
+		GET_EMPLOYEE_PERFORMANCE_REVIEWS_QUERY,
 		type PerformanceReview,
 		type PerformanceGoal,
 		type PerformanceCycle
 	} from '$lib/graphql/performance-management-operations';
+
+	// Get user ID from URL params
+	const userId = $page.params.userId;
+
+	// Check if viewing own performance
+	const isOwnPerformance = $derived($currentUser?.id === userId);
 
 	// State
 	let searchTerm = $state('');
@@ -55,11 +61,15 @@
 
 	onMount(() => {
 		try {
-			// Initialize my performance summary query
+			// Initialize user performance reviews query
 			myPerformanceQuery = queryStore({
 				client,
-				query: GET_MY_PERFORMANCE_SUMMARY_QUERY,
-				variables: {}
+				query: GET_EMPLOYEE_PERFORMANCE_REVIEWS_QUERY,
+				variables: {
+					employeeId: userId,
+					first: 10,
+					orderBy: ['REVIEW_PERIOD_START_DESC']
+				}
 			});
 
 			// Initialize active cycles query
@@ -69,21 +79,18 @@
 				variables: {}
 			});
 
-			// Initialize my goals query
+			// Initialize user goals query
 			goalsQuery = queryStore({
 				client,
-				query: GET_MY_GOALS_QUERY,
-				variables: {}
+				query: GET_EMPLOYEE_PERFORMANCE_GOALS_QUERY,
+				variables: {
+					employeeId: userId,
+					first: 10,
+					orderBy: ['TARGET_DATE_ASC']
+				}
 			});
 
-			// Initialize team performance if user is manager
-			if ($currentUser && hasRole(['manager', 'hr', 'admin'])) {
-				teamPerformanceQuery = queryStore({
-					client,
-					query: GET_TEAM_PERFORMANCE_SUMMARY_QUERY,
-					variables: {}
-				});
-			}
+			// Team performance functionality can be added later for managers
 		} catch (error) {
 			console.error('Error initializing performance queries:', error);
 		}
@@ -146,13 +153,17 @@
 	const myPerformanceData = $derived(() => myQueryState.data?.myPerformanceSummary || null);
 	const teamPerformanceData = $derived(() => teamQueryState.data?.teamPerformanceSummary || []);
 	const activeCycles = $derived(() => cyclesQueryState.data?.allPerformanceCycles?.nodes || []);
-	const myGoals = $derived(() => goalsQueryState.data?.allPerformanceGoals?.nodes || []);
+	const myGoals = $derived(() => {
+		const goals = goalsQueryState.data?.allPerformanceGoals?.nodes;
+		return Array.isArray(goals) ? goals : [];
+	});
 
 	// Filter goals based on search
 	const filteredGoals = $derived(() => {
-		if (!searchTerm) return myGoals;
+		const goals = Array.isArray(myGoals) ? myGoals : [];
+		if (!searchTerm) return goals;
 		const search = searchTerm.toLowerCase();
-		return myGoals.filter(
+		return goals.filter(
 			(goal: PerformanceGoal) =>
 				goal.title?.toLowerCase().includes(search) ||
 				goal.description?.toLowerCase().includes(search)
@@ -162,8 +173,10 @@
 	// Calculate goal completion percentage
 	const calculateGoalProgress = (goal: PerformanceGoal) => {
 		if (goal.status === 'COMPLETED') return 100;
-		if (goal.status === 'NOT_STARTED') return 0;
-		if (goal.status === 'IN_PROGRESS') return 50; // Could be more sophisticated
+		if (goal.progressPercentage !== undefined && goal.progressPercentage !== null) {
+			return goal.progressPercentage;
+		}
+		if (goal.status === 'Active') return 0;
 		return 0;
 	};
 
@@ -171,16 +184,15 @@
 	const getStatusVariant = (status: string) => {
 		switch (status) {
 			case 'COMPLETED':
-			case 'APPROVED':
 				return 'default';
-			case 'IN_PROGRESS':
-			case 'PENDING':
+			case 'Active':
 				return 'secondary';
-			case 'NOT_STARTED':
-			case 'DRAFT':
+			case 'CANCELLED':
+			case 'ON_HOLD':
 				return 'outline';
-			case 'OVERDUE':
-				return 'destructive';
+			case 'Draft':
+			case 'SUBMITTED':
+				return 'secondary';
 			default:
 				return 'outline';
 		}
@@ -217,7 +229,7 @@
 		</div>
 
 		<div class="flex items-center space-x-2">
-			<Button href="/dashboard/performance/goals/new">
+			<Button href="/dashboard/users/{userId}/performance/goals/new">
 				<Plus class="mr-2 h-4 w-4" />
 				Set Goal
 			</Button>
@@ -258,7 +270,7 @@
 							<div>
 								<p class="text-sm font-medium text-muted-foreground">Active Goals</p>
 								<p class="text-2xl font-bold">
-									{myGoals.filter((g) => g.status !== 'COMPLETED').length}
+									{Array.isArray(myGoals) ? myGoals.filter((g) => g.status !== 'COMPLETED').length : 0}
 								</p>
 							</div>
 						</div>
@@ -272,7 +284,7 @@
 							<div>
 								<p class="text-sm font-medium text-muted-foreground">Completed Goals</p>
 								<p class="text-2xl font-bold">
-									{myGoals.filter((g) => g.status === 'COMPLETED').length}
+									{Array.isArray(myGoals) ? myGoals.filter((g) => g.status === 'COMPLETED').length : 0}
 								</p>
 							</div>
 						</div>
@@ -358,9 +370,9 @@
 								<span class="text-sm font-medium">Goals Completion Rate</span>
 								<span class="text-sm font-bold text-green-600">
 									{Math.round(
-										(myGoals.filter((g) => g.status === 'COMPLETED').length /
+										Array.isArray(myGoals) ? (myGoals.filter((g) => g.status === 'COMPLETED').length /
 											Math.max(myGoals.length, 1)) *
-											100
+											100 : 0
 									)}%
 								</span>
 							</div>
@@ -411,7 +423,7 @@
 									Set your first performance goal to get started.
 								{/if}
 							</p>
-							<Button href="/dashboard/performance/goals/new">
+							<Button href="/dashboard/users/{userId}/performance/goals/new">
 								<Plus class="mr-2 h-4 w-4" />
 								Set Goal
 							</Button>
@@ -443,8 +455,10 @@
 									</div>
 
 									<div class="flex items-center justify-between text-sm text-muted-foreground">
-										<span>Due: {formatDate(goal.dueDate)}</span>
-										<span>Priority: {goal.priority}</span>
+										<span>Due: {goal.targetCompletionDate ? formatDate(goal.targetCompletionDate) : 'No due date'}</span>
+										{#if goal.weight}
+											<span>Weight: {goal.weight}%</span>
+										{/if}
 									</div>
 
 									<div class="flex items-center justify-between">

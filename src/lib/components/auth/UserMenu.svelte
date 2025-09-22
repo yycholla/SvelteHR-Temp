@@ -2,6 +2,7 @@
 	import { createEventDispatcher, onMount } from 'svelte';
 	import { currentUser, authStore } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import {
 		User,
 		Settings,
@@ -66,7 +67,8 @@
 
 	const handleLogout = async () => {
 		isOpen = false;
-		await authStore.logout();
+		// Pass current URL to logout for redirect after login
+		await authStore.logout($page.url.pathname + $page.url.search);
 		dispatch('logout');
 		goto('/login');
 	};

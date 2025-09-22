@@ -20,10 +20,7 @@ export const USER_BASIC_FIELDS = gql`
 export const USER_FULL_FIELDS = gql`
 	fragment UserFullFields on User {
 		...UserBasicFields
-		lastLoginAt
-		timezone
-		locale
-		metadata
+		lastLogin
 	}
 	${USER_BASIC_FIELDS}
 `;
@@ -59,6 +56,14 @@ export const GET_EMPLOYEES_QUERY = gql`
 		allUsers(first: $first, offset: $offset, orderBy: $orderBy, condition: $condition) {
 			nodes {
 				...UserFullFields
+				userRoleAssignmentsByUserId {
+					nodes {
+						id
+						userRoleByRoleId {
+							...UserRoleFields
+						}
+					}
+				}
 			}
 			totalCount
 			pageInfo {
@@ -68,6 +73,7 @@ export const GET_EMPLOYEES_QUERY = gql`
 		}
 	}
 	${USER_FULL_FIELDS}
+	${USER_ROLE_FIELDS}
 `;
 
 // Query: Get employee by ID
@@ -142,7 +148,6 @@ export const GET_EMPLOYEES_BY_DEPARTMENT_QUERY = gql`
 		allUsers(
 			first: $first
 			offset: $offset
-			condition: { metadata: { includes: { departmentId: $departmentId } } }
 		) {
 			nodes {
 				...UserBasicFields
@@ -185,7 +190,7 @@ export const GET_ACTIVE_EMPLOYEES_COUNT_QUERY = gql`
 // Query: Get all departments for filtering
 export const GET_ALL_DEPARTMENTS_QUERY = gql`
 	query GetAllDepartments {
-		allDepartments(orderBy: NAME_ASC) {
+		allDepartments {
 			nodes {
 				...DepartmentFields
 			}
@@ -197,7 +202,7 @@ export const GET_ALL_DEPARTMENTS_QUERY = gql`
 // Query: Get all user roles for filtering
 export const GET_ALL_USER_ROLES_QUERY = gql`
 	query GetAllUserRoles {
-		allUserRoles(orderBy: LEVEL_DESC) {
+		allUserRoles {
 			nodes {
 				...UserRoleFields
 			}
@@ -290,10 +295,7 @@ export interface Employee {
 	isActive: boolean;
 	createdAt: string;
 	updatedAt: string;
-	lastLoginAt?: string;
-	timezone?: string;
-	locale?: string;
-	metadata?: Record<string, any>;
+	lastLogin?: string;
 }
 
 export interface Department {
@@ -348,9 +350,6 @@ export interface CreateEmployeeInput {
 		email: string;
 		displayName: string;
 		isActive?: boolean;
-		timezone?: string;
-		locale?: string;
-		metadata?: Record<string, any>;
 	};
 	clientMutationId?: string;
 }
@@ -361,9 +360,6 @@ export interface UpdateEmployeeInput {
 		email?: string;
 		displayName?: string;
 		isActive?: boolean;
-		timezone?: string;
-		locale?: string;
-		metadata?: Record<string, any>;
 	};
 	clientMutationId?: string;
 }

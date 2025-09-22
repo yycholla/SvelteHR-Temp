@@ -100,7 +100,7 @@
 			icon: Checkmark,
 			active: false,
 			children: [
-				{ id: 'tasks-my', label: 'My Tasks', href: '/tasks/my', active: false },
+				{ id: 'tasks-my', label: 'My Tasks', href: `/dashboard/users/\${user.id}/tasks`, active: false },
 				{ id: 'tasks-all', label: 'All Tasks', href: '/tasks', active: false },
 				{ id: 'tasks-add', label: 'Create Task', href: '/tasks/new', active: false }
 			]

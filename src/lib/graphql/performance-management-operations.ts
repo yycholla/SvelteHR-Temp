@@ -40,11 +40,11 @@ export const PERFORMANCE_REVIEW_FULL_FIELDS = gql`
 	fragment PerformanceReviewFullFields on PerformanceReview {
 		...PerformanceReviewBasicFields
 		selfAssessment
-		reviewerComments
-		strengths
-		areasForImprovement
-		developmentPlan
-		metadata
+		managerComments
+		employeeComments
+		developmentGoals
+		goalsRating
+		competenciesRating
 	}
 	${PERFORMANCE_REVIEW_BASIC_FIELDS}
 `;
@@ -55,10 +55,13 @@ export const PERFORMANCE_GOAL_FIELDS = gql`
 		employeeId
 		title
 		description
-		targetDate
+		targetCompletionDate
 		status
-		progress
-		priority
+		progressPercentage
+		weight
+		finalRating
+		managerNotes
+		employeeNotes
 		reviewId
 		createdAt
 		updatedAt
@@ -207,7 +210,7 @@ export const GET_PENDING_REVIEWS_FOR_REVIEWER_QUERY = gql`
 			first: $first
 			offset: $offset
 			condition: { reviewerId: $reviewerId, status: IN_PROGRESS }
-			orderBy: REVIEW_PERIOD_END_ASC
+			orderBy: REVIEW_PERIOD_START_ASC
 		) {
 			nodes {
 				...PerformanceReviewBasicFields
@@ -457,21 +460,21 @@ export const SUBMIT_SELF_ASSESSMENT_MUTATION = gql`
 export const COMPLETE_PERFORMANCE_REVIEW_MUTATION = gql`
 	mutation CompletePerformanceReview(
 		$id: UUID!
-		$reviewerComments: String
+		$managerComments: String
 		$overallRating: PerformanceRatingEnum!
-		$strengths: String
-		$areasForImprovement: String
-		$developmentPlan: String
+		$goalsRating: PerformanceRatingEnum
+		$competenciesRating: PerformanceRatingEnum
+		$developmentGoals: String
 	) {
 		updatePerformanceReviewById(
 			input: {
 				id: $id
 				performanceReviewPatch: {
-					reviewerComments: $reviewerComments
+					managerComments: $managerComments
 					overallRating: $overallRating
-					strengths: $strengths
-					areasForImprovement: $areasForImprovement
-					developmentPlan: $developmentPlan
+					goalsRating: $goalsRating
+					competenciesRating: $competenciesRating
+					developmentGoals: $developmentGoals
 					status: COMPLETED
 					completedAt: "now()"
 				}
@@ -514,9 +517,9 @@ export const UPDATE_PERFORMANCE_GOAL_MUTATION = gql`
 
 // Mutation: Update goal progress
 export const UPDATE_GOAL_PROGRESS_MUTATION = gql`
-	mutation UpdateGoalProgress($id: UUID!, $progress: Int!, $status: String) {
+	mutation UpdateGoalProgress($id: UUID!, $progressPercentage: Int!, $status: String) {
 		updatePerformanceGoalById(
-			input: { id: $id, performanceGoalPatch: { progress: $progress, status: $status } }
+			input: { id: $id, performanceGoalPatch: { progressPercentage: $progressPercentage, status: $status } }
 		) {
 			performanceGoal {
 				...PerformanceGoalFields
@@ -551,15 +554,23 @@ export interface PerformanceReview {
 		| 'MET_EXPECTATIONS'
 		| 'PARTIALLY_MET_EXPECTATIONS'
 		| 'DID_NOT_MEET_EXPECTATIONS';
-	status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'OVERDUE';
-	selfAssessment?: Record<string, any>;
-	reviewerComments?: string;
-	strengths?: string;
-	areasForImprovement?: string;
-	developmentPlan?: string;
+	goalsRating?:
+		| 'EXCEEDED_EXPECTATIONS'
+		| 'MET_EXPECTATIONS'
+		| 'PARTIALLY_MET_EXPECTATIONS'
+		| 'DID_NOT_MEET_EXPECTATIONS';
+	competenciesRating?:
+		| 'EXCEEDED_EXPECTATIONS'
+		| 'MET_EXPECTATIONS'
+		| 'PARTIALLY_MET_EXPECTATIONS'
+		| 'DID_NOT_MEET_EXPECTATIONS';
+	status: 'Draft' | 'IN_PROGRESS' | 'COMPLETED' | 'SUBMITTED';
+	selfAssessment?: string;
+	managerComments?: string;
+	employeeComments?: string;
+	developmentGoals?: string;
 	submittedAt?: string;
 	completedAt?: string;
-	metadata?: Record<string, any>;
 	createdAt: string;
 	updatedAt: string;
 	performanceCycleByCycleId?: PerformanceCycle;
@@ -585,10 +596,17 @@ export interface PerformanceGoal {
 	employeeId: string;
 	title: string;
 	description?: string;
-	targetDate: string;
-	status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-	progress: number;
-	priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+	targetCompletionDate?: string;
+	status: 'Active' | 'COMPLETED' | 'CANCELLED' | 'ON_HOLD';
+	progressPercentage?: number;
+	weight?: number;
+	finalRating?:
+		| 'EXCEEDED_EXPECTATIONS'
+		| 'MET_EXPECTATIONS'
+		| 'PARTIALLY_MET_EXPECTATIONS'
+		| 'DID_NOT_MEET_EXPECTATIONS';
+	managerNotes?: string;
+	employeeNotes?: string;
 	reviewId?: string;
 	createdAt: string;
 	updatedAt: string;
@@ -644,8 +662,8 @@ export interface CreatePerformanceGoalInput {
 		employeeId: string;
 		title: string;
 		description?: string;
-		targetDate: string;
-		priority?: string;
+		targetCompletionDate?: string;
+		weight?: number;
 		reviewId?: string;
 	};
 	clientMutationId?: string;
@@ -655,15 +673,15 @@ export interface UpdatePerformanceReviewInput {
 	id: string;
 	performanceReviewPatch: {
 		overallRating?: string;
+		goalsRating?: string;
+		competenciesRating?: string;
 		status?: string;
-		selfAssessment?: Record<string, any>;
-		reviewerComments?: string;
-		strengths?: string;
-		areasForImprovement?: string;
-		developmentPlan?: string;
+		selfAssessment?: string;
+		managerComments?: string;
+		employeeComments?: string;
+		developmentGoals?: string;
 		submittedAt?: string;
 		completedAt?: string;
-		metadata?: Record<string, any>;
 	};
 	clientMutationId?: string;
 }

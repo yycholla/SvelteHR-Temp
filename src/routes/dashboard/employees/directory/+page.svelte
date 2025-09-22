@@ -1,9 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { queryStore } from '@urql/svelte';
-	import { createUrqlClient } from '$lib/graphql/client';
 	import * as Card from '$lib/components/ui/card';
 	import * as Select from '$lib/components/ui/select';
+	import * as Tabs from '$lib/components/ui/tabs';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Badge } from '$lib/components/ui/badge';
@@ -17,127 +16,134 @@
 		Filter,
 		Grid,
 		List,
-		RefreshCw
+		RefreshCw,
+		Network
 	} from 'lucide-svelte';
 
-	// Import our new GraphQL operations
+	// Use the same working GraphQL operations as admin users page
 	import {
-		GET_EMPLOYEES_QUERY,
-		GET_ALL_DEPARTMENTS_QUERY,
-		GET_ALL_USER_ROLES_QUERY,
-		SEARCH_EMPLOYEES_QUERY,
-		type Employee,
-		type Department,
+		getAllUsers,
+		getUserRoles,
+		formatUserRole,
+		getUserDepartment,
+		type User,
 		type UserRole
-	} from '$lib/graphql/employee-directory-operations';
+	} from '$lib/graphql/user-operations.js';
 
-	interface ExtendedEmployee extends Employee {
-		jobTitle?: string;
-		onboardingStatus?: string;
-		hireDate?: string;
-		userRoleAssignmentsByEmployeeId?: {
-			nodes: Array<{
-				userRoleByRoleId: {
-					name: string;
-					level: number;
-				};
-				assignedAt: string;
-			}>;
-		};
+	// Direct fetch function to bypass complex GraphQL client
+	async function fetchUsersDirectly(): Promise<User[]> {
+		try {
+			const token = localStorage.getItem('postgraphile-jwt-token');
+			const query = `
+				query GetAllUsers {
+					allUsers {
+						nodes {
+							id
+							email
+							displayName
+							jobTitle
+							isActive
+							createdAt
+							hireDate
+							lastLogin
+							userRoleAssignmentsByUserId {
+								nodes {
+									userRoleByRoleId {
+										name
+										level
+										description
+									}
+									isActive
+									createdAt
+								}
+							}
+						}
+					}
+				}
+			`;
+
+			const response = await fetch('http://localhost:4000/graphql', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					...(token ? { Authorization: `Bearer ${token}` } : {})
+				},
+				body: JSON.stringify({ query })
+			});
+
+			const result = await response.json();
+
+			if (result.errors) {
+				throw new Error(result.errors[0].message);
+			}
+
+			return result.data?.allUsers?.nodes || [];
+		} catch (error) {
+			console.error('Error fetching users:', error);
+			throw error;
+		}
 	}
 
 	// State
+	let users: User[] = $state([]);
+	let userRoles: UserRole[] = $state([]);
+	let loading = $state(false);
+	let initialLoading = $state(true);
 	let searchTerm = $state('');
 	let selectedDepartment = $state('all');
 	let selectedRole = $state('all');
 	let viewMode: 'grid' | 'list' = $state('grid');
 	let showFilters = $state(false);
 
-	// Create client
-	const client = createUrqlClient();
-	let usersQuery: any = $state(null);
-	let departmentsQuery: any = $state(null);
-	let rolesQuery: any = $state(null);
-	let queryState = $state({ fetching: true, error: null, data: null });
-	let departmentsData: Department[] = $state([]);
-	let rolesData: UserRole[] = $state([]);
+	// Load data on component mount
+	onMount(async () => {
+		await loadUsers();
+		await loadUserRoles();
+		initialLoading = false;
+	});
 
-	onMount(() => {
+	async function loadUsers() {
 		try {
-			// Initialize employees query
-			usersQuery = queryStore({
-				client,
-				query: GET_EMPLOYEES_QUERY,
-				variables: { first: 100, orderBy: ['DISPLAY_NAME_ASC'] }
-			});
-
-			// Initialize departments query
-			departmentsQuery = queryStore({
-				client,
-				query: GET_ALL_DEPARTMENTS_QUERY
-			});
-
-			// Initialize roles query
-			rolesQuery = queryStore({
-				client,
-				query: GET_ALL_USER_ROLES_QUERY
-			});
+			loading = true;
+			users = await fetchUsersDirectly();
+			// Force update filtered employees after state change
+			setTimeout(() => updateFilteredEmployees(), 100);
 		} catch (error) {
-			console.error('Error initializing query stores:', error);
+			console.error('Error loading users:', error);
+		} finally {
+			loading = false;
 		}
-	});
+	}
 
-	// Update query state
-	$effect(() => {
-		if (usersQuery) {
-			const unsubscribe = usersQuery.subscribe((state: any) => {
-				queryState = {
-					fetching: state.fetching,
-					error: state.error,
-					data: state.data
-				};
-			});
-			return unsubscribe;
+	async function loadUserRoles() {
+		try {
+			userRoles = await getUserRoles();
+			console.log('Employee Directory: Loaded', userRoles.length, 'roles');
+		} catch (error) {
+			console.error('Employee Directory: Error loading user roles:', error);
 		}
-	});
+	}
 
-	// Update departments data
-	$effect(() => {
-		if (departmentsQuery) {
-			const unsubscribe = departmentsQuery.subscribe((state: any) => {
-				if (state.data?.allDepartments?.nodes) {
-					departmentsData = state.data.allDepartments.nodes;
-				}
-			});
-			return unsubscribe;
+	// Filtered employees state
+	let filteredEmployees = $state([]);
+
+	// Update filtered employees based on current filters
+	function updateFilteredEmployees() {
+		if (users.length === 0) {
+			filteredEmployees = [];
+			return;
 		}
-	});
 
-	// Update roles data
-	$effect(() => {
-		if (rolesQuery) {
-			const unsubscribe = rolesQuery.subscribe((state: any) => {
-				if (state.data?.allUserRoles?.nodes) {
-					rolesData = state.data.allUserRoles.nodes;
-				}
-			});
-			return unsubscribe;
-		}
-	});
-
-	// Filter employees
-	const filteredEmployees = $derived(() => {
-		if (!queryState.data) return [];
-		let employees = queryState.data?.allUsers?.nodes || [];
+		let employees = [...users];
 
 		// Only show active employees in directory
-		employees = employees.filter((emp: ExtendedEmployee) => emp.isActive);
+		employees = employees.filter((emp) => emp.isActive);
 
 		// Search filter
 		if (searchTerm) {
 			const search = searchTerm.toLowerCase();
 			employees = employees.filter(
-				(emp: ExtendedEmployee) =>
+				(emp) =>
 					emp.displayName?.toLowerCase().includes(search) ||
 					emp.email?.toLowerCase().includes(search) ||
 					emp.jobTitle?.toLowerCase().includes(search)
@@ -146,82 +152,72 @@
 
 		// Department filter
 		if (selectedDepartment !== 'all') {
-			employees = employees.filter((emp: ExtendedEmployee) => {
-				// Check if employee metadata contains departmentId
-				const departmentId = emp.metadata?.departmentId;
-				if (!departmentId) return false;
-
-				const department = departmentsData.find((d) => d.id === departmentId);
-				return department?.name.toLowerCase() === selectedDepartment.toLowerCase();
+			employees = employees.filter((emp) => {
+				const dept = getUserDepartment(emp);
+				return dept.toLowerCase() === selectedDepartment.toLowerCase();
 			});
 		}
 
 		// Role filter
 		if (selectedRole !== 'all') {
-			employees = employees.filter((emp: ExtendedEmployee) => {
-				const roles = emp.userRoleAssignmentsByEmployeeId?.nodes || [];
-				return roles.some(
-					(assignment) =>
-						assignment.userRoleByRoleId.name.toLowerCase() === selectedRole.toLowerCase()
-				);
+			employees = employees.filter((emp) => {
+				const role = formatUserRole(emp);
+				return role.toLowerCase().includes(selectedRole.toLowerCase());
 			});
 		}
 
-		return employees.sort((a: ExtendedEmployee, b: ExtendedEmployee) =>
-			a.displayName.localeCompare(b.displayName)
+		filteredEmployees = employees.sort((a, b) =>
+			(a.displayName || a.email).localeCompare(b.displayName || b.email)
 		);
+	}
+
+	// Update filtered employees whenever filters change
+	$effect(() => {
+		updateFilteredEmployees();
 	});
 
 	// Get unique departments for filters
 	const departments = $derived(() => {
-		return departmentsData.map((dept) => dept.name).sort();
+		if (users.length === 0) return [];
+
+		const depts = users
+			.map((user) => getUserDepartment(user))
+			.filter((dept, index, arr) => arr.indexOf(dept) === index && dept !== 'Unassigned')
+			.sort();
+
+		return depts;
 	});
 
 	// Get unique roles for filters
 	const roles = $derived(() => {
-		return rolesData.map((role) => role.name).sort();
+		return userRoles.map((role) => role.name).sort();
 	});
 
 	// Get employee's primary role
-	const getPrimaryRole = (employee: ExtendedEmployee) => {
-		const assignments = employee.userRoleAssignmentsByEmployeeId?.nodes || [];
-		if (assignments.length === 0) return 'Employee';
-
-		// Return highest level role
-		const highest = assignments.reduce((prev, curr) =>
-			curr.userRoleByRoleId.level > prev.userRoleByRoleId.level ? curr : prev
-		);
-		return highest.userRoleByRoleId.name;
+	const getPrimaryRole = (employee: User) => {
+		return formatUserRole(employee);
 	};
 
 	// Get employee's department name
-	const getEmployeeDepartment = (employee: ExtendedEmployee) => {
-		const departmentId = employee.metadata?.departmentId;
-		if (!departmentId) return 'No Department';
-
-		const department = departmentsData.find((d) => d.id === departmentId);
-		return department?.name || 'Unknown Department';
+	const getEmployeeDepartment = (employee: User) => {
+		return getUserDepartment(employee);
 	};
 
 	// Get status variant
-	const getStatusVariant = (employee: ExtendedEmployee) => {
+	const getStatusVariant = (employee: User) => {
 		if (!employee.isActive) return 'destructive';
-		if (employee.onboardingStatus === 'onboarding') return 'secondary';
 		return 'default';
 	};
 
 	// Get status text
-	const getStatusText = (employee: ExtendedEmployee) => {
+	const getStatusText = (employee: User) => {
 		if (!employee.isActive) return 'Inactive';
-		if (employee.onboardingStatus === 'onboarding') return 'Onboarding';
 		return 'Active';
 	};
 
 	// Refresh data
-	const refresh = () => {
-		if (usersQuery?.rerun) {
-			usersQuery.rerun({ requestPolicy: 'network-only' });
-		}
+	const refresh = async () => {
+		await loadUsers();
 	};
 
 	// Get employee initials
@@ -236,8 +232,8 @@
 </script>
 
 <svelte:head>
-	<title>Employee Directory - SvelteHR</title>
-	<meta name="description" content="Browse and search our company directory" />
+	<title>Employees - SvelteHR</title>
+	<meta name="description" content="Browse employee directory and organizational structure" />
 </svelte:head>
 
 <div class="space-y-6">
@@ -246,38 +242,58 @@
 		<div>
 			<h1 class="flex items-center gap-3 text-3xl font-bold tracking-tight">
 				<Users class="h-8 w-8" />
-				Employee Directory
+				Employees
 			</h1>
-			<p class="text-muted-foreground">Find and connect with colleagues across the organization</p>
+			<p class="text-muted-foreground">Find colleagues and explore organizational structure</p>
 		</div>
 
 		<div class="flex items-center space-x-2">
-			<!-- View toggle -->
-			<div class="flex rounded-lg border p-1">
-				<Button
-					variant={viewMode === 'grid' ? 'default' : 'ghost'}
-					size="sm"
-					onclick={() => (viewMode = 'grid')}
-				>
-					<Grid class="h-4 w-4" />
-				</Button>
-				<Button
-					variant={viewMode === 'list' ? 'default' : 'ghost'}
-					size="sm"
-					onclick={() => (viewMode = 'list')}
-				>
-					<List class="h-4 w-4" />
-				</Button>
-			</div>
-
 			<!-- Refresh -->
-			<Button variant="outline" size="sm" onclick={refresh} disabled={queryState.fetching}>
-				<RefreshCw class="h-4 w-4 {queryState.fetching ? 'animate-spin' : ''}" />
+			<Button variant="outline" size="sm" onclick={refresh} disabled={loading}>
+				<RefreshCw class="h-4 w-4 {loading ? 'animate-spin' : ''}" />
 			</Button>
 		</div>
 	</div>
 
-	<!-- Search and Filters -->
+	<!-- Tabs -->
+	<Tabs.Root value="directory" class="w-full">
+		<Tabs.List class="grid w-full grid-cols-2">
+			<Tabs.Trigger value="directory" class="flex items-center gap-2">
+				<Users class="h-4 w-4" />
+				Directory
+			</Tabs.Trigger>
+			<Tabs.Trigger value="orgmap" class="flex items-center gap-2">
+				<Network class="h-4 w-4" />
+				Organization Map
+			</Tabs.Trigger>
+		</Tabs.List>
+
+		<!-- Directory Tab -->
+		<Tabs.Content value="directory" class="space-y-6">
+			<!-- View Controls -->
+			<div class="flex items-center justify-between">
+				<div class="text-sm text-muted-foreground">
+					{filteredEmployees.length} employee{filteredEmployees.length !== 1 ? 's' : ''} found
+				</div>
+				<div class="flex rounded-lg border p-1">
+					<Button
+						variant={viewMode === 'grid' ? 'default' : 'ghost'}
+						size="sm"
+						onclick={() => (viewMode = 'grid')}
+					>
+						<Grid class="h-4 w-4" />
+					</Button>
+					<Button
+						variant={viewMode === 'list' ? 'default' : 'ghost'}
+						size="sm"
+						onclick={() => (viewMode = 'list')}
+					>
+						<List class="h-4 w-4" />
+					</Button>
+				</div>
+			</div>
+
+			<!-- Search and Filters -->
 	<Card.Root>
 		<Card.Content class="p-6">
 			<div class="flex flex-col space-y-4 md:flex-row md:items-center md:space-x-4 md:space-y-0">
@@ -355,15 +371,16 @@
 		</Card.Content>
 	</Card.Root>
 
+
 	<!-- Results count -->
-	{#if !queryState.fetching}
+	{#if !loading && !initialLoading}
 		<div class="text-sm text-muted-foreground">
 			Found {filteredEmployees.length} employee{filteredEmployees.length !== 1 ? 's' : ''}
 		</div>
 	{/if}
 
 	<!-- Loading state -->
-	{#if queryState.fetching && !queryState.data}
+	{#if initialLoading}
 		<div class="flex items-center justify-center py-12">
 			<div class="flex items-center space-x-2">
 				<RefreshCw class="h-4 w-4 animate-spin" />
@@ -372,21 +389,8 @@
 		</div>
 	{/if}
 
-	<!-- Error state -->
-	{#if queryState.error}
-		<Card.Root>
-			<Card.Content class="py-8">
-				<div class="space-y-4 text-center">
-					<h3 class="text-lg font-semibold">Failed to load directory</h3>
-					<p class="text-muted-foreground">{queryState.error.message}</p>
-					<Button variant="outline" onclick={refresh}>Try Again</Button>
-				</div>
-			</Card.Content>
-		</Card.Root>
-	{/if}
-
 	<!-- Employee Directory -->
-	{#if !queryState.fetching && !queryState.error}
+	{#if !initialLoading}
 		{#if filteredEmployees.length === 0}
 			<Card.Root>
 				<Card.Content class="py-12">
@@ -515,4 +519,33 @@
 			</Card.Root>
 		{/if}
 	{/if}
+		</Tabs.Content>
+
+		<!-- Organization Map Tab -->
+		<Tabs.Content value="orgmap" class="space-y-6">
+			<Card.Root>
+				<Card.Header>
+					<Card.Title class="flex items-center gap-2">
+						<Network class="h-5 w-5" />
+						Organization Map
+					</Card.Title>
+					<Card.Description>
+						Visual representation of the organizational structure
+					</Card.Description>
+				</Card.Header>
+				<Card.Content class="py-12">
+					<div class="flex flex-col items-center justify-center space-y-4 text-center">
+						<Network class="h-12 w-12 text-muted-foreground" />
+						<h3 class="text-lg font-semibold">Organization Map</h3>
+						<p class="text-muted-foreground max-w-md">
+							Interactive organizational chart showing reporting structure and team relationships.
+						</p>
+						<div class="text-sm text-muted-foreground">
+							Coming soon - this feature is under development
+						</div>
+					</div>
+				</Card.Content>
+			</Card.Root>
+		</Tabs.Content>
+	</Tabs.Root>
 </div>

@@ -16,18 +16,20 @@
 
 {#if $isAuthenticated}
 	<!-- Dashboard Layout: Fixed sidebar with content area -->
-	<div class="min-h-screen bg-muted/30">
+	<div class="min-h-screen bg-sidebar">
 		<!-- Fixed Sidebar - stays constant across all dashboard routes -->
 		<aside class="fixed left-0 top-0 z-10 h-full w-64 bg-sidebar" aria-label="Main navigation">
 			<HrAppSidebar />
 		</aside>
 
 		<!-- Main Content Area - only this content changes between routes -->
-		<div class="ml-64 pb-6 pr-3 pt-6">
-			<main class="min-h-screen rounded-xl bg-background p-6 shadow-sm" aria-live="polite">
-				<!-- This is where page content gets injected -->
-				{@render children()}
-			</main>
+		<div class="ml-64 h-screen overflow-auto">
+			<div class="pb-6 pl-3 pr-6 pt-6">
+				<main class="min-h-[calc(100vh-3rem)] rounded-xl bg-background p-6 shadow-sm" aria-live="polite">
+					<!-- This is where page content gets injected -->
+					{@render children()}
+				</main>
+			</div>
 		</div>
 	</div>
 {:else}

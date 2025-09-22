@@ -86,13 +86,25 @@
 			const user = $currentUser;
 			let redirectTo = $page.url.searchParams.get('redirect');
 
+			// Check for saved return URL from logout (highest priority)
+			if (!redirectTo && browser) {
+				const savedReturnUrl = localStorage.getItem('hr_return_url');
+				if (savedReturnUrl) {
+					console.log('Found saved return URL:', savedReturnUrl);
+					redirectTo = savedReturnUrl;
+					// Clear the saved URL after using it
+					localStorage.removeItem('hr_return_url');
+				}
+			}
+
+			// Only use role-based defaults if no URL was saved or provided
 			if (!redirectTo) {
 				// Redirect based on user role - now that roles are loaded
 				if (user && permissionsService.isSuperAdmin(user)) {
-					console.log('User is admin, redirecting to /dashboard/admin');
+					console.log('User is admin, no saved URL, redirecting to /dashboard/admin');
 					redirectTo = '/dashboard/admin';
 				} else {
-					console.log('User is not admin, redirecting to /dashboard');
+					console.log('User is not admin, no saved URL, redirecting to /dashboard');
 					redirectTo = '/dashboard';
 				}
 			}

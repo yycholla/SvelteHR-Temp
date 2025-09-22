@@ -306,7 +306,7 @@
 					</div>
 				</Card.Content>
 				<Card.Footer>
-					<Button variant="outline" href="/dashboard/performance/goals/new">Set New Goal</Button>
+					<Button variant="outline" href="/dashboard/users/{$currentUser?.id}/performance">View Performance</Button>
 				</Card.Footer>
 			</Card.Root>
 		</Tabs.Content>

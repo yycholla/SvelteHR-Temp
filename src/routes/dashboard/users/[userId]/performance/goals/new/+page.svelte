@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { mutationStore } from '@urql/svelte';
 	import { createUrqlClient } from '$lib/graphql/client';
@@ -15,17 +16,21 @@
 	// Import GraphQL operations
 	import {
 		CREATE_PERFORMANCE_GOAL_MUTATION,
-		type PerformanceGoalPriority,
 		type CreatePerformanceGoalInput
 	} from '$lib/graphql/performance-management-operations';
+
+	// Get user ID from URL params
+	const userId = $page.params.userId;
+
+	// Check if creating goal for own user
+	const isOwnGoal = $derived($currentUser?.id === userId);
 
 	// Form state
 	let formData = $state({
 		title: '',
 		description: '',
-		priority: '' as PerformanceGoalPriority | '',
 		dueDate: '',
-		targetValue: '',
+		weight: '',
 		measurementCriteria: ''
 	});
 
@@ -48,13 +53,7 @@
 		}
 	});
 
-	// Priority options
-	const priorityOptions = [
-		{ value: 'LOW', label: 'Low' },
-		{ value: 'MEDIUM', label: 'Medium' },
-		{ value: 'HIGH', label: 'High' },
-		{ value: 'CRITICAL', label: 'Critical' }
-	];
+	// Priority removed since it's not in the database schema
 
 	// Validate form
 	const validateForm = () => {
@@ -68,8 +67,8 @@
 			errors.description = 'Please provide a goal description';
 		}
 
-		if (!formData.priority) {
-			errors.priority = 'Please select a priority level';
+		if (formData.weight && (isNaN(Number(formData.weight)) || Number(formData.weight) < 0 || Number(formData.weight) > 100)) {
+			errors.weight = 'Weight must be a number between 0 and 100';
 		}
 
 		if (!formData.dueDate) {
@@ -101,12 +100,11 @@
 
 		try {
 			const input: CreatePerformanceGoalInput = {
+				employeeId: userId,
 				title: formData.title.trim(),
 				description: formData.description.trim(),
-				priority: formData.priority as PerformanceGoalPriority,
-				dueDate: formData.dueDate,
-				targetValue: formData.targetValue.trim() || null,
-				measurementCriteria: formData.measurementCriteria.trim()
+				targetCompletionDate: formData.dueDate,
+				weight: formData.weight ? Number(formData.weight) : null
 			};
 
 			const result = await createGoalMutation.executeMutation({
@@ -118,7 +116,7 @@
 			}
 
 			// Success - redirect to performance page
-			goto('/dashboard/performance');
+			goto(`/dashboard/users/${userId}/performance`);
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to create performance goal';
 		} finally {
@@ -131,9 +129,8 @@
 		formData = {
 			title: '',
 			description: '',
-			priority: '',
 			dueDate: '',
-			targetValue: '',
+			weight: '',
 			measurementCriteria: ''
 		};
 		validationErrors = {};
@@ -156,7 +153,7 @@
 <div class="space-y-6">
 	<!-- Header -->
 	<div class="flex items-center space-x-4">
-		<Button variant="outline" size="sm" href="/dashboard/performance">
+		<Button variant="outline" size="sm" href="/dashboard/users/{userId}/performance">
 			<ArrowLeft class="mr-2 h-4 w-4" />
 			Back to Performance
 		</Button>
@@ -221,36 +218,8 @@
 						{/if}
 					</div>
 
-					<!-- Priority and Due Date -->
+					<!-- Due Date and Weight -->
 					<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-						<div class="space-y-2">
-							<Label for="priority">Priority *</Label>
-							<Select.Root
-								selected={formData.priority
-									? {
-											value: formData.priority,
-											label:
-												priorityOptions.find((opt) => opt.value === formData.priority)?.label || ''
-										}
-									: undefined}
-								onSelectedChange={(selected) => {
-									formData.priority = selected?.value || '';
-								}}
-							>
-								<Select.Trigger>
-									<Select.Value placeholder="Select priority" />
-								</Select.Trigger>
-								<Select.Content>
-									{#each priorityOptions as option}
-										<Select.Item value={option.value}>{option.label}</Select.Item>
-									{/each}
-								</Select.Content>
-							</Select.Root>
-							{#if validationErrors.priority}
-								<p class="text-sm text-red-600">{validationErrors.priority}</p>
-							{/if}
-						</div>
-
 						<div class="space-y-2">
 							<Label for="dueDate">Due Date *</Label>
 							<Input
@@ -264,20 +233,27 @@
 								<p class="text-sm text-red-600">{validationErrors.dueDate}</p>
 							{/if}
 						</div>
+
+						<div class="space-y-2">
+							<Label for="weight">Weight (Optional)</Label>
+							<Input
+								id="weight"
+								type="number"
+								placeholder="e.g., 25"
+								bind:value={formData.weight}
+								min="0"
+								max="100"
+								class={validationErrors.weight ? 'border-red-500' : ''}
+							/>
+							{#if validationErrors.weight}
+								<p class="text-sm text-red-600">{validationErrors.weight}</p>
+							{/if}
+							<p class="text-sm text-muted-foreground">
+								Goal weight as percentage (0-100). Leave empty if not applicable.
+							</p>
+						</div>
 					</div>
 
-					<!-- Target Value -->
-					<div class="space-y-2">
-						<Label for="targetValue">Target Value (Optional)</Label>
-						<Input
-							id="targetValue"
-							placeholder="e.g., 95%, $50,000, 10 new clients"
-							bind:value={formData.targetValue}
-						/>
-						<p class="text-sm text-muted-foreground">
-							Specify a measurable target if applicable (e.g., percentage, amount, quantity)
-						</p>
-					</div>
 
 					<!-- Measurement Criteria -->
 					<div class="space-y-2">
@@ -299,7 +275,7 @@
 						<Button variant="outline" onclick={handleReset} disabled={loading}>Reset Form</Button>
 
 						<div class="flex items-center space-x-2">
-							<Button variant="outline" href="/dashboard/performance" disabled={loading}>
+							<Button variant="outline" href="/dashboard/users/{userId}/performance" disabled={loading}>
 								Cancel
 							</Button>
 							<Button onclick={handleSubmit} disabled={loading || !$currentUser}>

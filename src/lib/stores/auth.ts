@@ -13,6 +13,10 @@ import { login as authServiceLogin } from '$lib/services/authService';
 // Rate limiting for auth validation
 let _lastValidation = 0;
 
+// Token refresh management
+let _refreshInterval: NodeJS.Timeout | null = null;
+let _refreshPromise: Promise<boolean> | null = null;
+
 // User interface
 export interface User {
 	id: string;
@@ -164,6 +168,8 @@ export const authActions = {
 
 			if (result.success && result.user) {
 				await authActions.setUser(result.user);
+				// Start automatic token refresh
+				authActions.startTokenRefresh();
 				return true;
 			} else {
 				authActions.setError(result.error || 'Login failed');
@@ -179,10 +185,21 @@ export const authActions = {
 	},
 
 	/**
-	 * Logout
+	 * Logout with optional redirect URL preservation
 	 */
-	logout: async (): Promise<void> => {
+	logout: async (currentUrl?: string): Promise<void> => {
 		try {
+			// Clear refresh interval
+			authActions.stopTokenRefresh();
+
+			// Save current page URL for redirect after login if provided
+			if (typeof window !== 'undefined' && currentUrl) {
+				// Only save if it's not the login page or root page
+				if (!currentUrl.includes('/login') && currentUrl !== '/') {
+					localStorage.setItem('hr_return_url', currentUrl);
+				}
+			}
+
 			// Clear JWT token from localStorage
 			if (typeof window !== 'undefined') {
 				localStorage.removeItem('postgraphile-jwt-token');
@@ -348,6 +365,9 @@ export const authActions = {
 					user,
 					isLoading: false
 				}));
+
+				// Start token refresh for existing session
+				authActions.startTokenRefresh();
 			}
 
 			console.log('validateSession: Validation successful, user is authenticated');
@@ -408,6 +428,111 @@ export const authActions = {
 	canManageUser: (targetUserId: string, requiredPermission: string): boolean => {
 		const rbacManager = get(rbac);
 		return rbacManager.canManageUser(targetUserId, requiredPermission);
+	},
+
+	/**
+	 * Refresh JWT token if it's close to expiration
+	 */
+	refreshToken: async (): Promise<boolean> => {
+		if (!browser) return false;
+
+		// Prevent multiple simultaneous refresh attempts
+		if (_refreshPromise) {
+			return await _refreshPromise;
+		}
+
+		_refreshPromise = (async () => {
+			try {
+				const token = localStorage.getItem('postgraphile-jwt-token');
+				if (!token) return false;
+
+				// Parse JWT to check if it needs refresh (if expires within 5 minutes)
+				const [, payload] = token.split('.');
+				const decodedPayload = JSON.parse(atob(payload));
+				const currentTime = Math.floor(Date.now() / 1000);
+				const timeUntilExpiry = decodedPayload.exp - currentTime;
+
+				// Only refresh if token expires within 5 minutes (300 seconds)
+				if (timeUntilExpiry > 300) {
+					return true; // Token is still good
+				}
+
+				console.log('🔄 Refreshing JWT token (expires in', timeUntilExpiry, 'seconds)');
+
+				// For now, just validate that the current token is still valid
+				// In a production system, you'd want a proper refresh token mechanism
+				const response = await fetch('http://localhost:4000/graphql', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'Authorization': `Bearer ${token}`
+					},
+					body: JSON.stringify({
+						query: `
+							query CurrentUser {
+								currentUser {
+									id
+									email
+									displayName
+								}
+							}
+						`
+					})
+				});
+
+				const result = await response.json();
+
+				if (result.data?.currentUser) {
+					console.log('✅ JWT token validated successfully');
+					return true;
+				} else {
+					console.warn('❌ Token validation failed, logging out');
+					await authActions.logout();
+					return false;
+				}
+			} catch (error) {
+				console.error('❌ Token refresh error:', error);
+				await authActions.logout();
+				return false;
+			} finally {
+				_refreshPromise = null;
+			}
+		})();
+
+		return await _refreshPromise;
+	},
+
+	/**
+	 * Start automatic token refresh
+	 */
+	startTokenRefresh: (): void => {
+		if (!browser) return;
+
+		// Clear any existing interval
+		authActions.stopTokenRefresh();
+
+		// Check token every 2 minutes
+		_refreshInterval = setInterval(async () => {
+			const isAuthenticated = get(authStore).isAuthenticated;
+			if (isAuthenticated) {
+				await authActions.refreshToken();
+			} else {
+				authActions.stopTokenRefresh();
+			}
+		}, 2 * 60 * 1000); // 2 minutes
+
+		console.log('🔄 Automatic token refresh started (every 2 minutes)');
+	},
+
+	/**
+	 * Stop automatic token refresh
+	 */
+	stopTokenRefresh: (): void => {
+		if (_refreshInterval) {
+			clearInterval(_refreshInterval);
+			_refreshInterval = null;
+			console.log('⏹️ Automatic token refresh stopped');
+		}
 	}
 };
 

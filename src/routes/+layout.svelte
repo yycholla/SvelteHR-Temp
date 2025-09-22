@@ -5,6 +5,7 @@
 	import AuthGuard from '$lib/components/auth/AuthGuard.svelte';
 	import { setContextClient } from '@urql/svelte';
 	import { createUrqlClient } from '$lib/graphql/client';
+	import { theme } from '$lib/stores/theme';
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
 
@@ -25,6 +26,22 @@
 			shouldShowLayout,
 			isAuthenticated: $isAuthenticated
 		});
+	});
+
+	// Apply theme to document
+	$effect(() => {
+		if (typeof document !== 'undefined') {
+			const root = document.documentElement;
+			root.classList.remove('light', 'dark');
+
+			if ($theme === 'system') {
+				const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+				root.classList.add(prefersDark ? 'dark' : 'light');
+			} else {
+				root.classList.add($theme);
+			}
+
+		}
 	});
 
 	// Removed token refresh interval since PostGraphile uses long-lived JWTs
@@ -49,13 +66,13 @@
 <style global>
 	:global(.app-main) {
 		min-height: 100vh;
-		background-color: var(--cds-background);
+		background-color: hsl(var(--sidebar));
 	}
 
-	/* Ensure Carbon design system tokens are properly applied */
+	/* Ensure consistent background with sidebar */
 	:global(body) {
-		background-color: var(--cds-background);
-		color: var(--cds-text-primary);
+		background-color: hsl(var(--sidebar));
+		color: hsl(var(--foreground));
 	}
 
 	/* Global styles merged */
