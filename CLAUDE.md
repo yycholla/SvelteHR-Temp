@@ -25,9 +25,19 @@ SvelteHR is a comprehensive HR management system built with SvelteKit frontend a
 ## Development Commands
 
 ### Quick Start
-- `make quick-start` - Complete first-time setup
+- `./setup/init.sh` - Initialize complete development environment (NEW)
+- `./setup/sync.sh` - Sync environment with remote changes (NEW)
+- `make quick-start` - Complete first-time setup (legacy)
 - `make dev` or `make server-dev` - Start PostGraphile development server (port 4000)
 - `npm run dev` - Start SvelteKit frontend (port 5173)
+
+### Environment Management (NEW)
+- `./setup/init.sh` - Initialize environment from scratch
+- `./setup/sync.sh` - Synchronize with remote changes
+- `./setup/update.sh [component]` - Update specific components
+- `./setup/rollback.sh` - Rollback to previous state
+- `./setup/validate.sh check` - Validate environment health
+- `./setup/validate.sh fix` - Auto-fix common issues
 
 ### Database Operations
 - `make db-up` - Start PostgreSQL and Redis containers
@@ -116,6 +126,56 @@ SvelteHR is a comprehensive HR management system built with SvelteKit frontend a
 - **JWT Authentication**: Stateless auth with refresh token rotation
 - **Multi-Layer Caching**: Redis + Urql + Browser caching
 - **Container-Based Development**: Docker Compose for local services
+- **Multi-Machine Development**: Seamless environment replication across machines
+
+## Multi-Machine Development Workflow
+
+### Initial Setup on New Machine
+```bash
+# Clone repository
+git clone https://github.com/your-org/SvelteHR.git
+cd SvelteHR
+
+# Initialize environment (one command setup)
+./setup/init.sh
+
+# Verify setup
+./setup/validate.sh check
+```
+
+### Daily Workflow
+```bash
+# Start of day - sync with remote
+git pull
+./setup/sync.sh
+
+# End of day - push changes
+git add .
+git commit -m "Your changes"
+git push
+```
+
+### Switching Between Machines
+```bash
+# Machine A: Save work
+git push
+
+# Machine B: Get latest
+git pull
+./setup/sync.sh
+```
+
+### Troubleshooting Sync Issues
+```bash
+# Check sync status
+./setup/sync.sh --dry-run
+
+# Fix validation issues
+./setup/validate.sh fix
+
+# Force sync if needed
+./setup/sync.sh --force
+```
 
 ## Testing
 

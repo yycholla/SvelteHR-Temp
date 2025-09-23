@@ -101,11 +101,11 @@
 
 	// Management submenu (for managers/supervisors)
 	const managementItems = [
-		{ title: 'Add Employee', url: '/dashboard/employees/new' },
-		{ title: 'New Department', url: '/dashboard/departments/new' },
-		{ title: 'Team Performance', url: '/dashboard/performance/team' },
-		{ title: 'All Tasks', url: '/dashboard/tasks' },
+		{ title: 'Teams Overview', url: '/dashboard/management' },
+		{ title: 'My Team Performance', url: '/dashboard/management/my-team' },
 		{ title: 'Leave Approvals', url: '/dashboard/management/leave-approvals' },
+		{ title: 'Reviews', url: '/dashboard/management/reviews' },
+		{ title: 'Goals & OKRs', url: '/dashboard/management/goals' },
 		{ title: 'Team Reports', url: '/dashboard/management/reports' }
 	];
 
