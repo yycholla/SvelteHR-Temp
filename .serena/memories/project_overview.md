@@ -2,32 +2,41 @@
 
 ## Project Purpose
 
-SvelteHR is an HR management system that has been recently stripped down to a "clean slate" state. The project originally contained a full SvelteKit frontend but has been reduced to just the database infrastructure components (GelDB and Redis) as indicated by recent git commits.
+SvelteHR is a comprehensive Human Resources (HR) management application built with SvelteKit. It's part of the Mountain Care ecosystem and provides:
+
+- Employee management (listing, creating, editing with advanced filtering and pagination)
+- Task management and assignment
+- Compliance tracking and document management
+- Leave request management
+- Dashboard with real-time metrics and streaming data
+- Authentication system with JWT tokens
+- Role-based access control
+- Notifications and alerts
+- Calendar functionality for scheduling
+- Reports and analytics
+- Settings management
 
 ## Current State
 
-- **Status**: Clean slate - frontend components removed, keeping only database infrastructure
-- **Architecture**: Database-only setup with GelDB (graph database) and Redis (caching/session storage)
-- **Environment**: Uses Doppler for environment variable management
-- **Deployment**: Docker-based with multi-stage builds for production/development
+- **Authentication System**: Working login with JWT token management
+- **Employee Management**: Functional with pagination, filtering, and search
+- **UI Component Library**: Comprehensive set of reusable components
+- **Base Infrastructure**: Routing, state management, API client setup
+- Some pages are still UI-only stubs awaiting backend integration
 
-## Key Components
+## Backend Integration
 
-1. **GelDB**: Primary graph database running on port 5656
-   - Admin UI available at http://localhost:5656/ui (admin/admin)
-   - GraphQL endpoint at http://localhost:5656/db/main/ext/graphql
-   - Schema migration support via gel CLI
+- Backend API runs on localhost:8080/api/v1
+- Admin credentials: admin/admin
+- Comprehensive API with performance optimizations, pagination, filtering, and batch operations
+- LLM-friendly schema endpoint at `/api/v1/llm/schema`
+- Performance monitoring at `/api/v1/performance/metrics`
 
-2. **Redis**: Caching and session storage on port 6379
-   - Used for application caching and session management
+## Key Features
 
-3. **Docker Infrastructure**: Multi-service setup with development and production configurations
-
-## Tech Stack
-
-- **Database**: GelDB (graph database)
-- **Cache**: Redis 7.2
-- **Container**: Docker with multi-stage builds
-- **Config Management**: Doppler CLI for environment variables
-- **Build Tools**: Make for development workflow automation
-- **Migration**: Gel CLI for database schema management
+- Real-time streaming data capabilities
+- Advanced filtering and search across all entities
+- Batch operations for bulk updates
+- Performance-optimized API with caching
+- Responsive design with dark/light mode support
+- Component-driven architecture with Storybook

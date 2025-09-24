@@ -1,46 +1,101 @@
 # Task Completion Checklist for SvelteHR
 
-## Before Starting Development
+## Before Committing Any Code
 
-- [ ] Ensure database services are running: `make db-up`
-- [ ] Verify database health: `make db-health`
-- [ ] Check schema status: `make schema-status`
+Always run these commands in order:
 
-## During Development
+### 1. Type Checking (CRITICAL)
 
-- [ ] Follow container-first development principles
-- [ ] Use Makefile commands instead of direct Docker commands
-- [ ] Test database connectivity before making schema changes
-- [ ] Use `make gel-repl` for interactive database exploration
+```bash
+npm run check
+```
 
-## Schema Changes
+- Must pass without errors
+- Ensures TypeScript/Svelte compilation
+- Catches type errors early
 
-- [ ] Create migration: `make schema-create`
-- [ ] Test migration on clean database: `make db-reset && make schema-apply`
-- [ ] Verify schema status: `make schema-status`
+### 2. Code Quality (REQUIRED)
 
-## Task Completion
+```bash
+npm run lint
+```
 
-- [ ] Test database connectivity: `make db-health`
-- [ ] Verify all containers are running: `docker compose ps`
-- [ ] Check for any migration issues: `make schema-status`
-- [ ] Clean up if needed: `make clean` (only if removing containers)
+- Must pass without errors
+- Runs ESLint and Prettier checks
+- Ensures consistent formatting
 
-## Code Quality (when applicable)
+### 3. Unit Tests (IMPORTANT)
 
-- [ ] Follow twelve-factor app principles
-- [ ] Use environment variables via Doppler
-- [ ] Ensure non-root container execution
-- [ ] Document any new Makefile targets
+```bash
+npm run test:unit -- --run
+```
 
-## Database Operations
+- All existing tests must pass
+- Write tests for new functionality
+- Maintain test coverage
 
-- [ ] Backup critical data before destructive operations
-- [ ] Use `make gel-cli` for custom database operations
-- [ ] Monitor logs with `make db-logs` during troubleshooting
+### 4. Production Build (VERIFICATION)
 
-## Environment Management
+```bash
+npm run build
+```
 
-- [ ] Use Doppler tokens for production deployments
-- [ ] Never commit secrets to repository
-- [ ] Test with both development and production Docker targets
+- Must build successfully
+- Verifies no build-time errors
+- Ensures production readiness
+
+## For Major Changes
+
+Run additional verification:
+
+### 5. End-to-End Tests
+
+```bash
+npm run test:e2e
+```
+
+- Run relevant E2E tests for modified areas
+- Use specific test commands for targeted testing
+
+### 6. Visual Testing
+
+```bash
+npm run storybook
+```
+
+- Check component stories are working
+- Verify visual changes in Storybook
+
+## Code Review Checklist
+
+- [ ] Follows CRUSH.md guidelines
+- [ ] Uses proper TypeScript types
+- [ ] Follows existing component patterns
+- [ ] Has appropriate error handling
+- [ ] Uses Zod schemas for validation
+- [ ] Includes proper tests
+- [ ] Documentation updated if needed
+
+## Performance Considerations
+
+- [ ] Uses pagination for large datasets
+- [ ] Implements proper loading states
+- [ ] Handles errors gracefully
+- [ ] Optimizes bundle size
+- [ ] Uses streaming where appropriate
+
+## Git Workflow
+
+- [ ] Feature branches from main
+- [ ] Semantic commit messages
+- [ ] PR reviews required
+- [ ] Regular main branch updates
+
+## Definition of Done
+
+- [ ] Feature complete per specifications
+- [ ] All checks pass (type, lint, test, build)
+- [ ] Tests written and passing
+- [ ] Code reviewed and approved
+- [ ] Documentation updated
+- [ ] Deployed to staging (if applicable)

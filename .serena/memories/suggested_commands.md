@@ -1,46 +1,58 @@
 # SvelteHR Development Commands
 
-## Essential Commands
+## Daily Development
 
-### Database Management
+- `npm run dev` - Start development server (http://localhost:5173)
+- `npm run build` - Create production build
+- `npm run preview` - Preview production build locally
 
-- `make db-up` - Start GelDB and Redis containers
-- `make db-down` - Stop database containers
-- `make db-reset` - Reset database with fresh data (deletes all data)
-- `make db-health` - Check database service health
-- `make db-logs` - View GelDB container logs
+## Code Quality (Run after making changes)
 
-### Schema Management
+- `npm run check` - TypeScript/Svelte type checking (CRITICAL)
+- `npm run lint` - ESLint + Prettier check (REQUIRED)
+- `npm run format` - Format code with Prettier
 
-- `make schema-status` - Check current schema and migration status
-- `make schema-create` - Create new migration from schema changes
-- `make schema-reset` - Reset schema (WARNING: deletes all data)
+## Testing
 
-### Gel CLI Tools
+- `npm run test` - Run all tests (unit + e2e)
+- `npm run test:unit` - Run Vitest unit tests
+- `npm run test:unit -- --run` - Run unit tests once (CI mode)
+- `npm run test:unit -- --run src/demo.spec.ts` - Run single test file
+- `npm run test:e2e` - Run Playwright e2e tests
+- `npm run test:e2e:ui` - Run e2e tests with UI
+- `npm run test:e2e:debug` - Debug e2e tests
+- `npm run test:e2e:headed` - Run e2e tests with browser visible
 
-- `make gel-repl` - Open interactive Gel REPL for database queries
-- `make gel-cli CMD='...'` - Run custom gel CLI commands
+## Specific E2E Tests
 
-### Development Workflow
+- `npm run test:auth` - Test authentication flow
+- `npm run test:dashboard` - Test dashboard functionality
+- `npm run test:streaming` - Test streaming features
+- `npm run test:employees` - Test employee management
+- `npm run test:performance` - Performance testing
 
-- `make dev` - Start development with database services
-- `make build` - Build for production
-- `make install` - Install all dependencies
-- `make clean` - Clean all build artifacts and containers
+## Component Development
 
-### Service Endpoints
+- `npm run storybook` - Start Storybook dev server (port 6006)
+- `npm run build-storybook` - Build static Storybook
 
-- **GraphQL**: http://localhost:5656/db/main/ext/graphql
-- **Admin UI**: http://localhost:5656/ui (credentials: admin/admin)
-- **Redis**: localhost:6379
+## Critical Commands to Run Before Commits
 
-### Docker Commands
+1. `npm run check` - Ensures TypeScript compilation
+2. `npm run lint` - Ensures code quality
+3. `npm run test:unit -- --run` - Ensures tests pass
+4. `npm run build` - Ensures production build works
 
-- `docker compose up -d geldb redis` - Start just database services
-- `docker compose down` - Stop all services
-- `docker compose logs -f geldb` - Follow GelDB logs
+## Backend
 
-### Useful Gel CLI Examples
+- Backend runs on `localhost:8080/api/v1`
+- Login credentials: `admin/admin`
+- Health check: `GET /api/v1/health`
+- API schema: `GET /api/v1/llm/schema`
 
-- `make gel-cli CMD="query 'SELECT 1'"` - Test database connection
-- `make gel-repl` - Interactive database exploration
+## Utilities
+
+- `git status` - Check git status
+- `ls -la` - List files with details
+- `find . -name "*.svelte"` - Find Svelte files
+- `grep -r "searchterm" src/` - Search in source code
