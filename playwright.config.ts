@@ -25,7 +25,7 @@ export default defineConfig({
 	webServer: [
 		{
 			command: 'npm run dev',
-			port: 5175,
+			port: 5174,
 			reuseExistingServer: !process.env.CI,
 			timeout: 120 * 1000
 		}
@@ -40,7 +40,7 @@ export default defineConfig({
 
 	use: {
 		// Base URL for tests
-		baseURL: 'http://localhost:5175',
+		baseURL: 'http://localhost:5174',
 
 		// Collect trace on failure for debugging
 		trace: 'retain-on-failure',

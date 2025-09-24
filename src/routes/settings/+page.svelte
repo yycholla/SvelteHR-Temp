@@ -128,7 +128,9 @@
 						<Bell class="h-5 w-5" />
 						Notification Preferences
 					</Card.Title>
-					<Card.Description>Choose how you want to be notified about important updates</Card.Description>
+					<Card.Description
+						>Choose how you want to be notified about important updates</Card.Description
+					>
 				</Card.Header>
 				<Card.Content class="space-y-4">
 					<div class="flex items-center justify-between">
@@ -152,7 +154,9 @@
 					<div class="flex items-center justify-between">
 						<div class="space-y-0.5">
 							<Label>Leave Reminders</Label>
-							<p class="text-sm text-muted-foreground">Reminders about upcoming leave and deadlines</p>
+							<p class="text-sm text-muted-foreground">
+								Reminders about upcoming leave and deadlines
+							</p>
 						</div>
 						<Switch.Root bind:checked={notificationSettings.leaveReminders}>
 							<Switch.Thumb />
@@ -161,7 +165,9 @@
 					<div class="flex items-center justify-between">
 						<div class="space-y-0.5">
 							<Label>Performance Updates</Label>
-							<p class="text-sm text-muted-foreground">Notifications about goal progress and reviews</p>
+							<p class="text-sm text-muted-foreground">
+								Notifications about goal progress and reviews
+							</p>
 						</div>
 						<Switch.Root bind:checked={notificationSettings.performanceUpdates}>
 							<Switch.Thumb />
@@ -250,7 +256,9 @@
 					<div class="flex items-center justify-between">
 						<div class="space-y-0.5">
 							<Label>Data Sharing</Label>
-							<p class="text-sm text-muted-foreground">Share anonymized data for product improvement</p>
+							<p class="text-sm text-muted-foreground">
+								Share anonymized data for product improvement
+							</p>
 						</div>
 						<Switch.Root bind:checked={privacySettings.dataSharing}>
 							<Switch.Thumb />

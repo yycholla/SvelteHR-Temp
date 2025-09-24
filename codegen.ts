@@ -13,7 +13,9 @@ const config: CodegenConfig = {
 	documents: [
 		'src/**/*.{ts,svelte}',
 		'!src/lib/generated/**/*',
-		'!src/lib/graphql/hasura-operations.ts.old'
+		'!src/lib/graphql/hasura-operations.ts.old',
+		'src/lib/graphql/*-operations.ts',
+		'src/lib/components/**/*.svelte'
 	],
 	ignoreNoDocuments: true,
 	generates: {
@@ -26,10 +28,13 @@ const config: CodegenConfig = {
 					UUID: 'string',
 					Datetime: 'string',
 					Date: 'string',
+					Time: 'string',
 					BigFloat: 'number',
+					Decimal: 'number',
 					JSON: 'any',
 					BigInt: 'number',
-					Cursor: 'string'
+					Cursor: 'string',
+					Timestamptz: 'string'
 				},
 				avoidOptionals: {
 					field: true,
@@ -67,10 +72,13 @@ const config: CodegenConfig = {
 					UUID: 'string',
 					Datetime: 'string',
 					Date: 'string',
+					Time: 'string',
 					BigFloat: 'number',
+					Decimal: 'number',
 					JSON: 'any',
 					BigInt: 'number',
-					Cursor: 'string'
+					Cursor: 'string',
+					Timestamptz: 'string'
 				},
 				avoidOptionals: {
 					field: true,

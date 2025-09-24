@@ -155,17 +155,9 @@ export const SUBMIT_PROFILE_CHANGE_REQUEST_MUTATION = gql`
 
 // Mutation to review (approve/reject) profile change request
 export const REVIEW_PROFILE_CHANGE_REQUEST_MUTATION = gql`
-	mutation ReviewProfileChangeRequest(
-		$requestId: UUID!
-		$approve: Boolean!
-		$reviewNotes: String
-	) {
+	mutation ReviewProfileChangeRequest($requestId: UUID!, $approve: Boolean!, $reviewNotes: String) {
 		reviewProfileChangeRequest(
-			input: {
-				requestId: $requestId
-				approve: $approve
-				reviewNotesParam: $reviewNotes
-			}
+			input: { requestId: $requestId, approve: $approve, reviewNotesParam: $reviewNotes }
 		) {
 			profileChangeRequest {
 				...ProfileChangeRequestFields
@@ -267,7 +259,12 @@ export class ProfileChangeRequestService {
 			changes.push(`Country: ${request.requestedCountry}`);
 		}
 		if (request.requestedEmergencyContactFirstName || request.requestedEmergencyContactLastName) {
-			const name = [request.requestedEmergencyContactFirstName, request.requestedEmergencyContactLastName].filter(Boolean).join(' ');
+			const name = [
+				request.requestedEmergencyContactFirstName,
+				request.requestedEmergencyContactLastName
+			]
+				.filter(Boolean)
+				.join(' ');
 			changes.push(`Emergency Contact: ${name}`);
 		}
 		if (request.requestedEmergencyContactPhone) {

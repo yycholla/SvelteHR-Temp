@@ -1,0 +1,1059 @@
+# HR User Journeys GraphQL Schema
+# Generated from functional requirements in spec.md
+# PostGraphile will auto-generate most of this from PostgreSQL schema
+
+# =======================
+# Core Types & Enums
+# =======================
+
+enum UserRole {
+  EMPLOYEE     # Level 20
+  MANAGER      # Level 60
+  HR_ADMIN     # Level 80
+  SYSTEM_ADMIN # Level 100
+}
+
+enum EmploymentStatus {
+  ACTIVE
+  INACTIVE
+  TERMINATED
+}
+
+enum TimeEntryStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum LeaveRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum LeaveType {
+  VACATION
+  SICK
+  PERSONAL
+  PARENTAL
+  BEREAVEMENT
+  HOLIDAY
+}
+
+enum GoalStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  ON_HOLD
+}
+
+enum GoalType {
+  PERFORMANCE
+  DEVELOPMENT
+  PROJECT
+  TEAM
+}
+
+enum PerformanceReviewStatus {
+  DRAFT
+  EMPLOYEE_REVIEW
+  MANAGER_REVIEW
+  HR_REVIEW
+  COMPLETED
+}
+
+enum ReviewType {
+  ANNUAL
+  SEMI_ANNUAL
+  QUARTERLY
+  PROBATIONARY
+}
+
+enum ExpenseStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  PAID
+}
+
+enum ProjectStatus {
+  PLANNED
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  HALF_DAY
+  REMOTE
+}
+
+enum NotificationType {
+  APPROVAL
+  DEADLINE
+  SYSTEM
+  TRAINING
+  PERFORMANCE
+  GENERAL
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+# =======================
+# Core Entity Types
+# =======================
+
+type User {
+  id: ID!
+  email: String!
+  displayName: String!
+  roleLevel: Int!
+  role: UserRole!
+  employmentStatus: EmploymentStatus!
+
+  # Employee details
+  employeeId: String
+  jobTitle: String
+  hireDate: Date
+  workLocation: String
+  timeZone: String
+
+  # Hierarchy
+  manager: User
+  managerId: ID
+  department: Department
+  departmentId: ID
+  directReports: [User!]!
+
+  # Contact information
+  emergencyContactName: String
+  emergencyContactPhone: String
+  emergencyContactRelationship: String
+
+  # Preferences
+  notificationPreferences: JSON
+  dashboardPreferences: JSON
+
+  # Related entities
+  timeEntries: [TimeEntry!]!
+  leaveRequests: [LeaveRequest!]!
+  goals: [Goal!]!
+  performanceReviews: [PerformanceReview!]!
+  expenses: [Expense!]!
+  trainingEnrollments: [TrainingEnrollment!]!
+  attendanceRecords: [AttendanceRecord!]!
+  notifications: [Notification!]!
+
+  # Metadata
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  createdBy: User
+  updatedBy: User
+}
+
+type Department {
+  id: ID!
+  name: String!
+  description: String
+
+  # Hierarchy
+  parentDepartment: Department
+  parentDepartmentId: ID
+  childDepartments: [Department!]!
+
+  # Management
+  departmentHead: User
+  departmentHeadId: ID
+  budgetCode: String
+  costCenter: String
+  location: String
+
+  # Metrics
+  employeeCount: Int!
+  isActive: Boolean!
+
+  # Related entities
+  employees: [User!]!
+  projects: [Project!]!
+
+  # Metadata
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  createdBy: User
+  updatedBy: User
+}
+
+type TimeEntry {
+  id: ID!
+  employee: User!
+  employeeId: ID!
+  project: Project
+  projectId: ID
+
+  # Time details
+  entryDate: Date!
+  startTime: Time
+  endTime: Time
+  totalHours: Decimal!
+  breakHours: Decimal
+
+  # Activity details
+  activityType: String
+  taskDescription: String
+  billable: Boolean!
+  billingRate: Decimal
+
+  # Approval workflow
+  status: TimeEntryStatus!
+  submittedAt: DateTime
+  approvedBy: User
+  approvedAt: DateTime
+  rejectionReason: String
+
+  # Metadata
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  createdBy: User!
+  updatedBy: User
+}
+
+type LeaveRequest {
+  id: ID!
+  employee: User!
+  employeeId: ID!
+
+  # Leave details
+  leaveType: LeaveType!
+  startDate: Date!
+  endDate: Date!
+  totalDays: Decimal!
+  isPartialDay: Boolean!
+
+  # Request details
+  reason: String
+  emergencyContactDuringLeave: String
+  workCoveragePlan: String
+
+  # Approval workflow
+  status: LeaveRequestStatus!
+  submittedAt: DateTime!
+  approvedBy: User
+  approvedAt: DateTime
+  rejectionReason: String
+
+  # Balance tracking
+  leaveBalanceBefore: Decimal
+  leaveBalanceAfter: Decimal
+
+  # Metadata
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  createdBy: User!
+  updatedBy: User
+}
+
+type Goal {
+  id: ID!
+  employee: User!
+  employeeId: ID!
+  manager: User
+  managerId: ID
+
+  # Goal details
+  title: String!
+  description: String
+  goalType: GoalType!
+  category: String
+
+  # Timeline
+  startDate: Date!
+  targetDate: Date!
+  completionDate: Date
+
+  # Progress tracking
+  status: GoalStatus!
+  progressPercentage: Int!
+  measurementCriteria: String
+  successMetrics: JSON
+
+  # Review cycle connection
+  reviewCycle: PerformanceReviewCycle
+  reviewCycleId: ID
+  weightPercentage: Int!
+
+  # Progress updates
+  lastUpdateDate: Date
+  lastUpdateNotes: String
+
+  # Metadata
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  createdBy: User!
+  updatedBy: User
+}
+
+type PerformanceReview {
+  id: ID!
+  employee: User!
+  employeeId: ID!
+  reviewer: User!
+  reviewerId: ID!
+  reviewCycle: PerformanceReviewCycle!
+  reviewCycleId: ID!
+
+  # Review details
+  reviewPeriodStart: Date!
+  reviewPeriodEnd: Date!
+  reviewType: ReviewType!
+
+  # Ratings (1-5 scale)
+  overallRating: Int
+  goalAchievementRating: Int
+  competencyRating: Int
+  leadershipRating: Int
+
+  # Structured feedback
+  strengths: String
+  areasForImprovement: String
+  achievements: String
+  developmentGoals: String
+  managerComments: String
+  employeeComments: String
+
+  # Career development
+  promotionReady: Boolean!
+  nextRoleSuggestions: String
+  trainingRecommendations: String
+
+  # Review status
+  status: PerformanceReviewStatus!
+  employeeSelfReviewCompleted: Boolean!
+  managerReviewCompleted: Boolean!
+  hrReviewCompleted: Boolean!
+
+  # Timeline
+  dueDate: Date
+  completedDate: Date
+
+  # Metadata
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  createdBy: User!
+  updatedBy: User
+}
+
+type PerformanceReviewCycle {
+  id: ID!
+
+  # Cycle details
+  name: String!
+  description: String
+  cycleType: ReviewType!
+
+  # Timeline
+  cycleYear: Int!
+  startDate: Date!
+  endDate: Date!
+  reviewDeadline: Date!
+
+  # Status
+  status: String!
+
+  # Configuration
+  requiresSelfReview: Boolean!
+  requiresManagerReview: Boolean!
+  requiresHrReview: Boolean!
+  allowPeerFeedback: Boolean!
+
+  # Related entities
+  performanceReviews: [PerformanceReview!]!
+  goals: [Goal!]!
+
+  # Metadata
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  createdBy: User!
+  updatedBy: User
+}
+
+type Project {
+  id: ID!
+
+  # Project details
+  name: String!
+  description: String
+  projectCode: String
+  clientName: String
+
+  # Timeline
+  startDate: Date
+  endDate: Date
+  estimatedHours: Decimal
+  actualHours: Decimal!
+
+  # Financial
+  budget: Decimal
+  hourlyRate: Decimal
+  isBillable: Boolean!
+
+  # Management
+  projectManager: User
+  projectManagerId: ID
+  department: Department
+  departmentId: ID
+
+  # Status
+  status: ProjectStatus!
+  priority: String!
+
+  # Related entities
+  timeEntries: [TimeEntry!]!
+  expenses: [Expense!]!
+
+  # Metadata
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  createdBy: User!
+  updatedBy: User
+}
+
+type Expense {
+  id: ID!
+  employee: User!
+  employeeId: ID!
+  project: Project
+  projectId: ID
+
+  # Expense details
+  expenseDate: Date!
+  amount: Decimal!
+  currency: String!
+  category: String!
+  description: String!
+  merchantName: String
+
+  # Receipt management
+  receiptUrl: String
+  receiptFilename: String
+  hasReceipt: Boolean!
+
+  # Reimbursement
+  isReimbursable: Boolean!
+  reimbursed: Boolean!
+  reimbursedDate: Date
+  reimbursedAmount: Decimal
+
+  # Approval workflow
+  status: ExpenseStatus!
+  submittedAt: DateTime
+  approvedBy: User
+  approvedAt: DateTime
+  rejectionReason: String
+
+  # Metadata
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  createdBy: User!
+  updatedBy: User
+}
+
+type TrainingProgram {
+  id: ID!
+
+  # Program details
+  title: String!
+  description: String
+  category: String
+  trainingType: String
+
+  # Content
+  durationHours: Decimal
+  prerequisites: String
+  learningObjectives: String
+  externalProvider: String
+  externalUrl: String
+
+  # Scheduling
+  isMandatory: Boolean!
+  completionDeadline: Date
+  maxParticipants: Int
+
+  # Status
+  status: String!
+
+  # Related entities
+  enrollments: [TrainingEnrollment!]!
+
+  # Metadata
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  createdBy: User!
+  updatedBy: User
+}
+
+type TrainingEnrollment {
+  id: ID!
+  employee: User!
+  employeeId: ID!
+  trainingProgram: TrainingProgram!
+  trainingProgramId: ID!
+
+  # Enrollment details
+  enrolledDate: Date!
+  assignedBy: User
+  dueDate: Date
+
+  # Progress tracking
+  status: String!
+  progressPercentage: Int!
+  startedDate: Date
+  completedDate: Date
+
+  # Assessment
+  finalScore: Decimal
+  passed: Boolean
+  certificateUrl: String
+
+  # Feedback
+  employeeFeedback: String
+  employeeRating: Int
+
+  # Metadata
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  createdBy: User!
+  updatedBy: User
+}
+
+type AttendanceRecord {
+  id: ID!
+  employee: User!
+  employeeId: ID!
+
+  # Attendance details
+  attendanceDate: Date!
+  checkInTime: DateTime
+  checkOutTime: DateTime
+  breakStartTime: DateTime
+  breakEndTime: DateTime
+
+  # Calculated fields
+  totalWorkHours: Decimal
+  breakDurationMinutes: Int!
+  overtimeHours: Decimal!
+
+  # Attendance status
+  status: AttendanceStatus!
+  absenceReason: String
+  isRemoteWork: Boolean!
+
+  # Location tracking
+  checkInLocation: String
+  checkOutLocation: String
+
+  # Notes
+  notes: String
+  managerNotes: String
+
+  # Metadata
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  createdBy: User!
+  updatedBy: User
+}
+
+type Notification {
+  id: ID!
+  recipient: User!
+  recipientId: ID!
+  sender: User
+  senderId: ID
+
+  # Notification content
+  title: String!
+  message: String!
+  notificationType: NotificationType!
+  priority: NotificationPriority!
+
+  # Delivery channels
+  sendEmail: Boolean!
+  sendPush: Boolean!
+  sendSms: Boolean!
+
+  # Status tracking
+  status: String!
+  readAt: DateTime
+  deliveredAt: DateTime
+
+  # Related entity
+  relatedEntityType: String
+  relatedEntityId: String
+
+  # Action required
+  requiresAction: Boolean!
+  actionUrl: String
+  actionDeadline: DateTime
+
+  # Metadata
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  createdBy: User
+  updatedBy: User
+}
+
+# =======================
+# Query Types
+# =======================
+
+type Query {
+  # User queries (FR-001, FR-002)
+  currentUser: User
+  user(id: ID!): User
+  users(filter: UserFilter, orderBy: [UserOrderBy!], first: Int, offset: Int): UserConnection!
+
+  # Department queries (FR-011, FR-021)
+  department(id: ID!): Department
+  departments(filter: DepartmentFilter, orderBy: [DepartmentOrderBy!]): [Department!]!
+  departmentHierarchy: [Department!]!
+
+  # Time tracking queries (FR-006, FR-013, FR-017, FR-033)
+  timeEntry(id: ID!): TimeEntry
+  timeEntries(filter: TimeEntryFilter, orderBy: [TimeEntryOrderBy!]): TimeEntryConnection!
+  myTimeEntries(startDate: Date, endDate: Date): [TimeEntry!]!
+  teamTimeEntries(managerId: ID!, startDate: Date, endDate: Date): [TimeEntry!]!
+
+  # Leave management queries (FR-007, FR-010, FR-014)
+  leaveRequest(id: ID!): LeaveRequest
+  leaveRequests(filter: LeaveRequestFilter): LeaveRequestConnection!
+  myLeaveRequests(status: LeaveRequestStatus): [LeaveRequest!]!
+  teamLeaveRequests(managerId: ID!, status: LeaveRequestStatus): [LeaveRequest!]!
+  leaveBalance(employeeId: ID!, leaveType: LeaveType): Decimal!
+
+  # Goal management queries (FR-008, FR-016, FR-039)
+  goal(id: ID!): Goal
+  goals(filter: GoalFilter): GoalConnection!
+  myGoals(status: GoalStatus): [Goal!]!
+  teamGoals(managerId: ID!): [Goal!]!
+
+  # Performance review queries (FR-009, FR-015, FR-024, FR-037, FR-038)
+  performanceReview(id: ID!): PerformanceReview
+  performanceReviews(filter: PerformanceReviewFilter): PerformanceReviewConnection!
+  myPerformanceReviews(cycleId: ID): [PerformanceReview!]!
+  teamPerformanceReviews(managerId: ID!, cycleId: ID): [PerformanceReview!]!
+
+  performanceReviewCycle(id: ID!): PerformanceReviewCycle
+  performanceReviewCycles(status: String): [PerformanceReviewCycle!]!
+  activeReviewCycle: PerformanceReviewCycle
+
+  # Project queries (FR-035)
+  project(id: ID!): Project
+  projects(filter: ProjectFilter): ProjectConnection!
+  myProjects(employeeId: ID!): [Project!]!
+
+  # Expense queries (FR-012, FR-014)
+  expense(id: ID!): Expense
+  expenses(filter: ExpenseFilter): ExpenseConnection!
+  myExpenses(status: ExpenseStatus): [Expense!]!
+  teamExpenses(managerId: ID!, status: ExpenseStatus): [Expense!]!
+
+  # Training queries (FR-026)
+  trainingProgram(id: ID!): TrainingProgram
+  trainingPrograms(category: String): [TrainingProgram!]!
+  trainingEnrollment(id: ID!): TrainingEnrollment
+  myTrainingEnrollments(status: String): [TrainingEnrollment!]!
+
+  # Attendance queries (FR-036)
+  attendanceRecord(id: ID!): AttendanceRecord
+  attendanceRecords(filter: AttendanceFilter): AttendanceRecordConnection!
+  myAttendanceRecords(startDate: Date!, endDate: Date!): [AttendanceRecord!]!
+  teamAttendanceRecords(managerId: ID!, startDate: Date!, endDate: Date!): [AttendanceRecord!]!
+
+  # Notification queries
+  notification(id: ID!): Notification
+  myNotifications(unreadOnly: Boolean): [Notification!]!
+
+  # Dashboard queries (FR-044)
+  employeeDashboard: EmployeeDashboardData!
+  managerDashboard(managerId: ID!): ManagerDashboardData!
+  hrDashboard: HRDashboardData!
+  systemDashboard: SystemDashboardData!
+
+  # Reporting queries (FR-017, FR-023, FR-025, FR-041)
+  teamProductivityReport(managerId: ID!, startDate: Date!, endDate: Date!): ProductivityReport!
+  complianceReport(reportType: String!, parameters: JSON!): ComplianceReport!
+  workforceAnalytics(startDate: Date!, endDate: Date!): WorkforceAnalytics!
+}
+
+# =======================
+# Mutation Types
+# =======================
+
+type Mutation {
+  # Authentication (FR-001, FR-004)
+  authenticate(input: AuthenticateInput!): AuthenticatePayload!
+  refreshToken(input: RefreshTokenInput!): RefreshTokenPayload!
+  logout: LogoutPayload!
+
+  # User management (FR-005, FR-020, FR-028)
+  updateUserProfile(input: UpdateUserProfileInput!): UpdateUserProfilePayload!
+  createUser(input: CreateUserInput!): CreateUserPayload!
+  updateUser(input: UpdateUserInput!): UpdateUserPayload!
+  deactivateUser(input: DeactivateUserInput!): DeactivateUserPayload!
+
+  # Time tracking (FR-006, FR-014, FR-033, FR-034)
+  createTimeEntry(input: CreateTimeEntryInput!): CreateTimeEntryPayload!
+  updateTimeEntry(input: UpdateTimeEntryInput!): UpdateTimeEntryPayload!
+  deleteTimeEntry(input: DeleteTimeEntryInput!): DeleteTimeEntryPayload!
+  submitTimeEntry(input: SubmitTimeEntryInput!): SubmitTimeEntryPayload!
+  approveTimeEntry(input: ApproveTimeEntryInput!): ApproveTimeEntryPayload!
+  rejectTimeEntry(input: RejectTimeEntryInput!): RejectTimeEntryPayload!
+
+  # Leave management (FR-007, FR-014)
+  createLeaveRequest(input: CreateLeaveRequestInput!): CreateLeaveRequestPayload!
+  updateLeaveRequest(input: UpdateLeaveRequestInput!): UpdateLeaveRequestPayload!
+  cancelLeaveRequest(input: CancelLeaveRequestInput!): CancelLeaveRequestPayload!
+  approveLeaveRequest(input: ApproveLeaveRequestInput!): ApproveLeaveRequestPayload!
+  rejectLeaveRequest(input: RejectLeaveRequestInput!): RejectLeaveRequestPayload!
+
+  # Goal management (FR-008, FR-016, FR-039)
+  createGoal(input: CreateGoalInput!): CreateGoalPayload!
+  updateGoal(input: UpdateGoalInput!): UpdateGoalPayload!
+  deleteGoal(input: DeleteGoalInput!): DeleteGoalPayload!
+  updateGoalProgress(input: UpdateGoalProgressInput!): UpdateGoalProgressPayload!
+
+  # Performance reviews (FR-009, FR-015, FR-024, FR-037, FR-038, FR-040)
+  createPerformanceReview(input: CreatePerformanceReviewInput!): CreatePerformanceReviewPayload!
+  updatePerformanceReview(input: UpdatePerformanceReviewInput!): UpdatePerformanceReviewPayload!
+  submitSelfReview(input: SubmitSelfReviewInput!): SubmitSelfReviewPayload!
+  submitManagerReview(input: SubmitManagerReviewInput!): SubmitManagerReviewPayload!
+  finalizeReview(input: FinalizeReviewInput!): FinalizeReviewPayload!
+
+  # Performance review cycles (FR-024)
+  createReviewCycle(input: CreateReviewCycleInput!): CreateReviewCyclePayload!
+  updateReviewCycle(input: UpdateReviewCycleInput!): UpdateReviewCyclePayload!
+  activateReviewCycle(input: ActivateReviewCycleInput!): ActivateReviewCyclePayload!
+
+  # Project management (FR-035)
+  createProject(input: CreateProjectInput!): CreateProjectPayload!
+  updateProject(input: UpdateProjectInput!): UpdateProjectPayload!
+  archiveProject(input: ArchiveProjectInput!): ArchiveProjectPayload!
+
+  # Expense management (FR-012, FR-014)
+  createExpense(input: CreateExpenseInput!): CreateExpensePayload!
+  updateExpense(input: UpdateExpenseInput!): UpdateExpensePayload!
+  deleteExpense(input: DeleteExpenseInput!): DeleteExpensePayload!
+  submitExpense(input: SubmitExpenseInput!): SubmitExpensePayload!
+  approveExpense(input: ApproveExpenseInput!): ApproveExpensePayload!
+  rejectExpense(input: RejectExpenseInput!): RejectExpensePayload!
+  uploadExpenseReceipt(input: UploadExpenseReceiptInput!): UploadExpenseReceiptPayload!
+
+  # Training management (FR-026)
+  createTrainingProgram(input: CreateTrainingProgramInput!): CreateTrainingProgramPayload!
+  updateTrainingProgram(input: UpdateTrainingProgramInput!): UpdateTrainingProgramPayload!
+  enrollInTraining(input: EnrollInTrainingInput!): EnrollInTrainingPayload!
+  updateTrainingProgress(input: UpdateTrainingProgressInput!): UpdateTrainingProgressPayload!
+  completeTraining(input: CompleteTrainingInput!): CompleteTrainingPayload!
+
+  # Attendance tracking (FR-036)
+  clockIn(input: ClockInInput!): ClockInPayload!
+  clockOut(input: ClockOutInput!): ClockOutPayload!
+  updateAttendance(input: UpdateAttendanceInput!): UpdateAttendancePayload!
+
+  # Department management (FR-021)
+  createDepartment(input: CreateDepartmentInput!): CreateDepartmentPayload!
+  updateDepartment(input: UpdateDepartmentInput!): UpdateDepartmentPayload!
+  deleteDepartment(input: DeleteDepartmentInput!): DeleteDepartmentPayload!
+
+  # Notification management
+  markNotificationRead(input: MarkNotificationReadInput!): MarkNotificationReadPayload!
+  markAllNotificationsRead: MarkAllNotificationsReadPayload!
+  createNotification(input: CreateNotificationInput!): CreateNotificationPayload!
+}
+
+# =======================
+# Input & Payload Types
+# =======================
+
+# Authentication inputs
+input AuthenticateInput {
+  email: String!
+  password: String!
+}
+
+type AuthenticatePayload {
+  jwtToken: String!
+  user: User!
+}
+
+input RefreshTokenInput {
+  refreshToken: String!
+}
+
+type RefreshTokenPayload {
+  jwtToken: String!
+}
+
+type LogoutPayload {
+  success: Boolean!
+}
+
+# Time entry inputs
+input CreateTimeEntryInput {
+  entryDate: Date!
+  startTime: Time
+  endTime: Time
+  totalHours: Decimal!
+  projectId: ID
+  taskDescription: String
+  billable: Boolean! = false
+}
+
+type CreateTimeEntryPayload {
+  timeEntry: TimeEntry!
+}
+
+input ApproveTimeEntryInput {
+  timeEntryId: ID!
+  comments: String
+}
+
+type ApproveTimeEntryPayload {
+  timeEntry: TimeEntry!
+}
+
+# Leave request inputs
+input CreateLeaveRequestInput {
+  leaveType: LeaveType!
+  startDate: Date!
+  endDate: Date!
+  reason: String
+  emergencyContactDuringLeave: String
+}
+
+type CreateLeaveRequestPayload {
+  leaveRequest: LeaveRequest!
+}
+
+# Goal inputs
+input CreateGoalInput {
+  title: String!
+  description: String
+  goalType: GoalType!
+  startDate: Date!
+  targetDate: Date!
+  measurementCriteria: String
+  managerId: ID
+}
+
+type CreateGoalPayload {
+  goal: Goal!
+}
+
+# Performance review inputs
+input SubmitSelfReviewInput {
+  reviewId: ID!
+  employeeComments: String!
+  achievements: String
+  developmentGoals: String
+}
+
+type SubmitSelfReviewPayload {
+  performanceReview: PerformanceReview!
+}
+
+# Expense inputs
+input CreateExpenseInput {
+  expenseDate: Date!
+  amount: Decimal!
+  category: String!
+  description: String!
+  projectId: ID
+  merchantName: String
+}
+
+type CreateExpensePayload {
+  expense: Expense!
+}
+
+# Dashboard data types
+type EmployeeDashboardData {
+  pendingTimeEntries: Int!
+  pendingExpenses: Int!
+  upcomingLeave: [LeaveRequest!]!
+  activeGoals: [Goal!]!
+  recentNotifications: [Notification!]!
+  thisMonthHours: Decimal!
+  leaveBalance: JSON!
+  upcomingTraining: [TrainingEnrollment!]!
+}
+
+type ManagerDashboardData {
+  directReportsCount: Int!
+  pendingApprovals: Int!
+  teamTimeThisWeek: Decimal!
+  upcomingReviews: [PerformanceReview!]!
+  teamGoalsProgress: Decimal!
+  recentTeamActivity: [JSON!]!
+  departmentMetrics: JSON!
+}
+
+type HRDashboardData {
+  totalEmployees: Int!
+  newHires: Int!
+  pendingReviews: Int!
+  complianceAlerts: [JSON!]!
+  turnoverRate: Decimal!
+  trainingCompletionRate: Decimal!
+  openPositions: Int!
+  workforceMetrics: JSON!
+}
+
+type SystemDashboardData {
+  systemHealth: JSON!
+  userActivity: JSON!
+  performanceMetrics: JSON!
+  securityLogs: [JSON!]!
+  integrationStatus: JSON!
+}
+
+# Report types
+type ProductivityReport {
+  teamId: ID!
+  period: String!
+  totalHours: Decimal!
+  billableHours: Decimal!
+  utilizationRate: Decimal!
+  memberMetrics: [JSON!]!
+  projectBreakdown: [JSON!]!
+}
+
+type ComplianceReport {
+  reportType: String!
+  generatedAt: DateTime!
+  data: JSON!
+  summary: JSON!
+}
+
+type WorkforceAnalytics {
+  totalEmployees: Int!
+  departmentBreakdown: [JSON!]!
+  ageDistribution: [JSON!]!
+  tenureDistribution: [JSON!]!
+  skillsMatrix: [JSON!]!
+  diversityMetrics: JSON!
+}
+
+# Filter types
+input UserFilter {
+  roleLevel: IntFilter
+  departmentId: IdFilter
+  employmentStatus: EmploymentStatusFilter
+  managerId: IdFilter
+}
+
+input TimeEntryFilter {
+  employeeId: IdFilter
+  projectId: IdFilter
+  entryDate: DateFilter
+  status: TimeEntryStatusFilter
+}
+
+input LeaveRequestFilter {
+  employeeId: IdFilter
+  status: LeaveRequestStatusFilter
+  leaveType: LeaveTypeFilter
+  startDate: DateFilter
+}
+
+# Order by types
+input UserOrderBy {
+  displayName: OrderByDirection
+  createdAt: OrderByDirection
+  employeeId: OrderByDirection
+}
+
+input TimeEntryOrderBy {
+  entryDate: OrderByDirection
+  createdAt: OrderByDirection
+  totalHours: OrderByDirection
+}
+
+# Connection types (for pagination)
+type UserConnection {
+  nodes: [User!]!
+  totalCount: Int!
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+}
+
+type TimeEntryConnection {
+  nodes: [TimeEntry!]!
+  totalCount: Int!
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+}
+
+# Additional filter and utility types
+input IntFilter {
+  equalTo: Int
+  greaterThan: Int
+  lessThan: Int
+  in: [Int!]
+}
+
+input IdFilter {
+  equalTo: ID
+  in: [ID!]
+}
+
+input DateFilter {
+  equalTo: Date
+  greaterThan: Date
+  lessThan: Date
+  greaterThanOrEqualTo: Date
+  lessThanOrEqualTo: Date
+}
+
+input TimeEntryStatusFilter {
+  equalTo: TimeEntryStatus
+  in: [TimeEntryStatus!]
+}
+
+input LeaveRequestStatusFilter {
+  equalTo: LeaveRequestStatus
+  in: [LeaveRequestStatus!]
+}
+
+input EmploymentStatusFilter {
+  equalTo: EmploymentStatus
+  in: [EmploymentStatus!]
+}
+
+input LeaveTypeFilter {
+  equalTo: LeaveType
+  in: [LeaveType!]
+}
+
+enum OrderByDirection {
+  ASC
+  DESC
+}
+
+# Scalar types
+scalar Date
+scalar Time
+scalar DateTime
+scalar Decimal
+scalar JSON

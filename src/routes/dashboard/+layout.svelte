@@ -25,7 +25,10 @@
 		<!-- Main Content Area - only this content changes between routes -->
 		<div class="ml-64 h-screen overflow-auto">
 			<div class="pb-6 pl-3 pr-6 pt-6">
-				<main class="min-h-[calc(100vh-3rem)] rounded-xl bg-background p-6 shadow-sm" aria-live="polite">
+				<main
+					class="min-h-[calc(100vh-3rem)] rounded-xl bg-background p-6 shadow-sm"
+					aria-live="polite"
+				>
 					<!-- This is where page content gets injected -->
 					{@render children()}
 				</main>

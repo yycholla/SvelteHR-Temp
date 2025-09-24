@@ -6,9 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 SvelteHR is a comprehensive HR management system built with SvelteKit frontend and PostgreSQL backend. The system provides secure, role-based access to employee lifecycle management. Currently in active migration from Hasura GraphQL to PostGraphile for enhanced transparency and performance.
 
+**Recent Enhancement**: Comprehensive HR User Journeys System (Feature 010) - Implements role-based workflows for time tracking, goal management, performance reviews, leave requests, expense reporting, and compliance management across Employee → Manager → HR Admin → System Admin hierarchy.
+
 ## Tech Stack
 
 ### Backend Infrastructure
+
 - **GraphQL Engine**: PostGraphile 4.x (PostgreSQL-native GraphQL layer)
 - **Database**: PostgreSQL 15+ with Row-Level Security
 - **Cache**: Redis 7.2 for query caching
@@ -16,6 +19,7 @@ SvelteHR is a comprehensive HR management system built with SvelteKit frontend a
 - **Server**: Express with TypeScript (`backend/src/server.ts`)
 
 ### Frontend
+
 - **Framework**: SvelteKit with TypeScript
 - **UI Components**: Custom components in `src/lib/components/base/` (Button, Input, Modal, etc.)
 - **Styling**: TailwindCSS with CSS Variables
@@ -25,6 +29,7 @@ SvelteHR is a comprehensive HR management system built with SvelteKit frontend a
 ## Development Commands
 
 ### Quick Start
+
 - `./setup/init.sh` - Initialize complete development environment (NEW)
 - `./setup/sync.sh` - Sync environment with remote changes (NEW)
 - `make quick-start` - Complete first-time setup (legacy)
@@ -32,6 +37,7 @@ SvelteHR is a comprehensive HR management system built with SvelteKit frontend a
 - `npm run dev` - Start SvelteKit frontend (port 5173)
 
 ### Environment Management (NEW)
+
 - `./setup/init.sh` - Initialize environment from scratch
 - `./setup/sync.sh` - Synchronize with remote changes
 - `./setup/update.sh [component]` - Update specific components
@@ -40,6 +46,7 @@ SvelteHR is a comprehensive HR management system built with SvelteKit frontend a
 - `./setup/validate.sh fix` - Auto-fix common issues
 
 ### Database Operations
+
 - `make db-up` - Start PostgreSQL and Redis containers
 - `make db-down` - Stop database containers
 - `make db-reset` - Reset database with fresh data (destructive, prompts for confirmation)
@@ -48,6 +55,7 @@ SvelteHR is a comprehensive HR management system built with SvelteKit frontend a
 - `make db-logs` - View PostgreSQL container logs
 
 ### Server Operations
+
 - `make server-dev` - Start PostGraphile server (development)
 - `make server-prod` - Start PostGraphile server (production)
 - `make server-stop` - Stop all server processes
@@ -55,6 +63,7 @@ SvelteHR is a comprehensive HR management system built with SvelteKit frontend a
 - `make server-logs` - View server logs
 
 ### Frontend Operations
+
 - `npm run dev` - Start SvelteKit dev server
 - `npm run build` - Build for production
 - `npm run preview` - Preview production build
@@ -66,6 +75,7 @@ SvelteHR is a comprehensive HR management system built with SvelteKit frontend a
 - `npm run test:e2e` - Run Playwright tests
 
 ### Backend Operations (in backend/ directory)
+
 - `npm run dev` - Start with hot reload (tsx watch)
 - `npm run start:dev` - Start development server
 - `npm run start:prod` - Start production server
@@ -75,6 +85,7 @@ SvelteHR is a comprehensive HR management system built with SvelteKit frontend a
 - `npm run type-check` - Check TypeScript types
 
 ### GraphQL Code Generation
+
 - `npm run codegen` - Generate TypeScript types from GraphQL schema
 - `npm run codegen:watch` - Watch mode for codegen
 - `npm run codegen:hasura` - Generate types for Hasura (legacy)
@@ -82,6 +93,7 @@ SvelteHR is a comprehensive HR management system built with SvelteKit frontend a
 ## Service Endpoints
 
 ### PostGraphile Services
+
 - **GraphQL API**: http://localhost:4000/graphql
 - **GraphiQL IDE**: http://localhost:4000/graphiql
 - **Health Check**: http://localhost:4000/health
@@ -90,9 +102,11 @@ SvelteHR is a comprehensive HR management system built with SvelteKit frontend a
 - **pgAdmin**: http://localhost:5050 (admin@svelteHR.com/admin123)
 
 ### Frontend (Development)
+
 - **SvelteKit Dev Server**: http://localhost:5173
 
 ### Legacy Hasura Endpoints (being phased out)
+
 - **Hasura GraphQL**: http://localhost:8080/v1/graphql
 - **Hasura Console**: http://localhost:8080/console
 
@@ -131,6 +145,7 @@ SvelteHR is a comprehensive HR management system built with SvelteKit frontend a
 ## Multi-Machine Development Workflow
 
 ### Initial Setup on New Machine
+
 ```bash
 # Clone repository
 git clone https://github.com/your-org/SvelteHR.git
@@ -144,6 +159,7 @@ cd SvelteHR
 ```
 
 ### Daily Workflow
+
 ```bash
 # Start of day - sync with remote
 git pull
@@ -156,6 +172,7 @@ git push
 ```
 
 ### Switching Between Machines
+
 ```bash
 # Machine A: Save work
 git push
@@ -166,6 +183,7 @@ git pull
 ```
 
 ### Troubleshooting Sync Issues
+
 ```bash
 # Check sync status
 ./setup/sync.sh --dry-run
@@ -180,6 +198,7 @@ git pull
 ## Testing
 
 ### Testing GraphQL Endpoints
+
 ```bash
 # Test authentication
 make test-auth
@@ -192,28 +211,27 @@ make test-contract
 ```
 
 ### Sample GraphQL Queries
+
 ```graphql
 # Authentication
 mutation {
-  authenticate(input: {
-    email: "admin@postgraphile-hr.com",
-    password: "admin123"
-  }) {
-    jwtToken
-  }
+	authenticate(input: { email: "admin@postgraphile-hr.com", password: "admin123" }) {
+		jwtToken
+	}
 }
 
 # Query departments
 query {
-  departments {
-    nodes {
-      id
-      name
-      employeeCount
-      departmentHead {
-        fullName
-        email
-      }
-    }
-  }
+	departments {
+		nodes {
+			id
+			name
+			employeeCount
+			departmentHead {
+				fullName
+				email
+			}
+		}
+	}
 }
+```

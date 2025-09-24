@@ -105,9 +105,12 @@
 
 	// Computed values
 	const filteredTasks = $derived(() => {
-		return tasks.filter(task => {
-			if (searchTerm && !task.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
-				!task.description.toLowerCase().includes(searchTerm.toLowerCase())) {
+		return tasks.filter((task) => {
+			if (
+				searchTerm &&
+				!task.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
+				!task.description.toLowerCase().includes(searchTerm.toLowerCase())
+			) {
 				return false;
 			}
 			if (statusFilter !== 'all' && task.status !== statusFilter) {
@@ -123,9 +126,9 @@
 	const taskStats = $derived(() => {
 		const stats = {
 			total: tasks.length,
-			completed: tasks.filter(t => t.status === 'completed').length,
-			inProgress: tasks.filter(t => t.status === 'in_progress').length,
-			overdue: tasks.filter(t => {
+			completed: tasks.filter((t) => t.status === 'completed').length,
+			inProgress: tasks.filter((t) => t.status === 'in_progress').length,
+			overdue: tasks.filter((t) => {
 				if (t.status === 'completed') return false;
 				return new Date(t.dueDate) < new Date();
 			}).length
@@ -139,19 +142,27 @@
 	// Helper functions
 	function getStatusColor(status: string): string {
 		switch (status) {
-			case 'completed': return 'bg-green-100 text-green-800';
-			case 'in_progress': return 'bg-blue-100 text-blue-800';
-			case 'todo': return 'bg-gray-100 text-gray-800';
-			default: return 'bg-gray-100 text-gray-800';
+			case 'completed':
+				return 'bg-green-100 text-green-800';
+			case 'in_progress':
+				return 'bg-blue-100 text-blue-800';
+			case 'todo':
+				return 'bg-gray-100 text-gray-800';
+			default:
+				return 'bg-gray-100 text-gray-800';
 		}
 	}
 
 	function getPriorityColor(priority: string): string {
 		switch (priority) {
-			case 'high': return 'bg-red-100 text-red-800';
-			case 'medium': return 'bg-orange-100 text-orange-800';
-			case 'low': return 'bg-green-100 text-green-800';
-			default: return 'bg-gray-100 text-gray-800';
+			case 'high':
+				return 'bg-red-100 text-red-800';
+			case 'medium':
+				return 'bg-orange-100 text-orange-800';
+			case 'low':
+				return 'bg-green-100 text-green-800';
+			default:
+				return 'bg-gray-100 text-gray-800';
 		}
 	}
 
@@ -165,7 +176,7 @@
 	}
 
 	function updateTaskStatus(taskId: string, newStatus: string) {
-		tasks = tasks.map(task =>
+		tasks = tasks.map((task) =>
 			task.id === taskId
 				? { ...task, status: newStatus, progress: newStatus === 'completed' ? 100 : task.progress }
 				: task
@@ -201,7 +212,9 @@
 					</h1>
 				</div>
 				<p class="text-muted-foreground">
-					{isOwnTasks ? 'Manage your assigned tasks and track progress' : 'View user task assignments'}
+					{isOwnTasks
+						? 'Manage your assigned tasks and track progress'
+						: 'View user task assignments'}
 				</p>
 			</div>
 		</div>
@@ -228,211 +241,205 @@
 			</div>
 		</div>
 	{:else}
+		<!-- Task Statistics -->
+		<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+			<Card.Root>
+				<Card.Content class="p-6">
+					<div class="flex items-center justify-between">
+						<div>
+							<p class="text-sm font-medium text-muted-foreground">Total Tasks</p>
+							<p class="text-2xl font-bold">{taskStats.total}</p>
+						</div>
+						<ListTodo class="h-8 w-8 text-muted-foreground" />
+					</div>
+				</Card.Content>
+			</Card.Root>
 
-	<!-- Task Statistics -->
-	<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+			<Card.Root>
+				<Card.Content class="p-6">
+					<div class="flex items-center justify-between">
+						<div>
+							<p class="text-sm font-medium text-muted-foreground">Completed</p>
+							<p class="text-2xl font-bold text-green-600">{taskStats.completed}</p>
+						</div>
+						<CheckCircle class="h-8 w-8 text-green-600" />
+					</div>
+				</Card.Content>
+			</Card.Root>
+
+			<Card.Root>
+				<Card.Content class="p-6">
+					<div class="flex items-center justify-between">
+						<div>
+							<p class="text-sm font-medium text-muted-foreground">In Progress</p>
+							<p class="text-2xl font-bold text-blue-600">{taskStats.inProgress}</p>
+						</div>
+						<Clock class="h-8 w-8 text-blue-600" />
+					</div>
+				</Card.Content>
+			</Card.Root>
+
+			<Card.Root>
+				<Card.Content class="p-6">
+					<div class="flex items-center justify-between">
+						<div>
+							<p class="text-sm font-medium text-muted-foreground">Overdue</p>
+							<p class="text-2xl font-bold text-red-600">{taskStats.overdue}</p>
+						</div>
+						<AlertTriangle class="h-8 w-8 text-red-600" />
+					</div>
+				</Card.Content>
+			</Card.Root>
+		</div>
+
+		<!-- Search and Filters -->
 		<Card.Root>
 			<Card.Content class="p-6">
-				<div class="flex items-center justify-between">
-					<div>
-						<p class="text-sm font-medium text-muted-foreground">Total Tasks</p>
-						<p class="text-2xl font-bold">{taskStats.total}</p>
+				<div class="flex flex-col space-y-4 md:flex-row md:items-center md:space-x-4 md:space-y-0">
+					<!-- Search -->
+					<div class="relative flex-1">
+						<Search class="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+						<Input placeholder="Search tasks..." bind:value={searchTerm} class="pl-10" />
 					</div>
-					<ListTodo class="h-8 w-8 text-muted-foreground" />
-				</div>
-			</Card.Content>
-		</Card.Root>
 
-		<Card.Root>
-			<Card.Content class="p-6">
-				<div class="flex items-center justify-between">
-					<div>
-						<p class="text-sm font-medium text-muted-foreground">Completed</p>
-						<p class="text-2xl font-bold text-green-600">{taskStats.completed}</p>
-					</div>
-					<CheckCircle class="h-8 w-8 text-green-600" />
-				</div>
-			</Card.Content>
-		</Card.Root>
-
-		<Card.Root>
-			<Card.Content class="p-6">
-				<div class="flex items-center justify-between">
-					<div>
-						<p class="text-sm font-medium text-muted-foreground">In Progress</p>
-						<p class="text-2xl font-bold text-blue-600">{taskStats.inProgress}</p>
-					</div>
-					<Clock class="h-8 w-8 text-blue-600" />
-				</div>
-			</Card.Content>
-		</Card.Root>
-
-		<Card.Root>
-			<Card.Content class="p-6">
-				<div class="flex items-center justify-between">
-					<div>
-						<p class="text-sm font-medium text-muted-foreground">Overdue</p>
-						<p class="text-2xl font-bold text-red-600">{taskStats.overdue}</p>
-					</div>
-					<AlertTriangle class="h-8 w-8 text-red-600" />
-				</div>
-			</Card.Content>
-		</Card.Root>
-	</div>
-
-	<!-- Search and Filters -->
-	<Card.Root>
-		<Card.Content class="p-6">
-			<div class="flex flex-col space-y-4 md:flex-row md:items-center md:space-x-4 md:space-y-0">
-				<!-- Search -->
-				<div class="relative flex-1">
-					<Search class="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-					<Input
-						placeholder="Search tasks..."
-						bind:value={searchTerm}
-						class="pl-10"
-					/>
-				</div>
-
-				<!-- Filters -->
-				<div class="flex items-center space-x-2">
-					<Button variant="outline" size="sm" onclick={() => (showFilters = !showFilters)}>
-						<Filter class="mr-2 h-4 w-4" />
-						Filters
-					</Button>
-
-					{#if statusFilter !== 'all' || priorityFilter !== 'all'}
-						<Button
-							variant="ghost"
-							size="sm"
-							onclick={() => {
-								statusFilter = 'all';
-								priorityFilter = 'all';
-							}}
-						>
-							Clear
+					<!-- Filters -->
+					<div class="flex items-center space-x-2">
+						<Button variant="outline" size="sm" onclick={() => (showFilters = !showFilters)}>
+							<Filter class="mr-2 h-4 w-4" />
+							Filters
 						</Button>
-					{/if}
-				</div>
-			</div>
 
-			<!-- Filter dropdowns -->
-			{#if showFilters}
-				<div class="mt-4 grid grid-cols-1 gap-4 border-t pt-4 md:grid-cols-2">
-					<div class="space-y-2">
-						<label class="text-sm font-medium">Status</label>
-						<Select.Root bind:selected={statusFilter}>
-							<Select.Trigger>
-								<Select.Value placeholder="All statuses" />
-							</Select.Trigger>
-							<Select.Content>
-								<Select.Item value="all">All statuses</Select.Item>
-								<Select.Item value="todo">To Do</Select.Item>
-								<Select.Item value="in_progress">In Progress</Select.Item>
-								<Select.Item value="completed">Completed</Select.Item>
-							</Select.Content>
-						</Select.Root>
-					</div>
-
-					<div class="space-y-2">
-						<label class="text-sm font-medium">Priority</label>
-						<Select.Root bind:selected={priorityFilter}>
-							<Select.Trigger>
-								<Select.Value placeholder="All priorities" />
-							</Select.Trigger>
-							<Select.Content>
-								<Select.Item value="all">All priorities</Select.Item>
-								<Select.Item value="high">High</Select.Item>
-								<Select.Item value="medium">Medium</Select.Item>
-								<Select.Item value="low">Low</Select.Item>
-							</Select.Content>
-						</Select.Root>
+						{#if statusFilter !== 'all' || priorityFilter !== 'all'}
+							<Button
+								variant="ghost"
+								size="sm"
+								onclick={() => {
+									statusFilter = 'all';
+									priorityFilter = 'all';
+								}}
+							>
+								Clear
+							</Button>
+						{/if}
 					</div>
 				</div>
-			{/if}
-		</Card.Content>
-	</Card.Root>
 
-	<!-- Tasks List -->
-	<Card.Root>
-		<Card.Header>
-			<Card.Title>Tasks ({filteredTasks.length})</Card.Title>
-			<Card.Description>
-				{taskStats.completionRate}% completion rate
-			</Card.Description>
-		</Card.Header>
-		<Card.Content>
-			{#if filteredTasks.length === 0}
-				<div class="py-8 text-center">
-					<Target class="mx-auto h-12 w-12 text-muted-foreground" />
-					<h3 class="mt-4 text-lg font-semibold">No tasks found</h3>
-					<p class="text-muted-foreground">Try adjusting your search or filters.</p>
-				</div>
-			{:else}
-				<div class="space-y-4">
-					{#each filteredTasks as task (task.id)}
-						<div class="rounded-lg border p-4 transition-colors hover:bg-muted/50">
-							<div class="flex items-start justify-between">
-								<div class="flex-1 space-y-2">
-									<div class="flex items-center gap-2">
-										<h3 class="font-semibold">{task.title}</h3>
-										{#if isOverdue(task)}
-											<Badge variant="destructive" class="text-xs">Overdue</Badge>
+				<!-- Filter dropdowns -->
+				{#if showFilters}
+					<div class="mt-4 grid grid-cols-1 gap-4 border-t pt-4 md:grid-cols-2">
+						<div class="space-y-2">
+							<label class="text-sm font-medium">Status</label>
+							<Select.Root bind:selected={statusFilter}>
+								<Select.Trigger>
+									<Select.Value placeholder="All statuses" />
+								</Select.Trigger>
+								<Select.Content>
+									<Select.Item value="all">All statuses</Select.Item>
+									<Select.Item value="todo">To Do</Select.Item>
+									<Select.Item value="in_progress">In Progress</Select.Item>
+									<Select.Item value="completed">Completed</Select.Item>
+								</Select.Content>
+							</Select.Root>
+						</div>
+
+						<div class="space-y-2">
+							<label class="text-sm font-medium">Priority</label>
+							<Select.Root bind:selected={priorityFilter}>
+								<Select.Trigger>
+									<Select.Value placeholder="All priorities" />
+								</Select.Trigger>
+								<Select.Content>
+									<Select.Item value="all">All priorities</Select.Item>
+									<Select.Item value="high">High</Select.Item>
+									<Select.Item value="medium">Medium</Select.Item>
+									<Select.Item value="low">Low</Select.Item>
+								</Select.Content>
+							</Select.Root>
+						</div>
+					</div>
+				{/if}
+			</Card.Content>
+		</Card.Root>
+
+		<!-- Tasks List -->
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>Tasks ({filteredTasks.length})</Card.Title>
+				<Card.Description>
+					{taskStats.completionRate}% completion rate
+				</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				{#if filteredTasks.length === 0}
+					<div class="py-8 text-center">
+						<Target class="mx-auto h-12 w-12 text-muted-foreground" />
+						<h3 class="mt-4 text-lg font-semibold">No tasks found</h3>
+						<p class="text-muted-foreground">Try adjusting your search or filters.</p>
+					</div>
+				{:else}
+					<div class="space-y-4">
+						{#each filteredTasks as task (task.id)}
+							<div class="rounded-lg border p-4 transition-colors hover:bg-muted/50">
+								<div class="flex items-start justify-between">
+									<div class="flex-1 space-y-2">
+										<div class="flex items-center gap-2">
+											<h3 class="font-semibold">{task.title}</h3>
+											{#if isOverdue(task)}
+												<Badge variant="destructive" class="text-xs">Overdue</Badge>
+											{/if}
+										</div>
+
+										<p class="text-sm text-muted-foreground">{task.description}</p>
+
+										<div class="flex items-center gap-4 text-sm text-muted-foreground">
+											<div class="flex items-center gap-1">
+												<Calendar class="h-3 w-3" />
+												<span>Due {formatDate(task.dueDate)}</span>
+											</div>
+											<div class="flex items-center gap-1">
+												<User class="h-3 w-3" />
+												<span>By {task.assignedBy}</span>
+											</div>
+										</div>
+
+										<!-- Progress bar -->
+										{#if task.status !== 'completed' && task.progress > 0}
+											<div class="flex items-center gap-2">
+												<div class="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+													<div
+														class="h-full bg-primary transition-all"
+														style="width: {task.progress}%"
+													></div>
+												</div>
+												<span class="text-xs text-muted-foreground">{task.progress}%</span>
+											</div>
 										{/if}
 									</div>
 
-									<p class="text-sm text-muted-foreground">{task.description}</p>
+									<div class="ml-4 flex items-center gap-2">
+										<Badge class={getStatusColor(task.status)}>
+											{task.status.replace('_', ' ')}
+										</Badge>
+										<Badge class={getPriorityColor(task.priority)}>
+											{task.priority}
+										</Badge>
 
-									<div class="flex items-center gap-4 text-sm text-muted-foreground">
-										<div class="flex items-center gap-1">
-											<Calendar class="h-3 w-3" />
-											<span>Due {formatDate(task.dueDate)}</span>
-										</div>
-										<div class="flex items-center gap-1">
-											<User class="h-3 w-3" />
-											<span>By {task.assignedBy}</span>
-										</div>
+										{#if isOwnTasks && task.status !== 'completed'}
+											<Button
+												variant="outline"
+												size="sm"
+												onclick={() => updateTaskStatus(task.id, 'completed')}
+											>
+												<CheckSquare class="h-4 w-4" />
+											</Button>
+										{/if}
 									</div>
-
-									<!-- Progress bar -->
-									{#if task.status !== 'completed' && task.progress > 0}
-										<div class="flex items-center gap-2">
-											<div class="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-												<div
-													class="h-full bg-primary transition-all"
-													style="width: {task.progress}%"
-												></div>
-											</div>
-											<span class="text-xs text-muted-foreground">{task.progress}%</span>
-										</div>
-									{/if}
-								</div>
-
-								<div class="flex items-center gap-2 ml-4">
-									<Badge class={getStatusColor(task.status)}>
-										{task.status.replace('_', ' ')}
-									</Badge>
-									<Badge class={getPriorityColor(task.priority)}>
-										{task.priority}
-									</Badge>
-
-									{#if isOwnTasks && task.status !== 'completed'}
-										<Button
-											variant="outline"
-											size="sm"
-											onclick={() => updateTaskStatus(task.id, 'completed')}
-										>
-											<CheckSquare class="h-4 w-4" />
-										</Button>
-									{/if}
 								</div>
 							</div>
-						</div>
-					{/each}
-				</div>
-			{/if}
-		</Card.Content>
-	</Card.Root>
-
+						{/each}
+					</div>
+				{/if}
+			</Card.Content>
+		</Card.Root>
 	{/if}
 </div>

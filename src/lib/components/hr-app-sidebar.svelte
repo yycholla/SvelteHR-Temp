@@ -44,16 +44,21 @@
 		const currentPath = $page.url.pathname;
 
 		// Auto-expand based on current page
-		if (currentPath.includes('/leave') || currentPath.includes('/attendance')) expandedSections.leave = true;
-		if (currentPath.includes('/performance') && currentPath.includes('/users/')) expandedSections.performance = true;
-		if (currentPath.includes('/management') ||
-			(currentPath.includes('/employees/new')) ||
-			(currentPath.includes('/departments/new')) ||
-			(currentPath.includes('/performance/team')) ||
-			(currentPath.includes('/tasks') && !currentPath.includes('/users/'))) {
+		if (currentPath.includes('/leave') || currentPath.includes('/attendance'))
+			expandedSections.leave = true;
+		if (currentPath.includes('/performance') && currentPath.includes('/users/'))
+			expandedSections.performance = true;
+		if (
+			currentPath.includes('/management') ||
+			currentPath.includes('/employees/new') ||
+			currentPath.includes('/departments/new') ||
+			currentPath.includes('/performance/team') ||
+			(currentPath.includes('/tasks') && !currentPath.includes('/users/'))
+		) {
 			expandedSections.management = true;
 		}
-		if (currentPath.includes('/admin')) expandedSections.administration = true;
+		if (currentPath.includes('/admin') || currentPath.includes('/teams'))
+			expandedSections.administration = true;
 	});
 
 	// Main navigation items - employee-focused
@@ -98,7 +103,6 @@
 		}
 	];
 
-
 	// Management submenu (for managers/supervisors)
 	const managementItems = [
 		{ title: 'Teams Overview', url: '/dashboard/management' },
@@ -111,6 +115,7 @@
 
 	// Admin submenu (only when expanded)
 	const adminItems = [
+		{ title: 'Teams', url: '/dashboard/teams' },
 		{ title: 'Users', url: '/dashboard/admin/users' },
 		{ title: 'Roles', url: '/dashboard/admin/roles' },
 		{ title: 'Requests', url: '/dashboard/admin/requests' },
@@ -130,7 +135,6 @@
 			<span class="text-base">SvelteHR</span>
 		</a>
 	</div>
-
 
 	<!-- Main Navigation - Collapsible -->
 	<div class="flex-1 overflow-auto px-3 py-3">
@@ -204,7 +208,6 @@
 					</div>
 				{/if}
 			{/each}
-
 		</nav>
 	</div>
 
@@ -251,8 +254,10 @@
 			<button
 				onclick={() => toggleSection('administration')}
 				class="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-primary hover:text-primary-foreground hover:opacity-80"
-				class:bg-primary={$page.url.pathname.includes('/admin')}
-				class:text-primary-foreground={$page.url.pathname.includes('/admin')}
+				class:bg-primary={$page.url.pathname.includes('/admin') ||
+					$page.url.pathname.includes('/teams')}
+				class:text-primary-foreground={$page.url.pathname.includes('/admin') ||
+					$page.url.pathname.includes('/teams')}
 			>
 				<div class="flex items-center gap-3">
 					<Shield class="h-4 w-4" />
@@ -289,7 +294,7 @@
 				<!-- Profile Link (left side) -->
 				<a
 					href="/profile"
-					class="flex items-center gap-2 rounded-md transition-colors hover:bg-sidebar-accent/50 pr-2"
+					class="flex items-center gap-2 rounded-md pr-2 transition-colors hover:bg-sidebar-accent/50"
 					title="My Profile"
 				>
 					<div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">

@@ -102,9 +102,11 @@ CREATE TABLE user_role_assignments (
     expires_at TIMESTAMPTZ,
     is_active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(user_id, role_id, is_active) WHERE is_active = true
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Add unique constraint for active assignments separately
+CREATE UNIQUE INDEX unique_active_user_role ON user_role_assignments(user_id, role_id) WHERE is_active = true;
 
 -- Job information linked to users and departments
 CREATE TABLE job_information (

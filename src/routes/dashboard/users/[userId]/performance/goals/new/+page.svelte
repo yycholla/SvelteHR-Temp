@@ -67,7 +67,12 @@
 			errors.description = 'Please provide a goal description';
 		}
 
-		if (formData.weight && (isNaN(Number(formData.weight)) || Number(formData.weight) < 0 || Number(formData.weight) > 100)) {
+		if (
+			formData.weight &&
+			(isNaN(Number(formData.weight)) ||
+				Number(formData.weight) < 0 ||
+				Number(formData.weight) > 100)
+		) {
 			errors.weight = 'Weight must be a number between 0 and 100';
 		}
 
@@ -254,7 +259,6 @@
 						</div>
 					</div>
 
-
 					<!-- Measurement Criteria -->
 					<div class="space-y-2">
 						<Label for="measurementCriteria">How Will This Be Measured? *</Label>
@@ -275,7 +279,11 @@
 						<Button variant="outline" onclick={handleReset} disabled={loading}>Reset Form</Button>
 
 						<div class="flex items-center space-x-2">
-							<Button variant="outline" href="/dashboard/users/{userId}/performance" disabled={loading}>
+							<Button
+								variant="outline"
+								href="/dashboard/users/{userId}/performance"
+								disabled={loading}
+							>
 								Cancel
 							</Button>
 							<Button onclick={handleSubmit} disabled={loading || !$currentUser}>

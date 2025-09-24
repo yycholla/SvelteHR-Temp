@@ -145,10 +145,7 @@ export const SEARCH_EMPLOYEES_QUERY = gql`
 // Query: Get employees by department
 export const GET_EMPLOYEES_BY_DEPARTMENT_QUERY = gql`
 	query GetEmployeesByDepartment($departmentId: UUID!, $first: Int, $offset: Int) {
-		allUsers(
-			first: $first
-			offset: $offset
-		) {
+		allUsers(first: $first, offset: $offset) {
 			nodes {
 				...UserBasicFields
 			}

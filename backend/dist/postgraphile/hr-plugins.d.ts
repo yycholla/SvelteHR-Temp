@@ -14,29 +14,27 @@ import { Redis } from 'ioredis';
  * Automatically adds computed fields to employee-related types
  */
 export declare class HRComputedFieldsPlugin {
-  private redis?;
-  constructor(redis?: Redis);
-  createPlugin(): PluginHookFn;
+    private redis?;
+    constructor(redis?: Redis);
+    createPlugin(): PluginHookFn;
 }
 /**
  * HR Business Logic Plugin
  * Enforces business rules and provides advanced filtering
  */
 export declare class HRBusinessLogicPlugin {
-  createPlugin(): PluginHookFn;
+    createPlugin(): PluginHookFn;
 }
 /**
  * HR Performance Optimization Plugin
  * Caching, query optimization, and performance monitoring
  */
 export declare class HRPerformanceOptimizationPlugin {
-  private redis?;
-  constructor(redis?: Redis);
-  createPlugin(): PluginHookFn;
+    private redis?;
+    constructor(redis?: Redis);
+    createPlugin(): PluginHookFn;
 }
 export declare const hrComputedFieldsPlugin: (redis?: Redis) => PluginHookFn;
 export declare const hrBusinessLogicPlugin: () => PluginHookFn;
-export declare const hrPerformanceOptimizationPlugin: (
-  redis?: Redis
-) => PluginHookFn;
+export declare const hrPerformanceOptimizationPlugin: (redis?: Redis) => PluginHookFn;
 export declare const hrPlugins: (redis?: Redis) => any[];

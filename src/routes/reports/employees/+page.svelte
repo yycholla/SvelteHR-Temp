@@ -56,10 +56,14 @@
 
 	const getStatusColor = (status: string) => {
 		switch (status) {
-			case 'Ready': return 'default';
-			case 'Generating': return 'secondary';
-			case 'Error': return 'destructive';
-			default: return 'outline';
+			case 'Ready':
+				return 'default';
+			case 'Generating':
+				return 'secondary';
+			case 'Error':
+				return 'destructive';
+			default:
+				return 'outline';
 		}
 	};
 </script>
@@ -101,12 +105,12 @@
 				</Card.Header>
 				<Card.Content>
 					<div class="text-2xl font-bold">{stat.value}</div>
-					<p class="text-xs text-muted-foreground flex items-center gap-1">
+					<p class="flex items-center gap-1 text-xs text-muted-foreground">
 						{#if stat.trend === 'up'}
 							<TrendingUp class="h-3 w-3 text-green-500" />
 							<span class="text-green-500">{stat.change}</span>
 						{:else if stat.trend === 'down'}
-							<TrendingUp class="h-3 w-3 text-red-500 rotate-180" />
+							<TrendingUp class="h-3 w-3 rotate-180 text-red-500" />
 							<span class="text-red-500">{stat.change}</span>
 						{:else}
 							<span class="text-muted-foreground">{stat.change}</span>
@@ -136,7 +140,7 @@
 				<Card.Content>
 					<div class="space-y-4">
 						{#each reportCategories as report}
-							<div class="flex items-center justify-between p-4 border rounded-lg">
+							<div class="flex items-center justify-between rounded-lg border p-4">
 								<div class="space-y-1">
 									<h4 class="font-medium">{report.title}</h4>
 									<p class="text-sm text-muted-foreground">{report.description}</p>
@@ -168,7 +172,9 @@
 					<Card.Content class="space-y-4">
 						<div class="space-y-2">
 							<label class="text-sm font-medium">Report Type</label>
-							<select class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+							<select
+								class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+							>
 								<option>Employee Summary</option>
 								<option>Department Headcount</option>
 								<option>Turnover Analysis</option>
@@ -176,7 +182,9 @@
 						</div>
 						<div class="space-y-2">
 							<label class="text-sm font-medium">Frequency</label>
-							<select class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+							<select
+								class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+							>
 								<option>Weekly</option>
 								<option>Monthly</option>
 								<option>Quarterly</option>
@@ -223,16 +231,24 @@
 				</Card.Header>
 				<Card.Content>
 					<div class="grid gap-4 md:grid-cols-2">
-						<div class="h-32 rounded border-2 border-dashed border-muted-foreground/25 flex items-center justify-center">
+						<div
+							class="flex h-32 items-center justify-center rounded border-2 border-dashed border-muted-foreground/25"
+						>
 							<p class="text-muted-foreground">Department Distribution Chart</p>
 						</div>
-						<div class="h-32 rounded border-2 border-dashed border-muted-foreground/25 flex items-center justify-center">
+						<div
+							class="flex h-32 items-center justify-center rounded border-2 border-dashed border-muted-foreground/25"
+						>
 							<p class="text-muted-foreground">Headcount Trend</p>
 						</div>
-						<div class="h-32 rounded border-2 border-dashed border-muted-foreground/25 flex items-center justify-center">
+						<div
+							class="flex h-32 items-center justify-center rounded border-2 border-dashed border-muted-foreground/25"
+						>
 							<p class="text-muted-foreground">Turnover Rate</p>
 						</div>
-						<div class="h-32 rounded border-2 border-dashed border-muted-foreground/25 flex items-center justify-center">
+						<div
+							class="flex h-32 items-center justify-center rounded border-2 border-dashed border-muted-foreground/25"
+						>
 							<p class="text-muted-foreground">Hiring Trends</p>
 						</div>
 					</div>
@@ -251,7 +267,9 @@
 					<div class="grid gap-4 md:grid-cols-2">
 						<div class="space-y-2">
 							<label class="text-sm font-medium">Data Source</label>
-							<select class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+							<select
+								class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+							>
 								<option>Employee Records</option>
 								<option>Department Data</option>
 								<option>Performance Data</option>
@@ -260,7 +278,9 @@
 						</div>
 						<div class="space-y-2">
 							<label class="text-sm font-medium">Date Range</label>
-							<select class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+							<select
+								class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+							>
 								<option>Last 30 days</option>
 								<option>Last 3 months</option>
 								<option>Last 6 months</option>

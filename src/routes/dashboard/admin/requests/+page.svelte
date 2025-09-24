@@ -55,11 +55,13 @@
 		submittingReview = true;
 
 		try {
-			const result = await client.mutation(REVIEW_PROFILE_CHANGE_REQUEST_MUTATION, {
-				requestId: selectedRequest.id,
-				approve,
-				reviewNotes: reviewNotes || undefined
-			}).toPromise();
+			const result = await client
+				.mutation(REVIEW_PROFILE_CHANGE_REQUEST_MUTATION, {
+					requestId: selectedRequest.id,
+					approve,
+					reviewNotes: reviewNotes || undefined
+				})
+				.toPromise();
 
 			if (result.data?.reviewProfileChangeRequest?.profileChangeRequest) {
 				alert(`Request ${approve ? 'approved' : 'rejected'} successfully!`);
@@ -74,7 +76,9 @@
 			}
 		} catch (error) {
 			console.error('Error submitting review:', error);
-			alert('Failed to submit review: ' + (error instanceof Error ? error.message : 'Unknown error'));
+			alert(
+				'Failed to submit review: ' + (error instanceof Error ? error.message : 'Unknown error')
+			);
 		} finally {
 			submittingReview = false;
 		}
@@ -97,13 +101,11 @@
 			<FileText class="h-8 w-8" />
 			Profile Change Requests
 		</h1>
-		<p class="text-muted-foreground">
-			Review and approve employee profile change requests
-		</p>
+		<p class="text-muted-foreground">Review and approve employee profile change requests</p>
 	</div>
 
 	<!-- Stats Overview -->
-	<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+	<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
 		<Card.Root>
 			<Card.Content class="p-6">
 				<div class="flex items-center gap-3">
@@ -121,7 +123,7 @@
 				<div class="flex items-center gap-3">
 					<User class="h-8 w-8 text-blue-600" />
 					<div>
-						<p class="text-2xl font-bold">{new Set(requests.map(r => r.userId)).size}</p>
+						<p class="text-2xl font-bold">{new Set(requests.map((r) => r.userId)).size}</p>
 						<p class="text-sm text-muted-foreground">Unique Employees</p>
 					</div>
 				</div>
@@ -134,8 +136,10 @@
 					<AlertCircle class="h-8 w-8 text-red-600" />
 					<div>
 						<p class="text-2xl font-bold">
-							{requests.filter(r => {
-								const daysSince = Math.floor((Date.now() - new Date(r.requestedAt).getTime()) / (1000 * 60 * 60 * 24));
+							{requests.filter((r) => {
+								const daysSince = Math.floor(
+									(Date.now() - new Date(r.requestedAt).getTime()) / (1000 * 60 * 60 * 24)
+								);
 								return daysSince > 2;
 							}).length}
 						</p>
@@ -148,14 +152,14 @@
 
 	<!-- Requests List -->
 	{#if loading}
-		<div class="text-center py-8">
+		<div class="py-8 text-center">
 			<p class="text-muted-foreground">Loading requests...</p>
 		</div>
 	{:else if requests.length === 0}
 		<Card.Root>
 			<Card.Content class="py-8 text-center">
-				<CheckCircle class="h-12 w-12 mx-auto text-green-600 mb-4" />
-				<h3 class="text-lg font-semibold mb-2">No Pending Requests</h3>
+				<CheckCircle class="mx-auto mb-4 h-12 w-12 text-green-600" />
+				<h3 class="mb-2 text-lg font-semibold">No Pending Requests</h3>
 				<p class="text-muted-foreground">All profile change requests have been reviewed.</p>
 			</Card.Content>
 		</Card.Root>
@@ -165,7 +169,7 @@
 				<Card.Root>
 					<Card.Content class="p-6">
 						<div class="flex items-start justify-between">
-							<div class="space-y-3 flex-1">
+							<div class="flex-1 space-y-3">
 								<!-- User Info -->
 								<div class="flex items-center gap-3">
 									<User class="h-5 w-5 text-muted-foreground" />
@@ -180,11 +184,11 @@
 
 								<!-- Requested Changes -->
 								<div>
-									<p class="text-sm font-medium mb-2">Requested Changes:</p>
-									<div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+									<p class="mb-2 text-sm font-medium">Requested Changes:</p>
+									<div class="grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
 										{#each ProfileChangeRequestService.getChangesSummary(request) as change}
 											<div class="flex items-center gap-2">
-												<div class="w-2 h-2 bg-blue-600 rounded-full"></div>
+												<div class="h-2 w-2 rounded-full bg-blue-600"></div>
 												<span>{change}</span>
 											</div>
 										{/each}
@@ -194,19 +198,15 @@
 								<!-- Reason -->
 								{#if request.requestReason}
 									<div>
-										<p class="text-sm font-medium mb-1">Reason:</p>
+										<p class="mb-1 text-sm font-medium">Reason:</p>
 										<p class="text-sm text-muted-foreground">{request.requestReason}</p>
 									</div>
 								{/if}
 							</div>
 
 							<!-- Action Buttons -->
-							<div class="flex items-center gap-2 ml-4">
-								<Button
-									variant="outline"
-									size="sm"
-									onclick={() => openReviewDialog(request)}
-								>
+							<div class="ml-4 flex items-center gap-2">
+								<Button variant="outline" size="sm" onclick={() => openReviewDialog(request)}>
 									Review
 								</Button>
 							</div>

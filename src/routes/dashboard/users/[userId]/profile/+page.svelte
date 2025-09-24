@@ -142,7 +142,7 @@
 	</div>
 
 	{#if loading}
-		<div class="text-center py-8">
+		<div class="py-8 text-center">
 			<p class="text-muted-foreground">Loading profile...</p>
 		</div>
 	{:else if profileData}
@@ -154,11 +154,18 @@
 						<User class="h-10 w-10" />
 					</div>
 					<div class="space-y-1">
-						<h2 class="text-2xl font-bold">{profileData.personalInfo.firstName} {profileData.personalInfo.lastName}</h2>
+						<h2 class="text-2xl font-bold">
+							{profileData.personalInfo.firstName}
+							{profileData.personalInfo.lastName}
+						</h2>
 						<p class="text-lg text-muted-foreground">{profileData.workInfo.position}</p>
 						<div class="flex items-center gap-4 pt-2">
-							<Badge.Root variant="secondary">Employee ID: {profileData.workInfo.employeeId}</Badge.Root>
-							<Badge.Root variant={profileData.workInfo.status === 'Active' ? 'default' : 'secondary'}>
+							<Badge.Root variant="secondary"
+								>Employee ID: {profileData.workInfo.employeeId}</Badge.Root
+							>
+							<Badge.Root
+								variant={profileData.workInfo.status === 'Active' ? 'default' : 'secondary'}
+							>
 								{profileData.workInfo.status}
 							</Badge.Root>
 						</div>
@@ -298,11 +305,17 @@
 							<div class="grid grid-cols-2 gap-4">
 								<div class="space-y-2">
 									<Label>First Name</Label>
-									<Input value={profileData.personalInfo.emergencyContactFirstName || 'Not provided'} readonly />
+									<Input
+										value={profileData.personalInfo.emergencyContactFirstName || 'Not provided'}
+										readonly
+									/>
 								</div>
 								<div class="space-y-2">
 									<Label>Last Name</Label>
-									<Input value={profileData.personalInfo.emergencyContactLastName || 'Not provided'} readonly />
+									<Input
+										value={profileData.personalInfo.emergencyContactLastName || 'Not provided'}
+										readonly
+									/>
 								</div>
 							</div>
 							<div class="grid grid-cols-2 gap-4">
@@ -310,30 +323,39 @@
 									<Label>Phone Number</Label>
 									<div class="flex items-center gap-2">
 										<Phone class="h-4 w-4 text-muted-foreground" />
-										<Input value={profileData.personalInfo.emergencyContactPhone || 'Not provided'} readonly />
+										<Input
+											value={profileData.personalInfo.emergencyContactPhone || 'Not provided'}
+											readonly
+										/>
 									</div>
 								</div>
 								<div class="space-y-2">
 									<Label>Email Address</Label>
 									<div class="flex items-center gap-2">
 										<Mail class="h-4 w-4 text-muted-foreground" />
-										<Input value={profileData.personalInfo.emergencyContactEmail || 'Not provided'} readonly />
+										<Input
+											value={profileData.personalInfo.emergencyContactEmail || 'Not provided'}
+											readonly
+										/>
 									</div>
 								</div>
 							</div>
 							<div class="space-y-2">
 								<Label>Relationship</Label>
-								<Input value={profileData.personalInfo.emergencyContactRelation || 'Not provided'} readonly />
+								<Input
+									value={profileData.personalInfo.emergencyContactRelation || 'Not provided'}
+									readonly
+								/>
 							</div>
 						{:else}
-							<div class="text-center py-8">
-								<Phone class="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-								<h3 class="text-lg font-semibold mb-2">No Emergency Contact</h3>
-								<p class="text-muted-foreground mb-4">No emergency contact information has been provided.</p>
+							<div class="py-8 text-center">
+								<Phone class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+								<h3 class="mb-2 text-lg font-semibold">No Emergency Contact</h3>
+								<p class="mb-4 text-muted-foreground">
+									No emergency contact information has been provided.
+								</p>
 								{#if isOwnProfile}
-									<Button href="/dashboard/users/{userId}/settings">
-										Add Emergency Contact
-									</Button>
+									<Button href="/dashboard/users/{userId}/settings">Add Emergency Contact</Button>
 								{/if}
 							</div>
 						{/if}
@@ -342,9 +364,9 @@
 			</Tabs.Content>
 		</Tabs.Root>
 	{:else}
-		<div class="text-center py-8">
-			<User class="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-			<h3 class="text-lg font-semibold mb-2">Profile Not Found</h3>
+		<div class="py-8 text-center">
+			<User class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+			<h3 class="mb-2 text-lg font-semibold">Profile Not Found</h3>
 			<p class="text-muted-foreground">The requested profile could not be found.</p>
 		</div>
 	{/if}

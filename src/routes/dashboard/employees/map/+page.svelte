@@ -83,7 +83,10 @@
 
 <svelte:head>
 	<title>Organization Map - SvelteHR</title>
-	<meta name="description" content="Interactive organizational chart showing all employees by levels and departments" />
+	<meta
+		name="description"
+		content="Interactive organizational chart showing all employees by levels and departments"
+	/>
 </svelte:head>
 
 <div class="space-y-6">
@@ -124,9 +127,7 @@
 			<div class="text-center">
 				<h3 class="text-lg font-semibold text-destructive">Error Loading Organization Map</h3>
 				<p class="text-muted-foreground">{error}</p>
-				<Button class="mt-4" onclick={() => window.location.reload()}>
-					Try Again
-				</Button>
+				<Button class="mt-4" onclick={() => window.location.reload()}>Try Again</Button>
 			</div>
 		</div>
 	{:else if allEmployees.length === 0}
@@ -134,7 +135,9 @@
 			<div class="text-center">
 				<Users class="mx-auto h-12 w-12 text-muted-foreground" />
 				<h3 class="mt-4 text-lg font-semibold">No Employees Found</h3>
-				<p class="text-muted-foreground">There are no active employees to display in the organization map.</p>
+				<p class="text-muted-foreground">
+					There are no active employees to display in the organization map.
+				</p>
 			</div>
 		</div>
 	{:else}

@@ -17,13 +17,15 @@
 	} from 'lucide-svelte';
 
 	// Props
-	let { departmentData }: {
+	let {
+		departmentData
+	}: {
 		departmentData: {
 			name: string;
 			manager?: any;
 			employees: any[];
 			subDepartments?: any[];
-		}
+		};
 	} = $props();
 
 	// Enhanced node interface for positioning
@@ -69,10 +71,10 @@
 		// Group employees by role level
 		const employeesByLevel = new Map<number, any[]>();
 
-		employees.forEach(emp => {
+		employees.forEach((emp) => {
 			const roles = emp.userRoleAssignmentsByUserId?.nodes || [];
-			const maxLevel = roles.length > 0 ?
-				Math.max(...roles.map((r: any) => r.userRoleByRoleId?.level || 20)) : 20;
+			const maxLevel =
+				roles.length > 0 ? Math.max(...roles.map((r: any) => r.userRoleByRoleId?.level || 20)) : 20;
 
 			if (!employeesByLevel.has(maxLevel)) {
 				employeesByLevel.set(maxLevel, []);
@@ -111,7 +113,7 @@
 
 				// Create connections to managers (employees report to managers)
 				if (roleLevel < 60) {
-					const managers = nodes.filter(n => n.roleLevel >= 60);
+					const managers = nodes.filter((n) => n.roleLevel >= 60);
 					if (managers.length > 0) {
 						// Connect to the closest manager or the first one
 						connections.push({
@@ -140,7 +142,12 @@
 	}
 
 	function getUserInitials(name: string): string {
-		return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+		return name
+			.split(' ')
+			.map((n) => n[0])
+			.join('')
+			.toUpperCase()
+			.slice(0, 2);
 	}
 
 	function getNodeColor(node: OrgNode): string {
@@ -237,10 +244,10 @@
 		</div>
 
 		<div class="flex items-center gap-2">
-			<Button variant="outline" size="sm" onclick={() => zoom = Math.min(3, zoom * 1.2)}>
+			<Button variant="outline" size="sm" onclick={() => (zoom = Math.min(3, zoom * 1.2))}>
 				<ZoomIn class="h-4 w-4" />
 			</Button>
-			<Button variant="outline" size="sm" onclick={() => zoom = Math.max(0.5, zoom * 0.8)}>
+			<Button variant="outline" size="sm" onclick={() => (zoom = Math.max(0.5, zoom * 0.8))}>
 				<ZoomOut class="h-4 w-4" />
 			</Button>
 			<Button variant="outline" size="sm" onclick={resetView}>
@@ -258,14 +265,14 @@
 		<Card.Content class="p-0">
 			<div
 				bind:this={mapContainer}
-				class="relative h-[600px] w-full overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 cursor-grab"
+				class="relative h-[600px] w-full cursor-grab overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100"
 				class:cursor-grabbing={isDragging}
 				onwheel={handleWheel}
 			>
 				<!-- SVG for connections -->
 				<svg
 					bind:this={svgContainer}
-					class="absolute inset-0 pointer-events-none"
+					class="pointer-events-none absolute inset-0"
 					width="100%"
 					height="100%"
 				>
@@ -283,13 +290,13 @@
 					</defs>
 
 					{#each connections as connection}
-						{@const fromNode = orgNodes.find(n => n.id === connection.from)}
-						{@const toNode = orgNodes.find(n => n.id === connection.to)}
+						{@const fromNode = orgNodes.find((n) => n.id === connection.from)}
+						{@const toNode = orgNodes.find((n) => n.id === connection.to)}
 						{#if fromNode && toNode}
 							<line
-								x1={fromNode.x * zoom + NODE_WIDTH/2 * zoom + panX}
+								x1={fromNode.x * zoom + (NODE_WIDTH / 2) * zoom + panX}
 								y1={fromNode.y * zoom + NODE_HEIGHT * zoom + panY}
-								x2={toNode.x * zoom + NODE_WIDTH/2 * zoom + panX}
+								x2={toNode.x * zoom + (NODE_WIDTH / 2) * zoom + panX}
 								y2={toNode.y * zoom + panY}
 								stroke="#6b7280"
 								stroke-width="2"
@@ -306,12 +313,17 @@
 						class="absolute cursor-move select-none transition-shadow hover:shadow-lg"
 						class:shadow-lg={node.isDragging}
 						class:z-10={node.isDragging}
-						style="transform: translate({node.x * zoom + panX}px, {node.y * zoom + panY}px) scale({zoom}); transform-origin: top left;"
+						style="transform: translate({node.x * zoom + panX}px, {node.y * zoom +
+							panY}px) scale({zoom}); transform-origin: top left;"
 						onmousedown={(e) => handleMouseDown(e, node)}
 					>
-						<div class="w-[200px] h-[120px] rounded-lg border-2 p-3 bg-white {getNodeColor(node)} transition-all">
+						<div
+							class="h-[120px] w-[200px] rounded-lg border-2 bg-white p-3 {getNodeColor(
+								node
+							)} transition-all"
+						>
 							<!-- Header -->
-							<div class="flex items-center justify-between mb-2">
+							<div class="mb-2 flex items-center justify-between">
 								<div class="flex items-center gap-2">
 									{#if node.isManager}
 										<Crown class="h-4 w-4 text-yellow-600" />
@@ -327,18 +339,20 @@
 
 							<!-- Avatar and Info -->
 							<div class="flex items-center gap-3">
-								<div class="flex h-10 w-10 items-center justify-center rounded-full bg-white font-semibold text-sm">
+								<div
+									class="flex h-10 w-10 items-center justify-center rounded-full bg-white text-sm font-semibold"
+								>
 									{getUserInitials(node.name)}
 								</div>
 								<div class="min-w-0 flex-1">
-									<h4 class="font-semibold text-sm truncate">{node.name}</h4>
-									<p class="text-xs opacity-80 truncate">{node.role}</p>
-									<p class="text-xs opacity-60 truncate">{node.email}</p>
+									<h4 class="truncate text-sm font-semibold">{node.name}</h4>
+									<p class="truncate text-xs opacity-80">{node.role}</p>
+									<p class="truncate text-xs opacity-60">{node.email}</p>
 								</div>
 							</div>
 
 							<!-- Actions -->
-							<div class="flex items-center justify-center gap-1 mt-3">
+							<div class="mt-3 flex items-center justify-center gap-1">
 								<Button variant="ghost" size="sm" class="h-6 w-6 p-0">
 									<Mail class="h-3 w-3" />
 								</Button>
@@ -351,7 +365,9 @@
 				{/each}
 
 				<!-- Zoom indicator -->
-				<div class="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm rounded px-2 py-1 text-xs">
+				<div
+					class="absolute bottom-4 right-4 rounded bg-white/90 px-2 py-1 text-xs backdrop-blur-sm"
+				>
 					Zoom: {Math.round(zoom * 100)}%
 				</div>
 			</div>
@@ -359,21 +375,21 @@
 	</Card.Root>
 
 	<!-- Level Legend -->
-	<div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+	<div class="grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
 		<div class="flex items-center gap-2">
-			<div class="h-4 w-4 rounded bg-red-200 border border-red-300"></div>
+			<div class="h-4 w-4 rounded border border-red-300 bg-red-200"></div>
 			<span>C-Level (80+)</span>
 		</div>
 		<div class="flex items-center gap-2">
-			<div class="h-4 w-4 rounded bg-purple-200 border border-purple-300"></div>
+			<div class="h-4 w-4 rounded border border-purple-300 bg-purple-200"></div>
 			<span>Management (60-79)</span>
 		</div>
 		<div class="flex items-center gap-2">
-			<div class="h-4 w-4 rounded bg-blue-200 border border-blue-300"></div>
+			<div class="h-4 w-4 rounded border border-blue-300 bg-blue-200"></div>
 			<span>Senior (40-59)</span>
 		</div>
 		<div class="flex items-center gap-2">
-			<div class="h-4 w-4 rounded bg-gray-200 border border-gray-300"></div>
+			<div class="h-4 w-4 rounded border border-gray-300 bg-gray-200"></div>
 			<span>Staff (20-39)</span>
 		</div>
 	</div>

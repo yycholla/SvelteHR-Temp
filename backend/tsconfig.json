@@ -55,15 +55,12 @@
     "alwaysStrict": true
   },
 
-  "include": ["src/server-simple.ts"],
+  "include": ["src/**/*"],
   "exclude": [
     "node_modules",
     "dist",
     "tests",
     "**/*.test.ts",
-    "**/*.spec.ts",
-    "src/libs",
-    "src/auth",
-    "src/postgraphile"
+    "**/*.spec.ts"
   ]
 }

@@ -9,10 +9,10 @@ import { gql } from '@urql/svelte';
 export const ATTENDANCE_RECORD_BASIC_FIELDS = gql`
 	fragment AttendanceRecordBasicFields on AttendanceRecord {
 		id
-		employeeId
+		userId
 		date
-		clockIn
-		clockOut
+		clockInTime
+		clockOutTime
 		totalHours
 		status
 		createdAt
@@ -23,12 +23,8 @@ export const ATTENDANCE_RECORD_BASIC_FIELDS = gql`
 export const ATTENDANCE_RECORD_FULL_FIELDS = gql`
 	fragment AttendanceRecordFullFields on AttendanceRecord {
 		...AttendanceRecordBasicFields
-		breakDuration
 		overtimeHours
 		notes
-		location
-		ipAddress
-		metadata
 	}
 	${ATTENDANCE_RECORD_BASIC_FIELDS}
 `;
@@ -55,7 +51,7 @@ export const GET_EMPLOYEE_ATTENDANCE_QUERY = gql`
 		allAttendanceRecords(
 			first: $first
 			offset: $offset
-			condition: { employeeId: $employeeId }
+			condition: { userId: $employeeId }
 			filter: {
 				and: [
 					{ date: { greaterThanOrEqualTo: $startDate } }
@@ -66,7 +62,7 @@ export const GET_EMPLOYEE_ATTENDANCE_QUERY = gql`
 		) {
 			nodes {
 				...AttendanceRecordFullFields
-				userByEmployeeId {
+				userByUserId {
 					...UserBasicFields
 				}
 			}
@@ -84,8 +80,11 @@ export const GET_EMPLOYEE_ATTENDANCE_QUERY = gql`
 // Query: Get current day attendance record
 export const GET_TODAY_ATTENDANCE_QUERY = gql`
 	query GetTodayAttendance($employeeId: UUID!, $date: Date!) {
-		attendanceRecordByEmployeeIdAndDate(employeeId: $employeeId, date: $date) {
-			...AttendanceRecordFullFields
+		# Note: This function may not exist in PostGraphile, use allAttendanceRecords with filter
+		allAttendanceRecords(condition: { userId: $employeeId, date: $date }, first: 1) {
+			nodes {
+				...AttendanceRecordFullFields
+			}
 		}
 	}
 	${ATTENDANCE_RECORD_FULL_FIELDS}
@@ -96,7 +95,7 @@ export const GET_ATTENDANCE_RECORD_BY_ID_QUERY = gql`
 	query GetAttendanceRecordById($id: UUID!) {
 		attendanceRecordById(id: $id) {
 			...AttendanceRecordFullFields
-			userByEmployeeId {
+			userByUserId {
 				...UserBasicFields
 			}
 		}
@@ -119,7 +118,7 @@ export const GET_TEAM_ATTENDANCE_QUERY = gql`
 			offset: $offset
 			filter: {
 				and: [
-					{ employeeId: { in: $employeeIds } }
+					{ userId: { in: $employeeIds } }
 					{ date: { greaterThanOrEqualTo: $startDate } }
 					{ date: { lessThanOrEqualTo: $endDate } }
 				]
@@ -128,7 +127,7 @@ export const GET_TEAM_ATTENDANCE_QUERY = gql`
 		) {
 			nodes {
 				...AttendanceRecordFullFields
-				userByEmployeeId {
+				userByUserId {
 					...UserBasicFields
 				}
 			}
@@ -147,7 +146,7 @@ export const GET_TEAM_ATTENDANCE_QUERY = gql`
 export const GET_ATTENDANCE_SUMMARY_QUERY = gql`
 	query GetAttendanceSummary($employeeId: UUID!, $startDate: Date!, $endDate: Date!) {
 		totalRecords: allAttendanceRecords(
-			condition: { employeeId: $employeeId }
+			condition: { userId: $employeeId }
 			filter: {
 				and: [
 					{ date: { greaterThanOrEqualTo: $startDate } }
@@ -208,7 +207,7 @@ export const GET_ATTENDANCE_SUMMARY_QUERY = gql`
 export const GET_WEEKLY_ATTENDANCE_QUERY = gql`
 	query GetWeeklyAttendance($employeeId: UUID!, $weekStart: Date!, $weekEnd: Date!) {
 		allAttendanceRecords(
-			condition: { employeeId: $employeeId }
+			condition: { userId: $employeeId }
 			filter: {
 				and: [
 					{ date: { greaterThanOrEqualTo: $weekStart } }
@@ -259,19 +258,19 @@ export const GET_ATTENDANCE_STATS_QUERY = gql`
 		}
 		presentToday: allAttendanceRecords(
 			condition: { status: PRESENT, date: $endDate }
-			filter: { employeeId: { in: $employeeIds } }
+			filter: { userId: { in: $employeeIds } }
 		) {
 			totalCount
 		}
 		absentToday: allAttendanceRecords(
 			condition: { status: ABSENT, date: $endDate }
-			filter: { employeeId: { in: $employeeIds } }
+			filter: { userId: { in: $employeeIds } }
 		) {
 			totalCount
 		}
 		lateToday: allAttendanceRecords(
 			condition: { status: LATE, date: $endDate }
-			filter: { employeeId: { in: $employeeIds } }
+			filter: { userId: { in: $employeeIds } }
 		) {
 			totalCount
 		}
@@ -284,7 +283,7 @@ export const GET_MISSING_ATTENDANCE_QUERY = gql`
 		allUsers(condition: { isActive: true }, filter: { id: { in: $employeeIds } }) {
 			nodes {
 				...UserBasicFields
-				hasAttendanceToday: attendanceRecordsByEmployeeId(condition: { date: $date }, first: 1) {
+				hasAttendanceToday: attendanceRecordsByUserId(condition: { date: $date }, first: 1) {
 					totalCount
 				}
 			}
@@ -305,7 +304,7 @@ export const GET_OVERTIME_RECORDS_QUERY = gql`
 		allAttendanceRecords(
 			first: $first
 			offset: $offset
-			condition: { employeeId: $employeeId }
+			condition: { userId: $employeeId }
 			filter: {
 				and: [
 					{ date: { greaterThanOrEqualTo: $startDate } }
@@ -317,7 +316,7 @@ export const GET_OVERTIME_RECORDS_QUERY = gql`
 		) {
 			nodes {
 				...AttendanceRecordFullFields
-				userByEmployeeId {
+				userByUserId {
 					...UserBasicFields
 				}
 			}

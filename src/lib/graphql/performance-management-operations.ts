@@ -53,16 +53,15 @@ export const PERFORMANCE_GOAL_FIELDS = gql`
 	fragment PerformanceGoalFields on PerformanceGoal {
 		id
 		employeeId
+		cycleId
 		title
 		description
-		targetCompletionDate
+		targetDate
 		status
 		progressPercentage
-		weight
 		finalRating
-		managerNotes
-		employeeNotes
-		reviewId
+		managerComments
+		employeeComments
 		createdAt
 		updatedAt
 	}
@@ -157,9 +156,12 @@ export const GET_EMPLOYEE_PERFORMANCE_REVIEWS_QUERY = gql`
 				reviewerByReviewerId: userByReviewerId {
 					...UserBasicFields
 				}
-				performanceGoalsByReviewId {
-					nodes {
-						...PerformanceGoalFields
+				performanceCycleByCycleId {
+					...PerformanceCycleFields
+					performanceGoalsByCycleId {
+						nodes {
+							...PerformanceGoalFields
+						}
 					}
 				}
 			}
@@ -190,9 +192,12 @@ export const GET_PERFORMANCE_REVIEW_BY_ID_QUERY = gql`
 			reviewerByReviewerId: userByReviewerId {
 				...UserBasicFields
 			}
-			performanceGoalsByReviewId {
-				nodes {
-					...PerformanceGoalFields
+			performanceCycleByCycleId {
+				...PerformanceCycleFields
+				performanceGoalsByCycleId {
+					nodes {
+						...PerformanceGoalFields
+					}
 				}
 			}
 		}
@@ -210,7 +215,7 @@ export const GET_PENDING_REVIEWS_FOR_REVIEWER_QUERY = gql`
 			first: $first
 			offset: $offset
 			condition: { reviewerId: $reviewerId, status: IN_PROGRESS }
-			orderBy: REVIEW_PERIOD_START_ASC
+			orderBy: CREATED_AT_ASC
 		) {
 			nodes {
 				...PerformanceReviewBasicFields
@@ -288,8 +293,8 @@ export const GET_EMPLOYEE_PERFORMANCE_GOALS_QUERY = gql`
 				userByEmployeeId {
 					...UserBasicFields
 				}
-				performanceReviewByReviewId {
-					...PerformanceReviewBasicFields
+				performanceCycleByCycleId {
+					...PerformanceCycleFields
 				}
 			}
 			totalCount
@@ -312,8 +317,8 @@ export const GET_PERFORMANCE_GOAL_BY_ID_QUERY = gql`
 			userByEmployeeId {
 				...UserBasicFields
 			}
-			performanceReviewByReviewId {
-				...PerformanceReviewBasicFields
+			performanceCycleByCycleId {
+				...PerformanceCycleFields
 			}
 		}
 	}
@@ -519,7 +524,10 @@ export const UPDATE_PERFORMANCE_GOAL_MUTATION = gql`
 export const UPDATE_GOAL_PROGRESS_MUTATION = gql`
 	mutation UpdateGoalProgress($id: UUID!, $progressPercentage: Int!, $status: String) {
 		updatePerformanceGoalById(
-			input: { id: $id, performanceGoalPatch: { progressPercentage: $progressPercentage, status: $status } }
+			input: {
+				id: $id
+				performanceGoalPatch: { progressPercentage: $progressPercentage, status: $status }
+			}
 		) {
 			performanceGoal {
 				...PerformanceGoalFields
@@ -586,8 +594,10 @@ export interface PerformanceReview {
 		displayName: string;
 		isActive: boolean;
 	};
-	performanceGoalsByReviewId?: {
-		nodes: PerformanceGoal[];
+	performanceCycleByCycleId?: {
+		performanceGoalsByCycleId?: {
+			nodes: PerformanceGoal[];
+		};
 	};
 }
 
@@ -616,7 +626,7 @@ export interface PerformanceGoal {
 		displayName: string;
 		isActive: boolean;
 	};
-	performanceReviewByReviewId?: PerformanceReview;
+	performanceCycleByCycleId?: PerformanceCycle;
 }
 
 export interface PerformanceStats {

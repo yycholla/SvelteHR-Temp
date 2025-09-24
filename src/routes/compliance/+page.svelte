@@ -111,28 +111,46 @@
 
 	const getStatusColor = (status: string) => {
 		switch (status) {
-			case 'compliant': case 'passed': return 'default';
-			case 'warning': case 'action-required': return 'secondary';
-			case 'non-compliant': case 'failed': return 'destructive';
-			default: return 'outline';
+			case 'compliant':
+			case 'passed':
+				return 'default';
+			case 'warning':
+			case 'action-required':
+				return 'secondary';
+			case 'non-compliant':
+			case 'failed':
+				return 'destructive';
+			default:
+				return 'outline';
 		}
 	};
 
 	const getStatusIcon = (status: string) => {
 		switch (status) {
-			case 'compliant': case 'passed': return CheckCircle;
-			case 'warning': case 'action-required': return AlertTriangle;
-			case 'non-compliant': case 'failed': return AlertTriangle;
-			default: return Clock;
+			case 'compliant':
+			case 'passed':
+				return CheckCircle;
+			case 'warning':
+			case 'action-required':
+				return AlertTriangle;
+			case 'non-compliant':
+			case 'failed':
+				return AlertTriangle;
+			default:
+				return Clock;
 		}
 	};
 
 	const getPriorityColor = (priority: string) => {
 		switch (priority) {
-			case 'high': return 'destructive';
-			case 'medium': return 'secondary';
-			case 'low': return 'outline';
-			default: return 'outline';
+			case 'high':
+				return 'destructive';
+			case 'medium':
+				return 'secondary';
+			case 'low':
+				return 'outline';
+			default:
+				return 'outline';
 		}
 	};
 </script>
@@ -171,7 +189,7 @@
 				<Card.Title>Overall Compliance Score</Card.Title>
 			</Card.Header>
 			<Card.Content>
-				<div class="text-center space-y-2">
+				<div class="space-y-2 text-center">
 					<div class="text-4xl font-bold text-green-600">{complianceOverview.overallScore}%</div>
 					<Progress.Root value={complianceOverview.overallScore} class="w-full" />
 					<p class="text-sm text-muted-foreground">
@@ -243,7 +261,7 @@
 									<span>Next Review: {area.nextReview}</span>
 								</div>
 							</div>
-							<div class="text-right space-y-2">
+							<div class="space-y-2 text-right">
 								<div class="text-2xl font-bold">{area.score}%</div>
 								<Progress.Root value={area.score} class="w-24" />
 								<div class="flex gap-1">
@@ -273,7 +291,7 @@
 				<Card.Content>
 					<div class="space-y-4">
 						{#each recentAudits as audit}
-							<div class="flex items-center justify-between p-4 border rounded-lg">
+							<div class="flex items-center justify-between rounded-lg border p-4">
 								<div class="flex items-center gap-3">
 									<svelte:component
 										this={getStatusIcon(audit.status)}
@@ -314,7 +332,7 @@
 				<Card.Content>
 					<div class="space-y-4">
 						{#each pendingActions as action}
-							<div class="flex items-center justify-between p-4 border rounded-lg">
+							<div class="flex items-center justify-between rounded-lg border p-4">
 								<div class="space-y-1">
 									<div class="flex items-center gap-3">
 										<h4 class="font-medium">{action.task}</h4>
@@ -351,19 +369,19 @@
 						<div class="space-y-3">
 							<h4 class="font-medium">Policies & Procedures</h4>
 							<div class="space-y-2">
-								<div class="flex items-center justify-between p-2 border rounded">
+								<div class="flex items-center justify-between rounded border p-2">
 									<span class="text-sm">Employee Handbook</span>
 									<Button size="sm" variant="outline">
 										<Download class="h-3 w-3" />
 									</Button>
 								</div>
-								<div class="flex items-center justify-between p-2 border rounded">
+								<div class="flex items-center justify-between rounded border p-2">
 									<span class="text-sm">Data Privacy Policy</span>
 									<Button size="sm" variant="outline">
 										<Download class="h-3 w-3" />
 									</Button>
 								</div>
-								<div class="flex items-center justify-between p-2 border rounded">
+								<div class="flex items-center justify-between rounded border p-2">
 									<span class="text-sm">Anti-Harassment Policy</span>
 									<Button size="sm" variant="outline">
 										<Download class="h-3 w-3" />
@@ -374,19 +392,19 @@
 						<div class="space-y-3">
 							<h4 class="font-medium">Regulatory Documents</h4>
 							<div class="space-y-2">
-								<div class="flex items-center justify-between p-2 border rounded">
+								<div class="flex items-center justify-between rounded border p-2">
 									<span class="text-sm">GDPR Compliance Report</span>
 									<Button size="sm" variant="outline">
 										<Download class="h-3 w-3" />
 									</Button>
 								</div>
-								<div class="flex items-center justify-between p-2 border rounded">
+								<div class="flex items-center justify-between rounded border p-2">
 									<span class="text-sm">Safety Audit Certificate</span>
 									<Button size="sm" variant="outline">
 										<Download class="h-3 w-3" />
 									</Button>
 								</div>
-								<div class="flex items-center justify-between p-2 border rounded">
+								<div class="flex items-center justify-between rounded border p-2">
 									<span class="text-sm">Employment Law Checklist</span>
 									<Button size="sm" variant="outline">
 										<Download class="h-3 w-3" />

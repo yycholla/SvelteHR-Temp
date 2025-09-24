@@ -270,7 +270,9 @@
 							<div>
 								<p class="text-sm font-medium text-muted-foreground">Active Goals</p>
 								<p class="text-2xl font-bold">
-									{Array.isArray(myGoals) ? myGoals.filter((g) => g.status !== 'COMPLETED').length : 0}
+									{Array.isArray(myGoals)
+										? myGoals.filter((g) => g.status !== 'COMPLETED').length
+										: 0}
 								</p>
 							</div>
 						</div>
@@ -284,7 +286,9 @@
 							<div>
 								<p class="text-sm font-medium text-muted-foreground">Completed Goals</p>
 								<p class="text-2xl font-bold">
-									{Array.isArray(myGoals) ? myGoals.filter((g) => g.status === 'COMPLETED').length : 0}
+									{Array.isArray(myGoals)
+										? myGoals.filter((g) => g.status === 'COMPLETED').length
+										: 0}
 								</p>
 							</div>
 						</div>
@@ -370,9 +374,11 @@
 								<span class="text-sm font-medium">Goals Completion Rate</span>
 								<span class="text-sm font-bold text-green-600">
 									{Math.round(
-										Array.isArray(myGoals) ? (myGoals.filter((g) => g.status === 'COMPLETED').length /
-											Math.max(myGoals.length, 1)) *
-											100 : 0
+										Array.isArray(myGoals)
+											? (myGoals.filter((g) => g.status === 'COMPLETED').length /
+													Math.max(myGoals.length, 1)) *
+													100
+											: 0
 									)}%
 								</span>
 							</div>
@@ -455,7 +461,11 @@
 									</div>
 
 									<div class="flex items-center justify-between text-sm text-muted-foreground">
-										<span>Due: {goal.targetCompletionDate ? formatDate(goal.targetCompletionDate) : 'No due date'}</span>
+										<span
+											>Due: {goal.targetCompletionDate
+												? formatDate(goal.targetCompletionDate)
+												: 'No due date'}</span
+										>
 										{#if goal.weight}
 											<span>Weight: {goal.weight}%</span>
 										{/if}

@@ -144,7 +144,7 @@
 	}
 
 	function calculateAverageTenure(employees: any[]): string {
-		const employeesWithHireDate = employees.filter(emp => emp.hireDate);
+		const employeesWithHireDate = employees.filter((emp) => emp.hireDate);
 		if (employeesWithHireDate.length === 0) return 'N/A';
 
 		const totalMonths = employeesWithHireDate.reduce((sum, emp) => {
@@ -193,7 +193,12 @@
 	}
 
 	function getUserInitials(name: string): string {
-		return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+		return name
+			.split(' ')
+			.map((n) => n[0])
+			.join('')
+			.toUpperCase()
+			.slice(0, 2);
 	}
 
 	// Load department data
@@ -211,7 +216,10 @@
 
 <svelte:head>
 	<title>{departmentName} Team - SvelteHR</title>
-	<meta name="description" content="View {departmentName} department team structure and hierarchy" />
+	<meta
+		name="description"
+		content="View {departmentName} department team structure and hierarchy"
+	/>
 </svelte:head>
 
 <div class="space-y-6">
@@ -257,9 +265,7 @@
 				<div class="text-center">
 					<h3 class="text-lg font-semibold text-destructive">Error Loading Team</h3>
 					<p class="text-muted-foreground">{error}</p>
-					<Button class="mt-4" onclick={() => window.location.reload()}>
-						Try Again
-					</Button>
+					<Button class="mt-4" onclick={() => window.location.reload()}>Try Again</Button>
 				</div>
 			</Card.Content>
 		</Card.Root>
@@ -352,7 +358,9 @@
 							{#each departmentData.employees as employee}
 								<div class="flex items-center justify-between rounded-lg border p-4">
 									<div class="flex items-center gap-4">
-										<div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 font-semibold">
+										<div
+											class="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 font-semibold"
+										>
 											{getUserInitials(employee.displayName || employee.email)}
 										</div>
 
@@ -364,7 +372,7 @@
 												{/if}
 											</div>
 											<p class="text-sm text-muted-foreground">{employee.email}</p>
-											<div class="flex items-center gap-2 mt-1">
+											<div class="mt-1 flex items-center gap-2">
 												<Badge variant={getRoleBadgeVariant(employee)}>
 													{formatUserRole(employee)}
 												</Badge>
@@ -400,7 +408,7 @@
 					</Card.Header>
 					<Card.Content>
 						<div class="space-y-6">
-							<div class="text-center py-8">
+							<div class="py-8 text-center">
 								<Target class="mx-auto h-12 w-12 text-muted-foreground" />
 								<h3 class="mt-4 text-lg font-semibold">Performance Metrics</h3>
 								<p class="text-muted-foreground">Performance tracking coming soon...</p>
@@ -418,7 +426,7 @@
 					</Card.Header>
 					<Card.Content>
 						<div class="space-y-6">
-							<div class="text-center py-8">
+							<div class="py-8 text-center">
 								<Activity class="mx-auto h-12 w-12 text-muted-foreground" />
 								<h3 class="mt-4 text-lg font-semibold">Project Management</h3>
 								<p class="text-muted-foreground">Project tracking coming soon...</p>

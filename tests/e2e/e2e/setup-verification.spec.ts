@@ -12,7 +12,7 @@ test.describe('Playwright Setup Verification', () => {
 		await page.goto('/');
 
 		// Verify the page loads (should redirect to login or show loading)
-		await expect(page).toHaveURL(/localhost:5175/);
+		await expect(page).toHaveURL(/localhost:5174/);
 
 		// Verify we can interact with the page
 		const body = page.locator('body');
@@ -53,7 +53,7 @@ test.describe('Playwright Setup Verification', () => {
 		await page.waitForTimeout(2000);
 
 		// We should still be somewhere in the app (not a browser error page)
-		await expect(page).toHaveURL(/localhost:5175/);
+		await expect(page).toHaveURL(/localhost:5174/);
 
 		console.log('✅ Backend connectivity verified (GraphQL endpoint reachable)');
 	});

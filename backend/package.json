@@ -16,6 +16,8 @@
     "test:contract": "jest tests/contract",
     "test:integration": "jest tests/integration",
     "test:unit": "jest tests/unit",
+    "test:hr": "jest tests/contract/test_*_graphql.js tests/integration/test_hr_*.js",
+    "test:workflows": "jest tests/integration/test_*_flow.js",
     "lint": "eslint . --fix",
     "lint:check": "eslint .",
     "type-check": "tsc --noEmit",
@@ -23,7 +25,11 @@
     "validate": "npm run type-check && npm run lint:check",
     "schema:watch": "postgraphile --connection $DATABASE_URL --schema hr_public --watch --enhance-graphiql",
     "schema:validate": "npm run postgraphile:standalone --dry-run",
-    "db:migrate": "tsx ../database/migrations/*.sql"
+    "db:migrate": "tsx ../database/migrations/*.sql",
+    "db:migrate:hr": "tsx migrations/migrate.ts migrate",
+    "db:migrate:hr:status": "tsx migrations/migrate.ts status",
+    "db:migrate:hr:rollback": "tsx migrations/migrate.ts rollback",
+    "db:migrate:hr:create": "tsx migrations/migrate.ts create"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
@@ -44,7 +50,25 @@
     "postgraphile": "^4.14.1",
     "postgraphile-plugin-connection-filter": "^2.3.0",
     "redis": "^4.7.1",
-    "winston": "^3.17.0"
+    "winston": "^3.17.0",
+    "graphile-utils": "^4.13.0",
+    "postgraphile-plugin-nested-mutations": "^1.0.3",
+    "postgraphile-plugin-upload-field": "^1.0.1",
+    "@graphile-contrib/pg-aggregates": "^1.0.2",
+    "@graphile-contrib/pg-many-to-many": "^1.0.2",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.9.7",
+    "graphql-upload": "^16.0.2",
+    "graphql-ws": "^5.14.2",
+    "ws": "^8.14.2",
+    "joi": "^17.11.0",
+    "date-fns": "^2.30.0",
+    "csv-writer": "^1.6.0",
+    "xlsx": "^0.18.5",
+    "sharp": "^0.32.6",
+    "pdf-lib": "^1.17.1",
+    "agenda": "^5.0.0",
+    "node-cron": "^3.0.3"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
@@ -66,7 +90,13 @@
     "supertest": "^6.3.3",
     "ts-jest": "^29.1.1",
     "tsx": "^4.6.0",
-    "typescript": "^5.3.2"
+    "typescript": "^5.3.2",
+    "@types/multer": "^1.4.11",
+    "@types/nodemailer": "^6.4.14",
+    "@types/ws": "^8.5.10",
+    "@types/joi": "^17.2.3",
+    "@types/node-cron": "^3.0.11",
+    "graphql-schema-linter": "^3.0.1"
   },
   "keywords": [
     "hr",

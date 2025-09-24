@@ -43,8 +43,15 @@
 			employmentType: 'Full-time'
 		},
 		skills: [
-			'JavaScript', 'TypeScript', 'React', 'Svelte', 'Node.js',
-			'PostgreSQL', 'GraphQL', 'Docker', 'AWS'
+			'JavaScript',
+			'TypeScript',
+			'React',
+			'Svelte',
+			'Node.js',
+			'PostgreSQL',
+			'GraphQL',
+			'Docker',
+			'AWS'
 		],
 		achievements: [
 			{ title: 'Employee of the Month', date: '2024-10', type: 'recognition' },
@@ -78,7 +85,7 @@
 			<p class="text-muted-foreground">View and manage your employee information</p>
 		</div>
 
-		<Button variant="outline" onclick={() => isEditing = !isEditing}>
+		<Button variant="outline" onclick={() => (isEditing = !isEditing)}>
 			<Edit class="mr-2 h-4 w-4" />
 			{isEditing ? 'Cancel' : 'Edit Profile'}
 		</Button>
@@ -92,16 +99,25 @@
 					<div class="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
 						<User class="h-10 w-10" />
 					</div>
-					<Button size="sm" variant="outline" class="absolute -bottom-2 -right-2 h-8 w-8 rounded-full p-0">
+					<Button
+						size="sm"
+						variant="outline"
+						class="absolute -bottom-2 -right-2 h-8 w-8 rounded-full p-0"
+					>
 						<Camera class="h-4 w-4" />
 					</Button>
 				</div>
 				<div class="space-y-1">
-					<h2 class="text-2xl font-bold">{profileData.personalInfo.firstName} {profileData.personalInfo.lastName}</h2>
+					<h2 class="text-2xl font-bold">
+						{profileData.personalInfo.firstName}
+						{profileData.personalInfo.lastName}
+					</h2>
 					<p class="text-lg text-muted-foreground">{profileData.workInfo.position}</p>
 					<p class="text-sm text-muted-foreground">{profileData.workInfo.department}</p>
 					<div class="flex items-center gap-4 pt-2">
-						<Badge.Root variant="secondary">Employee ID: {profileData.workInfo.employeeId}</Badge.Root>
+						<Badge.Root variant="secondary"
+							>Employee ID: {profileData.workInfo.employeeId}</Badge.Root
+						>
 						<Badge.Root variant="outline">{profileData.workInfo.employmentType}</Badge.Root>
 					</div>
 				</div>
@@ -132,19 +148,11 @@
 					<div class="grid grid-cols-2 gap-4">
 						<div class="space-y-2">
 							<Label for="firstName">First Name</Label>
-							<Input
-								id="firstName"
-								bind:value={editableData.firstName}
-								readonly={!isEditing}
-							/>
+							<Input id="firstName" bind:value={editableData.firstName} readonly={!isEditing} />
 						</div>
 						<div class="space-y-2">
 							<Label for="lastName">Last Name</Label>
-							<Input
-								id="lastName"
-								bind:value={editableData.lastName}
-								readonly={!isEditing}
-							/>
+							<Input id="lastName" bind:value={editableData.lastName} readonly={!isEditing} />
 						</div>
 					</div>
 					<div class="space-y-2">
@@ -163,11 +171,7 @@
 						<Label for="phone">Phone Number</Label>
 						<div class="flex items-center gap-2">
 							<Phone class="h-4 w-4 text-muted-foreground" />
-							<Input
-								id="phone"
-								bind:value={editableData.phone}
-								readonly={!isEditing}
-							/>
+							<Input id="phone" bind:value={editableData.phone} readonly={!isEditing} />
 						</div>
 					</div>
 					<div class="space-y-2">
@@ -218,7 +222,8 @@
 						<Building2 class="h-5 w-5" />
 						Work Information
 					</Card.Title>
-					<Card.Description>Your employment details and organizational information</Card.Description>
+					<Card.Description>Your employment details and organizational information</Card.Description
+					>
 				</Card.Header>
 				<Card.Content class="space-y-4">
 					<div class="grid grid-cols-2 gap-4">
@@ -289,14 +294,14 @@
 				</Card.Header>
 				<Card.Content>
 					<div class="space-y-3">
-						<div class="flex items-center justify-between p-3 border rounded-lg">
+						<div class="flex items-center justify-between rounded-lg border p-3">
 							<div>
 								<h4 class="font-medium">Complete React certification</h4>
 								<p class="text-sm text-muted-foreground">Due: Dec 31, 2024</p>
 							</div>
 							<Badge.Root variant="outline">In Progress</Badge.Root>
 						</div>
-						<div class="flex items-center justify-between p-3 border rounded-lg">
+						<div class="flex items-center justify-between rounded-lg border p-3">
 							<div>
 								<h4 class="font-medium">Lead project migration to Svelte</h4>
 								<p class="text-sm text-muted-foreground">Due: Mar 15, 2025</p>
@@ -306,7 +311,9 @@
 					</div>
 				</Card.Content>
 				<Card.Footer>
-					<Button variant="outline" href="/dashboard/users/{$currentUser?.id}/performance">View Performance</Button>
+					<Button variant="outline" href="/dashboard/users/{$currentUser?.id}/performance"
+						>View Performance</Button
+					>
 				</Card.Footer>
 			</Card.Root>
 		</Tabs.Content>
@@ -324,12 +331,12 @@
 				<Card.Content>
 					<div class="space-y-4">
 						{#each profileData.achievements as achievement}
-							<div class="flex items-center gap-4 p-4 border rounded-lg">
+							<div class="flex items-center gap-4 rounded-lg border p-4">
 								<div class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
 									{#if achievement.type === 'recognition'}
 										<Trophy class="h-5 w-5 text-yellow-600" />
 									{:else if achievement.type === 'achievement'}
-						<Target class="h-5 w-5 text-blue-600" />
+										<Target class="h-5 w-5 text-blue-600" />
 									{:else}
 										<Clock class="h-5 w-5 text-green-600" />
 									{/if}

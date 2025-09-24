@@ -36,6 +36,37 @@ module.exports = {
     'object-shorthand': 'error',
     'prefer-template': 'error',
     'no-duplicate-imports': 'error',
+
+    // HR business logic rules
+    '@typescript-eslint/naming-convention': [
+      'error',
+      {
+        selector: 'interface',
+        format: ['PascalCase'],
+        prefix: ['I']
+      },
+      {
+        selector: 'typeAlias',
+        format: ['PascalCase']
+      },
+      {
+        selector: 'enum',
+        format: ['PascalCase']
+      },
+      {
+        selector: 'enumMember',
+        format: ['UPPER_CASE']
+      },
+      {
+        selector: 'function',
+        format: ['camelCase'],
+        leadingUnderscore: 'allow'
+      }
+    ],
+
+    // PostgreSQL/PostGraphile specific rules
+    'no-sync-pg-calls': 'off', // Custom rule for async DB operations
+    'consistent-error-handling': 'off', // Custom rule for error handling patterns
   },
   ignorePatterns: ['dist/', 'node_modules/', '*.js', '!.eslintrc.js'],
 };

@@ -8,7 +8,16 @@
 	import * as Card from '$lib/components/ui/card';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import * as Badge from '$lib/components/ui/badge';
-	import { ClipboardCheck, Calendar, Star, TrendingUp, Users, ArrowLeft, RefreshCw, Loader2 } from 'lucide-svelte';
+	import {
+		ClipboardCheck,
+		Calendar,
+		Star,
+		TrendingUp,
+		Users,
+		ArrowLeft,
+		RefreshCw,
+		Loader2
+	} from 'lucide-svelte';
 
 	// Import GraphQL operations
 	import {
@@ -109,13 +118,18 @@
 <div class="space-y-6">
 	<!-- Header -->
 	<div class="flex items-center space-x-4">
-
 		<div>
 			<h1 class="flex items-center gap-3 text-3xl font-bold tracking-tight">
 				<ClipboardCheck class="h-8 w-8" />
-				{isOwnReviews ? 'My Performance Reviews' : `${$currentUser?.display_name || 'User'}'s Performance Reviews`}
+				{isOwnReviews
+					? 'My Performance Reviews'
+					: `${$currentUser?.display_name || 'User'}'s Performance Reviews`}
 			</h1>
-			<p class="text-muted-foreground">{isOwnReviews ? 'View and complete your performance reviews' : 'View performance reviews for this user'}</p>
+			<p class="text-muted-foreground">
+				{isOwnReviews
+					? 'View and complete your performance reviews'
+					: 'View performance reviews for this user'}
+			</p>
 		</div>
 	</div>
 
@@ -141,10 +155,18 @@
 			</Card.Header>
 			<Card.Content>
 				<div class="text-2xl font-bold">
-					{reviewsQueryState.fetching ? '-' : Array.isArray(myReviews) ? myReviews.filter(r => r.status === 'COMPLETED').length : 0}
+					{reviewsQueryState.fetching
+						? '-'
+						: Array.isArray(myReviews)
+							? myReviews.filter((r) => r.status === 'COMPLETED').length
+							: 0}
 				</div>
 				<p class="text-xs text-muted-foreground">
-					{reviewsQueryState.fetching ? 'Loading...' : Array.isArray(myReviews) ? `${Math.round((myReviews.filter(r => r.status === 'COMPLETED').length / Math.max(myReviews.length, 1)) * 100)}% completion rate` : '0% completion rate'}
+					{reviewsQueryState.fetching
+						? 'Loading...'
+						: Array.isArray(myReviews)
+							? `${Math.round((myReviews.filter((r) => r.status === 'COMPLETED').length / Math.max(myReviews.length, 1)) * 100)}% completion rate`
+							: '0% completion rate'}
 				</p>
 			</Card.Content>
 		</Card.Root>
@@ -156,7 +178,11 @@
 			</Card.Header>
 			<Card.Content>
 				<div class="text-2xl font-bold">
-					{reviewsQueryState.fetching ? '-' : Array.isArray(myReviews) ? myReviews.filter(r => r.status === 'IN_PROGRESS').length : 0}
+					{reviewsQueryState.fetching
+						? '-'
+						: Array.isArray(myReviews)
+							? myReviews.filter((r) => r.status === 'IN_PROGRESS').length
+							: 0}
 				</div>
 				<p class="text-xs text-muted-foreground">Currently active</p>
 			</Card.Content>
@@ -172,16 +198,23 @@
 					{(() => {
 						if (reviewsQueryState.fetching) return '-';
 						if (!Array.isArray(myReviews)) return 'N/A';
-						const completedWithRatings = myReviews.filter(r => r.status === 'COMPLETED' && r.overallRating);
+						const completedWithRatings = myReviews.filter(
+							(r) => r.status === 'COMPLETED' && r.overallRating
+						);
 						if (completedWithRatings.length === 0) return 'N/A';
 						// Convert rating enum to numeric value for averaging
-						const ratingValues = completedWithRatings.map(r => {
+						const ratingValues = completedWithRatings.map((r) => {
 							switch (r.overallRating) {
-								case 'EXCEEDED_EXPECTATIONS': return 5;
-								case 'MET_EXPECTATIONS': return 4;
-								case 'PARTIALLY_MET_EXPECTATIONS': return 3;
-								case 'DID_NOT_MEET_EXPECTATIONS': return 2;
-								default: return 0;
+								case 'EXCEEDED_EXPECTATIONS':
+									return 5;
+								case 'MET_EXPECTATIONS':
+									return 4;
+								case 'PARTIALLY_MET_EXPECTATIONS':
+									return 3;
+								case 'DID_NOT_MEET_EXPECTATIONS':
+									return 2;
+								default:
+									return 0;
 							}
 						});
 						const avg = ratingValues.reduce((sum, rating) => sum + rating, 0) / ratingValues.length;
@@ -212,13 +245,19 @@
 
 		<Tabs.Content value="all" class="space-y-4">
 			<div class="flex items-center justify-between">
-				<h3 class="text-lg font-semibold">{isOwnReviews ? 'My Performance Reviews' : 'Performance Reviews'}</h3>
+				<h3 class="text-lg font-semibold">
+					{isOwnReviews ? 'My Performance Reviews' : 'Performance Reviews'}
+				</h3>
 			</div>
 
 			<Card.Root>
 				<Card.Header>
 					<Card.Title>Review History</Card.Title>
-					<Card.Description>{isOwnReviews ? 'View and track your performance review history' : 'Performance review history for this user'}</Card.Description>
+					<Card.Description
+						>{isOwnReviews
+							? 'View and track your performance review history'
+							: 'Performance review history for this user'}</Card.Description
+					>
 				</Card.Header>
 				<Card.Content>
 					{#if reviewsQueryState.fetching}
@@ -229,21 +268,25 @@
 							</div>
 						</div>
 					{:else if reviewsQueryState.error}
-						<div class="text-center py-8">
+						<div class="py-8 text-center">
 							<div class="rounded-lg border border-red-200 bg-red-50 p-4">
-								<p class="text-sm text-red-600">Error loading reviews: {reviewsQueryState.error.message}</p>
+								<p class="text-sm text-red-600">
+									Error loading reviews: {reviewsQueryState.error.message}
+								</p>
 							</div>
 						</div>
 					{:else if myReviews.length === 0}
-						<div class="text-center py-8">
-							<ClipboardCheck class="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-							<h3 class="text-lg font-semibold mb-2">No reviews found</h3>
-							<p class="text-muted-foreground">Performance reviews will appear here when they are created.</p>
+						<div class="py-8 text-center">
+							<ClipboardCheck class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+							<h3 class="mb-2 text-lg font-semibold">No reviews found</h3>
+							<p class="text-muted-foreground">
+								Performance reviews will appear here when they are created.
+							</p>
 						</div>
 					{:else}
 						<div class="space-y-4">
 							{#each myReviews as review}
-								<div class="flex items-center justify-between p-4 border rounded-lg">
+								<div class="flex items-center justify-between rounded-lg border p-4">
 									<div class="space-y-1">
 										<div class="flex items-center gap-3">
 											<h4 class="font-medium">
@@ -257,15 +300,25 @@
 											Reviewer: {review.reviewerByReviewerId?.displayName || 'TBD'}
 										</p>
 										<p class="text-sm text-muted-foreground">
-											Period: {formatDate(review.reviewPeriodStart)} - {formatDate(review.reviewPeriodEnd)}
+											Period: {formatDate(review.reviewPeriodStart)} - {formatDate(
+												review.reviewPeriodEnd
+											)}
 										</p>
 										<div class="flex items-center gap-4 text-xs text-muted-foreground">
 											<span class="flex items-center gap-1">
-												<div class="w-2 h-2 rounded-full {review.selfAssessment ? 'bg-green-500' : 'bg-gray-300'}"></div>
+												<div
+													class="h-2 w-2 rounded-full {review.selfAssessment
+														? 'bg-green-500'
+														: 'bg-gray-300'}"
+												></div>
 												Self Assessment
 											</span>
 											<span class="flex items-center gap-1">
-												<div class="w-2 h-2 rounded-full {review.overallRating ? 'bg-green-500' : 'bg-gray-300'}"></div>
+												<div
+													class="h-2 w-2 rounded-full {review.overallRating
+														? 'bg-green-500'
+														: 'bg-gray-300'}"
+												></div>
 												Manager Assessment
 											</span>
 										</div>
@@ -287,7 +340,11 @@
 										</div>
 
 										<Button variant="outline" size="sm">
-											{review.status === 'COMPLETED' ? 'View Report' : review.status === 'IN_PROGRESS' ? 'Continue Review' : 'Start Review'}
+											{review.status === 'COMPLETED'
+												? 'View Report'
+												: review.status === 'IN_PROGRESS'
+													? 'Continue Review'
+													: 'Start Review'}
 										</Button>
 									</div>
 								</div>
@@ -302,7 +359,11 @@
 			<Card.Root>
 				<Card.Header>
 					<Card.Title>Pending Reviews</Card.Title>
-					<Card.Description>{isOwnReviews ? 'Reviews you need to start or complete' : 'Reviews this user needs to start or complete'}</Card.Description>
+					<Card.Description
+						>{isOwnReviews
+							? 'Reviews you need to start or complete'
+							: 'Reviews this user needs to start or complete'}</Card.Description
+					>
 				</Card.Header>
 				<Card.Content>
 					{#if reviewsQueryState.fetching}
@@ -313,10 +374,12 @@
 							</div>
 						</div>
 					{:else}
-						{@const pendingReviews = Array.isArray(myReviews) ? myReviews.filter(r => r.status === 'Draft') : []}
+						{@const pendingReviews = Array.isArray(myReviews)
+							? myReviews.filter((r) => r.status === 'Draft')
+							: []}
 						<div class="space-y-4">
 							{#each pendingReviews as review}
-								<div class="flex items-center justify-between p-4 border rounded-lg">
+								<div class="flex items-center justify-between rounded-lg border p-4">
 									<div class="space-y-1">
 										<h4 class="font-medium">
 											{review.performanceCycleByCycleId?.name || 'Performance Review'}
@@ -334,7 +397,9 @@
 								<div class="text-center py-8">
 									<ClipboardCheck class="mx-auto h-12 w-12 text-muted-foreground mb-4" />
 									<h3 class="text-lg font-semibold mb-2">No pending reviews</h3>
-									<p class="text-muted-foreground">You don't have any reviews waiting to be started.</p>
+									<p class="text-muted-foreground">
+										You don't have any reviews waiting to be started.
+									</p>
 								</div>
 							{/each}
 						</div>
@@ -347,7 +412,11 @@
 			<Card.Root>
 				<Card.Header>
 					<Card.Title>In Progress Reviews</Card.Title>
-					<Card.Description>{isOwnReviews ? 'Reviews you are currently completing' : 'Reviews this user is currently completing'}</Card.Description>
+					<Card.Description
+						>{isOwnReviews
+							? 'Reviews you are currently completing'
+							: 'Reviews this user is currently completing'}</Card.Description
+					>
 				</Card.Header>
 				<Card.Content>
 					{#if reviewsQueryState.fetching}
@@ -358,10 +427,12 @@
 							</div>
 						</div>
 					{:else}
-						{@const inProgressReviews = Array.isArray(myReviews) ? myReviews.filter(r => r.status === 'IN_PROGRESS') : []}
+						{@const inProgressReviews = Array.isArray(myReviews)
+							? myReviews.filter((r) => r.status === 'IN_PROGRESS')
+							: []}
 						<div class="space-y-4">
 							{#each inProgressReviews as review}
-								<div class="flex items-center justify-between p-4 border rounded-lg">
+								<div class="flex items-center justify-between rounded-lg border p-4">
 									<div class="space-y-2">
 										<h4 class="font-medium">
 											{review.performanceCycleByCycleId?.name || 'Performance Review'}
@@ -369,17 +440,30 @@
 										<p class="text-sm text-muted-foreground">
 											Reviewer: {review.reviewerByReviewerId?.displayName || 'TBD'}
 										</p>
-										<div class="w-48 bg-gray-200 rounded-full h-2">
-											<div class="bg-blue-600 h-2 rounded-full" style="width: {getCompletionPercentage(review)}%"></div>
+										<div class="h-2 w-48 rounded-full bg-gray-200">
+											<div
+												class="h-2 rounded-full bg-blue-600"
+												style="width: {getCompletionPercentage(review)}%"
+											></div>
 										</div>
-										<p class="text-xs text-muted-foreground">{getCompletionPercentage(review)}% complete</p>
+										<p class="text-xs text-muted-foreground">
+											{getCompletionPercentage(review)}% complete
+										</p>
 										<div class="flex items-center gap-4 text-xs text-muted-foreground">
 											<span class="flex items-center gap-1">
-												<div class="w-2 h-2 rounded-full {review.selfAssessment ? 'bg-green-500' : 'bg-yellow-500'}"></div>
+												<div
+													class="h-2 w-2 rounded-full {review.selfAssessment
+														? 'bg-green-500'
+														: 'bg-yellow-500'}"
+												></div>
 												Self Assessment {review.selfAssessment ? 'Complete' : 'In Progress'}
 											</span>
 											<span class="flex items-center gap-1">
-												<div class="w-2 h-2 rounded-full {review.overallRating ? 'bg-green-500' : 'bg-gray-300'}"></div>
+												<div
+													class="h-2 w-2 rounded-full {review.overallRating
+														? 'bg-green-500'
+														: 'bg-gray-300'}"
+												></div>
 												Manager Assessment {review.overallRating ? 'Complete' : 'Pending'}
 											</span>
 										</div>
@@ -390,7 +474,9 @@
 								<div class="text-center py-8">
 									<TrendingUp class="mx-auto h-12 w-12 text-muted-foreground mb-4" />
 									<h3 class="text-lg font-semibold mb-2">No reviews in progress</h3>
-									<p class="text-muted-foreground">You don't have any reviews currently being completed.</p>
+									<p class="text-muted-foreground">
+										You don't have any reviews currently being completed.
+									</p>
 								</div>
 							{/each}
 						</div>
@@ -403,7 +489,11 @@
 			<Card.Root>
 				<Card.Header>
 					<Card.Title>Completed Reviews</Card.Title>
-					<Card.Description>{isOwnReviews ? 'Your completed performance reviews' : 'Completed performance reviews for this user'}</Card.Description>
+					<Card.Description
+						>{isOwnReviews
+							? 'Your completed performance reviews'
+							: 'Completed performance reviews for this user'}</Card.Description
+					>
 				</Card.Header>
 				<Card.Content>
 					{#if reviewsQueryState.fetching}
@@ -414,10 +504,12 @@
 							</div>
 						</div>
 					{:else}
-						{@const completedReviews = Array.isArray(myReviews) ? myReviews.filter(r => r.status === 'COMPLETED') : []}
+						{@const completedReviews = Array.isArray(myReviews)
+							? myReviews.filter((r) => r.status === 'COMPLETED')
+							: []}
 						<div class="space-y-4">
 							{#each completedReviews as review}
-								<div class="flex items-center justify-between p-4 border rounded-lg">
+								<div class="flex items-center justify-between rounded-lg border p-4">
 									<div class="space-y-1">
 										<h4 class="font-medium">
 											{review.performanceCycleByCycleId?.name || 'Performance Review'}
@@ -426,7 +518,9 @@
 											Reviewer: {review.reviewerByReviewerId?.displayName || 'TBD'}
 										</p>
 										<p class="text-sm text-green-600">
-											Completed on {review.completedAt ? formatDate(review.completedAt) : formatDate(review.reviewPeriodEnd)}
+											Completed on {review.completedAt
+												? formatDate(review.completedAt)
+												: formatDate(review.reviewPeriodEnd)}
 										</p>
 									</div>
 									<div class="flex items-center gap-4">
@@ -445,7 +539,9 @@
 								<div class="text-center py-8">
 									<Star class="mx-auto h-12 w-12 text-muted-foreground mb-4" />
 									<h3 class="text-lg font-semibold mb-2">No completed reviews</h3>
-									<p class="text-muted-foreground">Completed reviews will appear here once they are finished.</p>
+									<p class="text-muted-foreground">
+										Completed reviews will appear here once they are finished.
+									</p>
 								</div>
 							{/each}
 						</div>

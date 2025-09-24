@@ -465,7 +465,7 @@ export const authActions = {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
-						'Authorization': `Bearer ${token}`
+						Authorization: `Bearer ${token}`
 					},
 					body: JSON.stringify({
 						query: `
@@ -512,14 +512,17 @@ export const authActions = {
 		authActions.stopTokenRefresh();
 
 		// Check token every 2 minutes
-		_refreshInterval = setInterval(async () => {
-			const isAuthenticated = get(authStore).isAuthenticated;
-			if (isAuthenticated) {
-				await authActions.refreshToken();
-			} else {
-				authActions.stopTokenRefresh();
-			}
-		}, 2 * 60 * 1000); // 2 minutes
+		_refreshInterval = setInterval(
+			async () => {
+				const isAuthenticated = get(authStore).isAuthenticated;
+				if (isAuthenticated) {
+					await authActions.refreshToken();
+				} else {
+					authActions.stopTokenRefresh();
+				}
+			},
+			2 * 60 * 1000
+		); // 2 minutes
 
 		console.log('🔄 Automatic token refresh started (every 2 minutes)');
 	},

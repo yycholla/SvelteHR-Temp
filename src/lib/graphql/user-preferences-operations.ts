@@ -182,17 +182,9 @@ export const REQUEST_PROFILE_CHANGES_MUTATION = gql`
 
 // Mutation to approve/reject profile changes (HR/Admin only)
 export const APPROVE_PROFILE_CHANGES_MUTATION = gql`
-	mutation ApproveProfileChanges(
-		$userId: UUID!
-		$approve: Boolean!
-		$rejectionReason: String
-	) {
+	mutation ApproveProfileChanges($userId: UUID!, $approve: Boolean!, $rejectionReason: String) {
 		approveProfileChanges(
-			input: {
-				targetUserId: $userId
-				approve: $approve
-				rejectionReason: $rejectionReason
-			}
+			input: { targetUserId: $userId, approve: $approve, rejectionReason: $rejectionReason }
 		) {
 			userPreference {
 				...UserPreferencesFields

@@ -171,9 +171,9 @@
 			// Process leave balances by policy type
 			const leaveBalances = data.allLeaveBalances?.nodes || [];
 			userLeaveBalance = {
-				vacation: leaveBalances.find(b => b.leavePolicyByLeavePolicyId?.leaveType === 'VACATION'),
-				sick: leaveBalances.find(b => b.leavePolicyByLeavePolicyId?.leaveType === 'SICK'),
-				personal: leaveBalances.find(b => b.leavePolicyByLeavePolicyId?.leaveType === 'PERSONAL')
+				vacation: leaveBalances.find((b) => b.leavePolicyByLeavePolicyId?.leaveType === 'VACATION'),
+				sick: leaveBalances.find((b) => b.leavePolicyByLeavePolicyId?.leaveType === 'SICK'),
+				personal: leaveBalances.find((b) => b.leavePolicyByLeavePolicyId?.leaveType === 'PERSONAL')
 			};
 		} catch (err) {
 			console.error('Error loading leave balance:', err);
@@ -227,7 +227,6 @@
 			setTimeout(() => {
 				goto(`/dashboard/users/${userId}/leave/requests`);
 			}, 2000);
-
 		} catch (err) {
 			console.error('Error creating leave request:', err);
 			error = err instanceof Error ? err.message : 'Failed to submit leave request';
@@ -242,10 +241,12 @@
 	});
 
 	const isFormValid = $derived(() => {
-		return formData.startDate &&
-			   formData.endDate &&
-			   formData.reason?.trim() &&
-			   Object.keys(validationErrors).length === 0;
+		return (
+			formData.startDate &&
+			formData.endDate &&
+			formData.reason?.trim() &&
+			Object.keys(validationErrors).length === 0
+		);
 	});
 
 	onMount(() => {
@@ -312,11 +313,17 @@
 						<Label for="requestType">Request Type</Label>
 						<Select.Root type="single" bind:value={formData.requestType}>
 							<Select.Trigger class={validationErrors.requestType ? 'border-red-500' : ''}>
-								{formData.requestType === 'vacation' ? 'Vacation' :
-								 formData.requestType === 'sick' ? 'Sick Leave' :
-								 formData.requestType === 'personal' ? 'Personal Day' :
-								 formData.requestType === 'family' ? 'Family Emergency' :
-								 formData.requestType === 'other' ? 'Other' : 'Select request type'}
+								{formData.requestType === 'vacation'
+									? 'Vacation'
+									: formData.requestType === 'sick'
+										? 'Sick Leave'
+										: formData.requestType === 'personal'
+											? 'Personal Day'
+											: formData.requestType === 'family'
+												? 'Family Emergency'
+												: formData.requestType === 'other'
+													? 'Other'
+													: 'Select request type'}
 							</Select.Trigger>
 							<Select.Content>
 								<Select.Item value="vacation">Vacation</Select.Item>
@@ -403,10 +410,7 @@
 							Cancel
 						</Button>
 
-						<Button
-							onclick={submitRequest}
-							disabled={!isFormValid || submitting}
-						>
+						<Button onclick={submitRequest} disabled={!isFormValid || submitting}>
 							{#if submitting}
 								<Loader2 class="mr-2 h-4 w-4 animate-spin" />
 								Submitting...
@@ -466,19 +470,19 @@
 				</Card.Header>
 				<Card.Content class="space-y-3 text-sm">
 					<div class="flex items-start gap-2">
-						<Clock class="mt-0.5 h-4 w-4 text-muted-foreground flex-shrink-0" />
+						<Clock class="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />
 						<p>Submit requests at least 2 weeks in advance when possible</p>
 					</div>
 					<div class="flex items-start gap-2">
-						<CalendarIcon class="mt-0.5 h-4 w-4 text-muted-foreground flex-shrink-0" />
+						<CalendarIcon class="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />
 						<p>Maximum 30 consecutive days per request</p>
 					</div>
 					<div class="flex items-start gap-2">
-						<Info class="mt-0.5 h-4 w-4 text-muted-foreground flex-shrink-0" />
+						<Info class="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />
 						<p>Emergency requests may be approved on shorter notice</p>
 					</div>
 					<div class="flex items-start gap-2">
-						<CheckCircle class="mt-0.5 h-4 w-4 text-muted-foreground flex-shrink-0" />
+						<CheckCircle class="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />
 						<p>You'll receive an email notification when reviewed</p>
 					</div>
 				</Card.Content>

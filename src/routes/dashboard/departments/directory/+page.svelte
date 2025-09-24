@@ -44,8 +44,8 @@
 		try {
 			const token = localStorage.getItem('postgraphile-jwt-token');
 
-			// First get all users to calculate department stats
-			const usersResponse = await fetch('http://localhost:4000/graphql', {
+			// Fetch departments with their employees through job_information
+			const response = await fetch('http://localhost:4000/graphql', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -53,21 +53,34 @@
 				},
 				body: JSON.stringify({
 					query: `
-						query GetAllUsers {
-							allUsers {
+						query GetDepartmentsWithEmployees {
+							allDepartments {
 								nodes {
 									id
-									email
-									displayName
-									jobTitle
-									isActive
-									userRoleAssignmentsByUserId {
+									name
+									description
+									jobInformationsByDepartmentId {
 										nodes {
-											userRoleByRoleId {
-												name
-												level
+											employeeId
+											managerId
+											jobTitle
+											userByEmployeeId {
+												id
+												email
+												displayName
+												jobTitle
+												isActive
+												hireDate
+												userRoleAssignmentsByUserId {
+													nodes {
+														userRoleByRoleId {
+															name
+															level
+														}
+														isActive
+													}
+												}
 											}
-											isActive
 										}
 									}
 								}
@@ -77,56 +90,33 @@
 				})
 			});
 
-			const usersResult = await usersResponse.json();
-			if (usersResult.errors) {
-				throw new Error(usersResult.errors[0].message);
+			const result = await response.json();
+			if (result.errors) {
+				throw new Error(result.errors[0].message);
 			}
 
-			const users = usersResult.data?.allUsers?.nodes || [];
-
-			// Group users by department
-			const departmentMap = new Map<string, User[]>();
-
-			users.forEach((user: any) => {
-				if (user.isActive) {
-					// Determine department from role assignments
-					const roleAssignments = user.userRoleAssignmentsByUserId?.nodes || [];
-					let department = 'General';
-
-					if (roleAssignments.length > 0) {
-						const roleName = roleAssignments[0].userRoleByRoleId?.name || '';
-						if (roleName.includes('hr')) department = 'Human Resources';
-						else if (roleName.includes('admin')) department = 'Administration';
-						else if (roleName.includes('manager')) department = 'Management';
-						else if (roleName.includes('finance')) department = 'Finance';
-						else if (roleName.includes('engineering')) department = 'Engineering';
-						else if (roleName.includes('marketing')) department = 'Marketing';
-						else if (roleName.includes('sales')) department = 'Sales';
-					}
-
-					if (!departmentMap.has(department)) {
-						departmentMap.set(department, []);
-					}
-					departmentMap.get(department)!.push(user);
-				}
-			});
+			const departmentsData = result.data?.allDepartments?.nodes || [];
 
 			// Convert to Department objects
-			const departments: Department[] = [];
-			departmentMap.forEach((employees, deptName) => {
-				// Find manager (highest role level)
-				let manager = employees.find(emp => {
+			const departments: Department[] = departmentsData.map((dept: any) => {
+				// Get active employees for this department
+				const activeEmployees = dept.jobInformationsByDepartmentId?.nodes
+					?.map((job: any) => job.userByEmployeeId)
+					?.filter((user: any) => user && user.isActive) || [];
+
+				// Find manager (highest role level among employees)
+				let manager = activeEmployees.find((emp: any) => {
 					const roles = emp.userRoleAssignmentsByUserId?.nodes || [];
 					return roles.some((r: any) => r.userRoleByRoleId?.level >= 60);
 				});
 
-				departments.push({
-					name: deptName,
-					employeeCount: employees.length,
-					activeEmployees: employees,
-					manager,
-					description: `${deptName} department with ${employees.length} active employees`
-				});
+				return {
+					name: dept.name,
+					employeeCount: activeEmployees.length,
+					activeEmployees: activeEmployees,
+					manager: manager,
+					description: dept.description || `${dept.name} department with ${activeEmployees.length} active employees`
+				};
 			});
 
 			return departments.sort((a, b) => a.name.localeCompare(b.name));
@@ -278,7 +268,6 @@
 			<Button variant="outline" size="sm" onclick={refresh} disabled={loading}>
 				<RefreshCw class="h-4 w-4 {loading ? 'animate-spin' : ''}" />
 			</Button>
-
 		</div>
 	</div>
 
@@ -400,7 +389,8 @@
 								{#if department.manager}
 									<div class="space-y-2 border-t pt-2">
 										<div class="text-sm text-muted-foreground">
-											<strong>Manager:</strong> {department.manager.displayName}
+											<strong>Manager:</strong>
+											{department.manager.displayName}
 										</div>
 										<div class="text-xs text-muted-foreground">
 											{department.manager.email}
@@ -415,7 +405,11 @@
 
 								<!-- Actions -->
 								<div class="flex items-center justify-center gap-2 border-t pt-4">
-									<Button variant="outline" size="sm" href="/dashboard/departments/{encodeURIComponent(department.name)}/team">
+									<Button
+										variant="outline"
+										size="sm"
+										href="/dashboard/departments/{encodeURIComponent(department.name)}/team"
+									>
 										<Users class="mr-2 h-4 w-4" />
 										View Team
 									</Button>
@@ -445,9 +439,14 @@
 										<div class="flex items-center space-x-3">
 											<h3 class="font-semibold">{department.name}</h3>
 											<Badge variant="outline" class="text-xs">
-												{department.employeeCount} employee{department.employeeCount !== 1 ? 's' : ''}
+												{department.employeeCount} employee{department.employeeCount !== 1
+													? 's'
+													: ''}
 											</Badge>
-											<Badge variant={getSizeBadgeVariant(department.employeeCount)} class="text-xs">
+											<Badge
+												variant={getSizeBadgeVariant(department.employeeCount)}
+												class="text-xs"
+											>
 												{getSizeLabel(department.employeeCount)}
 											</Badge>
 										</div>
@@ -472,7 +471,11 @@
 
 									<!-- Actions -->
 									<div class="flex items-center space-x-2">
-										<Button variant="outline" size="sm" href="/dashboard/departments/{encodeURIComponent(department.name)}/team">
+										<Button
+											variant="outline"
+											size="sm"
+											href="/dashboard/departments/{encodeURIComponent(department.name)}/team"
+										>
 											<Users class="mr-2 h-4 w-4" />
 											View Team
 										</Button>

@@ -113,7 +113,7 @@
 			totalHours: 0
 		};
 
-		records.forEach(record => {
+		records.forEach((record) => {
 			switch (record.status) {
 				case 'present':
 					stats.presentDays++;
@@ -137,13 +137,11 @@
 		});
 
 		const workingDays = stats.totalDays - stats.leaveDays;
-		const attendanceRate = workingDays > 0
-			? Math.round((stats.presentDays / workingDays) * 100)
-			: 0;
+		const attendanceRate =
+			workingDays > 0 ? Math.round((stats.presentDays / workingDays) * 100) : 0;
 
-		const averageHours = stats.presentDays > 0
-			? Math.round(stats.totalHours / stats.presentDays * 10) / 10
-			: 0;
+		const averageHours =
+			stats.presentDays > 0 ? Math.round((stats.totalHours / stats.presentDays) * 10) / 10 : 0;
 
 		return {
 			...stats,
@@ -154,23 +152,35 @@
 
 	function getStatusColor(status: string) {
 		switch (status) {
-			case 'present': return 'default';
-			case 'late': return 'secondary';
-			case 'absent': return 'destructive';
-			case 'leave': return 'outline';
-			case 'holiday': return 'outline';
-			default: return 'secondary';
+			case 'present':
+				return 'default';
+			case 'late':
+				return 'secondary';
+			case 'absent':
+				return 'destructive';
+			case 'leave':
+				return 'outline';
+			case 'holiday':
+				return 'outline';
+			default:
+				return 'secondary';
 		}
 	}
 
 	function getStatusIcon(status: string) {
 		switch (status) {
-			case 'present': return CheckCircle;
-			case 'late': return Clock;
-			case 'absent': return XCircle;
-			case 'leave': return CalendarIcon;
-			case 'holiday': return CalendarIcon;
-			default: return AlertTriangle;
+			case 'present':
+				return CheckCircle;
+			case 'late':
+				return Clock;
+			case 'absent':
+				return XCircle;
+			case 'leave':
+				return CalendarIcon;
+			case 'holiday':
+				return CalendarIcon;
+			default:
+				return AlertTriangle;
 		}
 	}
 
@@ -220,7 +230,7 @@
 
 			// Filter records client-side for the selected month
 			const allRecords = data.allAttendanceRecords?.nodes || [];
-			attendanceData = allRecords.filter(record => {
+			attendanceData = allRecords.filter((record) => {
 				if (!record.date) return false;
 				const recordDate = new Date(record.date);
 				const startDate = new Date(start);
@@ -273,7 +283,9 @@
 					</h1>
 				</div>
 				<p class="text-muted-foreground">
-					{isOwnAttendance ? 'Track your attendance and work hours' : 'View user attendance records'}
+					{isOwnAttendance
+						? 'Track your attendance and work hours'
+						: 'View user attendance records'}
 				</p>
 			</div>
 		</div>
@@ -312,7 +324,7 @@
 					size="sm"
 					onclick={() => changeMonth(1)}
 					disabled={selectedMonth.getMonth() === new Date().getMonth() &&
-							 selectedMonth.getFullYear() === new Date().getFullYear()}
+						selectedMonth.getFullYear() === new Date().getFullYear()}
 				>
 					<ChevronRight class="h-4 w-4" />
 				</Button>
@@ -336,125 +348,133 @@
 					<AlertTriangle class="mx-auto h-12 w-12 text-destructive" />
 					<h3 class="mt-4 text-lg font-semibold">Error Loading Attendance</h3>
 					<p class="text-muted-foreground">{error}</p>
-					<Button class="mt-4" onclick={loadAttendanceData}>
-						Try Again
-					</Button>
+					<Button class="mt-4" onclick={loadAttendanceData}>Try Again</Button>
 				</div>
 			</Card.Content>
 		</Card.Root>
 	{:else}
+		<!-- Attendance Statistics -->
+		<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+			<Card.Root>
+				<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
+					<Card.Title class="text-sm font-medium">Attendance Rate</Card.Title>
+					<TrendingUp class="h-4 w-4 text-muted-foreground" />
+				</Card.Header>
+				<Card.Content>
+					<div class="text-2xl font-bold">{attendanceStats.attendanceRate}%</div>
+					<p class="text-xs text-muted-foreground">
+						{attendanceStats.presentDays} of {attendanceStats.totalDays - attendanceStats.leaveDays}
+						working days
+					</p>
+				</Card.Content>
+			</Card.Root>
 
-	<!-- Attendance Statistics -->
-	<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+			<Card.Root>
+				<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
+					<Card.Title class="text-sm font-medium">Present Days</Card.Title>
+					<CheckCircle class="h-4 w-4 text-green-500" />
+				</Card.Header>
+				<Card.Content>
+					<div class="text-2xl font-bold">{attendanceStats.presentDays}</div>
+					<p class="text-xs text-muted-foreground">
+						Including {attendanceStats.lateDays} late arrivals
+					</p>
+				</Card.Content>
+			</Card.Root>
+
+			<Card.Root>
+				<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
+					<Card.Title class="text-sm font-medium">Average Hours</Card.Title>
+					<Clock class="h-4 w-4 text-blue-500" />
+				</Card.Header>
+				<Card.Content>
+					<div class="text-2xl font-bold">{attendanceStats.averageHours}h</div>
+					<p class="text-xs text-muted-foreground">Per working day</p>
+				</Card.Content>
+			</Card.Root>
+
+			<Card.Root>
+				<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
+					<Card.Title class="text-sm font-medium">Leave Days</Card.Title>
+					<CalendarIcon class="h-4 w-4 text-orange-500" />
+				</Card.Header>
+				<Card.Content>
+					<div class="text-2xl font-bold">{attendanceStats.leaveDays}</div>
+					<p class="text-xs text-muted-foreground">This month</p>
+				</Card.Content>
+			</Card.Root>
+		</div>
+
+		<!-- Attendance Records -->
 		<Card.Root>
-			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
-				<Card.Title class="text-sm font-medium">Attendance Rate</Card.Title>
-				<TrendingUp class="h-4 w-4 text-muted-foreground" />
-			</Card.Header>
-			<Card.Content>
-				<div class="text-2xl font-bold">{attendanceStats.attendanceRate}%</div>
-				<p class="text-xs text-muted-foreground">
-					{attendanceStats.presentDays} of {attendanceStats.totalDays - attendanceStats.leaveDays} working days
-				</p>
-			</Card.Content>
-		</Card.Root>
-
-		<Card.Root>
-			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
-				<Card.Title class="text-sm font-medium">Present Days</Card.Title>
-				<CheckCircle class="h-4 w-4 text-green-500" />
-			</Card.Header>
-			<Card.Content>
-				<div class="text-2xl font-bold">{attendanceStats.presentDays}</div>
-				<p class="text-xs text-muted-foreground">
-					Including {attendanceStats.lateDays} late arrivals
-				</p>
-			</Card.Content>
-		</Card.Root>
-
-		<Card.Root>
-			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
-				<Card.Title class="text-sm font-medium">Average Hours</Card.Title>
-				<Clock class="h-4 w-4 text-blue-500" />
-			</Card.Header>
-			<Card.Content>
-				<div class="text-2xl font-bold">{attendanceStats.averageHours}h</div>
-				<p class="text-xs text-muted-foreground">Per working day</p>
-			</Card.Content>
-		</Card.Root>
-
-		<Card.Root>
-			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
-				<Card.Title class="text-sm font-medium">Leave Days</Card.Title>
-				<CalendarIcon class="h-4 w-4 text-orange-500" />
-			</Card.Header>
-			<Card.Content>
-				<div class="text-2xl font-bold">{attendanceStats.leaveDays}</div>
-				<p class="text-xs text-muted-foreground">This month</p>
-			</Card.Content>
-		</Card.Root>
-	</div>
-
-	<!-- Attendance Records -->
-	<Card.Root>
-		<Card.Header>
-			<div class="flex items-center justify-between">
-				<div>
-					<Card.Title>Attendance Records</Card.Title>
-					<Card.Description>Daily attendance details for {selectedMonth.toLocaleDateString('en-US', { month: 'long' })}</Card.Description>
+			<Card.Header>
+				<div class="flex items-center justify-between">
+					<div>
+						<Card.Title>Attendance Records</Card.Title>
+						<Card.Description
+							>Daily attendance details for {selectedMonth.toLocaleDateString('en-US', {
+								month: 'long'
+							})}</Card.Description
+						>
+					</div>
+					<Button variant="outline" size="sm">
+						<Download class="mr-2 h-4 w-4" />
+						Export
+					</Button>
 				</div>
-				<Button variant="outline" size="sm">
-					<Download class="mr-2 h-4 w-4" />
-					Export
-				</Button>
-			</div>
-		</Card.Header>
-		<Card.Content>
-			{#if attendanceData.length === 0}
-				<div class="py-8 text-center">
-					<CalendarIcon class="mx-auto h-12 w-12 text-muted-foreground" />
-					<h3 class="mt-4 text-lg font-semibold">No Attendance Records</h3>
-					<p class="text-muted-foreground">No attendance data available for this month.</p>
-				</div>
-			{:else}
-				<div class="space-y-2">
-					{#each attendanceData as record (record.id)}
-						<div class="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50">
-							<div class="flex items-center gap-4">
-								<div class="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-									<svelte:component
-										this={getStatusIcon(record.status)}
-										class="h-5 w-5 {record.status === 'present' ? 'text-green-500' :
-											   record.status === 'late' ? 'text-yellow-500' :
-											   record.status === 'absent' ? 'text-red-500' :
-											   (record.status === 'leave' || record.status === 'holiday') ? 'text-blue-500' : ''}"
-									/>
-								</div>
+			</Card.Header>
+			<Card.Content>
+				{#if attendanceData.length === 0}
+					<div class="py-8 text-center">
+						<CalendarIcon class="mx-auto h-12 w-12 text-muted-foreground" />
+						<h3 class="mt-4 text-lg font-semibold">No Attendance Records</h3>
+						<p class="text-muted-foreground">No attendance data available for this month.</p>
+					</div>
+				{:else}
+					<div class="space-y-2">
+						{#each attendanceData as record (record.id)}
+							<div
+								class="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50"
+							>
+								<div class="flex items-center gap-4">
+									<div class="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+										<svelte:component
+											this={getStatusIcon(record.status)}
+											class="h-5 w-5 {record.status === 'present'
+												? 'text-green-500'
+												: record.status === 'late'
+													? 'text-yellow-500'
+													: record.status === 'absent'
+														? 'text-red-500'
+														: record.status === 'leave' || record.status === 'holiday'
+															? 'text-blue-500'
+															: ''}"
+										/>
+									</div>
 
-								<div>
-									<p class="font-medium">{formatDate(record.date)}</p>
-									<div class="flex items-center gap-4 text-sm text-muted-foreground">
-										<span>In: {formatTime(record.clockInTime)}</span>
-										<span>Out: {formatTime(record.clockOutTime)}</span>
-										{#if record.totalHours}
-											<span>Hours: {record.totalHours}</span>
+									<div>
+										<p class="font-medium">{formatDate(record.date)}</p>
+										<div class="flex items-center gap-4 text-sm text-muted-foreground">
+											<span>In: {formatTime(record.clockInTime)}</span>
+											<span>Out: {formatTime(record.clockOutTime)}</span>
+											{#if record.totalHours}
+												<span>Hours: {record.totalHours}</span>
+											{/if}
+										</div>
+										{#if record.notes}
+											<p class="mt-1 text-xs text-muted-foreground">{record.notes}</p>
 										{/if}
 									</div>
-									{#if record.notes}
-										<p class="mt-1 text-xs text-muted-foreground">{record.notes}</p>
-									{/if}
 								</div>
+
+								<Badge variant={getStatusColor(record.status)}>
+									{record.status}
+								</Badge>
 							</div>
-
-							<Badge variant={getStatusColor(record.status)}>
-								{record.status}
-							</Badge>
-						</div>
-					{/each}
-				</div>
-			{/if}
-		</Card.Content>
-	</Card.Root>
-
+						{/each}
+					</div>
+				{/if}
+			</Card.Content>
+		</Card.Root>
 	{/if}
 </div>

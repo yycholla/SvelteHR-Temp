@@ -17,6 +17,13 @@ import Redis from 'ioredis';
 import cookieParser from 'cookie-parser';
 import winston from 'winston';
 import jwt from 'jsonwebtoken';
+import { hrPlugins } from './plugins/hr-graphql-plugins';
+import { HRValidationPlugin } from './plugins/hr-validation-plugin';
+import {
+  HRMetricsCollector,
+  createHRRateLimitingMiddleware,
+  getHealthCheckData
+} from './plugins/hr-monitoring-plugin';
 
 // Environment configuration
 const PORT = parseInt(process.env.PORT || '4000', 10);
@@ -62,6 +69,9 @@ const pgPool = new Pool({
 
 // Redis client for caching
 const redis = new Redis(REDIS_URL);
+
+// Initialize HR metrics collector
+const metricsCollector = new HRMetricsCollector(redis);
 
 // Security middleware
 app.use(
@@ -127,6 +137,9 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
+// HR Monitoring and Rate Limiting Middleware
+app.use(createHRRateLimitingMiddleware(redis, metricsCollector));
+
 // Request logging
 app.use((req, res, next) => {
   logger.info('Request received', {
@@ -138,22 +151,22 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health check endpoint
+// Enhanced health check endpoint with monitoring data
 app.get('/health', async (req, res) => {
   try {
-    // Check database connection
-    const dbResult = await pgPool.query('SELECT 1');
+    const healthCheckFn = getHealthCheckData(metricsCollector, redis, pgPool);
+    const healthData = await healthCheckFn();
 
-    // Check Redis connection
-    const redisResult = await redis.ping();
+    // Determine overall status
+    const isHealthy = healthData.services?.database?.status === 'up' &&
+                      healthData.services?.redis?.status === 'up';
 
-    res.json({
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      services: {
-        database: dbResult.rows.length > 0 ? 'up' : 'down',
-        redis: redisResult === 'PONG' ? 'up' : 'down',
-      },
+    const statusCode = isHealthy ? 200 : 503;
+    const overallStatus = isHealthy ? 'healthy' : 'unhealthy';
+
+    res.status(statusCode).json({
+      status: overallStatus,
+      ...healthData
     });
   } catch (error: any) {
     logger.error('Health check failed', error);
@@ -161,77 +174,57 @@ app.get('/health', async (req, res) => {
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
       error: error.message,
+      services: {
+        database: 'unknown',
+        redis: 'unknown'
+      }
     });
   }
 });
 
-// Basic metrics endpoint
+// Enhanced metrics endpoint with HR-specific data
 app.get('/metrics', (req, res) => {
-  res.json({
-    uptime: process.uptime(),
-    memory: process.memoryUsage(),
-    timestamp: new Date().toISOString(),
-  });
+  const systemHealth = metricsCollector.getSystemHealth();
+  res.json(systemHealth);
 });
 
-// JWT authentication middleware
-const jwtAuthMiddleware: any = (build) => {
-  build.hook('postgraphile:http:handler', (req, { pgSettings }) => {
-    const authHeader = req.get('Authorization');
-    const token =
-      authHeader && authHeader.startsWith('Bearer ')
-        ? authHeader.substring(7)
-        : null;
+// JWT authentication middleware - simplified for built-in JWT handling
+// PostGraphile handles JWT authentication automatically with jwtSecret option
+// This plugin adds additional context processing
+const jwtAuthMiddleware: any = (builder) => {
+  // Hook into the GraphQL context to add HR-specific JWT claims
+  builder.hook('build', (build) => {
+    // Add JWT claim processing to the build context
+    build.pgJwtClaims = (token: string) => {
+      if (!token) return null;
 
-    if (token) {
       try {
         const decoded = jwt.verify(token, JWT_SECRET) as any;
-
-        // Set PostgreSQL session variables from JWT claims
-        pgSettings['jwt.claims.user_id'] = decoded.user_id?.toString() || '';
-        pgSettings['jwt.claims.employee_id'] =
-          decoded.employee_id?.toString() || '';
-        pgSettings['jwt.claims.role'] = decoded.role || 'hr_guest';
-        pgSettings['jwt.claims.role_level'] =
-          decoded.role_level?.toString() || '0';
-        pgSettings['jwt.claims.department_id'] =
-          decoded.department_id?.toString() || '';
-        pgSettings['jwt.claims.email'] = decoded.email || '';
-        pgSettings['jwt.claims.exp'] = decoded.exp?.toString() || '';
-
-        // Set the database role
-        pgSettings.role = decoded.role || 'hr_guest';
-
-        logger.debug('JWT authentication successful', {
+        return {
           user_id: decoded.user_id,
-          role: decoded.role,
-          role_level: decoded.role_level,
-        });
+          employee_id: decoded.employee_id,
+          role: decoded.role || 'hr_guest',
+          role_level: decoded.role_level || 0,
+          department_id: decoded.department_id,
+          email: decoded.email,
+        };
       } catch (error) {
-        logger.warn('JWT authentication failed', { error: error.message });
-        // Fall back to guest role
-        pgSettings.role = 'hr_guest';
-        pgSettings['jwt.claims.role'] = 'hr_guest';
-        pgSettings['jwt.claims.role_level'] = '0';
+        logger.warn('JWT verification failed', { error: error.message });
+        return null;
       }
-    } else {
-      // No token provided, use guest role
-      pgSettings.role = 'hr_guest';
-      pgSettings['jwt.claims.role'] = 'hr_guest';
-      pgSettings['jwt.claims.role_level'] = '0';
-    }
+    };
 
-    return req;
+    return build;
   });
 
-  return build;
+  return builder;
 };
 
-// Custom PostGraphile plugins - simplified for now
+// Custom PostGraphile plugins - using built-in JWT support
 const customPlugins = [
-  // jwtAuthMiddleware will be added back once authentication is stabilized
-  // ...hrPlugins(redis) will be added back once HR plugins are stabilized
-  // ...securityPlugins(redis) will be added back once security plugins are stabilized
+  jwtAuthMiddleware,
+  HRValidationPlugin,
+  ...hrPlugins
 ];
 
 // PostGraphile options

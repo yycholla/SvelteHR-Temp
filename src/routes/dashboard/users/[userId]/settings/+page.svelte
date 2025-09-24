@@ -98,10 +98,7 @@
 	// Load user preferences and current user data on mount
 	onMount(async () => {
 		if (userId) {
-			await Promise.all([
-				loadUserPreferences(),
-				loadCurrentUser()
-			]);
+			await Promise.all([loadUserPreferences(), loadCurrentUser()]);
 		}
 	});
 
@@ -125,7 +122,9 @@
 			profileForm.emergencyContactPhone = userPreferences?.emergencyContactPhone || '';
 			profileForm.emergencyContactEmail = userPreferences?.emergencyContactEmail || '';
 			profileForm.emergencyContactRelation = userPreferences?.emergencyContactRelation || '';
-			profileForm.pendingChanges = UserPreferencesService.hasPendingChanges(userPreferences || {} as UserPreferences);
+			profileForm.pendingChanges = UserPreferencesService.hasPendingChanges(
+				userPreferences || ({} as UserPreferences)
+			);
 		}
 	});
 
@@ -184,7 +183,9 @@
 				userPreferences = result.data.allUserPreferences.nodes[0];
 			} else {
 				// No preferences exist yet, create them using our function
-				const createResult = await client.mutation(GET_OR_CREATE_USER_PREFERENCES_MUTATION, { userId }).toPromise();
+				const createResult = await client
+					.mutation(GET_OR_CREATE_USER_PREFERENCES_MUTATION, { userId })
+					.toPromise();
 				if (createResult.data?.getUserPreferences?.userPreference) {
 					userPreferences = createResult.data.getUserPreferences.userPreference;
 				} else {
@@ -212,28 +213,32 @@
 		profileForm.submitting = true;
 
 		try {
-			const result = await client.mutation(SUBMIT_PROFILE_CHANGE_REQUEST_MUTATION, {
-				userId,
-				firstName: profileForm.firstName,
-				lastName: profileForm.lastName,
-				email: profileForm.email,
-				phone: profileForm.phone,
-				address: profileForm.address,
-				city: profileForm.city,
-				state: profileForm.state,
-				zipCode: profileForm.zipCode,
-				country: profileForm.country,
-				emergencyContactFirstName: profileForm.emergencyContactFirstName,
-				emergencyContactLastName: profileForm.emergencyContactLastName,
-				emergencyContactPhone: profileForm.emergencyContactPhone,
-				emergencyContactEmail: profileForm.emergencyContactEmail,
-				emergencyContactRelation: profileForm.emergencyContactRelation,
-				reason: 'Profile information update request'
-			}).toPromise();
+			const result = await client
+				.mutation(SUBMIT_PROFILE_CHANGE_REQUEST_MUTATION, {
+					userId,
+					firstName: profileForm.firstName,
+					lastName: profileForm.lastName,
+					email: profileForm.email,
+					phone: profileForm.phone,
+					address: profileForm.address,
+					city: profileForm.city,
+					state: profileForm.state,
+					zipCode: profileForm.zipCode,
+					country: profileForm.country,
+					emergencyContactFirstName: profileForm.emergencyContactFirstName,
+					emergencyContactLastName: profileForm.emergencyContactLastName,
+					emergencyContactPhone: profileForm.emergencyContactPhone,
+					emergencyContactEmail: profileForm.emergencyContactEmail,
+					emergencyContactRelation: profileForm.emergencyContactRelation,
+					reason: 'Profile information update request'
+				})
+				.toPromise();
 
 			if (result.data?.submitProfileChangeRequest?.profileChangeRequest) {
 				profileForm.pendingChanges = true;
-				alert('Profile change request submitted successfully! HR will review your request within 1-2 business days.');
+				alert(
+					'Profile change request submitted successfully! HR will review your request within 1-2 business days.'
+				);
 
 				// Reload user preferences to reflect pending status
 				await loadUserPreferences();
@@ -244,7 +249,9 @@
 			console.error('Error submitting profile changes:', error);
 			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 			if (errorMessage.includes('already have a pending')) {
-				alert('You already have a pending profile change request. Please wait for it to be reviewed before submitting another.');
+				alert(
+					'You already have a pending profile change request. Please wait for it to be reviewed before submitting another.'
+				);
 			} else {
 				alert('Failed to submit profile changes: ' + errorMessage);
 			}
@@ -266,7 +273,7 @@
 			console.log('Changing password for user:', userId);
 
 			// Simulate API call
-			await new Promise(resolve => setTimeout(resolve, 1000));
+			await new Promise((resolve) => setTimeout(resolve, 1000));
 
 			// Clear form
 			passwordForm.currentPassword = '';
@@ -305,10 +312,12 @@
 	// Save preferences to database
 	async function savePreferences(updates: Partial<UserPreferences>) {
 		try {
-			const result = await client.mutation(UPDATE_USER_PREFERENCES_MUTATION, {
-				userId,
-				...updates
-			}).toPromise();
+			const result = await client
+				.mutation(UPDATE_USER_PREFERENCES_MUTATION, {
+					userId,
+					...updates
+				})
+				.toPromise();
 
 			if (result.data?.updateUserPreferences?.userPreference) {
 				userPreferences = result.data.updateUserPreferences.userPreference;
@@ -318,13 +327,18 @@
 			}
 		} catch (error) {
 			console.error('Error saving preferences:', error);
-			alert('Failed to save preferences: ' + (error instanceof Error ? error.message : 'Unknown error'));
+			alert(
+				'Failed to save preferences: ' + (error instanceof Error ? error.message : 'Unknown error')
+			);
 			return false;
 		}
 	}
 
 	// Auto-save individual notification setting
-	async function saveNotificationSetting(settingName: keyof typeof notificationSettings, value: boolean) {
+	async function saveNotificationSetting(
+		settingName: keyof typeof notificationSettings,
+		value: boolean
+	) {
 		if (!isOwnSettings) return;
 
 		try {
@@ -352,7 +366,9 @@
 			{isOwnSettings ? 'My Settings' : 'User Settings'}
 		</h1>
 		<p class="text-muted-foreground">
-			{isOwnSettings ? 'Manage your account settings and preferences' : 'View settings for this user'}
+			{isOwnSettings
+				? 'Manage your account settings and preferences'
+				: 'View settings for this user'}
 		</p>
 	</div>
 
@@ -380,36 +396,24 @@
 			<Card.Header>
 				<Card.Title>Personal Details</Card.Title>
 				<Card.Description>
-					Changes to name and email require approval from HR and will be reviewed within 1-2 business days
+					Changes to name and email require approval from HR and will be reviewed within 1-2
+					business days
 				</Card.Description>
 			</Card.Header>
 			<Card.Content class="space-y-4">
 				<div class="grid grid-cols-2 gap-4">
 					<div class="space-y-2">
 						<Label for="firstName">First Name</Label>
-						<Input
-							id="firstName"
-							bind:value={profileForm.firstName}
-							disabled={!isOwnSettings}
-						/>
+						<Input id="firstName" bind:value={profileForm.firstName} disabled={!isOwnSettings} />
 					</div>
 					<div class="space-y-2">
 						<Label for="lastName">Last Name</Label>
-						<Input
-							id="lastName"
-							bind:value={profileForm.lastName}
-							disabled={!isOwnSettings}
-						/>
+						<Input id="lastName" bind:value={profileForm.lastName} disabled={!isOwnSettings} />
 					</div>
 				</div>
 				<div class="space-y-2">
 					<Label for="email">Email Address</Label>
-					<Input
-						id="email"
-						type="email"
-						bind:value={profileForm.email}
-						disabled={!isOwnSettings}
-					/>
+					<Input id="email" type="email" bind:value={profileForm.email} disabled={!isOwnSettings} />
 				</div>
 				<div class="space-y-2">
 					<Label for="phone">Phone Number</Label>
@@ -531,10 +535,7 @@
 			</Card.Content>
 			{#if isOwnSettings}
 				<Card.Footer>
-					<Button
-						onclick={submitProfileChanges}
-						disabled={profileForm.submitting}
-					>
+					<Button onclick={submitProfileChanges} disabled={profileForm.submitting}>
 						{profileForm.submitting ? 'Submitting...' : 'Request Changes'}
 					</Button>
 					{#if profileForm.pendingChanges}
@@ -542,7 +543,9 @@
 							<p class="text-sm text-amber-800 dark:text-amber-200">
 								Changes pending HR approval
 								{#if userPreferences?.pendingChangesRequestedAt}
-									(requested {new Date(userPreferences.pendingChangesRequestedAt).toLocaleDateString()})
+									(requested {new Date(
+										userPreferences.pendingChangesRequestedAt
+									).toLocaleDateString()})
 								{/if}
 							</p>
 							{#if userPreferences && UserPreferencesService.getPendingChangesSummary(userPreferences).length > 0}
@@ -574,15 +577,15 @@
 			<Card.Content class="space-y-4">
 				<div class="space-y-2">
 					<Label>Theme</Label>
-					<Select.Root
-						type="single"
-						bind:value={selectedTheme}
-						disabled={!isOwnSettings}
-					>
+					<Select.Root type="single" bind:value={selectedTheme} disabled={!isOwnSettings}>
 						<Select.Trigger>
-							{selectedTheme === 'light' ? 'Light Mode' :
-							 selectedTheme === 'dark' ? 'Dark Mode' :
-							 selectedTheme === 'system' ? 'System Default' : 'Select theme'}
+							{selectedTheme === 'light'
+								? 'Light Mode'
+								: selectedTheme === 'dark'
+									? 'Dark Mode'
+									: selectedTheme === 'system'
+										? 'System Default'
+										: 'Select theme'}
 						</Select.Trigger>
 						<Select.Content>
 							<Select.Item value="light">Light Mode</Select.Item>
@@ -591,7 +594,8 @@
 						</Select.Content>
 					</Select.Root>
 					<p class="text-xs text-muted-foreground">
-						System default automatically switches between light and dark based on your device settings
+						System default automatically switches between light and dark based on your device
+						settings
 					</p>
 				</div>
 			</Card.Content>
@@ -609,7 +613,9 @@
 			<Card.Root>
 				<Card.Header>
 					<Card.Title>Notification Preferences</Card.Title>
-					<Card.Description>Choose how you want to be notified about important updates</Card.Description>
+					<Card.Description
+						>Choose how you want to be notified about important updates</Card.Description
+					>
 				</Card.Header>
 				<Card.Content class="space-y-4">
 					<div class="flex items-center justify-between">
@@ -641,7 +647,9 @@
 					<div class="flex items-center justify-between">
 						<div class="space-y-0.5">
 							<Label>Leave Reminders</Label>
-							<p class="text-sm text-muted-foreground">Reminders about upcoming leave and deadlines</p>
+							<p class="text-sm text-muted-foreground">
+								Reminders about upcoming leave and deadlines
+							</p>
 						</div>
 						<Switch.Root
 							bind:checked={notificationSettings.leaveReminders}
@@ -654,7 +662,9 @@
 					<div class="flex items-center justify-between">
 						<div class="space-y-0.5">
 							<Label>Performance Updates</Label>
-							<p class="text-sm text-muted-foreground">Notifications about goal progress and reviews</p>
+							<p class="text-sm text-muted-foreground">
+								Notifications about goal progress and reviews
+							</p>
 						</div>
 						<Switch.Root
 							bind:checked={notificationSettings.performanceUpdates}
@@ -685,27 +695,15 @@
 				<Card.Content class="space-y-4">
 					<div class="space-y-2">
 						<Label for="currentPassword">Current Password</Label>
-						<Input
-							id="currentPassword"
-							type="password"
-							bind:value={passwordForm.currentPassword}
-						/>
+						<Input id="currentPassword" type="password" bind:value={passwordForm.currentPassword} />
 					</div>
 					<div class="space-y-2">
 						<Label for="newPassword">New Password</Label>
-						<Input
-							id="newPassword"
-							type="password"
-							bind:value={passwordForm.newPassword}
-						/>
+						<Input id="newPassword" type="password" bind:value={passwordForm.newPassword} />
 					</div>
 					<div class="space-y-2">
 						<Label for="confirmPassword">Confirm New Password</Label>
-						<Input
-							id="confirmPassword"
-							type="password"
-							bind:value={passwordForm.confirmPassword}
-						/>
+						<Input id="confirmPassword" type="password" bind:value={passwordForm.confirmPassword} />
 					</div>
 					{#if passwordForm.newPassword && passwordForm.confirmPassword && passwordForm.newPassword !== passwordForm.confirmPassword}
 						<p class="text-sm text-red-600">Passwords do not match</p>
@@ -714,7 +712,10 @@
 				<Card.Footer>
 					<Button
 						onclick={changePassword}
-						disabled={passwordForm.submitting || !passwordForm.currentPassword || !passwordForm.newPassword || passwordForm.newPassword !== passwordForm.confirmPassword}
+						disabled={passwordForm.submitting ||
+							!passwordForm.currentPassword ||
+							!passwordForm.newPassword ||
+							passwordForm.newPassword !== passwordForm.confirmPassword}
 					>
 						{passwordForm.submitting ? 'Updating...' : 'Update Password'}
 					</Button>

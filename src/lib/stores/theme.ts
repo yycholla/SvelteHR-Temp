@@ -48,7 +48,7 @@ export function setTheme(newTheme: Theme) {
 
 // Function to toggle between light and dark (skip system)
 export function toggleTheme() {
-	theme.update(currentTheme => {
+	theme.update((currentTheme) => {
 		const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
 		setTheme(newTheme);
 		return newTheme;
@@ -63,7 +63,7 @@ if (browser) {
 	// Listen for system theme changes when in system mode
 	const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 	mediaQuery.addEventListener('change', () => {
-		theme.subscribe(currentTheme => {
+		theme.subscribe((currentTheme) => {
 			if (currentTheme === 'system') {
 				applyTheme('system');
 			}

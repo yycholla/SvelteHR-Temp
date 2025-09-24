@@ -40,7 +40,6 @@
 			} else {
 				root.classList.add($theme);
 			}
-
 		}
 	});
 

@@ -19,7 +19,7 @@ export const TEST_USERS = {
 		password: 'admin123',
 		role: 'hr_admin',
 		roleLevel: 100,
-		expectedDashboard: '/admin'
+		expectedDashboard: '/dashboard/admin'
 	}
 	// Add more test users as needed
 	// employee: {
