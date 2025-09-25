@@ -1,0 +1,243 @@
+# SvelteHR Database Monitoring Configuration
+# Performance thresholds and alert configuration for testing framework
+
+monitoring:
+  intervals:
+    health_check: 300      # 5 minutes
+    performance: 60        # 1 minute
+    backup_verification: 3600  # 1 hour
+    maintenance: 86400     # 24 hours
+
+  thresholds:
+    connection_usage:
+      warning: 70          # 70% of max connections
+      critical: 85         # 85% of max connections
+
+    query_performance:
+      slow_query_ms: 1000  # Queries slower than 1 second
+      very_slow_ms: 5000   # Queries slower than 5 seconds
+
+    lock_timeout:
+      warning: 5000        # 5 seconds
+      critical: 30000      # 30 seconds
+
+    replication_lag:
+      warning: 1           # 1 second behind
+      critical: 10         # 10 seconds behind
+
+    disk_usage:
+      warning: 75          # 75% disk usage
+      critical: 90         # 90% disk usage
+
+  backup_policy:
+    retention_days: 30
+    full_backup_schedule: "0 2 * * 0"    # Weekly on Sunday at 2 AM
+    incremental_schedule: "0 2 * * 1-6"  # Daily at 2 AM except Sunday
+    test_restore_schedule: "0 4 * * 0"   # Weekly test restore on Sunday at 4 AM
+
+  # Testing framework specific monitoring
+  testing_framework:
+    tables:
+      - name: test_scenarios
+        critical: true
+        max_size_mb: 1000
+        max_records: 50000
+
+      - name: graphql_operations
+        critical: true
+        max_size_mb: 500
+        max_records: 10000
+
+      - name: navigation_flows
+        critical: false
+        max_size_mb: 200
+        max_records: 5000
+
+      - name: performance_metrics
+        critical: true
+        max_size_mb: 2000
+        max_records: 1000000  # High volume expected
+        retention_days: 90    # Keep performance data for 3 months
+
+      - name: collaboration_sessions
+        critical: false
+        max_size_mb: 100
+        max_records: 1000
+        retention_days: 30
+
+      - name: validation_results
+        critical: true
+        max_size_mb: 5000
+        max_records: 500000   # High volume from CI/CD
+        retention_days: 60    # Keep test results for 2 months
+
+    performance_metrics:
+      test_execution_threshold_ms: 30000  # 30 seconds max per test
+      validation_failure_rate_threshold: 0.05  # 5% failure rate threshold
+      collaboration_session_timeout_minutes: 120  # 2 hours
+
+  alerts:
+    email:
+      enabled: true
+      recipients:
+        - admin@svelteHR.example.com
+        - dba@svelteHR.example.com
+
+    slack:
+      enabled: false
+      webhook_url: ""
+      channel: "#database-alerts"
+
+    dashboard:
+      enabled: true
+      refresh_interval: 30  # seconds
+
+# RLS Policy Monitoring
+rls_monitoring:
+  enabled: true
+  check_interval: 3600    # 1 hour
+
+  expected_policies:
+    test_scenarios:
+      - test_scenarios_admin_access
+      - test_scenarios_hr_access
+      - test_scenarios_manager_access
+      - test_scenarios_employee_access
+
+    graphql_operations:
+      - graphql_operations_rbac_access
+
+    navigation_flows:
+      - navigation_flows_role_based_access
+
+    performance_metrics:
+      - performance_metrics_access
+
+    collaboration_sessions:
+      - collaboration_sessions_participant_access
+
+    validation_results:
+      - validation_results_scenario_based_access
+
+# Database Health Scoring
+health_scoring:
+  weights:
+    connectivity: 30      # Database connection health
+    performance: 25       # Query performance metrics
+    backup_status: 20     # Backup recency and integrity
+    disk_usage: 15        # Storage utilization
+    rls_policies: 10      # Security policy status
+
+  score_ranges:
+    excellent: 90-100
+    good: 70-89
+    fair: 50-69
+    poor: 0-49
+
+# Automated Maintenance
+maintenance:
+  auto_vacuum:
+    enabled: true
+    threshold: 0.2        # 20% dead tuples
+    scale_factor: 0.1     # 10% of table size
+
+  auto_analyze:
+    enabled: true
+    threshold: 0.1        # 10% changed tuples
+
+  index_maintenance:
+    reindex_schedule: "0 3 * * 0"  # Weekly on Sunday at 3 AM
+    analyze_unused_indexes: true
+
+  statistics_update:
+    schedule: "0 1 * * *"  # Daily at 1 AM
+
+# Disaster Recovery Testing
+disaster_recovery:
+  test_schedule: "0 5 * * 0"  # Weekly on Sunday at 5 AM
+  test_database_prefix: "dr_test_"
+  cleanup_after_hours: 24
+
+  validation_tests:
+    - schema_integrity
+    - data_consistency
+    - rls_policies
+    - application_connectivity
+    - performance_benchmarks
+
+# Connection Pooling Configuration
+connection_pooling:
+  pgbouncer:
+    enabled: true
+    port: 6432
+    pool_mode: transaction
+
+    pools:
+      default:
+        min_size: 5
+        max_size: 100
+        idle_timeout: 30
+
+      testing:
+        min_size: 2
+        max_size: 50
+        idle_timeout: 60
+
+      reporting:
+        min_size: 3
+        max_size: 25
+        idle_timeout: 120
+
+# Logging Configuration
+logging:
+  slow_query_log:
+    enabled: true
+    threshold_ms: 1000
+    log_file: "/var/log/postgresql/slow_queries.log"
+
+  connection_log:
+    enabled: true
+    log_connections: true
+    log_disconnections: true
+
+  statement_log:
+    enabled: false  # Only enable for debugging
+    log_statement: "all"
+
+  audit_log:
+    enabled: true
+    log_ddl: true
+    log_dml: false
+    log_rls_violations: true
+
+# Performance Baselines
+baselines:
+  query_performance:
+    # Common testing framework queries with expected performance
+    select_test_scenarios: 50      # ms
+    insert_validation_result: 20   # ms
+    update_performance_metric: 15  # ms
+    complex_test_report: 500       # ms
+
+  concurrent_connections:
+    normal_load: 20
+    peak_load: 80
+    stress_test: 150
+
+# Data Retention Policies
+retention:
+  performance_metrics:
+    raw_data: 90          # days
+    aggregated_data: 365  # days
+
+  validation_results:
+    detailed_results: 60  # days
+    summary_data: 180     # days
+
+  collaboration_sessions:
+    active_sessions: 7    # days
+    archived_sessions: 30 # days
+
+  audit_logs:
+    security_events: 365  # days
+    general_logs: 90      # days

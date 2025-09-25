@@ -3,6 +3,7 @@ import { authExchange } from '@urql/exchange-auth';
 import { retryExchange } from '@urql/exchange-retry';
 import { goto } from '$app/navigation';
 import { browser } from '$app/environment';
+import { createPerformanceExchange } from '$lib/performance/graphql-performance-exchange.js';
 
 /**
  * PostGraphile GraphQL Client Configuration for SvelteHR
@@ -190,6 +191,13 @@ export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string) => 
 		customErrorExchange,
 		retryConfig,
 		authConfig,
+		createPerformanceExchange({
+			enabled: true,
+			trackAllOperations: true,
+			slowQueryThreshold: 200, // 200ms budget
+			enableCacheTracking: true,
+			enableComplexityAnalysis: true
+		}),
 		fetchFn ? fetchExchange.bind(null, fetchFn) : fetchExchange
 	];
 

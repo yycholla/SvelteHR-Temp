@@ -1,14 +1,21 @@
 import type { Handle } from '@sveltejs/kit';
+import { serverPerformanceMonitor } from '$lib/performance/server-monitor.js';
 
 /**
  * Server-side hooks for performance optimization and monitoring
  */
 
-// Performance monitoring for server-side requests
+// Initialize server performance monitoring
+const performanceHandle = serverPerformanceMonitor.createHandle();
+
+// Combine performance monitoring with existing functionality
 export const handle: Handle = async ({ event, resolve }) => {
-	const start = Date.now();
-	const url = event.url.pathname;
-	const method = event.request.method;
+	// First, run performance monitoring
+	const performanceResponse = await performanceHandle({ event, resolve: async (evt) => {
+		// Then run our existing logic
+		const start = Date.now();
+		const url = event.url.pathname;
+		const method = event.request.method;
 
 	// Add security headers
 	const response = await resolve(event, {
@@ -110,20 +117,23 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 	}
 
-	return response;
+		return response;
+	}});
+
+	return performanceResponse;
 };
 
 // Error handling hook
-export const handleError = ({ error, event }) => {
+export const handleError = ({ error, event }: { error: any; event: any }) => {
 	const errorId = crypto.randomUUID();
 
 	// Log error with context
 	console.error(`❌ Server Error [${errorId}]:`, {
-		error: error.message,
-		stack: error.stack,
-		url: event.url.pathname,
-		method: event.request.method,
-		userAgent: event.request.headers.get('user-agent'),
+		error: error?.message || 'Unknown error',
+		stack: error?.stack,
+		url: event?.url?.pathname,
+		method: event?.request?.method,
+		userAgent: event?.request?.headers?.get('user-agent'),
 		timestamp: new Date().toISOString()
 	});
 
@@ -131,8 +141,7 @@ export const handleError = ({ error, event }) => {
 	// Example: Sentry, Rollbar, etc.
 
 	return {
-		message: 'An unexpected error occurred',
-		errorId
+		message: 'An unexpected error occurred'
 	};
 };
 
