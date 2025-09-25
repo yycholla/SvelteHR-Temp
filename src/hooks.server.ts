@@ -1,21 +1,183 @@
 import type { Handle } from '@sveltejs/kit';
 import { serverPerformanceMonitor } from '$lib/performance/server-monitor.js';
+import { redirect } from '@sveltejs/kit';
+import { authConfig, getAccessTokenName, getCookieOptions, isDevelopment } from '$lib/auth/config.js';
+import { verifyJWTToken, extractUserFromPayload, decodeJWTTokenUnsafe } from '$lib/auth/jwt-utils.js';
+import { createStandardError, type StandardErrorResponse } from '$lib/utils/error-handling.js';
 
 /**
- * Server-side hooks for performance optimization and monitoring
+ * Server-side hooks for RBAC authentication, performance optimization and monitoring
  */
+
+// Define public routes that don't require authentication
+const PUBLIC_ROUTES = [
+	'/',
+	'/login',
+	'/login-simple',
+	'/login-working',
+	'/privacy',
+	'/terms',
+	'/api'
+];
+
+// Helper function to authenticate user with proper JWT verification
+async function authenticateUser(token: string): Promise<{ user: any; roles: string[]; permissions: string[] } | null> {
+	try {
+		// Use proper JWT verification in production, fallback to basic parsing in development
+		let validationResult;
+
+		if (isDevelopment()) {
+			// Development: Use basic parsing for ease of testing
+			const decodedPayload = await decodeJWTTokenUnsafe(token);
+			if (!decodedPayload) return null;
+
+			// Check expiration
+			const currentTime = Math.floor(Date.now() / 1000);
+			if (decodedPayload.exp && decodedPayload.exp < currentTime) {
+				return null;
+			}
+
+			validationResult = { isValid: true, payload: decodedPayload };
+		} else {
+			// Production: Use proper JWT signature verification
+			validationResult = await verifyJWTToken(token);
+			if (!validationResult.isValid || !validationResult.payload) {
+				console.warn('JWT verification failed:', validationResult.error);
+				return null;
+			}
+		}
+
+		const payload = validationResult.payload;
+		const user = extractUserFromPayload(payload);
+
+		// For admin user (user_id = '1'), provide full permissions
+		if (user.id === '1') {
+			return {
+				user: {
+					id: user.id,
+					email: user.email || 'admin@postgraphile-hr.com',
+					display_name: 'System Administrator',
+					role: 'hr_admin'
+				},
+				roles: ['hr_admin', 'manager', 'employee'],
+				permissions: [
+					'*', // Admin has all permissions
+					'dashboard:read',
+					'employees:read', 'employees:write', 'employees:delete',
+					'departments:read', 'departments:write', 'departments:delete',
+					'teams:read', 'teams:write',
+					'management:read', 'management:write',
+					'leave:read', 'leave:write', 'leave:approve',
+					'performance:read', 'performance:write',
+					'goals:read', 'goals:write',
+					'reports:read', 'reports:write', 'reports:execute', 'reports:analytics',
+					'admin:read', 'admin:write'
+				]
+			};
+		}
+
+		// For other users, provide role-based permissions
+		const rolePermissions = getRolePermissions(user.role);
+
+		return {
+			user: {
+				id: user.id,
+				email: user.email,
+				display_name: payload.display_name || user.email.split('@')[0],
+				role: user.role
+			},
+			roles: [user.role],
+			permissions: rolePermissions
+		};
+	} catch (error) {
+		console.error('Authentication error:', error);
+		return null;
+	}
+}
+
+// Helper function to get permissions based on role
+function getRolePermissions(role: string): string[] {
+	switch (role) {
+		case 'hr_admin':
+		case 'hr_manager':
+			return [
+				'dashboard:read',
+				'employees:read', 'employees:write', 'employees:delete',
+				'departments:read', 'departments:write',
+				'teams:read', 'teams:write',
+				'management:read', 'management:write',
+				'leave:read', 'leave:write', 'leave:approve',
+				'performance:read', 'performance:write',
+				'goals:read', 'goals:write',
+				'reports:read', 'reports:write', 'reports:execute', 'reports:analytics'
+			];
+		case 'manager':
+			return [
+				'dashboard:read',
+				'employees:read',
+				'teams:read', 'teams:write',
+				'management:read',
+				'leave:read', 'leave:approve',
+				'performance:read', 'performance:write',
+				'goals:read', 'goals:write',
+				'reports:read'
+			];
+		case 'employee':
+		default:
+			return [
+				'dashboard:read',
+				'employees:read',
+				'teams:read',
+				'leave:read'
+			];
+	}
+}
 
 // Initialize server performance monitoring
 const performanceHandle = serverPerformanceMonitor.createHandle();
 
-// Combine performance monitoring with existing functionality
+// Combine RBAC, authentication, and performance monitoring
 export const handle: Handle = async ({ event, resolve }) => {
 	// First, run performance monitoring
 	const performanceResponse = await performanceHandle({ event, resolve: async (evt) => {
-		// Then run our existing logic
+		// Then run our RBAC and existing logic
 		const start = Date.now();
 		const url = event.url.pathname;
 		const method = event.request.method;
+
+		// RBAC Authentication Logic
+		// Check if route is public
+		const isPublicRoute = PUBLIC_ROUTES.some(route =>
+			url === route || url.startsWith(`${route}/`) || url.startsWith('/api/')
+		);
+
+		// Extract JWT token from cookies using centralized config
+		const primaryTokenName = getAccessTokenName();
+		const token = event.cookies.get(primaryTokenName) || event.cookies.get('postgraphile-jwt-token');
+
+		if (!isPublicRoute) {
+			// Protected route - verify authentication
+			if (!token) {
+				// Redirect to login with return URL
+				const redirectTo = url === '/' ? '' : `?redirectTo=${encodeURIComponent(url)}`;
+				throw redirect(303, `/login${redirectTo}`);
+			}
+
+			// Verify and decode JWT token
+			const authResult = await authenticateUser(token);
+			if (!authResult) {
+				// Invalid token - redirect to login
+				event.cookies.delete(primaryTokenName, { path: '/' });
+				event.cookies.delete('postgraphile-jwt-token', { path: '/' });
+				const redirectTo = url === '/' ? '' : `?redirectTo=${encodeURIComponent(url)}`;
+				throw redirect(303, `/login${redirectTo}`);
+			}
+
+			// Set user information in locals for use in load functions
+			event.locals.user = authResult.user;
+			event.locals.roles = authResult.roles;
+			event.locals.permissions = authResult.permissions;
+		}
 
 	// Add security headers
 	const response = await resolve(event, {
@@ -123,25 +285,51 @@ export const handle: Handle = async ({ event, resolve }) => {
 	return performanceResponse;
 };
 
-// Error handling hook
+// Error handling hook with standardized error responses
 export const handleError = ({ error, event }: { error: any; event: any }) => {
-	const errorId = crypto.randomUUID();
+	// Create standardized error response
+	const standardError = createStandardError(error, {
+		requestId: crypto.randomUUID(),
+		userId: event?.locals?.user?.id,
+		path: event?.url?.pathname,
+		operation: `${event?.request?.method || 'GET'} ${event?.url?.pathname || 'unknown'}`
+	});
 
-	// Log error with context
-	console.error(`❌ Server Error [${errorId}]:`, {
-		error: error?.message || 'Unknown error',
-		stack: error?.stack,
+	// Log structured error for monitoring
+	console.error(`❌ Server Error [${standardError.requestId}]:`, {
+		type: standardError.type,
+		message: standardError.message,
+		userMessage: standardError.userMessage,
+		statusCode: standardError.statusCode,
 		url: event?.url?.pathname,
 		method: event?.request?.method,
-		userAgent: event?.request?.headers?.get('user-agent'),
-		timestamp: new Date().toISOString()
+		userId: event?.locals?.user?.id,
+		userAgent: event?.request?.headers?.get('user-agent')?.slice(0, 100),
+		timestamp: standardError.timestamp,
+		stack: error?.stack
 	});
 
 	// In production, send to error tracking service
-	// Example: Sentry, Rollbar, etc.
+	// Example: Sentry, Rollbar, DataDog, etc.
+	if (process.env.NODE_ENV === 'production') {
+		// TODO: Integrate with error tracking service
+		// Sentry.captureException(error, {
+		//   contexts: {
+		//     request: {
+		//       url: event?.url?.pathname,
+		//       method: event?.request?.method,
+		//       user_id: event?.locals?.user?.id
+		//     }
+		//   }
+		// });
+	}
 
+	// Return user-friendly error message
 	return {
-		message: 'An unexpected error occurred'
+		message: standardError.userMessage,
+		type: standardError.type,
+		requestId: standardError.requestId,
+		timestamp: standardError.timestamp
 	};
 };
 

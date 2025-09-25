@@ -1,981 +1,543 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import { getOperationStore, queryStore } from '@urql/svelte';
-	import { toast } from 'svelte-sonner';
+	import { goto } from '$app/navigation';
+	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '$lib/components/ui/select';
+	import * as Card from '$lib/components/ui/card';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Separator } from '$lib/components/ui/separator';
+	import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
 	import {
-		Building, Users, Plus, Search, Filter, X, Eye, Edit, Trash2,
-		UserCheck, ArrowRight, ChevronDown, ChevronRight, Crown
+		Building, Users, Plus, Search, Filter, Eye, Edit, Crown,
+		UserCheck, TreePine, BarChart3, Target, TrendingUp, Building2
 	} from 'lucide-svelte';
+	import { categorizeTeamSize } from '$lib/graphql/team-management-operations';
 
-	import HrDataTable from '$lib/components/data-table/hr-data-table.svelte';
-	import DataExport from '$lib/components/export/data-export.svelte';
-	import {
-		GET_ALL_TEAMS,
-		GET_TEAM_DETAILS,
-		GET_TEAM_HIERARCHY,
-		CREATE_TEAM,
-		UPDATE_TEAM,
-		DELETE_TEAM,
-		ASSIGN_DEPARTMENT_HEAD,
-		MOVE_EMPLOYEE_TO_TEAM,
-		categorizeTeamSize,
-		getDepartmentTypeInfo,
-		buildTeamHierarchy,
-		calculateTeamStats,
-		teamSizeCategories,
-		departmentTypes
-	} from '$lib/graphql/team-management-operations';
+	// Props from server-side load function
+	interface Props {
+		data: {
+			user: any;
+			userSession: any;
+			teams: any[];
+			totalTeams: number;
+			hierarchy: any[];
+			teamStats: {
+				totalTeams: number;
+				totalEmployees: number;
+				averageTeamSize: number;
+				teamsWithHeads: number;
+			};
+			filters: {
+				searchTerm: string;
+				sizeFilter: string;
+				headFilter: string;
+				parentFilter: string;
+				viewMode: string;
+				page: number;
+				limit: number;
+			};
+			permissions: string[];
+			canManageTeams: boolean;
+			canViewEmployees: boolean;
+			loadedAt: string;
+		};
+	}
 
-	// Page data from server
-	export let data;
+	let { data }: Props = $props();
 
-	// Local state using Svelte 5 runes
-	let selectedTeams = $state<any[]>([]);
-	let showCreateModal = $state(false);
-	let showEditModal = $state(false);
-	let showViewModal = $state(false);
-	let showAssignHeadModal = $state(false);
-	let showMoveEmployeeModal = $state(false);
-	let currentTeam = $state<any>(null);
-	let viewMode = $state<'table' | 'hierarchy'>('table');
-	let sizeFilter = $state('all');
-	let headFilter = $state('all');
-	let parentFilter = $state('all');
-	let searchQuery = $state('');
+	// Extract server-loaded data
+	const user = $derived(data.user);
+	const teams = $derived(data.teams);
+	const totalTeams = $derived(data.totalTeams);
+	const hierarchy = $derived(data.hierarchy);
+	const teamStats = $derived(data.teamStats);
+	const filters = $derived(data.filters);
+	const permissions = $derived(data.permissions);
+	const canManageTeams = $derived(data.canManageTeams);
+	const canViewEmployees = $derived(data.canViewEmployees);
+
+	// Local state for filters and search
+	let searchTerm = $state(filters.searchTerm);
+	let selectedSize = $state(filters.sizeFilter);
+	let selectedHead = $state(filters.headFilter);
+	let selectedParent = $state(filters.parentFilter);
+	let viewMode = $state<'table' | 'hierarchy'>(filters.viewMode as 'table' | 'hierarchy');
+	let currentPage = $state(filters.page);
+	let pageSize = $state(filters.limit);
 
 	// Pagination state
-	let currentPage = $state(1);
-	let pageSize = $state(20);
+	const totalPages = $derived(Math.ceil(totalTeams / pageSize));
+	const hasNextPage = $derived(currentPage < totalPages);
+	const hasPreviousPage = $derived(currentPage > 1);
 
-	// Create/Edit form state
-	let teamForm = $state({
-		name: '',
-		description: '',
-		parentDepartmentId: '',
-		departmentHeadId: '',
-		departmentType: 'operations'
-	});
-
-	// Assign head form state
-	let assignHeadForm = $state({
-		departmentHeadId: '',
-		searchTerm: ''
-	});
-
-	// Move employee form state
-	let moveEmployeeForm = $state({
-		employeeId: '',
-		newDepartmentId: '',
-		newManagerId: ''
-	});
-
-	// Query for all teams
-	const teams = queryStore({
-		client: getOperationStore(),
-		query: GET_ALL_TEAMS,
-		variables: {
-			first: pageSize,
-			offset: (currentPage - 1) * pageSize,
-			filter: {
-				...(sizeFilter !== 'all' && {
-					// This would need server-side logic to filter by employee count
-				}),
-				...(headFilter === 'with-head' && {
-					departmentHeadId: { isNull: false }
-				}),
-				...(headFilter === 'without-head' && {
-					departmentHeadId: { isNull: true }
-				}),
-				...(parentFilter !== 'all' && {
-					parentDepartmentId: parentFilter === 'root' ? { isNull: true } : { equalTo: parentFilter }
-				}),
-				...(searchQuery && {
-					name: { includesInsensitive: searchQuery }
-				})
-			}
-		}
-	});
-
-	// Query for team hierarchy
-	const teamHierarchy = queryStore({
-		client: getOperationStore(),
-		query: GET_TEAM_HIERARCHY,
-		variables: {
-			rootDepartmentId: null // Get root departments
-		}
-	});
-
-	// Mutation operations
-	const createTeam = getOperationStore(CREATE_TEAM);
-	const updateTeam = getOperationStore(UPDATE_TEAM);
-	const deleteTeam = getOperationStore(DELETE_TEAM);
-	const assignHead = getOperationStore(ASSIGN_DEPARTMENT_HEAD);
-	const moveEmployee = getOperationStore(MOVE_EMPLOYEE_TO_TEAM);
-
-	// Table columns configuration
-	const columns = [
-		{
-			key: 'name',
-			label: 'Team Name',
-			sortable: true,
-			render: (value: string, row: any) => {
-				const typeInfo = getDepartmentTypeInfo(value);
-				const sizeInfo = categorizeTeamSize(row.employees?.totalCount || 0);
-				const hasParent = row.parentDepartmentId;
-				return `<div data-testid="team-name">
-					<div class="flex items-center gap-2">
-						<div class="p-1 bg-${typeInfo.color}-100 rounded">
-							<Building class="w-4 h-4 text-${typeInfo.color}-600" />
-						</div>
-						<div>
-							<div class="font-medium">${value}</div>
-							<div class="text-sm text-gray-500 flex items-center gap-2">
-								${hasParent ? '<span class="text-xs bg-gray-100 px-1 rounded">Sub-team</span>' : '<span class="text-xs bg-blue-100 px-1 rounded">Root</span>'}
-								<span class="px-1 py-0.5 bg-${sizeInfo.color}-100 text-${sizeInfo.color}-800 text-xs rounded">${sizeInfo.label}</span>
-							</div>
-						</div>
-					</div>
-				</div>`;
-			}
-		},
-		{
-			key: 'departmentHead',
-			label: 'Department Head',
-			render: (value: any) => {
-				if (!value) {
-					return `<span data-testid="no-head" class="text-gray-400 italic">No head assigned</span>`;
-				}
-				return `<div data-testid="department-head">
-					<div class="flex items-center gap-2">
-						<Crown class="w-4 h-4 text-yellow-600" />
-						<div>
-							<div class="font-medium">${value.displayName}</div>
-							<div class="text-sm text-gray-500">${value.jobTitle || 'No title'}</div>
-						</div>
-					</div>
-				</div>`;
-			}
-		},
-		{
-			key: 'employees',
-			label: 'Team Size',
-			sortable: true,
-			align: 'center',
-			render: (value: any, row: any) => {
-				const total = row.employees?.totalCount || 0;
-				const active = row.activeEmployees?.totalCount || 0;
-				const sizeInfo = categorizeTeamSize(total);
-				return `<div data-testid="team-size" class="text-center">
-					<div class="text-lg font-bold text-${sizeInfo.color}-600">${total}</div>
-					<div class="text-xs text-gray-500">${active} active</div>
-				</div>`;
-			}
-		},
-		{
-			key: 'subDepartments',
-			label: 'Sub-teams',
-			align: 'center',
-			render: (value: any) => {
-				const count = value?.totalCount || 0;
-				return `<div data-testid="sub-teams" class="text-center">
-					<span class="text-sm font-medium ${count > 0 ? 'text-blue-600' : 'text-gray-400'}">${count}</span>
-				</div>`;
-			}
-		},
-		{
-			key: 'description',
-			label: 'Description',
-			render: (value: string) => {
-				return `<div data-testid="team-description" class="text-sm text-gray-600 max-w-xs truncate">
-					${value || 'No description'}
-				</div>`;
-			}
-		},
-		{
-			key: 'actions',
-			label: 'Actions',
-			align: 'center',
-			render: (value: any, row: any) => {
-				return `
-					<div class="flex gap-2 justify-center">
-						<button
-							data-testid="view-team"
-							class="p-1 text-blue-600 hover:bg-blue-50 rounded"
-							title="View Team"
-						>
-							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-							</svg>
-						</button>
-						<button
-							data-testid="assign-head"
-							class="p-1 text-purple-600 hover:bg-purple-50 rounded"
-							title="Assign Department Head"
-						>
-							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
-							</svg>
-						</button>
-						<button
-							data-testid="edit-team"
-							class="p-1 text-green-600 hover:bg-green-50 rounded"
-							title="Edit Team"
-						>
-							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-							</svg>
-						</button>
-						<button
-							data-testid="delete-team"
-							class="p-1 text-red-600 hover:bg-red-50 rounded"
-							title="Delete Team"
-						>
-							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-							</svg>
-						</button>
-					</div>
-				`;
-			}
-		}
+	// Filter options
+	const sizeOptions = [
+		{ value: '', label: 'All Sizes' },
+		{ value: 'small', label: 'Small (1-5)' },
+		{ value: 'medium', label: 'Medium (6-15)' },
+		{ value: 'large', label: 'Large (16-30)' },
+		{ value: 'enterprise', label: 'Enterprise (31+)' }
 	];
 
-	// Handle create team
-	function handleCreateTeam() {
-		teamForm = {
-			name: '',
-			description: '',
-			parentDepartmentId: '',
-			departmentHeadId: '',
-			departmentType: 'operations'
-		};
-		currentTeam = null;
-		showCreateModal = true;
+	const headOptions = [
+		{ value: '', label: 'All Teams' },
+		{ value: 'with-head', label: 'With Head' },
+		{ value: 'without-head', label: 'Without Head' }
+	];
+
+	// Handle search form submission
+	function handleSearch() {
+		const searchParams = new URLSearchParams();
+		if (searchTerm) searchParams.set('search', searchTerm);
+		if (selectedSize) searchParams.set('size', selectedSize);
+		if (selectedHead) searchParams.set('head', selectedHead);
+		if (selectedParent) searchParams.set('parent', selectedParent);
+		if (viewMode !== 'table') searchParams.set('view', viewMode);
+		searchParams.set('page', '1'); // Reset to first page on new search
+		if (pageSize !== 20) searchParams.set('limit', pageSize.toString());
+
+		goto(`${$page.url.pathname}?${searchParams.toString()}`);
 	}
 
-	// Handle edit team
-	function handleEditTeam(team: any) {
-		teamForm = {
-			name: team.name || '',
-			description: team.description || '',
-			parentDepartmentId: team.parentDepartmentId || '',
-			departmentHeadId: team.departmentHead?.id || '',
-			departmentType: getDepartmentTypeInfo(team.name).value
-		};
-		currentTeam = team;
-		showEditModal = true;
+	// Handle pagination
+	function goToPage(page: number) {
+		if (page < 1 || page > totalPages) return;
+
+		const searchParams = new URLSearchParams($page.url.searchParams);
+		searchParams.set('page', page.toString());
+		goto(`${$page.url.pathname}?${searchParams.toString()}`);
 	}
 
-	// Handle view team
-	function handleViewTeam(team: any) {
-		currentTeam = team;
-		showViewModal = true;
-	}
-
-	// Handle assign head
-	function handleAssignHead(team: any) {
-		currentTeam = team;
-		assignHeadForm = {
-			departmentHeadId: team.departmentHead?.id || '',
-			searchTerm: ''
-		};
-		showAssignHeadModal = true;
-	}
-
-	// Handle delete team
-	async function handleDeleteTeam(team: any) {
-		const hasEmployees = (team.employees?.totalCount || 0) > 0;
-		const hasSubTeams = (team.subDepartments?.totalCount || 0) > 0;
-
-		let confirmMessage = `Are you sure you want to delete "${team.name}"?`;
-		if (hasEmployees || hasSubTeams) {
-			confirmMessage += '\n\nWarning: This team has ';
-			if (hasEmployees) confirmMessage += `${team.employees.totalCount} employees`;
-			if (hasEmployees && hasSubTeams) confirmMessage += ' and ';
-			if (hasSubTeams) confirmMessage += `${team.subDepartments.totalCount} sub-teams`;
-			confirmMessage += '. You should reassign them first.';
-		}
-
-		if (!confirm(confirmMessage)) return;
-
-		try {
-			const result = await deleteTeam({
-				input: { id: team.id }
-			});
-
-			if (result.data) {
-				toast.success('Team deleted successfully');
-				teams.reexecute();
-			}
-		} catch (error) {
-			toast.error('Failed to delete team');
-		}
-	}
-
-	// Submit team form
-	async function submitTeamForm() {
-		try {
-			if (currentTeam) {
-				// Update existing team
-				const result = await updateTeam({
-					input: {
-						id: currentTeam.id,
-						patch: {
-							name: teamForm.name,
-							description: teamForm.description,
-							parentDepartmentId: teamForm.parentDepartmentId || null,
-							departmentHeadId: teamForm.departmentHeadId || null
-						}
-					}
-				});
-
-				if (result.data) {
-					toast.success('Team updated successfully');
-					closeModals();
-					teams.reexecute();
-				}
-			} else {
-				// Create new team
-				const result = await createTeam({
-					input: {
-						department: {
-							name: teamForm.name,
-							description: teamForm.description,
-							parentDepartmentId: teamForm.parentDepartmentId || undefined,
-							departmentHeadId: teamForm.departmentHeadId || undefined
-						}
-					}
-				});
-
-				if (result.data) {
-					toast.success('Team created successfully');
-					closeModals();
-					teams.reexecute();
-				}
-			}
-		} catch (error) {
-			toast.error(currentTeam ? 'Failed to update team' : 'Failed to create team');
-		}
-	}
-
-	// Submit assign head form
-	async function submitAssignHead() {
-		try {
-			const result = await assignHead({
-				input: {
-					id: currentTeam.id,
-					patch: {
-						departmentHeadId: assignHeadForm.departmentHeadId || null
-					}
-				}
-			});
-
-			if (result.data) {
-				toast.success('Department head assigned successfully');
-				closeModals();
-				teams.reexecute();
-			}
-		} catch (error) {
-			toast.error('Failed to assign department head');
-		}
-	}
-
-	// Close modals
-	function closeModals() {
-		showCreateModal = false;
-		showEditModal = false;
-		showViewModal = false;
-		showAssignHeadModal = false;
-		showMoveEmployeeModal = false;
-		currentTeam = null;
-	}
-
-	// Apply filters
-	function applyFilters() {
-		currentPage = 1;
-		teams.reexecute();
-	}
-
-	// Clear filters
+	// Handle clear filters
 	function clearFilters() {
-		sizeFilter = 'all';
-		headFilter = 'all';
-		parentFilter = 'all';
-		searchQuery = '';
-		applyFilters();
+		searchTerm = '';
+		selectedSize = '';
+		selectedHead = '';
+		selectedParent = '';
+		viewMode = 'table';
+		pageSize = 20;
+		goto($page.url.pathname);
 	}
 
-	// Handle row click
-	function handleRowClick(event: CustomEvent) {
-		const row = event.detail;
-		const target = event.target as HTMLElement;
+	// Format employee count
+	function formatEmployeeCount(count: number): string {
+		if (count === 0) return 'No employees';
+		if (count === 1) return '1 employee';
+		return `${count} employees`;
+	}
 
-		// Check which action button was clicked
-		if (target.closest('[data-testid="view-team"]')) {
-			handleViewTeam(row);
-		} else if (target.closest('[data-testid="assign-head"]')) {
-			handleAssignHead(row);
-		} else if (target.closest('[data-testid="edit-team"]')) {
-			handleEditTeam(row);
-		} else if (target.closest('[data-testid="delete-team"]')) {
-			handleDeleteTeam(row);
+	// Handle view mode change
+	function handleViewModeChange(mode: 'table' | 'hierarchy') {
+		viewMode = mode;
+		const searchParams = new URLSearchParams($page.url.searchParams);
+		if (mode !== 'table') {
+			searchParams.set('view', mode);
+		} else {
+			searchParams.delete('view');
 		}
+		goto(`${$page.url.pathname}?${searchParams.toString()}`);
 	}
-
-	// Calculate team statistics
-	$: teamStats = $teams.data?.departments?.nodes ? calculateTeamStats($teams.data.departments.nodes) : {
-		totalTeams: 0,
-		totalEmployees: 0,
-		activeEmployees: 0,
-		teamsWithHeads: 0,
-		averageTeamSize: 0,
-		sizeDistribution: [],
-		utilizationRate: 0
-	};
 </script>
 
-<div class="container mx-auto px-4 py-8">
-	<!-- Page Header -->
-	<div class="mb-6 flex justify-between items-center">
+<svelte:head>
+	<title>Teams Management - SvelteHR</title>
+	<meta name="description" content="Manage teams and organizational structure" />
+</svelte:head>
+
+<!-- Page Header -->
+<div class="space-y-6">
+	<div class="flex items-center justify-between">
 		<div>
-			<h1 class="text-3xl font-bold text-gray-900">Teams Administration</h1>
-			<p class="mt-2 text-gray-600">Manage departments, assign heads, and organize your teams</p>
+			<h1 class="text-3xl font-bold tracking-tight">Teams Management</h1>
+			<p class="text-muted-foreground">
+				Manage organizational structure and team composition
+			</p>
 		</div>
-		<div class="flex gap-2">
-			<div class="flex rounded-lg border border-gray-300">
-				<button
-					onclick={() => viewMode = 'table'}
-					class="px-3 py-2 text-sm {viewMode === 'table' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'text-gray-600 hover:text-gray-900'}"
-					data-testid="table-view"
-				>
-					Table View
-				</button>
-				<button
-					onclick={() => viewMode = 'hierarchy'}
-					class="px-3 py-2 text-sm border-l {viewMode === 'hierarchy' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'text-gray-600 hover:text-gray-900'}"
-					data-testid="hierarchy-view"
-				>
+
+		{#if canManageTeams}
+			<div class="flex gap-2">
+				<Button variant="outline" size="sm">
+					<TreePine class="h-4 w-4 mr-2" />
+					Org Chart
+				</Button>
+				<Button size="sm" href="/dashboard/teams/new">
+					<Plus class="h-4 w-4 mr-2" />
+					Create Team
+				</Button>
+			</div>
+		{/if}
+	</div>
+
+	<!-- Statistics Cards -->
+	<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+		<Card.Root>
+			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
+				<Card.Title class="text-sm font-medium">Total Teams</Card.Title>
+				<Building class="h-4 w-4 text-muted-foreground" />
+			</Card.Header>
+			<Card.Content>
+				<div class="text-2xl font-bold">{teamStats.totalTeams}</div>
+				<p class="text-xs text-muted-foreground">
+					organizational units
+				</p>
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root>
+			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
+				<Card.Title class="text-sm font-medium">Total Employees</Card.Title>
+				<Users class="h-4 w-4 text-blue-600" />
+			</Card.Header>
+			<Card.Content>
+				<div class="text-2xl font-bold text-blue-600">{teamStats.totalEmployees}</div>
+				<p class="text-xs text-muted-foreground">
+					across all teams
+				</p>
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root>
+			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
+				<Card.Title class="text-sm font-medium">Average Team Size</Card.Title>
+				<BarChart3 class="h-4 w-4 text-green-600" />
+			</Card.Header>
+			<Card.Content>
+				<div class="text-2xl font-bold text-green-600">{teamStats.averageTeamSize}</div>
+				<p class="text-xs text-muted-foreground">
+					employees per team
+				</p>
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root>
+			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
+				<Card.Title class="text-sm font-medium">Teams with Heads</Card.Title>
+				<Crown class="h-4 w-4 text-yellow-600" />
+			</Card.Header>
+			<Card.Content>
+				<div class="text-2xl font-bold text-yellow-600">{teamStats.teamsWithHeads}</div>
+				<p class="text-xs text-muted-foreground">
+					{Math.round((teamStats.teamsWithHeads / teamStats.totalTeams) * 100)}% have leadership
+				</p>
+			</Card.Content>
+		</Card.Root>
+	</div>
+
+	<!-- View Mode Tabs -->
+	<Tabs value={viewMode} onValueChange={(value) => handleViewModeChange(value as 'table' | 'hierarchy')}>
+		<div class="flex items-center justify-between">
+			<TabsList>
+				<TabsTrigger value="table">
+					<Building2 class="h-4 w-4 mr-2" />
+					Card View
+				</TabsTrigger>
+				<TabsTrigger value="hierarchy">
+					<TreePine class="h-4 w-4 mr-2" />
 					Hierarchy
-				</button>
-			</div>
-			<button
-				onclick={handleCreateTeam}
-				class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2"
-				data-testid="create-team"
-			>
-				<Plus class="w-4 h-4" />
-				Create Team
-			</button>
-		</div>
-	</div>
+				</TabsTrigger>
+			</TabsList>
 
-	<!-- Team Statistics -->
-	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" data-testid="team-statistics">
-		<div class="bg-white rounded-lg shadow p-6">
-			<div class="flex items-center justify-between">
-				<div>
-					<p class="text-sm font-medium text-gray-600">Total Teams</p>
-					<p class="text-2xl font-bold text-gray-900">{teamStats.totalTeams}</p>
-					<p class="text-sm text-blue-600">{teamStats.teamsWithHeads} with heads</p>
-				</div>
-				<div class="p-3 bg-blue-100 rounded-full">
-					<Building class="w-6 h-6 text-blue-600" />
-				</div>
-			</div>
-		</div>
+			<!-- Search and Filters Card -->
+			<Card.Root class="mb-6">
+				<Card.Header>
+					<Card.Title>Search & Filter Teams</Card.Title>
+					<Card.Description>Find teams by name, size, or leadership status</Card.Description>
+				</Card.Header>
+				<Card.Content>
+					<form on:submit|preventDefault={handleSearch} class="space-y-4">
+						<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+							<!-- Search Input -->
+							<div class="space-y-2">
+								<label for="search" class="text-sm font-medium">Search</label>
+								<div class="relative">
+									<Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+									<Input
+										id="search"
+										type="text"
+										placeholder="Search team names..."
+										bind:value={searchTerm}
+										class="pl-9"
+									/>
+								</div>
+							</div>
 
-		<div class="bg-white rounded-lg shadow p-6">
-			<div class="flex items-center justify-between">
-				<div>
-					<p class="text-sm font-medium text-gray-600">Total Employees</p>
-					<p class="text-2xl font-bold text-gray-900">{teamStats.totalEmployees}</p>
-					<p class="text-sm text-green-600">{teamStats.activeEmployees} active</p>
-				</div>
-				<div class="p-3 bg-green-100 rounded-full">
-					<Users class="w-6 h-6 text-green-600" />
-				</div>
-			</div>
-		</div>
+							<!-- Size Filter -->
+							<div class="space-y-2">
+								<label for="size" class="text-sm font-medium">Team Size</label>
+								<Select bind:value={selectedSize}>
+									<SelectTrigger>
+										<SelectValue placeholder="All Sizes" />
+									</SelectTrigger>
+									<SelectContent>
+										{#each sizeOptions as option}
+											<SelectItem value={option.value}>{option.label}</SelectItem>
+										{/each}
+									</SelectContent>
+								</Select>
+							</div>
 
-		<div class="bg-white rounded-lg shadow p-6">
-			<div class="flex items-center justify-between">
-				<div>
-					<p class="text-sm font-medium text-gray-600">Average Team Size</p>
-					<p class="text-2xl font-bold text-gray-900">{teamStats.averageTeamSize}</p>
-					<p class="text-sm text-purple-600">employees per team</p>
-				</div>
-				<div class="p-3 bg-purple-100 rounded-full">
-					<UserCheck class="w-6 h-6 text-purple-600" />
-				</div>
-			</div>
-		</div>
+							<!-- Head Filter -->
+							<div class="space-y-2">
+								<label for="head" class="text-sm font-medium">Leadership</label>
+								<Select bind:value={selectedHead}>
+									<SelectTrigger>
+										<SelectValue placeholder="All Teams" />
+									</SelectTrigger>
+									<SelectContent>
+										{#each headOptions as option}
+											<SelectItem value={option.value}>{option.label}</SelectItem>
+										{/each}
+									</SelectContent>
+								</Select>
+							</div>
 
-		<div class="bg-white rounded-lg shadow p-6">
-			<div class="flex items-center justify-between">
-				<div>
-					<p class="text-sm font-medium text-gray-600">Utilization Rate</p>
-					<p class="text-2xl font-bold text-gray-900">{teamStats.utilizationRate}%</p>
-					<p class="text-sm text-orange-600">active employees</p>
-				</div>
-				<div class="p-3 bg-orange-100 rounded-full">
-					<Crown class="w-6 h-6 text-orange-600" />
-				</div>
-			</div>
-		</div>
-	</div>
+							<!-- Page Size -->
+							<div class="space-y-2">
+								<label for="pagesize" class="text-sm font-medium">Per Page</label>
+								<Select bind:value={pageSize}>
+									<SelectTrigger>
+										<SelectValue placeholder="20" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value={10}>10</SelectItem>
+										<SelectItem value={20}>20</SelectItem>
+										<SelectItem value={50}>50</SelectItem>
+										<SelectItem value={100}>100</SelectItem>
+									</SelectContent>
+								</Select>
+							</div>
+						</div>
 
-	{#if viewMode === 'table'}
-		<!-- Filters Section -->
-		<div class="bg-white rounded-lg shadow p-4 mb-6">
-			<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-				<!-- Team Size Filter -->
-				<div>
-					<label for="size-filter" class="block text-sm font-medium text-gray-700 mb-1">
-						Team Size
-					</label>
-					<select
-						id="size-filter"
-						bind:value={sizeFilter}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-						data-testid="size-filter"
-					>
-						<option value="all">All Sizes</option>
-						{#each teamSizeCategories as size}
-							<option value={size.value}>{size.label}</option>
-						{/each}
-					</select>
-				</div>
-
-				<!-- Department Head Filter -->
-				<div>
-					<label for="head-filter" class="block text-sm font-medium text-gray-700 mb-1">
-						Department Head
-					</label>
-					<select
-						id="head-filter"
-						bind:value={headFilter}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-						data-testid="head-filter"
-					>
-						<option value="all">All Teams</option>
-						<option value="with-head">With Head</option>
-						<option value="without-head">Without Head</option>
-					</select>
-				</div>
-
-				<!-- Parent Filter -->
-				<div>
-					<label for="parent-filter" class="block text-sm font-medium text-gray-700 mb-1">
-						Team Level
-					</label>
-					<select
-						id="parent-filter"
-						bind:value={parentFilter}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-						data-testid="parent-filter"
-					>
-						<option value="all">All Levels</option>
-						<option value="root">Root Teams</option>
-						<option value="sub">Sub-teams</option>
-					</select>
-				</div>
-
-				<!-- Search -->
-				<div>
-					<label for="search" class="block text-sm font-medium text-gray-700 mb-1">
-						Search Teams
-					</label>
-					<input
-						id="search"
-						type="text"
-						bind:value={searchQuery}
-						placeholder="Search by name..."
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-						data-testid="team-search"
-					/>
-				</div>
-			</div>
-
-			<!-- Filter Actions -->
-			<div class="mt-4 flex gap-2">
-				<button
-					onclick={applyFilters}
-					class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-					data-testid="apply-filters"
-				>
-					Apply Filters
-				</button>
-				<button
-					onclick={clearFilters}
-					class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
-					data-testid="clear-filters"
-				>
-					Clear Filters
-				</button>
-			</div>
+						<div class="flex gap-2">
+							<Button type="submit">
+								<Search class="h-4 w-4 mr-2" />
+								Search
+							</Button>
+							<Button type="button" variant="outline" on:click={clearFilters}>
+								Clear Filters
+							</Button>
+						</div>
+					</form>
+				</Card.Content>
+			</Card.Root>
 		</div>
 
-		<!-- Data Table -->
-		<div class="bg-white rounded-lg shadow">
-			<HrDataTable
-				data={$teams.data?.departments?.nodes || []}
-				{columns}
-				loading={$teams.fetching}
-				searchable={false}
-				selectable={true}
-				onSelectionChange={(selected) => (selectedTeams = selected)}
-				onRowClick={handleRowClick}
-				pagination={{
-					page: currentPage,
-					pageSize,
-					total: $teams.data?.departments?.totalCount || 0,
-					pageSizes: [10, 20, 50, 100]
-				}}
-				onPageChange={(page) => {
-					currentPage = page;
-					teams.reexecute();
-				}}
-				onPageSizeChange={(size) => {
-					pageSize = size;
-					currentPage = 1;
-					teams.reexecute();
-				}}
-				emptyMessage="No teams found"
-				testId="teams-table"
-			/>
-		</div>
-	{:else}
-		<!-- Hierarchy View -->
-		<div class="bg-white rounded-lg shadow p-6" data-testid="hierarchy-view">
-			<h3 class="text-lg font-semibold text-gray-900 mb-4">Organization Hierarchy</h3>
-			<div class="space-y-2">
-				{#if $teams.data?.departments?.nodes}
-					{@const hierarchy = buildTeamHierarchy($teams.data.departments.nodes)}
-					{#each hierarchy as rootTeam}
-						<div class="border rounded-lg p-4">
-							<div class="flex items-center justify-between">
-								<div class="flex items-center gap-3">
-									<div class="p-2 bg-blue-100 rounded-lg">
-										<Building class="w-5 h-5 text-blue-600" />
+		<!-- Card View Content -->
+		<TabsContent value="table" class="space-y-6">
+			<!-- Teams Grid -->
+			<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+				{#each teams as team}
+					<Card.Root class="hover:shadow-md transition-shadow">
+						<Card.Header class="pb-3">
+							<div class="flex items-start justify-between">
+								<div class="flex items-center space-x-3">
+									<div class="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+										<Building2 class="h-6 w-6 text-primary" />
 									</div>
 									<div>
-										<h4 class="font-semibold text-gray-900">{rootTeam.name}</h4>
-										<p class="text-sm text-gray-600">
-											{rootTeam.employeeCount} employees • Level {rootTeam.level}
-										</p>
+										<Card.Title class="text-lg">{team.name}</Card.Title>
+										<Card.Description>{team.description || 'No description'}</Card.Description>
 									</div>
 								</div>
-								<div class="flex items-center gap-2">
-									{#if rootTeam.departmentHead}
-										<div class="flex items-center gap-1 text-sm text-yellow-600">
-											<Crown class="w-4 h-4" />
-											{rootTeam.departmentHead.displayName}
-										</div>
-									{/if}
-									<span class="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded">
-										{rootTeam.children.length} sub-teams
-									</span>
+								{#if team.departmentHead}
+									<Badge variant="default">
+										<Crown class="h-3 w-3 mr-1" />
+										Has Head
+									</Badge>
+								{:else}
+									<Badge variant="outline">
+										<UserCheck class="h-3 w-3 mr-1" />
+										No Head
+									</Badge>
+								{/if}
+							</div>
+						</Card.Header>
+						<Card.Content class="space-y-3">
+							<!-- Team Information -->
+							<div class="space-y-2">
+								{#if team.departmentHead}
+								<div class="flex items-center text-sm">
+									<UserCheck class="h-4 w-4 mr-2 text-green-600" />
+									<span class="font-medium">{team.departmentHead.displayName}</span>
+									<span class="text-muted-foreground ml-1">({team.departmentHead.jobTitle || 'Head'})</span>
+								</div>
+								{/if}
+
+								{#if team.parentDepartment}
+								<div class="flex items-center text-sm text-muted-foreground">
+									<Building class="h-4 w-4 mr-2" />
+									<span>Parent: {team.parentDepartment.name}</span>
+								</div>
+								{/if}
+
+								<div class="flex items-center text-sm text-muted-foreground">
+									<Users class="h-4 w-4 mr-2" />
+									<span>{formatEmployeeCount(team.employees?.totalCount || 0)}</span>
+								</div>
+
+								{#if team.subDepartments?.totalCount > 0}
+								<div class="flex items-center text-sm text-muted-foreground">
+									<TreePine class="h-4 w-4 mr-2" />
+									<span>{team.subDepartments.totalCount} sub-teams</span>
+								</div>
+								{/if}
+
+								<!-- Team Size Badge -->
+								{@const sizeInfo = categorizeTeamSize(team.employees?.totalCount || 0)}
+								<div class="flex items-center text-sm">
+									<Badge variant="outline" class="bg-{sizeInfo.color}-50 border-{sizeInfo.color}-200 text-{sizeInfo.color}-800">
+										<BarChart3 class="h-3 w-3 mr-1" />
+										{sizeInfo.label}
+									</Badge>
 								</div>
 							</div>
 
-							{#if rootTeam.children.length > 0}
-								<div class="mt-4 ml-8 space-y-2">
-									{#each rootTeam.children as childTeam}
-										<div class="flex items-center gap-3 p-2 bg-gray-50 rounded">
-											<ArrowRight class="w-4 h-4 text-gray-400" />
-											<div class="p-1 bg-green-100 rounded">
-												<Building class="w-4 h-4 text-green-600" />
-											</div>
-											<div class="flex-1">
-												<span class="font-medium">{childTeam.name}</span>
-												<span class="text-sm text-gray-500 ml-2">({childTeam.employeeCount} employees)</span>
-											</div>
-											{#if childTeam.departmentHead}
-												<div class="flex items-center gap-1 text-sm text-yellow-600">
-													<Crown class="w-3 h-3" />
-													{childTeam.departmentHead.displayName}
-												</div>
-											{/if}
-										</div>
-									{/each}
-								</div>
+							<Separator />
+
+							<!-- Actions -->
+							<div class="flex gap-2">
+								{#if canViewEmployees}
+								<Button variant="outline" size="sm" href="/dashboard/teams/{team.id}">
+									<Eye class="h-4 w-4 mr-2" />
+									View Details
+								</Button>
+								{/if}
+								{#if canManageTeams}
+								<Button variant="outline" size="sm" href="/dashboard/teams/{team.id}/edit">
+									<Edit class="h-4 w-4 mr-2" />
+									Edit
+								</Button>
+								{/if}
+							</div>
+						</Card.Content>
+					</Card.Root>
+				{/each}
+			</div>
+
+			<!-- Empty State -->
+			{#if teams.length === 0}
+				<Card.Root>
+					<Card.Content class="py-8">
+						<div class="text-center">
+							<Building class="mx-auto h-12 w-12 text-muted-foreground" />
+							<h3 class="mt-4 text-lg font-semibold">No teams found</h3>
+							<p class="text-muted-foreground">
+								{#if filters.searchTerm || filters.sizeFilter || filters.headFilter}
+									Try adjusting your search criteria or clearing filters.
+								{:else}
+									No teams have been created yet.
+								{/if}
+							</p>
+							{#if canManageTeams && !filters.searchTerm && !filters.sizeFilter && !filters.headFilter}
+								<Button class="mt-4" href="/dashboard/teams/new">
+									<Plus class="h-4 w-4 mr-2" />
+									Create First Team
+								</Button>
 							{/if}
 						</div>
-					{/each}
-				{/if}
-			</div>
-		</div>
-	{/if}
+					</Card.Content>
+				</Card.Root>
+			{/if}
 
-	<!-- Export Component -->
-	<DataExport
-		data={$teams.data?.departments?.nodes || []}
-		filename="teams"
-		testId="export-csv"
-	/>
-</div>
+			<!-- Pagination -->
+			{#if totalPages > 1}
+				<Card.Root>
+					<Card.Content class="py-4">
+						<div class="flex items-center justify-between">
+							<div class="text-sm text-muted-foreground">
+								Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalTeams)} of {totalTeams} teams
+							</div>
+							<div class="flex gap-2">
+								<Button
+									variant="outline"
+									size="sm"
+									disabled={!hasPreviousPage}
+									on:click={() => goToPage(currentPage - 1)}
+								>
+									Previous
+								</Button>
 
-<!-- Create Team Modal -->
-{#if showCreateModal}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="create-team-modal">
-		<div class="bg-white rounded-lg p-6 max-w-2xl w-full">
-			<div class="flex justify-between items-center mb-4">
-				<h2 class="text-xl font-bold" data-testid="modal-title">Create New Team</h2>
-				<button onclick={closeModals} class="text-gray-400 hover:text-gray-600">
-					<X class="w-6 h-6" />
-				</button>
-			</div>
+								{#if totalPages <= 7}
+									{#each Array(totalPages) as _, i}
+										<Button
+											variant={currentPage === i + 1 ? 'default' : 'outline'}
+											size="sm"
+											on:click={() => goToPage(i + 1)}
+										>
+											{i + 1}
+										</Button>
+									{/each}
+								{:else}
+									<!-- Complex pagination with ellipsis -->
+									<Button
+										variant={currentPage === 1 ? 'default' : 'outline'}
+										size="sm"
+										on:click={() => goToPage(1)}
+									>
+										1
+									</Button>
 
-			<form on:submit|preventDefault={submitTeamForm}>
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-					<div class="md:col-span-2">
-						<label class="block text-sm font-medium text-gray-700 mb-1">Team Name *</label>
-						<input
-							type="text"
-							bind:value={teamForm.name}
-							required
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-							data-testid="team-name"
-							placeholder="Enter team name..."
-						/>
-					</div>
-					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Department Type</label>
-						<select
-							bind:value={teamForm.departmentType}
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-							data-testid="department-type"
-						>
-							{#each departmentTypes as type}
-								<option value={type.value}>{type.label}</option>
-							{/each}
-						</select>
-					</div>
-					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Parent Team (Optional)</label>
-						<input
-							type="text"
-							bind:value={teamForm.parentDepartmentId}
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-							data-testid="parent-team"
-							placeholder="Parent team ID"
-						/>
-					</div>
-				</div>
+									{#if currentPage > 3}
+										<span class="px-2 text-muted-foreground">...</span>
+									{/if}
 
-				<div class="mb-4">
-					<label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-					<textarea
-						bind:value={teamForm.description}
-						rows="3"
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-						data-testid="team-description"
-						placeholder="Describe the team's purpose and responsibilities..."
-					></textarea>
-				</div>
+									{#each Array(Math.min(5, totalPages - 2)) as _, i}
+										{@const pageNum = Math.max(2, Math.min(currentPage - 2 + i, totalPages - 1))}
+										{#if pageNum >= 2 && pageNum <= totalPages - 1}
+											<Button
+												variant={currentPage === pageNum ? 'default' : 'outline'}
+												size="sm"
+												on:click={() => goToPage(pageNum)}
+											>
+												{pageNum}
+											</Button>
+										{/if}
+									{/each}
 
-				<div class="mb-4">
-					<label class="block text-sm font-medium text-gray-700 mb-1">Department Head (Optional)</label>
-					<input
-						type="text"
-						bind:value={teamForm.departmentHeadId}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-						data-testid="department-head-id"
-						placeholder="Employee ID for department head"
-					/>
-				</div>
+									{#if currentPage < totalPages - 2}
+										<span class="px-2 text-muted-foreground">...</span>
+									{/if}
 
-				<div class="flex gap-2 justify-end">
-					<button type="button" onclick={closeModals} class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
-						Cancel
-					</button>
-					<button
-						type="submit"
-						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-						data-testid="submit-team"
-					>
-						Create Team
-					</button>
-				</div>
-			</form>
-		</div>
-	</div>
-{/if}
+									<Button
+										variant={currentPage === totalPages ? 'default' : 'outline'}
+										size="sm"
+										on:click={() => goToPage(totalPages)}
+									>
+										{totalPages}
+									</Button>
+								{/if}
 
-<!-- Assign Department Head Modal -->
-{#if showAssignHeadModal && currentTeam}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="assign-head-modal">
-		<div class="bg-white rounded-lg p-6 max-w-md w-full">
-			<div class="flex justify-between items-center mb-4">
-				<h2 class="text-xl font-bold" data-testid="modal-title">Assign Department Head</h2>
-				<button onclick={closeModals} class="text-gray-400 hover:text-gray-600">
-					<X class="w-6 h-6" />
-				</button>
-			</div>
-
-			<div class="mb-4">
-				<h3 class="font-medium text-gray-900 mb-2">{currentTeam.name}</h3>
-				<p class="text-sm text-gray-600">
-					{currentTeam.employees?.totalCount || 0} employees
-				</p>
-			</div>
-
-			<form on:submit|preventDefault={submitAssignHead}>
-				<div class="mb-4">
-					<label class="block text-sm font-medium text-gray-700 mb-1">Employee ID *</label>
-					<input
-						type="text"
-						bind:value={assignHeadForm.departmentHeadId}
-						required
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-						data-testid="head-employee-id"
-						placeholder="Enter employee ID"
-					/>
-				</div>
-
-				<div class="mb-4">
-					<label class="block text-sm font-medium text-gray-700 mb-1">Search Employee</label>
-					<input
-						type="text"
-						bind:value={assignHeadForm.searchTerm}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-						data-testid="search-employee"
-						placeholder="Search by name or email"
-					/>
-				</div>
-
-				<div class="flex gap-2 justify-end">
-					<button type="button" onclick={closeModals} class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
-						Cancel
-					</button>
-					<button
-						type="submit"
-						class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
-						data-testid="submit-assign-head"
-					>
-						Assign Head
-					</button>
-				</div>
-			</form>
-		</div>
-	</div>
-{/if}
-
-<!-- View Team Modal -->
-{#if showViewModal && currentTeam}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="view-team-modal">
-		<div class="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-			<div class="flex justify-between items-center mb-6">
-				<div>
-					<h2 class="text-xl font-bold" data-testid="modal-title">{currentTeam.name}</h2>
-					<p class="text-gray-600">{getDepartmentTypeInfo(currentTeam.name).label} Department</p>
-				</div>
-				<button onclick={closeModals} class="text-gray-400 hover:text-gray-600">
-					<X class="w-6 h-6" />
-				</button>
-			</div>
-
-			<div class="space-y-6" data-testid="team-details">
-				<!-- Team Overview -->
-				<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-					<div class="text-center">
-						<p class="text-sm text-gray-600">Total Employees</p>
-						<p class="text-2xl font-bold text-blue-600">{currentTeam.employees?.totalCount || 0}</p>
-					</div>
-					<div class="text-center">
-						<p class="text-sm text-gray-600">Active Employees</p>
-						<p class="text-2xl font-bold text-green-600">{currentTeam.activeEmployees?.totalCount || 0}</p>
-					</div>
-					<div class="text-center">
-						<p class="text-sm text-gray-600">Sub-teams</p>
-						<p class="text-2xl font-bold text-purple-600">{currentTeam.subDepartments?.totalCount || 0}</p>
-					</div>
-				</div>
-
-				<!-- Department Head -->
-				{#if currentTeam.departmentHead}
-					<div>
-						<h4 class="font-medium text-gray-900 mb-3">Department Head</h4>
-						<div class="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
-							<Crown class="w-6 h-6 text-yellow-600" />
-							<div>
-								<p class="font-medium">{currentTeam.departmentHead.displayName}</p>
-								<p class="text-sm text-gray-600">{currentTeam.departmentHead.jobTitle}</p>
-								<p class="text-sm text-gray-500">{currentTeam.departmentHead.email}</p>
+								<Button
+									variant="outline"
+									size="sm"
+									disabled={!hasNextPage}
+									on:click={() => goToPage(currentPage + 1)}
+								>
+									Next
+								</Button>
 							</div>
 						</div>
-					</div>
-				{:else}
-					<div>
-						<h4 class="font-medium text-gray-900 mb-3">Department Head</h4>
-						<div class="p-3 bg-gray-50 rounded-lg text-center">
-							<p class="text-gray-500">No department head assigned</p>
-						</div>
-					</div>
-				{/if}
+					</Card.Content>
+				</Card.Root>
+			{/if}
+		</TabsContent>
 
-				<!-- Description -->
-				{#if currentTeam.description}
-					<div>
-						<h4 class="font-medium text-gray-900 mb-2">Description</h4>
-						<p class="text-gray-700 bg-gray-50 p-3 rounded-md">{currentTeam.description}</p>
+		<!-- Hierarchy View Content -->
+		<TabsContent value="hierarchy" class="space-y-6">
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>Organization Hierarchy</Card.Title>
+					<Card.Description>Visual representation of team structure</Card.Description>
+				</Card.Header>
+				<Card.Content>
+					<div class="text-center py-8 text-muted-foreground">
+						<TreePine class="mx-auto h-12 w-12 mb-4" />
+						<p>Hierarchy view will be implemented with team relationship data.</p>
+						<p class="text-sm mt-2">Switch to Card View to see individual teams.</p>
 					</div>
-				{/if}
-
-				<!-- Team Statistics -->
-				<div>
-					<h4 class="font-medium text-gray-900 mb-3">Team Statistics</h4>
-					<div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-						<div class="text-center p-3 bg-blue-50 rounded-lg">
-							<p class="text-xs text-blue-600 uppercase">Team Size</p>
-							<p class="text-lg font-bold text-blue-900">
-								{categorizeTeamSize(currentTeam.employees?.totalCount || 0).label}
-							</p>
-						</div>
-						<div class="text-center p-3 bg-green-50 rounded-lg">
-							<p class="text-xs text-green-600 uppercase">Utilization</p>
-							<p class="text-lg font-bold text-green-900">
-								{Math.round(((currentTeam.activeEmployees?.totalCount || 0) / Math.max(currentTeam.employees?.totalCount || 1, 1)) * 100)}%
-							</p>
-						</div>
-						<div class="text-center p-3 bg-purple-50 rounded-lg">
-							<p class="text-xs text-purple-600 uppercase">Sub-teams</p>
-							<p class="text-lg font-bold text-purple-900">{currentTeam.subDepartments?.totalCount || 0}</p>
-						</div>
-						<div class="text-center p-3 bg-orange-50 rounded-lg">
-							<p class="text-xs text-orange-600 uppercase">Level</p>
-							<p class="text-lg font-bold text-orange-900">{currentTeam.parentDepartmentId ? 'Sub' : 'Root'}</p>
-						</div>
-					</div>
-				</div>
-			</div>
-
-			<div class="flex justify-between mt-6">
-				<div class="flex gap-2">
-					<button
-						onclick={() => {closeModals(); handleAssignHead(currentTeam);}}
-						class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
-					>
-						Assign Head
-					</button>
-					<button
-						onclick={() => {closeModals(); handleEditTeam(currentTeam);}}
-						class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-					>
-						Edit Team
-					</button>
-				</div>
-				<button onclick={closeModals} class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">
-					Close
-				</button>
-			</div>
-		</div>
-	</div>
-{/if}
-
-<!-- Success/Error Notifications (handled by svelte-sonner toast) -->
-<div data-testid="success-notification" class="hidden"></div>
-<div data-testid="access-denied" class="hidden"></div>
-<div data-testid="empty-state" class="hidden"></div>
+				</Card.Content>
+			</Card.Root>
+		</TabsContent>
+	</Tabs>
+</div>

@@ -763,3 +763,141 @@ export interface ReportStatistics {
     };
   };
 }
+
+/**
+ * T033: Standardized Team Reports Operations with Error Handling
+ */
+import type { OperationStore } from '@urql/svelte';
+import type { DataRequest, UserCredentials } from '$lib/models/data-request';
+
+export class TeamReportsOperations {
+  private client: OperationStore;
+
+  constructor(client: OperationStore) {
+    this.client = client;
+  }
+
+  async generateTeamReport(params: {
+    type: string;
+    departmentId?: string;
+    dateRange: { start: string; end: string };
+    userCredentials: UserCredentials;
+  }): Promise<any> {
+    const { DataRequest, createDataRequest } = await import('$lib/models/data-request');
+    const { createErrorResponse } = await import('$lib/models/error-response');
+
+    const dataRequest = createDataRequest({
+      operationName: 'GenerateTeamReport',
+      variables: {
+        input: {
+          type: params.type,
+          departmentId: params.departmentId,
+          startDate: params.dateRange.start,
+          endDate: params.dateRange.end
+        }
+      },
+      userCredentials: params.userCredentials,
+      timeoutMs: 10000, // Longer timeout for report generation
+      retryAttempts: 0,
+      maxRetries: 2
+    });
+
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        const errorResponse = createErrorResponse(
+          new Error('Report generation timeout'),
+          {
+            type: 'TIMEOUT_ERROR',
+            userMessage: 'Report generation is taking longer than expected. Please try again or contact support.'
+          }
+        );
+        reject(errorResponse);
+        unsubscribe();
+      }, dataRequest.timeoutMs);
+
+      const unsubscribe = this.client.subscribe(
+        {
+          query: GENERATE_TEAM_REPORT,
+          variables: {
+            input: {
+              type: params.type,
+              departmentId: params.departmentId,
+              startDate: params.dateRange.start,
+              endDate: params.dateRange.end
+            }
+          }
+        },
+        (result) => {
+          clearTimeout(timeoutId);
+
+          if (result.error) {
+            const errorResponse = createErrorResponse(result.error, {
+              type: 'GRAPHQL_ERROR',
+              userMessage: 'Unable to generate report. Please check your permissions and try again.'
+            });
+            reject(errorResponse);
+            unsubscribe();
+          } else if (result.data) {
+            resolve(result.data);
+            unsubscribe();
+          }
+        }
+      );
+    });
+  }
+
+  async getAvailableReports(params: {
+    userCredentials: UserCredentials;
+  }): Promise<any> {
+    const { DataRequest, createDataRequest } = await import('$lib/models/data-request');
+    const { createErrorResponse } = await import('$lib/models/error-response');
+
+    const dataRequest = createDataRequest({
+      operationName: 'GetAvailableReports',
+      variables: {},
+      userCredentials: params.userCredentials,
+      timeoutMs: 3000,
+      retryAttempts: 0,
+      maxRetries: 2
+    });
+
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        const errorResponse = createErrorResponse(
+          new Error('Available reports timeout'),
+          {
+            type: 'TIMEOUT_ERROR',
+            userMessage: 'Loading available reports is taking longer than expected.'
+          }
+        );
+        reject(errorResponse);
+        unsubscribe();
+      }, dataRequest.timeoutMs);
+
+      const unsubscribe = this.client.subscribe(
+        {
+          query: GET_AVAILABLE_REPORTS
+        },
+        (result) => {
+          clearTimeout(timeoutId);
+
+          if (result.error) {
+            const errorResponse = createErrorResponse(result.error, {
+              type: 'GRAPHQL_ERROR',
+              userMessage: 'Unable to load available reports. Please try again.'
+            });
+            reject(errorResponse);
+            unsubscribe();
+          } else if (result.data) {
+            resolve(result.data);
+            unsubscribe();
+          }
+        }
+      );
+    });
+  }
+}
+
+export function createTeamReportsOperations(client: OperationStore): TeamReportsOperations {
+  return new TeamReportsOperations(client);
+}

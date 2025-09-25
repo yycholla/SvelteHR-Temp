@@ -525,3 +525,74 @@ export function buildDepartmentFilter({
 
   return filter;
 }
+
+/**
+ * T031: Standardized Team Management Operations with Error Handling
+ */
+import type { OperationStore } from '@urql/svelte';
+import type { DataRequest, UserCredentials } from '$lib/models/data-request';
+
+export class TeamManagementOperations {
+  private client: OperationStore;
+
+  constructor(client: OperationStore) {
+    this.client = client;
+  }
+
+  async getTeamOverview(params: {
+    departmentId?: string;
+    userCredentials: UserCredentials;
+  }): Promise<any> {
+    const { DataRequest, createDataRequest } = await import('$lib/models/data-request');
+    const { createErrorResponse } = await import('$lib/models/error-response');
+
+    const dataRequest = createDataRequest({
+      operationName: 'GetTeamOverview',
+      variables: { departmentId: params.departmentId },
+      userCredentials: params.userCredentials,
+      timeoutMs: 5000,
+      retryAttempts: 0,
+      maxRetries: 3
+    });
+
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        const errorResponse = createErrorResponse(
+          new Error('Team overview timeout'),
+          {
+            type: 'TIMEOUT_ERROR',
+            userMessage: 'Team overview is loading slowly. Please try again.'
+          }
+        );
+        reject(errorResponse);
+        unsubscribe();
+      }, dataRequest.timeoutMs);
+
+      const unsubscribe = this.client.subscribe(
+        {
+          query: GET_TEAM_OVERVIEW,
+          variables: { departmentId: params.departmentId }
+        },
+        (result) => {
+          clearTimeout(timeoutId);
+
+          if (result.error) {
+            const errorResponse = createErrorResponse(result.error, {
+              type: 'GRAPHQL_ERROR',
+              userMessage: 'Unable to load team overview. Please try again.'
+            });
+            reject(errorResponse);
+            unsubscribe();
+          } else if (result.data) {
+            resolve(result.data);
+            unsubscribe();
+          }
+        }
+      );
+    });
+  }
+}
+
+export function createTeamManagementOperations(client: OperationStore): TeamManagementOperations {
+  return new TeamManagementOperations(client);
+}

@@ -1,844 +1,658 @@
-<script lang="ts">
-	import { onMount } from 'svelte';
-	import { page } from '$app/stores';
-	import { getOperationStore, queryStore } from '@urql/svelte';
-	import { toast } from 'svelte-sonner';
-	import { Star, Edit, Eye, Plus, Filter, X } from 'lucide-svelte';
+<!-- Performance Reviews Management Page -->
+<!-- T039: Fix performance management pages with standardized error handling -->
 
-	import HrDataTable from '$lib/components/data-table/hr-data-table.svelte';
-	import DataExport from '$lib/components/export/data-export.svelte';
+<script lang="ts">
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
+	import { BarChart3, TrendingUp, Users, Award, Plus, Search, Filter, Calendar, Star, Clock, CheckCircle, AlertTriangle } from 'lucide-svelte';
+	import { toast } from 'svelte-sonner';
+
+	import { Button } from '$lib/components/ui/button';
+	import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
+	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
+	import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '$lib/components/ui/select';
+	import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Avatar, AvatarFallback } from '$lib/components/ui/avatar';
+	import { Progress } from '$lib/components/ui/progress';
+	import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '$lib/components/ui/dialog';
+
 	import {
-		GET_PERFORMANCE_REVIEWS,
-		GET_PENDING_REVIEWS_FOR_MANAGER,
-		CREATE_PERFORMANCE_REVIEW,
-		UPDATE_PERFORMANCE_REVIEW,
-		DELETE_PERFORMANCE_REVIEW,
+		performanceRatings,
+		reviewStatusOptions,
+		reviewPeriods,
 		getRatingInfo,
 		getStatusInfo,
 		formatReviewPeriod,
-		reviewStatusOptions,
-		performanceRatings
+		isReviewOverdue,
+		createPerformanceOperations
 	} from '$lib/graphql/performance-management-operations';
 
 	// Page data from server
-	export let data;
+	interface Props {
+		data: {
+			user: any;
+			userSession: any;
+			performanceReviews: any[];
+			totalReviews: number;
+			reviewAnalytics: any;
+			filters: any;
+			permissions: string[];
+			canCreateReviews: boolean;
+			canEditReviews: boolean;
+			canViewAllReviews: boolean;
+			loadedAt: string;
+		};
+	}
 
-	// Local state using Svelte 5 runes
-	let selectedReviews = $state<any[]>([]);
+	let { data }: Props = $props();
+
+	// Derived state using Svelte 5 runes
+	const user = $derived(data.user);
+	const userSession = $derived(data.userSession);
+	const performanceReviews = $derived(data.performanceReviews);
+	const reviewAnalytics = $derived(data.reviewAnalytics);
+	const canCreateReviews = $derived(data.canCreateReviews);
+	const canEditReviews = $derived(data.canEditReviews);
+	const canViewAllReviews = $derived(data.canViewAllReviews);
+
+	// Local state for UI
+	let selectedView = $state('all');
 	let showCreateModal = $state(false);
-	let showEditModal = $state(false);
-	let showViewModal = $state(false);
+	let showDetailsModal = $state(false);
 	let currentReview = $state<any>(null);
-	let statusFilter = $state('all');
-	let ratingFilter = $state('all');
-	let periodFilter = $state('all');
-	let searchQuery = $state('');
+	let isSubmitting = $state(false);
+	let searchQuery = $state(data.filters.searchTerm || '');
+	let statusFilter = $state(data.filters.statusFilter || '');
+	let periodFilter = $state(data.filters.periodFilter || '');
+	let departmentFilter = $state(data.filters.departmentFilter || '');
 
-	// Pagination state
-	let currentPage = $state(1);
-	let pageSize = $state(20);
+	// Statistics cards data
+	const statsCards = $derived([
+		{
+			title: 'Total Reviews',
+			value: reviewAnalytics.totalReviews,
+			description: 'All performance reviews',
+			icon: Users,
+			color: 'bg-blue-50 text-blue-700 border-blue-200',
+			iconColor: 'text-blue-600'
+		},
+		{
+			title: 'Completed Reviews',
+			value: reviewAnalytics.completedReviews,
+			description: 'Reviews finished',
+			icon: CheckCircle,
+			color: 'bg-green-50 text-green-700 border-green-200',
+			iconColor: 'text-green-600'
+		},
+		{
+			title: 'Overdue Reviews',
+			value: reviewAnalytics.overdueReviews,
+			description: 'Need immediate attention',
+			icon: AlertTriangle,
+			color: 'bg-orange-50 text-orange-700 border-orange-200',
+			iconColor: 'text-orange-600'
+		},
+		{
+			title: 'Completion Rate',
+			value: `${reviewAnalytics.completionRate}%`,
+			description: 'Reviews completed on time',
+			icon: TrendingUp,
+			color: 'bg-purple-50 text-purple-700 border-purple-200',
+			iconColor: 'text-purple-600'
+		}
+	]);
 
-	// Create/Edit form state
-	let formData = $state({
-		employeeId: '',
-		reviewerId: data.user?.id || '',
-		reviewPeriodStart: '',
-		reviewPeriodEnd: '',
-		status: 'draft' as any,
-		overallRating: 3,
-		goalsAchievement: 3,
-		collaboration: 3,
-		communication: 3,
-		leadership: 3,
-		strengths: '',
-		areasForImprovement: '',
-		goalsForNextPeriod: '',
-		developmentPlan: '',
-		reviewNotes: '',
-		employeeSelfAssessment: ''
+	// Rating categories for analytics display
+	const ratingCategories = $derived([
+		{
+			label: 'Overall Performance',
+			value: reviewAnalytics.averageRatings.overall,
+			color: 'bg-blue-500'
+		},
+		{
+			label: 'Goal Achievement',
+			value: reviewAnalytics.averageRatings.goalsAchievement,
+			color: 'bg-green-500'
+		},
+		{
+			label: 'Collaboration',
+			value: reviewAnalytics.averageRatings.collaboration,
+			color: 'bg-purple-500'
+		},
+		{
+			label: 'Communication',
+			value: reviewAnalytics.averageRatings.communication,
+			color: 'bg-indigo-500'
+		},
+		{
+			label: 'Leadership',
+			value: reviewAnalytics.averageRatings.leadership,
+			color: 'bg-cyan-500'
+		}
+	]);
+
+	// Filter and display logic
+	const filteredReviews = $derived(() => {
+		let filtered = performanceReviews;
+
+		if (selectedView !== 'all') {
+			filtered = filtered.filter(review => {
+				switch (selectedView) {
+					case 'pending':
+						return review.status === 'draft' || review.status === 'in_progress';
+					case 'completed':
+						return review.status === 'completed';
+					case 'overdue':
+						return isReviewOverdue(review);
+					default:
+						return true;
+				}
+			});
+		}
+
+		if (searchQuery) {
+			const query = searchQuery.toLowerCase();
+			filtered = filtered.filter(review =>
+				review.employee?.displayName.toLowerCase().includes(query) ||
+				review.reviewer?.displayName.toLowerCase().includes(query) ||
+				review.employee?.department?.name.toLowerCase().includes(query)
+			);
+		}
+
+		return filtered;
 	});
 
-	// Query for performance reviews
-	const performanceReviews = queryStore({
-		client: getOperationStore(),
-		query: GET_PERFORMANCE_REVIEWS,
-		variables: {
-			first: pageSize,
-			offset: (currentPage - 1) * pageSize,
-			filter: {
-				...(statusFilter !== 'all' && { status: statusFilter }),
-				...(ratingFilter !== 'all' && {
-					overallRating: {
-						greaterThanOrEqualTo: parseInt(ratingFilter),
-						lessThanOrEqualTo: parseInt(ratingFilter)
-					}
-				})
-			}
-		}
-	});
-
-	// Mutation operations
-	const createReview = getOperationStore(CREATE_PERFORMANCE_REVIEW);
-	const updateReview = getOperationStore(UPDATE_PERFORMANCE_REVIEW);
-	const deleteReview = getOperationStore(DELETE_PERFORMANCE_REVIEW);
-
-	// Table columns configuration
-	const columns = [
-		{
-			key: 'employee',
-			label: 'Employee',
-			sortable: true,
-			render: (value: any, row: any) => {
-				return `<div data-testid="employee-name">
-					<div class="font-medium">${row.employee?.displayName}</div>
-					<div class="text-sm text-gray-500">${row.employee?.jobTitle}</div>
-				</div>`;
-			}
-		},
-		{
-			key: 'reviewPeriod',
-			label: 'Review Period',
-			render: (value: any, row: any) => {
-				return `<div data-testid="review-period">${formatReviewPeriod(row.reviewPeriodStart, row.reviewPeriodEnd)}</div>`;
-			}
-		},
-		{
-			key: 'status',
-			label: 'Status',
-			sortable: true,
-			render: (value: string) => {
-				const statusInfo = getStatusInfo(value as any);
-				return `<span data-testid="review-status" class="px-2 py-1 rounded-full text-xs bg-${statusInfo.color}-100 text-${statusInfo.color}-800">
-					${statusInfo.icon} ${statusInfo.label}
-				</span>`;
-			}
-		},
-		{
-			key: 'overallRating',
-			label: 'Rating',
-			sortable: true,
-			align: 'center',
-			render: (value: number) => {
-				if (!value) return '<span class="text-gray-400">-</span>';
-				const ratingInfo = getRatingInfo(value);
-				return `<div data-testid="overall-rating" class="flex items-center justify-center">
-					<span class="text-${ratingInfo.color}-600 font-bold">${value}/5</span>
-					<span class="ml-1 text-lg">${ratingInfo.icon}</span>
-				</div>`;
-			}
-		},
-		{
-			key: 'reviewer',
-			label: 'Reviewer',
-			render: (value: any, row: any) => {
-				return `<div data-testid="reviewer-name" class="text-sm">${row.reviewer?.displayName || 'Unassigned'}</div>`;
-			}
-		},
-		{
-			key: 'actions',
-			label: 'Actions',
-			align: 'center',
-			render: (value: any, row: any) => {
-				return `
-					<div class="flex gap-2 justify-center">
-						<button
-							data-testid="view-review"
-							class="p-1 text-blue-600 hover:bg-blue-50 rounded"
-							title="View Review"
-						>
-							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-							</svg>
-						</button>
-						<button
-							data-testid="edit-review"
-							class="p-1 text-green-600 hover:bg-green-50 rounded"
-							title="Edit Review"
-						>
-							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-							</svg>
-						</button>
-						<button
-							data-testid="delete-review"
-							class="p-1 text-red-600 hover:bg-red-50 rounded"
-							title="Delete Review"
-						>
-							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-							</svg>
-						</button>
-					</div>
-				`;
-			}
-		}
-	];
-
-	// Handle create review
-	function handleCreateReview() {
-		formData = {
-			employeeId: '',
-			reviewerId: data.user?.id || '',
-			reviewPeriodStart: '',
-			reviewPeriodEnd: '',
-			status: 'draft' as any,
-			overallRating: 3,
-			goalsAchievement: 3,
-			collaboration: 3,
-			communication: 3,
-			leadership: 3,
-			strengths: '',
-			areasForImprovement: '',
-			goalsForNextPeriod: '',
-			developmentPlan: '',
-			reviewNotes: '',
-			employeeSelfAssessment: ''
-		};
-		currentReview = null;
-		showCreateModal = true;
-	}
-
-	// Handle edit review
-	function handleEditReview(review: any) {
-		formData = {
-			employeeId: review.employee?.id || '',
-			reviewerId: review.reviewer?.id || data.user?.id || '',
-			reviewPeriodStart: review.reviewPeriodStart || '',
-			reviewPeriodEnd: review.reviewPeriodEnd || '',
-			status: review.status || 'draft',
-			overallRating: review.overallRating || 3,
-			goalsAchievement: review.goalsAchievement || 3,
-			collaboration: review.collaboration || 3,
-			communication: review.communication || 3,
-			leadership: review.leadership || 3,
-			strengths: review.strengths || '',
-			areasForImprovement: review.areasForImprovement || '',
-			goalsForNextPeriod: review.goalsForNextPeriod || '',
-			developmentPlan: review.developmentPlan || '',
-			reviewNotes: review.reviewNotes || '',
-			employeeSelfAssessment: review.employeeSelfAssessment || ''
-		};
-		currentReview = review;
-		showEditModal = true;
-	}
-
-	// Handle view review
+	// Handler functions
 	function handleViewReview(review: any) {
 		currentReview = review;
-		showViewModal = true;
+		showDetailsModal = true;
 	}
 
-	// Handle delete review
 	async function handleDeleteReview(review: any) {
-		if (!confirm(`Are you sure you want to delete the review for ${review.employee?.displayName}?`)) {
-			return;
-		}
+		if (!confirm('Are you sure you want to delete this performance review?')) return;
 
 		try {
-			const result = await deleteReview({
-				input: {
-					id: review.id
+			const performanceOps = createPerformanceOperations(null);
+
+			await performanceOps.deletePerformanceReview({
+				id: review.id,
+				userCredentials: {
+					userId: userSession.userId,
+					userEmail: userSession.userEmail,
+					role: userSession.role,
+					accessToken: userSession.accessToken
 				}
 			});
 
-			if (result.data) {
-				toast.success('Performance review deleted successfully');
-				performanceReviews.reexecute();
-			}
+			toast.success('Performance review deleted successfully');
+
+			// Refresh the page to get updated data
+			goto($page.url.pathname, { invalidateAll: true });
 		} catch (error) {
+			console.error('Failed to delete performance review:', error);
 			toast.error('Failed to delete performance review');
 		}
 	}
 
-	// Submit form (create or update)
-	async function submitForm() {
-		try {
-			if (currentReview) {
-				// Update existing review
-				const result = await updateReview({
-					input: {
-						id: currentReview.id,
-						patch: {
-							status: formData.status,
-							overallRating: formData.overallRating,
-							goalsAchievement: formData.goalsAchievement,
-							collaboration: formData.collaboration,
-							communication: formData.communication,
-							leadership: formData.leadership,
-							strengths: formData.strengths,
-							areasForImprovement: formData.areasForImprovement,
-							goalsForNextPeriod: formData.goalsForNextPeriod,
-							developmentPlan: formData.developmentPlan,
-							reviewNotes: formData.reviewNotes,
-							employeeSelfAssessment: formData.employeeSelfAssessment
-						}
-					}
-				});
+	// Navigation handlers for filtering
+	function handleSearch() {
+		const url = new URL($page.url);
+		if (searchQuery) {
+			url.searchParams.set('search', searchQuery);
+		} else {
+			url.searchParams.delete('search');
+		}
+		url.searchParams.set('page', '1'); // Reset to first page
+		goto(url.toString());
+	}
 
-				if (result.data) {
-					toast.success('Performance review updated successfully');
-					closeModals();
-					performanceReviews.reexecute();
-				}
-			} else {
-				// Create new review
-				const result = await createReview({
-					input: {
-						performanceReview: {
-							employeeId: formData.employeeId,
-							reviewerId: formData.reviewerId,
-							reviewPeriodStart: formData.reviewPeriodStart,
-							reviewPeriodEnd: formData.reviewPeriodEnd,
-							status: formData.status,
-							reviewNotes: formData.reviewNotes
-						}
-					}
-				});
+	function handleStatusFilterChange(status: string) {
+		const url = new URL($page.url);
+		if (status) {
+			url.searchParams.set('status', status);
+		} else {
+			url.searchParams.delete('status');
+		}
+		url.searchParams.set('page', '1');
+		goto(url.toString());
+	}
 
-				if (result.data) {
-					toast.success('Performance review created successfully');
-					closeModals();
-					performanceReviews.reexecute();
-				}
-			}
-		} catch (error) {
-			toast.error(currentReview ? 'Failed to update performance review' : 'Failed to create performance review');
+	function handlePeriodFilterChange(period: string) {
+		const url = new URL($page.url);
+		if (period) {
+			url.searchParams.set('period', period);
+		} else {
+			url.searchParams.delete('period');
+		}
+		url.searchParams.set('page', '1');
+		goto(url.toString());
+	}
+
+	// Get initials for avatar
+	function getInitials(name: string): string {
+		return name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U';
+	}
+
+	// Get status badge variant
+	function getStatusBadgeVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
+		switch (status) {
+			case 'completed': return 'default';
+			case 'in_progress': return 'secondary';
+			case 'draft': return 'outline';
+			default: return 'outline';
 		}
 	}
 
-	// Close modals
-	function closeModals() {
-		showCreateModal = false;
-		showEditModal = false;
-		showViewModal = false;
-		currentReview = null;
+	// Get rating stars
+	function renderRatingStars(rating: number): string {
+		const filled = Math.floor(rating);
+		const empty = 5 - filled;
+		return '★'.repeat(filled) + '☆'.repeat(empty);
 	}
 
-	// Apply filters
-	function applyFilters() {
-		currentPage = 1;
-		performanceReviews.reexecute();
-	}
-
-	// Clear filters
-	function clearFilters() {
-		statusFilter = 'all';
-		ratingFilter = 'all';
-		periodFilter = 'all';
-		searchQuery = '';
-		applyFilters();
-	}
-
-	// Handle row click
-	function handleRowClick(event: CustomEvent) {
-		const row = event.detail;
-		const target = event.target as HTMLElement;
-
-		// Check which action button was clicked
-		if (target.closest('[data-testid="view-review"]')) {
-			handleViewReview(row);
-		} else if (target.closest('[data-testid="edit-review"]')) {
-			handleEditReview(row);
-		} else if (target.closest('[data-testid="delete-review"]')) {
-			handleDeleteReview(row);
-		}
+	// Format dates
+	function formatDate(dateString: string): string {
+		return new Date(dateString).toLocaleDateString();
 	}
 </script>
 
-<div class="container mx-auto px-4 py-8">
-	<!-- Page Header -->
-	<div class="mb-6 flex justify-between items-center">
-		<div>
-			<h1 class="text-3xl font-bold text-gray-900">Performance Reviews</h1>
-			<p class="mt-2 text-gray-600">Manage and track team performance reviews</p>
-		</div>
-		<button
-			onclick={handleCreateReview}
-			class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2"
-			data-testid="create-review"
-		>
-			<Plus class="w-4 h-4" />
-			Create Review
-		</button>
-	</div>
+<svelte:head>
+	<title>Performance Reviews - SvelteHR</title>
+	<meta name="description" content="Manage and track team performance reviews, ratings, and analytics" />
+</svelte:head>
 
-	<!-- Filters Section -->
-	<div class="bg-white rounded-lg shadow p-4 mb-6">
-		<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-			<!-- Status Filter -->
+<div class="min-h-screen bg-gray-50">
+	<div class="container mx-auto p-4 space-y-6">
+		<!-- Header -->
+		<div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 			<div>
-				<label for="status-filter" class="block text-sm font-medium text-gray-700 mb-1">
-					Status
-				</label>
-				<select
-					id="status-filter"
-					bind:value={statusFilter}
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-					data-testid="status-filter"
-				>
-					<option value="all">All Statuses</option>
-					{#each reviewStatusOptions as status}
-						<option value={status.value}>{status.label}</option>
-					{/each}
-				</select>
+				<h1 class="text-3xl font-bold tracking-tight text-gray-900">Performance Reviews</h1>
+				<p class="text-gray-600">Manage and track team performance reviews, ratings, and development plans</p>
 			</div>
 
-			<!-- Rating Filter -->
-			<div>
-				<label for="rating-filter" class="block text-sm font-medium text-gray-700 mb-1">
-					Rating
-				</label>
-				<select
-					id="rating-filter"
-					bind:value={ratingFilter}
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-					data-testid="rating-filter"
-				>
-					<option value="all">All Ratings</option>
-					{#each performanceRatings as rating}
-						<option value={rating.value.toString()}>{rating.value} - {rating.label}</option>
-					{/each}
-				</select>
-			</div>
-
-			<!-- Period Filter -->
-			<div>
-				<label for="period-filter" class="block text-sm font-medium text-gray-700 mb-1">
-					Review Period
-				</label>
-				<select
-					id="period-filter"
-					bind:value={periodFilter}
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-					data-testid="period-filter"
-				>
-					<option value="all">All Periods</option>
-					<option value="q1">Q1 (Jan-Mar)</option>
-					<option value="q2">Q2 (Apr-Jun)</option>
-					<option value="q3">Q3 (Jul-Sep)</option>
-					<option value="q4">Q4 (Oct-Dec)</option>
-					<option value="h1">H1 (Jan-Jun)</option>
-					<option value="h2">H2 (Jul-Dec)</option>
-					<option value="annual">Annual</option>
-				</select>
-			</div>
-
-			<!-- Search -->
-			<div>
-				<label for="search" class="block text-sm font-medium text-gray-700 mb-1">
-					Search Employee
-				</label>
-				<input
-					id="search"
-					type="text"
-					bind:value={searchQuery}
-					placeholder="Search by name..."
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-					data-testid="employee-search"
-				/>
-			</div>
+			{#if canCreateReviews}
+				<Button onclick={() => { showCreateModal = true; }}>
+					<Plus class="w-4 h-4 mr-2" />
+					New Review
+				</Button>
+			{/if}
 		</div>
 
-		<!-- Filter Actions -->
-		<div class="mt-4 flex gap-2">
-			<button
-				onclick={applyFilters}
-				class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-				data-testid="apply-filters"
-			>
-				Apply Filters
-			</button>
-			<button
-				onclick={clearFilters}
-				class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
-				data-testid="clear-filters"
-			>
-				Clear Filters
-			</button>
+		<!-- Statistics Cards -->
+		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+			{#each statsCards as stat}
+				<Card class={`${stat.color} border`}>
+					<CardContent class="p-6">
+						<div class="flex items-center justify-between">
+							<div>
+								<p class="text-sm font-medium opacity-75">{stat.title}</p>
+								<p class="text-2xl font-bold mt-2">{stat.value}</p>
+								<p class="text-xs opacity-75 mt-1">{stat.description}</p>
+							</div>
+							<div class={`${stat.iconColor} opacity-75`}>
+								<svelte:component this={stat.icon} class="w-8 h-8" />
+							</div>
+						</div>
+					</CardContent>
+				</Card>
+			{/each}
 		</div>
-	</div>
 
-	<!-- Data Table -->
-	<div class="bg-white rounded-lg shadow">
-		<HrDataTable
-			data={$performanceReviews.data?.performanceReviews?.nodes || []}
-			{columns}
-			loading={$performanceReviews.fetching}
-			searchable={false}
-			selectable={true}
-			onSelectionChange={(selected) => (selectedReviews = selected)}
-			onRowClick={handleRowClick}
-			pagination={{
-				page: currentPage,
-				pageSize,
-				total: $performanceReviews.data?.performanceReviews?.totalCount || 0,
-				pageSizes: [10, 20, 50, 100]
-			}}
-			onPageChange={(page) => {
-				currentPage = page;
-				performanceReviews.reexecute();
-			}}
-			onPageSizeChange={(size) => {
-				pageSize = size;
-				currentPage = 1;
-				performanceReviews.reexecute();
-			}}
-			emptyMessage="No performance reviews found"
-			testId="performance-reviews-table"
-		/>
-	</div>
+		<!-- Performance Analytics -->
+		{#if reviewAnalytics.averageRatings.overall > 0}
+			<Card>
+				<CardHeader>
+					<CardTitle class="flex items-center gap-2">
+						<BarChart3 class="w-5 h-5" />
+						Performance Analytics
+					</CardTitle>
+					<CardDescription>Average ratings across different performance categories</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<div class="space-y-4">
+						{#each ratingCategories as category}
+							<div class="flex items-center justify-between">
+								<div class="flex items-center gap-3">
+									<div class={`w-3 h-3 rounded-full ${category.color}`}></div>
+									<span class="text-sm font-medium">{category.label}</span>
+								</div>
+								<div class="flex items-center gap-2">
+									<Progress value={category.value * 20} class="w-24" />
+									<span class="text-sm text-gray-600 w-8">{category.value.toFixed(1)}</span>
+								</div>
+							</div>
+						{/each}
+					</div>
+				</CardContent>
+			</Card>
+		{/if}
 
-	<!-- Export Component -->
-	<DataExport
-		data={$performanceReviews.data?.performanceReviews?.nodes || []}
-		filename="performance-reviews"
-		testId="export-csv"
-	/>
+		<!-- Filters -->
+		<Card>
+			<CardHeader>
+				<CardTitle class="flex items-center gap-2">
+					<Filter class="w-5 h-5" />
+					Filter Reviews
+				</CardTitle>
+			</CardHeader>
+			<CardContent>
+				<div class="flex flex-col gap-4 md:flex-row md:items-end">
+					<!-- Search -->
+					<div class="flex-1">
+						<Label for="search">Search</Label>
+						<div class="flex gap-2">
+							<Input
+								id="search"
+								placeholder="Search by employee, reviewer, or department..."
+								bind:value={searchQuery}
+								onkeydown={(e) => {
+									if (e.key === 'Enter') handleSearch();
+								}}
+							/>
+							<Button onclick={handleSearch} size="sm">
+								<Search class="w-4 h-4" />
+							</Button>
+						</div>
+					</div>
+
+					<!-- Status Filter -->
+					<div class="w-full md:w-48">
+						<Label>Status</Label>
+						<Select value={statusFilter} onValueChange={handleStatusFilterChange}>
+							<SelectTrigger>
+								<SelectValue placeholder="All Statuses" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="">All Statuses</SelectItem>
+								{#each reviewStatusOptions as status}
+									<SelectItem value={status.value}>{status.label}</SelectItem>
+								{/each}
+							</SelectContent>
+						</Select>
+					</div>
+
+					<!-- Period Filter -->
+					<div class="w-full md:w-48">
+						<Label>Review Period</Label>
+						<Select value={periodFilter} onValueChange={handlePeriodFilterChange}>
+							<SelectTrigger>
+								<SelectValue placeholder="All Periods" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="">All Periods</SelectItem>
+								{#each reviewPeriods as period}
+									<SelectItem value={period.value}>{period.label}</SelectItem>
+								{/each}
+							</SelectContent>
+						</Select>
+					</div>
+				</div>
+			</CardContent>
+		</Card>
+
+		<!-- Tabs for different views -->
+		<Tabs value={selectedView} onValueChange={(value) => { selectedView = value; }}>
+			<TabsList class="grid w-full grid-cols-4">
+				<TabsTrigger value="all">
+					All Reviews ({data.totalReviews})
+				</TabsTrigger>
+				<TabsTrigger value="pending">
+					Pending ({reviewAnalytics.totalReviews - reviewAnalytics.completedReviews})
+				</TabsTrigger>
+				<TabsTrigger value="completed">
+					Completed ({reviewAnalytics.completedReviews})
+				</TabsTrigger>
+				<TabsTrigger value="overdue">
+					Overdue ({reviewAnalytics.overdueReviews})
+				</TabsTrigger>
+			</TabsList>
+
+			<TabsContent value={selectedView} class="mt-4">
+				<!-- Performance Reviews List -->
+				<div class="space-y-4">
+					{#if filteredReviews.length === 0}
+						<Card>
+							<CardContent class="p-8 text-center">
+								<Award class="w-12 h-12 text-gray-400 mx-auto mb-4" />
+								<h3 class="text-lg font-semibold text-gray-700 mb-2">No reviews found</h3>
+								<p class="text-gray-500">
+									{#if selectedView === 'pending'}
+										No pending performance reviews at the moment.
+									{:else if selectedView === 'completed'}
+										No completed performance reviews found.
+									{:else if selectedView === 'overdue'}
+										No overdue performance reviews found.
+									{:else}
+										No performance reviews match your current filters.
+									{/if}
+								</p>
+							</CardContent>
+						</Card>
+					{:else}
+						{#each filteredReviews as review}
+							<Card class="hover:shadow-md transition-shadow">
+								<CardContent class="p-6">
+									<div class="flex items-start justify-between">
+										<!-- Review Info -->
+										<div class="flex items-start space-x-4 flex-1">
+											<!-- Employee Avatar -->
+											<Avatar class="w-12 h-12">
+												<AvatarFallback class="bg-blue-100 text-blue-700">
+													{getInitials(review.employee?.displayName || '')}
+												</AvatarFallback>
+											</Avatar>
+
+											<!-- Review Details -->
+											<div class="flex-1 space-y-2">
+												<div class="flex items-center gap-3 flex-wrap">
+													<h3 class="text-lg font-semibold text-gray-900">
+														{review.employee?.displayName || 'Unknown Employee'}
+													</h3>
+													<Badge variant={getStatusBadgeVariant(review.status)} class="capitalize">
+														{getStatusInfo(review.status).label}
+													</Badge>
+													{#if review.overallRating}
+														<Badge variant="outline" class="bg-yellow-50 text-yellow-700 border-yellow-200">
+															<Star class="w-3 h-3 mr-1" />
+															{review.overallRating}/5
+														</Badge>
+													{/if}
+													{#if isReviewOverdue(review)}
+														<Badge variant="destructive">
+															<Clock class="w-3 h-3 mr-1" />
+															Overdue
+														</Badge>
+													{/if}
+												</div>
+
+												<div class="text-sm text-gray-600 space-y-1">
+													<p><strong>Department:</strong> {review.employee?.department?.name || 'N/A'}</p>
+													<p><strong>Reviewer:</strong> {review.reviewer?.displayName || 'Not assigned'}</p>
+													<p><strong>Review Period:</strong> {formatReviewPeriod(review.reviewPeriodStart, review.reviewPeriodEnd)}</p>
+													{#if review.overallRating}
+														<p><strong>Overall Rating:</strong> {renderRatingStars(review.overallRating)} ({review.overallRating}/5)</p>
+													{/if}
+													{#if review.strengths}
+														<p><strong>Key Strengths:</strong> {review.strengths.substring(0, 100)}...</p>
+													{/if}
+												</div>
+
+												<div class="text-xs text-gray-400">
+													Created on {formatDate(review.createdAt)}
+													{#if review.completedAt}
+														• Completed on {formatDate(review.completedAt)}
+													{/if}
+												</div>
+											</div>
+										</div>
+
+										<!-- Actions -->
+										<div class="flex gap-2 ml-4">
+											<Button
+												size="sm"
+												variant="outline"
+												onclick={() => handleViewReview(review)}
+											>
+												View Details
+											</Button>
+											{#if canEditReviews && review.status !== 'completed'}
+												<Button
+													size="sm"
+													variant="outline"
+													href={`/dashboard/management/reviews/${review.id}/edit`}
+												>
+													Edit
+												</Button>
+											{/if}
+											{#if canCreateReviews}
+												<Button
+													size="sm"
+													variant="outline"
+													onclick={() => handleDeleteReview(review)}
+													class="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
+												>
+													Delete
+												</Button>
+											{/if}
+										</div>
+									</div>
+								</CardContent>
+							</Card>
+						{/each}
+					{/if}
+				</div>
+			</TabsContent>
+		</Tabs>
+	</div>
 </div>
 
-<!-- Create Review Modal -->
-{#if showCreateModal}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="create-review-modal">
-		<div class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-			<div class="flex justify-between items-center mb-4">
-				<h2 class="text-xl font-bold" data-testid="modal-title">Create Performance Review</h2>
-				<button onclick={closeModals} class="text-gray-400 hover:text-gray-600">
-					<X class="w-6 h-6" />
-				</button>
-			</div>
+<!-- Review Details Modal -->
+<Dialog bind:open={showDetailsModal}>
+	<DialogContent class="max-w-4xl">
+		<DialogHeader>
+			<DialogTitle>Performance Review Details</DialogTitle>
+			<DialogDescription>
+				{#if currentReview}
+					Review for {currentReview.employee?.displayName} • {formatReviewPeriod(currentReview.reviewPeriodStart, currentReview.reviewPeriodEnd)}
+				{/if}
+			</DialogDescription>
+		</DialogHeader>
 
-			<form on:submit|preventDefault={submitForm}>
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+		{#if currentReview}
+			<div class="space-y-6 max-h-96 overflow-y-auto">
+				<!-- Employee Info -->
+				<div class="bg-gray-50 p-4 rounded-lg">
+					<h4 class="font-semibold mb-2">Employee Information</h4>
+					<div class="grid grid-cols-2 gap-4 text-sm">
+						<p><strong>Name:</strong> {currentReview.employee?.displayName}</p>
+						<p><strong>Department:</strong> {currentReview.employee?.department?.name}</p>
+						<p><strong>Job Title:</strong> {currentReview.employee?.jobTitle || 'N/A'}</p>
+						<p><strong>Reviewer:</strong> {currentReview.reviewer?.displayName}</p>
+					</div>
+				</div>
+
+				<!-- Ratings -->
+				{#if currentReview.overallRating}
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Employee ID *</label>
-						<input
-							type="text"
-							bind:value={formData.employeeId}
-							required
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-							data-testid="employee-id"
-						/>
-					</div>
-					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-						<select
-							bind:value={formData.status}
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-							data-testid="review-status"
-						>
-							{#each reviewStatusOptions as status}
-								<option value={status.value}>{status.label}</option>
-							{/each}
-						</select>
-					</div>
-				</div>
-
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Period Start *</label>
-						<input
-							type="date"
-							bind:value={formData.reviewPeriodStart}
-							required
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-							data-testid="period-start"
-						/>
-					</div>
-					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Period End *</label>
-						<input
-							type="date"
-							bind:value={formData.reviewPeriodEnd}
-							required
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-							data-testid="period-end"
-						/>
-					</div>
-				</div>
-
-				<div class="mb-4">
-					<label class="block text-sm font-medium text-gray-700 mb-1">Review Notes</label>
-					<textarea
-						bind:value={formData.reviewNotes}
-						rows="3"
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-						data-testid="review-notes"
-					></textarea>
-				</div>
-
-				<div class="flex gap-2 justify-end">
-					<button type="button" onclick={closeModals} class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
-						Cancel
-					</button>
-					<button
-						type="submit"
-						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-						data-testid="submit-review"
-					>
-						Create Review
-					</button>
-				</div>
-			</form>
-		</div>
-	</div>
-{/if}
-
-<!-- Edit Review Modal -->
-{#if showEditModal && currentReview}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="edit-review-modal">
-		<div class="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-			<div class="flex justify-between items-center mb-4">
-				<h2 class="text-xl font-bold" data-testid="modal-title">Edit Performance Review - {currentReview.employee?.displayName}</h2>
-				<button onclick={closeModals} class="text-gray-400 hover:text-gray-600">
-					<X class="w-6 h-6" />
-				</button>
-			</div>
-
-			<form on:submit|preventDefault={submitForm}>
-				<!-- Rating Section -->
-				<div class="mb-6">
-					<h3 class="text-lg font-medium mb-4">Performance Ratings</h3>
-					<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">Overall Rating</label>
-							<select
-								bind:value={formData.overallRating}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-								data-testid="overall-rating"
-							>
-								{#each performanceRatings as rating}
-									<option value={rating.value}>{rating.value} - {rating.label}</option>
-								{/each}
-							</select>
-						</div>
-						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">Goals Achievement</label>
-							<select
-								bind:value={formData.goalsAchievement}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-								data-testid="goals-rating"
-							>
-								{#each performanceRatings as rating}
-									<option value={rating.value}>{rating.value} - {rating.label}</option>
-								{/each}
-							</select>
-						</div>
-						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">Collaboration</label>
-							<select
-								bind:value={formData.collaboration}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-								data-testid="collaboration-rating"
-							>
-								{#each performanceRatings as rating}
-									<option value={rating.value}>{rating.value} - {rating.label}</option>
-								{/each}
-							</select>
-						</div>
-						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">Communication</label>
-							<select
-								bind:value={formData.communication}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-								data-testid="communication-rating"
-							>
-								{#each performanceRatings as rating}
-									<option value={rating.value}>{rating.value} - {rating.label}</option>
-								{/each}
-							</select>
-						</div>
-						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">Leadership</label>
-							<select
-								bind:value={formData.leadership}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-								data-testid="leadership-rating"
-							>
-								{#each performanceRatings as rating}
-									<option value={rating.value}>{rating.value} - {rating.label}</option>
-								{/each}
-							</select>
-						</div>
-						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-							<select
-								bind:value={formData.status}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-								data-testid="review-status"
-							>
-								{#each reviewStatusOptions as status}
-									<option value={status.value}>{status.label}</option>
-								{/each}
-							</select>
+						<h4 class="font-semibold mb-3">Performance Ratings</h4>
+						<div class="grid grid-cols-2 gap-4">
+							<div class="text-sm">
+								<p class="font-medium">Overall Performance</p>
+								<p class="text-yellow-600">{renderRatingStars(currentReview.overallRating)} ({currentReview.overallRating}/5)</p>
+							</div>
+							{#if currentReview.goalsAchievement}
+								<div class="text-sm">
+									<p class="font-medium">Goals Achievement</p>
+									<p class="text-yellow-600">{renderRatingStars(currentReview.goalsAchievement)} ({currentReview.goalsAchievement}/5)</p>
+								</div>
+							{/if}
+							{#if currentReview.collaboration}
+								<div class="text-sm">
+									<p class="font-medium">Collaboration</p>
+									<p class="text-yellow-600">{renderRatingStars(currentReview.collaboration)} ({currentReview.collaboration}/5)</p>
+								</div>
+							{/if}
+							{#if currentReview.communication}
+								<div class="text-sm">
+									<p class="font-medium">Communication</p>
+									<p class="text-yellow-600">{renderRatingStars(currentReview.communication)} ({currentReview.communication}/5)</p>
+								</div>
+							{/if}
 						</div>
 					</div>
-				</div>
+				{/if}
 
-				<!-- Feedback Section -->
-				<div class="mb-6">
-					<h3 class="text-lg font-medium mb-4">Review Feedback</h3>
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">Strengths</label>
-							<textarea
-								bind:value={formData.strengths}
-								rows="4"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-								data-testid="strengths"
-								placeholder="Key strengths and achievements..."
-							></textarea>
-						</div>
-						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">Areas for Improvement</label>
-							<textarea
-								bind:value={formData.areasForImprovement}
-								rows="4"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-								data-testid="improvements"
-								placeholder="Areas that need development..."
-							></textarea>
-						</div>
-					</div>
-				</div>
-
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Goals for Next Period</label>
-						<textarea
-							bind:value={formData.goalsForNextPeriod}
-							rows="3"
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-							data-testid="next-goals"
-							placeholder="Goals and objectives for next review period..."
-						></textarea>
-					</div>
-					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Development Plan</label>
-						<textarea
-							bind:value={formData.developmentPlan}
-							rows="3"
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-							data-testid="development-plan"
-							placeholder="Professional development recommendations..."
-						></textarea>
-					</div>
-				</div>
-
-				<div class="mb-4">
-					<label class="block text-sm font-medium text-gray-700 mb-1">Manager's Review Notes</label>
-					<textarea
-						bind:value={formData.reviewNotes}
-						rows="3"
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-						data-testid="review-notes"
-						placeholder="Additional manager comments..."
-					></textarea>
-				</div>
-
-				<div class="flex gap-2 justify-end">
-					<button type="button" onclick={closeModals} class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
-						Cancel
-					</button>
-					<button
-						type="submit"
-						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-						data-testid="submit-review"
-					>
-						Update Review
-					</button>
-				</div>
-			</form>
-		</div>
-	</div>
-{/if}
-
-<!-- View Review Modal -->
-{#if showViewModal && currentReview}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="view-review-modal">
-		<div class="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-			<div class="flex justify-between items-center mb-6">
-				<div>
-					<h2 class="text-xl font-bold" data-testid="modal-title">Performance Review Details</h2>
-					<p class="text-gray-600">{currentReview.employee?.displayName} - {formatReviewPeriod(currentReview.reviewPeriodStart, currentReview.reviewPeriodEnd)}</p>
-				</div>
-				<button onclick={closeModals} class="text-gray-400 hover:text-gray-600">
-					<X class="w-6 h-6" />
-				</button>
-			</div>
-
-			<div class="space-y-6" data-testid="review-details">
-				<!-- Rating Summary -->
-				<div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-					<div class="text-center">
-						<p class="text-sm text-gray-600">Overall</p>
-						<p class="text-2xl font-bold text-blue-600">{currentReview.overallRating || '-'}/5</p>
-					</div>
-					<div class="text-center">
-						<p class="text-sm text-gray-600">Goals</p>
-						<p class="text-2xl font-bold text-green-600">{currentReview.goalsAchievement || '-'}/5</p>
-					</div>
-					<div class="text-center">
-						<p class="text-sm text-gray-600">Collaboration</p>
-						<p class="text-2xl font-bold text-purple-600">{currentReview.collaboration || '-'}/5</p>
-					</div>
-					<div class="text-center">
-						<p class="text-sm text-gray-600">Communication</p>
-						<p class="text-2xl font-bold text-orange-600">{currentReview.communication || '-'}/5</p>
-					</div>
-					<div class="text-center">
-						<p class="text-sm text-gray-600">Leadership</p>
-						<p class="text-2xl font-bold text-red-600">{currentReview.leadership || '-'}/5</p>
-					</div>
-				</div>
-
-				<!-- Review Details -->
+				<!-- Review Content -->
 				{#if currentReview.strengths}
 					<div>
-						<h4 class="font-medium text-gray-900 mb-2">Strengths</h4>
-						<p class="text-gray-700 bg-green-50 p-3 rounded-md">{currentReview.strengths}</p>
+						<h4 class="font-semibold mb-2">Strengths</h4>
+						<p class="text-sm text-gray-700 bg-green-50 p-3 rounded">{currentReview.strengths}</p>
 					</div>
 				{/if}
 
 				{#if currentReview.areasForImprovement}
 					<div>
-						<h4 class="font-medium text-gray-900 mb-2">Areas for Improvement</h4>
-						<p class="text-gray-700 bg-orange-50 p-3 rounded-md">{currentReview.areasForImprovement}</p>
+						<h4 class="font-semibold mb-2">Areas for Improvement</h4>
+						<p class="text-sm text-gray-700 bg-orange-50 p-3 rounded">{currentReview.areasForImprovement}</p>
 					</div>
 				{/if}
 
 				{#if currentReview.goalsForNextPeriod}
 					<div>
-						<h4 class="font-medium text-gray-900 mb-2">Goals for Next Period</h4>
-						<p class="text-gray-700 bg-blue-50 p-3 rounded-md">{currentReview.goalsForNextPeriod}</p>
+						<h4 class="font-semibold mb-2">Goals for Next Period</h4>
+						<p class="text-sm text-gray-700 bg-blue-50 p-3 rounded">{currentReview.goalsForNextPeriod}</p>
+					</div>
+				{/if}
+
+				{#if currentReview.developmentPlan}
+					<div>
+						<h4 class="font-semibold mb-2">Development Plan</h4>
+						<p class="text-sm text-gray-700 bg-purple-50 p-3 rounded">{currentReview.developmentPlan}</p>
 					</div>
 				{/if}
 
 				{#if currentReview.employeeSelfAssessment}
 					<div>
-						<h4 class="font-medium text-gray-900 mb-2">Employee Self-Assessment</h4>
-						<p class="text-gray-700 bg-gray-50 p-3 rounded-md">{currentReview.employeeSelfAssessment}</p>
-					</div>
-				{/if}
-
-				{#if currentReview.reviewNotes}
-					<div>
-						<h4 class="font-medium text-gray-900 mb-2">Manager's Notes</h4>
-						<p class="text-gray-700 bg-gray-50 p-3 rounded-md">{currentReview.reviewNotes}</p>
+						<h4 class="font-semibold mb-2">Employee Self-Assessment</h4>
+						<p class="text-sm text-gray-700 bg-gray-50 p-3 rounded">{currentReview.employeeSelfAssessment}</p>
 					</div>
 				{/if}
 			</div>
+		{/if}
 
-			<div class="flex justify-end mt-6">
-				<button onclick={closeModals} class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">
-					Close
-				</button>
-			</div>
+		<DialogFooter>
+			<Button variant="outline" onclick={() => { showDetailsModal = false; }}>Close</Button>
+			{#if canEditReviews && currentReview && currentReview.status !== 'completed'}
+				<Button href={`/dashboard/management/reviews/${currentReview.id}/edit`}>
+					Edit Review
+				</Button>
+			{/if}
+		</DialogFooter>
+	</DialogContent>
+</Dialog>
+
+<!-- Create Review Modal -->
+<Dialog bind:open={showCreateModal}>
+	<DialogContent>
+		<DialogHeader>
+			<DialogTitle>Create New Performance Review</DialogTitle>
+			<DialogDescription>
+				Start a new performance review process for a team member.
+			</DialogDescription>
+		</DialogHeader>
+
+		<div class="text-center py-8">
+			<Award class="w-12 h-12 text-gray-400 mx-auto mb-4" />
+			<p class="text-gray-600 mb-4">Performance review creation form will be implemented in the next phase.</p>
+			<Button variant="outline" onclick={() => { showCreateModal = false; }}>
+				Coming Soon
+			</Button>
 		</div>
-	</div>
-{/if}
 
-<!-- Success/Error Notifications (handled by svelte-sonner toast) -->
-<div data-testid="success-notification" class="hidden"></div>
-<div data-testid="access-denied" class="hidden"></div>
-<div data-testid="empty-state" class="hidden"></div>
+		<DialogFooter>
+			<Button variant="outline" onclick={() => { showCreateModal = false; }}>Cancel</Button>
+		</DialogFooter>
+	</DialogContent>
+</Dialog>

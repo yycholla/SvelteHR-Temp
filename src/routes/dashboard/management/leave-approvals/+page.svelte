@@ -1,490 +1,596 @@
-<script lang="ts">
-	import { onMount } from 'svelte';
-	import { page } from '$app/stores';
-	import { getOperationStore, queryStore } from '@urql/svelte';
-	import { toast } from 'svelte-sonner';
-	import { Calendar, Check, X, Clock, AlertCircle } from 'lucide-svelte';
+<!-- Leave Approvals Management Page -->
+<!-- T038: Fix leave management pages with standardized error handling -->
 
-	import HrDataTable from '$lib/components/data-table/hr-data-table.svelte';
-	import DataExport from '$lib/components/export/data-export.svelte';
+<script lang="ts">
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
+	import { Calendar, Check, X, Clock, AlertCircle, Users, TrendingUp, FileText, Search, Filter } from 'lucide-svelte';
+	import { toast } from 'svelte-sonner';
+
+	import { Button } from '$lib/components/ui/button';
+	import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
+	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
+	import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '$lib/components/ui/select';
+	import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Avatar, AvatarFallback } from '$lib/components/ui/avatar';
+	import { Skeleton } from '$lib/components/ui/skeleton';
+	import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '$lib/components/ui/dialog';
+	import { Textarea } from '$lib/components/ui/textarea';
+
 	import {
-		GET_PENDING_LEAVE_REQUESTS,
-		APPROVE_LEAVE_REQUEST,
-		DENY_LEAVE_REQUEST,
 		formatDateRange,
-		getLeaveTypeColor
+		getLeaveTypeColor,
+		leaveTypeOptions,
+		leaveStatusOptions,
+		createLeaveManagementOperations
 	} from '$lib/graphql/leave-management-operations';
 
 	// Page data from server
-	export let data;
+	interface Props {
+		data: {
+			user: any;
+			userSession: any;
+			leaveRequests: any[];
+			totalRequests: number;
+			leaveStats: any;
+			filters: any;
+			permissions: string[];
+			canApproveLeave: boolean;
+			canViewAllLeave: boolean;
+			loadedAt: string;
+		};
+	}
 
-	// Local state using Svelte 5 runes
-	let selectedRequests = $state<any[]>([]);
+	let { data }: Props = $props();
+
+	// Derived state using Svelte 5 runes
+	const user = $derived(data.user);
+	const userSession = $derived(data.userSession);
+	const leaveRequests = $derived(data.leaveRequests);
+	const canApproveLeave = $derived(data.canApproveLeave);
+	const canViewAllLeave = $derived(data.canViewAllLeave);
+
+	// Local state for UI
+	let selectedView = $state('pending');
+	let selectedRequests = $state<string[]>([]);
 	let showApprovalModal = $state(false);
 	let showDenialModal = $state(false);
 	let currentRequest = $state<any>(null);
 	let managerComments = $state('');
-	let dateFromFilter = $state('');
-	let dateToFilter = $state('');
-	let leaveTypeFilter = $state('all');
-	let searchQuery = $state('');
+	let isSubmitting = $state(false);
+	let searchQuery = $state(data.filters.searchTerm || '');
+	let statusFilter = $state(data.filters.statusFilter || 'pending');
+	let leaveTypeFilter = $state(data.filters.leaveTypeFilter || '');
 
-	// Pagination state
-	let currentPage = $state(1);
-	let pageSize = $state(20);
-
-	// Query for pending leave requests
-	const pendingRequests = queryStore({
-		client: getOperationStore(),
-		query: GET_PENDING_LEAVE_REQUESTS,
-		variables: {
-			managerId: data.user?.id,
-			first: pageSize,
-			offset: (currentPage - 1) * pageSize,
-			filter: {
-				status: 'pending',
-				...(dateFromFilter && {
-					startDate: { greaterThanOrEqualTo: dateFromFilter }
-				}),
-				...(dateToFilter && {
-					endDate: { lessThanOrEqualTo: dateToFilter }
-				}),
-				...(leaveTypeFilter !== 'all' && {
-					leaveType: leaveTypeFilter
-				})
-			}
+	// Statistics cards data
+	const statsCards = $derived([
+		{
+			title: 'Pending Requests',
+			value: data.leaveStats.pendingCount,
+			description: 'Awaiting your approval',
+			icon: Clock,
+			color: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+			iconColor: 'text-yellow-600'
+		},
+		{
+			title: 'Approved This Month',
+			value: data.leaveStats.approvedCount,
+			description: 'Successfully approved',
+			icon: Check,
+			color: 'bg-green-50 text-green-700 border-green-200',
+			iconColor: 'text-green-600'
+		},
+		{
+			title: 'Total Days Requested',
+			value: data.leaveStats.totalDaysRequested,
+			description: 'Days across all requests',
+			icon: Calendar,
+			color: 'bg-blue-50 text-blue-700 border-blue-200',
+			iconColor: 'text-blue-600'
+		},
+		{
+			title: 'Approval Rate',
+			value: `${data.leaveStats.approvalRate}%`,
+			description: 'Historical approval rate',
+			icon: TrendingUp,
+			color: 'bg-purple-50 text-purple-700 border-purple-200',
+			iconColor: 'text-purple-600'
 		}
+	]);
+
+	// Filter and display logic
+	const filteredRequests = $derived(() => {
+		let filtered = leaveRequests;
+
+		if (selectedView !== 'all') {
+			filtered = filtered.filter(request => request.status === selectedView);
+		}
+
+		if (searchQuery) {
+			const query = searchQuery.toLowerCase();
+			filtered = filtered.filter(request =>
+				request.employee?.displayName.toLowerCase().includes(query) ||
+				request.leaveType.toLowerCase().includes(query) ||
+				request.reason?.toLowerCase().includes(query)
+			);
+		}
+
+		if (leaveTypeFilter) {
+			filtered = filtered.filter(request => request.leaveType === leaveTypeFilter);
+		}
+
+		return filtered;
 	});
 
-	// Mutation operations
-	const approveRequest = getOperationStore(APPROVE_LEAVE_REQUEST);
-	const denyRequest = getOperationStore(DENY_LEAVE_REQUEST);
-
-	// Table columns configuration
-	const columns = [
-		{
-			key: 'employee',
-			label: 'Employee',
-			sortable: true,
-			render: (value: any, row: any) => {
-				return `<div data-testid="employee-name">${row.employee?.displayName}</div>`;
-			}
-		},
-		{
-			key: 'leaveType',
-			label: 'Leave Type',
-			sortable: true,
-			render: (value: string) => {
-				const color = getLeaveTypeColor(value);
-				return `<span data-testid="leave-type" class="px-2 py-1 rounded-full text-xs bg-${color}-100 text-${color}-800">${value}</span>`;
-			}
-		},
-		{
-			key: 'dates',
-			label: 'Dates',
-			render: (value: any, row: any) => {
-				return `<div data-testid="leave-dates">${formatDateRange(row.startDate, row.endDate)}</div>`;
-			}
-		},
-		{
-			key: 'daysRequested',
-			label: 'Days',
-			sortable: true,
-			align: 'center',
-			render: (value: number) => {
-				return `<span data-testid="days-requested">${value}</span>`;
-			}
-		},
-		{
-			key: 'status',
-			label: 'Status',
-			render: () => {
-				return `<span class="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">Pending</span>`;
-			}
-		},
-		{
-			key: 'actions',
-			label: 'Actions',
-			align: 'center',
-			render: (value: any, row: any) => {
-				return `
-					<div class="flex gap-2 justify-center">
-						<button
-							data-testid="approve-button"
-							class="p-1 text-green-600 hover:bg-green-50 rounded"
-							title="Approve"
-						>
-							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-							</svg>
-						</button>
-						<button
-							data-testid="deny-button"
-							class="p-1 text-red-600 hover:bg-red-50 rounded"
-							title="Deny"
-						>
-							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-							</svg>
-						</button>
-					</div>
-				`;
-			}
-		}
-	];
-
-	// Handle approve action
+	// Handlers for approve/deny actions
 	async function handleApprove(request: any) {
 		currentRequest = request;
 		showApprovalModal = true;
 	}
 
-	// Handle deny action
 	async function handleDeny(request: any) {
 		currentRequest = request;
 		showDenialModal = true;
 	}
 
-	// Confirm approval
 	async function confirmApproval() {
+		if (!currentRequest || !canApproveLeave) return;
+
+		isSubmitting = true;
+
 		try {
-			const result = await approveRequest({
-				input: {
-					leaveRequestId: currentRequest.id,
-					managerComments
+			// In a real app, this would be a form action or API call
+			// For now, we'll use client-side operations for the action
+			const leaveOps = createLeaveManagementOperations(null);
+
+			await leaveOps.approveLeaveRequest({
+				id: currentRequest.id,
+				notes: managerComments,
+				userCredentials: {
+					userId: userSession.userId,
+					userEmail: userSession.userEmail,
+					role: userSession.role,
+					accessToken: userSession.accessToken
 				}
 			});
 
-			if (result.data) {
-				toast.success('Leave request approved successfully');
-				pendingRequests.reexecute();
-				closeModals();
-			}
+			toast.success('Leave request approved successfully');
+
+			// Refresh the page to get updated data
+			goto($page.url.pathname, { invalidateAll: true });
+
+			// Close modal and reset state
+			showApprovalModal = false;
+			currentRequest = null;
+			managerComments = '';
 		} catch (error) {
+			console.error('Failed to approve leave request:', error);
 			toast.error('Failed to approve leave request');
+		} finally {
+			isSubmitting = false;
 		}
 	}
 
-	// Confirm denial
 	async function confirmDenial() {
-		if (!managerComments.trim()) {
-			toast.error('Manager comments are required for denial');
-			return;
-		}
+		if (!currentRequest || !canApproveLeave || !managerComments.trim()) return;
+
+		isSubmitting = true;
 
 		try {
-			const result = await denyRequest({
-				input: {
-					leaveRequestId: currentRequest.id,
-					managerComments
+			const leaveOps = createLeaveManagementOperations(null);
+
+			await leaveOps.denyLeaveRequest({
+				id: currentRequest.id,
+				notes: managerComments,
+				userCredentials: {
+					userId: userSession.userId,
+					userEmail: userSession.userEmail,
+					role: userSession.role,
+					accessToken: userSession.accessToken
 				}
 			});
 
-			if (result.data) {
-				toast.success('Leave request denied');
-				pendingRequests.reexecute();
-				closeModals();
-			}
+			toast.success('Leave request denied');
+
+			// Refresh the page to get updated data
+			goto($page.url.pathname, { invalidateAll: true });
+
+			// Close modal and reset state
+			showDenialModal = false;
+			currentRequest = null;
+			managerComments = '';
 		} catch (error) {
+			console.error('Failed to deny leave request:', error);
 			toast.error('Failed to deny leave request');
+		} finally {
+			isSubmitting = false;
 		}
 	}
 
-	// Close modals
-	function closeModals() {
-		showApprovalModal = false;
-		showDenialModal = false;
-		currentRequest = null;
-		managerComments = '';
+	// Navigation handlers for filtering
+	function handleSearch() {
+		const url = new URL($page.url);
+		if (searchQuery) {
+			url.searchParams.set('search', searchQuery);
+		} else {
+			url.searchParams.delete('search');
+		}
+		url.searchParams.set('page', '1'); // Reset to first page
+		goto(url.toString());
 	}
 
-	// Apply filters
-	function applyFilters() {
-		currentPage = 1;
-		pendingRequests.reexecute();
+	function handleStatusFilterChange(status: string) {
+		const url = new URL($page.url);
+		if (status && status !== 'all') {
+			url.searchParams.set('status', status);
+		} else {
+			url.searchParams.delete('status');
+		}
+		url.searchParams.set('page', '1');
+		goto(url.toString());
 	}
 
-	// Clear filters
-	function clearFilters() {
-		dateFromFilter = '';
-		dateToFilter = '';
-		leaveTypeFilter = 'all';
-		searchQuery = '';
-		applyFilters();
+	function handleLeaveTypeFilterChange(type: string) {
+		const url = new URL($page.url);
+		if (type) {
+			url.searchParams.set('leaveType', type);
+		} else {
+			url.searchParams.delete('leaveType');
+		}
+		url.searchParams.set('page', '1');
+		goto(url.toString());
 	}
 
-	// Export data
-	function handleExport() {
-		// Export functionality will be handled by DataExport component
-		console.log('Exporting data...');
+	// Get initials for avatar
+	function getInitials(name: string): string {
+		return name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U';
 	}
 
-	// Handle row click
-	function handleRowClick(event: CustomEvent) {
-		const row = event.detail;
-		const target = event.target as HTMLElement;
-
-		// Check if click was on action buttons
-		if (target.closest('[data-testid="approve-button"]')) {
-			handleApprove(row);
-		} else if (target.closest('[data-testid="deny-button"]')) {
-			handleDeny(row);
+	// Get status badge variant
+	function getStatusBadgeVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
+		switch (status) {
+			case 'approved': return 'default';
+			case 'pending': return 'secondary';
+			case 'rejected': return 'destructive';
+			default: return 'outline';
 		}
 	}
 </script>
 
-<div class="container mx-auto px-4 py-8">
-	<!-- Page Header -->
-	<div class="mb-6">
-		<h1 class="text-3xl font-bold text-gray-900">Leave Approvals</h1>
-		<p class="mt-2 text-gray-600">Review and manage pending leave requests from your team</p>
-	</div>
+<svelte:head>
+	<title>Leave Approvals - SvelteHR</title>
+	<meta name="description" content="Review and manage pending leave requests from your team members" />
+</svelte:head>
 
-	<!-- Filters Section -->
-	<div class="bg-white rounded-lg shadow p-4 mb-6">
-		<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-			<!-- Date From Filter -->
+<div class="min-h-screen bg-gray-50">
+	<div class="container mx-auto p-4 space-y-6">
+		<!-- Header -->
+		<div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 			<div>
-				<label for="date-from" class="block text-sm font-medium text-gray-700 mb-1">
-					From Date
-				</label>
-				<input
-					id="date-from"
-					type="date"
-					bind:value={dateFromFilter}
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-					data-testid="date-from-filter"
-				/>
+				<h1 class="text-3xl font-bold tracking-tight text-gray-900">Leave Approvals</h1>
+				<p class="text-gray-600">Review and manage pending leave requests from your team members</p>
 			</div>
 
-			<!-- Date To Filter -->
-			<div>
-				<label for="date-to" class="block text-sm font-medium text-gray-700 mb-1">
-					To Date
-				</label>
-				<input
-					id="date-to"
-					type="date"
-					bind:value={dateToFilter}
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-					data-testid="date-to-filter"
-				/>
-			</div>
-
-			<!-- Leave Type Filter -->
-			<div>
-				<label for="leave-type" class="block text-sm font-medium text-gray-700 mb-1">
-					Leave Type
-				</label>
-				<select
-					id="leave-type"
-					bind:value={leaveTypeFilter}
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-					data-testid="leave-type-filter"
-				>
-					<option value="all">All Types</option>
-					<option value="annual">Annual</option>
-					<option value="sick">Sick</option>
-					<option value="personal">Personal</option>
-					<option value="maternity">Maternity</option>
-					<option value="paternity">Paternity</option>
-					<option value="emergency">Emergency</option>
-					<option value="unpaid">Unpaid</option>
-				</select>
-			</div>
-
-			<!-- Search -->
-			<div>
-				<label for="search" class="block text-sm font-medium text-gray-700 mb-1">
-					Search Employee
-				</label>
-				<input
-					id="search"
-					type="text"
-					bind:value={searchQuery}
-					placeholder="Search by name..."
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-					data-testid="employee-search"
-				/>
-			</div>
+			{#if canViewAllLeave}
+				<Button variant="outline" href="/dashboard/management/leave/all">
+					<FileText class="w-4 h-4 mr-2" />
+					View All Leave
+				</Button>
+			{/if}
 		</div>
 
-		<!-- Filter Actions -->
-		<div class="mt-4 flex gap-2">
-			<button
-				onclick={applyFilters}
-				class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-				data-testid="apply-filters"
-			>
-				Apply Filters
-			</button>
-			<button
-				onclick={clearFilters}
-				class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
-				data-testid="clear-filters"
-			>
-				Clear Filters
-			</button>
+		<!-- Statistics Cards -->
+		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+			{#each statsCards as stat}
+				<Card class={`${stat.color} border`}>
+					<CardContent class="p-6">
+						<div class="flex items-center justify-between">
+							<div>
+								<p class="text-sm font-medium opacity-75">{stat.title}</p>
+								<p class="text-2xl font-bold mt-2">{stat.value}</p>
+								<p class="text-xs opacity-75 mt-1">{stat.description}</p>
+							</div>
+							<div class={`${stat.iconColor} opacity-75`}>
+								<svelte:component this={stat.icon} class="w-8 h-8" />
+							</div>
+						</div>
+					</CardContent>
+				</Card>
+			{/each}
 		</div>
-	</div>
 
-	<!-- Data Table -->
-	<div class="bg-white rounded-lg shadow">
-		<HrDataTable
-			data={$pendingRequests.data?.leaveRequests?.nodes || []}
-			{columns}
-			loading={$pendingRequests.fetching}
-			searchable={false}
-			selectable={true}
-			onSelectionChange={(selected) => (selectedRequests = selected)}
-			onExport={handleExport}
-			onRowClick={handleRowClick}
-			pagination={{
-				page: currentPage,
-				pageSize,
-				total: $pendingRequests.data?.leaveRequests?.totalCount || 0,
-				pageSizes: [10, 20, 50, 100]
-			}}
-			onPageChange={(page) => {
-				currentPage = page;
-				pendingRequests.reexecute();
-			}}
-			onPageSizeChange={(size) => {
-				pageSize = size;
-				currentPage = 1;
-				pendingRequests.reexecute();
-			}}
-			emptyMessage="No pending leave requests found"
-			testId="leave-approvals-table"
-		/>
-	</div>
+		<!-- Filters -->
+		<Card>
+			<CardHeader>
+				<CardTitle class="flex items-center gap-2">
+					<Filter class="w-5 h-5" />
+					Filter Requests
+				</CardTitle>
+			</CardHeader>
+			<CardContent>
+				<div class="flex flex-col gap-4 md:flex-row md:items-end">
+					<!-- Search -->
+					<div class="flex-1">
+						<Label for="search">Search</Label>
+						<div class="flex gap-2">
+							<Input
+								id="search"
+								placeholder="Search by employee name, leave type, or reason..."
+								bind:value={searchQuery}
+								onkeydown={(e) => {
+									if (e.key === 'Enter') handleSearch();
+								}}
+							/>
+							<Button onclick={handleSearch} size="sm">
+								<Search class="w-4 h-4" />
+							</Button>
+						</div>
+					</div>
 
-	<!-- Export Component -->
-	<DataExport
-		data={$pendingRequests.data?.leaveRequests?.nodes || []}
-		filename="leave-requests"
-		testId="export-csv"
-	/>
+					<!-- Status Filter -->
+					<div class="w-full md:w-48">
+						<Label>Status</Label>
+						<Select value={statusFilter} onValueChange={handleStatusFilterChange}>
+							<SelectTrigger>
+								<SelectValue placeholder="All Statuses" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="all">All Statuses</SelectItem>
+								{#each leaveStatusOptions as status}
+									<SelectItem value={status.value}>{status.label}</SelectItem>
+								{/each}
+							</SelectContent>
+						</Select>
+					</div>
+
+					<!-- Leave Type Filter -->
+					<div class="w-full md:w-48">
+						<Label>Leave Type</Label>
+						<Select value={leaveTypeFilter} onValueChange={handleLeaveTypeFilterChange}>
+							<SelectTrigger>
+								<SelectValue placeholder="All Types" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="">All Types</SelectItem>
+								{#each leaveTypeOptions as type}
+									<SelectItem value={type.value}>{type.label}</SelectItem>
+								{/each}
+							</SelectContent>
+						</Select>
+					</div>
+				</div>
+			</CardContent>
+		</Card>
+
+		<!-- Tabs for different views -->
+		<Tabs value={selectedView} onValueChange={(value) => { selectedView = value; }}>
+			<TabsList class="grid w-full grid-cols-4">
+				<TabsTrigger value="pending">
+					Pending ({data.leaveStats.pendingCount})
+				</TabsTrigger>
+				<TabsTrigger value="approved">
+					Approved ({data.leaveStats.approvedCount})
+				</TabsTrigger>
+				<TabsTrigger value="rejected">
+					Rejected ({data.leaveStats.rejectedCount})
+				</TabsTrigger>
+				<TabsTrigger value="all">
+					All Requests ({data.totalRequests})
+				</TabsTrigger>
+			</TabsList>
+
+			<TabsContent value={selectedView} class="mt-4">
+				<!-- Leave Requests List -->
+				<div class="space-y-4">
+					{#if filteredRequests.length === 0}
+						<Card>
+							<CardContent class="p-8 text-center">
+								<AlertCircle class="w-12 h-12 text-gray-400 mx-auto mb-4" />
+								<h3 class="text-lg font-semibold text-gray-700 mb-2">No requests found</h3>
+								<p class="text-gray-500">
+									{#if selectedView === 'pending'}
+										No pending leave requests at the moment.
+									{:else if selectedView === 'approved'}
+										No approved leave requests found.
+									{:else if selectedView === 'rejected'}
+										No rejected leave requests found.
+									{:else}
+										No leave requests match your current filters.
+									{/if}
+								</p>
+							</CardContent>
+						</Card>
+					{:else}
+						{#each filteredRequests as request}
+							<Card class="hover:shadow-md transition-shadow">
+								<CardContent class="p-6">
+									<div class="flex items-start justify-between">
+										<!-- Request Info -->
+										<div class="flex items-start space-x-4 flex-1">
+											<!-- Employee Avatar -->
+											<Avatar class="w-12 h-12">
+												<AvatarFallback class="bg-blue-100 text-blue-700">
+													{getInitials(request.employee?.displayName || '')}
+												</AvatarFallback>
+											</Avatar>
+
+											<!-- Request Details -->
+											<div class="flex-1 space-y-2">
+												<div class="flex items-center gap-3">
+													<h3 class="text-lg font-semibold text-gray-900">
+														{request.employee?.displayName || 'Unknown Employee'}
+													</h3>
+													<Badge variant={getStatusBadgeVariant(request.status)} class="capitalize">
+														{request.status}
+													</Badge>
+													<Badge
+														variant="outline"
+														class={`bg-${getLeaveTypeColor(request.leaveType)}-50 text-${getLeaveTypeColor(request.leaveType)}-700 border-${getLeaveTypeColor(request.leaveType)}-200`}
+													>
+														{leaveTypeOptions.find(t => t.value === request.leaveType)?.label || request.leaveType}
+													</Badge>
+												</div>
+
+												<div class="text-sm text-gray-600 space-y-1">
+													<p><strong>Department:</strong> {request.employee?.department?.name || 'N/A'}</p>
+													<p><strong>Dates:</strong> {formatDateRange(request.startDate, request.endDate)}</p>
+													<p><strong>Duration:</strong> {request.daysRequested} days</p>
+													{#if request.reason}
+														<p><strong>Reason:</strong> {request.reason}</p>
+													{/if}
+													{#if request.managerComments}
+														<p><strong>Manager Comments:</strong> {request.managerComments}</p>
+													{/if}
+												</div>
+
+												<div class="text-xs text-gray-400">
+													Requested on {new Date(request.createdAt).toLocaleDateString()}
+												</div>
+											</div>
+										</div>
+
+										<!-- Actions -->
+										{#if canApproveLeave && request.status === 'pending'}
+											<div class="flex gap-2 ml-4">
+												<Button
+													size="sm"
+													variant="outline"
+													onclick={() => handleApprove(request)}
+													class="text-green-600 hover:text-green-700 border-green-200 hover:border-green-300"
+												>
+													<Check class="w-4 h-4 mr-1" />
+													Approve
+												</Button>
+												<Button
+													size="sm"
+													variant="outline"
+													onclick={() => handleDeny(request)}
+													class="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
+												>
+													<X class="w-4 h-4 mr-1" />
+													Deny
+												</Button>
+											</div>
+										{/if}
+									</div>
+								</CardContent>
+							</Card>
+						{/each}
+					{/if}
+				</div>
+			</TabsContent>
+		</Tabs>
+	</div>
 </div>
 
 <!-- Approval Modal -->
-{#if showApprovalModal}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="approval-modal">
-		<div class="bg-white rounded-lg p-6 max-w-md w-full">
-			<h2 class="text-xl font-bold mb-4" data-testid="modal-title">Approve Leave Request</h2>
+<Dialog bind:open={showApprovalModal}>
+	<DialogContent>
+		<DialogHeader>
+			<DialogTitle>Approve Leave Request</DialogTitle>
+			<DialogDescription>
+				You are about to approve the leave request from {currentRequest?.employee?.displayName}.
+			</DialogDescription>
+		</DialogHeader>
 
-			<!-- Employee Details -->
-			<div class="mb-4 p-3 bg-gray-50 rounded" data-testid="employee-details">
-				<p class="text-sm text-gray-600">Employee</p>
-				<p class="font-semibold">{currentRequest?.employee?.displayName}</p>
+		{#if currentRequest}
+			<div class="space-y-4">
+				<div class="bg-gray-50 p-4 rounded-lg">
+					<h4 class="font-semibold mb-2">Request Details</h4>
+					<div class="text-sm space-y-1">
+						<p><strong>Employee:</strong> {currentRequest.employee?.displayName}</p>
+						<p><strong>Leave Type:</strong> {leaveTypeOptions.find(t => t.value === currentRequest.leaveType)?.label}</p>
+						<p><strong>Dates:</strong> {formatDateRange(currentRequest.startDate, currentRequest.endDate)}</p>
+						<p><strong>Duration:</strong> {currentRequest.daysRequested} days</p>
+						{#if currentRequest.reason}
+							<p><strong>Reason:</strong> {currentRequest.reason}</p>
+						{/if}
+					</div>
+				</div>
+
+				<div>
+					<Label for="approval-comments">Manager Comments (Optional)</Label>
+					<Textarea
+						id="approval-comments"
+						placeholder="Add any comments about this approval..."
+						bind:value={managerComments}
+						rows={3}
+					/>
+				</div>
 			</div>
+		{/if}
 
-			<!-- Request Details -->
-			<div class="mb-4 p-3 bg-gray-50 rounded" data-testid="request-details">
-				<p class="text-sm text-gray-600">Leave Details</p>
-				<p>Type: {currentRequest?.leaveType}</p>
-				<p>Period: {formatDateRange(currentRequest?.startDate, currentRequest?.endDate)}</p>
-				<p>Days: {currentRequest?.daysRequested}</p>
-			</div>
-
-			<!-- Manager Comments -->
-			<div class="mb-4">
-				<label for="manager-comments" class="block text-sm font-medium text-gray-700 mb-1">
-					Manager Comments (Optional)
-				</label>
-				<textarea
-					id="manager-comments"
-					bind:value={managerComments}
-					rows="3"
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-					data-testid="manager-comments"
-					placeholder="Add any comments..."
-				></textarea>
-			</div>
-
-			<!-- Actions -->
-			<div class="flex gap-2 justify-end">
-				<button
-					onclick={closeModals}
-					class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
-				>
-					Cancel
-				</button>
-				<button
-					onclick={confirmApproval}
-					class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-					data-testid="confirm-approve"
-				>
+		<DialogFooter>
+			<Button variant="outline" onclick={() => { showApprovalModal = false; }}>Cancel</Button>
+			<Button onclick={confirmApproval} disabled={isSubmitting}>
+				{#if isSubmitting}
+					Approving...
+				{:else}
+					<Check class="w-4 h-4 mr-2" />
 					Approve Request
-				</button>
-			</div>
-		</div>
-	</div>
-{/if}
+				{/if}
+			</Button>
+		</DialogFooter>
+	</DialogContent>
+</Dialog>
 
 <!-- Denial Modal -->
-{#if showDenialModal}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="denial-modal">
-		<div class="bg-white rounded-lg p-6 max-w-md w-full">
-			<h2 class="text-xl font-bold mb-4" data-testid="modal-title">Deny Leave Request</h2>
+<Dialog bind:open={showDenialModal}>
+	<DialogContent>
+		<DialogHeader>
+			<DialogTitle>Deny Leave Request</DialogTitle>
+			<DialogDescription>
+				You are about to deny the leave request from {currentRequest?.employee?.displayName}.
+			</DialogDescription>
+		</DialogHeader>
 
-			<!-- Employee Details -->
-			<div class="mb-4 p-3 bg-gray-50 rounded" data-testid="employee-details">
-				<p class="text-sm text-gray-600">Employee</p>
-				<p class="font-semibold">{currentRequest?.employee?.displayName}</p>
+		{#if currentRequest}
+			<div class="space-y-4">
+				<div class="bg-gray-50 p-4 rounded-lg">
+					<h4 class="font-semibold mb-2">Request Details</h4>
+					<div class="text-sm space-y-1">
+						<p><strong>Employee:</strong> {currentRequest.employee?.displayName}</p>
+						<p><strong>Leave Type:</strong> {leaveTypeOptions.find(t => t.value === currentRequest.leaveType)?.label}</p>
+						<p><strong>Dates:</strong> {formatDateRange(currentRequest.startDate, currentRequest.endDate)}</p>
+						<p><strong>Duration:</strong> {currentRequest.daysRequested} days</p>
+						{#if currentRequest.reason}
+							<p><strong>Reason:</strong> {currentRequest.reason}</p>
+						{/if}
+					</div>
+				</div>
+
+				<div>
+					<Label for="denial-comments">Reason for Denial (Required)</Label>
+					<Textarea
+						id="denial-comments"
+						placeholder="Please provide a reason for denying this leave request..."
+						bind:value={managerComments}
+						rows={3}
+						class={!managerComments.trim() ? 'border-red-300' : ''}
+					/>
+					{#if !managerComments.trim()}
+						<p class="text-sm text-red-600 mt-1">A reason for denial is required</p>
+					{/if}
+				</div>
 			</div>
+		{/if}
 
-			<!-- Request Details -->
-			<div class="mb-4 p-3 bg-gray-50 rounded" data-testid="request-details">
-				<p class="text-sm text-gray-600">Leave Details</p>
-				<p>Type: {currentRequest?.leaveType}</p>
-				<p>Period: {formatDateRange(currentRequest?.startDate, currentRequest?.endDate)}</p>
-				<p>Days: {currentRequest?.daysRequested}</p>
-			</div>
-
-			<!-- Manager Comments (Required) -->
-			<div class="mb-4">
-				<label for="denial-comments" class="block text-sm font-medium text-gray-700 mb-1">
-					Reason for Denial <span class="text-red-500">*</span>
-				</label>
-				<textarea
-					id="denial-comments"
-					bind:value={managerComments}
-					rows="3"
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-					data-testid="manager-comments"
-					placeholder="Please provide a reason for denial..."
-					required
-				></textarea>
-				{#if !managerComments.trim()}
-					<p class="mt-1 text-sm text-red-600" data-testid="comments-error">
-						Manager comments are required for denial
-					</p>
-				{/if}
-			</div>
-
-			<!-- Actions -->
-			<div class="flex gap-2 justify-end">
-				<button
-					onclick={closeModals}
-					class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
-				>
-					Cancel
-				</button>
-				<button
-					onclick={confirmDenial}
-					class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-					data-testid="confirm-deny"
-				>
+		<DialogFooter>
+			<Button variant="outline" onclick={() => { showDenialModal = false; }}>Cancel</Button>
+			<Button
+				variant="destructive"
+				onclick={confirmDenial}
+				disabled={isSubmitting || !managerComments.trim()}
+			>
+				{#if isSubmitting}
+					Denying...
+				{:else}
+					<X class="w-4 h-4 mr-2" />
 					Deny Request
-				</button>
-			</div>
-		</div>
-	</div>
-{/if}
-
-<!-- Success/Error Notifications (handled by svelte-sonner toast) -->
-<div data-testid="success-notification" class="hidden"></div>
-<div data-testid="access-denied" class="hidden"></div>
-<div data-testid="empty-state" class="hidden"></div>
-<div data-testid="pending-request-row" class="hidden"></div>
+				{/if}
+			</Button>
+		</DialogFooter>
+	</DialogContent>
+</Dialog>

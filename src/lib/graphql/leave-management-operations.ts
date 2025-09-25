@@ -370,3 +370,350 @@ export function getLeaveTypeColor(leaveType: LeaveType): string {
   };
   return colorMap[leaveType] || 'gray';
 }
+
+/**
+ * T032: Standardized Leave Management Operations with Error Handling
+ */
+import type { OperationStore } from '@urql/svelte';
+import type { DataRequest, UserCredentials } from '$lib/models/data-request';
+
+export class LeaveManagementOperations {
+  private client: OperationStore;
+
+  constructor(client: OperationStore) {
+    this.client = client;
+  }
+
+  async getLeaveRequests(params: {
+    filter?: any;
+    userCredentials: UserCredentials;
+  }): Promise<any> {
+    const { DataRequest, createDataRequest } = await import('$lib/models/data-request');
+    const { createErrorResponse } = await import('$lib/models/error-response');
+
+    const dataRequest = createDataRequest({
+      operationName: 'GetLeaveRequests',
+      variables: { filter: params.filter },
+      userCredentials: params.userCredentials,
+      timeoutMs: 5000,
+      retryAttempts: 0,
+      maxRetries: 3
+    });
+
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        const errorResponse = createErrorResponse(
+          new Error('Leave requests timeout'),
+          {
+            type: 'TIMEOUT_ERROR',
+            userMessage: 'Leave requests are loading slowly. Please try again.'
+          }
+        );
+        reject(errorResponse);
+        unsubscribe();
+      }, dataRequest.timeoutMs);
+
+      const unsubscribe = this.client.subscribe(
+        {
+          query: GET_LEAVE_REQUESTS,
+          variables: { filter: params.filter }
+        },
+        (result) => {
+          clearTimeout(timeoutId);
+
+          if (result.error) {
+            const errorResponse = createErrorResponse(result.error, {
+              type: 'GRAPHQL_ERROR',
+              userMessage: 'Unable to load leave requests. Please try again.'
+            });
+            reject(errorResponse);
+            unsubscribe();
+          } else if (result.data) {
+            resolve(result.data);
+            unsubscribe();
+          }
+        }
+      );
+    });
+  }
+
+  async getPendingLeaveRequests(params: {
+    filter?: any;
+    pagination?: { page: number; limit: number };
+    userCredentials: UserCredentials;
+  }): Promise<any> {
+    const { createDataRequest } = await import('$lib/models/data-request');
+    const { createErrorResponse } = await import('$lib/models/error-response');
+
+    const dataRequest = createDataRequest({
+      operationName: 'GetPendingLeaveRequests',
+      variables: {
+        managerId: params.filter?.managerId,
+        status: params.filter?.status || 'pending',
+        first: params.pagination?.limit || 20,
+        offset: ((params.pagination?.page || 1) - 1) * (params.pagination?.limit || 20),
+        filter: params.filter
+      },
+      userCredentials: params.userCredentials,
+      timeoutMs: 5000,
+      retryAttempts: 0,
+      maxRetries: 3
+    });
+
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        const errorResponse = createErrorResponse(
+          new Error('Pending leave requests timeout'),
+          {
+            type: 'TIMEOUT_ERROR',
+            userMessage: 'Leave requests are loading slowly. Please try again.'
+          }
+        );
+        reject(errorResponse);
+        unsubscribe();
+      }, dataRequest.timeoutMs);
+
+      const unsubscribe = this.client.subscribe(
+        {
+          query: GET_PENDING_LEAVE_REQUESTS,
+          variables: {
+            managerId: params.filter?.managerId,
+            status: params.filter?.status || 'pending',
+            first: params.pagination?.limit || 20,
+            offset: ((params.pagination?.page || 1) - 1) * (params.pagination?.limit || 20),
+            filter: params.filter
+          }
+        },
+        (result) => {
+          clearTimeout(timeoutId);
+
+          if (result.error) {
+            const errorResponse = createErrorResponse(result.error, {
+              type: 'GRAPHQL_ERROR',
+              userMessage: 'Unable to load pending leave requests. Please try again.'
+            });
+            reject(errorResponse);
+            unsubscribe();
+          } else if (result.data) {
+            resolve({
+              requests: result.data.leaveRequests?.nodes || [],
+              totalCount: result.data.leaveRequests?.totalCount || 0
+            });
+            unsubscribe();
+          }
+        }
+      );
+    });
+  }
+
+  async getLeaveStatistics(params: {
+    managerId?: string;
+    userCredentials: UserCredentials;
+  }): Promise<any> {
+    const { createDataRequest } = await import('$lib/models/data-request');
+    const { createErrorResponse } = await import('$lib/models/error-response');
+
+    const dataRequest = createDataRequest({
+      operationName: 'GetLeaveStatistics',
+      variables: { managerId: params.managerId },
+      userCredentials: params.userCredentials,
+      timeoutMs: 5000,
+      retryAttempts: 0,
+      maxRetries: 3
+    });
+
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        const errorResponse = createErrorResponse(
+          new Error('Leave statistics timeout'),
+          {
+            type: 'TIMEOUT_ERROR',
+            userMessage: 'Leave statistics are loading slowly. Please try again.'
+          }
+        );
+        reject(errorResponse);
+        unsubscribe();
+      }, dataRequest.timeoutMs);
+
+      // For now, we'll get all requests and calculate stats manually
+      // In a real app, this would be a dedicated stats query
+      const unsubscribe = this.client.subscribe(
+        {
+          query: GET_LEAVE_REQUESTS,
+          variables: {
+            filter: { managerId: params.managerId },
+            first: 1000, // Get all for stats calculation
+            offset: 0
+          }
+        },
+        (result) => {
+          clearTimeout(timeoutId);
+
+          if (result.error) {
+            const errorResponse = createErrorResponse(result.error, {
+              type: 'GRAPHQL_ERROR',
+              userMessage: 'Unable to load leave statistics. Please try again.'
+            });
+            reject(errorResponse);
+            unsubscribe();
+          } else if (result.data) {
+            const requests = result.data.leaveRequests?.nodes || [];
+            const stats = this.calculateLeaveStats(requests);
+            resolve({ stats });
+            unsubscribe();
+          }
+        }
+      );
+    });
+  }
+
+  private calculateLeaveStats(requests: any[]): any {
+    const pendingCount = requests.filter(r => r.status === 'pending').length;
+    const approvedCount = requests.filter(r => r.status === 'approved').length;
+    const rejectedCount = requests.filter(r => r.status === 'rejected').length;
+    const totalDaysRequested = requests.reduce((sum, r) => sum + (r.daysRequested || 0), 0);
+    const averageRequestDays = requests.length > 0 ? totalDaysRequested / requests.length : 0;
+    const approvalRate = (approvedCount + rejectedCount) > 0 ? (approvedCount / (approvedCount + rejectedCount)) * 100 : 0;
+
+    return {
+      pendingCount,
+      approvedCount,
+      rejectedCount,
+      totalDaysRequested,
+      averageRequestDays: Math.round(averageRequestDays * 10) / 10,
+      approvalRate: Math.round(approvalRate * 10) / 10
+    };
+  }
+
+  async approveLeaveRequest(params: {
+    id: string;
+    notes?: string;
+    userCredentials: UserCredentials;
+  }): Promise<any> {
+    const { createDataRequest } = await import('$lib/models/data-request');
+    const { createErrorResponse } = await import('$lib/models/error-response');
+
+    const dataRequest = createDataRequest({
+      operationName: 'ApproveLeaveRequest',
+      variables: {
+        input: {
+          leaveRequestId: params.id,
+          managerComments: params.notes
+        }
+      },
+      userCredentials: params.userCredentials,
+      timeoutMs: 5000,
+      retryAttempts: 0,
+      maxRetries: 2
+    });
+
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        const errorResponse = createErrorResponse(
+          new Error('Leave approval timeout'),
+          {
+            type: 'TIMEOUT_ERROR',
+            userMessage: 'Leave approval is taking longer than expected. Please verify the action completed.'
+          }
+        );
+        reject(errorResponse);
+        unsubscribe();
+      }, dataRequest.timeoutMs);
+
+      const unsubscribe = this.client.subscribe(
+        {
+          query: APPROVE_LEAVE_REQUEST,
+          variables: {
+            input: {
+              leaveRequestId: params.id,
+              managerComments: params.notes
+            }
+          }
+        },
+        (result) => {
+          clearTimeout(timeoutId);
+
+          if (result.error) {
+            const errorResponse = createErrorResponse(result.error, {
+              type: 'PERMISSION_ERROR',
+              userMessage: 'Unable to approve leave request. Please check your permissions and try again.'
+            });
+            reject(errorResponse);
+            unsubscribe();
+          } else if (result.data) {
+            resolve(result.data);
+            unsubscribe();
+          }
+        }
+      );
+    });
+  }
+
+  async denyLeaveRequest(params: {
+    id: string;
+    notes: string;
+    userCredentials: UserCredentials;
+  }): Promise<any> {
+    const { createDataRequest } = await import('$lib/models/data-request');
+    const { createErrorResponse } = await import('$lib/models/error-response');
+
+    const dataRequest = createDataRequest({
+      operationName: 'DenyLeaveRequest',
+      variables: {
+        input: {
+          leaveRequestId: params.id,
+          managerComments: params.notes
+        }
+      },
+      userCredentials: params.userCredentials,
+      timeoutMs: 5000,
+      retryAttempts: 0,
+      maxRetries: 2
+    });
+
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        const errorResponse = createErrorResponse(
+          new Error('Leave denial timeout'),
+          {
+            type: 'TIMEOUT_ERROR',
+            userMessage: 'Leave denial is taking longer than expected. Please verify the action completed.'
+          }
+        );
+        reject(errorResponse);
+        unsubscribe();
+      }, dataRequest.timeoutMs);
+
+      const unsubscribe = this.client.subscribe(
+        {
+          query: DENY_LEAVE_REQUEST,
+          variables: {
+            input: {
+              leaveRequestId: params.id,
+              managerComments: params.notes
+            }
+          }
+        },
+        (result) => {
+          clearTimeout(timeoutId);
+
+          if (result.error) {
+            const errorResponse = createErrorResponse(result.error, {
+              type: 'PERMISSION_ERROR',
+              userMessage: 'Unable to deny leave request. Please check your permissions and try again.'
+            });
+            reject(errorResponse);
+            unsubscribe();
+          } else if (result.data) {
+            resolve(result.data);
+            unsubscribe();
+          }
+        }
+      );
+    });
+  }
+}
+
+export function createLeaveManagementOperations(client: OperationStore): LeaveManagementOperations {
+  return new LeaveManagementOperations(client);
+}

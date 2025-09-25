@@ -19,15 +19,15 @@ help: ## Show available commands
 	@echo "  make dev          - Start frontend development server with database"
 	@echo "  make env-check    - Check environment and dependencies"
 	@echo ""
-	@echo "🖥️  Server Operations (GelDB Backend):"
-	@echo "  make server-dev   - Start GelDB GraphQL backend (development)"
+	@echo "🖥️  Server Operations (PostGraphile Backend):"
+	@echo "  make server-dev   - Start PostGraphile GraphQL backend (development)"
 	@echo "  make server-prod  - Start production environment"
 	@echo "  make server-status - Check server health and status"
 	@echo "  make server-stop  - Stop all server processes"
 	@echo "  make server-logs  - View server logs"
 	@echo ""
 	@echo "💾 Database Operations:"
-	@echo "  make db-up        - Start database containers (GelDB/PostgreSQL + Redis)"
+	@echo "  make db-up        - Start PostgreSQL and Redis containers"
 	@echo "  make db-down      - Stop database containers"
 	@echo "  make db-reset     - Reset database with fresh data (WARNING: deletes all data)"
 	@echo "  make db-logs      - View database logs"
@@ -58,9 +58,9 @@ help: ## Show available commands
 	@echo "  make setup-test    - Run setup system tests"
 	@echo "  make setup-status  - Show complete setup system status"
 	@echo ""
-	@echo "🔧 Gel CLI Tools (if using GelDB):"
-	@echo "  make gel-repl      - Open interactive Gel REPL"
-	@echo "  make gel-cli CMD='...' - Run custom gel CLI command"
+	@echo "🔧 Database Tools:"
+	@echo "  make db-shell      - Open PostgreSQL shell"
+	@echo "  make schema-status - Check schema and migrations"
 	@echo ""
 	@echo "📦 Installation:"
 	@echo "  make install      - Install all dependencies (frontend + backend)"
@@ -146,11 +146,13 @@ env-check: ## Check environment configuration
 # Frontend Development
 # =============================================================================
 
-dev: db-up ## Start development with database
-	@echo "🚀 Starting SvelteHR development..."
-	@echo "📊 GraphQL: http://localhost:5657/db/main/ext/graphql (GelDB)"
-	@echo "🔧 Admin UI: http://localhost:5657/ui (admin/admin)"
+dev: db-up ## Start frontend development with database
+	@echo "🚀 Starting SvelteHR frontend development..."
+	@echo "🗄️  PostgreSQL: localhost:5432"
+	@echo "🔴 Redis: localhost:6379"
 	@echo "🌐 Frontend: http://localhost:5173"
+	@echo ""
+	@echo "💡 To start PostGraphile GraphQL server, run: make server-dev"
 	@npm run dev
 
 build: ## Build frontend for production
@@ -179,21 +181,18 @@ install-backend: ## Install backend dependencies
 # Server Operations (PostGraphile/Backend)
 # =============================================================================
 
-server-dev: ## Start backend server (GelDB GraphQL is the backend)
-	@echo "🚀 Checking GelDB GraphQL Backend status..."
-	@if docker ps --format '{{.Names}}' | grep -q geldb; then \
-		echo "✅ GelDB is already running!"; \
-	else \
-		echo "Starting GelDB..."; \
-		make db-up; \
+server-dev: db-up ## Start PostGraphile backend server
+	@echo "🚀 Starting PostGraphile GraphQL Server..."
+	@if [ ! -f "backend/package.json" ]; then \
+		echo "❌ Backend not found. Run 'make install-backend' first"; \
+		exit 1; \
 	fi
+	@echo "📊 GraphQL API:     http://localhost:4000/graphql"
+	@echo "🔧 GraphiQL IDE:    http://localhost:4000/graphiql"
+	@echo "❤️  Health Check:    http://localhost:4000/health"
 	@echo ""
-	@echo "📊 GraphQL API:     http://localhost:5657/db/main/ext/graphql"
-	@echo "🔧 Admin UI:        http://localhost:5657/ui (admin/admin)"
-	@echo ""
-	@echo "✅ The backend is provided by GelDB container"
-	@echo "   Run 'make db-health' to check status"
-	@echo "   Run 'make dev' to start the frontend"
+	@mkdir -p backend/logs
+	@cd backend && npm run start:dev
 
 server-prod: ## Start production server (uses docker-compose.prod.yml)
 	@echo "🚀 Starting production environment..."
@@ -213,10 +212,12 @@ server-status: ## Check if server is running and healthy
 	@echo "🏥 Server Status Check:"
 	@echo "====================="
 	@echo ""
-	@echo "Backend Services:"
-	@curl -s http://localhost:5657/ui > /dev/null 2>&1 && echo "✅ GelDB Admin UI: Available" || echo "❌ GelDB Admin UI: Not available"
-	@curl -s http://localhost:5657/db/main/ext/graphql > /dev/null 2>&1 && echo "✅ GelDB GraphQL API: Available" || echo "❌ GelDB GraphQL API: Not available"
+	@echo "Database Services:"
+	@docker ps --format '{{.Names}} {{.Status}}' | grep postgres && echo "✅ PostgreSQL: Running" || echo "❌ PostgreSQL: Not running"
 	@nc -zv localhost 6379 2>/dev/null && echo "✅ Redis Cache: Available" || echo "❌ Redis Cache: Not available"
+	@echo ""
+	@echo "Backend Service:"
+	@curl -s http://localhost:4000/health > /dev/null 2>&1 && echo "✅ PostGraphile API: Available" || echo "❌ PostGraphile API: Not running (run 'make server-dev')"
 	@echo ""
 	@echo "Frontend Service:"
 	@curl -s http://localhost:5173 > /dev/null 2>&1 && echo "✅ SvelteKit Frontend: Running" || echo "⚠️  SvelteKit Frontend: Not running (run 'make dev')"
@@ -231,16 +232,20 @@ server-logs: ## View server logs
 # Database Management
 # =============================================================================
 
-db-up: ## Start database containers (GelDB/PostgreSQL + Redis)
+db-up: ## Start PostgreSQL and Redis containers
 	@echo "🚀 Starting database services..."
 	@if [ -f "docker-compose.postgraphile.yml" ]; then \
 		docker compose -f docker-compose.postgraphile.yml up -d postgres redis; \
 	else \
-		docker compose up -d geldb redis 2>/dev/null || docker compose up -d; \
+		echo "⚠️  No docker-compose.postgraphile.yml found, checking for containers..."; \
+		if ! docker ps --format '{{.Names}}' | grep -q postgres; then \
+			echo "❌ PostgreSQL container not found. Please ensure PostGraphile setup is complete."; \
+			exit 1; \
+		fi; \
 	fi
 	@echo "✅ Database services started"
-	@echo "   📊 GraphQL: http://localhost:5657/db/main/ext/graphql"
-	@echo "   🔧 Admin UI: http://localhost:5657/ui (admin/admin)"
+	@echo "   🗄️  PostgreSQL: localhost:5432"
+	@echo "   🔴 Redis: localhost:6379"
 
 db-down: ## Stop database containers
 	@echo "⏹️  Stopping database services..."
@@ -283,22 +288,12 @@ db-logs: ## View database logs
 
 db-health: ## Check database health
 	@echo "💊 Checking database health..."
-	@docker compose ps 2>/dev/null || docker compose -f docker-compose.postgraphile.yml ps
+	@docker compose -f docker-compose.postgraphile.yml ps 2>/dev/null || docker ps --format 'table {{.Names}}\t{{.Status}}' | grep -E "(postgres|redis)"
 	@echo ""
-	@echo "🔧 Testing endpoints..."
-	@curl -s http://localhost:5657/ui >/dev/null && echo "✅ GelDB Admin UI: Available" || echo "⚠️  GelDB Admin UI: Not available"
-	@curl -s http://localhost:5657/db/main/ext/graphql >/dev/null && echo "✅ GelDB GraphQL: Available" || echo "⚠️  GelDB GraphQL: Not available"
-	@curl -s http://localhost:4000/health >/dev/null && echo "✅ PostGraphile API: Available" || echo "⚠️  PostGraphile API: Not available"
+	@echo "🔧 Testing database connections..."
+	@docker exec svelteHR-postgres-postgraphile pg_isready -U postgres -d hr_system 2>/dev/null && echo "✅ PostgreSQL: Ready" || echo "❌ PostgreSQL: Not ready"
+	@docker exec svelteHR-redis-postgraphile redis-cli ping 2>/dev/null && echo "✅ Redis: Ready" || echo "❌ Redis: Not ready"
 
-db-shell: ## Open database shell
-	@echo "🔧 Opening database shell..."
-	@if docker ps --format '{{.Names}}' | grep -q geldb; then \
-		docker exec -it svelteHR-geldb gel --dsn "gel://admin:admin@localhost:5657/main?tls_security=insecure"; \
-	elif docker ps --format '{{.Names}}' | grep -q postgres; then \
-		docker exec -it svelteHR-postgres-postgraphile psql -U postgres -d hr_system; \
-	else \
-		echo "❌ No database container running"; \
-	fi
 
 # =============================================================================
 # Schema Management
@@ -306,12 +301,10 @@ db-shell: ## Open database shell
 
 schema-status: ## Check current schema and migration status
 	@echo "📊 Checking schema status..."
-	@if docker ps --format '{{.Names}}' | grep -q geldb; then \
-		docker exec svelteHR-geldb gel migration status --dsn "gel://admin:admin@localhost:5657/main?tls_security=insecure" || echo "No migrations found"; \
-	elif docker ps --format '{{.Names}}' | grep -q postgres; then \
-		docker exec svelteHR-postgres-postgraphile psql -U postgres -d hr_system -c "\d" 2>/dev/null || echo "Schema not initialized"; \
+	@if docker ps --format '{{.Names}}' | grep -q postgres; then \
+		docker exec svelteHR-postgres-postgraphile psql -U postgres -d hr_system -c "\SELECT schemaname, tablename FROM pg_tables WHERE schemaname IN ('hr_public', 'hr_private', 'hr_hidden') ORDER BY schemaname, tablename;" 2>/dev/null || echo "Schema not initialized"; \
 	else \
-		echo "❌ No database container running"; \
+		echo "❌ PostgreSQL container not running"; \
 	fi
 
 schema-apply: ## Apply database schema
@@ -324,11 +317,7 @@ schema-apply: ## Apply database schema
 
 schema-create: ## Create new migration from schema changes
 	@echo "📝 Creating new migration..."
-	@if docker ps --format '{{.Names}}' | grep -q geldb; then \
-		docker exec svelteHR-geldb gel migration create --non-interactive --dsn "gel://admin:admin@localhost:5657/main?tls_security=insecure"; \
-	else \
-		echo "⚠️  GelDB not running or not configured"; \
-	fi
+	@echo "⚠️  Manual migration creation needed - add new .sql files to migrations/ directory"
 
 schema-reset: ## Reset schema (dangerous - removes all data)
 	@echo "⚠️  This will DELETE ALL DATA. Continue? (y/N)"
@@ -360,20 +349,13 @@ test-e2e: ## Run end-to-end tests
 	@echo "🧪 Running E2E tests..."
 	@npm run test:e2e
 
-test-graphql: ## Test GraphQL endpoint
-	@echo "🧪 Testing GraphQL endpoints..."
+test-graphql: ## Test PostGraphile GraphQL endpoint
+	@echo "🧪 Testing PostGraphile GraphQL endpoint..."
 	@echo ""
-	@echo "Testing GelDB GraphQL:"
 	@curl -s -X POST \
 		-H "Content-Type: application/json" \
 		-d '{"query": "{ __schema { types { name } } }"}' \
-		http://localhost:5657/db/main/ext/graphql | grep -q "data" && echo "✅ GelDB GraphQL: Working" || echo "❌ GelDB GraphQL: Not available"
-	@echo ""
-	@echo "Testing PostGraphile (if configured):"
-	@curl -s -X POST \
-		-H "Content-Type: application/json" \
-		-d '{"query": "{ __schema { types { name } } }"}' \
-		http://localhost:4000/graphql 2>/dev/null | grep -q "data" && echo "✅ PostGraphile: Working" || echo "⚠️  PostGraphile: Not available"
+		http://localhost:4000/graphql 2>/dev/null | grep -q "data" && echo "✅ PostGraphile GraphQL: Working" || echo "❌ PostGraphile GraphQL: Not available (run 'make server-dev')"
 
 test-auth: ## Test authentication
 	@echo "🔐 Testing authentication..."
@@ -384,22 +366,15 @@ test-contract: ## Run contract tests
 	@npm run test:contract 2>/dev/null || echo "⚠️  Contract tests not configured"
 
 # =============================================================================
-# Gel CLI Tools (if using GelDB)
+# Database Tools
 # =============================================================================
 
-gel-cli: ## Run gel CLI commands (usage: make gel-cli CMD="query 'SELECT 1'")
-	@if docker ps --format '{{.Names}}' | grep -q geldb; then \
-		docker exec -it svelteHR-geldb gel $(CMD) --dsn "gel://admin:admin@localhost:5657/main?tls_security=insecure"; \
+db-shell: ## Open PostgreSQL shell
+	@echo "🔧 Opening PostgreSQL shell (hr_system database)..."
+	@if docker ps --format '{{.Names}}' | grep -q postgres; then \
+		docker exec -it svelteHR-postgres-postgraphile psql -U postgres -d hr_system; \
 	else \
-		echo "❌ GelDB container not running"; \
-	fi
-
-gel-repl: ## Open interactive Gel REPL
-	@echo "🔧 Opening Gel REPL (type \q to exit)"
-	@if docker ps --format '{{.Names}}' | grep -q geldb; then \
-		docker exec -it svelteHR-geldb gel --dsn "gel://admin:admin@localhost:5657/main?tls_security=insecure"; \
-	else \
-		echo "❌ GelDB container not running"; \
+		echo "❌ PostgreSQL container not running"; \
 	fi
 
 # =============================================================================

@@ -4,8 +4,7 @@
 	import { browser } from '$app/environment';
 	import { page } from '$app/stores';
 	import { get } from 'svelte/store';
-	import { isAuthenticated, currentUser, authActions, isLoading } from '$lib/stores/auth';
-	import { permissionsService } from '$lib/services/permissionsService';
+	import { isAuthenticated, currentUser, authActions, isLoading, hasRole } from '$lib/stores/auth';
 	import AuthLayout from '$lib/components/auth/AuthLayout.svelte';
 	import LoginForm from '$lib/components/auth/LoginForm.svelte';
 
@@ -34,10 +33,8 @@
 			if (redirectTo) {
 				await goto(redirectTo, { replaceState: true });
 			} else {
-				// Redirect directly to appropriate dashboard to avoid loop with root page
-				const user = $currentUser;
-				const isAdmin = user && permissionsService.isSuperAdmin(user);
-				await goto(isAdmin ? '/dashboard/admin' : '/dashboard', { replaceState: true });
+				// Redirect directly to dashboard to avoid loop with root page
+				await goto('/dashboard', { replaceState: true });
 			}
 		}
 	});
@@ -99,14 +96,9 @@
 
 			// Only use role-based defaults if no URL was saved or provided
 			if (!redirectTo) {
-				// Redirect based on user role - now that roles are loaded
-				if (user && permissionsService.isSuperAdmin(user)) {
-					console.log('User is admin, no saved URL, redirecting to /dashboard/admin');
-					redirectTo = '/dashboard/admin';
-				} else {
-					console.log('User is not admin, no saved URL, redirecting to /dashboard');
-					redirectTo = '/dashboard';
-				}
+				// Redirect to dashboard for all users for now
+				console.log('No saved URL, redirecting to /dashboard');
+				redirectTo = '/dashboard';
 			}
 
 			console.log('Redirecting to:', redirectTo);
