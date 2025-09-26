@@ -2,7 +2,11 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Download, FileText, Table2 } from 'lucide-svelte';
 
-	let { data = [], filename = 'export', format = 'csv' } = $props<{
+	let {
+		data = [],
+		filename = 'export',
+		format = 'csv'
+	} = $props<{
 		data?: any[];
 		filename?: string;
 		format?: 'csv' | 'json' | 'xlsx';
@@ -18,7 +22,7 @@
 				const headers = Object.keys(dataToExport[0]);
 				const csvContent = [
 					headers.join(','),
-					...dataToExport.map(row => headers.map(header => row[header]).join(','))
+					...dataToExport.map((row) => headers.map((header) => row[header]).join(','))
 				].join('\n');
 
 				const blob = new Blob([csvContent], { type: 'text/csv' });

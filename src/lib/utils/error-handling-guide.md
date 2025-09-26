@@ -21,73 +21,75 @@ The standardized error handling system provides:
 ### 1. Error Handling Utilities (`/lib/utils/error-handling.ts`)
 
 #### `createStandardError(originalError, context)`
+
 Converts any error into a standardized `StandardErrorResponse`:
 
 ```typescript
 const standardError = createStandardError(new Error('Network timeout'), {
-  requestId: 'req_123',
-  userId: 'user_456',
-  path: '/dashboard',
-  operation: 'Load Dashboard Data'
+	requestId: 'req_123',
+	userId: 'user_456',
+	path: '/dashboard',
+	operation: 'Load Dashboard Data'
 });
 ```
 
 #### `throwStandardError(originalError, context)`
+
 Throws a SvelteKit-compatible error with standardized formatting:
 
 ```typescript
 throwStandardError(error, {
-  userId: locals.user?.id,
-  path: event.url.pathname,
-  operation: 'Load Employee Data'
+	userId: locals.user?.id,
+	path: event.url.pathname,
+	operation: 'Load Employee Data'
 });
 ```
 
 #### `safeServerLoad(loadFunction, context)`
+
 Wraps server load functions with comprehensive error handling:
 
 ```typescript
-return safeServerLoad(
-  () => loadEmployees(userId),
-  {
-    userId: locals.user.id,
-    path: event.url.pathname,
-    operation: 'Load Employees'
-  }
-);
+return safeServerLoad(() => loadEmployees(userId), {
+	userId: locals.user.id,
+	path: event.url.pathname,
+	operation: 'Load Employees'
+});
 ```
 
 ### 2. Server Load Helpers (`/lib/server/load-helpers.ts`)
 
 #### `createServerLoad(loadFn, options)`
+
 Creates a standardized server load function with authentication and error handling:
 
 ```typescript
 export const load: PageServerLoad = createServerLoad(
-  async (event) => {
-    const data = await loadData();
-    return { data };
-  },
-  {
-    requireAuth: true,
-    requiredPermissions: ['employees:read'],
-    operation: 'Load Employee Directory'
-  }
+	async (event) => {
+		const data = await loadData();
+		return { data };
+	},
+	{
+		requireAuth: true,
+		requiredPermissions: ['employees:read'],
+		operation: 'Load Employee Directory'
+	}
 );
 ```
 
 #### `executeGraphQLQuery<T>(query, variables, options)`
+
 Executes GraphQL queries with timeout, retry logic, and error handling:
 
 ```typescript
 const employees = await executeGraphQLQuery(
-  GET_EMPLOYEES_QUERY,
-  { limit: 20 },
-  {
-    timeout: 30000,
-    retries: 3,
-    context: { userId: user.id, operation: 'Load Employees' }
-  }
+	GET_EMPLOYEES_QUERY,
+	{ limit: 20 },
+	{
+		timeout: 30000,
+		retries: 3,
+		context: { userId: user.id, operation: 'Load Employees' }
+	}
 );
 ```
 
@@ -97,7 +99,7 @@ Provides client-side error boundaries for component-level error handling:
 
 ```svelte
 <ErrorBoundary showDetails={true} onRetry={() => location.reload()}>
-  <MyComponent />
+	<MyComponent />
 </ErrorBoundary>
 ```
 
@@ -111,23 +113,23 @@ Provides client-side error boundaries for component-level error handling:
 import { createServerLoad, checkPermissions } from '$lib/server/load-helpers.js';
 
 export const load: PageServerLoad = createServerLoad(
-  async (event) => {
-    const { locals } = event;
+	async (event) => {
+		const { locals } = event;
 
-    // Your data loading logic
-    const data = await loadBusinessData(locals.user.id);
+		// Your data loading logic
+		const data = await loadBusinessData(locals.user.id);
 
-    return {
-      data,
-      user: locals.user,
-      loadedAt: new Date().toISOString()
-    };
-  },
-  {
-    requireAuth: true,
-    requiredPermissions: ['resource:read'],
-    operation: 'Load Business Data'
-  }
+		return {
+			data,
+			user: locals.user,
+			loadedAt: new Date().toISOString()
+		};
+	},
+	{
+		requireAuth: true,
+		requiredPermissions: ['resource:read'],
+		operation: 'Load Business Data'
+	}
 );
 ```
 
@@ -137,16 +139,16 @@ export const load: PageServerLoad = createServerLoad(
 import { throwStandardError } from '$lib/utils/error-handling.js';
 
 export const load: PageServerLoad = async (event) => {
-  try {
-    const data = await riskyOperation();
-    return { data };
-  } catch (error) {
-    throwStandardError(error, {
-      userId: event.locals.user?.id,
-      path: event.url.pathname,
-      operation: 'Risky Operation'
-    });
-  }
+	try {
+		const data = await riskyOperation();
+		return { data };
+	} catch (error) {
+		throwStandardError(error, {
+			userId: event.locals.user?.id,
+			path: event.url.pathname,
+			operation: 'Risky Operation'
+		});
+	}
 };
 ```
 
@@ -157,28 +159,28 @@ export const load: PageServerLoad = async (event) => {
 ```svelte
 <!-- MyPage.svelte -->
 <script>
-  import ErrorBoundary from '$lib/components/ui/ErrorBoundary.svelte';
-  import { createLoadingState } from '$lib/utils/error-handling.js';
+	import ErrorBoundary from '$lib/components/ui/ErrorBoundary.svelte';
+	import { createLoadingState } from '$lib/utils/error-handling.js';
 
-  const loadingState = createLoadingState();
+	const loadingState = createLoadingState();
 
-  const loadData = async () => {
-    await loadingState.execute(async () => {
-      const response = await fetch('/api/data');
-      if (!response.ok) throw new Error('Failed to load');
-      return response.json();
-    });
-  };
+	const loadData = async () => {
+		await loadingState.execute(async () => {
+			const response = await fetch('/api/data');
+			if (!response.ok) throw new Error('Failed to load');
+			return response.json();
+		});
+	};
 </script>
 
 <ErrorBoundary>
-  {#if loadingState.loading}
-    <LoadingSpinner />
-  {:else if loadingState.error}
-    <ErrorMessage error={loadingState.error} />
-  {:else}
-    <DataComponent />
-  {/if}
+	{#if loadingState.loading}
+		<LoadingSpinner />
+	{:else if loadingState.error}
+		<ErrorMessage error={loadingState.error} />
+	{:else}
+		<DataComponent />
+	{/if}
 </ErrorBoundary>
 ```
 
@@ -187,9 +189,9 @@ export const load: PageServerLoad = async (event) => {
 ```svelte
 <!-- app.html or +layout.svelte -->
 <ErrorBoundary showDetails={$dev} showRetry={true}>
-  <main>
-    <slot />
-  </main>
+	<main>
+		<slot />
+	</main>
 </ErrorBoundary>
 ```
 
@@ -201,25 +203,25 @@ import { json } from '@sveltejs/kit';
 import { createStandardError } from '$lib/utils/error-handling.js';
 
 export async function GET({ locals, url }) {
-  try {
-    const employees = await getEmployees();
-    return json({ employees });
-  } catch (error) {
-    const standardError = createStandardError(error, {
-      userId: locals.user?.id,
-      path: url.pathname,
-      operation: 'API - Get Employees'
-    });
+	try {
+		const employees = await getEmployees();
+		return json({ employees });
+	} catch (error) {
+		const standardError = createStandardError(error, {
+			userId: locals.user?.id,
+			path: url.pathname,
+			operation: 'API - Get Employees'
+		});
 
-    return json(
-      {
-        error: standardError.userMessage,
-        type: standardError.type,
-        requestId: standardError.requestId
-      },
-      { status: standardError.statusCode }
-    );
-  }
+		return json(
+			{
+				error: standardError.userMessage,
+				type: standardError.type,
+				requestId: standardError.requestId
+			},
+			{ status: standardError.statusCode }
+		);
+	}
 }
 ```
 
@@ -243,13 +245,13 @@ Each error type has predefined user-friendly messages:
 
 ```typescript
 const messages = {
-  validation: 'Please check your input and try again.',
-  authentication: 'Please log in to access this page.',
-  authorization: 'You don\'t have permission to access this resource.',
-  not_found: 'The requested resource was not found.',
-  server_error: 'Something went wrong on our end. Please try again later.',
-  network_error: 'Unable to connect to the server. Please check your connection.',
-  graphql_error: 'There was a problem loading the data. Please try refreshing the page.'
+	validation: 'Please check your input and try again.',
+	authentication: 'Please log in to access this page.',
+	authorization: "You don't have permission to access this resource.",
+	not_found: 'The requested resource was not found.',
+	server_error: 'Something went wrong on our end. Please try again later.',
+	network_error: 'Unable to connect to the server. Please check your connection.',
+	graphql_error: 'There was a problem loading the data. Please try refreshing the page.'
 };
 ```
 
@@ -261,17 +263,17 @@ const messages = {
 import { withRetry } from '$lib/utils/error-handling.js';
 
 const data = await withRetry(
-  async () => {
-    const response = await fetch('/api/data');
-    if (!response.ok) throw new Error('API Error');
-    return response.json();
-  },
-  {
-    maxRetries: 3,
-    baseDelay: 1000,
-    maxDelay: 10000,
-    retryOn: (error) => error.status >= 500 // Only retry server errors
-  }
+	async () => {
+		const response = await fetch('/api/data');
+		if (!response.ok) throw new Error('API Error');
+		return response.json();
+	},
+	{
+		maxRetries: 3,
+		baseDelay: 1000,
+		maxDelay: 10000,
+		retryOn: (error) => error.status >= 500 // Only retry server errors
+	}
 );
 ```
 
@@ -281,18 +283,18 @@ const data = await withRetry(
 import { ServerCache } from '$lib/server/load-helpers.js';
 
 const employees = await ServerCache.get(
-  'employees_list',
-  async () => {
-    const data = await fetchEmployeesFromAPI();
-    return data;
-  },
-  {
-    ttl: 300000, // 5 minutes
-    context: {
-      userId: user.id,
-      operation: 'Cache Employees'
-    }
-  }
+	'employees_list',
+	async () => {
+		const data = await fetchEmployeesFromAPI();
+		return data;
+	},
+	{
+		ttl: 300000, // 5 minutes
+		context: {
+			userId: user.id,
+			operation: 'Cache Employees'
+		}
+	}
 );
 ```
 
@@ -302,17 +304,17 @@ const employees = await ServerCache.get(
 import { ServerRateLimit } from '$lib/server/load-helpers.js';
 
 export const load: PageServerLoad = async (event) => {
-  // Check rate limit
-  ServerRateLimit.check(event.getClientAddress(), {
-    maxAttempts: 100,
-    windowMs: 60000, // 1 minute
-    context: {
-      userId: event.locals.user?.id,
-      operation: 'Page Load'
-    }
-  });
+	// Check rate limit
+	ServerRateLimit.check(event.getClientAddress(), {
+		maxAttempts: 100,
+		windowMs: 60000, // 1 minute
+		context: {
+			userId: event.locals.user?.id,
+			operation: 'Page Load'
+		}
+	});
 
-  // Continue with normal loading...
+	// Continue with normal loading...
 };
 ```
 
@@ -325,27 +327,29 @@ The system includes hooks for error tracking services:
 ```typescript
 // hooks.server.ts
 export const handleError = ({ error, event }) => {
-  const standardError = createStandardError(error, { /* context */ });
+	const standardError = createStandardError(error, {
+		/* context */
+	});
 
-  if (process.env.NODE_ENV === 'production') {
-    // Send to error tracking service
-    Sentry.captureException(error, {
-      contexts: {
-        standardError,
-        request: {
-          url: event.url.pathname,
-          method: event.request.method,
-          user_id: event.locals.user?.id
-        }
-      }
-    });
-  }
+	if (process.env.NODE_ENV === 'production') {
+		// Send to error tracking service
+		Sentry.captureException(error, {
+			contexts: {
+				standardError,
+				request: {
+					url: event.url.pathname,
+					method: event.request.method,
+					user_id: event.locals.user?.id
+				}
+			}
+		});
+	}
 
-  return {
-    message: standardError.userMessage,
-    type: standardError.type,
-    requestId: standardError.requestId
-  };
+	return {
+		message: standardError.userMessage,
+		type: standardError.type,
+		requestId: standardError.requestId
+	};
 };
 ```
 
@@ -372,80 +376,84 @@ timer.addToHeaders(response.headers);
 ### Converting Existing +page.server.ts Files
 
 **Before:**
+
 ```typescript
 export const load: PageServerLoad = async ({ locals }) => {
-  try {
-    const data = await loadData();
-    return { data };
-  } catch (error) {
-    throw error(500, 'Something went wrong');
-  }
+	try {
+		const data = await loadData();
+		return { data };
+	} catch (error) {
+		throw error(500, 'Something went wrong');
+	}
 };
 ```
 
 **After:**
+
 ```typescript
 export const load: PageServerLoad = createServerLoad(
-  async (event) => {
-    const data = await loadData();
-    return { data };
-  },
-  {
-    requireAuth: true,
-    requiredPermissions: ['data:read'],
-    operation: 'Load Data'
-  }
+	async (event) => {
+		const data = await loadData();
+		return { data };
+	},
+	{
+		requireAuth: true,
+		requiredPermissions: ['data:read'],
+		operation: 'Load Data'
+	}
 );
 ```
 
 ### Converting Existing Component Error Handling
 
 **Before:**
+
 ```svelte
 <script>
-  let error = null;
+	let error = null;
 
-  const loadData = async () => {
-    try {
-      data = await fetch('/api/data');
-    } catch (e) {
-      error = 'Something went wrong';
-    }
-  };
+	const loadData = async () => {
+		try {
+			data = await fetch('/api/data');
+		} catch (e) {
+			error = 'Something went wrong';
+		}
+	};
 </script>
 
 {#if error}
-  <div class="error">{error}</div>
+	<div class="error">{error}</div>
 {:else}
-  <DataComponent />
+	<DataComponent />
 {/if}
 ```
 
 **After:**
+
 ```svelte
 <script>
-  import ErrorBoundary from '$lib/components/ui/ErrorBoundary.svelte';
-  import { createLoadingState } from '$lib/utils/error-handling.js';
+	import ErrorBoundary from '$lib/components/ui/ErrorBoundary.svelte';
+	import { createLoadingState } from '$lib/utils/error-handling.js';
 
-  const loadingState = createLoadingState();
+	const loadingState = createLoadingState();
 
-  const loadData = () => {
-    return loadingState.execute(async () => {
-      const response = await fetch('/api/data');
-      if (!response.ok) throw new Error('API Error');
-      return response.json();
-    });
-  };
+	const loadData = () => {
+		return loadingState.execute(async () => {
+			const response = await fetch('/api/data');
+			if (!response.ok) throw new Error('API Error');
+			return response.json();
+		});
+	};
 </script>
 
 <ErrorBoundary>
-  {#if loadingState.loading}
-    <LoadingSpinner />
-  {:else if loadingState.error}
-    <ErrorDisplay error={loadingState.error} onRetry={loadData} />
-  {:else}
-    <DataComponent />
-  {/if}
+	{#if loadingState.loading}
+		<LoadingSpinner />
+	{:else if loadingState.error}
+		<ErrorDisplay error={loadingState.error} onRetry={loadData} />
+	{:else}
+		<DataComponent />
+	{/if}
 </ErrorBoundary>
 ```
 

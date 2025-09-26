@@ -3,8 +3,19 @@
 
 import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
-import { authConfig, getAccessTokenName, getRefreshTokenName, getCookieOptions, getAuthEndpoints } from '$lib/auth/config.js';
-import { verifyJWTToken, tokenNeedsRefresh, getTokenTimeRemaining, type JWTPayload } from '$lib/auth/jwt-utils.js';
+import {
+	authConfig,
+	getAccessTokenName,
+	getRefreshTokenName,
+	getCookieOptions,
+	getAuthEndpoints
+} from '$lib/auth/config.js';
+import {
+	verifyJWTToken,
+	tokenNeedsRefresh,
+	getTokenTimeRemaining,
+	type JWTPayload
+} from '$lib/auth/jwt-utils.js';
 
 // Authentication interfaces
 export interface LoginCredentials {
@@ -61,7 +72,26 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
 
 		// Mock authentication - in real implementation this would be an API call
 		if (credentials.email && credentials.password) {
-			const mockToken = 'mock-jwt-token-' + Date.now();
+			// Create a proper JWT token that the server can validate
+			const currentTime = Math.floor(Date.now() / 1000);
+			const payload = {
+				user_id: '1',
+				email: credentials.email,
+				role: 'hr_admin',
+				permissions: ['*'],
+				iat: currentTime,
+				exp: currentTime + (24 * 60 * 60), // 24 hours
+				iss: 'hr-system',
+				aud: 'hr-system'
+			};
+
+			// Create a simple JWT-like token (base64 encoded payload)
+			// In production, this would be properly signed
+			const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+			const encodedPayload = btoa(JSON.stringify(payload));
+			const signature = btoa(`signature-${Date.now()}`); // Mock signature
+			const mockToken = `${header}.${encodedPayload}.${signature}`;
+
 			const mockUser = {
 				id: '1',
 				email: credentials.email,
@@ -69,9 +99,12 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
 				roles: ['Employee']
 			};
 
-			// Store token if in browser
+			// Store token if in browser - both localStorage and cookie
 			if (browser) {
 				localStorage.setItem(AUTH_CONFIG.tokenStorage.key, mockToken);
+
+				// Also set cookie for server-side authentication
+				document.cookie = `${AUTH_CONFIG.tokenStorage.cookieName}=${mockToken}; path=/; secure=${window.location.protocol === 'https:'}; samesite=lax`;
 			}
 
 			return {
@@ -137,7 +170,8 @@ export async function verifyToken(token?: string): Promise<{
 	error?: string;
 }> {
 	try {
-		const authToken = token || (browser ? localStorage.getItem(AUTH_CONFIG.tokenStorage.key) : null);
+		const authToken =
+			token || (browser ? localStorage.getItem(AUTH_CONFIG.tokenStorage.key) : null);
 
 		if (!authToken) {
 			return {
@@ -150,20 +184,32 @@ export async function verifyToken(token?: string): Promise<{
 		// In a real implementation, this would validate the JWT token
 		console.log('🔍 AuthService: Verifying token');
 
-		// Mock token validation
-		if (authToken.startsWith('mock-jwt-token')) {
-			return {
-				valid: true,
-				user: {
-					id: '1',
-					email: 'user@example.com',
-					displayName: 'Mock User',
-					firstName: 'Mock',
-					lastName: 'User',
-					isActive: true,
-					onboardingStatus: 'completed'
+		// Mock token validation - check if it's a valid JWT format
+		try {
+			const tokenParts = authToken.split('.');
+			if (tokenParts.length === 3) {
+				// Decode payload to check if it's valid
+				const payload = JSON.parse(atob(tokenParts[1]));
+				const currentTime = Math.floor(Date.now() / 1000);
+
+				// Check if token is expired
+				if (payload.exp && payload.exp > currentTime) {
+					return {
+						valid: true,
+						user: {
+							id: payload.user_id || '1',
+							email: payload.email || 'user@example.com',
+							displayName: payload.email?.split('@')[0] || 'Mock User',
+							firstName: 'Mock',
+							lastName: 'User',
+							isActive: true,
+							onboardingStatus: 'completed'
+						}
+					};
 				}
-			};
+			}
+		} catch (error) {
+			console.warn('Token parsing error:', error);
 		}
 
 		return {

@@ -16,30 +16,37 @@ This document defines the data model for the comprehensive testing framework tha
 
 ```typescript
 interface TestScenario {
-  id: UUID
-  name: string
-  description: text
-  specification_reference: string // Reference to spec 011
-  user_journey_type: 'leave_approval' | 'performance_review' | 'team_goals' | 'team_reports' | 'team_admin'
-  user_role: 'admin' | 'hr_manager' | 'manager' | 'employee'
-  steps: TestStep[]
-  expected_outcomes: string[]
-  success_criteria: string[]
-  status: 'draft' | 'active' | 'passed' | 'failed' | 'skipped'
-  priority: 'critical' | 'high' | 'medium' | 'low'
-  created_at: timestamp
-  updated_at: timestamp
-  last_run_at: timestamp
+	id: UUID;
+	name: string;
+	description: text;
+	specification_reference: string; // Reference to spec 011
+	user_journey_type:
+		| 'leave_approval'
+		| 'performance_review'
+		| 'team_goals'
+		| 'team_reports'
+		| 'team_admin';
+	user_role: 'admin' | 'hr_manager' | 'manager' | 'employee';
+	steps: TestStep[];
+	expected_outcomes: string[];
+	success_criteria: string[];
+	status: 'draft' | 'active' | 'passed' | 'failed' | 'skipped';
+	priority: 'critical' | 'high' | 'medium' | 'low';
+	created_at: timestamp;
+	updated_at: timestamp;
+	last_run_at: timestamp;
 }
 ```
 
 **Validation Rules**:
+
 - `specification_reference` must reference valid user journey from spec 011
 - `user_role` must match RBAC system roles
 - `steps` array must not be empty for active scenarios
 - `success_criteria` must be measurable and testable
 
 **State Transitions**:
+
 - draft → active → passed/failed
 - passed/failed → active (for re-testing)
 - active → skipped (when dependencies fail)
@@ -50,32 +57,33 @@ interface TestScenario {
 
 ```typescript
 interface GraphQLOperation {
-  id: UUID
-  operation_name: string
-  operation_type: 'query' | 'mutation' | 'subscription'
-  schema_definition: text
-  complexity_score: number
-  field_count: number
-  depth_level: number
-  performance_target_ms: number
-  best_practices_checklist: BestPracticeItem[]
-  validation_status: 'pending' | 'compliant' | 'non_compliant'
-  optimization_suggestions: string[]
-  created_at: timestamp
-  updated_at: timestamp
+	id: UUID;
+	operation_name: string;
+	operation_type: 'query' | 'mutation' | 'subscription';
+	schema_definition: text;
+	complexity_score: number;
+	field_count: number;
+	depth_level: number;
+	performance_target_ms: number;
+	best_practices_checklist: BestPracticeItem[];
+	validation_status: 'pending' | 'compliant' | 'non_compliant';
+	optimization_suggestions: string[];
+	created_at: timestamp;
+	updated_at: timestamp;
 }
 
 interface BestPracticeItem {
-  id: UUID
-  operation_id: UUID
-  practice_name: string
-  description: string
-  compliance_status: 'pass' | 'fail' | 'warning'
-  validation_details: text
+	id: UUID;
+	operation_id: UUID;
+	practice_name: string;
+	description: string;
+	compliance_status: 'pass' | 'fail' | 'warning';
+	validation_details: text;
 }
 ```
 
 **Validation Rules**:
+
 - `complexity_score` must be within defined limits
 - `depth_level` must not exceed security thresholds
 - `performance_target_ms` must align with <200ms standard
@@ -87,28 +95,28 @@ interface BestPracticeItem {
 
 ```typescript
 interface NavigationFlow {
-  id: UUID
-  flow_name: string
-  start_page: string
-  end_page: string
-  navigation_steps: NavigationStep[]
-  user_role_permissions: string[]
-  breadcrumb_pattern: string
-  mobile_responsive: boolean
-  accessibility_compliant: boolean
-  loading_states_defined: boolean
-  error_handling_defined: boolean
-  validation_status: 'pending' | 'compliant' | 'issues_found'
-  created_at: timestamp
-  updated_at: timestamp
+	id: UUID;
+	flow_name: string;
+	start_page: string;
+	end_page: string;
+	navigation_steps: NavigationStep[];
+	user_role_permissions: string[];
+	breadcrumb_pattern: string;
+	mobile_responsive: boolean;
+	accessibility_compliant: boolean;
+	loading_states_defined: boolean;
+	error_handling_defined: boolean;
+	validation_status: 'pending' | 'compliant' | 'issues_found';
+	created_at: timestamp;
+	updated_at: timestamp;
 }
 
 interface NavigationStep {
-  step_order: number
-  action_type: 'click' | 'type' | 'select' | 'navigate'
-  element_selector: string
-  expected_result: string
-  timeout_ms: number
+	step_order: number;
+	action_type: 'click' | 'type' | 'select' | 'navigate';
+	element_selector: string;
+	expected_result: string;
+	timeout_ms: number;
 }
 ```
 
@@ -118,19 +126,19 @@ interface NavigationStep {
 
 ```typescript
 interface PerformanceMetric {
-  id: UUID
-  metric_name: string
-  metric_type: 'graphql_response' | 'page_load' | 'real_time_update' | 'export_operation'
-  target_value: number
-  current_value: number
-  unit: 'ms' | 'seconds' | 'bytes' | 'count'
-  measurement_context: string
-  threshold_critical: number
-  threshold_warning: number
-  status: 'optimal' | 'acceptable' | 'degraded' | 'critical'
-  trend_direction: 'improving' | 'stable' | 'degrading'
-  measured_at: timestamp
-  created_at: timestamp
+	id: UUID;
+	metric_name: string;
+	metric_type: 'graphql_response' | 'page_load' | 'real_time_update' | 'export_operation';
+	target_value: number;
+	current_value: number;
+	unit: 'ms' | 'seconds' | 'bytes' | 'count';
+	measurement_context: string;
+	threshold_critical: number;
+	threshold_warning: number;
+	status: 'optimal' | 'acceptable' | 'degraded' | 'critical';
+	trend_direction: 'improving' | 'stable' | 'degrading';
+	measured_at: timestamp;
+	created_at: timestamp;
 }
 ```
 
@@ -140,44 +148,44 @@ interface PerformanceMetric {
 
 ```typescript
 interface CollaborationSession {
-  id: UUID
-  entity_type: 'performance_review' | 'team_goal' | 'task'
-  entity_id: UUID
-  active_users: CollaborationUser[]
-  subscription_connections: WebSocketConnection[]
-  field_updates: FieldUpdate[]
-  conflict_resolutions: ConflictResolution[]
-  session_start: timestamp
-  session_end: timestamp
-  data_sync_status: 'synced' | 'syncing' | 'conflict' | 'failed'
+	id: UUID;
+	entity_type: 'performance_review' | 'team_goal' | 'task';
+	entity_id: UUID;
+	active_users: CollaborationUser[];
+	subscription_connections: WebSocketConnection[];
+	field_updates: FieldUpdate[];
+	conflict_resolutions: ConflictResolution[];
+	session_start: timestamp;
+	session_end: timestamp;
+	data_sync_status: 'synced' | 'syncing' | 'conflict' | 'failed';
 }
 
 interface CollaborationUser {
-  user_id: UUID
-  user_role: string
-  connection_id: string
-  last_activity: timestamp
-  active_field: string
+	user_id: UUID;
+	user_role: string;
+	connection_id: string;
+	last_activity: timestamp;
+	active_field: string;
 }
 
 interface FieldUpdate {
-  id: UUID
-  field_name: string
-  old_value: any
-  new_value: any
-  updated_by: UUID
-  timestamp: timestamp
-  sync_status: 'pending' | 'synced' | 'failed'
+	id: UUID;
+	field_name: string;
+	old_value: any;
+	new_value: any;
+	updated_by: UUID;
+	timestamp: timestamp;
+	sync_status: 'pending' | 'synced' | 'failed';
 }
 
 interface ConflictResolution {
-  id: UUID
-  field_name: string
-  conflicting_values: any[]
-  resolution_strategy: 'last_write_wins' | 'user_merge' | 'admin_override'
-  resolved_value: any
-  resolved_by: UUID
-  resolved_at: timestamp
+	id: UUID;
+	field_name: string;
+	conflicting_values: any[];
+	resolution_strategy: 'last_write_wins' | 'user_merge' | 'admin_override';
+	resolved_value: any;
+	resolved_by: UUID;
+	resolved_at: timestamp;
 }
 ```
 
@@ -187,18 +195,18 @@ interface ConflictResolution {
 
 ```typescript
 interface ValidationResult {
-  id: UUID
-  test_scenario_id: UUID
-  test_run_id: UUID
-  validation_type: 'functional' | 'performance' | 'security' | 'accessibility'
-  status: 'pass' | 'fail' | 'skip' | 'error'
-  execution_time_ms: number
-  error_message: text
-  screenshot_path: string
-  performance_metrics: Record<string, number>
-  compliance_scores: Record<string, number>
-  recommendations: string[]
-  created_at: timestamp
+	id: UUID;
+	test_scenario_id: UUID;
+	test_run_id: UUID;
+	validation_type: 'functional' | 'performance' | 'security' | 'accessibility';
+	status: 'pass' | 'fail' | 'skip' | 'error';
+	execution_time_ms: number;
+	error_message: text;
+	screenshot_path: string;
+	performance_metrics: Record<string, number>;
+	compliance_scores: Record<string, number>;
+	recommendations: string[];
+	created_at: timestamp;
 }
 ```
 
@@ -215,6 +223,7 @@ interface ValidationResult {
 This testing framework data model integrates with the existing SvelteHR schema:
 
 **References to Existing Entities**:
+
 - `hr_public.users` for user authentication and role-based testing
 - `hr_public.employees` for employee-related test data
 - `hr_public.departments` for team-based testing scenarios
@@ -223,6 +232,7 @@ This testing framework data model integrates with the existing SvelteHR schema:
 - `hr_public.team_goals` for goals and OKRs testing
 
 **New Tables for Testing Framework**:
+
 ```sql
 -- Testing framework tables (if persistent storage needed)
 CREATE TABLE test_scenarios (

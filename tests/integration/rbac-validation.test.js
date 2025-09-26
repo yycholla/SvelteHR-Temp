@@ -36,7 +36,7 @@ test.describe('RBAC Integration Validation', () => {
 
 		// Check for console errors related to RBAC
 		const errors = [];
-		page.on('console', msg => {
+		page.on('console', (msg) => {
 			if (msg.type() === 'error') {
 				errors.push(msg.text());
 			}
@@ -46,10 +46,8 @@ test.describe('RBAC Integration Validation', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Filter for RBAC-related errors
-		const rbacErrors = errors.filter(error =>
-			error.includes('rbac') ||
-			error.includes('permission') ||
-			error.includes('auth')
+		const rbacErrors = errors.filter(
+			(error) => error.includes('rbac') || error.includes('permission') || error.includes('auth')
 		);
 
 		expect(rbacErrors.length).toBe(0);
@@ -71,7 +69,7 @@ test.describe('RBAC Integration Validation', () => {
 
 		// Check that error boundary components don't cause JavaScript errors
 		const errors = [];
-		page.on('console', msg => {
+		page.on('console', (msg) => {
 			if (msg.type() === 'error' && !msg.text().includes('favicon')) {
 				errors.push(msg.text());
 			}
@@ -80,10 +78,9 @@ test.describe('RBAC Integration Validation', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Should have no critical errors
-		const criticalErrors = errors.filter(error =>
-			!error.includes('sourcemap') &&
-			!error.includes('favicon') &&
-			!error.includes('ENOENT')
+		const criticalErrors = errors.filter(
+			(error) =>
+				!error.includes('sourcemap') && !error.includes('favicon') && !error.includes('ENOENT')
 		);
 
 		expect(criticalErrors.length).toBe(0);
@@ -141,7 +138,7 @@ test.describe('UI Component Integration', () => {
 
 		// Page should load without component errors
 		const errors = [];
-		page.on('console', msg => {
+		page.on('console', (msg) => {
 			if (msg.type() === 'error') {
 				errors.push(msg.text());
 			}
@@ -150,8 +147,8 @@ test.describe('UI Component Integration', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Filter out known non-critical errors
-		const componentErrors = errors.filter(error =>
-			error.includes('component') || error.includes('svelte')
+		const componentErrors = errors.filter(
+			(error) => error.includes('component') || error.includes('svelte')
 		);
 
 		expect(componentErrors.length).toBe(0);
@@ -168,7 +165,7 @@ test.describe('UI Component Integration', () => {
 
 		// No JavaScript errors related to loading states
 		const errors = [];
-		page.on('console', msg => {
+		page.on('console', (msg) => {
 			if (msg.type() === 'error' && msg.text().includes('loading')) {
 				errors.push(msg.text());
 			}

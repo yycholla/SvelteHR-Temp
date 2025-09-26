@@ -38,12 +38,16 @@
 			</div>
 			<div class="space-y-2">
 				<h2 class="text-lg font-semibold text-foreground">{title}</h2>
-				<p class="text-sm text-muted-foreground max-w-sm">{description}</p>
+				<p class="max-w-sm text-sm text-muted-foreground">{description}</p>
 			</div>
 			<div class="flex items-center space-x-2 text-xs text-muted-foreground">
-				<div class="h-1 w-1 rounded-full bg-muted-foreground animate-pulse"></div>
-				<div class="h-1 w-1 rounded-full bg-muted-foreground animate-pulse [animation-delay:0.2s]"></div>
-				<div class="h-1 w-1 rounded-full bg-muted-foreground animate-pulse [animation-delay:0.4s]"></div>
+				<div class="h-1 w-1 animate-pulse rounded-full bg-muted-foreground"></div>
+				<div
+					class="h-1 w-1 animate-pulse rounded-full bg-muted-foreground [animation-delay:0.2s]"
+				></div>
+				<div
+					class="h-1 w-1 animate-pulse rounded-full bg-muted-foreground [animation-delay:0.4s]"
+				></div>
 			</div>
 		</div>
 	{:else}

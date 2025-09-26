@@ -4,11 +4,28 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { Calendar, Check, X, Clock, AlertCircle, Users, TrendingUp, FileText, Search, Filter } from 'lucide-svelte';
+	import {
+		Calendar,
+		Check,
+		X,
+		Clock,
+		AlertCircle,
+		Users,
+		TrendingUp,
+		FileText,
+		Search,
+		Filter
+	} from 'lucide-svelte';
 	import { toast } from 'svelte-sonner';
 
 	import { Button } from '$lib/components/ui/button';
-	import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
+	import {
+		Card,
+		CardContent,
+		CardDescription,
+		CardHeader,
+		CardTitle
+	} from '$lib/components/ui/card';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { Select, SelectContent, SelectItem, SelectTrigger } from '$lib/components/ui/select';
@@ -16,7 +33,14 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Avatar, AvatarFallback } from '$lib/components/ui/avatar';
 	import { Skeleton } from '$lib/components/ui/skeleton';
-	import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '$lib/components/ui/dialog';
+	import {
+		Dialog,
+		DialogContent,
+		DialogDescription,
+		DialogFooter,
+		DialogHeader,
+		DialogTitle
+	} from '$lib/components/ui/dialog';
 	import { Textarea } from '$lib/components/ui/textarea';
 
 	import {
@@ -105,20 +129,21 @@
 		let filtered = leaveRequests;
 
 		if (selectedView !== 'all') {
-			filtered = filtered.filter(request => request.status === selectedView);
+			filtered = filtered.filter((request) => request.status === selectedView);
 		}
 
 		if (searchQuery) {
 			const query = searchQuery.toLowerCase();
-			filtered = filtered.filter(request =>
-				request.employee?.displayName.toLowerCase().includes(query) ||
-				request.leaveType.toLowerCase().includes(query) ||
-				request.reason?.toLowerCase().includes(query)
+			filtered = filtered.filter(
+				(request) =>
+					request.employee?.displayName.toLowerCase().includes(query) ||
+					request.leaveType.toLowerCase().includes(query) ||
+					request.reason?.toLowerCase().includes(query)
 			);
 		}
 
 		if (leaveTypeFilter) {
-			filtered = filtered.filter(request => request.leaveType === leaveTypeFilter);
+			filtered = filtered.filter((request) => request.leaveType === leaveTypeFilter);
 		}
 
 		return filtered;
@@ -245,27 +270,42 @@
 
 	// Get initials for avatar
 	function getInitials(name: string): string {
-		return name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U';
+		return (
+			name
+				?.split(' ')
+				.map((n) => n[0])
+				.join('')
+				.toUpperCase() || 'U'
+		);
 	}
 
 	// Get status badge variant
-	function getStatusBadgeVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
+	function getStatusBadgeVariant(
+		status: string
+	): 'default' | 'secondary' | 'destructive' | 'outline' {
 		switch (status) {
-			case 'approved': return 'default';
-			case 'pending': return 'secondary';
-			case 'rejected': return 'destructive';
-			default: return 'outline';
+			case 'approved':
+				return 'default';
+			case 'pending':
+				return 'secondary';
+			case 'rejected':
+				return 'destructive';
+			default:
+				return 'outline';
 		}
 	}
 </script>
 
 <svelte:head>
 	<title>Leave Approvals - SvelteHR</title>
-	<meta name="description" content="Review and manage pending leave requests from your team members" />
+	<meta
+		name="description"
+		content="Review and manage pending leave requests from your team members"
+	/>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50">
-	<div class="container mx-auto p-4 space-y-6">
+	<div class="container mx-auto space-y-6 p-4">
 		<!-- Header -->
 		<div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 			<div>
@@ -275,25 +315,26 @@
 
 			{#if canViewAllLeave}
 				<Button variant="outline" href="/dashboard/management/leave/all">
-					<FileText class="w-4 h-4 mr-2" />
+					<FileText class="mr-2 h-4 w-4" />
 					View All Leave
 				</Button>
 			{/if}
 		</div>
 
 		<!-- Statistics Cards -->
-		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+		<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
 			{#each statsCards as stat}
+				{@const StatIcon = stat.icon}
 				<Card class={`${stat.color} border`}>
 					<CardContent class="p-6">
 						<div class="flex items-center justify-between">
 							<div>
 								<p class="text-sm font-medium opacity-75">{stat.title}</p>
-								<p class="text-2xl font-bold mt-2">{stat.value}</p>
-								<p class="text-xs opacity-75 mt-1">{stat.description}</p>
+								<p class="mt-2 text-2xl font-bold">{stat.value}</p>
+								<p class="mt-1 text-xs opacity-75">{stat.description}</p>
 							</div>
 							<div class={`${stat.iconColor} opacity-75`}>
-								<svelte:component this={stat.icon} class="w-8 h-8" />
+								<StatIcon class="h-8 w-8" />
 							</div>
 						</div>
 					</CardContent>
@@ -305,7 +346,7 @@
 		<Card>
 			<CardHeader>
 				<CardTitle class="flex items-center gap-2">
-					<Filter class="w-5 h-5" />
+					<Filter class="h-5 w-5" />
 					Filter Requests
 				</CardTitle>
 			</CardHeader>
@@ -324,7 +365,7 @@
 								}}
 							/>
 							<Button onclick={handleSearch} size="sm">
-								<Search class="w-4 h-4" />
+								<Search class="h-4 w-4" />
 							</Button>
 						</div>
 					</div>
@@ -361,7 +402,12 @@
 		</Card>
 
 		<!-- Tabs for different views -->
-		<Tabs value={selectedView} onValueChange={(value) => { selectedView = value; }}>
+		<Tabs
+			value={selectedView}
+			onValueChange={(value) => {
+				selectedView = value;
+			}}
+		>
 			<TabsList class="grid w-full grid-cols-4">
 				<TabsTrigger value="pending">
 					Pending ({data.leaveStats.pendingCount})
@@ -383,8 +429,8 @@
 					{#if filteredRequests.length === 0}
 						<Card>
 							<CardContent class="p-8 text-center">
-								<AlertCircle class="w-12 h-12 text-gray-400 mx-auto mb-4" />
-								<h3 class="text-lg font-semibold text-gray-700 mb-2">No requests found</h3>
+								<AlertCircle class="mx-auto mb-4 h-12 w-12 text-gray-400" />
+								<h3 class="mb-2 text-lg font-semibold text-gray-700">No requests found</h3>
 								<p class="text-gray-500">
 									{#if selectedView === 'pending'}
 										No pending leave requests at the moment.
@@ -400,13 +446,13 @@
 						</Card>
 					{:else}
 						{#each filteredRequests as request}
-							<Card class="hover:shadow-md transition-shadow">
+							<Card class="transition-shadow hover:shadow-md">
 								<CardContent class="p-6">
 									<div class="flex items-start justify-between">
 										<!-- Request Info -->
-										<div class="flex items-start space-x-4 flex-1">
+										<div class="flex flex-1 items-start space-x-4">
 											<!-- Employee Avatar -->
-											<Avatar class="w-12 h-12">
+											<Avatar class="h-12 w-12">
 												<AvatarFallback class="bg-blue-100 text-blue-700">
 													{getInitials(request.employee?.displayName || '')}
 												</AvatarFallback>
@@ -425,13 +471,20 @@
 														variant="outline"
 														class={`bg-${getLeaveTypeColor(request.leaveType)}-50 text-${getLeaveTypeColor(request.leaveType)}-700 border-${getLeaveTypeColor(request.leaveType)}-200`}
 													>
-														{leaveTypeOptions.find(t => t.value === request.leaveType)?.label || request.leaveType}
+														{leaveTypeOptions.find((t) => t.value === request.leaveType)?.label ||
+															request.leaveType}
 													</Badge>
 												</div>
 
-												<div class="text-sm text-gray-600 space-y-1">
-													<p><strong>Department:</strong> {request.employee?.department?.name || 'N/A'}</p>
-													<p><strong>Dates:</strong> {formatDateRange(request.startDate, request.endDate)}</p>
+												<div class="space-y-1 text-sm text-gray-600">
+													<p>
+														<strong>Department:</strong>
+														{request.employee?.department?.name || 'N/A'}
+													</p>
+													<p>
+														<strong>Dates:</strong>
+														{formatDateRange(request.startDate, request.endDate)}
+													</p>
 													<p><strong>Duration:</strong> {request.daysRequested} days</p>
 													{#if request.reason}
 														<p><strong>Reason:</strong> {request.reason}</p>
@@ -449,23 +502,23 @@
 
 										<!-- Actions -->
 										{#if canApproveLeave && request.status === 'pending'}
-											<div class="flex gap-2 ml-4">
+											<div class="ml-4 flex gap-2">
 												<Button
 													size="sm"
 													variant="outline"
 													onclick={() => handleApprove(request)}
-													class="text-green-600 hover:text-green-700 border-green-200 hover:border-green-300"
+													class="border-green-200 text-green-600 hover:border-green-300 hover:text-green-700"
 												>
-													<Check class="w-4 h-4 mr-1" />
+													<Check class="mr-1 h-4 w-4" />
 													Approve
 												</Button>
 												<Button
 													size="sm"
 													variant="outline"
 													onclick={() => handleDeny(request)}
-													class="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
+													class="border-red-200 text-red-600 hover:border-red-300 hover:text-red-700"
 												>
-													<X class="w-4 h-4 mr-1" />
+													<X class="mr-1 h-4 w-4" />
 													Deny
 												</Button>
 											</div>
@@ -493,12 +546,18 @@
 
 		{#if currentRequest}
 			<div class="space-y-4">
-				<div class="bg-gray-50 p-4 rounded-lg">
-					<h4 class="font-semibold mb-2">Request Details</h4>
-					<div class="text-sm space-y-1">
+				<div class="rounded-lg bg-gray-50 p-4">
+					<h4 class="mb-2 font-semibold">Request Details</h4>
+					<div class="space-y-1 text-sm">
 						<p><strong>Employee:</strong> {currentRequest.employee?.displayName}</p>
-						<p><strong>Leave Type:</strong> {leaveTypeOptions.find(t => t.value === currentRequest.leaveType)?.label}</p>
-						<p><strong>Dates:</strong> {formatDateRange(currentRequest.startDate, currentRequest.endDate)}</p>
+						<p>
+							<strong>Leave Type:</strong>
+							{leaveTypeOptions.find((t) => t.value === currentRequest.leaveType)?.label}
+						</p>
+						<p>
+							<strong>Dates:</strong>
+							{formatDateRange(currentRequest.startDate, currentRequest.endDate)}
+						</p>
 						<p><strong>Duration:</strong> {currentRequest.daysRequested} days</p>
 						{#if currentRequest.reason}
 							<p><strong>Reason:</strong> {currentRequest.reason}</p>
@@ -519,12 +578,17 @@
 		{/if}
 
 		<DialogFooter>
-			<Button variant="outline" onclick={() => { showApprovalModal = false; }}>Cancel</Button>
+			<Button
+				variant="outline"
+				onclick={() => {
+					showApprovalModal = false;
+				}}>Cancel</Button
+			>
 			<Button onclick={confirmApproval} disabled={isSubmitting}>
 				{#if isSubmitting}
 					Approving...
 				{:else}
-					<Check class="w-4 h-4 mr-2" />
+					<Check class="mr-2 h-4 w-4" />
 					Approve Request
 				{/if}
 			</Button>
@@ -544,12 +608,18 @@
 
 		{#if currentRequest}
 			<div class="space-y-4">
-				<div class="bg-gray-50 p-4 rounded-lg">
-					<h4 class="font-semibold mb-2">Request Details</h4>
-					<div class="text-sm space-y-1">
+				<div class="rounded-lg bg-gray-50 p-4">
+					<h4 class="mb-2 font-semibold">Request Details</h4>
+					<div class="space-y-1 text-sm">
 						<p><strong>Employee:</strong> {currentRequest.employee?.displayName}</p>
-						<p><strong>Leave Type:</strong> {leaveTypeOptions.find(t => t.value === currentRequest.leaveType)?.label}</p>
-						<p><strong>Dates:</strong> {formatDateRange(currentRequest.startDate, currentRequest.endDate)}</p>
+						<p>
+							<strong>Leave Type:</strong>
+							{leaveTypeOptions.find((t) => t.value === currentRequest.leaveType)?.label}
+						</p>
+						<p>
+							<strong>Dates:</strong>
+							{formatDateRange(currentRequest.startDate, currentRequest.endDate)}
+						</p>
 						<p><strong>Duration:</strong> {currentRequest.daysRequested} days</p>
 						{#if currentRequest.reason}
 							<p><strong>Reason:</strong> {currentRequest.reason}</p>
@@ -567,14 +637,19 @@
 						class={!managerComments.trim() ? 'border-red-300' : ''}
 					/>
 					{#if !managerComments.trim()}
-						<p class="text-sm text-red-600 mt-1">A reason for denial is required</p>
+						<p class="mt-1 text-sm text-red-600">A reason for denial is required</p>
 					{/if}
 				</div>
 			</div>
 		{/if}
 
 		<DialogFooter>
-			<Button variant="outline" onclick={() => { showDenialModal = false; }}>Cancel</Button>
+			<Button
+				variant="outline"
+				onclick={() => {
+					showDenialModal = false;
+				}}>Cancel</Button
+			>
 			<Button
 				variant="destructive"
 				onclick={confirmDenial}
@@ -583,7 +658,7 @@
 				{#if isSubmitting}
 					Denying...
 				{:else}
-					<X class="w-4 h-4 mr-2" />
+					<X class="mr-2 h-4 w-4" />
 					Deny Request
 				{/if}
 			</Button>

@@ -16,16 +16,19 @@ This runbook provides comprehensive disaster recovery procedures for the SvelteH
 ## 🚨 Emergency Contact Information
 
 ### Primary Contacts
+
 - **Database Administrator:** [Your Contact]
 - **System Administrator:** [Your Contact]
 - **Application Owner:** [Your Contact]
 
 ### Escalation Chain
+
 1. **Level 1:** On-call DBA (Response: 15 minutes)
 2. **Level 2:** Database Team Lead (Response: 30 minutes)
 3. **Level 3:** IT Director (Response: 1 hour)
 
 ### External Vendors
+
 - **Cloud Provider Support:** [Contact Information]
 - **Database Vendor Support:** [Contact Information]
 
@@ -34,6 +37,7 @@ This runbook provides comprehensive disaster recovery procedures for the SvelteH
 ## 📋 Pre-Disaster Checklist
 
 ### Daily Verification (Automated)
+
 - [ ] Backup completion verification
 - [ ] Backup integrity testing
 - [ ] Connection pool health check
@@ -42,6 +46,7 @@ This runbook provides comprehensive disaster recovery procedures for the SvelteH
 - [ ] Replication lag monitoring
 
 ### Weekly Verification (Manual)
+
 - [ ] Disaster recovery test execution
 - [ ] Recovery procedure validation
 - [ ] Documentation updates
@@ -55,6 +60,7 @@ This runbook provides comprehensive disaster recovery procedures for the SvelteH
 ### Scenario 1: Complete Database Server Failure
 
 **Symptoms:**
+
 - Database connection failures
 - Application 500 errors
 - No response from database server
@@ -63,6 +69,7 @@ This runbook provides comprehensive disaster recovery procedures for the SvelteH
 **Immediate Response (0-15 minutes):**
 
 1. **Confirm the Disaster**
+
    ```bash
    # Test database connectivity
    ./scripts/database_operations.sh health-check
@@ -73,6 +80,7 @@ This runbook provides comprehensive disaster recovery procedures for the SvelteH
    ```
 
 2. **Activate Disaster Recovery**
+
    ```bash
    # Initiate automated disaster recovery
    ./scripts/database_operations.sh disaster-recovery latest
@@ -86,6 +94,7 @@ This runbook provides comprehensive disaster recovery procedures for the SvelteH
 **Recovery Steps (15-60 minutes):**
 
 4. **Prepare Recovery Environment**
+
    ```bash
    # Start recovery database server
    docker-compose -f docker-compose.recovery.yml up -d postgres
@@ -96,6 +105,7 @@ This runbook provides comprehensive disaster recovery procedures for the SvelteH
    ```
 
 5. **Execute Database Recovery**
+
    ```bash
    # Find latest full backup
    latest_backup=$(find backups/database -name "*full_backup*.sql*" -type f -printf '%T@ %p\n' | sort -n | tail -1 | cut -d' ' -f2-)
@@ -108,6 +118,7 @@ This runbook provides comprehensive disaster recovery procedures for the SvelteH
    ```
 
 6. **Application Cutover**
+
    ```bash
    # Update environment configuration
    sed -i "s/DB_HOST=.*/DB_HOST=recovery-db-host/" .env
@@ -126,6 +137,7 @@ This runbook provides comprehensive disaster recovery procedures for the SvelteH
 ### Scenario 2: Database Corruption
 
 **Symptoms:**
+
 - Data inconsistency errors
 - Checksum validation failures
 - PostgreSQL corruption errors
@@ -134,6 +146,7 @@ This runbook provides comprehensive disaster recovery procedures for the SvelteH
 **Immediate Response (0-30 minutes):**
 
 1. **Assess Corruption Extent**
+
    ```bash
    # Check database integrity
    PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "
@@ -146,6 +159,7 @@ This runbook provides comprehensive disaster recovery procedures for the SvelteH
    ```
 
 2. **Isolate Affected Systems**
+
    ```bash
    # Put application in maintenance mode
    docker-compose stop svelteHR-app
@@ -157,6 +171,7 @@ This runbook provides comprehensive disaster recovery procedures for the SvelteH
 **Recovery Steps (30-120 minutes):**
 
 3. **Point-in-Time Recovery**
+
    ```bash
    # Identify corruption timeline
    corruption_time="2025-09-24 14:30:00"
@@ -171,6 +186,7 @@ This runbook provides comprehensive disaster recovery procedures for the SvelteH
    ```
 
 4. **Data Validation and Repair**
+
    ```bash
    # Run comprehensive validation
    ./scripts/database_operations.sh health-check
@@ -199,6 +215,7 @@ This runbook provides comprehensive disaster recovery procedures for the SvelteH
 ### Scenario 3: Ransomware/Security Incident
 
 **Symptoms:**
+
 - Encrypted database files
 - Unauthorized access alerts
 - Suspicious database activities
@@ -207,6 +224,7 @@ This runbook provides comprehensive disaster recovery procedures for the SvelteH
 **Immediate Response (0-15 minutes):**
 
 1. **Incident Containment**
+
    ```bash
    # Immediately isolate database server
    # (Network-level isolation - contact network team)
@@ -228,6 +246,7 @@ This runbook provides comprehensive disaster recovery procedures for the SvelteH
 **Recovery Steps (15-240 minutes):**
 
 3. **Clean Environment Preparation**
+
    ```bash
    # Provision new, clean database server
    # Implement enhanced security measures
@@ -235,6 +254,7 @@ This runbook provides comprehensive disaster recovery procedures for the SvelteH
    ```
 
 4. **Secure Recovery Process**
+
    ```bash
    # Use oldest known-clean backup
    clean_backup=$(find backups/database -name "*full_backup*" -type f -mtime +7 | head -1)
@@ -371,17 +391,20 @@ PGPASSWORD="$DB_PASSWORD" psql \
 ### Automated Failover Process
 
 The automated recovery system monitors:
+
 - Database connectivity (every 30 seconds)
 - Replication lag (if applicable)
 - Response time thresholds
 - Error rate monitoring
 
 **Trigger Conditions:**
+
 - 3 consecutive connection failures
 - Response time > 30 seconds for 5 minutes
 - Error rate > 50% for 2 minutes
 
 **Automated Actions:**
+
 1. Health check validation
 2. Backup integrity verification
 3. Recovery environment preparation
@@ -434,18 +457,21 @@ fi
 After any recovery procedure, complete this checklist:
 
 #### Connectivity Tests
+
 - [ ] Database server responds to ping
 - [ ] PostgreSQL port is accessible
 - [ ] Authentication works correctly
 - [ ] SSL connections function properly
 
 #### Data Integrity Checks
+
 - [ ] All essential tables present
 - [ ] Row counts match expectations
 - [ ] Foreign key constraints valid
 - [ ] Index integrity verified
 
 #### Testing Framework Validation
+
 ```bash
 # Validate testing framework tables
 ./scripts/database_operations.sh health-check
@@ -479,18 +505,21 @@ FROM hr_public.validation_results;
 ```
 
 #### Security Validation
+
 - [ ] RLS policies active and correct
 - [ ] User roles and permissions intact
 - [ ] Database users can authenticate
 - [ ] Unauthorized access prevented
 
 #### Application Integration
+
 - [ ] Application connects successfully
 - [ ] User authentication works
 - [ ] Critical business functions operational
 - [ ] Performance within acceptable ranges
 
 #### Performance Validation
+
 ```bash
 # Test query performance
 time PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "
@@ -522,6 +551,7 @@ PGPASSWORD="$DB_PASSWORD" psql -h localhost -p 6432 -U "$DB_USER" -d "$DB_NAME" 
    - Schedule post-mortem meeting
 
 3. **Performance Tuning**
+
    ```bash
    # Run maintenance after recovery
    ./scripts/database_operations.sh maintenance
@@ -571,21 +601,25 @@ PGPASSWORD="$DB_PASSWORD" psql -h localhost -p 6432 -U "$DB_USER" -d "$DB_NAME" 
 ### Critical Alerts
 
 **Database Unavailable**
+
 - Trigger: 3 consecutive connection failures
 - Response: Immediate (< 5 minutes)
 - Action: Automated failover initiation
 
 **Backup Failure**
+
 - Trigger: Backup job failure or corruption
 - Response: Within 30 minutes
 - Action: Manual backup creation and investigation
 
 **Replication Lag**
+
 - Trigger: Lag > 60 seconds
 - Response: Within 15 minutes
 - Action: Replication health check and potential failover
 
 **Performance Degradation**
+
 - Trigger: Query time > 5 seconds for critical queries
 - Response: Within 30 minutes
 - Action: Performance analysis and optimization
@@ -681,6 +715,7 @@ echo "=========================" >> dr_test_report.txt
 ### Runbook Updates
 
 This runbook should be updated:
+
 - After any disaster recovery event
 - When infrastructure changes
 - Quarterly for accuracy verification
@@ -713,6 +748,6 @@ This runbook should be updated:
 
 ---
 
-*Last Updated: 2025-09-24*
-*Version: 1.0*
-*Next Review: 2025-12-24*
+_Last Updated: 2025-09-24_
+_Version: 1.0_
+_Next Review: 2025-12-24_

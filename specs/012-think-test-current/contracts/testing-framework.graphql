@@ -2,450 +2,450 @@
 
 # Core testing queries for validation and performance monitoring
 type Query {
-  # Test scenario management
-  testScenarios(
-    filter: TestScenarioFilter
-    orderBy: TestScenarioOrderBy
-    first: Int
-    after: String
-  ): TestScenarioConnection!
+	# Test scenario management
+	testScenarios(
+		filter: TestScenarioFilter
+		orderBy: TestScenarioOrderBy
+		first: Int
+		after: String
+	): TestScenarioConnection!
 
-  testScenario(id: UUID!): TestScenario
+	testScenario(id: UUID!): TestScenario
 
-  # GraphQL operation analysis
-  graphqlOperations(
-    filter: GraphQLOperationFilter
-    orderBy: GraphQLOperationOrderBy
-    first: Int
-    after: String
-  ): GraphQLOperationConnection!
+	# GraphQL operation analysis
+	graphqlOperations(
+		filter: GraphQLOperationFilter
+		orderBy: GraphQLOperationOrderBy
+		first: Int
+		after: String
+	): GraphQLOperationConnection!
 
-  graphqlOperation(id: UUID!): GraphQLOperation
+	graphqlOperation(id: UUID!): GraphQLOperation
 
-  # Performance metrics tracking
-  performanceMetrics(
-    filter: PerformanceMetricFilter
-    orderBy: PerformanceMetricOrderBy
-    timeRange: TimeRangeInput
-    first: Int
-    after: String
-  ): PerformanceMetricConnection!
+	# Performance metrics tracking
+	performanceMetrics(
+		filter: PerformanceMetricFilter
+		orderBy: PerformanceMetricOrderBy
+		timeRange: TimeRangeInput
+		first: Int
+		after: String
+	): PerformanceMetricConnection!
 
-  # Navigation flow validation
-  navigationFlows(
-    filter: NavigationFlowFilter
-    orderBy: NavigationFlowOrderBy
-    first: Int
-    after: String
-  ): NavigationFlowConnection!
+	# Navigation flow validation
+	navigationFlows(
+		filter: NavigationFlowFilter
+		orderBy: NavigationFlowOrderBy
+		first: Int
+		after: String
+	): NavigationFlowConnection!
 
-  # Validation results
-  validationResults(
-    filter: ValidationResultFilter
-    orderBy: ValidationResultOrderBy
-    first: Int
-    after: String
-  ): ValidationResultConnection!
+	# Validation results
+	validationResults(
+		filter: ValidationResultFilter
+		orderBy: ValidationResultOrderBy
+		first: Int
+		after: String
+	): ValidationResultConnection!
 
-  # Real-time collaboration sessions
-  collaborationSessions(
-    entityType: CollaborationEntityType
-    entityId: UUID
-    active: Boolean
-  ): [CollaborationSession!]!
+	# Real-time collaboration sessions
+	collaborationSessions(
+		entityType: CollaborationEntityType
+		entityId: UUID
+		active: Boolean
+	): [CollaborationSession!]!
 }
 
 # Mutations for test execution and collaboration
 type Mutation {
-  # Test scenario management
-  createTestScenario(input: CreateTestScenarioInput!): CreateTestScenarioPayload!
-  updateTestScenario(input: UpdateTestScenarioInput!): UpdateTestScenarioPayload!
-  executeTestScenario(input: ExecuteTestScenarioInput!): ExecuteTestScenarioPayload!
+	# Test scenario management
+	createTestScenario(input: CreateTestScenarioInput!): CreateTestScenarioPayload!
+	updateTestScenario(input: UpdateTestScenarioInput!): UpdateTestScenarioPayload!
+	executeTestScenario(input: ExecuteTestScenarioInput!): ExecuteTestScenarioPayload!
 
-  # GraphQL operation validation
-  validateGraphQLOperation(input: ValidateGraphQLOperationInput!): ValidateGraphQLOperationPayload!
-  optimizeGraphQLOperation(input: OptimizeGraphQLOperationInput!): OptimizeGraphQLOperationPayload!
+	# GraphQL operation validation
+	validateGraphQLOperation(input: ValidateGraphQLOperationInput!): ValidateGraphQLOperationPayload!
+	optimizeGraphQLOperation(input: OptimizeGraphQLOperationInput!): OptimizeGraphQLOperationPayload!
 
-  # Performance metric recording
-  recordPerformanceMetric(input: RecordPerformanceMetricInput!): RecordPerformanceMetricPayload!
+	# Performance metric recording
+	recordPerformanceMetric(input: RecordPerformanceMetricInput!): RecordPerformanceMetricPayload!
 
-  # Real-time collaboration
-  startCollaborationSession(input: StartCollaborationSessionInput!): StartCollaborationSessionPayload!
-  updateCollaborationField(input: UpdateCollaborationFieldInput!): UpdateCollaborationFieldPayload!
-  endCollaborationSession(input: EndCollaborationSessionInput!): EndCollaborationSessionPayload!
+	# Real-time collaboration
+	startCollaborationSession(
+		input: StartCollaborationSessionInput!
+	): StartCollaborationSessionPayload!
+	updateCollaborationField(input: UpdateCollaborationFieldInput!): UpdateCollaborationFieldPayload!
+	endCollaborationSession(input: EndCollaborationSessionInput!): EndCollaborationSessionPayload!
 
-  # Navigation flow testing
-  validateNavigationFlow(input: ValidateNavigationFlowInput!): ValidateNavigationFlowPayload!
+	# Navigation flow testing
+	validateNavigationFlow(input: ValidateNavigationFlowInput!): ValidateNavigationFlowPayload!
 }
 
 # Subscriptions for real-time updates and test monitoring
 type Subscription {
-  # Test execution monitoring
-  testScenarioUpdates(scenarioId: UUID!): TestScenarioUpdate!
-  validationResultUpdates(testRunId: UUID!): ValidationResultUpdate!
+	# Test execution monitoring
+	testScenarioUpdates(scenarioId: UUID!): TestScenarioUpdate!
+	validationResultUpdates(testRunId: UUID!): ValidationResultUpdate!
 
-  # Performance monitoring
-  performanceMetricUpdates(
-    metricTypes: [PerformanceMetricType!]
-    entityId: UUID
-  ): PerformanceMetricUpdate!
+	# Performance monitoring
+	performanceMetricUpdates(
+		metricTypes: [PerformanceMetricType!]
+		entityId: UUID
+	): PerformanceMetricUpdate!
 
-  # Real-time collaboration updates
-  collaborationFieldUpdates(
-    sessionId: UUID!
-  ): CollaborationFieldUpdate!
+	# Real-time collaboration updates
+	collaborationFieldUpdates(sessionId: UUID!): CollaborationFieldUpdate!
 
-  collaborationUserPresence(
-    entityType: CollaborationEntityType!
-    entityId: UUID!
-  ): CollaborationUserPresenceUpdate!
+	collaborationUserPresence(
+		entityType: CollaborationEntityType!
+		entityId: UUID!
+	): CollaborationUserPresenceUpdate!
 }
 
 # Core types
 
 type TestScenario {
-  id: UUID!
-  name: String!
-  description: String
-  specificationReference: String!
-  userJourneyType: UserJourneyType!
-  userRole: UserRole!
-  steps: [TestStep!]!
-  expectedOutcomes: [String!]!
-  successCriteria: [String!]!
-  status: TestScenarioStatus!
-  priority: TestPriority!
-  createdAt: DateTime!
-  updatedAt: DateTime!
-  lastRunAt: DateTime
-  validationResults: [ValidationResult!]!
+	id: UUID!
+	name: String!
+	description: String
+	specificationReference: String!
+	userJourneyType: UserJourneyType!
+	userRole: UserRole!
+	steps: [TestStep!]!
+	expectedOutcomes: [String!]!
+	successCriteria: [String!]!
+	status: TestScenarioStatus!
+	priority: TestPriority!
+	createdAt: DateTime!
+	updatedAt: DateTime!
+	lastRunAt: DateTime
+	validationResults: [ValidationResult!]!
 }
 
 type GraphQLOperation {
-  id: UUID!
-  operationName: String!
-  operationType: GraphQLOperationType!
-  schemaDefinition: String!
-  complexityScore: Int!
-  fieldCount: Int!
-  depthLevel: Int!
-  performanceTargetMs: Int!
-  bestPracticesChecklist: [BestPracticeItem!]!
-  validationStatus: ValidationStatus!
-  optimizationSuggestions: [String!]!
-  createdAt: DateTime!
-  updatedAt: DateTime!
+	id: UUID!
+	operationName: String!
+	operationType: GraphQLOperationType!
+	schemaDefinition: String!
+	complexityScore: Int!
+	fieldCount: Int!
+	depthLevel: Int!
+	performanceTargetMs: Int!
+	bestPracticesChecklist: [BestPracticeItem!]!
+	validationStatus: ValidationStatus!
+	optimizationSuggestions: [String!]!
+	createdAt: DateTime!
+	updatedAt: DateTime!
 }
 
 type CollaborationSession {
-  id: UUID!
-  entityType: CollaborationEntityType!
-  entityId: UUID!
-  activeUsers: [CollaborationUser!]!
-  fieldUpdates: [FieldUpdate!]!
-  conflictResolutions: [ConflictResolution!]!
-  sessionStart: DateTime!
-  sessionEnd: DateTime
-  dataSyncStatus: DataSyncStatus!
+	id: UUID!
+	entityType: CollaborationEntityType!
+	entityId: UUID!
+	activeUsers: [CollaborationUser!]!
+	fieldUpdates: [FieldUpdate!]!
+	conflictResolutions: [ConflictResolution!]!
+	sessionStart: DateTime!
+	sessionEnd: DateTime
+	dataSyncStatus: DataSyncStatus!
 }
 
 type PerformanceMetric {
-  id: UUID!
-  metricName: String!
-  metricType: PerformanceMetricType!
-  targetValue: Float!
-  currentValue: Float!
-  unit: String!
-  measurementContext: String!
-  thresholdCritical: Float!
-  thresholdWarning: Float!
-  status: PerformanceStatus!
-  trendDirection: TrendDirection!
-  measuredAt: DateTime!
-  createdAt: DateTime!
+	id: UUID!
+	metricName: String!
+	metricType: PerformanceMetricType!
+	targetValue: Float!
+	currentValue: Float!
+	unit: String!
+	measurementContext: String!
+	thresholdCritical: Float!
+	thresholdWarning: Float!
+	status: PerformanceStatus!
+	trendDirection: TrendDirection!
+	measuredAt: DateTime!
+	createdAt: DateTime!
 }
 
 type ValidationResult {
-  id: UUID!
-  testScenarioId: UUID!
-  testRunId: UUID!
-  validationType: ValidationType!
-  status: ValidationStatus!
-  executionTimeMs: Int!
-  errorMessage: String
-  screenshotPath: String
-  performanceMetrics: JSON!
-  complianceScores: JSON!
-  recommendations: [String!]!
-  createdAt: DateTime!
+	id: UUID!
+	testScenarioId: UUID!
+	testRunId: UUID!
+	validationType: ValidationType!
+	status: ValidationStatus!
+	executionTimeMs: Int!
+	errorMessage: String
+	screenshotPath: String
+	performanceMetrics: JSON!
+	complianceScores: JSON!
+	recommendations: [String!]!
+	createdAt: DateTime!
 }
 
 # Enums
 
 enum UserJourneyType {
-  LEAVE_APPROVAL
-  PERFORMANCE_REVIEW
-  TEAM_GOALS
-  TEAM_REPORTS
-  TEAM_ADMIN
+	LEAVE_APPROVAL
+	PERFORMANCE_REVIEW
+	TEAM_GOALS
+	TEAM_REPORTS
+	TEAM_ADMIN
 }
 
 enum UserRole {
-  ADMIN
-  HR_MANAGER
-  MANAGER
-  EMPLOYEE
+	ADMIN
+	HR_MANAGER
+	MANAGER
+	EMPLOYEE
 }
 
 enum TestScenarioStatus {
-  DRAFT
-  ACTIVE
-  PASSED
-  FAILED
-  SKIPPED
+	DRAFT
+	ACTIVE
+	PASSED
+	FAILED
+	SKIPPED
 }
 
 enum TestPriority {
-  CRITICAL
-  HIGH
-  MEDIUM
-  LOW
+	CRITICAL
+	HIGH
+	MEDIUM
+	LOW
 }
 
 enum GraphQLOperationType {
-  QUERY
-  MUTATION
-  SUBSCRIPTION
+	QUERY
+	MUTATION
+	SUBSCRIPTION
 }
 
 enum ValidationStatus {
-  PENDING
-  COMPLIANT
-  NON_COMPLIANT
+	PENDING
+	COMPLIANT
+	NON_COMPLIANT
 }
 
 enum CollaborationEntityType {
-  PERFORMANCE_REVIEW
-  TEAM_GOAL
-  TASK
+	PERFORMANCE_REVIEW
+	TEAM_GOAL
+	TASK
 }
 
 enum DataSyncStatus {
-  SYNCED
-  SYNCING
-  CONFLICT
-  FAILED
+	SYNCED
+	SYNCING
+	CONFLICT
+	FAILED
 }
 
 enum PerformanceMetricType {
-  GRAPHQL_RESPONSE
-  PAGE_LOAD
-  REAL_TIME_UPDATE
-  EXPORT_OPERATION
+	GRAPHQL_RESPONSE
+	PAGE_LOAD
+	REAL_TIME_UPDATE
+	EXPORT_OPERATION
 }
 
 enum PerformanceStatus {
-  OPTIMAL
-  ACCEPTABLE
-  DEGRADED
-  CRITICAL
+	OPTIMAL
+	ACCEPTABLE
+	DEGRADED
+	CRITICAL
 }
 
 enum TrendDirection {
-  IMPROVING
-  STABLE
-  DEGRADING
+	IMPROVING
+	STABLE
+	DEGRADING
 }
 
 enum ValidationType {
-  FUNCTIONAL
-  PERFORMANCE
-  SECURITY
-  ACCESSIBILITY
+	FUNCTIONAL
+	PERFORMANCE
+	SECURITY
+	ACCESSIBILITY
 }
 
 # Input types
 
 input CreateTestScenarioInput {
-  name: String!
-  description: String
-  specificationReference: String!
-  userJourneyType: UserJourneyType!
-  userRole: UserRole!
-  steps: [TestStepInput!]!
-  expectedOutcomes: [String!]!
-  successCriteria: [String!]!
-  priority: TestPriority!
+	name: String!
+	description: String
+	specificationReference: String!
+	userJourneyType: UserJourneyType!
+	userRole: UserRole!
+	steps: [TestStepInput!]!
+	expectedOutcomes: [String!]!
+	successCriteria: [String!]!
+	priority: TestPriority!
 }
 
 input UpdateTestScenarioInput {
-  id: UUID!
-  name: String
-  description: String
-  steps: [TestStepInput!]
-  expectedOutcomes: [String!]
-  successCriteria: [String!]
-  status: TestScenarioStatus
-  priority: TestPriority
+	id: UUID!
+	name: String
+	description: String
+	steps: [TestStepInput!]
+	expectedOutcomes: [String!]
+	successCriteria: [String!]
+	status: TestScenarioStatus
+	priority: TestPriority
 }
 
 input ExecuteTestScenarioInput {
-  scenarioId: UUID!
-  environment: String
-  browserType: String
-  headless: Boolean
-  recordVideo: Boolean
+	scenarioId: UUID!
+	environment: String
+	browserType: String
+	headless: Boolean
+	recordVideo: Boolean
 }
 
 input ValidateGraphQLOperationInput {
-  operationId: UUID!
-  performanceTarget: Int
-  securityChecks: Boolean
-  bestPracticesValidation: Boolean
+	operationId: UUID!
+	performanceTarget: Int
+	securityChecks: Boolean
+	bestPracticesValidation: Boolean
 }
 
 input StartCollaborationSessionInput {
-  entityType: CollaborationEntityType!
-  entityId: UUID!
-  userId: UUID!
+	entityType: CollaborationEntityType!
+	entityId: UUID!
+	userId: UUID!
 }
 
 input UpdateCollaborationFieldInput {
-  sessionId: UUID!
-  fieldName: String!
-  newValue: JSON!
-  userId: UUID!
+	sessionId: UUID!
+	fieldName: String!
+	newValue: JSON!
+	userId: UUID!
 }
 
 input TestStepInput {
-  stepOrder: Int!
-  actionType: String!
-  elementSelector: String!
-  expectedResult: String!
-  timeoutMs: Int
+	stepOrder: Int!
+	actionType: String!
+	elementSelector: String!
+	expectedResult: String!
+	timeoutMs: Int
 }
 
 # Filter and ordering inputs
 
 input TestScenarioFilter {
-  status: TestScenarioStatus
-  userJourneyType: UserJourneyType
-  userRole: UserRole
-  priority: TestPriority
-  specificationReference: String
+	status: TestScenarioStatus
+	userJourneyType: UserJourneyType
+	userRole: UserRole
+	priority: TestPriority
+	specificationReference: String
 }
 
 input TestScenarioOrderBy {
-  field: TestScenarioOrderField!
-  direction: OrderDirection!
+	field: TestScenarioOrderField!
+	direction: OrderDirection!
 }
 
 enum TestScenarioOrderField {
-  CREATED_AT
-  UPDATED_AT
-  LAST_RUN_AT
-  PRIORITY
-  NAME
+	CREATED_AT
+	UPDATED_AT
+	LAST_RUN_AT
+	PRIORITY
+	NAME
 }
 
 enum OrderDirection {
-  ASC
-  DESC
+	ASC
+	DESC
 }
 
 # Connection types for pagination
 
 type TestScenarioConnection {
-  edges: [TestScenarioEdge!]!
-  pageInfo: PageInfo!
-  totalCount: Int!
+	edges: [TestScenarioEdge!]!
+	pageInfo: PageInfo!
+	totalCount: Int!
 }
 
 type TestScenarioEdge {
-  node: TestScenario!
-  cursor: String!
+	node: TestScenario!
+	cursor: String!
 }
 
 # Payload types
 
 type CreateTestScenarioPayload {
-  testScenario: TestScenario!
-  errors: [UserError!]!
+	testScenario: TestScenario!
+	errors: [UserError!]!
 }
 
 type UpdateTestScenarioPayload {
-  testScenario: TestScenario!
-  errors: [UserError!]!
+	testScenario: TestScenario!
+	errors: [UserError!]!
 }
 
 type ExecuteTestScenarioPayload {
-  testRun: TestRun!
-  errors: [UserError!]!
+	testRun: TestRun!
+	errors: [UserError!]!
 }
 
 type TestRun {
-  id: UUID!
-  scenarioId: UUID!
-  status: TestRunStatus!
-  startedAt: DateTime!
-  completedAt: DateTime
-  results: [ValidationResult!]!
+	id: UUID!
+	scenarioId: UUID!
+	status: TestRunStatus!
+	startedAt: DateTime!
+	completedAt: DateTime
+	results: [ValidationResult!]!
 }
 
 enum TestRunStatus {
-  RUNNING
-  COMPLETED
-  FAILED
-  CANCELLED
+	RUNNING
+	COMPLETED
+	FAILED
+	CANCELLED
 }
 
 type UserError {
-  field: String
-  message: String!
+	field: String
+	message: String!
 }
 
 # Update types for subscriptions
 
 type TestScenarioUpdate {
-  testScenario: TestScenario!
-  updateType: UpdateType!
+	testScenario: TestScenario!
+	updateType: UpdateType!
 }
 
 type ValidationResultUpdate {
-  validationResult: ValidationResult!
-  updateType: UpdateType!
+	validationResult: ValidationResult!
+	updateType: UpdateType!
 }
 
 type PerformanceMetricUpdate {
-  performanceMetric: PerformanceMetric!
-  updateType: UpdateType!
+	performanceMetric: PerformanceMetric!
+	updateType: UpdateType!
 }
 
 type CollaborationFieldUpdate {
-  sessionId: UUID!
-  fieldName: String!
-  newValue: JSON!
-  updatedBy: UUID!
-  timestamp: DateTime!
+	sessionId: UUID!
+	fieldName: String!
+	newValue: JSON!
+	updatedBy: UUID!
+	timestamp: DateTime!
 }
 
 type CollaborationUserPresenceUpdate {
-  entityId: UUID!
-  user: CollaborationUser!
-  presenceType: PresenceType!
+	entityId: UUID!
+	user: CollaborationUser!
+	presenceType: PresenceType!
 }
 
 enum UpdateType {
-  CREATED
-  UPDATED
-  DELETED
+	CREATED
+	UPDATED
+	DELETED
 }
 
 enum PresenceType {
-  JOINED
-  LEFT
-  ACTIVE
-  IDLE
+	JOINED
+	LEFT
+	ACTIVE
+	IDLE
 }
 
 # Common types
@@ -455,8 +455,8 @@ scalar DateTime
 scalar JSON
 
 type PageInfo {
-  hasNextPage: Boolean!
-  hasPreviousPage: Boolean!
-  startCursor: String
-  endCursor: String
+	hasNextPage: Boolean!
+	hasPreviousPage: Boolean!
+	startCursor: String
+	endCursor: String
 }

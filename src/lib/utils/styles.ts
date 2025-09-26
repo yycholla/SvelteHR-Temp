@@ -31,7 +31,8 @@ export function cva(base: string, variants?: Record<string, Record<string, strin
 /**
  * Focus ring utility classes for consistent focus states
  */
-export const focusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background';
+export const focusRing =
+	'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background';
 
 /**
  * Screen reader only utility

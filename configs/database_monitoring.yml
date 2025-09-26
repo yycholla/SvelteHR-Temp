@@ -3,37 +3,37 @@
 
 monitoring:
   intervals:
-    health_check: 300      # 5 minutes
-    performance: 60        # 1 minute
-    backup_verification: 3600  # 1 hour
-    maintenance: 86400     # 24 hours
+    health_check: 300 # 5 minutes
+    performance: 60 # 1 minute
+    backup_verification: 3600 # 1 hour
+    maintenance: 86400 # 24 hours
 
   thresholds:
     connection_usage:
-      warning: 70          # 70% of max connections
-      critical: 85         # 85% of max connections
+      warning: 70 # 70% of max connections
+      critical: 85 # 85% of max connections
 
     query_performance:
-      slow_query_ms: 1000  # Queries slower than 1 second
-      very_slow_ms: 5000   # Queries slower than 5 seconds
+      slow_query_ms: 1000 # Queries slower than 1 second
+      very_slow_ms: 5000 # Queries slower than 5 seconds
 
     lock_timeout:
-      warning: 5000        # 5 seconds
-      critical: 30000      # 30 seconds
+      warning: 5000 # 5 seconds
+      critical: 30000 # 30 seconds
 
     replication_lag:
-      warning: 1           # 1 second behind
-      critical: 10         # 10 seconds behind
+      warning: 1 # 1 second behind
+      critical: 10 # 10 seconds behind
 
     disk_usage:
-      warning: 75          # 75% disk usage
-      critical: 90         # 90% disk usage
+      warning: 75 # 75% disk usage
+      critical: 90 # 90% disk usage
 
   backup_policy:
     retention_days: 30
-    full_backup_schedule: "0 2 * * 0"    # Weekly on Sunday at 2 AM
-    incremental_schedule: "0 2 * * 1-6"  # Daily at 2 AM except Sunday
-    test_restore_schedule: "0 4 * * 0"   # Weekly test restore on Sunday at 4 AM
+    full_backup_schedule: '0 2 * * 0' # Weekly on Sunday at 2 AM
+    incremental_schedule: '0 2 * * 1-6' # Daily at 2 AM except Sunday
+    test_restore_schedule: '0 4 * * 0' # Weekly test restore on Sunday at 4 AM
 
   # Testing framework specific monitoring
   testing_framework:
@@ -56,8 +56,8 @@ monitoring:
       - name: performance_metrics
         critical: true
         max_size_mb: 2000
-        max_records: 1000000  # High volume expected
-        retention_days: 90    # Keep performance data for 3 months
+        max_records: 1000000 # High volume expected
+        retention_days: 90 # Keep performance data for 3 months
 
       - name: collaboration_sessions
         critical: false
@@ -68,13 +68,13 @@ monitoring:
       - name: validation_results
         critical: true
         max_size_mb: 5000
-        max_records: 500000   # High volume from CI/CD
-        retention_days: 60    # Keep test results for 2 months
+        max_records: 500000 # High volume from CI/CD
+        retention_days: 60 # Keep test results for 2 months
 
     performance_metrics:
-      test_execution_threshold_ms: 30000  # 30 seconds max per test
-      validation_failure_rate_threshold: 0.05  # 5% failure rate threshold
-      collaboration_session_timeout_minutes: 120  # 2 hours
+      test_execution_threshold_ms: 30000 # 30 seconds max per test
+      validation_failure_rate_threshold: 0.05 # 5% failure rate threshold
+      collaboration_session_timeout_minutes: 120 # 2 hours
 
   alerts:
     email:
@@ -85,17 +85,17 @@ monitoring:
 
     slack:
       enabled: false
-      webhook_url: ""
-      channel: "#database-alerts"
+      webhook_url: ''
+      channel: '#database-alerts'
 
     dashboard:
       enabled: true
-      refresh_interval: 30  # seconds
+      refresh_interval: 30 # seconds
 
 # RLS Policy Monitoring
 rls_monitoring:
   enabled: true
-  check_interval: 3600    # 1 hour
+  check_interval: 3600 # 1 hour
 
   expected_policies:
     test_scenarios:
@@ -122,11 +122,11 @@ rls_monitoring:
 # Database Health Scoring
 health_scoring:
   weights:
-    connectivity: 30      # Database connection health
-    performance: 25       # Query performance metrics
-    backup_status: 20     # Backup recency and integrity
-    disk_usage: 15        # Storage utilization
-    rls_policies: 10      # Security policy status
+    connectivity: 30 # Database connection health
+    performance: 25 # Query performance metrics
+    backup_status: 20 # Backup recency and integrity
+    disk_usage: 15 # Storage utilization
+    rls_policies: 10 # Security policy status
 
   score_ranges:
     excellent: 90-100
@@ -138,24 +138,24 @@ health_scoring:
 maintenance:
   auto_vacuum:
     enabled: true
-    threshold: 0.2        # 20% dead tuples
-    scale_factor: 0.1     # 10% of table size
+    threshold: 0.2 # 20% dead tuples
+    scale_factor: 0.1 # 10% of table size
 
   auto_analyze:
     enabled: true
-    threshold: 0.1        # 10% changed tuples
+    threshold: 0.1 # 10% changed tuples
 
   index_maintenance:
-    reindex_schedule: "0 3 * * 0"  # Weekly on Sunday at 3 AM
+    reindex_schedule: '0 3 * * 0' # Weekly on Sunday at 3 AM
     analyze_unused_indexes: true
 
   statistics_update:
-    schedule: "0 1 * * *"  # Daily at 1 AM
+    schedule: '0 1 * * *' # Daily at 1 AM
 
 # Disaster Recovery Testing
 disaster_recovery:
-  test_schedule: "0 5 * * 0"  # Weekly on Sunday at 5 AM
-  test_database_prefix: "dr_test_"
+  test_schedule: '0 5 * * 0' # Weekly on Sunday at 5 AM
+  test_database_prefix: 'dr_test_'
   cleanup_after_hours: 24
 
   validation_tests:
@@ -193,7 +193,7 @@ logging:
   slow_query_log:
     enabled: true
     threshold_ms: 1000
-    log_file: "/var/log/postgresql/slow_queries.log"
+    log_file: '/var/log/postgresql/slow_queries.log'
 
   connection_log:
     enabled: true
@@ -201,8 +201,8 @@ logging:
     log_disconnections: true
 
   statement_log:
-    enabled: false  # Only enable for debugging
-    log_statement: "all"
+    enabled: false # Only enable for debugging
+    log_statement: 'all'
 
   audit_log:
     enabled: true
@@ -214,10 +214,10 @@ logging:
 baselines:
   query_performance:
     # Common testing framework queries with expected performance
-    select_test_scenarios: 50      # ms
-    insert_validation_result: 20   # ms
-    update_performance_metric: 15  # ms
-    complex_test_report: 500       # ms
+    select_test_scenarios: 50 # ms
+    insert_validation_result: 20 # ms
+    update_performance_metric: 15 # ms
+    complex_test_report: 500 # ms
 
   concurrent_connections:
     normal_load: 20
@@ -227,17 +227,17 @@ baselines:
 # Data Retention Policies
 retention:
   performance_metrics:
-    raw_data: 90          # days
-    aggregated_data: 365  # days
+    raw_data: 90 # days
+    aggregated_data: 365 # days
 
   validation_results:
-    detailed_results: 60  # days
-    summary_data: 180     # days
+    detailed_results: 60 # days
+    summary_data: 180 # days
 
   collaboration_sessions:
-    active_sessions: 7    # days
+    active_sessions: 7 # days
     archived_sessions: 30 # days
 
   audit_logs:
-    security_events: 365  # days
-    general_logs: 90      # days
+    security_events: 365 # days
+    general_logs: 90 # days

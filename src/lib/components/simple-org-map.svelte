@@ -6,12 +6,14 @@
 	import { Crown, User, Building2, Mail, ZoomIn, ZoomOut, RotateCcw } from 'lucide-svelte';
 
 	// Props
-	let { departmentData }: {
+	let {
+		departmentData
+	}: {
 		departmentData: {
 			name: string;
 			manager?: any;
 			employees: any[];
-		}
+		};
 	} = $props();
 
 	// Simple node interface
@@ -45,10 +47,10 @@
 		// Group employees by role level
 		const employeesByLevel = new Map<number, any[]>();
 
-		employees.forEach(emp => {
+		employees.forEach((emp) => {
 			const roles = emp.userRoleAssignmentsByUserId?.nodes || [];
-			const maxLevel = roles.length > 0 ?
-				Math.max(...roles.map((r: any) => r.userRoleByRoleId?.level || 20)) : 20;
+			const maxLevel =
+				roles.length > 0 ? Math.max(...roles.map((r: any) => r.userRoleByRoleId?.level || 20)) : 20;
 
 			if (!employeesByLevel.has(maxLevel)) {
 				employeesByLevel.set(maxLevel, []);
@@ -104,7 +106,12 @@
 	}
 
 	function getUserInitials(name: string): string {
-		return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+		return name
+			.split(' ')
+			.map((n) => n[0])
+			.join('')
+			.toUpperCase()
+			.slice(0, 2);
 	}
 
 	function getNodeColor(node: OrgNode): string {
@@ -166,10 +173,10 @@
 		</div>
 
 		<div class="flex items-center gap-2">
-			<Button variant="outline" size="sm" onclick={() => zoom = Math.min(2, zoom * 1.2)}>
+			<Button variant="outline" size="sm" onclick={() => (zoom = Math.min(2, zoom * 1.2))}>
 				<ZoomIn class="h-4 w-4" />
 			</Button>
-			<Button variant="outline" size="sm" onclick={() => zoom = Math.max(0.3, zoom * 0.8)}>
+			<Button variant="outline" size="sm" onclick={() => (zoom = Math.max(0.3, zoom * 0.8))}>
 				<ZoomOut class="h-4 w-4" />
 			</Button>
 			<Button variant="outline" size="sm" onclick={resetView}>
@@ -182,7 +189,9 @@
 	<Card.Root>
 		<Card.Content class="p-0">
 			<div
-				class="relative h-[500px] w-full overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 cursor-grab {isDragging ? 'cursor-grabbing' : ''}"
+				class="relative h-[500px] w-full cursor-grab overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 {isDragging
+					? 'cursor-grabbing'
+					: ''}"
 				onmousedown={handleMouseDown}
 				onmousemove={handleMouseMove}
 				onmouseup={handleMouseUp}
@@ -199,46 +208,52 @@
 						<div
 							class="absolute select-none transition-all"
 							style="left: {node.x}px; top: {node.y}px;"
-					>
-						<div class="w-[180px] rounded-lg border-2 p-3 bg-white {getNodeColor(node)} shadow-sm hover:shadow-md transition-shadow">
-							<!-- Header -->
-							<div class="flex items-center justify-between mb-2">
-								<div class="flex items-center gap-2">
-									{#if node.isManager}
-										<Crown class="h-4 w-4 text-yellow-600" />
-									{:else}
-										<User class="h-4 w-4" />
-									{/if}
+						>
+							<div
+								class="w-[180px] rounded-lg border-2 bg-white p-3 {getNodeColor(
+									node
+								)} shadow-sm transition-shadow hover:shadow-md"
+							>
+								<!-- Header -->
+								<div class="mb-2 flex items-center justify-between">
+									<div class="flex items-center gap-2">
+										{#if node.isManager}
+											<Crown class="h-4 w-4 text-yellow-600" />
+										{:else}
+											<User class="h-4 w-4" />
+										{/if}
+									</div>
+									<Badge variant="outline" class="text-xs">
+										L{node.roleLevel}
+									</Badge>
 								</div>
-								<Badge variant="outline" class="text-xs">
-									L{node.roleLevel}
-								</Badge>
-							</div>
 
-							<!-- Avatar and Info -->
-							<div class="flex items-center gap-2 mb-3">
-								<div class="flex h-8 w-8 items-center justify-center rounded-full bg-white font-semibold text-xs">
-									{getUserInitials(node.name)}
+								<!-- Avatar and Info -->
+								<div class="mb-3 flex items-center gap-2">
+									<div
+										class="flex h-8 w-8 items-center justify-center rounded-full bg-white text-xs font-semibold"
+									>
+										{getUserInitials(node.name)}
+									</div>
+									<div class="min-w-0 flex-1">
+										<h4 class="truncate text-sm font-semibold">{node.name}</h4>
+										<p class="truncate text-xs opacity-80">{node.role}</p>
+										<p class="truncate text-xs opacity-60">{node.email}</p>
+									</div>
 								</div>
-								<div class="min-w-0 flex-1">
-									<h4 class="font-semibold text-sm truncate">{node.name}</h4>
-									<p class="text-xs opacity-80 truncate">{node.role}</p>
-									<p class="text-xs opacity-60 truncate">{node.email}</p>
-								</div>
-							</div>
 
-							<!-- Actions -->
-							<div class="flex items-center justify-center">
-								<Button variant="ghost" size="sm" class="h-6 w-6 p-0">
-									<Mail class="h-3 w-3" />
-								</Button>
+								<!-- Actions -->
+								<div class="flex items-center justify-center">
+									<Button variant="ghost" size="sm" class="h-6 w-6 p-0">
+										<Mail class="h-3 w-3" />
+									</Button>
+								</div>
 							</div>
 						</div>
-					</div>
-				{/each}
+					{/each}
 
 					<!-- Level Lines -->
-					{#each Array.from(new Set(orgNodes.map(n => n.y))) as levelY}
+					{#each Array.from(new Set(orgNodes.map((n) => n.y))) as levelY}
 						<div
 							class="absolute w-full border-t border-gray-200 opacity-30"
 							style="top: {levelY - 10}px;"
@@ -247,7 +262,9 @@
 				</div>
 
 				<!-- Fixed UI indicators (outside draggable content) -->
-				<div class="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm rounded px-2 py-1 text-xs">
+				<div
+					class="absolute bottom-4 right-4 rounded bg-white/90 px-2 py-1 text-xs backdrop-blur-sm"
+				>
 					Zoom: {Math.round(zoom * 100)}%
 				</div>
 			</div>
@@ -255,21 +272,21 @@
 	</Card.Root>
 
 	<!-- Level Legend -->
-	<div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+	<div class="grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
 		<div class="flex items-center gap-2">
-			<div class="h-4 w-4 rounded bg-red-200 border border-red-300"></div>
+			<div class="h-4 w-4 rounded border border-red-300 bg-red-200"></div>
 			<span>Executive (80+)</span>
 		</div>
 		<div class="flex items-center gap-2">
-			<div class="h-4 w-4 rounded bg-purple-200 border border-purple-300"></div>
+			<div class="h-4 w-4 rounded border border-purple-300 bg-purple-200"></div>
 			<span>Management (60-79)</span>
 		</div>
 		<div class="flex items-center gap-2">
-			<div class="h-4 w-4 rounded bg-blue-200 border border-blue-300"></div>
+			<div class="h-4 w-4 rounded border border-blue-300 bg-blue-200"></div>
 			<span>Senior (40-59)</span>
 		</div>
 		<div class="flex items-center gap-2">
-			<div class="h-4 w-4 rounded bg-gray-200 border border-gray-300"></div>
+			<div class="h-4 w-4 rounded border border-gray-300 bg-gray-200"></div>
 			<span>Staff (20-39)</span>
 		</div>
 	</div>

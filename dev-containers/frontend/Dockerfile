@@ -16,16 +16,11 @@ RUN apt-get update && apt-get install -y \
     tree \
     htop \
     tmux \
+    neovim \
     && rm -rf /var/lib/apt/lists/*
 
-# Install latest Neovim
-RUN curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux64.tar.gz \
-    && tar -C /opt -xzf nvim-linux64.tar.gz \
-    && ln -sf /opt/nvim-linux64/bin/nvim /usr/local/bin/nvim \
-    && rm nvim-linux64.tar.gz
-
 # Create development user
-RUN useradd -m -s /bin/bash -u 1000 dev \
+RUN groupadd -r dev && useradd -m -s /bin/bash -g dev dev \
     && echo 'dev:dev' | chpasswd \
     && adduser dev sudo \
     && echo 'dev ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
@@ -68,7 +63,7 @@ COPY --chown=dev:dev .env* /home/dev/frontend/
 WORKDIR /home/dev/frontend
 
 # Install Node.js dependencies
-RUN npm ci
+RUN npm install
 
 # Install global development tools
 USER root

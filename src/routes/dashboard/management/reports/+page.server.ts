@@ -147,10 +147,13 @@ export const load: PageServerLoad = async (event) => {
 		console.error('[Reports Load Error]', err);
 
 		// Create standardized error response
-		const errorResponse = createErrorResponse(err instanceof Error ? err : new Error('Reports load failed'), {
-			type: 'DATA_LOAD_ERROR',
-			userMessage: 'Unable to load reports data. Please refresh the page or try again later.'
-		});
+		const errorResponse = createErrorResponse(
+			err instanceof Error ? err : new Error('Reports load failed'),
+			{
+				type: 'DATA_LOAD_ERROR',
+				userMessage: 'Unable to load reports data. Please refresh the page or try again later.'
+			}
+		);
 
 		// Log error details for debugging
 		console.error('[Reports Error Details]', {

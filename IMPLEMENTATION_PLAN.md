@@ -564,13 +564,13 @@ export const actions: Actions = {
 </script>
 
 <div
-	class="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-50 p-4 dark:from-gray-900 dark:to-gray-800"
+	class="from-primary-50 to-secondary-50 flex min-h-screen items-center justify-center bg-gradient-to-br p-4 dark:from-gray-900 dark:to-gray-800"
 >
 	<div class="w-full max-w-md">
 		<!-- Logo and Title -->
 		<div class="mb-8 text-center">
 			<div
-				class="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-xl bg-primary-600 text-white"
+				class="bg-primary-600 mb-4 inline-flex h-16 w-16 items-center justify-center rounded-xl text-white"
 			>
 				<svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path
@@ -636,14 +636,14 @@ export const actions: Actions = {
 							<Checkbox id="remember" bind:checked={$form.rememberMe} />
 							<label
 								for="remember"
-								class="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+								class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
 							>
 								Remember me
 							</label>
 						</div>
 						<a
 							href="/forgot-password"
-							class="text-sm font-medium text-primary-600 hover:text-primary-700"
+							class="text-primary-600 hover:text-primary-700 text-sm font-medium"
 						>
 							Forgot password?
 						</a>
@@ -708,7 +708,7 @@ export const actions: Actions = {
 				<!-- Sign Up Link -->
 				<div class="text-center text-sm">
 					<span class="text-gray-600 dark:text-gray-400">Don't have an account?</span>
-					<a href="/signup" class="ml-1 font-medium text-primary-600 hover:text-primary-700">
+					<a href="/signup" class="text-primary-600 hover:text-primary-700 ml-1 font-medium">
 						Sign up
 					</a>
 				</div>

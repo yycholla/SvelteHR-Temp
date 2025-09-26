@@ -143,10 +143,14 @@ export const load: PageServerLoad = async (event) => {
 		console.error('[Performance Reviews Load Error]', err);
 
 		// Create standardized error response
-		const errorResponse = createErrorResponse(err instanceof Error ? err : new Error('Performance reviews load failed'), {
-			type: 'DATA_LOAD_ERROR',
-			userMessage: 'Unable to load performance reviews data. Please refresh the page or try again later.'
-		});
+		const errorResponse = createErrorResponse(
+			err instanceof Error ? err : new Error('Performance reviews load failed'),
+			{
+				type: 'DATA_LOAD_ERROR',
+				userMessage:
+					'Unable to load performance reviews data. Please refresh the page or try again later.'
+			}
+		);
 
 		// Log error details for debugging
 		console.error('[Performance Reviews Error Details]', {

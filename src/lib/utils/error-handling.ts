@@ -6,7 +6,14 @@ import { ZodError } from 'zod';
 
 // Standardized error response interface
 export interface StandardErrorResponse {
-	type: 'validation' | 'authentication' | 'authorization' | 'not_found' | 'server_error' | 'network_error' | 'graphql_error';
+	type:
+		| 'validation'
+		| 'authentication'
+		| 'authorization'
+		| 'not_found'
+		| 'server_error'
+		| 'network_error'
+		| 'graphql_error';
 	message: string;
 	userMessage: string;
 	details?: Record<string, any>;
@@ -29,7 +36,7 @@ export const ERROR_TYPES = {
 export const USER_FRIENDLY_MESSAGES = {
 	VALIDATION: 'Please check your input and try again.',
 	AUTHENTICATION: 'Please log in to access this page.',
-	AUTHORIZATION: 'You don\'t have permission to access this resource.',
+	AUTHORIZATION: "You don't have permission to access this resource.",
 	NOT_FOUND: 'The requested resource was not found.',
 	SERVER_ERROR: 'Something went wrong on our end. Please try again later.',
 	NETWORK_ERROR: 'Unable to connect to the server. Please check your connection.',
@@ -113,7 +120,7 @@ export function createStandardError(
 
 	// Handle validation errors specially
 	if (originalError instanceof ZodError) {
-		details.validationErrors = originalError.errors.map(err => ({
+		details.validationErrors = originalError.errors.map((err) => ({
 			field: err.path.join('.'),
 			message: err.message,
 			code: err.code
@@ -285,8 +292,7 @@ export async function withRetry<T>(
 		retryOn = (error) => {
 			// Retry on network errors and 5xx server errors
 			const type = classifyError(error);
-			return type === ERROR_TYPES.NETWORK_ERROR ||
-			       (error?.status >= 500 && error?.status < 600);
+			return type === ERROR_TYPES.NETWORK_ERROR || (error?.status >= 500 && error?.status < 600);
 		}
 	} = options;
 
@@ -305,9 +311,12 @@ export async function withRetry<T>(
 			// Calculate delay with exponential backoff
 			const delay = Math.min(baseDelay * Math.pow(2, attempt - 1), maxDelay);
 
-			console.warn(`Operation failed (attempt ${attempt}/${maxRetries + 1}), retrying in ${delay}ms:`, error);
+			console.warn(
+				`Operation failed (attempt ${attempt}/${maxRetries + 1}), retrying in ${delay}ms:`,
+				error
+			);
 
-			await new Promise(resolve => setTimeout(resolve, delay));
+			await new Promise((resolve) => setTimeout(resolve, delay));
 		}
 	}
 
@@ -318,10 +327,12 @@ export async function withRetry<T>(
 export function extractGraphQLErrors(result: any): StandardErrorResponse[] {
 	if (!result?.errors) return [];
 
-	return result.errors.map((gqlError: any) => createStandardError(gqlError, {
-		operation: 'GraphQL Query',
-		path: result?.data ? 'Partial Success' : 'Query Failed'
-	}));
+	return result.errors.map((gqlError: any) =>
+		createStandardError(gqlError, {
+			operation: 'GraphQL Query',
+			path: result?.data ? 'Partial Success' : 'Query Failed'
+		})
+	);
 }
 
 // Loading state helper for UI components
@@ -345,9 +356,15 @@ export function createLoadingState() {
 	};
 
 	return {
-		get loading() { return loading; },
-		get error() { return error; },
+		get loading() {
+			return loading;
+		},
+		get error() {
+			return error;
+		},
 		execute,
-		clearError: () => { error = null; }
+		clearError: () => {
+			error = null;
+		}
 	};
 }

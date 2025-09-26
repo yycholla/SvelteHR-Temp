@@ -195,8 +195,8 @@ const mockSchema = buildSchema(`
 `);
 
 test.describe('GraphQL Schema Contract Tests', () => {
-  test('should validate employee queries structure', () => {
-    const query = `
+	test('should validate employee queries structure', () => {
+		const query = `
       query GetEmployees {
         employees {
           id
@@ -221,13 +221,13 @@ test.describe('GraphQL Schema Contract Tests', () => {
       }
     `;
 
-    const document = parse(query);
-    const errors = validate(mockSchema, document);
-    expect(errors).toHaveLength(0);
-  });
+		const document = parse(query);
+		const errors = validate(mockSchema, document);
+		expect(errors).toHaveLength(0);
+	});
 
-  test('should validate employee by ID query', () => {
-    const query = `
+	test('should validate employee by ID query', () => {
+		const query = `
       query GetEmployee($id: ID!) {
         employee(id: $id) {
           id
@@ -257,13 +257,13 @@ test.describe('GraphQL Schema Contract Tests', () => {
       }
     `;
 
-    const document = parse(query);
-    const errors = validate(mockSchema, document);
-    expect(errors).toHaveLength(0);
-  });
+		const document = parse(query);
+		const errors = validate(mockSchema, document);
+		expect(errors).toHaveLength(0);
+	});
 
-  test('should validate performance review queries', () => {
-    const query = `
+	test('should validate performance review queries', () => {
+		const query = `
       query GetPerformanceReviews {
         performanceReviews {
           id
@@ -294,13 +294,13 @@ test.describe('GraphQL Schema Contract Tests', () => {
       }
     `;
 
-    const document = parse(query);
-    const errors = validate(mockSchema, document);
-    expect(errors).toHaveLength(0);
-  });
+		const document = parse(query);
+		const errors = validate(mockSchema, document);
+		expect(errors).toHaveLength(0);
+	});
 
-  test('should validate leave request queries', () => {
-    const query = `
+	test('should validate leave request queries', () => {
+		const query = `
       query GetLeaveRequests {
         leaveRequests {
           id
@@ -329,13 +329,13 @@ test.describe('GraphQL Schema Contract Tests', () => {
       }
     `;
 
-    const document = parse(query);
-    const errors = validate(mockSchema, document);
-    expect(errors).toHaveLength(0);
-  });
+		const document = parse(query);
+		const errors = validate(mockSchema, document);
+		expect(errors).toHaveLength(0);
+	});
 
-  test('should validate goal queries', () => {
-    const query = `
+	test('should validate goal queries', () => {
+		const query = `
       query GetGoals {
         goals {
           id
@@ -356,13 +356,13 @@ test.describe('GraphQL Schema Contract Tests', () => {
       }
     `;
 
-    const document = parse(query);
-    const errors = validate(mockSchema, document);
-    expect(errors).toHaveLength(0);
-  });
+		const document = parse(query);
+		const errors = validate(mockSchema, document);
+		expect(errors).toHaveLength(0);
+	});
 
-  test('should validate department queries', () => {
-    const query = `
+	test('should validate department queries', () => {
+		const query = `
       query GetDepartments {
         departments {
           id
@@ -387,13 +387,13 @@ test.describe('GraphQL Schema Contract Tests', () => {
       }
     `;
 
-    const document = parse(query);
-    const errors = validate(mockSchema, document);
-    expect(errors).toHaveLength(0);
-  });
+		const document = parse(query);
+		const errors = validate(mockSchema, document);
+		expect(errors).toHaveLength(0);
+	});
 
-  test('should validate create employee mutation', () => {
-    const mutation = `
+	test('should validate create employee mutation', () => {
+		const mutation = `
       mutation CreateEmployee($input: CreateEmployeeInput!) {
         createEmployee(input: $input) {
           id
@@ -412,13 +412,13 @@ test.describe('GraphQL Schema Contract Tests', () => {
       }
     `;
 
-    const document = parse(mutation);
-    const errors = validate(mockSchema, document);
-    expect(errors).toHaveLength(0);
-  });
+		const document = parse(mutation);
+		const errors = validate(mockSchema, document);
+		expect(errors).toHaveLength(0);
+	});
 
-  test('should validate update employee mutation', () => {
-    const mutation = `
+	test('should validate update employee mutation', () => {
+		const mutation = `
       mutation UpdateEmployee($id: ID!, $input: UpdateEmployeeInput!) {
         updateEmployee(id: $id, input: $input) {
           id
@@ -436,13 +436,13 @@ test.describe('GraphQL Schema Contract Tests', () => {
       }
     `;
 
-    const document = parse(mutation);
-    const errors = validate(mockSchema, document);
-    expect(errors).toHaveLength(0);
-  });
+		const document = parse(mutation);
+		const errors = validate(mockSchema, document);
+		expect(errors).toHaveLength(0);
+	});
 
-  test('should validate create performance review mutation', () => {
-    const mutation = `
+	test('should validate create performance review mutation', () => {
+		const mutation = `
       mutation CreatePerformanceReview($input: CreatePerformanceReviewInput!) {
         createPerformanceReview(input: $input) {
           id
@@ -466,13 +466,13 @@ test.describe('GraphQL Schema Contract Tests', () => {
       }
     `;
 
-    const document = parse(mutation);
-    const errors = validate(mockSchema, document);
-    expect(errors).toHaveLength(0);
-  });
+		const document = parse(mutation);
+		const errors = validate(mockSchema, document);
+		expect(errors).toHaveLength(0);
+	});
 
-  test('should validate create leave request mutation', () => {
-    const mutation = `
+	test('should validate create leave request mutation', () => {
+		const mutation = `
       mutation CreateLeaveRequest($input: CreateLeaveRequestInput!) {
         createLeaveRequest(input: $input) {
           id
@@ -492,13 +492,13 @@ test.describe('GraphQL Schema Contract Tests', () => {
       }
     `;
 
-    const document = parse(mutation);
-    const errors = validate(mockSchema, document);
-    expect(errors).toHaveLength(0);
-  });
+		const document = parse(mutation);
+		const errors = validate(mockSchema, document);
+		expect(errors).toHaveLength(0);
+	});
 
-  test('should validate approve leave request mutation', () => {
-    const mutation = `
+	test('should validate approve leave request mutation', () => {
+		const mutation = `
       mutation ApproveLeaveRequest($id: ID!) {
         approveLeaveRequest(id: $id) {
           id
@@ -514,13 +514,13 @@ test.describe('GraphQL Schema Contract Tests', () => {
       }
     `;
 
-    const document = parse(mutation);
-    const errors = validate(mockSchema, document);
-    expect(errors).toHaveLength(0);
-  });
+		const document = parse(mutation);
+		const errors = validate(mockSchema, document);
+		expect(errors).toHaveLength(0);
+	});
 
-  test('should validate create goal mutation', () => {
-    const mutation = `
+	test('should validate create goal mutation', () => {
+		const mutation = `
       mutation CreateGoal($input: CreateGoalInput!) {
         createGoal(input: $input) {
           id
@@ -540,13 +540,13 @@ test.describe('GraphQL Schema Contract Tests', () => {
       }
     `;
 
-    const document = parse(mutation);
-    const errors = validate(mockSchema, document);
-    expect(errors).toHaveLength(0);
-  });
+		const document = parse(mutation);
+		const errors = validate(mockSchema, document);
+		expect(errors).toHaveLength(0);
+	});
 
-  test('should validate update goal progress mutation', () => {
-    const mutation = `
+	test('should validate update goal progress mutation', () => {
+		const mutation = `
       mutation UpdateGoalProgress($id: ID!, $progress: Float!) {
         updateGoalProgress(id: $id, progress: $progress) {
           id
@@ -558,25 +558,25 @@ test.describe('GraphQL Schema Contract Tests', () => {
       }
     `;
 
-    const document = parse(mutation);
-    const errors = validate(mockSchema, document);
-    expect(errors).toHaveLength(0);
-  });
+		const document = parse(mutation);
+		const errors = validate(mockSchema, document);
+		expect(errors).toHaveLength(0);
+	});
 
-  test('should validate delete employee mutation', () => {
-    const mutation = `
+	test('should validate delete employee mutation', () => {
+		const mutation = `
       mutation DeleteEmployee($id: ID!) {
         deleteEmployee(id: $id)
       }
     `;
 
-    const document = parse(mutation);
-    const errors = validate(mockSchema, document);
-    expect(errors).toHaveLength(0);
-  });
+		const document = parse(mutation);
+		const errors = validate(mockSchema, document);
+		expect(errors).toHaveLength(0);
+	});
 
-  test('should enforce required fields in input types', () => {
-    const mutation = `
+	test('should enforce required fields in input types', () => {
+		const mutation = `
       mutation CreateEmployeeWithMissingField {
         createEmployee(input: {
           firstName: "John"
@@ -587,14 +587,14 @@ test.describe('GraphQL Schema Contract Tests', () => {
       }
     `;
 
-    const document = parse(mutation);
-    const errors = validate(mockSchema, document);
-    expect(errors.length).toBeGreaterThan(0);
-    expect(errors.some(error => error.message.includes('required'))).toBeTruthy();
-  });
+		const document = parse(mutation);
+		const errors = validate(mockSchema, document);
+		expect(errors.length).toBeGreaterThan(0);
+		expect(errors.some((error) => error.message.includes('required'))).toBeTruthy();
+	});
 
-  test('should validate enum values', () => {
-    const mutation = `
+	test('should validate enum values', () => {
+		const mutation = `
       mutation CreateEmployeeWithInvalidRole {
         createEmployee(input: {
           firstName: "John"
@@ -609,14 +609,14 @@ test.describe('GraphQL Schema Contract Tests', () => {
       }
     `;
 
-    const document = parse(mutation);
-    const errors = validate(mockSchema, document);
-    expect(errors.length).toBeGreaterThan(0);
-    expect(errors.some(error => error.message.includes('INVALID_ROLE'))).toBeTruthy();
-  });
+		const document = parse(mutation);
+		const errors = validate(mockSchema, document);
+		expect(errors.length).toBeGreaterThan(0);
+		expect(errors.some((error) => error.message.includes('INVALID_ROLE'))).toBeTruthy();
+	});
 
-  test('should validate complex nested queries', () => {
-    const query = `
+	test('should validate complex nested queries', () => {
+		const query = `
       query ComplexEmployeeQuery {
         employees {
           id
@@ -663,16 +663,16 @@ test.describe('GraphQL Schema Contract Tests', () => {
       }
     `;
 
-    const document = parse(query);
-    const errors = validate(mockSchema, document);
-    expect(errors).toHaveLength(0);
-  });
+		const document = parse(query);
+		const errors = validate(mockSchema, document);
+		expect(errors).toHaveLength(0);
+	});
 
-  test('should validate performance targets are met', () => {
-    // Test that critical queries can be parsed and validated within 200ms
-    const startTime = Date.now();
+	test('should validate performance targets are met', () => {
+		// Test that critical queries can be parsed and validated within 200ms
+		const startTime = Date.now();
 
-    const query = `
+		const query = `
       query PerformanceCriticalQuery {
         employees {
           id
@@ -695,11 +695,11 @@ test.describe('GraphQL Schema Contract Tests', () => {
       }
     `;
 
-    const document = parse(query);
-    const errors = validate(mockSchema, document);
-    const endTime = Date.now();
+		const document = parse(query);
+		const errors = validate(mockSchema, document);
+		const endTime = Date.now();
 
-    expect(errors).toHaveLength(0);
-    expect(endTime - startTime).toBeLessThan(200); // Performance target: <200ms
-  });
+		expect(errors).toHaveLength(0);
+		expect(endTime - startTime).toBeLessThan(200); // Performance target: <200ms
+	});
 });

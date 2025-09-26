@@ -9,37 +9,37 @@ import './vitest-setup'; // Import base setup
 let testContext: any;
 
 beforeAll(async () => {
-  // Setup test database
-  await DatabaseTestUtils.setupTestDatabase();
+	// Setup test database
+	await DatabaseTestUtils.setupTestDatabase();
 
-  // Create test context with users, departments, etc.
-  testContext = await createTestContext();
+	// Create test context with users, departments, etc.
+	testContext = await createTestContext();
 
-  // Store test context globally for tests
-  global.testContext = testContext;
+	// Store test context globally for tests
+	global.testContext = testContext;
 }, 30000); // 30 second timeout for setup
 
 afterAll(async () => {
-  // Cleanup test data
-  if (testContext) {
-    await cleanupTestData(testContext);
-  }
+	// Cleanup test data
+	if (testContext) {
+		await cleanupTestData(testContext);
+	}
 
-  // Cleanup test database
-  await DatabaseTestUtils.cleanupTestDatabase();
+	// Cleanup test database
+	await DatabaseTestUtils.cleanupTestDatabase();
 }, 30000); // 30 second timeout for cleanup
 
 beforeEach(() => {
-  // Reset any test state before each test
-  // Tests should be isolated and not depend on each other
+	// Reset any test state before each test
+	// Tests should be isolated and not depend on each other
 });
 
 afterEach(() => {
-  // Cleanup after each test if needed
-  // Most cleanup is handled globally in afterAll
+	// Cleanup after each test if needed
+	// Most cleanup is handled globally in afterAll
 });
 
 // Make test context available to integration tests
 declare global {
-  var testContext: any;
+	var testContext: any;
 }

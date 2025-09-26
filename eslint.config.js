@@ -32,18 +32,21 @@ export default ts.config(
 			'prefer-arrow-callback': 'error',
 
 			// TypeScript specific rules for HR domain
-			'@typescript-eslint/no-unused-vars': ['error', { 'argsIgnorePattern': '^_' }],
+			'@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
 			'@typescript-eslint/explicit-function-return-type': 'off',
 			'@typescript-eslint/no-explicit-any': 'warn',
 			'@typescript-eslint/prefer-nullish-coalescing': 'error',
 			'@typescript-eslint/prefer-optional-chain': 'error',
 
 			// Import organization for better structure
-			'sort-imports': ['error', {
-				'ignoreCase': false,
-				'ignoreDeclarationSort': true,
-				'ignoreMemberSort': false
-			}]
+			'sort-imports': [
+				'error',
+				{
+					ignoreCase: false,
+					ignoreDeclarationSort: true,
+					ignoreMemberSort: false
+				}
+			]
 		}
 	},
 	// HR-specific file patterns and rules
@@ -54,11 +57,11 @@ export default ts.config(
 			'@typescript-eslint/naming-convention': [
 				'error',
 				{
-					'selector': 'variableLike',
-					'format': ['camelCase', 'UPPER_CASE'],
-					'filter': {
-						'regex': '^(GET_|CREATE_|UPDATE_|DELETE_).*',
-						'match': true
+					selector: 'variableLike',
+					format: ['camelCase', 'UPPER_CASE'],
+					filter: {
+						regex: '^(GET_|CREATE_|UPDATE_|DELETE_).*',
+						match: true
 					}
 				}
 			]
@@ -68,9 +71,12 @@ export default ts.config(
 		files: ['src/lib/components/**/*.svelte'],
 		rules: {
 			// Component-specific rules
-			'@typescript-eslint/no-unused-vars': ['error', {
-				'varsIgnorePattern': '^(\\$\\$Props|\\$\\$Events|\\$\\$Slots)$'
-			}]
+			'@typescript-eslint/no-unused-vars': [
+				'error',
+				{
+					varsIgnorePattern: '^(\\$\\$Props|\\$\\$Events|\\$\\$Slots)$'
+				}
+			]
 		}
 	},
 	{

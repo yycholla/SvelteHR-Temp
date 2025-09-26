@@ -1,8 +1,17 @@
 import type { Handle } from '@sveltejs/kit';
 import { serverPerformanceMonitor } from '$lib/performance/server-monitor.js';
 import { redirect } from '@sveltejs/kit';
-import { authConfig, getAccessTokenName, getCookieOptions, isDevelopment } from '$lib/auth/config.js';
-import { verifyJWTToken, extractUserFromPayload, decodeJWTTokenUnsafe } from '$lib/auth/jwt-utils.js';
+import {
+	authConfig,
+	getAccessTokenName,
+	getCookieOptions,
+	isDevelopment
+} from '$lib/auth/config.js';
+import {
+	verifyJWTToken,
+	extractUserFromPayload,
+	decodeJWTTokenUnsafe
+} from '$lib/auth/jwt-utils.js';
 import { createStandardError, type StandardErrorResponse } from '$lib/utils/error-handling.js';
 
 /**
@@ -21,15 +30,24 @@ const PUBLIC_ROUTES = [
 ];
 
 // Helper function to authenticate user with proper JWT verification
-async function authenticateUser(token: string): Promise<{ user: any; roles: string[]; permissions: string[] } | null> {
+async function authenticateUser(
+	token: string
+): Promise<{ user: any; roles: string[]; permissions: string[] } | null> {
 	try {
+		console.log(`🔐 Authenticating token: ${token.substring(0, 100)}...`);
+
 		// Use proper JWT verification in production, fallback to basic parsing in development
 		let validationResult;
 
 		if (isDevelopment()) {
+			console.log(`🧪 Development mode: using basic JWT parsing`);
 			// Development: Use basic parsing for ease of testing
 			const decodedPayload = await decodeJWTTokenUnsafe(token);
-			if (!decodedPayload) return null;
+			console.log(`🔍 Decoded payload:`, decodedPayload);
+			if (!decodedPayload) {
+				console.log(`❌ Failed to decode JWT payload`);
+				return null;
+			}
 
 			// Check expiration
 			const currentTime = Math.floor(Date.now() / 1000);
@@ -50,28 +68,42 @@ async function authenticateUser(token: string): Promise<{ user: any; roles: stri
 		const payload = validationResult.payload;
 		const user = extractUserFromPayload(payload);
 
-		// For admin user (user_id = '1'), provide full permissions
-		if (user.id === '1') {
+		// For admin user (UUID or legacy ID '1'), provide full permissions
+		if (user.id === 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' || user.id === '1') {
 			return {
 				user: {
 					id: user.id,
 					email: user.email || 'admin@postgraphile-hr.com',
 					display_name: 'System Administrator',
-					role: 'hr_admin'
+					role: 'admin' // Use simplified role name that matches database
 				},
-				roles: ['hr_admin', 'manager', 'employee'],
+				roles: ['admin', 'manager', 'employee'], // Include 'admin' role for backwards compatibility
 				permissions: [
 					'*', // Admin has all permissions
 					'dashboard:read',
-					'employees:read', 'employees:write', 'employees:delete',
-					'departments:read', 'departments:write', 'departments:delete',
-					'teams:read', 'teams:write',
-					'management:read', 'management:write',
-					'leave:read', 'leave:write', 'leave:approve',
-					'performance:read', 'performance:write',
-					'goals:read', 'goals:write',
-					'reports:read', 'reports:write', 'reports:execute', 'reports:analytics',
-					'admin:read', 'admin:write'
+					'employees:read',
+					'employees:write',
+					'employees:delete',
+					'departments:read',
+					'departments:write',
+					'departments:delete',
+					'teams:read',
+					'teams:write',
+					'management:read',
+					'management:write',
+					'leave:read',
+					'leave:write',
+					'leave:approve',
+					'performance:read',
+					'performance:write',
+					'goals:read',
+					'goals:write',
+					'reports:read',
+					'reports:write',
+					'reports:execute',
+					'reports:analytics',
+					'admin:read',
+					'admin:write'
 				]
 			};
 		}
@@ -98,38 +130,50 @@ async function authenticateUser(token: string): Promise<{ user: any; roles: stri
 // Helper function to get permissions based on role
 function getRolePermissions(role: string): string[] {
 	switch (role) {
-		case 'hr_admin':
+		case 'admin': // Updated to use simplified role name
+		case 'hr_admin': // Keep backwards compatibility
 		case 'hr_manager':
 			return [
 				'dashboard:read',
-				'employees:read', 'employees:write', 'employees:delete',
-				'departments:read', 'departments:write',
-				'teams:read', 'teams:write',
-				'management:read', 'management:write',
-				'leave:read', 'leave:write', 'leave:approve',
-				'performance:read', 'performance:write',
-				'goals:read', 'goals:write',
-				'reports:read', 'reports:write', 'reports:execute', 'reports:analytics'
+				'employees:read',
+				'employees:write',
+				'employees:delete',
+				'departments:read',
+				'departments:write',
+				'teams:read',
+				'teams:write',
+				'management:read',
+				'management:write',
+				'leave:read',
+				'leave:write',
+				'leave:approve',
+				'performance:read',
+				'performance:write',
+				'goals:read',
+				'goals:write',
+				'reports:read',
+				'reports:write',
+				'reports:execute',
+				'reports:analytics'
 			];
 		case 'manager':
 			return [
 				'dashboard:read',
 				'employees:read',
-				'teams:read', 'teams:write',
+				'teams:read',
+				'teams:write',
 				'management:read',
-				'leave:read', 'leave:approve',
-				'performance:read', 'performance:write',
-				'goals:read', 'goals:write',
+				'leave:read',
+				'leave:approve',
+				'performance:read',
+				'performance:write',
+				'goals:read',
+				'goals:write',
 				'reports:read'
 			];
 		case 'employee':
 		default:
-			return [
-				'dashboard:read',
-				'employees:read',
-				'teams:read',
-				'leave:read'
-			];
+			return ['dashboard:read', 'employees:read', 'teams:read', 'leave:read'];
 	}
 }
 
@@ -139,54 +183,64 @@ const performanceHandle = serverPerformanceMonitor.createHandle();
 // Combine RBAC, authentication, and performance monitoring
 export const handle: Handle = async ({ event, resolve }) => {
 	// First, run performance monitoring
-	const performanceResponse = await performanceHandle({ event, resolve: async (evt) => {
-		// Then run our RBAC and existing logic
-		const start = Date.now();
-		const url = event.url.pathname;
-		const method = event.request.method;
+	const performanceResponse = await performanceHandle({
+		event,
+		resolve: async (evt) => {
+			// Then run our RBAC and existing logic
+			const start = Date.now();
+			const url = event.url.pathname;
+			const method = event.request.method;
 
-		// RBAC Authentication Logic
-		// Check if route is public
-		const isPublicRoute = PUBLIC_ROUTES.some(route =>
-			url === route || url.startsWith(`${route}/`) || url.startsWith('/api/')
-		);
+			// RBAC Authentication Logic
+			// Check if route is public
+			const isPublicRoute = PUBLIC_ROUTES.some(
+				(route) => url === route || url.startsWith(`${route}/`) || url.startsWith('/api/')
+			);
 
-		// Extract JWT token from cookies using centralized config
-		const primaryTokenName = getAccessTokenName();
-		const token = event.cookies.get(primaryTokenName) || event.cookies.get('postgraphile-jwt-token');
+			// Extract JWT token from cookies using centralized config
+			const primaryTokenName = getAccessTokenName();
+			const token =
+				event.cookies.get(primaryTokenName) || event.cookies.get('postgraphile-jwt-token');
 
-		if (!isPublicRoute) {
-			// Protected route - verify authentication
-			if (!token) {
-				// Redirect to login with return URL
-				const redirectTo = url === '/' ? '' : `?redirectTo=${encodeURIComponent(url)}`;
-				throw redirect(303, `/login${redirectTo}`);
+			if (!isPublicRoute) {
+				// Protected route - verify authentication
+				if (!token) {
+					console.log(`🔒 No token found for protected route: ${url}`);
+					// Redirect to login with return URL
+					const redirectTo = url === '/' ? '' : `?redirectTo=${encodeURIComponent(url)}`;
+					throw redirect(303, `/login${redirectTo}`);
+				}
+
+				console.log(`🔍 Authenticating token for route: ${url}, token: ${token.substring(0, 50)}...`);
+
+				// Verify and decode JWT token
+				const authResult = await authenticateUser(token);
+				if (!authResult) {
+					console.log(`❌ Authentication failed for route: ${url}`);
+					// Invalid token - redirect to login
+					event.cookies.delete(primaryTokenName, { path: '/' });
+					event.cookies.delete('postgraphile-jwt-token', { path: '/' });
+					const redirectTo = url === '/' ? '' : `?redirectTo=${encodeURIComponent(url)}`;
+					throw redirect(303, `/login${redirectTo}`);
+				}
+
+				console.log(`✅ Authentication successful for route: ${url}, user: ${authResult.user.email}`);
+
+
+				// Set user information in locals for use in load functions
+				event.locals.user = authResult.user;
+				event.locals.roles = authResult.roles;
+				event.locals.permissions = authResult.permissions;
 			}
 
-			// Verify and decode JWT token
-			const authResult = await authenticateUser(token);
-			if (!authResult) {
-				// Invalid token - redirect to login
-				event.cookies.delete(primaryTokenName, { path: '/' });
-				event.cookies.delete('postgraphile-jwt-token', { path: '/' });
-				const redirectTo = url === '/' ? '' : `?redirectTo=${encodeURIComponent(url)}`;
-				throw redirect(303, `/login${redirectTo}`);
-			}
-
-			// Set user information in locals for use in load functions
-			event.locals.user = authResult.user;
-			event.locals.roles = authResult.roles;
-			event.locals.permissions = authResult.permissions;
-		}
-
-	// Add security headers
-	const response = await resolve(event, {
-		transformPageChunk: ({ html, done }) => {
-			// Inject performance monitoring script early
-			if (done && html.includes('</head>')) {
-				html = html.replace(
-					'</head>',
-					`
+			// Add security headers
+			const response = await resolve(event, {
+				transformPageChunk: ({ html, done }) => {
+					// Inject performance monitoring script early
+					if (done && html.includes('</head>')) {
+						html = html.replace(
+							'</head>',
+							`
           <script>
             // Early performance markers
             performance.mark('html_received');
@@ -199,88 +253,89 @@ export const handle: Handle = async ({ event, resolve }) => {
             document.head.appendChild(link);
           </script>
           </head>`
-				);
+						);
+					}
+					return html;
+				}
+			});
+
+			// Calculate request duration
+			const duration = Date.now() - start;
+			const status = response.status;
+
+			// Log slow requests (>1s)
+			if (duration > 1000) {
+				console.warn(`🐌 Slow request: ${method} ${url} - ${duration}ms (${status})`);
 			}
-			return html;
+
+			// Add performance and security headers
+			response.headers.set('X-Response-Time', `${duration}ms`);
+			response.headers.set('X-Frame-Options', 'DENY');
+			response.headers.set('X-Content-Type-Options', 'nosniff');
+			response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+			response.headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+
+			// Add CSP for security and performance
+			response.headers.set(
+				'Content-Security-Policy',
+				[
+					"default-src 'self'",
+					"script-src 'self' 'unsafe-inline' 'unsafe-eval'", // SvelteKit needs unsafe-inline/eval
+					"style-src 'self' 'unsafe-inline'",
+					"img-src 'self' data: https:",
+					"font-src 'self' data: https://1.www.s81c.com", // Allow IBM Plex fonts from Carbon CDN
+					"connect-src 'self' http://localhost:4000 ws://localhost:4000 http://localhost:4001 ws://localhost:4001", // PostGraphile endpoints
+					"frame-ancestors 'none'",
+					"base-uri 'self'",
+					"form-action 'self'"
+				].join('; ')
+			);
+
+			// Add cache control for static assets
+			if (url.includes('/static/') || url.includes('/_app/')) {
+				response.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+			} else if (url.includes('/api/')) {
+				// API responses should not be cached by default
+				response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+			} else {
+				// HTML pages can be cached briefly
+				response.headers.set('Cache-Control', 'public, max-age=60');
+			}
+
+			// Compress responses for better performance
+			const contentType = response.headers.get('content-type') || '';
+			if (contentType.includes('text/') || contentType.includes('application/json')) {
+				response.headers.set('Content-Encoding', 'gzip');
+			}
+
+			// Track metrics for monitoring (in production, send to monitoring service)
+			if (duration > 100) {
+				// Only track significant requests
+				// In production, you'd send this to your monitoring service
+				// For now, we'll just log it
+				const userAgent = event.request.headers.get('user-agent') || 'unknown';
+				const isBot = /bot|crawler|spider/i.test(userAgent);
+
+				if (!isBot) {
+					// Exclude bots from performance metrics
+					// This would typically go to your metrics service
+					console.log(
+						JSON.stringify({
+							timestamp: new Date().toISOString(),
+							type: 'server_request',
+							method,
+							url,
+							status,
+							duration,
+							userAgent: userAgent.slice(0, 100) // Truncate for privacy
+						})
+					);
+				}
+			}
+
+			return response;
 		}
 	});
-
-	// Calculate request duration
-	const duration = Date.now() - start;
-	const status = response.status;
-
-	// Log slow requests (>1s)
-	if (duration > 1000) {
-		console.warn(`🐌 Slow request: ${method} ${url} - ${duration}ms (${status})`);
-	}
-
-	// Add performance and security headers
-	response.headers.set('X-Response-Time', `${duration}ms`);
-	response.headers.set('X-Frame-Options', 'DENY');
-	response.headers.set('X-Content-Type-Options', 'nosniff');
-	response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-	response.headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
-
-	// Add CSP for security and performance
-	response.headers.set(
-		'Content-Security-Policy',
-		[
-			"default-src 'self'",
-			"script-src 'self' 'unsafe-inline' 'unsafe-eval'", // SvelteKit needs unsafe-inline/eval
-			"style-src 'self' 'unsafe-inline'",
-			"img-src 'self' data: https:",
-			"font-src 'self' data: https://1.www.s81c.com", // Allow IBM Plex fonts from Carbon CDN
-			"connect-src 'self' http://localhost:4000 ws://localhost:4000 http://localhost:4001 ws://localhost:4001", // PostGraphile endpoints
-			"frame-ancestors 'none'",
-			"base-uri 'self'",
-			"form-action 'self'"
-		].join('; ')
-	);
-
-	// Add cache control for static assets
-	if (url.includes('/static/') || url.includes('/_app/')) {
-		response.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
-	} else if (url.includes('/api/')) {
-		// API responses should not be cached by default
-		response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-	} else {
-		// HTML pages can be cached briefly
-		response.headers.set('Cache-Control', 'public, max-age=60');
-	}
-
-	// Compress responses for better performance
-	const contentType = response.headers.get('content-type') || '';
-	if (contentType.includes('text/') || contentType.includes('application/json')) {
-		response.headers.set('Content-Encoding', 'gzip');
-	}
-
-	// Track metrics for monitoring (in production, send to monitoring service)
-	if (duration > 100) {
-		// Only track significant requests
-		// In production, you'd send this to your monitoring service
-		// For now, we'll just log it
-		const userAgent = event.request.headers.get('user-agent') || 'unknown';
-		const isBot = /bot|crawler|spider/i.test(userAgent);
-
-		if (!isBot) {
-			// Exclude bots from performance metrics
-			// This would typically go to your metrics service
-			console.log(
-				JSON.stringify({
-					timestamp: new Date().toISOString(),
-					type: 'server_request',
-					method,
-					url,
-					status,
-					duration,
-					userAgent: userAgent.slice(0, 100) // Truncate for privacy
-				})
-			);
-		}
-	}
-
-		return response;
-	}});
 
 	return performanceResponse;
 };

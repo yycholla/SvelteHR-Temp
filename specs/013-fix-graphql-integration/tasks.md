@@ -4,6 +4,7 @@
 **Prerequisites**: plan.md (required), research.md, data-model.md, contracts/, quickstart.md
 
 ## Execution Flow (main)
+
 ```
 1. Load plan.md from feature directory
    → Tech stack: SvelteKit 2.22.0, URQL 5.0.0, PostGraphile 4.14.1, GraphQL 15.10.1
@@ -18,10 +19,12 @@
 ```
 
 ## Format: `[ID] [P?] Description`
+
 - **[P]**: Can run in parallel (different files, no dependencies)
 - Include exact file paths in descriptions
 
 ## Path Conventions
+
 - **Frontend**: `src/` at repository root
 - **Tests**: `tests/` organized by type (contract, integration, unit, e2e)
 - **GraphQL**: `src/lib/graphql/` for operations and client configuration
@@ -48,9 +51,11 @@
   - **MCP Validation**: Use `mcp__serena__find_referencing_symbols()` to ensure 30-minute TTL compatibility
 
 ## Phase 3.2: Tests First (TDD) ⚠️ MUST COMPLETE BEFORE 3.3
+
 **CRITICAL: These tests MUST be written and MUST FAIL before ANY implementation**
 
 ### Contract Tests
+
 - [x] **T005** [P] Contract test GetCompleteDashboardData operation in `tests/contract/dashboard-operations.test.ts`
 - [x] **T006** [P] Contract test VerifyUserAuthentication operation in `tests/contract/auth-operations.test.ts`
 - [x] **T007** [P] Contract test GetEmployees operation in `tests/contract/employees-operations.test.ts`
@@ -59,6 +64,7 @@
 - [x] **T010** [P] Contract test InvalidateCache operation in `tests/contract/cache-operations.test.ts`
 
 ### Integration Tests for Error Scenarios
+
 - [ ] **T011** [P] Integration test network timeout handling in `tests/integration/network-timeout.test.ts`
 - [ ] **T012** [P] Integration test authentication error handling in `tests/integration/auth-error.test.ts`
 - [ ] **T013** [P] Integration test permission error handling in `tests/integration/permission-error.test.ts`
@@ -67,6 +73,7 @@
 - [ ] **T016** [P] Integration test error message display in `tests/integration/error-display.test.ts`
 
 ### Page-Level Integration Tests
+
 - [x] **T017** [P] Integration test dashboard page data loading in `tests/integration/dashboard-page.test.ts`
 - [x] **T018** [P] Integration test login page authentication in `tests/integration/login-page.test.ts`
 - [x] **T019** [P] Integration test employee management page in `tests/integration/employee-page.test.ts`
@@ -75,6 +82,7 @@
 ## Phase 3.3: Core Implementation (ONLY after tests are failing)
 
 ### Error Handling Infrastructure
+
 - [x] **T021** [P] Implement DataRequest entity model in `src/lib/models/data-request.ts`
   - **MCP Discovery**: Use `mcp__serena__get_symbols_overview("src/lib/models")` to understand existing model patterns
   - **MCP Requirements**: Implement with fields: id, operationName, variables, userCredentials, status, retryAttempts, createdAt, completedAt, timeoutMs
@@ -101,6 +109,7 @@
   - **MCP Verification**: Use `mcp__serena__find_referencing_symbols()` to ensure compatibility with existing page components
 
 ### GraphQL Operations Standardization
+
 - [ ] **T025** Fix dashboard operations function signatures in `src/lib/graphql/dashboard-operations.ts`
   - **MCP Discovery**: Use `mcp__serena__get_symbols_overview("src/lib/graphql/dashboard-operations.ts")` to analyze current functions
   - **MCP Analysis**: Use `mcp__serena__find_referencing_symbols()` to identify all components using dashboard operations
@@ -141,6 +150,7 @@
   - **MCP Verification**: Use `mcp__serena__find_referencing_symbols()` to validate reports page integration
 
 ### Page-Level Implementation (Sequential - modifying same components)
+
 - [ ] **T034** Update dashboard page with standardized error handling in `src/routes/dashboard/+page.svelte`
   - **MCP Discovery**: Use `mcp__serena__get_symbols_overview("src/routes/dashboard/+page.svelte")` to analyze current component structure
   - **MCP Analysis**: Use `mcp__serena__find_referencing_symbols("getCompleteDashboardData")` to understand current usage
@@ -228,6 +238,7 @@
 ## Phase 3.5: Polish & Validation
 
 ### Unit Tests
+
 - [ ] **T052** [P] Unit tests for error classification logic in `tests/unit/error-classification.test.ts`
   - **MCP Discovery**: Use `mcp__serena__find_symbol("classifyError", "src/lib/utils/graphql-error-handling.ts")` to understand error classification logic
   - **MCP Implementation**: Create comprehensive test cases covering all error types and edge cases
@@ -249,6 +260,7 @@
   - **MCP Validation**: Verify message quality and actionable guidance for all error scenarios
 
 ### End-to-End Tests
+
 - [ ] **T056** [P] E2E test complete dashboard workflow in `tests/e2e/dashboard-flow.test.ts`
   - **MCP Discovery**: Use `mcp__serena__get_symbols_overview("src/routes/+page.svelte")` to understand dashboard data flow and components
   - **MCP Implementation**: Test loading states, error scenarios, retry logic, and successful data display
@@ -265,6 +277,7 @@
   - **MCP Validation**: Use `mcp__serena__find_referencing_symbols()` to ensure consistent error handling across all GraphQL operations
 
 ### Performance & Monitoring
+
 - [ ] **T059** Performance validation: GraphQL responses <200ms p95
   - **MCP Discovery**: Use `mcp__serena__find_symbol("graphql-performance-exchange", "src/lib/performance")` to understand current performance monitoring
   - **MCP Implementation**: Implement automated performance validation with benchmarks and alerts
@@ -286,6 +299,7 @@
   - **MCP Validation**: Verify all operations respect 3-retry maximum across all error scenarios
 
 ### Documentation & Cleanup
+
 - [ ] **T063** [P] Update component documentation with error handling patterns
   - **MCP Discovery**: Use `mcp__serena__search_for_pattern("@component|@doc|/\\*\\*", "src/lib/components")` to find existing documentation patterns
   - **MCP Implementation**: Update all GraphQL-integrated components with error handling documentation
@@ -309,6 +323,7 @@
 ## Dependencies
 
 **Critical Dependencies**:
+
 - T001-T004 (Infrastructure) before all other tasks
 - T005-T020 (Tests) before T021-T047 (Implementation)
 - T021-T024 (Models) before T025-T033 (Operations)
@@ -316,6 +331,7 @@
 - T048-T051 (Integration) before T052-T066 (Polish)
 
 **Sequential Dependencies**:
+
 - T034-T047 must run sequentially (same component/store files)
 - T025 blocks T034 (dashboard operations → dashboard page)
 - T026 blocks T035 (auth operations → login page)
@@ -323,6 +339,7 @@
 ## Parallel Execution Examples
 
 ### Phase 1: Infrastructure Setup (Run Together)
+
 ```bash
 # T001-T004: Infrastructure tasks
 Task("Create GraphQL error types", "src/lib/types/graphql-contracts.ts")
@@ -332,6 +349,7 @@ Task("Create cache management", "src/lib/utils/cache-management.ts")
 ```
 
 ### Phase 2: Contract Tests (Run Together)
+
 ```bash
 # T005-T010: Contract tests
 Task("Test dashboard operations", "tests/contract/dashboard-operations.test.ts")
@@ -343,6 +361,7 @@ Task("Test cache operations", "tests/contract/cache-operations.test.ts")
 ```
 
 ### Phase 3: Integration Tests (Run Together)
+
 ```bash
 # T011-T020: Integration tests
 Task("Test network timeout", "tests/integration/network-timeout.test.ts")
@@ -352,6 +371,7 @@ Task("Test retry logic", "tests/integration/retry-logic.test.ts")
 ```
 
 ### Phase 4: Entity Models (Run Together)
+
 ```bash
 # T021-T024: Entity models
 Task("DataRequest model", "src/lib/models/data-request.ts")
@@ -361,6 +381,7 @@ Task("ApplicationPage model", "src/lib/models/application-page.ts")
 ```
 
 ### Phase 5: GraphQL Operations (Run Together)
+
 ```bash
 # T027-T033: Operations (excluding T025-T026 due to page dependencies)
 Task("Fix employee operations", "src/lib/graphql/employee-operations.ts")
@@ -380,7 +401,8 @@ Task("Fix goals operations", "src/lib/graphql/goals-okrs-operations.ts")
 - **Branch strategy**: All work on `013-fix-graphql-integration` branch
 
 ## Validation Checklist
-*GATE: Checked before task completion*
+
+_GATE: Checked before task completion_
 
 - [ ] All GraphQL operations use standardized function signatures
 - [ ] All pages implement consistent error handling patterns

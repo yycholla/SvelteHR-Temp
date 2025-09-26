@@ -3,66 +3,63 @@
 
 # Query: Get all leave requests for manager approval
 query GetPendingLeaveRequests($managerId: UUID!) {
-  leaveRequests(
-    condition: { managerId: $managerId, status: "pending" }
-    orderBy: CREATED_AT_ASC
-  ) {
-    nodes {
-      id
-      employee {
-        id
-        displayName
-        email
-        department {
-          name
-        }
-      }
-      leaveType
-      startDate
-      endDate
-      daysRequested
-      reason
-      status
-      createdAt
-    }
-    totalCount
-  }
+	leaveRequests(condition: { managerId: $managerId, status: "pending" }, orderBy: CREATED_AT_ASC) {
+		nodes {
+			id
+			employee {
+				id
+				displayName
+				email
+				department {
+					name
+				}
+			}
+			leaveType
+			startDate
+			endDate
+			daysRequested
+			reason
+			status
+			createdAt
+		}
+		totalCount
+	}
 }
 
 # Mutation: Approve leave request
 mutation ApproveLeaveRequest($input: ApproveLeaveRequestInput!) {
-  approveLeaveRequest(input: $input) {
-    leaveRequest {
-      id
-      status
-      approvedAt
-      managerComments
-    }
-    clientMutationId
-  }
+	approveLeaveRequest(input: $input) {
+		leaveRequest {
+			id
+			status
+			approvedAt
+			managerComments
+		}
+		clientMutationId
+	}
 }
 
 input ApproveLeaveRequestInput {
-  clientMutationId: String
-  leaveRequestId: UUID!
-  managerComments: String
+	clientMutationId: String
+	leaveRequestId: UUID!
+	managerComments: String
 }
 
 # Mutation: Deny leave request
 mutation DenyLeaveRequest($input: DenyLeaveRequestInput!) {
-  denyLeaveRequest(input: $input) {
-    leaveRequest {
-      id
-      status
-      deniedAt
-      managerComments
-    }
-    clientMutationId
-  }
+	denyLeaveRequest(input: $input) {
+		leaveRequest {
+			id
+			status
+			deniedAt
+			managerComments
+		}
+		clientMutationId
+	}
 }
 
 input DenyLeaveRequestInput {
-  clientMutationId: String
-  leaveRequestId: UUID!
-  managerComments: String!
+	clientMutationId: String
+	leaveRequestId: UUID!
+	managerComments: String!
 }

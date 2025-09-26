@@ -15,13 +15,15 @@
 	} from 'lucide-svelte';
 
 	// Props
-	let { departmentData }: {
+	let {
+		departmentData
+	}: {
 		departmentData: {
 			name: string;
 			manager?: any;
 			employees: any[];
 			subDepartments?: any[];
-		}
+		};
 	} = $props();
 
 	// Tree node interface
@@ -71,7 +73,7 @@
 		}
 
 		// Group remaining employees by role level
-		const nonManagerEmployees = employees.filter(emp => emp.id !== manager?.id);
+		const nonManagerEmployees = employees.filter((emp) => emp.id !== manager?.id);
 		const roleGroups = groupByRoleLevel(nonManagerEmployees);
 
 		// Add employees to appropriate parent (manager or department)
@@ -79,11 +81,12 @@
 		const startLevel = manager ? 2 : 1;
 
 		// Sort role groups by level (highest first)
-		const sortedRoleGroups = Object.entries(roleGroups)
-			.sort(([a], [b]) => parseInt(b) - parseInt(a));
+		const sortedRoleGroups = Object.entries(roleGroups).sort(
+			([a], [b]) => parseInt(b) - parseInt(a)
+		);
 
 		sortedRoleGroups.forEach(([roleLevel, roleEmployees]) => {
-			roleEmployees.forEach(emp => {
+			roleEmployees.forEach((emp) => {
 				const empNode: TreeNode = {
 					id: emp.id,
 					name: emp.displayName || emp.email,
@@ -113,15 +116,18 @@
 	}
 
 	function groupByRoleLevel(employees: any[]) {
-		return employees.reduce((groups, emp) => {
-			const roles = emp.userRoleAssignmentsByUserId?.nodes || [];
-			const level = roles.length > 0 ?
-				Math.max(...roles.map((r: any) => r.userRoleByRoleId.level)) : 20;
+		return employees.reduce(
+			(groups, emp) => {
+				const roles = emp.userRoleAssignmentsByUserId?.nodes || [];
+				const level =
+					roles.length > 0 ? Math.max(...roles.map((r: any) => r.userRoleByRoleId.level)) : 20;
 
-			if (!groups[level]) groups[level] = [];
-			groups[level].push(emp);
-			return groups;
-		}, {} as Record<number, any[]>);
+				if (!groups[level]) groups[level] = [];
+				groups[level].push(emp);
+				return groups;
+			},
+			{} as Record<number, any[]>
+		);
 	}
 
 	function toggleNode(nodeId: string) {
@@ -146,7 +152,12 @@
 	}
 
 	function getUserInitials(name: string): string {
-		return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+		return name
+			.split(' ')
+			.map((n) => n[0])
+			.join('')
+			.toUpperCase()
+			.slice(0, 2);
 	}
 
 	let treeData = $state<TreeNode | null>(null);
@@ -266,9 +277,13 @@
 				<div class="h-6 w-6"></div>
 			{/if}
 
-			<div class="flex items-center gap-3 rounded-lg border p-3 {getNodeColor(node)} min-w-0 flex-1">
+			<div
+				class="flex items-center gap-3 rounded-lg border p-3 {getNodeColor(node)} min-w-0 flex-1"
+			>
 				<!-- Avatar -->
-				<div class="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 font-semibold">
+				<div
+					class="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 font-semibold"
+				>
 					{#if node.user}
 						{getUserInitials(node.name)}
 					{:else}
@@ -279,7 +294,7 @@
 				<!-- Info -->
 				<div class="min-w-0 flex-1">
 					<div class="flex items-center gap-2">
-						<h4 class="font-semibold truncate">{node.name}</h4>
+						<h4 class="truncate font-semibold">{node.name}</h4>
 						{#if node.isManager}
 							<Crown class="h-4 w-4 text-yellow-600" />
 						{/if}

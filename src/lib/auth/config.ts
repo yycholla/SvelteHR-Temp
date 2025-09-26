@@ -79,9 +79,10 @@ const defaultConfig: AuthConfig = {
 	},
 
 	api: {
-		baseUrl: process.env.NODE_ENV === 'production'
-			? 'https://api.postgraphile-hr.com'
-			: 'http://localhost:4000',
+		baseUrl:
+			process.env.NODE_ENV === 'production'
+				? 'https://api.postgraphile-hr.com'
+				: 'http://localhost:4000',
 		authEndpoint: '/auth/login',
 		refreshEndpoint: '/auth/refresh',
 		logoutEndpoint: '/auth/logout',

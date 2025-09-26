@@ -3,7 +3,17 @@
 	import { page } from '$app/stores';
 	import { getOperationStore, queryStore } from '@urql/svelte';
 	import { toast } from 'svelte-sonner';
-	import { FileText, Plus, Download, Calendar, Clock, Settings, X, Eye, RotateCcw } from 'lucide-svelte';
+	import {
+		FileText,
+		Plus,
+		Download,
+		Calendar,
+		Clock,
+		Settings,
+		X,
+		Eye,
+		RotateCcw
+	} from 'lucide-svelte';
 
 	import HrDataTable from '$lib/components/data-table/hr-data-table.svelte';
 	import DataExport from '$lib/components/export/data-export.svelte';
@@ -141,8 +151,15 @@
 			key: 'period',
 			label: 'Period',
 			render: (value: any, row: any) => {
-				const startDate = new Date(row.dateFrom).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-				const endDate = new Date(row.dateTo).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+				const startDate = new Date(row.dateFrom).toLocaleDateString('en-US', {
+					month: 'short',
+					day: 'numeric'
+				});
+				const endDate = new Date(row.dateTo).toLocaleDateString('en-US', {
+					month: 'short',
+					day: 'numeric',
+					year: 'numeric'
+				});
 				return `<div data-testid="report-period" class="text-sm">
 					${startDate} - ${endDate}
 				</div>`;
@@ -339,7 +356,8 @@
 	// Submit schedule form
 	async function submitScheduleForm() {
 		try {
-			const cronExpression = scheduleForm.schedule === 'custom' ? scheduleForm.customCron : scheduleForm.schedule;
+			const cronExpression =
+				scheduleForm.schedule === 'custom' ? scheduleForm.customCron : scheduleForm.schedule;
 			const template = generateReportTemplate(scheduleForm.reportType, scheduleForm.parameters);
 
 			const result = await scheduleReport({
@@ -422,7 +440,7 @@
 
 <div class="container mx-auto px-4 py-8">
 	<!-- Page Header -->
-	<div class="mb-6 flex justify-between items-center">
+	<div class="mb-6 flex items-center justify-between">
 		<div>
 			<h1 class="text-3xl font-bold text-gray-900">Team Reports</h1>
 			<p class="mt-2 text-gray-600">Generate and manage team analytics reports</p>
@@ -430,35 +448,35 @@
 		<div class="flex gap-2">
 			<button
 				onclick={handleScheduleReport}
-				class="px-4 py-2 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 flex items-center gap-2"
+				class="flex items-center gap-2 rounded-md border border-blue-600 px-4 py-2 text-blue-600 hover:bg-blue-50"
 				data-testid="schedule-report"
 			>
-				<Clock class="w-4 h-4" />
+				<Clock class="h-4 w-4" />
 				Schedule Report
 			</button>
 			<button
 				onclick={handleGenerateReport}
-				class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2"
+				class="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
 				data-testid="generate-report"
 			>
-				<Plus class="w-4 h-4" />
+				<Plus class="h-4 w-4" />
 				Generate Report
 			</button>
 		</div>
 	</div>
 
 	<!-- Filters Section -->
-	<div class="bg-white rounded-lg shadow p-4 mb-6">
-		<div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+	<div class="mb-6 rounded-lg bg-white p-4 shadow">
+		<div class="grid grid-cols-1 gap-4 md:grid-cols-5">
 			<!-- Type Filter -->
 			<div>
-				<label for="type-filter" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="type-filter" class="mb-1 block text-sm font-medium text-gray-700">
 					Report Type
 				</label>
 				<select
 					id="type-filter"
 					bind:value={typeFilter}
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 					data-testid="type-filter"
 				>
 					<option value="all">All Types</option>
@@ -470,13 +488,13 @@
 
 			<!-- Status Filter -->
 			<div>
-				<label for="status-filter" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="status-filter" class="mb-1 block text-sm font-medium text-gray-700">
 					Status
 				</label>
 				<select
 					id="status-filter"
 					bind:value={statusFilter}
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 					data-testid="status-filter"
 				>
 					<option value="all">All Statuses</option>
@@ -488,13 +506,13 @@
 
 			<!-- Scheduled Filter -->
 			<div>
-				<label for="scheduled-filter" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="scheduled-filter" class="mb-1 block text-sm font-medium text-gray-700">
 					Schedule
 				</label>
 				<select
 					id="scheduled-filter"
 					bind:value={scheduledFilter}
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 					data-testid="scheduled-filter"
 				>
 					<option value="all">All Reports</option>
@@ -505,21 +523,21 @@
 
 			<!-- Date From Filter -->
 			<div>
-				<label for="date-from" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="date-from" class="mb-1 block text-sm font-medium text-gray-700">
 					From Date
 				</label>
 				<input
 					id="date-from"
 					type="date"
 					bind:value={dateFromFilter}
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 					data-testid="date-from-filter"
 				/>
 			</div>
 
 			<!-- Search -->
 			<div>
-				<label for="search" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="search" class="mb-1 block text-sm font-medium text-gray-700">
 					Search Reports
 				</label>
 				<input
@@ -527,7 +545,7 @@
 					type="text"
 					bind:value={searchQuery}
 					placeholder="Search by title..."
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 					data-testid="report-search"
 				/>
 			</div>
@@ -537,14 +555,14 @@
 		<div class="mt-4 flex gap-2">
 			<button
 				onclick={applyFilters}
-				class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+				class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
 				data-testid="apply-filters"
 			>
 				Apply Filters
 			</button>
 			<button
 				onclick={clearFilters}
-				class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+				class="rounded-md border border-gray-300 px-4 py-2 hover:bg-gray-50"
 				data-testid="clear-filters"
 			>
 				Clear Filters
@@ -553,7 +571,7 @@
 	</div>
 
 	<!-- Data Table -->
-	<div class="bg-white rounded-lg shadow">
+	<div class="rounded-lg bg-white shadow">
 		<HrDataTable
 			data={$teamReports.data?.teamReports?.nodes || []}
 			{columns}
@@ -592,33 +610,36 @@
 
 <!-- Generate Report Modal -->
 {#if showGenerateModal}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="generate-report-modal">
-		<div class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-			<div class="flex justify-between items-center mb-4">
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+		data-testid="generate-report-modal"
+	>
+		<div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6">
+			<div class="mb-4 flex items-center justify-between">
 				<h2 class="text-xl font-bold" data-testid="modal-title">Generate New Report</h2>
 				<button onclick={closeModals} class="text-gray-400 hover:text-gray-600">
-					<X class="w-6 h-6" />
+					<X class="h-6 w-6" />
 				</button>
 			</div>
 
 			<form on:submit|preventDefault={submitGenerateForm}>
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+				<div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
 					<div class="md:col-span-2">
-						<label class="block text-sm font-medium text-gray-700 mb-1">Report Title</label>
+						<label class="mb-1 block text-sm font-medium text-gray-700">Report Title</label>
 						<input
 							type="text"
 							bind:value={generateForm.title}
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 							data-testid="report-title"
 							placeholder="Leave blank for auto-generated title"
 						/>
 					</div>
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Report Type *</label>
+						<label class="mb-1 block text-sm font-medium text-gray-700">Report Type *</label>
 						<select
 							bind:value={generateForm.reportType}
 							required
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 							data-testid="report-type"
 						>
 							{#each reportTypes as type}
@@ -627,11 +648,11 @@
 						</select>
 					</div>
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Team (Optional)</label>
+						<label class="mb-1 block text-sm font-medium text-gray-700">Team (Optional)</label>
 						<input
 							type="text"
 							bind:value={generateForm.teamId}
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 							data-testid="team-id"
 							placeholder="Leave blank for all teams"
 						/>
@@ -639,10 +660,10 @@
 				</div>
 
 				<div class="mb-4">
-					<label class="block text-sm font-medium text-gray-700 mb-1">Report Period</label>
+					<label class="mb-1 block text-sm font-medium text-gray-700">Report Period</label>
 					<select
 						bind:value={generateForm.period}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+						class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 						data-testid="report-period"
 					>
 						{#each reportPeriods as period}
@@ -652,24 +673,24 @@
 				</div>
 
 				{#if generateForm.period === 'custom'}
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+					<div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">From Date *</label>
+							<label class="mb-1 block text-sm font-medium text-gray-700">From Date *</label>
 							<input
 								type="date"
 								bind:value={generateForm.dateFrom}
 								required
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+								class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 								data-testid="date-from"
 							/>
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">To Date *</label>
+							<label class="mb-1 block text-sm font-medium text-gray-700">To Date *</label>
 							<input
 								type="date"
 								bind:value={generateForm.dateTo}
 								required
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+								class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 								data-testid="date-to"
 							/>
 						</div>
@@ -677,7 +698,7 @@
 				{/if}
 
 				<div class="mb-4">
-					<label class="block text-sm font-medium text-gray-700 mb-2">Report Options</label>
+					<label class="mb-2 block text-sm font-medium text-gray-700">Report Options</label>
 					<div class="space-y-2">
 						<label class="flex items-center">
 							<input
@@ -701,10 +722,10 @@
 				</div>
 
 				<div class="mb-4">
-					<label class="block text-sm font-medium text-gray-700 mb-1">Group By</label>
+					<label class="mb-1 block text-sm font-medium text-gray-700">Group By</label>
 					<select
 						bind:value={generateForm.parameters.groupBy}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+						class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 						data-testid="group-by"
 					>
 						<option value="department">Department</option>
@@ -714,13 +735,17 @@
 					</select>
 				</div>
 
-				<div class="flex gap-2 justify-end">
-					<button type="button" onclick={closeModals} class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+				<div class="flex justify-end gap-2">
+					<button
+						type="button"
+						onclick={closeModals}
+						class="rounded-md border border-gray-300 px-4 py-2 hover:bg-gray-50"
+					>
 						Cancel
 					</button>
 					<button
 						type="submit"
-						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+						class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
 						data-testid="submit-generate"
 					>
 						Generate Report
@@ -733,34 +758,37 @@
 
 <!-- Schedule Report Modal -->
 {#if showScheduleModal}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="schedule-report-modal">
-		<div class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-			<div class="flex justify-between items-center mb-4">
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+		data-testid="schedule-report-modal"
+	>
+		<div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6">
+			<div class="mb-4 flex items-center justify-between">
 				<h2 class="text-xl font-bold" data-testid="modal-title">Schedule Recurring Report</h2>
 				<button onclick={closeModals} class="text-gray-400 hover:text-gray-600">
-					<X class="w-6 h-6" />
+					<X class="h-6 w-6" />
 				</button>
 			</div>
 
 			<form on:submit|preventDefault={submitScheduleForm}>
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+				<div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
 					<div class="md:col-span-2">
-						<label class="block text-sm font-medium text-gray-700 mb-1">Schedule Title *</label>
+						<label class="mb-1 block text-sm font-medium text-gray-700">Schedule Title *</label>
 						<input
 							type="text"
 							bind:value={scheduleForm.title}
 							required
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 							data-testid="schedule-title"
 							placeholder="e.g., Weekly Attendance Report"
 						/>
 					</div>
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Report Type *</label>
+						<label class="mb-1 block text-sm font-medium text-gray-700">Report Type *</label>
 						<select
 							bind:value={scheduleForm.reportType}
 							required
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 							data-testid="schedule-report-type"
 						>
 							{#each reportTypes as type}
@@ -769,11 +797,11 @@
 						</select>
 					</div>
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Team (Optional)</label>
+						<label class="mb-1 block text-sm font-medium text-gray-700">Team (Optional)</label>
 						<input
 							type="text"
 							bind:value={scheduleForm.teamId}
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 							data-testid="schedule-team-id"
 							placeholder="Leave blank for all teams"
 						/>
@@ -781,11 +809,11 @@
 				</div>
 
 				<div class="mb-4">
-					<label class="block text-sm font-medium text-gray-700 mb-1">Schedule *</label>
+					<label class="mb-1 block text-sm font-medium text-gray-700">Schedule *</label>
 					<select
 						bind:value={scheduleForm.schedule}
 						required
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+						class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 						data-testid="schedule-frequency"
 					>
 						{#each scheduleOptions as option}
@@ -793,7 +821,7 @@
 						{/each}
 					</select>
 					{#if scheduleForm.schedule !== 'custom'}
-						<p class="text-sm text-gray-600 mt-1">
+						<p class="mt-1 text-sm text-gray-600">
 							{describeCronExpression(scheduleForm.schedule)}
 						</p>
 					{/if}
@@ -801,23 +829,25 @@
 
 				{#if scheduleForm.schedule === 'custom'}
 					<div class="mb-4">
-						<label class="block text-sm font-medium text-gray-700 mb-1">Custom Cron Expression *</label>
+						<label class="mb-1 block text-sm font-medium text-gray-700"
+							>Custom Cron Expression *</label
+						>
 						<input
 							type="text"
 							bind:value={scheduleForm.customCron}
 							required
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 							data-testid="custom-cron"
 							placeholder="0 9 * * 1 (Every Monday at 9 AM)"
 						/>
-						<p class="text-xs text-gray-500 mt-1">
+						<p class="mt-1 text-xs text-gray-500">
 							Format: minute hour day-of-month month day-of-week
 						</p>
 					</div>
 				{/if}
 
 				<div class="mb-4">
-					<label class="block text-sm font-medium text-gray-700 mb-2">Report Options</label>
+					<label class="mb-2 block text-sm font-medium text-gray-700">Report Options</label>
 					<div class="space-y-2">
 						<label class="flex items-center">
 							<input
@@ -849,13 +879,17 @@
 					</div>
 				</div>
 
-				<div class="flex gap-2 justify-end">
-					<button type="button" onclick={closeModals} class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+				<div class="flex justify-end gap-2">
+					<button
+						type="button"
+						onclick={closeModals}
+						class="rounded-md border border-gray-300 px-4 py-2 hover:bg-gray-50"
+					>
 						Cancel
 					</button>
 					<button
 						type="submit"
-						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+						class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
 						data-testid="submit-schedule"
 					>
 						Schedule Report
@@ -868,24 +902,29 @@
 
 <!-- View Report Modal -->
 {#if showViewModal && currentReport}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="view-report-modal">
-		<div class="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-			<div class="flex justify-between items-center mb-6">
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+		data-testid="view-report-modal"
+	>
+		<div class="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-white p-6">
+			<div class="mb-6 flex items-center justify-between">
 				<div>
 					<h2 class="text-xl font-bold" data-testid="modal-title">{currentReport.title}</h2>
 					<p class="text-gray-600">
 						{getReportTypeInfo(currentReport.reportType).label} •
-						{new Date(currentReport.dateFrom).toLocaleDateString()} - {new Date(currentReport.dateTo).toLocaleDateString()}
+						{new Date(currentReport.dateFrom).toLocaleDateString()} - {new Date(
+							currentReport.dateTo
+						).toLocaleDateString()}
 					</p>
 				</div>
 				<button onclick={closeModals} class="text-gray-400 hover:text-gray-600">
-					<X class="w-6 h-6" />
+					<X class="h-6 w-6" />
 				</button>
 			</div>
 
 			<div class="space-y-6" data-testid="report-details">
 				<!-- Report Summary -->
-				<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+				<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
 					<div class="text-center">
 						<p class="text-sm text-gray-600">Status</p>
 						<p class="text-lg">{getReportStatusInfo(currentReport.status).icon}</p>
@@ -909,21 +948,21 @@
 				<!-- Summary -->
 				{#if currentReport.summary}
 					<div>
-						<h4 class="font-medium text-gray-900 mb-2">Summary</h4>
-						<p class="text-gray-700 bg-gray-50 p-3 rounded-md">{currentReport.summary}</p>
+						<h4 class="mb-2 font-medium text-gray-900">Summary</h4>
+						<p class="rounded-md bg-gray-50 p-3 text-gray-700">{currentReport.summary}</p>
 					</div>
 				{/if}
 
 				<!-- Schedule Info -->
 				{#if currentReport.isScheduled}
 					<div>
-						<h4 class="font-medium text-gray-900 mb-2">Schedule Information</h4>
-						<div class="bg-blue-50 p-3 rounded-md">
+						<h4 class="mb-2 font-medium text-gray-900">Schedule Information</h4>
+						<div class="rounded-md bg-blue-50 p-3">
 							<p class="text-sm text-blue-800">
-								<Clock class="w-4 h-4 inline mr-1" />
+								<Clock class="mr-1 inline h-4 w-4" />
 								Scheduled: {describeCronExpression(currentReport.scheduleCron)}
 							</p>
-							<p class="text-xs text-blue-600 mt-1">
+							<p class="mt-1 text-xs text-blue-600">
 								Cron: {currentReport.scheduleCron}
 							</p>
 						</div>
@@ -933,9 +972,13 @@
 				<!-- Report Data Preview -->
 				{#if currentReport.data}
 					<div>
-						<h4 class="font-medium text-gray-900 mb-2">Report Data Preview</h4>
-						<div class="bg-gray-50 p-4 rounded-md max-h-64 overflow-y-auto">
-							<pre class="text-xs text-gray-700 whitespace-pre-wrap">{JSON.stringify(currentReport.data, null, 2)}</pre>
+						<h4 class="mb-2 font-medium text-gray-900">Report Data Preview</h4>
+						<div class="max-h-64 overflow-y-auto rounded-md bg-gray-50 p-4">
+							<pre class="whitespace-pre-wrap text-xs text-gray-700">{JSON.stringify(
+									currentReport.data,
+									null,
+									2
+								)}</pre>
 						</div>
 					</div>
 				{/if}
@@ -943,32 +986,39 @@
 				<!-- Parameters -->
 				{#if currentReport.parameters}
 					<div>
-						<h4 class="font-medium text-gray-900 mb-2">Report Parameters</h4>
-						<div class="bg-gray-50 p-3 rounded-md">
-							<pre class="text-xs text-gray-700 whitespace-pre-wrap">{JSON.stringify(currentReport.parameters, null, 2)}</pre>
+						<h4 class="mb-2 font-medium text-gray-900">Report Parameters</h4>
+						<div class="rounded-md bg-gray-50 p-3">
+							<pre class="whitespace-pre-wrap text-xs text-gray-700">{JSON.stringify(
+									currentReport.parameters,
+									null,
+									2
+								)}</pre>
 						</div>
 					</div>
 				{/if}
 			</div>
 
-			<div class="flex justify-between mt-6">
+			<div class="mt-6 flex justify-between">
 				<div class="flex gap-2">
 					<button
 						onclick={() => handleDownloadReport(currentReport)}
-						class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+						class="rounded-md bg-green-600 px-4 py-2 text-white hover:bg-green-700"
 					>
 						Download Report
 					</button>
 					{#if currentReport.status === 'completed'}
 						<button
 							onclick={() => handleRegenerateReport(currentReport)}
-							class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700"
+							class="rounded-md bg-orange-600 px-4 py-2 text-white hover:bg-orange-700"
 						>
 							Regenerate
 						</button>
 					{/if}
 				</div>
-				<button onclick={closeModals} class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">
+				<button
+					onclick={closeModals}
+					class="rounded-md bg-gray-600 px-4 py-2 text-white hover:bg-gray-700"
+				>
 					Close
 				</button>
 			</div>

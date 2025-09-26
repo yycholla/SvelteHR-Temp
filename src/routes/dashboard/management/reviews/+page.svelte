@@ -4,11 +4,30 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { BarChart3, TrendingUp, Users, Award, Plus, Search, Filter, Calendar, Star, Clock, CheckCircle, AlertTriangle } from 'lucide-svelte';
+	import {
+		BarChart3,
+		TrendingUp,
+		Users,
+		Award,
+		Plus,
+		Search,
+		Filter,
+		Calendar,
+		Star,
+		Clock,
+		CheckCircle,
+		AlertTriangle
+	} from 'lucide-svelte';
 	import { toast } from 'svelte-sonner';
 
 	import { Button } from '$lib/components/ui/button';
-	import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
+	import {
+		Card,
+		CardContent,
+		CardDescription,
+		CardHeader,
+		CardTitle
+	} from '$lib/components/ui/card';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { Select, SelectContent, SelectItem, SelectTrigger } from '$lib/components/ui/select';
@@ -16,7 +35,14 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Avatar, AvatarFallback } from '$lib/components/ui/avatar';
 	import { Progress } from '$lib/components/ui/progress';
-	import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '$lib/components/ui/dialog';
+	import {
+		Dialog,
+		DialogContent,
+		DialogDescription,
+		DialogFooter,
+		DialogHeader,
+		DialogTitle
+	} from '$lib/components/ui/dialog';
 
 	import {
 		performanceRatings,
@@ -138,7 +164,7 @@
 		let filtered = performanceReviews;
 
 		if (selectedView !== 'all') {
-			filtered = filtered.filter(review => {
+			filtered = filtered.filter((review) => {
 				switch (selectedView) {
 					case 'pending':
 						return review.status === 'draft' || review.status === 'in_progress';
@@ -154,10 +180,11 @@
 
 		if (searchQuery) {
 			const query = searchQuery.toLowerCase();
-			filtered = filtered.filter(review =>
-				review.employee?.displayName.toLowerCase().includes(query) ||
-				review.reviewer?.displayName.toLowerCase().includes(query) ||
-				review.employee?.department?.name.toLowerCase().includes(query)
+			filtered = filtered.filter(
+				(review) =>
+					review.employee?.displayName.toLowerCase().includes(query) ||
+					review.reviewer?.displayName.toLowerCase().includes(query) ||
+					review.employee?.department?.name.toLowerCase().includes(query)
 			);
 		}
 
@@ -232,16 +259,28 @@
 
 	// Get initials for avatar
 	function getInitials(name: string): string {
-		return name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U';
+		return (
+			name
+				?.split(' ')
+				.map((n) => n[0])
+				.join('')
+				.toUpperCase() || 'U'
+		);
 	}
 
 	// Get status badge variant
-	function getStatusBadgeVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
+	function getStatusBadgeVariant(
+		status: string
+	): 'default' | 'secondary' | 'destructive' | 'outline' {
 		switch (status) {
-			case 'completed': return 'default';
-			case 'in_progress': return 'secondary';
-			case 'draft': return 'outline';
-			default: return 'outline';
+			case 'completed':
+				return 'default';
+			case 'in_progress':
+				return 'secondary';
+			case 'draft':
+				return 'outline';
+			default:
+				return 'outline';
 		}
 	}
 
@@ -260,39 +299,48 @@
 
 <svelte:head>
 	<title>Performance Reviews - SvelteHR</title>
-	<meta name="description" content="Manage and track team performance reviews, ratings, and analytics" />
+	<meta
+		name="description"
+		content="Manage and track team performance reviews, ratings, and analytics"
+	/>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50">
-	<div class="container mx-auto p-4 space-y-6">
+	<div class="container mx-auto space-y-6 p-4">
 		<!-- Header -->
 		<div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 			<div>
 				<h1 class="text-3xl font-bold tracking-tight text-gray-900">Performance Reviews</h1>
-				<p class="text-gray-600">Manage and track team performance reviews, ratings, and development plans</p>
+				<p class="text-gray-600">
+					Manage and track team performance reviews, ratings, and development plans
+				</p>
 			</div>
 
 			{#if canCreateReviews}
-				<Button onclick={() => { showCreateModal = true; }}>
-					<Plus class="w-4 h-4 mr-2" />
+				<Button
+					onclick={() => {
+						showCreateModal = true;
+					}}
+				>
+					<Plus class="mr-2 h-4 w-4" />
 					New Review
 				</Button>
 			{/if}
 		</div>
 
 		<!-- Statistics Cards -->
-		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+		<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
 			{#each statsCards as stat}
 				<Card class={`${stat.color} border`}>
 					<CardContent class="p-6">
 						<div class="flex items-center justify-between">
 							<div>
 								<p class="text-sm font-medium opacity-75">{stat.title}</p>
-								<p class="text-2xl font-bold mt-2">{stat.value}</p>
-								<p class="text-xs opacity-75 mt-1">{stat.description}</p>
+								<p class="mt-2 text-2xl font-bold">{stat.value}</p>
+								<p class="mt-1 text-xs opacity-75">{stat.description}</p>
 							</div>
 							<div class={`${stat.iconColor} opacity-75`}>
-								<svelte:component this={stat.icon} class="w-8 h-8" />
+								<svelte:component this={stat.icon} class="h-8 w-8" />
 							</div>
 						</div>
 					</CardContent>
@@ -305,7 +353,7 @@
 			<Card>
 				<CardHeader>
 					<CardTitle class="flex items-center gap-2">
-						<BarChart3 class="w-5 h-5" />
+						<BarChart3 class="h-5 w-5" />
 						Performance Analytics
 					</CardTitle>
 					<CardDescription>Average ratings across different performance categories</CardDescription>
@@ -315,12 +363,12 @@
 						{#each ratingCategories as category}
 							<div class="flex items-center justify-between">
 								<div class="flex items-center gap-3">
-									<div class={`w-3 h-3 rounded-full ${category.color}`}></div>
+									<div class={`h-3 w-3 rounded-full ${category.color}`}></div>
 									<span class="text-sm font-medium">{category.label}</span>
 								</div>
 								<div class="flex items-center gap-2">
 									<Progress value={category.value * 20} class="w-24" />
-									<span class="text-sm text-gray-600 w-8">{category.value.toFixed(1)}</span>
+									<span class="w-8 text-sm text-gray-600">{category.value.toFixed(1)}</span>
 								</div>
 							</div>
 						{/each}
@@ -333,7 +381,7 @@
 		<Card>
 			<CardHeader>
 				<CardTitle class="flex items-center gap-2">
-					<Filter class="w-5 h-5" />
+					<Filter class="h-5 w-5" />
 					Filter Reviews
 				</CardTitle>
 			</CardHeader>
@@ -352,7 +400,7 @@
 								}}
 							/>
 							<Button onclick={handleSearch} size="sm">
-								<Search class="w-4 h-4" />
+								<Search class="h-4 w-4" />
 							</Button>
 						</div>
 					</div>
@@ -389,7 +437,12 @@
 		</Card>
 
 		<!-- Tabs for different views -->
-		<Tabs value={selectedView} onValueChange={(value) => { selectedView = value; }}>
+		<Tabs
+			value={selectedView}
+			onValueChange={(value) => {
+				selectedView = value;
+			}}
+		>
 			<TabsList class="grid w-full grid-cols-4">
 				<TabsTrigger value="all">
 					All Reviews ({data.totalReviews})
@@ -411,8 +464,8 @@
 					{#if filteredReviews.length === 0}
 						<Card>
 							<CardContent class="p-8 text-center">
-								<Award class="w-12 h-12 text-gray-400 mx-auto mb-4" />
-								<h3 class="text-lg font-semibold text-gray-700 mb-2">No reviews found</h3>
+								<Award class="mx-auto mb-4 h-12 w-12 text-gray-400" />
+								<h3 class="mb-2 text-lg font-semibold text-gray-700">No reviews found</h3>
 								<p class="text-gray-500">
 									{#if selectedView === 'pending'}
 										No pending performance reviews at the moment.
@@ -428,13 +481,13 @@
 						</Card>
 					{:else}
 						{#each filteredReviews as review}
-							<Card class="hover:shadow-md transition-shadow">
+							<Card class="transition-shadow hover:shadow-md">
 								<CardContent class="p-6">
 									<div class="flex items-start justify-between">
 										<!-- Review Info -->
-										<div class="flex items-start space-x-4 flex-1">
+										<div class="flex flex-1 items-start space-x-4">
 											<!-- Employee Avatar -->
-											<Avatar class="w-12 h-12">
+											<Avatar class="h-12 w-12">
 												<AvatarFallback class="bg-blue-100 text-blue-700">
 													{getInitials(review.employee?.displayName || '')}
 												</AvatarFallback>
@@ -442,7 +495,7 @@
 
 											<!-- Review Details -->
 											<div class="flex-1 space-y-2">
-												<div class="flex items-center gap-3 flex-wrap">
+												<div class="flex flex-wrap items-center gap-3">
 													<h3 class="text-lg font-semibold text-gray-900">
 														{review.employee?.displayName || 'Unknown Employee'}
 													</h3>
@@ -450,28 +503,46 @@
 														{getStatusInfo(review.status).label}
 													</Badge>
 													{#if review.overallRating}
-														<Badge variant="outline" class="bg-yellow-50 text-yellow-700 border-yellow-200">
-															<Star class="w-3 h-3 mr-1" />
+														<Badge
+															variant="outline"
+															class="border-yellow-200 bg-yellow-50 text-yellow-700"
+														>
+															<Star class="mr-1 h-3 w-3" />
 															{review.overallRating}/5
 														</Badge>
 													{/if}
 													{#if isReviewOverdue(review)}
 														<Badge variant="destructive">
-															<Clock class="w-3 h-3 mr-1" />
+															<Clock class="mr-1 h-3 w-3" />
 															Overdue
 														</Badge>
 													{/if}
 												</div>
 
-												<div class="text-sm text-gray-600 space-y-1">
-													<p><strong>Department:</strong> {review.employee?.department?.name || 'N/A'}</p>
-													<p><strong>Reviewer:</strong> {review.reviewer?.displayName || 'Not assigned'}</p>
-													<p><strong>Review Period:</strong> {formatReviewPeriod(review.reviewPeriodStart, review.reviewPeriodEnd)}</p>
+												<div class="space-y-1 text-sm text-gray-600">
+													<p>
+														<strong>Department:</strong>
+														{review.employee?.department?.name || 'N/A'}
+													</p>
+													<p>
+														<strong>Reviewer:</strong>
+														{review.reviewer?.displayName || 'Not assigned'}
+													</p>
+													<p>
+														<strong>Review Period:</strong>
+														{formatReviewPeriod(review.reviewPeriodStart, review.reviewPeriodEnd)}
+													</p>
 													{#if review.overallRating}
-														<p><strong>Overall Rating:</strong> {renderRatingStars(review.overallRating)} ({review.overallRating}/5)</p>
+														<p>
+															<strong>Overall Rating:</strong>
+															{renderRatingStars(review.overallRating)} ({review.overallRating}/5)
+														</p>
 													{/if}
 													{#if review.strengths}
-														<p><strong>Key Strengths:</strong> {review.strengths.substring(0, 100)}...</p>
+														<p>
+															<strong>Key Strengths:</strong>
+															{review.strengths.substring(0, 100)}...
+														</p>
 													{/if}
 												</div>
 
@@ -485,12 +556,8 @@
 										</div>
 
 										<!-- Actions -->
-										<div class="flex gap-2 ml-4">
-											<Button
-												size="sm"
-												variant="outline"
-												onclick={() => handleViewReview(review)}
-											>
+										<div class="ml-4 flex gap-2">
+											<Button size="sm" variant="outline" onclick={() => handleViewReview(review)}>
 												View Details
 											</Button>
 											{#if canEditReviews && review.status !== 'completed'}
@@ -507,7 +574,7 @@
 													size="sm"
 													variant="outline"
 													onclick={() => handleDeleteReview(review)}
-													class="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
+													class="border-red-200 text-red-600 hover:border-red-300 hover:text-red-700"
 												>
 													Delete
 												</Button>
@@ -531,16 +598,19 @@
 			<DialogTitle>Performance Review Details</DialogTitle>
 			<DialogDescription>
 				{#if currentReview}
-					Review for {currentReview.employee?.displayName} • {formatReviewPeriod(currentReview.reviewPeriodStart, currentReview.reviewPeriodEnd)}
+					Review for {currentReview.employee?.displayName} • {formatReviewPeriod(
+						currentReview.reviewPeriodStart,
+						currentReview.reviewPeriodEnd
+					)}
 				{/if}
 			</DialogDescription>
 		</DialogHeader>
 
 		{#if currentReview}
-			<div class="space-y-6 max-h-96 overflow-y-auto">
+			<div class="max-h-96 space-y-6 overflow-y-auto">
 				<!-- Employee Info -->
-				<div class="bg-gray-50 p-4 rounded-lg">
-					<h4 class="font-semibold mb-2">Employee Information</h4>
+				<div class="rounded-lg bg-gray-50 p-4">
+					<h4 class="mb-2 font-semibold">Employee Information</h4>
 					<div class="grid grid-cols-2 gap-4 text-sm">
 						<p><strong>Name:</strong> {currentReview.employee?.displayName}</p>
 						<p><strong>Department:</strong> {currentReview.employee?.department?.name}</p>
@@ -552,28 +622,36 @@
 				<!-- Ratings -->
 				{#if currentReview.overallRating}
 					<div>
-						<h4 class="font-semibold mb-3">Performance Ratings</h4>
+						<h4 class="mb-3 font-semibold">Performance Ratings</h4>
 						<div class="grid grid-cols-2 gap-4">
 							<div class="text-sm">
 								<p class="font-medium">Overall Performance</p>
-								<p class="text-yellow-600">{renderRatingStars(currentReview.overallRating)} ({currentReview.overallRating}/5)</p>
+								<p class="text-yellow-600">
+									{renderRatingStars(currentReview.overallRating)} ({currentReview.overallRating}/5)
+								</p>
 							</div>
 							{#if currentReview.goalsAchievement}
 								<div class="text-sm">
 									<p class="font-medium">Goals Achievement</p>
-									<p class="text-yellow-600">{renderRatingStars(currentReview.goalsAchievement)} ({currentReview.goalsAchievement}/5)</p>
+									<p class="text-yellow-600">
+										{renderRatingStars(currentReview.goalsAchievement)} ({currentReview.goalsAchievement}/5)
+									</p>
 								</div>
 							{/if}
 							{#if currentReview.collaboration}
 								<div class="text-sm">
 									<p class="font-medium">Collaboration</p>
-									<p class="text-yellow-600">{renderRatingStars(currentReview.collaboration)} ({currentReview.collaboration}/5)</p>
+									<p class="text-yellow-600">
+										{renderRatingStars(currentReview.collaboration)} ({currentReview.collaboration}/5)
+									</p>
 								</div>
 							{/if}
 							{#if currentReview.communication}
 								<div class="text-sm">
 									<p class="font-medium">Communication</p>
-									<p class="text-yellow-600">{renderRatingStars(currentReview.communication)} ({currentReview.communication}/5)</p>
+									<p class="text-yellow-600">
+										{renderRatingStars(currentReview.communication)} ({currentReview.communication}/5)
+									</p>
 								</div>
 							{/if}
 						</div>
@@ -583,47 +661,58 @@
 				<!-- Review Content -->
 				{#if currentReview.strengths}
 					<div>
-						<h4 class="font-semibold mb-2">Strengths</h4>
-						<p class="text-sm text-gray-700 bg-green-50 p-3 rounded">{currentReview.strengths}</p>
+						<h4 class="mb-2 font-semibold">Strengths</h4>
+						<p class="rounded bg-green-50 p-3 text-sm text-gray-700">{currentReview.strengths}</p>
 					</div>
 				{/if}
 
 				{#if currentReview.areasForImprovement}
 					<div>
-						<h4 class="font-semibold mb-2">Areas for Improvement</h4>
-						<p class="text-sm text-gray-700 bg-orange-50 p-3 rounded">{currentReview.areasForImprovement}</p>
+						<h4 class="mb-2 font-semibold">Areas for Improvement</h4>
+						<p class="rounded bg-orange-50 p-3 text-sm text-gray-700">
+							{currentReview.areasForImprovement}
+						</p>
 					</div>
 				{/if}
 
 				{#if currentReview.goalsForNextPeriod}
 					<div>
-						<h4 class="font-semibold mb-2">Goals for Next Period</h4>
-						<p class="text-sm text-gray-700 bg-blue-50 p-3 rounded">{currentReview.goalsForNextPeriod}</p>
+						<h4 class="mb-2 font-semibold">Goals for Next Period</h4>
+						<p class="rounded bg-blue-50 p-3 text-sm text-gray-700">
+							{currentReview.goalsForNextPeriod}
+						</p>
 					</div>
 				{/if}
 
 				{#if currentReview.developmentPlan}
 					<div>
-						<h4 class="font-semibold mb-2">Development Plan</h4>
-						<p class="text-sm text-gray-700 bg-purple-50 p-3 rounded">{currentReview.developmentPlan}</p>
+						<h4 class="mb-2 font-semibold">Development Plan</h4>
+						<p class="rounded bg-purple-50 p-3 text-sm text-gray-700">
+							{currentReview.developmentPlan}
+						</p>
 					</div>
 				{/if}
 
 				{#if currentReview.employeeSelfAssessment}
 					<div>
-						<h4 class="font-semibold mb-2">Employee Self-Assessment</h4>
-						<p class="text-sm text-gray-700 bg-gray-50 p-3 rounded">{currentReview.employeeSelfAssessment}</p>
+						<h4 class="mb-2 font-semibold">Employee Self-Assessment</h4>
+						<p class="rounded bg-gray-50 p-3 text-sm text-gray-700">
+							{currentReview.employeeSelfAssessment}
+						</p>
 					</div>
 				{/if}
 			</div>
 		{/if}
 
 		<DialogFooter>
-			<Button variant="outline" onclick={() => { showDetailsModal = false; }}>Close</Button>
+			<Button
+				variant="outline"
+				onclick={() => {
+					showDetailsModal = false;
+				}}>Close</Button
+			>
 			{#if canEditReviews && currentReview && currentReview.status !== 'completed'}
-				<Button href={`/dashboard/management/reviews/${currentReview.id}/edit`}>
-					Edit Review
-				</Button>
+				<Button href={`/dashboard/management/reviews/${currentReview.id}/edit`}>Edit Review</Button>
 			{/if}
 		</DialogFooter>
 	</DialogContent>
@@ -639,16 +728,28 @@
 			</DialogDescription>
 		</DialogHeader>
 
-		<div class="text-center py-8">
-			<Award class="w-12 h-12 text-gray-400 mx-auto mb-4" />
-			<p class="text-gray-600 mb-4">Performance review creation form will be implemented in the next phase.</p>
-			<Button variant="outline" onclick={() => { showCreateModal = false; }}>
+		<div class="py-8 text-center">
+			<Award class="mx-auto mb-4 h-12 w-12 text-gray-400" />
+			<p class="mb-4 text-gray-600">
+				Performance review creation form will be implemented in the next phase.
+			</p>
+			<Button
+				variant="outline"
+				onclick={() => {
+					showCreateModal = false;
+				}}
+			>
 				Coming Soon
 			</Button>
 		</div>
 
 		<DialogFooter>
-			<Button variant="outline" onclick={() => { showCreateModal = false; }}>Cancel</Button>
+			<Button
+				variant="outline"
+				onclick={() => {
+					showCreateModal = false;
+				}}>Cancel</Button
+			>
 		</DialogFooter>
 	</DialogContent>
 </Dialog>

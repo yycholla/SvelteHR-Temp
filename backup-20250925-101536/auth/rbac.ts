@@ -76,16 +76,16 @@ export function createRBACManager(
 	userId: string | null = null
 ): RBACManager {
 	// Filter to active role assignments only
-	const activeRoles = roleAssignments.filter(ra =>
-		ra.isActive !== false && ra.role?.isActive !== false
+	const activeRoles = roleAssignments.filter(
+		(ra) => ra.isActive !== false && ra.role?.isActive !== false
 	);
 
 	// Extract all permissions from active roles
 	const allPermissions: Permission[] = [];
 	const uniquePermissions = new Set<string>();
 
-	activeRoles.forEach(assignment => {
-		assignment.role?.permissions?.forEach(permission => {
+	activeRoles.forEach((assignment) => {
+		assignment.role?.permissions?.forEach((permission) => {
 			if (permission.isActive && !uniquePermissions.has(permission.id)) {
 				uniquePermissions.add(permission.id);
 				allPermissions.push(permission);
@@ -101,37 +101,37 @@ export function createRBACManager(
 		// Permission checking methods
 		hasPermission(permission: string): boolean {
 			// Check for wildcard admin permission
-			if (allPermissions.some(p => p.name === '*' || p.name === 'admin:*')) {
+			if (allPermissions.some((p) => p.name === '*' || p.name === 'admin:*')) {
 				return true;
 			}
 
 			// Check for exact permission match
-			if (allPermissions.some(p => p.name === permission)) {
+			if (allPermissions.some((p) => p.name === permission)) {
 				return true;
 			}
 
 			// Check for wildcard resource permissions (e.g., 'users:*' matches 'users:read')
 			const [resource] = permission.split(':');
 			const wildcardPermission = `${resource}:*`;
-			return allPermissions.some(p => p.name === wildcardPermission);
+			return allPermissions.some((p) => p.name === wildcardPermission);
 		},
 
 		hasAnyPermission(permissions: string[]): boolean {
-			return permissions.some(permission => this.hasPermission(permission));
+			return permissions.some((permission) => this.hasPermission(permission));
 		},
 
 		hasAllPermissions(permissions: string[]): boolean {
-			return permissions.every(permission => this.hasPermission(permission));
+			return permissions.every((permission) => this.hasPermission(permission));
 		},
 
 		hasRole(roleName: string): boolean {
-			return activeRoles.some(assignment =>
-				assignment.role?.name?.toLowerCase() === roleName.toLowerCase()
+			return activeRoles.some(
+				(assignment) => assignment.role?.name?.toLowerCase() === roleName.toLowerCase()
 			);
 		},
 
 		hasAnyRole(roleNames: string[]): boolean {
-			return roleNames.some(roleName => this.hasRole(roleName));
+			return roleNames.some((roleName) => this.hasRole(roleName));
 		},
 
 		// Resource-specific permission checking
@@ -140,10 +140,12 @@ export function createRBACManager(
 		},
 
 		canWrite(resource: string): boolean {
-			return this.hasPermission(`${resource}:write`) ||
-				   this.hasPermission(`${resource}:create`) ||
-				   this.hasPermission(`${resource}:update`) ||
-				   this.hasPermission(`${resource}:*`);
+			return (
+				this.hasPermission(`${resource}:write`) ||
+				this.hasPermission(`${resource}:create`) ||
+				this.hasPermission(`${resource}:update`) ||
+				this.hasPermission(`${resource}:*`)
+			);
 		},
 
 		canDelete(resource: string): boolean {
@@ -151,32 +153,40 @@ export function createRBACManager(
 		},
 
 		canManage(resource: string): boolean {
-			return this.hasPermission(`${resource}:*`) ||
-				   this.hasPermission('*') ||
-				   this.hasPermission('admin:*');
+			return (
+				this.hasPermission(`${resource}:*`) ||
+				this.hasPermission('*') ||
+				this.hasPermission('admin:*')
+			);
 		},
 
 		// Administrative functions
 		isAdmin(): boolean {
-			return this.hasRole('Admin') ||
-				   this.hasRole('Administrator') ||
-				   this.hasPermission('*') ||
-				   this.hasPermission('admin:*');
+			return (
+				this.hasRole('Admin') ||
+				this.hasRole('Administrator') ||
+				this.hasPermission('*') ||
+				this.hasPermission('admin:*')
+			);
 		},
 
 		isHRManager(): boolean {
-			return this.hasRole('HR Manager') ||
-				   this.hasRole('HR_Manager') ||
-				   this.hasRole('Human Resources Manager') ||
-				   this.isAdmin();
+			return (
+				this.hasRole('HR Manager') ||
+				this.hasRole('HR_Manager') ||
+				this.hasRole('Human Resources Manager') ||
+				this.isAdmin()
+			);
 		},
 
 		isManager(): boolean {
-			return this.hasRole('Manager') ||
-				   this.hasRole('Team Lead') ||
-				   this.hasRole('Supervisor') ||
-				   this.isHRManager() ||
-				   this.isAdmin();
+			return (
+				this.hasRole('Manager') ||
+				this.hasRole('Team Lead') ||
+				this.hasRole('Supervisor') ||
+				this.isHRManager() ||
+				this.isAdmin()
+			);
 		},
 
 		// Role level checking
@@ -186,18 +196,16 @@ export function createRBACManager(
 		},
 
 		getHighestRoleLevel(): number {
-			return Math.max(0, ...activeRoles.map(assignment =>
-				assignment.role?.level || 0
-			));
+			return Math.max(0, ...activeRoles.map((assignment) => assignment.role?.level || 0));
 		},
 
 		// Utility methods
 		getAllPermissions(): string[] {
-			return allPermissions.map(p => p.name);
+			return allPermissions.map((p) => p.name);
 		},
 
 		getRoleNames(): string[] {
-			return activeRoles.map(assignment => assignment.role?.name).filter(Boolean) as string[];
+			return activeRoles.map((assignment) => assignment.role?.name).filter(Boolean) as string[];
 		},
 
 		debugInfo(): Record<string, any> {
@@ -326,6 +334,7 @@ export function createPermissionChecker(rbacManager: RBACManager) {
 		isAdmin: () => rbacManager.isAdmin(),
 		isHR: () => rbacManager.isHRManager(),
 		isManager: () => rbacManager.isManager(),
-		check: (resource: string, action: string) => checkPermission(rbacManager, resource, action as any)
+		check: (resource: string, action: string) =>
+			checkPermission(rbacManager, resource, action as any)
 	};
 }

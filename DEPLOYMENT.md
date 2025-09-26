@@ -26,17 +26,19 @@ This guide provides comprehensive instructions for deploying the MountainHR Fron
 ### Required Software
 
 1. **Docker & Docker Compose**
+
    ```bash
    # Install Docker
    curl -fsSL https://get.docker.com -o get-docker.sh
    sudo sh get-docker.sh
-   
+
    # Install Docker Compose
    sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
    sudo chmod +x /usr/local/bin/docker-compose
    ```
 
 2. **Doppler CLI (Recommended for secrets management)**
+
    ```bash
    curl -Ls --tlsv1.2 --proto "=https" --retry 3 https://cli.doppler.com/install.sh | sudo sh
    ```
@@ -225,6 +227,7 @@ echo | openssl s_client -servername yourdomain.com -connect yourdomain.com:443 2
 Access Prometheus at `http://localhost:9090`
 
 **Key Metrics to Monitor:**
+
 - `http_request_duration_seconds` - Request duration
 - `http_requests_total` - Request count
 - `nodejs_memory_usage_bytes` - Memory usage
@@ -235,6 +238,7 @@ Access Prometheus at `http://localhost:9090`
 Access Grafana at `http://localhost:3000` (admin/your-password)
 
 **Pre-configured Dashboards:**
+
 1. Application Overview
 2. Node.js Performance
 3. Infrastructure Metrics
@@ -300,6 +304,7 @@ PUBLIC_CDN_URL=https://cdn.yourdomain.com
 ```
 
 **Recommended CDN Providers:**
+
 - Cloudflare
 - AWS CloudFront
 - Google Cloud CDN

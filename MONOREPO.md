@@ -50,11 +50,13 @@ make db-reset
 - **Built-in SMTP**: Email functionality for auth workflows
 
 ### Key Extensions Enabled:
+
 - ✅ `graphql` - GraphQL API endpoint
 - ✅ `auth` - Authentication with magic links and email/password
 - ✅ `pgcrypto` - Cryptographic functions
 
 ### SMTP Configuration:
+
 - **Provider**: SMTP2GO
 - **Host**: mail.smtp2go.com:2525
 - **Sender**: gel@yycholla.com
@@ -62,6 +64,7 @@ make db-reset
 ## 🎯 Development Workflow
 
 ### Frontend Development
+
 The SvelteKit app connects directly to GelDB's GraphQL endpoint, eliminating the need for a separate API layer.
 
 ```bash
@@ -73,6 +76,7 @@ make build
 ```
 
 ### Database Management
+
 ```bash
 # Apply schema changes
 make schema-apply
@@ -85,6 +89,7 @@ make db-reset
 ```
 
 ### Schema Development
+
 Schema files are located in `apps/database/dbschema/` and include:
 
 - `default.gel` - Core types and auth integration
@@ -104,6 +109,7 @@ GelDB's auth extension provides:
 - **Session Management** - JWT tokens and secure sessions
 
 ### Available Roles:
+
 - `Admin` - Full system access
 - `HR_Manager` - HR operations and employee management
 - `Manager` - Team and department management
@@ -122,22 +128,22 @@ The frontend uses GelDB's native GraphQL endpoint for all data operations:
 
 ```yaml
 services:
-  geldb:    # Primary database with GraphQL + Auth
-  redis:    # Session storage and caching (optional)
+  geldb: # Primary database with GraphQL + Auth
+  redis: # Session storage and caching (optional)
 ```
 
 No separate API layer needed - GelDB handles everything!
 
 ## 🛠️ Available Commands
 
-| Command | Description |
-|---------|-------------|
-| `make dev` | Start development environment |
-| `make db-up` | Start database services |
-| `make db-health` | Check service health |
-| `make db-reset` | Reset database with fresh schema |
-| `make schema-apply` | Apply schema changes |
-| `make clean` | Clean all artifacts |
+| Command             | Description                      |
+| ------------------- | -------------------------------- |
+| `make dev`          | Start development environment    |
+| `make db-up`        | Start database services          |
+| `make db-health`    | Check service health             |
+| `make db-reset`     | Reset database with fresh schema |
+| `make schema-apply` | Apply schema changes             |
+| `make clean`        | Clean all artifacts              |
 
 ## 🎨 Frontend Stack
 
@@ -150,7 +156,7 @@ No separate API layer needed - GelDB handles everything!
 ## 🔄 Development Flow
 
 1. **Schema Changes**: Edit files in `apps/database/dbschema/`
-2. **Apply Schema**: Run `make schema-apply` 
+2. **Apply Schema**: Run `make schema-apply`
 3. **Generate Types**: GraphQL codegen creates TypeScript types
 4. **Frontend Development**: Use type-safe GraphQL operations
 5. **Testing**: E2E tests with Playwright, unit tests with Vitest

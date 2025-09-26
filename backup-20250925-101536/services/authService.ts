@@ -139,7 +139,8 @@ export async function verifyToken(token?: string): Promise<{
 	error?: string;
 }> {
 	try {
-		const authToken = token || (browser ? localStorage.getItem(AUTH_CONFIG.tokenStorage.key) : null);
+		const authToken =
+			token || (browser ? localStorage.getItem(AUTH_CONFIG.tokenStorage.key) : null);
 
 		if (!authToken) {
 			return {

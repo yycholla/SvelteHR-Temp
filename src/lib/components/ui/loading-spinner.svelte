@@ -8,7 +8,13 @@
 		class?: string;
 	}
 
-	let { size = 'md', variant = 'default', label = 'Loading...', class: className, ...restProps }: Props = $props();
+	let {
+		size = 'md',
+		variant = 'default',
+		label = 'Loading...',
+		class: className,
+		...restProps
+	}: Props = $props();
 
 	const sizeClasses = {
 		sm: 'h-4 w-4',
@@ -25,10 +31,7 @@
 </script>
 
 <div
-	class={cn(
-		'flex items-center justify-center',
-		className
-	)}
+	class={cn('flex items-center justify-center', className)}
 	role="status"
 	aria-label={label}
 	{...restProps}

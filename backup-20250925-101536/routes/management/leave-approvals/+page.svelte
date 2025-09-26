@@ -241,45 +241,43 @@
 	</div>
 
 	<!-- Filters Section -->
-	<div class="bg-white rounded-lg shadow p-4 mb-6">
-		<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+	<div class="mb-6 rounded-lg bg-white p-4 shadow">
+		<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
 			<!-- Date From Filter -->
 			<div>
-				<label for="date-from" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="date-from" class="mb-1 block text-sm font-medium text-gray-700">
 					From Date
 				</label>
 				<input
 					id="date-from"
 					type="date"
 					bind:value={dateFromFilter}
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 					data-testid="date-from-filter"
 				/>
 			</div>
 
 			<!-- Date To Filter -->
 			<div>
-				<label for="date-to" class="block text-sm font-medium text-gray-700 mb-1">
-					To Date
-				</label>
+				<label for="date-to" class="mb-1 block text-sm font-medium text-gray-700"> To Date </label>
 				<input
 					id="date-to"
 					type="date"
 					bind:value={dateToFilter}
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 					data-testid="date-to-filter"
 				/>
 			</div>
 
 			<!-- Leave Type Filter -->
 			<div>
-				<label for="leave-type" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="leave-type" class="mb-1 block text-sm font-medium text-gray-700">
 					Leave Type
 				</label>
 				<select
 					id="leave-type"
 					bind:value={leaveTypeFilter}
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 					data-testid="leave-type-filter"
 				>
 					<option value="all">All Types</option>
@@ -295,7 +293,7 @@
 
 			<!-- Search -->
 			<div>
-				<label for="search" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="search" class="mb-1 block text-sm font-medium text-gray-700">
 					Search Employee
 				</label>
 				<input
@@ -303,7 +301,7 @@
 					type="text"
 					bind:value={searchQuery}
 					placeholder="Search by name..."
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 					data-testid="employee-search"
 				/>
 			</div>
@@ -313,14 +311,14 @@
 		<div class="mt-4 flex gap-2">
 			<button
 				onclick={applyFilters}
-				class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+				class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
 				data-testid="apply-filters"
 			>
 				Apply Filters
 			</button>
 			<button
 				onclick={clearFilters}
-				class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+				class="rounded-md border border-gray-300 px-4 py-2 hover:bg-gray-50"
 				data-testid="clear-filters"
 			>
 				Clear Filters
@@ -329,7 +327,7 @@
 	</div>
 
 	<!-- Data Table -->
-	<div class="bg-white rounded-lg shadow">
+	<div class="rounded-lg bg-white shadow">
 		<HrDataTable
 			data={$pendingRequests.data?.leaveRequests?.nodes || []}
 			{columns}
@@ -369,18 +367,21 @@
 
 <!-- Approval Modal -->
 {#if showApprovalModal}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="approval-modal">
-		<div class="bg-white rounded-lg p-6 max-w-md w-full">
-			<h2 class="text-xl font-bold mb-4" data-testid="modal-title">Approve Leave Request</h2>
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+		data-testid="approval-modal"
+	>
+		<div class="w-full max-w-md rounded-lg bg-white p-6">
+			<h2 class="mb-4 text-xl font-bold" data-testid="modal-title">Approve Leave Request</h2>
 
 			<!-- Employee Details -->
-			<div class="mb-4 p-3 bg-gray-50 rounded" data-testid="employee-details">
+			<div class="mb-4 rounded bg-gray-50 p-3" data-testid="employee-details">
 				<p class="text-sm text-gray-600">Employee</p>
 				<p class="font-semibold">{currentRequest?.employee?.displayName}</p>
 			</div>
 
 			<!-- Request Details -->
-			<div class="mb-4 p-3 bg-gray-50 rounded" data-testid="request-details">
+			<div class="mb-4 rounded bg-gray-50 p-3" data-testid="request-details">
 				<p class="text-sm text-gray-600">Leave Details</p>
 				<p>Type: {currentRequest?.leaveType}</p>
 				<p>Period: {formatDateRange(currentRequest?.startDate, currentRequest?.endDate)}</p>
@@ -389,30 +390,30 @@
 
 			<!-- Manager Comments -->
 			<div class="mb-4">
-				<label for="manager-comments" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="manager-comments" class="mb-1 block text-sm font-medium text-gray-700">
 					Manager Comments (Optional)
 				</label>
 				<textarea
 					id="manager-comments"
 					bind:value={managerComments}
 					rows="3"
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 					data-testid="manager-comments"
 					placeholder="Add any comments..."
 				></textarea>
 			</div>
 
 			<!-- Actions -->
-			<div class="flex gap-2 justify-end">
+			<div class="flex justify-end gap-2">
 				<button
 					onclick={closeModals}
-					class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+					class="rounded-md border border-gray-300 px-4 py-2 hover:bg-gray-50"
 				>
 					Cancel
 				</button>
 				<button
 					onclick={confirmApproval}
-					class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+					class="rounded-md bg-green-600 px-4 py-2 text-white hover:bg-green-700"
 					data-testid="confirm-approve"
 				>
 					Approve Request
@@ -424,18 +425,21 @@
 
 <!-- Denial Modal -->
 {#if showDenialModal}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="denial-modal">
-		<div class="bg-white rounded-lg p-6 max-w-md w-full">
-			<h2 class="text-xl font-bold mb-4" data-testid="modal-title">Deny Leave Request</h2>
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+		data-testid="denial-modal"
+	>
+		<div class="w-full max-w-md rounded-lg bg-white p-6">
+			<h2 class="mb-4 text-xl font-bold" data-testid="modal-title">Deny Leave Request</h2>
 
 			<!-- Employee Details -->
-			<div class="mb-4 p-3 bg-gray-50 rounded" data-testid="employee-details">
+			<div class="mb-4 rounded bg-gray-50 p-3" data-testid="employee-details">
 				<p class="text-sm text-gray-600">Employee</p>
 				<p class="font-semibold">{currentRequest?.employee?.displayName}</p>
 			</div>
 
 			<!-- Request Details -->
-			<div class="mb-4 p-3 bg-gray-50 rounded" data-testid="request-details">
+			<div class="mb-4 rounded bg-gray-50 p-3" data-testid="request-details">
 				<p class="text-sm text-gray-600">Leave Details</p>
 				<p>Type: {currentRequest?.leaveType}</p>
 				<p>Period: {formatDateRange(currentRequest?.startDate, currentRequest?.endDate)}</p>
@@ -444,14 +448,14 @@
 
 			<!-- Manager Comments (Required) -->
 			<div class="mb-4">
-				<label for="denial-comments" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="denial-comments" class="mb-1 block text-sm font-medium text-gray-700">
 					Reason for Denial <span class="text-red-500">*</span>
 				</label>
 				<textarea
 					id="denial-comments"
 					bind:value={managerComments}
 					rows="3"
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 					data-testid="manager-comments"
 					placeholder="Please provide a reason for denial..."
 					required
@@ -464,16 +468,16 @@
 			</div>
 
 			<!-- Actions -->
-			<div class="flex gap-2 justify-end">
+			<div class="flex justify-end gap-2">
 				<button
 					onclick={closeModals}
-					class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+					class="rounded-md border border-gray-300 px-4 py-2 hover:bg-gray-50"
 				>
 					Cancel
 				</button>
 				<button
 					onclick={confirmDenial}
-					class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+					class="rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
 					data-testid="confirm-deny"
 				>
 					Deny Request

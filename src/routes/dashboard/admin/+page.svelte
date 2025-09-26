@@ -51,12 +51,42 @@
 
 	// Quick admin actions
 	let adminActions = [
-		{ title: 'User Management', description: 'Manage user accounts and permissions', icon: Users, href: '/dashboard/admin/users' },
-		{ title: 'Role Management', description: 'Configure roles and permissions', icon: Lock, href: '/dashboard/admin/roles' },
-		{ title: 'System Settings', description: 'Configure system-wide settings', icon: Settings, href: '/dashboard/admin/settings' },
-		{ title: 'Audit Logs', description: 'Review system audit logs', icon: BarChart3, href: '/dashboard/admin/audit' },
-		{ title: 'Data Management', description: 'Backup and data operations', icon: Database, href: '/dashboard/admin/data' },
-		{ title: 'Security Center', description: 'Security policies and monitoring', icon: Shield, href: '/dashboard/admin/security' }
+		{
+			title: 'User Management',
+			description: 'Manage user accounts and permissions',
+			icon: Users,
+			href: '/dashboard/admin/users'
+		},
+		{
+			title: 'Role Management',
+			description: 'Configure roles and permissions',
+			icon: Lock,
+			href: '/dashboard/admin/roles'
+		},
+		{
+			title: 'System Settings',
+			description: 'Configure system-wide settings',
+			icon: Settings,
+			href: '/dashboard/admin/settings'
+		},
+		{
+			title: 'Audit Logs',
+			description: 'Review system audit logs',
+			icon: BarChart3,
+			href: '/dashboard/admin/audit'
+		},
+		{
+			title: 'Data Management',
+			description: 'Backup and data operations',
+			icon: Database,
+			href: '/dashboard/admin/data'
+		},
+		{
+			title: 'Security Center',
+			description: 'Security policies and monitoring',
+			icon: Shield,
+			href: '/dashboard/admin/security'
+		}
 	];
 </script>
 
@@ -70,12 +100,10 @@
 	<div class="flex items-center justify-between">
 		<div>
 			<h1 class="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-			<p class="text-muted-foreground">
-				System administration and management
-			</p>
+			<p class="text-muted-foreground">System administration and management</p>
 		</div>
 		<Badge variant="secondary" class="bg-blue-50 text-blue-600">
-			<Shield class="h-3 w-3 mr-1" />
+			<Shield class="mr-1 h-3 w-3" />
 			Administrator
 		</Badge>
 	</div>
