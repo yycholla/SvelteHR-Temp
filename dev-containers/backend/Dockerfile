@@ -18,16 +18,11 @@ RUN apt-get update && apt-get install -y \
     tmux \
     postgresql-client \
     redis-tools \
+    neovim \
     && rm -rf /var/lib/apt/lists/*
 
-# Install latest Neovim
-RUN curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux64.tar.gz \
-    && tar -C /opt -xzf nvim-linux64.tar.gz \
-    && ln -sf /opt/nvim-linux64/bin/nvim /usr/local/bin/nvim \
-    && rm nvim-linux64.tar.gz
-
 # Create development user
-RUN useradd -m -s /bin/bash -u 1000 dev \
+RUN groupadd -r dev && useradd -m -s /bin/bash -g dev dev \
     && echo 'dev:dev' | chpasswd \
     && adduser dev sudo \
     && echo 'dev ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
@@ -65,7 +60,7 @@ RUN npm ci
 
 # Install global development tools
 USER root
-RUN npm install -g tsx nodemon @typescript-eslint/cli
+RUN npm install -g tsx nodemon typescript-eslint
 
 # Switch back to dev user
 USER dev
