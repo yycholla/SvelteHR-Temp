@@ -48,6 +48,7 @@ Implement 6 missing sidebar pages for SvelteHR management system: Management ove
 ## Phase 3.5: Page Implementations
 
 **Management Section Pages**
+
 - [ ] **T020** [P] Management overview page in `src/routes/dashboard/management/+page.svelte`
 - [ ] **T021** [P] Leave approvals page in `src/routes/dashboard/management/leave-approvals/+page.svelte`
 - [ ] **T022** [P] Performance reviews page in `src/routes/dashboard/management/reviews/+page.svelte`
@@ -55,6 +56,7 @@ Implement 6 missing sidebar pages for SvelteHR management system: Management ove
 - [ ] **T024** [P] Team reports page in `src/routes/dashboard/management/reports/+page.svelte`
 
 **Administration Section Pages**
+
 - [ ] **T025** [P] Teams admin page in `src/routes/dashboard/teams/+page.svelte`
 
 ## Phase 3.6: Page Server Logic
@@ -78,6 +80,7 @@ Implement 6 missing sidebar pages for SvelteHR management system: Management ove
 ## Dependencies
 
 **Sequential Dependencies:**
+
 - Database migrations (T001-T004) → GraphQL codegen (T032)
 - E2E tests (T005-T010) → GraphQL operations (T011-T015)
 - GraphQL operations → Shared components (T016-T019)
@@ -86,6 +89,7 @@ Implement 6 missing sidebar pages for SvelteHR management system: Management ove
 - Server logic → Integration tests (T035)
 
 **Blocking Dependencies:**
+
 - T032 blocks T020-T025 (pages need generated types)
 - T033 blocks T035 (navigation must work for E2E tests)
 - T011-T015 block T020-T025 (pages need GraphQL operations)
@@ -93,6 +97,7 @@ Implement 6 missing sidebar pages for SvelteHR management system: Management ove
 ## Parallel Execution Examples
 
 **Phase 3.2 - E2E Tests (Run Together):**
+
 ```bash
 # All E2E tests can run in parallel (different spec files)
 npx playwright test tests/e2e/management/leave-approvals.spec.ts &
@@ -105,6 +110,7 @@ wait
 ```
 
 **Phase 3.3 - GraphQL Operations (Run Together):**
+
 ```bash
 # All GraphQL operations can be developed in parallel (different files)
 Task: "Leave requests GraphQL operations in src/lib/graphql/leave-management-operations.ts"
@@ -115,6 +121,7 @@ Task: "Team reports GraphQL operations in src/lib/graphql/team-reports-operation
 ```
 
 **Phase 3.4 - Shared Components (Run Together):**
+
 ```bash
 # All shared components can be built in parallel (different files)
 Task: "Data table component with filtering in src/lib/components/data-table/hr-data-table.svelte"
@@ -124,6 +131,7 @@ Task: "CRUD modal dialogs component in src/lib/components/modals/hr-crud-modal.s
 ```
 
 **Phase 3.5 - Page Implementations (Run Together):**
+
 ```bash
 # All pages can be implemented in parallel (different route files)
 Task: "Management overview page in src/routes/dashboard/management/+page.svelte"
@@ -137,6 +145,7 @@ Task: "Teams admin page in src/routes/dashboard/teams/+page.svelte"
 ## Implementation Reference
 
 **Reference Pattern**: Follow the established pattern from `src/routes/dashboard/admin/users/+page.svelte`:
+
 - Svelte 5 `$state()` runes for reactive data
 - shadcn/ui components (Table, Card, Dialog, Button, etc.)
 - GraphQL operations via Urql with loading/error states
@@ -146,6 +155,7 @@ Task: "Teams admin page in src/routes/dashboard/teams/+page.svelte"
 - Role-based access control
 
 **Key Features per Page:**
+
 - Management Overview: Dashboard with statistics cards and recent activity
 - Leave Approvals: Approve/deny requests with manager comments
 - Reviews: Create/edit performance reviews with rating scales

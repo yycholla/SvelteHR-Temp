@@ -6,7 +6,13 @@
 	import { onMount } from 'svelte';
 	import { AlertCircle, RefreshCw, Home, ChevronDown, ChevronUp } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
+	import {
+		Card,
+		CardContent,
+		CardDescription,
+		CardHeader,
+		CardTitle
+	} from '$lib/components/ui/card/index.js';
 
 	// Component props
 	interface Props {
@@ -129,10 +135,10 @@
 	{#if fallback}
 		{@render fallback()}
 	{:else}
-		<div class="min-h-[400px] flex items-center justify-center p-6">
-			<Card class="w-full max-w-lg mx-auto {getErrorTypeColor(errorBoundary.error!.type)}">
+		<div class="flex min-h-[400px] items-center justify-center p-6">
+			<Card class="mx-auto w-full max-w-lg {getErrorTypeColor(errorBoundary.error!.type)}">
 				<CardHeader class="text-center">
-					<div class="flex justify-center mb-4">
+					<div class="mb-4 flex justify-center">
 						<AlertCircle class="h-12 w-12 text-current" />
 					</div>
 					<CardTitle class="text-xl font-semibold">
@@ -145,7 +151,7 @@
 
 				<CardContent class="space-y-4">
 					<!-- Action Buttons -->
-					<div class="flex flex-col sm:flex-row gap-2 justify-center">
+					<div class="flex flex-col justify-center gap-2 sm:flex-row">
 						{#if showRetry}
 							<Button on:click={handleRetry} variant="default" class="flex items-center gap-2">
 								<RefreshCw class="h-4 w-4" />
@@ -161,7 +167,7 @@
 
 					<!-- Error Details Toggle (Development) -->
 					{#if showDetails && errorBoundary.error!.details}
-						<div class="border-t pt-4 mt-4">
+						<div class="mt-4 border-t pt-4">
 							<Button
 								on:click={() => (showErrorDetails = !showErrorDetails)}
 								variant="ghost"
@@ -178,7 +184,9 @@
 							</Button>
 
 							{#if showErrorDetails}
-								<div class="mt-2 p-3 bg-gray-50 rounded-md text-xs font-mono overflow-auto max-h-40">
+								<div
+									class="mt-2 max-h-40 overflow-auto rounded-md bg-gray-50 p-3 font-mono text-xs"
+								>
 									<div class="space-y-2">
 										<div>
 											<strong>Request ID:</strong>
@@ -201,7 +209,8 @@
 										{#if errorBoundary.error!.details.stack}
 											<div>
 												<strong>Stack Trace:</strong>
-												<pre class="mt-1 whitespace-pre-wrap text-xs">{errorBoundary.error!.details.stack}</pre>
+												<pre class="mt-1 whitespace-pre-wrap text-xs">{errorBoundary.error!.details
+														.stack}</pre>
 											</div>
 										{/if}
 									</div>
@@ -211,7 +220,7 @@
 					{/if}
 
 					<!-- Help Text -->
-					<div class="text-center text-xs text-gray-500 mt-4">
+					<div class="mt-4 text-center text-xs text-gray-500">
 						{#if errorBoundary.error!.type === 'network_error'}
 							Check your internet connection and try again.
 						{:else if errorBoundary.error!.type === 'authentication'}

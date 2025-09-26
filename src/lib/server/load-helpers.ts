@@ -20,21 +20,18 @@ export async function createServerLoad<T>(
 
 		// Authentication check
 		if (requireAuth && !event.locals.user) {
-			throwStandardError(
-				new Error('Authentication required'),
-				{
-					userId: undefined,
-					path: event.url.pathname,
-					operation: operation || `Load ${event.url.pathname}`
-				}
-			);
+			throwStandardError(new Error('Authentication required'), {
+				userId: undefined,
+				path: event.url.pathname,
+				operation: operation || `Load ${event.url.pathname}`
+			});
 		}
 
 		// Permission check
 		if (requiredPermissions.length > 0 && event.locals.permissions) {
-			const hasPermission = requiredPermissions.some(permission =>
-				event.locals.permissions.includes(permission) ||
-				event.locals.permissions.includes('*')
+			const hasPermission = requiredPermissions.some(
+				(permission) =>
+					event.locals.permissions.includes(permission) || event.locals.permissions.includes('*')
 			);
 
 			if (!hasPermission) {
@@ -50,14 +47,11 @@ export async function createServerLoad<T>(
 		}
 
 		// Execute load function with error handling
-		return safeServerLoad(
-			() => loadFn(event),
-			{
-				userId: event.locals.user?.id,
-				path: event.url.pathname,
-				operation: operation || `Load ${event.url.pathname}`
-			}
-		);
+		return safeServerLoad(() => loadFn(event), {
+			userId: event.locals.user?.id,
+			path: event.url.pathname,
+			operation: operation || `Load ${event.url.pathname}`
+		});
 	};
 }
 
@@ -113,13 +107,10 @@ export async function executeGraphQLQuery<T>(
 
 		// Handle timeout errors
 		if (error instanceof Error && error.name === 'AbortError') {
-			throwStandardError(
-				new Error('Request timeout'),
-				{
-					...context,
-					operation: `GraphQL Query${context?.operation ? ` - ${context.operation}` : ''}`
-				}
-			);
+			throwStandardError(new Error('Request timeout'), {
+				...context,
+				operation: `GraphQL Query${context?.operation ? ` - ${context.operation}` : ''}`
+			});
 		}
 
 		// Handle other errors
@@ -167,24 +158,17 @@ export function checkPermissions(
 	if (userPermissions.includes('*')) return true;
 
 	// Check if user has any of the required permissions
-	return requiredPermissions.some(permission =>
-		userPermissions.includes(permission)
-	);
+	return requiredPermissions.some((permission) => userPermissions.includes(permission));
 }
 
 /**
  * Role checker helper
  */
-export function checkRoles(
-	userRoles: string[] | undefined,
-	requiredRoles: string[]
-): boolean {
+export function checkRoles(userRoles: string[] | undefined, requiredRoles: string[]): boolean {
 	if (!userRoles) return false;
 
 	// Check if user has any of the required roles
-	return requiredRoles.some(role =>
-		userRoles.includes(role)
-	);
+	return requiredRoles.some((role) => userRoles.includes(role));
 }
 
 /**
@@ -306,13 +290,10 @@ export class ServerRateLimit {
 
 		// Check if limit exceeded
 		if (attempt.count >= maxAttempts) {
-			throwStandardError(
-				new Error('Rate limit exceeded'),
-				{
-					...context,
-					operation: `Rate Limit Check - ${context?.operation || identifier}`
-				}
-			);
+			throwStandardError(new Error('Rate limit exceeded'), {
+				...context,
+				operation: `Rate Limit Check - ${context?.operation || identifier}`
+			});
 		}
 
 		// Increment counter

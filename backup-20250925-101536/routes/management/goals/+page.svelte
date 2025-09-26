@@ -466,33 +466,33 @@
 
 <div class="container mx-auto px-4 py-8">
 	<!-- Page Header -->
-	<div class="mb-6 flex justify-between items-center">
+	<div class="mb-6 flex items-center justify-between">
 		<div>
 			<h1 class="text-3xl font-bold text-gray-900">Goals & OKRs</h1>
 			<p class="mt-2 text-gray-600">Manage team objectives and track key results</p>
 		</div>
 		<button
 			onclick={handleCreateGoal}
-			class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2"
+			class="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
 			data-testid="create-goal"
 		>
-			<Plus class="w-4 h-4" />
+			<Plus class="h-4 w-4" />
 			Create Goal
 		</button>
 	</div>
 
 	<!-- Filters Section -->
-	<div class="bg-white rounded-lg shadow p-4 mb-6">
-		<div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+	<div class="mb-6 rounded-lg bg-white p-4 shadow">
+		<div class="grid grid-cols-1 gap-4 md:grid-cols-5">
 			<!-- Status Filter -->
 			<div>
-				<label for="status-filter" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="status-filter" class="mb-1 block text-sm font-medium text-gray-700">
 					Status
 				</label>
 				<select
 					id="status-filter"
 					bind:value={statusFilter}
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 					data-testid="status-filter"
 				>
 					<option value="all">All Statuses</option>
@@ -504,13 +504,11 @@
 
 			<!-- Type Filter -->
 			<div>
-				<label for="type-filter" class="block text-sm font-medium text-gray-700 mb-1">
-					Type
-				</label>
+				<label for="type-filter" class="mb-1 block text-sm font-medium text-gray-700"> Type </label>
 				<select
 					id="type-filter"
 					bind:value={typeFilter}
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 					data-testid="type-filter"
 				>
 					<option value="all">All Types</option>
@@ -522,13 +520,13 @@
 
 			<!-- Priority Filter -->
 			<div>
-				<label for="priority-filter" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="priority-filter" class="mb-1 block text-sm font-medium text-gray-700">
 					Priority
 				</label>
 				<select
 					id="priority-filter"
 					bind:value={priorityFilter}
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 					data-testid="priority-filter"
 				>
 					<option value="all">All Priorities</option>
@@ -540,13 +538,13 @@
 
 			<!-- Quarter Filter -->
 			<div>
-				<label for="quarter-filter" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="quarter-filter" class="mb-1 block text-sm font-medium text-gray-700">
 					Quarter
 				</label>
 				<select
 					id="quarter-filter"
 					bind:value={quarterFilter}
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 					data-testid="quarter-filter"
 				>
 					<option value="Q1">Q1 (Jan-Mar)</option>
@@ -558,7 +556,7 @@
 
 			<!-- Search -->
 			<div>
-				<label for="search" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="search" class="mb-1 block text-sm font-medium text-gray-700">
 					Search Goals
 				</label>
 				<input
@@ -566,7 +564,7 @@
 					type="text"
 					bind:value={searchQuery}
 					placeholder="Search by title..."
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 					data-testid="goal-search"
 				/>
 			</div>
@@ -576,14 +574,14 @@
 		<div class="mt-4 flex gap-2">
 			<button
 				onclick={applyFilters}
-				class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+				class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
 				data-testid="apply-filters"
 			>
 				Apply Filters
 			</button>
 			<button
 				onclick={clearFilters}
-				class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+				class="rounded-md border border-gray-300 px-4 py-2 hover:bg-gray-50"
 				data-testid="clear-filters"
 			>
 				Clear Filters
@@ -592,7 +590,7 @@
 	</div>
 
 	<!-- Data Table -->
-	<div class="bg-white rounded-lg shadow">
+	<div class="rounded-lg bg-white shadow">
 		<HrDataTable
 			data={$teamGoals.data?.teamGoals?.nodes || []}
 			{columns}
@@ -631,33 +629,36 @@
 
 <!-- Create Goal Modal -->
 {#if showCreateModal}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="create-goal-modal">
-		<div class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-			<div class="flex justify-between items-center mb-4">
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+		data-testid="create-goal-modal"
+	>
+		<div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6">
+			<div class="mb-4 flex items-center justify-between">
 				<h2 class="text-xl font-bold" data-testid="modal-title">Create New Goal</h2>
 				<button onclick={closeModals} class="text-gray-400 hover:text-gray-600">
-					<X class="w-6 h-6" />
+					<X class="h-6 w-6" />
 				</button>
 			</div>
 
 			<form on:submit|preventDefault={submitForm}>
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+				<div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
 					<div class="md:col-span-2">
-						<label class="block text-sm font-medium text-gray-700 mb-1">Goal Title *</label>
+						<label class="mb-1 block text-sm font-medium text-gray-700">Goal Title *</label>
 						<input
 							type="text"
 							bind:value={formData.title}
 							required
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 							data-testid="goal-title"
 							placeholder="Enter goal title..."
 						/>
 					</div>
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+						<label class="mb-1 block text-sm font-medium text-gray-700">Type</label>
 						<select
 							bind:value={formData.goalType}
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 							data-testid="goal-type"
 						>
 							{#each goalTypes as type}
@@ -666,10 +667,10 @@
 						</select>
 					</div>
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+						<label class="mb-1 block text-sm font-medium text-gray-700">Priority</label>
 						<select
 							bind:value={formData.priority}
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 							data-testid="goal-priority"
 						>
 							{#each goalPriorities as priority}
@@ -680,42 +681,42 @@
 				</div>
 
 				<div class="mb-4">
-					<label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+					<label class="mb-1 block text-sm font-medium text-gray-700">Description</label>
 					<textarea
 						bind:value={formData.description}
 						rows="3"
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+						class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 						data-testid="goal-description"
 						placeholder="Describe the goal..."
 					></textarea>
 				</div>
 
-				<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+				<div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Target Value</label>
+						<label class="mb-1 block text-sm font-medium text-gray-700">Target Value</label>
 						<input
 							type="number"
 							bind:value={formData.targetValue}
 							min="0"
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 							data-testid="target-value"
 						/>
 					</div>
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Current Value</label>
+						<label class="mb-1 block text-sm font-medium text-gray-700">Current Value</label>
 						<input
 							type="number"
 							bind:value={formData.currentValue}
 							min="0"
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 							data-testid="current-value"
 						/>
 					</div>
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+						<label class="mb-1 block text-sm font-medium text-gray-700">Unit</label>
 						<select
 							bind:value={formData.unit}
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 							data-testid="goal-unit"
 						>
 							{#each commonUnits as unit}
@@ -725,36 +726,40 @@
 					</div>
 				</div>
 
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+				<div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Start Date *</label>
+						<label class="mb-1 block text-sm font-medium text-gray-700">Start Date *</label>
 						<input
 							type="date"
 							bind:value={formData.startDate}
 							required
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 							data-testid="start-date"
 						/>
 					</div>
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Target Date *</label>
+						<label class="mb-1 block text-sm font-medium text-gray-700">Target Date *</label>
 						<input
 							type="date"
 							bind:value={formData.targetDate}
 							required
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 							data-testid="target-date"
 						/>
 					</div>
 				</div>
 
-				<div class="flex gap-2 justify-end">
-					<button type="button" onclick={closeModals} class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+				<div class="flex justify-end gap-2">
+					<button
+						type="button"
+						onclick={closeModals}
+						class="rounded-md border border-gray-300 px-4 py-2 hover:bg-gray-50"
+					>
 						Cancel
 					</button>
 					<button
 						type="submit"
-						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+						class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
 						data-testid="submit-goal"
 					>
 						Create Goal
@@ -767,65 +772,79 @@
 
 <!-- Update Progress Modal -->
 {#if showProgressModal && currentGoal}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="progress-modal">
-		<div class="bg-white rounded-lg p-6 max-w-md w-full">
-			<div class="flex justify-between items-center mb-4">
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+		data-testid="progress-modal"
+	>
+		<div class="w-full max-w-md rounded-lg bg-white p-6">
+			<div class="mb-4 flex items-center justify-between">
 				<h2 class="text-xl font-bold" data-testid="modal-title">Update Progress</h2>
 				<button onclick={closeModals} class="text-gray-400 hover:text-gray-600">
-					<X class="w-6 h-6" />
+					<X class="h-6 w-6" />
 				</button>
 			</div>
 
 			<div class="mb-4">
-				<h3 class="font-medium text-gray-900 mb-2">{currentGoal.title}</h3>
+				<h3 class="mb-2 font-medium text-gray-900">{currentGoal.title}</h3>
 				<p class="text-sm text-gray-600">
-					Target: {currentGoal.targetValue} {currentGoal.unit}
+					Target: {currentGoal.targetValue}
+					{currentGoal.unit}
 				</p>
 			</div>
 
 			<form on:submit|preventDefault={submitProgressUpdate}>
 				<div class="mb-4">
-					<label class="block text-sm font-medium text-gray-700 mb-1">Current Value</label>
+					<label class="mb-1 block text-sm font-medium text-gray-700">Current Value</label>
 					<input
 						type="number"
 						bind:value={progressData.currentValue}
 						min="0"
 						max={currentGoal.targetValue}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+						class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 						data-testid="progress-value"
 					/>
 					<div class="mt-2">
 						<div class="flex items-center justify-between text-sm text-gray-600">
 							<span>Progress</span>
-							<span>{Math.round((progressData.currentValue / currentGoal.targetValue) * 100)}%</span>
+							<span>{Math.round((progressData.currentValue / currentGoal.targetValue) * 100)}%</span
+							>
 						</div>
-						<div class="w-full bg-gray-200 rounded-full h-2 mt-1">
+						<div class="mt-1 h-2 w-full rounded-full bg-gray-200">
 							<div
-								class="bg-blue-600 h-2 rounded-full"
-								style="width: {Math.min((progressData.currentValue / currentGoal.targetValue) * 100, 100)}%"
+								class="h-2 rounded-full bg-blue-600"
+								style="width: {Math.min(
+									(progressData.currentValue / currentGoal.targetValue) * 100,
+									100
+								)}%"
 							></div>
 						</div>
 					</div>
 				</div>
 
 				<div class="mb-4">
-					<label class="block text-sm font-medium text-gray-700 mb-1">Progress Notes (Optional)</label>
+					<label class="mb-1 block text-sm font-medium text-gray-700"
+						>Progress Notes (Optional)</label
+					>
 					<textarea
 						bind:value={progressData.notes}
 						rows="3"
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+						class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 						data-testid="progress-notes"
 						placeholder="Add notes about this progress update..."
 					></textarea>
 				</div>
 
-				<div class="flex gap-2 justify-end">
-					<button type="button" onclick={closeModals} class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+				<div class="flex justify-end gap-2">
+					<button
+						type="button"
+						onclick={closeModals}
+						class="rounded-md border border-gray-300 px-4 py-2 hover:bg-gray-50"
+					>
 						Cancel
 					</button>
 					<button
 						type="submit"
-						class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+						class="rounded-md bg-green-600 px-4 py-2 text-white hover:bg-green-700"
 						data-testid="update-progress"
 					>
 						Update Progress
@@ -838,21 +857,26 @@
 
 <!-- View Goal Modal -->
 {#if showViewModal && currentGoal}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="view-goal-modal">
-		<div class="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-			<div class="flex justify-between items-center mb-6">
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+		data-testid="view-goal-modal"
+	>
+		<div class="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-white p-6">
+			<div class="mb-6 flex items-center justify-between">
 				<div>
 					<h2 class="text-xl font-bold" data-testid="modal-title">{currentGoal.title}</h2>
-					<p class="text-gray-600">{currentGoal.team?.name || 'No Team'} • {currentGoal.owner?.displayName}</p>
+					<p class="text-gray-600">
+						{currentGoal.team?.name || 'No Team'} • {currentGoal.owner?.displayName}
+					</p>
 				</div>
 				<button onclick={closeModals} class="text-gray-400 hover:text-gray-600">
-					<X class="w-6 h-6" />
+					<X class="h-6 w-6" />
 				</button>
 			</div>
 
 			<div class="space-y-6" data-testid="goal-details">
 				<!-- Goal Overview -->
-				<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+				<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
 					<div class="text-center">
 						<p class="text-sm text-gray-600">Progress</p>
 						<p class="text-2xl font-bold text-blue-600">{calculateGoalCompletion(currentGoal)}%</p>
@@ -876,13 +900,13 @@
 
 				<!-- Progress Bar -->
 				<div>
-					<div class="flex justify-between items-center mb-2">
+					<div class="mb-2 flex items-center justify-between">
 						<span class="text-sm font-medium">Progress</span>
 						<span class="text-sm text-gray-600">{formatGoalProgress(currentGoal)}</span>
 					</div>
-					<div class="w-full bg-gray-200 rounded-full h-3">
+					<div class="h-3 w-full rounded-full bg-gray-200">
 						<div
-							class="bg-blue-600 h-3 rounded-full"
+							class="h-3 rounded-full bg-blue-600"
 							style="width: {calculateGoalCompletion(currentGoal)}%"
 						></div>
 					</div>
@@ -891,22 +915,22 @@
 				<!-- Description -->
 				{#if currentGoal.description}
 					<div>
-						<h4 class="font-medium text-gray-900 mb-2">Description</h4>
-						<p class="text-gray-700 bg-gray-50 p-3 rounded-md">{currentGoal.description}</p>
+						<h4 class="mb-2 font-medium text-gray-900">Description</h4>
+						<p class="rounded-md bg-gray-50 p-3 text-gray-700">{currentGoal.description}</p>
 					</div>
 				{/if}
 
 				<!-- Timeline -->
 				<div>
-					<h4 class="font-medium text-gray-900 mb-2">Timeline</h4>
+					<h4 class="mb-2 font-medium text-gray-900">Timeline</h4>
 					<div class="flex items-center gap-4 text-sm text-gray-600">
 						<span>Start: {new Date(currentGoal.startDate).toLocaleDateString()}</span>
 						<span>•</span>
 						<span>Target: {new Date(currentGoal.targetDate).toLocaleDateString()}</span>
 						{#if isGoalOverdue(currentGoal)}
-							<span class="px-2 py-1 bg-red-100 text-red-800 rounded text-xs">OVERDUE</span>
+							<span class="rounded bg-red-100 px-2 py-1 text-xs text-red-800">OVERDUE</span>
 						{:else if isGoalAtRisk(currentGoal)}
-							<span class="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs">AT RISK</span>
+							<span class="rounded bg-orange-100 px-2 py-1 text-xs text-orange-800">AT RISK</span>
 						{/if}
 					</div>
 				</div>
@@ -914,26 +938,31 @@
 				<!-- Key Results -->
 				{#if currentGoal.keyResults?.nodes?.length > 0}
 					<div>
-						<h4 class="font-medium text-gray-900 mb-3">Key Results ({currentGoal.keyResults.totalCount})</h4>
+						<h4 class="mb-3 font-medium text-gray-900">
+							Key Results ({currentGoal.keyResults.totalCount})
+						</h4>
 						<div class="space-y-3">
 							{#each currentGoal.keyResults.nodes as keyResult}
-								<div class="border rounded-lg p-3">
-									<div class="flex justify-between items-start mb-2">
+								<div class="rounded-lg border p-3">
+									<div class="mb-2 flex items-start justify-between">
 										<h5 class="font-medium">{keyResult.title}</h5>
-										<span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+										<span class="rounded bg-blue-100 px-2 py-1 text-xs text-blue-800">
 											Weight: {keyResult.weight || 1}
 										</span>
 									</div>
-									<p class="text-sm text-gray-600 mb-2">{keyResult.description}</p>
+									<p class="mb-2 text-sm text-gray-600">{keyResult.description}</p>
 									<div class="flex items-center gap-2">
-										<div class="flex-1 bg-gray-200 rounded-full h-2">
+										<div class="h-2 flex-1 rounded-full bg-gray-200">
 											<div
-												class="bg-green-600 h-2 rounded-full"
-												style="width: {keyResult.targetValue > 0 ? Math.min((keyResult.currentValue / keyResult.targetValue) * 100, 100) : 0}%"
+												class="h-2 rounded-full bg-green-600"
+												style="width: {keyResult.targetValue > 0
+													? Math.min((keyResult.currentValue / keyResult.targetValue) * 100, 100)
+													: 0}%"
 											></div>
 										</div>
 										<span class="text-sm text-gray-600">
-											{keyResult.currentValue}/{keyResult.targetValue} {keyResult.unit}
+											{keyResult.currentValue}/{keyResult.targetValue}
+											{keyResult.unit}
 										</span>
 									</div>
 								</div>
@@ -943,14 +972,20 @@
 				{/if}
 			</div>
 
-			<div class="flex justify-between mt-6">
+			<div class="mt-6 flex justify-between">
 				<button
-					onclick={() => {closeModals(); handleUpdateProgress(currentGoal);}}
-					class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+					onclick={() => {
+						closeModals();
+						handleUpdateProgress(currentGoal);
+					}}
+					class="rounded-md bg-green-600 px-4 py-2 text-white hover:bg-green-700"
 				>
 					Update Progress
 				</button>
-				<button onclick={closeModals} class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">
+				<button
+					onclick={closeModals}
+					class="rounded-md bg-gray-600 px-4 py-2 text-white hover:bg-gray-700"
+				>
 					Close
 				</button>
 			</div>

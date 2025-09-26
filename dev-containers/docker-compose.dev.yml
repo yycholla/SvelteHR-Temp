@@ -9,19 +9,19 @@ services:
       POSTGRES_DB: hr_system
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres123
-      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=en_US.UTF-8 --lc-ctype=en_US.UTF-8"
+      POSTGRES_INITDB_ARGS: '--encoding=UTF8 --lc-collate=en_US.UTF-8 --lc-ctype=en_US.UTF-8'
       POSTGRES_INIT_MAX_TIME: 30
-      POSTGRES_LOG_STATEMENT: "all"
-      POSTGRES_LOG_MIN_MESSAGES: "info"
+      POSTGRES_LOG_STATEMENT: 'all'
+      POSTGRES_LOG_MIN_MESSAGES: 'info'
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
       - ../migrations:/docker-entrypoint-initdb.d:ro
     ports:
-      - "5433:5432"  # Use different port to avoid conflicts
+      - '5433:5432' # Use different port to avoid conflicts
     networks:
       - sveltehr-dev
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d hr_system"]
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d hr_system']
       interval: 5s
       timeout: 10s
       retries: 6
@@ -32,7 +32,7 @@ services:
     image: redis:7-alpine
     container_name: sveltehr-redis-dev
     ports:
-      - "6380:6379"  # Use different port to avoid conflicts
+      - '6380:6379' # Use different port to avoid conflicts
     networks:
       - sveltehr-dev
     volumes:
@@ -53,9 +53,9 @@ services:
       # SSH keys (optional)
       - ~/.ssh/id_rsa.pub:/home/dev/.ssh/authorized_keys:ro
     ports:
-      - "2222:22"    # SSH access
-      - "4000:4000"  # Backend API
-      - "5000:5000"  # GraphiQL interface
+      - '2222:22' # SSH access
+      - '4000:4000' # Backend API
+      - '5000:5000' # GraphiQL interface
     environment:
       NODE_ENV: development
       DATABASE_URL: postgresql://postgres:postgres123@postgres-dev:5432/hr_system
@@ -98,9 +98,9 @@ services:
       # SSH keys (optional)
       - ~/.ssh/id_rsa.pub:/home/dev/.ssh/authorized_keys:ro
     ports:
-      - "2223:22"    # SSH access
-      - "5173:5173"  # Vite dev server
-      - "4173:4173"  # Vite preview server
+      - '2223:22' # SSH access
+      - '5173:5173' # Vite dev server
+      - '4173:4173' # Vite preview server
     environment:
       NODE_ENV: development
       PUBLIC_API_URL: http://localhost:4000

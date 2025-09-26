@@ -4,8 +4,20 @@
 	import { getOperationStore, queryStore } from '@urql/svelte';
 	import { toast } from 'svelte-sonner';
 	import {
-		Building, Users, Plus, Search, Filter, X, Eye, Edit, Trash2,
-		UserCheck, ArrowRight, ChevronDown, ChevronRight, Crown
+		Building,
+		Users,
+		Plus,
+		Search,
+		Filter,
+		X,
+		Eye,
+		Edit,
+		Trash2,
+		UserCheck,
+		ArrowRight,
+		ChevronDown,
+		ChevronRight,
+		Crown
 	} from 'lucide-svelte';
 
 	import HrDataTable from '$lib/components/data-table/hr-data-table.svelte';
@@ -78,9 +90,10 @@
 			first: pageSize,
 			offset: (currentPage - 1) * pageSize,
 			filter: {
-				...(sizeFilter !== 'all' && {
-					// This would need server-side logic to filter by employee count
-				}),
+				...(sizeFilter !== 'all' &&
+					{
+						// This would need server-side logic to filter by employee count
+					}),
 				...(headFilter === 'with-head' && {
 					departmentHeadId: { isNull: false }
 				}),
@@ -425,20 +438,22 @@
 	}
 
 	// Calculate team statistics
-	$: teamStats = $teams.data?.departments?.nodes ? calculateTeamStats($teams.data.departments.nodes) : {
-		totalTeams: 0,
-		totalEmployees: 0,
-		activeEmployees: 0,
-		teamsWithHeads: 0,
-		averageTeamSize: 0,
-		sizeDistribution: [],
-		utilizationRate: 0
-	};
+	$: teamStats = $teams.data?.departments?.nodes
+		? calculateTeamStats($teams.data.departments.nodes)
+		: {
+				totalTeams: 0,
+				totalEmployees: 0,
+				activeEmployees: 0,
+				teamsWithHeads: 0,
+				averageTeamSize: 0,
+				sizeDistribution: [],
+				utilizationRate: 0
+			};
 </script>
 
 <div class="container mx-auto px-4 py-8">
 	<!-- Page Header -->
-	<div class="mb-6 flex justify-between items-center">
+	<div class="mb-6 flex items-center justify-between">
 		<div>
 			<h1 class="text-3xl font-bold text-gray-900">Teams Administration</h1>
 			<p class="mt-2 text-gray-600">Manage departments, assign heads, and organize your teams</p>
@@ -446,15 +461,19 @@
 		<div class="flex gap-2">
 			<div class="flex rounded-lg border border-gray-300">
 				<button
-					onclick={() => viewMode = 'table'}
-					class="px-3 py-2 text-sm {viewMode === 'table' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'text-gray-600 hover:text-gray-900'}"
+					onclick={() => (viewMode = 'table')}
+					class="px-3 py-2 text-sm {viewMode === 'table'
+						? 'border-blue-200 bg-blue-50 text-blue-700'
+						: 'text-gray-600 hover:text-gray-900'}"
 					data-testid="table-view"
 				>
 					Table View
 				</button>
 				<button
-					onclick={() => viewMode = 'hierarchy'}
-					class="px-3 py-2 text-sm border-l {viewMode === 'hierarchy' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'text-gray-600 hover:text-gray-900'}"
+					onclick={() => (viewMode = 'hierarchy')}
+					class="border-l px-3 py-2 text-sm {viewMode === 'hierarchy'
+						? 'border-blue-200 bg-blue-50 text-blue-700'
+						: 'text-gray-600 hover:text-gray-900'}"
 					data-testid="hierarchy-view"
 				>
 					Hierarchy
@@ -462,65 +481,68 @@
 			</div>
 			<button
 				onclick={handleCreateTeam}
-				class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2"
+				class="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
 				data-testid="create-team"
 			>
-				<Plus class="w-4 h-4" />
+				<Plus class="h-4 w-4" />
 				Create Team
 			</button>
 		</div>
 	</div>
 
 	<!-- Team Statistics -->
-	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" data-testid="team-statistics">
-		<div class="bg-white rounded-lg shadow p-6">
+	<div
+		class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4"
+		data-testid="team-statistics"
+	>
+		<div class="rounded-lg bg-white p-6 shadow">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-gray-600">Total Teams</p>
 					<p class="text-2xl font-bold text-gray-900">{teamStats.totalTeams}</p>
 					<p class="text-sm text-blue-600">{teamStats.teamsWithHeads} with heads</p>
 				</div>
-				<div class="p-3 bg-blue-100 rounded-full">
-					<Building class="w-6 h-6 text-blue-600" />
+				<div class="rounded-full bg-blue-100 p-3">
+					<Building class="h-6 w-6 text-blue-600" />
 				</div>
 			</div>
 		</div>
 
-		<div class="bg-white rounded-lg shadow p-6">
+		<div class="rounded-lg bg-white p-6 shadow">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-gray-600">Total Employees</p>
 					<p class="text-2xl font-bold text-gray-900">{teamStats.totalEmployees}</p>
 					<p class="text-sm text-green-600">{teamStats.activeEmployees} active</p>
 				</div>
-				<div class="p-3 bg-green-100 rounded-full">
-					<Users class="w-6 h-6 text-green-600" />
+				<div class="rounded-full bg-green-100 p-3">
+					<Users class="h-6 w-6 text-green-600" />
 				</div>
 			</div>
 		</div>
 
-		<div class="bg-white rounded-lg shadow p-6">
+		<div class="rounded-lg bg-white p-6 shadow">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-gray-600">Average Team Size</p>
 					<p class="text-2xl font-bold text-gray-900">{teamStats.averageTeamSize}</p>
 					<p class="text-sm text-purple-600">employees per team</p>
 				</div>
-				<div class="p-3 bg-purple-100 rounded-full">
-					<UserCheck class="w-6 h-6 text-purple-600" />
+				<div class="rounded-full bg-purple-100 p-3">
+					<UserCheck class="h-6 w-6 text-purple-600" />
 				</div>
 			</div>
 		</div>
 
-		<div class="bg-white rounded-lg shadow p-6">
+		<div class="rounded-lg bg-white p-6 shadow">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-gray-600">Utilization Rate</p>
 					<p class="text-2xl font-bold text-gray-900">{teamStats.utilizationRate}%</p>
 					<p class="text-sm text-orange-600">active employees</p>
 				</div>
-				<div class="p-3 bg-orange-100 rounded-full">
-					<Crown class="w-6 h-6 text-orange-600" />
+				<div class="rounded-full bg-orange-100 p-3">
+					<Crown class="h-6 w-6 text-orange-600" />
 				</div>
 			</div>
 		</div>
@@ -528,17 +550,17 @@
 
 	{#if viewMode === 'table'}
 		<!-- Filters Section -->
-		<div class="bg-white rounded-lg shadow p-4 mb-6">
-			<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+		<div class="mb-6 rounded-lg bg-white p-4 shadow">
+			<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
 				<!-- Team Size Filter -->
 				<div>
-					<label for="size-filter" class="block text-sm font-medium text-gray-700 mb-1">
+					<label for="size-filter" class="mb-1 block text-sm font-medium text-gray-700">
 						Team Size
 					</label>
 					<select
 						id="size-filter"
 						bind:value={sizeFilter}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+						class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 						data-testid="size-filter"
 					>
 						<option value="all">All Sizes</option>
@@ -550,13 +572,13 @@
 
 				<!-- Department Head Filter -->
 				<div>
-					<label for="head-filter" class="block text-sm font-medium text-gray-700 mb-1">
+					<label for="head-filter" class="mb-1 block text-sm font-medium text-gray-700">
 						Department Head
 					</label>
 					<select
 						id="head-filter"
 						bind:value={headFilter}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+						class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 						data-testid="head-filter"
 					>
 						<option value="all">All Teams</option>
@@ -567,13 +589,13 @@
 
 				<!-- Parent Filter -->
 				<div>
-					<label for="parent-filter" class="block text-sm font-medium text-gray-700 mb-1">
+					<label for="parent-filter" class="mb-1 block text-sm font-medium text-gray-700">
 						Team Level
 					</label>
 					<select
 						id="parent-filter"
 						bind:value={parentFilter}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+						class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 						data-testid="parent-filter"
 					>
 						<option value="all">All Levels</option>
@@ -584,7 +606,7 @@
 
 				<!-- Search -->
 				<div>
-					<label for="search" class="block text-sm font-medium text-gray-700 mb-1">
+					<label for="search" class="mb-1 block text-sm font-medium text-gray-700">
 						Search Teams
 					</label>
 					<input
@@ -592,7 +614,7 @@
 						type="text"
 						bind:value={searchQuery}
 						placeholder="Search by name..."
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+						class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 						data-testid="team-search"
 					/>
 				</div>
@@ -602,14 +624,14 @@
 			<div class="mt-4 flex gap-2">
 				<button
 					onclick={applyFilters}
-					class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+					class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
 					data-testid="apply-filters"
 				>
 					Apply Filters
 				</button>
 				<button
 					onclick={clearFilters}
-					class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+					class="rounded-md border border-gray-300 px-4 py-2 hover:bg-gray-50"
 					data-testid="clear-filters"
 				>
 					Clear Filters
@@ -618,7 +640,7 @@
 		</div>
 
 		<!-- Data Table -->
-		<div class="bg-white rounded-lg shadow">
+		<div class="rounded-lg bg-white shadow">
 			<HrDataTable
 				data={$teams.data?.departments?.nodes || []}
 				{columns}
@@ -648,17 +670,17 @@
 		</div>
 	{:else}
 		<!-- Hierarchy View -->
-		<div class="bg-white rounded-lg shadow p-6" data-testid="hierarchy-view">
-			<h3 class="text-lg font-semibold text-gray-900 mb-4">Organization Hierarchy</h3>
+		<div class="rounded-lg bg-white p-6 shadow" data-testid="hierarchy-view">
+			<h3 class="mb-4 text-lg font-semibold text-gray-900">Organization Hierarchy</h3>
 			<div class="space-y-2">
 				{#if $teams.data?.departments?.nodes}
 					{@const hierarchy = buildTeamHierarchy($teams.data.departments.nodes)}
 					{#each hierarchy as rootTeam}
-						<div class="border rounded-lg p-4">
+						<div class="rounded-lg border p-4">
 							<div class="flex items-center justify-between">
 								<div class="flex items-center gap-3">
-									<div class="p-2 bg-blue-100 rounded-lg">
-										<Building class="w-5 h-5 text-blue-600" />
+									<div class="rounded-lg bg-blue-100 p-2">
+										<Building class="h-5 w-5 text-blue-600" />
 									</div>
 									<div>
 										<h4 class="font-semibold text-gray-900">{rootTeam.name}</h4>
@@ -670,31 +692,33 @@
 								<div class="flex items-center gap-2">
 									{#if rootTeam.departmentHead}
 										<div class="flex items-center gap-1 text-sm text-yellow-600">
-											<Crown class="w-4 h-4" />
+											<Crown class="h-4 w-4" />
 											{rootTeam.departmentHead.displayName}
 										</div>
 									{/if}
-									<span class="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded">
+									<span class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-800">
 										{rootTeam.children.length} sub-teams
 									</span>
 								</div>
 							</div>
 
 							{#if rootTeam.children.length > 0}
-								<div class="mt-4 ml-8 space-y-2">
+								<div class="ml-8 mt-4 space-y-2">
 									{#each rootTeam.children as childTeam}
-										<div class="flex items-center gap-3 p-2 bg-gray-50 rounded">
-											<ArrowRight class="w-4 h-4 text-gray-400" />
-											<div class="p-1 bg-green-100 rounded">
-												<Building class="w-4 h-4 text-green-600" />
+										<div class="flex items-center gap-3 rounded bg-gray-50 p-2">
+											<ArrowRight class="h-4 w-4 text-gray-400" />
+											<div class="rounded bg-green-100 p-1">
+												<Building class="h-4 w-4 text-green-600" />
 											</div>
 											<div class="flex-1">
 												<span class="font-medium">{childTeam.name}</span>
-												<span class="text-sm text-gray-500 ml-2">({childTeam.employeeCount} employees)</span>
+												<span class="ml-2 text-sm text-gray-500"
+													>({childTeam.employeeCount} employees)</span
+												>
 											</div>
 											{#if childTeam.departmentHead}
 												<div class="flex items-center gap-1 text-sm text-yellow-600">
-													<Crown class="w-3 h-3" />
+													<Crown class="h-3 w-3" />
 													{childTeam.departmentHead.displayName}
 												</div>
 											{/if}
@@ -710,42 +734,41 @@
 	{/if}
 
 	<!-- Export Component -->
-	<DataExport
-		data={$teams.data?.departments?.nodes || []}
-		filename="teams"
-		testId="export-csv"
-	/>
+	<DataExport data={$teams.data?.departments?.nodes || []} filename="teams" testId="export-csv" />
 </div>
 
 <!-- Create Team Modal -->
 {#if showCreateModal}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="create-team-modal">
-		<div class="bg-white rounded-lg p-6 max-w-2xl w-full">
-			<div class="flex justify-between items-center mb-4">
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+		data-testid="create-team-modal"
+	>
+		<div class="w-full max-w-2xl rounded-lg bg-white p-6">
+			<div class="mb-4 flex items-center justify-between">
 				<h2 class="text-xl font-bold" data-testid="modal-title">Create New Team</h2>
 				<button onclick={closeModals} class="text-gray-400 hover:text-gray-600">
-					<X class="w-6 h-6" />
+					<X class="h-6 w-6" />
 				</button>
 			</div>
 
 			<form on:submit|preventDefault={submitTeamForm}>
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+				<div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
 					<div class="md:col-span-2">
-						<label class="block text-sm font-medium text-gray-700 mb-1">Team Name *</label>
+						<label class="mb-1 block text-sm font-medium text-gray-700">Team Name *</label>
 						<input
 							type="text"
 							bind:value={teamForm.name}
 							required
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 							data-testid="team-name"
 							placeholder="Enter team name..."
 						/>
 					</div>
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Department Type</label>
+						<label class="mb-1 block text-sm font-medium text-gray-700">Department Type</label>
 						<select
 							bind:value={teamForm.departmentType}
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 							data-testid="department-type"
 						>
 							{#each departmentTypes as type}
@@ -754,11 +777,13 @@
 						</select>
 					</div>
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Parent Team (Optional)</label>
+						<label class="mb-1 block text-sm font-medium text-gray-700"
+							>Parent Team (Optional)</label
+						>
 						<input
 							type="text"
 							bind:value={teamForm.parentDepartmentId}
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 							data-testid="parent-team"
 							placeholder="Parent team ID"
 						/>
@@ -766,34 +791,40 @@
 				</div>
 
 				<div class="mb-4">
-					<label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+					<label class="mb-1 block text-sm font-medium text-gray-700">Description</label>
 					<textarea
 						bind:value={teamForm.description}
 						rows="3"
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+						class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 						data-testid="team-description"
 						placeholder="Describe the team's purpose and responsibilities..."
 					></textarea>
 				</div>
 
 				<div class="mb-4">
-					<label class="block text-sm font-medium text-gray-700 mb-1">Department Head (Optional)</label>
+					<label class="mb-1 block text-sm font-medium text-gray-700"
+						>Department Head (Optional)</label
+					>
 					<input
 						type="text"
 						bind:value={teamForm.departmentHeadId}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+						class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 						data-testid="department-head-id"
 						placeholder="Employee ID for department head"
 					/>
 				</div>
 
-				<div class="flex gap-2 justify-end">
-					<button type="button" onclick={closeModals} class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+				<div class="flex justify-end gap-2">
+					<button
+						type="button"
+						onclick={closeModals}
+						class="rounded-md border border-gray-300 px-4 py-2 hover:bg-gray-50"
+					>
 						Cancel
 					</button>
 					<button
 						type="submit"
-						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+						class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
 						data-testid="submit-team"
 					>
 						Create Team
@@ -806,17 +837,20 @@
 
 <!-- Assign Department Head Modal -->
 {#if showAssignHeadModal && currentTeam}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="assign-head-modal">
-		<div class="bg-white rounded-lg p-6 max-w-md w-full">
-			<div class="flex justify-between items-center mb-4">
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+		data-testid="assign-head-modal"
+	>
+		<div class="w-full max-w-md rounded-lg bg-white p-6">
+			<div class="mb-4 flex items-center justify-between">
 				<h2 class="text-xl font-bold" data-testid="modal-title">Assign Department Head</h2>
 				<button onclick={closeModals} class="text-gray-400 hover:text-gray-600">
-					<X class="w-6 h-6" />
+					<X class="h-6 w-6" />
 				</button>
 			</div>
 
 			<div class="mb-4">
-				<h3 class="font-medium text-gray-900 mb-2">{currentTeam.name}</h3>
+				<h3 class="mb-2 font-medium text-gray-900">{currentTeam.name}</h3>
 				<p class="text-sm text-gray-600">
 					{currentTeam.employees?.totalCount || 0} employees
 				</p>
@@ -824,35 +858,39 @@
 
 			<form on:submit|preventDefault={submitAssignHead}>
 				<div class="mb-4">
-					<label class="block text-sm font-medium text-gray-700 mb-1">Employee ID *</label>
+					<label class="mb-1 block text-sm font-medium text-gray-700">Employee ID *</label>
 					<input
 						type="text"
 						bind:value={assignHeadForm.departmentHeadId}
 						required
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+						class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 						data-testid="head-employee-id"
 						placeholder="Enter employee ID"
 					/>
 				</div>
 
 				<div class="mb-4">
-					<label class="block text-sm font-medium text-gray-700 mb-1">Search Employee</label>
+					<label class="mb-1 block text-sm font-medium text-gray-700">Search Employee</label>
 					<input
 						type="text"
 						bind:value={assignHeadForm.searchTerm}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+						class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 						data-testid="search-employee"
 						placeholder="Search by name or email"
 					/>
 				</div>
 
-				<div class="flex gap-2 justify-end">
-					<button type="button" onclick={closeModals} class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+				<div class="flex justify-end gap-2">
+					<button
+						type="button"
+						onclick={closeModals}
+						class="rounded-md border border-gray-300 px-4 py-2 hover:bg-gray-50"
+					>
 						Cancel
 					</button>
 					<button
 						type="submit"
-						class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+						class="rounded-md bg-purple-600 px-4 py-2 text-white hover:bg-purple-700"
 						data-testid="submit-assign-head"
 					>
 						Assign Head
@@ -865,41 +903,48 @@
 
 <!-- View Team Modal -->
 {#if showViewModal && currentTeam}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="view-team-modal">
-		<div class="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-			<div class="flex justify-between items-center mb-6">
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+		data-testid="view-team-modal"
+	>
+		<div class="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-white p-6">
+			<div class="mb-6 flex items-center justify-between">
 				<div>
 					<h2 class="text-xl font-bold" data-testid="modal-title">{currentTeam.name}</h2>
 					<p class="text-gray-600">{getDepartmentTypeInfo(currentTeam.name).label} Department</p>
 				</div>
 				<button onclick={closeModals} class="text-gray-400 hover:text-gray-600">
-					<X class="w-6 h-6" />
+					<X class="h-6 w-6" />
 				</button>
 			</div>
 
 			<div class="space-y-6" data-testid="team-details">
 				<!-- Team Overview -->
-				<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+				<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
 					<div class="text-center">
 						<p class="text-sm text-gray-600">Total Employees</p>
 						<p class="text-2xl font-bold text-blue-600">{currentTeam.employees?.totalCount || 0}</p>
 					</div>
 					<div class="text-center">
 						<p class="text-sm text-gray-600">Active Employees</p>
-						<p class="text-2xl font-bold text-green-600">{currentTeam.activeEmployees?.totalCount || 0}</p>
+						<p class="text-2xl font-bold text-green-600">
+							{currentTeam.activeEmployees?.totalCount || 0}
+						</p>
 					</div>
 					<div class="text-center">
 						<p class="text-sm text-gray-600">Sub-teams</p>
-						<p class="text-2xl font-bold text-purple-600">{currentTeam.subDepartments?.totalCount || 0}</p>
+						<p class="text-2xl font-bold text-purple-600">
+							{currentTeam.subDepartments?.totalCount || 0}
+						</p>
 					</div>
 				</div>
 
 				<!-- Department Head -->
 				{#if currentTeam.departmentHead}
 					<div>
-						<h4 class="font-medium text-gray-900 mb-3">Department Head</h4>
-						<div class="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
-							<Crown class="w-6 h-6 text-yellow-600" />
+						<h4 class="mb-3 font-medium text-gray-900">Department Head</h4>
+						<div class="flex items-center gap-3 rounded-lg bg-yellow-50 p-3">
+							<Crown class="h-6 w-6 text-yellow-600" />
 							<div>
 								<p class="font-medium">{currentTeam.departmentHead.displayName}</p>
 								<p class="text-sm text-gray-600">{currentTeam.departmentHead.jobTitle}</p>
@@ -909,8 +954,8 @@
 					</div>
 				{:else}
 					<div>
-						<h4 class="font-medium text-gray-900 mb-3">Department Head</h4>
-						<div class="p-3 bg-gray-50 rounded-lg text-center">
+						<h4 class="mb-3 font-medium text-gray-900">Department Head</h4>
+						<div class="rounded-lg bg-gray-50 p-3 text-center">
 							<p class="text-gray-500">No department head assigned</p>
 						</div>
 					</div>
@@ -919,55 +964,72 @@
 				<!-- Description -->
 				{#if currentTeam.description}
 					<div>
-						<h4 class="font-medium text-gray-900 mb-2">Description</h4>
-						<p class="text-gray-700 bg-gray-50 p-3 rounded-md">{currentTeam.description}</p>
+						<h4 class="mb-2 font-medium text-gray-900">Description</h4>
+						<p class="rounded-md bg-gray-50 p-3 text-gray-700">{currentTeam.description}</p>
 					</div>
 				{/if}
 
 				<!-- Team Statistics -->
 				<div>
-					<h4 class="font-medium text-gray-900 mb-3">Team Statistics</h4>
-					<div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-						<div class="text-center p-3 bg-blue-50 rounded-lg">
-							<p class="text-xs text-blue-600 uppercase">Team Size</p>
+					<h4 class="mb-3 font-medium text-gray-900">Team Statistics</h4>
+					<div class="grid grid-cols-2 gap-3 md:grid-cols-4">
+						<div class="rounded-lg bg-blue-50 p-3 text-center">
+							<p class="text-xs uppercase text-blue-600">Team Size</p>
 							<p class="text-lg font-bold text-blue-900">
 								{categorizeTeamSize(currentTeam.employees?.totalCount || 0).label}
 							</p>
 						</div>
-						<div class="text-center p-3 bg-green-50 rounded-lg">
-							<p class="text-xs text-green-600 uppercase">Utilization</p>
+						<div class="rounded-lg bg-green-50 p-3 text-center">
+							<p class="text-xs uppercase text-green-600">Utilization</p>
 							<p class="text-lg font-bold text-green-900">
-								{Math.round(((currentTeam.activeEmployees?.totalCount || 0) / Math.max(currentTeam.employees?.totalCount || 1, 1)) * 100)}%
+								{Math.round(
+									((currentTeam.activeEmployees?.totalCount || 0) /
+										Math.max(currentTeam.employees?.totalCount || 1, 1)) *
+										100
+								)}%
 							</p>
 						</div>
-						<div class="text-center p-3 bg-purple-50 rounded-lg">
-							<p class="text-xs text-purple-600 uppercase">Sub-teams</p>
-							<p class="text-lg font-bold text-purple-900">{currentTeam.subDepartments?.totalCount || 0}</p>
+						<div class="rounded-lg bg-purple-50 p-3 text-center">
+							<p class="text-xs uppercase text-purple-600">Sub-teams</p>
+							<p class="text-lg font-bold text-purple-900">
+								{currentTeam.subDepartments?.totalCount || 0}
+							</p>
 						</div>
-						<div class="text-center p-3 bg-orange-50 rounded-lg">
-							<p class="text-xs text-orange-600 uppercase">Level</p>
-							<p class="text-lg font-bold text-orange-900">{currentTeam.parentDepartmentId ? 'Sub' : 'Root'}</p>
+						<div class="rounded-lg bg-orange-50 p-3 text-center">
+							<p class="text-xs uppercase text-orange-600">Level</p>
+							<p class="text-lg font-bold text-orange-900">
+								{currentTeam.parentDepartmentId ? 'Sub' : 'Root'}
+							</p>
 						</div>
 					</div>
 				</div>
 			</div>
 
-			<div class="flex justify-between mt-6">
+			<div class="mt-6 flex justify-between">
 				<div class="flex gap-2">
 					<button
-						onclick={() => {closeModals(); handleAssignHead(currentTeam);}}
-						class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+						onclick={() => {
+							closeModals();
+							handleAssignHead(currentTeam);
+						}}
+						class="rounded-md bg-purple-600 px-4 py-2 text-white hover:bg-purple-700"
 					>
 						Assign Head
 					</button>
 					<button
-						onclick={() => {closeModals(); handleEditTeam(currentTeam);}}
-						class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+						onclick={() => {
+							closeModals();
+							handleEditTeam(currentTeam);
+						}}
+						class="rounded-md bg-green-600 px-4 py-2 text-white hover:bg-green-700"
 					>
 						Edit Team
 					</button>
 				</div>
-				<button onclick={closeModals} class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">
+				<button
+					onclick={closeModals}
+					class="rounded-md bg-gray-600 px-4 py-2 text-white hover:bg-gray-700"
+				>
 					Close
 				</button>
 			</div>

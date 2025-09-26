@@ -231,7 +231,9 @@
 
 	// Handle delete review
 	async function handleDeleteReview(review: any) {
-		if (!confirm(`Are you sure you want to delete the review for ${review.employee?.displayName}?`)) {
+		if (
+			!confirm(`Are you sure you want to delete the review for ${review.employee?.displayName}?`)
+		) {
 			return;
 		}
 
@@ -303,7 +305,11 @@
 				}
 			}
 		} catch (error) {
-			toast.error(currentReview ? 'Failed to update performance review' : 'Failed to create performance review');
+			toast.error(
+				currentReview
+					? 'Failed to update performance review'
+					: 'Failed to create performance review'
+			);
 		}
 	}
 
@@ -348,33 +354,33 @@
 
 <div class="container mx-auto px-4 py-8">
 	<!-- Page Header -->
-	<div class="mb-6 flex justify-between items-center">
+	<div class="mb-6 flex items-center justify-between">
 		<div>
 			<h1 class="text-3xl font-bold text-gray-900">Performance Reviews</h1>
 			<p class="mt-2 text-gray-600">Manage and track team performance reviews</p>
 		</div>
 		<button
 			onclick={handleCreateReview}
-			class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2"
+			class="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
 			data-testid="create-review"
 		>
-			<Plus class="w-4 h-4" />
+			<Plus class="h-4 w-4" />
 			Create Review
 		</button>
 	</div>
 
 	<!-- Filters Section -->
-	<div class="bg-white rounded-lg shadow p-4 mb-6">
-		<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+	<div class="mb-6 rounded-lg bg-white p-4 shadow">
+		<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
 			<!-- Status Filter -->
 			<div>
-				<label for="status-filter" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="status-filter" class="mb-1 block text-sm font-medium text-gray-700">
 					Status
 				</label>
 				<select
 					id="status-filter"
 					bind:value={statusFilter}
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 					data-testid="status-filter"
 				>
 					<option value="all">All Statuses</option>
@@ -386,13 +392,13 @@
 
 			<!-- Rating Filter -->
 			<div>
-				<label for="rating-filter" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="rating-filter" class="mb-1 block text-sm font-medium text-gray-700">
 					Rating
 				</label>
 				<select
 					id="rating-filter"
 					bind:value={ratingFilter}
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 					data-testid="rating-filter"
 				>
 					<option value="all">All Ratings</option>
@@ -404,13 +410,13 @@
 
 			<!-- Period Filter -->
 			<div>
-				<label for="period-filter" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="period-filter" class="mb-1 block text-sm font-medium text-gray-700">
 					Review Period
 				</label>
 				<select
 					id="period-filter"
 					bind:value={periodFilter}
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 					data-testid="period-filter"
 				>
 					<option value="all">All Periods</option>
@@ -426,7 +432,7 @@
 
 			<!-- Search -->
 			<div>
-				<label for="search" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="search" class="mb-1 block text-sm font-medium text-gray-700">
 					Search Employee
 				</label>
 				<input
@@ -434,7 +440,7 @@
 					type="text"
 					bind:value={searchQuery}
 					placeholder="Search by name..."
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+					class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 					data-testid="employee-search"
 				/>
 			</div>
@@ -444,14 +450,14 @@
 		<div class="mt-4 flex gap-2">
 			<button
 				onclick={applyFilters}
-				class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+				class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
 				data-testid="apply-filters"
 			>
 				Apply Filters
 			</button>
 			<button
 				onclick={clearFilters}
-				class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+				class="rounded-md border border-gray-300 px-4 py-2 hover:bg-gray-50"
 				data-testid="clear-filters"
 			>
 				Clear Filters
@@ -460,7 +466,7 @@
 	</div>
 
 	<!-- Data Table -->
-	<div class="bg-white rounded-lg shadow">
+	<div class="rounded-lg bg-white shadow">
 		<HrDataTable
 			data={$performanceReviews.data?.performanceReviews?.nodes || []}
 			{columns}
@@ -499,32 +505,35 @@
 
 <!-- Create Review Modal -->
 {#if showCreateModal}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="create-review-modal">
-		<div class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-			<div class="flex justify-between items-center mb-4">
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+		data-testid="create-review-modal"
+	>
+		<div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6">
+			<div class="mb-4 flex items-center justify-between">
 				<h2 class="text-xl font-bold" data-testid="modal-title">Create Performance Review</h2>
 				<button onclick={closeModals} class="text-gray-400 hover:text-gray-600">
-					<X class="w-6 h-6" />
+					<X class="h-6 w-6" />
 				</button>
 			</div>
 
 			<form on:submit|preventDefault={submitForm}>
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+				<div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Employee ID *</label>
+						<label class="mb-1 block text-sm font-medium text-gray-700">Employee ID *</label>
 						<input
 							type="text"
 							bind:value={formData.employeeId}
 							required
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 							data-testid="employee-id"
 						/>
 					</div>
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+						<label class="mb-1 block text-sm font-medium text-gray-700">Status</label>
 						<select
 							bind:value={formData.status}
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 							data-testid="review-status"
 						>
 							{#each reviewStatusOptions as status}
@@ -534,46 +543,50 @@
 					</div>
 				</div>
 
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+				<div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Period Start *</label>
+						<label class="mb-1 block text-sm font-medium text-gray-700">Period Start *</label>
 						<input
 							type="date"
 							bind:value={formData.reviewPeriodStart}
 							required
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 							data-testid="period-start"
 						/>
 					</div>
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Period End *</label>
+						<label class="mb-1 block text-sm font-medium text-gray-700">Period End *</label>
 						<input
 							type="date"
 							bind:value={formData.reviewPeriodEnd}
 							required
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 							data-testid="period-end"
 						/>
 					</div>
 				</div>
 
 				<div class="mb-4">
-					<label class="block text-sm font-medium text-gray-700 mb-1">Review Notes</label>
+					<label class="mb-1 block text-sm font-medium text-gray-700">Review Notes</label>
 					<textarea
 						bind:value={formData.reviewNotes}
 						rows="3"
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+						class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 						data-testid="review-notes"
 					></textarea>
 				</div>
 
-				<div class="flex gap-2 justify-end">
-					<button type="button" onclick={closeModals} class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+				<div class="flex justify-end gap-2">
+					<button
+						type="button"
+						onclick={closeModals}
+						class="rounded-md border border-gray-300 px-4 py-2 hover:bg-gray-50"
+					>
 						Cancel
 					</button>
 					<button
 						type="submit"
-						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+						class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
 						data-testid="submit-review"
 					>
 						Create Review
@@ -586,25 +599,30 @@
 
 <!-- Edit Review Modal -->
 {#if showEditModal && currentReview}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="edit-review-modal">
-		<div class="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-			<div class="flex justify-between items-center mb-4">
-				<h2 class="text-xl font-bold" data-testid="modal-title">Edit Performance Review - {currentReview.employee?.displayName}</h2>
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+		data-testid="edit-review-modal"
+	>
+		<div class="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-white p-6">
+			<div class="mb-4 flex items-center justify-between">
+				<h2 class="text-xl font-bold" data-testid="modal-title">
+					Edit Performance Review - {currentReview.employee?.displayName}
+				</h2>
 				<button onclick={closeModals} class="text-gray-400 hover:text-gray-600">
-					<X class="w-6 h-6" />
+					<X class="h-6 w-6" />
 				</button>
 			</div>
 
 			<form on:submit|preventDefault={submitForm}>
 				<!-- Rating Section -->
 				<div class="mb-6">
-					<h3 class="text-lg font-medium mb-4">Performance Ratings</h3>
-					<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+					<h3 class="mb-4 text-lg font-medium">Performance Ratings</h3>
+					<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">Overall Rating</label>
+							<label class="mb-1 block text-sm font-medium text-gray-700">Overall Rating</label>
 							<select
 								bind:value={formData.overallRating}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+								class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 								data-testid="overall-rating"
 							>
 								{#each performanceRatings as rating}
@@ -613,10 +631,10 @@
 							</select>
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">Goals Achievement</label>
+							<label class="mb-1 block text-sm font-medium text-gray-700">Goals Achievement</label>
 							<select
 								bind:value={formData.goalsAchievement}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+								class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 								data-testid="goals-rating"
 							>
 								{#each performanceRatings as rating}
@@ -625,10 +643,10 @@
 							</select>
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">Collaboration</label>
+							<label class="mb-1 block text-sm font-medium text-gray-700">Collaboration</label>
 							<select
 								bind:value={formData.collaboration}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+								class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 								data-testid="collaboration-rating"
 							>
 								{#each performanceRatings as rating}
@@ -637,10 +655,10 @@
 							</select>
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">Communication</label>
+							<label class="mb-1 block text-sm font-medium text-gray-700">Communication</label>
 							<select
 								bind:value={formData.communication}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+								class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 								data-testid="communication-rating"
 							>
 								{#each performanceRatings as rating}
@@ -649,10 +667,10 @@
 							</select>
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">Leadership</label>
+							<label class="mb-1 block text-sm font-medium text-gray-700">Leadership</label>
 							<select
 								bind:value={formData.leadership}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+								class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 								data-testid="leadership-rating"
 							>
 								{#each performanceRatings as rating}
@@ -661,10 +679,10 @@
 							</select>
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+							<label class="mb-1 block text-sm font-medium text-gray-700">Status</label>
 							<select
 								bind:value={formData.status}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+								class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 								data-testid="review-status"
 							>
 								{#each reviewStatusOptions as status}
@@ -677,24 +695,26 @@
 
 				<!-- Feedback Section -->
 				<div class="mb-6">
-					<h3 class="text-lg font-medium mb-4">Review Feedback</h3>
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					<h3 class="mb-4 text-lg font-medium">Review Feedback</h3>
+					<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">Strengths</label>
+							<label class="mb-1 block text-sm font-medium text-gray-700">Strengths</label>
 							<textarea
 								bind:value={formData.strengths}
 								rows="4"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+								class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 								data-testid="strengths"
 								placeholder="Key strengths and achievements..."
 							></textarea>
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">Areas for Improvement</label>
+							<label class="mb-1 block text-sm font-medium text-gray-700"
+								>Areas for Improvement</label
+							>
 							<textarea
 								bind:value={formData.areasForImprovement}
 								rows="4"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+								class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 								data-testid="improvements"
 								placeholder="Areas that need development..."
 							></textarea>
@@ -702,23 +722,24 @@
 					</div>
 				</div>
 
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+				<div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Goals for Next Period</label>
+						<label class="mb-1 block text-sm font-medium text-gray-700">Goals for Next Period</label
+						>
 						<textarea
 							bind:value={formData.goalsForNextPeriod}
 							rows="3"
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 							data-testid="next-goals"
 							placeholder="Goals and objectives for next review period..."
 						></textarea>
 					</div>
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Development Plan</label>
+						<label class="mb-1 block text-sm font-medium text-gray-700">Development Plan</label>
 						<textarea
 							bind:value={formData.developmentPlan}
 							rows="3"
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 							data-testid="development-plan"
 							placeholder="Professional development recommendations..."
 						></textarea>
@@ -726,23 +747,27 @@
 				</div>
 
 				<div class="mb-4">
-					<label class="block text-sm font-medium text-gray-700 mb-1">Manager's Review Notes</label>
+					<label class="mb-1 block text-sm font-medium text-gray-700">Manager's Review Notes</label>
 					<textarea
 						bind:value={formData.reviewNotes}
 						rows="3"
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+						class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 						data-testid="review-notes"
 						placeholder="Additional manager comments..."
 					></textarea>
 				</div>
 
-				<div class="flex gap-2 justify-end">
-					<button type="button" onclick={closeModals} class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+				<div class="flex justify-end gap-2">
+					<button
+						type="button"
+						onclick={closeModals}
+						class="rounded-md border border-gray-300 px-4 py-2 hover:bg-gray-50"
+					>
 						Cancel
 					</button>
 					<button
 						type="submit"
-						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+						class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
 						data-testid="submit-review"
 					>
 						Update Review
@@ -755,28 +780,38 @@
 
 <!-- View Review Modal -->
 {#if showViewModal && currentReview}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="view-review-modal">
-		<div class="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-			<div class="flex justify-between items-center mb-6">
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+		data-testid="view-review-modal"
+	>
+		<div class="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-white p-6">
+			<div class="mb-6 flex items-center justify-between">
 				<div>
 					<h2 class="text-xl font-bold" data-testid="modal-title">Performance Review Details</h2>
-					<p class="text-gray-600">{currentReview.employee?.displayName} - {formatReviewPeriod(currentReview.reviewPeriodStart, currentReview.reviewPeriodEnd)}</p>
+					<p class="text-gray-600">
+						{currentReview.employee?.displayName} - {formatReviewPeriod(
+							currentReview.reviewPeriodStart,
+							currentReview.reviewPeriodEnd
+						)}
+					</p>
 				</div>
 				<button onclick={closeModals} class="text-gray-400 hover:text-gray-600">
-					<X class="w-6 h-6" />
+					<X class="h-6 w-6" />
 				</button>
 			</div>
 
 			<div class="space-y-6" data-testid="review-details">
 				<!-- Rating Summary -->
-				<div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+				<div class="grid grid-cols-2 gap-4 md:grid-cols-5">
 					<div class="text-center">
 						<p class="text-sm text-gray-600">Overall</p>
 						<p class="text-2xl font-bold text-blue-600">{currentReview.overallRating || '-'}/5</p>
 					</div>
 					<div class="text-center">
 						<p class="text-sm text-gray-600">Goals</p>
-						<p class="text-2xl font-bold text-green-600">{currentReview.goalsAchievement || '-'}/5</p>
+						<p class="text-2xl font-bold text-green-600">
+							{currentReview.goalsAchievement || '-'}/5
+						</p>
 					</div>
 					<div class="text-center">
 						<p class="text-sm text-gray-600">Collaboration</p>
@@ -795,42 +830,51 @@
 				<!-- Review Details -->
 				{#if currentReview.strengths}
 					<div>
-						<h4 class="font-medium text-gray-900 mb-2">Strengths</h4>
-						<p class="text-gray-700 bg-green-50 p-3 rounded-md">{currentReview.strengths}</p>
+						<h4 class="mb-2 font-medium text-gray-900">Strengths</h4>
+						<p class="rounded-md bg-green-50 p-3 text-gray-700">{currentReview.strengths}</p>
 					</div>
 				{/if}
 
 				{#if currentReview.areasForImprovement}
 					<div>
-						<h4 class="font-medium text-gray-900 mb-2">Areas for Improvement</h4>
-						<p class="text-gray-700 bg-orange-50 p-3 rounded-md">{currentReview.areasForImprovement}</p>
+						<h4 class="mb-2 font-medium text-gray-900">Areas for Improvement</h4>
+						<p class="rounded-md bg-orange-50 p-3 text-gray-700">
+							{currentReview.areasForImprovement}
+						</p>
 					</div>
 				{/if}
 
 				{#if currentReview.goalsForNextPeriod}
 					<div>
-						<h4 class="font-medium text-gray-900 mb-2">Goals for Next Period</h4>
-						<p class="text-gray-700 bg-blue-50 p-3 rounded-md">{currentReview.goalsForNextPeriod}</p>
+						<h4 class="mb-2 font-medium text-gray-900">Goals for Next Period</h4>
+						<p class="rounded-md bg-blue-50 p-3 text-gray-700">
+							{currentReview.goalsForNextPeriod}
+						</p>
 					</div>
 				{/if}
 
 				{#if currentReview.employeeSelfAssessment}
 					<div>
-						<h4 class="font-medium text-gray-900 mb-2">Employee Self-Assessment</h4>
-						<p class="text-gray-700 bg-gray-50 p-3 rounded-md">{currentReview.employeeSelfAssessment}</p>
+						<h4 class="mb-2 font-medium text-gray-900">Employee Self-Assessment</h4>
+						<p class="rounded-md bg-gray-50 p-3 text-gray-700">
+							{currentReview.employeeSelfAssessment}
+						</p>
 					</div>
 				{/if}
 
 				{#if currentReview.reviewNotes}
 					<div>
-						<h4 class="font-medium text-gray-900 mb-2">Manager's Notes</h4>
-						<p class="text-gray-700 bg-gray-50 p-3 rounded-md">{currentReview.reviewNotes}</p>
+						<h4 class="mb-2 font-medium text-gray-900">Manager's Notes</h4>
+						<p class="rounded-md bg-gray-50 p-3 text-gray-700">{currentReview.reviewNotes}</p>
 					</div>
 				{/if}
 			</div>
 
-			<div class="flex justify-end mt-6">
-				<button onclick={closeModals} class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">
+			<div class="mt-6 flex justify-end">
+				<button
+					onclick={closeModals}
+					class="rounded-md bg-gray-600 px-4 py-2 text-white hover:bg-gray-700"
+				>
 					Close
 				</button>
 			</div>

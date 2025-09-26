@@ -11,7 +11,23 @@
 	import * as Card from '$lib/components/ui/card';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import * as Switch from '$lib/components/ui/switch';
-	import { Settings, Bell, Shield, Palette, Globe, ArrowLeft, User, Lock, Activity, Save, Eye, EyeOff, Download, AlertCircle, CheckCircle } from 'lucide-svelte';
+	import {
+		Settings,
+		Bell,
+		Shield,
+		Palette,
+		Globe,
+		ArrowLeft,
+		User,
+		Lock,
+		Activity,
+		Save,
+		Eye,
+		EyeOff,
+		Download,
+		AlertCircle,
+		CheckCircle
+	} from 'lucide-svelte';
 	import {
 		profileVisibilityOptions,
 		languageOptions,
@@ -95,20 +111,42 @@
 
 	// Form state for appearance
 	let appearanceSettings = $state({
-		darkMode: userSettings.preferences.darkMode,
-		compactView: userSettings.preferences.compactView,
-		language: userSettings.preferences.language,
-		fontSize: userSettings.preferences.fontSize,
-		colorScheme: userSettings.preferences.colorScheme
+		darkMode: false,
+		compactView: false,
+		language: 'en',
+		fontSize: 'medium',
+		colorScheme: 'light'
+	});
+
+	// Sync with userSettings preferences using effect
+	$effect(() => {
+		if (userSettings?.preferences) {
+			appearanceSettings.darkMode = userSettings.preferences.darkMode;
+			appearanceSettings.compactView = userSettings.preferences.compactView;
+			appearanceSettings.language = userSettings.preferences.language;
+			appearanceSettings.fontSize = userSettings.preferences.fontSize;
+			appearanceSettings.colorScheme = userSettings.preferences.colorScheme;
+		}
 	});
 
 	// Form state for privacy
 	let privacySettings = $state({
-		profileVisibility: userSettings.privacy.profileVisibility,
-		showOnlineStatus: userSettings.privacy.showOnlineStatus,
-		allowDirectMessages: userSettings.privacy.allowDirectMessages,
-		dataSharing: userSettings.privacy.dataSharing,
-		analyticsOptOut: userSettings.privacy.analyticsOptOut
+		profileVisibility: 'public',
+		showOnlineStatus: true,
+		allowDirectMessages: true,
+		dataSharing: false,
+		analyticsOptOut: false
+	});
+
+	// Sync with userSettings data using effect
+	$effect(() => {
+		if (userSettings?.privacy) {
+			privacySettings.profileVisibility = userSettings.privacy.profileVisibility;
+			privacySettings.showOnlineStatus = userSettings.privacy.showOnlineStatus;
+			privacySettings.allowDirectMessages = userSettings.privacy.allowDirectMessages;
+			privacySettings.dataSharing = userSettings.privacy.dataSharing;
+			privacySettings.analyticsOptOut = userSettings.privacy.analyticsOptOut;
+		}
 	});
 
 	// Password strength validation
@@ -135,7 +173,7 @@
 
 		try {
 			// Mock profile update - in real implementation, this would call the server
-			await new Promise(resolve => setTimeout(resolve, 1000));
+			await new Promise((resolve) => setTimeout(resolve, 1000));
 
 			updateSuccess = 'Profile updated successfully!';
 			console.log('Profile updated:', profileForm);
@@ -172,7 +210,7 @@
 
 		try {
 			// Mock password change - in real implementation, this would call the server
-			await new Promise(resolve => setTimeout(resolve, 1500));
+			await new Promise((resolve) => setTimeout(resolve, 1500));
 
 			updateSuccess = 'Password changed successfully!';
 			passwordForm = { currentPassword: '', newPassword: '', confirmPassword: '' };
@@ -193,7 +231,7 @@
 
 		try {
 			// Mock notifications update
-			await new Promise(resolve => setTimeout(resolve, 800));
+			await new Promise((resolve) => setTimeout(resolve, 800));
 
 			updateSuccess = 'Notification preferences updated!';
 			console.log('Notifications updated:', notificationSettings);
@@ -213,7 +251,7 @@
 
 		try {
 			// Mock appearance update
-			await new Promise(resolve => setTimeout(resolve, 800));
+			await new Promise((resolve) => setTimeout(resolve, 800));
 
 			updateSuccess = 'Appearance settings updated!';
 			console.log('Appearance updated:', appearanceSettings);
@@ -233,7 +271,7 @@
 
 		try {
 			// Mock privacy update
-			await new Promise(resolve => setTimeout(resolve, 800));
+			await new Promise((resolve) => setTimeout(resolve, 800));
 
 			updateSuccess = 'Privacy settings updated!';
 			console.log('Privacy updated:', privacySettings);
@@ -253,7 +291,7 @@
 
 		try {
 			// Mock data export
-			await new Promise(resolve => setTimeout(resolve, 2000));
+			await new Promise((resolve) => setTimeout(resolve, 2000));
 
 			updateSuccess = 'Data export initiated. You will receive an email when ready for download.';
 			console.log('User data export requested');
@@ -301,8 +339,8 @@
 	<!-- Page Header -->
 	<div class="mb-6 flex items-center justify-between">
 		<div>
-			<h1 class="text-3xl font-bold text-gray-900 flex items-center gap-2">
-				<Settings class="w-8 h-8 text-blue-600" />
+			<h1 class="flex items-center gap-2 text-3xl font-bold text-gray-900">
+				<Settings class="h-8 w-8 text-blue-600" />
 				Settings
 			</h1>
 			<p class="mt-2 text-gray-600">Manage your account settings and preferences</p>
@@ -315,61 +353,67 @@
 
 	<!-- Success/Error Messages -->
 	{#if updateSuccess}
-		<div class="mb-6 p-4 bg-green-50 border border-green-200 rounded-md" data-testid="success-message">
+		<div
+			class="mb-6 rounded-md border border-green-200 bg-green-50 p-4"
+			data-testid="success-message"
+		>
 			<div class="flex items-center">
-				<CheckCircle class="w-5 h-5 text-green-500 mr-2" />
+				<CheckCircle class="mr-2 h-5 w-5 text-green-500" />
 				<span class="text-green-800">{updateSuccess}</span>
 			</div>
 		</div>
 	{/if}
 
 	{#if updateError}
-		<div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-md" data-testid="error-message">
+		<div class="mb-6 rounded-md border border-red-200 bg-red-50 p-4" data-testid="error-message">
 			<div class="flex items-center">
-				<AlertCircle class="w-5 h-5 text-red-500 mr-2" />
+				<AlertCircle class="mr-2 h-5 w-5 text-red-500" />
 				<span class="text-red-800">{updateError}</span>
 			</div>
 		</div>
 	{/if}
 
 	<!-- Settings Tabs -->
-	<div class="bg-white rounded-lg shadow">
+	<div class="rounded-lg bg-white shadow">
 		<Tabs.Root value={activeTab} class="w-full">
-			<Tabs.List class="grid w-full grid-cols-4 border-b border-gray-200" data-testid="settings-tabs">
+			<Tabs.List
+				class="grid w-full grid-cols-4 border-b border-gray-200"
+				data-testid="settings-tabs"
+			>
 				<Tabs.Trigger
 					value="general"
 					onclick={() => handleTabChange('general')}
-					class="flex items-center gap-2 py-3 px-4"
+					class="flex items-center gap-2 px-4 py-3"
 					data-testid="general-tab"
 				>
-					<User class="w-4 h-4" />
+					<User class="h-4 w-4" />
 					General
 				</Tabs.Trigger>
 				<Tabs.Trigger
 					value="notifications"
 					onclick={() => handleTabChange('notifications')}
-					class="flex items-center gap-2 py-3 px-4"
+					class="flex items-center gap-2 px-4 py-3"
 					data-testid="notifications-tab"
 				>
-					<Bell class="w-4 h-4" />
+					<Bell class="h-4 w-4" />
 					Notifications
 				</Tabs.Trigger>
 				<Tabs.Trigger
 					value="appearance"
 					onclick={() => handleTabChange('appearance')}
-					class="flex items-center gap-2 py-3 px-4"
+					class="flex items-center gap-2 px-4 py-3"
 					data-testid="appearance-tab"
 				>
-					<Palette class="w-4 h-4" />
+					<Palette class="h-4 w-4" />
 					Appearance
 				</Tabs.Trigger>
 				<Tabs.Trigger
 					value="privacy"
 					onclick={() => handleTabChange('privacy')}
-					class="flex items-center gap-2 py-3 px-4"
+					class="flex items-center gap-2 px-4 py-3"
 					data-testid="privacy-tab"
 				>
-					<Shield class="w-4 h-4" />
+					<Shield class="h-4 w-4" />
 					Privacy
 				</Tabs.Trigger>
 			</Tabs.List>
@@ -385,11 +429,13 @@
 									<User class="h-5 w-5" />
 									Profile Information
 								</Card.Title>
-								<Card.Description>Update your personal information and contact details</Card.Description>
+								<Card.Description
+									>Update your personal information and contact details</Card.Description
+								>
 							</Card.Header>
 							<Card.Content>
 								<form class="space-y-4">
-									<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+									<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 										<div class="space-y-2">
 											<Label for="firstName">First Name</Label>
 											<Input
@@ -432,7 +478,7 @@
 										<p class="text-sm text-gray-500">Contact HR to change your email address</p>
 									</div>
 
-									<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+									<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 										<div class="space-y-2">
 											<Label for="phone">Phone Number</Label>
 											<Input
@@ -463,20 +509,20 @@
 											bind:value={profileForm.bio}
 											disabled={!canUpdateProfile}
 											rows="3"
-											class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+											class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100"
 											placeholder="Tell us about yourself..."
 											data-testid="bio-input"
 										></textarea>
 									</div>
 
-									<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+									<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 										<div class="space-y-2">
 											<Label for="timezone">Timezone</Label>
 											<select
 												id="timezone"
 												bind:value={profileForm.timezone}
 												disabled={!canUpdateProfile}
-												class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+												class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100"
 												data-testid="timezone-select"
 											>
 												{#each timezoneOptions as tz}
@@ -490,7 +536,7 @@
 												id="locale"
 												bind:value={profileForm.locale}
 												disabled={!canUpdateProfile}
-												class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+												class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100"
 												data-testid="locale-select"
 											>
 												<option value="en-US">English (US)</option>
@@ -511,9 +557,11 @@
 										data-testid="update-profile-button"
 									>
 										{#if isUpdating}
-											<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+											<div
+												class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
+											></div>
 										{:else}
-											<Save class="w-4 h-4 mr-2" />
+											<Save class="mr-2 h-4 w-4" />
 										{/if}
 										{isUpdating ? 'Updating...' : 'Save Changes'}
 									</Button>
@@ -544,13 +592,13 @@
 												/>
 												<button
 													type="button"
-													onclick={() => showCurrentPassword = !showCurrentPassword}
-													class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+													onclick={() => (showCurrentPassword = !showCurrentPassword)}
+													class="absolute right-3 top-1/2 -translate-y-1/2 transform text-gray-400 hover:text-gray-600"
 												>
 													{#if showCurrentPassword}
-														<EyeOff class="w-4 h-4" />
+														<EyeOff class="h-4 w-4" />
 													{:else}
-														<Eye class="w-4 h-4" />
+														<Eye class="h-4 w-4" />
 													{/if}
 												</button>
 											</div>
@@ -567,25 +615,31 @@
 												/>
 												<button
 													type="button"
-													onclick={() => showNewPassword = !showNewPassword}
-													class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+													onclick={() => (showNewPassword = !showNewPassword)}
+													class="absolute right-3 top-1/2 -translate-y-1/2 transform text-gray-400 hover:text-gray-600"
 												>
 													{#if showNewPassword}
-														<EyeOff class="w-4 h-4" />
+														<EyeOff class="h-4 w-4" />
 													{:else}
-														<Eye class="w-4 h-4" />
+														<Eye class="h-4 w-4" />
 													{/if}
 												</button>
 											</div>
 											{#if passwordForm.newPassword}
 												<div class="mt-2">
-													<div class="flex items-center justify-between text-sm mb-1">
-														<span>Password strength: {getPasswordStrengthText(passwordStrength.score)}</span>
+													<div class="mb-1 flex items-center justify-between text-sm">
+														<span
+															>Password strength: {getPasswordStrengthText(
+																passwordStrength.score
+															)}</span
+														>
 														<span>{passwordStrength.score}/5</span>
 													</div>
-													<div class="w-full bg-gray-200 rounded-full h-2">
+													<div class="h-2 w-full rounded-full bg-gray-200">
 														<div
-															class="h-2 rounded-full transition-all {getPasswordStrengthColor(passwordStrength.score)}"
+															class="h-2 rounded-full transition-all {getPasswordStrengthColor(
+																passwordStrength.score
+															)}"
 															style="width: {(passwordStrength.score / 5) * 100}%"
 														></div>
 													</div>
@@ -593,7 +647,7 @@
 														<ul class="mt-2 text-sm text-gray-600">
 															{#each passwordStrength.feedback as feedback}
 																<li class="flex items-center gap-1">
-																	<AlertCircle class="w-3 h-3 text-orange-500" />
+																	<AlertCircle class="h-3 w-3 text-orange-500" />
 																	{feedback}
 																</li>
 															{/each}
@@ -614,19 +668,19 @@
 												/>
 												<button
 													type="button"
-													onclick={() => showConfirmPassword = !showConfirmPassword}
-													class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+													onclick={() => (showConfirmPassword = !showConfirmPassword)}
+													class="absolute right-3 top-1/2 -translate-y-1/2 transform text-gray-400 hover:text-gray-600"
 												>
 													{#if showConfirmPassword}
-														<EyeOff class="w-4 h-4" />
+														<EyeOff class="h-4 w-4" />
 													{:else}
-														<Eye class="w-4 h-4" />
+														<Eye class="h-4 w-4" />
 													{/if}
 												</button>
 											</div>
 											{#if passwordForm.confirmPassword && passwordForm.newPassword !== passwordForm.confirmPassword}
-												<p class="text-sm text-red-600 flex items-center gap-1">
-													<AlertCircle class="w-3 h-3" />
+												<p class="flex items-center gap-1 text-sm text-red-600">
+													<AlertCircle class="h-3 w-3" />
 													Passwords do not match
 												</p>
 											{/if}
@@ -637,13 +691,18 @@
 									<Button
 										variant="outline"
 										onclick={changePassword}
-										disabled={isUpdating || !passwordForm.currentPassword || !passwordForm.newPassword || !passwordStrength.isValid}
+										disabled={isUpdating ||
+											!passwordForm.currentPassword ||
+											!passwordForm.newPassword ||
+											!passwordStrength.isValid}
 										data-testid="change-password-button"
 									>
 										{#if isUpdating}
-											<div class="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin mr-2"></div>
+											<div
+												class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-600 border-t-transparent"
+											></div>
 										{:else}
-											<Lock class="w-4 h-4 mr-2" />
+											<Lock class="mr-2 h-4 w-4" />
 										{/if}
 										{isUpdating ? 'Updating...' : 'Update Password'}
 									</Button>
@@ -652,7 +711,7 @@
 						{/if}
 					</div>
 
-				<!-- Notifications Tab -->
+					<!-- Notifications Tab -->
 				{:else if activeTab === 'notifications'}
 					<div class="space-y-6" data-testid="notifications-content">
 						<Card.Root>
@@ -661,7 +720,9 @@
 									<Bell class="h-5 w-5" />
 									Notification Preferences
 								</Card.Title>
-								<Card.Description>Choose how you want to be notified about important updates</Card.Description>
+								<Card.Description
+									>Choose how you want to be notified about important updates</Card.Description
+								>
 							</Card.Header>
 							<Card.Content class="space-y-4">
 								<div class="flex items-center justify-between">
@@ -669,7 +730,10 @@
 										<Label>Email Notifications</Label>
 										<p class="text-sm text-gray-500">Receive important updates via email</p>
 									</div>
-									<Switch.Root bind:checked={notificationSettings.email} data-testid="email-notifications" />
+									<Switch.Root
+										bind:checked={notificationSettings.email}
+										data-testid="email-notifications"
+									/>
 								</div>
 
 								<div class="flex items-center justify-between">
@@ -677,7 +741,10 @@
 										<Label>Push Notifications</Label>
 										<p class="text-sm text-gray-500">Get instant notifications in your browser</p>
 									</div>
-									<Switch.Root bind:checked={notificationSettings.push} data-testid="push-notifications" />
+									<Switch.Root
+										bind:checked={notificationSettings.push}
+										data-testid="push-notifications"
+									/>
 								</div>
 
 								<div class="flex items-center justify-between">
@@ -685,39 +752,62 @@
 										<Label>SMS Notifications</Label>
 										<p class="text-sm text-gray-500">Receive critical alerts via SMS</p>
 									</div>
-									<Switch.Root bind:checked={notificationSettings.sms} data-testid="sms-notifications" />
+									<Switch.Root
+										bind:checked={notificationSettings.sms}
+										data-testid="sms-notifications"
+									/>
 								</div>
 
 								<div class="flex items-center justify-between">
 									<div class="space-y-0.5">
 										<Label>Leave Reminders</Label>
-										<p class="text-sm text-gray-500">Reminders about upcoming leave and deadlines</p>
+										<p class="text-sm text-gray-500">
+											Reminders about upcoming leave and deadlines
+										</p>
 									</div>
-									<Switch.Root bind:checked={notificationSettings.leaveReminders} data-testid="leave-reminders" />
+									<Switch.Root
+										bind:checked={notificationSettings.leaveReminders}
+										data-testid="leave-reminders"
+									/>
 								</div>
 
 								<div class="flex items-center justify-between">
 									<div class="space-y-0.5">
 										<Label>Performance Updates</Label>
-										<p class="text-sm text-gray-500">Notifications about goal progress and reviews</p>
+										<p class="text-sm text-gray-500">
+											Notifications about goal progress and reviews
+										</p>
 									</div>
-									<Switch.Root bind:checked={notificationSettings.performanceUpdates} data-testid="performance-updates" />
+									<Switch.Root
+										bind:checked={notificationSettings.performanceUpdates}
+										data-testid="performance-updates"
+									/>
 								</div>
 
 								<div class="flex items-center justify-between">
 									<div class="space-y-0.5">
 										<Label>System Alerts</Label>
-										<p class="text-sm text-gray-500">Important system maintenance and security alerts</p>
+										<p class="text-sm text-gray-500">
+											Important system maintenance and security alerts
+										</p>
 									</div>
-									<Switch.Root bind:checked={notificationSettings.systemAlerts} data-testid="system-alerts" />
+									<Switch.Root
+										bind:checked={notificationSettings.systemAlerts}
+										data-testid="system-alerts"
+									/>
 								</div>
 
 								<div class="flex items-center justify-between">
 									<div class="space-y-0.5">
 										<Label>Team Updates</Label>
-										<p class="text-sm text-gray-500">Notifications about team changes and announcements</p>
+										<p class="text-sm text-gray-500">
+											Notifications about team changes and announcements
+										</p>
 									</div>
-									<Switch.Root bind:checked={notificationSettings.teamUpdates} data-testid="team-updates" />
+									<Switch.Root
+										bind:checked={notificationSettings.teamUpdates}
+										data-testid="team-updates"
+									/>
 								</div>
 							</Card.Content>
 							<Card.Footer>
@@ -727,9 +817,11 @@
 									data-testid="save-notifications-button"
 								>
 									{#if isUpdating}
-										<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+										<div
+											class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
+										></div>
 									{:else}
-										<Save class="w-4 h-4 mr-2" />
+										<Save class="mr-2 h-4 w-4" />
 									{/if}
 									{isUpdating ? 'Saving...' : 'Save Preferences'}
 								</Button>
@@ -737,7 +829,7 @@
 						</Card.Root>
 					</div>
 
-				<!-- Appearance Tab -->
+					<!-- Appearance Tab -->
 				{:else if activeTab === 'appearance'}
 					<div class="space-y-6" data-testid="appearance-content">
 						<Card.Root>
@@ -762,7 +854,10 @@
 										<Label>Compact View</Label>
 										<p class="text-sm text-gray-500">Show more content in less space</p>
 									</div>
-									<Switch.Root bind:checked={appearanceSettings.compactView} data-testid="compact-view" />
+									<Switch.Root
+										bind:checked={appearanceSettings.compactView}
+										data-testid="compact-view"
+									/>
 								</div>
 
 								<div class="space-y-2">
@@ -770,7 +865,7 @@
 									<select
 										id="language"
 										bind:value={appearanceSettings.language}
-										class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+										class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 										data-testid="language-select"
 									>
 										{#each languageOptions as lang}
@@ -784,7 +879,7 @@
 									<select
 										id="fontSize"
 										bind:value={appearanceSettings.fontSize}
-										class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+										class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 										data-testid="font-size-select"
 									>
 										{#each fontSizeOptions as size}
@@ -797,7 +892,12 @@
 									<Label for="colorScheme">Color Scheme</Label>
 									<div class="grid grid-cols-2 gap-3">
 										{#each colorSchemeOptions as scheme}
-											<label class="flex items-center space-x-3 p-3 border rounded-md cursor-pointer hover:bg-gray-50 {appearanceSettings.colorScheme === scheme.value ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}">
+											<label
+												class="flex cursor-pointer items-center space-x-3 rounded-md border p-3 hover:bg-gray-50 {appearanceSettings.colorScheme ===
+												scheme.value
+													? 'border-blue-500 bg-blue-50'
+													: 'border-gray-200'}"
+											>
 												<input
 													type="radio"
 													bind:group={appearanceSettings.colorScheme}
@@ -806,7 +906,10 @@
 													data-testid="color-scheme-{scheme.value}"
 												/>
 												<div class="flex items-center space-x-2">
-													<div class="w-4 h-4 rounded-full" style="background-color: {scheme.color}"></div>
+													<div
+														class="h-4 w-4 rounded-full"
+														style="background-color: {scheme.color}"
+													></div>
 													<div>
 														<div class="font-medium">{scheme.label}</div>
 														<div class="text-sm text-gray-500">{scheme.description}</div>
@@ -824,9 +927,11 @@
 									data-testid="save-appearance-button"
 								>
 									{#if isUpdating}
-										<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+										<div
+											class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
+										></div>
 									{:else}
-										<Save class="w-4 h-4 mr-2" />
+										<Save class="mr-2 h-4 w-4" />
 									{/if}
 									{isUpdating ? 'Applying...' : 'Apply Changes'}
 								</Button>
@@ -834,7 +939,7 @@
 						</Card.Root>
 					</div>
 
-				<!-- Privacy Tab -->
+					<!-- Privacy Tab -->
 				{:else if activeTab === 'privacy'}
 					<div class="space-y-6" data-testid="privacy-content">
 						<Card.Root>
@@ -843,7 +948,9 @@
 									<Shield class="h-5 w-5" />
 									Privacy & Data
 								</Card.Title>
-								<Card.Description>Control your privacy and data sharing preferences</Card.Description>
+								<Card.Description
+									>Control your privacy and data sharing preferences</Card.Description
+								>
 							</Card.Header>
 							<Card.Content class="space-y-4">
 								<div class="space-y-2">
@@ -851,7 +958,7 @@
 									<select
 										id="profileVisibility"
 										bind:value={privacySettings.profileVisibility}
-										class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+										class="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 										data-testid="profile-visibility-select"
 									>
 										{#each profileVisibilityOptions as option}
@@ -865,23 +972,36 @@
 										<Label>Show Online Status</Label>
 										<p class="text-sm text-gray-500">Let others see when you're online</p>
 									</div>
-									<Switch.Root bind:checked={privacySettings.showOnlineStatus} data-testid="show-online-status" />
+									<Switch.Root
+										bind:checked={privacySettings.showOnlineStatus}
+										data-testid="show-online-status"
+									/>
 								</div>
 
 								<div class="flex items-center justify-between">
 									<div class="space-y-0.5">
 										<Label>Allow Direct Messages</Label>
-										<p class="text-sm text-gray-500">Allow colleagues to send you direct messages</p>
+										<p class="text-sm text-gray-500">
+											Allow colleagues to send you direct messages
+										</p>
 									</div>
-									<Switch.Root bind:checked={privacySettings.allowDirectMessages} data-testid="allow-direct-messages" />
+									<Switch.Root
+										bind:checked={privacySettings.allowDirectMessages}
+										data-testid="allow-direct-messages"
+									/>
 								</div>
 
 								<div class="flex items-center justify-between">
 									<div class="space-y-0.5">
 										<Label>Data Sharing</Label>
-										<p class="text-sm text-gray-500">Share anonymized data for product improvement</p>
+										<p class="text-sm text-gray-500">
+											Share anonymized data for product improvement
+										</p>
 									</div>
-									<Switch.Root bind:checked={privacySettings.dataSharing} data-testid="data-sharing" />
+									<Switch.Root
+										bind:checked={privacySettings.dataSharing}
+										data-testid="data-sharing"
+									/>
 								</div>
 
 								<div class="flex items-center justify-between">
@@ -889,7 +1009,10 @@
 										<Label>Analytics Opt-out</Label>
 										<p class="text-sm text-gray-500">Disable usage analytics and tracking</p>
 									</div>
-									<Switch.Root bind:checked={privacySettings.analyticsOptOut} data-testid="analytics-opt-out" />
+									<Switch.Root
+										bind:checked={privacySettings.analyticsOptOut}
+										data-testid="analytics-opt-out"
+									/>
 								</div>
 							</Card.Content>
 							<Card.Footer class="flex justify-between">
@@ -901,9 +1024,11 @@
 										data-testid="export-data-button"
 									>
 										{#if isUpdating}
-											<div class="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin mr-2"></div>
+											<div
+												class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-600 border-t-transparent"
+											></div>
 										{:else}
-											<Download class="w-4 h-4 mr-2" />
+											<Download class="mr-2 h-4 w-4" />
 										{/if}
 										{isUpdating ? 'Exporting...' : 'Export Data'}
 									</Button>
@@ -914,9 +1039,11 @@
 									data-testid="save-privacy-button"
 								>
 									{#if isUpdating}
-										<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+										<div
+											class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
+										></div>
 									{:else}
-										<Save class="w-4 h-4 mr-2" />
+										<Save class="mr-2 h-4 w-4" />
 									{/if}
 									{isUpdating ? 'Saving...' : 'Save Settings'}
 								</Button>
@@ -936,7 +1063,7 @@
 								<Card.Content>
 									<div class="space-y-3" data-testid="activity-log">
 										{#each activityLog as activity}
-											<div class="flex items-center justify-between p-3 bg-gray-50 rounded-md">
+											<div class="flex items-center justify-between rounded-md bg-gray-50 p-3">
 												<div>
 													<p class="font-medium">{activity.description}</p>
 													<p class="text-sm text-gray-500">{formatDate(activity.timestamp)}</p>
@@ -959,9 +1086,19 @@
 
 <style>
 	/* Ensure proper Tailwind classes are generated */
-	.bg-red-500 { background-color: rgb(239 68 68); }
-	.bg-orange-500 { background-color: rgb(249 115 22); }
-	.bg-yellow-500 { background-color: rgb(234 179 8); }
-	.bg-blue-500 { background-color: rgb(59 130 246); }
-	.bg-green-500 { background-color: rgb(34 197 94); }
+	.bg-red-500 {
+		background-color: rgb(239 68 68);
+	}
+	.bg-orange-500 {
+		background-color: rgb(249 115 22);
+	}
+	.bg-yellow-500 {
+		background-color: rgb(234 179 8);
+	}
+	.bg-blue-500 {
+		background-color: rgb(59 130 246);
+	}
+	.bg-green-500 {
+		background-color: rgb(34 197 94);
+	}
 </style>

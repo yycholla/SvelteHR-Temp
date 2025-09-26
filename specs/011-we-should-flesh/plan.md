@@ -32,6 +32,7 @@ _GATE: ✅ PASSED - All requirements met_
 ## Project Structure
 
 ### Documentation (this feature)
+
 ```
 specs/011-we-should-flesh/
 ├── plan.md              # This file (/plan command output) ✅
@@ -47,9 +48,11 @@ specs/011-we-should-flesh/
 ```
 
 ### Source Code Structure
+
 **Structure Decision**: Option 2 (web application with SvelteKit frontend + PostGraphile backend)
 
 Missing pages to implement:
+
 - `/dashboard/management` - Management overview page
 - `/dashboard/management/leave-approvals` - Leave approval workflow
 - `/dashboard/management/reviews` - Performance review management
@@ -60,6 +63,7 @@ Missing pages to implement:
 ## Phase 0: Research & Analysis ✅ COMPLETED
 
 **Research Findings**:
+
 - **Reference Pattern**: `/dashboard/admin/users/+page.svelte` established pattern
 - **UI Components**: shadcn/ui components (Table, Card, Dialog, Button, etc.)
 - **State Management**: Svelte 5 `$state()` runes for reactive data
@@ -72,6 +76,7 @@ Missing pages to implement:
 ## Phase 1: Design & Contracts ✅ COMPLETED
 
 **Deliverables Created**:
+
 - ✅ **data-model.md**: 6 core entities with PostgreSQL schema, RLS policies, indexes
 - ✅ **contracts/**: 5 GraphQL contract files with comprehensive operations
 - ✅ **quickstart.md**: 5 detailed test scenarios with success criteria
@@ -109,12 +114,14 @@ Based on completed design artifacts, the /tasks command will:
 6. **Phase F - Integration** (Tasks 36-38): Codegen, validation, deployment
 
 **Parallelization Strategy**:
+
 - Mark [P] for independent tasks that can run in parallel
 - E2E tests can run concurrently (different pages)
 - GraphQL operations are independent per contract
 - Page implementations are independent per route
 
 **Dependencies**:
+
 - Database schema → GraphQL operations → Page components
 - E2E tests can start immediately (will fail until implementation)
 - Shared components can start after E2E tests define requirements
@@ -124,6 +131,7 @@ Based on completed design artifacts, the /tasks command will:
 ## Progress Tracking
 
 **Phase Status**:
+
 - [x] Phase 0: Research complete (/plan command)
 - [x] Phase 1: Design complete (/plan command)
 - [x] Phase 2: Task planning complete (/plan command - describe approach only)
@@ -132,6 +140,7 @@ Based on completed design artifacts, the /tasks command will:
 - [ ] Phase 5: Validation passed
 
 **Gate Status**:
+
 - [x] Initial Constitution Check: PASS
 - [x] Post-Design Constitution Check: PASS
 - [x] All NEEDS CLARIFICATION resolved

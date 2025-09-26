@@ -107,7 +107,7 @@ components:
           type: array
           items:
             type: string
-          example: ["http://localhost:5173", "http://localhost:3000"]
+          example: ['http://localhost:5173', 'http://localhost:3000']
       required:
         - database_url
         - schema

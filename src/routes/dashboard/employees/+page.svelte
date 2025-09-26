@@ -64,11 +64,28 @@
 	const canViewInactiveEmployees = $derived(data.canViewInactiveEmployees);
 
 	// Local state for filters and search
-	let searchTerm = $state(filters.searchTerm);
-	let selectedDepartment = $state(filters.departmentFilter);
-	let selectedStatus = $state(filters.statusFilter);
-	let currentPage = $state(filters.page);
-	let pageSize = $state(filters.limit);
+	let searchTerm = $state('');
+	let selectedDepartment = $state('');
+	let selectedStatus = $state('');
+	let currentPage = $state(1);
+	let pageSize = $state(20);
+
+	// Sync with filters data using effects
+	$effect(() => {
+		searchTerm = filters.searchTerm || '';
+	});
+	$effect(() => {
+		selectedDepartment = filters.departmentFilter || '';
+	});
+	$effect(() => {
+		selectedStatus = filters.statusFilter || '';
+	});
+	$effect(() => {
+		currentPage = filters.page || 1;
+	});
+	$effect(() => {
+		pageSize = filters.limit || 20;
+	});
 
 	// Pagination state
 	const totalPages = $derived(Math.ceil(totalEmployees / pageSize));
@@ -78,8 +95,8 @@
 	// Statistics derived from server data
 	const employeeStats = $derived({
 		totalEmployees,
-		activeEmployees: employees.filter(emp => emp.isActive).length,
-		inactiveEmployees: employees.filter(emp => !emp.isActive).length,
+		activeEmployees: employees.filter((emp) => emp.isActive).length,
+		inactiveEmployees: employees.filter((emp) => !emp.isActive).length,
 		departmentCount: departments.length
 	});
 
@@ -127,7 +144,7 @@
 
 	// Format employee role display
 	function formatRole(role: string): string {
-		return role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+		return role.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
 	}
 
 	// Format hire date
@@ -150,23 +167,21 @@
 	<div class="flex items-center justify-between">
 		<div>
 			<h1 class="text-3xl font-bold tracking-tight">Employee Directory</h1>
-			<p class="text-muted-foreground">
-				Manage and browse employees in your organization
-			</p>
+			<p class="text-muted-foreground">Manage and browse employees in your organization</p>
 		</div>
 
 		{#if canManageEmployees}
 			<div class="flex gap-2">
 				<Button variant="outline" size="sm">
-					<Upload class="h-4 w-4 mr-2" />
+					<Upload class="mr-2 h-4 w-4" />
 					Import Employees
 				</Button>
 				<Button variant="outline" size="sm">
-					<Download class="h-4 w-4 mr-2" />
+					<Download class="mr-2 h-4 w-4" />
 					Export Directory
 				</Button>
 				<Button size="sm" href="/dashboard/employees/new">
-					<UserPlus class="h-4 w-4 mr-2" />
+					<UserPlus class="mr-2 h-4 w-4" />
 					Add Employee
 				</Button>
 			</div>
@@ -196,24 +211,23 @@
 			<Card.Content>
 				<div class="text-2xl font-bold text-green-600">{employeeStats.activeEmployees}</div>
 				<p class="text-xs text-muted-foreground">
-					{Math.round((employeeStats.activeEmployees / employeeStats.totalEmployees) * 100)}% of total
+					{Math.round((employeeStats.activeEmployees / employeeStats.totalEmployees) * 100)}% of
+					total
 				</p>
 			</Card.Content>
 		</Card.Root>
 
 		{#if canViewInactiveEmployees}
-		<Card.Root>
-			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
-				<Card.Title class="text-sm font-medium">Inactive Employees</Card.Title>
-				<Users class="h-4 w-4 text-gray-500" />
-			</Card.Header>
-			<Card.Content>
-				<div class="text-2xl font-bold text-gray-600">{employeeStats.inactiveEmployees}</div>
-				<p class="text-xs text-muted-foreground">
-					requires attention
-				</p>
-			</Card.Content>
-		</Card.Root>
+			<Card.Root>
+				<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
+					<Card.Title class="text-sm font-medium">Inactive Employees</Card.Title>
+					<Users class="h-4 w-4 text-gray-500" />
+				</Card.Header>
+				<Card.Content>
+					<div class="text-2xl font-bold text-gray-600">{employeeStats.inactiveEmployees}</div>
+					<p class="text-xs text-muted-foreground">requires attention</p>
+				</Card.Content>
+			</Card.Root>
 		{/if}
 
 		<Card.Root>
@@ -237,13 +251,21 @@
 			<Card.Description>Find employees by name, department, or status</Card.Description>
 		</Card.Header>
 		<Card.Content>
-			<form on:submit|preventDefault={handleSearch} class="space-y-4">
+			<form
+				onsubmit={(e) => {
+					e.preventDefault();
+					handleSearch(e);
+				}}
+				class="space-y-4"
+			>
 				<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
 					<!-- Search Input -->
 					<div class="space-y-2">
 						<label for="search" class="text-sm font-medium">Search</label>
 						<div class="relative">
-							<Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+							<Search
+								class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+							/>
 							<Input
 								id="search"
 								type="text"
@@ -270,17 +292,17 @@
 
 					<!-- Status Filter -->
 					{#if canViewInactiveEmployees}
-					<div class="space-y-2">
-						<label for="status" class="text-sm font-medium">Status</label>
-						<Select bind:value={selectedStatus}>
-							<SelectTrigger placeholder="All Employees" />
-							<SelectContent>
-								{#each statusOptions as option}
-									<SelectItem value={option.value}>{option.label}</SelectItem>
-								{/each}
-							</SelectContent>
-						</Select>
-					</div>
+						<div class="space-y-2">
+							<label for="status" class="text-sm font-medium">Status</label>
+							<Select bind:value={selectedStatus}>
+								<SelectTrigger placeholder="All Employees" />
+								<SelectContent>
+									{#each statusOptions as option}
+										<SelectItem value={option.value}>{option.label}</SelectItem>
+									{/each}
+								</SelectContent>
+							</Select>
+						</div>
 					{/if}
 
 					<!-- Page Size -->
@@ -300,12 +322,10 @@
 
 				<div class="flex gap-2">
 					<Button type="submit">
-						<Search class="h-4 w-4 mr-2" />
+						<Search class="mr-2 h-4 w-4" />
 						Search
 					</Button>
-					<Button type="button" variant="outline" on:click={clearFilters}>
-						Clear Filters
-					</Button>
+					<Button type="button" variant="outline" on:click={clearFilters}>Clear Filters</Button>
 				</div>
 			</form>
 		</Card.Content>
@@ -314,11 +334,11 @@
 	<!-- Employee Grid -->
 	<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
 		{#each employees as employee}
-			<Card.Root class="hover:shadow-md transition-shadow">
+			<Card.Root class="transition-shadow hover:shadow-md">
 				<Card.Header class="pb-3">
 					<div class="flex items-start justify-between">
 						<div class="flex items-center space-x-3">
-							<div class="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+							<div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
 								<Users class="h-6 w-6 text-primary" />
 							</div>
 							<div>
@@ -335,37 +355,37 @@
 					<!-- Contact Information -->
 					<div class="space-y-2">
 						{#if employee.email}
-						<div class="flex items-center text-sm text-muted-foreground">
-							<Mail class="h-4 w-4 mr-2" />
-							<a href="mailto:{employee.email}" class="hover:text-primary">{employee.email}</a>
-						</div>
+							<div class="flex items-center text-sm text-muted-foreground">
+								<Mail class="mr-2 h-4 w-4" />
+								<a href="mailto:{employee.email}" class="hover:text-primary">{employee.email}</a>
+							</div>
 						{/if}
 
 						{#if employee.phone}
-						<div class="flex items-center text-sm text-muted-foreground">
-							<Phone class="h-4 w-4 mr-2" />
-							<a href="tel:{employee.phone}" class="hover:text-primary">{employee.phone}</a>
-						</div>
+							<div class="flex items-center text-sm text-muted-foreground">
+								<Phone class="mr-2 h-4 w-4" />
+								<a href="tel:{employee.phone}" class="hover:text-primary">{employee.phone}</a>
+							</div>
 						{/if}
 
 						{#if employee.department}
-						<div class="flex items-center text-sm text-muted-foreground">
-							<Building class="h-4 w-4 mr-2" />
-							<span>{employee.department.name}</span>
-						</div>
+							<div class="flex items-center text-sm text-muted-foreground">
+								<Building class="mr-2 h-4 w-4" />
+								<span>{employee.department.name}</span>
+							</div>
 						{/if}
 
 						{#if employee.hireDate}
-						<div class="flex items-center text-sm text-muted-foreground">
-							<Calendar class="h-4 w-4 mr-2" />
-							<span>Hired {formatHireDate(employee.hireDate)}</span>
-						</div>
+							<div class="flex items-center text-sm text-muted-foreground">
+								<Calendar class="mr-2 h-4 w-4" />
+								<span>Hired {formatHireDate(employee.hireDate)}</span>
+							</div>
 						{/if}
 
 						{#if employee.role}
-						<div class="flex items-center text-sm">
-							<Badge variant="outline">{formatRole(employee.role)}</Badge>
-						</div>
+							<div class="flex items-center text-sm">
+								<Badge variant="outline">{formatRole(employee.role)}</Badge>
+							</div>
 						{/if}
 					</div>
 
@@ -374,14 +394,14 @@
 					<!-- Actions -->
 					<div class="flex gap-2">
 						<Button variant="outline" size="sm" href="/dashboard/employees/{employee.id}">
-							<Eye class="h-4 w-4 mr-2" />
+							<Eye class="mr-2 h-4 w-4" />
 							View Profile
 						</Button>
 						{#if canManageEmployees}
-						<Button variant="outline" size="sm" href="/dashboard/employees/{employee.id}/edit">
-							<Edit class="h-4 w-4 mr-2" />
-							Edit
-						</Button>
+							<Button variant="outline" size="sm" href="/dashboard/employees/{employee.id}/edit">
+								<Edit class="mr-2 h-4 w-4" />
+								Edit
+							</Button>
 						{/if}
 					</div>
 				</Card.Content>
@@ -405,7 +425,7 @@
 					</p>
 					{#if canManageEmployees && !filters.searchTerm && !filters.departmentFilter && !filters.statusFilter}
 						<Button class="mt-4" href="/dashboard/employees/new">
-							<UserPlus class="h-4 w-4 mr-2" />
+							<UserPlus class="mr-2 h-4 w-4" />
 							Add First Employee
 						</Button>
 					{/if}
@@ -420,7 +440,10 @@
 			<Card.Content class="py-4">
 				<div class="flex items-center justify-between">
 					<div class="text-sm text-muted-foreground">
-						Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalEmployees)} of {totalEmployees} employees
+						Showing {(currentPage - 1) * pageSize + 1} to {Math.min(
+							currentPage * pageSize,
+							totalEmployees
+						)} of {totalEmployees} employees
 					</div>
 					<div class="flex gap-2">
 						<Button

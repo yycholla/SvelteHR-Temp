@@ -3,7 +3,7 @@ import { authExchange } from '@urql/exchange-auth';
 import { retryExchange } from '@urql/exchange-retry';
 import { goto } from '$app/navigation';
 import { browser } from '$app/environment';
-import { createPerformanceExchange } from '$lib/performance/graphql-performance-exchange.js';
+import { createPerformanceExchange } from '$lib/performance/graphql-performance-exchange';
 
 /**
  * PostGraphile GraphQL Client Configuration for SvelteHR

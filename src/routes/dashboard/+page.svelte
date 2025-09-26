@@ -1,6 +1,10 @@
 <script lang="ts">
-	import { generatePersonalActivity, generatePersonalTasks, generateUpcomingEvents } from '$lib/graphql/dashboard-operations';
-	import type { DashboardMetric, ActivityItem, UpcomingEvent } from '$lib/graphql/dashboard-operations';
+	// Server-loaded data imports
+	import type {
+		DashboardMetric,
+		ActivityItem,
+		UpcomingEvent
+	} from '$lib/graphql/dashboard-operations';
 	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
@@ -55,7 +59,10 @@
 			title: 'Pending Requests',
 			value: `${dashboardData.metrics.pendingRequests}`,
 			change: {
-				value: dashboardData.metrics.pendingRequests > 0 ? `${dashboardData.metrics.pendingRequests} pending` : 'None pending',
+				value:
+					dashboardData.metrics.pendingRequests > 0
+						? `${dashboardData.metrics.pendingRequests} pending`
+						: 'None pending',
 				type: dashboardData.metrics.pendingRequests > 0 ? 'warning' : 'neutral',
 				period: dashboardData.metrics.pendingRequests > 0 ? 'requests' : ''
 			},
@@ -86,18 +93,22 @@
 		}
 	]);
 
-	// Generate dynamic content based on server-loaded user data
+	// Use server-loaded data instead of calling async functions
 	const myActivity = $derived<ActivityItem[]>(
-		generatePersonalActivity(dashboardData.user).map((activity, index) => ({
+		(dashboardData.activities || []).map((activity, index) => ({
 			...activity,
 			id: index + 1,
-			icon: activity.type === 'success' ? CheckCircle :
-				  activity.type === 'warning' ? AlertTriangle : Target
+			icon:
+				activity.type === 'success'
+					? CheckCircle
+					: activity.type === 'warning'
+						? AlertTriangle
+						: Target
 		}))
 	);
 
-	const myTasks = $derived<string[]>(generatePersonalTasks(dashboardData.user));
-	const upcomingEvents = $derived<UpcomingEvent[]>(generateUpcomingEvents(dashboardData.user));
+	const myTasks = $derived<string[]>(dashboardData.tasks || []);
+	const upcomingEvents = $derived<UpcomingEvent[]>(dashboardData.events || []);
 </script>
 
 <svelte:head>
@@ -120,7 +131,8 @@
 			<Card.Root class="cursor-pointer transition-shadow hover:shadow-md">
 				<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
 					<Card.Title class="text-sm font-medium">{metric.title}</Card.Title>
-					<svelte:component this={metric.icon} class="h-4 w-4 text-muted-foreground" />
+					{@const IconComponent = metric.icon}
+					<IconComponent class="h-4 w-4 text-muted-foreground" />
 				</Card.Header>
 				<Card.Content>
 					<div class="text-2xl font-bold">{metric.value}</div>
@@ -161,6 +173,7 @@
 			<Card.Content>
 				<div class="space-y-4">
 					{#each myActivity as activity, index}
+						{@const ActivityIcon = activity.icon}
 						<div class="flex items-start space-x-3">
 							<div
 								class="flex h-6 w-6 items-center justify-center rounded-full {activity.type ===
@@ -170,8 +183,7 @@
 										? 'bg-orange-100'
 										: 'bg-blue-100'}"
 							>
-								<svelte:component
-									this={activity.icon}
+								<ActivityIcon
 									class="h-3 w-3 {activity.type === 'success'
 										? 'text-green-600'
 										: activity.type === 'warning'
@@ -235,11 +247,14 @@
 				<div class="space-y-4">
 					{#each upcomingEvents as event, index}
 						<div class="flex items-center space-x-3">
-							<div class="flex h-8 w-8 items-center justify-center rounded-full {event.type === 'meeting'
-								? 'bg-blue-100'
-								: event.type === 'review'
-									? 'bg-orange-100'
-									: 'bg-green-100'}">
+							<div
+								class="flex h-8 w-8 items-center justify-center rounded-full {event.type ===
+								'meeting'
+									? 'bg-blue-100'
+									: event.type === 'review'
+										? 'bg-orange-100'
+										: 'bg-green-100'}"
+							>
 								{#if event.type === 'meeting'}
 									<User class="h-4 w-4 text-blue-600" />
 								{:else if event.type === 'review'}
@@ -267,7 +282,11 @@
 		</Card.Header>
 		<Card.Content>
 			<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-				<Button variant="outline" class="flex h-auto flex-col items-center gap-2 p-4" href="/dashboard/users/{user.id}/leave/new">
+				<Button
+					variant="outline"
+					class="flex h-auto flex-col items-center gap-2 p-4"
+					href="/dashboard/users/{user.id}/leave/new"
+				>
 					<Calendar class="h-5 w-5" />
 					<div class="text-center">
 						<div class="font-medium">Request Leave</div>
@@ -275,7 +294,11 @@
 					</div>
 				</Button>
 
-				<Button variant="outline" class="flex h-auto flex-col items-center gap-2 p-4" href="/dashboard/users/{user.id}/attendance">
+				<Button
+					variant="outline"
+					class="flex h-auto flex-col items-center gap-2 p-4"
+					href="/dashboard/users/{user.id}/attendance"
+				>
 					<Clock class="h-5 w-5" />
 					<div class="text-center">
 						<div class="font-medium">View Attendance</div>
@@ -283,7 +306,11 @@
 					</div>
 				</Button>
 
-				<Button variant="outline" class="flex h-auto flex-col items-center gap-2 p-4" href="/dashboard/employees/directory">
+				<Button
+					variant="outline"
+					class="flex h-auto flex-col items-center gap-2 p-4"
+					href="/dashboard/employees/directory"
+				>
 					<User class="h-5 w-5" />
 					<div class="text-center">
 						<div class="font-medium">Employee Directory</div>
@@ -291,7 +318,11 @@
 					</div>
 				</Button>
 
-				<Button variant="outline" class="flex h-auto flex-col items-center gap-2 p-4" href="/profile">
+				<Button
+					variant="outline"
+					class="flex h-auto flex-col items-center gap-2 p-4"
+					href="/profile"
+				>
 					<Settings class="h-5 w-5" />
 					<div class="text-center">
 						<div class="font-medium">My Profile</div>

@@ -24,7 +24,7 @@ export interface TokenValidationResult {
 }
 
 // JWT secret key (should be from environment variables)
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-jwt-secret-change-in-production';
 
 /**
  * Verify and decode a JWT token with proper signature verification (SERVER-SIDE ONLY)
@@ -55,7 +55,7 @@ export async function verifyJWTToken(token: string): Promise<TokenValidationResu
 		// Check if token needs refresh (within refresh threshold)
 		const now = Math.floor(Date.now() / 1000);
 		const refreshThresholdSeconds = authConfig.jwt.refreshThreshold * 60;
-		const needsRefresh = (payload.exp - now) <= refreshThresholdSeconds;
+		const needsRefresh = payload.exp - now <= refreshThresholdSeconds;
 
 		return {
 			isValid: true,
@@ -126,10 +126,17 @@ export async function decodeJWTTokenUnsafe(token: string): Promise<JWTPayload | 
 	}
 
 	try {
-		// Server-side: Use jsonwebtoken library
-		const jwt = await import('jsonwebtoken');
-		const decoded = jwt.decode(token) as JWTPayload;
-		return decoded;
+		// Server-side: Try simple base64 decode first (for our custom tokens)
+		const parts = token.split('.');
+		if (parts.length !== 3) {
+			console.warn('Invalid JWT format: expected 3 parts, got', parts.length);
+			return null;
+		}
+
+		// Decode the payload part (index 1)
+		const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+		console.log('🔍 Server decoded payload:', payload);
+		return payload as JWTPayload;
 	} catch (error) {
 		console.warn('Failed to decode JWT token on server:', error);
 		return null;
@@ -200,7 +207,7 @@ export function isTokenExpired(payload: JWTPayload): boolean {
 export function tokenNeedsRefresh(payload: JWTPayload): boolean {
 	const now = Math.floor(Date.now() / 1000);
 	const refreshThresholdSeconds = authConfig.jwt.refreshThreshold * 60;
-	return (payload.exp - now) <= refreshThresholdSeconds;
+	return payload.exp - now <= refreshThresholdSeconds;
 }
 
 /**
@@ -229,9 +236,9 @@ export function createMockJWTPayload(overrides: Partial<JWTPayload> = {}): JWTPa
 	const now = Math.floor(Date.now() / 1000);
 
 	return {
-		user_id: '1',
+		user_id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', // Use proper UUID that matches database
 		email: 'admin@postgraphile-hr.com',
-		role: 'hr_admin',
+		role: 'admin', // Use simplified role name that matches database
 		permissions: ['*'],
 		iat: now,
 		exp: now + 3600, // 1 hour

@@ -36,11 +36,7 @@
 
 <div class={cn('async-wrapper', className)}>
 	{#if loading}
-		<PageLoading
-			title={loadingTitle}
-			description={loadingDescription}
-			variant={loadingVariant}
-		/>
+		<PageLoading title={loadingTitle} description={loadingDescription} variant={loadingVariant} />
 	{:else if error}
 		<ErrorBoundary
 			{error}

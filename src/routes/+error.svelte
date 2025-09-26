@@ -68,7 +68,7 @@
 </svelte:head>
 
 <!-- Full-screen error page -->
-<div class="min-h-screen bg-background flex items-center justify-center p-4">
+<div class="flex min-h-screen items-center justify-center bg-background p-4">
 	<ErrorBoundary
 		error={errorObject}
 		{title}

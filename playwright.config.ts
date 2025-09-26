@@ -2,33 +2,30 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
 	// Enhanced parallel execution based on environment
-	workers: process.env.CI ? 4 : (() => {
-		if (!process.env.PLAYWRIGHT_WORKERS) return 2;
-		const parsed = parseInt(process.env.PLAYWRIGHT_WORKERS, 10);
-		return Number.isFinite(parsed) && parsed > 0 ? parsed : 2;
-	})(),
+	workers: process.env.CI
+		? 4
+		: (() => {
+				if (!process.env.PLAYWRIGHT_WORKERS) return 2;
+				const parsed = parseInt(process.env.PLAYWRIGHT_WORKERS, 10);
+				return Number.isFinite(parsed) && parsed > 0 ? parsed : 2;
+			})(),
 
 	// Improved retry strategy for reliability
-	retries: process.env.CI ? 3 : (() => {
-		if (!process.env.PLAYWRIGHT_RETRIES) return 1;
-		const parsed = parseInt(process.env.PLAYWRIGHT_RETRIES, 10);
-		return Number.isFinite(parsed) && parsed >= 0 ? parsed : 1;
-	})(),
+	retries: process.env.CI
+		? 3
+		: (() => {
+				if (!process.env.PLAYWRIGHT_RETRIES) return 1;
+				const parsed = parseInt(process.env.PLAYWRIGHT_RETRIES, 10);
+				return Number.isFinite(parsed) && parsed >= 0 ? parsed : 1;
+			})(),
 
 	// Directory for test artifacts
 	outputDir: 'test-results/',
 
 	// Test directories with granular control
 	testDir: './tests',
-	testMatch: [
-		'**/e2e/**/*.spec.ts',
-		'**/e2e/**/*.spec.js'
-	],
-	testIgnore: [
-		'**/contract/**/*',
-		'**/integration/**/*',
-		'**/unit/**/*'
-	],
+	testMatch: ['**/e2e/**/*.spec.ts', '**/e2e/**/*.spec.js'],
+	testIgnore: ['**/contract/**/*', '**/integration/**/*', '**/unit/**/*'],
 
 	// Performance-optimized timeouts
 	timeout: process.env.CI ? 60 * 1000 : 30 * 1000,
@@ -51,7 +48,7 @@ export default defineConfig({
 			timeout: 120 * 1000,
 			env: {
 				NODE_ENV: 'test',
-				DATABASE_URL: process.env.TEST_DATABASE_URL || process.env.DATABASE_URL,
+				DATABASE_URL: process.env.TEST_DATABASE_URL || process.env.DATABASE_URL
 			}
 		}
 		// PostGraphile backend server (enable for backend integration tests)
@@ -91,7 +88,7 @@ export default defineConfig({
 
 		// Performance monitoring
 		extraHTTPHeaders: {
-			'Accept-Language': 'en-US,en;q=0.9',
+			'Accept-Language': 'en-US,en;q=0.9'
 		},
 
 		// Viewport consistency
@@ -99,7 +96,7 @@ export default defineConfig({
 
 		// Locale and timezone
 		locale: 'en-US',
-		timezoneId: 'America/New_York',
+		timezoneId: 'America/New_York'
 	},
 
 	// Comprehensive browser testing matrix
@@ -109,22 +106,22 @@ export default defineConfig({
 			name: 'chromium-desktop',
 			use: {
 				...devices['Desktop Chrome'],
-				channel: 'chrome',
-			},
+				channel: 'chrome'
+			}
 		},
 
 		{
 			name: 'firefox-desktop',
 			use: {
-				...devices['Desktop Firefox'],
-			},
+				...devices['Desktop Firefox']
+			}
 		},
 
 		{
 			name: 'webkit-desktop',
 			use: {
-				...devices['Desktop Safari'],
-			},
+				...devices['Desktop Safari']
+			}
 		},
 
 		// Performance testing with Chrome DevTools
@@ -134,13 +131,10 @@ export default defineConfig({
 				...devices['Desktop Chrome'],
 				channel: 'chrome',
 				launchOptions: {
-					args: [
-						'--enable-precise-memory-info',
-						'--enable-performance-timing-profiler',
-					]
+					args: ['--enable-precise-memory-info', '--enable-performance-timing-profiler']
 				}
 			},
-			testMatch: '**/performance/**/*.spec.ts',
+			testMatch: '**/performance/**/*.spec.ts'
 		},
 
 		// Accessibility testing
@@ -148,67 +142,78 @@ export default defineConfig({
 			name: 'chromium-a11y',
 			use: {
 				...devices['Desktop Chrome'],
-				channel: 'chrome',
+				channel: 'chrome'
 			},
-			testMatch: '**/accessibility/**/*.spec.ts',
+			testMatch: '**/accessibility/**/*.spec.ts'
 		},
 
 		// Mobile browser testing (conditional based on environment)
-		...(process.env.PLAYWRIGHT_MOBILE_TESTS === 'true' ? [
-			{
-				name: 'mobile-chrome',
-				use: { ...devices['Pixel 5'] },
-				testMatch: '**/mobile/**/*.spec.ts',
-			},
-			{
-				name: 'mobile-safari',
-				use: { ...devices['iPhone 12'] },
-				testMatch: '**/mobile/**/*.spec.ts',
-			},
-		] : []),
+		...(process.env.PLAYWRIGHT_MOBILE_TESTS === 'true'
+			? [
+					{
+						name: 'mobile-chrome',
+						use: { ...devices['Pixel 5'] },
+						testMatch: '**/mobile/**/*.spec.ts'
+					},
+					{
+						name: 'mobile-safari',
+						use: { ...devices['iPhone 12'] },
+						testMatch: '**/mobile/**/*.spec.ts'
+					}
+				]
+			: []),
 
 		// API testing project
 		{
 			name: 'api-tests',
 			use: {
-				baseURL: process.env.API_BASE_URL || 'http://localhost:4000',
+				baseURL: process.env.API_BASE_URL || 'http://localhost:4000'
 			},
-			testMatch: '**/api/**/*.spec.ts',
-		},
+			testMatch: '**/api/**/*.spec.ts'
+		}
 	],
 
 	// Enhanced reporting configuration
 	reporter: [
 		// HTML report with detailed information
-		['html', {
-			outputFolder: 'playwright-report',
-			open: process.env.CI ? 'never' : 'on-failure',
-		}],
+		[
+			'html',
+			{
+				outputFolder: 'playwright-report',
+				open: process.env.CI ? 'never' : 'on-failure'
+			}
+		],
 
 		// Console output for development
 		['line'],
 
 		// JSON report for CI/CD integration
-		['json', {
-			outputFile: 'test-results/results.json'
-		}],
+		[
+			'json',
+			{
+				outputFile: 'test-results/results.json'
+			}
+		],
 
 		// JUnit XML for test result integration
-		['junit', {
-			outputFile: 'test-results/junit-results.xml'
-		}],
+		[
+			'junit',
+			{
+				outputFile: 'test-results/junit-results.xml'
+			}
+		],
 
 		// Custom performance reporter (conditional)
-		...(process.env.PLAYWRIGHT_PERFORMANCE_REPORT === 'true' ? [
-			['./tests/reporters/performance-reporter.ts']
-		] : []),
+		...(process.env.PLAYWRIGHT_PERFORMANCE_REPORT === 'true'
+			? [['./tests/reporters/performance-reporter.ts']]
+			: [])
 	],
 
 	// Test metadata and annotations
 	metadata: {
 		testEnvironment: process.env.NODE_ENV || 'development',
 		buildNumber: process.env.BUILD_NUMBER || 'local',
-		commitHash: process.env.COMMIT_HASH || 'unknown',
+		commitHash: process.env.COMMIT_HASH || 'unknown'
 	},
 
 	// Fullyparallel execution for better performance
@@ -218,5 +223,5 @@ export default defineConfig({
 	forbidOnly: !!process.env.CI,
 
 	// Maximum failures before stopping test suite
-	maxFailures: process.env.CI ? 10 : undefined,
+	maxFailures: process.env.CI ? 10 : undefined
 });

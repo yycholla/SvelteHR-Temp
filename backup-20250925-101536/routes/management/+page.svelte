@@ -4,8 +4,18 @@
 	import { getOperationStore, queryStore } from '@urql/svelte';
 	import { toast } from 'svelte-sonner';
 	import {
-		Users, Clock, Target, FileText, TrendingUp, AlertCircle,
-		CheckCircle, Calendar, BarChart, Activity, Award, MapPin
+		Users,
+		Clock,
+		Target,
+		FileText,
+		TrendingUp,
+		AlertCircle,
+		CheckCircle,
+		Calendar,
+		BarChart,
+		Activity,
+		Award,
+		MapPin
 	} from 'lucide-svelte';
 
 	// Import operations from different modules for comprehensive dashboard
@@ -197,9 +207,12 @@
 		dashboardData.goals.active = goals.length;
 		dashboardData.goals.overdue = goals.filter(isGoalOverdue).length;
 		dashboardData.goals.atRisk = goals.filter(isGoalAtRisk).length;
-		dashboardData.goals.avgProgress = goals.length > 0
-			? Math.round(goals.reduce((sum, goal) => sum + calculateGoalCompletion(goal), 0) / goals.length)
-			: 0;
+		dashboardData.goals.avgProgress =
+			goals.length > 0
+				? Math.round(
+						goals.reduce((sum, goal) => sum + calculateGoalCompletion(goal), 0) / goals.length
+					)
+				: 0;
 		quickActions[2].count = goals.length;
 
 		// Update recent activities
@@ -219,9 +232,9 @@
 
 	$: if ($teamReports.data) {
 		const reports = $teamReports.data.teamReports?.nodes || [];
-		dashboardData.reports.generated = reports.filter(r => r.status === 'completed').length;
-		dashboardData.reports.scheduled = reports.filter(r => r.isScheduled).length;
-		dashboardData.reports.failed = reports.filter(r => r.status === 'failed').length;
+		dashboardData.reports.generated = reports.filter((r) => r.status === 'completed').length;
+		dashboardData.reports.scheduled = reports.filter((r) => r.isScheduled).length;
+		dashboardData.reports.failed = reports.filter((r) => r.status === 'failed').length;
 		quickActions[3].count = reports.length;
 
 		// Update recent activities
@@ -247,15 +260,28 @@
 	$: performanceMetrics = [
 		{
 			label: 'Leave Approval Rate',
-			value: dashboardData.leaveRequests.pending > 0 ?
-				Math.round((dashboardData.leaveRequests.approved / (dashboardData.leaveRequests.approved + dashboardData.leaveRequests.rejected)) * 100) : 0,
+			value:
+				dashboardData.leaveRequests.pending > 0
+					? Math.round(
+							(dashboardData.leaveRequests.approved /
+								(dashboardData.leaveRequests.approved + dashboardData.leaveRequests.rejected)) *
+								100
+						)
+					: 0,
 			target: 85,
 			color: 'blue'
 		},
 		{
 			label: 'Review Completion',
-			value: dashboardData.performanceReviews.pending > 0 ?
-				Math.round((dashboardData.performanceReviews.completed / (dashboardData.performanceReviews.completed + dashboardData.performanceReviews.pending)) * 100) : 0,
+			value:
+				dashboardData.performanceReviews.pending > 0
+					? Math.round(
+							(dashboardData.performanceReviews.completed /
+								(dashboardData.performanceReviews.completed +
+									dashboardData.performanceReviews.pending)) *
+								100
+						)
+					: 0,
 			target: 95,
 			color: 'green'
 		},
@@ -267,8 +293,14 @@
 		},
 		{
 			label: 'Report Success Rate',
-			value: dashboardData.reports.generated > 0 ?
-				Math.round((dashboardData.reports.generated / (dashboardData.reports.generated + dashboardData.reports.failed)) * 100) : 0,
+			value:
+				dashboardData.reports.generated > 0
+					? Math.round(
+							(dashboardData.reports.generated /
+								(dashboardData.reports.generated + dashboardData.reports.failed)) *
+								100
+						)
+					: 0,
 			target: 98,
 			color: 'orange'
 		}
@@ -276,37 +308,49 @@
 
 	// Alerts and notifications
 	$: alerts = [
-		...(dashboardData.goals.overdue > 0 ? [{
-			type: 'warning' as const,
-			title: `${dashboardData.goals.overdue} Overdue Goals`,
-			message: 'Some team goals have passed their target date and need attention.',
-			action: 'View Goals',
-			href: '/dashboard/management/goals',
-			testId: 'alert-overdue-goals'
-		}] : []),
-		...(dashboardData.performanceReviews.overdue > 0 ? [{
-			type: 'error' as const,
-			title: `${dashboardData.performanceReviews.overdue} Overdue Reviews`,
-			message: 'Performance reviews are past due and require immediate attention.',
-			action: 'View Reviews',
-			href: '/dashboard/management/reviews',
-			testId: 'alert-overdue-reviews'
-		}] : []),
-		...(dashboardData.leaveRequests.pending > 5 ? [{
-			type: 'info' as const,
-			title: `${dashboardData.leaveRequests.pending} Pending Leave Requests`,
-			message: 'Multiple leave requests are waiting for your approval.',
-			action: 'Review Requests',
-			href: '/dashboard/management/leave-approvals',
-			testId: 'alert-pending-leave'
-		}] : [])
+		...(dashboardData.goals.overdue > 0
+			? [
+					{
+						type: 'warning' as const,
+						title: `${dashboardData.goals.overdue} Overdue Goals`,
+						message: 'Some team goals have passed their target date and need attention.',
+						action: 'View Goals',
+						href: '/dashboard/management/goals',
+						testId: 'alert-overdue-goals'
+					}
+				]
+			: []),
+		...(dashboardData.performanceReviews.overdue > 0
+			? [
+					{
+						type: 'error' as const,
+						title: `${dashboardData.performanceReviews.overdue} Overdue Reviews`,
+						message: 'Performance reviews are past due and require immediate attention.',
+						action: 'View Reviews',
+						href: '/dashboard/management/reviews',
+						testId: 'alert-overdue-reviews'
+					}
+				]
+			: []),
+		...(dashboardData.leaveRequests.pending > 5
+			? [
+					{
+						type: 'info' as const,
+						title: `${dashboardData.leaveRequests.pending} Pending Leave Requests`,
+						message: 'Multiple leave requests are waiting for your approval.',
+						action: 'Review Requests',
+						href: '/dashboard/management/leave-approvals',
+						testId: 'alert-pending-leave'
+					}
+				]
+			: [])
 	];
 </script>
 
 <div class="container mx-auto px-4 py-8">
 	<!-- Page Header -->
 	<div class="mb-8">
-		<div class="flex justify-between items-center mb-4">
+		<div class="mb-4 flex items-center justify-between">
 			<div>
 				<h1 class="text-3xl font-bold text-gray-900">Management Overview</h1>
 				<p class="mt-2 text-gray-600">Your team management dashboard and key metrics</p>
@@ -314,7 +358,7 @@
 			<div class="flex items-center gap-4">
 				<select
 					bind:value={selectedPeriod}
-					class="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+					class="rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 					data-testid="period-selector"
 				>
 					<option value="this-week">This Week</option>
@@ -324,7 +368,7 @@
 				</select>
 				<select
 					bind:value={selectedTeamId}
-					class="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+					class="rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
 					data-testid="team-selector"
 				>
 					<option value="">All Teams</option>
@@ -338,29 +382,52 @@
 
 		<!-- Alerts Section -->
 		{#if alerts.length > 0}
-			<div class="grid grid-cols-1 gap-3 mb-6">
+			<div class="mb-6 grid grid-cols-1 gap-3">
 				{#each alerts as alert}
 					<div
-						class="flex items-center justify-between p-3 rounded-lg {alert.type === 'error' ? 'bg-red-50 border border-red-200' :
-						alert.type === 'warning' ? 'bg-yellow-50 border border-yellow-200' :
-						'bg-blue-50 border border-blue-200'}"
+						class="flex items-center justify-between rounded-lg p-3 {alert.type === 'error'
+							? 'border border-red-200 bg-red-50'
+							: alert.type === 'warning'
+								? 'border border-yellow-200 bg-yellow-50'
+								: 'border border-blue-200 bg-blue-50'}"
 						data-testid={alert.testId}
 					>
 						<div class="flex items-center gap-3">
-							<AlertCircle class="w-5 h-5 {alert.type === 'error' ? 'text-red-500' :
-								alert.type === 'warning' ? 'text-yellow-500' : 'text-blue-500'}" />
+							<AlertCircle
+								class="h-5 w-5 {alert.type === 'error'
+									? 'text-red-500'
+									: alert.type === 'warning'
+										? 'text-yellow-500'
+										: 'text-blue-500'}"
+							/>
 							<div>
-								<h4 class="font-medium {alert.type === 'error' ? 'text-red-900' :
-									alert.type === 'warning' ? 'text-yellow-900' : 'text-blue-900'}">{alert.title}</h4>
-								<p class="text-sm {alert.type === 'error' ? 'text-red-700' :
-									alert.type === 'warning' ? 'text-yellow-700' : 'text-blue-700'}">{alert.message}</p>
+								<h4
+									class="font-medium {alert.type === 'error'
+										? 'text-red-900'
+										: alert.type === 'warning'
+											? 'text-yellow-900'
+											: 'text-blue-900'}"
+								>
+									{alert.title}
+								</h4>
+								<p
+									class="text-sm {alert.type === 'error'
+										? 'text-red-700'
+										: alert.type === 'warning'
+											? 'text-yellow-700'
+											: 'text-blue-700'}"
+								>
+									{alert.message}
+								</p>
 							</div>
 						</div>
 						<a
 							href={alert.href}
-							class="px-3 py-1 text-sm font-medium rounded-md {alert.type === 'error' ? 'bg-red-100 text-red-800 hover:bg-red-200' :
-							alert.type === 'warning' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' :
-							'bg-blue-100 text-blue-800 hover:bg-blue-200'}"
+							class="rounded-md px-3 py-1 text-sm font-medium {alert.type === 'error'
+								? 'bg-red-100 text-red-800 hover:bg-red-200'
+								: alert.type === 'warning'
+									? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+									: 'bg-blue-100 text-blue-800 hover:bg-blue-200'}"
 						>
 							{alert.action}
 						</a>
@@ -371,84 +438,84 @@
 	</div>
 
 	<!-- Key Metrics Cards -->
-	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+	<div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
 		<!-- Team Overview -->
-		<div class="bg-white rounded-lg shadow p-6" data-testid="team-overview">
+		<div class="rounded-lg bg-white p-6 shadow" data-testid="team-overview">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-gray-600">Team Members</p>
 					<p class="text-2xl font-bold text-gray-900">{dashboardData.teamStats.totalEmployees}</p>
-					<p class="text-sm text-green-600 font-medium">
+					<p class="text-sm font-medium text-green-600">
 						{dashboardData.teamStats.activeEmployees} active
 					</p>
 				</div>
-				<div class="p-3 bg-blue-100 rounded-full">
-					<Users class="w-6 h-6 text-blue-600" />
+				<div class="rounded-full bg-blue-100 p-3">
+					<Users class="h-6 w-6 text-blue-600" />
 				</div>
 			</div>
 		</div>
 
 		<!-- Leave Requests -->
-		<div class="bg-white rounded-lg shadow p-6" data-testid="leave-requests-summary">
+		<div class="rounded-lg bg-white p-6 shadow" data-testid="leave-requests-summary">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-gray-600">Leave Requests</p>
 					<p class="text-2xl font-bold text-gray-900">{dashboardData.leaveRequests.pending}</p>
-					<p class="text-sm text-orange-600 font-medium">Pending approval</p>
+					<p class="text-sm font-medium text-orange-600">Pending approval</p>
 				</div>
-				<div class="p-3 bg-orange-100 rounded-full">
-					<Calendar class="w-6 h-6 text-orange-600" />
+				<div class="rounded-full bg-orange-100 p-3">
+					<Calendar class="h-6 w-6 text-orange-600" />
 				</div>
 			</div>
 		</div>
 
 		<!-- Performance Reviews -->
-		<div class="bg-white rounded-lg shadow p-6" data-testid="reviews-summary">
+		<div class="rounded-lg bg-white p-6 shadow" data-testid="reviews-summary">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-gray-600">Reviews Due</p>
 					<p class="text-2xl font-bold text-gray-900">{dashboardData.performanceReviews.pending}</p>
-					<p class="text-sm text-green-600 font-medium">
+					<p class="text-sm font-medium text-green-600">
 						{dashboardData.performanceReviews.completed} completed
 					</p>
 				</div>
-				<div class="p-3 bg-green-100 rounded-full">
-					<Award class="w-6 h-6 text-green-600" />
+				<div class="rounded-full bg-green-100 p-3">
+					<Award class="h-6 w-6 text-green-600" />
 				</div>
 			</div>
 		</div>
 
 		<!-- Goals Progress -->
-		<div class="bg-white rounded-lg shadow p-6" data-testid="goals-summary">
+		<div class="rounded-lg bg-white p-6 shadow" data-testid="goals-summary">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-gray-600">Team Goals</p>
 					<p class="text-2xl font-bold text-gray-900">{dashboardData.goals.active}</p>
-					<p class="text-sm text-purple-600 font-medium">
+					<p class="text-sm font-medium text-purple-600">
 						{dashboardData.goals.avgProgress}% avg progress
 					</p>
 				</div>
-				<div class="p-3 bg-purple-100 rounded-full">
-					<Target class="w-6 h-6 text-purple-600" />
+				<div class="rounded-full bg-purple-100 p-3">
+					<Target class="h-6 w-6 text-purple-600" />
 				</div>
 			</div>
 		</div>
 	</div>
 
-	<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+	<div class="mb-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
 		<!-- Performance Metrics -->
 		<div class="lg:col-span-2">
-			<div class="bg-white rounded-lg shadow p-6" data-testid="performance-metrics">
-				<h3 class="text-lg font-semibold text-gray-900 mb-4">Performance Metrics</h3>
+			<div class="rounded-lg bg-white p-6 shadow" data-testid="performance-metrics">
+				<h3 class="mb-4 text-lg font-semibold text-gray-900">Performance Metrics</h3>
 				<div class="space-y-4">
 					{#each performanceMetrics as metric}
 						<div class="flex items-center justify-between">
 							<div class="flex-1">
-								<div class="flex items-center justify-between mb-1">
+								<div class="mb-1 flex items-center justify-between">
 									<span class="text-sm font-medium text-gray-700">{metric.label}</span>
 									<span class="text-sm text-gray-500">{metric.value}% / {metric.target}%</span>
 								</div>
-								<div class="w-full bg-gray-200 rounded-full h-2">
+								<div class="h-2 w-full rounded-full bg-gray-200">
 									<div
 										class="h-2 rounded-full bg-{metric.color}-600"
 										style="width: {Math.min(metric.value, 100)}%"
@@ -462,18 +529,20 @@
 		</div>
 
 		<!-- Recent Activities -->
-		<div class="bg-white rounded-lg shadow p-6" data-testid="recent-activities">
-			<h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Activities</h3>
+		<div class="rounded-lg bg-white p-6 shadow" data-testid="recent-activities">
+			<h3 class="mb-4 text-lg font-semibold text-gray-900">Recent Activities</h3>
 			<div class="space-y-3">
 				{#each recentActivities as activity}
 					<div class="flex items-start gap-3">
 						<div class="p-2 bg-{activity.color}-100 rounded-full">
-							<svelte:component this={activity.icon} class="w-4 h-4 text-{activity.color}-600" />
+							<svelte:component this={activity.icon} class="h-4 w-4 text-{activity.color}-600" />
 						</div>
-						<div class="flex-1 min-w-0">
-							<p class="text-sm font-medium text-gray-900 truncate">{activity.title}</p>
-							<p class="text-xs text-gray-500 truncate">{activity.description}</p>
-							<p class="text-xs text-gray-400">{new Date(activity.timestamp).toLocaleDateString()}</p>
+						<div class="min-w-0 flex-1">
+							<p class="truncate text-sm font-medium text-gray-900">{activity.title}</p>
+							<p class="truncate text-xs text-gray-500">{activity.description}</p>
+							<p class="text-xs text-gray-400">
+								{new Date(activity.timestamp).toLocaleDateString()}
+							</p>
 						</div>
 					</div>
 				{/each}
@@ -482,26 +551,28 @@
 	</div>
 
 	<!-- Quick Actions -->
-	<div class="bg-white rounded-lg shadow p-6" data-testid="quick-actions">
-		<h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+	<div class="rounded-lg bg-white p-6 shadow" data-testid="quick-actions">
+		<h3 class="mb-4 text-lg font-semibold text-gray-900">Quick Actions</h3>
+		<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
 			{#each quickActions as action}
 				<a
 					href={action.href}
-					class="block p-4 border border-gray-200 rounded-lg hover:border-{action.color}-300 hover:bg-{action.color}-50 transition-colors"
+					class="block rounded-lg border border-gray-200 p-4 hover:border-{action.color}-300 hover:bg-{action.color}-50 transition-colors"
 					data-testid={action.testId}
 				>
-					<div class="flex items-center justify-between mb-2">
+					<div class="mb-2 flex items-center justify-between">
 						<div class="p-2 bg-{action.color}-100 rounded-full">
-							<svelte:component this={action.icon} class="w-5 h-5 text-{action.color}-600" />
+							<svelte:component this={action.icon} class="h-5 w-5 text-{action.color}-600" />
 						</div>
 						{#if action.count > 0}
-							<span class="px-2 py-1 bg-{action.color}-100 text-{action.color}-800 text-xs font-medium rounded-full">
+							<span
+								class="px-2 py-1 bg-{action.color}-100 text-{action.color}-800 rounded-full text-xs font-medium"
+							>
 								{action.count}
 							</span>
 						{/if}
 					</div>
-					<h4 class="font-medium text-gray-900 mb-1">{action.title}</h4>
+					<h4 class="mb-1 font-medium text-gray-900">{action.title}</h4>
 					<p class="text-sm text-gray-600">{action.description}</p>
 				</a>
 			{/each}
@@ -509,12 +580,12 @@
 	</div>
 
 	<!-- Team Performance Summary -->
-	<div class="mt-8 bg-white rounded-lg shadow p-6" data-testid="team-performance">
-		<h3 class="text-lg font-semibold text-gray-900 mb-4">Team Performance Summary</h3>
-		<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+	<div class="mt-8 rounded-lg bg-white p-6 shadow" data-testid="team-performance">
+		<h3 class="mb-4 text-lg font-semibold text-gray-900">Team Performance Summary</h3>
+		<div class="grid grid-cols-1 gap-6 md:grid-cols-3">
 			<!-- Goals Status -->
 			<div>
-				<h4 class="font-medium text-gray-900 mb-3">Goals Status</h4>
+				<h4 class="mb-3 font-medium text-gray-900">Goals Status</h4>
 				<div class="space-y-2">
 					<div class="flex items-center justify-between">
 						<span class="text-sm text-gray-600">Active</span>
@@ -533,30 +604,37 @@
 
 			<!-- Review Status -->
 			<div>
-				<h4 class="font-medium text-gray-900 mb-3">Review Status</h4>
+				<h4 class="mb-3 font-medium text-gray-900">Review Status</h4>
 				<div class="space-y-2">
 					<div class="flex items-center justify-between">
 						<span class="text-sm text-gray-600">Pending</span>
-						<span class="text-sm font-medium text-orange-600">{dashboardData.performanceReviews.pending}</span>
+						<span class="text-sm font-medium text-orange-600"
+							>{dashboardData.performanceReviews.pending}</span
+						>
 					</div>
 					<div class="flex items-center justify-between">
 						<span class="text-sm text-gray-600">Completed</span>
-						<span class="text-sm font-medium text-green-600">{dashboardData.performanceReviews.completed}</span>
+						<span class="text-sm font-medium text-green-600"
+							>{dashboardData.performanceReviews.completed}</span
+						>
 					</div>
 					<div class="flex items-center justify-between">
 						<span class="text-sm text-gray-600">Avg Rating</span>
-						<span class="text-sm font-medium text-blue-600">{dashboardData.performanceReviews.avgRating}/5</span>
+						<span class="text-sm font-medium text-blue-600"
+							>{dashboardData.performanceReviews.avgRating}/5</span
+						>
 					</div>
 				</div>
 			</div>
 
 			<!-- Reports Status -->
 			<div>
-				<h4 class="font-medium text-gray-900 mb-3">Reports Status</h4>
+				<h4 class="mb-3 font-medium text-gray-900">Reports Status</h4>
 				<div class="space-y-2">
 					<div class="flex items-center justify-between">
 						<span class="text-sm text-gray-600">Generated</span>
-						<span class="text-sm font-medium text-green-600">{dashboardData.reports.generated}</span>
+						<span class="text-sm font-medium text-green-600">{dashboardData.reports.generated}</span
+						>
 					</div>
 					<div class="flex items-center justify-between">
 						<span class="text-sm text-gray-600">Scheduled</span>

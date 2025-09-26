@@ -665,13 +665,13 @@ export const actions: Actions = {
 </script>
 
 <div
-	class="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary-50 via-white to-secondary-50 p-4 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900"
+	class="from-primary-50 to-secondary-50 flex min-h-screen items-center justify-center bg-gradient-to-br via-white p-4 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900"
 >
 	<div class="w-full max-w-md">
 		<!-- Logo and Title -->
 		<div class="mb-8 text-center">
 			<div
-				class="mb-4 inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 text-white shadow-xl"
+				class="from-primary-500 to-primary-700 mb-4 inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-xl"
 			>
 				<svg class="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path
@@ -683,7 +683,7 @@ export const actions: Actions = {
 				</svg>
 			</div>
 			<h1
-				class="bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-4xl font-bold text-transparent dark:from-primary-400 dark:to-primary-600"
+				class="from-primary-600 to-primary-800 dark:from-primary-400 dark:to-primary-600 bg-gradient-to-r bg-clip-text text-4xl font-bold text-transparent"
 			>
 				MountainHR
 			</h1>
@@ -741,7 +741,7 @@ export const actions: Actions = {
 					<div class="flex items-center justify-end">
 						<a
 							href="/forgot-password"
-							class="text-sm font-medium text-primary-600 transition-colors hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
+							class="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 text-sm font-medium transition-colors"
 						>
 							Forgot password?
 						</a>
@@ -754,7 +754,7 @@ export const actions: Actions = {
 						size="lg"
 						fullWidth
 						disabled={$submitting}
-						class="mt-6 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800"
+						class="from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 mt-6 bg-gradient-to-r"
 					>
 						{#if $submitting}
 							<Loader2 class="mr-2 h-5 w-5 animate-spin" />
@@ -799,7 +799,7 @@ export const actions: Actions = {
 						class="group"
 					>
 						<svg
-							class="mr-2 h-5 w-5 text-primary-600 group-hover:text-primary-700"
+							class="text-primary-600 group-hover:text-primary-700 mr-2 h-5 w-5"
 							viewBox="0 0 24 24"
 							fill="currentColor"
 						>

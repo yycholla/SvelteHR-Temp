@@ -15,11 +15,13 @@
 		ChevronDown,
 		ChevronRight,
 		Sun,
-		Moon
+		Moon,
+		LogOut
 	} from 'lucide-svelte';
-	import { currentUser, hasRole } from '$lib/stores/auth';
+	import { currentUser, hasRole, authActions } from '$lib/stores/auth';
 	import { page } from '$app/stores';
 	import { themeStore } from '$lib/stores/theme';
+	import { goto } from '$app/navigation';
 
 	// Check user roles
 	const isAdmin = hasRole('admin');
@@ -39,18 +41,34 @@
 		expandedSections[section] = !expandedSections[section];
 	}
 
+	// Handle logout
+	async function handleLogout() {
+		try {
+			await authActions.logout($page.url.pathname);
+			goto('/login');
+		} catch (error) {
+			console.error('Logout error:', error);
+			// Still navigate to login even if logout fails
+			goto('/login');
+		}
+	}
+
 	// Auto-expand section based on current route
 	$effect(() => {
 		const currentPath = $page.url.pathname;
 
 		// Auto-expand based on current page
-		if (currentPath.includes('/leave') || currentPath.includes('/attendance')) expandedSections.leave = true;
-		if (currentPath.includes('/performance') && currentPath.includes('/users/')) expandedSections.performance = true;
-		if (currentPath.includes('/management') ||
-			(currentPath.includes('/employees/new')) ||
-			(currentPath.includes('/departments/new')) ||
-			(currentPath.includes('/performance/team')) ||
-			(currentPath.includes('/tasks') && !currentPath.includes('/users/'))) {
+		if (currentPath.includes('/leave') || currentPath.includes('/attendance'))
+			expandedSections.leave = true;
+		if (currentPath.includes('/performance') && currentPath.includes('/users/'))
+			expandedSections.performance = true;
+		if (
+			currentPath.includes('/management') ||
+			currentPath.includes('/employees/new') ||
+			currentPath.includes('/departments/new') ||
+			currentPath.includes('/performance/team') ||
+			(currentPath.includes('/tasks') && !currentPath.includes('/users/'))
+		) {
 			expandedSections.management = true;
 		}
 		if (currentPath.includes('/admin')) expandedSections.administration = true;
@@ -66,13 +84,13 @@
 		},
 		{
 			title: 'Employees',
-			url: '/dashboard/employees/directory',
+			url: '/dashboard/employees',
 			icon: Users,
 			standalone: true // Now a simple link to tabbed page
 		},
 		{
 			title: 'Departments',
-			url: '/dashboard/departments/directory',
+			url: '/dashboard/departments',
 			icon: Building2,
 			standalone: true // Now a simple link
 		},
@@ -97,7 +115,6 @@
 			]
 		}
 	];
-
 
 	// Management submenu (for managers/supervisors)
 	const managementItems = [
@@ -130,7 +147,6 @@
 			<span class="text-base">SvelteHR</span>
 		</a>
 	</div>
-
 
 	<!-- Main Navigation - Collapsible -->
 	<div class="flex-1 overflow-auto px-3 py-3">
@@ -204,7 +220,6 @@
 					</div>
 				{/if}
 			{/each}
-
 		</nav>
 	</div>
 
@@ -289,7 +304,7 @@
 				<!-- Profile Link (left side) -->
 				<a
 					href="/profile"
-					class="flex items-center gap-2 rounded-md transition-colors hover:bg-sidebar-accent/50 pr-2"
+					class="flex items-center gap-2 rounded-md pr-2 transition-colors hover:bg-sidebar-accent/50"
 					title="My Profile"
 				>
 					<div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
@@ -307,6 +322,15 @@
 
 				<!-- Theme Toggle and Settings (right side) -->
 				<div class="flex items-center space-x-1">
+					<!-- Logout Button -->
+					<button
+						onclick={handleLogout}
+						class="flex items-center justify-center rounded-md p-2 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+						title="Logout"
+					>
+						<LogOut class="h-4 w-4" />
+					</button>
+
 					<!-- Dark Mode Toggle -->
 					<button
 						onclick={themeStore.toggle}

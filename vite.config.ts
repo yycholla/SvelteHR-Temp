@@ -146,7 +146,7 @@ export default defineConfig({
 
 	// Development server optimizations
 	server: {
-		port: 5174, // Fixed port to avoid confusion
+		port: 5173, // Fixed port to match Docker mapping
 
 		proxy: {
 			// Note: GraphQL requests now handled by SvelteKit API route at /api/graphql

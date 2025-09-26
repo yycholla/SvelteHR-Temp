@@ -248,7 +248,9 @@ export const isTest = () => process.env.NODE_ENV === 'test';
 export const isStaging = () => process.env.NODE_ENV === 'staging';
 
 // Request headers factory
-export function createGraphQLHeaders(additionalHeaders: Record<string, string> = {}): Record<string, string> {
+export function createGraphQLHeaders(
+	additionalHeaders: Record<string, string> = {}
+): Record<string, string> {
 	const headers: Record<string, string> = {
 		'Content-Type': 'application/json',
 		...additionalHeaders
@@ -257,8 +259,12 @@ export function createGraphQLHeaders(additionalHeaders: Record<string, string> =
 	// Add CSRF protection if enabled
 	if (graphqlConfig.security.enableCSRF && browser) {
 		// Get CSRF token from meta tag or cookie
-		const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
-			document.cookie.split('; ').find(row => row.startsWith('csrf-token='))?.split('=')[1];
+		const csrfToken =
+			document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+			document.cookie
+				.split('; ')
+				.find((row) => row.startsWith('csrf-token='))
+				?.split('=')[1];
 
 		if (csrfToken) {
 			headers['X-CSRF-Token'] = csrfToken;

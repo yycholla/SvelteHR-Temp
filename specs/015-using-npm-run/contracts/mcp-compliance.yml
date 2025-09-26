@@ -1,0 +1,310 @@
+openapi: 3.0.3
+info:
+  title: MCP-First Development Compliance API
+  description: Contract for validating constitutional MCP tool usage and Test-First Development
+  version: 1.0.0
+
+paths:
+  /mcp/onboarding:
+    post:
+      summary: Verify MCP onboarding completion
+      description: Constitutional requirement - check onboarding before any coding task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                task_id:
+                  type: string
+                  description: Unique identifier for the MCP task
+                  example: 'svelte5-store-fix-001'
+              required:
+                - task_id
+      responses:
+        '200':
+          description: Onboarding check successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  onboarding_complete:
+                    type: boolean
+                    example: true
+                  memories_available:
+                    type: array
+                    items:
+                      type: string
+                    example: ['project_overview', 'codebase_architecture']
+                  constitutional_compliance:
+                    type: boolean
+                    example: true
+        '400':
+          description: Onboarding not complete - constitutional violation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: 'Onboarding required before any coding task'
+                  required_action:
+                    type: string
+                    example: 'Run mcp__serena__check_onboarding_performed()'
+
+  /mcp/discovery:
+    post:
+      summary: Perform mandatory MCP code discovery
+      description: Constitutional requirement - use Serena MCP tools for code analysis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                task_id:
+                  type: string
+                target_directory:
+                  type: string
+                  example: 'src/lib/components/ui'
+                file_pattern:
+                  type: string
+                  example: '*.svelte'
+              required:
+                - task_id
+                - target_directory
+      responses:
+        '200':
+          description: MCP discovery successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  files_discovered:
+                    type: array
+                    items:
+                      type: string
+                    example: ['toast-container.svelte', 'button.svelte']
+                  symbols_analyzed:
+                    type: integer
+                    example: 15
+                  mcp_tools_used:
+                    type: array
+                    items:
+                      type: string
+                    example: ['list_dir', 'find_file', 'get_symbols_overview']
+                  constitutional_compliance:
+                    type: boolean
+                    example: true
+
+  /tests/create-failing:
+    post:
+      summary: Create failing test before implementation
+      description: Constitutional requirement - Test-First Development (RED phase)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                test_id:
+                  type: string
+                  example: 'store-subscription-test-001'
+                test_type:
+                  type: string
+                  enum: ['unit', 'integration', 'e2e']
+                test_category:
+                  type: string
+                  enum:
+                    ['store_subscription', 'state_reference', 'event_handler', 'component_syntax']
+                target_component:
+                  type: string
+                  example: 'ToastContainer'
+                failure_reason:
+                  type: string
+                  example: 'errorStore subscription uses incorrect Svelte 5 syntax'
+              required:
+                - test_id
+                - test_type
+                - test_category
+                - target_component
+                - failure_reason
+      responses:
+        '200':
+          description: Failing test created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  test_status:
+                    type: string
+                    enum: ['failing']
+                    example: 'failing'
+                  test_file_path:
+                    type: string
+                    example: 'src/lib/components/ui/toast-container.test.ts'
+                  failure_confirmed:
+                    type: boolean
+                    example: true
+                  constitutional_compliance:
+                    type: boolean
+                    example: true
+        '400':
+          description: Test not failing - constitutional violation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: 'Test must fail before implementation (RED phase)'
+                  required_action:
+                    type: string
+                    example: 'Ensure test captures the actual compatibility issue'
+
+  /mcp/implementation:
+    post:
+      summary: Implement fix using mandatory MCP tools
+      description: Constitutional requirement - use Serena MCP tools for surgical modifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                task_id:
+                  type: string
+                file_path:
+                  type: string
+                  example: '/home/chanway/Projects/SvelteHR/src/lib/components/ui/toast-container.svelte'
+                symbol_name:
+                  type: string
+                  example: 'script'
+                mcp_tool_used:
+                  type: string
+                  enum: ['replace_symbol_body', 'insert_after_symbol', 'insert_before_symbol']
+                pre_implementation_analysis:
+                  type: boolean
+                  description: Whether think_about_task_adherence was called
+              required:
+                - task_id
+                - file_path
+                - mcp_tool_used
+                - pre_implementation_analysis
+      responses:
+        '200':
+          description: MCP implementation successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  implementation_complete:
+                    type: boolean
+                    example: true
+                  mcp_tools_used:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      [
+                        'think_about_task_adherence',
+                        'replace_symbol_body',
+                        'find_referencing_symbols'
+                      ]
+                  references_validated:
+                    type: boolean
+                    example: true
+                  constitutional_compliance:
+                    type: boolean
+                    example: true
+        '400':
+          description: Manual editing detected - constitutional violation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: 'Manual editing violates MCP-First Development principle'
+                  required_action:
+                    type: string
+                    example: 'Use mcp__serena__replace_symbol_body() instead'
+
+components:
+  schemas:
+    MCPTask:
+      type: object
+      properties:
+        task_id:
+          type: string
+          example: 'svelte5-store-fix-001'
+        mcp_phase:
+          type: string
+          enum: ['onboarding', 'discovery', 'analysis', 'implementation', 'verification']
+        serena_tools_used:
+          type: array
+          items:
+            type: string
+          example: ['check_onboarding_performed', 'list_dir', 'replace_symbol_body']
+        constitutional_compliance:
+          type: boolean
+          example: true
+        task_status:
+          type: string
+          enum:
+            [
+              'pending',
+              'mcp_discovery',
+              'test_written',
+              'test_failing',
+              'implementation',
+              'test_passing',
+              'complete'
+            ]
+
+    TestEntity:
+      type: object
+      properties:
+        test_id:
+          type: string
+          example: 'store-subscription-test-001'
+        test_type:
+          type: string
+          enum: ['unit', 'integration', 'e2e']
+        test_status:
+          type: string
+          enum: ['not_written', 'written', 'failing', 'passing']
+        failure_reason:
+          type: string
+          example: 'errorStore subscription uses incorrect Svelte 5 syntax'
+        success_criteria:
+          type: string
+          example: 'Component subscribes to errorStore.errors correctly'
+
+    ConstitutionalViolation:
+      type: object
+      properties:
+        violation_type:
+          type: string
+          enum:
+            ['manual_editing', 'no_failing_test', 'skipped_mcp_onboarding', 'missing_mcp_analysis']
+        description:
+          type: string
+          example: 'Direct file editing without MCP tools'
+        required_remedy:
+          type: string
+          example: 'Use mcp__serena__replace_symbol_body() for surgical edits'
+        severity:
+          type: string
+          enum: ['critical', 'high', 'medium']

@@ -145,10 +145,14 @@ export const load: PageServerLoad = async (event) => {
 		console.error('[Goals Load Error]', err);
 
 		// Create standardized error response
-		const errorResponse = createErrorResponse(err instanceof Error ? err : new Error('Goals load failed'), {
-			type: 'DATA_LOAD_ERROR',
-			userMessage: 'Unable to load goals and OKRs data. Please refresh the page or try again later.'
-		});
+		const errorResponse = createErrorResponse(
+			err instanceof Error ? err : new Error('Goals load failed'),
+			{
+				type: 'DATA_LOAD_ERROR',
+				userMessage:
+					'Unable to load goals and OKRs data. Please refresh the page or try again later.'
+			}
+		);
 
 		// Log error details for debugging
 		console.error('[Goals Error Details]', {

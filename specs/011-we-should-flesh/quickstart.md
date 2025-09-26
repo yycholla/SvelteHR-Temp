@@ -8,6 +8,7 @@
 ## Prerequisites
 
 1. **Development Environment Running**:
+
    ```bash
    # Backend (PostGraphile)
    cd backend && npm run start:dev
@@ -19,6 +20,7 @@
    ```
 
 2. **Authentication**:
+
    ```
    Manager Account: manager@postgraphile-hr.com / admin123
    Admin Account: admin@postgraphile-hr.com / admin123
@@ -34,7 +36,9 @@
 **User Story**: As a manager, I need to review and approve leave requests from my team members.
 
 **Steps**:
+
 1. **Login as Manager**
+
    ```
    Email: manager@postgraphile-hr.com
    Password: admin123
@@ -81,6 +85,7 @@
    - **Expected**: CSV file downloads with current data
 
 **Success Criteria**:
+
 - ✅ Page loads without errors
 - ✅ Data displays correctly in table format
 - ✅ CRUD operations work (View, Approve, Deny)
@@ -96,6 +101,7 @@
 **User Story**: As a manager, I need to create and manage performance reviews for my team.
 
 **Steps**:
+
 1. **Navigate to Management Reviews**
    - From sidebar: Management → Reviews
    - **Expected**: Page loads at `/dashboard/management/reviews`
@@ -137,6 +143,7 @@
      - Team performance trends
 
 **Success Criteria**:
+
 - ✅ Full CRUD operations for reviews
 - ✅ Form validation and required fields
 - ✅ Status workflow (Draft → In Progress → Completed → Submitted)
@@ -150,6 +157,7 @@
 **User Story**: As a manager, I need to set and track team goals and OKRs.
 
 **Steps**:
+
 1. **Navigate to Goals & OKRs**
    - From sidebar: Management → Goals & OKRs
    - **Expected**: Page loads at `/dashboard/management/goals`
@@ -196,6 +204,7 @@
      - Overdue goals alerts
 
 **Success Criteria**:
+
 - ✅ Goal lifecycle management (Create, Update, Complete)
 - ✅ OKR structure with weighted key results
 - ✅ Progress tracking and visual indicators
@@ -209,6 +218,7 @@
 **User Story**: As a manager, I need to generate custom reports on team performance and metrics.
 
 **Steps**:
+
 1. **Navigate to Team Reports**
    - From sidebar: Management → Team Reports
    - **Expected**: Page loads at `/dashboard/management/reports`
@@ -266,6 +276,7 @@
      - Email notifications sent
 
 **Success Criteria**:
+
 - ✅ Multiple report types available
 - ✅ Flexible filtering and date ranges
 - ✅ Visual charts and analytics
@@ -280,7 +291,9 @@
 **User Story**: As an admin, I need to manage organizational teams and employee assignments.
 
 **Steps**:
+
 1. **Login as Admin**
+
    ```
    Email: admin@postgraphile-hr.com
    Password: admin123
@@ -338,6 +351,7 @@
      - Drill-down capability
 
 **Success Criteria**:
+
 - ✅ Complete team CRUD operations
 - ✅ Employee transfer functionality
 - ✅ Organizational hierarchy management
@@ -350,17 +364,20 @@
 ## Performance Tests
 
 ### Load Testing
+
 ```bash
 # Test with multiple simultaneous users
 npm run test:e2e -- --workers=4
 ```
 
 ### Database Performance
+
 - Reports generation with large datasets (1000+ records)
 - Complex filtering operations
 - Concurrent GraphQL operations
 
 ### UI Responsiveness
+
 - Table rendering with 100+ rows
 - Chart rendering performance
 - Mobile/tablet responsive design
@@ -369,12 +386,14 @@ npm run test:e2e -- --workers=4
 ## Security Tests
 
 ### Access Control
+
 - Manager can only see their team's data
 - Admin can see all organizational data
 - Employee role restrictions enforced
 - Proper JWT token validation
 
 ### Data Protection
+
 - SQL injection prevention via PostGraphile
 - XSS protection in form inputs
 - CSRF token validation
@@ -383,18 +402,21 @@ npm run test:e2e -- --workers=4
 ## Integration Tests
 
 ### GraphQL API Tests
+
 ```bash
 # Test all GraphQL operations
 cd backend && npm run test:contract
 ```
 
 ### E2E Workflow Tests
+
 ```bash
 # Test complete user journeys
 npm run test:e2e -- --grep "sidebar.*management"
 ```
 
 ### Browser Compatibility
+
 - Chrome/Chromium
 - Firefox
 - Safari (WebKit)

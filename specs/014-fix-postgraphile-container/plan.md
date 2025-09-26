@@ -1,10 +1,10 @@
-
 # Implementation Plan: Fix PostgreSQL Container Schema Initialization
 
 **Branch**: `014-fix-postgraphile-container` | **Date**: 2025-09-25 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/014-fix-postgraphile-container/spec.md`
 
 ## Execution Flow (/plan command scope)
+
 ```
 1. Load feature spec from Input path
    → If not found: ERROR "No feature spec at {path}"
@@ -27,13 +27,16 @@
 ```
 
 **IMPORTANT**: The /plan command STOPS at step 7. Phases 2-4 are executed by other commands:
+
 - Phase 2: /tasks command creates tasks.md
 - Phase 3-4: Implementation execution (manual or via tools)
 
 ## Summary
+
 Fix PostgreSQL development container initialization by organizing database schema and initialization files into a category-based structure (schema, roles, data, indexes) that runs automatically during container startup, ensuring reliable initialization within 30 seconds while preserving all existing data and maintaining PostGraphile compatibility.
 
 ## Technical Context
+
 **Language/Version**: SQL, Docker Compose, Shell Scripts, Node.js 20
 **Primary Dependencies**: PostgreSQL 15-alpine, PostGraphile, Docker, uuid-ossp extension, pgcrypto extension
 **Storage**: PostgreSQL with PostGraphile GraphQL interface, persistent volumes for data retention
@@ -45,7 +48,8 @@ Fix PostgreSQL development container initialization by organizing database schem
 **Scale/Scope**: Development environment supporting HR schema with ~16 core tables, multiple roles and permissions
 
 ## Constitution Check
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+
+_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
 **✅ I. Test-First Development**: Container initialization and schema validation tests will be written first, using shell/Docker-based tests for container startup workflows
 **✅ II. Type Safety First**: TypeScript types for container configuration and database schema will be maintained
@@ -59,6 +63,7 @@ Fix PostgreSQL development container initialization by organizing database schem
 ## Project Structure
 
 ### Documentation (this feature)
+
 ```
 specs/[###-feature]/
 ├── plan.md              # This file (/plan command output)
@@ -70,6 +75,7 @@ specs/[###-feature]/
 ```
 
 ### Source Code (repository root)
+
 ```
 # Option 1: Single project (DEFAULT)
 src/
@@ -109,12 +115,14 @@ ios/ or android/
 **Structure Decision**: Option 2 (Web application) - SvelteKit frontend + PostGraphile backend detected
 
 ## Phase 0: Outline & Research
+
 1. **Extract unknowns from Technical Context** above:
    - For each NEEDS CLARIFICATION → research task
    - For each dependency → best practices task
    - For each integration → patterns task
 
 2. **Generate and dispatch research agents**:
+
    ```
    For each unknown in Technical Context:
      Task: "Research {unknown} for {feature context}"
@@ -130,7 +138,8 @@ ios/ or android/
 **Output**: research.md with all NEEDS CLARIFICATION resolved
 
 ## Phase 1: Design & Contracts
-*Prerequisites: research.md complete*
+
+_Prerequisites: research.md complete_
 
 1. **Extract entities from feature spec** → `data-model.md`:
    - Entity name, fields, relationships
@@ -160,12 +169,14 @@ ios/ or android/
    - Keep under 150 lines for token efficiency
    - Output to repository root
 
-**Output**: data-model.md, /contracts/*, failing tests, quickstart.md, agent-specific file
+**Output**: data-model.md, /contracts/\*, failing tests, quickstart.md, agent-specific file
 
 ## Phase 2: Task Planning Approach
-*This section describes what the /tasks command will do - DO NOT execute during /plan*
+
+_This section describes what the /tasks command will do - DO NOT execute during /plan_
 
 **Task Generation Strategy**:
+
 - Load `.specify/templates/tasks-template.md` as base
 - Generate infrastructure tasks based on category-based initialization file organization
 - Create shell/Docker-based validation tests for each initialization category (roles, schema, data, indexes)
@@ -174,6 +185,7 @@ ios/ or android/
 - Performance and error handling validation using shell scripts
 
 **Specific Task Categories**:
+
 1. **File Organization Tasks [P]**: Create 01-roles.sql, 02-schema.sql, 03-data.sql, 04-indexes.sql initialization files
 2. **Container Configuration Tasks**: Update docker-compose.dev.yml, volume configuration
 3. **Shell-Based Validation Test Tasks**: Schema validation scripts, role verification scripts, performance tests
@@ -181,6 +193,7 @@ ios/ or android/
 5. **Documentation Tasks**: Error message clarity, troubleshooting guides
 
 **Ordering Strategy**:
+
 - Infrastructure first: Initialization file creation and container configuration
 - Shell-based validation second: Test script creation for each component
 - Integration third: End-to-end connectivity tests using Docker/shell commands
@@ -195,25 +208,28 @@ ios/ or android/
 **IMPORTANT**: This phase is executed by the /tasks command, NOT by /plan
 
 ## Phase 3+: Future Implementation
-*These phases are beyond the scope of the /plan command*
+
+_These phases are beyond the scope of the /plan command_
 
 **Phase 3**: Task execution (/tasks command creates tasks.md)  
 **Phase 4**: Implementation (execute tasks.md following constitutional principles)  
 **Phase 5**: Validation (run tests, execute quickstart.md, performance validation)
 
 ## Complexity Tracking
-*Fill ONLY if Constitution Check has violations that must be justified*
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+_Fill ONLY if Constitution Check has violations that must be justified_
 
+| Violation                  | Why Needed         | Simpler Alternative Rejected Because |
+| -------------------------- | ------------------ | ------------------------------------ |
+| [e.g., 4th project]        | [current need]     | [why 3 projects insufficient]        |
+| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient]  |
 
 ## Progress Tracking
-*This checklist is updated during execution flow*
+
+_This checklist is updated during execution flow_
 
 **Phase Status**:
+
 - [x] Phase 0: Research complete (/plan command) - research.md created with initialization file organization decisions
 - [x] Phase 1: Design complete (/plan command) - data-model.md, contracts/, quickstart.md created
 - [x] Phase 2: Task planning complete (/plan command - describe approach only) - Shell/Docker testing strategy defined
@@ -222,16 +238,19 @@ ios/ or android/
 - [ ] Phase 5: Validation passed - Run quickstart.md validation and performance tests
 
 **Gate Status**:
+
 - [x] Initial Constitution Check: PASS - All constitutional requirements satisfied
 - [x] Post-Design Constitution Check: PASS - Shell-based testing maintains TDD principles
 - [x] All NEEDS CLARIFICATION resolved - Research phase addressed technical unknowns
 - [x] Complexity deviations documented - No complexity violations identified
 
 **Key Updates Applied**:
+
 - ✅ Updated to shell/Docker testing approach instead of Python tests
 - ✅ Standardized terminology to "initialization files" throughout plan
 - ✅ Corrected Phase 3 status to reflect tasks.md completion
 - ✅ Enhanced testing strategy documentation
 
 ---
-*Based on Constitution v2.1.1 - See `/memory/constitution.md`*
+
+_Based on Constitution v2.1.1 - See `/memory/constitution.md`_

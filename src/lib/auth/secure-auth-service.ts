@@ -3,8 +3,19 @@
 
 import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
-import { authConfig, getAccessTokenName, getRefreshTokenName, getCookieOptions, getAuthEndpoints } from './config.js';
-import { verifyJWTToken, tokenNeedsRefresh, getTokenTimeRemaining, type JWTPayload } from './jwt-utils.js';
+import {
+	authConfig,
+	getAccessTokenName,
+	getRefreshTokenName,
+	getCookieOptions,
+	getAuthEndpoints
+} from './config.js';
+import {
+	verifyJWTToken,
+	tokenNeedsRefresh,
+	getTokenTimeRemaining,
+	type JWTPayload
+} from './jwt-utils.js';
 
 export interface AuthState {
 	isAuthenticated: boolean;
@@ -89,7 +100,7 @@ class SecureAuthService {
 			const response = await fetch(this.endpoints.login, {
 				method: 'POST',
 				headers: {
-					'Content-Type': 'application/json',
+					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify(credentials),
 				credentials: 'include'
@@ -147,11 +158,11 @@ class SecureAuthService {
 				fetch(this.endpoints.logout, {
 					method: 'POST',
 					headers: {
-						'Authorization': `Bearer ${token}`,
+						Authorization: `Bearer ${token}`,
 						'Content-Type': 'application/json'
 					},
 					credentials: 'include'
-				}).catch(err => console.warn('Logout endpoint failed:', err));
+				}).catch((err) => console.warn('Logout endpoint failed:', err));
 			}
 		} catch (error) {
 			console.warn('Logout request failed:', error);
@@ -182,7 +193,7 @@ class SecureAuthService {
 			const response = await fetch(this.endpoints.refresh, {
 				method: 'POST',
 				headers: {
-					'Authorization': `Bearer ${refreshToken}`,
+					Authorization: `Bearer ${refreshToken}`,
 					'Content-Type': 'application/json'
 				},
 				credentials: 'include'
@@ -242,7 +253,9 @@ class SecureAuthService {
 	 * Check if user has specific permission
 	 */
 	hasPermission(permission: string): boolean {
-		return this.authState.permissions.includes('*') || this.authState.permissions.includes(permission);
+		return (
+			this.authState.permissions.includes('*') || this.authState.permissions.includes(permission)
+		);
 	}
 
 	/**
@@ -250,7 +263,7 @@ class SecureAuthService {
 	 */
 	hasAnyPermission(permissions: string[]): boolean {
 		if (this.authState.permissions.includes('*')) return true;
-		return permissions.some(permission => this.authState.permissions.includes(permission));
+		return permissions.some((permission) => this.authState.permissions.includes(permission));
 	}
 
 	/**

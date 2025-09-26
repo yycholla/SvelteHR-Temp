@@ -9,8 +9,20 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
 	import {
-		Building, Users, Plus, Search, Filter, Eye, Edit, Crown,
-		UserCheck, TreePine, BarChart3, Target, TrendingUp, Building2
+		Building,
+		Users,
+		Plus,
+		Search,
+		Filter,
+		Eye,
+		Edit,
+		Crown,
+		UserCheck,
+		TreePine,
+		BarChart3,
+		Target,
+		TrendingUp,
+		Building2
 	} from 'lucide-svelte';
 	import { categorizeTeamSize } from '$lib/graphql/team-management-operations';
 
@@ -155,19 +167,17 @@
 	<div class="flex items-center justify-between">
 		<div>
 			<h1 class="text-3xl font-bold tracking-tight">Teams Management</h1>
-			<p class="text-muted-foreground">
-				Manage organizational structure and team composition
-			</p>
+			<p class="text-muted-foreground">Manage organizational structure and team composition</p>
 		</div>
 
 		{#if canManageTeams}
 			<div class="flex gap-2">
 				<Button variant="outline" size="sm">
-					<TreePine class="h-4 w-4 mr-2" />
+					<TreePine class="mr-2 h-4 w-4" />
 					Org Chart
 				</Button>
 				<Button size="sm" href="/dashboard/teams/new">
-					<Plus class="h-4 w-4 mr-2" />
+					<Plus class="mr-2 h-4 w-4" />
 					Create Team
 				</Button>
 			</div>
@@ -183,9 +193,7 @@
 			</Card.Header>
 			<Card.Content>
 				<div class="text-2xl font-bold">{teamStats.totalTeams}</div>
-				<p class="text-xs text-muted-foreground">
-					organizational units
-				</p>
+				<p class="text-xs text-muted-foreground">organizational units</p>
 			</Card.Content>
 		</Card.Root>
 
@@ -196,9 +204,7 @@
 			</Card.Header>
 			<Card.Content>
 				<div class="text-2xl font-bold text-blue-600">{teamStats.totalEmployees}</div>
-				<p class="text-xs text-muted-foreground">
-					across all teams
-				</p>
+				<p class="text-xs text-muted-foreground">across all teams</p>
 			</Card.Content>
 		</Card.Root>
 
@@ -209,9 +215,7 @@
 			</Card.Header>
 			<Card.Content>
 				<div class="text-2xl font-bold text-green-600">{teamStats.averageTeamSize}</div>
-				<p class="text-xs text-muted-foreground">
-					employees per team
-				</p>
+				<p class="text-xs text-muted-foreground">employees per team</p>
 			</Card.Content>
 		</Card.Root>
 
@@ -230,15 +234,18 @@
 	</div>
 
 	<!-- View Mode Tabs -->
-	<Tabs value={viewMode} onValueChange={(value) => handleViewModeChange(value as 'table' | 'hierarchy')}>
+	<Tabs
+		value={viewMode}
+		onValueChange={(value) => handleViewModeChange(value as 'table' | 'hierarchy')}
+	>
 		<div class="flex items-center justify-between">
 			<TabsList>
 				<TabsTrigger value="table">
-					<Building2 class="h-4 w-4 mr-2" />
+					<Building2 class="mr-2 h-4 w-4" />
 					Card View
 				</TabsTrigger>
 				<TabsTrigger value="hierarchy">
-					<TreePine class="h-4 w-4 mr-2" />
+					<TreePine class="mr-2 h-4 w-4" />
 					Hierarchy
 				</TabsTrigger>
 			</TabsList>
@@ -256,7 +263,9 @@
 							<div class="space-y-2">
 								<label for="search" class="text-sm font-medium">Search</label>
 								<div class="relative">
-									<Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+									<Search
+										class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+									/>
 									<Input
 										id="search"
 										type="text"
@@ -310,12 +319,10 @@
 
 						<div class="flex gap-2">
 							<Button type="submit">
-								<Search class="h-4 w-4 mr-2" />
+								<Search class="mr-2 h-4 w-4" />
 								Search
 							</Button>
-							<Button type="button" variant="outline" on:click={clearFilters}>
-								Clear Filters
-							</Button>
+							<Button type="button" variant="outline" on:click={clearFilters}>Clear Filters</Button>
 						</div>
 					</form>
 				</Card.Content>
@@ -328,11 +335,13 @@
 			<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
 				{#each teams as team}
 					{@const sizeInfo = categorizeTeamSize(team.employees?.totalCount || 0)}
-					<Card.Root class="hover:shadow-md transition-shadow">
+					<Card.Root class="transition-shadow hover:shadow-md">
 						<Card.Header class="pb-3">
 							<div class="flex items-start justify-between">
 								<div class="flex items-center space-x-3">
-									<div class="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+									<div
+										class="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10"
+									>
 										<Building2 class="h-6 w-6 text-primary" />
 									</div>
 									<div>
@@ -342,12 +351,12 @@
 								</div>
 								{#if team.departmentHead}
 									<Badge variant="default">
-										<Crown class="h-3 w-3 mr-1" />
+										<Crown class="mr-1 h-3 w-3" />
 										Has Head
 									</Badge>
 								{:else}
 									<Badge variant="outline">
-										<UserCheck class="h-3 w-3 mr-1" />
+										<UserCheck class="mr-1 h-3 w-3" />
 										No Head
 									</Badge>
 								{/if}
@@ -357,36 +366,41 @@
 							<!-- Team Information -->
 							<div class="space-y-2">
 								{#if team.departmentHead}
-								<div class="flex items-center text-sm">
-									<UserCheck class="h-4 w-4 mr-2 text-green-600" />
-									<span class="font-medium">{team.departmentHead.displayName}</span>
-									<span class="text-muted-foreground ml-1">({team.departmentHead.jobTitle || 'Head'})</span>
-								</div>
+									<div class="flex items-center text-sm">
+										<UserCheck class="mr-2 h-4 w-4 text-green-600" />
+										<span class="font-medium">{team.departmentHead.displayName}</span>
+										<span class="ml-1 text-muted-foreground"
+											>({team.departmentHead.jobTitle || 'Head'})</span
+										>
+									</div>
 								{/if}
 
 								{#if team.parentDepartment}
-								<div class="flex items-center text-sm text-muted-foreground">
-									<Building class="h-4 w-4 mr-2" />
-									<span>Parent: {team.parentDepartment.name}</span>
-								</div>
+									<div class="flex items-center text-sm text-muted-foreground">
+										<Building class="mr-2 h-4 w-4" />
+										<span>Parent: {team.parentDepartment.name}</span>
+									</div>
 								{/if}
 
 								<div class="flex items-center text-sm text-muted-foreground">
-									<Users class="h-4 w-4 mr-2" />
+									<Users class="mr-2 h-4 w-4" />
 									<span>{formatEmployeeCount(team.employees?.totalCount || 0)}</span>
 								</div>
 
 								{#if team.subDepartments?.totalCount > 0}
-								<div class="flex items-center text-sm text-muted-foreground">
-									<TreePine class="h-4 w-4 mr-2" />
-									<span>{team.subDepartments.totalCount} sub-teams</span>
-								</div>
+									<div class="flex items-center text-sm text-muted-foreground">
+										<TreePine class="mr-2 h-4 w-4" />
+										<span>{team.subDepartments.totalCount} sub-teams</span>
+									</div>
 								{/if}
 
 								<!-- Team Size Badge -->
 								<div class="flex items-center text-sm">
-									<Badge variant="outline" class="bg-{sizeInfo.color}-50 border-{sizeInfo.color}-200 text-{sizeInfo.color}-800">
-										<BarChart3 class="h-3 w-3 mr-1" />
+									<Badge
+										variant="outline"
+										class="bg-{sizeInfo.color}-50 border-{sizeInfo.color}-200 text-{sizeInfo.color}-800"
+									>
+										<BarChart3 class="mr-1 h-3 w-3" />
 										{sizeInfo.label}
 									</Badge>
 								</div>
@@ -397,16 +411,16 @@
 							<!-- Actions -->
 							<div class="flex gap-2">
 								{#if canViewEmployees}
-								<Button variant="outline" size="sm" href="/dashboard/teams/{team.id}">
-									<Eye class="h-4 w-4 mr-2" />
-									View Details
-								</Button>
+									<Button variant="outline" size="sm" href="/dashboard/teams/{team.id}">
+										<Eye class="mr-2 h-4 w-4" />
+										View Details
+									</Button>
 								{/if}
 								{#if canManageTeams}
-								<Button variant="outline" size="sm" href="/dashboard/teams/{team.id}/edit">
-									<Edit class="h-4 w-4 mr-2" />
-									Edit
-								</Button>
+									<Button variant="outline" size="sm" href="/dashboard/teams/{team.id}/edit">
+										<Edit class="mr-2 h-4 w-4" />
+										Edit
+									</Button>
 								{/if}
 							</div>
 						</Card.Content>
@@ -430,7 +444,7 @@
 							</p>
 							{#if canManageTeams && !filters.searchTerm && !filters.sizeFilter && !filters.headFilter}
 								<Button class="mt-4" href="/dashboard/teams/new">
-									<Plus class="h-4 w-4 mr-2" />
+									<Plus class="mr-2 h-4 w-4" />
 									Create First Team
 								</Button>
 							{/if}
@@ -445,7 +459,10 @@
 					<Card.Content class="py-4">
 						<div class="flex items-center justify-between">
 							<div class="text-sm text-muted-foreground">
-								Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalTeams)} of {totalTeams} teams
+								Showing {(currentPage - 1) * pageSize + 1} to {Math.min(
+									currentPage * pageSize,
+									totalTeams
+								)} of {totalTeams} teams
 							</div>
 							<div class="flex gap-2">
 								<Button
@@ -530,10 +547,10 @@
 					<Card.Description>Visual representation of team structure</Card.Description>
 				</Card.Header>
 				<Card.Content>
-					<div class="text-center py-8 text-muted-foreground">
-						<TreePine class="mx-auto h-12 w-12 mb-4" />
+					<div class="py-8 text-center text-muted-foreground">
+						<TreePine class="mx-auto mb-4 h-12 w-12" />
 						<p>Hierarchy view will be implemented with team relationship data.</p>
-						<p class="text-sm mt-2">Switch to Card View to see individual teams.</p>
+						<p class="mt-2 text-sm">Switch to Card View to see individual teams.</p>
 					</div>
 				</Card.Content>
 			</Card.Root>

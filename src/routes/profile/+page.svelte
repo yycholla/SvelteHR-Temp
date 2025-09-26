@@ -115,9 +115,7 @@
 					<p class="text-lg text-muted-foreground">{profileData.workInfo.position}</p>
 					<p class="text-sm text-muted-foreground">{profileData.workInfo.department}</p>
 					<div class="flex items-center gap-4 pt-2">
-						<Badge variant="secondary"
-							>Employee ID: {profileData.workInfo.employeeId}</Badge
-						>
+						<Badge variant="secondary">Employee ID: {profileData.workInfo.employeeId}</Badge>
 						<Badge variant="outline">{profileData.workInfo.employmentType}</Badge>
 					</div>
 				</div>

@@ -5,8 +5,10 @@
 	import { cn } from '$lib/utils/styles';
 	import { fly } from 'svelte/transition';
 
-	// Subscribe to error store
-	$: errors = $errorStore.errors;
+	// Subscribe to error store - Svelte 5 compatible
+	// Access the subscribable store directly, not through the parent object
+	const { errors } = errorStore;
+	const errorsArray = $derived($errors);
 
 	function getToastClasses(type: string) {
 		const baseClasses = 'border-l-4 bg-background shadow-lg';
@@ -48,20 +50,17 @@
 </script>
 
 <!-- Toast Container - Fixed position at top-right -->
-<div class="fixed top-4 right-4 z-50 max-w-md space-y-2">
-	{#each $errors as error (error.id)}
+<div class="fixed right-4 top-4 z-50 max-w-md space-y-2">
+	{#each errorsArray as error (error.id)}
 		<div
-			class={cn(
-				'rounded-lg p-4 max-w-sm',
-				getToastClasses(error.type)
-			)}
+			class={cn('max-w-sm rounded-lg p-4', getToastClasses(error.type))}
 			role="alert"
 			aria-live="polite"
 			transition:fly={{ x: 300, duration: 300 }}
 		>
 			<div class="flex items-start gap-3">
 				<!-- Icon -->
-				<div class="flex-shrink-0 mt-0.5">
+				<div class="mt-0.5 flex-shrink-0">
 					{#if error.type === 'error'}
 						<AlertCircle class={cn('h-4 w-4', getIconClasses(error.type))} />
 					{:else if error.type === 'warning'}
@@ -74,8 +73,8 @@
 				</div>
 
 				<!-- Content -->
-				<div class="flex-1 min-w-0">
-					<p class="text-sm font-medium text-foreground break-words">
+				<div class="min-w-0 flex-1">
+					<p class="break-words text-sm font-medium text-foreground">
 						{error.message}
 					</p>
 
@@ -94,10 +93,9 @@
 
 					{#if error.details && import.meta.env.DEV}
 						<details class="mt-2">
-							<summary class="text-xs text-muted-foreground cursor-pointer">
-								Debug Info
-							</summary>
-							<pre class="text-xs text-muted-foreground mt-1 overflow-auto max-h-20 whitespace-pre-wrap">
+							<summary class="cursor-pointer text-xs text-muted-foreground"> Debug Info </summary>
+							<pre
+								class="mt-1 max-h-20 overflow-auto whitespace-pre-wrap text-xs text-muted-foreground">
 								{JSON.stringify(error.details, null, 2)}
 							</pre>
 						</details>
@@ -106,7 +104,7 @@
 
 				<!-- Close button -->
 				<button
-					class="flex-shrink-0 p-1 rounded-md hover:bg-muted transition-colors"
+					class="flex-shrink-0 rounded-md p-1 transition-colors hover:bg-muted"
 					onclick={() => dismissError(error.id)}
 					aria-label="Dismiss notification"
 				>

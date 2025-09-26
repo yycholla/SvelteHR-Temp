@@ -295,7 +295,13 @@
 								<div class="flex items-center gap-3">
 									<svelte:component
 										this={getStatusIcon(audit.status)}
-										class="h-5 w-5 {audit.status === 'passed' ? 'text-green-500' : audit.status === 'action-required' ? 'text-yellow-500' : audit.status === 'failed' ? 'text-red-500' : ''}"
+										class="h-5 w-5 {audit.status === 'passed'
+											? 'text-green-500'
+											: audit.status === 'action-required'
+												? 'text-yellow-500'
+												: audit.status === 'failed'
+													? 'text-red-500'
+													: ''}"
 									/>
 									<div>
 										<h4 class="font-medium">{audit.type}</h4>

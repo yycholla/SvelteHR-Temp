@@ -84,8 +84,8 @@
 	// Statistics derived from server data
 	const departmentStats = $derived({
 		totalDepartments,
-		withHeads: departments.filter(dept => dept.departmentHead).length,
-		withoutHeads: departments.filter(dept => !dept.departmentHead).length,
+		withHeads: departments.filter((dept) => dept.departmentHead).length,
+		withoutHeads: departments.filter((dept) => !dept.departmentHead).length,
 		totalEmployees: departments.reduce((sum, dept) => sum + (dept.employees?.totalCount || 0), 0)
 	});
 
@@ -154,19 +154,17 @@
 	<div class="flex items-center justify-between">
 		<div>
 			<h1 class="text-3xl font-bold tracking-tight">Department Management</h1>
-			<p class="text-muted-foreground">
-				Organize and manage departments in your organization
-			</p>
+			<p class="text-muted-foreground">Organize and manage departments in your organization</p>
 		</div>
 
 		{#if canManageDepartments}
 			<div class="flex gap-2">
 				<Button variant="outline" size="sm">
-					<TreePine class="h-4 w-4 mr-2" />
+					<TreePine class="mr-2 h-4 w-4" />
 					View Hierarchy
 				</Button>
-				<Button size="sm" href="/departments/new">
-					<Plus class="h-4 w-4 mr-2" />
+				<Button size="sm" href="/dashboard/departments/new">
+					<Plus class="mr-2 h-4 w-4" />
 					Create Department
 				</Button>
 			</div>
@@ -182,9 +180,7 @@
 			</Card.Header>
 			<Card.Content>
 				<div class="text-2xl font-bold">{departmentStats.totalDepartments}</div>
-				<p class="text-xs text-muted-foreground">
-					across organization
-				</p>
+				<p class="text-xs text-muted-foreground">across organization</p>
 			</Card.Content>
 		</Card.Root>
 
@@ -196,7 +192,8 @@
 			<Card.Content>
 				<div class="text-2xl font-bold text-yellow-600">{departmentStats.withHeads}</div>
 				<p class="text-xs text-muted-foreground">
-					{Math.round((departmentStats.withHeads / departmentStats.totalDepartments) * 100)}% have leadership
+					{Math.round((departmentStats.withHeads / departmentStats.totalDepartments) * 100)}% have
+					leadership
 				</p>
 			</Card.Content>
 		</Card.Root>
@@ -208,9 +205,7 @@
 			</Card.Header>
 			<Card.Content>
 				<div class="text-2xl font-bold text-orange-600">{departmentStats.withoutHeads}</div>
-				<p class="text-xs text-muted-foreground">
-					departments without heads
-				</p>
+				<p class="text-xs text-muted-foreground">departments without heads</p>
 			</Card.Content>
 		</Card.Root>
 
@@ -221,9 +216,7 @@
 			</Card.Header>
 			<Card.Content>
 				<div class="text-2xl font-bold text-green-600">{departmentStats.totalEmployees}</div>
-				<p class="text-xs text-muted-foreground">
-					across all departments
-				</p>
+				<p class="text-xs text-muted-foreground">across all departments</p>
 			</Card.Content>
 		</Card.Root>
 	</div>
@@ -241,7 +234,9 @@
 					<div class="space-y-2">
 						<label for="search" class="text-sm font-medium">Search</label>
 						<div class="relative">
-							<Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+							<Search
+								class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+							/>
 							<Input
 								id="search"
 								type="text"
@@ -260,7 +255,7 @@
 							<SelectContent>
 								<SelectItem value="">All Parents</SelectItem>
 								<SelectItem value="null">Top-level Only</SelectItem>
-								{#each departments.filter(dept => !dept.parentDepartmentId) as parent}
+								{#each departments.filter((dept) => !dept.parentDepartmentId) as parent}
 									<SelectItem value={parent.id}>{parent.name}</SelectItem>
 								{/each}
 							</SelectContent>
@@ -297,12 +292,10 @@
 
 				<div class="flex gap-2">
 					<Button type="submit">
-						<Search class="h-4 w-4 mr-2" />
+						<Search class="mr-2 h-4 w-4" />
 						Search
 					</Button>
-					<Button type="button" variant="outline" on:click={clearFilters}>
-						Clear Filters
-					</Button>
+					<Button type="button" variant="outline" on:click={clearFilters}>Clear Filters</Button>
 				</div>
 			</form>
 		</Card.Content>
@@ -312,11 +305,11 @@
 	<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
 		{#each departments as department}
 			{@const sizeInfo = categorizeTeamSize(department.employees?.totalCount || 0)}
-			<Card.Root class="hover:shadow-md transition-shadow">
+			<Card.Root class="transition-shadow hover:shadow-md">
 				<Card.Header class="pb-3">
 					<div class="flex items-start justify-between">
 						<div class="flex items-center space-x-3">
-							<div class="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+							<div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
 								<Building2 class="h-6 w-6 text-primary" />
 							</div>
 							<div>
@@ -326,12 +319,12 @@
 						</div>
 						{#if department.departmentHead}
 							<Badge variant="default">
-								<Crown class="h-3 w-3 mr-1" />
+								<Crown class="mr-1 h-3 w-3" />
 								Has Head
 							</Badge>
 						{:else}
 							<Badge variant="outline">
-								<User class="h-3 w-3 mr-1" />
+								<User class="mr-1 h-3 w-3" />
 								No Head
 							</Badge>
 						{/if}
@@ -341,36 +334,41 @@
 					<!-- Department Information -->
 					<div class="space-y-2">
 						{#if department.departmentHead}
-						<div class="flex items-center text-sm">
-							<UserCheck class="h-4 w-4 mr-2 text-green-600" />
-							<span class="font-medium">{department.departmentHead.displayName}</span>
-							<span class="text-muted-foreground ml-1">({department.departmentHead.jobTitle || 'Head'})</span>
-						</div>
+							<div class="flex items-center text-sm">
+								<UserCheck class="mr-2 h-4 w-4 text-green-600" />
+								<span class="font-medium">{department.departmentHead.displayName}</span>
+								<span class="ml-1 text-muted-foreground"
+									>({department.departmentHead.jobTitle || 'Head'})</span
+								>
+							</div>
 						{/if}
 
 						{#if department.parentDepartment}
-						<div class="flex items-center text-sm text-muted-foreground">
-							<Building class="h-4 w-4 mr-2" />
-							<span>Parent: {department.parentDepartment.name}</span>
-						</div>
+							<div class="flex items-center text-sm text-muted-foreground">
+								<Building class="mr-2 h-4 w-4" />
+								<span>Parent: {department.parentDepartment.name}</span>
+							</div>
 						{/if}
 
 						<div class="flex items-center text-sm text-muted-foreground">
-							<Users class="h-4 w-4 mr-2" />
+							<Users class="mr-2 h-4 w-4" />
 							<span>{formatEmployeeCount(department.employees?.totalCount || 0)}</span>
 						</div>
 
 						{#if department.subDepartments?.totalCount > 0}
-						<div class="flex items-center text-sm text-muted-foreground">
-							<TreePine class="h-4 w-4 mr-2" />
-							<span>{department.subDepartments.totalCount} sub-departments</span>
-						</div>
+							<div class="flex items-center text-sm text-muted-foreground">
+								<TreePine class="mr-2 h-4 w-4" />
+								<span>{department.subDepartments.totalCount} sub-departments</span>
+							</div>
 						{/if}
 
 						<!-- Department Size Badge -->
 						<div class="flex items-center text-sm">
-							<Badge variant="outline" class="bg-{sizeInfo.color}-50 border-{sizeInfo.color}-200 text-{sizeInfo.color}-800">
-								<BarChart3 class="h-3 w-3 mr-1" />
+							<Badge
+								variant="outline"
+								class="bg-{sizeInfo.color}-50 border-{sizeInfo.color}-200 text-{sizeInfo.color}-800"
+							>
+								<BarChart3 class="mr-1 h-3 w-3" />
 								{sizeInfo.label}
 							</Badge>
 						</div>
@@ -381,16 +379,16 @@
 					<!-- Actions -->
 					<div class="flex gap-2">
 						{#if canViewEmployees}
-						<Button variant="outline" size="sm" href="/departments/{department.id}">
-							<Eye class="h-4 w-4 mr-2" />
-							View Details
-						</Button>
+							<Button variant="outline" size="sm" href="/dashboard/departments/{department.id}">
+								<Eye class="mr-2 h-4 w-4" />
+								View Details
+							</Button>
 						{/if}
 						{#if canManageDepartments}
-						<Button variant="outline" size="sm" href="/departments/{department.id}/edit">
-							<Edit class="h-4 w-4 mr-2" />
-							Edit
-						</Button>
+							<Button variant="outline" size="sm" href="/dashboard/departments/{department.id}/edit">
+								<Edit class="mr-2 h-4 w-4" />
+								Edit
+							</Button>
 						{/if}
 					</div>
 				</Card.Content>
@@ -413,8 +411,8 @@
 						{/if}
 					</p>
 					{#if canManageDepartments && !filters.searchTerm && !filters.parentFilter && !filters.hasHeadFilter}
-						<Button class="mt-4" href="/departments/new">
-							<Plus class="h-4 w-4 mr-2" />
+						<Button class="mt-4" href="/dashboard/departments/new">
+							<Plus class="mr-2 h-4 w-4" />
 							Create First Department
 						</Button>
 					{/if}
@@ -429,7 +427,10 @@
 			<Card.Content class="py-4">
 				<div class="flex items-center justify-between">
 					<div class="text-sm text-muted-foreground">
-						Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalDepartments)} of {totalDepartments} departments
+						Showing {(currentPage - 1) * pageSize + 1} to {Math.min(
+							currentPage * pageSize,
+							totalDepartments
+						)} of {totalDepartments} departments
 					</div>
 					<div class="flex gap-2">
 						<Button

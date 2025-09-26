@@ -22,7 +22,9 @@
 	} from 'lucide-svelte';
 
 	// Props
-	let { allEmployees }: {
+	let {
+		allEmployees
+	}: {
 		allEmployees: any[];
 	} = $props();
 
@@ -72,11 +74,11 @@
 		const departmentHeads = new Map<string, any>();
 
 		// Group employees by department and find department heads
-		allEmployees.forEach(emp => {
+		allEmployees.forEach((emp) => {
 			const department = getDepartmentFromUser(emp);
 			const roles = emp.userRoleAssignmentsByUserId?.nodes || [];
-			const maxLevel = roles.length > 0 ?
-				Math.max(...roles.map((r: any) => r.userRoleByRoleId?.level || 20)) : 20;
+			const maxLevel =
+				roles.length > 0 ? Math.max(...roles.map((r: any) => r.userRoleByRoleId?.level || 20)) : 20;
 
 			if (!departments.has(department)) {
 				departments.set(department, []);
@@ -117,12 +119,12 @@
 			nodes.push(headNode);
 
 			// Position other employees under the head in a proper tree structure
-			const otherEmployees = deptEmployees.filter(emp => emp.id !== head.id);
+			const otherEmployees = deptEmployees.filter((emp) => emp.id !== head.id);
 
 			if (otherEmployees.length > 0) {
 				// Create sub-levels based on role levels
 				const subLevels = new Map<number, any[]>();
-				otherEmployees.forEach(emp => {
+				otherEmployees.forEach((emp) => {
 					const level = emp.maxLevel >= 40 ? 40 : 20; // Senior vs Staff
 					if (!subLevels.has(level)) {
 						subLevels.set(level, []);
@@ -133,7 +135,7 @@
 				const sortedSubLevels = Array.from(subLevels.keys()).sort((a, b) => b - a);
 				let currentY = 100 + VERTICAL_SPACING; // Start below head with proper spacing
 
-				sortedSubLevels.forEach(level => {
+				sortedSubLevels.forEach((level) => {
 					const levelEmployees = subLevels.get(level)!;
 					const employeesPerRow = Math.min(2, levelEmployees.length); // Reduced to 2 per row
 					const rows = Math.ceil(levelEmployees.length / employeesPerRow);
@@ -141,7 +143,10 @@
 					levelEmployees.forEach((emp, index) => {
 						const row = Math.floor(index / employeesPerRow);
 						const col = index % employeesPerRow;
-						const totalInRow = Math.min(employeesPerRow, levelEmployees.length - row * employeesPerRow);
+						const totalInRow = Math.min(
+							employeesPerRow,
+							levelEmployees.length - row * employeesPerRow
+						);
 
 						// Calculate centered positioning for each row
 						const rowWidth = totalInRow * NODE_WIDTH + (totalInRow - 1) * HORIZONTAL_SPACING;
@@ -231,7 +236,12 @@
 	}
 
 	function getUserInitials(name: string): string {
-		return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+		return name
+			.split(' ')
+			.map((n) => n[0])
+			.join('')
+			.toUpperCase()
+			.slice(0, 2);
 	}
 
 	function getNodeColor(node: OrgNode): string {
@@ -244,13 +254,13 @@
 	function getDepartmentColor(department: string): string {
 		const colors = {
 			'Human Resources': 'bg-green-50 border-l-4 border-green-400',
-			'Administration': 'bg-red-50 border-l-4 border-red-400',
-			'Management': 'bg-purple-50 border-l-4 border-purple-400',
-			'Finance': 'bg-yellow-50 border-l-4 border-yellow-400',
-			'Engineering': 'bg-blue-50 border-l-4 border-blue-400',
-			'Marketing': 'bg-pink-50 border-l-4 border-pink-400',
-			'Sales': 'bg-orange-50 border-l-4 border-orange-400',
-			'General': 'bg-gray-50 border-l-4 border-gray-400'
+			Administration: 'bg-red-50 border-l-4 border-red-400',
+			Management: 'bg-purple-50 border-l-4 border-purple-400',
+			Finance: 'bg-yellow-50 border-l-4 border-yellow-400',
+			Engineering: 'bg-blue-50 border-l-4 border-blue-400',
+			Marketing: 'bg-pink-50 border-l-4 border-pink-400',
+			Sales: 'bg-orange-50 border-l-4 border-orange-400',
+			General: 'bg-gray-50 border-l-4 border-gray-400'
 		};
 		return colors[department as keyof typeof colors] || colors.General;
 	}
@@ -262,25 +272,26 @@
 		// Search filter
 		if (searchTerm) {
 			const search = searchTerm.toLowerCase();
-			filtered = filtered.filter(node =>
-				node.name.toLowerCase().includes(search) ||
-				node.email.toLowerCase().includes(search) ||
-				node.role.toLowerCase().includes(search) ||
-				node.department.toLowerCase().includes(search)
+			filtered = filtered.filter(
+				(node) =>
+					node.name.toLowerCase().includes(search) ||
+					node.email.toLowerCase().includes(search) ||
+					node.role.toLowerCase().includes(search) ||
+					node.department.toLowerCase().includes(search)
 			);
 		}
 
 		// Department filter
 		if (selectedDepartment !== 'all') {
-			filtered = filtered.filter(node => node.department === selectedDepartment);
+			filtered = filtered.filter((node) => node.department === selectedDepartment);
 		}
 
 		// Level filter
 		if (selectedLevel !== 'all') {
 			const levelRange = selectedLevel.split('-').map(Number);
 			if (levelRange.length === 2) {
-				filtered = filtered.filter(node =>
-					node.roleLevel >= levelRange[0] && node.roleLevel <= levelRange[1]
+				filtered = filtered.filter(
+					(node) => node.roleLevel >= levelRange[0] && node.roleLevel <= levelRange[1]
 				);
 			}
 		}
@@ -305,19 +316,19 @@
 
 		const total = filteredNodes.length;
 		const byLevel = {
-			executive: filteredNodes.filter(n => n.roleLevel >= 80).length,
-			management: filteredNodes.filter(n => n.roleLevel >= 60 && n.roleLevel < 80).length,
-			senior: filteredNodes.filter(n => n.roleLevel >= 40 && n.roleLevel < 60).length,
-			staff: filteredNodes.filter(n => n.roleLevel < 40).length
+			executive: filteredNodes.filter((n) => n.roleLevel >= 80).length,
+			management: filteredNodes.filter((n) => n.roleLevel >= 60 && n.roleLevel < 80).length,
+			senior: filteredNodes.filter((n) => n.roleLevel >= 40 && n.roleLevel < 60).length,
+			staff: filteredNodes.filter((n) => n.roleLevel < 40).length
 		};
-		const departments = new Set(filteredNodes.map(n => n.department)).size;
+		const departments = new Set(filteredNodes.map((n) => n.department)).size;
 
 		return { total, byLevel, departments };
 	});
 
 	// Get unique departments for filter
 	const departments = $derived(() => {
-		const depts = new Set(orgNodes.map(n => n.department));
+		const depts = new Set(orgNodes.map((n) => n.department));
 		return Array.from(depts).sort();
 	});
 
@@ -343,7 +354,7 @@
 	<!-- Header -->
 	<div class="flex items-center justify-between">
 		<div>
-			<h2 class="text-2xl font-bold tracking-tight flex items-center gap-3">
+			<h2 class="flex items-center gap-3 text-2xl font-bold tracking-tight">
 				<Building2 class="h-7 w-7" />
 				Organization Map
 			</h2>
@@ -353,7 +364,7 @@
 		</div>
 
 		<div class="flex items-center gap-2">
-			<Button variant="outline" size="sm" onclick={() => showStats = !showStats}>
+			<Button variant="outline" size="sm" onclick={() => (showStats = !showStats)}>
 				<Grid class="h-4 w-4" />
 				{showStats ? 'Hide' : 'Show'} Stats
 			</Button>
@@ -362,7 +373,7 @@
 
 	<!-- Statistics -->
 	{#if showStats && stats && stats.byLevel}
-		<div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+		<div class="grid grid-cols-2 gap-4 md:grid-cols-5">
 			<Card.Root>
 				<Card.Content class="p-4">
 					<div class="text-center">
@@ -414,11 +425,7 @@
 				<div class="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
 					<div class="relative">
 						<Search class="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-						<Input
-							placeholder="Search employees..."
-							bind:value={searchTerm}
-							class="pl-10 w-64"
-						/>
+						<Input placeholder="Search employees..." bind:value={searchTerm} class="w-64 pl-10" />
 					</div>
 
 					<select
@@ -445,13 +452,13 @@
 
 				<!-- Zoom Controls -->
 				<div class="flex items-center gap-2">
-					<Button variant="outline" size="sm" onclick={() => zoom = Math.min(2, zoom * 1.2)}>
+					<Button variant="outline" size="sm" onclick={() => (zoom = Math.min(2, zoom * 1.2))}>
 						<ZoomIn class="h-4 w-4" />
 					</Button>
-					<Button variant="outline" size="sm" onclick={() => zoom = Math.max(0.3, zoom * 0.8)}>
+					<Button variant="outline" size="sm" onclick={() => (zoom = Math.max(0.3, zoom * 0.8))}>
 						<ZoomOut class="h-4 w-4" />
 					</Button>
-					<Button variant="outline" size="sm" onclick={() => zoom = 0.8}>
+					<Button variant="outline" size="sm" onclick={() => (zoom = 0.8)}>
 						<RotateCcw class="h-4 w-4" />
 					</Button>
 					<Button variant="outline" size="sm" onclick={autoLayout}>
@@ -466,7 +473,9 @@
 	<Card.Root>
 		<Card.Content class="p-0">
 			<div
-				class="relative h-[700px] w-full overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 cursor-grab {isDragging ? 'cursor-grabbing' : ''}"
+				class="relative h-[700px] w-full cursor-grab overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 {isDragging
+					? 'cursor-grabbing'
+					: ''}"
 				onmousedown={handleMouseDown}
 				onmousemove={handleMouseMove}
 				onmouseup={handleMouseUp}
@@ -479,9 +488,9 @@
 					style="transform: translate({dragOffset.x}px, {dragOffset.y}px) scale({zoom}); transform-origin: top left;"
 				>
 					<!-- Connection Lines -->
-					<svg class="absolute inset-0 pointer-events-none">
-						{#each filteredNodes.filter(node => node.parentId) as node}
-							{@const parent = filteredNodes.find(p => p.id === node.parentId)}
+					<svg class="pointer-events-none absolute inset-0">
+						{#each filteredNodes.filter((node) => node.parentId) as node}
+							{@const parent = filteredNodes.find((p) => p.id === node.parentId)}
 							{#if parent}
 								{@const startX = parent.x + NODE_WIDTH / 2}
 								{@const startY = parent.y + NODE_HEIGHT}
@@ -507,16 +516,16 @@
 					</svg>
 
 					<!-- Department Headers -->
-					{#each Array.from(new Set(filteredNodes.map(n => n.department))) as dept}
-						{@const deptNodes = filteredNodes.filter(n => n.department === dept)}
-						{@const deptHead = deptNodes.find(n => n.parentId === null)}
+					{#each Array.from(new Set(filteredNodes.map((n) => n.department))) as dept}
+						{@const deptNodes = filteredNodes.filter((n) => n.department === dept)}
+						{@const deptHead = deptNodes.find((n) => n.parentId === null)}
 						{#if deptHead}
 							<div
-								class="absolute bg-white/90 backdrop-blur-sm border rounded-lg px-3 py-1 shadow-sm z-10"
+								class="absolute z-10 rounded-lg border bg-white/90 px-3 py-1 shadow-sm backdrop-blur-sm"
 								style="top: {deptHead.y - 35}px; left: {deptHead.x}px;"
 							>
 								<span class="text-sm font-semibold text-gray-700">{dept}</span>
-								<span class="text-xs text-gray-500 ml-2">({deptNodes.length})</span>
+								<span class="ml-2 text-xs text-gray-500">({deptNodes.length})</span>
 							</div>
 						{/if}
 					{/each}
@@ -526,61 +535,77 @@
 						<div
 							class="absolute select-none transition-all"
 							style="left: {node.x}px; top: {node.y}px;"
-					>
-						<div class="w-[190px] rounded-lg border-2 p-3 bg-white {getNodeColor(node)} shadow-sm hover:shadow-lg transition-all duration-200">
-							<!-- Department indicator -->
-							<div class="w-full h-1 rounded-t mb-2 {getDepartmentColor(node.department).split(' ')[0]}"></div>
+						>
+							<div
+								class="w-[190px] rounded-lg border-2 bg-white p-3 {getNodeColor(
+									node
+								)} shadow-sm transition-all duration-200 hover:shadow-lg"
+							>
+								<!-- Department indicator -->
+								<div
+									class="mb-2 h-1 w-full rounded-t {getDepartmentColor(node.department).split(
+										' '
+									)[0]}"
+								></div>
 
-							<!-- Header -->
-							<div class="flex items-center justify-between mb-2">
-								<div class="flex items-center gap-2">
-									{#if node.isManager}
-										<Crown class="h-4 w-4 text-yellow-600" />
-									{:else}
-										<User class="h-4 w-4" />
-									{/if}
-									<span class="text-xs font-mono">{node.department.slice(0, 3).toUpperCase()}</span>
+								<!-- Header -->
+								<div class="mb-2 flex items-center justify-between">
+									<div class="flex items-center gap-2">
+										{#if node.isManager}
+											<Crown class="h-4 w-4 text-yellow-600" />
+										{:else}
+											<User class="h-4 w-4" />
+										{/if}
+										<span class="font-mono text-xs"
+											>{node.department.slice(0, 3).toUpperCase()}</span
+										>
+									</div>
+									<Badge variant="outline" class="text-xs">
+										L{node.roleLevel}
+									</Badge>
 								</div>
-								<Badge variant="outline" class="text-xs">
-									L{node.roleLevel}
-								</Badge>
-							</div>
 
-							<!-- Avatar and Info -->
-							<div class="flex items-center gap-2 mb-3">
-								<div class="flex h-8 w-8 items-center justify-center rounded-full bg-white font-semibold text-xs">
-									{getUserInitials(node.name)}
+								<!-- Avatar and Info -->
+								<div class="mb-3 flex items-center gap-2">
+									<div
+										class="flex h-8 w-8 items-center justify-center rounded-full bg-white text-xs font-semibold"
+									>
+										{getUserInitials(node.name)}
+									</div>
+									<div class="min-w-0 flex-1">
+										<h4 class="truncate text-sm font-semibold">{node.name}</h4>
+										<p class="truncate text-xs opacity-80">{node.role}</p>
+										<p class="truncate text-xs opacity-60">{node.email}</p>
+									</div>
 								</div>
-								<div class="min-w-0 flex-1">
-									<h4 class="font-semibold text-sm truncate">{node.name}</h4>
-									<p class="text-xs opacity-80 truncate">{node.role}</p>
-									<p class="text-xs opacity-60 truncate">{node.email}</p>
-								</div>
-							</div>
 
-							<!-- Actions -->
-							<div class="flex items-center justify-center gap-1">
-								<Button variant="ghost" size="sm" class="h-6 w-6 p-0">
-									<Mail class="h-3 w-3" />
-								</Button>
-								<Button variant="ghost" size="sm" class="h-6 w-6 p-0">
-									<Eye class="h-3 w-3" />
-								</Button>
+								<!-- Actions -->
+								<div class="flex items-center justify-center gap-1">
+									<Button variant="ghost" size="sm" class="h-6 w-6 p-0">
+										<Mail class="h-3 w-3" />
+									</Button>
+									<Button variant="ghost" size="sm" class="h-6 w-6 p-0">
+										<Eye class="h-3 w-3" />
+									</Button>
+								</div>
 							</div>
 						</div>
-					</div>
-				{/each}
+					{/each}
 
-				<!-- Results indicator -->
+					<!-- Results indicator -->
 				</div>
 
 				<!-- Fixed UI indicators (outside draggable content) -->
-				<div class="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded px-3 py-2 text-sm">
+				<div
+					class="absolute bottom-4 left-4 rounded bg-white/90 px-3 py-2 text-sm backdrop-blur-sm"
+				>
 					Showing {filteredNodes.length} of {orgNodes.length} employees
 				</div>
 
 				<!-- Zoom indicator -->
-				<div class="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm rounded px-2 py-1 text-xs">
+				<div
+					class="absolute bottom-4 right-4 rounded bg-white/90 px-2 py-1 text-xs backdrop-blur-sm"
+				>
 					Zoom: {Math.round(zoom * 100)}%
 				</div>
 			</div>
@@ -593,13 +618,18 @@
 			<Card.Title class="text-lg">Department Legend</Card.Title>
 		</Card.Header>
 		<Card.Content>
-			<div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+			<div class="grid grid-cols-2 gap-2 text-sm md:grid-cols-4">
 				{#each departments as dept}
-					<div class="flex items-center gap-2 p-2 rounded {getDepartmentColor(dept)}">
-						<div class="h-3 w-3 rounded-full {getNodeColor({ roleLevel: 60, department: dept } as OrgNode).split(' ')[0]}"></div>
+					<div class="flex items-center gap-2 rounded p-2 {getDepartmentColor(dept)}">
+						<div
+							class="h-3 w-3 rounded-full {getNodeColor({
+								roleLevel: 60,
+								department: dept
+							} as OrgNode).split(' ')[0]}"
+						></div>
 						<span class="font-medium">{dept}</span>
 						<Badge variant="outline" class="text-xs">
-							{orgNodes.filter(n => n.department === dept).length}
+							{orgNodes.filter((n) => n.department === dept).length}
 						</Badge>
 					</div>
 				{/each}

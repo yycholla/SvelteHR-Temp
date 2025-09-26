@@ -15,103 +15,99 @@
 import type { CodegenConfig } from '@graphql-codegen/cli';
 
 const config: CodegenConfig = {
-  // PostGraphile GraphQL endpoint
-  schema: 'http://localhost:4000/graphql',
+	// PostGraphile GraphQL endpoint
+	schema: 'http://localhost:4000/graphql',
 
-  // Documents pattern for GraphQL operations
-  documents: [
-    'src/**/*.{ts,tsx,js,jsx,svelte}',
-    'src/lib/graphql/**/*.graphql',
-    'src/lib/graphql/**/*.gql',
-    'tests/**/*.{ts,tsx,js,jsx}',
-    '!src/lib/generated/**/*',
-  ],
+	// Documents pattern for GraphQL operations
+	documents: [
+		'src/**/*.{ts,tsx,js,jsx,svelte}',
+		'src/lib/graphql/**/*.graphql',
+		'src/lib/graphql/**/*.gql',
+		'tests/**/*.{ts,tsx,js,jsx}',
+		'!src/lib/generated/**/*'
+	],
 
-  generates: {
-    // Main generated GraphQL types and operations
-    'src/lib/generated/graphql.ts': {
-      plugins: [
-        'typescript',
-        'typescript-operations',
-        'typescript-urql'
-      ],
-      config: {
-        // TypeScript configuration
-        scalars: {
-          UUID: 'string',
-          DateTime: 'string',
-          Date: 'string',
-          JSON: 'any',
-          BigInt: 'number',
-          Cursor: 'string'
-        },
-        strictScalars: true,
-        enumsAsTypes: true,
-        constEnums: false,
+	generates: {
+		// Main generated GraphQL types and operations
+		'src/lib/generated/graphql.ts': {
+			plugins: ['typescript', 'typescript-operations', 'typescript-urql'],
+			config: {
+				// TypeScript configuration
+				scalars: {
+					UUID: 'string',
+					DateTime: 'string',
+					Date: 'string',
+					JSON: 'any',
+					BigInt: 'number',
+					Cursor: 'string'
+				},
+				strictScalars: true,
+				enumsAsTypes: true,
+				constEnums: false,
 
-        // Urql integration
-        withHooks: true,
-        withComponent: false,
-        withRefetchFn: true,
-        withSubscriptionHooks: true,
+				// Urql integration
+				withHooks: true,
+				withComponent: false,
+				withRefetchFn: true,
+				withSubscriptionHooks: true,
 
-        // PostGraphile specific
-        namingConvention: {
-          typeNames: 'pascal-case#pascalCase',
-          transformUnderscore: true
-        },
+				// PostGraphile specific
+				namingConvention: {
+					typeNames: 'pascal-case#pascalCase',
+					transformUnderscore: true
+				},
 
-        // Performance and security annotations
-        addDocBlocks: true,
-        declarationKind: 'interface',
-        maybeValue: 'T | null',
-        inputMaybeValue: 'T | null | undefined',
+				// Performance and security annotations
+				addDocBlocks: true,
+				declarationKind: 'interface',
+				maybeValue: 'T | null',
+				inputMaybeValue: 'T | null | undefined',
 
-        // Testing utilities
-        exportFragmentSpreadSubTypes: true,
-        dedupeFragments: true,
+				// Testing utilities
+				exportFragmentSpreadSubTypes: true,
+				dedupeFragments: true,
 
-        // Generate operation metadata for testing
-        addOperationExport: true,
+				// Generate operation metadata for testing
+				addOperationExport: true,
 
-        // Security validation
-        skipTypename: false,
+				// Security validation
+				skipTypename: false,
 
-        // Performance monitoring
-        addUnderscoreToArgsType: true,
-      }
-    },
+				// Performance monitoring
+				addUnderscoreToArgsType: true
+			}
+		},
 
-    // Schema introspection for contract testing
-    'src/lib/generated/introspection.json': {
-      plugins: ['introspection'],
-      config: {
-        minify: false,
-        descriptions: true,
-        schemaDescription: true,
-        directiveIsRepeatable: true,
-        specifiedByUrl: true
-      }
-    },
+		// Schema introspection for contract testing
+		'src/lib/generated/introspection.json': {
+			plugins: ['introspection'],
+			config: {
+				minify: false,
+				descriptions: true,
+				schemaDescription: true,
+				directiveIsRepeatable: true,
+				specifiedByUrl: true
+			}
+		},
 
-    // Schema AST for advanced testing
-    'src/lib/generated/schema.graphql': {
-      plugins: ['schema-ast'],
-      config: {
-        includeDirectives: true,
-        includeIntrospectionTypes: false,
-        commentDescriptions: true,
-        sort: true
-      }
-    },
+		// Schema AST for advanced testing
+		'src/lib/generated/schema.graphql': {
+			plugins: ['schema-ast'],
+			config: {
+				includeDirectives: true,
+				includeIntrospectionTypes: false,
+				commentDescriptions: true,
+				sort: true
+			}
+		},
 
-    // Testing utilities and types
-    'tests/generated/test-types.ts': {
-      plugins: [
-        'typescript',
-        {
-          add: {
-            content: `
+		// Testing utilities and types
+		'tests/generated/test-types.ts': {
+			plugins: [
+				'typescript',
+				{
+					add: {
+						content: `
               // GraphQL Testing Utilities and Types
               // Generated for comprehensive GraphQL testing
 
@@ -199,77 +195,73 @@ const config: CodegenConfig = {
                 timeout?: number;
               }
             `
-          }
-        }
-      ],
-      config: {
-        scalars: {
-          UUID: 'string',
-          DateTime: 'string',
-          Date: 'string',
-          JSON: 'any',
-          BigInt: 'number',
-          Cursor: 'string'
-        }
-      }
-    }
-  },
+					}
+				}
+			],
+			config: {
+				scalars: {
+					UUID: 'string',
+					DateTime: 'string',
+					Date: 'string',
+					JSON: 'any',
+					BigInt: 'number',
+					Cursor: 'string'
+				}
+			}
+		}
+	},
 
-  // Hooks for custom processing
-  hooks: {
-    afterOneFileWrite: ['prettier --write'],
-  },
+	// Hooks for custom processing
+	hooks: {
+		afterOneFileWrite: ['prettier --write']
+	},
 
-  // Plugin configuration
-  config: {
-    // Skip introspection types in main output
-    skipTypename: false,
+	// Plugin configuration
+	config: {
+		// Skip introspection types in main output
+		skipTypename: false,
 
-    // PostGraphile connection pattern
-    federation: false,
+		// PostGraphile connection pattern
+		federation: false,
 
-    // Generate JSDoc comments
-    addDocBlocks: true,
+		// Generate JSDoc comments
+		addDocBlocks: true,
 
-    // Optimize for testing
-    optimizeDocumentNode: true,
+		// Optimize for testing
+		optimizeDocumentNode: true,
 
-    // Error handling
-    strictScalars: true,
+		// Error handling
+		strictScalars: true,
 
-    // Performance
-    preResolveTypes: true,
-  },
+		// Performance
+		preResolveTypes: true
+	},
 
-  // Watch mode configuration
-  watch: true,
-  watchConfig: {
-    usePolling: false,
-    interval: 1000,
-    ignored: [
-      'node_modules/**/*',
-      'src/lib/generated/**/*',
-      'tests/generated/**/*'
-    ]
-  },
+	// Watch mode configuration
+	watch: true,
+	watchConfig: {
+		usePolling: false,
+		interval: 1000,
+		ignored: ['node_modules/**/*', 'src/lib/generated/**/*', 'tests/generated/**/*']
+	},
 
-  // Verbose output for debugging
-  verbose: process.env.NODE_ENV === 'development',
+	// Verbose output for debugging
+	verbose: process.env.NODE_ENV === 'development',
 
-  // Error handling
-  silent: false,
-  errorsOnly: false,
+	// Error handling
+	silent: false,
+	errorsOnly: false,
 
-  // Require introspection to be available
-  require: ['dotenv/config'],
+	// Require introspection to be available
+	require: ['dotenv/config'],
 
-  // Custom environment variables
-  overwrite: true,
+	// Custom environment variables
+	overwrite: true,
 
-  // Experimental features
-  experimental: {
-    // Enable experimental features for better testing support
-  }
+	// Experimental features
+	experimental: {
+		// Enable experimental features for better testing support
+	}
 };
 
 export default config;

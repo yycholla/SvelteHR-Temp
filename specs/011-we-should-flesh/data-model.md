@@ -34,12 +34,14 @@ TABLE hr_public.leave_requests {
 ```
 
 **Validation Rules**:
+
 - `start_date` must be <= `end_date`
 - `days_requested` must match calculated business days between dates
 - `employee_id` cannot equal `manager_id`
 - Status transitions: pending → approved/denied, approved/denied → cancelled (by employee)
 
 **Relationships**:
+
 - `employee_id` → `hr_public.employees` (many-to-one)
 - `manager_id` → `hr_public.employees` (many-to-one)
 
@@ -73,12 +75,14 @@ TABLE hr_public.performance_reviews {
 ```
 
 **Validation Rules**:
+
 - All rating fields must be 1-5 scale
 - `review_period_start` must be < `review_period_end`
 - Cannot submit review without overall_rating
 - Only reviewer or employee can modify (RLS policies)
 
 **State Transitions**:
+
 - draft → in_progress → completed → submitted
 
 ### 3. Team Goal/OKR
@@ -108,6 +112,7 @@ TABLE hr_public.team_goals {
 ```
 
 **Key Results** (One-to-many relationship):
+
 ```sql
 TABLE hr_public.goal_key_results {
   id: UUID PRIMARY KEY DEFAULT gen_random_uuid()
@@ -150,21 +155,20 @@ TABLE hr_public.team_reports {
 ```
 
 **Report Data Structure** (JSONB examples):
+
 ```json
 {
-  "metrics": {
-    "total_employees": 25,
-    "attendance_rate": 94.5,
-    "goals_completed": 12,
-    "avg_performance_rating": 4.2
-  },
-  "breakdown": [
-    {"period": "2025-01", "attendance": 96.2, "goals": 3},
-    {"period": "2025-02", "attendance": 92.8, "goals": 4}
-  ],
-  "top_performers": [
-    {"employee_id": "uuid", "name": "John Doe", "score": 4.8}
-  ]
+	"metrics": {
+		"total_employees": 25,
+		"attendance_rate": 94.5,
+		"goals_completed": 12,
+		"avg_performance_rating": 4.2
+	},
+	"breakdown": [
+		{ "period": "2025-01", "attendance": 96.2, "goals": 3 },
+		{ "period": "2025-02", "attendance": 92.8, "goals": 4 }
+	],
+	"top_performers": [{ "employee_id": "uuid", "name": "John Doe", "score": 4.8 }]
 }
 ```
 
@@ -275,18 +279,21 @@ CREATE POLICY team_goals_access ON hr_public.team_goals
 PostGraphile will automatically generate the following GraphQL types and operations:
 
 **Queries**:
+
 - `leaveRequests`, `leaveRequest(id: UUID!)`
 - `performanceReviews`, `performanceReview(id: UUID!)`
 - `teamGoals`, `teamGoal(id: UUID!)`
 - `teamReports`, `teamReport(id: UUID!)`
 
 **Mutations**:
+
 - `createLeaveRequest`, `updateLeaveRequest`, `deleteLeaveRequest`
 - `createPerformanceReview`, `updatePerformanceReview`
 - `createTeamGoal`, `updateTeamGoal`
 - `approveLeaveRequest`, `denyLeaveRequest`
 
 **Relationships** (Auto-generated):
+
 - `LeaveRequest.employee`, `LeaveRequest.manager`
 - `PerformanceReview.employee`, `PerformanceReview.reviewer`
 - `TeamGoal.team`, `TeamGoal.owner`, `TeamGoal.keyResults`

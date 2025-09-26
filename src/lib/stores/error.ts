@@ -34,26 +34,26 @@ function createErrorStore() {
 					timestamp: new Date()
 				};
 
-				errors.update(current => [...current, newError]);
+				errors.update((current) => [...current, newError]);
 
 				// Auto-remove info messages after 5 seconds
 				if (error.type === 'info') {
 					setTimeout(() => {
-						errors.update(current => current.filter(e => e.id !== newError.id));
+						errors.update((current) => current.filter((e) => e.id !== newError.id));
 					}, 5000);
 				}
 
 				// Auto-remove warnings after 10 seconds
 				if (error.type === 'warning') {
 					setTimeout(() => {
-						errors.update(current => current.filter(e => e.id !== newError.id));
+						errors.update((current) => current.filter((e) => e.id !== newError.id));
 					}, 10000);
 				}
 
 				return newError.id;
 			},
 			remove: (id: string) => {
-				errors.update(current => current.filter(error => error.id !== id));
+				errors.update((current) => current.filter((error) => error.id !== id));
 			},
 			clear: () => {
 				errors.set([]);
@@ -76,24 +76,18 @@ function createErrorStore() {
 export const errorStore = createErrorStore();
 
 // Derived stores for specific error types
-export const hasErrors = derived(
-	errorStore.errors,
-	$errors => $errors.length > 0
+export const hasErrors = derived(errorStore.errors, ($errors) => $errors.length > 0);
+
+export const criticalErrors = derived(errorStore.errors, ($errors) =>
+	$errors.filter((error) => error.type === 'error')
 );
 
-export const criticalErrors = derived(
-	errorStore.errors,
-	$errors => $errors.filter(error => error.type === 'error')
+export const warnings = derived(errorStore.errors, ($errors) =>
+	$errors.filter((error) => error.type === 'warning')
 );
 
-export const warnings = derived(
-	errorStore.errors,
-	$errors => $errors.filter(error => error.type === 'warning')
-);
-
-export const infoMessages = derived(
-	errorStore.errors,
-	$errors => $errors.filter(error => error.type === 'info')
+export const infoMessages = derived(errorStore.errors, ($errors) =>
+	$errors.filter((error) => error.type === 'info')
 );
 
 // Helper functions for common error scenarios
