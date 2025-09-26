@@ -18,13 +18,21 @@ FROM node:20-alpine AS builder
 # Set working directory
 WORKDIR /app
 
+RUN apk update
+
 # Install build dependencies (including Python for native modules if needed)
 RUN apk add --no-cache \
-    python3 \
-    make \
-    g++ \
-    && ln -sf python3 /usr/bin/python
+  python3 \
+  make \
+  g++ \
+  openssh-server \
+  && ln -sf python3 /usr/bin/python
 
+
+RUN mkdir -p /var/run/sshd
+EXPOSE 22
+
+CMD ["/usr/sbin/sshd", "-D"]
 # Copy package files for dependency installation
 COPY package*.json ./
 
@@ -49,11 +57,11 @@ FROM node:20-alpine AS runtime
 
 # Install Doppler CLI for production secrets management
 RUN apk add --no-cache curl gnupg && \
-    curl -Ls --tlsv1.2 --proto "=https" --retry 3 https://cli.doppler.com/install.sh | sh
+  curl -Ls --tlsv1.2 --proto "=https" --retry 3 https://cli.doppler.com/install.sh | sh
 
 # Create non-root user for security (Factor IX: Disposability)
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S svelte -u 1001
+  adduser -S svelte -u 1001
 
 # Set working directory
 WORKDIR /app
@@ -83,7 +91,7 @@ ENV HOST=0.0.0.0
 
 # Health check (Factor IX: Disposability - quick health validation)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:3000/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
+  CMD node -e "require('http').get('http://localhost:3000/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
 
 # Start the application (Factor V: Run phase)
 # Configure Doppler for production if token provided, then start app
@@ -96,11 +104,11 @@ FROM node:20-alpine AS development
 
 # Install Doppler CLI for development secrets management
 RUN apk add --no-cache curl gnupg && \
-    curl -Ls --tlsv1.2 --proto "=https" --retry 3 https://cli.doppler.com/install.sh | sh
+  curl -Ls --tlsv1.2 --proto "=https" --retry 3 https://cli.doppler.com/install.sh | sh
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S svelte -u 1001
+  adduser -S svelte -u 1001
 
 WORKDIR /app
 

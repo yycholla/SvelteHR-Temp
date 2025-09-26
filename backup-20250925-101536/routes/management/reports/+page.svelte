@@ -1,0 +1,982 @@
+<script lang="ts">
+	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
+	import { getOperationStore, queryStore } from '@urql/svelte';
+	import { toast } from 'svelte-sonner';
+	import { FileText, Plus, Download, Calendar, Clock, Settings, X, Eye, RotateCcw } from 'lucide-svelte';
+
+	import HrDataTable from '$lib/components/data-table/hr-data-table.svelte';
+	import DataExport from '$lib/components/export/data-export.svelte';
+	import {
+		GET_TEAM_REPORTS,
+		GET_SCHEDULED_REPORTS,
+		GENERATE_TEAM_REPORT,
+		UPDATE_TEAM_REPORT,
+		SCHEDULE_REPORT,
+		DELETE_TEAM_REPORT,
+		REGENERATE_REPORT,
+		getReportTypeInfo,
+		getReportStatusInfo,
+		getDateRangeForPeriod,
+		describeCronExpression,
+		generateReportTemplate,
+		formatReportData,
+		reportTypes,
+		reportStatuses,
+		scheduleOptions,
+		reportPeriods
+	} from '$lib/graphql/team-reports-operations';
+
+	// Page data from server
+	export let data;
+
+	// Local state using Svelte 5 runes
+	let selectedReports = $state<any[]>([]);
+	let showGenerateModal = $state(false);
+	let showScheduleModal = $state(false);
+	let showViewModal = $state(false);
+	let currentReport = $state<any>(null);
+	let typeFilter = $state('all');
+	let statusFilter = $state('all');
+	let scheduledFilter = $state('all');
+	let dateFromFilter = $state('');
+	let dateToFilter = $state('');
+	let searchQuery = $state('');
+
+	// Pagination state
+	let currentPage = $state(1);
+	let pageSize = $state(20);
+
+	// Generate form state
+	let generateForm = $state({
+		title: '',
+		reportType: 'attendance' as any,
+		teamId: '',
+		dateFrom: '',
+		dateTo: '',
+		period: 'last_month',
+		parameters: {
+			includeCharts: true,
+			includeDetails: true,
+			groupBy: 'department'
+		}
+	});
+
+	// Schedule form state
+	let scheduleForm = $state({
+		title: '',
+		reportType: 'attendance' as any,
+		teamId: '',
+		schedule: '0 9 1 * *',
+		customCron: '',
+		isActive: true,
+		parameters: {
+			includeCharts: true,
+			includeDetails: true,
+			groupBy: 'department'
+		}
+	});
+
+	// Query for team reports
+	const teamReports = queryStore({
+		client: getOperationStore(),
+		query: GET_TEAM_REPORTS,
+		variables: {
+			first: pageSize,
+			offset: (currentPage - 1) * pageSize,
+			filter: {
+				...(typeFilter !== 'all' && { reportType: typeFilter }),
+				...(statusFilter !== 'all' && { status: statusFilter }),
+				...(scheduledFilter === 'scheduled' && { isScheduled: true }),
+				...(scheduledFilter === 'one-time' && { isScheduled: false }),
+				...(dateFromFilter && {
+					dateFrom: { greaterThanOrEqualTo: dateFromFilter }
+				}),
+				...(dateToFilter && {
+					dateTo: { lessThanOrEqualTo: dateToFilter }
+				})
+			}
+		}
+	});
+
+	// Mutation operations
+	const generateReport = getOperationStore(GENERATE_TEAM_REPORT);
+	const updateReport = getOperationStore(UPDATE_TEAM_REPORT);
+	const scheduleReport = getOperationStore(SCHEDULE_REPORT);
+	const deleteReport = getOperationStore(DELETE_TEAM_REPORT);
+	const regenerateReport = getOperationStore(REGENERATE_REPORT);
+
+	// Table columns configuration
+	const columns = [
+		{
+			key: 'title',
+			label: 'Report',
+			sortable: true,
+			render: (value: string, row: any) => {
+				const typeInfo = getReportTypeInfo(row.reportType);
+				const isScheduled = row.isScheduled;
+				return `<div data-testid="report-title">
+					<div class="flex items-center gap-2">
+						<span class="text-lg">${typeInfo.icon}</span>
+						<div>
+							<div class="font-medium">${value}</div>
+							<div class="text-sm text-gray-500">${row.team?.name || 'All Teams'}</div>
+						</div>
+						${isScheduled ? '<span class="ml-2 px-1 py-0.5 bg-blue-100 text-blue-800 text-xs rounded">SCHEDULED</span>' : ''}
+					</div>
+				</div>`;
+			}
+		},
+		{
+			key: 'reportType',
+			label: 'Type',
+			render: (value: any) => {
+				const typeInfo = getReportTypeInfo(value);
+				return `<span data-testid="report-type" class="px-2 py-1 rounded-full text-xs bg-${typeInfo.color}-100 text-${typeInfo.color}-800">
+					${typeInfo.icon} ${typeInfo.label}
+				</span>`;
+			}
+		},
+		{
+			key: 'period',
+			label: 'Period',
+			render: (value: any, row: any) => {
+				const startDate = new Date(row.dateFrom).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+				const endDate = new Date(row.dateTo).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+				return `<div data-testid="report-period" class="text-sm">
+					${startDate} - ${endDate}
+				</div>`;
+			}
+		},
+		{
+			key: 'status',
+			label: 'Status',
+			sortable: true,
+			render: (value: string) => {
+				const statusInfo = getReportStatusInfo(value as any);
+				return `<span data-testid="report-status" class="px-2 py-1 rounded-full text-xs bg-${statusInfo.color}-100 text-${statusInfo.color}-800">
+					${statusInfo.icon} ${statusInfo.label}
+				</span>`;
+			}
+		},
+		{
+			key: 'generatedBy',
+			label: 'Generated By',
+			render: (value: any, row: any) => {
+				return `<div data-testid="generated-by" class="text-sm">
+					${row.generatedBy?.displayName || 'System'}
+				</div>`;
+			}
+		},
+		{
+			key: 'createdAt',
+			label: 'Created',
+			sortable: true,
+			render: (value: string) => {
+				const date = new Date(value);
+				return `<div data-testid="created-date" class="text-sm">
+					${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+					<div class="text-xs text-gray-500">${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>
+				</div>`;
+			}
+		},
+		{
+			key: 'actions',
+			label: 'Actions',
+			align: 'center',
+			render: (value: any, row: any) => {
+				return `
+					<div class="flex gap-2 justify-center">
+						<button
+							data-testid="view-report"
+							class="p-1 text-blue-600 hover:bg-blue-50 rounded"
+							title="View Report"
+						>
+							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+							</svg>
+						</button>
+						<button
+							data-testid="download-report"
+							class="p-1 text-green-600 hover:bg-green-50 rounded"
+							title="Download Report"
+						>
+							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+							</svg>
+						</button>
+						<button
+							data-testid="regenerate-report"
+							class="p-1 text-orange-600 hover:bg-orange-50 rounded"
+							title="Regenerate Report"
+						>
+							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+							</svg>
+						</button>
+						<button
+							data-testid="delete-report"
+							class="p-1 text-red-600 hover:bg-red-50 rounded"
+							title="Delete Report"
+						>
+							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+							</svg>
+						</button>
+					</div>
+				`;
+			}
+		}
+	];
+
+	// Handle generate report
+	function handleGenerateReport() {
+		const dateRange = getDateRangeForPeriod(generateForm.period);
+		if (dateRange) {
+			generateForm.dateFrom = dateRange.from;
+			generateForm.dateTo = dateRange.to;
+		}
+
+		generateForm.title = '';
+		currentReport = null;
+		showGenerateModal = true;
+	}
+
+	// Handle schedule report
+	function handleScheduleReport() {
+		scheduleForm.title = '';
+		scheduleForm.schedule = '0 9 1 * *';
+		scheduleForm.customCron = '';
+		currentReport = null;
+		showScheduleModal = true;
+	}
+
+	// Handle view report
+	function handleViewReport(report: any) {
+		currentReport = report;
+		showViewModal = true;
+	}
+
+	// Handle download report
+	function handleDownloadReport(report: any) {
+		// Simulate download functionality
+		toast.success(`Downloading ${report.title}...`);
+	}
+
+	// Handle regenerate report
+	async function handleRegenerateReport(report: any) {
+		try {
+			const result = await regenerateReport({
+				input: {
+					id: report.id,
+					patch: {
+						status: 'generating'
+					}
+				}
+			});
+
+			if (result.data) {
+				toast.success('Report regeneration started');
+				teamReports.reexecute();
+			}
+		} catch (error) {
+			toast.error('Failed to regenerate report');
+		}
+	}
+
+	// Handle delete report
+	async function handleDeleteReport(report: any) {
+		if (!confirm(`Are you sure you want to delete "${report.title}"?`)) {
+			return;
+		}
+
+		try {
+			const result = await deleteReport({
+				input: {
+					id: report.id
+				}
+			});
+
+			if (result.data) {
+				toast.success('Report deleted successfully');
+				teamReports.reexecute();
+			}
+		} catch (error) {
+			toast.error('Failed to delete report');
+		}
+	}
+
+	// Submit generate form
+	async function submitGenerateForm() {
+		try {
+			const template = generateReportTemplate(generateForm.reportType, generateForm.parameters);
+
+			const result = await generateReport({
+				input: {
+					teamReport: {
+						title: generateForm.title || template.title,
+						reportType: generateForm.reportType,
+						teamId: generateForm.teamId || undefined,
+						generatedBy: data.user.id,
+						dateFrom: generateForm.dateFrom,
+						dateTo: generateForm.dateTo,
+						parameters: generateForm.parameters
+					}
+				}
+			});
+
+			if (result.data) {
+				toast.success('Report generation started');
+				closeModals();
+				teamReports.reexecute();
+			}
+		} catch (error) {
+			toast.error('Failed to generate report');
+		}
+	}
+
+	// Submit schedule form
+	async function submitScheduleForm() {
+		try {
+			const cronExpression = scheduleForm.schedule === 'custom' ? scheduleForm.customCron : scheduleForm.schedule;
+			const template = generateReportTemplate(scheduleForm.reportType, scheduleForm.parameters);
+
+			const result = await scheduleReport({
+				input: {
+					teamReport: {
+						title: scheduleForm.title || template.title,
+						reportType: scheduleForm.reportType,
+						teamId: scheduleForm.teamId || undefined,
+						generatedBy: data.user.id,
+						dateFrom: new Date().toISOString().split('T')[0],
+						dateTo: new Date().toISOString().split('T')[0],
+						isScheduled: true,
+						scheduleCron: cronExpression,
+						parameters: scheduleForm.parameters
+					}
+				}
+			});
+
+			if (result.data) {
+				toast.success('Report scheduled successfully');
+				closeModals();
+				teamReports.reexecute();
+			}
+		} catch (error) {
+			toast.error('Failed to schedule report');
+		}
+	}
+
+	// Close modals
+	function closeModals() {
+		showGenerateModal = false;
+		showScheduleModal = false;
+		showViewModal = false;
+		currentReport = null;
+	}
+
+	// Apply filters
+	function applyFilters() {
+		currentPage = 1;
+		teamReports.reexecute();
+	}
+
+	// Clear filters
+	function clearFilters() {
+		typeFilter = 'all';
+		statusFilter = 'all';
+		scheduledFilter = 'all';
+		dateFromFilter = '';
+		dateToFilter = '';
+		searchQuery = '';
+		applyFilters();
+	}
+
+	// Handle row click
+	function handleRowClick(event: CustomEvent) {
+		const row = event.detail;
+		const target = event.target as HTMLElement;
+
+		// Check which action button was clicked
+		if (target.closest('[data-testid="view-report"]')) {
+			handleViewReport(row);
+		} else if (target.closest('[data-testid="download-report"]')) {
+			handleDownloadReport(row);
+		} else if (target.closest('[data-testid="regenerate-report"]')) {
+			handleRegenerateReport(row);
+		} else if (target.closest('[data-testid="delete-report"]')) {
+			handleDeleteReport(row);
+		}
+	}
+
+	// Update period-based dates
+	$: if (generateForm.period !== 'custom') {
+		const dateRange = getDateRangeForPeriod(generateForm.period);
+		if (dateRange) {
+			generateForm.dateFrom = dateRange.from;
+			generateForm.dateTo = dateRange.to;
+		}
+	}
+</script>
+
+<div class="container mx-auto px-4 py-8">
+	<!-- Page Header -->
+	<div class="mb-6 flex justify-between items-center">
+		<div>
+			<h1 class="text-3xl font-bold text-gray-900">Team Reports</h1>
+			<p class="mt-2 text-gray-600">Generate and manage team analytics reports</p>
+		</div>
+		<div class="flex gap-2">
+			<button
+				onclick={handleScheduleReport}
+				class="px-4 py-2 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 flex items-center gap-2"
+				data-testid="schedule-report"
+			>
+				<Clock class="w-4 h-4" />
+				Schedule Report
+			</button>
+			<button
+				onclick={handleGenerateReport}
+				class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2"
+				data-testid="generate-report"
+			>
+				<Plus class="w-4 h-4" />
+				Generate Report
+			</button>
+		</div>
+	</div>
+
+	<!-- Filters Section -->
+	<div class="bg-white rounded-lg shadow p-4 mb-6">
+		<div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+			<!-- Type Filter -->
+			<div>
+				<label for="type-filter" class="block text-sm font-medium text-gray-700 mb-1">
+					Report Type
+				</label>
+				<select
+					id="type-filter"
+					bind:value={typeFilter}
+					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+					data-testid="type-filter"
+				>
+					<option value="all">All Types</option>
+					{#each reportTypes as type}
+						<option value={type.value}>{type.label}</option>
+					{/each}
+				</select>
+			</div>
+
+			<!-- Status Filter -->
+			<div>
+				<label for="status-filter" class="block text-sm font-medium text-gray-700 mb-1">
+					Status
+				</label>
+				<select
+					id="status-filter"
+					bind:value={statusFilter}
+					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+					data-testid="status-filter"
+				>
+					<option value="all">All Statuses</option>
+					{#each reportStatuses as status}
+						<option value={status.value}>{status.label}</option>
+					{/each}
+				</select>
+			</div>
+
+			<!-- Scheduled Filter -->
+			<div>
+				<label for="scheduled-filter" class="block text-sm font-medium text-gray-700 mb-1">
+					Schedule
+				</label>
+				<select
+					id="scheduled-filter"
+					bind:value={scheduledFilter}
+					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+					data-testid="scheduled-filter"
+				>
+					<option value="all">All Reports</option>
+					<option value="scheduled">Scheduled Only</option>
+					<option value="one-time">One-time Only</option>
+				</select>
+			</div>
+
+			<!-- Date From Filter -->
+			<div>
+				<label for="date-from" class="block text-sm font-medium text-gray-700 mb-1">
+					From Date
+				</label>
+				<input
+					id="date-from"
+					type="date"
+					bind:value={dateFromFilter}
+					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+					data-testid="date-from-filter"
+				/>
+			</div>
+
+			<!-- Search -->
+			<div>
+				<label for="search" class="block text-sm font-medium text-gray-700 mb-1">
+					Search Reports
+				</label>
+				<input
+					id="search"
+					type="text"
+					bind:value={searchQuery}
+					placeholder="Search by title..."
+					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+					data-testid="report-search"
+				/>
+			</div>
+		</div>
+
+		<!-- Filter Actions -->
+		<div class="mt-4 flex gap-2">
+			<button
+				onclick={applyFilters}
+				class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+				data-testid="apply-filters"
+			>
+				Apply Filters
+			</button>
+			<button
+				onclick={clearFilters}
+				class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+				data-testid="clear-filters"
+			>
+				Clear Filters
+			</button>
+		</div>
+	</div>
+
+	<!-- Data Table -->
+	<div class="bg-white rounded-lg shadow">
+		<HrDataTable
+			data={$teamReports.data?.teamReports?.nodes || []}
+			{columns}
+			loading={$teamReports.fetching}
+			searchable={false}
+			selectable={true}
+			onSelectionChange={(selected) => (selectedReports = selected)}
+			onRowClick={handleRowClick}
+			pagination={{
+				page: currentPage,
+				pageSize,
+				total: $teamReports.data?.teamReports?.totalCount || 0,
+				pageSizes: [10, 20, 50, 100]
+			}}
+			onPageChange={(page) => {
+				currentPage = page;
+				teamReports.reexecute();
+			}}
+			onPageSizeChange={(size) => {
+				pageSize = size;
+				currentPage = 1;
+				teamReports.reexecute();
+			}}
+			emptyMessage="No reports found"
+			testId="reports-table"
+		/>
+	</div>
+
+	<!-- Export Component -->
+	<DataExport
+		data={$teamReports.data?.teamReports?.nodes || []}
+		filename="team-reports"
+		testId="export-csv"
+	/>
+</div>
+
+<!-- Generate Report Modal -->
+{#if showGenerateModal}
+	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="generate-report-modal">
+		<div class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+			<div class="flex justify-between items-center mb-4">
+				<h2 class="text-xl font-bold" data-testid="modal-title">Generate New Report</h2>
+				<button onclick={closeModals} class="text-gray-400 hover:text-gray-600">
+					<X class="w-6 h-6" />
+				</button>
+			</div>
+
+			<form on:submit|preventDefault={submitGenerateForm}>
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+					<div class="md:col-span-2">
+						<label class="block text-sm font-medium text-gray-700 mb-1">Report Title</label>
+						<input
+							type="text"
+							bind:value={generateForm.title}
+							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							data-testid="report-title"
+							placeholder="Leave blank for auto-generated title"
+						/>
+					</div>
+					<div>
+						<label class="block text-sm font-medium text-gray-700 mb-1">Report Type *</label>
+						<select
+							bind:value={generateForm.reportType}
+							required
+							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							data-testid="report-type"
+						>
+							{#each reportTypes as type}
+								<option value={type.value}>{type.label}</option>
+							{/each}
+						</select>
+					</div>
+					<div>
+						<label class="block text-sm font-medium text-gray-700 mb-1">Team (Optional)</label>
+						<input
+							type="text"
+							bind:value={generateForm.teamId}
+							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							data-testid="team-id"
+							placeholder="Leave blank for all teams"
+						/>
+					</div>
+				</div>
+
+				<div class="mb-4">
+					<label class="block text-sm font-medium text-gray-700 mb-1">Report Period</label>
+					<select
+						bind:value={generateForm.period}
+						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+						data-testid="report-period"
+					>
+						{#each reportPeriods as period}
+							<option value={period.value}>{period.label}</option>
+						{/each}
+					</select>
+				</div>
+
+				{#if generateForm.period === 'custom'}
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">From Date *</label>
+							<input
+								type="date"
+								bind:value={generateForm.dateFrom}
+								required
+								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+								data-testid="date-from"
+							/>
+						</div>
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">To Date *</label>
+							<input
+								type="date"
+								bind:value={generateForm.dateTo}
+								required
+								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+								data-testid="date-to"
+							/>
+						</div>
+					</div>
+				{/if}
+
+				<div class="mb-4">
+					<label class="block text-sm font-medium text-gray-700 mb-2">Report Options</label>
+					<div class="space-y-2">
+						<label class="flex items-center">
+							<input
+								type="checkbox"
+								bind:checked={generateForm.parameters.includeCharts}
+								class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+								data-testid="include-charts"
+							/>
+							<span class="ml-2 text-sm">Include Charts and Visualizations</span>
+						</label>
+						<label class="flex items-center">
+							<input
+								type="checkbox"
+								bind:checked={generateForm.parameters.includeDetails}
+								class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+								data-testid="include-details"
+							/>
+							<span class="ml-2 text-sm">Include Detailed Breakdown</span>
+						</label>
+					</div>
+				</div>
+
+				<div class="mb-4">
+					<label class="block text-sm font-medium text-gray-700 mb-1">Group By</label>
+					<select
+						bind:value={generateForm.parameters.groupBy}
+						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+						data-testid="group-by"
+					>
+						<option value="department">Department</option>
+						<option value="employee">Individual Employee</option>
+						<option value="role">Job Role</option>
+						<option value="location">Location</option>
+					</select>
+				</div>
+
+				<div class="flex gap-2 justify-end">
+					<button type="button" onclick={closeModals} class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+						Cancel
+					</button>
+					<button
+						type="submit"
+						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+						data-testid="submit-generate"
+					>
+						Generate Report
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
+{/if}
+
+<!-- Schedule Report Modal -->
+{#if showScheduleModal}
+	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="schedule-report-modal">
+		<div class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+			<div class="flex justify-between items-center mb-4">
+				<h2 class="text-xl font-bold" data-testid="modal-title">Schedule Recurring Report</h2>
+				<button onclick={closeModals} class="text-gray-400 hover:text-gray-600">
+					<X class="w-6 h-6" />
+				</button>
+			</div>
+
+			<form on:submit|preventDefault={submitScheduleForm}>
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+					<div class="md:col-span-2">
+						<label class="block text-sm font-medium text-gray-700 mb-1">Schedule Title *</label>
+						<input
+							type="text"
+							bind:value={scheduleForm.title}
+							required
+							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							data-testid="schedule-title"
+							placeholder="e.g., Weekly Attendance Report"
+						/>
+					</div>
+					<div>
+						<label class="block text-sm font-medium text-gray-700 mb-1">Report Type *</label>
+						<select
+							bind:value={scheduleForm.reportType}
+							required
+							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							data-testid="schedule-report-type"
+						>
+							{#each reportTypes as type}
+								<option value={type.value}>{type.label}</option>
+							{/each}
+						</select>
+					</div>
+					<div>
+						<label class="block text-sm font-medium text-gray-700 mb-1">Team (Optional)</label>
+						<input
+							type="text"
+							bind:value={scheduleForm.teamId}
+							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							data-testid="schedule-team-id"
+							placeholder="Leave blank for all teams"
+						/>
+					</div>
+				</div>
+
+				<div class="mb-4">
+					<label class="block text-sm font-medium text-gray-700 mb-1">Schedule *</label>
+					<select
+						bind:value={scheduleForm.schedule}
+						required
+						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+						data-testid="schedule-frequency"
+					>
+						{#each scheduleOptions as option}
+							<option value={option.value}>{option.label}</option>
+						{/each}
+					</select>
+					{#if scheduleForm.schedule !== 'custom'}
+						<p class="text-sm text-gray-600 mt-1">
+							{describeCronExpression(scheduleForm.schedule)}
+						</p>
+					{/if}
+				</div>
+
+				{#if scheduleForm.schedule === 'custom'}
+					<div class="mb-4">
+						<label class="block text-sm font-medium text-gray-700 mb-1">Custom Cron Expression *</label>
+						<input
+							type="text"
+							bind:value={scheduleForm.customCron}
+							required
+							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+							data-testid="custom-cron"
+							placeholder="0 9 * * 1 (Every Monday at 9 AM)"
+						/>
+						<p class="text-xs text-gray-500 mt-1">
+							Format: minute hour day-of-month month day-of-week
+						</p>
+					</div>
+				{/if}
+
+				<div class="mb-4">
+					<label class="block text-sm font-medium text-gray-700 mb-2">Report Options</label>
+					<div class="space-y-2">
+						<label class="flex items-center">
+							<input
+								type="checkbox"
+								bind:checked={scheduleForm.parameters.includeCharts}
+								class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+								data-testid="schedule-include-charts"
+							/>
+							<span class="ml-2 text-sm">Include Charts and Visualizations</span>
+						</label>
+						<label class="flex items-center">
+							<input
+								type="checkbox"
+								bind:checked={scheduleForm.parameters.includeDetails}
+								class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+								data-testid="schedule-include-details"
+							/>
+							<span class="ml-2 text-sm">Include Detailed Breakdown</span>
+						</label>
+						<label class="flex items-center">
+							<input
+								type="checkbox"
+								bind:checked={scheduleForm.isActive}
+								class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+								data-testid="schedule-active"
+							/>
+							<span class="ml-2 text-sm">Schedule is Active</span>
+						</label>
+					</div>
+				</div>
+
+				<div class="flex gap-2 justify-end">
+					<button type="button" onclick={closeModals} class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+						Cancel
+					</button>
+					<button
+						type="submit"
+						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+						data-testid="submit-schedule"
+					>
+						Schedule Report
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
+{/if}
+
+<!-- View Report Modal -->
+{#if showViewModal && currentReport}
+	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="view-report-modal">
+		<div class="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+			<div class="flex justify-between items-center mb-6">
+				<div>
+					<h2 class="text-xl font-bold" data-testid="modal-title">{currentReport.title}</h2>
+					<p class="text-gray-600">
+						{getReportTypeInfo(currentReport.reportType).label} •
+						{new Date(currentReport.dateFrom).toLocaleDateString()} - {new Date(currentReport.dateTo).toLocaleDateString()}
+					</p>
+				</div>
+				<button onclick={closeModals} class="text-gray-400 hover:text-gray-600">
+					<X class="w-6 h-6" />
+				</button>
+			</div>
+
+			<div class="space-y-6" data-testid="report-details">
+				<!-- Report Summary -->
+				<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+					<div class="text-center">
+						<p class="text-sm text-gray-600">Status</p>
+						<p class="text-lg">{getReportStatusInfo(currentReport.status).icon}</p>
+						<p class="text-sm">{getReportStatusInfo(currentReport.status).label}</p>
+					</div>
+					<div class="text-center">
+						<p class="text-sm text-gray-600">Type</p>
+						<p class="text-lg">{getReportTypeInfo(currentReport.reportType).icon}</p>
+						<p class="text-sm">{getReportTypeInfo(currentReport.reportType).label}</p>
+					</div>
+					<div class="text-center">
+						<p class="text-sm text-gray-600">Team</p>
+						<p class="text-sm font-medium">{currentReport.team?.name || 'All Teams'}</p>
+					</div>
+					<div class="text-center">
+						<p class="text-sm text-gray-600">Generated By</p>
+						<p class="text-sm font-medium">{currentReport.generatedBy?.displayName}</p>
+					</div>
+				</div>
+
+				<!-- Summary -->
+				{#if currentReport.summary}
+					<div>
+						<h4 class="font-medium text-gray-900 mb-2">Summary</h4>
+						<p class="text-gray-700 bg-gray-50 p-3 rounded-md">{currentReport.summary}</p>
+					</div>
+				{/if}
+
+				<!-- Schedule Info -->
+				{#if currentReport.isScheduled}
+					<div>
+						<h4 class="font-medium text-gray-900 mb-2">Schedule Information</h4>
+						<div class="bg-blue-50 p-3 rounded-md">
+							<p class="text-sm text-blue-800">
+								<Clock class="w-4 h-4 inline mr-1" />
+								Scheduled: {describeCronExpression(currentReport.scheduleCron)}
+							</p>
+							<p class="text-xs text-blue-600 mt-1">
+								Cron: {currentReport.scheduleCron}
+							</p>
+						</div>
+					</div>
+				{/if}
+
+				<!-- Report Data Preview -->
+				{#if currentReport.data}
+					<div>
+						<h4 class="font-medium text-gray-900 mb-2">Report Data Preview</h4>
+						<div class="bg-gray-50 p-4 rounded-md max-h-64 overflow-y-auto">
+							<pre class="text-xs text-gray-700 whitespace-pre-wrap">{JSON.stringify(currentReport.data, null, 2)}</pre>
+						</div>
+					</div>
+				{/if}
+
+				<!-- Parameters -->
+				{#if currentReport.parameters}
+					<div>
+						<h4 class="font-medium text-gray-900 mb-2">Report Parameters</h4>
+						<div class="bg-gray-50 p-3 rounded-md">
+							<pre class="text-xs text-gray-700 whitespace-pre-wrap">{JSON.stringify(currentReport.parameters, null, 2)}</pre>
+						</div>
+					</div>
+				{/if}
+			</div>
+
+			<div class="flex justify-between mt-6">
+				<div class="flex gap-2">
+					<button
+						onclick={() => handleDownloadReport(currentReport)}
+						class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+					>
+						Download Report
+					</button>
+					{#if currentReport.status === 'completed'}
+						<button
+							onclick={() => handleRegenerateReport(currentReport)}
+							class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700"
+						>
+							Regenerate
+						</button>
+					{/if}
+				</div>
+				<button onclick={closeModals} class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">
+					Close
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- Success/Error Notifications (handled by svelte-sonner toast) -->
+<div data-testid="success-notification" class="hidden"></div>
+<div data-testid="access-denied" class="hidden"></div>
+<div data-testid="empty-state" class="hidden"></div>

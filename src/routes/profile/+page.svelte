@@ -5,7 +5,7 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import * as Card from '$lib/components/ui/card';
-	import * as Badge from '$lib/components/ui/badge';
+	import { Badge } from '$lib/components/ui/badge';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import {
 		User,
@@ -115,10 +115,10 @@
 					<p class="text-lg text-muted-foreground">{profileData.workInfo.position}</p>
 					<p class="text-sm text-muted-foreground">{profileData.workInfo.department}</p>
 					<div class="flex items-center gap-4 pt-2">
-						<Badge.Root variant="secondary"
-							>Employee ID: {profileData.workInfo.employeeId}</Badge.Root
+						<Badge variant="secondary"
+							>Employee ID: {profileData.workInfo.employeeId}</Badge
 						>
-						<Badge.Root variant="outline">{profileData.workInfo.employmentType}</Badge.Root>
+						<Badge variant="outline">{profileData.workInfo.employmentType}</Badge>
 					</div>
 				</div>
 			</div>
@@ -278,7 +278,7 @@
 				<Card.Content>
 					<div class="flex flex-wrap gap-2">
 						{#each profileData.skills as skill}
-							<Badge.Root variant="secondary">{skill}</Badge.Root>
+							<Badge variant="secondary">{skill}</Badge>
 						{/each}
 					</div>
 				</Card.Content>
@@ -299,14 +299,14 @@
 								<h4 class="font-medium">Complete React certification</h4>
 								<p class="text-sm text-muted-foreground">Due: Dec 31, 2024</p>
 							</div>
-							<Badge.Root variant="outline">In Progress</Badge.Root>
+							<Badge variant="outline">In Progress</Badge>
 						</div>
 						<div class="flex items-center justify-between rounded-lg border p-3">
 							<div>
 								<h4 class="font-medium">Lead project migration to Svelte</h4>
 								<p class="text-sm text-muted-foreground">Due: Mar 15, 2025</p>
 							</div>
-							<Badge.Root variant="secondary">Planning</Badge.Root>
+							<Badge variant="secondary">Planning</Badge>
 						</div>
 					</div>
 				</Card.Content>
@@ -345,7 +345,7 @@
 									<h4 class="font-medium">{achievement.title}</h4>
 									<p class="text-sm text-muted-foreground">Received on {achievement.date}</p>
 								</div>
-								<Badge.Root variant="outline">{achievement.type}</Badge.Root>
+								<Badge variant="outline">{achievement.type}</Badge>
 							</div>
 						{/each}
 					</div>

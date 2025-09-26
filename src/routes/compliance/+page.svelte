@@ -2,7 +2,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import * as Tabs from '$lib/components/ui/tabs';
-	import * as Badge from '$lib/components/ui/badge';
+	import { Badge } from '$lib/components/ui/badge';
 	import * as Progress from '$lib/components/ui/progress';
 	import {
 		UserCheck,
@@ -251,9 +251,9 @@
 							<div class="space-y-1">
 								<div class="flex items-center gap-3">
 									<h3 class="font-semibold">{area.name}</h3>
-									<Badge.Root variant={getStatusColor(area.status)}>
+									<Badge variant={getStatusColor(area.status)}>
 										{area.status}
-									</Badge.Root>
+									</Badge>
 								</div>
 								<p class="text-sm text-muted-foreground">{area.description}</p>
 								<div class="flex items-center gap-4 text-xs text-muted-foreground">
@@ -295,10 +295,7 @@
 								<div class="flex items-center gap-3">
 									<svelte:component
 										this={getStatusIcon(audit.status)}
-										class="h-5 w-5"
-										class:text-green-500={audit.status === 'passed'}
-										class:text-yellow-500={audit.status === 'action-required'}
-										class:text-red-500={audit.status === 'failed'}
+										class="h-5 w-5 {audit.status === 'passed' ? 'text-green-500' : audit.status === 'action-required' ? 'text-yellow-500' : audit.status === 'failed' ? 'text-red-500' : ''}"
 									/>
 									<div>
 										<h4 class="font-medium">{audit.type}</h4>
@@ -307,9 +304,9 @@
 									</div>
 								</div>
 								<div class="flex items-center gap-2">
-									<Badge.Root variant={getStatusColor(audit.status)}>
+									<Badge variant={getStatusColor(audit.status)}>
 										{audit.status.replace('-', ' ')}
-									</Badge.Root>
+									</Badge>
 									<Button size="sm" variant="outline">
 										<Download class="mr-1 h-3 w-3" />
 										Report
@@ -336,9 +333,9 @@
 								<div class="space-y-1">
 									<div class="flex items-center gap-3">
 										<h4 class="font-medium">{action.task}</h4>
-										<Badge.Root variant={getPriorityColor(action.priority)}>
+										<Badge variant={getPriorityColor(action.priority)}>
 											{action.priority} priority
-										</Badge.Root>
+										</Badge>
 									</div>
 									<p class="text-sm text-muted-foreground">{action.area}</p>
 									<div class="flex items-center gap-4 text-xs text-muted-foreground">

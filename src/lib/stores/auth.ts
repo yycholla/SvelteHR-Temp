@@ -333,7 +333,22 @@ export const authActions = {
 
 		// Parse JWT to check expiration (basic validation)
 		try {
-			const [, payload] = token.split('.');
+			const tokenParts = token.split('.');
+			if (tokenParts.length !== 3) {
+				console.log('validateSession: Invalid JWT format, clearing auth state');
+				localStorage.removeItem('postgraphile-jwt-token');
+				authStore.set({ ...initialState, isLoading: false });
+				return false;
+			}
+
+			const [, payload] = tokenParts;
+			if (!payload) {
+				console.log('validateSession: Missing JWT payload, clearing auth state');
+				localStorage.removeItem('postgraphile-jwt-token');
+				authStore.set({ ...initialState, isLoading: false });
+				return false;
+			}
+
 			const decodedPayload = JSON.parse(atob(payload));
 			const currentTime = Math.floor(Date.now() / 1000);
 

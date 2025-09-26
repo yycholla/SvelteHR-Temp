@@ -3,9 +3,10 @@
 	import { page } from '$app/stores';
 	import { isAuthenticated, authActions } from '$lib/stores/auth';
 	import AuthGuard from '$lib/components/auth/AuthGuard.svelte';
+	import ToastContainer from '$lib/components/ui/toast-container.svelte';
 	import { setContextClient } from '@urql/svelte';
 	import { createUrqlClient } from '$lib/graphql/client';
-	import { theme } from '$lib/stores/theme';
+	import { themeStore } from '$lib/stores/theme';
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
 
@@ -34,12 +35,8 @@
 			const root = document.documentElement;
 			root.classList.remove('light', 'dark');
 
-			if ($theme === 'system') {
-				const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-				root.classList.add(prefersDark ? 'dark' : 'light');
-			} else {
-				root.classList.add($theme);
-			}
+			// Theme store handles the resolution, just apply the resolved theme
+			root.classList.add($themeStore.resolved);
 		}
 	});
 
@@ -60,6 +57,9 @@
 	<main class="app-main">
 		{@render children?.()}
 	</main>
+
+	<!-- Global toast notifications -->
+	<ToastContainer />
 </AuthGuard>
 
 <style global>

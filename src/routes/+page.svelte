@@ -4,8 +4,10 @@
 	import { browser } from '$app/environment';
 	import { page } from '$app/stores';
 	import { isAuthenticated, isLoading, currentUser, authActions } from '$lib/stores/auth';
-	import { permissionsService } from '$lib/services/permissionsService';
+	import { PermissionsService } from '$lib/services/permissionsService';
 	import { Loading } from 'carbon-components-svelte';
+
+	const permissionsService = new PermissionsService();
 
 	// Use session storage to prevent redirect loops across page reloads
 	const REDIRECT_KEY = 'hr_root_redirected';

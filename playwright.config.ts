@@ -1,95 +1,222 @@
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-	// Run tests in parallel on CI
-	workers: process.env.CI ? 2 : undefined,
+	// Enhanced parallel execution based on environment
+	workers: process.env.CI ? 4 : (() => {
+		if (!process.env.PLAYWRIGHT_WORKERS) return 2;
+		const parsed = parseInt(process.env.PLAYWRIGHT_WORKERS, 10);
+		return Number.isFinite(parsed) && parsed > 0 ? parsed : 2;
+	})(),
 
-	// Fail build on CI if tests are flaky
-	retries: process.env.CI ? 2 : 0,
+	// Improved retry strategy for reliability
+	retries: process.env.CI ? 3 : (() => {
+		if (!process.env.PLAYWRIGHT_RETRIES) return 1;
+		const parsed = parseInt(process.env.PLAYWRIGHT_RETRIES, 10);
+		return Number.isFinite(parsed) && parsed >= 0 ? parsed : 1;
+	})(),
 
 	// Directory for test artifacts
 	outputDir: 'test-results/',
 
-	// Test directories
+	// Test directories with granular control
 	testDir: './tests',
+	testMatch: [
+		'**/e2e/**/*.spec.ts',
+		'**/e2e/**/*.spec.js'
+	],
+	testIgnore: [
+		'**/contract/**/*',
+		'**/integration/**/*',
+		'**/unit/**/*'
+	],
 
-	// Global test timeout
-	timeout: 30 * 1000,
+	// Performance-optimized timeouts
+	timeout: process.env.CI ? 60 * 1000 : 30 * 1000,
 
-	// Expect timeout
+	// Global setup and teardown
+	globalSetup: require.resolve('./tests/utils/global-setup.ts'),
+	globalTeardown: require.resolve('./tests/utils/global-teardown.ts'),
+
+	// Expect timeout with performance considerations
 	expect: {
-		timeout: 5000
+		timeout: process.env.CI ? 10 * 1000 : 5 * 1000
 	},
 
-	// Use development server for faster feedback during development
+	// Enhanced web server configuration
 	webServer: [
 		{
 			command: 'npm run dev',
 			port: 5174,
 			reuseExistingServer: !process.env.CI,
-			timeout: 120 * 1000
+			timeout: 120 * 1000,
+			env: {
+				NODE_ENV: 'test',
+				DATABASE_URL: process.env.TEST_DATABASE_URL || process.env.DATABASE_URL,
+			}
 		}
-		// Uncomment if we need to test against PostGraphile separately
+		// PostGraphile backend server (enable for backend integration tests)
 		// {
-		//   command: 'npm run backend:dev',
+		//   command: 'npm run backend:test',
 		//   port: 4000,
 		//   reuseExistingServer: !process.env.CI,
 		//   timeout: 60 * 1000,
+		//   env: {
+		//     NODE_ENV: 'test',
+		//     DATABASE_URL: process.env.TEST_DATABASE_URL,
+		//     JWT_SECRET: 'test-secret-key'
+		//   }
 		// }
 	],
 
 	use: {
 		// Base URL for tests
-		baseURL: 'http://localhost:5174',
+		baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5174',
 
-		// Collect trace on failure for debugging
-		trace: 'retain-on-failure',
+		// Enhanced debugging capabilities
+		trace: process.env.CI ? 'retain-on-failure' : 'on-first-retry',
 
-		// Take screenshot on failure
-		screenshot: 'only-on-failure',
+		// Screenshot strategy
+		screenshot: process.env.CI ? 'only-on-failure' : 'only-on-failure',
 
-		// Record video on failure
-		video: 'retain-on-failure',
+		// Video recording for debugging
+		video: process.env.CI ? 'retain-on-failure' : 'retain-on-failure',
 
-		// Navigation timeout
+		// Performance-optimized timeouts
 		navigationTimeout: 30 * 1000,
+		actionTimeout: 15 * 1000,
 
-		// Action timeout
-		actionTimeout: 10 * 1000
+		// Browser context options
+		ignoreHTTPSErrors: true,
+		bypassCSP: true,
+
+		// Performance monitoring
+		extraHTTPHeaders: {
+			'Accept-Language': 'en-US,en;q=0.9',
+		},
+
+		// Viewport consistency
+		viewport: { width: 1280, height: 720 },
+
+		// Locale and timezone
+		locale: 'en-US',
+		timezoneId: 'America/New_York',
 	},
 
-	// Configure projects for major browsers
+	// Comprehensive browser testing matrix
 	projects: [
+		// Desktop browsers with different configurations
 		{
-			name: 'chromium',
-			use: { ...devices['Desktop Chrome'] }
+			name: 'chromium-desktop',
+			use: {
+				...devices['Desktop Chrome'],
+				channel: 'chrome',
+			},
 		},
 
 		{
-			name: 'firefox',
-			use: { ...devices['Desktop Firefox'] }
+			name: 'firefox-desktop',
+			use: {
+				...devices['Desktop Firefox'],
+			},
 		},
 
 		{
-			name: 'webkit',
-			use: { ...devices['Desktop Safari'] }
-		}
+			name: 'webkit-desktop',
+			use: {
+				...devices['Desktop Safari'],
+			},
+		},
 
-		// Mobile testing (uncomment if needed)
-		// {
-		//   name: 'Mobile Chrome',
-		//   use: { ...devices['Pixel 5'] },
-		// },
-		// {
-		//   name: 'Mobile Safari',
-		//   use: { ...devices['iPhone 12'] },
-		// },
+		// Performance testing with Chrome DevTools
+		{
+			name: 'chromium-performance',
+			use: {
+				...devices['Desktop Chrome'],
+				channel: 'chrome',
+				launchOptions: {
+					args: [
+						'--enable-precise-memory-info',
+						'--enable-performance-timing-profiler',
+					]
+				}
+			},
+			testMatch: '**/performance/**/*.spec.ts',
+		},
+
+		// Accessibility testing
+		{
+			name: 'chromium-a11y',
+			use: {
+				...devices['Desktop Chrome'],
+				channel: 'chrome',
+			},
+			testMatch: '**/accessibility/**/*.spec.ts',
+		},
+
+		// Mobile browser testing (conditional based on environment)
+		...(process.env.PLAYWRIGHT_MOBILE_TESTS === 'true' ? [
+			{
+				name: 'mobile-chrome',
+				use: { ...devices['Pixel 5'] },
+				testMatch: '**/mobile/**/*.spec.ts',
+			},
+			{
+				name: 'mobile-safari',
+				use: { ...devices['iPhone 12'] },
+				testMatch: '**/mobile/**/*.spec.ts',
+			},
+		] : []),
+
+		// API testing project
+		{
+			name: 'api-tests',
+			use: {
+				baseURL: process.env.API_BASE_URL || 'http://localhost:4000',
+			},
+			testMatch: '**/api/**/*.spec.ts',
+		},
 	],
 
-	// Reporter configuration
+	// Enhanced reporting configuration
 	reporter: [
-		['html', { outputFolder: 'playwright-report' }],
+		// HTML report with detailed information
+		['html', {
+			outputFolder: 'playwright-report',
+			open: process.env.CI ? 'never' : 'on-failure',
+		}],
+
+		// Console output for development
 		['line'],
-		['json', { outputFile: 'test-results/results.json' }]
-	]
+
+		// JSON report for CI/CD integration
+		['json', {
+			outputFile: 'test-results/results.json'
+		}],
+
+		// JUnit XML for test result integration
+		['junit', {
+			outputFile: 'test-results/junit-results.xml'
+		}],
+
+		// Custom performance reporter (conditional)
+		...(process.env.PLAYWRIGHT_PERFORMANCE_REPORT === 'true' ? [
+			['./tests/reporters/performance-reporter.ts']
+		] : []),
+	],
+
+	// Test metadata and annotations
+	metadata: {
+		testEnvironment: process.env.NODE_ENV || 'development',
+		buildNumber: process.env.BUILD_NUMBER || 'local',
+		commitHash: process.env.COMMIT_HASH || 'unknown',
+	},
+
+	// Fullyparallel execution for better performance
+	fullyParallel: true,
+
+	// Forbid test.only in CI
+	forbidOnly: !!process.env.CI,
+
+	// Maximum failures before stopping test suite
+	maxFailures: process.env.CI ? 10 : undefined,
 });

@@ -123,7 +123,13 @@ export default defineConfig({
 			'carbon-icons-svelte',
 			'@vincjo/datatables'
 		],
-		exclude: ['@sveltejs/kit']
+		exclude: ['@sveltejs/kit', 'jsonwebtoken']
+	},
+
+	// Prevent server-only packages from being bundled for client
+	ssr: {
+		noExternal: [],
+		external: ['jsonwebtoken', 'crypto']
 	},
 
 	// Resolve aliases for cleaner imports

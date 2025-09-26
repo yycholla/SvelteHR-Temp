@@ -11,11 +11,11 @@ import ScrollUpButton from './select-scroll-up-button.svelte';
 import GroupHeading from './select-group-heading.svelte';
 
 const Root = SelectPrimitive.Root;
-const Value = SelectPrimitive.Value;
+// const Value = SelectPrimitive.Value; // Temporarily commented - may not be available in current bits-ui version
 
 export {
 	Root,
-	Value,
+	// Value, // Temporarily disabled
 	Group,
 	Label,
 	Item,
@@ -27,7 +27,7 @@ export {
 	GroupHeading,
 	//
 	Root as Select,
-	Value as SelectValue,
+	// Value as SelectValue, // Temporarily disabled
 	Group as SelectGroup,
 	Label as SelectLabel,
 	Item as SelectItem,
