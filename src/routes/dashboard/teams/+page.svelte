@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
-	import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '$lib/components/ui/select';
+	import { Select, SelectContent, SelectItem, SelectTrigger } from '$lib/components/ui/select';
 	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
@@ -13,6 +13,11 @@
 		UserCheck, TreePine, BarChart3, Target, TrendingUp, Building2
 	} from 'lucide-svelte';
 	import { categorizeTeamSize } from '$lib/graphql/team-management-operations';
+
+	// Subscribe to page store at top level
+	const currentUrl = $derived($page.url);
+	const currentPathname = $derived(currentUrl.pathname);
+	const currentSearchParams = $derived(currentUrl.searchParams);
 
 	// Props from server-side load function
 	interface Props {
@@ -97,16 +102,16 @@
 		searchParams.set('page', '1'); // Reset to first page on new search
 		if (pageSize !== 20) searchParams.set('limit', pageSize.toString());
 
-		goto(`${$page.url.pathname}?${searchParams.toString()}`);
+		goto(`${currentPathname}?${searchParams.toString()}`);
 	}
 
 	// Handle pagination
-	function goToPage(page: number) {
-		if (page < 1 || page > totalPages) return;
+	function goToPage(pageNum: number) {
+		if (pageNum < 1 || pageNum > totalPages) return;
 
-		const searchParams = new URLSearchParams($page.url.searchParams);
-		searchParams.set('page', page.toString());
-		goto(`${$page.url.pathname}?${searchParams.toString()}`);
+		const searchParams = new URLSearchParams(currentSearchParams);
+		searchParams.set('page', pageNum.toString());
+		goto(`${currentPathname}?${searchParams.toString()}`);
 	}
 
 	// Handle clear filters
@@ -117,7 +122,7 @@
 		selectedParent = '';
 		viewMode = 'table';
 		pageSize = 20;
-		goto($page.url.pathname);
+		goto(currentPathname);
 	}
 
 	// Format employee count
@@ -266,9 +271,7 @@
 							<div class="space-y-2">
 								<label for="size" class="text-sm font-medium">Team Size</label>
 								<Select bind:value={selectedSize}>
-									<SelectTrigger>
-										<SelectValue placeholder="All Sizes" />
-									</SelectTrigger>
+									<SelectTrigger placeholder="All Sizes" />
 									<SelectContent>
 										{#each sizeOptions as option}
 											<SelectItem value={option.value}>{option.label}</SelectItem>
@@ -281,9 +284,7 @@
 							<div class="space-y-2">
 								<label for="head" class="text-sm font-medium">Leadership</label>
 								<Select bind:value={selectedHead}>
-									<SelectTrigger>
-										<SelectValue placeholder="All Teams" />
-									</SelectTrigger>
+									<SelectTrigger placeholder="All Teams" />
 									<SelectContent>
 										{#each headOptions as option}
 											<SelectItem value={option.value}>{option.label}</SelectItem>
@@ -296,9 +297,7 @@
 							<div class="space-y-2">
 								<label for="pagesize" class="text-sm font-medium">Per Page</label>
 								<Select bind:value={pageSize}>
-									<SelectTrigger>
-										<SelectValue placeholder="20" />
-									</SelectTrigger>
+									<SelectTrigger placeholder="20" />
 									<SelectContent>
 										<SelectItem value={10}>10</SelectItem>
 										<SelectItem value={20}>20</SelectItem>
@@ -328,6 +327,7 @@
 			<!-- Teams Grid -->
 			<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
 				{#each teams as team}
+					{@const sizeInfo = categorizeTeamSize(team.employees?.totalCount || 0)}
 					<Card.Root class="hover:shadow-md transition-shadow">
 						<Card.Header class="pb-3">
 							<div class="flex items-start justify-between">
@@ -384,7 +384,6 @@
 								{/if}
 
 								<!-- Team Size Badge -->
-								{@const sizeInfo = categorizeTeamSize(team.employees?.totalCount || 0)}
 								<div class="flex items-center text-sm">
 									<Badge variant="outline" class="bg-{sizeInfo.color}-50 border-{sizeInfo.color}-200 text-{sizeInfo.color}-800">
 										<BarChart3 class="h-3 w-3 mr-1" />

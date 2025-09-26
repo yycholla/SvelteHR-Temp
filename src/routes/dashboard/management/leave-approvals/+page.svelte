@@ -11,7 +11,7 @@
 	import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
-	import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '$lib/components/ui/select';
+	import { Select, SelectContent, SelectItem, SelectTrigger } from '$lib/components/ui/select';
 	import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Avatar, AvatarFallback } from '$lib/components/ui/avatar';
@@ -333,9 +333,7 @@
 					<div class="w-full md:w-48">
 						<Label>Status</Label>
 						<Select value={statusFilter} onValueChange={handleStatusFilterChange}>
-							<SelectTrigger>
-								<SelectValue placeholder="All Statuses" />
-							</SelectTrigger>
+							<SelectTrigger placeholder="All Statuses" />
 							<SelectContent>
 								<SelectItem value="all">All Statuses</SelectItem>
 								{#each leaveStatusOptions as status}
@@ -349,9 +347,7 @@
 					<div class="w-full md:w-48">
 						<Label>Leave Type</Label>
 						<Select value={leaveTypeFilter} onValueChange={handleLeaveTypeFilterChange}>
-							<SelectTrigger>
-								<SelectValue placeholder="All Types" />
-							</SelectTrigger>
+							<SelectTrigger placeholder="All Types" />
 							<SelectContent>
 								<SelectItem value="">All Types</SelectItem>
 								{#each leaveTypeOptions as type}

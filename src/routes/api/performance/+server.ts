@@ -207,19 +207,19 @@ export const POST: RequestHandler = async ({ request, url }) => {
           type = 'api',
           method = 'POST',
           path = '/custom',
-          duration,
+          duration: metricDuration,
           status = 200,
           metadata
         } = metricBody;
 
-        if (!duration || typeof duration !== 'number') {
+        if (!metricDuration || typeof metricDuration !== 'number') {
           throw error(400, 'Duration is required and must be a number');
         }
 
         serverPerformanceMonitor.recordAPIEndpoint(
           path,
           method,
-          duration,
+          metricDuration,
           status
         );
 
@@ -230,7 +230,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
             type,
             method,
             path,
-            duration,
+            duration: metricDuration,
             status,
             timestamp: new Date().toISOString()
           }

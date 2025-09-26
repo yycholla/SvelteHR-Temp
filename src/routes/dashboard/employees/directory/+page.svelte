@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
-	import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '$lib/components/ui/select';
+	import { Select, SelectContent, SelectItem, SelectTrigger } from '$lib/components/ui/select';
 	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
@@ -23,6 +23,11 @@
 		Download,
 		Upload
 	} from 'lucide-svelte';
+
+	// Subscribe to page store at top level
+	const currentUrl = $derived($page.url);
+	const currentPathname = $derived(currentUrl.pathname);
+	const currentSearchParams = $derived(currentUrl.searchParams);
 
 	// Props from server-side load function
 	interface Props {
@@ -94,16 +99,16 @@
 		searchParams.set('page', '1'); // Reset to first page on new search
 		if (pageSize !== 20) searchParams.set('limit', pageSize.toString());
 
-		goto(`${$page.url.pathname}?${searchParams.toString()}`);
+		goto(`${currentPathname}?${searchParams.toString()}`);
 	}
 
 	// Handle pagination
-	function goToPage(page: number) {
-		if (page < 1 || page > totalPages) return;
+	function goToPage(pageNum: number) {
+		if (pageNum < 1 || pageNum > totalPages) return;
 
-		const searchParams = new URLSearchParams($page.url.searchParams);
-		searchParams.set('page', page.toString());
-		goto(`${$page.url.pathname}?${searchParams.toString()}`);
+		const searchParams = new URLSearchParams(currentSearchParams);
+		searchParams.set('page', pageNum.toString());
+		goto(`${currentPathname}?${searchParams.toString()}`);
 	}
 
 	// Handle clear filters
@@ -112,7 +117,7 @@
 		selectedDepartment = '';
 		selectedStatus = '';
 		pageSize = 20;
-		goto($page.url.pathname);
+		goto(currentPathname);
 	}
 
 	// Get employee status badge variant
@@ -253,9 +258,7 @@
 					<div class="space-y-2">
 						<label for="department" class="text-sm font-medium">Department</label>
 						<Select bind:value={selectedDepartment}>
-							<SelectTrigger>
-								<SelectValue placeholder="All Departments" />
-							</SelectTrigger>
+							<SelectTrigger placeholder="All Departments" />
 							<SelectContent>
 								<SelectItem value="">All Departments</SelectItem>
 								{#each departments as dept}
@@ -270,9 +273,7 @@
 					<div class="space-y-2">
 						<label for="status" class="text-sm font-medium">Status</label>
 						<Select bind:value={selectedStatus}>
-							<SelectTrigger>
-								<SelectValue placeholder="All Employees" />
-							</SelectTrigger>
+							<SelectTrigger placeholder="All Employees" />
 							<SelectContent>
 								{#each statusOptions as option}
 									<SelectItem value={option.value}>{option.label}</SelectItem>
@@ -286,9 +287,7 @@
 					<div class="space-y-2">
 						<label for="pagesize" class="text-sm font-medium">Per Page</label>
 						<Select bind:value={pageSize}>
-							<SelectTrigger>
-								<SelectValue placeholder="20" />
-							</SelectTrigger>
+							<SelectTrigger placeholder="20" />
 							<SelectContent>
 								<SelectItem value={10}>10</SelectItem>
 								<SelectItem value={20}>20</SelectItem>

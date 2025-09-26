@@ -1,9 +1,27 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { currentUser, hasPermission } from '$lib/services/auth';
-	import { taskService, tasks, isLoadingTasks, taskError } from '$lib/services/taskService';
-	import { userService, users } from '$lib/services/userService';
+	import { currentUser, hasPermission } from '$lib/stores/auth';
+	// TODO: These services need to be implemented
+	// import { taskService, tasks, isLoadingTasks, taskError } from '$lib/services/taskService';
+	// import { userService, users } from '$lib/services/userService';
+
+	// Mock stores until services are implemented
+	import { writable } from 'svelte/store';
+	const tasks = writable([]);
+	const isLoadingTasks = writable(false);
+	const taskError = writable(null);
+	const users = writable([]);
+	const taskService = {
+		loadTasks: async () => {},
+		createTask: async (task: any) => {},
+		updateTask: async (id: string, updates: any) => {},
+		deleteTask: async (id: string) => {},
+		bulkUpdateTasks: async (ids: string[], updates: any) => {}
+	};
+	const userService = {
+		loadUsers: async () => {}
+	};
 	import DataTable from '$lib/components/tables/DataTable.svelte';
 	import Button from '$lib/components/base/Button.svelte';
 	import Input from '$lib/components/base/Input.svelte';

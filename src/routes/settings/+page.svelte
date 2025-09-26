@@ -669,9 +669,7 @@
 										<Label>Email Notifications</Label>
 										<p class="text-sm text-gray-500">Receive important updates via email</p>
 									</div>
-									<Switch.Root bind:checked={notificationSettings.email} data-testid="email-notifications">
-										<Switch.Thumb />
-									</Switch.Root>
+									<Switch.Root bind:checked={notificationSettings.email} data-testid="email-notifications" />
 								</div>
 
 								<div class="flex items-center justify-between">
@@ -679,9 +677,7 @@
 										<Label>Push Notifications</Label>
 										<p class="text-sm text-gray-500">Get instant notifications in your browser</p>
 									</div>
-									<Switch.Root bind:checked={notificationSettings.push} data-testid="push-notifications">
-										<Switch.Thumb />
-									</Switch.Root>
+									<Switch.Root bind:checked={notificationSettings.push} data-testid="push-notifications" />
 								</div>
 
 								<div class="flex items-center justify-between">
@@ -689,9 +685,7 @@
 										<Label>SMS Notifications</Label>
 										<p class="text-sm text-gray-500">Receive critical alerts via SMS</p>
 									</div>
-									<Switch.Root bind:checked={notificationSettings.sms} data-testid="sms-notifications">
-										<Switch.Thumb />
-									</Switch.Root>
+									<Switch.Root bind:checked={notificationSettings.sms} data-testid="sms-notifications" />
 								</div>
 
 								<div class="flex items-center justify-between">
@@ -699,9 +693,7 @@
 										<Label>Leave Reminders</Label>
 										<p class="text-sm text-gray-500">Reminders about upcoming leave and deadlines</p>
 									</div>
-									<Switch.Root bind:checked={notificationSettings.leaveReminders} data-testid="leave-reminders">
-										<Switch.Thumb />
-									</Switch.Root>
+									<Switch.Root bind:checked={notificationSettings.leaveReminders} data-testid="leave-reminders" />
 								</div>
 
 								<div class="flex items-center justify-between">
@@ -709,9 +701,7 @@
 										<Label>Performance Updates</Label>
 										<p class="text-sm text-gray-500">Notifications about goal progress and reviews</p>
 									</div>
-									<Switch.Root bind:checked={notificationSettings.performanceUpdates} data-testid="performance-updates">
-										<Switch.Thumb />
-									</Switch.Root>
+									<Switch.Root bind:checked={notificationSettings.performanceUpdates} data-testid="performance-updates" />
 								</div>
 
 								<div class="flex items-center justify-between">
@@ -719,9 +709,7 @@
 										<Label>System Alerts</Label>
 										<p class="text-sm text-gray-500">Important system maintenance and security alerts</p>
 									</div>
-									<Switch.Root bind:checked={notificationSettings.systemAlerts} data-testid="system-alerts">
-										<Switch.Thumb />
-									</Switch.Root>
+									<Switch.Root bind:checked={notificationSettings.systemAlerts} data-testid="system-alerts" />
 								</div>
 
 								<div class="flex items-center justify-between">
@@ -729,9 +717,7 @@
 										<Label>Team Updates</Label>
 										<p class="text-sm text-gray-500">Notifications about team changes and announcements</p>
 									</div>
-									<Switch.Root bind:checked={notificationSettings.teamUpdates} data-testid="team-updates">
-										<Switch.Thumb />
-									</Switch.Root>
+									<Switch.Root bind:checked={notificationSettings.teamUpdates} data-testid="team-updates" />
 								</div>
 							</Card.Content>
 							<Card.Footer>
@@ -768,9 +754,7 @@
 										<Label>Dark Mode</Label>
 										<p class="text-sm text-gray-500">Switch to dark theme</p>
 									</div>
-									<Switch.Root bind:checked={appearanceSettings.darkMode} data-testid="dark-mode">
-										<Switch.Thumb />
-									</Switch.Root>
+									<Switch.Root bind:checked={appearanceSettings.darkMode} data-testid="dark-mode" />
 								</div>
 
 								<div class="flex items-center justify-between">
@@ -778,9 +762,7 @@
 										<Label>Compact View</Label>
 										<p class="text-sm text-gray-500">Show more content in less space</p>
 									</div>
-									<Switch.Root bind:checked={appearanceSettings.compactView} data-testid="compact-view">
-										<Switch.Thumb />
-									</Switch.Root>
+									<Switch.Root bind:checked={appearanceSettings.compactView} data-testid="compact-view" />
 								</div>
 
 								<div class="space-y-2">
@@ -883,9 +865,7 @@
 										<Label>Show Online Status</Label>
 										<p class="text-sm text-gray-500">Let others see when you're online</p>
 									</div>
-									<Switch.Root bind:checked={privacySettings.showOnlineStatus} data-testid="show-online-status">
-										<Switch.Thumb />
-									</Switch.Root>
+									<Switch.Root bind:checked={privacySettings.showOnlineStatus} data-testid="show-online-status" />
 								</div>
 
 								<div class="flex items-center justify-between">
@@ -893,9 +873,7 @@
 										<Label>Allow Direct Messages</Label>
 										<p class="text-sm text-gray-500">Allow colleagues to send you direct messages</p>
 									</div>
-									<Switch.Root bind:checked={privacySettings.allowDirectMessages} data-testid="allow-direct-messages">
-										<Switch.Thumb />
-									</Switch.Root>
+									<Switch.Root bind:checked={privacySettings.allowDirectMessages} data-testid="allow-direct-messages" />
 								</div>
 
 								<div class="flex items-center justify-between">
@@ -903,9 +881,7 @@
 										<Label>Data Sharing</Label>
 										<p class="text-sm text-gray-500">Share anonymized data for product improvement</p>
 									</div>
-									<Switch.Root bind:checked={privacySettings.dataSharing} data-testid="data-sharing">
-										<Switch.Thumb />
-									</Switch.Root>
+									<Switch.Root bind:checked={privacySettings.dataSharing} data-testid="data-sharing" />
 								</div>
 
 								<div class="flex items-center justify-between">
@@ -913,9 +889,7 @@
 										<Label>Analytics Opt-out</Label>
 										<p class="text-sm text-gray-500">Disable usage analytics and tracking</p>
 									</div>
-									<Switch.Root bind:checked={privacySettings.analyticsOptOut} data-testid="analytics-opt-out">
-										<Switch.Thumb />
-									</Switch.Root>
+									<Switch.Root bind:checked={privacySettings.analyticsOptOut} data-testid="analytics-opt-out" />
 								</div>
 							</Card.Content>
 							<Card.Footer class="flex justify-between">

@@ -3,7 +3,7 @@
 
 import type { PageServerLoad } from './$types';
 import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
-import { createLeaveOperations } from '$lib/graphql/leave-management-operations';
+import { createLeaveManagementOperations } from '$lib/graphql/leave-management-operations';
 import { createPerformanceOperations } from '$lib/graphql/performance-management-operations';
 import { createGoalsOKROperations } from '$lib/graphql/goals-okrs-operations';
 import { createReportsOperations } from '$lib/graphql/reports-operations';
@@ -56,7 +56,7 @@ export const load: PageServerLoad = async (event) => {
 
 	try {
 		// Create operations instances
-		const leaveOps = createLeaveOperations(null);
+		const leaveOps = createLeaveManagementOperations(null);
 		const performanceOps = createPerformanceOperations(null);
 		const goalsOps = createGoalsOKROperations(null);
 		const reportsOps = createReportsOperations(null);

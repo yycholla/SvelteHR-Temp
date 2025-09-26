@@ -6,6 +6,7 @@ SHELL := /bin/bash
 .PHONY: install install-backend schema-status schema-apply schema-create schema-reset migrate-check
 .PHONY: setup-init setup-sync setup-validate setup-backup setup-health setup-test
 .PHONY: gel-cli gel-repl sample-query sample-login
+.PHONY: dev-start dev-stop dev-logs dev-ssh-be dev-ssh-fe ssh-backend ssh-frontend
 
 # =============================================================================
 # Help
@@ -33,6 +34,13 @@ help: ## Show available commands
 	@echo "  make db-logs      - View database logs"
 	@echo "  make db-health    - Check database health and statistics"
 	@echo "  make db-shell     - Open database shell (PostgreSQL/GelDB)"
+	@echo ""
+	@echo "🐳 Development Containers (SSH + Neovim):"
+	@echo "  make dev-start     - Start development containers"
+	@echo "  make dev-stop      - Stop development containers"
+	@echo "  make dev-logs      - View container logs"
+	@echo "  make ssh-backend   - SSH into backend container (alias: dev-ssh-be)"
+	@echo "  make ssh-frontend  - SSH into frontend container (alias: dev-ssh-fe)"
 	@echo ""
 	@echo "📋 Schema Management:"
 	@echo "  make schema-status - Check current schema and migrations"
@@ -482,6 +490,46 @@ sample-login: ## Show authentication mutation example
 	@echo "}"
 
 # =============================================================================
+# Development Containers with SSH and Neovim
+# =============================================================================
+
+dev-start: ## Start development containers with SSH and Neovim support
+	@echo "🚀 Starting SvelteHR Development Containers..."
+	@echo "============================================="
+	@cd dev-containers && ./start-dev.sh
+
+dev-stop: ## Stop development containers
+	@echo "⏹️ Stopping SvelteHR Development Containers..."
+	@cd dev-containers && ./stop-dev.sh
+
+dev-logs: ## View development container logs
+	@echo "📋 Development Container Logs:"
+	@echo "============================="
+	@cd dev-containers && docker-compose -f docker-compose.dev.yml logs -f
+
+dev-ssh-be: ssh-backend ## Alias for ssh-backend
+
+dev-ssh-fe: ssh-frontend ## Alias for ssh-frontend
+
+ssh-backend: ## SSH into backend development container
+	@echo "🔌 Connecting to Backend Container..."
+	@echo "====================================="
+	@echo "💡 Credentials: dev/dev"
+	@echo "💡 Run 'cd backend && npm run dev' to start the server"
+	@echo "💡 Your ~/.config/nvim is available inside the container"
+	@echo ""
+	@ssh dev@localhost -p 2222
+
+ssh-frontend: ## SSH into frontend development container
+	@echo "🔌 Connecting to Frontend Container..."
+	@echo "======================================"
+	@echo "💡 Credentials: dev/dev"
+	@echo "💡 Run 'cd frontend && npm run dev' to start the server"
+	@echo "💡 Your ~/.config/nvim is available inside the container"
+	@echo ""
+	@ssh dev@localhost -p 2223
+
+# =============================================================================
 # Maintenance
 # =============================================================================
 
@@ -490,6 +538,9 @@ clean: ## Clean all build artifacts and containers
 	@docker compose down -v 2>/dev/null || true
 	@if [ -f "docker-compose.postgraphile.yml" ]; then \
 		docker compose -f docker-compose.postgraphile.yml down -v 2>/dev/null || true; \
+	fi
+	@if [ -f "dev-containers/docker-compose.dev.yml" ]; then \
+		cd dev-containers && docker-compose -f docker-compose.dev.yml down -v 2>/dev/null || true; \
 	fi
 	@docker system prune -f
 	@rm -rf .svelte-kit build dist node_modules/.vite

@@ -419,6 +419,8 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 				</thead>
 				<tbody class="bg-white divide-y divide-gray-200">
 					{#each reports as report}
+						{@const typeBadge = getTypeBadge(report.reportType)}
+						{@const statusBadge = getStatusBadge(report.status)}
 						<tr class="hover:bg-gray-50">
 							<td class="px-6 py-4">
 								<input
@@ -439,7 +441,6 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 								</div>
 							</td>
 							<td class="px-6 py-4">
-								{@const typeBadge = getTypeBadge(report.reportType)}
 								<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {typeBadge.color}">
 									{typeBadge.label}
 								</span>
@@ -448,7 +449,6 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 								<span class="capitalize text-sm text-gray-900">{report.category}</span>
 							</td>
 							<td class="px-6 py-4">
-								{@const statusBadge = getStatusBadge(report.status)}
 								<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {statusBadge.color}">
 									{statusBadge.label}
 								</span>
@@ -683,6 +683,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 
 <!-- View Report Modal -->
 {#if showViewModal && selectedReport}
+	{@const viewStatusBadge = getStatusBadge(selectedReport.status)}
 	<div class="fixed inset-0 z-50 overflow-y-auto">
 		<div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
 			<div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick={closeModals}></div>
@@ -709,9 +710,8 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 							<div>
 								<dt class="text-sm font-medium text-gray-500">Status</dt>
 								<dd class="mt-1">
-									{@const statusBadge = getStatusBadge(selectedReport.status)}
-									<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {statusBadge.color}">
-										{statusBadge.label}
+									<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {viewStatusBadge.color}">
+										{viewStatusBadge.label}
 									</span>
 								</dd>
 							</div>

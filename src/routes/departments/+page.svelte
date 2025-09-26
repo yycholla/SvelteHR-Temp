@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
-	import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '$lib/components/ui/select';
+	import { Select, SelectContent, SelectItem, SelectTrigger } from '$lib/components/ui/select';
 	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
@@ -26,6 +26,11 @@
 		UserCheck
 	} from 'lucide-svelte';
 	import { buildTeamHierarchy, categorizeTeamSize } from '$lib/graphql/team-management-operations';
+
+	// Subscribe to page store at top level
+	const currentUrl = $derived($page.url);
+	const currentPathname = $derived(currentUrl.pathname);
+	const currentSearchParams = $derived(currentUrl.searchParams);
 
 	// Props from server-side load function
 	interface Props {
@@ -100,16 +105,16 @@
 		searchParams.set('page', '1'); // Reset to first page on new search
 		if (pageSize !== 20) searchParams.set('limit', pageSize.toString());
 
-		goto(`${$page.url.pathname}?${searchParams.toString()}`);
+		goto(`${currentPathname}?${searchParams.toString()}`);
 	}
 
 	// Handle pagination
-	function goToPage(page: number) {
-		if (page < 1 || page > totalPages) return;
+	function goToPage(pageNum: number) {
+		if (pageNum < 1 || pageNum > totalPages) return;
 
-		const searchParams = new URLSearchParams($page.url.searchParams);
-		searchParams.set('page', page.toString());
-		goto(`${$page.url.pathname}?${searchParams.toString()}`);
+		const searchParams = new URLSearchParams(currentSearchParams);
+		searchParams.set('page', pageNum.toString());
+		goto(`${currentPathname}?${searchParams.toString()}`);
 	}
 
 	// Handle clear filters
@@ -118,7 +123,7 @@
 		selectedParent = '';
 		selectedHasHead = '';
 		pageSize = 20;
-		goto($page.url.pathname);
+		goto(currentPathname);
 	}
 
 	// Toggle expanded state for hierarchy nodes
@@ -251,9 +256,7 @@
 					<div class="space-y-2">
 						<label for="parent" class="text-sm font-medium">Parent Department</label>
 						<Select bind:value={selectedParent}>
-							<SelectTrigger>
-								<SelectValue placeholder="All Parents" />
-							</SelectTrigger>
+							<SelectTrigger placeholder="All Parents" />
 							<SelectContent>
 								<SelectItem value="">All Parents</SelectItem>
 								<SelectItem value="null">Top-level Only</SelectItem>
@@ -268,9 +271,7 @@
 					<div class="space-y-2">
 						<label for="hasHead" class="text-sm font-medium">Leadership Status</label>
 						<Select bind:value={selectedHasHead}>
-							<SelectTrigger>
-								<SelectValue placeholder="All Departments" />
-							</SelectTrigger>
+							<SelectTrigger placeholder="All Departments" />
 							<SelectContent>
 								{#each hasHeadOptions as option}
 									<SelectItem value={option.value}>{option.label}</SelectItem>
@@ -283,9 +284,7 @@
 					<div class="space-y-2">
 						<label for="pagesize" class="text-sm font-medium">Per Page</label>
 						<Select bind:value={pageSize}>
-							<SelectTrigger>
-								<SelectValue placeholder="20" />
-							</SelectTrigger>
+							<SelectTrigger placeholder="20" />
 							<SelectContent>
 								<SelectItem value={10}>10</SelectItem>
 								<SelectItem value={20}>20</SelectItem>
@@ -312,6 +311,7 @@
 	<!-- Department Grid -->
 	<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
 		{#each departments as department}
+			{@const sizeInfo = categorizeTeamSize(department.employees?.totalCount || 0)}
 			<Card.Root class="hover:shadow-md transition-shadow">
 				<Card.Header class="pb-3">
 					<div class="flex items-start justify-between">
@@ -368,7 +368,6 @@
 						{/if}
 
 						<!-- Department Size Badge -->
-						{@const sizeInfo = categorizeTeamSize(department.employees?.totalCount || 0)}
 						<div class="flex items-center text-sm">
 							<Badge variant="outline" class="bg-{sizeInfo.color}-50 border-{sizeInfo.color}-200 text-{sizeInfo.color}-800">
 								<BarChart3 class="h-3 w-3 mr-1" />
