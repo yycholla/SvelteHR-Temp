@@ -5,15 +5,14 @@
 
 	let { data } = $props();
 
-	$: ({
-		user,
-		userId,
-		leaveRequests,
-		leaveBalances,
-		leaveTypes,
-		canManageLeave,
-		isOwnLeave
-	} = data);
+	// Extract data properties using $derived to avoid legacy reactive statements
+	let user = $derived(data.user);
+	let userId = $derived(data.userId);
+	let leaveRequests = $derived(data.leaveRequests);
+	let leaveBalances = $derived(data.leaveBalances);
+	let leaveTypes = $derived(data.leaveTypes);
+	let canManageLeave = $derived(data.canManageLeave);
+	let isOwnLeave = $derived(data.isOwnLeave);
 
 	let showNewRequestForm = $state(false);
 	let newRequest = $state({
@@ -68,7 +67,8 @@
 		return `${format(start, 'MMM dd')} - ${format(end, 'MMM dd, yyyy')}`;
 	}
 
-	async function handleSubmitRequest() {
+	async function handleSubmitRequest(event) {
+		event.preventDefault();
 		// TODO: Implement actual leave request submission
 		console.log('Submitting leave request:', newRequest);
 		showNewRequestForm = false;
@@ -158,7 +158,7 @@
 		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
 			<div class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
 				<h2 class="text-lg font-semibold text-gray-900 mb-4">New Leave Request</h2>
-				<form onsubmit|preventDefault={handleSubmitRequest} class="space-y-4">
+				<form onsubmit={handleSubmitRequest} class="space-y-4">
 					<div>
 						<label for="leaveType" class="block text-sm font-medium text-gray-700 mb-1">
 							Leave Type

@@ -5,30 +5,40 @@
 
 	let { data } = $props();
 
-	let {
-		user,
-		userId,
-		attendanceRecords,
-		attendanceStats,
-		canManageAttendance,
-		isOwnAttendance
-	} = $derived(data);
+	// Extract data properties directly to avoid circular dependencies
+	let user = $derived(data.user);
+	let userId = $derived(data.userId);
+	let attendanceRecords = $derived(data.attendanceRecords);
+	let attendanceStats = $derived(data.attendanceStats);
+	let canManageAttendance = $derived(data.canManageAttendance);
+	let isOwnAttendance = $derived(data.isOwnAttendance);
 
 	// Current date for clock in/out functionality
 	let currentTime = $state(new Date());
 	let isClockedIn = $state(false);
 	let todayRecord = $state(null);
 
-	// Update current time every minute
-	setInterval(() => {
-		currentTime = new Date();
-	}, 60000);
-
-	// Check if user is clocked in today
+	// Update current time every minute with proper cleanup
 	$effect(() => {
+		const interval = setInterval(() => {
+			currentTime = new Date();
+		}, 60000);
+
+		// Cleanup interval on component unmount
+		return () => {
+			clearInterval(interval);
+		};
+	});
+
+	// Check if user is clocked in today - using separate effect to avoid circular dependency
+	$effect(() => {
+		const records = attendanceRecords;
+		if (!records) return;
+
 		const today = new Date().toISOString().split('T')[0];
-		todayRecord = attendanceRecords?.find(record => record.date === today);
-		isClockedIn = todayRecord && todayRecord.clockIn && !todayRecord.clockOut;
+		const record = records.find(r => r.date === today);
+		todayRecord = record || null;
+		isClockedIn = Boolean(record && record.clockIn && !record.clockOut);
 	});
 
 	function getStatusIcon(status: string) {
@@ -235,10 +245,13 @@
 								</td>
 								<td class="whitespace-nowrap px-6 py-4 text-sm">
 									<div class="flex items-center gap-2">
-										<svelte:component
-											this={getStatusIcon(record.status)}
-											class="h-4 w-4 {getStatusColor(record.status)}"
-										/>
+										{#if record.status === 'present'}
+											<CheckCircle class="h-4 w-4 {getStatusColor(record.status)}" />
+										{:else if record.status === 'partial'}
+											<AlertCircle class="h-4 w-4 {getStatusColor(record.status)}" />
+										{:else}
+											<Circle class="h-4 w-4 {getStatusColor(record.status)}" />
+										{/if}
 										<span class="capitalize {getStatusColor(record.status)}">
 											{record.status}
 										</span>

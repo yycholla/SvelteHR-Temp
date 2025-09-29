@@ -4,42 +4,32 @@
 	import ErrorBoundary from '$lib/components/ui/error-boundary.svelte';
 
 	// SvelteKit provides error details in the page store
-	$: error = $page.error;
-	$: status = $page.status;
+	let error = $derived($page.error);
+	let status = $derived($page.status);
 
 	// Create a proper Error object from SvelteKit error
-	$: errorObject = error ? new Error(error.message || `HTTP ${status}`) : null;
+	let errorObject = $derived(
+		!error ? null :
+		error instanceof Error ? error :
+		new Error(typeof error === 'string' ? error : (error?.message || `HTTP ${status}`))
+	);
 
 	// Customize title and description based on error status
-	$: title = (() => {
-		switch (status) {
-			case 404:
-				return 'Page Not Found';
-			case 403:
-				return 'Access Forbidden';
-			case 401:
-				return 'Unauthorized';
-			case 500:
-				return 'Internal Server Error';
-			default:
-				return 'Something Went Wrong';
-		}
-	})();
+	let title = $derived(
+		status === 404 ? 'Page Not Found' :
+		status === 403 ? 'Access Forbidden' :
+		status === 401 ? 'Unauthorized' :
+		status === 500 ? 'Internal Server Error' :
+		'Something Went Wrong'
+	);
 
-	$: description = (() => {
-		switch (status) {
-			case 404:
-				return "The page you're looking for doesn't exist or has been moved.";
-			case 403:
-				return "You don't have permission to access this resource.";
-			case 401:
-				return 'Please log in to access this page.';
-			case 500:
-				return 'We encountered a server error. Our team has been notified.';
-			default:
-				return 'An unexpected error occurred. Please try again or contact support if the problem persists.';
-		}
-	})();
+	let description = $derived(
+		status === 404 ? "The page you're looking for doesn't exist or has been moved." :
+		status === 403 ? "You don't have permission to access this resource." :
+		status === 401 ? 'Please log in to access this page.' :
+		status === 500 ? 'We encountered a server error. Our team has been notified.' :
+		'An unexpected error occurred. Please try again or contact support if the problem persists.'
+	);
 
 	function handleRetry() {
 		// Reload the current page
@@ -52,13 +42,15 @@
 	}
 
 	// Log error details for debugging (in development)
-	if (typeof window !== 'undefined' && import.meta.env.DEV && error) {
-		console.error('SvelteKit Error Page:', {
-			status,
-			error,
-			url: $page.url.pathname
-		});
-	}
+	$effect(() => {
+		if (typeof window !== 'undefined' && import.meta.env.DEV && error) {
+			console.error('SvelteKit Error Page:', {
+				status,
+				error,
+				url: $page.url.pathname
+			});
+		}
+	});
 </script>
 
 <svelte:head>

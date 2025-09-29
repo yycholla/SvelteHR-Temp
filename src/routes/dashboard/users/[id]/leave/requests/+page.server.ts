@@ -13,8 +13,8 @@ export const load: PageServerLoad = async (event) => {
 	let userId = params.id;
 
 	// TEMPORARY FIX: Handle legacy user ID mapping
-	if (userId === '1' && locals.user?.email === 'admin@postgraphile-hr.com') {
-		userId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+	if (userId === '1' && locals.user?.email === 'admin@mountainhr.dev') {
+		userId = '9cc4e080-867c-441a-bbb7-169e18498858';
 	}
 
 	const canViewOthers = locals.roles?.includes('admin') || locals.roles?.includes('manager');
