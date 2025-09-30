@@ -652,6 +652,42 @@ export function formatReviewPeriod(period: string): string {
 	return period;
 }
 
+/**
+ * Helper: Check if review is overdue
+ */
+export function isReviewOverdue(review: any): boolean {
+	if (!review || review.status === 'completed') return false;
+
+	// If review has a due date, check against it
+	if (review.dueDate) {
+		return new Date(review.dueDate) < new Date();
+	}
+
+	// If review has a review date in the past and not completed, it's overdue
+	if (review.reviewDate) {
+		return new Date(review.reviewDate) < new Date() && review.status !== 'completed';
+	}
+
+	return false;
+}
+
+/**
+ * Helper: Get status info for review (includes overdue detection)
+ */
+export function getStatusInfo(review: any): { status: string; variant: string } {
+	if (isReviewOverdue(review)) {
+		return { status: 'overdue', variant: 'destructive' };
+	}
+
+	const statusMap: Record<string, { status: string; variant: string }> = {
+		draft: { status: 'draft', variant: 'secondary' },
+		in_progress: { status: 'in progress', variant: 'default' },
+		completed: { status: 'completed', variant: 'success' }
+	};
+
+	return statusMap[review.status] || { status: review.status, variant: 'default' };
+}
+
 // ============================================================================
 // OPERATIONS CLASS (Standardized Error Handling)
 // ============================================================================

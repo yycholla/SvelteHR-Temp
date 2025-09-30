@@ -31,8 +31,8 @@ export default defineConfig({
 	timeout: process.env.CI ? 60 * 1000 : 30 * 1000,
 
 	// Global setup and teardown
-	globalSetup: require.resolve('./tests/utils/global-setup.ts'),
-	globalTeardown: require.resolve('./tests/utils/global-teardown.ts'),
+	globalSetup: './tests/utils/global-setup.ts',
+	globalTeardown: './tests/utils/global-teardown.ts',
 
 	// Expect timeout with performance considerations
 	expect: {
