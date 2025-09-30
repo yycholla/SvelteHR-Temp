@@ -53,7 +53,7 @@
 		formatReviewPeriod,
 		isReviewOverdue,
 		createPerformanceOperations
-	} from '$lib/graphql/performance-management-operations';
+	} from '$lib/graphql/queries/performance-reviews';
 
 	// Page data from server
 	interface Props {

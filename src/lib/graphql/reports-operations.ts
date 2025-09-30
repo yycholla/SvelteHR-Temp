@@ -322,6 +322,45 @@ export interface ReportAnalytics {
 }
 
 // ============================================================================
+// UI CONSTANTS
+// ============================================================================
+
+/**
+ * Report type options for UI selects
+ */
+export const REPORT_TYPES = [
+	{ value: 'employee', label: 'Employee Report' },
+	{ value: 'attendance', label: 'Attendance Report' },
+	{ value: 'performance', label: 'Performance Report' },
+	{ value: 'payroll', label: 'Payroll Report' },
+	{ value: 'compliance', label: 'Compliance Report' },
+	{ value: 'analytics', label: 'Analytics Report' }
+];
+
+/**
+ * Report category options for UI selects
+ */
+export const REPORT_CATEGORIES = [
+	{ value: 'hr', label: 'HR' },
+	{ value: 'finance', label: 'Finance' },
+	{ value: 'operations', label: 'Operations' },
+	{ value: 'management', label: 'Management' },
+	{ value: 'compliance', label: 'Compliance' },
+	{ value: 'custom', label: 'Custom' }
+];
+
+/**
+ * Report status options for UI selects
+ */
+export const REPORT_STATUSES = [
+	{ value: 'draft', label: 'Draft' },
+	{ value: 'active', label: 'Active' },
+	{ value: 'scheduled', label: 'Scheduled' },
+	{ value: 'completed', label: 'Completed' },
+	{ value: 'failed', label: 'Failed' }
+];
+
+// ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
 
