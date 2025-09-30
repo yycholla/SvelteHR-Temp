@@ -263,7 +263,7 @@
 	<div class="mb-6 flex items-center justify-between">
 		<div>
 			<h1 class="flex items-center gap-2 text-3xl font-bold text-foreground">
-				<Target class="h-8 w-8 text-blue-600" />
+				<Target class="h-8 w-8" />
 				Goals & OKRs
 			</h1>
 			<p class="mt-2 text-muted-foreground">Manage team objectives and track key results</p>
@@ -321,29 +321,19 @@
 				>
 					<div class="flex items-center justify-between">
 						<div class="flex items-center">
-							<AlertCircle
-								class="h-5 w-5 {alert.type === 'warning'
-									? 'text-orange-500'
-									: 'text-blue-500'} mr-2"
-							/>
+							<AlertCircle class="h-5 w-5 mr-2" />
 							<div>
-								<h4
-									class="text-sm font-medium {alert.type === 'warning'
-										? 'text-orange-800'
-										: 'text-blue-800'}"
-								>
+								<h4 class="text-sm font-medium text-foreground">
 									{alert.title}
 								</h4>
-								<p class="text-sm {alert.type === 'warning' ? 'text-orange-700' : 'text-blue-700'}">
+								<p class="text-sm text-muted-foreground">
 									{alert.message}
 								</p>
 							</div>
 						</div>
 						<a
 							href={alert.href}
-							class="text-sm font-medium {alert.type === 'warning'
-								? 'text-orange-600 hover:text-orange-500'
-								: 'text-blue-600 hover:text-blue-500'} transition-colors"
+							class="text-sm font-medium hover:underline transition-colors"
 						>
 							{alert.action} →
 						</a>
@@ -360,7 +350,7 @@
 			<nav class="-mb-px flex" data-testid="goals-tabs">
 				<button
 					class="border-b-2 px-4 py-2 text-sm font-medium {selectedTab === 'goals'
-						? 'border-blue-500 text-blue-600'
+						? 'border-primary text-foreground'
 						: 'border-transparent text-muted-foreground hover:border-input hover:text-foreground'} transition-colors"
 					onclick={() => (selectedTab = 'goals')}
 					data-testid="goals-tab"
@@ -370,7 +360,7 @@
 				</button>
 				<button
 					class="border-b-2 px-4 py-2 text-sm font-medium {selectedTab === 'analytics'
-						? 'border-blue-500 text-blue-600'
+						? 'border-primary text-foreground'
 						: 'border-transparent text-muted-foreground hover:border-input hover:text-foreground'} transition-colors"
 					onclick={() => (selectedTab = 'analytics')}
 					data-testid="analytics-tab"
@@ -534,7 +524,7 @@
 									<div class="ml-4 flex gap-2">
 										<button
 											onclick={() => openViewModal(goal)}
-											class="rounded p-2 text-blue-600 transition-colors hover:bg-blue-50"
+											class="rounded p-2 transition-colors hover:bg-accent"
 											title="View Goal"
 											data-testid="view-goal"
 										>
@@ -542,7 +532,7 @@
 										</button>
 										<button
 											onclick={() => openProgressModal(goal)}
-											class="rounded p-2 text-green-600 transition-colors hover:bg-green-50"
+											class="rounded p-2 transition-colors hover:bg-accent"
 											title="Update Progress"
 											data-testid="update-progress"
 										>
@@ -551,7 +541,7 @@
 										{#if canEditGoals}
 											<button
 												onclick={() => openEditModal(goal)}
-												class="rounded p-2 text-orange-600 transition-colors hover:bg-orange-50"
+												class="rounded p-2 transition-colors hover:bg-accent"
 												title="Edit Goal"
 												data-testid="edit-goal"
 											>
@@ -565,7 +555,7 @@
 					</div>
 				{:else}
 					<div class="py-12 text-center" data-testid="empty-state">
-						<Target class="mx-auto mb-4 h-16 w-16 text-gray-300" />
+						<Target class="mx-auto mb-4 h-16 w-16 text-muted-foreground" />
 						<h3 class="mb-2 text-lg font-medium text-foreground">No goals found</h3>
 						<p class="mb-4 text-muted-foreground">Get started by creating your first goal or objective.</p>
 						{#if canCreateGoals}
@@ -635,7 +625,7 @@
 									></div>
 								</div>
 							</div>
-							<div class="text-2xl font-bold text-green-600">{goalsAnalytics.healthScore}%</div>
+							<div class="text-2xl font-bold text-foreground">{goalsAnalytics.healthScore}%</div>
 						</div>
 						<p class="mt-2 text-sm text-muted-foreground">
 							Based on completion rate, timeliness, and key results coverage
@@ -808,7 +798,7 @@
 				<div class="grid grid-cols-1 gap-4 text-center md:grid-cols-4">
 					<div>
 						<p class="text-sm text-muted-foreground">Progress</p>
-						<p class="text-2xl font-bold text-blue-600">{calculateProgress(currentGoal)}%</p>
+						<p class="text-2xl font-bold text-foreground">{calculateProgress(currentGoal)}%</p>
 					</div>
 					<div>
 						<p class="text-sm text-muted-foreground">Type</p>
