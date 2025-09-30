@@ -59,12 +59,9 @@ export const load: PageServerLoad = async ({ locals, url, parent, cookies, fetch
 							id
 							name
 						}
-						userRolesByUserId {
+						userRoleAssignmentsByUserId {
 							nodes {
-								roleByRoleId {
-									id
-									name
-								}
+								roleName
 							}
 						}
 					}
@@ -85,12 +82,12 @@ export const load: PageServerLoad = async ({ locals, url, parent, cookies, fetch
 			}
 		`;
 
+		// Get distinct role names from user role assignments
 		const rolesQuery = `
-			query GetAllRoles {
-				allRoles(orderBy: ROLE_LEVEL_DESC) {
+			query GetAllRoleNames {
+				allUserRoleAssignments {
 					nodes {
-						id
-						name
+						roleName
 					}
 				}
 			}
@@ -106,13 +103,17 @@ export const load: PageServerLoad = async ({ locals, url, parent, cookies, fetch
 		const users = usersData?.allUsers?.nodes || [];
 		const totalCount = usersData?.allUsers?.totalCount || 0;
 		const departments = departmentsData?.allDepartments?.nodes || [];
-		const roles = rolesData?.allRoles?.nodes || [];
+
+		// Extract unique role names from user role assignments
+		const roleAssignments = rolesData?.allUserRoleAssignments?.nodes || [];
+		const uniqueRoleNames = [...new Set(roleAssignments.map((r: any) => r.roleName))];
+		const roles = uniqueRoleNames.map((name) => ({ id: name, name }));
 
 		// Apply remaining client-side filter for role (if PostGraphile doesn't support nested filtering)
 		let filteredUsers = users;
 		if (roleFilter) {
-			filteredUsers = filteredUsers.filter(
-				(u) => u.userRolesByUserId?.nodes?.some((ur) => ur.roleByRoleId?.name === roleFilter)
+			filteredUsers = filteredUsers.filter((u) =>
+				u.userRoleAssignmentsByUserId?.nodes?.some((ur: any) => ur.roleName === roleFilter)
 			);
 		}
 
