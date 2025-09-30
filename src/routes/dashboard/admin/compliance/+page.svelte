@@ -132,10 +132,10 @@ ${report.actions.length > 0 ? `Actions: ${report.actions.join(', ')}` : 'No acti
 		<h2 class="mb-4 text-xl font-semibold">Compliance Overview</h2>
 		<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
 			{#each Object.entries(complianceMetrics) as [key, metric]}
+				{@const StatusIcon = getStatusIcon(metric.status)}
 				<div class="rounded-lg border bg-muted/50 p-4">
 					<div class="mb-2 flex items-center justify-between">
 						<p class="text-sm font-medium">{metric.description}</p>
-						{@const StatusIcon = getStatusIcon(metric.status)}
 						<StatusIcon class="h-5 w-5 {getStatusColor(metric.status).split(' ')[0]}" />
 					</div>
 					<p class="text-3xl font-bold {getScoreColor(metric.score)}">{metric.score}%</p>
@@ -201,12 +201,12 @@ ${report.actions.length > 0 ? `Actions: ${report.actions.join(', ')}` : 'No acti
 				</thead>
 				<tbody>
 					{#each complianceReports as report (report.id)}
+						{@const StatusIcon = getStatusIcon(report.status)}
 						<tr class="border-b hover:bg-muted/50">
 							<td class="px-4 py-3 font-medium">{report.title}</td>
 							<td class="px-4 py-3">{report.type}</td>
 							<td class="px-4 py-3">
 								<span class="flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium {getStatusColor(report.status)}">
-									{@const StatusIcon = getStatusIcon(report.status)}
 									<StatusIcon class="h-3 w-3" />
 									{report.status}
 								</span>
@@ -241,8 +241,8 @@ ${report.actions.length > 0 ? `Actions: ${report.actions.join(', ')}` : 'No acti
 	</div>
 
 	<!-- Action Items -->
-	{@const reportsWithActions = complianceReports.filter((r) => r.actions.length > 0)}
-	{#if reportsWithActions.length > 0}
+	{#if complianceReports.filter((r) => r.actions.length > 0).length > 0}
+		{@const reportsWithActions = complianceReports.filter((r) => r.actions.length > 0)}
 		<div class="rounded-lg border bg-card p-6">
 			<h2 class="mb-4 flex items-center gap-2 text-xl font-semibold">
 				<AlertTriangle class="h-5 w-5 text-yellow-600" />

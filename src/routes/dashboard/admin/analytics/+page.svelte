@@ -10,7 +10,7 @@
 		BarChart3
 	} from 'lucide-svelte';
 
-	export let data;
+	let { data } = $props();
 
 	const { analytics, chartData } = data;
 </script>

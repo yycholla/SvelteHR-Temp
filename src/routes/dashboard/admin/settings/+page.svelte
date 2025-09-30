@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 
-	export let data;
+	let { data } = $props();
 
 	let settings = $state({ ...data.settings });
 	let loading = $state(false);

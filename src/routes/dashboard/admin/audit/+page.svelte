@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { Search, Filter, FileText, Download, Calendar } from 'lucide-svelte';
 
-	export let data;
+	let { data } = $props();
 
 	let searchQuery = $state('');
 	let filters = $state({
