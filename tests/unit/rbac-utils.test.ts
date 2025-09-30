@@ -246,34 +246,95 @@ describe('RBAC Utilities', () => {
 		});
 	});
 
-	describe('Role Precedence (T036 - to be implemented)', () => {
-		// These tests will fail until T036 is implemented
-		it.skip('should return highest priority role from roles array', () => {
-			// Expected: getRolePrecedence(['employee', 'admin', 'manager']) === 'admin'
-			// Role hierarchy: admin (100) > hr_manager (80) > manager (60) > employee (20)
+	describe('Role Precedence (T036)', () => {
+		it('should return highest priority role from roles array', async () => {
+			const { getRolePrecedence } = await import('$lib/server/rbac-utils');
+			const result = getRolePrecedence(['employee', 'admin', 'manager']);
+			expect(result).toBe('admin');
 		});
 
-		it.skip('should return admin when both admin and manager roles present', () => {
-			// Expected: getRolePrecedence(['admin', 'manager']) === 'admin'
+		it('should return admin when both admin and manager roles present', async () => {
+			const { getRolePrecedence } = await import('$lib/server/rbac-utils');
+			const result = getRolePrecedence(['admin', 'manager']);
+			expect(result).toBe('admin');
 		});
 
-		it.skip('should return hr_manager when hr_manager and manager roles present', () => {
-			// Expected: getRolePrecedence(['hr_manager', 'manager', 'employee']) === 'hr_manager'
+		it('should return hr_manager when hr_manager and manager roles present', async () => {
+			const { getRolePrecedence } = await import('$lib/server/rbac-utils');
+			const result = getRolePrecedence(['hr_manager', 'manager', 'employee']);
+			expect(result).toBe('hr_manager');
 		});
 
-		it.skip('should return manager when only manager and employee roles present', () => {
-			// Expected: getRolePrecedence(['manager', 'employee']) === 'manager'
+		it('should return manager when only manager and employee roles present', async () => {
+			const { getRolePrecedence } = await import('$lib/server/rbac-utils');
+			const result = getRolePrecedence(['manager', 'employee']);
+			expect(result).toBe('manager');
 		});
 
-		it.skip('should return employee when only employee role present', () => {
-			// Expected: getRolePrecedence(['employee']) === 'employee'
+		it('should return employee when only employee role present', async () => {
+			const { getRolePrecedence } = await import('$lib/server/rbac-utils');
+			const result = getRolePrecedence(['employee']);
+			expect(result).toBe('employee');
+		});
+
+		it('should return employee for empty roles array', async () => {
+			const { getRolePrecedence } = await import('$lib/server/rbac-utils');
+			const result = getRolePrecedence([]);
+			expect(result).toBe('employee');
 		});
 	});
 
-	describe('isManagerOfDepartment (T036 - to be implemented)', () => {
-		it.skip('should verify manager assignment to specific department', () => {
-			// Expected: isManagerOfDepartment(userId, departmentId) returns boolean
-			// Should query database to verify manager_id matches userId
+	describe('isManagerOfDepartment (T036)', () => {
+		const mockFetch = vi.fn();
+
+		beforeEach(() => {
+			vi.clearAllMocks();
+			global.fetch = mockFetch;
+		});
+
+		it('should return true when user is manager of department', async () => {
+			const { isManagerOfDepartment } = await import('$lib/server/rbac-utils');
+
+			mockFetch.mockResolvedValueOnce({
+				json: async () => ({
+					data: {
+						departmentById: {
+							id: 'dept-123',
+							managerId: 'manager-user-id'
+						}
+					}
+				})
+			});
+
+			const result = await isManagerOfDepartment('manager-user-id', 'dept-123');
+			expect(result).toBe(true);
+		});
+
+		it('should return false when user is not manager of department', async () => {
+			const { isManagerOfDepartment } = await import('$lib/server/rbac-utils');
+
+			mockFetch.mockResolvedValueOnce({
+				json: async () => ({
+					data: {
+						departmentById: {
+							id: 'dept-123',
+							managerId: 'other-manager-id'
+						}
+					}
+				})
+			});
+
+			const result = await isManagerOfDepartment('manager-user-id', 'dept-123');
+			expect(result).toBe(false);
+		});
+
+		it('should return false on GraphQL error', async () => {
+			const { isManagerOfDepartment } = await import('$lib/server/rbac-utils');
+
+			mockFetch.mockRejectedValueOnce(new Error('Network error'));
+
+			const result = await isManagerOfDepartment('manager-user-id', 'dept-123');
+			expect(result).toBe(false);
 		});
 	});
 });
