@@ -9,6 +9,11 @@ import { createLeaveManagementOperations } from '$lib/graphql/leave-management-o
 export const load: PageServerLoad = async (event) => {
 	const { locals, cookies, url } = event;
 
+	// Verify user is authenticated first
+	if (!locals.user?.id) {
+		throw error(401, 'Authentication required');
+	}
+
 	// RBAC: Check leave approval permissions
 	PermissionChecks.leaveApproval(event);
 
@@ -25,8 +30,8 @@ export const load: PageServerLoad = async (event) => {
 		permissions: locals.permissions || [],
 		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes from now
 		metadata: {
-			userEmail: locals.user.email,
-			displayName: locals.user.display_name || locals.user.email
+			userEmail: locals.user.email || '',
+			displayName: locals.user.display_name || locals.user.email || 'User'
 		}
 	});
 
@@ -54,13 +59,11 @@ export const load: PageServerLoad = async (event) => {
 		},
 		userCredentials: {
 			userId: userSession.userId,
-			userEmail: userSession.userEmail,
-			role: userSession.role,
-			accessToken: userSession.accessToken
+			userEmail: userSession.metadata.userEmail,
+			role: userSession.roles[0] || 'employee',
+			accessToken: userSession.jwtToken
 		},
-		timeoutMs: 5000,
-		retryAttempts: 0,
-		maxRetries: 3
+		timeoutMs: 5000
 	});
 
 	try {
