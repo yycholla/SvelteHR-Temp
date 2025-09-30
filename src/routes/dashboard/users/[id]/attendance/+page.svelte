@@ -202,8 +202,8 @@
 		</div>
 		<div class="overflow-hidden">
 			<div class="overflow-x-auto">
-				<table class="min-w-full divide-y divide-gray-200">
-					<thead class="bg-muted dark:bg-muted">
+				<table class="w-full text-sm">
+					<thead class="bg-muted/50">
 						<tr>
 							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
 								Date
@@ -228,9 +228,9 @@
 							</th>
 						</tr>
 					</thead>
-					<tbody class="divide-y divide-gray-200 bg-card">
+					<tbody class="">
 						{#each attendanceRecords as record}
-							<tr class="hover:bg-muted dark:bg-muted">
+							<tr class="border-b hover:bg-muted/50">
 								<td class="whitespace-nowrap px-6 py-4 text-sm text-foreground">
 									{formatDate(record.date)}
 								</td>

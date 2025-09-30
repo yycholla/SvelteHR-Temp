@@ -434,8 +434,8 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 	<!-- Reports Table -->
 	<div class="overflow-hidden rounded-lg border border bg-card shadow-sm">
 		<div class="overflow-x-auto">
-			<table class="min-w-full divide-y divide-gray-200">
-				<thead class="bg-muted dark:bg-muted">
+			<table class="w-full text-sm">
+				<thead class="bg-muted/50">
 					<tr>
 						<th class="px-6 py-3 text-left">
 							<input
@@ -456,11 +456,11 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 						{/each}
 					</tr>
 				</thead>
-				<tbody class="divide-y divide-gray-200 bg-card">
+				<tbody class="">
 					{#each reports as report}
 						{@const typeBadge = getTypeBadge(report.reportType)}
 						{@const statusBadge = getStatusBadge(report.status)}
-						<tr class="hover:bg-muted dark:bg-muted">
+						<tr class="border-b hover:bg-muted/50">
 							<td class="px-6 py-4">
 								<input
 									type="checkbox"
