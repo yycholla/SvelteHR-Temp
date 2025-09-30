@@ -333,7 +333,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 	<div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
 		{#each statsCards as card}
 			{@const CardIcon = card.icon}
-			<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+			<div class="rounded-lg border border-gray-200 bg-card p-6 shadow-sm">
 				<div class="flex items-center justify-between">
 					<div>
 						<p class="text-sm font-medium text-gray-600">{card.title}</p>
@@ -349,7 +349,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 	</div>
 
 	<!-- Filters -->
-	<div class="mb-8 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+	<div class="mb-8 rounded-lg border border-gray-200 bg-card p-6 shadow-sm">
 		<div class="mb-4 flex items-center gap-4">
 			<div class="flex-1">
 				<label for="search" class="sr-only">Search reports</label>
@@ -432,10 +432,10 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 	</div>
 
 	<!-- Reports Table -->
-	<div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+	<div class="overflow-hidden rounded-lg border border-gray-200 bg-card shadow-sm">
 		<div class="overflow-x-auto">
 			<table class="min-w-full divide-y divide-gray-200">
-				<thead class="bg-gray-50">
+				<thead class="bg-muted dark:bg-muted">
 					<tr>
 						<th class="px-6 py-3 text-left">
 							<input
@@ -456,11 +456,11 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 						{/each}
 					</tr>
 				</thead>
-				<tbody class="divide-y divide-gray-200 bg-white">
+				<tbody class="divide-y divide-gray-200 bg-card">
 					{#each reports as report}
 						{@const typeBadge = getTypeBadge(report.reportType)}
 						{@const statusBadge = getStatusBadge(report.status)}
-						<tr class="hover:bg-gray-50">
+						<tr class="hover:bg-muted dark:bg-muted">
 							<td class="px-6 py-4">
 								<input
 									type="checkbox"
@@ -564,7 +564,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 	<!-- Analytics Dashboard -->
 	<div class="space-y-8">
 		<!-- Performance Metrics -->
-		<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+		<div class="rounded-lg border border-gray-200 bg-card p-6 shadow-sm">
 			<h3 class="mb-6 text-lg font-semibold text-gray-900">Performance Metrics</h3>
 			<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
 				<div class="text-center">
@@ -589,7 +589,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 		</div>
 
 		<!-- Type Breakdown -->
-		<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+		<div class="rounded-lg border border-gray-200 bg-card p-6 shadow-sm">
 			<h3 class="mb-6 text-lg font-semibold text-gray-900">Report Type Distribution</h3>
 			<div class="space-y-4">
 				{#each reportAnalytics.typeBreakdown as type}
@@ -607,11 +607,11 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 		</div>
 
 		<!-- Popular Reports -->
-		<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+		<div class="rounded-lg border border-gray-200 bg-card p-6 shadow-sm">
 			<h3 class="mb-6 text-lg font-semibold text-gray-900">Most Popular Reports</h3>
 			<div class="space-y-4">
 				{#each reportAnalytics.popularReports as report}
-					<div class="flex items-center justify-between rounded-lg bg-gray-50 p-4">
+					<div class="flex items-center justify-between rounded-lg bg-muted dark:bg-muted p-4">
 						<div>
 							<div class="font-medium text-gray-900">{report.title}</div>
 							<div class="text-sm text-gray-600">Last run: {formatDate(report.lastRun)}</div>
@@ -626,7 +626,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 		</div>
 
 		<!-- Department Usage -->
-		<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+		<div class="rounded-lg border border-gray-200 bg-card p-6 shadow-sm">
 			<h3 class="mb-6 text-lg font-semibold text-gray-900">Department Usage</h3>
 			<div class="space-y-4">
 				{#each reportAnalytics.departmentUsage as dept}
@@ -650,14 +650,14 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 			class="flex min-h-screen items-center justify-center px-4 pb-20 pt-4 text-center sm:block sm:p-0"
 		>
 			<div
-				class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+				class="fixed inset-0 bg-muted dark:bg-muted0 bg-opacity-75 transition-opacity"
 				onclick={closeModals}
 			></div>
 
 			<div
-				class="inline-block transform overflow-hidden rounded-lg bg-white text-left align-bottom shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:align-middle"
+				class="inline-block transform overflow-hidden rounded-lg bg-card text-left align-bottom shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:align-middle"
 			>
-				<div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+				<div class="bg-card px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
 					<h3 class="mb-4 text-lg font-medium text-gray-900">Create New Report</h3>
 
 					<div class="space-y-4">
@@ -717,7 +717,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 					</div>
 				</div>
 
-				<div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+				<div class="bg-muted dark:bg-muted px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
 					<button
 						type="button"
 						class="inline-flex w-full justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm"
@@ -727,7 +727,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 					<button
 						type="button"
 						onclick={closeModals}
-						class="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:ml-3 sm:mt-0 sm:w-auto sm:text-sm"
+						class="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-card px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-muted dark:bg-muted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:ml-3 sm:mt-0 sm:w-auto sm:text-sm"
 					>
 						Cancel
 					</button>
@@ -745,14 +745,14 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 			class="flex min-h-screen items-center justify-center px-4 pb-20 pt-4 text-center sm:block sm:p-0"
 		>
 			<div
-				class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+				class="fixed inset-0 bg-muted dark:bg-muted0 bg-opacity-75 transition-opacity"
 				onclick={closeModals}
 			></div>
 
 			<div
-				class="inline-block transform overflow-hidden rounded-lg bg-white text-left align-bottom shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl sm:align-middle"
+				class="inline-block transform overflow-hidden rounded-lg bg-card text-left align-bottom shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl sm:align-middle"
 			>
-				<div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+				<div class="bg-card px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
 					<div class="mb-4 flex items-center justify-between">
 						<h3 class="text-lg font-medium text-gray-900">{selectedReport.title}</h3>
 						<button onclick={closeModals} class="text-gray-400 hover:text-gray-600">
@@ -811,7 +811,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 					</div>
 				</div>
 
-				<div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+				<div class="bg-muted dark:bg-muted px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
 					<button
 						onclick={() => handleDownloadReport(selectedReport)}
 						class="inline-flex w-full justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm"
@@ -822,7 +822,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 					{#if data.canRunReports}
 						<button
 							onclick={() => handleRunReport(selectedReport)}
-							class="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:ml-3 sm:mt-0 sm:w-auto sm:text-sm"
+							class="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-card px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-muted dark:bg-muted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:ml-3 sm:mt-0 sm:w-auto sm:text-sm"
 						>
 							<RotateCcw class="mr-2 h-4 w-4" />
 							Run Report

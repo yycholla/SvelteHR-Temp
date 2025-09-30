@@ -304,7 +304,7 @@
 	/>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50">
+<div class="min-h-screen bg-background">
 	<div class="container mx-auto space-y-6 p-4">
 		<!-- Header -->
 		<div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -546,7 +546,7 @@
 
 		{#if currentRequest}
 			<div class="space-y-4">
-				<div class="rounded-lg bg-gray-50 p-4">
+				<div class="rounded-lg bg-muted dark:bg-muted p-4">
 					<h4 class="mb-2 font-semibold">Request Details</h4>
 					<div class="space-y-1 text-sm">
 						<p><strong>Employee:</strong> {currentRequest.employee?.displayName}</p>
@@ -608,7 +608,7 @@
 
 		{#if currentRequest}
 			<div class="space-y-4">
-				<div class="rounded-lg bg-gray-50 p-4">
+				<div class="rounded-lg bg-muted dark:bg-muted p-4">
 					<h4 class="mb-2 font-semibold">Request Details</h4>
 					<div class="space-y-1 text-sm">
 						<p><strong>Employee:</strong> {currentRequest.employee?.displayName}</p>

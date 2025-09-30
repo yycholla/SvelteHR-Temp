@@ -119,7 +119,7 @@
 
 	<!-- Attendance Statistics -->
 	<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-		<div class="rounded-lg bg-white p-6 shadow-sm border">
+		<div class="rounded-lg bg-card p-6 shadow-sm border">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-gray-600">Attendance Rate</p>
@@ -131,7 +131,7 @@
 			</div>
 		</div>
 
-		<div class="rounded-lg bg-white p-6 shadow-sm border">
+		<div class="rounded-lg bg-card p-6 shadow-sm border">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-gray-600">Total Days</p>
@@ -143,7 +143,7 @@
 			</div>
 		</div>
 
-		<div class="rounded-lg bg-white p-6 shadow-sm border">
+		<div class="rounded-lg bg-card p-6 shadow-sm border">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-gray-600">Total Hours</p>
@@ -155,7 +155,7 @@
 			</div>
 		</div>
 
-		<div class="rounded-lg bg-white p-6 shadow-sm border">
+		<div class="rounded-lg bg-card p-6 shadow-sm border">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-gray-600">Avg. Hours/Day</p>
@@ -170,7 +170,7 @@
 
 	<!-- Today's Status (if viewing own attendance) -->
 	{#if isOwnAttendance && todayRecord}
-		<div class="rounded-lg bg-white p-6 shadow-sm border">
+		<div class="rounded-lg bg-card p-6 shadow-sm border">
 			<h2 class="text-lg font-semibold text-gray-900 mb-4">Today's Status</h2>
 			<div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
 				<div>
@@ -196,14 +196,14 @@
 	{/if}
 
 	<!-- Attendance Records -->
-	<div class="rounded-lg bg-white shadow-sm border">
+	<div class="rounded-lg bg-card shadow-sm border">
 		<div class="border-b border-gray-200 px-6 py-4">
 			<h2 class="text-lg font-semibold text-gray-900">Attendance History</h2>
 		</div>
 		<div class="overflow-hidden">
 			<div class="overflow-x-auto">
 				<table class="min-w-full divide-y divide-gray-200">
-					<thead class="bg-gray-50">
+					<thead class="bg-muted dark:bg-muted">
 						<tr>
 							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
 								Date
@@ -228,9 +228,9 @@
 							</th>
 						</tr>
 					</thead>
-					<tbody class="divide-y divide-gray-200 bg-white">
+					<tbody class="divide-y divide-gray-200 bg-card">
 						{#each attendanceRecords as record}
-							<tr class="hover:bg-gray-50">
+							<tr class="hover:bg-muted dark:bg-muted">
 								<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
 									{formatDate(record.date)}
 								</td>

@@ -305,7 +305,7 @@
 	/>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50">
+<div class="min-h-screen bg-background">
 	<div class="container mx-auto space-y-6 p-4">
 		<!-- Header -->
 		<div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -609,7 +609,7 @@
 		{#if currentReview}
 			<div class="max-h-96 space-y-6 overflow-y-auto">
 				<!-- Employee Info -->
-				<div class="rounded-lg bg-gray-50 p-4">
+				<div class="rounded-lg bg-muted dark:bg-muted p-4">
 					<h4 class="mb-2 font-semibold">Employee Information</h4>
 					<div class="grid grid-cols-2 gap-4 text-sm">
 						<p><strong>Name:</strong> {currentReview.employee?.displayName}</p>
@@ -696,7 +696,7 @@
 				{#if currentReview.employeeSelfAssessment}
 					<div>
 						<h4 class="mb-2 font-semibold">Employee Self-Assessment</h4>
-						<p class="rounded bg-gray-50 p-3 text-sm text-gray-700">
+						<p class="rounded bg-muted dark:bg-muted p-3 text-sm text-gray-700">
 							{currentReview.employeeSelfAssessment}
 						</p>
 					</div>

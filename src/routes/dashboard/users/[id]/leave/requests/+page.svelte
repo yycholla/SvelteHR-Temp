@@ -36,9 +36,9 @@
 		switch (status) {
 			case 'approved': return 'text-green-600 bg-green-50 border-green-200';
 			case 'rejected': return 'text-red-600 bg-red-50 border-red-200';
-			case 'cancelled': return 'text-gray-600 bg-gray-50 border-gray-200';
+			case 'cancelled': return 'text-gray-600 bg-muted dark:bg-muted border-gray-200';
 			case 'pending': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-			default: return 'text-gray-600 bg-gray-50 border-gray-200';
+			default: return 'text-gray-600 bg-muted dark:bg-muted border-gray-200';
 		}
 	}
 
@@ -121,7 +121,7 @@
 	<!-- Leave Balances -->
 	<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
 		{#each leaveBalances as balance}
-			<div class="rounded-lg bg-white p-6 shadow-sm border">
+			<div class="rounded-lg bg-card p-6 shadow-sm border">
 				<div class="flex items-center justify-between mb-4">
 					<div class="flex items-center gap-2">
 						<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getLeaveTypeColor(balance.leaveType.color)}">
@@ -156,7 +156,7 @@
 	<!-- New Request Form Modal -->
 	{#if showNewRequestForm}
 		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-			<div class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+			<div class="w-full max-w-md rounded-lg bg-card p-6 shadow-xl">
 				<h2 class="text-lg font-semibold text-gray-900 mb-4">New Leave Request</h2>
 				<form onsubmit={handleSubmitRequest} class="space-y-4">
 					<div>
@@ -238,14 +238,14 @@
 	{/if}
 
 	<!-- Leave Requests -->
-	<div class="rounded-lg bg-white shadow-sm border">
+	<div class="rounded-lg bg-card shadow-sm border">
 		<div class="border-b border-gray-200 px-6 py-4">
 			<h2 class="text-lg font-semibold text-gray-900">Leave History</h2>
 		</div>
 		<div class="overflow-hidden">
 			<div class="overflow-x-auto">
 				<table class="min-w-full divide-y divide-gray-200">
-					<thead class="bg-gray-50">
+					<thead class="bg-muted dark:bg-muted">
 						<tr>
 							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
 								Leave Type
@@ -272,9 +272,9 @@
 							{/if}
 						</tr>
 					</thead>
-					<tbody class="divide-y divide-gray-200 bg-white">
+					<tbody class="divide-y divide-gray-200 bg-card">
 						{#each leaveRequests as request}
-							<tr class="hover:bg-gray-50">
+							<tr class="hover:bg-muted dark:bg-muted">
 								<td class="whitespace-nowrap px-6 py-4 text-sm">
 									<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getLeaveTypeColor(request.leaveType.color)}">
 										{request.leaveType.name}

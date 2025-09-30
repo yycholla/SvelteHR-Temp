@@ -213,7 +213,7 @@ Modern Svelte 5 implementation with server-side data loading and comprehensive m
 				};
 			default:
 				return {
-					bg: 'bg-gray-50',
+					bg: 'bg-muted dark:bg-muted',
 					border: 'border-gray-200',
 					icon: 'text-gray-500',
 					title: 'text-gray-900',
@@ -282,7 +282,7 @@ Modern Svelte 5 implementation with server-side data loading and comprehensive m
 <!-- Key Metrics Cards -->
 <div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
 	<!-- Team Overview -->
-	<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+	<div class="rounded-lg border border-gray-200 bg-card p-6 shadow-sm">
 		<div class="flex items-center justify-between">
 			<div>
 				<p class="text-sm font-medium text-gray-600">Team Members</p>
@@ -300,7 +300,7 @@ Modern Svelte 5 implementation with server-side data loading and comprehensive m
 	</div>
 
 	<!-- Leave Requests -->
-	<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+	<div class="rounded-lg border border-gray-200 bg-card p-6 shadow-sm">
 		<div class="flex items-center justify-between">
 			<div>
 				<p class="text-sm font-medium text-gray-600">Leave Requests</p>
@@ -314,7 +314,7 @@ Modern Svelte 5 implementation with server-side data loading and comprehensive m
 	</div>
 
 	<!-- Performance Reviews -->
-	<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+	<div class="rounded-lg border border-gray-200 bg-card p-6 shadow-sm">
 		<div class="flex items-center justify-between">
 			<div>
 				<p class="text-sm font-medium text-gray-600">Reviews Due</p>
@@ -332,7 +332,7 @@ Modern Svelte 5 implementation with server-side data loading and comprehensive m
 	</div>
 
 	<!-- Goals Progress -->
-	<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+	<div class="rounded-lg border border-gray-200 bg-card p-6 shadow-sm">
 		<div class="flex items-center justify-between">
 			<div>
 				<p class="text-sm font-medium text-gray-600">Team Goals</p>
@@ -351,7 +351,7 @@ Modern Svelte 5 implementation with server-side data loading and comprehensive m
 <div class="mb-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
 	<!-- Performance Metrics -->
 	<div class="lg:col-span-2">
-		<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+		<div class="rounded-lg border border-gray-200 bg-card p-6 shadow-sm">
 			<h3 class="mb-4 text-lg font-semibold text-gray-900">Performance Metrics</h3>
 			<div class="space-y-4">
 				{#each performanceMetrics as metric}
@@ -376,14 +376,14 @@ Modern Svelte 5 implementation with server-side data loading and comprehensive m
 	</div>
 
 	<!-- Recent Activities -->
-	<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+	<div class="rounded-lg border border-gray-200 bg-card p-6 shadow-sm">
 		<h3 class="mb-4 text-lg font-semibold text-gray-900">Recent Activities</h3>
 		<div class="space-y-3">
 			{#each recentActivities as activity}
 				{@const Icon = iconMap[activity.icon as keyof typeof iconMap] || Activity}
 				<a
 					href={activity.href}
-					class="-m-2 block rounded-lg p-2 transition-colors hover:bg-gray-50"
+					class="-m-2 block rounded-lg p-2 transition-colors hover:bg-muted dark:bg-muted"
 				>
 					<div class="flex items-start gap-3">
 						<div class="p-2 bg-{activity.color}-100 rounded-full">
@@ -403,7 +403,7 @@ Modern Svelte 5 implementation with server-side data loading and comprehensive m
 </div>
 
 <!-- Quick Actions -->
-<div class="mb-8 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+<div class="mb-8 rounded-lg border border-gray-200 bg-card p-6 shadow-sm">
 	<h3 class="mb-4 text-lg font-semibold text-gray-900">Quick Actions</h3>
 	<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
 		{#each quickActions as action}
@@ -434,7 +434,7 @@ Modern Svelte 5 implementation with server-side data loading and comprehensive m
 </div>
 
 <!-- Team Performance Summary -->
-<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+<div class="rounded-lg border border-gray-200 bg-card p-6 shadow-sm">
 	<h3 class="mb-4 text-lg font-semibold text-gray-900">Team Performance Summary</h3>
 	<div class="grid grid-cols-1 gap-6 md:grid-cols-3">
 		<!-- Goals Status -->

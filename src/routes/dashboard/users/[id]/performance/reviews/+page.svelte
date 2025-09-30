@@ -39,9 +39,9 @@
 		switch (status) {
 			case 'completed': return 'text-green-600 bg-green-50 border-green-200';
 			case 'in_progress': return 'text-blue-600 bg-blue-50 border-blue-200';
-			case 'scheduled': return 'text-gray-600 bg-gray-50 border-gray-200';
+			case 'scheduled': return 'text-gray-600 bg-muted dark:bg-muted border-gray-200';
 			case 'overdue': return 'text-red-600 bg-red-50 border-red-200';
-			default: return 'text-gray-600 bg-gray-50 border-gray-200';
+			default: return 'text-gray-600 bg-muted dark:bg-muted border-gray-200';
 		}
 	}
 
@@ -104,7 +104,7 @@
 
 	<!-- Review Statistics -->
 	<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-		<div class="rounded-lg bg-white p-6 shadow-sm border">
+		<div class="rounded-lg bg-card p-6 shadow-sm border">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-gray-600">Total Reviews</p>
@@ -116,7 +116,7 @@
 			</div>
 		</div>
 
-		<div class="rounded-lg bg-white p-6 shadow-sm border">
+		<div class="rounded-lg bg-card p-6 shadow-sm border">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-gray-600">Completed</p>
@@ -128,7 +128,7 @@
 			</div>
 		</div>
 
-		<div class="rounded-lg bg-white p-6 shadow-sm border">
+		<div class="rounded-lg bg-card p-6 shadow-sm border">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-gray-600">Average Rating</p>
@@ -142,7 +142,7 @@
 			</div>
 		</div>
 
-		<div class="rounded-lg bg-white p-6 shadow-sm border">
+		<div class="rounded-lg bg-card p-6 shadow-sm border">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-gray-600">Next Review</p>
@@ -158,7 +158,7 @@
 	</div>
 
 	<!-- Filters -->
-	<div class="rounded-lg bg-white p-4 shadow-sm border">
+	<div class="rounded-lg bg-card p-4 shadow-sm border">
 		<div class="flex flex-wrap gap-4">
 			<div>
 				<label for="status-filter" class="block text-sm font-medium text-gray-700 mb-1">
@@ -199,7 +199,7 @@
 	<div class="space-y-6">
 		{#each filteredReviews as review}
 			{@const StatusIcon = getStatusIcon(review.status)}
-			<div class="rounded-lg bg-white shadow-sm border">
+			<div class="rounded-lg bg-card shadow-sm border">
 				<!-- Review Header -->
 				<div class="p-6 border-b border-gray-200">
 					<div class="flex items-center justify-between">
@@ -275,7 +275,7 @@
 							<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 								{#each review.competencies as competency}
 									{@const { fullStars, hasHalfStar } = getRatingStars(competency.rating)}
-									<div class="bg-gray-50 p-4 rounded-lg">
+									<div class="bg-muted dark:bg-muted p-4 rounded-lg">
 										<div class="flex items-center justify-between mb-2">
 											<span class="font-medium text-gray-900">{competency.name}</span>
 											<div class="flex items-center gap-1">
@@ -306,7 +306,7 @@
 								</h4>
 								<div class="space-y-3">
 									{#each review.goals as goal}
-										<div class="bg-gray-50 p-4 rounded-lg">
+										<div class="bg-muted dark:bg-muted p-4 rounded-lg">
 											<div class="flex items-center justify-between mb-2">
 												<span class="font-medium text-gray-900">{goal.title}</span>
 												<span class="text-sm font-medium {getGoalStatusColor(goal.status)}">
@@ -355,7 +355,7 @@
 							<div class="mt-4 space-y-4">
 								<div>
 									<h5 class="font-medium text-gray-900 mb-2">Manager's Comments</h5>
-									<p class="text-sm text-gray-600 bg-gray-50 p-3 rounded">{review.feedback.managerComments}</p>
+									<p class="text-sm text-gray-600 bg-muted dark:bg-muted p-3 rounded">{review.feedback.managerComments}</p>
 								</div>
 								{#if review.feedback.employeeComments}
 									<div>
@@ -401,7 +401,7 @@
 
 				<!-- Scheduled Review Status -->
 				{#if expandedReview === review.id && review.status === 'scheduled'}
-					<div class="p-6 bg-gray-50 border-t border-gray-200">
+					<div class="p-6 bg-muted dark:bg-muted border-t border-gray-200">
 						<div class="flex items-center gap-2 mb-2">
 							<Calendar class="h-5 w-5 text-gray-600" />
 							<h4 class="font-medium text-gray-900">Scheduled Review</h4>
@@ -414,7 +414,7 @@
 				{/if}
 			</div>
 		{:else}
-			<div class="rounded-lg bg-white p-8 shadow-sm border text-center">
+			<div class="rounded-lg bg-card p-8 shadow-sm border text-center">
 				<FileText class="h-12 w-12 text-gray-400 mx-auto mb-4" />
 				<h3 class="text-lg font-medium text-gray-900 mb-2">No reviews found</h3>
 				<p class="text-gray-600">

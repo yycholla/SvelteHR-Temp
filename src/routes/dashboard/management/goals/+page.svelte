@@ -284,7 +284,7 @@
 	<div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
 		{#each statsCards as card}
 			<div
-				class="rounded-lg border-l-4 bg-white p-6 shadow border-{card.color}-500"
+				class="rounded-lg border-l-4 bg-card p-6 shadow border-{card.color}-500"
 				data-testid={card.testId}
 			>
 				<div class="flex items-center justify-between">
@@ -354,7 +354,7 @@
 	{/if}
 
 	<!-- Tabbed Interface -->
-	<div class="rounded-lg bg-white shadow">
+	<div class="rounded-lg bg-card shadow">
 		<!-- Tab Navigation -->
 		<div class="border-b border-gray-200">
 			<nav class="-mb-px flex" data-testid="goals-tabs">
@@ -624,7 +624,7 @@
 					{/if}
 
 					<!-- Health Score -->
-					<div class="rounded-lg border border-gray-200 bg-white p-6">
+					<div class="rounded-lg border border-gray-200 bg-card p-6">
 						<h4 class="text-md mb-4 font-medium text-gray-900">Overall Health Score</h4>
 						<div class="flex items-center gap-4">
 							<div class="flex-1">
@@ -653,7 +653,7 @@
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
 		data-testid="create-goal-modal"
 	>
-		<div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6">
+		<div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-card p-6">
 			<h2 class="mb-4 text-xl font-bold">Create New Goal</h2>
 			<form class="space-y-4">
 				<div>
@@ -769,7 +769,7 @@
 					<button
 						type="button"
 						onclick={closeModals}
-						class="rounded-md border border-gray-300 px-4 py-2 transition-colors hover:bg-gray-50"
+						class="rounded-md border border-gray-300 px-4 py-2 transition-colors hover:bg-muted dark:bg-muted"
 					>
 						Cancel
 					</button>
@@ -792,7 +792,7 @@
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
 		data-testid="view-goal-modal"
 	>
-		<div class="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-white p-6">
+		<div class="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-card p-6">
 			<div class="mb-6 flex items-center justify-between">
 				<div>
 					<h2 class="text-xl font-bold">{currentGoal.title}</h2>
@@ -844,7 +844,7 @@
 				{#if currentGoal.description}
 					<div>
 						<h4 class="mb-2 font-medium text-gray-900">Description</h4>
-						<p class="rounded-md bg-gray-50 p-3 text-gray-700">{currentGoal.description}</p>
+						<p class="rounded-md bg-muted dark:bg-muted p-3 text-gray-700">{currentGoal.description}</p>
 					</div>
 				{/if}
 
@@ -886,7 +886,7 @@
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
 		data-testid="progress-modal"
 	>
-		<div class="w-full max-w-md rounded-lg bg-white p-6">
+		<div class="w-full max-w-md rounded-lg bg-card p-6">
 			<h2 class="mb-4 text-xl font-bold">Update Progress</h2>
 
 			<div class="mb-4">
@@ -940,7 +940,7 @@
 					<button
 						type="button"
 						onclick={closeModals}
-						class="rounded-md border border-gray-300 px-4 py-2 transition-colors hover:bg-gray-50"
+						class="rounded-md border border-gray-300 px-4 py-2 transition-colors hover:bg-muted dark:bg-muted"
 					>
 						Cancel
 					</button>

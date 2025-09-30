@@ -50,8 +50,8 @@
 			case 'in_progress': return 'text-blue-600 bg-blue-50 border-blue-200';
 			case 'at_risk': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
 			case 'blocked': return 'text-red-600 bg-red-50 border-red-200';
-			case 'not_started': return 'text-gray-600 bg-gray-50 border-gray-200';
-			default: return 'text-gray-600 bg-gray-50 border-gray-200';
+			case 'not_started': return 'text-gray-600 bg-muted dark:bg-muted border-gray-200';
+			default: return 'text-gray-600 bg-muted dark:bg-muted border-gray-200';
 		}
 	}
 
@@ -140,7 +140,7 @@
 
 	<!-- Goal Statistics -->
 	<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-		<div class="rounded-lg bg-white p-6 shadow-sm border">
+		<div class="rounded-lg bg-card p-6 shadow-sm border">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-gray-600">Total Goals</p>
@@ -152,7 +152,7 @@
 			</div>
 		</div>
 
-		<div class="rounded-lg bg-white p-6 shadow-sm border">
+		<div class="rounded-lg bg-card p-6 shadow-sm border">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-gray-600">Completed</p>
@@ -164,7 +164,7 @@
 			</div>
 		</div>
 
-		<div class="rounded-lg bg-white p-6 shadow-sm border">
+		<div class="rounded-lg bg-card p-6 shadow-sm border">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-gray-600">In Progress</p>
@@ -176,7 +176,7 @@
 			</div>
 		</div>
 
-		<div class="rounded-lg bg-white p-6 shadow-sm border">
+		<div class="rounded-lg bg-card p-6 shadow-sm border">
 			<div class="flex items-center justify-between">
 				<div>
 					<p class="text-sm font-medium text-gray-600">Avg. Progress</p>
@@ -190,7 +190,7 @@
 	</div>
 
 	<!-- Filters -->
-	<div class="rounded-lg bg-white p-4 shadow-sm border">
+	<div class="rounded-lg bg-card p-4 shadow-sm border">
 		<div class="flex flex-wrap gap-4">
 			<div>
 				<label for="category-filter" class="block text-sm font-medium text-gray-700 mb-1">
@@ -231,7 +231,7 @@
 	<!-- New Goal Form Modal -->
 	{#if showNewGoalForm}
 		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-			<div class="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl">
+			<div class="w-full max-w-lg rounded-lg bg-card p-6 shadow-xl">
 				<h2 class="text-lg font-semibold text-gray-900 mb-4">Create New Goal</h2>
 				<form onsubmit={handleSubmitGoal} class="space-y-4">
 					<div>
@@ -332,7 +332,7 @@
 	<!-- Goals Grid -->
 	<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
 		{#each filteredGoals as goal}
-			<div class="rounded-lg bg-white p-6 shadow-sm border">
+			<div class="rounded-lg bg-card p-6 shadow-sm border">
 				<!-- Goal Header -->
 				<div class="flex items-start justify-between mb-4">
 					<div class="flex-1">
@@ -417,7 +417,7 @@
 			</div>
 		{:else}
 			<div class="col-span-full">
-				<div class="rounded-lg bg-white p-8 shadow-sm border text-center">
+				<div class="rounded-lg bg-card p-8 shadow-sm border text-center">
 					<Target class="h-12 w-12 text-gray-400 mx-auto mb-4" />
 					<h3 class="text-lg font-medium text-gray-900 mb-2">No goals found</h3>
 					<p class="text-gray-600 mb-4">
