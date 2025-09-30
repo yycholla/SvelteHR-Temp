@@ -50,8 +50,8 @@
 			case 'in_progress': return 'text-blue-600 bg-blue-50 border-blue-200';
 			case 'at_risk': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
 			case 'blocked': return 'text-red-600 bg-red-50 border-red-200';
-			case 'not_started': return 'text-gray-600 bg-muted dark:bg-muted border-gray-200';
-			default: return 'text-gray-600 bg-muted dark:bg-muted border-gray-200';
+			case 'not_started': return 'text-muted-foreground bg-muted dark:bg-muted border';
+			default: return 'text-muted-foreground bg-muted dark:bg-muted border';
 		}
 	}
 
@@ -60,7 +60,7 @@
 			case 'high': return 'bg-red-100 text-red-800';
 			case 'medium': return 'bg-yellow-100 text-yellow-800';
 			case 'low': return 'bg-green-100 text-green-800';
-			default: return 'bg-gray-100 text-gray-800';
+			default: return 'bg-gray-100 text-foreground';
 		}
 	}
 
@@ -71,7 +71,7 @@
 			case 'purple': return 'bg-purple-100 text-purple-800';
 			case 'orange': return 'bg-orange-100 text-orange-800';
 			case 'pink': return 'bg-pink-100 text-pink-800';
-			default: return 'bg-gray-100 text-gray-800';
+			default: return 'bg-gray-100 text-foreground';
 		}
 	}
 
@@ -118,10 +118,10 @@
 				<Target class="h-6 w-6 text-purple-600" />
 			</div>
 			<div>
-				<h1 class="text-2xl font-bold text-gray-900">
+				<h1 class="text-2xl font-bold text-foreground">
 					{isOwnGoals ? 'My Goals' : `${user?.displayName} - Goals`}
 				</h1>
-				<p class="text-gray-600">
+				<p class="text-muted-foreground">
 					{user?.departmentByDepartmentId?.name || 'No Department'} • {user?.role} • {currentQuarter.name}
 				</p>
 			</div>
@@ -143,8 +143,8 @@
 		<div class="rounded-lg bg-card p-6 shadow-sm border">
 			<div class="flex items-center justify-between">
 				<div>
-					<p class="text-sm font-medium text-gray-600">Total Goals</p>
-					<p class="text-2xl font-bold text-gray-900">{goalStats.total}</p>
+					<p class="text-sm font-medium text-muted-foreground">Total Goals</p>
+					<p class="text-2xl font-bold text-foreground">{goalStats.total}</p>
 				</div>
 				<div class="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100">
 					<Target class="h-6 w-6 text-purple-600" />
@@ -155,7 +155,7 @@
 		<div class="rounded-lg bg-card p-6 shadow-sm border">
 			<div class="flex items-center justify-between">
 				<div>
-					<p class="text-sm font-medium text-gray-600">Completed</p>
+					<p class="text-sm font-medium text-muted-foreground">Completed</p>
 					<p class="text-2xl font-bold text-green-600">{goalStats.completed}</p>
 				</div>
 				<div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
@@ -167,7 +167,7 @@
 		<div class="rounded-lg bg-card p-6 shadow-sm border">
 			<div class="flex items-center justify-between">
 				<div>
-					<p class="text-sm font-medium text-gray-600">In Progress</p>
+					<p class="text-sm font-medium text-muted-foreground">In Progress</p>
 					<p class="text-2xl font-bold text-blue-600">{goalStats.inProgress}</p>
 				</div>
 				<div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
@@ -179,8 +179,8 @@
 		<div class="rounded-lg bg-card p-6 shadow-sm border">
 			<div class="flex items-center justify-between">
 				<div>
-					<p class="text-sm font-medium text-gray-600">Avg. Progress</p>
-					<p class="text-2xl font-bold text-gray-900">{goalStats.averageProgress}%</p>
+					<p class="text-sm font-medium text-muted-foreground">Avg. Progress</p>
+					<p class="text-2xl font-bold text-foreground">{goalStats.averageProgress}%</p>
 				</div>
 				<div class="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100">
 					<TrendingUp class="h-6 w-6 text-orange-600" />
@@ -193,13 +193,13 @@
 	<div class="rounded-lg bg-card p-4 shadow-sm border">
 		<div class="flex flex-wrap gap-4">
 			<div>
-				<label for="category-filter" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="category-filter" class="block text-sm font-medium text-foreground mb-1">
 					Category
 				</label>
 				<select
 					id="category-filter"
 					bind:value={selectedCategory}
-					class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+					class="rounded-md border border-input px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
 				>
 					<option value="all">All Categories</option>
 					{#each goalCategories as category}
@@ -209,13 +209,13 @@
 			</div>
 
 			<div>
-				<label for="status-filter" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="status-filter" class="block text-sm font-medium text-foreground mb-1">
 					Status
 				</label>
 				<select
 					id="status-filter"
 					bind:value={selectedStatus}
-					class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+					class="rounded-md border border-input px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
 				>
 					<option value="all">All Statuses</option>
 					<option value="not_started">Not Started</option>
@@ -232,10 +232,10 @@
 	{#if showNewGoalForm}
 		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
 			<div class="w-full max-w-lg rounded-lg bg-card p-6 shadow-xl">
-				<h2 class="text-lg font-semibold text-gray-900 mb-4">Create New Goal</h2>
+				<h2 class="text-lg font-semibold text-foreground mb-4">Create New Goal</h2>
 				<form onsubmit={handleSubmitGoal} class="space-y-4">
 					<div>
-						<label for="goalTitle" class="block text-sm font-medium text-gray-700 mb-1">
+						<label for="goalTitle" class="block text-sm font-medium text-foreground mb-1">
 							Goal Title
 						</label>
 						<input
@@ -243,13 +243,13 @@
 							type="text"
 							bind:value={newGoal.title}
 							required
-							class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+							class="w-full rounded-md border border-input px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
 							placeholder="Enter goal title..."
 						/>
 					</div>
 
 					<div>
-						<label for="goalDescription" class="block text-sm font-medium text-gray-700 mb-1">
+						<label for="goalDescription" class="block text-sm font-medium text-foreground mb-1">
 							Description
 						</label>
 						<textarea
@@ -257,21 +257,21 @@
 							bind:value={newGoal.description}
 							rows="3"
 							required
-							class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+							class="w-full rounded-md border border-input px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
 							placeholder="Describe your goal and how you plan to achieve it..."
 						></textarea>
 					</div>
 
 					<div class="grid grid-cols-2 gap-4">
 						<div>
-							<label for="goalCategory" class="block text-sm font-medium text-gray-700 mb-1">
+							<label for="goalCategory" class="block text-sm font-medium text-foreground mb-1">
 								Category
 							</label>
 							<select
 								id="goalCategory"
 								bind:value={newGoal.categoryId}
 								required
-								class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+								class="w-full rounded-md border border-input px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
 							>
 								<option value="">Select category</option>
 								{#each goalCategories as category}
@@ -281,13 +281,13 @@
 						</div>
 
 						<div>
-							<label for="goalPriority" class="block text-sm font-medium text-gray-700 mb-1">
+							<label for="goalPriority" class="block text-sm font-medium text-foreground mb-1">
 								Priority
 							</label>
 							<select
 								id="goalPriority"
 								bind:value={newGoal.priority}
-								class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+								class="w-full rounded-md border border-input px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
 							>
 								<option value="low">Low</option>
 								<option value="medium">Medium</option>
@@ -297,7 +297,7 @@
 					</div>
 
 					<div>
-						<label for="goalTargetDate" class="block text-sm font-medium text-gray-700 mb-1">
+						<label for="goalTargetDate" class="block text-sm font-medium text-foreground mb-1">
 							Target Date
 						</label>
 						<input
@@ -305,7 +305,7 @@
 							type="date"
 							bind:value={newGoal.targetDate}
 							required
-							class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+							class="w-full rounded-md border border-input px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
 						/>
 					</div>
 
@@ -313,7 +313,7 @@
 						<button
 							type="button"
 							onclick={() => showNewGoalForm = false}
-							class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+							class="px-4 py-2 text-sm font-medium text-foreground hover:text-foreground"
 						>
 							Cancel
 						</button>
@@ -337,12 +337,12 @@
 				<div class="flex items-start justify-between mb-4">
 					<div class="flex-1">
 						<div class="flex items-center gap-2 mb-2">
-							<h3 class="text-lg font-semibold text-gray-900">{goal.title}</h3>
+							<h3 class="text-lg font-semibold text-foreground">{goal.title}</h3>
 							<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getPriorityColor(goal.priority)}">
 								{goal.priority}
 							</span>
 						</div>
-						<p class="text-sm text-gray-600 mb-3">{goal.description}</p>
+						<p class="text-sm text-muted-foreground mb-3">{goal.description}</p>
 					</div>
 				</div>
 
@@ -362,7 +362,7 @@
 
 				<!-- Progress Bar -->
 				<div class="mb-4">
-					<div class="flex items-center justify-between text-sm text-gray-600 mb-1">
+					<div class="flex items-center justify-between text-sm text-muted-foreground mb-1">
 						<span>Progress</span>
 						<span>{goal.progress}%</span>
 					</div>
@@ -377,10 +377,10 @@
 				<!-- Key Results -->
 				{#if goal.keyResults && goal.keyResults.length > 0}
 					<div class="mb-4">
-						<h4 class="text-sm font-medium text-gray-900 mb-2">Key Results</h4>
+						<h4 class="text-sm font-medium text-foreground mb-2">Key Results</h4>
 						<div class="space-y-2">
 							{#each goal.keyResults as kr}
-								<div class="text-xs text-gray-600">
+								<div class="text-xs text-muted-foreground">
 									<div class="flex items-center justify-between">
 										<span>{kr.description}</span>
 										<span>{kr.current}/{kr.target} {kr.unit}</span>
@@ -398,7 +398,7 @@
 				{/if}
 
 				<!-- Goal Footer -->
-				<div class="flex items-center justify-between text-xs text-gray-500">
+				<div class="flex items-center justify-between text-xs text-muted-foreground">
 					<div class="flex items-center gap-2">
 						<Calendar class="h-3 w-3" />
 						<span>Due: {formatDate(goal.targetDate)}</span>
@@ -407,7 +407,7 @@
 				</div>
 
 				{#if goal.assignedBy}
-					<div class="mt-2 text-xs text-gray-500">
+					<div class="mt-2 text-xs text-muted-foreground">
 						<div class="flex items-center gap-1">
 							<User class="h-3 w-3" />
 							<span>Assigned by: {goal.assignedBy.displayName}</span>
@@ -418,9 +418,9 @@
 		{:else}
 			<div class="col-span-full">
 				<div class="rounded-lg bg-card p-8 shadow-sm border text-center">
-					<Target class="h-12 w-12 text-gray-400 mx-auto mb-4" />
-					<h3 class="text-lg font-medium text-gray-900 mb-2">No goals found</h3>
-					<p class="text-gray-600 mb-4">
+					<Target class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+					<h3 class="text-lg font-medium text-foreground mb-2">No goals found</h3>
+					<p class="text-muted-foreground mb-4">
 						{selectedCategory !== 'all' || selectedStatus !== 'all'
 							? 'No goals match your current filters.'
 							: isOwnGoals

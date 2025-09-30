@@ -309,8 +309,8 @@
 		<!-- Header -->
 		<div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 			<div>
-				<h1 class="text-3xl font-bold tracking-tight text-gray-900">Leave Approvals</h1>
-				<p class="text-gray-600">Review and manage pending leave requests from your team members</p>
+				<h1 class="text-3xl font-bold tracking-tight text-foreground">Leave Approvals</h1>
+				<p class="text-muted-foreground">Review and manage pending leave requests from your team members</p>
 			</div>
 
 			{#if canViewAllLeave}
@@ -429,9 +429,9 @@
 					{#if filteredRequests.length === 0}
 						<Card>
 							<CardContent class="p-8 text-center">
-								<AlertCircle class="mx-auto mb-4 h-12 w-12 text-gray-400" />
-								<h3 class="mb-2 text-lg font-semibold text-gray-700">No requests found</h3>
-								<p class="text-gray-500">
+								<AlertCircle class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+								<h3 class="mb-2 text-lg font-semibold text-foreground">No requests found</h3>
+								<p class="text-muted-foreground">
 									{#if selectedView === 'pending'}
 										No pending leave requests at the moment.
 									{:else if selectedView === 'approved'}
@@ -461,7 +461,7 @@
 											<!-- Request Details -->
 											<div class="flex-1 space-y-2">
 												<div class="flex items-center gap-3">
-													<h3 class="text-lg font-semibold text-gray-900">
+													<h3 class="text-lg font-semibold text-foreground">
 														{request.employee?.displayName || 'Unknown Employee'}
 													</h3>
 													<Badge variant={getStatusBadgeVariant(request.status)} class="capitalize">
@@ -476,7 +476,7 @@
 													</Badge>
 												</div>
 
-												<div class="space-y-1 text-sm text-gray-600">
+												<div class="space-y-1 text-sm text-muted-foreground">
 													<p>
 														<strong>Department:</strong>
 														{request.employee?.department?.name || 'N/A'}
@@ -494,7 +494,7 @@
 													{/if}
 												</div>
 
-												<div class="text-xs text-gray-400">
+												<div class="text-xs text-muted-foreground">
 													Requested on {new Date(request.createdAt).toLocaleDateString()}
 												</div>
 											</div>

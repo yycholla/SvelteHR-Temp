@@ -55,7 +55,7 @@
 			case 'present': return 'text-green-600';
 			case 'partial': return 'text-yellow-600';
 			case 'absent': return 'text-red-600';
-			default: return 'text-gray-400';
+			default: return 'text-muted-foreground';
 		}
 	}
 
@@ -85,10 +85,10 @@
 				<Calendar class="h-6 w-6 text-blue-600" />
 			</div>
 			<div>
-				<h1 class="text-2xl font-bold text-gray-900">
+				<h1 class="text-2xl font-bold text-foreground">
 					{isOwnAttendance ? 'My Attendance' : `${user?.displayName} - Attendance`}
 				</h1>
-				<p class="text-gray-600">
+				<p class="text-muted-foreground">
 					{user?.departmentByDepartmentId?.name || 'No Department'} • {user?.role}
 				</p>
 			</div>
@@ -97,10 +97,10 @@
 		{#if isOwnAttendance}
 			<!-- Current Time & Clock Action -->
 			<div class="text-right">
-				<div class="text-lg font-semibold text-gray-900">
+				<div class="text-lg font-semibold text-foreground">
 					{format(currentTime, 'HH:mm:ss')}
 				</div>
-				<div class="text-sm text-gray-600">
+				<div class="text-sm text-muted-foreground">
 					{format(currentTime, 'EEEE, MMM dd')}
 				</div>
 				<button
@@ -122,8 +122,8 @@
 		<div class="rounded-lg bg-card p-6 shadow-sm border">
 			<div class="flex items-center justify-between">
 				<div>
-					<p class="text-sm font-medium text-gray-600">Attendance Rate</p>
-					<p class="text-2xl font-bold text-gray-900">{attendanceStats.attendanceRate}%</p>
+					<p class="text-sm font-medium text-muted-foreground">Attendance Rate</p>
+					<p class="text-2xl font-bold text-foreground">{attendanceStats.attendanceRate}%</p>
 				</div>
 				<div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
 					<TrendingUp class="h-6 w-6 text-green-600" />
@@ -134,8 +134,8 @@
 		<div class="rounded-lg bg-card p-6 shadow-sm border">
 			<div class="flex items-center justify-between">
 				<div>
-					<p class="text-sm font-medium text-gray-600">Total Days</p>
-					<p class="text-2xl font-bold text-gray-900">{attendanceStats.totalDays}</p>
+					<p class="text-sm font-medium text-muted-foreground">Total Days</p>
+					<p class="text-2xl font-bold text-foreground">{attendanceStats.totalDays}</p>
 				</div>
 				<div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
 					<Calendar class="h-6 w-6 text-blue-600" />
@@ -146,8 +146,8 @@
 		<div class="rounded-lg bg-card p-6 shadow-sm border">
 			<div class="flex items-center justify-between">
 				<div>
-					<p class="text-sm font-medium text-gray-600">Total Hours</p>
-					<p class="text-2xl font-bold text-gray-900">{attendanceStats.totalHours}h</p>
+					<p class="text-sm font-medium text-muted-foreground">Total Hours</p>
+					<p class="text-2xl font-bold text-foreground">{attendanceStats.totalHours}h</p>
 				</div>
 				<div class="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100">
 					<Clock class="h-6 w-6 text-purple-600" />
@@ -158,8 +158,8 @@
 		<div class="rounded-lg bg-card p-6 shadow-sm border">
 			<div class="flex items-center justify-between">
 				<div>
-					<p class="text-sm font-medium text-gray-600">Avg. Hours/Day</p>
-					<p class="text-2xl font-bold text-gray-900">{attendanceStats.averageHours}h</p>
+					<p class="text-sm font-medium text-muted-foreground">Avg. Hours/Day</p>
+					<p class="text-2xl font-bold text-foreground">{attendanceStats.averageHours}h</p>
 				</div>
 				<div class="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100">
 					<Clock class="h-6 w-6 text-orange-600" />
@@ -171,23 +171,23 @@
 	<!-- Today's Status (if viewing own attendance) -->
 	{#if isOwnAttendance && todayRecord}
 		<div class="rounded-lg bg-card p-6 shadow-sm border">
-			<h2 class="text-lg font-semibold text-gray-900 mb-4">Today's Status</h2>
+			<h2 class="text-lg font-semibold text-foreground mb-4">Today's Status</h2>
 			<div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
 				<div>
-					<p class="text-sm font-medium text-gray-600">Clock In</p>
-					<p class="text-lg font-semibold text-gray-900">
+					<p class="text-sm font-medium text-muted-foreground">Clock In</p>
+					<p class="text-lg font-semibold text-foreground">
 						{todayRecord.clockIn ? formatTime(todayRecord.clockIn) : 'Not clocked in'}
 					</p>
 				</div>
 				<div>
-					<p class="text-sm font-medium text-gray-600">Clock Out</p>
-					<p class="text-lg font-semibold text-gray-900">
+					<p class="text-sm font-medium text-muted-foreground">Clock Out</p>
+					<p class="text-lg font-semibold text-foreground">
 						{todayRecord.clockOut ? formatTime(todayRecord.clockOut) : 'Not clocked out'}
 					</p>
 				</div>
 				<div>
-					<p class="text-sm font-medium text-gray-600">Hours Worked</p>
-					<p class="text-lg font-semibold text-gray-900">
+					<p class="text-sm font-medium text-muted-foreground">Hours Worked</p>
+					<p class="text-lg font-semibold text-foreground">
 						{todayRecord.hoursWorked ? `${todayRecord.hoursWorked}h` : '0h'}
 					</p>
 				</div>
@@ -197,33 +197,33 @@
 
 	<!-- Attendance Records -->
 	<div class="rounded-lg bg-card shadow-sm border">
-		<div class="border-b border-gray-200 px-6 py-4">
-			<h2 class="text-lg font-semibold text-gray-900">Attendance History</h2>
+		<div class="border-b border px-6 py-4">
+			<h2 class="text-lg font-semibold text-foreground">Attendance History</h2>
 		</div>
 		<div class="overflow-hidden">
 			<div class="overflow-x-auto">
 				<table class="min-w-full divide-y divide-gray-200">
 					<thead class="bg-muted dark:bg-muted">
 						<tr>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
 								Date
 							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
 								Clock In
 							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
 								Clock Out
 							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
 								Hours
 							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
 								Status
 							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
 								Location
 							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
 								Notes
 							</th>
 						</tr>
@@ -231,16 +231,16 @@
 					<tbody class="divide-y divide-gray-200 bg-card">
 						{#each attendanceRecords as record}
 							<tr class="hover:bg-muted dark:bg-muted">
-								<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+								<td class="whitespace-nowrap px-6 py-4 text-sm text-foreground">
 									{formatDate(record.date)}
 								</td>
-								<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+								<td class="whitespace-nowrap px-6 py-4 text-sm text-foreground">
 									{record.clockIn ? formatTime(record.clockIn) : '-'}
 								</td>
-								<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+								<td class="whitespace-nowrap px-6 py-4 text-sm text-foreground">
 									{record.clockOut ? formatTime(record.clockOut) : '-'}
 								</td>
-								<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+								<td class="whitespace-nowrap px-6 py-4 text-sm text-foreground">
 									{record.hoursWorked}h
 								</td>
 								<td class="whitespace-nowrap px-6 py-4 text-sm">
@@ -257,19 +257,19 @@
 										</span>
 									</div>
 								</td>
-								<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+								<td class="whitespace-nowrap px-6 py-4 text-sm text-foreground">
 									<div class="flex items-center gap-2">
-										<MapPin class="h-4 w-4 text-gray-400" />
+										<MapPin class="h-4 w-4 text-muted-foreground" />
 										{record.location}
 									</div>
 								</td>
-								<td class="px-6 py-4 text-sm text-gray-600">
+								<td class="px-6 py-4 text-sm text-muted-foreground">
 									{record.notes || '-'}
 								</td>
 							</tr>
 						{:else}
 							<tr>
-								<td colspan="7" class="px-6 py-8 text-center text-sm text-gray-500">
+								<td colspan="7" class="px-6 py-8 text-center text-sm text-muted-foreground">
 									No attendance records found.
 								</td>
 							</tr>

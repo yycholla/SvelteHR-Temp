@@ -256,14 +256,14 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 	function getStatusBadge(status: string) {
 		const statusMap = {
 			active: { label: 'Active', color: 'bg-green-100 text-green-800' },
-			draft: { label: 'Draft', color: 'bg-gray-100 text-gray-800' },
+			draft: { label: 'Draft', color: 'bg-gray-100 text-foreground' },
 			scheduled: { label: 'Scheduled', color: 'bg-blue-100 text-blue-800' },
 			archived: { label: 'Archived', color: 'bg-red-100 text-red-800' }
 		};
 		return (
 			statusMap[status as keyof typeof statusMap] || {
 				label: status,
-				color: 'bg-gray-100 text-gray-800'
+				color: 'bg-gray-100 text-foreground'
 			}
 		);
 	}
@@ -275,10 +275,10 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 			performance: { label: 'Performance', color: 'bg-blue-100 text-blue-800' },
 			attendance: { label: 'Attendance', color: 'bg-orange-100 text-orange-800' },
 			compliance: { label: 'Compliance', color: 'bg-red-100 text-red-800' },
-			custom: { label: 'Custom', color: 'bg-gray-100 text-gray-800' }
+			custom: { label: 'Custom', color: 'bg-gray-100 text-foreground' }
 		};
 		return (
-			typeMap[type as keyof typeof typeMap] || { label: type, color: 'bg-gray-100 text-gray-800' }
+			typeMap[type as keyof typeof typeMap] || { label: type, color: 'bg-gray-100 text-foreground' }
 		);
 	}
 </script>
@@ -287,8 +287,8 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 <div class="mb-8">
 	<div class="flex items-center justify-between">
 		<div>
-			<h1 class="text-3xl font-bold text-gray-900">Reports Management</h1>
-			<p class="mt-2 text-gray-600">Generate, manage, and schedule HR reports</p>
+			<h1 class="text-3xl font-bold text-foreground">Reports Management</h1>
+			<p class="mt-2 text-muted-foreground">Generate, manage, and schedule HR reports</p>
 		</div>
 		{#if data.canCreateReports}
 			<button
@@ -303,13 +303,13 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 </div>
 
 <!-- Tab Navigation -->
-<div class="mb-6 border-b border-gray-200">
+<div class="mb-6 border-b border">
 	<nav class="flex space-x-8">
 		<button
 			onclick={() => (activeTab = 'reports')}
 			class="border-b-2 px-1 py-2 text-sm font-medium {activeTab === 'reports'
 				? 'border-blue-500 text-blue-600'
-				: 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}"
+				: 'border-transparent text-muted-foreground hover:border-input hover:text-foreground'}"
 		>
 			<FileText class="mr-2 inline h-4 w-4" />
 			Reports
@@ -319,7 +319,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 				onclick={() => (activeTab = 'analytics')}
 				class="border-b-2 px-1 py-2 text-sm font-medium {activeTab === 'analytics'
 					? 'border-blue-500 text-blue-600'
-					: 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}"
+					: 'border-transparent text-muted-foreground hover:border-input hover:text-foreground'}"
 			>
 				<BarChart3 class="mr-2 inline h-4 w-4" />
 				Analytics
@@ -333,12 +333,12 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 	<div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
 		{#each statsCards as card}
 			{@const CardIcon = card.icon}
-			<div class="rounded-lg border border-gray-200 bg-card p-6 shadow-sm">
+			<div class="rounded-lg border border bg-card p-6 shadow-sm">
 				<div class="flex items-center justify-between">
 					<div>
-						<p class="text-sm font-medium text-gray-600">{card.title}</p>
-						<p class="text-2xl font-bold text-gray-900">{card.value}</p>
-						<p class="mt-1 text-xs text-gray-500">{card.description}</p>
+						<p class="text-sm font-medium text-muted-foreground">{card.title}</p>
+						<p class="text-2xl font-bold text-foreground">{card.value}</p>
+						<p class="mt-1 text-xs text-muted-foreground">{card.description}</p>
 					</div>
 					<div class="p-3 bg-{card.color}-100 rounded-lg">
 						<CardIcon class="h-6 w-6 text-{card.color}-600" />
@@ -349,26 +349,26 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 	</div>
 
 	<!-- Filters -->
-	<div class="mb-8 rounded-lg border border-gray-200 bg-card p-6 shadow-sm">
+	<div class="mb-8 rounded-lg border border bg-card p-6 shadow-sm">
 		<div class="mb-4 flex items-center gap-4">
 			<div class="flex-1">
 				<label for="search" class="sr-only">Search reports</label>
 				<div class="relative">
 					<Search
-						class="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400"
+						class="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-muted-foreground"
 					/>
 					<input
 						id="search"
 						type="text"
 						bind:value={searchQuery}
 						placeholder="Search reports..."
-						class="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 focus:border-transparent focus:ring-2 focus:ring-blue-500"
+						class="w-full rounded-lg border border-input py-2 pl-10 pr-4 focus:border-transparent focus:ring-2 focus:ring-blue-500"
 					/>
 				</div>
 			</div>
 			<select
 				bind:value={typeFilter}
-				class="rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
+				class="rounded-lg border border-input px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
 			>
 				<option value="">All Types</option>
 				{#each REPORT_TYPES as type}
@@ -377,7 +377,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 			</select>
 			<select
 				bind:value={categoryFilter}
-				class="rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
+				class="rounded-lg border border-input px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
 			>
 				<option value="">All Categories</option>
 				{#each REPORT_CATEGORIES as category}
@@ -386,7 +386,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 			</select>
 			<select
 				bind:value={statusFilter}
-				class="rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
+				class="rounded-lg border border-input px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
 			>
 				<option value="">All Statuses</option>
 				{#each REPORT_STATUSES as status}
@@ -406,7 +406,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 				</button>
 				<button
 					onclick={clearFilters}
-					class="inline-flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-gray-700 hover:bg-gray-200"
+					class="inline-flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-foreground hover:bg-gray-200"
 				>
 					<X class="h-4 w-4" />
 					Clear
@@ -415,7 +415,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 
 			{#if selectedReports.length > 0}
 				<div class="flex items-center gap-4">
-					<span class="text-sm text-gray-600">{selectedReports.length} selected</span>
+					<span class="text-sm text-muted-foreground">{selectedReports.length} selected</span>
 					<div class="flex gap-2">
 						{#if data.canRunReports}
 							<button class="rounded bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-700">
@@ -432,7 +432,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 	</div>
 
 	<!-- Reports Table -->
-	<div class="overflow-hidden rounded-lg border border-gray-200 bg-card shadow-sm">
+	<div class="overflow-hidden rounded-lg border border bg-card shadow-sm">
 		<div class="overflow-x-auto">
 			<table class="min-w-full divide-y divide-gray-200">
 				<thead class="bg-muted dark:bg-muted">
@@ -440,7 +440,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 						<th class="px-6 py-3 text-left">
 							<input
 								type="checkbox"
-								class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+								class="rounded border-input text-blue-600 focus:ring-blue-500"
 								checked={selectedReports.length === reports.length && reports.length > 0}
 								indeterminate={selectedReports.length > 0 &&
 									selectedReports.length < reports.length}
@@ -449,7 +449,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 						</th>
 						{#each tableColumns as column}
 							<th
-								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
 							>
 								{column.label}
 							</th>
@@ -464,7 +464,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 							<td class="px-6 py-4">
 								<input
 									type="checkbox"
-									class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+									class="rounded border-input text-blue-600 focus:ring-blue-500"
 									checked={selectedReports.includes(report.id)}
 									onchange={() => toggleReportSelection(report.id)}
 								/>
@@ -472,9 +472,9 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 							<td class="px-6 py-4">
 								<div class="flex items-center">
 									<div class="ml-4">
-										<div class="text-sm font-medium text-gray-900">{report.title}</div>
+										<div class="text-sm font-medium text-foreground">{report.title}</div>
 										{#if report.description}
-											<div class="text-sm text-gray-500">{report.description}</div>
+											<div class="text-sm text-muted-foreground">{report.description}</div>
 										{/if}
 									</div>
 								</div>
@@ -487,7 +487,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 								</span>
 							</td>
 							<td class="px-6 py-4">
-								<span class="text-sm capitalize text-gray-900">{report.category}</span>
+								<span class="text-sm capitalize text-foreground">{report.category}</span>
 							</td>
 							<td class="px-6 py-4">
 								<span
@@ -496,13 +496,13 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 									{statusBadge.label}
 								</span>
 							</td>
-							<td class="px-6 py-4 text-sm text-gray-900">
+							<td class="px-6 py-4 text-sm text-foreground">
 								{report.department || 'All'}
 							</td>
-							<td class="px-6 py-4 text-sm text-gray-900">
+							<td class="px-6 py-4 text-sm text-foreground">
 								{report.generatedCount}
 							</td>
-							<td class="px-6 py-4 text-sm text-gray-900">
+							<td class="px-6 py-4 text-sm text-foreground">
 								{formatDate(report.lastRunAt)}
 							</td>
 							<td class="px-6 py-4">
@@ -545,9 +545,9 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 
 		{#if reports.length === 0}
 			<div class="py-12 text-center">
-				<FileText class="mx-auto mb-4 h-12 w-12 text-gray-400" />
-				<h3 class="mb-2 text-lg font-medium text-gray-900">No reports found</h3>
-				<p class="mb-4 text-gray-500">Get started by creating your first report.</p>
+				<FileText class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+				<h3 class="mb-2 text-lg font-medium text-foreground">No reports found</h3>
+				<p class="mb-4 text-muted-foreground">Get started by creating your first report.</p>
 				{#if data.canCreateReports}
 					<button
 						onclick={handleCreateReport}
@@ -564,42 +564,42 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 	<!-- Analytics Dashboard -->
 	<div class="space-y-8">
 		<!-- Performance Metrics -->
-		<div class="rounded-lg border border-gray-200 bg-card p-6 shadow-sm">
-			<h3 class="mb-6 text-lg font-semibold text-gray-900">Performance Metrics</h3>
+		<div class="rounded-lg border border bg-card p-6 shadow-sm">
+			<h3 class="mb-6 text-lg font-semibold text-foreground">Performance Metrics</h3>
 			<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
 				<div class="text-center">
 					<div class="text-2xl font-bold text-green-600">
 						{reportAnalytics.performanceMetrics.successRate}%
 					</div>
-					<div class="text-sm text-gray-600">Success Rate</div>
+					<div class="text-sm text-muted-foreground">Success Rate</div>
 				</div>
 				<div class="text-center">
 					<div class="text-2xl font-bold text-blue-600">
 						{reportAnalytics.performanceMetrics.avgExecutionTime}s
 					</div>
-					<div class="text-sm text-gray-600">Avg Execution Time</div>
+					<div class="text-sm text-muted-foreground">Avg Execution Time</div>
 				</div>
 				<div class="text-center">
 					<div class="text-2xl font-bold text-purple-600">
 						{reportAnalytics.performanceMetrics.totalExecutionTime}s
 					</div>
-					<div class="text-sm text-gray-600">Total Execution Time</div>
+					<div class="text-sm text-muted-foreground">Total Execution Time</div>
 				</div>
 			</div>
 		</div>
 
 		<!-- Type Breakdown -->
-		<div class="rounded-lg border border-gray-200 bg-card p-6 shadow-sm">
-			<h3 class="mb-6 text-lg font-semibold text-gray-900">Report Type Distribution</h3>
+		<div class="rounded-lg border border bg-card p-6 shadow-sm">
+			<h3 class="mb-6 text-lg font-semibold text-foreground">Report Type Distribution</h3>
 			<div class="space-y-4">
 				{#each reportAnalytics.typeBreakdown as type}
 					<div class="flex items-center justify-between">
-						<span class="text-sm font-medium capitalize text-gray-900">{type.type}</span>
+						<span class="text-sm font-medium capitalize text-foreground">{type.type}</span>
 						<div class="flex items-center gap-4">
 							<div class="h-2 w-32 rounded-full bg-gray-200">
 								<div class="h-2 rounded-full bg-blue-600" style="width: {type.percentage}%"></div>
 							</div>
-							<span class="w-12 text-right text-sm text-gray-600">{type.count}</span>
+							<span class="w-12 text-right text-sm text-muted-foreground">{type.count}</span>
 						</div>
 					</div>
 				{/each}
@@ -607,18 +607,18 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 		</div>
 
 		<!-- Popular Reports -->
-		<div class="rounded-lg border border-gray-200 bg-card p-6 shadow-sm">
-			<h3 class="mb-6 text-lg font-semibold text-gray-900">Most Popular Reports</h3>
+		<div class="rounded-lg border border bg-card p-6 shadow-sm">
+			<h3 class="mb-6 text-lg font-semibold text-foreground">Most Popular Reports</h3>
 			<div class="space-y-4">
 				{#each reportAnalytics.popularReports as report}
 					<div class="flex items-center justify-between rounded-lg bg-muted dark:bg-muted p-4">
 						<div>
-							<div class="font-medium text-gray-900">{report.title}</div>
-							<div class="text-sm text-gray-600">Last run: {formatDate(report.lastRun)}</div>
+							<div class="font-medium text-foreground">{report.title}</div>
+							<div class="text-sm text-muted-foreground">Last run: {formatDate(report.lastRun)}</div>
 						</div>
 						<div class="text-right">
 							<div class="text-lg font-semibold text-blue-600">{report.runCount}</div>
-							<div class="text-sm text-gray-600">runs</div>
+							<div class="text-sm text-muted-foreground">runs</div>
 						</div>
 					</div>
 				{/each}
@@ -626,15 +626,15 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 		</div>
 
 		<!-- Department Usage -->
-		<div class="rounded-lg border border-gray-200 bg-card p-6 shadow-sm">
-			<h3 class="mb-6 text-lg font-semibold text-gray-900">Department Usage</h3>
+		<div class="rounded-lg border border bg-card p-6 shadow-sm">
+			<h3 class="mb-6 text-lg font-semibold text-foreground">Department Usage</h3>
 			<div class="space-y-4">
 				{#each reportAnalytics.departmentUsage as dept}
 					<div class="flex items-center justify-between">
-						<span class="text-sm font-medium text-gray-900">{dept.department}</span>
+						<span class="text-sm font-medium text-foreground">{dept.department}</span>
 						<div class="flex items-center gap-4">
-							<span class="text-sm text-gray-600">{dept.reportCount} reports</span>
-							<span class="text-xs text-gray-500">Last: {formatDate(dept.lastActivity)}</span>
+							<span class="text-sm text-muted-foreground">{dept.reportCount} reports</span>
+							<span class="text-xs text-muted-foreground">Last: {formatDate(dept.lastActivity)}</span>
 						</div>
 					</div>
 				{/each}
@@ -658,40 +658,40 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 				class="inline-block transform overflow-hidden rounded-lg bg-card text-left align-bottom shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:align-middle"
 			>
 				<div class="bg-card px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-					<h3 class="mb-4 text-lg font-medium text-gray-900">Create New Report</h3>
+					<h3 class="mb-4 text-lg font-medium text-foreground">Create New Report</h3>
 
 					<div class="space-y-4">
 						<div>
-							<label for="title" class="block text-sm font-medium text-gray-700">Title</label>
+							<label for="title" class="block text-sm font-medium text-foreground">Title</label>
 							<input
 								id="title"
 								type="text"
 								bind:value={createForm.title}
-								class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+								class="mt-1 block w-full rounded-md border-input shadow-sm focus:border-blue-500 focus:ring-blue-500"
 								placeholder="Enter report title"
 							/>
 						</div>
 
 						<div>
-							<label for="description" class="block text-sm font-medium text-gray-700"
+							<label for="description" class="block text-sm font-medium text-foreground"
 								>Description</label
 							>
 							<textarea
 								id="description"
 								bind:value={createForm.description}
 								rows="3"
-								class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+								class="mt-1 block w-full rounded-md border-input shadow-sm focus:border-blue-500 focus:ring-blue-500"
 								placeholder="Enter report description"
 							></textarea>
 						</div>
 
 						<div class="grid grid-cols-2 gap-4">
 							<div>
-								<label for="reportType" class="block text-sm font-medium text-gray-700">Type</label>
+								<label for="reportType" class="block text-sm font-medium text-foreground">Type</label>
 								<select
 									id="reportType"
 									bind:value={createForm.reportType}
-									class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+									class="mt-1 block w-full rounded-md border-input shadow-sm focus:border-blue-500 focus:ring-blue-500"
 								>
 									{#each REPORT_TYPES as type}
 										<option value={type.value}>{type.label}</option>
@@ -700,13 +700,13 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 							</div>
 
 							<div>
-								<label for="category" class="block text-sm font-medium text-gray-700"
+								<label for="category" class="block text-sm font-medium text-foreground"
 									>Category</label
 								>
 								<select
 									id="category"
 									bind:value={createForm.category}
-									class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+									class="mt-1 block w-full rounded-md border-input shadow-sm focus:border-blue-500 focus:ring-blue-500"
 								>
 									{#each REPORT_CATEGORIES as category}
 										<option value={category.value}>{category.label}</option>
@@ -727,7 +727,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 					<button
 						type="button"
 						onclick={closeModals}
-						class="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-card px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-muted dark:bg-muted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:ml-3 sm:mt-0 sm:w-auto sm:text-sm"
+						class="mt-3 inline-flex w-full justify-center rounded-md border border-input bg-card px-4 py-2 text-base font-medium text-foreground shadow-sm hover:bg-muted dark:bg-muted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:ml-3 sm:mt-0 sm:w-auto sm:text-sm"
 					>
 						Cancel
 					</button>
@@ -754,8 +754,8 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 			>
 				<div class="bg-card px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
 					<div class="mb-4 flex items-center justify-between">
-						<h3 class="text-lg font-medium text-gray-900">{selectedReport.title}</h3>
-						<button onclick={closeModals} class="text-gray-400 hover:text-gray-600">
+						<h3 class="text-lg font-medium text-foreground">{selectedReport.title}</h3>
+						<button onclick={closeModals} class="text-muted-foreground hover:text-muted-foreground">
 							<X class="h-6 w-6" />
 						</button>
 					</div>
@@ -763,15 +763,15 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 					<div class="space-y-4">
 						<div class="grid grid-cols-2 gap-4">
 							<div>
-								<dt class="text-sm font-medium text-gray-500">Type</dt>
-								<dd class="mt-1 text-sm capitalize text-gray-900">{selectedReport.reportType}</dd>
+								<dt class="text-sm font-medium text-muted-foreground">Type</dt>
+								<dd class="mt-1 text-sm capitalize text-foreground">{selectedReport.reportType}</dd>
 							</div>
 							<div>
-								<dt class="text-sm font-medium text-gray-500">Category</dt>
-								<dd class="mt-1 text-sm capitalize text-gray-900">{selectedReport.category}</dd>
+								<dt class="text-sm font-medium text-muted-foreground">Category</dt>
+								<dd class="mt-1 text-sm capitalize text-foreground">{selectedReport.category}</dd>
 							</div>
 							<div>
-								<dt class="text-sm font-medium text-gray-500">Status</dt>
+								<dt class="text-sm font-medium text-muted-foreground">Status</dt>
 								<dd class="mt-1">
 									<span
 										class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {viewStatusBadge.color}"
@@ -781,32 +781,32 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 								</dd>
 							</div>
 							<div>
-								<dt class="text-sm font-medium text-gray-500">Generated Count</dt>
-								<dd class="mt-1 text-sm text-gray-900">{selectedReport.generatedCount}</dd>
+								<dt class="text-sm font-medium text-muted-foreground">Generated Count</dt>
+								<dd class="mt-1 text-sm text-foreground">{selectedReport.generatedCount}</dd>
 							</div>
 						</div>
 
 						{#if selectedReport.description}
 							<div>
-								<dt class="text-sm font-medium text-gray-500">Description</dt>
-								<dd class="mt-1 text-sm text-gray-900">{selectedReport.description}</dd>
+								<dt class="text-sm font-medium text-muted-foreground">Description</dt>
+								<dd class="mt-1 text-sm text-foreground">{selectedReport.description}</dd>
 							</div>
 						{/if}
 
 						<div class="grid grid-cols-2 gap-4">
 							<div>
-								<dt class="text-sm font-medium text-gray-500">Created</dt>
-								<dd class="mt-1 text-sm text-gray-900">{formatDate(selectedReport.createdAt)}</dd>
+								<dt class="text-sm font-medium text-muted-foreground">Created</dt>
+								<dd class="mt-1 text-sm text-foreground">{formatDate(selectedReport.createdAt)}</dd>
 							</div>
 							<div>
-								<dt class="text-sm font-medium text-gray-500">Last Run</dt>
-								<dd class="mt-1 text-sm text-gray-900">{formatDate(selectedReport.lastRunAt)}</dd>
+								<dt class="text-sm font-medium text-muted-foreground">Last Run</dt>
+								<dd class="mt-1 text-sm text-foreground">{formatDate(selectedReport.lastRunAt)}</dd>
 							</div>
 						</div>
 
 						<div>
-							<dt class="text-sm font-medium text-gray-500">Created By</dt>
-							<dd class="mt-1 text-sm text-gray-900">{selectedReport.createdBy.displayName}</dd>
+							<dt class="text-sm font-medium text-muted-foreground">Created By</dt>
+							<dd class="mt-1 text-sm text-foreground">{selectedReport.createdBy.displayName}</dd>
 						</div>
 					</div>
 				</div>
@@ -822,7 +822,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 					{#if data.canRunReports}
 						<button
 							onclick={() => handleRunReport(selectedReport)}
-							class="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-card px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-muted dark:bg-muted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:ml-3 sm:mt-0 sm:w-auto sm:text-sm"
+							class="mt-3 inline-flex w-full justify-center rounded-md border border-input bg-card px-4 py-2 text-base font-medium text-foreground shadow-sm hover:bg-muted dark:bg-muted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:ml-3 sm:mt-0 sm:w-auto sm:text-sm"
 						>
 							<RotateCcw class="mr-2 h-4 w-4" />
 							Run Report

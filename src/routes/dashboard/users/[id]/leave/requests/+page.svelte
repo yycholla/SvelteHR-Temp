@@ -36,9 +36,9 @@
 		switch (status) {
 			case 'approved': return 'text-green-600 bg-green-50 border-green-200';
 			case 'rejected': return 'text-red-600 bg-red-50 border-red-200';
-			case 'cancelled': return 'text-gray-600 bg-muted dark:bg-muted border-gray-200';
+			case 'cancelled': return 'text-muted-foreground bg-muted dark:bg-muted border';
 			case 'pending': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-			default: return 'text-gray-600 bg-muted dark:bg-muted border-gray-200';
+			default: return 'text-muted-foreground bg-muted dark:bg-muted border';
 		}
 	}
 
@@ -48,8 +48,8 @@
 			case 'red': return 'bg-red-100 text-red-800';
 			case 'green': return 'bg-green-100 text-green-800';
 			case 'purple': return 'bg-purple-100 text-purple-800';
-			case 'gray': return 'bg-gray-100 text-gray-800';
-			default: return 'bg-gray-100 text-gray-800';
+			case 'gray': return 'bg-gray-100 text-foreground';
+			default: return 'bg-gray-100 text-foreground';
 		}
 	}
 
@@ -98,10 +98,10 @@
 				<Calendar class="h-6 w-6 text-green-600" />
 			</div>
 			<div>
-				<h1 class="text-2xl font-bold text-gray-900">
+				<h1 class="text-2xl font-bold text-foreground">
 					{isOwnLeave ? 'My Leave Requests' : `${user?.displayName} - Leave Requests`}
 				</h1>
-				<p class="text-gray-600">
+				<p class="text-muted-foreground">
 					{user?.departmentByDepartmentId?.name || 'No Department'} • {user?.role}
 				</p>
 			</div>
@@ -131,20 +131,20 @@
 				</div>
 				<div class="space-y-2">
 					<div class="flex justify-between text-sm">
-						<span class="text-gray-600">Allocated:</span>
+						<span class="text-muted-foreground">Allocated:</span>
 						<span class="font-medium">{balance.allocated} days</span>
 					</div>
 					<div class="flex justify-between text-sm">
-						<span class="text-gray-600">Used:</span>
+						<span class="text-muted-foreground">Used:</span>
 						<span class="font-medium text-red-600">{balance.used} days</span>
 					</div>
 					<div class="flex justify-between text-sm">
-						<span class="text-gray-600">Pending:</span>
+						<span class="text-muted-foreground">Pending:</span>
 						<span class="font-medium text-yellow-600">{balance.pending} days</span>
 					</div>
 					<div class="border-t pt-2">
 						<div class="flex justify-between text-sm font-semibold">
-							<span class="text-gray-900">Remaining:</span>
+							<span class="text-foreground">Remaining:</span>
 							<span class="text-green-600">{balance.remaining} days</span>
 						</div>
 					</div>
@@ -157,17 +157,17 @@
 	{#if showNewRequestForm}
 		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
 			<div class="w-full max-w-md rounded-lg bg-card p-6 shadow-xl">
-				<h2 class="text-lg font-semibold text-gray-900 mb-4">New Leave Request</h2>
+				<h2 class="text-lg font-semibold text-foreground mb-4">New Leave Request</h2>
 				<form onsubmit={handleSubmitRequest} class="space-y-4">
 					<div>
-						<label for="leaveType" class="block text-sm font-medium text-gray-700 mb-1">
+						<label for="leaveType" class="block text-sm font-medium text-foreground mb-1">
 							Leave Type
 						</label>
 						<select
 							id="leaveType"
 							bind:value={newRequest.leaveTypeId}
 							required
-							class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+							class="w-full rounded-md border border-input px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
 						>
 							<option value="">Select leave type</option>
 							{#each leaveTypes as type}
@@ -178,7 +178,7 @@
 
 					<div class="grid grid-cols-2 gap-4">
 						<div>
-							<label for="startDate" class="block text-sm font-medium text-gray-700 mb-1">
+							<label for="startDate" class="block text-sm font-medium text-foreground mb-1">
 								Start Date
 							</label>
 							<input
@@ -186,11 +186,11 @@
 								type="date"
 								bind:value={newRequest.startDate}
 								required
-								class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+								class="w-full rounded-md border border-input px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
 							/>
 						</div>
 						<div>
-							<label for="endDate" class="block text-sm font-medium text-gray-700 mb-1">
+							<label for="endDate" class="block text-sm font-medium text-foreground mb-1">
 								End Date
 							</label>
 							<input
@@ -198,13 +198,13 @@
 								type="date"
 								bind:value={newRequest.endDate}
 								required
-								class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+								class="w-full rounded-md border border-input px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
 							/>
 						</div>
 					</div>
 
 					<div>
-						<label for="reason" class="block text-sm font-medium text-gray-700 mb-1">
+						<label for="reason" class="block text-sm font-medium text-foreground mb-1">
 							Reason
 						</label>
 						<textarea
@@ -212,7 +212,7 @@
 							bind:value={newRequest.reason}
 							rows="3"
 							required
-							class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+							class="w-full rounded-md border border-input px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
 							placeholder="Please provide a reason for your leave request..."
 						></textarea>
 					</div>
@@ -221,7 +221,7 @@
 						<button
 							type="button"
 							onclick={() => showNewRequestForm = false}
-							class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+							class="px-4 py-2 text-sm font-medium text-foreground hover:text-foreground"
 						>
 							Cancel
 						</button>
@@ -239,34 +239,34 @@
 
 	<!-- Leave Requests -->
 	<div class="rounded-lg bg-card shadow-sm border">
-		<div class="border-b border-gray-200 px-6 py-4">
-			<h2 class="text-lg font-semibold text-gray-900">Leave History</h2>
+		<div class="border-b border px-6 py-4">
+			<h2 class="text-lg font-semibold text-foreground">Leave History</h2>
 		</div>
 		<div class="overflow-hidden">
 			<div class="overflow-x-auto">
 				<table class="min-w-full divide-y divide-gray-200">
 					<thead class="bg-muted dark:bg-muted">
 						<tr>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
 								Leave Type
 							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
 								Dates
 							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
 								Days
 							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
 								Status
 							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
 								Requested
 							</th>
-							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
 								Reason
 							</th>
 							{#if isOwnLeave}
-								<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+								<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
 									Actions
 								</th>
 							{/if}
@@ -280,10 +280,10 @@
 										{request.leaveType.name}
 									</span>
 								</td>
-								<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+								<td class="whitespace-nowrap px-6 py-4 text-sm text-foreground">
 									{formatDateRange(request.startDate, request.endDate)}
 								</td>
-								<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+								<td class="whitespace-nowrap px-6 py-4 text-sm text-foreground">
 									{request.totalDays} {request.totalDays === 1 ? 'day' : 'days'}
 								</td>
 								<td class="whitespace-nowrap px-6 py-4 text-sm">
@@ -297,10 +297,10 @@
 										</span>
 									</div>
 								</td>
-								<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
+								<td class="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
 									{formatDate(request.requestedAt)}
 								</td>
-								<td class="px-6 py-4 text-sm text-gray-600 max-w-xs">
+								<td class="px-6 py-4 text-sm text-muted-foreground max-w-xs">
 									<div class="truncate" title={request.reason}>
 										{request.reason}
 									</div>
@@ -320,14 +320,14 @@
 												Cancel
 											</button>
 										{:else}
-											<span class="text-gray-400">—</span>
+											<span class="text-muted-foreground">—</span>
 										{/if}
 									</td>
 								{/if}
 							</tr>
 						{:else}
 							<tr>
-								<td colspan={isOwnLeave ? "7" : "6"} class="px-6 py-8 text-center text-sm text-gray-500">
+								<td colspan={isOwnLeave ? "7" : "6"} class="px-6 py-8 text-center text-sm text-muted-foreground">
 									No leave requests found.
 								</td>
 							</tr>
