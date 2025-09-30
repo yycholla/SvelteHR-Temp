@@ -14,7 +14,7 @@ export interface AnyVariables {
 export interface OperationContext {
 	url: string;
 	fetchOptions?: RequestInit;
-	fetch?: Function;
+	fetch?: typeof fetch;
 	preferGetMethod?: boolean;
 	requestPolicy?: 'cache-first' | 'cache-and-network' | 'network-only' | 'cache-only';
 	pollInterval?: number;

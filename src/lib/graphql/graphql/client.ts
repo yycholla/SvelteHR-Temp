@@ -198,7 +198,7 @@ export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string) => 
 			enableCacheTracking: true,
 			enableComplexityAnalysis: true
 		}),
-		fetchFn ? fetchExchange.bind(null, fetchFn) : fetchExchange
+		fetchExchange
 	];
 
 	// Add subscription exchange for browser environment (disabled for PostGraphile)
@@ -220,6 +220,7 @@ export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string) => 
 	return new Client({
 		url: POSTGRAPHILE_GRAPHQL_URL,
 		exchanges,
+		fetch: fetchFn,
 		fetchOptions: () => {
 			return {
 				method: 'POST',
@@ -314,8 +315,7 @@ if (browser) {
 }
 
 // Export types for TypeScript support
-export type { Client, CombinedError } from '@urql/core';
-export type { Operation, OperationResult, Exchange } from '../types/urql.js';
+export type { Client, CombinedError, Operation, OperationResult } from '@urql/core';
 
 // Export common query/mutation helpers
 export const executeQuery = async (client: Client, query: string, variables?: any) => {
