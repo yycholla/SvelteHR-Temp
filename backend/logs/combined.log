@@ -424,3 +424,5 @@
 {"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-30T19:17:15.047Z","url":"/graphql","userAgent":"node"}
 {"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-30T19:18:16.166Z","url":"/graphql","userAgent":"node"}
 {"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-30T19:19:20.407Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-30T19:44:22.253Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-30T19:45:18.538Z","url":"/graphql","userAgent":"node"}

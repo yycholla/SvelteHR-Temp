@@ -4,7 +4,7 @@
 	import { Plus, Search, Filter, Edit, Trash2, UserCheck, UserX } from 'lucide-svelte';
 	import { createUrqlClient } from '$lib/graphql/client';
 
-	export let data;
+	let { data } = $props();
 
 	let showCreateModal = $state(false);
 	let showEditModal = $state(false);
