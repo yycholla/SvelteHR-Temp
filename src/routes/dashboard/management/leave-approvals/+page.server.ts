@@ -20,13 +20,14 @@ export const load: PageServerLoad = async (event) => {
 	// Create user session from server locals
 	const userSession = createUserSession({
 		userId: locals.user.id,
-		userEmail: locals.user.email,
-		displayName: locals.user.display_name || locals.user.email,
-		role: locals.user.role || 'employee',
+		jwtToken: cookies.get('hr_token') || '',
+		roles: [locals.user.role || 'employee'],
 		permissions: locals.permissions || [],
-		accessToken: cookies.get('hr_token') || '',
-		tokenExpiry: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes from now
-		isValid: true
+		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes from now
+		metadata: {
+			userEmail: locals.user.email,
+			displayName: locals.user.display_name || locals.user.email
+		}
 	});
 
 	// Extract search parameters from URL
@@ -63,13 +64,53 @@ export const load: PageServerLoad = async (event) => {
 	});
 
 	try {
+		// Fetch user's managed department for managers (admins see all)
+		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
+		const graphqlEndpoint = getGraphQLEndpoint();
+
+		let managedDepartmentId: string | null = null;
+		let isAdmin = locals.roles?.includes('admin') || userSession.role === 'admin';
+
+		// For managers, get their managed department
+		if (!isAdmin && (locals.roles?.includes('manager') || userSession.role === 'manager')) {
+			const deptResponse = await fetch(graphqlEndpoint, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					query: `
+						query GetManagerDepartment($userId: UUID!) {
+							userById(id: $userId) {
+								id
+								departmentByDepartmentId {
+									id
+									name
+									managerId
+								}
+							}
+						}
+					`,
+					variables: { userId: userSession.userId }
+				})
+			});
+
+			const deptData = await deptResponse.json();
+			const userDept = deptData?.data?.userById?.departmentByDepartmentId;
+
+			// Only set managedDepartmentId if user is actually the manager of their department
+			if (userDept && userDept.managerId === userSession.userId) {
+				managedDepartmentId = userDept.id;
+			}
+		}
+
 		// Create leave management operations instance
 		const leaveOps = createLeaveManagementOperations(null); // We'll pass the GraphQL client reference
 
 		// Load leave requests data using standardized operations
+		// For managers, filter by their department; admins see all
 		const leaveRequestsData = await leaveOps.getPendingLeaveRequests({
 			filter: {
-				managerId: userSession.userId,
+				managerId: isAdmin ? undefined : userSession.userId, // Admins see all, managers see their team
+				departmentId: managedDepartmentId || undefined, // Filter by department for managers
 				status: statusFilter,
 				searchTerm,
 				leaveType: leaveTypeFilter || undefined,
@@ -82,9 +123,9 @@ export const load: PageServerLoad = async (event) => {
 			},
 			userCredentials: {
 				userId: userSession.userId,
-				userEmail: userSession.userEmail,
-				role: userSession.role,
-				accessToken: userSession.accessToken
+				userEmail: userSession.metadata.userEmail,
+				role: userSession.roles[0] || 'employee',
+				accessToken: userSession.jwtToken
 			}
 		});
 
@@ -93,9 +134,9 @@ export const load: PageServerLoad = async (event) => {
 			managerId: userSession.userId,
 			userCredentials: {
 				userId: userSession.userId,
-				userEmail: userSession.userEmail,
-				role: userSession.role,
-				accessToken: userSession.accessToken
+				userEmail: userSession.metadata.userEmail,
+				role: userSession.roles[0] || 'employee',
+				accessToken: userSession.jwtToken
 			}
 		});
 
@@ -125,6 +166,14 @@ export const load: PageServerLoad = async (event) => {
 				page,
 				limit
 			},
+			// Team/Department context for managers
+			managedDepartmentId,
+			isAdmin,
+			// T019: Permission flags aligned with component expectations
+			canApproveLeave: userPermissions.canManageLeave, // Alias for component compatibility
+			canViewAllLeave: isAdmin, // Admins can view all departments
+			canApproveManagedTeamRequests: !!managedDepartmentId, // T019 required flag name
+			canApproveManagedTeam: !!managedDepartmentId, // Legacy compatibility
 			// RBAC: Standardized permission checks
 			...userPermissions,
 			loadedAt: new Date().toISOString()

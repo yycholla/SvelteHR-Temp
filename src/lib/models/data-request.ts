@@ -228,12 +228,19 @@ export class DataRequest<TVariables = Record<string, unknown>, TData = unknown> 
 	 */
 	toContract(): DataRequestContract<TVariables> {
 		return {
-			operation: this.operationName,
+			id: this.id,
+			operationName: this.operationName,
 			variables: this.variables,
-			timeoutMs: this.timeoutMs,
-			maxRetries: 3, // Always 3 as per specification
-			cachePolicy: 'cache-first', // Default policy
-			cacheTtlMinutes: 30 // Default to maximum allowed TTL
+			userCredentials: {
+				...this.userCredentials,
+				id: this.userCredentials.userId,
+				lastActivity: new Date()
+			} as any,
+			status: this._status as any,
+			retryAttempts: this._retryAttempts,
+			createdAt: new Date(this.createdAt),
+			completedAt: this._completedAt ? new Date(this._completedAt) : null,
+			timeoutMs: this.timeoutMs
 		};
 	}
 

@@ -20,13 +20,14 @@ export const load: PageServerLoad = async (event) => {
 	// Create user session from server locals
 	const userSession = createUserSession({
 		userId: locals.user.id,
-		userEmail: locals.user.email,
-		displayName: locals.user.display_name || locals.user.email,
-		role: locals.user.role || 'employee',
+		jwtToken: cookies.get('hr_token') || '',
+		roles: [locals.user.role || 'employee'],
 		permissions: locals.permissions || [],
-		accessToken: cookies.get('hr_token') || '',
-		tokenExpiry: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes from now
-		isValid: true
+		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes from now
+		metadata: {
+			userEmail: locals.user.email,
+			displayName: locals.user.display_name || locals.user.email
+		}
 	});
 
 	// Extract search parameters from URL
@@ -65,10 +66,55 @@ export const load: PageServerLoad = async (event) => {
 	});
 
 	try {
+		// Fetch user's managed department for managers (admins see all)
+		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
+		const graphqlEndpoint = getGraphQLEndpoint();
+
+		let managedDepartmentId: string | null = null;
+		let isAdmin = locals.roles?.includes('admin') || userSession.role === 'admin';
+
+		// For managers, get their managed department
+		if (!isAdmin && (locals.roles?.includes('manager') || userSession.role === 'manager')) {
+			const deptResponse = await fetch(graphqlEndpoint, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					query: `
+						query GetManagerDepartment($userId: UUID!) {
+							userById(id: $userId) {
+								id
+								departmentByDepartmentId {
+									id
+									name
+									managerId
+								}
+							}
+						}
+					`,
+					variables: { userId: userSession.userId }
+				})
+			});
+
+			const deptData = await deptResponse.json();
+			const userDept = deptData?.data?.userById?.departmentByDepartmentId;
+
+			// Only set managedDepartmentId if user is actually the manager of their department
+			if (userDept && userDept.managerId === userSession.userId) {
+				managedDepartmentId = userDept.id;
+			}
+		}
+
 		// Create goals and OKRs operations instance
 		const goalsOps = createGoalsOKROperations(null); // We'll pass the GraphQL client reference
 
 		// Load team goals data using standardized operations
+		// For managers, filter by their department; admins see all
+		// Determine which department to filter by
+		let filterDepartmentId: string | undefined = undefined;
+		if (!isAdmin && managedDepartmentId) {
+			filterDepartmentId = managedDepartmentId;
+		}
+
 		const goalsData = await goalsOps.getTeamGoals({
 			first: limit,
 			offset: (page - 1) * limit,
@@ -78,14 +124,15 @@ export const load: PageServerLoad = async (event) => {
 				priority: priorityFilter || undefined,
 				searchTerm: searchTerm || undefined,
 				quarter: quarterFilter || undefined,
+				departmentId: filterDepartmentId,
 				year: yearFilter || undefined
 			},
 			orderBy: ['CREATED_AT_DESC'],
 			userCredentials: {
 				userId: userSession.userId,
-				userEmail: userSession.userEmail,
-				role: userSession.role,
-				accessToken: userSession.accessToken
+				userEmail: userSession.metadata.userEmail,
+				role: userSession.roles[0] || 'employee',
+				accessToken: userSession.jwtToken
 			}
 		});
 
@@ -96,9 +143,9 @@ export const load: PageServerLoad = async (event) => {
 			year: yearFilter,
 			userCredentials: {
 				userId: userSession.userId,
-				userEmail: userSession.userEmail,
-				role: userSession.role,
-				accessToken: userSession.accessToken
+				userEmail: userSession.metadata.userEmail,
+				role: userSession.roles[0] || 'employee',
+				accessToken: userSession.jwtToken
 			}
 		});
 
@@ -137,6 +184,11 @@ export const load: PageServerLoad = async (event) => {
 				page,
 				limit
 			},
+			// Team/Department context for managers
+			managedDepartmentId,
+			isAdmin,
+			canEditAllGoals: isAdmin, // Only admins can edit goals from any department
+			canEditManagedTeamGoals: !!managedDepartmentId, // Managers can edit for their department
 			// RBAC: Standardized permission checks
 			...userPermissions,
 			loadedAt: new Date().toISOString()

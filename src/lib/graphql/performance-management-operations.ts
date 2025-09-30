@@ -1,27 +1,30 @@
-// GraphQL Operations: Performance Management
-// Created: 2025-09-24
-// Task: T011 - Performance reviews GraphQL operations for /dashboard/management/reviews
+// GraphQL Operations: Performance Management (Manager Department-Scoped)
+// Feature: 016-repair-management-pages - Task T015
+// Purpose: Manager CRUD operations for performance reviews with department-scoped RLS
 
 import { gql } from '@urql/svelte';
-import type {
-	PerformanceReview,
-	PerformanceReviewStatus,
-	User,
-	PaginationInput,
-	SortInput
-} from '$lib/types/graphql';
+import type { UserCredentials } from '$lib/models/data-request';
 
-// Query: Get all performance reviews with filtering
+// ============================================================================
+// QUERIES
+// ============================================================================
+
+/**
+ * Query: Get performance reviews for manager's department only
+ * RLS Policy: manager_view_department_performance_reviews
+ * Covers: FR-003, FR-014
+ */
 export const GET_PERFORMANCE_REVIEWS = gql`
 	query GetPerformanceReviews(
-		$first: Int = 50
+		$first: Int = 20
 		$offset: Int = 0
-		$orderBy: [PerformanceReviewsOrderBy!] = [CREATED_AT_DESC]
+		$orderBy: [PerformanceReviewsOrderBy!] = [REVIEW_DATE_DESC]
 		$filter: PerformanceReviewFilter
 	) {
 		performanceReviews(first: $first, offset: $offset, orderBy: $orderBy, filter: $filter) {
 			nodes {
 				id
+				employeeId
 				employee {
 					id
 					displayName
@@ -32,30 +35,26 @@ export const GET_PERFORMANCE_REVIEWS = gql`
 						name
 					}
 				}
+				reviewerId
 				reviewer {
 					id
 					displayName
 					email
-					jobTitle
 				}
-				reviewPeriodStart
-				reviewPeriodEnd
-				status
+				reviewPeriod
+				reviewDate
 				overallRating
 				goalsAchievement
 				collaboration
 				communication
 				leadership
+				technicalSkills
 				strengths
 				areasForImprovement
-				goalsForNextPeriod
-				developmentPlan
-				reviewNotes
-				employeeSelfAssessment
+				comments
+				status
 				createdAt
 				updatedAt
-				submittedAt
-				completedAt
 			}
 			totalCount
 			pageInfo {
@@ -68,248 +67,175 @@ export const GET_PERFORMANCE_REVIEWS = gql`
 	}
 `;
 
-// Query: Get performance review by ID with full details
-export const GET_PERFORMANCE_REVIEW = gql`
-	query GetPerformanceReview($id: UUID!) {
+/**
+ * Query: Get single performance review by ID (department-scoped)
+ * RLS Policy: manager_view_department_performance_reviews
+ */
+export const GET_PERFORMANCE_REVIEW_BY_ID = gql`
+	query GetPerformanceReviewById($id: UUID!) {
 		performanceReview(id: $id) {
 			id
+			employeeId
 			employee {
 				id
 				displayName
 				email
 				jobTitle
-				hireDate
 				department {
 					id
 					name
 				}
-				manager: userByManagerId {
-					id
-					displayName
-					email
-				}
 			}
+			reviewerId
 			reviewer {
 				id
 				displayName
 				email
-				jobTitle
-				department {
-					id
-					name
-				}
 			}
-			reviewPeriodStart
-			reviewPeriodEnd
-			status
+			reviewPeriod
+			reviewDate
 			overallRating
 			goalsAchievement
 			collaboration
 			communication
 			leadership
+			technicalSkills
 			strengths
 			areasForImprovement
-			goalsForNextPeriod
-			developmentPlan
-			reviewNotes
-			employeeSelfAssessment
+			comments
+			status
 			createdAt
 			updatedAt
-			submittedAt
-			completedAt
 		}
 	}
 `;
 
-// Query: Get pending reviews for manager
-export const GET_PENDING_REVIEWS_FOR_MANAGER = gql`
-	query GetPendingReviewsForManager(
-		$managerId: UUID!
-		$first: Int = 50
-		$offset: Int = 0
-		$orderBy: [PerformanceReviewsOrderBy!] = [CREATED_AT_ASC]
-	) {
-		performanceReviews(
-			condition: { reviewerId: $managerId }
-			filter: { status: { in: ["draft", "in_progress"] } }
-			first: $first
-			offset: $offset
-			orderBy: $orderBy
+/**
+ * Query: Get performance statistics for manager's department
+ * Covers: FR-014
+ */
+export const GET_PERFORMANCE_STATISTICS = gql`
+	query GetPerformanceStatistics($departmentId: UUID!) {
+		totalReviews: performanceReviews(
+			filter: { employee: { departmentId: { equalTo: $departmentId } } }
 		) {
-			nodes {
-				id
-				employee {
-					id
-					displayName
-					email
-					jobTitle
-					department {
-						id
-						name
-					}
-				}
-				reviewPeriodStart
-				reviewPeriodEnd
-				status
-				overallRating
-				createdAt
-				updatedAt
-			}
 			totalCount
 		}
-	}
-`;
-
-// Query: Get team performance overview
-export const GET_TEAM_PERFORMANCE_OVERVIEW = gql`
-  query GetTeamPerformanceOverview(
-    $departmentId: UUID!
-    $reviewPeriodStart: Date
-    $reviewPeriodEnd: Date
-  ) {
-    departments(condition: { id: $departmentId }) {
-      nodes {
-        id
-        name
-        employees {
-          nodes {
-            id
-            displayName
-            performanceReviews(
-              filter: {
-                reviewPeriodStart: $reviewPeriodStart ? { greaterThanOrEqualTo: $reviewPeriodStart } : null
-                reviewPeriodEnd: $reviewPeriodEnd ? { lessThanOrEqualTo: $reviewPeriodEnd } : null
-                status: { equalTo: "completed" }
-              }
-              orderBy: [CREATED_AT_DESC]
-              first: 1
-            ) {
-              nodes {
-                id
-                overallRating
-                goalsAchievement
-                collaboration
-                communication
-                leadership
-                reviewPeriodStart
-                reviewPeriodEnd
-                completedAt
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-`;
-
-// Query: Get review analytics and trends
-export const GET_REVIEW_ANALYTICS = gql`
-  query GetReviewAnalytics(
-    $departmentId: UUID
-    $reviewPeriodStart: Date
-    $reviewPeriodEnd: Date
-  ) {
-    performanceReviews(
-      filter: {
-        reviewPeriodStart: $reviewPeriodStart ? { greaterThanOrEqualTo: $reviewPeriodStart } : null
-        reviewPeriodEnd: $reviewPeriodEnd ? { lessThanOrEqualTo: $reviewPeriodEnd } : null
-        status: { equalTo: "completed" }
-        employee: $departmentId ? { departmentId: { equalTo: $departmentId } } : null
-      }
-    ) {
-      nodes {
-        id
-        overallRating
-        goalsAchievement
-        collaboration
-        communication
-        leadership
-        reviewPeriodStart
-        reviewPeriodEnd
-        employee {
-          department {
-            id
-            name
-          }
-        }
-      }
-      totalCount
-    }
-  }
-`;
-
-// Mutation: Create performance review
-export const CREATE_PERFORMANCE_REVIEW = gql`
-	mutation CreatePerformanceReview($input: CreatePerformanceReviewInput!) {
-		createPerformanceReview(input: $input) {
-			performanceReview {
-				id
-				employee {
-					id
-					displayName
-				}
-				reviewer {
-					id
-					displayName
-				}
-				reviewPeriodStart
-				reviewPeriodEnd
-				status
-				createdAt
+		completedReviews: performanceReviews(
+			filter: {
+				status: { equalTo: "completed" }
+				employee: { departmentId: { equalTo: $departmentId } }
 			}
-			clientMutationId
-		}
-	}
-`;
-
-// Mutation: Update performance review
-export const UPDATE_PERFORMANCE_REVIEW = gql`
-	mutation UpdatePerformanceReview($input: UpdatePerformanceReviewInput!) {
-		updatePerformanceReview(input: $input) {
-			performanceReview {
-				id
-				status
+		) {
+			totalCount
+			nodes {
 				overallRating
 				goalsAchievement
 				collaboration
 				communication
 				leadership
+				technicalSkills
+			}
+		}
+		inProgressReviews: performanceReviews(
+			filter: {
+				status: { equalTo: "in_progress" }
+				employee: { departmentId: { equalTo: $departmentId } }
+			}
+		) {
+			totalCount
+		}
+		overdueReviews: performanceReviews(
+			filter: {
+				status: { equalTo: "overdue" }
+				employee: { departmentId: { equalTo: $departmentId } }
+			}
+		) {
+			totalCount
+		}
+	}
+`;
+
+// ============================================================================
+// MUTATIONS
+// ============================================================================
+
+/**
+ * Mutation: Create performance review
+ * RLS Policy: manager_create_department_performance_reviews
+ * Covers: FR-003
+ */
+export const CREATE_PERFORMANCE_REVIEW = gql`
+	mutation CreatePerformanceReview($input: CreatePerformanceReviewInput!) {
+		createPerformanceReview(input: $input) {
+			performanceReview {
+				id
+				employeeId
+				employee {
+					id
+					displayName
+					email
+					jobTitle
+				}
+				reviewerId
+				reviewer {
+					id
+					displayName
+					email
+				}
+				reviewPeriod
+				reviewDate
+				overallRating
+				goalsAchievement
+				collaboration
+				communication
+				leadership
+				technicalSkills
 				strengths
 				areasForImprovement
-				goalsForNextPeriod
-				developmentPlan
-				reviewNotes
-				updatedAt
-			}
-			clientMutationId
-		}
-	}
-`;
-
-// Mutation: Submit performance review
-export const SUBMIT_PERFORMANCE_REVIEW = gql`
-	mutation SubmitPerformanceReview($input: UpdatePerformanceReviewInput!) {
-		updatePerformanceReview(input: $input) {
-			performanceReview {
-				id
+				comments
 				status
-				submittedAt
-				updatedAt
+				createdAt
 			}
 			clientMutationId
 		}
 	}
 `;
 
-// Mutation: Complete performance review
-export const COMPLETE_PERFORMANCE_REVIEW = gql`
-	mutation CompletePerformanceReview($input: UpdatePerformanceReviewInput!) {
+/**
+ * Mutation: Update performance review
+ * RLS Policy: manager_update_department_performance_reviews
+ * Covers: FR-003
+ */
+export const UPDATE_PERFORMANCE_REVIEW = gql`
+	mutation UpdatePerformanceReview($input: UpdatePerformanceReviewInput!) {
 		updatePerformanceReview(input: $input) {
 			performanceReview {
 				id
+				employeeId
+				employee {
+					id
+					displayName
+					email
+				}
+				reviewerId
+				reviewer {
+					id
+					displayName
+					email
+				}
+				reviewPeriod
+				reviewDate
+				overallRating
+				goalsAchievement
+				collaboration
+				communication
+				leadership
+				technicalSkills
+				strengths
+				areasForImprovement
+				comments
 				status
-				completedAt
 				updatedAt
 			}
 			clientMutationId
@@ -317,21 +243,11 @@ export const COMPLETE_PERFORMANCE_REVIEW = gql`
 	}
 `;
 
-// Mutation: Add employee self-assessment
-export const ADD_SELF_ASSESSMENT = gql`
-	mutation AddSelfAssessment($input: UpdatePerformanceReviewInput!) {
-		updatePerformanceReview(input: $input) {
-			performanceReview {
-				id
-				employeeSelfAssessment
-				updatedAt
-			}
-			clientMutationId
-		}
-	}
-`;
-
-// Mutation: Delete performance review
+/**
+ * Mutation: Delete performance review
+ * RLS Policy: manager_delete_department_performance_reviews
+ * Covers: FR-003
+ */
 export const DELETE_PERFORMANCE_REVIEW = gql`
 	mutation DeletePerformanceReview($input: DeletePerformanceReviewInput!) {
 		deletePerformanceReview(input: $input) {
@@ -341,16 +257,60 @@ export const DELETE_PERFORMANCE_REVIEW = gql`
 	}
 `;
 
-// TypeScript interfaces for inputs
+// ============================================================================
+// TYPESCRIPT INTERFACES
+// ============================================================================
+
+export interface PerformanceReviewFilter {
+	status?: {
+		equalTo?: 'draft' | 'in_progress' | 'completed' | 'overdue';
+		in?: Array<'draft' | 'in_progress' | 'completed' | 'overdue'>;
+	};
+	employeeId?: {
+		equalTo?: string;
+	};
+	reviewerId?: {
+		equalTo?: string;
+	};
+	reviewPeriod?: {
+		equalTo?: string;
+		includesInsensitive?: string;
+	};
+	reviewDate?: {
+		greaterThanOrEqualTo?: string;
+		lessThanOrEqualTo?: string;
+	};
+	overallRating?: {
+		greaterThanOrEqualTo?: number;
+		lessThanOrEqualTo?: number;
+	};
+	employee?: {
+		departmentId?: {
+			equalTo?: string;
+		};
+		displayName?: {
+			includesInsensitive?: string;
+		};
+	};
+}
+
 export interface CreatePerformanceReviewInput {
 	clientMutationId?: string;
 	performanceReview: {
 		employeeId: string;
 		reviewerId: string;
-		reviewPeriodStart: string;
-		reviewPeriodEnd: string;
-		status?: PerformanceReviewStatus;
-		reviewNotes?: string;
+		reviewPeriod: string;
+		reviewDate: string;
+		overallRating: number;
+		goalsAchievement: number;
+		collaboration: number;
+		communication: number;
+		leadership: number;
+		technicalSkills?: number;
+		strengths: string;
+		areasForImprovement: string;
+		comments?: string;
+		status?: 'draft' | 'in_progress' | 'completed';
 	};
 }
 
@@ -358,20 +318,18 @@ export interface UpdatePerformanceReviewInput {
 	clientMutationId?: string;
 	id: string;
 	patch: {
-		status?: PerformanceReviewStatus;
+		reviewPeriod?: string;
+		reviewDate?: string;
 		overallRating?: number;
 		goalsAchievement?: number;
 		collaboration?: number;
 		communication?: number;
 		leadership?: number;
+		technicalSkills?: number;
 		strengths?: string;
 		areasForImprovement?: string;
-		goalsForNextPeriod?: string;
-		developmentPlan?: string;
-		reviewNotes?: string;
-		employeeSelfAssessment?: string;
-		submittedAt?: string;
-		completedAt?: string;
+		comments?: string;
+		status?: 'draft' | 'in_progress' | 'completed';
 	};
 }
 
@@ -380,242 +338,45 @@ export interface DeletePerformanceReviewInput {
 	id: string;
 }
 
-export interface PerformanceReviewFilter {
-	employeeId?: string;
-	reviewerId?: string;
-	status?: PerformanceReviewStatus;
-	overallRating?: {
-		greaterThanOrEqualTo?: number;
-		lessThanOrEqualTo?: number;
+export interface PerformanceReview {
+	id: string;
+	employeeId: string;
+	employee: {
+		id: string;
+		displayName: string;
+		email: string;
+		jobTitle?: string;
+		department: {
+			id: string;
+			name: string;
+		};
 	};
-	reviewPeriodStart?: {
-		greaterThanOrEqualTo?: string;
-		lessThanOrEqualTo?: string;
+	reviewerId: string;
+	reviewer: {
+		id: string;
+		displayName: string;
+		email: string;
 	};
-	reviewPeriodEnd?: {
-		greaterThanOrEqualTo?: string;
-		lessThanOrEqualTo?: string;
-	};
-	createdAt?: {
-		greaterThanOrEqualTo?: string;
-		lessThanOrEqualTo?: string;
-	};
+	reviewPeriod: string;
+	reviewDate: string;
+	overallRating: number;
+	goalsAchievement: number;
+	collaboration: number;
+	communication: number;
+	leadership: number;
+	technicalSkills?: number;
+	strengths: string;
+	areasForImprovement: string;
+	comments?: string;
+	status: 'draft' | 'in_progress' | 'completed' | 'overdue';
+	createdAt: string;
+	updatedAt: string;
 }
 
-// Utility constants and functions
-export const performanceRatings = [
-	{
-		value: 1,
-		label: 'Needs Improvement',
-		description: 'Does not meet expectations',
-		color: 'red',
-		icon: '⚠️'
-	},
-	{
-		value: 2,
-		label: 'Below Expectations',
-		description: 'Partially meets expectations',
-		color: 'orange',
-		icon: '📉'
-	},
-	{
-		value: 3,
-		label: 'Meets Expectations',
-		description: 'Satisfactory performance',
-		color: 'yellow',
-		icon: '✅'
-	},
-	{
-		value: 4,
-		label: 'Exceeds Expectations',
-		description: 'Strong performance',
-		color: 'blue',
-		icon: '⭐'
-	},
-	{
-		value: 5,
-		label: 'Outstanding',
-		description: 'Exceptional performance',
-		color: 'green',
-		icon: '🏆'
-	}
-];
-
-export const reviewStatusOptions = [
-	{ value: 'draft', label: 'Draft', color: 'gray', icon: '📝' },
-	{ value: 'in_progress', label: 'In Progress', color: 'blue', icon: '⏳' },
-	{ value: 'submitted', label: 'Submitted', color: 'yellow', icon: '📤' },
-	{ value: 'completed', label: 'Completed', color: 'green', icon: '✅' }
-];
-
-export const reviewPeriods = [
-	{ value: 'q1', label: 'Q1 (Jan-Mar)', start: '-01-01', end: '-03-31' },
-	{ value: 'q2', label: 'Q2 (Apr-Jun)', start: '-04-01', end: '-06-30' },
-	{ value: 'q3', label: 'Q3 (Jul-Sep)', start: '-07-01', end: '-09-30' },
-	{ value: 'q4', label: 'Q4 (Oct-Dec)', start: '-10-01', end: '-12-31' },
-	{ value: 'h1', label: 'H1 (Jan-Jun)', start: '-01-01', end: '-06-30' },
-	{ value: 'h2', label: 'H2 (Jul-Dec)', start: '-07-01', end: '-12-31' },
-	{ value: 'annual', label: 'Annual (Jan-Dec)', start: '-01-01', end: '-12-31' }
-];
-
-// Helper function to get rating info
-export function getRatingInfo(rating: number): (typeof performanceRatings)[0] {
-	return performanceRatings.find((r) => r.value === rating) || performanceRatings[2];
-}
-
-// Helper function to get status info
-export function getStatusInfo(status: PerformanceReviewStatus): (typeof reviewStatusOptions)[0] {
-	return reviewStatusOptions.find((s) => s.value === status) || reviewStatusOptions[0];
-}
-
-// Helper function to calculate review period dates
-export function getReviewPeriodDates(period: string, year: number = new Date().getFullYear()) {
-	const periodInfo = reviewPeriods.find((p) => p.value === period);
-	if (!periodInfo) return null;
-
-	return {
-		start: `${year}${periodInfo.start}`,
-		end: `${year}${periodInfo.end}`,
-		label: periodInfo.label
-	};
-}
-
-// Helper function to calculate average rating
-export function calculateAverageRating(reviews: PerformanceReview[]): number {
-	if (!reviews.length) return 0;
-	const total = reviews.reduce((sum, review) => sum + (review.overallRating || 0), 0);
-	return Math.round((total / reviews.length) * 10) / 10;
-}
-
-// Helper function to calculate rating distribution
-export function calculateRatingDistribution(reviews: PerformanceReview[]) {
-	const distribution = performanceRatings.map((rating) => ({
-		...rating,
-		count: 0,
-		percentage: 0
-	}));
-
-	reviews.forEach((review) => {
-		if (review.overallRating) {
-			const ratingIndex = review.overallRating - 1;
-			if (ratingIndex >= 0 && ratingIndex < distribution.length) {
-				distribution[ratingIndex].count++;
-			}
-		}
-	});
-
-	// Calculate percentages
-	const totalReviews = reviews.length;
-	distribution.forEach((rating) => {
-		rating.percentage = totalReviews > 0 ? Math.round((rating.count / totalReviews) * 100) : 0;
-	});
-
-	return distribution;
-}
-
-// Helper function to get review completion rate
-export function calculateCompletionRate(reviews: PerformanceReview[]): number {
-	if (!reviews.length) return 0;
-	const completedReviews = reviews.filter((r) => r.status === 'completed').length;
-	return Math.round((completedReviews / reviews.length) * 100);
-}
-
-// Helper function to check if review is overdue
-export function isReviewOverdue(review: PerformanceReview): boolean {
-	if (!review.reviewPeriodEnd || review.status === 'completed') return false;
-	const endDate = new Date(review.reviewPeriodEnd);
-	const now = new Date();
-	const gracePeriod = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
-	return now.getTime() - endDate.getTime() > gracePeriod;
-}
-
-// Helper function to format review period
-export function formatReviewPeriod(startDate: string, endDate: string): string {
-	const start = new Date(startDate);
-	const end = new Date(endDate);
-
-	const startMonth = start.toLocaleDateString('en-US', { month: 'short' });
-	const endMonth = end.toLocaleDateString('en-US', { month: 'short' });
-	const year = end.getFullYear();
-
-	if (start.getFullYear() === end.getFullYear()) {
-		if (start.getMonth() === end.getMonth()) {
-			return `${startMonth} ${year}`;
-		}
-		return `${startMonth} - ${endMonth} ${year}`;
-	}
-
-	return `${startMonth} ${start.getFullYear()} - ${endMonth} ${year}`;
-}
-
-// Helper function to generate review analytics
-export function generateReviewAnalytics(reviews: PerformanceReview[]) {
-	const totalReviews = reviews.length;
-	const completedReviews = reviews.filter((r) => r.status === 'completed');
-	const overdueReviews = reviews.filter(isReviewOverdue);
-
-	const avgOverallRating = calculateAverageRating(completedReviews);
-	const avgGoalsAchievement =
-		completedReviews.length > 0
-			? Math.round(
-					(completedReviews.reduce((sum, r) => sum + (r.goalsAchievement || 0), 0) /
-						completedReviews.length) *
-						10
-				) / 10
-			: 0;
-	const avgCollaboration =
-		completedReviews.length > 0
-			? Math.round(
-					(completedReviews.reduce((sum, r) => sum + (r.collaboration || 0), 0) /
-						completedReviews.length) *
-						10
-				) / 10
-			: 0;
-	const avgCommunication =
-		completedReviews.length > 0
-			? Math.round(
-					(completedReviews.reduce((sum, r) => sum + (r.communication || 0), 0) /
-						completedReviews.length) *
-						10
-				) / 10
-			: 0;
-	const avgLeadership =
-		completedReviews.length > 0
-			? Math.round(
-					(completedReviews.reduce((sum, r) => sum + (r.leadership || 0), 0) /
-						completedReviews.length) *
-						10
-				) / 10
-			: 0;
-
-	const ratingDistribution = calculateRatingDistribution(completedReviews);
-	const completionRate = calculateCompletionRate(reviews);
-
-	return {
-		totalReviews,
-		completedReviews: completedReviews.length,
-		overdueReviews: overdueReviews.length,
-		completionRate,
-		averageRatings: {
-			overall: avgOverallRating,
-			goalsAchievement: avgGoalsAchievement,
-			collaboration: avgCollaboration,
-			communication: avgCommunication,
-			leadership: avgLeadership
-		},
-		ratingDistribution,
-		trends: {
-			// This would require time-series data analysis
-			improvementAreas: ['communication', 'leadership'], // Placeholder
-			strongAreas: ['goalsAchievement', 'collaboration'] // Placeholder
-		}
-	};
-}
-
-// TypeScript interfaces for analytics
-export interface ReviewAnalytics {
+export interface PerformanceStatistics {
 	totalReviews: number;
 	completedReviews: number;
+	inProgressReviews: number;
 	overdueReviews: number;
 	completionRate: number;
 	averageRatings: {
@@ -624,60 +385,312 @@ export interface ReviewAnalytics {
 		collaboration: number;
 		communication: number;
 		leadership: number;
+		technicalSkills: number;
 	};
 	ratingDistribution: Array<{
-		value: number;
-		label: string;
-		color: string;
+		rating: number;
 		count: number;
 		percentage: number;
 	}>;
-	trends: {
-		improvementAreas: string[];
-		strongAreas: string[];
+}
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+/**
+ * Helper: Build performance review filter safely
+ */
+export function buildPerformanceReviewFilter({
+	status,
+	employeeId,
+	employeeName,
+	reviewerId,
+	reviewPeriod,
+	departmentId,
+	minRating,
+	maxRating
+}: {
+	status?: 'draft' | 'in_progress' | 'completed' | 'overdue';
+	employeeId?: string;
+	employeeName?: string;
+	reviewerId?: string;
+	reviewPeriod?: string;
+	departmentId?: string;
+	minRating?: number;
+	maxRating?: number;
+}): PerformanceReviewFilter {
+	const filter: PerformanceReviewFilter = {};
+
+	if (status) {
+		filter.status = { equalTo: status };
+	}
+
+	if (employeeId) {
+		filter.employeeId = { equalTo: employeeId };
+	}
+
+	if (reviewerId) {
+		filter.reviewerId = { equalTo: reviewerId };
+	}
+
+	if (reviewPeriod) {
+		filter.reviewPeriod = { includesInsensitive: reviewPeriod };
+	}
+
+	if (employeeName || departmentId) {
+		filter.employee = {};
+		if (employeeName) {
+			filter.employee.displayName = { includesInsensitive: employeeName };
+		}
+		if (departmentId) {
+			filter.employee.departmentId = { equalTo: departmentId };
+		}
+	}
+
+	if (minRating !== undefined || maxRating !== undefined) {
+		filter.overallRating = {};
+		if (minRating !== undefined) {
+			filter.overallRating.greaterThanOrEqualTo = minRating;
+		}
+		if (maxRating !== undefined) {
+			filter.overallRating.lessThanOrEqualTo = maxRating;
+		}
+	}
+
+	return filter;
+}
+
+/**
+ * Helper: Calculate performance statistics from raw data
+ */
+export function calculatePerformanceStatistics(data: {
+	totalReviews: { totalCount: number };
+	completedReviews: {
+		totalCount: number;
+		nodes: Array<{
+			overallRating: number;
+			goalsAchievement: number;
+			collaboration: number;
+			communication: number;
+			leadership: number;
+			technicalSkills?: number;
+		}>;
+	};
+	inProgressReviews: { totalCount: number };
+	overdueReviews: { totalCount: number };
+}): PerformanceStatistics {
+	const totalCount = data.totalReviews.totalCount;
+	const completedCount = data.completedReviews.totalCount;
+	const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+	// Calculate average ratings from completed reviews
+	const completedNodes = data.completedReviews.nodes;
+	const averageRatings = {
+		overall: 0,
+		goalsAchievement: 0,
+		collaboration: 0,
+		communication: 0,
+		leadership: 0,
+		technicalSkills: 0
+	};
+
+	if (completedCount > 0) {
+		const sums = completedNodes.reduce(
+			(acc, review) => ({
+				overall: acc.overall + review.overallRating,
+				goalsAchievement: acc.goalsAchievement + review.goalsAchievement,
+				collaboration: acc.collaboration + review.collaboration,
+				communication: acc.communication + review.communication,
+				leadership: acc.leadership + review.leadership,
+				technicalSkills: acc.technicalSkills + (review.technicalSkills || 0)
+			}),
+			{ overall: 0, goalsAchievement: 0, collaboration: 0, communication: 0, leadership: 0, technicalSkills: 0 }
+		);
+
+		averageRatings.overall = parseFloat((sums.overall / completedCount).toFixed(2));
+		averageRatings.goalsAchievement = parseFloat((sums.goalsAchievement / completedCount).toFixed(2));
+		averageRatings.collaboration = parseFloat((sums.collaboration / completedCount).toFixed(2));
+		averageRatings.communication = parseFloat((sums.communication / completedCount).toFixed(2));
+		averageRatings.leadership = parseFloat((sums.leadership / completedCount).toFixed(2));
+		averageRatings.technicalSkills = parseFloat((sums.technicalSkills / completedCount).toFixed(2));
+	}
+
+	// Calculate rating distribution (1.0-5.0 in 0.5 increments)
+	const ratingCounts = new Map<number, number>();
+	completedNodes.forEach(review => {
+		const rating = Math.round(review.overallRating * 2) / 2; // Round to nearest 0.5
+		ratingCounts.set(rating, (ratingCounts.get(rating) || 0) + 1);
+	});
+
+	const ratingDistribution = Array.from(ratingCounts.entries())
+		.map(([rating, count]) => ({
+			rating,
+			count,
+			percentage: completedCount > 0 ? Math.round((count / completedCount) * 100) : 0
+		}))
+		.sort((a, b) => b.rating - a.rating);
+
+	return {
+		totalReviews: totalCount,
+		completedReviews: completedCount,
+		inProgressReviews: data.inProgressReviews.totalCount,
+		overdueReviews: data.overdueReviews.totalCount,
+		completionRate,
+		averageRatings,
+		ratingDistribution
 	};
 }
 
 /**
- * T029: Standardized Performance Management Operations with Error Handling
- *
- * Implements standardized performance management operations with comprehensive error handling,
- * timeout enforcement, and retry logic following the T021-T024 entity model patterns.
+ * Helper: Validate rating value (must be between 1.0 and 5.0)
  */
+export function validateRating(
+	ratingName: string,
+	rating: number
+): { valid: boolean; error?: string } {
+	if (rating < 1.0 || rating > 5.0) {
+		return {
+			valid: false,
+			error: `${ratingName} must be between 1.0 and 5.0`
+		};
+	}
+	return { valid: true };
+}
 
-import type { OperationStore } from '@urql/svelte';
-import type { DataRequest, UserCredentials } from '$lib/models/data-request';
-import type { ErrorResponse } from '$lib/models/error-response';
+/**
+ * Helper: Validate performance review input
+ */
+export function validatePerformanceReviewInput(input: {
+	overallRating: number;
+	goalsAchievement: number;
+	collaboration: number;
+	communication: number;
+	leadership: number;
+	technicalSkills?: number;
+	strengths: string;
+	areasForImprovement: string;
+}): { valid: boolean; errors: string[] } {
+	const errors: string[] = [];
 
-export class PerformanceOperations {
-	private client: OperationStore;
+	// Validate all ratings
+	const ratings = [
+		{ name: 'Overall Rating', value: input.overallRating },
+		{ name: 'Goals Achievement', value: input.goalsAchievement },
+		{ name: 'Collaboration', value: input.collaboration },
+		{ name: 'Communication', value: input.communication },
+		{ name: 'Leadership', value: input.leadership }
+	];
 
-	constructor(client: OperationStore) {
+	if (input.technicalSkills !== undefined) {
+		ratings.push({ name: 'Technical Skills', value: input.technicalSkills });
+	}
+
+	ratings.forEach(({ name, value }) => {
+		const validation = validateRating(name, value);
+		if (!validation.valid) {
+			errors.push(validation.error!);
+		}
+	});
+
+	// Validate text fields
+	if (!input.strengths || input.strengths.trim().length === 0) {
+		errors.push('Strengths field is required');
+	}
+
+	if (!input.areasForImprovement || input.areasForImprovement.trim().length === 0) {
+		errors.push('Areas for Improvement field is required');
+	}
+
+	if (input.strengths && input.strengths.length > 2000) {
+		errors.push('Strengths must be less than 2000 characters');
+	}
+
+	if (input.areasForImprovement && input.areasForImprovement.length > 2000) {
+		errors.push('Areas for Improvement must be less than 2000 characters');
+	}
+
+	return {
+		valid: errors.length === 0,
+		errors
+	};
+}
+
+/**
+ * Helper: Get rating badge color based on value
+ */
+export function getRatingBadgeColor(rating: number): string {
+	if (rating >= 4.5) return 'green';
+	if (rating >= 3.5) return 'blue';
+	if (rating >= 2.5) return 'yellow';
+	return 'red';
+}
+
+/**
+ * Helper: Get status badge color
+ */
+export function getReviewStatusBadgeColor(status: string): string {
+	const statusColors: Record<string, string> = {
+		draft: 'gray',
+		in_progress: 'blue',
+		completed: 'green',
+		overdue: 'red'
+	};
+	return statusColors[status.toLowerCase()] || 'gray';
+}
+
+/**
+ * Helper: Format review period (e.g., "Q4 2025")
+ */
+export function formatReviewPeriod(period: string): string {
+	// Handle formats like "Q4 2025", "2025-Q4", "2025-10-01 to 2025-12-31"
+	if (period.match(/Q\d \d{4}/)) return period; // Already formatted
+	if (period.match(/\d{4}-Q\d/)) {
+		const [year, quarter] = period.split('-');
+		return `${quarter} ${year}`;
+	}
+	return period;
+}
+
+// ============================================================================
+// OPERATIONS CLASS (Standardized Error Handling)
+// ============================================================================
+
+/**
+ * T015: Manager Performance Management Operations with Department-Scoped RLS
+ * This class follows TDD principles - tests are written first in
+ * tests/contract/manager-performance-operations.test.ts
+ */
+export class PerformanceManagementOperations {
+	private client: any;
+
+	constructor(client: any) {
 		this.client = client;
 	}
 
 	/**
-	 * Get performance reviews with standardized error handling
+	 * Get performance reviews for manager's department
+	 * RLS automatically filters to department only via JWT claims
 	 */
 	async getPerformanceReviews(params: {
 		first?: number;
 		offset?: number;
 		filter?: PerformanceReviewFilter;
-		orderBy?: string[];
 		userCredentials: UserCredentials;
-	}): Promise<any> {
-		// Import required models for standardized error handling
-		const { DataRequest, createDataRequest } = await import('$lib/models/data-request');
+	}): Promise<{
+		reviews: PerformanceReview[];
+		totalCount: number;
+		hasNextPage: boolean;
+	}> {
+		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
-		// Create data request with standard timeout and retry configuration
 		const dataRequest = createDataRequest({
 			operationName: 'GetPerformanceReviews',
 			variables: {
-				first: params.first || 50,
+				first: params.first || 20,
 				offset: params.offset || 0,
-				filter: params.filter,
-				orderBy: params.orderBy
+				filter: params.filter || {}
 			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000,
@@ -685,118 +698,11 @@ export class PerformanceOperations {
 			maxRetries: 3
 		});
 
-		// Retry handler with exponential backoff
-		class PerformanceRetryHandler {
-			private attempts = 0;
-
-			async execute<T>(fn: () => Promise<T>, request: DataRequest): Promise<T> {
-				while (this.attempts <= request.maxRetries) {
-					try {
-						// Update request status
-						(request as any).status = 'pending';
-
-						// Execute with timeout
-						const result = await Promise.race([
-							fn(),
-							new Promise<never>((_, reject) =>
-								setTimeout(
-									() => reject(new Error('Performance reviews query timeout')),
-									request.timeoutMs
-								)
-							)
-						]);
-
-						(request as any).status = 'completed';
-						return result;
-					} catch (error) {
-						this.attempts++;
-						(request as any).retryAttempts = this.attempts;
-
-						if (this.attempts > request.maxRetries) {
-							(request as any).status = 'failed';
-
-							// Create structured error response
-							const errorResponse = createErrorResponse(error, {
-								type: error.message.includes('timeout') ? 'TIMEOUT_ERROR' : 'GRAPHQL_ERROR',
-								userMessage:
-									'Unable to load performance reviews. Please try again or contact support.'
-							});
-
-							console.error('Performance reviews error:', errorResponse.toLogEntry());
-							throw errorResponse;
-						}
-
-						// Exponential backoff: 1s, 2s, 4s
-						const delay = Math.min(1000 * Math.pow(2, this.attempts - 1), 4000);
-						await new Promise((resolve) => setTimeout(resolve, delay));
-					}
-				}
-				throw new Error('Max retries exceeded');
-			}
-		}
-
-		const retryHandler = new PerformanceRetryHandler();
-
-		return retryHandler.execute(async () => {
-			return new Promise((resolve, reject) => {
-				// Subscribe to the performance reviews query
-				const unsubscribe = this.client.subscribe(
-					{
-						query: GET_PERFORMANCE_REVIEWS,
-						variables: {
-							first: params.first || 50,
-							offset: params.offset || 0,
-							filter: params.filter,
-							orderBy: params.orderBy
-						}
-					},
-					(result) => {
-						if (result.error) {
-							console.error('Performance reviews GraphQL error:', result.error);
-							const errorResponse = createErrorResponse(result.error, {
-								type: 'GRAPHQL_ERROR',
-								userMessage:
-									'Unable to load performance reviews. Please check your permissions and try again.'
-							});
-							reject(errorResponse);
-							unsubscribe();
-						} else if (result.data?.performanceReviews) {
-							console.log(
-								`Loaded ${result.data.performanceReviews.nodes.length} performance reviews`
-							);
-							resolve(result.data.performanceReviews);
-							unsubscribe();
-						}
-					}
-				);
-			});
-		}, dataRequest);
-	}
-
-	/**
-	 * Get single performance review by ID
-	 */
-	async getPerformanceReviewById(params: {
-		id: string;
-		userCredentials: UserCredentials;
-	}): Promise<PerformanceReview> {
-		const { DataRequest, createDataRequest } = await import('$lib/models/data-request');
-		const { createErrorResponse } = await import('$lib/models/error-response');
-
-		const dataRequest = createDataRequest({
-			operationName: 'GetPerformanceReview',
-			variables: { id: params.id },
-			userCredentials: params.userCredentials,
-			timeoutMs: 3000,
-			retryAttempts: 0,
-			maxRetries: 2
-		});
-
-		return new Promise<PerformanceReview>((resolve, reject) => {
+		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Performance review fetch timeout'), {
+				const errorResponse = createErrorResponse(new Error('Performance reviews timeout'), {
 					type: 'TIMEOUT_ERROR',
-					userMessage: 'Performance review data is taking longer than expected. Please try again.'
+					userMessage: 'Performance reviews are loading slowly. Please try again.'
 				});
 				reject(errorResponse);
 				unsubscribe();
@@ -804,30 +710,25 @@ export class PerformanceOperations {
 
 			const unsubscribe = this.client.subscribe(
 				{
-					query: GET_PERFORMANCE_REVIEW,
-					variables: { id: params.id }
+					query: GET_PERFORMANCE_REVIEWS,
+					variables: dataRequest.variables
 				},
 				(result) => {
 					clearTimeout(timeoutId);
 
 					if (result.error) {
-						console.error('Performance review by ID error:', result.error);
 						const errorResponse = createErrorResponse(result.error, {
 							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to load performance review details. Please try again.'
+							userMessage: 'Unable to load performance reviews. Please try again.'
 						});
 						reject(errorResponse);
 						unsubscribe();
-					} else if (result.data?.performanceReview) {
-						console.log(`Loaded performance review: ${result.data.performanceReview.id}`);
-						resolve(result.data.performanceReview);
-						unsubscribe();
-					} else {
-						const errorResponse = createErrorResponse(new Error('Performance review not found'), {
-							type: 'VALIDATION_ERROR',
-							userMessage: 'Performance review not found. Please check the review ID.'
+					} else if (result.data) {
+						resolve({
+							reviews: result.data.performanceReviews.nodes,
+							totalCount: result.data.performanceReviews.totalCount,
+							hasNextPage: result.data.performanceReviews.pageInfo.hasNextPage
 						});
-						reject(errorResponse);
 						unsubscribe();
 					}
 				}
@@ -836,34 +737,94 @@ export class PerformanceOperations {
 	}
 
 	/**
-	 * Create performance review with error handling
+	 * Get performance statistics for manager's department
+	 */
+	async getPerformanceStatistics(params: {
+		departmentId: string;
+		userCredentials: UserCredentials;
+	}): Promise<PerformanceStatistics> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+		const { createErrorResponse } = await import('$lib/models/error-response');
+
+		const dataRequest = createDataRequest({
+			operationName: 'GetPerformanceStatistics',
+			variables: { departmentId: params.departmentId },
+			userCredentials: params.userCredentials,
+			timeoutMs: 5000,
+			retryAttempts: 0,
+			maxRetries: 3
+		});
+
+		return new Promise((resolve, reject) => {
+			const timeoutId = setTimeout(() => {
+				const errorResponse = createErrorResponse(new Error('Statistics timeout'), {
+					type: 'TIMEOUT_ERROR',
+					userMessage: 'Statistics are loading slowly. Please try again.'
+				});
+				reject(errorResponse);
+				unsubscribe();
+			}, dataRequest.timeoutMs);
+
+			const unsubscribe = this.client.subscribe(
+				{
+					query: GET_PERFORMANCE_STATISTICS,
+					variables: dataRequest.variables
+				},
+				(result) => {
+					clearTimeout(timeoutId);
+
+					if (result.error) {
+						const errorResponse = createErrorResponse(result.error, {
+							type: 'GRAPHQL_ERROR',
+							userMessage: 'Unable to load statistics. Please try again.'
+						});
+						reject(errorResponse);
+						unsubscribe();
+					} else if (result.data) {
+						const stats = calculatePerformanceStatistics(result.data);
+						resolve(stats);
+						unsubscribe();
+					}
+				}
+			);
+		});
+	}
+
+	/**
+	 * Create performance review (manager department-scoped)
+	 * RLS policy enforces department membership
 	 */
 	async createPerformanceReview(params: {
 		input: CreatePerformanceReviewInput;
 		userCredentials: UserCredentials;
 	}): Promise<PerformanceReview> {
-		const { DataRequest, createDataRequest } = await import('$lib/models/data-request');
+		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
+
+		// Validate input
+		const validation = validatePerformanceReviewInput(params.input.performanceReview);
+		if (!validation.valid) {
+			throw createErrorResponse(new Error(validation.errors.join(', ')), {
+				type: 'VALIDATION_ERROR',
+				userMessage: validation.errors.join(', ')
+			});
+		}
 
 		const dataRequest = createDataRequest({
 			operationName: 'CreatePerformanceReview',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 8000, // Longer timeout for mutations
+			timeoutMs: 5000,
 			retryAttempts: 0,
-			maxRetries: 1 // Single retry for mutations
+			maxRetries: 3
 		});
 
-		return new Promise<PerformanceReview>((resolve, reject) => {
+		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(
-					new Error('Performance review creation timeout'),
-					{
-						type: 'TIMEOUT_ERROR',
-						userMessage:
-							'Performance review creation is taking longer than expected. Please check if it was created.'
-					}
-				);
+				const errorResponse = createErrorResponse(new Error('Creation timeout'), {
+					type: 'TIMEOUT_ERROR',
+					userMessage: 'Review creation is taking too long. Please try again.'
+				});
 				reject(errorResponse);
 				unsubscribe();
 			}, dataRequest.timeoutMs);
@@ -871,24 +832,19 @@ export class PerformanceOperations {
 			const unsubscribe = this.client.subscribe(
 				{
 					query: CREATE_PERFORMANCE_REVIEW,
-					variables: { input: params.input }
+					variables: dataRequest.variables
 				},
 				(result) => {
 					clearTimeout(timeoutId);
 
 					if (result.error) {
-						console.error('Create performance review error:', result.error);
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'VALIDATION_ERROR',
-							userMessage:
-								'Unable to create performance review. Please check the information and try again.'
+							type: 'GRAPHQL_ERROR',
+							userMessage: 'Unable to create performance review. Please try again.'
 						});
 						reject(errorResponse);
 						unsubscribe();
-					} else if (result.data?.createPerformanceReview?.performanceReview) {
-						console.log(
-							`Created performance review: ${result.data.createPerformanceReview.performanceReview.id}`
-						);
+					} else if (result.data) {
 						resolve(result.data.createPerformanceReview.performanceReview);
 						unsubscribe();
 					}
@@ -898,30 +854,71 @@ export class PerformanceOperations {
 	}
 
 	/**
-	 * Update performance review with error handling
+	 * Update performance review (manager department-scoped)
+	 * RLS policy enforces department membership
 	 */
 	async updatePerformanceReview(params: {
 		input: UpdatePerformanceReviewInput;
 		userCredentials: UserCredentials;
 	}): Promise<PerformanceReview> {
-		const { DataRequest, createDataRequest } = await import('$lib/models/data-request');
+		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
+
+		// Validate ratings if provided
+		const patch = params.input.patch;
+		const errors: string[] = [];
+
+		if (patch.overallRating !== undefined) {
+			const validation = validateRating('Overall Rating', patch.overallRating);
+			if (!validation.valid) errors.push(validation.error!);
+		}
+
+		if (patch.goalsAchievement !== undefined) {
+			const validation = validateRating('Goals Achievement', patch.goalsAchievement);
+			if (!validation.valid) errors.push(validation.error!);
+		}
+
+		if (patch.collaboration !== undefined) {
+			const validation = validateRating('Collaboration', patch.collaboration);
+			if (!validation.valid) errors.push(validation.error!);
+		}
+
+		if (patch.communication !== undefined) {
+			const validation = validateRating('Communication', patch.communication);
+			if (!validation.valid) errors.push(validation.error!);
+		}
+
+		if (patch.leadership !== undefined) {
+			const validation = validateRating('Leadership', patch.leadership);
+			if (!validation.valid) errors.push(validation.error!);
+		}
+
+		if (patch.technicalSkills !== undefined) {
+			const validation = validateRating('Technical Skills', patch.technicalSkills);
+			if (!validation.valid) errors.push(validation.error!);
+		}
+
+		if (errors.length > 0) {
+			throw createErrorResponse(new Error(errors.join(', ')), {
+				type: 'VALIDATION_ERROR',
+				userMessage: errors.join(', ')
+			});
+		}
 
 		const dataRequest = createDataRequest({
 			operationName: 'UpdatePerformanceReview',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 6000,
+			timeoutMs: 5000,
 			retryAttempts: 0,
-			maxRetries: 1
+			maxRetries: 3
 		});
 
-		return new Promise<PerformanceReview>((resolve, reject) => {
+		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Performance review update timeout'), {
+				const errorResponse = createErrorResponse(new Error('Update timeout'), {
 					type: 'TIMEOUT_ERROR',
-					userMessage:
-						'Performance review update is taking longer than expected. Please verify the changes were saved.'
+					userMessage: 'Review update is taking too long. Please try again.'
 				});
 				reject(errorResponse);
 				unsubscribe();
@@ -930,24 +927,19 @@ export class PerformanceOperations {
 			const unsubscribe = this.client.subscribe(
 				{
 					query: UPDATE_PERFORMANCE_REVIEW,
-					variables: { input: params.input }
+					variables: dataRequest.variables
 				},
 				(result) => {
 					clearTimeout(timeoutId);
 
 					if (result.error) {
-						console.error('Update performance review error:', result.error);
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'VALIDATION_ERROR',
-							userMessage:
-								'Unable to update performance review. Please check the information and try again.'
+							type: 'GRAPHQL_ERROR',
+							userMessage: 'Unable to update performance review. Please try again.'
 						});
 						reject(errorResponse);
 						unsubscribe();
-					} else if (result.data?.updatePerformanceReview?.performanceReview) {
-						console.log(
-							`Updated performance review: ${result.data.updatePerformanceReview.performanceReview.id}`
-						);
+					} else if (result.data) {
 						resolve(result.data.updatePerformanceReview.performanceReview);
 						unsubscribe();
 					}
@@ -957,24 +949,23 @@ export class PerformanceOperations {
 	}
 
 	/**
-	 * Get performance statistics with server-side support
+	 * Delete performance review (manager department-scoped)
+	 * RLS policy enforces department membership
 	 */
-	async getPerformanceStatistics(params: {
-		managerId?: string;
-		departmentId?: string;
-		period?: string;
+	async deletePerformanceReview(params: {
+		reviewId: string;
 		userCredentials: UserCredentials;
-	}): Promise<ReviewAnalytics> {
+	}): Promise<string> {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
+		const input: DeletePerformanceReviewInput = {
+			id: params.reviewId
+		};
+
 		const dataRequest = createDataRequest({
-			operationName: 'GetPerformanceStatistics',
-			variables: {
-				managerId: params.managerId,
-				departmentId: params.departmentId,
-				period: params.period
-			},
+			operationName: 'DeletePerformanceReview',
+			variables: { input },
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000,
 			retryAttempts: 0,
@@ -983,77 +974,10 @@ export class PerformanceOperations {
 
 		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Performance statistics timeout'), {
+				const errorResponse = createErrorResponse(new Error('Deletion timeout'), {
 					type: 'TIMEOUT_ERROR',
-					userMessage: 'Performance statistics are loading slowly. Please try again.'
+					userMessage: 'Review deletion is taking too long. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
-
-			// For now, we'll get all reviews and calculate stats manually
-			const unsubscribe = this.client.subscribe(
-				{
-					query: GET_PERFORMANCE_REVIEWS,
-					variables: {
-						filter: {
-							managerId: params.managerId,
-							departmentId: params.departmentId
-						},
-						first: 1000, // Get all for stats calculation
-						offset: 0
-					}
-				},
-				(result) => {
-					clearTimeout(timeoutId);
-
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to load performance statistics. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						const reviews = result.data.performanceReviews?.nodes || [];
-						const analytics = generateReviewAnalytics(reviews);
-						resolve(analytics);
-						unsubscribe();
-					}
-				}
-			);
-		});
-	}
-
-	/**
-	 * Delete performance review with error handling
-	 */
-	async deletePerformanceReview(params: {
-		id: string;
-		userCredentials: UserCredentials;
-	}): Promise<boolean> {
-		const { createDataRequest } = await import('$lib/models/data-request');
-		const { createErrorResponse } = await import('$lib/models/error-response');
-
-		const dataRequest = createDataRequest({
-			operationName: 'DeletePerformanceReview',
-			variables: { input: { id: params.id } },
-			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
-			maxRetries: 2
-		});
-
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(
-					new Error('Performance review deletion timeout'),
-					{
-						type: 'TIMEOUT_ERROR',
-						userMessage:
-							'Review deletion is taking longer than expected. Please verify the action completed.'
-					}
-				);
 				reject(errorResponse);
 				unsubscribe();
 			}, dataRequest.timeoutMs);
@@ -1061,22 +985,20 @@ export class PerformanceOperations {
 			const unsubscribe = this.client.subscribe(
 				{
 					query: DELETE_PERFORMANCE_REVIEW,
-					variables: { input: { id: params.id } }
+					variables: dataRequest.variables
 				},
 				(result) => {
 					clearTimeout(timeoutId);
 
 					if (result.error) {
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'PERMISSION_ERROR',
-							userMessage:
-								'Unable to delete performance review. Please check your permissions and try again.'
+							type: 'GRAPHQL_ERROR',
+							userMessage: 'Unable to delete performance review. Please try again.'
 						});
 						reject(errorResponse);
 						unsubscribe();
 					} else if (result.data) {
-						console.log(`Deleted performance review: ${params.id}`);
-						resolve(true);
+						resolve(result.data.deletePerformanceReview.deletedPerformanceReviewId);
 						unsubscribe();
 					}
 				}
@@ -1086,31 +1008,10 @@ export class PerformanceOperations {
 }
 
 /**
- * Factory function to create PerformanceOperations instance
+ * Factory function to create PerformanceManagementOperations instance
  */
-export function createPerformanceOperations(client: OperationStore): PerformanceOperations {
-	return new PerformanceOperations(client);
-}
-
-/**
- * Helper function to check if user can manage performance reviews
- */
-export function canManagePerformanceReview(
-	review: PerformanceReview,
-	userCredentials: UserCredentials
-): boolean {
-	// Admin can manage all reviews
-	if (
-		userCredentials.permissions.includes('*') ||
-		userCredentials.permissions.includes('performance:write')
-	) {
-		return true;
-	}
-
-	// Reviewers can manage their own reviews
-	if (review.reviewer?.id === userCredentials.userId) {
-		return true;
-	}
-
-	return false;
+export function createPerformanceOperations(
+	client: OperationStore
+): PerformanceManagementOperations {
+	return new PerformanceManagementOperations(client);
 }

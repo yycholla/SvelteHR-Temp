@@ -1,21 +1,21 @@
 // Standardized server load helpers for consistent error handling and data loading
 // T055: Error Handling Standardization - CRITICAL
 
-import type { LoadEvent } from '@sveltejs/kit';
+import type { RequestEvent } from '@sveltejs/kit';
 import { safeServerLoad, throwStandardError } from '$lib/utils/error-handling.js';
 
 /**
  * Standardized server load wrapper with authentication and error handling
  */
 export async function createServerLoad<T>(
-	loadFn: (event: LoadEvent) => Promise<T>,
+	loadFn: (event: RequestEvent) => Promise<T>,
 	options: {
 		requireAuth?: boolean;
 		requiredPermissions?: string[];
 		operation?: string;
 	} = {}
 ) {
-	return async (event: LoadEvent) => {
+	return async (event: RequestEvent) => {
 		const { requireAuth = true, requiredPermissions = [], operation } = options;
 
 		// Authentication check
@@ -29,9 +29,10 @@ export async function createServerLoad<T>(
 
 		// Permission check
 		if (requiredPermissions.length > 0 && event.locals.permissions) {
+			const permissions = event.locals.permissions || [];
 			const hasPermission = requiredPermissions.some(
 				(permission) =>
-					event.locals.permissions.includes(permission) || event.locals.permissions.includes('*')
+					permissions.includes(permission) || permissions.includes('*')
 			);
 
 			if (!hasPermission) {

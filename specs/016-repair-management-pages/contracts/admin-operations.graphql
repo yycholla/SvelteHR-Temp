@@ -1,0 +1,606 @@
+# Admin-Scoped GraphQL Operations
+# Feature: 016-repair-management-pages
+# Purpose: Unrestricted CRUD operations and admin-specific pages for admins
+
+# =============================================================================
+# ADMIN LEAVE REQUEST OPERATIONS (FR-013)
+# =============================================================================
+
+# Query: Get all leave requests (unrestricted access)
+query GetAllLeaveRequests(
+  $first: Int = 20
+  $offset: Int = 0
+  $filter: LeaveRequestFilter
+) {
+  leaveRequests(
+    first: $first
+    offset: $offset
+    filter: $filter
+    orderBy: ["CREATED_AT_DESC"]
+  ) {
+    nodes {
+      id
+      userId
+      departmentId
+      startDate
+      endDate
+      leaveType
+      status
+      reason
+      reviewerId
+      reviewNotes
+      reviewedAt
+      createdAt
+      updatedAt
+      userByUserId {
+        id
+        email
+        displayName
+        role
+      }
+      departmentByDepartmentId {
+        id
+        name
+        managerId
+      }
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+    }
+    totalCount
+  }
+}
+
+# Query: Get organization-wide leave statistics
+query GetOrganizationLeaveStatistics($startDate: Date, $endDate: Date) {
+  leaveStatistics(startDate: $startDate, endDate: $endDate) {
+    pendingCount
+    approvedCount
+    rejectedCount
+    totalDaysRequested
+    averageRequestDays
+    approvalRate
+  }
+}
+
+# =============================================================================
+# ADMIN PERFORMANCE REVIEW OPERATIONS (FR-014)
+# =============================================================================
+
+# Query: Get all performance reviews (unrestricted access)
+query GetAllPerformanceReviews(
+  $first: Int = 20
+  $offset: Int = 0
+  $filter: PerformanceReviewFilter
+) {
+  performanceReviews(
+    first: $first
+    offset: $offset
+    filter: $filter
+    orderBy: ["CREATED_AT_DESC"]
+  ) {
+    nodes {
+      id
+      revieweeId
+      reviewerId
+      departmentId
+      reviewPeriod
+      status
+      overallRating
+      goalsAchievement
+      collaboration
+      communication
+      leadership
+      strengths
+      areasForImprovement
+      comments
+      createdAt
+      updatedAt
+      completedAt
+      userByRevieweeId {
+        id
+        email
+        displayName
+        role
+      }
+      userByReviewerId {
+        id
+        email
+        displayName
+        role
+      }
+      departmentByDepartmentId {
+        id
+        name
+      }
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+    }
+    totalCount
+  }
+}
+
+# Query: Get organization-wide performance statistics
+query GetOrganizationPerformanceStatistics($period: String) {
+  performanceStatistics(period: $period) {
+    totalReviews
+    completedReviews
+    overdueReviews
+    completionRate
+    averageRatings {
+      overall
+      goalsAchievement
+      collaboration
+      communication
+      leadership
+    }
+    ratingDistribution {
+      rating
+      count
+      percentage
+    }
+    trends {
+      improvementAreas
+      strongAreas
+    }
+  }
+}
+
+# =============================================================================
+# ADMIN GOAL OPERATIONS (FR-015)
+# =============================================================================
+
+# Query: Get all goals (unrestricted access)
+query GetAllGoals(
+  $first: Int = 20
+  $offset: Int = 0
+  $filter: GoalFilter
+) {
+  goals(
+    first: $first
+    offset: $offset
+    filter: $filter
+    orderBy: ["CREATED_AT_DESC"]
+  ) {
+    nodes {
+      id
+      userId
+      managerId
+      departmentId
+      title
+      description
+      quarter
+      year
+      progress
+      status
+      targetDate
+      createdAt
+      updatedAt
+      userByUserId {
+        id
+        email
+        displayName
+        role
+      }
+      userByManagerId {
+        id
+        email
+        displayName
+      }
+      departmentByDepartmentId {
+        id
+        name
+      }
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+    }
+    totalCount
+  }
+}
+
+# Query: Get organization-wide goal statistics
+query GetOrganizationGoalStatistics($year: Int, $quarter: String) {
+  goalStatistics(year: $year, quarter: $quarter) {
+    totalGoals
+    activeGoals
+    completedGoals
+    cancelledGoals
+    averageProgress
+    completionRate
+    quarterlyBreakdown {
+      quarter
+      year
+      totalGoals
+      completedGoals
+    }
+  }
+}
+
+# =============================================================================
+# ADMIN TASK OPERATIONS (FR-016)
+# =============================================================================
+
+# Query: Get all tasks (unrestricted access)
+query GetAllTasks(
+  $first: Int = 20
+  $offset: Int = 0
+  $filter: TaskFilter
+) {
+  tasks(
+    first: $first
+    offset: $offset
+    filter: $filter
+    orderBy: ["CREATED_AT_DESC"]
+  ) {
+    nodes {
+      id
+      assigneeId
+      assignerId
+      departmentId
+      title
+      description
+      priority
+      status
+      dueDate
+      createdAt
+      updatedAt
+      completedAt
+      userByAssigneeId {
+        id
+        email
+        displayName
+        role
+      }
+      userByAssignerId {
+        id
+        email
+        displayName
+        role
+      }
+      departmentByDepartmentId {
+        id
+        name
+      }
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+    }
+    totalCount
+  }
+}
+
+# =============================================================================
+# ADMIN REPORT OPERATIONS (FR-017)
+# =============================================================================
+
+# Query: Get all reports (unrestricted access)
+query GetAllReports(
+  $first: Int = 20
+  $offset: Int = 0
+  $filter: ReportFilter
+) {
+  reports(
+    first: $first
+    offset: $offset
+    filter: $filter
+    orderBy: ["CREATED_AT_DESC"]
+  ) {
+    nodes {
+      id
+      creatorId
+      departmentId
+      title
+      reportType
+      category
+      status
+      data
+      filters
+      createdAt
+      updatedAt
+      userByCreatorId {
+        id
+        email
+        displayName
+        role
+      }
+      departmentByDepartmentId {
+        id
+        name
+      }
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+    }
+    totalCount
+  }
+}
+
+# Query: Get organization-wide report analytics
+query GetOrganizationReportAnalytics {
+  reportAnalytics {
+    summary {
+      totalReports
+      activeReports
+      scheduledReports
+      generatedToday
+      generatedThisWeek
+      generatedThisMonth
+      mostPopularType
+      avgRunTime
+    }
+    typeBreakdown {
+      reportType
+      count
+      percentage
+    }
+    categoryBreakdown {
+      category
+      count
+      percentage
+    }
+    departmentUsage {
+      departmentId
+      departmentName
+      reportsGenerated
+    }
+    runHistory {
+      date
+      count
+    }
+    popularReports {
+      reportId
+      title
+      runCount
+    }
+    performanceMetrics {
+      fastestReport
+      slowestReport
+      avgExecutionTime
+      totalExecutionTime
+      successRate
+      errorRate
+    }
+  }
+}
+
+# =============================================================================
+# ADMIN USER MANAGEMENT OPERATIONS (FR-018)
+# =============================================================================
+
+# Query: Get all users with pagination
+query GetAllUsers(
+  $first: Int = 50
+  $offset: Int = 0
+  $searchTerm: String
+  $roleFilter: String
+  $departmentFilter: UUID
+  $statusFilter: Boolean
+) {
+  # This query will be implemented via PostGraphile with custom filters
+  # Example return structure:
+  # users(first: $first, offset: $offset, ...) { ... }
+}
+
+# Mutation: Create new user (admin action)
+mutation CreateUser(
+  $email: String!
+  $displayName: String!
+  $role: String!
+  $departmentId: UUID
+) {
+  # Implementation will create user with Better Auth integration
+  # Example return structure:
+  # createUser(input: { ... }) { user { ... } }
+}
+
+# Mutation: Update user (admin action)
+mutation UpdateUser(
+  $id: UUID!
+  $email: String
+  $displayName: String
+  $role: String
+  $departmentId: UUID
+  $isActive: Boolean
+) {
+  # Implementation will update user via PostGraphile
+  # Example return structure:
+  # updateUser(input: { ... }) { user { ... } }
+}
+
+# Mutation: Delete user (admin action)
+mutation DeleteUser($id: UUID!) {
+  # Implementation will soft-delete user (set is_active = false)
+  # Example return structure:
+  # deleteUser(id: $id) { deletedUserId }
+}
+
+# Mutation: Assign role to user (admin action)
+mutation AssignRole($userId: UUID!, $role: String!) {
+  # Implementation will update user role
+  # Example return structure:
+  # assignRole(userId: $userId, role: $role) { user { id role } }
+}
+
+# =============================================================================
+# ADMIN AUDIT LOG OPERATIONS (FR-020)
+# =============================================================================
+
+# Query: Get audit logs with filtering
+query GetAuditLogs(
+  $first: Int = 100
+  $offset: Int = 0
+  $userId: UUID
+  $action: String
+  $resource: String
+  $startDate: DateTime
+  $endDate: DateTime
+  $departmentId: UUID
+) {
+  auditLogs(
+    first: $first
+    offset: $offset
+    userId: $userId
+    action: $action
+    resource: $resource
+    startDate: $startDate
+    endDate: $endDate
+  ) {
+    id
+    userId
+    action
+    resource
+    resourceId
+    departmentId
+    ipAddress
+    userAgent
+    metadata
+    timestamp
+    userByUserId {
+      id
+      email
+      displayName
+      role
+    }
+    departmentByDepartmentId {
+      id
+      name
+    }
+  }
+}
+
+# =============================================================================
+# ADMIN SYSTEM SETTINGS OPERATIONS (FR-019)
+# =============================================================================
+
+# Query: Get all system settings
+query GetSystemSettings($category: String) {
+  systemSettings(category: $category) {
+    id
+    key
+    value
+    category
+    description
+    isPublic
+    updatedBy
+    createdAt
+    updatedAt
+    userByUpdatedBy {
+      id
+      email
+      displayName
+    }
+  }
+}
+
+# Mutation: Update system setting (admin action)
+mutation UpdateSystemSetting($key: String!, $value: String!) {
+  updateSystemSetting(key: $key, value: $value) {
+    id
+    key
+    value
+    updatedBy
+    updatedAt
+  }
+}
+
+# =============================================================================
+# ADMIN ANALYTICS DASHBOARD OPERATIONS (FR-021)
+# =============================================================================
+
+# Query: Get organization-wide analytics
+query GetOrganizationAnalytics {
+  # This is a composite query that fetches multiple analytics in a single request
+  leaveStats: leaveStatistics {
+    pendingCount
+    approvedCount
+    rejectedCount
+    approvalRate
+  }
+
+  performanceStats: performanceStatistics {
+    totalReviews
+    completedReviews
+    completionRate
+    averageRatings {
+      overall
+    }
+  }
+
+  goalStats: goalStatistics {
+    totalGoals
+    activeGoals
+    completedGoals
+    completionRate
+  }
+
+  reportStats: reportAnalytics {
+    summary {
+      totalReports
+      activeReports
+      generatedThisMonth
+    }
+  }
+}
+
+# =============================================================================
+# ADMIN COMPLIANCE REPORTS OPERATIONS (FR-022)
+# =============================================================================
+
+# Query: Get compliance report data
+query GetComplianceReport(
+  $reportType: String!
+  $startDate: Date!
+  $endDate: Date!
+  $departmentId: UUID
+) {
+  # This query generates compliance reports based on type:
+  # - "data_retention": Shows data retention compliance
+  # - "access_control": Shows access control audits
+  # - "regulatory": Shows regulatory compliance metrics
+  # Implementation will be custom resolver
+}
+
+# =============================================================================
+# ADMIN DEPARTMENT MANAGEMENT
+# =============================================================================
+
+# Query: Get all departments
+query GetAllDepartments($first: Int = 100, $offset: Int = 0) {
+  # PostGraphile auto-generated query for departments
+  # departments(first: $first, offset: $offset) { ... }
+}
+
+# Mutation: Create department (admin action)
+mutation CreateDepartment(
+  $name: String!
+  $description: String
+  $managerId: UUID
+) {
+  # Implementation will create department
+  # createDepartment(input: { ... }) { department { ... } }
+}
+
+# Mutation: Update department (admin action)
+mutation UpdateDepartment(
+  $id: UUID!
+  $name: String
+  $description: String
+  $managerId: UUID
+  $isActive: Boolean
+) {
+  # Implementation will update department
+  # updateDepartment(input: { ... }) { department { ... } }
+}
+
+# Mutation: Delete department (admin action)
+mutation DeleteDepartment($id: UUID!) {
+  # Implementation will soft-delete department
+  # deleteDepartment(id: $id) { deletedDepartmentId }
+}

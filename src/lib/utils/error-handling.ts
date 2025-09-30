@@ -221,14 +221,9 @@ export function throwStandardError(
 ): never {
 	const standardError = createStandardError(originalError, context);
 
-	throw error(standardError.statusCode, {
-		message: standardError.userMessage,
-		details: {
-			type: standardError.type,
-			requestId: standardError.requestId,
-			timestamp: standardError.timestamp
-		}
-	});
+	// SvelteKit error() expects (status, message) or (status, Error object)
+	// We'll pass the user message as a string
+	throw error(standardError.statusCode, standardError.userMessage);
 }
 
 // Async error wrapper for load functions
