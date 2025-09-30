@@ -233,7 +233,7 @@
 										<Star class="h-4 w-4 fill-yellow-200 text-yellow-400" />
 									{/if}
 									{#each Array(5 - fullStars - (hasHalfStar ? 1 : 0)) as _}
-										<Star class="h-4 w-4 text-gray-300" />
+										<Star class="h-4 w-4 text-muted-foreground" />
 									{/each}
 									<span class="ml-1 text-sm font-medium text-foreground">{review.overallRating}</span>
 								</div>
@@ -286,7 +286,7 @@
 													<Star class="h-3 w-3 fill-yellow-200 text-yellow-400" />
 												{/if}
 												{#each Array(5 - fullStars - (hasHalfStar ? 1 : 0)) as _}
-													<Star class="h-3 w-3 text-gray-300" />
+													<Star class="h-3 w-3 text-muted-foreground" />
 												{/each}
 												<span class="ml-1 text-xs text-muted-foreground">{competency.rating}</span>
 											</div>
