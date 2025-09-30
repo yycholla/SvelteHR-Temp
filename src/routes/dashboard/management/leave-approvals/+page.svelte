@@ -49,7 +49,7 @@
 		leaveTypeOptions,
 		leaveStatusOptions,
 		createLeaveManagementOperations
-	} from '$lib/graphql/leave-management-operations';
+	} from '$lib/graphql/queries/leave-requests';
 
 	// Page data from server
 	interface Props {
