@@ -284,14 +284,14 @@
 	<div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
 		{#each statsCards as card}
 			<div
-				class="rounded-lg border-l-4 bg-card p-6 shadow border-{card.color}-500"
+				class="rounded-lg border-l-4 border-primary bg-card p-6 shadow"
 				data-testid={card.testId}
 			>
 				<div class="flex items-center justify-between">
 					<div>
 						<p class="text-sm font-medium text-muted-foreground">{card.title}</p>
 						<p class="text-2xl font-bold text-foreground">{card.value}</p>
-						<p class="text-sm text-{card.color}-600 flex items-center gap-1">
+						<p class="text-sm text-muted-foreground flex items-center gap-1">
 							<span class="flex items-center">
 								{#if card.trend === 'up'}
 									<TrendingUp class="h-3 w-3" />
@@ -301,8 +301,8 @@
 							from last quarter
 						</p>
 					</div>
-					<div class="p-3 bg-{card.color}-100 rounded-full">
-						<svelte:component this={card.icon} class="h-6 w-6 text-{card.color}-600" />
+					<div class="p-3 bg-muted rounded-full">
+						<svelte:component this={card.icon} class="h-6 w-6" />
 					</div>
 				</div>
 			</div>
@@ -314,9 +314,7 @@
 		<div class="mb-6">
 			{#each alerts as alert}
 				<div
-					class="mb-3 rounded-md border-l-4 p-4 {alert.type === 'warning'
-						? 'border-orange-400 bg-orange-50'
-						: 'border-blue-400 bg-blue-50'}"
+					class="mb-3 rounded-md border-l-4 border-primary bg-muted/50 p-4"
 					data-testid={alert.testId}
 				>
 					<div class="flex items-center justify-between">
@@ -462,25 +460,19 @@
 												{goal.title}
 											</h3>
 											<span
-												class="rounded-full px-2 py-1 text-xs bg-{getTypeColor(
-													goal.goalType
-												)}-100 text-{getTypeColor(goal.goalType)}-800"
+												class="rounded-full px-2 py-1 text-xs bg-muted text-foreground border border-input"
 												data-testid="goal-type"
 											>
 												{goal.goalType?.toUpperCase()}
 											</span>
 											<span
-												class="rounded-full px-2 py-1 text-xs bg-{getPriorityColor(
-													goal.priority
-												)}-100 text-{getPriorityColor(goal.priority)}-800"
+												class="rounded-full px-2 py-1 text-xs bg-muted text-foreground border border-input"
 												data-testid="goal-priority"
 											>
 												{goal.priority?.toUpperCase()}
 											</span>
 											<span
-												class="rounded-full px-2 py-1 text-xs bg-{getStatusColor(
-													goal.status
-												)}-100 text-{getStatusColor(goal.status)}-800"
+												class="rounded-full px-2 py-1 text-xs bg-muted text-foreground border border-input"
 												data-testid="goal-status"
 											>
 												{goal.status?.toUpperCase()}
@@ -579,14 +571,12 @@
 							<h4 class="text-md mb-3 font-medium text-foreground">Goals by Priority</h4>
 							<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
 								{#each goalsAnalytics.breakdowns.priority as priority}
-									<div
-										class="bg-{priority.color}-50 border border-{priority.color}-200 rounded-lg p-4"
-									>
+									<div class="border border-input bg-card rounded-lg p-4">
 										<div class="flex items-center justify-between">
-											<span class="text-sm font-medium text-{priority.color}-800"
+											<span class="text-sm font-medium text-muted-foreground"
 												>{priority.label}</span
 											>
-											<span class="text-2xl font-bold text-{priority.color}-900"
+											<span class="text-2xl font-bold text-foreground"
 												>{priority.count}</span
 											>
 										</div>
@@ -602,10 +592,10 @@
 							<h4 class="text-md mb-3 font-medium text-foreground">Goals by Type</h4>
 							<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
 								{#each goalsAnalytics.breakdowns.type as type}
-									<div class="bg-{type.color}-50 border border-{type.color}-200 rounded-lg p-4">
+									<div class="border border-input bg-card rounded-lg p-4">
 										<div class="flex items-center justify-between">
-											<span class="text-sm font-medium text-{type.color}-800">{type.label}</span>
-											<span class="text-2xl font-bold text-{type.color}-900">{type.count}</span>
+											<span class="text-sm font-medium text-muted-foreground">{type.label}</span>
+											<span class="text-2xl font-bold text-foreground">{type.count}</span>
 										</div>
 									</div>
 								{/each}
