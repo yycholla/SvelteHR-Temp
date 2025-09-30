@@ -474,7 +474,7 @@
 
 ## Phase 3.6: RBAC & Permissions (Priority 6)
 
-- [ ] **T035** [P] Write unit tests for RBAC utilities in `frontend/tests/unit/rbac-utils.test.ts`
+- [x] **T035** [P] Write unit tests for RBAC utilities in `frontend/tests/unit/rbac-utils.test.ts`
   - Test `canEditDepartment(userId, departmentId)` returns true for manager of department
   - Test `canEditDepartment(userId, departmentId)` returns false for manager of different department
   - Test `canEditDepartment(userId, departmentId)` returns true for admin (any department)
@@ -482,8 +482,9 @@
   - Test `getRolePrecedence(roles)` returns 'admin' when both admin and manager roles present
   - Test `isManagerOfDepartment(userId, departmentId)` verifies manager assignment
   - Expected: ALL TESTS FAIL (RBAC utilities not implemented yet)
+  - **Status**: ✅ Comprehensive tests written with 20+ test cases
 
-- [ ] **T036** Implement role precedence logic in `frontend/src/lib/server/rbac-utils.ts`
+- [x] **T036** Implement role precedence logic in `frontend/src/lib/server/rbac-utils.ts`
   - Create `getRolePrecedence(roles: string[]): string` function
   - Hierarchy: admin (100) > hr_manager (80) > manager (60) > employee (20)
   - Return highest priority role from roles array
@@ -492,6 +493,7 @@
   - Add `isManagerOfDepartment(userId, departmentId)` function to verify manager assignment
   - **Dependency**: T035 must fail first (unit tests written)
   - **Expected**: T035 tests should PASS after implementation
+  - **Status**: ✅ Implemented getRolePrecedence, isManagerOfDepartment, getEffectiveRole functions
 
 - [ ] **T037** Implement department transfer detection in `frontend/src/lib/graphql/subscriptions.ts`
   - Create GraphQL subscription `OnDepartmentChange` using contracts/manager-operations.graphql

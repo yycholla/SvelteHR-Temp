@@ -417,3 +417,105 @@ export function getUserPermissions(locals: App.Locals) {
 		isEmployee: hasRole(locals.roles || [], ['employee'])
 	};
 }
+
+/**
+ * Role hierarchy levels for precedence logic
+ * T036: Role precedence implementation
+ */
+const ROLE_HIERARCHY = {
+	admin: 100,
+	hr_manager: 80,
+	manager: 60,
+	employee: 20
+} as const;
+
+/**
+ * Get the highest priority role from a roles array
+ * Used when a user has multiple roles to determine their effective permissions
+ *
+ * @param roles - Array of role names
+ * @returns The highest priority role name
+ *
+ * @example
+ * getRolePrecedence(['employee', 'admin', 'manager']) // returns 'admin'
+ * getRolePrecedence(['hr_manager', 'employee']) // returns 'hr_manager'
+ * getRolePrecedence(['employee']) // returns 'employee'
+ */
+export function getRolePrecedence(roles: string[]): string {
+	if (!roles || roles.length === 0) return 'employee';
+
+	let highestRole = 'employee';
+	let highestLevel = 0;
+
+	for (const role of roles) {
+		const level = ROLE_HIERARCHY[role as keyof typeof ROLE_HIERARCHY] || 0;
+		if (level > highestLevel) {
+			highestLevel = level;
+			highestRole = role;
+		}
+	}
+
+	return highestRole;
+}
+
+/**
+ * Check if a user is the manager of a specific department
+ * Queries the database to verify the manager assignment
+ *
+ * @param userId - The user ID to check
+ * @param departmentId - The department ID to check against
+ * @returns true if the user is the manager of the department, false otherwise
+ */
+export async function isManagerOfDepartment(
+	userId: string,
+	departmentId: string
+): Promise<boolean> {
+	try {
+		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
+		const graphqlEndpoint = getGraphQLEndpoint();
+
+		const response = await fetch(graphqlEndpoint, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				query: `
+					query CheckDepartmentManager($departmentId: UUID!) {
+						departmentById(id: $departmentId) {
+							id
+							managerId
+						}
+					}
+				`,
+				variables: { departmentId }
+			})
+		});
+
+		const data = await response.json();
+		const department = data?.data?.departmentById;
+
+		return department?.managerId === userId;
+	} catch (error) {
+		console.error('[RBAC] Error checking if user is department manager:', error);
+		return false;
+	}
+}
+
+/**
+ * Get the effective role for a user based on role precedence
+ * Updates getUserPermissions to use the highest priority role
+ *
+ * @param locals - SvelteKit locals object
+ * @returns The effective role string
+ */
+export function getEffectiveRole(locals: App.Locals): string {
+	const roles = locals.roles || [];
+	const userRole = locals.user?.role;
+
+	// Combine explicit roles with user.role if present
+	const allRoles = [...roles];
+	if (userRole && !allRoles.includes(userRole)) {
+		allRoles.push(userRole);
+	}
+
+	return getRolePrecedence(allRoles);
+}
