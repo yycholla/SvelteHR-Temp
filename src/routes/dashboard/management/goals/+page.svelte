@@ -396,7 +396,7 @@
 							value={data.filters.searchTerm}
 							oninput={handleSearch}
 							placeholder="Search by title..."
-							class="w-full rounded-md border border-input px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 							data-testid="goal-search"
 						/>
 					</div>
@@ -409,7 +409,7 @@
 							id="status-filter"
 							value={data.filters.statusFilter || 'all'}
 							onchange={(e) => handleFilterChange('status', e.currentTarget.value)}
-							class="w-full rounded-md border border-input px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 							data-testid="status-filter"
 						>
 							<option value="all">All Statuses</option>
@@ -427,8 +427,8 @@
 						<select
 							id="type-filter"
 							value={data.filters.typeFilter || 'all'}
-							onchange={(e) => handleFilterChange('type', e.currentTarget.value)}
-							class="w-full rounded-md border border-input px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+							onchange=(e) => handleFilterChange('type', e.currentTarget.value)}
+							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 							data-testid="type-filter"
 						>
 							<option value="all">All Types</option>
@@ -446,7 +446,7 @@
 							id="priority-filter"
 							value={data.filters.priorityFilter || 'all'}
 							onchange={(e) => handleFilterChange('priority', e.currentTarget.value)}
-							class="w-full rounded-md border border-input px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 							data-testid="priority-filter"
 						>
 							<option value="all">All Priorities</option>
@@ -653,7 +653,7 @@
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
 		data-testid="create-goal-modal"
 	>
-		<div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-card p-6">
+		<div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-background p-6 shadow-lg">
 			<h2 class="mb-4 text-xl font-bold">Create New Goal</h2>
 			<form class="space-y-4">
 				<div>
@@ -662,7 +662,7 @@
 						type="text"
 						bind:value={goalForm.title}
 						required
-						class="w-full rounded-md border border-input px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 						data-testid="goal-title-input"
 						placeholder="Enter goal title..."
 					/>
@@ -673,7 +673,7 @@
 					<textarea
 						bind:value={goalForm.description}
 						rows="3"
-						class="w-full rounded-md border border-input px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 						data-testid="goal-description-input"
 						placeholder="Describe the goal..."
 					></textarea>
@@ -684,7 +684,7 @@
 						<label class="mb-1 block text-sm font-medium text-foreground">Type</label>
 						<select
 							bind:value={goalForm.goalType}
-							class="w-full rounded-md border border-input px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 							data-testid="goal-type-input"
 						>
 							<option value="okr">OKR</option>
@@ -696,7 +696,7 @@
 						<label class="mb-1 block text-sm font-medium text-foreground">Priority</label>
 						<select
 							bind:value={goalForm.priority}
-							class="w-full rounded-md border border-input px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 							data-testid="goal-priority-input"
 						>
 							<option value="low">Low</option>
@@ -708,7 +708,7 @@
 						<label class="mb-1 block text-sm font-medium text-foreground">Unit</label>
 						<select
 							bind:value={goalForm.unit}
-							class="w-full rounded-md border border-input px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 							data-testid="goal-unit-input"
 						>
 							<option value="%">Percentage (%)</option>
@@ -726,7 +726,7 @@
 							type="number"
 							bind:value={goalForm.targetValue}
 							min="0"
-							class="w-full rounded-md border border-input px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 							data-testid="goal-target-input"
 						/>
 					</div>
@@ -736,7 +736,7 @@
 							type="number"
 							bind:value={goalForm.currentValue}
 							min="0"
-							class="w-full rounded-md border border-input px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 							data-testid="goal-current-input"
 						/>
 					</div>
@@ -749,7 +749,7 @@
 							type="date"
 							bind:value={goalForm.startDate}
 							required
-							class="w-full rounded-md border border-input px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 							data-testid="goal-start-date"
 						/>
 					</div>
@@ -759,7 +759,7 @@
 							type="date"
 							bind:value={goalForm.targetDate}
 							required
-							class="w-full rounded-md border border-input px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 							data-testid="goal-target-date"
 						/>
 					</div>
@@ -769,13 +769,13 @@
 					<button
 						type="button"
 						onclick={closeModals}
-						class="rounded-md border border-input px-4 py-2 transition-colors hover:bg-muted dark:bg-muted"
+						class="rounded-md border px-4 py-2 text-sm hover:bg-accent"
 					>
 						Cancel
 					</button>
 					<button
 						type="submit"
-						class="rounded-md bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
+						class="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90"
 						data-testid="submit-goal"
 					>
 						Create Goal
@@ -792,7 +792,7 @@
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
 		data-testid="view-goal-modal"
 	>
-		<div class="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-card p-6">
+		<div class="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-background p-6 shadow-lg">
 			<div class="mb-6 flex items-center justify-between">
 				<div>
 					<h2 class="text-xl font-bold">{currentGoal.title}</h2>
@@ -844,7 +844,7 @@
 				{#if currentGoal.description}
 					<div>
 						<h4 class="mb-2 font-medium text-foreground">Description</h4>
-						<p class="rounded-md bg-muted dark:bg-muted p-3 text-foreground">{currentGoal.description}</p>
+						<p class="rounded-md bg-muted/50 p-3 text-foreground">{currentGoal.description}</p>
 					</div>
 				{/if}
 
@@ -865,13 +865,13 @@
 						closeModals();
 						openProgressModal(currentGoal);
 					}}
-					class="rounded-md bg-green-600 px-4 py-2 text-white transition-colors hover:bg-green-700"
+					class="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90"
 				>
 					Update Progress
 				</button>
 				<button
 					onclick={closeModals}
-					class="rounded-md bg-gray-600 px-4 py-2 text-white transition-colors hover:bg-gray-700"
+					class="rounded-md border px-4 py-2 text-sm hover:bg-accent"
 				>
 					Close
 				</button>
@@ -886,7 +886,7 @@
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
 		data-testid="progress-modal"
 	>
-		<div class="w-full max-w-md rounded-lg bg-card p-6">
+		<div class="w-full max-w-md rounded-lg bg-background p-6 shadow-lg">
 			<h2 class="mb-4 text-xl font-bold">Update Progress</h2>
 
 			<div class="mb-4">
@@ -902,7 +902,7 @@
 						bind:value={progressForm.currentValue}
 						min="0"
 						max={currentGoal.targetValue}
-						class="w-full rounded-md border border-input px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 						data-testid="progress-value-input"
 					/>
 					<div class="mt-2">
@@ -930,7 +930,7 @@
 					<textarea
 						bind:value={progressForm.notes}
 						rows="3"
-						class="w-full rounded-md border border-input px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 						data-testid="progress-notes"
 						placeholder="Add notes about this progress update..."
 					></textarea>
@@ -940,13 +940,13 @@
 					<button
 						type="button"
 						onclick={closeModals}
-						class="rounded-md border border-input px-4 py-2 transition-colors hover:bg-muted dark:bg-muted"
+						class="rounded-md border px-4 py-2 text-sm hover:bg-accent"
 					>
 						Cancel
 					</button>
 					<button
 						type="submit"
-						class="rounded-md bg-green-600 px-4 py-2 text-white transition-colors hover:bg-green-700"
+						class="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90"
 						data-testid="update-progress-submit"
 					>
 						Update Progress

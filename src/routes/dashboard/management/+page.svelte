@@ -235,7 +235,7 @@ Modern Svelte 5 implementation with server-side data loading and comprehensive m
 			<select
 				bind:value={selectedPeriod}
 				onchange={updateFilters}
-				class="rounded-md border border-input px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+				class="rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 			>
 				<option value="this-week">This Week</option>
 				<option value="this-month">This Month</option>
@@ -245,7 +245,7 @@ Modern Svelte 5 implementation with server-side data loading and comprehensive m
 			<select
 				bind:value={selectedTeamId}
 				onchange={updateFilters}
-				class="rounded-md border border-input px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+				class="rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 			>
 				<option value="">All Teams</option>
 				<option value="engineering">Engineering</option>
@@ -383,7 +383,7 @@ Modern Svelte 5 implementation with server-side data loading and comprehensive m
 				{@const Icon = iconMap[activity.icon as keyof typeof iconMap] || Activity}
 				<a
 					href={activity.href}
-					class="-m-2 block rounded-lg p-2 transition-colors hover:bg-muted dark:bg-muted"
+					class="-m-2 block rounded-lg p-2 transition-colors hover:bg-muted/50"
 				>
 					<div class="flex items-start gap-3">
 						<div class="p-2 bg-{activity.color}-100 rounded-full">
