@@ -55,11 +55,6 @@ export const load: PageServerLoad = async ({ locals, url, parent }) => {
 			}
 		`;
 
-		const usersResult = await client.query(usersQuery, {
-			first: limit,
-			offset
-		});
-
 		// Query all departments for filtering/assignment
 		const departmentsQuery = `
 			query GetAllDepartments {
@@ -72,8 +67,6 @@ export const load: PageServerLoad = async ({ locals, url, parent }) => {
 				}
 			}
 		`;
-
-		const departmentsResult = await client.query(departmentsQuery, {});
 
 		// Query all roles for filtering/assignment
 		const rolesQuery = `
@@ -88,7 +81,12 @@ export const load: PageServerLoad = async ({ locals, url, parent }) => {
 			}
 		`;
 
-		const rolesResult = await client.query(rolesQuery, {});
+		// Execute all queries in parallel for better performance
+		const [usersResult, departmentsResult, rolesResult] = await Promise.all([
+			client.query(usersQuery, { first: limit, offset }),
+			client.query(departmentsQuery, {}),
+			client.query(rolesQuery, {})
+		]);
 
 		const users = usersResult.data?.allUsers?.nodes || [];
 		const totalCount = usersResult.data?.allUsers?.totalCount || 0;
