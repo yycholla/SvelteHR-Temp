@@ -85,7 +85,7 @@ fi\n\
 \n\
 # Start the frontend application in development mode\n\
 cd /home/dev/frontend\n\
-exec sudo -u dev npm run dev -- --host 0.0.0.0' > /start.sh \
+exec sudo -E -u dev npm run dev -- --host 0.0.0.0' > /start.sh \
     && chmod +x /start.sh
 
 # Expose SSH port and application port

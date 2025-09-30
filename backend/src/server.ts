@@ -26,6 +26,9 @@ const DATABASE_URL =
 const JWT_SECRET = process.env.JWT_SECRET || 'development-jwt-secret-change-in-production';
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
+// Debug logging for database connection
+console.log('🔍 DATABASE_URL:', DATABASE_URL);
+
 // Configure Winston logger
 const logger = winston.createLogger({
 	level: NODE_ENV === 'production' ? 'info' : 'debug',

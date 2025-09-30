@@ -78,7 +78,7 @@ fi\n\
 \n\
 # Start the backend application in development mode\n\
 cd /home/dev/backend\n\
-exec sudo -u dev npm run dev' > /start.sh \
+exec sudo -E -u dev npm run dev' > /start.sh \
     && chmod +x /start.sh
 
 # Expose SSH port and application port
