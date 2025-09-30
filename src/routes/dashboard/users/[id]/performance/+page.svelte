@@ -130,7 +130,7 @@
 		{#if isOwnGoals}
 			<button
 				onclick={() => showNewGoalForm = true}
-				class="inline-flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700"
+				class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
 			>
 				<Plus class="h-4 w-4" />
 				New Goal
@@ -243,7 +243,7 @@
 							type="text"
 							bind:value={newGoal.title}
 							required
-							class="w-full rounded-md border border-input px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 							placeholder="Enter goal title..."
 						/>
 					</div>
@@ -257,7 +257,7 @@
 							bind:value={newGoal.description}
 							rows="3"
 							required
-							class="w-full rounded-md border border-input px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 							placeholder="Describe your goal and how you plan to achieve it..."
 						></textarea>
 					</div>
@@ -271,7 +271,7 @@
 								id="goalCategory"
 								bind:value={newGoal.categoryId}
 								required
-								class="w-full rounded-md border border-input px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 							>
 								<option value="">Select category</option>
 								{#each goalCategories as category}
@@ -287,7 +287,7 @@
 							<select
 								id="goalPriority"
 								bind:value={newGoal.priority}
-								class="w-full rounded-md border border-input px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 							>
 								<option value="low">Low</option>
 								<option value="medium">Medium</option>
@@ -305,7 +305,7 @@
 							type="date"
 							bind:value={newGoal.targetDate}
 							required
-							class="w-full rounded-md border border-input px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 						/>
 					</div>
 
@@ -319,7 +319,7 @@
 						</button>
 						<button
 							type="submit"
-							class="rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700"
+							class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
 						>
 							Create Goal
 						</button>
@@ -430,7 +430,7 @@
 					{#if isOwnGoals && selectedCategory === 'all' && selectedStatus === 'all'}
 						<button
 							onclick={() => showNewGoalForm = true}
-							class="inline-flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700"
+							class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
 						>
 							<Plus class="h-4 w-4" />
 							Create Your First Goal

@@ -110,7 +110,7 @@
 		{#if isOwnLeave}
 			<button
 				onclick={() => showNewRequestForm = true}
-				class="inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+				class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
 			>
 				<Plus class="h-4 w-4" />
 				New Request
@@ -167,7 +167,7 @@
 							id="leaveType"
 							bind:value={newRequest.leaveTypeId}
 							required
-							class="w-full rounded-md border border-input px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 						>
 							<option value="">Select leave type</option>
 							{#each leaveTypes as type}
@@ -186,7 +186,7 @@
 								type="date"
 								bind:value={newRequest.startDate}
 								required
-								class="w-full rounded-md border border-input px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 							/>
 						</div>
 						<div>
@@ -198,7 +198,7 @@
 								type="date"
 								bind:value={newRequest.endDate}
 								required
-								class="w-full rounded-md border border-input px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+								class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 							/>
 						</div>
 					</div>
@@ -212,7 +212,7 @@
 							bind:value={newRequest.reason}
 							rows="3"
 							required
-							class="w-full rounded-md border border-input px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 							placeholder="Please provide a reason for your leave request..."
 						></textarea>
 					</div>
@@ -227,7 +227,7 @@
 						</button>
 						<button
 							type="submit"
-							class="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+							class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
 						>
 							Submit Request
 						</button>

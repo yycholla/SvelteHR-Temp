@@ -167,7 +167,7 @@
 				<select
 					id="status-filter"
 					bind:value={selectedStatus}
-					class="rounded-md border border-input px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+					class="rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 				>
 					<option value="all">All Statuses</option>
 					<option value="completed">Completed</option>
@@ -184,7 +184,7 @@
 				<select
 					id="type-filter"
 					bind:value={selectedType}
-					class="rounded-md border border-input px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+					class="rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 				>
 					<option value="all">All Types</option>
 					{#each reviewTypes as type}
