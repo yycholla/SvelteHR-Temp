@@ -5,27 +5,25 @@
 
 	let { data } = $props();
 
-	$: ({
-		user,
-		userId,
-		reviews,
-		reviewTypes,
-		competencyAreas,
-		reviewStats,
-		canManageReviews,
-		isOwnReviews
-	} = data);
+	let user = $derived(data.user);
+	let userId = $derived(data.userId);
+	let reviews = $derived(data.reviews);
+	let reviewTypes = $derived(data.reviewTypes);
+	let competencyAreas = $derived(data.competencyAreas);
+	let reviewStats = $derived(data.reviewStats);
+	let canManageReviews = $derived(data.canManageReviews);
+	let isOwnReviews = $derived(data.isOwnReviews);
 
 	let selectedStatus = $state('all');
 	let selectedType = $state('all');
 	let expandedReview = $state(null);
 
 	// Filter reviews based on selected filters
-	$: filteredReviews = reviews.filter(review => {
+	let filteredReviews = $derived(reviews.filter(review => {
 		const statusMatch = selectedStatus === 'all' || review.status === selectedStatus;
 		const typeMatch = selectedType === 'all' || review.type.id === selectedType;
 		return statusMatch && typeMatch;
-	});
+	}));
 
 	function getStatusIcon(status: string) {
 		switch (status) {
@@ -200,6 +198,7 @@
 	<!-- Reviews List -->
 	<div class="space-y-6">
 		{#each filteredReviews as review}
+			{@const StatusIcon = getStatusIcon(review.status)}
 			<div class="rounded-lg bg-white shadow-sm border">
 				<!-- Review Header -->
 				<div class="p-6 border-b border-gray-200">
@@ -220,16 +219,13 @@
 
 						<div class="flex items-center gap-4">
 							<span class="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium {getStatusColor(review.status)}">
-								<svelte:component
-									this={getStatusIcon(review.status)}
-									class="h-3 w-3"
-								/>
+								<StatusIcon class="h-3 w-3" />
 								{review.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
 							</span>
 
 							{#if review.status === 'completed' && review.overallRating}
+								{@const { fullStars, hasHalfStar } = getRatingStars(review.overallRating)}
 								<div class="flex items-center gap-1">
-									{@const { fullStars, hasHalfStar } = getRatingStars(review.overallRating)}
 									{#each Array(fullStars) as _}
 										<Star class="h-4 w-4 fill-yellow-400 text-yellow-400" />
 									{/each}
@@ -278,11 +274,11 @@
 							</h4>
 							<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 								{#each review.competencies as competency}
+									{@const { fullStars, hasHalfStar } = getRatingStars(competency.rating)}
 									<div class="bg-gray-50 p-4 rounded-lg">
 										<div class="flex items-center justify-between mb-2">
 											<span class="font-medium text-gray-900">{competency.name}</span>
 											<div class="flex items-center gap-1">
-												{@const { fullStars, hasHalfStar } = getRatingStars(competency.rating)}
 												{#each Array(fullStars) as _}
 													<Star class="h-3 w-3 fill-yellow-400 text-yellow-400" />
 												{/each}

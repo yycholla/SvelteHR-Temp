@@ -72,12 +72,23 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
 
 		// Mock authentication - in real implementation this would be an API call
 		if (credentials.email && credentials.password) {
+			// Map email to actual UUID from database
+			// TODO: Replace with actual API call to PostGraphile
+			const userMap: Record<string, { id: string; role: string }> = {
+				'admin@postgraphile-hr.com': { id: '21adcea9-8c60-4f0c-beff-cfe1359365b5', role: 'admin' },
+				'john.doe@company.com': { id: '21adcea9-8c60-4f0c-beff-cfe1359365b5', role: 'admin' },
+				'sarah.wilson@company.com': { id: '4549109d-e26d-4ce8-9ec0-6cffce485a27', role: 'manager' },
+				'stephanie.lee@company.com': { id: '15b08b0a-6b40-4bf0-8c30-d7d1f156c247', role: 'employee' }
+			};
+
+			const userData = userMap[credentials.email] || { id: '21adcea9-8c60-4f0c-beff-cfe1359365b5', role: 'admin' };
+
 			// Create a proper JWT token that the server can validate
 			const currentTime = Math.floor(Date.now() / 1000);
 			const payload = {
-				user_id: '1',
+				user_id: userData.id,
 				email: credentials.email,
-				role: 'hr_admin',
+				role: userData.role,
 				permissions: ['*'],
 				iat: currentTime,
 				exp: currentTime + (24 * 60 * 60), // 24 hours
@@ -93,10 +104,12 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
 			const mockToken = `${header}.${encodedPayload}.${signature}`;
 
 			const mockUser = {
-				id: '1',
+				id: userData.id, // Use the mapped UUID
 				email: credentials.email,
 				displayName: credentials.email.split('@')[0],
-				roles: ['Employee']
+				roles: [userData.role],
+				isActive: true,
+				onboardingStatus: 'completed'
 			};
 
 			// Store token if in browser - both localStorage and cookie
@@ -197,7 +210,7 @@ export async function verifyToken(token?: string): Promise<{
 					return {
 						valid: true,
 						user: {
-							id: payload.user_id || '1',
+							id: payload.user_id || '21adcea9-8c60-4f0c-beff-cfe1359365b5',
 							email: payload.email || 'user@example.com',
 							displayName: payload.email?.split('@')[0] || 'Mock User',
 							firstName: 'Mock',

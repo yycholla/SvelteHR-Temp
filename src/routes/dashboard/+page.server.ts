@@ -30,7 +30,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// Load dashboard data using standardized operations
 		const userRole = locals.user.role || 'employee';
-		const userId = locals.user.id || '1'; // Fallback to '1' if undefined
+		const userId = locals.user.id || '21adcea9-8c60-4f0c-beff-cfe1359365b5'; // Fallback to admin UUID
 		const dashboardData = await getCompleteDashboardData(userId, userRole);
 
 		// Get standardized user permissions

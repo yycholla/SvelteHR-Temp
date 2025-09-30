@@ -54,8 +54,47 @@ export const load: PageServerLoad = async (event) => {
 	});
 
 	try {
+		// Fetch user's managed department for managers (admins see all)
+		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
+		const graphqlEndpoint = getGraphQLEndpoint();
+
+		let managedDepartmentId: string | null = null;
+		let isAdmin = userSession.roles.includes('admin');
+
+		// For managers, get their managed department
+		if (!isAdmin && userSession.roles.includes('manager')) {
+			const deptResponse = await fetch(graphqlEndpoint, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					query: `
+						query GetManagerDepartment($userId: UUID!) {
+							userById(id: $userId) {
+								id
+								departmentByDepartmentId {
+									id
+									name
+									managerId
+								}
+							}
+						}
+					`,
+					variables: { userId: userSession.userId }
+				})
+			});
+
+			const deptData = await deptResponse.json();
+			const userDept = deptData?.data?.userById?.departmentByDepartmentId;
+
+			// Only set managedDepartmentId if user is actually the manager of their department
+			if (userDept && userDept.managerId === userSession.userId) {
+				managedDepartmentId = userDept.id;
+			}
+		}
+
 		// For now, use simplified mock data to avoid complex GraphQL operations
 		// This keeps the page functional while avoiding operational complexity
+		// In production, these would be filtered by managedDepartmentId for managers
 		const pendingLeaves = { nodes: [], totalCount: 0 };
 		const pendingReviews = { nodes: [], totalCount: 0 };
 		const teamGoals = { nodes: [], totalCount: 0 };
@@ -300,6 +339,10 @@ export const load: PageServerLoad = async (event) => {
 				selectedPeriod,
 				selectedTeamId
 			},
+			// Team/Department context for managers
+			managedDepartmentId,
+			isAdmin,
+			canEditAllTeams: isAdmin, // Only admins can edit all teams
 			// RBAC: Standardized permission checks
 			...userPermissions,
 			loadedAt: new Date().toISOString()

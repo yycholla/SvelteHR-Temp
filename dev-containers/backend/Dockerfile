@@ -21,10 +21,13 @@ RUN apt-get update && apt-get install -y \
     neovim \
     && rm -rf /var/lib/apt/lists/*
 
-# Create development user
-RUN groupadd -r dev && useradd -m -s /bin/bash -g dev dev \
+# Create development user with host UID/GID (1000:1000) to avoid permission issues
+# Rename existing 'node' user/group (UID/GID 1000) to 'dev'
+RUN usermod -l dev node \
+    && groupmod -n dev node \
+    && usermod -d /home/dev -m dev \
     && echo 'dev:dev' | chpasswd \
-    && adduser dev sudo \
+    && usermod -aG sudo dev \
     && echo 'dev ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 # Configure SSH

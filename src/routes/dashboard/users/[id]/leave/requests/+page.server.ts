@@ -12,11 +12,6 @@ export const load: PageServerLoad = async (event) => {
 	// Verify user can access this leave data (own data or has management permissions)
 	let userId = params.id;
 
-	// TEMPORARY FIX: Handle legacy user ID mapping
-	if (userId === '1' && locals.user?.email === 'admin@mountainhr.dev') {
-		userId = '9cc4e080-867c-441a-bbb7-169e18498858';
-	}
-
 	const canViewOthers = locals.roles?.includes('admin') || locals.roles?.includes('manager');
 
 	if (!canViewOthers && locals.user?.id !== userId) {
@@ -27,7 +22,8 @@ export const load: PageServerLoad = async (event) => {
 
 	try {
 		// Make direct GraphQL calls to PostGraphile backend
-		const graphqlEndpoint = 'http://localhost:4000/graphql';
+		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
+		const graphqlEndpoint = getGraphQLEndpoint();
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json'
 		};

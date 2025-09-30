@@ -5,16 +5,15 @@
 
 	let { data } = $props();
 
-	$: ({
-		user,
-		userId,
-		goals,
-		goalCategories,
-		goalStats,
-		currentQuarter,
-		canManageGoals,
-		isOwnGoals
-	} = data);
+	// Svelte 5 runes - use $derived for reactive data
+	let user = $derived(data.user);
+	let userId = $derived(data.userId);
+	let goals = $derived(data.goals);
+	let goalCategories = $derived(data.goalCategories);
+	let goalStats = $derived(data.goalStats);
+	let currentQuarter = $derived(data.currentQuarter);
+	let canManageGoals = $derived(data.canManageGoals);
+	let isOwnGoals = $derived(data.isOwnGoals);
 
 	let showNewGoalForm = $state(false);
 	let selectedCategory = $state('all');
@@ -28,11 +27,11 @@
 	});
 
 	// Filter goals based on selected filters
-	$: filteredGoals = goals.filter(goal => {
+	let filteredGoals = $derived(goals.filter(goal => {
 		const categoryMatch = selectedCategory === 'all' || goal.category.id === selectedCategory;
 		const statusMatch = selectedStatus === 'all' || goal.status === selectedStatus;
 		return categoryMatch && statusMatch;
-	});
+	}));
 
 	function getStatusIcon(status: string) {
 		switch (status) {
@@ -87,7 +86,8 @@
 		return 'bg-red-500';
 	}
 
-	async function handleSubmitGoal() {
+	async function handleSubmitGoal(event: SubmitEvent) {
+		event.preventDefault();
 		// TODO: Implement actual goal creation
 		console.log('Creating new goal:', newGoal);
 		showNewGoalForm = false;
@@ -233,7 +233,7 @@
 		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
 			<div class="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl">
 				<h2 class="text-lg font-semibold text-gray-900 mb-4">Create New Goal</h2>
-				<form onsubmit|preventDefault={handleSubmitGoal} class="space-y-4">
+				<form onsubmit={handleSubmitGoal} class="space-y-4">
 					<div>
 						<label for="goalTitle" class="block text-sm font-medium text-gray-700 mb-1">
 							Goal Title

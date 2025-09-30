@@ -14,7 +14,7 @@ echo ""
 wait_for_service() {
     local service_name=$1
     local check_command=$2
-    local max_attempts=30
+    local max_attempts=$3
     local attempt=1
 
     echo -n "⏳ Waiting for $service_name"
@@ -33,21 +33,25 @@ wait_for_service() {
     return 1
 }
 
-# Check PostgreSQL
+# Check PostgreSQL (30 attempts = 60 seconds)
 wait_for_service "PostgreSQL" \
-    "docker exec sveltehr-postgres-dev pg_isready -U postgres -d hr_system"
+    "docker exec sveltehr-postgres-dev pg_isready -U postgres -d hr_system" \
+    30
 
-# Check Redis
+# Check Redis (15 attempts = 30 seconds)
 wait_for_service "Redis" \
-    "docker exec sveltehr-redis-dev redis-cli ping"
+    "docker exec sveltehr-redis-dev redis-cli ping" \
+    15
 
-# Check Backend API
+# Check Backend API (30 attempts = 60 seconds)
 wait_for_service "Backend API (PostGraphile)" \
-    "curl -sf http://localhost:4000/health"
+    "curl -sf http://localhost:4000/health" \
+    30
 
-# Check Frontend
+# Check Frontend (60 attempts = 120 seconds - needs time for npm install)
 wait_for_service "Frontend (SvelteKit)" \
-    "curl -sf http://localhost:5173"
+    "curl -sf http://localhost:5173" \
+    60
 
 echo ""
 echo "✅ All services are healthy!"

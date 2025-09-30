@@ -4,8 +4,10 @@
 	import ErrorBoundary from '$lib/components/ui/error-boundary.svelte';
 
 	// SvelteKit provides error details in the page store
-	let error = $derived($page.error);
-	let status = $derived($page.status);
+	// Access page store values reactively
+	let pageData = $derived($page);
+	let error = $derived(pageData.error);
+	let status = $derived(pageData.status);
 
 	// Create a proper Error object from SvelteKit error
 	let errorObject = $derived(

@@ -323,14 +323,14 @@
 
 ### Admin Route Guards & Navigation
 
-- [ ] **T023** [P] Create admin RBAC route guard in `frontend/src/routes/dashboard/admin/+layout.server.ts`
+- [x] **T023** [P] Create admin RBAC route guard in `frontend/src/routes/dashboard/admin/+layout.server.ts`
   - Check user has admin role: `locals.roles?.includes('admin') || locals.user.role === 'admin'`
   - Throw error(403, 'Insufficient permissions - Admin access required') for non-admins
   - Return `isAdmin: true` flag to all child routes
   - Add audit logging for admin page access attempts
   - **Dependency**: None (can run in parallel)
 
-- [ ] **T024** Implement admin navigation in sidebar in `frontend/src/lib/components/navigation/Sidebar.svelte`
+- [x] **T024** Implement admin navigation in sidebar in `frontend/src/lib/components/navigation/Sidebar.svelte`
   - Add "Admin" section to sidebar below "Management" section
   - Show admin section only if `isAdmin` flag is true
   - Add navigation items: User Management, System Settings, Audit Logs, Analytics Dashboard, Compliance Reports
@@ -338,7 +338,7 @@
   - Add icons for each admin page using lucide-svelte
   - **Dependency**: T023 (admin guard created)
 
-- [ ] **T024a** [P] Implement manager navigation badges in `frontend/src/lib/components/navigation/NavigationBadge.svelte`
+- [x] **T024a** [P] Implement manager navigation badges in `frontend/src/lib/components/navigation/NavigationBadge.svelte`
   - Create NavigationBadge component with variants: "my-team" (blue) and "all" (green)
   - Add to management navigation items (leave-approvals, reviews, goals, reports, teams)
   - Show "My Team" badge for managers (based on `isManager` flag)
@@ -349,7 +349,7 @@
 
 ### Admin Pages Implementation
 
-- [ ] **T025** Implement User Management admin page in `frontend/src/routes/dashboard/admin/users/+page.server.ts` and `+page.svelte`
+- [x] **T025** Implement User Management admin page in `frontend/src/routes/dashboard/admin/users/+page.server.ts` and `+page.svelte`
   - Server: Load all users with pagination (first: 50, offset: 0)
   - Server: Implement user filtering (by role, department, status)
   - Server: Check admin permissions via RBAC guard
@@ -363,7 +363,7 @@
   - **Dependency**: T023 (admin guard), T009 (admin contract tests fail first)
   - **Expected**: T011 user management tests should PASS
 
-- [ ] **T026** Implement System Settings admin page in `frontend/src/routes/dashboard/admin/settings/+page.server.ts` and `+page.svelte`
+- [x] **T026** Implement System Settings admin page in `frontend/src/routes/dashboard/admin/settings/+page.server.ts` and `+page.svelte`
   - Server: Load system settings grouped by category (general, security, integrations, features)
   - Server: Check admin permissions
   - Client: Display settings as expandable sections by category
@@ -375,7 +375,7 @@
   - **Dependency**: T023 (admin guard), T009 (admin contract tests fail first)
   - **Expected**: T011 system settings tests should PASS
 
-- [ ] **T027** Implement Audit Logs admin page in `frontend/src/routes/dashboard/admin/audit/+page.server.ts` and `+page.svelte`
+- [x] **T027** Implement Audit Logs admin page in `frontend/src/routes/dashboard/admin/audit/+page.server.ts` and `+page.svelte`
   - Server: Load audit logs with pagination (first: 100, offset: 0)
   - Server: Implement filtering by userId, action, resource, date range, departmentId
   - Server: Check admin permissions
@@ -387,7 +387,7 @@
   - **Dependency**: T023 (admin guard), T009 (admin contract tests fail first)
   - **Expected**: T011 audit logs tests should PASS
 
-- [ ] **T028** Implement Analytics Dashboard admin page in `frontend/src/routes/dashboard/admin/analytics/+page.server.ts` and `+page.svelte`
+- [x] **T028** Implement Analytics Dashboard admin page in `frontend/src/routes/dashboard/admin/analytics/+page.server.ts` and `+page.svelte`
   - Server: Load organization-wide analytics via `GetOrganizationAnalytics` query
   - Server: Aggregate leave statistics (pending, approved, rejected, approval rate)
   - Server: Aggregate performance statistics (total reviews, completion rate, average ratings)
@@ -401,7 +401,7 @@
   - **Dependency**: T023 (admin guard), T009 (admin contract tests fail first)
   - **Expected**: T011 analytics tests should PASS
 
-- [ ] **T029** Implement Compliance Reports admin page in `frontend/src/routes/dashboard/admin/compliance/+page.server.ts` and `+page.svelte`
+- [x] **T029** Implement Compliance Reports admin page in `frontend/src/routes/dashboard/admin/compliance/+page.server.ts` and `+page.svelte`
   - Server: Implement `GetComplianceReport` query with report type (data_retention, access_control, regulatory)
   - Server: Generate compliance data based on type (query audit logs, user access patterns, data retention policies)
   - Server: Check admin permissions
