@@ -13,11 +13,8 @@ export const load: PageServerLoad = async ({ locals, url, parent, cookies, fetch
 		throw error(403, 'Admin access required');
 	}
 
-	// Get JWT token for authenticated GraphQL queries
-	const jwtToken = cookies.get('hr_token') || cookies.get('auth-token');
-	if (!jwtToken) {
-		throw error(401, 'Authentication token required');
-	}
+	// Get JWT token for authenticated GraphQL queries (optional)
+	const jwtToken = cookies.get('hr_token') || cookies.get('auth-token') || '';
 
 	// Get pagination parameters - reduced to 20 for better performance
 	const page = parseInt(url.searchParams.get('page') || '1');
@@ -30,8 +27,10 @@ export const load: PageServerLoad = async ({ locals, url, parent, cookies, fetch
 	const statusFilter = url.searchParams.get('status') || '';
 
 	try {
-		// Create authenticated GraphQL client with server-side fetch and JWT
-		const client = createUrqlClient(fetchFn, jwtToken);
+		// Create GraphQL client with server-side fetch and optional JWT
+		const client = jwtToken
+			? createUrqlClient(fetchFn, jwtToken)
+			: createUrqlClient(fetchFn);
 
 		// Build condition object for server-side filtering
 		const condition: any = {};
@@ -47,7 +46,7 @@ export const load: PageServerLoad = async ({ locals, url, parent, cookies, fetch
 		// Query users with server-side filtering and pagination
 		const usersQuery = `
 			query GetAllUsers($first: Int!, $offset: Int!, $condition: UserCondition) {
-				allUsers(first: $first, offset: $offset, orderBy: CREATED_AT_DESC, condition: $condition) {
+				allUsers(first: $first, offset: $offset, orderBy: ID_DESC, condition: $condition) {
 					nodes {
 						id
 						email
