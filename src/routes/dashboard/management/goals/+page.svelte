@@ -271,7 +271,7 @@
 		{#if canCreateGoals}
 			<button
 				onclick={openCreateModal}
-				class="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
+				class="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-primary-foreground transition-colors hover:bg-primary/90"
 				data-testid="create-goal-button"
 			>
 				<Plus class="h-4 w-4" />
@@ -571,7 +571,7 @@
 						{#if canCreateGoals}
 							<button
 								onclick={openCreateModal}
-								class="rounded-md bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
+								class="rounded-md bg-primary px-4 py-2 text-primary-foreground transition-colors hover:bg-primary/90"
 							>
 								Create First Goal
 							</button>

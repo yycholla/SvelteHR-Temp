@@ -293,7 +293,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 		{#if data.canCreateReports}
 			<button
 				onclick={handleCreateReport}
-				class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+				class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90"
 			>
 				<Plus class="h-5 w-5" />
 				Create Report
@@ -399,7 +399,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 			<div class="flex gap-2">
 				<button
 					onclick={applyFilters}
-					class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+					class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90"
 				>
 					<Filter class="h-4 w-4" />
 					Apply Filters
@@ -418,11 +418,11 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 					<span class="text-sm text-muted-foreground">{selectedReports.length} selected</span>
 					<div class="flex gap-2">
 						{#if data.canRunReports}
-							<button class="rounded bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-700">
+							<button class="rounded bg-primary px-3 py-1 text-sm text-primary-foreground hover:bg-primary/90">
 								Run Selected
 							</button>
 						{/if}
-						<button class="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700">
+						<button class="rounded bg-destructive px-3 py-1 text-sm text-destructive-foreground hover:bg-destructive/90">
 							Delete Selected
 						</button>
 					</div>
@@ -551,7 +551,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 				{#if data.canCreateReports}
 					<button
 						onclick={handleCreateReport}
-						class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+						class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90"
 					>
 						<Plus class="h-5 w-5" />
 						Create Report
@@ -667,7 +667,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 								id="title"
 								type="text"
 								bind:value={createForm.title}
-								class="mt-1 block w-full rounded-md border-input shadow-sm focus:border-blue-500 focus:ring-blue-500"
+								class="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 								placeholder="Enter report title"
 							/>
 						</div>
@@ -680,7 +680,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 								id="description"
 								bind:value={createForm.description}
 								rows="3"
-								class="mt-1 block w-full rounded-md border-input shadow-sm focus:border-blue-500 focus:ring-blue-500"
+								class="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 								placeholder="Enter report description"
 							></textarea>
 						</div>
@@ -691,7 +691,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 								<select
 									id="reportType"
 									bind:value={createForm.reportType}
-									class="mt-1 block w-full rounded-md border-input shadow-sm focus:border-blue-500 focus:ring-blue-500"
+									class="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 								>
 									{#each REPORT_TYPES as type}
 										<option value={type.value}>{type.label}</option>
@@ -706,7 +706,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 								<select
 									id="category"
 									bind:value={createForm.category}
-									class="mt-1 block w-full rounded-md border-input shadow-sm focus:border-blue-500 focus:ring-blue-500"
+									class="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 								>
 									{#each REPORT_CATEGORIES as category}
 										<option value={category.value}>{category.label}</option>
@@ -720,7 +720,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 				<div class="bg-muted dark:bg-muted px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
 					<button
 						type="button"
-						class="inline-flex w-full justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm"
+						class="inline-flex w-full justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none sm:ml-3 sm:w-auto"
 					>
 						Create Report
 					</button>
@@ -814,7 +814,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 				<div class="bg-muted dark:bg-muted px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
 					<button
 						onclick={() => handleDownloadReport(selectedReport)}
-						class="inline-flex w-full justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm"
+						class="inline-flex w-full justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none sm:ml-3 sm:w-auto"
 					>
 						<Download class="mr-2 h-4 w-4" />
 						Download
