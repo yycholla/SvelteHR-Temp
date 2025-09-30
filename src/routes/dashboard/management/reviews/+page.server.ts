@@ -170,6 +170,15 @@ export const load: PageServerLoad = async (event) => {
 		const completionRate =
 			totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
+		// Calculate overdue reviews (reviews not completed with past period)
+		const overdueReviews = performanceReviews.filter((review) => {
+			if (review.status === 'completed') return false;
+			// Simple logic: Q1-Q4 2024 or earlier are overdue
+			const periodYear = parseInt(review.reviewPeriod.match(/\d{4}/)?.[0] || '0');
+			const currentYear = new Date().getFullYear();
+			return periodYear < currentYear;
+		}).length;
+
 		// Pagination info
 		const totalPages = Math.ceil(reviewsData.allPerformanceReviews.totalCount / limit);
 
@@ -189,12 +198,16 @@ export const load: PageServerLoad = async (event) => {
 			performanceReviews: filteredReviews,
 			totalReviews: reviewsData.allPerformanceReviews.totalCount,
 			reviewAnalytics: {
-				notStartedCount,
-				inProgressCount,
-				completedCount,
-				totalCount,
-				averageRating: Math.round(averageRating * 10) / 10, // Round to 1 decimal
-				completionRate
+				totalReviews: totalCount,
+				completedReviews: completedCount,
+				overdueReviews: overdueReviews,
+				completionRate,
+				averageRatings: {
+					overall: Math.round(averageRating * 10) / 10, // Round to 1 decimal
+					goalsAchievement: Math.round(averageRating * 10) / 10,
+					collaboration: Math.round(averageRating * 10) / 10,
+					communication: Math.round(averageRating * 10) / 10
+				}
 			},
 			filters: {
 				searchTerm,
@@ -236,12 +249,16 @@ export const load: PageServerLoad = async (event) => {
 			performanceReviews: [],
 			totalReviews: 0,
 			reviewAnalytics: {
-				notStartedCount: 0,
-				inProgressCount: 0,
-				completedCount: 0,
-				totalCount: 0,
-				averageRating: 0,
-				completionRate: 0
+				totalReviews: 0,
+				completedReviews: 0,
+				overdueReviews: 0,
+				completionRate: 0,
+				averageRatings: {
+					overall: 0,
+					goalsAchievement: 0,
+					collaboration: 0,
+					communication: 0
+				}
 			},
 			filters: {
 				searchTerm,
