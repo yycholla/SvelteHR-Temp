@@ -199,7 +199,7 @@
 				<select
 					id="category-filter"
 					bind:value={selectedCategory}
-					class="rounded-md border border-input px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+					class="rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 				>
 					<option value="all">All Categories</option>
 					{#each goalCategories as category}
@@ -215,7 +215,7 @@
 				<select
 					id="status-filter"
 					bind:value={selectedStatus}
-					class="rounded-md border border-input px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+					class="rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 				>
 					<option value="all">All Statuses</option>
 					<option value="not_started">Not Started</option>

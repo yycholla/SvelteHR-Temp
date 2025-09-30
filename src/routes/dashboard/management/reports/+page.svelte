@@ -362,13 +362,13 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 						type="text"
 						bind:value={searchQuery}
 						placeholder="Search reports..."
-						class="w-full rounded-lg border border-input py-2 pl-10 pr-4 focus:border-transparent focus:ring-2 focus:ring-blue-500"
+						class="w-full rounded-md border border-input bg-background py-2 pl-10 pr-4 text-sm focus:border-primary focus:outline-none"
 					/>
 				</div>
 			</div>
 			<select
 				bind:value={typeFilter}
-				class="rounded-lg border border-input px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
+				class="rounded-md border border-input bg-background px-4 py-2 text-sm focus:border-primary focus:outline-none"
 			>
 				<option value="">All Types</option>
 				{#each REPORT_TYPES as type}
@@ -377,7 +377,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 			</select>
 			<select
 				bind:value={categoryFilter}
-				class="rounded-lg border border-input px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
+				class="rounded-md border border-input bg-background px-4 py-2 text-sm focus:border-primary focus:outline-none"
 			>
 				<option value="">All Categories</option>
 				{#each REPORT_CATEGORIES as category}
@@ -386,7 +386,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 			</select>
 			<select
 				bind:value={statusFilter}
-				class="rounded-lg border border-input px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
+				class="rounded-md border border-input bg-background px-4 py-2 text-sm focus:border-primary focus:outline-none"
 			>
 				<option value="">All Statuses</option>
 				{#each REPORT_STATUSES as status}
@@ -727,7 +727,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 					<button
 						type="button"
 						onclick={closeModals}
-						class="mt-3 inline-flex w-full justify-center rounded-md border border-input bg-card px-4 py-2 text-base font-medium text-foreground shadow-sm hover:bg-muted dark:bg-muted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:ml-3 sm:mt-0 sm:w-auto sm:text-sm"
+						class="mt-3 inline-flex w-full justify-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent focus:outline-none sm:ml-3 sm:mt-0 sm:w-auto"
 					>
 						Cancel
 					</button>
@@ -822,7 +822,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 					{#if data.canRunReports}
 						<button
 							onclick={() => handleRunReport(selectedReport)}
-							class="mt-3 inline-flex w-full justify-center rounded-md border border-input bg-card px-4 py-2 text-base font-medium text-foreground shadow-sm hover:bg-muted dark:bg-muted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:ml-3 sm:mt-0 sm:w-auto sm:text-sm"
+							class="mt-3 inline-flex w-full justify-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent focus:outline-none sm:ml-3 sm:mt-0 sm:w-auto"
 						>
 							<RotateCcw class="mr-2 h-4 w-4" />
 							Run Report
