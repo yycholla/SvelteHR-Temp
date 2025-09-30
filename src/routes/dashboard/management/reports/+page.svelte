@@ -440,7 +440,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 						<th class="px-6 py-3 text-left">
 							<input
 								type="checkbox"
-								class="rounded border-input text-blue-600 focus:ring-blue-500"
+								class="rounded border-input text-primary focus:outline-none"
 								checked={selectedReports.length === reports.length && reports.length > 0}
 								indeterminate={selectedReports.length > 0 &&
 									selectedReports.length < reports.length}
@@ -464,7 +464,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 							<td class="px-6 py-4">
 								<input
 									type="checkbox"
-									class="rounded border-input text-blue-600 focus:ring-blue-500"
+									class="rounded border-input text-primary focus:outline-none"
 									checked={selectedReports.includes(report.id)}
 									onchange={() => toggleReportSelection(report.id)}
 								/>
@@ -597,7 +597,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 						<span class="text-sm font-medium capitalize text-foreground">{type.type}</span>
 						<div class="flex items-center gap-4">
 							<div class="h-2 w-32 rounded-full bg-gray-200">
-								<div class="h-2 rounded-full bg-blue-600" style="width: {type.percentage}%"></div>
+								<div class="h-2 rounded-full bg-primary" style="width: {type.percentage}%"></div>
 							</div>
 							<span class="w-12 text-right text-sm text-muted-foreground">{type.count}</span>
 						</div>

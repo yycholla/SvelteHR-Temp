@@ -427,7 +427,7 @@
 						<select
 							id="type-filter"
 							value={data.filters.typeFilter || 'all'}
-							onchange=(e) => handleFilterChange('type', e.currentTarget.value)}
+							onchange={(e) => handleFilterChange('type', e.currentTarget.value)}
 							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 							data-testid="type-filter"
 						>
@@ -509,7 +509,7 @@
 											</div>
 											<div class="h-2 w-full rounded-full bg-gray-200">
 												<div
-													class="h-2 rounded-full bg-blue-600 transition-all"
+													class="h-2 rounded-full bg-primary transition-all"
 													style="width: {calculateProgress(goal)}%"
 												></div>
 											</div>
@@ -630,7 +630,7 @@
 							<div class="flex-1">
 								<div class="h-4 w-full rounded-full bg-gray-200">
 									<div
-										class="h-4 rounded-full bg-green-600 transition-all"
+										class="h-4 rounded-full bg-primary transition-all"
 										style="width: {goalsAnalytics.healthScore}%"
 									></div>
 								</div>
@@ -834,7 +834,7 @@
 					</div>
 					<div class="h-3 w-full rounded-full bg-gray-200">
 						<div
-							class="h-3 rounded-full bg-blue-600 transition-all"
+							class="h-3 rounded-full bg-primary transition-all"
 							style="width: {calculateProgress(currentGoal)}%"
 						></div>
 					</div>
@@ -913,7 +913,7 @@
 						</div>
 						<div class="mt-1 h-2 w-full rounded-full bg-gray-200">
 							<div
-								class="h-2 rounded-full bg-blue-600 transition-all"
+								class="h-2 rounded-full bg-primary transition-all"
 								style="width: {Math.min(
 									(progressForm.currentValue / currentGoal.targetValue) * 100,
 									100
