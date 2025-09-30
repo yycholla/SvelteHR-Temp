@@ -17,8 +17,8 @@ import { createPerformanceExchange } from '$lib/performance/graphql-performance-
 
 // PostGraphile GraphQL endpoint - use directly for better integration
 const POSTGRAPHILE_GRAPHQL_URL = browser
-	? 'http://localhost:4000/graphql' // Direct to PostGraphile in browser
-	: 'http://localhost:4000/graphql'; // Direct to PostGraphile on server
+	? 'http://localhost:4000/graphql' // Direct to PostGraphile in browser (via host port mapping)
+	: 'http://sveltehr-backend-dev:4000/graphql'; // Docker service name for server-side requests
 const POSTGRAPHILE_GRAPHQL_WS_URL = 'ws://localhost:4000/graphql'; // Direct to PostGraphile for WebSockets if needed
 
 // WebSocket subscriptions are disabled for PostGraphile (doesn't support WebSockets by default)

@@ -2,19 +2,26 @@
 // Admin-only page for managing all system users
 
 import type { PageServerLoad } from './$types';
-import { createUrqlClient } from '$lib/graphql/client';
+import { createUrqlClient, executeQuery } from '$lib/graphql/client';
+import { error } from '@sveltejs/kit';
 
-export const load: PageServerLoad = async ({ locals, url, parent }) => {
+export const load: PageServerLoad = async ({ locals, url, parent, cookies, fetch: fetchFn }) => {
 	// Get isAdmin flag from parent layout
 	const { isAdmin } = await parent();
 
 	if (!isAdmin) {
-		throw new Error('Admin access required');
+		throw error(403, 'Admin access required');
 	}
 
-	// Get pagination parameters
+	// Get JWT token for authenticated GraphQL queries
+	const jwtToken = cookies.get('hr_token') || cookies.get('auth-token');
+	if (!jwtToken) {
+		throw error(401, 'Authentication token required');
+	}
+
+	// Get pagination parameters - reduced to 20 for better performance
 	const page = parseInt(url.searchParams.get('page') || '1');
-	const limit = parseInt(url.searchParams.get('limit') || '50');
+	const limit = parseInt(url.searchParams.get('limit') || '20');
 	const offset = (page - 1) * limit;
 
 	// Get filter parameters
@@ -23,12 +30,24 @@ export const load: PageServerLoad = async ({ locals, url, parent }) => {
 	const statusFilter = url.searchParams.get('status') || '';
 
 	try {
-		const client = createUrqlClient();
+		// Create authenticated GraphQL client with server-side fetch and JWT
+		const client = createUrqlClient(fetchFn, jwtToken);
 
-		// Query all users with pagination
+		// Build condition object for server-side filtering
+		const condition: any = {};
+		if (statusFilter === 'active') {
+			condition.isActive = true;
+		} else if (statusFilter === 'inactive') {
+			condition.isActive = false;
+		}
+		if (departmentFilter) {
+			condition.departmentId = departmentFilter;
+		}
+
+		// Query users with server-side filtering and pagination
 		const usersQuery = `
-			query GetAllUsers($first: Int!, $offset: Int!) {
-				allUsers(first: $first, offset: $offset, orderBy: CREATED_AT_DESC) {
+			query GetAllUsers($first: Int!, $offset: Int!, $condition: UserCondition) {
+				allUsers(first: $first, offset: $offset, orderBy: CREATED_AT_DESC, condition: $condition) {
 					nodes {
 						id
 						email
@@ -55,59 +74,47 @@ export const load: PageServerLoad = async ({ locals, url, parent }) => {
 			}
 		`;
 
-		// Query all departments for filtering/assignment
+		// Simplified queries - fetch only essential fields
 		const departmentsQuery = `
 			query GetAllDepartments {
 				allDepartments(orderBy: NAME_ASC) {
 					nodes {
 						id
 						name
-						code
 					}
 				}
 			}
 		`;
 
-		// Query all roles for filtering/assignment
 		const rolesQuery = `
 			query GetAllRoles {
 				allRoles(orderBy: ROLE_LEVEL_DESC) {
 					nodes {
 						id
 						name
-						roleLevel
 					}
 				}
 			}
 		`;
 
-		// Execute all queries in parallel for better performance
-		const [usersResult, departmentsResult, rolesResult] = await Promise.all([
-			client.query(usersQuery, { first: limit, offset }),
-			client.query(departmentsQuery, {}),
-			client.query(rolesQuery, {})
+		// Execute all queries in parallel with executeQuery helper
+		const [usersData, departmentsData, rolesData] = await Promise.all([
+			executeQuery(client, usersQuery, { first: limit, offset, condition }),
+			executeQuery(client, departmentsQuery, {}),
+			executeQuery(client, rolesQuery, {})
 		]);
 
-		const users = usersResult.data?.allUsers?.nodes || [];
-		const totalCount = usersResult.data?.allUsers?.totalCount || 0;
-		const departments = departmentsResult.data?.allDepartments?.nodes || [];
-		const roles = rolesResult.data?.allRoles?.nodes || [];
+		const users = usersData?.allUsers?.nodes || [];
+		const totalCount = usersData?.allUsers?.totalCount || 0;
+		const departments = departmentsData?.allDepartments?.nodes || [];
+		const roles = rolesData?.allRoles?.nodes || [];
 
-		// Apply client-side filters if provided
+		// Apply remaining client-side filter for role (if PostGraphile doesn't support nested filtering)
 		let filteredUsers = users;
 		if (roleFilter) {
 			filteredUsers = filteredUsers.filter(
 				(u) => u.userRolesByUserId?.nodes?.some((ur) => ur.roleByRoleId?.name === roleFilter)
 			);
-		}
-		if (departmentFilter) {
-			filteredUsers = filteredUsers.filter(
-				(u) => u.departmentByDepartmentId?.id === departmentFilter
-			);
-		}
-		if (statusFilter) {
-			const isActive = statusFilter === 'active';
-			filteredUsers = filteredUsers.filter((u) => u.isActive === isActive);
 		}
 
 		return {
