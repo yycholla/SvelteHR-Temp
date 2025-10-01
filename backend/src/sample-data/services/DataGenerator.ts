@@ -164,18 +164,18 @@ export class DataGenerator {
       return null;
     }
 
+    // Generate based on column name patterns first (before default values)
+    const value = this.generateByColumnName(column, tableConfig, index);
+    if (value !== undefined) {
+      return value;
+    }
+
     // Handle default values (skip function calls - those are database-generated)
     if (column.defaultValue && faker.datatype.boolean({ probability: 0.2 })) {
       const parsedDefault = this.parseDefaultValue(column.defaultValue);
       if (parsedDefault !== undefined) {
         return parsedDefault;
       }
-    }
-
-    // Generate based on column name patterns
-    const value = this.generateByColumnName(column, tableConfig, index);
-    if (value !== undefined) {
-      return value;
     }
 
     // Generate based on data type
