@@ -52,6 +52,9 @@ export class SampleDataOrchestrator {
     const startTime = Date.now();
     const result = createEmptyResult();
 
+    console.log(`Starting sample data generation with seed: ${config.seed}`);
+    console.log(`Number of table configs: ${config.tableConfigs.length}`);
+
     result.data = {
       seedUsed: config.seed,
       configHash: this.configurationService.generateConfigHash(config)
@@ -66,14 +69,19 @@ export class SampleDataOrchestrator {
 
       // Sort tables by priority
       const sortedTables = sortTableConfigsByPriority(config.tableConfigs);
+      console.log(`Processing ${sortedTables.length} tables in priority order`);
 
       // Process each table in order
       for (const tableConfig of sortedTables) {
+        console.log(`Processing table: ${tableConfig.tableName} (${tableConfig.recordCount} records)`);
         const tableResult = await this.processTable(schema, tableConfig, config);
         mergeTableResult(result, tableResult);
 
+        console.log(`  Status: ${tableResult.status}, Records: ${tableResult.recordsGenerated}`);
+
         // Stop if error and not continuing on error
         if (tableResult.status === OperationStatus.ERROR && !config.continueOnError) {
+          console.error(`  Error: ${tableResult.errors.join(', ')}`);
           result.success = false;
           break;
         }
@@ -89,6 +97,7 @@ export class SampleDataOrchestrator {
 
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error occurred during generation';
+      console.error(`Generation error: ${errorMessage}`);
       result.errors.push(errorMessage);
       result.summary.errors.push(errorMessage);
 

@@ -7,6 +7,7 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import * as crypto from 'crypto';
 import {
   SampleDataConfig,
   TableConfig,
@@ -72,6 +73,11 @@ export class ConfigurationService {
           `Invalid JSON syntax: ${error instanceof Error ? error.message : String(error)}`,
           source
         );
+      }
+
+      // Handle wrapped config format (with "config" and "version" keys)
+      if (parsed.config && typeof parsed.config === 'object') {
+        parsed = parsed.config;
       }
 
       // Merge with defaults
@@ -318,7 +324,6 @@ export class ConfigurationService {
    * @returns Hash string
    */
   generateConfigHash(config: SampleDataConfig): string {
-    const crypto = require('crypto');
     const configString = JSON.stringify(config, Object.keys(config).sort());
     return crypto.createHash('sha256').update(configString).digest('hex');
   }

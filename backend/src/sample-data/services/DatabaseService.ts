@@ -182,12 +182,12 @@ export class DatabaseService {
   /**
    * Executes a batch insert operation.
    *
-   * @param table - Table name
+   * @param table - Table name (can be "schema.table" or just "table")
    * @param columns - Column names
-   * @param values - Array of value arrays
+   * @param values - Array of value arrays or objects
    * @returns Number of rows inserted
    */
-  async batchInsert(table: string, columns: string[], values: any[][]): Promise<number> {
+  async batchInsert(table: string, columns: string[], values: any[][] | any[]): Promise<number> {
     this.ensureConnected();
 
     if (values.length === 0) {
@@ -195,10 +195,20 @@ export class DatabaseService {
     }
 
     try {
-      const columnSet = new pgp.helpers.ColumnSet(columns, { table });
-      const query = pgp.helpers.insert(values, columnSet);
+      // Convert array of arrays to array of objects if needed
+      let records = values;
+      if (Array.isArray(values[0])) {
+        // Convert [[v1, v2], [v3, v4]] to [{col1: v1, col2: v2}, {col1: v3, col2: v4}]
+        records = (values as any[][]).map(row =>
+          Object.fromEntries(columns.map((col, idx) => [col, row[idx]]))
+        );
+      }
 
-      const result = await this.db!.none(query);
+      // Create column set - table can include schema (e.g., "schema.table")
+      const columnSet = new pgp.helpers.ColumnSet(columns, { table });
+      const query = pgp.helpers.insert(records, columnSet);
+
+      await this.db!.none(query);
       return values.length;
     } catch (error) {
       const err = error as any;
@@ -212,9 +222,9 @@ export class DatabaseService {
   /**
    * Executes a batch upsert (insert or update) operation.
    *
-   * @param table - Table name
+   * @param table - Table name (can be "schema.table" or just "table")
    * @param columns - Column names
-   * @param values - Array of value arrays
+   * @param values - Array of value arrays or objects
    * @param conflictColumns - Columns to check for conflicts
    * @param updateColumns - Columns to update on conflict
    * @returns Number of rows affected
@@ -222,7 +232,7 @@ export class DatabaseService {
   async batchUpsert(
     table: string,
     columns: string[],
-    values: any[][],
+    values: any[][] | any[],
     conflictColumns: string[],
     updateColumns: string[]
   ): Promise<number> {
@@ -233,9 +243,18 @@ export class DatabaseService {
     }
 
     try {
+      // Convert array of arrays to array of objects if needed
+      let records = values;
+      if (Array.isArray(values[0])) {
+        records = (values as any[][]).map(row =>
+          Object.fromEntries(columns.map((col, idx) => [col, row[idx]]))
+        );
+      }
+
+      // Create column set - table can include schema (e.g., "schema.table")
       const columnSet = new pgp.helpers.ColumnSet(columns, { table });
       const query =
-        pgp.helpers.insert(values, columnSet) +
+        pgp.helpers.insert(records, columnSet) +
         ` ON CONFLICT (${conflictColumns.join(', ')}) DO UPDATE SET ` +
         updateColumns.map(col => `${col} = EXCLUDED.${col}`).join(', ');
 

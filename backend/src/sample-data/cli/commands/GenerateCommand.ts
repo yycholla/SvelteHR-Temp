@@ -33,7 +33,7 @@ export class GenerateCommand implements CLICommand {
       description: 'Path to configuration file',
       required: false,
       type: 'string' as const,
-      defaultValue: './backend/config/sample-data.json'
+      defaultValue: './config/sample-data.json'
     }
   ];
 
