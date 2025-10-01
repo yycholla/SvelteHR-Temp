@@ -70,14 +70,22 @@ async function main() {
       .option('--dry-run', 'Dry run mode (no changes made)', false)
       .option('--log-level <level>', 'Log level (debug, info, warn, error)', 'info');
 
-    // Add examples to help
-    if (cliCommand.examples) {
-      cmd.addHelpText('after', '\nExamples:\n' + cliCommand.examples.map(ex => `  $ ${ex}`).join('\n'));
+    // Add examples to help (Commander v8+)
+    if (cliCommand.examples && typeof cmd.addHelpText === 'function') {
+      try {
+        cmd.addHelpText('after', '\nExamples:\n' + cliCommand.examples.map(ex => `  $ ${ex}`).join('\n'));
+      } catch (e) {
+        // Ignore if addHelpText is not supported
+      }
     }
 
-    // Add long description
-    if (cliCommand.longDescription) {
-      cmd.addHelpText('before', '\n' + cliCommand.longDescription + '\n');
+    // Add long description (Commander v8+)
+    if (cliCommand.longDescription && typeof cmd.addHelpText === 'function') {
+      try {
+        cmd.addHelpText('before', '\n' + cliCommand.longDescription + '\n');
+      } catch (e) {
+        // Ignore if addHelpText is not supported
+      }
     }
 
     // Add action handler
