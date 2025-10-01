@@ -276,7 +276,7 @@ export class SampleDataOrchestrator {
             // Find identifier columns that might contain "Sample" prefix
             const identifierColumns = tableSchema.columns
               .filter(col =>
-                ['full_name', 'name', 'policy_name', 'email', 'title', 'description']
+                ['full_name', 'name', 'policy_name', 'email', 'title', 'description', 'first_name', 'last_name', 'display_name']
                   .includes(col.columnName.toLowerCase())
               )
               .map(col => col.columnName);
