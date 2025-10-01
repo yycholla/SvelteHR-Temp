@@ -294,6 +294,18 @@ export class SampleDataOrchestrator {
                 tableConfig.tableName,
                 whereClause
               );
+            } else {
+              // For tables without identifier columns, check if they reference sample data via FK
+              const userIdColumn = tableSchema.columns.find(col => col.columnName === 'user_id' || col.columnName === 'employee_id');
+              if (userIdColumn) {
+                // Delete records that reference sample users
+                const whereClause = `${userIdColumn.columnName} IN (SELECT id FROM ${schemaName}.users WHERE email ILIKE 'sample%')`;
+                deletedCount = await this.databaseService.deleteRecords(
+                  schemaName,
+                  tableConfig.tableName,
+                  whereClause
+                );
+              }
             }
 
             tableResult.recordsGenerated = deletedCount;
