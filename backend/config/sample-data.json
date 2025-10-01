@@ -1,0 +1,133 @@
+{
+  "version": "1.0.0",
+  "config": {
+    "seed": 12345,
+    "batchSize": 100,
+    "progressReporting": true,
+    "tableConfigs": [
+      {
+        "tableName": "users",
+        "recordCount": 50,
+        "priority": 1,
+        "namingPattern": "Sample User {id:3}",
+        "customFields": {
+          "email": "sample.user.{id:3}@example.com"
+        },
+        "skipIfExists": false
+      },
+      {
+        "tableName": "departments",
+        "recordCount": 50,
+        "priority": 1,
+        "namingPattern": "Sample Department {name}",
+        "customFields": {
+          "names": ["Alpha", "Beta", "Gamma", "Delta", "Engineering", "Marketing", "Sales", "HR", "Finance", "Operations"]
+        },
+        "skipIfExists": false
+      },
+      {
+        "tableName": "employees",
+        "recordCount": 50,
+        "priority": 2,
+        "namingPattern": "Sample Employee {id:3}",
+        "customFields": {
+          "email": "sample.employee.{id:3}@example.com"
+        },
+        "skipIfExists": false
+      },
+      {
+        "tableName": "user_role_assignments",
+        "recordCount": 30,
+        "priority": 2,
+        "namingPattern": "Sample Role Assignment {id}",
+        "customFields": {},
+        "skipIfExists": false
+      },
+      {
+        "tableName": "performance_reviews",
+        "recordCount": 30,
+        "priority": 3,
+        "namingPattern": "Sample Performance Review {id}",
+        "customFields": {},
+        "skipIfExists": false
+      },
+      {
+        "tableName": "employee_goals",
+        "recordCount": 20,
+        "priority": 3,
+        "namingPattern": "Sample Goal {id}",
+        "customFields": {},
+        "skipIfExists": false
+      },
+      {
+        "tableName": "time_off_requests",
+        "recordCount": 20,
+        "priority": 3,
+        "namingPattern": "Sample Leave Request {id}",
+        "customFields": {},
+        "skipIfExists": false
+      },
+      {
+        "tableName": "time_off_balances",
+        "recordCount": 20,
+        "priority": 3,
+        "namingPattern": "Sample Leave Balance {id}",
+        "customFields": {},
+        "skipIfExists": false
+      },
+      {
+        "tableName": "payroll_records",
+        "recordCount": 20,
+        "priority": 3,
+        "namingPattern": "Sample Payroll Record {id}",
+        "customFields": {},
+        "skipIfExists": false
+      },
+      {
+        "tableName": "compensation_bands",
+        "recordCount": 10,
+        "priority": 4,
+        "namingPattern": "Sample Compensation Band {id}",
+        "customFields": {},
+        "skipIfExists": false
+      },
+      {
+        "tableName": "review_templates",
+        "recordCount": 10,
+        "priority": 4,
+        "namingPattern": "Sample Review Template {id}",
+        "customFields": {},
+        "skipIfExists": false
+      },
+      {
+        "tableName": "time_off_policies",
+        "recordCount": 10,
+        "priority": 4,
+        "namingPattern": "Sample Time Off Policy {id}",
+        "customFields": {},
+        "skipIfExists": false
+      }
+    ]
+  },
+  "environments": {
+    "development": {
+      "batchSize": 50,
+      "progressReporting": true
+    },
+    "test": {
+      "seed": 54321,
+      "batchSize": 25,
+      "progressReporting": false
+    },
+    "ci": {
+      "seed": 99999,
+      "batchSize": 10,
+      "progressReporting": false
+    }
+  },
+  "metadata": {
+    "createdAt": "2025-10-01T00:00:00Z",
+    "lastModified": "2025-10-01T00:00:00Z",
+    "description": "Sample data configuration for SvelteHR development and testing environments"
+  }
+}

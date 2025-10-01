@@ -42,6 +42,7 @@
 		DialogTitle
 	} from '$lib/components/ui/dialog';
 	import { Textarea } from '$lib/components/ui/textarea';
+	import RetryButton from '$lib/components/ui/RetryButton.svelte';
 
 	import {
 		formatDateRange,
@@ -64,6 +65,11 @@
 			canApproveLeave: boolean;
 			canViewAllLeave: boolean;
 			loadedAt: string;
+			error?: {
+				message: string;
+				details: string;
+				retryable: boolean;
+			};
 		};
 	}
 
@@ -341,6 +347,35 @@
 				</Card>
 			{/each}
 		</div>
+
+		<!-- Error Display -->
+		{#if data.error}
+			<Card class="border-destructive bg-destructive/5">
+				<CardContent class="p-6">
+					<div class="flex items-center justify-between" data-testid="error-container">
+						<div class="flex items-center gap-3">
+							<AlertCircle class="h-5 w-5 text-destructive" />
+							<div>
+								<h3 class="font-semibold text-destructive" data-testid="error-message">
+									{data.error.message}
+								</h3>
+								{#if data.error.details}
+									<p class="text-sm text-muted-foreground mt-1">
+										{data.error.details}
+									</p>
+								{/if}
+							</div>
+						</div>
+						{#if data.error.retryable}
+							<RetryButton
+								on:retry={() => window.location.reload()}
+								class="ml-4"
+							/>
+						{/if}
+					</div>
+				</CardContent>
+			</Card>
+		{/if}
 
 		<!-- Filters -->
 		<Card>

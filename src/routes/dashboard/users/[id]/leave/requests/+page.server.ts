@@ -1,67 +1,78 @@
-// Server-side data loading for user leave requests page
+// User Leave Requests - Server-Side Data Loading
+// Implements proper PostGraphile GraphQL queries with backend initialization
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
+import { GraphQLClient } from '$lib/server/graphql-client';
+import { ensureBackendReady } from '$lib/server/backend-init';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, params, url } = event;
+	const { locals, params, url, cookies } = event;
 
-	// RBAC: Check leave management access permissions
-	PermissionChecks.dashboard(event);
+	// Verify user is authenticated
+	if (!locals.user?.id) {
+		throw error(401, 'Authentication required');
+	}
 
 	// Verify user can access this leave data (own data or has management permissions)
 	let userId = params.id;
-
 	const canViewOthers = locals.roles?.includes('admin') || locals.roles?.includes('manager');
 
 	if (!canViewOthers && locals.user?.id !== userId) {
-		throw error(403, {
-			message: 'Access denied: You can only view your own leave requests'
-		});
+		throw error(403, 'Access denied: You can only view your own leave requests');
 	}
 
 	try {
-		// Make direct GraphQL calls to PostGraphile backend
-		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
-		const graphqlEndpoint = getGraphQLEndpoint();
-		const headers: Record<string, string> = {
-			'Content-Type': 'application/json'
-		};
+		// Check backend services are ready before proceeding
+		const backendReady = await ensureBackendReady();
 
-		// Load user details
-		const userResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetUser($id: UUID!) {
-						userById(id: $id) {
-							id
-							email
-							displayName
-							role
-							departmentId
-							departmentByDepartmentId {
-								id
-								name
-								userByManagerId {
-									id
-									displayName
-									email
-								}
-							}
-						}
+		// If backend is not ready, return error state but don't crash
+		if (!backendReady) {
+			console.warn('Backend not ready for user leave requests page');
+			return {
+				user: null,
+				userId,
+				leaveRequests: [],
+				leaveBalances: [],
+				leaveTypes: [],
+				canManageLeave: false,
+				isOwnLeave: locals.user?.id === userId,
+				permissions: locals.permissions || [],
+				loadedAt: new Date().toISOString(),
+				error: {
+					message: 'Backend services are initializing. Please try again in a moment.',
+					details: 'Backend initialization in progress',
+					retryable: true
+				}
+			};
+		}
+
+		// Create GraphQL client with authentication
+		const graphqlClient = GraphQLClient.fromCookies(cookies);
+
+		// Load user details using new GraphQL client
+		const userQuery = `
+			query GetUser($id: UUID!) {
+				userById(id: $id) {
+					id
+					email
+					firstName
+					lastName
+					departmentId
+					isActive
+					departmentByDepartmentId {
+						id
+						name
+						managerId
 					}
-				`,
-				variables: { id: userId }
-			})
-		});
+				}
+			}
+		`;
 
-		const userData = await userResponse.json();
-		const user = userData?.data?.userById;
+		const userData = await graphqlClient.query(userQuery, { id: userId });
+		const user = userData.data?.userById;
 
 		if (!user) {
-			throw error(404, { message: 'User not found' });
+			throw error(404, 'User not found');
 		}
 
 		// TODO: Load actual leave requests from database
@@ -113,9 +124,6 @@ export const load: PageServerLoad = async (event) => {
 			remaining: balance.allocated - balance.used - balance.pending
 		}));
 
-		// Get standardized user permissions
-		const userPermissions = getUserPermissions(locals);
-
 		return {
 			user,
 			userId,
@@ -124,15 +132,29 @@ export const load: PageServerLoad = async (event) => {
 			leaveTypes,
 			canManageLeave: canViewOthers,
 			isOwnLeave: locals.user?.id === userId,
-			...userPermissions,
+			permissions: locals.permissions || [],
 			loadedAt: new Date().toISOString()
 		};
 
 	} catch (err) {
-		console.error('[User Leave Requests Load Error]', err);
+		console.error('Error loading user leave requests:', err);
 
-		throw error(500, {
-			message: 'Unable to load leave requests. Please try again later.'
-		});
+		// Return error state instead of throwing to prevent page crash
+		return {
+			user: null,
+			userId,
+			leaveRequests: [],
+			leaveBalances: [],
+			leaveTypes: [],
+			canManageLeave: false,
+			isOwnLeave: locals.user?.id === userId,
+			permissions: locals.permissions || [],
+			loadedAt: new Date().toISOString(),
+			error: {
+				message: 'Unable to load leave requests. Please try again later.',
+				details: err instanceof Error ? err.message : 'Unknown error',
+				retryable: true
+			}
+		};
 	}
 };

@@ -76,6 +76,12 @@ help: ## Show available commands
 	@echo "  make install      - Install all dependencies (frontend + backend)"
 	@echo "  make install-backend - Install backend dependencies only"
 	@echo ""
+	@echo "📊 Sample Data Management:"
+	@echo "  make dev-sample-data       - Generate sample data for development"
+	@echo "  make clean-sample-data     - Remove all sample data from database"
+	@echo "  make sample-data-status    - Show current sample data status"
+	@echo "  make validate-sample-config - Validate sample data configuration"
+	@echo ""
 	@echo "📚 Examples & Samples:"
 	@echo "  make sample-query  - Show sample GraphQL query"
 	@echo "  make sample-login  - Show authentication mutation example"
@@ -458,6 +464,28 @@ setup-status: ## Show complete setup system status
 	@make env-check
 	@make db-health
 	@make server-status
+
+# =============================================================================
+# Sample Data Management
+# =============================================================================
+
+dev-sample-data: ## Generate sample data for development
+	@echo "📊 Generating sample data for development..."
+	@cd backend && npm run sample-data:generate
+	@echo "✅ Sample data generated successfully"
+
+clean-sample-data: ## Remove all sample data from database
+	@echo "🧹 Cleaning sample data..."
+	@cd backend && npm run sample-data:clean
+	@echo "✅ Sample data cleaned"
+
+sample-data-status: ## Show current sample data status
+	@echo "📊 Checking sample data status..."
+	@cd backend && npm run sample-data:status
+
+validate-sample-config: ## Validate sample data configuration
+	@echo "✅ Validating sample data configuration..."
+	@cd backend && npm run sample-data:validate ./config/sample-data.json
 
 # =============================================================================
 # Examples & Samples

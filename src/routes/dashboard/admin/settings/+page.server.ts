@@ -2,9 +2,10 @@
 // Admin-only page for managing system-wide configuration
 
 import type { PageServerLoad } from './$types';
-import { createUrqlClient } from '$lib/graphql/client';
+import { GraphQLClient } from '$lib/server/graphql-client';
+import { ensureBackendReady } from '$lib/server/backend-init';
 
-export const load: PageServerLoad = async ({ locals, parent }) => {
+export const load: PageServerLoad = async ({ locals, parent, cookies }) => {
 	// Auth check already done by admin +layout.server.ts
 	const { isAdmin } = await parent();
 
@@ -13,7 +14,10 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 	}
 
 	try {
-		const client = createUrqlClient();
+		// Ensure backend is ready before proceeding
+		await ensureBackendReady();
+
+		const client = GraphQLClient.fromCookies(cookies);
 
 		// Query system settings
 		// Note: This is a placeholder - actual system settings would depend on your schema
@@ -25,7 +29,7 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 				allUsers {
 					totalCount
 				}
-				allRoles {
+				allUserRoleAssignments {
 					totalCount
 				}
 			}
@@ -68,7 +72,7 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 			stats: {
 				totalDepartments: result.data?.allDepartments?.totalCount || 0,
 				totalUsers: result.data?.allUsers?.totalCount || 0,
-				totalRoles: result.data?.allRoles?.totalCount || 0
+				totalRoles: result.data?.allUserRoleAssignments?.totalCount || 0
 			}
 		};
 

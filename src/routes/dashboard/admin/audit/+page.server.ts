@@ -27,88 +27,39 @@ export const load: PageServerLoad = async ({ locals, url, parent }) => {
 		const client = createUrqlClient();
 
 		// Query audit logs
-		// Note: This assumes you have an audit_logs table in your schema
-		// If not, this is a placeholder that should be replaced with actual audit log queries
-		const auditLogsQuery = `
-			query GetAuditLogs($first: Int!, $offset: Int!) {
-				allAuditLogs(first: $first, offset: $offset, orderBy: CREATED_AT_DESC) {
-					nodes {
-						id
-						userId
-						action
-						resourceType
-						resourceId
-						changes
-						ipAddress
-						userAgent
-						createdAt
-						userByUserId {
-							email
-							displayName
-						}
-					}
-					totalCount
-				}
-			}
-		`;
+		// Note: Audit logging not implemented - audit_logs table missing from schema
+		// const auditLogsQuery = `
+		// 	query GetAuditLogs($first: Int!, $offset: Int!) {
+		// 		allAuditLogs(first: $first, offset: $offset, orderBy: CREATED_AT_DESC) {
+		// 			nodes {
+		// 				id
+		// 				userId
+		// 				action
+		// 				resourceType
+		// 				resourceId
+		// 				changes
+		// 				ipAddress
+		// 				userAgent
+		// 				createdAt
+		// 				userByUserId {
+		// 					email
+		// 					displayName
+		// 				}
+		// 			}
+		// 			totalCount
+		// 		}
+		// 	}
+		// `;
 
-		// For now, return mock data since audit logs table might not exist yet
-		const mockAuditLogs = [
-			{
-				id: '1',
-				userId: locals.user?.id || 'system',
-				action: 'USER_CREATED',
-				resourceType: 'user',
-				resourceId: '123',
-				changes: { email: 'newuser@example.com', role: 'employee' },
-				ipAddress: '192.168.1.1',
-				userAgent: 'Mozilla/5.0...',
-				createdAt: new Date().toISOString(),
-				userByUserId: { email: locals.user?.email || 'admin@example.com', displayName: locals.user?.display_name || 'Admin' }
-			},
-			{
-				id: '2',
-				userId: locals.user?.id || 'system',
-				action: 'USER_UPDATED',
-				resourceType: 'user',
-				resourceId: '123',
-				changes: { role: 'manager' },
-				ipAddress: '192.168.1.1',
-				userAgent: 'Mozilla/5.0...',
-				createdAt: new Date(Date.now() - 3600000).toISOString(),
-				userByUserId: { email: locals.user?.email || 'admin@example.com', displayName: locals.user?.display_name || 'Admin' }
-			},
-			{
-				id: '3',
-				userId: locals.user?.id || 'system',
-				action: 'ROLE_ASSIGNED',
-				resourceType: 'user_role',
-				resourceId: '456',
-				changes: { roleId: '789', userId: '123' },
-				ipAddress: '192.168.1.1',
-				userAgent: 'Mozilla/5.0...',
-				createdAt: new Date(Date.now() - 7200000).toISOString(),
-				userByUserId: { email: locals.user?.email || 'admin@example.com', displayName: locals.user?.display_name || 'Admin' }
-			}
-		];
+		// Audit logging functionality is not implemented yet
+		// The audit_logs table doesn't exist in the current database schema
 
-		// Try to fetch real audit logs, fall back to mock data
-		let auditLogs = mockAuditLogs;
-		let totalCount = mockAuditLogs.length;
+		// Audit logging table doesn't exist in current schema
+		// Return empty data until audit_logs table is implemented
+		let auditLogs = [];
+		let totalCount = 0;
 
-		try {
-			const result = await client.query(auditLogsQuery, {
-				first: limit,
-				offset
-			});
-
-			if (result.data?.allAuditLogs) {
-				auditLogs = result.data.allAuditLogs.nodes;
-				totalCount = result.data.allAuditLogs.totalCount;
-			}
-		} catch (queryError) {
-			console.warn('[AUDIT LOGS] Using mock data - audit_logs table may not exist:', queryError);
-		}
+		console.log('[AUDIT LOGS] Audit logging not implemented - audit_logs table missing from schema');
 
 		// Apply filters
 		let filteredLogs = auditLogs;
@@ -148,7 +99,8 @@ export const load: PageServerLoad = async ({ locals, url, parent }) => {
 				user: userFilter,
 				dateFrom,
 				dateTo
-			}
+			},
+			message: 'Audit logging is not implemented yet. The audit_logs table needs to be added to the database schema.'
 		};
 	} catch (error) {
 		console.error('[AUDIT LOGS] Load error:', error);

@@ -3,6 +3,13 @@ T042: Fix reports management pages with standardized error handling
 Modern Svelte 5 implementation with server-side data loading, comprehensive analytics, and RBAC integration
 -->
 
+<svelte:head>
+	<title>Reports Management - SvelteHR</title>
+	<meta name="description" content="Generate, schedule, and manage HR reports. Access analytics dashboards, export data, and monitor report performance across your organization." />
+	<meta property="og:title" content="Reports Management - SvelteHR" />
+	<meta property="og:description" content="Comprehensive report management system for HR analytics, data export, and automated reporting" />
+</svelte:head>
+
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';

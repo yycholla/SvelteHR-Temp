@@ -23,10 +23,18 @@
 		"validate": "npm run type-check && npm run lint:check",
 		"schema:watch": "postgraphile --connection $DATABASE_URL --schema hr_public --watch --enhance-graphiql",
 		"schema:validate": "npm run postgraphile:standalone --dry-run",
-		"db:migrate": "tsx ../database/migrations/*.sql"
+		"db:migrate": "tsx ../database/migrations/*.sql",
+		"sample-data": "tsx src/sample-data/cli/index.ts",
+		"sample-data:generate": "tsx src/sample-data/cli/index.ts generate-sample-data",
+		"sample-data:clean": "tsx src/sample-data/cli/index.ts clean-sample-data",
+		"sample-data:status": "tsx src/sample-data/cli/index.ts status",
+		"sample-data:validate": "tsx src/sample-data/cli/index.ts validate-config"
 	},
 	"dependencies": {
+		"@faker-js/faker": "^10.0.0",
 		"bcrypt": "^5.1.1",
+		"chalk": "^5.6.2",
+		"commander": "^14.0.1",
 		"compression": "^1.7.4",
 		"cookie-parser": "^1.4.6",
 		"cors": "^2.8.5",
@@ -41,14 +49,17 @@
 		"jsonwebtoken": "^9.0.2",
 		"node-cache": "^5.1.2",
 		"pg": "^8.11.3",
+		"pg-promise": "^12.2.0",
 		"postgraphile": "^4.14.1",
 		"postgraphile-plugin-connection-filter": "^2.3.0",
 		"redis": "^4.7.1",
-		"winston": "^3.17.0"
+		"winston": "^3.17.0",
+		"zod": "^4.1.11"
 	},
 	"devDependencies": {
 		"@jest/globals": "^29.7.0",
 		"@types/bcrypt": "^5.0.2",
+		"@types/commander": "^2.12.0",
 		"@types/compression": "^1.7.5",
 		"@types/cookie-parser": "^1.4.6",
 		"@types/cors": "^2.8.17",
@@ -57,6 +68,7 @@
 		"@types/jsonwebtoken": "^9.0.5",
 		"@types/node": "^20.10.0",
 		"@types/pg": "^8.10.9",
+		"@types/pg-promise": "^0.0.28",
 		"@types/supertest": "^2.0.16",
 		"@typescript-eslint/eslint-plugin": "^6.12.0",
 		"@typescript-eslint/parser": "^6.12.0",

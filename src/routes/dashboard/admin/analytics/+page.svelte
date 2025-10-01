@@ -1,3 +1,10 @@
+<svelte:head>
+	<title>Analytics Dashboard - SvelteHR Admin</title>
+	<meta name="description" content="System-wide analytics and insights for administrators. Monitor user activity, department metrics, and organizational performance." />
+	<meta property="og:title" content="Analytics Dashboard - SvelteHR Admin" />
+	<meta property="og:description" content="Comprehensive administrative analytics dashboard for system monitoring and insights" />
+</svelte:head>
+
 <script lang="ts">
 	import {
 		Users,
@@ -25,7 +32,18 @@
 	<!-- Error message -->
 	{#if data.error}
 		<div class="rounded-md bg-destructive/10 p-4 text-destructive">
-			{data.error}
+			<div class="font-medium">{data.error.message || data.error}</div>
+			{#if data.error.details && typeof data.error === 'object'}
+				<div class="mt-1 text-sm opacity-75">{data.error.details}</div>
+			{/if}
+			{#if data.error.retryable}
+				<button
+					class="mt-2 text-sm underline hover:no-underline"
+					onclick={() => window.location.reload()}
+				>
+					Try again
+				</button>
+			{/if}
 		</div>
 	{/if}
 
