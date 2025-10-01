@@ -262,11 +262,15 @@ export class DataGenerator {
     if (name.includes('status')) {
       // Check if this is a USER-DEFINED type (enum)
       if (column.dataType === 'USER-DEFINED') {
-        // This is an enum type - use uppercase values
-        if (name === 'status') {
-          return faker.helpers.arrayElement(['ACTIVE', 'INACTIVE', 'ON_LEAVE', 'TERMINATED']);
+        // For enum types, try to use the default value if available
+        // This ensures we use valid enum values from the schema
+        if (column.defaultValue) {
+          const parsedDefault = this.parseDefaultValue(column.defaultValue);
+          if (parsedDefault !== undefined) {
+            return parsedDefault;
+          }
         }
-        // Default uppercase for other enum status types
+        // Fallback to common enum patterns if no default
         return faker.helpers.arrayElement(['ACTIVE', 'INACTIVE', 'PENDING']);
       }
       // Generic status field (lowercase for text columns)

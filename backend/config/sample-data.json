@@ -69,7 +69,9 @@
         "recordCount": 25,
         "priority": 4,
         "namingPattern": "Sample Performance Review {id}",
-        "customFields": {},
+        "customFields": {
+          "review_period": "Q{index} 2024"
+        },
         "skipIfExists": false
       },
       {
