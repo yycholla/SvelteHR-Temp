@@ -3,6 +3,14 @@
 	Converted from client-side URQL queries to server-side data loading with modern Svelte 5 patterns
 	Features: Server-side loading, analytics dashboard, goal management, progress tracking
 -->
+
+<svelte:head>
+	<title>Goals & OKRs Management - SvelteHR</title>
+	<meta name="description" content="Manage team goals, objectives, and key results. Track progress, set priorities, and monitor performance metrics across your organization." />
+	<meta property="og:title" content="Goals & OKRs Management - SvelteHR" />
+	<meta property="og:description" content="Comprehensive goal management dashboard for tracking team objectives and key results" />
+</svelte:head>
+
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import {

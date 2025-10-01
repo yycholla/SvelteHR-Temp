@@ -1,67 +1,88 @@
-// Server-side data loading for user performance reviews page
+// User Performance Reviews - Server-Side Data Loading
+// Implements proper PostGraphile GraphQL queries with backend initialization
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
+import { GraphQLClient } from '$lib/server/graphql-client';
+import { ensureBackendReady } from '$lib/server/backend-init';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, params, url } = event;
+	const { locals, params, url, cookies } = event;
 
-	// RBAC: Check performance review access permissions
-	PermissionChecks.dashboard(event);
+	// Verify user is authenticated
+	if (!locals.user?.id) {
+		throw error(401, 'Authentication required');
+	}
 
 	// Verify user can access this review data (own data or has management permissions)
 	let userId = params.id;
-
 	const canViewOthers = locals.roles?.includes('admin') || locals.roles?.includes('manager');
 
 	if (!canViewOthers && locals.user?.id !== userId) {
-		throw error(403, {
-			message: 'Access denied: You can only view your own performance reviews'
-		});
+		throw error(403, 'Access denied: You can only view your own performance reviews');
 	}
 
 	try {
-		// Make direct GraphQL calls to PostGraphile backend
-		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
-		const graphqlEndpoint = getGraphQLEndpoint();
-		const headers: Record<string, string> = {
-			'Content-Type': 'application/json'
-		};
+		// Check backend services are ready before proceeding
+		const backendReady = await ensureBackendReady();
 
-		// Load user details
-		const userResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetUser($id: UUID!) {
-						userById(id: $id) {
-							id
-							email
-							displayName
-							role
-							departmentId
-							departmentByDepartmentId {
-								id
-								name
-								userByManagerId {
-									id
-									displayName
-									email
-								}
-							}
-						}
+		// If backend is not ready, return error state but don't crash
+		if (!backendReady) {
+			console.warn('Backend not ready for user performance reviews page');
+			return {
+				user: null,
+				userId,
+				reviews: [],
+				reviewTypes: [],
+				competencyAreas: [],
+				reviewStats: {
+					total: 0,
+					completed: 0,
+					inProgress: 0,
+					scheduled: 0,
+					overdue: 0,
+					averageRating: 0,
+					lastReviewDate: null,
+					nextReviewDate: null
+				},
+				canManageReviews: false,
+				isOwnReviews: locals.user?.id === userId,
+				permissions: locals.permissions || [],
+				loadedAt: new Date().toISOString(),
+				error: {
+					message: 'Backend services are initializing. Please try again in a moment.',
+					details: 'Backend initialization in progress',
+					retryable: true
+				}
+			};
+		}
+
+		// Create GraphQL client with authentication
+		const graphqlClient = GraphQLClient.fromCookies(cookies);
+
+		// Load user details using new GraphQL client
+		const userQuery = `
+			query GetUser($id: UUID!) {
+				userById(id: $id) {
+					id
+					email
+					firstName
+					lastName
+					departmentId
+					isActive
+					departmentByDepartmentId {
+						id
+						name
+						managerId
 					}
-				`,
-				variables: { id: userId }
-			})
-		});
+				}
+			}
+		`;
 
-		const userData = await userResponse.json();
-		const user = userData?.data?.userById;
+		const userData = await graphqlClient.query(userQuery, { id: userId });
+		const user = userData.data?.userById;
 
 		if (!user) {
-			throw error(404, { message: 'User not found' });
+			throw error(404, 'User not found');
 		}
 
 		// TODO: Load actual performance reviews from database
@@ -117,7 +138,7 @@ export const load: PageServerLoad = async (event) => {
 				},
 				scheduledDate: reviewDate.toISOString().split('T')[0],
 				completedDate: status === 'completed' ? reviewDate.toISOString().split('T')[0] : null,
-				reviewer: user.departmentByDepartmentId?.userByManagerId || {
+				reviewer: {
 					id: 'reviewer-1',
 					displayName: 'Sarah Johnson',
 					email: 'sarah.johnson@company.com'
@@ -142,7 +163,7 @@ export const load: PageServerLoad = async (event) => {
 						'Opportunity to mentor junior team members',
 						'Continue developing expertise in emerging technologies'
 					],
-					managerComments: `Overall strong performance during this review period. ${user.displayName} has consistently exceeded expectations and shown great potential for growth.`,
+					managerComments: `Overall strong performance during this review period. ${user.firstName} ${user.lastName} has consistently exceeded expectations and shown great potential for growth.`,
 					employeeComments: status === 'completed' ? 'I appreciate the feedback and look forward to continuing to grow in my role.' : null
 				},
 				developmentPlan: [
@@ -170,9 +191,6 @@ export const load: PageServerLoad = async (event) => {
 			nextReviewDate: reviews.find(r => r.status === 'scheduled' || r.status === 'in_progress')?.scheduledDate
 		};
 
-		// Get standardized user permissions
-		const userPermissions = getUserPermissions(locals);
-
 		return {
 			user,
 			userId,
@@ -182,15 +200,39 @@ export const load: PageServerLoad = async (event) => {
 			reviewStats,
 			canManageReviews: canViewOthers,
 			isOwnReviews: locals.user?.id === userId,
-			...userPermissions,
+			permissions: locals.permissions || [],
 			loadedAt: new Date().toISOString()
 		};
 
 	} catch (err) {
-		console.error('[User Performance Reviews Load Error]', err);
+		console.error('Error loading user performance reviews:', err);
 
-		throw error(500, {
-			message: 'Unable to load performance reviews. Please try again later.'
-		});
+		// Return error state instead of throwing to prevent page crash
+		return {
+			user: null,
+			userId,
+			reviews: [],
+			reviewTypes: [],
+			competencyAreas: [],
+			reviewStats: {
+				total: 0,
+				completed: 0,
+				inProgress: 0,
+				scheduled: 0,
+				overdue: 0,
+				averageRating: 0,
+				lastReviewDate: null,
+				nextReviewDate: null
+			},
+			canManageReviews: false,
+			isOwnReviews: locals.user?.id === userId,
+			permissions: locals.permissions || [],
+			loadedAt: new Date().toISOString(),
+			error: {
+				message: 'Unable to load performance reviews. Please try again later.',
+				details: err instanceof Error ? err.message : 'Unknown error',
+				retryable: true
+			}
+		};
 	}
 };

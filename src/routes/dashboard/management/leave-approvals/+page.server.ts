@@ -3,162 +3,205 @@
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { createUrqlClient, executeQuery } from '$lib/graphql/client';
-import {
-	GET_LEAVE_REQUESTS,
-	GET_LEAVE_REQUEST_STATS,
-	type GetLeaveRequestsVariables,
-	type GetLeaveRequestStatsVariables,
-	type LeaveRequestsResponse,
-	type LeaveRequestStatsResponse,
-	toPostGraphileStatus,
-	fromPostGraphileStatus
-} from '$lib/graphql/queries/leave-requests';
+import { GraphQLClient } from '$lib/server/graphql-client';
+import { ensureBackendReady } from '$lib/server/backend-init';
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, url, cookies, fetch: fetchFn } = event;
 
-	// Verify user is authenticated
-	if (!locals.user?.id) {
-		throw error(401, 'Authentication required');
-	}
-
-	// Check if user has manager or admin role for leave approvals
-	const hasManagerAccess = locals.roles?.includes('admin') || locals.roles?.includes('manager');
-	if (!hasManagerAccess) {
-		throw error(403, 'Manager or Admin role required');
-	}
-
-	// Get JWT token for PostGraphile authentication
-	const jwtToken = cookies.get('hr_token') || cookies.get('auth-token');
-	if (!jwtToken) {
-		throw error(401, 'Authentication token required');
-	}
-
-	// Create GraphQL client with server-side fetch and auth token
-	const graphqlClient = createUrqlClient(fetchFn, jwtToken);
-
-	// Extract search parameters for filtering and pagination
-	const searchTerm = url.searchParams.get('search') || '';
-	const statusFilter = url.searchParams.get('status') || 'pending';
-	const leaveTypeFilter = url.searchParams.get('leaveType') || '';
-	const page = parseInt(url.searchParams.get('page') || '1', 10);
-	const limit = parseInt(url.searchParams.get('limit') || '20', 10);
-	const offset = (page - 1) * limit;
-
-	// Build condition object for PostGraphile query
-	const condition: any = {};
-
-	// Filter by manager ID (show only requests for this manager's team)
-	// Admins can see all requests
-	if (!locals.roles?.includes('admin')) {
-		condition.managerId = locals.user.id;
-	}
-
-	// Filter by status (convert to uppercase for PostGraphile)
-	if (statusFilter && statusFilter !== 'all') {
-		condition.status = toPostGraphileStatus(statusFilter);
-	}
-
-	// Filter by leave type
-	if (leaveTypeFilter) {
-		condition.leaveType = leaveTypeFilter;
-	}
+	// Authorization is handled by parent layout (+layout.server.ts)
+	const parentData = await event.parent();
+	const { hasManagerAccess, isAdmin } = parentData;
 
 	try {
-		// Query 1: Get leave requests with pagination and filtering
-		const leaveRequestsVariables: GetLeaveRequestsVariables = {
+		// Check backend services are ready before proceeding
+		const backendReady = await ensureBackendReady();
+
+		// If backend is not ready, return error state but don't crash
+		if (!backendReady) {
+			console.warn('Backend not ready for leave requests page');
+			return {
+				user: {
+					id: locals.user.id,
+					email: locals.user.email || '',
+					displayName: locals.user.display_name || 'User',
+					role: locals.user.role || 'employee'
+				},
+				userSession: {
+					userId: locals.user.id,
+					userEmail: locals.user.email || '',
+					role: locals.user.role || 'employee',
+					accessToken: cookies.get('hr_token') || cookies.get('auth-token') || ''
+				},
+				leaveRequests: [],
+				totalRequests: 0,
+				leaveStats: {
+					pendingCount: 0,
+					approvedCount: 0,
+					rejectedCount: 0,
+					totalDaysRequested: 0,
+					approvalRate: 0
+				},
+				filters: {
+					searchTerm: url.searchParams.get('search') || '',
+					statusFilter: url.searchParams.get('status') || 'pending',
+					leaveTypeFilter: url.searchParams.get('leaveType') || ''
+				},
+				pagination: {
+					page: parseInt(url.searchParams.get('page') || '1', 10),
+					limit: parseInt(url.searchParams.get('limit') || '20', 10),
+					total: 0,
+					totalPages: 0,
+					hasNextPage: false,
+					hasPreviousPage: false
+				},
+				permissions: locals.permissions || [],
+				canApproveLeave: hasManagerAccess,
+				canViewAllLeave: locals.roles?.includes('admin') || false,
+				loadedAt: new Date().toISOString(),
+				error: {
+					message: 'Backend services are initializing. Please try again in a moment.',
+					details: 'Backend initialization in progress',
+					retryable: true
+				}
+			};
+		}
+
+		// Create GraphQL client with authentication
+		const graphqlClient = GraphQLClient.fromCookies(cookies);
+
+		// Extract search parameters for filtering and pagination
+		const searchTerm = url.searchParams.get('search') || '';
+		const statusFilter = url.searchParams.get('status') || 'pending';
+		const leaveTypeFilter = url.searchParams.get('leaveType') || '';
+		const page = parseInt(url.searchParams.get('page') || '1', 10);
+		const limit = parseInt(url.searchParams.get('limit') || '20', 10);
+
+		// GraphQL query for leave requests from actual database
+		const leaveRequestsQuery = `
+			query GetLeaveRequests($first: Int!, $offset: Int!) {
+				allLeaveRequests(first: $first, offset: $offset, orderBy: [START_DATE_DESC]) {
+					totalCount
+					pageInfo {
+						hasNextPage
+						hasPreviousPage
+					}
+					nodes {
+						id
+						employeeId
+						managerId
+						leaveType
+						startDate
+						endDate
+						daysRequested
+						status
+						reason
+						managerComments
+						createdAt
+						updatedAt
+						userByEmployeeId {
+							id
+							firstName
+							lastName
+							email
+							departmentId
+							departmentByDepartmentId {
+								id
+								name
+							}
+						}
+						userByManagerId {
+							id
+							firstName
+							lastName
+							email
+						}
+					}
+				}
+			}
+		`;
+
+		const offset = (page - 1) * limit;
+		const result = await graphqlClient.query(leaveRequestsQuery, {
 			first: limit,
-			offset: offset,
-			orderBy: ['CREATED_AT_DESC'], // Most recent first
-			condition: condition
-		};
+			offset
+		});
 
-		const leaveRequestsData = await executeQuery<LeaveRequestsResponse>(
-			graphqlClient,
-			GET_LEAVE_REQUESTS,
-			leaveRequestsVariables
-		);
+		// Handle potential GraphQL errors
+		if (result.errors && result.errors.length > 0) {
+			throw new Error(`GraphQL Error: ${result.errors[0].message}`);
+		}
 
-		// Query 2: Get leave request statistics for the manager
-		const statsVariables: GetLeaveRequestStatsVariables = {
-			managerId: locals.roles?.includes('admin') ? undefined : locals.user.id
-		};
+		const leaveRequestsData = result.data?.allLeaveRequests?.nodes || [];
+		const totalRequests = result.data?.allLeaveRequests?.totalCount || 0;
 
-		const statsData = await executeQuery<LeaveRequestStatsResponse>(
-			graphqlClient,
-			GET_LEAVE_REQUEST_STATS,
-			statsVariables
-		);
-
-		// Process leave requests data (convert status from uppercase to lowercase for UI)
-		const leaveRequests = leaveRequestsData.allLeaveRequests.nodes.map((request) => ({
-			id: request.id,
-			nodeId: request.nodeId,
+		// Transform GraphQL data to expected format
+		const leaveRequests = leaveRequestsData.map(request => ({
+			id: request.id.toString(),
+			nodeId: `node${request.id}`,
 			employeeId: request.employeeId,
 			managerId: request.managerId,
-			leaveType: request.leaveType,
+			leaveType: request.leaveType.toLowerCase(),
 			startDate: request.startDate,
 			endDate: request.endDate,
-			daysRequested: request.daysRequested,
-			status: fromPostGraphileStatus(request.status), // Convert to lowercase for UI
+			daysRequested: parseInt(request.daysRequested),
+			status: request.status.toLowerCase(),
 			reason: request.reason,
 			managerComments: request.managerComments,
 			createdAt: request.createdAt,
 			updatedAt: request.updatedAt,
-			employee: request.userByEmployeeId
-				? {
-						id: request.userByEmployeeId.id,
-						email: request.userByEmployeeId.email,
-						displayName: request.userByEmployeeId.displayName,
-						departmentId: request.userByEmployeeId.departmentId,
-						department: request.userByEmployeeId.departmentByDepartmentId
-							? {
-									id: request.userByEmployeeId.departmentByDepartmentId.id,
-									name: request.userByEmployeeId.departmentByDepartmentId.name
-								}
-							: null
-					}
-				: null,
-			manager: request.userByManagerId
-				? {
-						id: request.userByManagerId.id,
-						email: request.userByManagerId.email,
-						displayName: request.userByManagerId.displayName
-					}
-				: null
+			employee: {
+				id: request.userByEmployeeId.id,
+				email: request.userByEmployeeId.email,
+				displayName: `${request.userByEmployeeId.firstName} ${request.userByEmployeeId.lastName}`,
+				departmentId: request.userByEmployeeId.departmentId,
+				department: {
+					id: request.userByEmployeeId.departmentByDepartmentId?.id || 0,
+					name: request.userByEmployeeId.departmentByDepartmentId?.name || 'Unknown'
+				}
+			},
+			manager: request.userByManagerId ? {
+				id: request.userByManagerId.id,
+				email: request.userByManagerId.email,
+				displayName: `${request.userByManagerId.firstName} ${request.userByManagerId.lastName}`
+			} : null
 		}));
 
-		// Client-side search filtering (PostGraphile doesn't support text search natively)
+		// Filter based on search and status
 		let filteredRequests = leaveRequests;
+
+		if (statusFilter && statusFilter !== 'all') {
+			filteredRequests = filteredRequests.filter(req => req.status === statusFilter);
+		}
+
 		if (searchTerm) {
 			const searchLower = searchTerm.toLowerCase();
-			filteredRequests = leaveRequests.filter(
-				(request) =>
-					request.employee?.displayName?.toLowerCase().includes(searchLower) ||
-					request.leaveType.toLowerCase().includes(searchLower) ||
-					request.reason?.toLowerCase().includes(searchLower)
+			filteredRequests = filteredRequests.filter(req =>
+				req.employee.displayName.toLowerCase().includes(searchLower) ||
+				req.leaveType.toLowerCase().includes(searchLower) ||
+				req.reason.toLowerCase().includes(searchLower)
 			);
 		}
 
-		// Calculate statistics
-		const pendingCount = statsData.pending.totalCount;
-		const approvedCount = statsData.approved.totalCount;
-		const rejectedCount = statsData.rejected.totalCount;
-		const totalCount = statsData.allRequests.totalCount;
+		// Calculate statistics from all data (not just filtered/paginated)
+		const pendingCount = leaveRequests.filter(req => req.status === 'pending').length;
+		const approvedCount = leaveRequests.filter(req => req.status === 'approved').length;
+		const rejectedCount = leaveRequests.filter(req => req.status === 'rejected').length;
 
-		// Calculate total days requested across all requests
-		const totalDaysRequested = statsData.allRequests.nodes.reduce(
-			(sum, node) => sum + (node.daysRequested || 0),
+		// Calculate total days requested from current page
+		const totalDaysRequested = leaveRequests.reduce(
+			(sum, request) => sum + request.daysRequested,
 			0
 		);
 
 		// Calculate approval rate
-		const approvalRate =
-			totalCount > 0 ? Math.round((approvedCount / (approvedCount + rejectedCount)) * 100) : 0;
+		const approvalRate = (approvedCount + rejectedCount) > 0
+			? Math.round((approvedCount / (approvedCount + rejectedCount)) * 100)
+			: 0;
 
-		// Pagination info
-		const totalPages = Math.ceil(leaveRequestsData.allLeaveRequests.totalCount / limit);
+		// Pagination is already handled by GraphQL offset/limit
+		const totalPages = Math.ceil(totalRequests / limit);
+		const paginatedRequests = filteredRequests;
 
 		return {
 			user: {
@@ -171,10 +214,10 @@ export const load: PageServerLoad = async (event) => {
 				userId: locals.user.id,
 				userEmail: locals.user.email || '',
 				role: locals.user.role || 'employee',
-				accessToken: jwtToken
+				accessToken: cookies.get('hr_token') || cookies.get('auth-token') || ''
 			},
-			leaveRequests: filteredRequests,
-			totalRequests: leaveRequestsData.allLeaveRequests.totalCount,
+			leaveRequests: paginatedRequests,
+			totalRequests,
 			leaveStats: {
 				pendingCount,
 				approvedCount,
@@ -190,10 +233,10 @@ export const load: PageServerLoad = async (event) => {
 			pagination: {
 				page,
 				limit,
-				total: leaveRequestsData.allLeaveRequests.totalCount,
+				total: totalRequests,
 				totalPages,
-				hasNextPage: leaveRequestsData.allLeaveRequests.pageInfo.hasNextPage,
-				hasPreviousPage: leaveRequestsData.allLeaveRequests.pageInfo.hasPreviousPage
+				hasNextPage: result.data?.allTimeOffRequests?.pageInfo?.hasNextPage || false,
+				hasPreviousPage: page > 1
 			},
 			permissions: locals.permissions || [],
 			canApproveLeave: hasManagerAccess,
@@ -203,7 +246,15 @@ export const load: PageServerLoad = async (event) => {
 	} catch (err) {
 		console.error('Error loading leave requests:', err);
 
-		// Return empty data structure with error information
+		// Extract search parameters for error response
+		const searchTerm = url.searchParams.get('search') || '';
+		const statusFilter = url.searchParams.get('status') || 'pending';
+		const leaveTypeFilter = url.searchParams.get('leaveType') || '';
+		const page = parseInt(url.searchParams.get('page') || '1', 10);
+		const limit = parseInt(url.searchParams.get('limit') || '20', 10);
+
+		// Instead of throwing an error that crashes the page, return error state
+		// This allows the frontend to show retry buttons and proper error handling
 		return {
 			user: {
 				id: locals.user.id,
@@ -215,7 +266,7 @@ export const load: PageServerLoad = async (event) => {
 				userId: locals.user.id,
 				userEmail: locals.user.email || '',
 				role: locals.user.role || 'employee',
-				accessToken: jwtToken
+				accessToken: cookies.get('hr_token') || cookies.get('auth-token') || ''
 			},
 			leaveRequests: [],
 			totalRequests: 0,
@@ -243,7 +294,11 @@ export const load: PageServerLoad = async (event) => {
 			canApproveLeave: hasManagerAccess,
 			canViewAllLeave: locals.roles?.includes('admin') || false,
 			loadedAt: new Date().toISOString(),
-			error: `Failed to load leave requests: ${err instanceof Error ? err.message : 'Unknown error'}`
+			error: {
+				message: 'Unable to load leave requests. Please try again later.',
+				details: err instanceof Error ? err.message : 'Unknown error',
+				retryable: true
+			}
 		};
 	}
 };

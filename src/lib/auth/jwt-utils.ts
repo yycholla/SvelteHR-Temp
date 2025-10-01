@@ -43,7 +43,7 @@ export async function verifyJWTToken(token: string): Promise<TokenValidationResu
 
 	try {
 		// Dynamic import for server-side only
-		const jwt = await import('jsonwebtoken');
+		const jwt = (await import('jsonwebtoken')).default;
 
 		// Verify token with signature validation
 		const payload = jwt.verify(token, JWT_SECRET, {
@@ -151,7 +151,7 @@ export async function generateJWTToken(payload: Partial<JWTPayload>): Promise<st
 		throw new Error('JWT generation must be performed server-side only');
 	}
 
-	const jwt = await import('jsonwebtoken');
+	const jwt = (await import('jsonwebtoken')).default;
 	const now = Math.floor(Date.now() / 1000);
 	const expirationTime = authConfig.jwt.expirationTime;
 

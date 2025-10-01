@@ -10,8 +10,12 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 		throw error(401, 'Authentication required');
 	}
 
-	// Check if user has admin role
-	const isAdmin = locals.roles?.includes('admin') || locals.user.role === 'admin';
+	// Check if user has admin or super_admin role
+	const isAdmin =
+		locals.roles?.includes('super_admin') ||
+		locals.roles?.includes('admin') ||
+		locals.user.role === 'super_admin' ||
+		locals.user.role === 'admin';
 
 	if (!isAdmin) {
 		// Log admin access attempt for audit purposes

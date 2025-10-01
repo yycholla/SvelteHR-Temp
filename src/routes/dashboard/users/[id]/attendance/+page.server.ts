@@ -1,115 +1,131 @@
-// Server-side data loading for user attendance page
+// User Attendance - Server-Side Data Loading
+// Implements proper PostGraphile GraphQL queries with backend initialization
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
+import { GraphQLClient } from '$lib/server/graphql-client';
+import { ensureBackendReady } from '$lib/server/backend-init';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, params, url } = event;
+	const { locals, params, url, cookies } = event;
 
-	// RBAC: Check attendance access permissions
-	PermissionChecks.dashboard(event);
+	// Verify user is authenticated
+	if (!locals.user?.id) {
+		throw error(401, 'Authentication required');
+	}
 
 	// Verify user can access this attendance data (own data or has management permissions)
 	let userId = params.id;
-
 	const canViewOthers = locals.roles?.includes('admin') || locals.roles?.includes('manager');
 
 	if (!canViewOthers && locals.user?.id !== userId) {
-		throw error(403, {
-			message: 'Access denied: You can only view your own attendance records'
-		});
+		throw error(403, 'Access denied: You can only view your own attendance records');
 	}
 
 	try {
-		// TEMPORARY: Skip PostGraphile and use mock data to test frontend
-		console.log('🚀 Loading attendance with mock data for testing');
+		// Check backend services are ready before proceeding
+		const backendReady = await ensureBackendReady();
 
-		// Mock user data
-		const user = {
-			id: userId,
-			email: locals.user?.email || 'admin@postgraphile-hr.com',
-			displayName: locals.user?.display_name || 'System Administrator',
-			role: 'admin',
-			departmentId: 'dept-1',
-			departmentByDepartmentId: {
-				id: 'dept-1',
-				name: 'Administration',
-				userByManagerId: {
-					id: 'manager-1',
-					displayName: 'Sarah Johnson',
-					email: 'sarah.johnson@company.com'
+		// If backend is not ready, return error state but don't crash
+		if (!backendReady) {
+			console.warn('Backend not ready for user attendance page');
+			return {
+				user: null,
+				userId,
+				attendanceRecords: [],
+				attendanceStats: {
+					totalDays: 0,
+					presentDays: 0,
+					partialDays: 0,
+					attendanceRate: 0,
+					totalHours: 0,
+					averageHours: 0
+				},
+				canManageAttendance: false,
+				isOwnAttendance: locals.user?.id === userId,
+				permissions: locals.permissions || [],
+				loadedAt: new Date().toISOString(),
+				error: {
+					message: 'Backend services are initializing. Please try again in a moment.',
+					details: 'Backend initialization in progress',
+					retryable: true
+				}
+			};
+		}
+
+		// Create GraphQL client with authentication
+		const graphqlClient = GraphQLClient.fromCookies(cookies);
+
+		// Load user details using new GraphQL client
+		const userQuery = `
+			query GetUser($id: UUID!) {
+				userById(id: $id) {
+					id
+					email
+					firstName
+					lastName
+					departmentId
+					isActive
+					departmentByDepartmentId {
+						id
+						name
+						managerId
+					}
 				}
 			}
-		};
+		`;
 
-		// FUTURE: Enable PostGraphile when JWT issues are resolved
-		// const graphqlEndpoint = 'http://localhost:4000/graphql';
-		// const headers: Record<string, string> = {
-		// 	'Content-Type': 'application/json'
-		// };
+		const userData = await graphqlClient.query(userQuery, { id: userId });
+		const user = userData.data?.userById;
 
-		// Load user details
-		// const userResponse = await fetch(graphqlEndpoint, {
-		// 	method: 'POST',
-		// 	headers,
-		// 	body: JSON.stringify({
-		// 		query: `
-		// 			query GetUser($id: UUID!) {
-		// 				userById(id: $id) {
-		// 					id
-		// 					email
-		// 					displayName
-		// 					role
-		// 					departmentId
-		// 					departmentByDepartmentId {
-		// 						id
-		// 						name
-		// 					}
-		// 				}
-		// 			}
-		// 		`,
-		// 		variables: { id: userId }
-		// 	})
-		// });
+		if (!user) {
+			throw error(404, 'User not found');
+		}
 
-		// const userData = await userResponse.json();
-		// const userFromDb = userData?.data?.userById;
-
-		// if (!userFromDb) {
-		// 	throw error(404, { message: 'User not found' });
-		// }
-
-		// TODO: Load actual attendance records from database
-		// For now, generate sample data
-		const currentDate = new Date();
-		const attendanceRecords = Array.from({ length: 30 }, (_, i) => {
-			const date = new Date(currentDate);
-			date.setDate(date.getDate() - i);
-
-			// Skip weekends
-			if (date.getDay() === 0 || date.getDay() === 6) {
-				return null;
+		// Load attendance records from database
+		const attendanceQuery = `
+			query GetAttendanceRecords($userId: UUID!, $limit: Int = 90) {
+				allAttendanceRecords(
+					condition: { userId: $userId }
+					orderBy: DATE_DESC
+					first: $limit
+				) {
+					nodes {
+						id
+						userId
+						date
+						clockIn
+						clockOut
+						hoursWorked
+						status
+						location
+						notes
+						createdAt
+						updatedAt
+					}
+					totalCount
+				}
 			}
+		`;
 
-			const clockIn = new Date(date);
-			clockIn.setHours(8 + Math.floor(Math.random() * 2), Math.floor(Math.random() * 60));
+		const attendanceData = await graphqlClient.query(attendanceQuery, {
+			userId,
+			limit: 90
+		});
 
-			const clockOut = new Date(clockIn);
-			clockOut.setHours(clockIn.getHours() + 8 + Math.floor(Math.random() * 2), Math.floor(Math.random() * 60));
+		console.log('[Attendance] GraphQL response:', JSON.stringify(attendanceData, null, 2));
+		console.log('[Attendance] User ID:', userId);
+		console.log('[Attendance] Records found:', attendanceData.data?.allAttendanceRecords?.totalCount);
 
-			const hoursWorked = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
-
-			return {
-				id: `attendance-${i}`,
-				date: date.toISOString().split('T')[0],
-				clockIn: clockIn.toISOString(),
-				clockOut: clockOut.toISOString(),
-				hoursWorked: Math.round(hoursWorked * 100) / 100,
-				status: hoursWorked >= 8 ? 'present' : 'partial',
-				location: 'Office',
-				notes: i % 7 === 0 ? 'Remote work day' : null
-			};
-		}).filter(Boolean);
+		const attendanceRecords = (attendanceData.data?.allAttendanceRecords?.nodes || []).map((record: any) => ({
+			id: record.id,
+			date: record.date,
+			clockIn: record.clockIn,
+			clockOut: record.clockOut,
+			hoursWorked: record.hoursWorked ? parseFloat(record.hoursWorked) : 0,
+			status: record.status,
+			location: record.location,
+			notes: record.notes
+		}));
 
 		// Calculate attendance statistics
 		const totalDays = attendanceRecords.length;
@@ -127,9 +143,6 @@ export const load: PageServerLoad = async (event) => {
 			averageHours: Math.round(averageHours * 100) / 100
 		};
 
-		// Get standardized user permissions
-		const userPermissions = getUserPermissions(locals);
-
 		return {
 			user,
 			userId,
@@ -137,15 +150,35 @@ export const load: PageServerLoad = async (event) => {
 			attendanceStats,
 			canManageAttendance: canViewOthers,
 			isOwnAttendance: locals.user?.id === userId,
-			...userPermissions,
+			permissions: locals.permissions || [],
 			loadedAt: new Date().toISOString()
 		};
 
 	} catch (err) {
-		console.error('[User Attendance Load Error]', err);
+		console.error('Error loading user attendance data:', err);
 
-		throw error(500, {
-			message: 'Unable to load attendance data. Please try again later.'
-		});
+		// Return error state instead of throwing to prevent page crash
+		return {
+			user: null,
+			userId,
+			attendanceRecords: [],
+			attendanceStats: {
+				totalDays: 0,
+				presentDays: 0,
+				partialDays: 0,
+				attendanceRate: 0,
+				totalHours: 0,
+				averageHours: 0
+			},
+			canManageAttendance: false,
+			isOwnAttendance: locals.user?.id === userId,
+			permissions: locals.permissions || [],
+			loadedAt: new Date().toISOString(),
+			error: {
+				message: 'Unable to load attendance data. Please try again later.',
+				details: err instanceof Error ? err.message : 'Unknown error',
+				retryable: true
+			}
+		};
 	}
 };

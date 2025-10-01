@@ -1,12 +1,12 @@
 # SvelteHR Development Commands - Comprehensive Makefile
 SHELL := /bin/bash
-.PHONY: help dev build clean db-up db-down db-reset db-logs db-health db-shell
-.PHONY: server-dev server-prod server-stop server-status server-logs
+.PHONY: help dev dev-quick dev-rebuild build clean db-up db-down db-reset db-logs db-health db-shell
+.PHONY: server-dev server-prod server-stop server-status server-logs backend-dev frontend-dev
 .PHONY: quick-start env-check test test-graphql test-auth test-contract test-e2e
 .PHONY: install install-backend schema-status schema-apply schema-create schema-reset migrate-check
 .PHONY: setup-init setup-sync setup-validate setup-backup setup-health setup-test
 .PHONY: gel-cli gel-repl sample-query sample-login
-.PHONY: dev-start dev-stop dev-logs dev-ssh-be dev-ssh-fe ssh-backend ssh-frontend
+.PHONY: dev-start dev-stop dev-logs dev-health dev-ssh-be dev-ssh-fe ssh-backend ssh-frontend
 
 # =============================================================================
 # Help
@@ -17,9 +17,11 @@ help: ## Show available commands
 	@echo ""
 	@echo "🚀 Quick Start:"
 	@echo "  make quick-start   - Complete setup and startup (recommended for first-time)"
-	@echo "  make dev          - Start complete development (backend containers + frontend)"
+	@echo "  make dev          - Start complete development (backend + frontend)"
+	@echo "  make dev-quick    - Quick start backend only (no rebuild, no waiting)"
 	@echo "  make backend-dev  - Start only backend services in containers"
 	@echo "  make frontend-dev - Start only frontend (requires backend running)"
+	@echo "  make dev-rebuild  - Rebuild backend container (when Dockerfile changes)"
 	@echo "  make env-check    - Check environment and dependencies"
 	@echo ""
 	@echo "🖥️  Server Operations (PostGraphile Backend):"
@@ -75,6 +77,12 @@ help: ## Show available commands
 	@echo "📦 Installation:"
 	@echo "  make install      - Install all dependencies (frontend + backend)"
 	@echo "  make install-backend - Install backend dependencies only"
+	@echo ""
+	@echo "📊 Sample Data Management:"
+	@echo "  make dev-sample-data       - Generate sample data for development"
+	@echo "  make clean-sample-data     - Remove all sample data from database"
+	@echo "  make sample-data-status    - Show current sample data status"
+	@echo "  make validate-sample-config - Validate sample data configuration"
 	@echo ""
 	@echo "📚 Examples & Samples:"
 	@echo "  make sample-query  - Show sample GraphQL query"
@@ -160,6 +168,9 @@ dev: ## Start complete development environment (backend containers + host fronte
 	@echo "🚀 Starting SvelteHR Development Environment..."
 	@echo "=============================================="
 	@cd dev-containers && ./start-backend-only.sh
+	@echo ""
+	@echo "⏳ Waiting 3 seconds for containers to initialize..."
+	@sleep 3
 	@echo "🎨 Starting frontend development server..."
 	@npm run dev
 
@@ -172,6 +183,14 @@ frontend-dev: ## Start only frontend development server (requires backend to be 
 
 backend-dev: ## Start only backend services in containers
 	@cd dev-containers && ./start-backend-only.sh
+
+dev-rebuild: ## Rebuild backend container (run when Dockerfile changes)
+	@echo "🔨 Rebuilding backend container..."
+	@cd dev-containers && docker-compose -f docker-compose.dev.yml build backend-dev --no-cache
+	@echo "✅ Backend container rebuilt"
+
+dev-quick: backend-dev ## Quick start backend only (alias for backend-dev)
+	@echo "💡 Backend started. Run 'npm run dev' separately to start frontend."
 
 build: ## Build frontend for production
 	@echo "🔨 Building SvelteHR for production..."
@@ -458,6 +477,28 @@ setup-status: ## Show complete setup system status
 	@make env-check
 	@make db-health
 	@make server-status
+
+# =============================================================================
+# Sample Data Management
+# =============================================================================
+
+dev-sample-data: ## Generate sample data for development
+	@echo "📊 Generating sample data for development..."
+	@cd backend && DB_PORT=5433 npm run sample-data:generate
+	@echo "✅ Sample data generated successfully"
+
+clean-sample-data: ## Remove all sample data from database
+	@echo "🧹 Cleaning sample data..."
+	@cd backend && DB_PORT=5433 npm run sample-data:clean
+	@echo "✅ Sample data cleaned"
+
+sample-data-status: ## Show current sample data status
+	@echo "📊 Checking sample data status..."
+	@cd backend && DB_PORT=5433 npm run sample-data:status
+
+validate-sample-config: ## Validate sample data configuration
+	@echo "✅ Validating sample data configuration..."
+	@cd backend && npm run sample-data:validate ./config/sample-data.json
 
 # =============================================================================
 # Examples & Samples
