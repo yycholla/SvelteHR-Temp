@@ -471,17 +471,17 @@ setup-status: ## Show complete setup system status
 
 dev-sample-data: ## Generate sample data for development
 	@echo "📊 Generating sample data for development..."
-	@cd backend && npm run sample-data:generate
+	@cd backend && DB_PORT=5433 npm run sample-data:generate
 	@echo "✅ Sample data generated successfully"
 
 clean-sample-data: ## Remove all sample data from database
 	@echo "🧹 Cleaning sample data..."
-	@cd backend && npm run sample-data:clean
+	@cd backend && DB_PORT=5433 npm run sample-data:clean
 	@echo "✅ Sample data cleaned"
 
 sample-data-status: ## Show current sample data status
 	@echo "📊 Checking sample data status..."
-	@cd backend && npm run sample-data:status
+	@cd backend && DB_PORT=5433 npm run sample-data:status
 
 validate-sample-config: ## Validate sample data configuration
 	@echo "✅ Validating sample data configuration..."
