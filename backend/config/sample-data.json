@@ -7,35 +7,32 @@
     "tableConfigs": [
       {
         "tableName": "departments",
-        "recordCount": 50,
+        "recordCount": 10,
         "priority": 1,
         "namingPattern": "Sample Department {id:3}",
         "customFields": {
           "name": "Sample Department {id:3}",
-          "manager_id": null,
-          "parent_department_id": null
+          "manager_id": null
         },
-        "skipIfExists": false
-      },
-      {
-        "tableName": "employees",
-        "recordCount": 50,
-        "priority": 2,
-        "namingPattern": "Sample Employee {id:3}",
-        "customFields": {
-          "full_name": "Sample Employee {id:3}",
-          "termination_date": null
-        },
-        "skipIfExists": false
+        "skipIfExists": true
       },
       {
         "tableName": "users",
-        "recordCount": 50,
+        "recordCount": 30,
         "priority": 2,
         "namingPattern": "Sample User {id:3}",
         "customFields": {
-          "email": "sample.user.{id:3}@example.com",
-          "employee_id": null
+          "email": "sample.user.{id:3}@example.com"
+        },
+        "skipIfExists": false
+      },
+      {
+        "tableName": "time_off_policies",
+        "recordCount": 5,
+        "priority": 2,
+        "namingPattern": "Sample Time Off Policy {id}",
+        "customFields": {
+          "policy_name": "Sample Policy {id}"
         },
         "skipIfExists": false
       },
@@ -48,9 +45,29 @@
         "skipIfExists": false
       },
       {
-        "tableName": "performance_reviews",
-        "recordCount": 30,
+        "tableName": "review_templates",
+        "recordCount": 5,
         "priority": 3,
+        "namingPattern": "Sample Review Template {id}",
+        "customFields": {
+          "name": "Sample Template {id}"
+        },
+        "skipIfExists": false
+      },
+      {
+        "tableName": "compensation_bands",
+        "recordCount": 8,
+        "priority": 3,
+        "namingPattern": "Sample Compensation Band {id}",
+        "customFields": {
+          "name": "Sample Band {id}"
+        },
+        "skipIfExists": false
+      },
+      {
+        "tableName": "performance_reviews",
+        "recordCount": 25,
+        "priority": 4,
         "namingPattern": "Sample Performance Review {id}",
         "customFields": {},
         "skipIfExists": false
@@ -58,14 +75,16 @@
       {
         "tableName": "employee_goals",
         "recordCount": 20,
-        "priority": 3,
+        "priority": 4,
         "namingPattern": "Sample Goal {id}",
-        "customFields": {},
+        "customFields": {
+          "title": "Sample Goal {id}"
+        },
         "skipIfExists": false
       },
       {
-        "tableName": "time_off_requests",
-        "recordCount": 20,
+        "tableName": "leave_requests",
+        "recordCount": 30,
         "priority": 4,
         "namingPattern": "Sample Leave Request {id}",
         "customFields": {},
@@ -73,7 +92,7 @@
       },
       {
         "tableName": "time_off_balances",
-        "recordCount": 20,
+        "recordCount": 30,
         "priority": 4,
         "namingPattern": "Sample Leave Balance {id}",
         "customFields": {},
@@ -81,33 +100,9 @@
       },
       {
         "tableName": "payroll_records",
-        "recordCount": 20,
+        "recordCount": 25,
         "priority": 4,
         "namingPattern": "Sample Payroll Record {id}",
-        "customFields": {},
-        "skipIfExists": false
-      },
-      {
-        "tableName": "compensation_bands",
-        "recordCount": 10,
-        "priority": 3,
-        "namingPattern": "Sample Compensation Band {id}",
-        "customFields": {},
-        "skipIfExists": false
-      },
-      {
-        "tableName": "review_templates",
-        "recordCount": 10,
-        "priority": 3,
-        "namingPattern": "Sample Review Template {id}",
-        "customFields": {},
-        "skipIfExists": false
-      },
-      {
-        "tableName": "time_off_policies",
-        "recordCount": 10,
-        "priority": 3,
-        "namingPattern": "Sample Time Off Policy {id}",
         "customFields": {},
         "skipIfExists": false
       }
