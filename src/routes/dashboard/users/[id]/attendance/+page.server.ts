@@ -12,11 +12,6 @@ export const load: PageServerLoad = async (event) => {
 	// Verify user can access this attendance data (own data or has management permissions)
 	let userId = params.id;
 
-	// TEMPORARY FIX: Handle legacy user ID mapping
-	if (userId === '1' && locals.user?.email === 'admin@postgraphile-hr.com') {
-		userId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
-	}
-
 	const canViewOthers = locals.roles?.includes('admin') || locals.roles?.includes('manager');
 
 	if (!canViewOthers && locals.user?.id !== userId) {

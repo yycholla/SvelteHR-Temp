@@ -17,8 +17,8 @@ import { createPerformanceExchange } from '$lib/performance/graphql-performance-
 
 // PostGraphile GraphQL endpoint - use directly for better integration
 const POSTGRAPHILE_GRAPHQL_URL = browser
-	? 'http://localhost:4000/graphql' // Direct to PostGraphile in browser
-	: 'http://localhost:4000/graphql'; // Direct to PostGraphile on server
+	? 'http://localhost:4000/graphql' // Direct to PostGraphile in browser (via host port mapping)
+	: 'http://sveltehr-backend-dev:4000/graphql'; // Docker service name for server-side requests
 const POSTGRAPHILE_GRAPHQL_WS_URL = 'ws://localhost:4000/graphql'; // Direct to PostGraphile for WebSockets if needed
 
 // WebSocket subscriptions are disabled for PostGraphile (doesn't support WebSockets by default)
@@ -198,7 +198,7 @@ export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string) => 
 			enableCacheTracking: true,
 			enableComplexityAnalysis: true
 		}),
-		fetchFn ? fetchExchange.bind(null, fetchFn) : fetchExchange
+		fetchExchange
 	];
 
 	// Add subscription exchange for browser environment (disabled for PostGraphile)
@@ -220,6 +220,7 @@ export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string) => 
 	return new Client({
 		url: POSTGRAPHILE_GRAPHQL_URL,
 		exchanges,
+		fetch: fetchFn,
 		fetchOptions: () => {
 			return {
 				method: 'POST',
@@ -314,8 +315,7 @@ if (browser) {
 }
 
 // Export types for TypeScript support
-export type { Client, CombinedError } from '@urql/core';
-export type { Operation, OperationResult, Exchange } from '../types/urql.js';
+export type { Client, CombinedError, Operation, OperationResult } from '@urql/core';
 
 // Export common query/mutation helpers
 export const executeQuery = async (client: Client, query: string, variables?: any) => {

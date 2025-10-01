@@ -1,174 +1,160 @@
-// Server-side data loading for goals and OKRs management page
-// T040: Fix goals/OKRs management pages with standardized error handling
+// Goals & OKRs Management Page - Server-Side Data Loading with GraphQL
+// Feature: 016-repair-management-pages - GraphQL integration
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
-import { createGoalsOKROperations, getGoalsAnalytics } from '$lib/graphql/goals-okrs-operations';
+import { createUrqlClient } from '$lib/graphql/client';
+import {
+	GET_EMPLOYEE_GOALS,
+	GET_GOAL_STATISTICS,
+	buildEmployeeGoalFilter,
+	calculateGoalStatistics
+} from '$lib/graphql/goals-okrs-operations';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, cookies, url } = event;
+	const { locals, url, cookies } = event;
 
-	// RBAC: Check goals management permissions
-	PermissionChecks.goalsRead(event);
+	// Verify user is authenticated
+	if (!locals.user?.id) {
+		throw error(401, 'Authentication required');
+	}
 
-	// Import required models for standardized error handling
-	const { createDataRequest } = await import('$lib/models/data-request');
-	const { createErrorResponse } = await import('$lib/models/error-response');
-	const { createUserSession } = await import('$lib/models/user-session');
+	// Check if user has manager or admin role
+	const hasManagerAccess = locals.roles?.includes('admin') || locals.roles?.includes('manager');
+	if (!hasManagerAccess) {
+		throw error(403, 'Manager or Admin role required');
+	}
 
-	// Create user session from server locals
-	const userSession = createUserSession({
-		userId: locals.user.id,
-		userEmail: locals.user.email,
-		displayName: locals.user.display_name || locals.user.email,
-		role: locals.user.role || 'employee',
-		permissions: locals.permissions || [],
-		accessToken: cookies.get('hr_token') || '',
-		tokenExpiry: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes from now
-		isValid: true
-	});
+	// Get JWT token from cookies for PostGraphile authentication
+	const jwtToken = cookies.get('postgraphile-jwt-token') || cookies.get('hr_token') || '';
 
-	// Extract search parameters from URL
+	// Create server-side GraphQL client with auth token
+	const graphqlClient = createUrqlClient(fetch, jwtToken);
+
+	// Extract search parameters for filtering
 	const searchTerm = url.searchParams.get('search') || '';
 	const statusFilter = url.searchParams.get('status') || '';
-	const typeFilter = url.searchParams.get('type') || '';
 	const priorityFilter = url.searchParams.get('priority') || '';
-	const quarterFilter = url.searchParams.get('quarter') || 'Q4';
-	const yearFilter = parseInt(url.searchParams.get('year') || '2024', 10);
 	const page = parseInt(url.searchParams.get('page') || '1', 10);
-	const limit = parseInt(url.searchParams.get('limit') || '20', 10);
-
-	// Create data request for goals data
-	const dataRequest = createDataRequest({
-		operationName: 'GetTeamGoals',
-		variables: {
-			searchTerm,
-			statusFilter,
-			typeFilter,
-			priorityFilter,
-			quarterFilter,
-			yearFilter,
-			page,
-			limit,
-			teamId: userSession.userId
-		},
-		userCredentials: {
-			userId: userSession.userId,
-			userEmail: userSession.userEmail,
-			role: userSession.role,
-			accessToken: userSession.accessToken
-		},
-		timeoutMs: 5000,
-		retryAttempts: 0,
-		maxRetries: 3
-	});
+	const limit = 20;
+	const offset = (page - 1) * limit;
 
 	try {
-		// Create goals and OKRs operations instance
-		const goalsOps = createGoalsOKROperations(null); // We'll pass the GraphQL client reference
-
-		// Load team goals data using standardized operations
-		const goalsData = await goalsOps.getTeamGoals({
-			first: limit,
-			offset: (page - 1) * limit,
-			filter: {
-				status: statusFilter || undefined,
-				goalType: typeFilter || undefined,
-				priority: priorityFilter || undefined,
-				searchTerm: searchTerm || undefined,
-				quarter: quarterFilter || undefined,
-				year: yearFilter || undefined
-			},
-			orderBy: ['CREATED_AT_DESC'],
-			userCredentials: {
-				userId: userSession.userId,
-				userEmail: userSession.userEmail,
-				role: userSession.role,
-				accessToken: userSession.accessToken
-			}
+		// Build GraphQL filter from URL parameters
+		const filter = buildEmployeeGoalFilter({
+			status: statusFilter ? (statusFilter as any) : undefined,
+			priority: priorityFilter ? (priorityFilter as any) : undefined,
+			employeeName: searchTerm || undefined,
+			departmentId: locals.user.department_id || undefined
 		});
 
-		// Load goals analytics for dashboard insights
-		const analyticsData = await getGoalsAnalytics({
-			teamId: userSession.userId,
-			quarter: quarterFilter,
-			year: yearFilter,
-			userCredentials: {
-				userId: userSession.userId,
-				userEmail: userSession.userEmail,
-				role: userSession.role,
-				accessToken: userSession.accessToken
-			}
-		});
+		// Fetch employee goals with pagination
+		const goalsResult = await graphqlClient
+			.query(GET_EMPLOYEE_GOALS, {
+				first: limit,
+				offset,
+				filter,
+				orderBy: ['TARGET_DATE_ASC']
+			})
+			.toPromise();
 
-		// Return server-side loaded data
-		// Get standardized user permissions
-		const userPermissions = getUserPermissions(locals);
+		if (goalsResult.error) {
+			console.error('GraphQL Error fetching goals:', goalsResult.error);
+			throw error(500, 'Failed to load goals data');
+		}
 
-		return {
-			user: userPermissions.user,
-			userSession,
-			teamGoals: goalsData.nodes || [],
-			totalGoals: goalsData.totalCount || 0,
-			goalsAnalytics: analyticsData || {
-				summary: {
+		// Fetch goal statistics for analytics
+		const statsResult = await graphqlClient
+			.query(GET_GOAL_STATISTICS, {
+				departmentId: locals.user.department_id || ''
+			})
+			.toPromise();
+
+		if (statsResult.error) {
+			console.error('GraphQL Error fetching statistics:', statsResult.error);
+			// Don't fail the page load if stats fail, just use zeros
+		}
+
+		// Extract goals data
+		const goals = goalsResult.data?.employeeGoals?.nodes || [];
+		const totalGoals = goalsResult.data?.employeeGoals?.totalCount || 0;
+
+		// Calculate analytics from statistics query
+		const analytics = statsResult.data
+			? calculateGoalStatistics(statsResult.data)
+			: {
 					totalGoals: 0,
 					activeGoals: 0,
 					completedGoals: 0,
 					overdueGoals: 0,
-					atRiskGoals: 0,
-					avgCompletion: 0,
+					highPriorityGoals: 0,
+					averageProgress: 0,
 					completionRate: 0
+			  };
+
+		// Calculate additional metrics
+		const onTrackGoals = goals.filter((g: any) => g.progress >= 50 && g.status === 'in_progress')
+			.length;
+		const atRiskGoals = goals.filter((g: any) => g.progress < 50 && g.status === 'in_progress')
+			.length;
+		const behindGoals = analytics.overdueGoals;
+
+		return {
+			user: {
+				id: locals.user.id,
+				email: locals.user.email || '',
+				displayName: locals.user.display_name || 'User',
+				role: locals.user.role || 'employee'
+			},
+			userSession: {
+				userId: locals.user.id,
+				userEmail: locals.user.email || '',
+				role: locals.user.role || 'employee',
+				accessToken: jwtToken
+			},
+			teamGoals: goals,
+			totalGoals,
+			goalsAnalytics: {
+				summary: {
+					totalGoals: analytics.totalGoals,
+					activeGoals: analytics.activeGoals,
+					completedGoals: analytics.completedGoals,
+					overdueGoals: analytics.overdueGoals
 				},
-				breakdowns: {
-					priority: [],
-					type: []
+				progress: {
+					averageProgress: analytics.averageProgress,
+					onTrackGoals,
+					atRiskGoals,
+					behindGoals
 				},
-				healthScore: 0
+				byType: {
+					okr: 0, // Can be calculated if we add a 'type' field to goals
+					kpi: 0,
+					milestone: 0,
+					objective: 0
+				}
 			},
 			filters: {
 				searchTerm,
 				statusFilter,
-				typeFilter,
-				priorityFilter,
-				quarterFilter,
-				yearFilter,
-				page,
-				limit
+				typeFilter: '',
+				priorityFilter
 			},
-			// RBAC: Standardized permission checks
-			...userPermissions,
+			pagination: {
+				currentPage: page,
+				limit,
+				totalPages: Math.ceil(totalGoals / limit),
+				hasNextPage: goalsResult.data?.employeeGoals?.pageInfo?.hasNextPage || false,
+				hasPreviousPage: page > 1
+			},
+			permissions: locals.permissions || [],
+			canCreateGoals: hasManagerAccess,
+			canEditGoals: hasManagerAccess,
+			canViewAllGoals: locals.roles?.includes('admin') || false,
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('[Goals Load Error]', err);
-
-		// Create standardized error response
-		const errorResponse = createErrorResponse(
-			err instanceof Error ? err : new Error('Goals load failed'),
-			{
-				type: 'DATA_LOAD_ERROR',
-				userMessage:
-					'Unable to load goals and OKRs data. Please refresh the page or try again later.'
-			}
-		);
-
-		// Log error details for debugging
-		console.error('[Goals Error Details]', {
-			userId: locals.user?.id,
-			userRole: locals.user?.role,
-			searchTerm,
-			statusFilter,
-			typeFilter,
-			priorityFilter,
-			error: errorResponse
-		});
-
-		// Throw SvelteKit error with user-friendly message
-		throw error(500, {
-			message: 'Goals and OKRs temporarily unavailable',
-			details: errorResponse.userMessage
-		});
+		console.error('Error loading goals data:', err);
+		throw error(500, 'Failed to load goals data. Please try again later.');
 	}
 };

@@ -18,6 +18,7 @@
  */
 
 import { browser } from '$app/environment';
+import { beforeNavigate, afterNavigate } from '$app/navigation';
 import { writable, derived, readonly } from 'svelte/store';
 import type { Writable, Readable } from 'svelte/store';
 
@@ -473,39 +474,19 @@ class ClientPerformanceMonitor {
 	private monitorNavigationTiming(): void {
 		if (!browser) return;
 
-		// Override History API to track SPA navigations
-		const originalPushState = history.pushState;
-		const originalReplaceState = history.replaceState;
+		// Navigation timing will be tracked by individual components using
+		// SvelteKit's navigation events in their proper component context.
+		// This prevents lifecycle_outside_component errors.
 
-		const trackNavigation = (url: string) => {
+		// Track popstate events (back/forward) only
+		window.addEventListener('popstate', () => {
 			const start = performance.now();
 
-			// Use requestIdleCallback to measure when navigation is complete
-			const measureComplete = () => {
+			// Simple navigation tracking without interfering with SvelteKit
+			requestAnimationFrame(() => {
 				const duration = performance.now() - start;
-				this.trackPageLoad(`Navigation to ${url}`, duration);
-			};
-
-			if (window.requestIdleCallback) {
-				requestIdleCallback(measureComplete);
-			} else {
-				setTimeout(measureComplete, 0);
-			}
-		};
-
-		history.pushState = function (...args) {
-			originalPushState.apply(history, args);
-			trackNavigation((args[2] as string) || window.location.pathname);
-		};
-
-		history.replaceState = function (...args) {
-			originalReplaceState.apply(history, args);
-			trackNavigation((args[2] as string) || window.location.pathname);
-		};
-
-		// Track popstate events (back/forward)
-		window.addEventListener('popstate', () => {
-			trackNavigation(window.location.pathname);
+				this.trackPageLoad(`Navigation to ${window.location.pathname}`, duration);
+			});
 		});
 	}
 
@@ -538,6 +519,8 @@ class ClientPerformanceMonitor {
 						severity: 'high',
 						message: `Memory usage exceeded budget: ${Math.round(usage.usedJSHeapSize / 1024 / 1024)}MB > ${PERFORMANCE_BUDGET.memoryLimit / 1024 / 1024}MB`,
 						metric: {
+							id: `memory-${Date.now()}`,
+							timestamp: Date.now(),
 							name: 'Memory Usage',
 							type: 'memory',
 							duration: usage.usedJSHeapSize,

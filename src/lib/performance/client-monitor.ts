@@ -519,6 +519,8 @@ class ClientPerformanceMonitor {
 						severity: 'high',
 						message: `Memory usage exceeded budget: ${Math.round(usage.usedJSHeapSize / 1024 / 1024)}MB > ${PERFORMANCE_BUDGET.memoryLimit / 1024 / 1024}MB`,
 						metric: {
+							id: `memory-${Date.now()}`,
+							timestamp: Date.now(),
 							name: 'Memory Usage',
 							type: 'memory',
 							duration: usage.usedJSHeapSize,

@@ -16,7 +16,11 @@
 		ChevronRight,
 		Sun,
 		Moon,
-		LogOut
+		LogOut,
+		Clock,
+		Award,
+		BarChart3,
+		LayoutDashboard
 	} from 'lucide-svelte';
 	import { currentUser, hasRole, authActions } from '$lib/stores/auth';
 	import { page } from '$app/stores';
@@ -117,25 +121,58 @@
 	];
 
 	// Management submenu (for managers/supervisors)
+	// Managers have full edit access to their own department, view-only for others
 	const managementItems = [
-		{ title: 'Overview', url: '/dashboard/management' },
-		{ title: 'Teams', url: '/dashboard/teams' },
-		{ title: 'Leave Approvals', url: '/dashboard/management/leave-approvals' },
-		{ title: 'Reviews', url: '/dashboard/management/reviews' },
-		{ title: 'Goals & OKRs', url: '/dashboard/management/goals' },
-		{ title: 'Reports', url: '/dashboard/management/reports' }
+		{
+			title: 'Overview',
+			url: '/dashboard/management',
+			icon: LayoutDashboard,
+			description: 'Management dashboard'
+		},
+		{
+			title: 'Teams',
+			url: '/dashboard/teams',
+			icon: Users,
+			description: 'Team overview'
+		},
+		{
+			title: 'Leave Approvals',
+			url: '/dashboard/management/leave-approvals',
+			icon: Clock,
+			description: 'Approve team leave requests',
+			managersOnly: 'Approve leave for your team'
+		},
+		{
+			title: 'Reviews',
+			url: '/dashboard/management/reviews',
+			icon: Award,
+			description: 'Performance reviews',
+			managersOnly: 'Conduct reviews for your team'
+		},
+		{
+			title: 'Goals & OKRs',
+			url: '/dashboard/management/goals',
+			icon: Target,
+			description: 'Team goals and objectives',
+			managersOnly: 'Manage goals for your team'
+		},
+		{
+			title: 'Reports',
+			url: '/dashboard/management/reports',
+			icon: BarChart3,
+			description: 'Analytics and reports',
+			managersOnly: 'Generate reports for your team'
+		}
 	];
 
 	// Admin submenu (only when expanded)
+	// T024: Updated admin navigation per specifications
 	const adminItems = [
-		{ title: 'Users', url: '/dashboard/admin/users' },
-		{ title: 'Roles', url: '/dashboard/admin/roles' },
-		{ title: 'Requests', url: '/dashboard/admin/requests' },
-		{ title: 'Audit Logs', url: '/dashboard/admin/audit' },
-		{ title: 'Security', url: '/dashboard/admin/security' },
-		{ title: 'Monitoring', url: '/dashboard/admin/monitoring' },
-		{ title: 'Data Mgmt', url: '/dashboard/admin/data' },
-		{ title: 'Settings', url: '/dashboard/admin/settings' }
+		{ title: 'User Management', url: '/dashboard/admin/users', icon: Users },
+		{ title: 'System Settings', url: '/dashboard/admin/settings', icon: Settings },
+		{ title: 'Audit Logs', url: '/dashboard/admin/audit', icon: FileText },
+		{ title: 'Analytics Dashboard', url: '/dashboard/admin/analytics', icon: BarChart3 },
+		{ title: 'Compliance Reports', url: '/dashboard/admin/compliance', icon: Shield }
 	];
 </script>
 
@@ -243,16 +280,35 @@
 			</button>
 
 			{#if expandedSections.management}
-				<div class="ml-4 mt-1 grid grid-cols-2 gap-1 pl-3">
+				<div class="ml-4 mt-1 space-y-1 border-l border-sidebar-border pl-3">
 					{#each managementItems as item}
+						{@const ItemIcon = item.icon}
 						<a
 							href={item.url}
-							class="rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-primary hover:text-primary-foreground hover:opacity-70"
+							class="group flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-primary hover:text-primary-foreground hover:opacity-70"
 							class:bg-primary={$page.url.pathname === item.url}
 							class:text-primary-foreground={$page.url.pathname === item.url}
 							class:font-medium={$page.url.pathname === item.url}
+							title={isAdmin ? item.description : (item.managersOnly || item.description)}
 						>
-							{item.title}
+							<ItemIcon class="h-3.5 w-3.5" />
+							<span class="flex-1">{item.title}</span>
+							{#if !isAdmin && item.managersOnly}
+								<span
+									class="rounded bg-blue-100 px-1.5 py-0.5 text-[9px] font-medium text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+									title={item.managersOnly}
+								>
+									My Team
+								</span>
+							{/if}
+							{#if isAdmin && item.url.includes('/management/')}
+								<span
+									class="rounded bg-purple-100 px-1.5 py-0.5 text-[9px] font-medium text-purple-700 dark:bg-purple-900 dark:text-purple-300"
+									title="Full access to all departments"
+								>
+									All
+								</span>
+							{/if}
 						</a>
 					{/each}
 				</div>
@@ -280,16 +336,21 @@
 			</button>
 
 			{#if expandedSections.administration}
-				<div class="ml-4 mt-1 grid grid-cols-2 gap-1 pl-3">
+				<div class="ml-4 mt-1 space-y-0.5 pl-3">
 					{#each adminItems as item}
 						<a
 							href={item.url}
-							class="rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-primary hover:text-primary-foreground hover:opacity-70"
+							class="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-primary hover:text-primary-foreground hover:opacity-70"
 							class:bg-primary={$page.url.pathname === item.url}
 							class:text-primary-foreground={$page.url.pathname === item.url}
 							class:font-medium={$page.url.pathname === item.url}
 						>
-							{item.title}
+							<svelte:component this={item.icon} class="h-3.5 w-3.5" />
+							<span class="flex-1">{item.title}</span>
+							<!-- T024: "All" badge for admin items -->
+							<span class="rounded-sm bg-green-500/10 px-1.5 py-0.5 text-[10px] font-medium text-green-600 dark:bg-green-500/20 dark:text-green-400">
+								All
+							</span>
 						</a>
 					{/each}
 				</div>

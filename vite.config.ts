@@ -37,7 +37,7 @@ const disableCompression = () => ({
 export default defineConfig({
 	plugins: [
 		sveltekit(),
-		devtoolsJson(),
+		// devtoolsJson(), // Disabled to remove debugging UI overlay
 		disableCompression(),
 		optimizeCss({
 			verbose: true, // Enable size logging for development

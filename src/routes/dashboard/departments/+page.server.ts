@@ -62,7 +62,8 @@ export const load: PageServerLoad = async (event) => {
 
 	try {
 		// Make direct GraphQL calls to PostGraphile backend
-		const graphqlEndpoint = 'http://localhost:4000/graphql';
+		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
+		const graphqlEndpoint = getGraphQLEndpoint();
 
 		// Get JWT token for PostGraphile authentication
 		const jwtToken = cookies.get('hr_token') || cookies.get('postgraphile-jwt-token') || '';

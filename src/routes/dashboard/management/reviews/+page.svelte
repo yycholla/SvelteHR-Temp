@@ -53,7 +53,7 @@
 		formatReviewPeriod,
 		isReviewOverdue,
 		createPerformanceOperations
-	} from '$lib/graphql/performance-management-operations';
+	} from '$lib/graphql/queries/performance-reviews';
 
 	// Page data from server
 	interface Props {
@@ -305,13 +305,13 @@
 	/>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50">
+<div class="min-h-screen bg-background">
 	<div class="container mx-auto space-y-6 p-4">
 		<!-- Header -->
 		<div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 			<div>
-				<h1 class="text-3xl font-bold tracking-tight text-gray-900">Performance Reviews</h1>
-				<p class="text-gray-600">
+				<h1 class="text-3xl font-bold tracking-tight text-foreground">Performance Reviews</h1>
+				<p class="text-muted-foreground">
 					Manage and track team performance reviews, ratings, and development plans
 				</p>
 			</div>
@@ -368,7 +368,7 @@
 								</div>
 								<div class="flex items-center gap-2">
 									<Progress value={category.value * 20} class="w-24" />
-									<span class="w-8 text-sm text-gray-600">{category.value.toFixed(1)}</span>
+									<span class="w-8 text-sm text-muted-foreground">{category.value.toFixed(1)}</span>
 								</div>
 							</div>
 						{/each}
@@ -464,9 +464,9 @@
 					{#if filteredReviews.length === 0}
 						<Card>
 							<CardContent class="p-8 text-center">
-								<Award class="mx-auto mb-4 h-12 w-12 text-gray-400" />
-								<h3 class="mb-2 text-lg font-semibold text-gray-700">No reviews found</h3>
-								<p class="text-gray-500">
+								<Award class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+								<h3 class="mb-2 text-lg font-semibold text-foreground">No reviews found</h3>
+								<p class="text-muted-foreground">
 									{#if selectedView === 'pending'}
 										No pending performance reviews at the moment.
 									{:else if selectedView === 'completed'}
@@ -496,7 +496,7 @@
 											<!-- Review Details -->
 											<div class="flex-1 space-y-2">
 												<div class="flex flex-wrap items-center gap-3">
-													<h3 class="text-lg font-semibold text-gray-900">
+													<h3 class="text-lg font-semibold text-foreground">
 														{review.employee?.displayName || 'Unknown Employee'}
 													</h3>
 													<Badge variant={getStatusBadgeVariant(review.status)} class="capitalize">
@@ -519,7 +519,7 @@
 													{/if}
 												</div>
 
-												<div class="space-y-1 text-sm text-gray-600">
+												<div class="space-y-1 text-sm text-muted-foreground">
 													<p>
 														<strong>Department:</strong>
 														{review.employee?.department?.name || 'N/A'}
@@ -546,7 +546,7 @@
 													{/if}
 												</div>
 
-												<div class="text-xs text-gray-400">
+												<div class="text-xs text-muted-foreground">
 													Created on {formatDate(review.createdAt)}
 													{#if review.completedAt}
 														• Completed on {formatDate(review.completedAt)}
@@ -609,7 +609,7 @@
 		{#if currentReview}
 			<div class="max-h-96 space-y-6 overflow-y-auto">
 				<!-- Employee Info -->
-				<div class="rounded-lg bg-gray-50 p-4">
+				<div class="rounded-lg bg-muted dark:bg-muted p-4">
 					<h4 class="mb-2 font-semibold">Employee Information</h4>
 					<div class="grid grid-cols-2 gap-4 text-sm">
 						<p><strong>Name:</strong> {currentReview.employee?.displayName}</p>
@@ -662,14 +662,14 @@
 				{#if currentReview.strengths}
 					<div>
 						<h4 class="mb-2 font-semibold">Strengths</h4>
-						<p class="rounded bg-green-50 p-3 text-sm text-gray-700">{currentReview.strengths}</p>
+						<p class="rounded bg-green-50 p-3 text-sm text-foreground">{currentReview.strengths}</p>
 					</div>
 				{/if}
 
 				{#if currentReview.areasForImprovement}
 					<div>
 						<h4 class="mb-2 font-semibold">Areas for Improvement</h4>
-						<p class="rounded bg-orange-50 p-3 text-sm text-gray-700">
+						<p class="rounded bg-orange-50 p-3 text-sm text-foreground">
 							{currentReview.areasForImprovement}
 						</p>
 					</div>
@@ -678,7 +678,7 @@
 				{#if currentReview.goalsForNextPeriod}
 					<div>
 						<h4 class="mb-2 font-semibold">Goals for Next Period</h4>
-						<p class="rounded bg-blue-50 p-3 text-sm text-gray-700">
+						<p class="rounded bg-blue-50 p-3 text-sm text-foreground">
 							{currentReview.goalsForNextPeriod}
 						</p>
 					</div>
@@ -687,7 +687,7 @@
 				{#if currentReview.developmentPlan}
 					<div>
 						<h4 class="mb-2 font-semibold">Development Plan</h4>
-						<p class="rounded bg-purple-50 p-3 text-sm text-gray-700">
+						<p class="rounded bg-purple-50 p-3 text-sm text-foreground">
 							{currentReview.developmentPlan}
 						</p>
 					</div>
@@ -696,7 +696,7 @@
 				{#if currentReview.employeeSelfAssessment}
 					<div>
 						<h4 class="mb-2 font-semibold">Employee Self-Assessment</h4>
-						<p class="rounded bg-gray-50 p-3 text-sm text-gray-700">
+						<p class="rounded bg-muted dark:bg-muted p-3 text-sm text-foreground">
 							{currentReview.employeeSelfAssessment}
 						</p>
 					</div>
@@ -729,8 +729,8 @@
 		</DialogHeader>
 
 		<div class="py-8 text-center">
-			<Award class="mx-auto mb-4 h-12 w-12 text-gray-400" />
-			<p class="mb-4 text-gray-600">
+			<Award class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+			<p class="mb-4 text-muted-foreground">
 				Performance review creation form will be implemented in the next phase.
 			</p>
 			<Button

@@ -12,7 +12,7 @@
  * - Real-time alerting for slow operations
  */
 
-import type { Exchange, Operation, OperationResult } from '../types/urql.js';
+import type { Exchange, Operation, OperationResult } from '@urql/core';
 import { pipe, tap, map } from 'wonka';
 import { trackGraphQL, performanceMonitor } from './client-monitor.js';
 import type { PerformanceMetric } from './client-monitor.js';
@@ -73,12 +73,13 @@ function calculateQueryComplexity(query: string): number {
  */
 function extractOperationContext(operation: Operation): GraphQLOperationContext {
 	const query = operation.query.loc?.source.body || '';
-	const operationName = operation.operationName || extractOperationName(query);
-	const operationType = operation.kind;
+	const operationName = (operation as any).operationName || extractOperationName(query);
+	// Filter out 'teardown' operation type (internal urql operation)
+	const operationType = operation.kind === 'teardown' ? 'query' : operation.kind;
 
 	return {
 		operationName,
-		variables: operation.variables,
+		variables: operation.variables as Record<string, any> | undefined,
 		query,
 		operationType,
 		complexity: calculateQueryComplexity(query)

@@ -84,17 +84,11 @@ services:
     volumes:
       # Mount host nvim config
       - ~/.config/nvim:/host-nvim-config:ro
-      # Mount frontend source for live editing
-      - ../src:/home/dev/frontend/src
-      - ../static:/home/dev/frontend/static
-      - ../package.json:/home/dev/frontend/package.json:ro
-      - ../package-lock.json:/home/dev/frontend/package-lock.json:ro
-      - ../svelte.config.js:/home/dev/frontend/svelte.config.js:ro
-      - ../vite.config.ts:/home/dev/frontend/vite.config.ts:ro
-      - ../tailwind.config.js:/home/dev/frontend/tailwind.config.js:ro
-      - ../tsconfig.json:/home/dev/frontend/tsconfig.json:ro
-      - ../eslint.config.js:/home/dev/frontend/eslint.config.js:ro
-      - ../.env.development:/home/dev/frontend/.env.development:ro
+      # Mount entire frontend directory with proper permissions
+      - ../:/home/dev/frontend
+      # Use named volumes for build artifacts and node_modules to avoid permission issues
+      - frontend_node_modules:/home/dev/frontend/node_modules
+      - frontend_svelte_kit:/home/dev/frontend/.svelte-kit
       # SSH keys (optional)
       - ~/.ssh/id_rsa.pub:/home/dev/.ssh/authorized_keys:ro
     ports:
@@ -118,6 +112,10 @@ volumes:
     name: sveltehr_postgres_dev_data
   redis_dev_data:
     name: sveltehr_redis_dev_data
+  frontend_node_modules:
+    name: sveltehr_frontend_node_modules
+  frontend_svelte_kit:
+    name: sveltehr_frontend_svelte_kit
 
 networks:
   sveltehr-dev:

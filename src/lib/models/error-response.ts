@@ -156,11 +156,21 @@ export class ErrorResponse {
 	 */
 	toContract(): ErrorResponseContract {
 		return {
-			type: this.type,
-			message: this.userMessage,
-			severity: this.severity,
-			suggestedAction: this.primaryAction,
-			retryable: this.isRetryable
+			id: this.id,
+			type: this.type as any,
+			originalError: this.originalError,
+			userMessage: this.userMessage,
+			technicalDetails: JSON.stringify(this.technicalDetails),
+			suggestedActions: this.suggestedActions.map(action => ({
+				label: action,
+				action: action,
+				isPrimary: action === this.primaryAction
+			})),
+			timestamp: new Date(this.timestamp),
+			isRetryable: this.isRetryable,
+			severity: this.severity as any,
+			operationId: this.technicalDetails.operationName || this.id,
+			retryAfter: undefined
 		};
 	}
 
@@ -274,24 +284,24 @@ export class ErrorResponse {
 			originalError instanceof Error ? originalError.message : String(originalError);
 
 		switch (type) {
-			case 'NETWORK_ERROR':
+			case 'network':
 				return 'Unable to connect to the server. Please check your internet connection and try again.';
 
-			case 'AUTHENTICATION_ERROR':
+			case 'authentication':
 				return 'Your session has expired. Please sign in again to continue.';
 
-			case 'PERMISSION_ERROR':
+			case 'permission':
 				return "You don't have permission to access this information. Contact your administrator if you believe this is an error.";
 
-			case 'VALIDATION_ERROR':
+			case 'validation':
 				return errorMessage.includes('validation')
 					? `Please check your input: ${errorMessage}`
 					: 'The information provided is not valid. Please review and try again.';
 
-			case 'TIMEOUT_ERROR':
+			case 'timeout':
 				return 'The request is taking longer than expected. Please try again in a moment.';
 
-			case 'GRAPHQL_ERROR':
+			case 'graphql':
 				return 'We encountered an issue processing your request. Please try again or contact support if the problem persists.';
 
 			default:
@@ -304,22 +314,22 @@ export class ErrorResponse {
 	 */
 	private getDefaultSuggestedActions(type: ErrorType): SuggestedAction[] {
 		switch (type) {
-			case 'NETWORK_ERROR':
+			case 'network':
 				return [SuggestedAction.CHECK_CONNECTION, SuggestedAction.RETRY_OPERATION];
 
-			case 'AUTHENTICATION_ERROR':
+			case 'authentication':
 				return [SuggestedAction.REDIRECT_TO_LOGIN, SuggestedAction.VERIFY_CREDENTIALS];
 
-			case 'PERMISSION_ERROR':
+			case 'permission':
 				return [SuggestedAction.CONTACT_ADMIN, SuggestedAction.SHOW_LIMITED_VIEW];
 
-			case 'VALIDATION_ERROR':
+			case 'validation':
 				return [SuggestedAction.RETRY_OPERATION];
 
-			case 'TIMEOUT_ERROR':
+			case 'timeout':
 				return [SuggestedAction.RETRY_OPERATION, SuggestedAction.REFRESH_PAGE];
 
-			case 'GRAPHQL_ERROR':
+			case 'graphql':
 				return [SuggestedAction.RETRY_OPERATION, SuggestedAction.CONTACT_ADMIN];
 
 			default:
@@ -374,18 +384,18 @@ export class ErrorResponse {
 	 */
 	private determineSeverity(type: ErrorType): ErrorSeverity {
 		switch (type) {
-			case 'AUTHENTICATION_ERROR':
+			case 'authentication':
 				return 'critical';
 
-			case 'PERMISSION_ERROR':
-			case 'NETWORK_ERROR':
+			case 'permission':
+			case 'network':
 				return 'high';
 
-			case 'VALIDATION_ERROR':
-			case 'TIMEOUT_ERROR':
+			case 'validation':
+			case 'timeout':
 				return 'medium';
 
-			case 'GRAPHQL_ERROR':
+			case 'graphql':
 				return 'low';
 
 			default:
@@ -398,14 +408,14 @@ export class ErrorResponse {
 	 */
 	private determineRetryability(type: ErrorType): boolean {
 		switch (type) {
-			case 'NETWORK_ERROR':
-			case 'TIMEOUT_ERROR':
-			case 'GRAPHQL_ERROR':
+			case 'network':
+			case 'timeout':
+			case 'graphql':
 				return true;
 
-			case 'AUTHENTICATION_ERROR':
-			case 'PERMISSION_ERROR':
-			case 'VALIDATION_ERROR':
+			case 'authentication':
+			case 'permission':
+			case 'validation':
 				return false;
 
 			default:
@@ -483,13 +493,13 @@ export function createErrorResponse(
  * Auto-detect error type from error object
  */
 function detectErrorType(error: unknown): ErrorType {
-	if (!error) return 'GRAPHQL_ERROR';
+	if (!error) return 'graphql';
 
 	const errorString =
 		error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
 
 	if (errorString.includes('timeout') || errorString.includes('timed out')) {
-		return 'TIMEOUT_ERROR';
+		return 'timeout';
 	}
 
 	if (
@@ -497,7 +507,7 @@ function detectErrorType(error: unknown): ErrorType {
 		errorString.includes('fetch') ||
 		errorString.includes('connection')
 	) {
-		return 'NETWORK_ERROR';
+		return 'network';
 	}
 
 	if (
@@ -505,7 +515,7 @@ function detectErrorType(error: unknown): ErrorType {
 		errorString.includes('authentication') ||
 		errorString.includes('token')
 	) {
-		return 'AUTHENTICATION_ERROR';
+		return 'authentication';
 	}
 
 	if (
@@ -513,7 +523,7 @@ function detectErrorType(error: unknown): ErrorType {
 		errorString.includes('forbidden') ||
 		errorString.includes('access denied')
 	) {
-		return 'PERMISSION_ERROR';
+		return 'permission';
 	}
 
 	if (
@@ -521,10 +531,10 @@ function detectErrorType(error: unknown): ErrorType {
 		errorString.includes('invalid') ||
 		errorString.includes('required')
 	) {
-		return 'VALIDATION_ERROR';
+		return 'validation';
 	}
 
-	return 'GRAPHQL_ERROR';
+	return 'graphql';
 }
 
 /**

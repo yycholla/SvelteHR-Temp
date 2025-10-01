@@ -17,7 +17,9 @@ help: ## Show available commands
 	@echo ""
 	@echo "🚀 Quick Start:"
 	@echo "  make quick-start   - Complete setup and startup (recommended for first-time)"
-	@echo "  make dev          - Start frontend development server with database"
+	@echo "  make dev          - Start complete development (backend containers + frontend)"
+	@echo "  make backend-dev  - Start only backend services in containers"
+	@echo "  make frontend-dev - Start only frontend (requires backend running)"
 	@echo "  make env-check    - Check environment and dependencies"
 	@echo ""
 	@echo "🖥️  Server Operations (PostGraphile Backend):"
@@ -154,14 +156,22 @@ env-check: ## Check environment configuration
 # Frontend Development
 # =============================================================================
 
-dev: db-up ## Start frontend development with database
-	@echo "🚀 Starting SvelteHR frontend development..."
-	@echo "🗄️  PostgreSQL: localhost:5432"
-	@echo "🔴 Redis: localhost:6379"
+dev: ## Start complete development environment (backend containers + host frontend)
+	@echo "🚀 Starting SvelteHR Development Environment..."
+	@echo "=============================================="
+	@cd dev-containers && ./start-backend-only.sh
+	@echo "🎨 Starting frontend development server..."
+	@npm run dev
+
+frontend-dev: ## Start only frontend development server (requires backend to be running)
+	@echo "🎨 Starting SvelteHR frontend development..."
 	@echo "🌐 Frontend: http://localhost:5173"
 	@echo ""
-	@echo "💡 To start PostGraphile GraphQL server, run: make server-dev"
+	@echo "💡 Make sure backend is running: make backend-dev"
 	@npm run dev
+
+backend-dev: ## Start only backend services in containers
+	@cd dev-containers && ./start-backend-only.sh
 
 build: ## Build frontend for production
 	@echo "🔨 Building SvelteHR for production..."
@@ -506,6 +516,9 @@ dev-logs: ## View development container logs
 	@echo "📋 Development Container Logs:"
 	@echo "============================="
 	@cd dev-containers && docker-compose -f docker-compose.dev.yml logs -f
+
+dev-health: ## Check health of development containers
+	@cd dev-containers && ./health-check.sh
 
 dev-ssh-be: ssh-backend ## Alias for ssh-backend
 

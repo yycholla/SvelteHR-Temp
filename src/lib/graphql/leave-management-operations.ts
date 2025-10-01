@@ -1,77 +1,22 @@
-// GraphQL Operations: Leave Management
-// Created: 2025-09-24
-// Task: T011 - Leave requests GraphQL operations
+// GraphQL Operations: Leave Management (Manager Department-Scoped)
+// Feature: 016-repair-management-pages - Task T014
+// Purpose: Manager CRUD operations for leave requests with department-scoped RLS
 
 import { gql } from '@urql/svelte';
-import type {
-	LeaveRequest,
-	LeaveRequestStatus,
-	LeaveType,
-	PaginationInput,
-	SortInput
-} from '$lib/types/graphql';
+import type { DataRequest, UserCredentials } from '$lib/models/data-request';
 
-// Constants for type safety
-export const LEAVE_REQUEST_STATUS = {
-	PENDING: 'pending',
-	APPROVED: 'approved',
-	REJECTED: 'rejected',
-	CANCELLED: 'cancelled'
-} as const;
+// ============================================================================
+// QUERIES
+// ============================================================================
 
-// Query: Get all leave requests for manager approval
+/**
+ * Query: Get pending leave requests for manager's department only
+ * RLS Policy: manager_view_department_leave_requests
+ * Covers: FR-001, FR-008
+ */
 export const GET_PENDING_LEAVE_REQUESTS = gql`
 	query GetPendingLeaveRequests(
-		$managerId: UUID!
-		$status: String = "pending"
-		$first: Int = 50
-		$offset: Int = 0
-		$orderBy: [LeaveRequestsOrderBy!] = [CREATED_AT_ASC]
-		$filter: LeaveRequestFilter
-	) {
-		leaveRequests(
-			condition: { managerId: $managerId, status: $status }
-			first: $first
-			offset: $offset
-			orderBy: $orderBy
-			filter: $filter
-		) {
-			nodes {
-				id
-				employee {
-					id
-					displayName
-					email
-					department {
-						id
-						name
-					}
-				}
-				leaveType
-				startDate
-				endDate
-				daysRequested
-				reason
-				status
-				managerComments
-				createdAt
-				updatedAt
-			}
-			totalCount
-			pageInfo {
-				hasNextPage
-				hasPreviousPage
-				startCursor
-				endCursor
-			}
-		}
-	}
-`;
-
-// Query: Get all leave requests (with flexible filtering)
-export const GET_LEAVE_REQUESTS = gql`
-	query GetLeaveRequests(
-		$first: Int = 50
+		$first: Int = 20
 		$offset: Int = 0
 		$orderBy: [LeaveRequestsOrderBy!] = [CREATED_AT_DESC]
 		$filter: LeaveRequestFilter
@@ -79,32 +24,31 @@ export const GET_LEAVE_REQUESTS = gql`
 		leaveRequests(first: $first, offset: $offset, orderBy: $orderBy, filter: $filter) {
 			nodes {
 				id
+				employeeId
 				employee {
 					id
 					displayName
 					email
+					jobTitle
 					department {
 						id
 						name
 					}
 				}
-				manager {
+				leaveType
+				startDate
+				endDate
+				totalDays
+				reason
+				status
+				reviewedBy
+				reviewer {
 					id
 					displayName
 					email
 				}
-				leaveType
-				startDate
-				endDate
-				daysRequested
-				reason
-				status
-				managerComments
-				approvedAt
-				approvedBy {
-					id
-					displayName
-				}
+				reviewNotes
+				reviewedAt
 				createdAt
 				updatedAt
 			}
@@ -119,112 +63,110 @@ export const GET_LEAVE_REQUESTS = gql`
 	}
 `;
 
-// Query: Get single leave request by ID
-export const GET_LEAVE_REQUEST = gql`
-	query GetLeaveRequest($id: UUID!) {
+/**
+ * Query: Get leave request by ID (department-scoped)
+ * RLS Policy: manager_view_department_leave_requests
+ */
+export const GET_LEAVE_REQUEST_BY_ID = gql`
+	query GetLeaveRequestById($id: UUID!) {
 		leaveRequest(id: $id) {
 			id
+			employeeId
 			employee {
 				id
 				displayName
 				email
+				jobTitle
 				department {
 					id
 					name
 				}
 			}
-			manager {
+			leaveType
+			startDate
+			endDate
+			totalDays
+			reason
+			status
+			reviewedBy
+			reviewer {
 				id
 				displayName
 				email
 			}
-			leaveType
-			startDate
-			endDate
-			daysRequested
-			reason
-			status
-			managerComments
-			approvedAt
-			approvedBy {
-				id
-				displayName
-			}
+			reviewNotes
+			reviewedAt
 			createdAt
 			updatedAt
 		}
 	}
 `;
 
-// Mutation: Approve leave request
+/**
+ * Query: Get leave statistics for manager's department
+ * Covers: FR-009
+ */
+export const GET_LEAVE_STATISTICS = gql`
+	query GetLeaveStatistics($departmentId: UUID!) {
+		pendingLeaveRequests: leaveRequests(
+			filter: { status: { equalTo: "pending" }, employee: { departmentId: { equalTo: $departmentId } } }
+		) {
+			totalCount
+		}
+		approvedLeaveRequests: leaveRequests(
+			filter: { status: { equalTo: "approved" }, employee: { departmentId: { equalTo: $departmentId } } }
+		) {
+			totalCount
+		}
+		rejectedLeaveRequests: leaveRequests(
+			filter: { status: { equalTo: "rejected" }, employee: { departmentId: { equalTo: $departmentId } } }
+		) {
+			totalCount
+		}
+		allLeaveRequests: leaveRequests(
+			filter: { employee: { departmentId: { equalTo: $departmentId } } }
+		) {
+			totalCount
+			nodes {
+				totalDays
+			}
+		}
+	}
+`;
+
+// ============================================================================
+// MUTATIONS
+// ============================================================================
+
+/**
+ * Mutation: Approve leave request
+ * RLS Policy: manager_update_department_leave_requests
+ * Covers: FR-001, FR-002
+ */
 export const APPROVE_LEAVE_REQUEST = gql`
-	mutation ApproveLeaveRequest($input: ApproveLeaveRequestInput!) {
-		approveLeaveRequest(input: $input) {
-			leaveRequest {
-				id
-				status
-				approvedAt
-				managerComments
-				approvedBy {
-					id
-					displayName
-				}
-			}
-			clientMutationId
-		}
-	}
-`;
-
-// Mutation: Deny leave request
-export const DENY_LEAVE_REQUEST = gql`
-	mutation DenyLeaveRequest($input: DenyLeaveRequestInput!) {
-		denyLeaveRequest(input: $input) {
-			leaveRequest {
-				id
-				status
-				deniedAt
-				managerComments
-			}
-			clientMutationId
-		}
-	}
-`;
-
-// Mutation: Create leave request (employee self-service)
-export const CREATE_LEAVE_REQUEST = gql`
-	mutation CreateLeaveRequest($input: CreateLeaveRequestInput!) {
-		createLeaveRequest(input: $input) {
-			leaveRequest {
-				id
-				employee {
-					id
-					displayName
-				}
-				leaveType
-				startDate
-				endDate
-				daysRequested
-				reason
-				status
-				createdAt
-			}
-			clientMutationId
-		}
-	}
-`;
-
-// Mutation: Update leave request
-export const UPDATE_LEAVE_REQUEST = gql`
-	mutation UpdateLeaveRequest($input: UpdateLeaveRequestInput!) {
+	mutation ApproveLeaveRequest($input: UpdateLeaveRequestInput!) {
 		updateLeaveRequest(input: $input) {
 			leaveRequest {
 				id
+				employeeId
+				employee {
+					id
+					displayName
+					email
+				}
 				leaveType
 				startDate
 				endDate
-				daysRequested
-				reason
+				totalDays
 				status
+				reviewedBy
+				reviewer {
+					id
+					displayName
+					email
+				}
+				reviewNotes
+				reviewedAt
 				updatedAt
 			}
 			clientMutationId
@@ -232,13 +174,36 @@ export const UPDATE_LEAVE_REQUEST = gql`
 	}
 `;
 
-// Mutation: Cancel leave request
-export const CANCEL_LEAVE_REQUEST = gql`
-	mutation CancelLeaveRequest($input: CancelLeaveRequestInput!) {
-		cancelLeaveRequest(input: $input) {
+/**
+ * Mutation: Reject leave request
+ * RLS Policy: manager_update_department_leave_requests
+ * Covers: FR-001, FR-002
+ * Note: reviewNotes is REQUIRED when rejecting (enforced in UI)
+ */
+export const REJECT_LEAVE_REQUEST = gql`
+	mutation RejectLeaveRequest($input: UpdateLeaveRequestInput!) {
+		updateLeaveRequest(input: $input) {
 			leaveRequest {
 				id
+				employeeId
+				employee {
+					id
+					displayName
+					email
+				}
+				leaveType
+				startDate
+				endDate
+				totalDays
 				status
+				reviewedBy
+				reviewer {
+					id
+					displayName
+					email
+				}
+				reviewNotes
+				reviewedAt
 				updatedAt
 			}
 			clientMutationId
@@ -246,54 +211,22 @@ export const CANCEL_LEAVE_REQUEST = gql`
 	}
 `;
 
-// TypeScript interfaces for inputs
-export interface ApproveLeaveRequestInput {
-	clientMutationId?: string;
-	leaveRequestId: string;
-	managerComments?: string;
-}
-
-export interface DenyLeaveRequestInput {
-	clientMutationId?: string;
-	leaveRequestId: string;
-	managerComments: string; // Required for denial
-}
-
-export interface CreateLeaveRequestInput {
-	clientMutationId?: string;
-	leaveRequest: {
-		employeeId: string;
-		managerId?: string;
-		leaveType: LeaveType;
-		startDate: string;
-		endDate: string;
-		daysRequested: number;
-		reason?: string;
-	};
-}
-
-export interface UpdateLeaveRequestInput {
-	clientMutationId?: string;
-	id: string;
-	patch: {
-		leaveType?: LeaveType;
-		startDate?: string;
-		endDate?: string;
-		daysRequested?: number;
-		reason?: string;
-	};
-}
-
-export interface CancelLeaveRequestInput {
-	clientMutationId?: string;
-	leaveRequestId: string;
-}
+// ============================================================================
+// TYPESCRIPT INTERFACES
+// ============================================================================
 
 export interface LeaveRequestFilter {
-	employeeId?: string;
-	managerId?: string;
-	leaveType?: LeaveType;
-	status?: LeaveRequestStatus;
+	status?: {
+		equalTo?: 'pending' | 'approved' | 'rejected';
+		in?: Array<'pending' | 'approved' | 'rejected'>;
+	};
+	leaveType?: {
+		equalTo?: string;
+		in?: string[];
+	};
+	employeeId?: {
+		equalTo?: string;
+	};
 	startDate?: {
 		greaterThanOrEqualTo?: string;
 		lessThanOrEqualTo?: string;
@@ -306,87 +239,285 @@ export interface LeaveRequestFilter {
 		greaterThanOrEqualTo?: string;
 		lessThanOrEqualTo?: string;
 	};
+	employee?: {
+		departmentId?: {
+			equalTo?: string;
+		};
+		displayName?: {
+			includesInsensitive?: string;
+		};
+	};
 }
 
-// Utility functions for leave management
-export const leaveTypeOptions = [
-	{ value: 'annual', label: 'Annual Leave' },
-	{ value: 'sick', label: 'Sick Leave' },
-	{ value: 'personal', label: 'Personal Leave' },
-	{ value: 'maternity', label: 'Maternity Leave' },
-	{ value: 'paternity', label: 'Paternity Leave' },
-	{ value: 'emergency', label: 'Emergency Leave' },
-	{ value: 'unpaid', label: 'Unpaid Leave' }
-];
+export interface UpdateLeaveRequestInput {
+	clientMutationId?: string;
+	id: string;
+	patch: {
+		status?: 'pending' | 'approved' | 'rejected';
+		reviewedBy?: string;
+		reviewNotes?: string;
+		reviewedAt?: string;
+	};
+}
 
-export const leaveStatusOptions = [
-	{ value: 'pending', label: 'Pending', color: 'yellow' },
-	{ value: 'approved', label: 'Approved', color: 'green' },
-	{ value: 'rejected', label: 'Rejected', color: 'red' },
-	{ value: 'cancelled', label: 'Cancelled', color: 'gray' }
-];
+export interface LeaveRequest {
+	id: string;
+	employeeId: string;
+	employee: {
+		id: string;
+		displayName: string;
+		email: string;
+		jobTitle?: string;
+		department: {
+			id: string;
+			name: string;
+		};
+	};
+	leaveType: string;
+	startDate: string;
+	endDate: string;
+	totalDays: number;
+	reason?: string;
+	status: 'pending' | 'approved' | 'rejected';
+	reviewedBy?: string;
+	reviewer?: {
+		id: string;
+		displayName: string;
+		email: string;
+	};
+	reviewNotes?: string;
+	reviewedAt?: string;
+	createdAt: string;
+	updatedAt: string;
+}
 
-// Helper function to calculate business days between dates
-export function calculateBusinessDays(startDate: string, endDate: string): number {
-	const start = new Date(startDate);
-	const end = new Date(endDate);
+export interface LeaveStatistics {
+	pendingCount: number;
+	approvedCount: number;
+	rejectedCount: number;
+	totalCount: number;
+	totalDaysRequested: number;
+	averageRequestDays: number;
+	approvalRate: number;
+}
 
-	let businessDays = 0;
-	const currentDate = new Date(start);
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
 
-	while (currentDate <= end) {
-		const dayOfWeek = currentDate.getDay();
-		if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-			// Not Sunday (0) or Saturday (6)
-			businessDays++;
-		}
-		currentDate.setDate(currentDate.getDate() + 1);
+/**
+ * Helper: Build leave request filter safely
+ */
+export function buildLeaveRequestFilter({
+	status,
+	leaveType,
+	employeeId,
+	employeeName,
+	startDate,
+	endDate,
+	departmentId
+}: {
+	status?: 'pending' | 'approved' | 'rejected';
+	leaveType?: string;
+	employeeId?: string;
+	employeeName?: string;
+	startDate?: string;
+	endDate?: string;
+	departmentId?: string;
+}): LeaveRequestFilter {
+	const filter: LeaveRequestFilter = {};
+
+	if (status) {
+		filter.status = { equalTo: status };
 	}
 
-	return businessDays;
-}
+	if (leaveType) {
+		filter.leaveType = { equalTo: leaveType };
+	}
 
-// Helper function to format date range for display
-export function formatDateRange(startDate: string, endDate: string): string {
-	const start = new Date(startDate).toLocaleDateString();
-	const end = new Date(endDate).toLocaleDateString();
-	return `${start} - ${end}`;
-}
+	if (employeeId) {
+		filter.employeeId = { equalTo: employeeId };
+	}
 
-// Helper function to get leave type display color
-export function getLeaveTypeColor(leaveType: LeaveType): string {
-	const colorMap: Record<LeaveType, string> = {
-		annual: 'blue',
-		sick: 'red',
-		personal: 'purple',
-		maternity: 'pink',
-		paternity: 'cyan',
-		emergency: 'orange',
-		unpaid: 'gray'
-	};
-	return colorMap[leaveType] || 'gray';
+	if (employeeName) {
+		filter.employee = {
+			displayName: { includesInsensitive: employeeName }
+		};
+	}
+
+	if (departmentId) {
+		filter.employee = {
+			...filter.employee,
+			departmentId: { equalTo: departmentId }
+		};
+	}
+
+	if (startDate) {
+		filter.startDate = { greaterThanOrEqualTo: startDate };
+	}
+
+	if (endDate) {
+		filter.endDate = { lessThanOrEqualTo: endDate };
+	}
+
+	return filter;
 }
 
 /**
- * T032: Standardized Leave Management Operations with Error Handling
+ * Helper: Calculate leave statistics from raw data
  */
-import type { OperationStore } from '@urql/svelte';
-import type { DataRequest, UserCredentials } from '$lib/models/data-request';
+export function calculateLeaveStatistics(data: {
+	pendingLeaveRequests: { totalCount: number };
+	approvedLeaveRequests: { totalCount: number };
+	rejectedLeaveRequests: { totalCount: number };
+	allLeaveRequests: { totalCount: number; nodes: Array<{ totalDays: number }> };
+}): LeaveStatistics {
+	const totalDaysRequested = data.allLeaveRequests.nodes.reduce(
+		(sum, request) => sum + request.totalDays,
+		0
+	);
+	const averageRequestDays =
+		data.allLeaveRequests.totalCount > 0
+			? Math.round(totalDaysRequested / data.allLeaveRequests.totalCount)
+			: 0;
 
+	const totalReviewed =
+		data.approvedLeaveRequests.totalCount + data.rejectedLeaveRequests.totalCount;
+	const approvalRate =
+		totalReviewed > 0
+			? Math.round((data.approvedLeaveRequests.totalCount / totalReviewed) * 100)
+			: 0;
+
+	return {
+		pendingCount: data.pendingLeaveRequests.totalCount,
+		approvedCount: data.approvedLeaveRequests.totalCount,
+		rejectedCount: data.rejectedLeaveRequests.totalCount,
+		totalCount: data.allLeaveRequests.totalCount,
+		totalDaysRequested,
+		averageRequestDays,
+		approvalRate
+	};
+}
+
+/**
+ * Helper: Validate approval/rejection input
+ */
+export function validateLeaveReview(
+	action: 'approve' | 'reject',
+	reviewNotes?: string
+): { valid: boolean; error?: string } {
+	if (action === 'reject' && (!reviewNotes || reviewNotes.trim().length === 0)) {
+		return {
+			valid: false,
+			error: 'Review notes are required when rejecting a leave request'
+		};
+	}
+
+	if (reviewNotes && reviewNotes.length > 1000) {
+		return {
+			valid: false,
+			error: 'Review notes must be less than 1000 characters'
+		};
+	}
+
+	return { valid: true };
+}
+
+/**
+ * Helper: Format leave date range
+ */
+export function formatLeaveDateRange(startDate: string, endDate: string): string {
+	const start = new Date(startDate);
+	const end = new Date(endDate);
+
+	const formatOptions: Intl.DateTimeFormatOptions = {
+		month: 'short',
+		day: 'numeric',
+		year: 'numeric'
+	};
+
+	if (start.getFullYear() === end.getFullYear()) {
+		if (start.getMonth() === end.getMonth()) {
+			// Same month: "Jan 15-20, 2025"
+			return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}-${end.getDate()}, ${end.getFullYear()}`;
+		}
+		// Same year: "Jan 15 - Feb 20, 2025"
+		return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, ${end.getFullYear()}`;
+	}
+
+	// Different years: "Dec 15, 2024 - Jan 5, 2025"
+	return `${start.toLocaleDateString('en-US', formatOptions)} - ${end.toLocaleDateString('en-US', formatOptions)}`;
+}
+
+/**
+ * Helper: Get leave type badge color
+ */
+export function getLeaveTypeBadgeColor(leaveType: string): string {
+	const leaveTypeColors: Record<string, string> = {
+		vacation: 'blue',
+		sick: 'red',
+		personal: 'purple',
+		bereavement: 'gray',
+		parental: 'green',
+		unpaid: 'orange'
+	};
+
+	return leaveTypeColors[leaveType.toLowerCase()] || 'gray';
+}
+
+/**
+ * Helper: Get status badge color
+ */
+export function getStatusBadgeColor(status: string): string {
+	const statusColors: Record<string, string> = {
+		pending: 'yellow',
+		approved: 'green',
+		rejected: 'red'
+	};
+
+	return statusColors[status.toLowerCase()] || 'gray';
+}
+
+// ============================================================================
+// OPERATIONS CLASS (Standardized Error Handling)
+// ============================================================================
+
+/**
+ * T014: Manager Leave Management Operations with Department-Scoped RLS
+ * This class follows TDD principles - tests are written first in
+ * tests/contract/manager-leave-operations.test.ts
+ */
 export class LeaveManagementOperations {
-	private client: OperationStore;
+	private client: any;
 
-	constructor(client: OperationStore) {
+	constructor(client: any) {
 		this.client = client;
 	}
 
-	async getLeaveRequests(params: { filter?: any; userCredentials: UserCredentials }): Promise<any> {
-		const { DataRequest, createDataRequest } = await import('$lib/models/data-request');
+	/**
+	 * Get pending leave requests for manager's department
+	 * RLS automatically filters to department only via JWT claims
+	 */
+	async getPendingLeaveRequests(params: {
+		first?: number;
+		offset?: number;
+		filter?: LeaveRequestFilter;
+		userCredentials: UserCredentials;
+	}): Promise<{
+		requests: LeaveRequest[];
+		totalCount: number;
+		hasNextPage: boolean;
+	}> {
+		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		const dataRequest = createDataRequest({
-			operationName: 'GetLeaveRequests',
-			variables: { filter: params.filter },
+			operationName: 'GetPendingLeaveRequests',
+			variables: {
+				first: params.first || 20,
+				offset: params.offset || 0,
+				filter: params.filter || {}
+			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000,
 			retryAttempts: 0,
@@ -405,8 +536,8 @@ export class LeaveManagementOperations {
 
 			const unsubscribe = this.client.subscribe(
 				{
-					query: GET_LEAVE_REQUESTS,
-					variables: { filter: params.filter }
+					query: GET_PENDING_LEAVE_REQUESTS,
+					variables: dataRequest.variables
 				},
 				(result) => {
 					clearTimeout(timeoutId);
@@ -419,72 +550,10 @@ export class LeaveManagementOperations {
 						reject(errorResponse);
 						unsubscribe();
 					} else if (result.data) {
-						resolve(result.data);
-						unsubscribe();
-					}
-				}
-			);
-		});
-	}
-
-	async getPendingLeaveRequests(params: {
-		filter?: any;
-		pagination?: { page: number; limit: number };
-		userCredentials: UserCredentials;
-	}): Promise<any> {
-		const { createDataRequest } = await import('$lib/models/data-request');
-		const { createErrorResponse } = await import('$lib/models/error-response');
-
-		const dataRequest = createDataRequest({
-			operationName: 'GetPendingLeaveRequests',
-			variables: {
-				managerId: params.filter?.managerId,
-				status: params.filter?.status || 'pending',
-				first: params.pagination?.limit || 20,
-				offset: ((params.pagination?.page || 1) - 1) * (params.pagination?.limit || 20),
-				filter: params.filter
-			},
-			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
-			maxRetries: 3
-		});
-
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Pending leave requests timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage: 'Leave requests are loading slowly. Please try again.'
-				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
-
-			const unsubscribe = this.client.subscribe(
-				{
-					query: GET_PENDING_LEAVE_REQUESTS,
-					variables: {
-						managerId: params.filter?.managerId,
-						status: params.filter?.status || 'pending',
-						first: params.pagination?.limit || 20,
-						offset: ((params.pagination?.page || 1) - 1) * (params.pagination?.limit || 20),
-						filter: params.filter
-					}
-				},
-				(result) => {
-					clearTimeout(timeoutId);
-
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to load pending leave requests. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
 						resolve({
-							requests: result.data.leaveRequests?.nodes || [],
-							totalCount: result.data.leaveRequests?.totalCount || 0
+							requests: result.data.leaveRequests.nodes,
+							totalCount: result.data.leaveRequests.totalCount,
+							hasNextPage: result.data.leaveRequests.pageInfo.hasNextPage
 						});
 						unsubscribe();
 					}
@@ -493,16 +562,19 @@ export class LeaveManagementOperations {
 		});
 	}
 
+	/**
+	 * Get leave statistics for manager's department
+	 */
 	async getLeaveStatistics(params: {
-		managerId?: string;
+		departmentId: string;
 		userCredentials: UserCredentials;
-	}): Promise<any> {
+	}): Promise<LeaveStatistics> {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		const dataRequest = createDataRequest({
 			operationName: 'GetLeaveStatistics',
-			variables: { managerId: params.managerId },
+			variables: { departmentId: params.departmentId },
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000,
 			retryAttempts: 0,
@@ -511,24 +583,18 @@ export class LeaveManagementOperations {
 
 		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Leave statistics timeout'), {
+				const errorResponse = createErrorResponse(new Error('Statistics timeout'), {
 					type: 'TIMEOUT_ERROR',
-					userMessage: 'Leave statistics are loading slowly. Please try again.'
+					userMessage: 'Statistics are loading slowly. Please try again.'
 				});
 				reject(errorResponse);
 				unsubscribe();
 			}, dataRequest.timeoutMs);
 
-			// For now, we'll get all requests and calculate stats manually
-			// In a real app, this would be a dedicated stats query
 			const unsubscribe = this.client.subscribe(
 				{
-					query: GET_LEAVE_REQUESTS,
-					variables: {
-						filter: { managerId: params.managerId },
-						first: 1000, // Get all for stats calculation
-						offset: 0
-					}
+					query: GET_LEAVE_STATISTICS,
+					variables: dataRequest.variables
 				},
 				(result) => {
 					clearTimeout(timeoutId);
@@ -536,14 +602,13 @@ export class LeaveManagementOperations {
 					if (result.error) {
 						const errorResponse = createErrorResponse(result.error, {
 							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to load leave statistics. Please try again.'
+							userMessage: 'Unable to load statistics. Please try again.'
 						});
 						reject(errorResponse);
 						unsubscribe();
 					} else if (result.data) {
-						const requests = result.data.leaveRequests?.nodes || [];
-						const stats = this.calculateLeaveStats(requests);
-						resolve({ stats });
+						const stats = calculateLeaveStatistics(result.data);
+						resolve(stats);
 						unsubscribe();
 					}
 				}
@@ -551,55 +616,52 @@ export class LeaveManagementOperations {
 		});
 	}
 
-	private calculateLeaveStats(requests: any[]): any {
-		const pendingCount = requests.filter((r) => r.status === 'pending').length;
-		const approvedCount = requests.filter((r) => r.status === 'approved').length;
-		const rejectedCount = requests.filter((r) => r.status === 'rejected').length;
-		const totalDaysRequested = requests.reduce((sum, r) => sum + (r.daysRequested || 0), 0);
-		const averageRequestDays = requests.length > 0 ? totalDaysRequested / requests.length : 0;
-		const approvalRate =
-			approvedCount + rejectedCount > 0
-				? (approvedCount / (approvedCount + rejectedCount)) * 100
-				: 0;
-
-		return {
-			pendingCount,
-			approvedCount,
-			rejectedCount,
-			totalDaysRequested,
-			averageRequestDays: Math.round(averageRequestDays * 10) / 10,
-			approvalRate: Math.round(approvalRate * 10) / 10
-		};
-	}
-
+	/**
+	 * Approve leave request (manager department-scoped)
+	 * RLS policy enforces department membership
+	 */
 	async approveLeaveRequest(params: {
-		id: string;
-		notes?: string;
+		leaveRequestId: string;
+		managerId: string;
+		reviewNotes?: string;
 		userCredentials: UserCredentials;
-	}): Promise<any> {
+	}): Promise<LeaveRequest> {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
+		// Validate input
+		const validation = validateLeaveReview('approve', params.reviewNotes);
+		if (!validation.valid) {
+			throw createErrorResponse(new Error(validation.error), {
+				type: 'VALIDATION_ERROR',
+				userMessage: validation.error!
+			});
+		}
+
+		const input: UpdateLeaveRequestInput = {
+			id: params.leaveRequestId,
+			patch: {
+				status: 'approved',
+				reviewedBy: params.managerId,
+				reviewNotes: params.reviewNotes,
+				reviewedAt: new Date().toISOString()
+			}
+		};
+
 		const dataRequest = createDataRequest({
 			operationName: 'ApproveLeaveRequest',
-			variables: {
-				input: {
-					leaveRequestId: params.id,
-					managerComments: params.notes
-				}
-			},
+			variables: { input },
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000,
 			retryAttempts: 0,
-			maxRetries: 2
+			maxRetries: 3
 		});
 
 		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Leave approval timeout'), {
+				const errorResponse = createErrorResponse(new Error('Approval timeout'), {
 					type: 'TIMEOUT_ERROR',
-					userMessage:
-						'Leave approval is taking longer than expected. Please verify the action completed.'
+					userMessage: 'Approval is taking too long. Please try again.'
 				});
 				reject(errorResponse);
 				unsubscribe();
@@ -608,26 +670,20 @@ export class LeaveManagementOperations {
 			const unsubscribe = this.client.subscribe(
 				{
 					query: APPROVE_LEAVE_REQUEST,
-					variables: {
-						input: {
-							leaveRequestId: params.id,
-							managerComments: params.notes
-						}
-					}
+					variables: dataRequest.variables
 				},
 				(result) => {
 					clearTimeout(timeoutId);
 
 					if (result.error) {
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'PERMISSION_ERROR',
-							userMessage:
-								'Unable to approve leave request. Please check your permissions and try again.'
+							type: 'GRAPHQL_ERROR',
+							userMessage: 'Unable to approve leave request. Please try again.'
 						});
 						reject(errorResponse);
 						unsubscribe();
 					} else if (result.data) {
-						resolve(result.data);
+						resolve(result.data.updateLeaveRequest.leaveRequest);
 						unsubscribe();
 					}
 				}
@@ -635,34 +691,53 @@ export class LeaveManagementOperations {
 		});
 	}
 
-	async denyLeaveRequest(params: {
-		id: string;
-		notes: string;
+	/**
+	 * Reject leave request (manager department-scoped)
+	 * RLS policy enforces department membership
+	 * Review notes are REQUIRED
+	 */
+	async rejectLeaveRequest(params: {
+		leaveRequestId: string;
+		managerId: string;
+		reviewNotes: string;
 		userCredentials: UserCredentials;
-	}): Promise<any> {
+	}): Promise<LeaveRequest> {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
+		// Validate input - review notes REQUIRED for rejection
+		const validation = validateLeaveReview('reject', params.reviewNotes);
+		if (!validation.valid) {
+			throw createErrorResponse(new Error(validation.error), {
+				type: 'VALIDATION_ERROR',
+				userMessage: validation.error!
+			});
+		}
+
+		const input: UpdateLeaveRequestInput = {
+			id: params.leaveRequestId,
+			patch: {
+				status: 'rejected',
+				reviewedBy: params.managerId,
+				reviewNotes: params.reviewNotes,
+				reviewedAt: new Date().toISOString()
+			}
+		};
+
 		const dataRequest = createDataRequest({
-			operationName: 'DenyLeaveRequest',
-			variables: {
-				input: {
-					leaveRequestId: params.id,
-					managerComments: params.notes
-				}
-			},
+			operationName: 'RejectLeaveRequest',
+			variables: { input },
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000,
 			retryAttempts: 0,
-			maxRetries: 2
+			maxRetries: 3
 		});
 
 		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Leave denial timeout'), {
+				const errorResponse = createErrorResponse(new Error('Rejection timeout'), {
 					type: 'TIMEOUT_ERROR',
-					userMessage:
-						'Leave denial is taking longer than expected. Please verify the action completed.'
+					userMessage: 'Rejection is taking too long. Please try again.'
 				});
 				reject(errorResponse);
 				unsubscribe();
@@ -670,27 +745,21 @@ export class LeaveManagementOperations {
 
 			const unsubscribe = this.client.subscribe(
 				{
-					query: DENY_LEAVE_REQUEST,
-					variables: {
-						input: {
-							leaveRequestId: params.id,
-							managerComments: params.notes
-						}
-					}
+					query: REJECT_LEAVE_REQUEST,
+					variables: dataRequest.variables
 				},
 				(result) => {
 					clearTimeout(timeoutId);
 
 					if (result.error) {
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'PERMISSION_ERROR',
-							userMessage:
-								'Unable to deny leave request. Please check your permissions and try again.'
+							type: 'GRAPHQL_ERROR',
+							userMessage: 'Unable to reject leave request. Please try again.'
 						});
 						reject(errorResponse);
 						unsubscribe();
 					} else if (result.data) {
-						resolve(result.data);
+						resolve(result.data.updateLeaveRequest.leaveRequest);
 						unsubscribe();
 					}
 				}
@@ -699,6 +768,9 @@ export class LeaveManagementOperations {
 	}
 }
 
-export function createLeaveManagementOperations(client: OperationStore): LeaveManagementOperations {
+/**
+ * Factory function to create LeaveManagementOperations instance
+ */
+export function createLeaveManagementOperations(client: any): LeaveManagementOperations {
 	return new LeaveManagementOperations(client);
 }

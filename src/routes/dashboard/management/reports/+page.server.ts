@@ -1,35 +1,37 @@
-// Server-side data loading for reports management page
-// T042: Fix reports management pages with standardized error handling
+// Reports Management Page - Server-Side Data Loading with GraphQL
+// Feature: 016-repair-management-pages - GraphQL integration
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
-import { createReportsOperations, getReportAnalytics } from '$lib/graphql/reports-operations';
+import { createUrqlClient } from '$lib/graphql/client';
+import {
+	GET_HR_REPORTS,
+	GET_REPORT_ANALYTICS,
+	buildHrReportFilter,
+	calculateReportAnalytics
+} from '$lib/graphql/reports-operations';
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, cookies, url } = event;
+	const { locals, url, cookies } = event;
 
-	// RBAC: Check reports management permissions
-	PermissionChecks.reportsRead(event);
+	// Verify user is authenticated
+	if (!locals.user?.id) {
+		throw error(401, 'Authentication required');
+	}
 
-	// Import required models for standardized error handling
-	const { createDataRequest } = await import('$lib/models/data-request');
-	const { createErrorResponse } = await import('$lib/models/error-response');
-	const { createUserSession } = await import('$lib/models/user-session');
+	// Check if user has manager or admin role
+	const hasManagerAccess = locals.roles?.includes('admin') || locals.roles?.includes('manager');
+	if (!hasManagerAccess) {
+		throw error(403, 'Manager or Admin role required');
+	}
 
-	// Create user session from server locals
-	const userSession = createUserSession({
-		userId: locals.user.id,
-		userEmail: locals.user.email,
-		displayName: locals.user.display_name || locals.user.email,
-		role: locals.user.role || 'employee',
-		permissions: locals.permissions || [],
-		accessToken: cookies.get('hr_token') || '',
-		tokenExpiry: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes from now
-		isValid: true
-	});
+	// Get JWT token from cookies for PostGraphile authentication
+	const jwtToken = cookies.get('postgraphile-jwt-token') || cookies.get('hr_token') || '';
 
-	// Extract search parameters from URL
+	// Create server-side GraphQL client with auth token
+	const graphqlClient = createUrqlClient(fetch, jwtToken);
+
+	// Extract search parameters for filtering
 	const searchTerm = url.searchParams.get('search') || '';
 	const typeFilter = url.searchParams.get('type') || '';
 	const categoryFilter = url.searchParams.get('category') || '';
@@ -37,99 +39,88 @@ export const load: PageServerLoad = async (event) => {
 	const departmentFilter = url.searchParams.get('department') || '';
 	const page = parseInt(url.searchParams.get('page') || '1', 10);
 	const limit = parseInt(url.searchParams.get('limit') || '20', 10);
-
-	// Create data request for reports data
-	const dataRequest = createDataRequest({
-		operationName: 'GetReportsData',
-		variables: {
-			searchTerm,
-			typeFilter,
-			categoryFilter,
-			statusFilter,
-			departmentFilter,
-			page,
-			limit
-		},
-		userCredentials: {
-			userId: userSession.userId,
-			userEmail: userSession.userEmail,
-			role: userSession.role,
-			accessToken: userSession.accessToken
-		},
-		timeoutMs: 5000,
-		retryAttempts: 0,
-		maxRetries: 3
-	});
+	const offset = (page - 1) * limit;
 
 	try {
-		// Create reports operations instance
-		const reportsOps = createReportsOperations(null); // We'll pass the GraphQL client reference
-
-		// Load reports data using standardized operations
-		const reportsData = await reportsOps.getHRReports({
-			first: limit,
-			offset: (page - 1) * limit,
-			filter: {
-				reportType: typeFilter || undefined,
-				category: categoryFilter || undefined,
-				status: statusFilter || undefined,
-				department: departmentFilter || undefined,
-				searchTerm: searchTerm || undefined
-			},
-			orderBy: ['CREATED_AT_DESC'],
-			userCredentials: {
-				userId: userSession.userId,
-				userEmail: userSession.userEmail,
-				role: userSession.role,
-				accessToken: userSession.accessToken
-			}
+		// Build GraphQL filter from URL parameters
+		const filter = buildHrReportFilter({
+			status: statusFilter ? (statusFilter as any) : undefined,
+			reportType: typeFilter || undefined,
+			category: categoryFilter || undefined,
+			searchTerm: searchTerm || undefined,
+			departmentId: departmentFilter || locals.user.department_id || undefined
 		});
 
-		// Load reports analytics for dashboard insights
-		const analyticsData = await getReportAnalytics({
-			department: departmentFilter || undefined,
-			userCredentials: {
-				userId: userSession.userId,
-				userEmail: userSession.userEmail,
-				role: userSession.role,
-				accessToken: userSession.accessToken
-			}
-		});
+		// Fetch HR reports with pagination
+		const reportsResult = await graphqlClient
+			.query(GET_HR_REPORTS, {
+				first: limit,
+				offset,
+				filter,
+				orderBy: ['CREATED_AT_DESC']
+			})
+			.toPromise();
 
-		// Return server-side loaded data
-		// Get standardized user permissions
-		const userPermissions = getUserPermissions(locals);
+		if (reportsResult.error) {
+			console.error('GraphQL Error fetching reports:', reportsResult.error);
+			throw error(500, 'Failed to load reports data');
+		}
+
+		// Fetch report analytics
+		const analyticsResult = await graphqlClient
+			.query(GET_REPORT_ANALYTICS, {
+				departmentId: locals.user.department_id || ''
+			})
+			.toPromise();
+
+		if (analyticsResult.error) {
+			console.error('GraphQL Error fetching analytics:', analyticsResult.error);
+			// Don't fail the page load if analytics fail, just use empty data
+		}
+
+		// Extract reports data
+		const reports = reportsResult.data?.hrReports?.nodes || [];
+		const totalReports = reportsResult.data?.hrReports?.totalCount || 0;
+
+		// Calculate analytics from query data
+		const analytics = analyticsResult.data
+			? calculateReportAnalytics(analyticsResult.data)
+			: {
+					summary: {
+						totalReports: 0,
+						activeReports: 0,
+						scheduledReports: 0,
+						completedReports: 0,
+						generatedToday: 0,
+						generatedThisWeek: 0,
+						generatedThisMonth: 0,
+						mostPopularType: 'employee',
+						avgRunTime: 0
+					},
+					typeBreakdown: [],
+					categoryBreakdown: [],
+					performanceMetrics: {
+						successRate: 0,
+						errorRate: 0
+					}
+			  };
 
 		return {
-			user: userPermissions.user,
-			userSession,
-			reports: reportsData.nodes || [],
-			totalReports: reportsData.totalCount || 0,
-			reportAnalytics: analyticsData || {
-				summary: {
-					totalReports: 0,
-					activeReports: 0,
-					scheduledReports: 0,
-					generatedToday: 0,
-					generatedThisWeek: 0,
-					generatedThisMonth: 0,
-					mostPopularType: 'employee',
-					avgRunTime: 0
-				},
-				typeBreakdown: [],
-				categoryBreakdown: [],
-				departmentUsage: [],
-				runHistory: [],
-				popularReports: [],
-				performanceMetrics: {
-					fastestReport: 'N/A',
-					slowestReport: 'N/A',
-					avgExecutionTime: 0,
-					totalExecutionTime: 0,
-					successRate: 0,
-					errorRate: 0
-				}
+			user: {
+				id: locals.user.id,
+				email: locals.user.email || '',
+				displayName: locals.user.display_name || 'User',
+				role: locals.user.role || 'employee'
 			},
+			userSession: {
+				userId: locals.user.id,
+				userEmail: locals.user.email || '',
+				role: locals.user.role || 'employee',
+				accessToken: jwtToken
+			},
+			reports,
+			totalReports,
+			reportAnalytics: analytics,
 			filters: {
 				searchTerm,
 				typeFilter,
@@ -139,37 +130,22 @@ export const load: PageServerLoad = async (event) => {
 				page,
 				limit
 			},
-			// RBAC: Standardized permission checks
-			...userPermissions,
+			pagination: {
+				currentPage: page,
+				limit,
+				totalPages: Math.ceil(totalReports / limit),
+				hasNextPage: reportsResult.data?.hrReports?.pageInfo?.hasNextPage || false,
+				hasPreviousPage: page > 1
+			},
+			permissions: locals.permissions || [],
+			canCreateReports: hasManagerAccess,
+			canEditReports: hasManagerAccess,
+			canRunReports: hasManagerAccess,
+			canViewAnalytics: locals.roles?.includes('admin') || hasManagerAccess,
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
-		console.error('[Reports Load Error]', err);
-
-		// Create standardized error response
-		const errorResponse = createErrorResponse(
-			err instanceof Error ? err : new Error('Reports load failed'),
-			{
-				type: 'DATA_LOAD_ERROR',
-				userMessage: 'Unable to load reports data. Please refresh the page or try again later.'
-			}
-		);
-
-		// Log error details for debugging
-		console.error('[Reports Error Details]', {
-			userId: locals.user?.id,
-			userRole: locals.user?.role,
-			searchTerm,
-			typeFilter,
-			categoryFilter,
-			statusFilter,
-			error: errorResponse
-		});
-
-		// Throw SvelteKit error with user-friendly message
-		throw error(500, {
-			message: 'Reports temporarily unavailable',
-			details: errorResponse.userMessage
-		});
+		console.error('Error loading reports data:', err);
+		throw error(500, 'Failed to load reports data. Please try again later.');
 	}
 };

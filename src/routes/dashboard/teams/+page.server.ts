@@ -4,7 +4,6 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
-import { createTeamManagementOperations } from '$lib/graphql/team-management-operations';
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, cookies, url } = event;
@@ -20,13 +19,14 @@ export const load: PageServerLoad = async (event) => {
 	// Create user session from server locals
 	const userSession = createUserSession({
 		userId: locals.user.id,
-		userEmail: locals.user.email,
-		displayName: locals.user.display_name || locals.user.email,
-		role: locals.user.role || 'employee',
+		jwtToken: cookies.get('hr_token') || '',
+		roles: [locals.user.role || 'employee'],
 		permissions: locals.permissions || [],
-		accessToken: cookies.get('hr_token') || '',
-		tokenExpiry: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes from now
-		isValid: true
+		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes from now
+		metadata: {
+			userEmail: locals.user.email,
+			displayName: locals.user.display_name || locals.user.email
+		}
 	});
 
 	// Extract search parameters from URL
@@ -52,9 +52,11 @@ export const load: PageServerLoad = async (event) => {
 		},
 		userCredentials: {
 			userId: userSession.userId,
-			userEmail: userSession.userEmail,
-			role: userSession.role,
-			accessToken: userSession.accessToken
+			userEmail: userSession.metadata.userEmail as string,
+			roles: userSession.roles,
+			permissions: userSession.permissions,
+			jwtToken: userSession.jwtToken,
+			isAuthenticated: Boolean(userSession.isAuthenticated)
 		},
 		timeoutMs: 5000,
 		retryAttempts: 0,
@@ -62,19 +64,144 @@ export const load: PageServerLoad = async (event) => {
 	});
 
 	try {
-		// Create team management operations instance
-		const teamOps = createTeamManagementOperations(null); // We'll pass the GraphQL client reference
+		// Fetch user's managed department for managers (admins see all)
+		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
+		const graphqlEndpoint = getGraphQLEndpoint();
 
-		// Load teams data using standardized operations
-		const teamsData = await teamOps.getTeamOverview({
-			departmentId: parentFilter || undefined,
-			userCredentials: {
-				userId: userSession.userId,
-				userEmail: userSession.userEmail,
-				role: userSession.role,
-				accessToken: userSession.accessToken
+		let managedDepartmentId: string | null = null;
+		let isAdmin = userSession.roles.includes('admin');
+
+		// For managers, get their managed department
+		if (!isAdmin && userSession.roles.includes('manager')) {
+			const deptResponse = await fetch(graphqlEndpoint, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					query: `
+						query GetManagerDepartment($userId: UUID!) {
+							userById(id: $userId) {
+								id
+								departmentByDepartmentId {
+									id
+									name
+									managerId
+								}
+							}
+						}
+					`,
+					variables: { userId: userSession.userId }
+				})
+			});
+
+			const deptData = await deptResponse.json();
+			const userDept = deptData?.data?.userById?.departmentByDepartmentId;
+
+			// Only set managedDepartmentId if user is actually the manager of their department
+			if (userDept && userDept.managerId === userSession.userId) {
+				managedDepartmentId = userDept.id;
 			}
+		}
+
+		// Build GraphQL query for departments (teams)
+		// Determine department filter
+		let filterDepartmentId: string | undefined = undefined;
+		if (parentFilter) {
+			filterDepartmentId = parentFilter;
+		} else if (!isAdmin && managedDepartmentId) {
+			filterDepartmentId = managedDepartmentId;
+		}
+
+		// Fetch departments (teams) data
+		// Build query based on whether we're filtering by department
+		const query = filterDepartmentId
+			? `
+				query GetDepartments($limit: Int!, $offset: Int!, $departmentId: UUID!) {
+					allDepartments(first: $limit, offset: $offset, condition: { id: $departmentId }) {
+						nodes {
+							id
+							name
+							description
+							managerId
+							createdAt
+							updatedAt
+							userByManagerId {
+								id
+								displayName
+								email
+							}
+							usersByDepartmentId {
+								totalCount
+							}
+						}
+						totalCount
+					}
+				}
+			`
+			: `
+				query GetDepartments($limit: Int!, $offset: Int!) {
+					allDepartments(first: $limit, offset: $offset) {
+						nodes {
+							id
+							name
+							description
+							managerId
+							createdAt
+							updatedAt
+							userByManagerId {
+								id
+								displayName
+								email
+							}
+							usersByDepartmentId {
+								totalCount
+							}
+						}
+						totalCount
+					}
+				}
+			`;
+
+		const variables = filterDepartmentId
+			? {
+					limit,
+					offset: (page - 1) * limit,
+					departmentId: filterDepartmentId
+				}
+			: {
+					limit,
+					offset: (page - 1) * limit
+				};
+
+		const teamsResponse = await fetch(graphqlEndpoint, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				query,
+				variables
+			})
 		});
+
+		const teamsData = await teamsResponse.json();
+
+		// Debug logging
+		console.log('[Teams Page] GraphQL Response:', JSON.stringify(teamsData, null, 2));
+		console.log('[Teams Page] Filter Department ID:', filterDepartmentId);
+		console.log('[Teams Page] Is Admin:', isAdmin);
+
+		const departments = teamsData?.data?.allDepartments?.nodes || [];
+		const totalCount = teamsData?.data?.allDepartments?.totalCount || 0;
+
+		console.log('[Teams Page] Departments found:', departments.length);
+		console.log('[Teams Page] Total count:', totalCount);
+
+		// Calculate team statistics
+		const totalEmployees = departments.reduce(
+			(sum: number, dept: any) => sum + (dept.usersByDepartmentId?.totalCount || 0),
+			0
+		);
+		const teamsWithHeads = departments.filter((dept: any) => dept.managerId).length;
+		const averageTeamSize =
+			departments.length > 0 ? Math.round(totalEmployees / departments.length) : 0;
 
 		// Return server-side loaded data
 		// Get standardized user permissions
@@ -82,15 +209,35 @@ export const load: PageServerLoad = async (event) => {
 
 		return {
 			user: userPermissions.user,
-			userSession,
-			teams: teamsData.teams || [],
-			totalTeams: teamsData.totalCount || 0,
-			hierarchy: teamsData.hierarchy || [],
-			teamStats: teamsData.stats || {
-				totalTeams: 0,
-				totalEmployees: 0,
-				averageTeamSize: 0,
-				teamsWithHeads: 0
+			userSession: userSession.toJSON(), // Convert UserSession to serializable object
+			teams: departments.map((dept: any) => ({
+				id: dept.id,
+				name: dept.name,
+				description: dept.description,
+				departmentHead: dept.userByManagerId
+					? {
+							id: dept.userByManagerId.id,
+							displayName: dept.userByManagerId.displayName,
+							email: dept.userByManagerId.email
+						}
+					: null,
+				parentDepartment: null, // Not available in current schema
+				employees: {
+					totalCount: dept.usersByDepartmentId?.totalCount || 0
+				},
+				subDepartments: {
+					totalCount: 0 // Not available in current schema
+				},
+				createdAt: dept.createdAt,
+				updatedAt: dept.updatedAt
+			})),
+			totalTeams: totalCount,
+			hierarchy: [],
+			teamStats: {
+				totalTeams: totalCount,
+				totalEmployees,
+				averageTeamSize,
+				teamsWithHeads
 			},
 			filters: {
 				searchTerm,
@@ -101,6 +248,11 @@ export const load: PageServerLoad = async (event) => {
 				page,
 				limit
 			},
+			// Team/Department context for managers
+			managedDepartmentId,
+			isAdmin,
+			canViewAllTeams: isAdmin, // Only admins can view all teams
+			canViewManagedTeam: !!managedDepartmentId, // Managers can view their department
 			// RBAC: Standardized permission checks
 			...userPermissions,
 			loadedAt: new Date().toISOString()

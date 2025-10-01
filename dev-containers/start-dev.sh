@@ -33,15 +33,24 @@ echo "🚀 Starting development containers..."
 docker-compose -f docker-compose.dev.yml up -d
 
 echo ""
-echo "✅ Development environment started successfully!"
-echo ""
-echo "🔗 Access Information:"
-echo "   📊 Backend API:     http://localhost:4000"
-echo "   🎨 Frontend:        http://localhost:5173"
-echo "   🔍 GraphiQL:        http://localhost:5000"
-echo "   🗄️  PostgreSQL:     localhost:5433 (postgres/postgres123)"
-echo "   🔴 Redis:           localhost:6380"
-echo ""
+echo "⏳ Waiting for services to become healthy..."
+sleep 5
+
+# Run health check
+if [ -f "$SCRIPT_DIR/health-check.sh" ]; then
+    bash "$SCRIPT_DIR/health-check.sh"
+else
+    echo "⚠️  Health check script not found, skipping health checks"
+    echo "✅ Development environment started successfully!"
+    echo ""
+    echo "🔗 Access Information:"
+    echo "   📊 Backend API:     http://localhost:4000"
+    echo "   🎨 Frontend:        http://localhost:5173"
+    echo "   🔍 GraphiQL:        http://localhost:5000"
+    echo "   🗄️  PostgreSQL:     localhost:5433 (postgres/postgres123)"
+    echo "   🔴 Redis:           localhost:6380"
+    echo ""
+fi
 echo "🔑 SSH Access:"
 echo "   📡 Backend:         ssh dev@localhost -p 2222"
 echo "   🎯 Frontend:        ssh dev@localhost -p 2223"

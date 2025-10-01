@@ -63,7 +63,8 @@ export const load: PageServerLoad = async (event) => {
 
 	try {
 		// Make direct GraphQL calls to PostGraphile backend - simplified without JWT
-		const graphqlEndpoint = 'http://localhost:4000/graphql';
+		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
+		const graphqlEndpoint = getGraphQLEndpoint();
 
 		// Simple headers without JWT authentication
 		const headers: Record<string, string> = {

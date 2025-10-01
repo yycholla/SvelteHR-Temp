@@ -19,10 +19,13 @@ RUN apt-get update && apt-get install -y \
     neovim \
     && rm -rf /var/lib/apt/lists/*
 
-# Create development user
-RUN groupadd -r dev && useradd -m -s /bin/bash -g dev dev \
+# Create development user with host UID/GID (1000:1000) to avoid permission issues
+# Rename existing 'node' user/group (UID/GID 1000) to 'dev'
+RUN usermod -l dev node \
+    && groupmod -n dev node \
+    && usermod -d /home/dev -m dev \
     && echo 'dev:dev' | chpasswd \
-    && adduser dev sudo \
+    && usermod -aG sudo dev \
     && echo 'dev ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 # Configure SSH
@@ -72,7 +75,7 @@ RUN npm install -g @sveltejs/kit @sveltejs/adapter-auto vite
 # Switch back to dev user
 USER dev
 
-# Create startup script
+# Create startup script - NO chown commands to preserve host permissions
 USER root
 RUN echo '#!/bin/bash\n\
 # Start SSH daemon\n\
@@ -83,9 +86,17 @@ if [ -d "/host-nvim-config" ]; then\n\
     sudo -u dev ln -sf /host-nvim-config /home/dev/.config/nvim\n\
 fi\n\
 \n\
-# Start the frontend application in development mode\n\
+# Change to frontend directory\n\
 cd /home/dev/frontend\n\
-exec sudo -u dev npm run dev -- --host 0.0.0.0' > /start.sh \
+\n\
+# Install/update dependencies if needed (in case package.json changed)\n\
+sudo -E -u dev npm install\n\
+\n\
+# Clean any stale build artifacts\n\
+sudo -E -u dev rm -rf .svelte-kit 2>/dev/null || true\n\
+\n\
+# Start the frontend application in development mode\n\
+exec sudo -E -u dev npm run dev -- --host 0.0.0.0' > /start.sh \
     && chmod +x /start.sh
 
 # Expose SSH port and application port

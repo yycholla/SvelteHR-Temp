@@ -1,208 +1,296 @@
-// HR Reports GraphQL Operations
-// T042: Fix reports management pages with standardized error handling
+// GraphQL Operations: HR Reports Management (Manager Department-Scoped)
+// Feature: 016-repair-management-pages - Task T018
+// Purpose: Manager CRUD operations for HR reports with department-scoped RLS
 
-import type { UserCredentials } from '$lib/models/user-session';
+import { gql } from '@urql/svelte';
+import type { UserCredentials } from '$lib/models/data-request';
 
-// GraphQL Queries and Mutations
-const GET_HR_REPORTS_QUERY = `
-  query GetHRReports($first: Int, $offset: Int, $filter: ReportFilterInput, $orderBy: [ReportsOrderBy!]) {
-    hrReports(first: $first, offset: $offset, condition: $filter, orderBy: $orderBy) {
-      nodes {
-        id
-        title
-        description
-        reportType
-        category
-        createdAt
-        createdBy {
-          id
-          displayName
-          email
-        }
-        updatedAt
-        parameters
-        status
-        visibility
-        schedule
-        lastRunAt
-        nextRunAt
-        generatedCount
-        tags
-        department
-        accessLevel
-        outputFormat
-        isRecurring
-        recipients
-      }
-      totalCount
-      pageInfo {
-        hasNextPage
-        hasPreviousPage
-        startCursor
-        endCursor
-      }
-    }
-  }
+// ============================================================================
+// QUERIES
+// ============================================================================
+
+/**
+ * Query: Get HR reports for manager's department only
+ * Note: Reports table may not have RLS yet - implement when available
+ * Covers: FR-006, FR-039
+ */
+export const GET_HR_REPORTS = gql`
+	query GetHRReports(
+		$first: Int = 20
+		$offset: Int = 0
+		$orderBy: [HrReportsOrderBy!] = [CREATED_AT_DESC]
+		$filter: HrReportFilter
+	) {
+		hrReports(first: $first, offset: $offset, orderBy: $orderBy, filter: $filter) {
+			nodes {
+				id
+				creatorId
+				creator {
+					id
+					displayName
+					email
+				}
+				departmentId
+				department {
+					id
+					name
+				}
+				title
+				reportType
+				category
+				filters
+				data
+				status
+				scheduledAt
+				generatedAt
+				createdAt
+				updatedAt
+			}
+			totalCount
+			pageInfo {
+				hasNextPage
+				hasPreviousPage
+				startCursor
+				endCursor
+			}
+		}
+	}
 `;
 
-const GET_REPORT_ANALYTICS_QUERY = `
-  query GetReportAnalytics($filter: ReportAnalyticsInput) {
-    reportAnalytics(filter: $filter) {
-      summary {
-        totalReports
-        activeReports
-        scheduledReports
-        generatedToday
-        generatedThisWeek
-        generatedThisMonth
-        mostPopularType
-        avgRunTime
-      }
-      typeBreakdown {
-        type
-        count
-        percentage
-      }
-      categoryBreakdown {
-        category
-        count
-        percentage
-      }
-      departmentUsage {
-        department
-        reportCount
-        lastActivity
-      }
-      runHistory {
-        date
-        totalRuns
-        successfulRuns
-        failedRuns
-        avgDuration
-      }
-      popularReports {
-        id
-        title
-        runCount
-        lastRun
-        avgDuration
-      }
-      performanceMetrics {
-        fastestReport
-        slowestReport
-        avgExecutionTime
-        totalExecutionTime
-        successRate
-        errorRate
-      }
-    }
-  }
+/**
+ * Query: Get single report by ID (department-scoped)
+ */
+export const GET_HR_REPORT_BY_ID = gql`
+	query GetHRReportById($id: UUID!) {
+		hrReport(id: $id) {
+			id
+			creatorId
+			creator {
+				id
+				displayName
+				email
+			}
+			departmentId
+			department {
+				id
+				name
+			}
+			title
+			reportType
+			category
+			filters
+			data
+			status
+			scheduledAt
+			generatedAt
+			createdAt
+			updatedAt
+		}
+	}
 `;
 
-const CREATE_REPORT_MUTATION = `
-  mutation CreateReport($input: CreateReportInput!) {
-    createReport(input: $input) {
-      report {
-        id
-        title
-        description
-        reportType
-        category
-        parameters
-        status
-        visibility
-        schedule
-        createdAt
-        createdBy {
-          id
-          displayName
-          email
-        }
-      }
-      success
-      message
-    }
-  }
+/**
+ * Query: Get report analytics for manager's department
+ * Covers: FR-039
+ */
+export const GET_REPORT_ANALYTICS = gql`
+	query GetReportAnalytics($departmentId: UUID!) {
+		totalReports: hrReports(filter: { departmentId: { equalTo: $departmentId } }) {
+			totalCount
+		}
+		activeReports: hrReports(
+			filter: { status: { equalTo: "active" }, departmentId: { equalTo: $departmentId } }
+		) {
+			totalCount
+		}
+		scheduledReports: hrReports(
+			filter: { status: { equalTo: "scheduled" }, departmentId: { equalTo: $departmentId } }
+		) {
+			totalCount
+		}
+		completedReports: hrReports(
+			filter: { status: { equalTo: "completed" }, departmentId: { equalTo: $departmentId } }
+		) {
+			totalCount
+			nodes {
+				reportType
+				category
+				generatedAt
+			}
+		}
+	}
 `;
 
-const UPDATE_REPORT_MUTATION = `
-  mutation UpdateReport($id: ID!, $input: UpdateReportInput!) {
-    updateReport(id: $id, input: $input) {
-      report {
-        id
-        title
-        description
-        reportType
-        category
-        parameters
-        status
-        visibility
-        schedule
-        updatedAt
-      }
-      success
-      message
-    }
-  }
+// ============================================================================
+// MUTATIONS
+// ============================================================================
+
+/**
+ * Mutation: Create HR report
+ * Covers: FR-006, FR-039
+ */
+export const CREATE_HR_REPORT = gql`
+	mutation CreateHRReport($input: CreateHrReportInput!) {
+		createHrReport(input: $input) {
+			hrReport {
+				id
+				creatorId
+				creator {
+					id
+					displayName
+					email
+				}
+				departmentId
+				department {
+					id
+					name
+				}
+				title
+				reportType
+				category
+				filters
+				data
+				status
+				scheduledAt
+				createdAt
+			}
+			clientMutationId
+		}
+	}
 `;
 
-const DELETE_REPORT_MUTATION = `
-  mutation DeleteReport($id: ID!) {
-    deleteReport(id: $id) {
-      success
-      message
-      deletedId
-    }
-  }
+/**
+ * Mutation: Update HR report
+ * Covers: FR-006
+ */
+export const UPDATE_HR_REPORT = gql`
+	mutation UpdateHRReport($input: UpdateHrReportInput!) {
+		updateHrReport(input: $input) {
+			hrReport {
+				id
+				creatorId
+				creator {
+					id
+					displayName
+					email
+				}
+				departmentId
+				title
+				reportType
+				category
+				filters
+				data
+				status
+				scheduledAt
+				updatedAt
+			}
+			clientMutationId
+		}
+	}
 `;
 
-const RUN_REPORT_MUTATION = `
-  mutation RunReport($id: ID!, $parameters: JSON) {
-    runReport(id: $id, parameters: $parameters) {
-      reportRun {
-        id
-        reportId
-        status
-        startedAt
-        completedAt
-        parameters
-        resultUrl
-        resultSize
-        errorMessage
-      }
-      success
-      message
-    }
-  }
+/**
+ * Mutation: Delete HR report
+ * Covers: FR-006
+ */
+export const DELETE_HR_REPORT = gql`
+	mutation DeleteHRReport($input: DeleteHrReportInput!) {
+		deleteHrReport(input: $input) {
+			deletedHrReportId
+			clientMutationId
+		}
+	}
 `;
 
-// Type definitions
-export interface HRReport {
+// ============================================================================
+// TYPESCRIPT INTERFACES
+// ============================================================================
+
+export interface HrReportFilter {
+	status?: {
+		equalTo?: 'draft' | 'active' | 'scheduled' | 'completed' | 'failed';
+		in?: Array<'draft' | 'active' | 'scheduled' | 'completed' | 'failed'>;
+	};
+	reportType?: {
+		equalTo?: string;
+		in?: string[];
+	};
+	category?: {
+		equalTo?: string;
+		in?: string[];
+	};
+	creatorId?: {
+		equalTo?: string;
+	};
+	departmentId?: {
+		equalTo?: string;
+	};
+	title?: {
+		includesInsensitive?: string;
+	};
+	createdAt?: {
+		greaterThanOrEqualTo?: string;
+		lessThanOrEqualTo?: string;
+	};
+}
+
+export interface CreateHrReportInput {
+	clientMutationId?: string;
+	hrReport: {
+		creatorId: string;
+		departmentId: string;
+		title: string;
+		reportType: string;
+		category: string;
+		filters?: Record<string, any>;
+		data?: Record<string, any>;
+		status?: 'draft' | 'active' | 'scheduled';
+		scheduledAt?: string;
+	};
+}
+
+export interface UpdateHrReportInput {
+	clientMutationId?: string;
 	id: string;
-	title: string;
-	description: string | null;
-	reportType: 'employee' | 'payroll' | 'performance' | 'attendance' | 'compliance' | 'custom';
-	category: 'operational' | 'strategic' | 'compliance' | 'financial' | 'analytical';
-	createdAt: string;
-	createdBy: {
+	patch: {
+		title?: string;
+		reportType?: string;
+		category?: string;
+		filters?: Record<string, any>;
+		data?: Record<string, any>;
+		status?: 'draft' | 'active' | 'scheduled' | 'completed' | 'failed';
+		scheduledAt?: string;
+	};
+}
+
+export interface DeleteHrReportInput {
+	clientMutationId?: string;
+	id: string;
+}
+
+export interface HrReport {
+	id: string;
+	creatorId: string;
+	creator: {
 		id: string;
 		displayName: string;
 		email: string;
 	};
+	departmentId: string;
+	department: {
+		id: string;
+		name: string;
+	};
+	title: string;
+	reportType: string;
+	category: string;
+	filters?: Record<string, any>;
+	data?: Record<string, any>;
+	status: 'draft' | 'active' | 'scheduled' | 'completed' | 'failed';
+	scheduledAt?: string;
+	generatedAt?: string;
+	createdAt: string;
 	updatedAt: string;
-	parameters: Record<string, any> | null;
-	status: 'draft' | 'active' | 'archived' | 'scheduled';
-	visibility: 'private' | 'team' | 'department' | 'company';
-	schedule: string | null;
-	lastRunAt: string | null;
-	nextRunAt: string | null;
-	generatedCount: number;
-	tags: string[];
-	department: string | null;
-	accessLevel: 'basic' | 'advanced' | 'executive';
-	outputFormat: 'pdf' | 'excel' | 'csv' | 'json';
-	isRecurring: boolean;
-	recipients: string[];
 }
 
 export interface ReportAnalytics {
@@ -210,6 +298,7 @@ export interface ReportAnalytics {
 		totalReports: number;
 		activeReports: number;
 		scheduledReports: number;
+		completedReports: number;
 		generatedToday: number;
 		generatedThisWeek: number;
 		generatedThisMonth: number;
@@ -226,71 +315,320 @@ export interface ReportAnalytics {
 		count: number;
 		percentage: number;
 	}>;
-	departmentUsage: Array<{
-		department: string;
-		reportCount: number;
-		lastActivity: string;
-	}>;
-	runHistory: Array<{
-		date: string;
-		totalRuns: number;
-		successfulRuns: number;
-		failedRuns: number;
-		avgDuration: number;
-	}>;
-	popularReports: Array<{
-		id: string;
-		title: string;
-		runCount: number;
-		lastRun: string;
-		avgDuration: number;
-	}>;
 	performanceMetrics: {
-		fastestReport: string;
-		slowestReport: string;
-		avgExecutionTime: number;
-		totalExecutionTime: number;
 		successRate: number;
 		errorRate: number;
 	};
 }
 
-export interface ReportRun {
-	id: string;
-	reportId: string;
-	status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
-	startedAt: string;
-	completedAt: string | null;
-	parameters: Record<string, any> | null;
-	resultUrl: string | null;
-	resultSize: number | null;
-	errorMessage: string | null;
-}
+// ============================================================================
+// UI CONSTANTS
+// ============================================================================
 
-// Operations Class
-export class ReportsOperations {
-	private graphqlEndpoint: string;
+/**
+ * Report type options for UI selects
+ */
+export const REPORT_TYPES = [
+	{ value: 'employee', label: 'Employee Report' },
+	{ value: 'attendance', label: 'Attendance Report' },
+	{ value: 'performance', label: 'Performance Report' },
+	{ value: 'payroll', label: 'Payroll Report' },
+	{ value: 'compliance', label: 'Compliance Report' },
+	{ value: 'analytics', label: 'Analytics Report' }
+];
 
-	constructor(graphqlEndpoint?: string) {
-		this.graphqlEndpoint = graphqlEndpoint || '/api/graphql';
+/**
+ * Report category options for UI selects
+ */
+export const REPORT_CATEGORIES = [
+	{ value: 'hr', label: 'HR' },
+	{ value: 'finance', label: 'Finance' },
+	{ value: 'operations', label: 'Operations' },
+	{ value: 'management', label: 'Management' },
+	{ value: 'compliance', label: 'Compliance' },
+	{ value: 'custom', label: 'Custom' }
+];
+
+/**
+ * Report status options for UI selects
+ */
+export const REPORT_STATUSES = [
+	{ value: 'draft', label: 'Draft' },
+	{ value: 'active', label: 'Active' },
+	{ value: 'scheduled', label: 'Scheduled' },
+	{ value: 'completed', label: 'Completed' },
+	{ value: 'failed', label: 'Failed' }
+];
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+/**
+ * Helper: Build HR report filter safely
+ */
+export function buildHrReportFilter({
+	status,
+	reportType,
+	category,
+	creatorId,
+	departmentId,
+	searchTerm,
+	dateFrom,
+	dateTo
+}: {
+	status?: 'draft' | 'active' | 'scheduled' | 'completed' | 'failed';
+	reportType?: string;
+	category?: string;
+	creatorId?: string;
+	departmentId?: string;
+	searchTerm?: string;
+	dateFrom?: string;
+	dateTo?: string;
+}): HrReportFilter {
+	const filter: HrReportFilter = {};
+
+	if (status) {
+		filter.status = { equalTo: status };
 	}
 
+	if (reportType) {
+		filter.reportType = { equalTo: reportType };
+	}
+
+	if (category) {
+		filter.category = { equalTo: category };
+	}
+
+	if (creatorId) {
+		filter.creatorId = { equalTo: creatorId };
+	}
+
+	if (departmentId) {
+		filter.departmentId = { equalTo: departmentId };
+	}
+
+	if (searchTerm) {
+		filter.title = { includesInsensitive: searchTerm };
+	}
+
+	if (dateFrom || dateTo) {
+		filter.createdAt = {};
+		if (dateFrom) {
+			filter.createdAt.greaterThanOrEqualTo = dateFrom;
+		}
+		if (dateTo) {
+			filter.createdAt.lessThanOrEqualTo = dateTo;
+		}
+	}
+
+	return filter;
+}
+
+/**
+ * Helper: Calculate report analytics from raw data
+ */
+export function calculateReportAnalytics(data: {
+	totalReports: { totalCount: number };
+	activeReports: { totalCount: number };
+	scheduledReports: { totalCount: number };
+	completedReports: {
+		totalCount: number;
+		nodes: Array<{
+			reportType: string;
+			category: string;
+			generatedAt?: string;
+		}>;
+	};
+}): ReportAnalytics {
+	const totalCount = data.totalReports.totalCount;
+	const completedCount = data.completedReports.totalCount;
+
+	// Calculate time-based statistics
+	const now = new Date();
+	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+	const weekAgo = new Date(today);
+	weekAgo.setDate(today.getDate() - 7);
+	const monthAgo = new Date(today);
+	monthAgo.setMonth(today.getMonth() - 1);
+
+	const completedNodes = data.completedReports.nodes;
+
+	const generatedToday = completedNodes.filter(
+		(r) => r.generatedAt && new Date(r.generatedAt) >= today
+	).length;
+
+	const generatedThisWeek = completedNodes.filter(
+		(r) => r.generatedAt && new Date(r.generatedAt) >= weekAgo
+	).length;
+
+	const generatedThisMonth = completedNodes.filter(
+		(r) => r.generatedAt && new Date(r.generatedAt) >= monthAgo
+	).length;
+
+	// Calculate type breakdown
+	const typeCounts = new Map<string, number>();
+	completedNodes.forEach((report) => {
+		typeCounts.set(report.reportType, (typeCounts.get(report.reportType) || 0) + 1);
+	});
+
+	const typeBreakdown = Array.from(typeCounts.entries())
+		.map(([type, count]) => ({
+			type,
+			count,
+			percentage: completedCount > 0 ? Math.round((count / completedCount) * 100) : 0
+		}))
+		.sort((a, b) => b.count - a.count);
+
+	const mostPopularType =
+		typeBreakdown.length > 0 ? typeBreakdown[0].type : 'employee';
+
+	// Calculate category breakdown
+	const categoryCounts = new Map<string, number>();
+	completedNodes.forEach((report) => {
+		categoryCounts.set(report.category, (categoryCounts.get(report.category) || 0) + 1);
+	});
+
+	const categoryBreakdown = Array.from(categoryCounts.entries())
+		.map(([category, count]) => ({
+			category,
+			count,
+			percentage: completedCount > 0 ? Math.round((count / completedCount) * 100) : 0
+		}))
+		.sort((a, b) => b.count - a.count);
+
+	// Calculate performance metrics
+	const successRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+	const errorRate = 100 - successRate;
+
+	return {
+		summary: {
+			totalReports: totalCount,
+			activeReports: data.activeReports.totalCount,
+			scheduledReports: data.scheduledReports.totalCount,
+			completedReports: completedCount,
+			generatedToday,
+			generatedThisWeek,
+			generatedThisMonth,
+			mostPopularType,
+			avgRunTime: 0 // Can be calculated from execution time data if available
+		},
+		typeBreakdown,
+		categoryBreakdown,
+		performanceMetrics: {
+			successRate,
+			errorRate
+		}
+	};
+}
+
+/**
+ * Helper: Validate report input
+ */
+export function validateReportInput(input: {
+	title: string;
+	reportType: string;
+	category: string;
+	filters?: Record<string, any>;
+}): { valid: boolean; errors: string[] } {
+	const errors: string[] = [];
+
+	if (!input.title || input.title.trim().length === 0) {
+		errors.push('Title is required');
+	}
+
+	if (input.title && input.title.length > 255) {
+		errors.push('Title must be less than 255 characters');
+	}
+
+	if (!input.reportType || input.reportType.trim().length === 0) {
+		errors.push('Report type is required');
+	}
+
+	if (!input.category || input.category.trim().length === 0) {
+		errors.push('Category is required');
+	}
+
+	return {
+		valid: errors.length === 0,
+		errors
+	};
+}
+
+/**
+ * Helper: Get report type badge color
+ */
+export function getReportTypeBadgeColor(reportType: string): string {
+	const typeColors: Record<string, string> = {
+		employee: 'blue',
+		attendance: 'green',
+		performance: 'purple',
+		payroll: 'orange',
+		compliance: 'red',
+		analytics: 'cyan'
+	};
+	return typeColors[reportType.toLowerCase()] || 'gray';
+}
+
+/**
+ * Helper: Get status badge color
+ */
+export function getReportStatusBadgeColor(status: string): string {
+	const statusColors: Record<string, string> = {
+		draft: 'gray',
+		active: 'blue',
+		scheduled: 'yellow',
+		completed: 'green',
+		failed: 'red'
+	};
+	return statusColors[status.toLowerCase()] || 'gray';
+}
+
+/**
+ * Helper: Format report type label
+ */
+export function formatReportTypeLabel(reportType: string): string {
+	const labels: Record<string, string> = {
+		employee: 'Employee Report',
+		attendance: 'Attendance Report',
+		performance: 'Performance Report',
+		payroll: 'Payroll Report',
+		compliance: 'Compliance Report',
+		analytics: 'Analytics Report'
+	};
+	return labels[reportType.toLowerCase()] || reportType;
+}
+
+// ============================================================================
+// OPERATIONS CLASS (Standardized Error Handling)
+// ============================================================================
+
+/**
+ * T018: Manager HR Reports Operations with Department-Scoped Access
+ * This class follows TDD principles - tests are written first in
+ * tests/contract/manager-reports-operations.test.ts
+ */
+export class ReportsOperations {
+	private client: any;
+
+	constructor(client: any) {
+		this.client = client;
+	}
+
+	/**
+	 * Get HR reports for manager's department
+	 * Department filtering applied based on manager's scope
+	 */
 	async getHRReports(params: {
 		first?: number;
 		offset?: number;
-		filter?: {
-			reportType?: string;
-			category?: string;
-			status?: string;
-			visibility?: string;
-			department?: string;
-			searchTerm?: string;
-			createdAfter?: string;
-			createdBefore?: string;
-		};
-		orderBy?: string[];
+		filter?: HrReportFilter;
 		userCredentials: UserCredentials;
-	}): Promise<{ nodes: HRReport[]; totalCount: number }> {
+	}): Promise<{
+		reports: HrReport[];
+		totalCount: number;
+		hasNextPage: boolean;
+	}> {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
@@ -299,8 +637,7 @@ export class ReportsOperations {
 			variables: {
 				first: params.first || 20,
 				offset: params.offset || 0,
-				filter: params.filter || {},
-				orderBy: params.orderBy || ['CREATED_AT_DESC']
+				filter: params.filter || {}
 			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000,
@@ -308,48 +645,119 @@ export class ReportsOperations {
 			maxRetries: 3
 		});
 
-		try {
-			// Simulate GraphQL request with standardized error handling
-			// In real implementation, this would make actual GraphQL request
-			const response = await this.executeQuery(GET_HR_REPORTS_QUERY, dataRequest.variables);
+		return new Promise((resolve, reject) => {
+			const timeoutId = setTimeout(() => {
+				const errorResponse = createErrorResponse(new Error('Reports timeout'), {
+					type: 'TIMEOUT_ERROR',
+					userMessage: 'Reports are loading slowly. Please try again.'
+				});
+				reject(errorResponse);
+				unsubscribe();
+			}, dataRequest.timeoutMs);
 
-			return {
-				nodes: response.data?.hrReports?.nodes || [],
-				totalCount: response.data?.hrReports?.totalCount || 0
-			};
-		} catch (error) {
-			const errorResponse = createErrorResponse(
-				error instanceof Error ? error : new Error('Failed to load reports'),
+			const unsubscribe = this.client.subscribe(
 				{
-					type: 'GRAPHQL_ERROR',
-					userMessage: 'Unable to load HR reports. Please try again.'
+					query: GET_HR_REPORTS,
+					variables: dataRequest.variables
+				},
+				(result) => {
+					clearTimeout(timeoutId);
+
+					if (result.error) {
+						const errorResponse = createErrorResponse(result.error, {
+							type: 'GRAPHQL_ERROR',
+							userMessage: 'Unable to load reports. Please try again.'
+						});
+						reject(errorResponse);
+						unsubscribe();
+					} else if (result.data) {
+						resolve({
+							reports: result.data.hrReports.nodes,
+							totalCount: result.data.hrReports.totalCount,
+							hasNextPage: result.data.hrReports.pageInfo.hasNextPage
+						});
+						unsubscribe();
+					}
 				}
 			);
-
-			console.error('[ReportsOperations.getHRReports] Error:', errorResponse);
-			throw error;
-		}
+		});
 	}
 
-	async createReport(params: {
-		input: {
-			title: string;
-			description?: string;
-			reportType: string;
-			category: string;
-			parameters?: Record<string, any>;
-			visibility?: string;
-			schedule?: string;
-			recipients?: string[];
-			outputFormat?: string;
-		};
+	/**
+	 * Get report analytics for manager's department
+	 */
+	async getReportAnalytics(params: {
+		departmentId: string;
 		userCredentials: UserCredentials;
-	}): Promise<HRReport> {
+	}): Promise<ReportAnalytics> {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		const dataRequest = createDataRequest({
-			operationName: 'CreateReport',
+			operationName: 'GetReportAnalytics',
+			variables: { departmentId: params.departmentId },
+			userCredentials: params.userCredentials,
+			timeoutMs: 5000,
+			retryAttempts: 0,
+			maxRetries: 3
+		});
+
+		return new Promise((resolve, reject) => {
+			const timeoutId = setTimeout(() => {
+				const errorResponse = createErrorResponse(new Error('Analytics timeout'), {
+					type: 'TIMEOUT_ERROR',
+					userMessage: 'Analytics are loading slowly. Please try again.'
+				});
+				reject(errorResponse);
+				unsubscribe();
+			}, dataRequest.timeoutMs);
+
+			const unsubscribe = this.client.subscribe(
+				{
+					query: GET_REPORT_ANALYTICS,
+					variables: dataRequest.variables
+				},
+				(result) => {
+					clearTimeout(timeoutId);
+
+					if (result.error) {
+						const errorResponse = createErrorResponse(result.error, {
+							type: 'GRAPHQL_ERROR',
+							userMessage: 'Unable to load analytics. Please try again.'
+						});
+						reject(errorResponse);
+						unsubscribe();
+					} else if (result.data) {
+						const analytics = calculateReportAnalytics(result.data);
+						resolve(analytics);
+						unsubscribe();
+					}
+				}
+			);
+		});
+	}
+
+	/**
+	 * Create HR report (manager department-scoped)
+	 */
+	async createHRReport(params: {
+		input: CreateHrReportInput;
+		userCredentials: UserCredentials;
+	}): Promise<HrReport> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+		const { createErrorResponse } = await import('$lib/models/error-response');
+
+		// Validate input
+		const validation = validateReportInput(params.input.hrReport);
+		if (!validation.valid) {
+			throw createErrorResponse(new Error(validation.errors.join(', ')), {
+				type: 'VALIDATION_ERROR',
+				userMessage: validation.errors.join(', ')
+			});
+		}
+
+		const dataRequest = createDataRequest({
+			operationName: 'CreateHRReport',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000,
@@ -357,284 +765,154 @@ export class ReportsOperations {
 			maxRetries: 3
 		});
 
-		try {
-			const response = await this.executeQuery(CREATE_REPORT_MUTATION, dataRequest.variables);
+		return new Promise((resolve, reject) => {
+			const timeoutId = setTimeout(() => {
+				const errorResponse = createErrorResponse(new Error('Creation timeout'), {
+					type: 'TIMEOUT_ERROR',
+					userMessage: 'Report creation is taking too long. Please try again.'
+				});
+				reject(errorResponse);
+				unsubscribe();
+			}, dataRequest.timeoutMs);
 
-			if (!response.data?.createReport?.success) {
-				throw new Error(response.data?.createReport?.message || 'Failed to create report');
-			}
-
-			return response.data.createReport.report;
-		} catch (error) {
-			const errorResponse = createErrorResponse(
-				error instanceof Error ? error : new Error('Failed to create report'),
+			const unsubscribe = this.client.subscribe(
 				{
-					type: 'GRAPHQL_ERROR',
-					userMessage: 'Unable to create report. Please try again.'
+					query: CREATE_HR_REPORT,
+					variables: dataRequest.variables
+				},
+				(result) => {
+					clearTimeout(timeoutId);
+
+					if (result.error) {
+						const errorResponse = createErrorResponse(result.error, {
+							type: 'GRAPHQL_ERROR',
+							userMessage: 'Unable to create report. Please try again.'
+						});
+						reject(errorResponse);
+						unsubscribe();
+					} else if (result.data) {
+						resolve(result.data.createHrReport.hrReport);
+						unsubscribe();
+					}
 				}
 			);
-
-			console.error('[ReportsOperations.createReport] Error:', errorResponse);
-			throw error;
-		}
+		});
 	}
 
-	async runReport(params: {
-		reportId: string;
-		parameters?: Record<string, any>;
+	/**
+	 * Update HR report (manager department-scoped)
+	 */
+	async updateHRReport(params: {
+		input: UpdateHrReportInput;
 		userCredentials: UserCredentials;
-	}): Promise<ReportRun> {
+	}): Promise<HrReport> {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		const dataRequest = createDataRequest({
-			operationName: 'RunReport',
-			variables: {
-				id: params.reportId,
-				parameters: params.parameters || {}
-			},
+			operationName: 'UpdateHRReport',
+			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 10000, // Reports may take longer
+			timeoutMs: 5000,
 			retryAttempts: 0,
-			maxRetries: 2
+			maxRetries: 3
 		});
 
-		try {
-			const response = await this.executeQuery(RUN_REPORT_MUTATION, dataRequest.variables);
+		return new Promise((resolve, reject) => {
+			const timeoutId = setTimeout(() => {
+				const errorResponse = createErrorResponse(new Error('Update timeout'), {
+					type: 'TIMEOUT_ERROR',
+					userMessage: 'Report update is taking too long. Please try again.'
+				});
+				reject(errorResponse);
+				unsubscribe();
+			}, dataRequest.timeoutMs);
 
-			if (!response.data?.runReport?.success) {
-				throw new Error(response.data?.runReport?.message || 'Failed to run report');
-			}
-
-			return response.data.runReport.reportRun;
-		} catch (error) {
-			const errorResponse = createErrorResponse(
-				error instanceof Error ? error : new Error('Failed to run report'),
+			const unsubscribe = this.client.subscribe(
 				{
-					type: 'GRAPHQL_ERROR',
-					userMessage: 'Unable to run report. Please try again.'
+					query: UPDATE_HR_REPORT,
+					variables: dataRequest.variables
+				},
+				(result) => {
+					clearTimeout(timeoutId);
+
+					if (result.error) {
+						const errorResponse = createErrorResponse(result.error, {
+							type: 'GRAPHQL_ERROR',
+							userMessage: 'Unable to update report. Please try again.'
+						});
+						reject(errorResponse);
+						unsubscribe();
+					} else if (result.data) {
+						resolve(result.data.updateHrReport.hrReport);
+						unsubscribe();
+					}
 				}
 			);
-
-			console.error('[ReportsOperations.runReport] Error:', errorResponse);
-			throw error;
-		}
+		});
 	}
 
-	private async executeQuery(query: string, variables: any): Promise<any> {
-		// Simulate GraphQL execution
-		// In real implementation, this would make actual HTTP request to GraphQL endpoint
-		await new Promise((resolve) => setTimeout(resolve, 100));
+	/**
+	 * Delete HR report (manager department-scoped)
+	 */
+	async deleteHRReport(params: {
+		reportId: string;
+		userCredentials: UserCredentials;
+	}): Promise<string> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+		const { createErrorResponse } = await import('$lib/models/error-response');
 
-		// Mock response based on query type
-		if (query.includes('GetHRReports')) {
-			return {
-				data: {
-					hrReports: {
-						nodes: this.generateMockReports(variables.first || 20),
-						totalCount: 45
+		const input: DeleteHrReportInput = {
+			id: params.reportId
+		};
+
+		const dataRequest = createDataRequest({
+			operationName: 'DeleteHRReport',
+			variables: { input },
+			userCredentials: params.userCredentials,
+			timeoutMs: 5000,
+			retryAttempts: 0,
+			maxRetries: 3
+		});
+
+		return new Promise((resolve, reject) => {
+			const timeoutId = setTimeout(() => {
+				const errorResponse = createErrorResponse(new Error('Deletion timeout'), {
+					type: 'TIMEOUT_ERROR',
+					userMessage: 'Report deletion is taking too long. Please try again.'
+				});
+				reject(errorResponse);
+				unsubscribe();
+			}, dataRequest.timeoutMs);
+
+			const unsubscribe = this.client.subscribe(
+				{
+					query: DELETE_HR_REPORT,
+					variables: dataRequest.variables
+				},
+				(result) => {
+					clearTimeout(timeoutId);
+
+					if (result.error) {
+						const errorResponse = createErrorResponse(result.error, {
+							type: 'GRAPHQL_ERROR',
+							userMessage: 'Unable to delete report. Please try again.'
+						});
+						reject(errorResponse);
+						unsubscribe();
+					} else if (result.data) {
+						resolve(result.data.deleteHrReport.deletedHrReportId);
+						unsubscribe();
 					}
 				}
-			};
-		} else if (query.includes('CreateReport')) {
-			return {
-				data: {
-					createReport: {
-						success: true,
-						message: 'Report created successfully',
-						report: {
-							id: 'new-report-id',
-							...variables.input,
-							createdAt: new Date().toISOString(),
-							createdBy: {
-								id: 'user-id',
-								displayName: 'Current User',
-								email: 'user@company.com'
-							}
-						}
-					}
-				}
-			};
-		} else if (query.includes('RunReport')) {
-			return {
-				data: {
-					runReport: {
-						success: true,
-						message: 'Report execution started',
-						reportRun: {
-							id: 'run-' + Date.now(),
-							reportId: variables.id,
-							status: 'running',
-							startedAt: new Date().toISOString(),
-							completedAt: null,
-							parameters: variables.parameters,
-							resultUrl: null,
-							resultSize: null,
-							errorMessage: null
-						}
-					}
-				}
-			};
-		}
-
-		return { data: {} };
-	}
-
-	private generateMockReports(count: number): HRReport[] {
-		const reportTypes = ['employee', 'payroll', 'performance', 'attendance', 'compliance'];
-		const categories = ['operational', 'strategic', 'compliance', 'financial', 'analytical'];
-		const statuses = ['active', 'draft', 'scheduled', 'archived'];
-		const departments = ['Engineering', 'Sales', 'Marketing', 'HR', 'Finance'];
-
-		return Array.from({ length: count }, (_, i) => ({
-			id: `report-${i + 1}`,
-			title: `HR Report ${i + 1}`,
-			description: `Detailed analysis report for ${reportTypes[i % reportTypes.length]} data`,
-			reportType: reportTypes[i % reportTypes.length] as any,
-			category: categories[i % categories.length] as any,
-			createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-			createdBy: {
-				id: `user-${(i % 5) + 1}`,
-				displayName: `User ${(i % 5) + 1}`,
-				email: `user${(i % 5) + 1}@company.com`
-			},
-			updatedAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-			parameters: { department: departments[i % departments.length] },
-			status: statuses[i % statuses.length] as any,
-			visibility: 'department' as any,
-			schedule: i % 3 === 0 ? 'weekly' : null,
-			lastRunAt:
-				i % 2 === 0
-					? new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString()
-					: null,
-			nextRunAt: i % 3 === 0 ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() : null,
-			generatedCount: Math.floor(Math.random() * 50) + 1,
-			tags: ['automated', 'monthly', 'department'],
-			department: departments[i % departments.length],
-			accessLevel: 'advanced' as any,
-			outputFormat: 'pdf' as any,
-			isRecurring: i % 3 === 0,
-			recipients: [`manager@${departments[i % departments.length].toLowerCase()}.com`]
-		}));
+			);
+		});
 	}
 }
 
-// Server-side function exports
-export async function getReportAnalytics(params: {
-	quarter?: string;
-	year?: number;
-	department?: string;
-	userCredentials: UserCredentials;
-}): Promise<ReportAnalytics> {
-	const { createDataRequest } = await import('$lib/models/data-request');
-
-	const dataRequest = createDataRequest({
-		operationName: 'GetReportAnalytics',
-		variables: { filter: params },
-		userCredentials: params.userCredentials,
-		timeoutMs: 5000,
-		retryAttempts: 0,
-		maxRetries: 3
-	});
-
-	// Mock analytics data
-	return {
-		summary: {
-			totalReports: 45,
-			activeReports: 32,
-			scheduledReports: 12,
-			generatedToday: 8,
-			generatedThisWeek: 23,
-			generatedThisMonth: 89,
-			mostPopularType: 'employee',
-			avgRunTime: 45.3
-		},
-		typeBreakdown: [
-			{ type: 'employee', count: 15, percentage: 33.3 },
-			{ type: 'payroll', count: 12, percentage: 26.7 },
-			{ type: 'performance', count: 8, percentage: 17.8 },
-			{ type: 'attendance', count: 6, percentage: 13.3 },
-			{ type: 'compliance', count: 4, percentage: 8.9 }
-		],
-		categoryBreakdown: [
-			{ category: 'operational', count: 18, percentage: 40.0 },
-			{ category: 'strategic', count: 12, percentage: 26.7 },
-			{ category: 'compliance', count: 8, percentage: 17.8 },
-			{ category: 'financial', count: 4, percentage: 8.9 },
-			{ category: 'analytical', count: 3, percentage: 6.7 }
-		],
-		departmentUsage: [
-			{ department: 'HR', reportCount: 15, lastActivity: new Date().toISOString() },
-			{
-				department: 'Finance',
-				reportCount: 12,
-				lastActivity: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-			},
-			{
-				department: 'Engineering',
-				reportCount: 8,
-				lastActivity: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-			}
-		],
-		runHistory: Array.from({ length: 30 }, (_, i) => ({
-			date: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-			totalRuns: Math.floor(Math.random() * 20) + 5,
-			successfulRuns: Math.floor(Math.random() * 18) + 4,
-			failedRuns: Math.floor(Math.random() * 3),
-			avgDuration: Math.floor(Math.random() * 60) + 30
-		})),
-		popularReports: [
-			{
-				id: 'report-1',
-				title: 'Monthly Employee Summary',
-				runCount: 45,
-				lastRun: new Date().toISOString(),
-				avgDuration: 32.5
-			},
-			{
-				id: 'report-2',
-				title: 'Payroll Analysis',
-				runCount: 38,
-				lastRun: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-				avgDuration: 28.1
-			}
-		],
-		performanceMetrics: {
-			fastestReport: 'Employee List Export',
-			slowestReport: 'Annual Compliance Report',
-			avgExecutionTime: 45.3,
-			totalExecutionTime: 2034.5,
-			successRate: 94.7,
-			errorRate: 5.3
-		}
-	};
+/**
+ * Factory function to create ReportsOperations instance
+ */
+export function createReportsOperations(client: any): ReportsOperations {
+	return new ReportsOperations(client);
 }
-
-export function createReportsOperations(graphqlEndpoint?: string) {
-	return new ReportsOperations(graphqlEndpoint);
-}
-
-// Utility constants
-export const REPORT_TYPES = [
-	{ value: 'employee', label: 'Employee Reports' },
-	{ value: 'payroll', label: 'Payroll Reports' },
-	{ value: 'performance', label: 'Performance Reports' },
-	{ value: 'attendance', label: 'Attendance Reports' },
-	{ value: 'compliance', label: 'Compliance Reports' },
-	{ value: 'custom', label: 'Custom Reports' }
-];
-
-export const REPORT_CATEGORIES = [
-	{ value: 'operational', label: 'Operational' },
-	{ value: 'strategic', label: 'Strategic' },
-	{ value: 'compliance', label: 'Compliance' },
-	{ value: 'financial', label: 'Financial' },
-	{ value: 'analytical', label: 'Analytical' }
-];
-
-export const REPORT_STATUSES = [
-	{ value: 'active', label: 'Active' },
-	{ value: 'draft', label: 'Draft' },
-	{ value: 'scheduled', label: 'Scheduled' },
-	{ value: 'archived', label: 'Archived' }
-];

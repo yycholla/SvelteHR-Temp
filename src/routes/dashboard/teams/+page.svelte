@@ -24,7 +24,15 @@
 		TrendingUp,
 		Building2
 	} from 'lucide-svelte';
-	import { categorizeTeamSize } from '$lib/graphql/team-management-operations';
+
+	// Helper function to categorize team size
+	function categorizeTeamSize(count: number): { label: string; color: string } {
+		if (count === 0) return { label: 'Empty', color: 'gray' };
+		if (count <= 5) return { label: 'Small', color: 'blue' };
+		if (count <= 15) return { label: 'Medium', color: 'green' };
+		if (count <= 30) return { label: 'Large', color: 'yellow' };
+		return { label: 'Enterprise', color: 'purple' };
+	}
 
 	// Subscribe to page store at top level
 	const currentUrl = $derived($page.url);
