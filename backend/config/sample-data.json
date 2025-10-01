@@ -6,22 +6,14 @@
     "progressReporting": true,
     "tableConfigs": [
       {
-        "tableName": "users",
-        "recordCount": 50,
-        "priority": 1,
-        "namingPattern": "Sample User {id:3}",
-        "customFields": {
-          "email": "sample.user.{id:3}@example.com"
-        },
-        "skipIfExists": false
-      },
-      {
         "tableName": "departments",
         "recordCount": 50,
         "priority": 1,
-        "namingPattern": "Sample Department {name}",
+        "namingPattern": "Sample Department {id:3}",
         "customFields": {
-          "names": ["Alpha", "Beta", "Gamma", "Delta", "Engineering", "Marketing", "Sales", "HR", "Finance", "Operations"]
+          "name": "Sample Department {id:3}",
+          "manager_id": null,
+          "parent_department_id": null
         },
         "skipIfExists": false
       },
@@ -31,14 +23,26 @@
         "priority": 2,
         "namingPattern": "Sample Employee {id:3}",
         "customFields": {
-          "email": "sample.employee.{id:3}@example.com"
+          "full_name": "Sample Employee {id:3}",
+          "termination_date": null
+        },
+        "skipIfExists": false
+      },
+      {
+        "tableName": "users",
+        "recordCount": 50,
+        "priority": 2,
+        "namingPattern": "Sample User {id:3}",
+        "customFields": {
+          "email": "sample.user.{id:3}@example.com",
+          "employee_id": null
         },
         "skipIfExists": false
       },
       {
         "tableName": "user_role_assignments",
         "recordCount": 30,
-        "priority": 2,
+        "priority": 3,
         "namingPattern": "Sample Role Assignment {id}",
         "customFields": {},
         "skipIfExists": false
@@ -62,7 +66,7 @@
       {
         "tableName": "time_off_requests",
         "recordCount": 20,
-        "priority": 3,
+        "priority": 4,
         "namingPattern": "Sample Leave Request {id}",
         "customFields": {},
         "skipIfExists": false
@@ -70,7 +74,7 @@
       {
         "tableName": "time_off_balances",
         "recordCount": 20,
-        "priority": 3,
+        "priority": 4,
         "namingPattern": "Sample Leave Balance {id}",
         "customFields": {},
         "skipIfExists": false
@@ -78,7 +82,7 @@
       {
         "tableName": "payroll_records",
         "recordCount": 20,
-        "priority": 3,
+        "priority": 4,
         "namingPattern": "Sample Payroll Record {id}",
         "customFields": {},
         "skipIfExists": false
@@ -86,7 +90,7 @@
       {
         "tableName": "compensation_bands",
         "recordCount": 10,
-        "priority": 4,
+        "priority": 3,
         "namingPattern": "Sample Compensation Band {id}",
         "customFields": {},
         "skipIfExists": false
@@ -94,7 +98,7 @@
       {
         "tableName": "review_templates",
         "recordCount": 10,
-        "priority": 4,
+        "priority": 3,
         "namingPattern": "Sample Review Template {id}",
         "customFields": {},
         "skipIfExists": false
@@ -102,7 +106,7 @@
       {
         "tableName": "time_off_policies",
         "recordCount": 10,
-        "priority": 4,
+        "priority": 3,
         "namingPattern": "Sample Time Off Policy {id}",
         "customFields": {},
         "skipIfExists": false

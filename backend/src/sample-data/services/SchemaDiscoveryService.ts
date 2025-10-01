@@ -183,7 +183,8 @@ export class SchemaDiscoveryService {
         column_default,
         character_maximum_length,
         numeric_precision,
-        numeric_scale
+        numeric_scale,
+        is_generated
       FROM information_schema.columns
       WHERE table_schema = $1 AND table_name = $2
       ORDER BY ordinal_position
@@ -197,6 +198,7 @@ export class SchemaDiscoveryService {
       character_maximum_length: number | null;
       numeric_precision: number | null;
       numeric_scale: number | null;
+      is_generated: string;
     }>(query, [schemaName, tableName]);
 
     return result.rows.map(row => ({
@@ -206,7 +208,8 @@ export class SchemaDiscoveryService {
       defaultValue: row.column_default,
       maxLength: row.character_maximum_length,
       precision: row.numeric_precision ?? undefined,
-      scale: row.numeric_scale ?? undefined
+      scale: row.numeric_scale ?? undefined,
+      isGenerated: row.is_generated === 'ALWAYS'
     }));
   }
 

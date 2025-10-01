@@ -10,6 +10,7 @@ import { faker } from '@faker-js/faker';
 import { TableConfig } from '../models/SampleDataConfig';
 import { TableSchema, ColumnSchema } from '../models/DatabaseSchema';
 import { DataGenerationError } from '../models/Errors';
+import { ForeignKeyResolver } from './ForeignKeyResolver';
 
 /**
  * Generated record type.
@@ -26,6 +27,7 @@ export type FieldGenerator = (record: GeneratedRecord, index: number) => any;
  */
 export class DataGenerator {
   private currentSeed: number | null = null;
+  private foreignKeyResolver: ForeignKeyResolver | null = null;
 
   /**
    * Sets the random seed for deterministic generation.
@@ -38,26 +40,42 @@ export class DataGenerator {
   }
 
   /**
+   * Sets the foreign key resolver for handling FK relationships.
+   *
+   * @param resolver - Foreign key resolver instance
+   */
+  setForeignKeyResolver(resolver: ForeignKeyResolver): void {
+    this.foreignKeyResolver = resolver;
+  }
+
+  /**
    * Generates sample data for a table.
    *
    * @param tableSchema - Table schema information
    * @param tableConfig - Table configuration
    * @param count - Number of records to generate
+   * @param schemaName - Database schema name for FK resolution
    * @param startIndex - Starting index for record numbering
    * @returns Array of generated records
    */
-  generateRecords(
+  async generateRecords(
     tableSchema: TableSchema,
     tableConfig: TableConfig,
     count: number,
+    schemaName: string,
     startIndex = 0
-  ): GeneratedRecord[] {
+  ): Promise<GeneratedRecord[]> {
     const records: GeneratedRecord[] = [];
+
+    // Pre-cache foreign keys if resolver is available
+    if (this.foreignKeyResolver && tableSchema.foreignKeys.length > 0) {
+      await this.foreignKeyResolver.preCacheForeignKeys(tableSchema.foreignKeys, schemaName);
+    }
 
     for (let i = 0; i < count; i++) {
       const index = startIndex + i;
       try {
-        const record = this.generateRecord(tableSchema, tableConfig, index);
+        const record = await this.generateRecord(tableSchema, tableConfig, index, schemaName);
         records.push(record);
       } catch (error) {
         throw new DataGenerationError(
@@ -77,13 +95,15 @@ export class DataGenerator {
    * @param tableSchema - Table schema information
    * @param tableConfig - Table configuration
    * @param index - Record index
+   * @param schemaName - Database schema name for FK resolution
    * @returns Generated record
    */
-  private generateRecord(
+  private async generateRecord(
     tableSchema: TableSchema,
     tableConfig: TableConfig,
-    index: number
-  ): GeneratedRecord {
+    index: number,
+    schemaName: string
+  ): Promise<GeneratedRecord> {
     const record: GeneratedRecord = {};
 
     // Generate values for each column
@@ -94,13 +114,32 @@ export class DataGenerator {
       }
 
       // Check for custom field generator
-      if (tableConfig.customFields[column.columnName]) {
+      if (column.columnName in tableConfig.customFields) {
         const customGenerator = tableConfig.customFields[column.columnName];
         if (typeof customGenerator === 'function') {
           record[column.columnName] = customGenerator(record, index);
+        } else if (customGenerator === 'SEQUENTIAL_FK') {
+          // Special value: assign sequential FK values (index + 1)
+          record[column.columnName] = index + 1;
+        } else if (typeof customGenerator === 'string') {
+          // Process string patterns with {id}, {id:N}, {index} placeholders
+          record[column.columnName] = this.applyNamingPattern(customGenerator, index);
         } else {
+          // Use the value as-is (including null, numbers, booleans, etc.)
           record[column.columnName] = customGenerator;
         }
+        continue;
+      }
+
+      // Check if this is a foreign key column
+      if (this.foreignKeyResolver && this.foreignKeyResolver.isForeignKey(tableSchema.foreignKeys, column.columnName)) {
+        const nullProbability = column.isNullable ? 0.2 : 0;
+        record[column.columnName] = await this.foreignKeyResolver.resolveForeignKeyByColumn(
+          tableSchema.foreignKeys,
+          column.columnName,
+          schemaName,
+          nullProbability
+        );
         continue;
       }
 
@@ -125,9 +164,12 @@ export class DataGenerator {
       return null;
     }
 
-    // Handle default values
+    // Handle default values (skip function calls - those are database-generated)
     if (column.defaultValue && faker.datatype.boolean({ probability: 0.2 })) {
-      return this.parseDefaultValue(column.defaultValue);
+      const parsedDefault = this.parseDefaultValue(column.defaultValue);
+      if (parsedDefault !== undefined) {
+        return parsedDefault;
+      }
     }
 
     // Generate based on column name patterns
@@ -193,6 +235,11 @@ export class DataGenerator {
       return faker.location.country();
     }
 
+    // Role level pattern (specific constraint values)
+    if (name === 'role_level') {
+      return faker.helpers.arrayElement([0, 20, 60, 80, 100]);
+    }
+
     // Date patterns
     if (name.includes('birth') && name.includes('date')) {
       return faker.date.birthdate();
@@ -211,8 +258,18 @@ export class DataGenerator {
       return faker.lorem.paragraph();
     }
 
-    // Status patterns
+    // Status patterns - handle enum types specially
     if (name.includes('status')) {
+      // Check if this is a USER-DEFINED type (enum)
+      if (column.dataType === 'USER-DEFINED') {
+        // This is an enum type - use uppercase values
+        if (name === 'status') {
+          return faker.helpers.arrayElement(['ACTIVE', 'INACTIVE', 'ON_LEAVE', 'TERMINATED']);
+        }
+        // Default uppercase for other enum status types
+        return faker.helpers.arrayElement(['ACTIVE', 'INACTIVE', 'PENDING']);
+      }
+      // Generic status field (lowercase for text columns)
       return faker.helpers.arrayElement(['active', 'inactive', 'pending']);
     }
 
@@ -282,13 +339,23 @@ export class DataGenerator {
   /**
    * Applies naming pattern to generate a name.
    *
-   * @param pattern - Naming pattern (e.g., "Sample User {id}")
+   * @param pattern - Naming pattern (e.g., "Sample User {id}" or "Sample User {id:3}")
    * @param index - Record index
    * @returns Generated name
    */
   private applyNamingPattern(pattern: string, index: number): string {
-    const paddedId = String(index + 1).padStart(3, '0');
-    return pattern.replace('{id}', paddedId).replace('{index}', String(index + 1));
+    // Replace {id:N} pattern with N-digit padded ID
+    let result = pattern.replace(/\{id:(\d+)\}/g, (_, digits) => {
+      return String(index + 1).padStart(parseInt(digits, 10), '0');
+    });
+
+    // Replace {id} pattern with 3-digit padded ID (default)
+    result = result.replace(/\{id\}/g, String(index + 1).padStart(3, '0'));
+
+    // Replace {index} pattern with raw index
+    result = result.replace(/\{index\}/g, String(index + 1));
+
+    return result;
   }
 
   /**
@@ -358,6 +425,11 @@ export class DataGenerator {
    * @returns True if column is auto-generated
    */
   private isAutoGeneratedColumn(column: ColumnSchema): boolean {
+    // Generated (computed) columns - ALWAYS skip these
+    if (column.isGenerated) {
+      return true;
+    }
+
     // Serial/sequence columns
     if (column.dataType.includes('serial') || column.dataType.includes('sequence')) {
       return true;
@@ -396,8 +468,14 @@ export class DataGenerator {
    * @returns Parsed value
    */
   private parseDefaultValue(defaultValue: string): any {
-    // Remove PostgreSQL casting syntax
-    const cleaned = defaultValue.replace(/::\w+$/, '');
+    // Skip function calls - they should be handled by the database
+    if (defaultValue.includes('()') || defaultValue.includes('nextval') || defaultValue.includes('NOW')) {
+      return undefined; // Will cause column value to be generated instead
+    }
+
+    // Remove PostgreSQL enum casting syntax like 'ACTIVE'::hr_public.employee_status
+    // This regex removes everything from :: to the end
+    let cleaned = defaultValue.replace(/::[a-z_0-9.]+$/i, '');
 
     // Boolean values
     if (cleaned === 'true') return true;

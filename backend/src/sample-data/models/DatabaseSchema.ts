@@ -35,6 +35,9 @@ export interface ColumnSchema {
 
   /** Numeric scale for decimal/numeric types */
   scale?: number;
+
+  /** Whether this column is generated (computed) */
+  isGenerated?: boolean;
 }
 
 /**

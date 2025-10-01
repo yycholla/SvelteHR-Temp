@@ -10,6 +10,7 @@ import { DatabaseService } from './services/DatabaseService';
 import { SchemaDiscoveryService } from './services/SchemaDiscoveryService';
 import { ConfigurationService } from './services/ConfigurationService';
 import { DataGenerator } from './services/DataGenerator';
+import { ForeignKeyResolver } from './services/ForeignKeyResolver';
 import {
   SampleDataConfig,
   TableConfig,
@@ -34,12 +35,15 @@ export class SampleDataOrchestrator {
   private configurationService: ConfigurationService;
   private schemaDiscoveryService: SchemaDiscoveryService;
   private dataGenerator: DataGenerator;
+  private foreignKeyResolver: ForeignKeyResolver;
 
   constructor(databaseService: DatabaseService, configurationService: ConfigurationService) {
     this.databaseService = databaseService;
     this.configurationService = configurationService;
     this.schemaDiscoveryService = new SchemaDiscoveryService(databaseService);
     this.dataGenerator = new DataGenerator();
+    this.foreignKeyResolver = new ForeignKeyResolver(databaseService);
+    this.dataGenerator.setForeignKeyResolver(this.foreignKeyResolver);
   }
 
   /**
@@ -149,10 +153,11 @@ export class SampleDataOrchestrator {
       }
 
       // Generate records
-      const records = this.dataGenerator.generateRecords(
+      const records = await this.dataGenerator.generateRecords(
         tableSchema,
         tableConfig,
-        tableConfig.recordCount
+        tableConfig.recordCount,
+        globalConfig.schemaName
       );
 
       // Insert in batches
