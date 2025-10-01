@@ -67,7 +67,7 @@ export const load: PageServerLoad = async (event) => {
 		const selectedPeriod = url.searchParams.get('period') || 'week';
 		const viewMode = url.searchParams.get('view') || 'overview';
 
-		// Optimized minimal GraphQL queries for dashboard overview
+		// Real database GraphQL queries for dashboard overview
 		const usersQuery = `
 			query GetUsers {
 				allUsers(first: 20) {
@@ -94,11 +94,169 @@ export const load: PageServerLoad = async (event) => {
 			}
 		`;
 
-		console.log('🔍 Dashboard: Starting optimized GraphQL queries');
+		// Query for user's attendance records (last 30 days)
+		const thirtyDaysAgo = new Date();
+		thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+		const attendanceQuery = `
+			query GetUserAttendance($userId: UUID!) {
+				allAttendanceRecords(
+					condition: { userId: $userId }
+					orderBy: [DATE_DESC]
+					first: 30
+				) {
+					totalCount
+					nodes {
+						id
+						date
+						clockIn
+						clockOut
+						hoursWorked
+						status
+					}
+				}
+			}
+		`;
+
+		// Query for user's leave requests
+		const leaveRequestsQuery = `
+			query GetUserLeaveRequests($userId: UUID!) {
+				allLeaveRequests(
+					condition: { employeeId: $userId }
+					orderBy: [START_DATE_DESC]
+					first: 10
+				) {
+					totalCount
+					nodes {
+						id
+						leaveType
+						startDate
+						endDate
+						daysRequested
+						status
+						createdAt
+					}
+				}
+			}
+		`;
+
+		// Query for user's goals
+		const goalsQuery = `
+			query GetUserGoals($userId: UUID!) {
+				allEmployeeGoals(
+					condition: { employeeId: $userId }
+					orderBy: [ID_DESC]
+					first: 10
+				) {
+					totalCount
+					nodes {
+						id
+						title
+						description
+						status
+						targetDate
+						createdAt
+					}
+				}
+			}
+		`;
+
+		// Query for user's tasks
+		const tasksQuery = `
+			query GetUserTasks($userId: UUID!) {
+				allTasks(
+					condition: { assignedTo: $userId }
+					orderBy: [DUE_DATE_ASC]
+					first: 10
+				) {
+					totalCount
+					nodes {
+						id
+						title
+						description
+						status
+						priority
+						dueDate
+						category
+						createdAt
+					}
+				}
+			}
+		`;
+
+		// Query for upcoming events (user is attending or public events)
+		const eventsQuery = `
+			query GetUpcomingEvents($userId: UUID!) {
+				allEvents(
+					condition: { status: "scheduled" }
+					orderBy: [START_DATE_ASC]
+					first: 10
+				) {
+					totalCount
+					nodes {
+						id
+						title
+						description
+						type
+						startDate
+						endDate
+						allDay
+						location
+						isPublic
+						color
+						organizerByOrganizerId {
+							id
+							firstName
+							lastName
+						}
+						eventAttendeesByEventId(condition: { employeeId: $userId }) {
+							nodes {
+								responseStatus
+								isRequired
+							}
+						}
+					}
+				}
+			}
+		`;
+
+		// Query for recent activity logs
+		const activityLogsQuery = `
+			query GetRecentActivities($userId: UUID!) {
+				allActivityLogs(
+					condition: { userId: $userId }
+					orderBy: [CREATED_AT_DESC]
+					first: 20
+				) {
+					totalCount
+					nodes {
+						id
+						action
+						resourceType
+						resourceId
+						details
+						createdAt
+						employeeByEmployeeId {
+							id
+							firstName
+							lastName
+						}
+					}
+				}
+			}
+		`;
+
+		console.log('🔍 Dashboard: Starting database GraphQL queries for user:', locals.user.id);
 		const startQueryTime = Date.now();
-		const [usersResult, departmentsResult] = await Promise.allSettled([
+		const [usersResult, departmentsResult, attendanceResult, leaveResult, goalsResult, tasksResult, eventsResult, activityLogsResult] = await Promise.allSettled([
 			graphqlClient.query(usersQuery),
-			graphqlClient.query(departmentsQuery)
+			graphqlClient.query(departmentsQuery),
+			graphqlClient.query(attendanceQuery, { userId: locals.user.id }),
+			graphqlClient.query(leaveRequestsQuery, { userId: locals.user.id }),
+			graphqlClient.query(goalsQuery, { userId: locals.user.id }),
+			graphqlClient.query(tasksQuery, { userId: locals.user.id }),
+			graphqlClient.query(eventsQuery, { userId: locals.user.id }),
+			graphqlClient.query(activityLogsQuery, { userId: locals.user.id })
 		]);
 		const queryDuration = Date.now() - startQueryTime;
 		console.log(`✅ Dashboard: GraphQL queries completed in ${queryDuration}ms`);
@@ -116,20 +274,68 @@ export const load: PageServerLoad = async (event) => {
 		// Extract data with fallbacks
 		const users = usersResult.status === 'fulfilled' && usersResult.value.data?.allUsers?.nodes || [];
 		const departments = departmentsResult.status === 'fulfilled' && departmentsResult.value.data?.allDepartments?.nodes || [];
+		const allAttendanceRecords = attendanceResult.status === 'fulfilled' && attendanceResult.value.data?.allAttendanceRecords?.nodes || [];
+		const leaveRequests = leaveResult.status === 'fulfilled' && leaveResult.value.data?.allLeaveRequests?.nodes || [];
+		const goals = goalsResult.status === 'fulfilled' && goalsResult.value.data?.allEmployeeGoals?.nodes || [];
+		const tasks = tasksResult.status === 'fulfilled' && tasksResult.value.data?.allTasks?.nodes || [];
+		const events = eventsResult.status === 'fulfilled' && eventsResult.value.data?.allEvents?.nodes || [];
+		const activityLogs = activityLogsResult.status === 'fulfilled' && activityLogsResult.value.data?.allActivityLogs?.nodes || [];
+
+		// Filter attendance records to last 30 days (client-side filtering)
+		const attendanceRecords = allAttendanceRecords.filter(record => {
+			const recordDate = new Date(record.date);
+			return recordDate >= thirtyDaysAgo;
+		});
+
+		console.log('📊 Dashboard: Extracted data:', {
+			users: users.length,
+			departments: departments.length,
+			attendance: attendanceRecords.length,
+			leaves: leaveRequests.length,
+			goals: goals.length,
+			tasks: tasks.length,
+			events: events.length,
+			activityLogs: activityLogs.length
+		});
 
 		// Determine user role and permissions
 		const userRole = locals.user.role || 'employee';
-		const isAdmin = locals.roles?.includes('admin') || false;
+		const isAdmin = locals.roles?.includes('super_admin') || locals.roles?.includes('admin') || false;
 		const isManager = locals.roles?.includes('manager') || false;
 		const isHR = locals.roles?.includes('hr_manager') || false;
 
-		// Generate role-specific dashboard data based on real data (optimized)
+		// Calculate real metrics from database
 		const startDataGeneration = Date.now();
-		const dashboardMetrics = generateDashboardMetrics(userRole, users, departments);
-		const recentActivities = generateRecentActivities(userRole, users, 3); // Reduced from 8 to 3
-		const upcomingEvents = generateUpcomingEvents(userRole, 3); // Reduced from 5 to 3
+
+		// Calculate attendance rate from real data
+		const totalAttendanceDays = attendanceRecords.length;
+		const presentDays = attendanceRecords.filter(r => r.status === 'present').length;
+		const attendanceRate = totalAttendanceDays > 0 ? Math.round((presentDays / totalAttendanceDays) * 100) : 0;
+
+		// Count pending leave requests
+		const pendingLeaveRequests = leaveRequests.filter(r => r.status === 'pending').length;
+
+		// Count pending/in-progress goals as tasks
+		const pendingTasks = goals.filter(g => g.status === 'in_progress' || g.status === 'pending').length;
+
+		// Calculate remaining vacation days (sum approved + pending leave days)
+		const usedVacationDays = leaveRequests
+			.filter(r => r.leaveType === 'vacation' && (r.status === 'approved' || r.status === 'pending'))
+			.reduce((sum, r) => sum + (r.daysRequested || 0), 0);
+		const totalVacationDays = 20; // TODO: Get from user's time_off_balances table
+		const remainingVacationDays = Math.max(0, totalVacationDays - usedVacationDays);
+
+		// Generate role-specific dashboard data
+		const dashboardMetrics = generateDashboardMetrics(userRole, users, departments, {
+			attendanceRate,
+			pendingRequests: pendingLeaveRequests,
+			taskCount: tasks.filter(t => t.status === 'pending' || t.status === 'in_progress').length,
+			remainingVacationDays
+		});
+		const recentActivities = generateRecentActivitiesFromLogs(activityLogs, leaveRequests, attendanceRecords, goals, tasks, events, 10);
+		const upcomingEvents = generateUpcomingEventsFromDatabase(events, 5);
 		const quickActions = generateQuickActions(userRole, users);
-		const notifications = generateNotifications(userRole, 3); // Reduced from 5 to 3
+		const notifications = generateNotifications(userRole, 3); // Still mock for now
 		const dataGenDuration = Date.now() - startDataGeneration;
 		console.log(`📊 Dashboard: Data generation completed in ${dataGenDuration}ms`);
 
@@ -190,23 +396,20 @@ export const load: PageServerLoad = async (event) => {
 			},
 			dashboardData: {
 				metrics: {
-					attendanceRate: Math.floor(85 + Math.random() * 15), // 85-100%
-					pendingRequests: Math.floor(Math.random() * 3), // 0-2 requests
-					taskCount: Math.floor(Math.random() * 8) + 3, // 3-10 tasks
-					remainingVacationDays: Math.floor(Math.random() * 20) + 5 // 5-25 days
+					attendanceRate, // Real attendance rate from database
+					pendingRequests: pendingLeaveRequests, // Real pending leave requests
+					taskCount: tasks.filter(t => t.status === 'pending' || t.status === 'in_progress').length, // Real pending tasks
+					remainingVacationDays // Real calculated vacation days
 				},
 				activities: recentActivities.slice(0, 5).map(activity => ({
 					message: activity.title,
 					timestamp: activity.timestamp,
 					type: activity.type === 'leave_request' ? 'warning' : 'success'
 				})),
-				tasks: [
-					'Complete quarterly performance review',
-					'Update project documentation',
-					'Schedule team meeting for next week',
-					'Review and approve budget request',
-					'Submit expense reports'
-				].slice(0, Math.floor(Math.random() * 3) + 2), // 2-4 tasks
+				tasks: tasks
+					.filter(t => t.status === 'pending' || t.status === 'in_progress')
+					.slice(0, 5)
+					.map(task => task.title), // Real tasks from database
 				events: upcomingEvents.slice(0, 4).map(event => ({
 					title: event.title,
 					time: event.time,
@@ -280,7 +483,12 @@ export const load: PageServerLoad = async (event) => {
 };
 
 // Helper function to generate dashboard metrics based on role and real data
-function generateDashboardMetrics(role: string, users: any[], departments: any[]) {
+function generateDashboardMetrics(role: string, users: any[], departments: any[], realMetrics: {
+	attendanceRate: number;
+	pendingRequests: number;
+	taskCount: number;
+	remainingVacationDays: number;
+}) {
 	const activeUsers = users.filter(u => u.isActive);
 
 	const baseMetrics = [
@@ -288,7 +496,6 @@ function generateDashboardMetrics(role: string, users: any[], departments: any[]
 			id: 'total_employees',
 			title: 'Total Employees',
 			value: users.length,
-			change: Math.floor(Math.random() * 10) - 5, // -5 to +5
 			trend: 'stable' as const,
 			icon: 'Users',
 			color: 'blue'
@@ -297,7 +504,6 @@ function generateDashboardMetrics(role: string, users: any[], departments: any[]
 			id: 'active_employees',
 			title: 'Active Employees',
 			value: activeUsers.length,
-			change: Math.floor(Math.random() * 8) - 2, // -2 to +6
 			trend: 'up' as const,
 			icon: 'UserCheck',
 			color: 'green'
@@ -312,15 +518,14 @@ function generateDashboardMetrics(role: string, users: any[], departments: any[]
 		}
 	];
 
-	if (role === 'admin' || role === 'hr_manager') {
+	if (role === 'super_admin' || role === 'admin' || role === 'hr_manager') {
 		return [
 			...baseMetrics,
 			{
 				id: 'pending_requests',
 				title: 'Pending Requests',
-				value: Math.floor(users.length * 0.15), // 15% of users
-				change: -Math.floor(Math.random() * 5), // Negative change is good
-				trend: 'down' as const,
+				value: realMetrics.pendingRequests,
+				trend: 'stable' as const,
 				icon: 'Clock',
 				color: 'orange'
 			}
@@ -332,38 +537,36 @@ function generateDashboardMetrics(role: string, users: any[], departments: any[]
 			{
 				id: 'team_size',
 				title: 'Team Members',
-				value: Math.floor(users.length / departments.length), // Average team size
+				value: Math.floor(users.length / Math.max(departments.length, 1)),
 				trend: 'stable' as const,
 				icon: 'Users',
 				color: 'blue'
 			},
 			{
-				id: 'team_performance',
-				title: 'Team Performance',
-				value: `${Math.floor(85 + Math.random() * 15)}%`,
-				change: Math.floor(Math.random() * 10) - 3, // -3 to +7
-				trend: 'up' as const,
+				id: 'attendance_rate',
+				title: 'Attendance Rate',
+				value: `${realMetrics.attendanceRate}%`,
+				trend: realMetrics.attendanceRate >= 90 ? 'up' : 'stable' as const,
 				icon: 'TrendingUp',
 				color: 'green'
 			},
 			{
 				id: 'pending_approvals',
 				title: 'Pending Approvals',
-				value: Math.floor(Math.random() * 8) + 2, // 2-10 approvals
-				change: -Math.floor(Math.random() * 3), // Negative is good
-				trend: 'down' as const,
+				value: realMetrics.pendingRequests,
+				trend: 'stable' as const,
 				icon: 'CheckCircle',
 				color: 'orange'
 			}
 		];
 	}
 
-	// Employee metrics
+	// Employee metrics with real data
 	return [
 		{
 			id: 'leave_balance',
 			title: 'Leave Balance',
-			value: `${Math.floor(15 + Math.random() * 10)} days`,
+			value: `${realMetrics.remainingVacationDays} days`,
 			trend: 'stable' as const,
 			icon: 'Calendar',
 			color: 'blue'
@@ -371,78 +574,226 @@ function generateDashboardMetrics(role: string, users: any[], departments: any[]
 		{
 			id: 'pending_tasks',
 			title: 'Pending Tasks',
-			value: Math.floor(Math.random() * 8) + 2, // 2-10 tasks
-			change: -Math.floor(Math.random() * 3), // Negative is good
-			trend: 'down' as const,
+			value: realMetrics.taskCount,
+			trend: 'stable' as const,
 			icon: 'CheckSquare',
 			color: 'green'
 		},
 		{
-			id: 'next_review',
-			title: 'Next Review',
-			value: 'In 2 months',
-			trend: 'stable' as const,
+			id: 'attendance_rate',
+			title: 'Attendance Rate',
+			value: `${realMetrics.attendanceRate}%`,
+			trend: realMetrics.attendanceRate >= 90 ? 'up' : 'stable' as const,
 			icon: 'Award',
 			color: 'purple'
 		}
 	];
 }
 
-// Helper function to generate recent activities (optimized)
-function generateRecentActivities(role: string, users: any[], limit: number) {
-	const activities = [];
-	const now = Date.now();
+// Helper function to generate recent activities from real data
+function generateRecentActivities(
+	role: string,
+	leaveRequests: any[],
+	attendanceRecords: any[],
+	goals: any[],
+	limit: number
+) {
+	const activities: any[] = [];
 
-	// Pre-calculated activity templates for performance
-	const quickTemplates = [
-		{ title: 'New employee onboarded', description: 'System notification', icon: 'User', color: 'green', type: 'system_event' },
-		{ title: 'Leave request submitted', description: 'Employee requested time off', icon: 'Calendar', color: 'blue', type: 'leave_request' },
-		{ title: 'Performance review completed', description: 'Annual review completed', icon: 'Award', color: 'purple', type: 'review' }
-	];
-
-	for (let i = 0; i < limit; i++) {
-		const template = quickTemplates[i % quickTemplates.length];
-		const timeAgo = (i + 1) * 2 * 60 * 60 * 1000; // 2, 4, 6 hours ago
-
+	// Convert leave requests to activities
+	leaveRequests.slice(0, limit).forEach(leave => {
 		activities.push({
-			id: `activity-${i + 1}`,
-			...template,
-			timestamp: new Date(now - timeAgo).toISOString(),
-			user: {
-				id: 'system',
-				name: users[0]?.firstName || 'System'
-			}
+			id: `leave-${leave.id}`,
+			title: `Leave request ${leave.status}`,
+			description: `${leave.leaveType} leave from ${leave.startDate} to ${leave.endDate}`,
+			icon: 'Calendar',
+			color: leave.status === 'approved' ? 'green' : leave.status === 'pending' ? 'orange' : 'red',
+			type: 'leave_request',
+			timestamp: leave.createdAt,
+			user: { id: 'user', name: 'You' }
 		});
-	}
+	});
 
-	return activities;
+	// Convert attendance records to activities
+	attendanceRecords.slice(0, Math.min(3, limit)).forEach(attendance => {
+		activities.push({
+			id: `attendance-${attendance.id}`,
+			title: `Clocked ${attendance.status}`,
+			description: `Worked ${attendance.hoursWorked || 0} hours on ${attendance.date}`,
+			icon: 'Clock',
+			color: attendance.status === 'present' ? 'green' : 'orange',
+			type: 'attendance',
+			timestamp: attendance.clockIn || attendance.date,
+			user: { id: 'user', name: 'You' }
+		});
+	});
+
+	// Convert goals to activities
+	goals.slice(0, Math.min(2, limit)).forEach(goal => {
+		activities.push({
+			id: `goal-${goal.id}`,
+			title: `Goal: ${goal.title}`,
+			description: goal.description || 'No description',
+			icon: 'Target',
+			color: goal.status === 'completed' ? 'green' : 'blue',
+			type: 'goal',
+			timestamp: goal.createdAt,
+			user: { id: 'user', name: 'You' }
+		});
+	});
+
+	// Sort by timestamp (most recent first) and limit
+	return activities
+		.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+		.slice(0, limit);
 }
 
-// Helper function to generate upcoming events (optimized)
-function generateUpcomingEvents(role: string, limit: number) {
-	const events = [];
-	const now = Date.now();
+// Helper function to generate recent activities from activity_logs table
+function generateRecentActivitiesFromLogs(
+	activityLogs: any[],
+	leaveRequests: any[],
+	attendanceRecords: any[],
+	goals: any[],
+	tasks: any[],
+	events: any[],
+	limit: number
+) {
+	const activities: any[] = [];
 
-	// Pre-calculated event templates for performance
-	const quickEvents = [
-		{ title: 'Team Standup', description: 'Daily team meeting', priority: 'medium', icon: 'Users', type: 'meeting' },
-		{ title: 'Performance Review', description: 'Quarterly review', priority: 'high', icon: 'Award', type: 'review' },
-		{ title: 'Training Session', description: 'Professional development', priority: 'medium', icon: 'BookOpen', type: 'training' }
-	];
+	// Process activity logs (most authoritative source)
+	activityLogs.forEach(log => {
+		const actionMap: Record<string, { title: string; icon: string; color: string }> = {
+			create: { title: 'created', icon: 'Plus', color: 'green' },
+			update: { title: 'updated', icon: 'Edit', color: 'blue' },
+			delete: { title: 'deleted', icon: 'Trash', color: 'red' },
+			approve: { title: 'approved', icon: 'CheckCircle', color: 'green' },
+			reject: { title: 'rejected', icon: 'XCircle', color: 'red' },
+			submit: { title: 'submitted', icon: 'Send', color: 'blue' }
+		};
 
-	for (let i = 0; i < limit; i++) {
-		const template = quickEvents[i % quickEvents.length];
-		const daysAhead = (i + 1) * 2; // 2, 4, 6 days ahead
+		const actionInfo = actionMap[log.action] || { title: log.action, icon: 'Activity', color: 'gray' };
 
-		events.push({
-			id: `event-${i + 1}`,
-			...template,
-			date: new Date(now + daysAhead * 24 * 60 * 60 * 1000).toISOString(),
-			time: `${9 + i}:00` // 9, 10, 11 AM
+		activities.push({
+			id: `log-${log.id}`,
+			title: `${actionInfo.title} ${log.resourceType.replace('_', ' ')}`,
+			description: log.details?.description || `${log.resourceType} ${log.action}`,
+			icon: actionInfo.icon,
+			color: actionInfo.color,
+			type: 'activity_log',
+			timestamp: log.createdAt,
+			user: log.employeeByEmployeeId
+				? {
+						id: log.employeeByEmployeeId.id,
+						name: `${log.employeeByEmployeeId.firstName} ${log.employeeByEmployeeId.lastName}`
+					}
+				: { id: 'system', name: 'System' }
+		});
+	});
+
+	// Supplement with recent leave requests if activity logs are sparse
+	if (activities.length < limit) {
+		leaveRequests.slice(0, Math.min(3, limit - activities.length)).forEach(leave => {
+			activities.push({
+				id: `leave-${leave.id}`,
+				title: `Leave request ${leave.status}`,
+				description: `${leave.leaveType} leave from ${leave.startDate} to ${leave.endDate}`,
+				icon: 'Calendar',
+				color: leave.status === 'approved' ? 'green' : leave.status === 'pending' ? 'orange' : 'red',
+				type: 'leave_request',
+				timestamp: leave.createdAt,
+				user: { id: 'user', name: 'You' }
+			});
 		});
 	}
 
-	return events;
+	// Supplement with recent tasks if still sparse
+	if (activities.length < limit && tasks.length > 0) {
+		tasks.slice(0, Math.min(2, limit - activities.length)).forEach(task => {
+			activities.push({
+				id: `task-${task.id}`,
+				title: `Task: ${task.title}`,
+				description: task.description || 'No description',
+				icon: 'CheckSquare',
+				color: task.status === 'completed' ? 'green' : task.priority === 'high' ? 'red' : 'blue',
+				type: 'task',
+				timestamp: task.createdAt,
+				user: { id: 'user', name: 'You' }
+			});
+		});
+	}
+
+	// Supplement with upcoming events if still sparse
+	if (activities.length < limit && events.length > 0) {
+		events.slice(0, Math.min(2, limit - activities.length)).forEach(event => {
+			activities.push({
+				id: `event-${event.id}`,
+				title: `Event: ${event.title}`,
+				description: event.description || event.location || 'No description',
+				icon: 'Calendar',
+				color: 'purple',
+				type: 'event',
+				timestamp: event.createdAt,
+				user: { id: 'user', name: 'You' }
+			});
+		});
+	}
+
+	// Sort by timestamp (most recent first) and limit
+	return activities
+		.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+		.slice(0, limit);
+}
+
+// Helper function to generate upcoming events from real database data
+function generateUpcomingEventsFromDatabase(events: any[], limit: number) {
+	const now = new Date();
+
+	// Filter and transform events
+	return events
+		.filter(event => {
+			const startDate = new Date(event.startDate);
+			return startDate >= now && event.status === 'scheduled';
+		})
+		.slice(0, limit)
+		.map(event => {
+			const startDate = new Date(event.startDate);
+			const endDate = new Date(event.endDate);
+
+			// Format time for display
+			const timeStr = event.allDay
+				? 'All Day'
+				: startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+			// Map event type to icon
+			const iconMap = {
+				meeting: 'Users',
+				training: 'BookOpen',
+				social: 'Coffee',
+				company_event: 'Calendar',
+				holiday: 'Sun',
+				interview: 'UserCheck',
+				review: 'Award',
+				team_building: 'Users',
+				other: 'Calendar'
+			};
+
+			return {
+				id: event.id.toString(),
+				title: event.title,
+				description: event.description || '',
+				type: event.type,
+				date: event.startDate,
+				time: timeStr,
+				location: event.location || 'TBD',
+				icon: iconMap[event.type as keyof typeof iconMap] || 'Calendar',
+				color: event.color || '#3B82F6',
+				priority: event.type === 'review' || event.type === 'interview' ? 'high' : 'medium',
+				organizer: event.organizerByOrganizerId
+					? `${event.organizerByOrganizerId.firstName} ${event.organizerByOrganizerId.lastName}`
+					: 'Unknown',
+				isPublic: event.isPublic
+			};
+		});
 }
 
 // Helper function to generate quick actions based on role

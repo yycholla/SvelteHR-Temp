@@ -9,16 +9,9 @@ import { ensureBackendReady } from '$lib/server/backend-init';
 export const load: PageServerLoad = async (event) => {
 	const { locals, url, cookies, fetch: fetchFn } = event;
 
-	// Verify user is authenticated
-	if (!locals.user?.id) {
-		throw error(401, 'Authentication required');
-	}
-
-	// Check if user has manager or admin role for leave approvals
-	const hasManagerAccess = locals.roles?.includes('admin') || locals.roles?.includes('manager');
-	if (!hasManagerAccess) {
-		throw error(403, 'Manager or Admin role required');
-	}
+	// Authorization is handled by parent layout (+layout.server.ts)
+	const parentData = await event.parent();
+	const { hasManagerAccess, isAdmin } = parentData;
 
 	try {
 		// Check backend services are ready before proceeding
@@ -87,7 +80,7 @@ export const load: PageServerLoad = async (event) => {
 		// GraphQL query for leave requests from actual database
 		const leaveRequestsQuery = `
 			query GetLeaveRequests($first: Int!, $offset: Int!) {
-				allTimeOffRequests(first: $first, offset: $offset, orderBy: CREATED_AT_DESC) {
+				allLeaveRequests(first: $first, offset: $offset, orderBy: [START_DATE_DESC]) {
 					totalCount
 					pageInfo {
 						hasNextPage
@@ -96,18 +89,17 @@ export const load: PageServerLoad = async (event) => {
 					nodes {
 						id
 						employeeId
-						requestType
+						managerId
+						leaveType
 						startDate
 						endDate
 						daysRequested
 						status
 						reason
-						approvedBy
-						approvedAt
-						rejectionReason
+						managerComments
 						createdAt
 						updatedAt
-						employeeByEmployeeId {
+						userByEmployeeId {
 							id
 							firstName
 							lastName
@@ -118,7 +110,7 @@ export const load: PageServerLoad = async (event) => {
 								name
 							}
 						}
-						employeeByApprovedBy {
+						userByManagerId {
 							id
 							firstName
 							lastName
@@ -140,38 +132,38 @@ export const load: PageServerLoad = async (event) => {
 			throw new Error(`GraphQL Error: ${result.errors[0].message}`);
 		}
 
-		const leaveRequestsData = result.data?.allTimeOffRequests?.nodes || [];
-		const totalRequests = result.data?.allTimeOffRequests?.totalCount || 0;
+		const leaveRequestsData = result.data?.allLeaveRequests?.nodes || [];
+		const totalRequests = result.data?.allLeaveRequests?.totalCount || 0;
 
 		// Transform GraphQL data to expected format
 		const leaveRequests = leaveRequestsData.map(request => ({
 			id: request.id.toString(),
 			nodeId: `node${request.id}`,
 			employeeId: request.employeeId,
-			managerId: request.approvedBy,
-			leaveType: request.requestType.toLowerCase(),
+			managerId: request.managerId,
+			leaveType: request.leaveType.toLowerCase(),
 			startDate: request.startDate,
 			endDate: request.endDate,
 			daysRequested: parseInt(request.daysRequested),
 			status: request.status.toLowerCase(),
 			reason: request.reason,
-			managerComments: request.rejectionReason,
+			managerComments: request.managerComments,
 			createdAt: request.createdAt,
 			updatedAt: request.updatedAt,
 			employee: {
-				id: request.employeeByEmployeeId.id,
-				email: request.employeeByEmployeeId.email,
-				displayName: `${request.employeeByEmployeeId.firstName} ${request.employeeByEmployeeId.lastName}`,
-				departmentId: request.employeeByEmployeeId.departmentId,
+				id: request.userByEmployeeId.id,
+				email: request.userByEmployeeId.email,
+				displayName: `${request.userByEmployeeId.firstName} ${request.userByEmployeeId.lastName}`,
+				departmentId: request.userByEmployeeId.departmentId,
 				department: {
-					id: request.employeeByEmployeeId.departmentByDepartmentId?.id || 0,
-					name: request.employeeByEmployeeId.departmentByDepartmentId?.name || 'Unknown'
+					id: request.userByEmployeeId.departmentByDepartmentId?.id || 0,
+					name: request.userByEmployeeId.departmentByDepartmentId?.name || 'Unknown'
 				}
 			},
-			manager: request.employeeByApprovedBy ? {
-				id: request.employeeByApprovedBy.id,
-				email: request.employeeByApprovedBy.email,
-				displayName: `${request.employeeByApprovedBy.firstName} ${request.employeeByApprovedBy.lastName}`
+			manager: request.userByManagerId ? {
+				id: request.userByManagerId.id,
+				email: request.userByManagerId.email,
+				displayName: `${request.userByManagerId.firstName} ${request.userByManagerId.lastName}`
 			} : null
 		}));
 

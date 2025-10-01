@@ -70,62 +70,53 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
 		// In a real implementation, this would make an API call to PostGraphile
 		console.log('🔐 AuthService: Attempting login for', credentials.email);
 
-		// Mock authentication - in real implementation this would be an API call
+		// Make actual API call to authenticate against database
 		if (credentials.email && credentials.password) {
-			// Map email to actual UUID from database
-			// TODO: Replace with actual API call to PostGraphile
-			const userMap: Record<string, { id: string; role: string }> = {
-				'admin@postgraphile-hr.com': { id: '21adcea9-8c60-4f0c-beff-cfe1359365b5', role: 'admin' },
-				'john.doe@company.com': { id: '21adcea9-8c60-4f0c-beff-cfe1359365b5', role: 'admin' },
-				'sarah.wilson@company.com': { id: '4549109d-e26d-4ce8-9ec0-6cffce485a27', role: 'manager' },
-				'stephanie.lee@company.com': { id: '15b08b0a-6b40-4bf0-8c30-d7d1f156c247', role: 'employee' }
-			};
+			// Call authentication endpoint to verify credentials and get user data
+			try {
+				const response = await fetch('/api/auth/login', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(credentials)
+				});
 
-			const userData = userMap[credentials.email] || { id: '21adcea9-8c60-4f0c-beff-cfe1359365b5', role: 'admin' };
+				if (!response.ok) {
+					const errorData = await response.json().catch(() => ({}));
+					return {
+						success: false,
+						error: errorData.error || 'Authentication failed',
+						message: errorData.message || 'Invalid credentials'
+					};
+				}
 
-			// Create a proper JWT token that the server can validate
-			const currentTime = Math.floor(Date.now() / 1000);
-			const payload = {
-				user_id: userData.id,
-				email: credentials.email,
-				role: userData.role,
-				permissions: ['*'],
-				iat: currentTime,
-				exp: currentTime + (24 * 60 * 60), // 24 hours
-				iss: 'hr-system',
-				aud: 'hr-system'
-			};
+				const authData = await response.json();
 
-			// Create a simple JWT-like token (base64 encoded payload)
-			// In production, this would be properly signed
-			const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-			const encodedPayload = btoa(JSON.stringify(payload));
-			const signature = btoa(`signature-${Date.now()}`); // Mock signature
-			const mockToken = `${header}.${encodedPayload}.${signature}`;
+				// Use the token and user data from backend
+				const token = authData.token;
+				const user = authData.user;
 
-			const mockUser = {
-				id: userData.id, // Use the mapped UUID
-				email: credentials.email,
-				displayName: credentials.email.split('@')[0],
-				roles: [userData.role],
-				isActive: true,
-				onboardingStatus: 'completed'
-			};
+				// Store token if in browser - both localStorage and cookie
+				if (browser) {
+					localStorage.setItem(AUTH_CONFIG.tokenStorage.key, token);
 
-			// Store token if in browser - both localStorage and cookie
-			if (browser) {
-				localStorage.setItem(AUTH_CONFIG.tokenStorage.key, mockToken);
+					// Also set cookie for server-side authentication
+					document.cookie = `${AUTH_CONFIG.tokenStorage.cookieName}=${token}; path=/; max-age=${24 * 60 * 60}; secure=${window.location.protocol === 'https:'}; samesite=lax`;
+				}
 
-				// Also set cookie for server-side authentication
-				document.cookie = `${AUTH_CONFIG.tokenStorage.cookieName}=${mockToken}; path=/; secure=${window.location.protocol === 'https:'}; samesite=lax`;
+				return {
+					success: true,
+					token: token,
+					user: user,
+					message: 'Login successful'
+				};
+			} catch (apiError) {
+				console.error('Authentication API error:', apiError);
+				return {
+					success: false,
+					error: 'Unable to connect to authentication service',
+					message: 'Please try again later'
+				};
 			}
-
-			return {
-				success: true,
-				token: mockToken,
-				user: mockUser,
-				message: 'Login successful'
-			};
 		} else {
 			return {
 				success: false,
@@ -210,7 +201,7 @@ export async function verifyToken(token?: string): Promise<{
 					return {
 						valid: true,
 						user: {
-							id: payload.user_id || '21adcea9-8c60-4f0c-beff-cfe1359365b5',
+							id: payload.user_id, // No fallback - user_id must be in token
 							email: payload.email || 'user@example.com',
 							displayName: payload.email?.split('@')[0] || 'Mock User',
 							firstName: 'Mock',

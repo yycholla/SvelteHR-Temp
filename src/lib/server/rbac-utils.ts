@@ -169,12 +169,12 @@ export const PermissionChecks = {
 	management: (event: RequestEvent) =>
 		requireAuth(event, {
 			requiredPermissions: ['management:read'],
-			allowedRoles: ['admin', 'manager']
+			allowedRoles: ['super_admin', 'admin', 'manager']
 		}),
 	managementWrite: (event: RequestEvent) =>
 		requireAuth(event, {
 			requiredPermissions: ['management:write'],
-			allowedRoles: ['admin', 'manager']
+			allowedRoles: ['super_admin', 'admin', 'manager']
 		}),
 
 	// Leave management
@@ -185,7 +185,7 @@ export const PermissionChecks = {
 	leaveApproval: (event: RequestEvent) =>
 		requireAuth(event, {
 			requiredPermissions: ['leave:approve'],
-			allowedRoles: ['admin', 'manager']
+			allowedRoles: ['super_admin', 'admin', 'manager']
 		}),
 
 	// Performance management
@@ -196,7 +196,7 @@ export const PermissionChecks = {
 	performanceWrite: (event: RequestEvent) =>
 		requireAuth(event, {
 			requiredPermissions: ['performance:write'],
-			allowedRoles: ['admin', 'manager']
+			allowedRoles: ['super_admin', 'admin', 'manager']
 		}),
 
 	// Goals and OKRs
@@ -207,7 +207,7 @@ export const PermissionChecks = {
 	goalsWrite: (event: RequestEvent) =>
 		requireAuth(event, {
 			requiredPermissions: ['goals:write'],
-			allowedRoles: ['admin', 'manager']
+			allowedRoles: ['super_admin', 'admin', 'manager']
 		}),
 
 	// Reports
@@ -218,29 +218,29 @@ export const PermissionChecks = {
 	reportsWrite: (event: RequestEvent) =>
 		requireAuth(event, {
 			requiredPermissions: ['reports:write'],
-			allowedRoles: ['admin', 'manager']
+			allowedRoles: ['super_admin', 'admin', 'manager']
 		}),
 	reportsExecute: (event: RequestEvent) =>
 		requireAuth(event, {
 			requiredPermissions: ['reports:execute'],
-			allowedRoles: ['admin', 'manager']
+			allowedRoles: ['super_admin', 'admin', 'manager']
 		}),
 	reportsAnalytics: (event: RequestEvent) =>
 		requireAuth(event, {
 			requiredPermissions: ['reports:analytics'],
-			allowedRoles: ['admin', 'manager']
+			allowedRoles: ['super_admin', 'admin', 'manager']
 		}),
 
 	// Admin pages
 	adminRead: (event: RequestEvent) =>
 		requireAuth(event, {
 			requiredPermissions: ['admin:read'],
-			allowedRoles: ['admin']
+			allowedRoles: ['super_admin', 'admin']
 		}),
 	adminWrite: (event: RequestEvent) =>
 		requireAuth(event, {
 			requiredPermissions: ['admin:write'],
-			allowedRoles: ['admin']
+			allowedRoles: ['super_admin', 'admin']
 		})
 };
 
@@ -254,8 +254,8 @@ export async function canEditDepartment(
 	departmentId: string,
 	userRole: string
 ): Promise<boolean> {
-	// Admins can edit any department
-	if (userRole === 'admin') {
+	// Super admins and admins can edit any department
+	if (userRole === 'super_admin' || userRole === 'admin') {
 		return true;
 	}
 
@@ -308,8 +308,8 @@ export async function canEditEmployee(
 	targetEmployeeId: string,
 	userRole: string
 ): Promise<boolean> {
-	// Admins can edit anyone
-	if (userRole === 'admin') {
+	// Super admins and admins can edit anyone
+	if (userRole === 'super_admin' || userRole === 'admin') {
 		return true;
 	}
 
@@ -384,36 +384,36 @@ export function getUserPermissions(locals: App.Locals) {
 		canManageTeams: hasPermission(locals.permissions || [], ['teams:write']),
 		canViewManagement:
 			hasPermission(locals.permissions || [], ['management:read']) ||
-			hasRole(locals.roles || [], ['admin', 'manager']),
+			hasRole(locals.roles || [], ['super_admin', 'admin', 'manager']),
 		canManageLeave:
 			hasPermission(locals.permissions || [], ['leave:approve']) ||
-			hasRole(locals.roles || [], ['admin', 'manager']),
+			hasRole(locals.roles || [], ['super_admin', 'admin', 'manager']),
 		canManagePerformance:
 			hasPermission(locals.permissions || [], ['performance:write']) ||
-			hasRole(locals.roles || [], ['admin', 'manager']),
+			hasRole(locals.roles || [], ['super_admin', 'admin', 'manager']),
 		canManageGoals:
 			hasPermission(locals.permissions || [], ['goals:write']) ||
-			hasRole(locals.roles || [], ['admin', 'manager']),
+			hasRole(locals.roles || [], ['super_admin', 'admin', 'manager']),
 		canViewReports: hasPermission(locals.permissions || [], ['reports:read']),
 		canCreateReports:
 			hasPermission(locals.permissions || [], ['reports:write']) ||
-			hasRole(locals.roles || [], ['admin', 'manager']),
+			hasRole(locals.roles || [], ['super_admin', 'admin', 'manager']),
 		canExecuteReports:
 			hasPermission(locals.permissions || [], ['reports:execute']) ||
-			hasRole(locals.roles || [], ['admin', 'manager']),
+			hasRole(locals.roles || [], ['super_admin', 'admin', 'manager']),
 		canViewAnalytics:
 			hasPermission(locals.permissions || [], ['reports:analytics']) ||
-			hasRole(locals.roles || [], ['admin', 'manager']),
+			hasRole(locals.roles || [], ['super_admin', 'admin', 'manager']),
 		canViewAdmin:
 			hasPermission(locals.permissions || [], ['admin:read']) ||
-			hasRole(locals.roles || [], ['admin']),
+			hasRole(locals.roles || [], ['super_admin', 'admin']),
 		canManageAdmin:
 			hasPermission(locals.permissions || [], ['admin:write']) ||
-			hasRole(locals.roles || [], ['admin']),
+			hasRole(locals.roles || [], ['super_admin', 'admin']),
 
 		// Role checks
-		isAdmin: hasRole(locals.roles || [], ['admin']),
-		isManager: hasRole(locals.roles || [], ['admin', 'manager']),
+		isAdmin: hasRole(locals.roles || [], ['super_admin', 'admin']),
+		isManager: hasRole(locals.roles || [], ['super_admin', 'admin', 'manager']),
 		isEmployee: hasRole(locals.roles || [], ['employee'])
 	};
 }
@@ -423,6 +423,7 @@ export function getUserPermissions(locals: App.Locals) {
  * T036: Role precedence implementation
  */
 const ROLE_HIERARCHY = {
+	super_admin: 120,
 	admin: 100,
 	hr_manager: 80,
 	manager: 60,

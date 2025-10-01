@@ -112,6 +112,10 @@ export const load: PageServerLoad = async (event) => {
 			limit: 90
 		});
 
+		console.log('[Attendance] GraphQL response:', JSON.stringify(attendanceData, null, 2));
+		console.log('[Attendance] User ID:', userId);
+		console.log('[Attendance] Records found:', attendanceData.data?.allAttendanceRecords?.totalCount);
+
 		const attendanceRecords = (attendanceData.data?.allAttendanceRecords?.nodes || []).map((record: any) => ({
 			id: record.id,
 			date: record.date,

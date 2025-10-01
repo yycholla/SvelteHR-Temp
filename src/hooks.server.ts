@@ -68,48 +68,12 @@ async function authenticateUser(
 		const payload = validationResult.payload;
 		const user = extractUserFromPayload(payload);
 
-		// For admin user (UUID or legacy ID '1'), provide full permissions
-		if (user.id === 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' || user.id === '1') {
-			return {
-				user: {
-					id: user.id,
-					email: user.email || 'admin@postgraphile-hr.com',
-					display_name: 'System Administrator',
-					role: 'admin' // Use simplified role name that matches database
-				},
-				roles: ['admin', 'manager', 'employee'], // Include 'admin' role for backwards compatibility
-				permissions: [
-					'*', // Admin has all permissions
-					'dashboard:read',
-					'employees:read',
-					'employees:write',
-					'employees:delete',
-					'departments:read',
-					'departments:write',
-					'departments:delete',
-					'teams:read',
-					'teams:write',
-					'management:read',
-					'management:write',
-					'leave:read',
-					'leave:write',
-					'leave:approve',
-					'performance:read',
-					'performance:write',
-					'goals:read',
-					'goals:write',
-					'reports:read',
-					'reports:write',
-					'reports:execute',
-					'reports:analytics',
-					'admin:read',
-					'admin:write'
-				]
-			};
-		}
+		// Use permissions from JWT token if available, otherwise fallback to role-based
+		const permissions = payload.permissions && payload.permissions.length > 0
+			? payload.permissions
+			: getRolePermissions(user.role);
 
-		// For other users, provide role-based permissions
-		const rolePermissions = getRolePermissions(user.role);
+		console.log(`🔑 Permissions for ${user.email}:`, permissions);
 
 		return {
 			user: {
@@ -119,7 +83,7 @@ async function authenticateUser(
 				role: user.role
 			},
 			roles: [user.role],
-			permissions: rolePermissions
+			permissions: permissions
 		};
 	} catch (error) {
 		console.error('Authentication error:', error);
@@ -130,10 +94,12 @@ async function authenticateUser(
 // Helper function to get permissions based on role
 function getRolePermissions(role: string): string[] {
 	switch (role) {
+		case 'super_admin': // Full system administrator
 		case 'admin': // Updated to use simplified role name
 		case 'hr_admin': // Keep backwards compatibility
 		case 'hr_manager':
 			return [
+				'*', // Full permissions
 				'dashboard:read',
 				'employees:read',
 				'employees:write',

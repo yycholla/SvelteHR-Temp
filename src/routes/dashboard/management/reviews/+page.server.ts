@@ -15,26 +15,17 @@ import {
 export const load: PageServerLoad = async (event) => {
 	const { locals, url, cookies, fetch: fetchFn } = event;
 
-	// Verify user is authenticated
-	if (!locals.user?.id) {
-		throw error(401, 'Authentication required');
-	}
-
-	// Check if user has manager or admin role for performance reviews
-	const hasManagerAccess = locals.roles?.includes('admin') || locals.roles?.includes('manager');
-	if (!hasManagerAccess) {
-		throw error(403, 'Manager or Admin role required');
-	}
+	// Authorization is handled by parent layout (+layout.server.ts)
+	const parentData = await event.parent();
+	const { hasManagerAccess, isAdmin } = parentData;
 
 	// Get JWT token for PostGraphile authentication
 	const jwtToken = cookies.get('hr_token') || cookies.get('auth-token');
 	if (!jwtToken) {
 		throw error(401, 'Authentication token required');
 	}
-
 	// Create GraphQL client with server-side fetch and auth token
 	const graphqlClient = createUrqlClient(fetchFn, jwtToken);
-
 	// Extract search parameters for filtering and pagination
 	const searchTerm = url.searchParams.get('search') || '';
 	const statusFilter = url.searchParams.get('status') || 'all';
@@ -43,26 +34,21 @@ export const load: PageServerLoad = async (event) => {
 	const page = parseInt(url.searchParams.get('page') || '1', 10);
 	const limit = parseInt(url.searchParams.get('limit') || '20', 10);
 	const offset = (page - 1) * limit;
-
 	// Build condition object for PostGraphile query
 	const condition: any = {};
-
 	// Filter by reviewer ID (show only reviews for this manager's team)
-	// Admins can see all reviews
-	if (!locals.roles?.includes('admin')) {
+	// Admins and super_admins can see all reviews
+	if (!isAdmin) {
 		condition.reviewerId = locals.user.id;
 	}
-
 	// Filter by status (convert to uppercase for PostGraphile)
 	if (statusFilter && statusFilter !== 'all') {
 		condition.status = toPostGraphileStatus(statusFilter);
 	}
-
 	// Filter by review period
 	if (periodFilter) {
 		condition.reviewPeriod = periodFilter;
 	}
-
 	try {
 		// Query 1: Get performance reviews with pagination and filtering
 		const reviewsVariables = {

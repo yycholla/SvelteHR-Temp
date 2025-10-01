@@ -8,16 +8,9 @@ import { ensureBackendReady } from '$lib/server/backend-init';
 export const load: PageServerLoad = async (event) => {
 	const { locals, url, cookies } = event;
 
-	// Verify user is authenticated
-	if (!locals.user?.id) {
-		throw error(401, 'Authentication required');
-	}
-
-	// Check if user has manager or admin role
-	const hasManagerAccess = locals.roles?.includes('admin') || locals.roles?.includes('manager');
-	if (!hasManagerAccess) {
-		throw error(403, 'Manager or Admin role required');
-	}
+	// Authorization is handled by parent layout (+layout.server.ts)
+	const parentData = await event.parent();
+	const { hasManagerAccess, isAdmin } = parentData;
 
 	// Extract search parameters for filtering
 	const searchTerm = url.searchParams.get('search') || '';
@@ -26,7 +19,6 @@ export const load: PageServerLoad = async (event) => {
 	const page = parseInt(url.searchParams.get('page') || '1', 10);
 	const limit = 20;
 	const offset = (page - 1) * limit;
-
 	try {
 		// Ensure backend is ready before proceeding
 		await ensureBackendReady();

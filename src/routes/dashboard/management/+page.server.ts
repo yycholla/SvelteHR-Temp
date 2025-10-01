@@ -9,16 +9,9 @@ import { ensureBackendReady } from '$lib/server/backend-init';
 export const load: PageServerLoad = async (event) => {
 	const { locals, url, cookies } = event;
 
-	// Verify user is authenticated
-	if (!locals.user?.id) {
-		throw error(401, 'Authentication required');
-	}
-
-	// Check if user has manager or admin role
-	const hasManagerAccess = locals.roles?.includes('admin') || locals.roles?.includes('manager');
-	if (!hasManagerAccess) {
-		throw error(403, 'Manager or Admin role required');
-	}
+	// Authorization is handled by parent layout (+layout.server.ts)
+	const parentData = await event.parent();
+	const { hasManagerAccess, isAdmin } = parentData;
 
 	try {
 		// Check backend services are ready before proceeding
@@ -126,7 +119,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// Determine user's managed department
 		let managedDepartmentId: number | null = null;
-		const isAdmin = locals.roles?.includes('admin') || false;
+		const isAdmin = locals.roles?.includes('super_admin') || locals.roles?.includes('admin') || false;
 
 		if (!isAdmin && locals.roles?.includes('manager')) {
 			const userDept = departments.find(d => d.managerId === locals.user.id);
@@ -340,7 +333,7 @@ export const load: PageServerLoad = async (event) => {
 			canEditAllTeams: isAdmin, // Only admins can edit all teams
 			permissions: locals.permissions || [],
 			canManageTeam: hasManagerAccess,
-			canViewAllTeams: locals.roles?.includes('admin') || false,
+			canViewAllTeams: locals.roles?.includes('super_admin') || locals.roles?.includes('admin') || false,
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
