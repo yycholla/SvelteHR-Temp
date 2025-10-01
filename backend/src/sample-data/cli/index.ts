@@ -121,8 +121,12 @@ async function main() {
     });
   }
 
-  // Parse arguments
-  await program.parseAsync(process.argv);
+  // Parse arguments (Commander v5+ uses parseAsync, older versions use parse)
+  if (typeof program.parseAsync === 'function') {
+    await program.parseAsync(process.argv);
+  } else {
+    program.parse(process.argv);
+  }
 }
 
 // Run main function
