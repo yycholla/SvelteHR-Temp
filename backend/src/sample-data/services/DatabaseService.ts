@@ -69,10 +69,15 @@ export class DatabaseService {
         connectionTimeoutMillis: this.config.connectionTimeoutMillis
       });
 
-      // Test connection
-      await this.db.connect();
+      // Test connection by running a simple query
+      await this.db.connect().then(conn => {
+        conn.done();
+        return conn;
+      });
+
       this.isConnected = true;
     } catch (error) {
+      console.error('Database connection error:', error);
       throw new DatabaseError(
         `Failed to connect to database: ${error instanceof Error ? error.message : String(error)}`,
         'CONNECTION_FAILED'
@@ -204,9 +209,21 @@ export class DatabaseService {
         );
       }
 
-      // Create column set - table can include schema (e.g., "schema.table")
-      const columnSet = new pgp.helpers.ColumnSet(columns, { table });
+      // Parse table name - handle "schema.table" format
+      let tableConfig: any;
+      if (table.includes('.')) {
+        const [schema, tableName] = table.split('.');
+        // Use TableName helper for proper schema.table formatting
+        tableConfig = new pgp.helpers.TableName({ table: tableName, schema });
+      } else {
+        tableConfig = table;
+      }
+
+      // Create column set
+      const columnSet = new pgp.helpers.ColumnSet(columns, { table: tableConfig });
       const query = pgp.helpers.insert(records, columnSet);
+
+      console.log('Generated SQL:', query);
 
       await this.db!.none(query);
       return values.length;
@@ -251,8 +268,18 @@ export class DatabaseService {
         );
       }
 
-      // Create column set - table can include schema (e.g., "schema.table")
-      const columnSet = new pgp.helpers.ColumnSet(columns, { table });
+      // Parse table name - handle "schema.table" format
+      let tableConfig: any;
+      if (table.includes('.')) {
+        const [schema, tableName] = table.split('.');
+        // Use TableName helper for proper schema.table formatting
+        tableConfig = new pgp.helpers.TableName({ table: tableName, schema });
+      } else {
+        tableConfig = table;
+      }
+
+      // Create column set
+      const columnSet = new pgp.helpers.ColumnSet(columns, { table: tableConfig });
       const query =
         pgp.helpers.insert(records, columnSet) +
         ` ON CONFLICT (${conflictColumns.join(', ')}) DO UPDATE SET ` +
