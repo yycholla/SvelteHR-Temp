@@ -149,11 +149,28 @@ export const load: PageServerLoad = async (event) => {
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);
 
+		// Transform department data to match expected structure
+		const departments = (departmentsData?.data?.allDepartments?.nodes || []).map((dept: any) => {
+			// Filter to only active employees
+			const activeEmployees = (dept.usersByDepartmentId?.nodes || []).filter((user: any) => user.isActive);
+
+			return {
+				...dept,
+				// Map usersByDepartmentId to employees for consistency, with active count only
+				employees: {
+					nodes: activeEmployees,
+					totalCount: activeEmployees.length
+				},
+				// Map userByManagerId to departmentHead for consistency
+				departmentHead: dept.userByManagerId
+			};
+		});
+
 		// Return server-side loaded data
 		return {
 			user: userPermissions.user,
 			userSession: userSession.toJSON(), // Convert UserSession to serializable object
-			departments: departmentsData?.data?.allDepartments?.nodes || [],
+			departments,
 			totalDepartments: departmentsData?.data?.allDepartments?.totalCount || 0,
 			hierarchy: [], // For now, return empty hierarchy
 			filters: {

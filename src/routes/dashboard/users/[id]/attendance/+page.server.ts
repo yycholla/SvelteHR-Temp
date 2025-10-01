@@ -81,38 +81,47 @@ export const load: PageServerLoad = async (event) => {
 			throw error(404, 'User not found');
 		}
 
-
-		// TODO: Load actual attendance records from database
-		// For now, generate sample data
-		const currentDate = new Date();
-		const attendanceRecords = Array.from({ length: 30 }, (_, i) => {
-			const date = new Date(currentDate);
-			date.setDate(date.getDate() - i);
-
-			// Skip weekends
-			if (date.getDay() === 0 || date.getDay() === 6) {
-				return null;
+		// Load attendance records from database
+		const attendanceQuery = `
+			query GetAttendanceRecords($userId: UUID!, $limit: Int = 90) {
+				allAttendanceRecords(
+					condition: { userId: $userId }
+					orderBy: DATE_DESC
+					first: $limit
+				) {
+					nodes {
+						id
+						userId
+						date
+						clockIn
+						clockOut
+						hoursWorked
+						status
+						location
+						notes
+						createdAt
+						updatedAt
+					}
+					totalCount
+				}
 			}
+		`;
 
-			const clockIn = new Date(date);
-			clockIn.setHours(8 + Math.floor(Math.random() * 2), Math.floor(Math.random() * 60));
+		const attendanceData = await graphqlClient.query(attendanceQuery, {
+			userId,
+			limit: 90
+		});
 
-			const clockOut = new Date(clockIn);
-			clockOut.setHours(clockIn.getHours() + 8 + Math.floor(Math.random() * 2), Math.floor(Math.random() * 60));
-
-			const hoursWorked = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
-
-			return {
-				id: `attendance-${i}`,
-				date: date.toISOString().split('T')[0],
-				clockIn: clockIn.toISOString(),
-				clockOut: clockOut.toISOString(),
-				hoursWorked: Math.round(hoursWorked * 100) / 100,
-				status: hoursWorked >= 8 ? 'present' : 'partial',
-				location: 'Office',
-				notes: i % 7 === 0 ? 'Remote work day' : null
-			};
-		}).filter(Boolean);
+		const attendanceRecords = (attendanceData.data?.allAttendanceRecords?.nodes || []).map((record: any) => ({
+			id: record.id,
+			date: record.date,
+			clockIn: record.clockIn,
+			clockOut: record.clockOut,
+			hoursWorked: record.hoursWorked ? parseFloat(record.hoursWorked) : 0,
+			status: record.status,
+			location: record.location,
+			notes: record.notes
+		}));
 
 		// Calculate attendance statistics
 		const totalDays = attendanceRecords.length;

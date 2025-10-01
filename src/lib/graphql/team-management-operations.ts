@@ -349,10 +349,14 @@ export const departmentTypes = [
 
 // Helper function to categorize team size
 export function categorizeTeamSize(employeeCount: number): (typeof teamSizeCategories)[0] {
-	return (
-		teamSizeCategories.find((cat) => employeeCount >= cat.min && employeeCount <= cat.max) ||
-		teamSizeCategories[0]
-	);
+	// Handle empty teams
+	if (employeeCount === 0) {
+		return { value: 'empty', label: 'Empty (0)', min: 0, max: 0, color: 'gray' };
+	}
+
+	// Find matching category or return enterprise for very large teams
+	const match = teamSizeCategories.find((cat) => employeeCount >= cat.min && employeeCount <= cat.max);
+	return match || teamSizeCategories[teamSizeCategories.length - 1]; // Default to enterprise for 1000+
 }
 
 // Helper function to get department type info
