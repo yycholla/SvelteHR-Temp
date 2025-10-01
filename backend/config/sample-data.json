@@ -70,7 +70,8 @@
         "priority": 4,
         "namingPattern": "Sample Performance Review {id}",
         "customFields": {
-          "review_period": "Q{index} 2024"
+          "review_period": "Q{index} 2024",
+          "overall_rating": 3.5
         },
         "skipIfExists": false
       },
