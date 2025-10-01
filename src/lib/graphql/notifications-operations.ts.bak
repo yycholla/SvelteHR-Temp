@@ -1,0 +1,741 @@
+// GraphQL Operations: Notifications (Dual-Channel: Email + In-App)
+// Feature: 019-we-need-to - Task T016
+// Purpose: Notification center with read/unread tracking and recipient-only RLS
+
+import { gql } from '@urql/svelte';
+import type { UserCredentials } from '$lib/models/data-request';
+
+// ============================================================================
+// QUERIES
+// ============================================================================
+
+/**
+ * Query: Get user notifications (unread + recent read)
+ * RLS Policy: notification_recipient_access (user sees only their own notifications)
+ */
+export const GET_USER_NOTIFICATIONS = gql`
+	query GetUserNotifications(
+		$recipientId: UUID!
+		$first: Int = 50
+		$offset: Int = 0
+		$orderBy: [NotificationsOrderBy!] = [CREATED_AT_DESC]
+		$filter: NotificationFilter
+	) {
+		notifications(
+			first: $first
+			offset: $offset
+			orderBy: $orderBy
+			filter: $filter
+			condition: { recipientId: $recipientId }
+		) {
+			nodes {
+				id
+				recipientId
+				type
+				category
+				title
+				message
+				relatedResourceType
+				relatedResourceId
+				readStatus
+				deliveredAt
+				readAt
+				createdAt
+			}
+			totalCount
+			pageInfo {
+				hasNextPage
+				hasPreviousPage
+				startCursor
+				endCursor
+			}
+		}
+	}
+`;
+
+/**
+ * Query: Get unread notification count
+ */
+export const GET_UNREAD_COUNT = gql`
+	query GetUnreadCount($recipientId: UUID!) {
+		notifications(
+			filter: { readStatus: { equalTo: false } }
+			condition: { recipientId: $recipientId }
+		) {
+			totalCount
+		}
+	}
+`;
+
+/**
+ * Query: Get single notification by ID
+ */
+export const GET_NOTIFICATION_BY_ID = gql`
+	query GetNotificationById($id: UUID!) {
+		notification(id: $id) {
+			id
+			recipientId
+			type
+			category
+			title
+			message
+			relatedResourceType
+			relatedResourceId
+			readStatus
+			deliveredAt
+			readAt
+			createdAt
+		}
+	}
+`;
+
+// ============================================================================
+// MUTATIONS
+// ============================================================================
+
+/**
+ * Mutation: Mark notification as read
+ */
+export const MARK_NOTIFICATION_READ = gql`
+	mutation MarkNotificationRead($input: UpdateNotificationInput!) {
+		updateNotification(input: $input) {
+			notification {
+				id
+				readStatus
+				readAt
+			}
+			clientMutationId
+		}
+	}
+`;
+
+/**
+ * Mutation: Mark all user notifications as read
+ */
+export const MARK_ALL_READ = gql`
+	mutation MarkAllRead($recipientId: UUID!) {
+		updateNotifications(
+			filter: { readStatus: { equalTo: false } }
+			condition: { recipientId: $recipientId }
+			patch: { readStatus: true, readAt: "now()" }
+		) {
+			notifications {
+				id
+				readStatus
+				readAt
+			}
+		}
+	}
+`;
+
+/**
+ * Mutation: Delete notification
+ */
+export const DELETE_NOTIFICATION = gql`
+	mutation DeleteNotification($input: DeleteNotificationInput!) {
+		deleteNotification(input: $input) {
+			deletedNotificationId
+			clientMutationId
+		}
+	}
+`;
+
+// ============================================================================
+// TYPESCRIPT INTERFACES
+// ============================================================================
+
+export type NotificationType = 'email' | 'in_app';
+export type NotificationCategory =
+	| 'event_invitation'
+	| 'task_assignment'
+	| 'event_reminder'
+	| 'task_due_soon'
+	| 'leave_approved'
+	| 'leave_rejected'
+	| 'performance_review'
+	| 'system_announcement';
+
+export interface NotificationFilter {
+	type?: {
+		equalTo?: NotificationType;
+		in?: NotificationType[];
+	};
+	category?: {
+		equalTo?: NotificationCategory;
+		in?: NotificationCategory[];
+	};
+	readStatus?: {
+		equalTo?: boolean;
+	};
+	relatedResourceType?: {
+		equalTo?: string;
+	};
+	createdAt?: {
+		greaterThanOrEqualTo?: string;
+		lessThanOrEqualTo?: string;
+	};
+}
+
+export interface UpdateNotificationInput {
+	clientMutationId?: string;
+	id: string;
+	patch: {
+		readStatus?: boolean;
+		readAt?: string;
+	};
+}
+
+export interface DeleteNotificationInput {
+	clientMutationId?: string;
+	id: string;
+}
+
+export interface Notification {
+	id: string;
+	recipientId: string;
+	type: NotificationType;
+	category: NotificationCategory;
+	title: string;
+	message: string;
+	relatedResourceType?: string;
+	relatedResourceId?: string;
+	readStatus: boolean;
+	deliveredAt?: string;
+	readAt?: string;
+	createdAt: string;
+}
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+/**
+ * Helper: Build notification filter
+ */
+export function buildNotificationFilter({
+	type,
+	category,
+	readStatus,
+	relatedResourceType,
+	startDate,
+	endDate
+}: {
+	type?: NotificationType;
+	category?: NotificationCategory;
+	readStatus?: boolean;
+	relatedResourceType?: string;
+	startDate?: string;
+	endDate?: string;
+}): NotificationFilter {
+	const filter: NotificationFilter = {};
+
+	if (type) {
+		filter.type = { equalTo: type };
+	}
+
+	if (category) {
+		filter.category = { equalTo: category };
+	}
+
+	if (readStatus !== undefined) {
+		filter.readStatus = { equalTo: readStatus };
+	}
+
+	if (relatedResourceType) {
+		filter.relatedResourceType = { equalTo: relatedResourceType };
+	}
+
+	if (startDate || endDate) {
+		filter.createdAt = {};
+		if (startDate) {
+			filter.createdAt.greaterThanOrEqualTo = startDate;
+		}
+		if (endDate) {
+			filter.createdAt.lessThanOrEqualTo = endDate;
+		}
+	}
+
+	return filter;
+}
+
+/**
+ * Helper: Get notification icon
+ */
+export function getNotificationIcon(category: NotificationCategory): string {
+	const iconMap: Record<NotificationCategory, string> = {
+		event_invitation: '📅',
+		task_assignment: '✅',
+		event_reminder: '⏰',
+		task_due_soon: '⚠️',
+		leave_approved: '✓',
+		leave_rejected: '✗',
+		performance_review: '⭐',
+		system_announcement: '📢'
+	};
+
+	return iconMap[category] || '🔔';
+}
+
+/**
+ * Helper: Format notification time
+ */
+export function formatNotificationTime(timestamp: string): string {
+	const now = new Date();
+	const notificationDate = new Date(timestamp);
+	const diffMs = now.getTime() - notificationDate.getTime();
+	const diffMins = Math.floor(diffMs / (1000 * 60));
+	const diffHours = Math.floor(diffMins / 60);
+	const diffDays = Math.floor(diffHours / 24);
+
+	if (diffMins < 1) {
+		return 'Just now';
+	} else if (diffMins < 60) {
+		return `${diffMins}m ago`;
+	} else if (diffHours < 24) {
+		return `${diffHours}h ago`;
+	} else if (diffDays < 7) {
+		return `${diffDays}d ago`;
+	} else {
+		return notificationDate.toLocaleDateString('en-US', {
+			month: 'short',
+			day: 'numeric'
+		});
+	}
+}
+
+/**
+ * Helper: Group notifications by category
+ */
+export function groupNotificationsByCategory(
+	notifications: Notification[]
+): Map<NotificationCategory, Notification[]> {
+	const grouped = new Map<NotificationCategory, Notification[]>();
+
+	notifications.forEach((notification) => {
+		if (!grouped.has(notification.category)) {
+			grouped.set(notification.category, []);
+		}
+		grouped.get(notification.category)!.push(notification);
+	});
+
+	return grouped;
+}
+
+/**
+ * Helper: Get notification priority (for sorting)
+ */
+export function getNotificationPriority(category: NotificationCategory): number {
+	const priorityMap: Record<NotificationCategory, number> = {
+		task_due_soon: 10,
+		event_reminder: 9,
+		leave_approved: 8,
+		leave_rejected: 8,
+		performance_review: 7,
+		task_assignment: 6,
+		event_invitation: 5,
+		system_announcement: 4
+	};
+
+	return priorityMap[category] || 0;
+}
+
+/**
+ * Helper: Sort notifications by priority and time
+ */
+export function sortNotificationsByPriority(notifications: Notification[]): Notification[] {
+	return [...notifications].sort((a, b) => {
+		// First by priority
+		const priorityDiff = getNotificationPriority(b.category) - getNotificationPriority(a.category);
+		if (priorityDiff !== 0) {
+			return priorityDiff;
+		}
+		// Then by time (newest first)
+		return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+	});
+}
+
+/**
+ * Helper: Get notification category label
+ */
+export function getNotificationCategoryLabel(category: NotificationCategory): string {
+	const labels: Record<NotificationCategory, string> = {
+		event_invitation: 'Event Invitation',
+		task_assignment: 'Task Assignment',
+		event_reminder: 'Event Reminder',
+		task_due_soon: 'Task Due Soon',
+		leave_approved: 'Leave Approved',
+		leave_rejected: 'Leave Rejected',
+		performance_review: 'Performance Review',
+		system_announcement: 'System Announcement'
+	};
+
+	return labels[category] || 'Notification';
+}
+
+// ============================================================================
+// OPERATIONS CLASS
+// ============================================================================
+
+/**
+ * T016: Notifications Operations with Read/Unread Tracking
+ */
+export class NotificationsOperations {
+	private client: any;
+
+	constructor(client: any) {
+		this.client = client;
+	}
+
+	/**
+	 * Get user notifications with filtering
+	 */
+	async getUserNotifications(params: {
+		recipientId: string;
+		first?: number;
+		offset?: number;
+		filter?: NotificationFilter;
+		userCredentials: UserCredentials;
+	}): Promise<{
+		notifications: Notification[];
+		totalCount: number;
+		hasNextPage: boolean;
+	}> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+		const { createErrorResponse } = await import('$lib/models/error-response');
+
+		const dataRequest = createDataRequest({
+			operationName: 'GetUserNotifications',
+			variables: {
+				recipientId: params.recipientId,
+				first: params.first || 50,
+				offset: params.offset || 0,
+				filter: params.filter || {}
+			},
+			userCredentials: params.userCredentials,
+			timeoutMs: 5000,
+			retryAttempts: 0,
+			maxRetries: 3
+		});
+
+		return new Promise((resolve, reject) => {
+			const timeoutId = setTimeout(() => {
+				const errorResponse = createErrorResponse(new Error('Notifications timeout'), {
+					type: 'TIMEOUT_ERROR',
+					userMessage: 'Notifications are loading slowly. Please try again.'
+				});
+				reject(errorResponse);
+				unsubscribe();
+			}, dataRequest.timeoutMs);
+
+			const unsubscribe = this.client.subscribe(
+				{
+					query: GET_USER_NOTIFICATIONS,
+					variables: dataRequest.variables
+				},
+				(result: any) => {
+					clearTimeout(timeoutId);
+
+					if (result.error) {
+						const errorResponse = createErrorResponse(result.error, {
+							type: 'GRAPHQL_ERROR',
+							userMessage: 'Unable to load notifications. Please try again.'
+						});
+						reject(errorResponse);
+						unsubscribe();
+					} else if (result.data) {
+						resolve({
+							notifications: result.data.notifications.nodes,
+							totalCount: result.data.notifications.totalCount,
+							hasNextPage: result.data.notifications.pageInfo.hasNextPage
+						});
+						unsubscribe();
+					}
+				}
+			);
+		});
+	}
+
+	/**
+	 * Get unread notification count
+	 */
+	async getUnreadCount(params: {
+		recipientId: string;
+		userCredentials: UserCredentials;
+	}): Promise<number> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+		const { createErrorResponse } = await import('$lib/models/error-response');
+
+		const dataRequest = createDataRequest({
+			operationName: 'GetUnreadCount',
+			variables: { recipientId: params.recipientId },
+			userCredentials: params.userCredentials,
+			timeoutMs: 5000,
+			retryAttempts: 0,
+			maxRetries: 3
+		});
+
+		return new Promise((resolve, reject) => {
+			const timeoutId = setTimeout(() => {
+				const errorResponse = createErrorResponse(new Error('Unread count timeout'), {
+					type: 'TIMEOUT_ERROR',
+					userMessage: 'Unable to load unread count.'
+				});
+				reject(errorResponse);
+				unsubscribe();
+			}, dataRequest.timeoutMs);
+
+			const unsubscribe = this.client.subscribe(
+				{
+					query: GET_UNREAD_COUNT,
+					variables: dataRequest.variables
+				},
+				(result: any) => {
+					clearTimeout(timeoutId);
+
+					if (result.error) {
+						const errorResponse = createErrorResponse(result.error, {
+							type: 'GRAPHQL_ERROR',
+							userMessage: 'Unable to load unread count.'
+						});
+						reject(errorResponse);
+						unsubscribe();
+					} else if (result.data) {
+						resolve(result.data.notifications.totalCount);
+						unsubscribe();
+					}
+				}
+			);
+		});
+	}
+
+	/**
+	 * Get notification by ID
+	 */
+	async getNotificationById(params: {
+		notificationId: string;
+		userCredentials: UserCredentials;
+	}): Promise<Notification> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+		const { createErrorResponse } = await import('$lib/models/error-response');
+
+		const dataRequest = createDataRequest({
+			operationName: 'GetNotificationById',
+			variables: { id: params.notificationId },
+			userCredentials: params.userCredentials,
+			timeoutMs: 5000,
+			retryAttempts: 0,
+			maxRetries: 3
+		});
+
+		return new Promise((resolve, reject) => {
+			const timeoutId = setTimeout(() => {
+				const errorResponse = createErrorResponse(new Error('Notification timeout'), {
+					type: 'TIMEOUT_ERROR',
+					userMessage: 'Notification is loading slowly. Please try again.'
+				});
+				reject(errorResponse);
+				unsubscribe();
+			}, dataRequest.timeoutMs);
+
+			const unsubscribe = this.client.subscribe(
+				{
+					query: GET_NOTIFICATION_BY_ID,
+					variables: dataRequest.variables
+				},
+				(result: any) => {
+					clearTimeout(timeoutId);
+
+					if (result.error) {
+						const errorResponse = createErrorResponse(result.error, {
+							type: 'GRAPHQL_ERROR',
+							userMessage: 'Unable to load notification. Please try again.'
+						});
+						reject(errorResponse);
+						unsubscribe();
+					} else if (result.data) {
+						resolve(result.data.notification);
+						unsubscribe();
+					}
+				}
+			);
+		});
+	}
+
+	/**
+	 * Mark notification as read
+	 */
+	async markNotificationRead(params: {
+		notificationId: string;
+		userCredentials: UserCredentials;
+	}): Promise<Notification> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+		const { createErrorResponse } = await import('$lib/models/error-response');
+
+		const input: UpdateNotificationInput = {
+			id: params.notificationId,
+			patch: {
+				readStatus: true,
+				readAt: new Date().toISOString()
+			}
+		};
+
+		const dataRequest = createDataRequest({
+			operationName: 'MarkNotificationRead',
+			variables: { input },
+			userCredentials: params.userCredentials,
+			timeoutMs: 5000,
+			retryAttempts: 0,
+			maxRetries: 3
+		});
+
+		return new Promise((resolve, reject) => {
+			const timeoutId = setTimeout(() => {
+				const errorResponse = createErrorResponse(new Error('Mark read timeout'), {
+					type: 'TIMEOUT_ERROR',
+					userMessage: 'Unable to mark notification as read.'
+				});
+				reject(errorResponse);
+				unsubscribe();
+			}, dataRequest.timeoutMs);
+
+			const unsubscribe = this.client.subscribe(
+				{
+					query: MARK_NOTIFICATION_READ,
+					variables: dataRequest.variables
+				},
+				(result: any) => {
+					clearTimeout(timeoutId);
+
+					if (result.error) {
+						const errorResponse = createErrorResponse(result.error, {
+							type: 'GRAPHQL_ERROR',
+							userMessage: 'Unable to mark notification as read.'
+						});
+						reject(errorResponse);
+						unsubscribe();
+					} else if (result.data) {
+						resolve(result.data.updateNotification.notification);
+						unsubscribe();
+					}
+				}
+			);
+		});
+	}
+
+	/**
+	 * Mark all user notifications as read
+	 */
+	async markAllRead(params: {
+		recipientId: string;
+		userCredentials: UserCredentials;
+	}): Promise<boolean> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+		const { createErrorResponse } = await import('$lib/models/error-response');
+
+		const dataRequest = createDataRequest({
+			operationName: 'MarkAllRead',
+			variables: { recipientId: params.recipientId },
+			userCredentials: params.userCredentials,
+			timeoutMs: 5000,
+			retryAttempts: 0,
+			maxRetries: 3
+		});
+
+		return new Promise((resolve, reject) => {
+			const timeoutId = setTimeout(() => {
+				const errorResponse = createErrorResponse(new Error('Mark all read timeout'), {
+					type: 'TIMEOUT_ERROR',
+					userMessage: 'Unable to mark all notifications as read.'
+				});
+				reject(errorResponse);
+				unsubscribe();
+			}, dataRequest.timeoutMs);
+
+			const unsubscribe = this.client.subscribe(
+				{
+					query: MARK_ALL_READ,
+					variables: dataRequest.variables
+				},
+				(result: any) => {
+					clearTimeout(timeoutId);
+
+					if (result.error) {
+						const errorResponse = createErrorResponse(result.error, {
+							type: 'GRAPHQL_ERROR',
+							userMessage: 'Unable to mark all notifications as read.'
+						});
+						reject(errorResponse);
+						unsubscribe();
+					} else if (result.data) {
+						resolve(true);
+						unsubscribe();
+					}
+				}
+			);
+		});
+	}
+
+	/**
+	 * Delete notification
+	 */
+	async deleteNotification(params: {
+		notificationId: string;
+		userCredentials: UserCredentials;
+	}): Promise<string> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+		const { createErrorResponse } = await import('$lib/models/error-response');
+
+		const input: DeleteNotificationInput = {
+			id: params.notificationId
+		};
+
+		const dataRequest = createDataRequest({
+			operationName: 'DeleteNotification',
+			variables: { input },
+			userCredentials: params.userCredentials,
+			timeoutMs: 5000,
+			retryAttempts: 0,
+			maxRetries: 3
+		});
+
+		return new Promise((resolve, reject) => {
+			const timeoutId = setTimeout(() => {
+				const errorResponse = createErrorResponse(new Error('Delete timeout'), {
+					type: 'TIMEOUT_ERROR',
+					userMessage: 'Unable to delete notification.'
+				});
+				reject(errorResponse);
+				unsubscribe();
+			}, dataRequest.timeoutMs);
+
+			const unsubscribe = this.client.subscribe(
+				{
+					query: DELETE_NOTIFICATION,
+					variables: dataRequest.variables
+				},
+				(result: any) => {
+					clearTimeout(timeoutId);
+
+					if (result.error) {
+						const errorResponse = createErrorResponse(result.error, {
+							type: 'GRAPHQL_ERROR',
+							userMessage: 'Unable to delete notification.'
+						});
+						reject(errorResponse);
+						unsubscribe();
+					} else if (result.data) {
+						resolve(result.data.deleteNotification.deletedNotificationId);
+						unsubscribe();
+					}
+				}
+			);
+		});
+	}
+}
+
+/**
+ * Factory function to create NotificationsOperations instance
+ */
+export function createNotificationsOperations(client: any): NotificationsOperations {
+	return new NotificationsOperations(client);
+}

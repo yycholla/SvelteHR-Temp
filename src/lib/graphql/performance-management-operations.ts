@@ -729,15 +729,14 @@ export class PerformanceManagementOperations {
 				filter: params.filter || {}
 			},
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
+			timeoutMs: 5000
 			maxRetries: 3
 		});
 
 		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Performance reviews timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage: 'Performance reviews are loading slowly. Please try again.'
 				});
 				reject(errorResponse);
@@ -754,7 +753,7 @@ export class PerformanceManagementOperations {
 
 					if (result.error) {
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
+							type: 'graphql',
 							userMessage: 'Unable to load performance reviews. Please try again.'
 						});
 						reject(errorResponse);
@@ -786,15 +785,14 @@ export class PerformanceManagementOperations {
 			operationName: 'GetPerformanceStatistics',
 			variables: { departmentId: params.departmentId },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
+			timeoutMs: 5000
 			maxRetries: 3
 		});
 
 		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Statistics timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage: 'Statistics are loading slowly. Please try again.'
 				});
 				reject(errorResponse);
@@ -811,7 +809,7 @@ export class PerformanceManagementOperations {
 
 					if (result.error) {
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
+							type: 'graphql',
 							userMessage: 'Unable to load statistics. Please try again.'
 						});
 						reject(errorResponse);
@@ -841,7 +839,7 @@ export class PerformanceManagementOperations {
 		const validation = validatePerformanceReviewInput(params.input.performanceReview);
 		if (!validation.valid) {
 			throw createErrorResponse(new Error(validation.errors.join(', ')), {
-				type: 'VALIDATION_ERROR',
+				type: 'validation',
 				userMessage: validation.errors.join(', ')
 			});
 		}
@@ -850,15 +848,14 @@ export class PerformanceManagementOperations {
 			operationName: 'CreatePerformanceReview',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
+			timeoutMs: 5000
 			maxRetries: 3
 		});
 
 		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Creation timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage: 'Review creation is taking too long. Please try again.'
 				});
 				reject(errorResponse);
@@ -875,7 +872,7 @@ export class PerformanceManagementOperations {
 
 					if (result.error) {
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
+							type: 'graphql',
 							userMessage: 'Unable to create performance review. Please try again.'
 						});
 						reject(errorResponse);
@@ -936,7 +933,7 @@ export class PerformanceManagementOperations {
 
 		if (errors.length > 0) {
 			throw createErrorResponse(new Error(errors.join(', ')), {
-				type: 'VALIDATION_ERROR',
+				type: 'validation',
 				userMessage: errors.join(', ')
 			});
 		}
@@ -945,15 +942,14 @@ export class PerformanceManagementOperations {
 			operationName: 'UpdatePerformanceReview',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
+			timeoutMs: 5000
 			maxRetries: 3
 		});
 
 		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Update timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage: 'Review update is taking too long. Please try again.'
 				});
 				reject(errorResponse);
@@ -970,7 +966,7 @@ export class PerformanceManagementOperations {
 
 					if (result.error) {
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
+							type: 'graphql',
 							userMessage: 'Unable to update performance review. Please try again.'
 						});
 						reject(errorResponse);
@@ -1003,15 +999,14 @@ export class PerformanceManagementOperations {
 			operationName: 'DeletePerformanceReview',
 			variables: { input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
+			timeoutMs: 5000
 			maxRetries: 3
 		});
 
 		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Deletion timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage: 'Review deletion is taking too long. Please try again.'
 				});
 				reject(errorResponse);
@@ -1028,7 +1023,7 @@ export class PerformanceManagementOperations {
 
 					if (result.error) {
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
+							type: 'graphql',
 							userMessage: 'Unable to delete performance review. Please try again.'
 						});
 						reject(errorResponse);

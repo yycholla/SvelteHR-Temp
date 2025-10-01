@@ -226,8 +226,7 @@ export class AuthenticationOperations {
 			operationName: 'Login',
 			variables: credentials,
 			userCredentials: anonymousCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
+			timeoutMs: 5000
 			maxRetries: 3
 		});
 
@@ -260,7 +259,7 @@ export class AuthenticationOperations {
 
 							// Create structured error response
 							const errorResponse = createErrorResponse(error, {
-								type: error.message.includes('timeout') ? 'TIMEOUT_ERROR' : 'AUTHENTICATION_ERROR',
+								type: error.message.includes('timeout') ? 'timeout' : 'AUTHENTICATION_ERROR',
 								userMessage: 'Unable to sign in. Please check your credentials and try again.'
 							});
 
@@ -346,14 +345,13 @@ export class AuthenticationOperations {
 			variables: { refreshToken },
 			userCredentials: expiredCredentials,
 			timeoutMs: 3000, // Shorter timeout for token refresh
-			retryAttempts: 0,
 			maxRetries: 1 // Only retry once for token refresh
 		});
 
 		return new Promise<AuthenticationResult>((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Token refresh timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage: 'Session refresh is taking too long. Please sign in again.'
 				});
 				reject(errorResponse);
@@ -414,15 +412,14 @@ export class AuthenticationOperations {
 			operationName: 'VerifyToken',
 			variables: {},
 			userCredentials: currentCredentials,
-			timeoutMs: 3000,
-			retryAttempts: 0,
+			timeoutMs: 3000
 			maxRetries: 2
 		});
 
 		return new Promise<AuthenticationResult>((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Token verification timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage: 'Unable to verify your session. Please try again.'
 				});
 				reject(errorResponse);
@@ -484,8 +481,7 @@ export class AuthenticationOperations {
 			operationName: 'Logout',
 			variables: { sessionId },
 			userCredentials: currentCredentials,
-			timeoutMs: 3000,
-			retryAttempts: 0,
+			timeoutMs: 3000
 			maxRetries: 1 // Single retry for logout
 		});
 

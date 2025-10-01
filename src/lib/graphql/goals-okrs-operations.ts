@@ -604,15 +604,14 @@ export class GoalsOKROperations {
 				filter: params.filter || {}
 			},
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
+			timeoutMs: 5000
 			maxRetries: 3
 		});
 
 		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Goals timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage: 'Goals are loading slowly. Please try again.'
 				});
 				reject(errorResponse);
@@ -629,7 +628,7 @@ export class GoalsOKROperations {
 
 					if (result.error) {
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
+							type: 'graphql',
 							userMessage: 'Unable to load goals. Please try again.'
 						});
 						reject(errorResponse);
@@ -661,15 +660,14 @@ export class GoalsOKROperations {
 			operationName: 'GetGoalStatistics',
 			variables: { departmentId: params.departmentId },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
+			timeoutMs: 5000
 			maxRetries: 3
 		});
 
 		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Statistics timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage: 'Statistics are loading slowly. Please try again.'
 				});
 				reject(errorResponse);
@@ -686,7 +684,7 @@ export class GoalsOKROperations {
 
 					if (result.error) {
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
+							type: 'graphql',
 							userMessage: 'Unable to load statistics. Please try again.'
 						});
 						reject(errorResponse);
@@ -716,7 +714,7 @@ export class GoalsOKROperations {
 		const validation = validateGoalInput(params.input.employeeGoal);
 		if (!validation.valid) {
 			throw createErrorResponse(new Error(validation.errors.join(', ')), {
-				type: 'VALIDATION_ERROR',
+				type: 'validation',
 				userMessage: validation.errors.join(', ')
 			});
 		}
@@ -725,15 +723,14 @@ export class GoalsOKROperations {
 			operationName: 'CreateEmployeeGoal',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
+			timeoutMs: 5000
 			maxRetries: 3
 		});
 
 		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Creation timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage: 'Goal creation is taking too long. Please try again.'
 				});
 				reject(errorResponse);
@@ -750,7 +747,7 @@ export class GoalsOKROperations {
 
 					if (result.error) {
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
+							type: 'graphql',
 							userMessage: 'Unable to create goal. Please try again.'
 						});
 						reject(errorResponse);
@@ -781,7 +778,7 @@ export class GoalsOKROperations {
 			const validation = validateProgress(params.input.patch.progress);
 			if (!validation.valid) {
 				throw createErrorResponse(new Error(validation.error), {
-					type: 'VALIDATION_ERROR',
+					type: 'validation',
 					userMessage: validation.error!
 				});
 			}
@@ -796,15 +793,14 @@ export class GoalsOKROperations {
 			operationName: 'UpdateEmployeeGoal',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
+			timeoutMs: 5000
 			maxRetries: 3
 		});
 
 		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Update timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage: 'Goal update is taking too long. Please try again.'
 				});
 				reject(errorResponse);
@@ -821,7 +817,7 @@ export class GoalsOKROperations {
 
 					if (result.error) {
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
+							type: 'graphql',
 							userMessage: 'Unable to update goal. Please try again.'
 						});
 						reject(errorResponse);
@@ -854,15 +850,14 @@ export class GoalsOKROperations {
 			operationName: 'DeleteEmployeeGoal',
 			variables: { input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
+			timeoutMs: 5000
 			maxRetries: 3
 		});
 
 		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Deletion timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage: 'Goal deletion is taking too long. Please try again.'
 				});
 				reject(errorResponse);
@@ -879,7 +874,7 @@ export class GoalsOKROperations {
 
 					if (result.error) {
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
+							type: 'graphql',
 							userMessage: 'Unable to delete goal. Please try again.'
 						});
 						reject(errorResponse);

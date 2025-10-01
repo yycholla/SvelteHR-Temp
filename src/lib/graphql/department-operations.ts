@@ -413,8 +413,7 @@ export class DepartmentOperations {
 				orderBy: params.orderBy
 			},
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
+			timeoutMs: 5000
 			maxRetries: 3
 		});
 
@@ -447,7 +446,7 @@ export class DepartmentOperations {
 
 							// Create structured error response
 							const errorResponse = createErrorResponse(error, {
-								type: error.message.includes('timeout') ? 'TIMEOUT_ERROR' : 'GRAPHQL_ERROR',
+								type: error.message.includes('timeout') ? 'timeout' : 'graphql',
 								userMessage: 'Unable to load department data. Please try again or contact support.'
 							});
 
@@ -483,7 +482,7 @@ export class DepartmentOperations {
 						if (result.error) {
 							console.error('Departments GraphQL error:', result.error);
 							const errorResponse = createErrorResponse(result.error, {
-								type: 'GRAPHQL_ERROR',
+								type: 'graphql',
 								userMessage:
 									'Unable to load department list. Please check your permissions and try again.'
 							});
@@ -515,14 +514,13 @@ export class DepartmentOperations {
 			variables: { id: params.id },
 			userCredentials: params.userCredentials,
 			timeoutMs: 4000, // Slightly longer timeout for detailed data
-			retryAttempts: 0,
 			maxRetries: 2
 		});
 
 		return new Promise<Department>((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Department fetch timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage: 'Department data is taking longer than expected. Please try again.'
 				});
 				reject(errorResponse);
@@ -540,7 +538,7 @@ export class DepartmentOperations {
 					if (result.error) {
 						console.error('Department by ID error:', result.error);
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
+							type: 'graphql',
 							userMessage:
 								'Unable to load department details. Please check the department ID and try again.'
 						});
@@ -552,7 +550,7 @@ export class DepartmentOperations {
 						unsubscribe();
 					} else {
 						const errorResponse = createErrorResponse(new Error('Department not found'), {
-							type: 'VALIDATION_ERROR',
+							type: 'validation',
 							userMessage: 'Department not found. Please check the department ID.'
 						});
 						reject(errorResponse);
@@ -577,14 +575,13 @@ export class DepartmentOperations {
 			variables: {},
 			userCredentials: params.userCredentials,
 			timeoutMs: 6000, // Longer timeout for hierarchy data
-			retryAttempts: 0,
 			maxRetries: 2
 		});
 
 		return new Promise<Department[]>((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Department hierarchy timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage: 'Organization chart is taking longer than expected. Please try again.'
 				});
 				reject(errorResponse);
@@ -601,7 +598,7 @@ export class DepartmentOperations {
 					if (result.error) {
 						console.error('Department hierarchy error:', result.error);
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
+							type: 'graphql',
 							userMessage: 'Unable to load organization chart. Please try refreshing the page.'
 						});
 						reject(errorResponse);
@@ -651,14 +648,13 @@ export class DepartmentOperations {
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
 			timeoutMs: 8000, // Longer timeout for mutations
-			retryAttempts: 0,
 			maxRetries: 1 // Single retry for mutations
 		});
 
 		return new Promise<Department>((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Department creation timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage:
 						'Department creation is taking longer than expected. Please check if the department was created.'
 				});
@@ -677,7 +673,7 @@ export class DepartmentOperations {
 					if (result.error) {
 						console.error('Create department error:', result.error);
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'VALIDATION_ERROR',
+							type: 'validation',
 							userMessage:
 								'Unable to create department. Please check the information and try again.'
 						});
@@ -729,15 +725,14 @@ export class DepartmentOperations {
 			operationName: 'UpdateDepartment',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 6000,
-			retryAttempts: 0,
+			timeoutMs: 6000
 			maxRetries: 1
 		});
 
 		return new Promise<Department>((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Department update timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage:
 						'Department update is taking longer than expected. Please verify the changes were saved.'
 				});
@@ -756,7 +751,7 @@ export class DepartmentOperations {
 					if (result.error) {
 						console.error('Update department error:', result.error);
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'VALIDATION_ERROR',
+							type: 'validation',
 							userMessage:
 								'Unable to update department. Please check the information and try again.'
 						});
@@ -790,14 +785,13 @@ export class DepartmentOperations {
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
 			timeoutMs: 10000, // Longer timeout for deletion (might need to transfer employees)
-			retryAttempts: 0,
 			maxRetries: 0 // No retries for deletion
 		});
 
 		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Department deletion timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage:
 						'Department deletion is taking longer than expected. Please verify if the operation completed.'
 				});

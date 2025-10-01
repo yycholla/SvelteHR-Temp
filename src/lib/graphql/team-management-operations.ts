@@ -518,13 +518,12 @@ export function buildDepartmentFilter({
 /**
  * T031: Standardized Team Management Operations with Error Handling
  */
-import type { OperationStore } from '@urql/svelte';
 import type { DataRequest, UserCredentials } from '$lib/models/data-request';
 
 export class TeamManagementOperations {
-	private client: OperationStore;
+	private client: any;
 
-	constructor(client: OperationStore) {
+	constructor(client: any) {
 		this.client = client;
 	}
 
@@ -539,46 +538,41 @@ export class TeamManagementOperations {
 			operationName: 'GetTeamOverview',
 			variables: { departmentId: params.departmentId },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
-			maxRetries: 3
+			timeoutMs: 5000
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Team overview timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage: 'Team overview is loading slowly. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(GET_TEAM_DETAILS, { id: params.departmentId }).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to load team overview. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: GET_TEAM_OVERVIEW,
-					variables: { departmentId: params.departmentId }
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No team overview data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to load team overview. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						resolve(result.data);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			return result.data;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to load team overview. Please try again.'
+			});
+		}
 	}
 }
 
-export function createTeamManagementOperations(client: OperationStore): TeamManagementOperations {
+export function createTeamManagementOperations(client: any): TeamManagementOperations {
 	return new TeamManagementOperations(client);
 }

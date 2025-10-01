@@ -519,15 +519,14 @@ export class LeaveManagementOperations {
 				filter: params.filter || {}
 			},
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
+			timeoutMs: 5000
 			maxRetries: 3
 		});
 
 		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Leave requests timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage: 'Leave requests are loading slowly. Please try again.'
 				});
 				reject(errorResponse);
@@ -544,7 +543,7 @@ export class LeaveManagementOperations {
 
 					if (result.error) {
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
+							type: 'graphql',
 							userMessage: 'Unable to load leave requests. Please try again.'
 						});
 						reject(errorResponse);
@@ -576,15 +575,14 @@ export class LeaveManagementOperations {
 			operationName: 'GetLeaveStatistics',
 			variables: { departmentId: params.departmentId },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
+			timeoutMs: 5000
 			maxRetries: 3
 		});
 
 		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Statistics timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage: 'Statistics are loading slowly. Please try again.'
 				});
 				reject(errorResponse);
@@ -601,7 +599,7 @@ export class LeaveManagementOperations {
 
 					if (result.error) {
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
+							type: 'graphql',
 							userMessage: 'Unable to load statistics. Please try again.'
 						});
 						reject(errorResponse);
@@ -633,7 +631,7 @@ export class LeaveManagementOperations {
 		const validation = validateLeaveReview('approve', params.reviewNotes);
 		if (!validation.valid) {
 			throw createErrorResponse(new Error(validation.error), {
-				type: 'VALIDATION_ERROR',
+				type: 'validation',
 				userMessage: validation.error!
 			});
 		}
@@ -652,15 +650,14 @@ export class LeaveManagementOperations {
 			operationName: 'ApproveLeaveRequest',
 			variables: { input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
+			timeoutMs: 5000
 			maxRetries: 3
 		});
 
 		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Approval timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage: 'Approval is taking too long. Please try again.'
 				});
 				reject(errorResponse);
@@ -677,7 +674,7 @@ export class LeaveManagementOperations {
 
 					if (result.error) {
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
+							type: 'graphql',
 							userMessage: 'Unable to approve leave request. Please try again.'
 						});
 						reject(errorResponse);
@@ -709,7 +706,7 @@ export class LeaveManagementOperations {
 		const validation = validateLeaveReview('reject', params.reviewNotes);
 		if (!validation.valid) {
 			throw createErrorResponse(new Error(validation.error), {
-				type: 'VALIDATION_ERROR',
+				type: 'validation',
 				userMessage: validation.error!
 			});
 		}
@@ -728,15 +725,14 @@ export class LeaveManagementOperations {
 			operationName: 'RejectLeaveRequest',
 			variables: { input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
+			timeoutMs: 5000
 			maxRetries: 3
 		});
 
 		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Rejection timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage: 'Rejection is taking too long. Please try again.'
 				});
 				reject(errorResponse);
@@ -753,7 +749,7 @@ export class LeaveManagementOperations {
 
 					if (result.error) {
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
+							type: 'graphql',
 							userMessage: 'Unable to reject leave request. Please try again.'
 						});
 						reject(errorResponse);

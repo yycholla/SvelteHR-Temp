@@ -640,15 +640,14 @@ export class ReportsOperations {
 				filter: params.filter || {}
 			},
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
+			timeoutMs: 5000
 			maxRetries: 3
 		});
 
 		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Reports timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage: 'Reports are loading slowly. Please try again.'
 				});
 				reject(errorResponse);
@@ -665,7 +664,7 @@ export class ReportsOperations {
 
 					if (result.error) {
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
+							type: 'graphql',
 							userMessage: 'Unable to load reports. Please try again.'
 						});
 						reject(errorResponse);
@@ -697,15 +696,14 @@ export class ReportsOperations {
 			operationName: 'GetReportAnalytics',
 			variables: { departmentId: params.departmentId },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
+			timeoutMs: 5000
 			maxRetries: 3
 		});
 
 		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Analytics timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage: 'Analytics are loading slowly. Please try again.'
 				});
 				reject(errorResponse);
@@ -722,7 +720,7 @@ export class ReportsOperations {
 
 					if (result.error) {
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
+							type: 'graphql',
 							userMessage: 'Unable to load analytics. Please try again.'
 						});
 						reject(errorResponse);
@@ -751,7 +749,7 @@ export class ReportsOperations {
 		const validation = validateReportInput(params.input.hrReport);
 		if (!validation.valid) {
 			throw createErrorResponse(new Error(validation.errors.join(', ')), {
-				type: 'VALIDATION_ERROR',
+				type: 'validation',
 				userMessage: validation.errors.join(', ')
 			});
 		}
@@ -760,15 +758,14 @@ export class ReportsOperations {
 			operationName: 'CreateHRReport',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
+			timeoutMs: 5000
 			maxRetries: 3
 		});
 
 		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Creation timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage: 'Report creation is taking too long. Please try again.'
 				});
 				reject(errorResponse);
@@ -785,7 +782,7 @@ export class ReportsOperations {
 
 					if (result.error) {
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
+							type: 'graphql',
 							userMessage: 'Unable to create report. Please try again.'
 						});
 						reject(errorResponse);
@@ -813,15 +810,14 @@ export class ReportsOperations {
 			operationName: 'UpdateHRReport',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
+			timeoutMs: 5000
 			maxRetries: 3
 		});
 
 		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Update timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage: 'Report update is taking too long. Please try again.'
 				});
 				reject(errorResponse);
@@ -838,7 +834,7 @@ export class ReportsOperations {
 
 					if (result.error) {
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
+							type: 'graphql',
 							userMessage: 'Unable to update report. Please try again.'
 						});
 						reject(errorResponse);
@@ -870,15 +866,14 @@ export class ReportsOperations {
 			operationName: 'DeleteHRReport',
 			variables: { input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
+			timeoutMs: 5000
 			maxRetries: 3
 		});
 
 		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Deletion timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage: 'Report deletion is taking too long. Please try again.'
 				});
 				reject(errorResponse);
@@ -895,7 +890,7 @@ export class ReportsOperations {
 
 					if (result.error) {
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
+							type: 'graphql',
 							userMessage: 'Unable to delete report. Please try again.'
 						});
 						reject(errorResponse);

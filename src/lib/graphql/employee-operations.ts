@@ -411,8 +411,6 @@ export class EmployeeOperations {
 			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000,
-			retryAttempts: 0,
-			maxRetries: 3
 		});
 
 		// Retry handler with exponential backoff
@@ -444,7 +442,7 @@ export class EmployeeOperations {
 
 							// Create structured error response
 							const errorResponse = createErrorResponse(error, {
-								type: error.message.includes('timeout') ? 'TIMEOUT_ERROR' : 'GRAPHQL_ERROR',
+								type: error.message.includes('timeout') ? 'timeout' : 'graphql',
 								userMessage: 'Unable to load employee data. Please try again or contact support.'
 							});
 
@@ -480,7 +478,7 @@ export class EmployeeOperations {
 						if (result.error) {
 							console.error('Employees GraphQL error:', result.error);
 							const errorResponse = createErrorResponse(result.error, {
-								type: 'GRAPHQL_ERROR',
+								type: 'graphql',
 								userMessage:
 									'Unable to load employee list. Please check your permissions and try again.'
 							});
@@ -510,15 +508,13 @@ export class EmployeeOperations {
 			operationName: 'GetDepartments',
 			variables: { first: 100 }, // Get all departments
 			userCredentials: params.userCredentials,
-			timeoutMs: 3000,
-			retryAttempts: 0,
-			maxRetries: 2
+			timeoutMs: 3000
 		});
 
 		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Departments fetch timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage: 'Department data is taking longer than expected. Please try again.'
 				});
 				reject(errorResponse);
@@ -536,7 +532,7 @@ export class EmployeeOperations {
 					if (result.error) {
 						console.error('Departments GraphQL error:', result.error);
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
+							type: 'graphql',
 							userMessage: 'Unable to load departments. Please try again.'
 						});
 						reject(errorResponse);
@@ -566,14 +562,12 @@ export class EmployeeOperations {
 			variables: { id: params.id },
 			userCredentials: params.userCredentials,
 			timeoutMs: 3000, // Shorter timeout for single record
-			retryAttempts: 0,
-			maxRetries: 2
 		});
 
 		return new Promise<Employee>((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Employee fetch timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage: 'Employee data is taking longer than expected. Please try again.'
 				});
 				reject(errorResponse);
@@ -591,7 +585,7 @@ export class EmployeeOperations {
 					if (result.error) {
 						console.error('Employee by ID error:', result.error);
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
+							type: 'graphql',
 							userMessage:
 								'Unable to load employee details. Please check the employee ID and try again.'
 						});
@@ -603,7 +597,7 @@ export class EmployeeOperations {
 						unsubscribe();
 					} else {
 						const errorResponse = createErrorResponse(new Error('Employee not found'), {
-							type: 'VALIDATION_ERROR',
+							type: 'validation',
 							userMessage: 'Employee not found. Please check the employee ID.'
 						});
 						reject(errorResponse);
@@ -628,15 +622,13 @@ export class EmployeeOperations {
 			operationName: 'GetEmployeeDashboard',
 			variables: { employeeId: params.employeeId },
 			userCredentials: params.userCredentials,
-			timeoutMs: 4000,
-			retryAttempts: 0,
-			maxRetries: 2
+			timeoutMs: 4000
 		});
 
 		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Employee dashboard timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage: 'Dashboard data is loading slowly. Please try again.'
 				});
 				reject(errorResponse);
@@ -654,7 +646,7 @@ export class EmployeeOperations {
 					if (result.error) {
 						console.error('Employee dashboard error:', result.error);
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
+							type: 'graphql',
 							userMessage: 'Unable to load employee dashboard. Please try refreshing the page.'
 						});
 						reject(errorResponse);
@@ -706,14 +698,12 @@ export class EmployeeOperations {
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
 			timeoutMs: 8000, // Longer timeout for mutations
-			retryAttempts: 0,
-			maxRetries: 1 // Single retry for mutations
 		});
 
 		return new Promise<Employee>((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Employee creation timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage:
 						'Employee creation is taking longer than expected. Please check if the employee was created.'
 				});
@@ -732,7 +722,7 @@ export class EmployeeOperations {
 					if (result.error) {
 						console.error('Create employee error:', result.error);
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'VALIDATION_ERROR',
+							type: 'validation',
 							userMessage: 'Unable to create employee. Please check the information and try again.'
 						});
 						reject(errorResponse);
@@ -790,15 +780,13 @@ export class EmployeeOperations {
 			operationName: 'UpdateEmployee',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 6000,
-			retryAttempts: 0,
-			maxRetries: 1
+			timeoutMs: 6000
 		});
 
 		return new Promise<Employee>((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Employee update timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage:
 						'Employee update is taking longer than expected. Please verify the changes were saved.'
 				});
@@ -817,7 +805,7 @@ export class EmployeeOperations {
 					if (result.error) {
 						console.error('Update employee error:', result.error);
 						const errorResponse = createErrorResponse(result.error, {
-							type: 'VALIDATION_ERROR',
+							type: 'validation',
 							userMessage: 'Unable to update employee. Please check the information and try again.'
 						});
 						reject(errorResponse);
@@ -849,15 +837,13 @@ export class EmployeeOperations {
 			operationName: 'DeactivateEmployee',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 4000,
-			retryAttempts: 0,
-			maxRetries: 1
+			timeoutMs: 4000
 		});
 
 		return new Promise((resolve, reject) => {
 			const timeoutId = setTimeout(() => {
 				const errorResponse = createErrorResponse(new Error('Employee deactivation timeout'), {
-					type: 'TIMEOUT_ERROR',
+					type: 'timeout',
 					userMessage:
 						'Employee deactivation is taking longer than expected. Please verify the change was applied.'
 				});

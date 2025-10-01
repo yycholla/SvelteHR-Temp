@@ -951,3 +951,24 @@
 {"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-01T04:03:49.836Z","url":"/graphql","userAgent":"node"}
 {"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-01T04:04:02.710Z","url":"/graphql","userAgent":"node"}
 {"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-01T04:04:02.711Z","url":"/graphql","userAgent":"node"}
+{"endpoint":"http://localhost:4000/graphql","environment":"development","graphiql":"http://localhost:4000/graphiql","health_endpoint":"http://localhost:4000/health","level":"info","message":"PostGraphile server started","port":4000,"service":"postgraphile-server","timestamp":"2025-10-01T19:27:46.319Z"}
+{"level":"info","message":"All services started successfully","service":"postgraphile-server","timestamp":"2025-10-01T19:27:46.321Z"}
+{"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-01T21:05:30.719Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-01T21:05:30.856Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-01T21:05:30.928Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-01T21:05:30.934Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-01T21:05:30.937Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-01T21:05:30.940Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-01T21:05:30.943Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-01T21:05:30.946Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-01T21:05:30.964Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-01T21:05:30.971Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-01T21:05:32.012Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-01T21:05:32.018Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-01T21:05:32.024Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-01T21:05:34.025Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-01T21:05:34.028Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-01T21:05:34.031Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-01T21:05:38.038Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-01T21:05:38.045Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-01T21:05:38.047Z","url":"/graphql","userAgent":"node"}

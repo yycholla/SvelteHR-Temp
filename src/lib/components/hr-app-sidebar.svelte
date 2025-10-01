@@ -20,7 +20,10 @@
 		Clock,
 		Award,
 		BarChart3,
-		LayoutDashboard
+		LayoutDashboard,
+		Bell,
+		Activity,
+		CheckSquare
 	} from 'lucide-svelte';
 	import { currentUser, hasRole, authActions } from '$lib/stores/auth';
 	import { page } from '$app/stores';
@@ -71,11 +74,12 @@
 			currentPath.includes('/employees/new') ||
 			currentPath.includes('/departments/new') ||
 			currentPath.includes('/performance/team') ||
-			(currentPath.includes('/tasks') && !currentPath.includes('/users/'))
+			currentPath.includes('/tasks/department')
 		) {
 			expandedSections.management = true;
 		}
-		if (currentPath.includes('/admin')) expandedSections.administration = true;
+		if (currentPath.includes('/admin') || currentPath.includes('/activities/audit'))
+			expandedSections.administration = true;
 	});
 
 	// Main navigation items - employee-focused
@@ -99,9 +103,33 @@
 			standalone: true // Now a simple link
 		},
 		{
+			title: 'Events',
+			url: '/dashboard/events',
+			icon: Calendar,
+			standalone: true // Events list page
+		},
+		{
+			title: 'My Tasks',
+			url: '/dashboard/tasks/my-tasks',
+			icon: CheckSquare,
+			standalone: true // My tasks page
+		},
+		{
+			title: 'Activities',
+			url: '/dashboard/activities',
+			icon: Activity,
+			standalone: true // My activities page
+		},
+		{
+			title: 'Notifications',
+			url: '/dashboard/notifications',
+			icon: Bell,
+			standalone: true // Notifications center
+		},
+		{
 			title: 'Leave & Attendance',
 			url: `/dashboard/users/${$currentUser?.id}/attendance`,
-			icon: Calendar,
+			icon: Clock,
 			section: 'leave',
 			items: [
 				{ title: 'My Attendance', url: `/dashboard/users/${$currentUser?.id}/attendance` },
@@ -134,6 +162,13 @@
 			url: '/dashboard/teams',
 			icon: Users,
 			description: 'Team overview'
+		},
+		{
+			title: 'Department Tasks',
+			url: '/dashboard/tasks/department',
+			icon: CheckSquare,
+			description: 'Department task management',
+			managersOnly: 'Manage tasks for your department'
 		},
 		{
 			title: 'Leave Approvals',
@@ -170,7 +205,7 @@
 	const adminItems = [
 		{ title: 'User Management', url: '/dashboard/admin/users', icon: Users },
 		{ title: 'System Settings', url: '/dashboard/admin/settings', icon: Settings },
-		{ title: 'Audit Logs', url: '/dashboard/admin/audit', icon: FileText },
+		{ title: 'Audit Logs', url: '/dashboard/activities/audit', icon: FileText },
 		{ title: 'Analytics Dashboard', url: '/dashboard/admin/analytics', icon: BarChart3 },
 		{ title: 'Compliance Reports', url: '/dashboard/admin/compliance', icon: Shield }
 	];
