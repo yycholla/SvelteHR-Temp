@@ -234,6 +234,60 @@
 		});
 	}
 
+	function getAlertIcon(type: string) {
+		switch (type) {
+			case 'error':
+				return AlertCircle;
+			case 'warning':
+				return AlertCircle;
+			case 'info':
+				return AlertCircle;
+			default:
+				return AlertCircle;
+		}
+	}
+
+	function getAlertColors(type: string) {
+		switch (type) {
+			case 'error':
+				return {
+					bg: 'bg-red-50',
+					border: 'border-red-200',
+					icon: 'text-red-500',
+					title: 'text-red-900',
+					message: 'text-red-700',
+					button: 'bg-red-100 text-red-800 hover:bg-red-200'
+				};
+			case 'warning':
+				return {
+					bg: 'bg-yellow-50',
+					border: 'border-yellow-200',
+					icon: 'text-yellow-500',
+					title: 'text-yellow-900',
+					message: 'text-yellow-700',
+					button: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+				};
+			case 'info':
+				return {
+					bg: 'bg-blue-50',
+					border: 'border-blue-200',
+					icon: 'text-blue-500',
+					title: 'text-blue-900',
+					message: 'text-blue-700',
+					button: 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+				};
+			default:
+				return {
+					bg: 'bg-muted dark:bg-muted',
+					border: 'border',
+					icon: 'text-muted-foreground',
+					title: 'text-foreground',
+					message: 'text-foreground',
+					button: 'bg-gray-100 text-foreground hover:bg-gray-200'
+				};
+		}
+	}
+
 	function handleSearch(event: Event) {
 		const target = event.target as HTMLInputElement;
 		const url = new URL(window.location.href);
@@ -258,20 +312,17 @@
 	}
 </script>
 
-<div class="container mx-auto px-4 py-8" data-testid="goals-management-page">
+<div class="mb-8" data-testid="goals-management-page">
 	<!-- Page Header -->
-	<div class="mb-6 flex items-center justify-between">
+	<div class="mb-4 flex items-center justify-between">
 		<div>
-			<h1 class="flex items-center gap-2 text-3xl font-bold text-foreground">
-				<Target class="h-8 w-8" />
-				Goals & OKRs
-			</h1>
+			<h1 class="text-3xl font-bold text-foreground">Goals & OKRs</h1>
 			<p class="mt-2 text-muted-foreground">Manage team objectives and track key results</p>
 		</div>
 		{#if canCreateGoals}
 			<button
 				onclick={openCreateModal}
-				class="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-primary-foreground transition-colors hover:bg-primary/90"
+				class="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
 				data-testid="create-goal-button"
 			>
 				<Plus class="h-4 w-4" />
@@ -282,60 +333,87 @@
 
 	<!-- Statistics Cards -->
 	<div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-		{#each statsCards as card}
-			<div
-				class="rounded-lg border-l-4 border-primary bg-card p-6 shadow"
-				data-testid={card.testId}
-			>
-				<div class="flex items-center justify-between">
-					<div>
-						<p class="text-sm font-medium text-muted-foreground">{card.title}</p>
-						<p class="text-2xl font-bold text-foreground">{card.value}</p>
-						<p class="text-sm text-muted-foreground flex items-center gap-1">
-							<span class="flex items-center">
-								{#if card.trend === 'up'}
-									<TrendingUp class="h-3 w-3" />
-								{/if}
-								{card.change}
-							</span>
-							from last quarter
-						</p>
-					</div>
-					<div class="p-3 bg-muted rounded-full">
-						<svelte:component this={card.icon} class="h-6 w-6" />
-					</div>
+		<!-- Total Goals -->
+		<div class="rounded-lg border border bg-card p-6 shadow-sm" data-testid="total-goals-stat">
+			<div class="flex items-center justify-between">
+				<div>
+					<p class="text-sm font-medium text-muted-foreground">Total Goals</p>
+					<p class="text-2xl font-bold text-foreground">
+						{goalsAnalytics.summary.totalGoals}
+					</p>
+					<p class="text-sm font-medium text-green-600">+12% from last quarter</p>
+				</div>
+				<div class="rounded-lg bg-blue-100 p-3">
+					<Target class="h-6 w-6 text-blue-600" />
 				</div>
 			</div>
-		{/each}
+		</div>
+
+		<!-- Active Goals -->
+		<div class="rounded-lg border border bg-card p-6 shadow-sm" data-testid="active-goals-stat">
+			<div class="flex items-center justify-between">
+				<div>
+					<p class="text-sm font-medium text-muted-foreground">Active Goals</p>
+					<p class="text-2xl font-bold text-foreground">
+						{goalsAnalytics.summary.activeGoals}
+					</p>
+					<p class="text-sm font-medium text-green-600">+8% from last quarter</p>
+				</div>
+				<div class="rounded-lg bg-green-100 p-3">
+					<TrendingUp class="h-6 w-6 text-green-600" />
+				</div>
+			</div>
+		</div>
+
+		<!-- Avg Completion -->
+		<div class="rounded-lg border border bg-card p-6 shadow-sm" data-testid="completion-stat">
+			<div class="flex items-center justify-between">
+				<div>
+					<p class="text-sm font-medium text-muted-foreground">Avg Completion</p>
+					<p class="text-2xl font-bold text-foreground">{goalsAnalytics.summary.avgCompletion}%</p>
+					<p class="text-sm font-medium text-green-600">+5% from last quarter</p>
+				</div>
+				<div class="rounded-lg bg-purple-100 p-3">
+					<BarChart3 class="h-6 w-6 text-purple-600" />
+				</div>
+			</div>
+		</div>
+
+		<!-- Health Score -->
+		<div class="rounded-lg border border bg-card p-6 shadow-sm" data-testid="health-score-stat">
+			<div class="flex items-center justify-between">
+				<div>
+					<p class="text-sm font-medium text-muted-foreground">Health Score</p>
+					<p class="text-2xl font-bold text-foreground">{goalsAnalytics.healthScore}</p>
+					<p class="text-sm font-medium text-green-600">+15% from last quarter</p>
+				</div>
+				<div class="rounded-lg bg-indigo-100 p-3">
+					<CheckCircle class="h-6 w-6 text-indigo-600" />
+				</div>
+			</div>
+		</div>
 	</div>
 
 	<!-- Alerts Section -->
 	{#if alerts.length > 0}
-		<div class="mb-6">
+		<div class="mb-6 grid grid-cols-1 gap-3">
 			{#each alerts as alert}
+				{@const colors = getAlertColors(alert.type)}
+				{@const AlertIcon = getAlertIcon(alert.type)}
 				<div
-					class="mb-3 rounded-md border-l-4 border-primary bg-muted/50 p-4"
+					class="flex items-center justify-between rounded-lg p-3 {colors.bg} {colors.border}"
 					data-testid={alert.testId}
 				>
-					<div class="flex items-center justify-between">
-						<div class="flex items-center">
-							<AlertCircle class="h-5 w-5 mr-2" />
-							<div>
-								<h4 class="text-sm font-medium text-foreground">
-									{alert.title}
-								</h4>
-								<p class="text-sm text-muted-foreground">
-									{alert.message}
-								</p>
-							</div>
+					<div class="flex items-center gap-3">
+						<AlertIcon class="h-5 w-5 {colors.icon}" />
+						<div>
+							<h4 class="font-medium {colors.title}">{alert.title}</h4>
+							<p class="text-sm {colors.message}">{alert.message}</p>
 						</div>
-						<a
-							href={alert.href}
-							class="text-sm font-medium hover:underline transition-colors"
-						>
-							{alert.action} →
-						</a>
 					</div>
+					<a href={alert.href} class="rounded-md px-3 py-1 text-sm font-medium {colors.button}">
+						{alert.action}
+					</a>
 				</div>
 			{/each}
 		</div>
@@ -489,7 +567,7 @@
 												<span>Progress</span>
 												<span>{calculateProgress(goal)}%</span>
 											</div>
-											<div class="h-2 w-full rounded-full bg-gray-200">
+											<div class="h-2 w-full rounded-full bg-muted">
 												<div
 													class="h-2 rounded-full bg-primary transition-all"
 													style="width: {calculateProgress(goal)}%"
@@ -608,7 +686,7 @@
 						<h4 class="text-md mb-4 font-medium text-foreground">Overall Health Score</h4>
 						<div class="flex items-center gap-4">
 							<div class="flex-1">
-								<div class="h-4 w-full rounded-full bg-gray-200">
+								<div class="h-4 w-full rounded-full bg-muted">
 									<div
 										class="h-4 rounded-full bg-primary transition-all"
 										style="width: {goalsAnalytics.healthScore}%"
@@ -812,7 +890,7 @@
 							>{currentGoal.currentValue}/{currentGoal.targetValue} {currentGoal.unit}</span
 						>
 					</div>
-					<div class="h-3 w-full rounded-full bg-gray-200">
+					<div class="h-3 w-full rounded-full bg-muted">
 						<div
 							class="h-3 rounded-full bg-primary transition-all"
 							style="width: {calculateProgress(currentGoal)}%"
@@ -891,7 +969,7 @@
 							<span>{Math.round((progressForm.currentValue / currentGoal.targetValue) * 100)}%</span
 							>
 						</div>
-						<div class="mt-1 h-2 w-full rounded-full bg-gray-200">
+						<div class="mt-1 h-2 w-full rounded-full bg-muted">
 							<div
 								class="h-2 rounded-full bg-primary transition-all"
 								style="width: {Math.min(
@@ -936,73 +1014,3 @@
 		</div>
 	</div>
 {/if}
-
-<style>
-	/* Ensure proper Tailwind classes are generated */
-	.border-blue-500 {
-		border-color: rgb(59 130 246);
-	}
-	.border-green-500 {
-		border-color: rgb(34 197 94);
-	}
-	.border-purple-500 {
-		border-color: rgb(168 85 247);
-	}
-	.border-indigo-500 {
-		border-color: rgb(99 102 241);
-	}
-	.bg-blue-100 {
-		background-color: rgb(219 234 254);
-	}
-	.bg-green-100 {
-		background-color: rgb(220 252 231);
-	}
-	.bg-purple-100 {
-		background-color: rgb(243 232 255);
-	}
-	.bg-yellow-100 {
-		background-color: rgb(254 249 195);
-	}
-	.bg-red-100 {
-		background-color: rgb(254 226 226);
-	}
-	.bg-gray-100 {
-		background-color: rgb(243 244 246);
-	}
-	.text-blue-600 {
-		color: rgb(37 99 235);
-	}
-	.text-green-600 {
-		color: rgb(22 163 74);
-	}
-	.text-purple-600 {
-		color: rgb(147 51 234);
-	}
-	.text-yellow-600 {
-		color: rgb(202 138 4);
-	}
-	.text-red-600 {
-		color: rgb(220 38 38);
-	}
-	.text-muted-foreground {
-		color: rgb(75 85 99);
-	}
-	.text-blue-800 {
-		color: rgb(30 64 175);
-	}
-	.text-green-800 {
-		color: rgb(22 101 52);
-	}
-	.text-purple-800 {
-		color: rgb(107 33 168);
-	}
-	.text-yellow-800 {
-		color: rgb(133 77 14);
-	}
-	.text-red-800 {
-		color: rgb(153 27 27);
-	}
-	.text-foreground {
-		color: rgb(31 41 55);
-	}
-</style>

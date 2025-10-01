@@ -531,3 +531,8 @@
 {"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-30T21:16:49.274Z","url":"/graphql","userAgent":"node"}
 {"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-30T21:16:51.382Z","url":"/graphql","userAgent":"node"}
 {"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-30T21:16:52.219Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-30T21:51:08.830Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-30T21:56:22.222Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-30T21:56:22.229Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-09-30T21:56:23.199Z","url":"/graphql","userAgent":"node"}
+{"error":"invalid token","level":"warn","message":"JWT token verification failed","service":"postgraphile-server","timestamp":"2025-09-30T21:56:23.199Z"}

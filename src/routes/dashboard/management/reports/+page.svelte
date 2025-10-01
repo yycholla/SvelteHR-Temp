@@ -20,6 +20,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 		Filter,
 		X
 	} from 'lucide-svelte';
+	import * as Tabs from '$lib/components/ui/tabs';
 	import type { HRReport, ReportAnalytics } from '$lib/graphql/reports-operations';
 	import {
 		REPORT_TYPES,
@@ -303,32 +304,21 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 </div>
 
 <!-- Tab Navigation -->
-<div class="mb-6 border-b border">
-	<nav class="flex space-x-8">
-		<button
-			onclick={() => (activeTab = 'reports')}
-			class="border-b-2 px-1 py-2 text-sm font-medium {activeTab === 'reports'
-				? 'border-blue-500 text-blue-600'
-				: 'border-transparent text-muted-foreground hover:border-input hover:text-foreground'}"
-		>
-			<FileText class="mr-2 inline h-4 w-4" />
+<Tabs.Root bind:value={activeTab} class="mb-6">
+	<Tabs.List>
+		<Tabs.Trigger value="reports" class="inline-flex items-center gap-2">
+			<FileText class="h-4 w-4" />
 			Reports
-		</button>
+		</Tabs.Trigger>
 		{#if data.canViewAnalytics}
-			<button
-				onclick={() => (activeTab = 'analytics')}
-				class="border-b-2 px-1 py-2 text-sm font-medium {activeTab === 'analytics'
-					? 'border-blue-500 text-blue-600'
-					: 'border-transparent text-muted-foreground hover:border-input hover:text-foreground'}"
-			>
-				<BarChart3 class="mr-2 inline h-4 w-4" />
+			<Tabs.Trigger value="analytics" class="inline-flex items-center gap-2">
+				<BarChart3 class="h-4 w-4" />
 				Analytics
-			</button>
+			</Tabs.Trigger>
 		{/if}
-	</nav>
-</div>
+	</Tabs.List>
 
-{#if activeTab === 'reports'}
+	<Tabs.Content value="reports">
 	<!-- Statistics Cards -->
 	<div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
 		{#each statsCards as card}
@@ -560,7 +550,10 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 			</div>
 		{/if}
 	</div>
-{:else if activeTab === 'analytics' && data.canViewAnalytics}
+	</Tabs.Content>
+
+	{#if data.canViewAnalytics}
+		<Tabs.Content value="analytics">
 	<!-- Analytics Dashboard -->
 	<div class="space-y-8">
 		<!-- Performance Metrics -->
@@ -641,7 +634,9 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 			</div>
 		</div>
 	</div>
-{/if}
+		</Tabs.Content>
+	{/if}
+</Tabs.Root>
 
 <!-- Create Report Modal -->
 {#if showCreateModal}

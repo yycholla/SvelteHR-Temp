@@ -92,13 +92,159 @@ export const load: PageServerLoad = async (event) => {
 			}
 		}
 
-		// For now, use simplified mock data to avoid complex GraphQL operations
-		// This keeps the page functional while avoiding operational complexity
-		// In production, these would be filtered by managedDepartmentId for managers
-		const pendingLeaves = { nodes: [], totalCount: 0 };
-		const pendingReviews = { nodes: [], totalCount: 0 };
-		const teamGoals = { nodes: [], totalCount: 0 };
-		const recentReports = { nodes: [], totalCount: 0 };
+		// Fetch dashboard data using GraphQL queries
+		const { createUrqlClient } = await import('$lib/graphql/client');
+		const { GET_EMPLOYEE_GOALS, buildEmployeeGoalFilter } = await import(
+			'$lib/graphql/goals-okrs-operations'
+		);
+		const { GET_HR_REPORTS, buildHrReportFilter } = await import(
+			'$lib/graphql/reports-operations'
+		);
+		const { gql } = await import('@urql/svelte');
+
+		const graphqlClient = createUrqlClient(fetch, cookies.get('hr_token') || '');
+
+		// Query for pending leave requests
+		const LEAVE_QUERY = gql`
+			query GetPendingLeaves($filter: LeaveRequestFilter, $first: Int) {
+				leaveRequests(filter: $filter, first: $first, orderBy: CREATED_AT_DESC) {
+					nodes {
+						id
+						employeeId
+						employee {
+							displayName
+							email
+						}
+						leaveType
+						startDate
+						endDate
+						daysRequested
+						status
+						createdAt
+					}
+					totalCount
+				}
+			}
+		`;
+
+		// Query for performance reviews
+		const REVIEWS_QUERY = gql`
+			query GetPendingReviews($filter: PerformanceReviewFilter, $first: Int) {
+				performanceReviews(filter: $filter, first: $first, orderBy: CREATED_AT_DESC) {
+					nodes {
+						id
+						employeeId
+						employee {
+							displayName
+							email
+						}
+						status
+						overallRating
+						reviewPeriod
+						createdAt
+						updatedAt
+					}
+					totalCount
+				}
+			}
+		`;
+
+		// Fetch pending leaves (filtered by department for managers)
+		let pendingLeaves = { nodes: [], totalCount: 0 };
+		try {
+			const leavesResult = await graphqlClient
+				.query(LEAVE_QUERY, {
+					filter: {
+						status: { equalTo: 'pending' },
+						...(managedDepartmentId
+							? {
+									employee: {
+										departmentId: { equalTo: managedDepartmentId }
+									}
+								}
+							: {})
+					},
+					first: 10
+				})
+				.toPromise();
+
+			if (!leavesResult.error && leavesResult.data?.leaveRequests) {
+				pendingLeaves = leavesResult.data.leaveRequests;
+			}
+		} catch (err) {
+			console.error('Error fetching pending leaves:', err);
+		}
+
+		// Fetch pending reviews (filtered by department for managers)
+		let pendingReviews = { nodes: [], totalCount: 0 };
+		try {
+			const reviewsResult = await graphqlClient
+				.query(REVIEWS_QUERY, {
+					filter: {
+						status: { in: ['not_started', 'in_progress'] },
+						...(managedDepartmentId
+							? {
+									employee: {
+										departmentId: { equalTo: managedDepartmentId }
+									}
+								}
+							: {})
+					},
+					first: 10
+				})
+				.toPromise();
+
+			if (!reviewsResult.error && reviewsResult.data?.performanceReviews) {
+				pendingReviews = reviewsResult.data.performanceReviews;
+			}
+		} catch (err) {
+			console.error('Error fetching pending reviews:', err);
+		}
+
+		// Fetch team goals (filtered by department for managers)
+		let teamGoals = { nodes: [], totalCount: 0 };
+		try {
+			const goalsFilter = buildEmployeeGoalFilter({
+				status: 'in_progress',
+				departmentId: managedDepartmentId || undefined
+			});
+
+			const goalsResult = await graphqlClient
+				.query(GET_EMPLOYEE_GOALS, {
+					first: 10,
+					offset: 0,
+					filter: goalsFilter
+				})
+				.toPromise();
+
+			if (!goalsResult.error && goalsResult.data?.employeeGoals) {
+				teamGoals = goalsResult.data.employeeGoals;
+			}
+		} catch (err) {
+			console.error('Error fetching team goals:', err);
+		}
+
+		// Fetch recent reports (filtered by department for managers)
+		let recentReports = { nodes: [], totalCount: 0 };
+		try {
+			const reportsFilter = buildHrReportFilter({
+				departmentId: managedDepartmentId || undefined
+			});
+
+			const reportsResult = await graphqlClient
+				.query(GET_HR_REPORTS, {
+					first: 10,
+					offset: 0,
+					filter: reportsFilter
+				})
+				.toPromise();
+
+			if (!reportsResult.error && reportsResult.data?.hrReports) {
+				recentReports = reportsResult.data.hrReports;
+			}
+		} catch (err) {
+			console.error('Error fetching recent reports:', err);
+		}
 
 		// Calculate dashboard analytics
 		const dashboardAnalytics = {
@@ -147,12 +293,55 @@ export const load: PageServerLoad = async (event) => {
 				failed: recentReports.nodes.filter((r) => r.status === 'archived').length,
 				totalThisMonth: recentReports.totalCount || 0
 			},
-			teamStats: {
-				totalEmployees: 42, // Mock data - would come from employee operations
-				activeEmployees: 40,
-				departmentCount: 5,
-				avgTenure: '2.5 years'
-			}
+			teamStats: await (async () => {
+				try {
+					const EMPLOYEE_STATS_QUERY = gql`
+						query GetEmployeeStats($departmentFilter: UserFilter) {
+							allEmployees: users(filter: $departmentFilter) {
+								totalCount
+							}
+							activeEmployees: users(
+								filter: {
+									isActive: { equalTo: true }
+									and: $departmentFilter
+								}
+							) {
+								totalCount
+							}
+							departments {
+								totalCount
+							}
+						}
+					`;
+
+					const statsResult = await graphqlClient
+						.query(EMPLOYEE_STATS_QUERY, {
+							departmentFilter: managedDepartmentId
+								? { departmentId: { equalTo: managedDepartmentId } }
+								: {}
+						})
+						.toPromise();
+
+					if (!statsResult.error && statsResult.data) {
+						return {
+							totalEmployees: statsResult.data.allEmployees.totalCount,
+							activeEmployees: statsResult.data.activeEmployees.totalCount,
+							departmentCount: managedDepartmentId ? 1 : statsResult.data.departments.totalCount,
+							avgTenure: '2.5 years' // Would need hire_date calculations
+						};
+					}
+				} catch (err) {
+					console.error('Error fetching employee stats:', err);
+				}
+
+				// Fallback to mock data if query fails
+				return {
+					totalEmployees: 16,
+					activeEmployees: 16,
+					departmentCount: 4,
+					avgTenure: '2.5 years'
+				};
+			})()
 		};
 
 		// Generate recent activities from all data sources
