@@ -286,7 +286,7 @@ export class SampleDataOrchestrator {
             // Only delete if we have identifier columns
             if (identifierColumns.length > 0) {
               const whereClause = identifierColumns
-                .map(col => `${col} LIKE 'Sample%'`)
+                .map(col => `${col} ILIKE 'Sample%'`)
                 .join(' OR ');
 
               deletedCount = await this.databaseService.deleteRecords(
@@ -357,7 +357,7 @@ export class SampleDataOrchestrator {
           // Only query if we have identifier columns
           if (identifierColumns.length > 0) {
             const whereClause = identifierColumns
-              .map(col => `${col} LIKE 'Sample%'`)
+              .map(col => `${col} ILIKE 'Sample%'`)
               .join(' OR ');
 
             try {
