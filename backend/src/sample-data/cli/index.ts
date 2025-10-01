@@ -42,23 +42,24 @@ async function main() {
 
   // Create commander program with all registered commands
   for (const cliCommand of registry.list()) {
+    // Build command signature with arguments
+    let commandSignature = cliCommand.name;
+    for (const arg of cliCommand.arguments) {
+      if (arg.required) {
+        commandSignature += ` <${arg.name}>`;
+      } else {
+        commandSignature += ` [${arg.name}]`;
+      }
+    }
+
     const cmd = program
-      .command(cliCommand.name)
+      .command(commandSignature)
       .description(cliCommand.description);
 
     // Add aliases
     if (cliCommand.aliases) {
       for (const alias of cliCommand.aliases) {
         cmd.alias(alias);
-      }
-    }
-
-    // Add arguments
-    for (const arg of cliCommand.arguments) {
-      if (arg.required) {
-        cmd.argument(`<${arg.name}>`, arg.description);
-      } else {
-        cmd.argument(`[${arg.name}]`, arg.description, arg.defaultValue);
       }
     }
 
