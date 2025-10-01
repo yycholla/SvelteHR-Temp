@@ -273,6 +273,11 @@ export class DataGenerator {
       return faker.helpers.arrayElement(['active', 'inactive', 'pending']);
     }
 
+    // Currency patterns
+    if (name.includes('currency')) {
+      return faker.finance.currencyCode(); // Returns 3-letter ISO codes like 'USD', 'EUR'
+    }
+
     // Boolean patterns
     if (name.includes('is_') || name.includes('has_')) {
       return faker.datatype.boolean();

@@ -60,7 +60,7 @@
         "priority": 3,
         "namingPattern": "Sample Compensation Band {id}",
         "customFields": {
-          "name": "Sample Band {id}"
+          "title": "Sample Band {id}"
         },
         "skipIfExists": false
       },
