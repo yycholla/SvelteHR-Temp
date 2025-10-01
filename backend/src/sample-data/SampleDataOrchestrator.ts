@@ -70,6 +70,7 @@ export class SampleDataOrchestrator {
 
       // Discover schema
       const schema = await this.schemaDiscoveryService.discoverSchema(config.schemaName);
+      console.log(`Discovered ${schema.tables.length} tables: ${schema.tables.map(t => t.tableName).join(', ')}`);
 
       // Sort tables by priority
       const sortedTables = sortTableConfigsByPriority(config.tableConfigs);
@@ -241,14 +242,15 @@ export class SampleDataOrchestrator {
     try {
       const schemaName = config?.schemaName || 'hr_public';
 
+      // Discover schema first
+      const schema = await this.schemaDiscoveryService.discoverSchema(schemaName);
+
       // Get all configured tables or discover all tables
       let tableConfigs: TableConfig[];
 
       if (config) {
         tableConfigs = config.tableConfigs;
       } else {
-        // Discover all tables
-        const schema = await this.schemaDiscoveryService.discoverSchema(schemaName);
         tableConfigs = schema.tables.map(table => ({
           tableName: table.tableName,
           recordCount: 0,
