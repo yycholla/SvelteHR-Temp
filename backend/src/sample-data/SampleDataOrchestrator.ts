@@ -253,17 +253,41 @@ export class SampleDataOrchestrator {
         const tableStartTime = Date.now();
 
         try {
-          // Delete sample data (identified by naming pattern)
-          const deletedCount = await this.databaseService.deleteRecords(
-            schemaName,
-            tableConfig.tableName,
-            "full_name LIKE 'Sample%' OR name LIKE 'Sample%'"
-          );
+          // Find the table schema
+          const tableSchema = schema.tables.find(t => t.tableName === tableConfig.tableName);
 
-          tableResult.recordsGenerated = deletedCount;
-          tableResult.status = OperationStatus.SUCCESS;
+          if (tableSchema) {
+            // Find identifier columns that might contain "Sample" prefix
+            const identifierColumns = tableSchema.columns
+              .filter(col =>
+                ['full_name', 'name', 'policy_name', 'email', 'title', 'description']
+                  .includes(col.columnName.toLowerCase())
+              )
+              .map(col => col.columnName);
+
+            let deletedCount = 0;
+
+            // Only delete if we have identifier columns
+            if (identifierColumns.length > 0) {
+              const whereClause = identifierColumns
+                .map(col => `${col} LIKE 'Sample%'`)
+                .join(' OR ');
+
+              deletedCount = await this.databaseService.deleteRecords(
+                schemaName,
+                tableConfig.tableName,
+                whereClause
+              );
+            }
+
+            tableResult.recordsGenerated = deletedCount;
+            tableResult.status = OperationStatus.SUCCESS;
+          } else {
+            tableResult.status = OperationStatus.SKIPPED;
+            tableResult.errors.push('Table not found in schema');
+          }
+
           tableResult.executionTimeMs = Date.now() - tableStartTime;
-
           mergeTableResult(result, tableResult);
         } catch (error) {
           tableResult.status = OperationStatus.ERROR;
@@ -299,17 +323,41 @@ export class SampleDataOrchestrator {
       let totalSampleRecords = 0;
 
       for (const table of schema.tables) {
-        // Count sample records
-        const sampleCountResult = await this.databaseService.query<{ count: string }>(
-          `SELECT COUNT(*) as count FROM ${schemaName}.${table.tableName}
-           WHERE full_name LIKE 'Sample%' OR name LIKE 'Sample%'`
-        );
-
-        const sampleCount = parseInt(sampleCountResult.rows[0]?.count || '0');
-        totalSampleRecords += sampleCount;
-
-        // Get total count
+        // Get total count first (fast)
         const totalCount = await this.databaseService.getTableRowCount(schemaName, table.tableName);
+
+        let sampleCount = 0;
+
+        // Only check for sample data if table has rows
+        if (totalCount > 0) {
+          // Find identifier columns that might contain "Sample" prefix
+          const identifierColumns = table.columns
+            .filter(col =>
+              ['full_name', 'name', 'policy_name', 'email', 'title', 'description']
+                .includes(col.columnName.toLowerCase())
+            )
+            .map(col => col.columnName);
+
+          // Only query if we have identifier columns
+          if (identifierColumns.length > 0) {
+            const whereClause = identifierColumns
+              .map(col => `${col} LIKE 'Sample%'`)
+              .join(' OR ');
+
+            try {
+              const sampleCountResult = await this.databaseService.query<{ count: string }>(
+                `SELECT COUNT(*) as count FROM ${schemaName}.${table.tableName}
+                 WHERE ${whereClause}`
+              );
+
+              sampleCount = parseInt(sampleCountResult.rows[0]?.count || '0');
+              totalSampleRecords += sampleCount;
+            } catch (error) {
+              // Skip tables with query errors (e.g., column doesn't exist)
+              sampleCount = 0;
+            }
+          }
+        }
 
         tableStatuses.push({
           tableName: table.tableName,

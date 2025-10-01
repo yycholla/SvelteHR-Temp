@@ -8,6 +8,8 @@
 import pgPromise from 'pg-promise';
 import { DatabaseError } from '../models/Errors';
 
+const pgp = pgPromise();
+
 /**
  * Database connection configuration.
  */
@@ -35,7 +37,6 @@ export interface QueryResult<T = any> {
  */
 export class DatabaseService {
   private config: DatabaseConfig;
-  private pgp: pgPromise.IMain;
   private db: pgPromise.IDatabase<any> | null = null;
   private isConnected = false;
 
@@ -46,19 +47,6 @@ export class DatabaseService {
       idleTimeoutMillis: config.idleTimeoutMillis ?? 30000,
       connectionTimeoutMillis: config.connectionTimeoutMillis ?? 5000
     };
-
-    this.pgp = pgPromise({
-      // Error handling
-      error: (err, e) => {
-        if (e.cn) {
-          console.error('Connection error:', err);
-        }
-        if (e.query) {
-          console.error('Query error:', err);
-          console.error('Query:', e.query);
-        }
-      }
-    });
   }
 
   /**
@@ -70,7 +58,7 @@ export class DatabaseService {
     }
 
     try {
-      this.db = this.pgp({
+      this.db = pgp({
         host: this.config.host,
         port: this.config.port,
         database: this.config.database,
@@ -101,14 +89,24 @@ export class DatabaseService {
     }
 
     try {
-      await this.db.$pool.end();
+      // Mark as disconnected first
       this.isConnected = false;
+      const dbToClose = this.db;
       this.db = null;
+
+      // Close the database connection pool
+      if (dbToClose && dbToClose.$pool) {
+        // Use timeout to prevent hanging
+        await Promise.race([
+          dbToClose.$pool.end(),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Disconnect timeout')), 5000)
+          )
+        ]);
+      }
     } catch (error) {
-      throw new DatabaseError(
-        `Failed to disconnect from database: ${error instanceof Error ? error.message : String(error)}`,
-        'DISCONNECTION_FAILED'
-      );
+      // Don't throw on disconnect errors, just log and continue
+      console.error('Warning: Failed to disconnect cleanly:', error instanceof Error ? error.message : String(error));
     }
   }
 
@@ -197,8 +195,8 @@ export class DatabaseService {
     }
 
     try {
-      const columnSet = new this.pgp.helpers.ColumnSet(columns, { table });
-      const query = this.pgp.helpers.insert(values, columnSet);
+      const columnSet = new pgp.helpers.ColumnSet(columns, { table });
+      const query = pgp.helpers.insert(values, columnSet);
 
       const result = await this.db!.none(query);
       return values.length;
@@ -235,9 +233,9 @@ export class DatabaseService {
     }
 
     try {
-      const columnSet = new this.pgp.helpers.ColumnSet(columns, { table });
+      const columnSet = new pgp.helpers.ColumnSet(columns, { table });
       const query =
-        this.pgp.helpers.insert(values, columnSet) +
+        pgp.helpers.insert(values, columnSet) +
         ` ON CONFLICT (${conflictColumns.join(', ')}) DO UPDATE SET ` +
         updateColumns.map(col => `${col} = EXCLUDED.${col}`).join(', ');
 
@@ -326,19 +324,25 @@ export class DatabaseService {
 
   /**
    * Gets the row count for a table.
+   * Uses pg_class statistics for better performance on large tables.
    *
    * @param schemaName - Schema name
    * @param tableName - Table name
-   * @returns Row count
+   * @returns Row count (approximate)
    */
   async getTableRowCount(schemaName: string, tableName: string): Promise<number> {
     this.ensureConnected();
 
     try {
-      const result = await this.queryOne<{ count: string }>(
-        `SELECT COUNT(*) as count FROM ${schemaName}.${tableName}`
+      // Use pg_class for fast approximate count
+      const result = await this.queryOne<{ reltuples: number }>(
+        `SELECT c.reltuples::bigint as reltuples
+         FROM pg_class c
+         JOIN pg_namespace n ON n.oid = c.relnamespace
+         WHERE n.nspname = $1 AND c.relname = $2`,
+        [schemaName, tableName]
       );
-      return parseInt(result?.count || '0');
+      return result?.reltuples || 0;
     } catch (error) {
       return 0;
     }
