@@ -206,8 +206,9 @@ CREATE TYPE hr_public.task_status AS ENUM ('todo', 'in_progress', 'completed', '
 
 CREATE TABLE hr_public.tasks (
     id uuid DEFAULT uuid_generate_v4() NOT NULL,
-    assigned_to uuid NOT NULL,
-    assigned_by uuid NOT NULL,
+    assignee_id uuid NOT NULL,
+    assigner_id uuid NOT NULL,
+    department_id uuid NOT NULL,
     title character varying(255) NOT NULL,
     description text,
     priority hr_public.task_priority DEFAULT 'medium'::hr_public.task_priority NOT NULL,
@@ -248,11 +249,11 @@ CREATE TABLE hr_public.events (
     id uuid DEFAULT uuid_generate_v4() NOT NULL,
     title character varying(255) NOT NULL,
     description text,
-    type hr_public.event_type DEFAULT 'other'::hr_public.event_type NOT NULL,
+    event_type hr_public.event_type DEFAULT 'other'::hr_public.event_type NOT NULL,
     status hr_public.event_status DEFAULT 'draft'::hr_public.event_status NOT NULL,
     visibility_type hr_public.event_visibility DEFAULT 'public'::hr_public.event_visibility NOT NULL,
-    start_date timestamp with time zone NOT NULL,
-    end_date timestamp with time zone NOT NULL,
+    start_time timestamp with time zone NOT NULL,
+    end_time timestamp with time zone NOT NULL,
     all_day boolean DEFAULT false NOT NULL,
     location character varying(255),
     is_public boolean DEFAULT true NOT NULL,
@@ -262,7 +263,7 @@ CREATE TABLE hr_public.events (
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     CONSTRAINT events_pkey PRIMARY KEY (id),
     CONSTRAINT events_title_not_empty CHECK (length(TRIM(BOTH FROM title)) > 0),
-    CONSTRAINT events_time_logic CHECK (end_date > start_date)
+    CONSTRAINT events_time_logic CHECK (end_time > start_time)
 );
 
 -- Event attendees junction table
@@ -308,8 +309,9 @@ ALTER TABLE hr_public.payroll_records ADD CONSTRAINT payroll_records_employee_id
 ALTER TABLE hr_public.payroll_records ADD CONSTRAINT payroll_records_processed_by_fkey FOREIGN KEY (processed_by) REFERENCES hr_public.users(id) ON DELETE SET NULL;
 ALTER TABLE hr_public.payroll_records ADD CONSTRAINT payroll_records_created_by_fkey FOREIGN KEY (created_by) REFERENCES hr_public.users(id) ON DELETE SET NULL;
 ALTER TABLE hr_public.review_templates ADD CONSTRAINT review_templates_created_by_fkey FOREIGN KEY (created_by) REFERENCES hr_public.users(id) ON DELETE SET NULL;
-ALTER TABLE hr_public.tasks ADD CONSTRAINT tasks_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES hr_public.users(id) ON DELETE CASCADE;
-ALTER TABLE hr_public.tasks ADD CONSTRAINT tasks_assigned_by_fkey FOREIGN KEY (assigned_by) REFERENCES hr_public.users(id) ON DELETE CASCADE;
+ALTER TABLE hr_public.tasks ADD CONSTRAINT tasks_assignee_id_fkey FOREIGN KEY (assignee_id) REFERENCES hr_public.users(id) ON DELETE CASCADE;
+ALTER TABLE hr_public.tasks ADD CONSTRAINT tasks_assigner_id_fkey FOREIGN KEY (assigner_id) REFERENCES hr_public.users(id) ON DELETE CASCADE;
+ALTER TABLE hr_public.tasks ADD CONSTRAINT tasks_department_id_fkey FOREIGN KEY (department_id) REFERENCES hr_public.departments(id) ON DELETE CASCADE;
 ALTER TABLE hr_public.attendance_records ADD CONSTRAINT attendance_records_user_id_fkey FOREIGN KEY (user_id) REFERENCES hr_public.users(id) ON DELETE CASCADE;
 ALTER TABLE hr_public.events ADD CONSTRAINT events_organizer_id_fkey FOREIGN KEY (organizer_id) REFERENCES hr_public.users(id) ON DELETE CASCADE;
 ALTER TABLE hr_public.event_attendees ADD CONSTRAINT event_attendees_event_id_fkey FOREIGN KEY (event_id) REFERENCES hr_public.events(id) ON DELETE CASCADE;
