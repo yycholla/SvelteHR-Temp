@@ -94,48 +94,48 @@
 <div class="task-list">
 	<!-- Statistics Bar -->
 	{#if showStatistics && tasks.length > 0}
-		<div class="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+		<div class="mb-4 rounded-lg border border-border bg-card p-4 shadow-sm">
 			<div class="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-7">
 				<!-- Total -->
 				<div class="text-center">
-					<div class="text-2xl font-bold text-gray-900">{statistics.total}</div>
-					<div class="text-xs text-gray-600">Total</div>
+					<div class="text-2xl font-bold text-foreground">{statistics.total}</div>
+					<div class="text-xs text-muted-foreground">Total</div>
 				</div>
 
 				<!-- Todo -->
 				<div class="text-center">
-					<div class="text-2xl font-bold text-gray-600">{statistics.todo}</div>
-					<div class="text-xs text-gray-600">To Do</div>
+					<div class="text-2xl font-bold text-muted-foreground">{statistics.todo}</div>
+					<div class="text-xs text-muted-foreground">To Do</div>
 				</div>
 
 				<!-- In Progress -->
 				<div class="text-center">
-					<div class="text-2xl font-bold text-blue-600">{statistics.inProgress}</div>
-					<div class="text-xs text-gray-600">In Progress</div>
+					<div class="text-2xl font-bold text-primary">{statistics.inProgress}</div>
+					<div class="text-xs text-muted-foreground">In Progress</div>
 				</div>
 
 				<!-- Completed -->
 				<div class="text-center">
-					<div class="text-2xl font-bold text-green-600">{statistics.completed}</div>
-					<div class="text-xs text-gray-600">Completed</div>
+					<div class="text-2xl font-bold text-green-600 dark:text-green-400">{statistics.completed}</div>
+					<div class="text-xs text-muted-foreground">Completed</div>
 				</div>
 
 				<!-- Overdue -->
 				<div class="text-center">
-					<div class="text-2xl font-bold text-red-600">{statistics.overdue}</div>
-					<div class="text-xs text-gray-600">Overdue</div>
+					<div class="text-2xl font-bold text-destructive">{statistics.overdue}</div>
+					<div class="text-xs text-muted-foreground">Overdue</div>
 				</div>
 
 				<!-- Due Soon -->
 				<div class="text-center">
-					<div class="text-2xl font-bold text-yellow-600">{statistics.dueSoon}</div>
-					<div class="text-xs text-gray-600">Due Soon</div>
+					<div class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{statistics.dueSoon}</div>
+					<div class="text-xs text-muted-foreground">Due Soon</div>
 				</div>
 
 				<!-- Completion Rate -->
 				<div class="text-center">
-					<div class="text-2xl font-bold text-blue-600">{statistics.completionRate}%</div>
-					<div class="text-xs text-gray-600">Complete</div>
+					<div class="text-2xl font-bold text-primary">{statistics.completionRate}%</div>
+					<div class="text-xs text-muted-foreground">Complete</div>
 				</div>
 			</div>
 		</div>
@@ -155,12 +155,12 @@
 		</div>
 	{:else}
 		<!-- Empty State -->
-		<div class="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-12">
-			<svg class="mb-4 h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+		<div class="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border bg-card p-12">
+			<svg class="mb-4 h-16 w-16 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
 			</svg>
-			<h3 class="mb-2 text-lg font-medium text-gray-900">No tasks</h3>
-			<p class="text-sm text-gray-600">{emptyMessage}</p>
+			<h3 class="mb-2 text-lg font-medium text-foreground">No tasks</h3>
+			<p class="text-sm text-muted-foreground">{emptyMessage}</p>
 		</div>
 	{/if}
 </div>

@@ -793,9 +793,9 @@ export interface ReportStatistics {
 import type { DataRequest, UserCredentials } from '$lib/models/data-request';
 
 export class TeamReportsOperations {
-	private client: any;
+	private client: Client;
 
-	constructor(client: any) {
+	constructor(client: Client) {
 		this.client = client;
 	}
 
@@ -903,6 +903,6 @@ export class TeamReportsOperations {
 	}
 }
 
-export function createTeamReportsOperations(client: any): TeamReportsOperations {
+export function createTeamReportsOperations(client: Client): TeamReportsOperations {
 	return new TeamReportsOperations(client);
 }

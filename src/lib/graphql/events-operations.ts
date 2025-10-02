@@ -1,4 +1,5 @@
 // GraphQL Operations: Events Management with RSVP and Visibility Controls
+import type { Client } from '@urql/core';
 // Feature: 019-we-need-to - Task T013
 // Purpose: Event CRUD operations with multi-tier visibility (company/department/specific)
 
@@ -577,9 +578,9 @@ export function getEventVisibilityLabel(visibilityType: EventVisibilityType): st
  * T013: Events Operations with Multi-Tier Visibility and RSVP
  */
 export class EventsOperations {
-	private client: any;
+	private client: Client;
 
-	constructor(client: any) {
+	constructor(client: Client) {
 		this.client = client;
 	}
 
@@ -1104,6 +1105,6 @@ export class EventsOperations {
 /**
  * Factory function to create EventsOperations instance
  */
-export function createEventsOperations(client: any): EventsOperations {
+export function createEventsOperations(client: Client): EventsOperations {
 	return new EventsOperations(client);
 }

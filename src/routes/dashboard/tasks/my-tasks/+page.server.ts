@@ -31,7 +31,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 
 	try {
 		// Initialize GraphQL client and operations
-		const urqlClient = createUrqlClient(token);
+		// For server-side: createUrqlClient(fetchFn?, authToken?)
+		const urqlClient = createUrqlClient(undefined, token);
 		const tasksOps = new TasksOperations(urqlClient);
 
 		// Get query parameters for filtering and sorting
@@ -42,18 +43,17 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		const limit = parseInt(url.searchParams.get('limit') || '20');
 
 		// Build filter for user's assigned tasks
+		// PostGraphile's TaskCondition expects direct values, not wrapped in equalTo
 		const filter: any = {
-			assigneeId: {
-				equalTo: locals.user.id
-			}
+			assigneeId: locals.user.id
 		};
 
 		if (statusFilter) {
-			filter.status = { equalTo: statusFilter };
+			filter.status = statusFilter;
 		}
 
 		if (priorityFilter) {
-			filter.priority = { equalTo: priorityFilter };
+			filter.priority = priorityFilter;
 		}
 
 		// Determine sort order
@@ -66,23 +66,20 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			orderBy = ['STATUS_ASC', 'PRIORITY_DESC'];
 		}
 
-		// Fetch user's tasks
-		const tasksResult = await tasksOps.getAllTasks({
+		// Fetch user's tasks using getDepartmentTasks
+		const tasksResult = await tasksOps.getDepartmentTasks({
 			first: limit,
 			offset: (page - 1) * limit,
 			filter,
-			orderBy,
 			userCredentials
 		});
 
 		// Get task statistics for the user
-		const allUserTasksResult = await tasksOps.getAllTasks({
+		const allUserTasksResult = await tasksOps.getDepartmentTasks({
 			first: 1000, // Get all for statistics
 			offset: 0,
 			filter: {
-				assigneeId: {
-					equalTo: locals.user.id
-				}
+				assigneeId: locals.user.id
 			},
 			userCredentials
 		});

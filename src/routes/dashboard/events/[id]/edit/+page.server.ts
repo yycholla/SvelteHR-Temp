@@ -30,7 +30,8 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 
 	try {
 		// Initialize GraphQL client and operations
-		const urqlClient = createUrqlClient(token);
+		// For server-side: createUrqlClient(fetchFn?, authToken?)
+		const urqlClient = createUrqlClient(undefined, token);
 		const eventsOps = new EventsOperations(urqlClient);
 
 		// Fetch event details

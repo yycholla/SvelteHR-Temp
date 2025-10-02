@@ -6,7 +6,7 @@
  */
 
 import { gql } from '@urql/svelte';
-import type { OperationStore } from '@urql/svelte';
+import type { Client } from '@urql/core';
 import type { DataRequest, UserCredentials } from '$lib/models/data-request';
 import type { ErrorResponse } from '$lib/models/error-response';
 
@@ -380,9 +380,9 @@ export interface PaginatedEmployees {
  * Standardized employee operations with error handling and retry logic
  */
 export class EmployeeOperations {
-	private client: OperationStore;
+	private client: Client;
 
-	constructor(client: OperationStore) {
+	constructor(client: Client) {
 		this.client = client;
 	}
 
@@ -396,11 +396,9 @@ export class EmployeeOperations {
 		orderBy?: string[];
 		userCredentials: UserCredentials;
 	}): Promise<PaginatedEmployees> {
-		// Import required models for standardized error handling
-		const { DataRequest, createDataRequest } = await import('$lib/models/data-request');
+		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
-		// Create data request with standard timeout and retry configuration
 		const dataRequest = createDataRequest({
 			operationName: 'GetEmployees',
 			variables: {
@@ -410,89 +408,40 @@ export class EmployeeOperations {
 				orderBy: params.orderBy
 			},
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
+			timeoutMs: 5000
 		});
 
-		// Retry handler with exponential backoff
-		class EmployeeRetryHandler {
-			private attempts = 0;
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(GET_EMPLOYEES_QUERY, dataRequest.variables).toPromise();
 
-			async execute<T>(fn: () => Promise<T>, request: DataRequest): Promise<T> {
-				while (this.attempts <= request.maxRetries) {
-					try {
-						// Update request status
-						(request as any).status = 'pending';
-
-						// Execute with timeout
-						const result = await Promise.race([
-							fn(),
-							new Promise<never>((_, reject) =>
-								setTimeout(() => reject(new Error('Employee query timeout')), request.timeoutMs)
-							)
-						]);
-
-						(request as any).status = 'completed';
-						return result;
-					} catch (error) {
-						this.attempts++;
-						(request as any).retryAttempts = this.attempts;
-
-						if (this.attempts > request.maxRetries) {
-							(request as any).status = 'failed';
-
-							// Create structured error response
-							const errorResponse = createErrorResponse(error, {
-								type: error.message.includes('timeout') ? 'timeout' : 'graphql',
-								userMessage: 'Unable to load employee data. Please try again or contact support.'
-							});
-
-							console.error('Employee query error:', errorResponse.toLogEntry());
-							throw errorResponse;
-						}
-
-						// Exponential backoff: 1s, 2s, 4s
-						const delay = Math.min(1000 * Math.pow(2, this.attempts - 1), 4000);
-						await new Promise((resolve) => setTimeout(resolve, delay));
-					}
-				}
-				throw new Error('Max retries exceeded');
+			if (result.error) {
+				console.error('Employees GraphQL error:', result.error);
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to load employee list. Please check your permissions and try again.'
+				});
+				throw errorResponse;
 			}
-		}
 
-		const retryHandler = new EmployeeRetryHandler();
+			if (!result.data?.allUsers) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No employee data returned. Please try again.'
+				});
+			}
 
-		return retryHandler.execute(async () => {
-			return new Promise<PaginatedEmployees>((resolve, reject) => {
-				// Subscribe to the employees query
-				const unsubscribe = this.client.subscribe(
-					{
-						query: GET_EMPLOYEES_QUERY,
-						variables: {
-							first: params.first || 20,
-							after: params.after,
-							filter: params.filter,
-							orderBy: params.orderBy
-						}
-					},
-					(result) => {
-						if (result.error) {
-							console.error('Employees GraphQL error:', result.error);
-							const errorResponse = createErrorResponse(result.error, {
-								type: 'graphql',
-								userMessage:
-									'Unable to load employee list. Please check your permissions and try again.'
-							});
-							reject(errorResponse);
-							unsubscribe();
-						} else if (result.data?.allUsers) {
-							console.log(`Loaded ${result.data.allUsers.nodes.length} employees`);
-							resolve(result.data.allUsers);
-							unsubscribe();
-						}
-					}
-				);
+			console.log(`Loaded ${result.data.allUsers.nodes.length} employees`);
+			return result.data.allUsers;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to load employees. Please try again.'
 			});
-		}, dataRequest);
+		}
 	}
 
 	/**
@@ -501,50 +450,47 @@ export class EmployeeOperations {
 	async getDepartments(params: {
 		userCredentials: UserCredentials;
 	}): Promise<{ departments: Array<{ id: string; name: string; description?: string }> }> {
-		const { DataRequest, createDataRequest } = await import('$lib/models/data-request');
+		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		const dataRequest = createDataRequest({
 			operationName: 'GetDepartments',
-			variables: { first: 100 }, // Get all departments
+			variables: { first: 100 },
 			userCredentials: params.userCredentials,
 			timeoutMs: 3000
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Departments fetch timeout'), {
-					type: 'timeout',
-					userMessage: 'Department data is taking longer than expected. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(GET_DEPARTMENTS_QUERY, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				console.error('Departments GraphQL error:', result.error);
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to load departments. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: GET_DEPARTMENTS_QUERY,
-					variables: { first: 100 }
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data?.allDepartments) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No department data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						console.error('Departments GraphQL error:', result.error);
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'graphql',
-							userMessage: 'Unable to load departments. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data?.allDepartments) {
-						console.log(`Loaded ${result.data.allDepartments.nodes.length} departments`);
-						resolve({ departments: result.data.allDepartments.nodes });
-						unsubscribe();
-					}
-				}
-			);
-		});
+			console.log(`Loaded ${result.data.allDepartments.nodes.length} departments`);
+			return { departments: result.data.allDepartments.nodes };
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to load departments. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -554,58 +500,47 @@ export class EmployeeOperations {
 		id: string;
 		userCredentials: UserCredentials;
 	}): Promise<Employee> {
-		const { DataRequest, createDataRequest } = await import('$lib/models/data-request');
+		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		const dataRequest = createDataRequest({
 			operationName: 'GetEmployeeById',
 			variables: { id: params.id },
 			userCredentials: params.userCredentials,
-			timeoutMs: 3000, // Shorter timeout for single record
+			timeoutMs: 3000
 		});
 
-		return new Promise<Employee>((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Employee fetch timeout'), {
-					type: 'timeout',
-					userMessage: 'Employee data is taking longer than expected. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(GET_EMPLOYEE_BY_ID_QUERY, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				console.error('Employee by ID error:', result.error);
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to load employee details. Please check the employee ID and try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: GET_EMPLOYEE_BY_ID_QUERY,
-					variables: { id: params.id }
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data?.employee) {
+				throw createErrorResponse(new Error('Employee not found'), {
+					type: 'validation',
+					userMessage: 'Employee not found. Please check the employee ID.'
+				});
+			}
 
-					if (result.error) {
-						console.error('Employee by ID error:', result.error);
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'graphql',
-							userMessage:
-								'Unable to load employee details. Please check the employee ID and try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data?.employee) {
-						console.log(`Loaded employee: ${result.data.employee.displayName}`);
-						resolve(result.data.employee);
-						unsubscribe();
-					} else {
-						const errorResponse = createErrorResponse(new Error('Employee not found'), {
-							type: 'validation',
-							userMessage: 'Employee not found. Please check the employee ID.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			console.log(`Loaded employee: ${result.data.employee.displayName}`);
+			return result.data.employee;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to load employee details. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -615,7 +550,7 @@ export class EmployeeOperations {
 		employeeId: string;
 		userCredentials: UserCredentials;
 	}): Promise<any> {
-		const { DataRequest, createDataRequest } = await import('$lib/models/data-request');
+		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		const dataRequest = createDataRequest({
@@ -625,40 +560,37 @@ export class EmployeeOperations {
 			timeoutMs: 4000
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Employee dashboard timeout'), {
-					type: 'timeout',
-					userMessage: 'Dashboard data is loading slowly. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(GET_EMPLOYEE_DASHBOARD_QUERY, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				console.error('Employee dashboard error:', result.error);
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to load employee dashboard. Please try refreshing the page.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: GET_EMPLOYEE_DASHBOARD_QUERY,
-					variables: { employeeId: params.employeeId }
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data?.employee) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No dashboard data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						console.error('Employee dashboard error:', result.error);
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'graphql',
-							userMessage: 'Unable to load employee dashboard. Please try refreshing the page.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data?.employee) {
-						console.log(`Loaded dashboard for: ${result.data.employee.displayName}`);
-						resolve(result.data.employee);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			console.log(`Loaded dashboard for: ${result.data.employee.displayName}`);
+			return result.data.employee;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to load employee dashboard. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -690,51 +622,47 @@ export class EmployeeOperations {
 		};
 		userCredentials: UserCredentials;
 	}): Promise<Employee> {
-		const { DataRequest, createDataRequest } = await import('$lib/models/data-request');
+		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		const dataRequest = createDataRequest({
 			operationName: 'CreateEmployee',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 8000, // Longer timeout for mutations
+			timeoutMs: 8000
 		});
 
-		return new Promise<Employee>((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Employee creation timeout'), {
-					type: 'timeout',
-					userMessage:
-						'Employee creation is taking longer than expected. Please check if the employee was created.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(CREATE_EMPLOYEE_MUTATION, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				console.error('Create employee error:', result.error);
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'validation',
+					userMessage: 'Unable to create employee. Please check the information and try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: CREATE_EMPLOYEE_MUTATION,
-					variables: { input: params.input }
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data?.createEmployee?.employee) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No employee data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						console.error('Create employee error:', result.error);
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'validation',
-							userMessage: 'Unable to create employee. Please check the information and try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data?.createEmployee?.employee) {
-						console.log(`Created employee: ${result.data.createEmployee.employee.displayName}`);
-						resolve(result.data.createEmployee.employee);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			console.log(`Created employee: ${result.data.createEmployee.employee.displayName}`);
+			return result.data.createEmployee.employee;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to create employee. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -773,7 +701,7 @@ export class EmployeeOperations {
 		};
 		userCredentials: UserCredentials;
 	}): Promise<Employee> {
-		const { DataRequest, createDataRequest } = await import('$lib/models/data-request');
+		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		const dataRequest = createDataRequest({
@@ -783,41 +711,37 @@ export class EmployeeOperations {
 			timeoutMs: 6000
 		});
 
-		return new Promise<Employee>((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Employee update timeout'), {
-					type: 'timeout',
-					userMessage:
-						'Employee update is taking longer than expected. Please verify the changes were saved.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(UPDATE_EMPLOYEE_MUTATION, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				console.error('Update employee error:', result.error);
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'validation',
+					userMessage: 'Unable to update employee. Please check the information and try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: UPDATE_EMPLOYEE_MUTATION,
-					variables: { input: params.input }
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data?.updateEmployee?.employee) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No employee data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						console.error('Update employee error:', result.error);
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'validation',
-							userMessage: 'Unable to update employee. Please check the information and try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data?.updateEmployee?.employee) {
-						console.log(`Updated employee: ${result.data.updateEmployee.employee.displayName}`);
-						resolve(result.data.updateEmployee.employee);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			console.log(`Updated employee: ${result.data.updateEmployee.employee.displayName}`);
+			return result.data.updateEmployee.employee;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to update employee. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -830,7 +754,7 @@ export class EmployeeOperations {
 		};
 		userCredentials: UserCredentials;
 	}): Promise<{ id: string; isActive: boolean; updatedAt: string }> {
-		const { DataRequest, createDataRequest } = await import('$lib/models/data-request');
+		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		const dataRequest = createDataRequest({
@@ -840,49 +764,44 @@ export class EmployeeOperations {
 			timeoutMs: 4000
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Employee deactivation timeout'), {
-					type: 'timeout',
-					userMessage:
-						'Employee deactivation is taking longer than expected. Please verify the change was applied.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(DEACTIVATE_EMPLOYEE_MUTATION, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				console.error('Deactivate employee error:', result.error);
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'permission',
+					userMessage: 'Unable to deactivate employee. Please check your permissions and try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: DEACTIVATE_EMPLOYEE_MUTATION,
-					variables: { input: params.input }
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data?.deactivateEmployee?.employee) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No deactivation confirmation returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						console.error('Deactivate employee error:', result.error);
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'PERMISSION_ERROR',
-							userMessage:
-								'Unable to deactivate employee. Please check your permissions and try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data?.deactivateEmployee?.employee) {
-						console.log(`Deactivated employee: ${params.input.id}`);
-						resolve(result.data.deactivateEmployee.employee);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			console.log(`Deactivated employee: ${params.input.id}`);
+			return result.data.deactivateEmployee.employee;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to deactivate employee. Please try again.'
+			});
+		}
 	}
 }
 
 /**
  * Factory function to create EmployeeOperations instance
  */
-export function createEmployeeOperations(client: OperationStore): EmployeeOperations {
+export function createEmployeeOperations(client: Client): EmployeeOperations {
 	return new EmployeeOperations(client);
 }
 

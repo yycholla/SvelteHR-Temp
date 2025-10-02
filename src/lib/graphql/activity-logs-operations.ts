@@ -1,4 +1,5 @@
 // GraphQL Operations: Activity Logs (Dual-Tab: My Activities + Audit Logs)
+import type { Client } from '@urql/core';
 // Feature: 019-we-need-to - Task T015
 // Purpose: Activity logging with RLS-enforced employee view vs admin audit view
 
@@ -12,25 +13,25 @@ import type { UserCredentials } from '$lib/models/data-request';
 /**
  * Query: Get user's own activities ("My Activities" tab)
  * RLS Policy: activity_user_own_access (employee sees only their own activities)
+ * PostGraphile: Uses allActivityLogs and ActivityLogCondition
  */
 export const GET_USER_ACTIVITIES = gql`
 	query GetUserActivities(
-		$employeeId: UUID!
 		$first: Int = 50
 		$offset: Int = 0
 		$orderBy: [ActivityLogsOrderBy!] = [CREATED_AT_DESC]
-		$filter: ActivityLogFilter
+		$condition: ActivityLogCondition
 	) {
-		activityLogs(
+		allActivityLogs(
 			first: $first
 			offset: $offset
 			orderBy: $orderBy
-			filter: $filter
-			condition: { employeeId: $employeeId }
+			condition: $condition
 		) {
 			nodes {
 				id
 				employeeId
+				userId
 				action
 				resourceType
 				resourceId
@@ -43,8 +44,6 @@ export const GET_USER_ACTIVITIES = gql`
 			pageInfo {
 				hasNextPage
 				hasPreviousPage
-				startCursor
-				endCursor
 			}
 		}
 	}
@@ -53,24 +52,26 @@ export const GET_USER_ACTIVITIES = gql`
 /**
  * Query: Get all system activities ("Audit Logs" tab - admin only)
  * RLS Policy: activity_admin_audit_access (admin sees all activities)
+ * PostGraphile: Uses allActivityLogs and ActivityLogCondition
  */
 export const GET_AUDIT_LOGS = gql`
 	query GetAuditLogs(
 		$first: Int = 100
 		$offset: Int = 0
 		$orderBy: [ActivityLogsOrderBy!] = [CREATED_AT_DESC]
-		$filter: ActivityLogFilter
+		$condition: ActivityLogCondition
 	) {
-		activityLogs(first: $first, offset: $offset, orderBy: $orderBy, filter: $filter) {
+		allActivityLogs(first: $first, offset: $offset, orderBy: $orderBy, condition: $condition) {
 			nodes {
 				id
 				employeeId
-				employee {
+				userId
+				userByEmployeeId {
 					id
 					displayName
 					email
 					departmentId
-					department {
+					departmentByDepartmentId {
 						id
 						name
 					}
@@ -87,8 +88,6 @@ export const GET_AUDIT_LOGS = gql`
 			pageInfo {
 				hasNextPage
 				hasPreviousPage
-				startCursor
-				endCursor
 			}
 		}
 	}
@@ -96,6 +95,7 @@ export const GET_AUDIT_LOGS = gql`
 
 /**
  * Query: Get activity history for specific resource
+ * PostGraphile: Uses allActivityLogs and condition parameter
  */
 export const GET_RESOURCE_ACTIVITY_HISTORY = gql`
 	query GetResourceActivityHistory(
@@ -103,15 +103,16 @@ export const GET_RESOURCE_ACTIVITY_HISTORY = gql`
 		$resourceId: UUID!
 		$first: Int = 20
 	) {
-		activityLogs(
+		allActivityLogs(
 			first: $first
-			filter: { resourceType: { equalTo: $resourceType }, resourceId: { equalTo: $resourceId } }
+			condition: { resourceType: $resourceType, resourceId: $resourceId }
 			orderBy: [CREATED_AT_DESC]
 		) {
 			nodes {
 				id
 				employeeId
-				employee {
+				userId
+				userByEmployeeId {
 					id
 					displayName
 					email
@@ -129,24 +130,22 @@ export const GET_RESOURCE_ACTIVITY_HISTORY = gql`
 
 /**
  * Query: Get activities by date range
+ * PostGraphile: Uses allActivityLogs, date filtering done server-side
  */
 export const GET_ACTIVITIES_BY_DATE_RANGE = gql`
 	query GetActivitiesByDateRange(
 		$employeeId: UUID
-		$startDate: Datetime!
-		$endDate: Datetime!
-		$first: Int = 50
+		$first: Int = 1000
 	) {
-		activityLogs(
+		allActivityLogs(
 			first: $first
-			filter: {
-				employeeId: { equalTo: $employeeId }
-				createdAt: { greaterThanOrEqualTo: $startDate, lessThanOrEqualTo: $endDate }
-			}
+			condition: { employeeId: $employeeId }
 			orderBy: [CREATED_AT_DESC]
 		) {
 			nodes {
 				id
+				employeeId
+				userId
 				action
 				resourceType
 				resourceId
@@ -411,21 +410,22 @@ export function getRelativeTime(timestamp: string): string {
  * T015: Activity Logs Operations with Dual-Tab RLS
  */
 export class ActivityLogsOperations {
-	private client: any;
+	private client: Client;
 
-	constructor(client: any) {
+	constructor(client: Client) {
 		this.client = client;
 	}
 
 	/**
 	 * Get user's own activities ("My Activities" tab)
 	 * RLS ensures user only sees their own activities
+	 * PostGraphile: Uses condition instead of filter
 	 */
 	async getUserActivities(params: {
 		employeeId: string;
 		first?: number;
 		offset?: number;
-		filter?: ActivityLogFilter;
+		filter?: any; // Changed from ActivityLogFilter to any for PostGraphile condition
 		userCredentials: UserCredentials;
 	}): Promise<{
 		activities: ActivityLog[];
@@ -435,13 +435,15 @@ export class ActivityLogsOperations {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
+		// Merge employeeId with filter for condition
+		const condition = { ...params.filter, employeeId: params.employeeId };
+
 		const dataRequest = createDataRequest({
 			operationName: 'GetUserActivities',
 			variables: {
-				employeeId: params.employeeId,
 				first: params.first || 50,
 				offset: params.offset || 0,
-				filter: params.filter || {}
+				condition
 			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
@@ -467,9 +469,9 @@ export class ActivityLogsOperations {
 			}
 
 			return {
-				activities: result.data.activityLogs.nodes,
-				totalCount: result.data.activityLogs.totalCount,
-				hasNextPage: result.data.activityLogs.pageInfo.hasNextPage
+				activities: result.data.allActivityLogs.nodes,
+				totalCount: result.data.allActivityLogs.totalCount,
+				hasNextPage: result.data.allActivityLogs.pageInfo.hasNextPage
 			};
 		} catch (error: any) {
 			if (error.userMessage) {
@@ -485,11 +487,12 @@ export class ActivityLogsOperations {
 	/**
 	 * Get all system activities ("Audit Logs" tab - admin only)
 	 * RLS ensures only admins can access this
+	 * PostGraphile: Uses condition instead of filter
 	 */
 	async getAuditLogs(params: {
 		first?: number;
 		offset?: number;
-		filter?: ActivityLogFilter;
+		filter?: any;
 		userCredentials: UserCredentials;
 	}): Promise<{
 		activities: ActivityLog[];
@@ -504,7 +507,7 @@ export class ActivityLogsOperations {
 			variables: {
 				first: params.first || 100,
 				offset: params.offset || 0,
-				filter: params.filter || {}
+				condition: params.filter || {}
 			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
@@ -530,9 +533,9 @@ export class ActivityLogsOperations {
 			}
 
 			return {
-				activities: result.data.activityLogs.nodes,
-				totalCount: result.data.activityLogs.totalCount,
-				hasNextPage: result.data.activityLogs.pageInfo.hasNextPage
+				activities: result.data.allActivityLogs.nodes,
+				totalCount: result.data.allActivityLogs.totalCount,
+				hasNextPage: result.data.allActivityLogs.pageInfo.hasNextPage
 			};
 		} catch (error: any) {
 			if (error.userMessage) {
@@ -587,7 +590,7 @@ export class ActivityLogsOperations {
 				});
 			}
 
-			return result.data.activityLogs.nodes;
+			return result.data.allActivityLogs.nodes;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error; // Already formatted error
@@ -643,7 +646,7 @@ export class ActivityLogsOperations {
 				});
 			}
 
-			return result.data.activityLogs.nodes;
+			return result.data.allActivityLogs.nodes;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error; // Already formatted error
@@ -659,6 +662,6 @@ export class ActivityLogsOperations {
 /**
  * Factory function to create ActivityLogsOperations instance
  */
-export function createActivityLogsOperations(client: any): ActivityLogsOperations {
+export function createActivityLogsOperations(client: Client): ActivityLogsOperations {
 	return new ActivityLogsOperations(client);
 }

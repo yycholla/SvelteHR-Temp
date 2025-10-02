@@ -77,24 +77,24 @@
 <div class="container mx-auto max-w-7xl px-4 py-8">
 	<!-- Page Header -->
 	<div class="mb-8">
-		<h1 class="text-3xl font-bold text-gray-900">Department Tasks</h1>
-		<p class="mt-2 text-gray-600">Manage tasks assigned to your department</p>
+		<h1 class="text-3xl font-bold text-foreground">Department Tasks</h1>
+		<p class="mt-2 text-muted-foreground">Manage tasks assigned to your department</p>
 	</div>
 
 	<!-- Filters and Controls -->
-	<div class="mb-6 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+	<div class="mb-6 rounded-lg border border-border bg-card p-4 shadow-sm">
 		<div class="flex flex-wrap items-end gap-4">
 			<!-- Department Selector (if managing multiple departments) -->
 			{#if data.managedDepartments.length > 1}
 				<div class="flex-1 min-w-[200px]">
-					<label for="department-filter" class="block text-sm font-medium text-gray-700 mb-1">
+					<label for="department-filter" class="block text-sm font-medium text-foreground mb-1">
 						Department
 					</label>
 					<select
 						id="department-filter"
 						bind:value={selectedDepartment}
 						onchange={applyFilters}
-						class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
 					>
 						{#each data.managedDepartments as dept}
 							<option value={dept.id}>{dept.name}</option>
@@ -104,9 +104,9 @@
 			{:else if data.selectedDepartment}
 				<!-- Show current department if only one -->
 				<div class="flex-1 min-w-[200px]">
-					<label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
+					<label class="block text-sm font-medium text-foreground mb-1">Department</label>
 					<div
-						class="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700"
+						class="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground"
 					>
 						{data.selectedDepartment.name}
 					</div>
@@ -115,14 +115,14 @@
 
 			<!-- Status Filter -->
 			<div class="flex-1 min-w-[200px]">
-				<label for="status-filter" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="status-filter" class="block text-sm font-medium text-foreground mb-1">
 					Status
 				</label>
 				<select
 					id="status-filter"
 					bind:value={selectedStatus}
 					onchange={applyFilters}
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
 				>
 					<option value="all">All Statuses</option>
 					<option value="pending">Pending</option>
@@ -134,14 +134,14 @@
 
 			<!-- Priority Filter -->
 			<div class="flex-1 min-w-[200px]">
-				<label for="priority-filter" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="priority-filter" class="block text-sm font-medium text-foreground mb-1">
 					Priority
 				</label>
 				<select
 					id="priority-filter"
 					bind:value={selectedPriority}
 					onchange={applyFilters}
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
 				>
 					<option value="all">All Priorities</option>
 					<option value="low">Low</option>
@@ -153,14 +153,14 @@
 
 			<!-- Sort Order -->
 			<div class="flex-1 min-w-[200px]">
-				<label for="sort-filter" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="sort-filter" class="block text-sm font-medium text-foreground mb-1">
 					Sort By
 				</label>
 				<select
 					id="sort-filter"
 					bind:value={selectedSort}
 					onchange={applyFilters}
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
 				>
 					<option value="priority">Priority</option>
 					<option value="dueDate">Due Date</option>
@@ -174,7 +174,7 @@
 				<button
 					type="button"
 					onclick={() => goto('/dashboard/tasks/department')}
-					class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+					class="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
 				>
 					Reset
 				</button>
@@ -184,39 +184,39 @@
 
 	<!-- Statistics Summary -->
 	<div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-7">
-		<div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-			<div class="text-2xl font-bold text-gray-900">{statistics.total}</div>
-			<div class="text-sm text-gray-600">Total</div>
+		<div class="rounded-lg border border-border bg-card p-4 shadow-sm">
+			<div class="text-2xl font-bold text-foreground">{statistics.total}</div>
+			<div class="text-sm text-muted-foreground">Total</div>
 		</div>
 
-		<div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-			<div class="text-2xl font-bold text-yellow-600">{statistics.pending}</div>
-			<div class="text-sm text-gray-600">Pending</div>
+		<div class="rounded-lg border border-border bg-card p-4 shadow-sm">
+			<div class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{statistics.pending}</div>
+			<div class="text-sm text-muted-foreground">Pending</div>
 		</div>
 
-		<div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-			<div class="text-2xl font-bold text-blue-600">{statistics.inProgress}</div>
-			<div class="text-sm text-gray-600">In Progress</div>
+		<div class="rounded-lg border border-border bg-card p-4 shadow-sm">
+			<div class="text-2xl font-bold text-primary">{statistics.inProgress}</div>
+			<div class="text-sm text-muted-foreground">In Progress</div>
 		</div>
 
-		<div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-			<div class="text-2xl font-bold text-green-600">{statistics.completed}</div>
-			<div class="text-sm text-gray-600">Completed</div>
+		<div class="rounded-lg border border-border bg-card p-4 shadow-sm">
+			<div class="text-2xl font-bold text-green-600 dark:text-green-400">{statistics.completed}</div>
+			<div class="text-sm text-muted-foreground">Completed</div>
 		</div>
 
-		<div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-			<div class="text-2xl font-bold text-red-600">{statistics.urgent}</div>
-			<div class="text-sm text-gray-600">Urgent</div>
+		<div class="rounded-lg border border-border bg-card p-4 shadow-sm">
+			<div class="text-2xl font-bold text-destructive">{statistics.urgent}</div>
+			<div class="text-sm text-muted-foreground">Urgent</div>
 		</div>
 
-		<div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-			<div class="text-2xl font-bold text-orange-600">{statistics.high}</div>
-			<div class="text-sm text-gray-600">High</div>
+		<div class="rounded-lg border border-border bg-card p-4 shadow-sm">
+			<div class="text-2xl font-bold text-orange-600 dark:text-orange-400">{statistics.high}</div>
+			<div class="text-sm text-muted-foreground">High</div>
 		</div>
 
-		<div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-			<div class="text-2xl font-bold text-red-500">{statistics.overdue}</div>
-			<div class="text-sm text-gray-600">Overdue</div>
+		<div class="rounded-lg border border-border bg-card p-4 shadow-sm">
+			<div class="text-2xl font-bold text-destructive">{statistics.overdue}</div>
+			<div class="text-sm text-muted-foreground">Overdue</div>
 		</div>
 	</div>
 
@@ -238,14 +238,14 @@
 	<!-- Pagination -->
 	{#if data.totalCount > data.limit}
 		<div
-			class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6"
+			class="flex items-center justify-between border-t border-border bg-card px-4 py-3 sm:px-6"
 		>
 			<div class="flex flex-1 justify-between sm:hidden">
 				<button
 					type="button"
 					disabled={data.currentPage === 1}
 					onclick={() => goToPage(data.currentPage - 1)}
-					class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+					class="relative inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
 				>
 					Previous
 				</button>
@@ -253,7 +253,7 @@
 					type="button"
 					disabled={!data.hasNextPage}
 					onclick={() => goToPage(data.currentPage + 1)}
-					class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+					class="relative ml-3 inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
 				>
 					Next
 				</button>
@@ -261,7 +261,7 @@
 
 			<div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
 				<div>
-					<p class="text-sm text-gray-700">
+					<p class="text-sm text-foreground">
 						Showing
 						<span class="font-medium">{(data.currentPage - 1) * data.limit + 1}</span>
 						to
@@ -283,7 +283,7 @@
 							type="button"
 							disabled={data.currentPage === 1}
 							onclick={() => goToPage(data.currentPage - 1)}
-							class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+							class="relative inline-flex items-center rounded-l-md px-2 py-2 text-muted-foreground ring-1 ring-inset ring-border hover:bg-accent hover:text-accent-foreground focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
 						>
 							<span class="sr-only">Previous</span>
 							<svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -296,7 +296,7 @@
 						</button>
 
 						<span
-							class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300"
+							class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-foreground ring-1 ring-inset ring-border bg-card"
 						>
 							Page {data.currentPage}
 						</span>
@@ -305,7 +305,7 @@
 							type="button"
 							disabled={!data.hasNextPage}
 							onclick={() => goToPage(data.currentPage + 1)}
-							class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+							class="relative inline-flex items-center rounded-r-md px-2 py-2 text-muted-foreground ring-1 ring-inset ring-border hover:bg-accent hover:text-accent-foreground focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
 						>
 							<span class="sr-only">Next</span>
 							<svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

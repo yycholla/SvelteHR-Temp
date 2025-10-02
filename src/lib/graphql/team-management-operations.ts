@@ -521,9 +521,9 @@ export function buildDepartmentFilter({
 import type { DataRequest, UserCredentials } from '$lib/models/data-request';
 
 export class TeamManagementOperations {
-	private client: any;
+	private client: Client;
 
-	constructor(client: any) {
+	constructor(client: Client) {
 		this.client = client;
 	}
 
@@ -573,6 +573,6 @@ export class TeamManagementOperations {
 	}
 }
 
-export function createTeamManagementOperations(client: any): TeamManagementOperations {
+export function createTeamManagementOperations(client: Client): TeamManagementOperations {
 	return new TeamManagementOperations(client);
 }

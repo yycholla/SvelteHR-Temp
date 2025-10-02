@@ -488,9 +488,9 @@ export function getStatusBadgeColor(status: string): string {
  * tests/contract/manager-leave-operations.test.ts
  */
 export class LeaveManagementOperations {
-	private client: any;
+	private client: Client;
 
-	constructor(client: any) {
+	constructor(client: Client) {
 		this.client = client;
 	}
 
@@ -520,45 +520,41 @@ export class LeaveManagementOperations {
 			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
-			maxRetries: 3
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Leave requests timeout'), {
-					type: 'timeout',
-					userMessage: 'Leave requests are loading slowly. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(GET_PENDING_LEAVE_REQUESTS, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to load leave requests. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: GET_PENDING_LEAVE_REQUESTS,
-					variables: dataRequest.variables
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No leave requests data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'graphql',
-							userMessage: 'Unable to load leave requests. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						resolve({
-							requests: result.data.leaveRequests.nodes,
-							totalCount: result.data.leaveRequests.totalCount,
-							hasNextPage: result.data.leaveRequests.pageInfo.hasNextPage
-						});
-						unsubscribe();
-					}
-				}
-			);
-		});
+			return {
+				requests: result.data.leaveRequests.nodes,
+				totalCount: result.data.leaveRequests.totalCount,
+				hasNextPage: result.data.leaveRequests.pageInfo.hasNextPage
+			};
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to load leave requests. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -576,42 +572,38 @@ export class LeaveManagementOperations {
 			variables: { departmentId: params.departmentId },
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
-			maxRetries: 3
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Statistics timeout'), {
-					type: 'timeout',
-					userMessage: 'Statistics are loading slowly. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(GET_LEAVE_STATISTICS, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to load statistics. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: GET_LEAVE_STATISTICS,
-					variables: dataRequest.variables
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No statistics data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'graphql',
-							userMessage: 'Unable to load statistics. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						const stats = calculateLeaveStatistics(result.data);
-						resolve(stats);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			const stats = calculateLeaveStatistics(result.data);
+			return stats;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to load leave statistics. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -651,41 +643,37 @@ export class LeaveManagementOperations {
 			variables: { input },
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
-			maxRetries: 3
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Approval timeout'), {
-					type: 'timeout',
-					userMessage: 'Approval is taking too long. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(APPROVE_LEAVE_REQUEST, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to approve leave request. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: APPROVE_LEAVE_REQUEST,
-					variables: dataRequest.variables
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No leave request data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'graphql',
-							userMessage: 'Unable to approve leave request. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						resolve(result.data.updateLeaveRequest.leaveRequest);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			return result.data.updateLeaveRequest.leaveRequest;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to approve leave request. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -726,47 +714,43 @@ export class LeaveManagementOperations {
 			variables: { input },
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
-			maxRetries: 3
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Rejection timeout'), {
-					type: 'timeout',
-					userMessage: 'Rejection is taking too long. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(REJECT_LEAVE_REQUEST, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to reject leave request. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: REJECT_LEAVE_REQUEST,
-					variables: dataRequest.variables
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No leave request data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'graphql',
-							userMessage: 'Unable to reject leave request. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						resolve(result.data.updateLeaveRequest.leaveRequest);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			return result.data.updateLeaveRequest.leaveRequest;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to reject leave request. Please try again.'
+			});
+		}
 	}
 }
 
 /**
  * Factory function to create LeaveManagementOperations instance
  */
-export function createLeaveManagementOperations(client: any): LeaveManagementOperations {
+export function createLeaveManagementOperations(client: Client): LeaveManagementOperations {
 	return new LeaveManagementOperations(client);
 }

@@ -77,9 +77,9 @@
 </script>
 
 <div
-	class="task-card group relative rounded-lg border bg-white p-4 shadow-sm transition-all hover:shadow-md"
+	class="task-card group relative rounded-lg border border-border bg-card p-4 shadow-sm transition-all hover:shadow-md"
 	class:cursor-pointer={onClick}
-	class:hover:border-blue-300={onClick}
+	class:hover:border-primary={onClick}
 	class:compact
 	class:opacity-60={task.status === 'completed' || task.status === 'cancelled'}
 	role={onClick ? 'button' : 'article'}
@@ -108,16 +108,16 @@
 						aria-label="Toggle task status"
 					>
 						{#if task.status === 'completed'}
-							<svg class="h-5 w-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+							<svg class="h-5 w-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
 								<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
 							</svg>
 						{:else if task.status === 'in_progress'}
-							<svg class="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+							<svg class="h-5 w-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
 								<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd" />
 								<circle cx="10" cy="10" r="3" fill="currentColor" />
 							</svg>
 						{:else}
-							<svg class="h-5 w-5 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 20 20">
+							<svg class="h-5 w-5 text-muted-foreground hover:text-foreground" fill="none" stroke="currentColor" viewBox="0 0 20 20">
 								<circle cx="10" cy="10" r="8" stroke-width="2" />
 							</svg>
 						{/if}
@@ -127,7 +127,7 @@
 				<!-- Title and Badges -->
 				<div class="flex-1">
 					<h3
-						class="text-base font-semibold text-gray-900 group-hover:text-blue-600"
+						class="text-base font-semibold text-foreground group-hover:text-primary"
 						class:line-through={task.status === 'completed' || task.status === 'cancelled'}
 					>
 						{task.title}
@@ -181,22 +181,22 @@
 
 		<!-- Task Description -->
 		{#if showDescription && task.description && !compact}
-			<div class="mb-3 text-sm text-gray-600">
+			<div class="mb-3 text-sm text-muted-foreground">
 				<p class="line-clamp-2">{task.description}</p>
 			</div>
 		{/if}
 
 		<!-- Task Meta Information -->
-		<div class="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+		<div class="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
 			<!-- Assignee -->
 			{#if showAssignee}
 				<div class="flex items-center gap-1.5">
 					{#if isEmployeeTask}
-						<svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<svg class="h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
 						</svg>
 					{:else if isDepartmentTask}
-						<svg class="h-4 w-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+						<svg class="h-4 w-4 text-muted-foreground" fill="currentColor" viewBox="0 0 20 20">
 							<path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
 						</svg>
 					{/if}
@@ -207,10 +207,10 @@
 			<!-- Due Date -->
 			{#if task.dueDate}
 				<div class="flex items-center gap-1.5">
-					<svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<svg class="h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
 					</svg>
-					<span class:text-red-600={isOverdue} class:text-yellow-600={isDueSoon}>
+					<span class:text-red-600={isOverdue} class:text-yellow-600={isDueSoon} class:dark:text-red-400={isOverdue} class:dark:text-yellow-400={isDueSoon}>
 						{dueDateDisplay}
 					</span>
 				</div>
@@ -218,7 +218,7 @@
 
 			<!-- Completion Date -->
 			{#if task.completedAt && !compact}
-				<div class="flex items-center gap-1.5 text-green-600">
+				<div class="flex items-center gap-1.5 text-green-600 dark:text-green-400">
 					<svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
 						<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
 					</svg>

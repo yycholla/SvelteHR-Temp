@@ -6,7 +6,7 @@
  */
 
 import { gql } from '@urql/svelte';
-import type { OperationStore } from '@urql/svelte';
+import type { Client } from '@urql/core';
 import type { DataRequest, UserCredentials } from '$lib/models/data-request';
 import type { ErrorResponse } from '$lib/models/error-response';
 import type { UserSession } from '$lib/models/user-session';
@@ -197,9 +197,9 @@ export interface AuthenticationResult {
  * Standardized authentication operations with error handling and retry logic
  */
 export class AuthenticationOperations {
-	private client: OperationStore;
+	private client: Client;
 
-	constructor(client: OperationStore) {
+	constructor(client: Client) {
 		this.client = client;
 	}
 
@@ -207,8 +207,7 @@ export class AuthenticationOperations {
 	 * Authenticate user with email and password
 	 */
 	async login(credentials: LoginCredentials): Promise<AuthenticationResult> {
-		// Import required models for standardized error handling
-		const { DataRequest, createDataRequest } = await import('$lib/models/data-request');
+		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		// Create anonymous user credentials for login request
@@ -218,116 +217,54 @@ export class AuthenticationOperations {
 			roles: [],
 			permissions: [],
 			isAuthenticated: false,
-			expiresAt: new Date(Date.now() + 1000).toISOString() // Expire immediately
+			expiresAt: new Date(Date.now() + 1000).toISOString()
 		};
 
-		// Create data request with standard timeout and retry configuration
 		const dataRequest = createDataRequest({
 			operationName: 'Login',
 			variables: credentials,
 			userCredentials: anonymousCredentials,
 			timeoutMs: 5000
-			maxRetries: 3
 		});
 
-		// Retry handler with exponential backoff
-		class AuthRetryHandler {
-			private attempts = 0;
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(LOGIN_MUTATION, dataRequest.variables).toPromise();
 
-			async execute<T>(fn: () => Promise<T>, request: DataRequest): Promise<T> {
-				while (this.attempts <= request.maxRetries) {
-					try {
-						// Update request status
-						(request as any).status = 'pending';
-
-						// Execute with timeout
-						const result = await Promise.race([
-							fn(),
-							new Promise<never>((_, reject) =>
-								setTimeout(() => reject(new Error('Authentication timeout')), request.timeoutMs)
-							)
-						]);
-
-						(request as any).status = 'completed';
-						return result;
-					} catch (error) {
-						this.attempts++;
-						(request as any).retryAttempts = this.attempts;
-
-						if (this.attempts > request.maxRetries) {
-							(request as any).status = 'failed';
-
-							// Create structured error response
-							const errorResponse = createErrorResponse(error, {
-								type: error.message.includes('timeout') ? 'timeout' : 'AUTHENTICATION_ERROR',
-								userMessage: 'Unable to sign in. Please check your credentials and try again.'
-							});
-
-							console.error('Login error:', errorResponse.toLogEntry());
-							throw errorResponse;
-						}
-
-						// Exponential backoff: 1s, 2s, 4s (no retry for auth errors)
-						if (!this.isAuthError(error)) {
-							const delay = Math.min(1000 * Math.pow(2, this.attempts - 1), 4000);
-							await new Promise((resolve) => setTimeout(resolve, delay));
-						} else {
-							// Don't retry authentication errors
-							break;
-						}
-					}
-				}
-				throw new Error('Authentication failed');
+			if (result.error) {
+				console.error('Login GraphQL error:', result.error);
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'authentication',
+					userMessage: 'Invalid email or password. Please try again.'
+				});
+				throw errorResponse;
 			}
 
-			private isAuthError(error: unknown): boolean {
-				if (!error) return false;
-				const errorString =
-					error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
-				return (
-					errorString.includes('credential') ||
-					errorString.includes('password') ||
-					errorString.includes('unauthorized') ||
-					errorString.includes('invalid')
-				);
+			if (!result.data?.authenticate) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'authentication',
+					userMessage: 'Authentication failed. Please try again.'
+				});
 			}
-		}
 
-		const retryHandler = new AuthRetryHandler();
-
-		return retryHandler.execute(async () => {
-			return new Promise<AuthenticationResult>((resolve, reject) => {
-				// Subscribe to the login mutation
-				const unsubscribe = this.client.subscribe(
-					{
-						query: LOGIN_MUTATION,
-						variables: credentials
-					},
-					(result) => {
-						if (result.error) {
-							console.error('Login GraphQL error:', result.error);
-							const errorResponse = createErrorResponse(result.error, {
-								type: 'AUTHENTICATION_ERROR',
-								userMessage: 'Invalid email or password. Please try again.'
-							});
-							reject(errorResponse);
-							unsubscribe();
-						} else if (result.data?.authenticate) {
-							console.log('Login successful:', result.data.authenticate.user.email);
-							resolve(result.data.authenticate);
-							unsubscribe();
-						}
-					}
-				);
+			console.log('Login successful:', result.data.authenticate.user.email);
+			return result.data.authenticate;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'authentication',
+				userMessage: 'Unable to sign in. Please check your credentials and try again.'
 			});
-		}, dataRequest);
+		}
 	}
 
 	/**
 	 * Refresh authentication token
 	 */
 	async refreshToken(refreshToken: string): Promise<AuthenticationResult> {
-		const { DataRequest, createDataRequest } = await import('$lib/models/data-request');
+		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		// Create expired user credentials for refresh request
@@ -337,71 +274,67 @@ export class AuthenticationOperations {
 			roles: [],
 			permissions: [],
 			isAuthenticated: false,
-			expiresAt: new Date(Date.now() - 1000).toISOString() // Already expired
+			expiresAt: new Date(Date.now() - 1000).toISOString()
 		};
 
 		const dataRequest = createDataRequest({
 			operationName: 'RefreshToken',
 			variables: { refreshToken },
 			userCredentials: expiredCredentials,
-			timeoutMs: 3000, // Shorter timeout for token refresh
-			maxRetries: 1 // Only retry once for token refresh
+			timeoutMs: 3000
 		});
 
-		return new Promise<AuthenticationResult>((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Token refresh timeout'), {
-					type: 'timeout',
-					userMessage: 'Session refresh is taking too long. Please sign in again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(REFRESH_TOKEN_MUTATION, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				console.error('Token refresh error:', result.error);
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'authentication',
+					userMessage: 'Your session has expired. Please sign in again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: REFRESH_TOKEN_MUTATION,
-					variables: { refreshToken }
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data?.refreshToken) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'authentication',
+					userMessage: 'Token refresh failed. Please sign in again.'
+				});
+			}
 
-					if (result.error) {
-						console.error('Token refresh error:', result.error);
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'AUTHENTICATION_ERROR',
-							userMessage: 'Your session has expired. Please sign in again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data?.refreshToken) {
-						console.log('Token refresh successful');
-						resolve({
-							...result.data.refreshToken,
-							sessionInfo: {
-								sessionId: 'refreshed-session',
-								deviceInfo: undefined,
-								location: undefined
-							}
-						});
-						unsubscribe();
-					}
+			console.log('Token refresh successful');
+			return {
+				...result.data.refreshToken,
+				sessionInfo: {
+					sessionId: 'refreshed-session',
+					deviceInfo: undefined,
+					location: undefined
 				}
-			);
-		});
+			};
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'authentication',
+				userMessage: 'Session refresh failed. Please sign in again.'
+			});
+		}
 	}
 
 	/**
 	 * Verify current authentication token
 	 */
 	async verifyToken(): Promise<AuthenticationResult> {
-		const { DataRequest, createDataRequest } = await import('$lib/models/data-request');
+		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		// Create current user credentials for verification
 		const currentCredentials: UserCredentials = {
 			userId: 'verifying',
-			jwtToken: 'current.jwt.token', // In real app, get from auth store
+			jwtToken: 'current.jwt.token',
 			roles: [],
 			permissions: [],
 			isAuthenticated: true,
@@ -413,59 +346,56 @@ export class AuthenticationOperations {
 			variables: {},
 			userCredentials: currentCredentials,
 			timeoutMs: 3000
-			maxRetries: 2
 		});
 
-		return new Promise<AuthenticationResult>((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Token verification timeout'), {
-					type: 'timeout',
-					userMessage: 'Unable to verify your session. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(VERIFY_TOKEN_QUERY, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				console.error('Token verification error:', result.error);
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'authentication',
+					userMessage: 'Your session is no longer valid. Please sign in again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: VERIFY_TOKEN_QUERY
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data?.currentUser) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'authentication',
+					userMessage: 'Token verification failed. Please sign in again.'
+				});
+			}
 
-					if (result.error) {
-						console.error('Token verification error:', result.error);
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'AUTHENTICATION_ERROR',
-							userMessage: 'Your session is no longer valid. Please sign in again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data?.currentUser) {
-						console.log('Token verification successful');
-						const user = result.data.currentUser;
-						resolve({
-							user,
-							jwtToken: 'verified.jwt.token', // In real app, this would come from the response
-							expiresAt: user.sessionInfo.expiresAt,
-							sessionInfo: {
-								sessionId: user.sessionInfo.sessionId,
-								deviceInfo: undefined,
-								location: undefined
-							}
-						});
-						unsubscribe();
-					}
+			console.log('Token verification successful');
+			const user = result.data.currentUser;
+			return {
+				user,
+				jwtToken: 'verified.jwt.token',
+				expiresAt: user.sessionInfo.expiresAt,
+				sessionInfo: {
+					sessionId: user.sessionInfo.sessionId,
+					deviceInfo: undefined,
+					location: undefined
 				}
-			);
-		});
+			};
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'authentication',
+				userMessage: 'Unable to verify your session. Please sign in again.'
+			});
+		}
 	}
 
 	/**
 	 * Logout user and invalidate session
 	 */
 	async logout(sessionId: string): Promise<{ success: boolean; message: string }> {
-		const { DataRequest, createDataRequest } = await import('$lib/models/data-request');
+		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		const currentCredentials: UserCredentials = {
@@ -482,45 +412,39 @@ export class AuthenticationOperations {
 			variables: { sessionId },
 			userCredentials: currentCredentials,
 			timeoutMs: 3000
-			maxRetries: 1 // Single retry for logout
 		});
 
-		return new Promise<{ success: boolean; message: string }>((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				console.warn('Logout timeout, proceeding with local cleanup');
-				resolve({ success: true, message: 'Logged out locally (server timeout)' });
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(LOGOUT_MUTATION, dataRequest.variables).toPromise();
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: LOGOUT_MUTATION,
-					variables: { sessionId }
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (result.error) {
+				console.error('Logout error:', result.error);
+				// Don't fail logout on server error - allow local cleanup
+				console.log('Proceeding with local logout despite server error');
+				return { success: true, message: 'Logged out locally' };
+			}
 
-					if (result.error) {
-						console.error('Logout error:', result.error);
-						// Don't fail logout on server error - allow local cleanup
-						console.log('Proceeding with local logout despite server error');
-						resolve({ success: true, message: 'Logged out locally' });
-						unsubscribe();
-					} else if (result.data?.logout) {
-						console.log('Logout successful');
-						resolve(result.data.logout);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			if (!result.data?.logout) {
+				console.warn('No logout data returned, proceeding with local cleanup');
+				return { success: true, message: 'Logged out locally' };
+			}
+
+			console.log('Logout successful');
+			return result.data.logout;
+		} catch (error: any) {
+			console.error('Logout error:', error);
+			// Don't fail logout on any error - allow local cleanup
+			console.log('Proceeding with local logout despite error');
+			return { success: true, message: 'Logged out locally' };
+		}
 	}
 }
 
 /**
  * Factory function to create authenticated AuthenticationOperations instance
  */
-export function createAuthOperations(client: OperationStore): AuthenticationOperations {
+export function createAuthOperations(client: Client): AuthenticationOperations {
 	return new AuthenticationOperations(client);
 }
 

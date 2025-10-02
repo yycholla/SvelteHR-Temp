@@ -40,7 +40,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 
 	try {
 		// Initialize GraphQL client and operations
-		const urqlClient = createUrqlClient(token);
+		// For server-side: createUrqlClient(fetchFn?, authToken?)
+		const urqlClient = createUrqlClient(undefined, token);
 		const tasksOps = new TasksOperations(urqlClient);
 
 		// Get query parameters for filtering
@@ -66,56 +67,98 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			selectedDepartmentId = locals.user.department_id;
 		}
 
-		// If still no department selected, show error
-		if (!selectedDepartmentId) {
+		// For admins without department, show message prompting to select department
+		// We'll still allow the page to load but with empty task list
+		const isAdmin = roleLevel >= 80;
+		if (!selectedDepartmentId && !isAdmin) {
 			throw error(400, {
 				message:
 					'No department selected. Please select a department from the dropdown or ensure your profile has a department assigned.'
 			});
 		}
 
-		// Build filter for department tasks
-		const filter: any = {
-			assignedToDepartmentId: { equalTo: selectedDepartmentId }
-		};
+		// Build filter for department tasks (only if department selected)
+		const filter: any = {};
+
+		if (selectedDepartmentId) {
+			filter.departmentId = selectedDepartmentId;
+		}
 
 		if (statusFilter) {
-			filter.status = { equalTo: statusFilter };
+			filter.status = statusFilter;
 		}
 
 		if (priorityFilter) {
-			filter.priority = { equalTo: priorityFilter };
+			filter.priority = priorityFilter;
 		}
 
-		// Fetch department tasks
-		const tasksResult = await tasksOps.getAllTasks({
-			first: limit,
-			offset: (page - 1) * limit,
-			filter,
-			orderBy,
-			userCredentials
-		});
+		// Fetch department tasks (or empty if no department selected)
+		let tasksResult = { tasks: [], totalCount: 0, hasNextPage: false };
+		let allTasksResult = { tasks: [], totalCount: 0, hasNextPage: false };
 
-		// Fetch all tasks without pagination for statistics
-		const allTasksResult = await tasksOps.getAllTasks({
-			first: 1000, // Reasonable max for statistics
-			filter: {
-				assignedToDepartmentId: { equalTo: selectedDepartmentId }
-			},
-			userCredentials
-		});
+		if (selectedDepartmentId) {
+			tasksResult = await tasksOps.getDepartmentTasks({
+				first: limit,
+				offset: (page - 1) * limit,
+				filter,
+				userCredentials
+			});
+
+			// Fetch all tasks without pagination for statistics
+			allTasksResult = await tasksOps.getDepartmentTasks({
+				first: 1000, // Reasonable max for statistics
+				filter: { departmentId: selectedDepartmentId },
+				userCredentials
+			});
+		}
 
 		// Get user's managed departments (for department selector)
-		// For now, we'll use the user's assigned department
-		// TODO: Implement proper department management query when available
-		const managedDepartments = locals.user.department_id
-			? [
+		let managedDepartments: Array<{ id: string; name: string }> = [];
+
+		if (isAdmin) {
+			// Admins can see all departments - fetch from database
+			try {
+				const departmentsQuery = `
+					query GetAllDepartments {
+						allDepartments(orderBy: NAME_ASC) {
+							nodes {
+								id
+								name
+							}
+						}
+					}
+				`;
+				const deptResult = await urqlClient.query(departmentsQuery, {}).toPromise();
+
+				if (deptResult.data?.allDepartments?.nodes) {
+					managedDepartments = deptResult.data.allDepartments.nodes;
+				}
+			} catch (err) {
+				console.error('Error fetching departments for admin:', err);
+				// Fallback to user's department if query fails
+				if (locals.user.department_id) {
+					managedDepartments = [
+						{
+							id: locals.user.department_id,
+							name: locals.user.department_name || 'My Department'
+						}
+					];
+				}
+			}
+		} else {
+			// Managers only see their assigned department
+			if (locals.user.department_id) {
+				managedDepartments = [
 					{
 						id: locals.user.department_id,
 						name: locals.user.department_name || 'My Department'
 					}
-				]
-			: [];
+				];
+			}
+		}
+
+		// Show department selector if admin or multiple departments available
+		const showDepartmentSelector = isAdmin || managedDepartments.length > 1;
 
 		return {
 			tasks: tasksResult.tasks,
@@ -131,7 +174,11 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 				departmentId: selectedDepartmentId
 			},
 			managedDepartments,
-			selectedDepartment: managedDepartments[0] || null,
+			selectedDepartment: selectedDepartmentId
+				? managedDepartments.find((d) => d.id === selectedDepartmentId) || managedDepartments[0] || null
+				: null,
+			showDepartmentSelector,
+			isAdmin,
 			user: locals.user
 		};
 	} catch (err: any) {
@@ -155,12 +202,17 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 
 // Helper function to get role level for authorization
 function getRoleLevel(role: string | undefined): number {
+	const normalizedRole = role?.toLowerCase().replace('-', '_') || 'employee';
+
 	const roleLevels: Record<string, number> = {
+		super_admin: 100,
+		superadmin: 100,
 		admin: 100,
 		hr_manager: 80,
+		hrmanager: 80,
 		manager: 60,
 		employee: 20
 	};
 
-	return roleLevels[role?.toLowerCase() || 'employee'] || 20;
+	return roleLevels[normalizedRole] || 20;
 }

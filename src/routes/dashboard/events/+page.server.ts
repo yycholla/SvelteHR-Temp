@@ -31,7 +31,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 
 	try {
 		// Initialize GraphQL client and operations
-		const urqlClient = createUrqlClient(token);
+		// For server-side: createUrqlClient(fetchFn?, authToken?)
+		const urqlClient = createUrqlClient(undefined, token);
 		const eventsOps = new EventsOperations(urqlClient);
 
 		// Get query parameters for filtering
@@ -52,18 +53,19 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		const orderBy = orderByMap[sortBy] || 'START_TIME_ASC';
 
 		// Build filter for events based on visibility
+		// PostGraphile's condition expects direct values, not wrapped in equalTo
 		const filter: any = {};
 
 		if (visibilityFilter) {
-			filter.visibilityType = { equalTo: visibilityFilter };
+			filter.visibilityType = visibilityFilter;
 		}
 
 		if (statusFilter) {
-			filter.status = { equalTo: statusFilter };
+			filter.status = statusFilter;
 		}
 
 		if (typeFilter) {
-			filter.eventType = { equalTo: typeFilter };
+			filter.eventType = typeFilter;
 		}
 
 		// Fetch events visible to the user (RLS handles visibility rules)
@@ -78,7 +80,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		// Fetch upcoming events without pagination for statistics
 		const upcomingEventsResult = await eventsOps.getUpcomingEvents({
 			limit: 1000, // Reasonable max for statistics
-			filter: visibilityFilter ? { visibilityType: { equalTo: visibilityFilter } } : {},
+			filter: visibilityFilter ? { visibilityType: visibilityFilter } : {},
 			userCredentials
 		});
 

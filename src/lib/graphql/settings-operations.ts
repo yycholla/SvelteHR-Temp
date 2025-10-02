@@ -368,14 +368,14 @@ export const fontSizeOptions = [
  * timeout enforcement, and retry logic following the T021-T024 entity model patterns.
  */
 
-import type { OperationStore } from '@urql/svelte';
+import type { Client } from '@urql/core';
 import type { DataRequest, UserCredentials } from '$lib/models/data-request';
 import type { ErrorResponse } from '$lib/models/error-response';
 
 export class SettingsOperations {
-	private client: OperationStore | null;
+	private client: Client | null;
 
-	constructor(client: OperationStore | null) {
+	constructor(client: Client | null) {
 		this.client = client;
 	}
 
@@ -604,7 +604,7 @@ export class SettingsOperations {
 /**
  * Factory function to create SettingsOperations instance
  */
-export function createSettingsOperations(client: OperationStore | null): SettingsOperations {
+export function createSettingsOperations(client: Client | null): SettingsOperations {
 	return new SettingsOperations(client);
 }
 

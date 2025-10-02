@@ -30,8 +30,14 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	};
 
 	// Check if user has admin privileges
+	// Check both single role and roles array
+	const userRoles = locals.roles || [];
+	const hasAdminRole = userRoles.some(role =>
+		['admin', 'super_admin', 'hr_admin'].includes(role.toLowerCase())
+	);
 	const roleLevel = getRoleLevel(locals.user.role);
-	if (roleLevel < 100) {
+
+	if (!hasAdminRole && roleLevel < 100) {
 		// Only admins can access audit logs
 		throw error(403, {
 			message: 'Access denied. Administrator privileges required to view audit logs.'
@@ -40,7 +46,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 
 	try {
 		// Initialize GraphQL client and operations
-		const urqlClient = createUrqlClient(token);
+		const urqlClient = createUrqlClient(undefined, token);
 		const activityOps = new ActivityLogsOperations(urqlClient);
 
 		// Get query parameters for filtering
@@ -53,26 +59,24 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		const limit = parseInt(url.searchParams.get('limit') || '100');
 
 		// Build filter for audit logs
+		// Note: PostGraphile's 'condition' parameter only supports exact matches
 		const filter: any = {};
 
 		if (employeeId) {
-			filter.employeeId = { equalTo: employeeId };
+			filter.employeeId = employeeId;
 		}
 
 		if (actionFilter) {
-			filter.action = { equalTo: actionFilter };
+			filter.action = actionFilter;
 		}
 
 		if (resourceTypeFilter) {
-			filter.resourceType = { equalTo: resourceTypeFilter };
+			filter.resourceType = resourceTypeFilter;
 		}
 
-		// Add date range filter
+		// Date range filtering will be done client-side
 		const startDate = new Date();
 		startDate.setDate(startDate.getDate() - daysBack);
-		filter.createdAt = {
-			greaterThanOrEqualTo: startDate.toISOString()
-		};
 
 		// If search query provided, add resource ID or description filter
 		// This is a simplified search - could be enhanced with full-text search
@@ -91,39 +95,42 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		});
 
 		// Get all logs for statistics (without pagination)
+		// Note: Date filtering will be done after fetching
 		const allLogsResult = await activityOps.getAuditLogs({
 			first: 1000,
-			filter: {
-				createdAt: {
-					greaterThanOrEqualTo: startDate.toISOString()
-				}
-			},
+			filter: {},
 			userCredentials
 		});
 
-		// Calculate statistics
+		// Filter logs by date range client-side
+		const filteredLogs = allLogsResult.activities.filter((log: any) => {
+			const logDate = new Date(log.createdAt);
+			return logDate >= startDate;
+		});
+
+		// Calculate statistics from filtered logs
 		const stats = {
 			total: logsResult.totalCount,
-			creates: allLogsResult.logs.filter((l: any) => l.action === 'create').length,
-			updates: allLogsResult.logs.filter((l: any) => l.action === 'update').length,
-			deletes: allLogsResult.logs.filter((l: any) => l.action === 'delete').length,
-			views: allLogsResult.logs.filter((l: any) => l.action === 'view').length,
-			logins: allLogsResult.logs.filter((l: any) => l.action === 'login').length
+			creates: filteredLogs.filter((l: any) => l.action === 'create').length,
+			updates: filteredLogs.filter((l: any) => l.action === 'update').length,
+			deletes: filteredLogs.filter((l: any) => l.action === 'delete').length,
+			views: filteredLogs.filter((l: any) => l.action === 'view').length,
+			logins: filteredLogs.filter((l: any) => l.action === 'login').length
 		};
 
 		// Get unique employees for filter dropdown (limit to 100 most active)
 		const uniqueEmployees = new Map();
-		allLogsResult.logs.forEach((log: any) => {
+		filteredLogs.forEach((log: any) => {
 			if (log.employeeId && !uniqueEmployees.has(log.employeeId)) {
 				uniqueEmployees.set(log.employeeId, {
 					id: log.employeeId,
-					name: log.employeeName || 'Unknown'
+					name: log.userByEmployeeId?.displayName || 'Unknown'
 				});
 			}
 		});
 
 		return {
-			logs: logsResult.logs,
+			logs: logsResult.activities,
 			totalCount: logsResult.totalCount,
 			hasNextPage: logsResult.hasNextPage,
 			currentPage: page,
@@ -162,10 +169,12 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 function getRoleLevel(role: string | undefined): number {
 	const roleLevels: Record<string, number> = {
 		admin: 100,
+		super_admin: 100,
+		hr_admin: 100,
 		hr_manager: 80,
 		manager: 60,
 		employee: 20
 	};
 
-	return roleLevels[role?.toLowerCase() || 'employee'] || 20;
+	return roleLevels[role?.toLowerCase().replace('-', '_') || 'employee'] || 20;
 }

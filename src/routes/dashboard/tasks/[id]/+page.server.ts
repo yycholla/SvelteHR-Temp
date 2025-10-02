@@ -30,7 +30,7 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 
 	try {
 		// Initialize GraphQL client and operations
-		const urqlClient = createUrqlClient(token);
+		const urqlClient = createUrqlClient(undefined, token);
 		const tasksOps = new TasksOperations(urqlClient);
 
 		// Fetch task details

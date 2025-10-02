@@ -31,7 +31,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 
 	try {
 		// Initialize GraphQL client and operations
-		const urqlClient = createUrqlClient(token);
+		// For server-side: createUrqlClient(fetchFn?, authToken?)
+		const urqlClient = createUrqlClient(undefined, token);
 		const activityOps = new ActivityLogsOperations(urqlClient);
 
 		// Get query parameters for filtering
@@ -42,22 +43,21 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		const limit = parseInt(url.searchParams.get('limit') || '50');
 
 		// Build filter for user's activities
+		// PostGraphile's condition expects direct values, not wrapped in equalTo
 		const filter: any = {};
 
 		if (actionFilter) {
-			filter.action = { equalTo: actionFilter };
+			filter.action = actionFilter;
 		}
 
 		if (resourceTypeFilter) {
-			filter.resourceType = { equalTo: resourceTypeFilter };
+			filter.resourceType = resourceTypeFilter;
 		}
 
-		// Add date range filter
+		// Note: PostGraphile date range filtering may require different approach
+		// For now, we'll fetch all and filter server-side if needed
 		const startDate = new Date();
 		startDate.setDate(startDate.getDate() - daysBack);
-		filter.createdAt = {
-			greaterThanOrEqualTo: startDate.toISOString()
-		};
 
 		// Fetch user's activities (RLS will filter to user's own activities)
 		const activitiesResult = await activityOps.getUserActivities({

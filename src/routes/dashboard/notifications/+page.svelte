@@ -135,15 +135,15 @@
 	<!-- Page Header -->
 	<div class="mb-8 flex items-center justify-between">
 		<div>
-			<h1 class="text-3xl font-bold text-gray-900">Notifications</h1>
-			<p class="mt-2 text-gray-600">View and manage your notifications</p>
+			<h1 class="text-3xl font-bold text-foreground">Notifications</h1>
+			<p class="mt-2 text-muted-foreground">View and manage your notifications</p>
 		</div>
 
 		{#if data.unreadCount > 0}
 			<button
 				type="button"
 				onclick={markAllAsRead}
-				class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+				class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
 			>
 				Mark all as read
 			</button>
@@ -151,18 +151,18 @@
 	</div>
 
 	<!-- Filters and Controls -->
-	<div class="mb-6 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+	<div class="mb-6 rounded-lg border border-border bg-card p-4 shadow-sm">
 		<div class="flex flex-wrap items-end gap-4">
 			<!-- Category Filter -->
 			<div class="flex-1 min-w-[200px]">
-				<label for="category-filter" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="category-filter" class="block text-sm font-medium text-foreground mb-1">
 					Category
 				</label>
 				<select
 					id="category-filter"
 					bind:value={selectedCategory}
 					onchange={applyFilters}
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
 				>
 					<option value="all">All Categories</option>
 					<option value="event_invitation">Event Invitation</option>
@@ -178,14 +178,14 @@
 
 			<!-- Type Filter -->
 			<div class="flex-1 min-w-[200px]">
-				<label for="type-filter" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="type-filter" class="block text-sm font-medium text-foreground mb-1">
 					Type
 				</label>
 				<select
 					id="type-filter"
 					bind:value={selectedType}
 					onchange={applyFilters}
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
 				>
 					<option value="all">All Types</option>
 					<option value="email">Email</option>
@@ -195,14 +195,14 @@
 
 			<!-- Read Status Filter -->
 			<div class="flex-1 min-w-[200px]">
-				<label for="read-filter" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="read-filter" class="block text-sm font-medium text-foreground mb-1">
 					Status
 				</label>
 				<select
 					id="read-filter"
 					bind:value={selectedReadStatus}
 					onchange={applyFilters}
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
 				>
 					<option value="all">All</option>
 					<option value="false">Unread</option>
@@ -215,7 +215,7 @@
 				<button
 					type="button"
 					onclick={() => goto('/dashboard/notifications')}
-					class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+					class="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
 				>
 					Reset
 				</button>
@@ -225,8 +225,8 @@
 
 	<!-- Unread Count -->
 	{#if data.unreadCount > 0}
-		<div class="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
-			<p class="text-sm text-blue-800">
+		<div class="mb-4 rounded-lg border border-primary/20 bg-primary/10 p-3">
+			<p class="text-sm text-primary">
 				You have <span class="font-semibold">{data.unreadCount}</span> unread notification{data.unreadCount !== 1 ? 's' : ''}
 			</p>
 		</div>
@@ -237,19 +237,16 @@
 		{#if data.notifications.length > 0}
 			{#each data.notifications as notification (notification.id)}
 				<div
-					class="group relative flex gap-4 rounded-lg border bg-white p-4 shadow-sm transition-all hover:shadow-md"
-					class:border-blue-300={!notification.readStatus}
-					class:bg-blue-50={!notification.readStatus}
-					class:border-gray-200={notification.readStatus}
+					class="group relative flex gap-4 rounded-lg border p-4 shadow-sm transition-all hover:shadow-md {!notification.readStatus ? 'border-primary/30 bg-primary/5' : 'border-border bg-card'}"
 				>
 					<!-- Unread Indicator -->
 					{#if !notification.readStatus}
-						<div class="absolute left-2 top-6 h-2 w-2 rounded-full bg-blue-600"></div>
+						<div class="absolute left-2 top-6 h-2 w-2 rounded-full bg-primary"></div>
 					{/if}
 
 					<!-- Category Icon -->
 					<div class="flex-shrink-0 pl-2">
-						<div class="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+						<div class="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
 							<span class="text-2xl">{getCategoryIcon(notification.category)}</span>
 						</div>
 					</div>
@@ -259,15 +256,15 @@
 						<button
 							type="button"
 							onclick={() => handleNotificationClick(notification)}
-							class="text-left w-full group-hover:text-blue-600"
+							class="text-left w-full group-hover:text-primary"
 						>
-							<p class="text-base font-semibold text-gray-900 group-hover:text-blue-600">
+							<p class="text-base font-semibold text-foreground group-hover:text-primary">
 								{notification.title}
 							</p>
-							<p class="mt-1 text-sm text-gray-600">
+							<p class="mt-1 text-sm text-muted-foreground">
 								{notification.message}
 							</p>
-							<div class="mt-2 flex items-center gap-3 text-xs text-gray-500">
+							<div class="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
 								<span>{getRelativeTime(notification.createdAt)}</span>
 								<span>•</span>
 								<span class="capitalize">{NOTIFICATION_CATEGORY_LABELS[notification.category]}</span>
@@ -291,7 +288,7 @@
 							<button
 								type="button"
 								onclick={() => markAsRead(notification.id)}
-								class="rounded p-2 text-gray-400 opacity-0 transition-all hover:bg-gray-200 hover:text-gray-600 group-hover:opacity-100"
+								class="rounded p-2 text-muted-foreground opacity-0 transition-all hover:bg-accent hover:text-accent-foreground group-hover:opacity-100"
 								aria-label="Mark as read"
 								title="Mark as read"
 							>
@@ -304,7 +301,7 @@
 						<button
 							type="button"
 							onclick={() => deleteNotification(notification.id)}
-							class="rounded p-2 text-gray-400 opacity-0 transition-all hover:bg-red-100 hover:text-red-600 group-hover:opacity-100"
+							class="rounded p-2 text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
 							aria-label="Delete notification"
 							title="Delete"
 						>
@@ -317,25 +314,25 @@
 			{/each}
 		{:else}
 			<!-- Empty State -->
-			<div class="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-12">
-				<svg class="mb-4 h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+			<div class="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border bg-card p-12">
+				<svg class="mb-4 h-16 w-16 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
 				</svg>
-				<h3 class="mb-2 text-lg font-medium text-gray-900">No notifications</h3>
-				<p class="text-sm text-gray-600">You're all caught up!</p>
+				<h3 class="mb-2 text-lg font-medium text-foreground">No notifications</h3>
+				<p class="text-sm text-muted-foreground">You're all caught up!</p>
 			</div>
 		{/if}
 	</div>
 
 	<!-- Pagination -->
 	{#if data.totalCount > data.limit}
-		<div class="mt-6 flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+		<div class="mt-6 flex items-center justify-between border-t border-border bg-card px-4 py-3 sm:px-6">
 			<div class="flex flex-1 justify-between sm:hidden">
 				<button
 					type="button"
 					disabled={data.currentPage === 1}
 					onclick={() => goToPage(data.currentPage - 1)}
-					class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+					class="relative inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
 				>
 					Previous
 				</button>
@@ -343,7 +340,7 @@
 					type="button"
 					disabled={data.currentPage * data.limit >= data.totalCount}
 					onclick={() => goToPage(data.currentPage + 1)}
-					class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+					class="relative ml-3 inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
 				>
 					Next
 				</button>
@@ -351,7 +348,7 @@
 
 			<div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
 				<div>
-					<p class="text-sm text-gray-700">
+					<p class="text-sm text-foreground">
 						Showing
 						<span class="font-medium">{(data.currentPage - 1) * data.limit + 1}</span>
 						to
@@ -368,7 +365,7 @@
 							type="button"
 							disabled={data.currentPage === 1}
 							onclick={() => goToPage(data.currentPage - 1)}
-							class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+							class="relative inline-flex items-center rounded-l-md px-2 py-2 text-muted-foreground ring-1 ring-inset ring-border hover:bg-accent hover:text-accent-foreground focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
 						>
 							<span class="sr-only">Previous</span>
 							<svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -376,7 +373,7 @@
 							</svg>
 						</button>
 
-						<span class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300">
+						<span class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-foreground ring-1 ring-inset ring-border bg-card">
 							Page {data.currentPage}
 						</span>
 
@@ -384,7 +381,7 @@
 							type="button"
 							disabled={data.currentPage * data.limit >= data.totalCount}
 							onclick={() => goToPage(data.currentPage + 1)}
-							class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+							class="relative inline-flex items-center rounded-r-md px-2 py-2 text-muted-foreground ring-1 ring-inset ring-border hover:bg-accent hover:text-accent-foreground focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
 						>
 							<span class="sr-only">Next</span>
 							<svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

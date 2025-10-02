@@ -1,0 +1,358 @@
+# Rollback Requests GraphQL Operations
+# Feature: 020-we-need-to (Comprehensive Audit Logging with Rollback)
+# Task: T045
+# Created: 2025-10-02
+#
+# Queries and mutations for rollback request management with approval workflow.
+
+# ===== QUERIES =====
+
+# Query: Get all rollback requests with pagination
+query GetRollbackRequests(
+	$first: Int
+	$offset: Int
+	$orderBy: [RollbackRequestsOrderBy!]
+	$condition: RollbackRequestCondition
+	$filter: RollbackRequestFilter
+) {
+	rollbackRequests(
+		first: $first
+		offset: $offset
+		orderBy: $orderBy
+		condition: $condition
+		filter: $filter
+	) {
+		nodes {
+			id
+			activityLogId
+			requesterId
+			reason
+			status
+			reviewerId
+			reviewNotes
+			createdAt
+			reviewedAt
+			requester {
+				id
+				fullName
+				email
+				role
+			}
+			reviewer {
+				id
+				fullName
+				role
+			}
+			activityLog {
+				id
+				action
+				resourceType
+				resourceId
+				beforeSnapshot
+				afterSnapshot
+				createdAt
+				employee {
+					id
+					fullName
+				}
+			}
+		}
+		totalCount
+		pageInfo {
+			hasNextPage
+			hasPreviousPage
+			startCursor
+			endCursor
+		}
+	}
+}
+
+# Query: Get single rollback request by ID
+query GetRollbackRequestById($id: UUID!) {
+	rollbackRequest(id: $id) {
+		id
+		activityLogId
+		requesterId
+		reason
+		status
+		reviewerId
+		reviewNotes
+		createdAt
+		reviewedAt
+		requester {
+			id
+			fullName
+			email
+			role
+			department {
+				id
+				name
+			}
+		}
+		reviewer {
+			id
+			fullName
+			role
+		}
+		activityLog {
+			id
+			action
+			resourceType
+			resourceId
+			beforeSnapshot
+			afterSnapshot
+			isRollback
+			createdAt
+			employee {
+				id
+				fullName
+			}
+		}
+	}
+}
+
+# Query: Get pending rollback requests (for reviewers)
+query GetPendingRollbackRequests($first: Int, $offset: Int) {
+	rollbackRequests(
+		condition: { status: "PENDING" }
+		orderBy: CREATED_AT_ASC
+		first: $first
+		offset: $offset
+	) {
+		nodes {
+			id
+			activityLogId
+			requesterId
+			reason
+			createdAt
+			requester {
+				id
+				fullName
+				email
+			}
+			activityLog {
+				id
+				action
+				resourceType
+				resourceId
+				createdAt
+			}
+		}
+		totalCount
+	}
+}
+
+# Query: Get rollback requests by requester
+query GetRollbackRequestsByRequester($requesterId: UUID!, $first: Int, $offset: Int) {
+	rollbackRequests(
+		condition: { requesterId: $requesterId }
+		orderBy: CREATED_AT_DESC
+		first: $first
+		offset: $offset
+	) {
+		nodes {
+			id
+			activityLogId
+			reason
+			status
+			reviewerId
+			reviewNotes
+			createdAt
+			reviewedAt
+			reviewer {
+				id
+				fullName
+			}
+			activityLog {
+				id
+				action
+				resourceType
+				resourceId
+			}
+		}
+		totalCount
+	}
+}
+
+# Query: Get rollback requests by status
+query GetRollbackRequestsByStatus($status: RollbackRequestStatus!, $first: Int, $offset: Int) {
+	rollbackRequests(
+		condition: { status: $status }
+		orderBy: CREATED_AT_DESC
+		first: $first
+		offset: $offset
+	) {
+		nodes {
+			id
+			activityLogId
+			requesterId
+			reason
+			createdAt
+			reviewedAt
+			requester {
+				id
+				fullName
+			}
+			activityLog {
+				id
+				action
+				resourceType
+				resourceId
+			}
+		}
+		totalCount
+	}
+}
+
+# Query: Get rollback request statistics
+query GetRollbackRequestStatistics {
+	rollbackRequestStatistics {
+		totalCount
+		pendingCount
+		approvedCount
+		rejectedCount
+		averageReviewTime
+		topRequesters {
+			userId
+			fullName
+			requestCount
+		}
+	}
+}
+
+# ===== MUTATIONS =====
+
+# Mutation: Create rollback request
+mutation CreateRollbackRequest($input: CreateRollbackRequestInput!) {
+	createRollbackRequest(input: $input) {
+		rollbackRequest {
+			id
+			activityLogId
+			requesterId
+			reason
+			status
+			createdAt
+		}
+		success
+		error
+	}
+}
+
+# Mutation: Approve rollback request
+mutation ApproveRollbackRequest($input: ApproveRollbackRequestInput!) {
+	approveRollbackRequest(input: $input) {
+		rollbackRequest {
+			id
+			status
+			reviewerId
+			reviewNotes
+			reviewedAt
+		}
+		rollbackLogId
+		success
+		conflicts {
+			hasConflicts
+			conflictFields
+			conflicts {
+				field
+				currentValue
+				targetValue
+				conflictType
+			}
+		}
+		error
+	}
+}
+
+# Mutation: Reject rollback request
+mutation RejectRollbackRequest($input: RejectRollbackRequestInput!) {
+	rejectRollbackRequest(input: $input) {
+		rollbackRequest {
+			id
+			status
+			reviewerId
+			reviewNotes
+			reviewedAt
+		}
+		success
+		error
+	}
+}
+
+# Mutation: Cancel rollback request (by requester)
+mutation CancelRollbackRequest($input: CancelRollbackRequestInput!) {
+	cancelRollbackRequest(input: $input) {
+		rollbackRequest {
+			id
+			status
+		}
+		success
+		error
+	}
+}
+
+# Mutation: Bulk approve rollback requests
+mutation BulkApproveRollbackRequests($input: BulkApproveRollbackRequestsInput!) {
+	bulkApproveRollbackRequests(input: $input) {
+		approvedCount
+		failedCount
+		results {
+			requestId
+			success
+			rollbackLogId
+			error
+		}
+		success
+		error
+	}
+}
+
+# Mutation: Bulk reject rollback requests
+mutation BulkRejectRollbackRequests($input: BulkRejectRollbackRequestsInput!) {
+	bulkRejectRollbackRequests(input: $input) {
+		rejectedCount
+		failedCount
+		results {
+			requestId
+			success
+			error
+		}
+		success
+		error
+	}
+}
+
+# ===== SUBSCRIPTIONS =====
+
+# Subscription: Real-time rollback request updates
+subscription OnRollbackRequestCreated {
+	rollbackRequestCreated {
+		id
+		activityLogId
+		requesterId
+		reason
+		createdAt
+		requester {
+			id
+			fullName
+		}
+		activityLog {
+			action
+			resourceType
+			resourceId
+		}
+	}
+}
+
+# Subscription: Real-time rollback request status updates
+subscription OnRollbackRequestStatusChanged {
+	rollbackRequestStatusChanged {
+		id
+		status
+		reviewerId
+		reviewedAt
+		reviewer {
+			fullName
+		}
+	}
+}

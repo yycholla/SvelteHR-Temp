@@ -167,8 +167,9 @@ export async function ensureBackendReady(): Promise<boolean> {
 		return isReady;
 	} catch (error) {
 		const graphqlEndpoint = getGraphQLEndpoint();
+		const errorMessage = error instanceof Error ? error.message : String(error);
 		console.error('Backend connection failed:', error);
-		throw new Error(`GraphQL backend unavailable at ${graphqlEndpoint}: ${error.message}`);
+		throw new Error(`GraphQL backend unavailable at ${graphqlEndpoint}: ${errorMessage}`);
 	}
 }
 

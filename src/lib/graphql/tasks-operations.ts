@@ -3,6 +3,7 @@
 // Purpose: Manager CRUD operations for task assignment with department-scoped RLS
 
 import { gql } from '@urql/svelte';
+import type { Client } from '@urql/core';
 import type { UserCredentials } from '$lib/models/data-request';
 
 // ============================================================================
@@ -18,32 +19,30 @@ export const GET_DEPARTMENT_TASKS = gql`
 	query GetDepartmentTasks(
 		$first: Int = 20
 		$offset: Int = 0
-		$orderBy: [TasksOrderBy!] = [DUE_DATE_ASC]
-		$filter: TaskFilter
+		$condition: TaskCondition
 	) {
-		tasks(first: $first, offset: $offset, orderBy: $orderBy, filter: $filter) {
+		allTasks(first: $first, offset: $offset, condition: $condition, orderBy: DUE_DATE_ASC) {
 			nodes {
 				id
 				assigneeId
-				assignee {
+				userByAssigneeId {
 					id
 					displayName
 					email
-					jobTitle
 				}
 				assignerId
-				assigner {
+				userByAssignerId {
 					id
 					displayName
 					email
 				}
 				departmentId
-				department {
+				departmentByDepartmentId {
 					id
 					name
 				}
 				assignedToDepartmentId
-				assignedToDepartment {
+				departmentByAssignedToDepartmentId {
 					id
 					name
 				}
@@ -52,6 +51,7 @@ export const GET_DEPARTMENT_TASKS = gql`
 				priority
 				status
 				dueDate
+				category
 				createdAt
 				updatedAt
 				completedAt
@@ -60,8 +60,6 @@ export const GET_DEPARTMENT_TASKS = gql`
 			pageInfo {
 				hasNextPage
 				hasPreviousPage
-				startCursor
-				endCursor
 			}
 		}
 	}
@@ -73,28 +71,27 @@ export const GET_DEPARTMENT_TASKS = gql`
  */
 export const GET_TASK_BY_ID = gql`
 	query GetTaskById($id: UUID!) {
-		task(id: $id) {
+		taskById(id: $id) {
 			id
 			assigneeId
-			assignee {
+			userByAssigneeId {
 				id
 				displayName
 				email
-				jobTitle
 			}
 			assignerId
-			assigner {
+			userByAssignerId {
 				id
 				displayName
 				email
 			}
 			departmentId
-			department {
+			departmentByDepartmentId {
 				id
 				name
 			}
 			assignedToDepartmentId
-			assignedToDepartment {
+			departmentByAssignedToDepartmentId {
 				id
 				name
 			}
@@ -103,6 +100,7 @@ export const GET_TASK_BY_ID = gql`
 			priority
 			status
 			dueDate
+			category
 			createdAt
 			updatedAt
 			completedAt
@@ -172,25 +170,24 @@ export const CREATE_TASK = gql`
 			task {
 				id
 				assigneeId
-				assignee {
+				userByAssigneeId {
 					id
 					displayName
 					email
-					jobTitle
 				}
 				assignerId
-				assigner {
+				userByAssignerId {
 					id
 					displayName
 					email
 				}
 				departmentId
-				department {
+				departmentByDepartmentId {
 					id
 					name
 				}
 				assignedToDepartmentId
-				assignedToDepartment {
+				departmentByAssignedToDepartmentId {
 					id
 					name
 				}
@@ -199,9 +196,9 @@ export const CREATE_TASK = gql`
 				priority
 				status
 				dueDate
+				category
 				createdAt
 			}
-			clientMutationId
 		}
 	}
 `;
@@ -218,20 +215,24 @@ export const UPDATE_TASK = gql`
 			task {
 				id
 				assigneeId
-				assignee {
+				userByAssigneeId {
 					id
 					displayName
 					email
 				}
 				assignerId
-				assigner {
+				userByAssignerId {
 					id
 					displayName
 					email
 				}
 				departmentId
+				departmentByDepartmentId {
+					id
+					name
+				}
 				assignedToDepartmentId
-				assignedToDepartment {
+				departmentByAssignedToDepartmentId {
 					id
 					name
 				}
@@ -240,10 +241,10 @@ export const UPDATE_TASK = gql`
 				priority
 				status
 				dueDate
+				category
 				updatedAt
 				completedAt
 			}
-			clientMutationId
 		}
 	}
 `;
@@ -606,9 +607,9 @@ export function filterTasksByDepartment(
  * tests/contract/manager-tasks-operations.test.ts
  */
 export class TasksOperations {
-	private client: any;
+	private client: Client;
 
-	constructor(client: any) {
+	constructor(client: Client) {
 		this.client = client;
 	}
 
@@ -619,7 +620,7 @@ export class TasksOperations {
 	async getDepartmentTasks(params: {
 		first?: number;
 		offset?: number;
-		filter?: TaskFilter;
+		filter?: any;
 		userCredentials: UserCredentials;
 	}): Promise<{
 		tasks: Task[];
@@ -634,7 +635,7 @@ export class TasksOperations {
 			variables: {
 				first: params.first || 20,
 				offset: params.offset || 0,
-				filter: params.filter || {}
+				condition: params.filter || {}
 			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
@@ -660,9 +661,9 @@ export class TasksOperations {
 			}
 
 			return {
-				tasks: result.data.tasks.nodes,
-				totalCount: result.data.tasks.totalCount,
-				hasNextPage: result.data.tasks.pageInfo.hasNextPage
+				tasks: result.data.allTasks.nodes,
+				totalCount: result.data.allTasks.totalCount,
+				hasNextPage: result.data.allTasks.pageInfo.hasNextPage
 			};
 		} catch (error: any) {
 			if (error.userMessage) {
@@ -886,6 +887,52 @@ export class TasksOperations {
 		}
 	}
 
+	/**
+	 * Get single task by ID (department-scoped)
+	 * RLS automatically filters to department only via JWT claims
+	 */
+	async getTaskById(params: {
+		taskId: string;
+		userCredentials: UserCredentials;
+	}): Promise<Task | null> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+		const { createErrorResponse } = await import('$lib/models/error-response');
+
+		const dataRequest = createDataRequest({
+			operationName: 'GetTaskById',
+			variables: { id: params.taskId },
+			userCredentials: params.userCredentials,
+			timeoutMs: 5000
+		});
+
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(GET_TASK_BY_ID, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to load task. Please try again.'
+				});
+				throw errorResponse;
+			}
+
+			if (!result.data || !result.data.taskById) {
+				return null;
+			}
+
+			return result.data.taskById;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to load task. Please try again.'
+			});
+		}
+	}
+
 	// Legacy method for backwards compatibility
 	async getTasks(params: any) {
 		return this.getDepartmentTasks({
@@ -900,6 +947,6 @@ export class TasksOperations {
 /**
  * Factory function to create TasksOperations instance
  */
-export function createTasksOperations(client: any): TasksOperations {
+export function createTasksOperations(client: Client): TasksOperations {
 	return new TasksOperations(client);
 }

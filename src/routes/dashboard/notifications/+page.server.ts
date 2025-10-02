@@ -31,7 +31,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 
 	try {
 		// Initialize GraphQL client and operations
-		const urqlClient = createUrqlClient(token);
+		// For server-side: createUrqlClient(fetchFn?, authToken?)
+		const urqlClient = createUrqlClient(undefined, token);
 		const notificationsOps = new NotificationsOperations(urqlClient);
 
 		// Get query parameters for filtering
@@ -42,18 +43,19 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		const limit = parseInt(url.searchParams.get('limit') || '50');
 
 		// Build filter for user's notifications
+		// PostGraphile's condition expects direct values, not wrapped in equalTo
 		const filter: any = {};
 
 		if (categoryFilter) {
-			filter.category = { equalTo: categoryFilter };
+			filter.category = categoryFilter;
 		}
 
 		if (typeFilter) {
-			filter.type = { equalTo: typeFilter };
+			filter.type = typeFilter;
 		}
 
 		if (readStatus !== null) {
-			filter.readStatus = { equalTo: readStatus === 'true' };
+			filter.readStatus = readStatus === 'true';
 		}
 
 		// Fetch user's notifications

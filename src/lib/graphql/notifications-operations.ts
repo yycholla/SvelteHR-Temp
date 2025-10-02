@@ -1,4 +1,5 @@
 // GraphQL Operations: Notifications (Dual-Channel: Email + In-App)
+import type { Client } from '@urql/core';
 // Feature: 019-we-need-to - Task T016
 // Purpose: Notification center with read/unread tracking and recipient-only RLS
 
@@ -12,21 +13,20 @@ import type { UserCredentials } from '$lib/models/data-request';
 /**
  * Query: Get user notifications (unread + recent read)
  * RLS Policy: notification_recipient_access (user sees only their own notifications)
+ * PostGraphile: Uses allNotifications and NotificationCondition
  */
 export const GET_USER_NOTIFICATIONS = gql`
 	query GetUserNotifications(
-		$recipientId: UUID!
 		$first: Int = 50
 		$offset: Int = 0
 		$orderBy: [NotificationsOrderBy!] = [CREATED_AT_DESC]
-		$filter: NotificationFilter
+		$condition: NotificationCondition
 	) {
-		notifications(
+		allNotifications(
 			first: $first
 			offset: $offset
 			orderBy: $orderBy
-			filter: $filter
-			condition: { recipientId: $recipientId }
+			condition: $condition
 		) {
 			nodes {
 				id
@@ -46,8 +46,6 @@ export const GET_USER_NOTIFICATIONS = gql`
 			pageInfo {
 				hasNextPage
 				hasPreviousPage
-				startCursor
-				endCursor
 			}
 		}
 	}
@@ -55,13 +53,11 @@ export const GET_USER_NOTIFICATIONS = gql`
 
 /**
  * Query: Get unread notification count
+ * PostGraphile: Uses condition with direct values
  */
 export const GET_UNREAD_COUNT = gql`
-	query GetUnreadCount($recipientId: UUID!) {
-		notifications(
-			filter: { readStatus: { equalTo: false } }
-			condition: { recipientId: $recipientId }
-		) {
+	query GetUnreadCount($condition: NotificationCondition) {
+		allNotifications(condition: $condition) {
 			totalCount
 		}
 	}
@@ -69,10 +65,11 @@ export const GET_UNREAD_COUNT = gql`
 
 /**
  * Query: Get single notification by ID
+ * PostGraphile: Uses notificationById(id)
  */
 export const GET_NOTIFICATION_BY_ID = gql`
 	query GetNotificationById($id: UUID!) {
-		notification(id: $id) {
+		notificationById(id: $id) {
 			id
 			recipientId
 			type
@@ -111,14 +108,11 @@ export const MARK_NOTIFICATION_READ = gql`
 
 /**
  * Mutation: Mark all user notifications as read
+ * PostGraphile: Uses updateNotificationsByCondition with direct condition values
  */
 export const MARK_ALL_READ = gql`
-	mutation MarkAllRead($recipientId: UUID!) {
-		updateNotifications(
-			filter: { readStatus: { equalTo: false } }
-			condition: { recipientId: $recipientId }
-			patch: { readStatus: true, readAt: "now()" }
-		) {
+	mutation MarkAllRead($condition: NotificationCondition!, $patch: NotificationPatch!) {
+		updateNotifications(condition: $condition, patch: $patch) {
 			notifications {
 				id
 				readStatus
@@ -155,25 +149,13 @@ export type NotificationCategory =
 	| 'performance_review'
 	| 'system_announcement';
 
-export interface NotificationFilter {
-	type?: {
-		equalTo?: NotificationType;
-		in?: NotificationType[];
-	};
-	category?: {
-		equalTo?: NotificationCategory;
-		in?: NotificationCategory[];
-	};
-	readStatus?: {
-		equalTo?: boolean;
-	};
-	relatedResourceType?: {
-		equalTo?: string;
-	};
-	createdAt?: {
-		greaterThanOrEqualTo?: string;
-		lessThanOrEqualTo?: string;
-	};
+// PostGraphile condition uses direct values, not wrapped in equalTo
+export interface NotificationCondition {
+	type?: NotificationType;
+	category?: NotificationCategory;
+	readStatus?: boolean;
+	relatedResourceType?: string;
+	recipientId?: string;
 }
 
 export interface UpdateNotificationInput {
@@ -210,52 +192,44 @@ export interface Notification {
 // ============================================================================
 
 /**
- * Helper: Build notification filter
+ * Helper: Build notification condition (PostGraphile uses direct values)
  */
-export function buildNotificationFilter({
+export function buildNotificationCondition({
 	type,
 	category,
 	readStatus,
 	relatedResourceType,
-	startDate,
-	endDate
+	recipientId
 }: {
 	type?: NotificationType;
 	category?: NotificationCategory;
 	readStatus?: boolean;
 	relatedResourceType?: string;
-	startDate?: string;
-	endDate?: string;
-}): NotificationFilter {
-	const filter: NotificationFilter = {};
+	recipientId?: string;
+}): NotificationCondition {
+	const condition: NotificationCondition = {};
 
 	if (type) {
-		filter.type = { equalTo: type };
+		condition.type = type;
 	}
 
 	if (category) {
-		filter.category = { equalTo: category };
+		condition.category = category;
 	}
 
 	if (readStatus !== undefined) {
-		filter.readStatus = { equalTo: readStatus };
+		condition.readStatus = readStatus;
 	}
 
 	if (relatedResourceType) {
-		filter.relatedResourceType = { equalTo: relatedResourceType };
+		condition.relatedResourceType = relatedResourceType;
 	}
 
-	if (startDate || endDate) {
-		filter.createdAt = {};
-		if (startDate) {
-			filter.createdAt.greaterThanOrEqualTo = startDate;
-		}
-		if (endDate) {
-			filter.createdAt.lessThanOrEqualTo = endDate;
-		}
+	if (recipientId) {
+		condition.recipientId = recipientId;
 	}
 
-	return filter;
+	return condition;
 }
 
 /**
@@ -380,20 +354,21 @@ export function getNotificationCategoryLabel(category: NotificationCategory): st
  * T016: Notifications Operations with Read/Unread Tracking
  */
 export class NotificationsOperations {
-	private client: any;
+	private client: Client;
 
-	constructor(client: any) {
+	constructor(client: Client) {
 		this.client = client;
 	}
 
 	/**
 	 * Get user notifications with filtering
+	 * PostGraphile: Uses condition parameter with direct values
 	 */
 	async getUserNotifications(params: {
 		recipientId: string;
 		first?: number;
 		offset?: number;
-		filter?: NotificationFilter;
+		filter?: any;
 		userCredentials: UserCredentials;
 	}): Promise<{
 		notifications: Notification[];
@@ -403,17 +378,21 @@ export class NotificationsOperations {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
+		// Build condition with recipientId and any additional filters
+		const condition = {
+			recipientId: params.recipientId,
+			...(params.filter || {})
+		};
+
 		const dataRequest = createDataRequest({
 			operationName: 'GetUserNotifications',
 			variables: {
-				recipientId: params.recipientId,
 				first: params.first || 50,
 				offset: params.offset || 0,
-				filter: params.filter || {}
+				condition
 			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000,
-			maxRetries: 3
 		});
 
 		try {
@@ -436,9 +415,9 @@ export class NotificationsOperations {
 			}
 
 			return {
-				notifications: result.data.notifications.nodes,
-				totalCount: result.data.notifications.totalCount,
-				hasNextPage: result.data.notifications.pageInfo.hasNextPage
+				notifications: result.data.allNotifications.nodes,
+				totalCount: result.data.allNotifications.totalCount,
+				hasNextPage: result.data.allNotifications.pageInfo.hasNextPage
 			};
 		} catch (error: any) {
 			if (error.userMessage) {
@@ -453,6 +432,7 @@ export class NotificationsOperations {
 
 	/**
 	 * Get unread notification count
+	 * PostGraphile: Uses condition parameter with direct values
 	 */
 	async getUnreadCount(params: {
 		recipientId: string;
@@ -461,12 +441,16 @@ export class NotificationsOperations {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
+		const condition = {
+			recipientId: params.recipientId,
+			readStatus: false
+		};
+
 		const dataRequest = createDataRequest({
 			operationName: 'GetUnreadCount',
-			variables: { recipientId: params.recipientId },
+			variables: { condition },
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000,
-			maxRetries: 3
 		});
 
 		try {
@@ -488,7 +472,7 @@ export class NotificationsOperations {
 				});
 			}
 
-			return result.data.notifications.totalCount;
+			return result.data.allNotifications.totalCount;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error; // Already formatted error
@@ -502,6 +486,7 @@ export class NotificationsOperations {
 
 	/**
 	 * Get notification by ID
+	 * PostGraphile: Uses notificationById(id)
 	 */
 	async getNotificationById(params: {
 		notificationId: string;
@@ -515,7 +500,6 @@ export class NotificationsOperations {
 			variables: { id: params.notificationId },
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000,
-			maxRetries: 3
 		});
 
 		try {
@@ -537,7 +521,7 @@ export class NotificationsOperations {
 				});
 			}
 
-			return result.data.notification;
+			return result.data.notificationById;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error; // Already formatted error
@@ -607,6 +591,7 @@ export class NotificationsOperations {
 
 	/**
 	 * Mark all user notifications as read
+	 * PostGraphile: Uses condition and patch parameters
 	 */
 	async markAllRead(params: {
 		recipientId: string;
@@ -615,9 +600,19 @@ export class NotificationsOperations {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
+		const condition = {
+			recipientId: params.recipientId,
+			readStatus: false
+		};
+
+		const patch = {
+			readStatus: true,
+			readAt: new Date().toISOString()
+		};
+
 		const dataRequest = createDataRequest({
 			operationName: 'MarkAllRead',
-			variables: { recipientId: params.recipientId },
+			variables: { condition, patch },
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
 		});
@@ -709,6 +704,6 @@ export class NotificationsOperations {
 /**
  * Factory function to create NotificationsOperations instance
  */
-export function createNotificationsOperations(client: any): NotificationsOperations {
+export function createNotificationsOperations(client: Client): NotificationsOperations {
 	return new NotificationsOperations(client);
 }

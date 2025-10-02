@@ -31,7 +31,8 @@
 	import { goto } from '$app/navigation';
 
 	// Check user roles
-	const isAdmin = hasRole('admin');
+	const isSuperAdmin = hasRole('super_admin');
+	const isAdmin = hasRole('admin') || isSuperAdmin;
 	const isHR = hasRole('hr_admin') || isAdmin;
 	const isManager = hasRole('manager') || isHR;
 
@@ -78,8 +79,13 @@
 		) {
 			expandedSections.management = true;
 		}
-		if (currentPath.includes('/admin') || currentPath.includes('/activities/audit'))
+		if (
+			currentPath.includes('/admin') ||
+			currentPath.includes('/dashboard/activities/logs') ||
+			currentPath.includes('/dashboard/activities/rollback')
+		) {
 			expandedSections.administration = true;
+		}
 	});
 
 	// Main navigation items - employee-focused
@@ -128,22 +134,22 @@
 		},
 		{
 			title: 'Leave & Attendance',
-			url: `/dashboard/users/${$currentUser?.id}/attendance`,
+			url: `/dashboard/profile/attendance`,
 			icon: Clock,
 			section: 'leave',
 			items: [
-				{ title: 'My Attendance', url: `/dashboard/users/${$currentUser?.id}/attendance` },
-				{ title: 'Leave Requests', url: `/dashboard/users/${$currentUser?.id}/leave/requests` }
+				{ title: 'My Attendance', url: `/dashboard/profile/attendance` },
+				{ title: 'Leave Requests', url: `/dashboard/profile/leave/requests` }
 			]
 		},
 		{
 			title: 'Performance',
-			url: `/dashboard/users/${$currentUser?.id}/performance`,
+			url: `/dashboard/profile/performance`,
 			icon: Target,
 			section: 'performance',
 			items: [
-				{ title: 'My Goals', url: `/dashboard/users/${$currentUser?.id}/performance` },
-				{ title: 'Reviews', url: `/dashboard/users/${$currentUser?.id}/performance/reviews` }
+				{ title: 'My Goals', url: `/dashboard/profile/performance` },
+				{ title: 'Reviews', url: `/dashboard/profile/performance/reviews` }
 			]
 		}
 	];
@@ -202,10 +208,13 @@
 
 	// Admin submenu (only when expanded)
 	// T024: Updated admin navigation per specifications
+	// T044-T046: Added Feature 020 audit logging pages
 	const adminItems = [
 		{ title: 'User Management', url: '/dashboard/admin/users', icon: Users },
 		{ title: 'System Settings', url: '/dashboard/admin/settings', icon: Settings },
-		{ title: 'Audit Logs', url: '/dashboard/activities/audit', icon: FileText },
+		{ title: 'Audit Logs', url: '/dashboard/activities/logs', icon: FileText },
+		{ title: 'Rollback Requests', url: '/dashboard/activities/rollback-requests', icon: Clock, superAdminOnly: true },
+		{ title: 'Bulk Rollback', url: '/dashboard/activities/bulk-rollback', icon: Activity, superAdminOnly: true },
 		{ title: 'Analytics Dashboard', url: '/dashboard/admin/analytics', icon: BarChart3 },
 		{ title: 'Compliance Reports', url: '/dashboard/admin/compliance', icon: Shield }
 	];
@@ -373,20 +382,28 @@
 			{#if expandedSections.administration}
 				<div class="ml-4 mt-1 space-y-0.5 pl-3">
 					{#each adminItems as item}
-						<a
-							href={item.url}
-							class="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-primary hover:text-primary-foreground hover:opacity-70"
-							class:bg-primary={$page.url.pathname === item.url}
-							class:text-primary-foreground={$page.url.pathname === item.url}
-							class:font-medium={$page.url.pathname === item.url}
-						>
-							<svelte:component this={item.icon} class="h-3.5 w-3.5" />
-							<span class="flex-1">{item.title}</span>
-							<!-- T024: "All" badge for admin items -->
-							<span class="rounded-sm bg-green-500/10 px-1.5 py-0.5 text-[10px] font-medium text-green-600 dark:bg-green-500/20 dark:text-green-400">
-								All
-							</span>
-						</a>
+						{#if !item.superAdminOnly || isSuperAdmin}
+							<a
+								href={item.url}
+								class="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-primary hover:text-primary-foreground hover:opacity-70"
+								class:bg-primary={$page.url.pathname === item.url}
+								class:text-primary-foreground={$page.url.pathname === item.url}
+								class:font-medium={$page.url.pathname === item.url}
+							>
+								<svelte:component this={item.icon} class="h-3.5 w-3.5" />
+								<span class="flex-1">{item.title}</span>
+								<!-- T024: "All" badge for admin items -->
+								{#if item.superAdminOnly}
+									<span class="rounded-sm bg-red-500/10 px-1.5 py-0.5 text-[10px] font-medium text-red-600 dark:bg-red-500/20 dark:text-red-400">
+										Super
+									</span>
+								{:else}
+									<span class="rounded-sm bg-green-500/10 px-1.5 py-0.5 text-[10px] font-medium text-green-600 dark:bg-green-500/20 dark:text-green-400">
+										All
+									</span>
+								{/if}
+							</a>
+						{/if}
 					{/each}
 				</div>
 			{/if}
@@ -399,7 +416,7 @@
 			<div class="flex items-center justify-between">
 				<!-- Profile Link (left side) -->
 				<a
-					href="/profile"
+					href="/dashboard/profile"
 					class="flex items-center gap-2 rounded-md pr-2 transition-colors hover:bg-sidebar-accent/50"
 					title="My Profile"
 				>
@@ -442,7 +459,7 @@
 
 					<!-- Settings Icon -->
 					<a
-						href="/dashboard/users/{$currentUser?.id}/settings"
+						href="/dashboard/profile/settings"
 						class="flex items-center justify-center rounded-md p-2 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
 						title="Settings"
 					>
