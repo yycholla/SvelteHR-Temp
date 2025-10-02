@@ -165,7 +165,7 @@ export const load: PageServerLoad = async (event) => {
 		const tasksQuery = `
 			query GetUserTasks($userId: UUID!) {
 				allTasks(
-					condition: { assignedTo: $userId }
+					condition: { assigneeId: $userId }
 					orderBy: [DUE_DATE_ASC]
 					first: 10
 				) {
@@ -189,7 +189,7 @@ export const load: PageServerLoad = async (event) => {
 			query GetUpcomingEvents($userId: UUID!) {
 				allEvents(
 					condition: { status: "scheduled" }
-					orderBy: [START_DATE_ASC]
+					orderBy: [START_TIME_ASC]
 					first: 10
 				) {
 					totalCount
@@ -197,9 +197,9 @@ export const load: PageServerLoad = async (event) => {
 						id
 						title
 						description
-						type
-						startDate
-						endDate
+						eventType
+						startTime
+						endTime
 						allDay
 						location
 						isPublic
@@ -751,18 +751,18 @@ function generateUpcomingEventsFromDatabase(events: any[], limit: number) {
 	// Filter and transform events
 	return events
 		.filter(event => {
-			const startDate = new Date(event.startDate);
-			return startDate >= now && event.status === 'scheduled';
+			const startTime = new Date(event.startTime);
+			return startTime >= now && event.status === 'scheduled';
 		})
 		.slice(0, limit)
 		.map(event => {
-			const startDate = new Date(event.startDate);
-			const endDate = new Date(event.endDate);
+			const startTime = new Date(event.startTime);
+			const endTime = new Date(event.endTime);
 
 			// Format time for display
 			const timeStr = event.allDay
 				? 'All Day'
-				: startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+				: startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
 			// Map event type to icon
 			const iconMap = {
@@ -781,13 +781,13 @@ function generateUpcomingEventsFromDatabase(events: any[], limit: number) {
 				id: event.id.toString(),
 				title: event.title,
 				description: event.description || '',
-				type: event.type,
-				date: event.startDate,
+				type: event.eventType,
+				date: event.startTime,
 				time: timeStr,
 				location: event.location || 'TBD',
-				icon: iconMap[event.type as keyof typeof iconMap] || 'Calendar',
+				icon: iconMap[event.eventType as keyof typeof iconMap] || 'Calendar',
 				color: event.color || '#3B82F6',
-				priority: event.type === 'review' || event.type === 'interview' ? 'high' : 'medium',
+				priority: event.eventType === 'review' || event.eventType === 'interview' ? 'high' : 'medium',
 				organizer: event.organizerByOrganizerId
 					? `${event.organizerByOrganizerId.firstName} ${event.organizerByOrganizerId.lastName}`
 					: 'Unknown',
