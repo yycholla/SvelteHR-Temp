@@ -63,6 +63,11 @@ export const load: PageServerLoad = async (event) => {
 			headers['X-JWT-Claims-User-Id'] = jwtClaims.user_id;
 		}
 
+		// Determine if user can view detailed employee information
+		const userRole = locals.user.role?.toLowerCase().replace('-', '_') || 'employee';
+		const isAdmin = ['super_admin', 'admin', 'hr_manager'].includes(userRole);
+		const isViewingSelf = locals.user.id === employeeId;
+
 		// Load employee data with all related information
 		const employeeResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
@@ -80,6 +85,14 @@ export const load: PageServerLoad = async (event) => {
 							hireDate
 							isActive
 							departmentId
+							phoneNumber
+							mobileNumber
+							addressLine1
+							addressLine2
+							city
+							stateProvince
+							postalCode
+							country
 							createdAt
 							updatedAt
 							lastLogin
@@ -92,6 +105,41 @@ export const load: PageServerLoad = async (event) => {
 									id
 									displayName
 									role
+								}
+							}
+							emergencyContactsByEmployeeId {
+								nodes {
+									id
+									fullName
+									relationship
+									phoneNumber
+									alternatePhone
+									email
+									addressLine1
+									addressLine2
+									city
+									stateProvince
+									postalCode
+									country
+									isPrimary
+									notes
+								}
+							}
+							employeeVehiclesByEmployeeId {
+								nodes {
+									id
+									make
+									model
+									year
+									color
+									licensePlate
+									stateProvince
+									parkingSpot
+									insuranceCompany
+									insurancePolicyNumber
+									insuranceExpiry
+									isPrimary
+									notes
 								}
 							}
 							leaveRequestsByEmployeeId {
@@ -152,6 +200,15 @@ export const load: PageServerLoad = async (event) => {
 
 		const employee = employeeData.data.employee;
 
+		// Check if user is the employee's manager
+		const isEmployeeManager = employee.departmentByDepartmentId?.managerId === locals.user.id;
+
+		// Determine access permissions
+		const canViewContactInfo = isViewingSelf || isEmployeeManager || isAdmin;
+		const canViewEmergencyContacts = isViewingSelf || isEmployeeManager || isAdmin;
+		const canViewVehicles = isViewingSelf || isEmployeeManager || isAdmin;
+		const canViewCompensation = isAdmin; // Only admins and HR managers can view compensation
+
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);
 
@@ -168,10 +225,27 @@ export const load: PageServerLoad = async (event) => {
 				hireDate: employee.hireDate,
 				isActive: employee.isActive,
 				departmentId: employee.departmentId,
+				// Contact information - only if authorized
+				phoneNumber: canViewContactInfo ? employee.phoneNumber : null,
+				mobileNumber: canViewContactInfo ? employee.mobileNumber : null,
+				addressLine1: canViewContactInfo ? employee.addressLine1 : null,
+				addressLine2: canViewContactInfo ? employee.addressLine2 : null,
+				city: canViewContactInfo ? employee.city : null,
+				stateProvince: canViewContactInfo ? employee.stateProvince : null,
+				postalCode: canViewContactInfo ? employee.postalCode : null,
+				country: canViewContactInfo ? employee.country : null,
 				createdAt: employee.createdAt,
 				updatedAt: employee.updatedAt,
 				lastLogin: employee.lastLogin,
 				department: employee.departmentByDepartmentId,
+				// Emergency contacts - only if authorized
+				emergencyContacts: canViewEmergencyContacts
+					? (employee.emergencyContactsByEmployeeId?.nodes || [])
+					: [],
+				// Vehicles - only if authorized
+				vehicles: canViewVehicles
+					? (employee.employeeVehiclesByEmployeeId?.nodes || [])
+					: [],
 				leaveRequests: employee.leaveRequestsByEmployeeId?.nodes || [],
 				leaveRequestCount: employee.leaveRequestsByEmployeeId?.totalCount || 0,
 				performanceReviews: (employee.performanceReviewsByEmployeeId?.nodes || []).map((review: any) => ({
@@ -193,8 +267,16 @@ export const load: PageServerLoad = async (event) => {
 					totalDays: balance.timeOffPolicyByPolicyId?.daysPerYear || balance.balanceDays
 				}))
 			},
-			// RBAC: Standardized permission checks
-			...userPermissions,
+			// RBAC: Permission flags for UI
+			permissions: {
+				canViewContactInfo,
+				canViewEmergencyContacts,
+				canViewVehicles,
+				canViewCompensation,
+				isEmployeeManager,
+				isViewingSelf,
+				...userPermissions
+			},
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {

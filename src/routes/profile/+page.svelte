@@ -309,7 +309,7 @@
 					</div>
 				</Card.Content>
 				<Card.Footer>
-					<Button variant="outline" href="/dashboard/users/{$currentUser?.id}/performance"
+					<Button variant="outline" href="/dashboard/profile/performance"
 						>View Performance</Button
 					>
 				</Card.Footer>

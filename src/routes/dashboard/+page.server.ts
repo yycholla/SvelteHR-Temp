@@ -165,7 +165,7 @@ export const load: PageServerLoad = async (event) => {
 		const tasksQuery = `
 			query GetUserTasks($userId: UUID!) {
 				allTasks(
-					condition: { assignedTo: $userId }
+					condition: { assigneeId: $userId }
 					orderBy: [DUE_DATE_ASC]
 					first: 10
 				) {
@@ -189,7 +189,7 @@ export const load: PageServerLoad = async (event) => {
 			query GetUpcomingEvents($userId: UUID!) {
 				allEvents(
 					condition: { status: "scheduled" }
-					orderBy: [START_DATE_ASC]
+					orderBy: [START_TIME_ASC]
 					first: 10
 				) {
 					totalCount
@@ -197,14 +197,14 @@ export const load: PageServerLoad = async (event) => {
 						id
 						title
 						description
-						type
-						startDate
-						endDate
+						eventType
+						startTime
+						endTime
 						allDay
 						location
 						isPublic
 						color
-						organizerByOrganizerId {
+						userByOrganizerId {
 							id
 							firstName
 							lastName
@@ -224,7 +224,7 @@ export const load: PageServerLoad = async (event) => {
 		const activityLogsQuery = `
 			query GetRecentActivities($userId: UUID!) {
 				allActivityLogs(
-					condition: { userId: $userId }
+					condition: { employeeId: $userId }
 					orderBy: [CREATED_AT_DESC]
 					first: 20
 				) {
@@ -236,7 +236,7 @@ export const load: PageServerLoad = async (event) => {
 						resourceId
 						details
 						createdAt
-						employeeByEmployeeId {
+						userByEmployeeId {
 							id
 							firstName
 							lastName
@@ -246,9 +246,82 @@ export const load: PageServerLoad = async (event) => {
 			}
 		`;
 
+		// Query for system-wide audit logs (admin only)
+		const systemAuditLogsQuery = `
+			query GetSystemAuditLogs {
+				allActivityLogs(
+					orderBy: [CREATED_AT_DESC]
+					first: 10
+				) {
+					totalCount
+					nodes {
+						id
+						action
+						resourceType
+						resourceId
+						isRollback
+						createdAt
+						userByEmployeeId {
+							id
+							firstName
+							lastName
+						}
+					}
+				}
+			}
+		`;
+
+		// Query for rollback requests (super_admin only)
+		const rollbackRequestsQuery = `
+			query GetRollbackRequests {
+				allRollbackRequests(
+					orderBy: [CREATED_AT_DESC]
+					first: 5
+				) {
+					totalCount
+					nodes {
+						id
+						status
+						reason
+						createdAt
+						userByRequesterId {
+							id
+							firstName
+							lastName
+						}
+						activityLogByActivityLogId {
+							resourceType
+						}
+					}
+				}
+			}
+		`;
+
+		// Query for rollback statistics (super_admin only)
+		const rollbackStatsQuery = `
+			query GetRollbackStats {
+				pendingRequests: allRollbackRequests(condition: { status: "PENDING" }) {
+					totalCount
+				}
+				approvedRequests: allRollbackRequests(condition: { status: "APPROVED" }) {
+					totalCount
+				}
+				rejectedRequests: allRollbackRequests(condition: { status: "REJECTED" }) {
+					totalCount
+				}
+			}
+		`;
+
 		console.log('🔍 Dashboard: Starting database GraphQL queries for user:', locals.user.id);
 		const startQueryTime = Date.now();
-		const [usersResult, departmentsResult, attendanceResult, leaveResult, goalsResult, tasksResult, eventsResult, activityLogsResult] = await Promise.allSettled([
+
+		// Determine user role for conditional queries
+		const userRole = locals.user.role || 'employee';
+		const isAdmin = locals.roles?.includes('super_admin') || locals.roles?.includes('admin') || false;
+		const isSuperAdmin = locals.roles?.includes('super_admin') || false;
+
+		// Base queries for all users
+		const baseQueries = [
 			graphqlClient.query(usersQuery),
 			graphqlClient.query(departmentsQuery),
 			graphqlClient.query(attendanceQuery, { userId: locals.user.id }),
@@ -257,9 +330,27 @@ export const load: PageServerLoad = async (event) => {
 			graphqlClient.query(tasksQuery, { userId: locals.user.id }),
 			graphqlClient.query(eventsQuery, { userId: locals.user.id }),
 			graphqlClient.query(activityLogsQuery, { userId: locals.user.id })
-		]);
+		];
+
+		// Add admin-only queries
+		if (isAdmin) {
+			baseQueries.push(graphqlClient.query(systemAuditLogsQuery));
+		}
+
+		// Add super_admin-only queries
+		if (isSuperAdmin) {
+			baseQueries.push(
+				graphqlClient.query(rollbackRequestsQuery),
+				graphqlClient.query(rollbackStatsQuery)
+			);
+		}
+
+		const results = await Promise.allSettled(baseQueries);
 		const queryDuration = Date.now() - startQueryTime;
 		console.log(`✅ Dashboard: GraphQL queries completed in ${queryDuration}ms`);
+
+		// Extract results with proper indexing
+		const [usersResult, departmentsResult, attendanceResult, leaveResult, goalsResult, tasksResult, eventsResult, activityLogsResult] = results;
 
 		// Handle potential GraphQL errors
 		if (usersResult.status === 'rejected' || departmentsResult.status === 'rejected') {
@@ -281,6 +372,33 @@ export const load: PageServerLoad = async (event) => {
 		const events = eventsResult.status === 'fulfilled' && eventsResult.value.data?.allEvents?.nodes || [];
 		const activityLogs = activityLogsResult.status === 'fulfilled' && activityLogsResult.value.data?.allActivityLogs?.nodes || [];
 
+		// Extract admin-only data
+		let systemAuditLogs: any[] = [];
+		let rollbackRequests: any[] = [];
+		let rollbackStats = { pendingCount: 0, approvedCount: 0, rejectedCount: 0 };
+
+		if (isAdmin && results[8]) {
+			const systemAuditResult = results[8];
+			systemAuditLogs = systemAuditResult.status === 'fulfilled' && systemAuditResult.value.data?.allActivityLogs?.nodes || [];
+		}
+
+		if (isSuperAdmin) {
+			if (results[9]) {
+				const rollbackRequestsResult = results[9];
+				rollbackRequests = rollbackRequestsResult.status === 'fulfilled' && rollbackRequestsResult.value.data?.allRollbackRequests?.nodes || [];
+			}
+			if (results[10]) {
+				const rollbackStatsResult = results[10];
+				if (rollbackStatsResult.status === 'fulfilled') {
+					rollbackStats = {
+						pendingCount: rollbackStatsResult.value.data?.pendingRequests?.totalCount || 0,
+						approvedCount: rollbackStatsResult.value.data?.approvedRequests?.totalCount || 0,
+						rejectedCount: rollbackStatsResult.value.data?.rejectedRequests?.totalCount || 0
+					};
+				}
+			}
+		}
+
 		// Filter attendance records to last 30 days (client-side filtering)
 		const attendanceRecords = allAttendanceRecords.filter(record => {
 			const recordDate = new Date(record.date);
@@ -298,9 +416,7 @@ export const load: PageServerLoad = async (event) => {
 			activityLogs: activityLogs.length
 		});
 
-		// Determine user role and permissions
-		const userRole = locals.user.role || 'employee';
-		const isAdmin = locals.roles?.includes('super_admin') || locals.roles?.includes('admin') || false;
+		// User role already determined above, no need to redeclare
 		const isManager = locals.roles?.includes('manager') || false;
 		const isHR = locals.roles?.includes('hr_manager') || false;
 
@@ -422,6 +538,29 @@ export const load: PageServerLoad = async (event) => {
 			quickActions,
 			notifications,
 			...roleSpecificData,
+			// Feature 020: Audit logging widgets (admin/super_admin only)
+			systemAuditLogs: isAdmin ? systemAuditLogs.map(log => ({
+				id: log.id,
+				employeeName: log.userByEmployeeId
+					? `${log.userByEmployeeId.firstName} ${log.userByEmployeeId.lastName}`
+					: 'System',
+				action: log.action,
+				resourceType: log.resourceType,
+				resourceId: log.resourceId,
+				isRollback: log.isRollback || false,
+				createdAt: log.createdAt
+			})) : [],
+			rollbackRequests: isSuperAdmin ? rollbackRequests.map(req => ({
+				id: req.id,
+				requesterName: req.userByRequesterId
+					? `${req.userByRequesterId.firstName} ${req.userByRequesterId.lastName}`
+					: 'Unknown',
+				reason: req.reason || '',
+				resourceType: req.activityLogByActivityLogId?.resourceType || 'unknown',
+				status: req.status,
+				createdAt: req.createdAt
+			})) : [],
+			rollbackStats: isSuperAdmin ? rollbackStats : null,
 			preferences: {
 				selectedPeriod,
 				viewMode,
@@ -432,6 +571,8 @@ export const load: PageServerLoad = async (event) => {
 			canManageUsers: isAdmin || isHR,
 			canViewReports: isAdmin || isHR || isManager,
 			canApproveLeave: isAdmin || isHR || isManager,
+			isAdmin,
+			isSuperAdmin,
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
@@ -681,10 +822,10 @@ function generateRecentActivitiesFromLogs(
 			color: actionInfo.color,
 			type: 'activity_log',
 			timestamp: log.createdAt,
-			user: log.employeeByEmployeeId
+			user: log.userByEmployeeId
 				? {
-						id: log.employeeByEmployeeId.id,
-						name: `${log.employeeByEmployeeId.firstName} ${log.employeeByEmployeeId.lastName}`
+						id: log.userByEmployeeId.id,
+						name: `${log.userByEmployeeId.firstName} ${log.userByEmployeeId.lastName}`
 					}
 				: { id: 'system', name: 'System' }
 		});
@@ -751,18 +892,18 @@ function generateUpcomingEventsFromDatabase(events: any[], limit: number) {
 	// Filter and transform events
 	return events
 		.filter(event => {
-			const startDate = new Date(event.startDate);
-			return startDate >= now && event.status === 'scheduled';
+			const startTime = new Date(event.startTime);
+			return startTime >= now && event.status === 'scheduled';
 		})
 		.slice(0, limit)
 		.map(event => {
-			const startDate = new Date(event.startDate);
-			const endDate = new Date(event.endDate);
+			const startTime = new Date(event.startTime);
+			const endTime = new Date(event.endTime);
 
 			// Format time for display
 			const timeStr = event.allDay
 				? 'All Day'
-				: startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+				: startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
 			// Map event type to icon
 			const iconMap = {
@@ -781,15 +922,15 @@ function generateUpcomingEventsFromDatabase(events: any[], limit: number) {
 				id: event.id.toString(),
 				title: event.title,
 				description: event.description || '',
-				type: event.type,
-				date: event.startDate,
+				type: event.eventType,
+				date: event.startTime,
 				time: timeStr,
 				location: event.location || 'TBD',
-				icon: iconMap[event.type as keyof typeof iconMap] || 'Calendar',
+				icon: iconMap[event.eventType as keyof typeof iconMap] || 'Calendar',
 				color: event.color || '#3B82F6',
-				priority: event.type === 'review' || event.type === 'interview' ? 'high' : 'medium',
-				organizer: event.organizerByOrganizerId
-					? `${event.organizerByOrganizerId.firstName} ${event.organizerByOrganizerId.lastName}`
+				priority: event.eventType === 'review' || event.eventType === 'interview' ? 'high' : 'medium',
+				organizer: event.userByOrganizerId
+					? `${event.userByOrganizerId.firstName} ${event.userByOrganizerId.lastName}`
 					: 'Unknown',
 				isPublic: event.isPublic
 			};

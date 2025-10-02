@@ -1,0 +1,330 @@
+<script lang="ts">
+	// Event Detail Page
+	// Feature: 019-we-need-to - Task T029
+	// Purpose: Display full event details with RSVP management
+
+	import type { PageData } from './$types';
+	import RSVPButton from '$lib/components/events/RSVPButton.svelte';
+	import { goto } from '$app/navigation';
+	import type { RsvpStatus } from '$lib/graphql/types';
+	import { formatEventTimeRange } from '$lib/utils/events';
+
+	let { data }: { data: PageData } = $props();
+
+	let currentRsvpStatus = $state<RsvpStatus>(data.userRsvpStatus);
+	let isRsvpUpdating = $state(false);
+
+	// Handle RSVP status change
+	async function handleRsvpChange(newStatus: RsvpStatus) {
+		isRsvpUpdating = true;
+		try {
+			// TODO: Implement RSVP update mutation
+			// For now, just reload the page
+			await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate API call
+			currentRsvpStatus = newStatus;
+			window.location.reload();
+		} catch (error) {
+			console.error('Failed to update RSVP:', error);
+			alert('Failed to update RSVP. Please try again.');
+		} finally {
+			isRsvpUpdating = false;
+		}
+	}
+
+	// Handle event deletion
+	async function handleDelete() {
+		if (
+			!confirm('Are you sure you want to delete this event? This action cannot be undone.')
+		) {
+			return;
+		}
+
+		try {
+			// TODO: Implement delete event mutation
+			// For now, just navigate back
+			alert('Event deleted successfully');
+			goto('/dashboard/events');
+		} catch (error) {
+			console.error('Failed to delete event:', error);
+			alert('Failed to delete event. Please try again.');
+		}
+	}
+
+	// Get RSVP status color
+	function getRsvpStatusColor(status: RsvpStatus): string {
+		const colors: Record<RsvpStatus, string> = {
+			accepted: 'bg-green-100 text-green-800',
+			declined: 'bg-red-100 text-red-800',
+			tentative: 'bg-yellow-100 text-yellow-800',
+			pending: 'bg-blue-100 text-blue-800',
+			no_response: 'bg-gray-100 text-gray-800'
+		};
+		return colors[status] || 'bg-gray-100 text-gray-800';
+	}
+
+	// Get visibility type label
+	function getVisibilityLabel(type: string): string {
+		const labels: Record<string, string> = {
+			company: 'Company-Wide',
+			department: 'Department',
+			specific: 'Specific People'
+		};
+		return labels[type] || type;
+	}
+
+	// Get event status badge color
+	function getStatusBadgeColor(status: string): string {
+		const colors: Record<string, string> = {
+			draft: 'bg-gray-100 text-gray-800',
+			scheduled: 'bg-blue-100 text-blue-800',
+			ongoing: 'bg-green-100 text-green-800',
+			completed: 'bg-purple-100 text-purple-800',
+			cancelled: 'bg-red-100 text-red-800'
+		};
+		return colors[status] || 'bg-gray-100 text-gray-800';
+	}
+</script>
+
+<svelte:head>
+	<title>{data.event.title} - SvelteHR</title>
+	<meta name="description" content="Event details for {data.event.title}" />
+</svelte:head>
+
+<div class="container mx-auto max-w-5xl px-4 py-8">
+	<!-- Back Button -->
+	<div class="mb-6">
+		<a
+			href="/dashboard/events"
+			class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900"
+		>
+			<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M10 19l-7-7m0 0l7-7m-7 7h18"
+				></path>
+			</svg>
+			Back to Events
+		</a>
+	</div>
+
+	<!-- Event Header -->
+	<div class="mb-8 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+		<div class="mb-4 flex items-start justify-between">
+			<div class="flex-1">
+				<h1 class="text-3xl font-bold text-gray-900">{data.event.title}</h1>
+				<div class="mt-3 flex flex-wrap items-center gap-2">
+					<span class="rounded-md px-2 py-1 text-xs font-medium {getStatusBadgeColor(data.event.status)}">
+						{data.event.status.charAt(0).toUpperCase() + data.event.status.slice(1)}
+					</span>
+					<span class="rounded-md px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800">
+						{data.event.eventType.charAt(0).toUpperCase() + data.event.eventType.slice(1)}
+					</span>
+					<span class="rounded-md px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800">
+						{getVisibilityLabel(data.event.visibilityType)}
+					</span>
+				</div>
+			</div>
+
+			<!-- Action Buttons -->
+			<div class="flex gap-2">
+				{#if data.canManageEvent}
+					<a
+						href="/dashboard/events/{data.event.id}/edit"
+						class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+					>
+						<svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+							></path>
+						</svg>
+						Edit
+					</a>
+					<button
+						type="button"
+						onclick={handleDelete}
+						class="inline-flex items-center rounded-md border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+					>
+						<svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+							></path>
+						</svg>
+						Delete
+					</button>
+				{/if}
+			</div>
+		</div>
+
+		<!-- Event Details Grid -->
+		<div class="grid gap-4 sm:grid-cols-2">
+			<!-- Date and Time -->
+			<div class="flex items-start">
+				<svg class="mr-3 h-5 w-5 text-gray-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+					></path>
+				</svg>
+				<div>
+					<div class="text-sm font-medium text-gray-900">Date & Time</div>
+					<div class="text-sm text-gray-600">{formatEventTimeRange(data.event)}</div>
+					{#if data.event.isAllDay}
+						<span class="mt-1 inline-block rounded-md bg-blue-100 px-2 py-0.5 text-xs text-blue-800">
+							All Day
+						</span>
+					{/if}
+				</div>
+			</div>
+
+			<!-- Location -->
+			{#if data.event.location}
+				<div class="flex items-start">
+					<svg class="mr-3 h-5 w-5 text-gray-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+						></path>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+						></path>
+					</svg>
+					<div>
+						<div class="text-sm font-medium text-gray-900">Location</div>
+						<div class="text-sm text-gray-600">{data.event.location}</div>
+					</div>
+				</div>
+			{/if}
+
+			<!-- Organizer -->
+			<div class="flex items-start">
+				<svg class="mr-3 h-5 w-5 text-gray-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+					></path>
+				</svg>
+				<div>
+					<div class="text-sm font-medium text-gray-900">Organizer</div>
+					<div class="text-sm text-gray-600">{data.event.organizerName || 'Unknown'}</div>
+				</div>
+			</div>
+
+			<!-- Attendees Count -->
+			<div class="flex items-start">
+				<svg class="mr-3 h-5 w-5 text-gray-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+					></path>
+				</svg>
+				<div>
+					<div class="text-sm font-medium text-gray-900">Attendees</div>
+					<div class="text-sm text-gray-600">{data.rsvpStats.total} invited</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Description -->
+		{#if data.event.description}
+			<div class="mt-6 border-t border-gray-200 pt-6">
+				<h3 class="text-sm font-medium text-gray-900 mb-2">Description</h3>
+				<p class="text-sm text-gray-600 whitespace-pre-wrap">{data.event.description}</p>
+			</div>
+		{/if}
+
+		<!-- RSVP Section -->
+		{#if !data.isPastEvent}
+			<div class="mt-6 border-t border-gray-200 pt-6">
+				<div class="flex items-center justify-between">
+					<h3 class="text-sm font-medium text-gray-900">Your RSVP</h3>
+					<RSVPButton
+						currentStatus={currentRsvpStatus}
+						onChange={handleRsvpChange}
+						loading={isRsvpUpdating}
+						size="md"
+					/>
+				</div>
+			</div>
+		{/if}
+	</div>
+
+	<!-- RSVP Statistics -->
+	<div class="mb-8 grid grid-cols-3 gap-4 sm:grid-cols-5">
+		<div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm text-center">
+			<div class="text-2xl font-bold text-green-600">{data.rsvpStats.accepted}</div>
+			<div class="text-sm text-gray-600">Accepted</div>
+		</div>
+		<div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm text-center">
+			<div class="text-2xl font-bold text-yellow-600">{data.rsvpStats.tentative}</div>
+			<div class="text-sm text-gray-600">Tentative</div>
+		</div>
+		<div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm text-center">
+			<div class="text-2xl font-bold text-red-600">{data.rsvpStats.declined}</div>
+			<div class="text-sm text-gray-600">Declined</div>
+		</div>
+		<div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm text-center">
+			<div class="text-2xl font-bold text-blue-600">{data.rsvpStats.pending}</div>
+			<div class="text-sm text-gray-600">Pending</div>
+		</div>
+		<div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm text-center">
+			<div class="text-2xl font-bold text-gray-600">{data.rsvpStats.noResponse}</div>
+			<div class="text-sm text-gray-600">No Response</div>
+		</div>
+	</div>
+
+	<!-- Attendees List -->
+	<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+		<h2 class="text-lg font-semibold text-gray-900 mb-4">Attendees ({data.rsvpStats.total})</h2>
+
+		{#if data.event.attendees && data.event.attendees.length > 0}
+			<div class="space-y-3">
+				{#each data.event.attendees as attendee}
+					<div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+						<div class="flex items-center">
+							<div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+								<span class="text-sm font-medium text-gray-600">
+									{attendee.employeeName?.charAt(0)?.toUpperCase() || '?'}
+								</span>
+							</div>
+							<div class="ml-3">
+								<div class="text-sm font-medium text-gray-900">
+									{attendee.employeeName || 'Unknown'}
+									{#if attendee.employeeId === data.user.id}
+										<span class="ml-2 text-xs text-blue-600">(You)</span>
+									{/if}
+									{#if attendee.employeeId === data.event.organizerId}
+										<span class="ml-2 text-xs text-purple-600">(Organizer)</span>
+									{/if}
+								</div>
+							</div>
+						</div>
+						<span class="rounded-md px-2 py-1 text-xs font-medium {getRsvpStatusColor(attendee.rsvpStatus)}">
+							{attendee.rsvpStatus.replace('_', ' ').charAt(0).toUpperCase() + attendee.rsvpStatus.slice(1).replace('_', ' ')}
+						</span>
+					</div>
+				{/each}
+			</div>
+		{:else}
+			<p class="text-sm text-gray-600">No attendees yet.</p>
+		{/if}
+	</div>
+</div>

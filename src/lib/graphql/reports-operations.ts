@@ -609,9 +609,9 @@ export function formatReportTypeLabel(reportType: string): string {
  * tests/contract/manager-reports-operations.test.ts
  */
 export class ReportsOperations {
-	private client: any;
+	private client: Client;
 
-	constructor(client: any) {
+	constructor(client: Client) {
 		this.client = client;
 	}
 
@@ -641,46 +641,41 @@ export class ReportsOperations {
 			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000,
-			retryAttempts: 0,
-			maxRetries: 3
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Reports timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage: 'Reports are loading slowly. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(GET_HR_REPORTS, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to load reports. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: GET_HR_REPORTS,
-					variables: dataRequest.variables
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No reports data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to load reports. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						resolve({
-							reports: result.data.hrReports.nodes,
-							totalCount: result.data.hrReports.totalCount,
-							hasNextPage: result.data.hrReports.pageInfo.hasNextPage
-						});
-						unsubscribe();
-					}
-				}
-			);
-		});
+			return {
+				reports: result.data.hrReports.nodes,
+				totalCount: result.data.hrReports.totalCount,
+				hasNextPage: result.data.hrReports.pageInfo.hasNextPage
+			};
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to load reports. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -698,43 +693,38 @@ export class ReportsOperations {
 			variables: { departmentId: params.departmentId },
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000,
-			retryAttempts: 0,
-			maxRetries: 3
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Analytics timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage: 'Analytics are loading slowly. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(GET_REPORT_ANALYTICS, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to load analytics. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: GET_REPORT_ANALYTICS,
-					variables: dataRequest.variables
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No analytics data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to load analytics. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						const analytics = calculateReportAnalytics(result.data);
-						resolve(analytics);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			const analytics = calculateReportAnalytics(result.data);
+			return analytics;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to load report analytics. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -751,7 +741,7 @@ export class ReportsOperations {
 		const validation = validateReportInput(params.input.hrReport);
 		if (!validation.valid) {
 			throw createErrorResponse(new Error(validation.errors.join(', ')), {
-				type: 'VALIDATION_ERROR',
+				type: 'validation',
 				userMessage: validation.errors.join(', ')
 			});
 		}
@@ -761,42 +751,37 @@ export class ReportsOperations {
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000,
-			retryAttempts: 0,
-			maxRetries: 3
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Creation timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage: 'Report creation is taking too long. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(CREATE_HR_REPORT, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to create report. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: CREATE_HR_REPORT,
-					variables: dataRequest.variables
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No report data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to create report. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						resolve(result.data.createHrReport.hrReport);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			return result.data.createHrReport.hrReport;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to create report. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -813,43 +798,38 @@ export class ReportsOperations {
 			operationName: 'UpdateHRReport',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
-			maxRetries: 3
+			timeoutMs: 5000
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Update timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage: 'Report update is taking too long. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(UPDATE_HR_REPORT, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to update report. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: UPDATE_HR_REPORT,
-					variables: dataRequest.variables
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No report data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to update report. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						resolve(result.data.updateHrReport.hrReport);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			return result.data.updateHrReport.hrReport;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to update report. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -870,49 +850,44 @@ export class ReportsOperations {
 			operationName: 'DeleteHRReport',
 			variables: { input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
-			maxRetries: 3
+			timeoutMs: 5000
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Deletion timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage: 'Report deletion is taking too long. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(DELETE_HR_REPORT, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to delete report. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: DELETE_HR_REPORT,
-					variables: dataRequest.variables
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to delete report. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						resolve(result.data.deleteHrReport.deletedHrReportId);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			return result.data.deleteHrReport.deletedHrReportId;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to delete report. Please try again.'
+			});
+		}
 	}
 }
 
 /**
  * Factory function to create ReportsOperations instance
  */
-export function createReportsOperations(client: any): ReportsOperations {
+export function createReportsOperations(client: Client): ReportsOperations {
 	return new ReportsOperations(client);
 }

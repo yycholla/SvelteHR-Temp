@@ -6,7 +6,7 @@
  */
 
 import { gql } from '@urql/svelte';
-import type { OperationStore } from '@urql/svelte';
+import type { Client } from '@urql/core';
 import type { DataRequest, UserCredentials } from '$lib/models/data-request';
 import type { ErrorResponse } from '$lib/models/error-response';
 
@@ -383,9 +383,9 @@ export interface PaginatedDepartments {
  * Standardized department operations with error handling and retry logic
  */
 export class DepartmentOperations {
-	private client: OperationStore;
+	private client: Client;
 
-	constructor(client: OperationStore) {
+	constructor(client: Client) {
 		this.client = client;
 	}
 
@@ -399,11 +399,9 @@ export class DepartmentOperations {
 		orderBy?: string[];
 		userCredentials: UserCredentials;
 	}): Promise<PaginatedDepartments> {
-		// Import required models for standardized error handling
-		const { DataRequest, createDataRequest } = await import('$lib/models/data-request');
+		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
-		// Create data request with standard timeout and retry configuration
 		const dataRequest = createDataRequest({
 			operationName: 'GetDepartments',
 			variables: {
@@ -413,91 +411,40 @@ export class DepartmentOperations {
 				orderBy: params.orderBy
 			},
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
-			maxRetries: 3
+			timeoutMs: 5000
 		});
 
-		// Retry handler with exponential backoff
-		class DepartmentRetryHandler {
-			private attempts = 0;
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(GET_DEPARTMENTS_QUERY, dataRequest.variables).toPromise();
 
-			async execute<T>(fn: () => Promise<T>, request: DataRequest): Promise<T> {
-				while (this.attempts <= request.maxRetries) {
-					try {
-						// Update request status
-						(request as any).status = 'pending';
-
-						// Execute with timeout
-						const result = await Promise.race([
-							fn(),
-							new Promise<never>((_, reject) =>
-								setTimeout(() => reject(new Error('Department query timeout')), request.timeoutMs)
-							)
-						]);
-
-						(request as any).status = 'completed';
-						return result;
-					} catch (error) {
-						this.attempts++;
-						(request as any).retryAttempts = this.attempts;
-
-						if (this.attempts > request.maxRetries) {
-							(request as any).status = 'failed';
-
-							// Create structured error response
-							const errorResponse = createErrorResponse(error, {
-								type: error.message.includes('timeout') ? 'TIMEOUT_ERROR' : 'GRAPHQL_ERROR',
-								userMessage: 'Unable to load department data. Please try again or contact support.'
-							});
-
-							console.error('Department query error:', errorResponse.toLogEntry());
-							throw errorResponse;
-						}
-
-						// Exponential backoff: 1s, 2s, 4s
-						const delay = Math.min(1000 * Math.pow(2, this.attempts - 1), 4000);
-						await new Promise((resolve) => setTimeout(resolve, delay));
-					}
-				}
-				throw new Error('Max retries exceeded');
+			if (result.error) {
+				console.error('Departments GraphQL error:', result.error);
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to load department list. Please check your permissions and try again.'
+				});
+				throw errorResponse;
 			}
-		}
 
-		const retryHandler = new DepartmentRetryHandler();
+			if (!result.data?.departments) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No department data returned. Please try again.'
+				});
+			}
 
-		return retryHandler.execute(async () => {
-			return new Promise<PaginatedDepartments>((resolve, reject) => {
-				// Subscribe to the departments query
-				const unsubscribe = this.client.subscribe(
-					{
-						query: GET_DEPARTMENTS_QUERY,
-						variables: {
-							first: params.first || 20,
-							after: params.after,
-							filter: params.filter,
-							orderBy: params.orderBy
-						}
-					},
-					(result) => {
-						if (result.error) {
-							console.error('Departments GraphQL error:', result.error);
-							const errorResponse = createErrorResponse(result.error, {
-								type: 'GRAPHQL_ERROR',
-								userMessage:
-									'Unable to load department list. Please check your permissions and try again.'
-							});
-							reject(errorResponse);
-							unsubscribe();
-						} else if (result.data?.departments) {
-							console.log(`Loaded ${result.data.departments.nodes.length} departments`);
-							resolve(result.data.departments);
-							unsubscribe();
-						}
-					}
-				);
+			console.log(`Loaded ${result.data.departments.nodes.length} departments`);
+			return result.data.departments;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to load departments. Please try again.'
 			});
-		}, dataRequest);
+		}
 	}
 
 	/**
@@ -507,60 +454,47 @@ export class DepartmentOperations {
 		id: string;
 		userCredentials: UserCredentials;
 	}): Promise<Department> {
-		const { DataRequest, createDataRequest } = await import('$lib/models/data-request');
+		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		const dataRequest = createDataRequest({
 			operationName: 'GetDepartmentById',
 			variables: { id: params.id },
 			userCredentials: params.userCredentials,
-			timeoutMs: 4000, // Slightly longer timeout for detailed data
-			retryAttempts: 0,
-			maxRetries: 2
+			timeoutMs: 4000
 		});
 
-		return new Promise<Department>((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Department fetch timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage: 'Department data is taking longer than expected. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(GET_DEPARTMENT_BY_ID_QUERY, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				console.error('Department by ID error:', result.error);
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to load department details. Please check the department ID and try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: GET_DEPARTMENT_BY_ID_QUERY,
-					variables: { id: params.id }
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data?.department) {
+				throw createErrorResponse(new Error('Department not found'), {
+					type: 'validation',
+					userMessage: 'Department not found. Please check the department ID.'
+				});
+			}
 
-					if (result.error) {
-						console.error('Department by ID error:', result.error);
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
-							userMessage:
-								'Unable to load department details. Please check the department ID and try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data?.department) {
-						console.log(`Loaded department: ${result.data.department.name}`);
-						resolve(result.data.department);
-						unsubscribe();
-					} else {
-						const errorResponse = createErrorResponse(new Error('Department not found'), {
-							type: 'VALIDATION_ERROR',
-							userMessage: 'Department not found. Please check the department ID.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			console.log(`Loaded department: ${result.data.department.name}`);
+			return result.data.department;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to load department details. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -569,53 +503,47 @@ export class DepartmentOperations {
 	async getDepartmentHierarchy(params: {
 		userCredentials: UserCredentials;
 	}): Promise<Department[]> {
-		const { DataRequest, createDataRequest } = await import('$lib/models/data-request');
+		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		const dataRequest = createDataRequest({
 			operationName: 'GetDepartmentHierarchy',
 			variables: {},
 			userCredentials: params.userCredentials,
-			timeoutMs: 6000, // Longer timeout for hierarchy data
-			retryAttempts: 0,
-			maxRetries: 2
+			timeoutMs: 6000
 		});
 
-		return new Promise<Department[]>((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Department hierarchy timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage: 'Organization chart is taking longer than expected. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(GET_DEPARTMENT_HIERARCHY_QUERY, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				console.error('Department hierarchy error:', result.error);
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to load organization chart. Please try refreshing the page.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: GET_DEPARTMENT_HIERARCHY_QUERY
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data?.departments) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No department hierarchy data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						console.error('Department hierarchy error:', result.error);
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to load organization chart. Please try refreshing the page.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data?.departments) {
-						console.log(
-							`Loaded hierarchy with ${result.data.departments.nodes.length} departments`
-						);
-						resolve(result.data.departments.nodes);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			console.log(`Loaded hierarchy with ${result.data.departments.nodes.length} departments`);
+			return result.data.departments.nodes;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to load department hierarchy. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -643,54 +571,47 @@ export class DepartmentOperations {
 		};
 		userCredentials: UserCredentials;
 	}): Promise<Department> {
-		const { DataRequest, createDataRequest } = await import('$lib/models/data-request');
+		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		const dataRequest = createDataRequest({
 			operationName: 'CreateDepartment',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 8000, // Longer timeout for mutations
-			retryAttempts: 0,
-			maxRetries: 1 // Single retry for mutations
+			timeoutMs: 8000
 		});
 
-		return new Promise<Department>((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Department creation timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage:
-						'Department creation is taking longer than expected. Please check if the department was created.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(CREATE_DEPARTMENT_MUTATION, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				console.error('Create department error:', result.error);
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'validation',
+					userMessage: 'Unable to create department. Please check the information and try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: CREATE_DEPARTMENT_MUTATION,
-					variables: { input: params.input }
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data?.createDepartment?.department) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No department data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						console.error('Create department error:', result.error);
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'VALIDATION_ERROR',
-							userMessage:
-								'Unable to create department. Please check the information and try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data?.createDepartment?.department) {
-						console.log(`Created department: ${result.data.createDepartment.department.name}`);
-						resolve(result.data.createDepartment.department);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			console.log(`Created department: ${result.data.createDepartment.department.name}`);
+			return result.data.createDepartment.department;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to create department. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -722,54 +643,47 @@ export class DepartmentOperations {
 		};
 		userCredentials: UserCredentials;
 	}): Promise<Department> {
-		const { DataRequest, createDataRequest } = await import('$lib/models/data-request');
+		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		const dataRequest = createDataRequest({
 			operationName: 'UpdateDepartment',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 6000,
-			retryAttempts: 0,
-			maxRetries: 1
+			timeoutMs: 6000
 		});
 
-		return new Promise<Department>((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Department update timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage:
-						'Department update is taking longer than expected. Please verify the changes were saved.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(UPDATE_DEPARTMENT_MUTATION, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				console.error('Update department error:', result.error);
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'validation',
+					userMessage: 'Unable to update department. Please check the information and try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: UPDATE_DEPARTMENT_MUTATION,
-					variables: { input: params.input }
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data?.updateDepartment?.department) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No department data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						console.error('Update department error:', result.error);
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'VALIDATION_ERROR',
-							userMessage:
-								'Unable to update department. Please check the information and try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data?.updateDepartment?.department) {
-						console.log(`Updated department: ${result.data.updateDepartment.department.name}`);
-						resolve(result.data.updateDepartment.department);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			console.log(`Updated department: ${result.data.updateDepartment.department.name}`);
+			return result.data.updateDepartment.department;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to update department. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -778,65 +692,58 @@ export class DepartmentOperations {
 	async deleteDepartment(params: {
 		input: {
 			id: string;
-			transferEmployeesToId?: string; // Optional department to transfer employees to
+			transferEmployeesToId?: string;
 		};
 		userCredentials: UserCredentials;
 	}): Promise<{ deletedDepartmentId: string }> {
-		const { DataRequest, createDataRequest } = await import('$lib/models/data-request');
+		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		const dataRequest = createDataRequest({
 			operationName: 'DeleteDepartment',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 10000, // Longer timeout for deletion (might need to transfer employees)
-			retryAttempts: 0,
-			maxRetries: 0 // No retries for deletion
+			timeoutMs: 10000
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Department deletion timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage:
-						'Department deletion is taking longer than expected. Please verify if the operation completed.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(DELETE_DEPARTMENT_MUTATION, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				console.error('Delete department error:', result.error);
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'permission',
+					userMessage: 'Unable to delete department. Please check your permissions and ensure all employees are reassigned.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: DELETE_DEPARTMENT_MUTATION,
-					variables: { input: params.input }
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data?.deleteDepartment) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No deletion confirmation returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						console.error('Delete department error:', result.error);
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'PERMISSION_ERROR',
-							userMessage:
-								'Unable to delete department. Please check your permissions and ensure all employees are reassigned.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data?.deleteDepartment) {
-						console.log(`Deleted department: ${params.input.id}`);
-						resolve(result.data.deleteDepartment);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			console.log(`Deleted department: ${params.input.id}`);
+			return result.data.deleteDepartment;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to delete department. Please try again.'
+			});
+		}
 	}
 }
 
 /**
  * Factory function to create DepartmentOperations instance
  */
-export function createDepartmentOperations(client: OperationStore): DepartmentOperations {
+export function createDepartmentOperations(client: Client): DepartmentOperations {
 	return new DepartmentOperations(client);
 }
 

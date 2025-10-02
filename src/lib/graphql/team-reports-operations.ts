@@ -790,13 +790,12 @@ export interface ReportStatistics {
 /**
  * T033: Standardized Team Reports Operations with Error Handling
  */
-import type { OperationStore } from '@urql/svelte';
 import type { DataRequest, UserCredentials } from '$lib/models/data-request';
 
 export class TeamReportsOperations {
-	private client: OperationStore;
+	private client: Client;
 
-	constructor(client: OperationStore) {
+	constructor(client: Client) {
 		this.client = client;
 	}
 
@@ -821,50 +820,44 @@ export class TeamReportsOperations {
 			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 10000, // Longer timeout for report generation
-			retryAttempts: 0,
-			maxRetries: 2
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Report generation timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage:
-						'Report generation is taking longer than expected. Please try again or contact support.'
-				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
-
-			const unsubscribe = this.client.subscribe(
-				{
-					query: GENERATE_TEAM_REPORT,
-					variables: {
-						input: {
-							type: params.type,
-							departmentId: params.departmentId,
-							startDate: params.dateRange.start,
-							endDate: params.dateRange.end
-						}
-					}
-				},
-				(result) => {
-					clearTimeout(timeoutId);
-
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to generate report. Please check your permissions and try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						resolve(result.data);
-						unsubscribe();
-					}
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(GENERATE_TEAM_REPORT, {
+				input: {
+					type: params.type,
+					departmentId: params.departmentId,
+					startDate: params.dateRange.start,
+					endDate: params.dateRange.end
 				}
-			);
-		});
+			}).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to generate report. Please check your permissions and try again.'
+				});
+				throw errorResponse;
+			}
+
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No report data returned. Please try again.'
+				});
+			}
+
+			return result.data;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Report generation failed. Please try again.'
+			});
+		}
 	}
 
 	async getAvailableReports(params: { userCredentials: UserCredentials }): Promise<any> {
@@ -875,45 +868,41 @@ export class TeamReportsOperations {
 			operationName: 'GetAvailableReports',
 			variables: {},
 			userCredentials: params.userCredentials,
-			timeoutMs: 3000,
-			retryAttempts: 0,
-			maxRetries: 2
+			timeoutMs: 3000
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Available reports timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage: 'Loading available reports is taking longer than expected.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(GET_AVAILABLE_REPORTS, {}).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to load available reports. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: GET_AVAILABLE_REPORTS
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No reports data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to load available reports. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						resolve(result.data);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			return result.data;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to load available reports. Please try again.'
+			});
+		}
 	}
 }
 
-export function createTeamReportsOperations(client: OperationStore): TeamReportsOperations {
+export function createTeamReportsOperations(client: Client): TeamReportsOperations {
 	return new TeamReportsOperations(client);
 }

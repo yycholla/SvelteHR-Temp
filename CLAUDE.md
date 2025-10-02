@@ -15,7 +15,7 @@ VIOLATION CHECK: If you used TodoWrite first, you violated this rule. Stop and r
 
 # SvelteKit HR Application
 
-A modern HR management system built with **SvelteKit 2.22.0**, **Svelte 5.0**, **TypeScript 5.0**, and **Tailwind CSS 4.0**, integrated with the MountainHR Go backend.
+A modern HR management system built with **SvelteKit 2.22.0**, **Svelte 5.0**, **TypeScript 5.0**, and **Tailwind CSS 4.0**, integrated with **PostgreSQL + PostGraphile** GraphQL backend.
 
 **🚀 Modern Development Stack (2024-2025):**
 
@@ -24,7 +24,7 @@ A modern HR management system built with **SvelteKit 2.22.0**, **Svelte 5.0**, *
 - **Svelte 5.0 Runes** - Modern reactive syntax with `$state`, `$derived`, `$props`
 - **TypeScript 5.0** - Latest TypeScript with advanced type features
 - **Better Auth 1.3.4** - Modern authentication with JWT and session management
-- **GraphQL Integration** - Modern GraphQL client with GelDB backend, type generation, and Svelte 5 runes
+- **GraphQL Integration** - urql GraphQL client with PostgreSQL + PostGraphile backend, auto-generated types, and Svelte 5 runes
 
 ## Development Commands
 

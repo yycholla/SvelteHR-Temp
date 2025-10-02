@@ -100,7 +100,7 @@ export class SubscriptionManager {
 	 * Subscribe to department changes for the current user
 	 * Uses WebSocket subscription with polling fallback
 	 */
-	subscribeToDepartmentChanges(client: any): () => void {
+	subscribeToDepartmentChanges(client: Client): () => void {
 		if (!browser || !this.userId) {
 			console.warn('[SUBSCRIPTIONS] Cannot subscribe: not in browser or no user ID');
 			return () => {};
@@ -137,7 +137,7 @@ export class SubscriptionManager {
 	/**
 	 * Subscribe to role changes for the current user
 	 */
-	subscribeToRoleChanges(client: any): () => void {
+	subscribeToRoleChanges(client: Client): () => void {
 		if (!browser || !this.userId) {
 			return () => {};
 		}

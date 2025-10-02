@@ -698,9 +698,9 @@ export function getStatusInfo(review: any): { status: string; variant: string } 
  * tests/contract/manager-performance-operations.test.ts
  */
 export class PerformanceManagementOperations {
-	private client: any;
+	private client: Client;
 
-	constructor(client: any) {
+	constructor(client: Client) {
 		this.client = client;
 	}
 
@@ -729,47 +729,42 @@ export class PerformanceManagementOperations {
 				filter: params.filter || {}
 			},
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
-			maxRetries: 3
+			timeoutMs: 5000
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Performance reviews timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage: 'Performance reviews are loading slowly. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(GET_PERFORMANCE_REVIEWS, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to load performance reviews. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: GET_PERFORMANCE_REVIEWS,
-					variables: dataRequest.variables
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No performance reviews data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to load performance reviews. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						resolve({
-							reviews: result.data.performanceReviews.nodes,
-							totalCount: result.data.performanceReviews.totalCount,
-							hasNextPage: result.data.performanceReviews.pageInfo.hasNextPage
-						});
-						unsubscribe();
-					}
-				}
-			);
-		});
+			return {
+				reviews: result.data.performanceReviews.nodes,
+				totalCount: result.data.performanceReviews.totalCount,
+				hasNextPage: result.data.performanceReviews.pageInfo.hasNextPage
+			};
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to load performance reviews. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -786,44 +781,39 @@ export class PerformanceManagementOperations {
 			operationName: 'GetPerformanceStatistics',
 			variables: { departmentId: params.departmentId },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
-			maxRetries: 3
+			timeoutMs: 5000
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Statistics timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage: 'Statistics are loading slowly. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(GET_PERFORMANCE_STATISTICS, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to load statistics. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: GET_PERFORMANCE_STATISTICS,
-					variables: dataRequest.variables
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No statistics data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to load statistics. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						const stats = calculatePerformanceStatistics(result.data);
-						resolve(stats);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			const stats = calculatePerformanceStatistics(result.data);
+			return stats;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to load performance statistics. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -841,7 +831,7 @@ export class PerformanceManagementOperations {
 		const validation = validatePerformanceReviewInput(params.input.performanceReview);
 		if (!validation.valid) {
 			throw createErrorResponse(new Error(validation.errors.join(', ')), {
-				type: 'VALIDATION_ERROR',
+				type: 'validation',
 				userMessage: validation.errors.join(', ')
 			});
 		}
@@ -850,43 +840,38 @@ export class PerformanceManagementOperations {
 			operationName: 'CreatePerformanceReview',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
-			maxRetries: 3
+			timeoutMs: 5000
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Creation timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage: 'Review creation is taking too long. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(CREATE_PERFORMANCE_REVIEW, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to create performance review. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: CREATE_PERFORMANCE_REVIEW,
-					variables: dataRequest.variables
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No performance review data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to create performance review. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						resolve(result.data.createPerformanceReview.performanceReview);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			return result.data.createPerformanceReview.performanceReview;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to create performance review. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -936,7 +921,7 @@ export class PerformanceManagementOperations {
 
 		if (errors.length > 0) {
 			throw createErrorResponse(new Error(errors.join(', ')), {
-				type: 'VALIDATION_ERROR',
+				type: 'validation',
 				userMessage: errors.join(', ')
 			});
 		}
@@ -945,43 +930,38 @@ export class PerformanceManagementOperations {
 			operationName: 'UpdatePerformanceReview',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
-			maxRetries: 3
+			timeoutMs: 5000
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Update timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage: 'Review update is taking too long. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(UPDATE_PERFORMANCE_REVIEW, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to update performance review. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: UPDATE_PERFORMANCE_REVIEW,
-					variables: dataRequest.variables
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No performance review data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to update performance review. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						resolve(result.data.updatePerformanceReview.performanceReview);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			return result.data.updatePerformanceReview.performanceReview;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to update performance review. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -1003,43 +983,38 @@ export class PerformanceManagementOperations {
 			operationName: 'DeletePerformanceReview',
 			variables: { input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
-			maxRetries: 3
+			timeoutMs: 5000
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Deletion timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage: 'Review deletion is taking too long. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(DELETE_PERFORMANCE_REVIEW, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to delete performance review. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: DELETE_PERFORMANCE_REVIEW,
-					variables: dataRequest.variables
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No performance review data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to delete performance review. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						resolve(result.data.deletePerformanceReview.deletedPerformanceReviewId);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			return result.data.deletePerformanceReview.deletedPerformanceReviewId;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to delete performance review. Please try again.'
+			});
+		}
 	}
 }
 
@@ -1047,7 +1022,7 @@ export class PerformanceManagementOperations {
  * Factory function to create PerformanceManagementOperations instance
  */
 export function createPerformanceOperations(
-	client: OperationStore
+	client: Client
 ): PerformanceManagementOperations {
 	return new PerformanceManagementOperations(client);
 }

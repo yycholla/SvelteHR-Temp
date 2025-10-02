@@ -3,6 +3,7 @@
 // Purpose: Manager CRUD operations for task assignment with department-scoped RLS
 
 import { gql } from '@urql/svelte';
+import type { Client } from '@urql/core';
 import type { UserCredentials } from '$lib/models/data-request';
 
 // ============================================================================
@@ -18,27 +19,30 @@ export const GET_DEPARTMENT_TASKS = gql`
 	query GetDepartmentTasks(
 		$first: Int = 20
 		$offset: Int = 0
-		$orderBy: [TasksOrderBy!] = [DUE_DATE_ASC]
-		$filter: TaskFilter
+		$condition: TaskCondition
 	) {
-		tasks(first: $first, offset: $offset, orderBy: $orderBy, filter: $filter) {
+		allTasks(first: $first, offset: $offset, condition: $condition, orderBy: DUE_DATE_ASC) {
 			nodes {
 				id
 				assigneeId
-				assignee {
+				userByAssigneeId {
 					id
 					displayName
 					email
-					jobTitle
 				}
 				assignerId
-				assigner {
+				userByAssignerId {
 					id
 					displayName
 					email
 				}
 				departmentId
-				department {
+				departmentByDepartmentId {
+					id
+					name
+				}
+				assignedToDepartmentId
+				departmentByAssignedToDepartmentId {
 					id
 					name
 				}
@@ -47,6 +51,7 @@ export const GET_DEPARTMENT_TASKS = gql`
 				priority
 				status
 				dueDate
+				category
 				createdAt
 				updatedAt
 				completedAt
@@ -55,8 +60,6 @@ export const GET_DEPARTMENT_TASKS = gql`
 			pageInfo {
 				hasNextPage
 				hasPreviousPage
-				startCursor
-				endCursor
 			}
 		}
 	}
@@ -68,23 +71,27 @@ export const GET_DEPARTMENT_TASKS = gql`
  */
 export const GET_TASK_BY_ID = gql`
 	query GetTaskById($id: UUID!) {
-		task(id: $id) {
+		taskById(id: $id) {
 			id
 			assigneeId
-			assignee {
+			userByAssigneeId {
 				id
 				displayName
 				email
-				jobTitle
 			}
 			assignerId
-			assigner {
+			userByAssignerId {
 				id
 				displayName
 				email
 			}
 			departmentId
-			department {
+			departmentByDepartmentId {
+				id
+				name
+			}
+			assignedToDepartmentId
+			departmentByAssignedToDepartmentId {
 				id
 				name
 			}
@@ -93,6 +100,7 @@ export const GET_TASK_BY_ID = gql`
 			priority
 			status
 			dueDate
+			category
 			createdAt
 			updatedAt
 			completedAt
@@ -162,20 +170,24 @@ export const CREATE_TASK = gql`
 			task {
 				id
 				assigneeId
-				assignee {
+				userByAssigneeId {
 					id
 					displayName
 					email
-					jobTitle
 				}
 				assignerId
-				assigner {
+				userByAssignerId {
 					id
 					displayName
 					email
 				}
 				departmentId
-				department {
+				departmentByDepartmentId {
+					id
+					name
+				}
+				assignedToDepartmentId
+				departmentByAssignedToDepartmentId {
 					id
 					name
 				}
@@ -184,9 +196,9 @@ export const CREATE_TASK = gql`
 				priority
 				status
 				dueDate
+				category
 				createdAt
 			}
-			clientMutationId
 		}
 	}
 `;
@@ -203,27 +215,36 @@ export const UPDATE_TASK = gql`
 			task {
 				id
 				assigneeId
-				assignee {
+				userByAssigneeId {
 					id
 					displayName
 					email
 				}
 				assignerId
-				assigner {
+				userByAssignerId {
 					id
 					displayName
 					email
 				}
 				departmentId
+				departmentByDepartmentId {
+					id
+					name
+				}
+				assignedToDepartmentId
+				departmentByAssignedToDepartmentId {
+					id
+					name
+				}
 				title
 				description
 				priority
 				status
 				dueDate
+				category
 				updatedAt
 				completedAt
 			}
-			clientMutationId
 		}
 	}
 `;
@@ -264,6 +285,10 @@ export interface TaskFilter {
 	departmentId?: {
 		equalTo?: string;
 	};
+	assignedToDepartmentId?: {
+		equalTo?: string;
+		isNull?: boolean;
+	};
 	dueDate?: {
 		greaterThanOrEqualTo?: string;
 		lessThanOrEqualTo?: string;
@@ -277,7 +302,8 @@ export interface TaskFilter {
 export interface CreateTaskInput {
 	clientMutationId?: string;
 	task: {
-		assigneeId: string;
+		assigneeId?: string; // Either assigneeId OR assignedToDepartmentId (mutually exclusive)
+		assignedToDepartmentId?: string; // Either assigneeId OR assignedToDepartmentId (mutually exclusive)
 		assignerId: string;
 		departmentId: string;
 		title: string;
@@ -308,8 +334,8 @@ export interface DeleteTaskInput {
 
 export interface Task {
 	id: string;
-	assigneeId: string;
-	assignee: {
+	assigneeId?: string; // Optional - mutually exclusive with assignedToDepartmentId
+	assignee?: {
 		id: string;
 		displayName: string;
 		email: string;
@@ -323,6 +349,11 @@ export interface Task {
 	};
 	departmentId: string;
 	department: {
+		id: string;
+		name: string;
+	};
+	assignedToDepartmentId?: string; // Optional - mutually exclusive with assigneeId
+	assignedToDepartment?: {
 		id: string;
 		name: string;
 	};
@@ -434,17 +465,28 @@ export function calculateTaskStatistics(data: {
 }
 
 /**
- * Helper: Validate task input (no self-assignment)
+ * Helper: Validate task input (no self-assignment, mutually exclusive assignment)
  */
 export function validateTaskInput(input: {
-	assigneeId: string;
+	assigneeId?: string;
+	assignedToDepartmentId?: string;
 	assignerId: string;
 	title: string;
 	description?: string;
 }): { valid: boolean; errors: string[] } {
 	const errors: string[] = [];
 
-	if (input.assigneeId === input.assignerId) {
+	// Must have either assigneeId OR assignedToDepartmentId (mutually exclusive)
+	if (!input.assigneeId && !input.assignedToDepartmentId) {
+		errors.push('Task must be assigned to either an employee or a department');
+	}
+
+	if (input.assigneeId && input.assignedToDepartmentId) {
+		errors.push('Task cannot be assigned to both an employee and a department');
+	}
+
+	// No self-assignment for employee tasks
+	if (input.assigneeId && input.assigneeId === input.assignerId) {
 		errors.push('Cannot assign task to yourself');
 	}
 
@@ -522,6 +564,39 @@ export function formatDueDateRelative(dueDate: string): string {
 	}
 }
 
+/**
+ * Helper: Get task assignee display (employee name or department name)
+ */
+export function getTaskAssigneeDisplay(task: Task): string {
+	if (task.assigneeId && task.assignee) {
+		return task.assignee.displayName;
+	} else if (task.assignedToDepartmentId && task.assignedToDepartment) {
+		return `Department: ${task.assignedToDepartment.name}`;
+	} else {
+		return 'Unassigned';
+	}
+}
+
+/**
+ * Helper: Check if task is assigned to department
+ */
+export function isTaskDepartmentAssigned(task: Task): boolean {
+	return !!task.assignedToDepartmentId;
+}
+
+/**
+ * Helper: Filter tasks by department assignment
+ */
+export function filterTasksByDepartment(
+	tasks: Task[],
+	departmentId: string | null
+): Task[] {
+	if (!departmentId) {
+		return tasks.filter((task) => !task.assignedToDepartmentId);
+	}
+	return tasks.filter((task) => task.assignedToDepartmentId === departmentId);
+}
+
 // ============================================================================
 // OPERATIONS CLASS (Standardized Error Handling)
 // ============================================================================
@@ -532,9 +607,9 @@ export function formatDueDateRelative(dueDate: string): string {
  * tests/contract/manager-tasks-operations.test.ts
  */
 export class TasksOperations {
-	private client: any;
+	private client: Client;
 
-	constructor(client: any) {
+	constructor(client: Client) {
 		this.client = client;
 	}
 
@@ -545,7 +620,7 @@ export class TasksOperations {
 	async getDepartmentTasks(params: {
 		first?: number;
 		offset?: number;
-		filter?: TaskFilter;
+		filter?: any;
 		userCredentials: UserCredentials;
 	}): Promise<{
 		tasks: Task[];
@@ -560,50 +635,45 @@ export class TasksOperations {
 			variables: {
 				first: params.first || 20,
 				offset: params.offset || 0,
-				filter: params.filter || {}
+				condition: params.filter || {}
 			},
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
-			maxRetries: 3
+			timeoutMs: 5000
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Tasks timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage: 'Tasks are loading slowly. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(GET_DEPARTMENT_TASKS, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to load tasks. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: GET_DEPARTMENT_TASKS,
-					variables: dataRequest.variables
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No tasks data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to load tasks. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						resolve({
-							tasks: result.data.tasks.nodes,
-							totalCount: result.data.tasks.totalCount,
-							hasNextPage: result.data.tasks.pageInfo.hasNextPage
-						});
-						unsubscribe();
-					}
-				}
-			);
-		});
+			return {
+				tasks: result.data.allTasks.nodes,
+				totalCount: result.data.allTasks.totalCount,
+				hasNextPage: result.data.allTasks.pageInfo.hasNextPage
+			};
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to load department tasks. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -620,44 +690,39 @@ export class TasksOperations {
 			operationName: 'GetTaskStatistics',
 			variables: { departmentId: params.departmentId },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
-			maxRetries: 3
+			timeoutMs: 5000
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Statistics timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage: 'Statistics are loading slowly. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(GET_TASK_STATISTICS, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to load statistics. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: GET_TASK_STATISTICS,
-					variables: dataRequest.variables
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No statistics data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to load statistics. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						const stats = calculateTaskStatistics(result.data);
-						resolve(stats);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			const stats = calculateTaskStatistics(result.data);
+			return stats;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to load task statistics. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -676,7 +741,7 @@ export class TasksOperations {
 		const validation = validateTaskInput(params.input.task);
 		if (!validation.valid) {
 			throw createErrorResponse(new Error(validation.errors.join(', ')), {
-				type: 'VALIDATION_ERROR',
+				type: 'validation',
 				userMessage: validation.errors.join(', ')
 			});
 		}
@@ -685,43 +750,38 @@ export class TasksOperations {
 			operationName: 'CreateTask',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
-			maxRetries: 3
+			timeoutMs: 5000
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Creation timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage: 'Task creation is taking too long. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(CREATE_TASK, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to create task. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: CREATE_TASK,
-					variables: dataRequest.variables
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No task data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to create task. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						resolve(result.data.createTask.task);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			return result.data.createTask.task;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to create task. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -740,43 +800,38 @@ export class TasksOperations {
 			operationName: 'UpdateTask',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
-			maxRetries: 3
+			timeoutMs: 5000
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Update timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage: 'Task update is taking too long. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(UPDATE_TASK, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to update task. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: UPDATE_TASK,
-					variables: dataRequest.variables
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No task data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to update task. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						resolve(result.data.updateTask.task);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			return result.data.updateTask.task;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to update task. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -798,43 +853,84 @@ export class TasksOperations {
 			operationName: 'DeleteTask',
 			variables: { input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
-			maxRetries: 3
+			timeoutMs: 5000
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Deletion timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage: 'Task deletion is taking too long. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(DELETE_TASK, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to delete task. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: DELETE_TASK,
-					variables: dataRequest.variables
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to delete task. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						resolve(result.data.deleteTask.deletedTaskId);
-						unsubscribe();
-					}
-				}
-			);
+			return result.data.deleteTask.deletedTaskId;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to delete task. Please try again.'
+			});
+		}
+	}
+
+	/**
+	 * Get single task by ID (department-scoped)
+	 * RLS automatically filters to department only via JWT claims
+	 */
+	async getTaskById(params: {
+		taskId: string;
+		userCredentials: UserCredentials;
+	}): Promise<Task | null> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+		const { createErrorResponse } = await import('$lib/models/error-response');
+
+		const dataRequest = createDataRequest({
+			operationName: 'GetTaskById',
+			variables: { id: params.taskId },
+			userCredentials: params.userCredentials,
+			timeoutMs: 5000
 		});
+
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(GET_TASK_BY_ID, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to load task. Please try again.'
+				});
+				throw errorResponse;
+			}
+
+			if (!result.data || !result.data.taskById) {
+				return null;
+			}
+
+			return result.data.taskById;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to load task. Please try again.'
+			});
+		}
 	}
 
 	// Legacy method for backwards compatibility
@@ -851,6 +947,6 @@ export class TasksOperations {
 /**
  * Factory function to create TasksOperations instance
  */
-export function createTasksOperations(client: any): TasksOperations {
+export function createTasksOperations(client: Client): TasksOperations {
 	return new TasksOperations(client);
 }

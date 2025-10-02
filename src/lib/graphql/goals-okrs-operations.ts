@@ -573,9 +573,9 @@ export function formatQuarter(quarter: string, year?: number): string {
  * tests/contract/manager-goals-operations.test.ts
  */
 export class GoalsOKROperations {
-	private client: any;
+	private client: Client;
 
-	constructor(client: any) {
+	constructor(client: Client) {
 		this.client = client;
 	}
 
@@ -604,47 +604,42 @@ export class GoalsOKROperations {
 				filter: params.filter || {}
 			},
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
-			maxRetries: 3
+			timeoutMs: 5000
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Goals timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage: 'Goals are loading slowly. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(GET_EMPLOYEE_GOALS, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to load goals. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: GET_EMPLOYEE_GOALS,
-					variables: dataRequest.variables
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No goals data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to load goals. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						resolve({
-							goals: result.data.employeeGoals.nodes,
-							totalCount: result.data.employeeGoals.totalCount,
-							hasNextPage: result.data.employeeGoals.pageInfo.hasNextPage
-						});
-						unsubscribe();
-					}
-				}
-			);
-		});
+			return {
+				goals: result.data.employeeGoals.nodes,
+				totalCount: result.data.employeeGoals.totalCount,
+				hasNextPage: result.data.employeeGoals.pageInfo.hasNextPage
+			};
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to load employee goals. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -661,44 +656,39 @@ export class GoalsOKROperations {
 			operationName: 'GetGoalStatistics',
 			variables: { departmentId: params.departmentId },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
-			maxRetries: 3
+			timeoutMs: 5000
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Statistics timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage: 'Statistics are loading slowly. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(GET_GOAL_STATISTICS, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to load statistics. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: GET_GOAL_STATISTICS,
-					variables: dataRequest.variables
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No statistics data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to load statistics. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						const stats = calculateGoalStatistics(result.data);
-						resolve(stats);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			const stats = calculateGoalStatistics(result.data);
+			return stats;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to load goal statistics. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -716,7 +706,7 @@ export class GoalsOKROperations {
 		const validation = validateGoalInput(params.input.employeeGoal);
 		if (!validation.valid) {
 			throw createErrorResponse(new Error(validation.errors.join(', ')), {
-				type: 'VALIDATION_ERROR',
+				type: 'validation',
 				userMessage: validation.errors.join(', ')
 			});
 		}
@@ -725,43 +715,38 @@ export class GoalsOKROperations {
 			operationName: 'CreateEmployeeGoal',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
-			maxRetries: 3
+			timeoutMs: 5000
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Creation timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage: 'Goal creation is taking too long. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(CREATE_EMPLOYEE_GOAL, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to create goal. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: CREATE_EMPLOYEE_GOAL,
-					variables: dataRequest.variables
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No goal data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to create goal. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						resolve(result.data.createEmployeeGoal.employeeGoal);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			return result.data.createEmployeeGoal.employeeGoal;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to create employee goal. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -781,7 +766,7 @@ export class GoalsOKROperations {
 			const validation = validateProgress(params.input.patch.progress);
 			if (!validation.valid) {
 				throw createErrorResponse(new Error(validation.error), {
-					type: 'VALIDATION_ERROR',
+					type: 'validation',
 					userMessage: validation.error!
 				});
 			}
@@ -796,43 +781,38 @@ export class GoalsOKROperations {
 			operationName: 'UpdateEmployeeGoal',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
-			maxRetries: 3
+			timeoutMs: 5000
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Update timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage: 'Goal update is taking too long. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(UPDATE_EMPLOYEE_GOAL, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to update goal. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: UPDATE_EMPLOYEE_GOAL,
-					variables: dataRequest.variables
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No goal data returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to update goal. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						resolve(result.data.updateEmployeeGoal.employeeGoal);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			return result.data.updateEmployeeGoal.employeeGoal;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to update employee goal. Please try again.'
+			});
+		}
 	}
 
 	/**
@@ -854,43 +834,38 @@ export class GoalsOKROperations {
 			operationName: 'DeleteEmployeeGoal',
 			variables: { input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000,
-			retryAttempts: 0,
-			maxRetries: 3
+			timeoutMs: 5000
 		});
 
-		return new Promise((resolve, reject) => {
-			const timeoutId = setTimeout(() => {
-				const errorResponse = createErrorResponse(new Error('Deletion timeout'), {
-					type: 'TIMEOUT_ERROR',
-					userMessage: 'Goal deletion is taking too long. Please try again.'
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(DELETE_EMPLOYEE_GOAL, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to delete goal. Please try again.'
 				});
-				reject(errorResponse);
-				unsubscribe();
-			}, dataRequest.timeoutMs);
+				throw errorResponse;
+			}
 
-			const unsubscribe = this.client.subscribe(
-				{
-					query: DELETE_EMPLOYEE_GOAL,
-					variables: dataRequest.variables
-				},
-				(result) => {
-					clearTimeout(timeoutId);
+			if (!result.data) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No deletion confirmation returned. Please try again.'
+				});
+			}
 
-					if (result.error) {
-						const errorResponse = createErrorResponse(result.error, {
-							type: 'GRAPHQL_ERROR',
-							userMessage: 'Unable to delete goal. Please try again.'
-						});
-						reject(errorResponse);
-						unsubscribe();
-					} else if (result.data) {
-						resolve(result.data.deleteEmployeeGoal.deletedEmployeeGoalId);
-						unsubscribe();
-					}
-				}
-			);
-		});
+			return result.data.deleteEmployeeGoal.deletedEmployeeGoalId;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to delete employee goal. Please try again.'
+			});
+		}
 	}
 
 	// Legacy method for backwards compatibility
@@ -907,7 +882,7 @@ export class GoalsOKROperations {
 /**
  * Factory function to create GoalsOKROperations instance
  */
-export function createGoalsOKROperations(client: any): GoalsOKROperations {
+export function createGoalsOKROperations(client: Client): GoalsOKROperations {
 	return new GoalsOKROperations(client);
 }
 
@@ -917,7 +892,7 @@ export function createGoalsOKROperations(client: any): GoalsOKROperations {
 export async function getGoalsAnalytics(params: {
 	departmentId: string;
 	userCredentials: UserCredentials;
-	client: OperationStore;
+	client: Client;
 }): Promise<any> {
 	const operations = new GoalsOKROperations(params.client);
 	const stats = await operations.getGoalStatistics({

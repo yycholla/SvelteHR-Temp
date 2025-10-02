@@ -72,6 +72,23 @@ export const load: PageServerLoad = async (event) => {
 		};
 
 		console.log('[Employee Directory] Using simplified table-based RBAC, user role:', locals.user?.role);
+		console.log('[Employee Directory] Filters:', { searchTerm, departmentFilter, statusFilter });
+
+		// Build filter condition based on query parameters
+		const condition: any = {};
+
+		if (departmentFilter) {
+			condition.departmentId = departmentFilter;
+		}
+
+		if (statusFilter === 'active') {
+			condition.isActive = true;
+		} else if (statusFilter === 'inactive') {
+			condition.isActive = false;
+		}
+
+		// Note: searchTerm filtering will be done client-side for now
+		// PostGraphile doesn't support LIKE queries easily in conditions
 
 		// Load employee directory data with department relationships
 		const employeesResponse = await fetch(graphqlEndpoint, {
@@ -79,8 +96,8 @@ export const load: PageServerLoad = async (event) => {
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetEmployeesWithDepartments($first: Int, $after: Cursor) {
-						allUsers(first: $first, after: $after) {
+					query GetEmployeesWithDepartments($first: Int, $after: Cursor, $condition: UserCondition) {
+						allUsers(first: $first, after: $after, condition: $condition) {
 							nodes {
 								id
 								email
@@ -115,8 +132,9 @@ export const load: PageServerLoad = async (event) => {
 					}
 				`,
 				variables: {
-					first: Math.max(limit, 50), // Ensure we get all users
-					after: null
+					first: limit,
+					after: null,
+					condition: Object.keys(condition).length > 0 ? condition : null
 				}
 			})
 		});
@@ -125,7 +143,22 @@ export const load: PageServerLoad = async (event) => {
 		console.log('[Employee Directory] Employees data:', employeesData);
 
 		// Employees data is already properly formatted
-		const employees = employeesData?.data?.allUsers?.nodes || [];
+		let employees = employeesData?.data?.allUsers?.nodes || [];
+
+		// Client-side filtering for search term (since PostGraphile doesn't support LIKE easily)
+		if (searchTerm) {
+			const searchLower = searchTerm.toLowerCase();
+			employees = employees.filter((emp: any) => {
+				const displayName = emp.displayName?.toLowerCase() || '';
+				const email = emp.email?.toLowerCase() || '';
+				const role = emp.role?.toLowerCase() || '';
+				return (
+					displayName.includes(searchLower) ||
+					email.includes(searchLower) ||
+					role.includes(searchLower)
+				);
+			});
+		}
 
 		// Load departments data
 		const departmentsResponse = await fetch(graphqlEndpoint, {
@@ -162,7 +195,7 @@ export const load: PageServerLoad = async (event) => {
 			user: userPermissions.user,
 			userSession: userSession.toJSON(), // Convert UserSession to serializable object
 			employees: employees,
-			totalEmployees: employeesData?.data?.allUsers?.totalCount || 0,
+			totalEmployees: employees.length, // Use filtered count for accurate pagination
 			departments: departmentsData?.data?.allDepartments?.nodes || [],
 			filters: {
 				searchTerm,

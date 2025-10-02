@@ -24,6 +24,9 @@
 		Settings,
 		UserCheck
 	} from 'lucide-svelte';
+	// Feature 020: Audit logging widgets
+	import RecentAuditActivity from '$lib/components/activities/RecentAuditActivity.svelte';
+	import RollbackRequestsWidget from '$lib/components/activities/RollbackRequestsWidget.svelte';
 
 	// Props from server-side load function
 	interface Props {
@@ -32,6 +35,15 @@
 			userSession: any;
 			dashboardData: any;
 			permissions: string[];
+			isAdmin?: boolean;
+			isSuperAdmin?: boolean;
+			systemAuditLogs?: any[];
+			rollbackRequests?: any[];
+			rollbackStats?: {
+				pendingCount: number;
+				approvedCount: number;
+				rejectedCount: number;
+			} | null;
 			loadedAt: string;
 		};
 	}
@@ -53,7 +65,7 @@
 				period: 'this month'
 			},
 			icon: TrendingUp,
-			href: `/dashboard/users/${user.id}/attendance`
+			href: `/dashboard/profile/attendance`
 		},
 		{
 			title: 'Pending Requests',
@@ -206,7 +218,7 @@
 			<Card.Header>
 				<div class="flex items-center justify-between">
 					<Card.Title>My Tasks</Card.Title>
-					<Button variant="ghost" size="sm" href="/dashboard/users/{user.id}/tasks">Manage</Button>
+					<Button variant="ghost" size="sm" href="/dashboard/profile/tasks">Manage</Button>
 				</div>
 				<Card.Description>Pending items requiring your attention</Card.Description>
 			</Card.Header>
@@ -285,7 +297,7 @@
 				<Button
 					variant="outline"
 					class="flex h-auto flex-col items-center gap-2 p-4"
-					href="/dashboard/users/{user.id}/leave/new"
+					href="/dashboard/profile/leave/new"
 				>
 					<Calendar class="h-5 w-5" />
 					<div class="text-center">
@@ -297,7 +309,7 @@
 				<Button
 					variant="outline"
 					class="flex h-auto flex-col items-center gap-2 p-4"
-					href="/dashboard/users/{user.id}/attendance"
+					href="/dashboard/profile/attendance"
 				>
 					<Clock class="h-5 w-5" />
 					<div class="text-center">
@@ -321,7 +333,7 @@
 				<Button
 					variant="outline"
 					class="flex h-auto flex-col items-center gap-2 p-4"
-					href="/profile"
+					href="/dashboard/profile"
 				>
 					<Settings class="h-5 w-5" />
 					<div class="text-center">
@@ -332,4 +344,25 @@
 			</div>
 		</Card.Content>
 	</Card.Root>
+
+	<!-- Admin-Only Audit Logging Widgets (Feature 020) -->
+	{#if data.isAdmin && data.systemAuditLogs}
+		<div class="grid grid-cols-1 gap-6 {data.isSuperAdmin && data.rollbackRequests ? 'lg:grid-cols-2' : ''}">
+			<!-- Recent Audit Activity Widget -->
+			<RecentAuditActivity
+				logs={data.systemAuditLogs}
+				maxItems={5}
+				showRollbackIndicators={true}
+			/>
+
+			<!-- Rollback Requests Widget (super_admin only) -->
+			{#if data.isSuperAdmin && data.rollbackRequests && data.rollbackStats}
+				<RollbackRequestsWidget
+					requests={data.rollbackRequests}
+					statistics={data.rollbackStats}
+					maxItems={3}
+				/>
+			{/if}
+		</div>
+	{/if}
 </div>

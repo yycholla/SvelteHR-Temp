@@ -105,7 +105,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			user_id: user.id,
 			email: user.email,
 			role: user.role,
-			permissions: user.role === 'super_admin' ? ['*'] : [],
+			permissions: user.role === 'super_admin' || user.role === 'admin' ? ['*'] : [],
 			iat: Math.floor(Date.now() / 1000),
 			exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
 		};
