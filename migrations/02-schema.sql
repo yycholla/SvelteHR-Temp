@@ -205,10 +205,10 @@ CREATE TYPE hr_public.task_priority AS ENUM ('low', 'medium', 'high', 'urgent');
 CREATE TYPE hr_public.task_status AS ENUM ('todo', 'in_progress', 'completed', 'cancelled');
 
 CREATE TABLE hr_public.tasks (
-    id uuid DEFAULT uuid_generate_v4() NOT NULL,
-    assignee_id uuid NOT NULL,
-    assigner_id uuid NOT NULL,
-    department_id uuid NOT NULL,
+    id integer NOT NULL GENERATED ALWAYS AS IDENTITY,
+    assignee_id integer NOT NULL,
+    assigner_id integer NOT NULL,
+    department_id integer NOT NULL,
     title character varying(255) NOT NULL,
     description text,
     priority hr_public.task_priority DEFAULT 'medium'::hr_public.task_priority NOT NULL,
@@ -224,8 +224,8 @@ CREATE TABLE hr_public.tasks (
 
 -- Attendance records table (core functionality)
 CREATE TABLE hr_public.attendance_records (
-    id uuid DEFAULT uuid_generate_v4() NOT NULL,
-    user_id uuid NOT NULL,
+    id integer NOT NULL GENERATED ALWAYS AS IDENTITY,
+    user_id integer NOT NULL,
     date date NOT NULL,
     clock_in timestamp with time zone,
     clock_out timestamp with time zone,
@@ -246,7 +246,7 @@ CREATE TYPE hr_public.event_visibility AS ENUM ('public', 'private', 'department
 CREATE TYPE hr_public.rsvp_status AS ENUM ('pending', 'accepted', 'declined', 'tentative');
 
 CREATE TABLE hr_public.events (
-    id uuid DEFAULT uuid_generate_v4() NOT NULL,
+    id integer NOT NULL GENERATED ALWAYS AS IDENTITY,
     title character varying(255) NOT NULL,
     description text,
     event_type hr_public.event_type DEFAULT 'other'::hr_public.event_type NOT NULL,
@@ -258,7 +258,7 @@ CREATE TABLE hr_public.events (
     location character varying(255),
     is_public boolean DEFAULT true NOT NULL,
     color character varying(7) DEFAULT '#3B82F6'::character varying,
-    organizer_id uuid NOT NULL,
+    organizer_id integer NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     CONSTRAINT events_pkey PRIMARY KEY (id),
@@ -268,9 +268,9 @@ CREATE TABLE hr_public.events (
 
 -- Event attendees junction table
 CREATE TABLE hr_public.event_attendees (
-    id uuid DEFAULT uuid_generate_v4() NOT NULL,
-    event_id uuid NOT NULL,
-    employee_id uuid NOT NULL,
+    id integer NOT NULL GENERATED ALWAYS AS IDENTITY,
+    event_id integer NOT NULL,
+    employee_id integer NOT NULL,
     response_status hr_public.rsvp_status DEFAULT 'pending'::hr_public.rsvp_status NOT NULL,
     is_required boolean DEFAULT false NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -280,12 +280,12 @@ CREATE TABLE hr_public.event_attendees (
 
 -- Activity logs table (core functionality)
 CREATE TABLE hr_public.activity_logs (
-    id uuid DEFAULT uuid_generate_v4() NOT NULL,
-    user_id uuid NOT NULL,
-    employee_id uuid,
+    id integer NOT NULL GENERATED ALWAYS AS IDENTITY,
+    user_id integer NOT NULL,
+    employee_id integer,
     action character varying(50) NOT NULL,
     resource_type character varying(50) NOT NULL,
-    resource_id uuid,
+    resource_id integer,
     details jsonb,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     CONSTRAINT activity_logs_pkey PRIMARY KEY (id)

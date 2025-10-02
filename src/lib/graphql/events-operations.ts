@@ -17,35 +17,24 @@ export const GET_ALL_EVENTS = gql`
 	query GetAllEvents(
 		$first: Int = 20
 		$offset: Int = 0
-		$orderBy: [EventsOrderBy!] = [START_DATE_ASC]
+		$orderBy: [EventsOrderBy!] = [START_TIME_ASC]
 		$filter: EventFilter
 	) {
-		events(first: $first, offset: $offset, orderBy: $orderBy, filter: $filter) {
+		allEvents(first: $first, offset: $offset, orderBy: $orderBy, filter: $filter) {
 			nodes {
 				id
 				title
 				description
-				type
-				startDate
-				endDate
+				eventType
+				startTime
+				endTime
 				allDay
 				location
 				organizerId
-				organizer {
-					id
-					displayName
-					email
-				}
-				departmentId
-				department {
-					id
-					name
-				}
 				visibilityType
 				status
 				color
-				reminderMinutes
-				notes
+				isPublic
 				createdAt
 				updatedAt
 			}
@@ -64,48 +53,29 @@ export const GET_ALL_EVENTS = gql`
  * Query: Get single event by ID with attendees
  */
 export const GET_EVENT_BY_ID = gql`
-	query GetEventById($id: UUID!) {
-		event(id: $id) {
+	query GetEventById($id: Int!) {
+		eventById(id: $id) {
 			id
 			title
 			description
-			type
-			startDate
-			endDate
+			eventType
+			startTime
+			endTime
 			allDay
 			location
 			organizerId
-			organizer {
-				id
-				displayName
-				email
-			}
-			departmentId
-			department {
-				id
-				name
-			}
 			visibilityType
 			status
 			color
-			reminderMinutes
-			notes
+			isPublic
 			createdAt
 			updatedAt
-			eventAttendees {
+			eventAttendeesByEventId {
 				nodes {
 					id
 					employeeId
-					employee {
-						id
-						displayName
-						email
-						jobTitle
-					}
 					responseStatus
-					isOrganizer
 					isRequired
-					respondedAt
 					createdAt
 				}
 			}
@@ -118,38 +88,38 @@ export const GET_EVENT_BY_ID = gql`
  */
 export const GET_USER_EVENTS = gql`
 	query GetUserEvents(
-		$employeeId: UUID!
+		$employeeId: Int!
 		$first: Int = 50
 		$offset: Int = 0
-		$startDateFrom: Datetime
-		$startDateTo: Datetime
+		$startTimeFrom: Datetime
+		$startTimeTo: Datetime
 	) {
-		events(
+		allEvents(
 			first: $first
 			offset: $offset
 			filter: {
-				startDate: { greaterThanOrEqualTo: $startDateFrom, lessThanOrEqualTo: $startDateTo }
+				startTime: { greaterThanOrEqualTo: $startTimeFrom, lessThanOrEqualTo: $startTimeTo }
 			}
-			orderBy: [START_DATE_ASC]
+			orderBy: [START_TIME_ASC]
 		) {
 			nodes {
 				id
 				title
 				description
-				type
-				startDate
-				endDate
+				eventType
+				startTime
+				endTime
 				allDay
 				location
 				organizerId
 				visibilityType
 				status
 				color
-				eventAttendees(condition: { employeeId: $employeeId }) {
+				eventAttendeesByEventId(condition: { employeeId: $employeeId }) {
 					nodes {
 						responseStatus
 						isRequired
-						respondedAt
+						createdAt
 					}
 				}
 			}
@@ -162,24 +132,22 @@ export const GET_USER_EVENTS = gql`
  * Query: Get upcoming events (next 30 days)
  */
 export const GET_UPCOMING_EVENTS = gql`
-	query GetUpcomingEvents($first: Int = 10) {
-		events(
+	query GetUpcomingEvents($first: Int = 10, $filter: EventFilter) {
+		allEvents(
 			first: $first
-			filter: {
-				startDate: { greaterThanOrEqualTo: "now()", lessThanOrEqualTo: "now() + 30 days" }
-				status: { in: ["scheduled", "ongoing"] }
-			}
-			orderBy: [START_DATE_ASC]
+			filter: $filter
+			orderBy: [START_TIME_ASC]
 		) {
 			nodes {
 				id
 				title
-				startDate
-				endDate
+				startTime
+				endTime
 				location
 				visibilityType
 				status
 			}
+			totalCount
 		}
 	}
 `;
@@ -662,9 +630,9 @@ export class EventsOperations {
 			}
 
 			return {
-				events: result.data.events.nodes,
-				totalCount: result.data.events.totalCount,
-				hasNextPage: result.data.events.pageInfo.hasNextPage
+				events: result.data.allEvents.nodes,
+				totalCount: result.data.allEvents.totalCount,
+				hasNextPage: result.data.allEvents.pageInfo.hasNextPage
 			};
 		} catch (error: any) {
 			if (error.userMessage) {
@@ -732,22 +700,23 @@ export class EventsOperations {
 	async getUserEvents(params: {
 		employeeId: string;
 		first?: number;
+		limit?: number;
 		offset?: number;
-		startDateFrom?: string;
-		startDateTo?: string;
+		startTimeFrom?: string;
+		startTimeTo?: string;
 		userCredentials: UserCredentials;
-	}): Promise<Event[]> {
+	}): Promise<{ events: Event[]; totalCount: number }> {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		const dataRequest = createDataRequest({
 			operationName: 'GetUserEvents',
 			variables: {
-				employeeId: params.employeeId,
-				first: params.first || 50,
+				employeeId: parseInt(params.employeeId),
+				first: params.first || params.limit || 50,
 				offset: params.offset || 0,
-				startDateFrom: params.startDateFrom,
-				startDateTo: params.startDateTo
+				startTimeFrom: params.startTimeFrom,
+				startTimeTo: params.startTimeTo
 			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
@@ -773,7 +742,10 @@ export class EventsOperations {
 			}
 
 			// Extract return data from result.data
-			return result.data;
+			return {
+				events: result.data.allEvents.nodes,
+				totalCount: result.data.allEvents.totalCount
+			};
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error; // Already formatted error
@@ -790,14 +762,19 @@ export class EventsOperations {
 	 */
 	async getUpcomingEvents(params: {
 		first?: number;
+		limit?: number;
+		filter?: any;
 		userCredentials: UserCredentials;
-	}): Promise<Event[]> {
+	}): Promise<{ events: Event[]; totalCount: number }> {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		const dataRequest = createDataRequest({
 			operationName: 'GetUpcomingEvents',
-			variables: { first: params.first || 10 },
+			variables: {
+				first: params.first || params.limit || 10,
+				filter: params.filter || {}
+			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
 		});
@@ -822,7 +799,10 @@ export class EventsOperations {
 			}
 
 			// Extract return data from result.data
-			return result.data;
+			return {
+				events: result.data.allEvents.nodes,
+				totalCount: result.data.allEvents.totalCount
+			};
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error; // Already formatted error
