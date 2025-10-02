@@ -640,7 +640,7 @@ export class ReportsOperations {
 				filter: params.filter || {}
 			},
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000
+			timeoutMs: 5000,
 			maxRetries: 3
 		});
 
@@ -696,7 +696,7 @@ export class ReportsOperations {
 			operationName: 'GetReportAnalytics',
 			variables: { departmentId: params.departmentId },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000
+			timeoutMs: 5000,
 			maxRetries: 3
 		});
 
@@ -758,7 +758,7 @@ export class ReportsOperations {
 			operationName: 'CreateHRReport',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000
+			timeoutMs: 5000,
 			maxRetries: 3
 		});
 
@@ -810,7 +810,7 @@ export class ReportsOperations {
 			operationName: 'UpdateHRReport',
 			variables: { input: params.input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000
+			timeoutMs: 5000,
 			maxRetries: 3
 		});
 
@@ -866,7 +866,7 @@ export class ReportsOperations {
 			operationName: 'DeleteHRReport',
 			variables: { input },
 			userCredentials: params.userCredentials,
-			timeoutMs: 5000
+			timeoutMs: 5000,
 			maxRetries: 3
 		});
 

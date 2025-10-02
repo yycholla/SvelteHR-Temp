@@ -972,3 +972,155 @@
 {"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-01T21:05:38.038Z","url":"/graphql","userAgent":"node"}
 {"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-01T21:05:38.045Z","url":"/graphql","userAgent":"node"}
 {"ip":"::ffff:172.22.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-01T21:05:38.047Z","url":"/graphql","userAgent":"node"}
+{"endpoint":"http://localhost:4000/graphql","environment":"development","graphiql":"http://localhost:4000/graphiql","health_endpoint":"http://localhost:4000/health","level":"info","message":"PostGraphile server started","port":4000,"service":"postgraphile-server","timestamp":"2025-10-01T23:54:53.983Z"}
+{"level":"info","message":"All services started successfully","service":"postgraphile-server","timestamp":"2025-10-01T23:54:53.984Z"}
+{"ip":"::ffff:172.20.0.1","level":"info","message":"Request received","method":"GET","service":"postgraphile-server","timestamp":"2025-10-01T23:54:58.384Z","url":"/health","userAgent":"curl/8.16.0"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:08:08.886Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:08:13.999Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.1","level":"info","message":"Request received","method":"GET","service":"postgraphile-server","timestamp":"2025-10-02T00:09:25.663Z","url":"/health","userAgent":"curl/8.16.0"}
+{"ip":"::ffff:172.20.0.1","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:09:25.742Z","url":"/graphql","userAgent":"curl/8.16.0"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:09:54.206Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:11:02.944Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:11:25.734Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.1","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:11:25.747Z","url":"/graphql","userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"}
+{"email":"admin@mountainhr.dev","level":"info","message":"JWT Authentication Success","role":"hr_super_admin","service":"postgraphile-server","timestamp":"2025-10-02T00:11:25.748Z","user_id":"289656ba-8fe8-4bc8-a582-bb174e3ca18a"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:11:25.767Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:11:25.774Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:11:25.777Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:11:25.779Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:11:25.781Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:11:25.783Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:11:25.786Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:11:25.790Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:11:25.793Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:11:26.786Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:11:26.792Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:11:26.793Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:11:26.797Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:11:28.789Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:11:28.794Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:11:28.795Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:11:28.800Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:11:32.794Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:11:32.796Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:11:32.797Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:11:32.802Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:11:59.807Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:11:59.815Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:12:33.531Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:12:33.533Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:12:33.536Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:12:34.186Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:12:34.187Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:12:34.539Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:12:35.833Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:12:35.835Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:12:35.837Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:12:36.324Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:12:36.325Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:12:36.542Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:12:40.545Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:13:25.302Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:13:25.367Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:13:30.620Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:13:35.144Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:13:35.148Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:14:21.993Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:14:21.995Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:14:21.998Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:14:22.015Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:15:17.968Z","url":"/graphql","userAgent":"node"}
+{"email":"admin@mountainhr.dev","level":"info","message":"JWT Authentication Success","role":"hr_super_admin","service":"postgraphile-server","timestamp":"2025-10-02T00:15:17.968Z","user_id":"289656ba-8fe8-4bc8-a582-bb174e3ca18a"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:15:17.971Z","url":"/graphql","userAgent":"node"}
+{"email":"admin@mountainhr.dev","level":"info","message":"JWT Authentication Success","role":"hr_super_admin","service":"postgraphile-server","timestamp":"2025-10-02T00:15:17.972Z","user_id":"289656ba-8fe8-4bc8-a582-bb174e3ca18a"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:16:26.658Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:17:24.642Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:17:24.649Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:17:26.147Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:17:26.150Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:17:31.487Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.1","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:17:31.500Z","url":"/graphql","userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"}
+{"email":"admin@mountainhr.dev","level":"info","message":"JWT Authentication Success","role":"super_admin","service":"postgraphile-server","timestamp":"2025-10-02T00:17:31.500Z","user_id":"289656ba-8fe8-4bc8-a582-bb174e3ca18a"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:17:32.524Z","url":"/graphql","userAgent":"node"}
+{"email":"admin@mountainhr.dev","level":"info","message":"JWT Authentication Success","role":"super_admin","service":"postgraphile-server","timestamp":"2025-10-02T00:17:32.525Z","user_id":"289656ba-8fe8-4bc8-a582-bb174e3ca18a"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:21:36.458Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.1","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:21:36.470Z","url":"/graphql","userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"}
+{"email":"admin@mountainhr.dev","level":"info","message":"JWT Authentication Success","role":"super_admin","service":"postgraphile-server","timestamp":"2025-10-02T00:21:36.470Z","user_id":"289656ba-8fe8-4bc8-a582-bb174e3ca18a"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:21:36.481Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:21:36.486Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:21:36.487Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:21:36.488Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:21:36.489Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:21:36.489Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:21:36.490Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:21:36.491Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:21:36.492Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:21:37.493Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:21:37.494Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:21:37.495Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:21:37.496Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:21:39.497Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:21:39.498Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:21:39.499Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:21:39.499Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:21:43.502Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:21:43.503Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:21:43.504Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:21:43.505Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:21:45.955Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:21:45.961Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:21:46.861Z","url":"/graphql","userAgent":"node"}
+{"email":"admin@mountainhr.dev","level":"info","message":"JWT Authentication Success","role":"super_admin","service":"postgraphile-server","timestamp":"2025-10-02T00:21:46.861Z","user_id":"289656ba-8fe8-4bc8-a582-bb174e3ca18a"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:25:54.571Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:25:54.593Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:25:54.598Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:25:54.600Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:25:54.601Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:25:54.601Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:25:54.602Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:25:54.603Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:25:54.603Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:25:54.603Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:25:55.607Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:25:55.608Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:25:55.609Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:25:55.610Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:25:57.610Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:25:57.611Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:25:57.612Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:25:57.613Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:26:01.615Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:26:01.616Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:26:01.616Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:26:01.617Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T00:26:04.349Z","url":"/graphql","userAgent":"node"}
+{"email":"admin@mountainhr.dev","level":"info","message":"JWT Authentication Success","role":"super_admin","service":"postgraphile-server","timestamp":"2025-10-02T00:26:04.350Z","user_id":"289656ba-8fe8-4bc8-a582-bb174e3ca18a"}
+{"endpoint":"http://localhost:4000/graphql","environment":"development","graphiql":"http://localhost:4000/graphiql","health_endpoint":"http://localhost:4000/health","level":"info","message":"PostGraphile server started","port":4000,"service":"postgraphile-server","timestamp":"2025-10-02T00:35:19.879Z"}
+{"level":"info","message":"All services started successfully","service":"postgraphile-server","timestamp":"2025-10-02T00:35:19.880Z"}
+{"endpoint":"http://localhost:4000/graphql","environment":"development","graphiql":"http://localhost:4000/graphiql","health_endpoint":"http://localhost:4000/health","level":"info","message":"PostGraphile server started","port":4000,"service":"postgraphile-server","timestamp":"2025-10-02T00:35:58.940Z"}
+{"level":"info","message":"All services started successfully","service":"postgraphile-server","timestamp":"2025-10-02T00:35:58.942Z"}
+{"ip":"::ffff:172.20.0.1","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T01:22:19.339Z","url":"/graphql","userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"}
+{"email":"admin@mountainhr.dev","level":"info","message":"JWT Authentication Success","role":"super_admin","service":"postgraphile-server","timestamp":"2025-10-02T01:22:19.341Z","user_id":"289656ba-8fe8-4bc8-a582-bb174e3ca18a"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T01:33:17.202Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T01:33:17.252Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T01:33:17.257Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T01:33:17.261Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T01:33:17.263Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T01:33:17.265Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T01:33:17.267Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T01:33:17.269Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T01:33:17.273Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T01:33:17.276Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T01:33:18.276Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T01:33:18.278Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T01:33:18.281Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T01:33:20.278Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T01:33:20.280Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T01:33:20.282Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T01:33:24.283Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T01:33:24.284Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T01:33:24.285Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T01:33:25.373Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T01:33:25.383Z","url":"/graphql","userAgent":"node"}
+{"ip":"::ffff:172.20.0.5","level":"info","message":"Request received","method":"POST","service":"postgraphile-server","timestamp":"2025-10-02T01:33:25.848Z","url":"/graphql","userAgent":"node"}
+{"email":"admin@mountainhr.dev","level":"info","message":"JWT Authentication Success","role":"super_admin","service":"postgraphile-server","timestamp":"2025-10-02T01:33:25.849Z","user_id":"289656ba-8fe8-4bc8-a582-bb174e3ca18a"}

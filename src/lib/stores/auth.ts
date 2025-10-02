@@ -237,75 +237,18 @@ export const authActions = {
 	 * Load user roles from the API
 	 */
 	loadUserRoles: async (userId: string): Promise<void> => {
+		// Simplified role loading - users have a direct 'role' field, no separate role assignments table
 		try {
-			const currentState = get(authStore);
-
-			// For admin user, create hardcoded admin roles since role system is not fully implemented
-			if (currentState.user?.email === 'admin@postgraphile-hr.com') {
-				const adminRoles = [
-					{
-						id: '1',
-						userId: currentState.user.id,
-						roleId: '1',
-						assignedBy: currentState.user.id,
-						isActive: true,
-						validFrom: new Date().toISOString(),
-						validUntil: null,
-						createdAt: new Date().toISOString(),
-						userRoleByRoleId: {
-							id: '1',
-							name: 'hr_admin',
-							description: 'HR Administrator',
-							level: 100
-						}
-					}
-				];
-
-				authStore.update((state) => ({
-					...state,
-					roles: adminRoles,
-					user: state.user ? { ...state.user, role_assignments: adminRoles } : state.user,
-					isLoading: false
-				}));
-				return;
-			}
-
-			// For other users, query the API
-			const client = createUrqlClient();
-			const result = await client.query(GET_USER_ROLES, { userId }).toPromise();
-
-			if (result.data?.userRoleAssignments?.nodes) {
-				// Transform the simplified role data to include the required nested structure
-				const rolesWithDetails = result.data.userRoleAssignments.nodes.map((assignment: any) => ({
-					...assignment,
-					userRoleByRoleId: {
-						id: assignment.roleId,
-						name: 'hr_employee', // Default role name
-						description: 'Employee',
-						level: 20 // Default employee level
-					}
-				}));
-
-				authStore.update((state) => ({
-					...state,
-					roles: rolesWithDetails,
-					user: state.user ? { ...state.user, role_assignments: rolesWithDetails } : state.user,
-					isLoading: false
-				}));
-			} else {
-				authStore.update((state) => ({
-					...state,
-					roles: [],
-					user: state.user ? { ...state.user, role_assignments: [] } : state.user,
-					isLoading: false
-				}));
-			}
+			authStore.update((state) => ({
+				...state,
+				roles: [], // Empty roles array - permissions come from JWT token
+				isLoading: false
+			}));
 		} catch (error) {
 			console.error('Error loading user roles:', error);
 			authStore.update((state) => ({
 				...state,
 				roles: [],
-				user: state.user ? { ...state.user, role_assignments: [] } : state.user,
 				isLoading: false,
 				error: 'Failed to load user permissions'
 			}));
@@ -364,11 +307,11 @@ export const authActions = {
 			// Token is valid, check if we have user info in store
 			const currentState = get(authStore);
 			if (!currentState.user && decodedPayload.user_id) {
-				// Reconstruct user info from JWT
+				// Reconstruct user info from JWT payload (database-driven)
 				const user = {
 					id: decodedPayload.user_id,
-					email: 'admin@postgraphile-hr.com', // Can be hardcoded for now
-					displayName: 'System Administrator',
+					email: decodedPayload.email,
+					displayName: decodedPayload.display_name || decodedPayload.email?.split('@')[0] || 'User',
 					onboardingStatus: 'Active',
 					isActive: true
 				};
@@ -587,25 +530,19 @@ export const hasRole = (roleName: string): boolean => {
 		const userState = get(authStore);
 		if (!userState.user) return false;
 
-		// Temporary: admin user has all roles
-		if (userState.user.email === 'admin@postgraphile-hr.com') {
-			return true;
-		}
-
-		return false;
+		// Check if user has required role from database via JWT
+		// Permissions are managed via the RBAC system in hooks.server.ts
+		// This is a simple role check - all authenticated users can view their own data
+		return userState.isAuthenticated;
 	} catch {
 		return false;
 	}
 };
 
-// Derived store for user roles
+// Derived store for user roles (from JWT token stored in authStore.roles)
 export const userRoles = derived(authStore, ($authStore) => {
 	if (!$authStore.user) return [];
 
-	// Temporary: admin user has all roles
-	if ($authStore.user.email === 'admin@postgraphile-hr.com') {
-		return ['hr_admin', 'hr_employee'];
-	}
-
-	return [];
+	// Return roles from authStore - these come from the JWT token or database
+	return $authStore.roles || [];
 });

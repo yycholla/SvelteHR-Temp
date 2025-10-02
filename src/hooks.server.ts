@@ -68,10 +68,9 @@ async function authenticateUser(
 		const payload = validationResult.payload;
 		const user = extractUserFromPayload(payload);
 
-		// Use permissions from JWT token if available, otherwise fallback to role-based
-		const permissions = payload.permissions && payload.permissions.length > 0
-			? payload.permissions
-			: getRolePermissions(user.role);
+		// ALL permissions MUST come from JWT token (database-driven)
+		// No fallback to hardcoded role permissions
+		const permissions = payload.permissions || [];
 
 		console.log(`🔑 Permissions for ${user.email}:`, permissions);
 
@@ -91,57 +90,9 @@ async function authenticateUser(
 	}
 }
 
-// Helper function to get permissions based on role
-function getRolePermissions(role: string): string[] {
-	switch (role) {
-		case 'super_admin': // Full system administrator
-		case 'admin': // Updated to use simplified role name
-		case 'hr_admin': // Keep backwards compatibility
-		case 'hr_manager':
-			return [
-				'*', // Full permissions
-				'dashboard:read',
-				'employees:read',
-				'employees:write',
-				'employees:delete',
-				'departments:read',
-				'departments:write',
-				'teams:read',
-				'teams:write',
-				'management:read',
-				'management:write',
-				'leave:read',
-				'leave:write',
-				'leave:approve',
-				'performance:read',
-				'performance:write',
-				'goals:read',
-				'goals:write',
-				'reports:read',
-				'reports:write',
-				'reports:execute',
-				'reports:analytics'
-			];
-		case 'manager':
-			return [
-				'dashboard:read',
-				'employees:read',
-				'teams:read',
-				'teams:write',
-				'management:read',
-				'leave:read',
-				'leave:approve',
-				'performance:read',
-				'performance:write',
-				'goals:read',
-				'goals:write',
-				'reports:read'
-			];
-		case 'employee':
-		default:
-			return ['dashboard:read', 'employees:read', 'teams:read', 'leave:read'];
-	}
-}
+// NOTE: Role permissions are now 100% database-driven via JWT tokens
+// The login endpoint sets permissions in the JWT based on user role from database
+// No hardcoded role-to-permission mappings exist in this file
 
 // Initialize server performance monitoring
 const performanceHandle = serverPerformanceMonitor.createHandle();
