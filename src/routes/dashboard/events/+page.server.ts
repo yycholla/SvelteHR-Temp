@@ -97,12 +97,13 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			).length,
 			myEvents: userEventsResult.events.length,
 			accepted: userEventsResult.events.filter((e: any) =>
-				e.attendees?.some((a: any) => a.employeeId === locals.user.id && a.rsvpStatus === 'accepted')
+				e.eventAttendeesByEventId?.nodes?.some((a: any) => a.employeeId === locals.user.id && a.responseStatus === 'accepted')
 			).length
 		};
 
 		// Check if user has manager or admin privileges for event creation
-		const canCreateEvents = getRoleLevel(locals.user.role) >= 60; // Manager or higher
+		// Permissions come from JWT token in locals.permissions
+		const canCreateEvents = locals.permissions?.includes('*') || locals.permissions?.includes('manage_events') || false;
 
 		return {
 			events: eventsResult.events,
