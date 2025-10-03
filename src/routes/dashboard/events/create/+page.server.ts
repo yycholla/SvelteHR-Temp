@@ -38,13 +38,16 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 
 		if (dateParam) {
 			// Use the date from the calendar click
+			// The calendar passes UTC time, but datetime-local expects local time
 			const clickedDate = new Date(dateParam);
-			defaultStartTime = clickedDate.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:MM
+
+			// Convert to local time format for datetime-local input
+			defaultStartTime = formatDateTimeLocal(clickedDate);
 
 			// Default end time is 1 hour after start
 			const endDate = new Date(clickedDate);
 			endDate.setHours(endDate.getHours() + 1);
-			defaultEndTime = endDate.toISOString().slice(0, 16);
+			defaultEndTime = formatDateTimeLocal(endDate);
 		} else {
 			// Use default times (next hour)
 			defaultStartTime = getDefaultStartTime();
@@ -98,13 +101,25 @@ function getRoleLevel(role: string | undefined): number {
 	return roleLevels[role?.toLowerCase() || 'employee'] || 20;
 }
 
+// Helper to format Date to datetime-local input format (local time)
+function formatDateTimeLocal(date: Date): string {
+	// Get local time components
+	const year = date.getFullYear();
+	const month = String(date.getMonth() + 1).padStart(2, '0');
+	const day = String(date.getDate()).padStart(2, '0');
+	const hours = String(date.getHours()).padStart(2, '0');
+	const minutes = String(date.getMinutes()).padStart(2, '0');
+
+	return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
 // Helper to get default start time (next hour)
 function getDefaultStartTime(): string {
 	const now = new Date();
 	now.setHours(now.getHours() + 1);
 	now.setMinutes(0);
 	now.setSeconds(0);
-	return now.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:MM
+	return formatDateTimeLocal(now);
 }
 
 // Helper to get default end time (2 hours from now)
@@ -113,5 +128,5 @@ function getDefaultEndTime(): string {
 	now.setHours(now.getHours() + 2);
 	now.setMinutes(0);
 	now.setSeconds(0);
-	return now.toISOString().slice(0, 16);
+	return formatDateTimeLocal(now);
 }
