@@ -69,14 +69,14 @@
 	<!-- Page Header with Actions -->
 	<div class="mb-8 flex items-center justify-between">
 		<div>
-			<h1 class="text-3xl font-bold text-gray-900">Events</h1>
-			<p class="mt-2 text-gray-600">View and manage company events</p>
+			<h1 class="text-3xl font-bold text-foreground">Events</h1>
+			<p class="mt-2 text-muted-foreground">View and manage company events</p>
 		</div>
 
 		{#if data.canCreateEvents}
 			<a
 				href="/dashboard/events/create"
-				class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+				class="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
 			>
 				<svg
 					class="mr-2 h-5 w-5"
@@ -98,10 +98,10 @@
 	</div>
 
 	<!-- View Toggle and Filters -->
-	<div class="mb-6 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+	<div class="mb-6 rounded-lg border bg-card p-4 shadow-sm">
 		<!-- View Toggle -->
-		<div class="mb-4 flex items-center gap-2 border-b border-gray-200 pb-4">
-			<span class="text-sm font-medium text-gray-700">View:</span>
+		<div class="mb-4 flex items-center gap-2 border-b pb-4">
+			<span class="text-sm font-medium text-card-foreground">View:</span>
 			<div class="inline-flex rounded-md shadow-sm" role="group">
 				<button
 					type="button"
@@ -109,10 +109,10 @@
 						selectedView = 'list';
 						applyFilters();
 					}}
-					class="rounded-l-md border border-gray-300 px-4 py-2 text-sm font-medium {selectedView ===
+					class="rounded-l-md border px-4 py-2 text-sm font-medium {selectedView ===
 					'list'
-						? 'bg-blue-600 text-white'
-						: 'bg-white text-gray-700 hover:bg-gray-50'}"
+						? 'bg-primary text-primary-foreground'
+						: 'bg-background text-foreground hover:bg-accent'}"
 				>
 					<svg
 						class="h-4 w-4 inline-block mr-1"
@@ -133,7 +133,7 @@
 					type="button"
 					disabled
 					title="Calendar view requires EventCalendar component (install FullCalendar)"
-					class="rounded-r-md border border-l-0 border-gray-300 px-4 py-2 text-sm font-medium bg-gray-100 text-gray-400 cursor-not-allowed"
+					class="rounded-r-md border border-l-0 px-4 py-2 text-sm font-medium bg-muted text-muted-foreground cursor-not-allowed"
 				>
 					<svg
 						class="h-4 w-4 inline-block mr-1"
@@ -157,14 +157,14 @@
 		<div class="flex flex-wrap items-end gap-4">
 			<!-- Visibility Filter -->
 			<div class="flex-1 min-w-[200px]">
-				<label for="visibility-filter" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="visibility-filter" class="block text-sm font-medium text-foreground mb-1">
 					Visibility
 				</label>
 				<select
 					id="visibility-filter"
 					bind:value={selectedVisibility}
 					onchange={applyFilters}
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+					class="w-full rounded-md border bg-background px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
 				>
 					<option value="all">All Visibility</option>
 					<option value="company">Company-Wide</option>
@@ -175,14 +175,14 @@
 
 			<!-- Status Filter -->
 			<div class="flex-1 min-w-[200px]">
-				<label for="status-filter" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="status-filter" class="block text-sm font-medium text-foreground mb-1">
 					Status
 				</label>
 				<select
 					id="status-filter"
 					bind:value={selectedStatus}
 					onchange={applyFilters}
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+					class="w-full rounded-md border bg-background px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
 				>
 					<option value="all">All Statuses</option>
 					<option value="draft">Draft</option>
@@ -195,14 +195,14 @@
 
 			<!-- Event Type Filter -->
 			<div class="flex-1 min-w-[200px]">
-				<label for="type-filter" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="type-filter" class="block text-sm font-medium text-foreground mb-1">
 					Event Type
 				</label>
 				<select
 					id="type-filter"
 					bind:value={selectedType}
 					onchange={applyFilters}
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+					class="w-full rounded-md border bg-background px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
 				>
 					<option value="all">All Types</option>
 					<option value="meeting">Meeting</option>
@@ -215,14 +215,14 @@
 
 			<!-- Sort Order -->
 			<div class="flex-1 min-w-[200px]">
-				<label for="sort-filter" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="sort-filter" class="block text-sm font-medium text-foreground mb-1">
 					Sort By
 				</label>
 				<select
 					id="sort-filter"
 					bind:value={selectedSort}
 					onchange={applyFilters}
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+					class="w-full rounded-md border bg-background px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
 				>
 					<option value="date">Event Date</option>
 					<option value="created">Created Date</option>
@@ -235,7 +235,7 @@
 				<button
 					type="button"
 					onclick={() => goto('/dashboard/events')}
-					class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+					class="rounded-md border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
 				>
 					Reset
 				</button>
@@ -245,33 +245,33 @@
 
 	<!-- Statistics Summary -->
 	<div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-		<div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-			<div class="text-2xl font-bold text-gray-900">{data.statistics.total}</div>
-			<div class="text-sm text-gray-600">Total Events</div>
+		<div class="rounded-lg border bg-card p-4 shadow-sm">
+			<div class="text-2xl font-bold text-card-foreground">{data.statistics.total}</div>
+			<div class="text-sm text-muted-foreground">Total Events</div>
 		</div>
 
-		<div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-			<div class="text-2xl font-bold text-blue-600">{data.statistics.upcoming}</div>
-			<div class="text-sm text-gray-600">Upcoming</div>
+		<div class="rounded-lg border bg-card p-4 shadow-sm">
+			<div class="text-2xl font-bold text-primary">{data.statistics.upcoming}</div>
+			<div class="text-sm text-muted-foreground">Upcoming</div>
 		</div>
 
-		<div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-			<div class="text-2xl font-bold text-purple-600">{data.statistics.myEvents}</div>
-			<div class="text-sm text-gray-600">My Events</div>
+		<div class="rounded-lg border bg-card p-4 shadow-sm">
+			<div class="text-2xl font-bold" style="color: hsl(var(--chart-4))">{data.statistics.myEvents}</div>
+			<div class="text-sm text-muted-foreground">My Events</div>
 		</div>
 
-		<div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-			<div class="text-2xl font-bold text-green-600">{data.statistics.accepted}</div>
-			<div class="text-sm text-gray-600">Accepted</div>
+		<div class="rounded-lg border bg-card p-4 shadow-sm">
+			<div class="text-2xl font-bold" style="color: hsl(var(--chart-2))">{data.statistics.accepted}</div>
+			<div class="text-sm text-muted-foreground">Accepted</div>
 		</div>
 	</div>
 
 	<!-- Events List -->
 	<div class="mb-6">
 		{#if data.events.length === 0}
-			<div class="rounded-lg border border-gray-200 bg-white p-12 text-center">
+			<div class="rounded-lg border bg-card p-12 text-center">
 				<svg
-					class="mx-auto h-12 w-12 text-gray-400"
+					class="mx-auto h-12 w-12 text-muted-foreground"
 					fill="none"
 					stroke="currentColor"
 					viewBox="0 0 24 24"
@@ -283,8 +283,8 @@
 						d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
 					></path>
 				</svg>
-				<p class="mt-4 text-lg font-medium text-gray-900">No events found</p>
-				<p class="mt-2 text-sm text-gray-600">
+				<p class="mt-4 text-lg font-medium text-card-foreground">No events found</p>
+				<p class="mt-2 text-sm text-muted-foreground">
 					{#if data.canCreateEvents}
 						Try adjusting your filters or create a new event to get started.
 					{:else}
@@ -310,14 +310,14 @@
 	<!-- Pagination -->
 	{#if data.totalCount > data.limit}
 		<div
-			class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6"
+			class="flex items-center justify-between border-t bg-card px-4 py-3 sm:px-6"
 		>
 			<div class="flex flex-1 justify-between sm:hidden">
 				<button
 					type="button"
 					disabled={data.currentPage === 1}
 					onclick={() => goToPage(data.currentPage - 1)}
-					class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+					class="relative inline-flex items-center rounded-md border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
 				>
 					Previous
 				</button>
@@ -325,7 +325,7 @@
 					type="button"
 					disabled={!data.hasNextPage}
 					onclick={() => goToPage(data.currentPage + 1)}
-					class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+					class="relative ml-3 inline-flex items-center rounded-md border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
 				>
 					Next
 				</button>
@@ -333,7 +333,7 @@
 
 			<div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
 				<div>
-					<p class="text-sm text-gray-700">
+					<p class="text-sm text-muted-foreground">
 						Showing
 						<span class="font-medium">{(data.currentPage - 1) * data.limit + 1}</span>
 						to
@@ -355,7 +355,7 @@
 							type="button"
 							disabled={data.currentPage === 1}
 							onclick={() => goToPage(data.currentPage - 1)}
-							class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+							class="relative inline-flex items-center rounded-l-md px-2 py-2 text-muted-foreground ring-1 ring-inset ring-border hover:bg-accent focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
 						>
 							<span class="sr-only">Previous</span>
 							<svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -368,7 +368,7 @@
 						</button>
 
 						<span
-							class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300"
+							class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-foreground ring-1 ring-inset ring-border"
 						>
 							Page {data.currentPage}
 						</span>
@@ -377,7 +377,7 @@
 							type="button"
 							disabled={!data.hasNextPage}
 							onclick={() => goToPage(data.currentPage + 1)}
-							class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+							class="relative inline-flex items-center rounded-r-md px-2 py-2 text-muted-foreground ring-1 ring-inset ring-border hover:bg-accent focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
 						>
 							<span class="sr-only">Next</span>
 							<svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
