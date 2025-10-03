@@ -13,15 +13,16 @@ import type { UserCredentials } from '$lib/models/data-request';
 /**
  * Query: Get all events with visibility filtering (RLS-enforced)
  * RLS Policy: event_company_visibility, event_department_visibility, event_specific_visibility
+ * Note: Using PostGraphile conventions - condition instead of filter
  */
 export const GET_ALL_EVENTS = gql`
 	query GetAllEvents(
 		$first: Int = 20
 		$offset: Int = 0
 		$orderBy: [EventsOrderBy!] = [START_TIME_ASC]
-		$filter: EventFilter
+		$condition: EventCondition
 	) {
-		allEvents(first: $first, offset: $offset, orderBy: $orderBy, filter: $filter) {
+		allEvents(first: $first, offset: $offset, orderBy: $orderBy, condition: $condition) {
 			nodes {
 				id
 				title
@@ -32,7 +33,6 @@ export const GET_ALL_EVENTS = gql`
 				allDay
 				location
 				organizerId
-				visibilityType
 				status
 				color
 				isPublic
@@ -52,9 +52,10 @@ export const GET_ALL_EVENTS = gql`
 
 /**
  * Query: Get single event by ID with attendees
+ * Note: Using UUID for id parameter (not Int)
  */
 export const GET_EVENT_BY_ID = gql`
-	query GetEventById($id: Int!) {
+	query GetEventById($id: UUID!) {
 		eventById(id: $id) {
 			id
 			title
@@ -65,7 +66,6 @@ export const GET_EVENT_BY_ID = gql`
 			allDay
 			location
 			organizerId
-			visibilityType
 			status
 			color
 			isPublic
@@ -86,21 +86,17 @@ export const GET_EVENT_BY_ID = gql`
 
 /**
  * Query: Get user's events with RSVP status
+ * Note: Using UUID for employeeId, condition instead of filter
  */
 export const GET_USER_EVENTS = gql`
 	query GetUserEvents(
-		$employeeId: Int!
+		$employeeId: UUID!
 		$first: Int = 50
 		$offset: Int = 0
-		$startTimeFrom: Datetime
-		$startTimeTo: Datetime
 	) {
 		allEvents(
 			first: $first
 			offset: $offset
-			filter: {
-				startTime: { greaterThanOrEqualTo: $startTimeFrom, lessThanOrEqualTo: $startTimeTo }
-			}
 			orderBy: [START_TIME_ASC]
 		) {
 			nodes {
@@ -113,7 +109,6 @@ export const GET_USER_EVENTS = gql`
 				allDay
 				location
 				organizerId
-				visibilityType
 				status
 				color
 				eventAttendeesByEventId(condition: { employeeId: $employeeId }) {
@@ -131,12 +126,13 @@ export const GET_USER_EVENTS = gql`
 
 /**
  * Query: Get upcoming events (next 30 days)
+ * Note: Using condition instead of filter
  */
 export const GET_UPCOMING_EVENTS = gql`
-	query GetUpcomingEvents($first: Int = 10, $filter: EventFilter) {
+	query GetUpcomingEvents($first: Int = 10, $condition: EventCondition) {
 		allEvents(
 			first: $first
-			filter: $filter
+			condition: $condition
 			orderBy: [START_TIME_ASC]
 		) {
 			nodes {
@@ -145,8 +141,8 @@ export const GET_UPCOMING_EVENTS = gql`
 				startTime
 				endTime
 				location
-				visibilityType
 				status
+				isPublic
 			}
 			totalCount
 		}
@@ -590,7 +586,8 @@ export class EventsOperations {
 	async getAllEvents(params: {
 		first?: number;
 		offset?: number;
-		filter?: EventFilter;
+		filter?: any;
+		orderBy?: string;
 		userCredentials: UserCredentials;
 	}): Promise<{
 		events: Event[];
@@ -605,7 +602,8 @@ export class EventsOperations {
 			variables: {
 				first: params.first || 20,
 				offset: params.offset || 0,
-				filter: params.filter || {}
+				condition: params.filter || {},
+				orderBy: params.orderBy ? [params.orderBy] : ['START_TIME_ASC']
 			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
@@ -703,8 +701,6 @@ export class EventsOperations {
 		first?: number;
 		limit?: number;
 		offset?: number;
-		startTimeFrom?: string;
-		startTimeTo?: string;
 		userCredentials: UserCredentials;
 	}): Promise<{ events: Event[]; totalCount: number }> {
 		const { createDataRequest } = await import('$lib/models/data-request');
@@ -713,11 +709,9 @@ export class EventsOperations {
 		const dataRequest = createDataRequest({
 			operationName: 'GetUserEvents',
 			variables: {
-				employeeId: parseInt(params.employeeId),
+				employeeId: params.employeeId, // Keep as UUID string
 				first: params.first || params.limit || 50,
-				offset: params.offset || 0,
-				startTimeFrom: params.startTimeFrom,
-				startTimeTo: params.startTimeTo
+				offset: params.offset || 0
 			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
@@ -774,7 +768,7 @@ export class EventsOperations {
 			operationName: 'GetUpcomingEvents',
 			variables: {
 				first: params.first || params.limit || 10,
-				filter: params.filter || {}
+				condition: params.filter || {}
 			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
