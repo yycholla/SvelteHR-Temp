@@ -101,62 +101,73 @@
 	onMount(async () => {
 		if (!browser) return;
 
-		// Dynamically import FullCalendar modules (client-side only)
-		const [{ Calendar }, { default: dayGridPlugin }, { default: timeGridPlugin }, { default: interactionPlugin }] = await Promise.all([
-			import('@fullcalendar/core'),
-			import('@fullcalendar/daygrid'),
-			import('@fullcalendar/timegrid'),
-			import('@fullcalendar/interaction')
-		]);
+		console.log('[EventCalendar] Initializing calendar...');
+		console.log('[EventCalendar] Calendar element:', calendarEl);
 
-		calendar = new Calendar(calendarEl, {
-			plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
-			initialView: 'dayGridMonth',
-			headerToolbar: {
-				left: 'prev,next today',
-				center: 'title',
-				right: 'dayGridMonth,timeGridWeek,timeGridDay'
-			},
-			editable: canManageEvents,
-			selectable: canManageEvents,
-			selectMirror: true,
-			dayMaxEvents: true,
-			weekends: true,
-			events: calendarEvents(),
-			eventClick: (info) => {
-				if (onEventClick) {
-					onEventClick(info.event.extendedProps);
-				}
-			},
-			dateClick: (info) => {
-				if (canManageEvents && onDateClick) {
-					onDateClick(info.date);
-				}
-			},
-			eventDrop: (info) => {
-				if (canManageEvents && onEventDrop) {
-					onEventDrop(
-						info.event.id,
-						info.event.start || new Date(),
-						info.event.end || new Date()
-					);
-				}
-			},
-			eventResize: (info) => {
-				if (canManageEvents && onEventDrop) {
-					onEventDrop(
-						info.event.id,
-						info.event.start || new Date(),
-						info.event.end || new Date()
-					);
-				}
-			},
-			height: 'auto',
-			contentHeight: 'auto',
-			aspectRatio: 1.8
-		});
+		try {
+			// Dynamically import FullCalendar modules (client-side only)
+			const [{ Calendar }, { default: dayGridPlugin }, { default: timeGridPlugin }, { default: interactionPlugin }] = await Promise.all([
+				import('@fullcalendar/core'),
+				import('@fullcalendar/daygrid'),
+				import('@fullcalendar/timegrid'),
+				import('@fullcalendar/interaction')
+			]);
 
-		calendar.render();
+			console.log('[EventCalendar] Modules loaded, creating calendar instance...');
+
+			calendar = new Calendar(calendarEl, {
+				plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
+				initialView: 'dayGridMonth',
+				headerToolbar: {
+					left: 'prev,next today',
+					center: 'title',
+					right: 'dayGridMonth,timeGridWeek,timeGridDay'
+				},
+				editable: canManageEvents,
+				selectable: canManageEvents,
+				selectMirror: true,
+				dayMaxEvents: true,
+				weekends: true,
+				events: calendarEvents(),
+				eventClick: (info) => {
+					if (onEventClick) {
+						onEventClick(info.event.extendedProps);
+					}
+				},
+				dateClick: (info) => {
+					if (canManageEvents && onDateClick) {
+						onDateClick(info.date);
+					}
+				},
+				eventDrop: (info) => {
+					if (canManageEvents && onEventDrop) {
+						onEventDrop(
+							info.event.id,
+							info.event.start || new Date(),
+							info.event.end || new Date()
+						);
+					}
+				},
+				eventResize: (info) => {
+					if (canManageEvents && onEventDrop) {
+						onEventDrop(
+							info.event.id,
+							info.event.start || new Date(),
+							info.event.end || new Date()
+						);
+					}
+				},
+				height: 'auto',
+				contentHeight: 'auto',
+				aspectRatio: 1.8
+			});
+
+			console.log('[EventCalendar] Calendar instance created, rendering...');
+			calendar.render();
+			console.log('[EventCalendar] Calendar rendered successfully!');
+		} catch (error) {
+			console.error('[EventCalendar] Error initializing calendar:', error);
+		}
 	});
 
 	// Update calendar events when they change

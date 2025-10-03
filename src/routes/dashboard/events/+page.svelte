@@ -274,7 +274,25 @@
 
 	<!-- Events List or Calendar -->
 	<div class="mb-6">
-		{#if data.events.length === 0}
+		{#if selectedView === 'calendar'}
+			<!-- Always show calendar view when selected, even with no events -->
+			<EventCalendar
+				events={data.events}
+				userId={data.user.id}
+				canManageEvents={data.canCreateEvents}
+				onEventClick={handleEventClick}
+				onDateClick={(date) => {
+					// Navigate to create event page with pre-filled date
+					goto(`/dashboard/events/create?date=${date.toISOString()}`);
+				}}
+				onEventDrop={(eventId, newStart, newEnd) => {
+					// Handle event drag-and-drop
+					console.log('Event dropped:', eventId, newStart, newEnd);
+					// TODO: Implement event update mutation
+				}}
+				visibilityFilter={selectedVisibility === 'all' ? 'all' : selectedVisibility}
+			/>
+		{:else if data.events.length === 0}
 			<div class="rounded-lg border bg-card p-12 text-center">
 				<svg
 					class="mx-auto h-12 w-12 text-muted-foreground"
@@ -298,23 +316,6 @@
 					{/if}
 				</p>
 			</div>
-		{:else if selectedView === 'calendar'}
-			<EventCalendar
-				events={data.events}
-				userId={data.user.id}
-				canManageEvents={data.canCreateEvents}
-				onEventClick={handleEventClick}
-				onDateClick={(date) => {
-					// Navigate to create event page with pre-filled date
-					goto(`/dashboard/events/create?date=${date.toISOString()}`);
-				}}
-				onEventDrop={(eventId, newStart, newEnd) => {
-					// Handle event drag-and-drop
-					console.log('Event dropped:', eventId, newStart, newEnd);
-					// TODO: Implement event update mutation
-				}}
-				visibilityFilter={selectedVisibility === 'all' ? 'all' : selectedVisibility}
-			/>
 		{:else}
 			<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 				{#each data.events as event}
