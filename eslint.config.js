@@ -79,6 +79,52 @@ export default ts.config(
 			]
 		}
 	},
+	// Audit logging modules: Security-critical code with strict rules
+	{
+		files: ['src/lib/server/audit/**/*.ts', 'src/lib/audit/**/*.ts'],
+		rules: {
+			// Enforce no 'any' types in security-critical audit code
+			'@typescript-eslint/no-explicit-any': 'error',
+
+			// Require explicit return types for audit functions
+			'@typescript-eslint/explicit-function-return-type': [
+				'error',
+				{
+					allowExpressions: false,
+					allowTypedFunctionExpressions: true
+				}
+			],
+
+			// Enforce proper error handling patterns
+			'@typescript-eslint/no-floating-promises': 'error',
+			'@typescript-eslint/promise-function-async': 'error',
+
+			// Naming conventions for audit operations
+			'@typescript-eslint/naming-convention': [
+				'error',
+				{
+					selector: 'function',
+					format: ['camelCase'],
+					custom: {
+						regex: '^(sign|verify|rollback|archive|export)[A-Z]',
+						match: true
+					}
+				}
+			],
+
+			// Prevent console.log in production audit code
+			'no-console': 'error',
+
+			// Enforce safe type assertions
+			'@typescript-eslint/consistent-type-assertions': [
+				'error',
+				{
+					assertionStyle: 'as',
+					objectLiteralTypeAssertions: 'never'
+				}
+			]
+		}
+	},
 	{
 		files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
 		languageOptions: {
