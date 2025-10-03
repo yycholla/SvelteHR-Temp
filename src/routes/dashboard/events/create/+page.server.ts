@@ -50,9 +50,9 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			const clickedDate = new Date(dateParam);
 			defaultStartTime = formatDateTimeLocal(clickedDate);
 
-			// Default end time is 1 hour after start
+			// Default end time is 30 minutes after start (matches calendar slot)
 			const endDate = new Date(clickedDate);
-			endDate.setHours(endDate.getHours() + 1);
+			endDate.setMinutes(endDate.getMinutes() + 30);
 			defaultEndTime = formatDateTimeLocal(endDate);
 		} else {
 			// Use default times (next hour)
@@ -130,11 +130,11 @@ function getDefaultStartTime(): string {
 	return formatDateTimeLocal(now);
 }
 
-// Helper to get default end time (2 hours from now)
+// Helper to get default end time (30 minutes after start)
 function getDefaultEndTime(): string {
 	const now = new Date();
-	now.setHours(now.getHours() + 2);
-	now.setMinutes(0);
+	now.setHours(now.getHours() + 1);
+	now.setMinutes(30); // 30 minutes after start time
 	now.setSeconds(0);
 	return formatDateTimeLocal(now);
 }
