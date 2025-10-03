@@ -199,27 +199,27 @@
 
 	<!-- Legend -->
 	<div class="calendar-legend">
-		<h4 class="text-sm font-semibold mb-2">RSVP Status Legend</h4>
+		<h4 class="text-sm font-semibold mb-2 text-foreground">RSVP Status Legend</h4>
 		<div class="flex flex-wrap gap-3">
 			<div class="flex items-center gap-1.5">
-				<div class="w-3 h-3 rounded-sm bg-green-500"></div>
-				<span class="text-xs text-gray-600">Accepted</span>
+				<div class="w-3 h-3 rounded-sm" style="background-color: hsl(var(--chart-2))"></div>
+				<span class="text-xs text-muted-foreground">Accepted</span>
 			</div>
 			<div class="flex items-center gap-1.5">
-				<div class="w-3 h-3 rounded-sm bg-red-500"></div>
-				<span class="text-xs text-gray-600">Declined</span>
+				<div class="w-3 h-3 rounded-sm bg-destructive"></div>
+				<span class="text-xs text-muted-foreground">Declined</span>
 			</div>
 			<div class="flex items-center gap-1.5">
-				<div class="w-3 h-3 rounded-sm bg-amber-500"></div>
-				<span class="text-xs text-gray-600">Tentative</span>
+				<div class="w-3 h-3 rounded-sm" style="background-color: hsl(var(--chart-4))"></div>
+				<span class="text-xs text-muted-foreground">Tentative</span>
 			</div>
 			<div class="flex items-center gap-1.5">
-				<div class="w-3 h-3 rounded-sm bg-blue-500"></div>
-				<span class="text-xs text-gray-600">Pending</span>
+				<div class="w-3 h-3 rounded-sm bg-primary"></div>
+				<span class="text-xs text-muted-foreground">Pending</span>
 			</div>
 			<div class="flex items-center gap-1.5">
-				<div class="w-3 h-3 rounded-sm bg-gray-500"></div>
-				<span class="text-xs text-gray-600">No Response</span>
+				<div class="w-3 h-3 rounded-sm bg-muted"></div>
+				<span class="text-xs text-muted-foreground">No Response</span>
 			</div>
 		</div>
 	</div>
@@ -229,8 +229,9 @@
 	.event-calendar-wrapper {
 		width: 100%;
 		padding: 1rem;
-		background: white;
+		background: hsl(var(--card));
 		border-radius: 0.5rem;
+		border: 1px solid hsl(var(--border));
 		box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
 	}
 
@@ -242,34 +243,46 @@
 	.calendar-legend {
 		margin-top: 1.5rem;
 		padding-top: 1rem;
-		border-top: 1px solid #e5e7eb;
+		border-top: 1px solid hsl(var(--border));
 	}
 
 	/* FullCalendar custom styles */
 	:global(.fc) {
 		font-family: inherit;
+		color: hsl(var(--foreground));
 	}
 
 	:global(.fc-button) {
-		background-color: #3b82f6 !important;
-		border-color: #3b82f6 !important;
+		background-color: hsl(var(--primary)) !important;
+		border-color: hsl(var(--primary)) !important;
+		color: hsl(var(--primary-foreground)) !important;
 		text-transform: capitalize;
 		padding: 0.375rem 0.75rem;
 		font-size: 0.875rem;
 	}
 
 	:global(.fc-button:hover) {
-		background-color: #2563eb !important;
-		border-color: #2563eb !important;
+		background-color: hsl(var(--primary) / 0.9) !important;
+		border-color: hsl(var(--primary) / 0.9) !important;
 	}
 
 	:global(.fc-button-active) {
-		background-color: #1d4ed8 !important;
-		border-color: #1d4ed8 !important;
+		background-color: hsl(var(--primary) / 0.8) !important;
+		border-color: hsl(var(--primary) / 0.8) !important;
 	}
 
 	:global(.fc-daygrid-day-number) {
 		padding: 0.5rem;
+		color: hsl(var(--foreground));
+	}
+
+	:global(.fc-col-header-cell) {
+		background-color: hsl(var(--muted));
+		color: hsl(var(--muted-foreground));
+	}
+
+	:global(.fc-daygrid-day) {
+		background-color: hsl(var(--background));
 	}
 
 	:global(.fc-event) {
@@ -284,12 +297,22 @@
 	}
 
 	:global(.fc-day-today) {
-		background-color: #eff6ff !important;
+		background-color: hsl(var(--accent)) !important;
 	}
 
 	:global(.fc-toolbar-title) {
 		font-size: 1.25rem;
 		font-weight: 600;
+		color: hsl(var(--foreground));
+	}
+
+	:global(.fc-scrollgrid) {
+		border-color: hsl(var(--border)) !important;
+	}
+
+	:global(.fc-scrollgrid td),
+	:global(.fc-scrollgrid th) {
+		border-color: hsl(var(--border)) !important;
 	}
 
 	/* Mobile responsive styles */

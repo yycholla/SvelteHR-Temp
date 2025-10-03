@@ -5,6 +5,7 @@
 
 	import type { PageData } from './$types';
 	import EventCard from '$lib/components/events/EventCard.svelte';
+	import EventCalendar from '$lib/components/events/EventCalendar.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import type { EventVisibilityType, EventStatus, EventType } from '$lib/graphql/types';
@@ -131,9 +132,14 @@
 				</button>
 				<button
 					type="button"
-					disabled
-					title="Calendar view requires EventCalendar component (install FullCalendar)"
-					class="rounded-r-md border border-l-0 px-4 py-2 text-sm font-medium bg-muted text-muted-foreground cursor-not-allowed"
+					onclick={() => {
+						selectedView = 'calendar';
+						applyFilters();
+					}}
+					class="rounded-r-md border border-l-0 px-4 py-2 text-sm font-medium {selectedView ===
+					'calendar'
+						? 'bg-primary text-primary-foreground'
+						: 'bg-background text-foreground hover:bg-accent'}"
 				>
 					<svg
 						class="h-4 w-4 inline-block mr-1"
@@ -266,7 +272,7 @@
 		</div>
 	</div>
 
-	<!-- Events List -->
+	<!-- Events List or Calendar -->
 	<div class="mb-6">
 		{#if data.events.length === 0}
 			<div class="rounded-lg border bg-card p-12 text-center">
@@ -292,6 +298,23 @@
 					{/if}
 				</p>
 			</div>
+		{:else if selectedView === 'calendar'}
+			<EventCalendar
+				events={data.events}
+				userId={data.user.id}
+				canManageEvents={data.canCreateEvents}
+				onEventClick={handleEventClick}
+				onDateClick={(date) => {
+					// Navigate to create event page with pre-filled date
+					goto(`/dashboard/events/create?date=${date.toISOString()}`);
+				}}
+				onEventDrop={(eventId, newStart, newEnd) => {
+					// Handle event drag-and-drop
+					console.log('Event dropped:', eventId, newStart, newEnd);
+					// TODO: Implement event update mutation
+				}}
+				visibilityFilter={selectedVisibility === 'all' ? 'all' : selectedVisibility}
+			/>
 		{:else}
 			<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 				{#each data.events as event}
