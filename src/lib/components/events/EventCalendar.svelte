@@ -25,10 +25,7 @@
 
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { Calendar } from '@fullcalendar/core';
-	import dayGridPlugin from '@fullcalendar/daygrid';
-	import timeGridPlugin from '@fullcalendar/timegrid';
-	import interactionPlugin from '@fullcalendar/interaction';
+	import { browser } from '$app/environment';
 	import type { EventInput } from '@fullcalendar/core';
 
 	// Props with Svelte 5 runes syntax
@@ -52,7 +49,7 @@
 
 	// State
 	let calendarEl: HTMLElement;
-	let calendar: Calendar | null = null;
+	let calendar: any = null;
 
 	// Derived: Filter events by visibility
 	let filteredEvents = $derived(() => {
@@ -94,8 +91,18 @@
 		});
 	});
 
-	// Initialize calendar on mount
-	onMount(() => {
+	// Initialize calendar on mount (client-side only)
+	onMount(async () => {
+		if (!browser) return;
+
+		// Dynamically import FullCalendar modules (client-side only)
+		const [{ Calendar }, { default: dayGridPlugin }, { default: timeGridPlugin }, { default: interactionPlugin }] = await Promise.all([
+			import('@fullcalendar/core'),
+			import('@fullcalendar/daygrid'),
+			import('@fullcalendar/timegrid'),
+			import('@fullcalendar/interaction')
+		]);
+
 		calendar = new Calendar(calendarEl, {
 			plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
 			initialView: 'dayGridMonth',
@@ -195,7 +202,26 @@
 
 <div class="event-calendar-wrapper">
 	<!-- Calendar container -->
-	<div bind:this={calendarEl} class="event-calendar"></div>
+	<div bind:this={calendarEl} class="event-calendar">
+		{#if !browser}
+			<!-- SSR placeholder -->
+			<div class="calendar-loading">
+				<div class="animate-pulse">
+					<div class="h-8 bg-muted rounded mb-4"></div>
+					<div class="grid grid-cols-7 gap-2 mb-2">
+						{#each Array(7) as _}
+							<div class="h-6 bg-muted rounded"></div>
+						{/each}
+					</div>
+					<div class="grid grid-cols-7 gap-2">
+						{#each Array(35) as _}
+							<div class="h-20 bg-muted rounded"></div>
+						{/each}
+					</div>
+				</div>
+			</div>
+		{/if}
+	</div>
 
 	<!-- Legend -->
 	<div class="calendar-legend">
@@ -238,6 +264,12 @@
 	.event-calendar {
 		width: 100%;
 		min-height: 600px;
+	}
+
+	.calendar-loading {
+		width: 100%;
+		min-height: 600px;
+		padding: 1rem;
 	}
 
 	.calendar-legend {
