@@ -3,7 +3,7 @@
  * T035: Write unit tests for RBAC utilities
  *
  * These tests verify role-based access control functions including:
- * - Role precedence logic (admin > hr_manager > manager > employee)
+ * - Role precedence logic (admin > manager > employee > guest)
  * - Department edit permissions
  * - Manager department assignment verification
  * - Permission hierarchy checks
@@ -259,12 +259,6 @@ describe('RBAC Utilities', () => {
 			expect(result).toBe('admin');
 		});
 
-		it('should return hr_manager when hr_manager and manager roles present', async () => {
-			const { getRolePrecedence } = await import('$lib/server/rbac-utils');
-			const result = getRolePrecedence(['hr_manager', 'manager', 'employee']);
-			expect(result).toBe('hr_manager');
-		});
-
 		it('should return manager when only manager and employee roles present', async () => {
 			const { getRolePrecedence } = await import('$lib/server/rbac-utils');
 			const result = getRolePrecedence(['manager', 'employee']);
@@ -277,10 +271,10 @@ describe('RBAC Utilities', () => {
 			expect(result).toBe('employee');
 		});
 
-		it('should return employee for empty roles array', async () => {
+		it('should return guest for empty roles array', async () => {
 			const { getRolePrecedence } = await import('$lib/server/rbac-utils');
 			const result = getRolePrecedence([]);
-			expect(result).toBe('employee');
+			expect(result).toBe('guest');
 		});
 	});
 

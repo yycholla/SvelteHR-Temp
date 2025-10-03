@@ -8,6 +8,7 @@
 	let pageData = $derived($page);
 	let error = $derived(pageData.error);
 	let status = $derived(pageData.status);
+	let userData = $derived(pageData.data?.user);
 
 	// Create a proper Error object from SvelteKit error
 	let errorObject = $derived(
@@ -63,18 +64,43 @@
 
 <!-- Full-screen error page -->
 <div class="flex min-h-screen items-center justify-center bg-background p-4">
-	<ErrorBoundary
-		error={errorObject}
-		{title}
-		{description}
-		variant="detailed"
-		showReload={status !== 404}
-		showHome={true}
-		showDetails={import.meta.env.DEV && status >= 500}
-		onRetry={handleRetry}
-		onHome={handleHome}
-		class="w-full max-w-2xl"
-	/>
+	<div class="w-full max-w-2xl space-y-4">
+		<ErrorBoundary
+			error={errorObject}
+			{title}
+			{description}
+			variant="detailed"
+			showReload={status !== 404}
+			showHome={true}
+			showDetails={import.meta.env.DEV && status >= 500}
+			onRetry={handleRetry}
+			onHome={handleHome}
+			class="w-full"
+		/>
+
+		<!-- Show user role on access denied errors -->
+		{#if status === 403 && userData}
+			<div class="rounded-lg border border-warning bg-warning/5 p-4 text-sm">
+				<p class="font-medium text-warning-foreground">Current User Information:</p>
+				<div class="mt-2 space-y-1 text-muted-foreground">
+					<p>
+						<span class="font-medium">Email:</span>
+						{userData.email}
+					</p>
+					<p>
+						<span class="font-medium">Role:</span>
+						{userData.role || 'Not assigned'}
+					</p>
+					{#if userData.display_name}
+						<p>
+							<span class="font-medium">Display Name:</span>
+							{userData.display_name}
+						</p>
+					{/if}
+				</div>
+			</div>
+		{/if}
+	</div>
 </div>
 
 <!-- Additional context for specific error types -->

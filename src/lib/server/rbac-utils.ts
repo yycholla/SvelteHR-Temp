@@ -425,9 +425,9 @@ export function getUserPermissions(locals: App.Locals) {
 const ROLE_HIERARCHY = {
 	super_admin: 120,
 	admin: 100,
-	hr_manager: 80,
 	manager: 60,
-	employee: 20
+	employee: 20,
+	guest: 0
 } as const;
 
 /**
@@ -439,11 +439,11 @@ const ROLE_HIERARCHY = {
  *
  * @example
  * getRolePrecedence(['employee', 'admin', 'manager']) // returns 'admin'
- * getRolePrecedence(['hr_manager', 'employee']) // returns 'hr_manager'
+ * getRolePrecedence(['manager', 'employee']) // returns 'manager'
  * getRolePrecedence(['employee']) // returns 'employee'
  */
 export function getRolePrecedence(roles: string[]): string {
-	if (!roles || roles.length === 0) return 'employee';
+	if (!roles || roles.length === 0) return 'guest';
 
 	let highestRole = 'employee';
 	let highestLevel = 0;

@@ -19,18 +19,20 @@ export const TEST_CONFIG = {
 
 // User role definitions matching RBAC system
 export enum UserRole {
+	SUPER_ADMIN = 'SUPER_ADMIN',
 	ADMIN = 'ADMIN',
-	HR_MANAGER = 'HR_MANAGER',
 	MANAGER = 'MANAGER',
-	EMPLOYEE = 'EMPLOYEE'
+	EMPLOYEE = 'EMPLOYEE',
+	GUEST = 'GUEST'
 }
 
 // User role hierarchy levels
 export const ROLE_LEVELS = {
+	[UserRole.SUPER_ADMIN]: 120,
 	[UserRole.ADMIN]: 100,
-	[UserRole.HR_MANAGER]: 80,
 	[UserRole.MANAGER]: 60,
-	[UserRole.EMPLOYEE]: 20
+	[UserRole.EMPLOYEE]: 20,
+	[UserRole.GUEST]: 0
 } as const;
 
 // Permission definitions
@@ -57,23 +59,8 @@ export type Permission =
 
 // Role-based permissions
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
+	[UserRole.SUPER_ADMIN]: ['*'],
 	[UserRole.ADMIN]: ['*'],
-	[UserRole.HR_MANAGER]: [
-		'employees:read',
-		'employees:write',
-		'employees:delete',
-		'departments:read',
-		'departments:write',
-		'performance:read',
-		'performance:write',
-		'goals:read',
-		'goals:write',
-		'leave:read',
-		'leave:write',
-		'leave:approve',
-		'reports:view',
-		'reports:generate'
-	],
 	[UserRole.MANAGER]: [
 		'employees:read',
 		'performance:read',
@@ -84,7 +71,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
 		'leave:approve',
 		'reports:view'
 	],
-	[UserRole.EMPLOYEE]: ['performance:read', 'goals:read', 'leave:read', 'leave:write']
+	[UserRole.EMPLOYEE]: ['performance:read', 'goals:read', 'leave:read', 'leave:write'],
+	[UserRole.GUEST]: []
 };
 
 // Test user interface
@@ -212,17 +200,17 @@ export class TestUser {
 	}
 
 	/**
-	 * Create HR manager test user
+	 * Create super admin test user
 	 */
-	static async createHRManager(overrides: Partial<TestUserData> = {}): Promise<TestUserData> {
+	static async createSuperAdmin(overrides: Partial<TestUserData> = {}): Promise<TestUserData> {
 		const id = nanoid();
 		const userData: TestUserData = {
 			id,
-			email: `hr-${id}@test.com`,
-			firstName: 'HR',
-			lastName: 'Manager',
-			role: UserRole.HR_MANAGER,
-			permissions: ROLE_PERMISSIONS[UserRole.HR_MANAGER],
+			email: `superadmin-${id}@test.com`,
+			firstName: 'Super',
+			lastName: 'Admin',
+			role: UserRole.SUPER_ADMIN,
+			permissions: ROLE_PERMISSIONS[UserRole.SUPER_ADMIN],
 			createdAt: new Date().toISOString(),
 			token: '',
 			...overrides
@@ -478,7 +466,7 @@ export class AuthTestUtils {
 export async function createTestContext(): Promise<TestContext> {
 	// Create test users
 	const admin = await TestUser.createAdmin();
-	const hrManager = await TestUser.createHRManager();
+	const superAdmin = await TestUser.createSuperAdmin();
 	const manager = await TestUser.createManager();
 	const employee = await TestUser.createEmployee();
 
@@ -497,14 +485,14 @@ export async function createTestContext(): Promise<TestContext> {
 	const hr = await TestDepartment.create({
 		name: 'Human Resources',
 		description: 'HR management team',
-		managerId: hrManager.id
+		managerId: admin.id
 	});
 
 	return {
-		users: { admin, hrManager, manager, employee },
+		users: { admin, hrManager: superAdmin, manager, employee },
 		departments: { engineering, marketing, hr },
 		createdEmployees: [],
-		createdUsers: [admin.id, hrManager.id, manager.id, employee.id],
+		createdUsers: [admin.id, superAdmin.id, manager.id, employee.id],
 		createdDepartments: [engineering.id, marketing.id, hr.id],
 		createdReviews: [],
 		createdGoals: [],
