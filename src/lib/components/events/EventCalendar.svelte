@@ -41,6 +41,7 @@
 		canManageEvents = false,
 		onEventClick,
 		onDateClick,
+		onDateSelect,
 		onEventDrop,
 		visibilityFilter = 'all'
 	}: {
@@ -49,6 +50,7 @@
 		canManageEvents?: boolean;
 		onEventClick?: (event: any) => void;
 		onDateClick?: (date: Date) => void;
+		onDateSelect?: (start: Date, end: Date, allDay: boolean) => void;
 		onEventDrop?: (eventId: string, newStart: Date, newEnd: Date) => void;
 		visibilityFilter?: 'all' | 'company' | 'department' | 'specific';
 	} = $props();
@@ -137,6 +139,11 @@
 				dateClick: (info) => {
 					if (canManageEvents && onDateClick) {
 						onDateClick(info.date);
+					}
+				},
+				select: (info) => {
+					if (canManageEvents && onDateSelect) {
+						onDateSelect(info.start, info.end, info.allDay);
 					}
 				},
 				eventDrop: (info) => {

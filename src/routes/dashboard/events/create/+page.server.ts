@@ -31,17 +31,23 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	}
 
 	try {
-		// Get date from URL parameter if provided (from calendar click)
-		const dateParam = url.searchParams.get('date');
+		// Get date/time parameters from URL (from calendar click or selection)
+		const startParam = url.searchParams.get('start');
+		const endParam = url.searchParams.get('end');
+		const dateParam = url.searchParams.get('date'); // Fallback for single click
+		const allDayParam = url.searchParams.get('allDay');
+
 		let defaultStartTime: string;
 		let defaultEndTime: string;
+		let defaultAllDay: boolean = allDayParam === 'true';
 
-		if (dateParam) {
-			// Use the date from the calendar click
-			// The calendar passes UTC time, but datetime-local expects local time
+		if (startParam && endParam) {
+			// Use start and end times from calendar selection (drag)
+			defaultStartTime = formatDateTimeLocal(new Date(startParam));
+			defaultEndTime = formatDateTimeLocal(new Date(endParam));
+		} else if (dateParam) {
+			// Use the single date from calendar click
 			const clickedDate = new Date(dateParam);
-
-			// Convert to local time format for datetime-local input
 			defaultStartTime = formatDateTimeLocal(clickedDate);
 
 			// Default end time is 1 hour after start
@@ -52,6 +58,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			// Use default times (next hour)
 			defaultStartTime = getDefaultStartTime();
 			defaultEndTime = getDefaultEndTime();
+			defaultAllDay = false;
 		}
 
 		// TODO: Fetch list of employees for attendee selection
@@ -67,7 +74,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			// departments: [],
 			minDate: new Date().toISOString().split('T')[0], // Today's date for date picker min
 			defaultStartTime,
-			defaultEndTime
+			defaultEndTime,
+			defaultAllDay
 		};
 	} catch (err: any) {
 		console.error('Error loading event creation page:', err);

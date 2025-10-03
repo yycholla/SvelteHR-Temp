@@ -297,6 +297,14 @@
 					// Navigate to create event page with pre-filled date (local time)
 					goto(`/dashboard/events/create?date=${formatLocalISO(date)}`);
 				}}
+				onDateSelect={(start, end, allDay) => {
+					// Navigate to create event page with pre-filled start and end times
+					const params = new URLSearchParams();
+					params.set('start', formatLocalISO(start));
+					params.set('end', formatLocalISO(end));
+					if (allDay) params.set('allDay', 'true');
+					goto(`/dashboard/events/create?${params.toString()}`);
+				}}
 				onEventDrop={(eventId, newStart, newEnd) => {
 					// Handle event drag-and-drop
 					console.log('Event dropped:', eventId, newStart, newEnd);

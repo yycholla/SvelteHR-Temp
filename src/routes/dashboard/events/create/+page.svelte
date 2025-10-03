@@ -14,7 +14,7 @@
 	let description = $state('');
 	let startTime = $state(data.defaultStartTime);
 	let endTime = $state(data.defaultEndTime);
-	let isAllDay = $state(false);
+	let isAllDay = $state(data.defaultAllDay || false);
 	let location = $state('');
 	let eventType = $state<EventType>('meeting');
 	let visibilityType = $state<EventVisibilityType>('company');
