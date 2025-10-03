@@ -31,6 +31,26 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	}
 
 	try {
+		// Get date from URL parameter if provided (from calendar click)
+		const dateParam = url.searchParams.get('date');
+		let defaultStartTime: string;
+		let defaultEndTime: string;
+
+		if (dateParam) {
+			// Use the date from the calendar click
+			const clickedDate = new Date(dateParam);
+			defaultStartTime = clickedDate.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:MM
+
+			// Default end time is 1 hour after start
+			const endDate = new Date(clickedDate);
+			endDate.setHours(endDate.getHours() + 1);
+			defaultEndTime = endDate.toISOString().slice(0, 16);
+		} else {
+			// Use default times (next hour)
+			defaultStartTime = getDefaultStartTime();
+			defaultEndTime = getDefaultEndTime();
+		}
+
 		// TODO: Fetch list of employees for attendee selection
 		// const urqlClient = createUrqlClient(token);
 		// const employees = await fetchEmployees(urqlClient);
@@ -38,14 +58,13 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		// TODO: Fetch list of departments for department-wide events
 		// const departments = await fetchDepartments(urqlClient);
 
-		// For now, return basic data
 		return {
 			user: locals.user,
 			// employees: [],
 			// departments: [],
 			minDate: new Date().toISOString().split('T')[0], // Today's date for date picker min
-			defaultStartTime: getDefaultStartTime(),
-			defaultEndTime: getDefaultEndTime()
+			defaultStartTime,
+			defaultEndTime
 		};
 	} catch (err: any) {
 		console.error('Error loading event creation page:', err);
