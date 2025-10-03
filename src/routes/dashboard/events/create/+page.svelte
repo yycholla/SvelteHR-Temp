@@ -108,7 +108,7 @@
 	<div class="mb-6">
 		<a
 			href="/dashboard/events"
-			class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900"
+			class="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
 		>
 			<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path
@@ -124,42 +124,42 @@
 
 	<!-- Page Header -->
 	<div class="mb-8">
-		<h1 class="text-3xl font-bold text-gray-900">Create Event</h1>
-		<p class="mt-2 text-gray-600">Create a new event for your team or company</p>
+		<h1 class="text-3xl font-bold text-foreground">Create Event</h1>
+		<p class="mt-2 text-muted-foreground">Create a new event for your team or company</p>
 	</div>
 
 	<!-- Event Creation Form -->
-	<form onsubmit={handleSubmit} class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+	<form onsubmit={handleSubmit} class="rounded-lg border bg-card p-6 shadow-sm">
 		<!-- Title -->
 		<div class="mb-6">
-			<label for="title" class="block text-sm font-medium text-gray-700 mb-2">
-				Event Title <span class="text-red-600">*</span>
+			<label for="title" class="block text-sm font-medium text-foreground mb-2">
+				Event Title <span class="text-destructive">*</span>
 			</label>
 			<input
 				type="text"
 				id="title"
 				bind:value={title}
 				required
-				class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 {errors.title
-					? 'border-red-500'
+				class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring {errors.title
+					? 'border-destructive'
 					: ''}"
 				placeholder="Enter event title"
 			/>
 			{#if errors.title}
-				<p class="mt-1 text-sm text-red-600">{errors.title}</p>
+				<p class="mt-1 text-sm text-destructive">{errors.title}</p>
 			{/if}
 		</div>
 
 		<!-- Description -->
 		<div class="mb-6">
-			<label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+			<label for="description" class="block text-sm font-medium text-foreground mb-2">
 				Description
 			</label>
 			<textarea
 				id="description"
 				bind:value={description}
 				rows="4"
-				class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+				class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
 				placeholder="Enter event description"
 			></textarea>
 		</div>
@@ -168,8 +168,8 @@
 		<div class="mb-6 grid gap-4 sm:grid-cols-2">
 			<!-- Start Time -->
 			<div>
-				<label for="startTime" class="block text-sm font-medium text-gray-700 mb-2">
-					Start Time <span class="text-red-600">*</span>
+				<label for="startTime" class="block text-sm font-medium text-foreground mb-2">
+					Start Time <span class="text-destructive">*</span>
 				</label>
 				<input
 					type="datetime-local"
@@ -177,19 +177,19 @@
 					bind:value={startTime}
 					required
 					min={data.minDate}
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 {errors.startTime
-						? 'border-red-500'
+					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring {errors.startTime
+						? 'border-destructive'
 						: ''}"
 				/>
 				{#if errors.startTime}
-					<p class="mt-1 text-sm text-red-600">{errors.startTime}</p>
+					<p class="mt-1 text-sm text-destructive">{errors.startTime}</p>
 				{/if}
 			</div>
 
 			<!-- End Time -->
 			<div>
-				<label for="endTime" class="block text-sm font-medium text-gray-700 mb-2">
-					End Time <span class="text-red-600">*</span>
+				<label for="endTime" class="block text-sm font-medium text-foreground mb-2">
+					End Time <span class="text-destructive">*</span>
 				</label>
 				<input
 					type="datetime-local"
@@ -197,39 +197,39 @@
 					bind:value={endTime}
 					required
 					min={startTime}
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 {errors.endTime
-						? 'border-red-500'
+					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring {errors.endTime
+						? 'border-destructive'
 						: ''}"
 				/>
 				{#if errors.endTime}
-					<p class="mt-1 text-sm text-red-600">{errors.endTime}</p>
+					<p class="mt-1 text-sm text-destructive">{errors.endTime}</p>
 				{/if}
 			</div>
 		</div>
 
 		<!-- All Day Checkbox -->
 		<div class="mb-6">
-			<label class="flex items-center">
+			<label class="flex items-center cursor-pointer">
 				<input
 					type="checkbox"
 					bind:checked={isAllDay}
 					onchange={handleAllDayToggle}
-					class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+					class="h-4 w-4 rounded border-input text-primary focus:ring-ring"
 				/>
-				<span class="ml-2 text-sm text-gray-700">All-day event</span>
+				<span class="ml-2 text-sm text-foreground">All-day event</span>
 			</label>
 		</div>
 
 		<!-- Location -->
 		<div class="mb-6">
-			<label for="location" class="block text-sm font-medium text-gray-700 mb-2">
+			<label for="location" class="block text-sm font-medium text-foreground mb-2">
 				Location
 			</label>
 			<input
 				type="text"
 				id="location"
 				bind:value={location}
-				class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+				class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
 				placeholder="Enter event location"
 			/>
 		</div>
@@ -238,14 +238,14 @@
 		<div class="mb-6 grid gap-4 sm:grid-cols-2">
 			<!-- Event Type -->
 			<div>
-				<label for="eventType" class="block text-sm font-medium text-gray-700 mb-2">
-					Event Type <span class="text-red-600">*</span>
+				<label for="eventType" class="block text-sm font-medium text-foreground mb-2">
+					Event Type <span class="text-destructive">*</span>
 				</label>
 				<select
 					id="eventType"
 					bind:value={eventType}
 					required
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
 				>
 					<option value="meeting">Meeting</option>
 					<option value="training">Training</option>
@@ -257,14 +257,14 @@
 
 			<!-- Visibility Type -->
 			<div>
-				<label for="visibilityType" class="block text-sm font-medium text-gray-700 mb-2">
-					Visibility <span class="text-red-600">*</span>
+				<label for="visibilityType" class="block text-sm font-medium text-foreground mb-2">
+					Visibility <span class="text-destructive">*</span>
 				</label>
 				<select
 					id="visibilityType"
 					bind:value={visibilityType}
 					required
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
 				>
 					<option value="company">Company-Wide</option>
 					<option value="department">Department Only</option>
@@ -275,9 +275,9 @@
 
 		<!-- Attendees Section (TODO) -->
 		<div class="mb-6">
-			<label class="block text-sm font-medium text-gray-700 mb-2">Attendees</label>
+			<label class="block text-sm font-medium text-foreground mb-2">Attendees</label>
 			<div
-				class="rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600"
+				class="rounded-md border bg-muted px-4 py-3 text-sm text-muted-foreground"
 			>
 				<p>
 					Attendee selection will be based on the visibility type:
@@ -291,22 +291,22 @@
 		</div>
 
 		<!-- Form Actions -->
-		<div class="flex items-center justify-end gap-4 border-t border-gray-200 pt-6">
+		<div class="flex items-center justify-end gap-4 border-t pt-6">
 			<a
 				href="/dashboard/events"
-				class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+				class="rounded-md border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
 			>
 				Cancel
 			</a>
 			<button
 				type="submit"
 				disabled={isSubmitting}
-				class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+				class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
 			>
 				{#if isSubmitting}
 					<span class="flex items-center">
 						<svg
-							class="animate-spin mr-2 h-4 w-4 text-white"
+							class="animate-spin mr-2 h-4 w-4"
 							xmlns="http://www.w3.org/2000/svg"
 							fill="none"
 							viewBox="0 0 24 24"
