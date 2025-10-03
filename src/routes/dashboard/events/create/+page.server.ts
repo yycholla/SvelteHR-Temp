@@ -2,9 +2,10 @@
 // Feature: 019-we-need-to - Task T033
 // Purpose: Load initial data for event creation form
 
-import type { PageServerLoad } from './$types';
-import { error, redirect } from '@sveltejs/kit';
+import type { PageServerLoad, Actions } from './$types';
+import { error, redirect, fail } from '@sveltejs/kit';
 import { createUrqlClient } from '$lib/graphql/client';
+import { EventsOperations } from '$lib/graphql/events-operations';
 
 export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	// Check authentication
@@ -138,3 +139,88 @@ function getDefaultEndTime(): string {
 	now.setSeconds(0);
 	return formatDateTimeLocal(now);
 }
+
+// Form actions
+export const actions: Actions = {
+	default: async ({ request, locals, cookies }) => {
+		// Check authentication
+		if (!locals.user) {
+			throw redirect(303, '/login');
+		}
+
+		const token = cookies.get('hr_token') || cookies.get('auth-token');
+		if (!token) {
+			throw redirect(303, '/login');
+		}
+
+		// Check permissions
+		const hasWildcardPermission = locals.permissions?.includes('*');
+		const roleLevel = getRoleLevel(locals.user.role);
+
+		if (!hasWildcardPermission && roleLevel < 60) {
+			return fail(403, { error: 'Access denied. Manager privileges required.' });
+		}
+
+		// Parse form data
+		const formData = await request.formData();
+		const title = formData.get('title') as string;
+		const description = formData.get('description') as string;
+		const startTime = formData.get('startTime') as string;
+		const endTime = formData.get('endTime') as string;
+		const isAllDay = formData.get('isAllDay') === 'on';
+		const location = formData.get('location') as string;
+		const eventType = formData.get('eventType') as string;
+		const isPublic = formData.get('visibilityType') === 'company';
+
+		// Validate required fields
+		if (!title || !startTime || !endTime) {
+			return fail(400, { error: 'Title, start time, and end time are required.' });
+		}
+
+		try {
+			const urqlClient = createUrqlClient(undefined, token);
+			const eventsOps = new EventsOperations(urqlClient);
+
+			const userCredentials = {
+				jwtToken: token,
+				userId: locals.user.id,
+				roles: locals.roles || [],
+				permissions: locals.permissions || [],
+				isAuthenticated: true,
+				expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+			};
+
+			// Create the event
+			const event = await eventsOps.createEvent({
+				input: {
+					event: {
+						title,
+						description,
+						eventType,
+						startTime: new Date(startTime).toISOString(),
+						endTime: new Date(endTime).toISOString(),
+						allDay: isAllDay,
+						location,
+						organizerId: locals.user.id,
+						isPublic,
+						status: 'scheduled'
+					}
+				},
+				userCredentials
+			});
+
+			// Redirect to events list on success
+			throw redirect(303, '/dashboard/events');
+		} catch (err: any) {
+			console.error('Error creating event:', err);
+
+			if (err.status === 303) {
+				throw err; // Re-throw redirect
+			}
+
+			return fail(500, {
+				error: err.userMessage || 'Failed to create event. Please try again.'
+			});
+		}
+	}
+};

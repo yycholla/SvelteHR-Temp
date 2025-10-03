@@ -181,7 +181,7 @@ const retryConfig = retryExchange({
 
 // Create the main GraphQL client
 export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string) => {
-	// Override auth token if provided (for testing/SSR)
+	// Override auth token if provided (for browser)
 	if (authToken && browser) {
 		setAuthState({ token: authToken });
 	}
@@ -222,11 +222,18 @@ export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string) => 
 		exchanges,
 		fetch: fetchFn,
 		fetchOptions: () => {
+			const headers: Record<string, string> = {
+				'Content-Type': 'application/json'
+			};
+
+			// For server-side requests, add auth token directly to headers
+			if (!browser && authToken) {
+				headers['Authorization'] = `Bearer ${authToken}`;
+			}
+
 			return {
 				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				}
+				headers
 			};
 		},
 		preferGetMethod: false

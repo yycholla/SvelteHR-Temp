@@ -40,7 +40,6 @@ export const load: PageServerLoad = async (event) => {
 				recentActivities: [],
 				upcomingEvents: [],
 				quickActions: [],
-				notifications: [],
 				preferences: {
 					selectedPeriod: url.searchParams.get('period') || 'week',
 					viewMode: url.searchParams.get('view') || 'overview',
@@ -275,7 +274,7 @@ export const load: PageServerLoad = async (event) => {
 		const rollbackRequestsQuery = `
 			query GetRollbackRequests {
 				allRollbackRequests(
-					orderBy: [CREATED_AT_DESC]
+					orderBy: [REQUESTED_AT_DESC]
 					first: 5
 				) {
 					totalCount
@@ -283,8 +282,8 @@ export const load: PageServerLoad = async (event) => {
 						id
 						status
 						reason
-						createdAt
-						userByRequesterId {
+						requestedAt
+						userByRequestedBy {
 							id
 							firstName
 							lastName
@@ -451,7 +450,6 @@ export const load: PageServerLoad = async (event) => {
 		const recentActivities = generateRecentActivitiesFromLogs(activityLogs, leaveRequests, attendanceRecords, goals, tasks, events, 10);
 		const upcomingEvents = generateUpcomingEventsFromDatabase(events, 5);
 		const quickActions = generateQuickActions(userRole, users);
-		const notifications = generateNotifications(userRole, 3); // Still mock for now
 		const dataGenDuration = Date.now() - startDataGeneration;
 		console.log(`📊 Dashboard: Data generation completed in ${dataGenDuration}ms`);
 
@@ -536,7 +534,6 @@ export const load: PageServerLoad = async (event) => {
 			recentActivities,
 			upcomingEvents,
 			quickActions,
-			notifications,
 			...roleSpecificData,
 			// Feature 020: Audit logging widgets (admin/super_admin only)
 			systemAuditLogs: isAdmin ? systemAuditLogs.map(log => ({
@@ -552,13 +549,13 @@ export const load: PageServerLoad = async (event) => {
 			})) : [],
 			rollbackRequests: isSuperAdmin ? rollbackRequests.map(req => ({
 				id: req.id,
-				requesterName: req.userByRequesterId
-					? `${req.userByRequesterId.firstName} ${req.userByRequesterId.lastName}`
+				requesterName: req.userByRequestedBy
+					? `${req.userByRequestedBy.firstName} ${req.userByRequestedBy.lastName}`
 					: 'Unknown',
 				reason: req.reason || '',
 				resourceType: req.activityLogByActivityLogId?.resourceType || 'unknown',
 				status: req.status,
-				createdAt: req.createdAt
+				createdAt: req.requestedAt
 			})) : [],
 			rollbackStats: isSuperAdmin ? rollbackStats : null,
 			preferences: {
@@ -602,7 +599,6 @@ export const load: PageServerLoad = async (event) => {
 			recentActivities: [],
 			upcomingEvents: [],
 			quickActions: [],
-			notifications: [],
 			preferences: {
 				selectedPeriod,
 				viewMode,
@@ -1007,30 +1003,3 @@ function generateQuickActions(role: string, users: any[]) {
 	return baseActions;
 }
 
-// Helper function to generate notifications
-function generateNotifications(role: string, limit: number) {
-	const notifications = [];
-
-	const notificationTypes = role === 'admin'
-		? ['system', 'approval', 'alert', 'info']
-		: role === 'manager'
-		? ['approval', 'team', 'deadline', 'info']
-		: ['personal', 'reminder', 'update', 'info'];
-
-	for (let i = 0; i < limit; i++) {
-		const type = notificationTypes[Math.floor(Math.random() * notificationTypes.length)];
-		const isRead = Math.random() > 0.3; // 70% read, 30% unread
-
-		notifications.push({
-			id: `notification-${i + 1}`,
-			type,
-			title: `Notification ${i + 1}`,
-			message: `Sample ${type} notification message`,
-			isRead,
-			createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-			priority: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)]
-		});
-	}
-
-	return notifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-}

@@ -137,6 +137,7 @@ get_migration_files() {
         "20251002_002_create_rollback_requests.sql"
         "20251002_003_create_bulk_rollback_batches.sql"
         "20251002_004_comprehensive_audit_logging.sql"
+        "20251003_001_execute_rollback_function.sql"
     )
 
     # Seed data (always last)

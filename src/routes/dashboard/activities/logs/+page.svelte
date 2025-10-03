@@ -37,29 +37,8 @@
 	let isRefreshing = $state(false);
 	let isExporting = $state(false);
 
-	// Convert server data to ActivityLog format
-	const activities = $derived(
-		data.logs.map((log: any) => ({
-			id: log.id,
-			employeeId: log.employee_id,
-			action: log.action,
-			resourceType: log.resource_type,
-			resourceId: log.resource_id,
-			beforeSnapshot: log.before_snapshot,
-			afterSnapshot: log.after_snapshot,
-			isRollback: log.is_rollback,
-			rolledBackLogId: log.rolled_back_log_id,
-			createdAt: log.created_at,
-			ipAddress: log.ip_address,
-			userAgent: log.user_agent,
-			employee: log.employee_name
-				? {
-						displayName: log.employee_name,
-						department: log.department_name ? { name: log.department_name } : null
-					}
-				: null
-		}))
-	);
+	// Server already returns data in the correct ActivityLog format
+	const activities = $derived(data.logs);
 
 	async function handleFilterChange(filters: any) {
 		// Build query string from filters

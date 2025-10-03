@@ -80,4 +80,45 @@
 	body {
 		@apply bg-background text-foreground;
 	}
+
+	/* Minimal scrollbar styling for light and dark modes */
+	::-webkit-scrollbar {
+		width: 8px;
+		height: 8px;
+	}
+
+	::-webkit-scrollbar-track {
+		@apply bg-transparent;
+	}
+
+	::-webkit-scrollbar-thumb {
+		@apply bg-muted-foreground/20 rounded-full;
+	}
+
+	::-webkit-scrollbar-thumb:hover {
+		@apply bg-muted-foreground/30;
+	}
+
+	/* Remove scrollbar arrow buttons */
+	::-webkit-scrollbar-button {
+		display: none;
+	}
+
+	/* Firefox scrollbar */
+	* {
+		scrollbar-width: thin;
+		scrollbar-color: hsl(var(--muted-foreground) / 0.2) transparent;
+	}
+
+	.dark ::-webkit-scrollbar-thumb {
+		@apply bg-muted-foreground/30;
+	}
+
+	.dark ::-webkit-scrollbar-thumb:hover {
+		@apply bg-muted-foreground/40;
+	}
+
+	.dark * {
+		scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+	}
 }

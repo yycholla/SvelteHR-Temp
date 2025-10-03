@@ -75,61 +75,141 @@ export const load: PageServerLoad = async (event) => {
 			throw error(404, 'User not found');
 		}
 
-		// TODO: Load actual leave requests from database
-		// For now, generate sample data
-		const leaveTypes = [
-			{ id: '1', name: 'Vacation', code: 'VAC', color: 'blue' },
-			{ id: '2', name: 'Sick Leave', code: 'SICK', color: 'red' },
-			{ id: '3', name: 'Personal', code: 'PERS', color: 'green' },
-			{ id: '4', name: 'Bereavement', code: 'BER', color: 'gray' },
-			{ id: '5', name: 'Maternity/Paternity', code: 'MAT', color: 'purple' }
-		];
+		// Load leave requests from database
+		const leaveRequestsQuery = `
+			query GetUserLeaveRequests($employeeId: UUID!) {
+				allLeaveRequests(
+					condition: { employeeId: $employeeId }
+					orderBy: [CREATED_AT_DESC]
+				) {
+					nodes {
+						id
+						employeeId
+						managerId
+						leaveType
+						startDate
+						endDate
+						daysRequested
+						status
+						reason
+						managerComments
+						createdAt
+						updatedAt
+						userByManagerId {
+							id
+							firstName
+							lastName
+						}
+					}
+				}
+			}
+		`;
 
-		const currentDate = new Date();
-		const leaveRequests = Array.from({ length: 12 }, (_, i) => {
-			const startDate = new Date(currentDate);
-			startDate.setDate(startDate.getDate() + (i * 15) - 90); // Spread over past and future
+		const leaveRequestsData = await graphqlClient.query(leaveRequestsQuery, { employeeId: userId });
+		const leaveRequests = leaveRequestsData.data?.allLeaveRequests?.nodes || [];
 
-			const endDate = new Date(startDate);
-			endDate.setDate(endDate.getDate() + Math.floor(Math.random() * 5) + 1);
+		// Load time off balances
+		const currentYear = new Date().getFullYear();
+		const timeOffBalancesQuery = `
+			query GetUserTimeOffBalances($employeeId: UUID!, $year: Int!) {
+				allTimeOffBalances(
+					condition: { employeeId: $employeeId, year: $year }
+				) {
+					nodes {
+						id
+						employeeId
+						policyId
+						balanceDays
+						usedDays
+						year
+						timeOffPolicyByPolicyId {
+							id
+							policyName
+							policyType
+						}
+					}
+				}
+			}
+		`;
 
-			const leaveType = leaveTypes[Math.floor(Math.random() * leaveTypes.length)];
-			const statuses = ['pending', 'approved', 'rejected', 'cancelled'];
-			const status = i < 8 ? statuses[Math.floor(Math.random() * statuses.length)] : 'pending';
+		const balancesData = await graphqlClient.query(timeOffBalancesQuery, {
+			employeeId: userId,
+			year: currentYear
+		});
+		const timeOffBalances = balancesData.data?.allTimeOffBalances?.nodes || [];
+
+		// Load all time off policies for the leave types dropdown
+		const policiesQuery = `
+			query GetTimeOffPolicies {
+				allTimeOffPolicies {
+					nodes {
+						id
+						policyName
+						policyType
+					}
+				}
+			}
+		`;
+
+		const policiesData = await graphqlClient.query(policiesQuery);
+		const leaveTypes = policiesData.data?.allTimeOffPolicies?.nodes || [];
+
+		// Calculate leave balances with pending requests
+		const leaveBalances = timeOffBalances.map(balance => {
+			const pending = leaveRequests
+				.filter(req =>
+					req.status === 'pending' &&
+					balance.timeOffPolicyByPolicyId?.policyType === req.leaveType
+				)
+				.reduce((sum, req) => sum + (req.daysRequested || 0), 0);
 
 			return {
-				id: `leave-${i}`,
-				startDate: startDate.toISOString().split('T')[0],
-				endDate: endDate.toISOString().split('T')[0],
-				leaveType,
-				reason: `${leaveType.name} request - ${i % 3 === 0 ? 'Family vacation' : i % 3 === 1 ? 'Medical appointment' : 'Personal matter'}`,
-				status,
-				requestedAt: new Date(startDate.getTime() - (7 * 24 * 60 * 60 * 1000)).toISOString(), // 7 days before start
-				approvedBy: status === 'approved' ? user.departmentByDepartmentId?.userByManagerId : null,
-				comments: status === 'rejected' ? 'Unable to approve due to staffing requirements' : null,
-				totalDays: Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+				leaveType: {
+					id: balance.timeOffPolicyByPolicyId?.id || balance.policyId,
+					name: balance.timeOffPolicyByPolicyId?.policyName || 'Unknown',
+					code: balance.timeOffPolicyByPolicyId?.policyType || 'UNKNOWN',
+					color: getLeaveTypeColor(balance.timeOffPolicyByPolicyId?.policyType || '')
+				},
+				allocated: balance.balanceDays || 0,
+				used: balance.usedDays || 0,
+				pending,
+				remaining: (balance.balanceDays || 0) - (balance.usedDays || 0) - pending
 			};
 		});
 
-		// Calculate leave balances (sample data)
-		const leaveBalances = leaveTypes.map(type => ({
-			leaveType: type,
-			allocated: type.code === 'VAC' ? 25 : type.code === 'SICK' ? 10 : 5,
-			used: leaveRequests.filter(req => req.leaveType.id === type.id && req.status === 'approved')
-				.reduce((sum, req) => sum + req.totalDays, 0),
-			pending: leaveRequests.filter(req => req.leaveType.id === type.id && req.status === 'pending')
-				.reduce((sum, req) => sum + req.totalDays, 0)
-		})).map(balance => ({
-			...balance,
-			remaining: balance.allocated - balance.used - balance.pending
+		// Map leave requests to match the expected format
+		const formattedLeaveRequests = leaveRequests.map(req => ({
+			id: req.id,
+			startDate: req.startDate,
+			endDate: req.endDate,
+			leaveType: {
+				id: req.leaveType,
+				name: getLeaveTypeName(req.leaveType),
+				code: req.leaveType,
+				color: getLeaveTypeColor(req.leaveType)
+			},
+			reason: req.reason || '',
+			status: req.status,
+			requestedAt: req.createdAt,
+			approvedBy: req.userByManagerId ? {
+				id: req.userByManagerId.id,
+				name: `${req.userByManagerId.firstName} ${req.userByManagerId.lastName}`
+			} : null,
+			comments: req.managerComments,
+			totalDays: req.daysRequested || 0
 		}));
 
 		return {
 			user,
 			userId,
-			leaveRequests: leaveRequests.sort((a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()),
+			leaveRequests: formattedLeaveRequests,
 			leaveBalances,
-			leaveTypes,
+			leaveTypes: leaveTypes.map(type => ({
+				id: type.id,
+				name: type.policyName,
+				code: type.policyType,
+				color: getLeaveTypeColor(type.policyType)
+			})),
 			canManageLeave: canViewOthers,
 			isOwnLeave: locals.user?.id === userId,
 			permissions: locals.permissions || [],
@@ -158,3 +238,31 @@ export const load: PageServerLoad = async (event) => {
 		};
 	}
 };
+
+// Helper function to get leave type color based on type code
+function getLeaveTypeColor(typeCode: string): string {
+	const colorMap: Record<string, string> = {
+		vacation: 'blue',
+		sick: 'red',
+		personal: 'green',
+		bereavement: 'gray',
+		maternity: 'purple',
+		paternity: 'purple',
+		unpaid: 'orange'
+	};
+	return colorMap[typeCode.toLowerCase()] || 'blue';
+}
+
+// Helper function to get human-readable leave type name
+function getLeaveTypeName(typeCode: string): string {
+	const nameMap: Record<string, string> = {
+		vacation: 'Vacation',
+		sick: 'Sick Leave',
+		personal: 'Personal',
+		bereavement: 'Bereavement',
+		maternity: 'Maternity Leave',
+		paternity: 'Paternity Leave',
+		unpaid: 'Unpaid Leave'
+	};
+	return nameMap[typeCode.toLowerCase()] || typeCode;
+}

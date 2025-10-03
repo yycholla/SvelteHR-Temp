@@ -157,6 +157,8 @@
 					resourceType={data.log.resource_type}
 					action={data.log.action}
 					canDirectRollback={data.canRollback}
+					canRequestRollback={data.canRequestRollback}
+					isRollback={data.log.is_rollback}
 					onSuccess={handleRollbackSuccess}
 					onError={handleRollbackError}
 				/>
@@ -331,47 +333,50 @@
 				</Card.Description>
 			</Card.Header>
 			<Card.Content>
-				<div class="space-y-3">
-					{#each data.fieldChanges as change}
-						{@const ChangeIcon = getChangeIcon(change.changeType)}
-						<div class="rounded-lg border p-4">
-							<div class="flex items-start gap-3">
-								<ChangeIcon class={`h-5 w-5 mt-0.5 ${getChangeColor(change.changeType)}`} />
-								<div class="flex-1 space-y-2">
-									<div class="flex items-center justify-between">
-										<span class="font-medium">{change.field}</span>
+				<div class="overflow-x-auto">
+					<table class="w-full text-sm">
+						<thead class="border-b">
+							<tr class="text-left">
+								<th class="pb-2 font-medium">Field</th>
+								<th class="pb-2 font-medium">Before</th>
+								<th class="pb-2 font-medium px-2 text-center">→</th>
+								<th class="pb-2 font-medium">After</th>
+								<th class="pb-2 font-medium text-right">Type</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y">
+							{#each data.fieldChanges as change}
+								{@const ChangeIcon = getChangeIcon(change.changeType)}
+								<tr class="hover:bg-muted/50">
+									<td class="py-2 font-medium">{change.field}</td>
+									<td class="py-2 max-w-xs">
+										<code
+											class="text-xs text-red-600 dark:text-red-400 truncate block"
+											title={formatValue(change.beforeValue)}
+										>
+											{formatValue(change.beforeValue)}
+										</code>
+									</td>
+									<td class="py-2 px-2 text-center">
+										<ChangeIcon class={`h-4 w-4 inline ${getChangeColor(change.changeType)}`} />
+									</td>
+									<td class="py-2 max-w-xs">
+										<code
+											class="text-xs text-green-600 dark:text-green-400 truncate block"
+											title={formatValue(change.afterValue)}
+										>
+											{formatValue(change.afterValue)}
+										</code>
+									</td>
+									<td class="py-2 text-right">
 										<Badge variant="outline" class="text-xs">
 											{change.changeType}
 										</Badge>
-									</div>
-
-									<div class="grid grid-cols-1 gap-2 md:grid-cols-2">
-										<!-- Before Value -->
-										<div class="rounded bg-red-50 dark:bg-red-950/20 p-3">
-											<p class="text-xs font-medium text-red-900 dark:text-red-100 mb-1">
-												Before
-											</p>
-											<pre
-												class="text-xs text-red-700 dark:text-red-300 overflow-x-auto">{formatValue(
-													change.beforeValue
-												)}</pre>
-										</div>
-
-										<!-- After Value -->
-										<div class="rounded bg-green-50 dark:bg-green-950/20 p-3">
-											<p class="text-xs font-medium text-green-900 dark:text-green-100 mb-1">
-												After
-											</p>
-											<pre
-												class="text-xs text-green-700 dark:text-green-300 overflow-x-auto">{formatValue(
-													change.afterValue
-												)}</pre>
-										</div>
-									</div>
-								</div>
-							</div>
-						</div>
-					{/each}
+									</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
 				</div>
 			</Card.Content>
 		</Card.Root>

@@ -3,85 +3,16 @@
 	// Feature: 019-we-need-to - Task T033
 	// Purpose: Form for creating new events
 
-	import type { PageData } from './$types';
-	import { goto } from '$app/navigation';
+	import type { PageData, ActionData } from './$types';
 	import type { EventType, EventVisibilityType } from '$lib/graphql/types';
+	import { enhance } from '$app/forms';
 
-	let { data }: { data: PageData } = $props();
+	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	// Form state
-	let title = $state('');
-	let description = $state('');
 	let startTime = $state(data.defaultStartTime);
 	let endTime = $state(data.defaultEndTime);
 	let isAllDay = $state(data.defaultAllDay || false);
-	let location = $state('');
-	let eventType = $state<EventType>('meeting');
-	let visibilityType = $state<EventVisibilityType>('company');
-	let isSubmitting = $state(false);
-	let errors = $state<Record<string, string>>({});
-
-	// Form validation
-	function validateForm(): boolean {
-		const newErrors: Record<string, string> = {};
-
-		if (!title.trim()) {
-			newErrors.title = 'Title is required';
-		}
-
-		if (!startTime) {
-			newErrors.startTime = 'Start time is required';
-		}
-
-		if (!endTime) {
-			newErrors.endTime = 'End time is required';
-		}
-
-		if (startTime && endTime && new Date(startTime) >= new Date(endTime)) {
-			newErrors.endTime = 'End time must be after start time';
-		}
-
-		errors = newErrors;
-		return Object.keys(newErrors).length === 0;
-	}
-
-	// Handle form submission
-	async function handleSubmit(event: Event) {
-		event.preventDefault();
-
-		if (!validateForm()) {
-			return;
-		}
-
-		isSubmitting = true;
-
-		try {
-			// TODO: Implement create event mutation
-			// const input = {
-			//   title,
-			//   description,
-			//   startTime,
-			//   endTime,
-			//   isAllDay,
-			//   location,
-			//   eventType,
-			//   visibilityType,
-			//   organizerId: data.user.id
-			// };
-			// await createEvent(input);
-
-			// Simulate API call
-			await new Promise((resolve) => setTimeout(resolve, 1000));
-
-			// Navigate to events list on success
-			goto('/dashboard/events');
-		} catch (error) {
-			console.error('Failed to create event:', error);
-			alert('Failed to create event. Please try again.');
-		} finally {
-			isSubmitting = false;
-		}
-	}
 
 	// Handle all-day toggle
 	function handleAllDayToggle() {
@@ -129,7 +60,12 @@
 	</div>
 
 	<!-- Event Creation Form -->
-	<form onsubmit={handleSubmit} class="rounded-lg border bg-card p-6 shadow-sm">
+	<form method="POST" use:enhance class="rounded-lg border bg-card p-6 shadow-sm">
+		{#if form?.error}
+			<div class="mb-6 rounded-md bg-destructive/10 border border-destructive px-4 py-3 text-sm text-destructive">
+				{form.error}
+			</div>
+		{/if}
 		<!-- Title -->
 		<div class="mb-6">
 			<label for="title" class="block text-sm font-medium text-foreground mb-2">
@@ -138,16 +74,11 @@
 			<input
 				type="text"
 				id="title"
-				bind:value={title}
+				name="title"
 				required
-				class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring {errors.title
-					? 'border-destructive'
-					: ''}"
+				class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
 				placeholder="Enter event title"
 			/>
-			{#if errors.title}
-				<p class="mt-1 text-sm text-destructive">{errors.title}</p>
-			{/if}
 		</div>
 
 		<!-- Description -->
@@ -157,7 +88,7 @@
 			</label>
 			<textarea
 				id="description"
-				bind:value={description}
+				name="description"
 				rows="4"
 				class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
 				placeholder="Enter event description"
@@ -174,16 +105,12 @@
 				<input
 					type="datetime-local"
 					id="startTime"
+					name="startTime"
 					bind:value={startTime}
 					required
 					min={data.minDate}
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring {errors.startTime
-						? 'border-destructive'
-						: ''}"
+					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
 				/>
-				{#if errors.startTime}
-					<p class="mt-1 text-sm text-destructive">{errors.startTime}</p>
-				{/if}
 			</div>
 
 			<!-- End Time -->
@@ -194,16 +121,12 @@
 				<input
 					type="datetime-local"
 					id="endTime"
+					name="endTime"
 					bind:value={endTime}
 					required
 					min={startTime}
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring {errors.endTime
-						? 'border-destructive'
-						: ''}"
+					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
 				/>
-				{#if errors.endTime}
-					<p class="mt-1 text-sm text-destructive">{errors.endTime}</p>
-				{/if}
 			</div>
 		</div>
 
@@ -212,6 +135,7 @@
 			<label class="flex items-center cursor-pointer">
 				<input
 					type="checkbox"
+					name="isAllDay"
 					bind:checked={isAllDay}
 					onchange={handleAllDayToggle}
 					class="h-4 w-4 rounded border-input text-primary focus:ring-ring"
@@ -228,7 +152,7 @@
 			<input
 				type="text"
 				id="location"
-				bind:value={location}
+				name="location"
 				class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
 				placeholder="Enter event location"
 			/>
@@ -243,7 +167,7 @@
 				</label>
 				<select
 					id="eventType"
-					bind:value={eventType}
+					name="eventType"
 					required
 					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
 				>
@@ -262,7 +186,7 @@
 				</label>
 				<select
 					id="visibilityType"
-					bind:value={visibilityType}
+					name="visibilityType"
 					required
 					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
 				>
@@ -300,36 +224,9 @@
 			</a>
 			<button
 				type="submit"
-				disabled={isSubmitting}
 				class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
 			>
-				{#if isSubmitting}
-					<span class="flex items-center">
-						<svg
-							class="animate-spin mr-2 h-4 w-4"
-							xmlns="http://www.w3.org/2000/svg"
-							fill="none"
-							viewBox="0 0 24 24"
-						>
-							<circle
-								class="opacity-25"
-								cx="12"
-								cy="12"
-								r="10"
-								stroke="currentColor"
-								stroke-width="4"
-							></circle>
-							<path
-								class="opacity-75"
-								fill="currentColor"
-								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-							></path>
-						</svg>
-						Creating...
-					</span>
-				{:else}
-					Create Event
-				{/if}
+				Create Event
 			</button>
 		</div>
 	</form>

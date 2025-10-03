@@ -25,6 +25,7 @@ export const GET_ALL_EVENTS = gql`
 		allEvents(first: $first, offset: $offset, orderBy: $orderBy, condition: $condition) {
 			nodes {
 				id
+				nodeId
 				title
 				description
 				eventType
@@ -33,11 +34,23 @@ export const GET_ALL_EVENTS = gql`
 				allDay
 				location
 				organizerId
+				userByOrganizerId {
+					id
+					displayName
+					email
+				}
 				status
 				color
 				isPublic
 				createdAt
 				updatedAt
+				eventAttendeesByEventId {
+					nodes {
+						id
+						employeeId
+						responseStatus
+					}
+				}
 			}
 			totalCount
 			pageInfo {
@@ -58,6 +71,7 @@ export const GET_EVENT_BY_ID = gql`
 	query GetEventById($id: UUID!) {
 		eventById(id: $id) {
 			id
+			nodeId
 			title
 			description
 			eventType
@@ -66,6 +80,11 @@ export const GET_EVENT_BY_ID = gql`
 			allDay
 			location
 			organizerId
+			userByOrganizerId {
+				id
+				displayName
+				email
+			}
 			status
 			color
 			isPublic
@@ -78,6 +97,11 @@ export const GET_EVENT_BY_ID = gql`
 					responseStatus
 					isRequired
 					createdAt
+					userByEmployeeId {
+						id
+						displayName
+						email
+					}
 				}
 			}
 		}
@@ -101,6 +125,7 @@ export const GET_USER_EVENTS = gql`
 		) {
 			nodes {
 				id
+				nodeId
 				title
 				description
 				eventType
@@ -137,6 +162,7 @@ export const GET_UPCOMING_EVENTS = gql`
 		) {
 			nodes {
 				id
+				nodeId
 				title
 				startTime
 				endTime
@@ -164,18 +190,17 @@ export const CREATE_EVENT = gql`
 				id
 				title
 				description
-				type
-				startDate
-				endDate
+				eventType
+				startTime
+				endTime
 				allDay
 				location
 				organizerId
-				departmentId
-				visibilityType
+				isPublic
 				status
 				color
-				reminderMinutes
 				createdAt
+				updatedAt
 			}
 			clientMutationId
 		}
@@ -193,16 +218,14 @@ export const UPDATE_EVENT = gql`
 				id
 				title
 				description
-				type
-				startDate
-				endDate
+				eventType
+				startTime
+				endTime
 				allDay
 				location
-				visibilityType
+				isPublic
 				status
 				color
-				reminderMinutes
-				notes
 				updatedAt
 			}
 			clientMutationId
@@ -301,18 +324,15 @@ export interface CreateEventInput {
 	event: {
 		title: string;
 		description?: string;
-		type: string;
-		startDate: string;
-		endDate: string;
+		eventType: string;
+		startTime: string;
+		endTime: string;
 		allDay?: boolean;
 		location?: string;
 		organizerId: string;
-		departmentId?: string;
-		visibilityType: EventVisibilityType;
+		isPublic?: boolean;
 		status?: EventStatus;
 		color?: string;
-		reminderMinutes?: number;
-		notes?: string;
 	};
 }
 
@@ -322,22 +342,20 @@ export interface UpdateEventInput {
 	patch: {
 		title?: string;
 		description?: string;
-		type?: string;
-		startDate?: string;
-		endDate?: string;
+		eventType?: string;
+		startTime?: string;
+		endTime?: string;
 		allDay?: boolean;
 		location?: string;
-		visibilityType?: EventVisibilityType;
+		isPublic?: boolean;
 		status?: EventStatus;
 		color?: string;
-		reminderMinutes?: number;
-		notes?: string;
 	};
 }
 
 export interface DeleteEventInput {
 	clientMutationId?: string;
-	id: string;
+	nodeId: string;
 }
 
 export interface UpdateEventAttendeeInput {
@@ -362,33 +380,31 @@ export interface CreateEventAttendeeInput {
 
 export interface Event {
 	id: string;
+	nodeId: string;
 	title: string;
 	description?: string;
-	type: string;
-	startDate: string;
-	endDate: string;
+	eventType: string;
+	startTime: string;
+	endTime: string;
 	allDay: boolean;
 	location?: string;
 	organizerId: string;
-	organizer: {
+	userByOrganizerId?: {
 		id: string;
 		displayName: string;
 		email: string;
 	};
-	departmentId?: string;
-	department?: {
-		id: string;
-		name: string;
-	};
-	visibilityType: EventVisibilityType;
+	isPublic: boolean;
 	status: EventStatus;
-	color: string;
-	reminderMinutes: number;
-	notes?: string;
+	color?: string;
 	createdAt: string;
 	updatedAt: string;
-	eventAttendees?: {
-		nodes: EventAttendee[];
+	eventAttendeesByEventId?: {
+		nodes: Array<{
+			id: string;
+			employeeId: string;
+			responseStatus: string;
+		}>;
 	};
 }
 
@@ -480,8 +496,8 @@ export function buildEventFilter({
 export function validateEventInput(input: {
 	title: string;
 	description?: string;
-	startDate: string;
-	endDate: string;
+	startTime: string;
+	endTime: string;
 	location?: string;
 }): { valid: boolean; errors: string[] } {
 	const errors: string[] = [];
@@ -498,11 +514,11 @@ export function validateEventInput(input: {
 		errors.push('Description must be less than 2000 characters');
 	}
 
-	const startDate = new Date(input.startDate);
-	const endDate = new Date(input.endDate);
+	const startTime = new Date(input.startTime);
+	const endTime = new Date(input.endTime);
 
-	if (endDate < startDate) {
-		errors.push('End date must be after start date');
+	if (endTime < startTime) {
+		errors.push('End time must be after start time');
 	}
 
 	return {
@@ -515,17 +531,17 @@ export function validateEventInput(input: {
  * Helper: Check if event is upcoming
  */
 export function isEventUpcoming(event: Event): boolean {
-	const startDate = new Date(event.startDate);
+	const startTime = new Date(event.startTime);
 	const now = new Date();
-	return startDate > now && event.status === 'scheduled';
+	return startTime > now && event.status === 'scheduled';
 }
 
 /**
  * Helper: Calculate event duration
  */
-export function calculateEventDuration(startDate: string, endDate: string): string {
-	const start = new Date(startDate);
-	const end = new Date(endDate);
+export function calculateEventDuration(startTime: string, endTime: string): string {
+	const start = new Date(startTime);
+	const end = new Date(endTime);
 	const diffMs = end.getTime() - start.getTime();
 	const diffMins = Math.floor(diffMs / (1000 * 60));
 	const diffHours = Math.floor(diffMins / 60);
@@ -673,15 +689,15 @@ export class EventsOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data) {
+			if (!result.data || !result.data.eventById) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
-					userMessage: 'No data returned. Please try again.'
+					userMessage: 'Event not found. Please try again.'
 				});
 			}
 
-			// Extract return data from result.data
-			return result.data;
+			// Extract return data from result.data.eventById
+			return result.data.eventById;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error; // Already formatted error
@@ -836,8 +852,8 @@ export class EventsOperations {
 		});
 
 		try {
-			// Server-side query using toPromise()
-			const result = await this.client.query(CREATE_EVENT, dataRequest.variables).toPromise();
+			// Server-side mutation using toPromise()
+			const result = await this.client.mutation(CREATE_EVENT, dataRequest.variables).toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -885,8 +901,8 @@ export class EventsOperations {
 		});
 
 		try {
-			// Server-side query using toPromise()
-			const result = await this.client.query(UPDATE_EVENT, dataRequest.variables).toPromise();
+			// Server-side mutation using toPromise()
+			const result = await this.client.mutation(UPDATE_EVENT, dataRequest.variables).toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -920,14 +936,14 @@ export class EventsOperations {
 	 * Delete event (organizer or admin)
 	 */
 	async deleteEvent(params: {
-		eventId: string;
+		nodeId: string;
 		userCredentials: UserCredentials;
 	}): Promise<string> {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		const input: DeleteEventInput = {
-			id: params.eventId
+			nodeId: params.nodeId
 		};
 
 		const dataRequest = createDataRequest({
@@ -938,8 +954,8 @@ export class EventsOperations {
 		});
 
 		try {
-			// Server-side query using toPromise()
-			const result = await this.client.query(DELETE_EVENT, dataRequest.variables).toPromise();
+			// Server-side mutation using toPromise()
+			const result = await this.client.mutation(DELETE_EVENT, dataRequest.variables).toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -996,8 +1012,8 @@ export class EventsOperations {
 		});
 
 		try {
-			// Server-side query using toPromise()
-			const result = await this.client.query(UPDATE_RSVP_STATUS, dataRequest.variables).toPromise();
+			// Server-side mutation using toPromise()
+			const result = await this.client.mutation(UPDATE_RSVP_STATUS, dataRequest.variables).toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -1061,8 +1077,8 @@ export class EventsOperations {
 			});
 
 			try {
-				// Server-side query using toPromise()
-				const result = await this.client.query(INVITE_ATTENDEES, dataRequest.variables).toPromise();
+				// Server-side mutation using toPromise()
+				const result = await this.client.mutation(INVITE_ATTENDEES, dataRequest.variables).toPromise();
 
 				if (result.error) {
 					const errorResponse = createErrorResponse(result.error, {

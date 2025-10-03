@@ -10,7 +10,12 @@ import type { RequestHandler } from './$types';
  * - Implements security headers and validation
  */
 
-const POSTGRAPHILE_URL = 'http://localhost:4001/graphql';
+import { env } from '$env/dynamic/private';
+
+const POSTGRAPHILE_URL =
+	env.POSTGRAPHILE_URL ||
+	env.GRAPHQL_URL ||
+	'http://sveltehr-backend-dev:4000/graphql';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
 	try {
@@ -27,7 +32,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		}
 
 		// Get JWT token from httpOnly cookie (more secure than localStorage)
-		const token = cookies.get('jwt-token');
+		const token = cookies.get('hr_token') || cookies.get('auth-token') || cookies.get('jwt-token');
 
 		// Prepare headers for PostGraphile request
 		const headers: Record<string, string> = {

@@ -2,17 +2,32 @@
 	import HrAppSidebar from '$lib/components/hr-app-sidebar.svelte';
 	import PageLoading from '$lib/components/ui/page-loading.svelte';
 	import { isAuthenticated } from '$lib/stores/auth';
+	import { notificationStore } from '$lib/stores/notifications';
 	import { goto } from '$app/navigation';
 	import { navigating } from '$app/stores';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
+	import type { LayoutData } from './$types';
 
-	let { children } = $props();
+	let { children, data }: { children: any; data: LayoutData } = $props();
 
 	// Redirect to login if not authenticated - runs only on client
 	onMount(() => {
 		if (!$isAuthenticated) {
 			goto('/login');
+		} else {
+			// Initialize notifications with server data
+			if (data.notifications) {
+				notificationStore.setNotifications(data.notifications);
+			}
+
+			// Connect to real-time notification stream
+			notificationStore.connect();
 		}
+	});
+
+	// Cleanup on unmount
+	onDestroy(() => {
+		notificationStore.disconnect();
 	});
 
 	// Show loading state during navigation

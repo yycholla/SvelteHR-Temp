@@ -71,8 +71,8 @@
 	let calendarEvents = $derived(() => {
 		return filteredEvents().map((event: any) => {
 			// Get user's RSVP status
-			const userAttendee = event.attendees?.find((a: any) => a.employeeId === userId);
-			const rsvpStatus = userAttendee?.rsvpStatus || 'no_response';
+			const userAttendee = event.eventAttendeesByEventId?.nodes?.find((a: any) => a.employeeId === userId);
+			const rsvpStatus = userAttendee?.responseStatus || 'no_response';
 
 			// Color based on RSVP status
 			const colorMap: Record<string, string> = {
@@ -88,7 +88,7 @@
 				title: event.title,
 				start: event.startTime,
 				end: event.endTime,
-				allDay: event.isAllDay,
+				allDay: event.allDay,
 				backgroundColor: colorMap[rsvpStatus],
 				borderColor: colorMap[rsvpStatus],
 				extendedProps: {

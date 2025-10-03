@@ -9,8 +9,14 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import type { EventVisibilityType, EventStatus, EventType } from '$lib/graphql/types';
+	import { Calendar, Copy, Check } from 'lucide-svelte';
 
 	let { data }: { data: PageData } = $props();
+
+	// iCal link state
+	let showICalDialog = $state(false);
+	let iCalLinkCopied = $state(false);
+	const iCalLink = $derived(`${$page.url.origin}/api/calendar/events.ics`);
 
 	// Filter state
 	let selectedVisibility = $state<EventVisibilityType | 'all'>(data.filters.visibility || 'all');
@@ -71,6 +77,19 @@
 		params.set('page', pageNum.toString());
 		goto(`?${params.toString()}`);
 	}
+
+	// Copy iCal link to clipboard
+	async function copyICalLink() {
+		try {
+			await navigator.clipboard.writeText(iCalLink);
+			iCalLinkCopied = true;
+			setTimeout(() => {
+				iCalLinkCopied = false;
+			}, 2000);
+		} catch (err) {
+			console.error('Failed to copy link:', err);
+		}
+	}
 </script>
 
 <svelte:head>
@@ -86,29 +105,133 @@
 			<p class="mt-2 text-muted-foreground">View and manage company events</p>
 		</div>
 
-		{#if data.canCreateEvents}
-			<a
-				href="/dashboard/events/create"
-				class="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+		<div class="flex items-center gap-3">
+			<!-- iCal Subscribe Button -->
+			<button
+				onclick={() => (showICalDialog = !showICalDialog)}
+				class="inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
 			>
-				<svg
-					class="mr-2 h-5 w-5"
-					fill="none"
-					stroke="currentColor"
-					viewBox="0 0 24 24"
-					xmlns="http://www.w3.org/2000/svg"
+				<Calendar class="mr-2 h-4 w-4" />
+				Calendar Feed
+			</button>
+
+			{#if data.canCreateEvents}
+				<a
+					href="/dashboard/events/create"
+					class="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
 				>
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M12 4v16m8-8H4"
-					></path>
-				</svg>
-				Create Event
-			</a>
-		{/if}
+					<svg
+						class="mr-2 h-5 w-5"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24"
+						xmlns="http://www.w3.org/2000/svg"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M12 4v16m8-8H4"
+						></path>
+					</svg>
+					Create Event
+				</a>
+			{/if}
+		</div>
 	</div>
+
+	<!-- iCal Link Dialog -->
+	{#if showICalDialog}
+		<div class="mb-6 rounded-lg border border-primary/20 bg-card p-6 shadow-lg">
+			<div class="mb-4 flex items-start justify-between">
+				<div>
+					<h3 class="text-lg font-semibold text-card-foreground">Calendar Feed</h3>
+					<p class="mt-1 text-sm text-muted-foreground">
+						Subscribe to this calendar feed in your calendar application
+					</p>
+				</div>
+				<button
+					onclick={() => (showICalDialog = false)}
+					class="text-muted-foreground hover:text-foreground"
+				>
+					<svg
+						class="h-5 w-5"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24"
+						xmlns="http://www.w3.org/2000/svg"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M6 18L18 6M6 6l12 12"
+						></path>
+					</svg>
+				</button>
+			</div>
+
+			<div class="space-y-4">
+				<!-- Copy Link Section -->
+				<div>
+					<label class="mb-2 block text-sm font-medium text-card-foreground"
+						>iCal Feed URL</label
+					>
+					<div class="flex items-center gap-2">
+						<input
+							type="text"
+							readonly
+							value={iCalLink}
+							class="flex-1 rounded-md border border-input bg-muted px-3 py-2 text-sm text-foreground dark:bg-input/80"
+						/>
+						<button
+							onclick={copyICalLink}
+							class="inline-flex items-center rounded-md border border-input bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+						>
+							{#if iCalLinkCopied}
+								<Check class="h-4 w-4" />
+							{:else}
+								<Copy class="h-4 w-4" />
+							{/if}
+						</button>
+					</div>
+					<p class="mt-2 text-xs text-muted-foreground">
+						Copy this URL to subscribe in Google Calendar, Apple Calendar, Outlook, or any
+						iCal-compatible application
+					</p>
+				</div>
+
+				<!-- Quick Actions -->
+				<div class="flex items-center gap-3 border-t pt-4">
+					<a
+						href={iCalLink}
+						download="sveltehr-events.ics"
+						class="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring"
+					>
+						<Calendar class="mr-2 h-4 w-4" />
+						Download .ics File
+					</a>
+					<div class="text-xs text-muted-foreground">
+						or copy the URL above to subscribe
+					</div>
+				</div>
+
+				<!-- Instructions -->
+				<div class="rounded-md bg-muted p-4 dark:bg-input/30">
+					<h4 class="mb-2 text-sm font-semibold text-card-foreground">How to Subscribe:</h4>
+					<ul class="space-y-1 text-xs text-muted-foreground">
+						<li>• <strong>Google Calendar:</strong> Settings → Add calendar → From URL</li>
+						<li>
+							• <strong>Apple Calendar:</strong> File → New Calendar Subscription → Paste URL
+						</li>
+						<li>
+							• <strong>Outlook:</strong> Add calendar → Subscribe from web → Paste URL
+						</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+	{/if}
 
 	<!-- View Toggle and Filters -->
 	<div class="mb-6 rounded-lg border bg-card p-4 shadow-sm">

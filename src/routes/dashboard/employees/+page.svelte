@@ -3,7 +3,6 @@
 	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
-	import { Select, SelectContent, SelectItem, SelectTrigger } from '$lib/components/ui/select';
 	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
@@ -279,44 +278,47 @@
 					<!-- Department Filter -->
 					<div class="space-y-2">
 						<label for="department" class="text-sm font-medium">Department</label>
-						<Select bind:value={selectedDepartment}>
-							<SelectTrigger placeholder="All Departments" />
-							<SelectContent>
-								<SelectItem value="">All Departments</SelectItem>
-								{#each departments as dept}
-									<SelectItem value={dept.id}>{dept.name}</SelectItem>
-								{/each}
-							</SelectContent>
-						</Select>
+						<select
+							id="department"
+							bind:value={selectedDepartment}
+							class="shadow-xs flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base outline-none ring-offset-background transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/80 md:text-sm focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+						>
+							<option value="">All Departments</option>
+							{#each departments as dept}
+								<option value={dept.id}>{dept.name}</option>
+							{/each}
+						</select>
 					</div>
 
 					<!-- Status Filter -->
 					{#if canViewInactiveEmployees}
 						<div class="space-y-2">
 							<label for="status" class="text-sm font-medium">Status</label>
-							<Select bind:value={selectedStatus}>
-								<SelectTrigger placeholder="All Employees" />
-								<SelectContent>
-									{#each statusOptions as option}
-										<SelectItem value={option.value}>{option.label}</SelectItem>
-									{/each}
-								</SelectContent>
-							</Select>
+							<select
+								id="status"
+								bind:value={selectedStatus}
+								class="shadow-xs flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base outline-none ring-offset-background transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/80 md:text-sm focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+							>
+								{#each statusOptions as option}
+									<option value={option.value}>{option.label}</option>
+								{/each}
+							</select>
 						</div>
 					{/if}
 
 					<!-- Page Size -->
 					<div class="space-y-2">
 						<label for="pagesize" class="text-sm font-medium">Per Page</label>
-						<Select bind:value={pageSize}>
-							<SelectTrigger placeholder="20" />
-							<SelectContent>
-								<SelectItem value={10}>10</SelectItem>
-								<SelectItem value={20}>20</SelectItem>
-								<SelectItem value={50}>50</SelectItem>
-								<SelectItem value={100}>100</SelectItem>
-							</SelectContent>
-						</Select>
+						<select
+							id="pagesize"
+							bind:value={pageSize}
+							class="shadow-xs flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base outline-none ring-offset-background transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/80 md:text-sm focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+						>
+							<option value={10}>10</option>
+							<option value={20}>20</option>
+							<option value={50}>50</option>
+							<option value={100}>100</option>
+						</select>
 					</div>
 				</div>
 

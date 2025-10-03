@@ -75,17 +75,28 @@ export function getActivityIcon(resourceType: ResourceType, action: ActivityActi
 	if (action === 'login') return '🔓';
 	if (action === 'logout') return '🔒';
 
-	// Resource-based icons (fallback)
-	const resourceIcons: Record<ResourceType, string> = {
+	// Resource-based icons (fallback) - handle both singular and plural forms
+	const resourceIcons: Record<string, string> = {
 		event: '📅',
+		events: '📅',
 		task: '✅',
+		tasks: '✅',
 		leave_request: '🏖️',
+		leave_requests: '🏖️',
 		profile: '👤',
+		profiles: '👤',
 		document: '📄',
+		documents: '📄',
 		employee: '👥',
+		employees: '👥',
+		user: '👤',
+		users: '👤',
 		department: '🏢',
+		departments: '🏢',
 		performance_review: '📊',
+		performance_reviews: '📊',
 		notification: '🔔',
+		notifications: '🔔',
 		system: '⚙️'
 	};
 
@@ -112,16 +123,27 @@ export function getActivityActionColor(action: ActivityAction): string {
  * Get Tailwind CSS color class for resource type
  */
 export function getResourceTypeColor(resourceType: ResourceType): string {
-	const colorMap: Record<ResourceType, string> = {
+	const colorMap: Record<string, string> = {
 		event: 'bg-blue-100 text-blue-800',
+		events: 'bg-blue-100 text-blue-800',
 		task: 'bg-green-100 text-green-800',
+		tasks: 'bg-green-100 text-green-800',
 		leave_request: 'bg-yellow-100 text-yellow-800',
+		leave_requests: 'bg-yellow-100 text-yellow-800',
 		profile: 'bg-purple-100 text-purple-800',
+		profiles: 'bg-purple-100 text-purple-800',
 		document: 'bg-gray-100 text-gray-800',
+		documents: 'bg-gray-100 text-gray-800',
 		employee: 'bg-indigo-100 text-indigo-800',
+		employees: 'bg-indigo-100 text-indigo-800',
+		user: 'bg-indigo-100 text-indigo-800',
+		users: 'bg-indigo-100 text-indigo-800',
 		department: 'bg-teal-100 text-teal-800',
+		departments: 'bg-teal-100 text-teal-800',
 		performance_review: 'bg-orange-100 text-orange-800',
+		performance_reviews: 'bg-orange-100 text-orange-800',
 		notification: 'bg-pink-100 text-pink-800',
+		notifications: 'bg-pink-100 text-pink-800',
 		system: 'bg-slate-100 text-slate-800'
 	};
 
@@ -144,15 +166,36 @@ export function formatActivityMessage(activity: ActivityLog): string {
 	const verb = actionVerbs[activity.action] || activity.action;
 	const resource = formatResourceTypeName(activity.resourceType);
 
-	// Check if details contain a title or name
-	let displayName = resource;
-	if (activity.details?.title) {
-		displayName = `${resource} "${activity.details.title}"`;
-	} else if (activity.details?.name) {
-		displayName = `${resource} "${activity.details.name}"`;
-	} else if (activity.details?.displayName) {
-		displayName = `${resource} "${activity.details.displayName}"`;
+	// Extract name/title from snapshots or details
+	let itemName: string | null = null;
+
+	// Try to get name from appropriate snapshot based on action
+	const snapshot = activity.action === 'delete'
+		? activity.beforeSnapshot
+		: (activity.afterSnapshot || activity.beforeSnapshot);
+
+	// Check snapshot for common name fields
+	if (snapshot) {
+		itemName = snapshot.title
+			|| snapshot.name
+			|| snapshot.displayName
+			|| snapshot.display_name
+			|| snapshot.full_name
+			|| snapshot.event_title
+			|| snapshot.task_name
+			|| null;
 	}
+
+	// Fallback to details if no snapshot name found
+	if (!itemName && activity.details) {
+		itemName = activity.details.title
+			|| activity.details.name
+			|| activity.details.displayName
+			|| null;
+	}
+
+	// Build display name
+	const displayName = itemName ? `${resource} "${itemName}"` : resource;
 
 	// Special case for login/logout
 	if (activity.action === 'login' || activity.action === 'logout') {
@@ -166,16 +209,27 @@ export function formatActivityMessage(activity: ActivityLog): string {
  * Format resource type name for display
  */
 export function formatResourceTypeName(resourceType: ResourceType): string {
-	const nameMap: Record<ResourceType, string> = {
+	const nameMap: Record<string, string> = {
 		event: 'event',
+		events: 'event',
 		task: 'task',
+		tasks: 'task',
 		leave_request: 'leave request',
+		leave_requests: 'leave request',
 		profile: 'profile',
+		profiles: 'profile',
 		document: 'document',
+		documents: 'document',
 		employee: 'employee',
+		employees: 'employee',
+		user: 'user',
+		users: 'user',
 		department: 'department',
+		departments: 'department',
 		performance_review: 'performance review',
+		performance_reviews: 'performance review',
 		notification: 'notification',
+		notifications: 'notification',
 		system: 'system'
 	};
 
