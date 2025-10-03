@@ -295,12 +295,13 @@
 		border-top: 1px solid hsl(var(--border));
 	}
 
-	/* FullCalendar custom styles */
+	/* FullCalendar custom styles with rounded theme */
 	:global(.fc) {
 		font-family: inherit;
 		color: hsl(var(--foreground));
 	}
 
+	/* Buttons with rounded corners */
 	:global(.fc-button) {
 		background-color: hsl(var(--primary)) !important;
 		border-color: hsl(var(--primary)) !important;
@@ -308,11 +309,19 @@
 		text-transform: capitalize;
 		padding: 0.375rem 0.75rem;
 		font-size: 0.875rem;
+		border-radius: var(--radius) !important;
+		transition: all 0.2s ease;
 	}
 
 	:global(.fc-button:hover) {
 		background-color: hsl(var(--primary) / 0.9) !important;
 		border-color: hsl(var(--primary) / 0.9) !important;
+		transform: translateY(-1px);
+		box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+	}
+
+	:global(.fc-button:active) {
+		transform: translateY(0);
 	}
 
 	:global(.fc-button-active) {
@@ -320,48 +329,120 @@
 		border-color: hsl(var(--primary) / 0.8) !important;
 	}
 
+	/* Button groups with rounded ends */
+	:global(.fc-button-group) {
+		border-radius: var(--radius) !important;
+		overflow: hidden;
+	}
+
+	:global(.fc-button-group > .fc-button) {
+		border-radius: 0 !important;
+	}
+
+	:global(.fc-button-group > .fc-button:first-child) {
+		border-radius: var(--radius) 0 0 var(--radius) !important;
+	}
+
+	:global(.fc-button-group > .fc-button:last-child) {
+		border-radius: 0 var(--radius) var(--radius) 0 !important;
+	}
+
+	/* Day numbers */
 	:global(.fc-daygrid-day-number) {
 		padding: 0.5rem;
 		color: hsl(var(--foreground));
+		font-weight: 500;
 	}
 
+	/* Header cells with rounded top */
 	:global(.fc-col-header-cell) {
 		background-color: hsl(var(--muted));
 		color: hsl(var(--muted-foreground));
+		font-weight: 600;
+		padding: 0.75rem 0.5rem;
 	}
 
+	:global(.fc-col-header-cell:first-child) {
+		border-top-left-radius: var(--radius);
+	}
+
+	:global(.fc-col-header-cell:last-child) {
+		border-top-right-radius: var(--radius);
+	}
+
+	/* Day cells */
 	:global(.fc-daygrid-day) {
 		background-color: hsl(var(--background));
+		transition: background-color 0.2s ease;
 	}
 
+	:global(.fc-daygrid-day:hover) {
+		background-color: hsl(var(--accent));
+	}
+
+	/* Events with rounded corners */
 	:global(.fc-event) {
 		cursor: pointer;
-		border-radius: 0.25rem;
+		border-radius: calc(var(--radius) * 0.6);
 		padding: 0.25rem 0.5rem;
 		font-size: 0.875rem;
+		border: none !important;
+		transition: all 0.2s ease;
+		box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 	}
 
 	:global(.fc-event:hover) {
-		opacity: 0.85;
+		transform: translateY(-1px);
+		box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
 	}
 
+	/* Today highlight */
 	:global(.fc-day-today) {
 		background-color: hsl(var(--accent)) !important;
 	}
 
+	:global(.fc-day-today .fc-daygrid-day-number) {
+		background-color: hsl(var(--primary));
+		color: hsl(var(--primary-foreground));
+		border-radius: 50%;
+		width: 2rem;
+		height: 2rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin: 0.25rem;
+	}
+
+	/* Toolbar title */
 	:global(.fc-toolbar-title) {
 		font-size: 1.25rem;
 		font-weight: 600;
 		color: hsl(var(--foreground));
 	}
 
+	/* Grid borders with rounded corners */
 	:global(.fc-scrollgrid) {
 		border-color: hsl(var(--border)) !important;
+		border-radius: var(--radius) !important;
+		overflow: hidden;
 	}
 
 	:global(.fc-scrollgrid td),
 	:global(.fc-scrollgrid th) {
 		border-color: hsl(var(--border)) !important;
+	}
+
+	/* More events link */
+	:global(.fc-daygrid-more-link) {
+		color: hsl(var(--primary));
+		font-weight: 500;
+		border-radius: calc(var(--radius) * 0.5);
+		padding: 0.125rem 0.375rem;
+		transition: all 0.2s ease;
+	}
+
+	:global(.fc-daygrid-more-link:hover) {
+		background-color: hsl(var(--primary) / 0.1);
 	}
 
 	/* Mobile responsive styles */
