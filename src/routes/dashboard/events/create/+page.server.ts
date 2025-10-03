@@ -19,8 +19,11 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	}
 
 	// Check if user has manager or admin privileges to create events
+	// Allow if user has wildcard permission or sufficient role level
+	const hasWildcardPermission = locals.permissions?.includes('*');
 	const roleLevel = getRoleLevel(locals.user.role);
-	if (roleLevel < 60) {
+
+	if (!hasWildcardPermission && roleLevel < 60) {
 		// Only managers and above can create events
 		throw error(403, {
 			message: 'Access denied. Manager privileges required to create events.'
@@ -66,6 +69,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 // Helper function to get role level for authorization
 function getRoleLevel(role: string | undefined): number {
 	const roleLevels: Record<string, number> = {
+		super_admin: 200, // Highest level - system administrator
 		admin: 100,
 		hr_manager: 80,
 		manager: 60,
