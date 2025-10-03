@@ -23,6 +23,12 @@
   - visibilityFilter?: Filter events by visibility type
 -->
 
+<svelte:head>
+	<link href="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.19/index.global.min.css" rel="stylesheet" />
+	<link href="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.19/index.global.min.css" rel="stylesheet" />
+	<link href="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.19/index.global.min.css" rel="stylesheet" />
+</svelte:head>
+
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
