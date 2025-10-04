@@ -10,6 +10,15 @@
 			"options": {
 				"parser": "svelte"
 			}
+		},
+		{
+			"files": "*.sql",
+			"options": {
+				"parser": "sql",
+				"printWidth": 80,
+				"tabWidth": 2,
+				"useTabs": false
+			}
 		}
 	],
 	"tailwindStylesheet": "./src/app.css"

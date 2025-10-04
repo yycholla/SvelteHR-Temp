@@ -8,6 +8,7 @@ SHELL := /bin/bash
 .PHONY: gel-cli gel-repl sample-query sample-login
 .PHONY: dev-start dev-stop dev-logs dev-health dev-ssh-be dev-ssh-fe ssh-backend ssh-frontend
 .PHONY: init fresh-install db-init db-migrate db-status db-verify
+.PHONY: schema:verify schema:generate-migration schema:validate schema:rebuild-init
 
 # =============================================================================
 # Help
@@ -49,6 +50,12 @@ help: ## Show available commands
 	@echo "  make db-logs      - View database logs"
 	@echo "  make db-health    - Check database health and statistics"
 	@echo "  make db-shell     - Open database shell (PostgreSQL/GelDB)"
+	@echo ""
+	@echo "🔍 Schema Consistency Tools (022-database-schema-consistency):"
+	@echo "  make schema:verify           - Verify schema matches version control"
+	@echo "  make schema:generate-migration - Generate migration from detected drift"
+	@echo "  make schema:validate          - Validate migration files integrity"
+	@echo "  make schema:rebuild-init      - Rebuild init script from migrations"
 	@echo ""
 	@echo "🐳 Development Containers (SSH + Neovim):"
 	@echo "  make dev-start     - Start development containers"
@@ -456,6 +463,44 @@ db-shell: ## Open PostgreSQL shell
 	else \
 		echo "❌ PostgreSQL container not running"; \
 	fi
+
+# =============================================================================
+# Schema Consistency Tools (022-database-schema-consistency)
+# =============================================================================
+
+schema\:verify: ## Verify database schema matches version control
+	@echo "🔍 Verifying database schema consistency..."
+	@echo ""
+	@npm run db:verify -- --environment=development --output-format=both
+	@echo ""
+	@echo "📊 Report saved to verification-reports/"
+
+schema\:generate-migration: ## Generate migration from detected drift
+	@echo "📝 Generating migration from schema drift..."
+	@if [ -z "$(DIFF_SOURCE)" ]; then \
+		echo "❌ Error: DIFF_SOURCE not specified"; \
+		echo "Usage: make schema:generate-migration DIFF_SOURCE=./verification-reports/YYYY-MM-DD-development.json"; \
+		exit 1; \
+	fi
+	@npm run db:generate-migration -- \
+		--diff-source=$(DIFF_SOURCE) \
+		--environment=$${ENVIRONMENT:-development}
+	@echo ""
+	@echo "✅ Migration generated in migrations/remediation/"
+	@echo "⚠️  Review before applying (FR-024a)"
+
+schema\:validate: ## Validate migration files for integrity and conventions
+	@echo "✅ Validating migration files..."
+	@npm run db:validate-migrations -- --strict --check-rollbacks
+	@echo ""
+	@echo "📊 Validation complete"
+
+schema\:rebuild-init: ## Rebuild init script from cumulative migrations
+	@echo "🔨 Rebuilding init script from migrations..."
+	@npm run db:rebuild-init -- --validate --clean-database
+	@echo ""
+	@echo "✅ Init script rebuilt: migrations/00_init_schema.sql"
+	@echo "📊 Validation: init script matches cumulative migrations"
 
 # =============================================================================
 # Environment Setup System
