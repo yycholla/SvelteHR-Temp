@@ -178,10 +178,26 @@ const retryConfig = retryExchange({
 });
 
 // Create the main GraphQL client
-export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string) => {
+export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string, url?: string) => {
 	// Override auth token if provided (for browser)
 	if (authToken && browser) {
 		setAuthState({ token: authToken });
+	}
+
+	// Determine GraphQL URL
+	let graphqlUrl = url || DEFAULT_GRAPHQL_URL;
+
+	// If running on server without explicit URL, try to get from environment
+	if (!browser && !url) {
+		try {
+			// Use VITE_API_URL if available (containerized environment)
+			const viteApiUrl = process.env.VITE_API_URL;
+			if (viteApiUrl) {
+				graphqlUrl = `${viteApiUrl}/graphql`;
+			}
+		} catch {
+			// Use default if environment check fails
+		}
 	}
 
 	const exchanges = [
@@ -216,7 +232,7 @@ export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string) => 
 	// }
 
 	return new Client({
-		url: POSTGRAPHILE_GRAPHQL_URL,
+		url: graphqlUrl,
 		exchanges,
 		fetch: fetchFn,
 		fetchOptions: () => {
