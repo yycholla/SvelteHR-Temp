@@ -8,7 +8,6 @@ SHELL := /bin/bash
 .PHONY: gel-cli gel-repl sample-query sample-login
 .PHONY: dev-start dev-stop dev-logs dev-health dev-ssh-be dev-ssh-fe ssh-backend ssh-frontend
 .PHONY: init fresh-install db-init db-migrate db-status db-verify
-.PHONY: schema:verify schema:generate-migration schema:validate schema:rebuild-init
 
 # =============================================================================
 # Help

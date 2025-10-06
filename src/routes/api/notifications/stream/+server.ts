@@ -46,11 +46,12 @@ export const GET: RequestHandler = async ({ locals, cookies }) => {
 	graphqlClient.setToken(authToken);
 
 	// Create a readable stream for SSE
+	let intervalId: NodeJS.Timeout | null = null;
+	let isClosed = false;
+
 	const stream = new ReadableStream({
 		async start(controller) {
 			const encoder = new TextEncoder();
-			let intervalId: NodeJS.Timeout | null = null;
-			let isClosed = false;
 
 			// Function to send SSE message safely
 			const sendEvent = (data: any) => {
@@ -60,6 +61,10 @@ export const GET: RequestHandler = async ({ locals, cookies }) => {
 				} catch (err) {
 					console.error('Error sending SSE event:', err);
 					isClosed = true;
+					if (intervalId) {
+						clearInterval(intervalId);
+						intervalId = null;
+					}
 				}
 			};
 
@@ -69,7 +74,10 @@ export const GET: RequestHandler = async ({ locals, cookies }) => {
 			// Poll for new notifications every 5 seconds
 			intervalId = setInterval(async () => {
 				if (isClosed) {
-					if (intervalId) clearInterval(intervalId);
+					if (intervalId) {
+						clearInterval(intervalId);
+						intervalId = null;
+					}
 					return;
 				}
 
@@ -129,6 +137,11 @@ export const GET: RequestHandler = async ({ locals, cookies }) => {
 		cancel() {
 			// Called when the client disconnects
 			console.log('SSE client disconnected');
+			isClosed = true;
+			if (intervalId) {
+				clearInterval(intervalId);
+				intervalId = null;
+			}
 		}
 	});
 

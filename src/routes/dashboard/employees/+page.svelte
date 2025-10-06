@@ -20,7 +20,8 @@
 		Edit,
 		MoreHorizontal,
 		Download,
-		Upload
+		Upload,
+		FileBarChart
 	} from 'lucide-svelte';
 
 	// Subscribe to page store at top level
@@ -46,6 +47,7 @@
 			permissions: string[];
 			canManageEmployees: boolean;
 			canViewInactiveEmployees: boolean;
+			canCreateReviews: boolean;
 			loadedAt: string;
 		};
 	}
@@ -61,6 +63,7 @@
 	const permissions = $derived(data.permissions);
 	const canManageEmployees = $derived(data.canManageEmployees);
 	const canViewInactiveEmployees = $derived(data.canViewInactiveEmployees);
+	const canCreateReviews = $derived(data.canCreateReviews);
 
 	// Local state for filters and search
 	let searchTerm = $state('');
@@ -403,6 +406,12 @@
 							<Button variant="outline" size="sm" href="/dashboard/employees/{employee.id}/edit">
 								<Edit class="mr-2 h-4 w-4" />
 								Edit
+							</Button>
+						{/if}
+						{#if canCreateReviews}
+							<Button variant="outline" size="sm" href="/dashboard/reviews?employee={employee.id}">
+								<FileBarChart class="mr-2 h-4 w-4" />
+								Start Review
 							</Button>
 						{/if}
 					</div>

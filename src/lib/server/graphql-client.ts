@@ -122,10 +122,26 @@ export class GraphQLClient {
 				clearTimeout(timeoutId);
 
 				if (!response.ok) {
+					// Try to get error details from response body
+					const errorText = await response.text();
+					console.error(`❌ GraphQL HTTP ${response.status}:`, errorText.substring(0, 500));
 					throw new Error(`GraphQL endpoint returned ${response.status}`);
 				}
 
 				const result = await response.json();
+
+				// Log GraphQL errors if present
+				if (result.errors && result.errors.length > 0) {
+					console.error(`❌ GraphQL returned ${result.errors.length} error(s):`);
+					result.errors.forEach((err: GraphQLError, idx: number) => {
+						console.error(`  Error ${idx + 1}:`, {
+							message: err.message,
+							path: err.path,
+							extensions: err.extensions
+						});
+					});
+				}
+
 				return result as GraphQLResponse<T>;
 			} catch (error) {
 				clearTimeout(timeoutId);

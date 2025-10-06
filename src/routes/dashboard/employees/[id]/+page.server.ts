@@ -209,6 +209,11 @@ export const load: PageServerLoad = async (event) => {
 		const canViewVehicles = isViewingSelf || isEmployeeManager || isAdmin;
 		const canViewCompensation = isAdmin; // Only admins and HR managers can view compensation
 
+		// RBAC: Check if user can create reviews for this employee
+		// Admins and HR managers can create reviews for anyone
+		// Managers can create reviews for their direct reports
+		const canCreateReviews = isAdmin || isEmployeeManager;
+
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);
 
@@ -273,6 +278,7 @@ export const load: PageServerLoad = async (event) => {
 				canViewEmergencyContacts,
 				canViewVehicles,
 				canViewCompensation,
+				canCreateReviews,
 				isEmployeeManager,
 				isViewingSelf,
 				...userPermissions

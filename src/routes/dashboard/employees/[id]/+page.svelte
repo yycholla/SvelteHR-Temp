@@ -24,7 +24,8 @@
 		Plane,
 		Car,
 		Shield,
-		DollarSign
+		DollarSign,
+	FileBarChart
 	} from 'lucide-svelte';
 
 	interface Props {
@@ -76,12 +77,20 @@
 				<p class="text-muted-foreground">{formatRole(employee.role)}</p>
 			</div>
 		</div>
-		{#if permissions.canManageEmployees}
-			<Button href="/dashboard/employees/{employee.id}/edit">
-				<Edit class="mr-2 h-4 w-4" />
-				Edit Employee
-			</Button>
-		{/if}
+		<div class="flex gap-2">
+			{#if permissions.canManageEmployees}
+				<Button href="/dashboard/employees/{employee.id}/edit">
+					<Edit class="mr-2 h-4 w-4" />
+					Edit Employee
+				</Button>
+			{/if}
+			{#if permissions.canCreateReviews}
+				<Button href="/dashboard/reviews?employee={employee.id}">
+					<FileBarChart class="mr-2 h-4 w-4" />
+					Start Review
+				</Button>
+			{/if}
+		</div>
 	</div>
 
 	<!-- Status Badge -->

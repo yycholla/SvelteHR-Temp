@@ -51,7 +51,13 @@ async function authenticateUser(
 
 			// Check expiration
 			const currentTime = Math.floor(Date.now() / 1000);
+			console.log(`⏰ Token expiration check:`, {
+				currentTime,
+				tokenExp: decodedPayload.exp,
+				isExpired: decodedPayload.exp && decodedPayload.exp < currentTime
+			});
 			if (decodedPayload.exp && decodedPayload.exp < currentTime) {
+				console.log(`❌ Token expired at ${new Date(decodedPayload.exp * 1000).toISOString()}`);
 				return null;
 			}
 
@@ -74,7 +80,7 @@ async function authenticateUser(
 
 		console.log(`🔑 Permissions for ${user.email}:`, permissions);
 
-		return {
+		const authResult = {
 			user: {
 				id: user.id,
 				email: user.email,
@@ -84,6 +90,16 @@ async function authenticateUser(
 			roles: [user.role],
 			permissions: permissions
 		};
+
+		console.log(`✅ authenticateUser returning:`, {
+			userId: authResult.user.id,
+			userEmail: authResult.user.email,
+			userRole: authResult.user.role,
+			roles: authResult.roles,
+			permissionsCount: authResult.permissions.length
+		});
+
+		return authResult;
 	} catch (error) {
 		console.error('Authentication error:', error);
 		return null;
