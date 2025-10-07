@@ -74,15 +74,15 @@
 
 **CRITICAL: Write these tests BEFORE any implementation - they MUST fail first**
 
-- [ ] T011 [P] Contract test: Create `tests/contract/documents-upload.contract.spec.ts` testing POST /api/documents/upload. Test cases: 1) 10MB PDF with valid auth → expect 201 + documentId, 2) 60MB file → expect 413, 3) .EXE file → expect 400, 4) No auth token → expect 401, 5) Employee role (not HR) → expect 403. Use Vitest + Supertest.
+- [x] T011 [P] Contract test: Create `tests/contract/documents-upload.contract.spec.ts` testing POST /api/documents/upload. Test cases: 1) 10MB PDF with valid auth → expect 201 + documentId, 2) 60MB file → expect 413, 3) .EXE file → expect 400, 4) No auth token → expect 401, 5) Employee role (not HR) → expect 403. Use Vitest + Supertest.
 
-- [ ] T012 [P] Contract test: Create `tests/contract/documents-preview.contract.spec.ts` testing GET /api/documents/{id}/preview. Test cases: 1) Preview owned doc → expect 200 + previewUrl + expiresAt, 2) Preview other employee's doc → expect 403, 3) Preview department doc (user in dept) → expect 200, 4) Preview department doc (user NOT in dept) → expect 403.
+- [x] T012 [P] Contract test: Create `tests/contract/documents-preview.contract.spec.ts` testing GET /api/documents/{id}/preview. Test cases: 1) Preview owned doc → expect 200 + previewUrl + expiresAt, 2) Preview other employee's doc → expect 403, 3) Preview department doc (user in dept) → expect 200, 4) Preview department doc (user NOT in dept) → expect 403.
 
-- [ ] T013 [P] Contract test: Create `tests/contract/documents-download.contract.spec.ts` testing GET /api/documents/{id}/download. Test cases: 1) Download with valid permissions → expect 200 + binary stream, 2) Download without permissions → expect 403, 3) Download non-existent doc → expect 404.
+- [x] T013 [P] Contract test: Create `tests/contract/documents-download.contract.spec.ts` testing GET /api/documents/{id}/download. Test cases: 1) Download with valid permissions → expect 200 + binary stream, 2) Download without permissions → expect 403, 3) Download non-existent doc → expect 404.
 
-- [ ] T014 [P] Contract test: Create `tests/contract/documents-list.contract.spec.ts` testing GET /api/documents. Test cases: 1) List with employeeId filter → expect filtered results, 2) List with category filter → expect filtered results, 3) List with pagination (page=2, limit=20) → expect correct page, 4) Employee sees only assigned docs (RBAC enforcement).
+- [x] T014 [P] Contract test: Create `tests/contract/documents-list.contract.spec.ts` testing GET /api/documents. Test cases: 1) List with employeeId filter → expect filtered results, 2) List with category filter → expect filtered results, 3) List with pagination (page=2, limit=20) → expect correct page, 4) Employee sees only assigned docs (RBAC enforcement).
 
-- [ ] T015 [P] Contract test: Create `tests/contract/encryption-keys.contract.spec.ts` testing encryption key management. Test cases: 1) POST /api/encryption/keys with valid key → expect 201 + keyId, 2) GET /api/encryption/keys/{id} with permissions → expect 200 + encryptedKeyData, 3) GET without permissions → expect 403.
+- [x] T015 [P] Contract test: Create `tests/contract/encryption-keys.contract.spec.ts` testing encryption key management. Test cases: 1) POST /api/encryption/keys with valid key → expect 201 + keyId, 2) GET /api/encryption/keys/{id} with permissions → expect 200 + encryptedKeyData, 3) GET without permissions → expect 403.
 
 ## Phase 3.4: Core Services (ONLY after contract tests are failing)
 
