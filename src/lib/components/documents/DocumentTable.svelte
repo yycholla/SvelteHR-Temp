@@ -61,8 +61,8 @@
 
 	// Svelte 5 state
 	let viewMode = $state<'grid' | 'list'>('grid');
-	let selectedCategory = $state<DocumentCategory | null>(filterCategory);
-	let selectedSensitivity = $state<SensitivityLevel | null>(filterSensitivity);
+	let selectedCategory = $state<string>(filterCategory || 'all');
+	let selectedSensitivity = $state<string>(filterSensitivity || 'all');
 	let search = $state(searchQuery);
 
 	// Derived state
@@ -92,8 +92,8 @@
 	// Handle filter changes
 	function applyFilters() {
 		onFilterChange({
-			category: selectedCategory,
-			sensitivity: selectedSensitivity,
+			category: selectedCategory === 'all' ? null : (selectedCategory as DocumentCategory),
+			sensitivity: selectedSensitivity === 'all' ? null : (selectedSensitivity as SensitivityLevel),
 			search
 		});
 	}
@@ -113,8 +113,8 @@
 
 	// Clear all filters
 	function clearFilters() {
-		selectedCategory = null;
-		selectedSensitivity = null;
+		selectedCategory = 'all';
+		selectedSensitivity = 'all';
 		search = '';
 		applyFilters();
 	}
@@ -164,8 +164,9 @@
 		</div>
 
 		<Select.Root
-			onSelectedChange={(selected) => {
-				selectedCategory = selected?.value as DocumentCategory | null;
+			type="single"
+			bind:value={() => selectedCategory, (v) => {
+				selectedCategory = v ?? 'all';
 				applyFilters();
 			}}
 		>
@@ -173,7 +174,7 @@
 				<Select.Value placeholder="All Categories" />
 			</Select.Trigger>
 			<Select.Content>
-				<Select.Item value={null}>All Categories</Select.Item>
+				<Select.Item value="all">All Categories</Select.Item>
 				{#each categories as category}
 					<Select.Item value={category}>{category}</Select.Item>
 				{/each}
@@ -181,8 +182,9 @@
 		</Select.Root>
 
 		<Select.Root
-			onSelectedChange={(selected) => {
-				selectedSensitivity = selected?.value as SensitivityLevel | null;
+			type="single"
+			bind:value={() => selectedSensitivity, (v) => {
+				selectedSensitivity = v ?? 'all';
 				applyFilters();
 			}}
 		>
@@ -190,7 +192,7 @@
 				<Select.Value placeholder="All Sensitivity Levels" />
 			</Select.Trigger>
 			<Select.Content>
-				<Select.Item value={null}>All Levels</Select.Item>
+				<Select.Item value="all">All Levels</Select.Item>
 				{#each sensitivityLevels as level}
 					<Select.Item value={level}>{level}</Select.Item>
 				{/each}
