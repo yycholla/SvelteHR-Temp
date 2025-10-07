@@ -5,6 +5,9 @@
 	import { goto } from '$app/navigation';
 	import DocumentTable from '$lib/components/documents/DocumentTable.svelte';
 	import PreviewModal from '$lib/components/documents/PreviewModal.svelte';
+	import { Button } from '$lib/components/ui/button';
+	import * as Card from '$lib/components/ui/card';
+	import { Upload } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import type { DocumentFilter } from '$lib/types/document';
 
@@ -128,44 +131,47 @@
 	<title>Documents | HR System</title>
 </svelte:head>
 
-<div class="documents-page">
+<div class="container mx-auto py-6 space-y-6">
 	<!-- Page header -->
-	<div class="page-header">
-		<div class="header-content">
-			<h1 class="page-title">Documents</h1>
-			<p class="page-description">
+	<div class="flex justify-between items-start gap-4">
+		<div class="space-y-1">
+			<h1 class="text-3xl font-bold tracking-tight">Documents</h1>
+			<p class="text-muted-foreground">
 				Manage and access employee documents with end-to-end encryption
 			</p>
 		</div>
 
 		{#if canUpload}
-			<a href="/dashboard/documents/upload" class="upload-button">
-				⬆️ Upload Document
-			</a>
+			<Button href="/dashboard/documents/upload" class="gap-2">
+				<Upload class="h-4 w-4" />
+				Upload Document
+			</Button>
 		{/if}
 	</div>
 
 	<!-- Document table -->
-	<div class="table-container">
-		<DocumentTable
-			documents={data.documents}
-			totalCount={data.totalCount}
-			currentPage={data.page}
-			pageSize={data.limit}
-			sortBy={data.sortBy}
-			sortOrder={data.sortOrder}
-			filterCategory={data.filterCategory}
-			filterSensitivity={data.filterSensitivity}
-			searchQuery={data.searchQuery}
-			{canPreview}
-			{canDownload}
-			onPageChange={handlePageChange}
-			onSortChange={handleSortChange}
-			onFilterChange={handleFilterChange}
-			onPreview={handlePreview}
-			onDownload={handleDownload}
-		/>
-	</div>
+	<Card.Root>
+		<Card.Content class="p-6">
+			<DocumentTable
+				documents={data.documents}
+				totalCount={data.totalCount}
+				currentPage={data.page}
+				pageSize={data.limit}
+				sortBy={data.sortBy}
+				sortOrder={data.sortOrder}
+				filterCategory={data.filterCategory}
+				filterSensitivity={data.filterSensitivity}
+				searchQuery={data.searchQuery}
+				{canPreview}
+				{canDownload}
+				onPageChange={handlePageChange}
+				onSortChange={handleSortChange}
+				onFilterChange={handleFilterChange}
+				onPreview={handlePreview}
+				onDownload={handleDownload}
+			/>
+		</Card.Content>
+	</Card.Root>
 
 	<!-- Preview modal -->
 	{#if previewDocument}
@@ -183,83 +189,3 @@
 		/>
 	{/if}
 </div>
-
-<style>
-	.documents-page {
-		width: 100%;
-		max-width: 1400px;
-		margin: 0 auto;
-		padding: 2rem;
-	}
-
-	.page-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
-		margin-bottom: 2rem;
-		gap: 2rem;
-	}
-
-	.header-content {
-		flex: 1;
-	}
-
-	.page-title {
-		font-size: 2rem;
-		font-weight: 700;
-		color: hsl(var(--foreground));
-		margin: 0 0 0.5rem 0;
-	}
-
-	.page-description {
-		font-size: 1rem;
-		color: hsl(var(--muted-foreground));
-		margin: 0;
-	}
-
-	.upload-button {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0.75rem 1.5rem;
-		background: hsl(var(--primary));
-		color: hsl(var(--primary-foreground));
-		text-decoration: none;
-		border-radius: var(--radius);
-		font-weight: 600;
-		font-size: 0.875rem;
-		transition: all 0.2s;
-		white-space: nowrap;
-	}
-
-	.upload-button:hover {
-		background: hsl(var(--primary) / 0.9);
-		transform: translateY(-1px);
-		box-shadow: 0 4px 6px hsl(var(--foreground) / 0.1);
-	}
-
-	.table-container {
-		background: hsl(var(--card));
-		border: 1px solid hsl(var(--border));
-		border-radius: var(--radius);
-		padding: 1.5rem;
-		box-shadow: 0 1px 3px hsl(var(--foreground) / 0.1);
-	}
-
-	/* Responsive */
-	@media (max-width: 768px) {
-		.documents-page {
-			padding: 1rem;
-		}
-
-		.page-header {
-			flex-direction: column;
-			align-items: stretch;
-		}
-
-		.upload-button {
-			width: 100%;
-			justify-content: center;
-		}
-	}
-</style>
