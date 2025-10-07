@@ -23,7 +23,10 @@
 		LayoutDashboard,
 		Bell,
 		Activity,
-		CheckSquare
+		CheckSquare,
+		FolderOpen,
+		Upload,
+		ScrollText
 	} from 'lucide-svelte';
 	import { currentUser, hasRole, authActions } from '$lib/stores/auth';
 	import { page } from '$app/stores';
@@ -45,6 +48,7 @@
 	let expandedSections = $state({
 		leave: false,
 		performance: false,
+		documents: false,
 		management: false,
 		administration: false
 	});
@@ -75,6 +79,8 @@
 			expandedSections.leave = true;
 		if (currentPath.includes('/performance') && currentPath.includes('/users/'))
 			expandedSections.performance = true;
+		if (currentPath.includes('/documents'))
+			expandedSections.documents = true;
 		if (
 			currentPath.includes('/management') ||
 			currentPath.includes('/employees/new') ||
@@ -155,6 +161,17 @@
 			items: [
 				{ title: 'My Goals', url: `/dashboard/profile/performance` },
 				{ title: 'Reviews', url: `/dashboard/profile/performance/reviews` }
+			]
+		},
+		{
+			title: 'Documents',
+			url: '/dashboard/documents',
+			icon: FolderOpen,
+			section: 'documents',
+			items: [
+				{ title: 'My Documents', url: '/dashboard/documents' },
+				...(isManager ? [{ title: 'Upload Document', url: '/dashboard/documents/upload' }] : []),
+				...(isAdmin ? [{ title: 'Audit Logs', url: '/dashboard/documents/audit' }] : [])
 			]
 		}
 	];
@@ -264,6 +281,9 @@
 								if (item.section === 'performance') {
 									return currentPath.includes('/performance');
 								}
+								if (item.section === 'documents') {
+									return currentPath.includes('/documents');
+								}
 								return false;
 							})()}
 							class:text-primary-foreground={(() => {
@@ -273,6 +293,9 @@
 								}
 								if (item.section === 'performance') {
 									return currentPath.includes('/performance');
+								}
+								if (item.section === 'documents') {
+									return currentPath.includes('/documents');
 								}
 								return false;
 							})()}
