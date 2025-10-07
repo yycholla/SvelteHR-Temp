@@ -38,8 +38,6 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		const dateParam = url.searchParams.get('date'); // Fallback for single click
 		const allDayParam = url.searchParams.get('allDay');
 
-		console.log('[Event Create Load] URL params:', { startParam, endParam, dateParam, allDayParam });
-
 		let defaultStartTime: string;
 		let defaultEndTime: string;
 		let defaultAllDay: boolean = allDayParam === 'true';
@@ -49,7 +47,6 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			// Parse as local time (not UTC)
 			defaultStartTime = parseLocalDateTime(startParam);
 			defaultEndTime = parseLocalDateTime(endParam);
-			console.log('[Event Create Load] Using start/end params:', { defaultStartTime, defaultEndTime });
 		} else if (dateParam) {
 			// Use the single date from calendar click
 			// Parse as local time (not UTC)
@@ -59,7 +56,6 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			const clickedDate = parseLocalDateTimeAsDate(dateParam);
 			clickedDate.setMinutes(clickedDate.getMinutes() + 30);
 			defaultEndTime = formatDateTimeLocal(clickedDate);
-			console.log('[Event Create Load] Using date param:', { dateParam, clickedDate, defaultStartTime, defaultEndTime });
 		} else {
 			// Use default times (next hour)
 			defaultStartTime = getDefaultStartTime();
@@ -224,6 +220,7 @@ export const actions: Actions = {
 		const location = formData.get('location') as string;
 		const eventType = formData.get('eventType') as string;
 		const isPublic = formData.get('visibilityType') === 'company';
+		const timezoneOffset = parseInt(formData.get('timezoneOffset') as string);
 
 		// Validate required fields
 		if (!title || !startTime || !endTime) {
@@ -244,27 +241,37 @@ export const actions: Actions = {
 			};
 
 			// Create the event
-			// Best practice: Send datetime with explicit timezone offset
-			// This ensures PostgreSQL stores the correct UTC time
-			console.log('[Event Create] Form startTime string:', startTime);
-			console.log('[Event Create] Form endTime string:', endTime);
+			// Parse datetime-local as user's local time and convert to UTC
+			// Parse datetime-local and adjust for user's timezone
+			const parseLocalTime = (timeStr: string, offsetMinutes: number): Date => {
+				const match = timeStr.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+				if (!match) throw new Error('Invalid datetime format');
 
-			// Get the timezone offset for the current local time
-			const now = new Date();
-			const tzOffset = -now.getTimezoneOffset(); // getTimezoneOffset() returns opposite sign
-			const offsetHours = Math.floor(Math.abs(tzOffset) / 60);
-			const offsetMinutes = Math.abs(tzOffset) % 60;
-			const offsetSign = tzOffset >= 0 ? '+' : '-';
-			const offsetString = `${offsetSign}${String(offsetHours).padStart(2, '0')}:${String(offsetMinutes).padStart(2, '0')}`;
+				const [, year, month, day, hours, minutes] = match;
 
-			// Append timezone offset to datetime-local values
-			// This tells PostgreSQL: "this is Oct 16 midnight in MDT (UTC-6)"
-			const startTimeWithTZ = `${startTime}:00${offsetString}`;
-			const endTimeWithTZ = `${endTime}:00${offsetString}`;
+				// Create Date in UTC (server timezone)
+				const date = new Date(Date.UTC(
+					parseInt(year),
+					parseInt(month) - 1, // 0-indexed
+					parseInt(day),
+					parseInt(hours),
+					parseInt(minutes)
+				));
 
-			console.log('[Event Create] Timezone offset:', offsetString);
-			console.log('[Event Create] Start time with TZ:', startTimeWithTZ);
-			console.log('[Event Create] End time with TZ:', endTimeWithTZ);
+				// Adjust for user's timezone offset
+				// getTimezoneOffset() returns positive for west of UTC (e.g., 360 for MDT)
+				// So we ADD the offset to convert from user's local time to UTC
+				date.setMinutes(date.getMinutes() + offsetMinutes);
+
+				return date;
+			};
+
+			const startDate = parseLocalTime(startTime, timezoneOffset);
+			const endDate = parseLocalTime(endTime, timezoneOffset);
+
+			// Convert to UTC ISO strings
+			const startTimeUTC = startDate.toISOString();
+			const endTimeUTC = endDate.toISOString();
 
 			const result = await eventsOps.createEvent({
 				input: {
@@ -272,8 +279,8 @@ export const actions: Actions = {
 						title,
 						description,
 						eventType,
-						startTime: startTimeWithTZ,
-						endTime: endTimeWithTZ,
+						startTime: startTimeUTC,
+						endTime: endTimeUTC,
 						allDay: isAllDay,
 						location,
 						organizerId: locals.user.id,
@@ -283,10 +290,6 @@ export const actions: Actions = {
 				},
 				userCredentials
 			});
-
-			console.log('[Event Create] Result from GraphQL:', JSON.stringify(result, null, 2));
-			console.log('[Event Create] Created event startTime:', result.createEvent?.event?.startTime);
-			console.log('[Event Create] Created event endTime:', result.createEvent?.event?.endTime);
 
 			// Redirect to events list on success
 			throw redirect(303, '/dashboard/events');

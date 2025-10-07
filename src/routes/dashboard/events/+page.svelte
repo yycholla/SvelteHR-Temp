@@ -8,10 +8,14 @@
 	import EventCalendar from '$lib/components/events/EventCalendar.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { invalidateAll } from '$app/navigation';
 	import type { EventVisibilityType, EventStatus, EventType } from '$lib/graphql/types';
 	import { Calendar, Copy, Check } from 'lucide-svelte';
 
 	let { data }: { data: PageData } = $props();
+
+	// Get user's timezone offset in minutes
+	const timezoneOffset = new Date().getTimezoneOffset();
 
 	// iCal link state
 	let showICalDialog = $state(false);
@@ -418,11 +422,7 @@
 				onEventClick={handleEventClick}
 				onDateClick={(date) => {
 					// Navigate to create event page with pre-filled date (local time)
-					console.log('[Calendar] Date clicked:', date);
-					console.log('[Calendar] Date ISO string:', date.toISOString());
-					console.log('[Calendar] Date local string:', date.toString());
 					const formattedDate = formatLocalISO(date);
-					console.log('[Calendar] Formatted local ISO:', formattedDate);
 					goto(`/dashboard/events/create?date=${formattedDate}`);
 				}}
 				onDateSelect={(start, end, allDay) => {
@@ -433,10 +433,32 @@
 					if (allDay) params.set('allDay', 'true');
 					goto(`/dashboard/events/create?${params.toString()}`);
 				}}
-				onEventDrop={(eventId, newStart, newEnd) => {
-					// Handle event drag-and-drop
-					console.log('Event dropped:', eventId, newStart, newEnd);
-					// TODO: Implement event update mutation
+				onEventDrop={async (eventId, newStart, newEnd) => {
+					// Handle event drag-and-drop (move or resize)
+					try {
+						// Submit form data to update event time
+						const formData = new FormData();
+						formData.append('eventId', eventId);
+						formData.append('startTime', newStart.toISOString());
+						formData.append('endTime', newEnd.toISOString());
+						formData.append('timezoneOffset', timezoneOffset.toString());
+
+						const response = await fetch('?/updateEventTime', {
+							method: 'POST',
+							body: formData
+						});
+
+						if (response.ok) {
+							// Refresh the page data to show updated event times
+							await invalidateAll();
+						} else {
+							console.error('Failed to update event time');
+							alert('Failed to update event. Please try again.');
+						}
+					} catch (error) {
+						console.error('Error updating event time:', error);
+						alert('Failed to update event. Please try again.');
+					}
 				}}
 				visibilityFilter={selectedVisibility === 'all' ? 'all' : selectedVisibility}
 			/>

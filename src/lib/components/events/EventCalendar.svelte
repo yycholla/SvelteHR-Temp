@@ -103,9 +103,6 @@
 	onMount(async () => {
 		if (!browser) return;
 
-		console.log('[EventCalendar] Initializing calendar...');
-		console.log('[EventCalendar] Calendar element:', calendarEl);
-
 		try {
 			// Dynamically import FullCalendar modules (client-side only)
 			const [{ Calendar }, { default: dayGridPlugin }, { default: timeGridPlugin }, { default: interactionPlugin }] = await Promise.all([
@@ -114,8 +111,6 @@
 				import('@fullcalendar/timegrid'),
 				import('@fullcalendar/interaction')
 			]);
-
-			console.log('[EventCalendar] Modules loaded, creating calendar instance...');
 
 			calendar = new Calendar(calendarEl, {
 				plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
@@ -169,9 +164,7 @@
 				aspectRatio: 1.8
 			});
 
-			console.log('[EventCalendar] Calendar instance created, rendering...');
 			calendar.render();
-			console.log('[EventCalendar] Calendar rendered successfully!');
 		} catch (error) {
 			console.error('[EventCalendar] Error initializing calendar:', error);
 		}

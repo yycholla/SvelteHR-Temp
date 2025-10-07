@@ -210,12 +210,14 @@ export const CREATE_EVENT = gql`
 /**
  * Mutation: Update event
  * RLS Policy: event_manager_admin_access (organizer or admin)
+ * Note: Using PostGraphile conventions - nodeId and eventPatch
  */
 export const UPDATE_EVENT = gql`
-	mutation UpdateEvent($input: UpdateEventInput!) {
-		updateEvent(input: $input) {
+	mutation UpdateEvent($input: UpdateEventByNodeIdInput!) {
+		updateEventByNodeId(input: $input) {
 			event {
 				id
+				nodeId
 				title
 				description
 				eventType
@@ -338,8 +340,8 @@ export interface CreateEventInput {
 
 export interface UpdateEventInput {
 	clientMutationId?: string;
-	id: string;
-	patch: {
+	nodeId: string;
+	eventPatch: {
 		title?: string;
 		description?: string;
 		eventType?: string;
@@ -912,15 +914,15 @@ export class EventsOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data) {
+			if (!result.data || !result.data.updateEventByNodeId) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'No data returned. Please try again.'
 				});
 			}
 
-			// Extract return data from result.data
-			return result.data;
+			// Extract return data from result.data.updateEventByNodeId.event
+			return result.data.updateEventByNodeId.event;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error; // Already formatted error
