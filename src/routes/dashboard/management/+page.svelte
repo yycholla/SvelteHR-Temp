@@ -226,34 +226,9 @@ Modern Svelte 5 implementation with server-side data loading and comprehensive m
 
 <!-- Page Header -->
 <div class="mb-8">
-	<div class="mb-4 flex items-center justify-between">
-		<div>
-			<h1 class="text-3xl font-bold text-foreground">Management Overview</h1>
-			<p class="mt-2 text-muted-foreground">Your team management dashboard and key metrics</p>
-		</div>
-		<div class="flex items-center gap-4">
-			<select
-				bind:value={selectedPeriod}
-				onchange={updateFilters}
-				class="rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
-			>
-				<option value="this-week">This Week</option>
-				<option value="this-month">This Month</option>
-				<option value="last-month">Last Month</option>
-				<option value="this-quarter">This Quarter</option>
-			</select>
-			<select
-				bind:value={selectedTeamId}
-				onchange={updateFilters}
-				class="rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
-			>
-				<option value="">All Teams</option>
-				<option value="engineering">Engineering</option>
-				<option value="marketing">Marketing</option>
-				<option value="sales">Sales</option>
-				<option value="hr">Human Resources</option>
-			</select>
-		</div>
+	<div class="mb-4">
+		<h1 class="text-3xl font-bold text-foreground">Management Overview</h1>
+		<p class="mt-2 text-muted-foreground">Your team management dashboard and key metrics</p>
 	</div>
 
 	<!-- Alerts Section -->
@@ -352,7 +327,32 @@ Modern Svelte 5 implementation with server-side data loading and comprehensive m
 	<!-- Performance Metrics -->
 	<div class="lg:col-span-2">
 		<div class="rounded-lg border border bg-card p-6 shadow-sm">
-			<h3 class="mb-4 text-lg font-semibold text-foreground">Performance Metrics</h3>
+			<div class="mb-4 flex items-center justify-between">
+				<h3 class="text-lg font-semibold text-foreground">Performance Metrics</h3>
+				<div class="flex items-center gap-3">
+					<select
+						bind:value={selectedPeriod}
+						onchange={updateFilters}
+						class="rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+					>
+						<option value="this-week">This Week</option>
+						<option value="this-month">This Month</option>
+						<option value="last-month">Last Month</option>
+						<option value="this-quarter">This Quarter</option>
+					</select>
+					<select
+						bind:value={selectedTeamId}
+						onchange={updateFilters}
+						class="rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+					>
+						<option value="">All Teams</option>
+						<option value="engineering">Engineering</option>
+						<option value="marketing">Marketing</option>
+						<option value="sales">Sales</option>
+						<option value="hr">Human Resources</option>
+					</select>
+				</div>
+			</div>
 			<div class="space-y-4">
 				{#each performanceMetrics as metric}
 					{@const progressColor = getProgressColor(metric.value, metric.target)}

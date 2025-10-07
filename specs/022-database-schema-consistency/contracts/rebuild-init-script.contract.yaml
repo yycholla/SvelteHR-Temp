@@ -1,0 +1,343 @@
+openapi: 3.1.0
+info:
+  title: Init Script Rebuild CLI
+  version: 1.0.0
+  description: CLI tool for rebuilding initialization script from cumulative migrations
+
+paths:
+  /cli/rebuild-init-script:
+    post:
+      summary: Rebuild initialization script from migration files
+      description: |
+        Applies all migration files sequentially to a temporary database, then
+        exports the resulting schema as a clean initialization script. Validates
+        that the init script produces identical schema to cumulative migrations.
+
+        This command satisfies FR-002, FR-015, FR-025.
+
+      operationId: rebuildInitScript
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                migrationsPath:
+                  type: string
+                  default: "./migrations"
+                  description: Directory containing migration files
+                initScriptPath:
+                  type: string
+                  default: "./migrations/00_init_schema.sql"
+                  description: Path to write initialization script
+                tempDatabaseUrl:
+                  type: string
+                  format: uri
+                  description: PostgreSQL connection for temporary database creation
+                  example: "postgresql://user:pass@localhost:5432/postgres"
+                schemaName:
+                  type: string
+                  default: "hr_public"
+                  description: PostgreSQL schema to export
+                validate:
+                  type: boolean
+                  default: true
+                  description: Validate init script produces identical schema to migrations
+                cleanDatabase:
+                  type: boolean
+                  default: true
+                  description: Drop temporary database after completion
+                includeComments:
+                  type: boolean
+                  default: true
+                  description: Include SQL comments in init script
+                prettify:
+                  type: boolean
+                  default: true
+                  description: Format SQL with indentation and newlines
+
+      responses:
+        '200':
+          description: Init script rebuilt and validated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RebuildResult'
+              examples:
+                success:
+                  summary: Successful rebuild with validation
+                  value:
+                    success: true
+                    initScriptPath: "./migrations/00_init_schema.sql"
+                    migrationsApplied: 25
+                    tablesCreated: 22
+                    indexesCreated: 47
+                    constraintsCreated: 38
+                    functionsCreated: 5
+                    triggersCreated: 8
+                    validationPassed: true
+                    executionTimeMs: 8500
+                    warnings: []
+                withWarnings:
+                  summary: Rebuild succeeded with validation warnings
+                  value:
+                    success: true
+                    initScriptPath: "./migrations/00_init_schema.sql"
+                    migrationsApplied: 25
+                    tablesCreated: 22
+                    validationPassed: true
+                    executionTimeMs: 9200
+                    warnings:
+                      - "Migration 20251001_003_temp_migration.sql contains temporary objects not in final schema"
+                      - "Init script is 15% larger than previous version"
+
+        '400':
+          description: Validation failed or invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                validationFailed:
+                  summary: Validation detected differences
+                  value:
+                    error: "VALIDATION_FAILED"
+                    message: "Init script schema does not match cumulative migration schema"
+                    details:
+                      differences:
+                        missingTables: 1
+                        extraIndexes: 2
+                      failedTable: "bulk_rollback_batches"
+                      recommendation: "Review migration files for inconsistencies"
+                noMigrations:
+                  summary: No migration files found
+                  value:
+                    error: "NO_MIGRATIONS_FOUND"
+                    message: "No migration files found in ./migrations"
+
+        '500':
+          description: Rebuild process failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                databaseError:
+                  summary: Database connection failed
+                  value:
+                    error: "DATABASE_ERROR"
+                    message: "Failed to create temporary database: connection timeout"
+                migrationError:
+                  summary: Migration application failed
+                  value:
+                    error: "MIGRATION_FAILED"
+                    message: "Migration 20251001_005_add_users.sql failed to apply"
+                    details:
+                      sqlError: "ERROR: relation 'departments' does not exist"
+                      line: 15
+                      failedMigration: "20251001_005_add_users.sql"
+
+components:
+  schemas:
+    RebuildResult:
+      type: object
+      required:
+        - success
+        - initScriptPath
+        - migrationsApplied
+        - validationPassed
+        - executionTimeMs
+      properties:
+        success:
+          type: boolean
+          description: Whether rebuild completed successfully
+        initScriptPath:
+          type: string
+          description: Path to generated initialization script
+        migrationsApplied:
+          type: integer
+          minimum: 0
+          description: Number of migration files applied
+        tablesCreated:
+          type: integer
+          minimum: 0
+          description: Number of tables in final schema
+        indexesCreated:
+          type: integer
+          minimum: 0
+          description: Number of indexes created
+        constraintsCreated:
+          type: integer
+          minimum: 0
+          description: Number of constraints created
+        functionsCreated:
+          type: integer
+          minimum: 0
+          description: Number of functions created
+        triggersCreated:
+          type: integer
+          minimum: 0
+          description: Number of triggers created
+        validationPassed:
+          type: boolean
+          description: Whether validation succeeded (if enabled)
+        validationDetails:
+          $ref: '#/components/schemas/ValidationDetails'
+        executionTimeMs:
+          type: integer
+          minimum: 0
+          description: Total execution time in milliseconds
+        warnings:
+          type: array
+          items:
+            type: string
+          description: Non-critical warnings during rebuild
+        tempDatabaseName:
+          type: string
+          description: Name of temporary database used (if not cleaned)
+
+    ValidationDetails:
+      type: object
+      properties:
+        initSchemaChecksum:
+          type: string
+          description: SHA-256 checksum of init script schema
+        migrationsChecksum:
+          type: string
+          description: SHA-256 checksum of cumulative migration schema
+        schemasMatch:
+          type: boolean
+          description: Whether checksums match exactly
+        differences:
+          type: object
+          description: Differences found during validation (if any)
+          properties:
+            missingTables:
+              type: integer
+            extraTables:
+              type: integer
+            missingColumns:
+              type: integer
+            extraColumns:
+              type: integer
+            missingIndexes:
+              type: integer
+            extraIndexes:
+              type: integer
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Machine-readable error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error context
+
+  rebuildProcess:
+    description: |
+      Rebuild process steps:
+
+      1. Create temporary database (e.g., hr_temp_20251003_103000)
+      2. Apply all migration files in lexicographical order
+      3. Export schema using pg_dump --schema-only --schema=hr_public
+      4. Clean and format exported SQL:
+         - Remove PostgreSQL version comments
+         - Remove pg_dump metadata
+         - Normalize whitespace and indentation
+         - Add header comment with generation timestamp
+      5. Write to init script path
+      6. Validate (if enabled):
+         - Create second temporary database
+         - Apply init script
+         - Apply all migrations to third temporary database
+         - Compare schemas using information_schema queries
+         - Assert: both schemas must be identical
+      7. Clean up temporary databases (if cleanDatabase=true)
+
+  initScriptFormat:
+    description: |
+      Generated initialization script format:
+
+      -- ============================================================
+      -- SvelteHR Database Initialization Script
+      -- Generated: 2025-10-03T10:30:00Z
+      -- PostgreSQL Version: 14.5
+      -- Schema: hr_public
+      --
+      -- This script was auto-generated from 25 migration files.
+      -- DO NOT EDIT MANUALLY - regenerate using rebuild-init-script
+      -- ============================================================
+
+      BEGIN;
+
+      -- Create schema
+      CREATE SCHEMA IF NOT EXISTS hr_public;
+
+      -- Set search path
+      SET search_path TO hr_public, public;
+
+      -- Tables
+      CREATE TABLE hr_public.users (
+        id SERIAL PRIMARY KEY,
+        email TEXT NOT NULL UNIQUE,
+        ...
+      );
+
+      CREATE TABLE hr_public.departments (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        ...
+      );
+
+      -- [Additional tables...]
+
+      -- Indexes
+      CREATE INDEX idx_users_email ON hr_public.users(email);
+      CREATE INDEX idx_departments_name ON hr_public.departments(name);
+
+      -- [Additional indexes...]
+
+      -- Foreign Keys
+      ALTER TABLE hr_public.employees
+        ADD CONSTRAINT fk_employees_department
+        FOREIGN KEY (department_id) REFERENCES hr_public.departments(id);
+
+      -- [Additional foreign keys...]
+
+      -- Functions
+      CREATE OR REPLACE FUNCTION hr_public.update_timestamp()
+      RETURNS TRIGGER AS $$
+      BEGIN
+        NEW.updated_at = now();
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+
+      -- [Additional functions...]
+
+      -- Triggers
+      CREATE TRIGGER trg_users_updated_at
+        BEFORE UPDATE ON hr_public.users
+        FOR EACH ROW
+        EXECUTE FUNCTION hr_public.update_timestamp();
+
+      -- [Additional triggers...]
+
+      COMMIT;
+
+  exitCodes:
+    description: |
+      CLI exit codes:
+      - 0: Success (init script rebuilt and validated)
+      - 1: Validation failed (init script does not match migrations)
+      - 2: Rebuild failed (database error, migration error, filesystem error)

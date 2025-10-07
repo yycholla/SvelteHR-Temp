@@ -191,6 +191,10 @@ export const load: PageServerLoad = async (event) => {
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);
 
+		// RBAC: Check if user can create reviews
+		const userRole = locals.user?.role || 'employee';
+		const canCreateReviews = ['admin', 'super_admin', 'hr_manager', 'manager'].includes(userRole);
+
 		return {
 			user: userPermissions.user,
 			userSession: userSession.toJSON(), // Convert UserSession to serializable object
@@ -206,6 +210,7 @@ export const load: PageServerLoad = async (event) => {
 			},
 			// RBAC: Standardized permission checks
 			...userPermissions,
+			canCreateReviews,
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {

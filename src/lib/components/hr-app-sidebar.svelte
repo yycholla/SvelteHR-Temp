@@ -28,7 +28,12 @@
 	import { currentUser, hasRole, authActions } from '$lib/stores/auth';
 	import { page } from '$app/stores';
 	import { themeStore } from '$lib/stores/theme';
+	import { notificationStore } from '$lib/stores/notifications';
 	import { goto } from '$app/navigation';
+	import NotificationDropdown from '$lib/components/notifications/NotificationDropdown.svelte';
+
+	// Subscribe to notification store
+	const notifications = $derived($notificationStore.notifications);
 
 	// Check user roles
 	const isSuperAdmin = hasRole('super_admin');
@@ -221,12 +226,13 @@
 </script>
 
 <div class="flex h-full flex-col bg-sidebar text-sidebar-foreground">
-	<!-- Header - Compact -->
-	<div class="px-4 py-4">
+	<!-- Header - Compact with Notifications -->
+	<div class="flex items-center justify-between px-4 py-4">
 		<a href="/dashboard" class="flex items-center gap-2 font-semibold">
 			<Building2 class="h-5 w-5 text-primary" />
 			<span class="text-base">SvelteHR</span>
 		</a>
+		<NotificationDropdown {notifications} />
 	</div>
 
 	<!-- Main Navigation - Collapsible -->

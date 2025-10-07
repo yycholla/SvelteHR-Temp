@@ -1,0 +1,682 @@
+openapi: 3.1.0
+info:
+  title: Schema Verification CLI
+  version: 1.0.0
+  description: CLI tool for verifying database schema consistency against version control
+
+paths:
+  /cli/verify-schema:
+    post:
+      summary: Verify database schema matches version control
+      description: |
+        Compares the actual database schema against the expected schema defined in
+        version control (initialization script + migration files). Generates a detailed
+        verification report with differences and recommended actions.
+
+        This command satisfies FR-006, FR-007, FR-008, FR-009, FR-009a.
+
+      operationId: verifySchema
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - environment
+                - databaseUrl
+              properties:
+                environment:
+                  type: string
+                  enum: [development, staging, production]
+                  description: Target environment for verification (per FR-009)
+                databaseUrl:
+                  type: string
+                  format: uri
+                  description: PostgreSQL connection string
+                  example: "postgresql://user:pass@localhost:5432/hr_db"
+                schemaName:
+                  type: string
+                  default: "hr_public"
+                  description: PostgreSQL schema to verify
+                migrationsPath:
+                  type: string
+                  default: "./migrations"
+                  description: Path to migration files directory
+                initScriptPath:
+                  type: string
+                  default: "./migrations/00_init_schema.sql"
+                  description: Path to initialization script
+                outputFormat:
+                  type: string
+                  enum: [json, markdown, both]
+                  default: "both"
+                  description: Output format for verification report
+                outputPath:
+                  type: string
+                  description: Optional path to write report files
+                failOnDifferences:
+                  type: boolean
+                  default: true
+                  description: Exit with code 1 if differences found (per FR-008)
+
+      responses:
+        '200':
+          description: Verification completed successfully (schema matches or informational mode)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationReport'
+              examples:
+                pass:
+                  summary: No differences found
+                  value:
+                    verificationId: "550e8400-e29b-41d4-a716-446655440000"
+                    runAt: "2025-10-03T10:30:00Z"
+                    environment: "development"
+                    verdict: "PASS"
+                    executionTimeMs: 4200
+                    diff:
+                      hasDifferences: false
+                      summary:
+                        totalDifferences: 0
+                warn:
+                  summary: Non-critical differences found
+                  value:
+                    verificationId: "550e8400-e29b-41d4-a716-446655440001"
+                    runAt: "2025-10-03T10:35:00Z"
+                    environment: "staging"
+                    verdict: "WARN"
+                    executionTimeMs: 4800
+                    diff:
+                      hasDifferences: true
+                      summary:
+                        totalDifferences: 3
+                        extraIndexes: 2
+                        missingIndexes: 1
+                    recommendedActions:
+                      - priority: "medium"
+                        action: "Remove extra index 'idx_users_email_temp' from database"
+                        automatable: true
+                        estimatedEffort: "5 minutes"
+
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "INVALID_ENVIRONMENT"
+                message: "Environment must be one of: development, staging, production"
+                details:
+                  field: "environment"
+                  value: "prod"
+
+        '401':
+          description: Database connection failed (authentication)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "DB_AUTH_FAILED"
+                message: "Failed to connect to database: authentication failed"
+
+        '500':
+          description: Verification process failed (verdict = ERROR)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationReport'
+              example:
+                verificationId: "550e8400-e29b-41d4-a716-446655440002"
+                runAt: "2025-10-03T10:40:00Z"
+                environment: "development"
+                verdict: "ERROR"
+                executionTimeMs: 1200
+                diff:
+                  hasDifferences: true
+                  summary:
+                    totalDifferences: -1
+                recommendedActions:
+                  - priority: "high"
+                    action: "Fix migration file syntax error in 20251001_005_add_users_table.sql"
+                    automatable: false
+                    estimatedEffort: "15 minutes"
+
+components:
+  schemas:
+    VerificationReport:
+      type: object
+      required:
+        - verificationId
+        - runAt
+        - environment
+        - verdict
+        - executionTimeMs
+        - diff
+        - recommendedActions
+      properties:
+        verificationId:
+          type: string
+          format: uuid
+          description: Unique identifier for this verification run
+        runAt:
+          type: string
+          format: date-time
+          description: ISO-8601 timestamp when verification started
+        environment:
+          type: string
+          enum: [development, staging, production]
+          description: Environment that was verified
+        schemaSource:
+          $ref: '#/components/schemas/SchemaMetadata'
+        schemaTarget:
+          $ref: '#/components/schemas/SchemaMetadata'
+        diff:
+          $ref: '#/components/schemas/SchemaDiff'
+        verdict:
+          type: string
+          enum: [PASS, WARN, FAIL, ERROR]
+          description: |
+            PASS = No differences
+            WARN = Differences found, non-critical
+            FAIL = Critical differences
+            ERROR = Verification process failed
+        executionTimeMs:
+          type: integer
+          minimum: 0
+          description: Time taken to complete verification in milliseconds
+        recommendedActions:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecommendedAction'
+
+    SchemaMetadata:
+      type: object
+      required:
+        - schemaName
+        - capturedAt
+        - postgresVersion
+        - tables
+      properties:
+        schemaName:
+          type: string
+          example: "hr_public"
+        capturedAt:
+          type: string
+          format: date-time
+        postgresVersion:
+          type: string
+          pattern: '^\d+\.\d+$'
+          example: "14.5"
+        tables:
+          type: array
+          items:
+            $ref: '#/components/schemas/TableDefinition'
+        functions:
+          type: array
+          items:
+            $ref: '#/components/schemas/FunctionDefinition'
+        triggers:
+          type: array
+          items:
+            $ref: '#/components/schemas/TriggerDefinition'
+
+    TableDefinition:
+      type: object
+      required:
+        - tableName
+        - columns
+      properties:
+        tableName:
+          type: string
+          pattern: '^[a-z_][a-z0-9_]*$'
+        columns:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ColumnDefinition'
+        primaryKey:
+          $ref: '#/components/schemas/PrimaryKeyConstraint'
+        foreignKeys:
+          type: array
+          items:
+            $ref: '#/components/schemas/ForeignKeyConstraint'
+        uniqueConstraints:
+          type: array
+          items:
+            $ref: '#/components/schemas/UniqueConstraint'
+        checkConstraints:
+          type: array
+          items:
+            $ref: '#/components/schemas/CheckConstraint'
+        indexes:
+          type: array
+          items:
+            $ref: '#/components/schemas/IndexDefinition'
+        rowCount:
+          type: integer
+          minimum: 0
+
+    ColumnDefinition:
+      type: object
+      required:
+        - columnName
+        - ordinalPosition
+        - dataType
+        - isNullable
+      properties:
+        columnName:
+          type: string
+          pattern: '^[a-z_][a-z0-9_]*$'
+        ordinalPosition:
+          type: integer
+          minimum: 1
+        dataType:
+          type: string
+          description: Normalized PostgreSQL type (e.g., "integer" not "int4")
+        isNullable:
+          type: boolean
+        defaultValue:
+          type: string
+          nullable: true
+        characterMaximumLength:
+          type: integer
+          nullable: true
+        numericPrecision:
+          type: integer
+          nullable: true
+        numericScale:
+          type: integer
+          nullable: true
+        isGenerated:
+          type: boolean
+        generationExpression:
+          type: string
+          nullable: true
+
+    PrimaryKeyConstraint:
+      type: object
+      required:
+        - constraintName
+        - columns
+      properties:
+        constraintName:
+          type: string
+        columns:
+          type: array
+          minItems: 1
+          items:
+            type: string
+
+    ForeignKeyConstraint:
+      type: object
+      required:
+        - constraintName
+        - columns
+        - referencedTable
+        - referencedColumns
+        - onDelete
+        - onUpdate
+      properties:
+        constraintName:
+          type: string
+        columns:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        referencedTable:
+          type: string
+        referencedColumns:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        onDelete:
+          type: string
+          enum: [CASCADE, SET NULL, RESTRICT, NO ACTION, SET DEFAULT]
+        onUpdate:
+          type: string
+          enum: [CASCADE, SET NULL, RESTRICT, NO ACTION, SET DEFAULT]
+
+    UniqueConstraint:
+      type: object
+      required:
+        - constraintName
+        - columns
+        - isDeferrable
+        - isInitiallyDeferred
+      properties:
+        constraintName:
+          type: string
+        columns:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        isDeferrable:
+          type: boolean
+        isInitiallyDeferred:
+          type: boolean
+
+    CheckConstraint:
+      type: object
+      required:
+        - constraintName
+        - checkClause
+        - isDeferrable
+        - isInitiallyDeferred
+      properties:
+        constraintName:
+          type: string
+        checkClause:
+          type: string
+          description: SQL expression for check constraint
+        isDeferrable:
+          type: boolean
+        isInitiallyDeferred:
+          type: boolean
+
+    IndexDefinition:
+      type: object
+      required:
+        - indexName
+        - columns
+        - isUnique
+        - indexType
+        - indexDefinition
+      properties:
+        indexName:
+          type: string
+        columns:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        isUnique:
+          type: boolean
+        indexType:
+          type: string
+          enum: [BTREE, HASH, GIN, GIST, SP-GIST, BRIN]
+        whereClause:
+          type: string
+          nullable: true
+          description: Partial index predicate
+        indexDefinition:
+          type: string
+          description: Full CREATE INDEX statement
+
+    FunctionDefinition:
+      type: object
+      required:
+        - functionName
+        - functionSchema
+        - returnType
+        - language
+        - functionDefinition
+      properties:
+        functionName:
+          type: string
+        functionSchema:
+          type: string
+        returnType:
+          type: string
+        language:
+          type: string
+          enum: [plpgsql, sql, c, internal]
+        functionDefinition:
+          type: string
+          description: Full CREATE FUNCTION statement
+        arguments:
+          type: array
+          items:
+            $ref: '#/components/schemas/FunctionArgument'
+
+    FunctionArgument:
+      type: object
+      required:
+        - argType
+        - argMode
+      properties:
+        argName:
+          type: string
+          nullable: true
+        argType:
+          type: string
+        argMode:
+          type: string
+          enum: [IN, OUT, INOUT, VARIADIC]
+        defaultValue:
+          type: string
+          nullable: true
+
+    TriggerDefinition:
+      type: object
+      required:
+        - triggerName
+        - tableName
+        - timing
+        - events
+        - level
+        - functionName
+        - triggerDefinition
+      properties:
+        triggerName:
+          type: string
+        tableName:
+          type: string
+        timing:
+          type: string
+          enum: [BEFORE, AFTER, INSTEAD OF]
+        events:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            enum: [INSERT, UPDATE, DELETE, TRUNCATE]
+        level:
+          type: string
+          enum: [ROW, STATEMENT]
+        whenCondition:
+          type: string
+          nullable: true
+        functionName:
+          type: string
+        triggerDefinition:
+          type: string
+          description: Full CREATE TRIGGER statement
+
+    SchemaDiff:
+      type: object
+      required:
+        - sourceSchema
+        - targetSchema
+        - comparedAt
+        - hasDifferences
+        - tableDiffs
+        - summary
+      properties:
+        sourceSchema:
+          type: string
+          description: Source schema name (e.g., "version control")
+        targetSchema:
+          type: string
+          description: Target schema name (e.g., "production database")
+        comparedAt:
+          type: string
+          format: date-time
+        hasDifferences:
+          type: boolean
+        tableDiffs:
+          type: array
+          items:
+            $ref: '#/components/schemas/TableDiff'
+        summary:
+          $ref: '#/components/schemas/DiffSummary'
+
+    TableDiff:
+      type: object
+      required:
+        - tableName
+        - diffType
+      properties:
+        tableName:
+          type: string
+        diffType:
+          type: string
+          enum: [missing, extra, modified]
+        columnDiffs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ColumnDiff'
+        constraintDiffs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConstraintDiff'
+        indexDiffs:
+          type: array
+          items:
+            $ref: '#/components/schemas/IndexDiff'
+
+    ColumnDiff:
+      type: object
+      required:
+        - columnName
+        - diffType
+      properties:
+        columnName:
+          type: string
+        diffType:
+          type: string
+          enum: [missing, extra, type_mismatch, nullability_mismatch, default_mismatch]
+        sourceValue:
+          description: Value in source schema
+        targetValue:
+          description: Value in target schema
+
+    ConstraintDiff:
+      type: object
+      required:
+        - constraintName
+        - constraintType
+        - diffType
+      properties:
+        constraintName:
+          type: string
+        constraintType:
+          type: string
+          enum: [primary_key, foreign_key, unique, check]
+        diffType:
+          type: string
+          enum: [missing, extra, definition_mismatch]
+        sourceDefinition:
+          type: string
+        targetDefinition:
+          type: string
+
+    IndexDiff:
+      type: object
+      required:
+        - indexName
+        - diffType
+      properties:
+        indexName:
+          type: string
+        diffType:
+          type: string
+          enum: [missing, extra, definition_mismatch]
+        sourceDefinition:
+          type: string
+        targetDefinition:
+          type: string
+
+    DiffSummary:
+      type: object
+      required:
+        - missingTables
+        - extraTables
+        - modifiedTables
+        - missingColumns
+        - extraColumns
+        - modifiedColumns
+        - missingIndexes
+        - extraIndexes
+        - totalDifferences
+      properties:
+        missingTables:
+          type: integer
+          minimum: 0
+        extraTables:
+          type: integer
+          minimum: 0
+        modifiedTables:
+          type: integer
+          minimum: 0
+        missingColumns:
+          type: integer
+          minimum: 0
+        extraColumns:
+          type: integer
+          minimum: 0
+        modifiedColumns:
+          type: integer
+          minimum: 0
+        missingIndexes:
+          type: integer
+          minimum: 0
+        extraIndexes:
+          type: integer
+          minimum: 0
+        totalDifferences:
+          type: integer
+          minimum: 0
+          description: Sum of all individual difference counts
+
+    RecommendedAction:
+      type: object
+      required:
+        - priority
+        - action
+        - automatable
+        - estimatedEffort
+      properties:
+        priority:
+          type: string
+          enum: [high, medium, low]
+        action:
+          type: string
+          description: Human-readable description of recommended action
+        automatable:
+          type: boolean
+          description: Whether this action can be automated via migration generation
+        estimatedEffort:
+          type: string
+          description: Estimated time to complete
+          example: "5 minutes"
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Machine-readable error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error context
+
+  exitCodes:
+    description: |
+      CLI exit codes:
+      - 0: PASS (no differences or informational mode)
+      - 1: WARN or FAIL (differences found and failOnDifferences=true)
+      - 2: ERROR (verification process failed)

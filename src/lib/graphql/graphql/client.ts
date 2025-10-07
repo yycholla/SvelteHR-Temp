@@ -15,10 +15,8 @@ import { createPerformanceExchange } from '$lib/performance/graphql-performance-
  * - Retry logic and rate limiting
  */
 
-// PostGraphile GraphQL endpoint - use directly for better integration
-const POSTGRAPHILE_GRAPHQL_URL = browser
-	? 'http://localhost:4000/graphql' // Direct to PostGraphile in browser
-	: 'http://localhost:4000/graphql'; // Direct to PostGraphile on server
+// Default GraphQL endpoint for browser
+const DEFAULT_GRAPHQL_URL = 'http://localhost:4000/graphql';
 const POSTGRAPHILE_GRAPHQL_WS_URL = 'ws://localhost:4000/graphql'; // Direct to PostGraphile for WebSockets if needed
 
 // WebSocket subscriptions are disabled for PostGraphile (doesn't support WebSockets by default)
@@ -180,10 +178,26 @@ const retryConfig = retryExchange({
 });
 
 // Create the main GraphQL client
-export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string) => {
+export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string, url?: string) => {
 	// Override auth token if provided (for testing/SSR)
 	if (authToken && browser) {
 		setAuthState({ token: authToken });
+	}
+
+	// Determine GraphQL URL
+	let graphqlUrl = url || DEFAULT_GRAPHQL_URL;
+
+	// If running on server without explicit URL, try to get from environment
+	if (!browser && !url) {
+		try {
+			// Use VITE_API_URL if available (containerized environment)
+			const viteApiUrl = process.env.VITE_API_URL;
+			if (viteApiUrl) {
+				graphqlUrl = `${viteApiUrl}/graphql`;
+			}
+		} catch {
+			// Use default if environment check fails
+		}
 	}
 
 	const exchanges = [
@@ -218,7 +232,7 @@ export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string) => 
 	// }
 
 	return new Client({
-		url: POSTGRAPHILE_GRAPHQL_URL,
+		url: graphqlUrl,
 		exchanges,
 		fetch: fetchFn,
 		fetchOptions: () => {

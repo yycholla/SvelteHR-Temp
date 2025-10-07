@@ -48,8 +48,7 @@
 		formatDateRange,
 		getLeaveTypeColor,
 		leaveTypeOptions,
-		leaveStatusOptions,
-		createLeaveManagementOperations
+		leaveStatusOptions
 	} from '$lib/graphql/queries/leave-requests';
 
 	// Page data from server
@@ -83,60 +82,98 @@
 	const canViewAllLeave = $derived(data.canViewAllLeave);
 
 	// Local state for UI
-	let selectedView = $state('pending');
+	let selectedView = $state(data.filters.statusFilter || 'pending');
 	let selectedRequests = $state<string[]>([]);
 	let showApprovalModal = $state(false);
 	let showDenialModal = $state(false);
+	let showRevertModal = $state(false);
 	let currentRequest = $state<any>(null);
 	let managerComments = $state('');
 	let isSubmitting = $state(false);
 	let searchQuery = $state(data.filters.searchTerm || '');
 	let statusFilter = $state(data.filters.statusFilter || 'pending');
 	let leaveTypeFilter = $state(data.filters.leaveTypeFilter || '');
+	let timePeriod = $state<'weekly' | 'monthly' | 'quarterly' | 'yearly' | 'all'>('all');
+
+	// Get metrics for selected time period
+	const currentMetrics = $derived.by(() => {
+		if (timePeriod === 'all') {
+			return {
+				total: data.totalRequests,
+				pending: data.leaveStats.pendingCount,
+				approved: data.leaveStats.approvedCount,
+				rejected: data.leaveStats.rejectedCount,
+				approvalRate: data.leaveStats.approvalRate,
+				totalDaysRequested: data.leaveStats.totalDaysRequested
+			};
+		}
+		return data.leaveStats[timePeriod] || {
+			total: 0,
+			pending: 0,
+			approved: 0,
+			rejected: 0,
+			approvalRate: 0,
+			totalDaysRequested: 0
+		};
+	});
+
+	// Get period label for descriptions
+	const periodLabel = $derived.by(() => {
+		switch (timePeriod) {
+			case 'weekly':
+				return 'this week';
+			case 'monthly':
+				return 'this month';
+			case 'quarterly':
+				return 'this quarter';
+			case 'yearly':
+				return 'this year';
+			default:
+				return 'all time';
+		}
+	});
 
 	// Statistics cards data
 	const statsCards = $derived([
 		{
 			title: 'Pending Requests',
-			value: data.leaveStats.pendingCount,
-			description: 'Awaiting your approval',
+			value: timePeriod === 'all' ? data.leaveStats.pendingCount : currentMetrics.pending,
+			description: `Awaiting your approval`,
 			icon: Clock,
 			color: 'bg-yellow-50 text-yellow-700 border-yellow-200',
 			iconColor: 'text-yellow-600'
 		},
 		{
-			title: 'Approved This Month',
-			value: data.leaveStats.approvedCount,
-			description: 'Successfully approved',
+			title: `Approved ${periodLabel === 'all time' ? '(All Time)' : ''}`,
+			value: currentMetrics.approved,
+			description: `Approved ${periodLabel}`,
 			icon: Check,
 			color: 'bg-green-50 text-green-700 border-green-200',
 			iconColor: 'text-green-600'
 		},
 		{
-			title: 'Total Days Requested',
-			value: data.leaveStats.totalDaysRequested,
-			description: 'Days across all requests',
+			title: 'Days Requested',
+			value: currentMetrics.totalDaysRequested,
+			description: `Days ${periodLabel}`,
 			icon: Calendar,
 			color: 'bg-blue-50 text-blue-700 border-blue-200',
 			iconColor: 'text-blue-600'
 		},
 		{
 			title: 'Approval Rate',
-			value: `${data.leaveStats.approvalRate}%`,
-			description: 'Historical approval rate',
+			value: `${currentMetrics.approvalRate}%`,
+			description: `Approval rate ${periodLabel}`,
 			icon: TrendingUp,
 			color: 'bg-purple-50 text-purple-700 border-purple-200',
 			iconColor: 'text-purple-600'
 		}
 	]);
 
-	// Filter and display logic
-	const filteredRequests = $derived(() => {
+	// Filter and display logic (server already filters by status)
+	const filteredRequests = $derived.by(() => {
 		let filtered = leaveRequests;
 
-		if (selectedView !== 'all') {
-			filtered = filtered.filter((request) => request.status === selectedView);
-		}
+		// Note: Status filtering is done server-side, no need to filter by selectedView here
 
 		if (searchQuery) {
 			const query = searchQuery.toLowerCase();
@@ -155,7 +192,7 @@
 		return filtered;
 	});
 
-	// Handlers for approve/deny actions
+	// Handlers for approve/deny/revert actions
 	async function handleApprove(request: any) {
 		currentRequest = request;
 		showApprovalModal = true;
@@ -166,36 +203,52 @@
 		showDenialModal = true;
 	}
 
+	async function handleRevert(request: any) {
+		currentRequest = request;
+		showRevertModal = true;
+	}
+
 	async function confirmApproval() {
 		if (!currentRequest || !canApproveLeave) return;
 
 		isSubmitting = true;
 
 		try {
-			// In a real app, this would be a form action or API call
-			// For now, we'll use client-side operations for the action
-			const leaveOps = createLeaveManagementOperations(null);
+			const formData = new FormData();
+			formData.append('id', currentRequest.id);
+			formData.append('comments', managerComments || 'Approved');
 
-			await leaveOps.approveLeaveRequest({
-				id: currentRequest.id,
-				notes: managerComments,
-				userCredentials: {
-					userId: userSession.userId,
-					userEmail: userSession.userEmail,
-					role: userSession.role,
-					accessToken: userSession.accessToken
-				}
+			const response = await fetch('?/approve', {
+				method: 'POST',
+				body: formData
 			});
 
-			toast.success('Leave request approved successfully');
+			const result = await response.json();
 
-			// Refresh the page to get updated data
-			goto($page.url.pathname, { invalidateAll: true });
+			if (result.type === 'success') {
+				toast.success('Leave request approved successfully');
 
-			// Close modal and reset state
-			showApprovalModal = false;
-			currentRequest = null;
-			managerComments = '';
+				// Close modal first
+				showApprovalModal = false;
+				const tempRequest = currentRequest;
+				currentRequest = null;
+				managerComments = '';
+
+				// Optimistically remove from UI
+				data.leaveRequests = data.leaveRequests.filter(req => req.id !== tempRequest.id);
+				data.leaveStats.pendingCount--;
+				data.leaveStats.approvedCount++;
+				data.totalRequests = data.leaveRequests.length;
+
+				// Then reload data in background to sync with server
+				goto($page.url.pathname + $page.url.search, {
+					invalidateAll: true,
+					noScroll: true,
+					replaceState: true
+				});
+			} else {
+				toast.error(result.data?.message || 'Failed to approve leave request');
+			}
 		} catch (error) {
 			console.error('Failed to approve leave request:', error);
 			toast.error('Failed to approve leave request');
@@ -210,31 +263,99 @@
 		isSubmitting = true;
 
 		try {
-			const leaveOps = createLeaveManagementOperations(null);
+			const formData = new FormData();
+			formData.append('id', currentRequest.id);
+			formData.append('comments', managerComments);
 
-			await leaveOps.denyLeaveRequest({
-				id: currentRequest.id,
-				notes: managerComments,
-				userCredentials: {
-					userId: userSession.userId,
-					userEmail: userSession.userEmail,
-					role: userSession.role,
-					accessToken: userSession.accessToken
-				}
+			const response = await fetch('?/deny', {
+				method: 'POST',
+				body: formData
 			});
 
-			toast.success('Leave request denied');
+			const result = await response.json();
 
-			// Refresh the page to get updated data
-			goto($page.url.pathname, { invalidateAll: true });
+			if (result.type === 'success') {
+				toast.success('Leave request denied');
 
-			// Close modal and reset state
-			showDenialModal = false;
-			currentRequest = null;
-			managerComments = '';
+				// Close modal first
+				showDenialModal = false;
+				const tempRequest = currentRequest;
+				currentRequest = null;
+				managerComments = '';
+
+				// Optimistically remove from UI
+				data.leaveRequests = data.leaveRequests.filter(req => req.id !== tempRequest.id);
+				data.leaveStats.pendingCount--;
+				data.leaveStats.rejectedCount++;
+				data.totalRequests = data.leaveRequests.length;
+
+				// Then reload data in background to sync with server
+				goto($page.url.pathname + $page.url.search, {
+					invalidateAll: true,
+					noScroll: true,
+					replaceState: true
+				});
+			} else {
+				toast.error(result.data?.message || 'Failed to deny leave request');
+			}
 		} catch (error) {
 			console.error('Failed to deny leave request:', error);
 			toast.error('Failed to deny leave request');
+		} finally {
+			isSubmitting = false;
+		}
+	}
+
+	async function confirmRevert() {
+		if (!currentRequest || !canApproveLeave) return;
+
+		isSubmitting = true;
+
+		try {
+			const formData = new FormData();
+			formData.append('id', currentRequest.id);
+			formData.append('comments', managerComments || 'Reverted to pending for reconsideration');
+
+			const response = await fetch('?/revertToPending', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = await response.json();
+
+			if (result.type === 'success') {
+				toast.success('Leave request reverted to pending');
+
+				// Close modal first
+				showRevertModal = false;
+				const tempRequest = currentRequest;
+				currentRequest = null;
+				managerComments = '';
+
+				// Optimistically remove from UI
+				data.leaveRequests = data.leaveRequests.filter(req => req.id !== tempRequest.id);
+
+				// Update counts based on previous status
+				if (tempRequest.status === 'approved') {
+					data.leaveStats.approvedCount--;
+				} else if (tempRequest.status === 'rejected') {
+					data.leaveStats.rejectedCount--;
+				}
+				data.leaveStats.pendingCount++;
+				data.totalRequests = data.leaveRequests.length;
+
+				// Then reload data in background to sync with server
+				goto($page.url.pathname + $page.url.search, {
+					invalidateAll: true,
+					noScroll: true,
+					replaceState: true
+				});
+			} else {
+				toast.error(result.data?.message || 'Failed to revert leave request');
+			}
+		} catch (error) {
+			console.error('Failed to revert leave request:', error);
+			toast.error('Failed to revert leave request');
 		} finally {
 			isSubmitting = false;
 		}
@@ -326,6 +447,30 @@
 				</Button>
 			{/if}
 		</div>
+
+		<!-- Time Period Selector -->
+		<Card>
+			<CardContent class="p-4">
+				<div class="flex items-center justify-between">
+					<h3 class="text-sm font-medium text-muted-foreground">Statistics Period</h3>
+					<Tabs
+						value={timePeriod}
+						onValueChange={(value) => {
+							timePeriod = value as typeof timePeriod;
+						}}
+						class="w-auto"
+					>
+						<TabsList class="grid grid-cols-5">
+							<TabsTrigger value="weekly" class="text-xs">Weekly</TabsTrigger>
+							<TabsTrigger value="monthly" class="text-xs">Monthly</TabsTrigger>
+							<TabsTrigger value="quarterly" class="text-xs">Quarterly</TabsTrigger>
+							<TabsTrigger value="yearly" class="text-xs">Yearly</TabsTrigger>
+							<TabsTrigger value="all" class="text-xs">All Time</TabsTrigger>
+						</TabsList>
+					</Tabs>
+				</div>
+			</CardContent>
+		</Card>
 
 		<!-- Statistics Cards -->
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -441,6 +586,7 @@
 			value={selectedView}
 			onValueChange={(value) => {
 				selectedView = value;
+				handleStatusFilterChange(value);
 			}}
 		>
 			<TabsList class="grid w-full grid-cols-4">
@@ -536,27 +682,41 @@
 										</div>
 
 										<!-- Actions -->
-										{#if canApproveLeave && request.status === 'pending'}
-											<div class="ml-4 flex gap-2">
-												<Button
-													size="sm"
-													variant="outline"
-													onclick={() => handleApprove(request)}
-													class="border-green-200 text-green-600 hover:border-green-300 hover:text-green-700"
-												>
-													<Check class="mr-1 h-4 w-4" />
-													Approve
-												</Button>
-												<Button
-													size="sm"
-													variant="outline"
-													onclick={() => handleDeny(request)}
-													class="border-red-200 text-red-600 hover:border-red-300 hover:text-red-700"
-												>
-													<X class="mr-1 h-4 w-4" />
-													Deny
-												</Button>
-											</div>
+										{#if canApproveLeave}
+											{#if request.status === 'pending'}
+												<div class="ml-4 flex gap-2">
+													<Button
+														size="sm"
+														variant="outline"
+														onclick={() => handleApprove(request)}
+														class="border-green-200 text-green-600 hover:border-green-300 hover:text-green-700"
+													>
+														<Check class="mr-1 h-4 w-4" />
+														Approve
+													</Button>
+													<Button
+														size="sm"
+														variant="outline"
+														onclick={() => handleDeny(request)}
+														class="border-red-200 text-red-600 hover:border-red-300 hover:text-red-700"
+													>
+														<X class="mr-1 h-4 w-4" />
+														Deny
+													</Button>
+												</div>
+											{:else if request.status === 'approved' || request.status === 'rejected'}
+												<div class="ml-4">
+													<Button
+														size="sm"
+														variant="outline"
+														onclick={() => handleRevert(request)}
+														class="border-amber-200 text-amber-600 hover:border-amber-300 hover:text-amber-700"
+													>
+														<Clock class="mr-1 h-4 w-4" />
+														Revert to Pending
+													</Button>
+												</div>
+											{/if}
 										{/if}
 									</div>
 								</CardContent>
@@ -695,6 +855,74 @@
 				{:else}
 					<X class="mr-2 h-4 w-4" />
 					Deny Request
+				{/if}
+			</Button>
+		</DialogFooter>
+	</DialogContent>
+</Dialog>
+
+<!-- Revert to Pending Modal -->
+<Dialog bind:open={showRevertModal}>
+	<DialogContent class="max-w-2xl">
+		<DialogHeader>
+			<DialogTitle>Revert to Pending</DialogTitle>
+			<DialogDescription>
+				This will change the status of this leave request back to pending for reconsideration.
+			</DialogDescription>
+		</DialogHeader>
+
+		{#if currentRequest}
+			<div class="space-y-4">
+				<div class="rounded-lg bg-muted dark:bg-muted p-4">
+					<h4 class="mb-2 font-semibold">Request Details</h4>
+					<div class="space-y-1 text-sm">
+						<p><strong>Employee:</strong> {currentRequest.employee?.displayName}</p>
+						<p>
+							<strong>Leave Type:</strong>
+							{leaveTypeOptions.find((t) => t.value === currentRequest.leaveType)?.label}
+						</p>
+						<p>
+							<strong>Dates:</strong>
+							{formatDateRange(currentRequest.startDate, currentRequest.endDate)}
+						</p>
+						<p><strong>Duration:</strong> {currentRequest.daysRequested} days</p>
+						<p><strong>Current Status:</strong> <span class="capitalize">{currentRequest.status}</span></p>
+						{#if currentRequest.reason}
+							<p><strong>Reason:</strong> {currentRequest.reason}</p>
+						{/if}
+					</div>
+				</div>
+
+				<div>
+					<Label for="revert-comments">Reason for Reverting (Optional)</Label>
+					<Textarea
+						id="revert-comments"
+						placeholder="Optionally provide a reason for reverting this request to pending..."
+						bind:value={managerComments}
+						rows={3}
+					/>
+				</div>
+			</div>
+		{/if}
+
+		<DialogFooter>
+			<Button
+				variant="outline"
+				onclick={() => {
+					showRevertModal = false;
+				}}>Cancel</Button
+			>
+			<Button
+				variant="default"
+				onclick={confirmRevert}
+				disabled={isSubmitting}
+				class="bg-amber-600 hover:bg-amber-700"
+			>
+				{#if isSubmitting}
+					Reverting...
+				{:else}
+					<Clock class="mr-2 h-4 w-4" />
+					Revert to Pending
 				{/if}
 			</Button>
 		</DialogFooter>

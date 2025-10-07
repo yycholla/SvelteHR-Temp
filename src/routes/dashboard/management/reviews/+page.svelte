@@ -16,7 +16,8 @@
 		Star,
 		Clock,
 		CheckCircle,
-		AlertTriangle
+		AlertTriangle,
+		User
 	} from 'lucide-svelte';
 	import { toast } from 'svelte-sonner';
 
@@ -35,14 +36,8 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Avatar, AvatarFallback } from '$lib/components/ui/avatar';
 	import { Progress } from '$lib/components/ui/progress';
-	import {
-		Dialog,
-		DialogContent,
-		DialogDescription,
-		DialogFooter,
-		DialogHeader,
-		DialogTitle
-	} from '$lib/components/ui/dialog';
+	import * as Dialog from '$lib/components/ui/dialog';
+	import { ReviewCreationDialog } from '$lib/components/reviews';
 
 	import {
 		performanceRatings,
@@ -62,6 +57,7 @@
 			userSession: any;
 			performanceReviews: any[];
 			totalReviews: number;
+			employees: any[];
 			reviewAnalytics: any;
 			filters: any;
 			permissions: string[];
@@ -93,6 +89,32 @@
 	let statusFilter = $state(data.filters.statusFilter || '');
 	let periodFilter = $state(data.filters.periodFilter || '');
 	let departmentFilter = $state(data.filters.departmentFilter || '');
+
+	// Employee selector state
+	let showEmployeeSelector = $state(false);
+	let selectedEmployee = $state<any>(null);
+	let employeeSearchQuery = $state('');
+	let createDialogOpen = $state(false);
+
+	// Filtered employees for selector
+	const filteredEmployees = $derived.by(() => {
+		console.log('🔍 Employee data:', {
+			totalEmployees: data.employees?.length || 0,
+			employees: data.employees,
+			searchQuery: employeeSearchQuery
+		});
+
+		if (!employeeSearchQuery) return data.employees || [];
+
+		const query = employeeSearchQuery.toLowerCase();
+		return (data.employees || []).filter(
+			(emp: any) =>
+				emp.displayName?.toLowerCase().includes(query) ||
+				emp.email?.toLowerCase().includes(query) ||
+				emp.firstName?.toLowerCase().includes(query) ||
+				emp.lastName?.toLowerCase().includes(query)
+		);
+	});
 
 	// Statistics cards data
 	const statsCards = $derived([
@@ -295,6 +317,38 @@
 	function formatDate(dateString: string): string {
 		return new Date(dateString).toLocaleDateString();
 	}
+
+	// Open create dialog
+	function openCreateDialog() {
+		if (selectedEmployee) {
+			// If we already have a selected employee, open review dialog
+			createDialogOpen = true;
+		} else {
+			// Show employee selector first
+			showEmployeeSelector = true;
+		}
+	}
+
+	function handleEmployeeSelected(employee: any) {
+		selectedEmployee = employee;
+		showEmployeeSelector = false;
+		createDialogOpen = true;
+	}
+
+	// Handle create review
+	function handleCreateReview(event: CustomEvent) {
+		const { data: reviewData } = event.detail;
+		// TODO: Call GraphQL mutation
+		console.log('Create review:', reviewData);
+		toast.success('Review creation coming soon');
+	}
+
+	function handleSaveAsDraft(event: CustomEvent) {
+		const { data: draftData } = event.detail;
+		// TODO: Call GraphQL mutation to save draft
+		console.log('Save draft:', draftData);
+		toast.success('Draft save coming soon');
+	}
 </script>
 
 <svelte:head>
@@ -317,11 +371,7 @@
 			</div>
 
 			{#if canCreateReviews}
-				<Button
-					onclick={() => {
-						showCreateModal = true;
-					}}
-				>
+				<Button onclick={() => goto('/dashboard/reviews/create')}>
 					<Plus class="mr-2 h-4 w-4" />
 					New Review
 				</Button>
@@ -592,19 +642,21 @@
 </div>
 
 <!-- Review Details Modal -->
-<Dialog bind:open={showDetailsModal}>
-	<DialogContent class="max-w-4xl">
-		<DialogHeader>
-			<DialogTitle>Performance Review Details</DialogTitle>
-			<DialogDescription>
-				{#if currentReview}
-					Review for {currentReview.employee?.displayName} • {formatReviewPeriod(
-						currentReview.reviewPeriodStart,
-						currentReview.reviewPeriodEnd
-					)}
-				{/if}
-			</DialogDescription>
-		</DialogHeader>
+<Dialog.Root bind:open={showDetailsModal}>
+	<Dialog.Portal>
+		<Dialog.Overlay />
+		<Dialog.Content class="max-w-4xl">
+			<Dialog.Header>
+				<Dialog.Title>Performance Review Details</Dialog.Title>
+				<Dialog.Description>
+					{#if currentReview}
+						Review for {currentReview.employee?.displayName} • {formatReviewPeriod(
+							currentReview.reviewPeriodStart,
+							currentReview.reviewPeriodEnd
+						)}
+					{/if}
+				</Dialog.Description>
+			</Dialog.Header>
 
 		{#if currentReview}
 			<div class="max-h-96 space-y-6 overflow-y-auto">
@@ -704,52 +756,96 @@
 			</div>
 		{/if}
 
-		<DialogFooter>
-			<Button
-				variant="outline"
-				onclick={() => {
-					showDetailsModal = false;
-				}}>Close</Button
-			>
-			{#if canEditReviews && currentReview && currentReview.status !== 'completed'}
-				<Button href={`/dashboard/management/reviews/${currentReview.id}/edit`}>Edit Review</Button>
-			{/if}
-		</DialogFooter>
-	</DialogContent>
-</Dialog>
+			<Dialog.Footer>
+				<Button
+					variant="outline"
+					onclick={() => {
+						showDetailsModal = false;
+					}}>Close</Button
+				>
+				{#if canEditReviews && currentReview && currentReview.status !== 'completed'}
+					<Button href={`/dashboard/management/reviews/${currentReview.id}/edit`}>Edit Review</Button>
+				{/if}
+			</Dialog.Footer>
+		</Dialog.Content>
+	</Dialog.Portal>
+</Dialog.Root>
 
-<!-- Create Review Modal -->
-<Dialog bind:open={showCreateModal}>
-	<DialogContent>
-		<DialogHeader>
-			<DialogTitle>Create New Performance Review</DialogTitle>
-			<DialogDescription>
-				Start a new performance review process for a team member.
-			</DialogDescription>
-		</DialogHeader>
+<!-- Employee Selector Dialog -->
+<Dialog.Root bind:open={showEmployeeSelector}>
+	<Dialog.Portal>
+		<Dialog.Overlay />
+		<Dialog.Content class="max-w-2xl max-h-[80vh]">
+			<Dialog.Header>
+				<Dialog.Title>Select Employee for Review</Dialog.Title>
+				<Dialog.Description>
+					Choose an employee to create a performance review for
+				</Dialog.Description>
+			</Dialog.Header>
 
-		<div class="py-8 text-center">
-			<Award class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-			<p class="mb-4 text-muted-foreground">
-				Performance review creation form will be implemented in the next phase.
-			</p>
-			<Button
-				variant="outline"
-				onclick={() => {
-					showCreateModal = false;
-				}}
-			>
-				Coming Soon
-			</Button>
-		</div>
+			<div class="space-y-4 py-4">
+				<!-- Search Input -->
+				<div class="relative">
+					<Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+					<Input
+						type="text"
+						placeholder="Search employees by name or email..."
+						bind:value={employeeSearchQuery}
+						class="pl-9"
+					/>
+				</div>
 
-		<DialogFooter>
-			<Button
-				variant="outline"
-				onclick={() => {
-					showCreateModal = false;
-				}}>Cancel</Button
-			>
-		</DialogFooter>
-	</DialogContent>
-</Dialog>
+				<!-- Employee List -->
+				<div class="border rounded-md max-h-96 overflow-y-auto">
+					{#if filteredEmployees.length === 0}
+						<div class="p-8 text-center text-muted-foreground">
+							<User class="h-12 w-12 mx-auto mb-2 opacity-50" />
+							<p>No employees found</p>
+							{#if employeeSearchQuery}
+								<p class="text-sm mt-1">Try adjusting your search</p>
+							{/if}
+						</div>
+					{:else}
+						<div class="divide-y">
+							{#each filteredEmployees as employee (employee.id)}
+								<button
+									type="button"
+									class="w-full p-4 text-left hover:bg-accent transition-colors flex items-center gap-3"
+									onclick={() => handleEmployeeSelected(employee)}
+								>
+									<div class="flex-1">
+										<div class="font-medium">{employee.displayName}</div>
+										<div class="text-sm text-muted-foreground">{employee.email}</div>
+									</div>
+									<Badge variant="outline">
+										{employee.firstName} {employee.lastName}
+									</Badge>
+								</button>
+							{/each}
+						</div>
+					{/if}
+				</div>
+			</div>
+
+			<Dialog.Footer>
+				<Button variant="outline" onclick={() => (showEmployeeSelector = false)}>
+					Cancel
+				</Button>
+			</Dialog.Footer>
+		</Dialog.Content>
+	</Dialog.Portal>
+</Dialog.Root>
+
+<!-- Create Review Dialog -->
+{#if selectedEmployee}
+	<ReviewCreationDialog
+		bind:open={createDialogOpen}
+		employee={selectedEmployee}
+		availableGoals={[]}
+		reviewTypesMetadata={[]}
+		loading={false}
+		on:createReview={handleCreateReview}
+		on:saveAsDraft={handleSaveAsDraft}
+		on:cancel={() => (createDialogOpen = false)}
+	/>
+{/if}

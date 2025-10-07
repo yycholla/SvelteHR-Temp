@@ -59,13 +59,12 @@ CREATE OR REPLACE FUNCTION hr_hidden.is_user_admin()
 RETURNS BOOLEAN AS $$
 BEGIN
     RETURN current_setting('jwt.claims.role', true)::text = 'admin'
-        OR current_setting('jwt.claims.role', true)::text = 'hr_admin'
-        OR current_setting('jwt.claims.role', true)::text = 'hr_super_admin';
+        OR current_setting('jwt.claims.role', true)::text = 'super_admin';
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 
 COMMENT ON FUNCTION hr_hidden.is_user_admin() IS
-    'Returns true if the current user has admin role (admin, hr_admin, or hr_super_admin)';
+    'Returns true if the current user has admin or super_admin role';
 
 -- ============================================================================
 -- LEAVE REQUESTS RLS POLICIES
@@ -384,9 +383,9 @@ CREATE POLICY employee_view_own_time_off_balances
 -- ============================================================================
 
 -- Grant execute on helper functions to roles
-GRANT EXECUTE ON FUNCTION hr_hidden.current_user_department_id() TO hr_guest, hr_employee, hr_manager, hr_admin, hr_super_admin;
-GRANT EXECUTE ON FUNCTION hr_hidden.is_user_manager() TO hr_guest, hr_employee, hr_manager, hr_admin, hr_super_admin;
-GRANT EXECUTE ON FUNCTION hr_hidden.is_user_admin() TO hr_guest, hr_employee, hr_manager, hr_admin, hr_super_admin;
+GRANT EXECUTE ON FUNCTION hr_hidden.current_user_department_id() TO guest, employee, manager, admin, super_admin;
+GRANT EXECUTE ON FUNCTION hr_hidden.is_user_manager() TO guest, employee, manager, admin, super_admin;
+GRANT EXECUTE ON FUNCTION hr_hidden.is_user_admin() TO guest, employee, manager, admin, super_admin;
 
 -- ============================================================================
 -- VALIDATION QUERY

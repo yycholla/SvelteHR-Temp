@@ -320,6 +320,6 @@ ALTER TABLE hr_public.activity_logs ADD CONSTRAINT activity_logs_user_id_fkey FO
 ALTER TABLE hr_public.activity_logs ADD CONSTRAINT activity_logs_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES hr_public.users(id) ON DELETE CASCADE;
 
 -- Grant schema access permissions (added during initialization file reorganization)
-GRANT USAGE ON SCHEMA hr_public TO hr_guest, hr_employee, hr_manager, hr_admin, hr_super_admin;
-GRANT USAGE ON SCHEMA hr_private TO hr_admin, hr_super_admin;
-GRANT USAGE ON SCHEMA hr_hidden TO hr_super_admin;
+GRANT USAGE ON SCHEMA hr_public TO guest, employee, manager, admin, super_admin;
+GRANT USAGE ON SCHEMA hr_private TO admin, super_admin;
+GRANT USAGE ON SCHEMA hr_hidden TO super_admin;

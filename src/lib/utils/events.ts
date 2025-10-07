@@ -2,8 +2,8 @@
 // Feature: 019-we-need-to - Task T018
 // Purpose: Business logic helpers for event operations
 
+import type { Event } from '$lib/graphql/events-operations';
 import type {
-	Event,
 	EventVisibilityType,
 	RsvpStatus,
 	EventStatus
@@ -13,7 +13,7 @@ import type {
  * Check if a user can view an event based on visibility rules
  * @param event - The event to check
  * @param userId - Current user's employee ID
- * @param userDepartmentId - Current user's department ID
+ * @param userDepartmentId - Current user's department ID (unused for now)
  * @returns true if user can view the event
  */
 export function canUserViewEvent(
@@ -21,35 +21,21 @@ export function canUserViewEvent(
 	userId: string,
 	userDepartmentId: string | null
 ): boolean {
-	// Company-wide events are visible to all authenticated users
-	if (event.visibilityType === 'company') {
+	// Public events are visible to all authenticated users
+	if (event.isPublic) {
 		return true;
 	}
 
-	// Department events visible to department members
-	if (event.visibilityType === 'department') {
-		return event.departmentId === userDepartmentId;
-	}
-
-	// Specific people events visible to invited attendees
-	if (event.visibilityType === 'specific') {
-		if (!event.eventAttendees) return false;
-		return event.eventAttendees.nodes.some((attendee) => attendee.employeeId === userId);
-	}
-
-	return false;
+	// Private events visible to invited attendees only
+	if (!event.eventAttendeesByEventId) return false;
+	return event.eventAttendeesByEventId.nodes.some((attendee) => attendee.employeeId === userId);
 }
 
 /**
- * Get human-readable label for event visibility type
+ * Get human-readable label for event visibility
  */
-export function getEventVisibilityLabel(visibilityType: EventVisibilityType): string {
-	const labels: Record<EventVisibilityType, string> = {
-		company: 'Company-Wide',
-		department: 'Department Only',
-		specific: 'Specific People'
-	};
-	return labels[visibilityType] || visibilityType;
+export function getEventVisibilityLabel(isPublic: boolean): string {
+	return isPublic ? 'Company-Wide' : 'Private';
 }
 
 /**
@@ -57,7 +43,7 @@ export function getEventVisibilityLabel(visibilityType: EventVisibilityType): st
  */
 export function isEventUpcoming(event: Event): boolean {
 	const now = new Date();
-	const startDate = new Date(event.startDate);
+	const startDate = new Date(event.startTime);
 	return startDate > now;
 }
 
@@ -66,8 +52,8 @@ export function isEventUpcoming(event: Event): boolean {
  */
 export function isEventOngoing(event: Event): boolean {
 	const now = new Date();
-	const startDate = new Date(event.startDate);
-	const endDate = new Date(event.endDate);
+	const startDate = new Date(event.startTime);
+	const endDate = new Date(event.endTime);
 	return startDate <= now && now <= endDate;
 }
 
@@ -76,7 +62,7 @@ export function isEventOngoing(event: Event): boolean {
  */
 export function isEventPast(event: Event): boolean {
 	const now = new Date();
-	const endDate = new Date(event.endDate);
+	const endDate = new Date(event.endTime);
 	return endDate < now;
 }
 
@@ -117,13 +103,13 @@ export function calculateEventDuration(startDate: string, endDate: string): stri
  */
 export function getRsvpStatusColor(status: RsvpStatus): string {
 	const colorMap: Record<RsvpStatus, string> = {
-		accepted: 'bg-green-100 text-green-800',
-		declined: 'bg-red-100 text-red-800',
-		tentative: 'bg-yellow-100 text-yellow-800',
-		pending: 'bg-blue-100 text-blue-800',
-		no_response: 'bg-gray-100 text-gray-800'
+		accepted: 'bg-primary/10 text-primary',
+		declined: 'bg-destructive/10 text-destructive',
+		tentative: 'bg-accent text-accent-foreground',
+		pending: 'bg-primary/10 text-primary',
+		no_response: 'bg-muted text-muted-foreground'
 	};
-	return colorMap[status] || 'bg-gray-100 text-gray-800';
+	return colorMap[status] || 'bg-muted text-muted-foreground';
 }
 
 /**
@@ -131,13 +117,13 @@ export function getRsvpStatusColor(status: RsvpStatus): string {
  */
 export function getEventStatusColor(status: EventStatus): string {
 	const colorMap: Record<EventStatus, string> = {
-		scheduled: 'bg-blue-100 text-blue-800',
-		ongoing: 'bg-green-100 text-green-800',
-		completed: 'bg-gray-100 text-gray-800',
-		cancelled: 'bg-red-100 text-red-800',
-		postponed: 'bg-yellow-100 text-yellow-800'
+		scheduled: 'bg-primary/10 text-primary',
+		ongoing: 'bg-accent text-accent-foreground',
+		completed: 'bg-muted text-muted-foreground',
+		cancelled: 'bg-destructive/10 text-destructive',
+		postponed: 'bg-accent text-accent-foreground'
 	};
-	return colorMap[status] || 'bg-gray-100 text-gray-800';
+	return colorMap[status] || 'bg-muted text-muted-foreground';
 }
 
 /**
@@ -163,7 +149,7 @@ export function filterEventsByDateRange(
 	endDate: Date
 ): Event[] {
 	return events.filter((event) => {
-		const eventStart = new Date(event.startDate);
+		const eventStart = new Date(event.startTime);
 		return eventStart >= startDate && eventStart <= endDate;
 	});
 }
@@ -173,9 +159,13 @@ export function filterEventsByDateRange(
  */
 export function filterEventsByVisibility(
 	events: Event[],
-	visibilityType: EventVisibilityType
+	visibilityType: string
 ): Event[] {
-	return events.filter((event) => event.visibilityType === visibilityType);
+	// Handle both isPublic boolean and visibilityType string
+	if (visibilityType === 'company') {
+		return events.filter((event) => event.isPublic === true);
+	}
+	return events.filter((event) => event.isPublic === false);
 }
 
 /**
@@ -183,8 +173,8 @@ export function filterEventsByVisibility(
  */
 export function sortEventsByDate(events: Event[], ascending = true): Event[] {
 	return [...events].sort((a, b) => {
-		const dateA = new Date(a.startDate).getTime();
-		const dateB = new Date(b.startDate).getTime();
+		const dateA = new Date(a.startTime).getTime();
+		const dateB = new Date(b.startTime).getTime();
 		return ascending ? dateA - dateB : dateB - dateA;
 	});
 }
@@ -196,7 +186,7 @@ export function groupEventsByMonth(events: Event[]): Map<string, Event[]> {
 	const grouped = new Map<string, Event[]>();
 
 	events.forEach((event) => {
-		const date = new Date(event.startDate);
+		const date = new Date(event.startTime);
 		const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
 		if (!grouped.has(monthKey)) {
@@ -217,7 +207,7 @@ export function getUpcomingEvents(events: Event[], daysAhead = 30): Event[] {
 	futureDate.setDate(now.getDate() + daysAhead);
 
 	return events.filter((event) => {
-		const eventStart = new Date(event.startDate);
+		const eventStart = new Date(event.startTime);
 		return eventStart >= now && eventStart <= futureDate;
 	});
 }
@@ -233,9 +223,9 @@ export function isEventOrganizer(event: Event, userId: string): boolean {
  * Get user's RSVP status for an event
  */
 export function getUserRsvpStatus(event: Event, userId: string): RsvpStatus | null {
-	if (!event.eventAttendees) return null;
+	if (!event.eventAttendeesByEventId) return null;
 
-	const attendee = event.eventAttendees.nodes.find((a) => a.employeeId === userId);
+	const attendee = event.eventAttendeesByEventId.nodes.find((a) => a.employeeId === userId);
 	return attendee ? attendee.responseStatus : null;
 }
 
@@ -251,9 +241,9 @@ export function countRsvpStatuses(event: Event): Record<RsvpStatus, number> {
 		no_response: 0
 	};
 
-	if (!event.eventAttendees) return counts;
+	if (!event.eventAttendeesByEventId) return counts;
 
-	event.eventAttendees.nodes.forEach((attendee) => {
+	event.eventAttendeesByEventId.nodes.forEach((attendee) => {
 		counts[attendee.responseStatus]++;
 	});
 

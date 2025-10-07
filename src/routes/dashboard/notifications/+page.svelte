@@ -59,9 +59,17 @@
 	// Mark notification as read
 	async function markAsRead(notificationId: string) {
 		try {
-			// TODO: Implement mark as read mutation
-			console.log('Mark as read:', notificationId);
-			// For now, reload the page
+			const response = await fetch('/api/notifications/mark-read', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ notificationIds: [notificationId] })
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to mark as read');
+			}
+
+			// Reload page to show updated state
 			window.location.reload();
 		} catch (err) {
 			console.error('Failed to mark as read:', err);
@@ -71,9 +79,23 @@
 	// Mark all as read
 	async function markAllAsRead() {
 		try {
-			// TODO: Implement mark all as read mutation
-			console.log('Mark all as read');
-			// For now, reload the page
+			const unreadIds = data.notifications
+				.filter((n) => !n.readStatus)
+				.map((n) => n.id);
+
+			if (unreadIds.length === 0) return;
+
+			const response = await fetch('/api/notifications/mark-read', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ notificationIds: unreadIds })
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to mark all as read');
+			}
+
+			// Reload page to show updated state
 			window.location.reload();
 		} catch (err) {
 			console.error('Failed to mark all as read:', err);
@@ -83,12 +105,21 @@
 	// Delete notification
 	async function deleteNotification(notificationId: string) {
 		try {
-			// TODO: Implement delete mutation
-			console.log('Delete notification:', notificationId);
-			// For now, reload the page
+			const response = await fetch('/api/notifications/delete', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ notificationId })
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to delete notification');
+			}
+
+			// Reload page to show updated list
 			window.location.reload();
 		} catch (err) {
 			console.error('Failed to delete notification:', err);
+			alert('Failed to delete notification. Please try again.');
 		}
 	}
 

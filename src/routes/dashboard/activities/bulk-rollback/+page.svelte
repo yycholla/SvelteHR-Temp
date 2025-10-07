@@ -17,6 +17,7 @@
 	import BulkRollbackDialog from '$lib/components/activities/BulkRollbackDialog.svelte';
 	import { RefreshCw, Calendar, Filter, FileText, AlertCircle } from 'lucide-svelte';
 	import { toast } from 'svelte-sonner';
+	import { formatActivityMessage } from '$lib/utils/activities';
 
 	interface Props {
 		data: {
@@ -325,11 +326,11 @@
 							/>
 							<div class="flex-1">
 								<div class="flex items-center justify-between">
-									<span class="font-medium">{log.resource_type}</span>
+									<span class="font-medium">{formatActivityMessage(log)}</span>
 									<Badge variant="outline">{log.action}</Badge>
 								</div>
 								<p class="text-sm text-muted-foreground">
-									{log.employee_name} • {new Date(log.created_at).toLocaleString()}
+									{log.employee?.name || 'Unknown'} • {new Date(log.createdAt).toLocaleString()}
 								</p>
 							</div>
 						</label>

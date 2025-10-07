@@ -191,6 +191,10 @@ export interface ActivityLog {
 	resourceType: ResourceType;
 	resourceId?: string;
 	details?: Record<string, any>;
+	beforeSnapshot?: Record<string, any>;
+	afterSnapshot?: Record<string, any>;
+	isRollback?: boolean;
+	rolledBackLogId?: string;
 	ipAddress?: string;
 	userAgent?: string;
 	createdAt: string;

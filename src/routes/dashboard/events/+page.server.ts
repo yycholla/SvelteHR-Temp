@@ -52,14 +52,12 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		};
 		const orderBy = orderByMap[sortBy] || 'START_TIME_ASC';
 
-		// Build filter for events based on visibility
-		// PostGraphile's condition expects direct values, not wrapped in equalTo
+		// Build filter for events based on actual schema fields
+		// PostGraphile's condition expects direct values
 		const filter: any = {};
 
-		if (visibilityFilter) {
-			filter.visibilityType = visibilityFilter;
-		}
-
+		// Note: events table has is_public (boolean), not visibility_type
+		// For now, we'll filter by status and type only
 		if (statusFilter) {
 			filter.status = statusFilter;
 		}
@@ -80,7 +78,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		// Fetch upcoming events without pagination for statistics
 		const upcomingEventsResult = await eventsOps.getUpcomingEvents({
 			limit: 1000, // Reasonable max for statistics
-			filter: visibilityFilter ? { visibilityType: visibilityFilter } : {},
+			filter: statusFilter ? { status: statusFilter } : {},
 			userCredentials
 		});
 
@@ -146,6 +144,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 // Helper function to get role level for authorization
 function getRoleLevel(role: string | undefined): number {
 	const roleLevels: Record<string, number> = {
+		super_admin: 200, // Highest level - system administrator
 		admin: 100,
 		hr_manager: 80,
 		manager: 60,

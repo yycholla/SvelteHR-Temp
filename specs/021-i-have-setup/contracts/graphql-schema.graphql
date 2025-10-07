@@ -1,0 +1,255 @@
+# GraphQL Schema Contract
+# Feature: 021-i-have-setup (Comprehensive Audit Logging)
+# Date: 2025-10-02
+
+# ============================================================================
+# MUTATIONS: Rollback Operations
+# ============================================================================
+
+type Mutation {
+  """
+  Execute rollback for a specific audit log entry (super_admin only)
+  FR-008: Revert any logged change back to its before-state
+  FR-009: Create new ROLLBACK audit log entry
+  FR-024: Requires explicit authorization
+  """
+  rollbackAuditLog(
+    input: RollbackAuditLogInput!
+  ): RollbackAuditLogPayload!
+
+  """
+  Request rollback approval (admin/hr_admin)
+  Creates rollback_requests entry for super_admin review
+  """
+  requestRollback(
+    input: RequestRollbackInput!
+  ): RequestRollbackPayload!
+
+  """
+  Approve rollback request (super_admin only)
+  Executes the rollback and updates request status
+  """
+  approveRollbackRequest(
+    input: ApproveRollbackRequestInput!
+  ): ApproveRollbackRequestPayload!
+}
+
+input RollbackAuditLogInput {
+  """Activity log ID to rollback"""
+  activityLogId: ID!
+
+  """Reason for rollback (required for audit trail)"""
+  reason: String!
+
+  """Optional: Force rollback even if current state differs"""
+  forceRollback: Boolean = false
+}
+
+type RollbackAuditLogPayload {
+  """Success indicator"""
+  success: Boolean!
+
+  """New rollback audit log entry created"""
+  rollbackLog: ActivityLog
+
+  """Updated original audit log (with rolled_back_log_id set)"""
+  originalLog: ActivityLog
+
+  """Error message if failed"""
+  error: String
+}
+
+input RequestRollbackInput {
+  activityLogId: ID!
+  reason: String!
+}
+
+type RequestRollbackPayload {
+  success: Boolean!
+  rollbackRequest: RollbackRequest
+  error: String
+}
+
+input ApproveRollbackRequestInput {
+  rollbackRequestId: ID!
+  reviewNotes: String
+}
+
+type ApproveRollbackRequestPayload {
+  success: Boolean!
+  rollbackLog: ActivityLog
+  error: String
+}
+
+# ============================================================================
+# QUERIES: Audit Log Access
+# ============================================================================
+
+type Query {
+  """
+  Query audit logs with filtering (admin/hr_admin/super_admin)
+  FR-011: Filter by date range, user, table, operation type, keyword
+  """
+  activityLogs(
+    filter: ActivityLogFilter
+    pagination: PaginationInput
+  ): ActivityLogConnection!
+
+  """Get single audit log by ID"""
+  activityLog(id: ID!): ActivityLog
+
+  """
+  Get audit statistics (FR-021)
+  Returns total changes by user, table, time period
+  """
+  auditStatistics(
+    dateRange: DateRangeInput!
+    groupBy: AuditStatisticsGroupBy!
+  ): [AuditStatistic!]!
+
+  """
+  Verify audit log signature (FR-022)
+  Returns signature validation result
+  """
+  verifyAuditLogSignature(activityLogId: ID!): SignatureVerificationResult!
+}
+
+input ActivityLogFilter {
+  dateFrom: DateTime
+  dateTo: DateTime
+  employeeIds: [ID!]
+  resourceTypes: [String!]
+  actions: [AuditAction!]
+  isRollback: Boolean
+  searchTerm: String
+}
+
+input PaginationInput {
+  page: Int = 1
+  pageSize: Int = 20
+}
+
+type ActivityLogConnection {
+  nodes: [ActivityLog!]!
+  totalCount: Int!
+  pageInfo: PageInfo!
+}
+
+enum AuditStatisticsGroupBy {
+  USER
+  TABLE
+  DAY
+  WEEK
+  MONTH
+}
+
+type AuditStatistic {
+  key: String!
+  value: Int!
+  metadata: JSON
+}
+
+type SignatureVerificationResult {
+  valid: Boolean!
+  signature: String
+  algorithm: String
+  publicKeyId: String
+  signedAt: DateTime
+  error: String
+}
+
+# ============================================================================
+# TYPES: Audit Log Entities
+# ============================================================================
+
+type ActivityLog {
+  id: ID!
+  employeeId: ID
+  employee: User
+  action: AuditAction!
+  resourceType: String!
+  resourceId: String!
+  beforeSnapshot: JSON
+  afterSnapshot: JSON
+  isRollback: Boolean!
+  rolledBackLogId: ID
+  rolledBackLog: ActivityLog
+  rollbackOfLogId: ID
+  rollbackOfLog: ActivityLog
+  ipAddress: String
+  userAgent: String
+  batchId: ID
+  createdAt: DateTime!
+  signature: AuditLogSignature
+}
+
+type AuditLogSignature {
+  id: ID!
+  signature: String!
+  algorithm: String!
+  publicKeyId: String!
+  signedAt: DateTime!
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  ROLLBACK
+}
+
+type RollbackRequest {
+  id: ID!
+  activityLogId: ID!
+  activityLog: ActivityLog!
+  requesterId: ID!
+  requester: User!
+  reason: String!
+  status: RollbackRequestStatus!
+  reviewerId: ID
+  reviewer: User
+  reviewNotes: String
+  createdAt: DateTime!
+  reviewedAt: DateTime
+}
+
+enum RollbackRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+# ============================================================================
+# CONTRACT TESTS (GraphQL Tests - MUST FAIL Initially)
+# ============================================================================
+
+# Test 1: rollbackAuditLog mutation (super_admin)
+# GIVEN: Valid audit log ID with before_snapshot
+# WHEN: rollbackAuditLog mutation executed
+# THEN: Returns success=true, rollbackLog created, original data restored
+# Test file: tests/e2e/graphql/rollback-mutation.spec.ts
+
+# Test 2: rollbackAuditLog permission check
+# GIVEN: User with role=admin (not super_admin)
+# WHEN: rollbackAuditLog mutation attempted
+# THEN: Returns error "Insufficient permissions"
+# Test file: tests/e2e/graphql/rollback-permissions.spec.ts
+
+# Test 3: activityLogs query with filtering
+# GIVEN: Multiple audit logs exist
+# WHEN: activityLogs query with filter={resourceType:"employees", action:UPDATE}
+# THEN: Returns only UPDATE operations on employees table
+# Test file: tests/e2e/graphql/activity-logs-query.spec.ts
+
+# Test 4: auditStatistics query
+# GIVEN: Audit logs exist for multiple users
+# WHEN: auditStatistics query with groupBy=USER
+# THEN: Returns aggregated counts per user
+# Test file: tests/e2e/graphql/audit-statistics.spec.ts
+
+# Test 5: verifyAuditLogSignature query
+# GIVEN: Audit log with valid signature
+# WHEN: verifyAuditLogSignature query executed
+# THEN: Returns valid=true with signature metadata
+# Test file: tests/e2e/graphql/signature-verification.spec.ts

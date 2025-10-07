@@ -7,6 +7,7 @@ SHELL := /bin/bash
 .PHONY: setup-init setup-sync setup-validate setup-backup setup-health setup-test
 .PHONY: gel-cli gel-repl sample-query sample-login
 .PHONY: dev-start dev-stop dev-logs dev-health dev-ssh-be dev-ssh-fe ssh-backend ssh-frontend
+.PHONY: init fresh-install db-init db-migrate db-status db-verify
 
 # =============================================================================
 # Help
@@ -14,6 +15,12 @@ SHELL := /bin/bash
 help: ## Show available commands
 	@echo "🏢 SvelteHR Comprehensive Development Commands"
 	@echo "=============================================="
+	@echo ""
+	@echo "🎯 Multi-PC Setup (NEW!):"
+	@echo "  make init         - Fresh installation wizard for new PC"
+	@echo "  make db-init      - Initialize/apply database migrations"
+	@echo "  make db-status    - Show migration status"
+	@echo "  make db-verify    - Verify database schema and health"
 	@echo ""
 	@echo "🚀 Quick Start:"
 	@echo "  make quick-start   - Complete setup and startup (recommended for first-time)"
@@ -34,10 +41,20 @@ help: ## Show available commands
 	@echo "💾 Database Operations:"
 	@echo "  make db-up        - Start PostgreSQL and Redis containers"
 	@echo "  make db-down      - Stop database containers"
+	@echo "  make db-init      - Initialize database with migrations"
+	@echo "  make db-migrate   - Apply pending migrations (alias for db-init)"
+	@echo "  make db-status    - Show applied migrations"
+	@echo "  make db-verify    - Verify database schema and health"
 	@echo "  make db-reset     - Reset database with fresh data (WARNING: deletes all data)"
 	@echo "  make db-logs      - View database logs"
 	@echo "  make db-health    - Check database health and statistics"
 	@echo "  make db-shell     - Open database shell (PostgreSQL/GelDB)"
+	@echo ""
+	@echo "🔍 Schema Consistency Tools (022-database-schema-consistency):"
+	@echo "  make schema:verify           - Verify schema matches version control"
+	@echo "  make schema:generate-migration - Generate migration from detected drift"
+	@echo "  make schema:validate          - Validate migration files integrity"
+	@echo "  make schema:rebuild-init      - Rebuild init script from migrations"
 	@echo ""
 	@echo "🐳 Development Containers (SSH + Neovim):"
 	@echo "  make dev-start     - Start development containers"
@@ -91,6 +108,38 @@ help: ## Show available commands
 	@echo "🧹 Maintenance:"
 	@echo "  make clean        - Clean all build artifacts and containers"
 	@echo "  make build        - Build for production"
+
+# =============================================================================
+# Multi-PC Setup and Initialization
+# =============================================================================
+
+init: ## Fresh installation wizard for new PC
+	@echo "🎯 Starting fresh installation wizard..."
+	@bash scripts/fresh-install.sh
+
+fresh-install: init ## Alias for init
+
+db-init: ## Initialize database with migrations
+	@echo "💾 Initializing database with migrations..."
+	@bash scripts/init-db.sh
+
+db-migrate: db-init ## Alias for db-init (apply migrations)
+
+db-status: ## Show applied migrations
+	@echo "📊 Checking migration status..."
+	@bash scripts/init-db.sh --status
+
+db-verify: ## Verify database schema and health
+	@echo "✅ Verifying database schema and health..."
+	@echo ""
+	@echo "📊 Database Connection:"
+	@PGPASSWORD=postgres123 psql -h localhost -p 5433 -U postgres -d hr_system -c "SELECT version();" 2>/dev/null || echo "❌ Cannot connect to database"
+	@echo ""
+	@echo "📊 Schema Tables:"
+	@PGPASSWORD=postgres123 psql -h localhost -p 5433 -U postgres -d hr_system -c "SELECT schemaname, COUNT(*) as table_count FROM pg_tables WHERE schemaname IN ('hr_public', 'hr_private', 'hr_hidden', 'public') GROUP BY schemaname ORDER BY schemaname;" 2>/dev/null
+	@echo ""
+	@echo "📊 Applied Migrations:"
+	@make db-status
 
 # =============================================================================
 # Quick Start and Environment Setup
@@ -413,6 +462,46 @@ db-shell: ## Open PostgreSQL shell
 	else \
 		echo "❌ PostgreSQL container not running"; \
 	fi
+
+# =============================================================================
+# Schema Consistency Tools (022-database-schema-consistency)
+# =============================================================================
+
+schema\:verify: ## Verify database schema matches version control
+	@echo "🔍 Verifying database schema consistency..."
+	@echo ""
+	@DATABASE_URL="postgresql://postgres:postgres123@localhost:5433/hr_system" \
+		npm run db:verify -- --environment=development --output-format=both
+	@echo ""
+	@echo "📊 Report saved to verification-reports/"
+
+schema\:generate-migration: ## Generate migration from detected drift
+	@echo "📝 Generating migration from schema drift..."
+	@if [ -z "$(DIFF_SOURCE)" ]; then \
+		echo "❌ Error: DIFF_SOURCE not specified"; \
+		echo "Usage: make schema:generate-migration DIFF_SOURCE=./verification-reports/YYYY-MM-DD-development.json"; \
+		exit 1; \
+	fi
+	@npm run db:generate-migration -- \
+		--diff-source=$(DIFF_SOURCE) \
+		--environment=$${ENVIRONMENT:-development}
+	@echo ""
+	@echo "✅ Migration generated in migrations/remediation/"
+	@echo "⚠️  Review before applying (FR-024a)"
+
+schema\:validate: ## Validate migration files for integrity and conventions
+	@echo "✅ Validating migration files..."
+	@npm run db:validate-migrations -- --strict --check-rollbacks
+	@echo ""
+	@echo "📊 Validation complete"
+
+schema\:rebuild-init: ## Rebuild init script from cumulative migrations
+	@echo "🔨 Rebuilding init script from migrations..."
+	@DATABASE_URL="postgresql://postgres:postgres123@localhost:5433/hr_system" \
+		npm run db:rebuild-init -- --validate --clean-database
+	@echo ""
+	@echo "✅ Init script rebuilt: migrations/00_init_schema.sql"
+	@echo "📊 Validation: init script matches cumulative migrations"
 
 # =============================================================================
 # Environment Setup System

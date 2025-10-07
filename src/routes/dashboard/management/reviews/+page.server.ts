@@ -3,7 +3,7 @@
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { createUrqlClient, executeQuery } from '$lib/graphql/client';
+import { GraphQLClient } from '$lib/server/graphql-client';
 import {
 	GET_PERFORMANCE_REVIEWS,
 	GET_PERFORMANCE_REVIEW_STATS,
@@ -19,13 +19,19 @@ export const load: PageServerLoad = async (event) => {
 	const parentData = await event.parent();
 	const { hasManagerAccess, isAdmin } = parentData;
 
-	// Get JWT token for PostGraphile authentication
-	const jwtToken = cookies.get('hr_token') || cookies.get('auth-token');
-	if (!jwtToken) {
-		throw error(401, 'Authentication token required');
-	}
-	// Create GraphQL client with server-side fetch and auth token
-	const graphqlClient = createUrqlClient(fetchFn, jwtToken);
+	console.log('🔍 Load function - User:', {
+		userId: locals.user?.id,
+		role: locals.user?.role,
+		hasManagerAccess,
+		isAdmin
+	});
+
+	// Create server-side GraphQL client with Docker-aware endpoint
+	const client = GraphQLClient.fromCookies(cookies);
+
+	// Get JWT token for return data
+	const jwtToken = cookies.get('hr_token') || cookies.get('auth-token') || '';
+
 	// Extract search parameters for filtering and pagination
 	const searchTerm = url.searchParams.get('search') || '';
 	const statusFilter = url.searchParams.get('status') || 'all';
@@ -54,11 +60,11 @@ export const load: PageServerLoad = async (event) => {
 		const reviewsVariables = {
 			first: limit,
 			offset: offset,
-			orderBy: ['CREATED_AT_DESC'], // Most recent first
+			orderBy: ['ID_DESC'], // Most recent first
 			condition: condition
 		};
 
-		const reviewsData = await executeQuery<{
+		const reviewsResponse = await client.query<{
 			allPerformanceReviews: {
 				totalCount: number;
 				nodes: PerformanceReview[];
@@ -69,14 +75,16 @@ export const load: PageServerLoad = async (event) => {
 					endCursor: string | null;
 				};
 			};
-		}>(graphqlClient, GET_PERFORMANCE_REVIEWS, reviewsVariables);
+		}>(GET_PERFORMANCE_REVIEWS, reviewsVariables);
+
+		const reviewsData = reviewsResponse.data;
 
 		// Query 2: Get performance review statistics
 		const statsVariables = {
 			reviewerId: locals.roles?.includes('admin') ? undefined : locals.user.id
 		};
 
-		const statsData = await executeQuery<{
+		const statsResponse = await client.query<{
 			notStarted: { totalCount: number };
 			inProgress: { totalCount: number };
 			completed: { totalCount: number };
@@ -84,7 +92,81 @@ export const load: PageServerLoad = async (event) => {
 				totalCount: number;
 				nodes: Array<{ overallRating: number; status: string }>;
 			};
-		}>(graphqlClient, GET_PERFORMANCE_REVIEW_STATS, statsVariables);
+		}>(GET_PERFORMANCE_REVIEW_STATS, statsVariables);
+
+		const statsData = statsResponse.data;
+
+		// Query 3: Get all employees for employee selector (if user can create reviews)
+		// Using the same working pattern as /dashboard/employees
+		let employees = [];
+		if (hasManagerAccess) {
+			try {
+				const { getGraphQLEndpoint } = await import('$lib/server/api-url');
+				const graphqlEndpoint = getGraphQLEndpoint();
+
+				console.log('📊 Loading employees for selector...');
+
+				const employeesResponse = await fetch(graphqlEndpoint, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						query: `
+							query GetEmployeesForSelector($first: Int) {
+								allUsers(first: $first) {
+									nodes {
+										id
+										email
+										displayName
+										role
+										departmentId
+									}
+									totalCount
+								}
+							}
+						`,
+						variables: {
+							first: 200
+						}
+					})
+				});
+
+				const employeesData = await employeesResponse.json();
+
+				// Log response for debugging
+				console.log('📊 Employees response:', {
+					hasData: !!employeesData.data,
+					hasErrors: !!employeesData.errors,
+					errorCount: employeesData.errors?.length || 0,
+					nodeCount: employeesData.data?.allUsers?.nodes?.length || 0
+				});
+
+				// Check for GraphQL errors
+				if (employeesData.errors && employeesData.errors.length > 0) {
+					console.error('❌ GraphQL Errors in GetEmployeesForSelector:');
+					employeesData.errors.forEach((err: any, idx: number) => {
+						console.error(`  Error ${idx + 1}:`, {
+							message: err.message,
+							path: err.path,
+							extensions: err.extensions
+						});
+					});
+				}
+
+				employees = employeesData.data?.allUsers?.nodes || [];
+				console.log('✅ Employees loaded:', employees.length);
+			} catch (empError) {
+				console.error('❌ Error loading employees (caught exception):', {
+					error: empError,
+					message: empError instanceof Error ? empError.message : String(empError),
+					stack: empError instanceof Error ? empError.stack : undefined
+				});
+				employees = [];
+			}
+		} else {
+			console.log('⚠️ User does not have manager access, skipping employee loading');
+		}
 
 		// Process performance reviews data (convert status from uppercase to lowercase for UI)
 		const performanceReviews = reviewsData.allPerformanceReviews.nodes.map((review) => ({
@@ -183,6 +265,7 @@ export const load: PageServerLoad = async (event) => {
 			},
 			performanceReviews: filteredReviews,
 			totalReviews: reviewsData.allPerformanceReviews.totalCount,
+			employees,
 			reviewAnalytics: {
 				totalReviews: totalCount,
 				completedReviews: completedCount,
@@ -234,6 +317,7 @@ export const load: PageServerLoad = async (event) => {
 			},
 			performanceReviews: [],
 			totalReviews: 0,
+			employees: [],
 			reviewAnalytics: {
 				totalReviews: 0,
 				completedReviews: 0,

@@ -80,6 +80,10 @@ export const GET_AUDIT_LOGS = gql`
 				resourceType
 				resourceId
 				details
+				beforeSnapshot
+				afterSnapshot
+				isRollback
+				rolledBackLogId
 				ipAddress
 				userAgent
 				createdAt
@@ -157,6 +161,43 @@ export const GET_ACTIVITIES_BY_DATE_RANGE = gql`
 	}
 `;
 
+/**
+ * Query: Get single activity log by ID
+ * PostGraphile: Uses allActivityLogs with condition filter
+ */
+export const GET_ACTIVITY_LOG_BY_ID = gql`
+	query GetActivityLogById($id: UUID!) {
+		allActivityLogs(condition: { id: $id }, first: 1) {
+			nodes {
+				id
+				employeeId
+				userId
+				action
+				resourceType
+				resourceId
+				beforeSnapshot
+				afterSnapshot
+				isRollback
+				rolledBackLogId
+				details
+				createdAt
+				ipAddress
+				userAgent
+				userByEmployeeId {
+					id
+					displayName
+					email
+					departmentId
+					departmentByDepartmentId {
+						id
+						name
+					}
+				}
+			}
+		}
+	}
+`;
+
 // ============================================================================
 // TYPESCRIPT INTERFACES
 // ============================================================================
@@ -212,6 +253,10 @@ export interface ActivityLog {
 	resourceType: ResourceType;
 	resourceId?: string;
 	details?: Record<string, any>;
+	beforeSnapshot?: Record<string, any>;
+	afterSnapshot?: Record<string, any>;
+	isRollback?: boolean;
+	rolledBackLogId?: string;
 	ipAddress?: string;
 	userAgent?: string;
 	createdAt: string;
@@ -654,6 +699,79 @@ export class ActivityLogsOperations {
 			throw createErrorResponse(error, {
 				type: 'graphql',
 				userMessage: 'Failed to load activities by date range. Please try again.'
+			});
+		}
+	}
+
+	/**
+	 * Get single activity log by ID
+	 */
+	async getActivityLogById(params: {
+		logId: string;
+		userCredentials: UserCredentials;
+	}): Promise<ActivityLog | null> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+		const { createErrorResponse } = await import('$lib/models/error-response');
+
+		const dataRequest = createDataRequest({
+			operationName: 'GetActivityLogById',
+			variables: {
+				id: params.logId
+			},
+			userCredentials: params.userCredentials,
+			timeoutMs: 5000
+		});
+
+		try {
+			// Server-side query using toPromise()
+			const result = await this.client.query(GET_ACTIVITY_LOG_BY_ID, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to load activity log. Please try again.'
+				});
+				throw errorResponse;
+			}
+
+			if (!result.data || !result.data.allActivityLogs || !result.data.allActivityLogs.nodes || result.data.allActivityLogs.nodes.length === 0) {
+				return null;
+			}
+
+			const log = result.data.allActivityLogs.nodes[0];
+
+			// Transform to ActivityLog interface
+			return {
+				id: log.id,
+				employeeId: log.employeeId,
+				employee: log.userByEmployeeId ? {
+					id: log.userByEmployeeId.id,
+					displayName: log.userByEmployeeId.displayName,
+					email: log.userByEmployeeId.email,
+					departmentId: log.userByEmployeeId.departmentId,
+					department: log.userByEmployeeId.departmentByDepartmentId ? {
+						id: log.userByEmployeeId.departmentByDepartmentId.id,
+						name: log.userByEmployeeId.departmentByDepartmentId.name
+					} : undefined
+				} : undefined,
+				action: log.action,
+				resourceType: log.resourceType,
+				resourceId: log.resourceId,
+				beforeSnapshot: log.beforeSnapshot,
+				afterSnapshot: log.afterSnapshot,
+				isRollback: log.isRollback,
+				rolledBackLogId: log.rolledBackLogId,
+				ipAddress: log.ipAddress,
+				userAgent: log.userAgent,
+				createdAt: log.createdAt
+			};
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error; // Already formatted error
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to load activity log. Please try again.'
 			});
 		}
 	}

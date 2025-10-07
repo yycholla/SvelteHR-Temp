@@ -1,6 +1,19 @@
 test-results
 node_modules
 
+# Lock files (keep them out since we use different package managers across team)
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Logs
+*.log
+logs/
+backend/logs/
+
+# Verification reports (generated during schema checks)
+verification-reports/
+
 # Output
 .output
 .vercel

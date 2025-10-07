@@ -16,18 +16,22 @@
 
 	interface Props {
 		logId: string;
-		userRole: string;
-		action: 'CREATE' | 'READ' | 'UPDATE' | 'DELETE';
-		isRollback: boolean;
+		resourceType?: string;
+		action: string;
+		canDirectRollback: boolean;
+		canRequestRollback?: boolean;
+		isRollback?: boolean;
 		onSuccess?: () => void;
 		onError?: (error: string) => void;
 	}
 
 	let {
 		logId,
-		userRole,
+		resourceType,
 		action,
-		isRollback,
+		canDirectRollback,
+		canRequestRollback = false,
+		isRollback = false,
 		onSuccess,
 		onError
 	}: Props = $props();
@@ -35,22 +39,25 @@
 	let isLoading = $state(false);
 	let showConfirmDialog = $state(false);
 	let reason = $state('');
-	let hasConflicts = $state(false);
-	let conflictDetails = $state<any>(null);
 
 	const dispatch = createEventDispatcher();
 
 	// Computed properties with $derived
-	const isVisible = $derived(userRole === 'super_admin');
+	const isVisible = $derived(canDirectRollback || canRequestRollback);
+	const isRequestMode = $derived(!canDirectRollback && canRequestRollback);
 	const isDisabled = $derived(
-		isRollback || action === 'READ' || isLoading
+		isRollback || action.toUpperCase() === 'VIEW' || isLoading
 	);
 
 	const disabledReason = $derived(() => {
 		if (isRollback) return 'Cannot rollback a rollback operation';
-		if (action === 'READ') return 'Cannot rollback READ operations';
+		if (action.toUpperCase() === 'VIEW') return 'Cannot rollback view operations';
 		return '';
 	});
+
+	const buttonText = $derived(isRequestMode ? 'Request Rollback' : 'Rollback');
+	const confirmTitle = $derived(isRequestMode ? 'Request Rollback' : 'Confirm Rollback');
+	const confirmButtonText = $derived(isRequestMode ? 'Submit Request' : 'Confirm Rollback');
 
 	function handleButtonClick() {
 		if (isDisabled) return;
@@ -60,8 +67,6 @@
 	function handleCancel() {
 		showConfirmDialog = false;
 		reason = '';
-		hasConflicts = false;
-		conflictDetails = null;
 	}
 
 	async function handleConfirm() {
@@ -73,73 +78,15 @@
 		isLoading = true;
 
 		try {
-			// Call ExecuteRollback mutation
-			const response = await fetch('/api/graphql', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					query: `
-						mutation ExecuteRollback($input: ExecuteRollbackInput!) {
-							executeRollback(input: $input) {
-								success
-								newLogId
-								conflicts {
-									hasConflicts
-									conflictFields
-									conflicts {
-										field
-										currentValue
-										targetValue
-										conflictType
-									}
-								}
-								error
-							}
-						}
-					`,
-					variables: {
-						input: {
-							logId,
-							reason: reason.trim(),
-							strategy: 'force'
-						}
-					}
-				})
-			});
-
-			const result = await response.json();
-
-			if (result.errors) {
-				throw new Error(result.errors[0].message);
-			}
-
-			const data = result.data.executeRollback;
-
-			// Check for conflicts
-			if (data.conflicts?.hasConflicts) {
-				hasConflicts = true;
-				conflictDetails = data.conflicts;
-				toast.warning('Conflicts detected - resolution required');
-				return;
-			}
-
-			if (data.success) {
-				toast.success('Rollback executed successfully');
-				showConfirmDialog = false;
-				reason = '';
-
-				if (onSuccess) {
-					onSuccess();
-				}
-
-				dispatch('success', { newLogId: data.newLogId });
+			if (isRequestMode) {
+				// Submit rollback request for approval
+				await submitRollbackRequest();
 			} else {
-				throw new Error(data.error || 'Rollback failed');
+				// Execute rollback directly
+				await executeRollback();
 			}
 		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : 'Rollback failed';
+			const errorMessage = error instanceof Error ? error.message : 'Operation failed';
 			toast.error(errorMessage);
 
 			if (onError) {
@@ -152,80 +99,89 @@
 		}
 	}
 
-	function handleConflictResolution(strategy: 'force' | 'cancel' | 'merge', mergeFields?: string[]) {
-		hasConflicts = false;
-		conflictDetails = null;
+	async function submitRollbackRequest() {
+		const response = await fetch('/api/activities/rollback-request', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				logId,
+				reason: reason.trim()
+			})
+		});
 
-		if (strategy === 'cancel') {
-			handleCancel();
-		} else {
-			// Re-execute with chosen strategy
-			executeWithStrategy(strategy, mergeFields);
+		if (!response.ok) {
+			const error = await response.json();
+			throw new Error(error.message || 'Failed to submit rollback request');
 		}
+
+		const result = await response.json();
+
+		toast.success('Rollback request submitted for approval');
+		showConfirmDialog = false;
+		reason = '';
+
+		if (onSuccess) {
+			onSuccess();
+		}
+
+		dispatch('success', { requestId: result.requestId });
 	}
 
-	async function executeWithStrategy(strategy: 'force' | 'merge', mergeFields?: string[]) {
-		isLoading = true;
-
-		try {
-			const response = await fetch('/api/graphql', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					query: `
-						mutation ExecuteRollback($input: ExecuteRollbackInput!) {
-							executeRollback(input: $input) {
+	async function executeRollback() {
+		// Call execute_rollback function (PostGraphile exposes it as executeRollback mutation)
+		const response = await fetch('/api/graphql', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				query: `
+					mutation ExecuteRollback($input: ExecuteRollbackInput!) {
+						executeRollback(input: $input) {
+							results {
 								success
 								newLogId
 								error
 							}
 						}
-					`,
-					variables: {
-						input: {
-							logId,
-							reason: reason.trim(),
-							strategy,
-							mergeFields: mergeFields || null
-						}
 					}
-				})
-			});
-
-			const result = await response.json();
-
-			if (result.errors) {
-				throw new Error(result.errors[0].message);
-			}
-
-			const data = result.data.executeRollback;
-
-			if (data.success) {
-				toast.success('Rollback executed successfully');
-				showConfirmDialog = false;
-				reason = '';
-
-				if (onSuccess) {
-					onSuccess();
+				`,
+				variables: {
+					input: {
+						pLogId: logId,
+						pReason: reason.trim(),
+						pStrategy: 'force',
+						pExecutedBy: null
+					}
 				}
+			})
+		});
 
-				dispatch('success', { newLogId: data.newLogId });
-			} else {
-				throw new Error(data.error || 'Rollback failed');
-			}
-		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : 'Rollback failed';
-			toast.error(errorMessage);
+		const result = await response.json();
 
-			if (onError) {
-				onError(errorMessage);
-			}
-		} finally {
-			isLoading = false;
+		if (result.errors) {
+			throw new Error(result.errors[0].message);
 		}
+
+		const data = result.data.executeRollback.results[0];
+
+		if (!data || !data.success) {
+			throw new Error(data?.error || 'Rollback failed');
+		}
+
+		toast.success('Rollback executed successfully');
+		showConfirmDialog = false;
+		reason = '';
+
+		if (onSuccess) {
+			onSuccess();
+		}
+
+		dispatch('success', { newLogId: data.newLogId });
 	}
+
 </script>
 
 {#if isVisible}
@@ -243,20 +199,25 @@
 		{:else}
 			<Undo2 size={16} />
 		{/if}
-		<span>Rollback</span>
+		<span>{buttonText}</span>
 	</button>
 
-	{#if showConfirmDialog && !hasConflicts}
+	{#if showConfirmDialog}
 		<div class="modal-backdrop" onclick={handleCancel}>
 			<div class="modal-dialog" onclick={(e) => e.stopPropagation()}>
 				<div class="modal-header">
-					<h3>Confirm Rollback</h3>
+					<h3>{confirmTitle}</h3>
 				</div>
 
 				<div class="modal-body">
 					<p class="warning-text">
-						You are about to rollback a <strong>{action}</strong> operation.
-						This will restore the resource to its previous state.
+						{#if isRequestMode}
+							You are requesting a rollback for a <strong>{action.toUpperCase()}</strong> operation.
+							A super admin will need to approve this request.
+						{:else}
+							You are about to rollback a <strong>{action.toUpperCase()}</strong> operation.
+							This will restore the resource to its previous state.
+						{/if}
 					</p>
 
 					<div class="form-group">
@@ -289,59 +250,10 @@
 					>
 						{#if isLoading}
 							<Loader2 class="animate-spin" size={16} />
-							Executing...
+							{isRequestMode ? 'Submitting...' : 'Executing...'}
 						{:else}
-							Confirm Rollback
+							{confirmButtonText}
 						{/if}
-					</button>
-				</div>
-			</div>
-		</div>
-	{/if}
-
-	{#if hasConflicts && conflictDetails}
-		<!-- Conflict Resolution Modal would be imported here -->
-		<!-- For now, show simple resolution options -->
-		<div class="modal-backdrop" onclick={() => handleConflictResolution('cancel', undefined)}>
-			<div class="modal-dialog" onclick={(e) => e.stopPropagation()}>
-				<div class="modal-header">
-					<h3>Conflicts Detected</h3>
-				</div>
-
-				<div class="modal-body">
-					<p class="warning-text">
-						{conflictDetails.conflictFields.length} field(s) have been modified since the snapshot was taken.
-					</p>
-
-					<div class="conflict-list">
-						{#each conflictDetails.conflicts as conflict}
-							<div class="conflict-item">
-								<strong>{conflict.field}</strong>: {conflict.conflictType}
-							</div>
-						{/each}
-					</div>
-
-					<p>Choose how to resolve:</p>
-					<ul>
-						<li><strong>Force:</strong> Overwrite current values (destructive)</li>
-						<li><strong>Cancel:</strong> Abort the rollback</li>
-					</ul>
-				</div>
-
-				<div class="modal-footer">
-					<button
-						type="button"
-						class="btn-secondary"
-						onclick={() => handleConflictResolution('cancel', undefined)}
-					>
-						Cancel
-					</button>
-					<button
-						type="button"
-						class="btn-danger"
-						onclick={() => handleConflictResolution('force', undefined)}
-					>
-						Force Rollback
 					</button>
 				</div>
 			</div>
@@ -459,20 +371,6 @@
 		margin-top: 0.25rem;
 		font-size: 0.75rem;
 		color: #6b7280;
-	}
-
-	.conflict-list {
-		margin: 1rem 0;
-		padding: 0.75rem;
-		background-color: #fef2f2;
-		border: 1px solid #fecaca;
-		border-radius: 0.375rem;
-	}
-
-	.conflict-item {
-		padding: 0.5rem 0;
-		font-size: 0.875rem;
-		color: #991b1b;
 	}
 
 	.modal-footer {

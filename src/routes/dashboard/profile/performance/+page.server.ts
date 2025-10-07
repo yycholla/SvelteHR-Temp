@@ -105,7 +105,7 @@ export const load: PageServerLoad = async (event) => {
 		return {
 			user,
 			userId,
-			goals: goals.sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()),
+			goals: goals.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
 			goalCategories,
 			goalStats,
 			currentQuarter: {

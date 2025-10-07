@@ -78,121 +78,133 @@ export const load: PageServerLoad = async (event) => {
 		// Create GraphQL client with authentication
 		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
-		// TODO: Load actual reports from database
-		// For now, generate sample reports data
-		const currentDate = new Date();
-		const reportTypes = ['employee', 'payroll', 'performance', 'attendance', 'compliance', 'analytics'];
-		const categories = ['HR', 'Finance', 'Operations', 'Analytics', 'Compliance'];
-		const statuses = ['completed', 'running', 'scheduled', 'failed', 'draft'];
+		// Load reports from database
+		const reportsQuery = `
+			query GetHrReports(
+				$limit: Int!
+				$offset: Int!
+				$typeFilter: ReportType
+				$categoryFilter: String
+				$statusFilter: ReportStatus
+			) {
+				allHrReports(
+					first: $limit
+					offset: $offset
+					orderBy: [CREATED_AT_DESC]
+					condition: {
+						reportType: $typeFilter
+						category: $categoryFilter
+						status: $statusFilter
+					}
+				) {
+					totalCount
+					nodes {
+						id
+						creatorId
+						departmentId
+						title
+						reportType
+						category
+						filters
+						data
+						status
+						scheduledAt
+						generatedAt
+						createdAt
+						updatedAt
+						userByCreatorId {
+							id
+							firstName
+							lastName
+						}
+						departmentByDepartmentId {
+							id
+							name
+						}
+					}
+				}
+			}
+		`;
 
-		const allReports = Array.from({ length: 32 }, (_, i) => {
-			const type = reportTypes[Math.floor(Math.random() * reportTypes.length)];
-			const category = categories[Math.floor(Math.random() * categories.length)];
-			const status = statuses[Math.floor(Math.random() * statuses.length)];
+		const reportsData = await graphqlClient.query(reportsQuery, {
+			limit,
+			offset,
+			typeFilter: typeFilter || undefined,
+			categoryFilter: categoryFilter || undefined,
+			statusFilter: statusFilter || undefined
+		});
 
-			const createdDate = new Date(currentDate);
-			createdDate.setDate(createdDate.getDate() - Math.floor(Math.random() * 90));
+		const allHrReports = reportsData.data?.allHrReports?.nodes || [];
+		const totalCount = reportsData.data?.allHrReports?.totalCount || 0;
 
-			const runDate = status === 'scheduled' ?
-				new Date(currentDate.getTime() + Math.random() * 7 * 24 * 60 * 60 * 1000) :
-				createdDate;
-
-			const reportTitles = {
-				employee: ['Employee Directory Report', 'New Hire Report', 'Termination Report', 'Department Headcount'],
-				payroll: ['Monthly Payroll Summary', 'Overtime Report', 'Benefits Enrollment', 'Tax Withholdings'],
-				performance: ['Performance Review Summary', 'Goal Progress Report', 'Top Performers', '360 Feedback'],
-				attendance: ['Attendance Summary', 'Time Off Report', 'Late Arrivals', 'Remote Work Hours'],
-				compliance: ['Compliance Audit', 'Training Completion', 'Policy Acknowledgment', 'Safety Records'],
-				analytics: ['HR Analytics Dashboard', 'Turnover Analysis', 'Engagement Survey', 'Productivity Metrics']
-			};
-
-			const titles = reportTitles[type] || ['General Report'];
-			const title = titles[Math.floor(Math.random() * titles.length)];
+		// Map reports to expected format
+		const reports = allHrReports.map((report: any) => {
+			// Parse JSONB fields
+			const filters = report.filters ? (typeof report.filters === 'string' ? JSON.parse(report.filters) : report.filters) : {};
+			const data = report.data ? (typeof report.data === 'string' ? JSON.parse(report.data) : report.data) : {};
 
 			return {
-				id: `report-${i}`,
-				title: `${title} - ${createdDate.getFullYear()}-${String(createdDate.getMonth() + 1).padStart(2, '0')}`,
-				description: `${category} report for ${type} data analysis and insights`,
-				type,
-				category,
-				status,
-				createdAt: createdDate.toISOString(),
-				runDate: runDate.toISOString(),
-				completedAt: status === 'completed' ? runDate.toISOString() : null,
-				createdBy: {
-					id: `user-${(i % 5) + 1}`,
-					name: ['Sarah Johnson', 'Mike Davis', 'Lisa Chen', 'David Wilson', 'Emma Brown'][i % 5],
-					role: ['HR Manager', 'Finance Director', 'Operations Manager', 'Analytics Lead', 'Compliance Officer'][i % 5]
-				},
-				parameters: {
-					dateRange: status === 'scheduled' ? 'Next Month' : 'Last 30 Days',
-					departments: Math.random() > 0.5 ? 'All Departments' : 'Engineering, Sales',
-					includeInactive: Math.random() > 0.7
-				},
-				fileSize: status === 'completed' ? `${Math.floor(Math.random() * 500) + 50}KB` : null,
-				downloadCount: status === 'completed' ? Math.floor(Math.random() * 25) : 0,
-				runtime: status === 'completed' ? `${Math.floor(Math.random() * 45) + 5}s` : null,
-				lastError: status === 'failed' ? 'Database connection timeout' : null
+				id: report.id,
+				title: report.title,
+				description: data.description || '',
+				type: report.reportType,
+				category: report.category || 'General',
+				status: report.status,
+				createdAt: report.createdAt,
+				runDate: report.scheduledAt || report.createdAt,
+				completedAt: report.generatedAt,
+				createdBy: report.userByCreatorId ? {
+					id: report.userByCreatorId.id,
+					name: `${report.userByCreatorId.firstName} ${report.userByCreatorId.lastName}`,
+					role: 'Manager' // Role not in schema
+				} : null,
+				department: report.departmentByDepartmentId ? {
+					id: report.departmentByDepartmentId.id,
+					name: report.departmentByDepartmentId.name
+				} : null,
+				parameters: filters,
+				fileSize: data.fileSize || null,
+				downloadCount: data.downloadCount || 0,
+				runtime: data.runtime || null,
+				lastError: report.status === 'failed' ? (data.error || 'Unknown error') : null
 			};
 		});
 
-		// Apply filters
-		let filteredReports = allReports;
-		if (searchTerm) {
-			filteredReports = filteredReports.filter(r =>
-				r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-				r.createdBy.name.toLowerCase().includes(searchTerm.toLowerCase())
-			);
-		}
-		if (typeFilter) {
-			filteredReports = filteredReports.filter(r => r.type === typeFilter);
-		}
-		if (categoryFilter) {
-			filteredReports = filteredReports.filter(r => r.category === categoryFilter);
-		}
-		if (statusFilter) {
-			filteredReports = filteredReports.filter(r => r.status === statusFilter);
-		}
-		if (departmentFilter) {
-			// Mock department filtering
-			filteredReports = filteredReports.filter(() => Math.random() > 0.3);
-		}
-
-		// Apply pagination
-		const totalReports = filteredReports.length;
-		const reports = filteredReports.slice(offset, offset + limit);
-
-		// Calculate analytics from all reports
+		// Calculate analytics from reports
 		const now = new Date();
 		const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 		const weekStart = new Date(todayStart.getTime() - 7 * 24 * 60 * 60 * 1000);
 		const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
+		// Get unique types and categories from actual data
+		const uniqueTypes = [...new Set(reports.map(r => r.type))];
+		const uniqueCategories = [...new Set(reports.map(r => r.category))];
+
 		const analytics = {
 			summary: {
-				totalReports: allReports.length,
-				activeReports: allReports.filter(r => r.status === 'running').length,
-				scheduledReports: allReports.filter(r => r.status === 'scheduled').length,
-				completedReports: allReports.filter(r => r.status === 'completed').length,
-				generatedToday: allReports.filter(r => new Date(r.createdAt) >= todayStart).length,
-				generatedThisWeek: allReports.filter(r => new Date(r.createdAt) >= weekStart).length,
-				generatedThisMonth: allReports.filter(r => new Date(r.createdAt) >= monthStart).length,
-				mostPopularType: 'employee',
-				avgRunTime: 28
+				totalReports: totalCount,
+				activeReports: reports.filter(r => r.status === 'running').length,
+				scheduledReports: reports.filter(r => r.status === 'scheduled').length,
+				completedReports: reports.filter(r => r.status === 'completed').length,
+				generatedToday: reports.filter(r => new Date(r.createdAt) >= todayStart).length,
+				generatedThisWeek: reports.filter(r => new Date(r.createdAt) >= weekStart).length,
+				generatedThisMonth: reports.filter(r => new Date(r.createdAt) >= monthStart).length,
+				mostPopularType: uniqueTypes[0] || 'general',
+				avgRunTime: 0 // Not calculated from current schema
 			},
-			typeBreakdown: reportTypes.map(type => ({
+			typeBreakdown: uniqueTypes.map(type => ({
 				type,
-				count: allReports.filter(r => r.type === type).length,
-				percentage: Math.round((allReports.filter(r => r.type === type).length / allReports.length) * 100)
+				count: reports.filter(r => r.type === type).length,
+				percentage: totalCount > 0 ? Math.round((reports.filter(r => r.type === type).length / totalCount) * 100) : 0
 			})),
-			categoryBreakdown: categories.map(category => ({
+			categoryBreakdown: uniqueCategories.map(category => ({
 				category,
-				count: allReports.filter(r => r.category === category).length,
-				percentage: Math.round((allReports.filter(r => r.category === category).length / allReports.length) * 100)
+				count: reports.filter(r => r.category === category).length,
+				percentage: totalCount > 0 ? Math.round((reports.filter(r => r.category === category).length / totalCount) * 100) : 0
 			})),
 			performanceMetrics: {
-				successRate: Math.round((allReports.filter(r => r.status === 'completed').length / allReports.length) * 100),
-				errorRate: Math.round((allReports.filter(r => r.status === 'failed').length / allReports.length) * 100)
+				successRate: totalCount > 0 ? Math.round((reports.filter(r => r.status === 'completed').length / totalCount) * 100) : 0,
+				errorRate: totalCount > 0 ? Math.round((reports.filter(r => r.status === 'failed').length / totalCount) * 100) : 0
 			}
 		};
 
@@ -210,7 +222,7 @@ export const load: PageServerLoad = async (event) => {
 				accessToken: cookies.get('hr_token') || ''
 			},
 			reports,
-			totalReports,
+			totalReports: totalCount,
 			reportAnalytics: analytics,
 			filters: {
 				searchTerm,
@@ -224,8 +236,8 @@ export const load: PageServerLoad = async (event) => {
 			pagination: {
 				currentPage: page,
 				limit,
-				totalPages: Math.ceil(totalReports / limit),
-				hasNextPage: page < Math.ceil(totalReports / limit),
+				totalPages: Math.ceil(totalCount / limit),
+				hasNextPage: page < Math.ceil(totalCount / limit),
 				hasPreviousPage: page > 1
 			},
 			permissions: locals.permissions || [],

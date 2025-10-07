@@ -129,8 +129,36 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			}
 		});
 
+		// Transform logs to match ActivityLog interface
+		const transformedLogs = logsResult.activities.map((log: any) => ({
+			id: log.id,
+			employeeId: log.employeeId,
+			userId: log.userId,
+			employee: log.userByEmployeeId ? {
+				id: log.userByEmployeeId.id,
+				displayName: log.userByEmployeeId.displayName,
+				email: log.userByEmployeeId.email,
+				departmentId: log.userByEmployeeId.departmentId,
+				department: log.userByEmployeeId.departmentByDepartmentId ? {
+					id: log.userByEmployeeId.departmentByDepartmentId.id,
+					name: log.userByEmployeeId.departmentByDepartmentId.name
+				} : undefined
+			} : undefined,
+			action: log.action,
+			resourceType: log.resourceType,
+			resourceId: log.resourceId,
+			details: log.details,
+			beforeSnapshot: log.beforeSnapshot,
+			afterSnapshot: log.afterSnapshot,
+			isRollback: log.isRollback || false,
+			rolledBackLogId: log.rolledBackLogId,
+			ipAddress: log.ipAddress,
+			userAgent: log.userAgent,
+			createdAt: log.createdAt
+		}));
+
 		return {
-			logs: logsResult.activities,
+			logs: transformedLogs,
 			totalCount: logsResult.totalCount,
 			hasNextPage: logsResult.hasNextPage,
 			currentPage: page,

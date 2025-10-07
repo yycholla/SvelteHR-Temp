@@ -5,28 +5,28 @@
 DO $$
 BEGIN
     -- Guest role for unauthenticated access
-    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'hr_guest') THEN
-        CREATE ROLE hr_guest;
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'guest') THEN
+        CREATE ROLE guest;
     END IF;
 
     -- Employee role for basic authenticated users
-    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'hr_employee') THEN
-        CREATE ROLE hr_employee;
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'employee') THEN
+        CREATE ROLE employee;
     END IF;
 
     -- Manager role for team management
-    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'hr_manager') THEN
-        CREATE ROLE hr_manager;
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'manager') THEN
+        CREATE ROLE manager;
     END IF;
 
-    -- Admin role for HR department
-    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'hr_admin') THEN
-        CREATE ROLE hr_admin;
+    -- Admin role for HR administration
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'admin') THEN
+        CREATE ROLE admin;
     END IF;
 
     -- Super admin role for system administration
-    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'hr_super_admin') THEN
-        CREATE ROLE hr_super_admin;
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'super_admin') THEN
+        CREATE ROLE super_admin;
     END IF;
 
     -- PostGraphile application role
@@ -40,12 +40,12 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- Grant role hierarchy permissions
-GRANT hr_guest TO hr_employee;
-GRANT hr_employee TO hr_manager;
-GRANT hr_manager TO hr_admin;
-GRANT hr_admin TO hr_super_admin;
+GRANT guest TO employee;
+GRANT employee TO manager;
+GRANT manager TO admin;
+GRANT admin TO super_admin;
 
 -- PostGraphile app role permissions
-GRANT hr_super_admin TO postgraphile_app;
+GRANT super_admin TO postgraphile_app;
 
 -- Note: Schema permissions will be granted in 02-schema.sql after schemas are created
