@@ -100,7 +100,7 @@
 
 - [x] T021 Create `src/lib/services/auditService.ts` for access logging. Functions: logAccess(documentId: string, userId: string, accessType: AccessType, outcome: 'success' | 'denied', metadata: AccessMetadata) → Promise<void>. Log: timestamp, IP address, user agent, denial reason (if applicable). Insert into document_access_logs table.
 
-- [ ] T022 Create `src/lib/services/rbacService.ts` for RBAC checks. Functions: canAccessDocument(userId: string, documentId: string) → Promise<boolean>, canUploadDocument(userId: string, category: string) → Promise<boolean>, getDirectReports(managerId: string) → Promise<string[]> (recursive CTE query). Enforce: 4-tier RBAC (Admin 100, HR 80, Manager 60, Employee 20) + direct report hierarchy.
+- [x] T022 Create `src/lib/services/rbacService.ts` for RBAC checks. Functions: canAccessDocument(userId: string, documentId: string) → Promise<boolean>, canUploadDocument(userId: string, category: string) → Promise<boolean>, getDirectReports(managerId: string) → Promise<string[]> (recursive CTE query). Enforce: 4-tier RBAC (Super Admin 100, Admin 80, Manager 60, Employee 20) + direct report hierarchy.
 
 ## Phase 3.5: API Implementation
 
@@ -112,11 +112,11 @@
 
 - [ ] T025 Create `src/routes/api/documents/[id]/download/+server.ts` with GET handler. Steps: 1) Validate auth + RBAC, 2) Retrieve encrypted file via storageService, 3) Stream binary response with Content-Disposition header, 4) Log download access. Return 403 if RBAC check fails, 404 if document not found.
 
-- [ ] T026 Create `src/routes/api/documents/+server.ts` with GET handler for listing/filtering. Steps: 1) Validate auth, 2) Parse query params with documentFilterSchema, 3) Apply RBAC filtering (Employee: assigned only, Manager: direct reports, HR: all), 4) Execute PostgreSQL query with RLS policies, 5) Paginate results (20/page default), 6) Return { documents, totalCount, page, limit }.
+- [x] T026 Create `src/routes/api/documents/+server.ts` with GET handler for listing/filtering. Steps: 1) Validate auth, 2) Parse query params with documentFilterSchema, 3) Apply RBAC filtering (Employee: assigned only, Manager: direct reports, Admin: all), 4) Execute PostgreSQL query with RLS policies, 5) Paginate results (20/page default), 6) Return { documents, totalCount, page, limit }.
 
-- [ ] T027 Create `src/routes/api/encryption/keys/+server.ts` with POST handler for key registration. Steps: 1) Validate auth, 2) Parse with encryptionKeySchema, 3) Server-side encrypt key material using pg_crypto, 4) Store in encryption_keys table, 5) Return keyId + createdAt.
+- [x] T027 Create `src/routes/api/encryption/keys/+server.ts` with POST handler for key registration. Steps: 1) Validate auth, 2) Parse with encryptionKeySchema, 3) Server-side encrypt key material using pg_crypto, 4) Store in encryption_keys table, 5) Return keyId + createdAt.
 
-- [ ] T028 Create `src/routes/api/encryption/keys/[id]/+server.ts` with GET handler. Steps: 1) Validate auth + ownership (key.created_for_user = current_user), 2) Retrieve encrypted key data, 3) Return { encryptedKeyData, keyAlgorithm }. Return 403 if user doesn't own the key.
+- [x] T028 Create `src/routes/api/encryption/keys/[id]/+server.ts` with GET handler. Steps: 1) Validate auth + ownership (key.created_for_user = current_user), 2) Retrieve encrypted key data, 3) Return { encryptedKeyData, keyAlgorithm }. Return 403 if user doesn't own the key.
 
 ## Phase 3.6: UI Components (Svelte 5 Runes)
 

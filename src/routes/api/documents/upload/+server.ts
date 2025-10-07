@@ -13,10 +13,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		throw error(401, { message: 'Authentication required' });
 	}
 
-	// Step 2: Check authorization (HR or Admin only can upload)
+	// Step 2: Check authorization (Admin or Super Admin only can upload)
 	const userRole = locals.user.role || 'employee';
-	if (!['hr_manager', 'super_admin'].includes(userRole)) {
-		throw error(403, { message: 'Insufficient permissions. HR or Admin role required.' });
+	if (!['admin', 'super_admin'].includes(userRole)) {
+		throw error(403, { message: 'Insufficient permissions. Admin role required.' });
 	}
 
 	try {
