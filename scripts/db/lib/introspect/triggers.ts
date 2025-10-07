@@ -101,7 +101,7 @@ export async function introspectFunctions(
 		JOIN pg_catalog.pg_namespace n ON p.pronamespace = n.oid
 		JOIN pg_catalog.pg_language l ON p.prolang = l.oid
 		WHERE n.nspname = $1
-			AND NOT p.proisagg  -- Exclude aggregate functions
+			AND p.prokind != 'a'  -- Exclude aggregate functions (PostgreSQL 11+ compatible)
 		ORDER BY p.proname;
 	`;
 

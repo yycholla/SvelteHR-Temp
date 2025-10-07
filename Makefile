@@ -470,7 +470,8 @@ db-shell: ## Open PostgreSQL shell
 schema\:verify: ## Verify database schema matches version control
 	@echo "🔍 Verifying database schema consistency..."
 	@echo ""
-	@npm run db:verify -- --environment=development --output-format=both
+	@DATABASE_URL="postgresql://postgres:postgres123@localhost:5433/hr_system" \
+		npm run db:verify -- --environment=development --output-format=both
 	@echo ""
 	@echo "📊 Report saved to verification-reports/"
 
@@ -496,7 +497,8 @@ schema\:validate: ## Validate migration files for integrity and conventions
 
 schema\:rebuild-init: ## Rebuild init script from cumulative migrations
 	@echo "🔨 Rebuilding init script from migrations..."
-	@npm run db:rebuild-init -- --validate --clean-database
+	@DATABASE_URL="postgresql://postgres:postgres123@localhost:5433/hr_system" \
+		npm run db:rebuild-init -- --validate --clean-database
 	@echo ""
 	@echo "✅ Init script rebuilt: migrations/00_init_schema.sql"
 	@echo "📊 Validation: init script matches cumulative migrations"

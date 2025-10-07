@@ -138,6 +138,12 @@ get_migration_files() {
         "20251002_003_create_bulk_rollback_batches.sql"
         "20251002_004_comprehensive_audit_logging.sql"
         "20251003_001_execute_rollback_function.sql"
+        "20251003_002_fix_rollback_requests_schema.sql"
+        "20251003_003_add_rollback_requests_requested_at_index.sql"
+        "20251003_add_historical_data.sql"
+        "20251002_003_remove_hr_prefix_from_roles.sql"
+        "20251002_004_cleanup_old_roles.sql"
+        "20251007_001_add_review_types_metadata.sql"
     )
 
     # Seed data (always last)

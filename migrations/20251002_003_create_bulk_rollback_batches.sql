@@ -3,8 +3,11 @@
 -- Date: 2025-10-02
 -- Purpose: Track bulk rollback operations with real-time progress tracking
 
+-- Set search path to hr_public
+SET search_path TO hr_public, public;
+
 -- Create bulk_rollback_batches table
-CREATE TABLE IF NOT EXISTS bulk_rollback_batches (
+CREATE TABLE IF NOT EXISTS hr_public.bulk_rollback_batches (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     initiated_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     activity_log_ids UUID[] NOT NULL,
@@ -35,10 +38,10 @@ COMMENT ON COLUMN bulk_rollback_batches.failure_details IS 'Array of {log_id, er
 
 -- Create indexes for performance
 -- Index 1: Status + started_at (query active batches, ordered by date)
-CREATE INDEX idx_bulk_batches_status ON bulk_rollback_batches (status, started_at DESC);
+CREATE INDEX idx_bulk_batches_status ON hr_public.bulk_rollback_batches (status, started_at DESC);
 
 -- Index 2: Initiator (find batches by a specific user)
-CREATE INDEX idx_bulk_batches_user ON bulk_rollback_batches (initiated_by);
+CREATE INDEX idx_bulk_batches_user ON hr_public.bulk_rollback_batches (initiated_by);
 
 -- Add validation constraint function for bulk rollback batches
 CREATE OR REPLACE FUNCTION validate_bulk_rollback_batch()
@@ -91,7 +94,7 @@ $$ LANGUAGE plpgsql;
 
 -- Create trigger for batch validation
 CREATE TRIGGER trigger_validate_bulk_rollback_batch
-    BEFORE INSERT OR UPDATE ON bulk_rollback_batches
+    BEFORE INSERT OR UPDATE ON hr_public.bulk_rollback_batches
     FOR EACH ROW
     EXECUTE FUNCTION validate_bulk_rollback_batch();
 
@@ -108,22 +111,22 @@ $$ LANGUAGE plpgsql;
 
 -- Create trigger to prevent deletion of completed batches
 CREATE TRIGGER trigger_prevent_batch_delete
-    BEFORE DELETE ON bulk_rollback_batches
+    BEFORE DELETE ON hr_public.bulk_rollback_batches
     FOR EACH ROW
     EXECUTE FUNCTION prevent_batch_deletion();
 
 -- Enable Row-Level Security
-ALTER TABLE bulk_rollback_batches ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hr_public.bulk_rollback_batches ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policy 1: Only super admins can view bulk batches
-CREATE POLICY super_admin_bulk_batches ON bulk_rollback_batches
+CREATE POLICY super_admin_bulk_batches ON hr_public.bulk_rollback_batches
     FOR SELECT
     USING (
         current_setting('jwt.claims.role', true) = 'super_admin'
     );
 
 -- RLS Policy 2: Only super admins can INSERT bulk batches
-CREATE POLICY super_admin_create_batches ON bulk_rollback_batches
+CREATE POLICY super_admin_create_batches ON hr_public.bulk_rollback_batches
     FOR INSERT
     WITH CHECK (
         current_setting('jwt.claims.role', true) = 'super_admin'
@@ -131,7 +134,7 @@ CREATE POLICY super_admin_create_batches ON bulk_rollback_batches
     );
 
 -- RLS Policy 3: Only super admins can UPDATE batches (progress updates)
-CREATE POLICY super_admin_update_batches ON bulk_rollback_batches
+CREATE POLICY super_admin_update_batches ON hr_public.bulk_rollback_batches
     FOR UPDATE
     USING (
         current_setting('jwt.claims.role', true) = 'super_admin'
@@ -141,9 +144,9 @@ CREATE POLICY super_admin_update_batches ON bulk_rollback_batches
     );
 
 -- Grant appropriate permissions
-GRANT SELECT, INSERT ON bulk_rollback_batches TO authenticated;
+GRANT SELECT, INSERT ON hr_public.bulk_rollback_batches TO authenticated;
 GRANT UPDATE (status, completed_at, processed_count, successful_count, failed_count, failure_details)
-ON bulk_rollback_batches TO authenticated;
+ON hr_public.bulk_rollback_batches TO authenticated;
 
 -- Create helper function to update batch progress
 CREATE OR REPLACE FUNCTION update_batch_progress(
@@ -160,7 +163,7 @@ DECLARE
 BEGIN
     -- Get total count
     SELECT total_count INTO batch_total
-    FROM bulk_rollback_batches
+    FROM hr_public.bulk_rollback_batches
     WHERE id = p_batch_id;
 
     -- Determine new status
@@ -175,7 +178,7 @@ BEGIN
     END IF;
 
     -- Update batch
-    UPDATE bulk_rollback_batches
+    UPDATE hr_public.bulk_rollback_batches
     SET
         processed_count = p_processed_count,
         successful_count = p_successful_count,
@@ -201,7 +204,7 @@ RETURNS INTEGER AS $$
 BEGIN
     RETURN (
         SELECT COUNT(*)::INTEGER
-        FROM bulk_rollback_batches
+        FROM hr_public.bulk_rollback_batches
         WHERE status IN ('queued', 'in_progress')
     );
 END;
@@ -216,7 +219,7 @@ CREATE OR REPLACE FUNCTION cancel_batch(
 )
 RETURNS BOOLEAN AS $$
 BEGIN
-    UPDATE bulk_rollback_batches
+    UPDATE hr_public.bulk_rollback_batches
     SET
         status = 'failed',
         completed_at = now(),
@@ -245,11 +248,11 @@ SELECT
     SUM(failed_count) as total_failed,
     AVG(processed_count::FLOAT / NULLIF(total_count, 0) * 100) as avg_completion_percentage,
     AVG(EXTRACT(EPOCH FROM (completed_at - started_at))) as avg_duration_seconds
-FROM bulk_rollback_batches
+FROM hr_public.bulk_rollback_batches
 GROUP BY status;
 
 -- Grant select on view
 GRANT SELECT ON bulk_rollback_batch_stats TO authenticated;
 
 -- Migration complete
-COMMENT ON TABLE bulk_rollback_batches IS 'Migration 20251002_003 complete: Bulk rollback batches table created with 2 indexes, RLS policies, and validation rules (max 100 operations per batch)';
+COMMENT ON TABLE hr_public.bulk_rollback_batches IS 'Migration 20251002_003 complete: Bulk rollback batches table created with 2 indexes, RLS policies, and validation rules (max 100 operations per batch)';

@@ -87,6 +87,11 @@ export const load: PageServerLoad = async (event) => {
 			objective: 0
 		};
 
+		// Calculate health score (0-100)
+		const healthScore = totalGoals > 0
+			? Math.round(((analytics.completedGoals + onTrackGoals) / totalGoals) * 100)
+			: 0;
+
 		return {
 			user: {
 				id: locals.user.id,
@@ -115,7 +120,12 @@ export const load: PageServerLoad = async (event) => {
 					atRiskGoals,
 					behindGoals
 				},
-				byType
+				byType,
+				breakdowns: {
+					priority: [], // Priority field doesn't exist in schema yet
+					type: [] // Type field doesn't exist in schema yet
+				},
+				healthScore
 			},
 			filters: {
 				searchTerm,
@@ -158,7 +168,12 @@ export const load: PageServerLoad = async (event) => {
 			goalsAnalytics: {
 				summary: { totalGoals: 0, activeGoals: 0, completedGoals: 0, overdueGoals: 0 },
 				progress: { averageProgress: 0, onTrackGoals: 0, atRiskGoals: 0, behindGoals: 0 },
-				byType: { okr: 0, kpi: 0, milestone: 0, objective: 0 }
+				byType: { okr: 0, kpi: 0, milestone: 0, objective: 0 },
+				breakdowns: {
+					priority: [],
+					type: []
+				},
+				healthScore: 0
 			},
 			filters: {
 				searchTerm: url.searchParams.get('search') || '',
