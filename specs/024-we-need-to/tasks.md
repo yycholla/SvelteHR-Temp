@@ -94,7 +94,7 @@
 
 - [x] T018 Create `src/lib/services/documentService.ts` for document operations. Functions: uploadDocument(file: File, metadata: DocumentMetadata) → Promise<UploadResult>, assignDocument(documentId: string, assignments: Assignment[]) → Promise<void>, getDocumentMetadata(documentId: string) → Promise<Document>. Integrate with encryption.ts for client-side encryption before upload.
 
-- [ ] T019 Create `src/lib/services/previewService.ts` for preview generation. Functions: generatePreview(documentId: string) → Promise<PreviewResult>, convertOfficeToPDF(filePath: string) → Promise<string> (server-side LibreOffice headless). Support: native PDF/images (direct), DOCX/XLSX (convert to PDF first). Return signed URLs with 15-minute expiration.
+- [x] T019 Create `src/lib/services/previewService.ts` for preview generation. Functions: generatePreview(documentId: string) → Promise<PreviewResult>, convertOfficeToPDF(filePath: string) → Promise<string> (server-side LibreOffice headless). Support: native PDF/images (direct), DOCX/XLSX (convert to PDF first). Return signed URLs with 15-minute expiration.
 
 - [x] T020 Create `src/lib/services/storageService.ts` for file storage abstraction. Functions: storeFile(encryptedData: ArrayBuffer, metadata: FileMetadata) → Promise<string>, retrieveFile(storagePath: string) → Promise<ArrayBuffer>. Initial implementation: PostgreSQL BYTEA columns. Future: S3-compatible object storage switch.
 
