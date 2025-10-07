@@ -184,11 +184,11 @@
 
 **Dependencies: All tests passing (T043-T051)**
 
-- [ ] T052 [P] Unit test: Create `tests/unit/encryption.spec.ts` testing Web Crypto API wrapper. Test cases: 1) generateEncryptionKey() returns valid CryptoKey, 2) encryptFile() produces different ciphertext for same input (IV randomness), 3) decryptFile() recovers original file, 4) Large file encryption (50MB) with progress callbacks. Use Vitest.
+- [x] T052 [P] Unit test: Create `tests/unit/encryption.spec.ts` testing Web Crypto API wrapper. Test cases: 1) generateEncryptionKey() returns valid CryptoKey, 2) encryptFile() produces different ciphertext for same input (IV randomness), 3) decryptFile() recovers original file, 4) Large file encryption (50MB) with progress callbacks. Use Vitest.
 
-- [ ] T053 [P] Unit test: Create `tests/unit/documentValidation.spec.ts` testing Zod schemas. Test cases: 1) Valid upload metadata passes, 2) 51MB file rejected, 3) .EXE file type rejected, 4) Invalid sensitivity level rejected, 5) Missing required fields rejected. Test all schemas: documentUploadSchema, documentMetadataSchema, encryptionKeySchema.
+- [x] T053 [P] Unit test: Create `tests/unit/documentValidation.spec.ts` testing Zod schemas. Test cases: 1) Valid upload metadata passes, 2) 51MB file rejected, 3) .EXE file type rejected, 4) Invalid sensitivity level rejected, 5) Missing required fields rejected. Test all schemas: documentUploadSchema, documentMetadataSchema, encryptionKeySchema.
 
-- [ ] T054 [P] Update `src/routes/dashboard/documents/README.md` with feature documentation. Sections: 1) Architecture overview (encryption flow diagram), 2) RBAC permission matrix, 3) API endpoints reference, 4) Component usage examples, 5) Database schema diagram, 6) Performance benchmarks, 7) Security considerations. Include screenshots of UI components.
+- [x] T054 [P] Update `src/routes/dashboard/documents/README.md` with feature documentation. Sections: 1) Architecture overview (encryption flow diagram), 2) RBAC permission matrix, 3) API endpoints reference, 4) Component usage examples, 5) Database schema diagram, 6) Performance benchmarks, 7) Security considerations. Include screenshots of UI components.
 
 - [ ] T055 Constitution compliance check: Verify all 6 constitutional principles. Checklist: I) Test-First Development (contract tests before implementation ✅), II) Type Safety (strict TypeScript + Zod ✅), III) Security by Design (RLS + encryption + audit ✅), IV) Performance Standards (all benchmarks met ✅), V) Component Architecture (Svelte 5 runes + shadcn/ui ✅), VI) MCP-First Development (Serena MCP for refactoring ✅). Document any deviations in plan.md Complexity Tracking section.
 
