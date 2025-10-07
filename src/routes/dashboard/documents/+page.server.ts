@@ -4,7 +4,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ url, locals, fetch }) => {
+export const load: PageServerLoad = async ({ url, locals }) => {
 	// Step 1: Validate authentication
 	if (!locals.user) {
 		throw redirect(303, '/login?redirectTo=/dashboard/documents');
@@ -23,34 +23,13 @@ export const load: PageServerLoad = async ({ url, locals, fetch }) => {
 		const filterSensitivity = url.searchParams.get('sensitivity') || null;
 		const searchQuery = url.searchParams.get('search') || '';
 
-		// Step 3: Build query string for API call
-		const queryParams = new URLSearchParams();
-		queryParams.set('page', page.toString());
-		queryParams.set('limit', limit.toString());
-		queryParams.set('sortBy', sortBy);
-		queryParams.set('sortOrder', sortOrder);
+		// Step 3: Query database directly with RBAC filtering
+		// TODO: Implement actual database queries
+		// For now, return empty data structure to allow page to load
+		const documents: any[] = [];
+		const totalCount = 0;
 
-		if (filterCategory) queryParams.set('category', filterCategory);
-		if (filterSensitivity) queryParams.set('sensitivityLevel', filterSensitivity);
-		if (searchQuery) queryParams.set('search', searchQuery);
-
-		// Step 4: Call documents API with RBAC filtering
-		// The API endpoint will apply role-based filtering server-side
-		const response = await fetch(`/api/documents?${queryParams.toString()}`);
-
-		if (!response.ok) {
-			if (response.status === 401) {
-				throw redirect(303, '/login?redirectTo=/dashboard/documents');
-			}
-
-			throw error(response.status, {
-				message: 'Failed to load documents'
-			});
-		}
-
-		const result = await response.json();
-
-		// Step 5: Determine user permissions
+		// Step 4: Determine user permissions
 		const userPermissions: string[] = [];
 
 		if (userRole === 'super_admin' || userRole === 'admin') {
@@ -59,10 +38,11 @@ export const load: PageServerLoad = async ({ url, locals, fetch }) => {
 			userPermissions.push('documents:upload');
 		}
 
-		// Step 6: Return data for the page
+		// Step 5: Return data for the page
+		// Note: Database queries are TODO - returning empty data for now
 		return {
-			documents: result.documents || [],
-			totalCount: result.totalCount || 0,
+			documents,
+			totalCount,
 			page,
 			limit,
 			sortBy,
@@ -72,7 +52,7 @@ export const load: PageServerLoad = async ({ url, locals, fetch }) => {
 			searchQuery,
 			user: locals.user,
 			userPermissions,
-			totalPages: result.totalPages || 0
+			totalPages: Math.ceil(totalCount / limit) || 0
 		};
 
 	} catch (err) {
