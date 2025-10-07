@@ -8,23 +8,51 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import * as Alert from '$lib/components/ui/alert';
-	import { X, CheckCircle2, Lock } from 'lucide-svelte';
+	import { X, CheckCircle2, Lock, Upload } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import type { DocumentMetadata, UploadResult } from '$lib/types/document';
 
 	let { data }: { data: PageData } = $props();
 
+	// Component references and reactive state
+	let fileUploader: FileUploader;
+	let metadataForm: DocumentMetadataForm;
+
 	// Svelte 5 state
 	let metadata = $state<DocumentMetadata>({
 		filename: '',
 		category: 'Other',
-		sensitivity_level: 'Internal',
-		description: ''
+		sensitivityLevel: 'Internal',
+		metadataTags: {}
 	});
 
 	let uploadComplete = $state(false);
 	let uploadError = $state<string | null>(null);
 	let uploadedDocumentId = $state<string | null>(null);
+	let isUploading = $state(false);
+
+	// Reactive state bound from child components
+	let hasFile = $state(false);
+
+	// Derive metadata validation directly from metadata object
+	// Note: filename is set automatically when file is selected, so we only check the user-entered fields
+	let hasRequiredMetadata = $derived(
+		metadata.category !== '' &&
+		metadata.sensitivityLevel !== ''
+	);
+
+	// Derived state for upload button
+	let canUpload = $derived(hasFile && hasRequiredMetadata && !isUploading && !uploadComplete);
+
+	// Debug logging
+	$effect(() => {
+		console.log('[Parent] State update - hasFile:', hasFile,
+			'metadata.filename:', metadata.filename,
+			'metadata.category:', metadata.category,
+			'metadata.sensitivityLevel:', metadata.sensitivityLevel,
+			'hasRequiredMetadata:', hasRequiredMetadata,
+			'isUploading:', isUploading, 'uploadComplete:', uploadComplete, 'canUpload:', canUpload);
+	});
 
 	// Handle successful upload
 	function handleUploadSuccess(result: UploadResult) {
@@ -42,12 +70,28 @@
 	function handleUploadError(error: Error) {
 		console.error('Upload failed:', error);
 		uploadError = error.message;
+		isUploading = false;
 	}
 
-	// Handle metadata form submission
-	function handleMetadataSubmit(updatedMetadata: DocumentMetadata) {
-		metadata = updatedMetadata;
-		console.log('Metadata updated:', metadata);
+	// Handle unified upload button click
+	async function handleUpload() {
+		uploadError = null;
+
+		// Validate metadata
+		if (!metadataForm.validateMetadata()) {
+			uploadError = 'Please fill in all required metadata fields';
+			return;
+		}
+
+		try {
+			isUploading = true;
+			await fileUploader.triggerUpload();
+		} catch (error) {
+			console.error('Upload error:', error);
+			uploadError = error instanceof Error ? error.message : 'Upload failed';
+		} finally {
+			isUploading = false;
+		}
 	}
 
 	// Handle cancel
@@ -62,17 +106,11 @@
 
 <div class="container mx-auto max-w-4xl py-6 space-y-6">
 	<!-- Page header -->
-	<div class="flex justify-between items-start gap-4">
-		<div class="space-y-1">
-			<h1 class="text-3xl font-bold tracking-tight">Upload Document</h1>
-			<p class="text-muted-foreground">
-				Upload a new document with end-to-end encryption. All files are encrypted on your device before upload.
-			</p>
-		</div>
-		<Button variant="outline" onclick={handleCancel}>
-			<X class="h-4 w-4 mr-2" />
-			Cancel
-		</Button>
+	<div class="space-y-1">
+		<h1 class="text-3xl font-bold tracking-tight">Upload Document</h1>
+		<p class="text-muted-foreground">
+			Upload a new document with end-to-end encryption. All files are encrypted on your device before upload.
+		</p>
 	</div>
 
 	<!-- Success message -->
@@ -88,56 +126,68 @@
 	{:else}
 		<!-- Upload form -->
 		<div class="space-y-6">
-			<!-- Step 1: File selection -->
+			<!-- Combined Upload Card -->
 			<Card.Root>
 				<Card.Header>
-					<div class="flex items-start gap-3">
-						<div class="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">
-							1
-						</div>
-						<div class="flex-1">
-							<Card.Title>Select File</Card.Title>
-							<Card.Description>Choose a file to upload (max 50MB)</Card.Description>
-						</div>
-					</div>
+					<Card.Title>Upload Document</Card.Title>
+					<Card.Description>Select a file and provide metadata for classification</Card.Description>
 				</Card.Header>
 				<Card.Content>
-					<FileUploader
-						bind:metadata
-						onUpload={handleUploadSuccess}
-						onError={handleUploadError}
-						maxSizeMB={50}
-						allowedTypes={['PDF', 'JPEG', 'PNG', 'GIF', 'DOCX', 'XLSX', 'TXT', 'CSV']}
-					/>
-
-					{#if uploadError}
-						<Alert.Root variant="destructive" class="mt-4">
-							<Alert.Title>Upload Error</Alert.Title>
-							<Alert.Description>{uploadError}</Alert.Description>
-						</Alert.Root>
-					{/if}
-				</Card.Content>
-			</Card.Root>
-
-			<!-- Step 2: Metadata form -->
-			<Card.Root>
-				<Card.Header>
-					<div class="flex items-start gap-3">
-						<div class="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">
-							2
+					<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+						<!-- Left: File Upload -->
+						<div class="space-y-4">
+							<h3 class="text-sm font-semibold text-foreground">File Selection</h3>
+							<FileUploader
+								bind:this={fileUploader}
+								bind:metadata
+								bind:hasFile
+								onUpload={handleUploadSuccess}
+								onError={handleUploadError}
+								maxSizeMB={50}
+								allowedTypes={['PDF', 'JPEG', 'PNG', 'GIF', 'DOCX', 'XLSX', 'TXT', 'CSV']}
+							/>
 						</div>
-						<div class="flex-1">
-							<Card.Title>Document Information</Card.Title>
-							<Card.Description>Provide metadata for classification and access control</Card.Description>
+
+						<!-- Right: Metadata -->
+						<div class="space-y-4">
+							<h3 class="text-sm font-semibold text-foreground">Document Information</h3>
+							<DocumentMetadataForm
+								bind:this={metadataForm}
+								bind:metadata
+							/>
 						</div>
 					</div>
-				</Card.Header>
-				<Card.Content>
-					<DocumentMetadataForm
-						bind:metadata
-						onSubmit={handleMetadataSubmit}
-						onCancel={handleCancel}
-					/>
+
+					<!-- Upload Actions -->
+					<div class="mt-8 pt-6 border-t">
+						<div class="flex items-center gap-4">
+							<Button
+								variant="outline"
+								onclick={handleCancel}
+								disabled={isUploading}
+								class="flex-1"
+							>
+								<X class="h-4 w-4 mr-2" />
+								Cancel
+							</Button>
+							<Button
+								onclick={handleUpload}
+								disabled={!canUpload}
+								class="flex-1"
+								size="lg"
+							>
+								<Upload class="h-5 w-5 mr-2" />
+								{isUploading ? 'Uploading...' : 'Upload Document'}
+							</Button>
+						</div>
+
+						{#if uploadError}
+							<Alert.Root variant="destructive" class="mt-4">
+								<Alert.Title>Upload Error</Alert.Title>
+								<Alert.Description>{uploadError}</Alert.Description>
+							</Alert.Root>
+						{/if}
+					</div>
 				</Card.Content>
 			</Card.Root>
 

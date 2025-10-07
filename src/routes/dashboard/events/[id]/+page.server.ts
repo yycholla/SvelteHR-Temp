@@ -40,6 +40,14 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 			userCredentials
 		});
 
+		console.log('[Event Detail] Retrieved event:', JSON.stringify({
+			id: event?.id,
+			title: event?.title,
+			startTime: event?.startTime,
+			endTime: event?.endTime,
+			startTimeType: typeof event?.startTime
+		}, null, 2));
+
 		if (!event) {
 			throw error(404, {
 				message: 'Event not found or you do not have permission to view it.'

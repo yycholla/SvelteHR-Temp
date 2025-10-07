@@ -26,7 +26,8 @@ const PUBLIC_ROUTES = [
 	'/login-working',
 	'/privacy',
 	'/terms',
-	'/api'
+	'/api/auth/login',
+	'/api/health'
 ];
 
 // Helper function to authenticate user with proper JWT verification
@@ -127,7 +128,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 			// RBAC Authentication Logic
 			// Check if route is public
 			const isPublicRoute = PUBLIC_ROUTES.some(
-				(route) => url === route || url.startsWith(`${route}/`) || url.startsWith('/api/')
+				(route) => url === route || url.startsWith(`${route}/`)
 			);
 
 			// Extract JWT token from cookies using centralized config
@@ -136,9 +137,21 @@ export const handle: Handle = async ({ event, resolve }) => {
 				event.cookies.get(primaryTokenName) || event.cookies.get('postgraphile-jwt-token');
 
 			if (!isPublicRoute) {
+				// Check if this is an API route
+				const isApiRoute = url.startsWith('/api/');
+
 				// Protected route - verify authentication
 				if (!token) {
 					console.log(`🔒 No token found for protected route: ${url}`);
+
+					// API routes return JSON errors, non-API routes redirect to login
+					if (isApiRoute) {
+						return new Response(JSON.stringify({ message: 'Authentication required' }), {
+							status: 401,
+							headers: { 'Content-Type': 'application/json' }
+						});
+					}
+
 					// Redirect to login with return URL
 					const redirectTo = url === '/' ? '' : `?redirectTo=${encodeURIComponent(url)}`;
 					throw redirect(303, `/login${redirectTo}`);
@@ -150,9 +163,19 @@ export const handle: Handle = async ({ event, resolve }) => {
 				const authResult = await authenticateUser(token);
 				if (!authResult) {
 					console.log(`❌ Authentication failed for route: ${url}`);
-					// Invalid token - redirect to login
+
+					// Clean up invalid tokens
 					event.cookies.delete(primaryTokenName, { path: '/' });
 					event.cookies.delete('postgraphile-jwt-token', { path: '/' });
+
+					// API routes return JSON errors, non-API routes redirect to login
+					if (isApiRoute) {
+						return new Response(JSON.stringify({ message: 'Invalid or expired token' }), {
+							status: 401,
+							headers: { 'Content-Type': 'application/json' }
+						});
+					}
+
 					const redirectTo = url === '/' ? '' : `?redirectTo=${encodeURIComponent(url)}`;
 					throw redirect(303, `/login${redirectTo}`);
 				}
@@ -218,7 +241,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 					"img-src 'self' data: https:",
 					"font-src 'self' data: https://1.www.s81c.com", // Allow IBM Plex fonts from Carbon CDN
 					"connect-src 'self' http://localhost:4000 ws://localhost:4000 http://localhost:4001 ws://localhost:4001", // PostGraphile endpoints
-					"frame-ancestors 'none'",
+					"frame-src 'self'", // Allow same-origin iframe embedding for document preview
+					"frame-ancestors 'self'", // Allow being embedded in same-origin iframes
 					"base-uri 'self'",
 					"form-action 'self'"
 				].join('; ')

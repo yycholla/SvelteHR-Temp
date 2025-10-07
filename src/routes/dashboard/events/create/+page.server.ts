@@ -38,23 +38,28 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		const dateParam = url.searchParams.get('date'); // Fallback for single click
 		const allDayParam = url.searchParams.get('allDay');
 
+		console.log('[Event Create Load] URL params:', { startParam, endParam, dateParam, allDayParam });
+
 		let defaultStartTime: string;
 		let defaultEndTime: string;
 		let defaultAllDay: boolean = allDayParam === 'true';
 
 		if (startParam && endParam) {
 			// Use start and end times from calendar selection (drag)
-			defaultStartTime = formatDateTimeLocal(new Date(startParam));
-			defaultEndTime = formatDateTimeLocal(new Date(endParam));
+			// Parse as local time (not UTC)
+			defaultStartTime = parseLocalDateTime(startParam);
+			defaultEndTime = parseLocalDateTime(endParam);
+			console.log('[Event Create Load] Using start/end params:', { defaultStartTime, defaultEndTime });
 		} else if (dateParam) {
 			// Use the single date from calendar click
-			const clickedDate = new Date(dateParam);
-			defaultStartTime = formatDateTimeLocal(clickedDate);
+			// Parse as local time (not UTC)
+			defaultStartTime = parseLocalDateTime(dateParam);
 
 			// Default end time is 30 minutes after start (matches calendar slot)
-			const endDate = new Date(clickedDate);
-			endDate.setMinutes(endDate.getMinutes() + 30);
-			defaultEndTime = formatDateTimeLocal(endDate);
+			const clickedDate = parseLocalDateTimeAsDate(dateParam);
+			clickedDate.setMinutes(clickedDate.getMinutes() + 30);
+			defaultEndTime = formatDateTimeLocal(clickedDate);
+			console.log('[Event Create Load] Using date param:', { dateParam, clickedDate, defaultStartTime, defaultEndTime });
 		} else {
 			// Use default times (next hour)
 			defaultStartTime = getDefaultStartTime();
@@ -108,6 +113,54 @@ function getRoleLevel(role: string | undefined): number {
 	};
 
 	return roleLevels[role?.toLowerCase() || 'employee'] || 20;
+}
+
+// Helper to parse datetime string as local time and return datetime-local format
+function parseLocalDateTime(dateTimeStr: string): string {
+	// If already in correct format, return as-is
+	if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(dateTimeStr)) {
+		return dateTimeStr;
+	}
+
+	// Remove trailing seconds and timezone info
+	const normalized = dateTimeStr.replace(/Z$/, '').split('.')[0];
+
+	// Parse components manually to create Date in local timezone
+	const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
+
+	if (match) {
+		const [, year, month, day, hours, minutes] = match;
+		// Return in datetime-local format
+		return `${year}-${month}-${day}T${hours}:${minutes}`;
+	}
+
+	// Fallback: return as-is
+	return dateTimeStr;
+}
+
+// Helper to parse datetime string as a Date object in local time (for calculations)
+function parseLocalDateTimeAsDate(dateTimeStr: string): Date {
+	// Remove any trailing seconds or timezone info
+	const normalized = dateTimeStr.replace(/Z$/, '').split('.')[0];
+
+	// Parse components manually to avoid timezone conversion
+	const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
+
+	if (match) {
+		const [, year, month, day, hours, minutes, seconds = '0'] = match;
+		// Create Date in local timezone using individual components
+		return new Date(
+			parseInt(year),
+			parseInt(month) - 1, // Month is 0-indexed
+			parseInt(day),
+			parseInt(hours),
+			parseInt(minutes),
+			parseInt(seconds)
+		);
+	}
+
+	// Fallback: parse normally (will be UTC)
+	return new Date(dateTimeStr);
 }
 
 // Helper to format Date to datetime-local input format (local time)
@@ -191,14 +244,36 @@ export const actions: Actions = {
 			};
 
 			// Create the event
-			const event = await eventsOps.createEvent({
+			// Best practice: Send datetime with explicit timezone offset
+			// This ensures PostgreSQL stores the correct UTC time
+			console.log('[Event Create] Form startTime string:', startTime);
+			console.log('[Event Create] Form endTime string:', endTime);
+
+			// Get the timezone offset for the current local time
+			const now = new Date();
+			const tzOffset = -now.getTimezoneOffset(); // getTimezoneOffset() returns opposite sign
+			const offsetHours = Math.floor(Math.abs(tzOffset) / 60);
+			const offsetMinutes = Math.abs(tzOffset) % 60;
+			const offsetSign = tzOffset >= 0 ? '+' : '-';
+			const offsetString = `${offsetSign}${String(offsetHours).padStart(2, '0')}:${String(offsetMinutes).padStart(2, '0')}`;
+
+			// Append timezone offset to datetime-local values
+			// This tells PostgreSQL: "this is Oct 16 midnight in MDT (UTC-6)"
+			const startTimeWithTZ = `${startTime}:00${offsetString}`;
+			const endTimeWithTZ = `${endTime}:00${offsetString}`;
+
+			console.log('[Event Create] Timezone offset:', offsetString);
+			console.log('[Event Create] Start time with TZ:', startTimeWithTZ);
+			console.log('[Event Create] End time with TZ:', endTimeWithTZ);
+
+			const result = await eventsOps.createEvent({
 				input: {
 					event: {
 						title,
 						description,
 						eventType,
-						startTime: new Date(startTime).toISOString(),
-						endTime: new Date(endTime).toISOString(),
+						startTime: startTimeWithTZ,
+						endTime: endTimeWithTZ,
 						allDay: isAllDay,
 						location,
 						organizerId: locals.user.id,
@@ -208,6 +283,10 @@ export const actions: Actions = {
 				},
 				userCredentials
 			});
+
+			console.log('[Event Create] Result from GraphQL:', JSON.stringify(result, null, 2));
+			console.log('[Event Create] Created event startTime:', result.createEvent?.event?.startTime);
+			console.log('[Event Create] Created event endTime:', result.createEvent?.event?.endTime);
 
 			// Redirect to events list on success
 			throw redirect(303, '/dashboard/events');

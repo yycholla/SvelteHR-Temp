@@ -2,6 +2,7 @@
 	// DocumentCard component (Feature 024)
 	// Individual document card display with RBAC-aware actions
 
+	import { goto } from '$app/navigation';
 	import type { Document } from '$lib/types/document';
 
 	interface Props {
@@ -19,6 +20,11 @@
 		onPreview = () => {},
 		onDownload = () => {}
 	}: Props = $props();
+
+	// Navigate to document detail page
+	function handleCardClick() {
+		goto(`/dashboard/documents/${document.id}`);
+	}
 
 	// File type icons mapping
 	const fileIcons: Record<string, string> = {
@@ -56,21 +62,23 @@
 	}
 
 	// Handle preview click
-	function handlePreview() {
+	function handlePreview(event: MouseEvent) {
+		event.stopPropagation(); // Prevent card click
 		if (canPreview) {
 			onPreview(document.id);
 		}
 	}
 
 	// Handle download click
-	function handleDownload() {
+	function handleDownload(event: MouseEvent) {
+		event.stopPropagation(); // Prevent card click
 		if (canDownload) {
 			onDownload(document.id);
 		}
 	}
 </script>
 
-<div class="document-card">
+<div class="document-card" onclick={handleCardClick} role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && handleCardClick()}>
 	<!-- File icon and metadata -->
 	<div class="card-header">
 		<div class="file-icon">{fileIcon}</div>
@@ -86,9 +94,19 @@
 		</div>
 	</div>
 
-	<!-- Sensitivity badge -->
-	<div class="sensitivity-badge {sensitivityClass}">
-		{document.sensitivity_level}
+	<!-- Sensitivity badge and assigned users -->
+	<div class="badges-container">
+		<div class="sensitivity-badge {sensitivityClass}">
+			{document.sensitivity_level}
+		</div>
+
+		{#if document.assigned_users && Array.isArray(document.assigned_users) && document.assigned_users.length > 0}
+			{#each document.assigned_users as assignedUser}
+				<div class="assigned-user-badge" title="Assigned to {assignedUser.email}">
+					👤 {assignedUser.email}
+				</div>
+			{/each}
+		{/if}
 	</div>
 
 	<!-- Actions -->
@@ -132,11 +150,18 @@
 		border: 1px solid #e2e8f0;
 		border-radius: 8px;
 		transition: all 0.2s ease;
+		cursor: pointer;
 	}
 
 	.document-card:hover {
 		border-color: #cbd5e0;
 		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+		transform: translateY(-2px);
+	}
+
+	.document-card:focus {
+		outline: 2px solid #4299e1;
+		outline-offset: 2px;
 	}
 
 	.card-header {
@@ -180,14 +205,32 @@
 		color: #cbd5e0;
 	}
 
+	.badges-container {
+		display: flex;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+		align-items: center;
+	}
+
 	.sensitivity-badge {
-		align-self: flex-start;
 		padding: 0.25rem 0.75rem;
 		border-radius: 9999px;
 		font-size: 0.75rem;
 		font-weight: 600;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
+	}
+
+	.assigned-user-badge {
+		padding: 0.25rem 0.75rem;
+		border-radius: 9999px;
+		font-size: 0.75rem;
+		font-weight: 500;
+		background: #edf2f7;
+		color: #4a5568;
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
 	}
 
 	.card-actions {

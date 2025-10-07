@@ -3,6 +3,7 @@
 
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import { transaction, setJWTClaims } from '$lib/server/db';
 
 export const load: PageServerLoad = async ({ url, locals, fetch }) => {
 	// Step 1: Validate authentication
@@ -32,90 +33,93 @@ export const load: PageServerLoad = async ({ url, locals, fetch }) => {
 		const dateFrom = url.searchParams.get('dateFrom') || null;
 		const dateTo = url.searchParams.get('dateTo') || null;
 
-		// Step 4: Build query for access logs
-		// TODO: Replace with actual database query
-		// SELECT * FROM hr_public.document_access_logs
-		// WHERE (documentId IS NULL OR document_id = documentId)
-		//   AND (filterUserId IS NULL OR user_id = filterUserId)
-		//   AND (accessType IS NULL OR access_type = accessType)
-		//   AND (dateFrom IS NULL OR access_timestamp >= dateFrom)
-		//   AND (dateTo IS NULL OR access_timestamp <= dateTo)
-		// ORDER BY access_timestamp DESC
-		// LIMIT limit OFFSET (page - 1) * limit
+		// Step 4: Query access logs from database
+		const { accessLogs, totalCount } = await transaction(async (client) => {
+			// Set JWT claims for RLS
+			await setJWTClaims(client, userId, userRole);
 
-		// Mock data for now
-		const accessLogs = [
-			{
-				id: 'log-1',
-				document_id: 'doc-123',
-				user_id: userId,
-				access_type: 'download' as const,
-				access_timestamp: new Date().toISOString(),
-				access_outcome: 'success' as const,
-				ip_address: '127.0.0.1',
-				user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-				denial_reason: null
-			},
-			{
-				id: 'log-2',
-				document_id: 'doc-456',
-				user_id: 'user-456',
-				access_type: 'preview' as const,
-				access_timestamp: new Date(Date.now() - 3600000).toISOString(),
-				access_outcome: 'success' as const,
-				ip_address: '192.168.1.100',
-				user_agent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
-				denial_reason: null
-			},
-			{
-				id: 'log-3',
-				document_id: 'doc-789',
-				user_id: 'user-789',
-				access_type: 'download' as const,
-				access_timestamp: new Date(Date.now() - 7200000).toISOString(),
-				access_outcome: 'denied' as const,
-				ip_address: '10.0.0.50',
-				user_agent: 'Mozilla/5.0 (X11; Linux x86_64)',
-				denial_reason: 'Insufficient permissions - document not assigned to user'
+			// Build WHERE clause dynamically
+			const conditions: string[] = [];
+			const params: any[] = [];
+			let paramIndex = 1;
+
+			if (documentId) {
+				conditions.push(`dal.document_id = $${paramIndex++}`);
+				params.push(documentId);
 			}
-		];
 
-		// Apply client-side filtering for demo (would be done in database query)
-		let filteredLogs = accessLogs;
+			if (filterUserId) {
+				conditions.push(`dal.user_id = $${paramIndex++}`);
+				params.push(filterUserId);
+			}
 
-		if (documentId) {
-			filteredLogs = filteredLogs.filter(log => log.document_id === documentId);
-		}
+			if (accessType) {
+				conditions.push(`dal.access_type = $${paramIndex++}`);
+				params.push(accessType);
+			}
 
-		if (filterUserId) {
-			filteredLogs = filteredLogs.filter(log => log.user_id === filterUserId);
-		}
+			if (dateFrom) {
+				conditions.push(`dal.access_timestamp >= $${paramIndex++}`);
+				params.push(new Date(dateFrom));
+			}
 
-		if (accessType) {
-			filteredLogs = filteredLogs.filter(log => log.access_type === accessType);
-		}
+			if (dateTo) {
+				const endDate = new Date(dateTo);
+				endDate.setHours(23, 59, 59, 999); // End of day
+				conditions.push(`dal.access_timestamp <= $${paramIndex++}`);
+				params.push(endDate);
+			}
 
-		if (dateFrom) {
-			const fromDate = new Date(dateFrom);
-			filteredLogs = filteredLogs.filter(log => new Date(log.access_timestamp) >= fromDate);
-		}
+			const whereClause = conditions.length > 0
+				? `WHERE ${conditions.join(' AND ')}`
+				: '';
 
-		if (dateTo) {
-			const toDate = new Date(dateTo);
-			toDate.setHours(23, 59, 59, 999); // End of day
-			filteredLogs = filteredLogs.filter(log => new Date(log.access_timestamp) <= toDate);
-		}
+			// Get total count
+			const countResult = await client.query(
+				`SELECT COUNT(*) as count
+				 FROM hr_public.document_access_logs dal
+				 ${whereClause}`,
+				params
+			);
 
-		const totalCount = filteredLogs.length;
+			const total = parseInt(countResult.rows[0].count);
 
-		// Apply pagination
-		const startIndex = (page - 1) * limit;
-		const endIndex = startIndex + limit;
-		const paginatedLogs = filteredLogs.slice(startIndex, endIndex);
+			// Get paginated logs
+			const offset = (page - 1) * limit;
+			params.push(limit, offset);
+
+			const logsResult = await client.query(
+				`SELECT
+					dal.id,
+					dal.document_id,
+					dal.user_id,
+					dal.access_type,
+					dal.access_timestamp,
+					dal.access_outcome,
+					dal.ip_address,
+					dal.user_agent,
+					dal.denial_reason,
+					u.email as user_email,
+					d.filename as document_filename,
+					d.file_type as document_type
+				 FROM hr_public.document_access_logs dal
+				 LEFT JOIN hr_public.users u ON dal.user_id = u.id
+				 LEFT JOIN hr_public.documents d ON dal.document_id = d.id
+				 ${whereClause}
+				 ORDER BY dal.access_timestamp DESC
+				 LIMIT $${paramIndex++} OFFSET $${paramIndex++}`,
+				params
+			);
+
+			return {
+				accessLogs: logsResult.rows,
+				totalCount: total
+			};
+		});
 
 		// Step 5: Return data
 		return {
-			accessLogs: paginatedLogs,
+			accessLogs,
 			totalCount,
 			page,
 			limit,

@@ -21,8 +21,11 @@
 		MoreHorizontal,
 		Download,
 		Upload,
-		FileBarChart
+		FileBarChart,
+		Grid,
+		List
 	} from 'lucide-svelte';
+	import * as Table from '$lib/components/ui/table';
 
 	// Subscribe to page store at top level
 	const currentUrl = $derived($page.url);
@@ -68,9 +71,11 @@
 	// Local state for filters and search
 	let searchTerm = $state('');
 	let selectedDepartment = $state('');
-	let selectedStatus = $state('');
+	let selectedStatus = $state('active'); // Default to active only
+	let showInactive = $state(false); // Checkbox state - default to NOT showing inactive (unchecked)
 	let currentPage = $state(1);
 	let pageSize = $state(20);
+	let viewMode = $state<'grid' | 'list'>('list'); // Default to table view
 
 	// Sync with filters data using effects
 	$effect(() => {
@@ -80,7 +85,10 @@
 		selectedDepartment = filters.departmentFilter || '';
 	});
 	$effect(() => {
-		selectedStatus = filters.statusFilter || '';
+		const status = filters.statusFilter || 'active';
+		selectedStatus = status;
+		// Sync checkbox with status - checked when status is '' (all) or 'inactive'
+		showInactive = status === '' || status === 'inactive';
 	});
 	$effect(() => {
 		currentPage = filters.page || 1;
@@ -97,8 +105,8 @@
 	// Statistics derived from server data
 	const employeeStats = $derived({
 		totalEmployees,
-		activeEmployees: employees.filter((emp) => emp.isActive).length,
-		inactiveEmployees: employees.filter((emp) => !emp.isActive).length,
+		activeEmployees: employees.filter((emp) => emp.isActive === true).length,
+		inactiveEmployees: employees.filter((emp) => emp.isActive === false).length,
 		departmentCount: departments.length
 	});
 
@@ -114,7 +122,14 @@
 		const searchParams = new URLSearchParams();
 		if (searchTerm) searchParams.set('search', searchTerm);
 		if (selectedDepartment) searchParams.set('department', selectedDepartment);
-		if (selectedStatus) searchParams.set('status', selectedStatus);
+
+		// Set status based on showInactive checkbox
+		if (showInactive) {
+			searchParams.set('status', ''); // Show all employees
+		} else {
+			searchParams.set('status', 'active'); // Show only active employees
+		}
+
 		searchParams.set('page', '1'); // Reset to first page on new search
 		if (pageSize !== 20) searchParams.set('limit', pageSize.toString());
 
@@ -134,9 +149,14 @@
 	function clearFilters() {
 		searchTerm = '';
 		selectedDepartment = '';
-		selectedStatus = '';
+		selectedStatus = 'active';
+		showInactive = false;
 		pageSize = 20;
-		goto(currentPathname);
+
+		// Navigate with status=active (show only active employees)
+		const searchParams = new URLSearchParams();
+		searchParams.set('status', 'active');
+		goto(`${currentPathname}?${searchParams.toString()}`);
 	}
 
 	// Get employee status badge variant
@@ -246,6 +266,26 @@
 		</Card.Root>
 	</div>
 
+	<!-- View Mode Toggle -->
+	<div class="flex justify-end gap-2">
+		<Button
+			variant={viewMode === 'grid' ? 'default' : 'outline'}
+			size="icon"
+			onclick={() => (viewMode = 'grid')}
+			title="Grid view"
+		>
+			<Grid class="h-4 w-4" />
+		</Button>
+		<Button
+			variant={viewMode === 'list' ? 'default' : 'outline'}
+			size="icon"
+			onclick={() => (viewMode = 'list')}
+			title="Table view"
+		>
+			<List class="h-4 w-4" />
+		</Button>
+	</div>
+
 	<!-- Search and Filters -->
 	<Card.Root>
 		<Card.Header>
@@ -260,7 +300,7 @@
 				}}
 				class="space-y-4"
 			>
-				<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+				<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
 					<!-- Search Input -->
 					<div class="space-y-2">
 						<label for="search" class="text-sm font-medium">Search</label>
@@ -293,22 +333,6 @@
 						</select>
 					</div>
 
-					<!-- Status Filter -->
-					{#if canViewInactiveEmployees}
-						<div class="space-y-2">
-							<label for="status" class="text-sm font-medium">Status</label>
-							<select
-								id="status"
-								bind:value={selectedStatus}
-								class="shadow-xs flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base outline-none ring-offset-background transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/80 md:text-sm focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-							>
-								{#each statusOptions as option}
-									<option value={option.value}>{option.label}</option>
-								{/each}
-							</select>
-						</div>
-					{/if}
-
 					<!-- Page Size -->
 					<div class="space-y-2">
 						<label for="pagesize" class="text-sm font-medium">Per Page</label>
@@ -325,6 +349,22 @@
 					</div>
 				</div>
 
+				<!-- Show Inactive Checkbox (managers and above only) -->
+				{#if canViewInactiveEmployees}
+					<div class="flex items-center space-x-2 pt-2">
+						<input
+							type="checkbox"
+							id="showInactive"
+							bind:checked={showInactive}
+							onchange={handleSearch}
+							class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+						/>
+						<label for="showInactive" class="text-sm font-medium cursor-pointer">
+							Show Inactive Employees
+						</label>
+					</div>
+				{/if}
+
 				<div class="flex gap-2">
 					<Button type="submit">
 						<Search class="mr-2 h-4 w-4" />
@@ -336,10 +376,12 @@
 		</Card.Content>
 	</Card.Root>
 
-	<!-- Employee Grid -->
-	<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-		{#each employees as employee}
-			<Card.Root class="transition-shadow hover:shadow-md">
+	<!-- Employee List/Grid -->
+	{#if viewMode === 'grid'}
+		<!-- Employee Grid -->
+		<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+			{#each employees as employee}
+				<Card.Root class="transition-shadow hover:shadow-md">
 				<Card.Header class="pb-3">
 					<div class="flex items-start justify-between">
 						<div class="flex items-center space-x-3">
@@ -416,9 +458,101 @@
 						{/if}
 					</div>
 				</Card.Content>
-			</Card.Root>
-		{/each}
-	</div>
+				</Card.Root>
+			{/each}
+		</div>
+	{:else}
+		<!-- Table View -->
+		<div class="border rounded-lg overflow-hidden">
+			<Table.Root>
+				<Table.Header>
+					<Table.Row>
+						<Table.Head>Name</Table.Head>
+						<Table.Head>Email</Table.Head>
+						<Table.Head>Department</Table.Head>
+						<Table.Head>Role</Table.Head>
+						<Table.Head>Hire Date</Table.Head>
+						<Table.Head>Status</Table.Head>
+						<Table.Head class="text-right">Actions</Table.Head>
+					</Table.Row>
+				</Table.Header>
+				<Table.Body>
+					{#each employees as employee (employee.id)}
+						<Table.Row class="cursor-pointer hover:bg-muted/50" onclick={() => goto(`/dashboard/employees/${employee.id}`)}>
+							<Table.Cell>
+								<div class="flex items-center gap-3">
+									<div class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+										<Users class="h-5 w-5 text-primary" />
+									</div>
+									<div>
+										<div class="font-medium">{employee.displayName || employee.fullName}</div>
+										{#if employee.jobTitle}
+											<div class="text-sm text-muted-foreground">{employee.jobTitle}</div>
+										{/if}
+									</div>
+								</div>
+							</Table.Cell>
+							<Table.Cell>
+								{#if employee.email}
+									<a href="mailto:{employee.email}" class="text-sm hover:text-primary" onclick={(e) => e.stopPropagation()}>
+										{employee.email}
+									</a>
+								{:else}
+									<span class="text-sm text-muted-foreground">N/A</span>
+								{/if}
+							</Table.Cell>
+							<Table.Cell>
+								{#if employee.department}
+									<span class="text-sm">{employee.department.name}</span>
+								{:else}
+									<span class="text-sm text-muted-foreground">N/A</span>
+								{/if}
+							</Table.Cell>
+							<Table.Cell>
+								{#if employee.role}
+									<Badge variant="outline">{formatRole(employee.role)}</Badge>
+								{:else}
+									<span class="text-sm text-muted-foreground">N/A</span>
+								{/if}
+							</Table.Cell>
+							<Table.Cell>
+								<span class="text-sm text-muted-foreground">
+									{employee.hireDate ? formatHireDate(employee.hireDate) : 'N/A'}
+								</span>
+							</Table.Cell>
+							<Table.Cell>
+								<Badge variant={getStatusBadgeVariant(employee.isActive)}>
+									{employee.isActive ? 'Active' : 'Inactive'}
+								</Badge>
+							</Table.Cell>
+							<Table.Cell class="text-right">
+								<div class="flex gap-1 justify-end">
+									<Button
+										variant="ghost"
+										size="sm"
+										href="/dashboard/employees/{employee.id}"
+										onclick={(e) => e.stopPropagation()}
+									>
+										<Eye class="h-4 w-4" />
+									</Button>
+									{#if canManageEmployees}
+										<Button
+											variant="ghost"
+											size="sm"
+											href="/dashboard/employees/{employee.id}/edit"
+											onclick={(e) => e.stopPropagation()}
+										>
+											<Edit class="h-4 w-4" />
+										</Button>
+									{/if}
+								</div>
+							</Table.Cell>
+						</Table.Row>
+					{/each}
+				</Table.Body>
+			</Table.Root>
+		</div>
+	{/if}
 
 	<!-- Empty State -->
 	{#if employees.length === 0}

@@ -6,6 +6,7 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import * as Table from '$lib/components/ui/table';
 	import * as Tabs from '$lib/components/ui/tabs';
+	import AssignDocumentsModal from '$lib/components/employees/AssignDocumentsModal.svelte';
 	import {
 		User,
 		ArrowLeft,
@@ -25,7 +26,8 @@
 		Car,
 		Shield,
 		DollarSign,
-	FileBarChart
+	FileBarChart,
+	FileText
 	} from 'lucide-svelte';
 
 	interface Props {
@@ -37,6 +39,38 @@
 	// Extract data
 	const employee = $derived(data.employee);
 	const permissions = $derived(data.permissions);
+
+	// Modal state
+	let isAssignDocsModalOpen = $state(false);
+	let isAssigningDocs = $state(false);
+
+	// Handle document assignment
+	async function handleAssignDocuments(documentIds: string[]) {
+		isAssigningDocs = true;
+		try {
+			const response = await fetch(`/api/employees/${employee.id}/assign-documents`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ documentIds })
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to assign documents');
+			}
+
+			const result = await response.json();
+			alert(`${result.message}\n\nAssigned: ${result.assignedCount}\nSkipped (already assigned): ${result.skippedCount}`);
+
+			// Close modal and reload page
+			isAssignDocsModalOpen = false;
+			window.location.reload();
+		} catch (error) {
+			console.error('Assignment error:', error);
+			alert('Failed to assign documents. Please try again.');
+		} finally {
+			isAssigningDocs = false;
+		}
+	}
 
 	// Format date helper
 	function formatDate(dateString: string | null): string {
@@ -102,7 +136,7 @@
 
 	<!-- Tabs for Different Sections -->
 	<Tabs.Root value="overview" class="w-full">
-		<Tabs.List class="grid w-full grid-cols-3 lg:grid-cols-7">
+		<Tabs.List class="grid w-full grid-cols-3 lg:grid-cols-8">
 			<Tabs.Trigger value="overview">Overview</Tabs.Trigger>
 			{#if permissions.canViewContactInfo}
 				<Tabs.Trigger value="contact">Contact</Tabs.Trigger>
@@ -116,6 +150,9 @@
 			<Tabs.Trigger value="leave">Leave</Tabs.Trigger>
 			<Tabs.Trigger value="reviews">Reviews</Tabs.Trigger>
 			<Tabs.Trigger value="timeoff">Time Off</Tabs.Trigger>
+			{#if permissions.canViewDocuments}
+				<Tabs.Trigger value="documents">Documents</Tabs.Trigger>
+			{/if}
 		</Tabs.List>
 
 		<!-- Overview Tab -->
@@ -529,5 +566,105 @@
 				</Card.Content>
 			</Card.Root>
 		</Tabs.Content>
+
+		<!-- Documents Tab -->
+		{#if permissions.canViewDocuments}
+			<Tabs.Content value="documents" class="mt-6">
+				<Card.Root>
+					<Card.Header>
+						<div class="flex items-center justify-between">
+							<Card.Title class="flex items-center gap-2">
+								<FileText class="h-5 w-5" />
+								Assigned Documents ({employee.documentsCount})
+							</Card.Title>
+							{#if permissions.canAssignDocuments}
+								<Button onclick={() => isAssignDocsModalOpen = true} size="sm">
+									Assign Documents
+								</Button>
+							{/if}
+						</div>
+					</Card.Header>
+					<Card.Content>
+						{#if employee.assignedDocuments && employee.assignedDocuments.length > 0}
+							<div class="border rounded-lg overflow-hidden">
+								<Table.Root>
+									<Table.Header>
+										<Table.Row>
+											<Table.Head>Filename</Table.Head>
+											<Table.Head>Category</Table.Head>
+											<Table.Head>Sensitivity</Table.Head>
+											<Table.Head>Assigned Date</Table.Head>
+											<Table.Head class="text-right">Actions</Table.Head>
+										</Table.Row>
+									</Table.Header>
+									<Table.Body>
+										{#each employee.assignedDocuments as document}
+											<Table.Row class="cursor-pointer hover:bg-muted/50" onclick={() => goto(`/dashboard/documents/${document.id}`)}>
+												<Table.Cell class="font-medium">
+													<div class="flex items-center gap-2">
+														<FileText class="h-4 w-4 text-muted-foreground" />
+														{document.filename}
+													</div>
+												</Table.Cell>
+												<Table.Cell>
+													<span class="text-sm text-muted-foreground">{document.category}</span>
+												</Table.Cell>
+												<Table.Cell>
+													<Badge variant={document.sensitivityLevel === 'Public' ? 'secondary' : 'default'}>
+														{document.sensitivityLevel}
+													</Badge>
+												</Table.Cell>
+												<Table.Cell class="text-sm text-muted-foreground">
+													{new Date(document.assignedAt).toLocaleDateString()}
+												</Table.Cell>
+												<Table.Cell class="text-right">
+													<Button
+														href="/dashboard/documents/{document.id}"
+														size="sm"
+														variant="outline"
+														onclick={(e) => {
+															e.stopPropagation();
+															goto(`/dashboard/documents/${document.id}`);
+														}}
+													>
+														View
+													</Button>
+												</Table.Cell>
+											</Table.Row>
+										{/each}
+									</Table.Body>
+								</Table.Root>
+							</div>
+						{:else}
+							<div class="text-center py-12">
+								<FileText class="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
+								<h3 class="text-lg font-semibold mb-2">No documents assigned</h3>
+								<p class="text-sm text-muted-foreground mb-4">
+									This employee hasn't been assigned any documents yet.
+								</p>
+								{#if permissions.canAssignDocuments}
+									<Button onclick={() => isAssignDocsModalOpen = true} size="sm">
+										Assign Documents
+									</Button>
+								{/if}
+							</div>
+						{/if}
+					</Card.Content>
+				</Card.Root>
+			</Tabs.Content>
+		{/if}
 	</Tabs.Root>
 </div>
+
+<!-- Assign Documents Modal -->
+{#if permissions.canAssignDocuments}
+	<AssignDocumentsModal
+		isOpen={isAssignDocsModalOpen}
+		employeeId={employee.id}
+		employeeName={employee.displayName}
+		availableDocuments={data.availableDocuments || []}
+		onAssign={handleAssignDocuments}
+		onClose={() => isAssignDocsModalOpen = false}
+		isSubmitting={isAssigningDocs}
+	/>
+{/if}

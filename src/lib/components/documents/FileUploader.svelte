@@ -12,6 +12,8 @@
 		maxSizeMB?: number;
 		allowedTypes?: string[];
 		metadata: DocumentMetadata;
+		hasFile?: boolean;
+		fileName?: string | null;
 	}
 
 	let {
@@ -19,7 +21,9 @@
 		onError = () => {},
 		maxSizeMB = 50,
 		allowedTypes = ['PDF', 'JPEG', 'PNG', 'GIF', 'DOCX', 'XLSX', 'TXT', 'CSV'],
-		metadata = $bindable()
+		metadata = $bindable(),
+		hasFile = $bindable(false),
+		fileName = $bindable(null)
 	}: Props = $props();
 
 	// Svelte 5 runes state
@@ -32,6 +36,13 @@
 	let isEncrypting = $state(false);
 	let isDragging = $state(false);
 	let errorMessage = $state<string | null>(null);
+
+	// Update bindable props when file changes
+	$effect(() => {
+		hasFile = selectedFile !== null;
+		fileName = selectedFile?.name || null;
+		console.log('[FileUploader] hasFile updated:', hasFile, 'selectedFile:', selectedFile?.name);
+	});
 
 	// Derived state
 	let canUpload = $derived(selectedFile !== null && !isUploading && metadata.category !== '');
@@ -83,26 +94,36 @@
 
 	// Validate and set selected file
 	function validateAndSetFile(file: File) {
+		console.log('[FileUploader] validateAndSetFile called with:', file.name, 'size:', file.size);
 		errorMessage = null;
 
 		// Validate file size
 		if (!validateFileSize(file.size)) {
 			errorMessage = `File size exceeds ${maxSizeMB}MB limit`;
+			console.log('[FileUploader] File size validation failed');
 			return;
 		}
 
 		// Validate file type
 		if (!validateFileType(file.name)) {
 			errorMessage = `Invalid file type. Allowed: ${allowedTypes.join(', ')}`;
+			console.log('[FileUploader] File type validation failed');
 			return;
 		}
 
+		console.log('[FileUploader] Validation passed, setting selectedFile');
 		selectedFile = file;
+
+		// Update metadata with filename immediately
+		metadata.filename = file.name;
+		console.log('[FileUploader] metadata.filename set to:', metadata.filename);
 	}
 
-	// Upload file with encryption
-	async function handleUpload() {
-		if (!selectedFile || !canUpload) return;
+	// Expose upload function for parent component to call
+	export async function triggerUpload() {
+		if (!selectedFile) {
+			throw new Error('No file selected');
+		}
 
 		try {
 			isUploading = true;
@@ -128,14 +149,25 @@
 			selectedFile = null;
 			uploadProgress = { stage: 'encrypting', progress: 0 };
 
+			return result;
 		} catch (error) {
 			console.error('Upload error:', error);
 			errorMessage = error instanceof Error ? error.message : 'Upload failed';
 			onError(error instanceof Error ? error : new Error('Upload failed'));
+			throw error;
 		} finally {
 			isUploading = false;
 			isEncrypting = false;
 		}
+	}
+
+	// Expose state for parent component
+	export function getUploadState() {
+		return {
+			hasFile: selectedFile !== null,
+			isUploading,
+			fileName: selectedFile?.name || null
+		};
 	}
 
 	// Clear selected file
@@ -219,21 +251,11 @@
 			⚠️ {errorMessage}
 		</div>
 	{/if}
-
-	<!-- Upload button -->
-	<button
-		class="upload-button"
-		onclick={handleUpload}
-		disabled={!canUpload || isUploading}
-	>
-		{isUploading ? 'Uploading...' : 'Upload Document'}
-	</button>
 </div>
 
 <style>
 	.file-uploader {
 		width: 100%;
-		max-width: 600px;
 	}
 
 	.drop-zone {
@@ -386,28 +408,5 @@
 		border-radius: 4px;
 		color: #c53030;
 		font-size: 0.875rem;
-	}
-
-	.upload-button {
-		width: 100%;
-		margin-top: 1rem;
-		padding: 0.75rem 1.5rem;
-		background: #48bb78;
-		color: white;
-		border: none;
-		border-radius: 4px;
-		font-size: 1rem;
-		font-weight: 600;
-		cursor: pointer;
-		transition: background 0.2s;
-	}
-
-	.upload-button:hover:not(:disabled) {
-		background: #38a169;
-	}
-
-	.upload-button:disabled {
-		background: #cbd5e0;
-		cursor: not-allowed;
 	}
 </style>

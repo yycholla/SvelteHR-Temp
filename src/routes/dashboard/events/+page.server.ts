@@ -75,6 +75,14 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			userCredentials
 		});
 
+		console.log('[Events List] First event from database:', eventsResult.events[0] ? {
+			id: eventsResult.events[0].id,
+			title: eventsResult.events[0].title,
+			startTime: eventsResult.events[0].startTime,
+			endTime: eventsResult.events[0].endTime,
+			startTimeType: typeof eventsResult.events[0].startTime
+		} : 'No events');
+
 		// Fetch upcoming events without pagination for statistics
 		const upcomingEventsResult = await eventsOps.getUpcomingEvents({
 			limit: 1000, // Reasonable max for statistics

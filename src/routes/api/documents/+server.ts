@@ -4,6 +4,7 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { documentFilterSchema } from '$lib/schemas/documentSchemas';
+import { transaction, setJWTClaims } from '$lib/server/db';
 
 export const GET: RequestHandler = async ({ url, locals }) => {
 	// Step 1: Validate authentication
@@ -35,67 +36,87 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 		const userId = locals.user.id;
 
 		// Step 5: Build query based on role
-		let documents: any[] = [];
-		let totalCount = 0;
+		let whereConditions = [];
+		let queryParams: any[] = [];
+		let paramIndex = 1;
 
 		if (userRole === 'super_admin') {
 			// Super Admin sees ALL documents (including soft-deleted)
-			// TODO: SELECT * FROM hr_public.documents WHERE ... ORDER BY uploaded_at DESC
-			documents = [];
-			totalCount = 0;
+			// No additional filter
 		} else if (userRole === 'admin') {
 			// Admin sees all non-deleted documents
-			// TODO: SELECT * FROM hr_public.documents WHERE is_deleted = FALSE AND ...
-			documents = [];
-			totalCount = 0;
-		} else if (userRole === 'manager') {
-			// Manager sees:
-			// 1. Documents assigned to them
-			// 2. Documents assigned to their direct reports (recursive CTE)
-			// 3. Department-wide documents
-			// TODO: Complex query with recursive CTE for direct reports
-			documents = [];
-			totalCount = 0;
+			whereConditions.push('d.is_deleted = FALSE');
 		} else {
-			// Employee sees only documents assigned to them
-			// TODO: SELECT d.* FROM hr_public.documents d
-			//       JOIN hr_public.document_assignments da ON d.id = da.document_id
-			//       WHERE (da.employee_id = ? OR da.department_id IN (
-			//         SELECT department_id FROM hr_public.users WHERE id = ?
-			//       )) AND da.assignment_status = 'active' AND d.is_deleted = FALSE
-			documents = [];
-			totalCount = 0;
+			// Employee/Manager sees only documents uploaded by them or assigned to them
+			whereConditions.push('d.is_deleted = FALSE');
+			whereConditions.push('(d.uploaded_by = $' + paramIndex + ')');
+			queryParams.push(userId);
+			paramIndex++;
 		}
 
-		// Step 6: Apply additional filters
+		// Apply additional filters
 		if (filters.category) {
-			documents = documents.filter(d => d.category === filters.category);
+			whereConditions.push(`d.category = $${paramIndex}`);
+			queryParams.push(filters.category);
+			paramIndex++;
 		}
 
 		if (filters.sensitivityLevel) {
-			documents = documents.filter(d => d.sensitivity_level === filters.sensitivityLevel);
+			whereConditions.push(`d.sensitivity_level = $${paramIndex}`);
+			queryParams.push(filters.sensitivityLevel);
+			paramIndex++;
 		}
 
 		if (filters.searchQuery) {
-			const query = filters.searchQuery.toLowerCase();
-			documents = documents.filter(d =>
-				d.filename.toLowerCase().includes(query) ||
-				d.category.toLowerCase().includes(query)
+			whereConditions.push(
+				`(d.filename ILIKE $${paramIndex} OR d.category ILIKE $${paramIndex})`
 			);
+			queryParams.push(`%${filters.searchQuery}%`);
+			paramIndex++;
 		}
 
-		// Step 7: Apply pagination
-		const startIndex = (filters.page - 1) * filters.limit;
-		const endIndex = startIndex + filters.limit;
-		const paginatedDocuments = documents.slice(startIndex, endIndex);
+		const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : '';
+		const offset = (filters.page - 1) * filters.limit;
 
-		// Step 8: Return paginated results
+		// Use transaction with JWT claims for RLS policies
+		const { totalCount, documents } = await transaction(async (client) => {
+			// Set JWT claims for RLS policy enforcement
+			await setJWTClaims(client, userId, userRole);
+
+			// Get total count
+			const countResult = await client.query(
+				`SELECT COUNT(*) as total FROM hr_public.documents d ${whereClause}`,
+				queryParams
+			);
+			const total = parseInt(countResult.rows[0].total);
+
+			// Get paginated documents
+			const documentsResult = await client.query(
+				`SELECT
+					d.id, d.filename, d.file_type, d.file_size_bytes, d.storage_path,
+					d.encryption_key_id, d.uploaded_by, d.uploaded_at, d.category,
+					d.sensitivity_level, d.expiration_date, d.version_number,
+					d.metadata_tags, d.is_deleted, d.deleted_at, d.deleted_by
+				FROM hr_public.documents d
+				${whereClause}
+				ORDER BY d.uploaded_at DESC
+				LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+				[...queryParams, filters.limit, offset]
+			);
+
+			return {
+				totalCount: total,
+				documents: documentsResult.rows
+			};
+		});
+
+		// Step 6: Return paginated results
 		return json({
-			documents: paginatedDocuments,
-			totalCount: documents.length,
+			documents,
+			totalCount,
 			page: filters.page,
 			limit: filters.limit,
-			totalPages: Math.ceil(documents.length / filters.limit)
+			totalPages: Math.ceil(totalCount / filters.limit)
 		});
 
 	} catch (err) {

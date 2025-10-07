@@ -21,7 +21,7 @@ export interface RetrievalResult {
 // Store encrypted file data
 export async function storeFile(
 	encryptedData: ArrayBuffer,
-	metadata: FileMetadata
+	metadata: FileMetadata & { iv?: number[] }
 ): Promise<StorageResult> {
 	// Convert ArrayBuffer to base64 for transmission
 	const bytes = new Uint8Array(encryptedData);
@@ -32,9 +32,11 @@ export async function storeFile(
 		headers: {
 			'Content-Type': 'application/json'
 		},
+		credentials: 'include', // Include cookies for authentication
 		body: JSON.stringify({
 			encryptedData: base64Data,
-			metadata
+			metadata,
+			iv: metadata.iv // Pass IV separately for prepending
 		})
 	});
 
@@ -49,7 +51,8 @@ export async function storeFile(
 // Retrieve encrypted file data
 export async function retrieveFile(storagePath: string): Promise<RetrievalResult> {
 	const response = await fetch(`/api/storage/retrieve?path=${encodeURIComponent(storagePath)}`, {
-		method: 'GET'
+		method: 'GET',
+		credentials: 'include' // Include cookies for authentication
 	});
 
 	if (!response.ok) {
@@ -79,6 +82,7 @@ export async function deleteFile(storagePath: string): Promise<void> {
 		headers: {
 			'Content-Type': 'application/json'
 		},
+		credentials: 'include', // Include cookies for authentication
 		body: JSON.stringify({ storagePath })
 	});
 
@@ -92,7 +96,8 @@ export async function deleteFile(storagePath: string): Promise<void> {
 export async function storagePathExists(storagePath: string): Promise<boolean> {
 	try {
 		const response = await fetch(`/api/storage/exists?path=${encodeURIComponent(storagePath)}`, {
-			method: 'GET'
+			method: 'GET',
+			credentials: 'include' // Include cookies for authentication
 		});
 
 		if (!response.ok) return false;
@@ -112,7 +117,8 @@ export async function getStorageStats(): Promise<{
 	userBytes: number;
 }> {
 	const response = await fetch('/api/storage/stats', {
-		method: 'GET'
+		method: 'GET',
+		credentials: 'include' // Include cookies for authentication
 	});
 
 	if (!response.ok) {

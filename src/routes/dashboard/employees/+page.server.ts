@@ -33,7 +33,8 @@ export const load: PageServerLoad = async (event) => {
 	// Extract search parameters from URL
 	const searchTerm = url.searchParams.get('search') || '';
 	const departmentFilter = url.searchParams.get('department') || '';
-	const statusFilter = url.searchParams.get('status') || '';
+	// Default to 'active' to show only active employees by default
+	const statusFilter = url.searchParams.get('status') || 'active';
 	const page = parseInt(url.searchParams.get('page') || '1', 10);
 	const limit = parseInt(url.searchParams.get('limit') || '20', 10);
 
@@ -81,11 +82,13 @@ export const load: PageServerLoad = async (event) => {
 			condition.departmentId = departmentFilter;
 		}
 
-		if (statusFilter === 'active') {
-			condition.isActive = true;
-		} else if (statusFilter === 'inactive') {
-			condition.isActive = false;
-		}
+		// Note: We handle isActive filtering differently because PostGraphile doesn't handle
+		// boolean filtering well with null values. We'll filter client-side instead.
+		// if (statusFilter === 'active') {
+		// 	condition.isActive = true;
+		// } else if (statusFilter === 'inactive') {
+		// 	condition.isActive = false;
+		// }
 
 		// Note: searchTerm filtering will be done client-side for now
 		// PostGraphile doesn't support LIKE queries easily in conditions
@@ -141,9 +144,29 @@ export const load: PageServerLoad = async (event) => {
 
 		const employeesData = await employeesResponse.json();
 		console.log('[Employee Directory] Employees data:', employeesData);
+		console.log('[Employee Directory] Status filter:', statusFilter);
+		console.log('[Employee Directory] Condition:', condition);
 
 		// Employees data is already properly formatted
 		let employees = employeesData?.data?.allUsers?.nodes || [];
+
+		// Debug: Check isActive values
+		console.log('[Employee Directory] Employee isActive values:', employees.map((e: any) => ({
+			email: e.email,
+			isActive: e.isActive
+		})));
+
+		// Server-side filtering for isActive status
+		if (statusFilter === 'active') {
+			// Only show employees where isActive is true
+			employees = employees.filter((emp: any) => emp.isActive === true);
+			console.log('[Employee Directory] After active filter:', employees.length, 'employees');
+		} else if (statusFilter === 'inactive') {
+			// Only show employees where isActive is false
+			employees = employees.filter((emp: any) => emp.isActive === false);
+			console.log('[Employee Directory] After inactive filter:', employees.length, 'employees');
+		}
+		// If statusFilter is empty string, show all employees (no filtering)
 
 		// Client-side filtering for search term (since PostGraphile doesn't support LIKE easily)
 		if (searchTerm) {

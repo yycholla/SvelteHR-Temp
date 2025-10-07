@@ -418,7 +418,12 @@
 				onEventClick={handleEventClick}
 				onDateClick={(date) => {
 					// Navigate to create event page with pre-filled date (local time)
-					goto(`/dashboard/events/create?date=${formatLocalISO(date)}`);
+					console.log('[Calendar] Date clicked:', date);
+					console.log('[Calendar] Date ISO string:', date.toISOString());
+					console.log('[Calendar] Date local string:', date.toString());
+					const formattedDate = formatLocalISO(date);
+					console.log('[Calendar] Formatted local ISO:', formattedDate);
+					goto(`/dashboard/events/create?date=${formattedDate}`);
 				}}
 				onDateSelect={(start, end, allDay) => {
 					// Navigate to create event page with pre-filled start and end times

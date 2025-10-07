@@ -5,6 +5,7 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { encryptionKeySchema } from '$lib/schemas/encryptionSchemas';
+import { transaction, setJWTClaims } from '$lib/server/db';
 
 // POST - Register new encryption key
 export const POST: RequestHandler = async ({ request, locals }) => {
@@ -20,19 +21,34 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		// Step 3: Validate with Zod schema
 		const validatedData = encryptionKeySchema.parse(body);
 
-		// Step 4: TODO: Encrypt key data with pgcrypto server-side
-		// For now, store the already-encrypted key data
-		// In production, this would call a database function that uses pgcrypto
-
-		// Generate key ID
+		// Step 4: Generate key ID and store in database with pgcrypto encryption
 		const keyId = crypto.randomUUID();
-		const createdAt = new Date();
 
-		// TODO: Insert into encryption_keys table
-		// INSERT INTO hr_public.encryption_keys (
-		//   id, key_identifier, encrypted_key_data, key_algorithm,
-		//   created_for_user, created_at, is_active
-		// ) VALUES (...)
+		// Convert base64 to bytea for storage
+		const keyDataBuffer = Buffer.from(validatedData.encryptedKeyData, 'base64');
+
+		// Use transaction with JWT claims for RLS policies
+		const result = await transaction(async (client) => {
+			// Set JWT claims for RLS policy enforcement
+			await setJWTClaims(client, locals.user.id, locals.user.role || 'employee');
+
+			return await client.query(
+				`INSERT INTO hr_public.encryption_keys (
+					id, key_identifier, encrypted_key_data, key_algorithm, created_for_user
+				) VALUES ($1, $2, hr_public.encrypt_key_data($3, $4), $5, $6)
+				RETURNING id, created_at`,
+				[
+					keyId,
+					validatedData.keyIdentifier,
+					keyDataBuffer,
+					validatedData.keyIdentifier,
+					validatedData.keyAlgorithm,
+					locals.user.id
+				]
+			);
+		});
+
+		const createdAt = result.rows[0].created_at;
 
 		console.log(`Encryption key registered: ${keyId} for user ${locals.user.id}`);
 
@@ -44,12 +60,21 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 	} catch (err) {
 		console.error('Encryption key registration error:', err);
+		console.error('Error details:', {
+			name: err?.name,
+			message: err?.message,
+			stack: err?.stack,
+			code: err?.code
+		});
 
 		if (err && typeof err === 'object' && 'issues' in err) {
 			throw error(400, { message: 'Invalid key data', errors: err });
 		}
 
-		throw error(500, { message: 'Internal server error during key registration' });
+		throw error(500, {
+			message: 'Internal server error during key registration',
+			details: err?.message || 'Unknown error'
+		});
 	}
 };
 
@@ -64,32 +89,45 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 		// Step 2: Check for key identifier query param
 		const keyIdentifier = url.searchParams.get('identifier');
 
-		if (keyIdentifier) {
-			// Return specific key by identifier
-			// TODO: SELECT FROM encryption_keys WHERE key_identifier = ? AND created_for_user = ?
+		// Use transaction with JWT claims for RLS policies
+		const result = await transaction(async (client) => {
+			// Set JWT claims for RLS policy enforcement
+			await setJWTClaims(client, locals.user.id, locals.user.role || 'employee');
 
-			return json({
-				keyId: crypto.randomUUID(),
-				encryptedKeyData: 'base64_encoded_key_data_here',
-				keyAlgorithm: 'AES-GCM-256',
-				createdAt: new Date().toISOString()
-			});
+			if (keyIdentifier) {
+				// Return specific key by identifier
+				return await client.query(
+					`SELECT
+						id as "keyId",
+						encode(hr_public.decrypt_key_data(encrypted_key_data, key_identifier), 'base64') as "encryptedKeyData",
+						key_algorithm as "keyAlgorithm",
+						created_at as "createdAt"
+					FROM hr_public.encryption_keys
+					WHERE key_identifier = $1 AND created_for_user = $2 AND is_active = TRUE`,
+					[keyIdentifier, locals.user.id]
+				);
+			}
+
+			// Return all keys for user
+			return await client.query(
+				`SELECT
+					id as "keyId",
+					key_identifier as "keyIdentifier",
+					key_algorithm as "keyAlgorithm",
+					created_at as "createdAt",
+					is_active as "isActive"
+				FROM hr_public.encryption_keys
+				WHERE created_for_user = $1
+				ORDER BY created_at DESC`,
+				[locals.user.id]
+			);
+		});
+
+		if (keyIdentifier && result.rows.length === 0) {
+			throw error(404, { message: 'Encryption key not found' });
 		}
 
-		// Step 3: Return all keys for user
-		// TODO: SELECT FROM encryption_keys WHERE created_for_user = ? ORDER BY created_at DESC
-
-		const keys = [
-			{
-				keyId: crypto.randomUUID(),
-				keyIdentifier: 'key_example_1',
-				keyAlgorithm: 'AES-GCM-256',
-				createdAt: new Date().toISOString(),
-				isActive: true
-			}
-		];
-
-		return json(keys);
+		return json(keyIdentifier ? result.rows[0] : result.rows);
 
 	} catch (err) {
 		console.error('Encryption key retrieval error:', err);

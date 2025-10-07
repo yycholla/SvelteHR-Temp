@@ -3,6 +3,7 @@
 
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import { transaction, setJWTClaims } from '$lib/server/db';
 
 export const load: PageServerLoad = async ({ params, locals, fetch }) => {
 	// Step 1: Validate authentication
@@ -15,18 +16,68 @@ export const load: PageServerLoad = async ({ params, locals, fetch }) => {
 	const userRole = locals.user.role || 'employee';
 
 	try {
-		// Step 2: Check RBAC access
-		// TODO: Call rbacService.canAccessDocument() when implemented
-		// For now, implement basic role-based logic
+		// Step 2: Fetch document metadata and check access
+		const { document, canAccess } = await transaction(async (client) => {
+			// Set JWT claims for RLS
+			await setJWTClaims(client, userId, userRole);
 
-		let canAccess = false;
+			// Query document with RLS policy enforcement
+			const docResult = await client.query(
+				`SELECT
+					d.id,
+					d.filename,
+					d.file_type,
+					d.file_size_bytes,
+					d.storage_path,
+					d.encryption_key_id,
+					d.uploaded_by,
+					d.uploaded_at,
+					d.category,
+					d.sensitivity_level,
+					d.is_deleted,
+					d.expiration_date,
+					d.metadata_tags,
+					u.email as uploaded_by_email
+				FROM hr_public.documents d
+				LEFT JOIN hr_public.users u ON d.uploaded_by = u.id
+				WHERE d.id = $1`,
+				[documentId]
+			);
 
-		if (userRole === 'super_admin' || userRole === 'admin') {
-			canAccess = true; // Admin can access all documents
-		} else {
-			// TODO: Check document_assignments table for employee/manager access
-			// For now, assume access is granted
-			canAccess = true;
+			if (docResult.rows.length === 0) {
+				return { document: null, canAccess: false };
+			}
+
+			const doc = docResult.rows[0];
+
+			// Check if document is deleted
+			if (doc.is_deleted && userRole !== 'super_admin') {
+				return { document: null, canAccess: false };
+			}
+
+			// Check access permissions
+			let hasAccess = false;
+			if (userRole === 'super_admin' || userRole === 'admin') {
+				hasAccess = true;
+			} else if (doc.uploaded_by === userId) {
+				hasAccess = true; // User can view their own uploads
+			} else {
+				// Check document assignments
+				const assignmentResult = await client.query(
+					`SELECT EXISTS (
+						SELECT 1 FROM hr_public.document_assignments
+						WHERE document_id = $1 AND employee_id = $2
+					) as assigned`,
+					[documentId, userId]
+				);
+				hasAccess = assignmentResult.rows[0]?.assigned || false;
+			}
+
+			return { document: doc, canAccess: hasAccess };
+		});
+
+		if (!document) {
+			throw error(404, { message: 'Document not found' });
 		}
 
 		if (!canAccess) {
@@ -35,101 +86,138 @@ export const load: PageServerLoad = async ({ params, locals, fetch }) => {
 			});
 		}
 
-		// Step 3: Fetch document metadata
-		// TODO: Replace with actual database query
-		// SELECT * FROM hr_public.documents WHERE id = documentId AND is_deleted = FALSE
+		// Step 3: Fetch document assignments
+		const assignments = await transaction(async (client) => {
+			await setJWTClaims(client, userId, userRole);
 
-		const document = {
-			id: documentId,
-			filename: 'sample_document.pdf',
-			file_type: 'PDF' as const,
-			file_size_bytes: 1024000,
-			storage_path: `/encrypted/${documentId}.enc`,
-			encryption_key_id: 'key-123',
-			uploaded_by: userId,
-			uploaded_at: new Date().toISOString(),
-			category: 'Contract' as const,
-			sensitivity_level: 'Internal' as const,
-			description: 'Sample document for testing',
-			is_deleted: false
-		};
+			const assignmentsResult = await client.query(
+				`SELECT
+					da.id,
+					da.document_id,
+					da.employee_id,
+					da.department_id,
+					da.assigned_by,
+					da.assigned_at,
+					da.assignment_reason,
+					u_employee.email as employee_email,
+					u_assigned_by.email as assigned_by_email
+				FROM hr_public.document_assignments da
+				LEFT JOIN hr_public.users u_employee ON da.employee_id = u_employee.id
+				LEFT JOIN hr_public.users u_assigned_by ON da.assigned_by = u_assigned_by.id
+				WHERE da.document_id = $1
+				ORDER BY da.assigned_at DESC`,
+				[documentId]
+			);
 
-		if (!document) {
-			throw error(404, { message: 'Document not found' });
-		}
+			return assignmentsResult.rows;
+		});
 
-		if (document.is_deleted && userRole !== 'super_admin') {
-			throw error(404, { message: 'Document not found' });
-		}
-
-		// Step 4: Fetch document assignments
-		// TODO: Replace with actual database query
-		// SELECT * FROM hr_public.document_assignments WHERE document_id = documentId
-
-		const assignments = [
-			{
-				id: 'assign-1',
-				document_id: documentId,
-				employee_id: userId,
-				department_id: null,
-				team_id: null,
-				assignment_type: 'employee' as const,
-				assignment_status: 'active' as const,
-				assigned_by: 'admin-user',
-				assigned_at: new Date().toISOString(),
-				revoked_at: null,
-				revoked_by: null
-			}
-		];
-
-		// Step 5: Fetch access logs (if HR/Admin)
+		// Step 4: Fetch access logs (if HR/Admin)
 		let accessLogs: any[] = [];
 
 		if (userRole === 'super_admin' || userRole === 'admin') {
-			// TODO: Replace with actual database query
-			// SELECT * FROM hr_public.document_access_logs WHERE document_id = documentId ORDER BY access_timestamp DESC LIMIT 50
+			accessLogs = await transaction(async (client) => {
+				await setJWTClaims(client, userId, userRole);
 
-			accessLogs = [
-				{
-					id: 'log-1',
-					document_id: documentId,
-					user_id: userId,
-					access_type: 'download' as const,
-					access_timestamp: new Date().toISOString(),
-					access_outcome: 'success' as const,
-					ip_address: '127.0.0.1',
-					user_agent: 'Mozilla/5.0',
-					denial_reason: null
-				}
-			];
+				const logsResult = await client.query(
+					`SELECT
+						dal.id,
+						dal.document_id,
+						dal.user_id,
+						dal.access_type,
+						dal.access_timestamp,
+						dal.access_outcome,
+						dal.ip_address,
+						dal.user_agent,
+						dal.denial_reason,
+						u.email as user_email
+					FROM hr_public.document_access_logs dal
+					LEFT JOIN hr_public.users u ON dal.user_id = u.id
+					WHERE dal.document_id = $1
+					ORDER BY dal.access_timestamp DESC
+					LIMIT 50`,
+					[documentId]
+				);
+
+				return logsResult.rows;
+			});
 		}
 
-		// Step 6: Determine user permissions for this document
+		// Step 5: Determine user permissions for this document
 		const canAssign = userRole === 'super_admin' || userRole === 'admin';
 		const canDelete = userRole === 'super_admin' || userRole === 'admin';
+		const canDownload = canAccess; // Anyone with view access can download
 
-		// Step 7: Load employees, departments, teams for assignment modal (if can assign)
+		// Step 6: Fetch employees, departments, teams for assignment modal (if HR/Admin)
 		let employees: any[] = [];
 		let departments: any[] = [];
 		let teams: any[] = [];
 
 		if (canAssign) {
-			// TODO: Load from API endpoints
-			employees = [];
-			departments = [];
-			teams = [];
+			// Fetch employees
+			const employeesData = await transaction(async (client) => {
+				await setJWTClaims(client, userId, userRole);
+
+				const result = await client.query(
+					`SELECT id, email, department_id
+					 FROM hr_public.users
+					 WHERE role != 'super_admin'
+					 ORDER BY email ASC`
+				);
+
+				return result.rows;
+			});
+
+			employees = employeesData;
+
+			// Fetch departments
+			const departmentsData = await transaction(async (client) => {
+				await setJWTClaims(client, userId, userRole);
+
+				const result = await client.query(
+					`SELECT id, name
+					 FROM hr_public.departments
+					 ORDER BY name ASC`
+				);
+
+				return result.rows;
+			});
+
+			departments = departmentsData;
+
+			// Fetch teams (if teams table exists)
+			try {
+				const teamsData = await transaction(async (client) => {
+					await setJWTClaims(client, userId, userRole);
+
+					const result = await client.query(
+						`SELECT id, name
+						 FROM hr_public.teams
+						 ORDER BY name ASC`
+					);
+
+					return result.rows;
+				});
+
+				teams = teamsData;
+			} catch (err) {
+				// Teams table might not exist yet
+				console.log('Teams table not found or query failed:', err);
+				teams = [];
+			}
 		}
 
-		// Step 8: Return data
+		// Step 7: Return data
 		return {
 			document,
 			assignments,
 			accessLogs,
-			canAssign,
-			canDelete,
 			employees,
 			departments,
 			teams,
+			canAssign,
+			canDelete,
+			canDownload,
 			user: locals.user
 		};
 

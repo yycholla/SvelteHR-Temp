@@ -166,7 +166,7 @@
 
 			<div class="metadata-item">
 				<span class="metadata-label">Uploaded By</span>
-				<span class="metadata-value">User #{data.document.uploaded_by}</span>
+				<span class="metadata-value">{data.document.uploaded_by_email || `User ${data.document.uploaded_by.substring(0, 8)}...`}</span>
 			</div>
 
 			{#if data.document.description}
@@ -206,25 +206,30 @@
 				{#each data.assignments as assignment}
 					<div class="assignment-item">
 						<div class="assignment-type">
-							{#if assignment.assignment_type === 'employee'}
+							{#if assignment.employee_id}
 								👤 Employee
-							{:else if assignment.assignment_type === 'department'}
+							{:else if assignment.department_id}
 								🏢 Department
-							{:else if assignment.assignment_type === 'team'}
-								👥 Team
 							{/if}
 						</div>
 						<div class="assignment-info">
 							<span class="assignment-target">
-								{assignment.employee_id || assignment.department_id || assignment.team_id}
+								{#if assignment.employee_id}
+									{assignment.employee_email || `User ${assignment.employee_id.substring(0, 8)}...`}
+								{:else if assignment.department_id}
+									Department #{assignment.department_id.substring(0, 8)}
+								{/if}
 							</span>
 							<span class="assignment-date">
 								Assigned {new Date(assignment.assigned_at).toLocaleDateString()}
+								{#if assignment.assigned_by_email}
+									by {assignment.assigned_by_email}
+								{/if}
 							</span>
+							{#if assignment.assignment_reason}
+								<span class="assignment-reason">{assignment.assignment_reason}</span>
+							{/if}
 						</div>
-						<span class="assignment-status status-{assignment.assignment_status}">
-							{assignment.assignment_status}
-						</span>
 					</div>
 				{/each}
 			</div>
@@ -244,7 +249,7 @@
 				</div>
 				{#each data.accessLogs as log}
 					<div class="log-row">
-						<span class="log-col">User #{log.user_id}</span>
+						<span class="log-col">{log.user_email || `User ${log.user_id.substring(0, 8)}...`}</span>
 						<span class="log-col">{log.access_type}</span>
 						<span class="log-col outcome-{log.access_outcome}">{log.access_outcome}</span>
 						<span class="log-col">{new Date(log.access_timestamp).toLocaleString()}</span>
@@ -511,6 +516,14 @@
 	.assignment-date {
 		font-size: 0.75rem;
 		color: #a0aec0;
+	}
+
+	.assignment-reason {
+		display: block;
+		font-size: 0.75rem;
+		color: hsl(var(--muted-foreground));
+		font-style: italic;
+		margin-top: 0.25rem;
 	}
 
 	.assignment-status {

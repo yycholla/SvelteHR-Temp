@@ -31,6 +31,7 @@ export interface Document {
 	is_deleted: boolean;
 	deleted_at?: Date;
 	deleted_by?: string; // UUID reference to User
+	assigned_users?: Array<{ email: string; id: string }>; // JSON aggregated from document_assignments
 }
 
 // Document assignment to employee or department

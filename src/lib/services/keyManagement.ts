@@ -25,6 +25,7 @@ export async function registerKey(
 		headers: {
 			'Content-Type': 'application/json'
 		},
+		credentials: 'include', // Include cookies for authentication
 		body: JSON.stringify(payload)
 	});
 
@@ -43,7 +44,8 @@ export async function retrieveKey(keyId: string): Promise<ArrayBuffer> {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json'
-		}
+		},
+		credentials: 'include' // Include cookies for authentication
 	});
 
 	if (!response.ok) {
@@ -69,7 +71,8 @@ export async function retrieveKeyByIdentifier(keyIdentifier: string): Promise<Ar
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json'
-		}
+		},
+		credentials: 'include' // Include cookies for authentication
 	});
 
 	if (!response.ok) {
@@ -102,6 +105,7 @@ export async function rotateKey(
 		headers: {
 			'Content-Type': 'application/json'
 		},
+		credentials: 'include', // Include cookies for authentication
 		body: JSON.stringify({
 			oldKeyId,
 			newKeyIdentifier,
@@ -125,7 +129,8 @@ export async function listUserKeys(): Promise<KeyRetrievalResponse[]> {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json'
-		}
+		},
+		credentials: 'include' // Include cookies for authentication
 	});
 
 	if (!response.ok) {
@@ -142,7 +147,8 @@ export async function deleteKey(keyId: string): Promise<void> {
 		method: 'DELETE',
 		headers: {
 			'Content-Type': 'application/json'
-		}
+		},
+		credentials: 'include' // Include cookies for authentication
 	});
 
 	if (!response.ok) {

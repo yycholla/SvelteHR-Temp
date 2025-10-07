@@ -217,6 +217,90 @@ export const load: PageServerLoad = async (event) => {
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);
 
+		// Fetch documents assigned to this employee
+		const { transaction, setJWTClaims } = await import('$lib/server/db');
+		let assignedDocuments: any[] = [];
+		let availableDocuments: any[] = [];
+
+		try {
+			assignedDocuments = await transaction(async (client) => {
+				await setJWTClaims(client, locals.user.id, locals.user.role || 'employee');
+
+				const result = await client.query(
+					`SELECT
+						d.id,
+						d.filename,
+						d.file_type,
+						d.file_size_bytes,
+						d.category,
+						d.sensitivity_level,
+						d.uploaded_at,
+						d.uploaded_by,
+						u.email as uploaded_by_email,
+						da.assigned_at,
+						da.assignment_reason
+					 FROM hr_public.documents d
+					 INNER JOIN hr_public.document_assignments da ON d.id = da.document_id
+					 LEFT JOIN hr_public.users u ON d.uploaded_by = u.id
+					 WHERE da.employee_id = $1 AND d.is_deleted = false
+					 ORDER BY da.assigned_at DESC`,
+					[employeeId]
+				);
+
+				return result.rows;
+			});
+		} catch (err) {
+			console.error('Failed to fetch employee documents:', err);
+			assignedDocuments = [];
+		}
+
+		// Fetch available documents (not assigned to this employee) for admins
+		if (isAdmin) {
+			console.log(`[Employee Detail] Fetching available documents for admin, employee: ${employeeId}`);
+			try {
+				availableDocuments = await transaction(async (client) => {
+					await setJWTClaims(client, locals.user.id, locals.user.role || 'employee');
+
+					// First, get total count of documents
+					const countResult = await client.query(
+						`SELECT COUNT(*) as total FROM hr_public.documents WHERE is_deleted = false`
+					);
+					console.log(`[Employee Detail] Total documents in system: ${countResult.rows[0].total}`);
+
+					// Then get documents not assigned to this employee
+					const result = await client.query(
+						`SELECT
+							d.id,
+							d.filename,
+							d.file_type,
+							d.file_size_bytes,
+							d.category,
+							d.sensitivity_level,
+							d.uploaded_at,
+							d.uploaded_by,
+							u.email as uploaded_by_email
+						 FROM hr_public.documents d
+						 LEFT JOIN hr_public.users u ON d.uploaded_by = u.id
+						 WHERE d.is_deleted = false
+						   AND NOT EXISTS (
+						       SELECT 1 FROM hr_public.document_assignments da
+						       WHERE da.document_id = d.id AND da.employee_id = $1
+						   )
+						 ORDER BY d.uploaded_at DESC`,
+						[employeeId]
+					);
+
+					console.log(`[Employee Detail] Available documents (not assigned to ${employeeId}): ${result.rows.length}`);
+					return result.rows;
+				});
+			} catch (err) {
+				console.error('Failed to fetch available documents:', err);
+				availableDocuments = [];
+			}
+		} else {
+			console.log(`[Employee Detail] User is not admin, skipping available documents fetch`);
+		}
+
 		// Return server-side loaded data
 		return {
 			userSession: userSession.toJSON(),
@@ -270,8 +354,33 @@ export const load: PageServerLoad = async (event) => {
 					remainingDays: balance.balanceDays - balance.usedDays,
 					policyName: balance.timeOffPolicyByPolicyId?.name || 'Unknown Policy',
 					totalDays: balance.timeOffPolicyByPolicyId?.daysPerYear || balance.balanceDays
-				}))
+				})),
+				// Assigned documents
+				assignedDocuments: assignedDocuments.map((doc: any) => ({
+					id: doc.id,
+					filename: doc.filename,
+					fileType: doc.file_type,
+					fileSizeBytes: doc.file_size_bytes,
+					category: doc.category,
+					sensitivityLevel: doc.sensitivity_level,
+					uploadedAt: doc.uploaded_at,
+					uploadedByEmail: doc.uploaded_by_email,
+					assignedAt: doc.assigned_at,
+					assignmentReason: doc.assignment_reason
+				})),
+				documentsCount: assignedDocuments.length
 			},
+			// Available documents for assignment (admins only)
+			availableDocuments: availableDocuments.map((doc: any) => ({
+				id: doc.id,
+				filename: doc.filename,
+				fileType: doc.file_type,
+				fileSizeBytes: doc.file_size_bytes,
+				category: doc.category,
+				sensitivityLevel: doc.sensitivity_level,
+				uploadedAt: doc.uploaded_at,
+				uploadedByEmail: doc.uploaded_by_email
+			})),
 			// RBAC: Permission flags for UI
 			permissions: {
 				canViewContactInfo,
@@ -279,6 +388,8 @@ export const load: PageServerLoad = async (event) => {
 				canViewVehicles,
 				canViewCompensation,
 				canCreateReviews,
+				canViewDocuments: isViewingSelf || isEmployeeManager || isAdmin,
+				canAssignDocuments: isAdmin,
 				isEmployeeManager,
 				isViewingSelf,
 				...userPermissions

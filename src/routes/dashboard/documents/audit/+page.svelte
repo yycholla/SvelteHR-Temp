@@ -174,11 +174,14 @@
 						</span>
 						<span class="col-document">
 							<a href="/dashboard/documents/{log.document_id}" class="document-link">
-								{log.document_id}
+								{log.document_filename || log.document_id}
 							</a>
+							{#if log.document_type}
+								<span class="file-type">.{log.document_type.toLowerCase()}</span>
+							{/if}
 						</span>
 						<span class="col-user">
-							User #{log.user_id}
+							{log.user_email || `User ${log.user_id.substring(0, 8)}...`}
 						</span>
 						<span class="col-action access-type-{log.access_type}">
 							{log.access_type}
@@ -444,6 +447,13 @@
 
 	.document-link:hover {
 		text-decoration: underline;
+	}
+
+	.file-type {
+		color: hsl(var(--muted-foreground));
+		font-size: 0.75rem;
+		font-weight: normal;
+		margin-left: 0.25rem;
 	}
 
 	.access-type-upload {

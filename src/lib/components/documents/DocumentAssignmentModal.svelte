@@ -6,7 +6,6 @@
 
 	interface Employee {
 		id: string;
-		full_name: string;
 		email: string;
 		department_id?: string;
 	}
@@ -56,11 +55,7 @@
 
 	// Derived state
 	let filteredEmployees = $derived(
-		employees.filter(
-			(emp) =>
-				emp.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				emp.email.toLowerCase().includes(searchQuery.toLowerCase())
-		)
+		employees.filter((emp) => emp.email.toLowerCase().includes(searchQuery.toLowerCase()))
 	);
 
 	let filteredDepartments = $derived(
@@ -238,8 +233,7 @@
 								onchange={() => toggleSelection(employee.id, 'employee')}
 							/>
 							<div class="item-content">
-								<span class="item-name">{employee.full_name}</span>
-								<span class="item-detail">{employee.email}</span>
+								<span class="item-name">{employee.email}</span>
 							</div>
 							{#if isAssigned}
 								<span class="assigned-badge">Already Assigned</span>

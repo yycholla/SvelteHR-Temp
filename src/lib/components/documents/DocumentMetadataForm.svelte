@@ -10,23 +10,44 @@
 		onSubmit?: (metadata: DocumentMetadata) => void;
 		onCancel?: () => void;
 		isSubmitting?: boolean;
+		hasRequiredFields?: boolean;
+		metadataValid?: boolean;
 	}
 
 	let {
 		metadata = $bindable({
 			filename: '',
 			category: 'Other',
-			sensitivity_level: 'Internal',
-			description: ''
+			sensitivityLevel: 'Internal',
+			metadataTags: {}
 		}),
 		onSubmit = () => {},
 		onCancel = () => {},
-		isSubmitting = false
+		isSubmitting = false,
+		hasRequiredFields = $bindable(false),
+		metadataValid = $bindable(false)
 	}: Props = $props();
 
 	// Svelte 5 state
 	let errors = $state<Record<string, string>>({});
 	let touched = $state<Record<string, boolean>>({});
+	let description = $state<string>((metadata.metadataTags?.description as string) || '');
+
+	// Sync description with metadataTags
+	$effect(() => {
+		if (!metadata.metadataTags) {
+			metadata.metadataTags = {};
+		}
+		metadata.metadataTags.description = description;
+	});
+
+	// Update bindable props when metadata or errors change
+	$effect(() => {
+		hasRequiredFields = metadata.category !== '' && metadata.sensitivityLevel !== '';
+		metadataValid = Object.keys(errors).length === 0 && hasRequiredFields;
+		console.log('[DocumentMetadataForm] hasRequiredFields updated:', hasRequiredFields,
+			'category:', metadata.category, 'sensitivityLevel:', metadata.sensitivityLevel);
+	});
 
 	// Categories and sensitivity levels
 	const categories: DocumentCategory[] = [
@@ -64,7 +85,6 @@
 
 	// Derived validation state
 	let isValid = $derived(Object.keys(errors).length === 0 && metadata.category !== '');
-	let canSubmit = $derived(isValid && !isSubmitting);
 
 	// Validate field
 	function validateField(field: keyof DocumentMetadata) {
@@ -83,23 +103,20 @@
 		}
 	}
 
-	// Handle form submit
-	function handleSubmit(event: Event) {
-		event.preventDefault();
-
+	// Expose validation function for parent component
+	export function validateMetadata(): boolean {
 		// Mark all fields as touched
 		touched = {
 			filename: true,
 			category: true,
-			sensitivity_level: true,
-			description: true
+			sensitivityLevel: true
 		};
 
 		// Validate all fields
 		try {
-			const validatedData = documentMetadataSchema.parse(metadata);
+			documentMetadataSchema.parse(metadata);
 			errors = {};
-			onSubmit(validatedData);
+			return true;
 		} catch (error: any) {
 			if (error.errors) {
 				errors = error.errors.reduce(
@@ -110,23 +127,20 @@
 					{}
 				);
 			}
+			return false;
 		}
 	}
 
-	// Handle cancel
-	function handleCancel() {
-		errors = {};
-		touched = {};
-		onCancel();
+	// Expose metadata state
+	export function getMetadataState() {
+		return {
+			isValid,
+			hasRequiredFields: metadata.category !== '' && metadata.sensitivityLevel !== ''
+		};
 	}
 </script>
 
-<form class="metadata-form" onsubmit={handleSubmit}>
-	<div class="form-header">
-		<h3 class="form-title">Document Metadata</h3>
-		<p class="form-description">Provide information about this document</p>
-	</div>
-
+<div class="metadata-form">
 	<!-- Category -->
 	<div class="form-field">
 		<label for="category" class="field-label">
@@ -140,7 +154,6 @@
 			class:error={touched.category && errors.category}
 			required
 		>
-			<option value="">Select a category...</option>
 			{#each categories as category}
 				<option value={category}>{category}</option>
 			{/each}
@@ -152,28 +165,25 @@
 
 	<!-- Sensitivity Level -->
 	<div class="form-field">
-		<label for="sensitivity" class="field-label">
+		<label for="sensitivityLevel" class="field-label">
 			Sensitivity Level <span class="required">*</span>
 		</label>
-		<div class="sensitivity-options">
+		<select
+			id="sensitivityLevel"
+			bind:value={metadata.sensitivityLevel}
+			onblur={() => validateField('sensitivityLevel')}
+			class="field-input"
+			class:error={touched.sensitivityLevel && errors.sensitivityLevel}
+			required
+		>
 			{#each sensitivityLevels as level}
-				<label class="sensitivity-option">
-					<input
-						type="radio"
-						name="sensitivity_level"
-						value={level.value}
-						bind:group={metadata.sensitivity_level}
-						onchange={() => validateField('sensitivity_level')}
-					/>
-					<div class="sensitivity-content">
-						<span class="sensitivity-label">{level.label}</span>
-						<span class="sensitivity-description">{level.description}</span>
-					</div>
-				</label>
+				<option value={level.value}>
+					{level.label} - {level.description}
+				</option>
 			{/each}
-		</div>
-		{#if touched.sensitivity_level && errors.sensitivity_level}
-			<p class="field-error">{errors.sensitivity_level}</p>
+		</select>
+		{#if touched.sensitivityLevel && errors.sensitivityLevel}
+			<p class="field-error">{errors.sensitivityLevel}</p>
 		{/if}
 	</div>
 
@@ -184,60 +194,18 @@
 		</label>
 		<textarea
 			id="description"
-			bind:value={metadata.description}
-			onblur={() => validateField('description')}
+			bind:value={description}
 			class="field-textarea"
-			class:error={touched.description && errors.description}
 			placeholder="Add a description or notes about this document..."
 			rows="4"
 		></textarea>
-		{#if touched.description && errors.description}
-			<p class="field-error">{errors.description}</p>
-		{/if}
 		<p class="field-hint">Maximum 500 characters</p>
 	</div>
-
-	<!-- Form actions -->
-	<div class="form-actions">
-		<button
-			type="button"
-			class="cancel-button"
-			onclick={handleCancel}
-			disabled={isSubmitting}
-		>
-			Cancel
-		</button>
-		<button
-			type="submit"
-			class="submit-button"
-			disabled={!canSubmit}
-		>
-			{isSubmitting ? 'Saving...' : 'Save Metadata'}
-		</button>
-	</div>
-</form>
+</div>
 
 <style>
 	.metadata-form {
 		width: 100%;
-		max-width: 600px;
-	}
-
-	.form-header {
-		margin-bottom: 2rem;
-	}
-
-	.form-title {
-		font-size: 1.5rem;
-		font-weight: 700;
-		color: #2d3748;
-		margin: 0 0 0.5rem 0;
-	}
-
-	.form-description {
-		font-size: 0.875rem;
-		color: #718096;
-		margin: 0;
 	}
 
 	.form-field {
@@ -299,102 +267,5 @@
 		margin: 0.5rem 0 0 0;
 		font-size: 0.75rem;
 		color: #a0aec0;
-	}
-
-	/* Sensitivity options */
-	.sensitivity-options {
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-	}
-
-	.sensitivity-option {
-		display: flex;
-		align-items: flex-start;
-		gap: 0.75rem;
-		padding: 1rem;
-		border: 2px solid #e2e8f0;
-		border-radius: 6px;
-		cursor: pointer;
-		transition: all 0.2s;
-	}
-
-	.sensitivity-option:hover {
-		border-color: #cbd5e0;
-		background: #f7fafc;
-	}
-
-	.sensitivity-option:has(input:checked) {
-		border-color: #4299e1;
-		background: #ebf8ff;
-	}
-
-	.sensitivity-option input[type='radio'] {
-		margin-top: 0.25rem;
-		cursor: pointer;
-	}
-
-	.sensitivity-content {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-	}
-
-	.sensitivity-label {
-		font-weight: 600;
-		color: #2d3748;
-		font-size: 0.875rem;
-	}
-
-	.sensitivity-description {
-		font-size: 0.75rem;
-		color: #718096;
-	}
-
-	/* Form actions */
-	.form-actions {
-		display: flex;
-		gap: 1rem;
-		justify-content: flex-end;
-		margin-top: 2rem;
-		padding-top: 1.5rem;
-		border-top: 1px solid #e2e8f0;
-	}
-
-	.cancel-button,
-	.submit-button {
-		padding: 0.75rem 1.5rem;
-		border: none;
-		border-radius: 4px;
-		font-size: 0.875rem;
-		font-weight: 600;
-		cursor: pointer;
-		transition: all 0.2s;
-	}
-
-	.cancel-button {
-		background: white;
-		color: #4a5568;
-		border: 1px solid #cbd5e0;
-	}
-
-	.cancel-button:hover:not(:disabled) {
-		background: #f7fafc;
-	}
-
-	.submit-button {
-		background: #4299e1;
-		color: white;
-	}
-
-	.submit-button:hover:not(:disabled) {
-		background: #3182ce;
-	}
-
-	.cancel-button:disabled,
-	.submit-button:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
 	}
 </style>

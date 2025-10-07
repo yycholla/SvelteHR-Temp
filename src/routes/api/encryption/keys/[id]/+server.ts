@@ -14,28 +14,48 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 	const keyId = params.id;
 
 	try {
-		// Step 2: TODO: Query encryption_keys table
-		// SELECT id, encrypted_key_data, key_algorithm, created_for_user, created_at
-		// FROM hr_public.encryption_keys
-		// WHERE id = ? AND created_for_user = ?
+		// Step 2: Query encryption_keys table with transaction
+		const { transaction, setJWTClaims } = await import('$lib/server/db');
+
+		const result = await transaction(async (client) => {
+			// Set JWT claims for RLS
+			await setJWTClaims(client, locals.user.id, locals.user.role || 'employee');
+
+			// Query encryption key with pgcrypto decryption
+			const queryResult = await client.query(
+				`SELECT
+					id as "keyId",
+					encode(hr_public.decrypt_key_data(encrypted_key_data, key_identifier), 'base64') as "encryptedKeyData",
+					key_algorithm as "keyAlgorithm",
+					created_at as "createdAt",
+					created_for_user as "keyOwnerId"
+				 FROM hr_public.encryption_keys
+				 WHERE id = $1 AND is_active = TRUE`,
+				[keyId]
+			);
+
+			if (queryResult.rows.length === 0) {
+				return null;
+			}
+
+			return queryResult.rows[0];
+		});
+
+		if (!result) {
+			throw error(404, { message: 'Encryption key not found' });
+		}
 
 		// Step 3: Verify ownership
-		// RLS policies should handle this, but double-check for security
-		const keyOwnerId = locals.user.id; // Would come from database query
-
-		if (keyOwnerId !== locals.user.id && locals.user.role !== 'super_admin') {
+		if (result.keyOwnerId !== locals.user.id && locals.user.role !== 'super_admin') {
 			throw error(403, { message: 'Access denied. You can only retrieve your own encryption keys.' });
 		}
 
-		// Step 4: TODO: Decrypt key data with pgcrypto server-side
-		// SELECT decrypt_key_data(encrypted_key_data, key_identifier) FROM ...
-
-		// Step 5: Return key data
+		// Step 4: Return key data
 		return json({
-			keyId,
-			encryptedKeyData: 'base64_encoded_decrypted_key_data',
-			keyAlgorithm: 'AES-GCM-256',
-			createdAt: new Date().toISOString()
+			keyId: result.keyId,
+			encryptedKeyData: result.encryptedKeyData,
+			keyAlgorithm: result.keyAlgorithm,
+			createdAt: result.createdAt
 		});
 
 	} catch (err) {
