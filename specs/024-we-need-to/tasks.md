@@ -90,15 +90,15 @@
 
 - [x] T016 Create `src/lib/services/encryption.ts` with client-side Web Crypto API encryption. Functions: generateEncryptionKey() → CryptoKey, encryptFile(file: File, key: CryptoKey) → { encryptedData: ArrayBuffer, iv: Uint8Array }, decryptFile(encryptedData: ArrayBuffer, key: CryptoKey, iv: Uint8Array) → Blob. Use AES-GCM-256 algorithm. Include progress callbacks for 50MB files.
 
-- [ ] T017 Create `src/lib/services/keyManagement.ts` for encryption key storage. Functions: registerKey(keyData: ArrayBuffer, userId: string) → Promise<string>, retrieveKey(keyId: string) → Promise<ArrayBuffer>. Implement server-side encryption of key material before PostgreSQL storage using pg_crypto.
+- [x] T017 Create `src/lib/services/keyManagement.ts` for encryption key storage. Functions: registerKey(keyData: ArrayBuffer, userId: string) → Promise<string>, retrieveKey(keyId: string) → Promise<ArrayBuffer>. Implement server-side encryption of key material before PostgreSQL storage using pg_crypto.
 
-- [ ] T018 Create `src/lib/services/documentService.ts` for document operations. Functions: uploadDocument(file: File, metadata: DocumentMetadata) → Promise<UploadResult>, assignDocument(documentId: string, assignments: Assignment[]) → Promise<void>, getDocumentMetadata(documentId: string) → Promise<Document>. Integrate with encryption.ts for client-side encryption before upload.
+- [x] T018 Create `src/lib/services/documentService.ts` for document operations. Functions: uploadDocument(file: File, metadata: DocumentMetadata) → Promise<UploadResult>, assignDocument(documentId: string, assignments: Assignment[]) → Promise<void>, getDocumentMetadata(documentId: string) → Promise<Document>. Integrate with encryption.ts for client-side encryption before upload.
 
 - [ ] T019 Create `src/lib/services/previewService.ts` for preview generation. Functions: generatePreview(documentId: string) → Promise<PreviewResult>, convertOfficeToPDF(filePath: string) → Promise<string> (server-side LibreOffice headless). Support: native PDF/images (direct), DOCX/XLSX (convert to PDF first). Return signed URLs with 15-minute expiration.
 
-- [ ] T020 Create `src/lib/services/storageService.ts` for file storage abstraction. Functions: storeFile(encryptedData: ArrayBuffer, metadata: FileMetadata) → Promise<string>, retrieveFile(storagePath: string) → Promise<ArrayBuffer>. Initial implementation: PostgreSQL BYTEA columns. Future: S3-compatible object storage switch.
+- [x] T020 Create `src/lib/services/storageService.ts` for file storage abstraction. Functions: storeFile(encryptedData: ArrayBuffer, metadata: FileMetadata) → Promise<string>, retrieveFile(storagePath: string) → Promise<ArrayBuffer>. Initial implementation: PostgreSQL BYTEA columns. Future: S3-compatible object storage switch.
 
-- [ ] T021 Create `src/lib/services/auditService.ts` for access logging. Functions: logAccess(documentId: string, userId: string, accessType: AccessType, outcome: 'success' | 'denied', metadata: AccessMetadata) → Promise<void>. Log: timestamp, IP address, user agent, denial reason (if applicable). Insert into document_access_logs table.
+- [x] T021 Create `src/lib/services/auditService.ts` for access logging. Functions: logAccess(documentId: string, userId: string, accessType: AccessType, outcome: 'success' | 'denied', metadata: AccessMetadata) → Promise<void>. Log: timestamp, IP address, user agent, denial reason (if applicable). Insert into document_access_logs table.
 
 - [ ] T022 Create `src/lib/services/rbacService.ts` for RBAC checks. Functions: canAccessDocument(userId: string, documentId: string) → Promise<boolean>, canUploadDocument(userId: string, category: string) → Promise<boolean>, getDirectReports(managerId: string) → Promise<string[]> (recursive CTE query). Enforce: 4-tier RBAC (Admin 100, HR 80, Manager 60, Employee 20) + direct report hierarchy.
 
@@ -106,7 +106,7 @@
 
 **Dependencies: T016-T022 (services complete), T001-T007 (database ready)**
 
-- [ ] T023 Create `src/routes/api/documents/upload/+server.ts` with POST handler. Steps: 1) Validate JWT auth (hooks.server.ts), 2) Parse multipart/form-data (50MB limit), 3) Validate with documentUploadSchema, 4) Receive encrypted file + metadata, 5) Store via storageService, 6) Create document record + assignments, 7) Log upload event, 8) Send employee notifications. Return 201 + documentId or appropriate error.
+- [x] T023 Create `src/routes/api/documents/upload/+server.ts` with POST handler. Steps: 1) Validate JWT auth (hooks.server.ts), 2) Parse multipart/form-data (50MB limit), 3) Validate with documentUploadSchema, 4) Receive encrypted file + metadata, 5) Store via storageService, 6) Create document record + assignments, 7) Log upload event, 8) Send employee notifications. Return 201 + documentId or appropriate error.
 
 - [ ] T024 Create `src/routes/api/documents/[id]/preview/+server.ts` with GET handler. Steps: 1) Validate auth + RBAC (rbacService.canAccessDocument), 2) Retrieve document metadata, 3) Generate preview via previewService, 4) Create signed URL (15min expiration), 5) Log preview access, 6) Return { previewUrl, expiresAt, previewFormat }. Handle Office doc conversion asynchronously.
 
