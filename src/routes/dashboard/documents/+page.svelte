@@ -207,13 +207,13 @@
 	.page-title {
 		font-size: 2rem;
 		font-weight: 700;
-		color: #2d3748;
+		color: hsl(var(--foreground));
 		margin: 0 0 0.5rem 0;
 	}
 
 	.page-description {
 		font-size: 1rem;
-		color: #718096;
+		color: hsl(var(--muted-foreground));
 		margin: 0;
 	}
 
@@ -222,10 +222,10 @@
 		align-items: center;
 		gap: 0.5rem;
 		padding: 0.75rem 1.5rem;
-		background: #4299e1;
-		color: white;
+		background: hsl(var(--primary));
+		color: hsl(var(--primary-foreground));
 		text-decoration: none;
-		border-radius: 6px;
+		border-radius: var(--radius);
 		font-weight: 600;
 		font-size: 0.875rem;
 		transition: all 0.2s;
@@ -233,16 +233,17 @@
 	}
 
 	.upload-button:hover {
-		background: #3182ce;
+		background: hsl(var(--primary) / 0.9);
 		transform: translateY(-1px);
-		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+		box-shadow: 0 4px 6px hsl(var(--foreground) / 0.1);
 	}
 
 	.table-container {
-		background: white;
-		border-radius: 8px;
+		background: hsl(var(--card));
+		border: 1px solid hsl(var(--border));
+		border-radius: var(--radius);
 		padding: 1.5rem;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+		box-shadow: 0 1px 3px hsl(var(--foreground) / 0.1);
 	}
 
 	/* Responsive */

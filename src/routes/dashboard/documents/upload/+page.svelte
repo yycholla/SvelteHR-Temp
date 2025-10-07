@@ -167,23 +167,23 @@
 	.page-title {
 		font-size: 2rem;
 		font-weight: 700;
-		color: #2d3748;
+		color: hsl(var(--foreground));
 		margin: 0 0 0.5rem 0;
 	}
 
 	.page-description {
 		font-size: 1rem;
-		color: #718096;
+		color: hsl(var(--muted-foreground));
 		margin: 0;
 		line-height: 1.5;
 	}
 
 	.cancel-button {
 		padding: 0.75rem 1.5rem;
-		background: white;
-		color: #4a5568;
-		border: 1px solid #cbd5e0;
-		border-radius: 6px;
+		background: hsl(var(--background));
+		color: hsl(var(--foreground));
+		border: 1px solid hsl(var(--border));
+		border-radius: var(--radius);
 		font-weight: 600;
 		font-size: 0.875rem;
 		cursor: pointer;
@@ -191,15 +191,15 @@
 	}
 
 	.cancel-button:hover {
-		background: #f7fafc;
+		background: hsl(var(--accent));
 	}
 
 	.success-message {
 		text-align: center;
 		padding: 4rem 2rem;
-		background: white;
-		border-radius: 8px;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+		background: hsl(var(--card));
+		border-radius: var(--radius);
+		box-shadow: 0 1px 3px hsl(var(--foreground) / 0.1);
 	}
 
 	.success-icon {
@@ -210,18 +210,18 @@
 	.success-message h3 {
 		font-size: 1.5rem;
 		font-weight: 700;
-		color: #2d3748;
+		color: hsl(var(--foreground));
 		margin: 0 0 0.5rem 0;
 	}
 
 	.success-message p {
-		color: #718096;
+		color: hsl(var(--muted-foreground));
 		margin: 0 0 0.5rem 0;
 	}
 
 	.redirect-notice {
 		font-size: 0.875rem;
-		color: #a0aec0;
+		color: hsl(var(--muted-foreground) / 0.7);
 		font-style: italic;
 	}
 
@@ -232,10 +232,11 @@
 	}
 
 	.upload-step {
-		background: white;
-		border-radius: 8px;
+		background: hsl(var(--card));
+		border: 1px solid hsl(var(--border));
+		border-radius: var(--radius);
 		padding: 2rem;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+		box-shadow: 0 1px 3px hsl(var(--foreground) / 0.1);
 	}
 
 	.step-header {
@@ -248,8 +249,8 @@
 	.step-number {
 		width: 40px;
 		height: 40px;
-		background: #4299e1;
-		color: white;
+		background: hsl(var(--primary));
+		color: hsl(var(--primary-foreground));
 		border-radius: 50%;
 		display: flex;
 		align-items: center;
@@ -266,13 +267,13 @@
 	.step-title {
 		font-size: 1.25rem;
 		font-weight: 700;
-		color: #2d3748;
+		color: hsl(var(--foreground));
 		margin: 0 0 0.25rem 0;
 	}
 
 	.step-description {
 		font-size: 0.875rem;
-		color: #718096;
+		color: hsl(var(--muted-foreground));
 		margin: 0;
 	}
 
@@ -283,9 +284,9 @@
 	.error-message {
 		margin-top: 1rem;
 		padding: 1rem;
-		background: #fff5f5;
-		border: 1px solid #fc8181;
-		border-radius: 6px;
+		background: hsl(var(--destructive) / 0.1);
+		border: 1px solid hsl(var(--destructive) / 0.5);
+		border-radius: var(--radius);
 		display: flex;
 		align-items: center;
 		gap: 0.75rem;
@@ -296,15 +297,15 @@
 	}
 
 	.error-message p {
-		color: #c53030;
+		color: hsl(var(--destructive));
 		margin: 0;
 		font-size: 0.875rem;
 	}
 
 	.security-notice {
-		background: #edf2f7;
-		border: 1px solid #cbd5e0;
-		border-radius: 8px;
+		background: hsl(var(--muted));
+		border: 1px solid hsl(var(--border));
+		border-radius: var(--radius);
 		padding: 1.5rem;
 		display: flex;
 		gap: 1rem;
@@ -322,13 +323,13 @@
 	.notice-title {
 		font-size: 1rem;
 		font-weight: 600;
-		color: #2d3748;
+		color: hsl(var(--foreground));
 		margin: 0 0 0.5rem 0;
 	}
 
 	.notice-text {
 		font-size: 0.875rem;
-		color: #4a5568;
+		color: hsl(var(--muted-foreground));
 		margin: 0;
 		line-height: 1.6;
 	}
