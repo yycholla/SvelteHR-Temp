@@ -1120,3 +1120,250 @@ export class EventsOperations {
 export function createEventsOperations(client: Client): EventsOperations {
 	return new EventsOperations(client);
 }
+
+// ============================================================================
+// FEATURE 026: EVENT COMMENTS, HISTORY, AND WAITLIST
+// ============================================================================
+
+/**
+ * Query: Get event comments with pagination (20 per page)
+ * Feature: 026-integrate-ui-components
+ * FR-015: Display 20 most recent comments on initial load
+ */
+export const GET_EVENT_COMMENTS = gql`
+	query GetEventComments($eventId: UUID!, $limit: Int = 20, $offset: Int = 0) {
+		eventComments(
+			filter: { eventId: { equalTo: $eventId } }
+			first: $limit
+			offset: $offset
+			orderBy: CREATED_AT_DESC
+		) {
+			nodes {
+				id
+				eventId
+				employeeId
+				content
+				mentions
+				createdAt
+				updatedAt
+				employeeByEmployeeId {
+					id
+					displayName
+					avatarUrl
+				}
+			}
+			totalCount
+			pageInfo {
+				hasNextPage
+				hasPreviousPage
+			}
+		}
+	}
+`;
+
+/**
+ * Query: Get event history with pagination (25 per page)
+ * Feature: 026-integrate-ui-components
+ * FR-023: Display 25 most recent history entries
+ */
+export const GET_EVENT_HISTORY = gql`
+	query GetEventHistory($eventId: UUID!, $limit: Int = 25, $offset: Int = 0) {
+		eventHistories(
+			filter: { eventId: { equalTo: $eventId } }
+			first: $limit
+			offset: $offset
+			orderBy: CREATED_AT_DESC
+		) {
+			nodes {
+				id
+				eventId
+				changedBy
+				fieldName
+				oldValue
+				newValue
+				changeType
+				createdAt
+				employeeByChangedBy {
+					id
+					displayName
+				}
+			}
+			totalCount
+			pageInfo {
+				hasNextPage
+				hasPreviousPage
+			}
+		}
+	}
+`;
+
+/**
+ * Query: Get user's waitlist status for an event
+ * Feature: 026-integrate-ui-components
+ * FR-012: Display waitlist button with position
+ */
+export const GET_USER_WAITLIST_STATUS = gql`
+	query GetUserWaitlistStatus($eventId: UUID!, $userId: UUID!) {
+		eventWaitlists(
+			filter: { and: [{ eventId: { equalTo: $eventId } }, { employeeId: { equalTo: $userId } }] }
+		) {
+			nodes {
+				id
+				position
+				joinedAt
+			}
+		}
+	}
+`;
+
+/**
+ * Mutation: Create event comment
+ * Feature: 026-integrate-ui-components
+ * FR-016, FR-017: Add comment with @mentions and XSS sanitization
+ */
+export const CREATE_EVENT_COMMENT = gql`
+	mutation CreateEventComment($eventId: UUID!, $content: String!, $mentions: [String!]) {
+		createEventComment(
+			input: {
+				eventComment: { eventId: $eventId, content: $content, mentions: $mentions }
+			}
+		) {
+			eventComment {
+				id
+				content
+				mentions
+				createdAt
+				employeeByEmployeeId {
+					id
+					displayName
+					avatarUrl
+				}
+			}
+		}
+	}
+`;
+
+/**
+ * Mutation: Update event comment (own comments only)
+ * Feature: 026-integrate-ui-components
+ * FR-020: Edit own comments only
+ */
+export const UPDATE_EVENT_COMMENT = gql`
+	mutation UpdateEventComment($commentId: UUID!, $content: String!) {
+		updateEventCommentById(
+			input: { id: $commentId, eventCommentPatch: { content: $content, updatedAt: "now()" } }
+		) {
+			eventComment {
+				id
+				content
+				mentions
+				updatedAt
+				employeeByEmployeeId {
+					id
+					displayName
+					avatarUrl
+				}
+			}
+		}
+	}
+`;
+
+/**
+ * Mutation: Delete event comment (own comments only)
+ * Feature: 026-integrate-ui-components
+ * FR-020: Delete own comments only
+ */
+export const DELETE_EVENT_COMMENT = gql`
+	mutation DeleteEventComment($commentId: UUID!) {
+		deleteEventCommentById(input: { id: $commentId }) {
+			deletedEventCommentId
+		}
+	}
+`;
+
+/**
+ * Mutation: Join event waitlist
+ * Feature: 026-integrate-ui-components
+ * FR-012: Join waitlist when event is full
+ */
+export const JOIN_EVENT_WAITLIST = gql`
+	mutation JoinEventWaitlist($eventId: UUID!) {
+		createEventWaitlist(input: { eventWaitlist: { eventId: $eventId } }) {
+			eventWaitlist {
+				id
+				position
+				joinedAt
+			}
+		}
+	}
+`;
+
+/**
+ * Mutation: Leave event waitlist
+ * Feature: 026-integrate-ui-components
+ * FR-013: Leave waitlist and reorder positions
+ */
+export const LEAVE_EVENT_WAITLIST = gql`
+	mutation LeaveEventWaitlist($eventId: UUID!, $userId: UUID!) {
+		deleteEventWaitlist(
+			input: {
+				filter: {
+					and: [{ eventId: { equalTo: $eventId } }, { employeeId: { equalTo: $userId } }]
+				}
+			}
+		) {
+			deletedEventWaitlistId
+		}
+	}
+`;
+
+// ============================================================================
+// TYPESCRIPT INTERFACES FOR FEATURE 026
+// ============================================================================
+
+export interface EventComment {
+	id: string;
+	eventId: string;
+	employeeId: string;
+	content: string; // XSS-sanitized plain text
+	mentions: string[]; // Array of @mentioned usernames
+	createdAt: string; // ISO 8601 timestamp
+	updatedAt: string; // ISO 8601 timestamp
+	employeeByEmployeeId: {
+		id: string;
+		displayName: string;
+		avatarUrl?: string;
+	};
+}
+
+export interface EventHistoryEntry {
+	id: string;
+	eventId: string;
+	changedBy: string;
+	fieldName: string; // e.g., "title", "startTime", "maxCapacity"
+	oldValue?: string | null;
+	newValue?: string | null;
+	changeType: 'created' | 'updated' | 'deleted';
+	createdAt: string; // ISO 8601 timestamp
+	employeeByChangedBy: {
+		id: string;
+		displayName: string;
+	};
+}
+
+export interface UserWaitlistStatus {
+	isOnWaitlist: boolean;
+	position: number | null; // FIFO position (1 = first in line)
+	joinedAt?: string; // ISO 8601 timestamp
+}
+
+export interface CreateEventCommentInput {
+	eventId: string;
+	content: string; // Will be XSS-sanitized server-side
+	mentions: string[]; // Extracted @usernames
+}
+
+export interface UpdateEventCommentInput {
+	commentId: string;
+	content: string; // Will be XSS-sanitized server-side
+}

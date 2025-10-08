@@ -7,6 +7,14 @@ import { error, redirect, fail } from '@sveltejs/kit';
 import { EventsOperations } from '$lib/graphql/events-operations';
 import { createUrqlClient } from '$lib/graphql/client';
 import type { EventVisibilityType, EventStatus, EventType } from '$lib/graphql/types';
+// Feature 026: Import GraphQL operations for comments, history, waitlist
+import {
+	GET_EVENT_COMMENTS,
+	GET_EVENT_HISTORY,
+	GET_USER_WAITLIST_STATUS,
+	type EventComment,
+	type EventHistoryEntry
+} from '$lib/graphql/events-operations';
 
 export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	// Check authentication
@@ -105,6 +113,10 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		// Permissions come from JWT token in locals.permissions
 		const canCreateEvents = locals.permissions?.includes('*') || locals.permissions?.includes('manage_events') || false;
 
+		// Feature 026: Helper functions are available at module level
+		// (fetchEventComments, fetchEventHistory, fetchUserWaitlistStatus)
+		// These will be called from page component when dialog opens for better performance
+
 		return {
 			events: eventsResult.events,
 			totalCount: eventsResult.totalCount,
@@ -120,7 +132,9 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			},
 			statistics: stats,
 			canCreateEvents,
-			user: locals.user
+			user: locals.user,
+			// Feature 026: Pass client for per-event data fetching
+			urqlClient
 		};
 	} catch (err: any) {
 		console.error('Error loading events:', err);
@@ -152,6 +166,109 @@ function getRoleLevel(role: string | undefined): number {
 	};
 
 	return roleLevels[role?.toLowerCase() || 'employee'] || 20;
+}
+
+// Feature 026: Helper functions for fetching comments, history, waitlist data
+// T010: Fetch event comments with pagination (20 per page)
+async function fetchEventComments(
+	urqlClient: any,
+	eventId: string,
+	limit: number = 20,
+	offset: number = 0
+): Promise<{ comments: EventComment[]; totalCount: number; hasMore: boolean }> {
+	try {
+		const result = await urqlClient
+			.query(GET_EVENT_COMMENTS, {
+				eventId,
+				limit,
+				offset
+			})
+			.toPromise();
+
+		if (result.error || !result.data) {
+			console.error('Error fetching event comments:', result.error);
+			return { comments: [], totalCount: 0, hasMore: false };
+		}
+
+		const data = result.data.eventComments;
+		return {
+			comments: data.nodes || [],
+			totalCount: data.totalCount || 0,
+			hasMore: data.pageInfo?.hasNextPage || false
+		};
+	} catch (err) {
+		console.error('Failed to fetch event comments:', err);
+		return { comments: [], totalCount: 0, hasMore: false };
+	}
+}
+
+// T010: Fetch event history with pagination (25 per page)
+async function fetchEventHistory(
+	urqlClient: any,
+	eventId: string,
+	limit: number = 25,
+	offset: number = 0
+): Promise<{ history: EventHistoryEntry[]; totalCount: number; hasMore: boolean }> {
+	try {
+		const result = await urqlClient
+			.query(GET_EVENT_HISTORY, {
+				eventId,
+				limit,
+				offset
+			})
+			.toPromise();
+
+		if (result.error || !result.data) {
+			console.error('Error fetching event history:', result.error);
+			return { history: [], totalCount: 0, hasMore: false };
+		}
+
+		const data = result.data.eventHistories;
+		return {
+			history: data.nodes || [],
+			totalCount: data.totalCount || 0,
+			hasMore: data.pageInfo?.hasNextPage || false
+		};
+	} catch (err) {
+		console.error('Failed to fetch event history:', err);
+		return { history: [], totalCount: 0, hasMore: false };
+	}
+}
+
+// T011: Fetch user's waitlist status for an event
+async function fetchUserWaitlistStatus(
+	urqlClient: any,
+	eventId: string,
+	userId: string
+): Promise<{ isOnWaitlist: boolean; position: number | null; joinedAt?: string }> {
+	try {
+		const result = await urqlClient
+			.query(GET_USER_WAITLIST_STATUS, {
+				eventId,
+				userId
+			})
+			.toPromise();
+
+		if (result.error || !result.data) {
+			console.error('Error fetching waitlist status:', result.error);
+			return { isOnWaitlist: false, position: null };
+		}
+
+		const nodes = result.data.eventWaitlists?.nodes || [];
+		if (nodes.length > 0) {
+			const waitlistEntry = nodes[0];
+			return {
+				isOnWaitlist: true,
+				position: waitlistEntry.position || null,
+				joinedAt: waitlistEntry.joinedAt
+			};
+		}
+
+		return { isOnWaitlist: false, position: null };
+	} catch (err) {
+		console.error('Failed to fetch waitlist status:', err);
+		return { isOnWaitlist: false, position: null };
+	}
 }
 
 // Form actions

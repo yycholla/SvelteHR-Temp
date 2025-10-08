@@ -2,6 +2,7 @@
 	// Events List Page
 	// Feature: 019-we-need-to - Task T028
 	// Purpose: Display events with filtering and calendar/list views
+	// Feature 026: Integration with comments, history, and waitlist
 
 	import type { PageData } from './$types';
 	import EventCard from '$lib/components/events/EventCard.svelte';
@@ -14,6 +15,18 @@
 	import type { EventVisibilityType, EventStatus, EventType } from '$lib/graphql/types';
 	import { Calendar, Copy, Check } from 'lucide-svelte';
 	import { toast } from 'svelte-sonner';
+	import type { EventComment, EventHistoryEntry, UserWaitlistStatus } from '$lib/graphql/events-operations';
+	import {
+		GET_EVENT_COMMENTS,
+		GET_EVENT_HISTORY,
+		GET_USER_WAITLIST_STATUS,
+		CREATE_EVENT_COMMENT,
+		UPDATE_EVENT_COMMENT,
+		DELETE_EVENT_COMMENT,
+		JOIN_EVENT_WAITLIST,
+		LEAVE_EVENT_WAITLIST
+	} from '$lib/graphql/events-operations';
+	import { sanitizeCommentContent, extractMentions } from '$lib/utils/sanitize';
 
 	let { data }: { data: PageData } = $props();
 
@@ -39,6 +52,18 @@
 	let selectedEvent = $state<any>(null);
 	let selectedEventRsvpStats = $state<any>(null);
 
+	// Feature 026: Comments, History, Waitlist state
+	let eventComments = $state<EventComment[]>([]);
+	let commentCount = $state(0);
+	let commentOffset = $state(0);
+	let hasMoreComments = $state(false);
+
+	let eventHistory = $state<EventHistoryEntry[]>([]);
+	let historyOffset = $state(0);
+	let hasMoreHistory = $state(false);
+
+	let userWaitlistStatus = $state<UserWaitlistStatus>({ isOnWaitlist: false, position: null });
+
 	// Filter state
 	let selectedVisibility = $state<EventVisibilityType | 'all'>(data.filters.visibility || 'all');
 	let selectedStatus = $state<EventStatus | 'all'>(data.filters.status || 'all');
@@ -47,7 +72,7 @@
 	let selectedView = $state(data.filters.view || 'list');
 
 	// Handle event click (open details dialog)
-	function handleEventClick(event: any) {
+	async function handleEventClick(event: any) {
 		console.log('🔔 Event clicked - full data:', event);
 		console.log('🔔 Event attendees raw:', event.eventAttendeesByEventId);
 
@@ -64,7 +89,267 @@
 			pending: attendees.filter((a: any) => a.responseStatus === 'pending').length
 		};
 		detailsDialogMode = 'view';
+
+		// Feature 026: Fetch comments, history, and waitlist status
+		await Promise.all([
+			fetchEventComments(event.id, true),
+			fetchEventHistory(event.id, true),
+			fetchUserWaitlistStatus(event.id)
+		]);
+
 		showDetailsDialog = true;
+	}
+
+	// Feature 026: Fetch event comments with pagination
+	async function fetchEventComments(eventId: string, reset: boolean = false) {
+		try {
+			const offset = reset ? 0 : commentOffset;
+			const result = await data.urqlClient
+				.query(GET_EVENT_COMMENTS, {
+					eventId,
+					limit: 20,
+					offset
+				})
+				.toPromise();
+
+			if (result.error || !result.data) {
+				console.error('Error fetching event comments:', result.error);
+				return;
+			}
+
+			const comments = result.data.eventComments?.nodes || [];
+			const totalCount = result.data.eventComments?.totalCount || 0;
+			const hasMore = result.data.eventComments?.pageInfo?.hasNextPage || false;
+
+			if (reset) {
+				eventComments = comments;
+				commentOffset = comments.length;
+			} else {
+				eventComments = [...eventComments, ...comments];
+				commentOffset += comments.length;
+			}
+
+			commentCount = totalCount;
+			hasMoreComments = hasMore;
+		} catch (err) {
+			console.error('Failed to fetch event comments:', err);
+			toast.error('Failed to load comments');
+		}
+	}
+
+	// Feature 026: Fetch event history with pagination
+	async function fetchEventHistory(eventId: string, reset: boolean = false) {
+		try {
+			const offset = reset ? 0 : historyOffset;
+			const result = await data.urqlClient
+				.query(GET_EVENT_HISTORY, {
+					eventId,
+					limit: 25,
+					offset
+				})
+				.toPromise();
+
+			if (result.error || !result.data) {
+				console.error('Error fetching event history:', result.error);
+				return;
+			}
+
+			const history = result.data.eventHistories?.nodes || [];
+			const hasMore = result.data.eventHistories?.pageInfo?.hasNextPage || false;
+
+			if (reset) {
+				eventHistory = history;
+				historyOffset = history.length;
+			} else {
+				eventHistory = [...eventHistory, ...history];
+				historyOffset += history.length;
+			}
+
+			hasMoreHistory = hasMore;
+		} catch (err) {
+			console.error('Failed to fetch event history:', err);
+			toast.error('Failed to load event history');
+		}
+	}
+
+	// Feature 026: Fetch user's waitlist status
+	async function fetchUserWaitlistStatus(eventId: string) {
+		try {
+			const result = await data.urqlClient
+				.query(GET_USER_WAITLIST_STATUS, {
+					eventId,
+					userId: data.user.id
+				})
+				.toPromise();
+
+			if (result.error || !result.data) {
+				console.error('Error fetching waitlist status:', result.error);
+				return;
+			}
+
+			const nodes = result.data.eventWaitlists?.nodes || [];
+			if (nodes.length > 0) {
+				const waitlistEntry = nodes[0];
+				userWaitlistStatus = {
+					isOnWaitlist: true,
+					position: waitlistEntry.position || null,
+					joinedAt: waitlistEntry.joinedAt
+				};
+			} else {
+				userWaitlistStatus = { isOnWaitlist: false, position: null };
+			}
+		} catch (err) {
+			console.error('Failed to fetch waitlist status:', err);
+		}
+	}
+
+	// Feature 026: Handle comment mutations
+	async function handleAddComment(content: string, mentions: string[]) {
+		if (!selectedEvent) return;
+
+		// Sanitize content before sending
+		const sanitized = sanitizeCommentContent(content);
+
+		try {
+			const result = await data.urqlClient
+				.mutation(CREATE_EVENT_COMMENT, {
+					eventId: selectedEvent.id,
+					content: sanitized,
+					mentions
+				})
+				.toPromise();
+
+			if (result.error || !result.data) {
+				console.error('Error creating comment:', result.error);
+				throw new Error(result.error?.message || 'Failed to create comment');
+			}
+
+			// Refresh comments list
+			await fetchEventComments(selectedEvent.id, true);
+			toast.success('Comment added successfully');
+		} catch (err: any) {
+			console.error('Failed to add comment:', err);
+			toast.error(err.message || 'Failed to add comment');
+			throw err;
+		}
+	}
+
+	async function handleUpdateComment(commentId: string, content: string) {
+		if (!selectedEvent) return;
+
+		// Sanitize content before sending
+		const sanitized = sanitizeCommentContent(content);
+		const mentions = extractMentions(sanitized);
+
+		try {
+			const result = await data.urqlClient
+				.mutation(UPDATE_EVENT_COMMENT, {
+					commentId,
+					content: sanitized,
+					mentions
+				})
+				.toPromise();
+
+			if (result.error || !result.data) {
+				console.error('Error updating comment:', result.error);
+				throw new Error(result.error?.message || 'Failed to update comment');
+			}
+
+			// Refresh comments list
+			await fetchEventComments(selectedEvent.id, true);
+			toast.success('Comment updated successfully');
+		} catch (err: any) {
+			console.error('Failed to update comment:', err);
+			toast.error(err.message || 'Failed to update comment');
+			throw err;
+		}
+	}
+
+	async function handleDeleteComment(commentId: string) {
+		if (!selectedEvent) return;
+
+		try {
+			const result = await data.urqlClient
+				.mutation(DELETE_EVENT_COMMENT, {
+					commentId
+				})
+				.toPromise();
+
+			if (result.error || !result.data) {
+				console.error('Error deleting comment:', result.error);
+				throw new Error(result.error?.message || 'Failed to delete comment');
+			}
+
+			// Refresh comments list
+			await fetchEventComments(selectedEvent.id, true);
+			toast.success('Comment deleted successfully');
+		} catch (err: any) {
+			console.error('Failed to delete comment:', err);
+			toast.error(err.message || 'Failed to delete comment');
+			throw err;
+		}
+	}
+
+	// Feature 026: Handle waitlist mutations
+	async function handleJoinWaitlist(eventId: string) {
+		try {
+			const result = await data.urqlClient
+				.mutation(JOIN_EVENT_WAITLIST, {
+					eventId,
+					employeeId: data.user.id
+				})
+				.toPromise();
+
+			if (result.error || !result.data) {
+				console.error('Error joining waitlist:', result.error);
+				throw new Error(result.error?.message || 'Failed to join waitlist');
+			}
+
+			// Refresh waitlist status
+			await fetchUserWaitlistStatus(eventId);
+			toast.success('Joined waitlist successfully');
+		} catch (err: any) {
+			console.error('Failed to join waitlist:', err);
+			toast.error(err.message || 'Failed to join waitlist');
+			throw err;
+		}
+	}
+
+	async function handleLeaveWaitlist(eventId: string) {
+		try {
+			const result = await data.urqlClient
+				.mutation(LEAVE_EVENT_WAITLIST, {
+					eventId,
+					employeeId: data.user.id
+				})
+				.toPromise();
+
+			if (result.error || !result.data) {
+				console.error('Error leaving waitlist:', result.error);
+				throw new Error(result.error?.message || 'Failed to leave waitlist');
+			}
+
+			// Refresh waitlist status
+			await fetchUserWaitlistStatus(eventId);
+			toast.success('Left waitlist successfully');
+		} catch (err: any) {
+			console.error('Failed to leave waitlist:', err);
+			toast.error(err.message || 'Failed to leave waitlist');
+			throw err;
+		}
+	}
+
+	// Feature 026: Handle pagination
+	async function handleLoadMoreComments() {
+		if (selectedEvent) {
+			await fetchEventComments(selectedEvent.id, false);
+		}
+	}
+
+	async function handleLoadMoreHistory() {
+		if (selectedEvent) {
+			await fetchEventHistory(selectedEvent.id, false);
+		}
 	}
 
 	// Format date to local ISO string (for URL parameter)
@@ -658,9 +943,24 @@
 		canManageEvent={data.canCreateEvents && selectedEvent?.organizerId === data.user.id}
 		mode={detailsDialogMode}
 		rsvpStats={selectedEventRsvpStats}
+		eventComments={eventComments}
+		commentCount={commentCount}
+		eventHistory={eventHistory}
+		userWaitlistStatus={userWaitlistStatus}
+		hasMoreComments={hasMoreComments}
+		hasMoreHistory={hasMoreHistory}
 		onClose={() => {
 			showDetailsDialog = false;
 			selectedEvent = null;
+			// Reset Feature 026 state
+			eventComments = [];
+			eventHistory = [];
+			commentOffset = 0;
+			historyOffset = 0;
+			commentCount = 0;
+			hasMoreComments = false;
+			hasMoreHistory = false;
+			userWaitlistStatus = { isOnWaitlist: false, position: null };
 		}}
 		onEdit={() => {
 			detailsDialogMode = 'edit';
@@ -669,5 +969,12 @@
 			showDetailsDialog = false;
 			selectedEvent = null;
 		}}
+		onAddComment={handleAddComment}
+		onUpdateComment={handleUpdateComment}
+		onDeleteComment={handleDeleteComment}
+		onLoadMoreComments={handleLoadMoreComments}
+		onLoadMoreHistory={handleLoadMoreHistory}
+		onJoinWaitlist={handleJoinWaitlist}
+		onLeaveWaitlist={handleLeaveWaitlist}
 	/>
 </div>

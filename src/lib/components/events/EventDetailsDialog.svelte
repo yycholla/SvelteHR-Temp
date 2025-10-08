@@ -1,10 +1,14 @@
 <script lang="ts">
 	/**
 	 * EventDetailsDialog Component
-	 * Feature: 019-we-need-to - Events Management
+	 * Feature: 026-integrate-ui-components - Enhanced with tabs and integrated components
 	 *
-	 * Unified dialog for viewing and editing event details.
-	 * Supports view mode (read-only) and edit mode with full form functionality.
+	 * Unified dialog for viewing and editing event details with:
+	 * - Tab-based interface (Details, Comments, History)
+	 * - Event capacity indicators and waitlist functionality
+	 * - Event comments with @mentions and XSS sanitization
+	 * - Event history audit trail
+	 * - Recurring event scope selection
 	 */
 
 	import { enhance } from '$app/forms';
@@ -12,8 +16,17 @@
 	import { toast } from 'svelte-sonner';
 	import { X, Edit, Trash2, Calendar as CalendarIcon, MapPin, User, Users } from 'lucide-svelte';
 	import RSVPButton from './RSVPButton.svelte';
+	import RecurrenceScopeDialog from './RecurrenceScopeDialog.svelte';
+	import EventCapacityIndicator from './EventCapacityIndicator.svelte';
+	import WaitlistButton from './WaitlistButton.svelte';
+	import EventCommentThread from './EventCommentThread.svelte';
+	import EventHistoryView from './EventHistoryView.svelte';
+	import { Tabs, TabsList, TabsTrigger, TabsContent } from '$lib/components/ui/tabs';
+	import { Badge } from '$lib/components/ui/badge';
 	import { formatEventTimeRange } from '$lib/utils/events';
+	import { sanitizeCommentContent, extractMentions } from '$lib/utils/sanitize';
 	import type { RsvpStatus, EventType, EventVisibilityType } from '$lib/graphql/types';
+	import type { EventComment, EventHistoryEntry, UserWaitlistStatus } from '$lib/graphql/events-operations';
 
 	interface EventData {
 		id: string;
@@ -26,6 +39,12 @@
 		eventType: EventType;
 		visibilityType?: EventVisibilityType;
 		status: string;
+		rrule?: string | null; // Recurring event rule
+		maxCapacity?: number | null; // Event capacity limit
+		acceptedCount?: number; // Current accepted attendees
+		waitlistCount?: number; // Current waitlist size
+		waitlistEnabled?: boolean; // Whether waitlist is enabled
+		isFull?: boolean; // Whether event is at capacity
 		userByOrganizerId?: {
 			displayName: string;
 		};
@@ -51,10 +70,25 @@
 			tentative: number;
 			pending: number;
 		};
+		// NEW: Feature 026 props
+		eventComments?: EventComment[];
+		commentCount?: number;
+		eventHistory?: EventHistoryEntry[];
+		userWaitlistStatus?: UserWaitlistStatus;
+		hasMoreComments?: boolean;
+		hasMoreHistory?: boolean;
 		onClose: () => void;
 		onSuccess?: () => void;
 		onEdit?: () => void;
 		onDelete?: () => void;
+		// NEW: Feature 026 event handlers
+		onAddComment?: (content: string, mentions: string[]) => Promise<void>;
+		onUpdateComment?: (commentId: string, content: string) => Promise<void>;
+		onDeleteComment?: (commentId: string) => Promise<void>;
+		onLoadMoreComments?: () => Promise<void>;
+		onLoadMoreHistory?: () => Promise<void>;
+		onJoinWaitlist?: (eventId: string) => Promise<void>;
+		onLeaveWaitlist?: (eventId: string) => Promise<void>;
 	}
 
 	let {
@@ -64,11 +98,27 @@
 		canManageEvent = false,
 		mode = 'view',
 		rsvpStats,
+		eventComments = [],
+		commentCount = 0,
+		eventHistory = [],
+		userWaitlistStatus,
+		hasMoreComments = false,
+		hasMoreHistory = false,
 		onClose,
 		onSuccess,
 		onEdit,
-		onDelete
+		onDelete,
+		onAddComment,
+		onUpdateComment,
+		onDeleteComment,
+		onLoadMoreComments,
+		onLoadMoreHistory,
+		onJoinWaitlist,
+		onLeaveWaitlist
 	}: Props = $props();
+
+	// Tab state (FR-002: Default to Details tab)
+	let activeTab = $state<'details' | 'comments' | 'history'>('details');
 
 	// Form state for edit mode
 	let title = $state('');
@@ -82,6 +132,14 @@
 	let isSubmitting = $state(false);
 	let isDeleting = $state(false);
 
+	// NEW: Recurring event scope dialog state (FR-005)
+	let showScopeDialog = $state(false);
+	let pendingRsvpStatus = $state<RsvpStatus | null>(null);
+
+	// NEW: Error states for inline error handling (FR-017a, FR-012a)
+	let commentError = $state<string | null>(null);
+	let waitlistError = $state<string | null>(null);
+
 	// Get user's timezone offset in minutes
 	const timezoneOffset = new Date().getTimezoneOffset();
 
@@ -93,6 +151,19 @@
 		);
 		return userAttendee?.responseStatus || 'no_response';
 	});
+
+	// NEW: Derived values for conditional rendering (FR-009, FR-012, FR-007)
+	const showCapacityIndicator = $derived(
+		event?.maxCapacity !== null && event?.maxCapacity !== undefined && event.maxCapacity > 0
+	);
+
+	const showWaitlistButton = $derived(
+		event?.isFull === true && event?.waitlistEnabled === true
+	);
+
+	const isRecurringEvent = $derived(
+		event?.rrule !== null && event?.rrule !== undefined && event.rrule !== ''
+	);
 
 	// Handle all-day toggle in edit mode
 	function handleAllDayToggle() {
@@ -109,7 +180,7 @@
 
 	// Handle escape key
 	function handleKeydown(event: KeyboardEvent) {
-		if (event.key === 'Escape' && isOpen && !isSubmitting && !isDeleting) {
+		if (event.key === 'Escape' && isOpen && !isSubmitting && !isDeleting && !showScopeDialog) {
 			onClose();
 		}
 	}
@@ -158,18 +229,138 @@
 		}
 	}
 
+	// NEW: Handle RSVP with recurring event scope (FR-005, FR-006, FR-007, FR-008)
+	async function handleRsvpChange(newStatus: RsvpStatus) {
+		if (!event) return;
+
+		// If recurring event, show scope dialog (FR-005)
+		if (isRecurringEvent) {
+			pendingRsvpStatus = newStatus;
+			showScopeDialog = true;
+			return;
+		}
+
+		// Otherwise, update RSVP directly (FR-007)
+		await updateRsvpStatus(newStatus, 'this_event');
+	}
+
+	// NEW: Handle scope selection for recurring events (FR-008)
+	async function handleScopeConfirm(scope: 'this_event' | 'this_and_future' | 'all_events') {
+		if (!pendingRsvpStatus) return;
+		await updateRsvpStatus(pendingRsvpStatus, scope);
+		showScopeDialog = false;
+		pendingRsvpStatus = null;
+	}
+
+	// NEW: Update RSVP status with scope
+	async function updateRsvpStatus(newStatus: RsvpStatus, scope: 'this_event' | 'this_and_future' | 'all_events') {
+		if (!event) return;
+
+		const userAttendee = event.eventAttendeesByEventId?.nodes.find(
+			(a) => a.employeeId === userId
+		);
+
+		const formData = new FormData();
+		formData.append('eventId', event.id);
+		formData.append('status', newStatus);
+		formData.append('scope', scope); // Pass scope for recurring events
+
+		if (userAttendee) {
+			formData.append('attendeeId', userAttendee.id);
+		}
+
+		const response = await fetch('/dashboard/events?/updateRsvpStatus', {
+			method: 'POST',
+			body: formData
+		});
+
+		const result = await response.json();
+
+		if (result.type === 'success' || (response.ok && !result.error)) {
+			toast.success('RSVP updated successfully');
+			await invalidateAll();
+		} else {
+			const errorMsg = result.error || result.data?.error || 'Failed to update RSVP';
+			toast.error(errorMsg);
+		}
+	}
+
+	// NEW: Wrapper functions for comment operations with error handling (FR-017a, FR-017b)
+	async function handleAddComment(content: string) {
+		if (!onAddComment) return;
+
+		try {
+			commentError = null;
+			const sanitized = sanitizeCommentContent(content);
+			const mentions = extractMentions(sanitized);
+			await onAddComment(sanitized, mentions);
+		} catch (error: any) {
+			commentError = error.message || 'Failed to submit comment. Please try again.';
+		}
+	}
+
+	async function handleUpdateComment(commentId: string, content: string) {
+		if (!onUpdateComment) return;
+
+		try {
+			commentError = null;
+			const sanitized = sanitizeCommentContent(content);
+			await onUpdateComment(commentId, sanitized);
+		} catch (error: any) {
+			commentError = error.message || 'Failed to update comment. Please try again.';
+		}
+	}
+
+	async function handleDeleteComment(commentId: string) {
+		if (!onDeleteComment) return;
+
+		try {
+			commentError = null;
+			await onDeleteComment(commentId);
+		} catch (error: any) {
+			commentError = error.message || 'Failed to delete comment. Please try again.';
+		}
+	}
+
+	// NEW: Wrapper functions for waitlist operations with error handling (FR-012a, FR-012b)
+	async function handleJoinWaitlist() {
+		if (!onJoinWaitlist || !event) return;
+
+		try {
+			waitlistError = null;
+			await onJoinWaitlist(event.id);
+		} catch (error: any) {
+			waitlistError = error.message || 'Failed to join waitlist. Please try again.';
+		}
+	}
+
+	async function handleLeaveWaitlist() {
+		if (!onLeaveWaitlist || !event) return;
+
+		try {
+			waitlistError = null;
+			await onLeaveWaitlist(event.id);
+		} catch (error: any) {
+			waitlistError = error.message || 'Failed to leave waitlist. Please try again.';
+		}
+	}
+
 	// Reset form when event changes or dialog opens
 	$effect(() => {
 		if (isOpen && event) {
 			title = event.title;
 			description = event.description || '';
-			// Convert UTC to local datetime-local format
 			startTime = event.startTime.slice(0, 16);
 			endTime = event.endTime.slice(0, 16);
 			isAllDay = event.allDay || false;
 			location = event.location || '';
 			eventType = event.eventType;
 			visibilityType = event.visibilityType || 'company';
+			// Reset to details tab when opening (FR-002)
+			activeTab = 'details';
+			// Clear errors
+			commentError = null;
+			waitlistError = null;
 		}
 	});
 
@@ -207,7 +398,7 @@
 		<!-- Modal Content -->
 		<div class="fixed inset-0 z-50 flex items-center justify-center p-4">
 			<div
-				class="relative w-full max-w-3xl max-h-[90vh] flex flex-col rounded-lg border bg-card shadow-lg overflow-visible"
+				class="relative w-full max-w-4xl max-h-[90vh] flex flex-col rounded-lg border bg-card shadow-lg overflow-visible"
 				role="dialog"
 				aria-modal="true"
 				aria-labelledby="dialog-title"
@@ -250,142 +441,173 @@
 				</div>
 
 				{#if mode === 'view'}
-					<!-- View Mode -->
-					<div class="p-6 overflow-y-auto">
-						<!-- Event Header -->
-						<div class="mb-6">
-							<h1 class="text-2xl font-bold text-foreground mb-3">{event.title}</h1>
-							<div class="flex flex-wrap items-center gap-2">
-								<span class="rounded-md px-2 py-1 text-xs font-medium {getStatusBadgeColor(event.status)}">
-									{event.status.charAt(0).toUpperCase() + event.status.slice(1)}
-								</span>
-								<span class="rounded-md px-2 py-1 text-xs font-medium bg-accent text-accent-foreground">
-									{event.eventType.charAt(0).toUpperCase() + event.eventType.slice(1)}
-								</span>
-								{#if event.visibilityType}
-									<span class="rounded-md px-2 py-1 text-xs font-medium bg-primary/10 text-primary">
-										{getVisibilityLabel(event.visibilityType)}
-									</span>
+					<!-- View Mode with Tabs (FR-001, FR-002) -->
+					<Tabs value={activeTab} onValueChange={(v) => (activeTab = v as any)} class="flex flex-col flex-1 overflow-hidden">
+						<!-- Tab List with Badge (FR-003) -->
+						<TabsList class="mx-6 mt-4">
+							<TabsTrigger value="details">Details</TabsTrigger>
+							<TabsTrigger value="comments" class="relative">
+								Comments
+								{#if commentCount > 0}
+									<Badge variant="secondary" class="ml-2">{commentCount}</Badge>
 								{/if}
-							</div>
-						</div>
+							</TabsTrigger>
+							<TabsTrigger value="history">History</TabsTrigger>
+						</TabsList>
 
-						<!-- Event Details Grid -->
-						<div class="grid gap-4 sm:grid-cols-2 mb-6">
-							<!-- Date and Time -->
-							<div class="flex items-start gap-3">
-								<CalendarIcon class="h-5 w-5 text-muted-foreground mt-0.5" />
-								<div>
-									<div class="text-sm font-medium text-foreground mb-1">Date & Time</div>
-									<div class="text-sm text-muted-foreground">
-										{formatEventTimeRange(event.startTime, event.endTime, event.allDay)}
-									</div>
-									{#if event.allDay}
-										<span class="mt-1 inline-block rounded-md bg-primary/10 px-2 py-0.5 text-xs text-primary">
-											All Day
+						<div class="flex-1 overflow-y-auto">
+							<!-- Details Tab (FR-002) -->
+							<TabsContent value="details" class="p-6">
+								<!-- Event Header -->
+								<div class="mb-6">
+									<h1 class="text-2xl font-bold text-foreground mb-3">{event.title}</h1>
+									<div class="flex flex-wrap items-center gap-2">
+										<span class="rounded-md px-2 py-1 text-xs font-medium {getStatusBadgeColor(event.status)}">
+											{event.status.charAt(0).toUpperCase() + event.status.slice(1)}
 										</span>
+										<span class="rounded-md px-2 py-1 text-xs font-medium bg-accent text-accent-foreground">
+											{event.eventType.charAt(0).toUpperCase() + event.eventType.slice(1)}
+										</span>
+										{#if event.visibilityType}
+											<span class="rounded-md px-2 py-1 text-xs font-medium bg-primary/10 text-primary">
+												{getVisibilityLabel(event.visibilityType)}
+											</span>
+										{/if}
+									</div>
+								</div>
+
+								<!-- NEW: Capacity Indicator (FR-009, FR-010, FR-011, FR-014) -->
+								{#if showCapacityIndicator}
+									<div class="mb-6">
+										<EventCapacityIndicator
+											acceptedCount={event.acceptedCount || 0}
+											maxCapacity={event.maxCapacity || 0}
+											waitlistCount={event.waitlistCount || 0}
+											isFull={event.isFull || false}
+										/>
+									</div>
+								{/if}
+
+								<!-- Event Details Grid -->
+								<div class="grid gap-4 sm:grid-cols-2 mb-6">
+									<!-- Date and Time -->
+									<div class="flex items-start gap-3">
+										<CalendarIcon class="h-5 w-5 text-muted-foreground mt-0.5" />
+										<div>
+											<div class="text-sm font-medium text-foreground mb-1">Date & Time</div>
+											<div class="text-sm text-muted-foreground">
+												{formatEventTimeRange(event.startTime, event.endTime, event.allDay)}
+											</div>
+											{#if event.allDay}
+												<span class="mt-1 inline-block rounded-md bg-primary/10 px-2 py-0.5 text-xs text-primary">
+													All Day
+												</span>
+											{/if}
+										</div>
+									</div>
+
+									<!-- Location -->
+									{#if event.location}
+										<div class="flex items-start gap-3">
+											<MapPin class="h-5 w-5 text-muted-foreground mt-0.5" />
+											<div>
+												<div class="text-sm font-medium text-foreground mb-1">Location</div>
+												<div class="text-sm text-muted-foreground">{event.location}</div>
+											</div>
+										</div>
+									{/if}
+
+									<!-- Organizer -->
+									<div class="flex items-start gap-3">
+										<User class="h-5 w-5 text-muted-foreground mt-0.5" />
+										<div>
+											<div class="text-sm font-medium text-foreground mb-1">Organizer</div>
+											<div class="text-sm text-muted-foreground">
+												{event.userByOrganizerId?.displayName || 'Unknown'}
+											</div>
+										</div>
+									</div>
+
+									<!-- Attendees -->
+									{#if rsvpStats}
+										<div class="flex items-start gap-3">
+											<Users class="h-5 w-5 text-muted-foreground mt-0.5" />
+											<div>
+												<div class="text-sm font-medium text-foreground mb-1">Attendees</div>
+												<div class="text-sm text-muted-foreground">{rsvpStats.total} invited</div>
+											</div>
+										</div>
 									{/if}
 								</div>
-							</div>
 
-							<!-- Location -->
-							{#if event.location}
-								<div class="flex items-start gap-3">
-									<MapPin class="h-5 w-5 text-muted-foreground mt-0.5" />
-									<div>
-										<div class="text-sm font-medium text-foreground mb-1">Location</div>
-										<div class="text-sm text-muted-foreground">{event.location}</div>
+								<!-- Description -->
+								{#if event.description}
+									<div class="mb-6 border-t pt-6">
+										<h3 class="text-sm font-medium text-foreground mb-2">Description</h3>
+										<p class="text-sm text-muted-foreground whitespace-pre-wrap">{event.description}</p>
 									</div>
-								</div>
-							{/if}
+								{/if}
 
-							<!-- Organizer -->
-							<div class="flex items-start gap-3">
-								<User class="h-5 w-5 text-muted-foreground mt-0.5" />
-								<div>
-									<div class="text-sm font-medium text-foreground mb-1">Organizer</div>
-									<div class="text-sm text-muted-foreground">
-										{event.userByOrganizerId?.displayName || 'Unknown'}
-									</div>
+								<!-- RSVP Section -->
+								<div class="border-t pt-6">
+									<h3 class="text-sm font-medium text-foreground mb-3">Your RSVP</h3>
+									<RSVPButton
+										currentStatus={userRsvpStatus()}
+										onChange={handleRsvpChange}
+									/>
 								</div>
-							</div>
 
-							<!-- Attendees -->
-							{#if rsvpStats}
-								<div class="flex items-start gap-3">
-									<Users class="h-5 w-5 text-muted-foreground mt-0.5" />
-									<div>
-										<div class="text-sm font-medium text-foreground mb-1">Attendees</div>
-										<div class="text-sm text-muted-foreground">{rsvpStats.total} invited</div>
+								<!-- NEW: Waitlist Button (FR-012, FR-013) -->
+								{#if showWaitlistButton}
+									<div class="border-t pt-6">
+										<h3 class="text-sm font-medium text-foreground mb-3">Waitlist</h3>
+										<WaitlistButton
+											eventId={event.id}
+											isOnWaitlist={userWaitlistStatus?.isOnWaitlist || false}
+											waitlistPosition={userWaitlistStatus?.position || null}
+											onJoin={handleJoinWaitlist}
+											onLeave={handleLeaveWaitlist}
+										/>
+										{#if waitlistError}
+											<div class="text-sm text-destructive mt-2">
+												{waitlistError}
+											</div>
+										{/if}
 									</div>
-								</div>
-							{/if}
+								{/if}
+							</TabsContent>
+
+							<!-- Comments Tab (FR-015, FR-016, FR-017, FR-020, FR-021, FR-022) -->
+							<TabsContent value="comments" class="p-6">
+								<EventCommentThread
+									eventId={event.id}
+									comments={eventComments}
+									currentUserId={userId}
+									onAddComment={handleAddComment}
+									onUpdateComment={handleUpdateComment}
+									onDeleteComment={handleDeleteComment}
+									onLoadMore={onLoadMoreComments}
+									hasMore={hasMoreComments}
+								/>
+								{#if commentError}
+									<div class="text-sm text-destructive mt-2">
+										{commentError}
+									</div>
+								{/if}
+							</TabsContent>
+
+							<!-- History Tab (FR-023, FR-024, FR-025, FR-026, FR-027) -->
+							<TabsContent value="history" class="p-6">
+								<EventHistoryView
+									history={eventHistory}
+									onLoadMore={onLoadMoreHistory}
+									hasMore={hasMoreHistory}
+								/>
+							</TabsContent>
 						</div>
-
-						<!-- Description -->
-						{#if event.description}
-							<div class="mb-6 border-t pt-6">
-								<h3 class="text-sm font-medium text-foreground mb-2">Description</h3>
-								<p class="text-sm text-muted-foreground whitespace-pre-wrap">{event.description}</p>
-							</div>
-						{/if}
-
-						<!-- RSVP Section -->
-						<div class="border-t pt-6">
-							<h3 class="text-sm font-medium text-foreground mb-3">Your RSVP</h3>
-							<RSVPButton
-								currentStatus={userRsvpStatus()}
-								onChange={async (newStatus) => {
-									console.log('🔔 RSVP onChange - selected status:', newStatus);
-									console.log('🔔 Current userRsvpStatus:', userRsvpStatus());
-
-									// Find the current user's attendee record
-									const userAttendee = event.eventAttendeesByEventId?.nodes.find(
-										(a) => a.employeeId === userId
-									);
-
-									console.log('🔔 User attendee record:', userAttendee);
-
-									const formData = new FormData();
-									formData.append('eventId', event.id);
-									formData.append('status', newStatus);
-
-									if (userAttendee) {
-										// Update existing attendee
-										formData.append('attendeeId', userAttendee.id);
-										console.log('🔔 Updating existing attendee:', userAttendee.id);
-									} else {
-										console.log('🔔 Creating new attendee for user:', userId);
-									}
-
-									console.log('🔔 Submitting RSVP update...');
-
-									const response = await fetch('/dashboard/events?/updateRsvpStatus', {
-										method: 'POST',
-										body: formData
-									});
-
-									console.log('🔔 Response status:', response.status);
-
-									const result = await response.json();
-									console.log('🔔 Response result:', result);
-
-									if (result.type === 'success' || (response.ok && !result.error)) {
-										toast.success('RSVP updated successfully');
-										console.log('🔔 Calling invalidateAll...');
-										await invalidateAll();
-										console.log('🔔 invalidateAll complete');
-										console.log('🔔 New userRsvpStatus after refresh:', userRsvpStatus());
-									} else {
-										const errorMsg = result.error || result.data?.error || 'Failed to update RSVP';
-										toast.error(errorMsg);
-									}
-								}}
-							/>
-						</div>
-					</div>
+					</Tabs>
 				{:else}
-					<!-- Edit Mode -->
+					<!-- Edit Mode (unchanged) -->
 					<form
 						method="POST"
 						action="/dashboard/events?/updateEvent"
@@ -582,4 +804,18 @@
 			</div>
 		</div>
 	</div>
+
+	<!-- NEW: Recurring Event Scope Dialog (FR-005, FR-006) -->
+	{#if isRecurringEvent}
+		<RecurrenceScopeDialog
+			bind:open={showScopeDialog}
+			eventTitle={event.title}
+			action="RSVP update"
+			onConfirm={handleScopeConfirm}
+			onCancel={() => {
+				showScopeDialog = false;
+				pendingRsvpStatus = null;
+			}}
+		/>
+	{/if}
 {/if}
