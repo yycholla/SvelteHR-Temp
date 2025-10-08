@@ -144,6 +144,19 @@ get_migration_files() {
         "20251002_003_remove_hr_prefix_from_roles.sql"
         "20251002_004_cleanup_old_roles.sql"
         "20251007_001_add_review_types_metadata.sql"
+        "20251007_001_add_recurring_events.sql"
+        "20251007_002_event_waitlist.sql"
+        "20251007_003_event_comments.sql"
+        "20251007_004_event_history.sql"
+        "20251007_005_event_notifications.sql"
+        "20251007_006_notification_preferences.sql"
+        "20251007_007_event_indexes.sql"
+        "20251007_008_fulltext_indexes.sql"
+        "20251007_009_waitlist_promotion.sql"
+        "20251007_010_audit_trail.sql"
+        "20251007_011_capacity_enforcement.sql"
+        "20251007_012_updated_at_triggers.sql"
+        "20251007_013_rls_policies.sql"
     )
 
     # Seed data (always last)
