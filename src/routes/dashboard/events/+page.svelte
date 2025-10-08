@@ -6,11 +6,14 @@
 	import type { PageData } from './$types';
 	import EventCard from '$lib/components/events/EventCard.svelte';
 	import EventCalendar from '$lib/components/events/EventCalendar.svelte';
+	import EventCreateDialog from '$lib/components/events/EventCreateDialog.svelte';
+	import EventDetailsDialog from '$lib/components/events/EventDetailsDialog.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { invalidateAll } from '$app/navigation';
 	import type { EventVisibilityType, EventStatus, EventType } from '$lib/graphql/types';
 	import { Calendar, Copy, Check } from 'lucide-svelte';
+	import { toast } from 'svelte-sonner';
 
 	let { data }: { data: PageData } = $props();
 
@@ -22,6 +25,20 @@
 	let iCalLinkCopied = $state(false);
 	const iCalLink = $derived(`${$page.url.origin}/api/calendar/events.ics`);
 
+	// Create event dialog state
+	let showCreateDialog = $state(false);
+	let createDialogDefaults = $state<{
+		startTime?: string;
+		endTime?: string;
+		allDay?: boolean;
+	}>({});
+
+	// Event details dialog state
+	let showDetailsDialog = $state(false);
+	let detailsDialogMode = $state<'view' | 'edit'>('view');
+	let selectedEvent = $state<any>(null);
+	let selectedEventRsvpStats = $state<any>(null);
+
 	// Filter state
 	let selectedVisibility = $state<EventVisibilityType | 'all'>(data.filters.visibility || 'all');
 	let selectedStatus = $state<EventStatus | 'all'>(data.filters.status || 'all');
@@ -29,9 +46,25 @@
 	let selectedSort = $state(data.filters.sortBy || 'date');
 	let selectedView = $state(data.filters.view || 'list');
 
-	// Handle event click (navigate to event detail)
+	// Handle event click (open details dialog)
 	function handleEventClick(event: any) {
-		goto(`/dashboard/events/${event.id}`);
+		console.log('🔔 Event clicked - full data:', event);
+		console.log('🔔 Event attendees raw:', event.eventAttendeesByEventId);
+
+		selectedEvent = event;
+		// Calculate RSVP stats
+		const attendees = event.eventAttendeesByEventId?.nodes || [];
+		console.log('🔔 Attendees array:', attendees);
+
+		selectedEventRsvpStats = {
+			total: attendees.length,
+			accepted: attendees.filter((a: any) => a.responseStatus === 'accepted').length,
+			declined: attendees.filter((a: any) => a.responseStatus === 'declined').length,
+			tentative: attendees.filter((a: any) => a.responseStatus === 'tentative').length,
+			pending: attendees.filter((a: any) => a.responseStatus === 'pending').length
+		};
+		detailsDialogMode = 'view';
+		showDetailsDialog = true;
 	}
 
 	// Format date to local ISO string (for URL parameter)
@@ -120,8 +153,11 @@
 			</button>
 
 			{#if data.canCreateEvents}
-				<a
-					href="/dashboard/events/create"
+				<button
+					onclick={() => {
+						createDialogDefaults = {};
+						showCreateDialog = true;
+					}}
 					class="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
 				>
 					<svg
@@ -139,7 +175,7 @@
 						></path>
 					</svg>
 					Create Event
-				</a>
+				</button>
 			{/if}
 		</div>
 	</div>
@@ -421,43 +457,56 @@
 				canManageEvents={data.canCreateEvents}
 				onEventClick={handleEventClick}
 				onDateClick={(date) => {
-					// Navigate to create event page with pre-filled date (local time)
+					// Open create dialog with pre-filled date (local time)
 					const formattedDate = formatLocalISO(date);
-					goto(`/dashboard/events/create?date=${formattedDate}`);
+					const endDate = new Date(date);
+					endDate.setMinutes(endDate.getMinutes() + 30);
+					const formattedEndDate = formatLocalISO(endDate);
+
+					createDialogDefaults = {
+						startTime: formattedDate,
+						endTime: formattedEndDate,
+						allDay: false
+					};
+					showCreateDialog = true;
 				}}
 				onDateSelect={(start, end, allDay) => {
-					// Navigate to create event page with pre-filled start and end times
-					const params = new URLSearchParams();
-					params.set('start', formatLocalISO(start));
-					params.set('end', formatLocalISO(end));
-					if (allDay) params.set('allDay', 'true');
-					goto(`/dashboard/events/create?${params.toString()}`);
+					// Open create dialog with pre-filled start and end times
+					createDialogDefaults = {
+						startTime: formatLocalISO(start),
+						endTime: formatLocalISO(end),
+						allDay
+					};
+					showCreateDialog = true;
 				}}
 				onEventDrop={async (eventId, newStart, newEnd) => {
 					// Handle event drag-and-drop (move or resize)
-					try {
-						// Submit form data to update event time
-						const formData = new FormData();
-						formData.append('eventId', eventId);
-						formData.append('startTime', newStart.toISOString());
-						formData.append('endTime', newEnd.toISOString());
-						formData.append('timezoneOffset', timezoneOffset.toString());
+					// Submit form data to update event time
+					// toISOString() converts the local date to UTC, which is what we want
+					const formData = new FormData();
+					formData.append('eventId', eventId);
+					formData.append('startTime', newStart.toISOString());
+					formData.append('endTime', newEnd.toISOString());
 
-						const response = await fetch('?/updateEventTime', {
-							method: 'POST',
-							body: formData
-						});
+					const response = await fetch('?/updateEventTime', {
+						method: 'POST',
+						body: formData
+					});
 
-						if (response.ok) {
-							// Refresh the page data to show updated event times
-							await invalidateAll();
-						} else {
-							console.error('Failed to update event time');
-							alert('Failed to update event. Please try again.');
-						}
-					} catch (error) {
-						console.error('Error updating event time:', error);
-						alert('Failed to update event. Please try again.');
+					// Parse JSON response from form action
+					const result = await response.json();
+
+					if (result.type === 'success' || (response.ok && !result.error)) {
+						// Refresh the page data to show updated event times
+						await invalidateAll();
+						toast.success('Event time updated successfully');
+					} else {
+						// Extract error message from form action response
+						const errorMsg = result.error || result.data?.error || 'Failed to update event';
+						console.error('Failed to update event time:', errorMsg);
+						toast.error(errorMsg);
+						// Throw error to trigger FullCalendar revert
+						throw new Error(errorMsg);
 					}
 				}}
 				visibilityFilter={selectedVisibility === 'all' ? 'all' : selectedVisibility}
@@ -587,4 +636,38 @@
 			</div>
 		</div>
 	{/if}
+
+	<!-- Create Event Dialog -->
+	<EventCreateDialog
+		isOpen={showCreateDialog}
+		defaultStartTime={createDialogDefaults.startTime}
+		defaultEndTime={createDialogDefaults.endTime}
+		defaultAllDay={createDialogDefaults.allDay}
+		minDate={new Date().toISOString().split('T')[0]}
+		onClose={() => (showCreateDialog = false)}
+		onSuccess={() => {
+			showCreateDialog = false;
+		}}
+	/>
+
+	<!-- Event Details Dialog (View/Edit) -->
+	<EventDetailsDialog
+		isOpen={showDetailsDialog}
+		event={selectedEvent}
+		userId={data.user.id}
+		canManageEvent={data.canCreateEvents && selectedEvent?.organizerId === data.user.id}
+		mode={detailsDialogMode}
+		rsvpStats={selectedEventRsvpStats}
+		onClose={() => {
+			showDetailsDialog = false;
+			selectedEvent = null;
+		}}
+		onEdit={() => {
+			detailsDialogMode = 'edit';
+		}}
+		onDelete={() => {
+			showDetailsDialog = false;
+			selectedEvent = null;
+		}}
+	/>
 </div>

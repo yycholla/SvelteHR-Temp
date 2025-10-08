@@ -16,7 +16,7 @@
 	}
 
 	let {
-		currentStatus = $bindable(),
+		currentStatus,
 		onChange,
 		disabled = false,
 		loading = false,
@@ -131,10 +131,10 @@
 		{/if}
 	</button>
 
-	<!-- Dropdown Menu -->
+	<!-- Dropdown Menu (appears above button) -->
 	{#if isOpen && !disabled && !loading}
 		<div
-			class="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-lg border border-gray-200 bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+			class="absolute left-1/2 -translate-x-1/2 bottom-full z-[9999] mb-2 w-48 origin-bottom rounded-lg border border-gray-200 bg-white dark:bg-card dark:border-border shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none"
 			role="menu"
 			aria-orientation="vertical"
 		>
@@ -147,7 +147,7 @@
 					<button
 						type="button"
 						class="flex w-full items-center gap-2 px-4 py-2 text-sm transition-colors
-							{isActive ? 'bg-gray-100 font-medium text-gray-900' : 'text-gray-700 hover:bg-gray-50'}
+							{isActive ? 'bg-gray-100 dark:bg-accent font-medium text-gray-900 dark:text-foreground' : 'text-gray-700 dark:text-foreground hover:bg-gray-50 dark:hover:bg-accent'}
 						"
 						role="menuitem"
 						onclick={() => handleStatusChange(status)}

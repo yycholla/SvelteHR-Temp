@@ -141,22 +141,32 @@
 						onDateSelect(info.start, info.end, info.allDay);
 					}
 				},
-				eventDrop: (info) => {
+				eventDrop: async (info) => {
 					if (canManageEvents && onEventDrop) {
-						onEventDrop(
-							info.event.id,
-							info.event.start || new Date(),
-							info.event.end || new Date()
-						);
+						try {
+							await onEventDrop(
+								info.event.id,
+								info.event.start || new Date(),
+								info.event.end || new Date()
+							);
+						} catch (error) {
+							// Revert the event if the update fails
+							info.revert();
+						}
 					}
 				},
-				eventResize: (info) => {
+				eventResize: async (info) => {
 					if (canManageEvents && onEventDrop) {
-						onEventDrop(
-							info.event.id,
-							info.event.start || new Date(),
-							info.event.end || new Date()
-						);
+						try {
+							await onEventDrop(
+								info.event.id,
+								info.event.start || new Date(),
+								info.event.end || new Date()
+							);
+						} catch (error) {
+							// Revert the event if the update fails
+							info.revert();
+						}
 					}
 				},
 				height: 'auto',

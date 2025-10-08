@@ -129,8 +129,6 @@ export const actions: Actions = {
 
 			// TODO: Save to notification_preferences table when it's created
 			// For now, just return success
-			console.log('[Notification Preferences Updated]', { userId: locals.user.id, preferences });
-
 			return { success: true, message: 'Notification preferences updated successfully' };
 		} catch (err) {
 			console.error('[Update Notifications Error]', err);

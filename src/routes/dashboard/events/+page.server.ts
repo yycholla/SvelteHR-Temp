@@ -178,9 +178,8 @@ export const actions: Actions = {
 		// Parse form data
 		const formData = await request.formData();
 		const eventId = formData.get('eventId') as string;
-		const startTime = formData.get('startTime') as string;
-		const endTime = formData.get('endTime') as string;
-		const timezoneOffset = parseInt(formData.get('timezoneOffset') as string);
+		const startTime = formData.get('startTime') as string; // Already in UTC from toISOString()
+		const endTime = formData.get('endTime') as string; // Already in UTC from toISOString()
 
 		if (!eventId || !startTime || !endTime) {
 			return fail(400, { error: 'Missing required fields' });
@@ -199,36 +198,25 @@ export const actions: Actions = {
 				expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
 			};
 
-			// Get the event to obtain its nodeId
+			// Verify the event exists
 			const event = await eventsOps.getEventById({
 				eventId: eventId,
 				userCredentials
 			});
 
-			if (!event || !event.nodeId) {
+			if (!event) {
 				return fail(404, { error: 'Event not found' });
 			}
 
-			// Parse datetime strings and convert to UTC with timezone offset
-			const parseLocalTime = (isoStr: string, offsetMinutes: number): string => {
-				// Parse the ISO string as a Date (will be in UTC)
-				const date = new Date(isoStr);
+			// The client sends ISO strings that are already in UTC format (from toISOString())
+			// We don't need to apply timezone offset because the conversion is already done client-side
+			const startTimeUTC = startTime;
+			const endTimeUTC = endTime;
 
-				// Adjust for user's timezone offset
-				// getTimezoneOffset() returns positive for west of UTC (e.g., 360 for MDT)
-				// We need to add the offset to convert from user's local time to UTC
-				date.setMinutes(date.getMinutes() + offsetMinutes);
-
-				return date.toISOString();
-			};
-
-			const startTimeUTC = parseLocalTime(startTime, timezoneOffset);
-			const endTimeUTC = parseLocalTime(endTime, timezoneOffset);
-
-			// Update the event using nodeId
+			// Update the event using event ID
 			await eventsOps.updateEvent({
 				input: {
-					nodeId: event.nodeId,
+					id: eventId,
 					eventPatch: {
 						startTime: startTimeUTC,
 						endTime: endTimeUTC
@@ -242,6 +230,337 @@ export const actions: Actions = {
 			console.error('Error updating event time:', err);
 			return fail(500, {
 				error: err.userMessage || 'Failed to update event. Please try again.'
+			});
+		}
+	},
+
+	createEvent: async ({ request, locals, cookies }) => {
+		// Check authentication
+		if (!locals.user) {
+			return fail(401, { error: 'Authentication required' });
+		}
+
+		const token = cookies.get('hr_token') || cookies.get('auth-token');
+		if (!token) {
+			return fail(401, { error: 'Authentication required' });
+		}
+
+		// Check permissions
+		const hasWildcardPermission = locals.permissions?.includes('*');
+		const roleLevel = getRoleLevel(locals.user.role);
+
+		if (!hasWildcardPermission && roleLevel < 60) {
+			return fail(403, { error: 'Access denied. Manager privileges required.' });
+		}
+
+		// Parse form data
+		const formData = await request.formData();
+		const title = formData.get('title') as string;
+		const description = formData.get('description') as string;
+		const startTime = formData.get('startTime') as string;
+		const endTime = formData.get('endTime') as string;
+		const isAllDay = formData.get('isAllDay') === 'on';
+		const location = formData.get('location') as string;
+		const eventType = formData.get('eventType') as string;
+		const isPublic = formData.get('visibilityType') === 'company';
+		const timezoneOffset = parseInt(formData.get('timezoneOffset') as string);
+
+		// Validate required fields
+		if (!title || !startTime || !endTime) {
+			return fail(400, { error: 'Title, start time, and end time are required.' });
+		}
+
+		try {
+			const urqlClient = createUrqlClient(undefined, token);
+			const eventsOps = new EventsOperations(urqlClient);
+
+			const userCredentials = {
+				jwtToken: token,
+				userId: locals.user.id,
+				roles: locals.roles || [],
+				permissions: locals.permissions || [],
+				isAuthenticated: true,
+				expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+			};
+
+			// Parse datetime-local as user's local time and convert to UTC
+			const parseLocalTime = (timeStr: string, offsetMinutes: number): Date => {
+				const match = timeStr.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+				if (!match) throw new Error('Invalid datetime format');
+
+				const [, year, month, day, hours, minutes] = match;
+
+				// Create Date in UTC
+				const date = new Date(Date.UTC(
+					parseInt(year),
+					parseInt(month) - 1,
+					parseInt(day),
+					parseInt(hours),
+					parseInt(minutes)
+				));
+
+				// Adjust for user's timezone offset
+				date.setMinutes(date.getMinutes() + offsetMinutes);
+
+				return date;
+			};
+
+			const startDate = parseLocalTime(startTime, timezoneOffset);
+			const endDate = parseLocalTime(endTime, timezoneOffset);
+
+			// Convert to UTC ISO strings
+			const startTimeUTC = startDate.toISOString();
+			const endTimeUTC = endDate.toISOString();
+
+			await eventsOps.createEvent({
+				input: {
+					event: {
+						title,
+						description,
+						eventType,
+						startTime: startTimeUTC,
+						endTime: endTimeUTC,
+						allDay: isAllDay,
+						location,
+						organizerId: locals.user.id,
+						isPublic,
+						status: 'scheduled'
+					}
+				},
+				userCredentials
+			});
+
+			return { success: true };
+		} catch (err: any) {
+			console.error('Error creating event:', err);
+			return fail(500, {
+				error: err.userMessage || 'Failed to create event. Please try again.'
+			});
+		}
+	},
+
+	updateEvent: async ({ request, locals, cookies }) => {
+		// Check authentication
+		if (!locals.user) {
+			return fail(401, { error: 'Authentication required' });
+		}
+
+		const token = cookies.get('hr_token') || cookies.get('auth-token');
+		if (!token) {
+			return fail(401, { error: 'Authentication required' });
+		}
+
+		// Parse form data
+		const formData = await request.formData();
+		const eventId = formData.get('eventId') as string;
+		const title = formData.get('title') as string;
+		const description = formData.get('description') as string;
+		const startTime = formData.get('startTime') as string;
+		const endTime = formData.get('endTime') as string;
+		const isAllDay = formData.get('isAllDay') === 'on';
+		const location = formData.get('location') as string;
+		const eventType = formData.get('eventType') as string;
+		const isPublic = formData.get('visibilityType') === 'company';
+		const timezoneOffset = parseInt(formData.get('timezoneOffset') as string);
+
+		// Validate required fields
+		if (!eventId || !title || !startTime || !endTime) {
+			return fail(400, { error: 'Event ID, title, start time, and end time are required.' });
+		}
+
+		try {
+			const urqlClient = createUrqlClient(undefined, token);
+			const eventsOps = new EventsOperations(urqlClient);
+
+			const userCredentials = {
+				jwtToken: token,
+				userId: locals.user.id,
+				roles: locals.roles || [],
+				permissions: locals.permissions || [],
+				isAuthenticated: true,
+				expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+			};
+
+			// Parse datetime-local as user's local time and convert to UTC
+			const parseLocalTime = (timeStr: string, offsetMinutes: number): Date => {
+				const match = timeStr.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+				if (!match) throw new Error('Invalid datetime format');
+
+				const [, year, month, day, hours, minutes] = match;
+
+				const date = new Date(Date.UTC(
+					parseInt(year),
+					parseInt(month) - 1,
+					parseInt(day),
+					parseInt(hours),
+					parseInt(minutes)
+				));
+
+				date.setMinutes(date.getMinutes() + offsetMinutes);
+				return date;
+			};
+
+			const startDate = parseLocalTime(startTime, timezoneOffset);
+			const endDate = parseLocalTime(endTime, timezoneOffset);
+
+			const startTimeUTC = startDate.toISOString();
+			const endTimeUTC = endDate.toISOString();
+
+			await eventsOps.updateEvent({
+				input: {
+					id: eventId,
+					eventPatch: {
+						title,
+						description,
+						eventType,
+						startTime: startTimeUTC,
+						endTime: endTimeUTC,
+						allDay: isAllDay,
+						location,
+						isPublic
+					}
+				},
+				userCredentials
+			});
+
+			return { success: true };
+		} catch (err: any) {
+			console.error('Error updating event:', err);
+			return fail(500, {
+				error: err.userMessage || 'Failed to update event. Please try again.'
+			});
+		}
+	},
+
+	deleteEvent: async ({ request, locals, cookies }) => {
+		// Check authentication
+		if (!locals.user) {
+			return fail(401, { error: 'Authentication required' });
+		}
+
+		const token = cookies.get('hr_token') || cookies.get('auth-token');
+		if (!token) {
+			return fail(401, { error: 'Authentication required' });
+		}
+
+		// Check permissions
+		const hasWildcardPermission = locals.permissions?.includes('*');
+		const roleLevel = getRoleLevel(locals.user.role);
+
+		if (!hasWildcardPermission && roleLevel < 60) {
+			return fail(403, { error: 'Access denied. Manager privileges required.' });
+		}
+
+		// Parse form data
+		const formData = await request.formData();
+		const eventId = formData.get('eventId') as string;
+
+		if (!eventId) {
+			return fail(400, { error: 'Event ID is required.' });
+		}
+
+		try {
+			const urqlClient = createUrqlClient(undefined, token);
+			const eventsOps = new EventsOperations(urqlClient);
+
+			const userCredentials = {
+				jwtToken: token,
+				userId: locals.user.id,
+				roles: locals.roles || [],
+				permissions: locals.permissions || [],
+				isAuthenticated: true,
+				expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+			};
+
+			await eventsOps.deleteEvent({
+				eventId,
+				userCredentials
+			});
+
+			return { success: true };
+		} catch (err: any) {
+			console.error('Error deleting event:', err);
+			return fail(500, {
+				error: err.userMessage || 'Failed to delete event. Please try again.'
+			});
+		}
+	},
+
+	updateRsvpStatus: async ({ request, locals, cookies }) => {
+		// Check authentication
+		if (!locals.user) {
+			return fail(401, { error: 'Authentication required' });
+		}
+
+		const token = cookies.get('hr_token') || cookies.get('auth-token');
+		if (!token) {
+			return fail(401, { error: 'Authentication required' });
+		}
+
+		// Parse form data
+		const formData = await request.formData();
+		const attendeeId = formData.get('attendeeId') as string | null;
+		const eventId = formData.get('eventId') as string;
+		const status = formData.get('status') as string;
+
+		if (!eventId || !status) {
+			return fail(400, { error: 'Event ID and status are required' });
+		}
+
+		try {
+			const urqlClient = createUrqlClient(undefined, token);
+			const eventsOps = new EventsOperations(urqlClient);
+
+			const userCredentials = {
+				jwtToken: token,
+				userId: locals.user.id,
+				roles: locals.roles || [],
+				permissions: locals.permissions || [],
+				isAuthenticated: true,
+				expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+			};
+
+			if (attendeeId) {
+				// Update existing attendee
+				await eventsOps.updateRsvpStatus({
+					attendeeId,
+					status: status as any,
+					userCredentials
+				});
+			} else {
+				// Create new attendee record
+				await eventsOps.inviteAttendee({
+					eventId,
+					employeeId: locals.user.id,
+					isRequired: false,
+					userCredentials
+				});
+
+				// Then update their RSVP status
+				// We need to get the newly created attendee ID first
+				const event = await eventsOps.getEventById({
+					eventId,
+					userCredentials
+				});
+
+				const newAttendee = event.eventAttendeesByEventId?.nodes?.find(
+					(a: any) => a.employeeId === locals.user.id
+				);
+
+				if (newAttendee) {
+					await eventsOps.updateRsvpStatus({
+						attendeeId: newAttendee.id,
+						status: status as any,
+						userCredentials
+					});
+				}
+			}
+
+			return { success: true };
+		} catch (err: any) {
+			console.error('Error updating RSVP status:', err);
+			return fail(500, {
+				error: err.userMessage || 'Failed to update RSVP status. Please try again.'
 			});
 		}
 	}

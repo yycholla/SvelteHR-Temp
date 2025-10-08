@@ -213,8 +213,8 @@ export const CREATE_EVENT = gql`
  * Note: Using PostGraphile conventions - nodeId and eventPatch
  */
 export const UPDATE_EVENT = gql`
-	mutation UpdateEvent($input: UpdateEventByNodeIdInput!) {
-		updateEventByNodeId(input: $input) {
+	mutation UpdateEvent($input: UpdateEventByIdInput!) {
+		updateEventById(input: $input) {
 			event {
 				id
 				nodeId
@@ -340,7 +340,7 @@ export interface CreateEventInput {
 
 export interface UpdateEventInput {
 	clientMutationId?: string;
-	nodeId: string;
+	id: string; // UUID of the event
 	eventPatch: {
 		title?: string;
 		description?: string;
@@ -914,15 +914,15 @@ export class EventsOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data || !result.data.updateEventByNodeId) {
+			if (!result.data || !result.data.updateEventById) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'No data returned. Please try again.'
 				});
 			}
 
-			// Extract return data from result.data.updateEventByNodeId.event
-			return result.data.updateEventByNodeId.event;
+			// Extract return data from result.data.updateEventById.event
+			return result.data.updateEventById.event;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error; // Already formatted error
