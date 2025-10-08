@@ -14,7 +14,7 @@
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
-	import { X, Edit, Trash2, Calendar as CalendarIcon, MapPin, User, Users } from 'lucide-svelte';
+	import { X, Edit, Trash2, Calendar as CalendarIcon, MapPin, User, Users, Bell, BellOff } from 'lucide-svelte';
 	import RSVPButton from './RSVPButton.svelte';
 	import RecurrenceScopeDialog from './RecurrenceScopeDialog.svelte';
 	import EventCapacityIndicator from './EventCapacityIndicator.svelte';
@@ -53,6 +53,10 @@
 				id: string;
 				employeeId: string;
 				responseStatus: RsvpStatus;
+				reminderTime?: number | null;
+				userByEmployeeId?: {
+					displayName: string;
+				};
 			}>;
 		};
 	}
@@ -81,6 +85,7 @@
 		onSuccess?: () => void;
 		onEdit?: () => void;
 		onDelete?: () => void;
+		onRsvpUpdate?: (eventId: string, newStatus: RsvpStatus) => void;
 		// NEW: Feature 026 event handlers
 		onAddComment?: (content: string, mentions: string[]) => Promise<void>;
 		onUpdateComment?: (commentId: string, content: string) => Promise<void>;
@@ -108,6 +113,7 @@
 		onSuccess,
 		onEdit,
 		onDelete,
+		onRsvpUpdate,
 		onAddComment,
 		onUpdateComment,
 		onDeleteComment,
@@ -119,6 +125,40 @@
 
 	// Tab state (FR-002: Default to Details tab)
 	let activeTab = $state<'details' | 'comments' | 'history'>('details');
+
+	// Attendee tab state for splitting by RSVP status
+	type AttendeeTab = 'all' | 'accepted' | 'declined' | 'tentative' | 'pending' | 'no_response';
+	let activeAttendeeTab = $state<AttendeeTab>('all');
+
+	// Notification reminder state
+	type ReminderPreset = '15min' | '1hour' | '1day' | '1week' | 'none';
+	let selectedReminder = $state<ReminderPreset>('none');
+	let isSavingReminder = $state(false);
+
+	// Reactively calculate RSVP stats from event data
+	let displayRsvpStats = $derived.by(() => {
+		if (!event?.eventAttendeesByEventId?.nodes) {
+			return rsvpStats || { total: 0, accepted: 0, declined: 0, tentative: 0, pending: 0 };
+		}
+
+		const attendees = event.eventAttendeesByEventId.nodes;
+		return {
+			total: attendees.length,
+			accepted: attendees.filter((a: any) => a.responseStatus === 'accepted').length,
+			declined: attendees.filter((a: any) => a.responseStatus === 'declined').length,
+			tentative: attendees.filter((a: any) => a.responseStatus === 'tentative').length,
+			pending: attendees.filter((a: any) => a.responseStatus === 'pending').length
+		};
+	});
+
+	// Filter attendees based on active tab
+	let filteredAttendees = $derived(
+		activeAttendeeTab === 'all'
+			? event?.eventAttendeesByEventId?.nodes || []
+			: (event?.eventAttendeesByEventId?.nodes || []).filter(
+				(a: any) => a.responseStatus === activeAttendeeTab
+			)
+	);
 
 	// Form state for edit mode
 	let title = $state('');
@@ -144,13 +184,13 @@
 	const timezoneOffset = new Date().getTimezoneOffset();
 
 	// Get user's RSVP status
-	const userRsvpStatus = $derived<RsvpStatus>(() => {
-		if (!event || !event.eventAttendeesByEventId) return 'no_response';
-		const userAttendee = event.eventAttendeesByEventId.nodes.find(
-			(a) => a.employeeId === userId
-		);
-		return userAttendee?.responseStatus || 'no_response';
-	});
+	const userRsvpStatus: RsvpStatus = $derived(
+		!event || !event.eventAttendeesByEventId
+			? 'no_response'
+			: (event.eventAttendeesByEventId.nodes.find(
+					(a) => a.employeeId === userId
+			  )?.responseStatus || 'no_response')
+	);
 
 	// NEW: Derived values for conditional rendering (FR-009, FR-012, FR-007)
 	const showCapacityIndicator = $derived(
@@ -231,16 +271,26 @@
 
 	// NEW: Handle RSVP with recurring event scope (FR-005, FR-006, FR-007, FR-008)
 	async function handleRsvpChange(newStatus: RsvpStatus) {
-		if (!event) return;
+		console.log('[RSVP] handleRsvpChange called with status:', newStatus);
+		console.log('[RSVP] event:', event);
+		console.log('[RSVP] userId:', userId);
+		console.log('[RSVP] isRecurringEvent:', isRecurringEvent);
+
+		if (!event) {
+			console.error('[RSVP] No event found');
+			return;
+		}
 
 		// If recurring event, show scope dialog (FR-005)
 		if (isRecurringEvent) {
+			console.log('[RSVP] Showing scope dialog for recurring event');
 			pendingRsvpStatus = newStatus;
 			showScopeDialog = true;
 			return;
 		}
 
 		// Otherwise, update RSVP directly (FR-007)
+		console.log('[RSVP] Updating RSVP directly for non-recurring event');
 		await updateRsvpStatus(newStatus, 'this_event');
 	}
 
@@ -254,11 +304,23 @@
 
 	// NEW: Update RSVP status with scope
 	async function updateRsvpStatus(newStatus: RsvpStatus, scope: 'this_event' | 'this_and_future' | 'all_events') {
-		if (!event) return;
+		console.log('[RSVP] updateRsvpStatus called');
+		console.log('[RSVP] newStatus:', newStatus);
+		console.log('[RSVP] scope:', scope);
+		console.log('[RSVP] event:', event);
+
+		if (!event) {
+			console.error('[RSVP] No event in updateRsvpStatus');
+			return;
+		}
 
 		const userAttendee = event.eventAttendeesByEventId?.nodes.find(
 			(a) => a.employeeId === userId
 		);
+
+		console.log('[RSVP] userAttendee:', userAttendee);
+		console.log('[RSVP] userId:', userId);
+		console.log('[RSVP] attendees:', event.eventAttendeesByEventId?.nodes);
 
 		const formData = new FormData();
 		formData.append('eventId', event.id);
@@ -267,21 +329,101 @@
 
 		if (userAttendee) {
 			formData.append('attendeeId', userAttendee.id);
+			console.log('[RSVP] Added attendeeId:', userAttendee.id);
+		} else {
+			console.log('[RSVP] No existing attendee, will create new one');
 		}
 
-		const response = await fetch('/dashboard/events?/updateRsvpStatus', {
-			method: 'POST',
-			body: formData
+		console.log('[RSVP] FormData contents:', {
+			eventId: formData.get('eventId'),
+			status: formData.get('status'),
+			scope: formData.get('scope'),
+			attendeeId: formData.get('attendeeId')
 		});
 
-		const result = await response.json();
+		console.log('[RSVP] Sending POST to /dashboard/events?/updateRsvpStatus');
 
-		if (result.type === 'success' || (response.ok && !result.error)) {
-			toast.success('RSVP updated successfully');
-			await invalidateAll();
-		} else {
-			const errorMsg = result.error || result.data?.error || 'Failed to update RSVP';
-			toast.error(errorMsg);
+		try {
+			const response = await fetch('/dashboard/events?/updateRsvpStatus', {
+				method: 'POST',
+				body: formData
+			});
+
+			console.log('[RSVP] Response status:', response.status);
+			console.log('[RSVP] Response ok:', response.ok);
+
+			const result = await response.json();
+			console.log('[RSVP] Response result:', result);
+
+			if (result.type === 'failure' || result.status >= 400) {
+				// Failure response from server action
+				const errorData = typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
+				const errorMsg = errorData?.[1] || errorData?.error || result.error || 'Failed to update RSVP';
+				console.error('[RSVP] Error:', errorMsg);
+				toast.error(errorMsg);
+			} else if (result.type === 'success' || response.ok) {
+				// Success - update local state immediately for reactive UI
+				console.log('[RSVP] Success! Updating local state');
+
+				// Update calendar immediately via callback (optimistic update)
+				if (onRsvpUpdate) {
+					onRsvpUpdate(event.id, newStatus);
+				}
+
+				// Find or create the attendee record in the local event data
+				// IMPORTANT: Create new array reference for Svelte 5 reactivity
+				if (event.eventAttendeesByEventId) {
+					const existingAttendeeIndex = event.eventAttendeesByEventId.nodes.findIndex(
+						(a) => a.employeeId === userId
+					);
+
+					if (existingAttendeeIndex >= 0) {
+						// Update existing attendee - create new array with updated object
+						event.eventAttendeesByEventId.nodes = event.eventAttendeesByEventId.nodes.map((attendee, idx) =>
+							idx === existingAttendeeIndex
+								? { ...attendee, responseStatus: newStatus }
+								: attendee
+						);
+					} else {
+						// Add new attendee to the list - create new array
+						event.eventAttendeesByEventId.nodes = [
+							...event.eventAttendeesByEventId.nodes,
+							{
+								id: crypto.randomUUID(), // Temporary ID until reload
+								employeeId: userId,
+								responseStatus: newStatus
+							}
+						];
+					}
+				} else {
+					// Initialize the attendees structure if it doesn't exist
+					event.eventAttendeesByEventId = {
+						nodes: [
+							{
+								id: crypto.randomUUID(), // Temporary ID until reload
+								employeeId: userId,
+								responseStatus: newStatus
+							}
+						]
+					};
+				}
+
+				toast.success('RSVP updated successfully');
+
+				// Notify parent component of the change
+				if (onSuccess) {
+					onSuccess();
+				}
+
+				// Reload page data in the background to sync with server
+				await invalidateAll();
+			} else {
+				console.error('[RSVP] Unknown response format:', result);
+				toast.error('Failed to update RSVP');
+			}
+		} catch (error) {
+			console.error('[RSVP] Fetch error:', error);
+			toast.error('Network error updating RSVP');
 		}
 	}
 
@@ -361,6 +503,23 @@
 			// Clear errors
 			commentError = null;
 			waitlistError = null;
+
+			// Load saved reminder time from attendee record
+			const userAttendee = event.eventAttendeesByEventId?.nodes?.find(
+				(a: any) => a.employeeId === userId
+			);
+
+			if (userAttendee?.reminderTime) {
+				// Convert minutes back to preset
+				const minutes = userAttendee.reminderTime;
+				if (minutes === 15) selectedReminder = '15min';
+				else if (minutes === 60) selectedReminder = '1hour';
+				else if (minutes === 1440) selectedReminder = '1day';
+				else if (minutes === 10080) selectedReminder = '1week';
+				else selectedReminder = 'none'; // Unknown value
+			} else {
+				selectedReminder = 'none';
+			}
 		}
 	});
 
@@ -383,6 +542,98 @@
 			specific: 'Specific People'
 		};
 		return labels[type] || type;
+	}
+
+	function getRsvpStatusColor(status: RsvpStatus): string {
+		const colors: Record<RsvpStatus, string> = {
+			accepted: 'bg-primary/10 text-primary',
+			declined: 'bg-destructive/10 text-destructive',
+			tentative: 'bg-accent text-accent-foreground',
+			pending: 'bg-primary/10 text-primary',
+			no_response: 'bg-muted text-muted-foreground'
+		};
+		return colors[status] || 'bg-muted text-muted-foreground';
+	}
+
+	// Reminder functions
+	async function handleReminderChange(preset: ReminderPreset) {
+		if (!event) return;
+
+		const presetToMinutes: Record<Exclude<ReminderPreset, 'none'>, number> = {
+			'15min': 15,
+			'1hour': 60,
+			'1day': 1440,
+			'1week': 10080
+		};
+
+		const reminderLabels: Record<Exclude<ReminderPreset, 'none'>, string> = {
+			'15min': '15 minutes before',
+			'1hour': '1 hour before',
+			'1day': '1 day before',
+			'1week': '1 week before'
+		};
+
+		if (preset !== 'none') {
+			// Save reminder to backend
+			isSavingReminder = true;
+			try {
+				const formData = new FormData();
+				formData.append('eventId', event.id);
+				formData.append('reminderMinutes', presetToMinutes[preset].toString());
+
+				const response = await fetch('/dashboard/events?/setEventReminder', {
+					method: 'POST',
+					body: formData
+				});
+
+				const result = await response.json();
+
+				if (result.type === 'success' || response.ok) {
+					toast.success(`Reminder set for ${reminderLabels[preset]}`);
+					// Reload event data to reflect the saved reminder
+					await invalidateAll();
+				} else {
+					const errorMsg = result.error || result.data?.error || 'Failed to set reminder';
+					toast.error(errorMsg);
+					// Reset to 'none' on error
+					selectedReminder = 'none';
+				}
+			} catch (error) {
+				console.error('Error setting reminder:', error);
+				toast.error('Failed to set reminder. Please try again.');
+				// Reset to 'none' on error
+				selectedReminder = 'none';
+			} finally {
+				isSavingReminder = false;
+			}
+		} else {
+			// User disabled reminder - save NULL to database
+			isSavingReminder = true;
+			try {
+				const formData = new FormData();
+				formData.append('eventId', event.id);
+				formData.append('reminderMinutes', '0'); // Use 0 or null to clear
+
+				const response = await fetch('/dashboard/events?/setEventReminder', {
+					method: 'POST',
+					body: formData
+				});
+
+				const result = await response.json();
+
+				if (result.type === 'success' || response.ok) {
+					toast.success('Reminder disabled');
+					await invalidateAll();
+				} else {
+					toast.error('Failed to disable reminder');
+				}
+			} catch (error) {
+				console.error('Error disabling reminder:', error);
+				toast.error('Failed to disable reminder');
+			} finally {
+				isSavingReminder = false;
+			}
+		}
 	}
 </script>
 
@@ -528,13 +779,29 @@
 										</div>
 									</div>
 
-									<!-- Attendees -->
-									{#if rsvpStats}
+									<!-- Attendees Summary -->
+									{#if displayRsvpStats}
 										<div class="flex items-start gap-3">
 											<Users class="h-5 w-5 text-muted-foreground mt-0.5" />
-											<div>
+											<div class="flex-1">
 												<div class="text-sm font-medium text-foreground mb-1">Attendees</div>
-												<div class="text-sm text-muted-foreground">{rsvpStats.total} invited</div>
+												<div class="text-sm text-muted-foreground space-y-0.5">
+													{#if displayRsvpStats.accepted > 0}
+														<div>{displayRsvpStats.accepted} Accepted</div>
+													{/if}
+													{#if displayRsvpStats.tentative > 0}
+														<div>{displayRsvpStats.tentative} Tentative</div>
+													{/if}
+													{#if displayRsvpStats.declined > 0}
+														<div>{displayRsvpStats.declined} Declined</div>
+													{/if}
+													{#if displayRsvpStats.pending > 0}
+														<div>{displayRsvpStats.pending} Pending</div>
+													{/if}
+													{#if displayRsvpStats.total === 0}
+														<div class="text-muted-foreground">No attendees yet</div>
+													{/if}
+												</div>
 											</div>
 										</div>
 									{/if}
@@ -548,13 +815,44 @@
 									</div>
 								{/if}
 
-								<!-- RSVP Section -->
+								<!-- RSVP Section with Reminder -->
 								<div class="border-t pt-6">
 									<h3 class="text-sm font-medium text-foreground mb-3">Your RSVP</h3>
-									<RSVPButton
-										currentStatus={userRsvpStatus()}
-										onChange={handleRsvpChange}
-									/>
+									<div class="flex flex-col sm:flex-row gap-3 items-start">
+										<!-- RSVP Buttons -->
+										<div>
+											<RSVPButton
+												currentStatus={userRsvpStatus}
+												onChange={handleRsvpChange}
+											/>
+										</div>
+
+										<!-- Reminder Dropdown (only show if accepted/tentative) -->
+										{#if userRsvpStatus === 'accepted' || userRsvpStatus === 'tentative'}
+											<div class="flex items-center gap-2">
+												{#if isSavingReminder}
+													<svg class="h-4 w-4 animate-spin text-muted-foreground flex-shrink-0" fill="none" viewBox="0 0 24 24">
+														<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+														<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+													</svg>
+												{:else}
+													<Bell class="h-4 w-4 text-muted-foreground flex-shrink-0" />
+												{/if}
+												<select
+													bind:value={selectedReminder}
+													onchange={(e) => handleReminderChange(e.currentTarget.value as ReminderPreset)}
+													disabled={isSavingReminder}
+													class="inline-flex items-center gap-2 rounded-lg font-medium transition-all px-3 py-2 text-sm border border-input bg-background hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+												>
+													<option value="none">No reminder</option>
+													<option value="15min">15 min before</option>
+													<option value="1hour">1 hour before</option>
+													<option value="1day">1 day before</option>
+													<option value="1week">1 week before</option>
+												</select>
+											</div>
+										{/if}
+									</div>
 								</div>
 
 								<!-- NEW: Waitlist Button (FR-012, FR-013) -->
@@ -573,6 +871,93 @@
 												{waitlistError}
 											</div>
 										{/if}
+									</div>
+								{/if}
+
+								<!-- Attendee List with Tabs -->
+								{#if event.eventAttendeesByEventId?.nodes && event.eventAttendeesByEventId.nodes.length > 0}
+									<div class="border-t pt-6">
+										<h3 class="text-sm font-medium text-foreground mb-4">Attendee List ({displayRsvpStats?.total || 0})</h3>
+
+										<!-- Tab Navigation -->
+										<div class="flex flex-wrap gap-2 mb-4">
+											<button
+												class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {activeAttendeeTab === 'all' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+												onclick={() => activeAttendeeTab = 'all'}
+											>
+												All ({displayRsvpStats?.total || 0})
+											</button>
+											{#if (displayRsvpStats?.accepted || 0) > 0}
+												<button
+													class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {activeAttendeeTab === 'accepted' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+													onclick={() => activeAttendeeTab = 'accepted'}
+												>
+													Accepted ({displayRsvpStats?.accepted || 0})
+												</button>
+											{/if}
+											{#if (displayRsvpStats?.tentative || 0) > 0}
+												<button
+													class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {activeAttendeeTab === 'tentative' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+													onclick={() => activeAttendeeTab = 'tentative'}
+												>
+													Tentative ({displayRsvpStats?.tentative || 0})
+												</button>
+											{/if}
+											{#if (displayRsvpStats?.declined || 0) > 0}
+												<button
+													class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {activeAttendeeTab === 'declined' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+													onclick={() => activeAttendeeTab = 'declined'}
+												>
+													Declined ({displayRsvpStats?.declined || 0})
+												</button>
+											{/if}
+											{#if (displayRsvpStats?.pending || 0) > 0}
+												<button
+													class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {activeAttendeeTab === 'pending' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+													onclick={() => activeAttendeeTab = 'pending'}
+												>
+													Pending ({displayRsvpStats?.pending || 0})
+												</button>
+											{/if}
+											{#if displayRsvpStats && (displayRsvpStats.total - displayRsvpStats.accepted - displayRsvpStats.declined - displayRsvpStats.tentative - displayRsvpStats.pending) > 0}
+												<button
+													class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {activeAttendeeTab === 'no_response' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+													onclick={() => activeAttendeeTab = 'no_response'}
+												>
+													No Response ({displayRsvpStats.total - displayRsvpStats.accepted - displayRsvpStats.declined - displayRsvpStats.tentative - displayRsvpStats.pending})
+												</button>
+											{/if}
+										</div>
+
+										<!-- Tab Content -->
+										<div class="space-y-2 max-h-60 overflow-y-auto">
+											{#if filteredAttendees.length > 0}
+												{#each filteredAttendees as attendee}
+													<div class="flex items-center justify-between py-2 px-3 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors">
+														<div class="flex items-center gap-2">
+															<div class="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+																<span class="text-xs font-medium text-muted-foreground">
+																	{attendee.userByEmployeeId?.displayName?.charAt(0)?.toUpperCase() || '?'}
+																</span>
+															</div>
+															<div class="text-sm font-medium text-foreground">
+																{attendee.userByEmployeeId?.displayName || 'Unknown'}
+																{#if attendee.employeeId === userId}
+																	<span class="ml-1.5 text-xs text-primary">(You)</span>
+																{/if}
+															</div>
+														</div>
+														<span class="rounded-md px-2 py-1 text-xs font-medium {getRsvpStatusColor(attendee.responseStatus)}">
+															{attendee.responseStatus.replace('_', ' ').charAt(0).toUpperCase() + attendee.responseStatus.slice(1).replace('_', ' ')}
+														</span>
+													</div>
+												{/each}
+											{:else}
+												<p class="text-sm text-muted-foreground py-4 text-center">
+													{activeAttendeeTab === 'all' ? 'No attendees yet.' : `No attendees with ${activeAttendeeTab.replace('_', ' ')} status.`}
+												</p>
+											{/if}
+										</div>
 									</div>
 								{/if}
 							</TabsContent>

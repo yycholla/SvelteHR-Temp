@@ -49,6 +49,12 @@ export const GET_ALL_EVENTS = gql`
 						id
 						employeeId
 						responseStatus
+						reminderTime
+						userByEmployeeId {
+							id
+							displayName
+							email
+						}
 					}
 				}
 			}
@@ -96,6 +102,7 @@ export const GET_EVENT_BY_ID = gql`
 					employeeId
 					responseStatus
 					isRequired
+					reminderTime
 					createdAt
 					userByEmployeeId {
 						id
@@ -114,7 +121,7 @@ export const GET_EVENT_BY_ID = gql`
  */
 export const GET_USER_EVENTS = gql`
 	query GetUserEvents(
-		$employeeId: UUID!
+		$employeeId: UUID
 		$first: Int = 50
 		$offset: Int = 0
 	) {
@@ -253,8 +260,8 @@ export const DELETE_EVENT = gql`
  * RLS Policy: event_attendees_own_access (employee updates own RSVP)
  */
 export const UPDATE_RSVP_STATUS = gql`
-	mutation UpdateRsvpStatus($input: UpdateEventAttendeeInput!) {
-		updateEventAttendee(input: $input) {
+	mutation UpdateRsvpStatus($input: UpdateEventAttendeeByIdInput!) {
+		updateEventAttendeeById(input: $input) {
 			eventAttendee {
 				id
 				eventId
@@ -262,7 +269,6 @@ export const UPDATE_RSVP_STATUS = gql`
 				responseStatus
 				respondedAt
 			}
-			clientMutationId
 		}
 	}
 `;
@@ -406,6 +412,11 @@ export interface Event {
 			id: string;
 			employeeId: string;
 			responseStatus: string;
+			userByEmployeeId?: {
+				id: string;
+				displayName: string;
+				email: string;
+			};
 		}>;
 	};
 }
@@ -587,6 +598,76 @@ export function getEventVisibilityLabel(visibilityType: EventVisibilityType): st
 // ============================================================================
 // OPERATIONS CLASS
 // ============================================================================
+
+/**
+ * Mutation: Update event reminder for an attendee (using standard PostGraphile mutation)
+ * Note: Not querying reminderTime in response as it may not be exposed in GraphQL schema
+ */
+export const UPDATE_EVENT_REMINDER = gql`
+	mutation UpdateEventReminder($input: UpdateEventAttendeeByIdInput!) {
+		updateEventAttendeeById(input: $input) {
+			eventAttendee {
+				id
+				eventId
+				employeeId
+				responseStatus
+			}
+		}
+	}
+`;
+
+/**
+ * Query: Get pending event reminders for scheduler
+ * Fetches event attendees with reminders set who have accepted/tentative status
+ */
+export const GET_PENDING_REMINDERS = gql`
+	query GetPendingReminders {
+		allEventAttendees(condition: { responseStatus: "accepted" }) {
+			nodes {
+				id
+				employeeId
+				eventId
+				reminderTime
+				responseStatus
+				eventByEventId {
+					id
+					title
+					startTime
+					endTime
+					status
+				}
+				userByEmployeeId {
+					id
+					displayName
+					email
+				}
+			}
+		}
+	}
+`;
+
+/**
+ * Mutation: Create event notification
+ */
+export const CREATE_EVENT_NOTIFICATION = gql`
+	mutation CreateEventNotification($input: CreateNotificationInput!) {
+		createNotification(input: $input) {
+			notification {
+				id
+				recipientId
+				type
+				category
+				title
+				message
+				relatedResourceType
+				relatedResourceId
+				readStatus
+				deliveredAt
+				createdAt
+			}
+		}
+	}
+`;
 
 /**
  * T013: Events Operations with Multi-Tier Visibility and RSVP
@@ -988,6 +1069,62 @@ export class EventsOperations {
 	}
 
 	/**
+	 * Set event reminder for the current user
+	 * Updates the attendee record with the reminder time
+	 */
+	async setEventReminder(params: {
+		attendeeId: string;
+		reminderMinutes: number | null;
+		userCredentials: UserCredentials;
+	}): Promise<any> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+		const { createErrorResponse } = await import('$lib/models/error-response');
+
+		const dataRequest = createDataRequest({
+			operationName: 'UpdateEventReminder',
+			variables: {
+				input: {
+					id: params.attendeeId,
+					eventAttendeePatch: {
+						reminderTime: params.reminderMinutes
+					}
+				}
+			},
+			userCredentials: params.userCredentials,
+			timeoutMs: 5000
+		});
+
+		try {
+			const result = await this.client.mutation(UPDATE_EVENT_REMINDER, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to set reminder. Please try again.'
+				});
+				throw errorResponse;
+			}
+
+			if (!result.data || !result.data.updateEventAttendeeById) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'Failed to set reminder. Please try again.'
+				});
+			}
+
+			return result.data.updateEventAttendeeById.eventAttendee;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error;
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to set event reminder. Please try again.'
+			});
+		}
+	}
+
+	/**
 	 * Update RSVP status (employee updates own RSVP)
 	 */
 	async updateRsvpStatus(params: {
@@ -998,17 +1135,17 @@ export class EventsOperations {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
-		const input: UpdateEventAttendeeInput = {
-			id: params.attendeeId,
-			patch: {
-				responseStatus: params.status,
-				respondedAt: new Date().toISOString()
-			}
-		};
-
 		const dataRequest = createDataRequest({
 			operationName: 'UpdateRsvpStatus',
-			variables: { input },
+			variables: {
+				input: {
+					id: params.attendeeId,
+					eventAttendeePatch: {
+						responseStatus: params.status,
+						respondedAt: new Date().toISOString()
+					}
+				}
+			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
 		});
@@ -1020,27 +1157,27 @@ export class EventsOperations {
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
 					type: 'graphql',
-					userMessage: 'Unable to complete operation. Please try again.'
+					userMessage: 'Unable to update RSVP. Please try again.'
 				});
 				throw errorResponse;
 			}
 
-			if (!result.data) {
+			if (!result.data || !result.data.updateEventAttendeeById) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
-					userMessage: 'No data returned. Please try again.'
+					userMessage: 'Failed to update RSVP. Please try again.'
 				});
 			}
 
-			// Extract return data from result.data
-			return result.data;
+			// Extract return data from result.data.updateEventAttendeeById.eventAttendee
+			return result.data.updateEventAttendeeById.eventAttendee;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error; // Already formatted error
 			}
 			throw createErrorResponse(error, {
 				type: 'graphql',
-				userMessage: 'Operation failed. Please try again.'
+				userMessage: 'Failed to update RSVP. Please try again.'
 			});
 		}
 	}
@@ -1065,9 +1202,8 @@ export class EventsOperations {
 				eventAttendee: {
 					eventId: params.eventId,
 					employeeId: employeeId,
-					responseStatus: 'pending',
-					isOrganizer: false,
-					isRequired: params.isRequired || false
+					responseStatus: 'pending'
+					// Note: isOrganizer and isRequired are NOT part of EventAttendeeInput schema
 				}
 			};
 
@@ -1112,6 +1248,109 @@ export class EventsOperations {
 
 		return results;
 	}
+
+	/**
+	 * Invite single attendee to event (convenience method)
+	 */
+	async inviteAttendee(params: {
+		eventId: string;
+		employeeId: string;
+		isRequired?: boolean;
+		userCredentials: UserCredentials;
+	}): Promise<EventAttendee> {
+		const results = await this.inviteAttendees({
+			eventId: params.eventId,
+			employeeIds: [params.employeeId],
+			isRequired: params.isRequired,
+			userCredentials: params.userCredentials
+		});
+		return results[0];
+	}
+
+	/**
+	 * Get pending event reminders for scheduler
+	 * Feature: 026-integrate-ui-components
+	 */
+	async getPendingReminders(params: {
+		userCredentials: UserCredentials;
+	}): Promise<any[]> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+
+		const dataRequest = createDataRequest({
+			operationName: 'GetPendingReminders',
+			variables: {},
+			userCredentials: params.userCredentials,
+			timeoutMs: 5000
+		});
+
+		const result = await this.client.query(GET_PENDING_REMINDERS, dataRequest.variables).toPromise();
+
+		if (result.error) {
+			console.error('[EventsOperations] Error fetching pending reminders:', result.error);
+			return [];
+		}
+
+		return result.data?.allEventAttendees?.nodes || [];
+	}
+
+	/**
+	 * Create event notification
+	 * Feature: 026-integrate-ui-components
+	 */
+	async createEventNotification(params: {
+		userId: string;
+		eventId: string;
+		type: string;
+		message: string;
+		userCredentials: UserCredentials;
+	}): Promise<{ success: boolean; notificationId?: string; error?: string }> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+
+		try {
+			const dataRequest = createDataRequest({
+				operationName: 'CreateEventNotification',
+				variables: {
+					input: {
+						notification: {
+							recipientId: params.userId,
+							type: 'event_reminder',
+							category: 'event',
+							title: 'Event Reminder',
+							message: params.message,
+							relatedResourceType: 'event',
+							relatedResourceId: params.eventId,
+							readStatus: false
+						}
+					}
+				},
+				userCredentials: params.userCredentials,
+				timeoutMs: 5000
+			});
+
+			const result = await this.client
+				.mutation(CREATE_EVENT_NOTIFICATION, dataRequest.variables)
+				.toPromise();
+
+			if (result.error) {
+				console.error('[EventsOperations] Error creating notification:', result.error);
+				return {
+					success: false,
+					error: result.error.message
+				};
+			}
+
+			return {
+				success: true,
+				notificationId: result.data?.createNotification?.notification?.id
+			};
+		} catch (error) {
+			console.error('[EventsOperations] Error creating notification:', error);
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : 'Unknown error'
+			};
+		}
+	}
 }
 
 /**
@@ -1132,8 +1371,8 @@ export function createEventsOperations(client: Client): EventsOperations {
  */
 export const GET_EVENT_COMMENTS = gql`
 	query GetEventComments($eventId: UUID!, $limit: Int = 20, $offset: Int = 0) {
-		eventComments(
-			filter: { eventId: { equalTo: $eventId } }
+		allEventComments(
+			condition: { eventId: $eventId }
 			first: $limit
 			offset: $offset
 			orderBy: CREATED_AT_DESC
@@ -1146,10 +1385,9 @@ export const GET_EVENT_COMMENTS = gql`
 				mentions
 				createdAt
 				updatedAt
-				employeeByEmployeeId {
+				userByEmployeeId {
 					id
 					displayName
-					avatarUrl
 				}
 			}
 			totalCount
@@ -1168,8 +1406,8 @@ export const GET_EVENT_COMMENTS = gql`
  */
 export const GET_EVENT_HISTORY = gql`
 	query GetEventHistory($eventId: UUID!, $limit: Int = 25, $offset: Int = 0) {
-		eventHistories(
-			filter: { eventId: { equalTo: $eventId } }
+		allEventHistories(
+			condition: { eventId: $eventId }
 			first: $limit
 			offset: $offset
 			orderBy: CREATED_AT_DESC
@@ -1183,7 +1421,7 @@ export const GET_EVENT_HISTORY = gql`
 				newValue
 				changeType
 				createdAt
-				employeeByChangedBy {
+				userByChangedBy {
 					id
 					displayName
 				}
@@ -1204,9 +1442,7 @@ export const GET_EVENT_HISTORY = gql`
  */
 export const GET_USER_WAITLIST_STATUS = gql`
 	query GetUserWaitlistStatus($eventId: UUID!, $userId: UUID!) {
-		eventWaitlists(
-			filter: { and: [{ eventId: { equalTo: $eventId } }, { employeeId: { equalTo: $userId } }] }
-		) {
+		allEventWaitlists(condition: { eventId: $eventId, employeeId: $userId }) {
 			nodes {
 				id
 				position
@@ -1222,10 +1458,10 @@ export const GET_USER_WAITLIST_STATUS = gql`
  * FR-016, FR-017: Add comment with @mentions and XSS sanitization
  */
 export const CREATE_EVENT_COMMENT = gql`
-	mutation CreateEventComment($eventId: UUID!, $content: String!, $mentions: [String!]) {
+	mutation CreateEventComment($eventId: UUID!, $employeeId: UUID!, $content: String!, $mentions: [UUID]) {
 		createEventComment(
 			input: {
-				eventComment: { eventId: $eventId, content: $content, mentions: $mentions }
+				eventComment: { eventId: $eventId, employeeId: $employeeId, content: $content, mentions: $mentions }
 			}
 		) {
 			eventComment {
@@ -1233,10 +1469,9 @@ export const CREATE_EVENT_COMMENT = gql`
 				content
 				mentions
 				createdAt
-				employeeByEmployeeId {
+				userByEmployeeId {
 					id
 					displayName
-					avatarUrl
 				}
 			}
 		}
@@ -1249,19 +1484,18 @@ export const CREATE_EVENT_COMMENT = gql`
  * FR-020: Edit own comments only
  */
 export const UPDATE_EVENT_COMMENT = gql`
-	mutation UpdateEventComment($commentId: UUID!, $content: String!) {
+	mutation UpdateEventComment($commentId: UUID!, $content: String!, $mentions: [UUID]) {
 		updateEventCommentById(
-			input: { id: $commentId, eventCommentPatch: { content: $content, updatedAt: "now()" } }
+			input: { id: $commentId, eventCommentPatch: { content: $content, mentions: $mentions } }
 		) {
 			eventComment {
 				id
 				content
 				mentions
 				updatedAt
-				employeeByEmployeeId {
+				userByEmployeeId {
 					id
 					displayName
-					avatarUrl
 				}
 			}
 		}
@@ -1305,13 +1539,7 @@ export const JOIN_EVENT_WAITLIST = gql`
  */
 export const LEAVE_EVENT_WAITLIST = gql`
 	mutation LeaveEventWaitlist($eventId: UUID!, $userId: UUID!) {
-		deleteEventWaitlist(
-			input: {
-				filter: {
-					and: [{ eventId: { equalTo: $eventId } }, { employeeId: { equalTo: $userId } }]
-				}
-			}
-		) {
+		deleteEventWaitlist(input: { condition: { eventId: $eventId, employeeId: $userId } }) {
 			deletedEventWaitlistId
 		}
 	}

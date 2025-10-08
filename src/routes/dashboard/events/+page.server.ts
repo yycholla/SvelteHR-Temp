@@ -7,6 +7,7 @@ import { error, redirect, fail } from '@sveltejs/kit';
 import { EventsOperations } from '$lib/graphql/events-operations';
 import { createUrqlClient } from '$lib/graphql/client';
 import type { EventVisibilityType, EventStatus, EventType } from '$lib/graphql/types';
+import { gql } from '@urql/svelte';
 // Feature 026: Import GraphQL operations for comments, history, waitlist
 import {
 	GET_EVENT_COMMENTS,
@@ -61,7 +62,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		const orderBy = orderByMap[sortBy] || 'START_TIME_ASC';
 
 		// Build filter for events based on actual schema fields
-		// PostGraphile's condition expects direct values
+		// PostGraphile's condition expects direct values in snake_case
 		const filter: any = {};
 
 		// Note: events table has is_public (boolean), not visibility_type
@@ -71,7 +72,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		}
 
 		if (typeFilter) {
-			filter.eventType = typeFilter;
+			// PostGraphile uses snake_case for condition fields
+			filter.event_type = typeFilter;
 		}
 
 		// Fetch events visible to the user (RLS handles visibility rules)
@@ -132,9 +134,9 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			},
 			statistics: stats,
 			canCreateEvents,
-			user: locals.user,
-			// Feature 026: Pass client for per-event data fetching
-			urqlClient
+			user: locals.user
+			// Feature 026: For per-event data fetching (comments/history/waitlist),
+			// create API endpoints instead of passing urqlClient to client
 		};
 	} catch (err: any) {
 		console.error('Error loading events:', err);
@@ -150,7 +152,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		}
 
 		throw error(500, {
-			message: 'Failed to load events. Please try again later.'
+			message: err.userMessage || err.message || 'Failed to load events. Please try again later.'
 		});
 	}
 };
@@ -604,6 +606,150 @@ export const actions: Actions = {
 	},
 
 	updateRsvpStatus: async ({ request, locals, cookies }) => {
+		console.log('[SERVER] updateRsvpStatus action called');
+
+		// Check authentication
+		if (!locals.user) {
+			console.error('[SERVER] No user in locals');
+			return fail(401, { error: 'Authentication required' });
+		}
+
+		const token = cookies.get('hr_token') || cookies.get('auth-token');
+		if (!token) {
+			console.error('[SERVER] No token found');
+			return fail(401, { error: 'Authentication required' });
+		}
+
+		console.log('[SERVER] User authenticated:', locals.user.id);
+
+		// Parse form data
+		const formData = await request.formData();
+		const attendeeId = formData.get('attendeeId') as string | null;
+		const eventId = formData.get('eventId') as string;
+		const status = formData.get('status') as string;
+		const scope = formData.get('scope') as string;
+
+		console.log('[SERVER] FormData received:', {
+			attendeeId,
+			eventId,
+			status,
+			scope
+		});
+
+		if (!eventId || !status) {
+			console.error('[SERVER] Missing eventId or status');
+			return fail(400, { error: 'Event ID and status are required' });
+		}
+
+		try {
+			console.log('[SERVER] Creating URQL client and EventsOperations');
+			const urqlClient = createUrqlClient(undefined, token);
+			const eventsOps = new EventsOperations(urqlClient);
+
+			const userCredentials = {
+				jwtToken: token,
+				userId: locals.user.id,
+				roles: locals.roles || [],
+				permissions: locals.permissions || [],
+				isAuthenticated: true,
+				expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+			};
+
+			if (attendeeId) {
+				// Update existing attendee
+				console.log('[SERVER] Updating existing attendee:', attendeeId);
+				const result = await eventsOps.updateRsvpStatus({
+					attendeeId,
+					status: status as any,
+					userCredentials
+				});
+				console.log('[SERVER] Update result:', result);
+			} else {
+				// Create new attendee record with RSVP status directly
+				console.log('[SERVER] Creating new attendee with RSVP status:', status);
+
+				// Use the createEventAttendee mutation directly with the desired status
+				const CREATE_ATTENDEE_WITH_STATUS = gql`
+					mutation CreateAttendeeWithStatus($input: CreateEventAttendeeInput!) {
+						createEventAttendee(input: $input) {
+							eventAttendee {
+								id
+								eventId
+								employeeId
+								responseStatus
+								respondedAt
+							}
+						}
+					}
+				`;
+
+				const input = {
+					eventAttendee: {
+						eventId,
+						employeeId: locals.user.id,
+						responseStatus: status,
+						respondedAt: new Date().toISOString()
+						// Note: isOrganizer and isRequired are NOT part of EventAttendeeInput schema
+					}
+				};
+
+				console.log('[SERVER] Creating attendee with input:', input);
+
+				const result = await urqlClient
+					.mutation(CREATE_ATTENDEE_WITH_STATUS, { input })
+					.toPromise();
+
+				if (result.error) {
+					console.error('[SERVER] GraphQL error creating attendee:', result.error);
+
+					// Check if it's a duplicate key error (user is already an attendee)
+					const isDuplicateKey = result.error.message?.includes('event_attendees_unique') ||
+						result.error.message?.includes('duplicate key');
+
+					if (isDuplicateKey) {
+						console.log('[SERVER] User is already an attendee, fetching existing record to update');
+
+						// Fetch the event to get the existing attendee ID
+						const event = await eventsOps.getEventById({
+							eventId,
+							userCredentials
+						});
+
+						const existingAttendee = event.eventAttendeesByEventId?.nodes?.find(
+							(a: any) => a.employeeId === locals.user.id
+						);
+
+						if (existingAttendee) {
+							console.log('[SERVER] Found existing attendee, updating RSVP status');
+							await eventsOps.updateRsvpStatus({
+								attendeeId: existingAttendee.id,
+								status: status as any,
+								userCredentials
+							});
+						} else {
+							console.error('[SERVER] Could not find existing attendee after duplicate key error!');
+							throw new Error('Unable to update RSVP status. Please try again.');
+						}
+					} else {
+						throw new Error(result.error.message);
+					}
+				} else {
+					console.log('[SERVER] Created attendee:', result.data?.createEventAttendee?.eventAttendee);
+				}
+			}
+
+			console.log('[SERVER] RSVP update successful');
+			return { success: true };
+		} catch (err: any) {
+			console.error('[SERVER] Error updating RSVP status:', err);
+			console.error('[SERVER] Error stack:', err.stack);
+			return fail(500, {
+				error: err.userMessage || 'Failed to update RSVP status. Please try again.'
+			});
+		}
+	},
+
+	setEventReminder: async ({ request, locals, cookies }) => {
 		// Check authentication
 		if (!locals.user) {
 			return fail(401, { error: 'Authentication required' });
@@ -616,12 +762,11 @@ export const actions: Actions = {
 
 		// Parse form data
 		const formData = await request.formData();
-		const attendeeId = formData.get('attendeeId') as string | null;
 		const eventId = formData.get('eventId') as string;
-		const status = formData.get('status') as string;
+		const reminderMinutes = formData.get('reminderMinutes') as string;
 
-		if (!eventId || !status) {
-			return fail(400, { error: 'Event ID and status are required' });
+		if (!eventId || !reminderMinutes) {
+			return fail(400, { error: 'Event ID and reminder time are required' });
 		}
 
 		try {
@@ -637,47 +782,40 @@ export const actions: Actions = {
 				expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
 			};
 
-			if (attendeeId) {
-				// Update existing attendee
-				await eventsOps.updateRsvpStatus({
-					attendeeId,
-					status: status as any,
-					userCredentials
-				});
-			} else {
-				// Create new attendee record
-				await eventsOps.inviteAttendee({
-					eventId,
-					employeeId: locals.user.id,
-					isRequired: false,
-					userCredentials
-				});
+			// First, fetch the event to get the user's attendee record
+			const event = await eventsOps.getEventById({
+				eventId,
+				userCredentials
+			});
 
-				// Then update their RSVP status
-				// We need to get the newly created attendee ID first
-				const event = await eventsOps.getEventById({
-					eventId,
-					userCredentials
-				});
-
-				const newAttendee = event.eventAttendeesByEventId?.nodes?.find(
-					(a: any) => a.employeeId === locals.user.id
-				);
-
-				if (newAttendee) {
-					await eventsOps.updateRsvpStatus({
-						attendeeId: newAttendee.id,
-						status: status as any,
-						userCredentials
-					});
-				}
+			if (!event) {
+				return fail(404, { error: 'Event not found' });
 			}
+
+			// Find the user's attendee record
+			const attendee = event.eventAttendeesByEventId?.nodes?.find(
+				(a: any) => a.employeeId === locals.user.id
+			);
+
+			if (!attendee) {
+				return fail(400, {
+					error: 'You must RSVP to this event before setting a reminder'
+				});
+			}
+
+			// Update the attendee record with the reminder time (0 = clear reminder)
+			const minutes = parseInt(reminderMinutes);
+			await eventsOps.setEventReminder({
+				attendeeId: attendee.id,
+				reminderMinutes: minutes === 0 ? null : minutes,
+				userCredentials
+			});
 
 			return { success: true };
 		} catch (err: any) {
-			console.error('Error updating RSVP status:', err);
+			console.error('Error setting event reminder:', err);
 			return fail(500, {
-				error: err.userMessage || 'Failed to update RSVP status. Please try again.'
+				error: err.userMessage || 'Failed to set event reminder. Please try again.'
 			});
 		}
 	}

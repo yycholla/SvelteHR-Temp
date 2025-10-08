@@ -157,6 +157,7 @@ get_migration_files() {
         "20251007_011_capacity_enforcement.sql"
         "20251007_012_updated_at_triggers.sql"
         "20251007_013_rls_policies.sql"
+        "20251008_001_add_event_reminder_time.sql"
     )
 
     # Seed data (always last)

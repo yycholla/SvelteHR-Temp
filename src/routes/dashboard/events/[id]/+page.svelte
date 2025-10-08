@@ -14,6 +14,19 @@
 	let currentRsvpStatus = $state<RsvpStatus>(data.userRsvpStatus);
 	let isRsvpUpdating = $state(false);
 
+	// Tab state for attendees section
+	type AttendeeTab = 'all' | 'accepted' | 'declined' | 'tentative' | 'pending' | 'no_response';
+	let activeAttendeeTab = $state<AttendeeTab>('all');
+
+	// Filter attendees based on active tab
+	let filteredAttendees = $derived(
+		activeAttendeeTab === 'all'
+			? data.event.eventAttendeesByEventId?.nodes || []
+			: (data.event.eventAttendeesByEventId?.nodes || []).filter(
+				(a: any) => a.responseStatus === activeAttendeeTab
+			)
+	);
+
 	// Handle RSVP status change
 	async function handleRsvpChange(newStatus: RsvpStatus) {
 		isRsvpUpdating = true;
@@ -291,40 +304,88 @@
 		</div>
 	</div>
 
-	<!-- Attendees List -->
-	<div class="rounded-lg border bg-card p-6 shadow-sm">
-		<h2 class="text-lg font-semibold text-foreground mb-4">Attendees ({data.rsvpStats.total})</h2>
+	<!-- Attendees List with Tabs -->
+	<div class="rounded-lg border bg-card shadow-sm">
+		<!-- Tab Header -->
+		<div class="border-b px-6 py-4">
+			<h2 class="text-lg font-semibold text-foreground mb-4">Attendees ({data.rsvpStats.total})</h2>
 
-		{#if data.event.eventAttendeesByEventId?.nodes && data.event.eventAttendeesByEventId?.nodes.length > 0}
-			<div class="space-y-3">
-				{#each data.event.eventAttendeesByEventId?.nodes as attendee}
-					<div class="flex items-center justify-between py-2 border-b last:border-0">
-						<div class="flex items-center">
-							<div class="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-								<span class="text-sm font-medium text-muted-foreground">
-									{attendee.userByEmployeeId?.displayName?.charAt(0)?.toUpperCase() || '?'}
-								</span>
-							</div>
-							<div class="ml-3">
-								<div class="text-sm font-medium text-foreground">
-									{attendee.userByEmployeeId?.displayName || 'Unknown'}
-									{#if attendee.employeeId === data.user.id}
-										<span class="ml-2 text-xs text-primary">(You)</span>
-									{/if}
-									{#if attendee.employeeId === data.event.organizerId}
-										<span class="ml-2 text-xs" style="color: hsl(var(--chart-5))">(Organizer)</span>
-									{/if}
+			<!-- Tab Navigation -->
+			<div class="flex flex-wrap gap-2">
+				<button
+					class="px-4 py-2 text-sm font-medium rounded-md transition-colors {activeAttendeeTab === 'all' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+					onclick={() => activeAttendeeTab = 'all'}
+				>
+					All ({data.rsvpStats.total})
+				</button>
+				<button
+					class="px-4 py-2 text-sm font-medium rounded-md transition-colors {activeAttendeeTab === 'accepted' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+					onclick={() => activeAttendeeTab = 'accepted'}
+				>
+					Accepted ({data.rsvpStats.accepted})
+				</button>
+				<button
+					class="px-4 py-2 text-sm font-medium rounded-md transition-colors {activeAttendeeTab === 'tentative' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+					onclick={() => activeAttendeeTab = 'tentative'}
+				>
+					Tentative ({data.rsvpStats.tentative})
+				</button>
+				<button
+					class="px-4 py-2 text-sm font-medium rounded-md transition-colors {activeAttendeeTab === 'declined' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+					onclick={() => activeAttendeeTab = 'declined'}
+				>
+					Declined ({data.rsvpStats.declined})
+				</button>
+				<button
+					class="px-4 py-2 text-sm font-medium rounded-md transition-colors {activeAttendeeTab === 'pending' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+					onclick={() => activeAttendeeTab = 'pending'}
+				>
+					Pending ({data.rsvpStats.pending})
+				</button>
+				<button
+					class="px-4 py-2 text-sm font-medium rounded-md transition-colors {activeAttendeeTab === 'no_response' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
+					onclick={() => activeAttendeeTab = 'no_response'}
+				>
+					No Response ({data.rsvpStats.noResponse})
+				</button>
+			</div>
+		</div>
+
+		<!-- Tab Content -->
+		<div class="p-6">
+			{#if filteredAttendees.length > 0}
+				<div class="space-y-3">
+					{#each filteredAttendees as attendee}
+						<div class="flex items-center justify-between py-2 border-b last:border-0">
+							<div class="flex items-center">
+								<div class="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+									<span class="text-sm font-medium text-muted-foreground">
+										{attendee.userByEmployeeId?.displayName?.charAt(0)?.toUpperCase() || '?'}
+									</span>
+								</div>
+								<div class="ml-3">
+									<div class="text-sm font-medium text-foreground">
+										{attendee.userByEmployeeId?.displayName || 'Unknown'}
+										{#if attendee.employeeId === data.user.id}
+											<span class="ml-2 text-xs text-primary">(You)</span>
+										{/if}
+										{#if attendee.employeeId === data.event.organizerId}
+											<span class="ml-2 text-xs" style="color: hsl(var(--chart-5))">(Organizer)</span>
+										{/if}
+									</div>
 								</div>
 							</div>
+							<span class="rounded-md px-2 py-1 text-xs font-medium {getRsvpStatusColor(attendee.responseStatus)}">
+								{attendee.responseStatus.replace('_', ' ').charAt(0).toUpperCase() + attendee.responseStatus.slice(1).replace('_', ' ')}
+							</span>
 						</div>
-						<span class="rounded-md px-2 py-1 text-xs font-medium {getRsvpStatusColor(attendee.responseStatus)}">
-							{attendee.responseStatus.replace('_', ' ').charAt(0).toUpperCase() + attendee.responseStatus.slice(1).replace('_', ' ')}
-						</span>
-					</div>
-				{/each}
-			</div>
-		{:else}
-			<p class="text-sm text-muted-foreground">No attendees yet.</p>
-		{/if}
+					{/each}
+				</div>
+			{:else}
+				<p class="text-sm text-muted-foreground">
+					{activeAttendeeTab === 'all' ? 'No attendees yet.' : `No attendees with ${activeAttendeeTab.replace('_', ' ')} status.`}
+				</p>
+			{/if}
+		</div>
 	</div>
 </div>

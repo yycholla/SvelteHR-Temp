@@ -346,3 +346,14 @@ export const handleError = ({ error, event }: { error: any; event: any }) => {
 };
 
 console.log('🛡️  Server performance optimization and monitoring initialized');
+
+// Initialize event reminder scheduler
+import { ReminderScheduler } from '$lib/server/reminder-scheduler';
+
+// Start the reminder scheduler on server startup
+if (process.env.ENABLE_REMINDER_SCHEDULER !== 'false') {
+	ReminderScheduler.start();
+	console.log('⏰ Event reminder scheduler started');
+} else {
+	console.log('⏰ Event reminder scheduler disabled (ENABLE_REMINDER_SCHEDULER=false)');
+}

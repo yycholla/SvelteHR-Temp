@@ -56,17 +56,29 @@
 	}
 
 	function handleStatusChange(newStatus: RsvpStatus) {
+		console.log('[RSVPButton] handleStatusChange called');
+		console.log('[RSVPButton] newStatus:', newStatus);
+		console.log('[RSVPButton] currentStatus:', currentStatus);
+		console.log('[RSVPButton] disabled:', disabled);
+		console.log('[RSVPButton] loading:', loading);
+
 		if (newStatus !== currentStatus && !disabled && !loading) {
+			console.log('[RSVPButton] Calling onChange handler');
 			const result = onChange(newStatus);
 
 			// If onChange returns a Promise, handle loading state
 			if (result instanceof Promise) {
+				console.log('[RSVPButton] onChange returned a Promise');
 				result.finally(() => {
+					console.log('[RSVPButton] Promise resolved, closing dropdown');
 					isOpen = false;
 				});
 			} else {
+				console.log('[RSVPButton] onChange returned synchronously');
 				isOpen = false;
 			}
+		} else {
+			console.log('[RSVPButton] Skipping onChange - status unchanged or button disabled');
 		}
 	}
 
