@@ -49,6 +49,7 @@
 		leave: false,
 		performance: false,
 		documents: false,
+		tasks: false,
 		management: false,
 		administration: false
 	});
@@ -81,6 +82,8 @@
 			expandedSections.performance = true;
 		if (currentPath.includes('/documents'))
 			expandedSections.documents = true;
+		if (currentPath.includes('/tasks') && !currentPath.includes('/tasks/department'))
+			expandedSections.tasks = true;
 		if (
 			currentPath.includes('/management') ||
 			currentPath.includes('/employees/new') ||
@@ -126,10 +129,16 @@
 			standalone: true // Events list page
 		},
 		{
-			title: 'My Tasks',
-			url: '/dashboard/tasks/my-tasks',
-			icon: CheckSquare,
-			standalone: true // My tasks page
+			title: 'Tasks',
+			url: '/dashboard/tasks',
+			icon: ListTodo,
+			standalone: false, // Has submenu
+			section: 'tasks',
+			items: [
+				{ title: 'All Tasks', url: '/dashboard/tasks' },
+				{ title: 'My Tasks', url: '/dashboard/tasks/my-tasks' },
+				{ title: 'Team Tasks', url: '/dashboard/tasks/team-tasks' }
+			]
 		},
 		{
 			title: 'Activities',
@@ -284,6 +293,9 @@
 								if (item.section === 'documents') {
 									return currentPath.includes('/documents');
 								}
+								if (item.section === 'tasks') {
+									return currentPath.includes('/tasks') && !currentPath.includes('/tasks/department');
+								}
 								return false;
 							})()}
 							class:text-primary-foreground={(() => {
@@ -296,6 +308,9 @@
 								}
 								if (item.section === 'documents') {
 									return currentPath.includes('/documents');
+								}
+								if (item.section === 'tasks') {
+									return currentPath.includes('/tasks') && !currentPath.includes('/tasks/department');
 								}
 								return false;
 							})()}

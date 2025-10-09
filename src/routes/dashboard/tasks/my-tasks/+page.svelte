@@ -1,71 +1,127 @@
+<!--
+  My Tasks Page
+  Feature: 028-task-system-expansion - Task T044
+
+  Personal task view showing only user's assigned tasks
+  - Simplified filtering (status, priority, search)
+  - Task statistics focused on personal metrics
+  - Quick access to user's work
+-->
+
 <script lang="ts">
-	// My Tasks Page
-	// Feature: 019-we-need-to - Task T026
-	// Purpose: Display and manage user's assigned tasks
-
 	import type { PageData } from './$types';
-	import TaskList from '$lib/components/tasks/TaskList.svelte';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
-	import type { TaskStatus, TaskPriority } from '$lib/graphql/types';
-	import { getTaskStatistics } from '$lib/utils/tasks';
+	import { Button } from '$lib/components/ui/button';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Input } from '$lib/components/ui/input';
+	import * as Card from '$lib/components/ui/card';
+	import * as Select from '$lib/components/ui/select';
+	import TaskList from '$lib/components/tasks/TaskList.svelte';
+	import {
+		Plus,
+		CheckCircle,
+		Clock,
+		AlertCircle,
+		TrendingUp,
+		User,
+		Search,
+		AlertTriangle
+	} from 'lucide-svelte';
 
+	// Page data from server
 	let { data }: { data: PageData } = $props();
 
-	// Derived statistics
-	let statistics = $derived(getTaskStatistics(data.allTasks));
+	// Local filter state
+	let searchQuery = $state(data.filters.searchTerm);
+	let selectedStatus = $state(data.filters.statusFilter);
+	let selectedPriority = $state(data.filters.priorityFilter);
 
-	// Filter and sort state
-	let selectedStatus = $state<TaskStatus | 'all'>(data.filters.status || 'all');
-	let selectedPriority = $state<TaskPriority | 'all'>(data.filters.priority || 'all');
-	let selectedSort = $state(data.filters.sortBy || 'priority');
+	// Statistics cards configuration
+	const statsCards = [
+		{
+			label: 'Total Tasks',
+			value: data.taskStats.total,
+			icon: User,
+			color: 'text-primary',
+			bgColor: 'bg-primary/10'
+		},
+		{
+			label: 'Not Started',
+			value: data.taskStats.notStarted,
+			icon: Clock,
+			color: 'text-amber-600',
+			bgColor: 'bg-amber-100 dark:bg-amber-900/30'
+		},
+		{
+			label: 'In Progress',
+			value: data.taskStats.inProgress,
+			icon: TrendingUp,
+			color: 'text-blue-600',
+			bgColor: 'bg-blue-100 dark:bg-blue-900/30'
+		},
+		{
+			label: 'Blocked',
+			value: data.taskStats.blocked,
+			icon: AlertCircle,
+			color: 'text-red-600',
+			bgColor: 'bg-red-100 dark:bg-red-900/30'
+		},
+		{
+			label: 'Completed',
+			value: data.taskStats.completed,
+			icon: CheckCircle,
+			color: 'text-green-600',
+			bgColor: 'bg-green-100 dark:bg-green-900/30'
+		},
+		{
+			label: 'Overdue',
+			value: data.taskStats.overdue,
+			icon: AlertTriangle,
+			color: 'text-orange-600',
+			bgColor: 'bg-orange-100 dark:bg-orange-900/30'
+		}
+	];
 
-	// Handle task click (navigate to task detail)
-	function handleTaskClick(task: any) {
-		goto(`/dashboard/tasks/${task.id}`);
+	// Status options
+	const statusOptions = [
+		{ value: '', label: 'All Statuses' },
+		{ value: 'Not Started', label: 'Not Started' },
+		{ value: 'In Progress', label: 'In Progress' },
+		{ value: 'Blocked', label: 'Blocked' },
+		{ value: 'Completed', label: 'Completed' }
+	];
+
+	// Priority options
+	const priorityOptions = [
+		{ value: '', label: 'All Priorities' },
+		{ value: 'Low', label: 'Low' },
+		{ value: 'Medium', label: 'Medium' },
+		{ value: 'High', label: 'High' },
+		{ value: 'Urgent', label: 'Urgent' }
+	];
+
+	// Handle filter changes - update URL
+	function updateFilters() {
+		const params = new URLSearchParams();
+		if (searchQuery) params.set('search', searchQuery);
+		if (selectedStatus) params.set('status', selectedStatus);
+		if (selectedPriority) params.set('priority', selectedPriority);
+
+		const queryString = params.toString();
+		goto(queryString ? `?${queryString}` : '/dashboard/tasks/my-tasks', {
+			replaceState: true,
+			keepFocus: true
+		});
 	}
 
-	// Handle status change
-	async function handleStatusChange(taskId: string, newStatus: TaskStatus) {
-		try {
-			// TODO: Implement status update mutation
-			console.log('Update task status:', taskId, newStatus);
-
-			// For now, just reload the page
-			window.location.reload();
-		} catch (err) {
-			console.error('Failed to update task status:', err);
-			alert('Failed to update task status. Please try again.');
-		}
+	// Handle task click
+	function handleTaskClick(taskId: string) {
+		goto(`/dashboard/tasks/${taskId}`);
 	}
 
-	// Apply filters
-	function applyFilters() {
-		const params = new URLSearchParams($page.url.searchParams);
-
-		if (selectedStatus !== 'all') {
-			params.set('status', selectedStatus);
-		} else {
-			params.delete('status');
-		}
-
-		if (selectedPriority !== 'all') {
-			params.set('priority', selectedPriority);
-		} else {
-			params.delete('priority');
-		}
-
-		params.set('sort', selectedSort);
-		params.set('page', '1'); // Reset to first page
-
-		goto(`?${params.toString()}`, { replaceState: true });
-	}
-
-	// Pagination
-	function goToPage(pageNum: number) {
-		const params = new URLSearchParams($page.url.searchParams);
-		params.set('page', pageNum.toString());
-		goto(`?${params.toString()}`);
+	// Handle create task
+	function handleCreateTask() {
+		goto('/dashboard/tasks/new');
 	}
 </script>
 
@@ -74,205 +130,150 @@
 	<meta name="description" content="View and manage your assigned tasks" />
 </svelte:head>
 
-<div class="container mx-auto max-w-7xl px-4 py-8">
+<div class="my-tasks-page">
 	<!-- Page Header -->
-	<div class="mb-8">
-		<h1 class="text-3xl font-bold text-foreground">My Tasks</h1>
-		<p class="mt-2 text-muted-foreground">View and manage your assigned tasks</p>
+	<div class="page-header">
+		<div>
+			<h1 class="text-3xl font-bold tracking-tight">My Tasks</h1>
+			<p class="text-muted-foreground mt-2">
+				Tasks assigned to you ({data.user.displayName})
+			</p>
+		</div>
+		<Button onclick={handleCreateTask} class="flex-shrink-0">
+			<Plus class="mr-2 h-4 w-4" />
+			New Task
+		</Button>
 	</div>
 
-	<!-- Filters and Controls -->
-	<div class="mb-6 rounded-lg border border-border bg-card p-4 shadow-sm">
-		<div class="flex flex-wrap items-end gap-4">
-			<!-- Status Filter -->
-			<div class="flex-1 min-w-[200px]">
-				<label for="status-filter" class="block text-sm font-medium text-foreground mb-1">
-					Status
-				</label>
-				<select
-					id="status-filter"
-					bind:value={selectedStatus}
-					onchange={applyFilters}
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
-				>
-					<option value="all">All Statuses</option>
-					<option value="todo">To Do</option>
-					<option value="in_progress">In Progress</option>
-					<option value="completed">Completed</option>
-					<option value="cancelled">Cancelled</option>
-				</select>
-			</div>
-
-			<!-- Priority Filter -->
-			<div class="flex-1 min-w-[200px]">
-				<label for="priority-filter" class="block text-sm font-medium text-foreground mb-1">
-					Priority
-				</label>
-				<select
-					id="priority-filter"
-					bind:value={selectedPriority}
-					onchange={applyFilters}
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
-				>
-					<option value="all">All Priorities</option>
-					<option value="urgent">Urgent</option>
-					<option value="high">High</option>
-					<option value="medium">Medium</option>
-					<option value="low">Low</option>
-				</select>
-			</div>
-
-			<!-- Sort By -->
-			<div class="flex-1 min-w-[200px]">
-				<label for="sort-filter" class="block text-sm font-medium text-foreground mb-1">
-					Sort By
-				</label>
-				<select
-					id="sort-filter"
-					bind:value={selectedSort}
-					onchange={applyFilters}
-					class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
-				>
-					<option value="priority">Priority</option>
-					<option value="dueDate">Due Date</option>
-					<option value="created">Recently Created</option>
-					<option value="status">Status</option>
-				</select>
-			</div>
-
-			<!-- Reset Filters Button -->
-			<div>
-				<button
-					type="button"
-					onclick={() => goto('/dashboard/tasks/my-tasks')}
-					class="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-				>
-					Reset
-				</button>
-			</div>
-		</div>
+	<!-- Statistics Cards -->
+	<div class="stats-grid">
+		{#each statsCards as stat}
+			<Card.Root>
+				<Card.Header class="flex flex-row items-center justify-between pb-2">
+					<Card.Title class="text-sm font-medium text-muted-foreground">
+						{stat.label}
+					</Card.Title>
+					<div class="flex h-8 w-8 items-center justify-center rounded-full {stat.bgColor}">
+						<svelte:component this={stat.icon} class="h-4 w-4 {stat.color}" />
+					</div>
+				</Card.Header>
+				<Card.Content>
+					<div class="text-2xl font-bold">{stat.value}</div>
+				</Card.Content>
+			</Card.Root>
+		{/each}
 	</div>
 
-	<!-- Statistics Summary -->
-	<div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-7">
-		<div class="rounded-lg border border-border bg-card p-4 shadow-sm">
-			<div class="text-2xl font-bold text-foreground">{statistics.total}</div>
-			<div class="text-sm text-muted-foreground">Total</div>
-		</div>
+	<!-- Simple Filters -->
+	<Card.Root>
+		<Card.Content class="pt-6">
+			<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+				<!-- Search -->
+				<div class="relative">
+					<Search
+						class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+					/>
+					<Input
+						type="text"
+						placeholder="Search tasks..."
+						bind:value={searchQuery}
+						oninput={updateFilters}
+						class="pl-9"
+					/>
+				</div>
 
-		<div class="rounded-lg border border-border bg-card p-4 shadow-sm">
-			<div class="text-2xl font-bold text-muted-foreground">{statistics.todo}</div>
-			<div class="text-sm text-muted-foreground">To Do</div>
-		</div>
+				<!-- Status Filter -->
+				<Select.Root selected={{ value: selectedStatus }} onSelectedChange={(v) => { selectedStatus = v?.value || ''; updateFilters(); }}>
+					<Select.Trigger>
+						<Select.Value placeholder="All Statuses" />
+					</Select.Trigger>
+					<Select.Content>
+						{#each statusOptions as option}
+							<Select.Item value={option.value}>{option.label}</Select.Item>
+						{/each}
+					</Select.Content>
+				</Select.Root>
 
-		<div class="rounded-lg border border-border bg-card p-4 shadow-sm">
-			<div class="text-2xl font-bold text-primary">{statistics.inProgress}</div>
-			<div class="text-sm text-muted-foreground">In Progress</div>
-		</div>
-
-		<div class="rounded-lg border border-border bg-card p-4 shadow-sm">
-			<div class="text-2xl font-bold text-green-600 dark:text-green-400">{statistics.completed}</div>
-			<div class="text-sm text-muted-foreground">Completed</div>
-		</div>
-
-		<div class="rounded-lg border border-border bg-card p-4 shadow-sm">
-			<div class="text-2xl font-bold text-destructive">{statistics.overdue}</div>
-			<div class="text-sm text-muted-foreground">Overdue</div>
-		</div>
-
-		<div class="rounded-lg border border-border bg-card p-4 shadow-sm">
-			<div class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{statistics.dueSoon}</div>
-			<div class="text-sm text-muted-foreground">Due Soon</div>
-		</div>
-
-		<div class="rounded-lg border border-border bg-card p-4 shadow-sm">
-			<div class="text-2xl font-bold text-primary">{statistics.completionRate}%</div>
-			<div class="text-sm text-muted-foreground">Complete</div>
-		</div>
-	</div>
-
-	<!-- Task List -->
-	<div class="mb-6">
-		<TaskList
-			tasks={data.tasks}
-			onTaskClick={handleTaskClick}
-			onStatusChange={handleStatusChange}
-			sortBy="priority"
-			filterStatus="all"
-			filterPriority="all"
-			compact={false}
-			showStatistics={false}
-			emptyMessage="No tasks assigned to you. Great job!"
-		/>
-	</div>
-
-	<!-- Pagination -->
-	{#if data.totalCount > data.limit}
-		<div class="flex items-center justify-between border-t border-border bg-card px-4 py-3 sm:px-6">
-			<div class="flex flex-1 justify-between sm:hidden">
-				<button
-					type="button"
-					disabled={data.currentPage === 1}
-					onclick={() => goToPage(data.currentPage - 1)}
-					class="relative inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-				>
-					Previous
-				</button>
-				<button
-					type="button"
-					disabled={!data.hasNextPage}
-					onclick={() => goToPage(data.currentPage + 1)}
-					class="relative ml-3 inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-				>
-					Next
-				</button>
+				<!-- Priority Filter -->
+				<Select.Root selected={{ value: selectedPriority }} onSelectedChange={(v) => { selectedPriority = v?.value || ''; updateFilters(); }}>
+					<Select.Trigger>
+						<Select.Value placeholder="All Priorities" />
+					</Select.Trigger>
+					<Select.Content>
+						{#each priorityOptions as option}
+							<Select.Item value={option.value}>{option.label}</Select.Item>
+						{/each}
+					</Select.Content>
+				</Select.Root>
 			</div>
+		</Card.Content>
+	</Card.Root>
 
-			<div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-				<div>
-					<p class="text-sm text-foreground">
-						Showing
-						<span class="font-medium">{(data.currentPage - 1) * data.limit + 1}</span>
-						to
-						<span class="font-medium">{Math.min(data.currentPage * data.limit, data.totalCount)}</span>
-						of
-						<span class="font-medium">{data.totalCount}</span>
-						tasks
+	<!-- Tasks List -->
+	<div class="tasks-list-section">
+		<div class="flex items-center justify-between mb-4">
+			<div class="flex items-center gap-2">
+				<h2 class="text-xl font-semibold">Your Tasks</h2>
+				<Badge variant="secondary">{data.totalTasks}</Badge>
+			</div>
+		</div>
+
+		{#if data.tasks.length === 0}
+			<Card.Root>
+				<Card.Content class="flex flex-col items-center justify-center py-12">
+					<CheckCircle class="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+					<h3 class="text-lg font-medium mb-2">No tasks found</h3>
+					<p class="text-sm text-muted-foreground mb-4">
+						{#if searchQuery || selectedStatus || selectedPriority}
+							Try adjusting your filters
+						{:else}
+							You have no assigned tasks at the moment
+						{/if}
 					</p>
-				</div>
-
-				<div>
-					<nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-						<button
-							type="button"
-							disabled={data.currentPage === 1}
-							onclick={() => goToPage(data.currentPage - 1)}
-							class="relative inline-flex items-center rounded-l-md px-2 py-2 text-muted-foreground ring-1 ring-inset ring-border hover:bg-accent hover:text-accent-foreground focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
-						>
-							<span class="sr-only">Previous</span>
-							<svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-								<path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" />
-							</svg>
-						</button>
-
-						<span class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-foreground ring-1 ring-inset ring-border bg-card">
-							Page {data.currentPage}
-						</span>
-
-						<button
-							type="button"
-							disabled={!data.hasNextPage}
-							onclick={() => goToPage(data.currentPage + 1)}
-							class="relative inline-flex items-center rounded-r-md px-2 py-2 text-muted-foreground ring-1 ring-inset ring-border hover:bg-accent hover:text-accent-foreground focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
-						>
-							<span class="sr-only">Next</span>
-							<svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-								<path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
-							</svg>
-						</button>
-					</nav>
-				</div>
-			</div>
-		</div>
-	{/if}
+					{#if !searchQuery && !selectedStatus && !selectedPriority}
+						<Button variant="outline" onclick={handleCreateTask}>
+							<Plus class="mr-2 h-4 w-4" />
+							Create Task
+						</Button>
+					{/if}
+				</Card.Content>
+			</Card.Root>
+		{:else}
+			<TaskList
+				tasks={data.tasks}
+				userId={data.user.id}
+				onTaskClick={handleTaskClick}
+				showProgress={true}
+				compact={false}
+			/>
+		{/if}
+	</div>
 </div>
+
+<style>
+	/* Page Layout */
+	.my-tasks-page {
+		@apply container mx-auto px-4 py-8 space-y-6;
+	}
+
+	/* Page Header */
+	.page-header {
+		@apply flex items-start justify-between gap-4;
+	}
+
+	@media (max-width: 640px) {
+		.page-header {
+			@apply flex-col items-stretch;
+		}
+	}
+
+	/* Statistics Grid */
+	.stats-grid {
+		@apply grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4;
+	}
+
+	/* Tasks List Section */
+	.tasks-list-section {
+		@apply space-y-4;
+	}
+</style>

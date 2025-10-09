@@ -1313,11 +1313,11 @@ export class EventsOperations {
 					input: {
 						notification: {
 							recipientId: params.userId,
-							type: 'event_reminder',
-							category: 'event',
+							type: 'EVENT_REMINDER',
+							category: 'EVENT',
 							title: 'Event Reminder',
 							message: params.message,
-							relatedResourceType: 'event',
+							relatedResourceType: 'EVENT',
 							relatedResourceId: params.eventId,
 							readStatus: false
 						}

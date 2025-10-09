@@ -1,111 +1,387 @@
-// Task Detail Page Server-Side Data Loading
-// Feature: 019-we-need-to - Task T034
-// Purpose: Load single task details with assignment and activity history
+// Server-side data loading for task details page
+// Feature: 028-task-system-expansion - Task T037
+// Load single task with full relationships
 
 import type { PageServerLoad } from './$types';
-import { error, redirect } from '@sveltejs/kit';
-import { TasksOperations } from '$lib/graphql/tasks-operations';
-import { createUrqlClient } from '$lib/graphql/client';
+import { error } from '@sveltejs/kit';
+import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
 
-export const load: PageServerLoad = async ({ params, locals, url, cookies }) => {
-	// Check authentication
-	if (!locals.user) {
-		throw redirect(303, `/login?redirectTo=${url.pathname}`);
+export const load: PageServerLoad = async (event) => {
+	const { locals, cookies, params } = event;
+	const { id: taskId } = params;
+
+	// RBAC: Check task read permissions
+	try {
+		if (!locals.user) {
+			throw error(401, { message: 'Authentication required' });
+		}
+	} catch (err) {
+		console.error('[Task Details] Permission check failed:', err);
+		throw error(403, { message: 'Insufficient permissions to view task details' });
 	}
 
-	// Get user credentials for GraphQL operations
-	const token = cookies.get('hr_token') || cookies.get('auth-token');
-	if (!token) {
-		throw redirect(303, `/login?redirectTo=${url.pathname}`);
-	}
+	// Import required models
+	const { createDataRequest } = await import('$lib/models/data-request');
+	const { createErrorResponse } = await import('$lib/models/error-response');
+	const { createUserSession } = await import('$lib/models/user-session');
 
-	const userCredentials = {
-		jwtToken: token,
+	// Create user session
+	const userSession = createUserSession({
 		userId: locals.user.id,
-		roles: locals.roles || [],
+		jwtToken: cookies.get('hr_token') || '',
+		roles: [locals.user.role || 'employee'],
 		permissions: locals.permissions || [],
-		isAuthenticated: true,
-		expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-	};
+		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+		metadata: {
+			userEmail: locals.user.email,
+			displayName: locals.user.display_name || locals.user.email
+		}
+	});
+
+	// Create data request
+	const dataRequest = createDataRequest({
+		operationName: 'GetTaskDetails',
+		variables: { taskId },
+		userCredentials: {
+			userId: userSession.userId,
+			userEmail: userSession.metadata.userEmail as string,
+			roles: userSession.roles,
+			permissions: userSession.permissions,
+			jwtToken: userSession.jwtToken,
+			isAuthenticated: Boolean(userSession.isAuthenticated)
+		},
+		timeoutMs: 5000,
+		retryAttempts: 0,
+		maxRetries: 3
+	});
 
 	try {
-		// Initialize GraphQL client and operations
-		const urqlClient = createUrqlClient(undefined, token);
-		const tasksOps = new TasksOperations(urqlClient);
+		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
+		const graphqlEndpoint = getGraphQLEndpoint();
 
-		// Fetch task details
-		const task = await tasksOps.getTaskById({
-			taskId: params.id,
-			userCredentials
+		const headers: Record<string, string> = {
+			'Content-Type': 'application/json'
+		};
+
+		console.log('[Task Details] Loading task:', taskId);
+
+		// Load task with full relationships
+		// NOTE: Query updated to match new task schema (Feature 028)
+		// Removed: reminderTime, organizationId (fields don't exist in new schema)
+		const taskResponse = await fetch(graphqlEndpoint, {
+			method: 'POST',
+			headers,
+			body: JSON.stringify({
+				query: `
+					query GetTaskDetails($taskId: UUID!) {
+						taskById(id: $taskId) {
+							id
+							nodeId
+							title
+							description
+							status
+							priority
+							dueDate
+							assigneeId
+							creatorId
+							taskTypeId
+							parentTaskId
+							requiresManualReassignment
+							archived
+							archivedAt
+							archivedBy
+							createdAt
+							updatedAt
+							userByAssigneeId {
+								id
+								displayName
+								email
+								role
+							}
+							userByCreatorId {
+								id
+								displayName
+								email
+								role
+							}
+							taskTypeByTaskTypeId {
+								id
+								name
+								description
+								isSystem
+							}
+							taskByParentTaskId {
+								id
+								title
+								status
+								priority
+								dueDate
+							}
+							tasksByParentTaskId(orderBy: CREATED_AT_ASC) {
+								totalCount
+								nodes {
+									id
+									title
+									status
+									priority
+									dueDate
+									assigneeId
+									userByAssigneeId {
+										id
+										displayName
+									}
+									tasksByParentTaskId {
+										totalCount
+									}
+								}
+							}
+							taskDependenciesByBlockingTaskId {
+								totalCount
+								nodes {
+									id
+									blockedTaskId
+									dependencyType
+									createdAt
+									taskByBlockedTaskId {
+										id
+										title
+										status
+										priority
+										dueDate
+									}
+								}
+							}
+							taskDependenciesByBlockedTaskId {
+								totalCount
+								nodes {
+									id
+									blockingTaskId
+									dependencyType
+									createdAt
+									taskByBlockingTaskId {
+										id
+										title
+										status
+										priority
+										dueDate
+									}
+								}
+							}
+							linkedResourcesByTaskId(orderBy: CREATED_AT_DESC) {
+								totalCount
+								nodes {
+									id
+									resourceId
+									resourceType
+									resourceTitle
+									availabilityStatus
+									lastChecked
+									createdAt
+								}
+							}
+						}
+					}
+				`,
+				variables: { taskId }
+			})
 		});
 
+		const taskData = await taskResponse.json();
+		console.log('[Task Details] Task response:', taskData);
+
+		if (taskData.errors) {
+			console.error('[Task Details] GraphQL errors:', taskData.errors);
+			throw new Error(taskData.errors[0]?.message || 'Failed to load task');
+		}
+
+		const task = taskData?.data?.taskById;
+
 		if (!task) {
-			throw error(404, {
-				message: 'Task not found or you do not have permission to view it.'
-			});
+			throw error(404, { message: 'Task not found' });
 		}
 
-		// Determine if user is the assignee
-		const isAssignee = task.assigneeId === locals.user.id;
+		// Load audit trail
+		const auditResponse = await fetch(graphqlEndpoint, {
+			method: 'POST',
+			headers,
+			body: JSON.stringify({
+				query: `
+					query GetTaskAuditTrail($taskId: UUID!, $first: Int) {
+						allTaskAuditTrails(
+							condition: { taskId: $taskId }
+							orderBy: TIMESTAMP_DESC
+							first: $first
+						) {
+							totalCount
+							nodes {
+								id
+								taskId
+								userId
+								actionType
+								changedFields
+								newValues
+								timestamp
+								userByUserId {
+									id
+									displayName
+									email
+								}
+							}
+							pageInfo {
+								hasNextPage
+								endCursor
+							}
+						}
+					}
+				`,
+				variables: {
+					taskId,
+					first: 20
+				}
+			})
+		});
 
-		// Determine if user is in the assigned department
-		const isInAssignedDepartment =
-			task.assignedToDepartmentId && task.assignedToDepartmentId === locals.user.department_id;
+		const auditData = await auditResponse.json();
+		const auditTrail = auditData?.data?.allTaskAuditTrails?.nodes || [];
+		const auditTotalCount = auditData?.data?.allTaskAuditTrails?.totalCount || 0;
+		const auditHasMore = auditData?.data?.allTaskAuditTrails?.pageInfo?.hasNextPage || false;
 
-		// Check if user can manage task (assignee, department manager, or admin)
-		const roleLevel = getRoleLevel(locals.user.role);
-		const canManageTask =
-			isAssignee ||
-			isInAssignedDepartment ||
-			roleLevel >= 80 || // HR Manager or Admin
-			(roleLevel >= 60 && isInAssignedDepartment); // Manager in same department
+		// Load available assignees for reassignment
+		const assigneesResponse = await fetch(graphqlEndpoint, {
+			method: 'POST',
+			headers,
+			body: JSON.stringify({
+				query: `
+					query GetUsersForReassignment($first: Int) {
+						allUsers(first: $first, condition: { is_active: true }) {
+							nodes {
+								id
+								displayName
+								email
+								role
+							}
+						}
+					}
+				`,
+				variables: { first: 100 }
+			})
+		});
 
-		// Check if task is overdue
-		const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'completed';
+		const assigneesData = await assigneesResponse.json();
 
-		// Check if task is due soon (within 3 days)
-		const isDueSoon =
-			task.dueDate &&
-			new Date(task.dueDate) < new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) &&
-			task.status !== 'completed';
+		// Load task types
+		const taskTypesResponse = await fetch(graphqlEndpoint, {
+			method: 'POST',
+			headers,
+			body: JSON.stringify({
+				query: `
+					query GetTaskTypes($first: Int) {
+						allTaskTypes(first: $first) {
+							nodes {
+								id
+								name
+								description
+							}
+						}
+					}
+				`,
+				variables: { first: 100 }
+			})
+		});
 
+		const taskTypesData = await taskTypesResponse.json();
+
+		// Load all tasks for dependency/parent selection
+		const allTasksResponse = await fetch(graphqlEndpoint, {
+			method: 'POST',
+			headers,
+			body: JSON.stringify({
+				query: `
+					query GetAllTasksForSelection($first: Int) {
+						allTasks(first: $first, orderBy: CREATED_AT_DESC) {
+							nodes {
+								id
+								title
+								status
+								priority
+								dueDate
+								assigneeId
+							}
+						}
+					}
+				`,
+				variables: { first: 200 }
+			})
+		});
+
+		const allTasksData = await allTasksResponse.json();
+
+		// Load available resources for linking
+		const resourcesResponse = await fetch(graphqlEndpoint, {
+			method: 'POST',
+			headers,
+			body: JSON.stringify({
+				query: `
+					query GetAvailableResources {
+						allUsers(first: 100, condition: { is_active: true }) {
+							nodes {
+								id
+								displayName
+							}
+						}
+					}
+				`,
+				variables: {}
+			})
+		});
+
+		const resourcesData = await resourcesResponse.json();
+
+		// Build available resources list (for now just employees)
+		const availableResources = resourcesData?.data?.allUsers?.nodes.map((user: any) => ({
+			id: user.id,
+			type: 'Employee',
+			title: user.displayName
+		})) || [];
+
+		// Get standardized user permissions
+		const userPermissions = getUserPermissions(locals);
+
+		// Return server-side loaded data
 		return {
+			user: userPermissions.user,
+			userSession: userSession.toJSON(),
 			task,
-			isAssignee,
-			isInAssignedDepartment,
-			canManageTask,
-			isOverdue,
-			isDueSoon,
-			user: locals.user
+			auditTrail,
+			auditTotalCount,
+			auditHasMore,
+			assignees: assigneesData?.data?.allUsers?.nodes || [],
+			taskTypes: taskTypesData?.data?.allTaskTypes?.nodes || [],
+			availableTasks: allTasksData?.data?.allTasks?.nodes || [],
+			availableResources,
+			...userPermissions,
+			loadedAt: new Date().toISOString()
 		};
-	} catch (err: any) {
-		console.error('Error loading task details:', err);
+	} catch (err) {
+		console.error('[Task Details Load Error]', err);
 
-		// Handle specific error cases
-		if (err.message?.includes('unauthorized') || err.message?.includes('authentication')) {
-			throw redirect(303, `/login?redirectTo=${url.pathname}`);
-		}
+		const errorResponse = createErrorResponse(
+			err instanceof Error ? err : new Error('Task details load failed'),
+			{
+				type: 'DATA_LOAD_ERROR',
+				userMessage: 'Unable to load task details. Please refresh the page or try again later.'
+			}
+		);
 
-		// If it's already a SvelteKit error, rethrow it
-		if (err.status) {
-			throw err;
-		}
+		console.error('[Task Details Error Details]', {
+			userId: locals.user?.id,
+			taskId,
+			error: errorResponse
+		});
 
 		throw error(500, {
-			message: 'Failed to load task details. Please try again later.'
+			message: 'Task details temporarily unavailable',
+			details: errorResponse.userMessage
 		});
 	}
 };
-
-// Helper function to get role level for authorization
-function getRoleLevel(role: string | undefined): number {
-	const roleLevels: Record<string, number> = {
-		super_admin: 200, // Highest level - system administrator
-		admin: 100,
-		hr_manager: 80,
-		manager: 60,
-		employee: 20
-	};
-
-	return roleLevels[role?.toLowerCase() || 'employee'] || 20;
-}

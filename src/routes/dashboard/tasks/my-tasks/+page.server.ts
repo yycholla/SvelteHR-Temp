@@ -1,113 +1,214 @@
-// My Tasks Page Server-Side Data Loading
-// Feature: 019-we-need-to - Task T026
-// Purpose: Load user's assigned tasks with server-side GraphQL queries
+// Server-side data loading for My Tasks page
+// Feature: 028-task-system-expansion - Task T043
+// Load tasks assigned to current user
 
 import type { PageServerLoad } from './$types';
-import { error, redirect } from '@sveltejs/kit';
-import { TasksOperations } from '$lib/graphql/tasks-operations';
-import { createUrqlClient } from '$lib/graphql/client';
-import type { TaskStatus, TaskPriority } from '$lib/graphql/types';
+import { error } from '@sveltejs/kit';
+import { getUserPermissions } from '$lib/server/rbac-utils';
 
-export const load: PageServerLoad = async ({ locals, url, cookies }) => {
+export const load: PageServerLoad = async (event) => {
+	const { locals, cookies, url } = event;
+
 	// Check authentication
 	if (!locals.user) {
-		throw redirect(303, `/login?redirectTo=${url.pathname}`);
+		throw error(401, { message: 'Authentication required' });
 	}
 
-	// Get user credentials for GraphQL operations
-	const token = cookies.get('hr_token') || cookies.get('auth-token');
-	if (!token) {
-		throw redirect(303, `/login?redirectTo=${url.pathname}`);
-	}
+	// Import required models
+	const { createUserSession } = await import('$lib/models/user-session');
+	const { createErrorResponse } = await import('$lib/models/error-response');
 
-	const userCredentials = {
-		jwtToken: token,
+	// Create user session
+	const userSession = createUserSession({
 		userId: locals.user.id,
-		roles: locals.roles || [],
+		jwtToken: cookies.get('hr_token') || '',
+		roles: [locals.user.role || 'employee'],
 		permissions: locals.permissions || [],
-		isAuthenticated: true,
-		expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-	};
+		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+		metadata: {
+			userEmail: locals.user.email,
+			displayName: locals.user.display_name || locals.user.email
+		}
+	});
+
+	// Extract filter parameters
+	const statusFilter = url.searchParams.get('status') || '';
+	const priorityFilter = url.searchParams.get('priority') || '';
+	const searchTerm = url.searchParams.get('search') || '';
 
 	try {
-		// Initialize GraphQL client and operations
-		// For server-side: createUrqlClient(fetchFn?, authToken?)
-		const urqlClient = createUrqlClient(undefined, token);
-		const tasksOps = new TasksOperations(urqlClient);
+		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
+		const graphqlEndpoint = getGraphQLEndpoint();
 
-		// Get query parameters for filtering and sorting
-		const statusFilter = url.searchParams.get('status') as TaskStatus | null;
-		const priorityFilter = url.searchParams.get('priority') as TaskPriority | null;
-		const sortBy = url.searchParams.get('sort') || 'priority';
-		const page = parseInt(url.searchParams.get('page') || '1');
-		const limit = parseInt(url.searchParams.get('limit') || '20');
+		const headers: Record<string, string> = {
+			'Content-Type': 'application/json'
+		};
 
-		// Build filter for user's assigned tasks
-		// PostGraphile's TaskCondition expects direct values, not wrapped in equalTo
-		const filter: any = {
+		console.log('[My Tasks] Loading tasks for user:', locals.user.id);
+
+		// Build filter condition - always filter by current user
+		const condition: any = {
 			assigneeId: locals.user.id
 		};
 
 		if (statusFilter) {
-			filter.status = statusFilter;
+			condition.status = statusFilter;
 		}
 
 		if (priorityFilter) {
-			filter.priority = priorityFilter;
+			condition.priority = priorityFilter;
 		}
 
-		// Determine sort order
-		let orderBy: any = ['PRIORITY_DESC', 'DUE_DATE_ASC'];
-		if (sortBy === 'dueDate') {
-			orderBy = ['DUE_DATE_ASC', 'PRIORITY_DESC'];
-		} else if (sortBy === 'created') {
-			orderBy = ['CREATED_AT_DESC'];
-		} else if (sortBy === 'status') {
-			orderBy = ['STATUS_ASC', 'PRIORITY_DESC'];
+		// Load user's tasks
+		// NOTE: Query updated to match new task schema (Feature 028)
+		// Removed: reminderTime (field doesn't exist in new schema)
+		const tasksResponse = await fetch(graphqlEndpoint, {
+			method: 'POST',
+			headers,
+			body: JSON.stringify({
+				query: `
+					query GetMyTasks($first: Int, $condition: TaskCondition) {
+						allTasks(
+							first: $first
+							condition: $condition
+							orderBy: [DUE_DATE_ASC, PRIORITY_DESC, CREATED_AT_DESC]
+						) {
+							nodes {
+								id
+								nodeId
+								title
+								description
+								status
+								priority
+								dueDate
+								assigneeId
+								creatorId
+								taskTypeId
+								parentTaskId
+								requiresManualReassignment
+								archived
+								createdAt
+								updatedAt
+								userByAssigneeId {
+									id
+									displayName
+									email
+								}
+								userByCreatorId {
+									id
+									displayName
+									email
+								}
+								taskTypeByTaskTypeId {
+									id
+									name
+									description
+									isSystem
+								}
+								taskByParentTaskId {
+									id
+									title
+									status
+								}
+								tasksByParentTaskId {
+									totalCount
+								}
+								taskDependenciesByBlockedTaskId {
+									totalCount
+									nodes {
+										id
+										blockingTaskId
+										taskByBlockingTaskId {
+											id
+											title
+											status
+										}
+									}
+								}
+							}
+							pageInfo {
+								hasNextPage
+								hasPreviousPage
+							}
+							totalCount
+						}
+					}
+				`,
+				variables: {
+					first: 100,
+					condition: Object.keys(condition).length > 0 ? condition : null
+				}
+			})
+		});
+
+		const tasksData = await tasksResponse.json();
+
+		if (tasksData.errors) {
+			console.error('[My Tasks] GraphQL errors:', tasksData.errors);
+			throw new Error(tasksData.errors[0]?.message || 'Failed to load tasks');
 		}
 
-		// Fetch user's tasks using getDepartmentTasks
-		const tasksResult = await tasksOps.getDepartmentTasks({
-			first: limit,
-			offset: (page - 1) * limit,
-			filter,
-			userCredentials
-		});
+		let tasks = tasksData?.data?.allTasks?.nodes || [];
 
-		// Get task statistics for the user
-		const allUserTasksResult = await tasksOps.getDepartmentTasks({
-			first: 1000, // Get all for statistics
-			offset: 0,
-			filter: {
-				assigneeId: locals.user.id
-			},
-			userCredentials
-		});
+		// Client-side search filtering
+		if (searchTerm) {
+			const searchLower = searchTerm.toLowerCase();
+			tasks = tasks.filter((task: any) => {
+				const title = task.title?.toLowerCase() || '';
+				const description = task.description?.toLowerCase() || '';
+				return title.includes(searchLower) || description.includes(searchLower);
+			});
+		}
+
+		// Calculate task statistics
+		const taskStats = {
+			total: tasks.length,
+			notStarted: tasks.filter((t: any) => t.status === 'Not Started').length,
+			inProgress: tasks.filter((t: any) => t.status === 'In Progress').length,
+			blocked: tasks.filter((t: any) => t.status === 'Blocked').length,
+			completed: tasks.filter((t: any) => t.status === 'Completed').length,
+			overdue: tasks.filter((t: any) => {
+				if (!t.dueDate) return false;
+				return new Date(t.dueDate) < new Date() && t.status !== 'Completed';
+			}).length
+		};
+
+		// Get standardized user permissions
+		const userPermissions = getUserPermissions(locals);
 
 		return {
-			tasks: tasksResult.tasks,
-			totalCount: tasksResult.totalCount,
-			hasNextPage: tasksResult.hasNextPage,
-			allTasks: allUserTasksResult.tasks, // For statistics calculation
-			currentPage: page,
-			limit,
+			user: userPermissions.user,
+			userSession: userSession.toJSON(),
+			tasks,
+			totalTasks: tasks.length,
+			taskStats,
 			filters: {
-				status: statusFilter,
-				priority: priorityFilter,
-				sortBy
+				searchTerm,
+				statusFilter,
+				priorityFilter
 			},
-			user: locals.user
+			...userPermissions,
+			loadedAt: new Date().toISOString()
 		};
-	} catch (err: any) {
-		console.error('Error loading tasks:', err);
+	} catch (err) {
+		console.error('[My Tasks Load Error]', err);
 
-		// Handle specific error cases
-		if (err.message?.includes('unauthorized') || err.message?.includes('authentication')) {
-			throw redirect(303, `/login?redirectTo=${url.pathname}`);
-		}
+		const errorResponse = createErrorResponse(
+			err instanceof Error ? err : new Error('My tasks load failed'),
+			{
+				type: 'DATA_LOAD_ERROR',
+				userMessage: 'Unable to load your tasks. Please refresh the page or try again later.'
+			}
+		);
+
+		console.error('[My Tasks Error Details]', {
+			userId: locals.user?.id,
+			error: errorResponse
+		});
 
 		throw error(500, {
-			message: 'Failed to load tasks. Please try again later.'
+			message: 'My tasks temporarily unavailable',
+			details: errorResponse.userMessage
 		});
 	}
 };

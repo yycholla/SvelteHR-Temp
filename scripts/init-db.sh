@@ -158,6 +158,13 @@ get_migration_files() {
         "20251007_012_updated_at_triggers.sql"
         "20251007_013_rls_policies.sql"
         "20251008_001_add_event_reminder_time.sql"
+        "20251009_001_create_task_enums.sql"
+        "20251009_002_create_task_types_table.sql"
+        "20251009_003_create_tasks_table.sql"
+        "20251009_004_create_task_audit_entries.sql"
+        "20251009_005_create_task_dependencies.sql"
+        "20251009_006_create_linked_resources.sql"
+        "20251009_007_create_rls_policies.sql"
     )
 
     # Seed data (always last)

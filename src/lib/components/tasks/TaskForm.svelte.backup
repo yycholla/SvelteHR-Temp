@@ -1,0 +1,713 @@
+<!--
+  TaskForm Component
+  Feature: 028-task-system-expansion - Task T028
+  
+  Comprehensive task create/edit form with validation
+  - Parent task selection (for subtasks)
+  - Assignee selection (user dropdown)
+  - Task type selection
+  - Priority and status selection
+  - Due date picker with reminder configuration
+  - Description rich text editor
+  - Form validation and error handling
+-->
+
+<script lang="ts">
+	import type { Task, TaskStatus, TaskPriority, TaskType } from '$lib/types/task';
+	import type { User } from '$lib/types/user';
+	import type { CreateTaskInput, UpdateTaskInput } from '$lib/graphql/tasks-operations';
+	import { validateTaskInput } from '$lib/graphql/tasks-operations';
+	import * as Select from '$lib/components/ui/select';
+	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import { Textarea } from '$lib/components/ui/textarea';
+	import { Label } from '$lib/components/ui/label';
+	import { Switch } from '$lib/components/ui/switch';
+	import { Calendar, CheckSquare, AlertCircle, User as UserIcon, Clock } from 'lucide-svelte';
+	import { format } from 'date-fns';
+
+	interface Props {
+		task?: Task | null; // For edit mode
+		taskTypes?: TaskType[];
+		users?: User[];
+		assignees?: User[]; // Alternative name for users (compatibility)
+		parentTasks?: Task[]; // Available parent tasks (excluding current task and its children)
+		onSubmit: (data: CreateTaskInput | UpdateTaskInput) => Promise<void>;
+		onCancel: () => void;
+		loading?: boolean;
+	}
+
+	let {
+		task = null,
+		taskTypes = [],
+		users = [],
+		assignees = [],
+		parentTasks = [],
+		onSubmit,
+		onCancel,
+		loading = false
+	}: Props = $props();
+
+	// Use assignees if provided, otherwise use users
+	let availableUsers = $derived(assignees.length > 0 ? assignees : users);
+
+	// Form mode
+	let isEditing = $derived(task !== null);
+	let formTitle = $derived(isEditing ? 'Edit Task' : 'Create New Task');
+
+	// Form state
+	// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
+	let formData = $state({
+		title: task?.title || '',
+		description: task?.description || '',
+		assigneeId: task?.assigneeId || '',
+		taskTypeId: task?.taskTypeId || '',
+		status: task?.status || ('TO_DO' as TaskStatus),
+		priority: task?.priority || ('MEDIUM' as TaskPriority),
+		dueDate: task?.dueDate ? format(new Date(task.dueDate), 'yyyy-MM-dd') : '',
+		parentTaskId: task?.parentTaskId || '',
+		reminderTime: 60, // Default 60 minutes before due date
+		requiresManualReassignment: task?.requiresManualReassignment || false
+	});
+
+	// Search state for dropdowns
+	let assigneeSearchTerm = $state('');
+	let parentTaskSearchTerm = $state('');
+
+	// Validation state
+	let validationErrors = $state<string[]>([]);
+	let fieldErrors = $state<Record<string, string>>({});
+
+	// Derived state
+	let isValid = $derived(() => {
+		// Required fields
+		if (!formData.title.trim()) return false;
+		if (!formData.assigneeId) return false;
+		if (!formData.taskTypeId) return false;
+
+		// No validation errors
+		return validationErrors.length === 0;
+	});
+
+	// Status options
+	// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
+	const statusOptions = [
+		{ value: 'TO_DO', label: 'To Do' },
+		{ value: 'IN_PROGRESS', label: 'In Progress' },
+		{ value: 'BLOCKED', label: 'Blocked' },
+		{ value: 'DEFERRED', label: 'Deferred' },
+		{ value: 'COMPLETED', label: 'Completed' }
+	];
+
+	// Priority options with colors
+	// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
+	const priorityOptions = [
+		{ value: 'LOW', label: 'Low', color: 'text-gray-600' },
+		{ value: 'MEDIUM', label: 'Medium', color: 'text-blue-600' },
+		{ value: 'HIGH', label: 'High', color: 'text-orange-600' },
+		{ value: 'URGENT', label: 'Urgent', color: 'text-red-600' }
+	];
+
+	// Reminder time options (in minutes)
+	const reminderTimeOptions = [
+		{ value: 15, label: '15 minutes before' },
+		{ value: 30, label: '30 minutes before' },
+		{ value: 60, label: '1 hour before' },
+		{ value: 120, label: '2 hours before' },
+		{ value: 240, label: '4 hours before' },
+		{ value: 1440, label: '1 day before' },
+		{ value: 2880, label: '2 days before' },
+		{ value: 10080, label: '1 week before' }
+	];
+
+	// Computed options for select fields
+	let taskTypeOptions = $derived(
+		taskTypes.map((type) => ({
+			value: type.id,
+			label: type.name
+		}))
+	);
+
+	let userOptions = $derived(
+		availableUsers.map((user) => ({
+			value: user.id,
+			label: user.displayName || user.email
+		}))
+	);
+
+	// Filtered user options based on search
+	let filteredUserOptions = $derived(() => {
+		if (!assigneeSearchTerm.trim()) return userOptions;
+		const searchLower = assigneeSearchTerm.toLowerCase();
+		return userOptions.filter((user) => user.label.toLowerCase().includes(searchLower));
+	});
+
+	let parentTaskOptions = $derived([
+		{ value: '', label: 'None (Top-level task)' },
+		...parentTasks.map((parentTask) => ({
+			value: parentTask.id,
+			label: parentTask.title
+		}))
+	]);
+
+	// Filtered parent task options based on search
+	let filteredParentTaskOptions = $derived(() => {
+		if (!parentTaskSearchTerm.trim()) return parentTaskOptions;
+		const searchLower = parentTaskSearchTerm.toLowerCase();
+		return parentTaskOptions.filter((task) => task.label.toLowerCase().includes(searchLower));
+	});
+
+	// Selected values for Select components (Svelte 5 runes format)
+	// Note: $derived creates a reactive value, not a function
+	let selectedAssignee = $derived(userOptions.find((opt) => opt.value === formData.assigneeId));
+
+	let selectedTaskType = $derived(taskTypeOptions.find((opt) => opt.value === formData.taskTypeId));
+
+	let selectedParentTask = $derived(
+		parentTaskOptions.find((opt) => opt.value === formData.parentTaskId)
+	);
+
+	let selectedStatus = $derived(statusOptions.find((opt) => opt.value === formData.status));
+
+	let selectedPriority = $derived(priorityOptions.find((opt) => opt.value === formData.priority));
+
+	let selectedReminderTime = $derived(
+		reminderTimeOptions.find((opt) => opt.value === formData.reminderTime)
+	);
+
+	// Debug logging
+	$effect(() => {
+		console.log('[TaskForm] Available users:', availableUsers.length);
+		console.log('[TaskForm] User options:', userOptions);
+		console.log('[TaskForm] Task types:', taskTypes.length);
+		console.log('[TaskForm] Selected assignee:', selectedAssignee);
+		console.log('[TaskForm] Form data assigneeId:', formData.assigneeId);
+	});
+
+	// Validate form on data changes
+	$effect(() => {
+		const validation = validateTaskInput({
+			title: formData.title,
+			description: formData.description || undefined,
+			dueDate: formData.dueDate || undefined
+		});
+
+		validationErrors = validation.errors;
+
+		// Field-specific errors
+		const newFieldErrors: Record<string, string> = {};
+		if (!formData.title.trim()) {
+			newFieldErrors.title = 'Title is required';
+		} else if (formData.title.length > 255) {
+			newFieldErrors.title = 'Title must be less than 255 characters';
+		}
+
+		if (formData.description && formData.description.length > 5000) {
+			newFieldErrors.description = 'Description must be less than 5000 characters';
+		}
+
+		if (!formData.assigneeId) {
+			newFieldErrors.assigneeId = 'Assignee is required';
+		}
+
+		if (!formData.taskTypeId) {
+			newFieldErrors.taskTypeId = 'Task type is required';
+		}
+
+		if (formData.dueDate) {
+			const dueDate = new Date(formData.dueDate);
+			const now = new Date();
+			if (dueDate < now) {
+				newFieldErrors.dueDate = 'Due date cannot be in the past';
+			}
+		}
+
+		fieldErrors = newFieldErrors;
+	});
+
+	// Handle form submission
+	async function handleSubmit(e: Event) {
+		e.preventDefault();
+
+		if (!isValid()) {
+			return;
+		}
+
+		try {
+			if (isEditing && task) {
+				// Update task
+				const updateData: UpdateTaskInput = {
+					id: task.id,
+					taskPatch: {
+						title: formData.title,
+						description: formData.description || null,
+						assigneeId: formData.assigneeId,
+						taskTypeId: formData.taskTypeId,
+						status: formData.status,
+						priority: formData.priority,
+						dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : null,
+						parentTaskId: formData.parentTaskId || null,
+						requiresManualReassignment: formData.requiresManualReassignment
+					}
+				};
+				await onSubmit(updateData);
+			} else {
+				// Create task
+				const createData: CreateTaskInput = {
+					task: {
+						title: formData.title,
+						description: formData.description || undefined,
+						assigneeId: formData.assigneeId,
+						taskTypeId: formData.taskTypeId,
+						status: formData.status,
+						priority: formData.priority,
+						dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : undefined,
+						parentTaskId: formData.parentTaskId || undefined,
+						requiresManualReassignment: formData.requiresManualReassignment
+					}
+				};
+				await onSubmit(createData);
+			}
+		} catch (error) {
+			console.error('[TaskForm] Submit error:', error);
+			// Error handled by parent component
+		}
+	}
+
+	// Handle cancel
+	function handleCancel() {
+		onCancel();
+	}
+
+	// Reset form
+	function handleReset() {
+		if (isEditing && task) {
+			formData = {
+				title: task.title,
+				description: task.description || '',
+				assigneeId: task.assigneeId,
+				taskTypeId: task.taskTypeId,
+				status: task.status,
+				priority: task.priority,
+				dueDate: task.dueDate ? format(new Date(task.dueDate), 'yyyy-MM-dd') : '',
+				parentTaskId: task.parentTaskId || '',
+				reminderTime: 60,
+				requiresManualReassignment: task.requiresManualReassignment
+			};
+		} else {
+			formData = {
+				title: '',
+				description: '',
+				assigneeId: '',
+				taskTypeId: '',
+				status: 'TO_DO' as TaskStatus,
+				priority: 'MEDIUM' as TaskPriority,
+				dueDate: '',
+				parentTaskId: '',
+				reminderTime: 60,
+				requiresManualReassignment: false
+			};
+		}
+		validationErrors = [];
+		fieldErrors = {};
+	}
+</script>
+
+<div class="task-form">
+	<!-- Form Header -->
+	<div class="mb-6 flex items-center gap-3">
+		<CheckSquare class="h-6 w-6 text-primary" />
+		<h2 class="text-2xl font-bold text-foreground">{formTitle}</h2>
+	</div>
+
+	<!-- Validation Errors Summary -->
+	{#if validationErrors.length > 0}
+		<div class="mb-4 rounded-lg border border-destructive bg-destructive/10 p-4">
+			<div class="flex items-start gap-2">
+				<AlertCircle class="mt-0.5 h-5 w-5 flex-shrink-0 text-destructive" />
+				<div class="flex-1">
+					<h3 class="mb-1 font-semibold text-destructive">Please fix the following errors:</h3>
+					<ul class="list-inside list-disc space-y-1 text-sm text-destructive">
+						{#each validationErrors as error}
+							<li>{error}</li>
+						{/each}
+					</ul>
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	<form onsubmit={handleSubmit} class="space-y-6">
+		<!-- Basic Information Section -->
+		<div class="space-y-4 rounded-lg border bg-card p-6">
+			<h3 class="border-b pb-2 text-lg font-semibold">Basic Information</h3>
+
+			<!-- Title -->
+			<div class="space-y-2">
+				<Label for="title">
+					Task Title <span class="text-destructive">*</span>
+				</Label>
+				<Input
+					id="title"
+					bind:value={formData.title}
+					placeholder="Enter task title"
+					class={fieldErrors.title ? 'border-destructive' : ''}
+					maxlength={255}
+					required
+				/>
+				{#if fieldErrors.title}
+					<p class="text-sm text-destructive">{fieldErrors.title}</p>
+				{/if}
+			</div>
+
+			<!-- Description -->
+			<div class="space-y-2">
+				<Label for="description">Description</Label>
+				<Textarea
+					id="description"
+					bind:value={formData.description}
+					placeholder="Enter task description (optional)"
+					class={fieldErrors.description ? 'border-destructive' : ''}
+					rows={5}
+					maxlength={5000}
+				/>
+				{#if fieldErrors.description}
+					<p class="text-sm text-destructive">{fieldErrors.description}</p>
+				{/if}
+				<p class="text-xs text-muted-foreground">
+					{formData.description?.length || 0} / 5000 characters
+				</p>
+			</div>
+		</div>
+
+		<!-- Assignment Section -->
+		<div class="space-y-4 rounded-lg border bg-card p-6">
+			<h3 class="flex items-center gap-2 border-b pb-2 text-lg font-semibold">
+				<UserIcon class="h-4 w-4" />
+				Assignment
+			</h3>
+
+			<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+				<!-- Assignee -->
+				<div class="space-y-2">
+					<Label for="assignee">
+						Assign To <span class="text-destructive">*</span>
+					</Label>
+					<Select.Root
+						selected={selectedAssignee}
+						onSelectedChange={(v) => {
+							console.log('[TaskForm] Assignee changed:', v);
+							formData.assigneeId = v?.value || '';
+							assigneeSearchTerm = ''; // Reset search on selection
+						}}
+					>
+						<Select.Trigger
+							id="assignee"
+							class={fieldErrors.assigneeId ? 'border-destructive' : ''}
+						>
+							<UserIcon class="mr-2 h-4 w-4 text-muted-foreground" />
+							{#if selectedAssignee}
+								<span class="flex-1 text-left">{selectedAssignee.label}</span>
+							{:else}
+								<span class="flex-1 text-left text-muted-foreground">Select assignee</span>
+							{/if}
+						</Select.Trigger>
+						<Select.Content class="max-h-[300px]">
+							{#if userOptions.length === 0}
+								<div class="p-4 text-center text-sm text-muted-foreground">No users available</div>
+							{:else}
+								<!-- Search Input -->
+								<div class="sticky top-0 z-10 border-b bg-popover p-2">
+									<Input
+										type="text"
+										placeholder="Search users..."
+										bind:value={assigneeSearchTerm}
+										class="h-8 text-sm"
+										onclick={(e) => e.stopPropagation()}
+										onkeydown={(e) => e.stopPropagation()}
+									/>
+								</div>
+
+								<!-- Scrollable User List -->
+								<div class="max-h-[200px] overflow-y-auto">
+									{#if filteredUserOptions().length === 0}
+										<div class="p-4 text-center text-sm text-muted-foreground">
+											No users found matching "{assigneeSearchTerm}"
+										</div>
+									{:else}
+										{#each filteredUserOptions() as user}
+											<Select.Item value={user.value} label={user.label}>{user.label}</Select.Item>
+										{/each}
+									{/if}
+								</div>
+							{/if}
+						</Select.Content>
+					</Select.Root>
+					{#if fieldErrors.assigneeId}
+						<p class="text-sm text-destructive">{fieldErrors.assigneeId}</p>
+					{/if}
+					{#if userOptions.length > 0}
+						<p class="text-xs text-muted-foreground">
+							{filteredUserOptions().length} of {userOptions.length} users
+						</p>
+					{/if}
+				</div>
+
+				<!-- Task Type -->
+				<div class="space-y-2">
+					<Label for="taskType">
+						Task Type <span class="text-destructive">*</span>
+					</Label>
+					<Select.Root
+						selected={selectedTaskType}
+						onSelectedChange={(v) => {
+							formData.taskTypeId = v?.value || '';
+						}}
+					>
+						<Select.Trigger
+							id="taskType"
+							class={fieldErrors.taskTypeId ? 'border-destructive' : ''}
+						>
+							{#if selectedTaskType}
+								<span class="flex-1 text-left">{selectedTaskType.label}</span>
+							{:else}
+								<span class="flex-1 text-left text-muted-foreground">Select task type</span>
+							{/if}
+						</Select.Trigger>
+						<Select.Content>
+							{#if taskTypeOptions.length === 0}
+								<div class="p-4 text-center text-sm text-muted-foreground">
+									No task types available
+								</div>
+							{:else}
+								{#each taskTypeOptions as type}
+									<Select.Item value={type.value} label={type.label}>{type.label}</Select.Item>
+								{/each}
+							{/if}
+						</Select.Content>
+					</Select.Root>
+					{#if fieldErrors.taskTypeId}
+						<p class="text-sm text-destructive">{fieldErrors.taskTypeId}</p>
+					{/if}
+				</div>
+			</div>
+
+			<!-- Parent Task (for subtasks) -->
+			<div class="space-y-2">
+				<Label for="parentTask">Parent Task (Optional)</Label>
+				<Select.Root
+					selected={selectedParentTask}
+					onSelectedChange={(v) => {
+						formData.parentTaskId = v?.value || '';
+						parentTaskSearchTerm = ''; // Reset search on selection
+					}}
+				>
+					<Select.Trigger id="parentTask">
+						{#if formData.parentTaskId && selectedParentTask}
+							<span class="flex-1 text-left">{selectedParentTask.label}</span>
+						{:else}
+							<span class="flex-1 text-left text-muted-foreground">None (Top-level task)</span>
+						{/if}
+					</Select.Trigger>
+					<Select.Content class="max-h-[300px]">
+						{#if parentTaskOptions.length > 1}
+							<!-- Search Input (only show if there are tasks beyond "None") -->
+							<div class="sticky top-0 z-10 border-b bg-popover p-2">
+								<Input
+									type="text"
+									placeholder="Search tasks..."
+									bind:value={parentTaskSearchTerm}
+									class="h-8 text-sm"
+									onclick={(e) => e.stopPropagation()}
+									onkeydown={(e) => e.stopPropagation()}
+								/>
+							</div>
+
+							<!-- Scrollable Task List -->
+							<div class="max-h-[200px] overflow-y-auto">
+								{#if filteredParentTaskOptions().length === 0}
+									<div class="p-4 text-center text-sm text-muted-foreground">
+										No tasks found matching "{parentTaskSearchTerm}"
+									</div>
+								{:else}
+									{#each filteredParentTaskOptions() as parent}
+										<Select.Item value={parent.value} label={parent.label}
+											>{parent.label}</Select.Item
+										>
+									{/each}
+								{/if}
+							</div>
+						{:else}
+							<!-- No tasks available, just show the "None" option -->
+							{#each parentTaskOptions as parent}
+								<Select.Item value={parent.value} label={parent.label}>{parent.label}</Select.Item>
+							{/each}
+						{/if}
+					</Select.Content>
+				</Select.Root>
+				<p class="text-xs text-muted-foreground">
+					{#if parentTaskOptions.length > 1}
+						{filteredParentTaskOptions().length} of {parentTaskOptions.length} tasks available
+					{:else}
+						Select a parent task to create a subtask
+					{/if}
+				</p>
+			</div>
+		</div>
+
+		<!-- Status & Priority Section -->
+		<div class="space-y-4 rounded-lg border bg-card p-6">
+			<h3 class="border-b pb-2 text-lg font-semibold">Status & Priority</h3>
+
+			<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+				<!-- Status -->
+				<div class="space-y-2">
+					<Label for="status">Status</Label>
+					<Select.Root
+						selected={selectedStatus}
+						onSelectedChange={(v) => {
+							formData.status = (v?.value as TaskStatus) || 'TO_DO';
+						}}
+					>
+						<Select.Trigger id="status">
+							{#if selectedStatus}
+								<span class="flex-1 text-left">{selectedStatus.label}</span>
+							{:else}
+								<span class="flex-1 text-left text-muted-foreground">Select status</span>
+							{/if}
+						</Select.Trigger>
+						<Select.Content>
+							{#each statusOptions as status}
+								<Select.Item value={status.value} label={status.label}>{status.label}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
+				</div>
+
+				<!-- Priority -->
+				<div class="space-y-2">
+					<Label for="priority">Priority</Label>
+					<Select.Root
+						selected={selectedPriority}
+						onSelectedChange={(v) => {
+							formData.priority = (v?.value as TaskPriority) || 'MEDIUM';
+						}}
+					>
+						<Select.Trigger id="priority">
+							{#if selectedPriority}
+								<span class="flex-1 text-left">{selectedPriority.label}</span>
+							{:else}
+								<span class="flex-1 text-left text-muted-foreground">Select priority</span>
+							{/if}
+						</Select.Trigger>
+						<Select.Content>
+							{#each priorityOptions as priority}
+								<Select.Item value={priority.value} label={priority.label}>
+									<span class={priority.color}>{priority.label}</span>
+								</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
+				</div>
+			</div>
+		</div>
+
+		<!-- Due Date & Reminders Section -->
+		<div class="space-y-4 rounded-lg border bg-card p-6">
+			<h3 class="flex items-center gap-2 border-b pb-2 text-lg font-semibold">
+				<Clock class="h-4 w-4" />
+				Due Date & Reminders
+			</h3>
+
+			<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+				<!-- Due Date -->
+				<div class="space-y-2">
+					<Label for="dueDate">Due Date</Label>
+					<div class="relative">
+						<Input
+							id="dueDate"
+							type="date"
+							bind:value={formData.dueDate}
+							class={fieldErrors.dueDate ? 'border-destructive' : ''}
+						/>
+						<Calendar
+							class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+						/>
+					</div>
+					{#if fieldErrors.dueDate}
+						<p class="text-sm text-destructive">{fieldErrors.dueDate}</p>
+					{/if}
+				</div>
+
+				<!-- Reminder Time -->
+				{#if formData.dueDate}
+					<div class="space-y-2">
+						<Label for="reminderTime">Reminder Before Due Date</Label>
+						<Select.Root
+							selected={selectedReminderTime}
+							onSelectedChange={(v) => {
+								formData.reminderTime = v?.value || 60;
+							}}
+						>
+							<Select.Trigger id="reminderTime">
+								{#if selectedReminderTime}
+									<span class="flex-1 text-left">{selectedReminderTime.label}</span>
+								{:else}
+									<span class="flex-1 text-left text-muted-foreground">Select reminder time</span>
+								{/if}
+							</Select.Trigger>
+							<Select.Content>
+								{#each reminderTimeOptions as reminder}
+									<Select.Item value={reminder.value} label={reminder.label}
+										>{reminder.label}</Select.Item
+									>
+								{/each}
+							</Select.Content>
+						</Select.Root>
+						<p class="text-xs text-muted-foreground">You'll be notified before the task is due</p>
+					</div>
+				{/if}
+			</div>
+		</div>
+
+		<!-- Advanced Options Section -->
+		<div class="space-y-4 rounded-lg border bg-card p-6">
+			<h3 class="border-b pb-2 text-lg font-semibold">Advanced Options</h3>
+
+			<!-- Requires Manual Reassignment -->
+			<div class="flex items-center justify-between">
+				<div class="space-y-0.5">
+					<Label>Requires Manual Reassignment</Label>
+					<p class="text-sm text-muted-foreground">
+						Prevent automatic reassignment during organizational changes
+					</p>
+				</div>
+				<Switch bind:checked={formData.requiresManualReassignment} />
+			</div>
+		</div>
+
+		<!-- Form Actions -->
+		<div class="flex items-center justify-between border-t pt-6">
+			<Button type="button" variant="ghost" onclick={handleReset} disabled={loading}>Reset</Button>
+
+			<div class="flex items-center gap-3">
+				<Button type="button" variant="outline" onclick={handleCancel} disabled={loading}>
+					Cancel
+				</Button>
+
+				<Button type="submit" disabled={!isValid() || loading} class="min-w-32">
+					{#if loading}
+						<div class="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
+					{/if}
+					{isEditing ? 'Update Task' : 'Create Task'}
+				</Button>
+			</div>
+		</div>
+	</form>
+</div>
+
+<style>
+	.task-form {
+		@apply mx-auto max-w-4xl p-6;
+	}
+</style>

@@ -123,15 +123,16 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		// Feature 027: Fetch all employees for attendee picker in event creation
 		const FETCH_ALL_EMPLOYEES = gql`
 			query FetchAllEmployees {
-				allUsers(orderBy: DISPLAY_NAME_ASC) {
+				allUsers(orderBy: [DISPLAY_NAME_ASC]) {
 					nodes {
 						id
 						displayName
 						email
-						jobTitle
-						department {
+						departmentId
+						profileByUserId {
 							id
-							name
+							jobTitle
+							department
 						}
 					}
 				}
@@ -139,7 +140,18 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		`;
 
 		const employeesResult = await urqlClient.query(FETCH_ALL_EMPLOYEES, {}).toPromise();
-		const employees = employeesResult.data?.allUsers?.nodes || [];
+
+		// Transform employees to match expected interface
+		const employees = (employeesResult.data?.allUsers?.nodes || []).map((user: any) => ({
+			id: user.id,
+			displayName: user.displayName,
+			email: user.email,
+			jobTitle: user.profileByUserId?.jobTitle,
+			department: user.profileByUserId?.department ? {
+				id: user.departmentId,
+				name: user.profileByUserId.department
+			} : undefined
+		}));
 
 		// Feature 026: Helper functions are available at module level
 		// (fetchEventComments, fetchEventHistory, fetchUserWaitlistStatus)
