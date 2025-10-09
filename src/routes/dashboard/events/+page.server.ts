@@ -76,6 +76,11 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			filter.event_type = typeFilter;
 		}
 
+		// Feature 027: 3-month buffer strategy
+		// TODO: Implement date range filtering when PostGraphile filter syntax is confirmed
+		// Current approach: Fetch all events and let client-side filtering handle it
+		// const { bufferStart, bufferEnd } = calculate3MonthBuffer(new Date());
+
 		// Fetch events visible to the user (RLS handles visibility rules)
 		const eventsResult = await eventsOps.getAllEvents({
 			first: limit,
@@ -115,6 +120,27 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		// Permissions come from JWT token in locals.permissions
 		const canCreateEvents = locals.permissions?.includes('*') || locals.permissions?.includes('manage_events') || false;
 
+		// Feature 027: Fetch all employees for attendee picker in event creation
+		const FETCH_ALL_EMPLOYEES = gql`
+			query FetchAllEmployees {
+				allUsers(orderBy: DISPLAY_NAME_ASC) {
+					nodes {
+						id
+						displayName
+						email
+						jobTitle
+						department {
+							id
+							name
+						}
+					}
+				}
+			}
+		`;
+
+		const employeesResult = await urqlClient.query(FETCH_ALL_EMPLOYEES, {}).toPromise();
+		const employees = employeesResult.data?.allUsers?.nodes || [];
+
 		// Feature 026: Helper functions are available at module level
 		// (fetchEventComments, fetchEventHistory, fetchUserWaitlistStatus)
 		// These will be called from page component when dialog opens for better performance
@@ -134,7 +160,9 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			},
 			statistics: stats,
 			canCreateEvents,
-			user: locals.user
+			user: locals.user,
+			// Feature 027: Pass employees for attendee picker and all events for conflict detection
+			employees
 			// Feature 026: For per-event data fetching (comments/history/waitlist),
 			// create API endpoints instead of passing urqlClient to client
 		};

@@ -1,6 +1,7 @@
 <!--
   EventCalendar Component
   Feature: 019-we-need-to - Phase 4
+  Feature: 027-we-need-to - RRULE Support
 
   Full-featured calendar view for events with FullCalendar integration
 
@@ -12,13 +13,17 @@
   - Event filtering by visibility type
   - Responsive design for mobile
   - Interactive event details
+  - Recurring events with RRULE (RFC 5545) support
+  - Reminder indicators
 
   Props:
-  - events: Array of event objects
+  - events: Array of event objects (supports RRULE for recurring events)
   - userId: Current user ID for RSVP status
   - canManageEvents: Whether user can create/edit events
+  - localRsvpStatuses: Local RSVP status map for optimistic UI updates
   - onEventClick: Callback when event is clicked
   - onDateClick: Callback when date is clicked (for event creation)
+  - onDateSelect: Callback when date range is selected
   - onEventDrop: Callback when event is dragged to new date
   - visibilityFilter?: Filter events by visibility type
 -->
@@ -34,6 +39,9 @@
 	import { browser } from '$app/environment';
 	import type { EventInput } from '@fullcalendar/core';
 	import { Bell } from 'lucide-svelte';
+
+	// Feature 027: Import conflict detection utility
+	import { detectConflict } from '$lib/utils/calendar';
 
 	// Props with Svelte 5 runes syntax
 	let {
@@ -90,20 +98,35 @@
 			);
 			const hasReminder = userAttendee?.reminderTime != null && userAttendee.reminderTime > 0;
 
-			return {
+			// Feature 027: Handle recurring events with RRULE
+			const calendarEvent: any = {
 				id: event.id,
 				title: event.title,
-				start: event.startTime,
-				end: event.endTime,
-				allDay: event.allDay,
 				backgroundColor: colorMap[rsvpStatus],
 				borderColor: colorMap[rsvpStatus],
+				allDay: event.allDay,
 				extendedProps: {
 					...event,
 					rsvpStatus,
 					hasReminder
 				}
-			} as EventInput;
+			};
+
+			// If event has RRULE, use it instead of start/end dates
+			if (event.rrule) {
+				calendarEvent.rrule = event.rrule;
+				// For RRULE events, duration is calculated from start/end of first occurrence
+				const duration = event.endTime && event.startTime
+					? new Date(event.endTime).getTime() - new Date(event.startTime).getTime()
+					: 3600000; // Default 1 hour
+				calendarEvent.duration = duration;
+			} else {
+				// Non-recurring event uses start/end dates
+				calendarEvent.start = event.startTime;
+				calendarEvent.end = event.endTime;
+			}
+
+			return calendarEvent as EventInput;
 		})
 	);
 
@@ -112,16 +135,23 @@
 		if (!browser) return;
 
 		try {
-			// Dynamically import FullCalendar modules (client-side only)
-			const [{ Calendar }, { default: dayGridPlugin }, { default: timeGridPlugin }, { default: interactionPlugin }] = await Promise.all([
+			// Feature 027: Import RRULE plugin for recurring events support
+			const [
+				{ Calendar },
+				{ default: dayGridPlugin },
+				{ default: timeGridPlugin },
+				{ default: interactionPlugin },
+				{ default: rrulePlugin }
+			] = await Promise.all([
 				import('@fullcalendar/core'),
 				import('@fullcalendar/daygrid'),
 				import('@fullcalendar/timegrid'),
-				import('@fullcalendar/interaction')
+				import('@fullcalendar/interaction'),
+				import('@fullcalendar/rrule')
 			]);
 
 			calendar = new Calendar(calendarEl, {
-				plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
+				plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, rrulePlugin],
 				initialView: 'dayGridMonth',
 				headerToolbar: {
 					left: 'prev,next today',
@@ -135,12 +165,43 @@
 				weekends: true,
 				events: [],
 				eventDidMount: (info) => {
-					const hasReminder = info.event.extendedProps.hasReminder;
-					if (hasReminder) {
-						// Find the event title element
-						const titleEl = info.el.querySelector('.fc-event-title, .fc-event-title-container');
-						if (titleEl) {
-							// Create bell icon SVG
+					const currentEvent = info.event.extendedProps;
+					const hasReminder = currentEvent.hasReminder;
+
+					// Feature 027: Detect conflicts with other accepted events
+					let hasConflict = false;
+					if (localRsvpStatuses[info.event.id] === 'accepted') {
+						// Check if this event conflicts with other accepted events
+						for (const otherEvent of events) {
+							if (otherEvent.id === info.event.id) continue;
+							if (localRsvpStatuses[otherEvent.id] !== 'accepted') continue;
+
+							const conflict = detectConflict(
+								{
+									id: info.event.id,
+									startDate: info.event.start || new Date(),
+									endDate: info.event.end || new Date()
+								},
+								{
+									id: otherEvent.id,
+									startDate: new Date(otherEvent.startTime),
+									endDate: new Date(otherEvent.endTime)
+								}
+							);
+
+							if (conflict) {
+								hasConflict = true;
+								break;
+							}
+						}
+					}
+
+					// Find the event title element
+					const titleEl = info.el.querySelector('.fc-event-title, .fc-event-title-container');
+
+					if (titleEl) {
+						// Add reminder icon if reminder is set
+						if (hasReminder) {
 							const bellIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 							bellIcon.setAttribute('width', '12');
 							bellIcon.setAttribute('height', '12');
@@ -162,8 +223,47 @@
 							path2.setAttribute('d', 'M10.3 21a1.94 1.94 0 0 0 3.4 0');
 							bellIcon.appendChild(path2);
 
-							// Append bell icon to title
 							titleEl.appendChild(bellIcon);
+						}
+
+						// Feature 027: Add conflict warning icon if conflicts detected
+						if (hasConflict) {
+							const conflictIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+							conflictIcon.setAttribute('width', '12');
+							conflictIcon.setAttribute('height', '12');
+							conflictIcon.setAttribute('viewBox', '0 0 24 24');
+							conflictIcon.setAttribute('fill', 'none');
+							conflictIcon.setAttribute('stroke', '#ef4444'); // red color
+							conflictIcon.setAttribute('stroke-width', '2');
+							conflictIcon.setAttribute('stroke-linecap', 'round');
+							conflictIcon.setAttribute('stroke-linejoin', 'round');
+							conflictIcon.style.marginLeft = '0.25rem';
+							conflictIcon.style.display = 'inline-block';
+							conflictIcon.style.verticalAlign = 'middle';
+							conflictIcon.setAttribute('title', 'Schedule conflict detected');
+
+							const triangle = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+							triangle.setAttribute('d', 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z');
+							conflictIcon.appendChild(triangle);
+
+							const exclamation = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+							exclamation.setAttribute('x1', '12');
+							exclamation.setAttribute('y1', '9');
+							exclamation.setAttribute('x2', '12');
+							exclamation.setAttribute('y2', '13');
+							conflictIcon.appendChild(exclamation);
+
+							const dot = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+							dot.setAttribute('x1', '12');
+							dot.setAttribute('y1', '17');
+							dot.setAttribute('x2', '12.01');
+							dot.setAttribute('y2', '17');
+							conflictIcon.appendChild(dot);
+
+							titleEl.appendChild(conflictIcon);
+
+							// Add striped pattern to conflicting events
+							info.el.style.backgroundImage = 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(239, 68, 68, 0.1) 10px, rgba(239, 68, 68, 0.1) 20px)';
 						}
 					}
 				},
@@ -339,9 +439,29 @@
 				</div>
 			</div>
 			<!-- Icons -->
-			<div class="flex items-center gap-1.5 text-xs text-muted-foreground">
-				<Bell class="h-3 w-3" />
-				<span>Reminder set</span>
+			<div class="flex flex-col gap-1">
+				<div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+					<Bell class="h-3 w-3" />
+					<span>Reminder set</span>
+				</div>
+				<!-- Feature 027: Conflict indicator -->
+				<div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+					<svg
+						width="12"
+						height="12"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="#ef4444"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+						<line x1="12" y1="9" x2="12" y2="13"></line>
+						<line x1="12" y1="17" x2="12.01" y2="17"></line>
+					</svg>
+					<span>Schedule conflict</span>
+				</div>
 			</div>
 		</div>
 	</div>

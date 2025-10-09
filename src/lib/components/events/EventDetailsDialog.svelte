@@ -21,6 +21,8 @@
 	import WaitlistButton from './WaitlistButton.svelte';
 	import EventCommentThread from './EventCommentThread.svelte';
 	import EventHistoryView from './EventHistoryView.svelte';
+	import ConflictWarningDialog from './ConflictWarningDialog.svelte';
+	import { findConflictingEvents, type ConflictingEvent } from '$lib/utils/calendar';
 	import { Tabs, TabsList, TabsTrigger, TabsContent } from '$lib/components/ui/tabs';
 	import { Badge } from '$lib/components/ui/badge';
 	import { formatEventTimeRange } from '$lib/utils/events';
@@ -81,6 +83,8 @@
 		userWaitlistStatus?: UserWaitlistStatus;
 		hasMoreComments?: boolean;
 		hasMoreHistory?: boolean;
+		// NEW: Feature 027 - All events for conflict detection
+		allEvents?: Array<EventData>;
 		onClose: () => void;
 		onSuccess?: () => void;
 		onEdit?: () => void;
@@ -109,6 +113,7 @@
 		userWaitlistStatus,
 		hasMoreComments = false,
 		hasMoreHistory = false,
+		allEvents = [],
 		onClose,
 		onSuccess,
 		onEdit,
@@ -175,6 +180,11 @@
 	// NEW: Recurring event scope dialog state (FR-005)
 	let showScopeDialog = $state(false);
 	let pendingRsvpStatus = $state<RsvpStatus | null>(null);
+
+	// NEW: Feature 027 - Conflict detection dialog state
+	let showConflictDialog = $state(false);
+	let detectedConflicts = $state<ConflictingEvent[]>([]);
+	let pendingConflictRsvp = $state<{status: RsvpStatus, scope: 'this_event' | 'this_and_future' | 'all_events'} | null>(null);
 
 	// NEW: Error states for inline error handling (FR-017a, FR-012a)
 	let commentError = $state<string | null>(null);
@@ -297,6 +307,29 @@
 	// NEW: Handle scope selection for recurring events (FR-008)
 	async function handleScopeConfirm(scope: 'this_event' | 'this_and_future' | 'all_events') {
 		if (!pendingRsvpStatus) return;
+
+		// Feature 027: Check for conflicts before updating RSVP (only for accepted/tentative)
+		if ((pendingRsvpStatus === 'accepted' || pendingRsvpStatus === 'tentative') && event && allEvents.length > 0) {
+			const targetEvent = {
+				id: event.id,
+				startDate: new Date(event.startTime),
+				endDate: new Date(event.endTime),
+				userRsvpStatus: pendingRsvpStatus
+			};
+
+			const conflicts = findConflictingEvents(targetEvent, allEvents, userId);
+
+			if (conflicts.length > 0) {
+				// Show conflict dialog instead of updating immediately
+				detectedConflicts = conflicts;
+				pendingConflictRsvp = { status: pendingRsvpStatus, scope };
+				showScopeDialog = false;
+				showConflictDialog = true;
+				return;
+			}
+		}
+
+		// No conflicts, proceed with RSVP update
 		await updateRsvpStatus(pendingRsvpStatus, scope);
 		showScopeDialog = false;
 		pendingRsvpStatus = null;
@@ -485,6 +518,25 @@
 		} catch (error: any) {
 			waitlistError = error.message || 'Failed to leave waitlist. Please try again.';
 		}
+	}
+
+	// NEW: Feature 027 - Handle conflict dialog confirmation
+	async function handleConflictConfirm() {
+		if (!pendingConflictRsvp) return;
+
+		// User confirmed RSVP despite conflicts
+		await updateRsvpStatus(pendingConflictRsvp.status, pendingConflictRsvp.scope);
+		showConflictDialog = false;
+		pendingConflictRsvp = null;
+		detectedConflicts = [];
+	}
+
+	function handleConflictCancel() {
+		// User cancelled RSVP due to conflicts
+		showConflictDialog = false;
+		pendingConflictRsvp = null;
+		detectedConflicts = [];
+		pendingRsvpStatus = null;
 	}
 
 	// Reset form when event changes or dialog opens
@@ -1201,6 +1253,21 @@
 				showScopeDialog = false;
 				pendingRsvpStatus = null;
 			}}
+		/>
+	{/if}
+
+	<!-- NEW: Feature 027 - Conflict Warning Dialog -->
+	{#if event && detectedConflicts.length > 0}
+		<ConflictWarningDialog
+			bind:open={showConflictDialog}
+			conflicts={detectedConflicts}
+			targetEvent={{
+				title: event.title,
+				startDate: new Date(event.startTime),
+				endDate: new Date(event.endTime)
+			}}
+			onConfirm={handleConflictConfirm}
+			onCancel={handleConflictCancel}
 		/>
 	{/if}
 {/if}

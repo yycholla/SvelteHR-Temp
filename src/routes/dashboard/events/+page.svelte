@@ -866,6 +866,7 @@
 		defaultEndTime={createDialogDefaults.endTime}
 		defaultAllDay={createDialogDefaults.allDay}
 		minDate={new Date().toISOString().split('T')[0]}
+		employees={data.employees}
 		onClose={() => (showCreateDialog = false)}
 		onSuccess={() => {
 			showCreateDialog = false;
@@ -886,6 +887,7 @@
 		userWaitlistStatus={userWaitlistStatus}
 		hasMoreComments={hasMoreComments}
 		hasMoreHistory={hasMoreHistory}
+		allEvents={events}
 		onClose={() => {
 			// Close dialog and reset state
 			showDetailsDialog = false;
