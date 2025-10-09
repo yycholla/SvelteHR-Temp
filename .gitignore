@@ -68,3 +68,5 @@ claude-flow.ps1
 hive-mind-prompt-*.txt
 backend/logs/combined.log
 backend/logs/error.log
+backend/package-lock.json
+package-lock.json
