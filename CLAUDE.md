@@ -371,11 +371,391 @@ export const load: PageServerLoad = async ({ cookies }) => {
 ## Key Technology Integrations
 
 **Drag & Drop**: `svelte-dnd-action 0.9.64` for advanced table operations
-**Date Handling**: `date-fns 4.1.0` for date formatting and manipulation  
+**Date Handling**: `date-fns 4.1.0` for date formatting and manipulation
 **Cookie Management**: `js-cookie 3.0.5` for client-side cookie handling
 **JWT Processing**: `jsonwebtoken 9.0.2` for token validation and parsing
 **Class Management**: `clsx 2.1.1` and `tailwind-merge 3.3.1` for conditional styling
 **Path Aliasing**: `@/+` alias configured in `svelte.config.js` points to `./src/lib/+`
+**FullCalendar**: `@fullcalendar/core 6.1.x` with custom Svelte 5 wrapper (no official Svelte adapter)
+**Image Cropping**: `cropperjs 1.6.1` for client-side aspect ratio cropping
+**Image Processing**: `sharp 0.34.4` for server-side image optimization
+
+## Feature 027: Events Calendar UI Integration
+
+**Feature**: 027-we-need-to - Events Calendar with FullCalendar 6.x, Recurring Events, and Image Upload
+
+### FullCalendar Integration Pattern
+
+**Custom Svelte 5 Wrapper** (no official `@fullcalendar/svelte` for Svelte 5):
+
+```svelte
+<script lang="ts">
+	import { onMount, onDestroy } from 'svelte';
+	import { browser } from '$app/environment';
+	import type { EventInput } from '@fullcalendar/core';
+
+	// Props with Svelte 5 runes
+	let {
+		events = [],
+		userId,
+		canManageEvents = false,
+		onEventClick,
+		onDateClick
+	}: {
+		events: any[];
+		userId: string;
+		canManageEvents?: boolean;
+		onEventClick?: (event: any) => void;
+		onDateClick?: (date: Date) => void;
+	} = $props();
+
+	let calendarEl: HTMLElement;
+	let calendar: any = null;
+
+	// Derived: Convert events to FullCalendar format
+	let calendarEvents = $derived(
+		events.map((event) => ({
+			id: event.id,
+			title: event.title,
+			start: event.startTime,
+			end: event.endTime,
+			allDay: event.allDay,
+			backgroundColor: getColorByRsvp(event.userRsvpStatus),
+			extendedProps: event
+		} as EventInput))
+	);
+
+	// Initialize calendar on mount (client-side only)
+	onMount(async () => {
+		if (!browser) return;
+
+		// Dynamically import FullCalendar modules
+		const [
+			{ Calendar },
+			{ default: dayGridPlugin },
+			{ default: timeGridPlugin },
+			{ default: interactionPlugin },
+			{ default: rrulePlugin }
+		] = await Promise.all([
+			import('@fullcalendar/core'),
+			import('@fullcalendar/daygrid'),
+			import('@fullcalendar/timegrid'),
+			import('@fullcalendar/interaction'),
+			import('@fullcalendar/rrule')
+		]);
+
+		calendar = new Calendar(calendarEl, {
+			plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, rrulePlugin],
+			initialView: 'dayGridMonth',
+			headerToolbar: {
+				left: 'prev,next today',
+				center: 'title',
+				right: 'dayGridMonth,timeGridWeek,timeGridDay'
+			},
+			editable: canManageEvents,
+			selectable: canManageEvents,
+			events: [],
+			eventClick: (info) => {
+				onEventClick?.(info.event.extendedProps);
+			},
+			dateClick: (info) => {
+				onDateClick?.(info.date);
+			}
+		});
+
+		calendar.render();
+	});
+
+	// Update events when data changes
+	$effect(() => {
+		if (calendar && calendarEvents) {
+			calendar.removeAllEvents();
+			calendar.addEventSource(calendarEvents);
+		}
+	});
+
+	onDestroy(() => {
+		calendar?.destroy();
+	});
+</script>
+
+<div bind:this={calendarEl}></div>
+```
+
+### 3-Month Buffer Strategy
+
+**Performance optimization** for large event datasets:
+
+```typescript
+// src/lib/utils/calendar-buffer.ts
+export function calculate3MonthBuffer(currentDate: Date): {
+	bufferStart: Date;
+	bufferEnd: Date;
+} {
+	const year = currentDate.getFullYear();
+	const month = currentDate.getMonth();
+
+	// Previous month start (00:00:00)
+	const bufferStart = new Date(year, month - 1, 1, 0, 0, 0, 0);
+
+	// Next month end (23:59:59.999)
+	const bufferEnd = new Date(year, month + 2, 0, 23, 59, 59, 999);
+
+	return { bufferStart, bufferEnd };
+}
+
+export function shouldPrefetch(
+	targetDate: Date,
+	currentBuffer: { bufferStart: Date; bufferEnd: Date }
+): boolean {
+	// Use UTC methods to avoid timezone issues
+	const targetYear = targetDate.getUTCFullYear();
+	const targetMonth = targetDate.getUTCMonth();
+	const bufferStartMonth = currentBuffer.bufferStart.getUTCMonth();
+	const bufferEndMonth = currentBuffer.bufferEnd.getUTCMonth();
+
+	// Check if target month is outside buffer range
+	if (targetMonth < bufferStartMonth || targetMonth > bufferEndMonth) {
+		return true;
+	}
+	return false;
+}
+```
+
+**Usage in GraphQL query**:
+
+```typescript
+const { bufferStart, bufferEnd } = calculate3MonthBuffer(new Date());
+
+const result = await urqlClient.query(GET_EVENTS_FOR_CALENDAR, {
+	bufferStart: bufferStart.toISOString(),
+	bufferEnd: bufferEnd.toISOString(),
+	userId: user.id
+});
+```
+
+### Recurring Events with RRULE (RFC 5545)
+
+**Generate RRULE strings** for recurring events:
+
+```typescript
+// src/lib/utils/rrule.ts
+export function generateRRule(pattern: RecurrencePattern, startDate: Date): string {
+	const parts = {
+		freq: pattern.frequency.toUpperCase(), // DAILY, WEEKLY, MONTHLY, YEARLY
+		interval: pattern.interval,
+		until: formatDateForRRule(pattern.endDate)
+	};
+
+	// Add BYDAY for weekly recurrence
+	if (pattern.frequency === 'weekly' && pattern.daysOfWeek) {
+		parts.byday = pattern.daysOfWeek.map((day) => DAY_MAP[day]).join(',');
+	}
+
+	return formatRRuleString(parts);
+}
+
+// Example: "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,WE,FR;UNTIL=20251231"
+```
+
+**5-Year limit enforcement**:
+
+```typescript
+export function validate5YearLimit(startDate: Date, endDate: Date): boolean {
+	const fiveYearsLater = new Date(startDate);
+	fiveYearsLater.setFullYear(fiveYearsLater.getFullYear() + 5);
+	return endDate <= fiveYearsLater;
+}
+```
+
+### Image Upload with Cropping
+
+**Client-side cropping** with aspect ratio constraints:
+
+```svelte
+<script lang="ts">
+	import { validateImageFile } from '$lib/utils/image-validation';
+
+	let cropper: any = null;
+
+	async function initCropper(imageUrl: string, aspectRatio: '16:9' | '9:16') {
+		const Cropper = (await import('cropperjs')).default;
+		const ratio = aspectRatio === '16:9' ? 16 / 9 : 9 / 16;
+
+		cropper = new Cropper(imgElement, {
+			aspectRatio: ratio,
+			viewMode: 1,
+			autoCropArea: 1,
+			cropBoxMovable: true,
+			cropBoxResizable: true
+		});
+	}
+
+	async function handleCropConfirm() {
+		const canvas = cropper.getCroppedCanvas({
+			maxWidth: 4096,
+			maxHeight: 4096,
+			imageSmoothingQuality: 'high'
+		});
+
+		canvas.toBlob((blob) => {
+			const file = new File([blob], 'cropped-image.jpg', {
+				type: 'image/jpeg'
+			});
+			onImageSelected(file);
+		}, 'image/jpeg', 0.9);
+	}
+</script>
+```
+
+**Image validation** (10MB, JPEG/PNG/WebP, aspect ratio):
+
+```typescript
+// src/lib/utils/image-validation.ts
+export async function validateImageFile(
+	file: File,
+	expectedAspectRatio: '16:9' | '9:16'
+): Promise<{ valid: boolean; errors: string[] }> {
+	const errors: string[] = [];
+
+	// Size validation (10MB)
+	if (file.size > 10 * 1024 * 1024) {
+		errors.push('File size exceeds 10MB limit');
+	}
+
+	// Type validation
+	const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+	if (!ALLOWED_TYPES.includes(file.type)) {
+		errors.push('Invalid file type. Only JPEG, PNG, and WebP are allowed.');
+	}
+
+	// Aspect ratio validation
+	const img = await loadImage(file);
+	const actualRatio = calculateAspectRatio(img.width, img.height);
+	if (actualRatio !== expectedAspectRatio) {
+		errors.push(`Image aspect ratio is ${actualRatio}, but ${expectedAspectRatio} was expected.`);
+	}
+
+	return { valid: errors.length === 0, errors };
+}
+```
+
+### Conflict Detection Algorithm
+
+**Detect overlapping events** with severity classification:
+
+```typescript
+// src/lib/utils/calendar.ts
+export function detectConflict(event1: CalendarEvent, event2: CalendarEvent): boolean {
+	const start1 = new Date(event1.startDate).getTime();
+	const end1 = new Date(event1.endDate).getTime();
+	const start2 = new Date(event2.startDate).getTime();
+	const end2 = new Date(event2.endDate).getTime();
+
+	// Events overlap if start1 < end2 AND end1 > start2
+	return start1 < end2 && end1 > start2;
+}
+
+export function calculateOverlap(
+	event1: CalendarEvent,
+	event2: CalendarEvent
+): { duration: number; percentage: number } {
+	const overlapStart = Math.max(start1, start2);
+	const overlapEnd = Math.min(end1, end2);
+	const overlapMs = overlapEnd - overlapStart;
+
+	const duration = Math.round(overlapMs / (1000 * 60)); // minutes
+	const percentage = Math.round((overlapMs / event1Duration) * 100);
+
+	return { duration, percentage };
+}
+
+export function classifySeverity(overlapPercentage: number): 'minor' | 'major' {
+	return overlapPercentage >= 30 ? 'major' : 'minor';
+}
+```
+
+**Usage in RSVP flow**:
+
+```typescript
+const conflicts = findConflictingEvents(targetEvent, allEvents);
+if (conflicts.length > 0) {
+	// Show ConflictWarningDialog
+	showConflictDialog = true;
+	conflictData = conflicts;
+}
+```
+
+### GraphQL Subscriptions for Real-Time Updates
+
+**Event update subscription**:
+
+```typescript
+import { subscription } from '@urql/svelte';
+import { ON_EVENT_UPDATE } from '$lib/graphql/events-operations';
+
+const eventUpdates = subscription({
+	query: ON_EVENT_UPDATE,
+	variables: { eventId: event.id }
+});
+
+$effect(() => {
+	if ($eventUpdates.data) {
+		// Update calendar state
+		const updatedEvent = $eventUpdates.data.eventUpdated.event;
+		events = events.map(e => e.id === updatedEvent.id ? updatedEvent : e);
+	}
+});
+```
+
+**Waitlist promotion notification**:
+
+```typescript
+const waitlistPromotions = subscription({
+	query: ON_WAITLIST_PROMOTION,
+	variables: { userId: user.id }
+});
+
+$effect(() => {
+	if ($waitlistPromotions.data?.waitlistPromoted?.promoted) {
+		toast.success(`You've been promoted from the waitlist for ${eventTitle}!`);
+	}
+});
+```
+
+### Event Notification Preferences Store
+
+**Backend-synced preferences** with optimistic UI:
+
+```typescript
+// src/lib/stores/event-notification-prefs.ts
+import { writable } from 'svelte/store';
+
+export const eventNotificationPrefs = createEventNotificationPrefsStore();
+
+// Usage
+await eventNotificationPrefs.load(userId);
+await eventNotificationPrefs.save(userId, preferences);
+eventNotificationPrefs.updateReminderDefaults(true, 15);
+```
+
+### Component Architecture
+
+**New Feature 027 Components**:
+
+1. **ImageUploadWidget** - Drag-drop upload with cropperjs integration
+2. **ConflictWarningDialog** - Show scheduling conflicts with severity
+3. **AttendeePickerModal** - Multi-select employee picker with search
+4. **AttendeeListView** - Attendee list with RSVP status badges
+
+**Integration with existing components** (Feature 025):
+- EventDetailsDialog
+- EventCreateDialog
+- RecurrenceScopeDialog
+- EventCapacityIndicator
+- WaitlistButton
+- EventCommentThread
+- EventHistoryView
 
 ## RBAC Implementation Guide
 

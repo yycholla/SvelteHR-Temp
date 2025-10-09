@@ -1361,6 +1361,429 @@ export function createEventsOperations(client: Client): EventsOperations {
 }
 
 // ============================================================================
+// FEATURE 027: EVENTS CALENDAR UI INTEGRATION WITH RECURRING EVENTS
+// ============================================================================
+
+/**
+ * Query: Get events for calendar with 3-month buffer
+ * Feature: 027-we-need-to - Task T036
+ * Purpose: Load calendar events within 3-month range (current month ± 1)
+ *
+ * Uses 3-month buffer strategy for performance:
+ * - bufferStart: first day of previous month at 00:00:00
+ * - bufferEnd: last day of next month at 23:59:59.999
+ *
+ * Returns:
+ * - Base events (one-time and recurring patterns)
+ * - Expanded recurring occurrences within buffer range
+ * - User's RSVP status for each event
+ * - Conflict detection data (capacity, acceptance count)
+ */
+export const GET_EVENTS_FOR_CALENDAR = gql`
+	query GetEventsForCalendar(
+		$bufferStart: Datetime!
+		$bufferEnd: Datetime!
+		$userId: UUID!
+		$eventTypes: [String!]
+		$visibilityFilter: String
+	) {
+		allEvents(
+			condition: {
+				isPublic: true
+			}
+			filter: {
+				or: [
+					{
+						# One-time events within buffer
+						and: [
+							{ recurrencePattern: { isNull: true } }
+							{ startTime: { greaterThanOrEqualTo: $bufferStart } }
+							{ startTime: { lessThanOrEqualTo: $bufferEnd } }
+						]
+					}
+					{
+						# Recurring events that overlap buffer
+						and: [
+							{ recurrencePattern: { isNull: false } }
+							{ startTime: { lessThanOrEqualTo: $bufferEnd } }
+							{ recurrenceEndDate: { greaterThanOrEqualTo: $bufferStart } }
+						]
+					}
+				]
+			}
+			orderBy: START_TIME_ASC
+		) {
+			nodes {
+				id
+				nodeId
+				title
+				description
+				eventType
+				startTime
+				endTime
+				allDay
+				location
+				organizerId
+				userByOrganizerId {
+					id
+					displayName
+					email
+				}
+				status
+				color
+				isPublic
+				maxCapacity
+				currentAcceptanceCount
+				recurrencePattern
+				recurrenceEndDate
+				imageUrl
+				imageAspectRatio
+				createdAt
+				updatedAt
+				# User's RSVP status for this event
+				eventAttendeesByEventId(condition: { employeeId: $userId }) {
+					nodes {
+						id
+						responseStatus
+						scope
+						reminderTime
+					}
+				}
+				# Acceptance count for conflict detection
+				eventAttendeesByEventId(condition: { responseStatus: "accepted" }) {
+					totalCount
+				}
+			}
+			totalCount
+			pageInfo {
+				hasNextPage
+				hasPreviousPage
+			}
+		}
+	}
+`;
+
+/**
+ * Query: Get event details with full attendee list
+ * Feature: 027-we-need-to - Task T037
+ * Purpose: Load complete event details for EventDetailsDialog
+ */
+export const GET_EVENT_DETAILS = gql`
+	query GetEventDetails($eventId: UUID!, $userId: UUID!) {
+		eventById(id: $eventId) {
+			id
+			nodeId
+			title
+			description
+			eventType
+			startTime
+			endTime
+			allDay
+			location
+			organizerId
+			userByOrganizerId {
+				id
+				displayName
+				email
+			}
+			status
+			color
+			isPublic
+			maxCapacity
+			currentAcceptanceCount
+			recurrencePattern
+			recurrenceEndDate
+			imageUrl
+			imageAspectRatio
+			createdAt
+			updatedAt
+			# All attendees with full details
+			eventAttendeesByEventId {
+				nodes {
+					id
+					employeeId
+					responseStatus
+					scope
+					reminderTime
+					isOrganizer
+					respondedAt
+					userByEmployeeId {
+						id
+						displayName
+						email
+						jobTitle
+					}
+				}
+				totalCount
+			}
+			# Waitlist entries
+			eventWaitlistsByEventId(orderBy: POSITION_ASC) {
+				nodes {
+					id
+					employeeId
+					position
+					joinedAt
+					userByEmployeeId {
+						id
+						displayName
+						email
+					}
+				}
+				totalCount
+			}
+			# User's specific RSVP
+			eventAttendeesByEventId(condition: { employeeId: $userId }) {
+				nodes {
+					id
+					responseStatus
+					scope
+					reminderTime
+				}
+			}
+		}
+	}
+`;
+
+/**
+ * Query: Get notification preferences for current user
+ * Feature: 027-we-need-to - Task T040
+ * Purpose: Load user's event notification settings
+ */
+export const GET_NOTIFICATION_PREFERENCES = gql`
+	query GetNotificationPreferences($userId: UUID!) {
+		userById(id: $userId) {
+			id
+			eventNotificationPreferences
+		}
+	}
+`;
+
+/**
+ * Mutation: Create event with all fields including recurrence
+ * Feature: 027-we-need-to - Task T041
+ * Purpose: Create new event with optional recurrence pattern
+ */
+export const CREATE_EVENT_FULL = gql`
+	mutation CreateEventFull($input: CreateEventInput!) {
+		createEvent(input: $input) {
+			event {
+				id
+				nodeId
+				title
+				description
+				eventType
+				startTime
+				endTime
+				allDay
+				location
+				organizerId
+				status
+				color
+				isPublic
+				maxCapacity
+				recurrencePattern
+				recurrenceEndDate
+				imageUrl
+				imageAspectRatio
+				createdAt
+				updatedAt
+			}
+			clientMutationId
+		}
+	}
+`;
+
+/**
+ * Mutation: Update event with all fields
+ * Feature: 027-we-need-to - Task T042
+ * Purpose: Update existing event including recurrence changes
+ */
+export const UPDATE_EVENT_FULL = gql`
+	mutation UpdateEventFull($input: UpdateEventByIdInput!) {
+		updateEventById(input: $input) {
+			event {
+				id
+				nodeId
+				title
+				description
+				eventType
+				startTime
+				endTime
+				allDay
+				location
+				status
+				color
+				isPublic
+				maxCapacity
+				recurrencePattern
+				recurrenceEndDate
+				imageUrl
+				imageAspectRatio
+				updatedAt
+			}
+			clientMutationId
+		}
+	}
+`;
+
+/**
+ * Mutation: RSVP to event with scope selection
+ * Feature: 027-we-need-to - Task T043
+ * Purpose: RSVP to recurring event with scope (this/future/all)
+ */
+export const RSVP_TO_EVENT = gql`
+	mutation RsvpToEvent($input: UpdateEventAttendeeByIdInput!) {
+		updateEventAttendeeById(input: $input) {
+			eventAttendee {
+				id
+				eventId
+				employeeId
+				responseStatus
+				scope
+				respondedAt
+			}
+			clientMutationId
+		}
+	}
+`;
+
+/**
+ * Mutation: Join waitlist
+ * Feature: 027-we-need-to - Task T044
+ * Purpose: Join event waitlist when at capacity
+ */
+export const JOIN_WAITLIST = gql`
+	mutation JoinWaitlist($input: CreateEventWaitlistInput!) {
+		createEventWaitlist(input: $input) {
+			eventWaitlist {
+				id
+				eventId
+				employeeId
+				position
+				joinedAt
+			}
+			clientMutationId
+		}
+	}
+`;
+
+/**
+ * Mutation: Post event comment with @mentions
+ * Feature: 027-we-need-to - Task T045
+ * Purpose: Add comment to event with markdown and mentions support
+ */
+export const POST_EVENT_COMMENT = gql`
+	mutation PostEventComment($input: CreateEventCommentInput!) {
+		createEventComment(input: $input) {
+			eventComment {
+				id
+				eventId
+				employeeId
+				content
+				mentions
+				createdAt
+				userByEmployeeId {
+					id
+					displayName
+				}
+			}
+			clientMutationId
+		}
+	}
+`;
+
+/**
+ * Mutation: Update notification preferences
+ * Feature: 027-we-need-to - Task T046
+ * Purpose: Save user's event notification settings
+ */
+export const UPDATE_NOTIFICATION_PREFERENCES = gql`
+	mutation UpdateNotificationPreferences($input: UpdateUserByIdInput!) {
+		updateUserById(input: $input) {
+			user {
+				id
+				eventNotificationPreferences
+			}
+			clientMutationId
+		}
+	}
+`;
+
+/**
+ * Mutation: Upload event image
+ * Feature: 027-we-need-to - Task T047
+ * Purpose: Upload and process event image with aspect ratio validation
+ */
+export const UPLOAD_EVENT_IMAGE = gql`
+	mutation UploadEventImage($input: UploadEventImageInput!) {
+		uploadEventImage(input: $input) {
+			imageUrl
+			aspectRatio
+			clientMutationId
+		}
+	}
+`;
+
+/**
+ * Mutation: Reschedule event with scope
+ * Feature: 027-we-need-to - Task T048
+ * Purpose: Reschedule recurring event with scope (this/future/all)
+ */
+export const RESCHEDULE_EVENT = gql`
+	mutation RescheduleEvent($input: RescheduleEventInput!) {
+		rescheduleEvent(input: $input) {
+			event {
+				id
+				startTime
+				endTime
+				updatedAt
+			}
+			affectedOccurrences
+			clientMutationId
+		}
+	}
+`;
+
+/**
+ * Subscription: Real-time event updates
+ * Feature: 027-we-need-to - Task T049
+ * Purpose: Subscribe to event changes for live calendar updates
+ */
+export const ON_EVENT_UPDATE = gql`
+	subscription OnEventUpdate($eventId: UUID!) {
+		eventUpdated(eventId: $eventId) {
+			event {
+				id
+				title
+				startTime
+				endTime
+				status
+				currentAcceptanceCount
+				updatedAt
+			}
+			updateType
+			userId
+		}
+	}
+`;
+
+/**
+ * Subscription: Waitlist promotion notifications
+ * Feature: 027-we-need-to - Task T050
+ * Purpose: Notify user when promoted from waitlist
+ */
+export const ON_WAITLIST_PROMOTION = gql`
+	subscription OnWaitlistPromotion($userId: UUID!) {
+		waitlistPromoted(userId: $userId) {
+			eventId
+			eventTitle
+			newPosition
+			promoted
+		}
+	}
+`;
+
+// ============================================================================
 // FEATURE 026: EVENT COMMENTS, HISTORY, AND WAITLIST
 // ============================================================================
 
@@ -1594,4 +2017,213 @@ export interface CreateEventCommentInput {
 export interface UpdateEventCommentInput {
 	commentId: string;
 	content: string; // Will be XSS-sanitized server-side
+}
+
+// ============================================================================
+// TYPESCRIPT INTERFACES FOR FEATURE 027
+// ============================================================================
+
+/**
+ * Recurrence pattern for recurring events (RFC 5545 RRULE)
+ */
+export interface RecurrencePattern {
+	frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
+	interval: number; // Every N days/weeks/months/years
+	daysOfWeek: number[] | null; // 0=Sunday, 1=Monday, ..., 6=Saturday (weekly only)
+	endDate: Date; // Recurrence end date (max 5 years from start)
+	rruleString: string; // Generated RFC 5545 RRULE string
+}
+
+/**
+ * Calendar event with recurrence support
+ */
+export interface CalendarEvent {
+	id: string;
+	nodeId: string;
+	title: string;
+	description?: string;
+	eventType: string;
+	startDate: Date; // Renamed from startTime for consistency
+	endDate: Date; // Renamed from endTime for consistency
+	allDay: boolean;
+	location?: string;
+	organizerId: string;
+	organizer?: {
+		id: string;
+		displayName: string;
+		email: string;
+	};
+	status: EventStatus;
+	color?: string;
+	isPublic: boolean;
+	maxCapacity?: number;
+	currentAcceptanceCount: number;
+	recurrencePattern?: RecurrencePattern | null;
+	recurrenceEndDate?: Date | null;
+	imageUrl?: string | null;
+	imageAspectRatio?: '16:9' | '9:16' | null;
+	createdAt: Date;
+	updatedAt: Date;
+	userRsvpStatus?: RsvpStatus; // Current user's RSVP status
+	reminderTime?: number | null; // Minutes before event
+}
+
+/**
+ * Event attendee with scope support for recurring events
+ */
+export interface EventAttendeeWithScope extends EventAttendee {
+	scope: 'this' | 'future' | 'all'; // RSVP scope for recurring events
+}
+
+/**
+ * Notification preferences for events
+ */
+export interface EventNotificationPreferences {
+	emailNotifications: boolean;
+	pushNotifications: boolean;
+	reminderDefaults: {
+		enabled: boolean;
+		minutesBefore: number; // Default reminder time
+	};
+	commentMentions: boolean;
+	waitlistPromotions: boolean;
+	eventUpdates: boolean;
+}
+
+/**
+ * Input for creating event with recurrence
+ */
+export interface CreateEventFullInput {
+	clientMutationId?: string;
+	event: {
+		title: string;
+		description?: string;
+		eventType: string;
+		startTime: string; // ISO 8601
+		endTime: string; // ISO 8601
+		allDay?: boolean;
+		location?: string;
+		organizerId: string;
+		isPublic?: boolean;
+		status?: EventStatus;
+		color?: string;
+		maxCapacity?: number;
+		recurrencePattern?: string | null; // RRULE string
+		recurrenceEndDate?: string | null; // ISO 8601
+		imageUrl?: string | null;
+		imageAspectRatio?: '16:9' | '9:16' | null;
+	};
+}
+
+/**
+ * Input for updating event
+ */
+export interface UpdateEventFullInput {
+	clientMutationId?: string;
+	id: string;
+	eventPatch: {
+		title?: string;
+		description?: string;
+		eventType?: string;
+		startTime?: string;
+		endTime?: string;
+		allDay?: boolean;
+		location?: string;
+		isPublic?: boolean;
+		status?: EventStatus;
+		color?: string;
+		maxCapacity?: number;
+		recurrencePattern?: string | null;
+		recurrenceEndDate?: string | null;
+		imageUrl?: string | null;
+		imageAspectRatio?: '16:9' | '9:16' | null;
+	};
+}
+
+/**
+ * Input for RSVP with scope
+ */
+export interface RsvpToEventInput {
+	clientMutationId?: string;
+	id: string; // attendee ID
+	eventAttendeePatch: {
+		responseStatus: RsvpStatus;
+		scope: 'this' | 'future' | 'all';
+		respondedAt?: string;
+	};
+}
+
+/**
+ * Input for joining waitlist
+ */
+export interface JoinWaitlistInput {
+	clientMutationId?: string;
+	eventWaitlist: {
+		eventId: string;
+		employeeId: string;
+	};
+}
+
+/**
+ * Input for posting comment
+ */
+export interface PostEventCommentInput {
+	clientMutationId?: string;
+	eventComment: {
+		eventId: string;
+		employeeId: string;
+		content: string; // Markdown with @mentions
+		mentions: string[]; // Array of mentioned user IDs
+	};
+}
+
+/**
+ * Input for updating notification preferences
+ */
+export interface UpdateNotificationPreferencesInput {
+	clientMutationId?: string;
+	id: string; // user ID
+	userPatch: {
+		eventNotificationPreferences: EventNotificationPreferences;
+	};
+}
+
+/**
+ * Input for uploading event image
+ */
+export interface UploadEventImageInput {
+	clientMutationId?: string;
+	eventId: string;
+	imageData: string; // Base64 encoded image
+	aspectRatio: '16:9' | '9:16';
+}
+
+/**
+ * Input for rescheduling event with scope
+ */
+export interface RescheduleEventInput {
+	clientMutationId?: string;
+	eventId: string;
+	newStartTime: string; // ISO 8601
+	newEndTime: string; // ISO 8601
+	scope: 'this' | 'future' | 'all';
+}
+
+/**
+ * Event update subscription payload
+ */
+export interface EventUpdatePayload {
+	event: CalendarEvent;
+	updateType: 'created' | 'updated' | 'deleted' | 'rescheduled';
+	userId: string; // User who made the change
+}
+
+/**
+ * Waitlist promotion subscription payload
+ */
+export interface WaitlistPromotionPayload {
+	eventId: string;
+	eventTitle: string;
+	newPosition: number;
+	promoted: boolean; // true if promoted to attendee
 }

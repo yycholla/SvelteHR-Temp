@@ -1,6 +1,6 @@
 # SvelteHR Development Commands - Streamlined Makefile
 SHELL := /bin/bash
-.PHONY: help dev dev-down dev-logs dev-rebuild backend frontend ssh-backend ssh-frontend
+.PHONY: help dev dev-down dev-logs dev-rebuild frontend backend ssh-backend ssh-frontend
 .PHONY: db-shell db-status db-reset db-migrate clean install test
 
 # =============================================================================
@@ -11,9 +11,8 @@ help: ## Show available commands
 	@echo "================================"
 	@echo ""
 	@echo "🚀 Development (Recommended):"
-	@echo "  make dev           - Start ALL containers (backend + frontend + database + redis)"
-	@echo "  make backend       - Start only backend containers (database + redis + backend API)"
-	@echo "  make frontend      - Start only frontend container (requires backend running)"
+	@echo "  make dev           - Start all containers (backend + database + redis)"
+	@echo "  make frontend      - Start SvelteKit frontend (requires 'make dev' first)"
 	@echo "  make dev-logs      - View container logs"
 	@echo "  make dev-down      - Stop all containers"
 	@echo "  make dev-rebuild   - Rebuild containers (when Dockerfile changes)"
@@ -50,49 +49,32 @@ help: ## Show available commands
 # Development Workflow
 # =============================================================================
 
-dev: ## Start ALL development containers (backend + frontend + database + redis)
-	@echo "🚀 Starting ALL SvelteHR Development Containers..."
+dev: ## Start all development containers (backend, database, redis)
+	@echo "🚀 Starting SvelteHR Development Containers..."
 	@cd dev-containers && docker-compose -f docker-compose.dev.yml up -d
 	@echo ""
-	@echo "✅ All containers started!"
+	@echo "✅ Containers started!"
 	@echo ""
 	@echo "📍 Services available:"
-	@echo "   🔹 Frontend:     http://localhost:5173"
 	@echo "   🔹 Backend API:  http://localhost:4000/graphql"
 	@echo "   🔹 GraphiQL:     http://localhost:5000/graphiql"
 	@echo "   🔹 PostgreSQL:   localhost:5433 (user: postgres, pass: postgres123)"
 	@echo "   🔹 Redis:        localhost:6380"
 	@echo ""
-	@echo "💡 View logs: make dev-logs"
-	@echo "💡 Stop all:  make dev-down"
+	@echo "💡 Next: Run 'make frontend' to start the SvelteKit frontend"
 
-backend: ## Start only backend containers (database + redis + backend API)
-	@echo "🚀 Starting Backend Containers..."
-	@cd dev-containers && docker-compose -f docker-compose.dev.yml up -d postgres-dev redis-dev backend-dev
-	@echo ""
-	@echo "✅ Backend containers started!"
-	@echo ""
-	@echo "📍 Services available:"
-	@echo "   🔹 Backend API:  http://localhost:4000/graphql"
-	@echo "   🔹 GraphiQL:     http://localhost:5000/graphiql"
-	@echo "   🔹 PostgreSQL:   localhost:5433"
-	@echo "   🔹 Redis:        localhost:6380"
-	@echo ""
-	@echo "💡 Start frontend: make frontend"
+backend: dev ## Alias for 'make dev' (starts backend containers)
 
-frontend: ## Start only frontend container (requires backend to be running)
-	@echo "🎨 Starting Frontend Container..."
+frontend: ## Start SvelteKit frontend development server
+	@echo "🎨 Starting SvelteKit Frontend..."
 	@echo ""
 	@if ! docker ps | grep -q sveltehr-backend-dev; then \
-		echo "❌ Backend not running. Start it first with 'make backend' or 'make dev'"; \
+		echo "❌ Backend not running. Start it first with 'make dev'"; \
 		exit 1; \
 	fi
-	@cd dev-containers && docker-compose -f docker-compose.dev.yml up -d frontend-dev
+	@echo "🌐 Frontend will be available at: http://localhost:5173"
 	@echo ""
-	@echo "✅ Frontend container started!"
-	@echo "🌐 Frontend available at: http://localhost:5173"
-	@echo ""
-	@echo "💡 View logs: make dev-logs"
+	@npm run dev
 
 dev-down: ## Stop all development containers
 	@echo "⏹️ Stopping development containers..."
