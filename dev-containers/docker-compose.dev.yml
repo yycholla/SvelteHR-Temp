@@ -15,7 +15,8 @@ services:
       POSTGRES_LOG_MIN_MESSAGES: 'info'
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
-      - ../migrations:/docker-entrypoint-initdb.d:ro
+      - ../db/init:/docker-entrypoint-initdb.d:ro
+      - ../db/migrations:/migrations:ro
     ports:
       - '5433:5432' # Use different port to avoid conflicts
     networks:
