@@ -84,15 +84,16 @@ CREATE INDEX IF NOT EXISTS employee_goals_active_idx
     ON hr_public.employee_goals(employee_id, target_date)
     WHERE status = 'in_progress';
 
--- Tasks by status and assignee
-CREATE INDEX IF NOT EXISTS tasks_assignee_status_idx
-    ON hr_public.tasks(assignee_id, status, due_date)
-    WHERE status != 'cancelled';
-
--- Tasks by status and assigner (for manager tracking)
-CREATE INDEX IF NOT EXISTS tasks_assigner_status_idx
-    ON hr_public.tasks(assigner_id, status, created_at DESC)
-    WHERE status != 'cancelled';
+-- DEPRECATED: Tasks indexes removed (table dropped in 20251009_000, recreated in public schema)
+-- -- Tasks by status and assignee
+-- CREATE INDEX IF NOT EXISTS tasks_assignee_status_idx
+--     ON hr_public.tasks(assignee_id, status, due_date)
+--     WHERE status != 'cancelled';
+--
+-- -- Tasks by status and assigner (for manager tracking)
+-- CREATE INDEX IF NOT EXISTS tasks_assigner_status_idx
+--     ON hr_public.tasks(assigner_id, status, created_at DESC)
+--     WHERE status != 'cancelled';
 
 -- ============================================================================
 -- AUDIT AND REPORTING INDEXES
@@ -122,10 +123,10 @@ CREATE INDEX IF NOT EXISTS departments_search_idx
     ON hr_public.departments
     USING GIN (to_tsvector('english', name || ' ' || COALESCE(description, '')));
 
--- Tasks full-text search
-CREATE INDEX IF NOT EXISTS tasks_search_idx
-    ON hr_public.tasks
-    USING GIN (to_tsvector('english', title || ' ' || COALESCE(description, '')));
+-- DEPRECATED: Tasks full-text search (table moved to public schema in 20251009)
+-- CREATE INDEX IF NOT EXISTS tasks_search_idx
+--     ON hr_public.tasks
+--     USING GIN (to_tsvector('english', title || ' ' || COALESCE(description, '')));
 
 -- ============================================================================
 -- STATISTICS UPDATE
@@ -137,7 +138,8 @@ ANALYZE hr_public.departments;
 ANALYZE hr_public.leave_requests;
 ANALYZE hr_public.performance_reviews;
 ANALYZE hr_public.employee_goals;
-ANALYZE hr_public.tasks;
+-- DEPRECATED: Tasks table moved to public schema in 20251009
+-- ANALYZE hr_public.tasks;
 ANALYZE hr_public.time_off_balances;
 ANALYZE hr_public.user_role_assignments;
 ANALYZE hr_public.payroll_records;
@@ -145,5 +147,6 @@ ANALYZE hr_public.payroll_records;
 -- Add documentation comments
 COMMENT ON INDEX hr_public.leave_requests_pending_idx IS 'Optimizes manager dashboard pending leave requests query';
 COMMENT ON INDEX hr_public.users_department_role_idx IS 'Optimizes RBAC queries for manager identification';
-COMMENT ON INDEX hr_public.tasks_assignee_status_idx IS 'Optimizes task list queries by assignee and status';
+-- DEPRECATED: Tasks indexes moved to public schema (see 20251009_000)
+-- COMMENT ON INDEX hr_public.tasks_assignee_status_idx IS 'Optimizes task list queries by assignee and status';
 COMMENT ON INDEX hr_public.users_search_idx IS 'Enables full-text search for admin user management';

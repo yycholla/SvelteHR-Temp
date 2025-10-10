@@ -64,7 +64,8 @@ END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
 -- Grant appropriate permissions on indexes and functions
-GRANT USAGE ON SCHEMA hr_public TO hr_guest, hr_employee, hr_manager, hr_admin, hr_super_admin;
-GRANT SELECT ON ALL TABLES IN SCHEMA hr_public TO hr_guest;
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA hr_public TO hr_employee, hr_manager, hr_admin, hr_super_admin;
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA hr_hidden TO hr_manager, hr_admin, hr_super_admin;
+-- Updated role names (hr_ prefix removed in migration 20251002_003)
+GRANT USAGE ON SCHEMA hr_public TO guest, employee, manager, admin, super_admin;
+GRANT SELECT ON ALL TABLES IN SCHEMA hr_public TO guest;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA hr_public TO employee, manager, admin, super_admin;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA hr_hidden TO manager, admin, super_admin;

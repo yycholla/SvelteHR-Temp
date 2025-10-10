@@ -33,6 +33,16 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'postgraphile_app') THEN
         CREATE ROLE postgraphile_app;
     END IF;
+
+    -- PostGraphile authenticated role (for logged-in users)
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+        CREATE ROLE authenticated;
+    END IF;
+
+    -- PostGraphile anonymous role (for public access)
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+        CREATE ROLE anon;
+    END IF;
 END $$;
 
 -- Enable essential extensions before schema creation

@@ -222,10 +222,12 @@ AFTER INSERT OR UPDATE OR DELETE ON hr_public.events
 FOR EACH ROW EXECUTE FUNCTION audit_trigger_func();
 
 -- TRIGGER: tasks table (FR-003)
-DROP TRIGGER IF EXISTS audit_trigger_tasks ON hr_public.tasks;
-CREATE TRIGGER audit_trigger_tasks
-AFTER INSERT OR UPDATE OR DELETE ON hr_public.tasks
-FOR EACH ROW EXECUTE FUNCTION audit_trigger_func();
+-- DEPRECATED: Tasks table moved to public schema (see 20251009_000)
+-- Audit triggers for the new tasks system are handled in October 2025 migrations
+-- DROP TRIGGER IF EXISTS audit_trigger_tasks ON hr_public.tasks;
+-- CREATE TRIGGER audit_trigger_tasks
+-- AFTER INSERT OR UPDATE OR DELETE ON hr_public.tasks
+-- FOR EACH ROW EXECUTE FUNCTION audit_trigger_func();
 
 -- ============================================================================
 -- PERFORMANCE INDEXES (FR-012: Query optimization)

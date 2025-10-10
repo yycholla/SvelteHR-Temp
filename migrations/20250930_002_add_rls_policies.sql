@@ -9,7 +9,8 @@
 ALTER TABLE hr_public.leave_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE hr_public.performance_reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE hr_public.employee_goals ENABLE ROW LEVEL SECURITY;
-ALTER TABLE hr_public.tasks ENABLE ROW LEVEL SECURITY;
+-- DEPRECATED: Tasks table moved to public schema (see 20251009_000)
+-- ALTER TABLE hr_public.tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE hr_public.time_off_balances ENABLE ROW LEVEL SECURITY;
 
 -- Note: payroll_records and compensation_bands already have RLS in production
@@ -287,66 +288,68 @@ CREATE POLICY employee_update_own_goal_progress
 -- ============================================================================
 -- TASKS RLS POLICIES
 -- ============================================================================
+-- DEPRECATED: Tasks table moved to public schema (see 20251009_000)
+-- RLS policies for the new tasks system are handled in October 2025 migrations
 
--- Policy: Managers can view tasks for their department
-CREATE POLICY manager_view_department_tasks
-    ON hr_public.tasks
-    FOR SELECT
-    USING (
-        hr_hidden.is_user_manager()
-        AND department_id = hr_hidden.current_user_department_id()
-    );
-
--- Policy: Managers can create tasks for their department
-CREATE POLICY manager_create_department_tasks
-    ON hr_public.tasks
-    FOR INSERT
-    WITH CHECK (
-        hr_hidden.is_user_manager()
-        AND department_id = hr_hidden.current_user_department_id()
-    );
-
--- Policy: Managers can update tasks for their department
-CREATE POLICY manager_update_department_tasks
-    ON hr_public.tasks
-    FOR UPDATE
-    USING (
-        hr_hidden.is_user_manager()
-        AND department_id = hr_hidden.current_user_department_id()
-    )
-    WITH CHECK (
-        hr_hidden.is_user_manager()
-        AND department_id = hr_hidden.current_user_department_id()
-    );
-
--- Policy: Managers can delete tasks for their department
-CREATE POLICY manager_delete_department_tasks
-    ON hr_public.tasks
-    FOR DELETE
-    USING (
-        hr_hidden.is_user_manager()
-        AND department_id = hr_hidden.current_user_department_id()
-    );
-
--- Policy: Admins have full access to all tasks
-CREATE POLICY admin_full_access_tasks
-    ON hr_public.tasks
-    FOR ALL
-    USING (hr_hidden.is_user_admin())
-    WITH CHECK (hr_hidden.is_user_admin());
-
--- Policy: Employees can view tasks assigned to them
-CREATE POLICY employee_view_assigned_tasks
-    ON hr_public.tasks
-    FOR SELECT
-    USING (assignee_id = current_setting('jwt.claims.user_id', true)::uuid);
-
--- Policy: Employees can update status of tasks assigned to them
-CREATE POLICY employee_update_assigned_task_status
-    ON hr_public.tasks
-    FOR UPDATE
-    USING (assignee_id = current_setting('jwt.claims.user_id', true)::uuid)
-    WITH CHECK (assignee_id = current_setting('jwt.claims.user_id', true)::uuid);
+-- -- Policy: Managers can view tasks for their department
+-- CREATE POLICY manager_view_department_tasks
+--     ON hr_public.tasks
+--     FOR SELECT
+--     USING (
+--         hr_hidden.is_user_manager()
+--         AND department_id = hr_hidden.current_user_department_id()
+--     );
+--
+-- -- Policy: Managers can create tasks for their department
+-- CREATE POLICY manager_create_department_tasks
+--     ON hr_public.tasks
+--     FOR INSERT
+--     WITH CHECK (
+--         hr_hidden.is_user_manager()
+--         AND department_id = hr_hidden.current_user_department_id()
+--     );
+--
+-- -- Policy: Managers can update tasks for their department
+-- CREATE POLICY manager_update_department_tasks
+--     ON hr_public.tasks
+--     FOR UPDATE
+--     USING (
+--         hr_hidden.is_user_manager()
+--         AND department_id = hr_hidden.current_user_department_id()
+--     )
+--     WITH CHECK (
+--         hr_hidden.is_user_manager()
+--         AND department_id = hr_hidden.current_user_department_id()
+--     );
+--
+-- -- Policy: Managers can delete tasks for their department
+-- CREATE POLICY manager_delete_department_tasks
+--     ON hr_public.tasks
+--     FOR DELETE
+--     USING (
+--         hr_hidden.is_user_manager()
+--         AND department_id = hr_hidden.current_user_department_id()
+--     );
+--
+-- -- Policy: Admins have full access to all tasks
+-- CREATE POLICY admin_full_access_tasks
+--     ON hr_public.tasks
+--     FOR ALL
+--     USING (hr_hidden.is_user_admin())
+--     WITH CHECK (hr_hidden.is_user_admin());
+--
+-- -- Policy: Employees can view tasks assigned to them
+-- CREATE POLICY employee_view_assigned_tasks
+--     ON hr_public.tasks
+--     FOR SELECT
+--     USING (assignee_id = current_setting('jwt.claims.user_id', true)::uuid);
+--
+-- -- Policy: Employees can update status of tasks assigned to them
+-- CREATE POLICY employee_update_assigned_task_status
+--     ON hr_public.tasks
+--     FOR UPDATE
+--     USING (assignee_id = current_setting('jwt.claims.user_id', true)::uuid)
+--     WITH CHECK (assignee_id = current_setting('jwt.claims.user_id', true)::uuid);
 
 -- ============================================================================
 -- TIME OFF BALANCES RLS POLICIES
@@ -392,6 +395,7 @@ GRANT EXECUTE ON FUNCTION hr_hidden.is_user_admin() TO guest, employee, manager,
 -- ============================================================================
 
 -- Query to verify RLS policies are active
+-- Note: Excludes 'tasks' table (moved to public schema in 20251009)
 DO $$
 DECLARE
     policy_count INTEGER;
@@ -399,12 +403,12 @@ BEGIN
     SELECT COUNT(*) INTO policy_count
     FROM pg_policies
     WHERE schemaname = 'hr_public'
-    AND tablename IN ('leave_requests', 'performance_reviews', 'employee_goals', 'tasks', 'time_off_balances');
+    AND tablename IN ('leave_requests', 'performance_reviews', 'employee_goals', 'time_off_balances');
 
     RAISE NOTICE 'RLS policies created: %', policy_count;
 
-    IF policy_count < 30 THEN
-        RAISE WARNING 'Expected at least 30 RLS policies, but only % were created', policy_count;
+    IF policy_count < 20 THEN
+        RAISE WARNING 'Expected at least 20 RLS policies, but only % were created', policy_count;
     ELSE
         RAISE NOTICE 'RLS policy creation successful!';
     END IF;
@@ -418,5 +422,6 @@ COMMENT ON POLICY manager_view_department_leave_requests ON hr_public.leave_requ
 COMMENT ON POLICY admin_full_access_leave_requests ON hr_public.leave_requests IS
     'Admins have unrestricted access to all leave requests across all departments';
 
-COMMENT ON POLICY manager_create_department_tasks ON hr_public.tasks IS
-    'Managers can assign tasks to employees in their department only (FR-005)';
+-- DEPRECATED: Tasks table moved to public schema (see 20251009_000)
+-- COMMENT ON POLICY manager_create_department_tasks ON hr_public.tasks IS
+--     'Managers can assign tasks to employees in their department only (FR-005)';

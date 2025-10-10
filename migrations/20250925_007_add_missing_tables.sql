@@ -1,8 +1,10 @@
--- Add missing category column to tasks table
-ALTER TABLE hr_public.tasks
-ADD COLUMN IF NOT EXISTS category character varying(100);
-
-CREATE INDEX IF NOT EXISTS idx_tasks_category ON hr_public.tasks(category);
+-- DEPRECATED: Old tasks table removed - see 20250925_005 and 20251009_000
+-- The new task system (Oct 2025) does not use a 'category' column
+-- -- Add missing category column to tasks table
+-- ALTER TABLE hr_public.tasks
+-- ADD COLUMN IF NOT EXISTS category character varying(100);
+--
+-- CREATE INDEX IF NOT EXISTS idx_tasks_category ON hr_public.tasks(category);
 
 -- Create events table
 CREATE TABLE IF NOT EXISTS hr_public.events (

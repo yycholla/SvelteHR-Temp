@@ -201,31 +201,29 @@ CREATE TABLE hr_public.review_templates (
 );
 
 -- Tasks table (core functionality)
-CREATE TYPE hr_public.task_priority AS ENUM ('low', 'medium', 'high', 'urgent');
-CREATE TYPE hr_public.task_status AS ENUM ('todo', 'in_progress', 'completed', 'cancelled');
-
-CREATE TABLE hr_public.tasks (
-    id integer NOT NULL GENERATED ALWAYS AS IDENTITY,
-    assignee_id integer NOT NULL,
-    assigner_id integer NOT NULL,
-    department_id integer NOT NULL,
-    title character varying(255) NOT NULL,
-    description text,
-    priority hr_public.task_priority DEFAULT 'medium'::hr_public.task_priority NOT NULL,
-    status hr_public.task_status DEFAULT 'todo'::hr_public.task_status NOT NULL,
-    due_date date,
-    category character varying(100),
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    completed_at timestamp with time zone,
-    CONSTRAINT tasks_pkey PRIMARY KEY (id),
-    CONSTRAINT tasks_title_not_empty CHECK (length(TRIM(BOTH FROM title)) > 0)
-);
+-- REMOVED: Old integer-based tasks table conflicts with new UUID-based tasks system (Feature 028)
+-- The new tasks system is created by migrations 20251009_000 through 20251009_008
+-- These create a full-featured task system with:
+-- - UUID-based IDs for consistency with users table
+-- - Task types, hierarchies, dependencies, and audit trails
+-- - Multi-assignee support
+-- - Located in public schema (not hr_public)
+--
+-- CREATE TYPE hr_public.task_priority AS ENUM ('low', 'medium', 'high', 'urgent');
+-- CREATE TYPE hr_public.task_status AS ENUM ('todo', 'in_progress', 'completed', 'cancelled');
+--
+-- CREATE TABLE hr_public.tasks (
+--     id integer NOT NULL GENERATED ALWAYS AS IDENTITY,
+--     assignee_id integer NOT NULL,  -- INCOMPATIBLE: users.id is UUID, not integer
+--     assigner_id integer NOT NULL,
+--     department_id integer NOT NULL,
+--     ...
+-- );
 
 -- Attendance records table (core functionality)
 CREATE TABLE hr_public.attendance_records (
-    id integer NOT NULL GENERATED ALWAYS AS IDENTITY,
-    user_id integer NOT NULL,
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
+    user_id uuid NOT NULL,
     date date NOT NULL,
     clock_in timestamp with time zone,
     clock_out timestamp with time zone,
@@ -246,7 +244,7 @@ CREATE TYPE hr_public.event_visibility AS ENUM ('public', 'private', 'department
 CREATE TYPE hr_public.rsvp_status AS ENUM ('pending', 'accepted', 'declined', 'tentative');
 
 CREATE TABLE hr_public.events (
-    id integer NOT NULL GENERATED ALWAYS AS IDENTITY,
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
     title character varying(255) NOT NULL,
     description text,
     event_type hr_public.event_type DEFAULT 'other'::hr_public.event_type NOT NULL,
@@ -258,7 +256,7 @@ CREATE TABLE hr_public.events (
     location character varying(255),
     is_public boolean DEFAULT true NOT NULL,
     color character varying(7) DEFAULT '#3B82F6'::character varying,
-    organizer_id integer NOT NULL,
+    organizer_id uuid NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     CONSTRAINT events_pkey PRIMARY KEY (id),
@@ -268,9 +266,9 @@ CREATE TABLE hr_public.events (
 
 -- Event attendees junction table
 CREATE TABLE hr_public.event_attendees (
-    id integer NOT NULL GENERATED ALWAYS AS IDENTITY,
-    event_id integer NOT NULL,
-    employee_id integer NOT NULL,
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
+    event_id uuid NOT NULL,
+    employee_id uuid NOT NULL,
     response_status hr_public.rsvp_status DEFAULT 'pending'::hr_public.rsvp_status NOT NULL,
     is_required boolean DEFAULT false NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -280,12 +278,12 @@ CREATE TABLE hr_public.event_attendees (
 
 -- Activity logs table (core functionality)
 CREATE TABLE hr_public.activity_logs (
-    id integer NOT NULL GENERATED ALWAYS AS IDENTITY,
-    user_id integer NOT NULL,
-    employee_id integer,
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
+    user_id uuid NOT NULL,
+    employee_id uuid,
     action character varying(50) NOT NULL,
     resource_type character varying(50) NOT NULL,
-    resource_id integer,
+    resource_id uuid,
     details jsonb,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     CONSTRAINT activity_logs_pkey PRIMARY KEY (id)
@@ -309,9 +307,10 @@ ALTER TABLE hr_public.payroll_records ADD CONSTRAINT payroll_records_employee_id
 ALTER TABLE hr_public.payroll_records ADD CONSTRAINT payroll_records_processed_by_fkey FOREIGN KEY (processed_by) REFERENCES hr_public.users(id) ON DELETE SET NULL;
 ALTER TABLE hr_public.payroll_records ADD CONSTRAINT payroll_records_created_by_fkey FOREIGN KEY (created_by) REFERENCES hr_public.users(id) ON DELETE SET NULL;
 ALTER TABLE hr_public.review_templates ADD CONSTRAINT review_templates_created_by_fkey FOREIGN KEY (created_by) REFERENCES hr_public.users(id) ON DELETE SET NULL;
-ALTER TABLE hr_public.tasks ADD CONSTRAINT tasks_assignee_id_fkey FOREIGN KEY (assignee_id) REFERENCES hr_public.users(id) ON DELETE CASCADE;
-ALTER TABLE hr_public.tasks ADD CONSTRAINT tasks_assigner_id_fkey FOREIGN KEY (assigner_id) REFERENCES hr_public.users(id) ON DELETE CASCADE;
-ALTER TABLE hr_public.tasks ADD CONSTRAINT tasks_department_id_fkey FOREIGN KEY (department_id) REFERENCES hr_public.departments(id) ON DELETE CASCADE;
+-- REMOVED: Foreign key constraints for old hr_public.tasks table (see comment above)
+-- ALTER TABLE hr_public.tasks ADD CONSTRAINT tasks_assignee_id_fkey FOREIGN KEY (assignee_id) REFERENCES hr_public.users(id) ON DELETE CASCADE;
+-- ALTER TABLE hr_public.tasks ADD CONSTRAINT tasks_assigner_id_fkey FOREIGN KEY (assigner_id) REFERENCES hr_public.users(id) ON DELETE CASCADE;
+-- ALTER TABLE hr_public.tasks ADD CONSTRAINT tasks_department_id_fkey FOREIGN KEY (department_id) REFERENCES hr_public.departments(id) ON DELETE CASCADE;
 ALTER TABLE hr_public.attendance_records ADD CONSTRAINT attendance_records_user_id_fkey FOREIGN KEY (user_id) REFERENCES hr_public.users(id) ON DELETE CASCADE;
 ALTER TABLE hr_public.events ADD CONSTRAINT events_organizer_id_fkey FOREIGN KEY (organizer_id) REFERENCES hr_public.users(id) ON DELETE CASCADE;
 ALTER TABLE hr_public.event_attendees ADD CONSTRAINT event_attendees_event_id_fkey FOREIGN KEY (event_id) REFERENCES hr_public.events(id) ON DELETE CASCADE;

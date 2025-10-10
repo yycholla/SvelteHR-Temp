@@ -187,7 +187,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON hr_public.emergency_contacts TO authenti
 GRANT SELECT, INSERT, UPDATE, DELETE ON hr_public.employee_vehicles TO authenticated;
 
 -- Only HR managers and admins can access compensation records
-GRANT SELECT, INSERT, UPDATE ON hr_private.compensation_records TO hr_manager, admin, super_admin;
+-- Updated role names (hr_ prefix removed in migration 20251002_003)
+GRANT SELECT, INSERT, UPDATE ON hr_private.compensation_records TO manager, admin, super_admin;
 
 -- Add RLS policies for emergency contacts (employees can view/edit their own)
 ALTER TABLE hr_public.emergency_contacts ENABLE ROW LEVEL SECURITY;
