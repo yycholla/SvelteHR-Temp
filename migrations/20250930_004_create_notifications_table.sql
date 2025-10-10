@@ -79,10 +79,11 @@ CREATE INDEX notifications_unread_recipient_idx ON hr_public.notifications(recip
     WHERE read_status = false;
 
 -- Grant permissions to appropriate roles
-GRANT SELECT ON hr_public.notifications TO hr_guest, hr_employee, hr_manager, hr_admin, hr_super_admin;
-GRANT INSERT ON hr_public.notifications TO hr_manager, hr_admin, hr_super_admin;
-GRANT UPDATE (read_status, read_at) ON hr_public.notifications TO hr_employee, hr_manager, hr_admin, hr_super_admin;
-GRANT DELETE ON hr_public.notifications TO hr_admin, hr_super_admin;
+-- Updated role names (hr_ prefix removed in migration 20251002_003)
+GRANT SELECT ON hr_public.notifications TO guest, employee, manager, admin, super_admin;
+GRANT INSERT ON hr_public.notifications TO manager, admin, super_admin;
+GRANT UPDATE (read_status, read_at) ON hr_public.notifications TO employee, manager, admin, super_admin;
+GRANT DELETE ON hr_public.notifications TO admin, super_admin;
 
 -- Add comments for documentation
 COMMENT ON TABLE hr_public.notifications IS 'User notifications for in-app and email delivery with read tracking';

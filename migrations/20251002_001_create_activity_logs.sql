@@ -7,10 +7,10 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pg_trgm"; -- For full-text search on reason field
 
--- Create activity_logs table
+-- Create activity_logs table (in public schema, separate from hr_public.activity_logs)
 CREATE TABLE IF NOT EXISTS activity_logs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    employee_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    employee_id UUID NOT NULL REFERENCES hr_public.users(id) ON DELETE CASCADE,
     action TEXT NOT NULL CHECK (action IN ('create', 'read', 'update', 'delete')),
     resource_type TEXT NOT NULL,
     resource_id UUID NOT NULL,
@@ -130,8 +130,8 @@ CREATE POLICY admin_dept_logs ON activity_logs
     USING (
         current_setting('jwt.claims.role', true) = 'admin'
         AND employee_id IN (
-            SELECT id FROM users WHERE department_id = (
-                SELECT department_id FROM users
+            SELECT id FROM hr_public.users WHERE department_id = (
+                SELECT department_id FROM hr_public.users
                 WHERE id = current_setting('jwt.claims.user_id', true)::uuid
             )
         )

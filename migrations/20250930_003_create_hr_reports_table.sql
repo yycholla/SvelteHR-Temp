@@ -53,8 +53,9 @@ CREATE INDEX hr_reports_scheduled_at_idx ON hr_public.hr_reports(scheduled_at) W
 CREATE INDEX hr_reports_generated_at_idx ON hr_public.hr_reports(generated_at) WHERE generated_at IS NOT NULL;
 
 -- Grant permissions to appropriate roles
-GRANT SELECT ON hr_public.hr_reports TO hr_guest, hr_employee, hr_manager, hr_admin, hr_super_admin;
-GRANT INSERT, UPDATE, DELETE ON hr_public.hr_reports TO hr_manager, hr_admin, hr_super_admin;
+-- Updated role names (hr_ prefix removed in migration 20251002_003)
+GRANT SELECT ON hr_public.hr_reports TO guest, employee, manager, admin, super_admin;
+GRANT INSERT, UPDATE, DELETE ON hr_public.hr_reports TO manager, admin, super_admin;
 
 -- Add comment for documentation
 COMMENT ON TABLE hr_public.hr_reports IS 'HR reports created and managed by managers for their departments';
