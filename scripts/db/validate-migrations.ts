@@ -146,40 +146,49 @@ async function validateMigrations(
 		}
 	}
 
-	// Check 2: Sequential ordering validation
-	result.checksPerformed.push('Sequential ordering validation');
-	const sequences: Map<number, string> = new Map();
+	// Check 2: Sequential ordering validation (per-date)
+	result.checksPerformed.push('Sequential ordering validation (per-date)');
+	// Group sequences by date: Map<timestamp, Map<sequence, filename>>
+	const sequencesByDate: Map<string, Map<number, string>> = new Map();
 
 	for (const file of files) {
 		const parsed = parseMigrationFilename(file);
 		if (parsed) {
-			// Check for duplicate sequences
-			if (sequences.has(parsed.sequence)) {
+			// Get or create the sequence map for this date
+			if (!sequencesByDate.has(parsed.timestamp)) {
+				sequencesByDate.set(parsed.timestamp, new Map());
+			}
+			const dateSequences = sequencesByDate.get(parsed.timestamp)!;
+
+			// Check for duplicate sequences within the same date
+			if (dateSequences.has(parsed.sequence)) {
 				result.errors.push({
 					code: 'DUPLICATE_SEQUENCE',
 					migration: file,
-					message: `Duplicate sequence number ${parsed.sequence}`,
-					conflictingMigration: sequences.get(parsed.sequence)
+					message: `Duplicate sequence number ${parsed.sequence} on ${parsed.timestamp}`,
+					conflictingMigration: dateSequences.get(parsed.sequence)
 				});
 			} else {
-				sequences.set(parsed.sequence, file);
+				dateSequences.set(parsed.sequence, file);
 			}
 		}
 	}
 
-	// Check for sequence gaps
-	const sortedSequences = Array.from(sequences.keys()).sort((a, b) => a - b);
-	for (let i = 1; i < sortedSequences.length; i++) {
-		const prev = sortedSequences[i - 1];
-		const curr = sortedSequences[i];
-		const gap = curr - prev;
+	// Check for sequence gaps within each date
+	for (const [date, dateSequences] of sequencesByDate.entries()) {
+		const sortedSequences = Array.from(dateSequences.keys()).sort((a, b) => a - b);
+		for (let i = 1; i < sortedSequences.length; i++) {
+			const prev = sortedSequences[i - 1];
+			const curr = sortedSequences[i];
+			const gap = curr - prev;
 
-		if (gap > 5) {
-			result.warnings.push({
-				code: 'SEQUENCE_GAP',
-				migration: sequences.get(curr)!,
-				message: `Large sequence gap detected: ${prev} → ${curr} (gap of ${gap - 1})`
-			});
+			if (gap > 5) {
+				result.warnings.push({
+					code: 'SEQUENCE_GAP',
+					migration: dateSequences.get(curr)!,
+					message: `Large sequence gap on ${date}: ${prev} → ${curr} (gap of ${gap - 1})`
+				});
+			}
 		}
 	}
 
