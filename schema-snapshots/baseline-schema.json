@@ -1,6 +1,6 @@
 {
   "schemaName": "hr_public",
-  "capturedAt": "2025-10-10T01:53:42.145Z",
+  "capturedAt": "2025-10-10T01:55:36.919Z",
   "postgresVersion": "15.14",
   "tables": [
     {
@@ -248,31 +248,31 @@
       "uniqueConstraints": [],
       "checkConstraints": [
         {
-          "constraintName": "22420_22692_1_not_null",
+          "constraintName": "16441_25167_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22692_4_not_null",
+          "constraintName": "16441_25167_4_not_null",
           "checkClause": "action IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22692_5_not_null",
+          "constraintName": "16441_25167_5_not_null",
           "checkClause": "resource_type IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22692_10_not_null",
+          "constraintName": "16441_25167_10_not_null",
           "checkClause": "created_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22692_13_not_null",
+          "constraintName": "16441_25167_13_not_null",
           "checkClause": "is_rollback IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
@@ -373,6 +373,16 @@
           "indexDefinition": "CREATE INDEX idx_activity_logs_resource_type_action ON hr_public.activity_logs USING btree (resource_type, action, created_at DESC)"
         },
         {
+          "indexName": "idx_activity_logs_rolled_back_log",
+          "columns": [
+            "rolled_back_log_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_activity_logs_rolled_back_log ON hr_public.activity_logs USING btree (rolled_back_log_id)"
+        },
+        {
           "indexName": "idx_activity_logs_rolled_back_log_id",
           "columns": [
             "rolled_back_log_id"
@@ -403,7 +413,7 @@
           "indexDefinition": "CREATE INDEX idx_activity_logs_user_id ON hr_public.activity_logs USING btree (user_id)"
         }
       ],
-      "rowCount": 17
+      "rowCount": 52
     },
     {
       "tableName": "attendance_records",
@@ -565,49 +575,49 @@
       ],
       "checkConstraints": [
         {
-          "constraintName": "attendance_records_hours_valid",
-          "checkClause": "(((hours_worked IS NULL) OR ((hours_worked >= (0)::numeric) AND (hours_worked <= (24)::numeric))))",
-          "isDeferrable": false,
-          "isInitiallyDeferred": false
-        },
-        {
           "constraintName": "attendance_records_clock_times_valid",
           "checkClause": "(((clock_out IS NULL) OR (clock_out >= clock_in)))",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "attendance_records_status_valid",
-          "checkClause": "(((status)::text = ANY (ARRAY[('present'::character varying)::text, ('partial'::character varying)::text, ('absent'::character varying)::text, ('leave'::character varying)::text, ('holiday'::character varying)::text])))",
+          "constraintName": "attendance_records_hours_valid",
+          "checkClause": "(((hours_worked IS NULL) OR ((hours_worked >= (0)::numeric) AND (hours_worked <= (24)::numeric))))",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22631_1_not_null",
+          "constraintName": "attendance_records_status_valid",
+          "checkClause": "(((status)::text = ANY ((ARRAY['present'::character varying, 'partial'::character varying, 'absent'::character varying, 'leave'::character varying, 'holiday'::character varying])::text[])))",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_25062_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22631_2_not_null",
+          "constraintName": "16441_25062_2_not_null",
           "checkClause": "user_id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22631_3_not_null",
+          "constraintName": "16441_25062_3_not_null",
           "checkClause": "date IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22631_10_not_null",
+          "constraintName": "16441_25062_10_not_null",
           "checkClause": "created_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22631_11_not_null",
+          "constraintName": "16441_25062_11_not_null",
           "checkClause": "updated_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
@@ -624,9 +634,40 @@
           "indexType": "BTREE",
           "whereClause": null,
           "indexDefinition": "CREATE UNIQUE INDEX attendance_records_user_date_unique ON hr_public.attendance_records USING btree (user_id, date)"
+        },
+        {
+          "indexName": "idx_attendance_records_date",
+          "columns": [
+            "date"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_attendance_records_date ON hr_public.attendance_records USING btree (date)"
+        },
+        {
+          "indexName": "idx_attendance_records_user_date",
+          "columns": [
+            "user_id",
+            "date"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_attendance_records_user_date ON hr_public.attendance_records USING btree (user_id, date DESC)"
+        },
+        {
+          "indexName": "idx_attendance_records_user_id",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_attendance_records_user_id ON hr_public.attendance_records USING btree (user_id)"
         }
       ],
-      "rowCount": 0
+      "rowCount": 99
     },
     {
       "tableName": "bulk_rollback_batches",
@@ -787,55 +828,55 @@
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25190_1_not_null",
+          "constraintName": "16441_25989_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25190_2_not_null",
+          "constraintName": "16441_25989_2_not_null",
           "checkClause": "initiated_by IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25190_3_not_null",
+          "constraintName": "16441_25989_3_not_null",
           "checkClause": "activity_log_ids IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25190_4_not_null",
+          "constraintName": "16441_25989_4_not_null",
           "checkClause": "started_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25190_6_not_null",
+          "constraintName": "16441_25989_6_not_null",
           "checkClause": "status IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25190_7_not_null",
+          "constraintName": "16441_25989_7_not_null",
           "checkClause": "total_count IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25190_8_not_null",
+          "constraintName": "16441_25989_8_not_null",
           "checkClause": "processed_count IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25190_9_not_null",
+          "constraintName": "16441_25989_9_not_null",
           "checkClause": "successful_count IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25190_10_not_null",
+          "constraintName": "16441_25989_10_not_null",
           "checkClause": "failed_count IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
@@ -843,25 +884,14 @@
       ],
       "indexes": [
         {
-          "indexName": "idx_bulk_batches_status",
-          "columns": [
-            "status",
-            "started_at"
-          ],
-          "isUnique": false,
-          "indexType": "BTREE",
-          "whereClause": null,
-          "indexDefinition": "CREATE INDEX idx_bulk_batches_status ON hr_public.bulk_rollback_batches USING btree (status, started_at DESC)"
-        },
-        {
-          "indexName": "idx_bulk_batches_user",
+          "indexName": "idx_bulk_rollback_batches_initiated_by",
           "columns": [
             "initiated_by"
           ],
           "isUnique": false,
           "indexType": "BTREE",
           "whereClause": null,
-          "indexDefinition": "CREATE INDEX idx_bulk_batches_user ON hr_public.bulk_rollback_batches USING btree (initiated_by)"
+          "indexDefinition": "CREATE INDEX idx_bulk_rollback_batches_initiated_by ON hr_public.bulk_rollback_batches USING btree (initiated_by)"
         }
       ],
       "rowCount": 0
@@ -989,43 +1019,43 @@
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22566_1_not_null",
+          "constraintName": "16441_16586_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22566_2_not_null",
+          "constraintName": "16441_16586_2_not_null",
           "checkClause": "title IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22566_3_not_null",
+          "constraintName": "16441_16586_3_not_null",
           "checkClause": "min_salary IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22566_4_not_null",
+          "constraintName": "16441_16586_4_not_null",
           "checkClause": "max_salary IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22566_5_not_null",
+          "constraintName": "16441_16586_5_not_null",
           "checkClause": "currency IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22566_7_not_null",
+          "constraintName": "16441_16586_7_not_null",
           "checkClause": "created_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22566_8_not_null",
+          "constraintName": "16441_16586_8_not_null",
           "checkClause": "updated_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
@@ -1145,25 +1175,25 @@
       ],
       "checkConstraints": [
         {
-          "constraintName": "22420_22479_1_not_null",
+          "constraintName": "16441_16499_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22479_2_not_null",
+          "constraintName": "16441_16499_2_not_null",
           "checkClause": "name IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22479_5_not_null",
+          "constraintName": "16441_16499_5_not_null",
           "checkClause": "created_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22479_6_not_null",
+          "constraintName": "16441_16499_6_not_null",
           "checkClause": "updated_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
@@ -1212,7 +1242,7 @@
           "indexDefinition": "CREATE INDEX idx_departments_manager_id ON hr_public.departments USING btree (manager_id)"
         }
       ],
-      "rowCount": 4
+      "rowCount": 8
     },
     {
       "tableName": "document_access_logs",
@@ -1351,49 +1381,49 @@
       "uniqueConstraints": [],
       "checkConstraints": [
         {
-          "constraintName": "document_access_logs_access_type_check",
-          "checkClause": "(((access_type)::text = ANY ((ARRAY['view'::character varying, 'download'::character varying, 'preview'::character varying])::text[])))",
-          "isDeferrable": false,
-          "isInitiallyDeferred": false
-        },
-        {
           "constraintName": "document_access_logs_access_outcome_check",
           "checkClause": "(((access_outcome)::text = ANY ((ARRAY['success'::character varying, 'denied'::character varying])::text[])))",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25317_1_not_null",
+          "constraintName": "document_access_logs_access_type_check",
+          "checkClause": "(((access_type)::text = ANY ((ARRAY['view'::character varying, 'download'::character varying, 'preview'::character varying])::text[])))",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_26142_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25317_2_not_null",
+          "constraintName": "16441_26142_2_not_null",
           "checkClause": "document_id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25317_3_not_null",
+          "constraintName": "16441_26142_3_not_null",
           "checkClause": "user_id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25317_4_not_null",
+          "constraintName": "16441_26142_4_not_null",
           "checkClause": "access_type IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25317_5_not_null",
+          "constraintName": "16441_26142_5_not_null",
           "checkClause": "access_timestamp IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25317_8_not_null",
+          "constraintName": "16441_26142_8_not_null",
           "checkClause": "access_outcome IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
@@ -1410,17 +1440,6 @@
           "indexType": "BTREE",
           "whereClause": null,
           "indexDefinition": "CREATE INDEX idx_access_logs_document_timestamp ON hr_public.document_access_logs USING btree (document_id, access_timestamp DESC)"
-        },
-        {
-          "indexName": "idx_access_logs_outcome",
-          "columns": [
-            "access_outcome",
-            "access_timestamp"
-          ],
-          "isUnique": false,
-          "indexType": "BTREE",
-          "whereClause": null,
-          "indexDefinition": "CREATE INDEX idx_access_logs_outcome ON hr_public.document_access_logs USING btree (access_outcome, access_timestamp DESC)"
         },
         {
           "indexName": "idx_access_logs_timestamp",
@@ -1442,9 +1461,19 @@
           "indexType": "BTREE",
           "whereClause": null,
           "indexDefinition": "CREATE INDEX idx_access_logs_user_timestamp ON hr_public.document_access_logs USING btree (user_id, access_timestamp DESC)"
+        },
+        {
+          "indexName": "idx_document_access_logs_user_id",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_document_access_logs_user_id ON hr_public.document_access_logs USING btree (user_id)"
         }
       ],
-      "rowCount": 0
+      "rowCount": 29
     },
     {
       "tableName": "document_assignments",
@@ -1587,43 +1616,43 @@
       "uniqueConstraints": [],
       "checkConstraints": [
         {
-          "constraintName": "document_assignments_assignment_status_check",
-          "checkClause": "(((assignment_status)::text = ANY ((ARRAY['active'::character varying, 'revoked'::character varying])::text[])))",
-          "isDeferrable": false,
-          "isInitiallyDeferred": false
-        },
-        {
           "constraintName": "chk_assignment_target",
           "checkClause": "((((employee_id IS NOT NULL) AND (department_id IS NULL)) OR ((employee_id IS NULL) AND (department_id IS NOT NULL))))",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25281_1_not_null",
+          "constraintName": "document_assignments_assignment_status_check",
+          "checkClause": "(((assignment_status)::text = ANY ((ARRAY['active'::character varying, 'revoked'::character varying])::text[])))",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_26106_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25281_2_not_null",
+          "constraintName": "16441_26106_2_not_null",
           "checkClause": "document_id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25281_5_not_null",
+          "constraintName": "16441_26106_5_not_null",
           "checkClause": "assigned_by IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25281_6_not_null",
+          "constraintName": "16441_26106_6_not_null",
           "checkClause": "assigned_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25281_7_not_null",
+          "constraintName": "16441_26106_7_not_null",
           "checkClause": "assignment_status IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
@@ -1672,9 +1701,39 @@
           "indexType": "BTREE",
           "whereClause": "(employee_id IS NOT NULL)",
           "indexDefinition": "CREATE INDEX idx_doc_assignments_employee_status ON hr_public.document_assignments USING btree (employee_id, assignment_status) WHERE (employee_id IS NOT NULL)"
+        },
+        {
+          "indexName": "idx_document_assignments_assigned_by",
+          "columns": [
+            "assigned_by"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_document_assignments_assigned_by ON hr_public.document_assignments USING btree (assigned_by)"
+        },
+        {
+          "indexName": "idx_document_assignments_department_id",
+          "columns": [
+            "department_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_document_assignments_department_id ON hr_public.document_assignments USING btree (department_id)"
+        },
+        {
+          "indexName": "idx_document_assignments_employee_id",
+          "columns": [
+            "employee_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_document_assignments_employee_id ON hr_public.document_assignments USING btree (employee_id)"
         }
       ],
-      "rowCount": 0
+      "rowCount": 1
     },
     {
       "tableName": "document_categories",
@@ -1791,37 +1850,37 @@
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25343_1_not_null",
+          "constraintName": "16441_26166_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25343_2_not_null",
+          "constraintName": "16441_26166_2_not_null",
           "checkClause": "name IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25343_3_not_null",
+          "constraintName": "16441_26166_3_not_null",
           "checkClause": "default_sensitivity_level IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25343_4_not_null",
+          "constraintName": "16441_26166_4_not_null",
           "checkClause": "retention_years IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25343_6_not_null",
+          "constraintName": "16441_26166_6_not_null",
           "checkClause": "created_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25343_7_not_null",
+          "constraintName": "16441_26166_7_not_null",
           "checkClause": "updated_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
@@ -2003,49 +2062,49 @@
       ],
       "checkConstraints": [
         {
-          "constraintName": "22420_25391_1_not_null",
+          "constraintName": "16441_26200_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25391_2_not_null",
+          "constraintName": "16441_26200_2_not_null",
           "checkClause": "document_id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25391_3_not_null",
+          "constraintName": "16441_26200_3_not_null",
           "checkClause": "version_number IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25391_4_not_null",
+          "constraintName": "16441_26200_4_not_null",
           "checkClause": "storage_path IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25391_5_not_null",
+          "constraintName": "16441_26200_5_not_null",
           "checkClause": "encryption_key_id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25391_6_not_null",
+          "constraintName": "16441_26200_6_not_null",
           "checkClause": "version_created_by IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25391_7_not_null",
+          "constraintName": "16441_26200_7_not_null",
           "checkClause": "version_created_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25391_9_not_null",
+          "constraintName": "16441_26200_9_not_null",
           "checkClause": "file_size_bytes IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
@@ -2082,6 +2141,16 @@
           "indexType": "BTREE",
           "whereClause": null,
           "indexDefinition": "CREATE INDEX idx_doc_versions_document_version ON hr_public.document_versions USING btree (document_id, version_number DESC)"
+        },
+        {
+          "indexName": "idx_document_versions_encryption_key_id",
+          "columns": [
+            "encryption_key_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_document_versions_encryption_key_id ON hr_public.document_versions USING btree (encryption_key_id)"
         },
         {
           "indexName": "uq_document_version",
@@ -2326,14 +2395,14 @@
       "uniqueConstraints": [],
       "checkConstraints": [
         {
-          "constraintName": "documents_file_type_check",
-          "checkClause": "(((file_type)::text = ANY ((ARRAY['PDF'::character varying, 'JPEG'::character varying, 'PNG'::character varying, 'GIF'::character varying, 'DOCX'::character varying, 'XLSX'::character varying, 'TXT'::character varying, 'CSV'::character varying])::text[])))",
+          "constraintName": "documents_file_size_bytes_check",
+          "checkClause": "(((file_size_bytes > 0) AND (file_size_bytes <= 52428800)))",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "documents_file_size_bytes_check",
-          "checkClause": "(((file_size_bytes > 0) AND (file_size_bytes <= 52428800)))",
+          "constraintName": "documents_file_type_check",
+          "checkClause": "(((file_type)::text = ANY ((ARRAY['PDF'::character varying, 'JPEG'::character varying, 'PNG'::character varying, 'GIF'::character varying, 'DOCX'::character varying, 'XLSX'::character varying, 'TXT'::character varying, 'CSV'::character varying])::text[])))",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
@@ -2344,73 +2413,73 @@
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25252_1_not_null",
+          "constraintName": "16441_26077_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25252_2_not_null",
+          "constraintName": "16441_26077_2_not_null",
           "checkClause": "filename IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25252_3_not_null",
+          "constraintName": "16441_26077_3_not_null",
           "checkClause": "file_type IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25252_4_not_null",
+          "constraintName": "16441_26077_4_not_null",
           "checkClause": "file_size_bytes IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25252_5_not_null",
+          "constraintName": "16441_26077_5_not_null",
           "checkClause": "storage_path IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25252_6_not_null",
+          "constraintName": "16441_26077_6_not_null",
           "checkClause": "encryption_key_id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25252_7_not_null",
+          "constraintName": "16441_26077_7_not_null",
           "checkClause": "uploaded_by IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25252_8_not_null",
+          "constraintName": "16441_26077_8_not_null",
           "checkClause": "uploaded_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25252_9_not_null",
+          "constraintName": "16441_26077_9_not_null",
           "checkClause": "category IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25252_10_not_null",
+          "constraintName": "16441_26077_10_not_null",
           "checkClause": "sensitivity_level IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25252_12_not_null",
+          "constraintName": "16441_26077_12_not_null",
           "checkClause": "version_number IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25252_14_not_null",
+          "constraintName": "16441_26077_14_not_null",
           "checkClause": "is_deleted IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
@@ -2439,6 +2508,36 @@
           "indexDefinition": "CREATE INDEX idx_documents_deleted_at ON hr_public.documents USING btree (deleted_at) WHERE (deleted_at IS NOT NULL)"
         },
         {
+          "indexName": "idx_documents_deleted_by",
+          "columns": [
+            "deleted_by"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_documents_deleted_by ON hr_public.documents USING btree (deleted_by)"
+        },
+        {
+          "indexName": "idx_documents_encryption_key_id",
+          "columns": [
+            "encryption_key_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_documents_encryption_key_id ON hr_public.documents USING btree (encryption_key_id)"
+        },
+        {
+          "indexName": "idx_documents_expiration",
+          "columns": [
+            "expiration_date"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": "((expiration_date IS NOT NULL) AND (is_deleted = false))",
+          "indexDefinition": "CREATE INDEX idx_documents_expiration ON hr_public.documents USING btree (expiration_date) WHERE ((expiration_date IS NOT NULL) AND (is_deleted = false))"
+        },
+        {
           "indexName": "idx_documents_expiration_date",
           "columns": [
             "expiration_date"
@@ -2447,6 +2546,26 @@
           "indexType": "BTREE",
           "whereClause": "(expiration_date IS NOT NULL)",
           "indexDefinition": "CREATE INDEX idx_documents_expiration_date ON hr_public.documents USING btree (expiration_date) WHERE (expiration_date IS NOT NULL)"
+        },
+        {
+          "indexName": "idx_documents_uploaded_at",
+          "columns": [
+            "uploaded_at"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": "(is_deleted = false)",
+          "indexDefinition": "CREATE INDEX idx_documents_uploaded_at ON hr_public.documents USING btree (uploaded_at DESC) WHERE (is_deleted = false)"
+        },
+        {
+          "indexName": "idx_documents_uploaded_by",
+          "columns": [
+            "uploaded_by"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_documents_uploaded_by ON hr_public.documents USING btree (uploaded_by)"
         },
         {
           "indexName": "idx_documents_uploaded_by_deleted",
@@ -2460,7 +2579,7 @@
           "indexDefinition": "CREATE INDEX idx_documents_uploaded_by_deleted ON hr_public.documents USING btree (uploaded_by, is_deleted)"
         }
       ],
-      "rowCount": 0
+      "rowCount": 3
     },
     {
       "tableName": "emergency_contacts",
@@ -2699,49 +2818,49 @@
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22867_1_not_null",
+          "constraintName": "16441_25308_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22867_2_not_null",
+          "constraintName": "16441_25308_2_not_null",
           "checkClause": "employee_id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22867_3_not_null",
+          "constraintName": "16441_25308_3_not_null",
           "checkClause": "full_name IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22867_4_not_null",
+          "constraintName": "16441_25308_4_not_null",
           "checkClause": "relationship IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22867_5_not_null",
+          "constraintName": "16441_25308_5_not_null",
           "checkClause": "phone_number IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22867_14_not_null",
+          "constraintName": "16441_25308_14_not_null",
           "checkClause": "is_primary IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22867_16_not_null",
+          "constraintName": "16441_25308_16_not_null",
           "checkClause": "created_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22867_17_not_null",
+          "constraintName": "16441_25308_17_not_null",
           "checkClause": "updated_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
@@ -2883,6 +3002,30 @@
           "numericScale": null,
           "isGenerated": false,
           "generationExpression": null
+        },
+        {
+          "columnName": "deleted",
+          "ordinalPosition": 11,
+          "dataType": "boolean",
+          "isNullable": false,
+          "defaultValue": "false",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "deleted_at",
+          "ordinalPosition": 12,
+          "dataType": "timestamp with time zone",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
         }
       ],
       "primaryKey": {
@@ -2916,38 +3059,44 @@
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22553_1_not_null",
+          "constraintName": "16441_16573_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22553_2_not_null",
+          "constraintName": "16441_16573_2_not_null",
           "checkClause": "employee_id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22553_3_not_null",
+          "constraintName": "16441_16573_3_not_null",
           "checkClause": "title IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22553_6_not_null",
+          "constraintName": "16441_16573_6_not_null",
           "checkClause": "status IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22553_9_not_null",
+          "constraintName": "16441_16573_9_not_null",
           "checkClause": "created_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22553_10_not_null",
+          "constraintName": "16441_16573_10_not_null",
           "checkClause": "updated_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_16573_11_not_null",
+          "checkClause": "deleted IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         }
@@ -2995,6 +3144,27 @@
           "indexDefinition": "CREATE INDEX idx_employee_goals_created_by ON hr_public.employee_goals USING btree (created_by)"
         },
         {
+          "indexName": "idx_employee_goals_deleted",
+          "columns": [
+            "deleted"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_employee_goals_deleted ON hr_public.employee_goals USING btree (deleted)"
+        },
+        {
+          "indexName": "idx_employee_goals_employee_active",
+          "columns": [
+            "employee_id",
+            "status"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": "(deleted = false)",
+          "indexDefinition": "CREATE INDEX idx_employee_goals_employee_active ON hr_public.employee_goals USING btree (employee_id, status) WHERE (deleted = false)"
+        },
+        {
           "indexName": "idx_employee_goals_employee_id",
           "columns": [
             "employee_id"
@@ -3005,7 +3175,7 @@
           "indexDefinition": "CREATE INDEX idx_employee_goals_employee_id ON hr_public.employee_goals USING btree (employee_id)"
         }
       ],
-      "rowCount": 0
+      "rowCount": 25
     },
     {
       "tableName": "employee_vehicles",
@@ -3233,49 +3403,49 @@
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22886_1_not_null",
+          "constraintName": "16441_25327_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22886_2_not_null",
+          "constraintName": "16441_25327_2_not_null",
           "checkClause": "employee_id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22886_3_not_null",
+          "constraintName": "16441_25327_3_not_null",
           "checkClause": "make IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22886_4_not_null",
+          "constraintName": "16441_25327_4_not_null",
           "checkClause": "model IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22886_7_not_null",
+          "constraintName": "16441_25327_7_not_null",
           "checkClause": "license_plate IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22886_13_not_null",
+          "constraintName": "16441_25327_13_not_null",
           "checkClause": "is_primary IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22886_15_not_null",
+          "constraintName": "16441_25327_15_not_null",
           "checkClause": "created_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22886_16_not_null",
+          "constraintName": "16441_25327_16_not_null",
           "checkClause": "updated_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
@@ -3304,6 +3474,167 @@
         }
       ],
       "rowCount": 0
+    },
+    {
+      "tableName": "encrypted_file_storage",
+      "columns": [
+        {
+          "columnName": "storage_path",
+          "ordinalPosition": 1,
+          "dataType": "text",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "encrypted_data",
+          "ordinalPosition": 2,
+          "dataType": "bytea",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "filename",
+          "ordinalPosition": 3,
+          "dataType": "character varying",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": 255,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "file_type",
+          "ordinalPosition": 4,
+          "dataType": "character varying",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": 50,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "file_size",
+          "ordinalPosition": 5,
+          "dataType": "integer",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": 32,
+          "numericScale": 0,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "uploaded_by",
+          "ordinalPosition": 6,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "uploaded_at",
+          "ordinalPosition": 7,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "encrypted_file_storage_pkey",
+        "columns": "{storage_path}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "encrypted_file_storage_uploaded_by_fkey",
+          "columns": "{uploaded_by}",
+          "referencedTable": "users",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "uniqueConstraints": [],
+      "checkConstraints": [
+        {
+          "constraintName": "16441_26258_1_not_null",
+          "checkClause": "storage_path IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_26258_2_not_null",
+          "checkClause": "encrypted_data IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_26258_3_not_null",
+          "checkClause": "filename IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_26258_4_not_null",
+          "checkClause": "file_type IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_26258_5_not_null",
+          "checkClause": "file_size IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_26258_6_not_null",
+          "checkClause": "uploaded_by IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_26258_7_not_null",
+          "checkClause": "uploaded_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "idx_encrypted_file_storage_uploaded_by",
+          "columns": [
+            "uploaded_by"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_encrypted_file_storage_uploaded_by ON hr_public.encrypted_file_storage USING btree (uploaded_by)"
+        }
+      ],
+      "rowCount": 9
     },
     {
       "tableName": "encryption_keys",
@@ -3435,43 +3766,43 @@
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25359_1_not_null",
+          "constraintName": "16441_26181_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25359_2_not_null",
+          "constraintName": "16441_26181_2_not_null",
           "checkClause": "key_identifier IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25359_3_not_null",
+          "constraintName": "16441_26181_3_not_null",
           "checkClause": "encrypted_key_data IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25359_4_not_null",
+          "constraintName": "16441_26181_4_not_null",
           "checkClause": "key_algorithm IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25359_5_not_null",
+          "constraintName": "16441_26181_5_not_null",
           "checkClause": "created_for_user IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25359_6_not_null",
+          "constraintName": "16441_26181_6_not_null",
           "checkClause": "created_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_25359_8_not_null",
+          "constraintName": "16441_26181_8_not_null",
           "checkClause": "is_active IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
@@ -3520,7 +3851,7 @@
           "indexDefinition": "CREATE INDEX idx_encryption_keys_user_created ON hr_public.encryption_keys USING btree (created_for_user, created_at DESC)"
         }
       ],
-      "rowCount": 0
+      "rowCount": 9
     },
     {
       "tableName": "event_attendees",
@@ -3654,6 +3985,22 @@
           "referencedColumns": "{id}",
           "onUpdate": "NO ACTION",
           "onDelete": "CASCADE"
+        },
+        {
+          "constraintName": "fk_event_attendees_employee",
+          "columns": "{employee_id}",
+          "referencedTable": "users",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "constraintName": "fk_event_attendees_event",
+          "columns": "{event_id}",
+          "referencedTable": "events",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
         }
       ],
       "uniqueConstraints": [
@@ -3666,43 +4013,43 @@
       ],
       "checkConstraints": [
         {
-          "constraintName": "22420_22670_1_not_null",
+          "constraintName": "16441_25196_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22670_2_not_null",
+          "constraintName": "16441_25196_2_not_null",
           "checkClause": "event_id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22670_3_not_null",
+          "constraintName": "16441_25196_3_not_null",
           "checkClause": "employee_id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22670_4_not_null",
+          "constraintName": "16441_25196_4_not_null",
           "checkClause": "response_status IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22670_5_not_null",
+          "constraintName": "16441_25196_5_not_null",
           "checkClause": "is_required IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22670_7_not_null",
+          "constraintName": "16441_25196_7_not_null",
           "checkClause": "created_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22670_8_not_null",
+          "constraintName": "16441_25196_8_not_null",
           "checkClause": "updated_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
@@ -3773,7 +4120,581 @@
           "indexDefinition": "CREATE INDEX idx_event_attendees_response_status ON hr_public.event_attendees USING btree (response_status)"
         }
       ],
+      "rowCount": 3
+    },
+    {
+      "tableName": "event_comments",
+      "columns": [
+        {
+          "columnName": "id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": "gen_random_uuid()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "event_id",
+          "ordinalPosition": 2,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "employee_id",
+          "ordinalPosition": 3,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "content",
+          "ordinalPosition": 4,
+          "dataType": "text",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "mentions",
+          "ordinalPosition": 5,
+          "dataType": "array",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "created_at",
+          "ordinalPosition": 6,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "updated_at",
+          "ordinalPosition": 7,
+          "dataType": "timestamp with time zone",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "event_comments_pkey",
+        "columns": "{id}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "event_comments_employee_id_fkey",
+          "columns": "{employee_id}",
+          "referencedTable": "users",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "constraintName": "event_comments_event_id_fkey",
+          "columns": "{event_id}",
+          "referencedTable": "events",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "uniqueConstraints": [],
+      "checkConstraints": [
+        {
+          "constraintName": "event_comments_content_check",
+          "checkClause": "(((length(TRIM(BOTH FROM content)) > 0) AND (length(content) <= 5000)))",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_26490_1_not_null",
+          "checkClause": "id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_26490_2_not_null",
+          "checkClause": "event_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_26490_3_not_null",
+          "checkClause": "employee_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_26490_4_not_null",
+          "checkClause": "content IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_26490_6_not_null",
+          "checkClause": "created_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "idx_comments_created_at",
+          "columns": [
+            "created_at"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_comments_created_at ON hr_public.event_comments USING btree (created_at DESC)"
+        },
+        {
+          "indexName": "idx_comments_event",
+          "columns": [
+            "event_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_comments_event ON hr_public.event_comments USING btree (event_id)"
+        },
+        {
+          "indexName": "idx_comments_user",
+          "columns": [
+            "employee_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_comments_user ON hr_public.event_comments USING btree (employee_id)"
+        }
+      ],
       "rowCount": 1
+    },
+    {
+      "tableName": "event_history",
+      "columns": [
+        {
+          "columnName": "id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": "gen_random_uuid()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "event_id",
+          "ordinalPosition": 2,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "changed_by",
+          "ordinalPosition": 3,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "change_type",
+          "ordinalPosition": 4,
+          "dataType": "text",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "field_name",
+          "ordinalPosition": 5,
+          "dataType": "character varying",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": 100,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "old_value",
+          "ordinalPosition": 6,
+          "dataType": "jsonb",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "new_value",
+          "ordinalPosition": 7,
+          "dataType": "jsonb",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "created_at",
+          "ordinalPosition": 8,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "event_history_pkey",
+        "columns": "{id}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "event_history_changed_by_fkey",
+          "columns": "{changed_by}",
+          "referencedTable": "users",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "constraintName": "event_history_event_id_fkey",
+          "columns": "{event_id}",
+          "referencedTable": "events",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "uniqueConstraints": [],
+      "checkConstraints": [
+        {
+          "constraintName": "event_history_change_type_check",
+          "checkClause": "((change_type = ANY (ARRAY['created'::text, 'updated'::text, 'deleted'::text, 'ownership_transfer'::text, 'attendee_added'::text, 'attendee_removed'::text])))",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_26513_1_not_null",
+          "checkClause": "id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_26513_2_not_null",
+          "checkClause": "event_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_26513_3_not_null",
+          "checkClause": "changed_by IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_26513_4_not_null",
+          "checkClause": "change_type IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_26513_8_not_null",
+          "checkClause": "created_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "idx_event_history_created_at",
+          "columns": [
+            "created_at"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_event_history_created_at ON hr_public.event_history USING btree (created_at DESC)"
+        },
+        {
+          "indexName": "idx_history_change_type",
+          "columns": [
+            "change_type"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_history_change_type ON hr_public.event_history USING btree (change_type)"
+        },
+        {
+          "indexName": "idx_history_changed_by",
+          "columns": [
+            "changed_by"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_history_changed_by ON hr_public.event_history USING btree (changed_by)"
+        },
+        {
+          "indexName": "idx_history_event",
+          "columns": [
+            "event_id",
+            "created_at"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_history_event ON hr_public.event_history USING btree (event_id, created_at DESC)"
+        }
+      ],
+      "rowCount": 0
+    },
+    {
+      "tableName": "event_waitlist",
+      "columns": [
+        {
+          "columnName": "id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": "gen_random_uuid()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "event_id",
+          "ordinalPosition": 2,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "employee_id",
+          "ordinalPosition": 3,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "position",
+          "ordinalPosition": 4,
+          "dataType": "integer",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": 32,
+          "numericScale": 0,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "joined_at",
+          "ordinalPosition": 5,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "event_waitlist_pkey",
+        "columns": "{id}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "event_waitlist_employee_id_fkey",
+          "columns": "{employee_id}",
+          "referencedTable": "users",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "constraintName": "event_waitlist_event_id_fkey",
+          "columns": "{event_id}",
+          "referencedTable": "events",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "uniqueConstraints": [
+        {
+          "constraintName": "event_waitlist_event_id_employee_id_key",
+          "columns": "{event_id,employee_id}",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "event_waitlist_event_id_position_key",
+          "columns": "{event_id,position}",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "checkConstraints": [
+        {
+          "constraintName": "event_waitlist_position_check",
+          "checkClause": "((\"position\" > 0))",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_26466_1_not_null",
+          "checkClause": "id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_26466_2_not_null",
+          "checkClause": "event_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_26466_3_not_null",
+          "checkClause": "employee_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_26466_4_not_null",
+          "checkClause": "position IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_26466_5_not_null",
+          "checkClause": "joined_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "event_waitlist_event_id_employee_id_key",
+          "columns": [
+            "event_id",
+            "employee_id"
+          ],
+          "isUnique": true,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE UNIQUE INDEX event_waitlist_event_id_employee_id_key ON hr_public.event_waitlist USING btree (event_id, employee_id)"
+        },
+        {
+          "indexName": "event_waitlist_event_id_position_key",
+          "columns": [
+            "event_id",
+            "\"position\""
+          ],
+          "isUnique": true,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE UNIQUE INDEX event_waitlist_event_id_position_key ON hr_public.event_waitlist USING btree (event_id, \"position\")"
+        },
+        {
+          "indexName": "idx_waitlist_employee",
+          "columns": [
+            "employee_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_waitlist_employee ON hr_public.event_waitlist USING btree (employee_id)"
+        },
+        {
+          "indexName": "idx_waitlist_event",
+          "columns": [
+            "event_id",
+            "\"position\""
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_waitlist_event ON hr_public.event_waitlist USING btree (event_id, \"position\")"
+        }
+      ],
+      "rowCount": 0
     },
     {
       "tableName": "events",
@@ -3959,66 +4880,74 @@
           "referencedColumns": "{id}",
           "onUpdate": "NO ACTION",
           "onDelete": "CASCADE"
+        },
+        {
+          "constraintName": "fk_events_organizer",
+          "columns": "{organizer_id}",
+          "referencedTable": "users",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
         }
       ],
       "uniqueConstraints": [],
       "checkConstraints": [
         {
-          "constraintName": "22420_22652_1_not_null",
+          "constraintName": "16441_25146_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22652_2_not_null",
+          "constraintName": "16441_25146_2_not_null",
           "checkClause": "title IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22652_4_not_null",
+          "constraintName": "16441_25146_4_not_null",
           "checkClause": "event_type IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22652_5_not_null",
+          "constraintName": "16441_25146_5_not_null",
           "checkClause": "start_time IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22652_7_not_null",
+          "constraintName": "16441_25146_7_not_null",
           "checkClause": "all_day IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22652_9_not_null",
+          "constraintName": "16441_25146_9_not_null",
           "checkClause": "is_public IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22652_11_not_null",
+          "constraintName": "16441_25146_11_not_null",
           "checkClause": "organizer_id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22652_12_not_null",
+          "constraintName": "16441_25146_12_not_null",
           "checkClause": "status IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22652_13_not_null",
+          "constraintName": "16441_25146_13_not_null",
           "checkClause": "created_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22652_14_not_null",
+          "constraintName": "16441_25146_14_not_null",
           "checkClause": "updated_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
@@ -4056,7 +4985,7 @@
           "indexDefinition": "CREATE INDEX idx_events_status ON hr_public.events USING btree (status)"
         }
       ],
-      "rowCount": 1
+      "rowCount": 3
     },
     {
       "tableName": "hr_reports",
@@ -4249,8 +5178,8 @@
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "hr_reports_title_not_empty",
-          "checkClause": "((length(TRIM(BOTH FROM title)) > 0))",
+          "constraintName": "hr_reports_generated_at_logic",
+          "checkClause": "((((status = 'completed'::hr_public.report_status) AND (generated_at IS NOT NULL)) OR ((status <> 'completed'::hr_public.report_status) AND ((generated_at IS NULL) OR (generated_at IS NOT NULL)))))",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
@@ -4261,61 +5190,61 @@
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "hr_reports_generated_at_logic",
-          "checkClause": "((((status = 'completed'::hr_public.report_status) AND (generated_at IS NOT NULL)) OR ((status <> 'completed'::hr_public.report_status) AND ((generated_at IS NULL) OR (generated_at IS NOT NULL)))))",
+          "constraintName": "hr_reports_title_not_empty",
+          "checkClause": "((length(TRIM(BOTH FROM title)) > 0))",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_23017_1_not_null",
+          "constraintName": "16441_25613_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_23017_2_not_null",
+          "constraintName": "16441_25613_2_not_null",
           "checkClause": "creator_id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_23017_3_not_null",
+          "constraintName": "16441_25613_3_not_null",
           "checkClause": "department_id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_23017_4_not_null",
+          "constraintName": "16441_25613_4_not_null",
           "checkClause": "title IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_23017_5_not_null",
+          "constraintName": "16441_25613_5_not_null",
           "checkClause": "report_type IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_23017_6_not_null",
+          "constraintName": "16441_25613_6_not_null",
           "checkClause": "category IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_23017_9_not_null",
+          "constraintName": "16441_25613_9_not_null",
           "checkClause": "status IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_23017_12_not_null",
+          "constraintName": "16441_25613_12_not_null",
           "checkClause": "created_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_23017_13_not_null",
+          "constraintName": "16441_25613_13_not_null",
           "checkClause": "updated_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
@@ -4393,7 +5322,7 @@
           "indexDefinition": "CREATE INDEX hr_reports_status_idx ON hr_public.hr_reports USING btree (status)"
         }
       ],
-      "rowCount": 20
+      "rowCount": 40
     },
     {
       "tableName": "leave_requests",
@@ -4586,55 +5515,55 @@
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22491_1_not_null",
+          "constraintName": "16441_16511_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22491_2_not_null",
+          "constraintName": "16441_16511_2_not_null",
           "checkClause": "employee_id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22491_4_not_null",
+          "constraintName": "16441_16511_4_not_null",
           "checkClause": "leave_type IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22491_5_not_null",
+          "constraintName": "16441_16511_5_not_null",
           "checkClause": "start_date IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22491_6_not_null",
+          "constraintName": "16441_16511_6_not_null",
           "checkClause": "end_date IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22491_7_not_null",
+          "constraintName": "16441_16511_7_not_null",
           "checkClause": "days_requested IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22491_8_not_null",
+          "constraintName": "16441_16511_8_not_null",
           "checkClause": "status IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22491_11_not_null",
+          "constraintName": "16441_16511_11_not_null",
           "checkClause": "created_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22491_12_not_null",
+          "constraintName": "16441_16511_12_not_null",
           "checkClause": "updated_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
@@ -4713,6 +5642,201 @@
           "indexType": "BTREE",
           "whereClause": "(status = 'pending'::hr_public.leave_status)",
           "indexDefinition": "CREATE INDEX leave_requests_pending_idx ON hr_public.leave_requests USING btree (employee_id, created_at DESC) WHERE (status = 'pending'::hr_public.leave_status)"
+        }
+      ],
+      "rowCount": 78
+    },
+    {
+      "tableName": "linked_resources",
+      "columns": [
+        {
+          "columnName": "id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": "gen_random_uuid()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "task_id",
+          "ordinalPosition": 2,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "resource_type",
+          "ordinalPosition": 3,
+          "dataType": "user-defined",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "resource_id",
+          "ordinalPosition": 4,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "resource_title",
+          "ordinalPosition": 5,
+          "dataType": "character varying",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": 255,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "availability_status",
+          "ordinalPosition": 6,
+          "dataType": "user-defined",
+          "isNullable": true,
+          "defaultValue": "'available'::availability_status_enum",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "last_checked",
+          "ordinalPosition": 7,
+          "dataType": "timestamp with time zone",
+          "isNullable": true,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "created_at",
+          "ordinalPosition": 8,
+          "dataType": "timestamp with time zone",
+          "isNullable": true,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "linked_resources_pkey",
+        "columns": "{id}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "linked_resources_task_id_fkey",
+          "columns": "{task_id}",
+          "referencedTable": "tasks",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "uniqueConstraints": [
+        {
+          "constraintName": "linked_resources_task_id_resource_type_resource_id_key",
+          "columns": "{task_id,resource_type,resource_id}",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "checkConstraints": [
+        {
+          "constraintName": "16441_33469_1_not_null",
+          "checkClause": "id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_33469_2_not_null",
+          "checkClause": "task_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_33469_3_not_null",
+          "checkClause": "resource_type IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_33469_4_not_null",
+          "checkClause": "resource_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "idx_linked_res_resource",
+          "columns": [
+            "resource_type",
+            "resource_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_linked_res_resource ON hr_public.linked_resources USING btree (resource_type, resource_id)"
+        },
+        {
+          "indexName": "idx_linked_res_task",
+          "columns": [
+            "task_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_linked_res_task ON hr_public.linked_resources USING btree (task_id)"
+        },
+        {
+          "indexName": "idx_linked_resources_created_at_order",
+          "columns": [
+            "created_at"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_linked_resources_created_at_order ON hr_public.linked_resources USING btree (created_at)"
+        },
+        {
+          "indexName": "linked_resources_task_id_resource_type_resource_id_key",
+          "columns": [
+            "task_id",
+            "resource_type",
+            "resource_id"
+          ],
+          "isUnique": true,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE UNIQUE INDEX linked_resources_task_id_resource_type_resource_id_key ON hr_public.linked_resources USING btree (task_id, resource_type, resource_id)"
         }
       ],
       "rowCount": 0
@@ -4882,12 +6006,6 @@
       "uniqueConstraints": [],
       "checkConstraints": [
         {
-          "constraintName": "notifications_title_not_empty",
-          "checkClause": "((length(TRIM(BOTH FROM title)) > 0))",
-          "isDeferrable": false,
-          "isInitiallyDeferred": false
-        },
-        {
           "constraintName": "notifications_message_not_empty",
           "checkClause": "((length(TRIM(BOTH FROM message)) > 0))",
           "isDeferrable": false,
@@ -4900,55 +6018,61 @@
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_23107_1_not_null",
+          "constraintName": "notifications_title_not_empty",
+          "checkClause": "((length(TRIM(BOTH FROM title)) > 0))",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_25277_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_23107_2_not_null",
+          "constraintName": "16441_25277_2_not_null",
           "checkClause": "recipient_id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_23107_3_not_null",
+          "constraintName": "16441_25277_3_not_null",
           "checkClause": "type IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_23107_4_not_null",
+          "constraintName": "16441_25277_4_not_null",
           "checkClause": "category IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_23107_5_not_null",
+          "constraintName": "16441_25277_5_not_null",
           "checkClause": "title IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_23107_6_not_null",
+          "constraintName": "16441_25277_6_not_null",
           "checkClause": "message IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_23107_9_not_null",
+          "constraintName": "16441_25277_9_not_null",
           "checkClause": "read_status IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_23107_10_not_null",
+          "constraintName": "16441_25277_10_not_null",
           "checkClause": "delivered_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_23107_12_not_null",
+          "constraintName": "16441_25277_12_not_null",
           "checkClause": "created_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
@@ -5188,49 +6312,49 @@
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22576_1_not_null",
+          "constraintName": "16441_16596_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22576_2_not_null",
+          "constraintName": "16441_16596_2_not_null",
           "checkClause": "employee_id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22576_3_not_null",
+          "constraintName": "16441_16596_3_not_null",
           "checkClause": "pay_period_start IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22576_4_not_null",
+          "constraintName": "16441_16596_4_not_null",
           "checkClause": "pay_period_end IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22576_5_not_null",
+          "constraintName": "16441_16596_5_not_null",
           "checkClause": "gross_pay IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22576_6_not_null",
+          "constraintName": "16441_16596_6_not_null",
           "checkClause": "net_pay IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22576_9_not_null",
+          "constraintName": "16441_16596_9_not_null",
           "checkClause": "created_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22576_10_not_null",
+          "constraintName": "16441_16596_10_not_null",
           "checkClause": "updated_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
@@ -5348,7 +6472,7 @@
           "ordinalPosition": 5,
           "dataType": "user-defined",
           "isNullable": false,
-          "defaultValue": "'not_started'::hr_public.review_status",
+          "defaultValue": "'draft'::hr_public.review_status",
           "characterMaximumLength": null,
           "numericPrecision": null,
           "numericScale": null,
@@ -5443,8 +6567,8 @@
           "columnName": "review_type",
           "ordinalPosition": 13,
           "dataType": "user-defined",
-          "isNullable": true,
-          "defaultValue": null,
+          "isNullable": false,
+          "defaultValue": "'annual_review'::hr_public.review_type",
           "characterMaximumLength": null,
           "numericPrecision": null,
           "numericScale": null,
@@ -5525,49 +6649,66 @@
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22505_1_not_null",
+          "constraintName": "16441_16525_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22505_2_not_null",
+          "constraintName": "16441_16525_2_not_null",
           "checkClause": "employee_id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22505_3_not_null",
+          "constraintName": "16441_16525_3_not_null",
           "checkClause": "reviewer_id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22505_4_not_null",
+          "constraintName": "16441_16525_4_not_null",
           "checkClause": "review_period IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22505_5_not_null",
+          "constraintName": "16441_16525_5_not_null",
           "checkClause": "status IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22505_11_not_null",
+          "constraintName": "16441_16525_11_not_null",
           "checkClause": "created_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22505_12_not_null",
+          "constraintName": "16441_16525_12_not_null",
           "checkClause": "updated_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_16525_13_not_null",
+          "checkClause": "review_type IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         }
       ],
       "indexes": [
+        {
+          "indexName": "idx_active_reviews_unique",
+          "columns": [
+            "employee_id",
+            "review_type"
+          ],
+          "isUnique": true,
+          "indexType": "BTREE",
+          "whereClause": "(status = ANY (ARRAY['draft'::hr_public.review_status, 'in_progress'::hr_public.review_status]))",
+          "indexDefinition": "CREATE UNIQUE INDEX idx_active_reviews_unique ON hr_public.performance_reviews USING btree (employee_id, review_type) WHERE (status = ANY (ARRAY['draft'::hr_public.review_status, 'in_progress'::hr_public.review_status]))"
+        },
         {
           "indexName": "idx_performance_reviews_employee_id",
           "columns": [
@@ -5577,6 +6718,17 @@
           "indexType": "BTREE",
           "whereClause": null,
           "indexDefinition": "CREATE INDEX idx_performance_reviews_employee_id ON hr_public.performance_reviews USING btree (employee_id)"
+        },
+        {
+          "indexName": "idx_performance_reviews_employee_type",
+          "columns": [
+            "employee_id",
+            "review_type"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_performance_reviews_employee_type ON hr_public.performance_reviews USING btree (employee_id, review_type)"
         },
         {
           "indexName": "idx_performance_reviews_period",
@@ -5651,7 +6803,150 @@
           "indexDefinition": "CREATE INDEX performance_reviews_period_idx ON hr_public.performance_reviews USING btree (review_period, status) INCLUDE (overall_rating)"
         }
       ],
-      "rowCount": 0
+      "rowCount": 25
+    },
+    {
+      "tableName": "review_goals",
+      "columns": [
+        {
+          "columnName": "id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": "uuid_generate_v4()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "review_id",
+          "ordinalPosition": 2,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "goal_id",
+          "ordinalPosition": 3,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "created_at",
+          "ordinalPosition": 4,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "CURRENT_TIMESTAMP",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "review_goals_pkey",
+        "columns": "{id}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "review_goals_goal_id_fkey",
+          "columns": "{goal_id}",
+          "referencedTable": "employee_goals",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "RESTRICT"
+        },
+        {
+          "constraintName": "review_goals_review_id_fkey",
+          "columns": "{review_id}",
+          "referencedTable": "performance_reviews",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "uniqueConstraints": [
+        {
+          "constraintName": "review_goals_review_id_goal_id_key",
+          "columns": "{review_id,goal_id}",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "checkConstraints": [
+        {
+          "constraintName": "16441_26043_1_not_null",
+          "checkClause": "id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_26043_2_not_null",
+          "checkClause": "review_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_26043_3_not_null",
+          "checkClause": "goal_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_26043_4_not_null",
+          "checkClause": "created_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "idx_review_goals_goal",
+          "columns": [
+            "goal_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_review_goals_goal ON hr_public.review_goals USING btree (goal_id)"
+        },
+        {
+          "indexName": "idx_review_goals_review",
+          "columns": [
+            "review_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_review_goals_review ON hr_public.review_goals USING btree (review_id)"
+        },
+        {
+          "indexName": "review_goals_review_id_goal_id_key",
+          "columns": [
+            "review_id",
+            "goal_id"
+          ],
+          "isUnique": true,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE UNIQUE INDEX review_goals_review_id_goal_id_key ON hr_public.review_goals USING btree (review_id, goal_id)"
+        }
+      ],
+      "rowCount": 1
     },
     {
       "tableName": "review_templates",
@@ -5770,37 +7065,37 @@
       "uniqueConstraints": [],
       "checkConstraints": [
         {
-          "constraintName": "22420_22586_1_not_null",
+          "constraintName": "16441_16606_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22586_2_not_null",
+          "constraintName": "16441_16606_2_not_null",
           "checkClause": "name IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22586_4_not_null",
+          "constraintName": "16441_16606_4_not_null",
           "checkClause": "template_data IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22586_5_not_null",
+          "constraintName": "16441_16606_5_not_null",
           "checkClause": "is_active IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22586_7_not_null",
+          "constraintName": "16441_16606_7_not_null",
           "checkClause": "created_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22586_8_not_null",
+          "constraintName": "16441_16606_8_not_null",
           "checkClause": "updated_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
@@ -6005,49 +7300,49 @@
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_23317_1_not_null",
+          "constraintName": "16441_25927_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_23317_2_not_null",
+          "constraintName": "16441_25927_2_not_null",
           "checkClause": "activity_log_id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_23317_3_not_null",
+          "constraintName": "16441_25927_3_not_null",
           "checkClause": "requested_by IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_23317_4_not_null",
+          "constraintName": "16441_25927_4_not_null",
           "checkClause": "requested_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_23317_5_not_null",
+          "constraintName": "16441_25927_5_not_null",
           "checkClause": "reason IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_23317_6_not_null",
+          "constraintName": "16441_25927_6_not_null",
           "checkClause": "status IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_23317_10_not_null",
+          "constraintName": "16441_25927_10_not_null",
           "checkClause": "created_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_23317_11_not_null",
+          "constraintName": "16441_25927_11_not_null",
           "checkClause": "updated_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
@@ -6085,6 +7380,16 @@
           "indexDefinition": "CREATE INDEX idx_rollback_requests_requester ON hr_public.rollback_requests USING btree (requested_by)"
         },
         {
+          "indexName": "idx_rollback_requests_reviewed_by",
+          "columns": [
+            "reviewed_by"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_rollback_requests_reviewed_by ON hr_public.rollback_requests USING btree (reviewed_by)"
+        },
+        {
           "indexName": "idx_rollback_requests_status",
           "columns": [
             "status",
@@ -6094,6 +7399,340 @@
           "indexType": "BTREE",
           "whereClause": null,
           "indexDefinition": "CREATE INDEX idx_rollback_requests_status ON hr_public.rollback_requests USING btree (status, requested_at DESC)"
+        }
+      ],
+      "rowCount": 0
+    },
+    {
+      "tableName": "task_audit_entries",
+      "columns": [
+        {
+          "columnName": "id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": "gen_random_uuid()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "task_id",
+          "ordinalPosition": 2,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "action_type",
+          "ordinalPosition": 3,
+          "dataType": "user-defined",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "changed_fields",
+          "ordinalPosition": 4,
+          "dataType": "array",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "new_values",
+          "ordinalPosition": 5,
+          "dataType": "jsonb",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "user_id",
+          "ordinalPosition": 6,
+          "dataType": "uuid",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "timestamp",
+          "ordinalPosition": 7,
+          "dataType": "timestamp with time zone",
+          "isNullable": true,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "task_audit_entries_pkey",
+        "columns": "{id}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "task_audit_entries_task_id_fkey",
+          "columns": "{task_id}",
+          "referencedTable": "tasks",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "constraintName": "task_audit_entries_user_id_fkey",
+          "columns": "{user_id}",
+          "referencedTable": "users",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "SET NULL"
+        }
+      ],
+      "uniqueConstraints": [],
+      "checkConstraints": [
+        {
+          "constraintName": "16441_33423_1_not_null",
+          "checkClause": "id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_33423_2_not_null",
+          "checkClause": "task_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_33423_3_not_null",
+          "checkClause": "action_type IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "idx_task_audit_entries_timestamp_order",
+          "columns": [
+            "\"timestamp\""
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_task_audit_entries_timestamp_order ON hr_public.task_audit_entries USING btree (\"timestamp\")"
+        },
+        {
+          "indexName": "idx_task_audit_task_id",
+          "columns": [
+            "task_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_task_audit_task_id ON hr_public.task_audit_entries USING btree (task_id)"
+        },
+        {
+          "indexName": "idx_task_audit_timestamp",
+          "columns": [
+            "\"timestamp\""
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_task_audit_timestamp ON hr_public.task_audit_entries USING btree (\"timestamp\" DESC)"
+        },
+        {
+          "indexName": "idx_task_audit_user_id",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_task_audit_user_id ON hr_public.task_audit_entries USING btree (user_id)"
+        }
+      ],
+      "rowCount": 0
+    },
+    {
+      "tableName": "task_dependencies",
+      "columns": [
+        {
+          "columnName": "id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": "gen_random_uuid()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "blocking_task_id",
+          "ordinalPosition": 2,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "blocked_task_id",
+          "ordinalPosition": 3,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "dependency_type",
+          "ordinalPosition": 4,
+          "dataType": "character varying",
+          "isNullable": true,
+          "defaultValue": "'blocks'::character varying",
+          "characterMaximumLength": 50,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "created_at",
+          "ordinalPosition": 5,
+          "dataType": "timestamp with time zone",
+          "isNullable": true,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "task_dependencies_pkey",
+        "columns": "{id}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "task_dependencies_blocked_task_id_fkey",
+          "columns": "{blocked_task_id}",
+          "referencedTable": "tasks",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "constraintName": "task_dependencies_blocking_task_id_fkey",
+          "columns": "{blocking_task_id}",
+          "referencedTable": "tasks",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "uniqueConstraints": [
+        {
+          "constraintName": "task_dependencies_blocking_task_id_blocked_task_id_key",
+          "columns": "{blocking_task_id,blocked_task_id}",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "checkConstraints": [
+        {
+          "constraintName": "16441_33445_1_not_null",
+          "checkClause": "id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_33445_2_not_null",
+          "checkClause": "blocking_task_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_33445_3_not_null",
+          "checkClause": "blocked_task_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "idx_task_dep_blocked",
+          "columns": [
+            "blocked_task_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_task_dep_blocked ON hr_public.task_dependencies USING btree (blocked_task_id)"
+        },
+        {
+          "indexName": "idx_task_dep_blocking",
+          "columns": [
+            "blocking_task_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_task_dep_blocking ON hr_public.task_dependencies USING btree (blocking_task_id)"
+        },
+        {
+          "indexName": "idx_task_dependencies_created_at_order",
+          "columns": [
+            "created_at"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_task_dependencies_created_at_order ON hr_public.task_dependencies USING btree (created_at)"
+        },
+        {
+          "indexName": "task_dependencies_blocking_task_id_blocked_task_id_key",
+          "columns": [
+            "blocking_task_id",
+            "blocked_task_id"
+          ],
+          "isUnique": true,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE UNIQUE INDEX task_dependencies_blocking_task_id_blocked_task_id_key ON hr_public.task_dependencies USING btree (blocking_task_id, blocked_task_id)"
         }
       ],
       "rowCount": 0
@@ -6198,19 +7837,29 @@
       ],
       "checkConstraints": [
         {
-          "constraintName": "22420_33505_1_not_null",
+          "constraintName": "16441_33357_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_33505_2_not_null",
+          "constraintName": "16441_33357_2_not_null",
           "checkClause": "name IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         }
       ],
       "indexes": [
+        {
+          "indexName": "idx_task_types_created_by",
+          "columns": [
+            "created_by"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_task_types_created_by ON hr_public.task_types USING btree (created_by)"
+        },
         {
           "indexName": "idx_task_types_name",
           "columns": [
@@ -6220,6 +7869,16 @@
           "indexType": "BTREE",
           "whereClause": null,
           "indexDefinition": "CREATE INDEX idx_task_types_name ON hr_public.task_types USING btree (name)"
+        },
+        {
+          "indexName": "idx_task_types_name_order",
+          "columns": [
+            "name"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_task_types_name_order ON hr_public.task_types USING btree (name)"
         },
         {
           "indexName": "task_types_name_key",
@@ -6298,8 +7957,20 @@
           "generationExpression": null
         },
         {
-          "columnName": "status",
+          "columnName": "task_type_id",
           "ordinalPosition": 6,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "status",
+          "ordinalPosition": 7,
           "dataType": "user-defined",
           "isNullable": false,
           "defaultValue": "'To Do'::task_status_enum",
@@ -6311,7 +7982,7 @@
         },
         {
           "columnName": "priority",
-          "ordinalPosition": 7,
+          "ordinalPosition": 8,
           "dataType": "user-defined",
           "isNullable": false,
           "defaultValue": "'Medium'::task_priority_enum",
@@ -6323,7 +7994,7 @@
         },
         {
           "columnName": "due_date",
-          "ordinalPosition": 8,
+          "ordinalPosition": 9,
           "dataType": "timestamp with time zone",
           "isNullable": true,
           "defaultValue": null,
@@ -6335,7 +8006,7 @@
         },
         {
           "columnName": "parent_task_id",
-          "ordinalPosition": 9,
+          "ordinalPosition": 10,
           "dataType": "uuid",
           "isNullable": true,
           "defaultValue": null,
@@ -6347,7 +8018,7 @@
         },
         {
           "columnName": "archived",
-          "ordinalPosition": 10,
+          "ordinalPosition": 11,
           "dataType": "boolean",
           "isNullable": true,
           "defaultValue": "false",
@@ -6359,7 +8030,7 @@
         },
         {
           "columnName": "archived_at",
-          "ordinalPosition": 11,
+          "ordinalPosition": 12,
           "dataType": "timestamp with time zone",
           "isNullable": true,
           "defaultValue": null,
@@ -6371,7 +8042,7 @@
         },
         {
           "columnName": "archived_by",
-          "ordinalPosition": 12,
+          "ordinalPosition": 13,
           "dataType": "uuid",
           "isNullable": true,
           "defaultValue": null,
@@ -6383,7 +8054,7 @@
         },
         {
           "columnName": "requires_manual_reassignment",
-          "ordinalPosition": 13,
+          "ordinalPosition": 14,
           "dataType": "boolean",
           "isNullable": true,
           "defaultValue": "false",
@@ -6395,7 +8066,7 @@
         },
         {
           "columnName": "created_at",
-          "ordinalPosition": 14,
+          "ordinalPosition": 15,
           "dataType": "timestamp with time zone",
           "isNullable": true,
           "defaultValue": "now()",
@@ -6407,7 +8078,7 @@
         },
         {
           "columnName": "updated_at",
-          "ordinalPosition": 15,
+          "ordinalPosition": 16,
           "dataType": "timestamp with time zone",
           "isNullable": true,
           "defaultValue": "now()",
@@ -6454,6 +8125,14 @@
           "referencedColumns": "{id}",
           "onUpdate": "NO ACTION",
           "onDelete": "CASCADE"
+        },
+        {
+          "constraintName": "tasks_task_type_id_fkey",
+          "columns": "{task_type_id}",
+          "referencedTable": "task_types",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "RESTRICT"
         }
       ],
       "uniqueConstraints": [],
@@ -6465,43 +8144,59 @@
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_33641_1_not_null",
+          "constraintName": "16441_33375_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_33641_2_not_null",
+          "constraintName": "16441_33375_2_not_null",
           "checkClause": "title IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_33641_4_not_null",
+          "constraintName": "16441_33375_4_not_null",
           "checkClause": "assignee_id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_33641_5_not_null",
+          "constraintName": "16441_33375_5_not_null",
           "checkClause": "creator_id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_33641_6_not_null",
+          "constraintName": "16441_33375_6_not_null",
+          "checkClause": "task_type_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16441_33375_7_not_null",
           "checkClause": "status IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_33641_7_not_null",
+          "constraintName": "16441_33375_8_not_null",
           "checkClause": "priority IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         }
       ],
       "indexes": [
+        {
+          "indexName": "idx_tasks_archived_by_full",
+          "columns": [
+            "archived_by"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_tasks_archived_by_full ON hr_public.tasks USING btree (archived_by)"
+        },
         {
           "indexName": "idx_tasks_assignee",
           "columns": [
@@ -6511,6 +8206,26 @@
           "indexType": "BTREE",
           "whereClause": "(archived = false)",
           "indexDefinition": "CREATE INDEX idx_tasks_assignee ON hr_public.tasks USING btree (assignee_id) WHERE (archived = false)"
+        },
+        {
+          "indexName": "idx_tasks_assignee_id_full",
+          "columns": [
+            "assignee_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_tasks_assignee_id_full ON hr_public.tasks USING btree (assignee_id)"
+        },
+        {
+          "indexName": "idx_tasks_created_at_order",
+          "columns": [
+            "created_at"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_tasks_created_at_order ON hr_public.tasks USING btree (created_at)"
         },
         {
           "indexName": "idx_tasks_creator",
@@ -6533,6 +8248,16 @@
           "indexDefinition": "CREATE INDEX idx_tasks_due_date ON hr_public.tasks USING btree (due_date) WHERE ((due_date IS NOT NULL) AND (archived = false))"
         },
         {
+          "indexName": "idx_tasks_due_date_order",
+          "columns": [
+            "due_date"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_tasks_due_date_order ON hr_public.tasks USING btree (due_date)"
+        },
+        {
           "indexName": "idx_tasks_orphaned",
           "columns": [
             "assignee_id"
@@ -6553,6 +8278,16 @@
           "indexDefinition": "CREATE INDEX idx_tasks_parent ON hr_public.tasks USING btree (parent_task_id) WHERE (parent_task_id IS NOT NULL)"
         },
         {
+          "indexName": "idx_tasks_parent_id_full",
+          "columns": [
+            "parent_task_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_tasks_parent_id_full ON hr_public.tasks USING btree (parent_task_id)"
+        },
+        {
           "indexName": "idx_tasks_priority",
           "columns": [
             "priority"
@@ -6563,6 +8298,16 @@
           "indexDefinition": "CREATE INDEX idx_tasks_priority ON hr_public.tasks USING btree (priority) WHERE (archived = false)"
         },
         {
+          "indexName": "idx_tasks_priority_order",
+          "columns": [
+            "priority"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_tasks_priority_order ON hr_public.tasks USING btree (priority)"
+        },
+        {
           "indexName": "idx_tasks_status",
           "columns": [
             "status"
@@ -6571,9 +8316,49 @@
           "indexType": "BTREE",
           "whereClause": "(archived = false)",
           "indexDefinition": "CREATE INDEX idx_tasks_status ON hr_public.tasks USING btree (status) WHERE (archived = false)"
+        },
+        {
+          "indexName": "idx_tasks_status_order",
+          "columns": [
+            "status"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_tasks_status_order ON hr_public.tasks USING btree (status)"
+        },
+        {
+          "indexName": "idx_tasks_title_order",
+          "columns": [
+            "title"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_tasks_title_order ON hr_public.tasks USING btree (title)"
+        },
+        {
+          "indexName": "idx_tasks_type",
+          "columns": [
+            "task_type_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_tasks_type ON hr_public.tasks USING btree (task_type_id)"
+        },
+        {
+          "indexName": "idx_tasks_updated_at_order",
+          "columns": [
+            "updated_at"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_tasks_updated_at_order ON hr_public.tasks USING btree (updated_at)"
         }
       ],
-      "rowCount": 0
+      "rowCount": 1
     },
     {
       "tableName": "time_off_balances",
@@ -6707,49 +8492,49 @@
       ],
       "checkConstraints": [
         {
-          "constraintName": "22420_22541_1_not_null",
+          "constraintName": "16441_16561_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22541_2_not_null",
+          "constraintName": "16441_16561_2_not_null",
           "checkClause": "employee_id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22541_3_not_null",
+          "constraintName": "16441_16561_3_not_null",
           "checkClause": "policy_id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22541_4_not_null",
+          "constraintName": "16441_16561_4_not_null",
           "checkClause": "balance_days IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22541_5_not_null",
+          "constraintName": "16441_16561_5_not_null",
           "checkClause": "used_days IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22541_6_not_null",
+          "constraintName": "16441_16561_6_not_null",
           "checkClause": "year IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22541_7_not_null",
+          "constraintName": "16441_16561_7_not_null",
           "checkClause": "created_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22541_8_not_null",
+          "constraintName": "16441_16561_8_not_null",
           "checkClause": "updated_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
@@ -6911,37 +8696,37 @@
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22527_1_not_null",
+          "constraintName": "16441_16547_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22527_2_not_null",
+          "constraintName": "16441_16547_2_not_null",
           "checkClause": "name IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22527_4_not_null",
+          "constraintName": "16441_16547_4_not_null",
           "checkClause": "days_per_year IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22527_5_not_null",
+          "constraintName": "16441_16547_5_not_null",
           "checkClause": "requires_approval IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22527_6_not_null",
+          "constraintName": "16441_16547_6_not_null",
           "checkClause": "created_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22527_7_not_null",
+          "constraintName": "16441_16547_7_not_null",
           "checkClause": "updated_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
@@ -6959,7 +8744,7 @@
           "indexDefinition": "CREATE UNIQUE INDEX time_off_policies_name_key ON hr_public.time_off_policies USING btree (name)"
         }
       ],
-      "rowCount": 3
+      "rowCount": 8
     },
     {
       "tableName": "user_role_assignments",
@@ -7057,25 +8842,25 @@
       ],
       "checkConstraints": [
         {
-          "constraintName": "22420_22518_1_not_null",
+          "constraintName": "16441_16538_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22518_2_not_null",
+          "constraintName": "16441_16538_2_not_null",
           "checkClause": "user_id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22518_3_not_null",
+          "constraintName": "16441_16538_3_not_null",
           "checkClause": "role_name IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22518_5_not_null",
+          "constraintName": "16441_16538_5_not_null",
           "checkClause": "created_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
@@ -7135,7 +8920,7 @@
           "indexDefinition": "CREATE UNIQUE INDEX user_role_assignments_user_role_unique ON hr_public.user_role_assignments USING btree (user_id, role_name)"
         }
       ],
-      "rowCount": 1
+      "rowCount": 12
     },
     {
       "tableName": "users",
@@ -7441,6 +9226,12 @@
       ],
       "checkConstraints": [
         {
+          "constraintName": "check_valid_email",
+          "checkClause": "(((email)::text ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$'::text))",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
           "constraintName": "users_email_format",
           "checkClause": "(((email)::text ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$'::text))",
           "isDeferrable": false,
@@ -7453,61 +9244,55 @@
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "check_valid_email",
-          "checkClause": "(((email)::text ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$'::text))",
-          "isDeferrable": false,
-          "isInitiallyDeferred": false
-        },
-        {
-          "constraintName": "22420_22461_1_not_null",
+          "constraintName": "16441_16481_1_not_null",
           "checkClause": "id IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22461_2_not_null",
+          "constraintName": "16441_16481_2_not_null",
           "checkClause": "email IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22461_3_not_null",
+          "constraintName": "16441_16481_3_not_null",
           "checkClause": "password_hash IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22461_4_not_null",
+          "constraintName": "16441_16481_4_not_null",
           "checkClause": "first_name IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22461_5_not_null",
+          "constraintName": "16441_16481_5_not_null",
           "checkClause": "last_name IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22461_7_not_null",
+          "constraintName": "16441_16481_7_not_null",
           "checkClause": "role IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22461_9_not_null",
+          "constraintName": "16441_16481_9_not_null",
           "checkClause": "is_active IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22461_14_not_null",
+          "constraintName": "16441_16481_14_not_null",
           "checkClause": "created_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
         {
-          "constraintName": "22420_22461_15_not_null",
+          "constraintName": "16441_16481_15_not_null",
           "checkClause": "updated_at IS NOT NULL",
           "isDeferrable": false,
           "isInitiallyDeferred": false
@@ -7587,25 +9372,25 @@
           "indexDefinition": "CREATE INDEX users_search_idx ON hr_public.users USING gin (to_tsvector('english'::regconfig, (((((first_name)::text || ' '::text) || (last_name)::text) || ' '::text) || (email)::text)))"
         }
       ],
-      "rowCount": 1
+      "rowCount": 51
     }
   ],
   "functions": [
     {
-      "functionName": "can_access_document",
+      "functionName": "active_reviews_for_employee",
       "functionSchema": "hr_public",
-      "returnType": "boolean",
+      "returnType": "SETOF hr_public.performance_reviews",
       "language": "plpgsql",
-      "functionDefinition": "CREATE OR REPLACE FUNCTION hr_public.can_access_document(p_user_id uuid, p_document_id uuid)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nDECLARE\n    user_role TEXT;\n    has_access BOOLEAN;\nBEGIN\n    -- Get user role from users table\n    SELECT role INTO user_role FROM hr_public.users WHERE id = p_user_id;\n\n    -- Admin can access everything\n    IF user_role = 'super_admin' THEN\n        RETURN TRUE;\n    END IF;\n\n    -- HR can access all non-deleted documents\n    IF user_role = 'hr_manager' THEN\n        RETURN EXISTS (\n            SELECT 1 FROM hr_public.documents\n            WHERE id = p_document_id AND is_deleted = FALSE\n        );\n    END IF;\n\n    -- Check if user has direct assignment or department assignment\n    SELECT EXISTS (\n        SELECT 1 FROM hr_public.document_assignments da\n        WHERE da.document_id = p_document_id\n        AND da.assignment_status = 'active'\n        AND (\n            da.employee_id = p_user_id\n            OR da.department_id IN (\n                SELECT department_id FROM hr_public.users WHERE id = p_user_id\n            )\n        )\n    ) INTO has_access;\n\n    -- If manager, also check direct reports\n    IF NOT has_access AND user_role IN ('manager', 'hr_manager') THEN\n        SELECT EXISTS (\n            WITH RECURSIVE direct_reports AS (\n                SELECT id FROM hr_public.users WHERE id = p_user_id\n                UNION\n                SELECT u.id FROM hr_public.users u\n                JOIN direct_reports dr ON u.manager_id = dr.id\n            )\n            SELECT 1 FROM hr_public.document_assignments da\n            JOIN direct_reports dr ON da.employee_id = dr.id\n            WHERE da.document_id = p_document_id\n            AND da.assignment_status = 'active'\n        ) INTO has_access;\n    END IF;\n\n    RETURN has_access;\nEND;\n$function$\n",
+      "functionDefinition": "CREATE OR REPLACE FUNCTION hr_public.active_reviews_for_employee(p_employee_id uuid, p_review_type hr_public.review_type DEFAULT NULL::hr_public.review_type)\n RETURNS SETOF hr_public.performance_reviews\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\nAS $function$\nBEGIN\n  RETURN QUERY\n  SELECT pr.*\n  FROM hr_public.performance_reviews pr\n  WHERE pr.employee_id = p_employee_id\n    AND pr.status IN ('draft', 'in_progress')\n    AND (p_review_type IS NULL OR pr.review_type = p_review_type)\n  ORDER BY pr.created_at DESC;\nEND;\n$function$\n",
       "arguments": [
         {
-          "argName": "p_user_id",
+          "argName": "p_employee_id",
           "argType": "[",
           "argMode": "IN",
           "defaultValue": null
         },
         {
-          "argName": "p_document_id",
+          "argName": "p_review_type",
           "argType": "0",
           "argMode": "IN",
           "defaultValue": null
@@ -7672,6 +9457,189 @@
         },
         {
           "argName": null,
+          "argType": "h",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "r",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "_",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "p",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "u",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "b",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "l",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "i",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "c",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": ".",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "r",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "e",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "v",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "i",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "e",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "w",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "_",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "t",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "y",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "p",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "e",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "}",
+          "argMode": "IN",
+          "defaultValue": null
+        }
+      ]
+    },
+    {
+      "functionName": "create_review_with_goals",
+      "functionSchema": "hr_public",
+      "returnType": "jsonb",
+      "language": "plpgsql",
+      "functionDefinition": "CREATE OR REPLACE FUNCTION hr_public.create_review_with_goals(p_employee_id uuid, p_reviewer_id uuid, p_review_type hr_public.review_type, p_review_period_start date DEFAULT NULL::date, p_review_period_end date DEFAULT NULL::date, p_goal_ids uuid[] DEFAULT '{}'::uuid[], p_new_goals jsonb DEFAULT '[]'::jsonb, p_notes text DEFAULT NULL::text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nDECLARE\n  v_review_id UUID;\n  v_current_user_role TEXT;\n  v_is_direct_manager BOOLEAN;\n  v_duplicate_count INT;\n  v_new_goal_id UUID;\n  v_new_goal JSONB;\n  v_result JSONB;\n  v_review_period TEXT;\nBEGIN\n  -- Get reviewer user role\n  SELECT role INTO v_current_user_role\n  FROM hr_public.users\n  WHERE id = p_reviewer_id;\n\n  -- Validate reviewer exists\n  IF v_current_user_role IS NULL THEN\n    RETURN jsonb_build_object(\n      'success', false,\n      'message', 'Reviewer not found',\n      'review', NULL\n    );\n  END IF;\n\n  -- RBAC: Check if manager is trying to create review for non-direct report\n  IF v_current_user_role IN ('manager', 'hr_manager') THEN\n    v_is_direct_manager := hr_public.is_direct_manager(p_employee_id, p_reviewer_id);\n\n    IF NOT v_is_direct_manager THEN\n      RETURN jsonb_build_object(\n        'success', false,\n        'message', 'You can only create reviews for your direct reports',\n        'review', NULL\n      );\n    END IF;\n  END IF;\n\n  -- Check for duplicate active reviews of same type\n  SELECT COUNT(*) INTO v_duplicate_count\n  FROM hr_public.performance_reviews\n  WHERE employee_id = p_employee_id\n    AND review_type = p_review_type\n    AND status IN ('draft', 'in_progress');\n\n  IF v_duplicate_count > 0 THEN\n    RETURN jsonb_build_object(\n      'success', false,\n      'message', 'Active ' || p_review_type || ' already exists for this employee',\n      'review', NULL\n    );\n  END IF;\n\n  -- Generate review_period string\n  IF p_review_period_start IS NOT NULL THEN\n    -- Use year from start date\n    v_review_period := EXTRACT(YEAR FROM p_review_period_start)::TEXT || ' - ' ||\n                       REPLACE(INITCAP(REPLACE(p_review_type::TEXT, '_', ' ')), 'Review', 'Review');\n  ELSE\n    -- Use current year and review type\n    v_review_period := EXTRACT(YEAR FROM CURRENT_DATE)::TEXT || ' - ' ||\n                       REPLACE(INITCAP(REPLACE(p_review_type::TEXT, '_', ' ')), 'Review', 'Review');\n  END IF;\n\n  -- Create performance review\n  INSERT INTO hr_public.performance_reviews (\n    employee_id,\n    reviewer_id,\n    review_period,\n    review_type,\n    status,\n    review_period_start,\n    review_period_end,\n    notes\n  ) VALUES (\n    p_employee_id,\n    p_reviewer_id,\n    v_review_period,\n    p_review_type,\n    'draft',\n    p_review_period_start,\n    p_review_period_end,\n    p_notes\n  ) RETURNING id INTO v_review_id;\n\n  -- Create new goals if provided\n  IF jsonb_array_length(p_new_goals) > 0 THEN\n    FOR v_new_goal IN SELECT * FROM jsonb_array_elements(p_new_goals)\n    LOOP\n      INSERT INTO hr_public.employee_goals (\n        employee_id,\n        title,\n        description,\n        target_date,\n        status,\n        created_by\n      ) VALUES (\n        p_employee_id,\n        v_new_goal->>'title',\n        v_new_goal->>'description',\n        (v_new_goal->>'targetCompletionDate')::DATE,\n        'in_progress',\n        p_reviewer_id\n      ) RETURNING id INTO v_new_goal_id;\n\n      -- Link new goal to review\n      INSERT INTO hr_public.review_goals (review_id, goal_id)\n      VALUES (v_review_id, v_new_goal_id);\n    END LOOP;\n  END IF;\n\n  -- Link existing goals to review\n  IF array_length(p_goal_ids, 1) > 0 THEN\n    INSERT INTO hr_public.review_goals (review_id, goal_id)\n    SELECT v_review_id, unnest(p_goal_ids);\n  END IF;\n\n  -- Return success response with review data\n  SELECT jsonb_build_object(\n    'success', true,\n    'message', 'Review created successfully',\n    'review', row_to_json(pr.*)\n  ) INTO v_result\n  FROM hr_public.performance_reviews pr\n  WHERE pr.id = v_review_id;\n\n  RETURN v_result;\nEND;\n$function$\n",
+      "arguments": [
+        {
+          "argName": "p_employee_id",
+          "argType": "[",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": "p_reviewer_id",
+          "argType": "0",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": "p_review_type",
+          "argType": ":",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": "p_review_period_start",
+          "argType": "7",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": "p_review_period_end",
+          "argType": "]",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": "p_goal_ids",
+          "argType": "=",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": "p_new_goals",
+          "argType": "{",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": "p_notes",
           "argType": "u",
           "argMode": "IN",
           "defaultValue": null
@@ -7696,58 +9664,7 @@
         },
         {
           "argName": null,
-          "argType": "}",
-          "argMode": "IN",
-          "defaultValue": null
-        }
-      ]
-    },
-    {
-      "functionName": "cancel_batch",
-      "functionSchema": "hr_public",
-      "returnType": "boolean",
-      "language": "plpgsql",
-      "functionDefinition": "CREATE OR REPLACE FUNCTION hr_public.cancel_batch(p_batch_id uuid)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nBEGIN\n    UPDATE hr_public.bulk_rollback_batches\n    SET\n        status = 'failed',\n        completed_at = now(),\n        failure_details = jsonb_build_object(\n            'cancelled', true,\n            'message', 'Batch cancelled by user',\n            'cancelled_at', now()\n        )\n    WHERE id = p_batch_id\n    AND status IN ('queued', 'in_progress');\n\n    RETURN FOUND;\nEND;\n$function$\n",
-      "arguments": [
-        {
-          "argName": "p_batch_id",
-          "argType": "[",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": "0",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": ":",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": "0",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": "]",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": "=",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": "{",
+          "argType": ",",
           "argMode": "IN",
           "defaultValue": null
         },
@@ -7777,58 +9694,139 @@
         },
         {
           "argName": null,
-          "argType": "}",
-          "argMode": "IN",
-          "defaultValue": null
-        }
-      ]
-    },
-    {
-      "functionName": "create_access_log_partition",
-      "functionSchema": "hr_public",
-      "returnType": "void",
-      "language": "plpgsql",
-      "functionDefinition": "CREATE OR REPLACE FUNCTION hr_public.create_access_log_partition(partition_date date)\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    partition_name TEXT;\n    start_date DATE;\n    end_date DATE;\nBEGIN\n    partition_name := 'document_access_logs_' || to_char(partition_date, 'YYYY_MM');\n    start_date := date_trunc('month', partition_date);\n    end_date := start_date + INTERVAL '1 month';\n\n    EXECUTE format('\n        CREATE TABLE IF NOT EXISTS hr_public.%I PARTITION OF hr_public.document_access_logs\n        FOR VALUES FROM (%L) TO (%L)\n    ', partition_name, start_date, end_date);\nEND;\n$function$\n",
-      "arguments": [
-        {
-          "argName": "partition_date",
-          "argType": "[",
+          "argType": ",",
           "argMode": "IN",
           "defaultValue": null
         },
         {
           "argName": null,
-          "argType": "0",
+          "argType": "h",
           "argMode": "IN",
           "defaultValue": null
         },
         {
           "argName": null,
-          "argType": ":",
+          "argType": "r",
           "argMode": "IN",
           "defaultValue": null
         },
         {
           "argName": null,
-          "argType": "0",
+          "argType": "_",
           "argMode": "IN",
           "defaultValue": null
         },
         {
           "argName": null,
-          "argType": "]",
+          "argType": "p",
           "argMode": "IN",
           "defaultValue": null
         },
         {
           "argName": null,
-          "argType": "=",
+          "argType": "u",
           "argMode": "IN",
           "defaultValue": null
         },
         {
           "argName": null,
-          "argType": "{",
+          "argType": "b",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "l",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "i",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "c",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": ".",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "r",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "e",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "v",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "i",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "e",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "w",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "_",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "t",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "y",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "p",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "e",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": ",",
           "argMode": "IN",
           "defaultValue": null
         },
@@ -7858,22 +9856,139 @@
         },
         {
           "argName": null,
-          "argType": "}",
+          "argType": ",",
           "argMode": "IN",
           "defaultValue": null
-        }
-      ]
-    },
-    {
-      "functionName": "create_document_version",
-      "functionSchema": "hr_public",
-      "returnType": "trigger",
-      "language": "plpgsql",
-      "functionDefinition": "CREATE OR REPLACE FUNCTION hr_public.create_document_version()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    -- Only create version if file content changed (storage_path changed)\n    IF OLD.storage_path IS DISTINCT FROM NEW.storage_path THEN\n        INSERT INTO hr_public.document_versions (\n            document_id,\n            version_number,\n            storage_path,\n            encryption_key_id,\n            version_created_by,\n            change_description,\n            file_size_bytes\n        ) VALUES (\n            OLD.id,\n            OLD.version_number,\n            OLD.storage_path,\n            OLD.encryption_key_id,\n            current_setting('jwt.claims.user_id', true)::uuid,\n            'Document updated',\n            OLD.file_size_bytes\n        );\n\n        -- Increment version number in documents table\n        NEW.version_number := OLD.version_number + 1;\n    END IF;\n\n    RETURN NEW;\nEND;\n$function$\n",
-      "arguments": [
+        },
         {
           "argName": null,
-          "argType": "{",
+          "argType": "d",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "a",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "t",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "e",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": ",",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "u",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "u",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "i",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "d",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "[",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "]",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": ",",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "j",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "s",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "o",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "n",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "b",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": ",",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "t",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "e",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "x",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "t",
           "argMode": "IN",
           "defaultValue": null
         },
@@ -8102,6 +10217,87 @@
         {
           "argName": null,
           "argType": "\"",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "}",
+          "argMode": "IN",
+          "defaultValue": null
+        }
+      ]
+    },
+    {
+      "functionName": "direct_reports",
+      "functionSchema": "hr_public",
+      "returnType": "SETOF hr_public.users",
+      "language": "plpgsql",
+      "functionDefinition": "CREATE OR REPLACE FUNCTION hr_public.direct_reports(p_manager_id uuid)\n RETURNS SETOF hr_public.users\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\nAS $function$\nBEGIN\n  RETURN QUERY\n  SELECT u.*\n  FROM hr_public.users u\n  WHERE u.manager_id = p_manager_id\n  ORDER BY u.last_name, u.first_name;\nEND;\n$function$\n",
+      "arguments": [
+        {
+          "argName": "p_manager_id",
+          "argType": "[",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "0",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": ":",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "0",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "]",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "=",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "{",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "u",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "u",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "i",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "d",
           "argMode": "IN",
           "defaultValue": null
         },
@@ -8492,27 +10688,6 @@
       ]
     },
     {
-      "functionName": "get_active_batches_count",
-      "functionSchema": "hr_public",
-      "returnType": "integer",
-      "language": "plpgsql",
-      "functionDefinition": "CREATE OR REPLACE FUNCTION hr_public.get_active_batches_count()\n RETURNS integer\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nBEGIN\n    RETURN (\n        SELECT COUNT(*)::INTEGER\n        FROM hr_public.bulk_rollback_batches\n        WHERE status IN ('queued', 'in_progress')\n    );\nEND;\n$function$\n",
-      "arguments": [
-        {
-          "argName": null,
-          "argType": "{",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": "}",
-          "argMode": "IN",
-          "defaultValue": null
-        }
-      ]
-    },
-    {
       "functionName": "get_current_compensation",
       "functionSchema": "hr_public",
       "returnType": "TABLE(salary_amount numeric, salary_currency character varying, pay_frequency character varying, pay_type character varying, effective_date date)",
@@ -8594,40 +10769,40 @@
       ]
     },
     {
-      "functionName": "get_direct_reports",
+      "functionName": "is_direct_manager",
       "functionSchema": "hr_public",
-      "returnType": "TABLE(employee_id uuid)",
+      "returnType": "boolean",
       "language": "plpgsql",
-      "functionDefinition": "CREATE OR REPLACE FUNCTION hr_public.get_direct_reports(p_manager_id uuid)\n RETURNS TABLE(employee_id uuid)\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nBEGIN\n    RETURN QUERY\n    WITH RECURSIVE direct_reports AS (\n        SELECT id FROM hr_public.users WHERE id = p_manager_id\n        UNION\n        SELECT u.id FROM hr_public.users u\n        JOIN direct_reports dr ON u.manager_id = dr.id\n    )\n    SELECT id FROM direct_reports WHERE id != p_manager_id;\nEND;\n$function$\n",
+      "functionDefinition": "CREATE OR REPLACE FUNCTION hr_public.is_direct_manager(p_employee_id uuid, p_manager_id uuid)\n RETURNS boolean\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\nAS $function$\nBEGIN\n  RETURN EXISTS (\n    SELECT 1 FROM hr_public.users\n    WHERE id = p_employee_id\n    AND manager_id = p_manager_id\n  );\nEND;\n$function$\n",
       "arguments": [
         {
-          "argName": "p_manager_id",
+          "argName": "p_employee_id",
           "argType": "[",
-          "argMode": "{",
+          "argMode": "IN",
           "defaultValue": null
         },
         {
-          "argName": "employee_id",
+          "argName": "p_manager_id",
           "argType": "0",
-          "argMode": "i",
+          "argMode": "IN",
           "defaultValue": null
         },
         {
           "argName": null,
           "argType": ":",
-          "argMode": ",",
+          "argMode": "IN",
           "defaultValue": null
         },
         {
           "argName": null,
-          "argType": "0",
-          "argMode": "t",
+          "argType": "1",
+          "argMode": "IN",
           "defaultValue": null
         },
         {
           "argName": null,
           "argType": "]",
-          "argMode": "}",
+          "argMode": "IN",
           "defaultValue": null
         },
         {
@@ -8668,6 +10843,36 @@
         },
         {
           "argName": null,
+          "argType": ",",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "u",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "u",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "i",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "d",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
           "argType": "}",
           "argMode": "IN",
           "defaultValue": null
@@ -8675,11 +10880,11 @@
       ]
     },
     {
-      "functionName": "prevent_batch_deletion",
+      "functionName": "prevent_circular_dependencies",
       "functionSchema": "hr_public",
       "returnType": "trigger",
       "language": "plpgsql",
-      "functionDefinition": "CREATE OR REPLACE FUNCTION hr_public.prevent_batch_deletion()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    IF OLD.status IN ('completed', 'failed') THEN\n        RAISE EXCEPTION 'Cannot delete a batch that has completed or failed (status: %)', OLD.status;\n    END IF;\n    RETURN OLD;\nEND;\n$function$\n",
+      "functionDefinition": "CREATE OR REPLACE FUNCTION hr_public.prevent_circular_dependencies()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n  has_cycle BOOLEAN;\nBEGIN\n  WITH RECURSIVE dep_chain AS (\n    SELECT NEW.blocking_task_id AS task_id, NEW.blocked_task_id AS depends_on\n    UNION\n    SELECT dc.task_id, td.blocked_task_id\n    FROM dep_chain dc\n    JOIN hr_public.task_dependencies td ON dc.depends_on = td.blocking_task_id\n  )\n  SELECT EXISTS(\n    SELECT 1 FROM dep_chain\n    WHERE task_id = depends_on\n  ) INTO has_cycle;\n\n  IF has_cycle THEN\n    RAISE EXCEPTION 'Circular dependency detected';\n  END IF;\n\n  RETURN NEW;\nEND;\n$function$\n",
       "arguments": [
         {
           "argName": null,
@@ -8717,38 +10922,140 @@
       ]
     },
     {
-      "functionName": "update_batch_progress",
+      "functionName": "soft_delete_goal",
       "functionSchema": "hr_public",
-      "returnType": "boolean",
+      "returnType": "jsonb",
       "language": "plpgsql",
-      "functionDefinition": "CREATE OR REPLACE FUNCTION hr_public.update_batch_progress(p_batch_id uuid, p_processed_count integer, p_successful_count integer, p_failed_count integer, p_failure_details jsonb DEFAULT NULL::jsonb)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nDECLARE\n    batch_total INTEGER;\n    new_status TEXT;\nBEGIN\n    -- Get total count\n    SELECT total_count INTO batch_total\n    FROM hr_public.bulk_rollback_batches\n    WHERE id = p_batch_id;\n\n    -- Determine new status\n    IF p_processed_count >= batch_total THEN\n        IF p_failed_count > 0 THEN\n            new_status := 'failed';\n        ELSE\n            new_status := 'completed';\n        END IF;\n    ELSE\n        new_status := 'in_progress';\n    END IF;\n\n    -- Update batch\n    UPDATE hr_public.bulk_rollback_batches\n    SET\n        processed_count = p_processed_count,\n        successful_count = p_successful_count,\n        failed_count = p_failed_count,\n        failure_details = COALESCE(p_failure_details, failure_details),\n        status = new_status,\n        completed_at = CASE\n            WHEN new_status IN ('completed', 'failed') THEN now()\n            ELSE completed_at\n        END\n    WHERE id = p_batch_id;\n\n    RETURN FOUND;\nEND;\n$function$\n",
+      "functionDefinition": "CREATE OR REPLACE FUNCTION hr_public.soft_delete_goal(p_id uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nDECLARE\n  v_result JSONB;\nBEGIN\n  -- Set deleted flag and timestamp\n  UPDATE hr_public.employee_goals\n  SET\n    deleted = TRUE,\n    deleted_at = CURRENT_TIMESTAMP,\n    updated_at = CURRENT_TIMESTAMP\n  WHERE id = p_id;\n\n  IF NOT FOUND THEN\n    RETURN jsonb_build_object(\n      'success', false,\n      'message', 'Goal not found',\n      'goal', NULL\n    );\n  END IF;\n\n  -- Return updated goal\n  SELECT jsonb_build_object(\n    'success', true,\n    'message', 'Goal soft deleted successfully',\n    'goal', row_to_json(g.*)\n  ) INTO v_result\n  FROM hr_public.employee_goals g\n  WHERE g.id = p_id;\n\n  RETURN v_result;\nEND;\n$function$\n",
       "arguments": [
         {
-          "argName": "p_batch_id",
+          "argName": "p_id",
           "argType": "[",
           "argMode": "IN",
           "defaultValue": null
         },
         {
-          "argName": "p_processed_count",
+          "argName": null,
           "argType": "0",
           "argMode": "IN",
           "defaultValue": null
         },
         {
-          "argName": "p_successful_count",
+          "argName": null,
           "argType": ":",
           "argMode": "IN",
           "defaultValue": null
         },
         {
-          "argName": "p_failed_count",
+          "argName": null,
+          "argType": "0",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "]",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "=",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "{",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "u",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "u",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "i",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "d",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "}",
+          "argMode": "IN",
+          "defaultValue": null
+        }
+      ]
+    },
+    {
+      "functionName": "update_attendance_records_updated_at",
+      "functionSchema": "hr_public",
+      "returnType": "trigger",
+      "language": "plpgsql",
+      "functionDefinition": "CREATE OR REPLACE FUNCTION hr_public.update_attendance_records_updated_at()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    NEW.updated_at = CURRENT_TIMESTAMP;\n    RETURN NEW;\nEND;\n$function$\n",
+      "arguments": [
+        {
+          "argName": null,
+          "argType": "{",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "}",
+          "argMode": "IN",
+          "defaultValue": null
+        }
+      ]
+    },
+    {
+      "functionName": "update_review_draft",
+      "functionSchema": "hr_public",
+      "returnType": "jsonb",
+      "language": "plpgsql",
+      "functionDefinition": "CREATE OR REPLACE FUNCTION hr_public.update_review_draft(p_id uuid, p_review_type hr_public.review_type DEFAULT NULL::hr_public.review_type, p_review_period_start date DEFAULT NULL::date, p_review_period_end date DEFAULT NULL::date, p_notes text DEFAULT NULL::text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nDECLARE\n  v_current_status hr_public.review_status;\n  v_result JSONB;\nBEGIN\n  -- Check if review exists and is in draft status\n  SELECT status INTO v_current_status\n  FROM hr_public.performance_reviews\n  WHERE id = p_id;\n\n  IF v_current_status IS NULL THEN\n    RETURN jsonb_build_object(\n      'success', false,\n      'message', 'Review not found',\n      'review', NULL\n    );\n  END IF;\n\n  IF v_current_status != 'draft' THEN\n    RETURN jsonb_build_object(\n      'success', false,\n      'message', 'Can only update draft reviews',\n      'review', NULL\n    );\n  END IF;\n\n  -- Update review fields (only if provided)\n  UPDATE hr_public.performance_reviews\n  SET\n    review_type = COALESCE(p_review_type, review_type),\n    review_period_start = COALESCE(p_review_period_start, review_period_start),\n    review_period_end = COALESCE(p_review_period_end, review_period_end),\n    notes = COALESCE(p_notes, notes),\n    updated_at = CURRENT_TIMESTAMP\n  WHERE id = p_id;\n\n  -- Return updated review\n  SELECT jsonb_build_object(\n    'success', true,\n    'message', 'Draft updated successfully',\n    'review', row_to_json(pr.*)\n  ) INTO v_result\n  FROM hr_public.performance_reviews pr\n  WHERE pr.id = p_id;\n\n  RETURN v_result;\nEND;\n$function$\n",
+      "arguments": [
+        {
+          "argName": "p_id",
+          "argType": "[",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": "p_review_type",
+          "argType": "0",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": "p_review_period_start",
+          "argType": ":",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": "p_review_period_end",
           "argType": "4",
           "argMode": "IN",
           "defaultValue": null
         },
         {
-          "argName": "p_failure_details",
+          "argName": "p_notes",
           "argType": "]",
           "argMode": "IN",
           "defaultValue": null
@@ -8797,37 +11104,7 @@
         },
         {
           "argName": null,
-          "argType": "i",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": "n",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": "t",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": "e",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": "g",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": "e",
+          "argType": "h",
           "argMode": "IN",
           "defaultValue": null
         },
@@ -8839,133 +11116,205 @@
         },
         {
           "argName": null,
-          "argType": ",",
+          "argType": "_",
           "argMode": "IN",
           "defaultValue": null
         },
         {
           "argName": null,
-          "argType": "i",
+          "argType": "p",
           "argMode": "IN",
           "defaultValue": null
         },
         {
           "argName": null,
-          "argType": "n",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": "t",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": "e",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": "g",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": "e",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": "r",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": ",",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": "i",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": "n",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": "t",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": "e",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": "g",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": "e",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": "r",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": ",",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": "j",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": "s",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": "o",
-          "argMode": "IN",
-          "defaultValue": null
-        },
-        {
-          "argName": null,
-          "argType": "n",
+          "argType": "u",
           "argMode": "IN",
           "defaultValue": null
         },
         {
           "argName": null,
           "argType": "b",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "l",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "i",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "c",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": ".",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "r",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "e",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "v",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "i",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "e",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "w",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "_",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "t",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "y",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "p",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "e",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": ",",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "d",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "a",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "t",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "e",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": ",",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "d",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "a",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "t",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "e",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": ",",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "t",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "e",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "x",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "t",
           "argMode": "IN",
           "defaultValue": null
         },
@@ -8978,15 +11327,219 @@
       ]
     },
     {
-      "functionName": "validate_bulk_rollback_batch",
+      "functionName": "update_review_status",
       "functionSchema": "hr_public",
-      "returnType": "trigger",
+      "returnType": "jsonb",
       "language": "plpgsql",
-      "functionDefinition": "CREATE OR REPLACE FUNCTION hr_public.validate_bulk_rollback_batch()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    array_len INTEGER;\nBEGIN\n    -- Rule 1: Calculate array length\n    array_len := array_length(NEW.activity_log_ids, 1);\n\n    -- Rule 2: Maximum 100 log IDs per batch\n    IF array_len > 100 THEN\n        RAISE EXCEPTION 'Maximum 100 log IDs per batch (got: %)', array_len;\n    END IF;\n\n    -- Rule 3: At least 1 log ID required\n    IF array_len IS NULL OR array_len < 1 THEN\n        RAISE EXCEPTION 'At least 1 log ID required for bulk rollback';\n    END IF;\n\n    -- Rule 4: total_count must equal array_length(activity_log_ids, 1)\n    IF NEW.total_count != array_len THEN\n        RAISE EXCEPTION 'total_count (%) must equal array length (%)', NEW.total_count, array_len;\n    END IF;\n\n    -- Rule 5: processed_count must equal successful_count + failed_count\n    IF NEW.processed_count != (NEW.successful_count + NEW.failed_count) THEN\n        RAISE EXCEPTION 'processed_count (%) must equal successful_count (%) + failed_count (%)',\n            NEW.processed_count, NEW.successful_count, NEW.failed_count;\n    END IF;\n\n    -- Rule 6: completed_at must be NULL when status IN ('queued', 'in_progress')\n    IF NEW.status IN ('queued', 'in_progress') AND NEW.completed_at IS NOT NULL THEN\n        RAISE EXCEPTION 'completed_at must be NULL when status is queued or in_progress';\n    END IF;\n\n    -- Rule 7: completed_at must NOT be NULL when status IN ('completed', 'failed')\n    IF NEW.status IN ('completed', 'failed') AND NEW.completed_at IS NULL THEN\n        NEW.completed_at := now();\n    END IF;\n\n    -- Rule 8: Cannot modify completed/failed batches\n    IF TG_OP = 'UPDATE' AND OLD.status IN ('completed', 'failed') AND NEW.status != OLD.status THEN\n        RAISE EXCEPTION 'Cannot modify a batch that has completed or failed';\n    END IF;\n\n    RETURN NEW;\nEND;\n$function$\n",
+      "functionDefinition": "CREATE OR REPLACE FUNCTION hr_public.update_review_status(p_id uuid, p_status hr_public.review_status)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nDECLARE\n  v_result JSONB;\nBEGIN\n  UPDATE hr_public.performance_reviews\n  SET\n    status = p_status,\n    updated_at = CURRENT_TIMESTAMP\n  WHERE id = p_id;\n\n  IF NOT FOUND THEN\n    RETURN jsonb_build_object(\n      'success', false,\n      'message', 'Review not found',\n      'review', NULL\n    );\n  END IF;\n\n  SELECT jsonb_build_object(\n    'success', true,\n    'message', 'Review status updated successfully',\n    'review', row_to_json(pr.*)\n  ) INTO v_result\n  FROM hr_public.performance_reviews pr\n  WHERE pr.id = p_id;\n\n  RETURN v_result;\nEND;\n$function$\n",
       "arguments": [
+        {
+          "argName": "p_id",
+          "argType": "[",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": "p_status",
+          "argType": "0",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": ":",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "1",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "]",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "=",
+          "argMode": "IN",
+          "defaultValue": null
+        },
         {
           "argName": null,
           "argType": "{",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "u",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "u",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "i",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "d",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": ",",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "h",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "r",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "_",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "p",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "u",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "b",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "l",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "i",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "c",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": ".",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "r",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "e",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "v",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "i",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "e",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "w",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "_",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "s",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "t",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "a",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "t",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "u",
+          "argMode": "IN",
+          "defaultValue": null
+        },
+        {
+          "argName": null,
+          "argType": "s",
           "argMode": "IN",
           "defaultValue": null
         },
@@ -9001,28 +11554,16 @@
   ],
   "triggers": [
     {
-      "triggerName": "trigger_prevent_batch_delete",
-      "tableName": "bulk_rollback_batches",
+      "triggerName": "trigger_update_attendance_records_updated_at",
+      "tableName": "attendance_records",
       "timing": "BEFORE",
       "events": [
-        "DELETE"
+        "UPDATE"
       ],
       "level": "ROW",
       "whenCondition": null,
-      "functionName": "prevent_batch_deletion",
-      "triggerDefinition": "CREATE TRIGGER trigger_prevent_batch_delete BEFORE DELETE ON hr_public.bulk_rollback_batches FOR EACH ROW EXECUTE FUNCTION hr_public.prevent_batch_deletion()"
-    },
-    {
-      "triggerName": "trigger_validate_bulk_rollback_batch",
-      "tableName": "bulk_rollback_batches",
-      "timing": "BEFORE",
-      "events": [
-        "INSERT"
-      ],
-      "level": "ROW",
-      "whenCondition": null,
-      "functionName": "validate_bulk_rollback_batch",
-      "triggerDefinition": "CREATE TRIGGER trigger_validate_bulk_rollback_batch BEFORE INSERT OR UPDATE ON hr_public.bulk_rollback_batches FOR EACH ROW EXECUTE FUNCTION hr_public.validate_bulk_rollback_batch()"
+      "functionName": "update_attendance_records_updated_at",
+      "triggerDefinition": "CREATE TRIGGER trigger_update_attendance_records_updated_at BEFORE UPDATE ON hr_public.attendance_records FOR EACH ROW EXECUTE FUNCTION hr_public.update_attendance_records_updated_at()"
     },
     {
       "triggerName": "audit_trigger_departments",
@@ -9035,18 +11576,6 @@
       "whenCondition": null,
       "functionName": "audit_trigger_func",
       "triggerDefinition": "CREATE TRIGGER audit_trigger_departments AFTER INSERT OR DELETE OR UPDATE ON hr_public.departments FOR EACH ROW EXECUTE FUNCTION audit_trigger_func()"
-    },
-    {
-      "triggerName": "trigger_version_document",
-      "tableName": "documents",
-      "timing": "BEFORE",
-      "events": [
-        "UPDATE"
-      ],
-      "level": "ROW",
-      "whenCondition": "{DISTINCTEXPR :opno 98 :opfuncid 67 :opresulttype 16 :opretset false :opcollid 0 :inputcollid 100 :args ({VAR :varno 1 :varattno 5 :vartype 25 :vartypmod -1 :varcollid 100 :varlevelsup 0 :varnosyn 1 :varattnosyn 5 :location 108} {VAR :varno 2 :varattno 5 :vartype 25 :vartypmod -1 :varcollid 100 :varlevelsup 0 :varnosyn 2 :varattnosyn 5 :location 142}) :location 125}",
-      "functionName": "create_document_version",
-      "triggerDefinition": "CREATE TRIGGER trigger_version_document BEFORE UPDATE ON hr_public.documents FOR EACH ROW WHEN ((old.storage_path IS DISTINCT FROM new.storage_path)) EXECUTE FUNCTION hr_public.create_document_version()"
     },
     {
       "triggerName": "update_emergency_contacts_updated_at",
@@ -9085,6 +11614,18 @@
       "triggerDefinition": "CREATE TRIGGER audit_trigger_events AFTER INSERT OR DELETE OR UPDATE ON hr_public.events FOR EACH ROW EXECUTE FUNCTION audit_trigger_func()"
     },
     {
+      "triggerName": "check_circular_dependencies",
+      "tableName": "task_dependencies",
+      "timing": "BEFORE",
+      "events": [
+        "INSERT"
+      ],
+      "level": "ROW",
+      "whenCondition": null,
+      "functionName": "prevent_circular_dependencies",
+      "triggerDefinition": "CREATE TRIGGER check_circular_dependencies BEFORE INSERT ON hr_public.task_dependencies FOR EACH ROW EXECUTE FUNCTION hr_public.prevent_circular_dependencies()"
+    },
+    {
       "triggerName": "tasks_updated_at",
       "tableName": "tasks",
       "timing": "BEFORE",
@@ -9094,7 +11635,7 @@
       "level": "ROW",
       "whenCondition": null,
       "functionName": "update_updated_at_column",
-      "triggerDefinition": "CREATE TRIGGER tasks_updated_at BEFORE UPDATE ON hr_public.tasks FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()"
+      "triggerDefinition": "CREATE TRIGGER tasks_updated_at BEFORE UPDATE ON hr_public.tasks FOR EACH ROW EXECUTE FUNCTION hr_hidden.update_updated_at_column()"
     },
     {
       "triggerName": "audit_trigger_users",
