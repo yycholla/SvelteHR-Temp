@@ -28,7 +28,7 @@ ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'tasks' AND policyname = 'task_read_policy') THEN
-    CREATE POLICY task_read_policy ON tasks FOR SELECT
+    CREATE POLICY task_read_policy ON hr_public.tasks FOR SELECT
     USING (
       assignee_id = current_user_id()
       OR
@@ -50,7 +50,7 @@ $$;
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'tasks' AND policyname = 'task_create_policy') THEN
-    CREATE POLICY task_create_policy ON tasks FOR INSERT
+    CREATE POLICY task_create_policy ON hr_public.tasks FOR INSERT
     WITH CHECK (
       creator_id = current_user_id()
       AND
@@ -85,7 +85,7 @@ $$;
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'tasks' AND policyname = 'task_update_policy') THEN
-    CREATE POLICY task_update_policy ON tasks FOR UPDATE
+    CREATE POLICY task_update_policy ON hr_public.tasks FOR UPDATE
     USING (
       creator_id = current_user_id()
       OR assignee_id = current_user_id()
@@ -98,7 +98,7 @@ $$;
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'tasks' AND policyname = 'task_delete_policy') THEN
-    CREATE POLICY task_delete_policy ON tasks FOR UPDATE
+    CREATE POLICY task_delete_policy ON hr_public.tasks FOR UPDATE
     USING (
       creator_id = current_user_id()
       OR current_user_role() >= 80

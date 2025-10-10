@@ -26,7 +26,7 @@ BEGIN
 
   -- Log CREATED event
   IF TG_OP = 'INSERT' THEN
-    INSERT INTO event_history (event_id, changed_by, change_type, field_name, old_value, new_value)
+    INSERT INTO hr_public.event_history (event_id, changed_by, change_type, field_name, old_value, new_value)
     VALUES (
       NEW.id,
       current_user_id,
@@ -40,7 +40,7 @@ BEGIN
 
   -- Log DELETED event
   IF TG_OP = 'DELETE' THEN
-    INSERT INTO event_history (event_id, changed_by, change_type, field_name, old_value, new_value)
+    INSERT INTO hr_public.event_history (event_id, changed_by, change_type, field_name, old_value, new_value)
     VALUES (
       OLD.id,
       current_user_id,
@@ -60,7 +60,7 @@ BEGIN
       WHERE to_jsonb(OLD) -> key IS DISTINCT FROM to_jsonb(NEW) -> key
         AND key NOT IN ('updated_at', 'created_at') -- Exclude metadata fields
     LOOP
-      INSERT INTO event_history (event_id, changed_by, change_type, field_name, old_value, new_value)
+      INSERT INTO hr_public.event_history (event_id, changed_by, change_type, field_name, old_value, new_value)
       VALUES (
         NEW.id,
         current_user_id,
@@ -79,7 +79,7 @@ $$ LANGUAGE plpgsql;
 -- Attach trigger to events table
 DROP TRIGGER IF EXISTS event_audit_trigger ON events;
 CREATE TRIGGER event_audit_trigger
-AFTER INSERT OR UPDATE OR DELETE ON events
+AFTER INSERT OR UPDATE OR DELETE ON hr_public.events
 FOR EACH ROW
 EXECUTE FUNCTION log_event_changes();
 

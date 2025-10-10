@@ -15,29 +15,29 @@ BEGIN
   IF OLD.rsvp_status = 'accepted' AND NEW.rsvp_status = 'declined' THEN
     -- Check if waitlist is enabled for this event
     SELECT waitlist_enabled INTO event_waitlist_enabled
-    FROM events
+    FROM hr_public.events
     WHERE id = NEW.event_id;
 
     IF event_waitlist_enabled THEN
       -- Get first waitlisted user
       SELECT id, employee_id, event_id, position
       INTO next_waitlist
-      FROM event_waitlist
+      FROM hr_public.event_waitlist
       WHERE event_id = NEW.event_id
       ORDER BY position
       LIMIT 1;
 
       IF FOUND THEN
         -- Add to attendees with pending status
-        INSERT INTO event_attendees (event_id, employee_id, rsvp_status)
+        INSERT INTO hr_public.event_attendees (event_id, employee_id, rsvp_status)
         VALUES (next_waitlist.event_id, next_waitlist.employee_id, 'pending')
         ON CONFLICT (event_id, employee_id) DO UPDATE SET rsvp_status = 'pending';
 
         -- Remove from waitlist
-        DELETE FROM event_waitlist WHERE id = next_waitlist.id;
+        DELETE FROM hr_public.event_waitlist WHERE id = next_waitlist.id;
 
         -- Create notification
-        INSERT INTO event_notifications (user_id, event_id, type, message)
+        INSERT INTO hr_public.event_notifications (user_id, event_id, type, message)
         VALUES (
           next_waitlist.employee_id,
           next_waitlist.event_id,
@@ -46,7 +46,7 @@ BEGIN
         );
 
         -- Reorder remaining waitlist positions
-        UPDATE event_waitlist
+        UPDATE hr_public.event_waitlist
         SET position = position - 1
         WHERE event_id = NEW.event_id AND position > next_waitlist.position;
       END IF;
@@ -58,9 +58,9 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Attach trigger to event_attendees table
-DROP TRIGGER IF EXISTS waitlist_promotion_trigger ON event_attendees;
+DROP TRIGGER IF EXISTS waitlist_promotion_trigger ON hr_public.event_attendees;
 CREATE TRIGGER waitlist_promotion_trigger
-AFTER UPDATE ON event_attendees
+AFTER UPDATE ON hr_public.event_attendees
 FOR EACH ROW
 EXECUTE FUNCTION promote_from_waitlist();
 

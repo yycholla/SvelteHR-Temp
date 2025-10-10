@@ -42,6 +42,12 @@ CREATE INDEX IF NOT EXISTS idx_rollback_requests_requester ON hr_public.rollback
 -- Enable Row-Level Security
 ALTER TABLE hr_public.rollback_requests ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist (from previous migration)
+DROP POLICY IF EXISTS admin_own_requests ON hr_public.rollback_requests;
+DROP POLICY IF EXISTS super_admin_all_requests ON hr_public.rollback_requests;
+DROP POLICY IF EXISTS admin_create_requests ON hr_public.rollback_requests;
+DROP POLICY IF EXISTS super_admin_update_requests ON hr_public.rollback_requests;
+
 -- RLS Policy 1: Admins can view their own requests
 CREATE POLICY admin_own_requests ON hr_public.rollback_requests
     FOR SELECT
@@ -61,7 +67,7 @@ CREATE POLICY admin_create_requests ON hr_public.rollback_requests
     FOR INSERT
     WITH CHECK (
         requested_by = NULLIF(current_setting('jwt.claims.user_id', true), '')::UUID
-        AND current_setting('jwt.claims.role', true) IN ('admin', 'hr_admin')
+        AND current_setting('jwt.claims.role', true) = 'admin'
     );
 
 -- RLS Policy 4: Allow super admins to UPDATE requests (approve/reject)
@@ -75,8 +81,8 @@ CREATE POLICY super_admin_update_requests ON hr_public.rollback_requests
     );
 
 -- Grant appropriate permissions
+-- (Updated role names - hr_ prefix removed in migration 20251002_003)
 GRANT SELECT, INSERT ON hr_public.rollback_requests TO super_admin;
-GRANT SELECT, INSERT ON hr_public.rollback_requests TO hr_admin;
 GRANT SELECT, INSERT ON hr_public.rollback_requests TO admin;
 GRANT UPDATE (status, reviewed_by, reviewed_at, review_reason) ON hr_public.rollback_requests TO super_admin;
 

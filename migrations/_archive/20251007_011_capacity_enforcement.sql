@@ -17,13 +17,13 @@ BEGIN
     -- Get event capacity and waitlist settings
     SELECT max_capacity, waitlist_enabled
     INTO event_capacity, event_waitlist_enabled
-    FROM events
+    FROM hr_public.events
     WHERE id = NEW.event_id;
 
     -- If capacity is set, check current accepted count
     IF event_capacity IS NOT NULL THEN
       SELECT COUNT(*) INTO current_count
-      FROM event_attendees
+      FROM hr_public.event_attendees
       WHERE event_id = NEW.event_id
         AND rsvp_status = 'accepted'
         AND id != COALESCE(NEW.id, '00000000-0000-0000-0000-000000000000'::UUID); -- Exclude current record if updating
@@ -48,7 +48,7 @@ $$ LANGUAGE plpgsql;
 -- Attach trigger to event_attendees table
 DROP TRIGGER IF EXISTS capacity_enforcement_trigger ON event_attendees;
 CREATE TRIGGER capacity_enforcement_trigger
-BEFORE INSERT OR UPDATE ON event_attendees
+BEFORE INSERT OR UPDATE ON hr_public.event_attendees
 FOR EACH ROW
 EXECUTE FUNCTION enforce_event_capacity();
 

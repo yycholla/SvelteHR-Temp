@@ -16,21 +16,21 @@ $$ LANGUAGE plpgsql;
 -- Attach trigger to events table
 DROP TRIGGER IF EXISTS update_events_updated_at ON events;
 CREATE TRIGGER update_events_updated_at
-BEFORE UPDATE ON events
+BEFORE UPDATE ON hr_public.events
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
 -- Attach trigger to event_attendees table
 DROP TRIGGER IF EXISTS update_attendees_updated_at ON event_attendees;
 CREATE TRIGGER update_attendees_updated_at
-BEFORE UPDATE ON event_attendees
+BEFORE UPDATE ON hr_public.event_attendees
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
 -- Attach trigger to event_comments table
 DROP TRIGGER IF EXISTS update_comments_updated_at ON event_comments;
 CREATE TRIGGER update_comments_updated_at
-BEFORE UPDATE ON event_comments
+BEFORE UPDATE ON hr_public.event_comments
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 

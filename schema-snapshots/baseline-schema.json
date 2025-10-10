@@ -1,6 +1,6 @@
 {
   "schemaName": "hr_public",
-  "capturedAt": "2025-10-10T03:17:28.465Z",
+  "capturedAt": "2025-10-10T14:18:31.274Z",
   "postgresVersion": "15.14",
   "tables": [
     {
@@ -110,9 +110,9 @@
       "foreignKeys": [
         {
           "constraintName": "activity_logs_employee_id_fkey",
-          "columns": "{employee_id}",
+          "columns": "{employee_id,employee_id}",
           "referencedTable": "users",
-          "referencedColumns": "{id}",
+          "referencedColumns": "{id,id}",
           "onUpdate": "NO ACTION",
           "onDelete": "CASCADE"
         },
@@ -168,6 +168,26 @@
           "indexType": "BTREE",
           "whereClause": null,
           "indexDefinition": "CREATE INDEX idx_activity_logs_action ON hr_public.activity_logs USING btree (action)"
+        },
+        {
+          "indexName": "idx_activity_logs_action",
+          "columns": [
+            "action"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_activity_logs_action ON hr_public.activity_logs USING btree (action)"
+        },
+        {
+          "indexName": "idx_activity_logs_created_at",
+          "columns": [
+            "created_at"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_activity_logs_created_at ON hr_public.activity_logs USING btree (created_at)"
         },
         {
           "indexName": "idx_activity_logs_created_at",
@@ -413,6 +433,438 @@
           "indexType": "BTREE",
           "whereClause": null,
           "indexDefinition": "CREATE UNIQUE INDEX attendance_records_unique_user_date ON hr_public.attendance_records USING btree (user_id, date)"
+        }
+      ],
+      "rowCount": 0
+    },
+    {
+      "tableName": "bulk_rollback_batches",
+      "columns": [
+        {
+          "columnName": "id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": "gen_random_uuid()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "name",
+          "ordinalPosition": 2,
+          "dataType": "character varying",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": 255,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "description",
+          "ordinalPosition": 3,
+          "dataType": "text",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "requested_by",
+          "ordinalPosition": 4,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "requested_at",
+          "ordinalPosition": 5,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "status",
+          "ordinalPosition": 6,
+          "dataType": "character varying",
+          "isNullable": true,
+          "defaultValue": "'pending'::character varying",
+          "characterMaximumLength": 50,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "reviewed_by",
+          "ordinalPosition": 7,
+          "dataType": "uuid",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "reviewed_at",
+          "ordinalPosition": 8,
+          "dataType": "timestamp with time zone",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "executed_at",
+          "ordinalPosition": 9,
+          "dataType": "timestamp with time zone",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "total_count",
+          "ordinalPosition": 10,
+          "dataType": "integer",
+          "isNullable": true,
+          "defaultValue": "0",
+          "characterMaximumLength": null,
+          "numericPrecision": 32,
+          "numericScale": 0,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "success_count",
+          "ordinalPosition": 11,
+          "dataType": "integer",
+          "isNullable": true,
+          "defaultValue": "0",
+          "characterMaximumLength": null,
+          "numericPrecision": 32,
+          "numericScale": 0,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "failure_count",
+          "ordinalPosition": 12,
+          "dataType": "integer",
+          "isNullable": true,
+          "defaultValue": "0",
+          "characterMaximumLength": null,
+          "numericPrecision": 32,
+          "numericScale": 0,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "error_log",
+          "ordinalPosition": 13,
+          "dataType": "jsonb",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "created_at",
+          "ordinalPosition": 14,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "updated_at",
+          "ordinalPosition": 15,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "bulk_rollback_batches_pkey",
+        "columns": "{id}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "bulk_rollback_batches_requested_by_fkey",
+          "columns": "{requested_by}",
+          "referencedTable": "users",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "constraintName": "bulk_rollback_batches_reviewed_by_fkey",
+          "columns": "{reviewed_by}",
+          "referencedTable": "users",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "uniqueConstraints": [],
+      "checkConstraints": [
+        {
+          "constraintName": "bulk_rollback_batches_status_check",
+          "checkClause": "(((status)::text = ANY ((ARRAY['pending'::character varying, 'approved'::character varying, 'rejected'::character varying, 'processing'::character varying, 'completed'::character varying, 'failed'::character varying])::text[])))",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17491_1_not_null",
+          "checkClause": "id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17491_2_not_null",
+          "checkClause": "name IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17491_4_not_null",
+          "checkClause": "requested_by IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17491_5_not_null",
+          "checkClause": "requested_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17491_14_not_null",
+          "checkClause": "created_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17491_15_not_null",
+          "checkClause": "updated_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "idx_bulk_rollback_created_at",
+          "columns": [
+            "created_at"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_bulk_rollback_created_at ON hr_public.bulk_rollback_batches USING btree (created_at DESC)"
+        },
+        {
+          "indexName": "idx_bulk_rollback_requested_by",
+          "columns": [
+            "requested_by"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_bulk_rollback_requested_by ON hr_public.bulk_rollback_batches USING btree (requested_by)"
+        },
+        {
+          "indexName": "idx_bulk_rollback_status",
+          "columns": [
+            "status"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_bulk_rollback_status ON hr_public.bulk_rollback_batches USING btree (status)"
+        }
+      ],
+      "rowCount": 0
+    },
+    {
+      "tableName": "bulk_rollback_items",
+      "columns": [
+        {
+          "columnName": "id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": "gen_random_uuid()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "batch_id",
+          "ordinalPosition": 2,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "activity_log_id",
+          "ordinalPosition": 3,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "status",
+          "ordinalPosition": 4,
+          "dataType": "character varying",
+          "isNullable": true,
+          "defaultValue": "'pending'::character varying",
+          "characterMaximumLength": 50,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "error_message",
+          "ordinalPosition": 5,
+          "dataType": "text",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "created_at",
+          "ordinalPosition": 6,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "bulk_rollback_items_pkey",
+        "columns": "{id}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "bulk_rollback_items_batch_id_fkey",
+          "columns": "{batch_id}",
+          "referencedTable": "bulk_rollback_batches",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "uniqueConstraints": [],
+      "checkConstraints": [
+        {
+          "constraintName": "bulk_rollback_items_status_check",
+          "checkClause": "(((status)::text = ANY ((ARRAY['pending'::character varying, 'success'::character varying, 'failed'::character varying])::text[])))",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17520_1_not_null",
+          "checkClause": "id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17520_2_not_null",
+          "checkClause": "batch_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17520_3_not_null",
+          "checkClause": "activity_log_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17520_6_not_null",
+          "checkClause": "created_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "idx_bulk_rollback_items_batch",
+          "columns": [
+            "batch_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_bulk_rollback_items_batch ON hr_public.bulk_rollback_items USING btree (batch_id)"
+        },
+        {
+          "indexName": "idx_bulk_rollback_items_log",
+          "columns": [
+            "activity_log_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_bulk_rollback_items_log ON hr_public.bulk_rollback_items USING btree (activity_log_id)"
         }
       ],
       "rowCount": 0
@@ -764,6 +1216,1175 @@
         }
       ],
       "rowCount": 4
+    },
+    {
+      "tableName": "document_access_logs",
+      "columns": [
+        {
+          "columnName": "id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": "gen_random_uuid()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "document_id",
+          "ordinalPosition": 2,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "user_id",
+          "ordinalPosition": 3,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "action",
+          "ordinalPosition": 4,
+          "dataType": "character varying",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": 50,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "ip_address",
+          "ordinalPosition": 5,
+          "dataType": "inet",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "user_agent",
+          "ordinalPosition": 6,
+          "dataType": "text",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "accessed_at",
+          "ordinalPosition": 7,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "document_access_logs_pkey",
+        "columns": "{id}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "document_access_logs_document_id_fkey",
+          "columns": "{document_id}",
+          "referencedTable": "documents",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "constraintName": "document_access_logs_user_id_fkey",
+          "columns": "{user_id}",
+          "referencedTable": "users",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "uniqueConstraints": [],
+      "checkConstraints": [
+        {
+          "constraintName": "document_access_logs_action_check",
+          "checkClause": "(((action)::text = ANY ((ARRAY['view'::character varying, 'download'::character varying, 'print'::character varying, 'share'::character varying])::text[])))",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17656_1_not_null",
+          "checkClause": "id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17656_2_not_null",
+          "checkClause": "document_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17656_3_not_null",
+          "checkClause": "user_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17656_4_not_null",
+          "checkClause": "action IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17656_7_not_null",
+          "checkClause": "accessed_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "idx_document_access_action",
+          "columns": [
+            "action"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_document_access_action ON hr_public.document_access_logs USING btree (action)"
+        },
+        {
+          "indexName": "idx_document_access_document",
+          "columns": [
+            "document_id",
+            "accessed_at"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_document_access_document ON hr_public.document_access_logs USING btree (document_id, accessed_at DESC)"
+        },
+        {
+          "indexName": "idx_document_access_user",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_document_access_user ON hr_public.document_access_logs USING btree (user_id)"
+        }
+      ],
+      "rowCount": 0
+    },
+    {
+      "tableName": "document_assignments",
+      "columns": [
+        {
+          "columnName": "id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": "gen_random_uuid()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "document_id",
+          "ordinalPosition": 2,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "employee_id",
+          "ordinalPosition": 3,
+          "dataType": "uuid",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "department_id",
+          "ordinalPosition": 4,
+          "dataType": "uuid",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "assigned_by",
+          "ordinalPosition": 5,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "assigned_at",
+          "ordinalPosition": 6,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "due_date",
+          "ordinalPosition": 7,
+          "dataType": "timestamp with time zone",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "viewed_at",
+          "ordinalPosition": 8,
+          "dataType": "timestamp with time zone",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "acknowledged_at",
+          "ordinalPosition": 9,
+          "dataType": "timestamp with time zone",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "signed_at",
+          "ordinalPosition": 10,
+          "dataType": "timestamp with time zone",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "signature_data",
+          "ordinalPosition": 11,
+          "dataType": "text",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "assignment_status",
+          "ordinalPosition": 12,
+          "dataType": "character varying",
+          "isNullable": true,
+          "defaultValue": "'active'::character varying",
+          "characterMaximumLength": 50,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "notes",
+          "ordinalPosition": 13,
+          "dataType": "text",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "document_assignments_pkey",
+        "columns": "{id}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "document_assignments_assigned_by_fkey",
+          "columns": "{assigned_by}",
+          "referencedTable": "users",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "constraintName": "document_assignments_department_id_fkey",
+          "columns": "{department_id}",
+          "referencedTable": "departments",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "constraintName": "document_assignments_document_id_fkey",
+          "columns": "{document_id}",
+          "referencedTable": "documents",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "constraintName": "document_assignments_employee_id_fkey",
+          "columns": "{employee_id}",
+          "referencedTable": "users",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "uniqueConstraints": [],
+      "checkConstraints": [
+        {
+          "constraintName": "document_assignments_assignment_status_check",
+          "checkClause": "(((assignment_status)::text = ANY ((ARRAY['active'::character varying, 'completed'::character varying, 'expired'::character varying, 'revoked'::character varying])::text[])))",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "document_assignments_check",
+          "checkClause": "(((employee_id IS NOT NULL) OR (department_id IS NOT NULL)))",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17619_1_not_null",
+          "checkClause": "id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17619_2_not_null",
+          "checkClause": "document_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17619_5_not_null",
+          "checkClause": "assigned_by IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17619_6_not_null",
+          "checkClause": "assigned_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "idx_document_assignments_department",
+          "columns": [
+            "department_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_document_assignments_department ON hr_public.document_assignments USING btree (department_id)"
+        },
+        {
+          "indexName": "idx_document_assignments_document",
+          "columns": [
+            "document_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_document_assignments_document ON hr_public.document_assignments USING btree (document_id)"
+        },
+        {
+          "indexName": "idx_document_assignments_due_date",
+          "columns": [
+            "due_date"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": "(due_date IS NOT NULL)",
+          "indexDefinition": "CREATE INDEX idx_document_assignments_due_date ON hr_public.document_assignments USING btree (due_date) WHERE (due_date IS NOT NULL)"
+        },
+        {
+          "indexName": "idx_document_assignments_employee",
+          "columns": [
+            "employee_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_document_assignments_employee ON hr_public.document_assignments USING btree (employee_id)"
+        },
+        {
+          "indexName": "idx_document_assignments_status",
+          "columns": [
+            "assignment_status"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_document_assignments_status ON hr_public.document_assignments USING btree (assignment_status)"
+        }
+      ],
+      "rowCount": 0
+    },
+    {
+      "tableName": "document_categories",
+      "columns": [
+        {
+          "columnName": "id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": "gen_random_uuid()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "name",
+          "ordinalPosition": 2,
+          "dataType": "character varying",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": 100,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "description",
+          "ordinalPosition": 3,
+          "dataType": "text",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "parent_category_id",
+          "ordinalPosition": 4,
+          "dataType": "uuid",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "icon",
+          "ordinalPosition": 5,
+          "dataType": "character varying",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": 50,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "created_at",
+          "ordinalPosition": 6,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "document_categories_pkey",
+        "columns": "{id}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "document_categories_parent_category_id_fkey",
+          "columns": "{parent_category_id}",
+          "referencedTable": "document_categories",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "uniqueConstraints": [
+        {
+          "constraintName": "document_categories_name_key",
+          "columns": "{name}",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "checkConstraints": [
+        {
+          "constraintName": "16443_17549_1_not_null",
+          "checkClause": "id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17549_2_not_null",
+          "checkClause": "name IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17549_6_not_null",
+          "checkClause": "created_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "document_categories_name_key",
+          "columns": [
+            "name"
+          ],
+          "isUnique": true,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE UNIQUE INDEX document_categories_name_key ON hr_public.document_categories USING btree (name)"
+        }
+      ],
+      "rowCount": 5
+    },
+    {
+      "tableName": "document_versions",
+      "columns": [
+        {
+          "columnName": "id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": "gen_random_uuid()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "document_id",
+          "ordinalPosition": 2,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "version_number",
+          "ordinalPosition": 3,
+          "dataType": "integer",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": 32,
+          "numericScale": 0,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "file_path",
+          "ordinalPosition": 4,
+          "dataType": "character varying",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": 500,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "file_size",
+          "ordinalPosition": 5,
+          "dataType": "bigint",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": 64,
+          "numericScale": 0,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "uploaded_by",
+          "ordinalPosition": 6,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "change_summary",
+          "ordinalPosition": 7,
+          "dataType": "text",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "created_at",
+          "ordinalPosition": 8,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "document_versions_pkey",
+        "columns": "{id}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "document_versions_document_id_fkey",
+          "columns": "{document_id}",
+          "referencedTable": "documents",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "constraintName": "document_versions_uploaded_by_fkey",
+          "columns": "{uploaded_by}",
+          "referencedTable": "users",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "uniqueConstraints": [
+        {
+          "constraintName": "document_versions_document_id_version_number_key",
+          "columns": "{document_id,version_number}",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "checkConstraints": [
+        {
+          "constraintName": "16443_17596_1_not_null",
+          "checkClause": "id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17596_2_not_null",
+          "checkClause": "document_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17596_3_not_null",
+          "checkClause": "version_number IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17596_4_not_null",
+          "checkClause": "file_path IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17596_6_not_null",
+          "checkClause": "uploaded_by IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17596_8_not_null",
+          "checkClause": "created_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "document_versions_document_id_version_number_key",
+          "columns": [
+            "document_id",
+            "version_number"
+          ],
+          "isUnique": true,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE UNIQUE INDEX document_versions_document_id_version_number_key ON hr_public.document_versions USING btree (document_id, version_number)"
+        },
+        {
+          "indexName": "idx_document_versions_document",
+          "columns": [
+            "document_id",
+            "version_number"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_document_versions_document ON hr_public.document_versions USING btree (document_id, version_number DESC)"
+        },
+        {
+          "indexName": "idx_document_versions_uploaded_by",
+          "columns": [
+            "uploaded_by"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_document_versions_uploaded_by ON hr_public.document_versions USING btree (uploaded_by)"
+        }
+      ],
+      "rowCount": 0
+    },
+    {
+      "tableName": "documents",
+      "columns": [
+        {
+          "columnName": "id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": "gen_random_uuid()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "title",
+          "ordinalPosition": 2,
+          "dataType": "character varying",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": 255,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "description",
+          "ordinalPosition": 3,
+          "dataType": "text",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "category_id",
+          "ordinalPosition": 4,
+          "dataType": "uuid",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "file_path",
+          "ordinalPosition": 5,
+          "dataType": "character varying",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": 500,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "file_size",
+          "ordinalPosition": 6,
+          "dataType": "bigint",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": 64,
+          "numericScale": 0,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "mime_type",
+          "ordinalPosition": 7,
+          "dataType": "character varying",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": 100,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "version_number",
+          "ordinalPosition": 8,
+          "dataType": "integer",
+          "isNullable": true,
+          "defaultValue": "1",
+          "characterMaximumLength": null,
+          "numericPrecision": 32,
+          "numericScale": 0,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "is_encrypted",
+          "ordinalPosition": 9,
+          "dataType": "boolean",
+          "isNullable": true,
+          "defaultValue": "false",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "encryption_key_id",
+          "ordinalPosition": 10,
+          "dataType": "uuid",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "uploaded_by",
+          "ordinalPosition": 11,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "requires_signature",
+          "ordinalPosition": 12,
+          "dataType": "boolean",
+          "isNullable": true,
+          "defaultValue": "false",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "requires_acknowledgment",
+          "ordinalPosition": 13,
+          "dataType": "boolean",
+          "isNullable": true,
+          "defaultValue": "false",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "expiry_date",
+          "ordinalPosition": 14,
+          "dataType": "timestamp with time zone",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "tags",
+          "ordinalPosition": 15,
+          "dataType": "array",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "metadata",
+          "ordinalPosition": 16,
+          "dataType": "jsonb",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "created_at",
+          "ordinalPosition": 17,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "updated_at",
+          "ordinalPosition": 18,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "documents_pkey",
+        "columns": "{id}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "documents_category_id_fkey",
+          "columns": "{category_id}",
+          "referencedTable": "document_categories",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "constraintName": "documents_uploaded_by_fkey",
+          "columns": "{uploaded_by}",
+          "referencedTable": "users",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "uniqueConstraints": [],
+      "checkConstraints": [
+        {
+          "constraintName": "16443_17565_1_not_null",
+          "checkClause": "id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17565_2_not_null",
+          "checkClause": "title IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17565_5_not_null",
+          "checkClause": "file_path IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17565_11_not_null",
+          "checkClause": "uploaded_by IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17565_17_not_null",
+          "checkClause": "created_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17565_18_not_null",
+          "checkClause": "updated_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "idx_documents_category",
+          "columns": [
+            "category_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_documents_category ON hr_public.documents USING btree (category_id)"
+        },
+        {
+          "indexName": "idx_documents_created_at",
+          "columns": [
+            "created_at"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_documents_created_at ON hr_public.documents USING btree (created_at DESC)"
+        },
+        {
+          "indexName": "idx_documents_description_fulltext",
+          "columns": [
+            "to_tsvector('english'::regconfig",
+            "COALESCE(description",
+            "''::text"
+          ],
+          "isUnique": false,
+          "indexType": "GIN",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_documents_description_fulltext ON hr_public.documents USING gin (to_tsvector('english'::regconfig, COALESCE(description, ''::text)))"
+        },
+        {
+          "indexName": "idx_documents_expiry",
+          "columns": [
+            "expiry_date"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": "(expiry_date IS NOT NULL)",
+          "indexDefinition": "CREATE INDEX idx_documents_expiry ON hr_public.documents USING btree (expiry_date) WHERE (expiry_date IS NOT NULL)"
+        },
+        {
+          "indexName": "idx_documents_tags",
+          "columns": [
+            "tags"
+          ],
+          "isUnique": false,
+          "indexType": "GIN",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_documents_tags ON hr_public.documents USING gin (tags)"
+        },
+        {
+          "indexName": "idx_documents_title_fulltext",
+          "columns": [
+            "to_tsvector('english'::regconfig",
+            "(title"
+          ],
+          "isUnique": false,
+          "indexType": "GIN",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_documents_title_fulltext ON hr_public.documents USING gin (to_tsvector('english'::regconfig, (title)::text))"
+        },
+        {
+          "indexName": "idx_documents_uploaded_by",
+          "columns": [
+            "uploaded_by"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_documents_uploaded_by ON hr_public.documents USING btree (uploaded_by)"
+        }
+      ],
+      "rowCount": 0
     },
     {
       "tableName": "emergency_contacts",
@@ -1609,6 +3230,332 @@
       "rowCount": 0
     },
     {
+      "tableName": "encrypted_file_storage",
+      "columns": [
+        {
+          "columnName": "id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": "gen_random_uuid()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "document_id",
+          "ordinalPosition": 2,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "encryption_key_id",
+          "ordinalPosition": 3,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "encrypted_data",
+          "ordinalPosition": 4,
+          "dataType": "bytea",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "iv",
+          "ordinalPosition": 5,
+          "dataType": "bytea",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "auth_tag",
+          "ordinalPosition": 6,
+          "dataType": "bytea",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "created_at",
+          "ordinalPosition": 7,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "encrypted_file_storage_pkey",
+        "columns": "{id}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "encrypted_file_storage_document_id_fkey",
+          "columns": "{document_id}",
+          "referencedTable": "documents",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "constraintName": "encrypted_file_storage_encryption_key_id_fkey",
+          "columns": "{encryption_key_id}",
+          "referencedTable": "encryption_keys",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "uniqueConstraints": [],
+      "checkConstraints": [
+        {
+          "constraintName": "16443_17691_1_not_null",
+          "checkClause": "id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17691_2_not_null",
+          "checkClause": "document_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17691_3_not_null",
+          "checkClause": "encryption_key_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17691_4_not_null",
+          "checkClause": "encrypted_data IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17691_5_not_null",
+          "checkClause": "iv IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17691_7_not_null",
+          "checkClause": "created_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "idx_encrypted_storage_document",
+          "columns": [
+            "document_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_encrypted_storage_document ON hr_public.encrypted_file_storage USING btree (document_id)"
+        }
+      ],
+      "rowCount": 0
+    },
+    {
+      "tableName": "encryption_keys",
+      "columns": [
+        {
+          "columnName": "id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": "gen_random_uuid()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "key_name",
+          "ordinalPosition": 2,
+          "dataType": "character varying",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": 100,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "algorithm",
+          "ordinalPosition": 3,
+          "dataType": "character varying",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": 50,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "key_version",
+          "ordinalPosition": 4,
+          "dataType": "integer",
+          "isNullable": true,
+          "defaultValue": "1",
+          "characterMaximumLength": null,
+          "numericPrecision": 32,
+          "numericScale": 0,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "is_active",
+          "ordinalPosition": 5,
+          "dataType": "boolean",
+          "isNullable": true,
+          "defaultValue": "true",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "created_at",
+          "ordinalPosition": 6,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "rotated_at",
+          "ordinalPosition": 7,
+          "dataType": "timestamp with time zone",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "expires_at",
+          "ordinalPosition": 8,
+          "dataType": "timestamp with time zone",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "encryption_keys_pkey",
+        "columns": "{id}"
+      },
+      "foreignKeys": [],
+      "uniqueConstraints": [
+        {
+          "constraintName": "encryption_keys_key_name_key",
+          "columns": "{key_name}",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "checkConstraints": [
+        {
+          "constraintName": "16443_17679_1_not_null",
+          "checkClause": "id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17679_2_not_null",
+          "checkClause": "key_name IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17679_3_not_null",
+          "checkClause": "algorithm IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17679_6_not_null",
+          "checkClause": "created_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "encryption_keys_key_name_key",
+          "columns": [
+            "key_name"
+          ],
+          "isUnique": true,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE UNIQUE INDEX encryption_keys_key_name_key ON hr_public.encryption_keys USING btree (key_name)"
+        },
+        {
+          "indexName": "idx_encryption_keys_active",
+          "columns": [
+            "is_active"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": "(is_active = true)",
+          "indexDefinition": "CREATE INDEX idx_encryption_keys_active ON hr_public.encryption_keys USING btree (is_active) WHERE (is_active = true)"
+        }
+      ],
+      "rowCount": 0
+    },
+    {
       "tableName": "event_attendees",
       "columns": [
         {
@@ -1765,6 +3712,28 @@
           "indexDefinition": "CREATE UNIQUE INDEX event_attendees_unique ON hr_public.event_attendees USING btree (event_id, employee_id)"
         },
         {
+          "indexName": "idx_attendees_composite",
+          "columns": [
+            "employee_id",
+            "event_id",
+            "response_status"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_attendees_composite ON hr_public.event_attendees USING btree (employee_id, event_id, response_status)"
+        },
+        {
+          "indexName": "idx_attendees_status",
+          "columns": [
+            "response_status"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_attendees_status ON hr_public.event_attendees USING btree (response_status)"
+        },
+        {
           "indexName": "idx_event_attendees_employee_id",
           "columns": [
             "employee_id"
@@ -1793,6 +3762,795 @@
           "indexType": "BTREE",
           "whereClause": null,
           "indexDefinition": "CREATE INDEX idx_event_attendees_response_status ON hr_public.event_attendees USING btree (response_status)"
+        }
+      ],
+      "rowCount": 0
+    },
+    {
+      "tableName": "event_comments",
+      "columns": [
+        {
+          "columnName": "id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": "gen_random_uuid()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "event_id",
+          "ordinalPosition": 2,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "user_id",
+          "ordinalPosition": 3,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "content",
+          "ordinalPosition": 4,
+          "dataType": "text",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "mentions",
+          "ordinalPosition": 5,
+          "dataType": "array",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "created_at",
+          "ordinalPosition": 6,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "updated_at",
+          "ordinalPosition": 7,
+          "dataType": "timestamp with time zone",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "event_comments_pkey",
+        "columns": "{id}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "event_comments_event_id_fkey",
+          "columns": "{event_id}",
+          "referencedTable": "events",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "constraintName": "event_comments_user_id_fkey",
+          "columns": "{user_id}",
+          "referencedTable": "users",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "uniqueConstraints": [],
+      "checkConstraints": [
+        {
+          "constraintName": "event_comments_content_check",
+          "checkClause": "(((length(TRIM(BOTH FROM content)) > 0) AND (length(content) <= 5000)))",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17167_1_not_null",
+          "checkClause": "id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17167_2_not_null",
+          "checkClause": "event_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17167_3_not_null",
+          "checkClause": "user_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17167_4_not_null",
+          "checkClause": "content IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17167_6_not_null",
+          "checkClause": "created_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "idx_comments_created_at",
+          "columns": [
+            "created_at"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_comments_created_at ON hr_public.event_comments USING btree (created_at DESC)"
+        },
+        {
+          "indexName": "idx_comments_event",
+          "columns": [
+            "event_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_comments_event ON hr_public.event_comments USING btree (event_id)"
+        },
+        {
+          "indexName": "idx_comments_fulltext",
+          "columns": [
+            "to_tsvector('english'::regconfig",
+            "content"
+          ],
+          "isUnique": false,
+          "indexType": "GIN",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_comments_fulltext ON hr_public.event_comments USING gin (to_tsvector('english'::regconfig, content))"
+        },
+        {
+          "indexName": "idx_comments_user",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_comments_user ON hr_public.event_comments USING btree (user_id)"
+        }
+      ],
+      "rowCount": 0
+    },
+    {
+      "tableName": "event_history",
+      "columns": [
+        {
+          "columnName": "id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": "gen_random_uuid()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "event_id",
+          "ordinalPosition": 2,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "changed_by",
+          "ordinalPosition": 3,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "change_type",
+          "ordinalPosition": 4,
+          "dataType": "text",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "field_name",
+          "ordinalPosition": 5,
+          "dataType": "character varying",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": 100,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "old_value",
+          "ordinalPosition": 6,
+          "dataType": "jsonb",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "new_value",
+          "ordinalPosition": 7,
+          "dataType": "jsonb",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "changed_at",
+          "ordinalPosition": 8,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "event_history_pkey",
+        "columns": "{id}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "event_history_changed_by_fkey",
+          "columns": "{changed_by}",
+          "referencedTable": "users",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "constraintName": "event_history_event_id_fkey",
+          "columns": "{event_id}",
+          "referencedTable": "events",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "uniqueConstraints": [],
+      "checkConstraints": [
+        {
+          "constraintName": "event_history_change_type_check",
+          "checkClause": "((change_type = ANY (ARRAY['created'::text, 'updated'::text, 'deleted'::text, 'ownership_transfer'::text, 'attendee_added'::text, 'attendee_removed'::text])))",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17191_1_not_null",
+          "checkClause": "id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17191_2_not_null",
+          "checkClause": "event_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17191_3_not_null",
+          "checkClause": "changed_by IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17191_4_not_null",
+          "checkClause": "change_type IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17191_8_not_null",
+          "checkClause": "changed_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "idx_history_change_type",
+          "columns": [
+            "change_type"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_history_change_type ON hr_public.event_history USING btree (change_type)"
+        },
+        {
+          "indexName": "idx_history_changed_by",
+          "columns": [
+            "changed_by"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_history_changed_by ON hr_public.event_history USING btree (changed_by)"
+        },
+        {
+          "indexName": "idx_history_event",
+          "columns": [
+            "event_id",
+            "changed_at"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_history_event ON hr_public.event_history USING btree (event_id, changed_at DESC)"
+        }
+      ],
+      "rowCount": 0
+    },
+    {
+      "tableName": "event_notifications",
+      "columns": [
+        {
+          "columnName": "id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": "gen_random_uuid()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "user_id",
+          "ordinalPosition": 2,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "event_id",
+          "ordinalPosition": 3,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "type",
+          "ordinalPosition": 4,
+          "dataType": "text",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "message",
+          "ordinalPosition": 5,
+          "dataType": "text",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "read",
+          "ordinalPosition": 6,
+          "dataType": "boolean",
+          "isNullable": false,
+          "defaultValue": "false",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "created_at",
+          "ordinalPosition": 7,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "event_notifications_pkey",
+        "columns": "{id}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "event_notifications_event_id_fkey",
+          "columns": "{event_id}",
+          "referencedTable": "events",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "constraintName": "event_notifications_user_id_fkey",
+          "columns": "{user_id}",
+          "referencedTable": "users",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "uniqueConstraints": [],
+      "checkConstraints": [
+        {
+          "constraintName": "event_notifications_type_check",
+          "checkClause": "((type = ANY (ARRAY['invite'::text, 'change'::text, 'cancel'::text, 'remove'::text, 'comment'::text, 'mention'::text, 'waitlist'::text, 'reminder'::text])))",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "event_notifications_message_check",
+          "checkClause": "(((length(message) >= 1) AND (length(message) <= 500)))",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17214_1_not_null",
+          "checkClause": "id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17214_2_not_null",
+          "checkClause": "user_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17214_3_not_null",
+          "checkClause": "event_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17214_4_not_null",
+          "checkClause": "type IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17214_5_not_null",
+          "checkClause": "message IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17214_6_not_null",
+          "checkClause": "read IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17214_7_not_null",
+          "checkClause": "created_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "idx_notifications_event",
+          "columns": [
+            "event_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_notifications_event ON hr_public.event_notifications USING btree (event_id)"
+        },
+        {
+          "indexName": "idx_notifications_type",
+          "columns": [
+            "type"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_notifications_type ON hr_public.event_notifications USING btree (type)"
+        },
+        {
+          "indexName": "idx_notifications_unread",
+          "columns": [
+            "user_id",
+            "created_at"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": "(read = false)",
+          "indexDefinition": "CREATE INDEX idx_notifications_unread ON hr_public.event_notifications USING btree (user_id, created_at DESC) WHERE (read = false)"
+        },
+        {
+          "indexName": "idx_notifications_user",
+          "columns": [
+            "user_id",
+            "read",
+            "created_at"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_notifications_user ON hr_public.event_notifications USING btree (user_id, read, created_at DESC)"
+        }
+      ],
+      "rowCount": 0
+    },
+    {
+      "tableName": "event_waitlist",
+      "columns": [
+        {
+          "columnName": "id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": "gen_random_uuid()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "event_id",
+          "ordinalPosition": 2,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "employee_id",
+          "ordinalPosition": 3,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "position",
+          "ordinalPosition": 4,
+          "dataType": "integer",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": 32,
+          "numericScale": 0,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "created_at",
+          "ordinalPosition": 5,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "event_waitlist_pkey",
+        "columns": "{id}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "event_waitlist_employee_id_fkey",
+          "columns": "{employee_id}",
+          "referencedTable": "users",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "constraintName": "event_waitlist_event_id_fkey",
+          "columns": "{event_id}",
+          "referencedTable": "events",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "uniqueConstraints": [
+        {
+          "constraintName": "event_waitlist_event_id_employee_id_key",
+          "columns": "{event_id,employee_id}",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "event_waitlist_event_id_position_key",
+          "columns": "{event_id,position}",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "checkConstraints": [
+        {
+          "constraintName": "event_waitlist_position_check",
+          "checkClause": "((\"position\" > 0))",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17143_1_not_null",
+          "checkClause": "id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17143_2_not_null",
+          "checkClause": "event_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17143_3_not_null",
+          "checkClause": "employee_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17143_4_not_null",
+          "checkClause": "position IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17143_5_not_null",
+          "checkClause": "created_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "event_waitlist_event_id_employee_id_key",
+          "columns": [
+            "event_id",
+            "employee_id"
+          ],
+          "isUnique": true,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE UNIQUE INDEX event_waitlist_event_id_employee_id_key ON hr_public.event_waitlist USING btree (event_id, employee_id)"
+        },
+        {
+          "indexName": "event_waitlist_event_id_position_key",
+          "columns": [
+            "event_id",
+            "\"position\""
+          ],
+          "isUnique": true,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE UNIQUE INDEX event_waitlist_event_id_position_key ON hr_public.event_waitlist USING btree (event_id, \"position\")"
+        },
+        {
+          "indexName": "idx_waitlist_employee",
+          "columns": [
+            "employee_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_waitlist_employee ON hr_public.event_waitlist USING btree (employee_id)"
+        },
+        {
+          "indexName": "idx_waitlist_event",
+          "columns": [
+            "event_id",
+            "\"position\""
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_waitlist_event ON hr_public.event_waitlist USING btree (event_id, \"position\")"
         }
       ],
       "rowCount": 0
@@ -1979,6 +4737,66 @@
           "numericScale": null,
           "isGenerated": false,
           "generationExpression": null
+        },
+        {
+          "columnName": "rrule",
+          "ordinalPosition": 16,
+          "dataType": "text",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "recurrence_id",
+          "ordinalPosition": 17,
+          "dataType": "uuid",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "max_capacity",
+          "ordinalPosition": 18,
+          "dataType": "integer",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": 32,
+          "numericScale": 0,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "waitlist_enabled",
+          "ordinalPosition": 19,
+          "dataType": "boolean",
+          "isNullable": true,
+          "defaultValue": "false",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "image_url",
+          "ordinalPosition": 20,
+          "dataType": "character varying",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": 500,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
         }
       ],
       "primaryKey": {
@@ -1993,6 +4811,14 @@
           "referencedColumns": "{id}",
           "onUpdate": "NO ACTION",
           "onDelete": "CASCADE"
+        },
+        {
+          "constraintName": "events_recurrence_id_fkey",
+          "columns": "{recurrence_id}",
+          "referencedTable": "events",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
         }
       ],
       "uniqueConstraints": [],
@@ -2006,6 +4832,12 @@
         {
           "constraintName": "events_time_logic",
           "checkClause": "((end_time > start_time))",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "events_max_capacity_check",
+          "checkClause": "((max_capacity > 0))",
           "isDeferrable": false,
           "isInitiallyDeferred": false
         },
@@ -2084,6 +4916,59 @@
       ],
       "indexes": [
         {
+          "indexName": "idx_events_description_fulltext",
+          "columns": [
+            "to_tsvector('english'::regconfig",
+            "COALESCE(description",
+            "''::text"
+          ],
+          "isUnique": false,
+          "indexType": "GIN",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_events_description_fulltext ON hr_public.events USING gin (to_tsvector('english'::regconfig, COALESCE(description, ''::text)))"
+        },
+        {
+          "indexName": "idx_events_end_time",
+          "columns": [
+            "end_time"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_events_end_time ON hr_public.events USING btree (end_time)"
+        },
+        {
+          "indexName": "idx_events_is_public",
+          "columns": [
+            "is_public"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_events_is_public ON hr_public.events USING btree (is_public)"
+        },
+        {
+          "indexName": "idx_events_is_public_start",
+          "columns": [
+            "is_public",
+            "start_time"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_events_is_public_start ON hr_public.events USING btree (is_public, start_time DESC)"
+        },
+        {
+          "indexName": "idx_events_organizer",
+          "columns": [
+            "organizer_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_events_organizer ON hr_public.events USING btree (organizer_id)"
+        },
+        {
           "indexName": "idx_events_organizer_id",
           "columns": [
             "organizer_id"
@@ -2092,6 +4977,16 @@
           "indexType": "BTREE",
           "whereClause": null,
           "indexDefinition": "CREATE INDEX idx_events_organizer_id ON hr_public.events USING btree (organizer_id)"
+        },
+        {
+          "indexName": "idx_events_recurrence",
+          "columns": [
+            "recurrence_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": "(recurrence_id IS NOT NULL)",
+          "indexDefinition": "CREATE INDEX idx_events_recurrence ON hr_public.events USING btree (recurrence_id) WHERE (recurrence_id IS NOT NULL)"
         },
         {
           "indexName": "idx_events_start_time",
@@ -2112,6 +5007,38 @@
           "indexType": "BTREE",
           "whereClause": null,
           "indexDefinition": "CREATE INDEX idx_events_status ON hr_public.events USING btree (status)"
+        },
+        {
+          "indexName": "idx_events_time_range",
+          "columns": [
+            "tstzrange(start_time",
+            "end_time"
+          ],
+          "isUnique": false,
+          "indexType": "GIST",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_events_time_range ON hr_public.events USING gist (tstzrange(start_time, end_time))"
+        },
+        {
+          "indexName": "idx_events_title_fulltext",
+          "columns": [
+            "to_tsvector('english'::regconfig",
+            "(title"
+          ],
+          "isUnique": false,
+          "indexType": "GIN",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_events_title_fulltext ON hr_public.events USING gin (to_tsvector('english'::regconfig, (title)::text))"
+        },
+        {
+          "indexName": "idx_events_type",
+          "columns": [
+            "event_type"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_events_type ON hr_public.events USING btree (event_type)"
         }
       ],
       "rowCount": 0
@@ -2773,6 +5700,341 @@
           "indexDefinition": "CREATE INDEX leave_requests_pending_idx ON hr_public.leave_requests USING btree (employee_id, created_at DESC) WHERE (status = 'pending'::hr_public.leave_status)"
         }
       ],
+      "rowCount": 0
+    },
+    {
+      "tableName": "linked_resources",
+      "columns": [
+        {
+          "columnName": "id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": "gen_random_uuid()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "task_id",
+          "ordinalPosition": 2,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "resource_type",
+          "ordinalPosition": 3,
+          "dataType": "character varying",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": 50,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "resource_id",
+          "ordinalPosition": 4,
+          "dataType": "character varying",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": 500,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "title",
+          "ordinalPosition": 5,
+          "dataType": "character varying",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": 255,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "description",
+          "ordinalPosition": 6,
+          "dataType": "text",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "created_at",
+          "ordinalPosition": 7,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "created_by",
+          "ordinalPosition": 8,
+          "dataType": "uuid",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "linked_resources_pkey",
+        "columns": "{id}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "linked_resources_created_by_fkey",
+          "columns": "{created_by}",
+          "referencedTable": "users",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "constraintName": "linked_resources_task_id_fkey",
+          "columns": "{task_id}",
+          "referencedTable": "tasks",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "uniqueConstraints": [],
+      "checkConstraints": [
+        {
+          "constraintName": "linked_resources_resource_type_check",
+          "checkClause": "(((resource_type)::text = ANY ((ARRAY['document'::character varying, 'url'::character varying, 'file'::character varying, 'pr'::character varying, 'issue'::character varying])::text[])))",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17398_1_not_null",
+          "checkClause": "id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17398_2_not_null",
+          "checkClause": "task_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17398_3_not_null",
+          "checkClause": "resource_type IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17398_4_not_null",
+          "checkClause": "resource_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17398_7_not_null",
+          "checkClause": "created_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "idx_linked_resources_task",
+          "columns": [
+            "task_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_linked_resources_task ON hr_public.linked_resources USING btree (task_id)"
+        },
+        {
+          "indexName": "idx_linked_resources_type",
+          "columns": [
+            "resource_type"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_linked_resources_type ON hr_public.linked_resources USING btree (resource_type)"
+        }
+      ],
+      "rowCount": 0
+    },
+    {
+      "tableName": "notification_preferences",
+      "columns": [
+        {
+          "columnName": "user_id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "event_invites",
+          "ordinalPosition": 2,
+          "dataType": "boolean",
+          "isNullable": false,
+          "defaultValue": "true",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "event_changes",
+          "ordinalPosition": 3,
+          "dataType": "boolean",
+          "isNullable": false,
+          "defaultValue": "true",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "event_reminders",
+          "ordinalPosition": 4,
+          "dataType": "boolean",
+          "isNullable": false,
+          "defaultValue": "true",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "comment_mentions",
+          "ordinalPosition": 5,
+          "dataType": "boolean",
+          "isNullable": false,
+          "defaultValue": "true",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "waitlist_updates",
+          "ordinalPosition": 6,
+          "dataType": "boolean",
+          "isNullable": false,
+          "defaultValue": "true",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "reminder_times",
+          "ordinalPosition": 7,
+          "dataType": "array",
+          "isNullable": false,
+          "defaultValue": "ARRAY[60, 1440]",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "notification_preferences_pkey",
+        "columns": "{user_id}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "notification_preferences_user_id_fkey",
+          "columns": "{user_id}",
+          "referencedTable": "users",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "uniqueConstraints": [],
+      "checkConstraints": [
+        {
+          "constraintName": "16443_17240_1_not_null",
+          "checkClause": "user_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17240_2_not_null",
+          "checkClause": "event_invites IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17240_3_not_null",
+          "checkClause": "event_changes IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17240_4_not_null",
+          "checkClause": "event_reminders IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17240_5_not_null",
+          "checkClause": "comment_mentions IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17240_6_not_null",
+          "checkClause": "waitlist_updates IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17240_7_not_null",
+          "checkClause": "reminder_times IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [],
       "rowCount": 0
     },
     {
@@ -3654,6 +6916,149 @@
       "rowCount": 0
     },
     {
+      "tableName": "review_goals",
+      "columns": [
+        {
+          "columnName": "id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": "uuid_generate_v4()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "review_id",
+          "ordinalPosition": 2,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "goal_id",
+          "ordinalPosition": 3,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "created_at",
+          "ordinalPosition": 4,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "CURRENT_TIMESTAMP",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "review_goals_pkey",
+        "columns": "{id}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "review_goals_goal_id_fkey",
+          "columns": "{goal_id}",
+          "referencedTable": "employee_goals",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "RESTRICT"
+        },
+        {
+          "constraintName": "review_goals_review_id_fkey",
+          "columns": "{review_id}",
+          "referencedTable": "performance_reviews",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "uniqueConstraints": [
+        {
+          "constraintName": "review_goals_review_id_goal_id_key",
+          "columns": "{review_id,goal_id}",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "checkConstraints": [
+        {
+          "constraintName": "16443_17731_1_not_null",
+          "checkClause": "id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17731_2_not_null",
+          "checkClause": "review_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17731_3_not_null",
+          "checkClause": "goal_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17731_4_not_null",
+          "checkClause": "created_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "idx_review_goals_goal",
+          "columns": [
+            "goal_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_review_goals_goal ON hr_public.review_goals USING btree (goal_id)"
+        },
+        {
+          "indexName": "idx_review_goals_review",
+          "columns": [
+            "review_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_review_goals_review ON hr_public.review_goals USING btree (review_id)"
+        },
+        {
+          "indexName": "review_goals_review_id_goal_id_key",
+          "columns": [
+            "review_id",
+            "goal_id"
+          ],
+          "isUnique": true,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE UNIQUE INDEX review_goals_review_id_goal_id_key ON hr_public.review_goals USING btree (review_id, goal_id)"
+        }
+      ],
+      "rowCount": 0
+    },
+    {
       "tableName": "review_templates",
       "columns": [
         {
@@ -3826,6 +7231,1275 @@
           "indexType": "BTREE",
           "whereClause": null,
           "indexDefinition": "CREATE INDEX idx_review_templates_created_by ON hr_public.review_templates USING btree (created_by)"
+        }
+      ],
+      "rowCount": 0
+    },
+    {
+      "tableName": "rollback_requests",
+      "columns": [
+        {
+          "columnName": "id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": "gen_random_uuid()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "activity_log_id",
+          "ordinalPosition": 2,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "requested_by",
+          "ordinalPosition": 3,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "requested_at",
+          "ordinalPosition": 4,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "reason",
+          "ordinalPosition": 5,
+          "dataType": "text",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "status",
+          "ordinalPosition": 6,
+          "dataType": "text",
+          "isNullable": false,
+          "defaultValue": "'pending'::text",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "reviewed_by",
+          "ordinalPosition": 7,
+          "dataType": "uuid",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "reviewed_at",
+          "ordinalPosition": 8,
+          "dataType": "timestamp with time zone",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "review_reason",
+          "ordinalPosition": 9,
+          "dataType": "text",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "created_at",
+          "ordinalPosition": 10,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "updated_at",
+          "ordinalPosition": 11,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "rollback_requests_pkey",
+        "columns": "{id}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "rollback_requests_requested_by_fkey",
+          "columns": "{requested_by}",
+          "referencedTable": "users",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "constraintName": "rollback_requests_reviewed_by_fkey",
+          "columns": "{reviewed_by}",
+          "referencedTable": "users",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "SET NULL"
+        }
+      ],
+      "uniqueConstraints": [],
+      "checkConstraints": [
+        {
+          "constraintName": "rollback_requests_status_check",
+          "checkClause": "((status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text])))",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17459_1_not_null",
+          "checkClause": "id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17459_2_not_null",
+          "checkClause": "activity_log_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17459_3_not_null",
+          "checkClause": "requested_by IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17459_4_not_null",
+          "checkClause": "requested_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17459_5_not_null",
+          "checkClause": "reason IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17459_6_not_null",
+          "checkClause": "status IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17459_10_not_null",
+          "checkClause": "created_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17459_11_not_null",
+          "checkClause": "updated_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "idx_rollback_requests_log",
+          "columns": [
+            "activity_log_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_rollback_requests_log ON hr_public.rollback_requests USING btree (activity_log_id)"
+        },
+        {
+          "indexName": "idx_rollback_requests_requested_at",
+          "columns": [
+            "requested_at"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_rollback_requests_requested_at ON hr_public.rollback_requests USING btree (requested_at DESC)"
+        },
+        {
+          "indexName": "idx_rollback_requests_requester",
+          "columns": [
+            "requested_by"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_rollback_requests_requester ON hr_public.rollback_requests USING btree (requested_by)"
+        },
+        {
+          "indexName": "idx_rollback_requests_status",
+          "columns": [
+            "status",
+            "requested_at"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_rollback_requests_status ON hr_public.rollback_requests USING btree (status, requested_at DESC)"
+        }
+      ],
+      "rowCount": 0
+    },
+    {
+      "tableName": "task_assignees",
+      "columns": [
+        {
+          "columnName": "task_id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "user_id",
+          "ordinalPosition": 2,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "assigned_at",
+          "ordinalPosition": 3,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "assigned_by",
+          "ordinalPosition": 4,
+          "dataType": "uuid",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "task_assignees_pkey",
+        "columns": "{task_id,user_id}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "task_assignees_assigned_by_fkey",
+          "columns": "{assigned_by}",
+          "referencedTable": "users",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "constraintName": "task_assignees_task_id_fkey",
+          "columns": "{task_id}",
+          "referencedTable": "tasks",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "constraintName": "task_assignees_user_id_fkey",
+          "columns": "{user_id}",
+          "referencedTable": "users",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "uniqueConstraints": [],
+      "checkConstraints": [
+        {
+          "constraintName": "16443_17329_1_not_null",
+          "checkClause": "task_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17329_2_not_null",
+          "checkClause": "user_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17329_3_not_null",
+          "checkClause": "assigned_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "idx_task_assignees_assigned_by",
+          "columns": [
+            "assigned_by"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_task_assignees_assigned_by ON hr_public.task_assignees USING btree (assigned_by)"
+        },
+        {
+          "indexName": "idx_task_assignees_user",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_task_assignees_user ON hr_public.task_assignees USING btree (user_id)"
+        }
+      ],
+      "rowCount": 0
+    },
+    {
+      "tableName": "task_audit_entries",
+      "columns": [
+        {
+          "columnName": "id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": "gen_random_uuid()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "task_id",
+          "ordinalPosition": 2,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "changed_by",
+          "ordinalPosition": 3,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "change_type",
+          "ordinalPosition": 4,
+          "dataType": "character varying",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": 50,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "field_name",
+          "ordinalPosition": 5,
+          "dataType": "character varying",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": 100,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "old_value",
+          "ordinalPosition": 6,
+          "dataType": "jsonb",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "new_value",
+          "ordinalPosition": 7,
+          "dataType": "jsonb",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "changed_at",
+          "ordinalPosition": 8,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "task_audit_entries_pkey",
+        "columns": "{id}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "task_audit_entries_changed_by_fkey",
+          "columns": "{changed_by}",
+          "referencedTable": "users",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "constraintName": "task_audit_entries_task_id_fkey",
+          "columns": "{task_id}",
+          "referencedTable": "tasks",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "uniqueConstraints": [],
+      "checkConstraints": [
+        {
+          "constraintName": "16443_17352_1_not_null",
+          "checkClause": "id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17352_2_not_null",
+          "checkClause": "task_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17352_3_not_null",
+          "checkClause": "changed_by IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17352_4_not_null",
+          "checkClause": "change_type IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17352_8_not_null",
+          "checkClause": "changed_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "idx_task_audit_change_type",
+          "columns": [
+            "change_type"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_task_audit_change_type ON hr_public.task_audit_entries USING btree (change_type)"
+        },
+        {
+          "indexName": "idx_task_audit_changed_by",
+          "columns": [
+            "changed_by"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_task_audit_changed_by ON hr_public.task_audit_entries USING btree (changed_by)"
+        },
+        {
+          "indexName": "idx_task_audit_task",
+          "columns": [
+            "task_id",
+            "changed_at"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_task_audit_task ON hr_public.task_audit_entries USING btree (task_id, changed_at DESC)"
+        }
+      ],
+      "rowCount": 0
+    },
+    {
+      "tableName": "task_dependencies",
+      "columns": [
+        {
+          "columnName": "id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": "gen_random_uuid()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "task_id",
+          "ordinalPosition": 2,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "depends_on_task_id",
+          "ordinalPosition": 3,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "dependency_type",
+          "ordinalPosition": 4,
+          "dataType": "character varying",
+          "isNullable": true,
+          "defaultValue": "'blocks'::character varying",
+          "characterMaximumLength": 50,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "created_at",
+          "ordinalPosition": 5,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "task_dependencies_pkey",
+        "columns": "{id}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "task_dependencies_depends_on_task_id_fkey",
+          "columns": "{depends_on_task_id}",
+          "referencedTable": "tasks",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "constraintName": "task_dependencies_task_id_fkey",
+          "columns": "{task_id}",
+          "referencedTable": "tasks",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "uniqueConstraints": [
+        {
+          "constraintName": "task_dependencies_task_id_depends_on_task_id_key",
+          "columns": "{task_id,depends_on_task_id}",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "checkConstraints": [
+        {
+          "constraintName": "task_dependencies_dependency_type_check",
+          "checkClause": "(((dependency_type)::text = ANY ((ARRAY['blocks'::character varying, 'relates_to'::character varying, 'duplicates'::character varying])::text[])))",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "task_dependencies_check",
+          "checkClause": "((task_id <> depends_on_task_id))",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17374_1_not_null",
+          "checkClause": "id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17374_2_not_null",
+          "checkClause": "task_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17374_3_not_null",
+          "checkClause": "depends_on_task_id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17374_5_not_null",
+          "checkClause": "created_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "idx_task_deps_depends_on",
+          "columns": [
+            "depends_on_task_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_task_deps_depends_on ON hr_public.task_dependencies USING btree (depends_on_task_id)"
+        },
+        {
+          "indexName": "idx_task_deps_task",
+          "columns": [
+            "task_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_task_deps_task ON hr_public.task_dependencies USING btree (task_id)"
+        },
+        {
+          "indexName": "task_dependencies_task_id_depends_on_task_id_key",
+          "columns": [
+            "task_id",
+            "depends_on_task_id"
+          ],
+          "isUnique": true,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE UNIQUE INDEX task_dependencies_task_id_depends_on_task_id_key ON hr_public.task_dependencies USING btree (task_id, depends_on_task_id)"
+        }
+      ],
+      "rowCount": 0
+    },
+    {
+      "tableName": "task_types",
+      "columns": [
+        {
+          "columnName": "id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": "gen_random_uuid()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "name",
+          "ordinalPosition": 2,
+          "dataType": "character varying",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": 100,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "description",
+          "ordinalPosition": 3,
+          "dataType": "text",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "color",
+          "ordinalPosition": 4,
+          "dataType": "character varying",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": 7,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "icon",
+          "ordinalPosition": 5,
+          "dataType": "character varying",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": 50,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "created_at",
+          "ordinalPosition": 6,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "updated_at",
+          "ordinalPosition": 7,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "task_types_pkey",
+        "columns": "{id}"
+      },
+      "foreignKeys": [],
+      "uniqueConstraints": [
+        {
+          "constraintName": "task_types_name_key",
+          "columns": "{name}",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "checkConstraints": [
+        {
+          "constraintName": "16443_17278_1_not_null",
+          "checkClause": "id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17278_2_not_null",
+          "checkClause": "name IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17278_6_not_null",
+          "checkClause": "created_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17278_7_not_null",
+          "checkClause": "updated_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "task_types_name_key",
+          "columns": [
+            "name"
+          ],
+          "isUnique": true,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE UNIQUE INDEX task_types_name_key ON hr_public.task_types USING btree (name)"
+        }
+      ],
+      "rowCount": 5
+    },
+    {
+      "tableName": "tasks",
+      "columns": [
+        {
+          "columnName": "id",
+          "ordinalPosition": 1,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": "gen_random_uuid()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "title",
+          "ordinalPosition": 2,
+          "dataType": "character varying",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": 255,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "description",
+          "ordinalPosition": 3,
+          "dataType": "text",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "task_type_id",
+          "ordinalPosition": 4,
+          "dataType": "uuid",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "status",
+          "ordinalPosition": 5,
+          "dataType": "character varying",
+          "isNullable": false,
+          "defaultValue": "'todo'::character varying",
+          "characterMaximumLength": 50,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "priority",
+          "ordinalPosition": 6,
+          "dataType": "character varying",
+          "isNullable": true,
+          "defaultValue": "'medium'::character varying",
+          "characterMaximumLength": 20,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "due_date",
+          "ordinalPosition": 7,
+          "dataType": "timestamp with time zone",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "estimated_hours",
+          "ordinalPosition": 8,
+          "dataType": "numeric",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": 5,
+          "numericScale": 2,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "actual_hours",
+          "ordinalPosition": 9,
+          "dataType": "numeric",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": 5,
+          "numericScale": 2,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "created_by",
+          "ordinalPosition": 10,
+          "dataType": "uuid",
+          "isNullable": false,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "department_id",
+          "ordinalPosition": 11,
+          "dataType": "uuid",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "tags",
+          "ordinalPosition": 12,
+          "dataType": "array",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "metadata",
+          "ordinalPosition": 13,
+          "dataType": "jsonb",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "created_at",
+          "ordinalPosition": 14,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "updated_at",
+          "ordinalPosition": 15,
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "defaultValue": "now()",
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        },
+        {
+          "columnName": "completed_at",
+          "ordinalPosition": 16,
+          "dataType": "timestamp with time zone",
+          "isNullable": true,
+          "defaultValue": null,
+          "characterMaximumLength": null,
+          "numericPrecision": null,
+          "numericScale": null,
+          "isGenerated": false,
+          "generationExpression": null
+        }
+      ],
+      "primaryKey": {
+        "constraintName": "tasks_pkey",
+        "columns": "{id}"
+      },
+      "foreignKeys": [
+        {
+          "constraintName": "tasks_created_by_fkey",
+          "columns": "{created_by}",
+          "referencedTable": "users",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "constraintName": "tasks_department_id_fkey",
+          "columns": "{department_id}",
+          "referencedTable": "departments",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "constraintName": "tasks_task_type_id_fkey",
+          "columns": "{task_type_id}",
+          "referencedTable": "task_types",
+          "referencedColumns": "{id}",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "uniqueConstraints": [],
+      "checkConstraints": [
+        {
+          "constraintName": "tasks_status_check",
+          "checkClause": "(((status)::text = ANY ((ARRAY['todo'::character varying, 'in_progress'::character varying, 'blocked'::character varying, 'review'::character varying, 'done'::character varying, 'archived'::character varying])::text[])))",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "tasks_priority_check",
+          "checkClause": "(((priority)::text = ANY ((ARRAY['low'::character varying, 'medium'::character varying, 'high'::character varying, 'urgent'::character varying])::text[])))",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17290_1_not_null",
+          "checkClause": "id IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17290_2_not_null",
+          "checkClause": "title IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17290_5_not_null",
+          "checkClause": "status IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17290_10_not_null",
+          "checkClause": "created_by IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17290_14_not_null",
+          "checkClause": "created_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        },
+        {
+          "constraintName": "16443_17290_15_not_null",
+          "checkClause": "updated_at IS NOT NULL",
+          "isDeferrable": false,
+          "isInitiallyDeferred": false
+        }
+      ],
+      "indexes": [
+        {
+          "indexName": "idx_tasks_created_by",
+          "columns": [
+            "created_by"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_tasks_created_by ON hr_public.tasks USING btree (created_by)"
+        },
+        {
+          "indexName": "idx_tasks_department",
+          "columns": [
+            "department_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_tasks_department ON hr_public.tasks USING btree (department_id)"
+        },
+        {
+          "indexName": "idx_tasks_description_fulltext",
+          "columns": [
+            "to_tsvector('english'::regconfig",
+            "COALESCE(description",
+            "''::text"
+          ],
+          "isUnique": false,
+          "indexType": "GIN",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_tasks_description_fulltext ON hr_public.tasks USING gin (to_tsvector('english'::regconfig, COALESCE(description, ''::text)))"
+        },
+        {
+          "indexName": "idx_tasks_due_date",
+          "columns": [
+            "due_date"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_tasks_due_date ON hr_public.tasks USING btree (due_date)"
+        },
+        {
+          "indexName": "idx_tasks_metadata",
+          "columns": [
+            "metadata"
+          ],
+          "isUnique": false,
+          "indexType": "GIN",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_tasks_metadata ON hr_public.tasks USING gin (metadata)"
+        },
+        {
+          "indexName": "idx_tasks_priority",
+          "columns": [
+            "priority"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_tasks_priority ON hr_public.tasks USING btree (priority)"
+        },
+        {
+          "indexName": "idx_tasks_status",
+          "columns": [
+            "status"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_tasks_status ON hr_public.tasks USING btree (status)"
+        },
+        {
+          "indexName": "idx_tasks_tags",
+          "columns": [
+            "tags"
+          ],
+          "isUnique": false,
+          "indexType": "GIN",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_tasks_tags ON hr_public.tasks USING gin (tags)"
+        },
+        {
+          "indexName": "idx_tasks_title_fulltext",
+          "columns": [
+            "to_tsvector('english'::regconfig",
+            "(title"
+          ],
+          "isUnique": false,
+          "indexType": "GIN",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_tasks_title_fulltext ON hr_public.tasks USING gin (to_tsvector('english'::regconfig, (title)::text))"
+        },
+        {
+          "indexName": "idx_tasks_type",
+          "columns": [
+            "task_type_id"
+          ],
+          "isUnique": false,
+          "indexType": "BTREE",
+          "whereClause": null,
+          "indexDefinition": "CREATE INDEX idx_tasks_type ON hr_public.tasks USING btree (task_type_id)"
         }
       ],
       "rowCount": 0
@@ -4951,6 +9625,30 @@
   ],
   "triggers": [
     {
+      "triggerName": "assignment_expiry_trigger",
+      "tableName": "document_assignments",
+      "timing": "BEFORE",
+      "events": [
+        "INSERT"
+      ],
+      "level": "ROW",
+      "whenCondition": null,
+      "functionName": "check_assignment_expiry",
+      "triggerDefinition": "CREATE TRIGGER assignment_expiry_trigger BEFORE INSERT OR UPDATE ON hr_public.document_assignments FOR EACH ROW EXECUTE FUNCTION check_assignment_expiry()"
+    },
+    {
+      "triggerName": "document_update_timestamp_trigger",
+      "tableName": "documents",
+      "timing": "BEFORE",
+      "events": [
+        "UPDATE"
+      ],
+      "level": "ROW",
+      "whenCondition": null,
+      "functionName": "update_document_timestamp",
+      "triggerDefinition": "CREATE TRIGGER document_update_timestamp_trigger BEFORE UPDATE ON hr_public.documents FOR EACH ROW EXECUTE FUNCTION update_document_timestamp()"
+    },
+    {
       "triggerName": "update_emergency_contacts_updated_at",
       "tableName": "emergency_contacts",
       "timing": "BEFORE",
@@ -4973,6 +9671,42 @@
       "whenCondition": null,
       "functionName": "update_updated_at_column",
       "triggerDefinition": "CREATE TRIGGER update_employee_vehicles_updated_at BEFORE UPDATE ON hr_public.employee_vehicles FOR EACH ROW EXECUTE FUNCTION hr_hidden.update_updated_at_column()"
+    },
+    {
+      "triggerName": "waitlist_promotion_trigger",
+      "tableName": "event_attendees",
+      "timing": "AFTER",
+      "events": [
+        "UPDATE"
+      ],
+      "level": "ROW",
+      "whenCondition": null,
+      "functionName": "promote_from_waitlist",
+      "triggerDefinition": "CREATE TRIGGER waitlist_promotion_trigger AFTER UPDATE ON hr_public.event_attendees FOR EACH ROW EXECUTE FUNCTION promote_from_waitlist()"
+    },
+    {
+      "triggerName": "task_audit_trigger",
+      "tableName": "tasks",
+      "timing": "AFTER",
+      "events": [
+        "INSERT"
+      ],
+      "level": "ROW",
+      "whenCondition": null,
+      "functionName": "audit_task_changes",
+      "triggerDefinition": "CREATE TRIGGER task_audit_trigger AFTER INSERT OR DELETE OR UPDATE ON hr_public.tasks FOR EACH ROW EXECUTE FUNCTION audit_task_changes()"
+    },
+    {
+      "triggerName": "task_update_timestamp_trigger",
+      "tableName": "tasks",
+      "timing": "BEFORE",
+      "events": [
+        "UPDATE"
+      ],
+      "level": "ROW",
+      "whenCondition": null,
+      "functionName": "update_task_timestamp",
+      "triggerDefinition": "CREATE TRIGGER task_update_timestamp_trigger BEFORE UPDATE ON hr_public.tasks FOR EACH ROW EXECUTE FUNCTION update_task_timestamp()"
     }
   ]
 }

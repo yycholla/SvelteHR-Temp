@@ -13,27 +13,37 @@ UPDATE hr_public.users SET role = 'employee' WHERE role = 'hr_employee';
 UPDATE hr_public.users SET role = 'guest' WHERE role = 'hr_guest';
 
 -- ============================================================================
--- STEP 2: Revoke all privileges from old roles
+-- STEP 2: Revoke all privileges from old roles (if they exist)
 -- ============================================================================
 
--- Revoke schema privileges
-REVOKE ALL ON SCHEMA hr_public FROM hr_guest, hr_employee, hr_manager, hr_admin, hr_super_admin;
-REVOKE ALL ON SCHEMA hr_private FROM hr_admin, hr_super_admin;
-REVOKE ALL ON SCHEMA hr_hidden FROM hr_super_admin;
+DO $$
+BEGIN
+    -- Only revoke if the old roles exist
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname IN ('hr_guest', 'hr_employee', 'hr_manager', 'hr_admin', 'hr_super_admin')) THEN
+        -- Revoke schema privileges
+        EXECUTE 'REVOKE ALL ON SCHEMA hr_public FROM hr_guest, hr_employee, hr_manager, hr_admin, hr_super_admin';
+        EXECUTE 'REVOKE ALL ON SCHEMA hr_private FROM hr_admin, hr_super_admin';
+        EXECUTE 'REVOKE ALL ON SCHEMA hr_hidden FROM hr_super_admin';
 
--- Revoke table privileges
-REVOKE ALL ON ALL TABLES IN SCHEMA hr_public FROM hr_guest, hr_employee, hr_manager, hr_admin, hr_super_admin;
-REVOKE ALL ON ALL TABLES IN SCHEMA hr_private FROM hr_admin, hr_super_admin;
-REVOKE ALL ON ALL TABLES IN SCHEMA hr_hidden FROM hr_super_admin;
+        -- Revoke table privileges
+        EXECUTE 'REVOKE ALL ON ALL TABLES IN SCHEMA hr_public FROM hr_guest, hr_employee, hr_manager, hr_admin, hr_super_admin';
+        EXECUTE 'REVOKE ALL ON ALL TABLES IN SCHEMA hr_private FROM hr_admin, hr_super_admin';
+        EXECUTE 'REVOKE ALL ON ALL TABLES IN SCHEMA hr_hidden FROM hr_super_admin';
 
--- Revoke sequence privileges
-REVOKE ALL ON ALL SEQUENCES IN SCHEMA hr_public FROM hr_guest, hr_employee, hr_manager, hr_admin, hr_super_admin;
-REVOKE ALL ON ALL SEQUENCES IN SCHEMA hr_private FROM hr_admin, hr_super_admin;
+        -- Revoke sequence privileges
+        EXECUTE 'REVOKE ALL ON ALL SEQUENCES IN SCHEMA hr_public FROM hr_guest, hr_employee, hr_manager, hr_admin, hr_super_admin';
+        EXECUTE 'REVOKE ALL ON ALL SEQUENCES IN SCHEMA hr_private FROM hr_admin, hr_super_admin';
 
--- Revoke function privileges
-REVOKE ALL ON ALL FUNCTIONS IN SCHEMA hr_public FROM hr_guest, hr_employee, hr_manager, hr_admin, hr_super_admin;
-REVOKE ALL ON ALL FUNCTIONS IN SCHEMA hr_private FROM hr_admin, hr_super_admin;
-REVOKE ALL ON ALL FUNCTIONS IN SCHEMA hr_hidden FROM hr_super_admin;
+        -- Revoke function privileges
+        EXECUTE 'REVOKE ALL ON ALL FUNCTIONS IN SCHEMA hr_public FROM hr_guest, hr_employee, hr_manager, hr_admin, hr_super_admin';
+        EXECUTE 'REVOKE ALL ON ALL FUNCTIONS IN SCHEMA hr_private FROM hr_admin, hr_super_admin';
+        EXECUTE 'REVOKE ALL ON ALL FUNCTIONS IN SCHEMA hr_hidden FROM hr_super_admin';
+
+        RAISE NOTICE 'Revoked all privileges from old hr_ prefixed roles';
+    ELSE
+        RAISE NOTICE 'No old hr_ prefixed roles found - skipping privilege revocation';
+    END IF;
+END $$;
 
 -- ============================================================================
 -- STEP 3: Revoke role memberships
