@@ -2,6 +2,8 @@
 -- This script creates essential seed data and default records
 
 -- Insert default admin user (development only)
+-- Email: admin@mountainhr.dev
+-- Password: admin123 (change in production!)
 INSERT INTO hr_public.users (
     email,
     password_hash,
@@ -16,7 +18,7 @@ INSERT INTO hr_public.users (
     crypt('admin123', gen_salt('bf')),
     'System',
     'Administrator',
-    'hr_super_admin',
+    'super_admin',
     true,
     NOW(),
     NOW()
@@ -53,14 +55,14 @@ INSERT INTO hr_public.user_role_assignments (
 )
 SELECT
     u.id,
-    'hr_super_admin',
+    'super_admin',
     u.id,
     NOW()
 FROM hr_public.users u
 WHERE u.email = 'admin@mountainhr.dev'
 AND NOT EXISTS (
     SELECT 1 FROM hr_public.user_role_assignments ura
-    WHERE ura.user_id = u.id AND ura.role_name = 'hr_super_admin'
+    WHERE ura.user_id = u.id AND ura.role_name = 'super_admin'
 );
 
 -- Enable Row Level Security on all public tables
