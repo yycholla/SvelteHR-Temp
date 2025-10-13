@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/118</span>
+                <span class='fraction'>0/116</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/118</span>
+                <span class='fraction'>0/116</span>
             </div>
         
             
@@ -451,7 +451,9 @@
 <a name='L386'></a><a href='#L386'>386</a>
 <a name='L387'></a><a href='#L387'>387</a>
 <a name='L388'></a><a href='#L388'>388</a>
-<a name='L389'></a><a href='#L389'>389</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L389'></a><a href='#L389'>389</a>
+<a name='L390'></a><a href='#L390'>390</a>
+<a name='L391'></a><a href='#L391'>391</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -527,30 +529,32 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -915,7 +919,7 @@
 			const alreadyBlockedBy = blockedByDependencies.some((dep) =&gt; dep.blockingTaskId === t.id);
 			if (alreadyBlocking || alreadyBlockedBy) return false;
 &nbsp;
-<span class="cstat-no" title="statement not covered" >			// Apply search filter</span>
+			// Apply search filter
 <span class="cstat-no" title="statement not covered" >			if (searchQuery) {</span>
 				const query = searchQuery.toLowerCase();
 <span class="cstat-no" title="statement not covered" >				return (</span>
@@ -923,14 +927,14 @@
 <span class="cstat-no" title="statement not covered" >					t.description?.toLowerCase().includes(query)</span>
 <span class="cstat-no" title="statement not covered" >				);</span>
 <span class="cstat-no" title="statement not covered" >			}</span>
-&nbsp;
-<span class="cstat-no" title="statement not covered" >			return true;</span>
+<span class="cstat-no" title="statement not covered" ></span>
+			return true;
 		});
-<span class="cstat-no" title="statement not covered" ></span>
-		return filtered;
+&nbsp;
+<span class="cstat-no" title="statement not covered" >		return filtered;</span>
 	});
-<span class="cstat-no" title="statement not covered" ></span>
-<span class="cstat-no" title="statement not covered" >	// Task options for select dropdown</span>
+&nbsp;
+	// Task options for select dropdown
 <span class="cstat-no" title="statement not covered" >	let taskOptions = $derived(</span>
 <span class="cstat-no" title="statement not covered" >		filteredTasks().map((t) =&gt; ({</span>
 <span class="cstat-no" title="statement not covered" >			value: t.id,</span>
@@ -939,29 +943,31 @@
 <span class="cstat-no" title="statement not covered" >	);</span>
 <span class="cstat-no" title="statement not covered" ></span>
 <span class="cstat-no" title="statement not covered" >	// Get status icon for dependency task</span>
+<span class="cstat-no" title="statement not covered" >	// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)</span>
 	function getStatusIcon(status: Task['status']) {
-<span class="cstat-no" title="statement not covered" >		switch (status) {</span>
-			case 'Completed':
-<span class="cstat-no" title="statement not covered" >				return CheckCircle;</span>
-			case 'In Progress':
+		switch (status) {
+<span class="cstat-no" title="statement not covered" >			case 'COMPLETED':</span>
+				return CheckCircle;
+<span class="cstat-no" title="statement not covered" >			case 'IN_PROGRESS':</span>
 				return Circle;
-<span class="cstat-no" title="statement not covered" >			case 'Blocked':</span>
+			case 'BLOCKED':
 <span class="cstat-no" title="statement not covered" >				return XCircle;</span>
 <span class="cstat-no" title="statement not covered" >			default:</span>
 <span class="cstat-no" title="statement not covered" >				return Circle;</span>
 <span class="cstat-no" title="statement not covered" >		}</span>
 <span class="cstat-no" title="statement not covered" >	}</span>
-&nbsp;
+<span class="cstat-no" title="statement not covered" ></span>
 	// Get status color for dependency task
+	// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
 <span class="cstat-no" title="statement not covered" >	function getStatusColor(status: Task['status']) {</span>
 <span class="cstat-no" title="statement not covered" >		switch (status) {</span>
-			case 'Completed':
+			case 'COMPLETED':
 <span class="cstat-no" title="statement not covered" >				return 'text-green-600 dark:text-green-400';</span>
-<span class="cstat-no" title="statement not covered" >			case 'In Progress':</span>
+<span class="cstat-no" title="statement not covered" >			case 'IN_PROGRESS':</span>
 <span class="cstat-no" title="statement not covered" >				return 'text-blue-600 dark:text-blue-400';</span>
-			case 'Blocked':
+			case 'BLOCKED':
 <span class="cstat-no" title="statement not covered" >				return 'text-red-600 dark:text-red-400';</span>
-<span class="cstat-no" title="statement not covered" >			case 'Cancelled':</span>
+<span class="cstat-no" title="statement not covered" >			case 'DEFERRED':</span>
 				return 'text-gray-500';
 			default:
 <span class="cstat-no" title="statement not covered" >				return 'text-gray-600';</span>
@@ -1053,7 +1059,7 @@
 <span class="cstat-no" title="statement not covered" >									&lt;p class="font-medium"&gt;{blockingTask.title}&lt;/p&gt;</span>
 <span class="cstat-no" title="statement not covered" >									&lt;p class="text-xs text-muted-foreground"&gt;Status: {blockingTask.status}&lt;/p&gt;</span>
 								&lt;/div&gt;
-<span class="cstat-no" title="statement not covered" >								{#if blockingTask.status !== 'Completed'}</span>
+<span class="cstat-no" title="statement not covered" >								{#if blockingTask.status !== 'COMPLETED'}</span>
 									&lt;Badge variant="destructive" class="flex-shrink-0"&gt;
 										&lt;AlertTriangle class="mr-1 h-3 w-3" /&gt;
 										Blocking
@@ -1111,7 +1117,7 @@
 <span class="cstat-no" title="statement not covered" >									&lt;p class="font-medium"&gt;{blockedTask.title}&lt;/p&gt;</span>
 <span class="cstat-no" title="statement not covered" >									&lt;p class="text-xs text-muted-foreground"&gt;Status: {blockedTask.status}&lt;/p&gt;</span>
 								&lt;/div&gt;
-<span class="cstat-no" title="statement not covered" >								{#if task.status !== 'Completed'}</span>
+<span class="cstat-no" title="statement not covered" >								{#if task.status !== 'COMPLETED'}</span>
 									&lt;Badge variant="outline" class="flex-shrink-0"&gt;
 										Waiting on this task
 									&lt;/Badge&gt;
@@ -1134,7 +1140,7 @@
 	&lt;/div&gt;
 &nbsp;
 	&lt;!-- Warning: Task is blocked --&gt;
-<span class="cstat-no" title="statement not covered" >	{#if blockedByDependencies.some((dep) =&gt; dep.taskByBlockingTaskId?.status !== 'Completed')}</span>
+<span class="cstat-no" title="statement not covered" >	{#if blockedByDependencies.some((dep) =&gt; dep.taskByBlockingTaskId?.status !== 'COMPLETED')}</span>
 		&lt;div class="rounded-lg border border-warning bg-warning/10 p-4"&gt;
 			&lt;div class="flex items-start gap-3"&gt;
 				&lt;AlertTriangle class="h-5 w-5 text-warning flex-shrink-0 mt-0.5" /&gt;
@@ -1234,7 +1240,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-09T17:52:30.550Z
+                at 2025-10-10T18:30:14.898Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

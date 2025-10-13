@@ -15,9 +15,9 @@ import { createPerformanceExchange } from '$lib/performance/graphql-performance-
  * - Retry logic and rate limiting
  */
 
-// Default GraphQL endpoint for browser
-const DEFAULT_GRAPHQL_URL = 'http://localhost:4000/graphql';
-const POSTGRAPHILE_GRAPHQL_WS_URL = 'ws://localhost:4000/graphql'; // Direct to PostGraphile for WebSockets if needed
+// Default GraphQL endpoint for browser (Rust GraphQL API)
+const DEFAULT_GRAPHQL_URL = 'http://localhost:4001/graphql';
+const GRAPHQL_WS_URL = 'ws://localhost:4001/graphql'; // WebSocket endpoint for subscriptions
 
 // WebSocket subscriptions are disabled for PostGraphile (doesn't support WebSockets by default)
 

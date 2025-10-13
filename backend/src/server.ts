@@ -16,6 +16,7 @@ import rateLimit from 'express-rate-limit';
 import Redis from 'ioredis';
 import cookieParser from 'cookie-parser';
 import winston from 'winston';
+import ConnectionFilterPlugin from 'postgraphile-plugin-connection-filter';
 import jwt from 'jsonwebtoken';
 
 // Environment configuration
@@ -202,6 +203,13 @@ app.use('/graphql', (req, res, next) => {
 });
 
 // Custom PostGraphile plugins - simplified
+// Connection filter plugin options
+const connectionFilterOptions = {
+	connectionFilterRelations: true,
+	connectionFilterAllowNullInput: true,
+	connectionFilterArrays: true
+};
+
 const customPlugins = [
 	// ...hrPlugins(redis) will be added back once HR plugins are stabilized
 	// ...securityPlugins(redis) will be added back once security plugins are stabilized
@@ -225,6 +233,18 @@ const postgraphileOptions = {
 	enableCors: false, // We handle CORS above
 	legacyRelations: 'omit' as any,
 	setofFunctionsContainNulls: false,
+
+	
+	// Connection filter plugin options
+	graphileBuildOptions: {
+		connectionFilterRelations: true,
+		connectionFilterAllowNullInput: true,
+		connectionFilterArrays: true,
+		connectionFilterComputedColumns: true,
+		connectionFilterSetofFunctions: true
+		// Do NOT restrict connectionFilterAllowedFieldTypes - let plugin include all types
+		// Do NOT restrict connectionFilterAllowedOperators - let plugin include all operators
+	},
 
 	// Plugin configuration
 	appendPlugins: customPlugins,

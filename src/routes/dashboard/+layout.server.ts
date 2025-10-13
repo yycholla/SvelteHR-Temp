@@ -16,36 +16,35 @@ export const load: LayoutServerLoad = async ({ locals, cookies }) => {
 		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
 		// Query for user's unread notifications only (limit to most recent 20)
+		// Updated to use Rust GraphQL API syntax
 		const notificationsQuery = `
-			query GetUserNotifications($recipientId: UUID!) {
-				allNotifications(
-					condition: { recipientId: $recipientId, readStatus: false }
-					orderBy: [CREATED_AT_DESC]
-					first: 20
+			query GetUserNotifications($recipientId: UUID!, $readStatus: Boolean) {
+				notifications(
+					recipientId: $recipientId,
+					readStatus: $readStatus,
+					limit: 20
 				) {
-					totalCount
-					nodes {
-						id
-						type
-						category
-						title
-						message
-						relatedResourceType
-						relatedResourceId
-						readStatus
-						deliveredAt
-						readAt
-						createdAt
-					}
+					id
+					type
+					category
+					title
+					message
+					relatedResourceType
+					relatedResourceId
+					readStatus
+					deliveredAt
+					readAt
+					createdAt
 				}
 			}
 		`;
 
 		const result = await graphqlClient.query(notificationsQuery, {
-			recipientId: locals.user.id
+			recipientId: locals.user.id,
+			readStatus: false
 		});
 
-		const notifications = result.data?.allNotifications?.nodes || [];
+		const notifications = result.data?.notifications || [];
 
 		return {
 			notifications: notifications.map((n: any) => ({

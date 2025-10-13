@@ -23,6 +23,7 @@ COMMENT ON SCHEMA hr_public IS 'Public HR schema exposed through PostGraphile Gr
 
 -- Create types
 CREATE TYPE hr_public.employee_status AS ENUM ('ACTIVE', 'INACTIVE', 'TERMINATED', 'ON_LEAVE');
+CREATE TYPE hr_public.user_status AS ENUM ('active', 'inactive', 'terminated');
 CREATE TYPE hr_public.leave_status AS ENUM ('pending', 'approved', 'rejected', 'cancelled');
 CREATE TYPE hr_public.leave_type AS ENUM ('annual', 'sick', 'personal', 'maternity', 'paternity');
 CREATE TYPE hr_public.review_status AS ENUM ('not_started', 'in_progress', 'completed');
@@ -34,16 +35,21 @@ CREATE TABLE hr_public.users (
     password_hash character varying(255) NOT NULL,
     first_name character varying(255) NOT NULL,
     last_name character varying(255) NOT NULL,
-    display_name character varying(255) GENERATED ALWAYS AS (first_name || ' ' || last_name) STORED,
+    full_name character varying(255) GENERATED ALWAYS AS (first_name || ' ' || last_name) STORED,
+    phone character varying(20),
     role character varying(50) DEFAULT 'hr_employee'::character varying NOT NULL,
     department_id uuid,
+    manager_id uuid,
     is_active boolean DEFAULT true NOT NULL,
+    status hr_public.user_status DEFAULT 'active'::hr_public.user_status NOT NULL,
     failed_login_attempts integer DEFAULT 0,
     locked_until timestamp with time zone,
     last_login timestamp with time zone,
-    hire_date date,
+    hire_date timestamp with time zone,
+    termination_date timestamp with time zone,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    deleted_at timestamp with time zone,
     CONSTRAINT users_pkey PRIMARY KEY (id),
     CONSTRAINT users_email_key UNIQUE (email),
     CONSTRAINT users_email_format CHECK (((email)::text ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'::text)),
@@ -159,11 +165,10 @@ CREATE TABLE hr_public.employee_goals (
 -- Compensation bands table
 CREATE TABLE hr_public.compensation_bands (
     id uuid DEFAULT uuid_generate_v4() NOT NULL,
-    title character varying(255) NOT NULL,
+    band_name character varying(255) NOT NULL,
     min_salary numeric(12,2) NOT NULL,
     max_salary numeric(12,2) NOT NULL,
     currency character varying(3) DEFAULT 'USD'::character varying NOT NULL,
-    created_by uuid,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     CONSTRAINT compensation_bands_pkey PRIMARY KEY (id),
@@ -192,9 +197,9 @@ CREATE TABLE hr_public.review_templates (
     id uuid DEFAULT uuid_generate_v4() NOT NULL,
     name character varying(255) NOT NULL,
     description text,
-    template_data jsonb NOT NULL,
+    sections jsonb,
     is_active boolean DEFAULT true NOT NULL,
-    created_by uuid,
+    created_by_id uuid,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     CONSTRAINT review_templates_pkey PRIMARY KEY (id)
@@ -291,6 +296,7 @@ CREATE TABLE hr_public.activity_logs (
 
 -- Add foreign key constraints
 ALTER TABLE hr_public.users ADD CONSTRAINT users_department_id_fkey FOREIGN KEY (department_id) REFERENCES hr_public.departments(id) ON DELETE SET NULL;
+ALTER TABLE hr_public.users ADD CONSTRAINT users_manager_id_fkey FOREIGN KEY (manager_id) REFERENCES hr_public.users(id) ON DELETE SET NULL;
 ALTER TABLE hr_public.departments ADD CONSTRAINT departments_manager_id_fkey FOREIGN KEY (manager_id) REFERENCES hr_public.users(id) ON DELETE SET NULL;
 ALTER TABLE hr_public.leave_requests ADD CONSTRAINT leave_requests_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES hr_public.users(id) ON DELETE CASCADE;
 ALTER TABLE hr_public.leave_requests ADD CONSTRAINT leave_requests_manager_id_fkey FOREIGN KEY (manager_id) REFERENCES hr_public.users(id) ON DELETE SET NULL;
@@ -302,11 +308,10 @@ ALTER TABLE hr_public.time_off_balances ADD CONSTRAINT time_off_balances_employe
 ALTER TABLE hr_public.time_off_balances ADD CONSTRAINT time_off_balances_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES hr_public.time_off_policies(id) ON DELETE CASCADE;
 ALTER TABLE hr_public.employee_goals ADD CONSTRAINT employee_goals_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES hr_public.users(id) ON DELETE CASCADE;
 ALTER TABLE hr_public.employee_goals ADD CONSTRAINT employee_goals_created_by_fkey FOREIGN KEY (created_by) REFERENCES hr_public.users(id) ON DELETE SET NULL;
-ALTER TABLE hr_public.compensation_bands ADD CONSTRAINT compensation_bands_created_by_fkey FOREIGN KEY (created_by) REFERENCES hr_public.users(id) ON DELETE SET NULL;
 ALTER TABLE hr_public.payroll_records ADD CONSTRAINT payroll_records_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES hr_public.users(id) ON DELETE CASCADE;
 ALTER TABLE hr_public.payroll_records ADD CONSTRAINT payroll_records_processed_by_fkey FOREIGN KEY (processed_by) REFERENCES hr_public.users(id) ON DELETE SET NULL;
 ALTER TABLE hr_public.payroll_records ADD CONSTRAINT payroll_records_created_by_fkey FOREIGN KEY (created_by) REFERENCES hr_public.users(id) ON DELETE SET NULL;
-ALTER TABLE hr_public.review_templates ADD CONSTRAINT review_templates_created_by_fkey FOREIGN KEY (created_by) REFERENCES hr_public.users(id) ON DELETE SET NULL;
+ALTER TABLE hr_public.review_templates ADD CONSTRAINT review_templates_created_by_id_fkey FOREIGN KEY (created_by_id) REFERENCES hr_public.users(id) ON DELETE SET NULL;
 -- REMOVED: Foreign key constraints for old hr_public.tasks table (see comment above)
 -- ALTER TABLE hr_public.tasks ADD CONSTRAINT tasks_assignee_id_fkey FOREIGN KEY (assignee_id) REFERENCES hr_public.users(id) ON DELETE CASCADE;
 -- ALTER TABLE hr_public.tasks ADD CONSTRAINT tasks_assigner_id_fkey FOREIGN KEY (assigner_id) REFERENCES hr_public.users(id) ON DELETE CASCADE;

@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/73</span>
+                <span class='fraction'>0/79</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/73</span>
+                <span class='fraction'>0/79</span>
             </div>
         
             
@@ -301,7 +301,15 @@
 <a name='L236'></a><a href='#L236'>236</a>
 <a name='L237'></a><a href='#L237'>237</a>
 <a name='L238'></a><a href='#L238'>238</a>
-<a name='L239'></a><a href='#L239'>239</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L239'></a><a href='#L239'>239</a>
+<a name='L240'></a><a href='#L240'>240</a>
+<a name='L241'></a><a href='#L241'>241</a>
+<a name='L242'></a><a href='#L242'>242</a>
+<a name='L243'></a><a href='#L243'>243</a>
+<a name='L244'></a><a href='#L244'>244</a>
+<a name='L245'></a><a href='#L245'>245</a>
+<a name='L246'></a><a href='#L246'>246</a>
+<a name='L247'></a><a href='#L247'>247</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -329,6 +337,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -338,7 +347,14 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -567,28 +583,29 @@
 		AlertCircle,
 		XCircle,
 		Target,
-<span class="cstat-no" title="statement not covered" >		TrendingUp,</span>
-		ListTodo
-<span class="cstat-no" title="statement not covered" >	} from 'lucide-svelte';</span>
+		TrendingUp,
+<span class="cstat-no" title="statement not covered" >		ListTodo</span>
+	} from 'lucide-svelte';
 <span class="cstat-no" title="statement not covered" ></span>
 <span class="cstat-no" title="statement not covered" >	// Page data from server</span>
 <span class="cstat-no" title="statement not covered" >	let { data }: { data: PageData } = $props();</span>
 <span class="cstat-no" title="statement not covered" ></span>
-	// Filter state from URL params
+<span class="cstat-no" title="statement not covered" >	// Filter state from URL params</span>
 	let filters = $state&lt;TaskFilterState&gt;({
 		search: data.filters.searchTerm,
 <span class="cstat-no" title="statement not covered" >		statuses: data.filters.statusFilter ? [data.filters.statusFilter as any] : [],</span>
 <span class="cstat-no" title="statement not covered" >		priorities: data.filters.priorityFilter ? [data.filters.priorityFilter as any] : [],</span>
 <span class="cstat-no" title="statement not covered" >		assigneeId: data.filters.assigneeFilter || null,</span>
 <span class="cstat-no" title="statement not covered" >		taskTypeId: data.filters.taskTypeFilter || null,</span>
-		dueDateStart: data.filters.dueDateStart || null,
+<span class="cstat-no" title="statement not covered" >		dueDateStart: data.filters.dueDateStart || null,</span>
 		dueDateEnd: data.filters.dueDateEnd || null,
-<span class="cstat-no" title="statement not covered" >		hasParent:</span>
+		hasParent:
 <span class="cstat-no" title="statement not covered" >			data.filters.hasParent === 'true' ? true : data.filters.hasParent === 'false' ? false : null,</span>
 <span class="cstat-no" title="statement not covered" >		hasDependencies: null</span>
 <span class="cstat-no" title="statement not covered" >	});</span>
 <span class="cstat-no" title="statement not covered" ></span>
-	// Statistics cards configuration
+<span class="cstat-no" title="statement not covered" >	// Statistics cards configuration</span>
+	// NOTE: Updated to match actual task_status_enum values (Feature 028)
 	const statsCards = [
 <span class="cstat-no" title="statement not covered" >		{</span>
 <span class="cstat-no" title="statement not covered" >			label: 'Total Tasks',</span>
@@ -598,25 +615,32 @@
 			bgColor: 'bg-primary/10'
 		},
 <span class="cstat-no" title="statement not covered" >		{</span>
-<span class="cstat-no" title="statement not covered" >			label: 'Not Started',</span>
+<span class="cstat-no" title="statement not covered" >			label: 'To Do',</span>
 <span class="cstat-no" title="statement not covered" >			value: data.taskStats.notStarted,</span>
 <span class="cstat-no" title="statement not covered" >			icon: Clock,</span>
 <span class="cstat-no" title="statement not covered" >			color: 'text-amber-600',</span>
 			bgColor: 'bg-amber-100 dark:bg-amber-900/30'
 		},
-		{
-			label: 'In Progress',
+<span class="cstat-no" title="statement not covered" >		{</span>
+<span class="cstat-no" title="statement not covered" >			label: 'In Progress',</span>
 <span class="cstat-no" title="statement not covered" >			value: data.taskStats.inProgress,</span>
 <span class="cstat-no" title="statement not covered" >			icon: TrendingUp,</span>
-			color: 'text-blue-600',
+<span class="cstat-no" title="statement not covered" >			color: 'text-blue-600',</span>
 			bgColor: 'bg-blue-100 dark:bg-blue-900/30'
-<span class="cstat-no" title="statement not covered" >		},</span>
+		},
 		{
-<span class="cstat-no" title="statement not covered" >			label: 'Blocked',</span>
+			label: 'Blocked',
 <span class="cstat-no" title="statement not covered" >			value: data.taskStats.blocked,</span>
 <span class="cstat-no" title="statement not covered" >			icon: AlertCircle,</span>
 			color: 'text-red-600',
-<span class="cstat-no" title="statement not covered" >			bgColor: 'bg-red-100 dark:bg-red-900/30'</span>
+			bgColor: 'bg-red-100 dark:bg-red-900/30'
+<span class="cstat-no" title="statement not covered" >		},</span>
+		{
+<span class="cstat-no" title="statement not covered" >			label: 'Deferred',</span>
+<span class="cstat-no" title="statement not covered" >			value: data.taskStats.deferred,</span>
+<span class="cstat-no" title="statement not covered" >			icon: XCircle,</span>
+			color: 'text-gray-600',
+<span class="cstat-no" title="statement not covered" >			bgColor: 'bg-gray-100 dark:bg-gray-900/30'</span>
 <span class="cstat-no" title="statement not covered" >		},</span>
 <span class="cstat-no" title="statement not covered" >		{</span>
 			label: 'Completed',
@@ -784,7 +808,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-09T17:52:30.078Z
+                at 2025-10-10T18:30:14.587Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

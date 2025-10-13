@@ -21,8 +21,8 @@ export function getGraphQLEndpoint(): string {
 		return `${containerApiUrl}/graphql`;
 	}
 
-	// Running on host - use localhost
-	const hostApiUrl = publicEnv.PUBLIC_API_URL || 'http://localhost:4000';
+	// Running on host - use localhost (Rust GraphQL API on port 4001)
+	const hostApiUrl = publicEnv.PUBLIC_API_URL || 'http://localhost:4001';
 	return `${hostApiUrl}/graphql`;
 }
 
@@ -36,7 +36,7 @@ export function getApiBaseUrl(): string {
 		return containerApiUrl;
 	}
 
-	return publicEnv.PUBLIC_API_URL || 'http://localhost:4000';
+	return publicEnv.PUBLIC_API_URL || 'http://localhost:4001';
 }
 
 /**

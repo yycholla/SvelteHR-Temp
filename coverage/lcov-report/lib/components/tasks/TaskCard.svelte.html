@@ -780,7 +780,7 @@
 <span class="cstat-no" title="statement not covered" >		const nodes = task.tasksByParentTaskId.nodes || [];</span>
 		return {
 <span class="cstat-no" title="statement not covered" >			total: task.tasksByParentTaskId.totalCount,</span>
-<span class="cstat-no" title="statement not covered" >			completed: nodes.filter((t: any) =&gt; t.status === 'Completed').length</span>
+<span class="cstat-no" title="statement not covered" >			completed: nodes.filter((t: any) =&gt; t.status === 'COMPLETED').length</span>
 		};
 <span class="cstat-no" title="statement not covered" >	});</span>
 &nbsp;
@@ -804,14 +804,14 @@
 &nbsp;
 <span class="cstat-no" title="statement not covered" >	function handleStatusClick(e: Event) {</span>
 <span class="cstat-no" title="statement not covered" >		e.stopPropagation();</span>
-<span class="cstat-no" title="statement not covered" >		if (onStatusChange &amp;&amp; task.status !== 'Completed') {</span>
-			// Toggle between Not Started, In Progress, and Completed
+<span class="cstat-no" title="statement not covered" >		if (onStatusChange &amp;&amp; task.status !== 'COMPLETED') {</span>
+			// Toggle between TO_DO, IN_PROGRESS, and COMPLETED (GraphQL enum format)
 <span class="cstat-no" title="statement not covered" >			const nextStatus =</span>
-<span class="cstat-no" title="statement not covered" >				task.status === 'Not Started'</span>
-<span class="cstat-no" title="statement not covered" >					? 'In Progress'</span>
-<span class="cstat-no" title="statement not covered" >					: task.status === 'In Progress'</span>
-<span class="cstat-no" title="statement not covered" >						? 'Completed'</span>
-<span class="cstat-no" title="statement not covered" >						: 'Not Started';</span>
+<span class="cstat-no" title="statement not covered" >				task.status === 'TO_DO'</span>
+<span class="cstat-no" title="statement not covered" >					? 'IN_PROGRESS'</span>
+<span class="cstat-no" title="statement not covered" >					: task.status === 'IN_PROGRESS'</span>
+<span class="cstat-no" title="statement not covered" >						? 'COMPLETED'</span>
+<span class="cstat-no" title="statement not covered" >						: 'TO_DO';</span>
 <span class="cstat-no" title="statement not covered" >			onStatusChange(nextStatus);</span>
 <span class="cstat-no" title="statement not covered" >		}</span>
 <span class="cstat-no" title="statement not covered" >	}</span>
@@ -824,7 +824,7 @@
 	class:compact
 <span class="cstat-no" title="statement not covered" >	class:overdue={isOverdue}</span>
 <span class="cstat-no" title="statement not covered" >	class:assigned-to-user={isAssignedToUser}</span>
-<span class="cstat-no" title="statement not covered" >	class:opacity-60={task.status === 'Completed' || task.status === 'Cancelled'}</span>
+<span class="cstat-no" title="statement not covered" >	class:opacity-60={task.status === 'COMPLETED' || task.status === 'DEFERRED'}</span>
 <span class="cstat-no" title="statement not covered" >	style="margin-left: {level * 24}px"</span>
 <span class="cstat-no" title="statement not covered" >	role={onClick ? 'button' : 'article'}</span>
 <span class="cstat-no" title="statement not covered" >	tabindex={onClick ? 0 : undefined}</span>
@@ -845,11 +845,11 @@
 <span class="cstat-no" title="statement not covered" >						onclick={handleStatusClick}</span>
 						aria-label="Toggle task status"
 					&gt;
-<span class="cstat-no" title="statement not covered" >						{#if task.status === 'Completed'}</span>
+<span class="cstat-no" title="statement not covered" >						{#if task.status === 'COMPLETED'}</span>
 							&lt;svg class="h-5 w-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20"&gt;
 								&lt;path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /&gt;
 							&lt;/svg&gt;
-<span class="cstat-no" title="statement not covered" >						{:else if task.status === 'In Progress'}</span>
+<span class="cstat-no" title="statement not covered" >						{:else if task.status === 'IN_PROGRESS'}</span>
 							&lt;svg class="h-5 w-5 text-primary" fill="currentColor" viewBox="0 0 20 20"&gt;
 								&lt;path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd" /&gt;
 								&lt;circle cx="10" cy="10" r="3" fill="currentColor" /&gt;
@@ -867,7 +867,7 @@
 					&lt;div class="flex items-center gap-2"&gt;
 						&lt;h3
 							class="text-base font-semibold text-foreground group-hover:text-primary"
-<span class="cstat-no" title="statement not covered" >							class:line-through={task.status === 'Completed' || task.status === 'Cancelled'}</span>
+<span class="cstat-no" title="statement not covered" >							class:line-through={task.status === 'COMPLETED' || task.status === 'DEFERRED'}</span>
 						&gt;
 <span class="cstat-no" title="statement not covered" >							{task.title}</span>
 						&lt;/h3&gt;
@@ -1042,7 +1042,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-09T17:52:30.550Z
+                at 2025-10-10T18:30:14.898Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

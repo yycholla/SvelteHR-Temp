@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/373</span>
+                <span class='fraction'>0/387</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/373</span>
+                <span class='fraction'>0/387</span>
             </div>
         
             
@@ -436,7 +436,35 @@
 <a name='L371'></a><a href='#L371'>371</a>
 <a name='L372'></a><a href='#L372'>372</a>
 <a name='L373'></a><a href='#L373'>373</a>
-<a name='L374'></a><a href='#L374'>374</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L374'></a><a href='#L374'>374</a>
+<a name='L375'></a><a href='#L375'>375</a>
+<a name='L376'></a><a href='#L376'>376</a>
+<a name='L377'></a><a href='#L377'>377</a>
+<a name='L378'></a><a href='#L378'>378</a>
+<a name='L379'></a><a href='#L379'>379</a>
+<a name='L380'></a><a href='#L380'>380</a>
+<a name='L381'></a><a href='#L381'>381</a>
+<a name='L382'></a><a href='#L382'>382</a>
+<a name='L383'></a><a href='#L383'>383</a>
+<a name='L384'></a><a href='#L384'>384</a>
+<a name='L385'></a><a href='#L385'>385</a>
+<a name='L386'></a><a href='#L386'>386</a>
+<a name='L387'></a><a href='#L387'>387</a>
+<a name='L388'></a><a href='#L388'>388</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -877,6 +905,8 @@
 <span class="cstat-no" title="statement not covered" >		console.log('[Task Details] Loading task:', taskId);</span>
 <span class="cstat-no" title="statement not covered" ></span>
 <span class="cstat-no" title="statement not covered" >		// Load task with full relationships</span>
+<span class="cstat-no" title="statement not covered" >		// NOTE: Query updated to match new task schema (Feature 028)</span>
+<span class="cstat-no" title="statement not covered" >		// Removed: reminderTime, organizationId (fields don't exist in new schema)</span>
 <span class="cstat-no" title="statement not covered" >		const taskResponse = await fetch(graphqlEndpoint, {</span>
 <span class="cstat-no" title="statement not covered" >			method: 'POST',</span>
 <span class="cstat-no" title="statement not covered" >			headers,</span>
@@ -885,20 +915,29 @@
 <span class="cstat-no" title="statement not covered" >					query GetTaskDetails($taskId: UUID!) {</span>
 <span class="cstat-no" title="statement not covered" >						taskById(id: $taskId) {</span>
 <span class="cstat-no" title="statement not covered" >							id</span>
+<span class="cstat-no" title="statement not covered" >							nodeId</span>
 <span class="cstat-no" title="statement not covered" >							title</span>
 <span class="cstat-no" title="statement not covered" >							description</span>
 <span class="cstat-no" title="statement not covered" >							status</span>
 <span class="cstat-no" title="statement not covered" >							priority</span>
 <span class="cstat-no" title="statement not covered" >							dueDate</span>
-<span class="cstat-no" title="statement not covered" >							reminderTime</span>
 <span class="cstat-no" title="statement not covered" >							assigneeId</span>
+<span class="cstat-no" title="statement not covered" >							creatorId</span>
 <span class="cstat-no" title="statement not covered" >							taskTypeId</span>
 <span class="cstat-no" title="statement not covered" >							parentTaskId</span>
-<span class="cstat-no" title="statement not covered" >							organizationId</span>
 <span class="cstat-no" title="statement not covered" >							requiresManualReassignment</span>
+<span class="cstat-no" title="statement not covered" >							archived</span>
+<span class="cstat-no" title="statement not covered" >							archivedAt</span>
+<span class="cstat-no" title="statement not covered" >							archivedBy</span>
 <span class="cstat-no" title="statement not covered" >							createdAt</span>
 <span class="cstat-no" title="statement not covered" >							updatedAt</span>
 <span class="cstat-no" title="statement not covered" >							userByAssigneeId {</span>
+<span class="cstat-no" title="statement not covered" >								id</span>
+<span class="cstat-no" title="statement not covered" >								displayName</span>
+<span class="cstat-no" title="statement not covered" >								email</span>
+<span class="cstat-no" title="statement not covered" >								role</span>
+<span class="cstat-no" title="statement not covered" >							}</span>
+<span class="cstat-no" title="statement not covered" >							userByCreatorId {</span>
 <span class="cstat-no" title="statement not covered" >								id</span>
 <span class="cstat-no" title="statement not covered" >								displayName</span>
 <span class="cstat-no" title="statement not covered" >								email</span>
@@ -908,6 +947,7 @@
 <span class="cstat-no" title="statement not covered" >								id</span>
 <span class="cstat-no" title="statement not covered" >								name</span>
 <span class="cstat-no" title="statement not covered" >								description</span>
+<span class="cstat-no" title="statement not covered" >								isSystem</span>
 <span class="cstat-no" title="statement not covered" >							}</span>
 <span class="cstat-no" title="statement not covered" >							taskByParentTaskId {</span>
 <span class="cstat-no" title="statement not covered" >								id</span>
@@ -939,6 +979,7 @@
 <span class="cstat-no" title="statement not covered" >								nodes {</span>
 <span class="cstat-no" title="statement not covered" >									id</span>
 <span class="cstat-no" title="statement not covered" >									blockedTaskId</span>
+<span class="cstat-no" title="statement not covered" >									dependencyType</span>
 <span class="cstat-no" title="statement not covered" >									createdAt</span>
 <span class="cstat-no" title="statement not covered" >									taskByBlockedTaskId {</span>
 <span class="cstat-no" title="statement not covered" >										id</span>
@@ -954,6 +995,7 @@
 <span class="cstat-no" title="statement not covered" >								nodes {</span>
 <span class="cstat-no" title="statement not covered" >									id</span>
 <span class="cstat-no" title="statement not covered" >									blockingTaskId</span>
+<span class="cstat-no" title="statement not covered" >									dependencyType</span>
 <span class="cstat-no" title="statement not covered" >									createdAt</span>
 <span class="cstat-no" title="statement not covered" >									taskByBlockingTaskId {</span>
 <span class="cstat-no" title="statement not covered" >										id</span>
@@ -1050,7 +1092,7 @@
 <span class="cstat-no" title="statement not covered" >			body: JSON.stringify({</span>
 <span class="cstat-no" title="statement not covered" >				query: `</span>
 <span class="cstat-no" title="statement not covered" >					query GetUsersForReassignment($first: Int) {</span>
-<span class="cstat-no" title="statement not covered" >						allUsers(first: $first, condition: { isActive: true }) {</span>
+<span class="cstat-no" title="statement not covered" >						allUsers(first: $first, condition: { is_active: true }) {</span>
 <span class="cstat-no" title="statement not covered" >							nodes {</span>
 <span class="cstat-no" title="statement not covered" >								id</span>
 <span class="cstat-no" title="statement not covered" >								displayName</span>
@@ -1120,7 +1162,7 @@
 <span class="cstat-no" title="statement not covered" >			body: JSON.stringify({</span>
 <span class="cstat-no" title="statement not covered" >				query: `</span>
 <span class="cstat-no" title="statement not covered" >					query GetAvailableResources {</span>
-<span class="cstat-no" title="statement not covered" >						allUsers(first: 100, condition: { isActive: true }) {</span>
+<span class="cstat-no" title="statement not covered" >						allUsers(first: 100, condition: { is_active: true }) {</span>
 <span class="cstat-no" title="statement not covered" >							nodes {</span>
 <span class="cstat-no" title="statement not covered" >								id</span>
 <span class="cstat-no" title="statement not covered" >								displayName</span>
@@ -1189,7 +1231,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-09T17:52:30.078Z
+                at 2025-10-10T18:30:14.587Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>

@@ -1775,7 +1775,11 @@
 <a name='L1710'></a><a href='#L1710'>1710</a>
 <a name='L1711'></a><a href='#L1711'>1711</a>
 <a name='L1712'></a><a href='#L1712'>1712</a>
-<a name='L1713'></a><a href='#L1713'>1713</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L1713'></a><a href='#L1713'>1713</a>
+<a name='L1714'></a><a href='#L1714'>1714</a>
+<a name='L1715'></a><a href='#L1715'>1715</a>
+<a name='L1716'></a><a href='#L1716'>1716</a>
+<a name='L1717'></a><a href='#L1717'>1717</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -2649,12 +2653,14 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -2671,6 +2677,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -2681,6 +2688,7 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -4360,19 +4368,21 @@ export interface CreateTaskTypeInput {
 &nbsp;
 /**
  * Helper: Calculate subtask progress percentage
+ * NOTE: Using GraphQL enum format (SCREAMING_SNAKE_CASE)
  */
 <span class="cstat-no" title="statement not covered" >export function calculateSubtaskProgress(subtasks: Task[]): number {</span>
 <span class="cstat-no" title="statement not covered" >	if (subtasks.length === 0) return 0;</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >	const completedCount = subtasks.filter((t) =&gt; t.status === 'Completed').length;</span>
+<span class="cstat-no" title="statement not covered" >	const completedCount = subtasks.filter((t) =&gt; t.status === 'COMPLETED').length;</span>
 <span class="cstat-no" title="statement not covered" >	return Math.round((completedCount / subtasks.length) * 10000) / 100; // Round to 2 decimal places</span>
 <span class="cstat-no" title="statement not covered" >}</span>
 &nbsp;
 /**
  * Helper: Check if task is overdue
+ * NOTE: Using GraphQL enum format (SCREAMING_SNAKE_CASE)
  */
 <span class="cstat-no" title="statement not covered" >export function isTaskOverdue(task: Task): boolean {</span>
-<span class="cstat-no" title="statement not covered" >	if (!task.dueDate || task.status === 'Completed' || task.archived) {</span>
+<span class="cstat-no" title="statement not covered" >	if (!task.dueDate || task.status === 'COMPLETED' || task.archived) {</span>
 <span class="cstat-no" title="statement not covered" >		return false;</span>
 <span class="cstat-no" title="statement not covered" >	}</span>
 <span class="cstat-no" title="statement not covered" >	const dueDate = new Date(task.dueDate);</span>
@@ -4382,27 +4392,29 @@ export interface CreateTaskTypeInput {
 &nbsp;
 /**
  * Helper: Get task status color
+ * NOTE: Using GraphQL enum format (SCREAMING_SNAKE_CASE)
  */
 <span class="cstat-no" title="statement not covered" >export function getTaskStatusColor(status: TaskStatus): string {</span>
 <span class="cstat-no" title="statement not covered" >	const statusColors: Record&lt;TaskStatus, string&gt; = {</span>
-<span class="cstat-no" title="statement not covered" >		'To Do': 'gray',</span>
-<span class="cstat-no" title="statement not covered" >		'In Progress': 'blue',</span>
-<span class="cstat-no" title="statement not covered" >		Blocked: 'red',</span>
-<span class="cstat-no" title="statement not covered" >		Deferred: 'yellow',</span>
-<span class="cstat-no" title="statement not covered" >		Completed: 'green'</span>
+<span class="cstat-no" title="statement not covered" >		'TO_DO': 'gray',</span>
+<span class="cstat-no" title="statement not covered" >		'IN_PROGRESS': 'blue',</span>
+<span class="cstat-no" title="statement not covered" >		'BLOCKED': 'red',</span>
+<span class="cstat-no" title="statement not covered" >		'DEFERRED': 'yellow',</span>
+<span class="cstat-no" title="statement not covered" >		'COMPLETED': 'green'</span>
 <span class="cstat-no" title="statement not covered" >	};</span>
 <span class="cstat-no" title="statement not covered" >	return statusColors[status] || 'gray';</span>
 <span class="cstat-no" title="statement not covered" >}</span>
 &nbsp;
 /**
  * Helper: Get task priority color
+ * NOTE: Using GraphQL enum format (SCREAMING_SNAKE_CASE)
  */
 <span class="cstat-no" title="statement not covered" >export function getTaskPriorityColor(priority: TaskPriority): string {</span>
 <span class="cstat-no" title="statement not covered" >	const priorityColors: Record&lt;TaskPriority, string&gt; = {</span>
-<span class="cstat-no" title="statement not covered" >		Low: 'gray',</span>
-<span class="cstat-no" title="statement not covered" >		Medium: 'blue',</span>
-<span class="cstat-no" title="statement not covered" >		High: 'orange',</span>
-<span class="cstat-no" title="statement not covered" >		Urgent: 'red'</span>
+<span class="cstat-no" title="statement not covered" >		'LOW': 'gray',</span>
+<span class="cstat-no" title="statement not covered" >		'MEDIUM': 'blue',</span>
+<span class="cstat-no" title="statement not covered" >		'HIGH': 'orange',</span>
+<span class="cstat-no" title="statement not covered" >		'URGENT': 'red'</span>
 <span class="cstat-no" title="statement not covered" >	};</span>
 <span class="cstat-no" title="statement not covered" >	return priorityColors[priority] || 'gray';</span>
 <span class="cstat-no" title="statement not covered" >}</span>
@@ -5206,7 +5218,7 @@ export interface CreateTaskTypeInput {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-09T17:52:30.550Z
+                at 2025-10-10T18:30:14.898Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

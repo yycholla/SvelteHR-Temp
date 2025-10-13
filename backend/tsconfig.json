@@ -55,7 +55,7 @@
 		"alwaysStrict": true
 	},
 
-	"include": ["src/server-simple.ts"],
+	"include": ["src/server.ts", "src/server-simple.ts", "src/plugins/**/*"],
 	"exclude": [
 		"node_modules",
 		"dist",

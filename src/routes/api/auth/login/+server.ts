@@ -1,10 +1,8 @@
-// Authentication endpoint - Login with database verification
+// Authentication endpoint - Login with Rust GraphQL API
 import type { RequestHandler } from './$types';
 import { json } from '@sveltejs/kit';
-import { GraphQLClient } from '$lib/server/graphql-client';
-import { generateJWTToken } from '$lib/auth/jwt-utils.js';
 import { getAccessTokenName, getCookieOptions } from '$lib/auth/config.js';
-import bcrypt from 'bcryptjs';
+import { getApiBaseUrl } from '$lib/server/api-url.js';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
 	try {
@@ -20,108 +18,41 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			}, { status: 400 });
 		}
 
-		// Query database for user via PostGraphile GraphQL endpoint
-		console.log('[Login] Creating GraphQL client...');
-		const graphqlClient = new GraphQLClient();
-		console.log('[Login] GraphQL client created successfully');
+		// Call Rust GraphQL API login endpoint
+		console.log('[Login] Calling Rust API /auth/login...');
+		const apiBaseUrl = getApiBaseUrl();
+		const loginUrl = `${apiBaseUrl}/auth/login`;
+		console.log('[Login] Login URL:', loginUrl);
 
-		const userQuery = `
-			query GetUserByEmail($email: String!) {
-				allUsers(condition: { email: $email }) {
-					nodes {
-						id
-						email
-						passwordHash
-						firstName
-						lastName
-						displayName
-						role
-						isActive
-					}
-				}
-			}
-		`;
+		const loginResponse = await fetch(loginUrl, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({ email, password })
+		});
 
-		console.log('[Login] Executing GraphQL query for email:', email);
-		const userData = await graphqlClient.query(userQuery, { email });
-		console.log('[Login] GraphQL response received:', JSON.stringify(userData, null, 2));
+		console.log('[Login] API response status:', loginResponse.status);
 
-		const user = userData.data?.allUsers?.nodes?.[0];
-		console.log('[Login] User query result:', { found: !!user, email, userDataKeys: Object.keys(userData) });
-
-		if (!user) {
+		if (!loginResponse.ok) {
+			const errorData = await loginResponse.json();
+			console.log('[Login] API error response:', errorData);
 			return json({
 				success: false,
-				error: 'Invalid credentials',
-				message: 'User not found'
-			}, { status: 401 });
+				error: errorData.error || 'Authentication failed',
+				message: errorData.message
+			}, { status: loginResponse.status });
 		}
 
-		console.log('[Login] User found:', { id: user.id, email: user.email, hasHash: !!user.passwordHash });
+		const loginData = await loginResponse.json();
+		console.log('[Login] Login successful, user:', loginData.user.email);
 
-		// Verify password
-		let passwordValid = false;
-
-		try {
-			// In development, allow simple password match for testing
-			const isDevelopment = process.env.NODE_ENV !== 'production';
-
-			if (isDevelopment && password === 'admin123') {
-				console.log('[Login] Development mode: accepting admin123 password');
-				passwordValid = true;
-			} else {
-				passwordValid = await bcrypt.compare(password, user.passwordHash);
-			}
-
-			console.log('[Login] Password validation:', { valid: passwordValid });
-
-			if (!passwordValid) {
-				return json({
-					success: false,
-					error: 'Invalid credentials',
-					message: 'Password mismatch'
-				}, { status: 401 });
-			}
-		} catch (bcryptError) {
-			console.error('[Login] Bcrypt error:', bcryptError);
-			return json({
-				success: false,
-				error: 'Authentication error',
-				message: 'Password verification failed'
-			}, { status: 500 });
-		}
-
-		// Check if user is active
-		if (!user.isActive) {
-			return json({
-				success: false,
-				error: 'Account is inactive'
-			}, { status: 403 });
-		}
-
-		// Create JWT token
-		console.log('[Login] Creating JWT token for user:', user.id);
-		const tokenPayload = {
-			user_id: user.id,
-			email: user.email,
-			role: user.role,
-			permissions: user.role === 'super_admin' || user.role === 'admin' ? ['*'] : [],
-			iat: Math.floor(Date.now() / 1000),
-			exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
-		};
-		console.log('[Login] Token payload prepared:', tokenPayload);
-
-		console.log('[Login] Generating JWT token...');
-		const token = await generateJWTToken(tokenPayload);
-		console.log('[Login] JWT token generated successfully, length:', token.length);
-
-		// Set cookie
+		// Set cookie with the JWT token from Rust API
 		console.log('[Login] Setting authentication cookie...');
 		const tokenName = getAccessTokenName();
 		const cookieOptions = getCookieOptions();
-		console.log('[Login] Cookie name:', tokenName);
 
-		cookies.set(tokenName, token, {
+		cookies.set(tokenName, loginData.token, {
 			...cookieOptions,
 			path: '/',
 			httpOnly: true,
@@ -132,23 +63,13 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		console.log('[Login] Cookie set successfully');
 
 		// Return response
-		console.log('[Login] Preparing success response...');
+		console.log('[Login] === LOGIN ATTEMPT SUCCESSFUL ===');
 		return json({
 			success: true,
-			token,
-			user: {
-				id: user.id,
-				email: user.email,
-				displayName: user.displayName,
-				firstName: user.firstName,
-				lastName: user.lastName,
-				role: user.role,
-				isActive: user.isActive,
-				roles: [user.role]
-			},
+			token: loginData.token,
+			user: loginData.user,
 			message: 'Login successful'
 		});
-		console.log('[Login] === LOGIN ATTEMPT SUCCESSFUL ===');
 
 	} catch (error) {
 		console.log('[Login] === LOGIN ATTEMPT FAILED ===');

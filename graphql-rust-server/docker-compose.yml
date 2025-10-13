@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  sveltehr-postgres-dev:
+    image: postgres:15-alpine
+    container_name: sveltehr-postgres-dev
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres123
+      - POSTGRES_DB=hr_system
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256 --auth-local=scram-sha-256
+    ports:
+      - "5433:5432"  # Use 5433 to avoid conflicts with local PostgreSQL
+    volumes:
+      - sveltehr_postgres_data:/var/lib/postgresql/data
+      - /home/yycholla/Documents/SvelteHR/database/init/001-complete-schema.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
+    networks:
+      - sveltehr-dev-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  hr-graphql-rust:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hr-graphql-rust
+    ports:
+      - "4001:4000"  # Use port 4001 to avoid conflict with PostGraphile
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres123@sveltehr-postgres-dev:5432/hr_system
+      - HOST=0.0.0.0
+      - PORT=4000
+      - RUST_LOG=info,hr_graphql_server=debug
+      - CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
+      - JWT_SECRET=dev-jwt-secret-change-in-production
+    networks:
+      - sveltehr-dev-network
+    depends_on:
+      sveltehr-postgres-dev:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  sveltehr_postgres_data:
+    external: true
+
+networks:
+  sveltehr-dev-network:
+    external: true
+
+# Note: Includes PostgreSQL database for Rust GraphQL server
+# Connects to existing sveltehr-dev-network for frontend/backend communication

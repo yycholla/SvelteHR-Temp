@@ -82,36 +82,35 @@ export const GET: RequestHandler = async ({ locals, cookies }) => {
 				}
 
 				try {
+					// Updated to use Rust GraphQL API syntax
 					const notificationsQuery = `
-						query GetUserNotifications($recipientId: UUID!) {
-							allNotifications(
-								condition: { recipientId: $recipientId, readStatus: false }
-								orderBy: [CREATED_AT_DESC]
-								first: 20
+						query GetUserNotifications($recipientId: UUID!, $readStatus: Boolean) {
+							notifications(
+								recipientId: $recipientId,
+								readStatus: $readStatus,
+								limit: 20
 							) {
-								totalCount
-								nodes {
-									id
-									type
-									category
-									title
-									message
-									relatedResourceType
-									relatedResourceId
-									readStatus
-									deliveredAt
-									readAt
-									createdAt
-								}
+								id
+								type
+								category
+								title
+								message
+								relatedResourceType
+								relatedResourceId
+								readStatus
+								deliveredAt
+								readAt
+								createdAt
 							}
 						}
 					`;
 
 					const result = await graphqlClient.query(notificationsQuery, {
-						recipientId: userId
+						recipientId: userId,
+						readStatus: false
 					});
 
-					const notifications = result.data?.allNotifications?.nodes || [];
+					const notifications = result.data?.notifications || [];
 
 					// Send notification update
 					sendEvent({

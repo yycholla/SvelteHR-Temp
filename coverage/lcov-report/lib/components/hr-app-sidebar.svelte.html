@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/223</span>
+                <span class='fraction'>0/237</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/223</span>
+                <span class='fraction'>0/237</span>
             </div>
         
             
@@ -564,7 +564,22 @@
 <a name='L499'></a><a href='#L499'>499</a>
 <a name='L500'></a><a href='#L500'>500</a>
 <a name='L501'></a><a href='#L501'>501</a>
-<a name='L502'></a><a href='#L502'>502</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L502'></a><a href='#L502'>502</a>
+<a name='L503'></a><a href='#L503'>503</a>
+<a name='L504'></a><a href='#L504'>504</a>
+<a name='L505'></a><a href='#L505'>505</a>
+<a name='L506'></a><a href='#L506'>506</a>
+<a name='L507'></a><a href='#L507'>507</a>
+<a name='L508'></a><a href='#L508'>508</a>
+<a name='L509'></a><a href='#L509'>509</a>
+<a name='L510'></a><a href='#L510'>510</a>
+<a name='L511'></a><a href='#L511'>511</a>
+<a name='L512'></a><a href='#L512'>512</a>
+<a name='L513'></a><a href='#L513'>513</a>
+<a name='L514'></a><a href='#L514'>514</a>
+<a name='L515'></a><a href='#L515'>515</a>
+<a name='L516'></a><a href='#L516'>516</a>
+<a name='L517'></a><a href='#L517'>517</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -617,6 +632,7 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -641,6 +657,8 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -692,10 +710,16 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -839,6 +863,12 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1116,6 +1146,7 @@
 <span class="cstat-no" title="statement not covered" >		leave: false,</span>
 <span class="cstat-no" title="statement not covered" >		performance: false,</span>
 <span class="cstat-no" title="statement not covered" >		documents: false,</span>
+<span class="cstat-no" title="statement not covered" >		tasks: false,</span>
 <span class="cstat-no" title="statement not covered" >		management: false,</span>
 <span class="cstat-no" title="statement not covered" >		administration: false</span>
 	});
@@ -1148,6 +1179,8 @@
 <span class="cstat-no" title="statement not covered" >			expandedSections.performance = true;</span>
 <span class="cstat-no" title="statement not covered" >		if (currentPath.includes('/documents'))</span>
 <span class="cstat-no" title="statement not covered" >			expandedSections.documents = true;</span>
+<span class="cstat-no" title="statement not covered" >		if (currentPath.includes('/tasks') &amp;&amp; !currentPath.includes('/tasks/department'))</span>
+<span class="cstat-no" title="statement not covered" >			expandedSections.tasks = true;</span>
 		if (
 <span class="cstat-no" title="statement not covered" >			currentPath.includes('/management') ||</span>
 <span class="cstat-no" title="statement not covered" >			currentPath.includes('/employees/new') ||</span>
@@ -1193,10 +1226,16 @@
 <span class="cstat-no" title="statement not covered" >			standalone: true // Events list page</span>
 		},
 		{
-<span class="cstat-no" title="statement not covered" >			title: 'My Tasks',</span>
-<span class="cstat-no" title="statement not covered" >			url: '/dashboard/tasks/my-tasks',</span>
-<span class="cstat-no" title="statement not covered" >			icon: CheckSquare,</span>
-<span class="cstat-no" title="statement not covered" >			standalone: true // My tasks page</span>
+<span class="cstat-no" title="statement not covered" >			title: 'Tasks',</span>
+<span class="cstat-no" title="statement not covered" >			url: '/dashboard/tasks',</span>
+<span class="cstat-no" title="statement not covered" >			icon: ListTodo,</span>
+<span class="cstat-no" title="statement not covered" >			standalone: false, // Has submenu</span>
+<span class="cstat-no" title="statement not covered" >			section: 'tasks',</span>
+<span class="cstat-no" title="statement not covered" >			items: [</span>
+<span class="cstat-no" title="statement not covered" >				{ title: 'All Tasks', url: '/dashboard/tasks' },</span>
+<span class="cstat-no" title="statement not covered" >				{ title: 'My Tasks', url: '/dashboard/tasks/my-tasks' },</span>
+<span class="cstat-no" title="statement not covered" >				{ title: 'Team Tasks', url: '/dashboard/tasks/team-tasks' }</span>
+			]
 		},
 		{
 <span class="cstat-no" title="statement not covered" >			title: 'Activities',</span>
@@ -1351,6 +1390,9 @@
 <span class="cstat-no" title="statement not covered" >								if (item.section === 'documents') {</span>
 <span class="cstat-no" title="statement not covered" >									return currentPath.includes('/documents');</span>
 <span class="cstat-no" title="statement not covered" >								}</span>
+<span class="cstat-no" title="statement not covered" >								if (item.section === 'tasks') {</span>
+<span class="cstat-no" title="statement not covered" >									return currentPath.includes('/tasks') &amp;&amp; !currentPath.includes('/tasks/department');</span>
+<span class="cstat-no" title="statement not covered" >								}</span>
 <span class="cstat-no" title="statement not covered" >								return false;</span>
 <span class="cstat-no" title="statement not covered" >							})()}</span>
 <span class="cstat-no" title="statement not covered" >							class:text-primary-foreground={(() =&gt; {</span>
@@ -1363,6 +1405,9 @@
 <span class="cstat-no" title="statement not covered" >								}</span>
 <span class="cstat-no" title="statement not covered" >								if (item.section === 'documents') {</span>
 <span class="cstat-no" title="statement not covered" >									return currentPath.includes('/documents');</span>
+<span class="cstat-no" title="statement not covered" >								}</span>
+<span class="cstat-no" title="statement not covered" >								if (item.section === 'tasks') {</span>
+<span class="cstat-no" title="statement not covered" >									return currentPath.includes('/tasks') &amp;&amp; !currentPath.includes('/tasks/department');</span>
 <span class="cstat-no" title="statement not covered" >								}</span>
 <span class="cstat-no" title="statement not covered" >								return false;</span>
 <span class="cstat-no" title="statement not covered" >							})()}</span>
@@ -1573,7 +1618,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-09T17:52:30.550Z
+                at 2025-10-10T18:30:14.898Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

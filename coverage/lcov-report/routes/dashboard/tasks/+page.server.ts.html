@@ -419,7 +419,19 @@
 <a name='L354'></a><a href='#L354'>354</a>
 <a name='L355'></a><a href='#L355'>355</a>
 <a name='L356'></a><a href='#L356'>356</a>
-<a name='L357'></a><a href='#L357'>357</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L357'></a><a href='#L357'>357</a>
+<a name='L358'></a><a href='#L358'>358</a>
+<a name='L359'></a><a href='#L359'>359</a>
+<a name='L360'></a><a href='#L360'>360</a>
+<a name='L361'></a><a href='#L361'>361</a>
+<a name='L362'></a><a href='#L362'>362</a>
+<a name='L363'></a><a href='#L363'>363</a>
+<a name='L364'></a><a href='#L364'>364</a>
+<a name='L365'></a><a href='#L365'>365</a>
+<a name='L366'></a><a href='#L366'>366</a>
+<a name='L367'></a><a href='#L367'>367</a>
+<a name='L368'></a><a href='#L368'>368</a>
+<a name='L369'></a><a href='#L369'>369</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -552,11 +564,17 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -623,6 +641,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -713,6 +734,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -908,34 +932,42 @@ import type { PageServerLoad } from './$types';
 <span class="cstat-no" title="statement not covered" >		}</span>
 &nbsp;
 		// Load tasks with full relationships
+		// NOTE: Query updated to match new task schema (Feature 028)
+		// Removed: reminderTime, organizationId (fields don't exist in new schema)
 <span class="cstat-no" title="statement not covered" >		const tasksResponse = await fetch(graphqlEndpoint, {</span>
 <span class="cstat-no" title="statement not covered" >			method: 'POST',</span>
 <span class="cstat-no" title="statement not covered" >			headers,</span>
 <span class="cstat-no" title="statement not covered" >			body: JSON.stringify({</span>
 <span class="cstat-no" title="statement not covered" >				query: `</span>
-					query GetTasksForDashboard($first: Int, $after: Cursor, $condition: TaskCondition) {
+					query GetTasksForDashboard($first: Int, $offset: Int, $condition: TaskCondition) {
 						allTasks(
 							first: $first
-							after: $after
+							offset: $offset
 							condition: $condition
 							orderBy: [DUE_DATE_ASC, CREATED_AT_DESC]
 						) {
 							nodes {
 								id
+								nodeId
 								title
 								description
 								status
 								priority
 								dueDate
-								reminderTime
 								assigneeId
+								creatorId
 								taskTypeId
 								parentTaskId
-								organizationId
 								requiresManualReassignment
+								archived
 								createdAt
 								updatedAt
 								userByAssigneeId {
+									id
+									displayName
+									email
+								}
+								userByCreatorId {
 									id
 									displayName
 									email
@@ -944,6 +976,7 @@ import type { PageServerLoad } from './$types';
 									id
 									name
 									description
+									isSystem
 								}
 								taskByParentTaskId {
 									id
@@ -981,7 +1014,7 @@ import type { PageServerLoad } from './$types';
 				`,
 <span class="cstat-no" title="statement not covered" >				variables: {</span>
 <span class="cstat-no" title="statement not covered" >					first: limit,</span>
-<span class="cstat-no" title="statement not covered" >					after: null,</span>
+<span class="cstat-no" title="statement not covered" >					offset: 0,</span>
 <span class="cstat-no" title="statement not covered" >					condition: Object.keys(condition).length &gt; 0 ? condition : null</span>
 <span class="cstat-no" title="statement not covered" >				}</span>
 <span class="cstat-no" title="statement not covered" >			})</span>
@@ -1025,7 +1058,7 @@ import type { PageServerLoad } from './$types';
 <span class="cstat-no" title="statement not covered" >			body: JSON.stringify({</span>
 <span class="cstat-no" title="statement not covered" >				query: `</span>
 					query GetUsersForAssigneeFilter($first: Int) {
-						allUsers(first: $first, condition: { isActive: true }) {
+						allUsers(first: $first, condition: { is_active: true }) {
 							nodes {
 								id
 								displayName
@@ -1071,13 +1104,16 @@ import type { PageServerLoad } from './$types';
 <span class="cstat-no" title="statement not covered" >		const userPermissions = getUserPermissions(locals);</span>
 &nbsp;
 		// Calculate task statistics
+		// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
+		// Database stores: 'To Do', 'In Progress', etc.
+		// GraphQL returns: 'TO_DO', 'IN_PROGRESS', etc.
 <span class="cstat-no" title="statement not covered" >		const taskStats = {</span>
 <span class="cstat-no" title="statement not covered" >			total: tasks.length,</span>
-<span class="cstat-no" title="statement not covered" >			notStarted: tasks.filter((t: any) =&gt; t.status === 'Not Started').length,</span>
-<span class="cstat-no" title="statement not covered" >			inProgress: tasks.filter((t: any) =&gt; t.status === 'In Progress').length,</span>
-<span class="cstat-no" title="statement not covered" >			blocked: tasks.filter((t: any) =&gt; t.status === 'Blocked').length,</span>
-<span class="cstat-no" title="statement not covered" >			completed: tasks.filter((t: any) =&gt; t.status === 'Completed').length,</span>
-<span class="cstat-no" title="statement not covered" >			cancelled: tasks.filter((t: any) =&gt; t.status === 'Cancelled').length</span>
+<span class="cstat-no" title="statement not covered" >			notStarted: tasks.filter((t: any) =&gt; t.status === 'TO_DO').length,</span>
+<span class="cstat-no" title="statement not covered" >			inProgress: tasks.filter((t: any) =&gt; t.status === 'IN_PROGRESS').length,</span>
+<span class="cstat-no" title="statement not covered" >			blocked: tasks.filter((t: any) =&gt; t.status === 'BLOCKED').length,</span>
+<span class="cstat-no" title="statement not covered" >			deferred: tasks.filter((t: any) =&gt; t.status === 'DEFERRED').length,</span>
+<span class="cstat-no" title="statement not covered" >			completed: tasks.filter((t: any) =&gt; t.status === 'COMPLETED').length</span>
 <span class="cstat-no" title="statement not covered" >		};</span>
 &nbsp;
 		// Return server-side loaded data
@@ -1138,7 +1174,7 @@ import type { PageServerLoad } from './$types';
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-09T17:52:30.550Z
+                at 2025-10-10T18:30:14.898Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

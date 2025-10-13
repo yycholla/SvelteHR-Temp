@@ -103,11 +103,10 @@ export class GraphQLClient {
 					'Accept': 'application/json'
 				};
 
-				// TODO: The backend currently rejects JWT tokens, but works without authentication
-				// For now, skip JWT token until backend JWT verification is configured properly
-				// if (this.token) {
-				//     headers['Authorization'] = `Bearer ${this.token}`;
-				// }
+				// Add JWT Bearer token for Rust GraphQL API authentication
+				if (this.token) {
+					headers['Authorization'] = `Bearer ${this.token}`;
+				}
 
 				const response = await fetch(this.endpoint, {
 					method: 'POST',

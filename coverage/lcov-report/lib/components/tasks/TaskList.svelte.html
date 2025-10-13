@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/91</span>
+                <span class='fraction'>0/92</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/91</span>
+                <span class='fraction'>0/92</span>
             </div>
         
             
@@ -292,7 +292,9 @@
 <a name='L227'></a><a href='#L227'>227</a>
 <a name='L228'></a><a href='#L228'>228</a>
 <a name='L229'></a><a href='#L229'>229</a>
-<a name='L230'></a><a href='#L230'>230</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L230'></a><a href='#L230'>230</a>
+<a name='L231'></a><a href='#L231'>231</a>
+<a name='L232'></a><a href='#L232'>232</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -350,15 +352,17 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -579,34 +583,36 @@
 <span class="cstat-no" title="statement not covered" >					else if (!a.dueDate) comparison = 1;</span>
 <span class="cstat-no" title="statement not covered" >					else if (!b.dueDate) comparison = -1;</span>
 					else comparison = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-<span class="cstat-no" title="statement not covered" >					break;</span>
+					break;
 <span class="cstat-no" title="statement not covered" >				case 'priority':</span>
-<span class="cstat-no" title="statement not covered" >					const priorityOrder = { 'Urgent': 4, 'High': 3, 'Medium': 2, 'Low': 1 };</span>
+<span class="cstat-no" title="statement not covered" >					const priorityOrder = { 'URGENT': 4, 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 };</span>
 <span class="cstat-no" title="statement not covered" >					comparison = (priorityOrder[a.priority] || 0) - (priorityOrder[b.priority] || 0);</span>
 <span class="cstat-no" title="statement not covered" >					break;</span>
 <span class="cstat-no" title="statement not covered" >				case 'title':</span>
 					comparison = a.title.localeCompare(b.title);
-					break;
+<span class="cstat-no" title="statement not covered" >					break;</span>
 			}
-<span class="cstat-no" title="statement not covered" >			return sortOrder === 'asc' ? comparison : -comparison;</span>
+			return sortOrder === 'asc' ? comparison : -comparison;
 <span class="cstat-no" title="statement not covered" >		});</span>
 <span class="cstat-no" title="statement not covered" >		return sorted;</span>
 <span class="cstat-no" title="statement not covered" >	});</span>
 <span class="cstat-no" title="statement not covered" ></span>
-	let statusCounts = $derived(() =&gt; ({
+<span class="cstat-no" title="statement not covered" >	// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)</span>
+<span class="cstat-no" title="statement not covered" >	let statusCounts = $derived(() =&gt; ({</span>
 		all: tasks.length,
-<span class="cstat-no" title="statement not covered" >		'Not Started': tasks.filter(t =&gt; t.status === 'Not Started').length,</span>
-<span class="cstat-no" title="statement not covered" >		'In Progress': tasks.filter(t =&gt; t.status === 'In Progress').length,</span>
-<span class="cstat-no" title="statement not covered" >		'Blocked': tasks.filter(t =&gt; t.status === 'Blocked').length,</span>
-<span class="cstat-no" title="statement not covered" >		'Completed': tasks.filter(t =&gt; t.status === 'Completed').length,</span>
-		'Cancelled': tasks.filter(t =&gt; t.status === 'Cancelled').length
-<span class="cstat-no" title="statement not covered" >	}));</span>
-&nbsp;
-<span class="cstat-no" title="statement not covered" >	let tasksByStatus = $derived(() =&gt; ({</span>
-		'Not Started': sortedTasks().filter(t =&gt; t.status === 'Not Started'),
-<span class="cstat-no" title="statement not covered" >		'In Progress': sortedTasks().filter(t =&gt; t.status === 'In Progress'),</span>
-<span class="cstat-no" title="statement not covered" >		'Blocked': sortedTasks().filter(t =&gt; t.status === 'Blocked'),</span>
-		'Completed': sortedTasks().filter(t =&gt; t.status === 'Completed')
+		'TO_DO': tasks.filter(t =&gt; t.status === 'TO_DO').length,
+<span class="cstat-no" title="statement not covered" >		'IN_PROGRESS': tasks.filter(t =&gt; t.status === 'IN_PROGRESS').length,</span>
+<span class="cstat-no" title="statement not covered" >		'BLOCKED': tasks.filter(t =&gt; t.status === 'BLOCKED').length,</span>
+<span class="cstat-no" title="statement not covered" >		'DEFERRED': tasks.filter(t =&gt; t.status === 'DEFERRED').length,</span>
+<span class="cstat-no" title="statement not covered" >		'COMPLETED': tasks.filter(t =&gt; t.status === 'COMPLETED').length</span>
+	}));
+<span class="cstat-no" title="statement not covered" ></span>
+	let tasksByStatus = $derived(() =&gt; ({
+<span class="cstat-no" title="statement not covered" >		'TO_DO': sortedTasks().filter(t =&gt; t.status === 'TO_DO'),</span>
+		'IN_PROGRESS': sortedTasks().filter(t =&gt; t.status === 'IN_PROGRESS'),
+<span class="cstat-no" title="statement not covered" >		'BLOCKED': sortedTasks().filter(t =&gt; t.status === 'BLOCKED'),</span>
+<span class="cstat-no" title="statement not covered" >		'DEFERRED': sortedTasks().filter(t =&gt; t.status === 'DEFERRED'),</span>
+		'COMPLETED': sortedTasks().filter(t =&gt; t.status === 'COMPLETED')
 	}));
 <span class="cstat-no" title="statement not covered" ></span>
 <span class="cstat-no" title="statement not covered" >	let topLevelTasks = $derived(() =&gt; {</span>
@@ -655,11 +661,11 @@
 					&lt;/Select.Trigger&gt;
 					&lt;Select.Content&gt;
 <span class="cstat-no" title="statement not covered" >						&lt;Select.Item value="all"&gt;All Status ({statusCounts().all})&lt;/Select.Item&gt;</span>
-<span class="cstat-no" title="statement not covered" >						&lt;Select.Item value="Not Started"&gt;Not Started ({statusCounts()['Not Started']})&lt;/Select.Item&gt;</span>
-<span class="cstat-no" title="statement not covered" >						&lt;Select.Item value="In Progress"&gt;In Progress ({statusCounts()['In Progress']})&lt;/Select.Item&gt;</span>
-<span class="cstat-no" title="statement not covered" >						&lt;Select.Item value="Blocked"&gt;Blocked ({statusCounts().Blocked})&lt;/Select.Item&gt;</span>
-<span class="cstat-no" title="statement not covered" >						&lt;Select.Item value="Completed"&gt;Completed ({statusCounts().Completed})&lt;/Select.Item&gt;</span>
-<span class="cstat-no" title="statement not covered" >						&lt;Select.Item value="Cancelled"&gt;Cancelled ({statusCounts().Cancelled})&lt;/Select.Item&gt;</span>
+<span class="cstat-no" title="statement not covered" >						&lt;Select.Item value="TO_DO"&gt;To Do ({statusCounts()['TO_DO']})&lt;/Select.Item&gt;</span>
+<span class="cstat-no" title="statement not covered" >						&lt;Select.Item value="IN_PROGRESS"&gt;In Progress ({statusCounts()['IN_PROGRESS']})&lt;/Select.Item&gt;</span>
+<span class="cstat-no" title="statement not covered" >						&lt;Select.Item value="BLOCKED"&gt;Blocked ({statusCounts()['BLOCKED']})&lt;/Select.Item&gt;</span>
+<span class="cstat-no" title="statement not covered" >						&lt;Select.Item value="COMPLETED"&gt;Completed ({statusCounts()['COMPLETED']})&lt;/Select.Item&gt;</span>
+<span class="cstat-no" title="statement not covered" >						&lt;Select.Item value="DEFERRED"&gt;Deferred ({statusCounts()['DEFERRED']})&lt;/Select.Item&gt;</span>
 					&lt;/Select.Content&gt;
 				&lt;/Select.Root&gt;
 <span class="cstat-no" title="statement not covered" >				&lt;Select.Root bind:value={priorityFilter}&gt;</span>
@@ -669,10 +675,10 @@
 					&lt;/Select.Trigger&gt;
 					&lt;Select.Content&gt;
 						&lt;Select.Item value="all"&gt;All Priority&lt;/Select.Item&gt;
-						&lt;Select.Item value="Urgent"&gt;Urgent&lt;/Select.Item&gt;
-						&lt;Select.Item value="High"&gt;High&lt;/Select.Item&gt;
-						&lt;Select.Item value="Medium"&gt;Medium&lt;/Select.Item&gt;
-						&lt;Select.Item value="Low"&gt;Low&lt;/Select.Item&gt;
+						&lt;Select.Item value="URGENT"&gt;Urgent&lt;/Select.Item&gt;
+						&lt;Select.Item value="HIGH"&gt;High&lt;/Select.Item&gt;
+						&lt;Select.Item value="MEDIUM"&gt;Medium&lt;/Select.Item&gt;
+						&lt;Select.Item value="LOW"&gt;Low&lt;/Select.Item&gt;
 					&lt;/Select.Content&gt;
 				&lt;/Select.Root&gt;
 <span class="cstat-no" title="statement not covered" >				&lt;Select.Root bind:value={sortBy}&gt;</span>
@@ -757,7 +763,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-09T17:52:30.550Z
+                at 2025-10-10T18:30:14.898Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>
