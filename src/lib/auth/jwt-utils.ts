@@ -8,6 +8,7 @@ export interface JWTPayload {
 	user_id: string;
 	email: string;
 	role?: string;
+	roles?: string[]; // Array format used by Rust server
 	permissions?: string[];
 	exp: number;
 	iat: number;
@@ -185,10 +186,20 @@ export async function generateJWTToken(payload: Partial<JWTPayload>): Promise<st
  * Extract user information from a verified JWT payload
  */
 export function extractUserFromPayload(payload: JWTPayload) {
+	// Handle both singular 'role' and plural 'roles' array formats
+	let role: string;
+	if (payload.roles && Array.isArray(payload.roles) && payload.roles.length > 0) {
+		// Use first role from roles array (Rust server format)
+		role = payload.roles[0];
+	} else {
+		// Fallback to singular role field or default to employee
+		role = payload.role || 'employee';
+	}
+
 	return {
 		id: payload.user_id,
 		email: payload.email,
-		role: payload.role || 'employee',
+		role,
 		permissions: payload.permissions || []
 	};
 }
@@ -262,6 +273,7 @@ export function validateJWTPayloadStructure(payload: any): payload is JWTPayload
 		typeof payload.iss === 'string' &&
 		typeof payload.aud === 'string' &&
 		(payload.role === undefined || typeof payload.role === 'string') &&
+		(payload.roles === undefined || Array.isArray(payload.roles)) &&
 		(payload.permissions === undefined || Array.isArray(payload.permissions))
 	);
 }

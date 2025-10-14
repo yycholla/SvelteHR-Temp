@@ -2,7 +2,7 @@
 //!
 //! Represents HR system users with RBAC, soft delete, and relationship loading.
 
-use async_graphql::{Context, InputObject, Object, Result as GqlResult};
+use async_graphql::{Context, Enum, InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
@@ -25,6 +25,59 @@ impl UserStatus {
             UserStatus::Active => "active",
             UserStatus::Inactive => "inactive",
             UserStatus::Terminated => "terminated",
+        }
+    }
+}
+
+/// User ordering options for GraphQL queries
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
+pub enum UsersOrderBy {
+    /// Order by ID ascending
+    #[graphql(name = "ID_ASC")]
+    IdAsc,
+    /// Order by ID descending
+    #[graphql(name = "ID_DESC")]
+    IdDesc,
+    /// Order by email ascending (A-Z)
+    #[graphql(name = "EMAIL_ASC")]
+    EmailAsc,
+    /// Order by email descending (Z-A)
+    #[graphql(name = "EMAIL_DESC")]
+    EmailDesc,
+    /// Order by display name ascending (A-Z)
+    #[graphql(name = "DISPLAY_NAME_ASC")]
+    DisplayNameAsc,
+    /// Order by display name descending (Z-A)
+    #[graphql(name = "DISPLAY_NAME_DESC")]
+    DisplayNameDesc,
+    /// Order by created date ascending (oldest first)
+    #[graphql(name = "CREATED_AT_ASC")]
+    CreatedAtAsc,
+    /// Order by created date descending (newest first)
+    #[graphql(name = "CREATED_AT_DESC")]
+    CreatedAtDesc,
+    /// Order by updated date ascending (oldest first)
+    #[graphql(name = "UPDATED_AT_ASC")]
+    UpdatedAtAsc,
+    /// Order by updated date descending (newest first)
+    #[graphql(name = "UPDATED_AT_DESC")]
+    UpdatedAtDesc,
+}
+
+impl UsersOrderBy {
+    /// Convert to SQL ORDER BY clause
+    pub fn to_sql(&self) -> &'static str {
+        match self {
+            UsersOrderBy::IdAsc => "id ASC",
+            UsersOrderBy::IdDesc => "id DESC",
+            UsersOrderBy::EmailAsc => "email ASC",
+            UsersOrderBy::EmailDesc => "email DESC",
+            UsersOrderBy::DisplayNameAsc => "display_name ASC",
+            UsersOrderBy::DisplayNameDesc => "display_name DESC",
+            UsersOrderBy::CreatedAtAsc => "created_at ASC",
+            UsersOrderBy::CreatedAtDesc => "created_at DESC",
+            UsersOrderBy::UpdatedAtAsc => "updated_at ASC",
+            UsersOrderBy::UpdatedAtDesc => "updated_at DESC",
         }
     }
 }
@@ -59,16 +112,48 @@ pub struct User {
     pub email: String,
     pub first_name: String,
     pub last_name: String,
-    pub full_name: String,
-    pub phone: Option<String>,
+    pub display_name: String,  // Computed column in database
+    pub full_name: String,  // Computed column (first_name || ' ' || last_name)
+    pub role: String,
+    pub phone_number: Option<String>,  // Maps to phone_number in DB, exposed as phone in GraphQL
+    pub alternate_phone: Option<String>,
+    pub job_title: Option<String>,
+    pub status: Option<String>,  // active, inactive, terminated
     pub department_id: Option<Uuid>,
-    pub manager_id: Option<Uuid>,
+    pub manager_id: Option<Uuid>,  // Self-referential foreign key to users.id
     pub hire_date: Option<DateTime<Utc>>,
-    pub termination_date: Option<DateTime<Utc>>,
-    pub status: UserStatus,
+    pub is_active: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    pub deleted_at: Option<DateTime<Utc>>,
+}
+
+/// User condition for filtering queries (PostGraphile-style)
+#[derive(Debug, Clone, InputObject)]
+pub struct UserCondition {
+    pub id: Option<Uuid>,
+    pub email: Option<String>,
+    pub department_id: Option<Uuid>,
+    pub manager_id: Option<Uuid>,
+    pub is_active: Option<bool>,
+    pub status: Option<String>,
+}
+
+/// Users connection for Relay-style pagination (PostGraphile compatibility)
+#[derive(Debug, Clone)]
+pub struct UsersConnection {
+    pub nodes: Vec<User>,
+    pub total_count: i64,
+}
+
+#[Object]
+impl UsersConnection {
+    async fn nodes(&self) -> &Vec<User> {
+        &self.nodes
+    }
+
+    async fn total_count(&self) -> i64 {
+        self.total_count
+    }
 }
 
 /// GraphQL Object implementation for User
@@ -94,14 +179,39 @@ impl User {
         &self.last_name
     }
 
-    /// Full name (computed from first + last)
+    /// Display name (computed from first + last in database)
+    async fn display_name(&self) -> &str {
+        &self.display_name
+    }
+
+    /// Full name (computed column from first + last)
     async fn full_name(&self) -> &str {
         &self.full_name
     }
 
-    /// Phone number (optional)
+    /// User role (hr_employee, hr_manager, admin, super_admin, etc.)
+    async fn role(&self) -> &str {
+        &self.role
+    }
+
+    /// Phone number (optional) - maps phone_number from DB to phone in GraphQL
     async fn phone(&self) -> Option<&str> {
-        self.phone.as_deref()
+        self.phone_number.as_deref()
+    }
+
+    /// Alternate phone number (optional)
+    async fn alternate_phone(&self) -> Option<&str> {
+        self.alternate_phone.as_deref()
+    }
+
+    /// Job title (optional)
+    async fn job_title(&self) -> Option<&str> {
+        self.job_title.as_deref()
+    }
+
+    /// User status (active, inactive, terminated)
+    async fn status(&self) -> Option<&str> {
+        self.status.as_deref()
     }
 
     /// Department ID (foreign key)
@@ -119,14 +229,9 @@ impl User {
         self.hire_date
     }
 
-    /// Termination date (only for terminated users)
-    async fn termination_date(&self) -> Option<DateTime<Utc>> {
-        self.termination_date
-    }
-
-    /// User status (active, inactive, terminated)
-    async fn status(&self) -> UserStatus {
-        self.status
+    /// Is active (true if user is currently active)
+    async fn is_active(&self) -> bool {
+        self.is_active
     }
 
     /// Record creation timestamp
@@ -139,21 +244,16 @@ impl User {
         self.updated_at
     }
 
-    /// Soft delete timestamp (NULL if not deleted)
-    async fn deleted_at(&self) -> Option<DateTime<Utc>> {
-        self.deleted_at
-    }
-
     /// Department relationship (lazy-loaded)
-    async fn department(&self, ctx: &Context<'_>) -> GqlResult<Option<super::department::Department>> {
+    async fn department_by_department_id(&self, ctx: &Context<'_>) -> GqlResult<Option<super::department::Department>> {
         if let Some(dept_id) = self.department_id {
             let pool = ctx.data::<PgPool>()?;
             let dept = sqlx::query_as::<_, super::department::Department>(
                 r#"
-                SELECT id, name, description, parent_department_id, manager_id,
-                       created_at, updated_at, deleted_at
+                SELECT id, name, description, manager_id,
+                       created_at, updated_at
                 FROM hr_public.departments
-                WHERE id = $1 AND deleted_at IS NULL
+                WHERE id = $1
                 "#,
             )
             .bind(dept_id)
@@ -182,11 +282,12 @@ impl User {
         let pool = ctx.data::<PgPool>()?;
         let reports = sqlx::query_as::<_, User>(
             r#"
-            SELECT id, email, first_name, last_name, full_name, phone,
-                   department_id, manager_id, hire_date, termination_date,
-                   status, created_at, updated_at, deleted_at
+            SELECT id, email, first_name, last_name, display_name, full_name, role,
+                   phone_number, alternate_phone, job_title, status,
+                   department_id, manager_id, hire_date,
+                   is_active, created_at, updated_at
             FROM hr_public.users
-            WHERE manager_id = $1 AND deleted_at IS NULL
+            WHERE manager_id = $1 AND is_active = true
             ORDER BY last_name, first_name
             "#,
         )
@@ -195,6 +296,31 @@ impl User {
         .await?;
 
         Ok(reports)
+    }
+
+    /// User role assignments relationship (PostGraphile-style naming)
+    async fn user_role_assignments_by_user_id(&self, ctx: &Context<'_>) -> GqlResult<crate::models::UserRoleAssignmentsConnection> {
+        let pool = ctx.data::<PgPool>()?;
+        let assignments = sqlx::query_as::<_, crate::models::UserRoleAssignment>(
+            r#"
+            SELECT ura.id, ura.user_id, r.name as role_name, ura.assigned_by, ura.assigned_at,
+                   ura.created_at, ura.updated_at, ura.deleted_at
+            FROM hr_public.user_role_assignments ura
+            INNER JOIN hr_public.roles r ON ura.role_id = r.id
+            WHERE ura.user_id = $1 AND ura.deleted_at IS NULL AND r.deleted_at IS NULL
+            ORDER BY r.level DESC
+            "#,
+        )
+        .bind(self.id)
+        .fetch_all(pool)
+        .await?;
+
+        let total_count = assignments.len() as i64;
+
+        Ok(crate::models::UserRoleAssignmentsConnection {
+            nodes: assignments,
+            total_count,
+        })
     }
 }
 
@@ -205,6 +331,8 @@ pub struct CreateUserInput {
     pub first_name: String,
     pub last_name: String,
     pub phone: Option<String>,
+    pub alternate_phone: Option<String>,
+    pub job_title: Option<String>,
     pub department_id: Option<Uuid>,
     pub manager_id: Option<Uuid>,
     pub hire_date: Option<DateTime<Utc>>,
@@ -218,6 +346,8 @@ pub struct UpdateUserInput {
     pub first_name: Option<String>,
     pub last_name: Option<String>,
     pub phone: Option<String>,
+    pub alternate_phone: Option<String>,
+    pub job_title: Option<String>,
     pub department_id: Option<Uuid>,
     pub manager_id: Option<Uuid>,
     pub hire_date: Option<DateTime<Utc>>,

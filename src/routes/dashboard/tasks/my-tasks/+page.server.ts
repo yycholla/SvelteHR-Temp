@@ -40,8 +40,13 @@ export const load: PageServerLoad = async (event) => {
 		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
+		// Get JWT token from cookies for authentication
+		const jwtToken = cookies.get('hr_token') || '';
+
+		// Headers with JWT authentication for Rust GraphQL server
 		const headers: Record<string, string> = {
-			'Content-Type': 'application/json'
+			'Content-Type': 'application/json',
+			'Authorization': `Bearer ${jwtToken}`
 		};
 
 		console.log('[My Tasks] Loading tasks for user:', locals.user.id);
@@ -60,95 +65,67 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		// Load user's tasks
-		// NOTE: Query updated to match new task schema (Feature 028)
-		// Removed: reminderTime (field doesn't exist in new schema)
+		// NOTE: Query updated to match Rust GraphQL schema (idiomatic naming)
+		// Rust GraphQL returns direct arrays (no .nodes wrapper)
 		const tasksResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetMyTasks($first: Int, $condition: TaskCondition) {
-						allTasks(
-							first: $first
-							condition: $condition
-							orderBy: [DUE_DATE_ASC, PRIORITY_DESC, CREATED_AT_DESC]
+					query GetMyTasks($limit: Int, $filter: TaskFilter) {
+						tasks(
+							limit: $limit
+							filter: $filter
+							orderBy: "due_date_asc"
 						) {
-							nodes {
+							id
+							title
+							description
+							status
+							priority
+							dueDate
+							assigneeId
+							createdBy
+							taskTypeId
+							parentTaskId
+							requiresManualReassignment
+							archived
+							createdAt
+							updatedAt
+							assignee {
 								id
-								nodeId
+								displayName
+								email
+							}
+							creator {
+								id
+								displayName
+								email
+							}
+							parentTask {
+								id
 								title
-								description
 								status
-								priority
-								dueDate
-								assigneeId
-								creatorId
-								taskTypeId
-								parentTaskId
-								requiresManualReassignment
-								archived
-								createdAt
-								updatedAt
-								userByAssigneeId {
-									id
-									displayName
-									email
-								}
-								userByCreatorId {
-									id
-									displayName
-									email
-								}
-								taskTypeByTaskTypeId {
-									id
-									name
-									description
-									isSystem
-								}
-								taskByParentTaskId {
-									id
-									title
-									status
-								}
-								tasksByParentTaskId {
-									totalCount
-								}
-								taskDependenciesByBlockedTaskId {
-									totalCount
-									nodes {
-										id
-										blockingTaskId
-										taskByBlockingTaskId {
-											id
-											title
-											status
-										}
-									}
-								}
 							}
-							pageInfo {
-								hasNextPage
-								hasPreviousPage
-							}
-							totalCount
 						}
 					}
 				`,
 				variables: {
-					first: 100,
-					condition: Object.keys(condition).length > 0 ? condition : null
+					limit: 100,
+					filter: Object.keys(condition).length > 0 ? condition : null
 				}
 			})
 		});
 
 		const tasksData = await tasksResponse.json();
+		console.log('[My Tasks] Tasks response:', tasksData);
 
 		if (tasksData.errors) {
 			console.error('[My Tasks] GraphQL errors:', tasksData.errors);
 			throw new Error(tasksData.errors[0]?.message || 'Failed to load tasks');
 		}
 
-		let tasks = tasksData?.data?.allTasks?.nodes || [];
+		let tasks = tasksData?.data?.tasks || [];
 
 		// Client-side search filtering
 		if (searchTerm) {
@@ -161,15 +138,19 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		// Calculate task statistics
+		// NOTE: Rust GraphQL returns enum values in SCREAMING_SNAKE_CASE (async-graphql default)
+		// Database stores: 'todo', 'in_progress', etc. (lowercase)
+		// GraphQL returns: 'TODO', 'IN_PROGRESS', etc. (uppercase)
 		const taskStats = {
 			total: tasks.length,
-			notStarted: tasks.filter((t: any) => t.status === 'Not Started').length,
-			inProgress: tasks.filter((t: any) => t.status === 'In Progress').length,
-			blocked: tasks.filter((t: any) => t.status === 'Blocked').length,
-			completed: tasks.filter((t: any) => t.status === 'Completed').length,
+			notStarted: tasks.filter((t: any) => t.status === 'TODO').length,
+			inProgress: tasks.filter((t: any) => t.status === 'IN_PROGRESS').length,
+			blocked: tasks.filter((t: any) => t.status === 'BLOCKED').length,
+			review: tasks.filter((t: any) => t.status === 'REVIEW').length,
+			completed: tasks.filter((t: any) => t.status === 'DONE').length,
 			overdue: tasks.filter((t: any) => {
 				if (!t.dueDate) return false;
-				return new Date(t.dueDate) < new Date() && t.status !== 'Completed';
+				return new Date(t.dueDate) < new Date() && t.status !== 'DONE';
 			}).length
 		};
 

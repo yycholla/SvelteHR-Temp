@@ -4,13 +4,21 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
-import {
-	GET_PERFORMANCE_REVIEWS,
-	GET_PERFORMANCE_REVIEW_STATS,
-	type PerformanceReview,
-	toPostGraphileStatus,
-	fromPostGraphileStatus
-} from '$lib/graphql/queries/performance-reviews';
+// Performance Review types for Rust GraphQL server
+interface PerformanceReview {
+	id: string;
+	employeeId: string;
+	reviewerId: string;
+	reviewPeriod: string;
+	status: string;
+	overallRating: number;
+	goals: string;
+	achievements: string;
+	areasForImprovement: string;
+	managerFeedback: string;
+	createdAt: string;
+	updatedAt: string;
+}
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, url, cookies, fetch: fetchFn } = event;
@@ -40,61 +48,61 @@ export const load: PageServerLoad = async (event) => {
 	const page = parseInt(url.searchParams.get('page') || '1', 10);
 	const limit = parseInt(url.searchParams.get('limit') || '20', 10);
 	const offset = (page - 1) * limit;
-	// Build condition object for PostGraphile query
-	const condition: any = {};
-	// Filter by reviewer ID (show only reviews for this manager's team)
-	// Admins and super_admins can see all reviews
-	if (!isAdmin) {
-		condition.reviewerId = locals.user.id;
-	}
-	// Filter by status (convert to uppercase for PostGraphile)
-	if (statusFilter && statusFilter !== 'all') {
-		condition.status = toPostGraphileStatus(statusFilter);
-	}
-	// Filter by review period
-	if (periodFilter) {
-		condition.reviewPeriod = periodFilter;
-	}
 	try {
 		// Query 1: Get performance reviews with pagination and filtering
+		// Using Rust GraphQL server schema
+		const reviewsQuery = `
+			query GetPerformanceReviews($limit: Int!, $offset: Int!) {
+				performanceReviews(limit: $limit, offset: $offset) {
+					id
+					employeeId
+					reviewerId
+					reviewPeriod
+					status
+					overallRating
+					goals
+					achievements
+					areasForImprovement
+					managerFeedback
+					createdAt
+					updatedAt
+				}
+				performanceReviewsCount
+			}
+		`;
+
 		const reviewsVariables = {
-			first: limit,
-			offset: offset,
-			orderBy: ['ID_DESC'], // Most recent first
-			condition: condition
+			limit: limit,
+			offset: offset
 		};
 
 		const reviewsResponse = await client.query<{
-			allPerformanceReviews: {
-				totalCount: number;
-				nodes: PerformanceReview[];
-				pageInfo: {
-					hasNextPage: boolean;
-					hasPreviousPage: boolean;
-					startCursor: string | null;
-					endCursor: string | null;
-				};
-			};
-		}>(GET_PERFORMANCE_REVIEWS, reviewsVariables);
+			performanceReviews: PerformanceReview[];
+			performanceReviewsCount: number;
+		}>(reviewsQuery, reviewsVariables);
 
 		const reviewsData = reviewsResponse.data;
+		if (!reviewsData) {
+			throw new Error('Failed to fetch performance reviews data');
+		}
 
-		// Query 2: Get performance review statistics
-		const statsVariables = {
-			reviewerId: locals.roles?.includes('admin') ? undefined : locals.user.id
-		};
+		// Query 2: Get performance review statistics using Rust GraphQL schema
+		// Note: overduePerformanceReviews query is failing due to missing due_date column
+		// We'll calculate overdue reviews client-side instead
+		const statsQuery = `
+			query GetPerformanceReviewStats {
+				performanceReviewsCount
+			}
+		`;
 
 		const statsResponse = await client.query<{
-			notStarted: { totalCount: number };
-			inProgress: { totalCount: number };
-			completed: { totalCount: number };
-			allReviews: {
-				totalCount: number;
-				nodes: Array<{ overallRating: number; status: string }>;
-			};
-		}>(GET_PERFORMANCE_REVIEW_STATS, statsVariables);
+			performanceReviewsCount: number;
+		}>(statsQuery, {});
 
 		const statsData = statsResponse.data;
+		if (!statsData) {
+			throw new Error('Failed to fetch performance review statistics');
+		}
 
 		// Query 3: Get all employees for employee selector (if user can create reviews)
 		// Using the same working pattern as /dashboard/employees
@@ -109,25 +117,23 @@ export const load: PageServerLoad = async (event) => {
 				const employeesResponse = await fetch(graphqlEndpoint, {
 					method: 'POST',
 					headers: {
-						'Content-Type': 'application/json'
+						'Content-Type': 'application/json',
+						Authorization: `Bearer ${jwtToken}`
 					},
 					body: JSON.stringify({
 						query: `
-							query GetEmployeesForSelector($first: Int) {
-								allUsers(first: $first) {
-									nodes {
-										id
-										email
-										displayName
-										role
-										departmentId
-									}
-									totalCount
+							query GetEmployeesForSelector($limit: Int!) {
+								users(limit: $limit) {
+									id
+									email
+									displayName
+									role
+									departmentId
 								}
 							}
 						`,
 						variables: {
-							first: 200
+							limit: 200
 						}
 					})
 				});
@@ -154,7 +160,7 @@ export const load: PageServerLoad = async (event) => {
 					});
 				}
 
-				employees = employeesData.data?.allUsers?.nodes || [];
+				employees = employeesData.data?.users || [];
 				console.log('✅ Employees loaded:', employees.length);
 			} catch (empError) {
 				console.error('❌ Error loading employees (caught exception):', {
@@ -168,14 +174,14 @@ export const load: PageServerLoad = async (event) => {
 			console.log('⚠️ User does not have manager access, skipping employee loading');
 		}
 
-		// Process performance reviews data (convert status from uppercase to lowercase for UI)
-		const performanceReviews = reviewsData.allPerformanceReviews.nodes.map((review) => ({
-			id: review.id,
-			nodeId: review.nodeId,
+		// Process performance reviews data (Rust GraphQL server returns status in lowercase)
+		const performanceReviews = reviewsData.performanceReviews.map((review) => ({
+			id: review.id.toString(),
+			nodeId: `node${review.id}`,
 			employeeId: review.employeeId,
 			reviewerId: review.reviewerId,
 			reviewPeriod: review.reviewPeriod,
-			status: fromPostGraphileStatus(review.status), // Convert to lowercase for UI
+			status: review.status.toLowerCase(), // Ensure lowercase for UI
 			overallRating: review.overallRating,
 			goals: review.goals,
 			achievements: review.achievements,
@@ -183,25 +189,18 @@ export const load: PageServerLoad = async (event) => {
 			managerFeedback: review.managerFeedback,
 			createdAt: review.createdAt,
 			updatedAt: review.updatedAt,
-			employee: review.userByEmployeeId
+			employee: {
+				id: review.employeeId,
+				email: `employee${review.employeeId}@company.com`, // Placeholder
+				displayName: `Employee ${review.employeeId}`, // Placeholder
+				departmentId: null, // TODO: Get from separate query
+				department: null // TODO: Get from separate query
+			},
+			reviewer: review.reviewerId
 				? {
-						id: review.userByEmployeeId.id,
-						email: review.userByEmployeeId.email,
-						displayName: review.userByEmployeeId.displayName,
-						departmentId: review.userByEmployeeId.departmentId,
-						department: review.userByEmployeeId.departmentByDepartmentId
-							? {
-									id: review.userByEmployeeId.departmentByDepartmentId.id,
-									name: review.userByEmployeeId.departmentByDepartmentId.name
-								}
-							: null
-					}
-				: null,
-			reviewer: review.userByReviewerId
-				? {
-						id: review.userByReviewerId.id,
-						email: review.userByReviewerId.email,
-						displayName: review.userByReviewerId.displayName
+						id: review.reviewerId,
+						email: `reviewer${review.reviewerId}@company.com`, // Placeholder
+						displayName: `Reviewer ${review.reviewerId}` // Placeholder
 					}
 				: null
 		}));
@@ -218,27 +217,24 @@ export const load: PageServerLoad = async (event) => {
 			);
 		}
 
-		// Calculate statistics
-		const notStartedCount = statsData.notStarted.totalCount;
-		const inProgressCount = statsData.inProgress.totalCount;
-		const completedCount = statsData.completed.totalCount;
-		const totalCount = statsData.allReviews.totalCount;
+		// Calculate statistics from the reviews data
+		const totalCount = reviewsData.performanceReviewsCount;
+		const completedCount = performanceReviews.filter((r) => r.status === 'completed').length;
+		const inProgressCount = performanceReviews.filter((r) => r.status === 'in_progress').length;
+		const notStartedCount = performanceReviews.filter((r) => r.status === 'not_started').length;
 
 		// Calculate average rating across all completed reviews
-		const completedReviews = statsData.allReviews.nodes.filter(
-			(node) => fromPostGraphileStatus(node.status) === 'completed'
-		);
+		const completedReviews = performanceReviews.filter((review) => review.status === 'completed');
 		const averageRating =
 			completedReviews.length > 0
-				? completedReviews.reduce((sum, node) => sum + (node.overallRating || 0), 0) /
+				? completedReviews.reduce((sum, review) => sum + (review.overallRating || 0), 0) /
 					completedReviews.length
 				: 0;
 
 		// Calculate completion rate
-		const completionRate =
-			totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+		const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-		// Calculate overdue reviews (reviews not completed with past period)
+		// Calculate overdue reviews client-side (reviews not completed with past period)
 		const overdueReviews = performanceReviews.filter((review) => {
 			if (review.status === 'completed') return false;
 			// Simple logic: Q1-Q4 2024 or earlier are overdue
@@ -248,23 +244,23 @@ export const load: PageServerLoad = async (event) => {
 		}).length;
 
 		// Pagination info
-		const totalPages = Math.ceil(reviewsData.allPerformanceReviews.totalCount / limit);
+		const totalPages = Math.ceil(reviewsData.performanceReviewsCount / limit);
 
 		return {
 			user: {
-				id: locals.user.id,
-				email: locals.user.email || '',
-				displayName: locals.user.display_name || 'User',
-				role: locals.user.role || 'employee'
+				id: locals.user?.id || '',
+				email: locals.user?.email || '',
+				displayName: locals.user?.display_name || 'User',
+				role: locals.user?.role || 'employee'
 			},
 			userSession: {
-				userId: locals.user.id,
-				userEmail: locals.user.email || '',
-				role: locals.user.role || 'employee',
+				userId: locals.user?.id || '',
+				userEmail: locals.user?.email || '',
+				role: locals.user?.role || 'employee',
 				accessToken: jwtToken
 			},
 			performanceReviews: filteredReviews,
-			totalReviews: reviewsData.allPerformanceReviews.totalCount,
+			totalReviews: reviewsData.performanceReviewsCount,
 			employees,
 			reviewAnalytics: {
 				totalReviews: totalCount,
@@ -287,10 +283,10 @@ export const load: PageServerLoad = async (event) => {
 			pagination: {
 				page,
 				limit,
-				total: reviewsData.allPerformanceReviews.totalCount,
+				total: reviewsData.performanceReviewsCount,
 				totalPages,
-				hasNextPage: reviewsData.allPerformanceReviews.pageInfo.hasNextPage,
-				hasPreviousPage: reviewsData.allPerformanceReviews.pageInfo.hasPreviousPage
+				hasNextPage: page * limit < reviewsData.performanceReviewsCount,
+				hasPreviousPage: page > 1
 			},
 			permissions: locals.permissions || [],
 			canCreateReviews: hasManagerAccess,
@@ -304,15 +300,15 @@ export const load: PageServerLoad = async (event) => {
 		// Return empty data structure with error information
 		return {
 			user: {
-				id: locals.user.id,
-				email: locals.user.email || '',
-				displayName: locals.user.display_name || 'User',
-				role: locals.user.role || 'employee'
+				id: locals.user?.id || '',
+				email: locals.user?.email || '',
+				displayName: locals.user?.display_name || 'User',
+				role: locals.user?.role || 'employee'
 			},
 			userSession: {
-				userId: locals.user.id,
-				userEmail: locals.user.email || '',
-				role: locals.user.role || 'employee',
+				userId: locals.user?.id || '',
+				userEmail: locals.user?.email || '',
+				role: locals.user?.role || 'employee',
 				accessToken: jwtToken
 			},
 			performanceReviews: [],

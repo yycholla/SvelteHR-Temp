@@ -108,11 +108,16 @@ export class TaskReminderScheduler {
 	 */
 	private static async getPendingReminders(): Promise<PendingTaskReminder[]> {
 		try {
+			// Get service authentication key from environment
+			const serviceKey = process.env.SERVICE_AUTH_KEY || 'fallback-dev-key';
 			const graphqlEndpoint = getGraphQLEndpoint();
 
 			const response = await fetch(graphqlEndpoint, {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${serviceKey}`
+				},
 				body: JSON.stringify({
 					query: `
 						query GetTasksWithReminders {
@@ -266,11 +271,16 @@ export class TaskReminderScheduler {
 		message: string;
 	}): Promise<void> {
 		try {
+			// Get service authentication key from environment
+			const serviceKey = process.env.SERVICE_AUTH_KEY || 'fallback-dev-key';
 			const graphqlEndpoint = getGraphQLEndpoint();
 
 			const response = await fetch(graphqlEndpoint, {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${serviceKey}`
+				},
 				body: JSON.stringify({
 					query: `
 						mutation CreateTaskNotification($input: CreateNotificationInput!) {
@@ -391,13 +401,18 @@ export class TaskReminderScheduler {
  */
 export async function checkOverdueTasks(): Promise<number> {
 	try {
+		// Get service authentication key from environment
+		const serviceKey = process.env.SERVICE_AUTH_KEY || 'fallback-dev-key';
 		const graphqlEndpoint = getGraphQLEndpoint();
 
 		const now = new Date().toISOString();
 
 		const response = await fetch(graphqlEndpoint, {
 			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': `Bearer ${serviceKey}`
+			},
 			body: JSON.stringify({
 				query: `
 					query GetOverdueTasks($now: Datetime!) {

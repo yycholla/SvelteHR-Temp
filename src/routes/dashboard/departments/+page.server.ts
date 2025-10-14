@@ -35,6 +35,7 @@ export const load: PageServerLoad = async (event) => {
 	const hasHeadFilter = url.searchParams.get('hasHead') || '';
 	const page = parseInt(url.searchParams.get('page') || '1', 10);
 	const limit = parseInt(url.searchParams.get('limit') || '20', 10);
+	const offset = (page - 1) * limit;
 
 	// Create data request for departments
 	const dataRequest = createDataRequest({
@@ -67,7 +68,10 @@ export const load: PageServerLoad = async (event) => {
 
 		// Get JWT token for PostGraphile authentication
 		const jwtToken = cookies.get('hr_token') || cookies.get('postgraphile-jwt-token') || '';
-		console.log('[Departments] Using JWT token for PostGraphile:', jwtToken ? `${jwtToken.substring(0, 50)}...` : 'No token');
+		console.log(
+			'[Departments] Using JWT token for PostGraphile:',
+			jwtToken ? `${jwtToken.substring(0, 50)}...` : 'No token'
+		);
 
 		// Decode JWT token to get user context for PostGraphile
 		let jwtClaims = null;
@@ -100,45 +104,21 @@ export const load: PageServerLoad = async (event) => {
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetDepartmentsWithEmployees($first: Int) {
-						allDepartments(first: $first) {
-							nodes {
-								id
-								name
-								description
-								managerId
-								createdAt
-								updatedAt
-								userByManagerId {
-									id
-									displayName
-									email
-									role
-								}
-								usersByDepartmentId {
-									nodes {
-										id
-										displayName
-										email
-										role
-										hireDate
-										isActive
-									}
-									totalCount
-								}
-							}
-							pageInfo {
-								hasNextPage
-								hasPreviousPage
-								startCursor
-								endCursor
-							}
-							totalCount
+					query GetDepartments($limit: Int!, $offset: Int!) {
+						departments(limit: $limit, offset: $offset) {
+							id
+							name
+							description
+							managerId
+							createdAt
+							updatedAt
 						}
+						departmentsCount
 					}
 				`,
 				variables: {
-					first: limit
+					limit: limit,
+					offset: offset
 				}
 			})
 		});
@@ -150,19 +130,16 @@ export const load: PageServerLoad = async (event) => {
 		const userPermissions = getUserPermissions(locals);
 
 		// Transform department data to match expected structure
-		const departments = (departmentsData?.data?.allDepartments?.nodes || []).map((dept: any) => {
-			// Filter to only active employees
-			const activeEmployees = (dept.usersByDepartmentId?.nodes || []).filter((user: any) => user.isActive);
-
+		const departments = (departmentsData?.data?.departments || []).map((dept: any) => {
 			return {
 				...dept,
-				// Map usersByDepartmentId to employees for consistency, with active count only
+				// Employee data not available in current Rust GraphQL schema
 				employees: {
-					nodes: activeEmployees,
-					totalCount: activeEmployees.length
+					nodes: [], // TODO: Implement separate query for employees
+					totalCount: 0
 				},
-				// Map userByManagerId to departmentHead for consistency
-				departmentHead: dept.userByManagerId
+				// Department head not available in current Rust GraphQL schema
+				departmentHead: null
 			};
 		});
 
@@ -171,7 +148,7 @@ export const load: PageServerLoad = async (event) => {
 			user: userPermissions.user,
 			userSession: userSession.toJSON(), // Convert UserSession to serializable object
 			departments,
-			totalDepartments: departmentsData?.data?.allDepartments?.totalCount || 0,
+			totalDepartments: departmentsData?.data?.departmentsCount || 0,
 			hierarchy: [], // For now, return empty hierarchy
 			filters: {
 				searchTerm,

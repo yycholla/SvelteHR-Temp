@@ -62,7 +62,7 @@ impl ReportAnalytic {
         let pool = ctx.data::<PgPool>()?;
         let dept = sqlx::query_as::<_, crate::models::Department>(
             r#"
-            SELECT id, name, description, parent_department_id, manager_id,
+            SELECT id, name, description, manager_id,
                    created_at, updated_at, deleted_at
             FROM hr_public.departments
             WHERE id = $1 AND deleted_at IS NULL

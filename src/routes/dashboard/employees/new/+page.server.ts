@@ -56,12 +56,10 @@ export const load: PageServerLoad = async (event) => {
 			body: JSON.stringify({
 				query: `
 					query GetDepartments {
-						allDepartments(first: 100) {
-							nodes {
-								id
-								name
-								description
-							}
+						departments(limit: 100) {
+							id
+							name
+							description
 						}
 					}
 				`
@@ -82,7 +80,7 @@ export const load: PageServerLoad = async (event) => {
 		const userPermissions = getUserPermissions(locals);
 
 		return {
-			departments: departmentsData.data?.allDepartments?.nodes || [],
+			departments: departmentsData.data?.departments || [],
 			user: {
 				id: locals.user.id,
 				email: locals.user.email || '',

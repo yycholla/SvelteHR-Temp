@@ -27,8 +27,8 @@ pub enum GoalStatus {
 pub struct EmployeeGoal {
     pub id: Uuid,
     pub employee_id: Uuid,
-    pub goal_title: String,
-    pub goal_description: Option<String>,
+    pub title: String,
+    pub description: Option<String>,
     pub target_date: Option<NaiveDate>,
     pub status: GoalStatus,
     pub progress_percentage: i32,
@@ -41,10 +41,8 @@ pub struct EmployeeGoal {
 pub struct CreateEmployeeGoalInput {
     #[graphql(name = "employeeId")]
     pub employee_id: Uuid,
-    #[graphql(name = "goalTitle")]
-    pub goal_title: String,
-    #[graphql(name = "goalDescription")]
-    pub goal_description: Option<String>,
+    pub title: String,
+    pub description: Option<String>,
     #[graphql(name = "targetDate")]
     pub target_date: Option<NaiveDate>,
     pub status: Option<GoalStatus>,
@@ -55,10 +53,8 @@ pub struct CreateEmployeeGoalInput {
 /// Input for updating an employee goal
 #[derive(Debug, Clone, InputObject)]
 pub struct UpdateEmployeeGoalInput {
-    #[graphql(name = "goalTitle")]
-    pub goal_title: Option<String>,
-    #[graphql(name = "goalDescription")]
-    pub goal_description: Option<String>,
+    pub title: Option<String>,
+    pub description: Option<String>,
     #[graphql(name = "targetDate")]
     pub target_date: Option<NaiveDate>,
     pub status: Option<GoalStatus>,
@@ -80,12 +76,12 @@ impl EmployeeGoal {
 
     #[graphql(name = "goalTitle")]
     async fn goal_title(&self) -> &str {
-        &self.goal_title
+        &self.title
     }
 
     #[graphql(name = "goalDescription")]
     async fn goal_description(&self) -> Option<&str> {
-        self.goal_description.as_deref()
+        self.description.as_deref()
     }
 
     #[graphql(name = "targetDate")]

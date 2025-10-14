@@ -58,14 +58,14 @@ export const load: PageServerLoad = async (event) => {
 		// Load user details using new GraphQL client
 		const userQuery = `
 			query GetUser($id: UUID!) {
-				userById(id: $id) {
+				user(id: $id) {
 					id
 					email
 					firstName
 					lastName
 					departmentId
-					isActive
-					departmentByDepartmentId {
+					status
+					department {
 						id
 						name
 						managerId
@@ -75,7 +75,7 @@ export const load: PageServerLoad = async (event) => {
 		`;
 
 		const userData = await graphqlClient.query(userQuery, { id: userId });
-		const user = userData.data?.userById;
+		const user = userData.data?.user;
 
 		if (!user) {
 			throw error(404, 'User not found');
@@ -83,56 +83,49 @@ export const load: PageServerLoad = async (event) => {
 
 		// Load attendance records from database
 		const attendanceQuery = `
-			query GetAttendanceRecords($userId: UUID!, $limit: Int = 90) {
-				allAttendanceRecords(
-					condition: { userId: $userId }
-					orderBy: DATE_DESC
-					first: $limit
+			query GetAttendanceRecords($userId: UUID!, $limit: Int) {
+				attendanceRecordsByEmployee(
+					userId: $userId
+					limit: $limit
 				) {
-					nodes {
-						id
-						userId
-						date
-						clockIn
-						clockOut
-						hoursWorked
-						status
-						location
-						notes
-						createdAt
-						updatedAt
-					}
-					totalCount
+					id
+					userId
+					date
+					clockIn
+					clockOut
+					hoursWorked
+					status
+					notes
 				}
 			}
 		`;
 
 		const attendanceData = await graphqlClient.query(attendanceQuery, {
-			userId,
+			userId: userId,
 			limit: 90
 		});
 
 		console.log('[Attendance] GraphQL response:', JSON.stringify(attendanceData, null, 2));
-		console.log('[Attendance] User ID:', userId);
-		console.log('[Attendance] Records found:', attendanceData.data?.allAttendanceRecords?.totalCount);
+		console.log('[Attendance] Employee ID:', userId);
+		console.log('[Attendance] Records found:', attendanceData.data?.attendanceRecordsByEmployee?.length);
 
-		const attendanceRecords = (attendanceData.data?.allAttendanceRecords?.nodes || []).map((record: any) => ({
+		const attendanceRecords = (attendanceData.data?.attendanceRecordsByEmployee || []).map((record: any) => ({
 			id: record.id,
 			date: record.date,
 			clockIn: record.clockIn,
 			clockOut: record.clockOut,
 			hoursWorked: record.hoursWorked ? parseFloat(record.hoursWorked) : 0,
 			status: record.status,
-			location: record.location,
+			location: null, // Location field doesn't exist in Rust model
 			notes: record.notes
 		}));
 
 		// Calculate attendance statistics
 		const totalDays = attendanceRecords.length;
 		const presentDays = attendanceRecords.filter(r => r.status === 'present').length;
-		const partialDays = attendanceRecords.filter(r => r.status === 'partial').length;
+		const partialDays = attendanceRecords.filter(r => r.status === 'partial' || r.status === 'half_day').length;
 		const totalHours = attendanceRecords.reduce((sum, r) => sum + r.hoursWorked, 0);
-		const averageHours = totalHours / totalDays;
+		const averageHours = totalDays > 0 ? totalHours / totalDays : 0;
 
 		const attendanceStats = {
 			totalDays,

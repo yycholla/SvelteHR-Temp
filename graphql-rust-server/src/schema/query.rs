@@ -4,15 +4,19 @@ use uuid::Uuid;
 use crate::{
     db::DbPool,
     db::rls_context::RlsContextExt,
+    middleware::guards::{RequirePermission, RequireMinRoleLevel},
     models::{
         // Core models
         AuditAction, Department, DependencyType, Event, EventAttendee, EventAttendeeFilter,
+        EventCondition, EventsOrderBy, EventStatus,
         FeedbackType, GoalCompletionStatus, LeaveBalance, LeaveRequest, LeaveRequestStatus,
         LeaveType, LinkedResource, Notification, NotificationCategory, NotificationResourceType,
         NotificationType, PerformanceReview, PerformanceReviewStatus, Permission,
         ResourceType, ReviewCycle, ReviewCycleStatus, ReviewFeedback, ReviewGoal, ReviewType,
-        Role, Task, TaskAssignee, TaskAuditEntry, TaskDependency, TaskPriority, TaskStatus, User,
-        UserRoleAssignment, UserStatus,
+        Role, Task, TaskAssignee, TaskAuditEntry, TaskDependency, TaskFilter, TaskPriority, TaskStatus, User,
+        UserCondition, UsersConnection, UserRoleAssignment, UserRoleAssignmentsConnection, UserStatus,
+        // OrderBy enums
+        department::DepartmentsOrderBy, user::UsersOrderBy,
         // Employee domain
         EmployeeSkill, EmployeeCertification, EmployeeVehicle, EmergencyContact, EmployeeGoal,
         ProficiencyLevel, GoalStatus,
@@ -34,6 +38,56 @@ use crate::{
         ReviewTemplate,
     },
 };
+
+// PostGraphile-style pagination types
+#[derive(Debug, Clone)]
+pub struct PageInfo {
+    pub has_next_page: bool,
+    pub has_previous_page: bool,
+    pub start_cursor: Option<String>,
+    pub end_cursor: Option<String>,
+}
+
+#[Object]
+impl PageInfo {
+    async fn has_next_page(&self) -> bool {
+        self.has_next_page
+    }
+
+    async fn has_previous_page(&self) -> bool {
+        self.has_previous_page
+    }
+
+    async fn start_cursor(&self) -> Option<String> {
+        self.start_cursor.clone()
+    }
+
+    async fn end_cursor(&self) -> Option<String> {
+        self.end_cursor.clone()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct EventsConnection {
+    pub nodes: Vec<Event>,
+    pub total_count: i64,
+    pub page_info: PageInfo,
+}
+
+#[Object]
+impl EventsConnection {
+    async fn nodes(&self) -> &Vec<Event> {
+        &self.nodes
+    }
+
+    async fn total_count(&self) -> i64 {
+        self.total_count
+    }
+
+    async fn page_info(&self) -> &PageInfo {
+        &self.page_info
+    }
+}
 
 pub struct QueryRoot;
 
@@ -198,18 +252,21 @@ impl QueryRoot {
     // ============================================================
 
     /// Get a single user by ID
-    async fn user(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<User>> {
+    /// Requires: Any authenticated user (employee-level access)
+    #[graphql(guard = "RequireMinRoleLevel::employee()")]
+    async fn user_by_id(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<User>> {
         let pool = ctx.data::<DbPool>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
             sqlx::query_as::<_, User>(
                 r#"
-                SELECT id, email, first_name, last_name, full_name, phone,
-                       department_id, manager_id, hire_date, termination_date,
-                       status, created_at, updated_at, deleted_at
+                SELECT id, email, first_name, last_name, display_name, full_name, role,
+                       phone_number, alternate_phone, job_title, status,
+                       department_id, manager_id, hire_date, is_active,
+                       created_at, updated_at
                 FROM hr_public.users
-                WHERE id = $1 AND deleted_at IS NULL
+                WHERE id = $1
                 "#,
             )
             .bind(id)
@@ -223,6 +280,8 @@ impl QueryRoot {
     }
 
     /// Get all users with optional filtering and pagination
+    /// Requires: Any authenticated user (employee-level access)
+    #[graphql(guard = "RequireMinRoleLevel::employee()")]
     async fn users(
         &self,
         ctx: &Context<'_>,
@@ -239,18 +298,28 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             let mut query_builder = sqlx::QueryBuilder::new(
                 r#"
-                SELECT id, email, first_name, last_name, full_name, phone,
-                       department_id, manager_id, hire_date, termination_date,
-                       status, created_at, updated_at, deleted_at
+                SELECT id, email, first_name, last_name, display_name, full_name, role,
+                       phone_number, alternate_phone, job_title, status,
+                       department_id, manager_id, hire_date, is_active,
+                       created_at, updated_at
                 FROM hr_public.users
-                WHERE deleted_at IS NULL
+                WHERE 1=1
                 "#,
             );
 
-            // Apply status filter if provided
+            // Apply active filter if provided (status parameter maps to is_active)
             if let Some(user_status) = status {
-                query_builder.push(" AND status = ");
-                query_builder.push_bind(user_status);
+                match user_status {
+                    UserStatus::Active => {
+                        query_builder.push(" AND is_active = true");
+                    },
+                    UserStatus::Inactive => {
+                        query_builder.push(" AND is_active = false");
+                    },
+                    UserStatus::Terminated => {
+                        query_builder.push(" AND is_active = false");
+                    },
+                }
             }
 
             // Add ordering and pagination
@@ -270,6 +339,131 @@ impl QueryRoot {
         })).await
     }
 
+    /// Get all users with PostGraphile-style Relay connection (for frontend compatibility)
+    #[graphql(guard = "RequireMinRoleLevel::employee()")]
+    async fn all_users(
+        &self,
+        ctx: &Context<'_>,
+        first: Option<i64>,
+        offset: Option<i64>,
+        #[graphql(name = "orderBy")] order_by: Option<UsersOrderBy>,
+        condition: Option<UserCondition>,
+    ) -> Result<UsersConnection> {
+        let pool = ctx.data::<DbPool>()?;
+        let session = ctx.rls_session()?;
+
+        let first = first.unwrap_or(50).min(1000);
+        let offset = offset.unwrap_or(0);
+
+        session.execute(pool, |tx| Box::pin(async move {
+            let mut query_builder = sqlx::QueryBuilder::new(
+                r#"
+                SELECT id, email, first_name, last_name, display_name, full_name, role,
+                       phone_number, alternate_phone, job_title, status,
+                       department_id, manager_id, hire_date, is_active,
+                       created_at, updated_at
+                FROM hr_public.users
+                WHERE 1=1
+                "#,
+            );
+
+            // Apply conditions
+            if let Some(cond) = &condition {
+                if let Some(id) = cond.id {
+                    query_builder.push(" AND id = ");
+                    query_builder.push_bind(id);
+                }
+                if let Some(email) = &cond.email {
+                    query_builder.push(" AND email = ");
+                    query_builder.push_bind(email);
+                }
+                if let Some(dept_id) = cond.department_id {
+                    query_builder.push(" AND department_id = ");
+                    query_builder.push_bind(dept_id);
+                }
+                if let Some(mgr_id) = cond.manager_id {
+                    query_builder.push(" AND manager_id = ");
+                    query_builder.push_bind(mgr_id);
+                }
+                if let Some(is_active) = cond.is_active {
+                    query_builder.push(" AND is_active = ");
+                    query_builder.push_bind(is_active);
+                }
+                if let Some(status) = &cond.status {
+                    query_builder.push(" AND status = ");
+                    query_builder.push_bind(status);
+                }
+            }
+
+            // Add ordering
+            let order_clause = if let Some(order) = order_by {
+                format!("ORDER BY {}", order.to_sql())
+            } else {
+                "ORDER BY created_at DESC".to_string() // Default
+            };
+            query_builder.push(order_clause);
+            query_builder.push(" LIMIT ");
+            query_builder.push_bind(first);
+            query_builder.push(" OFFSET ");
+            query_builder.push_bind(offset);
+
+            let users: Vec<User> = query_builder
+                .build_query_as()
+                .fetch_all(&mut **tx.as_mut())
+                .await
+                .map_err(|e| {
+                    tracing::error!("Failed to fetch all users: {}", e);
+                    Error::new("Failed to fetch users")
+                })?;
+
+            // Get total count
+            let mut count_builder = sqlx::QueryBuilder::new(
+                "SELECT COUNT(*) FROM hr_public.users WHERE 1=1",
+            );
+
+            if let Some(cond) = &condition {
+                if let Some(id) = cond.id {
+                    count_builder.push(" AND id = ");
+                    count_builder.push_bind(id);
+                }
+                if let Some(email) = &cond.email {
+                    count_builder.push(" AND email = ");
+                    count_builder.push_bind(email);
+                }
+                if let Some(dept_id) = cond.department_id {
+                    count_builder.push(" AND department_id = ");
+                    count_builder.push_bind(dept_id);
+                }
+                if let Some(mgr_id) = cond.manager_id {
+                    count_builder.push(" AND manager_id = ");
+                    count_builder.push_bind(mgr_id);
+                }
+                if let Some(is_active) = cond.is_active {
+                    count_builder.push(" AND is_active = ");
+                    count_builder.push_bind(is_active);
+                }
+                if let Some(status) = &cond.status {
+                    count_builder.push(" AND status = ");
+                    count_builder.push_bind(status);
+                }
+            }
+
+            let total_count: (i64,) = count_builder
+                .build_query_as()
+                .fetch_one(&mut **tx.as_mut())
+                .await
+                .map_err(|e| {
+                    tracing::error!("Failed to count users: {}", e);
+                    Error::new("Failed to count users")
+                })?;
+
+            Ok(UsersConnection {
+                nodes: users,
+                total_count: total_count.0,
+            })
+        })).await
+    }
+
     /// Get users by department ID
     async fn users_by_department(
         &self,
@@ -285,11 +479,12 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             sqlx::query_as::<_, User>(
                 r#"
-                SELECT id, email, first_name, last_name, full_name, phone,
-                       department_id, manager_id, hire_date, termination_date,
-                       status, created_at, updated_at, deleted_at
+                SELECT id, email, first_name, last_name, display_name, full_name, role,
+                       phone_number, alternate_phone, job_title, status,
+                       department_id, manager_id, hire_date, is_active,
+                       created_at, updated_at
                 FROM hr_public.users
-                WHERE department_id = $1 AND deleted_at IS NULL
+                WHERE department_id = $1
                 ORDER BY last_name, first_name
                 LIMIT $2
                 "#,
@@ -320,11 +515,12 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             sqlx::query_as::<_, User>(
                 r#"
-                SELECT id, email, first_name, last_name, full_name, phone,
-                       department_id, manager_id, hire_date, termination_date,
-                       status, created_at, updated_at, deleted_at
+                SELECT id, email, first_name, last_name, display_name, full_name, role,
+                       phone_number, alternate_phone, job_title, status,
+                       department_id, manager_id, hire_date, is_active,
+                       created_at, updated_at
                 FROM hr_public.users
-                WHERE manager_id = $1 AND deleted_at IS NULL
+                WHERE manager_id = $1
                 ORDER BY last_name, first_name
                 LIMIT $2
                 "#,
@@ -347,7 +543,7 @@ impl QueryRoot {
 
         session.execute(pool, |tx| Box::pin(async move {
             let mut query_builder = sqlx::QueryBuilder::new(
-                "SELECT COUNT(*) FROM hr_public.users WHERE deleted_at IS NULL"
+                "SELECT COUNT(*) FROM hr_public.users "
             );
 
             if let Some(user_status) = status {
@@ -379,9 +575,9 @@ impl QueryRoot {
         let department = sqlx::query_as::<_, Department>(
             r#"
             SELECT id, name, description, parent_department_id, manager_id,
-                   created_at, updated_at, deleted_at
+                   created_at, updated_at
             FROM hr_public.departments
-            WHERE id = $1 AND deleted_at IS NULL
+            WHERE id = $1 
             "#,
         )
         .bind(id)
@@ -392,30 +588,45 @@ impl QueryRoot {
     }
 
     /// Get all departments with pagination
+    /// Requires: Any authenticated user (employee-level access)
+    #[graphql(guard = "RequireMinRoleLevel::employee()")]
     async fn departments(
         &self,
         ctx: &Context<'_>,
         limit: Option<i64>,
         offset: Option<i64>,
+        #[graphql(name = "orderBy")] order_by: Option<DepartmentsOrderBy>,
     ) -> Result<Vec<Department>> {
         let pool = ctx.data::<DbPool>()?;
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
 
-        let departments = sqlx::query_as::<_, Department>(
+        let mut query_builder = sqlx::QueryBuilder::new(
             r#"
             SELECT id, name, description, parent_department_id, manager_id,
-                   created_at, updated_at, deleted_at
+                   created_at, updated_at
             FROM hr_public.departments
-            WHERE deleted_at IS NULL
-            ORDER BY name
-            LIMIT $1 OFFSET $2
             "#,
-        )
-        .bind(limit)
-        .bind(offset)
-        .fetch_all(pool)
-        .await?;
+        );
+
+        // Add ordering
+        let order_clause = if let Some(order) = order_by {
+            order.to_sql()
+        } else {
+            "name ASC" // Default
+        };
+        query_builder.push(" ORDER BY ");
+        query_builder.push(order_clause);
+
+        query_builder.push(" LIMIT ");
+        query_builder.push_bind(limit);
+        query_builder.push(" OFFSET ");
+        query_builder.push_bind(offset);
+
+        let departments = query_builder
+            .build_query_as::<Department>()
+            .fetch_all(pool)
+            .await?;
 
         Ok(departments)
     }
@@ -433,9 +644,9 @@ impl QueryRoot {
         let departments = sqlx::query_as::<_, Department>(
             r#"
             SELECT id, name, description, parent_department_id, manager_id,
-                   created_at, updated_at, deleted_at
+                   created_at, updated_at
             FROM hr_public.departments
-            WHERE parent_department_id = $1 AND deleted_at IS NULL
+            WHERE parent_department_id = $1 
             ORDER BY name
             LIMIT $2
             "#,
@@ -456,9 +667,9 @@ impl QueryRoot {
         let departments = sqlx::query_as::<_, Department>(
             r#"
             SELECT id, name, description, parent_department_id, manager_id,
-                   created_at, updated_at, deleted_at
+                   created_at, updated_at
             FROM hr_public.departments
-            WHERE parent_department_id IS NULL AND deleted_at IS NULL
+            WHERE parent_department_id IS NULL 
             ORDER BY name
             LIMIT $1
             "#,
@@ -475,7 +686,7 @@ impl QueryRoot {
         let pool = ctx.data::<DbPool>()?;
 
         let count: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM hr_public.departments WHERE deleted_at IS NULL"
+            "SELECT COUNT(*) FROM hr_public.departments "
         )
         .fetch_one(pool)
         .await?;
@@ -494,9 +705,9 @@ impl QueryRoot {
         let role = sqlx::query_as::<_, Role>(
             r#"
             SELECT id, name, description, level,
-                   created_at, updated_at, deleted_at
+                   created_at, updated_at
             FROM hr_public.roles
-            WHERE id = $1 AND deleted_at IS NULL
+            WHERE id = $1 
             "#,
         )
         .bind(id)
@@ -515,9 +726,9 @@ impl QueryRoot {
         let roles = sqlx::query_as::<_, Role>(
             r#"
             SELECT id, name, description, level,
-                   created_at, updated_at, deleted_at
+                   created_at, updated_at
             FROM hr_public.roles
-            WHERE deleted_at IS NULL
+            
             ORDER BY level DESC, name
             LIMIT $1 OFFSET $2
             "#,
@@ -537,9 +748,9 @@ impl QueryRoot {
         let roles = sqlx::query_as::<_, Role>(
             r#"
             SELECT id, name, description, level,
-                   created_at, updated_at, deleted_at
+                   created_at, updated_at
             FROM hr_public.roles
-            WHERE level >= $1 AND deleted_at IS NULL
+            WHERE level >= $1 
             ORDER BY level DESC, name
             "#,
         )
@@ -555,7 +766,7 @@ impl QueryRoot {
         let pool = ctx.data::<DbPool>()?;
 
         let count: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM hr_public.roles WHERE deleted_at IS NULL"
+            "SELECT COUNT(*) FROM hr_public.roles "
         )
         .fetch_one(pool)
         .await?;
@@ -574,9 +785,9 @@ impl QueryRoot {
         let permission = sqlx::query_as::<_, Permission>(
             r#"
             SELECT id, resource, action, description,
-                   created_at, updated_at, deleted_at
+                   created_at, updated_at
             FROM hr_public.permissions
-            WHERE id = $1 AND deleted_at IS NULL
+            WHERE id = $1 
             "#,
         )
         .bind(id)
@@ -595,9 +806,9 @@ impl QueryRoot {
         let permissions = sqlx::query_as::<_, Permission>(
             r#"
             SELECT id, resource, action, description,
-                   created_at, updated_at, deleted_at
+                   created_at, updated_at
             FROM hr_public.permissions
-            WHERE deleted_at IS NULL
+            
             ORDER BY resource, action
             LIMIT $1 OFFSET $2
             "#,
@@ -617,9 +828,9 @@ impl QueryRoot {
         let permissions = sqlx::query_as::<_, Permission>(
             r#"
             SELECT id, resource, action, description,
-                   created_at, updated_at, deleted_at
+                   created_at, updated_at
             FROM hr_public.permissions
-            WHERE resource = $1 AND deleted_at IS NULL
+            WHERE resource = $1 
             ORDER BY action
             "#,
         )
@@ -635,7 +846,7 @@ impl QueryRoot {
         let pool = ctx.data::<DbPool>()?;
 
         let count: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM hr_public.permissions WHERE deleted_at IS NULL"
+            "SELECT COUNT(*) FROM hr_public.permissions "
         )
         .fetch_one(pool)
         .await?;
@@ -655,10 +866,11 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             sqlx::query_as::<_, UserRoleAssignment>(
                 r#"
-                SELECT id, user_id, role_id, assigned_by, assigned_at,
-                       created_at, updated_at, deleted_at
-                FROM hr_public.user_role_assignments
-                WHERE id = $1 AND deleted_at IS NULL
+                SELECT ura.id, ura.user_id, r.name as role_name, ura.assigned_by, ura.assigned_at,
+                        ura.created_at, ura.updated_at, ura.deleted_at
+                FROM hr_public.user_role_assignments ura
+                INNER JOIN hr_public.roles r ON ura.role_id = r.id
+                WHERE ura.id = $1 AND ura.deleted_at IS NULL AND r.deleted_at IS NULL
                 "#,
             )
             .bind(id)
@@ -679,12 +891,12 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             sqlx::query_as::<_, UserRoleAssignment>(
                 r#"
-                SELECT ura.id, ura.user_id, ura.role_id, ura.assigned_by, ura.assigned_at,
-                       ura.created_at, ura.updated_at, ura.deleted_at
+                SELECT ura.id, ura.user_id, r.name as role_name, ura.assigned_by, ura.assigned_at,
+                        ura.created_at, ura.updated_at, ura.deleted_at
                 FROM hr_public.user_role_assignments ura
                 INNER JOIN hr_public.roles r ON ura.role_id = r.id
                 WHERE ura.user_id = $1 AND ura.deleted_at IS NULL AND r.deleted_at IS NULL
-                ORDER BY r.level DESC
+                ORDER BY r.name
                 "#,
             )
             .bind(user_id)
@@ -697,20 +909,74 @@ impl QueryRoot {
         })).await
     }
 
+    /// Get all user role assignments with PostGraphile-style Relay connection
+    async fn all_user_role_assignments(
+        &self,
+        ctx: &Context<'_>,
+        first: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<UserRoleAssignmentsConnection> {
+        let pool = ctx.data::<DbPool>()?;
+        let session = ctx.rls_session()?;
+
+        let first = first.unwrap_or(50).min(1000);
+        let offset = offset.unwrap_or(0);
+
+        session.execute(pool, |tx| Box::pin(async move {
+            let assignments: Vec<UserRoleAssignment> = sqlx::query_as::<_, UserRoleAssignment>(
+                r#"
+                SELECT ura.id, ura.user_id, r.name as role_name, ura.assigned_by, ura.assigned_at,
+                        ura.created_at, ura.updated_at, ura.deleted_at
+                FROM hr_public.user_role_assignments ura
+                INNER JOIN hr_public.roles r ON ura.role_id = r.id
+                WHERE ura.deleted_at IS NULL AND r.deleted_at IS NULL
+                ORDER BY ura.created_at DESC
+                LIMIT $1 OFFSET $2
+                "#,
+            )
+            .bind(first)
+            .bind(offset)
+            .fetch_all(&mut **tx.as_mut())
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to fetch all user role assignments: {}", e);
+                Error::new("Failed to fetch user role assignments")
+            })?;
+
+            // Get total count
+            let total_count: (i64,) = sqlx::query_as(
+                "SELECT COUNT(*) FROM hr_public.user_role_assignments ura
+                 WHERE ura.deleted_at IS NULL",
+            )
+            .fetch_one(&mut **tx.as_mut())
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to count user role assignments: {}", e);
+                Error::new("Failed to count user role assignments")
+            })?;
+
+            Ok(UserRoleAssignmentsConnection {
+                nodes: assignments,
+                total_count: total_count.0,
+            })
+        })).await
+    }
+
     /// Get all users with a specific role
-    async fn role_assignments(&self, ctx: &Context<'_>, role_id: Uuid) -> Result<Vec<UserRoleAssignment>> {
+    async fn role_assignments(&self, ctx: &Context<'_>, role_name: String) -> Result<Vec<UserRoleAssignment>> {
         let pool = ctx.data::<DbPool>()?;
 
         let assignments = sqlx::query_as::<_, UserRoleAssignment>(
             r#"
-            SELECT id, user_id, role_id, assigned_by, assigned_at,
-                   created_at, updated_at, deleted_at
-            FROM hr_public.user_role_assignments
-            WHERE role_id = $1 AND deleted_at IS NULL
-            ORDER BY assigned_at DESC
+            SELECT ura.id, ura.user_id, r.name as role_name, ura.assigned_by, ura.assigned_at,
+                    ura.created_at, ura.updated_at, ura.deleted_at
+            FROM hr_public.user_role_assignments ura
+            INNER JOIN hr_public.roles r ON ura.role_id = r.id
+            WHERE r.name = $1 AND ura.deleted_at IS NULL AND r.deleted_at IS NULL
+            ORDER BY ura.created_at DESC
             "#,
         )
-        .bind(role_id)
+        .bind(role_name)
         .fetch_all(pool)
         .await?;
 
@@ -729,12 +995,13 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             sqlx::query_as::<_, Event>(
                 r#"
-                SELECT id, title, description, location, start_time, end_time,
-                       is_all_day, recurrence_rule, recurrence_end_date, capacity,
-                       image_url, image_aspect_ratio, created_by,
+                SELECT id, title, description, event_type, location, start_time, end_time,
+                       all_day, status, is_public, color, organizer_id,
+                       rrule, recurrence_id, recurrence_end_date, max_capacity,
+                       image_url, image_aspect_ratio,
                        created_at, updated_at, deleted_at
                 FROM hr_public.events
-                WHERE id = $1 AND deleted_at IS NULL
+                WHERE id = $1
                 "#,
             )
             .bind(id)
@@ -747,12 +1014,13 @@ impl QueryRoot {
         })).await
     }
 
-    /// Get all events with pagination
+    /// Get all events with pagination and ordering
     async fn events(
         &self,
         ctx: &Context<'_>,
         limit: Option<i64>,
         offset: Option<i64>,
+        order_by: Option<Vec<EventsOrderBy>>,
     ) -> Result<Vec<Event>> {
         let pool = ctx.data::<DbPool>()?;
         let session = ctx.rls_session()?;
@@ -760,31 +1028,162 @@ impl QueryRoot {
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
 
+        // Build ORDER BY clause from order_by parameter
+        let order_clause = if let Some(orders) = order_by {
+            if orders.is_empty() {
+                "start_time DESC".to_string()
+            } else {
+                orders
+                    .iter()
+                    .map(|o| o.to_sql())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            }
+        } else {
+            "start_time DESC".to_string()
+        };
+
+        let query = format!(
+            r#"
+            SELECT id, title, description, event_type, location, start_time, end_time,
+                   all_day, status, is_public, color, organizer_id,
+                   rrule, recurrence_id, recurrence_end_date, max_capacity,
+                   image_url, image_aspect_ratio,
+                   created_at, updated_at, deleted_at
+            FROM hr_public.events
+            WHERE deleted_at IS NULL
+            ORDER BY {}
+            LIMIT $1 OFFSET $2
+            "#,
+            order_clause
+        );
+
         session.execute(pool, |tx| Box::pin(async move {
-            sqlx::query_as::<_, Event>(
-                r#"
-                SELECT id, title, description, location, start_time, end_time,
-                       is_all_day, recurrence_rule, recurrence_end_date, capacity,
-                       image_url, image_aspect_ratio, created_by,
-                       created_at, updated_at, deleted_at
-                FROM hr_public.events
-                WHERE deleted_at IS NULL
-                ORDER BY start_time DESC
-                LIMIT $1 OFFSET $2
-                "#,
-            )
-            .bind(limit)
-            .bind(offset)
-            .fetch_all(&mut **tx.as_mut())
-            .await
-            .map_err(|e| {
-                tracing::error!("Failed to fetch events: {}", e);
-                Error::new("Failed to fetch events")
+            sqlx::query_as::<_, Event>(&query)
+                .bind(limit)
+                .bind(offset)
+                .fetch_all(&mut **tx.as_mut())
+                .await
+                .map_err(|e| {
+                    tracing::error!("Failed to fetch events: {}", e);
+                    Error::new("Failed to fetch events")
+                })
+        })).await
+    }
+
+    /// Get all events with PostGraphile-style pagination (alias for compatibility)
+    async fn all_events(
+        &self,
+        ctx: &Context<'_>,
+        first: Option<i64>,
+        offset: Option<i64>,
+        order_by: Option<Vec<EventsOrderBy>>,
+        condition: Option<EventCondition>,
+    ) -> Result<EventsConnection> {
+        let pool = ctx.data::<DbPool>()?;
+        let session = ctx.rls_session()?;
+
+        let limit = first.unwrap_or(100).min(1000);
+        let offset_val = offset.unwrap_or(0);
+
+        // Build ORDER BY clause from order_by parameter
+        let order_clause = if let Some(orders) = order_by {
+            if orders.is_empty() {
+                "start_time DESC".to_string()
+            } else {
+                orders
+                    .iter()
+                    .map(|o| o.to_sql())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            }
+        } else {
+            "start_time DESC".to_string()
+        };
+
+        // Build WHERE clause from condition
+        let mut where_clauses = vec![];
+        let mut bind_count = 1;
+
+        if let Some(cond) = condition {
+            if let Some(status) = cond.status {
+                where_clauses.push(format!("status = ${}", bind_count));
+                bind_count += 1;
+            }
+            if cond.is_public.is_some() {
+                where_clauses.push(format!("is_public = ${}", bind_count));
+                bind_count += 1;
+            }
+        }
+
+        let where_clause = if where_clauses.is_empty() {
+            String::new()
+        } else {
+            format!("AND {}", where_clauses.join(" AND "))
+        };
+
+        let query = format!(
+            r#"
+            SELECT id, title, description, event_type, location, start_time, end_time,
+                   all_day, status, is_public, color, organizer_id,
+                   rrule, recurrence_id, recurrence_end_date, max_capacity,
+                   image_url, image_aspect_ratio,
+                   created_at, updated_at, deleted_at
+            FROM hr_public.events
+            WHERE 1=1 {}
+            ORDER BY {}
+            LIMIT ${} OFFSET ${}
+            "#,
+            where_clause, order_clause, bind_count, bind_count + 1
+        );
+
+        let count_query = format!(
+            r#"
+            SELECT COUNT(*)::bigint
+            FROM hr_public.events
+            WHERE 1=1 {}
+            "#,
+            where_clause
+        );
+
+        session.execute(pool, |tx| Box::pin(async move {
+            // Get total count
+            let total_count: (i64,) = sqlx::query_as(&count_query)
+                .fetch_one(&mut **tx.as_mut())
+                .await
+                .map_err(|e| {
+                    tracing::error!("Failed to count events: {}", e);
+                    Error::new("Failed to count events")
+                })?;
+
+            // Get events
+            let events = sqlx::query_as::<_, Event>(&query)
+                .bind(limit)
+                .bind(offset_val)
+                .fetch_all(&mut **tx.as_mut())
+                .await
+                .map_err(|e| {
+                    tracing::error!("Failed to fetch events: {}", e);
+                    Error::new("Failed to fetch events")
+                })?;
+
+            let has_next_page = offset_val + limit < total_count.0;
+            let has_previous_page = offset_val > 0;
+
+            Ok(EventsConnection {
+                nodes: events,
+                total_count: total_count.0,
+                page_info: PageInfo {
+                    has_next_page,
+                    has_previous_page,
+                    start_cursor: None,
+                    end_cursor: None,
+                },
             })
         })).await
     }
 
-    /// Get events by creator ID
+    /// Get events by creator ID (organizer)
     async fn events_by_creator(
         &self,
         ctx: &Context<'_>,
@@ -799,12 +1198,13 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             sqlx::query_as::<_, Event>(
                 r#"
-                SELECT id, title, description, location, start_time, end_time,
-                       is_all_day, recurrence_rule, recurrence_end_date, capacity,
-                       image_url, image_aspect_ratio, created_by,
+                SELECT id, title, description, event_type, location, start_time, end_time,
+                       all_day, status, is_public, color, organizer_id,
+                       rrule, recurrence_id, recurrence_end_date, max_capacity,
+                       image_url, image_aspect_ratio,
                        created_at, updated_at, deleted_at
                 FROM hr_public.events
-                WHERE created_by = $1 AND deleted_at IS NULL
+                WHERE organizer_id = $1 AND deleted_at IS NULL
                 ORDER BY start_time DESC
                 LIMIT $2
                 "#,
@@ -836,9 +1236,10 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             sqlx::query_as::<_, Event>(
                 r#"
-                SELECT id, title, description, location, start_time, end_time,
-                       is_all_day, recurrence_rule, recurrence_end_date, capacity,
-                       image_url, image_aspect_ratio, created_by,
+                SELECT id, title, description, event_type, location, start_time, end_time,
+                       all_day, status, is_public, color, organizer_id,
+                       rrule, recurrence_id, recurrence_end_date, max_capacity,
+                       image_url, image_aspect_ratio,
                        created_at, updated_at, deleted_at
                 FROM hr_public.events
                 WHERE deleted_at IS NULL
@@ -870,9 +1271,10 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             sqlx::query_as::<_, Event>(
                 r#"
-                SELECT id, title, description, location, start_time, end_time,
-                       is_all_day, recurrence_rule, recurrence_end_date, capacity,
-                       image_url, image_aspect_ratio, created_by,
+                SELECT id, title, description, event_type, location, start_time, end_time,
+                       all_day, status, is_public, color, organizer_id,
+                       rrule, recurrence_id, recurrence_end_date, max_capacity,
+                       image_url, image_aspect_ratio,
                        created_at, updated_at, deleted_at
                 FROM hr_public.events
                 WHERE deleted_at IS NULL
@@ -901,9 +1303,10 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             sqlx::query_as::<_, Event>(
                 r#"
-                SELECT id, title, description, location, start_time, end_time,
-                       is_all_day, recurrence_rule, recurrence_end_date, capacity,
-                       image_url, image_aspect_ratio, created_by,
+                SELECT id, title, description, event_type, location, start_time, end_time,
+                       all_day, status, is_public, color, organizer_id,
+                       rrule, recurrence_id, recurrence_end_date, max_capacity,
+                       image_url, image_aspect_ratio,
                        created_at, updated_at, deleted_at
                 FROM hr_public.events
                 WHERE deleted_at IS NULL
@@ -932,13 +1335,14 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             sqlx::query_as::<_, Event>(
                 r#"
-                SELECT id, title, description, location, start_time, end_time,
-                       is_all_day, recurrence_rule, recurrence_end_date, capacity,
-                       image_url, image_aspect_ratio, created_by,
+                SELECT id, title, description, event_type, location, start_time, end_time,
+                       all_day, status, is_public, color, organizer_id,
+                       rrule, recurrence_id, recurrence_end_date, max_capacity,
+                       image_url, image_aspect_ratio,
                        created_at, updated_at, deleted_at
                 FROM hr_public.events
                 WHERE deleted_at IS NULL
-                  AND recurrence_rule IS NOT NULL
+                  AND rrule IS NOT NULL
                 ORDER BY start_time DESC
                 LIMIT $1
                 "#,
@@ -960,7 +1364,7 @@ impl QueryRoot {
 
         session.execute(pool, |tx| Box::pin(async move {
             let count: (i64,) = sqlx::query_as(
-                "SELECT COUNT(*) FROM hr_public.events WHERE deleted_at IS NULL"
+                "SELECT COUNT(*) FROM hr_public.events "
             )
             .fetch_one(&mut **tx.as_mut())
             .await
@@ -985,9 +1389,9 @@ impl QueryRoot {
             r#"
             SELECT id, name, description, default_days_per_year,
                    requires_approval, max_consecutive_days, is_paid,
-                   color, icon, created_at, updated_at, deleted_at
+                   color, icon, created_at, updated_at
             FROM hr_public.leave_types
-            WHERE id = $1 AND deleted_at IS NULL
+            WHERE id = $1 
             "#,
         )
         .bind(id)
@@ -1012,9 +1416,9 @@ impl QueryRoot {
             r#"
             SELECT id, name, description, default_days_per_year,
                    requires_approval, max_consecutive_days, is_paid,
-                   color, icon, created_at, updated_at, deleted_at
+                   color, icon, created_at, updated_at
             FROM hr_public.leave_types
-            WHERE deleted_at IS NULL
+            
             ORDER BY name
             LIMIT $1 OFFSET $2
             "#,
@@ -1032,7 +1436,7 @@ impl QueryRoot {
         let pool = ctx.data::<DbPool>()?;
 
         let count: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM hr_public.leave_types WHERE deleted_at IS NULL"
+            "SELECT COUNT(*) FROM hr_public.leave_types "
         )
         .fetch_one(pool)
         .await?;
@@ -1052,9 +1456,9 @@ impl QueryRoot {
             r#"
             SELECT id, user_id, leave_type_id, year, total_days,
                    used_days, pending_days, carried_over_days,
-                   created_at, updated_at, deleted_at
+                   created_at, updated_at
             FROM hr_public.leave_balances
-            WHERE id = $1 AND deleted_at IS NULL
+            WHERE id = $1 
             "#,
         )
         .bind(id)
@@ -1076,12 +1480,12 @@ impl QueryRoot {
         let balances = if let Some(y) = year {
             sqlx::query_as::<_, LeaveBalance>(
                 r#"
-                SELECT id, user_id, leave_type_id, year, total_days,
-                       used_days, pending_days, carried_over_days,
-                       created_at, updated_at, deleted_at
-                FROM hr_public.leave_balances
-                WHERE user_id = $1 AND year = $2 AND deleted_at IS NULL
-                ORDER BY year DESC
+                SELECT tob.id, tob.employee_id, tob.policy_id, tob.year, tob.balance_days,
+                       tob.used_days, 0 as pending_days, 0 as carried_over_days,
+                       tob.created_at, tob.updated_at
+                FROM hr_public.time_off_balances tob
+                WHERE tob.employee_id = $1 AND tob.year = $2
+                ORDER BY tob.year DESC
                 "#,
             )
             .bind(user_id)
@@ -1091,12 +1495,12 @@ impl QueryRoot {
         } else {
             sqlx::query_as::<_, LeaveBalance>(
                 r#"
-                SELECT id, user_id, leave_type_id, year, total_days,
-                       used_days, pending_days, carried_over_days,
-                       created_at, updated_at, deleted_at
-                FROM hr_public.leave_balances
-                WHERE user_id = $1 AND deleted_at IS NULL
-                ORDER BY year DESC
+                SELECT tob.id, tob.employee_id, tob.policy_id, tob.year, tob.balance_days,
+                       tob.used_days, 0 as pending_days, 0 as carried_over_days,
+                       tob.created_at, tob.updated_at
+                FROM hr_public.time_off_balances tob
+                WHERE tob.employee_id = $1
+                ORDER BY tob.year DESC
                 "#,
             )
             .bind(user_id)
@@ -1121,9 +1525,9 @@ impl QueryRoot {
             r#"
             SELECT id, user_id, leave_type_id, year, total_days,
                    used_days, pending_days, carried_over_days,
-                   created_at, updated_at, deleted_at
+                   created_at, updated_at
             FROM hr_public.leave_balances
-            WHERE user_id = $1 AND leave_type_id = $2 AND year = $3 AND deleted_at IS NULL
+            WHERE user_id = $1 AND leave_type_id = $2 AND year = $3 
             "#,
         )
         .bind(user_id)
@@ -1145,11 +1549,10 @@ impl QueryRoot {
 
         let request = sqlx::query_as::<_, LeaveRequest>(
             r#"
-            SELECT id, user_id, leave_type_id, start_date, end_date,
-                   days_requested, status, reason, approved_by, approved_at,
-                   rejection_reason, created_at, updated_at, deleted_at
+            SELECT id, employee_id, manager_id, leave_type, start_date, end_date,
+                   days_requested, status, reason, manager_comments, created_at, updated_at
             FROM hr_public.leave_requests
-            WHERE id = $1 AND deleted_at IS NULL
+            WHERE id = $1
             "#,
         )
         .bind(id)
@@ -1173,11 +1576,10 @@ impl QueryRoot {
         let requests = if let Some(req_status) = status {
             sqlx::query_as::<_, LeaveRequest>(
                 r#"
-                SELECT id, user_id, leave_type_id, start_date, end_date,
-                       days_requested, status, reason, approved_by, approved_at,
-                       rejection_reason, created_at, updated_at, deleted_at
+                SELECT id, employee_id, manager_id, leave_type, start_date, end_date,
+                       days_requested, status, reason, manager_comments, created_at, updated_at
                 FROM hr_public.leave_requests
-                WHERE user_id = $1 AND status = $2 AND deleted_at IS NULL
+                WHERE employee_id = $1 AND status = $2
                 ORDER BY start_date DESC
                 LIMIT $3
                 "#,
@@ -1190,11 +1592,10 @@ impl QueryRoot {
         } else {
             sqlx::query_as::<_, LeaveRequest>(
                 r#"
-                SELECT id, user_id, leave_type_id, start_date, end_date,
-                       days_requested, status, reason, approved_by, approved_at,
-                       rejection_reason, created_at, updated_at, deleted_at
+                SELECT id, employee_id, manager_id, leave_type, start_date, end_date,
+                       days_requested, status, reason, manager_comments, created_at, updated_at
                 FROM hr_public.leave_requests
-                WHERE user_id = $1 AND deleted_at IS NULL
+                WHERE employee_id = $1
                 ORDER BY start_date DESC
                 LIMIT $2
                 "#,
@@ -1219,11 +1620,10 @@ impl QueryRoot {
 
         let requests = sqlx::query_as::<_, LeaveRequest>(
             r#"
-            SELECT id, user_id, leave_type_id, start_date, end_date,
-                   days_requested, status, reason, approved_by, approved_at,
-                   rejection_reason, created_at, updated_at, deleted_at
+            SELECT id, employee_id, manager_id, leave_type, start_date, end_date,
+                   days_requested, status, reason, manager_comments, created_at, updated_at
             FROM hr_public.leave_requests
-            WHERE status = 'pending' AND deleted_at IS NULL
+            WHERE status = 'pending'
             ORDER BY created_at ASC
             LIMIT $1
             "#,
@@ -1248,12 +1648,10 @@ impl QueryRoot {
 
         let requests = sqlx::query_as::<_, LeaveRequest>(
             r#"
-            SELECT id, user_id, leave_type_id, start_date, end_date,
-                   days_requested, status, reason, approved_by, approved_at,
-                   rejection_reason, created_at, updated_at, deleted_at
+            SELECT id, employee_id, manager_id, leave_type, start_date, end_date,
+                   days_requested, status, reason, manager_comments, created_at, updated_at
             FROM hr_public.leave_requests
-            WHERE deleted_at IS NULL
-              AND start_date >= $1
+            WHERE start_date >= $1
               AND end_date <= $2
               AND status = 'approved'
             ORDER BY start_date ASC
@@ -1279,14 +1677,14 @@ impl QueryRoot {
 
         let count: (i64,) = if let Some(req_status) = status {
             sqlx::query_as(
-                "SELECT COUNT(*) FROM hr_public.leave_requests WHERE status = $1 AND deleted_at IS NULL"
+                "SELECT COUNT(*) FROM hr_public.leave_requests WHERE status = $1 "
             )
             .bind(req_status)
             .fetch_one(pool)
             .await?
         } else {
             sqlx::query_as(
-                "SELECT COUNT(*) FROM hr_public.leave_requests WHERE deleted_at IS NULL"
+                "SELECT COUNT(*) FROM hr_public.leave_requests "
             )
             .fetch_one(pool)
             .await?
@@ -1307,11 +1705,12 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             sqlx::query_as::<_, Task>(
                 r#"
-                SELECT id, title, description, status, priority, due_date, start_date,
+                SELECT id, title, description, status, priority, due_date,
                        completed_at, estimated_hours, actual_hours, tags, department_id,
-                       created_by, created_at, updated_at, deleted_at
+                       created_by, assignee_id, parent_task_id, archived, archived_at, archived_by,
+                       created_at, updated_at, deleted_at
                 FROM hr_public.tasks
-                WHERE id = $1 AND deleted_at IS NULL
+                WHERE id = $1
                 "#,
             )
             .bind(id)
@@ -1330,6 +1729,8 @@ impl QueryRoot {
         ctx: &Context<'_>,
         limit: Option<i64>,
         offset: Option<i64>,
+        filter: Option<TaskFilter>,
+        order_by: Option<String>,
     ) -> Result<Vec<Task>> {
         let pool = ctx.data::<DbPool>()?;
         let session = ctx.rls_session()?;
@@ -1337,26 +1738,122 @@ impl QueryRoot {
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
 
-        session.execute(pool, |tx| Box::pin(async move {
-            sqlx::query_as::<_, Task>(
-                r#"
-                SELECT id, title, description, status, priority, due_date, start_date,
-                       completed_at, estimated_hours, actual_hours, tags, department_id,
-                       created_by, created_at, updated_at, deleted_at
-                FROM hr_public.tasks
-                WHERE deleted_at IS NULL
-                ORDER BY priority DESC, created_at DESC
-                LIMIT $1 OFFSET $2
-                "#,
-            )
-            .bind(limit)
-            .bind(offset)
-            .fetch_all(&mut **tx.as_mut())
-            .await
-            .map_err(|e| {
-                tracing::error!("Failed to fetch tasks: {}", e);
-                Error::new("Failed to fetch tasks")
+        // Build WHERE clause dynamically based on filter
+        let mut where_clauses = vec!["deleted_at IS NULL".to_string()];
+        let mut param_count = 3; // Start after limit and offset
+
+        if let Some(ref f) = filter {
+            if f.status.is_some() {
+                where_clauses.push(format!("status = ${}", param_count));
+                param_count += 1;
+            }
+            if f.priority.is_some() {
+                where_clauses.push(format!("priority = ${}", param_count));
+                param_count += 1;
+            }
+            if f.assignee_id.is_some() {
+                where_clauses.push(format!("assignee_id = ${}", param_count));
+                param_count += 1;
+            }
+            if f.created_by.is_some() {
+                where_clauses.push(format!("created_by = ${}", param_count));
+                param_count += 1;
+            }
+            if f.department_id.is_some() {
+                where_clauses.push(format!("department_id = ${}", param_count));
+                param_count += 1;
+            }
+            if f.task_type_id.is_some() {
+                where_clauses.push(format!("task_type_id = ${}", param_count));
+                param_count += 1;
+            }
+            if f.parent_task_id.is_some() {
+                where_clauses.push(format!("parent_task_id = ${}", param_count));
+                param_count += 1;
+            }
+            if f.archived.is_some() {
+                where_clauses.push(format!("archived = ${}", param_count));
+                param_count += 1;
+            }
+        }
+
+        // Build ORDER BY clause
+        let order_clause = order_by
+            .as_ref()
+            .map(|o| {
+                match o.as_str() {
+                    "title_asc" => "title ASC",
+                    "title_desc" => "title DESC",
+                    "due_date_asc" => "due_date ASC",
+                    "due_date_desc" => "due_date DESC",
+                    "priority_asc" => "priority ASC",
+                    "priority_desc" => "priority DESC",
+                    "created_at_asc" => "created_at ASC",
+                    "created_at_desc" => "created_at DESC",
+                    "updated_at_asc" => "updated_at ASC",
+                    "updated_at_desc" => "updated_at_desc",
+                    _ => "priority DESC, created_at DESC", // Default
+                }
             })
+            .unwrap_or("priority DESC, created_at DESC");
+
+        let query = format!(
+            r#"
+            SELECT id, title, description, task_type_id, status, priority, due_date,
+                   completed_at, estimated_hours, actual_hours, tags, department_id,
+                   created_by, assignee_id, parent_task_id, requires_manual_reassignment,
+                   archived, archived_at, archived_by,
+                   created_at, updated_at, deleted_at
+            FROM hr_public.tasks
+            WHERE {}
+            ORDER BY {}
+            LIMIT $1 OFFSET $2
+            "#,
+            where_clauses.join(" AND "),
+            order_clause
+        );
+
+        let filter_clone = filter.clone();
+        session.execute(pool, move |tx| Box::pin(async move {
+            let mut query_builder = sqlx::query_as::<_, Task>(&query)
+                .bind(limit)
+                .bind(offset);
+
+            // Bind filter parameters in the same order as WHERE clause construction
+            if let Some(f) = filter_clone {
+                if let Some(status) = f.status {
+                    query_builder = query_builder.bind(status);
+                }
+                if let Some(priority) = f.priority {
+                    query_builder = query_builder.bind(priority);
+                }
+                if let Some(assignee_id) = f.assignee_id {
+                    query_builder = query_builder.bind(assignee_id);
+                }
+                if let Some(created_by) = f.created_by {
+                    query_builder = query_builder.bind(created_by);
+                }
+                if let Some(department_id) = f.department_id {
+                    query_builder = query_builder.bind(department_id);
+                }
+                if let Some(task_type_id) = f.task_type_id {
+                    query_builder = query_builder.bind(task_type_id);
+                }
+                if let Some(parent_task_id) = f.parent_task_id {
+                    query_builder = query_builder.bind(parent_task_id);
+                }
+                if let Some(archived) = f.archived {
+                    query_builder = query_builder.bind(archived);
+                }
+            }
+
+            query_builder
+                .fetch_all(&mut **tx.as_mut())
+                .await
+                .map_err(|e| {
+                    tracing::error!("Failed to fetch tasks: {}", e);
+                    Error::new("Failed to fetch tasks")
+                })
         })).await
     }
 
@@ -1375,11 +1872,12 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             sqlx::query_as::<_, Task>(
                 r#"
-                SELECT id, title, description, status, priority, due_date, start_date,
+                SELECT id, title, description, status, priority, due_date,
                        completed_at, estimated_hours, actual_hours, tags, department_id,
-                       created_by, created_at, updated_at, deleted_at
+                       created_by, assignee_id, parent_task_id, archived, archived_at, archived_by,
+                       created_at, updated_at, deleted_at
                 FROM hr_public.tasks
-                WHERE created_by = $1 AND deleted_at IS NULL
+                WHERE created_by = $1
                 ORDER BY created_at DESC
                 LIMIT $2
                 "#,
@@ -1411,8 +1909,10 @@ impl QueryRoot {
             sqlx::query_as::<_, Task>(
                 r#"
                 SELECT DISTINCT t.id, t.title, t.description, t.status, t.priority, t.due_date,
-                       t.start_date, t.completed_at, t.estimated_hours, t.actual_hours, t.tags,
-                       t.department_id, t.created_by, t.created_at, t.updated_at, t.deleted_at
+                       t.completed_at, t.estimated_hours, t.actual_hours, t.tags,
+                       t.department_id, t.created_by, t.assignee_id, t.parent_task_id,
+                       t.archived, t.archived_at, t.archived_by,
+                       t.created_at, t.updated_at, t.deleted_at
                 FROM hr_public.tasks t
                 INNER JOIN hr_public.task_assignees ta ON t.id = ta.task_id
                 WHERE ta.user_id = $1 AND t.deleted_at IS NULL AND ta.deleted_at IS NULL
@@ -1446,11 +1946,12 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             sqlx::query_as::<_, Task>(
                 r#"
-                SELECT id, title, description, status, priority, due_date, start_date,
+                SELECT id, title, description, status, priority, due_date,
                        completed_at, estimated_hours, actual_hours, tags, department_id,
-                       created_by, created_at, updated_at, deleted_at
+                       created_by, assignee_id, parent_task_id, archived, archived_at, archived_by,
+                       created_at, updated_at, deleted_at
                 FROM hr_public.tasks
-                WHERE status = $1 AND deleted_at IS NULL
+                WHERE status = $1
                 ORDER BY priority DESC, created_at DESC
                 LIMIT $2
                 "#,
@@ -1481,11 +1982,12 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             sqlx::query_as::<_, Task>(
                 r#"
-                SELECT id, title, description, status, priority, due_date, start_date,
+                SELECT id, title, description, status, priority, due_date,
                        completed_at, estimated_hours, actual_hours, tags, department_id,
-                       created_by, created_at, updated_at, deleted_at
+                       created_by, assignee_id, parent_task_id, archived, archived_at, archived_by,
+                       created_at, updated_at, deleted_at
                 FROM hr_public.tasks
-                WHERE priority = $1 AND deleted_at IS NULL
+                WHERE priority = $1
                 ORDER BY created_at DESC
                 LIMIT $2
                 "#,
@@ -1516,11 +2018,11 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             sqlx::query_as::<_, Task>(
                 r#"
-                SELECT id, title, description, status, priority, due_date, start_date,
+                SELECT id, title, description, status, priority, due_date,
                        completed_at, estimated_hours, actual_hours, tags, department_id,
-                       created_by, created_at, updated_at, deleted_at
+                       created_by, created_at, updated_at
                 FROM hr_public.tasks
-                WHERE department_id = $1 AND deleted_at IS NULL
+                WHERE department_id = $1 
                 ORDER BY priority DESC, created_at DESC
                 LIMIT $2
                 "#,
@@ -1546,11 +2048,11 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             sqlx::query_as::<_, Task>(
                 r#"
-                SELECT id, title, description, status, priority, due_date, start_date,
+                SELECT id, title, description, status, priority, due_date,
                        completed_at, estimated_hours, actual_hours, tags, department_id,
-                       created_by, created_at, updated_at, deleted_at
+                       created_by, created_at, updated_at
                 FROM hr_public.tasks
-                WHERE deleted_at IS NULL
+                
                   AND due_date < NOW()
                   AND status NOT IN ('done', 'cancelled')
                 ORDER BY due_date ASC
@@ -1575,7 +2077,7 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             let count: (i64,) = if let Some(task_status) = status {
                 sqlx::query_as(
-                    "SELECT COUNT(*) FROM hr_public.tasks WHERE status = $1 AND deleted_at IS NULL",
+                    "SELECT COUNT(*) FROM hr_public.tasks WHERE status = $1 ",
                 )
                 .bind(task_status)
                 .fetch_one(&mut **tx.as_mut())
@@ -1585,7 +2087,7 @@ impl QueryRoot {
                     Error::new("Failed to count tasks")
                 })?
             } else {
-                sqlx::query_as("SELECT COUNT(*) FROM hr_public.tasks WHERE deleted_at IS NULL")
+                sqlx::query_as("SELECT COUNT(*) FROM hr_public.tasks ")
                     .fetch_one(&mut **tx.as_mut())
                     .await
                     .map_err(|e| {
@@ -1611,9 +2113,9 @@ impl QueryRoot {
             sqlx::query_as::<_, TaskAssignee>(
                 r#"
                 SELECT id, task_id, user_id, role, assigned_at, assigned_by,
-                       created_at, updated_at, deleted_at
+                       created_at, updated_at
                 FROM hr_public.task_assignees
-                WHERE id = $1 AND deleted_at IS NULL
+                WHERE id = $1 
                 "#,
             )
             .bind(id)
@@ -1641,9 +2143,9 @@ impl QueryRoot {
             sqlx::query_as::<_, TaskAssignee>(
                 r#"
                 SELECT id, task_id, user_id, role, assigned_at, assigned_by,
-                       created_at, updated_at, deleted_at
+                       created_at, updated_at
                 FROM hr_public.task_assignees
-                WHERE task_id = $1 AND deleted_at IS NULL
+                WHERE task_id = $1 
                 ORDER BY assigned_at ASC
                 LIMIT $2
                 "#,
@@ -1674,9 +2176,9 @@ impl QueryRoot {
             sqlx::query_as::<_, TaskAssignee>(
                 r#"
                 SELECT id, task_id, user_id, role, assigned_at, assigned_by,
-                       created_at, updated_at, deleted_at
+                       created_at, updated_at
                 FROM hr_public.task_assignees
-                WHERE user_id = $1 AND deleted_at IS NULL
+                WHERE user_id = $1 
                 ORDER BY assigned_at DESC
                 LIMIT $2
                 "#,
@@ -1808,9 +2310,9 @@ impl QueryRoot {
             sqlx::query_as::<_, TaskDependency>(
                 r#"
                 SELECT id, task_id, depends_on_task_id, dependency_type, lag_days,
-                       created_by, created_at, updated_at, deleted_at
+                       created_by, created_at, updated_at
                 FROM hr_public.task_dependencies
-                WHERE id = $1 AND deleted_at IS NULL
+                WHERE id = $1 
                 "#,
             )
             .bind(id)
@@ -1838,9 +2340,9 @@ impl QueryRoot {
             sqlx::query_as::<_, TaskDependency>(
                 r#"
                 SELECT id, task_id, depends_on_task_id, dependency_type, lag_days,
-                       created_by, created_at, updated_at, deleted_at
+                       created_by, created_at, updated_at
                 FROM hr_public.task_dependencies
-                WHERE task_id = $1 AND deleted_at IS NULL
+                WHERE task_id = $1 
                 ORDER BY created_at ASC
                 LIMIT $2
                 "#,
@@ -1871,9 +2373,9 @@ impl QueryRoot {
             sqlx::query_as::<_, TaskDependency>(
                 r#"
                 SELECT id, task_id, depends_on_task_id, dependency_type, lag_days,
-                       created_by, created_at, updated_at, deleted_at
+                       created_by, created_at, updated_at
                 FROM hr_public.task_dependencies
-                WHERE depends_on_task_id = $1 AND deleted_at IS NULL
+                WHERE depends_on_task_id = $1 
                 ORDER BY created_at ASC
                 LIMIT $2
                 "#,
@@ -1902,9 +2404,9 @@ impl QueryRoot {
             sqlx::query_as::<_, LinkedResource>(
                 r#"
                 SELECT id, task_id, resource_type, title, url, file_path, file_size,
-                       mime_type, description, uploaded_by, created_at, updated_at, deleted_at
+                       mime_type, description, uploaded_by, created_at, updated_at
                 FROM hr_public.linked_resources
-                WHERE id = $1 AND deleted_at IS NULL
+                WHERE id = $1 
                 "#,
             )
             .bind(id)
@@ -1932,9 +2434,9 @@ impl QueryRoot {
             sqlx::query_as::<_, LinkedResource>(
                 r#"
                 SELECT id, task_id, resource_type, title, url, file_path, file_size,
-                       mime_type, description, uploaded_by, created_at, updated_at, deleted_at
+                       mime_type, description, uploaded_by, created_at, updated_at
                 FROM hr_public.linked_resources
-                WHERE task_id = $1 AND deleted_at IS NULL
+                WHERE task_id = $1 
                 ORDER BY created_at DESC
                 LIMIT $2
                 "#,
@@ -1965,9 +2467,9 @@ impl QueryRoot {
             sqlx::query_as::<_, LinkedResource>(
                 r#"
                 SELECT id, task_id, resource_type, title, url, file_path, file_size,
-                       mime_type, description, uploaded_by, created_at, updated_at, deleted_at
+                       mime_type, description, uploaded_by, created_at, updated_at
                 FROM hr_public.linked_resources
-                WHERE resource_type = $1 AND deleted_at IS NULL
+                WHERE resource_type = $1 
                 ORDER BY created_at DESC
                 LIMIT $2
                 "#,
@@ -1998,9 +2500,9 @@ impl QueryRoot {
             sqlx::query_as::<_, LinkedResource>(
                 r#"
                 SELECT id, task_id, resource_type, title, url, file_path, file_size,
-                       mime_type, description, uploaded_by, created_at, updated_at, deleted_at
+                       mime_type, description, uploaded_by, created_at, updated_at
                 FROM hr_public.linked_resources
-                WHERE uploaded_by = $1 AND deleted_at IS NULL
+                WHERE uploaded_by = $1 
                 ORDER BY created_at DESC
                 LIMIT $2
                 "#,
@@ -2029,9 +2531,9 @@ impl QueryRoot {
             sqlx::query_as::<_, ReviewCycle>(
                 r#"
                 SELECT id, name, description, review_type, start_date, end_date,
-                       status, created_by, created_at, updated_at, deleted_at
+                       status, created_by, created_at, updated_at
                 FROM hr_public.review_cycles
-                WHERE id = $1 AND deleted_at IS NULL
+                WHERE id = $1 
                 "#,
             )
             .bind(id)
@@ -2060,9 +2562,9 @@ impl QueryRoot {
             sqlx::query_as::<_, ReviewCycle>(
                 r#"
                 SELECT id, name, description, review_type, start_date, end_date,
-                       status, created_by, created_at, updated_at, deleted_at
+                       status, created_by, created_at, updated_at
                 FROM hr_public.review_cycles
-                WHERE deleted_at IS NULL
+                
                 ORDER BY start_date DESC
                 LIMIT $1 OFFSET $2
                 "#,
@@ -2093,9 +2595,9 @@ impl QueryRoot {
             sqlx::query_as::<_, ReviewCycle>(
                 r#"
                 SELECT id, name, description, review_type, start_date, end_date,
-                       status, created_by, created_at, updated_at, deleted_at
+                       status, created_by, created_at, updated_at
                 FROM hr_public.review_cycles
-                WHERE review_type = $1 AND deleted_at IS NULL
+                WHERE review_type = $1 
                 ORDER BY start_date DESC
                 LIMIT $2
                 "#,
@@ -2121,9 +2623,9 @@ impl QueryRoot {
             sqlx::query_as::<_, ReviewCycle>(
                 r#"
                 SELECT id, name, description, review_type, start_date, end_date,
-                       status, created_by, created_at, updated_at, deleted_at
+                       status, created_by, created_at, updated_at
                 FROM hr_public.review_cycles
-                WHERE status = 'active' AND deleted_at IS NULL
+                WHERE status = 'active' 
                 ORDER BY start_date DESC
                 LIMIT $1
                 "#,
@@ -2146,7 +2648,7 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             let count: (i64,) = if let Some(cycle_status) = status {
                 sqlx::query_as(
-                    "SELECT COUNT(*) FROM hr_public.review_cycles WHERE status = $1 AND deleted_at IS NULL",
+                    "SELECT COUNT(*) FROM hr_public.review_cycles WHERE status = $1 ",
                 )
                 .bind(cycle_status)
                 .fetch_one(&mut **tx.as_mut())
@@ -2156,7 +2658,7 @@ impl QueryRoot {
                     Error::new("Failed to count review cycles")
                 })?
             } else {
-                sqlx::query_as("SELECT COUNT(*) FROM hr_public.review_cycles WHERE deleted_at IS NULL")
+                sqlx::query_as("SELECT COUNT(*) FROM hr_public.review_cycles ")
                     .fetch_one(&mut **tx.as_mut())
                     .await
                     .map_err(|e| {
@@ -2181,12 +2683,12 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             sqlx::query_as::<_, PerformanceReview>(
                 r#"
-                SELECT id, review_cycle_id, employee_id, reviewer_id, status,
-                       overall_rating, manager_comments, employee_self_review,
-                       strengths, areas_for_improvement, due_date, completed_at,
-                       created_at, updated_at, deleted_at
+                SELECT id, employee_id, reviewer_id, review_period, status,
+                       overall_rating, goals, achievements, areas_for_improvement,
+                       manager_feedback, created_at, updated_at,
+                       review_period_start, review_period_end, review_type, notes
                 FROM hr_public.performance_reviews
-                WHERE id = $1 AND deleted_at IS NULL
+                WHERE id = $1
                 "#,
             )
             .bind(id)
@@ -2214,12 +2716,11 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             sqlx::query_as::<_, PerformanceReview>(
                 r#"
-                SELECT id, review_cycle_id, employee_id, reviewer_id, status,
-                       overall_rating, manager_comments, employee_self_review,
-                       strengths, areas_for_improvement, due_date, completed_at,
-                       created_at, updated_at, deleted_at
+                SELECT id, employee_id, reviewer_id, review_period, status,
+                       overall_rating, goals, achievements, areas_for_improvement,
+                       manager_feedback, created_at, updated_at,
+                       review_period_start, review_period_end, review_type, notes
                 FROM hr_public.performance_reviews
-                WHERE deleted_at IS NULL
                 ORDER BY created_at DESC
                 LIMIT $1 OFFSET $2
                 "#,
@@ -2249,12 +2750,12 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             sqlx::query_as::<_, PerformanceReview>(
                 r#"
-                SELECT id, review_cycle_id, employee_id, reviewer_id, status,
-                       overall_rating, manager_comments, employee_self_review,
-                       strengths, areas_for_improvement, due_date, completed_at,
-                       created_at, updated_at, deleted_at
+                SELECT id, employee_id, reviewer_id, review_period, status,
+                       overall_rating, goals, achievements, areas_for_improvement,
+                       manager_feedback, created_at, updated_at,
+                       review_period_start, review_period_end, review_type, notes
                 FROM hr_public.performance_reviews
-                WHERE review_cycle_id = $1 AND deleted_at IS NULL
+                WHERE review_cycle_id = $1
                 ORDER BY created_at DESC
                 LIMIT $2
                 "#,
@@ -2284,12 +2785,12 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             sqlx::query_as::<_, PerformanceReview>(
                 r#"
-                SELECT id, review_cycle_id, employee_id, reviewer_id, status,
-                       overall_rating, manager_comments, employee_self_review,
-                       strengths, areas_for_improvement, due_date, completed_at,
-                       created_at, updated_at, deleted_at
+                SELECT id, employee_id, reviewer_id, review_period, status,
+                       overall_rating, goals, achievements, areas_for_improvement,
+                       manager_feedback, created_at, updated_at,
+                       review_period_start, review_period_end, review_type, notes
                 FROM hr_public.performance_reviews
-                WHERE employee_id = $1 AND deleted_at IS NULL
+                WHERE employee_id = $1
                 ORDER BY created_at DESC
                 LIMIT $2
                 "#,
@@ -2319,12 +2820,12 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             sqlx::query_as::<_, PerformanceReview>(
                 r#"
-                SELECT id, review_cycle_id, employee_id, reviewer_id, status,
-                       overall_rating, manager_comments, employee_self_review,
-                       strengths, areas_for_improvement, due_date, completed_at,
-                       created_at, updated_at, deleted_at
+                SELECT id, employee_id, reviewer_id, review_period, status,
+                       overall_rating, goals, achievements, areas_for_improvement,
+                       manager_feedback, created_at, updated_at,
+                       review_period_start, review_period_end, review_type, notes
                 FROM hr_public.performance_reviews
-                WHERE reviewer_id = $1 AND deleted_at IS NULL
+                WHERE reviewer_id = $1
                 ORDER BY created_at DESC
                 LIMIT $2
                 "#,
@@ -2349,13 +2850,12 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             sqlx::query_as::<_, PerformanceReview>(
                 r#"
-                SELECT id, review_cycle_id, employee_id, reviewer_id, status,
-                       overall_rating, manager_comments, employee_self_review,
-                       strengths, areas_for_improvement, due_date, completed_at,
-                       created_at, updated_at, deleted_at
+                SELECT id, employee_id, reviewer_id, review_period, status,
+                       overall_rating, goals, achievements, areas_for_improvement,
+                       manager_feedback, created_at, updated_at,
+                       review_period_start, review_period_end, review_type, notes
                 FROM hr_public.performance_reviews
-                WHERE deleted_at IS NULL
-                  AND due_date < NOW()
+                WHERE due_date < NOW()
                   AND status NOT IN ('completed', 'cancelled')
                 ORDER BY due_date ASC
                 LIMIT $1
@@ -2383,7 +2883,7 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             let count: (i64,) = if let Some(review_status) = status {
                 sqlx::query_as(
-                    "SELECT COUNT(*) FROM hr_public.performance_reviews WHERE status = $1 AND deleted_at IS NULL",
+                    "SELECT COUNT(*) FROM hr_public.performance_reviews WHERE status = $1 ",
                 )
                 .bind(review_status)
                 .fetch_one(&mut **tx.as_mut())
@@ -2393,7 +2893,7 @@ impl QueryRoot {
                     Error::new("Failed to count performance reviews")
                 })?
             } else {
-                sqlx::query_as("SELECT COUNT(*) FROM hr_public.performance_reviews WHERE deleted_at IS NULL")
+                sqlx::query_as("SELECT COUNT(*) FROM hr_public.performance_reviews ")
                     .fetch_one(&mut **tx.as_mut())
                     .await
                     .map_err(|e| {
@@ -2419,9 +2919,9 @@ impl QueryRoot {
             sqlx::query_as::<_, ReviewGoal>(
                 r#"
                 SELECT id, performance_review_id, title, description, target_date,
-                       completion_status, weight, created_at, updated_at, deleted_at
+                       completion_status, weight, created_at, updated_at
                 FROM hr_public.review_goals
-                WHERE id = $1 AND deleted_at IS NULL
+                WHERE id = $1 
                 "#,
             )
             .bind(id)
@@ -2449,9 +2949,9 @@ impl QueryRoot {
             sqlx::query_as::<_, ReviewGoal>(
                 r#"
                 SELECT id, performance_review_id, title, description, target_date,
-                       completion_status, weight, created_at, updated_at, deleted_at
+                       completion_status, weight, created_at, updated_at
                 FROM hr_public.review_goals
-                WHERE performance_review_id = $1 AND deleted_at IS NULL
+                WHERE performance_review_id = $1 
                 ORDER BY weight DESC, created_at ASC
                 LIMIT $2
                 "#,
@@ -2480,7 +2980,7 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             let count: (i64,) = if let Some(status) = completion_status {
                 sqlx::query_as(
-                    "SELECT COUNT(*) FROM hr_public.review_goals WHERE performance_review_id = $1 AND completion_status = $2 AND deleted_at IS NULL",
+                    "SELECT COUNT(*) FROM hr_public.review_goals WHERE performance_review_id = $1 AND completion_status = $2 ",
                 )
                 .bind(performance_review_id)
                 .bind(status)
@@ -2492,7 +2992,7 @@ impl QueryRoot {
                 })?
             } else {
                 sqlx::query_as(
-                    "SELECT COUNT(*) FROM hr_public.review_goals WHERE performance_review_id = $1 AND deleted_at IS NULL",
+                    "SELECT COUNT(*) FROM hr_public.review_goals WHERE performance_review_id = $1 ",
                 )
                 .bind(performance_review_id)
                 .fetch_one(&mut **tx.as_mut())
@@ -2520,9 +3020,9 @@ impl QueryRoot {
             sqlx::query_as::<_, ReviewFeedback>(
                 r#"
                 SELECT id, performance_review_id, provider_id, feedback_type,
-                       content, is_visible_to_employee, created_at, updated_at, deleted_at
+                       content, is_visible_to_employee, created_at, updated_at
                 FROM hr_public.review_feedback
-                WHERE id = $1 AND deleted_at IS NULL
+                WHERE id = $1 
                 "#,
             )
             .bind(id)
@@ -2550,9 +3050,9 @@ impl QueryRoot {
             sqlx::query_as::<_, ReviewFeedback>(
                 r#"
                 SELECT id, performance_review_id, provider_id, feedback_type,
-                       content, is_visible_to_employee, created_at, updated_at, deleted_at
+                       content, is_visible_to_employee, created_at, updated_at
                 FROM hr_public.review_feedback
-                WHERE performance_review_id = $1 AND deleted_at IS NULL
+                WHERE performance_review_id = $1 
                 ORDER BY created_at ASC
                 LIMIT $2
                 "#,
@@ -2583,9 +3083,9 @@ impl QueryRoot {
             sqlx::query_as::<_, ReviewFeedback>(
                 r#"
                 SELECT id, performance_review_id, provider_id, feedback_type,
-                       content, is_visible_to_employee, created_at, updated_at, deleted_at
+                       content, is_visible_to_employee, created_at, updated_at
                 FROM hr_public.review_feedback
-                WHERE provider_id = $1 AND deleted_at IS NULL
+                WHERE provider_id = $1 
                 ORDER BY created_at DESC
                 LIMIT $2
                 "#,
@@ -2614,7 +3114,7 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             let count: (i64,) = if let Some(fb_type) = feedback_type {
                 sqlx::query_as(
-                    "SELECT COUNT(*) FROM hr_public.review_feedback WHERE performance_review_id = $1 AND feedback_type = $2 AND deleted_at IS NULL",
+                    "SELECT COUNT(*) FROM hr_public.review_feedback WHERE performance_review_id = $1 AND feedback_type = $2 ",
                 )
                 .bind(performance_review_id)
                 .bind(fb_type)
@@ -2626,7 +3126,7 @@ impl QueryRoot {
                 })?
             } else {
                 sqlx::query_as(
-                    "SELECT COUNT(*) FROM hr_public.review_feedback WHERE performance_review_id = $1 AND deleted_at IS NULL",
+                    "SELECT COUNT(*) FROM hr_public.review_feedback WHERE performance_review_id = $1 ",
                 )
                 .bind(performance_review_id)
                 .fetch_one(&mut **tx.as_mut())
@@ -3703,9 +4203,9 @@ impl QueryRoot {
             sqlx::query_as::<_, Document>(
                 r#"
                 SELECT id, title, description, category_id, file_path, file_size,
-                       mime_type, uploader_id, created_at, updated_at, deleted_at
+                       mime_type, uploader_id, created_at, updated_at
                 FROM hr_public.documents
-                WHERE id = $1 AND deleted_at IS NULL
+                WHERE id = $1 
                 "#,
             )
             .bind(id)
@@ -3734,9 +4234,9 @@ impl QueryRoot {
             sqlx::query_as::<_, Document>(
                 r#"
                 SELECT id, title, description, category_id, file_path, file_size,
-                       mime_type, uploader_id, created_at, updated_at, deleted_at
+                       mime_type, uploader_id, created_at, updated_at
                 FROM hr_public.documents
-                WHERE deleted_at IS NULL
+                
                 ORDER BY created_at DESC
                 LIMIT $1 OFFSET $2
                 "#,
@@ -3767,9 +4267,9 @@ impl QueryRoot {
             sqlx::query_as::<_, Document>(
                 r#"
                 SELECT id, title, description, category_id, file_path, file_size,
-                       mime_type, uploader_id, created_at, updated_at, deleted_at
+                       mime_type, uploader_id, created_at, updated_at
                 FROM hr_public.documents
-                WHERE category_id = $1 AND deleted_at IS NULL
+                WHERE category_id = $1 
                 ORDER BY title ASC
                 LIMIT $2
                 "#,
@@ -3800,9 +4300,9 @@ impl QueryRoot {
             sqlx::query_as::<_, Document>(
                 r#"
                 SELECT id, title, description, category_id, file_path, file_size,
-                       mime_type, uploader_id, created_at, updated_at, deleted_at
+                       mime_type, uploader_id, created_at, updated_at
                 FROM hr_public.documents
-                WHERE uploader_id = $1 AND deleted_at IS NULL
+                WHERE uploader_id = $1 
                 ORDER BY created_at DESC
                 LIMIT $2
                 "#,
@@ -3830,7 +4330,7 @@ impl QueryRoot {
         session.execute(pool, |tx| Box::pin(async move {
             let count: (i64,) = if let Some(cat_id) = category_id {
                 sqlx::query_as(
-                    "SELECT COUNT(*) FROM hr_public.documents WHERE category_id = $1 AND deleted_at IS NULL"
+                    "SELECT COUNT(*) FROM hr_public.documents WHERE category_id = $1 "
                 )
                 .bind(cat_id)
                 .fetch_one(&mut **tx.as_mut())
@@ -3840,7 +4340,7 @@ impl QueryRoot {
                     Error::new("Failed to count documents")
                 })?
             } else {
-                sqlx::query_as("SELECT COUNT(*) FROM hr_public.documents WHERE deleted_at IS NULL")
+                sqlx::query_as("SELECT COUNT(*) FROM hr_public.documents ")
                     .fetch_one(&mut **tx.as_mut())
                     .await
                     .map_err(|e| {
@@ -3990,9 +4490,9 @@ impl QueryRoot {
             sqlx::query_as::<_, DocumentCategory>(
                 r#"
                 SELECT id, name, description, parent_category_id,
-                       created_at, updated_at, deleted_at
+                       created_at, updated_at
                 FROM hr_public.document_categories
-                WHERE id = $1 AND deleted_at IS NULL
+                WHERE id = $1 
                 "#,
             )
             .bind(id)
@@ -4021,9 +4521,9 @@ impl QueryRoot {
             sqlx::query_as::<_, DocumentCategory>(
                 r#"
                 SELECT id, name, description, parent_category_id,
-                       created_at, updated_at, deleted_at
+                       created_at, updated_at
                 FROM hr_public.document_categories
-                WHERE deleted_at IS NULL
+                
                 ORDER BY name ASC
                 LIMIT $1 OFFSET $2
                 "#,
@@ -4054,9 +4554,9 @@ impl QueryRoot {
             sqlx::query_as::<_, DocumentCategory>(
                 r#"
                 SELECT id, name, description, parent_category_id,
-                       created_at, updated_at, deleted_at
+                       created_at, updated_at
                 FROM hr_public.document_categories
-                WHERE parent_category_id = $1 AND deleted_at IS NULL
+                WHERE parent_category_id = $1 
                 ORDER BY name ASC
                 LIMIT $2
                 "#,
@@ -4086,9 +4586,9 @@ impl QueryRoot {
             sqlx::query_as::<_, DocumentCategory>(
                 r#"
                 SELECT id, name, description, parent_category_id,
-                       created_at, updated_at, deleted_at
+                       created_at, updated_at
                 FROM hr_public.document_categories
-                WHERE parent_category_id IS NULL AND deleted_at IS NULL
+                WHERE parent_category_id IS NULL 
                 ORDER BY name ASC
                 LIMIT $1
                 "#,
@@ -4110,7 +4610,7 @@ impl QueryRoot {
 
         session.execute(pool, |tx| Box::pin(async move {
             let count: (i64,) = sqlx::query_as(
-                "SELECT COUNT(*) FROM hr_public.document_categories WHERE deleted_at IS NULL"
+                "SELECT COUNT(*) FROM hr_public.document_categories "
             )
             .fetch_one(&mut **tx.as_mut())
             .await
@@ -4565,8 +5065,9 @@ impl QueryRoot {
 
         let policy = sqlx::query_as::<_, TimeOffPolicy>(
             r#"
-            SELECT id, policy_name, leave_type, accrual_rate, max_balance,
-                   carryover_limit, effective_date, created_at, updated_at
+            SELECT id, name as policy_name, '' as leave_type, 0.0 as accrual_rate,
+                   NULL as max_balance, NULL as carryover_limit,
+                   CURRENT_DATE as effective_date, created_at, updated_at
             FROM hr_public.time_off_policies
             WHERE id = $1
             "#,
@@ -4591,10 +5092,11 @@ impl QueryRoot {
 
         let policies = sqlx::query_as::<_, TimeOffPolicy>(
             r#"
-            SELECT id, policy_name, leave_type, accrual_rate, max_balance,
-                   carryover_limit, effective_date, created_at, updated_at
+            SELECT id, name as policy_name, '' as leave_type, 0.0 as accrual_rate,
+                   NULL as max_balance, NULL as carryover_limit,
+                   CURRENT_DATE as effective_date, created_at, updated_at
             FROM hr_public.time_off_policies
-            ORDER BY effective_date DESC
+            ORDER BY created_at DESC
             LIMIT $1 OFFSET $2
             "#,
         )
@@ -4618,11 +5120,12 @@ impl QueryRoot {
 
         let policies = sqlx::query_as::<_, TimeOffPolicy>(
             r#"
-            SELECT id, policy_name, leave_type, accrual_rate, max_balance,
-                   carryover_limit, effective_date, created_at, updated_at
+            SELECT id, name as policy_name, '' as leave_type, 0.0 as accrual_rate,
+                   NULL as max_balance, NULL as carryover_limit,
+                   CURRENT_DATE as effective_date, created_at, updated_at
             FROM hr_public.time_off_policies
-            WHERE leave_type = $1
-            ORDER BY effective_date DESC
+            WHERE name ILIKE $1 || '%'
+            ORDER BY created_at DESC
             LIMIT $2
             "#,
         )
@@ -4645,11 +5148,11 @@ impl QueryRoot {
 
         let policies = sqlx::query_as::<_, TimeOffPolicy>(
             r#"
-            SELECT id, policy_name, leave_type, accrual_rate, max_balance,
-                   carryover_limit, effective_date, created_at, updated_at
+            SELECT id, name as policy_name, '' as leave_type, 0.0 as accrual_rate,
+                   NULL as max_balance, NULL as carryover_limit,
+                   CURRENT_DATE as effective_date, created_at, updated_at
             FROM hr_public.time_off_policies
-            WHERE effective_date <= CURRENT_DATE
-            ORDER BY effective_date DESC
+            ORDER BY created_at DESC
             LIMIT $1
             "#,
         )
@@ -4670,7 +5173,7 @@ impl QueryRoot {
 
         let count: (i64,) = if let Some(lt) = leave_type {
             sqlx::query_as(
-                "SELECT COUNT(*) FROM hr_public.time_off_policies WHERE leave_type = $1"
+                "SELECT COUNT(*) FROM hr_public.time_off_policies WHERE name ILIKE $1 || '%'"
             )
             .bind(lt)
             .fetch_one(pool)
@@ -4743,7 +5246,7 @@ impl QueryRoot {
     async fn attendance_records_by_employee(
         &self,
         ctx: &Context<'_>,
-        employee_id: Uuid,
+        user_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<AttendanceRecord>> {
         let pool = ctx.data::<DbPool>()?;
@@ -4751,15 +5254,15 @@ impl QueryRoot {
 
         let records = sqlx::query_as::<_, AttendanceRecord>(
             r#"
-            SELECT id, employee_id, date, clock_in, clock_out, total_hours,
+            SELECT id, user_id, date, clock_in, clock_out, hours_worked,
                    status, notes, created_at, updated_at
             FROM hr_public.attendance_records
-            WHERE employee_id = $1
+            WHERE user_id = $1
             ORDER BY date DESC
             LIMIT $2
             "#,
         )
-        .bind(employee_id)
+        .bind(user_id)
         .bind(limit)
         .fetch_all(pool)
         .await?;
@@ -5328,8 +5831,8 @@ impl QueryRoot {
 
         let log = sqlx::query_as::<_, ActivityLog>(
             r#"
-            SELECT id, user_id, action_type, resource_type, resource_id,
-                   details, ip_address, user_agent, created_at
+            SELECT id, user_id, employee_id, action, resource_type, resource_id,
+                   details, created_at
             FROM hr_public.activity_logs
             WHERE id = $1
             "#,
@@ -5354,8 +5857,8 @@ impl QueryRoot {
 
         let logs = sqlx::query_as::<_, ActivityLog>(
             r#"
-            SELECT id, user_id, action_type, resource_type, resource_id,
-                   details, ip_address, user_agent, created_at
+            SELECT id, user_id, employee_id, action, resource_type, resource_id,
+                   details, created_at
             FROM hr_public.activity_logs
             ORDER BY created_at DESC
             LIMIT $1 OFFSET $2
@@ -5381,8 +5884,8 @@ impl QueryRoot {
 
         let logs = sqlx::query_as::<_, ActivityLog>(
             r#"
-            SELECT id, user_id, action_type, resource_type, resource_id,
-                   details, ip_address, user_agent, created_at
+            SELECT id, user_id, employee_id, action, resource_type, resource_id,
+                   details, created_at
             FROM hr_public.activity_logs
             WHERE user_id = $1
             ORDER BY created_at DESC
@@ -5657,8 +6160,8 @@ impl QueryRoot {
 
         let report = sqlx::query_as::<_, HRReport>(
             r#"
-            SELECT id, report_name, report_type, report_data,
-                   generator_id, generated_at
+            SELECT id, title, report_type, data,
+                   creator_id, generated_at
             FROM hr_public.hr_reports
             WHERE id = $1
             "#,
@@ -5683,8 +6186,8 @@ impl QueryRoot {
 
         let reports = sqlx::query_as::<_, HRReport>(
             r#"
-            SELECT id, report_name, report_type, report_data,
-                   generator_id, generated_at
+            SELECT id, title, report_type, data,
+                   creator_id, generated_at
             FROM hr_public.hr_reports
             ORDER BY generated_at DESC
             LIMIT $1 OFFSET $2
@@ -5710,8 +6213,8 @@ impl QueryRoot {
 
         let reports = sqlx::query_as::<_, HRReport>(
             r#"
-            SELECT id, report_name, report_type, report_data,
-                   generator_id, generated_at
+            SELECT id, title, report_type, data,
+                   creator_id, generated_at
             FROM hr_public.hr_reports
             WHERE report_type = $1
             ORDER BY generated_at DESC
@@ -5738,10 +6241,10 @@ impl QueryRoot {
 
         let reports = sqlx::query_as::<_, HRReport>(
             r#"
-            SELECT id, report_name, report_type, report_data,
-                   generator_id, generated_at
+            SELECT id, title, report_type, data,
+                   creator_id, generated_at
             FROM hr_public.hr_reports
-            WHERE generator_id = $1
+            WHERE creator_id = $1
             ORDER BY generated_at DESC
             LIMIT $2
             "#,

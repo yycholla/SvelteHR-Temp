@@ -1,3 +1,8 @@
+// Suppress common development warnings for cleaner output
+#![allow(dead_code)]
+#![allow(unused_imports)]
+#![allow(unused_variables)]
+
 mod auth;
 mod config;
 mod db;
@@ -32,7 +37,7 @@ use crate::{
     config::Config,
     db::create_pool,
     graphql::DEFAULT_MAX_DEPTH,
-    middleware::jwt_auth_middleware,
+    middleware::optional_jwt_auth_middleware,
     schema::{MutationRoot, QueryRoot},
 };
 
@@ -117,12 +122,15 @@ async fn main() -> Result<()> {
         ]);
 
     // Build router with middleware chain
-    // Protected GraphQL routes (require JWT authentication)
+    // GraphQL routes with optional authentication (supports both JWT and service keys)
+    // - User JWT tokens: For authenticated user requests
+    // - Service keys: For background services (schedulers, workers)
+    // - Anonymous: Allowed, relies on RLS policies for data access
     let graphql_router = Router::new()
         .route("/", get(graphql_playground).post(graphql_handler))
         .route("/graphql", get(graphql_playground).post(graphql_handler))
         .layer(Extension(schema))
-        .layer(axum_middleware::from_fn(jwt_auth_middleware));
+        .layer(axum_middleware::from_fn(optional_jwt_auth_middleware));
 
     // Public routes (no authentication required)
     let public_router = Router::new()

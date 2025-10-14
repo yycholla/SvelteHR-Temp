@@ -1,29 +1,41 @@
-# Multi-stage build for optimal size
-FROM rust:1.90-slim as builder
+# Stage 1: Base chef image with cargo-chef installed
+FROM rust:1.90-slim AS chef
 
-# Install build dependencies
-RUN apt-get update && apt-get install -y \
-    pkg-config \
-    libssl-dev \
-    && rm -rf /var/lib/apt/lists/*
+# Install cargo-chef
+RUN cargo install cargo-chef
 
 WORKDIR /app
 
-# Copy manifests
-COPY Cargo.toml Cargo.lock ./
+# Stage 2: Planner - generates recipe.json from project dependencies
+FROM chef AS planner
 
-# Create dummy source to cache dependencies
-RUN mkdir src && \
-    echo "fn main() {}" > src/main.rs && \
-    cargo build --release && \
-    rm -rf src
+# Copy entire project to analyze dependencies
+COPY . .
 
-# Copy actual source
-COPY src ./src
+# Generate dependency recipe
+RUN cargo chef prepare --recipe-path recipe.json
 
-# Build for release
-RUN touch src/main.rs && \
-    cargo build --release
+# Stage 3: Builder - builds dependencies then application
+FROM chef AS builder
+
+# Install build dependencies including mold linker for faster linking
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    mold \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy dependency recipe from planner
+COPY --from=planner /app/recipe.json recipe.json
+
+# Build dependencies (this layer will be cached unless dependencies change)
+RUN cargo chef cook --release --recipe-path recipe.json
+
+# Copy actual source code
+COPY . .
+
+# Build application (only rebuilds if source changed)
+RUN cargo build --release
 
 # Runtime stage
 FROM debian:bookworm-slim

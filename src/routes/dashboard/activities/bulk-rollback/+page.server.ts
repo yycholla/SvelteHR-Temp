@@ -20,7 +20,10 @@ export const load: PageServerLoad = async (event) => {
 		throw redirect(303, `/login?redirectTo=${encodeURIComponent(url.pathname)}`);
 	}
 
-	if (locals.user.role !== 'super_admin') {
+	const userPermissions = locals.permissions || [];
+	const isSuperAdmin = userPermissions.includes('*') || userPermissions.includes('admin:super');
+
+	if (!isSuperAdmin) {
 		throw error(403, {
 			message: 'Access denied. Only super_admin can perform bulk rollback operations.'
 		});

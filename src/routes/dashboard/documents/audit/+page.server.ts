@@ -13,9 +13,13 @@ export const load: PageServerLoad = async ({ url, locals, fetch }) => {
 
 	const userId = locals.user.id;
 	const userRole = locals.user.role || 'employee';
+	const userPermissions = locals.permissions || [];
 
-	// Step 2: Check user permissions - only admin and super_admin can access audit logs
-	const canAccessAuditLog = userRole === 'super_admin' || userRole === 'admin';
+	// Step 2: Check user permissions - users with audit log permissions can access
+	const canAccessAuditLog =
+		userPermissions.includes('*') ||
+		userPermissions.includes('documents:audit') ||
+		userPermissions.includes('audit:read');
 
 	if (!canAccessAuditLog) {
 		throw error(403, {
@@ -54,25 +58,23 @@ export const load: PageServerLoad = async ({ url, locals, fetch }) => {
 			}
 
 			if (accessType) {
-				conditions.push(`dal.access_type = $${paramIndex++}`);
+				conditions.push(`dal.action = $${paramIndex++}`);
 				params.push(accessType);
 			}
 
 			if (dateFrom) {
-				conditions.push(`dal.access_timestamp >= $${paramIndex++}`);
+				conditions.push(`dal.accessed_at >= $${paramIndex++}`);
 				params.push(new Date(dateFrom));
 			}
 
 			if (dateTo) {
 				const endDate = new Date(dateTo);
 				endDate.setHours(23, 59, 59, 999); // End of day
-				conditions.push(`dal.access_timestamp <= $${paramIndex++}`);
+				conditions.push(`dal.accessed_at <= $${paramIndex++}`);
 				params.push(endDate);
 			}
 
-			const whereClause = conditions.length > 0
-				? `WHERE ${conditions.join(' AND ')}`
-				: '';
+			const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
 			// Get total count
 			const countResult = await client.query(
@@ -93,20 +95,18 @@ export const load: PageServerLoad = async ({ url, locals, fetch }) => {
 					dal.id,
 					dal.document_id,
 					dal.user_id,
-					dal.access_type,
-					dal.access_timestamp,
-					dal.access_outcome,
+					dal.action,
+					dal.accessed_at,
 					dal.ip_address,
 					dal.user_agent,
-					dal.denial_reason,
 					u.email as user_email,
-					d.filename as document_filename,
-					d.file_type as document_type
+					d.title as document_title,
+					d.mime_type as document_type
 				 FROM hr_public.document_access_logs dal
 				 LEFT JOIN hr_public.users u ON dal.user_id = u.id
 				 LEFT JOIN hr_public.documents d ON dal.document_id = d.id
 				 ${whereClause}
-				 ORDER BY dal.access_timestamp DESC
+				 ORDER BY dal.accessed_at DESC
 				 LIMIT $${paramIndex++} OFFSET $${paramIndex++}`,
 				params
 			);
@@ -131,9 +131,8 @@ export const load: PageServerLoad = async ({ url, locals, fetch }) => {
 				dateTo
 			},
 			user: locals.user,
-			userRole
+			userPermissions
 		};
-
 	} catch (err) {
 		console.error('Audit log load error:', err);
 

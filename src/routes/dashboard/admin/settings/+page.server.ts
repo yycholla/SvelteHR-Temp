@@ -23,9 +23,7 @@ export const load: PageServerLoad = async ({ locals, parent, cookies }) => {
 		// Note: This is a placeholder - actual system settings would depend on your schema
 		const settingsQuery = `
 			query GetSystemSettings {
-				allDepartments {
-					totalCount
-				}
+				departmentsCount
 				allUsers {
 					totalCount
 				}
@@ -70,7 +68,7 @@ export const load: PageServerLoad = async ({ locals, parent, cookies }) => {
 				maxRequestsPerMinute: 60
 			},
 			stats: {
-				totalDepartments: result.data?.allDepartments?.totalCount || 0,
+				totalDepartments: result.data?.departmentsCount || 0,
 				totalUsers: result.data?.allUsers?.totalCount || 0,
 				totalRoles: result.data?.allUserRoleAssignments?.totalCount || 0
 			}

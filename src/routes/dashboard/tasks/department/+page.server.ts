@@ -30,9 +30,13 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	};
 
 	// Check if user has manager or higher privileges
-	const roleLevel = getRoleLevel(locals.user.role);
-	if (roleLevel < 60) {
-		// Employee level (20) and below cannot access department tasks
+	const userPermissions = locals.permissions || [];
+	const hasManagerAccess =
+		userPermissions.includes('*') ||
+		userPermissions.includes('tasks:department') ||
+		userPermissions.includes('management:read');
+
+	if (!hasManagerAccess) {
 		throw error(403, {
 			message: 'Access denied. Manager privileges required to view department tasks.'
 		});
@@ -68,8 +72,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		}
 
 		// For admins without department, show message prompting to select department
-		// We'll still allow the page to load but with empty task list
-		const isAdmin = roleLevel >= 80;
+
+		const isAdmin = userPermissions.includes('*') || userPermissions.includes('admin:read');
 		if (!selectedDepartmentId && !isAdmin) {
 			throw error(400, {
 				message:
@@ -120,18 +124,16 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			try {
 				const departmentsQuery = `
 					query GetAllDepartments {
-						allDepartments(orderBy: NAME_ASC) {
-							nodes {
-								id
-								name
-							}
+						departments(orderBy: NAME_ASC) {
+							id
+							name
 						}
 					}
 				`;
 				const deptResult = await urqlClient.query(departmentsQuery, {}).toPromise();
 
-				if (deptResult.data?.allDepartments?.nodes) {
-					managedDepartments = deptResult.data.allDepartments.nodes;
+				if (deptResult.data?.departments) {
+					managedDepartments = deptResult.data.departments;
 				}
 			} catch (err) {
 				console.error('Error fetching departments for admin:', err);
@@ -175,7 +177,9 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			},
 			managedDepartments,
 			selectedDepartment: selectedDepartmentId
-				? managedDepartments.find((d) => d.id === selectedDepartmentId) || managedDepartments[0] || null
+				? managedDepartments.find((d) => d.id === selectedDepartmentId) ||
+					managedDepartments[0] ||
+					null
 				: null,
 			showDepartmentSelector,
 			isAdmin,

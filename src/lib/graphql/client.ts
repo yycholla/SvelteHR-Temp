@@ -15,39 +15,74 @@ import { createPerformanceExchange } from '$lib/performance/graphql-performance-
  * - Retry logic and rate limiting
  */
 
-// Default GraphQL endpoint for browser (Rust GraphQL API)
-const DEFAULT_GRAPHQL_URL = 'http://localhost:4001/graphql';
-const GRAPHQL_WS_URL = 'ws://localhost:4001/graphql'; // WebSocket endpoint for subscriptions
+// Default GraphQL endpoint for browser (Rust GraphQL API with JWT authentication)
+const DEFAULT_GRAPHQL_URL = 'http://localhost:4000/graphql';
+const GRAPHQL_WS_URL = 'ws://localhost:4000/graphql'; // WebSocket endpoint for subscriptions
 
-// WebSocket subscriptions are disabled for PostGraphile (doesn't support WebSockets by default)
-
-// Note: PostGraphile doesn't support WebSocket subscriptions out of the box
-// Enable this only if you have added WebSocket support to your PostGraphile setup
-// if (browser) {
-//   wsClient = createWSClient({
-//     url: POSTGRAPHILE_GRAPHQL_WS_URL,
-//     connectionParams: () => {
-//       const token = localStorage.getItem('auth-token');
-//       return token ? {
-//         Authorization: `Bearer ${token}`
-//       } : {};
-//     },
-//     shouldRetry: () => true,
-//   });
-// }
+// Rust GraphQL server uses Guard-based authorization with JWT Bearer tokens
+// All GraphQL queries require authentication via Authorization: Bearer <token> header
 
 // Authentication state management for PostGraphile JWT
 interface AuthState {
 	token: string | null;
 }
 
+// JWT expiration checker
+let expirationCheckInterval: NodeJS.Timeout | null = null;
+
+const startExpirationCheck = () => {
+	if (!browser || expirationCheckInterval) return;
+
+	expirationCheckInterval = setInterval(() => {
+		const token = getAuthState().token;
+		if (!token) return;
+
+		try {
+			// Parse JWT to check expiration
+			const [, payload] = token.split('.');
+			const decodedPayload = JSON.parse(atob(payload));
+			const currentTime = Math.floor(Date.now() / 1000);
+
+			if (decodedPayload.exp && decodedPayload.exp <= currentTime) {
+				console.log('⏰ JWT token expired, redirecting to login');
+				setAuthState({ token: null });
+				localStorage.removeItem('postgraphile-jwt-token');
+
+				if (!window.location.pathname.includes('/login')) {
+					goto('/login?returnUrl=' + encodeURIComponent(window.location.pathname));
+				}
+			}
+		} catch (error) {
+			console.error('Error checking JWT expiration:', error);
+		}
+	}, 30000); // Check every 30 seconds
+};
+
+const stopExpirationCheck = () => {
+	if (expirationCheckInterval) {
+		clearInterval(expirationCheckInterval);
+		expirationCheckInterval = null;
+	}
+};
+
 const getAuthState = (): AuthState => {
 	if (!browser) {
 		return { token: null };
 	}
 
-	// Get JWT token from localStorage
-	const token = localStorage.getItem('postgraphile-jwt-token');
+	// Get JWT token from localStorage or cookies (Rust server uses hr_token cookie)
+	// Try localStorage first for backwards compatibility, then check cookies
+	let token = localStorage.getItem('postgraphile-jwt-token');
+
+	// If no token in localStorage, try to get from cookie
+	if (!token && document.cookie) {
+		const cookies = document.cookie.split(';').map((c) => c.trim());
+		const hrTokenCookie = cookies.find((c) => c.startsWith('hr_token='));
+		if (hrTokenCookie) {
+			token = hrTokenCookie.split('=')[1];
+		}
+	}
+
 	return { token };
 };
 
@@ -81,22 +116,27 @@ const validateTokenViaAPI = async () => {
 // Error exchange for handling GraphQL errors
 const customErrorExchange = errorExchange({
 	onError: (error, operation) => {
-		// Handle authentication errors
-		if (error.graphQLErrors.some((e) => e.extensions?.code === 'UNAUTHENTICATED')) {
-			console.warn('GraphQL UNAUTHENTICATED error:', error.graphQLErrors);
+		// Handle authentication errors (including expired tokens)
+		if (
+			error.graphQLErrors.some(
+				(e) =>
+					e.extensions?.code === 'UNAUTHENTICATED' ||
+					e.message?.includes('expired') ||
+					e.message?.includes('invalid')
+			)
+		) {
+			console.warn('GraphQL authentication error (token expired/invalid):', error.graphQLErrors);
 
-			// Only redirect if we're not already on a login/auth related page
-			// This prevents redirect loops when the user is already authenticated
-			if (
-				browser &&
-				!window.location.pathname.includes('/login') &&
-				!window.location.pathname.includes('/admin')
-			) {
-				console.log('🔴 REDIRECT: GraphQL client UNAUTHENTICATED error calling goto("/login")');
+			// Clear invalid token and redirect to login
+			if (browser) {
+				console.log('🔴 REDIRECT: Token expired/invalid, clearing auth and redirecting to login');
 				setAuthState({ token: null });
-				goto('/login?returnUrl=' + encodeURIComponent(window.location.pathname));
-			} else {
-				console.log('Not redirecting - already on auth-related page or admin page');
+				localStorage.removeItem('postgraphile-jwt-token');
+
+				// Only redirect if we're not already on a login/auth related page
+				if (!window.location.pathname.includes('/login')) {
+					goto('/login?returnUrl=' + encodeURIComponent(window.location.pathname));
+				}
 			}
 		}
 
@@ -126,38 +166,52 @@ const customErrorExchange = errorExchange({
 	}
 });
 
-// Auth exchange configuration for PostGraphile
-const authConfig = authExchange(async (utils) => {
-	return {
-		addAuthToOperation(operation) {
-			const authState = getAuthState();
-			if (!authState.token) return operation;
+// Auth exchange configuration factory (creates auth exchange with server-side token support)
+const createAuthExchange = (serverSideToken?: string) => {
+	return authExchange(async (utils) => {
+		return {
+			addAuthToOperation(operation) {
+				// On server-side, use the provided token parameter
+				// On client-side, get token from localStorage/cookies
+				let token: string | null = null;
 
-			return utils.appendHeaders(operation, {
-				Authorization: `Bearer ${authState.token}`
-			});
-		},
+				if (!browser && serverSideToken) {
+					// Server-side: use token passed to createUrqlClient
+					token = serverSideToken;
+				} else {
+					// Client-side: get from storage
+					const authState = getAuthState();
+					token = authState.token;
+				}
 
-		didAuthError(error) {
-			return error.graphQLErrors.some((e) => e.extensions?.code === 'UNAUTHENTICATED');
-		},
+				if (!token) return operation;
 
-		async refreshAuth() {
-			// With PostGraphile, JWT tokens are self-contained and don't refresh
-			// If authentication fails, clear token and redirect to login
-			setAuthState({ token: null });
-			if (browser) {
-				console.log('🔴 REDIRECT: GraphQL client refreshAuth function calling goto("/login")');
-				goto('/login');
+				return utils.appendHeaders(operation, {
+					Authorization: `Bearer ${token}`
+				});
+			},
+
+			didAuthError(error) {
+				return error.graphQLErrors.some((e) => e.extensions?.code === 'UNAUTHENTICATED');
+			},
+
+			async refreshAuth() {
+				// With PostGraphile, JWT tokens are self-contained and don't refresh
+				// If authentication fails, clear token and redirect to login
+				setAuthState({ token: null });
+				if (browser) {
+					console.log('🔴 REDIRECT: GraphQL client refreshAuth function calling goto("/login")');
+					goto('/login');
+				}
+			},
+
+			willAuthError() {
+				// Let PostGraphile handle JWT validation
+				return false;
 			}
-		},
-
-		willAuthError() {
-			// Let PostGraphile handle JWT validation
-			return false;
-		}
-	};
-});
+		};
+	});
+};
 
 // Retry exchange configuration
 const retryConfig = retryExchange({
@@ -204,7 +258,7 @@ export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string, url
 		cacheExchange,
 		customErrorExchange,
 		retryConfig,
-		authConfig,
+		createAuthExchange(authToken), // Pass authToken for server-side support
 		createPerformanceExchange({
 			enabled: true,
 			trackAllOperations: true,
@@ -276,6 +330,7 @@ export const setJwtToken = (jwtToken: string) => {
 
 export const clearAuthTokens = () => {
 	setAuthState({ token: null });
+	stopExpirationCheck();
 
 	// Dispose WebSocket connection (disabled for PostGraphile)
 	// if (browser && wsClient) {
@@ -362,3 +417,13 @@ export const executeMutation = async (client: Client, mutation: string, variable
 export const executeSubscription = (client: Client, subscription: string, variables?: any) => {
 	return client.subscription(subscription, variables);
 };
+
+// Start JWT expiration checking
+if (browser) {
+	startExpirationCheck();
+}
+
+// Start JWT expiration checking
+if (browser) {
+	startExpirationCheck();
+}

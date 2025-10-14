@@ -75,13 +75,14 @@ export const load: PageServerLoad = async (event) => {
 		if (!isAdmin && userSession.roles.includes('manager')) {
 			const deptResponse = await fetch(graphqlEndpoint, {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers,
 				body: JSON.stringify({
 					query: `
 						query GetManagerDepartment($userId: UUID!) {
-							userById(id: $userId) {
+							users(filter: { id: { equalTo: $userId } }) {
 								id
-								departmentByDepartmentId {
+								departmentId
+								department {
 									id
 									name
 									managerId
@@ -94,7 +95,7 @@ export const load: PageServerLoad = async (event) => {
 			});
 
 			const deptData = await deptResponse.json();
-			const userDept = deptData?.data?.userById?.departmentByDepartmentId;
+			const userDept = deptData?.data?.users?.[0]?.department;
 
 			// Only set managedDepartmentId if user is actually the manager of their department
 			if (userDept && userDept.managerId === userSession.userId) {
@@ -102,7 +103,7 @@ export const load: PageServerLoad = async (event) => {
 			}
 		}
 
-		// Build GraphQL query for departments (teams)
+		// Build GraphQL query for departments (teams) using Rust GraphQL server schema
 		// Determine department filter
 		let filterDepartmentId: string | undefined = undefined;
 		if (parentFilter) {
@@ -111,52 +112,49 @@ export const load: PageServerLoad = async (event) => {
 			filterDepartmentId = managedDepartmentId;
 		}
 
+		// Get JWT token from cookies for Rust GraphQL server authentication
+		const jwtToken = cookies.get('hr_token') || '';
+
+		// Headers with JWT Bearer token for Rust server authorization
+		const headers: Record<string, string> = {
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${jwtToken}`
+		};
+
 		// Fetch departments (teams) data
 		// Build query based on whether we're filtering by department
 		const query = filterDepartmentId
 			? `
 				query GetDepartments($limit: Int!, $offset: Int!, $departmentId: UUID!) {
-					allDepartments(first: $limit, offset: $offset, condition: { id: $departmentId }) {
-						nodes {
+					departments(limit: $limit, offset: $offset, filter: { id: { equalTo: $departmentId } }) {
+						id
+						name
+						description
+						managerId
+						createdAt
+						updatedAt
+						userByManagerId {
 							id
-							name
-							description
-							managerId
-							createdAt
-							updatedAt
-							userByManagerId {
-								id
-								displayName
-								email
-							}
-							usersByDepartmentId {
-								totalCount
-							}
+							displayName
+							email
 						}
-						totalCount
 					}
 				}
 			`
 			: `
 				query GetDepartments($limit: Int!, $offset: Int!) {
-					allDepartments(first: $limit, offset: $offset) {
-						nodes {
+					departments(limit: $limit, offset: $offset) {
+						id
+						name
+						description
+						managerId
+						createdAt
+						updatedAt
+						userByManagerId {
 							id
-							name
-							description
-							managerId
-							createdAt
-							updatedAt
-							userByManagerId {
-								id
-								displayName
-								email
-							}
-							usersByDepartmentId {
-								totalCount
-							}
+							displayName
+							email
 						}
-						totalCount
 					}
 				}
 			`;
@@ -174,7 +172,7 @@ export const load: PageServerLoad = async (event) => {
 
 		const teamsResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
+			headers,
 			body: JSON.stringify({
 				query,
 				variables
@@ -188,20 +186,17 @@ export const load: PageServerLoad = async (event) => {
 		console.log('[Teams Page] Filter Department ID:', filterDepartmentId);
 		console.log('[Teams Page] Is Admin:', isAdmin);
 
-		const departments = teamsData?.data?.allDepartments?.nodes || [];
-		const totalCount = teamsData?.data?.allDepartments?.totalCount || 0;
+		// Extract data from Rust GraphQL server response (direct array, no nodes wrapper)
+		const departments = teamsData?.data?.departments || [];
+		const totalCount = departments.length; // Rust server doesn't provide totalCount in this format
 
 		console.log('[Teams Page] Departments found:', departments.length);
 		console.log('[Teams Page] Total count:', totalCount);
 
-		// Calculate team statistics
-		const totalEmployees = departments.reduce(
-			(sum: number, dept: any) => sum + (dept.usersByDepartmentId?.totalCount || 0),
-			0
-		);
+		// Calculate team statistics (employee counts not available in current Rust GraphQL schema)
+		const totalEmployees = 0; // TODO: Implement separate query for employee counts per department
 		const teamsWithHeads = departments.filter((dept: any) => dept.managerId).length;
-		const averageTeamSize =
-			departments.length > 0 ? Math.round(totalEmployees / departments.length) : 0;
+		const averageTeamSize = 0; // TODO: Calculate when employee counts are available
 
 		// Return server-side loaded data
 		// Get standardized user permissions
@@ -223,7 +218,7 @@ export const load: PageServerLoad = async (event) => {
 					: null,
 				parentDepartment: null, // Not available in current schema
 				employees: {
-					totalCount: dept.usersByDepartmentId?.totalCount || 0
+					totalCount: 0 // TODO: Implement separate query for employee counts
 				},
 				subDepartments: {
 					totalCount: 0 // Not available in current schema

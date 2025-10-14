@@ -23,20 +23,21 @@ pub enum PerformanceReviewStatus {
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct PerformanceReview {
     pub id: Uuid,
-    pub review_cycle_id: Uuid,
     pub employee_id: Uuid,
     pub reviewer_id: Uuid,
+    pub review_period: String,
     pub status: PerformanceReviewStatus,
     pub overall_rating: Option<Decimal>,
-    pub manager_comments: Option<String>,
-    pub employee_self_review: Option<String>,
-    pub strengths: Option<String>,
+    pub goals: Option<String>,
+    pub achievements: Option<String>,
     pub areas_for_improvement: Option<String>,
-    pub due_date: Option<DateTime<Utc>>,
-    pub completed_at: Option<DateTime<Utc>>,
+    pub manager_feedback: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    pub deleted_at: Option<DateTime<Utc>>,
+    pub review_period_start: Option<chrono::NaiveDate>,
+    pub review_period_end: Option<chrono::NaiveDate>,
+    pub review_type: Option<String>,
+    pub notes: Option<String>,
 }
 
 /// GraphQL Object implementation for PerformanceReview
@@ -45,11 +46,6 @@ impl PerformanceReview {
     /// Unique performance review identifier
     async fn id(&self) -> Uuid {
         self.id
-    }
-
-    /// Review cycle ID (foreign key)
-    async fn review_cycle_id(&self) -> Uuid {
-        self.review_cycle_id
     }
 
     /// Employee being reviewed
@@ -62,6 +58,11 @@ impl PerformanceReview {
         self.reviewer_id
     }
 
+    /// Review period (e.g., "2025-Q1", "2025-Annual")
+    async fn review_period(&self) -> &str {
+        &self.review_period
+    }
+
     /// Current status of the review
     async fn status(&self) -> PerformanceReviewStatus {
         self.status
@@ -72,19 +73,14 @@ impl PerformanceReview {
         self.overall_rating.map(|d| d.to_string())
     }
 
-    /// Manager's comments
-    async fn manager_comments(&self) -> Option<&str> {
-        self.manager_comments.as_deref()
+    /// Goals text
+    async fn goals(&self) -> Option<&str> {
+        self.goals.as_deref()
     }
 
-    /// Employee's self-review
-    async fn employee_self_review(&self) -> Option<&str> {
-        self.employee_self_review.as_deref()
-    }
-
-    /// Employee strengths identified
-    async fn strengths(&self) -> Option<&str> {
-        self.strengths.as_deref()
+    /// Achievements text
+    async fn achievements(&self) -> Option<&str> {
+        self.achievements.as_deref()
     }
 
     /// Areas for improvement
@@ -92,14 +88,29 @@ impl PerformanceReview {
         self.areas_for_improvement.as_deref()
     }
 
-    /// Review due date
-    async fn due_date(&self) -> Option<DateTime<Utc>> {
-        self.due_date
+    /// Manager's feedback
+    async fn manager_feedback(&self) -> Option<&str> {
+        self.manager_feedback.as_deref()
     }
 
-    /// Completion timestamp
-    async fn completed_at(&self) -> Option<DateTime<Utc>> {
-        self.completed_at
+    /// Review period start date
+    async fn review_period_start(&self) -> Option<chrono::NaiveDate> {
+        self.review_period_start
+    }
+
+    /// Review period end date
+    async fn review_period_end(&self) -> Option<chrono::NaiveDate> {
+        self.review_period_end
+    }
+
+    /// Review type (annual, quarterly, probationary, etc.)
+    async fn review_type(&self) -> Option<&str> {
+        self.review_type.as_deref()
+    }
+
+    /// Additional notes
+    async fn notes(&self) -> Option<&str> {
+        self.notes.as_deref()
     }
 
     /// Record creation timestamp
@@ -112,44 +123,18 @@ impl PerformanceReview {
         self.updated_at
     }
 
-    /// Soft delete timestamp (NULL if not deleted)
-    async fn deleted_at(&self) -> Option<DateTime<Utc>> {
-        self.deleted_at
-    }
-
-    /// Review cycle this review belongs to
-    async fn review_cycle(
-        &self,
-        ctx: &Context<'_>,
-    ) -> GqlResult<Option<super::review_cycle::ReviewCycle>> {
-        let pool = ctx.data::<PgPool>()?;
-
-        let cycle = sqlx::query_as::<_, super::review_cycle::ReviewCycle>(
-            r#"
-            SELECT id, name, description, review_type, start_date, end_date,
-                   status, created_by, created_at, updated_at, deleted_at
-            FROM hr_public.review_cycles
-            WHERE id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.review_cycle_id)
-        .fetch_optional(pool)
-        .await?;
-
-        Ok(cycle)
-    }
-
     /// Employee being reviewed
-    async fn employee(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::User>> {
+    async fn user_by_employee_id(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::User>> {
         let pool = ctx.data::<PgPool>()?;
 
         let user = sqlx::query_as::<_, super::user::User>(
             r#"
-            SELECT id, email, first_name, last_name, full_name, phone,
-                   department_id, manager_id, hire_date, termination_date,
-                   status, created_at, updated_at, deleted_at
+            SELECT id, email, first_name, last_name, display_name, full_name, role,
+                   phone_number, alternate_phone, job_title, status,
+                   department_id, manager_id, hire_date,
+                   is_active, created_at, updated_at
             FROM hr_public.users
-            WHERE id = $1 AND deleted_at IS NULL
+            WHERE id = $1 AND is_active = true
             "#,
         )
         .bind(self.employee_id)
@@ -160,16 +145,17 @@ impl PerformanceReview {
     }
 
     /// Reviewer (manager conducting the review)
-    async fn reviewer(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::User>> {
+    async fn user_by_reviewer_id(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::User>> {
         let pool = ctx.data::<PgPool>()?;
 
         let user = sqlx::query_as::<_, super::user::User>(
             r#"
-            SELECT id, email, first_name, last_name, full_name, phone,
-                   department_id, manager_id, hire_date, termination_date,
-                   status, created_at, updated_at, deleted_at
+            SELECT id, email, first_name, last_name, display_name, full_name, role,
+                   phone_number, alternate_phone, job_title, status,
+                   department_id, manager_id, hire_date,
+                   is_active, created_at, updated_at
             FROM hr_public.users
-            WHERE id = $1 AND deleted_at IS NULL
+            WHERE id = $1 AND is_active = true
             "#,
         )
         .bind(self.reviewer_id)
@@ -184,161 +170,18 @@ impl PerformanceReview {
         self.status == PerformanceReviewStatus::Completed
     }
 
-    /// Whether the review is overdue
-    async fn is_overdue(&self) -> bool {
-        if let Some(due) = self.due_date {
-            if self.status != PerformanceReviewStatus::Completed {
-                return Utc::now() > due;
-            }
-        }
-        false
-    }
-
-    /// Whether employee self-review is complete
-    async fn has_self_review(&self) -> bool {
-        self.employee_self_review.is_some()
-    }
-
     /// Whether manager review is complete
     async fn has_manager_review(&self) -> bool {
-        self.manager_comments.is_some() && self.overall_rating.is_some()
-    }
-
-    /// Days until due (negative if overdue)
-    async fn days_until_due(&self) -> Option<i64> {
-        self.due_date.map(|due| (due - Utc::now()).num_days())
-    }
-
-    /// Goals associated with this review
-    async fn goals(&self, ctx: &Context<'_>) -> GqlResult<Vec<super::review_goal::ReviewGoal>> {
-        let pool = ctx.data::<PgPool>()?;
-
-        let goals = sqlx::query_as::<_, super::review_goal::ReviewGoal>(
-            r#"
-            SELECT id, performance_review_id, title, description, target_date,
-                   completion_status, weight, created_at, updated_at, deleted_at
-            FROM hr_public.review_goals
-            WHERE performance_review_id = $1 AND deleted_at IS NULL
-            ORDER BY weight DESC, created_at ASC
-            "#,
-        )
-        .bind(self.id)
-        .fetch_all(pool)
-        .await?;
-
-        Ok(goals)
-    }
-
-    /// Feedback entries for this review
-    async fn feedback(
-        &self,
-        ctx: &Context<'_>,
-    ) -> GqlResult<Vec<super::review_feedback::ReviewFeedback>> {
-        let pool = ctx.data::<PgPool>()?;
-
-        let feedback = sqlx::query_as::<_, super::review_feedback::ReviewFeedback>(
-            r#"
-            SELECT id, performance_review_id, provider_id, feedback_type,
-                   content, is_visible_to_employee, created_at, updated_at, deleted_at
-            FROM hr_public.review_feedback
-            WHERE performance_review_id = $1 AND deleted_at IS NULL
-            ORDER BY created_at ASC
-            "#,
-        )
-        .bind(self.id)
-        .fetch_all(pool)
-        .await?;
-
-        Ok(feedback)
-    }
-
-    /// Count of goals for this review
-    async fn goals_count(&self, ctx: &Context<'_>) -> GqlResult<i64> {
-        let pool = ctx.data::<PgPool>()?;
-
-        let count: (i64,) = sqlx::query_as(
-            r#"
-            SELECT COUNT(*)::bigint
-            FROM hr_public.review_goals
-            WHERE performance_review_id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.id)
-        .fetch_one(pool)
-        .await?;
-
-        Ok(count.0)
-    }
-
-    /// Count of completed goals
-    async fn completed_goals_count(&self, ctx: &Context<'_>) -> GqlResult<i64> {
-        let pool = ctx.data::<PgPool>()?;
-
-        let count: (i64,) = sqlx::query_as(
-            r#"
-            SELECT COUNT(*)::bigint
-            FROM hr_public.review_goals
-            WHERE performance_review_id = $1
-              AND completion_status = 'completed'
-              AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.id)
-        .fetch_one(pool)
-        .await?;
-
-        Ok(count.0)
-    }
-
-    /// Goals completion percentage
-    async fn goals_completion_percentage(&self, ctx: &Context<'_>) -> GqlResult<Option<i32>> {
-        let pool = ctx.data::<PgPool>()?;
-
-        // Get total goals count
-        let total_count: (i64,) = sqlx::query_as(
-            r#"
-            SELECT COUNT(*)::bigint
-            FROM hr_public.review_goals
-            WHERE performance_review_id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.id)
-        .fetch_one(pool)
-        .await?;
-
-        let total = total_count.0;
-        if total == 0 {
-            return Ok(None);
-        }
-
-        // Get completed goals count
-        let completed_count: (i64,) = sqlx::query_as(
-            r#"
-            SELECT COUNT(*)::bigint
-            FROM hr_public.review_goals
-            WHERE performance_review_id = $1
-              AND completion_status = 'completed'
-              AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.id)
-        .fetch_one(pool)
-        .await?;
-
-        let completed = completed_count.0;
-        let percentage = ((completed as f64 / total as f64) * 100.0).round() as i32;
-
-        Ok(Some(percentage))
+        self.manager_feedback.is_some() && self.overall_rating.is_some()
     }
 }
 
 /// PerformanceReview creation input
 #[derive(Debug, Clone, InputObject)]
 pub struct CreatePerformanceReviewInput {
-    pub review_cycle_id: Uuid,
     pub employee_id: Uuid,
     pub reviewer_id: Uuid,
-    pub due_date: Option<DateTime<Utc>>,
+    pub review_period: String,
 }
 
 /// PerformanceReview update input
@@ -347,11 +190,14 @@ pub struct UpdatePerformanceReviewInput {
     pub status: Option<PerformanceReviewStatus>,
     /// Overall rating as string (e.g., "4.5") - will be converted to Decimal
     pub overall_rating: Option<String>,
-    pub manager_comments: Option<String>,
-    pub employee_self_review: Option<String>,
-    pub strengths: Option<String>,
+    pub goals: Option<String>,
+    pub achievements: Option<String>,
     pub areas_for_improvement: Option<String>,
-    pub due_date: Option<DateTime<Utc>>,
+    pub manager_feedback: Option<String>,
+    pub review_period_start: Option<chrono::NaiveDate>,
+    pub review_period_end: Option<chrono::NaiveDate>,
+    pub review_type: Option<String>,
+    pub notes: Option<String>,
 }
 
 #[cfg(test)]
@@ -362,23 +208,26 @@ mod tests {
     fn test_performance_review_model_compiles() {
         let review = PerformanceReview {
             id: Uuid::new_v4(),
-            review_cycle_id: Uuid::new_v4(),
             employee_id: Uuid::new_v4(),
             reviewer_id: Uuid::new_v4(),
+            review_period: "2025-Annual".to_string(),
             status: PerformanceReviewStatus::InProgress,
             overall_rating: Some(Decimal::new(40, 1)), // 4.0
-            manager_comments: Some("Excellent performance".to_string()),
-            employee_self_review: Some("I believe I've met my goals".to_string()),
-            strengths: Some("Strong technical skills".to_string()),
+            goals: Some("Complete project X".to_string()),
+            achievements: Some("Delivered feature Y ahead of schedule".to_string()),
             areas_for_improvement: Some("Communication could improve".to_string()),
-            due_date: Some(Utc::now()),
-            completed_at: None,
+            manager_feedback: Some("Excellent performance overall".to_string()),
             created_at: Utc::now(),
             updated_at: Utc::now(),
-            deleted_at: None,
+            review_period_start: Some(chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap()),
+            review_period_end: Some(chrono::NaiveDate::from_ymd_opt(2025, 12, 31).unwrap()),
+            review_type: Some("annual".to_string()),
+            notes: Some("Additional notes here".to_string()),
         };
 
         assert_eq!(review.status, PerformanceReviewStatus::InProgress);
         assert_eq!(review.overall_rating, Some(Decimal::new(40, 1)));
+        assert_eq!(review.review_type, Some("annual".to_string()));
+        assert_eq!(review.review_period, "2025-Annual".to_string());
     }
 }

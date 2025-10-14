@@ -26,12 +26,12 @@ pub enum AttendanceStatus {
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct AttendanceRecord {
     pub id: Uuid,
-    pub employee_id: Uuid,
+    pub user_id: Uuid,
     pub date: NaiveDate,
     pub clock_in: Option<DateTime<Utc>>,
     pub clock_out: Option<DateTime<Utc>>,
-    pub total_hours: Option<f64>,
-    pub status: AttendanceStatus,
+    pub hours_worked: Option<f64>,
+    pub status: String, // Changed from AttendanceStatus enum to String
     pub notes: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -40,16 +40,16 @@ pub struct AttendanceRecord {
 /// Input for creating a new attendance record
 #[derive(Debug, Clone, InputObject)]
 pub struct CreateAttendanceRecordInput {
-    #[graphql(name = "employeeId")]
-    pub employee_id: Uuid,
+    #[graphql(name = "userId")]
+    pub user_id: Uuid,
     pub date: NaiveDate,
     #[graphql(name = "clockIn")]
     pub clock_in: Option<DateTime<Utc>>,
     #[graphql(name = "clockOut")]
     pub clock_out: Option<DateTime<Utc>>,
-    #[graphql(name = "totalHours")]
-    pub total_hours: Option<f64>,
-    pub status: AttendanceStatus,
+    #[graphql(name = "hoursWorked")]
+    pub hours_worked: Option<f64>,
+    pub status: String,
     pub notes: Option<String>,
 }
 
@@ -60,9 +60,9 @@ pub struct UpdateAttendanceRecordInput {
     pub clock_in: Option<DateTime<Utc>>,
     #[graphql(name = "clockOut")]
     pub clock_out: Option<DateTime<Utc>>,
-    #[graphql(name = "totalHours")]
-    pub total_hours: Option<f64>,
-    pub status: Option<AttendanceStatus>,
+    #[graphql(name = "hoursWorked")]
+    pub hours_worked: Option<f64>,
+    pub status: Option<String>,
     pub notes: Option<String>,
 }
 
@@ -73,9 +73,9 @@ impl AttendanceRecord {
         self.id
     }
 
-    #[graphql(name = "employeeId")]
-    async fn employee_id(&self) -> Uuid {
-        self.employee_id
+    #[graphql(name = "userId")]
+    async fn user_id(&self) -> Uuid {
+        self.user_id
     }
 
     async fn date(&self) -> NaiveDate {
@@ -92,13 +92,13 @@ impl AttendanceRecord {
         self.clock_out
     }
 
-    #[graphql(name = "totalHours")]
-    async fn total_hours(&self) -> Option<f64> {
-        self.total_hours
+    #[graphql(name = "hoursWorked")]
+    async fn hours_worked(&self) -> Option<f64> {
+        self.hours_worked
     }
 
-    async fn status(&self) -> AttendanceStatus {
-        self.status
+    async fn status(&self) -> &str {
+        &self.status
     }
 
     async fn notes(&self) -> Option<&str> {
@@ -115,8 +115,8 @@ impl AttendanceRecord {
         self.updated_at
     }
 
-    /// Employee relationship (lazy-loaded)
-    async fn employee(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::User> {
+    /// User/Employee relationship (lazy-loaded)
+    async fn user(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::User> {
         let pool = ctx.data::<PgPool>()?;
         let user = sqlx::query_as::<_, crate::models::User>(
             r#"
@@ -127,7 +127,7 @@ impl AttendanceRecord {
             WHERE id = $1 AND deleted_at IS NULL
             "#,
         )
-        .bind(self.employee_id)
+        .bind(self.user_id)
         .fetch_one(pool)
         .await?;
 

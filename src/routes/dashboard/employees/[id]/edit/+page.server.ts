@@ -146,11 +146,9 @@ export const load: PageServerLoad = async (event) => {
 				body: JSON.stringify({
 					query: `
 						query GetDepartments {
-							allDepartments(first: 100) {
-								nodes {
-									id
-									name
-								}
+							departments(limit: 100) {
+								id
+								name
 							}
 						}
 					`
@@ -254,16 +252,14 @@ export const load: PageServerLoad = async (event) => {
 				department: employee.departmentByDepartmentId,
 				// Emergency contacts - only if authorized
 				emergencyContacts: canEditEmergencyContacts
-					? (employee.emergencyContactsByEmployeeId?.nodes || [])
+					? employee.emergencyContactsByEmployeeId?.nodes || []
 					: [],
 				// Vehicles - only if authorized
-				vehicles: canEditVehicles
-					? (employee.employeeVehiclesByEmployeeId?.nodes || [])
-					: [],
+				vehicles: canEditVehicles ? employee.employeeVehiclesByEmployeeId?.nodes || [] : [],
 				// Compensation - only if admin
 				compensation: canEditCompensation ? currentCompensation : null
 			},
-			departments: departmentsData?.data?.allDepartments?.nodes || [],
+			departments: departmentsData?.data?.departments || [],
 			// RBAC: Permission flags for UI
 			permissions: {
 				canEditContactInfo,
@@ -425,7 +421,7 @@ export const actions: Actions = {
 			}
 
 			// Process emergency contacts (create/update each)
-			for (const contact of emergencyContacts.filter(c => c)) {
+			for (const contact of emergencyContacts.filter((c) => c)) {
 				if (contact.id) {
 					// Update existing contact
 					const updateContactMutation = `
@@ -500,7 +496,7 @@ export const actions: Actions = {
 			}
 
 			// Process vehicles (create/update each)
-			for (const vehicle of vehicles.filter(v => v)) {
+			for (const vehicle of vehicles.filter((v) => v)) {
 				if (vehicle.id) {
 					// Update existing vehicle
 					const updateVehicleMutation = `

@@ -81,13 +81,17 @@ export const load: PageServerLoad = async (event) => {
 	});
 
 	try {
-		// Make direct GraphQL calls to PostGraphile backend
+		// Make direct GraphQL calls to Rust GraphQL backend
 		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
-		// Simple headers without JWT authentication (using table-based RLS)
+		// Get JWT token from cookies for authentication
+		const jwtToken = cookies.get('hr_token') || '';
+
+		// Headers with JWT authentication for Rust GraphQL server
 		const headers: Record<string, string> = {
-			'Content-Type': 'application/json'
+			'Content-Type': 'application/json',
+			'Authorization': `Bearer ${jwtToken}`
 		};
 
 		console.log('[Tasks Dashboard] User role:', locals.user?.role);
@@ -131,90 +135,56 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		// Load tasks with full relationships
-		// NOTE: Query updated to match new task schema (Feature 028)
+		// NOTE: Query updated to match Rust GraphQL schema (idiomatic naming)
 		// Removed: reminderTime, organizationId (fields don't exist in new schema)
 		const tasksResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetTasksForDashboard($first: Int, $offset: Int, $condition: TaskCondition) {
-						allTasks(
-							first: $first
+					query GetTasksForDashboard($limit: Int, $offset: Int, $filter: TaskFilter) {
+						tasks(
+							limit: $limit
 							offset: $offset
-							condition: $condition
-							orderBy: [DUE_DATE_ASC, CREATED_AT_DESC]
+							filter: $filter
+							orderBy: "due_date_asc"
 						) {
-							nodes {
+							id
+							title
+							description
+							status
+							priority
+							dueDate
+							assigneeId
+							createdBy
+							taskTypeId
+							parentTaskId
+							requiresManualReassignment
+							archived
+							createdAt
+							updatedAt
+							assignee {
 								id
-								nodeId
+								displayName
+								email
+							}
+							creator {
+								id
+								displayName
+								email
+							}
+							parentTask {
+								id
 								title
-								description
 								status
-								priority
-								dueDate
-								assigneeId
-								creatorId
-								taskTypeId
-								parentTaskId
-								requiresManualReassignment
-								archived
-								createdAt
-								updatedAt
-								userByAssigneeId {
-									id
-									displayName
-									email
-								}
-								userByCreatorId {
-									id
-									displayName
-									email
-								}
-								taskTypeByTaskTypeId {
-									id
-									name
-									description
-									isSystem
-								}
-								taskByParentTaskId {
-									id
-									title
-									status
-								}
-								tasksByParentTaskId {
-									totalCount
-								}
-								taskDependenciesByBlockingTaskId {
-									totalCount
-								}
-								taskDependenciesByBlockedTaskId {
-									totalCount
-									nodes {
-										id
-										blockingTaskId
-										taskByBlockingTaskId {
-											id
-											title
-											status
-										}
-									}
-								}
 							}
-							pageInfo {
-								hasNextPage
-								hasPreviousPage
-								startCursor
-								endCursor
-							}
-							totalCount
 						}
 					}
 				`,
 				variables: {
-					first: limit,
+					limit: limit,
 					offset: 0,
-					condition: Object.keys(condition).length > 0 ? condition : null
+					filter: Object.keys(condition).length > 0 ? condition : null
 				}
 			})
 		});
@@ -227,7 +197,7 @@ export const load: PageServerLoad = async (event) => {
 			throw new Error(tasksData.errors[0]?.message || 'Failed to load tasks');
 		}
 
-		let tasks = tasksData?.data?.allTasks?.nodes || [];
+		let tasks = tasksData?.data?.tasks || [];
 
 		// Client-side filtering for search term
 		if (searchTerm) {
@@ -256,19 +226,17 @@ export const load: PageServerLoad = async (event) => {
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetUsersForAssigneeFilter($first: Int) {
-						allUsers(first: $first, condition: { is_active: true }) {
-							nodes {
-								id
-								displayName
-								email
-								role
-							}
+					query GetUsersForAssigneeFilter($limit: Int) {
+						users(limit: $limit, filter: { is_active: true }) {
+							id
+							displayName
+							email
+							role
 						}
 					}
 				`,
 				variables: {
-					first: 100
+					limit: 100
 				}
 			})
 		});
@@ -281,18 +249,16 @@ export const load: PageServerLoad = async (event) => {
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetTaskTypesForFilter($first: Int) {
-						allTaskTypes(first: $first) {
-							nodes {
-								id
-								name
-								description
-							}
+					query GetTaskTypesForFilter($limit: Int) {
+						task_types(limit: $limit) {
+							id
+							name
+							description
 						}
 					}
 				`,
 				variables: {
-					first: 100
+					limit: 100
 				}
 			})
 		});
@@ -303,16 +269,16 @@ export const load: PageServerLoad = async (event) => {
 		const userPermissions = getUserPermissions(locals);
 
 		// Calculate task statistics
-		// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
-		// Database stores: 'To Do', 'In Progress', etc.
-		// GraphQL returns: 'TO_DO', 'IN_PROGRESS', etc.
+		// NOTE: Rust GraphQL returns enum values in SCREAMING_SNAKE_CASE (async-graphql default)
+		// Database stores: 'todo', 'in_progress', etc. (lowercase)
+		// GraphQL returns: 'TODO', 'IN_PROGRESS', etc. (uppercase)
 		const taskStats = {
 			total: tasks.length,
-			notStarted: tasks.filter((t: any) => t.status === 'TO_DO').length,
+			notStarted: tasks.filter((t: any) => t.status === 'TODO').length,
 			inProgress: tasks.filter((t: any) => t.status === 'IN_PROGRESS').length,
 			blocked: tasks.filter((t: any) => t.status === 'BLOCKED').length,
-			deferred: tasks.filter((t: any) => t.status === 'DEFERRED').length,
-			completed: tasks.filter((t: any) => t.status === 'COMPLETED').length
+			review: tasks.filter((t: any) => t.status === 'REVIEW').length,
+			completed: tasks.filter((t: any) => t.status === 'DONE').length
 		};
 
 		// Return server-side loaded data
@@ -321,8 +287,8 @@ export const load: PageServerLoad = async (event) => {
 			userSession: userSession.toJSON(),
 			tasks,
 			totalTasks: tasks.length,
-			assignees: assigneesData?.data?.allUsers?.nodes || [],
-			taskTypes: taskTypesData?.data?.allTaskTypes?.nodes || [],
+			assignees: assigneesData?.data?.users || [],
+			taskTypes: taskTypesData?.data?.task_types || [],
 			taskStats,
 			filters: {
 				searchTerm,

@@ -1,4 +1,4 @@
-version: '3.8'
+# version: '3.8'  # Removed: version attribute is obsolete
 
 services:
   sveltehr-postgres-dev:
@@ -13,7 +13,8 @@ services:
       - "5433:5432"  # Use 5433 to avoid conflicts with local PostgreSQL
     volumes:
       - sveltehr_postgres_data:/var/lib/postgresql/data
-      - /home/yycholla/Documents/SvelteHR/database/init/001-complete-schema.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
+      # TODO: Update this path to point to your database init schema file
+      # - /home/chanway/Projects/SvelteHR/database/init/001-complete-schema.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
     networks:
       - sveltehr-dev-network
     restart: unless-stopped
@@ -38,6 +39,7 @@ services:
       - RUST_LOG=info,hr_graphql_server=debug
       - CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
       - JWT_SECRET=dev-jwt-secret-change-in-production
+      - SERVICE_AUTH_KEY=dev-service-key-change-in-production-use-strong-random-key
     networks:
       - sveltehr-dev-network
     depends_on:

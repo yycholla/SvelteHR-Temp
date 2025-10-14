@@ -42,8 +42,13 @@ export const load: PageServerLoad = async (event) => {
 		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
+		// Get JWT token from cookies for Rust GraphQL server authentication
+		const jwtToken = cookies.get('hr_token') || '';
+
+		// Headers with JWT Bearer token for Rust server authorization
 		const headers: Record<string, string> = {
-			'Content-Type': 'application/json'
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${jwtToken}`
 		};
 
 		console.log('[Task Edit] Loading task for editing:', taskId);
@@ -122,17 +127,15 @@ export const load: PageServerLoad = async (event) => {
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetDepartments($first: Int) {
-						allDepartments(first: $first) {
-							nodes {
-								id
-								name
-								description
-							}
+					query GetDepartments($limit: Int) {
+						departments(limit: $limit) {
+							id
+							name
+							description
 						}
 					}
 				`,
-				variables: { first: 100 }
+				variables: { limit: 100 }
 			})
 		});
 
@@ -196,7 +199,7 @@ export const load: PageServerLoad = async (event) => {
 			userSession: userSession.toJSON(),
 			task,
 			assignees: assigneesData?.data?.allUsers?.nodes || [],
-			departments: departmentsData?.data?.allDepartments?.nodes || [],
+			departments: departmentsData?.data?.departments || [],
 			taskTypes: taskTypesData?.data?.allTaskTypes?.nodes || [],
 			parentTasks: potentialParents,
 			...userPermissions,

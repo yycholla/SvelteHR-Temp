@@ -31,6 +31,22 @@ impl UserContext {
         }
     }
 
+    /// Create a system service context for background services
+    /// System services have full permissions and use a nil UUID
+    pub fn system() -> Self {
+        Self {
+            user_id: Uuid::nil(),
+            roles: vec!["system".to_string()],
+            permissions: vec!["*".to_string()],
+            email: Some("system@internal".to_string()),
+        }
+    }
+
+    /// Check if this is a system service context
+    pub fn is_system(&self) -> bool {
+        self.roles.contains(&"system".to_string())
+    }
+
     /// Check if user has a specific role
     pub fn has_role(&self, role: &str) -> bool {
         self.roles.iter().any(|r| r == role)
@@ -38,8 +54,8 @@ impl UserContext {
 
     /// Check if user has a specific permission
     pub fn has_permission(&self, permission: &str) -> bool {
-        // Admin role has all permissions
-        if self.has_role("Admin") {
+        // System and Admin roles have all permissions
+        if self.is_system() || self.has_role("Admin") {
             return true;
         }
 

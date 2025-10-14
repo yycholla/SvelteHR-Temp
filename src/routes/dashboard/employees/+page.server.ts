@@ -63,16 +63,21 @@ export const load: PageServerLoad = async (event) => {
 	});
 
 	try {
-		// Make direct GraphQL calls to PostGraphile backend - simplified without JWT
+		// Make direct GraphQL calls to Rust GraphQL backend with JWT authentication
 		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
-		// Simple headers without JWT authentication
+		// Get JWT token from cookies for Rust GraphQL server authentication
+		const jwtToken = cookies.get('hr_token') || '';
+
+		// Headers with JWT Bearer token for Rust server authorization
 		const headers: Record<string, string> = {
-			'Content-Type': 'application/json'
+			'Content-Type': 'application/json',
+			'Authorization': `Bearer ${jwtToken}`
 		};
 
-		console.log('[Employee Directory] Using simplified table-based RBAC, user role:', locals.user?.role);
+		console.log('[Employee Directory] Using Rust GraphQL with Guard-based RBAC, user role:', locals.user?.role);
+		console.log('[Employee Directory] JWT token present:', Boolean(jwtToken));
 		console.log('[Employee Directory] Filters:', { searchTerm, departmentFilter, statusFilter });
 
 		// Build filter condition based on query parameters
@@ -93,51 +98,33 @@ export const load: PageServerLoad = async (event) => {
 		// Note: searchTerm filtering will be done client-side for now
 		// PostGraphile doesn't support LIKE queries easily in conditions
 
-		// Load employee directory data with department relationships
+		// Load employee directory data using Rust GraphQL schema
 		const employeesResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetEmployeesWithDepartments($first: Int, $after: Cursor, $condition: UserCondition) {
-						allUsers(first: $first, after: $after, condition: $condition) {
-							nodes {
-								id
-								email
-								displayName
-								role
-								departmentId
-								isActive
-								hireDate
-								createdAt
-								updatedAt
-								departmentByDepartmentId {
-									id
-									name
-									description
-									managerId
-									userByManagerId {
-										id
-										displayName
-										email
-										role
-									}
-								}
-							}
-							pageInfo {
-								hasNextPage
-								hasPreviousPage
-								startCursor
-								endCursor
-							}
-							totalCount
+					query GetEmployees($limit: Int, $offset: Int) {
+						users(limit: $limit, offset: $offset) {
+							id
+							email
+							firstName
+							lastName
+							displayName
+							role
+							phone
+							departmentId
+							managerId
+							hireDate
+							isActive
+							createdAt
+							updatedAt
 						}
 					}
 				`,
 				variables: {
-					first: limit,
-					after: null,
-					condition: Object.keys(condition).length > 0 ? condition : null
+					limit: limit,
+					offset: (page - 1) * limit
 				}
 			})
 		});
@@ -145,10 +132,9 @@ export const load: PageServerLoad = async (event) => {
 		const employeesData = await employeesResponse.json();
 		console.log('[Employee Directory] Employees data:', employeesData);
 		console.log('[Employee Directory] Status filter:', statusFilter);
-		console.log('[Employee Directory] Condition:', condition);
 
-		// Employees data is already properly formatted
-		let employees = employeesData?.data?.allUsers?.nodes || [];
+		// Extract employees from Rust GraphQL response (direct array, no nodes wrapper)
+		let employees = employeesData?.data?.users || [];
 
 		// Debug: Check isActive values
 		console.log('[Employee Directory] Employee isActive values:', employees.map((e: any) => ({
@@ -168,41 +154,46 @@ export const load: PageServerLoad = async (event) => {
 		}
 		// If statusFilter is empty string, show all employees (no filtering)
 
-		// Client-side filtering for search term (since PostGraphile doesn't support LIKE easily)
+		// Client-side filtering for search term
 		if (searchTerm) {
 			const searchLower = searchTerm.toLowerCase();
 			employees = employees.filter((emp: any) => {
 				const displayName = emp.displayName?.toLowerCase() || '';
+				const firstName = emp.firstName?.toLowerCase() || '';
+				const lastName = emp.lastName?.toLowerCase() || '';
 				const email = emp.email?.toLowerCase() || '';
 				const role = emp.role?.toLowerCase() || '';
 				return (
 					displayName.includes(searchLower) ||
+					firstName.includes(searchLower) ||
+					lastName.includes(searchLower) ||
 					email.includes(searchLower) ||
 					role.includes(searchLower)
 				);
 			});
 		}
 
-		// Load departments data
+		// Load departments data with Rust GraphQL schema
 		const departmentsResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json'
-			},
+			headers,
 			body: JSON.stringify({
 				query: `
-					query GetDepartments($first: Int) {
-						allDepartments(first: $first) {
-							nodes {
-								id
-								name
-								description
-							}
+					query GetDepartments($limit: Int, $offset: Int) {
+						departments(limit: $limit, offset: $offset) {
+							id
+							name
+							description
+							parentDepartmentId
+							managerId
+							createdAt
+							updatedAt
 						}
 					}
 				`,
 				variables: {
-					first: 100
+					limit: 100,
+					offset: 0
 				}
 			})
 		});
@@ -223,7 +214,7 @@ export const load: PageServerLoad = async (event) => {
 			userSession: userSession.toJSON(), // Convert UserSession to serializable object
 			employees: employees,
 			totalEmployees: employees.length, // Use filtered count for accurate pagination
-			departments: departmentsData?.data?.allDepartments?.nodes || [],
+			departments: departmentsData?.data?.departments || [],
 			filters: {
 				searchTerm,
 				departmentFilter,

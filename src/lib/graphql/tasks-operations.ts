@@ -25,124 +25,17 @@ import type {
 /**
  * Query: Get all tasks with filtering, sorting, and pagination
  * RLS Policy: task_read_policy (RBAC-enforced)
- * Note: Using PostGraphile conventions - condition instead of filter
+ * Note: Migrated to Rust idiomatic naming conventions
  */
 export const GET_ALL_TASKS = gql`
 	query GetAllTasks(
-		$first: Int = 20
+		$limit: Int = 20
 		$offset: Int = 0
-		$orderBy: [TasksOrderBy!] = [CREATED_AT_DESC]
-		$condition: TaskCondition
+		$orderBy: String = "created_at_desc"
+		$filter: TaskFilter
 	) {
-		allTasks(first: $first, offset: $offset, orderBy: $orderBy, condition: $condition) {
-			nodes {
-				id
-				nodeId
-				title
-				description
-				assigneeId
-				creatorId
-				taskTypeId
-				status
-				priority
-				dueDate
-				parentTaskId
-				archived
-				archivedAt
-				archivedBy
-				requiresManualReassignment
-				createdAt
-				updatedAt
-				userByAssigneeId {
-					id
-					displayName
-					email
-				}
-				userByCreatorId {
-					id
-					displayName
-					email
-				}
-				taskTypeByTaskTypeId {
-					id
-					name
-					description
-					isSystem
-				}
-			}
-			totalCount
-			pageInfo {
-				hasNextPage
-				hasPreviousPage
-				startCursor
-				endCursor
-			}
-		}
-	}
-`;
-
-/**
- * Query: Get current user's tasks with RBAC filtering
- * RLS Policy: Automatic filtering based on role (employee sees own, manager sees team, admin sees all)
- */
-export const GET_MY_TASKS = gql`
-	query GetMyTasks(
-		$first: Int = 20
-		$offset: Int = 0
-		$orderBy: [TasksOrderBy!] = [DUE_DATE_ASC, PRIORITY_DESC]
-		$condition: TaskCondition
-	) {
-		allTasks(first: $first, offset: $offset, orderBy: $orderBy, condition: $condition) {
-			nodes {
-				id
-				nodeId
-				title
-				description
-				assigneeId
-				creatorId
-				taskTypeId
-				status
-				priority
-				dueDate
-				parentTaskId
-				archived
-				requiresManualReassignment
-				createdAt
-				updatedAt
-				userByAssigneeId {
-					id
-					displayName
-					email
-				}
-				userByCreatorId {
-					id
-					displayName
-					email
-				}
-				taskTypeByTaskTypeId {
-					id
-					name
-					description
-				}
-			}
-			totalCount
-			pageInfo {
-				hasNextPage
-				hasPreviousPage
-			}
-		}
-	}
-`;
-
-/**
- * Query: Get task with full hierarchy (subtasks recursively loaded)
- * Note: Includes subtaskProgress calculation
- */
-export const GET_TASK_HIERARCHY = gql`
-	query GetTaskHierarchy($taskId: UUID!) {
-		taskById(id: $taskId) {
+		tasks(limit: $limit, offset: $offset, orderBy: $orderBy, filter: $filter) {
 			id
-			nodeId
 			title
 			description
 			assigneeId
@@ -158,78 +51,155 @@ export const GET_TASK_HIERARCHY = gql`
 			requiresManualReassignment
 			createdAt
 			updatedAt
-			userByAssigneeId {
+			assignee {
 				id
 				displayName
 				email
 			}
-			userByCreatorId {
+			creator {
 				id
 				displayName
 				email
 			}
-			taskTypeByTaskTypeId {
+			taskType {
+				id
+				name
+				description
+				isSystem
+			}
+		}
+	}
+`;
+
+/**
+ * Query: Get current user's tasks with RBAC filtering
+ * RLS Policy: Automatic filtering based on role (employee sees own, manager sees team, admin sees all)
+ */
+export const GET_MY_TASKS = gql`
+	query GetMyTasks(
+		$limit: Int = 20
+		$offset: Int = 0
+		$orderBy: String = "due_date_asc"
+		$filter: TaskFilter
+	) {
+		tasks(limit: $limit, offset: $offset, orderBy: $orderBy, filter: $filter) {
+			id
+			title
+			description
+			assigneeId
+			creatorId
+			taskTypeId
+			status
+			priority
+			dueDate
+			parentTaskId
+			archived
+			requiresManualReassignment
+			createdAt
+			updatedAt
+			assignee {
+				id
+				displayName
+				email
+			}
+			creator {
+				id
+				displayName
+				email
+			}
+			taskType {
 				id
 				name
 				description
 			}
-			tasksByParentTaskId {
-				nodes {
+		}
+	}
+`;
+
+/**
+ * Query: Get task with full hierarchy (subtasks recursively loaded)
+ * Note: Includes subtaskProgress calculation
+ */
+export const GET_TASK_HIERARCHY = gql`
+	query GetTaskHierarchy($taskId: UUID!) {
+		task(id: $taskId) {
+			id
+			title
+			description
+			assigneeId
+			creatorId
+			taskTypeId
+			status
+			priority
+			dueDate
+			parentTaskId
+			archived
+			archivedAt
+			archivedBy
+			requiresManualReassignment
+			createdAt
+			updatedAt
+			assignee {
+				id
+				displayName
+				email
+			}
+			creator {
+				id
+				displayName
+				email
+			}
+			taskType {
+				id
+				name
+				description
+			}
+			subtasks {
+				id
+				title
+				description
+				assigneeId
+				creatorId
+				status
+				priority
+				dueDate
+				parentTaskId
+				archived
+				createdAt
+				updatedAt
+				assignee {
 					id
-					nodeId
+					displayName
+					email
+				}
+				subtasks {
+					id
 					title
-					description
-					assigneeId
-					creatorId
 					status
 					priority
 					dueDate
 					parentTaskId
-					archived
-					createdAt
-					updatedAt
-					userByAssigneeId {
-						id
-						displayName
-						email
-					}
-					tasksByParentTaskId {
-						nodes {
-							id
-							title
-							status
-							priority
-							dueDate
-							parentTaskId
-						}
-						totalCount
-					}
-				}
-				totalCount
-			}
-			linkedResourcesByTaskId {
-				nodes {
-					id
-					resourceType
-					resourceId
-					resourceTitle
-					availabilityStatus
-					lastChecked
-					createdAt
 				}
 			}
-			taskDependenciesByBlockedTaskId {
-				nodes {
+			linkedResources {
+				id
+				resourceType
+				resourceId
+				resourceTitle
+				availabilityStatus
+				lastChecked
+				createdAt
+			}
+			blockedByDependencies {
+				id
+				blockingTaskId
+				blockedTaskId
+				dependencyType
+				createdAt
+				blockingTask {
 					id
-					blockingTaskId
-					blockedTaskId
-					dependencyType
-					createdAt
-					taskByBlockingTaskId {
-						id
-						title
-						status
-					}
+					title
+					status
 				}
 			}
 		}
@@ -241,28 +211,25 @@ export const GET_TASK_HIERARCHY = gql`
  * Note: Ordered by timestamp DESC
  */
 export const GET_TASK_AUDIT_ENTRIES = gql`
-	query GetTaskAuditEntries($taskId: UUID!, $first: Int = 50, $offset: Int = 0) {
-		allTaskAuditEntries(
-			condition: { taskId: $taskId }
-			first: $first
+	query GetTaskAuditEntries($taskId: UUID!, $limit: Int = 50, $offset: Int = 0) {
+		task_audit_entries(
+			taskId: $taskId
+			limit: $limit
 			offset: $offset
-			orderBy: TIMESTAMP_DESC
+			orderBy: "timestamp_desc"
 		) {
-			nodes {
+			id
+			taskId
+			actionType
+			changedFields
+			newValues
+			userId
+			timestamp
+			user {
 				id
-				taskId
-				actionType
-				changedFields
-				newValues
-				userId
-				timestamp
-				userByUserId {
-					id
-					displayName
-					email
-				}
+				displayName
+				email
 			}
-			totalCount
 		}
 	}
 `;
@@ -272,16 +239,13 @@ export const GET_TASK_AUDIT_ENTRIES = gql`
  */
 export const GET_ALL_TASK_TYPES = gql`
 	query GetAllTaskTypes {
-		allTaskTypes(orderBy: NAME_ASC) {
-			nodes {
-				id
-				name
-				description
-				isSystem
-				createdAt
-				createdBy
-			}
-			totalCount
+		task_types(orderBy: "name_asc") {
+			id
+			name
+			description
+			isSystem
+			createdAt
+			createdBy
 		}
 	}
 `;
@@ -291,26 +255,23 @@ export const GET_ALL_TASK_TYPES = gql`
  * Note: For administrative cleanup and reassignment
  */
 export const GET_ORPHANED_TASKS = gql`
-	query GetOrphanedTasks($first: Int = 50, $offset: Int = 0) {
-		allTasks(
-			condition: { parentTaskId: null }
-			first: $first
+	query GetOrphanedTasks($limit: Int = 50, $offset: Int = 0) {
+		tasks(
+			filter: { parentTaskId: null }
+			limit: $limit
 			offset: $offset
-			orderBy: CREATED_AT_DESC
+			orderBy: "created_at_desc"
 		) {
-			nodes {
+			id
+			title
+			status
+			assigneeId
+			creatorId
+			createdAt
+			assignee {
 				id
-				title
-				status
-				assigneeId
-				creatorId
-				createdAt
-				userByAssigneeId {
-					id
-					displayName
-				}
+				displayName
 			}
-			totalCount
 		}
 	}
 `;
@@ -320,42 +281,33 @@ export const GET_ORPHANED_TASKS = gql`
  * Note: For dependency management and cycle detection
  */
 export const GET_TASKS_WITH_DEPENDENCIES = gql`
-	query GetTasksWithDependencies($first: Int = 20, $offset: Int = 0) {
-		allTasks(first: $first, offset: $offset, orderBy: CREATED_AT_DESC) {
-			nodes {
+	query GetTasksWithDependencies($limit: Int = 20, $offset: Int = 0) {
+		tasks(limit: $limit, offset: $offset, orderBy: "created_at_desc") {
+			id
+			title
+			status
+			priority
+			dueDate
+			blockingDependencies {
 				id
-				title
-				status
-				priority
-				dueDate
-				taskDependenciesByBlockingTaskId {
-					nodes {
-						id
-						blockedTaskId
-						dependencyType
-						taskByBlockedTaskId {
-							id
-							title
-							status
-						}
-					}
-					totalCount
-				}
-				taskDependenciesByBlockedTaskId {
-					nodes {
-						id
-						blockingTaskId
-						dependencyType
-						taskByBlockingTaskId {
-							id
-							title
-							status
-						}
-					}
-					totalCount
+				blockedTaskId
+				dependencyType
+				blockedTask {
+					id
+					title
+					status
 				}
 			}
-			totalCount
+			blockedByDependencies {
+				id
+				blockingTaskId
+				dependencyType
+				blockingTask {
+					id
+					title
+					status
+				}
+			}
 		}
 	}
 `;
@@ -371,40 +323,36 @@ export const GET_TASKS_WITH_DEPENDENCIES = gql`
  */
 export const CREATE_TASK = gql`
 	mutation CreateTask($input: CreateTaskInput!) {
-		createTask(input: $input) {
-			task {
+		create_task(input: $input) {
+			id
+			title
+			description
+			assigneeId
+			creatorId
+			taskTypeId
+			status
+			priority
+			dueDate
+			parentTaskId
+			archived
+			requiresManualReassignment
+			createdAt
+			updatedAt
+			assignee {
 				id
-				nodeId
-				title
-				description
-				assigneeId
-				creatorId
-				taskTypeId
-				status
-				priority
-				dueDate
-				parentTaskId
-				archived
-				requiresManualReassignment
-				createdAt
-				updatedAt
-				userByAssigneeId {
-					id
-					displayName
-					email
-				}
-				userByCreatorId {
-					id
-					displayName
-					email
-				}
-				taskTypeByTaskTypeId {
-					id
-					name
-					description
-				}
+				displayName
+				email
 			}
-			clientMutationId
+			creator {
+				id
+				displayName
+				email
+			}
+			taskType {
+				id
+				name
+				description
+			}
 		}
 	}
 `;
@@ -415,37 +363,33 @@ export const CREATE_TASK = gql`
  * Note: Automatically creates audit entry via database trigger
  */
 export const UPDATE_TASK = gql`
-	mutation UpdateTask($input: UpdateTaskByIdInput!) {
-		updateTaskById(input: $input) {
-			task {
+	mutation UpdateTask($input: UpdateTaskInput!) {
+		update_task(input: $input) {
+			id
+			title
+			description
+			assigneeId
+			creatorId
+			taskTypeId
+			status
+			priority
+			dueDate
+			parentTaskId
+			archived
+			archivedAt
+			archivedBy
+			requiresManualReassignment
+			updatedAt
+			assignee {
 				id
-				nodeId
-				title
-				description
-				assigneeId
-				creatorId
-				taskTypeId
-				status
-				priority
-				dueDate
-				parentTaskId
-				archived
-				archivedAt
-				archivedBy
-				requiresManualReassignment
-				updatedAt
-				userByAssigneeId {
-					id
-					displayName
-					email
-				}
-				taskTypeByTaskTypeId {
-					id
-					name
-					description
-				}
+				displayName
+				email
 			}
-			clientMutationId
+			taskType {
+				id
+				name
+				description
+			}
 		}
 	}
 `;
@@ -455,17 +399,13 @@ export const UPDATE_TASK = gql`
  * RLS Policy: task_delete_policy (admin only)
  */
 export const DELETE_TASK = gql`
-	mutation DeleteTask($input: UpdateTaskByIdInput!) {
-		updateTaskById(input: $input) {
-			task {
-				id
-				nodeId
-				title
-				archived
-				archivedAt
-				archivedBy
-			}
-			clientMutationId
+	mutation DeleteTask($input: UpdateTaskInput!) {
+		update_task(input: $input) {
+			id
+			title
+			archived
+			archivedAt
+			archivedBy
 		}
 	}
 `;
@@ -476,22 +416,18 @@ export const DELETE_TASK = gql`
  * Note: Creates notifications for both old and new assignees
  */
 export const REASSIGN_TASK = gql`
-	mutation ReassignTask($input: UpdateTaskByIdInput!) {
-		updateTaskById(input: $input) {
-			task {
+	mutation ReassignTask($input: UpdateTaskInput!) {
+		update_task(input: $input) {
+			id
+			title
+			assigneeId
+			status
+			updatedAt
+			assignee {
 				id
-				nodeId
-				title
-				assigneeId
-				status
-				updatedAt
-				userByAssigneeId {
-					id
-					displayName
-					email
-				}
+				displayName
+				email
 			}
-			clientMutationId
 		}
 	}
 `;
@@ -502,25 +438,22 @@ export const REASSIGN_TASK = gql`
  */
 export const CREATE_TASK_DEPENDENCY = gql`
 	mutation CreateTaskDependency($input: CreateTaskDependencyInput!) {
-		createTaskDependency(input: $input) {
-			taskDependency {
+		create_task_dependency(input: $input) {
+			id
+			blockingTaskId
+			blockedTaskId
+			dependencyType
+			createdAt
+			blockingTask {
 				id
-				blockingTaskId
-				blockedTaskId
-				dependencyType
-				createdAt
-				taskByBlockingTaskId {
-					id
-					title
-					status
-				}
-				taskByBlockedTaskId {
-					id
-					title
-					status
-				}
+				title
+				status
 			}
-			clientMutationId
+			blockedTask {
+				id
+				title
+				status
+			}
 		}
 	}
 `;
@@ -529,11 +462,8 @@ export const CREATE_TASK_DEPENDENCY = gql`
  * Mutation: Delete task dependency
  */
 export const DELETE_TASK_DEPENDENCY = gql`
-	mutation DeleteTaskDependency($input: DeleteTaskDependencyInput!) {
-		deleteTaskDependency(input: $input) {
-			deletedTaskDependencyId
-			clientMutationId
-		}
+	mutation DeleteTaskDependency($id: UUID!) {
+		delete_task_dependency(id: $id)
 	}
 `;
 
@@ -542,18 +472,15 @@ export const DELETE_TASK_DEPENDENCY = gql`
  */
 export const CREATE_LINKED_RESOURCE = gql`
 	mutation CreateLinkedResource($input: CreateLinkedResourceInput!) {
-		createLinkedResource(input: $input) {
-			linkedResource {
-				id
-				taskId
-				resourceType
-				resourceId
-				resourceTitle
-				availabilityStatus
-				lastChecked
-				createdAt
-			}
-			clientMutationId
+		create_linked_resource(input: $input) {
+			id
+			taskId
+			resourceType
+			resourceId
+			resourceTitle
+			availabilityStatus
+			lastChecked
+			createdAt
 		}
 	}
 `;
@@ -562,11 +489,8 @@ export const CREATE_LINKED_RESOURCE = gql`
  * Mutation: Delete linked resource
  */
 export const DELETE_LINKED_RESOURCE = gql`
-	mutation DeleteLinkedResource($input: DeleteLinkedResourceInput!) {
-		deleteLinkedResource(input: $input) {
-			deletedLinkedResourceId
-			clientMutationId
-		}
+	mutation DeleteLinkedResource($id: UUID!) {
+		delete_linked_resource(id: $id)
 	}
 `;
 
@@ -574,17 +498,14 @@ export const DELETE_LINKED_RESOURCE = gql`
  * Mutation: Update linked resource availability status
  */
 export const UPDATE_LINKED_RESOURCE_STATUS = gql`
-	mutation UpdateLinkedResourceStatus($input: UpdateLinkedResourceByIdInput!) {
-		updateLinkedResourceById(input: $input) {
-			linkedResource {
-				id
-				resourceType
-				resourceId
-				resourceTitle
-				availabilityStatus
-				lastChecked
-			}
-			clientMutationId
+	mutation UpdateLinkedResourceStatus($input: UpdateLinkedResourceInput!) {
+		update_linked_resource(input: $input) {
+			id
+			resourceType
+			resourceId
+			resourceTitle
+			availabilityStatus
+			lastChecked
 		}
 	}
 `;
@@ -595,16 +516,13 @@ export const UPDATE_LINKED_RESOURCE_STATUS = gql`
  */
 export const CREATE_TASK_TYPE = gql`
 	mutation CreateTaskType($input: CreateTaskTypeInput!) {
-		createTaskType(input: $input) {
-			taskType {
-				id
-				name
-				description
-				isSystem
-				createdAt
-				createdBy
-			}
-			clientMutationId
+		create_task_type(input: $input) {
+			id
+			name
+			description
+			isSystem
+			createdAt
+			createdBy
 		}
 	}
 `;
@@ -653,103 +571,77 @@ export interface TaskFilter {
 }
 
 export interface CreateTaskInput {
-	clientMutationId?: string;
-	task: {
-		title: string;
-		description?: string;
-		assigneeId: string;
-		taskTypeId: string;
-		status?: TaskStatus;
-		priority?: TaskPriority;
-		dueDate?: string;
-		parentTaskId?: string;
-		requiresManualReassignment?: boolean;
-	};
+	title: string;
+	description?: string;
+	assigneeId: string;
+	taskTypeId: string;
+	status?: TaskStatus;
+	priority?: TaskPriority;
+	dueDate?: string;
+	parentTaskId?: string;
+	requiresManualReassignment?: boolean;
 }
 
 export interface UpdateTaskInput {
-	clientMutationId?: string;
 	id: string;
-	taskPatch: {
-		title?: string;
-		description?: string;
-		assigneeId?: string;
-		taskTypeId?: string;
-		status?: TaskStatus;
-		priority?: TaskPriority;
-		dueDate?: string;
-		parentTaskId?: string;
-		archived?: boolean;
-		archivedAt?: string;
-		archivedBy?: string;
-		requiresManualReassignment?: boolean;
-	};
+	title?: string;
+	description?: string;
+	assigneeId?: string;
+	taskTypeId?: string;
+	status?: TaskStatus;
+	priority?: TaskPriority;
+	dueDate?: string;
+	parentTaskId?: string;
+	archived?: boolean;
+	archivedAt?: string;
+	archivedBy?: string;
+	requiresManualReassignment?: boolean;
 }
 
 export interface DeleteTaskInput {
-	clientMutationId?: string;
 	id: string;
-	taskPatch: {
-		archived: boolean;
-		archivedAt: string;
-		archivedBy: string;
-	};
+	archived: boolean;
+	archivedAt: string;
+	archivedBy: string;
 }
 
 export interface ReassignTaskInput {
-	clientMutationId?: string;
 	id: string;
-	taskPatch: {
-		assigneeId: string;
-	};
+	assigneeId: string;
 }
 
 export interface CreateTaskDependencyInput {
-	clientMutationId?: string;
-	taskDependency: {
-		blockingTaskId: string;
-		blockedTaskId: string;
-		dependencyType?: string;
-	};
+	blockingTaskId: string;
+	blockedTaskId: string;
+	dependencyType?: string;
 }
 
 export interface DeleteTaskDependencyInput {
-	clientMutationId?: string;
-	nodeId: string;
+	id: string;
 }
 
 export interface CreateLinkedResourceInput {
-	clientMutationId?: string;
-	linkedResource: {
-		taskId: string;
-		resourceType: ResourceType;
-		resourceId: string;
-		resourceTitle: string;
-		availabilityStatus?: AvailabilityStatus;
-	};
+	taskId: string;
+	resourceType: ResourceType;
+	resourceId: string;
+	resourceTitle: string;
+	availabilityStatus?: AvailabilityStatus;
 }
 
 export interface DeleteLinkedResourceInput {
-	clientMutationId?: string;
-	nodeId: string;
+	id: string;
 }
 
-export interface UpdateLinkedResourceStatusInput {
-	clientMutationId?: string;
+export interface UpdateLinkedResourceInput {
 	id: string;
-	linkedResourcePatch: {
-		availabilityStatus: AvailabilityStatus;
-		lastChecked: string;
-	};
+	availabilityStatus: AvailabilityStatus;
+	lastChecked: string;
 }
 
 export interface CreateTaskTypeInput {
-	clientMutationId?: string;
-	taskType: {
-		name: string;
-		description?: string;
-		isSystem?: boolean;
-	};
+	name: string;
+	description?: string;
+	isSystem?: boolean;
 }
 
 // ============================================================================
@@ -955,7 +847,7 @@ export class TasksOperations {
 	 * Get all tasks (RBAC-filtered)
 	 */
 	async getAllTasks(params: {
-		first?: number;
+		limit?: number;
 		offset?: number;
 		filter?: any;
 		orderBy?: string;
@@ -968,13 +860,14 @@ export class TasksOperations {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
+		const limit = params.limit || 20;
 		const dataRequest = createDataRequest({
 			operationName: 'GetAllTasks',
 			variables: {
-				first: params.first || 20,
+				limit,
 				offset: params.offset || 0,
-				condition: params.filter || {},
-				orderBy: params.orderBy ? [params.orderBy] : ['CREATED_AT_DESC']
+				filter: params.filter || {},
+				orderBy: params.orderBy || 'created_at_desc'
 			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
@@ -991,17 +884,18 @@ export class TasksOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data) {
+			if (!result.data || !result.data.tasks) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'No tasks data returned. Please try again.'
 				});
 			}
 
+			const tasks = result.data.tasks;
 			return {
-				tasks: result.data.allTasks.nodes,
-				totalCount: result.data.allTasks.totalCount,
-				hasNextPage: result.data.allTasks.pageInfo.hasNextPage
+				tasks,
+				totalCount: tasks.length,
+				hasNextPage: tasks.length === limit
 			};
 		} catch (error: any) {
 			if (error.userMessage) {
@@ -1018,7 +912,7 @@ export class TasksOperations {
 	 * Get current user's tasks (RBAC-aware)
 	 */
 	async getMyTasks(params: {
-		first?: number;
+		limit?: number;
 		offset?: number;
 		filter?: any;
 		orderBy?: string;
@@ -1030,10 +924,10 @@ export class TasksOperations {
 		const dataRequest = createDataRequest({
 			operationName: 'GetMyTasks',
 			variables: {
-				first: params.first || 20,
+				limit: params.limit || 20,
 				offset: params.offset || 0,
-				condition: params.filter || {},
-				orderBy: params.orderBy ? [params.orderBy] : ['DUE_DATE_ASC', 'PRIORITY_DESC']
+				filter: params.filter || {},
+				orderBy: params.orderBy || 'due_date_asc'
 			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
@@ -1050,16 +944,17 @@ export class TasksOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data) {
+			if (!result.data || !result.data.tasks) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'No tasks data returned. Please try again.'
 				});
 			}
 
+			const tasks = result.data.tasks;
 			return {
-				tasks: result.data.allTasks.nodes,
-				totalCount: result.data.allTasks.totalCount
+				tasks,
+				totalCount: tasks.length
 			};
 		} catch (error: any) {
 			if (error.userMessage) {
@@ -1100,14 +995,14 @@ export class TasksOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data || !result.data.taskById) {
+			if (!result.data || !result.data.task) {
 				throw createErrorResponse(new Error('Task not found'), {
 					type: 'graphql',
 					userMessage: 'Task not found. Please try again.'
 				});
 			}
 
-			return result.data.taskById;
+			return result.data.task;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error;
@@ -1124,7 +1019,7 @@ export class TasksOperations {
 	 */
 	async getTaskAuditEntries(params: {
 		taskId: string;
-		first?: number;
+		limit?: number;
 		offset?: number;
 		userCredentials: UserCredentials;
 	}): Promise<{ entries: TaskAuditEntry[]; totalCount: number }> {
@@ -1135,7 +1030,7 @@ export class TasksOperations {
 			operationName: 'GetTaskAuditEntries',
 			variables: {
 				taskId: params.taskId,
-				first: params.first || 50,
+				limit: params.limit || 50,
 				offset: params.offset || 0
 			},
 			userCredentials: params.userCredentials,
@@ -1155,16 +1050,17 @@ export class TasksOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data) {
+			if (!result.data || !result.data.task_audit_entries) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'No audit data returned. Please try again.'
 				});
 			}
 
+			const entries = result.data.task_audit_entries;
 			return {
-				entries: result.data.allTaskAuditEntries.nodes,
-				totalCount: result.data.allTaskAuditEntries.totalCount
+				entries,
+				totalCount: entries.length
 			};
 		} catch (error: any) {
 			if (error.userMessage) {
@@ -1202,14 +1098,14 @@ export class TasksOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data) {
+			if (!result.data || !result.data.task_types) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'No task types data returned. Please try again.'
 				});
 			}
 
-			return result.data.allTaskTypes.nodes;
+			return result.data.task_types;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error;
@@ -1232,7 +1128,7 @@ export class TasksOperations {
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		// Validate input
-		const validation = validateTaskInput(params.input.task);
+		const validation = validateTaskInput(params.input);
 		if (!validation.valid) {
 			throw createErrorResponse(new Error(validation.errors.join(', ')), {
 				type: 'validation',
@@ -1258,14 +1154,14 @@ export class TasksOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data || !result.data.createTask) {
+			if (!result.data || !result.data.create_task) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'Task creation failed. Please try again.'
 				});
 			}
 
-			return result.data.createTask.task;
+			return result.data.create_task;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error;
@@ -1305,14 +1201,14 @@ export class TasksOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data || !result.data.updateTaskById) {
+			if (!result.data || !result.data.update_task) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'Task update failed. Please try again.'
 				});
 			}
 
-			return result.data.updateTaskById.task;
+			return result.data.update_task;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error;
@@ -1337,11 +1233,9 @@ export class TasksOperations {
 
 		const input: UpdateTaskInput = {
 			id: params.taskId,
-			taskPatch: {
-				archived: true,
-				archivedAt: new Date().toISOString(),
-				archivedBy: params.userId
-			}
+			archived: true,
+			archivedAt: new Date().toISOString(),
+			archivedBy: params.userId
 		};
 
 		const dataRequest = createDataRequest({
@@ -1362,14 +1256,14 @@ export class TasksOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data || !result.data.updateTaskById) {
+			if (!result.data || !result.data.update_task) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'Task deletion failed. Please try again.'
 				});
 			}
 
-			return { task: result.data.updateTaskById.task };
+			return { task: result.data.update_task };
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error;
@@ -1392,11 +1286,9 @@ export class TasksOperations {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
-		const input: ReassignTaskInput = {
+		const input: UpdateTaskInput = {
 			id: params.taskId,
-			taskPatch: {
-				assigneeId: params.newAssigneeId
-			}
+			assigneeId: params.newAssigneeId
 		};
 
 		const dataRequest = createDataRequest({
@@ -1417,20 +1309,20 @@ export class TasksOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data || !result.data.updateTaskById) {
+			if (!result.data || !result.data.update_task) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'Task reassignment failed. Please try again.'
 				});
 			}
 
-			const task = result.data.updateTaskById.task;
+			const task = result.data.update_task;
 
 			// Return structure expected by contract tests
 			return {
 				task,
 				oldAssignee: null, // Would need to fetch from audit trail
-				newAssignee: task.userByAssigneeId
+				newAssignee: task.assignee
 			};
 		} catch (error: any) {
 			if (error.userMessage) {
@@ -1481,14 +1373,14 @@ export class TasksOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data || !result.data.createTaskDependency) {
+			if (!result.data || !result.data.create_task_dependency) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'Dependency creation failed. Please try again.'
 				});
 			}
 
-			return { taskDependency: result.data.createTaskDependency.taskDependency };
+			return { taskDependency: result.data.create_task_dependency };
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error;
@@ -1504,19 +1396,15 @@ export class TasksOperations {
 	 * Delete task dependency
 	 */
 	async deleteTaskDependency(params: {
-		nodeId: string;
+		id: string;
 		userCredentials: UserCredentials;
 	}): Promise<string> {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
-		const input: DeleteTaskDependencyInput = {
-			nodeId: params.nodeId
-		};
-
 		const dataRequest = createDataRequest({
 			operationName: 'DeleteTaskDependency',
-			variables: { input },
+			variables: { id: params.id },
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
 		});
@@ -1534,14 +1422,14 @@ export class TasksOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data) {
+			if (!result.data || !result.data.delete_task_dependency) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'Dependency deletion failed. Please try again.'
 				});
 			}
 
-			return result.data.deleteTaskDependency.deletedTaskDependencyId;
+			return result.data.delete_task_dependency;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error;
@@ -1583,14 +1471,14 @@ export class TasksOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data || !result.data.createLinkedResource) {
+			if (!result.data || !result.data.create_linked_resource) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'Resource linking failed. Please try again.'
 				});
 			}
 
-			return result.data.createLinkedResource.linkedResource;
+			return result.data.create_linked_resource;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error;
@@ -1613,12 +1501,10 @@ export class TasksOperations {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
-		const input: UpdateLinkedResourceStatusInput = {
+		const input: UpdateLinkedResourceInput = {
 			id: params.resourceId,
-			linkedResourcePatch: {
-				availabilityStatus: params.status,
-				lastChecked: new Date().toISOString()
-			}
+			availabilityStatus: params.status,
+			lastChecked: new Date().toISOString()
 		};
 
 		const dataRequest = createDataRequest({
@@ -1641,14 +1527,14 @@ export class TasksOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data || !result.data.updateLinkedResourceById) {
+			if (!result.data || !result.data.update_linked_resource) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'Resource update failed. Please try again.'
 				});
 			}
 
-			return result.data.updateLinkedResourceById.linkedResource;
+			return result.data.update_linked_resource;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error;
@@ -1688,14 +1574,14 @@ export class TasksOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data || !result.data.createTaskType) {
+			if (!result.data || !result.data.create_task_type) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'Task type creation failed. Please try again.'
 				});
 			}
 
-			return result.data.createTaskType.taskType;
+			return result.data.create_task_type;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error;

@@ -57,6 +57,10 @@ impl RlsSession {
     /// This is the primary entry point for all resolvers.
     /// Returns an error if no authenticated user context is found.
     ///
+    /// **Note**: With the Guard-based approach, most resolvers should use Guards
+    /// for authorization instead of RLS. Use this only when you need defense-in-depth
+    /// with PostgreSQL RLS policies as an additional security layer.
+    ///
     /// # Errors
     ///
     /// Returns `UNAUTHENTICATED` error if:
@@ -76,6 +80,23 @@ impl RlsSession {
             roles: user_ctx.roles.clone(),
             permissions: user_ctx.permissions.clone(),
         })
+    }
+
+    /// Optionally extract RLS session from GraphQL context
+    ///
+    /// Returns None if no authenticated user context is found.
+    /// Useful for queries that need to behave differently for authenticated vs anonymous users.
+    ///
+    /// **Prefer using Guards for authorization**. This method is for special cases
+    /// where you need optional authentication.
+    pub fn from_context_optional(ctx: &Context<'_>) -> Option<Self> {
+        ctx.data::<UserContext>()
+            .ok()
+            .map(|user_ctx| Self {
+                user_id: user_ctx.user_id,
+                roles: user_ctx.roles.clone(),
+                permissions: user_ctx.permissions.clone(),
+            })
     }
 
     /// Execute a query with RLS variables set
@@ -140,7 +161,6 @@ impl RlsSession {
             }
             Err(e) => {
                 // Rollback happens automatically when tx is dropped
-                tracing::debug!("Transaction rolled back due to error: {}", e.message);
                 Err(e)
             }
         }
@@ -204,12 +224,7 @@ impl RlsSession {
                 .extend_with(|_, ext| ext.set("code", "INTERNAL_ERROR"))
         })?;
 
-        tracing::debug!(
-            "RLS variables set: user_id={}, roles=[{}], permissions=[{}]",
-            self.user_id,
-            roles_str,
-            permissions_str
-        );
+
 
         Ok(())
     }

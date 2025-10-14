@@ -22,16 +22,15 @@ pub enum LeaveRequestStatus {
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct LeaveRequest {
     pub id: Uuid,
-    pub user_id: Uuid,
-    pub leave_type_id: Uuid,
+    pub employee_id: Uuid,
+    pub manager_id: Option<Uuid>,
+    pub leave_type: String, // This is an enum in the database
     pub start_date: DateTime<Utc>,
     pub end_date: DateTime<Utc>,
     pub days_requested: i32,
     pub status: LeaveRequestStatus,
     pub reason: Option<String>,
-    pub approved_by: Option<Uuid>,
-    pub approved_at: Option<DateTime<Utc>>,
-    pub rejection_reason: Option<String>,
+    pub manager_comments: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
@@ -45,14 +44,19 @@ impl LeaveRequest {
         self.id
     }
 
-    /// User ID requesting leave (foreign key)
-    async fn user_id(&self) -> Uuid {
-        self.user_id
+    /// Employee ID requesting leave (foreign key)
+    async fn employee_id(&self) -> Uuid {
+        self.employee_id
     }
 
-    /// Leave type ID (foreign key)
-    async fn leave_type_id(&self) -> Uuid {
-        self.leave_type_id
+    /// Manager ID who can approve/reject (optional foreign key)
+    async fn manager_id(&self) -> Option<Uuid> {
+        self.manager_id
+    }
+
+    /// Leave type (enum value)
+    async fn leave_type(&self) -> &str {
+        &self.leave_type
     }
 
     /// Leave start date
@@ -80,19 +84,9 @@ impl LeaveRequest {
         self.reason.as_deref()
     }
 
-    /// User ID who approved/rejected (optional)
-    async fn approved_by(&self) -> Option<Uuid> {
-        self.approved_by
-    }
-
-    /// Approval/rejection timestamp
-    async fn approved_at(&self) -> Option<DateTime<Utc>> {
-        self.approved_at
-    }
-
-    /// Reason for rejection (optional)
-    async fn rejection_reason(&self) -> Option<&str> {
-        self.rejection_reason.as_deref()
+    /// Manager comments (optional)
+    async fn manager_comments(&self) -> Option<&str> {
+        self.manager_comments.as_deref()
     }
 
     /// Record creation timestamp
@@ -110,61 +104,43 @@ impl LeaveRequest {
         self.deleted_at
     }
 
-    /// User requesting leave
-    async fn user(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::User>> {
+    /// Employee requesting leave
+    async fn user_by_employee_id(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::User>> {
         let pool = ctx.data::<PgPool>()?;
 
         let user = sqlx::query_as::<_, super::user::User>(
             r#"
-            SELECT id, email, first_name, last_name, full_name, phone,
-                   department_id, manager_id, hire_date, termination_date,
-                   status, created_at, updated_at, deleted_at
+            SELECT id, email, first_name, last_name, display_name, full_name, role,
+                   phone_number, alternate_phone, job_title, status,
+                   department_id, manager_id, hire_date, is_active,
+                   created_at, updated_at, deleted_at
             FROM hr_public.users
             WHERE id = $1 AND deleted_at IS NULL
             "#,
         )
-        .bind(self.user_id)
+        .bind(self.employee_id)
         .fetch_optional(pool)
         .await?;
 
         Ok(user)
     }
 
-    /// Leave type for this request
-    async fn leave_type(&self, ctx: &Context<'_>) -> GqlResult<Option<super::leave_type::LeaveType>> {
-        let pool = ctx.data::<PgPool>()?;
-
-        let leave_type = sqlx::query_as::<_, super::leave_type::LeaveType>(
-            r#"
-            SELECT id, name, description, default_days_per_year,
-                   requires_approval, max_consecutive_days, is_paid,
-                   color, icon, created_at, updated_at, deleted_at
-            FROM hr_public.leave_types
-            WHERE id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.leave_type_id)
-        .fetch_optional(pool)
-        .await?;
-
-        Ok(leave_type)
-    }
-
-    /// User who approved/rejected the request
-    async fn approver(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::User>> {
-        if let Some(approver_id) = self.approved_by {
+    /// Manager who can approve/reject the request
+    async fn user_by_manager_id(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::User>> {
+        if let Some(manager_id) = self.manager_id {
             let pool = ctx.data::<PgPool>()?;
 
             let user = sqlx::query_as::<_, super::user::User>(
                 r#"
-                SELECT id, email, first_name, last_name, full_name, phone,
-                       department_id, manager_id, hire_date, termination_date,
-                       status, created_at, updated_at, deleted_at
+                SELECT id, email, first_name, last_name, display_name, full_name, role,
+                       phone_number, alternate_phone, job_title, status,
+                       department_id, manager_id, hire_date, is_active,
+                       created_at, updated_at, deleted_at
                 FROM hr_public.users
                 WHERE id = $1 AND deleted_at IS NULL
                 "#,
             )
-            .bind(approver_id)
+            .bind(manager_id)
             .fetch_optional(pool)
             .await?;
 
@@ -230,16 +206,15 @@ mod tests {
     fn test_leave_request_model_compiles() {
         let request = LeaveRequest {
             id: Uuid::new_v4(),
-            user_id: Uuid::new_v4(),
-            leave_type_id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
+            manager_id: Some(Uuid::new_v4()),
+            leave_type: "annual".to_string(),
             start_date: Utc::now(),
             end_date: Utc::now(),
             days_requested: 5,
             status: LeaveRequestStatus::Pending,
             reason: Some("Family vacation".to_string()),
-            approved_by: None,
-            approved_at: None,
-            rejection_reason: None,
+            manager_comments: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
             deleted_at: None,

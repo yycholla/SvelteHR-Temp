@@ -10,11 +10,10 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 		throw error(401, 'Authentication required');
 	}
 
-	// Check if user has manager or admin role for management pages
+	// Check if user has management access permissions
+	const userPermissions = locals.permissions || [];
 	const hasManagerAccess =
-		locals.roles?.includes('super_admin') ||
-		locals.roles?.includes('admin') ||
-		locals.roles?.includes('manager');
+		userPermissions.includes('*') || userPermissions.includes('management:read');
 
 	if (!hasManagerAccess) {
 		// Log access denial for audit purposes
@@ -23,10 +22,11 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 			userEmail: locals.user.email,
 			userRole: locals.user.role,
 			roles: locals.roles,
+			permissions: userPermissions,
 			timestamp: new Date().toISOString()
 		});
 
-		throw error(403, 'Manager or Admin role required');
+		throw error(403, 'Management access required');
 	}
 
 	// Log successful management access

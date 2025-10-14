@@ -20,8 +20,8 @@
 	let filterDateFrom = $state('');
 	let filterDateTo = $state('');
 
-	// Access types
-	const accessTypes = ['upload', 'download', 'preview', 'delete'];
+	// Access types (matches database schema)
+	const accessTypes = ['view', 'download', 'print', 'share'];
 
 	// Handle filter changes
 	function applyFilters() {
@@ -87,9 +87,7 @@
 			</p>
 		</div>
 
-		<button class="export-button" onclick={exportToCSV}>
-			📊 Export CSV
-		</button>
+		<button class="export-button" onclick={exportToCSV}> 📊 Export CSV </button>
 	</div>
 
 	<!-- Filters -->
@@ -127,30 +125,18 @@
 
 			<div class="filter-group">
 				<label for="dateFrom">Date From</label>
-				<input
-					id="dateFrom"
-					type="date"
-					bind:value={filterDateFrom}
-				/>
+				<input id="dateFrom" type="date" bind:value={filterDateFrom} />
 			</div>
 
 			<div class="filter-group">
 				<label for="dateTo">Date To</label>
-				<input
-					id="dateTo"
-					type="date"
-					bind:value={filterDateTo}
-				/>
+				<input id="dateTo" type="date" bind:value={filterDateTo} />
 			</div>
 		</div>
 
 		<div class="filter-actions">
-			<button class="clear-button" onclick={clearFilters}>
-				Clear Filters
-			</button>
-			<button class="apply-button" onclick={applyFilters}>
-				Apply Filters
-			</button>
+			<button class="clear-button" onclick={clearFilters}> Clear Filters </button>
+			<button class="apply-button" onclick={applyFilters}> Apply Filters </button>
 		</div>
 	</div>
 
@@ -163,18 +149,17 @@
 					<span class="col-document">Document</span>
 					<span class="col-user">User</span>
 					<span class="col-action">Action</span>
-					<span class="col-outcome">Outcome</span>
 					<span class="col-ip">IP Address</span>
 				</div>
 
 				{#each data.accessLogs as log}
 					<div class="table-row">
 						<span class="col-timestamp">
-							{new Date(log.access_timestamp).toLocaleString()}
+							{new Date(log.accessed_at).toLocaleString()}
 						</span>
 						<span class="col-document">
 							<a href="/dashboard/documents/{log.document_id}" class="document-link">
-								{log.document_filename || log.document_id}
+								{log.document_title || log.document_id}
 							</a>
 							{#if log.document_type}
 								<span class="file-type">.{log.document_type.toLowerCase()}</span>
@@ -183,22 +168,14 @@
 						<span class="col-user">
 							{log.user_email || `User ${log.user_id.substring(0, 8)}...`}
 						</span>
-						<span class="col-action access-type-{log.access_type}">
-							{log.access_type}
+						<span class="col-action access-type-{log.action}">
+							{log.action}
 						</span>
-						<span class="col-outcome outcome-{log.access_outcome}">
-							{log.access_outcome}
-						</span>
+
 						<span class="col-ip">
 							{log.ip_address}
 						</span>
 					</div>
-
-					{#if log.access_outcome === 'denied' && log.denial_reason}
-						<div class="denial-reason">
-							⚠️ {log.denial_reason}
-						</div>
-					{/if}
 				{/each}
 			</div>
 
@@ -206,15 +183,14 @@
 			{#if totalPages > 1}
 				<div class="pagination">
 					<div class="pagination-info">
-						Showing {(data.page - 1) * data.limit + 1}-{Math.min(data.page * data.limit, data.totalCount)} of {data.totalCount}
+						Showing {(data.page - 1) * data.limit + 1}-{Math.min(
+							data.page * data.limit,
+							data.totalCount
+						)} of {data.totalCount}
 					</div>
 
 					<div class="pagination-controls">
-						<button
-							class="page-button"
-							onclick={() => goToPage(1)}
-							disabled={data.page === 1}
-						>
+						<button class="page-button" onclick={() => goToPage(1)} disabled={data.page === 1}>
 							««
 						</button>
 						<button
@@ -228,7 +204,7 @@
 						{#each Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
 							const startPage = Math.max(1, data.page - 2);
 							return startPage + i;
-						}).filter(p => p <= totalPages) as page}
+						}).filter((p) => p <= totalPages) as page}
 							<button
 								class="page-button"
 								class:active={page === data.page}
@@ -411,8 +387,7 @@
 
 	.table-header,
 	.table-row {
-		display: grid;
-		grid-template-columns: 1.5fr 1fr 1fr 0.8fr 0.8fr 1fr;
+		grid-template-columns: 1.5fr 1fr 1fr 0.8fr 1fr;
 		gap: 1rem;
 		padding: 0.75rem 1rem;
 		align-items: center;
@@ -474,26 +449,6 @@
 	.access-type-delete {
 		color: hsl(var(--destructive));
 		font-weight: 600;
-	}
-
-	.outcome-success {
-		color: hsl(142 76% 36%);
-		font-weight: 600;
-	}
-
-	.outcome-denied {
-		color: hsl(var(--destructive));
-		font-weight: 600;
-	}
-
-	.denial-reason {
-		grid-column: 1 / -1;
-		padding: 0.5rem 1rem;
-		background: hsl(var(--destructive) / 0.1);
-		border-left: 3px solid hsl(var(--destructive));
-		font-size: 0.875rem;
-		color: hsl(var(--destructive));
-		margin-bottom: 0.5rem;
 	}
 
 	.empty-state {

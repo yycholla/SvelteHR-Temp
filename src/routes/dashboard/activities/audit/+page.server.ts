@@ -30,14 +30,13 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	};
 
 	// Check if user has admin privileges
-	// Check both single role and roles array
-	const userRoles = locals.roles || [];
-	const hasAdminRole = userRoles.some(role =>
-		['admin', 'super_admin', 'hr_admin'].includes(role.toLowerCase())
-	);
-	const roleLevel = getRoleLevel(locals.user.role);
+	const userPermissions = locals.permissions || [];
+	const hasAdminAccess =
+		userPermissions.includes('*') ||
+		userPermissions.includes('admin:read') ||
+		userPermissions.includes('audit:read');
 
-	if (!hasAdminRole && roleLevel < 100) {
+	if (!hasAdminAccess) {
 		// Only admins can access audit logs
 		throw error(403, {
 			message: 'Access denied. Administrator privileges required to view audit logs.'
@@ -134,16 +133,20 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			id: log.id,
 			employeeId: log.employeeId,
 			userId: log.userId,
-			employee: log.userByEmployeeId ? {
-				id: log.userByEmployeeId.id,
-				displayName: log.userByEmployeeId.displayName,
-				email: log.userByEmployeeId.email,
-				departmentId: log.userByEmployeeId.departmentId,
-				department: log.userByEmployeeId.departmentByDepartmentId ? {
-					id: log.userByEmployeeId.departmentByDepartmentId.id,
-					name: log.userByEmployeeId.departmentByDepartmentId.name
-				} : undefined
-			} : undefined,
+			employee: log.userByEmployeeId
+				? {
+						id: log.userByEmployeeId.id,
+						displayName: log.userByEmployeeId.displayName,
+						email: log.userByEmployeeId.email,
+						departmentId: log.userByEmployeeId.departmentId,
+						department: log.userByEmployeeId.departmentByDepartmentId
+							? {
+									id: log.userByEmployeeId.departmentByDepartmentId.id,
+									name: log.userByEmployeeId.departmentByDepartmentId.name
+								}
+							: undefined
+					}
+				: undefined,
 			action: log.action,
 			resourceType: log.resourceType,
 			resourceId: log.resourceId,

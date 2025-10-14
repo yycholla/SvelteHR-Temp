@@ -1,0 +1,1 @@
+{"version":3,"file":"history.d.ts","sourceRoot":"","sources":["../../../src/cli/commands/history.ts"],"names":[],"mappings":"AAAA;;GAEG;AAIH,UAAU,qBAAqB;IAC7B,KAAK,CAAC,EAAE,MAAM,CAAC;IACf,MAAM,CAAC,EAAE,MAAM,CAAC;CACjB;AAED,wBAAsB,cAAc,CAAC,QAAQ,EAAE,qBAAqB,GAAG,OAAO,CAAC,IAAI,CAAC,CAGnF"}

@@ -3,7 +3,7 @@
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { GraphQLClient } from '$lib/server/graphql-client';
+import { createUrqlClient } from '$lib/graphql/client';
 import { ensureBackendReady } from '$lib/server/backend-init';
 
 export const load: PageServerLoad = async (event) => {
@@ -38,7 +38,12 @@ export const load: PageServerLoad = async (event) => {
 					performanceReviews: { pending: 0, overdue: 0, completed: 0, avgRating: 0 },
 					teamGoals: { active: 0, overdue: 0, atRisk: 0, avgProgress: 0, completed: 0 },
 					reports: { generated: 0, scheduled: 0, failed: 0, totalThisMonth: 0 },
-					teamStats: { totalEmployees: 0, activeEmployees: 0, departmentCount: 0, avgTenure: '0 years' }
+					teamStats: {
+						totalEmployees: 0,
+						activeEmployees: 0,
+						departmentCount: 0,
+						avgTenure: '0 years'
+					}
 				},
 				recentActivities: [],
 				performanceMetrics: [],
@@ -63,73 +68,75 @@ export const load: PageServerLoad = async (event) => {
 			};
 		}
 
+		// Get JWT token for authenticated GraphQL queries
+		const token = cookies.get('hr_token') || cookies.get('auth-token');
+		if (!token) {
+			throw error(401, 'Authentication required');
+		}
+
 		// Create GraphQL client with authentication
-		const graphqlClient = GraphQLClient.fromCookies(cookies);
+		const graphqlClient = createUrqlClient(fetch, token);
 
 		// Extract search parameters for filtering
 		const selectedPeriod = url.searchParams.get('period') || 'this-month';
 		const selectedTeamId = url.searchParams.get('team') || '';
 
-		// Simplified GraphQL queries for management dashboard
+		// Simplified GraphQL queries for management dashboard using Rust GraphQL server schema
 		const usersQuery = `
-			query GetUsers {
-				allUsers {
-					totalCount
-					nodes {
-						id
-						email
-						firstName
-						lastName
-						departmentId
-						isActive
-					}
+			query GetUsers($limit: Int) {
+				users(limit: $limit) {
+					id
+					email
+					firstName
+					lastName
+					displayName
+					departmentId
+					managerId
+					isActive
+					hireDate
+					createdAt
+					updatedAt
 				}
 			}
 		`;
 
 		const departmentsQuery = `
-			query GetDepartments {
-				allDepartments {
-					totalCount
-					nodes {
-						id
-						name
-						managerId
-					}
+			query GetDepartments($limit: Int) {
+				departments(limit: $limit) {
+					id
+					name
+					description
+					parentDepartmentId
+					managerId
+					createdAt
+					updatedAt
 				}
 			}
 		`;
 
-		const [usersResult, departmentsResult] = await Promise.allSettled([
-			graphqlClient.query(usersQuery),
-			graphqlClient.query(departmentsQuery)
-		]);
+		// Execute queries with variables
+		const { executeQuery } = await import('$lib/graphql/client');
+		const usersData = await executeQuery(graphqlClient, usersQuery, { limit: 1000 });
+		const departmentsData = await executeQuery(graphqlClient, departmentsQuery, { limit: 100 });
 
-		// Handle potential GraphQL errors
-		if (usersResult.status === 'rejected' || departmentsResult.status === 'rejected') {
-			console.error('GraphQL query failed:', {
-				users: usersResult.status === 'rejected' ? usersResult.reason : 'success',
-				departments: departmentsResult.status === 'rejected' ? departmentsResult.reason : 'success'
-			});
-		}
-
-		// Extract data with fallbacks
-		const users = usersResult.status === 'fulfilled' && usersResult.value.data?.allUsers?.nodes || [];
-		const departments = departmentsResult.status === 'fulfilled' && departmentsResult.value.data?.allDepartments?.nodes || [];
+		// Extract data with fallbacks (Rust GraphQL server returns direct arrays, no nodes wrapper)
+		const users = usersData?.users || [];
+		const departments = departmentsData?.departments || [];
 
 		// Determine user's managed department
 		let managedDepartmentId: number | null = null;
-		const isAdmin = locals.roles?.includes('super_admin') || locals.roles?.includes('admin') || false;
+		const isAdmin =
+			locals.roles?.includes('super_admin') || locals.roles?.includes('admin') || false;
 
 		if (!isAdmin && locals.roles?.includes('manager')) {
-			const userDept = departments.find(d => d.managerId === locals.user.id);
+			const userDept = departments.find((d) => d.managerId === locals.user.id);
 			managedDepartmentId = userDept?.id || null;
 		}
 
 		// Filter employees for managers (admins see all)
-		const filteredUsers = isAdmin ? users : users.filter(u =>
-			managedDepartmentId ? u.departmentId === managedDepartmentId : false
-		);
+		const filteredUsers = isAdmin
+			? users
+			: users.filter((u) => (managedDepartmentId ? u.departmentId === managedDepartmentId : false));
 
 		// Generate mock dashboard analytics from real user data
 		const dashboardAnalytics = {
@@ -160,7 +167,7 @@ export const load: PageServerLoad = async (event) => {
 			},
 			teamStats: {
 				totalEmployees: filteredUsers.length,
-				activeEmployees: filteredUsers.filter(u => u.isActive).length,
+				activeEmployees: filteredUsers.filter((u) => u.isActive).length,
 				departmentCount: isAdmin ? departments.length : 1,
 				avgTenure: '2.5 years'
 			}
@@ -215,17 +222,26 @@ export const load: PageServerLoad = async (event) => {
 		const performanceMetrics = [
 			{
 				label: 'Leave Approval Rate',
-				value: dashboardAnalytics.leaveRequests.approved > 0
-					? Math.round((dashboardAnalytics.leaveRequests.approved /
-						(dashboardAnalytics.leaveRequests.approved + dashboardAnalytics.leaveRequests.rejected || 1)) * 100)
-					: 0,
+				value:
+					dashboardAnalytics.leaveRequests.approved > 0
+						? Math.round(
+								(dashboardAnalytics.leaveRequests.approved /
+									(dashboardAnalytics.leaveRequests.approved +
+										dashboardAnalytics.leaveRequests.rejected || 1)) *
+									100
+							)
+						: 0,
 				target: 85,
 				color: 'blue'
 			},
 			{
 				label: 'Review Completion',
-				value: Math.round((dashboardAnalytics.performanceReviews.completed /
-					(dashboardAnalytics.performanceReviews.completed + dashboardAnalytics.performanceReviews.pending || 1)) * 100),
+				value: Math.round(
+					(dashboardAnalytics.performanceReviews.completed /
+						(dashboardAnalytics.performanceReviews.completed +
+							dashboardAnalytics.performanceReviews.pending || 1)) *
+						100
+				),
 				target: 95,
 				color: 'green'
 			},
@@ -237,8 +253,11 @@ export const load: PageServerLoad = async (event) => {
 			},
 			{
 				label: 'Report Success Rate',
-				value: Math.round((dashboardAnalytics.reports.generated /
-					(dashboardAnalytics.reports.generated + dashboardAnalytics.reports.failed || 1)) * 100),
+				value: Math.round(
+					(dashboardAnalytics.reports.generated /
+						(dashboardAnalytics.reports.generated + dashboardAnalytics.reports.failed || 1)) *
+						100
+				),
 				target: 98,
 				color: 'orange'
 			}
@@ -246,27 +265,39 @@ export const load: PageServerLoad = async (event) => {
 
 		// Generate alerts based on dashboard data
 		const alerts = [
-			...(dashboardAnalytics.teamGoals.overdue > 0 ? [{
-				type: 'warning' as const,
-				title: `${dashboardAnalytics.teamGoals.overdue} Overdue Goals`,
-				message: 'Some team goals have passed their target date and need attention.',
-				action: 'View Goals',
-				href: '/dashboard/management/goals'
-			}] : []),
-			...(dashboardAnalytics.performanceReviews.overdue > 0 ? [{
-				type: 'error' as const,
-				title: `${dashboardAnalytics.performanceReviews.overdue} Overdue Reviews`,
-				message: 'Performance reviews are past due and require immediate attention.',
-				action: 'View Reviews',
-				href: '/dashboard/management/reviews'
-			}] : []),
-			...(dashboardAnalytics.leaveRequests.pending > 5 ? [{
-				type: 'info' as const,
-				title: `${dashboardAnalytics.leaveRequests.pending} Pending Leave Requests`,
-				message: 'Multiple leave requests are waiting for your approval.',
-				action: 'Review Requests',
-				href: '/dashboard/management/leave-approvals'
-			}] : [])
+			...(dashboardAnalytics.teamGoals.overdue > 0
+				? [
+						{
+							type: 'warning' as const,
+							title: `${dashboardAnalytics.teamGoals.overdue} Overdue Goals`,
+							message: 'Some team goals have passed their target date and need attention.',
+							action: 'View Goals',
+							href: '/dashboard/management/goals'
+						}
+					]
+				: []),
+			...(dashboardAnalytics.performanceReviews.overdue > 0
+				? [
+						{
+							type: 'error' as const,
+							title: `${dashboardAnalytics.performanceReviews.overdue} Overdue Reviews`,
+							message: 'Performance reviews are past due and require immediate attention.',
+							action: 'View Reviews',
+							href: '/dashboard/management/reviews'
+						}
+					]
+				: []),
+			...(dashboardAnalytics.leaveRequests.pending > 5
+				? [
+						{
+							type: 'info' as const,
+							title: `${dashboardAnalytics.leaveRequests.pending} Pending Leave Requests`,
+							message: 'Multiple leave requests are waiting for your approval.',
+							action: 'Review Requests',
+							href: '/dashboard/management/leave-approvals'
+						}
+					]
+				: [])
 		];
 
 		// Quick actions with counts
@@ -333,7 +364,8 @@ export const load: PageServerLoad = async (event) => {
 			canEditAllTeams: isAdmin, // Only admins can edit all teams
 			permissions: locals.permissions || [],
 			canManageTeam: hasManagerAccess,
-			canViewAllTeams: locals.roles?.includes('super_admin') || locals.roles?.includes('admin') || false,
+			canViewAllTeams:
+				locals.roles?.includes('super_admin') || locals.roles?.includes('admin') || false,
 			loadedAt: new Date().toISOString()
 		};
 	} catch (err) {
@@ -362,7 +394,12 @@ export const load: PageServerLoad = async (event) => {
 				performanceReviews: { pending: 0, overdue: 0, completed: 0, avgRating: 0 },
 				teamGoals: { active: 0, overdue: 0, atRisk: 0, avgProgress: 0, completed: 0 },
 				reports: { generated: 0, scheduled: 0, failed: 0, totalThisMonth: 0 },
-				teamStats: { totalEmployees: 0, activeEmployees: 0, departmentCount: 0, avgTenure: '0 years' }
+				teamStats: {
+					totalEmployees: 0,
+					activeEmployees: 0,
+					departmentCount: 0,
+					avgTenure: '0 years'
+				}
 			},
 			recentActivities: [],
 			performanceMetrics: [],

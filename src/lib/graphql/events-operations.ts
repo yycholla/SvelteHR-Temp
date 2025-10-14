@@ -619,28 +619,29 @@ export const UPDATE_EVENT_REMINDER = gql`
 /**
  * Query: Get pending event reminders for scheduler
  * Fetches event attendees with reminders set who have accepted/tentative status
+ * Note: Using Rust GraphQL server naming (eventAttendees, event, employee)
+ * Note: Rust Event model now includes status field (draft, scheduled, in_progress, completed, cancelled)
+ * Note: Uses EventAttendeeFilter with responseStatus field
  */
 export const GET_PENDING_REMINDERS = gql`
 	query GetPendingReminders {
-		allEventAttendees(condition: { responseStatus: "accepted" }) {
-			nodes {
+		eventAttendees(filter: { responseStatus: accepted }) {
+			id
+			employeeId
+			eventId
+			reminderTime
+			responseStatus
+			event {
 				id
-				employeeId
-				eventId
-				reminderTime
-				responseStatus
-				eventByEventId {
-					id
-					title
-					startTime
-					endTime
-					status
-				}
-				userByEmployeeId {
-					id
-					displayName
-					email
-				}
+				title
+				startTime
+				endTime
+				status
+			}
+			employee {
+				id
+				displayName
+				email
 			}
 		}
 	}
@@ -1290,7 +1291,7 @@ export class EventsOperations {
 			return [];
 		}
 
-		return result.data?.allEventAttendees?.nodes || [];
+		return result.data?.eventAttendees || [];
 	}
 
 	/**

@@ -68,3 +68,5 @@ backend/logs/
 package-lock.json
 pnpm-lock.yaml
 yarn.lock
+graphql-rust-server/target
+graphql-rust-server/target

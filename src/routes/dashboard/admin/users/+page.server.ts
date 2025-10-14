@@ -28,9 +28,7 @@ export const load: PageServerLoad = async ({ locals, url, parent, cookies, fetch
 
 	try {
 		// Create GraphQL client with server-side fetch and optional JWT
-		const client = jwtToken
-			? createUrqlClient(fetchFn, jwtToken)
-			: createUrqlClient(fetchFn);
+		const client = jwtToken ? createUrqlClient(fetchFn, jwtToken) : createUrqlClient(fetchFn);
 
 		// Build condition object for server-side filtering
 		const condition: any = {};
@@ -73,11 +71,9 @@ export const load: PageServerLoad = async ({ locals, url, parent, cookies, fetch
 		// Simplified queries - fetch only essential fields
 		const departmentsQuery = `
 			query GetAllDepartments {
-				allDepartments(orderBy: NAME_ASC) {
-					nodes {
-						id
-						name
-					}
+				departments(orderBy: NAME_ASC) {
+					id
+					name
 				}
 			}
 		`;
@@ -102,7 +98,7 @@ export const load: PageServerLoad = async ({ locals, url, parent, cookies, fetch
 
 		const users = usersData?.allUsers?.nodes || [];
 		const totalCount = usersData?.allUsers?.totalCount || 0;
-		const departments = departmentsData?.allDepartments?.nodes || [];
+		const departments = departmentsData?.departments || [];
 
 		// Extract unique role names from user role assignments
 		const roleAssignments = rolesData?.allUserRoleAssignments?.nodes || [];

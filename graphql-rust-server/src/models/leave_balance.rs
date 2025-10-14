@@ -8,15 +8,15 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-/// LeaveBalance model - maps to hr_public.leave_balances table
+/// LeaveBalance model - maps to hr_public.time_off_balances table
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct LeaveBalance {
     pub id: Uuid,
-    pub user_id: Uuid,
-    pub leave_type_id: Uuid,
+    pub employee_id: Uuid,
+    pub policy_id: Uuid,
     pub year: i32,
-    pub total_days: i32,
-    pub used_days: i32,
+    pub balance_days: f64,
+    pub used_days: f64,
     pub pending_days: i32,
     pub carried_over_days: i32,
     pub created_at: DateTime<Utc>,
@@ -32,14 +32,14 @@ impl LeaveBalance {
         self.id
     }
 
-    /// User ID (foreign key)
-    async fn user_id(&self) -> Uuid {
-        self.user_id
+    /// Employee ID (foreign key)
+    async fn employee_id(&self) -> Uuid {
+        self.employee_id
     }
 
-    /// Leave type ID (foreign key)
-    async fn leave_type_id(&self) -> Uuid {
-        self.leave_type_id
+    /// Policy ID (foreign key)
+    async fn policy_id(&self) -> Uuid {
+        self.policy_id
     }
 
     /// Calendar year for this balance
@@ -47,17 +47,17 @@ impl LeaveBalance {
         self.year
     }
 
-    /// Total days allocated for this leave type
-    async fn total_days(&self) -> i32 {
-        self.total_days
+    /// Total days allocated for this policy
+    async fn total_days(&self) -> f64 {
+        self.balance_days
     }
 
-    /// Days already used (approved requests)
-    async fn used_days(&self) -> i32 {
+    /// Days already used
+    async fn used_days(&self) -> f64 {
         self.used_days
     }
 
-    /// Days in pending requests
+    /// Days pending approval
     async fn pending_days(&self) -> i32 {
         self.pending_days
     }
@@ -83,8 +83,8 @@ impl LeaveBalance {
     }
 
     /// Available days remaining (total - used - pending)
-    async fn available_days(&self) -> i32 {
-        self.total_days - self.used_days - self.pending_days
+    async fn available_days(&self) -> f64 {
+        self.balance_days - self.used_days - self.pending_days as f64
     }
 
     /// User who owns this balance
@@ -93,14 +93,15 @@ impl LeaveBalance {
 
         let user = sqlx::query_as::<_, super::user::User>(
             r#"
-            SELECT id, email, first_name, last_name, full_name, phone,
-                   department_id, manager_id, hire_date, termination_date,
-                   status, created_at, updated_at, deleted_at
+            SELECT id, email, first_name, last_name, display_name, full_name, role,
+                   phone_number, alternate_phone, job_title, status,
+                   department_id, manager_id, hire_date, is_active,
+                   created_at, updated_at
             FROM hr_public.users
-            WHERE id = $1 AND deleted_at IS NULL
+            WHERE id = $1
             "#,
         )
-        .bind(self.user_id)
+        .bind(self.employee_id)
         .fetch_optional(pool)
         .await?;
 
@@ -120,7 +121,7 @@ impl LeaveBalance {
             WHERE id = $1 AND deleted_at IS NULL
             "#,
         )
-        .bind(self.leave_type_id)
+        .bind(self.policy_id)
         .fetch_optional(pool)
         .await?;
 
@@ -129,10 +130,10 @@ impl LeaveBalance {
 
     /// Percentage of balance used (0-100)
     async fn usage_percentage(&self) -> i32 {
-        if self.total_days == 0 {
+        if self.balance_days == 0.0 {
             0
         } else {
-            ((self.used_days as f32 / self.total_days as f32) * 100.0) as i32
+            ((self.used_days / self.balance_days) * 100.0) as i32
         }
     }
 }
@@ -140,20 +141,17 @@ impl LeaveBalance {
 /// LeaveBalance creation input
 #[derive(Debug, Clone, InputObject)]
 pub struct CreateLeaveBalanceInput {
-    pub user_id: Uuid,
-    pub leave_type_id: Uuid,
+    pub employee_id: Uuid,
+    pub policy_id: Uuid,
     pub year: i32,
-    pub total_days: i32,
-    pub carried_over_days: Option<i32>,
+    pub balance_days: f64,
 }
 
 /// LeaveBalance update input
 #[derive(Debug, Clone, InputObject)]
 pub struct UpdateLeaveBalanceInput {
-    pub total_days: Option<i32>,
-    pub used_days: Option<i32>,
-    pub pending_days: Option<i32>,
-    pub carried_over_days: Option<i32>,
+    pub balance_days: Option<f64>,
+    pub used_days: Option<f64>,
 }
 
 #[cfg(test)]
@@ -164,11 +162,11 @@ mod tests {
     fn test_leave_balance_model_compiles() {
         let balance = LeaveBalance {
             id: Uuid::new_v4(),
-            user_id: Uuid::new_v4(),
-            leave_type_id: Uuid::new_v4(),
+            employee_id: Uuid::new_v4(),
+            policy_id: Uuid::new_v4(),
             year: 2025,
-            total_days: 15,
-            used_days: 5,
+            balance_days: 15.0,
+            used_days: 5.0,
             pending_days: 2,
             carried_over_days: 3,
             created_at: Utc::now(),
@@ -177,6 +175,6 @@ mod tests {
         };
 
         assert_eq!(balance.year, 2025);
-        assert_eq!(balance.total_days, 15);
+        assert_eq!(balance.balance_days, 15.0);
     }
 }

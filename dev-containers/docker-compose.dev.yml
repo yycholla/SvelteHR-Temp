@@ -76,6 +76,45 @@ services:
     stdin_open: true
     tty: true
 
+  # Rust GraphQL Server (Development with Hot-Reloading)
+  hr-graphql-rust:
+    build:
+      context: ../graphql-rust-server
+      dockerfile: Dockerfile.dev  # Use development Dockerfile with cargo-watch
+    container_name: sveltehr-graphql-rust
+    volumes:
+      # Mount source code for hot-reloading
+      - ../graphql-rust-server/src:/app/src:ro
+      - ../graphql-rust-server/Cargo.toml:/app/Cargo.toml
+      - ../graphql-rust-server/Cargo.lock:/app/Cargo.lock
+      - ../graphql-rust-server/.cargo:/app/.cargo:ro
+      # CRITICAL: Use Docker volume for target directory (NOT bind-mounted)
+      # This avoids I/O overhead and significantly speeds up compilation
+      - rust_target_cache:/app/target
+      # Cache cargo registry and git to speed up dependency downloads
+      - rust_cargo_registry:/usr/local/cargo/registry
+      - rust_cargo_git:/usr/local/cargo/git
+    ports:
+      - '4000:4000' # GraphQL API
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres123@postgres-dev:5432/hr_system
+      HOST: 0.0.0.0
+      PORT: 4000
+      RUST_LOG: info,hr_graphql_server=debug
+      CORS_ALLOWED_ORIGINS: http://localhost:5173,http://localhost:3000
+      JWT_SECRET: dev-jwt-secret-change-in-production
+      SERVICE_AUTH_KEY: dev-service-key-change-in-production-use-strong-random-key
+      # Enable backtrace for better debugging
+      RUST_BACKTRACE: 1
+    networks:
+      - sveltehr-dev
+    depends_on:
+      postgres-dev:
+        condition: service_healthy
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
   # Frontend Development Container
   frontend-dev:
     build:
@@ -98,8 +137,9 @@ services:
       - '4173:4173' # Vite preview server
     environment:
       NODE_ENV: development
-      PUBLIC_API_URL: http://localhost:4001
+      PUBLIC_API_URL: http://hr-graphql-rust:4000
       VITE_API_URL: http://hr-graphql-rust:4000
+      SERVICE_AUTH_KEY: dev-service-key-change-in-production-use-strong-random-key
       # Database connection for server-side API routes
       DB_HOST: postgres-dev
       DB_PORT: 5432
@@ -109,7 +149,8 @@ services:
     networks:
       - sveltehr-dev
     depends_on:
-      - backend-dev
+      - hr-graphql-rust
+      - postgres-dev
     restart: unless-stopped
     stdin_open: true
     tty: true
@@ -123,6 +164,13 @@ volumes:
     name: sveltehr_frontend_node_modules
   frontend_svelte_kit:
     name: sveltehr_frontend_svelte_kit
+  # Rust GraphQL Server volumes for optimal compilation performance
+  rust_target_cache:
+    name: sveltehr_rust_target_cache
+  rust_cargo_registry:
+    name: sveltehr_rust_cargo_registry
+  rust_cargo_git:
+    name: sveltehr_rust_cargo_git
 
 networks:
   sveltehr-dev:

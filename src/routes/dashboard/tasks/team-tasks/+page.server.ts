@@ -41,42 +41,62 @@ export const load: PageServerLoad = async (event) => {
 		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
+		// Get JWT token from cookies for authentication
+		const jwtToken = cookies.get('hr_token') || '';
+
+		// Headers with JWT authentication for Rust GraphQL server
 		const headers: Record<string, string> = {
-			'Content-Type': 'application/json'
+			'Content-Type': 'application/json',
+			'Authorization': `Bearer ${jwtToken}`
 		};
 
 		console.log('[Team Tasks] Loading team tasks for user:', locals.user.id);
 
 		// First, get team members (users in the same department)
+		// NOTE: Query updated to match Rust GraphQL schema
+		// The users query only supports limit, offset, and status parameters
+		// We'll filter by department client-side
 		const teamMembersResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetTeamMembers($departmentId: UUID, $first: Int) {
-						allUsers(
-							first: $first
-							condition: { departmentId: $departmentId, is_active: true }
+					query GetTeamMembers($limit: Int, $status: UserStatus) {
+						users(
+							limit: $limit
+							status: $status
 						) {
-							nodes {
-								id
-								displayName
-								email
-								role
-								departmentId
-							}
+							id
+							displayName
+							email
+							role
+							departmentId
 						}
 					}
 				`,
 				variables: {
-					departmentId: locals.user.departmentId || null,
-					first: 100
+					limit: 200,
+					status: 'active'
 				}
 			})
 		});
 
 		const teamMembersData = await teamMembersResponse.json();
-		const teamMembers = teamMembersData?.data?.allUsers?.nodes || [];
+		console.log('[Team Tasks] Team members response:', teamMembersData);
+
+		if (teamMembersData.errors) {
+			console.error('[Team Tasks] Team members GraphQL errors:', teamMembersData.errors);
+			throw new Error(teamMembersData.errors[0]?.message || 'Failed to load team members');
+		}
+
+		// Get all active users and filter to same department
+		let teamMembers = teamMembersData?.data?.users || [];
+
+		// Filter to only users in the same department
+		if (locals.user.departmentId) {
+			teamMembers = teamMembers.filter((m: any) => m.departmentId === locals.user.departmentId);
+		}
+
 		const teamMemberIds = teamMembers.map((m: any) => m.id);
 
 		console.log('[Team Tasks] Found team members:', teamMemberIds.length);
@@ -97,87 +117,67 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		// Load team tasks
-		// NOTE: Query updated to match new task schema (Feature 028)
-		// Removed: reminderTime (field doesn't exist in new schema)
+		// NOTE: Query updated to match Rust GraphQL schema (idiomatic naming)
 		const tasksResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetTeamTasks($first: Int, $condition: TaskCondition) {
-						allTasks(
-							first: $first
-							condition: $condition
-							orderBy: [DUE_DATE_ASC, PRIORITY_DESC, CREATED_AT_DESC]
+					query GetTeamTasks($limit: Int, $filter: TaskFilter) {
+						tasks(
+							limit: $limit
+							filter: $filter
+							orderBy: "due_date_asc"
 						) {
-							nodes {
+							id
+							title
+							description
+							status
+							priority
+							dueDate
+							assigneeId
+							createdBy
+							taskTypeId
+							parentTaskId
+							requiresManualReassignment
+							archived
+							createdAt
+							updatedAt
+							assignee {
 								id
-								nodeId
+								displayName
+								email
+								departmentId
+							}
+							creator {
+								id
+								displayName
+								email
+							}
+							parentTask {
+								id
 								title
-								description
 								status
-								priority
-								dueDate
-								assigneeId
-								creatorId
-								taskTypeId
-								parentTaskId
-								requiresManualReassignment
-								archived
-								createdAt
-								updatedAt
-								userByAssigneeId {
-									id
-									displayName
-									email
-									departmentId
-								}
-								userByCreatorId {
-									id
-									displayName
-									email
-								}
-								taskTypeByTaskTypeId {
-									id
-									name
-									description
-									isSystem
-								}
-								taskByParentTaskId {
-									id
-									title
-									status
-								}
-								tasksByParentTaskId {
-									totalCount
-								}
-								taskDependenciesByBlockedTaskId {
-									totalCount
-								}
 							}
-							pageInfo {
-								hasNextPage
-								hasPreviousPage
-							}
-							totalCount
 						}
 					}
 				`,
 				variables: {
-					first: 200,
-					condition: Object.keys(condition).length > 0 ? condition : null
+					limit: 200,
+					filter: Object.keys(condition).length > 0 ? condition : null
 				}
 			})
 		});
 
 		const tasksData = await tasksResponse.json();
+		console.log('[Team Tasks] Tasks response:', tasksData);
 
 		if (tasksData.errors) {
 			console.error('[Team Tasks] GraphQL errors:', tasksData.errors);
 			throw new Error(tasksData.errors[0]?.message || 'Failed to load team tasks');
 		}
 
-		let tasks = tasksData?.data?.allTasks?.nodes || [];
+		let tasks = tasksData?.data?.tasks || [];
 
 		// Filter to only team members' tasks
 		tasks = tasks.filter((task: any) => {
@@ -190,21 +190,23 @@ export const load: PageServerLoad = async (event) => {
 			tasks = tasks.filter((task: any) => {
 				const title = task.title?.toLowerCase() || '';
 				const description = task.description?.toLowerCase() || '';
-				const assigneeName = task.userByAssigneeId?.displayName?.toLowerCase() || '';
+				const assigneeName = task.assignee?.displayName?.toLowerCase() || '';
 				return title.includes(searchLower) || description.includes(searchLower) || assigneeName.includes(searchLower);
 			});
 		}
 
 		// Calculate task statistics
+		// NOTE: Rust GraphQL returns enum values in SCREAMING_SNAKE_CASE (async-graphql default)
 		const taskStats = {
 			total: tasks.length,
-			notStarted: tasks.filter((t: any) => t.status === 'Not Started').length,
-			inProgress: tasks.filter((t: any) => t.status === 'In Progress').length,
-			blocked: tasks.filter((t: any) => t.status === 'Blocked').length,
-			completed: tasks.filter((t: any) => t.status === 'Completed').length,
+			notStarted: tasks.filter((t: any) => t.status === 'TODO').length,
+			inProgress: tasks.filter((t: any) => t.status === 'IN_PROGRESS').length,
+			blocked: tasks.filter((t: any) => t.status === 'BLOCKED').length,
+			review: tasks.filter((t: any) => t.status === 'REVIEW').length,
+			completed: tasks.filter((t: any) => t.status === 'DONE').length,
 			overdue: tasks.filter((t: any) => {
 				if (!t.dueDate) return false;
-				return new Date(t.dueDate) < new Date() && t.status !== 'Completed';
+				return new Date(t.dueDate) < new Date() && t.status !== 'DONE';
 			}).length
 		};
 

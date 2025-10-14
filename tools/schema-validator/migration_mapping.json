@@ -1,0 +1,423 @@
+{
+  "files_to_update": [
+    {
+      "path": "src/lib/graphql/dashboard-operations.ts",
+      "patterns": {
+        "all<Type>": true,
+        "<type>ById": false,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": true
+      }
+    },
+    {
+      "path": "src/lib/graphql/field-authorization-validator.ts",
+      "patterns": {
+        "all<Type>": false,
+        "<type>ById": false,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": false
+      }
+    },
+    {
+      "path": "src/lib/graphql/n-plus-one-detector.ts",
+      "patterns": {
+        "all<Type>": false,
+        "<type>ById": false,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": false
+      }
+    },
+    {
+      "path": "src/lib/graphql/performance-monitor.ts",
+      "patterns": {
+        "all<Type>": false,
+        "<type>ById": false,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": false
+      }
+    },
+    {
+      "path": "src/lib/graphql/postgraphile-operations.ts",
+      "patterns": {
+        "all<Type>": true,
+        "<type>ById": true,
+        "create<Type>": true,
+        "update<Type>ById": true,
+        ".nodes": false,
+        "totalCount": true
+      }
+    },
+    {
+      "path": "src/lib/graphql/query-complexity-analyzer.ts",
+      "patterns": {
+        "all<Type>": false,
+        "<type>ById": false,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": false
+      }
+    },
+    {
+      "path": "src/lib/graphql/subscription-tester.ts",
+      "patterns": {
+        "all<Type>": false,
+        "<type>ById": false,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": false
+      }
+    },
+    {
+      "path": "src/lib/graphql/auth-operations.ts",
+      "patterns": {
+        "all<Type>": false,
+        "<type>ById": false,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": false
+      }
+    },
+    {
+      "path": "src/lib/graphql/department-operations.ts",
+      "patterns": {
+        "all<Type>": false,
+        "<type>ById": true,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": true
+      }
+    },
+    {
+      "path": "src/lib/graphql/employee-operations.ts",
+      "patterns": {
+        "all<Type>": true,
+        "<type>ById": true,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": true
+      }
+    },
+    {
+      "path": "src/lib/graphql/goals-okrs-operations.ts",
+      "patterns": {
+        "all<Type>": false,
+        "<type>ById": true,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": true
+      }
+    },
+    {
+      "path": "src/lib/graphql/leave-management-operations.ts",
+      "patterns": {
+        "all<Type>": true,
+        "<type>ById": true,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": true
+      }
+    },
+    {
+      "path": "src/lib/graphql/notifications-operations.ts",
+      "patterns": {
+        "all<Type>": true,
+        "<type>ById": true,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": true
+      }
+    },
+    {
+      "path": "src/lib/graphql/performance-management-operations.ts",
+      "patterns": {
+        "all<Type>": false,
+        "<type>ById": true,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": true
+      }
+    },
+    {
+      "path": "src/lib/graphql/reports-operations.ts",
+      "patterns": {
+        "all<Type>": false,
+        "<type>ById": true,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": true
+      }
+    },
+    {
+      "path": "src/lib/graphql/settings-operations.ts",
+      "patterns": {
+        "all<Type>": false,
+        "<type>ById": false,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": false
+      }
+    },
+    {
+      "path": "src/lib/graphql/subscriptions.ts",
+      "patterns": {
+        "all<Type>": false,
+        "<type>ById": false,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": false
+      }
+    },
+    {
+      "path": "src/lib/graphql/team-management-operations.ts",
+      "patterns": {
+        "all<Type>": false,
+        "<type>ById": false,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": true
+      }
+    },
+    {
+      "path": "src/lib/graphql/team-reports-operations.ts",
+      "patterns": {
+        "all<Type>": false,
+        "<type>ById": false,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": true
+      }
+    },
+    {
+      "path": "src/lib/graphql/activity-logs-operations.ts",
+      "patterns": {
+        "all<Type>": true,
+        "<type>ById": true,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": true
+      }
+    },
+    {
+      "path": "src/lib/graphql/tasks-query-optimizer.ts",
+      "patterns": {
+        "all<Type>": true,
+        "<type>ById": true,
+        "create<Type>": false,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": true
+      }
+    },
+    {
+      "path": "src/lib/graphql/tasks-operations.ts",
+      "patterns": {
+        "all<Type>": true,
+        "<type>ById": true,
+        "create<Type>": true,
+        "update<Type>ById": true,
+        ".nodes": false,
+        "totalCount": true
+      }
+    },
+    {
+      "path": "src/lib/graphql/events-operations.ts",
+      "patterns": {
+        "all<Type>": true,
+        "<type>ById": true,
+        "create<Type>": true,
+        "update<Type>ById": true,
+        ".nodes": false,
+        "totalCount": true
+      }
+    },
+    {
+      "path": "src/lib/graphql/graphql/dashboard-operations.ts",
+      "patterns": {
+        "all<Type>": true,
+        "<type>ById": false,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": true
+      }
+    },
+    {
+      "path": "src/lib/graphql/graphql/field-authorization-validator.ts",
+      "patterns": {
+        "all<Type>": false,
+        "<type>ById": false,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": false
+      }
+    },
+    {
+      "path": "src/lib/graphql/graphql/goals-okrs-operations.ts",
+      "patterns": {
+        "all<Type>": false,
+        "<type>ById": false,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": true
+      }
+    },
+    {
+      "path": "src/lib/graphql/graphql/leave-management-operations.ts",
+      "patterns": {
+        "all<Type>": false,
+        "<type>ById": false,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": true
+      }
+    },
+    {
+      "path": "src/lib/graphql/graphql/n-plus-one-detector.ts",
+      "patterns": {
+        "all<Type>": false,
+        "<type>ById": false,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": false
+      }
+    },
+    {
+      "path": "src/lib/graphql/graphql/performance-management-operations.ts",
+      "patterns": {
+        "all<Type>": false,
+        "<type>ById": false,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": true
+      }
+    },
+    {
+      "path": "src/lib/graphql/graphql/performance-monitor.ts",
+      "patterns": {
+        "all<Type>": false,
+        "<type>ById": false,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": false
+      }
+    },
+    {
+      "path": "src/lib/graphql/graphql/postgraphile-operations.ts",
+      "patterns": {
+        "all<Type>": true,
+        "<type>ById": true,
+        "create<Type>": true,
+        "update<Type>ById": true,
+        ".nodes": false,
+        "totalCount": true
+      }
+    },
+    {
+      "path": "src/lib/graphql/graphql/query-complexity-analyzer.ts",
+      "patterns": {
+        "all<Type>": false,
+        "<type>ById": false,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": false
+      }
+    },
+    {
+      "path": "src/lib/graphql/graphql/subscription-tester.ts",
+      "patterns": {
+        "all<Type>": false,
+        "<type>ById": false,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": false
+      }
+    },
+    {
+      "path": "src/lib/graphql/graphql/team-management-operations.ts",
+      "patterns": {
+        "all<Type>": false,
+        "<type>ById": false,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": true
+      }
+    },
+    {
+      "path": "src/lib/graphql/graphql/team-reports-operations.ts",
+      "patterns": {
+        "all<Type>": false,
+        "<type>ById": false,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": true
+      }
+    },
+    {
+      "path": "src/lib/graphql/graphql/reviews-operations.ts",
+      "patterns": {
+        "all<Type>": false,
+        "<type>ById": false,
+        "create<Type>": true,
+        "update<Type>ById": false,
+        ".nodes": false,
+        "totalCount": true
+      }
+    },
+    {
+      "path": "src/lib/graphql/queries/leave-requests.ts",
+      "patterns": {
+        "all<Type>": true,
+        "<type>ById": true,
+        "create<Type>": true,
+        "update<Type>ById": true,
+        ".nodes": false,
+        "totalCount": true
+      }
+    },
+    {
+      "path": "src/lib/graphql/queries/performance-reviews.ts",
+      "patterns": {
+        "all<Type>": true,
+        "<type>ById": true,
+        "create<Type>": true,
+        "update<Type>ById": true,
+        ".nodes": false,
+        "totalCount": true
+      }
+    }
+  ],
+  "total_count": 38
+}

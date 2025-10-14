@@ -64,7 +64,7 @@ pub async fn batch_load_departments(
 ) -> Result<HashMap<Uuid, Department>, sqlx::Error> {
     let departments = sqlx::query_as::<_, Department>(
         r#"
-        SELECT id, name, description, parent_department_id, manager_id,
+        SELECT id, name, description, manager_id,
                created_at, updated_at, deleted_at
         FROM hr_public.departments
         WHERE id = ANY($1) AND deleted_at IS NULL
@@ -547,8 +547,7 @@ pub async fn batch_load_hr_reports(
 ) -> Result<HashMap<Uuid, HRReport>, sqlx::Error> {
     let reports = sqlx::query_as::<_, HRReport>(
         r#"
-        SELECT id, report_name, report_type, generated_by_id, file_path,
-               parameters, created_at
+        SELECT id, title, report_type, data, creator_id, generated_at
         FROM hr_public.hr_reports
         WHERE id = ANY($1)
         "#,

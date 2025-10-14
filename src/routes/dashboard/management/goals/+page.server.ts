@@ -26,57 +26,81 @@ export const load: PageServerLoad = async (event) => {
 		// Create GraphQL client with authentication
 		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
-		// Load actual goals from database using GraphQL queries
+		// Load actual goals from database using Rust GraphQL server
+		// Now that DB columns are renamed to match Rust expectations
 		const goalsQuery = `
-			query GetEmployeeGoals($first: Int!, $offset: Int!) {
-				allEmployeeGoals(first: $first, offset: $offset, orderBy: ID_DESC) {
-					totalCount
-					pageInfo {
-						hasNextPage
-						hasPreviousPage
-					}
-					nodes {
-						id
-						title
-						description
-						status
-						progressPercentage
-						targetDate
-						createdAt
-						updatedAt
-						userByEmployeeId {
-							id
-							firstName
-							lastName
-							email
-						}
-					}
+			query GetEmployeeGoals($limit: Int!, $offset: Int!) {
+				employeeGoals(limit: $limit, offset: $offset) {
+					id
+					employeeId
+					goalTitle
+					goalDescription
+					status
+					progressPercentage
+					targetDate
+					createdAt
+					updatedAt
 				}
+				employeeGoalsCount
 			}
 		`;
 
 		const result = await graphqlClient.query(goalsQuery, {
-			first: limit,
+			limit,
 			offset
 		});
 
-		const goals = result.data?.allEmployeeGoals?.nodes || [];
-		const totalGoals = result.data?.allEmployeeGoals?.totalCount || 0;
+		if (!result.data) {
+			throw new Error('Failed to fetch goals data');
+		}
+
+		const goals = result.data.employeeGoals || [];
+		const totalGoals = result.data.employeeGoalsCount || 0;
+
+		// Transform goals data to expected format
+		const transformedGoals = goals.map((goal) => ({
+			...goal,
+			title: goal.goalTitle,
+			description: goal.goalDescription,
+			userByEmployeeId: {
+				id: goal.employeeId,
+				firstName: 'Employee', // Placeholder
+				lastName: goal.employeeId.slice(-4), // Placeholder
+				email: `employee${goal.employeeId}@company.com` // Placeholder
+			}
+		}));
 
 		// Calculate analytics from real data
 		const analytics = {
 			totalGoals,
-			activeGoals: goals.filter(g => g.status === 'in_progress').length,
-			completedGoals: goals.filter(g => g.status === 'completed').length,
-			overdueGoals: goals.filter(g => new Date(g.targetDate) < new Date() && g.status !== 'completed').length,
+			activeGoals: transformedGoals.filter((g) => g.status === 'in_progress').length,
+			completedGoals: transformedGoals.filter((g) => g.status === 'completed').length,
+			overdueGoals: transformedGoals.filter(
+				(g) => new Date(g.targetDate) < new Date() && g.status !== 'completed'
+			).length,
 			highPriorityGoals: 0, // Priority field doesn't exist in schema
-			averageProgress: goals.length > 0 ? Math.round(goals.reduce((sum, g) => sum + (g.progressPercentage || 0), 0) / goals.length) : 0,
-			completionRate: totalGoals > 0 ? Math.round((goals.filter(g => g.status === 'completed').length / totalGoals) * 100) : 0
+			averageProgress:
+				transformedGoals.length > 0
+					? Math.round(
+							transformedGoals.reduce((sum, g) => sum + (g.progressPercentage || 0), 0) /
+								transformedGoals.length
+						)
+					: 0,
+			completionRate:
+				totalGoals > 0
+					? Math.round(
+							(transformedGoals.filter((g) => g.status === 'completed').length / totalGoals) * 100
+						)
+					: 0
 		};
 
 		// Calculate additional metrics
-		const onTrackGoals = goals.filter(g => (g.progressPercentage || 0) >= 50 && g.status === 'in_progress').length;
-		const atRiskGoals = goals.filter(g => (g.progressPercentage || 0) < 50 && g.status === 'in_progress').length;
+		const onTrackGoals = transformedGoals.filter(
+			(g) => (g.progressPercentage || 0) >= 50 && g.status === 'in_progress'
+		).length;
+		const atRiskGoals = transformedGoals.filter(
+			(g) => (g.progressPercentage || 0) < 50 && g.status === 'in_progress'
+		).length;
 		const behindGoals = analytics.overdueGoals;
 
 		// Calculate goals by type (if type field exists)
@@ -88,24 +112,25 @@ export const load: PageServerLoad = async (event) => {
 		};
 
 		// Calculate health score (0-100)
-		const healthScore = totalGoals > 0
-			? Math.round(((analytics.completedGoals + onTrackGoals) / totalGoals) * 100)
-			: 0;
+		const healthScore =
+			totalGoals > 0
+				? Math.round(((analytics.completedGoals + onTrackGoals) / totalGoals) * 100)
+				: 0;
 
 		return {
 			user: {
-				id: locals.user.id,
-				email: locals.user.email || '',
-				displayName: locals.user.display_name || 'User',
-				role: locals.user.role || 'employee'
+				id: locals.user?.id || '',
+				email: locals.user?.email || '',
+				displayName: locals.user?.display_name || 'User',
+				role: locals.user?.role || 'employee'
 			},
 			userSession: {
-				userId: locals.user.id,
-				userEmail: locals.user.email || '',
-				role: locals.user.role || 'employee',
+				userId: locals.user?.id || '',
+				userEmail: locals.user?.email || '',
+				role: locals.user?.role || 'employee',
 				accessToken: cookies.get('hr_token') || ''
 			},
-			teamGoals: goals,
+			teamGoals: transformedGoals,
 			totalGoals,
 			goalsAnalytics: {
 				summary: {
@@ -137,7 +162,7 @@ export const load: PageServerLoad = async (event) => {
 				currentPage: page,
 				limit,
 				totalPages: Math.ceil(totalGoals / limit),
-				hasNextPage: result.data?.allEmployeeGoals?.pageInfo?.hasNextPage || false,
+				hasNextPage: page * limit < totalGoals,
 				hasPreviousPage: page > 1
 			},
 			permissions: locals.permissions || [],
@@ -152,15 +177,15 @@ export const load: PageServerLoad = async (event) => {
 		// Return error state instead of throwing to prevent page crash
 		return {
 			user: {
-				id: locals.user.id,
-				email: locals.user.email || '',
-				displayName: locals.user.display_name || 'User',
-				role: locals.user.role || 'employee'
+				id: locals.user?.id || '',
+				email: locals.user?.email || '',
+				displayName: locals.user?.display_name || 'User',
+				role: locals.user?.role || 'employee'
 			},
 			userSession: {
-				userId: locals.user.id,
-				userEmail: locals.user.email || '',
-				role: locals.user.role || 'employee',
+				userId: locals.user?.id || '',
+				userEmail: locals.user?.email || '',
+				role: locals.user?.role || 'employee',
 				accessToken: cookies.get('hr_token') || ''
 			},
 			teamGoals: [],

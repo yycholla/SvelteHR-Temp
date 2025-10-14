@@ -389,8 +389,8 @@
 								<Users class="h-6 w-6 text-primary" />
 							</div>
 							<div>
-								<Card.Title class="text-lg">{employee.displayName || employee.fullName}</Card.Title>
-								<Card.Description>{employee.jobTitle || 'No title'}</Card.Description>
+								<Card.Title class="text-lg">{employee.displayName}</Card.Title>
+								<Card.Description>{employee.role ? formatRole(employee.role) : 'No role'}</Card.Description>
 							</div>
 						</div>
 						<Badge variant={getStatusBadgeVariant(employee.isActive)}>
@@ -415,10 +415,16 @@
 							</div>
 						{/if}
 
-						{#if employee.department}
+						{#if employee.departmentId}
 							<div class="flex items-center text-sm text-muted-foreground">
 								<Building class="mr-2 h-4 w-4" />
-								<span>{employee.department.name}</span>
+								<span>Dept ID: {employee.departmentId.slice(0, 8)}...</span>
+							</div>
+						{/if}
+
+						{#if employee.role}
+							<div class="flex items-center text-sm">
+								<Badge variant="outline">{formatRole(employee.role)}</Badge>
 							</div>
 						{/if}
 
@@ -426,12 +432,6 @@
 							<div class="flex items-center text-sm text-muted-foreground">
 								<Calendar class="mr-2 h-4 w-4" />
 								<span>Hired {formatHireDate(employee.hireDate)}</span>
-							</div>
-						{/if}
-
-						{#if employee.role}
-							<div class="flex items-center text-sm">
-								<Badge variant="outline">{formatRole(employee.role)}</Badge>
 							</div>
 						{/if}
 					</div>
@@ -485,9 +485,9 @@
 										<Users class="h-5 w-5 text-primary" />
 									</div>
 									<div>
-										<div class="font-medium">{employee.displayName || employee.fullName}</div>
-										{#if employee.jobTitle}
-											<div class="text-sm text-muted-foreground">{employee.jobTitle}</div>
+										<div class="font-medium">{employee.displayName}</div>
+										{#if employee.role}
+											<div class="text-sm text-muted-foreground">{formatRole(employee.role)}</div>
 										{/if}
 									</div>
 								</div>
@@ -502,8 +502,8 @@
 								{/if}
 							</Table.Cell>
 							<Table.Cell>
-								{#if employee.department}
-									<span class="text-sm">{employee.department.name}</span>
+								{#if employee.departmentId}
+									<span class="text-sm">{employee.departmentId.slice(0, 8)}...</span>
 								{:else}
 									<span class="text-sm text-muted-foreground">N/A</span>
 								{/if}

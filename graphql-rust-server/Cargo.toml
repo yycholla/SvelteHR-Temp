@@ -5,19 +5,33 @@ edition = "2021"
 
 [dependencies]
 # GraphQL framework
-async-graphql = { version = "7.0", features = ["chrono", "uuid", "dataloader"] }
+async-graphql = { version = "7.0", features = [
+  "chrono",
+  "uuid",
+  "dataloader",
+  "boxed-trait",
+] }
 async-graphql-axum = "7.0"
 dataloader = "0.17"
 
 # Web framework
-axum = "0.8"  # Updated to 0.8 for async-graphql-axum compatibility
+axum = "0.8" # Updated to 0.8 for async-graphql-axum compatibility
 tokio = { version = "1", features = ["full"] }
-tower = { version = "=0.4.13", features = ["util"] }  # Pin to avoid 0.5 conflicts
+tower = { version = "=0.4.13", features = [
+  "util",
+] } # Pin to avoid 0.5 conflicts
 tower-http = { version = "0.5", features = ["cors", "trace"] }
 http-body-util = "0.1"
 
 # Database
-sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "migrate", "rust_decimal"] }
+sqlx = { version = "0.7", features = [
+  "runtime-tokio-rustls",
+  "postgres",
+  "uuid",
+  "chrono",
+  "migrate",
+  "rust_decimal",
+] }
 rust_decimal = "1.35"
 
 # Serialization
@@ -30,6 +44,13 @@ uuid = { version = "1.0", features = ["serde", "v4"] }
 jsonwebtoken = "9.0"
 bcrypt = "0.15"
 async-trait = "0.1"
+base64 = "0.22"
+futures = "0.3"
+sea-orm = { version = "0.12", features = [
+  "sqlx-postgres",
+  "runtime-tokio-rustls",
+  "macros",
+] }
 
 # Error handling
 thiserror = "1.0"
@@ -42,3 +63,6 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 # Configuration
 dotenv = "0.15"
 envy = "0.4"
+
+[build-dependencies]
+sea-orm-codegen = "1.1.17"

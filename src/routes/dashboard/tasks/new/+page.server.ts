@@ -44,8 +44,13 @@ export const load: PageServerLoad = async (event) => {
 		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
+		// Get JWT token from cookies for Rust GraphQL server authentication
+		const jwtToken = cookies.get('hr_token') || '';
+
+		// Headers with JWT Bearer token for Rust server authorization
 		const headers: Record<string, string> = {
-			'Content-Type': 'application/json'
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${jwtToken}`
 		};
 
 		console.log('[Task Create] Loading form options, parentTaskId:', parentTaskId);
@@ -86,24 +91,22 @@ export const load: PageServerLoad = async (event) => {
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetDepartments($first: Int) {
-						allDepartments(first: $first) {
-							nodes {
-								id
-								name
-								description
-							}
+					query GetDepartments($limit: Int) {
+						departments(limit: $limit) {
+							id
+							name
+							description
 						}
 					}
 				`,
-				variables: { first: 100 }
+				variables: { limit: 100 }
 			})
 		});
 
 		const departmentsData = await departmentsResponse.json();
 		console.log('[Task Create] Departments GraphQL response:', {
 			hasData: !!departmentsData.data,
-			nodesLength: departmentsData.data?.allDepartments?.nodes?.length || 0,
+			nodesLength: departmentsData.data?.departments?.length || 0,
 			errors: departmentsData.errors
 		});
 
@@ -192,7 +195,7 @@ export const load: PageServerLoad = async (event) => {
 		const allUsers = assigneesData?.data?.allUsers?.nodes || [];
 		// Filter to only active users client-side
 		const assignees = allUsers.filter((user: any) => user.isActive === true);
-		const departments = departmentsData?.data?.allDepartments?.nodes || [];
+		const departments = departmentsData?.data?.departments || [];
 		const taskTypes = taskTypesData?.data?.allTaskTypes?.nodes || [];
 		const parentTasks = parentTasksData?.data?.allTasks?.nodes || [];
 

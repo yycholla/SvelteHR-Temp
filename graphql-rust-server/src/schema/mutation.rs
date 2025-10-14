@@ -370,15 +370,14 @@ impl MutationRoot {
         let department = sqlx::query_as::<_, Department>(
             r#"
             INSERT INTO hr_public.departments
-            (name, description, parent_department_id, manager_id)
-            VALUES ($1, $2, $3, $4)
-            RETURNING id, name, description, parent_department_id, manager_id,
-                      created_at, updated_at, deleted_at
+            (name, description, manager_id)
+            VALUES ($1, $2, $3)
+            RETURNING id, name, description, manager_id,
+                      created_at, updated_at
             "#,
         )
         .bind(&input.name)
         .bind(&input.description)
-        .bind(input.parent_department_id)
         .bind(input.manager_id)
         .fetch_one(pool)
         .await?;
@@ -409,11 +408,6 @@ impl MutationRoot {
             param_count += 1;
         }
 
-        if input.parent_department_id.is_some() {
-            updates.push(format!("parent_department_id = ${}", param_count));
-            param_count += 1;
-        }
-
         if input.manager_id.is_some() {
             updates.push(format!("manager_id = ${}", param_count));
             param_count += 1;
@@ -430,9 +424,9 @@ impl MutationRoot {
             r#"
             UPDATE hr_public.departments
             SET {}
-            WHERE id = $1 AND deleted_at IS NULL
-            RETURNING id, name, description, parent_department_id, manager_id,
-                      created_at, updated_at, deleted_at
+            WHERE id = $1
+            RETURNING id, name, description, manager_id,
+                      created_at, updated_at
             "#,
             updates.join(", ")
         );
@@ -445,10 +439,6 @@ impl MutationRoot {
 
         if let Some(description) = input.description {
             query_builder = query_builder.bind(description);
-        }
-
-        if let Some(parent_department_id) = input.parent_department_id {
-            query_builder = query_builder.bind(parent_department_id);
         }
 
         if let Some(manager_id) = input.manager_id {
@@ -1131,23 +1121,19 @@ impl MutationRoot {
     ) -> Result<LeaveBalance> {
         let pool = ctx.data::<DbPool>()?;
 
-        let carried_over = input.carried_over_days.unwrap_or(0);
-
         let balance = sqlx::query_as::<_, LeaveBalance>(
             r#"
-            INSERT INTO hr_public.leave_balances
-            (user_id, leave_type_id, year, total_days, used_days, pending_days, carried_over_days)
-            VALUES ($1, $2, $3, $4, 0, 0, $5)
-            RETURNING id, user_id, leave_type_id, year, total_days,
-                      used_days, pending_days, carried_over_days,
-                      created_at, updated_at, deleted_at
+            INSERT INTO hr_public.time_off_balances
+            (employee_id, policy_id, year, balance_days, used_days)
+            VALUES ($1, $2, $3, $4, 0)
+            RETURNING id, employee_id, policy_id, year, balance_days, used_days,
+                      created_at, updated_at
             "#,
         )
-        .bind(input.user_id)
-        .bind(input.leave_type_id)
+        .bind(input.employee_id)
+        .bind(input.policy_id)
         .bind(input.year)
-        .bind(input.total_days)
-        .bind(carried_over)
+        .bind(input.balance_days)
         .fetch_one(pool)
         .await?;
 
@@ -1166,8 +1152,8 @@ impl MutationRoot {
         let mut updates = Vec::new();
         let mut param_count = 2;
 
-        if input.total_days.is_some() {
-            updates.push(format!("total_days = ${}", param_count));
+        if input.balance_days.is_some() {
+            updates.push(format!("balance_days = ${}", param_count));
             param_count += 1;
         }
 
@@ -1176,15 +1162,7 @@ impl MutationRoot {
             param_count += 1;
         }
 
-        if input.pending_days.is_some() {
-            updates.push(format!("pending_days = ${}", param_count));
-            param_count += 1;
-        }
 
-        if input.carried_over_days.is_some() {
-            updates.push(format!("carried_over_days = ${}", param_count));
-            param_count += 1;
-        }
 
         if updates.is_empty() {
             return Err("No fields to update".into());
@@ -1194,33 +1172,26 @@ impl MutationRoot {
 
         let query = format!(
             r#"
-            UPDATE hr_public.leave_balances
+            UPDATE hr_public.time_off_balances
             SET {}
-            WHERE id = $1 AND deleted_at IS NULL
-            RETURNING id, user_id, leave_type_id, year, total_days,
-                      used_days, pending_days, carried_over_days,
-                      created_at, updated_at, deleted_at
+            WHERE id = $1
+            RETURNING id, employee_id, policy_id, year, balance_days, used_days,
+                      created_at, updated_at
             "#,
             updates.join(", ")
         );
 
         let mut query_builder = sqlx::query_as::<_, LeaveBalance>(&query).bind(id);
 
-        if let Some(total) = input.total_days {
-            query_builder = query_builder.bind(total);
+        if let Some(balance) = input.balance_days {
+            query_builder = query_builder.bind(balance);
         }
 
         if let Some(used) = input.used_days {
             query_builder = query_builder.bind(used);
         }
 
-        if let Some(pending) = input.pending_days {
-            query_builder = query_builder.bind(pending);
-        }
 
-        if let Some(carried) = input.carried_over_days {
-            query_builder = query_builder.bind(carried);
-        }
 
         let balance = query_builder.fetch_one(pool).await?;
 
@@ -1257,7 +1228,6 @@ impl MutationRoot {
         )
         .bind(user_id)
         .bind(input.leave_type_id)
-        .bind(input.start_date)
         .bind(input.end_date)
         .bind(input.days_requested)
         .bind(&input.reason)
@@ -1459,23 +1429,30 @@ impl MutationRoot {
         let task = sqlx::query_as::<_, Task>(
             r#"
             INSERT INTO hr_public.tasks
-            (title, description, status, priority, due_date, start_date,
-             estimated_hours, tags, department_id, created_by)
-            VALUES ($1, $2, 'todo', $3, $4, $5, $6, $7, $8, $9)
-            RETURNING id, title, description, status, priority, due_date, start_date,
+            (title, description, task_type_id, status, priority, due_date,
+             estimated_hours, tags, department_id, created_by, assignee_id,
+             parent_task_id, requires_manual_reassignment)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+            RETURNING id, title, description, task_type_id, status, priority, due_date,
                       completed_at, estimated_hours, actual_hours, tags, department_id,
-                      created_by, created_at, updated_at, deleted_at
+                      created_by, assignee_id, parent_task_id, requires_manual_reassignment,
+                      archived, archived_at, archived_by,
+                      created_at, updated_at, deleted_at
             "#,
         )
         .bind(&input.title)
         .bind(&input.description)
+        .bind(input.task_type_id)
+        .bind(input.status.unwrap_or(TaskStatus::Todo))
         .bind(input.priority)
         .bind(input.due_date)
-        .bind(input.start_date)
         .bind(input.estimated_hours)
         .bind(&input.tags)
         .bind(input.department_id)
         .bind(creator_id)
+        .bind(input.assignee_id)
+        .bind(input.parent_task_id)
+        .bind(input.requires_manual_reassignment.unwrap_or(false))
         .fetch_one(pool)
         .await?;
 
@@ -1538,11 +1515,6 @@ impl MutationRoot {
             param_count += 1;
         }
 
-        if input.start_date.is_some() {
-            updates.push(format!("start_date = ${}", param_count));
-            param_count += 1;
-        }
-
         if input.estimated_hours.is_some() {
             updates.push(format!("estimated_hours = ${}", param_count));
             param_count += 1;
@@ -1560,6 +1532,31 @@ impl MutationRoot {
 
         if input.department_id.is_some() {
             updates.push(format!("department_id = ${}", param_count));
+            param_count += 1;
+        }
+
+        if input.task_type_id.is_some() {
+            updates.push(format!("task_type_id = ${}", param_count));
+            param_count += 1;
+        }
+
+        if input.assignee_id.is_some() {
+            updates.push(format!("assignee_id = ${}", param_count));
+            param_count += 1;
+        }
+
+        if input.parent_task_id.is_some() {
+            updates.push(format!("parent_task_id = ${}", param_count));
+            param_count += 1;
+        }
+
+        if input.requires_manual_reassignment.is_some() {
+            updates.push(format!("requires_manual_reassignment = ${}", param_count));
+            param_count += 1;
+        }
+
+        if input.archived.is_some() {
+            updates.push(format!("archived = ${}", param_count));
             param_count += 1;
         }
 
@@ -1581,9 +1578,11 @@ impl MutationRoot {
             UPDATE hr_public.tasks
             SET {}
             WHERE id = $1 AND deleted_at IS NULL
-            RETURNING id, title, description, status, priority, due_date, start_date,
+            RETURNING id, title, description, task_type_id, status, priority, due_date,
                       completed_at, estimated_hours, actual_hours, tags, department_id,
-                      created_by, created_at, updated_at, deleted_at
+                      created_by, assignee_id, parent_task_id, requires_manual_reassignment,
+                      archived, archived_at, archived_by,
+                      created_at, updated_at, deleted_at
             "#,
             updates.join(", ")
         );
@@ -1610,9 +1609,6 @@ impl MutationRoot {
             query_builder = query_builder.bind(due_date);
         }
 
-        if let Some(start_date) = input.start_date {
-            query_builder = query_builder.bind(start_date);
-        }
 
         if let Some(estimated) = input.estimated_hours {
             query_builder = query_builder.bind(estimated);
@@ -1628,6 +1624,26 @@ impl MutationRoot {
 
         if let Some(dept_id) = input.department_id {
             query_builder = query_builder.bind(dept_id);
+        }
+
+        if let Some(task_type_id) = input.task_type_id {
+            query_builder = query_builder.bind(task_type_id);
+        }
+
+        if let Some(assignee_id) = input.assignee_id {
+            query_builder = query_builder.bind(assignee_id);
+        }
+
+        if let Some(parent_task_id) = input.parent_task_id {
+            query_builder = query_builder.bind(parent_task_id);
+        }
+
+        if let Some(requires_manual) = input.requires_manual_reassignment {
+            query_builder = query_builder.bind(requires_manual);
+        }
+
+        if let Some(archived) = input.archived {
+            query_builder = query_builder.bind(archived);
         }
 
         let task = query_builder.fetch_one(pool).await?;
@@ -2131,7 +2147,6 @@ impl MutationRoot {
         .bind(&input.name)
         .bind(&input.description)
         .bind(input.review_type)
-        .bind(input.start_date)
         .bind(input.end_date)
         .bind(creator_id)
         .fetch_one(pool)
@@ -2159,11 +2174,6 @@ impl MutationRoot {
 
         if input.description.is_some() {
             updates.push(format!("description = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.start_date.is_some() {
-            updates.push(format!("start_date = ${}", param_count));
             param_count += 1;
         }
 
@@ -2204,9 +2214,6 @@ impl MutationRoot {
             query_builder = query_builder.bind(description);
         }
 
-        if let Some(start_date) = input.start_date {
-            query_builder = query_builder.bind(start_date);
-        }
 
         if let Some(end_date) = input.end_date {
             query_builder = query_builder.bind(end_date);
@@ -2251,18 +2258,17 @@ impl MutationRoot {
         let review = sqlx::query_as::<_, PerformanceReview>(
             r#"
             INSERT INTO hr_public.performance_reviews
-            (review_cycle_id, employee_id, reviewer_id, status, due_date)
-            VALUES ($1, $2, $3, 'draft', $4)
-            RETURNING id, review_cycle_id, employee_id, reviewer_id, status,
-                      overall_rating, manager_comments, employee_self_review,
-                      strengths, areas_for_improvement, due_date, completed_at,
-                      created_at, updated_at, deleted_at
+            (employee_id, reviewer_id, review_period, status)
+            VALUES ($1, $2, $3, 'draft')
+            RETURNING id, employee_id, reviewer_id, review_period, status,
+                      overall_rating, goals, achievements, areas_for_improvement,
+                      manager_feedback, created_at, updated_at,
+                      review_period_start, review_period_end, review_type, notes
             "#,
         )
-        .bind(input.review_cycle_id)
         .bind(input.employee_id)
         .bind(input.reviewer_id)
-        .bind(input.due_date)
+        .bind(input.review_period)
         .fetch_one(pool)
         .await?;
 
@@ -2291,18 +2297,13 @@ impl MutationRoot {
             param_count += 1;
         }
 
-        if input.manager_comments.is_some() {
-            updates.push(format!("manager_comments = ${}", param_count));
+        if input.goals.is_some() {
+            updates.push(format!("goals = ${}", param_count));
             param_count += 1;
         }
 
-        if input.employee_self_review.is_some() {
-            updates.push(format!("employee_self_review = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.strengths.is_some() {
-            updates.push(format!("strengths = ${}", param_count));
+        if input.achievements.is_some() {
+            updates.push(format!("achievements = ${}", param_count));
             param_count += 1;
         }
 
@@ -2311,8 +2312,28 @@ impl MutationRoot {
             param_count += 1;
         }
 
-        if input.due_date.is_some() {
-            updates.push(format!("due_date = ${}", param_count));
+        if input.manager_feedback.is_some() {
+            updates.push(format!("manager_feedback = ${}", param_count));
+            param_count += 1;
+        }
+
+        if input.review_period_start.is_some() {
+            updates.push(format!("review_period_start = ${}", param_count));
+            param_count += 1;
+        }
+
+        if input.review_period_end.is_some() {
+            updates.push(format!("review_period_end = ${}", param_count));
+            param_count += 1;
+        }
+
+        if input.review_type.is_some() {
+            updates.push(format!("review_type = ${}", param_count));
+            param_count += 1;
+        }
+
+        if input.notes.is_some() {
+            updates.push(format!("notes = ${}", param_count));
             param_count += 1;
         }
 
@@ -2326,11 +2347,11 @@ impl MutationRoot {
             r#"
             UPDATE hr_public.performance_reviews
             SET {}
-            WHERE id = $1 AND deleted_at IS NULL
-            RETURNING id, review_cycle_id, employee_id, reviewer_id, status,
-                      overall_rating, manager_comments, employee_self_review,
-                      strengths, areas_for_improvement, due_date, completed_at,
-                      created_at, updated_at, deleted_at
+            WHERE id = $1
+            RETURNING id, employee_id, reviewer_id, review_period, status,
+                      overall_rating, goals, achievements, areas_for_improvement,
+                      manager_feedback, created_at, updated_at,
+                      review_period_start, review_period_end, review_type, notes
             "#,
             updates.join(", ")
         );
@@ -2348,24 +2369,36 @@ impl MutationRoot {
             query_builder = query_builder.bind(rating);
         }
 
-        if let Some(comments) = input.manager_comments {
-            query_builder = query_builder.bind(comments);
+        if let Some(goals) = input.goals {
+            query_builder = query_builder.bind(goals);
         }
 
-        if let Some(self_review) = input.employee_self_review {
-            query_builder = query_builder.bind(self_review);
-        }
-
-        if let Some(strengths) = input.strengths {
-            query_builder = query_builder.bind(strengths);
+        if let Some(achievements) = input.achievements {
+            query_builder = query_builder.bind(achievements);
         }
 
         if let Some(areas) = input.areas_for_improvement {
             query_builder = query_builder.bind(areas);
         }
 
-        if let Some(due_date) = input.due_date {
-            query_builder = query_builder.bind(due_date);
+        if let Some(feedback) = input.manager_feedback {
+            query_builder = query_builder.bind(feedback);
+        }
+
+        if let Some(start) = input.review_period_start {
+            query_builder = query_builder.bind(start);
+        }
+
+        if let Some(end) = input.review_period_end {
+            query_builder = query_builder.bind(end);
+        }
+
+        if let Some(review_type) = input.review_type {
+            query_builder = query_builder.bind(review_type);
+        }
+
+        if let Some(notes) = input.notes {
+            query_builder = query_builder.bind(notes);
         }
 
         let review = query_builder.fetch_one(pool).await?;
@@ -3028,8 +3061,8 @@ impl MutationRoot {
             "#,
         )
         .bind(input.employee_id)
-        .bind(&input.goal_title)
-        .bind(&input.goal_description)
+        .bind(&input.title)
+        .bind(&input.description)
         .bind(input.target_date)
         .bind(status)
         .bind(progress)
@@ -3050,11 +3083,11 @@ impl MutationRoot {
         let mut updates = Vec::new();
         let mut param_count = 2;
 
-        if input.goal_title.is_some() {
+        if input.title.is_some() {
             updates.push(format!("goal_title = ${}", param_count));
             param_count += 1;
         }
-        if input.goal_description.is_some() {
+        if input.description.is_some() {
             updates.push(format!("goal_description = ${}", param_count));
             param_count += 1;
         }
@@ -3086,11 +3119,11 @@ impl MutationRoot {
 
         let mut query_builder = sqlx::query_as::<_, EmployeeGoal>(&query).bind(id);
 
-        if let Some(goal_title) = input.goal_title {
-            query_builder = query_builder.bind(goal_title);
+        if let Some(title) = input.title {
+            query_builder = query_builder.bind(title);
         }
-        if let Some(goal_description) = input.goal_description {
-            query_builder = query_builder.bind(goal_description);
+        if let Some(description) = input.description {
+            query_builder = query_builder.bind(description);
         }
         if let Some(target_date) = input.target_date {
             query_builder = query_builder.bind(target_date);
@@ -3566,17 +3599,17 @@ impl MutationRoot {
         let record = sqlx::query_as::<_, AttendanceRecord>(
             r#"
             INSERT INTO hr_public.attendance_records
-            (employee_id, date, clock_in, clock_out, total_hours, status, notes)
+            (user_id, date, clock_in, clock_out, hours_worked, status, notes)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
-            RETURNING id, employee_id, date, clock_in, clock_out, total_hours, status, notes,
+            RETURNING id, user_id, date, clock_in, clock_out, hours_worked, status, notes,
                       created_at, updated_at
             "#,
         )
-        .bind(input.employee_id)
+        .bind(input.user_id)
         .bind(input.date)
         .bind(input.clock_in)
         .bind(input.clock_out)
-        .bind(input.total_hours)
+        .bind(input.hours_worked)
         .bind(input.status)
         .bind(&input.notes)
         .fetch_one(pool)
@@ -3604,8 +3637,8 @@ impl MutationRoot {
             updates.push(format!("clock_out = ${}", param_count));
             param_count += 1;
         }
-        if input.total_hours.is_some() {
-            updates.push(format!("total_hours = ${}", param_count));
+        if input.hours_worked.is_some() {
+            updates.push(format!("hours_worked = ${}", param_count));
             param_count += 1;
         }
         if input.status.is_some() {
@@ -3624,7 +3657,7 @@ impl MutationRoot {
             UPDATE hr_public.attendance_records
             SET {}
             WHERE id = $1
-            RETURNING id, employee_id, date, clock_in, clock_out, total_hours, status, notes,
+            RETURNING id, user_id, date, clock_in, clock_out, hours_worked, status, notes,
                       created_at, updated_at
             "#,
             updates.join(", ")
@@ -3638,8 +3671,8 @@ impl MutationRoot {
         if let Some(clock_out) = input.clock_out {
             query_builder = query_builder.bind(clock_out);
         }
-        if let Some(total_hours) = input.total_hours {
-            query_builder = query_builder.bind(total_hours);
+        if let Some(hours_worked) = input.hours_worked {
+            query_builder = query_builder.bind(hours_worked);
         }
         if let Some(status) = input.status {
             query_builder = query_builder.bind(status);
@@ -3684,19 +3717,17 @@ impl MutationRoot {
         let log = sqlx::query_as::<_, ActivityLog>(
             r#"
             INSERT INTO hr_public.activity_logs
-            (user_id, action_type, resource_type, resource_id, details, ip_address, user_agent)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            RETURNING id, user_id, action_type, resource_type, resource_id, details,
-                      ip_address, user_agent, created_at
+            (user_id, employee_id, action, resource_type, resource_id, details)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING id, user_id, employee_id, action, resource_type, resource_id, details, created_at
             "#,
         )
         .bind(input.user_id)
-        .bind(&input.action_type)
+        .bind(input.employee_id)
+        .bind(&input.action)
         .bind(&input.resource_type)
         .bind(input.resource_id)
         .bind(details_json)
-        .bind(&input.ip_address)
-        .bind(&input.user_agent)
         .fetch_one(pool)
         .await?;
 
@@ -3814,21 +3845,23 @@ impl MutationRoot {
     ) -> Result<HRReport> {
         let pool = ctx.data::<DbPool>()?;
 
-        // Parse report_data JSON string
-        let report_data_json = serde_json::from_str::<serde_json::Value>(&input.report_data)?;
+        // Parse data JSON string
+        let data_json = serde_json::from_str::<serde_json::Value>(&input.data)?;
 
         let report = sqlx::query_as::<_, HRReport>(
             r#"
             INSERT INTO hr_public.hr_reports
-            (report_name, report_type, report_data, generator_id, generated_at)
-            VALUES ($1, $2, $3, $4, NOW())
-            RETURNING id, report_name, report_type, report_data, generator_id, generated_at
+            (title, report_type, category, data, creator_id, department_id, generated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, NOW())
+            RETURNING id, title, report_type, data, creator_id, generated_at
             "#,
         )
-        .bind(&input.report_name)
+        .bind(&input.title)
         .bind(&input.report_type)
-        .bind(report_data_json)
-        .bind(input.generator_id)
+        .bind(&input.category)
+        .bind(data_json)
+        .bind(input.creator_id)
+        .bind(input.department_id)
         .fetch_one(pool)
         .await?;
 

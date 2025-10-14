@@ -11,10 +11,10 @@ export const load: PageServerLoad = async ({ locals, fetch }) => {
 	}
 
 	const userId = locals.user.id;
-	const userRole = locals.user.role || 'employee';
+	const userPermissions = locals.permissions || [];
 
-	// Step 2: Check user permissions - only admin and manager roles can upload
-	const canUpload = ['super_admin', 'admin', 'manager'].includes(userRole);
+	// Step 2: Check user permissions - users with document upload permissions can upload
+	const canUpload = userPermissions.includes('*') || userPermissions.includes('documents:write');
 
 	if (!canUpload) {
 		throw error(403, {
@@ -38,10 +38,10 @@ export const load: PageServerLoad = async ({ locals, fetch }) => {
 		// Step 4: Load employees for assignment (if admin/manager)
 		// TODO: Call GET /api/employees when integrated
 		let employees: any[] = [];
-		if (userRole === 'super_admin' || userRole === 'admin') {
+		if (userPermissions.includes('*') || userPermissions.includes('documents:assign_all')) {
 			// Admin can assign to all employees
 			employees = []; // Would be populated from API
-		} else if (userRole === 'manager') {
+		} else if (userPermissions.includes('documents:assign_team')) {
 			// Manager can assign to direct reports
 			// TODO: Call GET /api/employees/direct-reports
 			employees = []; // Would be populated from API
@@ -50,28 +50,27 @@ export const load: PageServerLoad = async ({ locals, fetch }) => {
 		// Step 5: Load departments for department-wide assignment
 		// TODO: Call GET /api/departments when integrated
 		let departments: any[] = [];
-		if (userRole === 'super_admin' || userRole === 'admin') {
+		if (userPermissions.includes('*') || userPermissions.includes('departments:read')) {
 			departments = []; // Would be populated from API
 		}
 
 		// Step 6: Load teams for team assignment
 		// TODO: Call GET /api/teams when integrated
 		let teams: any[] = [];
-		if (userRole === 'super_admin' || userRole === 'admin') {
+		if (userPermissions.includes('*') || userPermissions.includes('teams:read')) {
 			teams = []; // Would be populated from API
 		}
 
 		// Step 7: Return data for upload page
 		return {
 			user: locals.user,
-			userRole,
+			userPermissions,
 			categories,
 			employees,
 			departments,
 			teams,
 			canUpload: true
 		};
-
 	} catch (err) {
 		console.error('Upload page load error:', err);
 

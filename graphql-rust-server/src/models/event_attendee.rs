@@ -6,7 +6,8 @@ use uuid::Uuid;
 
 /// RSVP status for event attendees
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum, sqlx::Type)]
-#[sqlx(type_name = "rsvp_status", rename_all = "lowercase")]
+#[sqlx(type_name = "hr_public.rsvp_status", rename_all = "lowercase")]
+#[graphql(rename_items = "lowercase")]
 pub enum RsvpStatus {
     Pending,
     Accepted,
@@ -16,7 +17,8 @@ pub enum RsvpStatus {
 
 /// RSVP scope for recurring events
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum, sqlx::Type)]
-#[sqlx(type_name = "rsvp_scope", rename_all = "lowercase")]
+#[sqlx(type_name = "hr_public.rsvp_scope", rename_all = "lowercase")]
+#[graphql(rename_items = "lowercase")]
 pub enum RsvpScope {
     ThisEvent,
     AllEvents,
@@ -107,6 +109,26 @@ impl EventAttendee {
 
     /// Employee/User who is attending
     async fn employee(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::User>> {
+        let pool = ctx.data::<PgPool>()?;
+
+        let user = sqlx::query_as::<_, super::user::User>(
+            r#"
+            SELECT id, email, first_name, last_name, full_name, phone,
+                   department_id, manager_id, hire_date, termination_date,
+                   status, created_at, updated_at, deleted_at
+            FROM hr_public.users
+            WHERE id = $1 AND deleted_at IS NULL
+            "#,
+        )
+        .bind(self.employee_id)
+        .fetch_optional(pool)
+        .await?;
+
+        Ok(user)
+    }
+
+    /// PostGraphile alias: userByEmployeeId
+    async fn user_by_employee_id(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::User>> {
         let pool = ctx.data::<PgPool>()?;
 
         let user = sqlx::query_as::<_, super::user::User>(

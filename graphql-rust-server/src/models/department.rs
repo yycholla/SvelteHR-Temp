@@ -2,7 +2,7 @@
 //!
 //! Represents organizational departments with hierarchical relationships.
 
-use async_graphql::{Context, InputObject, Object, Result as GqlResult};
+use async_graphql::{Context, Enum, InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
@@ -10,17 +10,72 @@ use uuid::Uuid;
 
 use crate::loaders::batch_load_users;
 
+/// Department ordering options for GraphQL queries
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
+pub enum DepartmentsOrderBy {
+    /// Order by ID ascending
+    #[graphql(name = "ID_ASC")]
+    IdAsc,
+    /// Order by ID descending
+    #[graphql(name = "ID_DESC")]
+    IdDesc,
+    /// Order by name ascending (A-Z)
+    #[graphql(name = "NAME_ASC")]
+    NameAsc,
+    /// Order by name descending (Z-A)
+    #[graphql(name = "NAME_DESC")]
+    NameDesc,
+    /// Order by manager ID ascending
+    #[graphql(name = "MANAGER_ID_ASC")]
+    ManagerIdAsc,
+    /// Order by manager ID descending
+    #[graphql(name = "MANAGER_ID_DESC")]
+    ManagerIdDesc,
+    /// Order by created date ascending (oldest first)
+    #[graphql(name = "CREATED_AT_ASC")]
+    CreatedAtAsc,
+    /// Order by created date descending (newest first)
+    #[graphql(name = "CREATED_AT_DESC")]
+    CreatedAtDesc,
+    /// Order by updated date ascending (oldest first)
+    #[graphql(name = "UPDATED_AT_ASC")]
+    UpdatedAtAsc,
+    /// Order by updated date descending (newest first)
+    #[graphql(name = "UPDATED_AT_DESC")]
+    UpdatedAtDesc,
+}
+
+impl DepartmentsOrderBy {
+    /// Convert to SQL ORDER BY clause
+    pub fn to_sql(&self) -> &'static str {
+        match self {
+            DepartmentsOrderBy::IdAsc => "id ASC",
+            DepartmentsOrderBy::IdDesc => "id DESC",
+            DepartmentsOrderBy::NameAsc => "name ASC",
+            DepartmentsOrderBy::NameDesc => "name DESC",
+            DepartmentsOrderBy::ManagerIdAsc => "manager_id ASC",
+            DepartmentsOrderBy::ManagerIdDesc => "manager_id DESC",
+            DepartmentsOrderBy::CreatedAtAsc => "created_at ASC",
+            DepartmentsOrderBy::CreatedAtDesc => "created_at DESC",
+            DepartmentsOrderBy::UpdatedAtAsc => "updated_at ASC",
+            DepartmentsOrderBy::UpdatedAtDesc => "updated_at DESC",
+        }
+    }
+}
+
+
+
+
 /// Department model - maps to hr_public.departments table
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Department {
     pub id: Uuid,
     pub name: String,
     pub description: Option<String>,
-    pub parent_department_id: Option<Uuid>,
+    pub parent_department_id: Option<Uuid>,  // Self-referential foreign key to departments.id
     pub manager_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 /// GraphQL Object implementation for Department
@@ -41,7 +96,7 @@ impl Department {
         self.description.as_deref()
     }
 
-    /// Parent department ID (for hierarchical structure)
+    /// Parent department ID (self-referential foreign key)
     async fn parent_department_id(&self) -> Option<Uuid> {
         self.parent_department_id
     }
@@ -61,54 +116,11 @@ impl Department {
         self.updated_at
     }
 
-    /// Soft delete timestamp (NULL if not deleted)
-    async fn deleted_at(&self) -> Option<DateTime<Utc>> {
-        self.deleted_at
-    }
-
-    /// Parent department relationship (lazy-loaded)
-    async fn parent_department(&self, ctx: &Context<'_>) -> GqlResult<Option<Department>> {
-        if let Some(parent_id) = self.parent_department_id {
-            let pool = ctx.data::<PgPool>()?;
-            let parent = sqlx::query_as::<_, Department>(
-                r#"
-                SELECT id, name, description, parent_department_id, manager_id,
-                       created_at, updated_at, deleted_at
-                FROM hr_public.departments
-                WHERE id = $1 AND deleted_at IS NULL
-                "#,
-            )
-            .bind(parent_id)
-            .fetch_optional(pool)
-            .await?;
-
-            Ok(parent)
-        } else {
-            Ok(None)
-        }
-    }
-
-    /// Child departments (departments under this department)
-    async fn child_departments(&self, ctx: &Context<'_>) -> GqlResult<Vec<Department>> {
-        let pool = ctx.data::<PgPool>()?;
-        let children = sqlx::query_as::<_, Department>(
-            r#"
-            SELECT id, name, description, parent_department_id, manager_id,
-                   created_at, updated_at, deleted_at
-            FROM hr_public.departments
-            WHERE parent_department_id = $1 AND deleted_at IS NULL
-            ORDER BY name
-            "#,
-        )
-        .bind(self.id)
-        .fetch_all(pool)
-        .await?;
-
-        Ok(children)
-    }
+    // Note: Hierarchical departments (parent/child) not yet implemented in database
+    // These features will be added when the database schema is updated
 
     /// Department manager (lazy-loaded via DataLoader)
-    async fn manager(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::User>> {
+    async fn user_by_manager_id(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::User>> {
         if let Some(manager_id) = self.manager_id {
             let pool = ctx.data::<PgPool>()?;
             let users_map = batch_load_users(pool, &[manager_id]).await?;
@@ -123,11 +135,11 @@ impl Department {
         let pool = ctx.data::<PgPool>()?;
         let employees = sqlx::query_as::<_, super::user::User>(
             r#"
-            SELECT id, email, first_name, last_name, full_name, phone,
-                   department_id, manager_id, hire_date, termination_date,
-                   status, created_at, updated_at, deleted_at
+            SELECT id, email, first_name, last_name, display_name, role, phone_number,
+                   department_id, manager_id, hire_date, is_active,
+                   created_at, updated_at
             FROM hr_public.users
-            WHERE department_id = $1 AND deleted_at IS NULL
+            WHERE department_id = $1
             ORDER BY last_name, first_name
             "#,
         )
@@ -145,7 +157,7 @@ impl Department {
             r#"
             SELECT COUNT(*)::bigint
             FROM hr_public.users
-            WHERE department_id = $1 AND deleted_at IS NULL
+            WHERE department_id = $1
             "#,
         )
         .bind(self.id)
@@ -161,7 +173,6 @@ impl Department {
 pub struct CreateDepartmentInput {
     pub name: String,
     pub description: Option<String>,
-    pub parent_department_id: Option<Uuid>,
     pub manager_id: Option<Uuid>,
 }
 
@@ -170,7 +181,6 @@ pub struct CreateDepartmentInput {
 pub struct UpdateDepartmentInput {
     pub name: Option<String>,
     pub description: Option<String>,
-    pub parent_department_id: Option<Uuid>,
     pub manager_id: Option<Uuid>,
 }
 
@@ -189,7 +199,6 @@ mod tests {
             manager_id: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
-            deleted_at: None,
         };
 
         assert_eq!(dept.name, "Engineering");

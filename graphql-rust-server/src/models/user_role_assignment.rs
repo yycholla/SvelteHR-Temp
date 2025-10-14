@@ -15,12 +15,30 @@ use crate::loaders::batch_load_users;
 pub struct UserRoleAssignment {
     pub id: Uuid,
     pub user_id: Uuid,
-    pub role_id: Uuid,
+    pub role_name: String,
     pub assigned_by: Option<Uuid>,
     pub assigned_at: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
+}
+
+/// UserRoleAssignments connection for Relay-style pagination (PostGraphile compatibility)
+#[derive(Debug, Clone)]
+pub struct UserRoleAssignmentsConnection {
+    pub nodes: Vec<UserRoleAssignment>,
+    pub total_count: i64,
+}
+
+#[Object]
+impl UserRoleAssignmentsConnection {
+    async fn nodes(&self) -> &Vec<UserRoleAssignment> {
+        &self.nodes
+    }
+
+    async fn total_count(&self) -> i64 {
+        self.total_count
+    }
 }
 
 /// GraphQL Object implementation for UserRoleAssignment
@@ -36,9 +54,9 @@ impl UserRoleAssignment {
         self.user_id
     }
 
-    /// Role ID (foreign key)
-    async fn role_id(&self) -> Uuid {
-        self.role_id
+    /// Role name
+    async fn role_name(&self) -> &str {
+        &self.role_name
     }
 
     /// User ID who assigned this role (optional)
@@ -73,24 +91,22 @@ impl UserRoleAssignment {
         Ok(users_map.get(&self.user_id).cloned())
     }
 
-    /// Role that was assigned
-    async fn role(&self, ctx: &Context<'_>) -> GqlResult<Option<super::role::Role>> {
-        let pool = ctx.data::<PgPool>()?;
-
-        let role = sqlx::query_as::<_, super::role::Role>(
-            r#"
-            SELECT id, name, description, level,
-                   created_at, updated_at, deleted_at
-            FROM hr_public.roles
-            WHERE id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.role_id)
-        .fetch_optional(pool)
-        .await?;
-
-        Ok(role)
+    /// Role that was assigned (returns a simple role object with just the name)
+    async fn role(&self, _ctx: &Context<'_>) -> GqlResult<Option<super::role::Role>> {
+        // Since we don't have a separate roles table, create a simple role object
+        // In a real implementation, you might want to define role metadata elsewhere
+        Ok(Some(super::role::Role {
+            id: Uuid::new_v4(), // Placeholder ID
+            name: self.role_name.clone(),
+            description: Some(format!("Role: {}", self.role_name)),
+            level: 1, // Default level
+            created_at: self.created_at,
+            updated_at: self.updated_at,
+            deleted_at: None,
+        }))
     }
+
+
 
     /// User who assigned this role (if tracked)
     async fn assigner(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::User>> {
@@ -120,7 +136,7 @@ mod tests {
         let assignment = UserRoleAssignment {
             id: Uuid::new_v4(),
             user_id: Uuid::new_v4(),
-            role_id: Uuid::new_v4(),
+            role_name: "hr_manager".to_string(),
             assigned_by: Some(Uuid::new_v4()),
             assigned_at: Utc::now(),
             created_at: Utc::now(),

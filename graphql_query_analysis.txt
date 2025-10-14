@@ -1,0 +1,16 @@
+Found 66 server files to analyze
+
+=== USERS/EMPLOYEES QUERIES ===
+
+=== DEPARTMENTS QUERIES ===
+
+=== EVENTS QUERIES ===
+
+=== NOTIFICATIONS QUERIES ===
+
+=== TASKS QUERIES ===
+
+=== LEAVE REQUESTS QUERIES ===
+
+=== PERFORMANCE REVIEWS QUERIES ===
+

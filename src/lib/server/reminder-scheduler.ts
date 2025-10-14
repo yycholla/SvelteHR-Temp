@@ -1,15 +1,13 @@
 /**
  * Event Reminder Scheduler Service
  * Feature: 026-integrate-ui-components
+ * Updated: Migrated to Rust GraphQL backend
  *
  * Background service that runs periodically to check for event reminders
  * that need to be sent and creates notifications for users.
  */
 
 import cron from 'node-cron';
-import { EventsOperations } from '$lib/graphql/events-operations';
-import { createUrqlClient } from '$lib/graphql/client';
-import type { UserCredentials } from '$lib/models/data-request';
 
 export interface PendingReminder {
 	attendeeId: string;
@@ -95,39 +93,78 @@ export class ReminderScheduler {
 	}
 
 	/**
-	 * Query database for pending reminders
+	 * Query database for pending reminders using Rust GraphQL backend
 	 * Finds events where: NOW() >= (start_time - reminder_time * interval '1 minute')
 	 * AND NOW() < start_time (event hasn't started yet)
 	 */
 	private static async getPendingReminders(): Promise<PendingReminder[]> {
 		try {
-			// Create GraphQL client and operations instance
-			const client = createUrqlClient();
-			const eventsOps = new EventsOperations(client);
+			// Get service authentication key from environment
+			const serviceKey = process.env.SERVICE_AUTH_KEY || 'fallback-dev-key';
 
-			// Use system user credentials for scheduler
-			// Note: GraphQL endpoint currently doesn't require JWT authentication
-			const systemCredentials: UserCredentials = {
-				token: 'scheduler-service',
-				userId: 'system-scheduler',
-				roles: ['system'],
-				jwtToken: 'scheduler-service-token', // Dummy JWT - GraphQL endpoint doesn't enforce it yet
-				permissions: [],
-				isAuthenticated: true
-			};
+			// Get GraphQL endpoint
+			const graphqlEndpoint = process.env.VITE_API_URL
+				? `${process.env.VITE_API_URL}/graphql`
+				: 'http://localhost:4000/graphql';
 
-			// Fetch all attendees with reminders set
-			const attendees = await eventsOps.getPendingReminders({
-				userCredentials: systemCredentials
+			// Fetch all attendees with reminders set using Rust GraphQL
+			// NOTE: Updated to match Rust GraphQL schema (idiomatic naming)
+			// NOTE: Rust doesn't have a direct "pending reminders" query, so we fetch all attendees with reminders
+			const response = await fetch(graphqlEndpoint, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${serviceKey}`
+				},
+				body: JSON.stringify({
+					query: `
+						query GetEventAttendeesWithReminders($limit: Int) {
+							eventAttendees(
+								filter: { reminderTimeIsNull: false }
+								limit: $limit
+							) {
+								id
+								employeeId
+								eventId
+								reminderTime
+								responseStatus
+								event {
+									id
+									title
+									startTime
+									endTime
+									status
+								}
+								employee {
+									id
+									displayName
+									email
+								}
+							}
+						}
+					`,
+					variables: {
+						limit: 1000
+					}
+				})
 			});
+
+			const data = await response.json();
+
+			if (data.errors) {
+				console.error('[ReminderScheduler] GraphQL errors:', data.errors);
+				return [];
+			}
+
+			const attendees = data?.data?.eventAttendees || [];
 
 			// Filter and map to PendingReminder format
 			const pendingReminders: PendingReminder[] = attendees
 				.filter((attendee: any) => {
-				// Skip if no reminder time set
-				if (!attendee.reminderTime || attendee.reminderTime === null) return false;
+					// Skip if no reminder time set
+					if (!attendee.reminderTime || attendee.reminderTime === null) return false;
 
-					const event = attendee.eventByEventId;
+					const event = attendee.event;
 					if (!event) return false;
 
 					const now = new Date();
@@ -136,8 +173,9 @@ export class ReminderScheduler {
 					// Skip if event has already started
 					if (now >= eventStart) return false;
 
-					// Skip if event is cancelled
-					if (event.status === 'cancelled') return false;
+					// Skip if event is cancelled or completed
+					// NOTE: Rust Event status enum values are lowercase: "draft", "scheduled", "in_progress", "completed", "cancelled"
+					if (event.status === 'cancelled' || event.status === 'completed') return false;
 
 					return true;
 				})
@@ -145,11 +183,11 @@ export class ReminderScheduler {
 					attendeeId: attendee.id,
 					userId: attendee.employeeId,
 					eventId: attendee.eventId,
-					eventTitle: attendee.eventByEventId.title,
-					eventStartTime: new Date(attendee.eventByEventId.startTime),
+					eventTitle: attendee.event.title,
+					eventStartTime: new Date(attendee.event.startTime),
 					reminderTime: attendee.reminderTime,
-					userEmail: attendee.userByEmployeeId.email,
-					userName: attendee.userByEmployeeId.displayName
+					userEmail: attendee.employee.email,
+					userName: attendee.employee.displayName
 				}));
 
 			return pendingReminders;
@@ -218,7 +256,7 @@ export class ReminderScheduler {
 	}
 
 	/**
-	 * Create a notification record in the database
+	 * Create a notification record in the database using Rust GraphQL backend
 	 */
 	private static async createNotificationRecord(options: {
 		userId: string;
@@ -227,35 +265,64 @@ export class ReminderScheduler {
 		message: string;
 	}): Promise<void> {
 		try {
-			// Create GraphQL client and operations instance
-			const client = createUrqlClient();
-			const eventsOps = new EventsOperations(client);
+			// Get service authentication key from environment
+			const serviceKey = process.env.SERVICE_AUTH_KEY || 'fallback-dev-key';
 
-			// Use system user credentials for scheduler
-			// Note: GraphQL endpoint currently doesn't require JWT authentication
-			const systemCredentials: UserCredentials = {
-				token: 'scheduler-service',
-				userId: 'system-scheduler',
-				roles: ['system'],
-				jwtToken: 'scheduler-service-token', // Dummy JWT - GraphQL endpoint doesn't enforce it yet
-				permissions: [],
-				isAuthenticated: true
-			};
+			// Get GraphQL endpoint
+			const graphqlEndpoint = process.env.VITE_API_URL
+				? `${process.env.VITE_API_URL}/graphql`
+				: 'http://localhost:4000/graphql';
 
-			// Create the notification
-			const result = await eventsOps.createEventNotification({
-				userId: options.userId,
-				eventId: options.eventId,
-				type: options.type,
-				message: options.message,
-				userCredentials: systemCredentials
+			// Create the notification using Rust GraphQL
+			// NOTE: Updated to match Rust GraphQL schema (idiomatic naming)
+			// NOTE: Rust uses lowercase enum values for notification types
+			const response = await fetch(graphqlEndpoint, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${serviceKey}`
+				},
+				body: JSON.stringify({
+					query: `
+						mutation CreateEventReminder($input: CreateNotificationInput!) {
+							createNotification(input: $input) {
+								notification {
+									id
+									recipientId
+									type
+									category
+									title
+									message
+								}
+							}
+						}
+					`,
+					variables: {
+						input: {
+							notification: {
+								recipientId: options.userId,
+								type: 'event_reminder',
+								category: 'event',
+								title: 'Event Reminder',
+								message: options.message,
+								relatedResourceType: 'event',
+								relatedResourceId: options.eventId,
+								readStatus: false
+							}
+						}
+					}
+				})
 			});
 
-			if (!result.success) {
-				throw new Error(result.error || 'Failed to create notification');
+			const data = await response.json();
+
+			if (data.errors) {
+				console.error('[ReminderScheduler] GraphQL errors:', data.errors);
+				throw new Error(data.errors[0]?.message || 'Failed to create notification');
 			}
 
-			console.log('[ReminderScheduler] Created notification:', result.notificationId);
+			const notificationId = data?.data?.createNotification?.notification?.id;
+			console.log('[ReminderScheduler] Created notification:', notificationId);
 		} catch (error) {
 			console.error('[ReminderScheduler] Error creating notification:', error);
 			throw error;
