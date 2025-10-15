@@ -6,6 +6,7 @@ use uuid::Uuid;
 use crate::{
     auth::context::UserContext,
     database::get_db_from_context,
+    database::{get_pool_from_context, DbPool},
     error::AppError,
     models::{
         generated::prelude::*,
@@ -67,7 +68,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateEventAttendeeInput,
     ) -> Result<EventAttendee> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let attendee = sqlx::query_as::<_, EventAttendee>(
             r#"
@@ -155,7 +156,7 @@ impl MutationRoot {
 
     /// Delete an event attendee
     async fn delete_event_attendee(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query("DELETE FROM hr_public.event_attendees WHERE id = $1")
             .bind(id)
@@ -368,7 +369,7 @@ impl MutationRoot {
 
     /// Soft delete a user (sets deleted_at timestamp)
     async fn delete_user(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query(
             "UPDATE hr_public.users SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL",
@@ -487,7 +488,7 @@ impl MutationRoot {
 
     /// Soft delete a department (sets deleted_at timestamp)
     async fn delete_department(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query(
             "UPDATE hr_public.departments SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL",
@@ -506,7 +507,7 @@ impl MutationRoot {
 
     /// Create a new role
     async fn create_role(&self, ctx: &Context<'_>, input: CreateRoleInput) -> Result<Role> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let role = sqlx::query_as::<_, Role>(
             r#"
@@ -585,7 +586,7 @@ impl MutationRoot {
 
     /// Soft delete a role
     async fn delete_role(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query(
             "UPDATE hr_public.roles SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL",
@@ -604,7 +605,7 @@ impl MutationRoot {
 
     /// Create a new permission
     async fn create_permission(&self, ctx: &Context<'_>, input: CreatePermissionInput) -> Result<Permission> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let permission = sqlx::query_as::<_, Permission>(
             r#"
@@ -683,7 +684,7 @@ impl MutationRoot {
 
     /// Soft delete a permission
     async fn delete_permission(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query(
             "UPDATE hr_public.permissions SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL",
@@ -702,7 +703,7 @@ impl MutationRoot {
 
     /// Assign a role to a user
     async fn assign_role_to_user(&self, ctx: &Context<'_>, input: AssignRoleInput) -> Result<UserRoleAssignment> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         // Get the assigner's user ID from context if available
         let assigner_id = ctx.data_opt::<UserContext>().map(|uc| uc.user_id);
@@ -727,7 +728,7 @@ impl MutationRoot {
 
     /// Remove a role from a user (soft delete the assignment)
     async fn remove_role_from_user(&self, ctx: &Context<'_>, user_id: Uuid, role_id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query(
             r#"
@@ -747,7 +748,7 @@ impl MutationRoot {
 
     /// Assign a permission to a role
     async fn assign_permission_to_role(&self, ctx: &Context<'_>, role_id: Uuid, permission_id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query(
             r#"
@@ -766,7 +767,7 @@ impl MutationRoot {
 
     /// Remove a permission from a role (soft delete)
     async fn remove_permission_from_role(&self, ctx: &Context<'_>, role_id: Uuid, permission_id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query(
             r#"
@@ -790,7 +791,7 @@ impl MutationRoot {
 
     /// Create a new event
     async fn create_event(&self, ctx: &Context<'_>, input: CreateEventInput) -> Result<Event> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         // Get the creator's user ID from context
         let creator_id = ctx
@@ -970,7 +971,7 @@ impl MutationRoot {
 
     /// Soft delete an event (sets deleted_at timestamp)
     async fn delete_event(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query(
             "UPDATE hr_public.events SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL",
@@ -993,7 +994,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateLeaveTypeInput,
     ) -> Result<LeaveType> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let leave_type = sqlx::query_as::<_, LeaveType>(
             r#"
@@ -1131,7 +1132,7 @@ impl MutationRoot {
 
     /// Soft delete a leave type
     async fn delete_leave_type(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query(
             "UPDATE hr_public.leave_types SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL",
@@ -1154,7 +1155,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateLeaveBalanceInput,
     ) -> Result<LeaveBalance> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let balance = sqlx::query_as::<_, LeaveBalance>(
             r#"
@@ -1367,7 +1368,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: ApproveLeaveRequestInput,
     ) -> Result<LeaveRequest> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         // Get approver ID from context
         let approver_id = ctx
@@ -1399,7 +1400,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: RejectLeaveRequestInput,
     ) -> Result<LeaveRequest> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         // Get approver ID from context
         let approver_id = ctx
@@ -1429,7 +1430,7 @@ impl MutationRoot {
 
     /// Cancel a leave request (by the user who created it)
     async fn cancel_leave_request(&self, ctx: &Context<'_>, id: Uuid) -> Result<LeaveRequest> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let request = sqlx::query_as::<_, LeaveRequest>(
             r#"
@@ -1450,7 +1451,7 @@ impl MutationRoot {
 
     /// Soft delete a leave request
     async fn delete_leave_request(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query(
             "UPDATE hr_public.leave_requests SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL",
@@ -1733,7 +1734,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: ChangeTaskStatusInput,
     ) -> Result<Task> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let user_id = ctx
             .data_opt::<UserContext>()
@@ -1787,7 +1788,7 @@ impl MutationRoot {
 
     /// Soft delete a task
     async fn delete_task(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let user_id = ctx
             .data_opt::<UserContext>()
@@ -1829,7 +1830,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: AssignTaskInput,
     ) -> Result<TaskAssignee> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let assigner_id = ctx
             .data_opt::<UserContext>()
@@ -1920,7 +1921,7 @@ impl MutationRoot {
         task_id: Uuid,
         user_id: Uuid,
     ) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let unassigner_id = ctx.data_opt::<UserContext>().map(|uc| uc.user_id);
 
@@ -1965,7 +1966,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateTaskDependencyInput,
     ) -> Result<TaskDependency> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let creator_id = ctx
             .data_opt::<UserContext>()
@@ -2048,7 +2049,7 @@ impl MutationRoot {
 
     /// Delete a task dependency (soft delete)
     async fn delete_task_dependency(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query(
             "UPDATE hr_public.task_dependencies SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL",
@@ -2071,7 +2072,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateLinkedResourceInput,
     ) -> Result<LinkedResource> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let uploader_id = ctx
             .data_opt::<UserContext>()
@@ -2168,7 +2169,7 @@ impl MutationRoot {
 
     /// Delete a linked resource (soft delete)
     async fn delete_linked_resource(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query(
             "UPDATE hr_public.linked_resources SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL",
@@ -2191,7 +2192,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateReviewCycleInput,
     ) -> Result<ReviewCycle> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let creator_id = ctx
             .data_opt::<UserContext>()
@@ -2293,7 +2294,7 @@ impl MutationRoot {
 
     /// Soft delete a review cycle
     async fn delete_review_cycle(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query(
             "UPDATE hr_public.review_cycles SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL",
@@ -2488,7 +2489,7 @@ impl MutationRoot {
 
     /// Soft delete a performance review
     async fn delete_performance_review(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query(
             "UPDATE hr_public.performance_reviews SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL",
@@ -2511,7 +2512,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateReviewGoalInput,
     ) -> Result<ReviewGoal> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let goal = sqlx::query_as::<_, ReviewGoal>(
             r#"
@@ -2616,7 +2617,7 @@ impl MutationRoot {
 
     /// Soft delete a review goal
     async fn delete_review_goal(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query(
             "UPDATE hr_public.review_goals SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL",
@@ -2639,7 +2640,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateReviewFeedbackInput,
     ) -> Result<ReviewFeedback> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let provider_id = ctx
             .data_opt::<UserContext>()
@@ -2722,7 +2723,7 @@ impl MutationRoot {
 
     /// Soft delete review feedback
     async fn delete_review_feedback(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query(
             "UPDATE hr_public.review_feedback SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL",
@@ -2745,7 +2746,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateEmployeeSkillInput,
     ) -> Result<EmployeeSkill> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let verified = input.verified.unwrap_or(false);
 
@@ -2852,7 +2853,7 @@ impl MutationRoot {
 
     /// Delete an employee skill (hard delete - no soft delete for skills)
     async fn delete_employee_skill(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query("DELETE FROM hr_public.employee_skills WHERE id = $1")
             .bind(id)
@@ -2868,7 +2869,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateEmployeeCertificationInput,
     ) -> Result<EmployeeCertification> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let cert = sqlx::query_as::<_, EmployeeCertification>(
             r#"
@@ -2895,7 +2896,7 @@ impl MutationRoot {
 
     /// Delete an employee certification (hard delete)
     async fn delete_employee_certification(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query("DELETE FROM hr_public.employee_certifications WHERE id = $1")
             .bind(id)
@@ -2911,7 +2912,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateEmployeeVehicleInput,
     ) -> Result<EmployeeVehicle> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let vehicle = sqlx::query_as::<_, EmployeeVehicle>(
             r#"
@@ -3003,7 +3004,7 @@ impl MutationRoot {
 
     /// Delete an employee vehicle (hard delete)
     async fn delete_employee_vehicle(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query("DELETE FROM hr_public.employee_vehicles WHERE id = $1")
             .bind(id)
@@ -3019,7 +3020,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateEmergencyContactInput,
     ) -> Result<EmergencyContact> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let contact = sqlx::query_as::<_, EmergencyContact>(
             r#"
@@ -3111,7 +3112,7 @@ impl MutationRoot {
 
     /// Delete an emergency contact (hard delete)
     async fn delete_emergency_contact(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query("DELETE FROM hr_public.emergency_contacts WHERE id = $1")
             .bind(id)
@@ -3127,7 +3128,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateEmployeeGoalInput,
     ) -> Result<EmployeeGoal> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
         let status = input.status.unwrap_or(GoalStatus::NotStarted);
         let progress = input.progress_percentage.unwrap_or(0);
 
@@ -3221,7 +3222,7 @@ impl MutationRoot {
 
     /// Delete an employee goal (hard delete)
     async fn delete_employee_goal(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query("DELETE FROM hr_public.employee_goals WHERE id = $1")
             .bind(id)
@@ -3241,7 +3242,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateDocumentInput,
     ) -> Result<Document> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let document = sqlx::query_as::<_, Document>(
             r#"
@@ -3320,7 +3321,7 @@ impl MutationRoot {
 
     /// Delete a document (soft delete)
     async fn delete_document(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query(
             r#"
@@ -3342,7 +3343,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateDocumentCategoryInput,
     ) -> Result<DocumentCategory> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let category = sqlx::query_as::<_, DocumentCategory>(
             r#"
@@ -3415,7 +3416,7 @@ impl MutationRoot {
 
     /// Delete a document category (soft delete)
     async fn delete_document_category(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query(
             r#"
@@ -3437,7 +3438,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateDocumentVersionInput,
     ) -> Result<DocumentVersion> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let version = sqlx::query_as::<_, DocumentVersion>(
             r#"
@@ -3466,7 +3467,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateDocumentAssignmentInput,
     ) -> Result<DocumentAssignment> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let assignment = sqlx::query_as::<_, DocumentAssignment>(
             r#"
@@ -3489,7 +3490,7 @@ impl MutationRoot {
 
     /// Delete a document assignment (hard delete - revoke access)
     async fn delete_document_assignment(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query("DELETE FROM hr_public.document_assignments WHERE id = $1")
             .bind(id)
@@ -3505,7 +3506,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateDocumentAccessLogInput,
     ) -> Result<DocumentAccessLog> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let log = sqlx::query_as::<_, DocumentAccessLog>(
             r#"
@@ -3531,7 +3532,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateEncryptedFileStorageInput,
     ) -> Result<EncryptedFileStorage> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let storage = sqlx::query_as::<_, EncryptedFileStorage>(
             r#"
@@ -3559,7 +3560,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateTimeOffPolicyInput,
     ) -> Result<TimeOffPolicy> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let policy = sqlx::query_as::<_, TimeOffPolicy>(
             r#"
@@ -3658,7 +3659,7 @@ impl MutationRoot {
 
     /// Delete a time-off policy (hard delete)
     async fn delete_time_off_policy(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query("DELETE FROM hr_public.time_off_policies WHERE id = $1")
             .bind(id)
@@ -3674,7 +3675,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateAttendanceRecordInput,
     ) -> Result<AttendanceRecord> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let record = sqlx::query_as::<_, AttendanceRecord>(
             r#"
@@ -3767,7 +3768,7 @@ impl MutationRoot {
 
     /// Delete an attendance record (hard delete)
     async fn delete_attendance_record(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query("DELETE FROM hr_public.attendance_records WHERE id = $1")
             .bind(id)
@@ -3785,7 +3786,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateActivityLogInput,
     ) -> Result<ActivityLog> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         // Parse details JSON string if provided
         let details_json = if let Some(details) = &input.details {
@@ -3820,7 +3821,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateCompensationBandInput,
     ) -> Result<CompensationBand> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let band = sqlx::query_as::<_, CompensationBand>(
             r#"
@@ -3907,7 +3908,7 @@ impl MutationRoot {
 
     /// Delete a compensation band (hard delete)
     async fn delete_compensation_band(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query("DELETE FROM hr_public.compensation_bands WHERE id = $1")
             .bind(id)
@@ -3923,7 +3924,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateHRReportInput,
     ) -> Result<HRReport> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         // Parse data JSON string
         let data_json = serde_json::from_str::<serde_json::Value>(&input.data)?;
@@ -3954,7 +3955,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateRollbackRequestInput,
     ) -> Result<RollbackRequest> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         // Get user ID from context
         let user_id = ctx
@@ -4048,7 +4049,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateBulkRollbackBatchInput,
     ) -> Result<BulkRollbackBatch> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let batch = sqlx::query_as::<_, BulkRollbackBatch>(
             r#"
@@ -4137,7 +4138,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateBulkRollbackItemInput,
     ) -> Result<BulkRollbackItem> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let item = sqlx::query_as::<_, BulkRollbackItem>(
             r#"
@@ -4221,7 +4222,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreatePayrollRecordInput,
     ) -> Result<PayrollRecord> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         // Parse JSON strings for deductions and bonuses
         let deductions_json = if let Some(deductions) = &input.deductions {
@@ -4266,7 +4267,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateEncryptionKeyInput,
     ) -> Result<EncryptionKey> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let key = sqlx::query_as::<_, EncryptionKey>(
             r#"
@@ -4292,7 +4293,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateEventCommentInput,
     ) -> Result<EventComment> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let comment = sqlx::query_as::<_, EventComment>(
             r#"
@@ -4357,7 +4358,7 @@ impl MutationRoot {
 
     /// Delete an event comment (soft delete)
     async fn delete_event_comment(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query(
             "UPDATE hr_public.event_comments SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL",
@@ -4375,7 +4376,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateEventHistoryInput,
     ) -> Result<EventHistory> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         // Parse JSON strings if provided
         let old_values_json = if let Some(old_values) = &input.old_values {
@@ -4415,7 +4416,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateEventWaitlistInput,
     ) -> Result<EventWaitlist> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let waitlist = sqlx::query_as::<_, EventWaitlist>(
             r#"
@@ -4483,7 +4484,7 @@ impl MutationRoot {
 
     /// Delete an event waitlist entry (hard delete)
     async fn delete_event_waitlist(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query("DELETE FROM hr_public.event_waitlist WHERE id = $1")
             .bind(id)
@@ -4501,7 +4502,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateTaskTypeInput,
     ) -> Result<TaskType> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let task_type = sqlx::query_as::<_, TaskType>(
             r#"
@@ -4597,7 +4598,7 @@ impl MutationRoot {
 
     /// Delete a task type (soft delete by setting is_active = false)
     async fn delete_task_type(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query(
             "UPDATE hr_public.task_types SET is_active = false, updated_at = NOW() WHERE id = $1",
@@ -4615,7 +4616,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateReviewTemplateInput,
     ) -> Result<ReviewTemplate> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         // Parse sections JSON string if provided
         let sections_json = if let Some(sections) = &input.sections {
@@ -4712,7 +4713,7 @@ impl MutationRoot {
 
     /// Delete a review template (soft delete by setting is_active = false)
     async fn delete_review_template(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let pool = get_pool_from_context(ctx)?;
 
         let result = sqlx::query(
             "UPDATE hr_public.review_templates SET is_active = false, updated_at = NOW() WHERE id = $1",
