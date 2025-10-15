@@ -100,15 +100,15 @@ As a developer extending the HR system, I want to leverage SeaORM's advanced fil
 - **FR-002**: System MUST fetch all data from SeaORM implementation without using mock data or shortcuts
 - **FR-003**: System MUST support all existing query patterns (filtering, sorting, pagination) using SeaORM APIs
 - **FR-004**: System MUST handle all existing data relationships and joins through SeaORM entity relationships
-- **FR-012**: System MUST implement standard enterprise security including RBAC, comprehensive audit logging, and data encryption for sensitive information
+- **FR-012**: System MUST implement SOC 2 Type II compliance including RBAC, comprehensive audit logging, and encryption at rest and in transit for sensitive information
 
 - **FR-005**: System MUST provide identical data structures and field names to the frontend (allowing query modifications for idiomatic SeaORM usage)
 - **FR-011**: System MUST support medium-scale data volumes (10k-100k records per major entity) and concurrent usage (100-1000 users)
 
 - **FR-006**: System MUST maintain all existing error handling and edge case behaviors
 - **FR-007**: System MUST support all existing authentication and authorization patterns
-- **FR-008**: System MUST enable faster development of new features using SeaORM's type-safe APIs
-- **FR-009**: System MUST provide better debugging and error detection for database-related issues
+- **FR-008**: System MUST reduce database-related bugs by 50% through compile-time type checking with SeaORM's type-safe APIs
+- **FR-009**: System MUST provide structured error messages with field-level validation details for database-related issues
 - **FR-010**: System MUST support advanced querying capabilities for future feature expansion
 
 ### Key Entities _(include if feature involves data)_
@@ -130,7 +130,7 @@ As a developer extending the HR system, I want to leverage SeaORM's advanced fil
 
 - **SC-001**: All existing frontend functionality works identically with 100% test pass rate on existing test suites
 - **SC-002**: Zero data discrepancies between old and new implementations across all entities
-- **SC-003**: API responses MUST complete within 500ms for simple queries and 2 seconds for complex operations
+- **SC-003**: API responses MUST complete within 500ms for simple queries and 2 seconds for complex operations (measured at 95th percentile under normal load of 100 concurrent users)
 - **SC-004**: Developer productivity increases by 30% for new database-related features
 - **SC-005**: Database-related runtime errors decrease by 80% due to compile-time type checking
 - **SC-006**: System successfully handles all existing user workflows without interruption
@@ -146,7 +146,7 @@ As a developer extending the HR system, I want to leverage SeaORM's advanced fil
 - **FR-015**: Auth operations MUST maintain compatibility with existing SvelteKit Better Auth JWT tokens
 - **FR-016**: System MUST provide type-safe user lookup and validation operations
 - **FR-017**: System MUST include basic new SeaORM features and optimizations as part of the migration
-- **FR-018**: System MUST provide comprehensive logging for all database operations and API requests
-- **FR-019**: System MUST expose key performance metrics for monitoring and alerting
+- **FR-018**: System MUST provide comprehensive logging for all database operations and API requests (deferred to post-migration optimization phase)
+- **FR-019**: System MUST expose key performance metrics for monitoring and alerting (deferred to post-migration optimization phase)
 - **FR-020**: System MUST include structured logging with correlation IDs for request tracing
 - **FR-021**: System MUST support configurable log levels for different environments
