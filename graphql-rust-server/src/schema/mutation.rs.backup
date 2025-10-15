@@ -9,7 +9,7 @@ use crate::{
     error::AppError,
     models::{
         generated::prelude::*,
-        task_audit_entry,
+        system::task_audit_entry,
         ApproveLeaveRequestInput, AssignRoleInput, AssignTaskInput, AuditAction,
         ChangeTaskStatusInput, CreateDepartmentInput, CreateEventAttendeeInput, CreateEventInput,
         CreateLeaveBalanceInput, CreateLeaveRequestInput, CreateLeaveTypeInput,

@@ -4,7 +4,7 @@
 
 use async_graphql::{Enum, InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
-use sea_orm::{entity::prelude::*, FromQueryResult, Related, Relation};
+use sea_orm::{entity::prelude::*, FromQueryResult, Related};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use uuid::Uuid;

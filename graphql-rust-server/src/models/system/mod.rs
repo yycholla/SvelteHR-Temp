@@ -22,7 +22,7 @@ pub use bulk_rollback_batch::{
 pub use bulk_rollback_item::{
     BulkRollbackItem, CreateBulkRollbackItemInput, UpdateBulkRollbackItemInput,
 };
-pub use activity_log::{ActivityLog, ActivityLogCondition, ActivityLogsConnection, ActivityLogsOrderBy, CreateActivityLogInput};
+pub use activity_log::{Model as ActivityLog, ActivityLogCondition, ActivityLogsConnection, ActivityLogsOrderBy, CreateActivityLogInput};
 pub use hr_report::{CreateHRReportInput, HRReport};
 pub use compensation_band::{
     CompensationBand, CreateCompensationBandInput, UpdateCompensationBandInput,

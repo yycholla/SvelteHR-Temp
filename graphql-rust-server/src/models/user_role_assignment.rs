@@ -8,7 +8,6 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::loaders::batch_load_users;
 
 /// UserRoleAssignment model - maps to hr_public.user_role_assignments table
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
