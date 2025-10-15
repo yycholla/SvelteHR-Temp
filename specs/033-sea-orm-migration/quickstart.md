@@ -25,15 +25,59 @@ Add SeaORM dependencies to `graphql-rust-server/Cargo.toml`:
 sea-orm = { version = "0.12", features = ["sqlx-postgres", "runtime-tokio-rustls", "macros"] }
 sea-orm-migration = "0.12"
 axum-login = "0.12"  # For enhanced authentication
+# Keep existing sqlx for migration compatibility
+sqlx = { version = "0.7", features = ["postgres", "runtime-tokio-rustls", "uuid", "chrono", "json", "decimal"] }
 ```
 
 ### 2. Generate SeaORM Entities
 
-Install SeaORM CLI and generate entities from existing database:
+Install SeaORM CLI and generate base entities from existing database:
 
 ```bash
 cargo install sea-orm-cli
-sea-orm-cli generate entity --database-url "postgresql://user:pass@localhost/hr_db" --output-dir graphql-rust-server/src/models
+sea-orm-cli generate entity --database-url "postgresql://user:pass@localhost/hr_db" --output-dir graphql-rust-server/src/models/generated
+```
+
+### 3. Customize Generated Entities
+
+The auto-generated entities need manual customization for:
+
+**Computed Columns**: Add methods for `display_name` and `full_name`:
+
+```rust
+impl User {
+    pub fn display_name(&self) -> String {
+        format!("{} {}", self.first_name, self.last_name)
+    }
+
+    pub fn full_name(&self) -> String {
+        self.display_name()
+    }
+}
+```
+
+**Complex Relationships**: Manually implement self-referential and multi-table relationships:
+
+```rust
+impl User {
+    pub fn department(&self, db: &DatabaseConnection) -> Result<Option<department::Model>> {
+        // Custom relationship loading
+    }
+}
+```
+
+**Enum Handling**: Map database enums to SeaORM enum types:
+
+```rust
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "task_status")]
+pub enum TaskStatus {
+    #[sea_orm(string_value = "todo")]
+    Todo,
+    #[sea_orm(string_value = "in_progress")]
+    InProgress,
+    // ... other statuses
+}
 ```
 
 ### 3. Update Database Connection
@@ -140,6 +184,104 @@ mod tests {
 }
 ```
 
+### 9. Handle Complex Relationships
+
+Implement custom relationship loading for complex cases:
+
+```rust
+// Self-referential relationships (departments hierarchy)
+impl Department {
+    pub async fn parent(&self, db: &DatabaseConnection) -> Result<Option<Department>> {
+        if let Some(parent_id) = self.parent_department_id {
+            Department::find_by_id(parent_id).one(db).await
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub async fn children(&self, db: &DatabaseConnection) -> Result<Vec<Department>> {
+        Department::find()
+            .filter(department::Column::ParentDepartmentId.eq(self.id))
+            .all(db)
+            .await
+    }
+}
+
+// Multi-table relationships with aggregations
+impl User {
+    pub async fn task_count(&self, db: &DatabaseConnection) -> Result<i64> {
+        Task::find()
+            .filter(task::Column::AssigneeId.eq(self.id))
+            .count(db)
+            .await
+    }
+}
+```
+
+### 10. Preserve Frontend Compatibility
+
+Ensure GraphQL API maintains exact compatibility:
+
+```rust
+// Maintain field names exactly as frontend expects
+impl User {
+    async fn display_name(&self) -> &str {
+        &self.display_name // Must match frontend queries
+    }
+
+    async fn full_name(&self) -> &str {
+        &self.full_name // Must match frontend queries
+    }
+}
+
+// Preserve pagination structure
+impl UsersConnection {
+    async fn nodes(&self) -> &Vec<User> {
+        &self.nodes // Must return Vec<User>, not Vec<user::Model>
+    }
+}
+```
+
+### 11. Migrate Authentication Integration
+
+Complete axum-login integration with existing JWT:
+
+```rust
+// Enhanced UserStore implementation
+impl UserStore for SeaOrmUserStore {
+    async fn get_user(&self, id: &str) -> Option<User> {
+        let user_id = Uuid::parse_str(id).ok()?;
+        User::find_by_id(user_id)
+            .one(&self.db)
+            .await
+            .ok()
+            .flatten()
+    }
+
+    async fn get_user_by_email(&self, email: &str) -> Option<User> {
+        User::find()
+            .filter(user::Column::Email.eq(email))
+            .one(&self.db)
+            .await
+            .ok()
+            .flatten()
+    }
+}
+
+// Maintain JWT compatibility
+pub async fn auth_middleware(
+    State(state): State<AppState>,
+    mut req: Request,
+    next: Next,
+) -> Response {
+    // Keep existing JWT validation
+    if let Some(user) = validate_jwt_token(&req).await? {
+        req.extensions_mut().insert(user);
+    }
+    Ok(next.run(req).await)
+}
+```
+
 ## Verification Steps
 
 ### 1. Run Existing Tests
@@ -177,19 +319,43 @@ Compare frontend behavior before and after migration:
 
 ### Issue: Entity generation fails
 
-**Solution**: Ensure database schema is up to date and accessible
+**Solution**: Ensure database schema is up to date and accessible. Check that all tables exist and have proper constraints.
+
+### Issue: Computed columns not working
+
+**Solution**: Manually implement `display_name` and `full_name` methods in entity models since SeaORM doesn't auto-generate computed column logic.
 
 ### Issue: Relationship queries return empty results
 
-**Solution**: Verify foreign key constraints and entity relationships are correctly defined
+**Solution**: Verify foreign key constraints and entity relationships are correctly defined. Check that SeaORM entity relationships match database foreign keys.
+
+### Issue: Self-referential relationships not loading
+
+**Solution**: Implement custom relationship methods for hierarchical data (departments, tasks). SeaORM may need manual relationship mapping for complex hierarchies.
 
 ### Issue: Authentication fails after migration
 
-**Solution**: Ensure axum-login UserStore implementation correctly queries SeaORM entities
+**Solution**: Ensure axum-login UserStore implementation correctly queries SeaORM entities and maintains JWT compatibility with SvelteKit Better Auth.
+
+### Issue: Frontend GraphQL queries break
+
+**Solution**: Verify that all field names, relationships, and pagination structures exactly match existing frontend expectations. Test with actual frontend queries.
 
 ### Issue: Performance degradation
 
-**Solution**: Add database indexes and implement eager loading for frequently accessed relationships
+**Solution**: Add database indexes for frequently queried fields and implement eager loading for complex relationships. Monitor query performance during migration.
+
+### Issue: Enum values don't match frontend expectations
+
+**Solution**: Ensure SeaORM enum string values match the exact casing expected by frontend GraphQL queries (e.g., "todo" vs "TODO").
+
+### Issue: Soft delete patterns not preserved
+
+**Solution**: Implement custom filtering for `deleted_at IS NULL` in all queries to maintain existing soft delete behavior.
+
+### Issue: Complex business logic lost
+
+**Solution**: Identify and manually implement business logic that was embedded in raw SQL queries, such as validations, state transitions, and computed aggregations.
 
 ## Next Steps
 
