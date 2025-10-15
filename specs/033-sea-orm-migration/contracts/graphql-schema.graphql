@@ -1,0 +1,651 @@
+# GraphQL API Contracts: SeaORM Migration
+# Generated from functional requirements and data model
+# Date: 2025-10-14
+
+type Query {
+	# User queries
+	users(filter: UserFilter, pagination: PaginationInput): UserConnection!
+	user(id: ID!): User
+	currentUser: User
+
+	# Department queries
+	departments(filter: DepartmentFilter, pagination: PaginationInput): DepartmentConnection!
+	department(id: ID!): Department
+
+	# Employee queries
+	employees(filter: EmployeeFilter, pagination: PaginationInput): EmployeeConnection!
+	employee(id: ID!): Employee
+
+	# Task queries
+	tasks(filter: TaskFilter, pagination: PaginationInput): TaskConnection!
+	task(id: ID!): Task
+
+	# Leave request queries
+	leaveRequests(filter: LeaveRequestFilter, pagination: PaginationInput): LeaveRequestConnection!
+	leaveRequest(id: ID!): LeaveRequest
+
+	# Performance review queries
+	performanceReviews(
+		filter: PerformanceReviewFilter
+		pagination: PaginationInput
+	): PerformanceReviewConnection!
+	performanceReview(id: ID!): PerformanceReview
+
+	# Audit log queries (admin/HR only)
+	auditLogs(filter: AuditLogFilter, pagination: PaginationInput): AuditLogConnection!
+
+	# Notification queries
+	notifications(filter: NotificationFilter, pagination: PaginationInput): NotificationConnection!
+	unreadNotificationCount: Int!
+
+	# Document queries
+	documents(filter: DocumentFilter, pagination: PaginationInput): DocumentConnection!
+	document(id: ID!): Document
+
+	# Report queries
+	reports(filter: ReportFilter, pagination: PaginationInput): ReportConnection!
+	report(id: ID!): Report
+}
+
+type Mutation {
+	# User mutations
+	createUser(input: CreateUserInput!): User!
+	updateUser(id: ID!, input: UpdateUserInput!): User!
+	deleteUser(id: ID!): Boolean!
+
+	# Department mutations
+	createDepartment(input: CreateDepartmentInput!): Department!
+	updateDepartment(id: ID!, input: UpdateDepartmentInput!): Department!
+	deleteDepartment(id: ID!): Boolean!
+
+	# Employee mutations
+	createEmployee(input: CreateEmployeeInput!): Employee!
+	updateEmployee(id: ID!, input: UpdateEmployeeInput!): Employee!
+
+	# Task mutations
+	createTask(input: CreateTaskInput!): Task!
+	updateTask(id: ID!, input: UpdateTaskInput!): Task!
+	deleteTask(id: ID!): Boolean!
+
+	# Leave request mutations
+	createLeaveRequest(input: CreateLeaveRequestInput!): LeaveRequest!
+	updateLeaveRequest(id: ID!, input: UpdateLeaveRequestInput!): LeaveRequest!
+	approveLeaveRequest(id: ID!): LeaveRequest!
+	rejectLeaveRequest(id: ID!, reason: String): LeaveRequest!
+
+	# Performance review mutations
+	createPerformanceReview(input: CreatePerformanceReviewInput!): PerformanceReview!
+	updatePerformanceReview(id: ID!, input: UpdatePerformanceReviewInput!): PerformanceReview!
+	submitPerformanceReview(id: ID!): PerformanceReview!
+	completePerformanceReview(id: ID!, rating: Int!, feedback: String): PerformanceReview!
+
+	# Notification mutations
+	markNotificationRead(id: ID!): Notification!
+	markAllNotificationsRead: Boolean!
+
+	# Document mutations
+	uploadDocument(input: UploadDocumentInput!): Document!
+	deleteDocument(id: ID!): Boolean!
+
+	# Report mutations
+	createReport(input: CreateReportInput!): Report!
+	updateReport(id: ID!, input: UpdateReportInput!): Report!
+	deleteReport(id: ID!): Boolean!
+	runReport(id: ID!): ReportResult!
+}
+
+# Entity Types
+
+type User {
+	id: ID!
+	email: String!
+	fullName: String!
+	role: UserRole!
+	department: Department
+	tasks: [Task!]!
+	leaveRequests: [LeaveRequest!]!
+	performanceReviews: [PerformanceReview!]!
+	auditLogs: [AuditLog!]!
+	createdAt: DateTime!
+	updatedAt: DateTime!
+	isActive: Boolean!
+}
+
+type Department {
+	id: ID!
+	name: String!
+	description: String
+	parent: Department
+	children: [Department!]!
+	manager: User
+	users: [User!]!
+	createdAt: DateTime!
+	updatedAt: DateTime!
+}
+
+type Employee {
+	id: ID!
+	user: User!
+	employeeId: String!
+	hireDate: Date!
+	terminationDate: Date
+	jobTitle: String!
+	skills: [Skill!]!
+	certifications: [Certification!]!
+	createdAt: DateTime!
+	updatedAt: DateTime!
+}
+
+type Task {
+	id: ID!
+	title: String!
+	description: String!
+	status: TaskStatus!
+	priority: Priority!
+	assignee: User!
+	createdBy: User!
+	dueDate: DateTime
+	createdAt: DateTime!
+	updatedAt: DateTime!
+}
+
+type LeaveRequest {
+	id: ID!
+	user: User!
+	leaveType: LeaveType!
+	startDate: Date!
+	endDate: Date!
+	status: LeaveStatus!
+	reason: String!
+	approvedBy: User
+	approvedAt: DateTime
+	createdAt: DateTime!
+	updatedAt: DateTime!
+}
+
+type PerformanceReview {
+	id: ID!
+	employee: User!
+	reviewer: User!
+	reviewPeriodStart: Date!
+	reviewPeriodEnd: Date!
+	status: ReviewStatus!
+	overallRating: Int
+	goals: [Goal!]!
+	feedback: String!
+	createdAt: DateTime!
+	updatedAt: DateTime!
+}
+
+type AuditLog {
+	id: ID!
+	user: User
+	action: String!
+	entityType: String!
+	entityId: ID!
+	oldValues: JSON
+	newValues: JSON
+	ipAddress: String
+	userAgent: String
+	createdAt: DateTime!
+}
+
+type Notification {
+	id: ID!
+	user: User!
+	type: NotificationType!
+	title: String!
+	message: String!
+	isRead: Boolean!
+	data: JSON
+	createdAt: DateTime!
+}
+
+type Document {
+	id: ID!
+	user: User!
+	filename: String!
+	fileSize: Int!
+	mimeType: String!
+	category: DocumentCategory!
+	isPublic: Boolean!
+	createdAt: DateTime!
+	updatedAt: DateTime!
+}
+
+type Report {
+	id: ID!
+	name: String!
+	description: String!
+	createdBy: User!
+	isPublic: Boolean!
+	lastRunAt: DateTime
+	createdAt: DateTime!
+	updatedAt: DateTime!
+}
+
+type ReportResult {
+	report: Report!
+	data: JSON!
+	generatedAt: DateTime!
+}
+
+# Supporting Types
+
+type Skill {
+	name: String!
+	level: String!
+	yearsExperience: Int
+}
+
+type Certification {
+	name: String!
+	issuer: String!
+	issueDate: Date!
+	expiryDate: Date
+	credentialId: String
+}
+
+type Goal {
+	title: String!
+	description: String!
+	status: GoalStatus!
+	dueDate: Date
+}
+
+# Enums
+
+enum UserRole {
+	ADMIN
+	HR_MANAGER
+	MANAGER
+	EMPLOYEE
+}
+
+enum TaskStatus {
+	PENDING
+	IN_PROGRESS
+	COMPLETED
+	CANCELLED
+}
+
+enum Priority {
+	LOW
+	MEDIUM
+	HIGH
+}
+
+enum LeaveType {
+	VACATION
+	SICK
+	PERSONAL
+	MATERNITY
+}
+
+enum LeaveStatus {
+	PENDING
+	APPROVED
+	REJECTED
+	CANCELLED
+}
+
+enum ReviewStatus {
+	DRAFT
+	SUBMITTED
+	IN_REVIEW
+	COMPLETED
+}
+
+enum NotificationType {
+	TASK_ASSIGNED
+	LEAVE_APPROVED
+	REVIEW_DUE
+	SYSTEM_ALERT
+}
+
+enum DocumentCategory {
+	RESUME
+	CONTRACT
+	CERTIFICATION
+	OTHER
+}
+
+enum GoalStatus {
+	NOT_STARTED
+	IN_PROGRESS
+	COMPLETED
+	CANCELLED
+}
+
+# Input Types
+
+input UserFilter {
+	role: UserRole
+	departmentId: ID
+	isActive: Boolean
+	search: String
+}
+
+input DepartmentFilter {
+	parentId: ID
+	search: String
+}
+
+input EmployeeFilter {
+	departmentId: ID
+	hireDateFrom: Date
+	hireDateTo: Date
+	search: String
+}
+
+input TaskFilter {
+	status: TaskStatus
+	priority: Priority
+	assigneeId: ID
+	dueDateFrom: DateTime
+	dueDateTo: DateTime
+}
+
+input LeaveRequestFilter {
+	status: LeaveStatus
+	leaveType: LeaveType
+	userId: ID
+	startDateFrom: Date
+	startDateTo: Date
+}
+
+input PerformanceReviewFilter {
+	status: ReviewStatus
+	employeeId: ID
+	reviewerId: ID
+	reviewPeriodStart: Date
+	reviewPeriodEnd: Date
+}
+
+input AuditLogFilter {
+	userId: ID
+	action: String
+	entityType: String
+	dateFrom: DateTime
+	dateTo: DateTime
+}
+
+input NotificationFilter {
+	type: NotificationType
+	isRead: Boolean
+}
+
+input DocumentFilter {
+	category: DocumentCategory
+	userId: ID
+	isPublic: Boolean
+}
+
+input ReportFilter {
+	createdById: ID
+	isPublic: Boolean
+	search: String
+}
+
+input PaginationInput {
+	first: Int
+	after: String
+	last: Int
+	before: String
+}
+
+input CreateUserInput {
+	email: String!
+	fullName: String!
+	role: UserRole!
+	departmentId: ID
+	password: String!
+}
+
+input UpdateUserInput {
+	email: String
+	fullName: String
+	role: UserRole
+	departmentId: ID
+	isActive: Boolean
+}
+
+input CreateDepartmentInput {
+	name: String!
+	description: String
+	parentId: ID
+	managerId: ID
+}
+
+input UpdateDepartmentInput {
+	name: String
+	description: String
+	parentId: ID
+	managerId: ID
+}
+
+input CreateEmployeeInput {
+	userId: ID!
+	employeeId: String!
+	hireDate: Date!
+	jobTitle: String!
+}
+
+input UpdateEmployeeInput {
+	hireDate: Date
+	terminationDate: Date
+	jobTitle: String
+	skills: [SkillInput!]
+	certifications: [CertificationInput!]
+}
+
+input CreateTaskInput {
+	title: String!
+	description: String!
+	priority: Priority!
+	assigneeId: ID!
+	dueDate: DateTime
+}
+
+input UpdateTaskInput {
+	title: String
+	description: String
+	status: TaskStatus
+	priority: Priority
+	assigneeId: ID
+	dueDate: DateTime
+}
+
+input CreateLeaveRequestInput {
+	leaveType: LeaveType!
+	startDate: Date!
+	endDate: Date!
+	reason: String!
+}
+
+input UpdateLeaveRequestInput {
+	leaveType: LeaveType
+	startDate: Date
+	endDate: Date
+	reason: String
+}
+
+input CreatePerformanceReviewInput {
+	employeeId: ID!
+	reviewerId: ID!
+	reviewPeriodStart: Date!
+	reviewPeriodEnd: Date!
+}
+
+input UpdatePerformanceReviewInput {
+	reviewPeriodStart: Date
+	reviewPeriodEnd: Date
+	goals: [GoalInput!]
+	feedback: String
+}
+
+input UploadDocumentInput {
+	file: Upload!
+	category: DocumentCategory!
+	isPublic: Boolean
+}
+
+input CreateReportInput {
+	name: String!
+	description: String!
+	queryDefinition: JSON!
+	isPublic: Boolean
+}
+
+input UpdateReportInput {
+	name: String
+	description: String
+	queryDefinition: JSON
+	isPublic: Boolean
+}
+
+input SkillInput {
+	name: String!
+	level: String!
+	yearsExperience: Int
+}
+
+input CertificationInput {
+	name: String!
+	issuer: String!
+	issueDate: Date!
+	expiryDate: Date
+	credentialId: String
+}
+
+input GoalInput {
+	title: String!
+	description: String!
+	dueDate: Date
+}
+
+# Connection Types for Pagination
+
+type UserConnection {
+	edges: [UserEdge!]!
+	pageInfo: PageInfo!
+	totalCount: Int!
+}
+
+type UserEdge {
+	node: User!
+	cursor: String!
+}
+
+type DepartmentConnection {
+	edges: [DepartmentEdge!]!
+	pageInfo: PageInfo!
+	totalCount: Int!
+}
+
+type DepartmentEdge {
+	node: Department!
+	cursor: String!
+}
+
+type EmployeeConnection {
+	edges: [EmployeeEdge!]!
+	pageInfo: PageInfo!
+	totalCount: Int!
+}
+
+type EmployeeEdge {
+	node: Employee!
+	cursor: String!
+}
+
+type TaskConnection {
+	edges: [TaskEdge!]!
+	pageInfo: PageInfo!
+	totalCount: Int!
+}
+
+type TaskEdge {
+	node: Task!
+	cursor: String!
+}
+
+type LeaveRequestConnection {
+	edges: [LeaveRequestEdge!]!
+	pageInfo: PageInfo!
+	totalCount: Int!
+}
+
+type LeaveRequestEdge {
+	node: LeaveRequest!
+	cursor: String!
+}
+
+type PerformanceReviewConnection {
+	edges: [PerformanceReviewEdge!]!
+	pageInfo: PageInfo!
+	totalCount: Int!
+}
+
+type PerformanceReviewEdge {
+	node: PerformanceReview!
+	cursor: String!
+}
+
+type AuditLogConnection {
+	edges: [AuditLogEdge!]!
+	pageInfo: PageInfo!
+	totalCount: Int!
+}
+
+type AuditLogEdge {
+	node: AuditLog!
+	cursor: String!
+}
+
+type NotificationConnection {
+	edges: [NotificationEdge!]!
+	pageInfo: PageInfo!
+	totalCount: Int!
+}
+
+type NotificationEdge {
+	node: Notification!
+	cursor: String!
+}
+
+type DocumentConnection {
+	edges: [DocumentEdge!]!
+	pageInfo: PageInfo!
+	totalCount: Int!
+}
+
+type DocumentEdge {
+	node: Document!
+	cursor: String!
+}
+
+type ReportConnection {
+	edges: [ReportEdge!]!
+	pageInfo: PageInfo!
+	totalCount: Int!
+}
+
+type ReportEdge {
+	node: Report!
+	cursor: String!
+}
+
+type PageInfo {
+	hasNextPage: Boolean!
+	hasPreviousPage: Boolean!
+	startCursor: String
+	endCursor: String
+}
+
+# Scalar Types
+
+scalar Date
+scalar DateTime
+scalar JSON
+scalar Upload
