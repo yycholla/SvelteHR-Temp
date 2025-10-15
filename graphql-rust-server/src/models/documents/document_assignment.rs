@@ -4,32 +4,18 @@
 
 use async_graphql::{Enum, InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
+use sea_orm::{entity::prelude::*, QueryFilter};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use uuid::Uuid;
 
-/// Document access level enumeration
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum, sqlx::Type)]
-#[sqlx(type_name = "document_access_level", rename_all = "lowercase")]
-pub enum DocumentAccessLevel {
-    #[graphql(name = "READ")]
-    Read,
-    #[graphql(name = "WRITE")]
-    Write,
-    #[graphql(name = "ADMIN")]
-    Admin,
-}
+use crate::{database::get_db_from_context, error::AppError};
 
-/// Document assignment to users or departments
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-pub struct DocumentAssignment {
-    pub id: Uuid,
-    pub document_id: Uuid,
-    pub user_id: Option<Uuid>,
-    pub department_id: Option<Uuid>,
-    pub access_level: DocumentAccessLevel,
-    pub assigned_at: DateTime<Utc>,
-    pub assigned_by_id: Uuid,
+/// Access levels for document assignments
+#[derive(Clone, Copy, Debug, Enum, PartialEq, Eq)]
+pub enum DocumentAccessLevel {
+    Read,
+    Write,
+    Admin,
 }
 
 /// Input for creating a new document assignment
@@ -43,13 +29,49 @@ pub struct CreateDocumentAssignmentInput {
     pub department_id: Option<Uuid>,
     #[graphql(name = "accessLevel")]
     pub access_level: DocumentAccessLevel,
-    #[graphql(name = "assignedById")]
-    pub assigned_by_id: Uuid,
 }
+
+/// Document assignment to users or departments
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "document_assignments")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: Uuid,
+    pub document_id: Uuid,
+    pub user_id: Option<Uuid>,
+    pub department_id: Option<Uuid>,
+    pub access_level: String, // Will be converted to enum in GraphQL
+    pub assigned_by_id: Uuid,
+    pub assigned_at: DateTime<Utc>,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::document::Entity",
+        from = "Column::DocumentId",
+        to = "super::document::Column::Id"
+    )]
+    Document,
+    #[sea_orm(
+        belongs_to = "crate::models::user::Entity",
+        from = "Column::UserId",
+        to = "crate::models::user::Column::Id"
+    )]
+    User,
+    #[sea_orm(
+        belongs_to = "crate::models::department::Entity",
+        from = "Column::DepartmentId",
+        to = "crate::models::department::Column::Id"
+    )]
+    Department,
+}
+
+impl ActiveModelBehavior for ActiveModel {}
 
 /// GraphQL Object implementation with camelCase field names
 #[Object]
-impl DocumentAssignment {
+impl Model {
     async fn id(&self) -> Uuid {
         self.id
     }
@@ -71,7 +93,12 @@ impl DocumentAssignment {
 
     #[graphql(name = "accessLevel")]
     async fn access_level(&self) -> DocumentAccessLevel {
-        self.access_level
+        match self.access_level.as_str() {
+            "read" => DocumentAccessLevel::Read,
+            "write" => DocumentAccessLevel::Write,
+            "admin" => DocumentAccessLevel::Admin,
+            _ => DocumentAccessLevel::Read, // Default fallback
+        }
     }
 
     #[graphql(name = "assignedAt")]
@@ -88,19 +115,13 @@ impl DocumentAssignment {
     async fn document(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> GqlResult<super::document::Document> {
-        let pool = ctx.data::<PgPool>()?;
-        let document = sqlx::query_as::<_, super::document::Document>(
-            r#"
-            SELECT id, title, description, category_id, file_path, file_size,
-                   mime_type, uploader_id, created_at, updated_at, deleted_at
-            FROM hr_public.documents
-            WHERE id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.document_id)
-        .fetch_one(pool)
-        .await?;
+    ) -> GqlResult<super::document::Model> {
+        let db = get_db_from_context(ctx)?;
+        let document = super::document::Entity::find_by_id(self.document_id)
+            .filter(super::document::Column::DeletedAt.is_null())
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Document not found".to_string()))?;
 
         Ok(document)
     }
@@ -108,19 +129,10 @@ impl DocumentAssignment {
     /// User relationship (lazy-loaded)
     async fn user(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<Option<crate::models::User>> {
         if let Some(user_id) = self.user_id {
-            let pool = ctx.data::<PgPool>()?;
-            let user = sqlx::query_as::<_, crate::models::User>(
-                r#"
-                SELECT id, email, first_name, last_name, full_name, phone,
-                       department_id, manager_id, hire_date, termination_date,
-                       status, created_at, updated_at, deleted_at
-                FROM hr_public.users
-                WHERE id = $1 AND deleted_at IS NULL
-                "#,
-            )
-            .bind(user_id)
-            .fetch_optional(pool)
-            .await?;
+            let db = get_db_from_context(ctx)?;
+            let user = crate::models::user::Entity::find_by_id(user_id)
+                .one(db)
+                .await?;
 
             Ok(user)
         } else {
@@ -134,18 +146,10 @@ impl DocumentAssignment {
         ctx: &async_graphql::Context<'_>,
     ) -> GqlResult<Option<crate::models::Department>> {
         if let Some(dept_id) = self.department_id {
-            let pool = ctx.data::<PgPool>()?;
-            let dept = sqlx::query_as::<_, crate::models::Department>(
-                r#"
-                SELECT id, name, description, manager_id,
-                       created_at, updated_at, deleted_at
-                FROM hr_public.departments
-                WHERE id = $1 AND deleted_at IS NULL
-                "#,
-            )
-            .bind(dept_id)
-            .fetch_optional(pool)
-            .await?;
+            let db = get_db_from_context(ctx)?;
+            let dept = crate::models::department::Entity::find_by_id(dept_id)
+                .one(db)
+                .await?;
 
             Ok(dept)
         } else {
@@ -156,19 +160,11 @@ impl DocumentAssignment {
     /// Assigner relationship (lazy-loaded)
     #[graphql(name = "assignedBy")]
     async fn assigned_by(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::User> {
-        let pool = ctx.data::<PgPool>()?;
-        let user = sqlx::query_as::<_, crate::models::User>(
-            r#"
-            SELECT id, email, first_name, last_name, full_name, phone,
-                   department_id, manager_id, hire_date, termination_date,
-                   status, created_at, updated_at, deleted_at
-            FROM hr_public.users
-            WHERE id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.assigned_by_id)
-        .fetch_one(pool)
-        .await?;
+        let db = get_db_from_context(ctx)?;
+        let user = crate::models::user::Entity::find_by_id(self.assigned_by_id)
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
         Ok(user)
     }

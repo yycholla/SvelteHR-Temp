@@ -11,18 +11,18 @@ pub mod employee_goal;
 
 // Re-exports for convenient access
 pub use employee_skill::{
-    CreateEmployeeSkillInput, EmployeeSkill, EmployeeSkillFilter, ProficiencyLevel,
+    CreateEmployeeSkillInput, Model as EmployeeSkill, EmployeeSkillFilter, ProficiencyLevel,
     UpdateEmployeeSkillInput,
 };
 pub use employee_certification::{
-    CreateEmployeeCertificationInput, EmployeeCertification, EmployeeCertificationFilter,
+    CreateEmployeeCertificationInput, Model as EmployeeCertification, EmployeeCertificationFilter,
 };
 pub use employee_vehicle::{
-    CreateEmployeeVehicleInput, EmployeeVehicle, UpdateEmployeeVehicleInput,
+    CreateEmployeeVehicleInput, Model as EmployeeVehicle, UpdateEmployeeVehicleInput,
 };
 pub use emergency_contact::{
-    CreateEmergencyContactInput, EmergencyContact, UpdateEmergencyContactInput,
+    CreateEmergencyContactInput, Model as EmergencyContact, UpdateEmergencyContactInput,
 };
 pub use employee_goal::{
-    CreateEmployeeGoalInput, EmployeeGoal, GoalStatus, UpdateEmployeeGoalInput,
+    CreateEmployeeGoalInput, Model as EmployeeGoal, GoalStatus, UpdateEmployeeGoalInput,
 };

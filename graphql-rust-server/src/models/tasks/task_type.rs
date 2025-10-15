@@ -2,14 +2,19 @@
 //!
 //! Maps to hr_public.task_types table
 
-use async_graphql::{InputObject, Object};
+use async_graphql::{Context, InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
+use sea_orm::{entity::prelude::*, FromQueryResult, Related};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::{database::get_db_from_context, error::AppError, models::generated::prelude::*};
+
 /// Task type/category for classification
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-pub struct TaskType {
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "task_types")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub name: String,
     pub description: Option<String>,
@@ -19,6 +24,14 @@ pub struct TaskType {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+    #[sea_orm(has_many = "crate::models::task::Entity")]
+    Tasks,
+}
+
+impl ActiveModelBehavior for ActiveModel {}
 
 /// Input for creating a new task type
 #[derive(Debug, Clone, InputObject)]
@@ -46,7 +59,7 @@ pub struct UpdateTaskTypeInput {
 
 /// GraphQL Object implementation with camelCase field names
 #[Object]
-impl TaskType {
+impl Model {
     async fn id(&self) -> Uuid {
         self.id
     }

@@ -4,13 +4,17 @@
 
 use async_graphql::{Context, InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
+use sea_orm::{entity::prelude::*, QueryFilter};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use uuid::Uuid;
 
-/// LeaveBalance model - maps to hr_public.time_off_balances table
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-pub struct LeaveBalance {
+use crate::{database::get_db_from_context, error::AppError};
+
+/// LeaveBalance entity - maps to hr_public.time_off_balances table
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "time_off_balances")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub employee_id: Uuid,
     pub policy_id: Uuid,
@@ -24,9 +28,21 @@ pub struct LeaveBalance {
     pub deleted_at: Option<DateTime<Utc>>,
 }
 
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::EmployeeId",
+        to = "super::user::Column::Id"
+    )]
+    User,
+}
+
+impl ActiveModelBehavior for ActiveModel {}
+
 /// GraphQL Object implementation for LeaveBalance
 #[Object]
-impl LeaveBalance {
+impl Model {
     /// Unique leave balance identifier
     async fn id(&self) -> Uuid {
         self.id
@@ -88,42 +104,24 @@ impl LeaveBalance {
     }
 
     /// User who owns this balance
-    async fn user(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::User>> {
-        let pool = ctx.data::<PgPool>()?;
+    async fn user(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
+        let db = get_db_from_context(ctx)?;
 
-        let user = sqlx::query_as::<_, super::user::User>(
-            r#"
-            SELECT id, email, first_name, last_name, display_name, full_name, role,
-                   phone_number, alternate_phone, job_title, status,
-                   department_id, manager_id, hire_date, is_active,
-                   created_at, updated_at
-            FROM hr_public.users
-            WHERE id = $1
-            "#,
-        )
-        .bind(self.employee_id)
-        .fetch_optional(pool)
-        .await?;
+        let user = super::user::Entity::find_by_id(self.employee_id)
+            .one(db)
+            .await?;
 
         Ok(user)
     }
 
     /// Leave type for this balance
-    async fn leave_type(&self, ctx: &Context<'_>) -> GqlResult<Option<super::leave_type::LeaveType>> {
-        let pool = ctx.data::<PgPool>()?;
+    async fn leave_type(&self, ctx: &Context<'_>) -> GqlResult<Option<super::leave_type::Model>> {
+        let db = get_db_from_context(ctx)?;
 
-        let leave_type = sqlx::query_as::<_, super::leave_type::LeaveType>(
-            r#"
-            SELECT id, name, description, default_days_per_year,
-                   requires_approval, max_consecutive_days, is_paid,
-                   color, icon, created_at, updated_at, deleted_at
-            FROM hr_public.leave_types
-            WHERE id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.policy_id)
-        .fetch_optional(pool)
-        .await?;
+        let leave_type = super::leave_type::Entity::find_by_id(self.policy_id)
+            .filter(super::leave_type::Column::DeletedAt.is_null())
+            .one(db)
+            .await?;
 
         Ok(leave_type)
     }

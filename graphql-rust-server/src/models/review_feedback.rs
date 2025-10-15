@@ -4,13 +4,14 @@
 
 use async_graphql::{Context, Enum, InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
+use sea_orm::{entity::prelude::*, FromQueryResult, Related};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::{database::get_db_from_context, error::AppError, models::generated::prelude::*};
+
 /// Feedback type/source
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum, sqlx::Type)]
-#[sqlx(type_name = "feedback_type", rename_all = "snake_case")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 pub enum FeedbackType {
     Manager,
     Peer,
@@ -20,13 +21,15 @@ pub enum FeedbackType {
     Customer,
 }
 
-/// ReviewFeedback model - maps to hr_public.review_feedback table
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-pub struct ReviewFeedback {
+/// ReviewFeedback entity - maps to hr_public.review_feedback table
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "review_feedback")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub performance_review_id: Uuid,
     pub provider_id: Uuid,
-    pub feedback_type: FeedbackType,
+    pub feedback_type: String, // Using string to match database enum
     pub content: String,
     pub is_visible_to_employee: bool,
     pub created_at: DateTime<Utc>,
@@ -34,9 +37,39 @@ pub struct ReviewFeedback {
     pub deleted_at: Option<DateTime<Utc>>,
 }
 
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::performance_review::Entity",
+        from = "Column::PerformanceReviewId",
+        to = "super::performance_review::Column::Id"
+    )]
+    PerformanceReview,
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::ProviderId",
+        to = "super::user::Column::Id"
+    )]
+    Provider,
+}
+
+impl Related<super::performance_review::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::PerformanceReview.def().rev()
+    }
+}
+
+impl Related<super::user::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Provider.def().rev()
+    }
+}
+
+impl ActiveModelBehavior for ActiveModel {}
+
 /// GraphQL Object implementation for ReviewFeedback
 #[Object]
-impl ReviewFeedback {
+impl Model {
     /// Unique review feedback identifier
     async fn id(&self) -> Uuid {
         self.id
@@ -54,7 +87,15 @@ impl ReviewFeedback {
 
     /// Type of feedback
     async fn feedback_type(&self) -> FeedbackType {
-        self.feedback_type
+        match self.feedback_type.as_str() {
+            "manager" => FeedbackType::Manager,
+            "peer" => FeedbackType::Peer,
+            "self_review" => FeedbackType::SelfReview,
+            "skip_level" => FeedbackType::SkipLevel,
+            "direct_report" => FeedbackType::DirectReport,
+            "customer" => FeedbackType::Customer,
+            _ => FeedbackType::Manager, // Default fallback
+        }
     }
 
     /// Feedback content/comments
@@ -86,69 +127,39 @@ impl ReviewFeedback {
     async fn performance_review(
         &self,
         ctx: &Context<'_>,
-    ) -> GqlResult<Option<super::performance_review::PerformanceReview>> {
-        let pool = ctx.data::<PgPool>()?;
-
-        let review = sqlx::query_as::<_, super::performance_review::PerformanceReview>(
-            r#"
-            SELECT id, review_cycle_id, employee_id, reviewer_id, status,
-                   overall_rating, manager_comments, employee_self_review,
-                   strengths, areas_for_improvement, due_date, completed_at,
-                   created_at, updated_at, deleted_at
-            FROM hr_public.performance_reviews
-            WHERE id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.performance_review_id)
-        .fetch_optional(pool)
-        .await?;
-
+    ) -> GqlResult<Option<super::performance_review::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let review = super::performance_review::Entity::find_by_id(self.performance_review_id).one(db).await?;
         Ok(review)
     }
 
     /// User who provided the feedback
-    async fn provider(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::User>> {
-        let pool = ctx.data::<PgPool>()?;
-
-        let user = sqlx::query_as::<_, super::user::User>(
-            r#"
-            SELECT id, email, first_name, last_name, full_name, phone,
-                   department_id, manager_id, hire_date, termination_date,
-                   status, created_at, updated_at, deleted_at
-            FROM hr_public.users
-            WHERE id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.provider_id)
-        .fetch_optional(pool)
-        .await?;
-
+    async fn provider(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let user = super::user::Entity::find_by_id(self.provider_id).one(db).await?;
         Ok(user)
     }
 
     /// Whether this is manager feedback
     async fn is_manager_feedback(&self) -> bool {
-        self.feedback_type == FeedbackType::Manager
+        self.feedback_type == "manager"
     }
 
     /// Whether this is peer feedback
     async fn is_peer_feedback(&self) -> bool {
-        self.feedback_type == FeedbackType::Peer
+        self.feedback_type == "peer"
     }
 
     /// Whether this is self-review feedback
     async fn is_self_review(&self) -> bool {
-        self.feedback_type == FeedbackType::SelfReview
+        self.feedback_type == "self_review"
     }
 
     /// Whether this is 360-degree feedback (peer, skip, direct report, customer)
     async fn is_360_feedback(&self) -> bool {
         matches!(
-            self.feedback_type,
-            FeedbackType::Peer
-                | FeedbackType::SkipLevel
-                | FeedbackType::DirectReport
-                | FeedbackType::Customer
+            self.feedback_type.as_str(),
+            "peer" | "skip_level" | "direct_report" | "customer"
         )
     }
 
@@ -185,11 +196,11 @@ mod tests {
 
     #[test]
     fn test_review_feedback_model_compiles() {
-        let feedback = ReviewFeedback {
+        let feedback = Model {
             id: Uuid::new_v4(),
             performance_review_id: Uuid::new_v4(),
             provider_id: Uuid::new_v4(),
-            feedback_type: FeedbackType::Manager,
+            feedback_type: "manager".to_string(),
             content: "Excellent work on the project delivery".to_string(),
             is_visible_to_employee: true,
             created_at: Utc::now(),
@@ -197,7 +208,7 @@ mod tests {
             deleted_at: None,
         };
 
-        assert_eq!(feedback.feedback_type, FeedbackType::Manager);
+        assert_eq!(feedback.feedback_type, "manager");
         assert!(feedback.is_visible_to_employee);
     }
 }

@@ -4,13 +4,14 @@
 
 use async_graphql::{Enum, InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
+use sea_orm::{entity::prelude::*, QueryFilter};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::{database::get_db_from_context, error::AppError};
+
 /// Rollback request status
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum, sqlx::Type)]
-#[sqlx(type_name = "rollback_status", rename_all = "lowercase")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 pub enum RollbackStatus {
     #[graphql(name = "pending")]
     Pending,
@@ -22,8 +23,51 @@ pub enum RollbackStatus {
     Completed,
 }
 
-/// Rollback request for data restoration
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+/// SeaORM Rollback request entity
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "rollback_requests")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: Uuid,
+    pub activity_log_id: Uuid,
+    pub requested_by: Uuid,
+    pub requested_at: DateTime<Utc>,
+    pub reason: String,
+    #[sea_orm(column_type = "Text")]
+    pub status: String, // Will be converted to enum in GraphQL
+    pub reviewed_by: Option<Uuid>,
+    pub reviewed_at: Option<DateTime<Utc>>,
+    pub review_reason: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+    #[sea_orm(
+        belongs_to = "crate::models::system::activity_log::Entity",
+        from = "Column::ActivityLogId",
+        to = "crate::models::system::activity_log::Column::Id"
+    )]
+    ActivityLog,
+    #[sea_orm(
+        belongs_to = "crate::models::user::Entity",
+        from = "Column::RequestedBy",
+        to = "crate::models::user::Column::Id"
+    )]
+    RequestedBy,
+    #[sea_orm(
+        belongs_to = "crate::models::user::Entity",
+        from = "Column::ReviewedBy",
+        to = "crate::models::user::Column::Id"
+    )]
+    ReviewedBy,
+}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+/// SQLx-compatible RollbackRequest struct for backward compatibility during migration
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct RollbackRequest {
     pub id: Uuid,
     pub activity_log_id: Uuid,
@@ -130,7 +174,7 @@ impl RollbackRequestsConnection {
 
 /// GraphQL Object implementation with camelCase field names
 #[Object]
-impl RollbackRequest {
+impl Model {
     async fn id(&self) -> Uuid {
         self.id
     }
@@ -160,7 +204,13 @@ impl RollbackRequest {
     }
 
     async fn status(&self) -> RollbackStatus {
-        self.status
+        match self.status.as_str() {
+            "pending" => RollbackStatus::Pending,
+            "approved" => RollbackStatus::Approved,
+            "rejected" => RollbackStatus::Rejected,
+            "completed" => RollbackStatus::Completed,
+            _ => RollbackStatus::Pending, // Default fallback
+        }
     }
 
     #[graphql(name = "reviewedBy")]
@@ -199,21 +249,12 @@ impl RollbackRequest {
     }
 
     /// Requester relationship (simple name for frontend compatibility)
-    async fn requester(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::User> {
-        let pool = ctx.data::<PgPool>()?;
-        let user = sqlx::query_as::<_, crate::models::User>(
-            r#"
-            SELECT id, email, first_name, last_name, display_name, full_name, role,
-                     phone_number, alternate_phone, job_title, status,
-                     department_id, manager_id, hire_date, is_active,
-                     created_at, updated_at
-            FROM hr_public.users
-            WHERE id = $1
-            "#,
-        )
-        .bind(self.requested_by)
-        .fetch_one(pool)
-        .await?;
+    async fn requester(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::user::Model> {
+        let db = get_db_from_context(ctx)?;
+        let user = crate::models::user::Entity::find_by_id(self.requested_by)
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Requester not found".to_string()))?;
 
         Ok(user)
     }
@@ -225,27 +266,17 @@ impl RollbackRequest {
     }
 
     /// Reviewer relationship (simple name for frontend compatibility)
-    async fn reviewer(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<Option<crate::models::User>> {
+    async fn reviewer(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<Option<crate::models::user::Model>> {
         let Some(reviewed_by) = self.reviewed_by else {
             return Ok(None);
         };
 
-        let pool = ctx.data::<PgPool>()?;
-        let user = sqlx::query_as::<_, crate::models::User>(
-            r#"
-            SELECT id, email, first_name, last_name, display_name, full_name, role,
-                     phone_number, alternate_phone, job_title, status,
-                     department_id, manager_id, hire_date, is_active,
-                     created_at, updated_at
-            FROM hr_public.users
-            WHERE id = $1
-            "#,
-        )
-        .bind(reviewed_by)
-        .fetch_one(pool)
-        .await?;
+        let db = get_db_from_context(ctx)?;
+        let user = crate::models::user::Entity::find_by_id(reviewed_by)
+            .one(db)
+            .await?;
 
-        Ok(Some(user))
+        Ok(user)
     }
 
     /// PostGraphile-style alias for reviewer
@@ -256,20 +287,12 @@ impl RollbackRequest {
 
     /// Activity log relationship (simple name for frontend compatibility)
     #[graphql(name = "activityLog")]
-    async fn activity_log_simple(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::ActivityLog> {
-        let pool = ctx.data::<PgPool>()?;
-        let log = sqlx::query_as::<_, crate::models::ActivityLog>(
-            r#"
-            SELECT id, user_id, employee_id, action, resource_type, resource_id,
-                     details, before_snapshot, after_snapshot, is_rollback,
-                     rolled_back_log_id, ip_address, user_agent, created_at
-            FROM hr_public.activity_logs
-            WHERE id = $1
-            "#,
-        )
-        .bind(self.activity_log_id)
-        .fetch_one(pool)
-        .await?;
+    async fn activity_log_simple(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::system::activity_log::Model> {
+        let db = get_db_from_context(ctx)?;
+        let log = crate::models::system::activity_log::Entity::find_by_id(self.activity_log_id)
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Activity log not found".to_string()))?;
 
         Ok(log)
     }

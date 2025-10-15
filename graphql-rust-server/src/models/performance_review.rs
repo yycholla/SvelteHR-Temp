@@ -12,8 +12,7 @@ use uuid::Uuid;
 use crate::{database::get_db_from_context, error::AppError, models::generated::prelude::*};
 
 /// Performance review status
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum, sqlx::Type)]
-#[sqlx(type_name = "review_status", rename_all = "snake_case")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 pub enum PerformanceReviewStatus {
     Draft,
     NotStarted,
@@ -92,8 +91,14 @@ impl Model {
     }
 
     /// Current status of the review
-    async fn status(&self) -> &str {
-        &self.status
+    async fn status(&self) -> PerformanceReviewStatus {
+        match self.status.as_str() {
+            "draft" => PerformanceReviewStatus::Draft,
+            "not_started" => PerformanceReviewStatus::NotStarted,
+            "in_progress" => PerformanceReviewStatus::InProgress,
+            "completed" => PerformanceReviewStatus::Completed,
+            _ => PerformanceReviewStatus::Draft, // Default fallback
+        }
     }
 
     /// Overall rating (1-5 scale)
@@ -165,6 +170,20 @@ impl Model {
         Ok(reviewer)
     }
 
+    /// Employee being reviewed (legacy resolver for compatibility)
+    async fn user_by_employee_id(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let user = super::user::Entity::find_by_id(self.employee_id).one(db).await?;
+        Ok(user)
+    }
+
+    /// Reviewer (manager conducting the review) (legacy resolver for compatibility)
+    async fn user_by_reviewer_id(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let reviewer = super::user::Entity::find_by_id(self.reviewer_id).one(db).await?;
+        Ok(reviewer)
+    }
+
     /// Whether the review is completed
     async fn is_completed(&self) -> bool {
         self.status == "completed"
@@ -176,141 +195,7 @@ impl Model {
     }
 }
 
-/// GraphQL Object implementation for PerformanceReview
-#[Object]
-impl PerformanceReview {
-    /// Unique performance review identifier
-    async fn id(&self) -> Uuid {
-        self.id
-    }
 
-    /// Employee being reviewed
-    async fn employee_id(&self) -> Uuid {
-        self.employee_id
-    }
-
-    /// Reviewer (usually manager)
-    async fn reviewer_id(&self) -> Uuid {
-        self.reviewer_id
-    }
-
-    /// Review period (e.g., "2025-Q1", "2025-Annual")
-    async fn review_period(&self) -> &str {
-        &self.review_period
-    }
-
-    /// Current status of the review
-    async fn status(&self) -> PerformanceReviewStatus {
-        self.status
-    }
-
-    /// Overall rating (1-5 scale)
-    async fn overall_rating(&self) -> Option<String> {
-        self.overall_rating.map(|d| d.to_string())
-    }
-
-    /// Goals text
-    async fn goals(&self) -> Option<&str> {
-        self.goals.as_deref()
-    }
-
-    /// Achievements text
-    async fn achievements(&self) -> Option<&str> {
-        self.achievements.as_deref()
-    }
-
-    /// Areas for improvement
-    async fn areas_for_improvement(&self) -> Option<&str> {
-        self.areas_for_improvement.as_deref()
-    }
-
-    /// Manager's feedback
-    async fn manager_feedback(&self) -> Option<&str> {
-        self.manager_feedback.as_deref()
-    }
-
-    /// Review period start date
-    async fn review_period_start(&self) -> Option<chrono::NaiveDate> {
-        self.review_period_start
-    }
-
-    /// Review period end date
-    async fn review_period_end(&self) -> Option<chrono::NaiveDate> {
-        self.review_period_end
-    }
-
-    /// Review type (annual, quarterly, probationary, etc.)
-    async fn review_type(&self) -> Option<&str> {
-        self.review_type.as_deref()
-    }
-
-    /// Additional notes
-    async fn notes(&self) -> Option<&str> {
-        self.notes.as_deref()
-    }
-
-    /// Record creation timestamp
-    async fn created_at(&self) -> DateTime<Utc> {
-        self.created_at
-    }
-
-    /// Record last update timestamp
-    async fn updated_at(&self) -> DateTime<Utc> {
-        self.updated_at
-    }
-
-    /// Employee being reviewed
-    async fn user_by_employee_id(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::User>> {
-        let pool = ctx.data::<PgPool>()?;
-
-        let user = sqlx::query_as::<_, super::user::User>(
-            r#"
-            SELECT id, email, first_name, last_name, display_name, full_name, role,
-                   phone_number, alternate_phone, job_title, status,
-                   department_id, manager_id, hire_date,
-                   is_active, created_at, updated_at
-            FROM hr_public.users
-            WHERE id = $1 AND is_active = true
-            "#,
-        )
-        .bind(self.employee_id)
-        .fetch_optional(pool)
-        .await?;
-
-        Ok(user)
-    }
-
-    /// Reviewer (manager conducting the review)
-    async fn user_by_reviewer_id(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::User>> {
-        let pool = ctx.data::<PgPool>()?;
-
-        let user = sqlx::query_as::<_, super::user::User>(
-            r#"
-            SELECT id, email, first_name, last_name, display_name, full_name, role,
-                   phone_number, alternate_phone, job_title, status,
-                   department_id, manager_id, hire_date,
-                   is_active, created_at, updated_at
-            FROM hr_public.users
-            WHERE id = $1 AND is_active = true
-            "#,
-        )
-        .bind(self.reviewer_id)
-        .fetch_optional(pool)
-        .await?;
-
-        Ok(user)
-    }
-
-    /// Whether the review is completed
-    async fn is_completed(&self) -> bool {
-        self.status == PerformanceReviewStatus::Completed
-    }
-
-    /// Whether manager review is complete
-    async fn has_manager_review(&self) -> bool {
-        self.manager_feedback.is_some() && self.overall_rating.is_some()
-    }
-}
 
 /// PerformanceReview creation input
 #[derive(Debug, Clone, InputObject)]
@@ -342,12 +227,12 @@ mod tests {
 
     #[test]
     fn test_performance_review_model_compiles() {
-        let review = PerformanceReview {
+        let review = Model {
             id: Uuid::new_v4(),
             employee_id: Uuid::new_v4(),
             reviewer_id: Uuid::new_v4(),
             review_period: "2025-Annual".to_string(),
-            status: PerformanceReviewStatus::InProgress,
+            status: "in_progress".to_string(),
             overall_rating: Some(Decimal::new(40, 1)), // 4.0
             goals: Some("Complete project X".to_string()),
             achievements: Some("Delivered feature Y ahead of schedule".to_string()),
@@ -361,7 +246,7 @@ mod tests {
             notes: Some("Additional notes here".to_string()),
         };
 
-        assert_eq!(review.status, PerformanceReviewStatus::InProgress);
+        assert_eq!(review.status, "in_progress");
         assert_eq!(review.overall_rating, Some(Decimal::new(40, 1)));
         assert_eq!(review.review_type, Some("annual".to_string()));
         assert_eq!(review.review_period, "2025-Annual".to_string());

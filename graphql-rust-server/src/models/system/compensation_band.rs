@@ -4,11 +4,31 @@
 
 use async_graphql::{InputObject, Object};
 use chrono::{DateTime, Utc};
+use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-/// Compensation salary band
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+/// SeaORM Compensation band entity
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "compensation_bands")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: Uuid,
+    pub band_name: String,
+    pub min_salary: f64,
+    pub max_salary: f64,
+    pub currency: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+/// SQLx-compatible CompensationBand struct for backward compatibility during migration
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct CompensationBand {
     pub id: Uuid,
     pub band_name: String,
@@ -45,7 +65,7 @@ pub struct UpdateCompensationBandInput {
 
 /// GraphQL Object implementation with camelCase field names
 #[Object]
-impl CompensationBand {
+impl Model {
     async fn id(&self) -> Uuid {
         self.id
     }

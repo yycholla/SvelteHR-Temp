@@ -81,22 +81,7 @@ impl From<DbErr> for AppError {
     }
 }
 
-/// Convert application errors to GraphQL errors
-impl From<AppError> for GraphQLError {
-    fn from(err: AppError) -> Self {
-        let message = err.to_string();
 
-        match err {
-            AppError::NotFound(_) => GraphQLError::new(message).extend_with(|_, e| e.set("code", "NOT_FOUND")),
-            AppError::Validation(_) => GraphQLError::new(message).extend_with(|_, e| e.set("code", "VALIDATION_ERROR")),
-            AppError::Authentication(_) => GraphQLError::new(message).extend_with(|_, e| e.set("code", "UNAUTHORIZED")),
-            AppError::Authorization(_) => GraphQLError::new(message).extend_with(|_, e| e.set("code", "FORBIDDEN")),
-            AppError::Conflict(_) => GraphQLError::new(message).extend_with(|_, e| e.set("code", "CONFLICT")),
-            AppError::Database(_) => GraphQLError::new("Database error occurred").extend_with(|_, e| e.set("code", "DATABASE_ERROR")),
-            AppError::Internal(_) => GraphQLError::new("Internal server error").extend_with(|_, e| e.set("code", "INTERNAL_ERROR")),
-        }
-    }
-}
 
 /// Result type alias for application operations
 pub type AppResult<T> = Result<T, AppError>;

@@ -100,11 +100,7 @@ pub enum Relation {
     Users,
 }
 
-impl Related<Entity> for super::user::Entity {
-    fn to() -> RelationDef {
-        Relation::Manager.def().rev()
-    }
-}
+
 
 impl ActiveModelBehavior for ActiveModel {}
 
@@ -177,96 +173,6 @@ impl Model {
             .await?;
 
         Ok(count as i64)
-    }
-}
-
-/// GraphQL Object implementation for Department
-#[Object]
-impl Department {
-    /// Unique department identifier
-    async fn id(&self) -> Uuid {
-        self.id
-    }
-
-    /// Department name
-    async fn name(&self) -> &str {
-        &self.name
-    }
-
-    /// Department description (optional)
-    async fn description(&self) -> Option<&str> {
-        self.description.as_deref()
-    }
-
-    /// Parent department ID (self-referential foreign key)
-    async fn parent_department_id(&self) -> Option<Uuid> {
-        self.parent_department_id
-    }
-
-    /// Department manager ID (foreign key to users)
-    async fn manager_id(&self) -> Option<Uuid> {
-        self.manager_id
-    }
-
-    /// Record creation timestamp
-    async fn created_at(&self) -> DateTime<Utc> {
-        self.created_at
-    }
-
-    /// Record last update timestamp
-    async fn updated_at(&self) -> DateTime<Utc> {
-        self.updated_at
-    }
-
-    // Note: Hierarchical departments (parent/child) not yet implemented in database
-    // These features will be added when the database schema is updated
-
-    /// Department manager (lazy-loaded via DataLoader)
-    async fn user_by_manager_id(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::User>> {
-        if let Some(manager_id) = self.manager_id {
-            let pool = ctx.data::<PgPool>()?;
-            let users_map = batch_load_users(pool, &[manager_id]).await?;
-            Ok(users_map.get(&manager_id).cloned())
-        } else {
-            Ok(None)
-        }
-    }
-
-    /// Employees in this department
-    async fn employees(&self, ctx: &Context<'_>) -> GqlResult<Vec<super::user::User>> {
-        let pool = ctx.data::<PgPool>()?;
-        let employees = sqlx::query_as::<_, super::user::User>(
-            r#"
-            SELECT id, email, first_name, last_name, display_name, role, phone_number,
-                   department_id, manager_id, hire_date, is_active,
-                   created_at, updated_at
-            FROM hr_public.users
-            WHERE department_id = $1
-            ORDER BY last_name, first_name
-            "#,
-        )
-        .bind(self.id)
-        .fetch_all(pool)
-        .await?;
-
-        Ok(employees)
-    }
-
-    /// Total employee count in this department
-    async fn employee_count(&self, ctx: &Context<'_>) -> GqlResult<i64> {
-        let pool = ctx.data::<PgPool>()?;
-        let count: (i64,) = sqlx::query_as(
-            r#"
-            SELECT COUNT(*)::bigint
-            FROM hr_public.users
-            WHERE department_id = $1
-            "#,
-        )
-        .bind(self.id)
-        .fetch_one(pool)
-        .await?;
-
-        Ok(count.0)
     }
 }
 

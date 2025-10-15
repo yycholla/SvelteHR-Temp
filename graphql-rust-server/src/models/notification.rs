@@ -4,28 +4,24 @@
 
 use async_graphql::{Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
+use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::{database::get_db_from_context, error::AppError};
+
 /// Notification type enumeration
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
-#[sqlx(type_name = "notification_type", rename_all = "lowercase")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum NotificationType {
     Info,
     Warning,
     Success,
     Error,
-    #[sqlx(rename = "task_assigned")]
     TaskAssigned,
-    #[sqlx(rename = "task_completed")]
     TaskCompleted,
-    #[sqlx(rename = "leave_approved")]
     LeaveApproved,
-    #[sqlx(rename = "leave_rejected")]
     LeaveRejected,
-    #[sqlx(rename = "review_scheduled")]
     ReviewScheduled,
-    #[sqlx(rename = "event_reminder")]
     EventReminder,
 }
 
@@ -79,8 +75,7 @@ impl async_graphql::ScalarType for NotificationType {
 }
 
 /// Notification category enumeration
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
-#[sqlx(type_name = "notification_category", rename_all = "lowercase")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum NotificationCategory {
     System,
     Task,
@@ -135,13 +130,10 @@ impl async_graphql::ScalarType for NotificationCategory {
 }
 
 /// Notification resource type enumeration (for related resources in notifications)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
-#[sqlx(type_name = "resource_type", rename_all = "lowercase")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum NotificationResourceType {
     Task,
-    #[sqlx(rename = "leave_request")]
     LeaveRequest,
-    #[sqlx(rename = "performance_review")]
     PerformanceReview,
     Event,
     User,
@@ -192,17 +184,19 @@ impl async_graphql::ScalarType for NotificationResourceType {
     }
 }
 
-/// Notification model - maps to hr_public.notifications table
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-pub struct Notification {
+/// Notification entity - maps to hr_public.notifications table
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "notifications")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub recipient_id: Uuid,
-    #[sqlx(rename = "type")]
-    pub notification_type: NotificationType,
-    pub category: NotificationCategory,
+    #[sea_orm(column_name = "type")]
+    pub notification_type: String, // Will be converted to enum in GraphQL
+    pub category: String, // Will be converted to enum in GraphQL
     pub title: String,
     pub message: String,
-    pub related_resource_type: Option<NotificationResourceType>,
+    pub related_resource_type: Option<String>, // Will be converted to enum in GraphQL
     pub related_resource_id: Option<Uuid>,
     pub read_status: bool,
     pub delivered_at: DateTime<Utc>,
@@ -210,9 +204,21 @@ pub struct Notification {
     pub created_at: DateTime<Utc>,
 }
 
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+    #[sea_orm(
+        belongs_to = "crate::models::user::Entity",
+        from = "Column::RecipientId",
+        to = "crate::models::user::Column::Id"
+    )]
+    Recipient,
+}
+
+impl ActiveModelBehavior for ActiveModel {}
+
 /// GraphQL Object implementation for Notification
 #[Object]
-impl Notification {
+impl Model {
     /// Unique notification identifier
     async fn id(&self) -> Uuid {
         self.id
@@ -226,12 +232,33 @@ impl Notification {
     /// Notification type (info, warning, success, error, etc.)
     #[graphql(name = "type")]
     async fn notification_type(&self) -> NotificationType {
-        self.notification_type
+        match self.notification_type.as_str() {
+            "info" => NotificationType::Info,
+            "warning" => NotificationType::Warning,
+            "success" => NotificationType::Success,
+            "error" => NotificationType::Error,
+            "task_assigned" => NotificationType::TaskAssigned,
+            "task_completed" => NotificationType::TaskCompleted,
+            "leave_approved" => NotificationType::LeaveApproved,
+            "leave_rejected" => NotificationType::LeaveRejected,
+            "review_scheduled" => NotificationType::ReviewScheduled,
+            "event_reminder" => NotificationType::EventReminder,
+            _ => NotificationType::Info, // Default fallback
+        }
     }
 
     /// Notification category (system, task, leave, etc.)
     async fn category(&self) -> NotificationCategory {
-        self.category
+        match self.category.as_str() {
+            "system" => NotificationCategory::System,
+            "task" => NotificationCategory::Task,
+            "leave" => NotificationCategory::Leave,
+            "performance" => NotificationCategory::Performance,
+            "event" => NotificationCategory::Event,
+            "document" => NotificationCategory::Document,
+            "compliance" => NotificationCategory::Compliance,
+            _ => NotificationCategory::System, // Default fallback
+        }
     }
 
     /// Notification title
@@ -246,7 +273,16 @@ impl Notification {
 
     /// Related resource type (if applicable)
     async fn related_resource_type(&self) -> Option<NotificationResourceType> {
-        self.related_resource_type
+        self.related_resource_type.as_ref().map(|rt| match rt.as_str() {
+            "task" => NotificationResourceType::Task,
+            "leave_request" => NotificationResourceType::LeaveRequest,
+            "performance_review" => NotificationResourceType::PerformanceReview,
+            "event" => NotificationResourceType::Event,
+            "user" => NotificationResourceType::User,
+            "department" => NotificationResourceType::Department,
+            "document" => NotificationResourceType::Document,
+            _ => NotificationResourceType::Task, // Default fallback
+        })
     }
 
     /// Related resource ID (if applicable)

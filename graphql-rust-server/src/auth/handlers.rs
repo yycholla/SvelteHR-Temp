@@ -8,8 +8,8 @@ use axum::{
 use bcrypt::verify;
 use chrono::{Duration, Utc};
 use jsonwebtoken::{encode, EncodingKey, Header};
+use sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, ColumnTrait};
 use serde::{Deserialize, Serialize};
-use sqlx::{PgPool, FromRow};
 use uuid::Uuid;
 
 use super::context::UserContext;
@@ -104,24 +104,27 @@ struct Claims {
 /// }
 /// ```
 pub async fn login_handler(
-    Extension(pool): Extension<PgPool>,
+    Extension(db): Extension<DatabaseConnection>,
     Json(login_request): Json<LoginRequest>,
 ) -> Result<Json<LoginResponse>, impl IntoResponse> {
     tracing::info!("Login attempt for email: {}", login_request.email);
 
     // 1. Query user from database
-    let user = match sqlx::query_as::<_, DbUser>(
-        r#"
-        SELECT id, email, password_hash, first_name, last_name, display_name, is_active
-        FROM hr_public.users
-        WHERE email = $1
-        "#,
-    )
-    .bind(&login_request.email)
-    .fetch_optional(&pool)
-    .await
+    let user = match crate::models::user::Entity::find()
+        .filter(crate::models::user::Column::Email.eq(&login_request.email))
+        .filter(crate::models::user::Column::DeletedAt.is_null())
+        .one(&db)
+        .await
     {
-        Ok(Some(user)) => user,
+        Ok(Some(user)) => DbUser {
+            id: user.id,
+            email: user.email,
+            password_hash: user.password_hash,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            display_name: user.display_name,
+            is_active: user.is_active,
+        },
         Ok(None) => {
             tracing::warn!("Login failed: User not found - {}", login_request.email);
             return Err((
@@ -195,7 +198,7 @@ pub async fn login_handler(
     }
 
     // 4. Get user roles and permissions
-    let (roles, permissions) = match get_user_roles_and_permissions(&pool, user.id).await {
+    let (roles, permissions) = match get_user_roles_and_permissions(&db, user.id).await {
         Ok(result) => result,
         Err(e) => {
             tracing::error!("Failed to fetch user roles/permissions: {}", e);
@@ -259,25 +262,19 @@ struct PermissionResult {
 
 /// Get user roles and permissions from database
 async fn get_user_roles_and_permissions(
-    pool: &PgPool,
+    db: &DatabaseConnection,
     user_id: Uuid,
-) -> Result<(Vec<String>, Vec<String>), sqlx::Error> {
+) -> Result<(Vec<String>, Vec<String>), sea_orm::DbErr> {
     // Query user role assignments with role names from roles table
-    let role_assignments = sqlx::query_as::<_, RoleAssignment>(
-        r#"
-        SELECT r.name as role_name
-        FROM hr_public.user_role_assignments ura
-        INNER JOIN hr_public.roles r ON ura.role_id = r.id
-        WHERE ura.user_id = $1 AND ura.deleted_at IS NULL AND r.deleted_at IS NULL
-        "#,
-    )
-    .bind(user_id)
-    .fetch_all(pool)
-    .await?;
-
-    let roles: Vec<String> = role_assignments
-        .iter()
-        .filter_map(|r| r.role_name.clone())
+    let roles: Vec<String> = crate::models::user_role_assignment::Entity::find()
+        .filter(crate::models::user_role_assignment::Column::UserId.eq(user_id))
+        .filter(crate::models::user_role_assignment::Column::DeletedAt.is_null())
+        .find_also_related(crate::models::role::Entity)
+        .filter(crate::models::role::Column::DeletedAt.is_null())
+        .all(db)
+        .await?
+        .into_iter()
+        .filter_map(|(_, role)| role.map(|r| r.name))
         .collect();
 
     // For super_admin or admin roles, grant all permissions

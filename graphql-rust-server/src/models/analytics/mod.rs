@@ -10,6 +10,6 @@ pub mod report_analytic;
 
 // Re-exports for convenient access
 pub use dashboard_summary::DashboardSummary;
-pub use department_metric::DepartmentMetric;
-pub use goal_statistic::GoalStatistic;
-pub use report_analytic::ReportAnalytic;
+pub use department_metric::{Model as DepartmentMetric};
+pub use goal_statistic::{Model as GoalStatistic};
+pub use report_analytic::{Model as ReportAnalytic};

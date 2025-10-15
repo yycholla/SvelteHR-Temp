@@ -16,6 +16,7 @@ pub mod review_cycle;
 pub mod review_feedback;
 pub mod review_goal;
 pub mod role;
+pub mod role_permission;
 pub mod task;
 pub mod task_assignee;
 pub mod task_audit_entry;
@@ -37,46 +38,46 @@ pub mod tasks;         // Task management extensions
 pub mod reviews;       // Performance review extensions
 
 pub use department::{CreateDepartmentInput, Model as Department, DepartmentsOrderBy, UpdateDepartmentInput};
-pub use event::{CreateEventInput, Event, EventCondition, EventsOrderBy, EventStatus, UpdateEventInput};
+pub use event::{CreateEventInput, Model as Event, EventCondition, EventsOrderBy, EventStatus, UpdateEventInput};
 pub use event_attendee::{
     CreateEventAttendeeInput, Model as EventAttendee, EventAttendeeFilter, RsvpScope, RsvpStatus,
     UpdateEventAttendeeInput,
 };
-pub use leave_balance::{CreateLeaveBalanceInput, LeaveBalance, UpdateLeaveBalanceInput};
+pub use leave_balance::{CreateLeaveBalanceInput, Model as LeaveBalance, UpdateLeaveBalanceInput};
 pub use leave_request::{
     ApproveLeaveRequestInput, CreateLeaveRequestInput, Model as LeaveRequest, LeaveRequestStatus,
     RejectLeaveRequestInput, UpdateLeaveRequestInput,
 };
-pub use leave_type::{CreateLeaveTypeInput, LeaveType, UpdateLeaveTypeInput};
+pub use leave_type::{CreateLeaveTypeInput, Model as LeaveType, UpdateLeaveTypeInput};
 pub use linked_resource::{
-    CreateLinkedResourceInput, LinkedResource, ResourceType, UpdateLinkedResourceInput,
+    CreateLinkedResourceInput, Model as LinkedResource, ResourceType, UpdateLinkedResourceInput,
 };
 pub use notification::{
-    Notification, NotificationCategory, NotificationResourceType, NotificationType,
+    Model as Notification, NotificationCategory, NotificationResourceType, NotificationType,
 };
 pub use performance_review::{
     CreatePerformanceReviewInput, Model as PerformanceReview, PerformanceReviewStatus,
     UpdatePerformanceReviewInput,
 };
-pub use permission::{CreatePermissionInput, Permission, UpdatePermissionInput};
+pub use permission::{CreatePermissionInput, Model as Permission, UpdatePermissionInput};
 pub use review_cycle::{
-    CreateReviewCycleInput, ReviewCycle, ReviewCycleStatus, ReviewType, UpdateReviewCycleInput,
+    CreateReviewCycleInput, Model as ReviewCycle, ReviewCycleStatus, ReviewType, UpdateReviewCycleInput,
 };
 pub use review_feedback::{
-    CreateReviewFeedbackInput, FeedbackType, ReviewFeedback, UpdateReviewFeedbackInput,
+    CreateReviewFeedbackInput, FeedbackType, Model as ReviewFeedback, UpdateReviewFeedbackInput,
 };
 pub use review_goal::{
-    CreateReviewGoalInput, GoalCompletionStatus, ReviewGoal, UpdateReviewGoalInput,
+    CreateReviewGoalInput, GoalCompletionStatus, Model as ReviewGoal, UpdateReviewGoalInput,
 };
-pub use role::{CreateRoleInput, Role, UpdateRoleInput};
+pub use role::{CreateRoleInput, Model as Role, UpdateRoleInput};
 pub use task::{ChangeTaskStatusInput, CreateTaskInput, Model as Task, TaskFilter, TaskPriority, TaskStatus, UpdateTaskInput};
-pub use task_assignee::{AssignTaskInput, AssigneeRole, TaskAssignee, UpdateTaskAssigneeInput};
-pub use task_audit_entry::{AuditAction, TaskAuditEntry};
+pub use task_assignee::{AssignTaskInput, AssigneeRole, Model as TaskAssignee, UpdateTaskAssigneeInput};
+pub use task_audit_entry::{AuditAction, Model as TaskAuditEntry};
 pub use task_dependency::{
-    CreateTaskDependencyInput, DependencyType, TaskDependency, UpdateTaskDependencyInput,
+    CreateTaskDependencyInput, DependencyType, Model as TaskDependency, UpdateTaskDependencyInput,
 };
 pub use user::{CreateUserInput, UpdateUserInput, Model as User, UserCondition, UsersConnection, UsersOrderBy, UserStatus};
-pub use user_role_assignment::{AssignRoleInput, UserRoleAssignment, UserRoleAssignmentsConnection};
+pub use user_role_assignment::{AssignRoleInput, Model as UserRoleAssignment, UserRoleAssignmentsConnection};
 
 // New domain model re-exports
 pub use employee::{

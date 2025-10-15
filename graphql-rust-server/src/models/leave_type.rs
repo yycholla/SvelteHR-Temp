@@ -4,13 +4,15 @@
 
 use async_graphql::{Context, InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
+use sea_orm::{entity::prelude::*, DbBackend, Statement};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use uuid::Uuid;
 
-/// LeaveType model - maps to hr_public.leave_types table
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-pub struct LeaveType {
+/// LeaveType entity - maps to hr_public.leave_types table
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "leave_types")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub name: String,
     pub description: Option<String>,
@@ -25,9 +27,14 @@ pub struct LeaveType {
     pub deleted_at: Option<DateTime<Utc>>,
 }
 
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
 /// GraphQL Object implementation for LeaveType
 #[Object]
-impl LeaveType {
+impl Model {
     /// Unique leave type identifier
     async fn id(&self) -> Uuid {
         self.id
@@ -90,43 +97,44 @@ impl LeaveType {
 
     /// Count of active leave requests for this type
     async fn active_request_count(&self, ctx: &Context<'_>) -> GqlResult<i64> {
-        let pool = ctx.data::<PgPool>()?;
+        let db = get_db_from_context(ctx)?;
 
-        let count: (i64,) = sqlx::query_as(
-            r#"
-            SELECT COUNT(*)::bigint
-            FROM hr_public.leave_requests
-            WHERE leave_type_id = $1
-              AND status IN ('pending', 'approved')
-              AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.id)
-        .fetch_one(pool)
-        .await?;
+        let count = crate::models::leave_request::Entity::find()
+            .filter(crate::models::leave_request::Column::LeaveTypeId.eq(self.id))
+            .filter(crate::models::leave_request::Column::Status.is_in(["pending", "approved"]))
+            .filter(crate::models::leave_request::Column::DeletedAt.is_null())
+            .count(db)
+            .await?;
 
-        Ok(count.0)
+        Ok(count as i64)
     }
 
     /// Total days used across all users for this leave type (current year)
     async fn total_days_used_this_year(&self, ctx: &Context<'_>) -> GqlResult<i32> {
-        let pool = ctx.data::<PgPool>()?;
+        let db = get_db_from_context(ctx)?;
 
-        let result: Option<(i32,)> = sqlx::query_as(
-            r#"
+        let sql = r#"
             SELECT COALESCE(SUM(days_requested), 0)::int
             FROM hr_public.leave_requests
             WHERE leave_type_id = $1
               AND status = 'approved'
               AND EXTRACT(YEAR FROM start_date) = EXTRACT(YEAR FROM CURRENT_DATE)
               AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.id)
-        .fetch_optional(pool)
-        .await?;
+        "#;
 
-        Ok(result.map(|r| r.0).unwrap_or(0))
+        let statement = sea_orm::Statement::from_sql_and_values(
+            sea_orm::DbBackend::Postgres,
+            sql,
+            vec![self.id.into()],
+        );
+
+        let result = db
+            .query_one(statement)
+            .await?
+            .and_then(|row| row.try_get_by_index::<i32>(0).ok())
+            .unwrap_or(0);
+
+        Ok(result)
     }
 }
 

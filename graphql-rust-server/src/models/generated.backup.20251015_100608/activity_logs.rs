@@ -29,7 +29,30 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    // Temporarily empty during migration
+    #[sea_orm(
+        belongs_to = "Entity",
+        from = "(Column::RolledBackLogId, Column::RolledBackLogId)",
+        to = "(Column::Id, Column::Id)",
+        on_update = "NoAction",
+        on_delete = "SetNull"
+    )]
+    SelfRef,
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::EmployeeId",
+        to = "super::user::Column::Id",
+        on_update = "NoAction",
+        on_delete = "Cascade"
+    )]
+    Users2,
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::RolledBackBy",
+        to = "super::user::Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    Users1,
 }
 
 impl ActiveModelBehavior for ActiveModel {}

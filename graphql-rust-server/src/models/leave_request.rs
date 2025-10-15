@@ -11,8 +11,7 @@ use uuid::Uuid;
 use crate::{database::get_db_from_context, error::AppError, models::generated::prelude::*};
 
 /// Leave request status
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum, sqlx::Type)]
-#[sqlx(type_name = "leave_request_status", rename_all = "lowercase")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 pub enum LeaveRequestStatus {
     Pending,
     Approved,
@@ -103,8 +102,14 @@ impl Model {
     }
 
     /// Current status of the request
-    async fn status(&self) -> &str {
-        &self.status
+    async fn status(&self) -> LeaveRequestStatus {
+        match self.status.as_str() {
+            "pending" => LeaveRequestStatus::Pending,
+            "approved" => LeaveRequestStatus::Approved,
+            "rejected" => LeaveRequestStatus::Rejected,
+            "cancelled" => LeaveRequestStatus::Cancelled,
+            _ => LeaveRequestStatus::Pending, // Default fallback
+        }
     }
 
     /// Reason for leave (optional)
@@ -150,6 +155,24 @@ impl Model {
         }
     }
 
+    /// Employee requesting leave (legacy resolver for compatibility)
+    async fn user_by_employee_id(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let user = super::user::Entity::find_by_id(self.employee_id).one(db).await?;
+        Ok(user)
+    }
+
+    /// Manager who can approve/reject the request (legacy resolver for compatibility)
+    async fn user_by_manager_id(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
+        if let Some(manager_id) = self.manager_id {
+            let db = get_db_from_context(ctx)?;
+            let manager = super::user::Entity::find_by_id(manager_id).one(db).await?;
+            Ok(manager)
+        } else {
+            Ok(None)
+        }
+    }
+
     /// Whether the request is currently pending
     async fn is_pending(&self) -> bool {
         self.status == "pending"
@@ -166,135 +189,7 @@ impl Model {
     }
 }
 
-/// GraphQL Object implementation for LeaveRequest
-#[Object]
-impl LeaveRequest {
-    /// Unique leave request identifier
-    async fn id(&self) -> Uuid {
-        self.id
-    }
 
-    /// Employee ID requesting leave (foreign key)
-    async fn employee_id(&self) -> Uuid {
-        self.employee_id
-    }
-
-    /// Manager ID who can approve/reject (optional foreign key)
-    async fn manager_id(&self) -> Option<Uuid> {
-        self.manager_id
-    }
-
-    /// Leave type (enum value)
-    async fn leave_type(&self) -> &str {
-        &self.leave_type
-    }
-
-    /// Leave start date
-    async fn start_date(&self) -> DateTime<Utc> {
-        self.start_date
-    }
-
-    /// Leave end date
-    async fn end_date(&self) -> DateTime<Utc> {
-        self.end_date
-    }
-
-    /// Number of days requested
-    async fn days_requested(&self) -> i32 {
-        self.days_requested
-    }
-
-    /// Current status of the request
-    async fn status(&self) -> LeaveRequestStatus {
-        self.status
-    }
-
-    /// Reason for leave (optional)
-    async fn reason(&self) -> Option<&str> {
-        self.reason.as_deref()
-    }
-
-    /// Manager comments (optional)
-    async fn manager_comments(&self) -> Option<&str> {
-        self.manager_comments.as_deref()
-    }
-
-    /// Record creation timestamp
-    async fn created_at(&self) -> DateTime<Utc> {
-        self.created_at
-    }
-
-    /// Record last update timestamp
-    async fn updated_at(&self) -> DateTime<Utc> {
-        self.updated_at
-    }
-
-    /// Soft delete timestamp (NULL if not deleted)
-    async fn deleted_at(&self) -> Option<DateTime<Utc>> {
-        self.deleted_at
-    }
-
-    /// Employee requesting leave
-    async fn user_by_employee_id(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::User>> {
-        let pool = ctx.data::<PgPool>()?;
-
-        let user = sqlx::query_as::<_, super::user::User>(
-            r#"
-            SELECT id, email, first_name, last_name, display_name, full_name, role,
-                   phone_number, alternate_phone, job_title, status,
-                   department_id, manager_id, hire_date, is_active,
-                   created_at, updated_at, deleted_at
-            FROM hr_public.users
-            WHERE id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.employee_id)
-        .fetch_optional(pool)
-        .await?;
-
-        Ok(user)
-    }
-
-    /// Manager who can approve/reject the request
-    async fn user_by_manager_id(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::User>> {
-        if let Some(manager_id) = self.manager_id {
-            let pool = ctx.data::<PgPool>()?;
-
-            let user = sqlx::query_as::<_, super::user::User>(
-                r#"
-                SELECT id, email, first_name, last_name, display_name, full_name, role,
-                       phone_number, alternate_phone, job_title, status,
-                       department_id, manager_id, hire_date, is_active,
-                       created_at, updated_at, deleted_at
-                FROM hr_public.users
-                WHERE id = $1 AND deleted_at IS NULL
-                "#,
-            )
-            .bind(manager_id)
-            .fetch_optional(pool)
-            .await?;
-
-            Ok(user)
-        } else {
-            Ok(None)
-        }
-    }
-
-    /// Whether the request is currently pending
-    async fn is_pending(&self) -> bool {
-        self.status == LeaveRequestStatus::Pending
-    }
-
-    /// Whether the request is approved
-    async fn is_approved(&self) -> bool {
-        self.status == LeaveRequestStatus::Approved
-    }
-
-    /// Duration in days (calculated from start/end dates)
-    async fn duration_days(&self) -> i32 {
-        self.days_requested
-    }
-}
 
 /// LeaveRequest creation input
 #[derive(Debug, Clone, InputObject)]
@@ -334,7 +229,7 @@ mod tests {
 
     #[test]
     fn test_leave_request_model_compiles() {
-        let request = LeaveRequest {
+        let request = Model {
             id: Uuid::new_v4(),
             employee_id: Uuid::new_v4(),
             manager_id: Some(Uuid::new_v4()),
@@ -342,7 +237,7 @@ mod tests {
             start_date: Utc::now(),
             end_date: Utc::now(),
             days_requested: 5,
-            status: LeaveRequestStatus::Pending,
+            status: "pending".to_string(),
             reason: Some("Family vacation".to_string()),
             manager_comments: None,
             created_at: Utc::now(),
@@ -350,7 +245,7 @@ mod tests {
             deleted_at: None,
         };
 
-        assert_eq!(request.status, LeaveRequestStatus::Pending);
+        assert_eq!(request.status, "pending");
         assert_eq!(request.days_requested, 5);
     }
 }

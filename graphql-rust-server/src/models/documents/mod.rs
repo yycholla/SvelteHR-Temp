@@ -11,15 +11,15 @@ pub mod document_access_log;
 pub mod encrypted_file_storage;
 
 // Re-exports for convenient access
-pub use document::{CreateDocumentInput, Document, UpdateDocumentInput};
-pub use document_version::{CreateDocumentVersionInput, DocumentVersion};
+pub use document::{CreateDocumentInput, Document, Model, UpdateDocumentInput};
+pub use document_version::{CreateDocumentVersionInput, Model as DocumentVersion};
 pub use document_category::{
-    CreateDocumentCategoryInput, DocumentCategory, UpdateDocumentCategoryInput,
+    CreateDocumentCategoryInput, Model as DocumentCategory, UpdateDocumentCategoryInput,
 };
 pub use document_assignment::{
-    CreateDocumentAssignmentInput, DocumentAccessLevel, DocumentAssignment,
+    CreateDocumentAssignmentInput, DocumentAccessLevel, Model as DocumentAssignment,
 };
 pub use document_access_log::{
-    CreateDocumentAccessLogInput, DocumentAccessLog, DocumentAccessType,
+    CreateDocumentAccessLogInput, Model as DocumentAccessLog, DocumentAccessType,
 };
-pub use encrypted_file_storage::{CreateEncryptedFileStorageInput, EncryptedFileStorage};
+pub use encrypted_file_storage::{CreateEncryptedFileStorageInput, Model as EncryptedFileStorage};

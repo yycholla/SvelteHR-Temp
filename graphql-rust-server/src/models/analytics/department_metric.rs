@@ -5,12 +5,27 @@
 
 use async_graphql::{Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
+use sea_orm::{entity::prelude::*, FromQueryResult, QueryFilter};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::{database::get_db_from_context, error::AppError};
+
 /// Department-level metrics (materialized view)
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromQueryResult)]
+pub struct Model {
+    pub department_id: Uuid,
+    pub department_name: String,
+    pub active_employee_count: i32,
+    pub total_employee_count: i32,
+    pub avg_performance_rating: Option<f64>,
+    pub active_tasks_count: i32,
+    pub pending_leave_requests: i32,
+    pub last_refreshed_at: DateTime<Utc>,
+}
+
+/// SQLx-compatible DepartmentMetric struct for backward compatibility during migration
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct DepartmentMetric {
     pub department_id: Uuid,
     pub department_name: String,
@@ -24,7 +39,7 @@ pub struct DepartmentMetric {
 
 /// GraphQL Object implementation with camelCase field names
 #[Object]
-impl DepartmentMetric {
+impl Model {
     #[graphql(name = "departmentId")]
     async fn department_id(&self) -> Uuid {
         self.department_id
@@ -66,19 +81,12 @@ impl DepartmentMetric {
     }
 
     /// Department relationship (lazy-loaded)
-    async fn department(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::Department> {
-        let pool = ctx.data::<PgPool>()?;
-        let dept = sqlx::query_as::<_, crate::models::Department>(
-            r#"
-            SELECT id, name, description, manager_id,
-                   created_at, updated_at, deleted_at
-            FROM hr_public.departments
-            WHERE id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.department_id)
-        .fetch_one(pool)
-        .await?;
+    async fn department(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::department::Model> {
+        let db = get_db_from_context(ctx)?;
+        let dept = crate::models::department::Entity::find_by_id(self.department_id)
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Department not found".to_string()))?;
 
         Ok(dept)
     }

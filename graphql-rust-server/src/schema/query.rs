@@ -36,7 +36,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<user::Model>> {
-        let db = get_db_from_context(ctx).await?;
+        let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
 
@@ -53,7 +53,7 @@ impl QueryRoot {
 
     /// Get a single user by ID
     async fn user(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<user::Model>> {
-        let db = get_db_from_context(ctx).await?;
+        let db = get_db_from_context(ctx)?;
         let user = UserEntity::find_by_id(id).one(db).await?;
         Ok(user)
     }
@@ -69,7 +69,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<department::Model>> {
-        let db = get_db_from_context(ctx).await?;
+        let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
 
@@ -85,7 +85,7 @@ impl QueryRoot {
 
     /// Get a single department by ID
     async fn department(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<department::Model>> {
-        let db = get_db_from_context(ctx).await?;
+        let db = get_db_from_context(ctx)?;
         let dept = DepartmentEntity::find_by_id(id).one(db).await?;
         Ok(dept)
     }
@@ -101,7 +101,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<task::Model>> {
-        let db = get_db_from_context(ctx).await?;
+        let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
 
@@ -117,7 +117,7 @@ impl QueryRoot {
 
     /// Get a single task by ID
     async fn task(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<task::Model>> {
-        let db = get_db_from_context(ctx).await?;
+        let db = get_db_from_context(ctx)?;
         let task = TaskEntity::find_by_id(id).one(db).await?;
         Ok(task)
     }
@@ -133,7 +133,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<leave_request::Model>> {
-        let db = get_db_from_context(ctx).await?;
+        let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
 
@@ -149,7 +149,7 @@ impl QueryRoot {
 
     /// Get a single leave request by ID
     async fn leave_request(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<leave_request::Model>> {
-        let db = get_db_from_context(ctx).await?;
+        let db = get_db_from_context(ctx)?;
         let request = LeaveRequestEntity::find_by_id(id).one(db).await?;
         Ok(request)
     }
@@ -165,7 +165,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<performance_review::Model>> {
-        let db = get_db_from_context(ctx).await?;
+        let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
 
@@ -181,7 +181,7 @@ impl QueryRoot {
 
     /// Get a single performance review by ID
     async fn performance_review(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<performance_review::Model>> {
-        let db = get_db_from_context(ctx).await?;
+        let db = get_db_from_context(ctx)?;
         let review = PerformanceReviewEntity::find_by_id(id).one(db).await?;
         Ok(review)
     }
@@ -197,7 +197,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<activity_log::Model>> {
-        let db = get_db_from_context(ctx).await?;
+        let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
 
@@ -213,7 +213,7 @@ impl QueryRoot {
 
     /// Get a single activity log by ID
     async fn activity_log(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<activity_log::Model>> {
-        let db = get_db_from_context(ctx).await?;
+        let db = get_db_from_context(ctx)?;
         let log = ActivityLogEntity::find_by_id(id).one(db).await?;
         Ok(log)
     }

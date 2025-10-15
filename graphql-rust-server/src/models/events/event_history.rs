@@ -4,13 +4,47 @@
 
 use async_graphql::{InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
+use sea_orm::{entity::prelude::*, QueryFilter};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
-use sqlx::PgPool;
 use uuid::Uuid;
 
-/// Event change history for auditing
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+use crate::{database::get_db_from_context, error::AppError};
+
+/// SeaORM Event history entity
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "event_history")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: Uuid,
+    pub event_id: Uuid,
+    pub changed_by_id: Uuid,
+    pub change_type: String,
+    pub old_values: Option<JsonValue>,
+    pub new_values: Option<JsonValue>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+    #[sea_orm(
+        belongs_to = "crate::models::event::Entity",
+        from = "Column::EventId",
+        to = "crate::models::event::Column::Id"
+    )]
+    Event,
+    #[sea_orm(
+        belongs_to = "crate::models::user::Entity",
+        from = "Column::ChangedById",
+        to = "crate::models::user::Column::Id"
+    )]
+    ChangedBy,
+}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+/// Legacy EventHistory struct for GraphQL backward compatibility
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventHistory {
     pub id: Uuid,
     pub event_id: Uuid,
@@ -38,7 +72,7 @@ pub struct CreateEventHistoryInput {
 
 /// GraphQL Object implementation with camelCase field names
 #[Object]
-impl EventHistory {
+impl Model {
     async fn id(&self) -> Uuid {
         self.id
     }
@@ -74,40 +108,26 @@ impl EventHistory {
     }
 
     /// Event relationship (lazy-loaded)
-    async fn event(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::Event> {
-        let pool = ctx.data::<PgPool>()?;
-        let event = sqlx::query_as::<_, crate::models::Event>(
-            r#"
-            SELECT id, title, description, start_time, end_time, location,
-                   capacity, organizer_id, recurrence_rule, recurrence_end_date,
-                   is_recurring, parent_event_id, created_at, updated_at, deleted_at
-            FROM hr_public.events
-            WHERE id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.event_id)
-        .fetch_one(pool)
-        .await?;
+    async fn event(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::event::Model> {
+        let db = get_db_from_context(ctx)?;
+        let event = crate::models::event::Entity::find_by_id(self.event_id)
+            .filter(crate::models::event::Column::DeletedAt.is_null())
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Event not found".to_string()))?;
 
         Ok(event)
     }
 
     /// Changed by user relationship (lazy-loaded)
     #[graphql(name = "changedBy")]
-    async fn changed_by(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::User> {
-        let pool = ctx.data::<PgPool>()?;
-        let user = sqlx::query_as::<_, crate::models::User>(
-            r#"
-            SELECT id, email, first_name, last_name, full_name, phone,
-                   department_id, manager_id, hire_date, termination_date,
-                   status, created_at, updated_at, deleted_at
-            FROM hr_public.users
-            WHERE id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.changed_by_id)
-        .fetch_one(pool)
-        .await?;
+    async fn changed_by(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::user::Model> {
+        let db = get_db_from_context(ctx)?;
+        let user = crate::models::user::Entity::find_by_id(self.changed_by_id)
+            .filter(crate::models::user::Column::DeletedAt.is_null())
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
         Ok(user)
     }

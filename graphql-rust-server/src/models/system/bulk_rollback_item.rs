@@ -4,12 +4,41 @@
 
 use async_graphql::{InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
+use sea_orm::{entity::prelude::*, QueryFilter};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use uuid::Uuid;
 
-/// Individual item in a bulk rollback batch
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+use crate::{database::get_db_from_context, error::AppError};
+
+/// SeaORM Bulk rollback item entity
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "bulk_rollback_items")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: Uuid,
+    pub batch_id: Uuid,
+    pub resource_type: String,
+    pub resource_id: Uuid,
+    pub rollback_to_timestamp: DateTime<Utc>,
+    pub status: String,
+    pub error_message: Option<String>,
+    pub completed_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::bulk_rollback_batch::Entity",
+        from = "Column::BatchId",
+        to = "super::bulk_rollback_batch::Column::Id"
+    )]
+    Batch,
+}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+/// SQLx-compatible BulkRollbackItem struct for backward compatibility during migration
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct BulkRollbackItem {
     pub id: Uuid,
     pub batch_id: Uuid,
@@ -44,7 +73,7 @@ pub struct UpdateBulkRollbackItemInput {
 
 /// GraphQL Object implementation with camelCase field names
 #[Object]
-impl BulkRollbackItem {
+impl Model {
     async fn id(&self) -> Uuid {
         self.id
     }
@@ -87,19 +116,12 @@ impl BulkRollbackItem {
     async fn batch(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> GqlResult<super::bulk_rollback_batch::BulkRollbackBatch> {
-        let pool = ctx.data::<PgPool>()?;
-        let batch = sqlx::query_as::<_, super::bulk_rollback_batch::BulkRollbackBatch>(
-            r#"
-            SELECT id, batch_name, requester_id, total_items, completed_items,
-                   status, started_at, completed_at, created_at
-            FROM hr_public.bulk_rollback_batches
-            WHERE id = $1
-            "#,
-        )
-        .bind(self.batch_id)
-        .fetch_one(pool)
-        .await?;
+    ) -> GqlResult<super::bulk_rollback_batch::Model> {
+        let db = get_db_from_context(ctx)?;
+        let batch = super::bulk_rollback_batch::Entity::find_by_id(self.batch_id)
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Batch not found".to_string()))?;
 
         Ok(batch)
     }

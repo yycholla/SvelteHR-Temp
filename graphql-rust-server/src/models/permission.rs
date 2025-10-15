@@ -4,13 +4,17 @@
 
 use async_graphql::{Context, InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
+use sea_orm::{entity::prelude::*, FromQueryResult, Related};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use uuid::Uuid;
 
-/// Permission model - maps to hr_public.permissions table
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-pub struct Permission {
+use crate::{database::get_db_from_context, error::AppError};
+
+/// Permission entity - maps to hr_public.permissions table
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "permissions")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub resource: String,
     pub action: String,
@@ -20,9 +24,27 @@ pub struct Permission {
     pub deleted_at: Option<DateTime<Utc>>,
 }
 
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+    #[sea_orm(has_many = "super::role::Entity")]
+    Roles,
+}
+
+impl Related<super::role::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::role_permission::Relation::Role.def()
+    }
+
+    fn via() -> Option<RelationDef> {
+        Some(super::role_permission::Relation::Permission.def().rev())
+    }
+}
+
+impl ActiveModelBehavior for ActiveModel {}
+
 /// GraphQL Object implementation for Permission
 #[Object]
-impl Permission {
+impl Model {
     /// Unique permission identifier
     async fn id(&self) -> Uuid {
         self.id
@@ -59,42 +81,31 @@ impl Permission {
     }
 
     /// Roles that have this permission
-    async fn roles(&self, ctx: &Context<'_>) -> GqlResult<Vec<super::role::Role>> {
-        let pool = ctx.data::<PgPool>()?;
+    async fn roles(&self, ctx: &Context<'_>) -> GqlResult<Vec<super::role::Model>> {
+        let db = get_db_from_context(ctx)?;
 
-        let roles = sqlx::query_as::<_, super::role::Role>(
-            r#"
-            SELECT r.id, r.name, r.description, r.level,
-                   r.created_at, r.updated_at, r.deleted_at
-            FROM hr_public.roles r
-            INNER JOIN hr_public.role_permissions rp ON r.id = rp.role_id
-            WHERE rp.permission_id = $1 AND r.deleted_at IS NULL AND rp.deleted_at IS NULL
-            ORDER BY r.level DESC, r.name
-            "#,
-        )
-        .bind(self.id)
-        .fetch_all(pool)
-        .await?;
+        let roles = Entity::find_by_id(self.id)
+            .find_with_related(super::role::Entity)
+            .all(db)
+            .await?
+            .into_iter()
+            .flat_map(|(_, roles)| roles)
+            .collect();
 
         Ok(roles)
     }
 
     /// Count of roles that have this permission
     async fn role_count(&self, ctx: &Context<'_>) -> GqlResult<i64> {
-        let pool = ctx.data::<PgPool>()?;
+        let db = get_db_from_context(ctx)?;
 
-        let count: (i64,) = sqlx::query_as(
-            r#"
-            SELECT COUNT(*)::bigint
-            FROM hr_public.role_permissions
-            WHERE permission_id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.id)
-        .fetch_one(pool)
-        .await?;
+        let count = super::role_permission::Entity::find()
+            .filter(super::role_permission::Column::PermissionId.eq(self.id))
+            .filter(super::role_permission::Column::DeletedAt.is_null())
+            .count(db)
+            .await?;
 
-        Ok(count.0)
+        Ok(count as i64)
     }
 
     /// Full permission string in format "resource:action"

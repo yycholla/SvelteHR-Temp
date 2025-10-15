@@ -4,13 +4,14 @@
 
 use async_graphql::{Enum, InputObject, Object, Result as GqlResult, SimpleObject};
 use chrono::{DateTime, Utc};
+use sea_orm::{entity::prelude::*, QueryFilter};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::{database::get_db_from_context, error::AppError};
+
 /// Proficiency level for employee skills
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum, sqlx::Type)]
-#[sqlx(type_name = "proficiency_level", rename_all = "lowercase")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 pub enum ProficiencyLevel {
     #[graphql(name = "BEGINNER")]
     Beginner,
@@ -23,12 +24,14 @@ pub enum ProficiencyLevel {
 }
 
 /// Employee skill with proficiency tracking
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-pub struct EmployeeSkill {
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "employee_skills")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub employee_id: Uuid,
     pub skill_name: String,
-    pub proficiency_level: ProficiencyLevel,
+    pub proficiency_level: String, // Will be converted to enum in GraphQL
     pub years_experience: Option<f64>,
     pub verified: bool,
     pub verifier_id: Option<Uuid>,
@@ -36,9 +39,27 @@ pub struct EmployeeSkill {
     pub updated_at: DateTime<Utc>,
 }
 
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+    #[sea_orm(
+        belongs_to = "crate::models::user::Entity",
+        from = "Column::EmployeeId",
+        to = "crate::models::user::Column::Id"
+    )]
+    Employee,
+    #[sea_orm(
+        belongs_to = "crate::models::user::Entity",
+        from = "Column::VerifierId",
+        to = "crate::models::user::Column::Id"
+    )]
+    Verifier,
+}
+
+impl ActiveModelBehavior for ActiveModel {}
+
 /// GraphQL Object implementation with camelCase field names
 #[Object]
-impl EmployeeSkill {
+impl Model {
     async fn id(&self) -> Uuid {
         self.id
     }
@@ -55,7 +76,13 @@ impl EmployeeSkill {
 
     #[graphql(name = "proficiencyLevel")]
     async fn proficiency_level(&self) -> ProficiencyLevel {
-        self.proficiency_level
+        match self.proficiency_level.as_str() {
+            "beginner" => ProficiencyLevel::Beginner,
+            "intermediate" => ProficiencyLevel::Intermediate,
+            "advanced" => ProficiencyLevel::Advanced,
+            "expert" => ProficiencyLevel::Expert,
+            _ => ProficiencyLevel::Beginner, // Default fallback
+        }
     }
 
     #[graphql(name = "yearsExperience")]
@@ -84,19 +111,11 @@ impl EmployeeSkill {
 
     /// Employee relationship (lazy-loaded)
     async fn employee(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::User> {
-        let pool = ctx.data::<PgPool>()?;
-        let user = sqlx::query_as::<_, crate::models::User>(
-            r#"
-            SELECT id, email, first_name, last_name, full_name, phone,
-                   department_id, manager_id, hire_date, termination_date,
-                   status, created_at, updated_at, deleted_at
-            FROM hr_public.users
-            WHERE id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.employee_id)
-        .fetch_one(pool)
-        .await?;
+        let db = get_db_from_context(ctx)?;
+        let user = crate::models::user::Entity::find_by_id(self.employee_id)
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
         Ok(user)
     }
@@ -104,19 +123,10 @@ impl EmployeeSkill {
     /// Verifier relationship (lazy-loaded)
     async fn verifier(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<Option<crate::models::User>> {
         if let Some(verifier_id) = self.verifier_id {
-            let pool = ctx.data::<PgPool>()?;
-            let user = sqlx::query_as::<_, crate::models::User>(
-                r#"
-                SELECT id, email, first_name, last_name, full_name, phone,
-                       department_id, manager_id, hire_date, termination_date,
-                       status, created_at, updated_at, deleted_at
-                FROM hr_public.users
-                WHERE id = $1 AND deleted_at IS NULL
-                "#,
-            )
-            .bind(verifier_id)
-            .fetch_optional(pool)
-            .await?;
+            let db = get_db_from_context(ctx)?;
+            let user = crate::models::user::Entity::find_by_id(verifier_id)
+                .one(db)
+                .await?;
 
             Ok(user)
         } else {

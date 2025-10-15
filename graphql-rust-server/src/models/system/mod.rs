@@ -14,18 +14,18 @@ pub mod encryption_key;
 
 // Re-exports for convenient access
 pub use rollback_request::{
-    CreateRollbackRequestInput, RollbackRequest, RollbackRequestCondition, RollbackRequestsConnection, RollbackRequestsOrderBy, RollbackStatus, UpdateRollbackRequestInput,
+    CreateRollbackRequestInput, Model as RollbackRequest, RollbackRequestCondition, RollbackRequestsConnection, RollbackRequestsOrderBy, RollbackStatus, UpdateRollbackRequestInput,
 };
 pub use bulk_rollback_batch::{
-    BulkRollbackBatch, CreateBulkRollbackBatchInput, UpdateBulkRollbackBatchInput,
+    CreateBulkRollbackBatchInput, Model as BulkRollbackBatch, UpdateBulkRollbackBatchInput,
 };
 pub use bulk_rollback_item::{
-    BulkRollbackItem, CreateBulkRollbackItemInput, UpdateBulkRollbackItemInput,
+    CreateBulkRollbackItemInput, Model as BulkRollbackItem, UpdateBulkRollbackItemInput,
 };
 pub use activity_log::{Model as ActivityLog, ActivityLogCondition, ActivityLogsConnection, ActivityLogsOrderBy, CreateActivityLogInput};
-pub use hr_report::{CreateHRReportInput, HRReport};
+pub use hr_report::{CreateHRReportInput, Model as HRReport};
 pub use compensation_band::{
-    CompensationBand, CreateCompensationBandInput, UpdateCompensationBandInput,
+    CreateCompensationBandInput, Model as CompensationBand, UpdateCompensationBandInput,
 };
-pub use payroll_record::{CreatePayrollRecordInput, PayrollRecord};
-pub use encryption_key::{CreateEncryptionKeyInput, EncryptionKey};
+pub use payroll_record::{CreatePayrollRecordInput, Model as PayrollRecord};
+pub use encryption_key::{CreateEncryptionKeyInput, Model as EncryptionKey};

@@ -4,13 +4,14 @@
 
 use async_graphql::{Context, Enum, InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
+use sea_orm::{entity::prelude::*, FromQueryResult, Related};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::{database::get_db_from_context, error::AppError, models::generated::prelude::*};
+
 /// Dependency type
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum, sqlx::Type)]
-#[sqlx(type_name = "dependency_type", rename_all = "lowercase")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 pub enum DependencyType {
     /// Task must finish before dependent task can start
     FinishToStart,
@@ -22,13 +23,15 @@ pub enum DependencyType {
     StartToFinish,
 }
 
-/// TaskDependency model - maps to hr_public.task_dependencies table
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-pub struct TaskDependency {
+/// TaskDependency entity - maps to hr_public.task_dependencies table
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "task_dependencies")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub task_id: Uuid,
     pub depends_on_task_id: Uuid,
-    pub dependency_type: DependencyType,
+    pub dependency_type: String, // Using string to match database enum
     pub lag_days: Option<i32>,
     pub created_by: Uuid,
     pub created_at: DateTime<Utc>,
@@ -36,9 +39,39 @@ pub struct TaskDependency {
     pub deleted_at: Option<DateTime<Utc>>,
 }
 
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::task::Entity",
+        from = "Column::TaskId",
+        to = "super::task::Column::Id"
+    )]
+    Task,
+    #[sea_orm(
+        belongs_to = "super::task::Entity",
+        from = "Column::DependsOnTaskId",
+        to = "super::task::Column::Id"
+    )]
+    DependsOnTask,
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::CreatedBy",
+        to = "super::user::Column::Id"
+    )]
+    CreatedByUser,
+}
+
+impl Related<super::task::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Task.def().rev()
+    }
+}
+
+impl ActiveModelBehavior for ActiveModel {}
+
 /// GraphQL Object implementation for TaskDependency
 #[Object]
-impl TaskDependency {
+impl Model {
     /// Unique task dependency identifier
     async fn id(&self) -> Uuid {
         self.id
@@ -56,7 +89,13 @@ impl TaskDependency {
 
     /// Type of dependency relationship
     async fn dependency_type(&self) -> DependencyType {
-        self.dependency_type
+        match self.dependency_type.as_str() {
+            "finish_to_start" => DependencyType::FinishToStart,
+            "finish_to_finish" => DependencyType::FinishToFinish,
+            "start_to_start" => DependencyType::StartToStart,
+            "start_to_finish" => DependencyType::StartToFinish,
+            _ => DependencyType::FinishToStart, // Default fallback
+        }
     }
 
     /// Lag time in days (positive for delay, negative for overlap)
@@ -85,68 +124,29 @@ impl TaskDependency {
     }
 
     /// The dependent task (the one that has a dependency)
-    async fn task(&self, ctx: &Context<'_>) -> GqlResult<Option<super::task::Task>> {
-        let pool = ctx.data::<PgPool>()?;
-
-        let task = sqlx::query_as::<_, super::task::Task>(
-            r#"
-            SELECT id, title, description, status, priority, due_date, start_date,
-                   completed_at, estimated_hours, actual_hours, tags, department_id,
-                   created_by, created_at, updated_at, deleted_at
-            FROM hr_public.tasks
-            WHERE id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.task_id)
-        .fetch_optional(pool)
-        .await?;
-
+    async fn task(&self, ctx: &Context<'_>) -> GqlResult<Option<super::task::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let task = super::task::Entity::find_by_id(self.task_id).one(db).await?;
         Ok(task)
     }
 
     /// The prerequisite task (the one being depended on)
-    async fn depends_on_task(&self, ctx: &Context<'_>) -> GqlResult<Option<super::task::Task>> {
-        let pool = ctx.data::<PgPool>()?;
-
-        let task = sqlx::query_as::<_, super::task::Task>(
-            r#"
-            SELECT id, title, description, status, priority, due_date, start_date,
-                   completed_at, estimated_hours, actual_hours, tags, department_id,
-                   created_by, created_at, updated_at, deleted_at
-            FROM hr_public.tasks
-            WHERE id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.depends_on_task_id)
-        .fetch_optional(pool)
-        .await?;
-
+    async fn depends_on_task(&self, ctx: &Context<'_>) -> GqlResult<Option<super::task::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let task = super::task::Entity::find_by_id(self.depends_on_task_id).one(db).await?;
         Ok(task)
     }
 
     /// User who created the dependency
-    async fn creator(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::User>> {
-        let pool = ctx.data::<PgPool>()?;
-
-        let user = sqlx::query_as::<_, super::user::User>(
-            r#"
-            SELECT id, email, first_name, last_name, full_name, phone,
-                   department_id, manager_id, hire_date, termination_date,
-                   status, created_at, updated_at, deleted_at
-            FROM hr_public.users
-            WHERE id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.created_by)
-        .fetch_optional(pool)
-        .await?;
-
+    async fn creator(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let user = super::user::Entity::find_by_id(self.created_by).one(db).await?;
         Ok(user)
     }
 
     /// Whether this is a blocking dependency (finish-to-start)
     async fn is_blocking(&self) -> bool {
-        self.dependency_type == DependencyType::FinishToStart
+        self.dependency_type == "finish_to_start"
     }
 }
 
@@ -172,11 +172,11 @@ mod tests {
 
     #[test]
     fn test_task_dependency_model_compiles() {
-        let dependency = TaskDependency {
+        let dependency = Model {
             id: Uuid::new_v4(),
             task_id: Uuid::new_v4(),
             depends_on_task_id: Uuid::new_v4(),
-            dependency_type: DependencyType::FinishToStart,
+            dependency_type: "finish_to_start".to_string(),
             lag_days: Some(2),
             created_by: Uuid::new_v4(),
             created_at: Utc::now(),
@@ -184,6 +184,6 @@ mod tests {
             deleted_at: None,
         };
 
-        assert_eq!(dependency.dependency_type, DependencyType::FinishToStart);
+        assert_eq!(dependency.dependency_type, "finish_to_start");
     }
 }

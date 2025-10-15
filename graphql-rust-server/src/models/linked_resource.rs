@@ -4,13 +4,14 @@
 
 use async_graphql::{Context, Enum, InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
+use sea_orm::{entity::prelude::*, FromQueryResult, Related};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::{database::get_db_from_context, error::AppError, models::generated::prelude::*};
+
 /// Resource type
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum, sqlx::Type)]
-#[sqlx(type_name = "resource_type", rename_all = "lowercase")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 pub enum ResourceType {
     File,
     Link,
@@ -19,12 +20,14 @@ pub enum ResourceType {
     Video,
 }
 
-/// LinkedResource model - maps to hr_public.linked_resources table
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-pub struct LinkedResource {
+/// LinkedResource entity - maps to hr_public.linked_resources table
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "linked_resources")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub task_id: Uuid,
-    pub resource_type: ResourceType,
+    pub resource_type: String, // Using string to match database enum
     pub title: String,
     pub url: Option<String>,
     pub file_path: Option<String>,
@@ -37,9 +40,39 @@ pub struct LinkedResource {
     pub deleted_at: Option<DateTime<Utc>>,
 }
 
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::task::Entity",
+        from = "Column::TaskId",
+        to = "super::task::Column::Id"
+    )]
+    Task,
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::UploadedBy",
+        to = "super::user::Column::Id"
+    )]
+    Uploader,
+}
+
+impl Related<super::task::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Task.def().rev()
+    }
+}
+
+impl Related<super::user::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Uploader.def().rev()
+    }
+}
+
+impl ActiveModelBehavior for ActiveModel {}
+
 /// GraphQL Object implementation for LinkedResource
 #[Object]
-impl LinkedResource {
+impl Model {
     /// Unique linked resource identifier
     async fn id(&self) -> Uuid {
         self.id
@@ -52,7 +85,14 @@ impl LinkedResource {
 
     /// Type of resource
     async fn resource_type(&self) -> ResourceType {
-        self.resource_type
+        match self.resource_type.as_str() {
+            "file" => ResourceType::File,
+            "link" => ResourceType::Link,
+            "document" => ResourceType::Document,
+            "image" => ResourceType::Image,
+            "video" => ResourceType::Video,
+            _ => ResourceType::File, // Default fallback
+        }
     }
 
     /// Resource title or name
@@ -106,42 +146,16 @@ impl LinkedResource {
     }
 
     /// Task associated with this resource
-    async fn task(&self, ctx: &Context<'_>) -> GqlResult<Option<super::task::Task>> {
-        let pool = ctx.data::<PgPool>()?;
-
-        let task = sqlx::query_as::<_, super::task::Task>(
-            r#"
-            SELECT id, title, description, status, priority, due_date, start_date,
-                   completed_at, estimated_hours, actual_hours, tags, department_id,
-                   created_by, created_at, updated_at, deleted_at
-            FROM hr_public.tasks
-            WHERE id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.task_id)
-        .fetch_optional(pool)
-        .await?;
-
+    async fn task(&self, ctx: &Context<'_>) -> GqlResult<Option<super::task::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let task = super::task::Entity::find_by_id(self.task_id).one(db).await?;
         Ok(task)
     }
 
     /// User who uploaded the resource
-    async fn uploader(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::User>> {
-        let pool = ctx.data::<PgPool>()?;
-
-        let user = sqlx::query_as::<_, super::user::User>(
-            r#"
-            SELECT id, email, first_name, last_name, full_name, phone,
-                   department_id, manager_id, hire_date, termination_date,
-                   status, created_at, updated_at, deleted_at
-            FROM hr_public.users
-            WHERE id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.uploaded_by)
-        .fetch_optional(pool)
-        .await?;
-
+    async fn uploader(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let user = super::user::Entity::find_by_id(self.uploaded_by).one(db).await?;
         Ok(user)
     }
 
@@ -163,14 +177,14 @@ impl LinkedResource {
     /// Whether this is a file attachment
     async fn is_file(&self) -> bool {
         matches!(
-            self.resource_type,
-            ResourceType::File | ResourceType::Document | ResourceType::Image | ResourceType::Video
+            self.resource_type.as_str(),
+            "file" | "document" | "image" | "video"
         )
     }
 
     /// Whether this is an external link
     async fn is_link(&self) -> bool {
-        self.resource_type == ResourceType::Link
+        self.resource_type == "link"
     }
 }
 
@@ -201,10 +215,10 @@ mod tests {
 
     #[test]
     fn test_linked_resource_model_compiles() {
-        let resource = LinkedResource {
+        let resource = Model {
             id: Uuid::new_v4(),
             task_id: Uuid::new_v4(),
-            resource_type: ResourceType::Document,
+            resource_type: "document".to_string(),
             title: "Project Specification".to_string(),
             url: None,
             file_path: Some("/uploads/spec.pdf".to_string()),
@@ -217,6 +231,6 @@ mod tests {
             deleted_at: None,
         };
 
-        assert_eq!(resource.resource_type, ResourceType::Document);
+        assert_eq!(resource.resource_type, "document");
     }
 }

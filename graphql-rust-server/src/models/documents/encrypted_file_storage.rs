@@ -4,18 +4,41 @@
 
 use async_graphql::{InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
+use sea_orm::{entity::prelude::*, QueryFilter};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::{database::get_db_from_context, error::AppError};
+
 /// Encrypted file storage tracking
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-pub struct EncryptedFileStorage {
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "encrypted_file_storage")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub document_id: Uuid,
     pub encryption_key_id: Uuid,
     pub created_at: DateTime<Utc>,
 }
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::document::Entity",
+        from = "Column::DocumentId",
+        to = "super::document::Column::Id"
+    )]
+    Document,
+    // TODO: Add encryption key relation after encryption_key.rs is migrated to SeaORM
+    // #[sea_orm(
+    //     belongs_to = "crate::models::system::encryption_key::Entity",
+    //     from = "Column::EncryptionKeyId",
+    //     to = "crate::models::system::encryption_key::Column::Id"
+    // )]
+    // EncryptionKey,
+}
+
+impl ActiveModelBehavior for ActiveModel {}
 
 /// Input for creating a new encrypted file storage record
 #[derive(Debug, Clone, InputObject)]
@@ -28,7 +51,7 @@ pub struct CreateEncryptedFileStorageInput {
 
 /// GraphQL Object implementation with camelCase field names
 #[Object]
-impl EncryptedFileStorage {
+impl Model {
     async fn id(&self) -> Uuid {
         self.id
     }
@@ -48,44 +71,19 @@ impl EncryptedFileStorage {
         self.created_at
     }
 
-    /// Document relationship (lazy-loaded)
-    async fn document(
-        &self,
-        ctx: &async_graphql::Context<'_>,
-    ) -> GqlResult<super::document::Document> {
-        let pool = ctx.data::<PgPool>()?;
-        let document = sqlx::query_as::<_, super::document::Document>(
-            r#"
-            SELECT id, title, description, category_id, file_path, file_size,
-                   mime_type, uploader_id, created_at, updated_at, deleted_at
-            FROM hr_public.documents
-            WHERE id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.document_id)
-        .fetch_one(pool)
-        .await?;
 
-        Ok(document)
-    }
 
     /// Encryption key relationship (lazy-loaded)
     #[graphql(name = "encryptionKey")]
     async fn encryption_key(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> GqlResult<crate::models::EncryptionKey> {
-        let pool = ctx.data::<PgPool>()?;
-        let key = sqlx::query_as::<_, crate::models::EncryptionKey>(
-            r#"
-            SELECT id, key_name, algorithm, created_at, rotated_at, active
-            FROM hr_public.encryption_keys
-            WHERE id = $1
-            "#,
-        )
-        .bind(self.encryption_key_id)
-        .fetch_one(pool)
-        .await?;
+    ) -> GqlResult<crate::models::system::encryption_key::Model> {
+        let db = get_db_from_context(ctx)?;
+        let key = crate::models::system::encryption_key::Entity::find_by_id(self.encryption_key_id)
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Encryption key not found".to_string()))?;
 
         Ok(key)
     }

@@ -128,8 +128,9 @@ impl Model {
 
     /// Event this attendee is associated with
     async fn event(&self, ctx: &Context<'_>) -> GqlResult<Option<super::event::Model>> {
-        let db = get_db_from_context(ctx).await?;
+        let db = crate::database::get_db_from_context(ctx)?;
         let event = super::event::Entity::find_by_id(self.event_id)
+            .filter(super::event::Column::DeletedAt.is_null())
             .one(db)
             .await?;
         Ok(event)
@@ -137,7 +138,7 @@ impl Model {
 
     /// Employee/User associated with this attendance
     async fn employee(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
-        let db = get_db_from_context(ctx).await?;
+        let db = get_db_from_context(ctx)?;
         let employee = super::user::Entity::find_by_id(self.employee_id)
             .one(db)
             .await?;

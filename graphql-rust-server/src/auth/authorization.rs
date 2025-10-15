@@ -145,7 +145,7 @@ pub async fn can_modify_task(
         .map_err(|e| Error::new(format!("Database error: {}", e)))?;
 
     match task {
-        Some(t) if t.created_by == Some(user_context.user_id) => Ok(true),
+        Some(t) if t.created_by == user_context.user_id => Ok(true),
         Some(t) if t.assignee_id == Some(user_context.user_id) => Ok(true),
         _ => Ok(false),
     }
@@ -198,7 +198,7 @@ pub async fn can_access_performance_review(
 
     match review {
         Some(r) if r.employee_id == user_context.user_id => Ok(true),
-        Some(r) if r.reviewer_id == Some(user_context.user_id) => Ok(true),
+        Some(r) if r.reviewer_id == user_context.user_id => Ok(true),
         _ => Ok(false),
     }
 }
@@ -219,7 +219,7 @@ pub async fn can_modify_performance_review(
         .map_err(|e| Error::new(format!("Database error: {}", e)))?;
 
     match review {
-        Some(r) if r.reviewer_id == Some(user_context.user_id) => Ok(true),
+        Some(r) if r.reviewer_id == user_context.user_id => Ok(true),
         _ => Ok(false),
     }
 }

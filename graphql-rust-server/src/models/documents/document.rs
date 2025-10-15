@@ -4,12 +4,14 @@
 
 use async_graphql::{InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
+use sea_orm::{entity::prelude::*, FromQueryResult, QueryFilter};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use uuid::Uuid;
 
-/// Core document metadata
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+use crate::{database::get_db_from_context, error::AppError};
+
+/// SQLx-compatible Document struct for backward compatibility during migration
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Document {
     pub id: Uuid,
     pub title: String,
@@ -23,6 +25,42 @@ pub struct Document {
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
 }
+
+/// Core document metadata
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "documents")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: Uuid,
+    pub title: String,
+    pub description: Option<String>,
+    pub category_id: Option<Uuid>,
+    pub file_path: String,
+    pub file_size: i32,
+    pub mime_type: String,
+    pub uploader_id: Uuid,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::document_category::Entity",
+        from = "Column::CategoryId",
+        to = "super::document_category::Column::Id"
+    )]
+    Category,
+    #[sea_orm(
+        belongs_to = "crate::models::user::Entity",
+        from = "Column::UploaderId",
+        to = "crate::models::user::Column::Id"
+    )]
+    Uploader,
+}
+
+impl ActiveModelBehavior for ActiveModel {}
 
 /// Input for creating a new document
 #[derive(Debug, Clone, InputObject)]
@@ -52,7 +90,7 @@ pub struct UpdateDocumentInput {
 
 /// GraphQL Object implementation with camelCase field names
 #[Object]
-impl Document {
+impl Model {
     async fn id(&self) -> Uuid {
         self.id
     }
@@ -109,20 +147,13 @@ impl Document {
     async fn category(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> GqlResult<Option<super::document_category::DocumentCategory>> {
+    ) -> GqlResult<Option<super::document_category::Model>> {
         if let Some(category_id) = self.category_id {
-            let pool = ctx.data::<PgPool>()?;
-            let category = sqlx::query_as::<_, super::document_category::DocumentCategory>(
-                r#"
-                SELECT id, name, description, parent_category_id,
-                       created_at, updated_at, deleted_at
-                FROM hr_public.document_categories
-                WHERE id = $1 AND deleted_at IS NULL
-                "#,
-            )
-            .bind(category_id)
-            .fetch_optional(pool)
-            .await?;
+            let db = get_db_from_context(ctx)?;
+            let category = super::document_category::Entity::find_by_id(category_id)
+                .filter(super::document_category::Column::DeletedAt.is_null())
+                .one(db)
+                .await?;
 
             Ok(category)
         } else {
@@ -132,19 +163,11 @@ impl Document {
 
     /// Uploader relationship (lazy-loaded)
     async fn uploader(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::User> {
-        let pool = ctx.data::<PgPool>()?;
-        let user = sqlx::query_as::<_, crate::models::User>(
-            r#"
-            SELECT id, email, first_name, last_name, full_name, phone,
-                   department_id, manager_id, hire_date, termination_date,
-                   status, created_at, updated_at, deleted_at
-            FROM hr_public.users
-            WHERE id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.uploader_id)
-        .fetch_one(pool)
-        .await?;
+        let db = get_db_from_context(ctx)?;
+        let user = crate::models::user::Entity::find_by_id(self.uploader_id)
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
         Ok(user)
     }
@@ -153,20 +176,13 @@ impl Document {
     async fn versions(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> GqlResult<Vec<super::document_version::DocumentVersion>> {
-        let pool = ctx.data::<PgPool>()?;
-        let versions = sqlx::query_as::<_, super::document_version::DocumentVersion>(
-            r#"
-            SELECT id, document_id, version_number, file_path, file_size,
-                   uploader_id, change_summary, created_at
-            FROM hr_public.document_versions
-            WHERE document_id = $1
-            ORDER BY version_number DESC
-            "#,
-        )
-        .bind(self.id)
-        .fetch_all(pool)
-        .await?;
+    ) -> GqlResult<Vec<super::document_version::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let versions = super::document_version::Entity::find()
+            .filter(super::document_version::Column::DocumentId.eq(self.id))
+            .order_by_desc(super::document_version::Column::VersionNumber)
+            .all(db)
+            .await?;
 
         Ok(versions)
     }
@@ -175,19 +191,12 @@ impl Document {
     async fn assignments(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> GqlResult<Vec<super::document_assignment::DocumentAssignment>> {
-        let pool = ctx.data::<PgPool>()?;
-        let assignments = sqlx::query_as::<_, super::document_assignment::DocumentAssignment>(
-            r#"
-            SELECT id, document_id, user_id, department_id, access_level,
-                   assigned_at, assigned_by_id
-            FROM hr_public.document_assignments
-            WHERE document_id = $1
-            "#,
-        )
-        .bind(self.id)
-        .fetch_all(pool)
-        .await?;
+    ) -> GqlResult<Vec<super::document_assignment::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let assignments = super::document_assignment::Entity::find()
+            .filter(super::document_assignment::Column::DocumentId.eq(self.id))
+            .all(db)
+            .await?;
 
         Ok(assignments)
     }
@@ -196,20 +205,14 @@ impl Document {
     async fn access_logs(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> GqlResult<Vec<super::document_access_log::DocumentAccessLog>> {
-        let pool = ctx.data::<PgPool>()?;
-        let logs = sqlx::query_as::<_, super::document_access_log::DocumentAccessLog>(
-            r#"
-            SELECT id, document_id, user_id, access_type, accessed_at, ip_address
-            FROM hr_public.document_access_logs
-            WHERE document_id = $1
-            ORDER BY accessed_at DESC
-            LIMIT 100
-            "#,
-        )
-        .bind(self.id)
-        .fetch_all(pool)
-        .await?;
+    ) -> GqlResult<Vec<super::document_access_log::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let logs = super::document_access_log::Entity::find()
+            .filter(super::document_access_log::Column::DocumentId.eq(self.id))
+            .order_by_desc(super::document_access_log::Column::AccessedAt)
+            .limit(100)
+            .all(db)
+            .await?;
 
         Ok(logs)
     }

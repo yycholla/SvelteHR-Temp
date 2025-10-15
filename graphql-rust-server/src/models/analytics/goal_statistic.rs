@@ -5,12 +5,29 @@
 
 use async_graphql::{Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
+use sea_orm::{entity::prelude::*, FromQueryResult, QueryFilter};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::{database::get_db_from_context, error::AppError};
+
 /// Goal completion statistics by user and quarter (materialized view)
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromQueryResult)]
+pub struct Model {
+    pub user_id: Uuid,
+    pub first_name: String,
+    pub last_name: String,
+    pub department_id: Option<Uuid>,
+    pub quarter: String,
+    pub year: i32,
+    pub total_goals: i32,
+    pub completed_goals: i32,
+    pub completion_percentage: f64,
+    pub last_refreshed_at: DateTime<Utc>,
+}
+
+/// SQLx-compatible GoalStatistic struct for backward compatibility during migration
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct GoalStatistic {
     pub user_id: Uuid,
     pub first_name: String,
@@ -26,7 +43,7 @@ pub struct GoalStatistic {
 
 /// GraphQL Object implementation with camelCase field names
 #[Object]
-impl GoalStatistic {
+impl Model {
     #[graphql(name = "userId")]
     async fn user_id(&self) -> Uuid {
         self.user_id
@@ -76,20 +93,13 @@ impl GoalStatistic {
     }
 
     /// User relationship (lazy-loaded)
-    async fn user(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::User> {
-        let pool = ctx.data::<PgPool>()?;
-        let user = sqlx::query_as::<_, crate::models::User>(
-            r#"
-            SELECT id, email, first_name, last_name, full_name, phone,
-                   department_id, manager_id, hire_date, termination_date,
-                   status, created_at, updated_at, deleted_at
-            FROM hr_public.users
-            WHERE id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.user_id)
-        .fetch_one(pool)
-        .await?;
+    async fn user(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::user::Model> {
+        let db = get_db_from_context(ctx)?;
+        let user = crate::models::user::Entity::find_by_id(self.user_id)
+            .filter(crate::models::user::Column::DeletedAt.is_null())
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
         Ok(user)
     }

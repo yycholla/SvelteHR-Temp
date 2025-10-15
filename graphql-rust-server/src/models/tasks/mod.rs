@@ -5,4 +5,4 @@
 pub mod task_type;
 
 // Re-exports for convenient access
-pub use task_type::{CreateTaskTypeInput, TaskType, UpdateTaskTypeInput};
+pub use task_type::{CreateTaskTypeInput, Model as TaskType, UpdateTaskTypeInput};

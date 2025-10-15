@@ -10,5 +10,5 @@ pub use time_off_policy::{
     CreateTimeOffPolicyInput, TimeOffPolicy, UpdateTimeOffPolicyInput,
 };
 pub use attendance_record::{
-    AttendanceRecord, AttendanceStatus, CreateAttendanceRecordInput, UpdateAttendanceRecordInput,
+    Model as AttendanceRecord, AttendanceStatus, CreateAttendanceRecordInput, UpdateAttendanceRecordInput,
 };

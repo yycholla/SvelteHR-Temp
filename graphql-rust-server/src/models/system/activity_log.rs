@@ -2,7 +2,7 @@
 //!
 //! Maps to hr_public.activity_logs table
 
-use async_graphql::{Enum, InputObject, Object, Result as GqlResult};
+use async_graphql::{Context, Enum, InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
 use sea_orm::{entity::prelude::*, FromQueryResult, Related};
 use serde::{Deserialize, Serialize};
@@ -37,20 +37,20 @@ pub struct Model {
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
-        belongs_to = "super::user::Entity",
+        belongs_to = "crate::models::user::Entity",
         from = "Column::UserId",
-        to = "super::user::Column::Id"
+        to = "crate::models::user::Column::Id"
     )]
     User,
     #[sea_orm(
-        belongs_to = "super::user::Entity",
+        belongs_to = "crate::models::user::Entity",
         from = "Column::EmployeeId",
-        to = "super::user::Column::Id"
+        to = "crate::models::user::Column::Id"
     )]
     Employee,
 }
 
-impl Related<super::user::Entity> for Entity {
+impl Related<crate::models::user::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::User.def().rev()
     }
@@ -142,17 +142,17 @@ impl Model {
     }
 
     /// User who performed the action
-    async fn user(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
+    async fn user(&self, ctx: &Context<'_>) -> GqlResult<Option<crate::models::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let user = super::user::Entity::find_by_id(self.user_id).one(db).await?;
+        let user = crate::models::user::Entity::find_by_id(self.user_id).one(db).await?;
         Ok(user)
     }
 
     /// Employee if action was performed on behalf of another user
-    async fn employee(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
+    async fn employee(&self, ctx: &Context<'_>) -> GqlResult<Option<crate::models::user::Model>> {
         if let Some(employee_id) = self.employee_id {
             let db = get_db_from_context(ctx)?;
-            let employee = super::user::Entity::find_by_id(employee_id).one(db).await?;
+            let employee = crate::models::user::Entity::find_by_id(employee_id).one(db).await?;
             Ok(employee)
         } else {
             Ok(None)
@@ -251,14 +251,14 @@ impl ActivityLogsOrderBy {
 /// Connection type for paginated activity logs
 #[derive(Debug, Clone)]
 pub struct ActivityLogsConnection {
-    pub nodes: Vec<ActivityLog>,
+    pub nodes: Vec<Model>,
     pub total_count: i64,
     pub page_info: crate::schema::PageInfo,
 }
 
 #[Object]
 impl ActivityLogsConnection {
-    async fn nodes(&self) -> &Vec<ActivityLog> {
+    async fn nodes(&self) -> &Vec<Model> {
         &self.nodes
     }
 
@@ -271,166 +271,3 @@ impl ActivityLogsConnection {
     }
 }
 
-/// GraphQL Object implementation with camelCase field names
-#[Object]
-impl ActivityLog {
-    async fn id(&self) -> Uuid {
-        self.id
-    }
-
-    #[graphql(name = "userId")]
-    async fn user_id(&self) -> Uuid {
-        self.user_id
-    }
-
-    #[graphql(name = "employeeId")]
-    async fn employee_id(&self) -> Option<Uuid> {
-        self.employee_id
-    }
-
-    async fn action(&self) -> &str {
-        &self.action
-    }
-
-    #[graphql(name = "resourceType")]
-    async fn resource_type(&self) -> &str {
-        &self.resource_type
-    }
-
-    #[graphql(name = "resourceId")]
-    async fn resource_id(&self) -> Option<Uuid> {
-        self.resource_id
-    }
-
-    async fn details(&self) -> Option<String> {
-        self.details.as_ref().map(|v| v.to_string())
-    }
-
-    #[graphql(name = "beforeSnapshot")]
-    async fn before_snapshot(&self) -> Option<String> {
-        self.before_snapshot.as_ref().map(|v| v.to_string())
-    }
-
-    #[graphql(name = "afterSnapshot")]
-    async fn after_snapshot(&self) -> Option<String> {
-        self.after_snapshot.as_ref().map(|v| v.to_string())
-    }
-
-    #[graphql(name = "isRollback")]
-    async fn is_rollback(&self) -> bool {
-        self.is_rollback
-    }
-
-    #[graphql(name = "rolledBackLogId")]
-    async fn rolled_back_log_id(&self) -> Option<Uuid> {
-        self.rolled_back_log_id
-    }
-
-    #[graphql(name = "ipAddress")]
-    async fn ip_address(&self) -> Option<&str> {
-        self.ip_address.as_deref()
-    }
-
-    #[graphql(name = "userAgent")]
-    async fn user_agent(&self) -> Option<&str> {
-        self.user_agent.as_deref()
-    }
-
-    #[graphql(name = "createdAt")]
-    async fn created_at(&self) -> DateTime<Utc> {
-        self.created_at
-    }
-
-    /// User relationship (lazy-loaded)
-    async fn user(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<Option<crate::models::User>> {
-        let pool = ctx.data::<PgPool>()?;
-        let user = sqlx::query_as::<_, crate::models::User>(
-            r#"
-            SELECT id, email, first_name, last_name, display_name, full_name, role,
-                   phone_number, alternate_phone, job_title, status,
-                   department_id, manager_id, hire_date, is_active,
-                   created_at, updated_at
-            FROM hr_public.users
-            WHERE id = $1
-            "#,
-        )
-        .bind(self.user_id)
-        .fetch_optional(pool)
-        .await?;
-
-        Ok(user)
-    }
-
-    /// Employee relationship (lazy-loaded) - same as user but via employee_id
-    async fn employee(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<Option<crate::models::User>> {
-        if let Some(employee_id) = self.employee_id {
-            let pool = ctx.data::<PgPool>()?;
-            let user = sqlx::query_as::<_, crate::models::User>(
-                r#"
-                SELECT id, email, first_name, last_name, display_name, full_name, role,
-                        phone_number, alternate_phone, job_title, status,
-                        department_id, manager_id, hire_date, is_active,
-                        created_at, updated_at
-                FROM hr_public.users
-                WHERE id = $1
-                "#,
-            )
-            .bind(employee_id)
-            .fetch_optional(pool)
-            .await?;
-
-            Ok(user)
-        } else {
-            Ok(None)
-        }
-    }
-
-    /// User by employee ID relationship (PostGraphile naming convention)
-    #[graphql(name = "userByEmployeeId")]
-    async fn user_by_employee_id(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<Option<crate::models::User>> {
-        if let Some(employee_id) = self.employee_id {
-            let pool = ctx.data::<PgPool>()?;
-            let user = sqlx::query_as::<_, crate::models::User>(
-                r#"
-                SELECT id, email, first_name, last_name, display_name, full_name, role,
-                        phone_number, alternate_phone, job_title, status,
-                        department_id, manager_id, hire_date, is_active,
-                        created_at, updated_at
-                FROM hr_public.users
-                WHERE id = $1
-                "#,
-            )
-            .bind(employee_id)
-            .fetch_optional(pool)
-            .await?;
-
-            Ok(user)
-        } else {
-            Ok(None)
-        }
-    }
-
-    /// Rolled back log relationship (for rollback tracking)
-    #[graphql(name = "rolledBackLog")]
-    async fn rolled_back_log(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<Option<Box<ActivityLog>>> {
-        if let Some(rolled_back_log_id) = self.rolled_back_log_id {
-            let pool = ctx.data::<PgPool>()?;
-            let log = sqlx::query_as::<_, ActivityLog>(
-                r#"
-                SELECT id, user_id, employee_id, action, resource_type, resource_id,
-                        details, before_snapshot, after_snapshot, is_rollback,
-                        rolled_back_log_id, ip_address, user_agent, created_at
-                FROM hr_public.activity_logs
-                WHERE id = $1
-                "#,
-            )
-            .bind(rolled_back_log_id)
-            .fetch_optional(pool)
-            .await?;
-
-            Ok(log.map(Box::new))
-        } else {
-            Ok(None)
-        }
-    }
-}

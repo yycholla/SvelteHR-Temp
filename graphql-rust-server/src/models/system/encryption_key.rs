@@ -2,13 +2,34 @@
 //!
 //! Maps to hr_public.encryption_keys table
 
-use async_graphql::{InputObject, Object};
+use async_graphql::{InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
+use sea_orm::{entity::prelude::*, QueryFilter};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-/// Encryption key metadata
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+use crate::{database::get_db_from_context, error::AppError};
+
+/// SeaORM Encryption key entity
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "encryption_keys")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: Uuid,
+    pub key_name: String,
+    pub algorithm: String,
+    pub created_at: DateTime<Utc>,
+    pub rotated_at: Option<DateTime<Utc>>,
+    pub active: bool,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+/// SQLx-compatible EncryptionKey struct for backward compatibility during migration
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct EncryptionKey {
     pub id: Uuid,
     pub key_name: String,
@@ -28,7 +49,7 @@ pub struct CreateEncryptionKeyInput {
 
 /// GraphQL Object implementation with camelCase field names
 #[Object]
-impl EncryptionKey {
+impl Model {
     async fn id(&self) -> Uuid {
         self.id
     }

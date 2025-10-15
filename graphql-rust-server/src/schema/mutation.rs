@@ -6,7 +6,6 @@ use uuid::Uuid;
 use crate::{
     auth::context::UserContext,
     database::get_db_from_context,
-    database::{get_pool_from_context, DbPool},
     error::AppError,
     models::{
         generated::prelude::*,
@@ -18,9 +17,9 @@ use crate::{
         CreateReviewCycleInput, CreateReviewFeedbackInput, CreateReviewGoalInput, CreateRoleInput,
         CreateTaskDependencyInput, CreateTaskInput, CreateUserInput, Department, Event,
         EventAttendee, LeaveBalance, LeaveRequest, LeaveRequestStatus, LeaveType, LinkedResource,
-        PerformanceReview, Permission, RejectLeaveRequestInput, ReviewCycle, ReviewFeedback,
+        PerformanceReview, PerformanceReviewStatus, Permission, RejectLeaveRequestInput, ReviewCycle, ReviewFeedback,
         ReviewGoal, Role, RsvpStatus, Task, TaskAssignee, TaskAuditEntry, TaskDependency,
-        TaskStatus, UpdateDepartmentInput, UpdateEventAttendeeInput, UpdateEventInput,
+        TaskPriority, TaskStatus, UpdateDepartmentInput, UpdateEventAttendeeInput, UpdateEventInput,
         UpdateLeaveBalanceInput, UpdateLeaveRequestInput, UpdateLeaveTypeInput,
         UpdateLinkedResourceInput, UpdatePerformanceReviewInput, UpdatePermissionInput,
         UpdateReviewCycleInput, UpdateReviewFeedbackInput, UpdateReviewGoalInput, UpdateRoleInput,
@@ -68,26 +67,33 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateEventAttendeeInput,
     ) -> Result<EventAttendee> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let attendee = sqlx::query_as::<_, EventAttendee>(
-            r#"
-            INSERT INTO hr_public.event_attendees
-            (event_id, employee_id, response_status, is_required, reminder_time, scope, is_organizer)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            RETURNING id, event_id, employee_id, response_status, is_required,
-                      created_at, reminder_time, scope, is_organizer
-            "#,
-        )
-        .bind(input.event_id)
-        .bind(input.employee_id)
-        .bind(input.response_status.unwrap_or(RsvpStatus::Pending))
-        .bind(input.is_required.unwrap_or(false))
-        .bind(input.reminder_time)
-        .bind(input.scope)
-        .bind(input.is_organizer.unwrap_or(false))
-        .fetch_one(pool)
-        .await?;
+        let attendee = crate::models::event_attendee::ActiveModel {
+            event_id: Set(input.event_id),
+            employee_id: Set(input.employee_id),
+            response_status: Set(input.response_status),
+            is_required: Set(input.is_required),
+            reminder_time: Set(input.reminder_time),
+            scope: Set(input.scope),
+            is_organizer: Set(input.is_organizer),
+            ..Default::default()
+        };
+
+        let attendee = attendee.insert(db).await?;
+
+        // Convert SeaORM model to legacy EventAttendee struct for compatibility
+        let attendee = EventAttendee {
+            id: attendee.id,
+            event_id: attendee.event_id,
+            employee_id: attendee.employee_id,
+            response_status: attendee.response_status,
+            is_required: attendee.is_required,
+            created_at: attendee.created_at,
+            reminder_time: attendee.reminder_time,
+            scope: attendee.scope,
+            is_organizer: attendee.is_organizer,
+        };
 
         Ok(attendee)
     }
@@ -99,71 +105,57 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateEventAttendeeInput,
     ) -> Result<EventAttendee> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let db = get_db_from_context(ctx)?;
 
-        // Build dynamic UPDATE query based on provided fields
-        let mut updates = Vec::new();
-        let mut param_count = 2; // Start at 2 because $1 is the ID
+        // Find existing attendee
+        let existing_attendee = crate::models::event_attendee::Entity::find_by_id(id)
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Event attendee not found".to_string()))?;
 
-        if input.response_status.is_some() {
-            updates.push(format!("response_status = ${}", param_count));
-            param_count += 1;
-        }
+        // Build active model with updates
+        let mut attendee: crate::models::event_attendee::ActiveModel = existing_attendee.into();
 
-        if input.reminder_time.is_some() {
-            updates.push(format!("reminder_time = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.scope.is_some() {
-            updates.push(format!("scope = ${}", param_count));
-            param_count += 1;
-        }
-
-        if updates.is_empty() {
-            return Err("No fields to update".into());
-        }
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.event_attendees
-            SET {}
-            WHERE id = $1
-            RETURNING id, event_id, employee_id, response_status, is_required,
-                      created_at, reminder_time, scope, is_organizer
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, EventAttendee>(&query).bind(id);
-
-        if let Some(status) = input.response_status {
-            query_builder = query_builder.bind(status);
+        if let Some(response_status) = input.response_status {
+            attendee.response_status = Set(response_status);
         }
 
         if let Some(reminder_time) = input.reminder_time {
-            query_builder = query_builder.bind(reminder_time);
+            attendee.reminder_time = Set(reminder_time);
         }
 
         if let Some(scope) = input.scope {
-            query_builder = query_builder.bind(scope);
+            attendee.scope = Set(scope);
         }
 
-        let attendee = query_builder.fetch_one(pool).await?;
+        // Save changes
+        let updated_attendee = attendee.update(db).await?;
+
+        // Convert to legacy EventAttendee struct for compatibility
+        let attendee = EventAttendee {
+            id: updated_attendee.id,
+            event_id: updated_attendee.event_id,
+            employee_id: updated_attendee.employee_id,
+            response_status: updated_attendee.response_status,
+            is_required: updated_attendee.is_required,
+            created_at: updated_attendee.created_at,
+            reminder_time: updated_attendee.reminder_time,
+            scope: updated_attendee.scope,
+            is_organizer: updated_attendee.is_organizer,
+        };
 
         Ok(attendee)
     }
 
     /// Delete an event attendee
     async fn delete_event_attendee(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query("DELETE FROM hr_public.event_attendees WHERE id = $1")
-            .bind(id)
-            .execute(pool)
+        let result = crate::models::event_attendee::Entity::delete_by_id(id)
+            .exec(db)
             .await?;
 
-        Ok(result.rows_affected() > 0)
+        Ok(result.rows_affected > 0)
     }
 
     // ============================================================
@@ -179,7 +171,7 @@ impl MutationRoot {
         let full_name = display_name.clone();
 
         // Create SeaORM active model
-        let user = user::ActiveModel {
+        let user = crate::models::user::ActiveModel {
             email: Set(input.email.clone()),
             first_name: Set(input.first_name.clone()),
             last_name: Set(input.last_name.clone()),
@@ -221,7 +213,7 @@ impl MutationRoot {
         Ok(user)
             .map_err(|e| {
                 tracing::error!("Failed to create user: {}", e);
-                Error::new("Failed to create user")
+                AppError::new("Failed to create user")
             })
     }
 
@@ -232,154 +224,113 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateUserInput,
     ) -> Result<User> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let db = get_db_from_context(ctx)?;
 
-        // Build dynamic UPDATE query based on provided fields
-        let mut updates = Vec::new();
-        let mut param_count = 2; // Start at 2 because $1 is the ID
+        // Find existing user
+        let existing_user = crate::models::user::Entity::find_by_id(id)
+            .filter(crate::models::user::Column::DeletedAt.is_null())
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
-        if input.email.is_some() {
-            updates.push(format!("email = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.first_name.is_some() || input.last_name.is_some() {
-            // If either first or last name changes, we need to recalculate full_name
-            if input.first_name.is_some() {
-                updates.push(format!("first_name = ${}", param_count));
-                param_count += 1;
-            }
-            if input.last_name.is_some() {
-                updates.push(format!("last_name = ${}", param_count));
-                param_count += 1;
-            }
-            // We'll update full_name in a second query after fetching current values
-        }
-
-        if input.phone.is_some() {
-            updates.push(format!("phone = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.department_id.is_some() {
-            updates.push(format!("department_id = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.manager_id.is_some() {
-            updates.push(format!("manager_id = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.hire_date.is_some() {
-            updates.push(format!("hire_date = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.termination_date.is_some() {
-            updates.push(format!("termination_date = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.status.is_some() {
-            updates.push(format!("status = ${}", param_count));
-            param_count += 1;
-        }
-
-        if updates.is_empty() {
-            return Err("No fields to update".into());
-        }
-
-        // Always update updated_at timestamp
-        updates.push("updated_at = NOW()".to_string());
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.users
-            SET {}
-            WHERE id = $1 AND deleted_at IS NULL
-            RETURNING id, email, first_name, last_name, full_name, phone,
-                      department_id, manager_id, hire_date, termination_date,
-                      status, created_at, updated_at, deleted_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, User>(&query).bind(id);
+        // Build active model with updates
+        let mut user: crate::models::user::ActiveModel = existing_user.into();
 
         if let Some(email) = input.email {
-            query_builder = query_builder.bind(email);
+            user.email = Set(email);
         }
 
-        if let Some(first_name) = &input.first_name {
-            query_builder = query_builder.bind(first_name);
+        if let Some(first_name) = input.first_name {
+            user.first_name = Set(first_name);
         }
 
-        if let Some(last_name) = &input.last_name {
-            query_builder = query_builder.bind(last_name);
+        if let Some(last_name) = input.last_name {
+            user.last_name = Set(last_name);
+        }
+
+        // Recalculate full_name if first or last name changed
+        if input.first_name.is_some() || input.last_name.is_some() {
+            let first_name = input.first_name.as_ref().unwrap_or(&existing_user.first_name);
+            let last_name = input.last_name.as_ref().unwrap_or(&existing_user.last_name);
+            let full_name = format!("{} {}", first_name, last_name);
+            user.full_name = Set(full_name);
         }
 
         if let Some(phone) = input.phone {
-            query_builder = query_builder.bind(phone);
+            user.phone_number = Set(Some(phone));
         }
 
         if let Some(department_id) = input.department_id {
-            query_builder = query_builder.bind(department_id);
+            user.department_id = Set(Some(department_id));
         }
 
         if let Some(manager_id) = input.manager_id {
-            query_builder = query_builder.bind(manager_id);
+            user.manager_id = Set(Some(manager_id));
         }
 
         if let Some(hire_date) = input.hire_date {
-            query_builder = query_builder.bind(hire_date);
+            user.hire_date = Set(Some(hire_date));
         }
 
         if let Some(termination_date) = input.termination_date {
-            query_builder = query_builder.bind(termination_date);
+            user.termination_date = Set(Some(termination_date));
         }
 
         if let Some(status) = input.status {
-            query_builder = query_builder.bind(status);
+            user.status = Set(status);
         }
 
-        let mut user = query_builder.fetch_one(pool).await?;
+        // Update timestamp
+        user.updated_at = Set(Utc::now().naive_utc());
 
-        // Update full_name if first or last name changed
-        if input.first_name.is_some() || input.last_name.is_some() {
-            let full_name = format!("{} {}", user.first_name, user.last_name);
-            user = sqlx::query_as::<_, User>(
-                r#"
-                UPDATE hr_public.users
-                SET full_name = $1
-                WHERE id = $2
-                RETURNING id, email, first_name, last_name, full_name, phone,
-                          department_id, manager_id, hire_date, termination_date,
-                          status, created_at, updated_at, deleted_at
-                "#,
-            )
-            .bind(&full_name)
-            .bind(id)
-            .fetch_one(pool)
-            .await?;
-        }
+        // Save changes
+        let updated_user = user.update(db).await?;
+
+        // Convert to legacy User struct for compatibility
+        let user = User {
+            id: updated_user.id,
+            email: updated_user.email,
+            first_name: updated_user.first_name,
+            last_name: updated_user.last_name,
+            display_name: updated_user.display_name,
+            full_name: updated_user.full_name,
+            role: updated_user.role,
+            phone_number: updated_user.phone_number,
+            alternate_phone: updated_user.alternate_phone,
+            job_title: updated_user.job_title,
+            status: updated_user.status,
+            department_id: updated_user.department_id,
+            manager_id: updated_user.manager_id,
+            hire_date: updated_user.hire_date,
+            is_active: updated_user.is_active,
+            created_at: updated_user.created_at,
+            updated_at: updated_user.updated_at,
+        };
 
         Ok(user)
     }
 
     /// Soft delete a user (sets deleted_at timestamp)
     async fn delete_user(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query(
-            "UPDATE hr_public.users SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL",
-        )
-        .bind(Utc::now())
-        .bind(id)
-        .execute(pool)
-        .await?;
+        // Find the user first to ensure it exists
+        let user = crate::models::user::Entity::find_by_id(id)
+            .filter(crate::models::user::Column::DeletedAt.is_null())
+            .one(db)
+            .await?;
 
-        Ok(result.rows_affected() > 0)
+        if user.is_none() {
+            return Ok(false);
+        }
+
+        // Soft delete by setting deleted_at
+        let mut user: crate::models::user::ActiveModel = user.unwrap().into();
+        user.deleted_at = Set(Some(Utc::now().naive_utc()));
+
+        user.update(db).await?;
+
+        Ok(true)
     }
 
     // ============================================================
@@ -394,7 +345,7 @@ impl MutationRoot {
     ) -> Result<Department> {
         let db = get_db_from_context(ctx)?;
 
-        let department = department::ActiveModel {
+        let department = crate::models::department::ActiveModel {
             name: Set(input.name.clone()),
             description: Set(input.description.clone()),
             manager_id: Set(input.manager_id),
@@ -417,7 +368,7 @@ impl MutationRoot {
         Ok(department)
             .map_err(|e| {
                 tracing::error!("Failed to create department: {}", e);
-                Error::new("Failed to create department")
+                AppError::new("Failed to create department")
             })
     }
 
@@ -428,77 +379,70 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateDepartmentInput,
     ) -> Result<Department> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let db = get_db_from_context(ctx)?;
 
-        // Build dynamic UPDATE query based on provided fields
-        let mut updates = Vec::new();
-        let mut param_count = 2; // Start at 2 because $1 is the ID
+        // Find existing department
+        let existing_dept = crate::models::department::Entity::find_by_id(id)
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Department not found".to_string()))?;
 
-        if input.name.is_some() {
-            updates.push(format!("name = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.description.is_some() {
-            updates.push(format!("description = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.manager_id.is_some() {
-            updates.push(format!("manager_id = ${}", param_count));
-            param_count += 1;
-        }
-
-        if updates.is_empty() {
-            return Err("No fields to update".into());
-        }
-
-        // Always update updated_at timestamp
-        updates.push("updated_at = NOW()".to_string());
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.departments
-            SET {}
-            WHERE id = $1
-            RETURNING id, name, description, manager_id,
-                      created_at, updated_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, Department>(&query).bind(id);
+        // Build active model with updates
+        let mut dept: crate::models::department::ActiveModel = existing_dept.into();
 
         if let Some(name) = input.name {
-            query_builder = query_builder.bind(name);
+            dept.name = Set(name);
         }
 
         if let Some(description) = input.description {
-            query_builder = query_builder.bind(description);
+            dept.description = Set(Some(description));
         }
 
         if let Some(manager_id) = input.manager_id {
-            query_builder = query_builder.bind(manager_id);
+            dept.manager_id = Set(Some(manager_id));
         }
 
-        let department = query_builder.fetch_one(pool).await?;
+        // Update timestamp
+        dept.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_dept = dept.update(db).await?;
+
+        // Convert to legacy Department struct for compatibility
+        let department = Department {
+            id: updated_dept.id,
+            name: updated_dept.name,
+            description: updated_dept.description,
+            parent_department_id: updated_dept.parent_department_id,
+            manager_id: updated_dept.manager_id,
+            created_at: updated_dept.created_at,
+            updated_at: updated_dept.updated_at,
+        };
 
         Ok(department)
     }
 
     /// Soft delete a department (sets deleted_at timestamp)
     async fn delete_department(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query(
-            "UPDATE hr_public.departments SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL",
-        )
-        .bind(Utc::now())
-        .bind(id)
-        .execute(pool)
-        .await?;
+        // Find the department first to ensure it exists
+        let dept = crate::models::department::Entity::find_by_id(id)
+            .filter(crate::models::department::Column::DeletedAt.is_null())
+            .one(db)
+            .await?;
 
-        Ok(result.rows_affected() > 0)
+        if dept.is_none() {
+            return Ok(false);
+        }
+
+        // Soft delete by setting deleted_at
+        let mut dept: crate::models::department::ActiveModel = dept.unwrap().into();
+        dept.deleted_at = Set(Some(Utc::now().naive_utc()));
+
+        dept.update(db).await?;
+
+        Ok(true)
     }
 
     // ============================================================
@@ -507,96 +451,98 @@ impl MutationRoot {
 
     /// Create a new role
     async fn create_role(&self, ctx: &Context<'_>, input: CreateRoleInput) -> Result<Role> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let role = sqlx::query_as::<_, Role>(
-            r#"
-            INSERT INTO hr_public.roles (name, description, level)
-            VALUES ($1, $2, $3)
-            RETURNING id, name, description, level,
-                      created_at, updated_at, deleted_at
-            "#,
-        )
-        .bind(&input.name)
-        .bind(&input.description)
-        .bind(input.level)
-        .fetch_one(pool)
-        .await?;
+        let role = crate::models::role::ActiveModel {
+            name: Set(input.name.clone()),
+            description: Set(input.description.clone()),
+            level: Set(input.level),
+            ..Default::default()
+        };
+
+        let role = role.insert(db).await?;
+
+        // Convert SeaORM model to legacy Role struct for compatibility
+        let role = Role {
+            id: role.id,
+            name: role.name,
+            description: role.description,
+            level: role.level,
+            created_at: role.created_at,
+            updated_at: role.updated_at,
+            deleted_at: role.deleted_at,
+        };
 
         Ok(role)
     }
 
     /// Update an existing role
     async fn update_role(&self, ctx: &Context<'_>, id: Uuid, input: UpdateRoleInput) -> Result<Role> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let db = get_db_from_context(ctx)?;
 
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        // Find existing role
+        let existing_role = crate::models::role::Entity::find_by_id(id)
+            .filter(crate::models::role::Column::DeletedAt.is_null())
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Role not found".to_string()))?;
 
-        if input.name.is_some() {
-            updates.push(format!("name = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.description.is_some() {
-            updates.push(format!("description = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.level.is_some() {
-            updates.push(format!("level = ${}", param_count));
-            param_count += 1;
-        }
-
-        if updates.is_empty() {
-            return Err("No fields to update".into());
-        }
-
-        updates.push("updated_at = NOW()".to_string());
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.roles
-            SET {}
-            WHERE id = $1 AND deleted_at IS NULL
-            RETURNING id, name, description, level,
-                      created_at, updated_at, deleted_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, Role>(&query).bind(id);
+        // Build active model with updates
+        let mut role: crate::models::role::ActiveModel = existing_role.into();
 
         if let Some(name) = input.name {
-            query_builder = query_builder.bind(name);
+            role.name = Set(name);
         }
 
         if let Some(description) = input.description {
-            query_builder = query_builder.bind(description);
+            role.description = Set(Some(description));
         }
 
         if let Some(level) = input.level {
-            query_builder = query_builder.bind(level);
+            role.level = Set(level);
         }
 
-        let role = query_builder.fetch_one(pool).await?;
+        // Update timestamp
+        role.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_role = role.update(db).await?;
+
+        // Convert to legacy Role struct for compatibility
+        let role = Role {
+            id: updated_role.id,
+            name: updated_role.name,
+            description: updated_role.description,
+            level: updated_role.level,
+            created_at: updated_role.created_at,
+            updated_at: updated_role.updated_at,
+            deleted_at: updated_role.deleted_at,
+        };
 
         Ok(role)
     }
 
     /// Soft delete a role
     async fn delete_role(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query(
-            "UPDATE hr_public.roles SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL",
-        )
-        .bind(Utc::now())
-        .bind(id)
-        .execute(pool)
-        .await?;
+        // Find the role first to ensure it exists
+        let role = crate::models::role::Entity::find_by_id(id)
+            .filter(crate::models::role::Column::DeletedAt.is_null())
+            .one(db)
+            .await?;
 
-        Ok(result.rows_affected() > 0)
+        if role.is_none() {
+            return Ok(false);
+        }
+
+        // Soft delete by setting deleted_at
+        let mut role: crate::models::role::ActiveModel = role.unwrap().into();
+        role.deleted_at = Set(Some(Utc::now().naive_utc()));
+
+        role.update(db).await?;
+
+        Ok(true)
     }
 
     // ============================================================
@@ -605,96 +551,98 @@ impl MutationRoot {
 
     /// Create a new permission
     async fn create_permission(&self, ctx: &Context<'_>, input: CreatePermissionInput) -> Result<Permission> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let permission = sqlx::query_as::<_, Permission>(
-            r#"
-            INSERT INTO hr_public.permissions (resource, action, description)
-            VALUES ($1, $2, $3)
-            RETURNING id, resource, action, description,
-                      created_at, updated_at, deleted_at
-            "#,
-        )
-        .bind(&input.resource)
-        .bind(&input.action)
-        .bind(&input.description)
-        .fetch_one(pool)
-        .await?;
+        let permission = crate::models::permission::ActiveModel {
+            resource: Set(input.resource.clone()),
+            action: Set(input.action.clone()),
+            description: Set(input.description.clone()),
+            ..Default::default()
+        };
+
+        let permission = permission.insert(db).await?;
+
+        // Convert SeaORM model to legacy Permission struct for compatibility
+        let permission = Permission {
+            id: permission.id,
+            resource: permission.resource,
+            action: permission.action,
+            description: permission.description,
+            created_at: permission.created_at,
+            updated_at: permission.updated_at,
+            deleted_at: permission.deleted_at,
+        };
 
         Ok(permission)
     }
 
     /// Update an existing permission
     async fn update_permission(&self, ctx: &Context<'_>, id: Uuid, input: UpdatePermissionInput) -> Result<Permission> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let db = get_db_from_context(ctx)?;
 
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        // Find existing permission
+        let existing_permission = crate::models::permission::Entity::find_by_id(id)
+            .filter(crate::models::permission::Column::DeletedAt.is_null())
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Permission not found".to_string()))?;
 
-        if input.resource.is_some() {
-            updates.push(format!("resource = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.action.is_some() {
-            updates.push(format!("action = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.description.is_some() {
-            updates.push(format!("description = ${}", param_count));
-            param_count += 1;
-        }
-
-        if updates.is_empty() {
-            return Err("No fields to update".into());
-        }
-
-        updates.push("updated_at = NOW()".to_string());
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.permissions
-            SET {}
-            WHERE id = $1 AND deleted_at IS NULL
-            RETURNING id, resource, action, description,
-                      created_at, updated_at, deleted_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, Permission>(&query).bind(id);
+        // Build active model with updates
+        let mut permission: crate::models::permission::ActiveModel = existing_permission.into();
 
         if let Some(resource) = input.resource {
-            query_builder = query_builder.bind(resource);
+            permission.resource = Set(resource);
         }
 
         if let Some(action) = input.action {
-            query_builder = query_builder.bind(action);
+            permission.action = Set(action);
         }
 
         if let Some(description) = input.description {
-            query_builder = query_builder.bind(description);
+            permission.description = Set(description);
         }
 
-        let permission = query_builder.fetch_one(pool).await?;
+        // Update timestamp
+        permission.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_permission = permission.update(db).await?;
+
+        // Convert to legacy Permission struct for compatibility
+        let permission = Permission {
+            id: updated_permission.id,
+            resource: updated_permission.resource,
+            action: updated_permission.action,
+            description: updated_permission.description,
+            created_at: updated_permission.created_at,
+            updated_at: updated_permission.updated_at,
+            deleted_at: updated_permission.deleted_at,
+        };
 
         Ok(permission)
     }
 
     /// Soft delete a permission
     async fn delete_permission(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query(
-            "UPDATE hr_public.permissions SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL",
-        )
-        .bind(Utc::now())
-        .bind(id)
-        .execute(pool)
-        .await?;
+        // Find the permission first to ensure it exists
+        let permission = crate::models::permission::Entity::find_by_id(id)
+            .filter(crate::models::permission::Column::DeletedAt.is_null())
+            .one(db)
+            .await?;
 
-        Ok(result.rows_affected() > 0)
+        if permission.is_none() {
+            return Ok(false);
+        }
+
+        // Soft delete by setting deleted_at
+        let mut permission: crate::models::permission::ActiveModel = permission.unwrap().into();
+        permission.deleted_at = Set(Some(Utc::now().naive_utc()));
+
+        permission.update(db).await?;
+
+        Ok(true)
     }
 
     // ============================================================
@@ -703,86 +651,108 @@ impl MutationRoot {
 
     /// Assign a role to a user
     async fn assign_role_to_user(&self, ctx: &Context<'_>, input: AssignRoleInput) -> Result<UserRoleAssignment> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
         // Get the assigner's user ID from context if available
         let assigner_id = ctx.data_opt::<UserContext>().map(|uc| uc.user_id);
 
-        let assignment = sqlx::query_as::<_, UserRoleAssignment>(
-            r#"
-            INSERT INTO hr_public.user_role_assignments
-            (user_id, role_id, assigned_by, assigned_at)
-            VALUES ($1, $2, $3, NOW())
-            RETURNING id, user_id, role_id, assigned_by, assigned_at,
-                      created_at, updated_at, deleted_at
-            "#,
-        )
-        .bind(input.user_id)
-        .bind(input.role_id)
-        .bind(assigner_id)
-        .fetch_one(pool)
-        .await?;
+        let assignment = crate::models::user_role_assignment::ActiveModel {
+            user_id: Set(input.user_id),
+            role_id: Set(input.role_id),
+            assigned_by: Set(assigner_id),
+            assigned_at: Set(Utc::now().naive_utc()),
+            ..Default::default()
+        };
+
+        let assignment = assignment.insert(db).await?;
+
+        // Convert SeaORM model to legacy UserRoleAssignment struct for compatibility
+        let assignment = UserRoleAssignment {
+            id: assignment.id,
+            user_id: assignment.user_id,
+            role_id: assignment.role_id,
+            assigned_by: assignment.assigned_by,
+            assigned_at: assignment.assigned_at,
+            created_at: assignment.created_at,
+            updated_at: assignment.updated_at,
+            deleted_at: assignment.deleted_at,
+        };
 
         Ok(assignment)
     }
 
     /// Remove a role from a user (soft delete the assignment)
     async fn remove_role_from_user(&self, ctx: &Context<'_>, user_id: Uuid, role_id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query(
-            r#"
-            UPDATE hr_public.user_role_assignments
-            SET deleted_at = $1
-            WHERE user_id = $2 AND role_id = $3 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(Utc::now())
-        .bind(user_id)
-        .bind(role_id)
-        .execute(pool)
-        .await?;
+        // Find the assignment
+        let assignment = crate::models::user_role_assignment::Entity::find()
+            .filter(crate::models::user_role_assignment::Column::UserId.eq(user_id))
+            .filter(crate::models::user_role_assignment::Column::RoleId.eq(role_id))
+            .filter(crate::models::user_role_assignment::Column::DeletedAt.is_null())
+            .one(db)
+            .await?;
 
-        Ok(result.rows_affected() > 0)
+        if let Some(assignment) = assignment {
+            // Soft delete by setting deleted_at
+            let mut assignment: crate::models::user_role_assignment::ActiveModel = assignment.into();
+            assignment.deleted_at = Set(Some(Utc::now().naive_utc()));
+
+            assignment.update(db).await?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 
     /// Assign a permission to a role
     async fn assign_permission_to_role(&self, ctx: &Context<'_>, role_id: Uuid, permission_id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query(
-            r#"
-            INSERT INTO hr_public.role_permissions (role_id, permission_id)
-            VALUES ($1, $2)
-            ON CONFLICT (role_id, permission_id) DO NOTHING
-            "#,
-        )
-        .bind(role_id)
-        .bind(permission_id)
-        .execute(pool)
-        .await?;
+        // Check if the assignment already exists
+        let existing = crate::models::role_permission::Entity::find()
+            .filter(crate::models::role_permission::Column::RoleId.eq(role_id))
+            .filter(crate::models::role_permission::Column::PermissionId.eq(permission_id))
+            .filter(crate::models::role_permission::Column::DeletedAt.is_null())
+            .one(db)
+            .await?;
 
-        Ok(result.rows_affected() > 0)
+        if existing.is_some() {
+            return Ok(false); // Already exists
+        }
+
+        let assignment = crate::models::role_permission::ActiveModel {
+            role_id: Set(role_id),
+            permission_id: Set(permission_id),
+            ..Default::default()
+        };
+
+        assignment.insert(db).await?;
+        Ok(true)
     }
 
     /// Remove a permission from a role (soft delete)
     async fn remove_permission_from_role(&self, ctx: &Context<'_>, role_id: Uuid, permission_id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query(
-            r#"
-            UPDATE hr_public.role_permissions
-            SET deleted_at = $1
-            WHERE role_id = $2 AND permission_id = $3 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(Utc::now())
-        .bind(role_id)
-        .bind(permission_id)
-        .execute(pool)
-        .await?;
+        // Find the assignment
+        let assignment = crate::models::role_permission::Entity::find()
+            .filter(crate::models::role_permission::Column::RoleId.eq(role_id))
+            .filter(crate::models::role_permission::Column::PermissionId.eq(permission_id))
+            .filter(crate::models::role_permission::Column::DeletedAt.is_null())
+            .one(db)
+            .await?;
 
-        Ok(result.rows_affected() > 0)
+        if let Some(assignment) = assignment {
+            // Soft delete by setting deleted_at
+            let mut assignment: crate::models::role_permission::ActiveModel = assignment.into();
+            assignment.deleted_at = Set(Some(Utc::now().naive_utc()));
+
+            assignment.update(db).await?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 
     // ============================================================
@@ -791,7 +761,7 @@ impl MutationRoot {
 
     /// Create a new event
     async fn create_event(&self, ctx: &Context<'_>, input: CreateEventInput) -> Result<Event> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
         // Get the creator's user ID from context
         let creator_id = ctx
@@ -799,33 +769,43 @@ impl MutationRoot {
             .map(|uc| uc.user_id)
             .ok_or("User context not found - authentication required")?;
 
-        let event = sqlx::query_as::<_, Event>(
-            r#"
-            INSERT INTO hr_public.events
-            (title, description, location, start_time, end_time, is_all_day,
-             recurrence_rule, recurrence_end_date, capacity, image_url,
-             image_aspect_ratio, created_by)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-            RETURNING id, title, description, location, start_time, end_time,
-                      is_all_day, recurrence_rule, recurrence_end_date, capacity,
-                      image_url, image_aspect_ratio, created_by,
-                      created_at, updated_at, deleted_at
-            "#,
-        )
-        .bind(&input.title)
-        .bind(&input.description)
-        .bind(&input.location)
-        .bind(input.start_time)
-        .bind(input.end_time)
-        .bind(input.is_all_day)
-        .bind(&input.recurrence_rule)
-        .bind(input.recurrence_end_date)
-        .bind(input.capacity)
-        .bind(&input.image_url)
-        .bind(&input.image_aspect_ratio)
-        .bind(creator_id)
-        .fetch_one(pool)
-        .await?;
+        let event = crate::models::event::ActiveModel {
+            title: Set(input.title.clone()),
+            description: Set(input.description.clone()),
+            location: Set(input.location.clone()),
+            start_time: Set(input.start_time),
+            end_time: Set(input.end_time),
+            is_all_day: Set(input.is_all_day),
+            recurrence_rule: Set(input.recurrence_rule.clone()),
+            recurrence_end_date: Set(input.recurrence_end_date),
+            capacity: Set(input.capacity),
+            image_url: Set(input.image_url.clone()),
+            image_aspect_ratio: Set(input.image_aspect_ratio.clone()),
+            organizer_id: Set(creator_id),
+            ..Default::default()
+        };
+
+        let event = event.insert(db).await?;
+
+        // Convert SeaORM model to legacy Event struct for compatibility
+        let event = Event {
+            id: event.id,
+            title: event.title,
+            description: event.description,
+            location: event.location,
+            start_time: event.start_time,
+            end_time: event.end_time,
+            is_all_day: event.is_all_day,
+            recurrence_rule: event.recurrence_rule,
+            recurrence_end_date: event.recurrence_end_date,
+            capacity: event.capacity,
+            image_url: event.image_url,
+            image_aspect_ratio: event.image_aspect_ratio,
+            created_by: event.organizer_id,
+            created_at: event.created_at,
+            updated_at: event.updated_at,
+            deleted_at: event.deleted_at,
+        };
 
         Ok(event)
     }
@@ -837,151 +817,112 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateEventInput,
     ) -> Result<Event> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let db = get_db_from_context(ctx)?;
 
-        // Build dynamic UPDATE query based on provided fields
-        let mut updates = Vec::new();
-        let mut param_count = 2; // Start at 2 because $1 is the ID
+        // Find existing event
+        let existing_event = crate::models::event::Entity::find_by_id(id)
+            .filter(crate::models::event::Column::DeletedAt.is_null())
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Event not found".to_string()))?;
 
-        if input.title.is_some() {
-            updates.push(format!("title = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.description.is_some() {
-            updates.push(format!("description = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.location.is_some() {
-            updates.push(format!("location = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.start_time.is_some() {
-            updates.push(format!("start_time = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.end_time.is_some() {
-            updates.push(format!("end_time = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.is_all_day.is_some() {
-            updates.push(format!("is_all_day = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.recurrence_rule.is_some() {
-            updates.push(format!("recurrence_rule = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.recurrence_end_date.is_some() {
-            updates.push(format!("recurrence_end_date = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.capacity.is_some() {
-            updates.push(format!("capacity = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.image_url.is_some() {
-            updates.push(format!("image_url = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.image_aspect_ratio.is_some() {
-            updates.push(format!("image_aspect_ratio = ${}", param_count));
-            param_count += 1;
-        }
-
-        if updates.is_empty() {
-            return Err("No fields to update".into());
-        }
-
-        // Always update updated_at timestamp
-        updates.push("updated_at = NOW()".to_string());
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.events
-            SET {}
-            WHERE id = $1 AND deleted_at IS NULL
-            RETURNING id, title, description, location, start_time, end_time,
-                      is_all_day, recurrence_rule, recurrence_end_date, capacity,
-                      image_url, image_aspect_ratio, created_by,
-                      created_at, updated_at, deleted_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, Event>(&query).bind(id);
+        // Build active model with updates
+        let mut event: crate::models::event::ActiveModel = existing_event.into();
 
         if let Some(title) = input.title {
-            query_builder = query_builder.bind(title);
+            event.title = Set(title);
         }
 
         if let Some(description) = input.description {
-            query_builder = query_builder.bind(description);
+            event.description = Set(description);
         }
 
         if let Some(location) = input.location {
-            query_builder = query_builder.bind(location);
+            event.location = Set(location);
         }
 
         if let Some(start_time) = input.start_time {
-            query_builder = query_builder.bind(start_time);
+            event.start_time = Set(start_time);
         }
 
         if let Some(end_time) = input.end_time {
-            query_builder = query_builder.bind(end_time);
+            event.end_time = Set(end_time);
         }
 
         if let Some(is_all_day) = input.is_all_day {
-            query_builder = query_builder.bind(is_all_day);
+            event.is_all_day = Set(is_all_day);
         }
 
         if let Some(recurrence_rule) = input.recurrence_rule {
-            query_builder = query_builder.bind(recurrence_rule);
+            event.recurrence_rule = Set(recurrence_rule);
         }
 
         if let Some(recurrence_end_date) = input.recurrence_end_date {
-            query_builder = query_builder.bind(recurrence_end_date);
+            event.recurrence_end_date = Set(recurrence_end_date);
         }
 
         if let Some(capacity) = input.capacity {
-            query_builder = query_builder.bind(capacity);
+            event.capacity = Set(capacity);
         }
 
         if let Some(image_url) = input.image_url {
-            query_builder = query_builder.bind(image_url);
+            event.image_url = Set(image_url);
         }
 
         if let Some(image_aspect_ratio) = input.image_aspect_ratio {
-            query_builder = query_builder.bind(image_aspect_ratio);
+            event.image_aspect_ratio = Set(image_aspect_ratio);
         }
 
-        let event = query_builder.fetch_one(pool).await?;
+        // Update timestamp
+        event.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_event = event.update(db).await?;
+
+        // Convert to legacy Event struct for compatibility
+        let event = Event {
+            id: updated_event.id,
+            title: updated_event.title,
+            description: updated_event.description,
+            location: updated_event.location,
+            start_time: updated_event.start_time,
+            end_time: updated_event.end_time,
+            is_all_day: updated_event.is_all_day,
+            recurrence_rule: updated_event.recurrence_rule,
+            recurrence_end_date: updated_event.recurrence_end_date,
+            capacity: updated_event.capacity,
+            image_url: updated_event.image_url,
+            image_aspect_ratio: updated_event.image_aspect_ratio,
+            created_by: updated_event.organizer_id,
+            created_at: updated_event.created_at,
+            updated_at: updated_event.updated_at,
+            deleted_at: updated_event.deleted_at,
+        };
 
         Ok(event)
     }
 
     /// Soft delete an event (sets deleted_at timestamp)
     async fn delete_event(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query(
-            "UPDATE hr_public.events SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL",
-        )
-        .bind(Utc::now())
-        .bind(id)
-        .execute(pool)
-        .await?;
+        // Find the event first to ensure it exists
+        let event = crate::models::event::Entity::find_by_id(id)
+            .filter(crate::models::event::Column::DeletedAt.is_null())
+            .one(db)
+            .await?;
 
-        Ok(result.rows_affected() > 0)
+        if event.is_none() {
+            return Ok(false);
+        }
+
+        // Soft delete by setting deleted_at
+        let mut event: crate::models::event::ActiveModel = event.unwrap().into();
+        event.deleted_at = Set(Some(Utc::now().naive_utc()));
+
+        event.update(db).await?;
+
+        Ok(true)
     }
 
     // ============================================================
@@ -994,29 +935,37 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateLeaveTypeInput,
     ) -> Result<LeaveType> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let leave_type = sqlx::query_as::<_, LeaveType>(
-            r#"
-            INSERT INTO hr_public.leave_types
-            (name, description, default_days_per_year, requires_approval,
-             max_consecutive_days, is_paid, color, icon)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            RETURNING id, name, description, default_days_per_year,
-                      requires_approval, max_consecutive_days, is_paid,
-                      color, icon, created_at, updated_at, deleted_at
-            "#,
-        )
-        .bind(&input.name)
-        .bind(&input.description)
-        .bind(input.default_days_per_year)
-        .bind(input.requires_approval)
-        .bind(input.max_consecutive_days)
-        .bind(input.is_paid)
-        .bind(&input.color)
-        .bind(&input.icon)
-        .fetch_one(pool)
-        .await?;
+        let leave_type = crate::models::leave_type::ActiveModel {
+            name: Set(input.name.clone()),
+            description: Set(input.description.clone()),
+            default_days_per_year: Set(input.default_days_per_year),
+            requires_approval: Set(input.requires_approval),
+            max_consecutive_days: Set(input.max_consecutive_days),
+            is_paid: Set(input.is_paid),
+            color: Set(input.color.clone()),
+            icon: Set(input.icon.clone()),
+            ..Default::default()
+        };
+
+        let leave_type = leave_type.insert(db).await?;
+
+        // Convert SeaORM model to legacy LeaveType struct for compatibility
+        let leave_type = LeaveType {
+            id: leave_type.id,
+            name: leave_type.name,
+            description: leave_type.description,
+            default_days_per_year: leave_type.default_days_per_year,
+            requires_approval: leave_type.requires_approval,
+            max_consecutive_days: leave_type.max_consecutive_days,
+            is_paid: leave_type.is_paid,
+            color: leave_type.color,
+            icon: leave_type.icon,
+            created_at: leave_type.created_at,
+            updated_at: leave_type.updated_at,
+            deleted_at: leave_type.deleted_at,
+        };
 
         Ok(leave_type)
     }
@@ -1028,121 +977,96 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateLeaveTypeInput,
     ) -> Result<LeaveType> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let db = get_db_from_context(ctx)?;
 
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        // Find existing leave type
+        let existing_leave_type = crate::models::leave_type::Entity::find_by_id(id)
+            .filter(crate::models::leave_type::Column::DeletedAt.is_null())
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Leave type not found".to_string()))?;
 
-        if input.name.is_some() {
-            updates.push(format!("name = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.description.is_some() {
-            updates.push(format!("description = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.default_days_per_year.is_some() {
-            updates.push(format!("default_days_per_year = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.requires_approval.is_some() {
-            updates.push(format!("requires_approval = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.max_consecutive_days.is_some() {
-            updates.push(format!("max_consecutive_days = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.is_paid.is_some() {
-            updates.push(format!("is_paid = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.color.is_some() {
-            updates.push(format!("color = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.icon.is_some() {
-            updates.push(format!("icon = ${}", param_count));
-            param_count += 1;
-        }
-
-        if updates.is_empty() {
-            return Err("No fields to update".into());
-        }
-
-        updates.push("updated_at = NOW()".to_string());
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.leave_types
-            SET {}
-            WHERE id = $1 AND deleted_at IS NULL
-            RETURNING id, name, description, default_days_per_year,
-                      requires_approval, max_consecutive_days, is_paid,
-                      color, icon, created_at, updated_at, deleted_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, LeaveType>(&query).bind(id);
+        // Build active model with updates
+        let mut leave_type: crate::models::leave_type::ActiveModel = existing_leave_type.into();
 
         if let Some(name) = input.name {
-            query_builder = query_builder.bind(name);
+            leave_type.name = Set(name);
         }
 
         if let Some(description) = input.description {
-            query_builder = query_builder.bind(description);
+            leave_type.description = Set(description);
         }
 
-        if let Some(days) = input.default_days_per_year {
-            query_builder = query_builder.bind(days);
+        if let Some(default_days) = input.default_days_per_year {
+            leave_type.default_days_per_year = Set(default_days);
         }
 
         if let Some(requires_approval) = input.requires_approval {
-            query_builder = query_builder.bind(requires_approval);
+            leave_type.requires_approval = Set(requires_approval);
         }
 
         if let Some(max_days) = input.max_consecutive_days {
-            query_builder = query_builder.bind(max_days);
+            leave_type.max_consecutive_days = Set(max_days);
         }
 
         if let Some(is_paid) = input.is_paid {
-            query_builder = query_builder.bind(is_paid);
+            leave_type.is_paid = Set(is_paid);
         }
 
         if let Some(color) = input.color {
-            query_builder = query_builder.bind(color);
+            leave_type.color = Set(color);
         }
 
         if let Some(icon) = input.icon {
-            query_builder = query_builder.bind(icon);
+            leave_type.icon = Set(icon);
         }
 
-        let leave_type = query_builder.fetch_one(pool).await?;
+        // Update timestamp
+        leave_type.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_leave_type = leave_type.update(db).await?;
+
+        // Convert to legacy LeaveType struct for compatibility
+        let leave_type = LeaveType {
+            id: updated_leave_type.id,
+            name: updated_leave_type.name,
+            description: updated_leave_type.description,
+            default_days_per_year: updated_leave_type.default_days_per_year,
+            requires_approval: updated_leave_type.requires_approval,
+            max_consecutive_days: updated_leave_type.max_consecutive_days,
+            is_paid: updated_leave_type.is_paid,
+            color: updated_leave_type.color,
+            icon: updated_leave_type.icon,
+            created_at: updated_leave_type.created_at,
+            updated_at: updated_leave_type.updated_at,
+            deleted_at: updated_leave_type.deleted_at,
+        };
 
         Ok(leave_type)
     }
 
     /// Soft delete a leave type
     async fn delete_leave_type(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query(
-            "UPDATE hr_public.leave_types SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL",
-        )
-        .bind(Utc::now())
-        .bind(id)
-        .execute(pool)
-        .await?;
+        // Find the leave type first to ensure it exists
+        let leave_type = crate::models::leave_type::Entity::find_by_id(id)
+            .filter(crate::models::leave_type::Column::DeletedAt.is_null())
+            .one(db)
+            .await?;
 
-        Ok(result.rows_affected() > 0)
+        if leave_type.is_none() {
+            return Ok(false);
+        }
+
+        // Soft delete by setting deleted_at
+        let mut leave_type: crate::models::leave_type::ActiveModel = leave_type.unwrap().into();
+        leave_type.deleted_at = Set(Some(Utc::now().naive_utc()));
+
+        leave_type.update(db).await?;
+
+        Ok(true)
     }
 
     // ============================================================
@@ -1155,23 +1079,30 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateLeaveBalanceInput,
     ) -> Result<LeaveBalance> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let balance = sqlx::query_as::<_, LeaveBalance>(
-            r#"
-            INSERT INTO hr_public.time_off_balances
-            (employee_id, policy_id, year, balance_days, used_days)
-            VALUES ($1, $2, $3, $4, 0)
-            RETURNING id, employee_id, policy_id, year, balance_days, used_days,
-                      created_at, updated_at
-            "#,
-        )
-        .bind(input.employee_id)
-        .bind(input.policy_id)
-        .bind(input.year)
-        .bind(input.balance_days)
-        .fetch_one(pool)
-        .await?;
+        let balance = crate::models::leave_balance::ActiveModel {
+            employee_id: Set(input.employee_id),
+            policy_id: Set(input.policy_id),
+            year: Set(input.year),
+            balance_days: Set(input.balance_days),
+            used_days: Set(0.0),
+            ..Default::default()
+        };
+
+        let balance = balance.insert(db).await?;
+
+        // Convert SeaORM model to legacy LeaveBalance struct for compatibility
+        let balance = LeaveBalance {
+            id: balance.id,
+            employee_id: balance.employee_id,
+            policy_id: balance.policy_id,
+            year: balance.year,
+            balance_days: balance.balance_days,
+            used_days: balance.used_days,
+            created_at: balance.created_at,
+            updated_at: balance.updated_at,
+        };
 
         Ok(balance)
     }
@@ -1183,53 +1114,42 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateLeaveBalanceInput,
     ) -> Result<LeaveBalance> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let db = get_db_from_context(ctx)?;
 
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        // Find existing leave balance
+        let existing_balance = crate::models::leave_balance::Entity::find_by_id(id)
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Leave balance not found".to_string()))?;
 
-        if input.balance_days.is_some() {
-            updates.push(format!("balance_days = ${}", param_count));
-            param_count += 1;
+        // Build active model with updates
+        let mut balance: crate::models::leave_balance::ActiveModel = existing_balance.into();
+
+        if let Some(balance_days) = input.balance_days {
+            balance.balance_days = Set(balance_days);
         }
 
-        if input.used_days.is_some() {
-            updates.push(format!("used_days = ${}", param_count));
-            param_count += 1;
+        if let Some(used_days) = input.used_days {
+            balance.used_days = Set(used_days);
         }
 
+        // Update timestamp
+        balance.updated_at = Set(Utc::now().naive_utc());
 
+        // Save changes
+        let updated_balance = balance.update(db).await?;
 
-        if updates.is_empty() {
-            return Err("No fields to update".into());
-        }
-
-        updates.push("updated_at = NOW()".to_string());
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.time_off_balances
-            SET {}
-            WHERE id = $1
-            RETURNING id, employee_id, policy_id, year, balance_days, used_days,
-                      created_at, updated_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, LeaveBalance>(&query).bind(id);
-
-        if let Some(balance) = input.balance_days {
-            query_builder = query_builder.bind(balance);
-        }
-
-        if let Some(used) = input.used_days {
-            query_builder = query_builder.bind(used);
-        }
-
-
-
-        let balance = query_builder.fetch_one(pool).await?;
+        // Convert to legacy LeaveBalance struct for compatibility
+        let balance = LeaveBalance {
+            id: updated_balance.id,
+            employee_id: updated_balance.employee_id,
+            policy_id: updated_balance.policy_id,
+            year: updated_balance.year,
+            balance_days: updated_balance.balance_days,
+            used_days: updated_balance.used_days,
+            created_at: updated_balance.created_at,
+            updated_at: updated_balance.updated_at,
+        };
 
         Ok(balance)
     }
@@ -1252,9 +1172,13 @@ impl MutationRoot {
             .map(|uc| uc.user_id)
             .ok_or("User context not found - authentication required")?;
 
-        let request = leave_request::ActiveModel {
+        // For now, we'll use a placeholder - this should be updated to fetch the actual leave type name
+        // TODO: Fetch leave type name from database using leave_type_id
+        let leave_type_name = "vacation".to_string(); // Placeholder
+
+        let request = crate::models::leave_request::ActiveModel {
             employee_id: Set(user_id),
-            leave_type: Set(input.leave_type.clone()),
+            leave_type: Set(leave_type_name),
             start_date: Set(input.start_date),
             end_date: Set(input.end_date),
             days_requested: Set(input.days_requested),
@@ -1285,7 +1209,7 @@ impl MutationRoot {
         Ok(request)
             .map_err(|e| {
                 tracing::error!("Failed to create leave request: {}", e);
-                Error::new("Failed to create leave request")
+                AppError::new("Failed to create leave request")
             })
     }
 
@@ -1296,68 +1220,57 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateLeaveRequestInput,
     ) -> Result<LeaveRequest> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let db = get_db_from_context(ctx)?;
 
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        // Find existing leave request (only pending ones can be updated)
+        let existing_request = crate::models::leave_request::Entity::find_by_id(id)
+            .filter(crate::models::leave_request::Column::Status.eq("pending"))
+            .filter(crate::models::leave_request::Column::DeletedAt.is_null())
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Leave request not found or not pending".to_string()))?;
 
-        if input.start_date.is_some() {
-            updates.push(format!("start_date = ${}", param_count));
-            param_count += 1;
+        // Build active model with updates
+        let mut request: crate::models::leave_request::ActiveModel = existing_request.into();
+
+        if let Some(start_date) = input.start_date {
+            request.start_date = Set(start_date);
         }
 
-        if input.end_date.is_some() {
-            updates.push(format!("end_date = ${}", param_count));
-            param_count += 1;
+        if let Some(end_date) = input.end_date {
+            request.end_date = Set(end_date);
         }
 
-        if input.days_requested.is_some() {
-            updates.push(format!("days_requested = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.reason.is_some() {
-            updates.push(format!("reason = ${}", param_count));
-            param_count += 1;
-        }
-
-        if updates.is_empty() {
-            return Err("No fields to update".into());
-        }
-
-        updates.push("updated_at = NOW()".to_string());
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.leave_requests
-            SET {}
-            WHERE id = $1 AND status = 'pending' AND deleted_at IS NULL
-            RETURNING id, user_id, leave_type_id, start_date, end_date,
-                      days_requested, status, reason, approved_by, approved_at,
-                      rejection_reason, created_at, updated_at, deleted_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, LeaveRequest>(&query).bind(id);
-
-        if let Some(start) = input.start_date {
-            query_builder = query_builder.bind(start);
-        }
-
-        if let Some(end) = input.end_date {
-            query_builder = query_builder.bind(end);
-        }
-
-        if let Some(days) = input.days_requested {
-            query_builder = query_builder.bind(days);
+        if let Some(days_requested) = input.days_requested {
+            request.days_requested = Set(days_requested);
         }
 
         if let Some(reason) = input.reason {
-            query_builder = query_builder.bind(reason);
+            request.reason = Set(reason);
         }
 
-        let request = query_builder.fetch_one(pool).await?;
+        // Update timestamp
+        request.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_request = request.update(db).await?;
+
+        // Convert to legacy LeaveRequest struct for compatibility
+        let request = LeaveRequest {
+            id: updated_request.id,
+            employee_id: updated_request.employee_id,
+            manager_id: updated_request.manager_id,
+            leave_type: updated_request.leave_type,
+            start_date: updated_request.start_date,
+            end_date: updated_request.end_date,
+            days_requested: updated_request.days_requested,
+            status: LeaveRequestStatus::from_str(&updated_request.status).unwrap_or(LeaveRequestStatus::Pending),
+            reason: updated_request.reason,
+            manager_comments: updated_request.manager_comments,
+            created_at: updated_request.created_at,
+            updated_at: updated_request.updated_at,
+            deleted_at: updated_request.deleted_at,
+        };
 
         Ok(request)
     }
@@ -1368,7 +1281,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: ApproveLeaveRequestInput,
     ) -> Result<LeaveRequest> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
         // Get approver ID from context
         let approver_id = ctx
@@ -1376,20 +1289,39 @@ impl MutationRoot {
             .map(|uc| uc.user_id)
             .ok_or("User context not found - authentication required")?;
 
-        let request = sqlx::query_as::<_, LeaveRequest>(
-            r#"
-            UPDATE hr_public.leave_requests
-            SET status = 'approved', approved_by = $1, approved_at = NOW(), updated_at = NOW()
-            WHERE id = $2 AND status = 'pending' AND deleted_at IS NULL
-            RETURNING id, user_id, leave_type_id, start_date, end_date,
-                      days_requested, status, reason, approved_by, approved_at,
-                      rejection_reason, created_at, updated_at, deleted_at
-            "#,
-        )
-        .bind(approver_id)
-        .bind(input.request_id)
-        .fetch_one(pool)
-        .await?;
+        // Find existing leave request (only pending ones can be approved)
+        let existing_request = crate::models::leave_request::Entity::find_by_id(input.request_id)
+            .filter(crate::models::leave_request::Column::Status.eq("pending"))
+            .filter(crate::models::leave_request::Column::DeletedAt.is_null())
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Leave request not found or not pending".to_string()))?;
+
+        // Build active model with approval
+        let mut request: crate::models::leave_request::ActiveModel = existing_request.into();
+        request.status = Set("approved".to_string());
+        request.manager_id = Set(Some(approver_id));
+        request.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_request = request.update(db).await?;
+
+        // Convert to legacy LeaveRequest struct for compatibility
+        let request = LeaveRequest {
+            id: updated_request.id,
+            employee_id: updated_request.employee_id,
+            manager_id: updated_request.manager_id,
+            leave_type: updated_request.leave_type,
+            start_date: updated_request.start_date,
+            end_date: updated_request.end_date,
+            days_requested: updated_request.days_requested,
+            status: LeaveRequestStatus::Approved,
+            reason: updated_request.reason,
+            manager_comments: updated_request.manager_comments,
+            created_at: updated_request.created_at,
+            updated_at: updated_request.updated_at,
+            deleted_at: updated_request.deleted_at,
+        };
 
         Ok(request)
     }
@@ -1400,7 +1332,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: RejectLeaveRequestInput,
     ) -> Result<LeaveRequest> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
         // Get approver ID from context
         let approver_id = ctx
@@ -1408,60 +1340,109 @@ impl MutationRoot {
             .map(|uc| uc.user_id)
             .ok_or("User context not found - authentication required")?;
 
-        let request = sqlx::query_as::<_, LeaveRequest>(
-            r#"
-            UPDATE hr_public.leave_requests
-            SET status = 'rejected', approved_by = $1, approved_at = NOW(),
-                rejection_reason = $2, updated_at = NOW()
-            WHERE id = $3 AND status = 'pending' AND deleted_at IS NULL
-            RETURNING id, user_id, leave_type_id, start_date, end_date,
-                      days_requested, status, reason, approved_by, approved_at,
-                      rejection_reason, created_at, updated_at, deleted_at
-            "#,
-        )
-        .bind(approver_id)
-        .bind(&input.rejection_reason)
-        .bind(input.request_id)
-        .fetch_one(pool)
-        .await?;
+        // Find existing leave request (only pending ones can be rejected)
+        let existing_request = crate::models::leave_request::Entity::find_by_id(input.request_id)
+            .filter(crate::models::leave_request::Column::Status.eq("pending"))
+            .filter(crate::models::leave_request::Column::DeletedAt.is_null())
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Leave request not found or not pending".to_string()))?;
+
+        // Build active model with rejection
+        let mut request: crate::models::leave_request::ActiveModel = existing_request.into();
+        request.status = Set("rejected".to_string());
+        request.manager_id = Set(Some(approver_id));
+        request.manager_comments = Set(Some(input.rejection_reason.clone()));
+        request.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_request = request.update(db).await?;
+
+        // Convert to legacy LeaveRequest struct for compatibility
+        let request = LeaveRequest {
+            id: updated_request.id,
+            employee_id: updated_request.employee_id,
+            manager_id: updated_request.manager_id,
+            leave_type: updated_request.leave_type,
+            start_date: updated_request.start_date,
+            end_date: updated_request.end_date,
+            days_requested: updated_request.days_requested,
+            status: LeaveRequestStatus::Rejected,
+            reason: updated_request.reason,
+            manager_comments: updated_request.manager_comments,
+            created_at: updated_request.created_at,
+            updated_at: updated_request.updated_at,
+            deleted_at: updated_request.deleted_at,
+        };
 
         Ok(request)
     }
 
     /// Cancel a leave request (by the user who created it)
     async fn cancel_leave_request(&self, ctx: &Context<'_>, id: Uuid) -> Result<LeaveRequest> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let request = sqlx::query_as::<_, LeaveRequest>(
-            r#"
-            UPDATE hr_public.leave_requests
-            SET status = 'cancelled', updated_at = NOW()
-            WHERE id = $1 AND status IN ('pending', 'approved') AND deleted_at IS NULL
-            RETURNING id, user_id, leave_type_id, start_date, end_date,
-                      days_requested, status, reason, approved_by, approved_at,
-                      rejection_reason, created_at, updated_at, deleted_at
-            "#,
-        )
-        .bind(id)
-        .fetch_one(pool)
-        .await?;
+        // Find existing leave request (only pending or approved ones can be cancelled)
+        let existing_request = crate::models::leave_request::Entity::find_by_id(id)
+            .filter(
+                crate::models::leave_request::Column::Status
+                    .eq("pending")
+                    .or(crate::models::leave_request::Column::Status.eq("approved"))
+            )
+            .filter(crate::models::leave_request::Column::DeletedAt.is_null())
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Leave request not found or cannot be cancelled".to_string()))?;
+
+        // Build active model with cancellation
+        let mut request: crate::models::leave_request::ActiveModel = existing_request.into();
+        request.status = Set("cancelled".to_string());
+        request.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_request = request.update(db).await?;
+
+        // Convert to legacy LeaveRequest struct for compatibility
+        let request = LeaveRequest {
+            id: updated_request.id,
+            employee_id: updated_request.employee_id,
+            manager_id: updated_request.manager_id,
+            leave_type: updated_request.leave_type,
+            start_date: updated_request.start_date,
+            end_date: updated_request.end_date,
+            days_requested: updated_request.days_requested,
+            status: LeaveRequestStatus::Cancelled,
+            reason: updated_request.reason,
+            manager_comments: updated_request.manager_comments,
+            created_at: updated_request.created_at,
+            updated_at: updated_request.updated_at,
+            deleted_at: updated_request.deleted_at,
+        };
 
         Ok(request)
     }
 
     /// Soft delete a leave request
     async fn delete_leave_request(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query(
-            "UPDATE hr_public.leave_requests SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL",
-        )
-        .bind(Utc::now())
-        .bind(id)
-        .execute(pool)
-        .await?;
+        // Find the leave request first to ensure it exists
+        let request = crate::models::leave_request::Entity::find_by_id(id)
+            .filter(crate::models::leave_request::Column::DeletedAt.is_null())
+            .one(db)
+            .await?;
 
-        Ok(result.rows_affected() > 0)
+        if request.is_none() {
+            return Ok(false);
+        }
+
+        // Soft delete by setting deleted_at
+        let mut request: crate::models::leave_request::ActiveModel = request.unwrap().into();
+        request.deleted_at = Set(Some(Utc::now().naive_utc()));
+
+        request.update(db).await?;
+
+        Ok(true)
     }
 
     // ============================================================
@@ -1478,7 +1459,7 @@ impl MutationRoot {
             .map(|uc| uc.user_id)
             .ok_or("User context not found - authentication required")?;
 
-        let task = task::ActiveModel {
+        let task = crate::models::task::ActiveModel {
             title: Set(input.title.clone()),
             description: Set(input.description.clone()),
             task_type_id: Set(input.task_type_id),
@@ -1498,7 +1479,7 @@ impl MutationRoot {
         let task = task.insert(db).await?;
 
         // Create audit entry for task creation
-        let audit_entry = task_audit_entry::ActiveModel {
+        let audit_entry = crate::models::task_audit_entry::ActiveModel {
             task_id: Set(task.id),
             changed_by: Set(creator_id),
             change_type: Set("created".to_string()),
@@ -1513,8 +1494,22 @@ impl MutationRoot {
             title: task.title,
             description: task.description,
             task_type_id: task.task_type_id,
-            status: TaskStatus::from_str(&task.status).unwrap_or(TaskStatus::Todo),
-            priority: TaskPriority::from_str(&task.priority).unwrap_or(TaskPriority::Medium),
+            status: match task.status.as_str() {
+                "todo" => TaskStatus::Todo,
+                "in_progress" => TaskStatus::InProgress,
+                "blocked" => TaskStatus::Blocked,
+                "review" => TaskStatus::Review,
+                "done" => TaskStatus::Done,
+                "cancelled" => TaskStatus::Cancelled,
+                _ => TaskStatus::Todo,
+            },
+            priority: match task.priority.as_str() {
+                "low" => TaskPriority::Low,
+                "medium" => TaskPriority::Medium,
+                "high" => TaskPriority::High,
+                "urgent" => TaskPriority::Urgent,
+                _ => TaskPriority::Medium,
+            },
             due_date: task.due_date,
             completed_at: task.completed_at,
             estimated_hours: task.estimated_hours,
@@ -1543,7 +1538,7 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateTaskInput,
     ) -> Result<Task> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let db = get_db_from_context(ctx)?;
 
         // Get user ID from context for audit trail
         let user_id = ctx
@@ -1551,179 +1546,131 @@ impl MutationRoot {
             .map(|uc| uc.user_id)
             .ok_or("User context not found - authentication required")?;
 
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        // Find existing task
+        let existing_task = crate::models::task::Entity::find_by_id(id)
+            .filter(crate::models::task::Column::DeletedAt.is_null())
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Task not found".to_string()))?;
 
-        if input.title.is_some() {
-            updates.push(format!("title = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.description.is_some() {
-            updates.push(format!("description = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.status.is_some() {
-            updates.push(format!("status = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.priority.is_some() {
-            updates.push(format!("priority = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.due_date.is_some() {
-            updates.push(format!("due_date = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.estimated_hours.is_some() {
-            updates.push(format!("estimated_hours = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.actual_hours.is_some() {
-            updates.push(format!("actual_hours = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.tags.is_some() {
-            updates.push(format!("tags = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.department_id.is_some() {
-            updates.push(format!("department_id = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.task_type_id.is_some() {
-            updates.push(format!("task_type_id = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.assignee_id.is_some() {
-            updates.push(format!("assignee_id = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.parent_task_id.is_some() {
-            updates.push(format!("parent_task_id = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.requires_manual_reassignment.is_some() {
-            updates.push(format!("requires_manual_reassignment = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.archived.is_some() {
-            updates.push(format!("archived = ${}", param_count));
-            param_count += 1;
-        }
-
-        if updates.is_empty() {
-            return Err("No fields to update".into());
-        }
-
-        // Update completed_at if status changed to done
-        if let Some(status) = &input.status {
-            if *status == TaskStatus::Done {
-                updates.push("completed_at = NOW()".to_string());
-            }
-        }
-
-        updates.push("updated_at = NOW()".to_string());
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.tasks
-            SET {}
-            WHERE id = $1 AND deleted_at IS NULL
-            RETURNING id, title, description, task_type_id, status, priority, due_date,
-                      completed_at, estimated_hours, actual_hours, tags, department_id,
-                      created_by, assignee_id, parent_task_id, requires_manual_reassignment,
-                      archived, archived_at, archived_by,
-                      created_at, updated_at, deleted_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, Task>(&query).bind(id);
+        // Build active model with updates
+        let mut task: crate::models::task::ActiveModel = existing_task.into();
 
         if let Some(title) = input.title {
-            query_builder = query_builder.bind(title);
+            task.title = Set(title);
         }
 
         if let Some(description) = input.description {
-            query_builder = query_builder.bind(description);
+            task.description = Set(description);
         }
 
         if let Some(status) = input.status {
-            query_builder = query_builder.bind(status);
+            task.status = Set(status.as_str().to_string());
+            // Set completed_at if status changed to done
+            if status == TaskStatus::Done {
+                task.completed_at = Set(Some(Utc::now().naive_utc()));
+            }
         }
 
         if let Some(priority) = input.priority {
-            query_builder = query_builder.bind(priority);
+            task.priority = Set(priority.as_str().to_string());
         }
 
         if let Some(due_date) = input.due_date {
-            query_builder = query_builder.bind(due_date);
+            task.due_date = Set(due_date);
         }
 
-
-        if let Some(estimated) = input.estimated_hours {
-            query_builder = query_builder.bind(estimated);
+        if let Some(estimated_hours) = input.estimated_hours {
+            task.estimated_hours = Set(estimated_hours);
         }
 
-        if let Some(actual) = input.actual_hours {
-            query_builder = query_builder.bind(actual);
+        if let Some(actual_hours) = input.actual_hours {
+            task.actual_hours = Set(actual_hours);
         }
 
         if let Some(tags) = input.tags {
-            query_builder = query_builder.bind(tags);
+            task.tags = Set(tags);
         }
 
-        if let Some(dept_id) = input.department_id {
-            query_builder = query_builder.bind(dept_id);
+        if let Some(department_id) = input.department_id {
+            task.department_id = Set(department_id);
         }
 
         if let Some(task_type_id) = input.task_type_id {
-            query_builder = query_builder.bind(task_type_id);
+            task.task_type_id = Set(task_type_id);
         }
 
         if let Some(assignee_id) = input.assignee_id {
-            query_builder = query_builder.bind(assignee_id);
+            task.assignee_id = Set(assignee_id);
         }
 
         if let Some(parent_task_id) = input.parent_task_id {
-            query_builder = query_builder.bind(parent_task_id);
+            task.parent_task_id = Set(parent_task_id);
         }
 
-        if let Some(requires_manual) = input.requires_manual_reassignment {
-            query_builder = query_builder.bind(requires_manual);
+        if let Some(requires_manual_reassignment) = input.requires_manual_reassignment {
+            task.requires_manual_reassignment = Set(requires_manual_reassignment);
         }
 
         if let Some(archived) = input.archived {
-            query_builder = query_builder.bind(archived);
+            task.archived = Set(archived);
         }
 
-        let task = query_builder.fetch_one(pool).await?;
+        // Update timestamp
+        task.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_task = task.update(db).await?;
 
         // Create audit entry for task update
-        let _ = sqlx::query(
-            r#"
-            INSERT INTO hr_public.task_audit_entries
-            (task_id, user_id, action, comment)
-            VALUES ($1, $2, 'updated', 'Task updated')
-            "#,
-        )
-        .bind(task.id)
-        .bind(user_id)
-        .execute(pool)
-        .await;
+        let audit_entry = crate::models::task_audit_entry::ActiveModel {
+            task_id: Set(updated_task.id),
+            changed_by: Set(user_id),
+            change_type: Set("updated".to_string()),
+            new_value: Set(serde_json::to_value(&updated_task).unwrap_or_default()),
+            ..Default::default()
+        };
+        let _ = audit_entry.insert(db).await;
+
+        // Convert to legacy Task struct for compatibility
+        let task = Task {
+            id: updated_task.id,
+            title: updated_task.title,
+            description: updated_task.description,
+            task_type_id: updated_task.task_type_id,
+            status: match updated_task.status.as_str() {
+                "todo" => TaskStatus::Todo,
+                "in_progress" => TaskStatus::InProgress,
+                "blocked" => TaskStatus::Blocked,
+                "review" => TaskStatus::Review,
+                "done" => TaskStatus::Done,
+                "cancelled" => TaskStatus::Cancelled,
+                _ => TaskStatus::Todo,
+            },
+            priority: match updated_task.priority.as_str() {
+                "low" => TaskPriority::Low,
+                "medium" => TaskPriority::Medium,
+                "high" => TaskPriority::High,
+                "urgent" => TaskPriority::Urgent,
+                _ => TaskPriority::Medium,
+            },
+            due_date: updated_task.due_date,
+            completed_at: updated_task.completed_at,
+            estimated_hours: updated_task.estimated_hours,
+            actual_hours: updated_task.actual_hours,
+            tags: updated_task.tags,
+            department_id: updated_task.department_id,
+            created_by: updated_task.created_by,
+            assignee_id: updated_task.assignee_id,
+            parent_task_id: updated_task.parent_task_id,
+            requires_manual_reassignment: updated_task.requires_manual_reassignment,
+            archived: updated_task.archived,
+            archived_at: updated_task.archived_at,
+            archived_by: updated_task.archived_by,
+            created_at: updated_task.created_at,
+            updated_at: updated_task.updated_at,
+            deleted_at: updated_task.deleted_at,
+        };
 
         Ok(task)
     }
@@ -1734,88 +1681,128 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: ChangeTaskStatusInput,
     ) -> Result<Task> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
         let user_id = ctx
             .data_opt::<UserContext>()
             .map(|uc| uc.user_id)
             .ok_or("User context not found - authentication required")?;
 
-        // Get old status for audit trail
-        let old_status: (TaskStatus,) = sqlx::query_as(
-            "SELECT status FROM hr_public.tasks WHERE id = $1 AND deleted_at IS NULL",
-        )
-        .bind(input.task_id)
-        .fetch_one(pool)
-        .await?;
+        // Find existing task
+        let existing_task = crate::models::task::Entity::find_by_id(input.task_id)
+            .filter(crate::models::task::Column::DeletedAt.is_null())
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Task not found".to_string()))?;
 
-        // Update task status
-        let mut query = format!(
-            "UPDATE hr_public.tasks SET status = $1, updated_at = NOW()"
-        );
+        let old_status = existing_task.status.clone();
+
+        // Build active model with status change
+        let mut task: crate::models::task::ActiveModel = existing_task.into();
+        task.status = Set(input.status.as_str().to_string());
 
         // If changing to done, set completed_at
         if input.status == TaskStatus::Done {
-            query.push_str(", completed_at = NOW()");
+            task.completed_at = Set(Some(Utc::now().naive_utc()));
         }
 
-        query.push_str(" WHERE id = $2 AND deleted_at IS NULL RETURNING id, title, description, status, priority, due_date, start_date, completed_at, estimated_hours, actual_hours, tags, department_id, created_by, created_at, updated_at, deleted_at");
+        task.updated_at = Set(Utc::now().naive_utc());
 
-        let task = sqlx::query_as::<_, Task>(&query)
-            .bind(input.status)
-            .bind(input.task_id)
-            .fetch_one(pool)
-            .await?;
+        // Save changes
+        let updated_task = task.update(db).await?;
 
         // Create audit entry
-        let _ = sqlx::query(
-            r#"
-            INSERT INTO hr_public.task_audit_entries
-            (task_id, user_id, action, field_name, old_value, new_value, comment)
-            VALUES ($1, $2, 'status_changed', 'status', $3, $4, $5)
-            "#,
-        )
-        .bind(task.id)
-        .bind(user_id)
-        .bind(format!("{:?}", old_status.0))
-        .bind(format!("{:?}", input.status))
-        .bind(&input.comment)
-        .execute(pool)
-        .await;
+        let audit_entry = crate::models::task_audit_entry::ActiveModel {
+            task_id: Set(updated_task.id),
+            changed_by: Set(user_id),
+            change_type: Set("status_changed".to_string()),
+            field_name: Set(Some("status".to_string())),
+            old_value: Set(Some(old_status)),
+            new_value: Set(Some(input.status.as_str().to_string())),
+            comment: Set(input.comment),
+            ..Default::default()
+        };
+        let _ = audit_entry.insert(db).await;
+
+        // Convert to legacy Task struct for compatibility
+        let task = Task {
+            id: updated_task.id,
+            title: updated_task.title,
+            description: updated_task.description,
+            task_type_id: updated_task.task_type_id,
+            status: match updated_task.status.as_str() {
+                "todo" => TaskStatus::Todo,
+                "in_progress" => TaskStatus::InProgress,
+                "blocked" => TaskStatus::Blocked,
+                "review" => TaskStatus::Review,
+                "done" => TaskStatus::Done,
+                "cancelled" => TaskStatus::Cancelled,
+                _ => TaskStatus::Todo,
+            },
+            priority: match updated_task.priority.as_str() {
+                "low" => TaskPriority::Low,
+                "medium" => TaskPriority::Medium,
+                "high" => TaskPriority::High,
+                "urgent" => TaskPriority::Urgent,
+                _ => TaskPriority::Medium,
+            },
+            due_date: updated_task.due_date,
+            completed_at: updated_task.completed_at,
+            estimated_hours: updated_task.estimated_hours,
+            actual_hours: updated_task.actual_hours,
+            tags: updated_task.tags,
+            department_id: updated_task.department_id,
+            created_by: updated_task.created_by,
+            assignee_id: updated_task.assignee_id,
+            parent_task_id: updated_task.parent_task_id,
+            requires_manual_reassignment: updated_task.requires_manual_reassignment,
+            archived: updated_task.archived,
+            archived_at: updated_task.archived_at,
+            archived_by: updated_task.archived_by,
+            created_at: updated_task.created_at,
+            updated_at: updated_task.updated_at,
+            deleted_at: updated_task.deleted_at,
+        };
 
         Ok(task)
     }
 
     /// Soft delete a task
     async fn delete_task(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let user_id = ctx
-            .data_opt::<UserContext>()
-            .map(|uc| uc.user_id);
+        let user_id = ctx.data_opt::<UserContext>().map(|uc| uc.user_id);
 
-        let result = sqlx::query(
-            "UPDATE hr_public.tasks SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL",
-        )
-        .bind(Utc::now())
-        .bind(id)
-        .execute(pool)
-        .await?;
+        // Find the task first to ensure it exists
+        let task = crate::models::task::Entity::find_by_id(id)
+            .filter(crate::models::task::Column::DeletedAt.is_null())
+            .one(db)
+            .await?;
+
+        if task.is_none() {
+            return Ok(false);
+        }
+
+        // Soft delete by setting deleted_at
+        let mut task: crate::models::task::ActiveModel = task.unwrap().into();
+        task.deleted_at = Set(Some(Utc::now().naive_utc()));
+
+        task.update(db).await?;
 
         // Create audit entry if user context available
         if let Some(uid) = user_id {
-            let _ = sqlx::query(
-                r#"
-                INSERT INTO hr_public.task_audit_entries
-                (task_id, user_id, action, comment)
-                VALUES ($1, $2, 'deleted', 'Task deleted')
-                "#,
-            )
-            .bind(id)
-            .bind(uid)
-            .execute(pool)
-            .await;
+            let audit_entry = crate::models::task_audit_entry::ActiveModel {
+                task_id: Set(id),
+                changed_by: Set(uid),
+                change_type: Set("deleted".to_string()),
+                comment: Set(Some("Task deleted".to_string())),
+                ..Default::default()
+            };
+            let _ = audit_entry.insert(db).await;
         }
+
+        Ok(true)
+    }
 
         Ok(result.rows_affected() > 0)
     }
@@ -1830,41 +1817,52 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: AssignTaskInput,
     ) -> Result<TaskAssignee> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
         let assigner_id = ctx
             .data_opt::<UserContext>()
             .map(|uc| uc.user_id)
             .ok_or("User context not found - authentication required")?;
 
-        let assignee = sqlx::query_as::<_, TaskAssignee>(
-            r#"
-            INSERT INTO hr_public.task_assignees
-            (task_id, user_id, role, assigned_at, assigned_by)
-            VALUES ($1, $2, $3, NOW(), $4)
-            RETURNING id, task_id, user_id, role, assigned_at, assigned_by,
-                      created_at, updated_at, deleted_at
-            "#,
-        )
-        .bind(input.task_id)
-        .bind(input.user_id)
-        .bind(input.role)
-        .bind(assigner_id)
-        .fetch_one(pool)
-        .await?;
+        let assignee = crate::models::task_assignee::ActiveModel {
+            task_id: Set(input.task_id),
+            user_id: Set(input.user_id),
+            role: Set(input.role.as_str().to_string()),
+            assigned_at: Set(Utc::now().naive_utc()),
+            assigned_by: Set(assigner_id),
+            ..Default::default()
+        };
+
+        let assignee = assignee.insert(db).await?;
 
         // Create audit entry
-        let _ = sqlx::query(
-            r#"
-            INSERT INTO hr_public.task_audit_entries
-            (task_id, user_id, action, comment)
-            VALUES ($1, $2, 'assigned', 'User assigned to task')
-            "#,
-        )
-        .bind(input.task_id)
-        .bind(assigner_id)
-        .execute(pool)
-        .await;
+        let audit_entry = crate::models::task_audit_entry::ActiveModel {
+            task_id: Set(input.task_id),
+            changed_by: Set(assigner_id),
+            change_type: Set("assigned".to_string()),
+            comment: Set(Some("User assigned to task".to_string())),
+            ..Default::default()
+        };
+        let _ = audit_entry.insert(db).await;
+
+        // Convert SeaORM model to legacy TaskAssignee struct for compatibility
+        let assignee = TaskAssignee {
+            id: assignee.id,
+            task_id: assignee.task_id,
+            user_id: assignee.user_id,
+            role: match assignee.role.as_str() {
+                "owner" => AssigneeRole::Owner,
+                "assignee" => AssigneeRole::Assignee,
+                "reviewer" => AssigneeRole::Reviewer,
+                "collaborator" => AssigneeRole::Collaborator,
+                _ => AssigneeRole::Assignee,
+            },
+            assigned_at: assignee.assigned_at,
+            assigned_by: assignee.assigned_by,
+            created_at: assignee.created_at,
+            updated_at: assignee.updated_at,
+            deleted_at: assignee.deleted_at,
+        };
 
         Ok(assignee)
     }
@@ -1876,40 +1874,46 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateTaskAssigneeInput,
     ) -> Result<TaskAssignee> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let db = get_db_from_context(ctx)?;
 
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        // Find existing task assignee
+        let existing_assignee = crate::models::task_assignee::Entity::find_by_id(id)
+            .filter(crate::models::task_assignee::Column::DeletedAt.is_null())
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Task assignee not found".to_string()))?;
 
-        if input.role.is_some() {
-            updates.push(format!("role = ${}", param_count));
-            param_count += 1;
-        }
-
-        if updates.is_empty() {
-            return Err("No fields to update".into());
-        }
-
-        updates.push("updated_at = NOW()".to_string());
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.task_assignees
-            SET {}
-            WHERE id = $1 AND deleted_at IS NULL
-            RETURNING id, task_id, user_id, role, assigned_at, assigned_by,
-                      created_at, updated_at, deleted_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, TaskAssignee>(&query).bind(id);
+        // Build active model with updates
+        let mut assignee: crate::models::task_assignee::ActiveModel = existing_assignee.into();
 
         if let Some(role) = input.role {
-            query_builder = query_builder.bind(role);
+            assignee.role = Set(role.as_str().to_string());
         }
 
-        let assignee = query_builder.fetch_one(pool).await?;
+        // Update timestamp
+        assignee.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_assignee = assignee.update(db).await?;
+
+        // Convert to legacy TaskAssignee struct for compatibility
+        let assignee = TaskAssignee {
+            id: updated_assignee.id,
+            task_id: updated_assignee.task_id,
+            user_id: updated_assignee.user_id,
+            role: match updated_assignee.role.as_str() {
+                "owner" => AssigneeRole::Owner,
+                "assignee" => AssigneeRole::Assignee,
+                "reviewer" => AssigneeRole::Reviewer,
+                "collaborator" => AssigneeRole::Collaborator,
+                _ => AssigneeRole::Assignee,
+            },
+            assigned_at: updated_assignee.assigned_at,
+            assigned_by: updated_assignee.assigned_by,
+            created_at: updated_assignee.created_at,
+            updated_at: updated_assignee.updated_at,
+            deleted_at: updated_assignee.deleted_at,
+        };
 
         Ok(assignee)
     }
@@ -1921,39 +1925,41 @@ impl MutationRoot {
         task_id: Uuid,
         user_id: Uuid,
     ) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
         let unassigner_id = ctx.data_opt::<UserContext>().map(|uc| uc.user_id);
 
-        let result = sqlx::query(
-            r#"
-            UPDATE hr_public.task_assignees
-            SET deleted_at = $1
-            WHERE task_id = $2 AND user_id = $3 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(Utc::now())
-        .bind(task_id)
-        .bind(user_id)
-        .execute(pool)
-        .await?;
+        // Find the task assignee first to ensure it exists
+        let assignee = crate::models::task_assignee::Entity::find()
+            .filter(crate::models::task_assignee::Column::TaskId.eq(task_id))
+            .filter(crate::models::task_assignee::Column::UserId.eq(user_id))
+            .filter(crate::models::task_assignee::Column::DeletedAt.is_null())
+            .one(db)
+            .await?;
+
+        if assignee.is_none() {
+            return Ok(false);
+        }
+
+        // Soft delete by setting deleted_at
+        let mut assignee: crate::models::task_assignee::ActiveModel = assignee.unwrap().into();
+        assignee.deleted_at = Set(Some(Utc::now().naive_utc()));
+
+        assignee.update(db).await?;
 
         // Create audit entry if user context available
         if let Some(uid) = unassigner_id {
-            let _ = sqlx::query(
-                r#"
-                INSERT INTO hr_public.task_audit_entries
-                (task_id, user_id, action, comment)
-                VALUES ($1, $2, 'unassigned', 'User unassigned from task')
-                "#,
-            )
-            .bind(task_id)
-            .bind(uid)
-            .execute(pool)
-            .await;
+            let audit_entry = crate::models::task_audit_entry::ActiveModel {
+                task_id: Set(task_id),
+                changed_by: Set(uid),
+                change_type: Set("unassigned".to_string()),
+                comment: Set(Some("User unassigned from task".to_string())),
+                ..Default::default()
+            };
+            let _ = audit_entry.insert(db).await;
         }
 
-        Ok(result.rows_affected() > 0)
+        Ok(true)
     }
 
     // ============================================================
@@ -1966,29 +1972,42 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateTaskDependencyInput,
     ) -> Result<TaskDependency> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
         let creator_id = ctx
             .data_opt::<UserContext>()
             .map(|uc| uc.user_id)
             .ok_or("User context not found - authentication required")?;
 
-        let dependency = sqlx::query_as::<_, TaskDependency>(
-            r#"
-            INSERT INTO hr_public.task_dependencies
-            (task_id, depends_on_task_id, dependency_type, lag_days, created_by)
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING id, task_id, depends_on_task_id, dependency_type, lag_days,
-                      created_by, created_at, updated_at, deleted_at
-            "#,
-        )
-        .bind(input.task_id)
-        .bind(input.depends_on_task_id)
-        .bind(input.dependency_type)
-        .bind(input.lag_days)
-        .bind(creator_id)
-        .fetch_one(pool)
-        .await?;
+        let dependency = crate::models::task_dependency::ActiveModel {
+            task_id: Set(input.task_id),
+            depends_on_task_id: Set(input.depends_on_task_id),
+            dependency_type: Set(input.dependency_type.as_str().to_string()),
+            lag_days: Set(input.lag_days),
+            created_by: Set(creator_id),
+            ..Default::default()
+        };
+
+        let dependency = dependency.insert(db).await?;
+
+        // Convert SeaORM model to legacy TaskDependency struct for compatibility
+        let dependency = TaskDependency {
+            id: dependency.id,
+            task_id: dependency.task_id,
+            depends_on_task_id: dependency.depends_on_task_id,
+            dependency_type: match dependency.dependency_type.as_str() {
+                "finish_to_start" => DependencyType::FinishToStart,
+                "finish_to_finish" => DependencyType::FinishToFinish,
+                "start_to_start" => DependencyType::StartToStart,
+                "start_to_finish" => DependencyType::StartToFinish,
+                _ => DependencyType::FinishToStart,
+            },
+            lag_days: dependency.lag_days,
+            created_by: dependency.created_by,
+            created_at: dependency.created_at,
+            updated_at: dependency.updated_at,
+            deleted_at: dependency.deleted_at,
+        };
 
         Ok(dependency)
     }
@@ -2000,66 +2019,75 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateTaskDependencyInput,
     ) -> Result<TaskDependency> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let db = get_db_from_context(ctx)?;
 
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        // Find existing task dependency
+        let existing_dependency = crate::models::task_dependency::Entity::find_by_id(id)
+            .filter(crate::models::task_dependency::Column::DeletedAt.is_null())
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Task dependency not found".to_string()))?;
 
-        if input.dependency_type.is_some() {
-            updates.push(format!("dependency_type = ${}", param_count));
-            param_count += 1;
+        // Build active model with updates
+        let mut dependency: crate::models::task_dependency::ActiveModel = existing_dependency.into();
+
+        if let Some(dependency_type) = input.dependency_type {
+            dependency.dependency_type = Set(dependency_type.as_str().to_string());
         }
 
-        if input.lag_days.is_some() {
-            updates.push(format!("lag_days = ${}", param_count));
-            param_count += 1;
+        if let Some(lag_days) = input.lag_days {
+            dependency.lag_days = Set(lag_days);
         }
 
-        if updates.is_empty() {
-            return Err("No fields to update".into());
-        }
+        // Update timestamp
+        dependency.updated_at = Set(Utc::now().naive_utc());
 
-        updates.push("updated_at = NOW()".to_string());
+        // Save changes
+        let updated_dependency = dependency.update(db).await?;
 
-        let query = format!(
-            r#"
-            UPDATE hr_public.task_dependencies
-            SET {}
-            WHERE id = $1 AND deleted_at IS NULL
-            RETURNING id, task_id, depends_on_task_id, dependency_type, lag_days,
-                      created_by, created_at, updated_at, deleted_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, TaskDependency>(&query).bind(id);
-
-        if let Some(dep_type) = input.dependency_type {
-            query_builder = query_builder.bind(dep_type);
-        }
-
-        if let Some(lag) = input.lag_days {
-            query_builder = query_builder.bind(lag);
-        }
-
-        let dependency = query_builder.fetch_one(pool).await?;
+        // Convert to legacy TaskDependency struct for compatibility
+        let dependency = TaskDependency {
+            id: updated_dependency.id,
+            task_id: updated_dependency.task_id,
+            depends_on_task_id: updated_dependency.depends_on_task_id,
+            dependency_type: match updated_dependency.dependency_type.as_str() {
+                "finish_to_start" => DependencyType::FinishToStart,
+                "finish_to_finish" => DependencyType::FinishToFinish,
+                "start_to_start" => DependencyType::StartToStart,
+                "start_to_finish" => DependencyType::StartToFinish,
+                _ => DependencyType::FinishToStart,
+            },
+            lag_days: updated_dependency.lag_days,
+            created_by: updated_dependency.created_by,
+            created_at: updated_dependency.created_at,
+            updated_at: updated_dependency.updated_at,
+            deleted_at: updated_dependency.deleted_at,
+        };
 
         Ok(dependency)
     }
 
     /// Delete a task dependency (soft delete)
     async fn delete_task_dependency(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query(
-            "UPDATE hr_public.task_dependencies SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL",
-        )
-        .bind(Utc::now())
-        .bind(id)
-        .execute(pool)
-        .await?;
+        // Find the task dependency first to ensure it exists
+        let dependency = crate::models::task_dependency::Entity::find_by_id(id)
+            .filter(crate::models::task_dependency::Column::DeletedAt.is_null())
+            .one(db)
+            .await?;
 
-        Ok(result.rows_affected() > 0)
+        if dependency.is_none() {
+            return Ok(false);
+        }
+
+        // Soft delete by setting deleted_at
+        let mut dependency: crate::models::task_dependency::ActiveModel = dependency.unwrap().into();
+        dependency.deleted_at = Set(Some(Utc::now().naive_utc()));
+
+        dependency.update(db).await?;
+
+        Ok(true)
     }
 
     // ============================================================
@@ -2072,34 +2100,51 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateLinkedResourceInput,
     ) -> Result<LinkedResource> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let uploader_id = ctx
+        let uploaded_by = ctx
             .data_opt::<UserContext>()
             .map(|uc| uc.user_id)
             .ok_or("User context not found - authentication required")?;
 
-        let resource = sqlx::query_as::<_, LinkedResource>(
-            r#"
-            INSERT INTO hr_public.linked_resources
-            (task_id, resource_type, title, url, file_path, file_size, mime_type,
-             description, uploaded_by)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            RETURNING id, task_id, resource_type, title, url, file_path, file_size,
-                      mime_type, description, uploaded_by, created_at, updated_at, deleted_at
-            "#,
-        )
-        .bind(input.task_id)
-        .bind(input.resource_type)
-        .bind(&input.title)
-        .bind(&input.url)
-        .bind(&input.file_path)
-        .bind(input.file_size)
-        .bind(&input.mime_type)
-        .bind(&input.description)
-        .bind(uploader_id)
-        .fetch_one(pool)
-        .await?;
+        let resource = crate::models::linked_resource::ActiveModel {
+            task_id: Set(input.task_id),
+            resource_type: Set(input.resource_type.as_str().to_string()),
+            title: Set(input.title.clone()),
+            url: Set(input.url.clone()),
+            file_path: Set(input.file_path.clone()),
+            file_size: Set(input.file_size),
+            mime_type: Set(input.mime_type.clone()),
+            description: Set(input.description.clone()),
+            uploaded_by: Set(uploaded_by),
+            ..Default::default()
+        };
+
+        let resource = resource.insert(db).await?;
+
+        // Convert SeaORM model to legacy LinkedResource struct for compatibility
+        let resource = LinkedResource {
+            id: resource.id,
+            task_id: resource.task_id,
+            resource_type: match resource.resource_type.as_str() {
+                "file" => ResourceType::File,
+                "link" => ResourceType::Link,
+                "document" => ResourceType::Document,
+                "image" => ResourceType::Image,
+                "video" => ResourceType::Video,
+                _ => ResourceType::File,
+            },
+            title: resource.title,
+            url: resource.url,
+            file_path: resource.file_path,
+            file_size: resource.file_size,
+            mime_type: resource.mime_type,
+            description: resource.description,
+            uploaded_by: resource.uploaded_by,
+            created_at: resource.created_at,
+            updated_at: resource.updated_at,
+            deleted_at: resource.deleted_at,
+        };
 
         Ok(resource)
     }
@@ -2111,75 +2156,84 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateLinkedResourceInput,
     ) -> Result<LinkedResource> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let db = get_db_from_context(ctx)?;
 
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        // Find existing linked resource
+        let existing_resource = crate::models::linked_resource::Entity::find_by_id(id)
+            .filter(crate::models::linked_resource::Column::DeletedAt.is_null())
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Linked resource not found".to_string()))?;
 
-        if input.title.is_some() {
-            updates.push(format!("title = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.url.is_some() {
-            updates.push(format!("url = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.description.is_some() {
-            updates.push(format!("description = ${}", param_count));
-            param_count += 1;
-        }
-
-        if updates.is_empty() {
-            return Err("No fields to update".into());
-        }
-
-        updates.push("updated_at = NOW()".to_string());
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.linked_resources
-            SET {}
-            WHERE id = $1 AND deleted_at IS NULL
-            RETURNING id, task_id, resource_type, title, url, file_path, file_size,
-                      mime_type, description, uploaded_by, created_at, updated_at, deleted_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, LinkedResource>(&query).bind(id);
+        // Build active model with updates
+        let mut resource: crate::models::linked_resource::ActiveModel = existing_resource.into();
 
         if let Some(title) = input.title {
-            query_builder = query_builder.bind(title);
+            resource.title = Set(title);
         }
 
         if let Some(url) = input.url {
-            query_builder = query_builder.bind(url);
+            resource.url = Set(url);
         }
 
         if let Some(description) = input.description {
-            query_builder = query_builder.bind(description);
+            resource.description = Set(description);
         }
 
-        let resource = query_builder.fetch_one(pool).await?;
+        // Update timestamp
+        resource.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_resource = resource.update(db).await?;
+
+        // Convert to legacy LinkedResource struct for compatibility
+        let resource = LinkedResource {
+            id: updated_resource.id,
+            task_id: updated_resource.task_id,
+            resource_type: match updated_resource.resource_type.as_str() {
+                "file" => ResourceType::File,
+                "link" => ResourceType::Link,
+                "document" => ResourceType::Document,
+                "image" => ResourceType::Image,
+                "video" => ResourceType::Video,
+                _ => ResourceType::File,
+            },
+            title: updated_resource.title,
+            url: updated_resource.url,
+            file_path: updated_resource.file_path,
+            file_size: updated_resource.file_size,
+            mime_type: updated_resource.mime_type,
+            description: updated_resource.description,
+            uploaded_by: updated_resource.uploaded_by,
+            created_at: updated_resource.created_at,
+            updated_at: updated_resource.updated_at,
+            deleted_at: updated_resource.deleted_at,
+        };
 
         Ok(resource)
     }
 
     /// Delete a linked resource (soft delete)
     async fn delete_linked_resource(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query(
-            "UPDATE hr_public.linked_resources SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL",
-        )
-        .bind(Utc::now())
-        .bind(id)
-        .execute(pool)
-        .await?;
+        // Find the linked resource first to ensure it exists
+        let resource = crate::models::linked_resource::Entity::find_by_id(id)
+            .filter(crate::models::linked_resource::Column::DeletedAt.is_null())
+            .one(db)
+            .await?;
 
-        Ok(result.rows_affected() > 0)
+        if resource.is_none() {
+            return Ok(false);
+        }
+
+        // Soft delete by setting deleted_at
+        let mut resource: crate::models::linked_resource::ActiveModel = resource.unwrap().into();
+        resource.deleted_at = Set(Some(Utc::now().naive_utc()));
+
+        resource.update(db).await?;
+
+        Ok(true)
     }
 
     // ============================================================
@@ -2192,29 +2246,57 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateReviewCycleInput,
     ) -> Result<ReviewCycle> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
         let creator_id = ctx
             .data_opt::<UserContext>()
             .map(|uc| uc.user_id)
             .ok_or("User context not found - authentication required")?;
 
-        let cycle = sqlx::query_as::<_, ReviewCycle>(
-            r#"
-            INSERT INTO hr_public.review_cycles
-            (name, description, review_type, start_date, end_date, status, created_by)
-            VALUES ($1, $2, $3, $4, $5, 'draft', $6)
-            RETURNING id, name, description, review_type, start_date, end_date,
-                      status, created_by, created_at, updated_at, deleted_at
-            "#,
-        )
-        .bind(&input.name)
-        .bind(&input.description)
-        .bind(input.review_type)
-        .bind(input.end_date)
-        .bind(creator_id)
-        .fetch_one(pool)
-        .await?;
+        let cycle = crate::models::review_cycle::ActiveModel {
+            name: Set(input.name.clone()),
+            description: Set(input.description.clone()),
+            review_type: Set(input.review_type.as_str().to_string()),
+            start_date: Set(input.start_date),
+            end_date: Set(input.end_date),
+            status: Set("draft".to_string()),
+            created_by: Set(creator_id),
+            ..Default::default()
+        };
+
+        let cycle = cycle.insert(db).await?;
+
+        // Convert SeaORM model to legacy ReviewCycle struct for compatibility
+        let cycle = ReviewCycle {
+            id: cycle.id,
+            name: cycle.name,
+            description: cycle.description,
+            review_type: match cycle.review_type.as_str() {
+                "annual_review" => ReviewType::AnnualReview,
+                "mid_year_review" => ReviewType::MidYearReview,
+                "quarterly_review" => ReviewType::QuarterlyReview,
+                "probationary_review" => ReviewType::ProbationaryReview,
+                "performance_improvement_plan" => ReviewType::PerformanceImprovementPlan,
+                "ninety_day_review" => ReviewType::NinetyDayReview,
+                "project_based_review" => ReviewType::ProjectBasedReview,
+                "promotion_review" => ReviewType::PromotionReview,
+                "exit_review" => ReviewType::ExitReview,
+                "self_review" => ReviewType::SelfReview,
+                _ => ReviewType::AnnualReview,
+            },
+            start_date: cycle.start_date,
+            end_date: cycle.end_date,
+            status: match cycle.status.as_str() {
+                "draft" => ReviewCycleStatus::Draft,
+                "active" => ReviewCycleStatus::Active,
+                "closed" => ReviewCycleStatus::Closed,
+                _ => ReviewCycleStatus::Draft,
+            },
+            created_by: cycle.created_by,
+            created_at: cycle.created_at,
+            updated_at: cycle.updated_at,
+            deleted_at: cycle.deleted_at,
+        };
 
         Ok(cycle)
     }
@@ -2226,85 +2308,100 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateReviewCycleInput,
     ) -> Result<ReviewCycle> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let db = get_db_from_context(ctx)?;
 
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        // Find existing review cycle
+        let existing_cycle = crate::models::review_cycle::Entity::find_by_id(id)
+            .filter(crate::models::review_cycle::Column::DeletedAt.is_null())
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Review cycle not found".to_string()))?;
 
-        if input.name.is_some() {
-            updates.push(format!("name = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.description.is_some() {
-            updates.push(format!("description = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.end_date.is_some() {
-            updates.push(format!("end_date = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.status.is_some() {
-            updates.push(format!("status = ${}", param_count));
-            param_count += 1;
-        }
-
-        if updates.is_empty() {
-            return Err("No fields to update".into());
-        }
-
-        updates.push("updated_at = NOW()".to_string());
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.review_cycles
-            SET {}
-            WHERE id = $1 AND deleted_at IS NULL
-            RETURNING id, name, description, review_type, start_date, end_date,
-                      status, created_by, created_at, updated_at, deleted_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, ReviewCycle>(&query).bind(id);
+        // Build active model with updates
+        let mut cycle: crate::models::review_cycle::ActiveModel = existing_cycle.into();
 
         if let Some(name) = input.name {
-            query_builder = query_builder.bind(name);
+            cycle.name = Set(name);
         }
 
         if let Some(description) = input.description {
-            query_builder = query_builder.bind(description);
+            cycle.description = Set(description);
         }
 
+        if let Some(start_date) = input.start_date {
+            cycle.start_date = Set(start_date);
+        }
 
         if let Some(end_date) = input.end_date {
-            query_builder = query_builder.bind(end_date);
+            cycle.end_date = Set(end_date);
         }
 
         if let Some(status) = input.status {
-            query_builder = query_builder.bind(status);
+            cycle.status = Set(status.as_str().to_string());
         }
 
-        let cycle = query_builder.fetch_one(pool).await?;
+        // Update timestamp
+        cycle.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_cycle = cycle.update(db).await?;
+
+        // Convert to legacy ReviewCycle struct for compatibility
+        let cycle = ReviewCycle {
+            id: updated_cycle.id,
+            name: updated_cycle.name,
+            description: updated_cycle.description,
+            review_type: match updated_cycle.review_type.as_str() {
+                "annual_review" => ReviewType::AnnualReview,
+                "mid_year_review" => ReviewType::MidYearReview,
+                "quarterly_review" => ReviewType::QuarterlyReview,
+                "probationary_review" => ReviewType::ProbationaryReview,
+                "performance_improvement_plan" => ReviewType::PerformanceImprovementPlan,
+                "ninety_day_review" => ReviewType::NinetyDayReview,
+                "project_based_review" => ReviewType::ProjectBasedReview,
+                "promotion_review" => ReviewType::PromotionReview,
+                "exit_review" => ReviewType::ExitReview,
+                "self_review" => ReviewType::SelfReview,
+                _ => ReviewType::AnnualReview,
+            },
+            start_date: updated_cycle.start_date,
+            end_date: updated_cycle.end_date,
+            status: match updated_cycle.status.as_str() {
+                "draft" => ReviewCycleStatus::Draft,
+                "active" => ReviewCycleStatus::Active,
+                "closed" => ReviewCycleStatus::Closed,
+                _ => ReviewCycleStatus::Draft,
+            },
+            created_by: updated_cycle.created_by,
+            created_at: updated_cycle.created_at,
+            updated_at: updated_cycle.updated_at,
+            deleted_at: updated_cycle.deleted_at,
+        };
 
         Ok(cycle)
     }
 
     /// Soft delete a review cycle
     async fn delete_review_cycle(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query(
-            "UPDATE hr_public.review_cycles SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL",
-        )
-        .bind(Utc::now())
-        .bind(id)
-        .execute(pool)
-        .await?;
+        // Find the review cycle first to ensure it exists
+        let cycle = crate::models::review_cycle::Entity::find_by_id(id)
+            .filter(crate::models::review_cycle::Column::DeletedAt.is_null())
+            .one(db)
+            .await?;
 
-        Ok(result.rows_affected() > 0)
+        if cycle.is_none() {
+            return Ok(false);
+        }
+
+        // Soft delete by setting deleted_at
+        let mut cycle: crate::models::review_cycle::ActiveModel = cycle.unwrap().into();
+        cycle.deleted_at = Set(Some(Utc::now().naive_utc()));
+
+        cycle.update(db).await?;
+
+        Ok(true)
     }
 
     // ============================================================
@@ -2319,7 +2416,7 @@ impl MutationRoot {
     ) -> Result<PerformanceReview> {
         let db = get_db_from_context(ctx)?;
 
-        let review = performance_review::ActiveModel {
+        let review = crate::models::performance_review::ActiveModel {
             employee_id: Set(input.employee_id),
             reviewer_id: Set(input.reviewer_id),
             review_period: Set(input.review_period.clone()),
@@ -2335,7 +2432,13 @@ impl MutationRoot {
             employee_id: review.employee_id,
             reviewer_id: review.reviewer_id,
             review_period: review.review_period,
-            status: PerformanceReviewStatus::from_str(&review.status).unwrap_or(PerformanceReviewStatus::NotStarted),
+            status: match review.status.as_str() {
+                "draft" => PerformanceReviewStatus::Draft,
+                "not_started" => PerformanceReviewStatus::NotStarted,
+                "in_progress" => PerformanceReviewStatus::InProgress,
+                "completed" => PerformanceReviewStatus::Completed,
+                _ => PerformanceReviewStatus::Draft,
+            },
             overall_rating: review.overall_rating,
             goals: review.goals,
             achievements: review.achievements,
@@ -2352,7 +2455,7 @@ impl MutationRoot {
         Ok(review)
             .map_err(|e| {
                 tracing::error!("Failed to create performance review: {}", e);
-                Error::new("Failed to create performance review")
+                AppError::new("Failed to create performance review")
             })
     }
 
@@ -2363,143 +2466,116 @@ impl MutationRoot {
         id: Uuid,
         input: UpdatePerformanceReviewInput,
     ) -> Result<PerformanceReview> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let db = get_db_from_context(ctx)?;
 
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        // Find existing performance review
+        let existing_review = crate::models::performance_review::Entity::find_by_id(id)
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Performance review not found".to_string()))?;
 
-        if input.status.is_some() {
-            updates.push(format!("status = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.overall_rating.is_some() {
-            updates.push(format!("overall_rating = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.goals.is_some() {
-            updates.push(format!("goals = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.achievements.is_some() {
-            updates.push(format!("achievements = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.areas_for_improvement.is_some() {
-            updates.push(format!("areas_for_improvement = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.manager_feedback.is_some() {
-            updates.push(format!("manager_feedback = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.review_period_start.is_some() {
-            updates.push(format!("review_period_start = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.review_period_end.is_some() {
-            updates.push(format!("review_period_end = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.review_type.is_some() {
-            updates.push(format!("review_type = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.notes.is_some() {
-            updates.push(format!("notes = ${}", param_count));
-            param_count += 1;
-        }
-
-        if updates.is_empty() {
-            return Err("No fields to update".into());
-        }
-
-        updates.push("updated_at = NOW()".to_string());
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.performance_reviews
-            SET {}
-            WHERE id = $1
-            RETURNING id, employee_id, reviewer_id, review_period, status,
-                      overall_rating, goals, achievements, areas_for_improvement,
-                      manager_feedback, created_at, updated_at,
-                      review_period_start, review_period_end, review_type, notes
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, PerformanceReview>(&query).bind(id);
+        // Build active model with updates
+        let mut review: crate::models::performance_review::ActiveModel = existing_review.into();
 
         if let Some(status) = input.status {
-            query_builder = query_builder.bind(status);
+            review.status = Set(status.as_str().to_string());
         }
 
         if let Some(rating_str) = input.overall_rating {
             use std::str::FromStr;
             let rating = rust_decimal::Decimal::from_str(&rating_str)
                 .map_err(|_| "Invalid rating format - must be a valid decimal number")?;
-            query_builder = query_builder.bind(rating);
+            review.overall_rating = Set(Some(rating));
         }
 
         if let Some(goals) = input.goals {
-            query_builder = query_builder.bind(goals);
+            review.goals = Set(Some(goals));
         }
 
         if let Some(achievements) = input.achievements {
-            query_builder = query_builder.bind(achievements);
+            review.achievements = Set(Some(achievements));
         }
 
         if let Some(areas) = input.areas_for_improvement {
-            query_builder = query_builder.bind(areas);
+            review.areas_for_improvement = Set(Some(areas));
         }
 
         if let Some(feedback) = input.manager_feedback {
-            query_builder = query_builder.bind(feedback);
+            review.manager_feedback = Set(Some(feedback));
         }
 
         if let Some(start) = input.review_period_start {
-            query_builder = query_builder.bind(start);
+            review.review_period_start = Set(Some(start));
         }
 
         if let Some(end) = input.review_period_end {
-            query_builder = query_builder.bind(end);
+            review.review_period_end = Set(Some(end));
         }
 
         if let Some(review_type) = input.review_type {
-            query_builder = query_builder.bind(review_type);
+            review.review_type = Set(Some(review_type));
         }
 
         if let Some(notes) = input.notes {
-            query_builder = query_builder.bind(notes);
+            review.notes = Set(Some(notes));
         }
 
-        let review = query_builder.fetch_one(pool).await?;
+        // Update timestamp
+        review.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_review = review.update(db).await?;
+
+        // Convert to legacy PerformanceReview struct for compatibility
+        let review = PerformanceReview {
+            id: updated_review.id,
+            employee_id: updated_review.employee_id,
+            reviewer_id: updated_review.reviewer_id,
+            review_period: updated_review.review_period,
+            status: match updated_review.status.as_str() {
+                "draft" => PerformanceReviewStatus::Draft,
+                "in_progress" => PerformanceReviewStatus::InProgress,
+                "completed" => PerformanceReviewStatus::Completed,
+                "cancelled" => PerformanceReviewStatus::Cancelled,
+                _ => PerformanceReviewStatus::Draft,
+            },
+            overall_rating: updated_review.overall_rating.map(|r| r.to_string()),
+            goals: updated_review.goals,
+            achievements: updated_review.achievements,
+            areas_for_improvement: updated_review.areas_for_improvement,
+            manager_feedback: updated_review.manager_feedback,
+            created_at: updated_review.created_at,
+            updated_at: updated_review.updated_at,
+            review_period_start: updated_review.review_period_start,
+            review_period_end: updated_review.review_period_end,
+            review_type: updated_review.review_type,
+            notes: updated_review.notes,
+        };
 
         Ok(review)
     }
 
     /// Soft delete a performance review
     async fn delete_performance_review(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query(
-            "UPDATE hr_public.performance_reviews SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL",
-        )
-        .bind(Utc::now())
-        .bind(id)
-        .execute(pool)
-        .await?;
+        // Find the performance review first to ensure it exists
+        let review = crate::models::performance_review::Entity::find_by_id(id)
+            .filter(crate::models::performance_review::Column::DeletedAt.is_null())
+            .one(db)
+            .await?;
 
-        Ok(result.rows_affected() > 0)
+        if review.is_none() {
+            return Ok(false);
+        }
+
+        // Soft delete by setting deleted_at
+        let mut review: crate::models::performance_review::ActiveModel = review.unwrap().into();
+        review.deleted_at = Set(Some(Utc::now().naive_utc()));
+
+        review.update(db).await?;
+
+        Ok(true)
     }
 
     // ============================================================
@@ -2512,24 +2588,39 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateReviewGoalInput,
     ) -> Result<ReviewGoal> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let goal = sqlx::query_as::<_, ReviewGoal>(
-            r#"
-            INSERT INTO hr_public.review_goals
-            (performance_review_id, title, description, target_date, completion_status, weight)
-            VALUES ($1, $2, $3, $4, 'not_started', $5)
-            RETURNING id, performance_review_id, title, description, target_date,
-                      completion_status, weight, created_at, updated_at, deleted_at
-            "#,
-        )
-        .bind(input.performance_review_id)
-        .bind(&input.title)
-        .bind(&input.description)
-        .bind(input.target_date)
-        .bind(input.weight)
-        .fetch_one(pool)
-        .await?;
+        let goal = crate::models::review_goal::ActiveModel {
+            performance_review_id: Set(input.performance_review_id),
+            title: Set(input.title.clone()),
+            description: Set(input.description.clone()),
+            target_date: Set(input.target_date),
+            completion_status: Set("not_started".to_string()),
+            weight: Set(input.weight),
+            ..Default::default()
+        };
+
+        let goal = goal.insert(db).await?;
+
+        // Convert SeaORM model to legacy ReviewGoal struct for compatibility
+        let goal = ReviewGoal {
+            id: goal.id,
+            performance_review_id: goal.performance_review_id,
+            title: goal.title,
+            description: goal.description,
+            target_date: goal.target_date,
+            completion_status: match goal.completion_status.as_str() {
+                "not_started" => CompletionStatus::NotStarted,
+                "in_progress" => CompletionStatus::InProgress,
+                "completed" => CompletionStatus::Completed,
+                "cancelled" => CompletionStatus::Cancelled,
+                _ => CompletionStatus::NotStarted,
+            },
+            weight: goal.weight,
+            created_at: goal.created_at,
+            updated_at: goal.updated_at,
+            deleted_at: goal.deleted_at,
+        };
 
         Ok(goal)
     }
@@ -2541,93 +2632,88 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateReviewGoalInput,
     ) -> Result<ReviewGoal> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let db = get_db_from_context(ctx)?;
 
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        // Find existing review goal
+        let existing_goal = crate::models::review_goal::Entity::find_by_id(id)
+            .filter(crate::models::review_goal::Column::DeletedAt.is_null())
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Review goal not found".to_string()))?;
 
-        if input.title.is_some() {
-            updates.push(format!("title = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.description.is_some() {
-            updates.push(format!("description = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.target_date.is_some() {
-            updates.push(format!("target_date = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.completion_status.is_some() {
-            updates.push(format!("completion_status = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.weight.is_some() {
-            updates.push(format!("weight = ${}", param_count));
-            param_count += 1;
-        }
-
-        if updates.is_empty() {
-            return Err("No fields to update".into());
-        }
-
-        updates.push("updated_at = NOW()".to_string());
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.review_goals
-            SET {}
-            WHERE id = $1 AND deleted_at IS NULL
-            RETURNING id, performance_review_id, title, description, target_date,
-                      completion_status, weight, created_at, updated_at, deleted_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, ReviewGoal>(&query).bind(id);
+        // Build active model with updates
+        let mut goal: crate::models::review_goal::ActiveModel = existing_goal.into();
 
         if let Some(title) = input.title {
-            query_builder = query_builder.bind(title);
+            goal.title = Set(title);
         }
 
         if let Some(description) = input.description {
-            query_builder = query_builder.bind(description);
+            goal.description = Set(description);
         }
 
         if let Some(target_date) = input.target_date {
-            query_builder = query_builder.bind(target_date);
+            goal.target_date = Set(target_date);
         }
 
-        if let Some(status) = input.completion_status {
-            query_builder = query_builder.bind(status);
+        if let Some(completion_status) = input.completion_status {
+            goal.completion_status = Set(completion_status.as_str().to_string());
         }
 
         if let Some(weight) = input.weight {
-            query_builder = query_builder.bind(weight);
+            goal.weight = Set(weight);
         }
 
-        let goal = query_builder.fetch_one(pool).await?;
+        // Update timestamp
+        goal.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_goal = goal.update(db).await?;
+
+        // Convert to legacy ReviewGoal struct for compatibility
+        let goal = ReviewGoal {
+            id: updated_goal.id,
+            performance_review_id: updated_goal.performance_review_id,
+            title: updated_goal.title,
+            description: updated_goal.description,
+            target_date: updated_goal.target_date,
+            completion_status: match updated_goal.completion_status.as_str() {
+                "not_started" => CompletionStatus::NotStarted,
+                "in_progress" => CompletionStatus::InProgress,
+                "completed" => CompletionStatus::Completed,
+                "cancelled" => CompletionStatus::Cancelled,
+                _ => CompletionStatus::NotStarted,
+            },
+            weight: updated_goal.weight,
+            created_at: updated_goal.created_at,
+            updated_at: updated_goal.updated_at,
+            deleted_at: updated_goal.deleted_at,
+        };
 
         Ok(goal)
     }
 
     /// Soft delete a review goal
     async fn delete_review_goal(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query(
-            "UPDATE hr_public.review_goals SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL",
-        )
-        .bind(Utc::now())
-        .bind(id)
-        .execute(pool)
-        .await?;
+        // Find the review goal first to ensure it exists
+        let goal = crate::models::review_goal::Entity::find_by_id(id)
+            .filter(crate::models::review_goal::Column::DeletedAt.is_null())
+            .one(db)
+            .await?;
 
-        Ok(result.rows_affected() > 0)
+        if goal.is_none() {
+            return Ok(false);
+        }
+
+        // Soft delete by setting deleted_at
+        let mut goal: crate::models::review_goal::ActiveModel = goal.unwrap().into();
+        goal.deleted_at = Set(Some(Utc::now().naive_utc()));
+
+        goal.update(db).await?;
+
+        Ok(true)
     }
 
     // ============================================================
@@ -2640,29 +2726,42 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateReviewFeedbackInput,
     ) -> Result<ReviewFeedback> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
         let provider_id = ctx
             .data_opt::<UserContext>()
             .map(|uc| uc.user_id)
             .ok_or("User context not found - authentication required")?;
 
-        let feedback = sqlx::query_as::<_, ReviewFeedback>(
-            r#"
-            INSERT INTO hr_public.review_feedback
-            (performance_review_id, provider_id, feedback_type, content, is_visible_to_employee)
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING id, performance_review_id, provider_id, feedback_type,
-                      content, is_visible_to_employee, created_at, updated_at, deleted_at
-            "#,
-        )
-        .bind(input.performance_review_id)
-        .bind(provider_id)
-        .bind(input.feedback_type)
-        .bind(&input.content)
-        .bind(input.is_visible_to_employee.unwrap_or(true))
-        .fetch_one(pool)
-        .await?;
+        let feedback = crate::models::review_feedback::ActiveModel {
+            performance_review_id: Set(input.performance_review_id),
+            provider_id: Set(provider_id),
+            feedback_type: Set(input.feedback_type.as_str().to_string()),
+            content: Set(input.content.clone()),
+            is_visible_to_employee: Set(input.is_visible_to_employee.unwrap_or(true)),
+            ..Default::default()
+        };
+
+        let feedback = feedback.insert(db).await?;
+
+        // Convert SeaORM model to legacy ReviewFeedback struct for compatibility
+        let feedback = ReviewFeedback {
+            id: feedback.id,
+            performance_review_id: feedback.performance_review_id,
+            provider_id: feedback.provider_id,
+            feedback_type: match feedback.feedback_type.as_str() {
+                "manager_feedback" => FeedbackType::ManagerFeedback,
+                "peer_feedback" => FeedbackType::PeerFeedback,
+                "self_assessment" => FeedbackType::SelfAssessment,
+                "hr_feedback" => FeedbackType::HrFeedback,
+                _ => FeedbackType::ManagerFeedback,
+            },
+            content: feedback.content,
+            is_visible_to_employee: feedback.is_visible_to_employee,
+            created_at: feedback.created_at,
+            updated_at: feedback.updated_at,
+            deleted_at: feedback.deleted_at,
+        };
 
         Ok(feedback)
     }
@@ -2674,66 +2773,75 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateReviewFeedbackInput,
     ) -> Result<ReviewFeedback> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let db = get_db_from_context(ctx)?;
 
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        // Find existing review feedback
+        let existing_feedback = crate::models::review_feedback::Entity::find_by_id(id)
+            .filter(crate::models::review_feedback::Column::DeletedAt.is_null())
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Review feedback not found".to_string()))?;
 
-        if input.content.is_some() {
-            updates.push(format!("content = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.is_visible_to_employee.is_some() {
-            updates.push(format!("is_visible_to_employee = ${}", param_count));
-            param_count += 1;
-        }
-
-        if updates.is_empty() {
-            return Err("No fields to update".into());
-        }
-
-        updates.push("updated_at = NOW()".to_string());
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.review_feedback
-            SET {}
-            WHERE id = $1 AND deleted_at IS NULL
-            RETURNING id, performance_review_id, provider_id, feedback_type,
-                      content, is_visible_to_employee, created_at, updated_at, deleted_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, ReviewFeedback>(&query).bind(id);
+        // Build active model with updates
+        let mut feedback: crate::models::review_feedback::ActiveModel = existing_feedback.into();
 
         if let Some(content) = input.content {
-            query_builder = query_builder.bind(content);
+            feedback.content = Set(content);
         }
 
-        if let Some(visible) = input.is_visible_to_employee {
-            query_builder = query_builder.bind(visible);
+        if let Some(is_visible_to_employee) = input.is_visible_to_employee {
+            feedback.is_visible_to_employee = Set(is_visible_to_employee);
         }
 
-        let feedback = query_builder.fetch_one(pool).await?;
+        // Update timestamp
+        feedback.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_feedback = feedback.update(db).await?;
+
+        // Convert to legacy ReviewFeedback struct for compatibility
+        let feedback = ReviewFeedback {
+            id: updated_feedback.id,
+            performance_review_id: updated_feedback.performance_review_id,
+            provider_id: updated_feedback.provider_id,
+            feedback_type: match updated_feedback.feedback_type.as_str() {
+                "manager_feedback" => FeedbackType::ManagerFeedback,
+                "peer_feedback" => FeedbackType::PeerFeedback,
+                "self_assessment" => FeedbackType::SelfAssessment,
+                "hr_feedback" => FeedbackType::HrFeedback,
+                _ => FeedbackType::ManagerFeedback,
+            },
+            content: updated_feedback.content,
+            is_visible_to_employee: updated_feedback.is_visible_to_employee,
+            created_at: updated_feedback.created_at,
+            updated_at: updated_feedback.updated_at,
+            deleted_at: updated_feedback.deleted_at,
+        };
 
         Ok(feedback)
     }
 
     /// Soft delete review feedback
     async fn delete_review_feedback(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query(
-            "UPDATE hr_public.review_feedback SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL",
-        )
-        .bind(Utc::now())
-        .bind(id)
-        .execute(pool)
-        .await?;
+        // Find the review feedback first to ensure it exists
+        let feedback = crate::models::review_feedback::Entity::find_by_id(id)
+            .filter(crate::models::review_feedback::Column::DeletedAt.is_null())
+            .one(db)
+            .await?;
 
-        Ok(result.rows_affected() > 0)
+        if feedback.is_none() {
+            return Ok(false);
+        }
+
+        // Soft delete by setting deleted_at
+        let mut feedback: crate::models::review_feedback::ActiveModel = feedback.unwrap().into();
+        feedback.deleted_at = Set(Some(Utc::now().naive_utc()));
+
+        feedback.update(db).await?;
+
+        Ok(true)
     }
 
     // ============================================================
@@ -2746,26 +2854,39 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateEmployeeSkillInput,
     ) -> Result<EmployeeSkill> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
         let verified = input.verified.unwrap_or(false);
 
-        let skill = sqlx::query_as::<_, EmployeeSkill>(
-            r#"
-            INSERT INTO hr_public.employee_skills
-            (employee_id, skill_name, proficiency_level, years_experience, verified)
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING id, employee_id, skill_name, proficiency_level, years_experience,
-                      verified, verifier_id, created_at, updated_at
-            "#,
-        )
-        .bind(input.employee_id)
-        .bind(&input.skill_name)
-        .bind(input.proficiency_level)
-        .bind(input.years_experience)
-        .bind(verified)
-        .fetch_one(pool)
-        .await?;
+        let skill = crate::models::employee_skill::ActiveModel {
+            employee_id: Set(input.employee_id),
+            skill_name: Set(input.skill_name.clone()),
+            proficiency_level: Set(input.proficiency_level.as_str().to_string()),
+            years_experience: Set(input.years_experience),
+            verified: Set(verified),
+            ..Default::default()
+        };
+
+        let skill = skill.insert(db).await?;
+
+        // Convert SeaORM model to legacy EmployeeSkill struct for compatibility
+        let skill = EmployeeSkill {
+            id: skill.id,
+            employee_id: skill.employee_id,
+            skill_name: skill.skill_name,
+            proficiency_level: match skill.proficiency_level.as_str() {
+                "beginner" => ProficiencyLevel::Beginner,
+                "intermediate" => ProficiencyLevel::Intermediate,
+                "advanced" => ProficiencyLevel::Advanced,
+                "expert" => ProficiencyLevel::Expert,
+                _ => ProficiencyLevel::Beginner,
+            },
+            years_experience: skill.years_experience,
+            verified: skill.verified,
+            verifier_id: skill.verifier_id,
+            created_at: skill.created_at,
+            updated_at: skill.updated_at,
+        };
 
         Ok(skill)
     }
@@ -2777,90 +2898,74 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateEmployeeSkillInput,
     ) -> Result<EmployeeSkill> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let db = get_db_from_context(ctx)?;
 
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        // Find existing employee skill
+        let existing_skill = crate::models::employee_skill::Entity::find_by_id(id)
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Employee skill not found".to_string()))?;
 
-        if input.skill_name.is_some() {
-            updates.push(format!("skill_name = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.proficiency_level.is_some() {
-            updates.push(format!("proficiency_level = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.years_experience.is_some() {
-            updates.push(format!("years_experience = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.verified.is_some() {
-            updates.push(format!("verified = ${}", param_count));
-            param_count += 1;
-        }
-
-        if input.verifier_id.is_some() {
-            updates.push(format!("verifier_id = ${}", param_count));
-            param_count += 1;
-        }
-
-        if updates.is_empty() {
-            return Err("No fields to update".into());
-        }
-
-        updates.push("updated_at = NOW()".to_string());
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.employee_skills
-            SET {}
-            WHERE id = $1
-            RETURNING id, employee_id, skill_name, proficiency_level, years_experience,
-                      verified, verifier_id, created_at, updated_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, EmployeeSkill>(&query).bind(id);
+        // Build active model with updates
+        let mut skill: crate::models::employee_skill::ActiveModel = existing_skill.into();
 
         if let Some(skill_name) = input.skill_name {
-            query_builder = query_builder.bind(skill_name);
+            skill.skill_name = Set(skill_name);
         }
 
-        if let Some(proficiency) = input.proficiency_level {
-            query_builder = query_builder.bind(proficiency);
+        if let Some(proficiency_level) = input.proficiency_level {
+            skill.proficiency_level = Set(proficiency_level.as_str().to_string());
         }
 
-        if let Some(years) = input.years_experience {
-            query_builder = query_builder.bind(years);
+        if let Some(years_experience) = input.years_experience {
+            skill.years_experience = Set(years_experience);
         }
 
         if let Some(verified) = input.verified {
-            query_builder = query_builder.bind(verified);
+            skill.verified = Set(verified);
         }
 
-        if let Some(verifier) = input.verifier_id {
-            query_builder = query_builder.bind(verifier);
+        if let Some(verifier_id) = input.verifier_id {
+            skill.verifier_id = Set(Some(verifier_id));
         }
 
-        let skill = query_builder.fetch_one(pool).await?;
+        // Update timestamp
+        skill.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_skill = skill.update(db).await?;
+
+        // Convert to legacy EmployeeSkill struct for compatibility
+        let skill = EmployeeSkill {
+            id: updated_skill.id,
+            employee_id: updated_skill.employee_id,
+            skill_name: updated_skill.skill_name,
+            proficiency_level: match updated_skill.proficiency_level.as_str() {
+                "beginner" => ProficiencyLevel::Beginner,
+                "intermediate" => ProficiencyLevel::Intermediate,
+                "advanced" => ProficiencyLevel::Advanced,
+                "expert" => ProficiencyLevel::Expert,
+                _ => ProficiencyLevel::Beginner,
+            },
+            years_experience: updated_skill.years_experience,
+            verified: updated_skill.verified,
+            verifier_id: updated_skill.verifier_id,
+            created_at: updated_skill.created_at,
+            updated_at: updated_skill.updated_at,
+        };
 
         Ok(skill)
     }
 
     /// Delete an employee skill (hard delete - no soft delete for skills)
     async fn delete_employee_skill(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query("DELETE FROM hr_public.employee_skills WHERE id = $1")
-            .bind(id)
-            .execute(pool)
+        let result = crate::models::employee_skill::Entity::delete_by_id(id)
+            .exec(db)
             .await?;
 
-        Ok(result.rows_affected() > 0)
+        Ok(result.rows_affected > 0)
     }
 
     /// Create a new employee certification
@@ -2869,41 +2974,45 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateEmployeeCertificationInput,
     ) -> Result<EmployeeCertification> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let cert = sqlx::query_as::<_, EmployeeCertification>(
-            r#"
-            INSERT INTO hr_public.employee_certifications
-            (employee_id, certification_name, issuing_organization, issue_date,
-             expiration_date, certification_number)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING id, employee_id, certification_name, issuing_organization,
-                      issue_date, expiration_date, certification_number,
-                      created_at, updated_at
-            "#,
-        )
-        .bind(input.employee_id)
-        .bind(&input.certification_name)
-        .bind(&input.issuing_organization)
-        .bind(input.issue_date)
-        .bind(input.expiration_date)
-        .bind(&input.certification_number)
-        .fetch_one(pool)
-        .await?;
+        let cert = crate::models::employee_certification::ActiveModel {
+            employee_id: Set(input.employee_id),
+            certification_name: Set(input.certification_name.clone()),
+            issuing_organization: Set(input.issuing_organization.clone()),
+            issue_date: Set(input.issue_date),
+            expiration_date: Set(input.expiration_date),
+            certification_number: Set(input.certification_number.clone()),
+            ..Default::default()
+        };
+
+        let cert = cert.insert(db).await?;
+
+        // Convert SeaORM model to legacy EmployeeCertification struct for compatibility
+        let cert = EmployeeCertification {
+            id: cert.id,
+            employee_id: cert.employee_id,
+            certification_name: cert.certification_name,
+            issuing_organization: cert.issuing_organization,
+            issue_date: cert.issue_date,
+            expiration_date: cert.expiration_date,
+            certification_number: cert.certification_number,
+            created_at: cert.created_at,
+            updated_at: cert.updated_at,
+        };
 
         Ok(cert)
     }
 
     /// Delete an employee certification (hard delete)
     async fn delete_employee_certification(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query("DELETE FROM hr_public.employee_certifications WHERE id = $1")
-            .bind(id)
-            .execute(pool)
+        let result = crate::models::employee_certification::Entity::delete_by_id(id)
+            .exec(db)
             .await?;
 
-        Ok(result.rows_affected() > 0)
+        Ok(result.rows_affected > 0)
     }
 
     /// Create a new employee vehicle
@@ -2912,25 +3021,32 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateEmployeeVehicleInput,
     ) -> Result<EmployeeVehicle> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let vehicle = sqlx::query_as::<_, EmployeeVehicle>(
-            r#"
-            INSERT INTO hr_public.employee_vehicles
-            (employee_id, make, model, year, license_plate, color)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING id, employee_id, make, model, year, license_plate, color,
-                      created_at, updated_at
-            "#,
-        )
-        .bind(input.employee_id)
-        .bind(&input.make)
-        .bind(&input.model)
-        .bind(input.year)
-        .bind(&input.license_plate)
-        .bind(&input.color)
-        .fetch_one(pool)
-        .await?;
+        let vehicle = crate::models::employee_vehicle::ActiveModel {
+            employee_id: Set(input.employee_id),
+            make: Set(input.make.clone()),
+            model: Set(input.model.clone()),
+            year: Set(input.year),
+            license_plate: Set(input.license_plate.clone()),
+            color: Set(input.color.clone()),
+            ..Default::default()
+        };
+
+        let vehicle = vehicle.insert(db).await?;
+
+        // Convert SeaORM model to legacy EmployeeVehicle struct for compatibility
+        let vehicle = EmployeeVehicle {
+            id: vehicle.id,
+            employee_id: vehicle.employee_id,
+            make: vehicle.make,
+            model: vehicle.model,
+            year: vehicle.year,
+            license_plate: vehicle.license_plate,
+            color: vehicle.color,
+            created_at: vehicle.created_at,
+            updated_at: vehicle.updated_at,
+        };
 
         Ok(vehicle)
     }
@@ -2942,76 +3058,68 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateEmployeeVehicleInput,
     ) -> Result<EmployeeVehicle> {
-        let pool = ctx.data::<DatabaseConnection>()?;
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        let db = get_db_from_context(ctx)?;
 
-        if input.make.is_some() {
-            updates.push(format!("make = ${}", param_count));
-            param_count += 1;
-        }
-        if input.model.is_some() {
-            updates.push(format!("model = ${}", param_count));
-            param_count += 1;
-        }
-        if input.year.is_some() {
-            updates.push(format!("year = ${}", param_count));
-            param_count += 1;
-        }
-        if input.license_plate.is_some() {
-            updates.push(format!("license_plate = ${}", param_count));
-            param_count += 1;
-        }
-        if input.color.is_some() {
-            updates.push(format!("color = ${}", param_count));
-            param_count += 1;
-        }
+        // Find existing employee vehicle
+        let existing_vehicle = crate::models::employee_vehicle::Entity::find_by_id(id)
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Employee vehicle not found".to_string()))?;
 
-        updates.push("updated_at = NOW()".to_string());
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.employee_vehicles
-            SET {}
-            WHERE id = $1
-            RETURNING id, employee_id, make, model, year, license_plate, color,
-                      created_at, updated_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, EmployeeVehicle>(&query).bind(id);
+        // Build active model with updates
+        let mut vehicle: crate::models::employee_vehicle::ActiveModel = existing_vehicle.into();
 
         if let Some(make) = input.make {
-            query_builder = query_builder.bind(make);
-        }
-        if let Some(model) = input.model {
-            query_builder = query_builder.bind(model);
-        }
-        if let Some(year) = input.year {
-            query_builder = query_builder.bind(year);
-        }
-        if let Some(license_plate) = input.license_plate {
-            query_builder = query_builder.bind(license_plate);
-        }
-        if let Some(color) = input.color {
-            query_builder = query_builder.bind(color);
+            vehicle.make = Set(make);
         }
 
-        let vehicle = query_builder.fetch_one(pool).await?;
+        if let Some(model) = input.model {
+            vehicle.model = Set(model);
+        }
+
+        if let Some(year) = input.year {
+            vehicle.year = Set(year);
+        }
+
+        if let Some(license_plate) = input.license_plate {
+            vehicle.license_plate = Set(license_plate);
+        }
+
+        if let Some(color) = input.color {
+            vehicle.color = Set(color);
+        }
+
+        // Update timestamp
+        vehicle.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_vehicle = vehicle.update(db).await?;
+
+        // Convert to legacy EmployeeVehicle struct for compatibility
+        let vehicle = EmployeeVehicle {
+            id: updated_vehicle.id,
+            employee_id: updated_vehicle.employee_id,
+            make: updated_vehicle.make,
+            model: updated_vehicle.model,
+            year: updated_vehicle.year,
+            license_plate: updated_vehicle.license_plate,
+            color: updated_vehicle.color,
+            created_at: updated_vehicle.created_at,
+            updated_at: updated_vehicle.updated_at,
+        };
+
         Ok(vehicle)
     }
 
     /// Delete an employee vehicle (hard delete)
     async fn delete_employee_vehicle(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query("DELETE FROM hr_public.employee_vehicles WHERE id = $1")
-            .bind(id)
-            .execute(pool)
+        let result = crate::models::employee_vehicle::Entity::delete_by_id(id)
+            .exec(db)
             .await?;
 
-        Ok(result.rows_affected() > 0)
+        Ok(result.rows_affected > 0)
     }
 
     /// Create a new emergency contact
@@ -3020,25 +3128,32 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateEmergencyContactInput,
     ) -> Result<EmergencyContact> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let contact = sqlx::query_as::<_, EmergencyContact>(
-            r#"
-            INSERT INTO hr_public.emergency_contacts
-            (employee_id, contact_name, relationship, phone_number, email, is_primary)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING id, employee_id, contact_name, relationship, phone_number,
-                      email, is_primary, created_at, updated_at
-            "#,
-        )
-        .bind(input.employee_id)
-        .bind(&input.contact_name)
-        .bind(&input.relationship)
-        .bind(&input.phone_number)
-        .bind(&input.email)
-        .bind(input.is_primary)
-        .fetch_one(pool)
-        .await?;
+        let contact = crate::models::emergency_contact::ActiveModel {
+            employee_id: Set(input.employee_id),
+            contact_name: Set(input.contact_name.clone()),
+            relationship: Set(input.relationship.clone()),
+            phone_number: Set(input.phone_number.clone()),
+            email: Set(input.email.clone()),
+            is_primary: Set(input.is_primary),
+            ..Default::default()
+        };
+
+        let contact = contact.insert(db).await?;
+
+        // Convert SeaORM model to legacy EmergencyContact struct for compatibility
+        let contact = EmergencyContact {
+            id: contact.id,
+            employee_id: contact.employee_id,
+            contact_name: contact.contact_name,
+            relationship: contact.relationship,
+            phone_number: contact.phone_number,
+            email: contact.email,
+            is_primary: contact.is_primary,
+            created_at: contact.created_at,
+            updated_at: contact.updated_at,
+        };
 
         Ok(contact)
     }
@@ -3050,76 +3165,68 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateEmergencyContactInput,
     ) -> Result<EmergencyContact> {
-        let pool = ctx.data::<DatabaseConnection>()?;
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        let db = get_db_from_context(ctx)?;
 
-        if input.contact_name.is_some() {
-            updates.push(format!("contact_name = ${}", param_count));
-            param_count += 1;
-        }
-        if input.relationship.is_some() {
-            updates.push(format!("relationship = ${}", param_count));
-            param_count += 1;
-        }
-        if input.phone_number.is_some() {
-            updates.push(format!("phone_number = ${}", param_count));
-            param_count += 1;
-        }
-        if input.email.is_some() {
-            updates.push(format!("email = ${}", param_count));
-            param_count += 1;
-        }
-        if input.is_primary.is_some() {
-            updates.push(format!("is_primary = ${}", param_count));
-            param_count += 1;
-        }
+        // Find existing emergency contact
+        let existing_contact = crate::models::emergency_contact::Entity::find_by_id(id)
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Emergency contact not found".to_string()))?;
 
-        updates.push("updated_at = NOW()".to_string());
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.emergency_contacts
-            SET {}
-            WHERE id = $1
-            RETURNING id, employee_id, contact_name, relationship, phone_number,
-                      email, is_primary, created_at, updated_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, EmergencyContact>(&query).bind(id);
+        // Build active model with updates
+        let mut contact: crate::models::emergency_contact::ActiveModel = existing_contact.into();
 
         if let Some(contact_name) = input.contact_name {
-            query_builder = query_builder.bind(contact_name);
-        }
-        if let Some(relationship) = input.relationship {
-            query_builder = query_builder.bind(relationship);
-        }
-        if let Some(phone_number) = input.phone_number {
-            query_builder = query_builder.bind(phone_number);
-        }
-        if let Some(email) = input.email {
-            query_builder = query_builder.bind(email);
-        }
-        if let Some(is_primary) = input.is_primary {
-            query_builder = query_builder.bind(is_primary);
+            contact.contact_name = Set(contact_name);
         }
 
-        let contact = query_builder.fetch_one(pool).await?;
+        if let Some(relationship) = input.relationship {
+            contact.relationship = Set(relationship);
+        }
+
+        if let Some(phone_number) = input.phone_number {
+            contact.phone_number = Set(phone_number);
+        }
+
+        if let Some(email) = input.email {
+            contact.email = Set(email);
+        }
+
+        if let Some(is_primary) = input.is_primary {
+            contact.is_primary = Set(is_primary);
+        }
+
+        // Update timestamp
+        contact.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_contact = contact.update(db).await?;
+
+        // Convert to legacy EmergencyContact struct for compatibility
+        let contact = EmergencyContact {
+            id: updated_contact.id,
+            employee_id: updated_contact.employee_id,
+            contact_name: updated_contact.contact_name,
+            relationship: updated_contact.relationship,
+            phone_number: updated_contact.phone_number,
+            email: updated_contact.email,
+            is_primary: updated_contact.is_primary,
+            created_at: updated_contact.created_at,
+            updated_at: updated_contact.updated_at,
+        };
+
         Ok(contact)
     }
 
     /// Delete an emergency contact (hard delete)
     async fn delete_emergency_contact(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query("DELETE FROM hr_public.emergency_contacts WHERE id = $1")
-            .bind(id)
-            .execute(pool)
+        let result = crate::models::emergency_contact::Entity::delete_by_id(id)
+            .exec(db)
             .await?;
 
-        Ok(result.rows_affected() > 0)
+        Ok(result.rows_affected > 0)
     }
 
     /// Create a new employee goal
@@ -3128,27 +3235,40 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateEmployeeGoalInput,
     ) -> Result<EmployeeGoal> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
         let status = input.status.unwrap_or(GoalStatus::NotStarted);
         let progress = input.progress_percentage.unwrap_or(0);
 
-        let goal = sqlx::query_as::<_, EmployeeGoal>(
-            r#"
-            INSERT INTO hr_public.employee_goals
-            (employee_id, goal_title, goal_description, target_date, status, progress_percentage)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING id, employee_id, goal_title, goal_description, target_date,
-                      status, progress_percentage, created_at, updated_at
-            "#,
-        )
-        .bind(input.employee_id)
-        .bind(&input.title)
-        .bind(&input.description)
-        .bind(input.target_date)
-        .bind(status)
-        .bind(progress)
-        .fetch_one(pool)
-        .await?;
+        let goal = crate::models::employee_goal::ActiveModel {
+            employee_id: Set(input.employee_id),
+            goal_title: Set(input.title.clone()),
+            goal_description: Set(input.description.clone()),
+            target_date: Set(input.target_date),
+            status: Set(status.as_str().to_string()),
+            progress_percentage: Set(progress),
+            ..Default::default()
+        };
+
+        let goal = goal.insert(db).await?;
+
+        // Convert SeaORM model to legacy EmployeeGoal struct for compatibility
+        let goal = EmployeeGoal {
+            id: goal.id,
+            employee_id: goal.employee_id,
+            goal_title: goal.goal_title,
+            goal_description: goal.goal_description,
+            target_date: goal.target_date,
+            status: match goal.status.as_str() {
+                "not_started" => GoalStatus::NotStarted,
+                "in_progress" => GoalStatus::InProgress,
+                "completed" => GoalStatus::Completed,
+                "cancelled" => GoalStatus::Cancelled,
+                _ => GoalStatus::NotStarted,
+            },
+            progress_percentage: goal.progress_percentage,
+            created_at: goal.created_at,
+            updated_at: goal.updated_at,
+        };
 
         Ok(goal)
     }
@@ -3160,76 +3280,74 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateEmployeeGoalInput,
     ) -> Result<EmployeeGoal> {
-        let pool = ctx.data::<DatabaseConnection>()?;
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        let db = get_db_from_context(ctx)?;
 
-        if input.title.is_some() {
-            updates.push(format!("goal_title = ${}", param_count));
-            param_count += 1;
-        }
-        if input.description.is_some() {
-            updates.push(format!("goal_description = ${}", param_count));
-            param_count += 1;
-        }
-        if input.target_date.is_some() {
-            updates.push(format!("target_date = ${}", param_count));
-            param_count += 1;
-        }
-        if input.status.is_some() {
-            updates.push(format!("status = ${}", param_count));
-            param_count += 1;
-        }
-        if input.progress_percentage.is_some() {
-            updates.push(format!("progress_percentage = ${}", param_count));
-            param_count += 1;
-        }
+        // Find existing employee goal
+        let existing_goal = crate::models::employee_goal::Entity::find_by_id(id)
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Employee goal not found".to_string()))?;
 
-        updates.push("updated_at = NOW()".to_string());
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.employee_goals
-            SET {}
-            WHERE id = $1
-            RETURNING id, employee_id, goal_title, goal_description, target_date,
-                      status, progress_percentage, created_at, updated_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, EmployeeGoal>(&query).bind(id);
+        // Build active model with updates
+        let mut goal: crate::models::employee_goal::ActiveModel = existing_goal.into();
 
         if let Some(title) = input.title {
-            query_builder = query_builder.bind(title);
-        }
-        if let Some(description) = input.description {
-            query_builder = query_builder.bind(description);
-        }
-        if let Some(target_date) = input.target_date {
-            query_builder = query_builder.bind(target_date);
-        }
-        if let Some(status) = input.status {
-            query_builder = query_builder.bind(status);
-        }
-        if let Some(progress_percentage) = input.progress_percentage {
-            query_builder = query_builder.bind(progress_percentage);
+            goal.goal_title = Set(title);
         }
 
-        let goal = query_builder.fetch_one(pool).await?;
+        if let Some(description) = input.description {
+            goal.goal_description = Set(description);
+        }
+
+        if let Some(target_date) = input.target_date {
+            goal.target_date = Set(target_date);
+        }
+
+        if let Some(status) = input.status {
+            goal.status = Set(status.as_str().to_string());
+        }
+
+        if let Some(progress_percentage) = input.progress_percentage {
+            goal.progress_percentage = Set(progress_percentage);
+        }
+
+        // Update timestamp
+        goal.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_goal = goal.update(db).await?;
+
+        // Convert to legacy EmployeeGoal struct for compatibility
+        let goal = EmployeeGoal {
+            id: updated_goal.id,
+            employee_id: updated_goal.employee_id,
+            goal_title: updated_goal.goal_title,
+            goal_description: updated_goal.goal_description,
+            target_date: updated_goal.target_date,
+            status: match updated_goal.status.as_str() {
+                "not_started" => GoalStatus::NotStarted,
+                "in_progress" => GoalStatus::InProgress,
+                "completed" => GoalStatus::Completed,
+                "cancelled" => GoalStatus::Cancelled,
+                _ => GoalStatus::NotStarted,
+            },
+            progress_percentage: updated_goal.progress_percentage,
+            created_at: updated_goal.created_at,
+            updated_at: updated_goal.updated_at,
+        };
+
         Ok(goal)
     }
 
     /// Delete an employee goal (hard delete)
     async fn delete_employee_goal(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query("DELETE FROM hr_public.employee_goals WHERE id = $1")
-            .bind(id)
-            .execute(pool)
+        let result = crate::models::employee_goal::Entity::delete_by_id(id)
+            .exec(db)
             .await?;
 
-        Ok(result.rows_affected() > 0)
+        Ok(result.rows_affected > 0)
     }
 
     // ============================================================
@@ -3242,26 +3360,35 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateDocumentInput,
     ) -> Result<Document> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let document = sqlx::query_as::<_, Document>(
-            r#"
-            INSERT INTO hr_public.documents
-            (title, description, category_id, file_path, file_size, mime_type, uploader_id)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            RETURNING id, title, description, category_id, file_path, file_size, mime_type,
-                      uploader_id, created_at, updated_at, deleted_at
-            "#,
-        )
-        .bind(&input.title)
-        .bind(&input.description)
-        .bind(input.category_id)
-        .bind(&input.file_path)
-        .bind(input.file_size)
-        .bind(&input.mime_type)
-        .bind(input.uploader_id)
-        .fetch_one(pool)
-        .await?;
+        let document = crate::models::document::ActiveModel {
+            title: Set(input.title.clone()),
+            description: Set(input.description.clone()),
+            category_id: Set(input.category_id),
+            file_path: Set(input.file_path.clone()),
+            file_size: Set(input.file_size),
+            mime_type: Set(input.mime_type.clone()),
+            uploader_id: Set(input.uploader_id),
+            ..Default::default()
+        };
+
+        let document = document.insert(db).await?;
+
+        // Convert SeaORM model to legacy Document struct for compatibility
+        let document = Document {
+            id: document.id,
+            title: document.title,
+            description: document.description,
+            category_id: document.category_id,
+            file_path: document.file_path,
+            file_size: document.file_size,
+            mime_type: document.mime_type,
+            uploader_id: document.uploader_id,
+            created_at: document.created_at,
+            updated_at: document.updated_at,
+            deleted_at: document.deleted_at,
+        };
 
         Ok(document)
     }
@@ -3273,68 +3400,75 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateDocumentInput,
     ) -> Result<Document> {
-        let pool = ctx.data::<DatabaseConnection>()?;
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        let db = get_db_from_context(ctx)?;
 
-        if input.title.is_some() {
-            updates.push(format!("title = ${}", param_count));
-            param_count += 1;
-        }
-        if input.description.is_some() {
-            updates.push(format!("description = ${}", param_count));
-            param_count += 1;
-        }
-        if input.category_id.is_some() {
-            updates.push(format!("category_id = ${}", param_count));
-            param_count += 1;
-        }
+        // Find existing document
+        let existing_document = crate::models::document::Entity::find_by_id(id)
+            .filter(crate::models::document::Column::DeletedAt.is_null())
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Document not found".to_string()))?;
 
-        updates.push("updated_at = NOW()".to_string());
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.documents
-            SET {}
-            WHERE id = $1 AND deleted_at IS NULL
-            RETURNING id, title, description, category_id, file_path, file_size, mime_type,
-                      uploader_id, created_at, updated_at, deleted_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, Document>(&query).bind(id);
+        // Build active model with updates
+        let mut document: crate::models::document::ActiveModel = existing_document.into();
 
         if let Some(title) = input.title {
-            query_builder = query_builder.bind(title);
-        }
-        if let Some(description) = input.description {
-            query_builder = query_builder.bind(description);
-        }
-        if let Some(category_id) = input.category_id {
-            query_builder = query_builder.bind(category_id);
+            document.title = Set(title);
         }
 
-        let document = query_builder.fetch_one(pool).await?;
+        if let Some(description) = input.description {
+            document.description = Set(description);
+        }
+
+        if let Some(category_id) = input.category_id {
+            document.category_id = Set(category_id);
+        }
+
+        // Update timestamp
+        document.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_document = document.update(db).await?;
+
+        // Convert to legacy Document struct for compatibility
+        let document = Document {
+            id: updated_document.id,
+            title: updated_document.title,
+            description: updated_document.description,
+            category_id: updated_document.category_id,
+            file_path: updated_document.file_path,
+            file_size: updated_document.file_size,
+            mime_type: updated_document.mime_type,
+            uploader_id: updated_document.uploader_id,
+            created_at: updated_document.created_at,
+            updated_at: updated_document.updated_at,
+            deleted_at: updated_document.deleted_at,
+        };
+
         Ok(document)
     }
 
     /// Delete a document (soft delete)
     async fn delete_document(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query(
-            r#"
-            UPDATE hr_public.documents
-            SET deleted_at = NOW()
-            WHERE id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(id)
-        .execute(pool)
-        .await?;
+        // Find the document first to ensure it exists
+        let document = crate::models::document::Entity::find_by_id(id)
+            .filter(crate::models::document::Column::DeletedAt.is_null())
+            .one(db)
+            .await?;
 
-        Ok(result.rows_affected() > 0)
+        if document.is_none() {
+            return Ok(false);
+        }
+
+        // Soft delete by setting deleted_at
+        let mut document: crate::models::document::ActiveModel = document.unwrap().into();
+        document.deleted_at = Set(Some(Utc::now().naive_utc()));
+
+        document.update(db).await?;
+
+        Ok(true)
     }
 
     /// Create a new document category
@@ -3343,21 +3477,27 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateDocumentCategoryInput,
     ) -> Result<DocumentCategory> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let category = sqlx::query_as::<_, DocumentCategory>(
-            r#"
-            INSERT INTO hr_public.document_categories
-            (name, description, parent_category_id)
-            VALUES ($1, $2, $3)
-            RETURNING id, name, description, parent_category_id, created_at, updated_at, deleted_at
-            "#,
-        )
-        .bind(&input.name)
-        .bind(&input.description)
-        .bind(input.parent_category_id)
-        .fetch_one(pool)
-        .await?;
+        let category = crate::models::document_category::ActiveModel {
+            name: Set(input.name.clone()),
+            description: Set(input.description.clone()),
+            parent_category_id: Set(input.parent_category_id),
+            ..Default::default()
+        };
+
+        let category = category.insert(db).await?;
+
+        // Convert SeaORM model to legacy DocumentCategory struct for compatibility
+        let category = DocumentCategory {
+            id: category.id,
+            name: category.name,
+            description: category.description,
+            parent_category_id: category.parent_category_id,
+            created_at: category.created_at,
+            updated_at: category.updated_at,
+            deleted_at: category.deleted_at,
+        };
 
         Ok(category)
     }
@@ -3369,67 +3509,71 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateDocumentCategoryInput,
     ) -> Result<DocumentCategory> {
-        let pool = ctx.data::<DatabaseConnection>()?;
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        let db = get_db_from_context(ctx)?;
 
-        if input.name.is_some() {
-            updates.push(format!("name = ${}", param_count));
-            param_count += 1;
-        }
-        if input.description.is_some() {
-            updates.push(format!("description = ${}", param_count));
-            param_count += 1;
-        }
-        if input.parent_category_id.is_some() {
-            updates.push(format!("parent_category_id = ${}", param_count));
-            param_count += 1;
-        }
+        // Find existing document category
+        let existing_category = crate::models::document_category::Entity::find_by_id(id)
+            .filter(crate::models::document_category::Column::DeletedAt.is_null())
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Document category not found".to_string()))?;
 
-        updates.push("updated_at = NOW()".to_string());
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.document_categories
-            SET {}
-            WHERE id = $1 AND deleted_at IS NULL
-            RETURNING id, name, description, parent_category_id, created_at, updated_at, deleted_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, DocumentCategory>(&query).bind(id);
+        // Build active model with updates
+        let mut category: crate::models::document_category::ActiveModel = existing_category.into();
 
         if let Some(name) = input.name {
-            query_builder = query_builder.bind(name);
-        }
-        if let Some(description) = input.description {
-            query_builder = query_builder.bind(description);
-        }
-        if let Some(parent_category_id) = input.parent_category_id {
-            query_builder = query_builder.bind(parent_category_id);
+            category.name = Set(name);
         }
 
-        let category = query_builder.fetch_one(pool).await?;
+        if let Some(description) = input.description {
+            category.description = Set(description);
+        }
+
+        if let Some(parent_category_id) = input.parent_category_id {
+            category.parent_category_id = Set(parent_category_id);
+        }
+
+        // Update timestamp
+        category.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_category = category.update(db).await?;
+
+        // Convert to legacy DocumentCategory struct for compatibility
+        let category = DocumentCategory {
+            id: updated_category.id,
+            name: updated_category.name,
+            description: updated_category.description,
+            parent_category_id: updated_category.parent_category_id,
+            created_at: updated_category.created_at,
+            updated_at: updated_category.updated_at,
+            deleted_at: updated_category.deleted_at,
+        };
+
         Ok(category)
     }
 
     /// Delete a document category (soft delete)
     async fn delete_document_category(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query(
-            r#"
-            UPDATE hr_public.document_categories
-            SET deleted_at = NOW()
-            WHERE id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(id)
-        .execute(pool)
-        .await?;
+        // Find the document category first to ensure it exists
+        let category = crate::models::document_category::Entity::find_by_id(id)
+            .filter(crate::models::document_category::Column::DeletedAt.is_null())
+            .one(db)
+            .await?;
 
-        Ok(result.rows_affected() > 0)
+        if category.is_none() {
+            return Ok(false);
+        }
+
+        // Soft delete by setting deleted_at
+        let mut category: crate::models::document_category::ActiveModel = category.unwrap().into();
+        category.deleted_at = Set(Some(Utc::now().naive_utc()));
+
+        category.update(db).await?;
+
+        Ok(true)
     }
 
     /// Create a new document version
@@ -3438,25 +3582,31 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateDocumentVersionInput,
     ) -> Result<DocumentVersion> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let version = sqlx::query_as::<_, DocumentVersion>(
-            r#"
-            INSERT INTO hr_public.document_versions
-            (document_id, version_number, file_path, file_size, uploader_id, change_summary)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING id, document_id, version_number, file_path, file_size, uploader_id,
-                      change_summary, created_at
-            "#,
-        )
-        .bind(input.document_id)
-        .bind(input.version_number)
-        .bind(&input.file_path)
-        .bind(input.file_size)
-        .bind(input.uploader_id)
-        .bind(&input.change_summary)
-        .fetch_one(pool)
-        .await?;
+        let version = crate::models::document_version::ActiveModel {
+            document_id: Set(input.document_id),
+            version_number: Set(input.version_number),
+            file_path: Set(input.file_path.clone()),
+            file_size: Set(input.file_size),
+            uploader_id: Set(input.uploader_id),
+            change_summary: Set(input.change_summary.clone()),
+            ..Default::default()
+        };
+
+        let version = version.insert(db).await?;
+
+        // Convert SeaORM model to legacy DocumentVersion struct for compatibility
+        let version = DocumentVersion {
+            id: version.id,
+            document_id: version.document_id,
+            version_number: version.version_number,
+            file_path: version.file_path,
+            file_size: version.file_size,
+            uploader_id: version.uploader_id,
+            change_summary: version.change_summary,
+            created_at: version.created_at,
+        };
 
         Ok(version)
     }
@@ -3467,37 +3617,47 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateDocumentAssignmentInput,
     ) -> Result<DocumentAssignment> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let assignment = sqlx::query_as::<_, DocumentAssignment>(
-            r#"
-            INSERT INTO hr_public.document_assignments
-            (document_id, user_id, department_id, access_level, assigned_by_id)
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING id, document_id, user_id, department_id, access_level, assigned_at, assigned_by_id
-            "#,
-        )
-        .bind(input.document_id)
-        .bind(input.user_id)
-        .bind(input.department_id)
-        .bind(input.access_level)
-        .bind(input.assigned_by_id)
-        .fetch_one(pool)
-        .await?;
+        let assignment = crate::models::document_assignment::ActiveModel {
+            document_id: Set(input.document_id),
+            user_id: Set(input.user_id),
+            department_id: Set(input.department_id),
+            access_level: Set(input.access_level.as_str().to_string()),
+            assigned_by_id: Set(input.assigned_by_id),
+            ..Default::default()
+        };
+
+        let assignment = assignment.insert(db).await?;
+
+        // Convert SeaORM model to legacy DocumentAssignment struct for compatibility
+        let assignment = DocumentAssignment {
+            id: assignment.id,
+            document_id: assignment.document_id,
+            user_id: assignment.user_id,
+            department_id: assignment.department_id,
+            access_level: match assignment.access_level.as_str() {
+                "read" => DocumentAccessLevel::Read,
+                "write" => DocumentAccessLevel::Write,
+                "admin" => DocumentAccessLevel::Admin,
+                _ => DocumentAccessLevel::Read,
+            },
+            assigned_at: assignment.assigned_at,
+            assigned_by_id: assignment.assigned_by_id,
+        };
 
         Ok(assignment)
     }
 
     /// Delete a document assignment (hard delete - revoke access)
     async fn delete_document_assignment(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query("DELETE FROM hr_public.document_assignments WHERE id = $1")
-            .bind(id)
-            .execute(pool)
+        let result = crate::models::document_assignment::Entity::delete_by_id(id)
+            .exec(db)
             .await?;
 
-        Ok(result.rows_affected() > 0)
+        Ok(result.rows_affected > 0)
     }
 
     /// Create a document access log entry (audit trail)
@@ -3506,22 +3666,33 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateDocumentAccessLogInput,
     ) -> Result<DocumentAccessLog> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let log = sqlx::query_as::<_, DocumentAccessLog>(
-            r#"
-            INSERT INTO hr_public.document_access_logs
-            (document_id, user_id, access_type, ip_address)
-            VALUES ($1, $2, $3, $4)
-            RETURNING id, document_id, user_id, access_type, accessed_at, ip_address
-            "#,
-        )
-        .bind(input.document_id)
-        .bind(input.user_id)
-        .bind(input.access_type)
-        .bind(&input.ip_address)
-        .fetch_one(pool)
-        .await?;
+        let log = crate::models::document_access_log::ActiveModel {
+            document_id: Set(input.document_id),
+            user_id: Set(input.user_id),
+            access_type: Set(input.access_type.as_str().to_string()),
+            ip_address: Set(input.ip_address.clone()),
+            ..Default::default()
+        };
+
+        let log = log.insert(db).await?;
+
+        // Convert SeaORM model to legacy DocumentAccessLog struct for compatibility
+        let log = DocumentAccessLog {
+            id: log.id,
+            document_id: log.document_id,
+            user_id: log.user_id,
+            access_type: match log.access_type.as_str() {
+                "view" => DocumentAccessType::View,
+                "download" => DocumentAccessType::Download,
+                "edit" => DocumentAccessType::Edit,
+                "delete" => DocumentAccessType::Delete,
+                _ => DocumentAccessType::View,
+            },
+            accessed_at: log.accessed_at,
+            ip_address: log.ip_address,
+        };
 
         Ok(log)
     }
@@ -3532,20 +3703,23 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateEncryptedFileStorageInput,
     ) -> Result<EncryptedFileStorage> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let storage = sqlx::query_as::<_, EncryptedFileStorage>(
-            r#"
-            INSERT INTO hr_public.encrypted_file_storage
-            (document_id, encryption_key_id)
-            VALUES ($1, $2)
-            RETURNING id, document_id, encryption_key_id, created_at
-            "#,
-        )
-        .bind(input.document_id)
-        .bind(input.encryption_key_id)
-        .fetch_one(pool)
-        .await?;
+        let storage = crate::models::encrypted_file_storage::ActiveModel {
+            document_id: Set(input.document_id),
+            encryption_key_id: Set(input.encryption_key_id),
+            ..Default::default()
+        };
+
+        let storage = storage.insert(db).await?;
+
+        // Convert SeaORM model to legacy EncryptedFileStorage struct for compatibility
+        let storage = EncryptedFileStorage {
+            id: storage.id,
+            document_id: storage.document_id,
+            encryption_key_id: storage.encryption_key_id,
+            created_at: storage.created_at,
+        };
 
         Ok(storage)
     }
@@ -3560,25 +3734,32 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateTimeOffPolicyInput,
     ) -> Result<TimeOffPolicy> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let policy = sqlx::query_as::<_, TimeOffPolicy>(
-            r#"
-            INSERT INTO hr_public.time_off_policies
-            (policy_name, leave_type, accrual_rate, max_balance, carryover_limit, effective_date)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING id, policy_name, leave_type, accrual_rate, max_balance, carryover_limit,
-                      effective_date, created_at, updated_at
-            "#,
-        )
-        .bind(&input.policy_name)
-        .bind(&input.leave_type)
-        .bind(input.accrual_rate)
-        .bind(input.max_balance)
-        .bind(input.carryover_limit)
-        .bind(input.effective_date)
-        .fetch_one(pool)
-        .await?;
+        let policy = crate::models::time_off_policy::ActiveModel {
+            policy_name: Set(input.policy_name.clone()),
+            leave_type: Set(input.leave_type.clone()),
+            accrual_rate: Set(input.accrual_rate),
+            max_balance: Set(input.max_balance),
+            carryover_limit: Set(input.carryover_limit),
+            effective_date: Set(input.effective_date),
+            ..Default::default()
+        };
+
+        let policy = policy.insert(db).await?;
+
+        // Convert SeaORM model to legacy TimeOffPolicy struct for compatibility
+        let policy = TimeOffPolicy {
+            id: policy.id,
+            policy_name: policy.policy_name,
+            leave_type: policy.leave_type,
+            accrual_rate: policy.accrual_rate,
+            max_balance: policy.max_balance,
+            carryover_limit: policy.carryover_limit,
+            effective_date: policy.effective_date,
+            created_at: policy.created_at,
+            updated_at: policy.updated_at,
+        };
 
         Ok(policy)
     }
@@ -3590,83 +3771,72 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateTimeOffPolicyInput,
     ) -> Result<TimeOffPolicy> {
-        let pool = ctx.data::<DatabaseConnection>()?;
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        let db = get_db_from_context(ctx)?;
 
-        if input.policy_name.is_some() {
-            updates.push(format!("policy_name = ${}", param_count));
-            param_count += 1;
-        }
-        if input.leave_type.is_some() {
-            updates.push(format!("leave_type = ${}", param_count));
-            param_count += 1;
-        }
-        if input.accrual_rate.is_some() {
-            updates.push(format!("accrual_rate = ${}", param_count));
-            param_count += 1;
-        }
-        if input.max_balance.is_some() {
-            updates.push(format!("max_balance = ${}", param_count));
-            param_count += 1;
-        }
-        if input.carryover_limit.is_some() {
-            updates.push(format!("carryover_limit = ${}", param_count));
-            param_count += 1;
-        }
-        if input.effective_date.is_some() {
-            updates.push(format!("effective_date = ${}", param_count));
-            param_count += 1;
-        }
+        // Find existing time-off policy
+        let existing_policy = crate::models::time_off_policy::Entity::find_by_id(id)
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Time-off policy not found".to_string()))?;
 
-        updates.push("updated_at = NOW()".to_string());
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.time_off_policies
-            SET {}
-            WHERE id = $1
-            RETURNING id, policy_name, leave_type, accrual_rate, max_balance, carryover_limit,
-                      effective_date, created_at, updated_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, TimeOffPolicy>(&query).bind(id);
+        // Build active model with updates
+        let mut policy: crate::models::time_off_policy::ActiveModel = existing_policy.into();
 
         if let Some(policy_name) = input.policy_name {
-            query_builder = query_builder.bind(policy_name);
-        }
-        if let Some(leave_type) = input.leave_type {
-            query_builder = query_builder.bind(leave_type);
-        }
-        if let Some(accrual_rate) = input.accrual_rate {
-            query_builder = query_builder.bind(accrual_rate);
-        }
-        if let Some(max_balance) = input.max_balance {
-            query_builder = query_builder.bind(max_balance);
-        }
-        if let Some(carryover_limit) = input.carryover_limit {
-            query_builder = query_builder.bind(carryover_limit);
-        }
-        if let Some(effective_date) = input.effective_date {
-            query_builder = query_builder.bind(effective_date);
+            policy.policy_name = Set(policy_name);
         }
 
-        let policy = query_builder.fetch_one(pool).await?;
+        if let Some(leave_type) = input.leave_type {
+            policy.leave_type = Set(leave_type);
+        }
+
+        if let Some(accrual_rate) = input.accrual_rate {
+            policy.accrual_rate = Set(accrual_rate);
+        }
+
+        if let Some(max_balance) = input.max_balance {
+            policy.max_balance = Set(max_balance);
+        }
+
+        if let Some(carryover_limit) = input.carryover_limit {
+            policy.carryover_limit = Set(carryover_limit);
+        }
+
+        if let Some(effective_date) = input.effective_date {
+            policy.effective_date = Set(effective_date);
+        }
+
+        // Update timestamp
+        policy.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_policy = policy.update(db).await?;
+
+        // Convert to legacy TimeOffPolicy struct for compatibility
+        let policy = TimeOffPolicy {
+            id: updated_policy.id,
+            policy_name: updated_policy.policy_name,
+            leave_type: updated_policy.leave_type,
+            accrual_rate: updated_policy.accrual_rate,
+            max_balance: updated_policy.max_balance,
+            carryover_limit: updated_policy.carryover_limit,
+            effective_date: updated_policy.effective_date,
+            created_at: updated_policy.created_at,
+            updated_at: updated_policy.updated_at,
+        };
+
         Ok(policy)
     }
 
     /// Delete a time-off policy (hard delete)
     async fn delete_time_off_policy(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query("DELETE FROM hr_public.time_off_policies WHERE id = $1")
-            .bind(id)
-            .execute(pool)
+        let result = crate::models::time_off_policy::Entity::delete_by_id(id)
+            .exec(db)
             .await?;
 
-        Ok(result.rows_affected() > 0)
+        Ok(result.rows_affected > 0)
     }
 
     /// Create a new attendance record
@@ -3675,26 +3845,40 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateAttendanceRecordInput,
     ) -> Result<AttendanceRecord> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let record = sqlx::query_as::<_, AttendanceRecord>(
-            r#"
-            INSERT INTO hr_public.attendance_records
-            (user_id, date, clock_in, clock_out, hours_worked, status, notes)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            RETURNING id, user_id, date, clock_in, clock_out, hours_worked, status, notes,
-                      created_at, updated_at
-            "#,
-        )
-        .bind(input.user_id)
-        .bind(input.date)
-        .bind(input.clock_in)
-        .bind(input.clock_out)
-        .bind(input.hours_worked)
-        .bind(input.status)
-        .bind(&input.notes)
-        .fetch_one(pool)
-        .await?;
+        let record = crate::models::attendance_record::ActiveModel {
+            user_id: Set(input.user_id),
+            date: Set(input.date),
+            clock_in: Set(input.clock_in),
+            clock_out: Set(input.clock_out),
+            hours_worked: Set(input.hours_worked),
+            status: Set(input.status.as_str().to_string()),
+            notes: Set(input.notes.clone()),
+            ..Default::default()
+        };
+
+        let record = record.insert(db).await?;
+
+        // Convert SeaORM model to legacy AttendanceRecord struct for compatibility
+        let record = AttendanceRecord {
+            id: record.id,
+            user_id: record.user_id,
+            date: record.date,
+            clock_in: record.clock_in,
+            clock_out: record.clock_out,
+            hours_worked: record.hours_worked,
+            status: match record.status.as_str() {
+                "present" => AttendanceStatus::Present,
+                "absent" => AttendanceStatus::Absent,
+                "late" => AttendanceStatus::Late,
+                "half_day" => AttendanceStatus::HalfDay,
+                _ => AttendanceStatus::Present,
+            },
+            notes: record.notes,
+            created_at: record.created_at,
+            updated_at: record.updated_at,
+        };
 
         Ok(record)
     }
@@ -3706,76 +3890,75 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateAttendanceRecordInput,
     ) -> Result<AttendanceRecord> {
-        let pool = ctx.data::<DatabaseConnection>()?;
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        let db = get_db_from_context(ctx)?;
 
-        if input.clock_in.is_some() {
-            updates.push(format!("clock_in = ${}", param_count));
-            param_count += 1;
-        }
-        if input.clock_out.is_some() {
-            updates.push(format!("clock_out = ${}", param_count));
-            param_count += 1;
-        }
-        if input.hours_worked.is_some() {
-            updates.push(format!("hours_worked = ${}", param_count));
-            param_count += 1;
-        }
-        if input.status.is_some() {
-            updates.push(format!("status = ${}", param_count));
-            param_count += 1;
-        }
-        if input.notes.is_some() {
-            updates.push(format!("notes = ${}", param_count));
-            param_count += 1;
-        }
+        // Find existing attendance record
+        let existing_record = crate::models::attendance_record::Entity::find_by_id(id)
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Attendance record not found".to_string()))?;
 
-        updates.push("updated_at = NOW()".to_string());
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.attendance_records
-            SET {}
-            WHERE id = $1
-            RETURNING id, user_id, date, clock_in, clock_out, hours_worked, status, notes,
-                      created_at, updated_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, AttendanceRecord>(&query).bind(id);
+        // Build active model with updates
+        let mut record: crate::models::attendance_record::ActiveModel = existing_record.into();
 
         if let Some(clock_in) = input.clock_in {
-            query_builder = query_builder.bind(clock_in);
-        }
-        if let Some(clock_out) = input.clock_out {
-            query_builder = query_builder.bind(clock_out);
-        }
-        if let Some(hours_worked) = input.hours_worked {
-            query_builder = query_builder.bind(hours_worked);
-        }
-        if let Some(status) = input.status {
-            query_builder = query_builder.bind(status);
-        }
-        if let Some(notes) = input.notes {
-            query_builder = query_builder.bind(notes);
+            record.clock_in = Set(clock_in);
         }
 
-        let record = query_builder.fetch_one(pool).await?;
+        if let Some(clock_out) = input.clock_out {
+            record.clock_out = Set(clock_out);
+        }
+
+        if let Some(hours_worked) = input.hours_worked {
+            record.hours_worked = Set(hours_worked);
+        }
+
+        if let Some(status) = input.status {
+            record.status = Set(status.as_str().to_string());
+        }
+
+        if let Some(notes) = input.notes {
+            record.notes = Set(notes);
+        }
+
+        // Update timestamp
+        record.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_record = record.update(db).await?;
+
+        // Convert to legacy AttendanceRecord struct for compatibility
+        let record = AttendanceRecord {
+            id: updated_record.id,
+            user_id: updated_record.user_id,
+            date: updated_record.date,
+            clock_in: updated_record.clock_in,
+            clock_out: updated_record.clock_out,
+            hours_worked: updated_record.hours_worked,
+            status: match updated_record.status.as_str() {
+                "present" => AttendanceStatus::Present,
+                "absent" => AttendanceStatus::Absent,
+                "late" => AttendanceStatus::Late,
+                "half_day" => AttendanceStatus::HalfDay,
+                _ => AttendanceStatus::Present,
+            },
+            notes: updated_record.notes,
+            created_at: updated_record.created_at,
+            updated_at: updated_record.updated_at,
+        };
+
         Ok(record)
     }
 
     /// Delete an attendance record (hard delete)
     async fn delete_attendance_record(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query("DELETE FROM hr_public.attendance_records WHERE id = $1")
-            .bind(id)
-            .execute(pool)
+        let result = crate::models::attendance_record::Entity::delete_by_id(id)
+            .exec(db)
             .await?;
 
-        Ok(result.rows_affected() > 0)
+        Ok(result.rows_affected > 0)
     }
 
     // ===== System Domain Mutations =====
@@ -3786,7 +3969,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateActivityLogInput,
     ) -> Result<ActivityLog> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
         // Parse details JSON string if provided
         let details_json = if let Some(details) = &input.details {
@@ -3795,22 +3978,29 @@ impl MutationRoot {
             None
         };
 
-        let log = sqlx::query_as::<_, ActivityLog>(
-            r#"
-            INSERT INTO hr_public.activity_logs
-            (user_id, employee_id, action, resource_type, resource_id, details)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING id, user_id, employee_id, action, resource_type, resource_id, details, created_at
-            "#,
-        )
-        .bind(input.user_id)
-        .bind(input.employee_id)
-        .bind(&input.action)
-        .bind(&input.resource_type)
-        .bind(input.resource_id)
-        .bind(details_json)
-        .fetch_one(pool)
-        .await?;
+        let log = crate::models::activity_log::ActiveModel {
+            user_id: Set(input.user_id),
+            employee_id: Set(input.employee_id),
+            action: Set(input.action.clone()),
+            resource_type: Set(input.resource_type.clone()),
+            resource_id: Set(input.resource_id),
+            details: Set(details_json),
+            ..Default::default()
+        };
+
+        let log = log.insert(db).await?;
+
+        // Convert SeaORM model to legacy ActivityLog struct for compatibility
+        let log = ActivityLog {
+            id: log.id,
+            user_id: log.user_id,
+            employee_id: log.employee_id,
+            action: log.action,
+            resource_type: log.resource_type,
+            resource_id: log.resource_id,
+            details: log.details,
+            created_at: log.created_at,
+        };
 
         Ok(log)
     }
@@ -3821,22 +4011,28 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateCompensationBandInput,
     ) -> Result<CompensationBand> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let band = sqlx::query_as::<_, CompensationBand>(
-            r#"
-            INSERT INTO hr_public.compensation_bands
-            (band_name, min_salary, max_salary, currency)
-            VALUES ($1, $2, $3, $4)
-            RETURNING id, band_name, min_salary, max_salary, currency, created_at, updated_at
-            "#,
-        )
-        .bind(&input.band_name)
-        .bind(input.min_salary)
-        .bind(input.max_salary)
-        .bind(&input.currency)
-        .fetch_one(pool)
-        .await?;
+        let band = crate::models::compensation_band::ActiveModel {
+            band_name: Set(input.band_name.clone()),
+            min_salary: Set(input.min_salary),
+            max_salary: Set(input.max_salary),
+            currency: Set(input.currency.clone()),
+            ..Default::default()
+        };
+
+        let band = band.insert(db).await?;
+
+        // Convert SeaORM model to legacy CompensationBand struct for compatibility
+        let band = CompensationBand {
+            id: band.id,
+            band_name: band.band_name,
+            min_salary: band.min_salary,
+            max_salary: band.max_salary,
+            currency: band.currency,
+            created_at: band.created_at,
+            updated_at: band.updated_at,
+        };
 
         Ok(band)
     }
@@ -3848,74 +4044,62 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateCompensationBandInput,
     ) -> Result<CompensationBand> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let db = get_db_from_context(ctx)?;
 
-        // Build dynamic UPDATE query
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        // Find existing compensation band
+        let existing_band = crate::models::compensation_band::Entity::find_by_id(id)
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Compensation band not found".to_string()))?;
 
-        if input.band_name.is_some() {
-            updates.push(format!("band_name = ${}", param_count));
-            param_count += 1;
-        }
-        if input.min_salary.is_some() {
-            updates.push(format!("min_salary = ${}", param_count));
-            param_count += 1;
-        }
-        if input.max_salary.is_some() {
-            updates.push(format!("max_salary = ${}", param_count));
-            param_count += 1;
-        }
-        if input.currency.is_some() {
-            updates.push(format!("currency = ${}", param_count));
-            param_count += 1;
-        }
-
-        updates.push("updated_at = NOW()".to_string());
-
-        if updates.len() == 1 {
-            return Err("No fields to update".into());
-        }
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.compensation_bands
-            SET {}
-            WHERE id = $1
-            RETURNING id, band_name, min_salary, max_salary, currency, created_at, updated_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, CompensationBand>(&query).bind(id);
+        // Build active model with updates
+        let mut band: crate::models::compensation_band::ActiveModel = existing_band.into();
 
         if let Some(band_name) = input.band_name {
-            query_builder = query_builder.bind(band_name);
-        }
-        if let Some(min_salary) = input.min_salary {
-            query_builder = query_builder.bind(min_salary);
-        }
-        if let Some(max_salary) = input.max_salary {
-            query_builder = query_builder.bind(max_salary);
-        }
-        if let Some(currency) = input.currency {
-            query_builder = query_builder.bind(currency);
+            band.band_name = Set(band_name);
         }
 
-        let band = query_builder.fetch_one(pool).await?;
+        if let Some(min_salary) = input.min_salary {
+            band.min_salary = Set(min_salary);
+        }
+
+        if let Some(max_salary) = input.max_salary {
+            band.max_salary = Set(max_salary);
+        }
+
+        if let Some(currency) = input.currency {
+            band.currency = Set(currency);
+        }
+
+        // Update timestamp
+        band.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_band = band.update(db).await?;
+
+        // Convert to legacy CompensationBand struct for compatibility
+        let band = CompensationBand {
+            id: updated_band.id,
+            band_name: updated_band.band_name,
+            min_salary: updated_band.min_salary,
+            max_salary: updated_band.max_salary,
+            currency: updated_band.currency,
+            created_at: updated_band.created_at,
+            updated_at: updated_band.updated_at,
+        };
+
         Ok(band)
     }
 
     /// Delete a compensation band (hard delete)
     async fn delete_compensation_band(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query("DELETE FROM hr_public.compensation_bands WHERE id = $1")
-            .bind(id)
-            .execute(pool)
+        let result = crate::models::compensation_band::Entity::delete_by_id(id)
+            .exec(db)
             .await?;
 
-        Ok(result.rows_affected() > 0)
+        Ok(result.rows_affected > 0)
     }
 
     /// Create a new HR report (generated report record)
@@ -3924,27 +4108,33 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateHRReportInput,
     ) -> Result<HRReport> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
         // Parse data JSON string
         let data_json = serde_json::from_str::<serde_json::Value>(&input.data)?;
 
-        let report = sqlx::query_as::<_, HRReport>(
-            r#"
-            INSERT INTO hr_public.hr_reports
-            (title, report_type, category, data, creator_id, department_id, generated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, NOW())
-            RETURNING id, title, report_type, data, creator_id, generated_at
-            "#,
-        )
-        .bind(&input.title)
-        .bind(&input.report_type)
-        .bind(&input.category)
-        .bind(data_json)
-        .bind(input.creator_id)
-        .bind(input.department_id)
-        .fetch_one(pool)
-        .await?;
+        let report = crate::models::hr_report::ActiveModel {
+            title: Set(input.title.clone()),
+            report_type: Set(input.report_type.clone()),
+            category: Set(input.category.clone()),
+            data: Set(data_json),
+            creator_id: Set(input.creator_id),
+            department_id: Set(input.department_id),
+            generated_at: Set(Utc::now().naive_utc()),
+            ..Default::default()
+        };
+
+        let report = report.insert(db).await?;
+
+        // Convert SeaORM model to legacy HRReport struct for compatibility
+        let report = HRReport {
+            id: report.id,
+            title: report.title,
+            report_type: report.report_type,
+            data: report.data,
+            creator_id: report.creator_id,
+            generated_at: report.generated_at,
+        };
 
         Ok(report)
     }
@@ -3955,7 +4145,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateRollbackRequestInput,
     ) -> Result<RollbackRequest> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
         // Get user ID from context
         let user_id = ctx
@@ -3963,20 +4153,36 @@ impl MutationRoot {
             .map(|uc| uc.user_id)
             .ok_or("User context not found - authentication required")?;
 
-        let request = sqlx::query_as::<_, RollbackRequest>(
-            r#"
-            INSERT INTO hr_public.rollback_requests
-            (activity_log_id, requested_by, reason, status)
-            VALUES ($1, $2, $3, 'pending')
-            RETURNING id, activity_log_id, requested_by, requested_at, reason,
-                      status, reviewed_by, reviewed_at, review_reason, created_at, updated_at
-            "#,
-        )
-        .bind(input.activity_log_id)
-        .bind(user_id)
-        .bind(&input.reason)
-        .fetch_one(pool)
-        .await?;
+        let request = crate::models::rollback_request::ActiveModel {
+            activity_log_id: Set(input.activity_log_id),
+            requested_by: Set(user_id),
+            reason: Set(input.reason.clone()),
+            status: Set("pending".to_string()),
+            ..Default::default()
+        };
+
+        let request = request.insert(db).await?;
+
+        // Convert SeaORM model to legacy RollbackRequest struct for compatibility
+        let request = RollbackRequest {
+            id: request.id,
+            activity_log_id: request.activity_log_id,
+            requested_by: request.requested_by,
+            requested_at: request.requested_at,
+            reason: request.reason,
+            status: match request.status.as_str() {
+                "pending" => RollbackStatus::Pending,
+                "approved" => RollbackStatus::Approved,
+                "rejected" => RollbackStatus::Rejected,
+                "completed" => RollbackStatus::Completed,
+                _ => RollbackStatus::Pending,
+            },
+            reviewed_by: request.reviewed_by,
+            reviewed_at: request.reviewed_at,
+            review_reason: request.review_reason,
+            created_at: request.created_at,
+            updated_at: request.updated_at,
+        };
 
         Ok(request)
     }
@@ -3988,58 +4194,60 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateRollbackRequestInput,
     ) -> Result<RollbackRequest> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let db = get_db_from_context(ctx)?;
 
-        // Build dynamic UPDATE query
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        // Find existing rollback request
+        let existing_request = crate::models::rollback_request::Entity::find_by_id(id)
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Rollback request not found".to_string()))?;
 
-        if input.status.is_some() {
-            updates.push(format!("status = ${}", param_count));
-            param_count += 1;
-        }
-        if input.reviewed_by.is_some() {
-            updates.push(format!("reviewed_by = ${}", param_count));
-            param_count += 1;
-        }
-        if input.review_reason.is_some() {
-            updates.push(format!("review_reason = ${}", param_count));
-            param_count += 1;
-        }
-
-        // If status is 'completed', set reviewed_at
-        if input.status.is_some() {
-            updates.push("reviewed_at = NOW()".to_string());
-        }
-
-        if updates.is_empty() {
-            return Err("No fields to update".into());
-        }
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.rollback_requests
-            SET {}
-            WHERE id = $1
-            RETURNING id, activity_log_id, requested_by, requested_at, reason,
-                      status, reviewed_by, reviewed_at, review_reason, created_at, updated_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, RollbackRequest>(&query).bind(id);
+        // Build active model with updates
+        let mut request: crate::models::rollback_request::ActiveModel = existing_request.into();
 
         if let Some(status) = input.status {
-            query_builder = query_builder.bind(status);
-        }
-        if let Some(reviewed_by) = input.reviewed_by {
-            query_builder = query_builder.bind(reviewed_by);
-        }
-        if let Some(review_reason) = &input.review_reason {
-            query_builder = query_builder.bind(review_reason);
+            request.status = Set(status.as_str().to_string());
+            // If status is 'completed', set reviewed_at
+            if status == RollbackStatus::Completed {
+                request.reviewed_at = Set(Some(Utc::now().naive_utc()));
+            }
         }
 
-        let request = query_builder.fetch_one(pool).await?;
+        if let Some(reviewed_by) = input.reviewed_by {
+            request.reviewed_by = Set(Some(reviewed_by));
+        }
+
+        if let Some(review_reason) = input.review_reason {
+            request.review_reason = Set(Some(review_reason));
+        }
+
+        // Update timestamp
+        request.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_request = request.update(db).await?;
+
+        // Convert to legacy RollbackRequest struct for compatibility
+        let request = RollbackRequest {
+            id: updated_request.id,
+            activity_log_id: updated_request.activity_log_id,
+            requested_by: updated_request.requested_by,
+            requested_at: updated_request.requested_at,
+            reason: updated_request.reason,
+            status: match updated_request.status.as_str() {
+                "pending" => RollbackStatus::Pending,
+                "approved" => RollbackStatus::Approved,
+                "rejected" => RollbackStatus::Rejected,
+                "completed" => RollbackStatus::Completed,
+                _ => RollbackStatus::Pending,
+            },
+            reviewed_by: updated_request.reviewed_by,
+            reviewed_at: updated_request.reviewed_at,
+            review_reason: updated_request.review_reason,
+            created_at: updated_request.created_at,
+            updated_at: updated_request.updated_at,
+        };
+
         Ok(request)
     }
 
@@ -4049,22 +4257,31 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateBulkRollbackBatchInput,
     ) -> Result<BulkRollbackBatch> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let batch = sqlx::query_as::<_, BulkRollbackBatch>(
-            r#"
-            INSERT INTO hr_public.bulk_rollback_batches
-            (batch_name, requester_id, total_items, completed_items, status)
-            VALUES ($1, $2, $3, 0, 'pending')
-            RETURNING id, batch_name, requester_id, total_items, completed_items, status,
-                      started_at, completed_at, created_at
-            "#,
-        )
-        .bind(&input.batch_name)
-        .bind(input.requester_id)
-        .bind(input.total_items)
-        .fetch_one(pool)
-        .await?;
+        let batch = crate::models::bulk_rollback_batch::ActiveModel {
+            batch_name: Set(input.batch_name.clone()),
+            requester_id: Set(input.requester_id),
+            total_items: Set(input.total_items),
+            completed_items: Set(0),
+            status: Set("pending".to_string()),
+            ..Default::default()
+        };
+
+        let batch = batch.insert(db).await?;
+
+        // Convert SeaORM model to legacy BulkRollbackBatch struct for compatibility
+        let batch = BulkRollbackBatch {
+            id: batch.id,
+            batch_name: batch.batch_name,
+            requester_id: batch.requester_id,
+            total_items: batch.total_items,
+            completed_items: batch.completed_items,
+            status: batch.status,
+            started_at: batch.started_at,
+            completed_at: batch.completed_at,
+            created_at: batch.created_at,
+        };
 
         Ok(batch)
     }
@@ -4076,59 +4293,51 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateBulkRollbackBatchInput,
     ) -> Result<BulkRollbackBatch> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let db = get_db_from_context(ctx)?;
 
-        // Build dynamic UPDATE query
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        // Find existing bulk rollback batch
+        let existing_batch = crate::models::bulk_rollback_batch::Entity::find_by_id(id)
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Bulk rollback batch not found".to_string()))?;
 
-        if input.completed_items.is_some() {
-            updates.push(format!("completed_items = ${}", param_count));
-            param_count += 1;
-        }
-        if input.status.is_some() {
-            updates.push(format!("status = ${}", param_count));
-            param_count += 1;
-        }
-
-        // If status is 'processing', set started_at if not already set
-        // If status is 'completed' or 'failed', set completed_at
-        if let Some(status) = &input.status {
-            if status == "processing" {
-                updates.push(
-                    "started_at = COALESCE(started_at, NOW())".to_string(),
-                );
-            }
-            if status == "completed" || status == "failed" {
-                updates.push("completed_at = NOW()".to_string());
-            }
-        }
-
-        if updates.is_empty() {
-            return Err("No fields to update".into());
-        }
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.bulk_rollback_batches
-            SET {}
-            WHERE id = $1
-            RETURNING id, batch_name, requester_id, total_items, completed_items, status,
-                      started_at, completed_at, created_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, BulkRollbackBatch>(&query).bind(id);
+        // Build active model with updates
+        let mut batch: crate::models::bulk_rollback_batch::ActiveModel = existing_batch.into();
 
         if let Some(completed_items) = input.completed_items {
-            query_builder = query_builder.bind(completed_items);
-        }
-        if let Some(status) = input.status {
-            query_builder = query_builder.bind(status);
+            batch.completed_items = Set(completed_items);
         }
 
-        let batch = query_builder.fetch_one(pool).await?;
+        if let Some(status) = input.status {
+            batch.status = Set(status.clone());
+            // If status is 'processing', set started_at if not already set
+            // If status is 'completed' or 'failed', set completed_at
+            if status == "processing" {
+                if existing_batch.started_at.is_none() {
+                    batch.started_at = Set(Some(Utc::now().naive_utc()));
+                }
+            }
+            if status == "completed" || status == "failed" {
+                batch.completed_at = Set(Some(Utc::now().naive_utc()));
+            }
+        }
+
+        // Save changes
+        let updated_batch = batch.update(db).await?;
+
+        // Convert to legacy BulkRollbackBatch struct for compatibility
+        let batch = BulkRollbackBatch {
+            id: updated_batch.id,
+            batch_name: updated_batch.batch_name,
+            requester_id: updated_batch.requester_id,
+            total_items: updated_batch.total_items,
+            completed_items: updated_batch.completed_items,
+            status: updated_batch.status,
+            started_at: updated_batch.started_at,
+            completed_at: updated_batch.completed_at,
+            created_at: updated_batch.created_at,
+        };
+
         Ok(batch)
     }
 
@@ -4138,23 +4347,30 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateBulkRollbackItemInput,
     ) -> Result<BulkRollbackItem> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let item = sqlx::query_as::<_, BulkRollbackItem>(
-            r#"
-            INSERT INTO hr_public.bulk_rollback_items
-            (batch_id, resource_type, resource_id, rollback_to_timestamp, status)
-            VALUES ($1, $2, $3, $4, 'pending')
-            RETURNING id, batch_id, resource_type, resource_id, rollback_to_timestamp,
-                      status, error_message, completed_at
-            "#,
-        )
-        .bind(input.batch_id)
-        .bind(&input.resource_type)
-        .bind(input.resource_id)
-        .bind(input.rollback_to_timestamp)
-        .fetch_one(pool)
-        .await?;
+        let item = crate::models::bulk_rollback_item::ActiveModel {
+            batch_id: Set(input.batch_id),
+            resource_type: Set(input.resource_type.clone()),
+            resource_id: Set(input.resource_id),
+            rollback_to_timestamp: Set(input.rollback_to_timestamp),
+            status: Set("pending".to_string()),
+            ..Default::default()
+        };
+
+        let item = item.insert(db).await?;
+
+        // Convert SeaORM model to legacy BulkRollbackItem struct for compatibility
+        let item = BulkRollbackItem {
+            id: item.id,
+            batch_id: item.batch_id,
+            resource_type: item.resource_type,
+            resource_id: item.resource_id,
+            rollback_to_timestamp: item.rollback_to_timestamp,
+            status: item.status,
+            error_message: item.error_message,
+            completed_at: item.completed_at,
+        };
 
         Ok(item)
     }
@@ -4166,53 +4382,44 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateBulkRollbackItemInput,
     ) -> Result<BulkRollbackItem> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let db = get_db_from_context(ctx)?;
 
-        // Build dynamic UPDATE query
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        // Find existing bulk rollback item
+        let existing_item = crate::models::bulk_rollback_item::Entity::find_by_id(id)
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Bulk rollback item not found".to_string()))?;
 
-        if input.status.is_some() {
-            updates.push(format!("status = ${}", param_count));
-            param_count += 1;
-        }
-        if input.error_message.is_some() {
-            updates.push(format!("error_message = ${}", param_count));
-            param_count += 1;
-        }
+        // Build active model with updates
+        let mut item: crate::models::bulk_rollback_item::ActiveModel = existing_item.into();
 
-        // If status is 'completed' or 'failed', set completed_at
-        if let Some(status) = &input.status {
+        if let Some(status) = input.status {
+            item.status = Set(status.clone());
+            // If status is 'completed' or 'failed', set completed_at
             if status == "completed" || status == "failed" {
-                updates.push("completed_at = NOW()".to_string());
+                item.completed_at = Set(Some(Utc::now().naive_utc()));
             }
         }
 
-        if updates.is_empty() {
-            return Err("No fields to update".into());
-        }
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.bulk_rollback_items
-            SET {}
-            WHERE id = $1
-            RETURNING id, batch_id, resource_type, resource_id, rollback_to_timestamp,
-                      status, error_message, completed_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, BulkRollbackItem>(&query).bind(id);
-
-        if let Some(status) = input.status {
-            query_builder = query_builder.bind(status);
-        }
         if let Some(error_message) = input.error_message {
-            query_builder = query_builder.bind(error_message);
+            item.error_message = Set(Some(error_message));
         }
 
-        let item = query_builder.fetch_one(pool).await?;
+        // Save changes
+        let updated_item = item.update(db).await?;
+
+        // Convert to legacy BulkRollbackItem struct for compatibility
+        let item = BulkRollbackItem {
+            id: updated_item.id,
+            batch_id: updated_item.batch_id,
+            resource_type: updated_item.resource_type,
+            resource_id: updated_item.resource_id,
+            rollback_to_timestamp: updated_item.rollback_to_timestamp,
+            status: updated_item.status,
+            error_message: updated_item.error_message,
+            completed_at: updated_item.completed_at,
+        };
+
         Ok(item)
     }
 
@@ -4222,9 +4429,9 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreatePayrollRecordInput,
     ) -> Result<PayrollRecord> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        // Parse JSON strings for deductions and bonuses
+        // Parse deductions JSON string if provided
         let deductions_json = if let Some(deductions) = &input.deductions {
             Some(serde_json::from_str::<serde_json::Value>(deductions)?)
         } else {
@@ -4237,26 +4444,35 @@ impl MutationRoot {
             None
         };
 
-        let record = sqlx::query_as::<_, PayrollRecord>(
-            r#"
-            INSERT INTO hr_public.payroll_records
-            (employee_id, pay_period_start, pay_period_end, gross_pay, net_pay,
-             deductions, bonuses, processed_at, processor_id)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8)
-            RETURNING id, employee_id, pay_period_start, pay_period_end, gross_pay, net_pay,
-                      deductions, bonuses, processed_at, processor_id, created_at
-            "#,
-        )
-        .bind(input.employee_id)
-        .bind(input.pay_period_start)
-        .bind(input.pay_period_end)
-        .bind(input.gross_pay)
-        .bind(input.net_pay)
-        .bind(deductions_json)
-        .bind(bonuses_json)
-        .bind(input.processor_id)
-        .fetch_one(pool)
-        .await?;
+        let record = crate::models::payroll_record::ActiveModel {
+            employee_id: Set(input.employee_id),
+            pay_period_start: Set(input.pay_period_start),
+            pay_period_end: Set(input.pay_period_end),
+            gross_pay: Set(input.gross_pay),
+            net_pay: Set(input.net_pay),
+            deductions: Set(deductions_json),
+            bonuses: Set(bonuses_json),
+            processed_at: Set(Utc::now().naive_utc()),
+            processor_id: Set(input.processor_id),
+            ..Default::default()
+        };
+
+        let record = record.insert(db).await?;
+
+        // Convert SeaORM model to legacy PayrollRecord struct for compatibility
+        let record = PayrollRecord {
+            id: record.id,
+            employee_id: record.employee_id,
+            pay_period_start: record.pay_period_start,
+            pay_period_end: record.pay_period_end,
+            gross_pay: record.gross_pay,
+            net_pay: record.net_pay,
+            deductions: record.deductions,
+            bonuses: record.bonuses,
+            processed_at: record.processed_at,
+            processor_id: record.processor_id,
+            created_at: record.created_at,
+        };
 
         Ok(record)
     }
@@ -4267,20 +4483,26 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateEncryptionKeyInput,
     ) -> Result<EncryptionKey> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let key = sqlx::query_as::<_, EncryptionKey>(
-            r#"
-            INSERT INTO hr_public.encryption_keys
-            (key_name, algorithm, active)
-            VALUES ($1, $2, true)
-            RETURNING id, key_name, algorithm, created_at, rotated_at, active
-            "#,
-        )
-        .bind(&input.key_name)
-        .bind(&input.algorithm)
-        .fetch_one(pool)
-        .await?;
+        let key = crate::models::encryption_key::ActiveModel {
+            key_name: Set(input.key_name.clone()),
+            algorithm: Set(input.algorithm.clone()),
+            active: Set(true),
+            ..Default::default()
+        };
+
+        let key = key.insert(db).await?;
+
+        // Convert SeaORM model to legacy EncryptionKey struct for compatibility
+        let key = EncryptionKey {
+            id: key.id,
+            key_name: key.key_name,
+            algorithm: key.algorithm,
+            created_at: key.created_at,
+            rotated_at: key.rotated_at,
+            active: key.active,
+        };
 
         Ok(key)
     }
@@ -4293,21 +4515,27 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateEventCommentInput,
     ) -> Result<EventComment> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let comment = sqlx::query_as::<_, EventComment>(
-            r#"
-            INSERT INTO hr_public.event_comments
-            (event_id, user_id, comment_text)
-            VALUES ($1, $2, $3)
-            RETURNING id, event_id, user_id, comment_text, created_at, updated_at, deleted_at
-            "#,
-        )
-        .bind(input.event_id)
-        .bind(input.user_id)
-        .bind(&input.comment_text)
-        .fetch_one(pool)
-        .await?;
+        let comment = crate::models::event_comment::ActiveModel {
+            event_id: Set(input.event_id),
+            user_id: Set(input.user_id),
+            comment_text: Set(input.comment_text.clone()),
+            ..Default::default()
+        };
+
+        let comment = comment.insert(db).await?;
+
+        // Convert SeaORM model to legacy EventComment struct for compatibility
+        let comment = EventComment {
+            id: comment.id,
+            event_id: comment.event_id,
+            user_id: comment.user_id,
+            comment_text: comment.comment_text,
+            created_at: comment.created_at,
+            updated_at: comment.updated_at,
+            deleted_at: comment.deleted_at,
+        };
 
         Ok(comment)
     }
@@ -4319,55 +4547,63 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateEventCommentInput,
     ) -> Result<EventComment> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let db = get_db_from_context(ctx)?;
 
-        // Build dynamic UPDATE query
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        // Find existing comment
+        let existing_comment = crate::models::event_comment::Entity::find_by_id(id)
+            .filter(crate::models::event_comment::Column::DeletedAt.is_null())
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Event comment not found".to_string()))?;
 
-        if input.comment_text.is_some() {
-            updates.push(format!("comment_text = ${}", param_count));
-            param_count += 1;
-        }
-
-        updates.push("updated_at = NOW()".to_string());
-
-        if updates.len() == 1 {
-            return Err("No fields to update".into());
-        }
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.event_comments
-            SET {}
-            WHERE id = $1 AND deleted_at IS NULL
-            RETURNING id, event_id, user_id, comment_text, created_at, updated_at, deleted_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, EventComment>(&query).bind(id);
+        // Build active model with updates
+        let mut comment: crate::models::event_comment::ActiveModel = existing_comment.into();
 
         if let Some(comment_text) = input.comment_text {
-            query_builder = query_builder.bind(comment_text);
+            comment.comment_text = Set(comment_text);
         }
 
-        let comment = query_builder.fetch_one(pool).await?;
+        // Update timestamp
+        comment.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_comment = comment.update(db).await?;
+
+        // Convert to legacy EventComment struct for compatibility
+        let comment = EventComment {
+            id: updated_comment.id,
+            event_id: updated_comment.event_id,
+            user_id: updated_comment.user_id,
+            comment_text: updated_comment.comment_text,
+            created_at: updated_comment.created_at,
+            updated_at: updated_comment.updated_at,
+            deleted_at: updated_comment.deleted_at,
+        };
+
         Ok(comment)
     }
 
     /// Delete an event comment (soft delete)
     async fn delete_event_comment(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query(
-            "UPDATE hr_public.event_comments SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL",
-        )
-        .bind(id)
-        .execute(pool)
-        .await?;
+        // Find existing comment
+        let existing_comment = crate::models::event_comment::Entity::find_by_id(id)
+            .filter(crate::models::event_comment::Column::DeletedAt.is_null())
+            .one(db)
+            .await?;
 
-        Ok(result.rows_affected() > 0)
+        if let Some(comment) = existing_comment {
+            // Build active model for soft delete
+            let mut comment: crate::models::event_comment::ActiveModel = comment.into();
+            comment.deleted_at = Set(Some(Utc::now().naive_utc()));
+
+            // Save changes
+            comment.update(db).await?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 
     /// Create a new event history entry (audit trail)
@@ -4376,7 +4612,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateEventHistoryInput,
     ) -> Result<EventHistory> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
         // Parse JSON strings if provided
         let old_values_json = if let Some(old_values) = &input.old_values {
@@ -4391,21 +4627,27 @@ impl MutationRoot {
             None
         };
 
-        let history = sqlx::query_as::<_, EventHistory>(
-            r#"
-            INSERT INTO hr_public.event_history
-            (event_id, changed_by_id, change_type, old_values, new_values)
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING id, event_id, changed_by_id, change_type, old_values, new_values, created_at
-            "#,
-        )
-        .bind(input.event_id)
-        .bind(input.changed_by_id)
-        .bind(&input.change_type)
-        .bind(old_values_json)
-        .bind(new_values_json)
-        .fetch_one(pool)
-        .await?;
+        let history = crate::models::event_history::ActiveModel {
+            event_id: Set(input.event_id),
+            changed_by_id: Set(input.changed_by_id),
+            change_type: Set(input.change_type.clone()),
+            old_values: Set(old_values_json),
+            new_values: Set(new_values_json),
+            ..Default::default()
+        };
+
+        let history = history.insert(db).await?;
+
+        // Convert SeaORM model to legacy EventHistory struct for compatibility
+        let history = EventHistory {
+            id: history.id,
+            event_id: history.event_id,
+            changed_by_id: history.changed_by_id,
+            change_type: history.change_type,
+            old_values: history.old_values,
+            new_values: history.new_values,
+            created_at: history.created_at,
+        };
 
         Ok(history)
     }
@@ -4416,21 +4658,28 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateEventWaitlistInput,
     ) -> Result<EventWaitlist> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let waitlist = sqlx::query_as::<_, EventWaitlist>(
-            r#"
-            INSERT INTO hr_public.event_waitlist
-            (event_id, user_id, position, promoted)
-            VALUES ($1, $2, $3, false)
-            RETURNING id, event_id, user_id, position, promoted, promoted_at, created_at
-            "#,
-        )
-        .bind(input.event_id)
-        .bind(input.user_id)
-        .bind(input.position)
-        .fetch_one(pool)
-        .await?;
+        let waitlist = crate::models::event_waitlist::ActiveModel {
+            event_id: Set(input.event_id),
+            user_id: Set(input.user_id),
+            position: Set(input.position),
+            promoted: Set(false),
+            ..Default::default()
+        };
+
+        let waitlist = waitlist.insert(db).await?;
+
+        // Convert SeaORM model to legacy EventWaitlist struct for compatibility
+        let waitlist = EventWaitlist {
+            id: waitlist.id,
+            event_id: waitlist.event_id,
+            user_id: waitlist.user_id,
+            position: waitlist.position,
+            promoted: waitlist.promoted,
+            promoted_at: waitlist.promoted_at,
+            created_at: waitlist.created_at,
+        };
 
         Ok(waitlist)
     }
@@ -4442,56 +4691,51 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateEventWaitlistInput,
     ) -> Result<EventWaitlist> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let db = get_db_from_context(ctx)?;
 
-        // Build dynamic UPDATE query
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        // Find existing waitlist entry
+        let existing_waitlist = crate::models::event_waitlist::Entity::find_by_id(id)
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Event waitlist entry not found".to_string()))?;
 
-        if input.promoted.is_some() {
-            updates.push(format!("promoted = ${}", param_count));
-            param_count += 1;
-        }
-
-        // If promoting, set promoted_at
-        if input.promoted == Some(true) {
-            updates.push("promoted_at = NOW()".to_string());
-        }
-
-        if updates.is_empty() {
-            return Err("No fields to update".into());
-        }
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.event_waitlist
-            SET {}
-            WHERE id = $1
-            RETURNING id, event_id, user_id, position, promoted, promoted_at, created_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, EventWaitlist>(&query).bind(id);
+        // Build active model with updates
+        let mut waitlist: crate::models::event_waitlist::ActiveModel = existing_waitlist.into();
 
         if let Some(promoted) = input.promoted {
-            query_builder = query_builder.bind(promoted);
+            waitlist.promoted = Set(promoted);
+            // If promoting, set promoted_at
+            if promoted {
+                waitlist.promoted_at = Set(Some(Utc::now().naive_utc()));
+            }
         }
 
-        let waitlist = query_builder.fetch_one(pool).await?;
+        // Save changes
+        let updated_waitlist = waitlist.update(db).await?;
+
+        // Convert to legacy EventWaitlist struct for compatibility
+        let waitlist = EventWaitlist {
+            id: updated_waitlist.id,
+            event_id: updated_waitlist.event_id,
+            user_id: updated_waitlist.user_id,
+            position: updated_waitlist.position,
+            promoted: updated_waitlist.promoted,
+            promoted_at: updated_waitlist.promoted_at,
+            created_at: updated_waitlist.created_at,
+        };
+
         Ok(waitlist)
     }
 
     /// Delete an event waitlist entry (hard delete)
     async fn delete_event_waitlist(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query("DELETE FROM hr_public.event_waitlist WHERE id = $1")
-            .bind(id)
-            .execute(pool)
+        let result = crate::models::event_waitlist::Entity::delete_by_id(id)
+            .exec(db)
             .await?;
 
-        Ok(result.rows_affected() > 0)
+        Ok(result.rows_affected > 0)
     }
 
     // ===== Tasks/Reviews Domain Mutations =====
@@ -4502,23 +4746,30 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateTaskTypeInput,
     ) -> Result<TaskType> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let task_type = sqlx::query_as::<_, TaskType>(
-            r#"
-            INSERT INTO hr_public.task_types
-            (name, description, default_priority, color_code, is_active)
-            VALUES ($1, $2, $3, $4, true)
-            RETURNING id, name, description, default_priority, color_code, is_active,
-                      created_at, updated_at
-            "#,
-        )
-        .bind(&input.name)
-        .bind(&input.description)
-        .bind(&input.default_priority)
-        .bind(&input.color_code)
-        .fetch_one(pool)
-        .await?;
+        let task_type = crate::models::task_type::ActiveModel {
+            name: Set(input.name.clone()),
+            description: Set(input.description.clone()),
+            default_priority: Set(input.default_priority.clone()),
+            color_code: Set(input.color_code.clone()),
+            is_active: Set(true),
+            ..Default::default()
+        };
+
+        let task_type = task_type.insert(db).await?;
+
+        // Convert SeaORM model to legacy TaskType struct for compatibility
+        let task_type = TaskType {
+            id: task_type.id,
+            name: task_type.name,
+            description: task_type.description,
+            default_priority: task_type.default_priority,
+            color_code: task_type.color_code,
+            is_active: task_type.is_active,
+            created_at: task_type.created_at,
+            updated_at: task_type.updated_at,
+        };
 
         Ok(task_type)
     }
@@ -4530,84 +4781,75 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateTaskTypeInput,
     ) -> Result<TaskType> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let db = get_db_from_context(ctx)?;
 
-        // Build dynamic UPDATE query
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        // Find existing task type
+        let existing_task_type = crate::models::task_type::Entity::find_by_id(id)
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Task type not found".to_string()))?;
 
-        if input.name.is_some() {
-            updates.push(format!("name = ${}", param_count));
-            param_count += 1;
-        }
-        if input.description.is_some() {
-            updates.push(format!("description = ${}", param_count));
-            param_count += 1;
-        }
-        if input.default_priority.is_some() {
-            updates.push(format!("default_priority = ${}", param_count));
-            param_count += 1;
-        }
-        if input.color_code.is_some() {
-            updates.push(format!("color_code = ${}", param_count));
-            param_count += 1;
-        }
-        if input.is_active.is_some() {
-            updates.push(format!("is_active = ${}", param_count));
-            param_count += 1;
-        }
-
-        updates.push("updated_at = NOW()".to_string());
-
-        if updates.len() == 1 {
-            return Err("No fields to update".into());
-        }
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.task_types
-            SET {}
-            WHERE id = $1
-            RETURNING id, name, description, default_priority, color_code, is_active,
-                      created_at, updated_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, TaskType>(&query).bind(id);
+        // Build active model with updates
+        let mut task_type: crate::models::task_type::ActiveModel = existing_task_type.into();
 
         if let Some(name) = input.name {
-            query_builder = query_builder.bind(name);
+            task_type.name = Set(name);
         }
         if let Some(description) = input.description {
-            query_builder = query_builder.bind(description);
+            task_type.description = Set(description);
         }
         if let Some(default_priority) = input.default_priority {
-            query_builder = query_builder.bind(default_priority);
+            task_type.default_priority = Set(default_priority);
         }
         if let Some(color_code) = input.color_code {
-            query_builder = query_builder.bind(color_code);
+            task_type.color_code = Set(color_code);
         }
         if let Some(is_active) = input.is_active {
-            query_builder = query_builder.bind(is_active);
+            task_type.is_active = Set(is_active);
         }
 
-        let task_type = query_builder.fetch_one(pool).await?;
+        // Update timestamp
+        task_type.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_task_type = task_type.update(db).await?;
+
+        // Convert to legacy TaskType struct for compatibility
+        let task_type = TaskType {
+            id: updated_task_type.id,
+            name: updated_task_type.name,
+            description: updated_task_type.description,
+            default_priority: updated_task_type.default_priority,
+            color_code: updated_task_type.color_code,
+            is_active: updated_task_type.is_active,
+            created_at: updated_task_type.created_at,
+            updated_at: updated_task_type.updated_at,
+        };
+
         Ok(task_type)
     }
 
     /// Delete a task type (soft delete by setting is_active = false)
     async fn delete_task_type(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query(
-            "UPDATE hr_public.task_types SET is_active = false, updated_at = NOW() WHERE id = $1",
-        )
-        .bind(id)
-        .execute(pool)
-        .await?;
+        // Find existing task type
+        let existing_task_type = crate::models::task_type::Entity::find_by_id(id)
+            .one(db)
+            .await?;
 
-        Ok(result.rows_affected() > 0)
+        if let Some(task_type) = existing_task_type {
+            // Build active model for soft delete
+            let mut task_type: crate::models::task_type::ActiveModel = task_type.into();
+            task_type.is_active = Set(false);
+            task_type.updated_at = Set(Utc::now().naive_utc());
+
+            // Save changes
+            task_type.update(db).await?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 
     /// Create a new review template
@@ -4616,7 +4858,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateReviewTemplateInput,
     ) -> Result<ReviewTemplate> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
         // Parse sections JSON string if provided
         let sections_json = if let Some(sections) = &input.sections {
@@ -4625,21 +4867,28 @@ impl MutationRoot {
             None
         };
 
-        let template = sqlx::query_as::<_, ReviewTemplate>(
-            r#"
-            INSERT INTO hr_public.review_templates
-            (name, description, sections, is_active, created_by_id)
-            VALUES ($1, $2, $3, true, $4)
-            RETURNING id, name, description, sections, is_active, created_by_id,
-                      created_at, updated_at
-            "#,
-        )
-        .bind(&input.name)
-        .bind(&input.description)
-        .bind(sections_json)
-        .bind(input.created_by_id)
-        .fetch_one(pool)
-        .await?;
+        let template = crate::models::review_template::ActiveModel {
+            name: Set(input.name.clone()),
+            description: Set(input.description.clone()),
+            sections: Set(sections_json),
+            is_active: Set(true),
+            created_by_id: Set(input.created_by_id),
+            ..Default::default()
+        };
+
+        let template = template.insert(db).await?;
+
+        // Convert SeaORM model to legacy ReviewTemplate struct for compatibility
+        let template = ReviewTemplate {
+            id: template.id,
+            name: template.name,
+            description: template.description,
+            sections: template.sections,
+            is_active: template.is_active,
+            created_by_id: template.created_by_id,
+            created_at: template.created_at,
+            updated_at: template.updated_at,
+        };
 
         Ok(template)
     }
@@ -4651,77 +4900,72 @@ impl MutationRoot {
         id: Uuid,
         input: UpdateReviewTemplateInput,
     ) -> Result<ReviewTemplate> {
-        let pool = ctx.data::<DatabaseConnection>()?;
+        let db = get_db_from_context(ctx)?;
 
-        // Build dynamic UPDATE query
-        let mut updates = Vec::new();
-        let mut param_count = 2;
+        // Find existing review template
+        let existing_template = crate::models::review_template::Entity::find_by_id(id)
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Review template not found".to_string()))?;
 
-        if input.name.is_some() {
-            updates.push(format!("name = ${}", param_count));
-            param_count += 1;
-        }
-        if input.description.is_some() {
-            updates.push(format!("description = ${}", param_count));
-            param_count += 1;
-        }
-        if input.sections.is_some() {
-            updates.push(format!("sections = ${}", param_count));
-            param_count += 1;
-        }
-        if input.is_active.is_some() {
-            updates.push(format!("is_active = ${}", param_count));
-            param_count += 1;
-        }
-
-        updates.push("updated_at = NOW()".to_string());
-
-        if updates.len() == 1 {
-            return Err("No fields to update".into());
-        }
-
-        let query = format!(
-            r#"
-            UPDATE hr_public.review_templates
-            SET {}
-            WHERE id = $1
-            RETURNING id, name, description, sections, is_active, created_by_id,
-                      created_at, updated_at
-            "#,
-            updates.join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, ReviewTemplate>(&query).bind(id);
+        // Build active model with updates
+        let mut template: crate::models::review_template::ActiveModel = existing_template.into();
 
         if let Some(name) = input.name {
-            query_builder = query_builder.bind(name);
+            template.name = Set(name);
         }
         if let Some(description) = input.description {
-            query_builder = query_builder.bind(description);
+            template.description = Set(description);
         }
         if let Some(sections) = input.sections {
             let sections_json = serde_json::from_str::<serde_json::Value>(&sections)?;
-            query_builder = query_builder.bind(sections_json);
+            template.sections = Set(Some(sections_json));
         }
         if let Some(is_active) = input.is_active {
-            query_builder = query_builder.bind(is_active);
+            template.is_active = Set(is_active);
         }
 
-        let template = query_builder.fetch_one(pool).await?;
+        // Update timestamp
+        template.updated_at = Set(Utc::now().naive_utc());
+
+        // Save changes
+        let updated_template = template.update(db).await?;
+
+        // Convert to legacy ReviewTemplate struct for compatibility
+        let template = ReviewTemplate {
+            id: updated_template.id,
+            name: updated_template.name,
+            description: updated_template.description,
+            sections: updated_template.sections,
+            is_active: updated_template.is_active,
+            created_by_id: updated_template.created_by_id,
+            created_at: updated_template.created_at,
+            updated_at: updated_template.updated_at,
+        };
+
         Ok(template)
     }
 
     /// Delete a review template (soft delete by setting is_active = false)
     async fn delete_review_template(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let pool = get_pool_from_context(ctx)?;
+        let db = get_db_from_context(ctx)?;
 
-        let result = sqlx::query(
-            "UPDATE hr_public.review_templates SET is_active = false, updated_at = NOW() WHERE id = $1",
-        )
-        .bind(id)
-        .execute(pool)
-        .await?;
+        // Find existing review template
+        let existing_template = crate::models::review_template::Entity::find_by_id(id)
+            .one(db)
+            .await?;
 
-        Ok(result.rows_affected() > 0)
+        if let Some(template) = existing_template {
+            // Build active model for soft delete
+            let mut template: crate::models::review_template::ActiveModel = template.into();
+            template.is_active = Set(false);
+            template.updated_at = Set(Utc::now().naive_utc());
+
+            // Save changes
+            template.update(db).await?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 }

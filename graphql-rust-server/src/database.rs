@@ -4,7 +4,7 @@
 //! and configuration management following Rust best practices.
 
 use async_graphql::Error as GqlError;
-use sea_orm::{Database, DatabaseConnection, ConnectOptions, DbErr};
+use sea_orm::{Database, DatabaseConnection, ConnectOptions, DbErr, ConnectionTrait};
 use std::time::Duration;
 use tracing::info;
 
@@ -100,8 +100,7 @@ pub async fn init_database(config: &DatabaseConfig) -> Result<DatabaseConnection
         .connect_timeout(config.connect_timeout)
         .idle_timeout(config.idle_timeout)
         .max_lifetime(config.max_lifetime)
-        .sqlx_logging(true)
-        .sqlx_logging_level(log::LevelFilter::Info);
+        .sqlx_logging(true);
 
     let db = Database::connect(opt).await?;
 
@@ -117,12 +116,12 @@ pub async fn init_database(config: &DatabaseConfig) -> Result<DatabaseConnection
 }
 
 /// Extract SeaORM connection from GraphQL context
-/// 
+///
 /// This function provides type-safe extraction of the database connection
 /// from the async-graphql context with proper error handling.
-pub async fn get_db_from_context(
-    ctx: &async_graphql::Context<'_>
-) -> Result<&DatabaseConnection, GqlError> {
+pub fn get_db_from_context<'a>(
+    ctx: &'a async_graphql::Context<'_>
+) -> Result<&'a DatabaseConnection, GqlError> {
     ctx.data::<DatabaseConnection>()
         .map_err(|_| GqlError::new("Database connection not available in context"))
 }

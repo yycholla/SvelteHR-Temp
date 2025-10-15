@@ -4,12 +4,44 @@
 
 use async_graphql::{InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
+use sea_orm::{entity::prelude::*, QueryFilter};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use uuid::Uuid;
 
-/// Bulk rollback batch for multiple items
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+use crate::{database::get_db_from_context, error::AppError};
+
+/// SeaORM Bulk rollback batch entity
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "bulk_rollback_batches")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: Uuid,
+    pub batch_name: String,
+    pub requester_id: Uuid,
+    pub total_items: i32,
+    pub completed_items: i32,
+    pub status: String,
+    pub started_at: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+    #[sea_orm(
+        belongs_to = "crate::models::user::Entity",
+        from = "Column::RequesterId",
+        to = "crate::models::user::Column::Id"
+    )]
+    Requester,
+    #[sea_orm(has_many = "super::bulk_rollback_item::Entity")]
+    Items,
+}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+/// SQLx-compatible BulkRollbackBatch struct for backward compatibility during migration
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct BulkRollbackBatch {
     pub id: Uuid,
     pub batch_name: String,
@@ -43,7 +75,7 @@ pub struct UpdateBulkRollbackBatchInput {
 
 /// GraphQL Object implementation with camelCase field names
 #[Object]
-impl BulkRollbackBatch {
+impl Model {
     async fn id(&self) -> Uuid {
         self.id
     }
@@ -88,20 +120,13 @@ impl BulkRollbackBatch {
     }
 
     /// Requester relationship (lazy-loaded)
-    async fn requester(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::User> {
-        let pool = ctx.data::<PgPool>()?;
-        let user = sqlx::query_as::<_, crate::models::User>(
-            r#"
-            SELECT id, email, first_name, last_name, full_name, phone,
-                   department_id, manager_id, hire_date, termination_date,
-                   status, created_at, updated_at, deleted_at
-            FROM hr_public.users
-            WHERE id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.requester_id)
-        .fetch_one(pool)
-        .await?;
+    async fn requester(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::user::Model> {
+        let db = get_db_from_context(ctx)?;
+        let user = crate::models::user::Entity::find_by_id(self.requester_id)
+            .filter(crate::models::user::Column::DeletedAt.is_null())
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Requester not found".to_string()))?;
 
         Ok(user)
     }
@@ -110,20 +135,12 @@ impl BulkRollbackBatch {
     async fn items(
         &self,
         ctx: &async_graphql::Context<'_>,
-    ) -> GqlResult<Vec<super::bulk_rollback_item::BulkRollbackItem>> {
-        let pool = ctx.data::<PgPool>()?;
-        let items = sqlx::query_as::<_, super::bulk_rollback_item::BulkRollbackItem>(
-            r#"
-            SELECT id, batch_id, resource_type, resource_id, rollback_to_timestamp,
-                   status, error_message, completed_at
-            FROM hr_public.bulk_rollback_items
-            WHERE batch_id = $1
-            ORDER BY created_at
-            "#,
-        )
-        .bind(self.id)
-        .fetch_all(pool)
-        .await?;
+    ) -> GqlResult<Vec<super::bulk_rollback_item::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let items = super::bulk_rollback_item::Entity::find()
+            .filter(super::bulk_rollback_item::Column::BatchId.eq(self.id))
+            .all(db)
+            .await?;
 
         Ok(items)
     }

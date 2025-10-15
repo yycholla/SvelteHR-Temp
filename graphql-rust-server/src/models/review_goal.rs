@@ -4,13 +4,14 @@
 
 use async_graphql::{Context, Enum, InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
+use sea_orm::{entity::prelude::*, FromQueryResult, Related};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::{database::get_db_from_context, error::AppError, models::generated::prelude::*};
+
 /// Goal completion status
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum, sqlx::Type)]
-#[sqlx(type_name = "goal_completion_status", rename_all = "snake_case")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 pub enum GoalCompletionStatus {
     NotStarted,
     InProgress,
@@ -19,24 +20,44 @@ pub enum GoalCompletionStatus {
     Cancelled,
 }
 
-/// ReviewGoal model - maps to hr_public.review_goals table
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-pub struct ReviewGoal {
+/// ReviewGoal entity - maps to hr_public.review_goals table
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "review_goals")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub performance_review_id: Uuid,
     pub title: String,
     pub description: Option<String>,
     pub target_date: Option<DateTime<Utc>>,
-    pub completion_status: GoalCompletionStatus,
+    pub completion_status: String, // Using string to match database enum
     pub weight: Option<i32>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
 }
 
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::performance_review::Entity",
+        from = "Column::PerformanceReviewId",
+        to = "super::performance_review::Column::Id"
+    )]
+    PerformanceReview,
+}
+
+impl Related<super::performance_review::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::PerformanceReview.def().rev()
+    }
+}
+
+impl ActiveModelBehavior for ActiveModel {}
+
 /// GraphQL Object implementation for ReviewGoal
 #[Object]
-impl ReviewGoal {
+impl Model {
     /// Unique review goal identifier
     async fn id(&self) -> Uuid {
         self.id
@@ -64,7 +85,14 @@ impl ReviewGoal {
 
     /// Current completion status
     async fn completion_status(&self) -> GoalCompletionStatus {
-        self.completion_status
+        match self.completion_status.as_str() {
+            "not_started" => GoalCompletionStatus::NotStarted,
+            "in_progress" => GoalCompletionStatus::InProgress,
+            "completed" => GoalCompletionStatus::Completed,
+            "deferred" => GoalCompletionStatus::Deferred,
+            "cancelled" => GoalCompletionStatus::Cancelled,
+            _ => GoalCompletionStatus::NotStarted, // Default fallback
+        }
     }
 
     /// Goal weight/importance (0-100)
@@ -91,36 +119,22 @@ impl ReviewGoal {
     async fn performance_review(
         &self,
         ctx: &Context<'_>,
-    ) -> GqlResult<Option<super::performance_review::PerformanceReview>> {
-        let pool = ctx.data::<PgPool>()?;
-
-        let review = sqlx::query_as::<_, super::performance_review::PerformanceReview>(
-            r#"
-            SELECT id, review_cycle_id, employee_id, reviewer_id, status,
-                   overall_rating, manager_comments, employee_self_review,
-                   strengths, areas_for_improvement, due_date, completed_at,
-                   created_at, updated_at, deleted_at
-            FROM hr_public.performance_reviews
-            WHERE id = $1 AND deleted_at IS NULL
-            "#,
-        )
-        .bind(self.performance_review_id)
-        .fetch_optional(pool)
-        .await?;
-
+    ) -> GqlResult<Option<super::performance_review::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let review = super::performance_review::Entity::find_by_id(self.performance_review_id).one(db).await?;
         Ok(review)
     }
 
     /// Whether the goal is completed
     async fn is_completed(&self) -> bool {
-        self.completion_status == GoalCompletionStatus::Completed
+        self.completion_status == "completed"
     }
 
     /// Whether the goal is overdue
     async fn is_overdue(&self) -> bool {
         if let Some(target) = self.target_date {
-            if self.completion_status != GoalCompletionStatus::Completed
-                && self.completion_status != GoalCompletionStatus::Cancelled
+            if self.completion_status != "completed"
+                && self.completion_status != "cancelled"
             {
                 return Utc::now() > target;
             }
@@ -136,20 +150,21 @@ impl ReviewGoal {
 
     /// Progress percentage (0-100) based on status
     async fn progress_percentage(&self) -> i32 {
-        match self.completion_status {
-            GoalCompletionStatus::NotStarted => 0,
-            GoalCompletionStatus::InProgress => 50,
-            GoalCompletionStatus::Completed => 100,
-            GoalCompletionStatus::Deferred => 25,
-            GoalCompletionStatus::Cancelled => 0,
+        match self.completion_status.as_str() {
+            "not_started" => 0,
+            "in_progress" => 50,
+            "completed" => 100,
+            "deferred" => 25,
+            "cancelled" => 0,
+            _ => 0,
         }
     }
 
     /// Whether goal is active (not completed or cancelled)
     async fn is_active(&self) -> bool {
         !matches!(
-            self.completion_status,
-            GoalCompletionStatus::Completed | GoalCompletionStatus::Cancelled
+            self.completion_status.as_str(),
+            "completed" | "cancelled"
         )
     }
 }
@@ -180,20 +195,20 @@ mod tests {
 
     #[test]
     fn test_review_goal_model_compiles() {
-        let goal = ReviewGoal {
+        let goal = Model {
             id: Uuid::new_v4(),
             performance_review_id: Uuid::new_v4(),
             title: "Improve code quality".to_string(),
             description: Some("Reduce technical debt by 30%".to_string()),
             target_date: Some(Utc::now()),
-            completion_status: GoalCompletionStatus::InProgress,
+            completion_status: "in_progress".to_string(),
             weight: Some(80),
             created_at: Utc::now(),
             updated_at: Utc::now(),
             deleted_at: None,
         };
 
-        assert_eq!(goal.completion_status, GoalCompletionStatus::InProgress);
+        assert_eq!(goal.completion_status, "in_progress");
         assert_eq!(goal.weight, Some(80));
     }
 }
