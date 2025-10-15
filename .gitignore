@@ -18,6 +18,35 @@ Thumbs.db
 
 # Env
 .env
+
+# Rust
+target/
+Cargo.lock
+*.pdb
+*.exe
+*.rlib
+*.dll
+*.so
+*.dylib
+*.profraw
+*.profdata
+*.gcda
+*.gcno
+*.gcov
+**/target/
+**/*.rs.bk
+*.pdb
+**/*.pdb
+**/*.exe
+**/*.rlib
+**/*.dll
+**/*.so
+**/*.dylib
+**/*.profraw
+**/*.profdata
+**/*.gcda
+**/*.gcno
+**/*.gcov
 .env.*
 !.env.example
 !.env.test

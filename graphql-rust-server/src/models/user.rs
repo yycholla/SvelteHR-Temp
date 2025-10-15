@@ -4,11 +4,11 @@
 
 use async_graphql::{Context, Enum, InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
+use sea_orm::{entity::prelude::*, FromQueryResult, Related};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::loaders::batch_load_users;
+use crate::{database::get_db_from_context, error::AppError, models::generated::prelude::*};
 
 /// User status enumeration
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
@@ -105,26 +105,191 @@ impl async_graphql::ScalarType for UserStatus {
     }
 }
 
-/// User model - maps to hr_public.users table
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-pub struct User {
+/// User entity - maps to hr_public.users table
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "users")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub email: String,
+    pub password_hash: String,
     pub first_name: String,
     pub last_name: String,
-    pub display_name: String,  // Computed column in database
-    pub full_name: String,  // Computed column (first_name || ' ' || last_name)
+    pub display_name: String,  // Computed column
+    pub full_name: String,    // Computed column
     pub role: String,
-    pub phone_number: Option<String>,  // Maps to phone_number in DB, exposed as phone in GraphQL
+    pub phone_number: Option<String>,
     pub alternate_phone: Option<String>,
     pub job_title: Option<String>,
-    pub status: Option<String>,  // active, inactive, terminated
+    pub status: Option<String>,
     pub department_id: Option<Uuid>,
-    pub manager_id: Option<Uuid>,  // Self-referential foreign key to users.id
+    pub manager_id: Option<Uuid>,
     pub hire_date: Option<DateTime<Utc>>,
     pub is_active: bool,
+    pub failed_login_attempts: i32,
+    pub locked_until: Option<DateTime<Utc>>,
+    pub last_login: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::department::Entity",
+        from = "Column::DepartmentId",
+        to = "super::department::Column::Id"
+    )]
+    Department,
+    #[sea_orm(
+        belongs_to = "Entity",
+        from = "Column::ManagerId",
+        to = "Column::Id"
+    )]
+    Manager,
+    #[sea_orm(has_many = "super::task::Entity")]
+    Tasks,
+    #[sea_orm(has_many = "super::leave_request::Entity")]
+    LeaveRequests,
+    #[sea_orm(has_many = "super::performance_review::Entity")]
+    PerformanceReviews,
+}
+
+impl Related<super::department::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Department.def()
+    }
+}
+
+impl Related<Entity> for super::department::Entity {
+    fn to() -> RelationDef {
+        Relation::Manager.def().rev()
+    }
+}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+/// GraphQL Object implementation for User
+#[Object]
+impl Model {
+    /// Unique user identifier
+    async fn id(&self) -> Uuid {
+        self.id
+    }
+
+    /// Email address (unique)
+    async fn email(&self) -> &str {
+        &self.email
+    }
+
+    /// First name
+    async fn first_name(&self) -> &str {
+        &self.first_name
+    }
+
+    /// Last name
+    async fn last_name(&self) -> &str {
+        &self.last_name
+    }
+
+    /// Display name (computed from first + last in database)
+    async fn display_name(&self) -> &str {
+        &self.display_name
+    }
+
+    /// Full name (computed column from first + last)
+    async fn full_name(&self) -> &str {
+        &self.full_name
+    }
+
+    /// User role (hr_employee, hr_manager, admin, super_admin, etc.)
+    async fn role(&self) -> &str {
+        &self.role
+    }
+
+    /// Phone number (optional)
+    async fn phone(&self) -> Option<&str> {
+        self.phone_number.as_deref()
+    }
+
+    /// Alternate phone number (optional)
+    async fn alternate_phone(&self) -> Option<&str> {
+        self.alternate_phone.as_deref()
+    }
+
+    /// Job title (optional)
+    async fn job_title(&self) -> Option<&str> {
+        self.job_title.as_deref()
+    }
+
+    /// User status (active, inactive, terminated)
+    async fn status(&self) -> Option<&str> {
+        self.status.as_deref()
+    }
+
+    /// Department ID (foreign key)
+    async fn department_id(&self) -> Option<Uuid> {
+        self.department_id
+    }
+
+    /// Manager ID (foreign key, self-referential)
+    async fn manager_id(&self) -> Option<Uuid> {
+        self.manager_id
+    }
+
+    /// Hire date
+    async fn hire_date(&self) -> Option<DateTime<Utc>> {
+        self.hire_date
+    }
+
+    /// Is active (true if user is currently active)
+    async fn is_active(&self) -> bool {
+        self.is_active
+    }
+
+    /// Record creation timestamp
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    /// Record last update timestamp
+    async fn updated_at(&self) -> DateTime<Utc> {
+        self.updated_at
+    }
+
+    /// Department relationship (lazy-loaded)
+    async fn department(&self, ctx: &Context<'_>) -> GqlResult<Option<super::department::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let dept = Entity::find_by_id(self.id)
+            .find_also_related(super::department::Entity)
+            .one(db)
+            .await?;
+
+        Ok(dept.and_then(|(_, dept)| dept))
+    }
+
+    /// Manager relationship (lazy-loaded)
+    async fn manager(&self, ctx: &Context<'_>) -> GqlResult<Option<Model>> {
+        if let Some(manager_id) = self.manager_id {
+            let db = get_db_from_context(ctx)?;
+            let manager = Entity::find_by_id(manager_id).one(db).await?;
+            Ok(manager)
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Direct reports (users managed by this user)
+    async fn direct_reports(&self, ctx: &Context<'_>) -> GqlResult<Vec<Model>> {
+        let db = get_db_from_context(ctx)?;
+        let reports = Entity::find()
+            .filter(Column::ManagerId.eq(self.id))
+            .filter(Column::IsActive.eq(true))
+            .all(db)
+            .await?;
+
+        Ok(reports)
+    }
 }
 
 /// User condition for filtering queries (PostGraphile-style)

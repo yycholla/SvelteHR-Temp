@@ -4,9 +4,11 @@
 
 use async_graphql::{Context, Enum, InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
+use sea_orm::{entity::prelude::*, FromQueryResult, Related};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use uuid::Uuid;
+
+use crate::{database::get_db_from_context, error::AppError, models::generated::prelude::*};
 
 /// Leave request status
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum, sqlx::Type)]
@@ -18,22 +20,150 @@ pub enum LeaveRequestStatus {
     Cancelled,
 }
 
-/// LeaveRequest model - maps to hr_public.leave_requests table
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-pub struct LeaveRequest {
+/// LeaveRequest entity - maps to hr_public.leave_requests table
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "leave_requests")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub employee_id: Uuid,
     pub manager_id: Option<Uuid>,
-    pub leave_type: String, // This is an enum in the database
+    pub leave_type: String,
     pub start_date: DateTime<Utc>,
     pub end_date: DateTime<Utc>,
     pub days_requested: i32,
-    pub status: LeaveRequestStatus,
+    pub status: String,
     pub reason: Option<String>,
     pub manager_comments: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::EmployeeId",
+        to = "super::user::Column::Id"
+    )]
+    Employee,
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::ManagerId",
+        to = "super::user::Column::Id"
+    )]
+    Manager,
+}
+
+impl Related<super::user::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Employee.def().rev()
+    }
+}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+/// GraphQL Object implementation for LeaveRequest
+#[Object]
+impl Model {
+    /// Unique leave request identifier
+    async fn id(&self) -> Uuid {
+        self.id
+    }
+
+    /// Employee ID requesting leave (foreign key)
+    async fn employee_id(&self) -> Uuid {
+        self.employee_id
+    }
+
+    /// Manager ID who can approve/reject (optional foreign key)
+    async fn manager_id(&self) -> Option<Uuid> {
+        self.manager_id
+    }
+
+    /// Leave type (enum value)
+    async fn leave_type(&self) -> &str {
+        &self.leave_type
+    }
+
+    /// Leave start date
+    async fn start_date(&self) -> DateTime<Utc> {
+        self.start_date
+    }
+
+    /// Leave end date
+    async fn end_date(&self) -> DateTime<Utc> {
+        self.end_date
+    }
+
+    /// Number of days requested
+    async fn days_requested(&self) -> i32 {
+        self.days_requested
+    }
+
+    /// Current status of the request
+    async fn status(&self) -> &str {
+        &self.status
+    }
+
+    /// Reason for leave (optional)
+    async fn reason(&self) -> Option<&str> {
+        self.reason.as_deref()
+    }
+
+    /// Manager comments (optional)
+    async fn manager_comments(&self) -> Option<&str> {
+        self.manager_comments.as_deref()
+    }
+
+    /// Record creation timestamp
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    /// Record last update timestamp
+    async fn updated_at(&self) -> DateTime<Utc> {
+        self.updated_at
+    }
+
+    /// Soft delete timestamp (NULL if not deleted)
+    async fn deleted_at(&self) -> Option<DateTime<Utc>> {
+        self.deleted_at
+    }
+
+    /// Employee requesting leave
+    async fn employee(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let employee = super::user::Entity::find_by_id(self.employee_id).one(db).await?;
+        Ok(employee)
+    }
+
+    /// Manager who can approve/reject the request
+    async fn manager(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
+        if let Some(manager_id) = self.manager_id {
+            let db = get_db_from_context(ctx)?;
+            let manager = super::user::Entity::find_by_id(manager_id).one(db).await?;
+            Ok(manager)
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Whether the request is currently pending
+    async fn is_pending(&self) -> bool {
+        self.status == "pending"
+    }
+
+    /// Whether the request is approved
+    async fn is_approved(&self) -> bool {
+        self.status == "approved"
+    }
+
+    /// Duration in days (calculated from start/end dates)
+    async fn duration_days(&self) -> i32 {
+        self.days_requested
+    }
 }
 
 /// GraphQL Object implementation for LeaveRequest

@@ -4,11 +4,11 @@
 
 use async_graphql::{Context, Enum, InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
+use sea_orm::{entity::prelude::*, FromQueryResult, Related};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::loaders::batch_load_users;
+use crate::{database::get_db_from_context, error::AppError, models::generated::prelude::*};
 
 /// Department ordering options for GraphQL queries
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
@@ -66,16 +66,118 @@ impl DepartmentsOrderBy {
 
 
 
-/// Department model - maps to hr_public.departments table
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-pub struct Department {
+/// Department entity - maps to hr_public.departments table
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "departments")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub name: String,
     pub description: Option<String>,
-    pub parent_department_id: Option<Uuid>,  // Self-referential foreign key to departments.id
+    pub parent_department_id: Option<Uuid>,
     pub manager_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+    #[sea_orm(
+        belongs_to = "Entity",
+        from = "Column::ParentDepartmentId",
+        to = "Column::Id"
+    )]
+    Parent,
+    #[sea_orm(has_many = "Entity")]
+    Children,
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::ManagerId",
+        to = "super::user::Column::Id"
+    )]
+    Manager,
+    #[sea_orm(has_many = "super::user::Entity")]
+    Users,
+}
+
+impl Related<Entity> for super::user::Entity {
+    fn to() -> RelationDef {
+        Relation::Manager.def().rev()
+    }
+}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+/// GraphQL Object implementation for Department
+#[Object]
+impl Model {
+    /// Unique department identifier
+    async fn id(&self) -> Uuid {
+        self.id
+    }
+
+    /// Department name
+    async fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Department description (optional)
+    async fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+
+    /// Parent department ID (self-referential foreign key)
+    async fn parent_department_id(&self) -> Option<Uuid> {
+        self.parent_department_id
+    }
+
+    /// Department manager ID (foreign key to users)
+    async fn manager_id(&self) -> Option<Uuid> {
+        self.manager_id
+    }
+
+    /// Record creation timestamp
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    /// Record last update timestamp
+    async fn updated_at(&self) -> DateTime<Utc> {
+        self.updated_at
+    }
+
+    /// Department manager (lazy-loaded)
+    async fn manager(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
+        if let Some(manager_id) = self.manager_id {
+            let db = get_db_from_context(ctx)?;
+            let manager = super::user::Entity::find_by_id(manager_id).one(db).await?;
+            Ok(manager)
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Employees in this department
+    async fn employees(&self, ctx: &Context<'_>) -> GqlResult<Vec<super::user::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let employees = super::user::Entity::find()
+            .filter(super::user::Column::DepartmentId.eq(self.id))
+            .all(db)
+            .await?;
+
+        Ok(employees)
+    }
+
+    /// Total employee count in this department
+    async fn employee_count(&self, ctx: &Context<'_>) -> GqlResult<i64> {
+        let db = get_db_from_context(ctx)?;
+        let count = super::user::Entity::find()
+            .filter(super::user::Column::DepartmentId.eq(self.id))
+            .count(db)
+            .await?;
+
+        Ok(count as i64)
+    }
 }
 
 /// GraphQL Object implementation for Department

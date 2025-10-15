@@ -10,10 +10,12 @@ use axum::{
     response::{Response, IntoResponse},
 };
 use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
+use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::auth::UserContext;
+use crate::{auth::UserContext, database::get_db_from_context};
 
 /// JWT claims structure matching the token issued by the backend
 #[derive(Debug, Serialize, Deserialize)]

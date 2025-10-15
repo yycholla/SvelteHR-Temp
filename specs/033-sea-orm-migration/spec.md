@@ -81,6 +81,12 @@ As a developer extending the HR system, I want to leverage SeaORM's advanced fil
 - How does the system handle complex analytical queries that SeaORM might not optimize as well as raw SQL?
 - What happens when the database schema changes during the migration process?
 - How does the system maintain data consistency during the transition period?
+- How does the system handle concurrent authentication attempts during high load?
+- What happens when session cleanup fails during system failures?
+- How does the system handle corrupted or tampered JWT tokens?
+- What happens when audit log integrity is compromised during high-volume operations?
+- How does the system handle role hierarchy conflicts in the RBAC system?
+- What happens when encryption key rotation fails during document access?
 
 #### Failure Scenarios & Recovery Procedures
 
@@ -91,6 +97,11 @@ As a developer extending the HR system, I want to leverage SeaORM's advanced fil
 - **Partial Data Corruption**: System MUST have data integrity checks and recovery procedures
 - **Network Timeouts**: System MUST implement request timeouts with graceful degradation
 - **Memory/Resource Exhaustion**: System MUST have circuit breakers and resource limits
+- **Authentication Token Expiration**: System MUST handle expired JWT tokens with automatic refresh mechanisms
+- **Authorization Permission Changes**: System MUST handle dynamic permission changes without session interruption
+- **Audit Log Write Failures**: System MUST queue audit events and retry logging during system recovery
+- **Encryption Key Access Failures**: System MUST provide fallback access for encrypted documents during key rotation
+- **Migration Rollback Failures**: System MUST have manual rollback procedures for failed automated rollbacks
 
 ## Requirements _(mandatory)_
 
@@ -99,71 +110,87 @@ As a developer extending the HR system, I want to leverage SeaORM's advanced fil
 - **FR-001**: System MUST maintain 100% feature parity with existing SvelteKit frontend functionality
 - **FR-002**: System MUST fetch all data from SeaORM implementation without using mock data or shortcuts
 - **FR-003**: System MUST support all existing query patterns (filtering, sorting, pagination) using SeaORM APIs
+- **FR-036**: System MUST maintain exact GraphQL field names and response structures for frontend compatibility
+- **FR-037**: System MUST support complex filtering with multiple conditions and nested relationships
+- **FR-038**: System MUST implement Relay-style pagination with nodes, totalCount, and pageInfo for all collections
+- **FR-039**: System MUST validate GraphQL schema compatibility before migration deployment
 - **FR-004**: System MUST handle all existing data relationships and joins through SeaORM entity relationships
+- **FR-032**: System MUST prevent circular dependencies in task hierarchies and department structures
+- **FR-033**: System MUST handle orphaned records gracefully during migration (preserve referential integrity)
+- **FR-034**: System MUST support concurrent state transitions without race conditions or data corruption
+- **FR-035**: System MUST validate data consistency across all entity relationships before migration completion
 - **FR-012**: System MUST implement SOC 2 Type II compliance including RBAC, comprehensive audit logging, and encryption at rest and in transit for sensitive information
+- **FR-027**: System MUST log all data modification operations (CREATE, UPDATE, DELETE) with before/after values for audit compliance
+- **FR-028**: System MUST support role-based access control with hierarchical permissions (Admin > HR Manager > Manager > Employee)
+- **FR-029**: System MUST encrypt sensitive data fields (compensation, personal information) using AES-256-GCM encryption
+- **FR-030**: System MUST validate all user inputs to prevent injection attacks and data corruption
+- **FR-031**: System MUST implement rate limiting for API endpoints to prevent abuse (100 requests/minute per user)
 
 - **FR-005**: System MUST provide identical data structures and field names to the frontend (allowing query modifications for idiomatic SeaORM usage)
 - **FR-011**: System MUST support medium-scale data volumes (10k-100k records per major entity) and concurrent usage (100-1000 users)
+- **FR-040**: System MUST be compatible with PostgreSQL 15+ and SeaORM 0.12+
+- **FR-041**: System MUST maintain backward compatibility with existing database schema during migration
+- **FR-042**: System MUST support database schema evolution without data loss or downtime
 
 - **FR-006**: System MUST maintain all existing error handling and edge case behaviors
 - **FR-007**: System MUST support all existing authentication and authorization patterns
 - **FR-008**: System MUST reduce database-related bugs by 50% through compile-time type checking with SeaORM's type-safe APIs
 - **FR-009**: System MUST provide structured error messages with field-level validation details for database-related issues
 - **FR-010**: System MUST support advanced querying capabilities for future feature expansion
+- **FR-043**: System MUST handle large dataset migrations (10k+ records) without performance degradation
+- **FR-044**: System MUST support incremental schema changes during migration process
+- **FR-045**: System MUST maintain data consistency during schema evolution and feature rollouts
 
 ### Key Entities _(include if feature involves data)_
 
-**Core HR Entities**:
+**Core HR Entities (20+ total)**:
 
-- **User**: Core user entity with authentication, profile, and relationship data (hr_public.users)
-- **Department**: Organizational structure with hierarchical relationships (hr_public.departments)
-- **Employee Records**: Comprehensive employee data including skills, certifications, and history
-- **Tasks**: Work items with assignments, dependencies, and status tracking (hr_public.tasks)
-- **Leave Requests**: Time-off management with approval workflows (hr_public.leave_requests)
-- **Performance Reviews**: Evaluation data with goals and feedback (hr_public.performance_reviews)
-
-**Supporting Entities**:
-
-- **Audit Logs**: System activity tracking with rollback capabilities (hr_public.activity_logs)
-- **Notifications**: User communication and alert system (hr_public.notifications)
-- **Documents**: File management with access controls and versioning (hr_public.documents)
-- **Reports**: Analytical data and business intelligence (hr_public.hr_reports)
-- **Events**: Company events with RSVP tracking and waitlists (hr_public.events)
-- **Event Attendees**: Event participation management (hr_public.event_attendees)
-- **Compensation Records**: Payroll and salary data (hr_private.compensation_records)
-- **Time Off Policies**: Leave policies and allowances (hr_public.time_off_policies)
-- **Time Off Balances**: Employee leave balance tracking (hr_public.time_off_balances)
-- **Emergency Contacts**: Employee emergency contact information (hr_public.emergency_contacts)
-- **Employee Goals**: Individual employee goal tracking (hr_public.employee_goals)
-- **Employee Vehicles**: Employee vehicle information for parking (hr_public.employee_vehicles)
-- **Document Categories**: Hierarchical document categorization (hr_public.document_categories)
-- **Document Versions**: Document version history (hr_public.document_versions)
-- **Document Access Logs**: Document access audit trail (hr_public.document_access_logs)
-- **Document Assignments**: Document assignment to users/departments (hr_public.document_assignments)
-- **Encrypted File Storage**: Encrypted document storage (hr_public.encrypted_file_storage)
-- **Encryption Keys**: Encryption key metadata (hr_public.encryption_keys)
-- **Event Comments**: Event discussion and comments (hr_public.event_comments)
-- **Event History**: Event change audit trail (hr_public.event_history)
-- **Event Notifications**: Event-related notifications (hr_public.event_notifications)
-- **Event Waitlist**: Event waitlist management (hr_public.event_waitlist)
-- **Linked Resources**: Task-linked external resources (hr_public.linked_resources)
-- **Notification Preferences**: User notification settings (hr_public.notification_preferences)
-- **Compensation Bands**: Salary band definitions (hr_public.compensation_bands)
-- **Payroll Records**: Payroll processing records (hr_public.payroll_records)
-- **Attendance Records**: Employee attendance tracking (hr_public.attendance_records)
-- **Bulk Rollback Batches**: Batch rollback operations (hr_public.bulk_rollback_batches)
-- **Bulk Rollback Items**: Individual rollback items (hr_public.bulk_rollback_items)
-- **Task Types**: Task categorization (hr_public.task_types)
-- **Task Assignees**: Multi-assignee task management (hr_public.task_assignees)
-- **Task Audit Entries**: Task change audit trail (hr_public.task_audit_entries)
-- **Task Dependencies**: Task dependency relationships (hr_public.task_dependencies)
-- **User Role Assignments**: Flexible RBAC assignments (hr_public.user_role_assignments)
-- **Permissions**: System permissions definitions (hr_public.permissions)
-- **Roles**: Role definitions (hr_public.roles)
-- **Review Cycles**: Performance review period definitions (hr_public.review_cycles)
-- **Review Feedback**: Performance review feedback (hr_public.review_feedback)
-- **Review Goals**: Performance review goals (hr_public.review_goals)
-- **Review Templates**: Performance review templates (hr_public.review_templates)
+- **User**: Core user entity with authentication, profile, and relationship data (hr_public.users) - 10k-100k records expected
+- **Department**: Organizational structure with hierarchical relationships (hr_public.departments) - supports unlimited nesting levels
+- **Employee Records**: Comprehensive employee data including skills, certifications, and history (hr_public.employees)
+- **Tasks**: Work items with assignments, dependencies, and status tracking (hr_public.tasks) - supports complex workflows
+- **Leave Requests**: Time-off management with approval workflows (hr_public.leave_requests) - tracks 100-1000 concurrent requests
+- **Performance Reviews**: Evaluation data with goals and feedback (hr_public.performance_reviews) - annual/quarterly cycles
+- **Audit Logs**: System activity tracking with rollback capabilities (hr_public.activity_logs) - comprehensive audit trail
+- **Notifications**: User communication and alert system (hr_public.notifications) - real-time delivery
+- **Documents**: File management with access controls and versioning (hr_public.documents) - supports encryption
+- **Reports**: Analytical data and business intelligence (hr_public.hr_reports) - department-specific analytics
+- **Events**: Company events with RSVP tracking and waitlists (hr_public.events) - supports recurring events
+- **Event Attendees**: Event participation management (hr_public.event_attendees) - handles capacity limits
+- **Compensation Records**: Payroll and salary data (hr_private.compensation_records) - encrypted sensitive data
+- **Time Off Policies**: Leave policies and allowances (hr_public.time_off_policies) - configurable per department
+- **Time Off Balances**: Employee leave balance tracking (hr_public.time_off_balances) - real-time balance updates
+- **Emergency Contacts**: Employee emergency contact information (hr_public.emergency_contacts) - multiple contacts per employee
+- **Employee Goals**: Individual employee goal tracking (hr_public.employee_goals) - quarterly tracking
+- **Employee Vehicles**: Employee vehicle information for parking (hr_public.employee_vehicles) - parking management
+- **Document Categories**: Hierarchical document categorization (hr_public.document_categories) - unlimited nesting
+- **Document Versions**: Document version history (hr_public.document_versions) - full version control
+- **Document Access Logs**: Document access audit trail (hr_public.document_access_logs) - security compliance
+- **Document Assignments**: Document assignment to users/departments (hr_public.document_assignments) - workflow management
+- **Encrypted File Storage**: Encrypted document storage (hr_public.encrypted_file_storage) - AES-256-GCM encryption
+- **Encryption Keys**: Encryption key metadata (hr_public.encryption_keys) - key rotation support
+- **Event Comments**: Event discussion and comments (hr_public.event_comments) - threaded discussions
+- **Event History**: Event change audit trail (hr_public.event_history) - immutable audit log
+- **Event Notifications**: Event-related notifications (hr_public.event_notifications) - multi-channel delivery
+- **Event Waitlist**: Event waitlist management (hr_public.event_waitlist) - FIFO queue management
+- **Linked Resources**: Task-linked external resources (hr_public.linked_resources) - PRs, issues, URLs
+- **Notification Preferences**: User notification settings (hr_public.notification_preferences) - granular control
+- **Compensation Bands**: Salary band definitions (hr_public.compensation_bands) - structured pay scales
+- **Payroll Records**: Payroll processing records (hr_public.payroll_records) - bi-weekly processing
+- **Attendance Records**: Employee attendance tracking (hr_public.attendance_records) - clock in/out tracking
+- **Bulk Rollback Batches**: Batch rollback operations (hr_public.bulk_rollback_batches) - admin rollback management
+- **Bulk Rollback Items**: Individual rollback items (hr_public.bulk_rollback_items) - rollback execution tracking
+- **Task Types**: Task categorization (hr_public.task_types) - customizable task categories
+- **Task Assignees**: Multi-assignee task management (hr_public.task_assignees) - team collaboration
+- **Task Audit Entries**: Task change audit trail (hr_public.task_audit_entries) - detailed change tracking
+- **Task Dependencies**: Task dependency relationships (hr_public.task_dependencies) - prevents circular dependencies
+- **User Role Assignments**: Flexible RBAC assignments (hr_public.user_role_assignments) - dynamic permissions
+- **Permissions**: System permissions definitions (hr_public.permissions) - granular access control
+- **Roles**: Role definitions (hr_public.roles) - hierarchical role system
+- **Review Cycles**: Performance review period definitions (hr_public.review_cycles) - scheduled review periods
+- **Review Feedback**: Performance review feedback (hr_public.review_feedback) - 360-degree feedback
+- **Review Goals**: Performance review goals (hr_public.review_goals) - measurable objectives
+- **Review Templates**: Performance review templates (hr_public.review_templates) - standardized evaluations
 
 ## Success Criteria _(mandatory)_
 
@@ -172,8 +199,16 @@ As a developer extending the HR system, I want to leverage SeaORM's advanced fil
 - **SC-001**: All existing frontend functionality works identically with 100% test pass rate on existing test suites
 - **SC-002**: Zero data discrepancies between old and new implementations across all entities
 - **SC-003**: API responses MUST complete within 500ms for simple queries and 2 seconds for complex operations (measured at 95th percentile under normal load of 100 concurrent users)
+- **SC-011**: Database query performance MUST be measured using EXPLAIN ANALYZE with actual data volumes
+- **SC-012**: System MUST maintain response time consistency with <10% variance across different user load patterns
+- **SC-013**: Memory usage MUST not exceed 1GB per concurrent user session during peak load
+- **SC-014**: System MUST handle 1000 concurrent database connections without performance degradation
 - **SC-004**: Developer productivity increases by 30% for new database-related features
 - **SC-005**: Database-related runtime errors decrease by 80% due to compile-time type checking
+- **SC-015**: System MUST support 1000 concurrent database connections without connection pool exhaustion
+- **SC-016**: System MUST maintain <10% performance degradation compared to pre-migration benchmarks
+- **SC-017**: System MUST achieve 99.9% audit log completeness for all data modification operations
+- **SC-018**: System MUST support document encryption/decryption operations within 100ms per operation
 - **SC-006**: System successfully handles all existing user workflows without interruption
 - **SC-007**: New SeaORM-based features can be developed 40% faster than equivalent raw SQL features
 - **SC-008**: System maintains 99.9% uptime during and after migration

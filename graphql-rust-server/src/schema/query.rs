@@ -1,12 +1,19 @@
 use async_graphql::{Context, Error, ErrorExtensions, Object, Result};
+use sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, PaginatorTrait, ColumnTrait};
 use uuid::Uuid;
 
 use crate::{
-    db::DbPool,
-    db::rls_context::RlsContextExt,
-    middleware::guards::{RequirePermission, RequireMinRoleLevel},
+    database::get_db_from_context,
+    error::AppError,
     models::{
-        // Core models
+        // Core models (SeaORM entities)
+        department::Entity as DepartmentEntity,
+        user::Entity as UserEntity,
+        task::Entity as TaskEntity,
+        leave_request::Entity as LeaveRequestEntity,
+        performance_review::Entity as PerformanceReviewEntity,
+        system::activity_log::Entity as ActivityLogEntity,
+        // Legacy models for compatibility
         AuditAction, Department, DependencyType, Event, EventAttendee, EventAttendeeFilter,
         EventCondition, EventsOrderBy, EventStatus,
         FeedbackType, GoalCompletionStatus, LeaveBalance, LeaveRequest, LeaveRequestStatus,
@@ -16,7 +23,7 @@ use crate::{
         Role, Task, TaskAssignee, TaskAuditEntry, TaskDependency, TaskFilter, TaskPriority, TaskStatus, User,
         UserCondition, UsersConnection, UserRoleAssignment, UserRoleAssignmentsConnection, UserStatus,
         // OrderBy enums
-        department::DepartmentsOrderBy, user::UsersOrderBy,
+        department::DepartmentsOrderBy, user::UsersOrderBy, ActivityLogsOrderBy,
         // Employee domain
         EmployeeSkill, EmployeeCertification, EmployeeVehicle, EmergencyContact, EmployeeGoal,
         ProficiencyLevel, GoalStatus,
@@ -28,8 +35,10 @@ use crate::{
         // Analytics domain
         DashboardSummary, DepartmentMetric, GoalStatistic, ReportAnalytic,
         // System domain
-        ActivityLog, BulkRollbackBatch, BulkRollbackItem, CompensationBand, EncryptionKey,
-        HRReport, PayrollRecord, RollbackRequest, RollbackStatus,
+        ActivityLog, ActivityLogsConnection, BulkRollbackBatch, BulkRollbackItem, CompensationBand, EncryptionKey,
+        HRReport, PayrollRecord, RollbackRequest, RollbackRequestCondition, RollbackRequestsConnection, RollbackRequestsOrderBy, RollbackStatus,
+        // Activity log condition
+        system::activity_log::ActivityLogCondition,
         // Events domain
         EventComment, EventHistory, EventWaitlist,
         // Tasks domain
@@ -99,7 +108,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         id: Uuid,
     ) -> Result<Option<EventAttendee>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let attendee = sqlx::query_as::<_, EventAttendee>(
             r#"
@@ -124,7 +133,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<EventAttendee>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let limit = limit.unwrap_or(100).min(1000); // Max 1000 records
         let offset = offset.unwrap_or(0);
@@ -168,7 +177,7 @@ impl QueryRoot {
         event_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<EventAttendee>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let attendees = sqlx::query_as::<_, EventAttendee>(
@@ -196,7 +205,7 @@ impl QueryRoot {
         employee_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<EventAttendee>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let attendees = sqlx::query_as::<_, EventAttendee>(
@@ -223,7 +232,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         filter: Option<EventAttendeeFilter>,
     ) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         // Build count query with QueryBuilder
         let mut query_builder = sqlx::QueryBuilder::new(
@@ -255,7 +264,7 @@ impl QueryRoot {
     /// Requires: Any authenticated user (employee-level access)
     #[graphql(guard = "RequireMinRoleLevel::employee()")]
     async fn user_by_id(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<User>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -289,54 +298,59 @@ impl QueryRoot {
         offset: Option<i64>,
         status: Option<UserStatus>,
     ) -> Result<Vec<User>> {
-        let pool = ctx.data::<DbPool>()?;
-        let session = ctx.rls_session()?;
+        let db = get_db_from_context(ctx)?;
 
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
 
-        session.execute(pool, |tx| Box::pin(async move {
-            let mut query_builder = sqlx::QueryBuilder::new(
-                r#"
-                SELECT id, email, first_name, last_name, display_name, full_name, role,
-                       phone_number, alternate_phone, job_title, status,
-                       department_id, manager_id, hire_date, is_active,
-                       created_at, updated_at
-                FROM hr_public.users
-                WHERE 1=1
-                "#,
-            );
+        let mut query = UserEntity::find();
 
-            // Apply active filter if provided (status parameter maps to is_active)
-            if let Some(user_status) = status {
-                match user_status {
-                    UserStatus::Active => {
-                        query_builder.push(" AND is_active = true");
-                    },
-                    UserStatus::Inactive => {
-                        query_builder.push(" AND is_active = false");
-                    },
-                    UserStatus::Terminated => {
-                        query_builder.push(" AND is_active = false");
-                    },
-                }
+        // Apply active filter if provided (status parameter maps to is_active)
+        if let Some(user_status) = status {
+            match user_status {
+                UserStatus::Active => {
+                    query = query.filter(user::Column::IsActive.eq(true));
+                },
+                UserStatus::Inactive => {
+                    query = query.filter(user::Column::IsActive.eq(false));
+                },
+                UserStatus::Terminated => {
+                    query = query.filter(user::Column::IsActive.eq(false));
+                },
             }
+        }
 
-            // Add ordering and pagination
-            query_builder.push(" ORDER BY last_name, first_name LIMIT ");
-            query_builder.push_bind(limit);
-            query_builder.push(" OFFSET ");
-            query_builder.push_bind(offset);
+        // Add ordering and pagination
+        let users = query
+            .order_by_desc(user::Column::LastName)
+            .order_by_desc(user::Column::FirstName)
+            .limit(Some(limit as u64))
+            .offset(offset as u64)
+            .all(db)
+            .await?;
 
-            query_builder
-                .build_query_as::<User>()
-                .fetch_all(&mut **tx.as_mut())
-                .await
-                .map_err(|e| {
-                    tracing::error!("Failed to fetch users: {}", e);
-                    Error::new("Failed to fetch users")
-                })
-        })).await
+        // Convert SeaORM models to legacy User struct for compatibility
+        let users = users.into_iter().map(|model| User {
+            id: model.id,
+            email: model.email,
+            first_name: model.first_name,
+            last_name: model.last_name,
+            display_name: model.display_name,
+            full_name: model.full_name,
+            role: model.role,
+            phone_number: model.phone_number,
+            alternate_phone: model.alternate_phone,
+            job_title: model.job_title,
+            status: model.status,
+            department_id: model.department_id,
+            manager_id: model.manager_id,
+            hire_date: model.hire_date,
+            is_active: model.is_active,
+            created_at: model.created_at,
+            updated_at: model.updated_at,
+        }).collect();
+
+        Ok(users)
     }
 
     /// Get all users with PostGraphile-style Relay connection (for frontend compatibility)
@@ -349,7 +363,7 @@ impl QueryRoot {
         #[graphql(name = "orderBy")] order_by: Option<UsersOrderBy>,
         condition: Option<UserCondition>,
     ) -> Result<UsersConnection> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         let first = first.unwrap_or(50).min(1000);
@@ -471,7 +485,7 @@ impl QueryRoot {
         department_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<User>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         let limit = limit.unwrap_or(100).min(1000);
@@ -507,7 +521,7 @@ impl QueryRoot {
         manager_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<User>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         let limit = limit.unwrap_or(100).min(1000);
@@ -538,7 +552,7 @@ impl QueryRoot {
 
     /// Count total users with optional status filter
     async fn users_count(&self, ctx: &Context<'_>, status: Option<UserStatus>) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -570,7 +584,7 @@ impl QueryRoot {
 
     /// Get a single department by ID
     async fn department(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<Department>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let department = sqlx::query_as::<_, Department>(
             r#"
@@ -595,9 +609,9 @@ impl QueryRoot {
         ctx: &Context<'_>,
         limit: Option<i64>,
         offset: Option<i64>,
-        #[graphql(name = "orderBy")] order_by: Option<DepartmentsOrderBy>,
+        #[graphql(name = "orderBy")] order_by: Option<Vec<DepartmentsOrderBy>>,
     ) -> Result<Vec<Department>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
 
@@ -609,12 +623,17 @@ impl QueryRoot {
             "#,
         );
 
-        // Add ordering
-        let order_clause = if let Some(order) = order_by {
-            order.to_sql()
-        } else {
-            "name ASC" // Default
-        };
+            // Add ordering
+            let order_clause = if let Some(orders) = order_by {
+                if orders.is_empty() {
+                    "name ASC".to_string()
+                } else {
+                    let sql_parts: Vec<String> = orders.iter().map(|o| o.to_sql().to_string()).collect();
+                    sql_parts.join(", ")
+                }
+            } else {
+                "name ASC".to_string() // Default
+            };
         query_builder.push(" ORDER BY ");
         query_builder.push(order_clause);
 
@@ -638,7 +657,7 @@ impl QueryRoot {
         parent_department_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<Department>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let departments = sqlx::query_as::<_, Department>(
@@ -661,7 +680,7 @@ impl QueryRoot {
 
     /// Get top-level departments (no parent)
     async fn root_departments(&self, ctx: &Context<'_>, limit: Option<i64>) -> Result<Vec<Department>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let departments = sqlx::query_as::<_, Department>(
@@ -683,7 +702,7 @@ impl QueryRoot {
 
     /// Count total departments
     async fn departments_count(&self, ctx: &Context<'_>) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let count: (i64,) = sqlx::query_as(
             "SELECT COUNT(*) FROM hr_public.departments "
@@ -700,7 +719,7 @@ impl QueryRoot {
 
     /// Get a single role by ID
     async fn role(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<Role>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let role = sqlx::query_as::<_, Role>(
             r#"
@@ -719,7 +738,7 @@ impl QueryRoot {
 
     /// Get all roles with pagination
     async fn roles(&self, ctx: &Context<'_>, limit: Option<i64>, offset: Option<i64>) -> Result<Vec<Role>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
 
@@ -743,7 +762,7 @@ impl QueryRoot {
 
     /// Get roles by minimum level (for hierarchy filtering)
     async fn roles_by_min_level(&self, ctx: &Context<'_>, min_level: i32) -> Result<Vec<Role>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let roles = sqlx::query_as::<_, Role>(
             r#"
@@ -763,7 +782,7 @@ impl QueryRoot {
 
     /// Count total roles
     async fn roles_count(&self, ctx: &Context<'_>) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let count: (i64,) = sqlx::query_as(
             "SELECT COUNT(*) FROM hr_public.roles "
@@ -780,7 +799,7 @@ impl QueryRoot {
 
     /// Get a single permission by ID
     async fn permission(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<Permission>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let permission = sqlx::query_as::<_, Permission>(
             r#"
@@ -799,7 +818,7 @@ impl QueryRoot {
 
     /// Get all permissions with pagination
     async fn permissions(&self, ctx: &Context<'_>, limit: Option<i64>, offset: Option<i64>) -> Result<Vec<Permission>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
 
@@ -823,7 +842,7 @@ impl QueryRoot {
 
     /// Get permissions by resource
     async fn permissions_by_resource(&self, ctx: &Context<'_>, resource: String) -> Result<Vec<Permission>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let permissions = sqlx::query_as::<_, Permission>(
             r#"
@@ -843,7 +862,7 @@ impl QueryRoot {
 
     /// Count total permissions
     async fn permissions_count(&self, ctx: &Context<'_>) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let count: (i64,) = sqlx::query_as(
             "SELECT COUNT(*) FROM hr_public.permissions "
@@ -860,7 +879,7 @@ impl QueryRoot {
 
     /// Get a single user role assignment by ID
     async fn user_role_assignment(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<UserRoleAssignment>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -885,7 +904,7 @@ impl QueryRoot {
 
     /// Get all role assignments for a user
     async fn user_role_assignments(&self, ctx: &Context<'_>, user_id: Uuid) -> Result<Vec<UserRoleAssignment>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -916,7 +935,7 @@ impl QueryRoot {
         first: Option<i64>,
         offset: Option<i64>,
     ) -> Result<UserRoleAssignmentsConnection> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         let first = first.unwrap_or(50).min(1000);
@@ -964,7 +983,7 @@ impl QueryRoot {
 
     /// Get all users with a specific role
     async fn role_assignments(&self, ctx: &Context<'_>, role_name: String) -> Result<Vec<UserRoleAssignment>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let assignments = sqlx::query_as::<_, UserRoleAssignment>(
             r#"
@@ -989,7 +1008,7 @@ impl QueryRoot {
 
     /// Get a single event by ID
     async fn event(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<Event>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -1022,7 +1041,7 @@ impl QueryRoot {
         offset: Option<i64>,
         order_by: Option<Vec<EventsOrderBy>>,
     ) -> Result<Vec<Event>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         let limit = limit.unwrap_or(100).min(1000);
@@ -1080,7 +1099,7 @@ impl QueryRoot {
         order_by: Option<Vec<EventsOrderBy>>,
         condition: Option<EventCondition>,
     ) -> Result<EventsConnection> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         let limit = first.unwrap_or(100).min(1000);
@@ -1190,7 +1209,7 @@ impl QueryRoot {
         created_by: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<Event>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         let limit = limit.unwrap_or(100).min(1000);
@@ -1228,7 +1247,7 @@ impl QueryRoot {
         end_date: chrono::DateTime<chrono::Utc>,
         limit: Option<i64>,
     ) -> Result<Vec<Event>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         let limit = limit.unwrap_or(100).min(1000);
@@ -1263,7 +1282,7 @@ impl QueryRoot {
 
     /// Get upcoming events (starts in the future)
     async fn upcoming_events(&self, ctx: &Context<'_>, limit: Option<i64>) -> Result<Vec<Event>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         let limit = limit.unwrap_or(100).min(1000);
@@ -1295,7 +1314,7 @@ impl QueryRoot {
 
     /// Get past events (ended in the past)
     async fn past_events(&self, ctx: &Context<'_>, limit: Option<i64>) -> Result<Vec<Event>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         let limit = limit.unwrap_or(100).min(1000);
@@ -1327,7 +1346,7 @@ impl QueryRoot {
 
     /// Get only recurring events (events with recurrence rules)
     async fn recurring_events(&self, ctx: &Context<'_>, limit: Option<i64>) -> Result<Vec<Event>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         let limit = limit.unwrap_or(100).min(1000);
@@ -1359,7 +1378,7 @@ impl QueryRoot {
 
     /// Count total events
     async fn events_count(&self, ctx: &Context<'_>) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -1383,7 +1402,7 @@ impl QueryRoot {
 
     /// Get a single leave type by ID
     async fn leave_type(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<LeaveType>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let leave_type = sqlx::query_as::<_, LeaveType>(
             r#"
@@ -1408,7 +1427,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<LeaveType>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
 
@@ -1433,7 +1452,7 @@ impl QueryRoot {
 
     /// Count total leave types
     async fn leave_types_count(&self, ctx: &Context<'_>) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let count: (i64,) = sqlx::query_as(
             "SELECT COUNT(*) FROM hr_public.leave_types "
@@ -1450,7 +1469,7 @@ impl QueryRoot {
 
     /// Get a single leave balance by ID
     async fn leave_balance(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<LeaveBalance>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let balance = sqlx::query_as::<_, LeaveBalance>(
             r#"
@@ -1475,7 +1494,7 @@ impl QueryRoot {
         user_id: Uuid,
         year: Option<i32>,
     ) -> Result<Vec<LeaveBalance>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let balances = if let Some(y) = year {
             sqlx::query_as::<_, LeaveBalance>(
@@ -1519,7 +1538,7 @@ impl QueryRoot {
         leave_type_id: Uuid,
         year: i32,
     ) -> Result<Option<LeaveBalance>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let balance = sqlx::query_as::<_, LeaveBalance>(
             r#"
@@ -1545,7 +1564,7 @@ impl QueryRoot {
 
     /// Get a single leave request by ID
     async fn leave_request(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<LeaveRequest>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let request = sqlx::query_as::<_, LeaveRequest>(
             r#"
@@ -1562,6 +1581,59 @@ impl QueryRoot {
         Ok(request)
     }
 
+    /// Get all leave requests with optional filtering and pagination
+    /// Requires: Any authenticated user (employee-level access)
+    #[graphql(guard = "RequireMinRoleLevel::employee()")]
+    async fn leave_requests(
+        &self,
+        ctx: &Context<'_>,
+        limit: Option<i64>,
+        offset: Option<i64>,
+        status: Option<LeaveRequestStatus>,
+    ) -> Result<Vec<LeaveRequest>> {
+        let db = get_db_from_context(ctx)?;
+        let limit = limit.unwrap_or(100).min(1000);
+        let offset = offset.unwrap_or(0);
+
+        let mut query = LeaveRequestEntity::find();
+
+        // Apply status filter if provided
+        if let Some(req_status) = status {
+            query = query.filter(leave_request::Column::Status.eq(req_status.as_str()));
+        }
+
+        // Add ordering and pagination
+        let requests = query
+            .order_by_desc(leave_request::Column::CreatedAt)
+            .limit(Some(limit as u64))
+            .offset(offset as u64)
+            .all(db)
+            .await?;
+
+        // Convert SeaORM models to legacy LeaveRequest struct for compatibility
+        let requests = requests.into_iter().map(|model| LeaveRequest {
+            id: model.id,
+            employee_id: model.employee_id,
+            manager_id: model.manager_id,
+            leave_type: model.leave_type,
+            start_date: model.start_date,
+            end_date: model.end_date,
+            days_requested: model.days_requested,
+            status: LeaveRequestStatus::from_str(&model.status).unwrap_or(LeaveRequestStatus::Pending),
+            reason: model.reason,
+            manager_comments: model.manager_comments,
+            created_at: model.created_at,
+            updated_at: model.updated_at,
+            deleted_at: model.deleted_at,
+        }).collect();
+
+        Ok(requests)
+            .map_err(|e| {
+                tracing::error!("Failed to fetch leave requests: {}", e);
+                Error::new("Failed to fetch leave requests")
+            })
+    }
+
     /// Get leave requests by user ID
     async fn leave_requests_by_user(
         &self,
@@ -1570,7 +1642,7 @@ impl QueryRoot {
         status: Option<LeaveRequestStatus>,
         limit: Option<i64>,
     ) -> Result<Vec<LeaveRequest>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let requests = if let Some(req_status) = status {
@@ -1615,7 +1687,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         limit: Option<i64>,
     ) -> Result<Vec<LeaveRequest>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let requests = sqlx::query_as::<_, LeaveRequest>(
@@ -1643,7 +1715,7 @@ impl QueryRoot {
         end_date: chrono::DateTime<chrono::Utc>,
         limit: Option<i64>,
     ) -> Result<Vec<LeaveRequest>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let requests = sqlx::query_as::<_, LeaveRequest>(
@@ -1673,7 +1745,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         status: Option<LeaveRequestStatus>,
     ) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let count: (i64,) = if let Some(req_status) = status {
             sqlx::query_as(
@@ -1699,7 +1771,7 @@ impl QueryRoot {
 
     /// Get a single task by ID
     async fn task(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<Task>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -1732,130 +1804,99 @@ impl QueryRoot {
         filter: Option<TaskFilter>,
         order_by: Option<String>,
     ) -> Result<Vec<Task>> {
-        let pool = ctx.data::<DbPool>()?;
-        let session = ctx.rls_session()?;
-
+        let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
 
-        // Build WHERE clause dynamically based on filter
-        let mut where_clauses = vec!["deleted_at IS NULL".to_string()];
-        let mut param_count = 3; // Start after limit and offset
+        let mut query = TaskEntity::find()
+            .filter(task::Column::DeletedAt.is_null()); // Only non-deleted tasks
 
         if let Some(ref f) = filter {
-            if f.status.is_some() {
-                where_clauses.push(format!("status = ${}", param_count));
-                param_count += 1;
+            if let Some(status) = &f.status {
+                query = query.filter(task::Column::Status.eq(status.as_str()));
             }
-            if f.priority.is_some() {
-                where_clauses.push(format!("priority = ${}", param_count));
-                param_count += 1;
+            if let Some(priority) = &f.priority {
+                query = query.filter(task::Column::Priority.eq(priority.as_str()));
             }
-            if f.assignee_id.is_some() {
-                where_clauses.push(format!("assignee_id = ${}", param_count));
-                param_count += 1;
+            if let Some(assignee_id) = f.assignee_id {
+                query = query.filter(task::Column::AssigneeId.eq(assignee_id));
             }
-            if f.created_by.is_some() {
-                where_clauses.push(format!("created_by = ${}", param_count));
-                param_count += 1;
+            if let Some(created_by) = f.created_by {
+                query = query.filter(task::Column::CreatedBy.eq(created_by));
             }
-            if f.department_id.is_some() {
-                where_clauses.push(format!("department_id = ${}", param_count));
-                param_count += 1;
+            if let Some(department_id) = f.department_id {
+                query = query.filter(task::Column::DepartmentId.eq(department_id));
             }
-            if f.task_type_id.is_some() {
-                where_clauses.push(format!("task_type_id = ${}", param_count));
-                param_count += 1;
+            if let Some(task_type_id) = f.task_type_id {
+                query = query.filter(task::Column::TaskTypeId.eq(task_type_id));
             }
-            if f.parent_task_id.is_some() {
-                where_clauses.push(format!("parent_task_id = ${}", param_count));
-                param_count += 1;
+            if let Some(parent_task_id) = f.parent_task_id {
+                query = query.filter(task::Column::ParentTaskId.eq(parent_task_id));
             }
-            if f.archived.is_some() {
-                where_clauses.push(format!("archived = ${}", param_count));
-                param_count += 1;
+            if let Some(archived) = f.archived {
+                query = query.filter(task::Column::Archived.eq(archived));
             }
         }
 
-        // Build ORDER BY clause
-        let order_clause = order_by
-            .as_ref()
-            .map(|o| {
-                match o.as_str() {
-                    "title_asc" => "title ASC",
-                    "title_desc" => "title DESC",
-                    "due_date_asc" => "due_date ASC",
-                    "due_date_desc" => "due_date DESC",
-                    "priority_asc" => "priority ASC",
-                    "priority_desc" => "priority DESC",
-                    "created_at_asc" => "created_at ASC",
-                    "created_at_desc" => "created_at DESC",
-                    "updated_at_asc" => "updated_at ASC",
-                    "updated_at_desc" => "updated_at_desc",
-                    _ => "priority DESC, created_at DESC", // Default
-                }
-            })
-            .unwrap_or("priority DESC, created_at DESC");
-
-        let query = format!(
-            r#"
-            SELECT id, title, description, task_type_id, status, priority, due_date,
-                   completed_at, estimated_hours, actual_hours, tags, department_id,
-                   created_by, assignee_id, parent_task_id, requires_manual_reassignment,
-                   archived, archived_at, archived_by,
-                   created_at, updated_at, deleted_at
-            FROM hr_public.tasks
-            WHERE {}
-            ORDER BY {}
-            LIMIT $1 OFFSET $2
-            "#,
-            where_clauses.join(" AND "),
-            order_clause
-        );
-
-        let filter_clone = filter.clone();
-        session.execute(pool, move |tx| Box::pin(async move {
-            let mut query_builder = sqlx::query_as::<_, Task>(&query)
-                .bind(limit)
-                .bind(offset);
-
-            // Bind filter parameters in the same order as WHERE clause construction
-            if let Some(f) = filter_clone {
-                if let Some(status) = f.status {
-                    query_builder = query_builder.bind(status);
-                }
-                if let Some(priority) = f.priority {
-                    query_builder = query_builder.bind(priority);
-                }
-                if let Some(assignee_id) = f.assignee_id {
-                    query_builder = query_builder.bind(assignee_id);
-                }
-                if let Some(created_by) = f.created_by {
-                    query_builder = query_builder.bind(created_by);
-                }
-                if let Some(department_id) = f.department_id {
-                    query_builder = query_builder.bind(department_id);
-                }
-                if let Some(task_type_id) = f.task_type_id {
-                    query_builder = query_builder.bind(task_type_id);
-                }
-                if let Some(parent_task_id) = f.parent_task_id {
-                    query_builder = query_builder.bind(parent_task_id);
-                }
-                if let Some(archived) = f.archived {
-                    query_builder = query_builder.bind(archived);
-                }
+        // Add ordering
+        if let Some(order) = order_by {
+            match order.as_str() {
+                "id_asc" => query = query.order_by_asc(task::Column::Id),
+                "id_desc" => query = query.order_by_desc(task::Column::Id),
+                "title_asc" => query = query.order_by_asc(task::Column::Title),
+                "title_desc" => query = query.order_by_desc(task::Column::Title),
+                "status_asc" => query = query.order_by_asc(task::Column::Status),
+                "status_desc" => query = query.order_by_desc(task::Column::Status),
+                "priority_asc" => query = query.order_by_asc(task::Column::Priority),
+                "priority_desc" => query = query.order_by_desc(task::Column::Priority),
+                "due_date_asc" => query = query.order_by_asc(task::Column::DueDate),
+                "due_date_desc" => query = query.order_by_desc(task::Column::DueDate),
+                "created_at_asc" => query = query.order_by_asc(task::Column::CreatedAt),
+                "created_at_desc" => query = query.order_by_desc(task::Column::CreatedAt),
+                "updated_at_asc" => query = query.order_by_asc(task::Column::UpdatedAt),
+                "updated_at_desc" => query = query.order_by_desc(task::Column::UpdatedAt),
+                _ => query = query.order_by_desc(task::Column::Priority).order_by_desc(task::Column::CreatedAt), // Default
             }
+        } else {
+            query = query.order_by_desc(task::Column::Priority).order_by_desc(task::Column::CreatedAt); // Default
+        }
 
-            query_builder
-                .fetch_all(&mut **tx.as_mut())
-                .await
-                .map_err(|e| {
-                    tracing::error!("Failed to fetch tasks: {}", e);
-                    Error::new("Failed to fetch tasks")
-                })
-        })).await
+        let tasks = query
+            .limit(Some(limit as u64))
+            .offset(offset as u64)
+            .all(db)
+            .await?;
+
+        // Convert SeaORM models to legacy Task struct for compatibility
+        let tasks = tasks.into_iter().map(|model| Task {
+            id: model.id,
+            title: model.title,
+            description: model.description,
+            task_type_id: model.task_type_id,
+            status: TaskStatus::from_str(&model.status).unwrap_or(TaskStatus::Todo),
+            priority: TaskPriority::from_str(&model.priority).unwrap_or(TaskPriority::Medium),
+            due_date: model.due_date,
+            completed_at: model.completed_at,
+            estimated_hours: model.estimated_hours,
+            actual_hours: model.actual_hours,
+            tags: model.tags,
+            department_id: model.department_id,
+            created_by: model.created_by,
+            assignee_id: model.assignee_id,
+            parent_task_id: model.parent_task_id,
+            requires_manual_reassignment: model.requires_manual_reassignment,
+            archived: model.archived,
+            archived_at: model.archived_at,
+            archived_by: model.archived_by,
+            created_at: model.created_at,
+            updated_at: model.updated_at,
+            deleted_at: model.deleted_at,
+        }).collect();
+
+        Ok(tasks)
     }
+
+
 
     /// Get tasks by creator ID
     async fn tasks_by_creator(
@@ -1864,7 +1905,7 @@ impl QueryRoot {
         created_by: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<Task>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         let limit = limit.unwrap_or(100).min(1000);
@@ -1900,7 +1941,7 @@ impl QueryRoot {
         user_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<Task>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         let limit = limit.unwrap_or(100).min(1000);
@@ -1938,7 +1979,7 @@ impl QueryRoot {
         status: TaskStatus,
         limit: Option<i64>,
     ) -> Result<Vec<Task>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         let limit = limit.unwrap_or(100).min(1000);
@@ -1974,7 +2015,7 @@ impl QueryRoot {
         priority: TaskPriority,
         limit: Option<i64>,
     ) -> Result<Vec<Task>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         let limit = limit.unwrap_or(100).min(1000);
@@ -2010,7 +2051,7 @@ impl QueryRoot {
         department_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<Task>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         let limit = limit.unwrap_or(100).min(1000);
@@ -2040,7 +2081,7 @@ impl QueryRoot {
 
     /// Get overdue tasks
     async fn overdue_tasks(&self, ctx: &Context<'_>, limit: Option<i64>) -> Result<Vec<Task>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         let limit = limit.unwrap_or(100).min(1000);
@@ -2071,7 +2112,7 @@ impl QueryRoot {
 
     /// Count tasks by status
     async fn tasks_count(&self, ctx: &Context<'_>, status: Option<TaskStatus>) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -2106,7 +2147,7 @@ impl QueryRoot {
 
     /// Get a single task assignee by ID
     async fn task_assignee(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<TaskAssignee>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -2135,7 +2176,7 @@ impl QueryRoot {
         task_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<TaskAssignee>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -2168,7 +2209,7 @@ impl QueryRoot {
         user_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<TaskAssignee>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -2205,7 +2246,7 @@ impl QueryRoot {
         task_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<TaskAuditEntry>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -2238,7 +2279,7 @@ impl QueryRoot {
         user_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<TaskAuditEntry>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -2271,7 +2312,7 @@ impl QueryRoot {
         action: AuditAction,
         limit: Option<i64>,
     ) -> Result<Vec<TaskAuditEntry>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -2303,7 +2344,7 @@ impl QueryRoot {
 
     /// Get a single task dependency by ID
     async fn task_dependency(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<TaskDependency>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -2332,7 +2373,7 @@ impl QueryRoot {
         task_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<TaskDependency>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -2365,7 +2406,7 @@ impl QueryRoot {
         depends_on_task_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<TaskDependency>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -2397,7 +2438,7 @@ impl QueryRoot {
 
     /// Get a single linked resource by ID
     async fn linked_resource(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<LinkedResource>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -2426,7 +2467,7 @@ impl QueryRoot {
         task_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<LinkedResource>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -2459,7 +2500,7 @@ impl QueryRoot {
         resource_type: ResourceType,
         limit: Option<i64>,
     ) -> Result<Vec<LinkedResource>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -2492,7 +2533,7 @@ impl QueryRoot {
         uploaded_by: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<LinkedResource>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -2524,7 +2565,7 @@ impl QueryRoot {
 
     /// Get a single review cycle by ID
     async fn review_cycle(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<ReviewCycle>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -2553,7 +2594,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<ReviewCycle>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
@@ -2587,7 +2628,7 @@ impl QueryRoot {
         review_type: ReviewType,
         limit: Option<i64>,
     ) -> Result<Vec<ReviewCycle>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -2615,7 +2656,7 @@ impl QueryRoot {
 
     /// Get active review cycles
     async fn active_review_cycles(&self, ctx: &Context<'_>, limit: Option<i64>) -> Result<Vec<ReviewCycle>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -2642,7 +2683,7 @@ impl QueryRoot {
 
     /// Count review cycles
     async fn review_cycles_count(&self, ctx: &Context<'_>, status: Option<ReviewCycleStatus>) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -2677,7 +2718,7 @@ impl QueryRoot {
 
     /// Get a single performance review by ID
     async fn performance_review(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<PerformanceReview>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -2708,32 +2749,42 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<PerformanceReview>> {
-        let pool = ctx.data::<DbPool>()?;
-        let session = ctx.rls_session()?;
+        let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
 
-        session.execute(pool, |tx| Box::pin(async move {
-            sqlx::query_as::<_, PerformanceReview>(
-                r#"
-                SELECT id, employee_id, reviewer_id, review_period, status,
-                       overall_rating, goals, achievements, areas_for_improvement,
-                       manager_feedback, created_at, updated_at,
-                       review_period_start, review_period_end, review_type, notes
-                FROM hr_public.performance_reviews
-                ORDER BY created_at DESC
-                LIMIT $1 OFFSET $2
-                "#,
-            )
-            .bind(limit)
-            .bind(offset)
-            .fetch_all(&mut **tx.as_mut())
-            .await
+        let reviews = PerformanceReviewEntity::find()
+            .order_by_desc(performance_review::Column::CreatedAt)
+            .limit(Some(limit as u64))
+            .offset(offset as u64)
+            .all(db)
+            .await?;
+
+        // Convert SeaORM models to legacy PerformanceReview struct for compatibility
+        let reviews = reviews.into_iter().map(|model| PerformanceReview {
+            id: model.id,
+            employee_id: model.employee_id,
+            reviewer_id: model.reviewer_id,
+            review_period: model.review_period,
+            status: PerformanceReviewStatus::from_str(&model.status).unwrap_or(PerformanceReviewStatus::NotStarted),
+            overall_rating: model.overall_rating,
+            goals: model.goals,
+            achievements: model.achievements,
+            areas_for_improvement: model.areas_for_improvement,
+            manager_feedback: model.manager_feedback,
+            created_at: model.created_at,
+            updated_at: model.updated_at,
+            review_period_start: model.review_period_start,
+            review_period_end: model.review_period_end,
+            review_type: model.review_type,
+            notes: model.notes,
+        }).collect();
+
+        Ok(reviews)
             .map_err(|e| {
                 tracing::error!("Failed to fetch performance reviews: {}", e);
                 Error::new("Failed to fetch performance reviews")
             })
-        })).await
     }
 
     /// Get performance reviews by review cycle
@@ -2743,7 +2794,7 @@ impl QueryRoot {
         review_cycle_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<PerformanceReview>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -2778,7 +2829,7 @@ impl QueryRoot {
         employee_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<PerformanceReview>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -2813,7 +2864,7 @@ impl QueryRoot {
         reviewer_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<PerformanceReview>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -2843,7 +2894,7 @@ impl QueryRoot {
 
     /// Get overdue performance reviews
     async fn overdue_performance_reviews(&self, ctx: &Context<'_>, limit: Option<i64>) -> Result<Vec<PerformanceReview>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -2877,7 +2928,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         status: Option<PerformanceReviewStatus>,
     ) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -2912,7 +2963,7 @@ impl QueryRoot {
 
     /// Get a single review goal by ID
     async fn review_goal(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<ReviewGoal>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -2941,7 +2992,7 @@ impl QueryRoot {
         performance_review_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<ReviewGoal>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -2974,7 +3025,7 @@ impl QueryRoot {
         performance_review_id: Uuid,
         completion_status: Option<GoalCompletionStatus>,
     ) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -3013,7 +3064,7 @@ impl QueryRoot {
 
     /// Get a single review feedback by ID
     async fn review_feedback(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<ReviewFeedback>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -3042,7 +3093,7 @@ impl QueryRoot {
         performance_review_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<ReviewFeedback>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -3075,7 +3126,7 @@ impl QueryRoot {
         provider_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<ReviewFeedback>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -3108,7 +3159,7 @@ impl QueryRoot {
         performance_review_id: Uuid,
         feedback_type: Option<FeedbackType>,
     ) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -3148,7 +3199,7 @@ impl QueryRoot {
     /// Get a single notification by ID
     /// Get a single notification by ID (with RLS enforcement)
     async fn notification(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<Notification>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let user_id = session.user_id(); // Capture before moving into closure
 
@@ -3184,7 +3235,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<Notification>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         // Security: Use authenticated user's ID if not specified, or if specified user is not self
@@ -3251,7 +3302,7 @@ impl QueryRoot {
         recipient_id: Option<Uuid>, // Made optional - defaults to authenticated user
         limit: Option<i64>,
     ) -> Result<Vec<Notification>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         let effective_recipient_id = recipient_id.unwrap_or(session.user_id());
@@ -3295,7 +3346,7 @@ impl QueryRoot {
         notification_type: NotificationType,
         limit: Option<i64>,
     ) -> Result<Vec<Notification>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(20).min(100);
 
         let notifications = sqlx::query_as::<_, Notification>(
@@ -3326,7 +3377,7 @@ impl QueryRoot {
         category: NotificationCategory,
         limit: Option<i64>,
     ) -> Result<Vec<Notification>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(20).min(100);
 
         let notifications = sqlx::query_as::<_, Notification>(
@@ -3358,7 +3409,7 @@ impl QueryRoot {
         resource_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<Notification>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(20).min(100);
 
         let notifications = sqlx::query_as::<_, Notification>(
@@ -3390,7 +3441,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         recipient_id: Option<Uuid>, // Made optional - defaults to authenticated user
     ) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         let effective_recipient_id = recipient_id.unwrap_or(session.user_id());
@@ -3424,7 +3475,7 @@ impl QueryRoot {
         recipient_id: Uuid,
         read_status: Option<bool>,
     ) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let count: (i64,) = if let Some(is_read) = read_status {
             sqlx::query_as(
@@ -3452,7 +3503,7 @@ impl QueryRoot {
 
     /// Get a single employee skill by ID
     async fn employee_skill(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<EmployeeSkill>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let skill = sqlx::query_as::<_, EmployeeSkill>(
             r#"
@@ -3476,7 +3527,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<EmployeeSkill>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
 
@@ -3504,7 +3555,7 @@ impl QueryRoot {
         employee_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<EmployeeSkill>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let skills = sqlx::query_as::<_, EmployeeSkill>(
@@ -3532,7 +3583,7 @@ impl QueryRoot {
         proficiency_level: ProficiencyLevel,
         limit: Option<i64>,
     ) -> Result<Vec<EmployeeSkill>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let skills = sqlx::query_as::<_, EmployeeSkill>(
@@ -3560,7 +3611,7 @@ impl QueryRoot {
         verified: bool,
         limit: Option<i64>,
     ) -> Result<Vec<EmployeeSkill>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let skills = sqlx::query_as::<_, EmployeeSkill>(
@@ -3587,7 +3638,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         employee_id: Option<Uuid>,
     ) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let count: (i64,) = if let Some(emp_id) = employee_id {
             sqlx::query_as(
@@ -3615,7 +3666,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         id: Uuid,
     ) -> Result<Option<EmployeeCertification>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let certification = sqlx::query_as::<_, EmployeeCertification>(
             r#"
@@ -3640,7 +3691,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<EmployeeCertification>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
 
@@ -3669,7 +3720,7 @@ impl QueryRoot {
         employee_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<EmployeeCertification>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let certifications = sqlx::query_as::<_, EmployeeCertification>(
@@ -3697,7 +3748,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         limit: Option<i64>,
     ) -> Result<Vec<EmployeeCertification>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let certifications = sqlx::query_as::<_, EmployeeCertification>(
@@ -3726,7 +3777,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         limit: Option<i64>,
     ) -> Result<Vec<EmployeeCertification>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let certifications = sqlx::query_as::<_, EmployeeCertification>(
@@ -3754,7 +3805,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         employee_id: Option<Uuid>,
     ) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let count: (i64,) = if let Some(emp_id) = employee_id {
             sqlx::query_as(
@@ -3782,7 +3833,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         id: Uuid,
     ) -> Result<Option<EmployeeVehicle>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let vehicle = sqlx::query_as::<_, EmployeeVehicle>(
             r#"
@@ -3806,7 +3857,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<EmployeeVehicle>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
 
@@ -3834,7 +3885,7 @@ impl QueryRoot {
         employee_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<EmployeeVehicle>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let vehicles = sqlx::query_as::<_, EmployeeVehicle>(
@@ -3861,7 +3912,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         employee_id: Option<Uuid>,
     ) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let count: (i64,) = if let Some(emp_id) = employee_id {
             sqlx::query_as(
@@ -3889,7 +3940,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         id: Uuid,
     ) -> Result<Option<EmergencyContact>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let contact = sqlx::query_as::<_, EmergencyContact>(
             r#"
@@ -3913,7 +3964,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<EmergencyContact>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
 
@@ -3941,7 +3992,7 @@ impl QueryRoot {
         employee_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<EmergencyContact>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let contacts = sqlx::query_as::<_, EmergencyContact>(
@@ -3968,7 +4019,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         employee_id: Uuid,
     ) -> Result<Option<EmergencyContact>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let contact = sqlx::query_as::<_, EmergencyContact>(
             r#"
@@ -3992,7 +4043,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         employee_id: Option<Uuid>,
     ) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let count: (i64,) = if let Some(emp_id) = employee_id {
             sqlx::query_as(
@@ -4016,7 +4067,7 @@ impl QueryRoot {
 
     /// Get a single employee goal by ID
     async fn employee_goal(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<EmployeeGoal>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let goal = sqlx::query_as::<_, EmployeeGoal>(
             r#"
@@ -4040,7 +4091,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<EmployeeGoal>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
 
@@ -4068,7 +4119,7 @@ impl QueryRoot {
         employee_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<EmployeeGoal>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let goals = sqlx::query_as::<_, EmployeeGoal>(
@@ -4096,7 +4147,7 @@ impl QueryRoot {
         status: GoalStatus,
         limit: Option<i64>,
     ) -> Result<Vec<EmployeeGoal>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let goals = sqlx::query_as::<_, EmployeeGoal>(
@@ -4123,7 +4174,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         limit: Option<i64>,
     ) -> Result<Vec<EmployeeGoal>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let goals = sqlx::query_as::<_, EmployeeGoal>(
@@ -4152,7 +4203,7 @@ impl QueryRoot {
         employee_id: Option<Uuid>,
         status: Option<GoalStatus>,
     ) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let count: (i64,) = match (employee_id, status) {
             (Some(emp_id), Some(goal_status)) => {
@@ -4196,7 +4247,7 @@ impl QueryRoot {
 
     /// Get a single document by ID
     async fn document(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<Document>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -4225,7 +4276,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<Document>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
@@ -4259,7 +4310,7 @@ impl QueryRoot {
         category_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<Document>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -4292,7 +4343,7 @@ impl QueryRoot {
         uploader_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<Document>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -4324,7 +4375,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         category_id: Option<Uuid>,
     ) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -4363,7 +4414,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         id: Uuid,
     ) -> Result<Option<DocumentVersion>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -4392,7 +4443,7 @@ impl QueryRoot {
         document_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<DocumentVersion>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -4424,7 +4475,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         document_id: Uuid,
     ) -> Result<Option<DocumentVersion>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -4454,7 +4505,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         document_id: Uuid,
     ) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -4483,7 +4534,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         id: Uuid,
     ) -> Result<Option<DocumentCategory>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -4512,7 +4563,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<DocumentCategory>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
@@ -4546,7 +4597,7 @@ impl QueryRoot {
         parent_category_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<DocumentCategory>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -4578,7 +4629,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         limit: Option<i64>,
     ) -> Result<Vec<DocumentCategory>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -4605,7 +4656,7 @@ impl QueryRoot {
 
     /// Count document categories
     async fn document_categories_count(&self, ctx: &Context<'_>) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -4633,7 +4684,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         id: Uuid,
     ) -> Result<Option<DocumentAssignment>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -4662,7 +4713,7 @@ impl QueryRoot {
         document_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<DocumentAssignment>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -4695,7 +4746,7 @@ impl QueryRoot {
         user_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<DocumentAssignment>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -4728,7 +4779,7 @@ impl QueryRoot {
         department_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<DocumentAssignment>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -4760,7 +4811,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         document_id: Option<Uuid>,
     ) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -4799,7 +4850,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         id: Uuid,
     ) -> Result<Option<DocumentAccessLog>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -4827,7 +4878,7 @@ impl QueryRoot {
         document_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<DocumentAccessLog>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -4859,7 +4910,7 @@ impl QueryRoot {
         user_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<DocumentAccessLog>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -4891,7 +4942,7 @@ impl QueryRoot {
         access_type: DocumentAccessType,
         limit: Option<i64>,
     ) -> Result<Vec<DocumentAccessLog>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
         let limit = limit.unwrap_or(100).min(1000);
 
@@ -4922,7 +4973,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         document_id: Option<Uuid>,
     ) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let session = ctx.rls_session()?;
 
         session.execute(pool, |tx| Box::pin(async move {
@@ -4961,7 +5012,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         id: Uuid,
     ) -> Result<Option<EncryptedFileStorage>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let storage = sqlx::query_as::<_, EncryptedFileStorage>(
             r#"
@@ -4983,7 +5034,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         document_id: Uuid,
     ) -> Result<Option<EncryptedFileStorage>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let storage = sqlx::query_as::<_, EncryptedFileStorage>(
             r#"
@@ -5007,7 +5058,7 @@ impl QueryRoot {
         encryption_key_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<EncryptedFileStorage>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let storages = sqlx::query_as::<_, EncryptedFileStorage>(
@@ -5033,7 +5084,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         encryption_key_id: Option<Uuid>,
     ) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let count: (i64,) = if let Some(key_id) = encryption_key_id {
             sqlx::query_as(
@@ -5061,7 +5112,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         id: Uuid,
     ) -> Result<Option<TimeOffPolicy>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let policy = sqlx::query_as::<_, TimeOffPolicy>(
             r#"
@@ -5086,7 +5137,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<TimeOffPolicy>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
 
@@ -5115,7 +5166,7 @@ impl QueryRoot {
         leave_type: String,
         limit: Option<i64>,
     ) -> Result<Vec<TimeOffPolicy>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let policies = sqlx::query_as::<_, TimeOffPolicy>(
@@ -5143,7 +5194,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         limit: Option<i64>,
     ) -> Result<Vec<TimeOffPolicy>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let policies = sqlx::query_as::<_, TimeOffPolicy>(
@@ -5169,7 +5220,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         leave_type: Option<String>,
     ) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let count: (i64,) = if let Some(lt) = leave_type {
             sqlx::query_as(
@@ -5197,7 +5248,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         id: Uuid,
     ) -> Result<Option<AttendanceRecord>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let record = sqlx::query_as::<_, AttendanceRecord>(
             r#"
@@ -5221,7 +5272,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<AttendanceRecord>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
 
@@ -5249,7 +5300,7 @@ impl QueryRoot {
         user_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<AttendanceRecord>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let records = sqlx::query_as::<_, AttendanceRecord>(
@@ -5277,7 +5328,7 @@ impl QueryRoot {
         status: AttendanceStatus,
         limit: Option<i64>,
     ) -> Result<Vec<AttendanceRecord>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let records = sqlx::query_as::<_, AttendanceRecord>(
@@ -5307,7 +5358,7 @@ impl QueryRoot {
         employee_id: Option<Uuid>,
         limit: Option<i64>,
     ) -> Result<Vec<AttendanceRecord>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let records = if let Some(emp_id) = employee_id {
@@ -5354,7 +5405,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         limit: Option<i64>,
     ) -> Result<Vec<AttendanceRecord>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let records = sqlx::query_as::<_, AttendanceRecord>(
@@ -5381,7 +5432,7 @@ impl QueryRoot {
         employee_id: Option<Uuid>,
         status: Option<AttendanceStatus>,
     ) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let count: (i64,) = match (employee_id, status) {
             (Some(emp_id), Some(att_status)) => {
@@ -5425,7 +5476,7 @@ impl QueryRoot {
 
     /// Get global dashboard summary (always single record)
     async fn dashboard_summary(&self, ctx: &Context<'_>) -> Result<Option<DashboardSummary>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let summary = sqlx::query_as::<_, DashboardSummary>(
             r#"
@@ -5452,7 +5503,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         department_id: Uuid,
     ) -> Result<Option<DepartmentMetric>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let metric = sqlx::query_as::<_, DepartmentMetric>(
             r#"
@@ -5477,7 +5528,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<DepartmentMetric>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
 
@@ -5505,7 +5556,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         limit: Option<i64>,
     ) -> Result<Vec<DepartmentMetric>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let metrics = sqlx::query_as::<_, DepartmentMetric>(
@@ -5531,7 +5582,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         limit: Option<i64>,
     ) -> Result<Vec<DepartmentMetric>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let metrics = sqlx::query_as::<_, DepartmentMetric>(
@@ -5554,7 +5605,7 @@ impl QueryRoot {
 
     /// Count department metrics
     async fn department_metrics_count(&self, ctx: &Context<'_>) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM hr_public.department_metrics")
             .fetch_one(pool)
@@ -5574,7 +5625,7 @@ impl QueryRoot {
         user_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<GoalStatistic>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let statistics = sqlx::query_as::<_, GoalStatistic>(
@@ -5603,7 +5654,7 @@ impl QueryRoot {
         year: i32,
         limit: Option<i64>,
     ) -> Result<Vec<GoalStatistic>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let statistics = sqlx::query_as::<_, GoalStatistic>(
@@ -5632,7 +5683,7 @@ impl QueryRoot {
         department_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<GoalStatistic>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let statistics = sqlx::query_as::<_, GoalStatistic>(
@@ -5660,7 +5711,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<GoalStatistic>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
 
@@ -5683,7 +5734,7 @@ impl QueryRoot {
 
     /// Count goal statistics
     async fn goal_statistics_count(&self, ctx: &Context<'_>) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM hr_public.goal_statistics")
             .fetch_one(pool)
@@ -5703,7 +5754,7 @@ impl QueryRoot {
         department_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<ReportAnalytic>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let analytics = sqlx::query_as::<_, ReportAnalytic>(
@@ -5731,7 +5782,7 @@ impl QueryRoot {
         month: chrono::NaiveDate,
         limit: Option<i64>,
     ) -> Result<Vec<ReportAnalytic>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let analytics = sqlx::query_as::<_, ReportAnalytic>(
@@ -5760,7 +5811,7 @@ impl QueryRoot {
         end_month: chrono::NaiveDate,
         limit: Option<i64>,
     ) -> Result<Vec<ReportAnalytic>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let analytics = sqlx::query_as::<_, ReportAnalytic>(
@@ -5789,7 +5840,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<ReportAnalytic>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
 
@@ -5812,7 +5863,7 @@ impl QueryRoot {
 
     /// Count report analytics
     async fn report_analytics_count(&self, ctx: &Context<'_>) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM hr_public.report_analytics")
             .fetch_one(pool)
@@ -5827,7 +5878,7 @@ impl QueryRoot {
 
     /// Get a single activity log by ID
     async fn activity_log(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<ActivityLog>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let log = sqlx::query_as::<_, ActivityLog>(
             r#"
@@ -5851,25 +5902,42 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<ActivityLog>> {
-        let pool = ctx.data::<DbPool>()?;
+        let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
 
-        let logs = sqlx::query_as::<_, ActivityLog>(
-            r#"
-            SELECT id, user_id, employee_id, action, resource_type, resource_id,
-                   details, created_at
-            FROM hr_public.activity_logs
-            ORDER BY created_at DESC
-            LIMIT $1 OFFSET $2
-            "#,
-        )
-        .bind(limit)
-        .bind(offset)
-        .fetch_all(pool)
-        .await?;
+        let logs = ActivityLogEntity::find()
+            .order_by_desc(activity_log::Column::CreatedAt)
+            .limit(Some(limit as u64))
+            .offset(offset as u64)
+            .all(db)
+            .await?;
+
+        // Convert SeaORM models to legacy ActivityLog struct for compatibility
+        let logs = logs.into_iter().map(|model| ActivityLog {
+            id: model.id,
+            user_id: model.user_id,
+            employee_id: model.employee_id,
+            action: model.action,
+            resource_type: model.resource_type,
+            resource_id: model.resource_id,
+            details: model.details,
+            before_snapshot: model.before_snapshot,
+            after_snapshot: model.after_snapshot,
+            is_rollback: model.is_rollback,
+            rolled_back_log_id: model.rolled_back_log_id,
+            ip_address: model.ip_address,
+            user_agent: model.user_agent,
+            signature_id: model.signature_id,
+            batch_id: model.batch_id,
+            created_at: model.created_at,
+        }).collect();
 
         Ok(logs)
+            .map_err(|e| {
+                tracing::error!("Failed to fetch activity logs: {}", e);
+                Error::new("Failed to fetch activity logs")
+            })
     }
 
     /// Get activity logs by user ID
@@ -5879,7 +5947,7 @@ impl QueryRoot {
         user_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<ActivityLog>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let logs = sqlx::query_as::<_, ActivityLog>(
@@ -5907,7 +5975,7 @@ impl QueryRoot {
         action_type: String,
         limit: Option<i64>,
     ) -> Result<Vec<ActivityLog>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let logs = sqlx::query_as::<_, ActivityLog>(
@@ -5935,7 +6003,7 @@ impl QueryRoot {
         resource_type: String,
         limit: Option<i64>,
     ) -> Result<Vec<ActivityLog>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let logs = sqlx::query_as::<_, ActivityLog>(
@@ -5958,13 +6026,167 @@ impl QueryRoot {
 
     /// Count activity logs
     async fn activity_logs_count(&self, ctx: &Context<'_>) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM hr_public.activity_logs")
             .fetch_one(pool)
             .await?;
 
         Ok(count.0)
+    }
+
+    /// Get all activity logs with PostGraphile-style Relay connection (for frontend compatibility)
+    async fn all_activity_logs(
+        &self,
+        ctx: &Context<'_>,
+        first: Option<i64>,
+        offset: Option<i64>,
+        #[graphql(name = "orderBy")] order_by: Option<Vec<ActivityLogsOrderBy>>,
+        condition: Option<ActivityLogCondition>,
+    ) -> Result<ActivityLogsConnection> {
+        let pool = ctx.data::<DatabaseConnection>()?;
+        let session = ctx.rls_session()?;
+
+        let first = first.unwrap_or(50).min(1000);
+        let offset = offset.unwrap_or(0);
+
+        session.execute(pool, |tx| Box::pin(async move {
+            let mut query_builder = sqlx::QueryBuilder::new(
+                r#"
+                SELECT id, user_id, employee_id, action, resource_type, resource_id,
+                        details, before_snapshot, after_snapshot, is_rollback,
+                        rolled_back_log_id, ip_address, user_agent, created_at
+                FROM hr_public.activity_logs
+                WHERE 1=1
+                "#,
+            );
+
+            // Apply conditions
+            if let Some(cond) = &condition {
+                if let Some(id) = cond.id {
+                    query_builder.push(" AND id = ");
+                    query_builder.push_bind(id);
+                }
+                if let Some(user_id) = cond.user_id {
+                    query_builder.push(" AND user_id = ");
+                    query_builder.push_bind(user_id);
+                }
+                if let Some(employee_id) = cond.employee_id {
+                    query_builder.push(" AND employee_id = ");
+                    query_builder.push_bind(employee_id);
+                }
+                if let Some(action) = &cond.action {
+                    query_builder.push(" AND action = ");
+                    query_builder.push_bind(action);
+                }
+                if let Some(resource_type) = &cond.resource_type {
+                    query_builder.push(" AND resource_type = ");
+                    query_builder.push_bind(resource_type);
+                }
+                if let Some(resource_id) = cond.resource_id {
+                    query_builder.push(" AND resource_id = ");
+                    query_builder.push_bind(resource_id);
+                }
+                if let Some(is_rollback) = cond.is_rollback {
+                    query_builder.push(" AND is_rollback = ");
+                    query_builder.push_bind(is_rollback);
+                }
+                if let Some(rolled_back_log_id) = cond.rolled_back_log_id {
+                    query_builder.push(" AND rolled_back_log_id = ");
+                    query_builder.push_bind(rolled_back_log_id);
+                }
+            }
+
+            // Add ordering
+            let order_clause = if let Some(orders) = order_by {
+                if orders.is_empty() {
+                    "ORDER BY created_at DESC".to_string()
+                } else {
+                    let sql_parts: Vec<String> = orders.iter().map(|o| o.to_sql().to_string()).collect();
+                    format!("ORDER BY {}", sql_parts.join(", "))
+                }
+            } else {
+                "ORDER BY created_at DESC".to_string() // Default
+            };
+            query_builder.push(order_clause);
+            query_builder.push(" LIMIT ");
+            query_builder.push_bind(first);
+            query_builder.push(" OFFSET ");
+            query_builder.push_bind(offset);
+
+            let logs: Vec<ActivityLog> = query_builder
+                .build_query_as()
+                .fetch_all(&mut **tx.as_mut())
+                .await
+                .map_err(|e| {
+                    tracing::error!("Failed to fetch all activity logs: {}", e);
+                    Error::new("Failed to fetch activity logs")
+                })?;
+
+            // Get total count with same conditions
+            let mut count_builder = sqlx::QueryBuilder::new(
+                "SELECT COUNT(*)::bigint FROM hr_public.activity_logs WHERE 1=1",
+            );
+
+            if let Some(cond) = &condition {
+                if let Some(id) = cond.id {
+                    count_builder.push(" AND id = ");
+                    count_builder.push_bind(id);
+                }
+                if let Some(user_id) = cond.user_id {
+                    count_builder.push(" AND user_id = ");
+                    count_builder.push_bind(user_id);
+                }
+                if let Some(employee_id) = cond.employee_id {
+                    count_builder.push(" AND employee_id = ");
+                    count_builder.push_bind(employee_id);
+                }
+                if let Some(action) = &cond.action {
+                    count_builder.push(" AND action = ");
+                    count_builder.push_bind(action);
+                }
+                if let Some(resource_type) = &cond.resource_type {
+                    count_builder.push(" AND resource_type = ");
+                    count_builder.push_bind(resource_type);
+                }
+                if let Some(resource_id) = cond.resource_id {
+                    count_builder.push(" AND resource_id = ");
+                    count_builder.push_bind(resource_id);
+                }
+                if let Some(is_rollback) = cond.is_rollback {
+                    count_builder.push(" AND is_rollback = ");
+                    count_builder.push_bind(is_rollback);
+                }
+                if let Some(rolled_back_log_id) = cond.rolled_back_log_id {
+                    count_builder.push(" AND rolled_back_log_id = ");
+                    count_builder.push_bind(rolled_back_log_id);
+                }
+            }
+
+            let total_count: (i64,) = count_builder
+                .build_query_as()
+                .fetch_one(&mut **tx.as_mut())
+                .await
+                .map_err(|e| {
+                    tracing::error!("Failed to count activity logs: {}", e);
+                    Error::new("Failed to count activity logs")
+                })?;
+
+            // Calculate pagination info
+            let has_next_page = offset + first < total_count.0;
+            let has_previous_page = offset > 0;
+
+            Ok(ActivityLogsConnection {
+                nodes: logs,
+                total_count: total_count.0,
+                page_info: PageInfo {
+                    has_next_page,
+                    has_previous_page,
+                    start_cursor: None,
+                    end_cursor: None,
+                },
+            })
+        })).await
     }
 
     // ============================================================
@@ -5977,7 +6199,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         id: Uuid,
     ) -> Result<Option<CompensationBand>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let band = sqlx::query_as::<_, CompensationBand>(
             r#"
@@ -6001,7 +6223,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<CompensationBand>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
 
@@ -6029,7 +6251,7 @@ impl QueryRoot {
         currency: String,
         limit: Option<i64>,
     ) -> Result<Vec<CompensationBand>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let bands = sqlx::query_as::<_, CompensationBand>(
@@ -6052,7 +6274,7 @@ impl QueryRoot {
 
     /// Count compensation bands
     async fn compensation_bands_count(&self, ctx: &Context<'_>) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM hr_public.compensation_bands")
             .fetch_one(pool)
@@ -6071,7 +6293,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         id: Uuid,
     ) -> Result<Option<EncryptionKey>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let key = sqlx::query_as::<_, EncryptionKey>(
             r#"
@@ -6094,7 +6316,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<EncryptionKey>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
 
@@ -6120,7 +6342,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         limit: Option<i64>,
     ) -> Result<Vec<EncryptionKey>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let keys = sqlx::query_as::<_, EncryptionKey>(
@@ -6141,7 +6363,7 @@ impl QueryRoot {
 
     /// Count encryption keys
     async fn encryption_keys_count(&self, ctx: &Context<'_>) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM hr_public.encryption_keys")
             .fetch_one(pool)
@@ -6156,7 +6378,7 @@ impl QueryRoot {
 
     /// Get a single HR report by ID
     async fn hr_report(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<HRReport>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let report = sqlx::query_as::<_, HRReport>(
             r#"
@@ -6180,7 +6402,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<HRReport>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
 
@@ -6208,7 +6430,7 @@ impl QueryRoot {
         report_type: String,
         limit: Option<i64>,
     ) -> Result<Vec<HRReport>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let reports = sqlx::query_as::<_, HRReport>(
@@ -6236,7 +6458,7 @@ impl QueryRoot {
         generator_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<HRReport>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let reports = sqlx::query_as::<_, HRReport>(
@@ -6259,7 +6481,7 @@ impl QueryRoot {
 
     /// Count HR reports
     async fn hr_reports_count(&self, ctx: &Context<'_>) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM hr_public.hr_reports")
             .fetch_one(pool)
@@ -6278,7 +6500,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         id: Uuid,
     ) -> Result<Option<PayrollRecord>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let record = sqlx::query_as::<_, PayrollRecord>(
             r#"
@@ -6302,7 +6524,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<PayrollRecord>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
 
@@ -6330,7 +6552,7 @@ impl QueryRoot {
         employee_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<PayrollRecord>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let records = sqlx::query_as::<_, PayrollRecord>(
@@ -6359,7 +6581,7 @@ impl QueryRoot {
         end_date: chrono::NaiveDate,
         limit: Option<i64>,
     ) -> Result<Vec<PayrollRecord>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let records = sqlx::query_as::<_, PayrollRecord>(
@@ -6383,7 +6605,7 @@ impl QueryRoot {
 
     /// Count payroll records
     async fn payroll_records_count(&self, ctx: &Context<'_>) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM hr_public.payroll_records")
             .fetch_one(pool)
@@ -6402,12 +6624,12 @@ impl QueryRoot {
         ctx: &Context<'_>,
         id: Uuid,
     ) -> Result<Option<RollbackRequest>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let request = sqlx::query_as::<_, RollbackRequest>(
             r#"
-            SELECT id, requester_id, resource_type, resource_id, rollback_to_timestamp,
-                   status, approver_id, completed_at, created_at
+            SELECT id, activity_log_id, requested_by, requested_at, reason,
+                    status, reviewed_by, reviewed_at, review_reason, created_at, updated_at
             FROM hr_public.rollback_requests
             WHERE id = $1
             "#,
@@ -6426,16 +6648,16 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<RollbackRequest>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
 
         let requests = sqlx::query_as::<_, RollbackRequest>(
             r#"
-            SELECT id, requester_id, resource_type, resource_id, rollback_to_timestamp,
-                   status, approver_id, completed_at, created_at
+            SELECT id, activity_log_id, requested_by, requested_at, reason,
+                    status, reviewed_by, reviewed_at, review_reason, created_at, updated_at
             FROM hr_public.rollback_requests
-            ORDER BY created_at DESC
+            ORDER BY requested_at DESC
             LIMIT $1 OFFSET $2
             "#,
         )
@@ -6454,13 +6676,13 @@ impl QueryRoot {
         status: RollbackStatus,
         limit: Option<i64>,
     ) -> Result<Vec<RollbackRequest>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let requests = sqlx::query_as::<_, RollbackRequest>(
             r#"
-            SELECT id, requester_id, resource_type, resource_id, rollback_to_timestamp,
-                   status, approver_id, completed_at, created_at
+            SELECT id, activity_log_id, requested_by, requested_at, reason,
+                    status, reviewed_by, reviewed_at, review_reason, created_at, updated_at
             FROM hr_public.rollback_requests
             WHERE status = $1
             ORDER BY created_at DESC
@@ -6482,16 +6704,16 @@ impl QueryRoot {
         requester_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<RollbackRequest>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let requests = sqlx::query_as::<_, RollbackRequest>(
             r#"
-            SELECT id, requester_id, resource_type, resource_id, rollback_to_timestamp,
-                   status, approver_id, completed_at, created_at
+            SELECT id, activity_log_id, requested_by, requested_at, reason,
+                    status, reviewed_by, reviewed_at, review_reason, created_at, updated_at
             FROM hr_public.rollback_requests
-            WHERE requester_id = $1
-            ORDER BY created_at DESC
+            WHERE requested_by = $1
+            ORDER BY requested_at DESC
             LIMIT $2
             "#,
         )
@@ -6505,13 +6727,157 @@ impl QueryRoot {
 
     /// Count rollback requests
     async fn rollback_requests_count(&self, ctx: &Context<'_>) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM hr_public.rollback_requests")
             .fetch_one(pool)
             .await?;
 
         Ok(count.0)
+    }
+
+    /// Get all possible rollback status values (ensures enum is registered in schema)
+    async fn rollback_statuses(&self, _ctx: &Context<'_>) -> Result<Vec<RollbackStatus>> {
+        Ok(vec![
+            RollbackStatus::Pending,
+            RollbackStatus::Approved,
+            RollbackStatus::Rejected,
+            RollbackStatus::Completed,
+        ])
+    }
+
+    /// Get a single rollback status (ensures enum is registered in schema)
+    async fn rollback_status(&self, _ctx: &Context<'_>, status: RollbackStatus) -> Result<RollbackStatus> {
+        Ok(status)
+    }
+
+    /// Get all rollback requests with PostGraphile-style Relay connection (for frontend compatibility)
+    async fn all_rollback_requests(
+        &self,
+        ctx: &Context<'_>,
+        first: Option<i64>,
+        offset: Option<i64>,
+        #[graphql(name = "orderBy")] order_by: Option<Vec<RollbackRequestsOrderBy>>,
+        condition: Option<RollbackRequestCondition>,
+    ) -> Result<RollbackRequestsConnection> {
+        let pool = ctx.data::<DatabaseConnection>()?;
+        let session = ctx.rls_session()?;
+
+        let first = first.unwrap_or(50).min(1000);
+        let offset = offset.unwrap_or(0);
+
+        session.execute(pool, |tx| Box::pin(async move {
+            let mut query_builder = sqlx::QueryBuilder::new(
+                r#"
+                SELECT id, activity_log_id, requested_by, requested_at, reason,
+                        status, reviewed_by, reviewed_at, review_reason, created_at, updated_at
+                FROM hr_public.rollback_requests
+                WHERE 1=1
+                "#,
+            );
+
+            // Apply conditions
+            if let Some(cond) = &condition {
+                if let Some(id) = cond.id {
+                    query_builder.push(" AND id = ");
+                    query_builder.push_bind(id);
+                }
+                if let Some(activity_log_id) = cond.activity_log_id {
+                    query_builder.push(" AND activity_log_id = ");
+                    query_builder.push_bind(activity_log_id);
+                }
+                if let Some(requested_by) = cond.requested_by {
+                    query_builder.push(" AND requested_by = ");
+                    query_builder.push_bind(requested_by);
+                }
+                if let Some(status) = cond.status {
+                    query_builder.push(" AND status = ");
+                    query_builder.push_bind(status);
+                }
+                if let Some(reviewed_by) = cond.reviewed_by {
+                    query_builder.push(" AND reviewed_by = ");
+                    query_builder.push_bind(reviewed_by);
+                }
+            }
+
+            // Add ordering
+            let order_clause = if let Some(orders) = order_by {
+                if orders.is_empty() {
+                    "ORDER BY requested_at DESC".to_string()
+                } else {
+                    let sql_parts: Vec<String> = orders.iter().map(|o| o.to_sql().to_string()).collect();
+                    format!("ORDER BY {}", sql_parts.join(", "))
+                }
+            } else {
+                "ORDER BY requested_at DESC".to_string() // Default
+            };
+            query_builder.push(order_clause);
+            query_builder.push(" LIMIT ");
+            query_builder.push_bind(first);
+            query_builder.push(" OFFSET ");
+            query_builder.push_bind(offset);
+
+            let requests: Vec<RollbackRequest> = query_builder
+                .build_query_as()
+                .fetch_all(&mut **tx.as_mut())
+                .await
+                .map_err(|e| {
+                    tracing::error!("Failed to fetch all rollback requests: {}", e);
+                    Error::new("Failed to fetch rollback requests")
+                })?;
+
+            // Get total count with same conditions
+            let mut count_builder = sqlx::QueryBuilder::new(
+                "SELECT COUNT(*)::bigint FROM hr_public.rollback_requests WHERE 1=1",
+            );
+
+            if let Some(cond) = &condition {
+                if let Some(id) = cond.id {
+                    count_builder.push(" AND id = ");
+                    count_builder.push_bind(id);
+                }
+                if let Some(activity_log_id) = cond.activity_log_id {
+                    count_builder.push(" AND activity_log_id = ");
+                    count_builder.push_bind(activity_log_id);
+                }
+                if let Some(requested_by) = cond.requested_by {
+                    count_builder.push(" AND requested_by = ");
+                    count_builder.push_bind(requested_by);
+                }
+                if let Some(status) = cond.status {
+                    count_builder.push(" AND status = ");
+                    count_builder.push_bind(status);
+                }
+                if let Some(reviewed_by) = cond.reviewed_by {
+                    count_builder.push(" AND reviewed_by = ");
+                    count_builder.push_bind(reviewed_by);
+                }
+            }
+
+            let total_count: (i64,) = count_builder
+                .build_query_as()
+                .fetch_one(&mut **tx.as_mut())
+                .await
+                .map_err(|e| {
+                    tracing::error!("Failed to count rollback requests: {}", e);
+                    Error::new("Failed to count rollback requests")
+                })?;
+
+            // Calculate pagination info
+            let has_next_page = offset + first < total_count.0;
+            let has_previous_page = offset > 0;
+
+            Ok(RollbackRequestsConnection {
+                nodes: requests,
+                total_count: total_count.0,
+                page_info: PageInfo {
+                    has_next_page,
+                    has_previous_page,
+                    start_cursor: None,
+                    end_cursor: None,
+                },
+            })
+        })).await
     }
 
     // ============================================================
@@ -6524,7 +6890,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         id: Uuid,
     ) -> Result<Option<BulkRollbackBatch>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let batch = sqlx::query_as::<_, BulkRollbackBatch>(
             r#"
@@ -6548,7 +6914,7 @@ impl QueryRoot {
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<BulkRollbackBatch>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
         let offset = offset.unwrap_or(0);
 
@@ -6576,7 +6942,7 @@ impl QueryRoot {
         status: String,
         limit: Option<i64>,
     ) -> Result<Vec<BulkRollbackBatch>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let batches = sqlx::query_as::<_, BulkRollbackBatch>(
@@ -6599,7 +6965,7 @@ impl QueryRoot {
 
     /// Count bulk rollback batches
     async fn bulk_rollback_batches_count(&self, ctx: &Context<'_>) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM hr_public.bulk_rollback_batches")
             .fetch_one(pool)
@@ -6618,7 +6984,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         id: Uuid,
     ) -> Result<Option<BulkRollbackItem>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let item = sqlx::query_as::<_, BulkRollbackItem>(
             r#"
@@ -6642,7 +7008,7 @@ impl QueryRoot {
         batch_id: Uuid,
         limit: Option<i64>,
     ) -> Result<Vec<BulkRollbackItem>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let items = sqlx::query_as::<_, BulkRollbackItem>(
@@ -6670,7 +7036,7 @@ impl QueryRoot {
         status: String,
         limit: Option<i64>,
     ) -> Result<Vec<BulkRollbackItem>> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
         let limit = limit.unwrap_or(100).min(1000);
 
         let items = sqlx::query_as::<_, BulkRollbackItem>(
@@ -6697,7 +7063,7 @@ impl QueryRoot {
         ctx: &Context<'_>,
         batch_id: Option<Uuid>,
     ) -> Result<i64> {
-        let pool = ctx.data::<DbPool>()?;
+        let pool = ctx.data::<DatabaseConnection>()?;
 
         let count: (i64,) = if let Some(bid) = batch_id {
             sqlx::query_as(

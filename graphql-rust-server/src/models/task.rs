@@ -4,9 +4,11 @@
 
 use async_graphql::{Context, Enum, InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
+use sea_orm::{entity::prelude::*, FromQueryResult, Related};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use uuid::Uuid;
+
+use crate::{database::get_db_from_context, error::AppError, models::generated::prelude::*};
 
 /// Task status
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum, sqlx::Type)]
@@ -30,15 +32,17 @@ pub enum TaskPriority {
     Urgent,
 }
 
-/// Task model - maps to hr_public.tasks table
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-pub struct Task {
+/// Task entity - maps to hr_public.tasks table
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "tasks")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub title: String,
     pub description: Option<String>,
     pub task_type_id: Option<Uuid>,
-    pub status: TaskStatus,
-    pub priority: TaskPriority,
+    pub status: String, // Using string to match database enum
+    pub priority: String, // Using string to match database enum
     pub due_date: Option<DateTime<Utc>>,
     pub completed_at: Option<DateTime<Utc>>,
     pub estimated_hours: Option<i32>,
@@ -55,6 +59,213 @@ pub struct Task {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::CreatedBy",
+        to = "super::user::Column::Id"
+    )]
+    Creator,
+    #[sea_orm(
+        belongs_to = "super::user::Entity",
+        from = "Column::AssigneeId",
+        to = "super::user::Column::Id"
+    )]
+    Assignee,
+    #[sea_orm(
+        belongs_to = "super::department::Entity",
+        from = "Column::DepartmentId",
+        to = "super::department::Column::Id"
+    )]
+    Department,
+    #[sea_orm(
+        belongs_to = "Entity",
+        from = "Column::ParentTaskId",
+        to = "Column::Id"
+    )]
+    Parent,
+    #[sea_orm(has_many = "Entity")]
+    Children,
+}
+
+impl Related<super::user::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Creator.def().rev()
+    }
+}
+
+impl Related<Entity> for super::user::Entity {
+    fn to() -> RelationDef {
+        Relation::Assignee.def().rev()
+    }
+}
+
+impl ActiveModelBehavior for ActiveModel {}
+
+/// GraphQL Object implementation for Task
+#[Object]
+impl Model {
+    /// Unique task identifier
+    async fn id(&self) -> Uuid {
+        self.id
+    }
+
+    /// Task title
+    async fn title(&self) -> &str {
+        &self.title
+    }
+
+    /// Task description
+    async fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+
+    /// Task type ID for categorization
+    async fn task_type_id(&self) -> Option<Uuid> {
+        self.task_type_id
+    }
+
+    /// Whether task requires manual reassignment approval
+    async fn requires_manual_reassignment(&self) -> Option<bool> {
+        self.requires_manual_reassignment
+    }
+
+    /// Current task status
+    async fn status(&self) -> &str {
+        &self.status
+    }
+
+    /// Task priority level
+    async fn priority(&self) -> &str {
+        &self.priority
+    }
+
+    /// Task due date
+    async fn due_date(&self) -> Option<DateTime<Utc>> {
+        self.due_date
+    }
+
+    /// Task completion timestamp
+    async fn completed_at(&self) -> Option<DateTime<Utc>> {
+        self.completed_at
+    }
+
+    /// Estimated hours to complete
+    async fn estimated_hours(&self) -> Option<i32> {
+        self.estimated_hours
+    }
+
+    /// Actual hours spent
+    async fn actual_hours(&self) -> Option<i32> {
+        self.actual_hours
+    }
+
+    /// Task tags for categorization
+    async fn tags(&self) -> Option<Vec<String>> {
+        self.tags.clone()
+    }
+
+    /// Department ID if task is department-specific
+    async fn department_id(&self) -> Option<Uuid> {
+        self.department_id
+    }
+
+    /// User ID who created the task
+    async fn created_by(&self) -> Uuid {
+        self.created_by
+    }
+
+    /// User ID assigned to the task
+    async fn assignee_id(&self) -> Option<Uuid> {
+        self.assignee_id
+    }
+
+    /// Parent task ID (for subtasks)
+    async fn parent_task_id(&self) -> Option<Uuid> {
+        self.parent_task_id
+    }
+
+    /// Whether task is archived
+    async fn archived(&self) -> bool {
+        self.archived
+    }
+
+    /// Timestamp when task was archived
+    async fn archived_at(&self) -> Option<DateTime<Utc>> {
+        self.archived_at
+    }
+
+    /// User ID who archived the task
+    async fn archived_by(&self) -> Option<Uuid> {
+        self.archived_by
+    }
+
+    /// Record creation timestamp
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    /// Record last update timestamp
+    async fn updated_at(&self) -> DateTime<Utc> {
+        self.updated_at
+    }
+
+    /// Soft delete timestamp (NULL if not deleted)
+    async fn deleted_at(&self) -> Option<DateTime<Utc>> {
+        self.deleted_at
+    }
+
+    /// User who created the task
+    async fn creator(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let creator = super::user::Entity::find_by_id(self.created_by).one(db).await?;
+        Ok(creator)
+    }
+
+    /// User assigned to the task
+    async fn assignee(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
+        if let Some(assignee_id) = self.assignee_id {
+            let db = get_db_from_context(ctx)?;
+            let assignee = super::user::Entity::find_by_id(assignee_id).one(db).await?;
+            Ok(assignee)
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Parent task (for subtasks)
+    async fn parent_task(&self, ctx: &Context<'_>) -> GqlResult<Option<Model>> {
+        if let Some(parent_id) = self.parent_task_id {
+            let db = get_db_from_context(ctx)?;
+            let parent = Entity::find_by_id(parent_id).one(db).await?;
+            Ok(parent)
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Whether task is overdue
+    async fn is_overdue(&self) -> bool {
+        if let Some(due) = self.due_date {
+            if self.status != "done" && self.status != "cancelled" {
+                return Utc::now() > due;
+            }
+        }
+        false
+    }
+
+    /// Whether task is completed
+    async fn is_completed(&self) -> bool {
+        self.status == "done"
+    }
+
+    /// Whether task is blocked
+    async fn is_blocked(&self) -> bool {
+        self.status == "blocked"
+    }
 }
 
 /// GraphQL Object implementation for Task

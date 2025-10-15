@@ -1,4 +1,7 @@
-// Core existing models
+// SeaORM generated entities
+pub mod generated;
+
+// Core existing models (SeaORM compatible)
 pub mod department;
 pub mod event;
 pub mod event_attendee;
@@ -18,6 +21,9 @@ pub mod task_assignee;
 pub mod task_audit_entry;
 pub mod task_dependency;
 pub mod user;
+
+// Re-export generated entities for easy access
+pub use generated::*;
 pub mod user_role_assignment;
 
 // New domain-based modules for complete database coverage
@@ -94,11 +100,11 @@ pub use time::{
 };
 pub use analytics::{DashboardSummary, DepartmentMetric, GoalStatistic, ReportAnalytic};
 pub use system::{
-    ActivityLog, ActivityLogsOrderBy, BulkRollbackBatch, BulkRollbackItem, CompensationBand,
+    ActivityLog, ActivityLogCondition, ActivityLogsConnection, ActivityLogsOrderBy, BulkRollbackBatch, BulkRollbackItem, CompensationBand,
     CreateActivityLogInput, CreateBulkRollbackBatchInput, CreateBulkRollbackItemInput,
     CreateCompensationBandInput, CreateEncryptionKeyInput, CreateHRReportInput,
     CreatePayrollRecordInput, CreateRollbackRequestInput, EncryptionKey, HRReport, PayrollRecord,
-    RollbackRequest, RollbackStatus, UpdateBulkRollbackBatchInput, UpdateBulkRollbackItemInput,
+    RollbackRequest, RollbackRequestCondition, RollbackRequestsConnection, RollbackRequestsOrderBy, RollbackStatus, UpdateBulkRollbackBatchInput, UpdateBulkRollbackItemInput,
     UpdateCompensationBandInput, UpdateRollbackRequestInput,
 };
 pub use events::{
