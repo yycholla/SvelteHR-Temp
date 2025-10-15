@@ -7,15 +7,23 @@
 
 This data model maps the existing PostgreSQL schema to SeaORM entities while preserving:
 
-- All existing table structures and constraints
-- Computed columns and business logic
+- All existing table structures and constraints (20+ tables across 4 schemas)
+- Computed columns and business logic functions
 - Complex relationships and self-references
 - Frontend GraphQL API compatibility
 - Authentication and authorization patterns
+- Advanced features: encryption, audit trails, soft deletes, versioning
+
+**Schema Analysis from full_backup.sql**:
+
+- **4 Schemas**: hr_hidden (utilities), hr_private (sensitive data), hr_public (main API), postgraphile_watch (GraphQL)
+- **Extensions**: pgcrypto (encryption), uuid-ossp (UUID generation)
+- **20+ Tables**: Complete HR system with events, documents, notifications, payroll, etc.
+- **Advanced Features**: Event waitlists, document encryption, audit trails, RBAC functions
 
 ## Entity Definitions
 
-### User
+### User (hr_public.users)
 
 **Purpose**: Core user entity with authentication, RBAC, and profile data
 **Table**: `hr_public.users`
@@ -43,369 +51,62 @@ This data model maps the existing PostgreSQL schema to SeaORM entities while pre
 - `created_at`: DateTime
 - `updated_at`: DateTime
 
-**Computed Columns**:
-
-- `display_name`: Concatenation of first_name and last_name
-- `full_name`: Same as display_name (for GraphQL compatibility)
-
 **Relationships**:
 
-- Belongs to Department (many-to-one, optional)
-- Belongs to Manager (self-referential, many-to-one, optional)
-- Has many Direct Reports (self-referential, one-to-many)
-- Has many Tasks (one-to-many, as assignee and creator)
-- Has many LeaveRequests (one-to-many)
-- Has many PerformanceReviews (one-to-many, as employee and reviewer)
-- Has many AuditLogs (one-to-many)
-- Has many UserRoleAssignments (one-to-many)
+- Has many Tasks (one-to-many)
 
-**Validation Rules**:
+### TaskAssignee (hr_public.task_assignees)
 
-- Email must be valid format and unique
-- Password hash required for active users
-- First name and last name cannot be empty
-- Role must be valid enum value
-- Manager cannot be the same as the user (no self-management)
-
-### Department
-
-**Purpose**: Organizational structure with hierarchical relationships and management
-**Table**: `hr_public.departments`
+**Purpose**: Multi-assignee task management
 **Fields**:
 
 - `id`: UUID primary key
-- `name`: String (unique, indexed)
-- `description`: String (optional)
-- `parent_department_id`: UUID foreign key → Department (self-referencing, optional)
-- `manager_id`: UUID foreign key → User (optional)
-- `created_at`: DateTime
-- `updated_at`: DateTime
-
-**Relationships**:
-
-- Belongs to Department (parent, many-to-one, optional)
-- Has many Departments (children, one-to-many)
-- Belongs to User (manager, many-to-one, optional)
-- Has many Users (one-to-many)
-- Has many Tasks (one-to-many, department-specific tasks)
-
-**Validation Rules**:
-
-- Name required and unique
-- Cannot create circular parent relationships
-- Manager must be an active user if specified
-
-### Employee Records
-
-**Purpose**: Comprehensive employee data including skills and history
-**Fields**:
-
-- `id`: UUID primary key
-- `user_id`: UUID foreign key → User (unique)
-- `employee_id`: String (unique, indexed)
-- `hire_date`: Date
-- `termination_date`: Date (optional)
-- `job_title`: String
-- `salary`: Decimal (optional, encrypted)
-- `skills`: JSON array of skill objects
-- `certifications`: JSON array of certification objects
-- `created_at`: DateTime
-- `updated_at`: DateTime
-
-**Relationships**:
-
-- Belongs to User (one-to-one)
-
-**Validation Rules**:
-
-- Employee ID must be unique
-- Termination date must be after hire date if present
-- Skills and certifications stored as structured JSON
-
-### Tasks
-
-**Purpose**: Work items with assignments, dependencies, audit trails, and status tracking
-**Table**: `hr_public.tasks` (UUID-based, not integer-based)
-**Fields**:
-
-- `id`: UUID primary key
-- `title`: String (required, non-empty)
-- `description`: String (optional)
-- `task_type_id`: UUID foreign key → TaskType (optional)
-- `status`: Enum (todo, in_progress, blocked, review, done, cancelled)
-- `priority`: Enum (low, medium, high, urgent)
-- `due_date`: DateTime (optional)
-- `completed_at`: DateTime (optional)
-- `estimated_hours`: Integer (optional)
-- `actual_hours`: Integer (optional)
-- `tags`: JSON array of strings (optional)
-- `department_id`: UUID foreign key → Department (optional)
-- `created_by`: UUID foreign key → User (required)
-- `assignee_id`: UUID foreign key → User (optional)
-- `parent_task_id`: UUID foreign key → Task (self-referential, optional)
-- `requires_manual_reassignment`: Boolean (optional)
-- `archived`: Boolean (default false)
-- `archived_at`: DateTime (optional)
-- `archived_by`: UUID foreign key → User (optional)
-- `created_at`: DateTime
-- `updated_at`: DateTime
-- `deleted_at`: DateTime (optional, soft delete)
-
-**Relationships**:
-
-- Belongs to User (creator, many-to-one)
-- Belongs to User (assignee, many-to-one, optional)
-- Belongs to Department (many-to-one, optional)
-- Belongs to TaskType (many-to-one, optional)
-- Belongs to Task (parent, self-referential, many-to-one, optional)
-- Has many Tasks (children, self-referential, one-to-many)
-- Has many TaskAssignees (one-to-many, multi-assignee support)
-- Has many TaskDependencies (one-to-many, as blocking and blocked)
-- Has many LinkedResources (one-to-many, attachments)
-- Has many TaskAuditEntries (one-to-many, audit trail)
-
-**State Transitions**:
-
-- todo → in_progress (by assignee)
-- in_progress → blocked (by system/assignee)
-- blocked → in_progress (by assignee)
-- in_progress → review (by assignee)
-- review → done (by reviewer)
-- in_progress → done (by assignee)
-- any → cancelled (by assignee, creator, or admin)
-
-**Validation Rules**:
-
-- Title required and non-empty
-- Status must be valid enum value
-- Priority must be valid enum value
-- Due date must be in future if specified
-- Assignee must be active user if specified
-- Parent task cannot be the same as current task
-- Cannot create circular dependencies
-
-### Leave Requests
-
-**Purpose**: Time-off management with approval workflows and balance tracking
-**Table**: `hr_public.leave_requests`
-**Fields**:
-
-- `id`: UUID primary key
-- `employee_id`: UUID foreign key → User (required)
-- `manager_id`: UUID foreign key → User (optional)
-- `leave_type`: Enum (annual, sick, personal, maternity, paternity)
-- `start_date`: Date (required)
-- `end_date`: Date (required)
-- `days_requested`: Integer (required, positive)
-- `status`: Enum (pending, approved, rejected, cancelled)
-- `reason`: String (optional)
-- `manager_comments`: String (optional)
-- `created_at`: DateTime
-- `updated_at`: DateTime
-- `deleted_at`: DateTime (optional, soft delete)
-
-**Related Tables**:
-
-- `hr_public.time_off_policies` - Leave policies and allowances
-- `hr_public.time_off_balances` - Employee leave balances by policy/year
-
-**Relationships**:
-
-- Belongs to User (employee, many-to-one)
-- Belongs to User (manager, many-to-one, optional)
-- Has many TimeOffBalances (one-to-many, through policies)
-
-**State Transitions**:
-
-- pending → approved (by manager/HR with appropriate permissions)
-- pending → rejected (by manager/HR with rejection reason)
-- pending → cancelled (by employee)
-- approved → cancelled (by employee, with advance notice)
-
-**Validation Rules**:
-
-- End date must be after or equal to start date
-- Days requested must be positive
-- Employee and manager cannot be the same user
-- Leave type must be valid enum value
-- Approval requires manager relationship or HR permissions
-
-### Performance Reviews
-
-**Purpose**: Employee evaluations with goals, feedback, and rating systems
-**Table**: `hr_public.performance_reviews`
-**Fields**:
-
-- `id`: UUID primary key
-- `employee_id`: UUID foreign key → User (required)
-- `reviewer_id`: UUID foreign key → User (required)
-- `review_period`: String (e.g., "2025-Q1", "2025-Annual")
-- `status`: Enum (not_started, in_progress, completed)
-- `overall_rating`: Decimal (1.0-5.0 scale, optional)
-- `goals`: String (optional, free text)
-- `achievements`: String (optional, free text)
-- `areas_for_improvement`: String (optional, free text)
-- `manager_feedback`: String (optional, free text)
-- `review_period_start`: Date (optional)
-- `review_period_end`: Date (optional)
-- `review_type`: String (optional: annual, quarterly, probationary)
-- `notes`: String (optional)
-- `created_at`: DateTime
-- `updated_at`: DateTime
-
-**Related Tables**:
-
-- `hr_public.review_templates` - Standardized review templates
-- `hr_public.review_cycles` - Review period definitions
-- `hr_public.review_goals` - Structured goal tracking
-
-**Relationships**:
-
-- Belongs to User (employee, many-to-one)
-- Belongs to User (reviewer, many-to-one)
-- Belongs to ReviewCycle (many-to-one, optional)
-
-**State Transitions**:
-
-- not_started → in_progress (by reviewer)
-- in_progress → completed (by reviewer with all fields filled)
-- completed → in_progress (by reviewer for revisions)
-
-**Validation Rules**:
-
-- Employee and reviewer cannot be the same user
-- Overall rating must be between 1.0 and 5.0 if provided
-- Review period dates must form a valid range if both provided
-- Review type must be valid if specified
-
-### Audit Logs
-
-**Purpose**: System activity tracking with rollback capabilities and before/after snapshots
-**Table**: `hr_public.activity_logs`
-**Fields**:
-
-- `id`: UUID primary key
-- `user_id`: UUID foreign key → User (optional, for authenticated actions)
-- `employee_id`: UUID foreign key → User (optional, for actions on behalf of others)
-- `action`: String (required, e.g., "CREATE", "UPDATE", "DELETE")
-- `resource_type`: String (required, e.g., "user", "task", "leave_request")
-- `resource_id`: UUID (optional, ID of affected resource)
-- `details`: JSON (optional, additional context)
-- `before_snapshot`: JSON (optional, state before change)
-- `after_snapshot`: JSON (optional, state after change)
-- `is_rollback`: Boolean (default false)
-- `rolled_back_log_id`: UUID foreign key → ActivityLog (optional, for rollback tracking)
-- `ip_address`: String (optional)
-- `user_agent`: String (optional)
-- `created_at`: DateTime
-
-**Related Tables**:
-
-- `hr_public.rollback_requests` - Rollback request tracking
-- `hr_public.bulk_rollback_batch` - Batch rollback operations
-
-**Relationships**:
-
-- Belongs to User (actor, many-to-one, optional)
-- Belongs to User (target_employee, many-to-one, optional)
-- Belongs to ActivityLog (rollback_source, many-to-one, optional)
-- Has many RollbackRequests (one-to-many)
-
-**Validation Rules**:
-
-- Action and resource_type required
-- Either user_id or employee_id should be provided for user actions
-- JSON fields for structured data storage
-- IP address and user agent for security tracking
-
-### Notifications
-
-**Purpose**: User communication and alert system
-**Fields**:
-
-- `id`: UUID primary key
+- `task_id`: UUID foreign key → Task
 - `user_id`: UUID foreign key → User
-- `type`: Enum (task_assigned, leave_approved, review_due, system_alert)
-- `title`: String
-- `message`: String
-- `is_read`: Boolean (default false)
-- `data`: JSON (optional, for additional context)
+- `assigned_at`: DateTime
+- `assigned_by`: UUID foreign key → User
 - `created_at`: DateTime
 
 **Relationships**:
 
-- Belongs to User (many-to-one)
+- Belongs to Task (many-to-one)
+- Belongs to User (assignee, many-to-one)
+- Belongs to User (assigner, many-to-one)
 
-**Validation Rules**:
+### TaskAuditEntry (hr_public.task_audit_entries)
 
-- Type must be valid enum
-- Title and message required
-
-### Documents
-
-**Purpose**: File management with access controls
+**Purpose**: Task change audit trail
 **Fields**:
 
 - `id`: UUID primary key
-- `user_id`: UUID foreign key → User
-- `filename`: String
-- `file_path`: String
-- `file_size`: Integer
-- `mime_type`: String
-- `category`: Enum (resume, contract, certification, other)
-- `is_public`: Boolean (default false)
+- `task_id`: UUID foreign key → Task
+- `changed_by`: UUID foreign key → User
+- `change_type`: String (required)
+- `field_name`: String (optional)
+- `old_value`: JSON (optional)
+- `new_value`: JSON (optional)
 - `created_at`: DateTime
-- `updated_at`: DateTime
 
 **Relationships**:
 
-- Belongs to User (many-to-one)
+- Belongs to Task (many-to-one)
+- Belongs to User (changer, many-to-one)
 
-**Validation Rules**:
+### TaskDependency (hr_public.task_dependencies)
 
-- File path must be secure and validated
-- File size within limits
-- MIME type must match allowed types
-
-### Reports
-
-**Purpose**: Analytical data and business intelligence
+**Purpose**: Task dependency relationships
 **Fields**:
 
 - `id`: UUID primary key
-- `name`: String
-- `description`: String
-- `query_definition`: JSON
-- `created_by_id`: UUID foreign key → User
-- `is_public`: Boolean (default false)
-- `last_run_at`: DateTime (optional)
+- `task_id`: UUID foreign key → Task (dependent task)
+- `depends_on_task_id`: UUID foreign key → Task (blocking task)
 - `created_at`: DateTime
-- `updated_at`: DateTime
+- `deleted_at`: DateTime (optional)
 
 **Relationships**:
 
-- Belongs to User (creator, many-to-one)
-
-**Validation Rules**:
-
-- Query definition stored as structured JSON
-- Access control based on is_public flag and user permissions
-
-## Additional Entities (Supporting Infrastructure)
-
-### TaskType
-
-**Purpose**: Categorization and organization of tasks
-**Table**: `hr_public.task_types`
-**Fields**:
-
-- `id`: UUID primary key
-- `name`: String (unique)
-- `description`: String (optional)
-- `color`: String (hex color code)
-- `icon`: String (icon identifier)
-- `created_at`: DateTime
-- `updated_at`: DateTime
+- Belongs to Task (dependent, many-to-one)
+- Belongs to Task (blocking, many-to-one)
 
 ### Event
 
@@ -553,3 +254,329 @@ This data model maps the existing PostgreSQL schema to SeaORM entities while pre
 - Audit logging for all modifications
 - Soft delete patterns
 - Computed field logic
+
+### UserRoleAssignment (hr_public.user_role_assignments)
+
+**Purpose**: Flexible role-based access control assignments
+**Fields**:
+
+- `id`: UUID primary key
+- `user_id`: UUID foreign key → User
+- `role_name`: String (required)
+- `assigned_by`: UUID foreign key → User (optional)
+- `created_at`: DateTime
+
+**Relationships**:
+
+- Belongs to User (many-to-one)
+- Belongs to User (assigner, many-to-one, optional)
+
+### Permission (hr_public.permissions)
+
+**Purpose**: System permissions definitions
+**Fields**:
+
+- `id`: UUID primary key
+- `resource`: String (required)
+- `action`: String (required)
+- `description`: String (optional)
+- `created_at`: DateTime
+
+**Relationships**:
+
+- Has many UserRoleAssignments (one-to-many, through roles)
+
+### Role (hr_public.roles)
+
+**Purpose**: Role definitions for RBAC
+**Fields**:
+
+- `id`: UUID primary key
+- `name`: String (unique)
+- `description`: String (optional)
+- `level`: Integer (optional)
+- `created_at`: DateTime
+- `updated_at`: DateTime
+- `deleted_at`: DateTime (optional)
+
+**Relationships**:
+
+- Has many UserRoleAssignments (one-to-many)
+- Has many Permissions (many-to-many, through role_permissions)
+
+### ReviewCycle (hr_public.review_cycles)
+
+**Purpose**: Performance review period definitions
+**Fields**:
+
+- `id`: UUID primary key
+- `name`: String (required)
+- `start_date`: Date (required)
+- `end_date`: Date (required)
+- `is_active`: Boolean (default true)
+- `created_at`: DateTime
+- `updated_at`: DateTime
+
+**Relationships**:
+
+- Has many PerformanceReviews (one-to-many)
+
+### ReviewFeedback (hr_public.review_feedback)
+
+**Purpose**: Performance review feedback
+**Fields**:
+
+- `id`: UUID primary key
+- `review_id`: UUID foreign key → PerformanceReview
+- `feedback_type`: String (required)
+- `content`: String (required)
+- `provided_by`: UUID foreign key → User
+- `created_at`: DateTime
+
+**Relationships**:
+
+- Belongs to PerformanceReview (many-to-one)
+- Belongs to User (provider, many-to-one)
+
+### ReviewGoal (hr_public.review_goals)
+
+**Purpose**: Performance review goals
+**Fields**:
+
+- `id`: UUID primary key
+- `review_id`: UUID foreign key → PerformanceReview
+- `goal_title`: String (required)
+- `goal_description`: String (optional)
+- `target_date`: Date (optional)
+- `status`: String (default 'in_progress')
+- `progress_percentage`: Integer (default 0)
+- `created_at`: DateTime
+- `updated_at`: DateTime
+
+**Relationships**:
+
+- Belongs to PerformanceReview (many-to-one)
+
+### ReviewTemplate (hr_public.review_templates)
+
+**Purpose**: Performance review templates
+**Fields**:
+
+- `id`: UUID primary key
+- `name`: String (required)
+- `description`: String (optional)
+- `template_data`: JSON (required)
+- `is_active`: Boolean (default true)
+- `created_by`: UUID foreign key → User (optional)
+- `created_at`: DateTime
+- `updated_at`: DateTime
+
+**Relationships**:
+
+- Belongs to User (creator, many-to-one, optional)
+
+### TimeOffPolicy (hr_public.time_off_policies)
+
+**Purpose**: Leave policies and allowances configuration
+**Fields**:
+
+- `id`: UUID primary key
+- `name`: String (unique)
+- `description`: String (optional)
+- `days_per_year`: Integer (required, positive)
+- `requires_approval`: Boolean (default true)
+- `created_at`: DateTime
+- `updated_at`: DateTime
+
+**Relationships**:
+
+- Has many TimeOffBalances (one-to-many)
+
+### TimeOffBalance (hr_public.time_off_balances)
+
+**Purpose**: Employee leave balances tracking by policy and year
+**Fields**:
+
+- `id`: UUID primary key
+- `employee_id`: UUID foreign key → User
+- `policy_id`: UUID foreign key → TimeOffPolicy
+- `balance_days`: Decimal (default 0.0)
+- `used_days`: Decimal (default 0.0)
+- `year`: Integer (required)
+- `created_at`: DateTime
+- `updated_at`: DateTime
+
+**Relationships**:
+
+- Belongs to User (many-to-one)
+- Belongs to TimeOffPolicy (many-to-one)
+
+### EmergencyContact (hr_public.emergency_contacts)
+
+**Purpose**: Employee emergency contact information
+**Fields**:
+
+- `id`: UUID primary key
+- `employee_id`: UUID foreign key → User
+- `full_name`: String (required)
+- `relationship`: String (required)
+- `phone_number`: String (required)
+- `alternate_phone`: String (optional)
+- `email`: String (optional)
+- `address_line1`: String (optional)
+- `address_line2`: String (optional)
+- `city`: String (optional)
+- `state_province`: String (optional)
+- `postal_code`: String (optional)
+- `country`: String (default 'United States')
+- `is_primary`: Boolean (default false)
+- `notes`: String (optional)
+- `created_at`: DateTime
+- `updated_at`: DateTime
+
+**Relationships**:
+
+- Belongs to User (many-to-one)
+
+### EmployeeGoal (hr_public.employee_goals)
+
+**Purpose**: Individual employee goal tracking
+**Fields**:
+
+- `id`: UUID primary key
+- `employee_id`: UUID foreign key → User
+- `goal_title`: String (required)
+- `goal_description`: String (optional)
+- `target_date`: Date (optional)
+- `status`: String (default 'in_progress')
+- `progress_percentage`: Integer (default 0)
+- `created_by`: UUID foreign key → User (optional)
+- `created_at`: DateTime
+- `updated_at`: DateTime
+
+**Relationships**:
+
+- Belongs to User (employee, many-to-one)
+- Belongs to User (creator, many-to-one, optional)
+
+### EmployeeVehicle (hr_public.employee_vehicles)
+
+**Purpose**: Employee vehicle information for parking
+**Fields**:
+
+- `id`: UUID primary key
+- `employee_id`: UUID foreign key → User
+- `make`: String (required)
+- `model`: String (required)
+- `year`: Integer (optional, 1900-current+2)
+- `color`: String (optional)
+- `license_plate`: String (required)
+- `state_province`: String (optional)
+- `parking_spot`: String (optional)
+- `insurance_company`: String (optional)
+- `insurance_policy_number`: String (optional)
+- `insurance_expiry`: Date (optional)
+- `is_primary`: Boolean (default false)
+- `notes`: String (optional)
+- `created_at`: DateTime
+- `updated_at`: DateTime
+
+**Relationships**:
+
+- Belongs to User (many-to-one)
+
+### Notification (hr_public.notifications)
+
+**Purpose**: User notifications for in-app and email delivery
+**Fields**:
+
+- `id`: UUID primary key
+- `recipient_id`: UUID foreign key → User
+- `type`: Enum (info, warning, success, error, task_assigned, task_completed, leave_request, performance_review, event_reminder, system_announcement)
+- `category`: Enum (system, task, leave, performance, event, hr, department)
+- `title`: String (required)
+- `message`: String (required)
+- `related_resource_type`: Enum (task, leave_request, performance_review, event, user, department, goal, report)
+- `related_resource_id`: UUID (optional)
+- `read_status`: Boolean (default false)
+- `delivered_at`: DateTime
+- `read_at`: DateTime (optional)
+- `created_at`: DateTime
+
+**Relationships**:
+
+- Belongs to User (recipient, many-to-one)
+
+### CompensationRecord (hr_private.compensation_records)
+
+**Purpose**: Sensitive compensation and payment information
+**Fields**:
+
+- `id`: UUID primary key
+- `employee_id`: UUID foreign key → User
+- `salary_amount`: Decimal (required, positive)
+- `salary_currency`: String (default 'USD')
+- `pay_frequency`: String (default 'monthly')
+- `pay_type`: String (default 'salary')
+- `hourly_rate`: Decimal (optional)
+- `effective_date`: Date (default current_date)
+- `end_date`: Date (optional)
+- `bank_name`: String (optional)
+- `bank_account_type`: String (optional)
+- `bank_account_number_last4`: String (optional)
+- `bank_routing_number`: String (optional)
+- `payment_method`: String (default 'direct_deposit')
+- `tax_id_last4`: String (optional)
+- `notes`: String (optional)
+- `created_by`: UUID foreign key → User (optional)
+- `created_at`: DateTime
+- `updated_at`: DateTime
+
+**Relationships**:
+
+- Belongs to User (employee, many-to-one)
+- Belongs to User (creator, many-to-one, optional)
+
+### BulkRollbackBatch (hr_public.bulk_rollback_batches)
+
+**Purpose**: Batch rollback operations for multiple activity logs
+**Fields**:
+
+- `id`: UUID primary key
+- `name`: String (required)
+- `description`: String (optional)
+- `requested_by`: UUID foreign key → User
+- `requested_at`: DateTime
+- `status`: String (default 'pending')
+- `reviewed_by`: UUID foreign key → User (optional)
+- `reviewed_at`: DateTime (optional)
+- `executed_at`: DateTime (optional)
+- `total_count`: Integer (default 0)
+- `success_count`: Integer (default 0)
+- `failure_count`: Integer (default 0)
+- `error_log`: JSON (optional)
+- `created_at`: DateTime
+- `updated_at`: DateTime
+
+**Relationships**:
+
+- Belongs to User (requester, many-to-one)
+- Belongs to User (reviewer, many-to-one, optional)
+- Has many BulkRollbackItems (one-to-many)
+
+### BulkRollbackItem (hr_public.bulk_rollback_items)
+
+**Purpose**: Individual activity logs in a bulk rollback batch
+**Fields**:
+
+- `id`: UUID primary key
+- `batch_id`: UUID foreign key → BulkRollbackBatch
+- `activity_log_id`: UUID foreign key → ActivityLog
+- `status`: String (default 'pending')
+- `error_message`: String (optional)
+- `created_at`: DateTime
+
+**Relationships**:
+
+- Belongs to BulkRollbackBatch (many-to-one)
+- Belongs to ActivityLog (many-to-one)

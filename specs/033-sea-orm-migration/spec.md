@@ -113,16 +113,57 @@ As a developer extending the HR system, I want to leverage SeaORM's advanced fil
 
 ### Key Entities _(include if feature involves data)_
 
-- **User**: Core user entity with authentication, profile, and relationship data
-- **Department**: Organizational structure with hierarchical relationships
+**Core HR Entities**:
+
+- **User**: Core user entity with authentication, profile, and relationship data (hr_public.users)
+- **Department**: Organizational structure with hierarchical relationships (hr_public.departments)
 - **Employee Records**: Comprehensive employee data including skills, certifications, and history
-- **Tasks**: Work items with assignments, dependencies, and status tracking (states: pending → in_progress → completed/cancelled)
-- **Leave Requests**: Time-off management with approval workflows (states: pending → approved/rejected/cancelled)
-- **Performance Reviews**: Evaluation data with goals and feedback (states: draft → submitted → in_review → completed)
-- **Audit Logs**: System activity tracking with rollback capabilities
-- **Notifications**: User communication and alert system
-- **Documents**: File management with access controls
-- **Reports**: Analytical data and business intelligence
+- **Tasks**: Work items with assignments, dependencies, and status tracking (hr_public.tasks)
+- **Leave Requests**: Time-off management with approval workflows (hr_public.leave_requests)
+- **Performance Reviews**: Evaluation data with goals and feedback (hr_public.performance_reviews)
+
+**Supporting Entities**:
+
+- **Audit Logs**: System activity tracking with rollback capabilities (hr_public.activity_logs)
+- **Notifications**: User communication and alert system (hr_public.notifications)
+- **Documents**: File management with access controls and versioning (hr_public.documents)
+- **Reports**: Analytical data and business intelligence (hr_public.hr_reports)
+- **Events**: Company events with RSVP tracking and waitlists (hr_public.events)
+- **Event Attendees**: Event participation management (hr_public.event_attendees)
+- **Compensation Records**: Payroll and salary data (hr_private.compensation_records)
+- **Time Off Policies**: Leave policies and allowances (hr_public.time_off_policies)
+- **Time Off Balances**: Employee leave balance tracking (hr_public.time_off_balances)
+- **Emergency Contacts**: Employee emergency contact information (hr_public.emergency_contacts)
+- **Employee Goals**: Individual employee goal tracking (hr_public.employee_goals)
+- **Employee Vehicles**: Employee vehicle information for parking (hr_public.employee_vehicles)
+- **Document Categories**: Hierarchical document categorization (hr_public.document_categories)
+- **Document Versions**: Document version history (hr_public.document_versions)
+- **Document Access Logs**: Document access audit trail (hr_public.document_access_logs)
+- **Document Assignments**: Document assignment to users/departments (hr_public.document_assignments)
+- **Encrypted File Storage**: Encrypted document storage (hr_public.encrypted_file_storage)
+- **Encryption Keys**: Encryption key metadata (hr_public.encryption_keys)
+- **Event Comments**: Event discussion and comments (hr_public.event_comments)
+- **Event History**: Event change audit trail (hr_public.event_history)
+- **Event Notifications**: Event-related notifications (hr_public.event_notifications)
+- **Event Waitlist**: Event waitlist management (hr_public.event_waitlist)
+- **Linked Resources**: Task-linked external resources (hr_public.linked_resources)
+- **Notification Preferences**: User notification settings (hr_public.notification_preferences)
+- **Compensation Bands**: Salary band definitions (hr_public.compensation_bands)
+- **Payroll Records**: Payroll processing records (hr_public.payroll_records)
+- **Attendance Records**: Employee attendance tracking (hr_public.attendance_records)
+- **Bulk Rollback Batches**: Batch rollback operations (hr_public.bulk_rollback_batches)
+- **Bulk Rollback Items**: Individual rollback items (hr_public.bulk_rollback_items)
+- **Task Types**: Task categorization (hr_public.task_types)
+- **Task Assignees**: Multi-assignee task management (hr_public.task_assignees)
+- **Task Audit Entries**: Task change audit trail (hr_public.task_audit_entries)
+- **Task Dependencies**: Task dependency relationships (hr_public.task_dependencies)
+- **User Role Assignments**: Flexible RBAC assignments (hr_public.user_role_assignments)
+- **Permissions**: System permissions definitions (hr_public.permissions)
+- **Roles**: Role definitions (hr_public.roles)
+- **Review Cycles**: Performance review period definitions (hr_public.review_cycles)
+- **Review Feedback**: Performance review feedback (hr_public.review_feedback)
+- **Review Goals**: Performance review goals (hr_public.review_goals)
+- **Review Templates**: Performance review templates (hr_public.review_templates)
 
 ## Success Criteria _(mandatory)_
 
@@ -150,3 +191,8 @@ As a developer extending the HR system, I want to leverage SeaORM's advanced fil
 - **FR-019**: System MUST expose key performance metrics for monitoring and alerting (deferred to post-migration optimization phase)
 - **FR-020**: System MUST include structured logging with correlation IDs for request tracing
 - **FR-021**: System MUST support configurable log levels for different environments
+- **FR-022**: System MUST preserve all existing database functions and business logic (calculate_business_days, RBAC functions, audit triggers)
+- **FR-023**: System MUST maintain encryption capabilities for sensitive data (pgcrypto integration)
+- **FR-024**: System MUST support document versioning and access controls
+- **FR-025**: System MUST maintain event management with waitlists and notifications
+- **FR-026**: System MUST preserve notification preferences and delivery systems
