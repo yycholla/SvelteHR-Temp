@@ -53,7 +53,7 @@ pub struct CreateHRReportInput {
 }
 
 /// GraphQL Object implementation with camelCase field names
-#[Object]
+#[Object(name = "system_hr_report_Model")]
 impl Model {
     async fn id(&self) -> Uuid {
         self.id

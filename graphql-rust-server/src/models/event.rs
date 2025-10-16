@@ -17,7 +17,7 @@ pub struct EventAttendeesConnection {
     pub total_count: i64,
 }
 
-#[Object]
+#[Object(name = "EventAttendeesConnection")]
 impl EventAttendeesConnection {
     async fn nodes(&self) -> &Vec<super::event_attendee::Model> {
         &self.nodes
@@ -152,7 +152,7 @@ impl Related<super::event_attendee::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {}
 
 /// GraphQL Object implementation for Event
-#[Object]
+#[Object(name = "Event")]
 impl Model {
     /// Unique event identifier
     async fn id(&self) -> Uuid {

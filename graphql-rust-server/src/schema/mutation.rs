@@ -47,7 +47,8 @@ use crate::{
         CreateActivityLogInput, CreateBulkRollbackBatchInput, CreateBulkRollbackItemInput,
         CreateCompensationBandInput, CreateEncryptionKeyInput, CreateHRReportInput,
         CreatePayrollRecordInput, CreateRollbackRequestInput, EncryptionKey, HRReport, PayrollRecord,
-        RollbackRequest, RollbackRequestCondition, RollbackRequestsConnection, RollbackRequestsOrderBy, RollbackStatus, UpdateBulkRollbackBatchInput, UpdateBulkRollbackItemInput,
+        RollbackRequest, RollbackRequestCondition, RollbackRequestsConnection, RollbackRequestsOrderBy, RollbackStatus,
+        SystemSettings, UpdateBulkRollbackBatchInput, UpdateBulkRollbackItemInput, UpdateSystemSettingsInput,
         UpdateCompensationBandInput, UpdateRollbackRequestInput,
         // Events domain (new models)
         CreateEventCommentInput, CreateEventHistoryInput, CreateEventWaitlistInput, EventComment,
@@ -4297,6 +4298,32 @@ impl MutationRoot {
         };
 
         Ok(key)
+    }
+
+    /// Update system settings by category (requires system_admin role)
+    #[graphql(guard = "crate::middleware::guards::RequireRole::new(\"system_admin\")")]
+    async fn update_system_settings(
+        &self,
+        ctx: &Context<'_>,
+        input: UpdateSystemSettingsInput,
+    ) -> Result<SystemSettings> {
+        let db = get_db_from_context(ctx)?;
+        let user_ctx = ctx.data::<UserContext>()?;
+
+        // Parse JSON string to JsonValue
+        let settings_json: serde_json::Value = serde_json::from_str(&input.settings)
+            .map_err(|e| async_graphql::Error::new(format!("Invalid JSON: {}", e)))?;
+
+        // Update settings using the helper method
+        let updated = crate::models::system::system_settings::Model::update_settings(
+            &db,
+            &input.category,
+            settings_json,
+            user_ctx.user_id,
+        )
+        .await?;
+
+        Ok(updated)
     }
 
     // ===== Events Domain Mutations =====

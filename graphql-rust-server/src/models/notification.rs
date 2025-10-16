@@ -217,7 +217,7 @@ pub enum Relation {
 impl ActiveModelBehavior for ActiveModel {}
 
 /// GraphQL Object implementation for Notification
-#[Object]
+#[Object(name = "notification_Model")]
 impl Model {
     /// Unique notification identifier
     async fn id(&self) -> Uuid {

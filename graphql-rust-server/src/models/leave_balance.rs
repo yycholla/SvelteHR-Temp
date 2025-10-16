@@ -41,7 +41,7 @@ pub enum Relation {
 impl ActiveModelBehavior for ActiveModel {}
 
 /// GraphQL Object implementation for LeaveBalance
-#[Object]
+#[Object(name = "leave_balance_Model")]
 impl Model {
     /// Unique leave balance identifier
     async fn id(&self) -> Uuid {

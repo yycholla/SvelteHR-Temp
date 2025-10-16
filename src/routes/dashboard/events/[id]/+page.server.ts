@@ -13,14 +13,8 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 		throw redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
 
-	// Get user credentials for GraphQL operations
-	// Token retrieval removed - session auth handled by server hooks
-	if (!token) {
-		throw redirect(303, `/login?redirectTo=${url.pathname}`);
-	}
-
+	// T036: Session-based authentication - jwtToken not needed
 	const userCredentials = {
-		jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
 		userId: locals.user.id,
 		roles: locals.roles || [],
 		permissions: locals.permissions || [],
@@ -30,8 +24,8 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 
 	try {
 		// Initialize GraphQL client and operations
-		// For server-side: createUrqlClient(fetchFn?, authToken?)
-		const urqlClient = createUrqlClient(undefined, token);
+		// T036: Session-based authentication
+		const urqlClient = createUrqlClient();
 		const eventsOps = new EventsOperations(urqlClient);
 
 		// Fetch event details
@@ -128,13 +122,8 @@ export const actions: Actions = {
 			throw redirect(303, '/login');
 		}
 
-		// Token retrieval removed - session auth handled by server hooks
-		if (!token) {
-			throw redirect(303, '/login');
-		}
-
+		// T036: Session-based authentication - jwtToken not needed
 		const userCredentials = {
-			jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
 			userId: locals.user.id,
 			roles: locals.roles || [],
 			permissions: locals.permissions || [],
@@ -144,7 +133,8 @@ export const actions: Actions = {
 
 		try {
 			// Initialize GraphQL client and operations
-			const urqlClient = createUrqlClient(undefined, token);
+			// T036: Session-based authentication
+			const urqlClient = createUrqlClient();
 			const eventsOps = new EventsOperations(urqlClient);
 
 			// First, get the event to check permissions

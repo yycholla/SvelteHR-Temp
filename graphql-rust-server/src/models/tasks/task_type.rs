@@ -58,7 +58,7 @@ pub struct UpdateTaskTypeInput {
 }
 
 /// GraphQL Object implementation with camelCase field names
-#[Object]
+#[Object(name = "tasks_task_type_Model")]
 impl Model {
     async fn id(&self) -> Uuid {
         self.id

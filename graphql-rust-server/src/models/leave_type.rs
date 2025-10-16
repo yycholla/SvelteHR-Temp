@@ -35,7 +35,7 @@ pub enum Relation {}
 impl ActiveModelBehavior for ActiveModel {}
 
 /// GraphQL Object implementation for LeaveType
-#[Object]
+#[Object(name = "leave_type_Model")]
 impl Model {
     /// Unique leave type identifier
     async fn id(&self) -> Uuid {

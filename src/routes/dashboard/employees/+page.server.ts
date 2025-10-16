@@ -4,31 +4,44 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { PermissionChecks, getUserPermissions } from '$lib/server/rbac-utils';
-import { createEmployeeOperations } from '$lib/graphql/employee-operations';
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, cookies, url } = event;
+
+	// Debug: Log user roles and permissions
+	console.log('[Employee Directory] User role:', locals.user?.role);
+	console.log('[Employee Directory] User roles array:', locals.roles);
+	console.log('[Employee Directory] User permissions:', locals.permissions);
 
 	// RBAC: Check employee directory access permissions
 	PermissionChecks.employeeRead(event);
 
 	// Import required models for standardized error handling
-	const { createDataRequest } = await import('$lib/models/data-request');
 	const { createErrorResponse } = await import('$lib/models/error-response');
-	const { createUserSession } = await import('$lib/models/user-session');
 
-	// Create user session from server locals
-	const userSession = createUserSession({
+	// Create simple user session object (session-based auth doesn't use JWT)
+	const userSession = {
 		userId: locals.user.id,
-		jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
 		roles: [locals.user.role || 'employee'],
 		permissions: locals.permissions || [],
-		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes from now
+		isAuthenticated: true,
+		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
 		metadata: {
 			userEmail: locals.user.email,
 			displayName: locals.user.display_name || locals.user.email
-		}
-	});
+		},
+		toJSON: () => ({
+			userId: locals.user.id,
+			roles: [locals.user.role || 'employee'],
+			permissions: locals.permissions || [],
+			isAuthenticated: true,
+			expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+			metadata: {
+				userEmail: locals.user.email,
+				displayName: locals.user.display_name || locals.user.email
+			}
+		})
+	};
 
 	// Extract search parameters from URL
 	const searchTerm = url.searchParams.get('search') || '';
@@ -38,40 +51,20 @@ export const load: PageServerLoad = async (event) => {
 	const page = parseInt(url.searchParams.get('page') || '1', 10);
 	const limit = parseInt(url.searchParams.get('limit') || '20', 10);
 
-	// Create data request for employee directory
-	const dataRequest = createDataRequest({
-		operationName: 'GetEmployeeDirectory',
-		variables: {
-			searchTerm,
-			departmentFilter,
-			statusFilter,
-			page,
-			limit,
-			includeInactive:
-				userSession.roles.includes('hr_manager') || userSession.roles.includes('hr_admin')
-		},
-		userCredentials: {
-			userId: userSession.userId,
-			userEmail: userSession.metadata.userEmail as string,
-			roles: userSession.roles,
-			permissions: userSession.permissions,
-			jwtToken: userSession.jwtToken,
-			isAuthenticated: Boolean(userSession.isAuthenticated)
-		},
-		timeoutMs: 5000,
-		retryAttempts: 0,
-		maxRetries: 3
-	});
+	// Note: dataRequest is not needed for session-based auth
+	// We fetch data directly with session cookies
 
 	try {
-		// Make direct GraphQL calls to Rust GraphQL backend with JWT authentication
+		// Make direct GraphQL calls to Rust GraphQL backend with session-based authentication
 		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
-		// Get JWT token from cookies for Rust GraphQL server authentication
-		// Headers for session-based authentication (cookies sent automatically)
+		// Headers for session-based authentication
+		// Forward session cookies to Rust GraphQL backend
+		const cookieHeader = event.request.headers.get('cookie') || '';
 		const headers: Record<string, string> = {
-			'Content-Type': 'application/json'
+			'Content-Type': 'application/json',
+			'Cookie': cookieHeader // Forward all cookies for session authentication
 		};
 
 		console.log(

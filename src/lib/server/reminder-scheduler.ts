@@ -118,9 +118,9 @@ export class ReminderScheduler {
 				},
 				body: JSON.stringify({
 					query: `
-						query GetEventAttendeesWithReminders($limit: Int) {
+						query GetEventAttendeesWithReminders($reminderTimeIsNull: Boolean, $limit: Int) {
 							eventAttendees(
-								filter: { reminderTimeIsNull: false }
+								reminderTimeIsNull: $reminderTimeIsNull
 								limit: $limit
 							) {
 								id
@@ -144,6 +144,7 @@ export class ReminderScheduler {
 						}
 					`,
 					variables: {
+						reminderTimeIsNull: false,
 						limit: 1000
 					}
 				})

@@ -12,48 +12,52 @@ export const load: PageServerLoad = async (event) => {
 	// RBAC: Check employee read permissions
 	PermissionChecks.employeeRead(event);
 
-	// Import required models for standardized error handling
-	const { createUserSession } = await import('$lib/models/user-session');
-
 	// Ensure user is authenticated
 	if (!locals.user) {
 		throw error(401, 'Authentication required');
 	}
 
-	// Create user session from server locals
-	const userSession = createUserSession({
+	// Create simple user session object (session-based auth doesn't use JWT)
+	const userSession = {
 		userId: locals.user.id,
-		jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
 		roles: [locals.user.role || 'employee'],
 		permissions: locals.permissions || [],
+		isAuthenticated: true,
 		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
 		metadata: {
 			userEmail: locals.user.email,
 			displayName: locals.user.display_name || locals.user.email
-		}
-	});
+		},
+		toJSON: () => ({
+			userId: locals.user.id,
+			roles: [locals.user.role || 'employee'],
+			permissions: locals.permissions || [],
+			isAuthenticated: true,
+			expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+			metadata: {
+				userEmail: locals.user.email,
+				displayName: locals.user.display_name || locals.user.email
+			}
+		})
+	};
 
 	try {
 		// Make direct GraphQL calls to PostGraphile backend
 		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
-
-				jwtClaims = await decodeJWTTokenUnsafe(jwtToken);
-			} catch (error) {
-				console.warn('[Employee Detail] Failed to decode JWT:', error);
-			}
-		}
-
 		// Headers for session-based authentication
+		// Forward session cookies to PostGraphile backend
+		const cookieHeader = event.request.headers.get('cookie') || '';
 		const headers: Record<string, string> = {
-			'Content-Type': 'application/json'
+			'Content-Type': 'application/json',
+			'Cookie': cookieHeader
 		};
 
-		if (jwtClaims) {
-			headers['X-JWT-Claims-Role'] = jwtClaims.role || 'employee';
-			headers['X-JWT-Claims-User-Id'] = jwtClaims.user_id;
-		}
+		console.log(
+			'[Employee Detail] Using PostGraphile with session-based auth, user role:',
+			locals.user?.role
+		);
 
 		// Determine if user can view detailed employee information
 		const userRole = locals.user.role?.toLowerCase().replace('-', '_') || 'employee';

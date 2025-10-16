@@ -75,7 +75,7 @@ impl Related<super::user::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {}
 
 /// GraphQL Object implementation for LeaveRequest
-#[Object]
+#[Object(name = "leave_request_Model")]
 impl Model {
     /// Unique leave request identifier
     async fn id(&self) -> Uuid {

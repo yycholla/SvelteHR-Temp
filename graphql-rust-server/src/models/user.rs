@@ -106,7 +106,7 @@ impl async_graphql::ScalarType for UserStatus {
 
 /// User entity - maps to hr_public.users table
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "users")]
+#[sea_orm(table_name = "users", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
@@ -173,7 +173,7 @@ impl Related<Entity> for super::department::Entity {
 impl ActiveModelBehavior for ActiveModel {}
 
 /// GraphQL Object implementation for User
-#[Object]
+#[Object(name = "User")]
 impl Model {
     /// Unique user identifier
     async fn id(&self) -> Uuid {
@@ -205,7 +205,7 @@ impl Model {
         &self.full_name
     }
 
-    /// User role (hr_employee, hr_manager, admin, super_admin, etc.)
+    /// User role (hr_employee, hr_manager, admin, system_admin, etc.)
     async fn role(&self) -> &str {
         &self.role
     }
@@ -314,7 +314,7 @@ pub struct UsersConnection {
     pub total_count: i64,
 }
 
-#[Object]
+#[Object(name = "user_UsersConnection")]
 impl UsersConnection {
     async fn nodes(&self) -> &Vec<Model> {
         &self.nodes

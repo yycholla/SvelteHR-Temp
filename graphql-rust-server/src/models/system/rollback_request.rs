@@ -171,7 +171,7 @@ pub struct RollbackRequestsConnection {
     pub page_info: PageInfo,
 }
 
-#[Object]
+#[Object(name = "system_rollback_request_RollbackRequestsConnection")]
 impl RollbackRequestsConnection {
     async fn nodes(&self) -> &Vec<RollbackRequest> {
         &self.nodes
@@ -187,7 +187,7 @@ impl RollbackRequestsConnection {
 }
 
 /// GraphQL Object implementation with camelCase field names
-#[Object]
+#[Object(name = "system_rollback_request_Model")]
 impl Model {
     async fn id(&self) -> Uuid {
         self.id

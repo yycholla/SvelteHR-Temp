@@ -65,7 +65,7 @@ pub struct UpdateCompensationBandInput {
 }
 
 /// GraphQL Object implementation with camelCase field names
-#[Object]
+#[Object(name = "system_compensation_band_Model")]
 impl Model {
     async fn id(&self) -> Uuid {
         self.id

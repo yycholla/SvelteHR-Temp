@@ -49,7 +49,7 @@ pub struct CreateEncryptionKeyInput {
 }
 
 /// GraphQL Object implementation with camelCase field names
-#[Object]
+#[Object(name = "system_encryption_key_Model")]
 impl Model {
     async fn id(&self) -> Uuid {
         self.id

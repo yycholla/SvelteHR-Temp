@@ -68,7 +68,7 @@ impl Related<super::performance_review::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {}
 
 /// GraphQL Object implementation for ReviewGoal
-#[Object]
+#[Object(name = "review_goal_Model")]
 impl Model {
     /// Unique review goal identifier
     async fn id(&self) -> Uuid {

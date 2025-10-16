@@ -1,5 +1,19 @@
-// JWT utility functions with proper signature verification
-// T052: Authentication System Unification & T053: Security Hardening
+/**
+ * ⚠️ DEPRECATED: JWT Utility Functions
+ *
+ * This file is deprecated as the application has migrated to session-based authentication.
+ * JWT tokens are no longer used - authentication is handled via HTTP-only session cookies
+ * managed by the axum-login backend.
+ *
+ * Session-based authentication flow:
+ * 1. User logs in via /api/auth/login
+ * 2. Backend creates session with axum-login and sets HTTP-only cookie
+ * 3. Browser automatically sends session cookie with each request
+ * 4. hooks.server.ts validates session and populates event.locals.user
+ *
+ * These functions remain for reference only and should not be used in new code.
+ * If you need authentication functionality, use the session-based endpoints instead.
+ */
 
 import { browser } from '$app/environment';
 import { authConfig } from './config.js';

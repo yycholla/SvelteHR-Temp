@@ -10,10 +10,8 @@ import { GET_USER_BY_ID, GET_USER_ROLES } from '$lib/graphql/postgraphile-operat
 import { createRBACManager, type UserRoleAssignment, type RBACManager } from '$lib/auth/rbac';
 import { secureAuthService } from '$lib/auth/secure-auth-service';
 
-// Session validation management
-let _lastValidation = 0;
-let _refreshPromise: Promise<boolean> | null = null;
-let _refreshInterval: NodeJS.Timeout | null = null;
+// Session validation management (simplified for session-based auth)
+let _validationPromise: Promise<boolean> | null = null;
 
 // User interface
 export interface User {
@@ -22,6 +20,7 @@ export interface User {
 	displayName: string;
 	onboardingStatus: string;
 	isActive: boolean;
+	role?: string; // User's role from backend session
 	role_assignments?: UserRoleAssignment[];
 }
 
@@ -172,13 +171,13 @@ export const authActions = {
 				const user: User = {
 					id: result.user.id,
 					email: result.user.email,
-					displayName: result.user.displayName,
+					displayName:
+						(result.user as any).displayName || result.user.email.split('@')[0] || 'User',
 					onboardingStatus: 'Active',
-					isActive: true
+					isActive: true,
+					role: (result.user as any).role // Include role from login response
 				};
 				await authActions.setUser(user);
-				// Start automatic token refresh
-				authActions.startTokenRefresh();
 				return true;
 			} else {
 				authActions.setError(result.error || 'Login failed');
@@ -198,9 +197,6 @@ export const authActions = {
 	 */
 	logout: async (currentUrl?: string): Promise<void> => {
 		try {
-			// Clear refresh interval
-			authActions.stopTokenRefresh();
-
 			// Save current page URL for redirect after login if provided
 			if (typeof window !== 'undefined' && currentUrl) {
 				// Only save if it's not the login page or root page
@@ -209,12 +205,15 @@ export const authActions = {
 				}
 			}
 
-			// Clear JWT token from localStorage
-			if (typeof window !== 'undefined') {
-				localStorage.removeItem('postgraphile-jwt-token');
-			}
+			// Call logout endpoint to clear session server-side
+			await fetch('/api/auth/logout', {
+				method: 'POST',
+				credentials: 'include' // Include session cookies for server-side session clearing
+			}).catch((err) => console.warn('Logout endpoint failed:', err));
+
+			// No client-side token storage to clear - session-based auth only
 		} catch (error) {
-			console.error('Logout error:', error);
+			console.warn('Logout error:', error);
 		} finally {
 			// Clear local state
 			authStore.set(initialState);
@@ -246,11 +245,11 @@ export const authActions = {
 	 * Load user roles from the API
 	 */
 	loadUserRoles: async (userId: string): Promise<void> => {
-		// Simplified role loading - users have a direct 'role' field, no separate role assignments table
+		// Simplified role loading - users have a direct 'role' field in the session
 		try {
 			authStore.update((state) => ({
 				...state,
-				roles: [], // Empty roles array - permissions come from JWT token
+				roles: [], // Empty roles array - permissions come from session validation
 				isLoading: false
 			}));
 		} catch (error) {
@@ -265,64 +264,42 @@ export const authActions = {
 	},
 
 	/**
-	 * Validate current session using PostGraphile JWT
+	 * Validate current session using session cookies
 	 */
 	validateSession: async (): Promise<boolean> => {
-		console.log('validateSession: Starting validation');
+		console.log('validateSession: Starting session validation');
 		if (!browser) {
 			console.log('validateSession: Not in browser, returning false');
 			return false;
 		}
 
-		// Check if JWT token exists in localStorage
-		const token = localStorage.getItem('postgraphile-jwt-token');
-		if (!token) {
-			console.log('validateSession: No JWT token found, clearing auth state');
-			authStore.set({ ...initialState, isLoading: false });
-			return false;
-		}
-		console.log('validateSession: JWT token found');
-
-		// Parse JWT to check expiration (basic validation)
 		try {
-			const tokenParts = token.split('.');
-			if (tokenParts.length !== 3) {
-				console.log('validateSession: Invalid JWT format, clearing auth state');
-				localStorage.removeItem('postgraphile-jwt-token');
+			// Make a request to verify the session
+			const response = await fetch('/api/auth/verify', {
+				method: 'GET',
+				credentials: 'include' // Include session cookies
+			});
+
+			if (!response.ok) {
+				console.log('validateSession: Session validation failed, clearing auth state');
 				authStore.set({ ...initialState, isLoading: false });
 				return false;
 			}
 
-			const [, payload] = tokenParts;
-			if (!payload) {
-				console.log('validateSession: Missing JWT payload, clearing auth state');
-				localStorage.removeItem('postgraphile-jwt-token');
-				authStore.set({ ...initialState, isLoading: false });
-				return false;
-			}
+			const data = await response.json();
+			console.log('validateSession: Session is valid');
 
-			const decodedPayload = JSON.parse(atob(payload));
-			const currentTime = Math.floor(Date.now() / 1000);
-
-			if (decodedPayload.exp && decodedPayload.exp < currentTime) {
-				// Token expired, clear it
-				console.log('validateSession: JWT token expired, clearing auth state');
-				localStorage.removeItem('postgraphile-jwt-token');
-				authStore.set({ ...initialState, isLoading: false });
-				return false;
-			}
-			console.log('validateSession: JWT token is valid and not expired');
-
-			// Token is valid, check if we have user info in store
+			// Session is valid, check if we have user info in store
 			const currentState = get(authStore);
-			if (!currentState.user && decodedPayload.user_id) {
-				// Reconstruct user info from JWT payload (database-driven)
-				const user = {
-					id: decodedPayload.user_id,
-					email: decodedPayload.email,
-					displayName: decodedPayload.display_name || decodedPayload.email?.split('@')[0] || 'User',
+			if (!currentState.user && data.user) {
+				// Set user info from session validation response
+				const user: User = {
+					id: data.user.id,
+					email: data.user.email,
+					displayName: (data.user as any).displayName || data.user.email.split('@')[0] || 'User',
 					onboardingStatus: 'Active',
-					isActive: true
+					isActive: true,
+					role: data.user.role // Include role from backend
 				};
 
 				// Set user directly without calling loadUserRoles to avoid loops
@@ -332,16 +309,12 @@ export const authActions = {
 					user,
 					isLoading: false
 				}));
-
-				// Start token refresh for existing session
-				authActions.startTokenRefresh();
 			}
 
 			console.log('validateSession: Validation successful, user is authenticated');
 			return true;
 		} catch (error) {
-			console.error('validateSession: Token validation error:', error);
-			localStorage.removeItem('postgraphile-jwt-token');
+			console.error('validateSession: Session validation error:', error);
 			authStore.set({ ...initialState, isLoading: false });
 			return false;
 		}
@@ -395,113 +368,6 @@ export const authActions = {
 	canManageUser: (targetUserId: string, requiredPermission: string): boolean => {
 		const rbacManager = get(rbac);
 		return rbacManager.canManage(requiredPermission.split(':')[0]);
-	},
-
-	/**
-	 * Refresh JWT token if it's close to expiration
-	 */
-	refreshToken: async (): Promise<boolean> => {
-		if (!browser) return false;
-
-		// Prevent multiple simultaneous refresh attempts
-		if (_refreshPromise) {
-			return await _refreshPromise;
-		}
-
-		_refreshPromise = (async () => {
-			try {
-				const token = localStorage.getItem('postgraphile-jwt-token');
-				if (!token) {
-					console.log('❌ No token found, redirecting to login');
-					await authActions.logout();
-					return false;
-				}
-
-				// Parse JWT to check expiration
-				const [, payload] = token.split('.');
-				const decodedPayload = JSON.parse(atob(payload));
-				const currentTime = Math.floor(Date.now() / 1000);
-				const timeUntilExpiry = decodedPayload.exp - currentTime;
-
-				// If token is expired, redirect to login
-				if (timeUntilExpiry <= 0) {
-					console.log('❌ Token expired, redirecting to login');
-					await authActions.logout();
-					return false;
-				}
-
-				// If token expires within 5 minutes, validate it
-				if (timeUntilExpiry <= 300) {
-					console.log('🔄 Token expires soon (', timeUntilExpiry, 'seconds), validating...');
-
-					// Validate token by making a simple GraphQL query
-					const response = await fetch('http://localhost:4000/graphql', {
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json',
-							Authorization: `Bearer ${token}`
-						},
-						body: JSON.stringify({
-							query: '{ __typename }'
-						})
-					});
-
-					if (!response.ok) {
-						console.log('❌ Token validation failed, redirecting to login');
-						await authActions.logout();
-						return false;
-					}
-
-					console.log('✅ Token validated successfully');
-				}
-
-				return true; // Token is valid
-			} catch (error) {
-				console.error('❌ Token validation error:', error);
-				await authActions.logout();
-				return false;
-			} finally {
-				_refreshPromise = null;
-			}
-		})();
-
-		return await _refreshPromise;
-	},
-
-	/**
-	 * Start automatic token refresh
-	 */
-	startTokenRefresh: (): void => {
-		if (!browser) return;
-
-		// Clear any existing interval
-		authActions.stopTokenRefresh();
-
-		// Check token every 2 minutes
-		_refreshInterval = setInterval(
-			async () => {
-				const isAuthenticated = get(authStore).isAuthenticated;
-				if (isAuthenticated) {
-					await authActions.refreshToken();
-				} else {
-					authActions.stopTokenRefresh();
-				}
-			},
-			2 * 60 * 1000
-		); // 2 minutes
-
-		console.log('🔄 Automatic token refresh started (every 2 minutes)');
-	},
-
-	/**
-	 * Stop automatic token refresh
-	 */
-	stopTokenRefresh: (): void => {
-		if (_refreshInterval) {
-			clearInterval(_refreshInterval);
-			_refreshInterval = null;
-			console.log('⏹️ Automatic token refresh stopped');
-		}
 	}
 };
 
@@ -533,24 +399,21 @@ export const canManageUser = (targetUserId: string, requiredPermission: string):
 
 export const hasRole = (roleName: string): boolean => {
 	try {
-		// For now, since we don't have role details in the simplified query,
-		// we'll assume admin user has all roles
 		const userState = get(authStore);
 		if (!userState.user) return false;
 
-		// Check if user has required role from database via JWT
-		// Permissions are managed via the RBAC system in hooks.server.ts
-		// This is a simple role check - all authenticated users can view their own data
+		// Permissions are validated server-side via session authentication in hooks.server.ts
+		// This is a simple role check for authenticated users
 		return userState.isAuthenticated;
 	} catch {
 		return false;
 	}
 };
 
-// Derived store for user roles (from JWT token stored in authStore.roles)
+// Derived store for user roles (from session data stored in authStore.roles)
 export const userRoles = derived(authStore, ($authStore) => {
 	if (!$authStore.user) return [];
 
-	// Return roles from authStore - these come from the JWT token or database
+	// Return roles from authStore - these come from session validation
 	return $authStore.roles || [];
 });

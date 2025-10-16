@@ -43,6 +43,7 @@ pub struct UserInfo {
     pub id: String,
     pub email: String,
     pub role: String,
+    pub permissions: Vec<String>,
 }
 
 /// Login handler
@@ -75,11 +76,41 @@ pub async fn login_handler(
             // Login successful - create session
             auth_session.login(&user).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
+            // Load user permissions from database using raw SQL
+            use sea_orm::{FromQueryResult, Statement, DatabaseBackend};
+
+            #[derive(Debug, FromQueryResult)]
+            struct PermissionName {
+                name: String,
+            }
+
+            let permissions: Vec<String> = PermissionName::find_by_statement(
+                Statement::from_sql_and_values(
+                    DatabaseBackend::Postgres,
+                    r#"
+                        SELECT DISTINCT p.resource || ':' || p.action as name
+                        FROM hr_public.permissions p
+                        INNER JOIN hr_public.role_permissions rp ON p.id = rp.permission_id
+                        INNER JOIN hr_public.user_role_assignments ura ON rp.role_id = ura.role_id
+                        WHERE ura.user_id = $1
+                        ORDER BY name
+                    "#,
+                    vec![user.id.into()]
+                )
+            )
+            .all(&_db)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .into_iter()
+            .map(|p| p.name)
+            .collect();
+
             let response = LoginResponse {
                 user: UserInfo {
                     id: user.id.to_string(),
-                    email: user.email,
+                    email: user.email.clone(),
                     role: user.role,
+                    permissions,
                 },
                 session_expires: (chrono::Utc::now() + chrono::Duration::minutes(30)).to_rfc3339(),
             };
@@ -158,13 +189,44 @@ pub async fn logout_handler(
 /// Get current user info handler
 pub async fn me_handler(
     auth_session: AuthSession<AuthBackend>,
+    State(db): State<DatabaseConnection>,
 ) -> Result<Json<UserInfo>, StatusCode> {
     match &auth_session.user {
         Some(user) => {
+            // Load user permissions from database using raw SQL
+            use sea_orm::{FromQueryResult, Statement, DatabaseBackend};
+
+            #[derive(Debug, FromQueryResult)]
+            struct PermissionName {
+                name: String,
+            }
+
+            let permissions: Vec<String> = PermissionName::find_by_statement(
+                Statement::from_sql_and_values(
+                    DatabaseBackend::Postgres,
+                    r#"
+                        SELECT DISTINCT p.resource || ':' || p.action as name
+                        FROM hr_public.permissions p
+                        INNER JOIN hr_public.role_permissions rp ON p.id = rp.permission_id
+                        INNER JOIN hr_public.user_role_assignments ura ON rp.role_id = ura.role_id
+                        WHERE ura.user_id = $1
+                        ORDER BY name
+                    "#,
+                    vec![user.id.into()]
+                )
+            )
+            .all(&db)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .into_iter()
+            .map(|p| p.name)
+            .collect();
+
             let user_info = UserInfo {
                 id: user.id.to_string(),
                 email: user.email.clone(),
                 role: user.role.clone(),
+                permissions,
             };
             Ok(Json(user_info))
         }
@@ -302,10 +364,22 @@ pub async fn graphql_handler(
     auth_session: AuthSession<AuthBackend>,
     req: async_graphql_axum::GraphQLRequest,
 ) -> async_graphql_axum::GraphQLResponse {
-    let schema = async_graphql::Schema::build(QueryRoot, MutationRoot, async_graphql::EmptySubscription)
-        .data(db)
-        .data(auth_session)
-        .finish();
+    // Build schema with database and auth session
+    let mut schema_builder = async_graphql::Schema::build(QueryRoot, MutationRoot, async_graphql::EmptySubscription)
+        .data(db.clone())
+        .data(auth_session.clone());
+
+    // If user is authenticated, create UserContext for guards
+    if let Some(user) = &auth_session.user {
+        let user_context = crate::auth::UserContext::new(
+            user.id,
+            vec![user.role.clone()],
+            vec![] // TODO: Fetch permissions from database if needed
+        );
+        schema_builder = schema_builder.data(user_context);
+    }
+
+    let schema = schema_builder.finish();
 
     schema.execute(req.into_inner()).await.into()
 }

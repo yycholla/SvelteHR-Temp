@@ -17,17 +17,34 @@
 		successMessage = '';
 
 		try {
-			// TODO: Implement actual API call to save settings
-			// For now, just simulate success
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			// Save each settings category via GraphQL mutation
+			const categories = ['general', 'authentication', 'notifications', 'security', 'developer'];
+
+			for (const category of categories) {
+				const response = await fetch('/api/settings/update', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						category,
+						settings: settings[category]
+					})
+				});
+
+				if (!response.ok) {
+					const error = await response.json();
+					throw new Error(error.message || `Failed to save ${category} settings`);
+				}
+			}
 
 			successMessage = 'Settings saved successfully';
 			setTimeout(() => {
 				successMessage = '';
 			}, 3000);
-		} catch (error) {
+		} catch (error: any) {
 			console.error('Save settings error:', error);
-			errorMessage = 'Failed to save settings';
+			errorMessage = error.message || 'Failed to save settings';
 		} finally {
 			loading = false;
 		}
@@ -37,7 +54,8 @@
 		{ id: 'general', label: 'General' },
 		{ id: 'authentication', label: 'Authentication' },
 		{ id: 'notifications', label: 'Notifications' },
-		{ id: 'security', label: 'Security' }
+		{ id: 'security', label: 'Security' },
+		{ id: 'developer', label: 'Developer' }
 	];
 </script>
 
@@ -388,6 +406,62 @@
 						placeholder="https://example.com, https://app.example.com"
 						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 					></textarea>
+				</div>
+			</div>
+		{:else if activeTab === 'developer'}
+			<div class="space-y-4">
+				<h2 class="text-xl font-semibold">Developer Settings</h2>
+				<p class="text-sm text-muted-foreground">
+					Debug tools and development options (system_admin only)
+				</p>
+
+				<div class="space-y-4 border-t pt-4">
+					<h3 class="font-medium">Debug Information</h3>
+
+					<div class="flex items-center gap-2">
+						<input
+							id="showDebugInfo"
+							type="checkbox"
+							bind:checked={settings.developer.show_debug_info}
+						/>
+						<label for="showDebugInfo" class="text-sm font-medium">
+							Show debug information in sidebar
+						</label>
+					</div>
+					<p class="ml-6 text-xs text-muted-foreground">
+						Displays current user, role, page load times, and auth status in the sidebar
+					</p>
+
+					<div class="flex items-center gap-2">
+						<input
+							id="showPerformanceMetrics"
+							type="checkbox"
+							bind:checked={settings.developer.show_performance_metrics}
+						/>
+						<label for="showPerformanceMetrics" class="text-sm font-medium">
+							Show performance metrics
+						</label>
+					</div>
+					<p class="ml-6 text-xs text-muted-foreground">
+						Displays element load times and performance data
+					</p>
+				</div>
+
+				<div class="border-t pt-4">
+					<h3 class="mb-2 font-medium">Log Level</h3>
+					<select
+						id="logLevel"
+						bind:value={settings.developer.log_level}
+						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+					>
+						<option value="debug">Debug (verbose)</option>
+						<option value="info">Info (normal)</option>
+						<option value="warn">Warning (important)</option>
+						<option value="error">Error (critical only)</option>
+					</select>
+					<p class="mt-1 text-xs text-muted-foreground">
+						Controls the verbosity of console logging
+					</p>
 				</div>
 			</div>
 		{/if}

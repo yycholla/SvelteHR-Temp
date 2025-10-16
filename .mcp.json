@@ -5,14 +5,15 @@
       "args": [
         "@browsermcp/mcp@latest"
       ]
+    },
+    "svelte": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@sveltejs/mcp"
+      ],
+      "env": {}
     }
-  },
-  "browser-tools": {
-    "command": "npx",
-    "args": [
-      "bash",
-      "-c",
-      "cmd /c npx -y @agentdeskai/browser-tools-mcp@latest"
-    ]
   }
 }

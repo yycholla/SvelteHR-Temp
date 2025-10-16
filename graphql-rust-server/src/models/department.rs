@@ -104,7 +104,7 @@ pub enum Relation {
 impl ActiveModelBehavior for ActiveModel {}
 
 /// GraphQL Object implementation for Department
-#[Object]
+#[Object(name = "Department")]
 impl Model {
     /// Unique department identifier
     async fn id(&self) -> Uuid {

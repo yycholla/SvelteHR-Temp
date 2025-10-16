@@ -71,7 +71,7 @@ pub struct UpdateEventWaitlistInput {
 }
 
 /// GraphQL Object implementation with camelCase field names
-#[Object]
+#[Object(name = "events_event_waitlist_Model")]
 impl Model {
     async fn id(&self) -> Uuid {
         self.id

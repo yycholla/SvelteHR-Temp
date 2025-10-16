@@ -81,7 +81,7 @@ impl Related<super::task::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {}
 
 /// GraphQL Object implementation for TaskDependency
-#[Object]
+#[Object(name = "task_dependency_Model")]
 impl Model {
     /// Unique task dependency identifier
     async fn id(&self) -> Uuid {

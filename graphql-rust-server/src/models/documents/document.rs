@@ -90,7 +90,7 @@ pub struct UpdateDocumentInput {
 }
 
 /// GraphQL Object implementation with camelCase field names
-#[Object]
+#[Object(name = "documents_document_Model")]
 impl Model {
     async fn id(&self) -> Uuid {
         self.id

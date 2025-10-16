@@ -43,7 +43,7 @@ pub struct GoalStatistic {
 }
 
 /// GraphQL Object implementation with camelCase field names
-#[Object]
+#[Object(name = "analytics_goal_statistic_Model")]
 impl Model {
     #[graphql(name = "userId")]
     async fn user_id(&self) -> Uuid {

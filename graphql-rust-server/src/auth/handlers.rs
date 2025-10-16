@@ -98,7 +98,7 @@ struct Claims {
 ///   "user": {
 ///     "id": "uuid",
 ///     "email": "admin@mountainhr.dev",
-///     "roles": ["super_admin"],
+///     "roles": ["system_admin"],
 ///     "permissions": ["*"],
 ///     "is_active": true
 ///   }
@@ -277,9 +277,9 @@ async fn get_user_roles_and_permissions(
         .filter_map(|(_, role)| role.map(|r| r.name))
         .collect();
 
-    // For super_admin or admin roles, grant all permissions
+    // For system_admin or admin roles, grant all permissions
     // TODO: Implement granular permissions table if needed
-    if roles.iter().any(|r| r == "super_admin" || r == "admin") {
+    if roles.iter().any(|r| r == "system_admin" || r == "admin") {
         return Ok((roles, vec!["*".to_string()]));
     }
 

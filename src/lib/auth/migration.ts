@@ -1,203 +1,36 @@
 /**
- * Session Migration Utilities
- * Handles migration from JWT token-based authentication to session-based authentication
+ * DEPRECATED: JWT to Session Migration Utilities
+ *
+ * This file is no longer needed as the application has fully migrated to session-based authentication.
+ * All JWT token handling has been removed from the application.
+ *
+ * Session-based authentication flow:
+ * 1. User logs in via /api/auth/login
+ * 2. Backend creates session with axum-login and sets HTTP-only cookie
+ * 3. Browser automatically sends session cookie with each request
+ * 4. hooks.server.ts validates session and populates event.locals.user
+ *
+ * No migration is needed - users simply need to log in again with session-based auth.
  */
 
-import { browser } from '$app/environment';
-import { decodeJWTTokenUnsafe } from './jwt-utils';
-import { goto } from '$app/navigation';
+// All migration functions have been deprecated
+// If you need to clear old JWT tokens, simply remove them from localStorage:
+// localStorage.removeItem('postgraphile-jwt-token');
+// localStorage.removeItem('jwt-refresh-token');
+// localStorage.removeItem('jwt-expiry');
 
-/**
- * Check if user has existing JWT tokens that need migration
- */
-export function hasExistingJWTToken(): boolean {
-	if (!browser) return false;
+export function cleanupLegacyJWTTokens(): void {
+	if (typeof window === 'undefined') return;
 
 	try {
-		const token = localStorage.getItem('postgraphile-jwt-token');
-		return !!token;
-	} catch {
-		return false;
-	}
-}
-
-/**
- * Extract user information from existing JWT token
- */
-export async function extractUserFromJWTToken(): Promise<{ email: string; userId: string } | null> {
-	if (!browser) return null;
-
-	try {
-		const token = localStorage.getItem('postgraphile-jwt-token');
-		if (!token) return null;
-
-		const payload = await decodeJWTTokenUnsafe(token);
-		if (!payload) return null;
-
-		return {
-			email: payload.email,
-			userId: payload.user_id
-		};
-	} catch (error) {
-		console.warn('Failed to extract user from JWT token:', error);
-		return null;
-	}
-}
-
-/**
- * Migrate existing JWT token to session-based authentication
- * This function should be called when the user has a valid JWT token
- * and we want to establish a session instead
- */
-export async function migrateJWTToSession(): Promise<boolean> {
-	if (!browser) return false;
-
-	try {
-		const userInfo = await extractUserFromJWTToken();
-		if (!userInfo) {
-			console.log('No valid JWT token found for migration');
-			return false;
-		}
-
-		console.log('🔄 Migrating JWT token to session for user:', userInfo.email);
-
-		// Attempt to login with the extracted credentials
-		// Since we don't have the password, we'll try a special migration endpoint
-		// or use the existing token to authenticate via the backend
-
-		const response = await fetch('/api/auth/migrate', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				Authorization: `Bearer ${localStorage.getItem('postgraphile-jwt-token')}`
-			},
-			body: JSON.stringify({
-				userId: userInfo.userId,
-				email: userInfo.email
-			}),
-			credentials: 'include' // Include session cookies
-		});
-
-		if (response.ok) {
-			console.log('✅ Successfully migrated JWT to session');
-
-			// Clear the old JWT token
-			localStorage.removeItem('postgraphile-jwt-token');
-
-			return true;
-		} else {
-			console.warn('❌ Failed to migrate JWT to session:', response.status);
-			return false;
-		}
-	} catch (error) {
-		console.error('❌ Error during JWT to session migration:', error);
-		return false;
-	}
-}
-
-/**
- * Check if migration is needed and perform it automatically
- * This should be called during app initialization
- */
-export async function checkAndPerformMigration(): Promise<boolean> {
-	if (!browser) return false;
-
-	if (!hasExistingJWTToken()) {
-		console.log('ℹ️ No existing JWT tokens found, no migration needed');
-		return false;
-	}
-
-	console.log('🔍 Found existing JWT token, attempting migration to session...');
-
-	const success = await migrateJWTToSession();
-
-	if (success) {
-		console.log('🎉 JWT to session migration completed successfully');
-		// Optionally redirect to refresh the page or update the UI
-		// goto(window.location.pathname, { replaceState: true });
-	} else {
-		console.warn('⚠️ JWT to session migration failed, user may need to login again');
-		// Clear the invalid token
+		// Remove any legacy JWT tokens
 		localStorage.removeItem('postgraphile-jwt-token');
-		// Optionally redirect to login
-		// goto('/login');
-	}
-
-	return success;
-}
-
-/**
- * Clean up JWT-related data after successful migration
- */
-export function cleanupJWTAfterMigration(): void {
-	if (!browser) return;
-
-	try {
-		// Remove JWT token
-		localStorage.removeItem('postgraphile-jwt-token');
-
-		// Remove any other JWT-related localStorage items
 		localStorage.removeItem('jwt-refresh-token');
 		localStorage.removeItem('jwt-expiry');
-
-		// Clear any JWT-related sessionStorage
 		sessionStorage.removeItem('jwt-temp-token');
 
-		console.log('🧹 Cleaned up JWT-related data after migration');
+		console.log('✅ Cleaned up legacy JWT tokens');
 	} catch (error) {
-		console.warn('Failed to cleanup JWT data:', error);
-	}
-}
-
-/**
- * Handle migration during login process
- * If user successfully logs in with session auth but has old JWT data,
- * clean it up
- */
-export function handleMigrationOnLogin(): void {
-	if (!browser) return;
-
-	// Clean up any remaining JWT data after successful session login
-	cleanupJWTAfterMigration();
-}
-
-/**
- * Get migration status for debugging/UI purposes
- */
-export function getMigrationStatus(): {
-	hasJWTToken: boolean;
-	migrationNeeded: boolean;
-	lastMigrationAttempt?: number;
-} {
-	if (!browser) {
-		return {
-			hasJWTToken: false,
-			migrationNeeded: false
-		};
-	}
-
-	const hasJWTToken = hasExistingJWTToken();
-	const lastAttempt = localStorage.getItem('jwt-migration-attempt');
-
-	return {
-		hasJWTToken,
-		migrationNeeded: hasJWTToken,
-		lastMigrationAttempt: lastAttempt ? parseInt(lastAttempt) : undefined
-	};
-}
-
-/**
- * Record migration attempt for debugging
- */
-function recordMigrationAttempt(success: boolean): void {
-	if (!browser) return;
-
-	try {
-		localStorage.setItem('jwt-migration-attempt', Date.now().toString());
-		if (success) {
-			localStorage.setItem('jwt-migration-success', 'true');
-		}
-	} catch {
-		// Ignore localStorage errors
+		console.warn('Failed to cleanup legacy JWT tokens:', error);
 	}
 }

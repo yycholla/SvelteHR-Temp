@@ -20,26 +20,22 @@ export const load: PageServerLoad = async (event) => {
 	}
 
 	try {
-		// Make direct GraphQL calls to PostGraphile backend
+		// Make direct GraphQL calls to Rust GraphQL backend with session-based authentication
 		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
-
-				jwtClaims = await decodeJWTTokenUnsafe(jwtToken);
-			} catch (error) {
-				console.warn('[Employee New] Failed to decode JWT:', error);
-			}
-		}
-
 		// Headers for session-based authentication
+		// Forward session cookies to Rust GraphQL backend
+		const cookieHeader = event.request.headers.get('cookie') || '';
 		const headers: Record<string, string> = {
-			'Content-Type': 'application/json'
+			'Content-Type': 'application/json',
+			'Cookie': cookieHeader // Forward all cookies for session authentication
 		};
 
-		if (jwtClaims) {
-			headers['X-JWT-Claims-Role'] = jwtClaims.role || 'employee';
-			headers['X-JWT-Claims-User-Id'] = jwtClaims.user_id;
-		}
+		console.log(
+			'[Employee New] Using Rust GraphQL with session-based auth, user role:',
+			locals.user?.role
+		);
 
 		// Load departments for dropdown
 		const departmentsResponse = await fetch(graphqlEndpoint, {
@@ -130,29 +126,16 @@ export const actions: Actions = {
 				});
 			}
 
-			// Make GraphQL mutation to create employee
+			// Make GraphQL mutation to create employee with session-based authentication
 			const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 			const graphqlEndpoint = getGraphQLEndpoint();
 
-
-			let jwtClaims = null;
-			if (jwtToken) {
-				try {
-					const { decodeJWTTokenUnsafe } = await import('$lib/auth/jwt-utils');
-					jwtClaims = await decodeJWTTokenUnsafe(jwtToken);
-				} catch (error) {
-					console.warn('[Employee New] Failed to decode JWT:', error);
-				}
-			}
-
+			// Headers for session-based authentication
+			const cookieHeader = request.headers.get('cookie') || '';
 			const headers: Record<string, string> = {
-				'Content-Type': 'application/json'
+				'Content-Type': 'application/json',
+				'Cookie': cookieHeader
 			};
-
-			if (jwtClaims) {
-				headers['X-JWT-Claims-Role'] = jwtClaims.role || 'employee';
-				headers['X-JWT-Claims-User-Id'] = jwtClaims.user_id;
-			}
 
 			// Generate a temporary password for the new employee
 			// In production, this should trigger a password reset email
@@ -162,38 +145,33 @@ export const actions: Actions = {
 			const crypto = await import('crypto');
 			const passwordHash = crypto.createHash('sha256').update(tempPassword).digest('hex');
 
+			// Note: Rust GraphQL backend may not have createUser mutation yet
+			// TODO: Implement user creation mutation in Rust backend
 			const createResponse = await fetch(graphqlEndpoint, {
 				method: 'POST',
 				headers,
 				body: JSON.stringify({
 					query: `
-						mutation CreateEmployee($input: CreateUserInput!) {
-							createUser(input: $input) {
-								user {
-									id
-									firstName
-									lastName
-									email
-									role
-									hireDate
-									departmentId
-								}
+						mutation CreateEmployee($firstName: String!, $lastName: String!, $email: String!, $role: String!, $departmentId: UUID, $hireDate: String, $passwordHash: String!) {
+							createUser(firstName: $firstName, lastName: $lastName, email: $email, role: $role, departmentId: $departmentId, hireDate: $hireDate, passwordHash: $passwordHash) {
+								id
+								firstName
+								lastName
+								email
+								role
+								hireDate
+								departmentId
 							}
 						}
 					`,
 					variables: {
-						input: {
-							user: {
-								firstName,
-								lastName,
-								email,
-								role,
-								departmentId: departmentId || null,
-								hireDate: hireDate || new Date().toISOString().split('T')[0],
-								isActive: true,
-								passwordHash: passwordHash
-							}
-						}
+						firstName,
+						lastName,
+						email,
+						role,
+						departmentId: departmentId || null,
+						hireDate: hireDate || new Date().toISOString().split('T')[0],
+						passwordHash: passwordHash
 					}
 				})
 			});
@@ -216,7 +194,7 @@ export const actions: Actions = {
 				});
 			}
 
-			const newEmployeeId = createData.data?.createUser?.user?.id;
+			const newEmployeeId = createData.data?.createUser?.id;
 
 			if (!newEmployeeId) {
 				return fail(500, {

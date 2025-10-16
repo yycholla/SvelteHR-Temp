@@ -83,7 +83,7 @@ impl Related<super::user::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {}
 
 /// GraphQL Object implementation for TaskAssignee
-#[Object]
+#[Object(name = "task_assignee_Model")]
 impl Model {
     /// Unique task assignee identifier
     async fn id(&self) -> Uuid {

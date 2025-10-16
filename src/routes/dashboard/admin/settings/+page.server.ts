@@ -19,10 +19,17 @@ export const load: PageServerLoad = async ({ locals, parent, cookies }) => {
 
 		const client = GraphQLClient.fromCookies(cookies);
 
-		// Query system settings
-		// Note: This is a placeholder - actual system settings would depend on your schema
+		// Query actual system settings from database
 		const settingsQuery = `
 			query GetSystemSettings {
+				systemSettings {
+					id
+					category
+					settings
+					updatedBy
+					createdAt
+					updatedAt
+				}
 				departmentsCount
 				allUsers {
 					totalCount
@@ -35,44 +42,35 @@ export const load: PageServerLoad = async ({ locals, parent, cookies }) => {
 
 		const result = await client.query(settingsQuery, {});
 
-		// Mock settings data - replace with actual settings from database
-		const settings = {
-			general: {
-				systemName: 'SvelteHR',
-				systemEmail: 'admin@sveltehr.com',
-				timezone: 'UTC',
-				dateFormat: 'YYYY-MM-DD',
-				language: 'en'
-			},
-			authentication: {
-				sessionTimeout: 3600,
-				passwordMinLength: 8,
-				requireUppercase: true,
-				requireNumbers: true,
-				requireSpecialChars: true,
-				maxLoginAttempts: 5
-			},
-			notifications: {
-				emailEnabled: true,
-				slackEnabled: false,
-				webhooksEnabled: false,
-				notifyOnUserCreate: true,
-				notifyOnRoleChange: true
-			},
-			security: {
-				enforceHttps: true,
-				allowApiAccess: true,
-				ipWhitelist: '',
-				corsOrigins: '*',
-				rateLimitEnabled: true,
-				maxRequestsPerMinute: 60
-			},
+		// Parse settings from database (JSONB format)
+		const settingsData = result.data?.systemSettings || [];
+
+		// Convert array of settings to object by category
+		const settings: any = {
+			general: {},
+			authentication: {},
+			notifications: {},
+			security: {},
+			developer: {},
 			stats: {
 				totalDepartments: result.data?.departmentsCount || 0,
 				totalUsers: result.data?.allUsers?.totalCount || 0,
 				totalRoles: result.data?.allUserRoleAssignments?.totalCount || 0
 			}
 		};
+
+		// Parse JSON settings for each category
+		for (const setting of settingsData) {
+			try {
+				const parsed = typeof setting.settings === 'string'
+					? JSON.parse(setting.settings)
+					: setting.settings;
+				settings[setting.category] = parsed;
+			} catch (parseError) {
+				console.error(`[ADMIN SETTINGS] Failed to parse ${setting.category}:`, parseError);
+				// Keep empty object for this category
+			}
+		}
 
 		return {
 			settings

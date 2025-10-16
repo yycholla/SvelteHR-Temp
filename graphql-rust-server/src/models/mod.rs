@@ -108,8 +108,9 @@ pub use system::{
     CreateActivityLogInput, CreateBulkRollbackBatchInput, CreateBulkRollbackItemInput,
     CreateCompensationBandInput, CreateEncryptionKeyInput, CreateHRReportInput,
     CreatePayrollRecordInput, CreateRollbackRequestInput, EncryptionKey, HRReport, PayrollRecord,
-    RollbackRequest, RollbackRequestCondition, RollbackRequestsConnection, RollbackRequestsOrderBy, RollbackStatus, UpdateBulkRollbackBatchInput, UpdateBulkRollbackItemInput,
-    UpdateCompensationBandInput, UpdateRollbackRequestInput,
+    RollbackRequest, RollbackRequestCondition, RollbackRequestsConnection, RollbackRequestsOrderBy, RollbackStatus,
+    SystemSettings, UpdateBulkRollbackBatchInput, UpdateBulkRollbackItemInput,
+    UpdateCompensationBandInput, UpdateRollbackRequestInput, UpdateSystemSettingsInput,
 };
 pub use events::{
     CreateEventCommentInput, CreateEventHistoryInput, CreateEventWaitlistInput, EventComment,

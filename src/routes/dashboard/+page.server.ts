@@ -36,6 +36,17 @@ export const load: PageServerLoad = async (event) => {
 					role: locals.user.role || 'employee',
 					accessToken: '' // Session-based auth doesn't use access tokens
 				},
+				dashboardData: {
+					metrics: {
+						attendanceRate: 0,
+						pendingRequests: 0,
+						taskCount: 0,
+						remainingVacationDays: 0
+					},
+					activities: [],
+					tasks: [],
+					events: []
+				},
 				dashboardMetrics: [],
 				recentActivities: [],
 				upcomingEvents: [],
@@ -69,14 +80,11 @@ export const load: PageServerLoad = async (event) => {
 		// Real database GraphQL queries for dashboard overview
 		const usersQuery = `
 			query GetUsers {
-				allUsers(first: 20) {
-					totalCount
-					nodes {
-						id
-						firstName
-						lastName
-						isActive
-					}
+				users(limit: 20) {
+					id
+					firstName
+					lastName
+					isActive
 				}
 			}
 		`;
@@ -96,42 +104,28 @@ export const load: PageServerLoad = async (event) => {
 
 		const attendanceQuery = `
 			query GetUserAttendance($userId: UUID!) {
-				allAttendanceRecords(
-					condition: { userId: $userId }
-					orderBy: [DATE_DESC]
-					first: 30
-				) {
-					totalCount
-					nodes {
-						id
-						date
-						clockIn
-						clockOut
-						hoursWorked
-						status
-					}
+				attendanceRecords(userId: $userId, limit: 30) {
+					id
+					date
+					clockIn
+					clockOut
+					hoursWorked
+					status
 				}
 			}
 		`;
 
 		// Query for user's leave requests
 		const leaveRequestsQuery = `
-			query GetUserLeaveRequests($userId: UUID!) {
-				allLeaveRequests(
-					condition: { employeeId: $userId }
-					orderBy: [START_DATE_DESC]
-					first: 10
-				) {
-					totalCount
-					nodes {
-						id
-						leaveType
-						startDate
-						endDate
-						daysRequested
-						status
-						createdAt
-					}
+			query GetUserLeaveRequests {
+				leaveRequests(limit: 10) {
+					id
+					leaveType
+					startDate
+					endDate
+					daysRequested
+					status
+					createdAt
 				}
 			}
 		`;
@@ -139,7 +133,7 @@ export const load: PageServerLoad = async (event) => {
 		// Query for user's goals
 		const goalsQuery = `
 			query GetUserGoals($userId: UUID!) {
-				employeeGoalsByEmployee(employeeId: $userId, limit: 10) {
+				employeeGoals(employeeId: $userId, limit: 10) {
 					id
 					employeeId
 					goalTitle
@@ -154,7 +148,7 @@ export const load: PageServerLoad = async (event) => {
 		// Query for user's tasks
 		const tasksQuery = `
 			query GetUserTasks($userId: UUID!) {
-				tasksByAssignee(userId: $userId, limit: 10) {
+				tasks(assigneeId: $userId, limit: 10) {
 					id
 					title
 					description
@@ -169,7 +163,7 @@ export const load: PageServerLoad = async (event) => {
 		// Query for upcoming events (user is attending or public events)
 		const eventsQuery = `
 			query GetUpcomingEvents {
-				upcomingEvents(limit: 10) {
+				events(upcomingOnly: true, limit: 10) {
 					id
 					title
 					description
@@ -188,7 +182,7 @@ export const load: PageServerLoad = async (event) => {
 		// Query for recent activity logs
 		const activityLogsQuery = `
 			query GetRecentActivities($userId: UUID!) {
-				activityLogsByUser(userId: $userId, limit: 20) {
+				activityLogs(userId: $userId, limit: 20) {
 					id
 					action
 					resourceType
@@ -246,10 +240,10 @@ export const load: PageServerLoad = async (event) => {
 			graphqlClient.query(usersQuery),
 			graphqlClient.query(departmentsQuery),
 			graphqlClient.query(attendanceQuery, { userId: locals.user.id }),
-			graphqlClient.query(leaveRequestsQuery, { userId: locals.user.id }),
+			graphqlClient.query(leaveRequestsQuery),
 			graphqlClient.query(goalsQuery, { userId: locals.user.id }),
 			graphqlClient.query(tasksQuery, { userId: locals.user.id }),
-			graphqlClient.query(eventsQuery, { userId: locals.user.id }),
+			graphqlClient.query(eventsQuery),
 			graphqlClient.query(activityLogsQuery, { userId: locals.user.id })
 		];
 
@@ -294,24 +288,24 @@ export const load: PageServerLoad = async (event) => {
 
 		// Extract data with fallbacks
 		const users =
-			(usersResult.status === 'fulfilled' && usersResult.value.data?.allUsers?.nodes) || [];
+			(usersResult.status === 'fulfilled' && usersResult.value.data?.users) || [];
 		const departments =
 			(departmentsResult.status === 'fulfilled' && departmentsResult.value.data?.departments) || [];
 		const allAttendanceRecords =
 			(attendanceResult.status === 'fulfilled' &&
-				attendanceResult.value.data?.allAttendanceRecords?.nodes) ||
+				attendanceResult.value.data?.attendanceRecords) ||
 			[];
 		const leaveRequests =
-			(leaveResult.status === 'fulfilled' && leaveResult.value.data?.allLeaveRequests?.nodes) || [];
+			(leaveResult.status === 'fulfilled' && leaveResult.value.data?.leaveRequests) || [];
 		const goals =
-			(goalsResult.status === 'fulfilled' && goalsResult.value.data?.employeeGoalsByEmployee) || [];
+			(goalsResult.status === 'fulfilled' && goalsResult.value.data?.employeeGoals) || [];
 		const tasks =
-			(tasksResult.status === 'fulfilled' && tasksResult.value.data?.tasksByAssignee) || [];
+			(tasksResult.status === 'fulfilled' && tasksResult.value.data?.tasks) || [];
 		const events =
-			(eventsResult.status === 'fulfilled' && eventsResult.value.data?.upcomingEvents) || [];
+			(eventsResult.status === 'fulfilled' && eventsResult.value.data?.events) || [];
 		const activityLogs =
 			(activityLogsResult.status === 'fulfilled' &&
-				activityLogsResult.value.data?.activityLogsByUser) ||
+				activityLogsResult.value.data?.activityLogs) ||
 			[];
 
 		// Extract admin-only data
@@ -322,6 +316,10 @@ export const load: PageServerLoad = async (event) => {
 				(systemAuditResult.status === 'fulfilled' && systemAuditResult.value.data?.activityLogs) ||
 				[];
 		}
+
+		// Declare super_admin-only variables before use
+		let rollbackRequests: any[] = [];
+		let rollbackStats: any = null;
 
 		if (isSuperAdmin) {
 			if (results[9]) {
@@ -565,6 +563,17 @@ export const load: PageServerLoad = async (event) => {
 				userEmail: locals.user.email || '',
 				role: locals.user.role || 'employee',
 				accessToken: '' // Session-based auth doesn't use access tokens
+			},
+			dashboardData: {
+				metrics: {
+					attendanceRate: 0,
+					pendingRequests: 0,
+					taskCount: 0,
+					remainingVacationDays: 0
+				},
+				activities: [],
+				tasks: [],
+				events: []
 			},
 			dashboardMetrics: [],
 			recentActivities: [],

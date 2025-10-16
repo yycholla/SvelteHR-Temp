@@ -33,16 +33,30 @@
 	import { themeStore } from '$lib/stores/theme';
 	import { notificationStore } from '$lib/stores/notifications';
 	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
+	import { debugSettings } from '$lib/stores/debug-settings';
 	import NotificationDropdown from '$lib/components/notifications/NotificationDropdown.svelte';
+	import DebugInfo from '$lib/components/DebugInfo.svelte';
 
 	// Subscribe to notification store
 	const notifications = $derived($notificationStore.notifications);
 
 	// Check user roles
 	const isSuperAdmin = hasRole('super_admin');
-	const isAdmin = hasRole('admin') || isSuperAdmin;
+	const isSystemAdmin = hasRole('system_admin');
+	const isAdmin = hasRole('admin') || isSuperAdmin || isSystemAdmin;
 	const isHR = hasRole('hr_admin') || isAdmin;
 	const isManager = hasRole('manager') || isHR;
+
+	// Load debug settings on mount (system_admin only)
+	onMount(() => {
+		if (isSystemAdmin) {
+			debugSettings.load();
+		}
+	});
+
+	// Derived: Check if debug info should be shown
+	const showDebugInfo = $derived(isSystemAdmin && $debugSettings.show_debug_info);
 
 	// Track which sections are expanded
 	let expandedSections = $state({
@@ -451,6 +465,13 @@
 					{/each}
 				</div>
 			{/if}
+		</div>
+	{/if}
+
+	<!-- Debug Info (system_admin only) -->
+	{#if showDebugInfo}
+		<div class="px-3 pb-3">
+			<DebugInfo />
 		</div>
 	{/if}
 

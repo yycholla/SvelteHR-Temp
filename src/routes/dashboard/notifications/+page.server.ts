@@ -32,7 +32,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		console.log('[Notifications] Loading notifications for user:', locals.user.id);
 
 		// Fetch user's notifications using Rust GraphQL backend
-		// NOTE: Query updated to match Rust GraphQL schema (idiomatic naming)
+		// NOTE: Query updated to match Rust GraphQL schema (idiomatic naming: user_id, unread_only)
 		// NOTE: Rust uses lowercase for enum values: "info", "task_assigned", etc.
 		const notificationsResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
@@ -40,16 +40,16 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			body: JSON.stringify({
 				query: `
 					query GetUserNotifications(
-						$recipientId: UUID
-						$readStatus: Boolean
+						$userId: UUID
+						$unreadOnly: Boolean
 						$notificationType: NotificationType
 						$category: NotificationCategory
 						$limit: Int
 						$offset: Int
 					) {
 						notifications(
-							recipientId: $recipientId
-							readStatus: $readStatus
+							userId: $userId
+							unreadOnly: $unreadOnly
 							notificationType: $notificationType
 							category: $category
 							limit: $limit
@@ -71,8 +71,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 					}
 				`,
 				variables: {
-					recipientId: locals.user.id,
-					readStatus: readStatus ? readStatus === 'true' : null,
+					userId: locals.user.id,
+					unreadOnly: readStatus ? readStatus === 'false' : null,
 					notificationType: typeFilter || null,
 					category: categoryFilter || null,
 					limit: limit,

@@ -34,7 +34,7 @@ use crate::auth::UserContext;
 /// Guard that requires user to have a specific role
 ///
 /// Roles are case-insensitive. Common roles:
-/// - `super_admin`: Full system access
+/// - `system_admin`: Full system access
 /// - `admin`: Administrative access
 /// - `hr_manager`: HR department access
 /// - `manager`: Team management access
@@ -152,7 +152,7 @@ impl Guard for RequireAnyRole {
 /// Guard that requires user to have minimum role level (hierarchical)
 ///
 /// Role hierarchy (descending):
-/// - super_admin: 200
+/// - system_admin: 200
 /// - admin: 100
 /// - hr_manager: 80
 /// - manager: 60
@@ -197,7 +197,7 @@ impl Guard for RequireMinRoleLevel {
 
         let role_levels = [
             ("system", 1000), // System services have highest level
-            ("super_admin", 200),
+            ("system_admin", 200),
             ("admin", 100),
             ("hr_manager", 80),
             ("manager", 60),
@@ -260,8 +260,8 @@ where
                     .extend_with(|_, e| e.set("code", "UNAUTHENTICATED"))
             })?;
 
-        // Admins and super_admins bypass ownership checks
-        if user_ctx.has_role("admin") || user_ctx.has_role("super_admin") {
+        // Admins and system_admins bypass ownership checks
+        if user_ctx.has_role("admin") || user_ctx.has_role("system_admin") {
             return Ok(());
         }
 
@@ -332,7 +332,7 @@ mod tests {
     #[test]
     fn test_user_context_permission_checking() {
         let ctx_wildcard = mock_user_context(
-            vec!["super_admin".to_string()],
+            vec!["system_admin".to_string()],
             vec!["*".to_string()],
         );
 

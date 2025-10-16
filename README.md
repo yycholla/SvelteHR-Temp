@@ -248,12 +248,31 @@ tests/
 
 ## 🔐 Authentication & Authorization
 
-### Authentication
+### Authentication (Session-Based Migration Complete!)
 
-- **Session-Based Authentication**: Server-side sessions with 30-minute timeout
-- **Secure Session Management**: Automatic cleanup and persistence across server restarts
+**✅ Migration from JWT to Session-Based Auth Completed**
+
+- **HTTP-Only Session Cookies**: Secure server-side sessions with 24-hour timeout
+- **axum-login Backend**: Rust-powered session management with PostgreSQL persistence
+- **No Client-Side Tokens**: Eliminates XSS vulnerabilities from JWT token storage
+- **Automatic Cookie Forwarding**: SvelteKit hooks forward browser cookies to backend
+- **Session Validation Middleware**: Server-side validation on every protected request
 - **Brute Force Protection**: Progressive delays, account lockout, and rate limiting
 - **Security Event Logging**: Comprehensive audit trail for all authentication activities
+
+**Key Security Improvements**:
+- ✅ No localStorage/sessionStorage token exposure
+- ✅ HTTP-only cookies prevent JavaScript access
+- ✅ SameSite cookie attributes provide CSRF protection
+- ✅ Server-side session invalidation for immediate logout
+- ✅ Secure session management with database persistence
+
+**Authentication Flow**:
+1. User logs in → Backend creates session → HTTP-only cookie set
+2. Browser automatically sends cookie with each request
+3. SvelteKit hooks forward cookie to backend for validation
+4. Backend validates session and returns user context
+5. Protected pages access `event.locals.user` for user data
 
 ### RBAC (Role-Based Access Control)
 

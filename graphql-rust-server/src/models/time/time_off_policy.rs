@@ -56,7 +56,7 @@ pub struct UpdateTimeOffPolicyInput {
 }
 
 /// GraphQL Object implementation with camelCase field names
-#[Object]
+#[Object(name = "time_time_off_policy_TimeOffPolicy")]
 impl TimeOffPolicy {
     async fn id(&self) -> Uuid {
         self.id

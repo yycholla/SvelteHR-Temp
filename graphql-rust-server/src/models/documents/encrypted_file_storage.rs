@@ -50,7 +50,7 @@ pub struct CreateEncryptedFileStorageInput {
 }
 
 /// GraphQL Object implementation with camelCase field names
-#[Object]
+#[Object(name = "documents_encrypted_file_storage_Model")]
 impl Model {
     async fn id(&self) -> Uuid {
         self.id

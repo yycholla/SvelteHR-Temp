@@ -1,7 +1,7 @@
 //! System Administration Domain
 //!
 //! Contains system administration models: rollback system, activity logs,
-//! HR reports, compensation, and payroll.
+//! HR reports, compensation, payroll, and system settings.
 
 pub mod rollback_request;
 pub mod bulk_rollback_batch;
@@ -11,6 +11,7 @@ pub mod hr_report;
 pub mod compensation_band;
 pub mod payroll_record;
 pub mod encryption_key;
+pub mod system_settings;
 
 // Re-exports for convenient access
 pub use rollback_request::{
@@ -29,3 +30,4 @@ pub use compensation_band::{
 };
 pub use payroll_record::{CreatePayrollRecordInput, Model as PayrollRecord};
 pub use encryption_key::{CreateEncryptionKeyInput, Model as EncryptionKey};
+pub use system_settings::{Model as SystemSettings, UpdateSystemSettingsInput};

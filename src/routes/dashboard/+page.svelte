@@ -54,14 +54,14 @@
 	const user = $derived(data.user);
 	const dashboardData = $derived(data.dashboardData);
 
-	// Build employee metrics from server-loaded data
+	// Build employee metrics from server-loaded data with defensive programming
 	const employeeMetrics = $derived<DashboardMetric[]>([
 		{
 			title: 'My Attendance Rate',
-			value: `${dashboardData.metrics.attendanceRate}%`,
+			value: `${dashboardData?.metrics?.attendanceRate ?? 0}%`,
 			change: {
-				value: dashboardData.metrics.attendanceRate >= 95 ? '+2%' : '-1%',
-				type: dashboardData.metrics.attendanceRate >= 95 ? 'increase' : 'warning',
+				value: (dashboardData?.metrics?.attendanceRate ?? 0) >= 95 ? '+2%' : '-1%',
+				type: (dashboardData?.metrics?.attendanceRate ?? 0) >= 95 ? 'increase' : 'warning',
 				period: 'this month'
 			},
 			icon: TrendingUp,
@@ -69,23 +69,23 @@
 		},
 		{
 			title: 'Pending Requests',
-			value: `${dashboardData.metrics.pendingRequests}`,
+			value: `${dashboardData?.metrics?.pendingRequests ?? 0}`,
 			change: {
 				value:
-					dashboardData.metrics.pendingRequests > 0
-						? `${dashboardData.metrics.pendingRequests} pending`
+					(dashboardData?.metrics?.pendingRequests ?? 0) > 0
+						? `${dashboardData?.metrics?.pendingRequests ?? 0} pending`
 						: 'None pending',
-				type: dashboardData.metrics.pendingRequests > 0 ? 'warning' : 'neutral',
-				period: dashboardData.metrics.pendingRequests > 0 ? 'requests' : ''
+				type: (dashboardData?.metrics?.pendingRequests ?? 0) > 0 ? 'warning' : 'neutral',
+				period: (dashboardData?.metrics?.pendingRequests ?? 0) > 0 ? 'requests' : ''
 			},
 			icon: Clock,
 			href: `/dashboard/users/${user.id}/leave/requests`
 		},
 		{
 			title: 'My Tasks',
-			value: `${dashboardData.metrics.taskCount}`,
+			value: `${dashboardData?.metrics?.taskCount ?? 0}`,
 			change: {
-				value: `${Math.floor(dashboardData.metrics.taskCount / 2)} due soon`,
+				value: `${Math.floor((dashboardData?.metrics?.taskCount ?? 0) / 2)} due soon`,
 				type: 'warning',
 				period: 'this week'
 			},
@@ -94,9 +94,9 @@
 		},
 		{
 			title: 'Days Off Remaining',
-			value: `${dashboardData.metrics.remainingVacationDays}`,
+			value: `${dashboardData?.metrics?.remainingVacationDays ?? 0}`,
 			change: {
-				value: `${dashboardData.metrics.remainingVacationDays + 6} total`,
+				value: `${(dashboardData?.metrics?.remainingVacationDays ?? 0) + 6} total`,
 				type: 'neutral',
 				period: 'this year'
 			},

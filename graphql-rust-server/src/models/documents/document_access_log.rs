@@ -75,7 +75,7 @@ pub enum Relation {
 impl ActiveModelBehavior for ActiveModel {}
 
 /// GraphQL Object implementation with camelCase field names
-#[Object]
+#[Object(name = "documents_document_access_log_Model")]
 impl Model {
     async fn id(&self) -> Uuid {
         self.id

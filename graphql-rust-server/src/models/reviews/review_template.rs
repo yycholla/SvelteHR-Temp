@@ -72,7 +72,7 @@ pub struct UpdateReviewTemplateInput {
 }
 
 /// GraphQL Object implementation with camelCase field names
-#[Object]
+#[Object(name = "reviews_review_template_Model")]
 impl Model {
     async fn id(&self) -> Uuid {
         self.id

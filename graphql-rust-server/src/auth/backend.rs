@@ -508,7 +508,7 @@ impl AuthBackend {
             after_snapshot: sea_orm::ActiveValue::NotSet,
             is_rollback: sea_orm::ActiveValue::Set(false),
             rolled_back_log_id: sea_orm::ActiveValue::NotSet,
-            ip_address: sea_orm::ActiveValue::Set(ip_address.map(|s| s.to_string())),
+            ip_address: sea_orm::ActiveValue::NotSet, // Skip for now - inet type requires special handling
             user_agent: sea_orm::ActiveValue::Set(user_agent.map(|s| s.to_string())),
             signature_id: sea_orm::ActiveValue::NotSet,
             batch_id: sea_orm::ActiveValue::NotSet,

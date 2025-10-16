@@ -43,7 +43,7 @@ impl Related<super::role::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {}
 
 /// GraphQL Object implementation for Permission
-#[Object]
+#[Object(name = "permission_Model")]
 impl Model {
     /// Unique permission identifier
     async fn id(&self) -> Uuid {

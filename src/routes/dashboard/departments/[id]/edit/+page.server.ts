@@ -12,73 +12,68 @@ export const load: PageServerLoad = async (event) => {
 	// RBAC: Check department write permissions
 	PermissionChecks.departmentWrite(event);
 
-	// Import required models
-	const { createUserSession } = await import('$lib/models/user-session');
-
 	// Ensure user is authenticated
 	if (!locals.user) {
 		throw error(401, 'Authentication required');
 	}
 
-	// Create user session from server locals
-	const userSession = createUserSession({
+	// Create simple user session object (session-based auth doesn't use JWT)
+	const userSession = {
 		userId: locals.user.id,
-		jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
 		roles: [locals.user.role || 'employee'],
 		permissions: locals.permissions || [],
+		isAuthenticated: true,
 		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
 		metadata: {
 			userEmail: locals.user.email,
 			displayName: locals.user.display_name || locals.user.email
-		}
-	});
+		},
+		toJSON: () => ({
+			userId: locals.user.id,
+			roles: [locals.user.role || 'employee'],
+			permissions: locals.permissions || [],
+			isAuthenticated: true,
+			expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+			metadata: {
+				userEmail: locals.user.email,
+				displayName: locals.user.display_name || locals.user.email
+			}
+		})
+	};
 
 	try {
-		// Make direct GraphQL calls to PostGraphile backend
+		// Make direct GraphQL calls to Rust GraphQL backend with session-based authentication
 		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
-
-				jwtClaims = await decodeJWTTokenUnsafe(jwtToken);
-			} catch (error) {
-				console.warn('[Department Edit] Failed to decode JWT:', error);
-			}
-		}
-
 		// Headers for session-based authentication
+		// Forward session cookies to Rust GraphQL backend
+		const cookieHeader = event.request.headers.get('cookie') || '';
 		const headers: Record<string, string> = {
-			'Content-Type': 'application/json'
+			'Content-Type': 'application/json',
+			'Cookie': cookieHeader // Forward all cookies for session authentication
 		};
 
-		if (jwtClaims) {
-			headers['X-JWT-Claims-Role'] = jwtClaims.role || 'employee';
-			headers['X-JWT-Claims-User-Id'] = jwtClaims.user_id;
-		}
+		console.log(
+			'[Department Edit] Using Rust GraphQL with session-based auth, user role:',
+			locals.user?.role
+		);
 
-		// Load department data with employees
+		// Load department data
 		const departmentResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
 					query GetDepartmentById($id: UUID!) {
-						department: departmentById(id: $id) {
+						departmentById(id: $id) {
 							id
 							name
 							description
 							managerId
-							userByManagerId {
-								id
-								displayName
-							}
-							usersByDepartmentId {
-								nodes {
-									id
-									displayName
-									role
-									isActive
-								}
-							}
+							parentDepartmentId
+							createdAt
+							updatedAt
 						}
 					}
 				`,
@@ -89,11 +84,55 @@ export const load: PageServerLoad = async (event) => {
 		const departmentData = await departmentResponse.json();
 
 		// Check if department exists
-		if (!departmentData?.data?.department) {
+		if (!departmentData?.data?.departmentById) {
 			throw error(404, 'Department not found');
 		}
 
-		const department = departmentData.data.department;
+		const department = departmentData.data.departmentById;
+
+		// Get manager data if managerId exists
+		let manager = null;
+		if (department.managerId) {
+			const managerResponse = await fetch(graphqlEndpoint, {
+				method: 'POST',
+				headers,
+				body: JSON.stringify({
+					query: `
+						query GetUserById($id: UUID!) {
+							userById(id: $id) {
+								id
+								displayName
+							}
+						}
+					`,
+					variables: { id: department.managerId }
+				})
+			});
+
+			const managerData = await managerResponse.json();
+			manager = managerData?.data?.userById || null;
+		}
+
+		// Get active users for department assignment
+		const usersResponse = await fetch(graphqlEndpoint, {
+			method: 'POST',
+			headers,
+			body: JSON.stringify({
+				query: `
+					query GetActiveUsers {
+						users(isActive: true) {
+							id
+							displayName
+							role
+							isActive
+						}
+					}
+				`
+			})
+		});
+
+		const usersData = await usersResponse.json();
+		const users = (usersData?.data?.users || []).filter((user: any) => user.isActive);
 
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);
@@ -106,9 +145,10 @@ export const load: PageServerLoad = async (event) => {
 				name: department.name,
 				description: department.description,
 				managerId: department.managerId,
-				manager: department.userByManagerId
+				parentDepartmentId: department.parentDepartmentId,
+				manager: manager
 			},
-			users: (department.usersByDepartmentId?.nodes || []).filter((user: any) => user.isActive),
+			users: users,
 			// RBAC: Standardized permission checks
 			...userPermissions,
 			loadedAt: new Date().toISOString()
@@ -147,52 +187,38 @@ export const actions: Actions = {
 				});
 			}
 
-			// Make GraphQL update mutation
+			// Make GraphQL update mutation with session-based authentication
 			const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 			const graphqlEndpoint = getGraphQLEndpoint();
 
-			let jwtClaims = null;
-			if (jwtToken) {
-				try {
-					const { decodeJWTTokenUnsafe } = await import('$lib/auth/jwt-utils');
-					jwtClaims = await decodeJWTTokenUnsafe(jwtToken);
-				} catch (error) {
-					console.warn('[Department Update] Failed to decode JWT:', error);
-				}
-			}
-
+			// Headers for session-based authentication
+			const cookieHeader = request.headers.get('cookie') || '';
 			const headers: Record<string, string> = {
-				'Content-Type': 'application/json'
+				'Content-Type': 'application/json',
+				'Cookie': cookieHeader
 			};
 
-			if (jwtClaims) {
-				headers['X-JWT-Claims-Role'] = jwtClaims.role || 'employee';
-				headers['X-JWT-Claims-User-Id'] = jwtClaims.user_id;
-			}
-
+			// Note: Rust GraphQL backend doesn't have updateDepartmentById mutation yet
+			// For now, this will return an error. TODO: Implement department update mutation
 			const updateResponse = await fetch(graphqlEndpoint, {
 				method: 'POST',
 				headers,
 				body: JSON.stringify({
 					query: `
-						mutation UpdateDepartment($id: UUID!, $departmentPatch: DepartmentPatch!) {
-							updateDepartmentById(input: { id: $id, departmentPatch: $departmentPatch }) {
-								department {
-									id
-									name
-									description
-									managerId
-								}
+						mutation UpdateDepartment($id: UUID!, $name: String!, $description: String, $managerId: UUID) {
+							updateDepartment(id: $id, name: $name, description: $description, managerId: $managerId) {
+								id
+								name
+								description
+								managerId
 							}
 						}
 					`,
 					variables: {
 						id: departmentId,
-						departmentPatch: {
-							name,
-							description: description || null,
-							managerId: managerId || null
-						}
+						name,
+						description: description || null,
+						managerId: managerId || null
 					}
 				})
 			});

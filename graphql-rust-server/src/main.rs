@@ -6,7 +6,7 @@
 use std::net::SocketAddr;
 
 use axum::{
-    extract::Request,
+    extract::{connect_info::IntoMakeServiceWithConnectInfo, Request},
     http::{header, HeaderValue, Method},
     middleware as axum_middleware,
     response::IntoResponse,
@@ -63,8 +63,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let session_store = crate::auth::SeaOrmSessionStore::new(db.clone());
 
     // Configure session layer with secure cookie settings
+    // Use secure cookies only in production (requires HTTPS)
+    let is_production = std::env::var("NODE_ENV")
+        .or_else(|_| std::env::var("ENVIRONMENT"))
+        .map(|env| env.to_lowercase() == "production")
+        .unwrap_or(false);
+
+    tracing::info!("Session cookie security: secure={}, http_only=true, same_site=Lax", is_production);
+
     let session_layer = SessionManagerLayer::new(session_store)
-        .with_secure(true) // HTTPS only in production
+        .with_secure(is_production) // HTTPS only in production
         .with_http_only(true) // Prevent JavaScript access
         .with_same_site(SameSite::Lax) // Lax same-site policy for better compatibility
         .with_expiry(Expiry::OnInactivity(time::Duration::hours(24))); // 24 hour inactivity
@@ -140,7 +148,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!("📊 GraphQL playground: http://{}", addr);
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
-    axum::serve(listener, app).await?;
+    axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>()).await?;
 
     Ok(())
 }

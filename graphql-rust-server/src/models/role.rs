@@ -51,7 +51,7 @@ impl Related<super::user_role_assignment::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {}
 
 /// GraphQL Object implementation for Role
-#[Object]
+#[Object(name = "role_Model")]
 impl Model {
     /// Unique role identifier
     async fn id(&self) -> Uuid {

@@ -37,7 +37,7 @@ pub struct ReportAnalytic {
 }
 
 /// GraphQL Object implementation with camelCase field names
-#[Object]
+#[Object(name = "analytics_report_analytic_Model")]
 impl Model {
     #[graphql(name = "departmentId")]
     async fn department_id(&self) -> Uuid {

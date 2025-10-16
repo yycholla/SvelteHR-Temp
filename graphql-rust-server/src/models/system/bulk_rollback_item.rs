@@ -79,7 +79,7 @@ pub struct UpdateBulkRollbackItemInput {
 }
 
 /// GraphQL Object implementation with camelCase field names
-#[Object]
+#[Object(name = "system_bulk_rollback_item_Model")]
 impl Model {
     async fn id(&self) -> Uuid {
         self.id

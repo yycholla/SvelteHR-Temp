@@ -263,7 +263,7 @@ impl RlsSession {
     /// Check if user has minimum role level (for hierarchical permissions)
     pub fn has_min_role_level(&self, min_level: i32) -> bool {
         let role_levels = [
-            ("super_admin", 200),
+            ("system_admin", 200),
             ("admin", 100),
             ("hr_manager", 80),
             ("manager", 60),
@@ -354,7 +354,7 @@ mod tests {
     fn test_permission_checking() {
         let session_with_wildcard = RlsSession {
             user_id: Uuid::new_v4(),
-            roles: vec!["super_admin".to_string()],
+            roles: vec!["system_admin".to_string()],
             permissions: vec!["*".to_string()],
         };
 
@@ -383,7 +383,7 @@ mod tests {
         assert!(admin_session.has_min_role_level(100)); // Admin level
         assert!(admin_session.has_min_role_level(60));  // Manager level
         assert!(admin_session.has_min_role_level(20));  // Employee level
-        assert!(!admin_session.has_min_role_level(200)); // Super admin level
+        assert!(!admin_session.has_min_role_level(200)); // System admin level
 
         let employee_session = RlsSession {
             user_id: Uuid::new_v4(),

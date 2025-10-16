@@ -4,7 +4,6 @@
 import type { PageServerLoad } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { ensureBackendReady } from '$lib/server/backend-init';
-import { debugJWTToken } from '$lib/server/jwt-debug';
 
 export const load: PageServerLoad = async ({ locals, parent, cookies }) => {
 	// Auth check already done by admin +layout.server.ts
@@ -17,10 +16,6 @@ export const load: PageServerLoad = async ({ locals, parent, cookies }) => {
 	try {
 		// Ensure backend is ready before proceeding
 		await ensureBackendReady();
-
-		// Debug JWT token issues
-		const jwtDebug = debugJWTToken(cookies);
-		console.log('🔐 Analytics Dashboard JWT Debug:', jwtDebug);
 
 		const client = GraphQLClient.fromCookies(cookies);
 

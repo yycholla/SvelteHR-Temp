@@ -67,7 +67,7 @@ pub struct UpdateEmergencyContactInput {
 }
 
 /// GraphQL Object implementation with camelCase field names
-#[Object]
+#[Object(name = "employee_emergency_contact_Model")]
 impl Model {
     async fn id(&self) -> Uuid {
         self.id

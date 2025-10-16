@@ -79,7 +79,7 @@ impl Related<super::user::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {}
 
 /// GraphQL Object implementation for EventAttendee
-#[Object]
+#[Object(name = "event_attendee_Model")]
 impl Model {
     /// Unique attendee identifier
     async fn id(&self) -> Uuid {

@@ -21,10 +21,11 @@ export enum DataRequestStatus {
 
 /**
  * User credentials interface for RBAC integration
+ * T036: Session-based authentication - jwtToken is optional for session-based auth
  */
 export interface UserCredentials {
 	userId: string;
-	jwtToken: string;
+	jwtToken?: string; // Optional for session-based auth
 	roles: string[];
 	permissions: string[];
 	departmentId?: string;
@@ -294,8 +295,11 @@ export class DataRequest<TVariables = Record<string, unknown>, TData = unknown> 
 			throw new Error('userCredentials.userId must be non-empty');
 		}
 
-		if (!config.userCredentials.jwtToken || config.userCredentials.jwtToken.trim().length === 0) {
-			throw new Error('userCredentials.jwtToken must be non-empty');
+		// T036: JWT token is optional for session-based authentication
+		// Only validate if jwtToken is provided
+		if (config.userCredentials.jwtToken !== undefined &&
+		    config.userCredentials.jwtToken.trim().length === 0) {
+			throw new Error('userCredentials.jwtToken must be non-empty if provided');
 		}
 
 		if (!Array.isArray(config.userCredentials.roles)) {
@@ -351,6 +355,7 @@ export function createDataRequest<TVariables = Record<string, unknown>, TData = 
 
 /**
  * Type guard to check if an object is a valid UserCredentials
+ * T036: jwtToken is optional for session-based authentication
  */
 export function isValidUserCredentials(obj: unknown): obj is UserCredentials {
 	if (!obj || typeof obj !== 'object') return false;
@@ -359,7 +364,7 @@ export function isValidUserCredentials(obj: unknown): obj is UserCredentials {
 
 	return (
 		typeof creds.userId === 'string' &&
-		typeof creds.jwtToken === 'string' &&
+		(creds.jwtToken === undefined || typeof creds.jwtToken === 'string') &&
 		Array.isArray(creds.roles) &&
 		Array.isArray(creds.permissions) &&
 		typeof creds.isAuthenticated === 'boolean' &&
@@ -369,10 +374,11 @@ export function isValidUserCredentials(obj: unknown): obj is UserCredentials {
 
 /**
  * Utility to create UserCredentials from authentication context
+ * T036: jwtToken is optional for session-based authentication
  */
 export function createUserCredentials(authContext: {
 	userId: string;
-	jwtToken: string;
+	jwtToken?: string;
 	roles: string[];
 	permissions: string[];
 	departmentId?: string;

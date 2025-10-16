@@ -71,7 +71,7 @@ impl Related<super::user::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {}
 
 /// GraphQL Object implementation for TaskAuditEntry
-#[Object]
+#[Object(name = "task_audit_entry_Model")]
 impl Model {
     /// Unique audit entry identifier
     async fn id(&self) -> Uuid {

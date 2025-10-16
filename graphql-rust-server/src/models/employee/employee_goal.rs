@@ -41,7 +41,9 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub employee_id: Uuid,
+    #[sea_orm(column_name = "goal_title")]
     pub title: String,
+    #[sea_orm(column_name = "goal_description")]
     pub description: Option<String>,
     pub target_date: Option<NaiveDate>,
     pub status: String, // Will be converted to enum in GraphQL
@@ -89,7 +91,7 @@ pub struct UpdateEmployeeGoalInput {
 }
 
 /// GraphQL Object implementation with camelCase field names
-#[Object]
+#[Object(name = "employee_employee_goal_Model")]
 impl Model {
     async fn id(&self) -> Uuid {
         self.id

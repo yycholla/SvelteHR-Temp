@@ -5,7 +5,7 @@
 
 use async_graphql::{Context, Object, Result};
 use axum_login::AuthSession;
-use sea_orm::{EntityTrait, QueryFilter, QueryOrder, QuerySelect, ColumnTrait};
+use sea_orm::{EntityTrait, QueryFilter, QueryOrder, QuerySelect, ColumnTrait, PaginatorTrait, sea_query::Expr};
 use uuid::Uuid;
 
 use crate::{
@@ -19,7 +19,14 @@ use crate::{
         leave_request::{self, Entity as LeaveRequestEntity},
         performance_review::{self, Entity as PerformanceReviewEntity},
         system::activity_log::{self, Entity as ActivityLogEntity},
+        system::rollback_request::{self as rollback_request, Entity as RollbackRequestEntity, RollbackStatus},
+        system::system_settings::{self as system_settings, Entity as SystemSettingsEntity},
         user_session::{self, Entity as UserSessionEntity},
+        time::attendance_record::{self as attendance_record, Entity as AttendanceRecordEntity},
+        employee::employee_goal::{self as employee_goal, Entity as EmployeeGoalEntity},
+        event::{self, Entity as EventEntity},
+        event_attendee::{self, Entity as EventAttendeeEntity},
+        notification::{self, Entity as NotificationEntity},
     },
 };
 
@@ -117,10 +124,11 @@ impl QueryRoot {
     // Task Queries
     // =========================================================================
     
-    /// Get all tasks with optional filtering and pagination
+    /// Get all tasks with optional assignee filtering and pagination
     async fn tasks(
         &self,
         ctx: &Context<'_>,
+        assignee_id: Option<Uuid>,
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<task::Model>> {
@@ -128,8 +136,15 @@ impl QueryRoot {
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
 
-        let tasks = TaskEntity::find()
-            .filter(task::Column::DeletedAt.is_null())
+        let mut query = TaskEntity::find()
+            .filter(task::Column::DeletedAt.is_null());
+
+        // Add assignee filter if provided
+        if let Some(aid) = assignee_id {
+            query = query.filter(task::Column::AssigneeId.eq(aid));
+        }
+
+        let tasks = query
             .order_by_desc(task::Column::CreatedAt)
             .limit(Some(limit as u64))
             .offset(offset as u64)
@@ -225,10 +240,11 @@ impl QueryRoot {
     // Activity Log Queries  
     // =========================================================================
     
-    /// Get activity logs with optional filtering and pagination
+    /// Get activity logs with optional user filtering and pagination
     async fn activity_logs(
         &self,
         ctx: &Context<'_>,
+        user_id: Option<Uuid>,
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<activity_log::Model>> {
@@ -236,7 +252,14 @@ impl QueryRoot {
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
 
-        let logs = ActivityLogEntity::find()
+        let mut query = ActivityLogEntity::find();
+
+        // Add user filter if provided
+        if let Some(uid) = user_id {
+            query = query.filter(activity_log::Column::EmployeeId.eq(uid));
+        }
+
+        let logs = query
             .order_by_desc(activity_log::Column::CreatedAt)
             .limit(Some(limit as u64))
             .offset(offset as u64)
@@ -342,5 +365,284 @@ impl QueryRoot {
 
         let token = auth_session.backend.generate_csrf_token();
         Ok(token)
+    }
+
+    // =========================================================================
+    // Attendance Record Queries
+    // =========================================================================
+
+    /// Get attendance records with optional user filtering and pagination
+    async fn attendance_records(
+        &self,
+        ctx: &Context<'_>,
+        user_id: Option<Uuid>,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<attendance_record::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let limit = limit.unwrap_or(100).clamp(1, 1000);
+        let offset = offset.unwrap_or(0).max(0);
+
+        let mut query = AttendanceRecordEntity::find();
+
+        // Add user filter if provided
+        if let Some(uid) = user_id {
+            query = query.filter(attendance_record::Column::UserId.eq(uid));
+        }
+
+        let records = query
+            .order_by_desc(attendance_record::Column::Date)
+            .limit(Some(limit as u64))
+            .offset(offset as u64)
+            .all(&db)
+            .await?;
+
+        Ok(records)
+    }
+
+    // =========================================================================
+    // Employee Goal Queries
+    // =========================================================================
+
+    /// Get employee goals with optional employee filtering and pagination
+    async fn employee_goals(
+        &self,
+        ctx: &Context<'_>,
+        employee_id: Option<Uuid>,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<employee_goal::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let limit = limit.unwrap_or(100).clamp(1, 1000);
+        let offset = offset.unwrap_or(0).max(0);
+
+        let mut query = EmployeeGoalEntity::find();
+
+        // Add employee filter if provided
+        if let Some(eid) = employee_id {
+            query = query.filter(employee_goal::Column::EmployeeId.eq(eid));
+        }
+
+        let goals = query
+            .order_by_desc(employee_goal::Column::CreatedAt)
+            .limit(Some(limit as u64))
+            .offset(offset as u64)
+            .all(&db)
+            .await?;
+
+        Ok(goals)
+    }
+
+    // =========================================================================
+    // Event Queries
+    // =========================================================================
+
+    /// Get events with optional upcoming filtering and pagination
+    async fn events(
+        &self,
+        ctx: &Context<'_>,
+        upcoming_only: Option<bool>,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<event::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let limit = limit.unwrap_or(100).clamp(1, 1000);
+        let offset = offset.unwrap_or(0).max(0);
+
+        let mut query = EventEntity::find()
+            .filter(event::Column::DeletedAt.is_null());
+
+        // Add upcoming filter if requested
+        if upcoming_only.unwrap_or(false) {
+            let now = chrono::Utc::now();
+            // Use custom SQL to cast the string literal to event_status enum
+            query = query
+                .filter(event::Column::StartTime.gte(now))
+                .filter(Expr::cust("status = 'scheduled'::event_status"));
+        }
+
+        let events = query
+            .order_by_asc(event::Column::StartTime)
+            .limit(Some(limit as u64))
+            .offset(offset as u64)
+            .all(&db)
+            .await?;
+
+        Ok(events)
+    }
+
+    /// Get a single event by ID
+    async fn event(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<event::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let event = EventEntity::find_by_id(id)
+            .filter(event::Column::DeletedAt.is_null())
+            .one(&db)
+            .await?;
+        Ok(event)
+    }
+
+    // =========================================================================
+    // Event Attendee Queries
+    // =========================================================================
+
+    /// Get event attendees with optional filtering and pagination
+    async fn event_attendees(
+        &self,
+        ctx: &Context<'_>,
+        event_id: Option<Uuid>,
+        employee_id: Option<Uuid>,
+        reminder_time_is_null: Option<bool>,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<event_attendee::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let limit = limit.unwrap_or(100).clamp(1, 1000);
+        let offset = offset.unwrap_or(0).max(0);
+
+        let mut query = EventAttendeeEntity::find();
+
+        // Add event filter if provided
+        if let Some(eid) = event_id {
+            query = query.filter(event_attendee::Column::EventId.eq(eid));
+        }
+
+        // Add employee filter if provided
+        if let Some(empid) = employee_id {
+            query = query.filter(event_attendee::Column::EmployeeId.eq(empid));
+        }
+
+        // Add reminder_time null/not-null filter if provided
+        if let Some(is_null) = reminder_time_is_null {
+            if is_null {
+                query = query.filter(event_attendee::Column::ReminderTime.is_null());
+            } else {
+                query = query.filter(event_attendee::Column::ReminderTime.is_not_null());
+            }
+        }
+
+        let attendees = query
+            .order_by_desc(event_attendee::Column::CreatedAt)
+            .limit(Some(limit as u64))
+            .offset(offset as u64)
+            .all(&db)
+            .await?;
+
+        Ok(attendees)
+    }
+
+    // =========================================================================
+    // Notification Queries
+    // =========================================================================
+
+    /// Get notifications with optional user and read status filtering
+    async fn notifications(
+        &self,
+        ctx: &Context<'_>,
+        user_id: Option<Uuid>,
+        unread_only: Option<bool>,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<notification::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let limit = limit.unwrap_or(100).clamp(1, 1000);
+        let offset = offset.unwrap_or(0).max(0);
+
+        let mut query = NotificationEntity::find();
+
+        // Add user filter if provided
+        if let Some(uid) = user_id {
+            query = query.filter(notification::Column::RecipientId.eq(uid));
+        }
+
+        // Add unread filter if requested
+        if unread_only.unwrap_or(false) {
+            query = query.filter(notification::Column::ReadStatus.eq(false));
+        }
+
+        let notifications = query
+            .order_by_desc(notification::Column::CreatedAt)
+            .limit(Some(limit as u64))
+            .offset(offset as u64)
+            .all(&db)
+            .await?;
+
+        Ok(notifications)
+    }
+
+    // =========================================================================
+    // Rollback Request Queries
+    // =========================================================================
+
+    /// Get rollback requests with optional status filtering and pagination
+    async fn rollback_requests(
+        &self,
+        ctx: &Context<'_>,
+        status: Option<RollbackStatus>,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<rollback_request::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let limit = limit.unwrap_or(100).clamp(1, 1000);
+        let offset = offset.unwrap_or(0).max(0);
+
+        let mut query = RollbackRequestEntity::find();
+
+        // Add status filter if provided
+        if let Some(s) = status {
+            query = query.filter(rollback_request::Column::Status.eq(s.as_str()));
+        }
+
+        let requests = query
+            .order_by_desc(rollback_request::Column::RequestedAt)
+            .limit(Some(limit as u64))
+            .offset(offset as u64)
+            .all(&db)
+            .await?;
+
+        Ok(requests)
+    }
+
+    /// Get count of rollback requests by optional status
+    async fn rollback_requests_count(
+        &self,
+        ctx: &Context<'_>,
+        status: Option<RollbackStatus>,
+    ) -> Result<i64> {
+        let db = get_db_from_context(ctx)?;
+
+        let mut query = RollbackRequestEntity::find();
+
+        // Add status filter if provided
+        if let Some(s) = status {
+            query = query.filter(rollback_request::Column::Status.eq(s.as_str()));
+        }
+
+        let count = query.count(&db).await?;
+
+        Ok(count as i64)
+    }
+
+    // =========================================================================
+    // System Settings Queries (system_admin only)
+    // =========================================================================
+
+    /// Get all system settings (requires system_admin role)
+    #[graphql(guard = "crate::middleware::guards::RequireRole::new(\"system_admin\")")]
+    async fn system_settings(&self, ctx: &Context<'_>) -> Result<Vec<system_settings::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let settings = system_settings::Model::find_all(&db).await?;
+        Ok(settings)
+    }
+
+    /// Get system settings by category (requires system_admin role)
+    #[graphql(guard = "crate::middleware::guards::RequireRole::new(\"system_admin\")")]
+    async fn system_settings_by_category(
+        &self,
+        ctx: &Context<'_>,
+        category: String,
+    ) -> Result<Option<system_settings::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let settings = system_settings::Model::find_by_category(&db, &category).await?;
+        Ok(settings)
     }
 }

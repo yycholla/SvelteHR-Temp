@@ -83,7 +83,7 @@ impl Related<super::user::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {}
 
 /// GraphQL Object implementation for LinkedResource
-#[Object]
+#[Object(name = "linked_resource_Model")]
 impl Model {
     /// Unique linked resource identifier
     async fn id(&self) -> Uuid {

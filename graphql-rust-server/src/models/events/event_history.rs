@@ -71,7 +71,7 @@ pub struct CreateEventHistoryInput {
 }
 
 /// GraphQL Object implementation with camelCase field names
-#[Object]
+#[Object(name = "events_event_history_Model")]
 impl Model {
     async fn id(&self) -> Uuid {
         self.id

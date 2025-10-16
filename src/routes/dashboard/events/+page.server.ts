@@ -23,8 +23,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		throw redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
 
+	// T036: Session-based authentication - jwtToken not needed
 	const userCredentials = {
-		jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
 		userId: locals.user.id,
 		roles: locals.roles || [],
 		permissions: locals.permissions || [],
@@ -35,7 +35,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	try {
 		// Initialize GraphQL client and operations
 		// For server-side: createUrqlClient(fetchFn?, authToken?)
-		const urqlClient = createUrqlClient(undefined, token);
+		// Session-based auth doesn't use JWT tokens
+		const urqlClient = createUrqlClient();
 		const eventsOps = new EventsOperations(urqlClient);
 
 		// Get query parameters for filtering
@@ -118,35 +119,36 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 
 		// Feature 027: Fetch all employees for attendee picker in event creation
 		const FETCH_ALL_EMPLOYEES = gql`
-			query FetchAllEmployees {
-				allUsers(orderBy: [DISPLAY_NAME_ASC]) {
-					nodes {
+			query FetchAllEmployees($limit: Int, $offset: Int) {
+				users(limit: $limit, offset: $offset) {
+					id
+					displayName
+					email
+					jobTitle
+					departmentId
+					department {
 						id
-						displayName
-						email
-						departmentId
-						profileByUserId {
-							id
-							jobTitle
-							department
-						}
+						name
 					}
 				}
 			}
 		`;
 
-		const employeesResult = await urqlClient.query(FETCH_ALL_EMPLOYEES, {}).toPromise();
+		const employeesResult = await urqlClient.query(FETCH_ALL_EMPLOYEES, {
+			limit: 1000,
+			offset: 0
+		}).toPromise();
 
 		// Transform employees to match expected interface
-		const employees = (employeesResult.data?.allUsers?.nodes || []).map((user: any) => ({
+		const employees = (employeesResult.data?.users || []).map((user: any) => ({
 			id: user.id,
 			displayName: user.displayName,
 			email: user.email,
-			jobTitle: user.profileByUserId?.jobTitle,
-			department: user.profileByUserId?.department
+			jobTitle: user.jobTitle,
+			department: user.department
 				? {
-						id: user.departmentId,
-						name: user.profileByUserId.department
+						id: user.department.id,
+						name: user.department.name
 					}
 				: undefined
 		}));
@@ -319,11 +321,6 @@ export const actions: Actions = {
 			return fail(401, { error: 'Authentication required' });
 		}
 
-		// Token retrieval removed - session auth handled by server hooks
-		if (!token) {
-			return fail(401, { error: 'Authentication required' });
-		}
-
 		// Check permissions (manager or admin)
 		const hasWildcardPermission = locals.permissions?.includes('*');
 		const roleLevel = getRoleLevel(locals.user.role);
@@ -343,11 +340,12 @@ export const actions: Actions = {
 		}
 
 		try {
-			const urqlClient = createUrqlClient(undefined, token);
+			// Session-based auth doesn't use JWT tokens
+			const urqlClient = createUrqlClient();
 			const eventsOps = new EventsOperations(urqlClient);
 
+			// T036: Session-based authentication - jwtToken not needed
 			const userCredentials = {
-				jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
 				userId: locals.user.id,
 				roles: locals.roles || [],
 				permissions: locals.permissions || [],
@@ -397,11 +395,6 @@ export const actions: Actions = {
 			return fail(401, { error: 'Authentication required' });
 		}
 
-		// Token retrieval removed - session auth handled by server hooks
-		if (!token) {
-			return fail(401, { error: 'Authentication required' });
-		}
-
 		// Check permissions
 		const hasWildcardPermission = locals.permissions?.includes('*');
 		const roleLevel = getRoleLevel(locals.user.role);
@@ -428,11 +421,12 @@ export const actions: Actions = {
 		}
 
 		try {
-			const urqlClient = createUrqlClient(undefined, token);
+			// Session-based auth doesn't use JWT tokens
+			const urqlClient = createUrqlClient();
 			const eventsOps = new EventsOperations(urqlClient);
 
+			// T036: Session-based authentication - jwtToken not needed
 			const userCredentials = {
-				jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
 				userId: locals.user.id,
 				roles: locals.roles || [],
 				permissions: locals.permissions || [],
@@ -504,11 +498,6 @@ export const actions: Actions = {
 			return fail(401, { error: 'Authentication required' });
 		}
 
-		// Token retrieval removed - session auth handled by server hooks
-		if (!token) {
-			return fail(401, { error: 'Authentication required' });
-		}
-
 		// Parse form data
 		const formData = await request.formData();
 		const eventId = formData.get('eventId') as string;
@@ -528,11 +517,12 @@ export const actions: Actions = {
 		}
 
 		try {
-			const urqlClient = createUrqlClient(undefined, token);
+			// Session-based auth doesn't use JWT tokens
+			const urqlClient = createUrqlClient();
 			const eventsOps = new EventsOperations(urqlClient);
 
+			// T036: Session-based authentication - jwtToken not needed
 			const userCredentials = {
-				jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
 				userId: locals.user.id,
 				roles: locals.roles || [],
 				permissions: locals.permissions || [],
@@ -599,11 +589,6 @@ export const actions: Actions = {
 			return fail(401, { error: 'Authentication required' });
 		}
 
-		// Token retrieval removed - session auth handled by server hooks
-		if (!token) {
-			return fail(401, { error: 'Authentication required' });
-		}
-
 		// Check permissions
 		const hasWildcardPermission = locals.permissions?.includes('*');
 		const roleLevel = getRoleLevel(locals.user.role);
@@ -621,11 +606,12 @@ export const actions: Actions = {
 		}
 
 		try {
-			const urqlClient = createUrqlClient(undefined, token);
+			// Session-based auth doesn't use JWT tokens
+			const urqlClient = createUrqlClient();
 			const eventsOps = new EventsOperations(urqlClient);
 
+			// T036: Session-based authentication - jwtToken not needed
 			const userCredentials = {
-				jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
 				userId: locals.user.id,
 				roles: locals.roles || [],
 				permissions: locals.permissions || [],
@@ -656,12 +642,6 @@ export const actions: Actions = {
 			return fail(401, { error: 'Authentication required' });
 		}
 
-		// Token retrieval removed - session auth handled by server hooks
-		if (!token) {
-			console.error('[SERVER] No token found');
-			return fail(401, { error: 'Authentication required' });
-		}
-
 		console.log('[SERVER] User authenticated:', locals.user.id);
 
 		// Parse form data
@@ -685,11 +665,12 @@ export const actions: Actions = {
 
 		try {
 			console.log('[SERVER] Creating URQL client and EventsOperations');
-			const urqlClient = createUrqlClient(undefined, token);
+			// Session-based auth doesn't use JWT tokens
+			const urqlClient = createUrqlClient();
 			const eventsOps = new EventsOperations(urqlClient);
 
+			// T036: Session-based authentication - jwtToken not needed
 			const userCredentials = {
-				jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
 				userId: locals.user.id,
 				roles: locals.roles || [],
 				permissions: locals.permissions || [],
@@ -801,11 +782,6 @@ export const actions: Actions = {
 			return fail(401, { error: 'Authentication required' });
 		}
 
-		// Token retrieval removed - session auth handled by server hooks
-		if (!token) {
-			return fail(401, { error: 'Authentication required' });
-		}
-
 		// Parse form data
 		const formData = await request.formData();
 		const eventId = formData.get('eventId') as string;
@@ -816,11 +792,12 @@ export const actions: Actions = {
 		}
 
 		try {
-			const urqlClient = createUrqlClient(undefined, token);
+			// Session-based auth doesn't use JWT tokens
+			const urqlClient = createUrqlClient();
 			const eventsOps = new EventsOperations(urqlClient);
 
+			// T036: Session-based authentication - jwtToken not needed
 			const userCredentials = {
-				jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
 				userId: locals.user.id,
 				roles: locals.roles || [],
 				permissions: locals.permissions || [],

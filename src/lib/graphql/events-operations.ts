@@ -13,57 +13,47 @@ import type { UserCredentials } from '$lib/models/data-request';
 /**
  * Query: Get all events with visibility filtering (RLS-enforced)
  * RLS Policy: event_company_visibility, event_department_visibility, event_specific_visibility
- * Note: Using PostGraphile conventions - condition instead of filter
+ * Note: Using Rust GraphQL schema conventions - events with simple filtering
  */
 export const GET_ALL_EVENTS = gql`
 	query GetAllEvents(
-		$first: Int = 20
+		$limit: Int = 20
 		$offset: Int = 0
-		$orderBy: [EventsOrderBy!] = [START_TIME_ASC]
-		$condition: EventCondition
+		$upcomingOnly: Boolean
 	) {
-		allEvents(first: $first, offset: $offset, orderBy: $orderBy, condition: $condition) {
-			nodes {
+		events(limit: $limit, offset: $offset, upcomingOnly: $upcomingOnly) {
+			id
+			nodeId
+			title
+			description
+			eventType
+			startTime
+			endTime
+			allDay
+			location
+			organizerId
+			userByOrganizerId {
 				id
-				nodeId
-				title
-				description
-				eventType
-				startTime
-				endTime
-				allDay
-				location
-				organizerId
-				userByOrganizerId {
+				displayName
+				email
+			}
+			status
+			color
+			isPublic
+			createdAt
+			updatedAt
+			eventAttendeesByEventId {
+				nodes {
 					id
-					displayName
-					email
-				}
-				status
-				color
-				isPublic
-				createdAt
-				updatedAt
-				eventAttendeesByEventId {
-					nodes {
+					employeeId
+					responseStatus
+					reminderTime
+					employee {
 						id
-						employeeId
-						responseStatus
-						reminderTime
-						userByEmployeeId {
-							id
-							displayName
-							email
-						}
+						displayName
+						email
 					}
 				}
-			}
-			totalCount
-			pageInfo {
-				hasNextPage
-				hasPreviousPage
-				startCursor
-				endCursor
 			}
 		}
 	}
@@ -71,11 +61,11 @@ export const GET_ALL_EVENTS = gql`
 
 /**
  * Query: Get single event by ID with attendees
- * Note: Using UUID for id parameter (not Int)
+ * Note: Using Rust GraphQL schema - event query by ID
  */
 export const GET_EVENT_BY_ID = gql`
 	query GetEventById($id: UUID!) {
-		eventById(id: $id) {
+		event(id: $id) {
 			id
 			nodeId
 			title
@@ -104,7 +94,7 @@ export const GET_EVENT_BY_ID = gql`
 					isRequired
 					reminderTime
 					createdAt
-					userByEmployeeId {
+					employee {
 						id
 						displayName
 						email
@@ -117,67 +107,60 @@ export const GET_EVENT_BY_ID = gql`
 
 /**
  * Query: Get user's events with RSVP status
- * Note: Using UUID for employeeId, condition instead of filter
+ * Note: Client-side filtering by employeeId since backend doesn't support it
  */
 export const GET_USER_EVENTS = gql`
 	query GetUserEvents(
-		$employeeId: UUID
-		$first: Int = 50
+		$limit: Int = 50
 		$offset: Int = 0
 	) {
-		allEvents(
-			first: $first
+		events(
+			limit: $limit
 			offset: $offset
-			orderBy: [START_TIME_ASC]
 		) {
-			nodes {
-				id
-				nodeId
-				title
-				description
-				eventType
-				startTime
-				endTime
-				allDay
-				location
-				organizerId
-				status
-				color
-				eventAttendeesByEventId(condition: { employeeId: $employeeId }) {
-					nodes {
-						responseStatus
-						isRequired
-						createdAt
-					}
+			id
+			nodeId
+			title
+			description
+			eventType
+			startTime
+			endTime
+			allDay
+			location
+			organizerId
+			status
+			color
+			eventAttendeesByEventId {
+				nodes {
+					id
+					employeeId
+					responseStatus
+					isRequired
+					createdAt
 				}
 			}
-			totalCount
 		}
 	}
 `;
 
 /**
  * Query: Get upcoming events (next 30 days)
- * Note: Using condition instead of filter
+ * Note: Using Rust GraphQL schema with upcomingOnly filter
  */
 export const GET_UPCOMING_EVENTS = gql`
-	query GetUpcomingEvents($first: Int = 10, $condition: EventCondition) {
-		allEvents(
-			first: $first
-			condition: $condition
-			orderBy: [START_TIME_ASC]
+	query GetUpcomingEvents($limit: Int = 10, $upcomingOnly: Boolean) {
+		events(
+			limit: $limit
+			upcomingOnly: $upcomingOnly
 		) {
-			nodes {
-				id
-				nodeId
-				title
-				startTime
-				endTime
-				location
-				status
-				isPublic
-			}
-			totalCount
+			id
+			nodeId
+			title
+			startTime
+			endTime
+			location
+			status
+			isPublic
 		}
 	}
 `;
@@ -412,7 +395,7 @@ export interface Event {
 			id: string;
 			employeeId: string;
 			responseStatus: string;
-			userByEmployeeId?: {
+			employee?: {
 				id: string;
 				displayName: string;
 				email: string;
@@ -700,10 +683,9 @@ export class EventsOperations {
 		const dataRequest = createDataRequest({
 			operationName: 'GetAllEvents',
 			variables: {
-				first: params.first || 20,
+				limit: params.first || 20,
 				offset: params.offset || 0,
-				condition: params.filter || {},
-				orderBy: params.orderBy ? [params.orderBy] : ['START_TIME_ASC']
+				upcomingOnly: params.filter?.upcomingOnly || false
 			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
@@ -729,9 +711,9 @@ export class EventsOperations {
 			}
 
 			return {
-				events: result.data.allEvents.nodes,
-				totalCount: result.data.allEvents.totalCount,
-				hasNextPage: result.data.allEvents.pageInfo.hasNextPage
+				events: result.data.events || [],
+				totalCount: result.data.events?.length || 0,
+				hasNextPage: false // Rust backend doesn't provide pagination info
 			};
 		} catch (error: any) {
 			if (error.userMessage) {
@@ -773,15 +755,15 @@ export class EventsOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data || !result.data.eventById) {
+			if (!result.data || !result.data.event) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'Event not found. Please try again.'
 				});
 			}
 
-			// Extract return data from result.data.eventById
-			return result.data.eventById;
+			// Extract return data from result.data.event
+			return result.data.event;
 		} catch (error: any) {
 			if (error.userMessage) {
 				throw error; // Already formatted error
@@ -809,8 +791,7 @@ export class EventsOperations {
 		const dataRequest = createDataRequest({
 			operationName: 'GetUserEvents',
 			variables: {
-				employeeId: params.employeeId, // Keep as UUID string
-				first: params.first || params.limit || 50,
+				limit: params.first || params.limit || 50,
 				offset: params.offset || 0
 			},
 			userCredentials: params.userCredentials,
@@ -837,9 +818,17 @@ export class EventsOperations {
 			}
 
 			// Extract return data from result.data
+			// Filter events by employeeId client-side since backend doesn't support it yet
+			const allEvents = result.data.events || [];
+			const filteredEvents = params.employeeId
+				? allEvents.filter((e: any) =>
+					e.eventAttendeesByEventId?.nodes?.some((a: any) => a.employeeId === params.employeeId)
+				)
+				: allEvents;
+
 			return {
-				events: result.data.allEvents.nodes,
-				totalCount: result.data.allEvents.totalCount
+				events: filteredEvents,
+				totalCount: filteredEvents.length
 			};
 		} catch (error: any) {
 			if (error.userMessage) {
@@ -867,8 +856,8 @@ export class EventsOperations {
 		const dataRequest = createDataRequest({
 			operationName: 'GetUpcomingEvents',
 			variables: {
-				first: params.first || params.limit || 10,
-				condition: params.filter || {}
+				limit: params.first || params.limit || 10,
+				upcomingOnly: true
 			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
@@ -895,8 +884,8 @@ export class EventsOperations {
 
 			// Extract return data from result.data
 			return {
-				events: result.data.allEvents.nodes,
-				totalCount: result.data.allEvents.totalCount
+				events: result.data.events || [],
+				totalCount: result.data.events?.length || 0
 			};
 		} catch (error: any) {
 			if (error.userMessage) {
@@ -1412,7 +1401,6 @@ export const GET_EVENTS_FOR_CALENDAR = gql`
 					}
 				]
 			}
-			orderBy: START_TIME_ASC
 		) {
 			nodes {
 				id
@@ -1508,7 +1496,7 @@ export const GET_EVENT_DETAILS = gql`
 					reminderTime
 					isOrganizer
 					respondedAt
-					userByEmployeeId {
+					employee {
 						id
 						displayName
 						email
@@ -1524,7 +1512,7 @@ export const GET_EVENT_DETAILS = gql`
 					employeeId
 					position
 					joinedAt
-					userByEmployeeId {
+					employee {
 						id
 						displayName
 						email
@@ -1683,7 +1671,7 @@ export const POST_EVENT_COMMENT = gql`
 				content
 				mentions
 				createdAt
-				userByEmployeeId {
+				employee {
 					id
 					displayName
 				}
@@ -1809,7 +1797,7 @@ export const GET_EVENT_COMMENTS = gql`
 				mentions
 				createdAt
 				updatedAt
-				userByEmployeeId {
+				employee {
 					id
 					displayName
 				}
@@ -1893,7 +1881,7 @@ export const CREATE_EVENT_COMMENT = gql`
 				content
 				mentions
 				createdAt
-				userByEmployeeId {
+				employee {
 					id
 					displayName
 				}
@@ -1917,7 +1905,7 @@ export const UPDATE_EVENT_COMMENT = gql`
 				content
 				mentions
 				updatedAt
-				userByEmployeeId {
+				employee {
 					id
 					displayName
 				}

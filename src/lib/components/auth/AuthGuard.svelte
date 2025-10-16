@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { authActions } from '$lib/stores/auth';
+	import { page } from '$app/stores';
 
 	/**
 	 * Authentication Guard Component
-	 * Initializes auth state and provides authentication context
+	 * Initializes auth state from server-loaded data
 	 * Use this at the app root level to ensure auth is initialized
 	 */
 
@@ -15,32 +16,33 @@
 	let initComplete = false;
 
 	onMount(async () => {
-		console.log('AuthGuard: Starting authentication initialization');
-
-		// Check if auth is already initialized (has user or has been validated)
+		// Check if auth is already initialized
 		const currentState = get(authStore);
 		if (currentState.isAuthenticated && currentState.user) {
-			console.log('AuthGuard: Auth already initialized with valid user');
 			initComplete = true;
 			return;
 		}
 
-		// Initialize authentication state by validating current session
-		try {
-			console.log('AuthGuard: Validating current session');
-			const isValid = await authActions.validateSession();
+		// Check if user data was loaded server-side via hooks.server.ts
+		const pageData = get(page);
+		const serverUser = pageData?.data?.user;
 
-			if (isValid) {
-				console.log('AuthGuard: Session validation successful');
-			} else {
-				console.log('AuthGuard: No valid session found');
-			}
-		} catch (error) {
-			// Log the error but don't throw - user is simply not authenticated
-			console.log('AuthGuard: Session validation failed:', error.message);
-		} finally {
+		if (serverUser?.id) {
+			// Use server-loaded user data instead of making another verification call
+			// This avoids duplicate /api/auth/verify requests since hooks.server.ts already validated
+			await authActions.setUser({
+				id: serverUser.id,
+				email: serverUser.email,
+				displayName: serverUser.displayName || serverUser.email.split('@')[0] || 'User',
+				onboardingStatus: 'Active',
+				isActive: true
+			});
 			initComplete = true;
+			return;
 		}
+
+		// No server user data - likely on a public page, just mark as complete
+		initComplete = true;
 	});
 </script>
 

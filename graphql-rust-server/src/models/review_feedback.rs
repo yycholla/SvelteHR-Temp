@@ -81,7 +81,7 @@ impl Related<super::user::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {}
 
 /// GraphQL Object implementation for ReviewFeedback
-#[Object]
+#[Object(name = "review_feedback_Model")]
 impl Model {
     /// Unique review feedback identifier
     async fn id(&self) -> Uuid {

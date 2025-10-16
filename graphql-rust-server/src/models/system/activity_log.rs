@@ -59,7 +59,7 @@ impl Related<crate::models::user::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {}
 
 /// GraphQL Object implementation for ActivityLog
-#[Object]
+#[Object(name = "system_activity_log_Model")]
 impl Model {
     /// Unique activity log identifier
     async fn id(&self) -> Uuid {
@@ -256,7 +256,7 @@ pub struct ActivityLogsConnection {
     pub page_info: PageInfo,
 }
 
-#[Object]
+#[Object(name = "system_activity_log_ActivityLogsConnection")]
 impl ActivityLogsConnection {
     async fn nodes(&self) -> &Vec<Model> {
         &self.nodes

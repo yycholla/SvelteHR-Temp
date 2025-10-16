@@ -69,7 +69,7 @@ pub struct UserRoleAssignmentsConnection {
     pub total_count: i64,
 }
 
-#[Object]
+#[Object(name = "user_role_assignment_UserRoleAssignmentsConnection")]
 impl UserRoleAssignmentsConnection {
     async fn nodes(&self) -> &Vec<Model> {
         &self.nodes
@@ -81,7 +81,7 @@ impl UserRoleAssignmentsConnection {
 }
 
 /// GraphQL Object implementation for UserRoleAssignment
-#[Object]
+#[Object(name = "user_role_assignment_Model")]
 impl Model {
     /// Unique assignment identifier
     async fn id(&self) -> Uuid {

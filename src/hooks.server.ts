@@ -2,13 +2,14 @@ import type { Handle } from '@sveltejs/kit';
 import { serverPerformanceMonitor } from '$lib/performance/server-monitor.js';
 import { createStandardError } from '$lib/utils/error-handling.js';
 import { redirect } from '@sveltejs/kit';
+import { authConfig } from '$lib/auth/config.js';
 
 /**
  * Server-side hooks for session-based authentication, performance optimization and monitoring
  */
 
-// Define public routes that don't require authentication
-const PUBLIC_ROUTES = [
+// Define public routes that don't require authentication (using Set for O(1) lookups)
+const PUBLIC_ROUTES = new Set([
 	'/',
 	'/login',
 	'/login-simple',
@@ -17,46 +18,224 @@ const PUBLIC_ROUTES = [
 	'/terms',
 	'/api/auth/login',
 	'/api/health'
-];
+]);
 
-// Helper function to authenticate user via session validation
-async function authenticateUser(): Promise<{
+// Static file extensions to skip authentication for
+const STATIC_EXTENSIONS = new Set([
+	'.js', '.css', '.woff', '.woff2', '.ttf', '.eot',
+	'.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp',
+	'.ico', '.json', '.map'
+]);
+
+/**
+ * Session Cache Implementation
+ * Caches validated sessions to reduce backend API calls
+ */
+interface CachedSession {
+	user: any;
+	roles: string[];
+	permissions: string[];
+	expiresAt: number;
+}
+
+const SESSION_CACHE = new Map<string, CachedSession>();
+const SESSION_CACHE_TTL = 60 * 1000; // 60 seconds cache TTL
+
+/**
+ * Clean expired sessions from cache periodically
+ */
+setInterval(() => {
+	const now = Date.now();
+	for (const [key, value] of SESSION_CACHE.entries()) {
+		if (value.expiresAt < now) {
+			SESSION_CACHE.delete(key);
+		}
+	}
+}, 5 * 60 * 1000); // Cleanup every 5 minutes
+
+/**
+ * Rate Limiting for Login Attempts
+ * Prevents brute force attacks by limiting login attempts per IP
+ */
+interface RateLimitEntry {
+	attempts: number;
+	firstAttempt: number;
+	blockedUntil?: number;
+}
+
+const RATE_LIMIT_MAP = new Map<string, RateLimitEntry>();
+const MAX_LOGIN_ATTEMPTS = 5;
+const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
+const BLOCK_DURATION = 60 * 60 * 1000; // 1 hour block after max attempts
+
+/**
+ * Check if IP is rate limited for login attempts
+ */
+export function isRateLimited(ip: string): boolean {
+	const entry = RATE_LIMIT_MAP.get(ip);
+	if (!entry) return false;
+
+	const now = Date.now();
+
+	// Check if currently blocked
+	if (entry.blockedUntil && now < entry.blockedUntil) {
+		return true;
+	}
+
+	// Reset if window expired
+	if (now - entry.firstAttempt > RATE_LIMIT_WINDOW) {
+		RATE_LIMIT_MAP.delete(ip);
+		return false;
+	}
+
+	// Check if attempts exceeded
+	return entry.attempts >= MAX_LOGIN_ATTEMPTS;
+}
+
+/**
+ * Record failed login attempt
+ */
+export function recordFailedLogin(ip: string): void {
+	const now = Date.now();
+	const entry = RATE_LIMIT_MAP.get(ip);
+
+	if (!entry) {
+		// First attempt
+		RATE_LIMIT_MAP.set(ip, {
+			attempts: 1,
+			firstAttempt: now
+		});
+		return;
+	}
+
+	// Reset if window expired
+	if (now - entry.firstAttempt > RATE_LIMIT_WINDOW) {
+		RATE_LIMIT_MAP.set(ip, {
+			attempts: 1,
+			firstAttempt: now
+		});
+		return;
+	}
+
+	// Increment attempts
+	entry.attempts++;
+
+	// Block if max attempts reached
+	if (entry.attempts >= MAX_LOGIN_ATTEMPTS) {
+		entry.blockedUntil = now + BLOCK_DURATION;
+		console.warn(`🚨 IP ${ip} blocked for ${BLOCK_DURATION / 1000}s after ${MAX_LOGIN_ATTEMPTS} failed login attempts`);
+	}
+}
+
+/**
+ * Clear rate limit for IP (on successful login)
+ */
+export function clearRateLimit(ip: string): void {
+	RATE_LIMIT_MAP.delete(ip);
+}
+
+/**
+ * Clean expired rate limit entries periodically
+ */
+setInterval(() => {
+	const now = Date.now();
+	for (const [ip, entry] of RATE_LIMIT_MAP.entries()) {
+		// Remove if block expired and window expired
+		if (
+			(!entry.blockedUntil || now > entry.blockedUntil) &&
+			now - entry.firstAttempt > RATE_LIMIT_WINDOW
+		) {
+			RATE_LIMIT_MAP.delete(ip);
+		}
+	}
+}, 10 * 60 * 1000); // Cleanup every 10 minutes
+
+/**
+ * Extract session ID from cookie header for cache key
+ */
+function extractSessionId(cookieHeader: string): string | null {
+	const match = cookieHeader.match(/hr_token=([^;]+)/);
+	return match ? match[1] : null;
+}
+
+// Helper function to authenticate user via session validation with caching
+async function authenticateUser(event: any, pathname: string): Promise<{
 	user: any;
 	roles: string[];
 	permissions: string[];
 } | null> {
 	try {
-		console.log(`🔐 Validating session with backend`);
+		// Extract session cookie from the incoming request
+		const cookieHeader = event.request.headers.get('cookie') || '';
+		const sessionId = extractSessionId(cookieHeader);
 
-		// Call the Rust backend's session verification endpoint
-		const response = await fetch('http://localhost:4000/auth/me', {
+		// Check cache first (if we have a session ID)
+		if (sessionId) {
+			const cached = SESSION_CACHE.get(sessionId);
+			if (cached && cached.expiresAt > Date.now()) {
+				// Concise: only log for non-verify endpoints to avoid spam
+				if (!pathname.includes('/api/auth/verify') && !pathname.includes('/api/notifications')) {
+					console.log(`✓ ${pathname} | Cache hit`);
+				}
+				return {
+					user: cached.user,
+					roles: cached.roles,
+					permissions: cached.permissions
+				};
+			}
+		}
+
+		// Get backend URL from environment variable (handles both local and Docker networking)
+		const backendUrl = process.env.PUBLIC_API_URL || 'http://localhost:4000';
+		const authUrl = `${backendUrl}/auth/me`;
+
+		// Call the Rust backend's session verification endpoint with forwarded cookies
+		const response = await fetch(authUrl, {
 			method: 'GET',
 			headers: {
-				'Content-Type': 'application/json'
-			}
-			// Cookies will be sent automatically
+				'Content-Type': 'application/json',
+				'Cookie': cookieHeader, // Forward session cookies from browser
+				'Connection': 'keep-alive' // Enable connection reuse
+			},
+			credentials: 'include'
 		});
 
 		if (!response.ok) {
 			if (response.status === 401) {
-				console.log(`❌ Session invalid or expired`);
+				console.error(`✗ ${pathname} | Session invalid`);
+				// Clear cache for this session if it exists
+				if (sessionId) SESSION_CACHE.delete(sessionId);
 				return null;
 			}
-			console.error(`❌ Session validation failed with status: ${response.status}`);
+			console.error(`✗ ${pathname} | Validation failed (${response.status})`);
 			return null;
 		}
 
 		const userData = await response.json();
-		console.log(`✅ User authenticated via session:`, userData);
 
 		// Transform to expected format
-		return {
+		const authResult = {
 			user: userData,
 			roles: [userData.role],
-			permissions: [] // TODO: Add permissions from backend
+			permissions: userData.permissions || [] // Permissions from backend session
 		};
+
+		// Cache the validated session
+		if (sessionId) {
+			SESSION_CACHE.set(sessionId, {
+				...authResult,
+				expiresAt: Date.now() + SESSION_CACHE_TTL
+			});
+		}
+
+		// Concise: only log for non-verify endpoints to avoid spam
+		if (!pathname.includes('/api/auth/verify') && !pathname.includes('/api/notifications')) {
+			console.log(`✓ ${pathname} | Cache miss | ${userData.email}`);
+		}
+
+		return authResult;
 	} catch (error) {
-		console.error(`❌ Session validation error:`, error);
+		console.error(`✗ ${pathname} | Error:`, error instanceof Error ? error.message : error);
 		return null;
 	}
 }
@@ -66,23 +245,39 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const startTime = Date.now();
 
 	try {
-		// Check if this is a public route
-		const isPublicRoute = PUBLIC_ROUTES.some((route) => {
-			if (route === '/') return event.url.pathname === '/';
-			return event.url.pathname.startsWith(route);
-		});
+		const pathname = event.url.pathname;
 
-		console.log(`🌐 ${event.request.method} ${event.url.pathname} (public: ${isPublicRoute})`);
+		// Performance optimization: Skip authentication for static files
+		const isStaticFile = STATIC_EXTENSIONS.has(pathname.substring(pathname.lastIndexOf('.')));
+		if (isStaticFile) {
+			return resolve(event);
+		}
+
+		// Check if this is a public route (O(1) lookup with Set)
+		const isPublicRoute = PUBLIC_ROUTES.has(pathname) ||
+			(pathname !== '/' && Array.from(PUBLIC_ROUTES).some(route =>
+				route !== '/' && pathname.startsWith(route)
+			));
 
 		let authResult = null;
 
 		// Try to authenticate user if not a public route
 		if (!isPublicRoute) {
-			authResult = await authenticateUser();
+			authResult = await authenticateUser(event, pathname);
 
 			if (!authResult) {
-				console.log(`🚫 Access denied to ${event.url.pathname} - redirecting to login`);
-				const redirectTo = encodeURIComponent(event.url.pathname + event.url.search);
+				// Special handling for SSE endpoints - return 401 instead of redirecting
+				// EventSource connections can't handle redirects properly
+				if (pathname.includes('/stream') || event.request.headers.get('accept') === 'text/event-stream') {
+					console.error(`✗ ${pathname} | SSE auth failed`);
+					return new Response(JSON.stringify({ error: 'Authentication required', code: 'AUTH_REQUIRED' }), {
+						status: 401,
+						headers: { 'Content-Type': 'application/json' }
+					});
+				}
+
+				console.error(`✗ ${pathname} | Unauthorized → /login`);
+				const redirectTo = encodeURIComponent(pathname + event.url.search);
 				throw redirect(303, `/login?redirectTo=${redirectTo}`);
 			}
 		}
@@ -92,9 +287,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 			event.locals.user = authResult.user;
 			event.locals.roles = authResult.roles;
 			event.locals.permissions = authResult.permissions;
-			console.log(
-				`👤 User ${authResult.user.email} authenticated with roles: ${authResult.roles.join(', ')}`
-			);
 		}
 
 		// Resolve the request
@@ -110,7 +302,50 @@ export const handle: Handle = async ({ event, resolve }) => {
 			event
 		);
 
-		// Add performance metrics to response headers
+		// Security headers
+		const isProduction = process.env.NODE_ENV === 'production';
+
+		// Prevent clickjacking attacks
+		response.headers.set('X-Frame-Options', 'DENY');
+
+		// Prevent MIME type sniffing
+		response.headers.set('X-Content-Type-Options', 'nosniff');
+
+		// XSS protection (legacy browsers)
+		response.headers.set('X-XSS-Protection', '1; mode=block');
+
+		// Referrer policy - only send origin for cross-origin requests
+		response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+		// Permissions policy - restrict dangerous features
+		response.headers.set(
+			'Permissions-Policy',
+			'camera=(), microphone=(), geolocation=(), payment=()'
+		);
+
+		// Content Security Policy (CSP) - strict policy
+		const cspDirectives = [
+			"default-src 'self'",
+			"script-src 'self' 'unsafe-inline' 'unsafe-eval'", // TODO: Remove unsafe-eval once app is CSP-compliant
+			"style-src 'self' 'unsafe-inline'",
+			"img-src 'self' data: https:",
+			"font-src 'self' data:",
+			"connect-src 'self' http://localhost:4000 ws://localhost:*", // Backend API and WebSocket
+			"frame-ancestors 'none'",
+			"base-uri 'self'",
+			"form-action 'self'"
+		];
+		response.headers.set('Content-Security-Policy', cspDirectives.join('; '));
+
+		// Strict Transport Security (HSTS) - enforce HTTPS in production
+		if (isProduction) {
+			response.headers.set(
+				'Strict-Transport-Security',
+				'max-age=31536000; includeSubDomains; preload'
+			);
+		}
+
+		// Performance metrics header
 		response.headers.set('X-Response-Time', `${duration}ms`);
 
 		return response;
@@ -179,6 +414,13 @@ export const handleError = ({ error, event }: { error: any; event: any }) => {
 };
 
 console.log('🛡️  Server performance optimization and monitoring initialized');
+console.log(`⚡ Session caching enabled (TTL: ${SESSION_CACHE_TTL}ms, cleanup: 5min intervals)`);
+console.log(`📁 Static file optimization: ${STATIC_EXTENSIONS.size} extensions`);
+console.log(`🔒 Security hardening enabled:`);
+console.log(`   - Rate limiting: ${MAX_LOGIN_ATTEMPTS} attempts per ${RATE_LIMIT_WINDOW / 1000 / 60}min`);
+console.log(`   - Block duration: ${BLOCK_DURATION / 1000 / 60}min after max attempts`);
+console.log(`   - Security headers: CSP, HSTS, X-Frame-Options, etc.`);
+console.log(`   - CSRF protection: ${authConfig.security.enableCSRF ? 'enabled' : 'disabled'}`);
 
 // Initialize event reminder scheduler
 import { ReminderScheduler } from '$lib/server/reminder-scheduler';

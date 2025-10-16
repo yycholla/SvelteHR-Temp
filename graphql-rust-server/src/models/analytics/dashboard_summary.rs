@@ -19,7 +19,7 @@ pub struct DashboardSummary {
 }
 
 /// GraphQL Object implementation with camelCase field names
-#[Object]
+#[Object(name = "analytics_dashboard_summary_DashboardSummary")]
 impl DashboardSummary {
     #[graphql(name = "summaryKey")]
     async fn summary_key(&self) -> &str {

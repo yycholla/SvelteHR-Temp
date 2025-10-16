@@ -97,7 +97,7 @@ impl Related<super::user::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {}
 
 /// GraphQL Object implementation for ReviewCycle
-#[Object]
+#[Object(name = "review_cycle_Model")]
 impl Model {
     /// Unique review cycle identifier
     async fn id(&self) -> Uuid {
