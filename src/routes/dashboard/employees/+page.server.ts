@@ -20,7 +20,7 @@ export const load: PageServerLoad = async (event) => {
 	// Create user session from server locals
 	const userSession = createUserSession({
 		userId: locals.user.id,
-		jwtToken: cookies.get('hr_token') || '',
+		jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
 		roles: [locals.user.role || 'employee'],
 		permissions: locals.permissions || [],
 		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes from now
@@ -47,7 +47,8 @@ export const load: PageServerLoad = async (event) => {
 			statusFilter,
 			page,
 			limit,
-			includeInactive: userSession.roles.includes('hr_manager') || userSession.roles.includes('hr_admin')
+			includeInactive:
+				userSession.roles.includes('hr_manager') || userSession.roles.includes('hr_admin')
 		},
 		userCredentials: {
 			userId: userSession.userId,
@@ -68,16 +69,15 @@ export const load: PageServerLoad = async (event) => {
 		const graphqlEndpoint = getGraphQLEndpoint();
 
 		// Get JWT token from cookies for Rust GraphQL server authentication
-		const jwtToken = cookies.get('hr_token') || '';
-
-		// Headers with JWT Bearer token for Rust server authorization
+		// Headers for session-based authentication (cookies sent automatically)
 		const headers: Record<string, string> = {
-			'Content-Type': 'application/json',
-			'Authorization': `Bearer ${jwtToken}`
+			'Content-Type': 'application/json'
 		};
 
-		console.log('[Employee Directory] Using Rust GraphQL with Guard-based RBAC, user role:', locals.user?.role);
-		console.log('[Employee Directory] JWT token present:', Boolean(jwtToken));
+		console.log(
+			'[Employee Directory] Using Rust GraphQL with session-based auth, user role:',
+			locals.user?.role
+		);
 		console.log('[Employee Directory] Filters:', { searchTerm, departmentFilter, statusFilter });
 
 		// Build filter condition based on query parameters
@@ -137,10 +137,13 @@ export const load: PageServerLoad = async (event) => {
 		let employees = employeesData?.data?.users || [];
 
 		// Debug: Check isActive values
-		console.log('[Employee Directory] Employee isActive values:', employees.map((e: any) => ({
-			email: e.email,
-			isActive: e.isActive
-		})));
+		console.log(
+			'[Employee Directory] Employee isActive values:',
+			employees.map((e: any) => ({
+				email: e.email,
+				isActive: e.isActive
+			}))
+		);
 
 		// Server-side filtering for isActive status
 		if (statusFilter === 'active') {

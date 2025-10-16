@@ -38,7 +38,6 @@ export const load: PageServerLoad = async (event) => {
 	const client = GraphQLClient.fromCookies(cookies);
 
 	// Get JWT token for return data
-	const jwtToken = cookies.get('hr_token') || cookies.get('auth-token') || '';
 
 	// Extract search parameters for filtering and pagination
 	const searchTerm = url.searchParams.get('search') || '';
@@ -117,8 +116,7 @@ export const load: PageServerLoad = async (event) => {
 				const employeesResponse = await fetch(graphqlEndpoint, {
 					method: 'POST',
 					headers: {
-						'Content-Type': 'application/json',
-						Authorization: `Bearer ${jwtToken}`
+						'Content-Type': 'application/json'
 					},
 					body: JSON.stringify({
 						query: `
@@ -257,7 +255,7 @@ export const load: PageServerLoad = async (event) => {
 				userId: locals.user?.id || '',
 				userEmail: locals.user?.email || '',
 				role: locals.user?.role || 'employee',
-				accessToken: jwtToken
+				accessToken: '' // Session-based auth doesn't use access tokens
 			},
 			performanceReviews: filteredReviews,
 			totalReviews: reviewsData.performanceReviewsCount,
@@ -309,7 +307,7 @@ export const load: PageServerLoad = async (event) => {
 				userId: locals.user?.id || '',
 				userEmail: locals.user?.email || '',
 				role: locals.user?.role || 'employee',
-				accessToken: jwtToken
+				accessToken: '' // Session-based auth doesn't use access tokens
 			},
 			performanceReviews: [],
 			totalReviews: 0,

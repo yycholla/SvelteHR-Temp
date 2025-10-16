@@ -34,7 +34,7 @@ export const load: PageServerLoad = async (event) => {
 					userId: locals.user.id,
 					userEmail: locals.user.email || '',
 					role: locals.user.role || 'employee',
-					accessToken: cookies.get('hr_token') || cookies.get('auth-token') || ''
+					accessToken: '' // Session-based auth doesn't use access tokens
 				},
 				dashboardMetrics: [],
 				recentActivities: [],
@@ -472,7 +472,7 @@ export const load: PageServerLoad = async (event) => {
 				userId: locals.user.id,
 				userEmail: locals.user.email || '',
 				role: userRole,
-				accessToken: cookies.get('hr_token') || cookies.get('auth-token') || ''
+				accessToken: '' // Session-based auth doesn't use access tokens
 			},
 			dashboardData: {
 				metrics: {
@@ -564,7 +564,7 @@ export const load: PageServerLoad = async (event) => {
 				userId: locals.user.id,
 				userEmail: locals.user.email || '',
 				role: locals.user.role || 'employee',
-				accessToken: cookies.get('hr_token') || cookies.get('auth-token') || ''
+				accessToken: '' // Session-based auth doesn't use access tokens
 			},
 			dashboardMetrics: [],
 			recentActivities: [],

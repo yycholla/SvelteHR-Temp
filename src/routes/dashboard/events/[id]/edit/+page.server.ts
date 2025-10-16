@@ -14,13 +14,13 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 	}
 
 	// Get user credentials for GraphQL operations
-	const token = cookies.get('hr_token') || cookies.get('auth-token');
+	// Token retrieval removed - session auth handled by server hooks
 	if (!token) {
 		throw redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
 
 	const userCredentials = {
-		jwtToken: token,
+		jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
 		userId: locals.user.id,
 		roles: locals.roles || [],
 		permissions: locals.permissions || [],

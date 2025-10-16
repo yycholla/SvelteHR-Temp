@@ -12,12 +12,6 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		throw redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
 
-	// Get user credentials for GraphQL operations
-	const token = cookies.get('hr_token') || cookies.get('auth-token');
-	if (!token) {
-		throw redirect(303, `/login?redirectTo=${url.pathname}`);
-	}
-
 	try {
 		// Get GraphQL endpoint
 		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
@@ -27,10 +21,9 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		const page = parseInt(url.searchParams.get('page') || '1');
 		const limit = parseInt(url.searchParams.get('limit') || '50');
 
-		// Headers with JWT authentication for Rust GraphQL server
+		// Headers for session-based authentication (cookies sent automatically)
 		const headers: Record<string, string> = {
-			'Content-Type': 'application/json',
-			'Authorization': `Bearer ${token}`
+			'Content-Type': 'application/json'
 		};
 
 		console.log('[Activities] Loading activities for user:', locals.user.id);

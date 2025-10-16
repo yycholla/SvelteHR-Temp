@@ -13,7 +13,7 @@ export interface AuthConfig {
 		refreshThreshold: number; // Minutes before expiry to refresh
 	};
 
-	// Token Storage Configuration
+	// Token Storage Configuration (JWT - legacy)
 	tokens: {
 		accessTokenName: string;
 		refreshTokenName: string;
@@ -36,11 +36,26 @@ export interface AuthConfig {
 		verifyEndpoint: string;
 	};
 
-	// Session Configuration
-	session: {
+	// Session Management Configuration (JWT session behavior)
+	sessionManagement: {
 		timeout: number; // minutes
 		warningTime: number; // minutes before timeout to warn
 		extendOnActivity: boolean;
+	};
+
+	// Session Cookie Configuration (new session-based auth)
+	sessionCookies: {
+		cookieName: string;
+		cookieOptions: {
+			httpOnly: boolean;
+			secure: boolean;
+			sameSite: 'strict' | 'lax' | 'none';
+			path: string;
+			maxAge: number; // seconds (30 minutes default)
+			domain?: string;
+		};
+		timeout: number; // minutes
+		renewalThreshold: number; // minutes before expiry to renew
 	};
 
 	// Security Configuration
@@ -89,10 +104,25 @@ const defaultConfig: AuthConfig = {
 		verifyEndpoint: '/auth/verify'
 	},
 
-	session: {
+	// Session Management Configuration (JWT session behavior)
+	sessionManagement: {
 		timeout: 60 * 8, // 8 hours
 		warningTime: 5, // Warn 5 minutes before timeout
 		extendOnActivity: true
+	},
+
+	// Session Cookie Configuration (new session-based auth)
+	sessionCookies: {
+		cookieName: 'hr_session',
+		cookieOptions: {
+			httpOnly: true,
+			secure: !browser || window.location.protocol === 'https:',
+			sameSite: 'strict',
+			path: '/',
+			maxAge: 30 * 60 // 30 minutes
+		},
+		timeout: 30, // 30 minutes
+		renewalThreshold: 5 // Renew 5 minutes before expiry
 	},
 
 	security: {
@@ -122,8 +152,8 @@ const environmentConfig: Partial<AuthConfig> = {
 
 	// Test overrides
 	...(process.env.NODE_ENV === 'test' && {
-		session: {
-			...defaultConfig.session,
+		sessionManagement: {
+			...defaultConfig.sessionManagement,
 			timeout: 5 // Short timeout for tests
 		},
 		security: {
@@ -151,7 +181,8 @@ export const authConfig: AuthConfig = {
 		}
 	},
 	api: { ...defaultConfig.api, ...environmentConfig.api },
-	session: { ...defaultConfig.session, ...environmentConfig.session },
+	sessionManagement: { ...defaultConfig.sessionManagement, ...environmentConfig.sessionManagement },
+	sessionCookies: { ...defaultConfig.sessionCookies, ...environmentConfig.sessionCookies },
 	security: {
 		...defaultConfig.security,
 		...environmentConfig.security,
@@ -190,7 +221,7 @@ export function validateAuthConfig(config: AuthConfig): void {
 	}
 
 	// Session validation
-	if (config.session.timeout <= config.session.warningTime) {
+	if (config.sessionManagement.timeout <= config.sessionManagement.warningTime) {
 		throw new Error('Session timeout must be greater than warning time');
 	}
 

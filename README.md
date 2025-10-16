@@ -89,8 +89,8 @@ A comprehensive HR management system built with **SvelteKit 2.22.0**, **Svelte 5
 - **MountainHR Go Backend** with RESTful API
 - **PostGraphile** for auto-generated GraphQL from PostgreSQL
 - **urql 4.x** GraphQL client with Svelte 5 integration
-- **JWT Authentication** with automatic token refresh
-- **Better Auth 1.3.4** for modern authentication
+- **Session-Based Authentication** with axum-login (Rust backend)
+- **Security-First Design** with brute force protection and audit logging
 
 ### Database & Security
 
@@ -250,10 +250,10 @@ tests/
 
 ### Authentication
 
-- **Bearer Token Authentication**: `Authorization: Bearer <jwt_token>` required for all API calls
-- **JWT tokens** stored in cookies as `hr_token` or `auth-token`
-- **Server-side verification** via `hooks.server.ts` using `/api/v2/auth/verify`
-- **Automatic token cleanup** when invalid or expired
+- **Session-Based Authentication**: Server-side sessions with 30-minute timeout
+- **Secure Session Management**: Automatic cleanup and persistence across server restarts
+- **Brute Force Protection**: Progressive delays, account lockout, and rate limiting
+- **Security Event Logging**: Comprehensive audit trail for all authentication activities
 
 ### RBAC (Role-Based Access Control)
 
@@ -429,7 +429,9 @@ All components built with Svelte 5 runes syntax and comprehensive Storybook docu
 ## 🔒 Security Features
 
 - ✅ **Row-Level Security (RLS)** enforced at database level
-- ✅ **JWT Authentication** with automatic token refresh
+- ✅ **Session-Based Authentication** with axum-login (30-minute timeout)
+- ✅ **Brute Force Protection** with progressive delays and account lockout
+- ✅ **Security Event Logging** for all authentication activities
 - ✅ **Permission-based Access Control** with role hierarchy
 - ✅ **Immutable Audit Logs** for compliance
 - ✅ **Database Triggers** for automatic logging

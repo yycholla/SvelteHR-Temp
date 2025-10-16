@@ -13,9 +13,6 @@ export const load: PageServerLoad = async ({ locals, url, parent, cookies, fetch
 		throw error(403, 'Admin access required');
 	}
 
-	// Get JWT token for authenticated GraphQL queries (optional)
-	const jwtToken = cookies.get('hr_token') || cookies.get('auth-token') || '';
-
 	// Get pagination parameters - reduced to 20 for better performance
 	const page = parseInt(url.searchParams.get('page') || '1');
 	const limit = parseInt(url.searchParams.get('limit') || '20');
@@ -27,8 +24,8 @@ export const load: PageServerLoad = async ({ locals, url, parent, cookies, fetch
 	const statusFilter = url.searchParams.get('status') || '';
 
 	try {
-		// Create GraphQL client with server-side fetch and optional JWT
-		const client = jwtToken ? createUrqlClient(fetchFn, jwtToken) : createUrqlClient(fetchFn);
+		// Create GraphQL client with server-side fetch (session-based auth)
+		const client = createUrqlClient(fetchFn);
 
 		// Build condition object for server-side filtering
 		const condition: any = {};

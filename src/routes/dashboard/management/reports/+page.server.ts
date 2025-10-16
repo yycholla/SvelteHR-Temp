@@ -39,7 +39,7 @@ export const load: PageServerLoad = async (event) => {
 					userId: locals.user.id,
 					userEmail: locals.user.email || '',
 					role: locals.user.role || 'employee',
-					accessToken: cookies.get('hr_token') || ''
+					accessToken: '' // Session-based auth doesn't use access tokens
 				},
 				reports: [],
 				totalReports: 0,
@@ -208,7 +208,7 @@ export const load: PageServerLoad = async (event) => {
 				userId: locals.user.id,
 				userEmail: locals.user.email || '',
 				role: locals.user.role || 'employee',
-				accessToken: cookies.get('hr_token') || ''
+				accessToken: '' // Session-based auth doesn't use access tokens
 			},
 			reports,
 			totalReports: totalCount,
@@ -251,7 +251,7 @@ export const load: PageServerLoad = async (event) => {
 				userId: locals.user.id,
 				userEmail: locals.user.email || '',
 				role: locals.user.role || 'employee',
-				accessToken: cookies.get('hr_token') || ''
+				accessToken: '' // Session-based auth doesn't use access tokens
 			},
 			reports: [],
 			totalReports: 0,

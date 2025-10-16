@@ -14,7 +14,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	}
 
 	// Get user credentials for GraphQL operations
-	const token = cookies.get('hr_token') || cookies.get('auth-token');
+	// Token retrieval removed - session auth handled by server hooks
 	if (!token) {
 		throw redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
@@ -197,7 +197,7 @@ export const actions: Actions = {
 			throw redirect(303, '/login');
 		}
 
-		const token = cookies.get('hr_token') || cookies.get('auth-token');
+		// Token retrieval removed - session auth handled by server hooks
 		if (!token) {
 			throw redirect(303, '/login');
 		}
@@ -232,7 +232,7 @@ export const actions: Actions = {
 			const eventsOps = new EventsOperations(urqlClient);
 
 			const userCredentials = {
-				jwtToken: token,
+				jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
 				userId: locals.user.id,
 				roles: locals.roles || [],
 				permissions: locals.permissions || [],

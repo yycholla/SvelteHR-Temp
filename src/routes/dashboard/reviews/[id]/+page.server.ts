@@ -10,29 +10,22 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { createUrqlClient, executeQuery } from '$lib/graphql/graphql/client';
-import { GET_PERFORMANCE_REVIEW, GET_EMPLOYEE_GOALS } from '$lib/graphql/graphql/reviews-operations';
+import {
+	GET_PERFORMANCE_REVIEW,
+	GET_EMPLOYEE_GOALS
+} from '$lib/graphql/graphql/reviews-operations';
 import { canViewReview, canEditReview } from '$lib/utils/rbac';
 
 export const load: PageServerLoad = async ({ params, locals, cookies, fetch: fetchFn }) => {
 	const reviewId = params.id;
 
-	// Get JWT token
-	const jwtToken = cookies.get('hr_token') || cookies.get('auth-token');
-	if (!jwtToken) {
-		throw error(401, 'Authentication required');
-	}
-
-	// Check authentication
-	if (!locals.user) {
-		throw error(401, 'Authentication required');
-	}
-
+	// Authentication handled by server hooks
 	const userId = locals.user.id;
 	const userRole = locals.user.role || 'employee';
 
 	try {
-		// Create GraphQL client
-		const client = createUrqlClient(fetchFn, jwtToken);
+		// Create GraphQL client (session-based auth)
+		const client = createUrqlClient(fetchFn);
 
 		// Query: Get performance review by ID
 		const reviewData = await executeQuery<{

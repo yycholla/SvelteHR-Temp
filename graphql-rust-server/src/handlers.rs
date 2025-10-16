@@ -6,7 +6,7 @@ use axum::{
     http::StatusCode,
 };
 use axum_login::AuthSession;
-use sea_orm::{DatabaseConnection, EntityTrait, ColumnTrait, QueryFilter};
+use sea_orm::{DatabaseConnection, EntityTrait, ColumnTrait, QueryFilter, ActiveModelTrait};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::net::SocketAddr;
@@ -54,9 +54,14 @@ pub async fn login_handler(
 ) -> Result<Json<LoginResponse>, StatusCode> {
     let client_ip = addr.ip().to_string();
 
-    // Rate limiting: Check if IP is rate limited
-    if auth_session.backend.rate_limiter().is_rate_limited(&client_ip).await {
-        tracing::warn!("Rate limit exceeded for IP: {}", client_ip);
+    // Rate limiting: Check if IP or account is rate limited
+    if auth_session.backend.rate_limiter().is_ip_rate_limited(&client_ip).await {
+        tracing::warn!("IP rate limit exceeded for IP: {}", client_ip);
+        return Err(StatusCode::TOO_MANY_REQUESTS);
+    }
+
+    if auth_session.backend.rate_limiter().is_account_rate_limited(&login_req.email).await {
+        tracing::warn!("Account rate limit exceeded for email: {}", login_req.email);
         return Err(StatusCode::TOO_MANY_REQUESTS);
     }
 
@@ -82,14 +87,41 @@ pub async fn login_handler(
             Ok(Json(response))
         }
         Ok(None) => {
-            // Authentication failed - record rate limiting attempt
-            auth_session.backend.rate_limiter().record_attempt(&client_ip).await;
+            // Authentication failed - record rate limiting attempts
+            auth_session.backend.rate_limiter().record_ip_attempt(&client_ip).await;
+            auth_session.backend.rate_limiter().record_account_attempt(&login_req.email).await;
+
+            // Log additional security event with IP and user agent
+            let activity_log = crate::models::system::activity_log::ActiveModel {
+                id: sea_orm::ActiveValue::Set(uuid::Uuid::new_v4()),
+                user_id: sea_orm::ActiveValue::Set(uuid::Uuid::nil()), // No user ID for failed login
+                employee_id: sea_orm::ActiveValue::NotSet,
+                action: sea_orm::ActiveValue::Set("login_failed".to_string()),
+                resource_type: sea_orm::ActiveValue::Set("authentication".to_string()),
+                resource_id: sea_orm::ActiveValue::NotSet,
+                details: sea_orm::ActiveValue::Set(Some(serde_json::json!({
+                    "email": login_req.email,
+                    "reason": "authentication_failed"
+                }))),
+                before_snapshot: sea_orm::ActiveValue::NotSet,
+                after_snapshot: sea_orm::ActiveValue::NotSet,
+                is_rollback: sea_orm::ActiveValue::Set(false),
+                rolled_back_log_id: sea_orm::ActiveValue::NotSet,
+                ip_address: sea_orm::ActiveValue::Set(Some(client_ip.clone())),
+                user_agent: sea_orm::ActiveValue::NotSet, // Would need to extract from headers
+                signature_id: sea_orm::ActiveValue::NotSet,
+                batch_id: sea_orm::ActiveValue::NotSet,
+                created_at: sea_orm::ActiveValue::Set(chrono::Utc::now().into()),
+            };
+            let _ = activity_log.insert(&_db).await;
+
             tracing::warn!("Failed login attempt from IP: {} for user: {}", client_ip, login_req.email);
             Err(StatusCode::UNAUTHORIZED)
         }
         Err(_) => {
-            // Internal error - still record the attempt for rate limiting
-            auth_session.backend.rate_limiter().record_attempt(&client_ip).await;
+            // Internal error - still record the attempts for rate limiting
+            auth_session.backend.rate_limiter().record_ip_attempt(&client_ip).await;
+            auth_session.backend.rate_limiter().record_account_attempt(&login_req.email).await;
             Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
@@ -98,13 +130,28 @@ pub async fn login_handler(
 /// Logout handler
 pub async fn logout_handler(
     mut auth_session: AuthSession<AuthBackend>,
+    State(db): State<DatabaseConnection>,
 ) -> Result<Redirect, StatusCode> {
+    // Get user ID before logout
+    let user_id = auth_session.user.as_ref().map(|u| u.id);
+
     match auth_session.logout().await {
         Ok(_) => {
+            // Deactivate all sessions for this user in database
+            if let Some(uid) = user_id {
+                if let Err(e) = crate::auth::session_store::deactivate_user_sessions(&db, uid).await {
+                    tracing::error!("Failed to deactivate user sessions during logout: {:?}", e);
+                    // Don't fail logout if session cleanup fails
+                }
+            }
+
             // Redirect to login page after logout
             Ok(Redirect::to("/login"))
         }
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+        Err(e) => {
+            tracing::error!("Logout error: {:?}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -128,20 +175,52 @@ pub async fn me_handler(
 /// Session refresh handler
 pub async fn refresh_handler(
     auth_session: AuthSession<AuthBackend>,
+    State(db): State<DatabaseConnection>,
 ) -> Result<Json<RefreshResponse>, StatusCode> {
     match &auth_session.user {
         Some(user) => {
-            // Session is valid, extend it by updating the session store
-            // The session store will automatically update the last_activity timestamp
-            // when the session is saved
+            // Find and update the session in database to extend expiration
+            // We need to get the current session ID from the session store
+            // For now, we'll extend all active sessions for this user
 
-            let response = RefreshResponse {
-                success: true,
-                session_expires: (chrono::Utc::now() + chrono::Duration::minutes(30)).to_rfc3339(),
-                message: "Session refreshed successfully".to_string(),
-            };
+            let now = chrono::Utc::now();
+            let new_expires_at = now + chrono::Duration::minutes(30);
 
-            Ok(Json(response))
+            // Update session expiration in database
+            let update_result = crate::models::user_session::Entity::update_many()
+                .col_expr(
+                    crate::models::user_session::Column::ExpiresAt,
+                    sea_orm::prelude::Expr::value(new_expires_at)
+                )
+                .col_expr(
+                    crate::models::user_session::Column::LastActivity,
+                    sea_orm::prelude::Expr::value(now)
+                )
+                .filter(crate::models::user_session::Column::UserId.eq(user.id))
+                .filter(crate::models::user_session::Column::IsActive.eq(true))
+                .filter(crate::models::user_session::Column::ExpiresAt.gt(now))
+                .exec(&db)
+                .await;
+
+            match update_result {
+                Ok(_) => {
+                    let response = RefreshResponse {
+                        success: true,
+                        session_expires: new_expires_at.to_rfc3339(),
+                        message: "Session refreshed successfully".to_string(),
+                    };
+                    Ok(Json(response))
+                }
+                Err(e) => {
+                    tracing::error!("Failed to refresh session: {:?}", e);
+                    let response = RefreshResponse {
+                        success: false,
+                        session_expires: String::new(),
+                        message: "Failed to refresh session".to_string(),
+                    };
+                    Ok(Json(response))
+                }
+            }
         }
         None => {
             let response = RefreshResponse {

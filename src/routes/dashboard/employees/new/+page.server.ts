@@ -24,27 +24,19 @@ export const load: PageServerLoad = async (event) => {
 		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
-		// Get JWT token for PostGraphile authentication
-		const jwtToken = cookies.get('hr_token') || cookies.get('postgraphile-jwt-token') || '';
 
-		// Decode JWT token to get user context
-		let jwtClaims = null;
-		if (jwtToken) {
-			try {
-				const { decodeJWTTokenUnsafe } = await import('$lib/auth/jwt-utils');
 				jwtClaims = await decodeJWTTokenUnsafe(jwtToken);
 			} catch (error) {
 				console.warn('[Employee New] Failed to decode JWT:', error);
 			}
 		}
 
-		// Set up proper headers for PostGraphile with JWT context
+		// Headers for session-based authentication
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json'
 		};
 
 		if (jwtClaims) {
-			headers['Authorization'] = `Bearer ${jwtToken}`;
 			headers['X-JWT-Claims-Role'] = jwtClaims.role || 'employee';
 			headers['X-JWT-Claims-User-Id'] = jwtClaims.user_id;
 		}
@@ -142,7 +134,6 @@ export const actions: Actions = {
 			const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 			const graphqlEndpoint = getGraphQLEndpoint();
 
-			const jwtToken = cookies.get('hr_token') || cookies.get('postgraphile-jwt-token') || '';
 
 			let jwtClaims = null;
 			if (jwtToken) {
@@ -159,7 +150,6 @@ export const actions: Actions = {
 			};
 
 			if (jwtClaims) {
-				headers['Authorization'] = `Bearer ${jwtToken}`;
 				headers['X-JWT-Claims-Role'] = jwtClaims.role || 'employee';
 				headers['X-JWT-Claims-User-Id'] = jwtClaims.user_id;
 			}

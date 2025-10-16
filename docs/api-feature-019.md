@@ -23,29 +23,40 @@ Complete GraphQL API reference for Events, Tasks, Activity Logging, and Notifica
 
 ## Authentication
 
-All API calls require JWT Bearer token authentication.
+The system uses **session-based authentication** with axum-login for secure user management. Sessions are stored server-side with automatic cleanup and security protections.
+
+### Authentication Flow
+
+1. **Login**: User credentials are validated against the database
+2. **Session Creation**: Successful login creates a server-side session with 30-minute timeout
+3. **Session Persistence**: Sessions survive server restarts and are automatically cleaned up
+4. **Logout**: Sessions are properly terminated with database cleanup
+
+### Security Features
+
+- **Brute Force Protection**: Progressive delays (0.5s → 1s → 2s → 4s) for failed attempts
+- **Account Lockout**: Accounts locked for 15 minutes after 5 failed attempts
+- **Rate Limiting**: Separate limits for IP addresses (10 attempts) and accounts (5 attempts) per 15-minute window
+- **Security Event Logging**: All authentication events logged to activity logs table
+
+### Server-Side Authentication
 
 ```typescript
 // Server-side authentication (REQUIRED)
 import { createUrqlClient } from '$lib/graphql/client';
 
 export const load: PageServerLoad = async ({ locals, cookies }) => {
-  // 1. Check authentication
-  if (!locals.user) {
-    throw redirect(303, '/login');
-  }
+	// 1. Check authentication via session
+	if (!locals.user) {
+		throw redirect(303, '/login');
+	}
 
-  // 2. Get JWT token from cookies
-  const token = cookies.get('hr_token') || cookies.get('auth-token');
-  if (!token) {
-    throw redirect(303, '/login');
-  }
+	// 2. Create authenticated GraphQL client
+	// Sessions are handled automatically by the backend
+	const urqlClient = createUrqlClient();
 
-  // 3. Create authenticated GraphQL client
-  const urqlClient = createUrqlClient(token);
-
-  // 4. Make authenticated requests
-  const { data, error } = await urqlClient.query(/* ... */).toPromise();
+	// 3. Make authenticated requests
+	const { data, error } = await urqlClient.query(/* ... */).toPromise();
 };
 ```
 
@@ -97,6 +108,7 @@ const result = await eventsOps.getAllEvents(
 ```
 
 **RLS Enforcement**: Users see only events matching their visibility level:
+
 - `company`: All authenticated users
 - `department`: Users in same department
 - `specific`: Only invited attendees
@@ -182,27 +194,28 @@ Create new event (manager or admin only).
 
 ```typescript
 const result = await eventsOps.createEvent(
-  {
-    title: 'Team Meeting',
-    description: 'Weekly sync meeting',
-    startTime: '2025-10-15T10:00:00Z',
-    endTime: '2025-10-15T11:00:00Z',
-    location: 'Conference Room A',
-    eventType: 'meeting',
-    visibilityType: 'company',
-    isAllDay: false,
-    organizerId: currentUser.id
-  },
-  { token: jwtToken }
+	{
+		title: 'Team Meeting',
+		description: 'Weekly sync meeting',
+		startTime: '2025-10-15T10:00:00Z',
+		endTime: '2025-10-15T11:00:00Z',
+		location: 'Conference Room A',
+		eventType: 'meeting',
+		visibilityType: 'company',
+		isAllDay: false,
+		organizerId: currentUser.id
+	},
+	{ token: jwtToken }
 );
 
 // Response
 {
-  event: Event;
+	event: Event;
 }
 ```
 
 **Validation**:
+
 - `title`: Required, 1-200 characters
 - `startTime`: Required, must be valid ISO 8601 timestamp
 - `endTime`: Required, must be after startTime
@@ -220,18 +233,18 @@ Update existing event (organizer or admin only).
 
 ```typescript
 const result = await eventsOps.updateEvent(
-  eventId,
-  {
-    title: 'Updated Title',
-    description: 'Updated description',
-    startTime: '2025-10-15T14:00:00Z'
-  },
-  { token: jwtToken }
+	eventId,
+	{
+		title: 'Updated Title',
+		description: 'Updated description',
+		startTime: '2025-10-15T14:00:00Z'
+	},
+	{ token: jwtToken }
 );
 
 // Response
 {
-  event: Event;
+	event: Event;
 }
 ```
 
@@ -244,15 +257,12 @@ Delete event (organizer or admin only).
 **Authorization**: User must be event organizer OR admin (level 100)
 
 ```typescript
-const result = await eventsOps.deleteEvent(
-  eventId,
-  { token: jwtToken }
-);
+const result = await eventsOps.deleteEvent(eventId, { token: jwtToken });
 
 // Response
 {
-  success: boolean;
-  deletedId: string;
+	success: boolean;
+	deletedId: string;
 }
 ```
 
@@ -266,15 +276,15 @@ Update user's RSVP status for an event.
 
 ```typescript
 const result = await eventsOps.updateRsvpStatus(
-  eventId,
-  userId,
-  'accepted', // 'accepted' | 'declined' | 'tentative' | 'pending' | 'no_response'
-  { token: jwtToken }
+	eventId,
+	userId,
+	'accepted', // 'accepted' | 'declined' | 'tentative' | 'pending' | 'no_response'
+	{ token: jwtToken }
 );
 
 // Response
 {
-  attendee: EventAttendee;
+	attendee: EventAttendee;
 }
 ```
 
@@ -318,6 +328,7 @@ const tasksOps = new TasksOperations();
 ### Enhanced Features (Feature 019)
 
 Feature 019 adds department task assignment:
+
 - `assignedToDepartmentId` field for department-wide tasks
 - Mutually exclusive assignment (employee OR department, not both)
 - Department-specific task filtering for managers
@@ -356,6 +367,7 @@ const result = await tasksOps.getAllTasks(
 ```
 
 **RLS Enforcement**:
+
 - Employees see only tasks assigned to them OR their department
 - Managers see all tasks in departments they manage
 - Admins see all tasks
@@ -396,39 +408,40 @@ Create new task (manager or admin only).
 ```typescript
 // Employee task assignment
 const result = await tasksOps.createTask(
-  {
-    title: 'Complete documentation',
-    description: 'Write API docs',
-    priority: 'high',
-    status: 'todo',
-    dueDate: '2025-10-20',
-    assigneeId: 'user123',              // Assign to employee
-    assignedToDepartmentId: null        // NOT department task
-  },
-  { token: jwtToken }
+	{
+		title: 'Complete documentation',
+		description: 'Write API docs',
+		priority: 'high',
+		status: 'todo',
+		dueDate: '2025-10-20',
+		assigneeId: 'user123', // Assign to employee
+		assignedToDepartmentId: null // NOT department task
+	},
+	{ token: jwtToken }
 );
 
 // OR Department task assignment
 const result = await tasksOps.createTask(
-  {
-    title: 'Department training',
-    description: 'Complete security training',
-    priority: 'high',
-    status: 'todo',
-    dueDate: '2025-10-30',
-    assigneeId: null,                   // NOT assigned to employee
-    assignedToDepartmentId: 'dept456'   // Assign to department
-  },
-  { token: jwtToken }
+	{
+		title: 'Department training',
+		description: 'Complete security training',
+		priority: 'high',
+		status: 'todo',
+		dueDate: '2025-10-30',
+		assigneeId: null, // NOT assigned to employee
+		assignedToDepartmentId: 'dept456' // Assign to department
+	},
+	{ token: jwtToken }
 );
 
 // Response
 {
-  task: Task;
+	task: Task;
 }
 ```
 
 **Validation**:
+
 - `title`: Required, 1-200 characters
 - `priority`: Required, valid enum value
 - `status`: Required, valid enum value
@@ -444,19 +457,16 @@ Update task status.
 **Authorization**: Task assignee, department member, manager, or admin
 
 ```typescript
-const result = await tasksOps.updateTaskStatus(
-  taskId,
-  'completed',
-  { token: jwtToken }
-);
+const result = await tasksOps.updateTaskStatus(taskId, 'completed', { token: jwtToken });
 
 // Response
 {
-  task: Task;
+	task: Task;
 }
 ```
 
 **Status Progression**:
+
 - `todo` → `in_progress` → `completed`
 - `todo` → `cancelled`
 - `in_progress` → `cancelled`
@@ -471,18 +481,18 @@ Update task details.
 
 ```typescript
 const result = await tasksOps.updateTask(
-  taskId,
-  {
-    title: 'Updated title',
-    priority: 'urgent',
-    dueDate: '2025-10-25'
-  },
-  { token: jwtToken }
+	taskId,
+	{
+		title: 'Updated title',
+		priority: 'urgent',
+		dueDate: '2025-10-25'
+	},
+	{ token: jwtToken }
 );
 
 // Response
 {
-  task: Task;
+	task: Task;
 }
 ```
 
@@ -495,15 +505,12 @@ Delete task.
 **Authorization**: Manager or admin only
 
 ```typescript
-const result = await tasksOps.deleteTask(
-  taskId,
-  { token: jwtToken }
-);
+const result = await tasksOps.deleteTask(taskId, { token: jwtToken });
 
 // Response
 {
-  success: boolean;
-  deletedId: string;
+	success: boolean;
+	deletedId: string;
 }
 ```
 
@@ -648,18 +655,21 @@ const result = await activityOps.getActivitiesByDateRange(
 Activities are automatically logged for:
 
 **Event Actions**:
+
 - Event creation
 - Event updates
 - Event deletion
 - RSVP status changes
 
 **Task Actions**:
+
 - Task creation
 - Task assignment
 - Task status updates
 - Task deletion
 
 **All Other Resources**:
+
 - Create, update, delete, view actions for all resource types
 
 **Database Triggers**: Located in migration `20250101_009_create_activity_log_triggers.sql`
@@ -708,6 +718,7 @@ const result = await notificationsOps.getUserNotifications(
 ```
 
 **Categories**:
+
 - `task_assignment`
 - `event_invitation`
 - `leave_approval`
@@ -718,6 +729,7 @@ const result = await notificationsOps.getUserNotifications(
 - `other`
 
 **Types**:
+
 - `email` - Email notification
 - `in_app` - In-app notification
 
@@ -730,14 +742,11 @@ Get count of unread notifications (for notification bell badge).
 **Authorization**: User can only query their own notifications
 
 ```typescript
-const result = await notificationsOps.getUnreadCount(
-  userId,
-  { token: jwtToken }
-);
+const result = await notificationsOps.getUnreadCount(userId, { token: jwtToken });
 
 // Response
 {
-  count: number;
+	count: number;
 }
 ```
 
@@ -750,14 +759,11 @@ Get single notification by ID.
 **Authorization**: User can only query their own notifications (RLS)
 
 ```typescript
-const result = await notificationsOps.getNotificationById(
-  notificationId,
-  { token: jwtToken }
-);
+const result = await notificationsOps.getNotificationById(notificationId, { token: jwtToken });
 
 // Response
 {
-  notification: Notification | null;
+	notification: Notification | null;
 }
 ```
 
@@ -772,14 +778,11 @@ Mark single notification as read.
 **Authorization**: User can only mark their own notifications
 
 ```typescript
-const result = await notificationsOps.markNotificationRead(
-  notificationId,
-  { token: jwtToken }
-);
+const result = await notificationsOps.markNotificationRead(notificationId, { token: jwtToken });
 
 // Response
 {
-  notification: Notification;
+	notification: Notification;
 }
 ```
 
@@ -792,14 +795,11 @@ Mark all user's notifications as read.
 **Authorization**: User can only mark their own notifications
 
 ```typescript
-const result = await notificationsOps.markAllRead(
-  userId,
-  { token: jwtToken }
-);
+const result = await notificationsOps.markAllRead(userId, { token: jwtToken });
 
 // Response
 {
-  updatedCount: number;
+	updatedCount: number;
 }
 ```
 
@@ -812,15 +812,12 @@ Delete notification.
 **Authorization**: User can only delete their own notifications
 
 ```typescript
-const result = await notificationsOps.deleteNotification(
-  notificationId,
-  { token: jwtToken }
-);
+const result = await notificationsOps.deleteNotification(notificationId, { token: jwtToken });
 
 // Response
 {
-  success: boolean;
-  deletedId: string;
+	success: boolean;
+	deletedId: string;
 }
 ```
 
@@ -831,11 +828,13 @@ const result = await notificationsOps.deleteNotification(
 Notifications are automatically created via database triggers for:
 
 **Task Events**:
+
 - Task assigned to employee → notification sent to assignee
 - Task assigned to department → notifications sent to all department members
 - Task status changed → notification sent to creator
 
 **Event Events**:
+
 - Event invitation sent → notification sent to invitee
 - Event RSVP changed → notification sent to event organizer
 - Event updated → notifications sent to all attendees
@@ -858,26 +857,26 @@ export type RsvpStatus = 'accepted' | 'declined' | 'tentative' | 'pending' | 'no
 export type EventType = 'meeting' | 'training' | 'social' | 'conference' | 'other';
 
 export interface Event {
-  id: string;
-  title: string;
-  description?: string;
-  startTime: string;
-  endTime: string;
-  location?: string;
-  eventType: EventType;
-  visibilityType: EventVisibilityType;
-  status: EventStatus;
-  isAllDay: boolean;
-  organizerId: string;
-  createdAt: string;
-  updatedAt: string;
+	id: string;
+	title: string;
+	description?: string;
+	startTime: string;
+	endTime: string;
+	location?: string;
+	eventType: EventType;
+	visibilityType: EventVisibilityType;
+	status: EventStatus;
+	isAllDay: boolean;
+	organizerId: string;
+	createdAt: string;
+	updatedAt: string;
 }
 
 export interface EventAttendee {
-  eventId: string;
-  employeeId: string;
-  rsvpStatus: RsvpStatus;
-  respondedAt?: string;
+	eventId: string;
+	employeeId: string;
+	rsvpStatus: RsvpStatus;
+	respondedAt?: string;
 }
 
 // Task Types
@@ -885,88 +884,88 @@ export type TaskStatus = 'todo' | 'in_progress' | 'completed' | 'cancelled';
 export type TaskPriority = 'urgent' | 'high' | 'medium' | 'low';
 
 export interface Task {
-  id: string;
-  title: string;
-  description?: string;
-  priority: TaskPriority;
-  status: TaskStatus;
-  dueDate?: string;
-  completedAt?: string;
-  assigneeId?: string;              // Employee task
-  assignedToDepartmentId?: string;  // Department task
-  createdById: string;
-  createdAt: string;
-  updatedAt: string;
+	id: string;
+	title: string;
+	description?: string;
+	priority: TaskPriority;
+	status: TaskStatus;
+	dueDate?: string;
+	completedAt?: string;
+	assigneeId?: string; // Employee task
+	assignedToDepartmentId?: string; // Department task
+	createdById: string;
+	createdAt: string;
+	updatedAt: string;
 }
 
 // Activity Log Types
 export type ActivityAction = 'create' | 'update' | 'delete' | 'view' | 'login' | 'logout';
 export type ResourceType =
-  | 'employee'
-  | 'task'
-  | 'event'
-  | 'leave_request'
-  | 'performance_review'
-  | 'department'
-  | 'role'
-  | 'goal'
-  | 'document'
-  | 'profile';
+	| 'employee'
+	| 'task'
+	| 'event'
+	| 'leave_request'
+	| 'performance_review'
+	| 'department'
+	| 'role'
+	| 'goal'
+	| 'document'
+	| 'profile';
 
 export interface ActivityLog {
-  id: string;
-  employeeId: string;
-  action: ActivityAction;
-  resourceType: ResourceType;
-  resourceId?: string;
-  details?: Record<string, any>;
-  ipAddress?: string;
-  createdAt: string;
+	id: string;
+	employeeId: string;
+	action: ActivityAction;
+	resourceType: ResourceType;
+	resourceId?: string;
+	details?: Record<string, any>;
+	ipAddress?: string;
+	createdAt: string;
 }
 
 // Notification Types
 export type NotificationType = 'email' | 'in_app';
 export type NotificationCategory =
-  | 'task_assignment'
-  | 'event_invitation'
-  | 'leave_approval'
-  | 'performance_review'
-  | 'department_announcement'
-  | 'system_alert'
-  | 'reminder'
-  | 'other';
+	| 'task_assignment'
+	| 'event_invitation'
+	| 'leave_approval'
+	| 'performance_review'
+	| 'department_announcement'
+	| 'system_alert'
+	| 'reminder'
+	| 'other';
 
 export interface Notification {
-  id: string;
-  recipientId: string;
-  title: string;
-  message: string;
-  category: NotificationCategory;
-  type: NotificationType;
-  read: boolean;
-  readAt?: string;
-  actionUrl?: string;
-  metadata?: Record<string, any>;
-  createdAt: string;
+	id: string;
+	recipientId: string;
+	title: string;
+	message: string;
+	category: NotificationCategory;
+	type: NotificationType;
+	read: boolean;
+	readAt?: string;
+	actionUrl?: string;
+	metadata?: Record<string, any>;
+	createdAt: string;
 }
 
 // Common Interfaces
 export interface UserReference {
-  id: string;
-  name: string;
-  email?: string;
+	id: string;
+	name: string;
+	email?: string;
 }
 
 export interface DepartmentReference {
-  id: string;
-  name: string;
+	id: string;
+	name: string;
 }
 
 export interface PaginatedResponse<T> {
-  items: T[];
-  totalCount: number;
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
+	items: T[];
+	totalCount: number;
+	hasNextPage: boolean;
+	hasPreviousPage: boolean;
 }
 ```
 
@@ -977,24 +976,24 @@ Utility type guards for runtime type checking:
 ```typescript
 // Check task assignment type
 export function isEmployeeTask(task: Task): boolean {
-  return !!task.assigneeId && !task.assignedToDepartmentId;
+	return !!task.assigneeId && !task.assignedToDepartmentId;
 }
 
 export function isDepartmentTask(task: Task): boolean {
-  return !task.assigneeId && !!task.assignedToDepartmentId;
+	return !task.assigneeId && !!task.assignedToDepartmentId;
 }
 
 // Check event visibility
 export function isCompanyWideEvent(event: Event): boolean {
-  return event.visibilityType === 'company';
+	return event.visibilityType === 'company';
 }
 
 export function isDepartmentEvent(event: Event): boolean {
-  return event.visibilityType === 'department';
+	return event.visibilityType === 'department';
 }
 
 export function isSpecificEvent(event: Event): boolean {
-  return event.visibilityType === 'specific';
+	return event.visibilityType === 'specific';
 }
 ```
 
@@ -1008,46 +1007,46 @@ All operations include comprehensive error handling:
 
 ```typescript
 interface ApiError {
-  message: string;
-  code?: string;
-  statusCode?: number;
-  details?: Record<string, any>;
+	message: string;
+	code?: string;
+	statusCode?: number;
+	details?: Record<string, any>;
 }
 ```
 
 ### Common Error Codes
 
-| Code | Status | Description |
-|------|--------|-------------|
-| `UNAUTHENTICATED` | 401 | Missing or invalid JWT token |
-| `FORBIDDEN` | 403 | Insufficient permissions for operation |
-| `NOT_FOUND` | 404 | Resource not found |
-| `VALIDATION_ERROR` | 400 | Invalid input data |
-| `CONFLICT` | 409 | Resource conflict (e.g., duplicate) |
-| `INTERNAL_ERROR` | 500 | Server error |
-| `TIMEOUT` | 504 | Operation timeout (default: 5s) |
+| Code               | Status | Description                            |
+| ------------------ | ------ | -------------------------------------- |
+| `UNAUTHENTICATED`  | 401    | Missing or invalid JWT token           |
+| `FORBIDDEN`        | 403    | Insufficient permissions for operation |
+| `NOT_FOUND`        | 404    | Resource not found                     |
+| `VALIDATION_ERROR` | 400    | Invalid input data                     |
+| `CONFLICT`         | 409    | Resource conflict (e.g., duplicate)    |
+| `INTERNAL_ERROR`   | 500    | Server error                           |
+| `TIMEOUT`          | 504    | Operation timeout (default: 5s)        |
 
 ### Error Handling Example
 
 ```typescript
 try {
-  const result = await eventsOps.createEvent(input, { token });
-  return result.event;
+	const result = await eventsOps.createEvent(input, { token });
+	return result.event;
 } catch (error: any) {
-  if (error.message?.includes('unauthorized')) {
-    throw redirect(303, '/login');
-  }
+	if (error.message?.includes('unauthorized')) {
+		throw redirect(303, '/login');
+	}
 
-  if (error.message?.includes('forbidden')) {
-    throw error(403, {
-      message: 'Access denied. Manager privileges required.'
-    });
-  }
+	if (error.message?.includes('forbidden')) {
+		throw error(403, {
+			message: 'Access denied. Manager privileges required.'
+		});
+	}
 
-  console.error('Operation failed:', error);
-  throw error(500, {
-    message: 'Failed to create event. Please try again.'
-  });
+	console.error('Operation failed:', error);
+	throw error(500, {
+		message: 'Failed to create event. Please try again.'
+	});
 }
 ```
 
@@ -1064,6 +1063,7 @@ try {
 ### Retry Logic
 
 All operations include automatic retry logic:
+
 - **Max retries**: 3
 - **Backoff strategy**: Exponential (1s, 2s, 4s)
 - **Timeout**: 5 seconds per attempt (configurable)
@@ -1079,12 +1079,12 @@ All operations include automatic retry logic:
 ```svelte
 <!-- ❌ WRONG: Client-side GraphQL call -->
 <script>
-  import { EventsOperations } from '$lib/graphql/events-operations';
+	import { EventsOperations } from '$lib/graphql/events-operations';
 
-  async function loadEvents() {
-    const eventsOps = new EventsOperations();
-    const result = await eventsOps.getAllEvents(/* ... */);
-  }
+	async function loadEvents() {
+		const eventsOps = new EventsOperations();
+		const result = await eventsOps.getAllEvents(/* ... */);
+	}
 </script>
 ```
 
@@ -1093,13 +1093,13 @@ All operations include automatic retry logic:
 ```typescript
 // ✅ CORRECT: +page.server.ts
 export const load: PageServerLoad = async ({ locals, cookies }) => {
-  const token = cookies.get('hr_token');
-  const eventsOps = new EventsOperations();
-  const result = await eventsOps.getAllEvents({}, { token });
+	const token = cookies.get('hr_token');
+	const eventsOps = new EventsOperations();
+	const result = await eventsOps.getAllEvents({}, { token });
 
-  return {
-    events: result.events
-  };
+	return {
+		events: result.events
+	};
 };
 ```
 
@@ -1109,26 +1109,26 @@ Always handle authentication and authorization errors:
 
 ```typescript
 try {
-  const result = await operation();
-  return result;
+	const result = await operation();
+	return result;
 } catch (error: any) {
-  // Handle authentication errors
-  if (error.message?.includes('unauthorized')) {
-    throw redirect(303, '/login');
-  }
+	// Handle authentication errors
+	if (error.message?.includes('unauthorized')) {
+		throw redirect(303, '/login');
+	}
 
-  // Handle authorization errors
-  if (error.message?.includes('forbidden')) {
-    throw error(403, { message: 'Access denied' });
-  }
+	// Handle authorization errors
+	if (error.message?.includes('forbidden')) {
+		throw error(403, { message: 'Access denied' });
+	}
 
-  // Handle not found errors
-  if (error.message?.includes('not found')) {
-    throw error(404, { message: 'Resource not found' });
-  }
+	// Handle not found errors
+	if (error.message?.includes('not found')) {
+		throw error(404, { message: 'Resource not found' });
+	}
 
-  // Generic error
-  throw error(500, { message: 'Operation failed' });
+	// Generic error
+	throw error(500, { message: 'Operation failed' });
 }
 ```
 
@@ -1142,9 +1142,9 @@ import { validateTaskInput } from '$lib/graphql/tasks-operations';
 // Validate before creating task
 const validation = validateTaskInput(input);
 if (!validation.isValid) {
-  throw error(400, {
-    message: validation.errors.join(', ')
-  });
+	throw error(400, {
+		message: validation.errors.join(', ')
+	});
 }
 
 const result = await tasksOps.createTask(input, { token });
@@ -1159,10 +1159,7 @@ Configure timeouts based on operation complexity:
 const result = await eventsOps.getEventById(id, { token });
 
 // Complex operations (custom timeout: 10s)
-const result = await eventsOps.getAllEvents(
-  { first: 1000 },
-  { token, timeout: 10000 }
-);
+const result = await eventsOps.getAllEvents({ first: 1000 }, { token, timeout: 10000 });
 ```
 
 ### 5. Pagination
@@ -1172,11 +1169,11 @@ Always use pagination for list queries:
 ```typescript
 // ✅ CORRECT: Paginated query
 const result = await tasksOps.getAllTasks(
-  {
-    first: 20,        // Limit results
-    offset: page * 20 // Page offset
-  },
-  { token }
+	{
+		first: 20, // Limit results
+		offset: page * 20 // Page offset
+	},
+	{ token }
 );
 
 // ❌ WRONG: Unbounded query
@@ -1192,6 +1189,7 @@ const result = await tasksOps.getAllTasks({}, { token });
 All GraphQL operations have contract tests (TDD RED phase):
 
 **Location**: `tests/contract/`
+
 - `events-operations.test.ts` (9 test cases)
 - `tasks-operations-enhanced.test.ts` (4 test cases)
 - `activity-logs-operations.test.ts` (5 test cases)
@@ -1204,6 +1202,7 @@ All GraphQL operations have contract tests (TDD RED phase):
 Comprehensive E2E tests using Playwright:
 
 **Location**: `tests/e2e/`
+
 - `events/event-rsvp-workflow.spec.ts` (9 test cases)
 - `tasks/task-assignment-employee.spec.ts` (11 test cases)
 - `tasks/task-assignment-department.spec.ts` (12 test cases)

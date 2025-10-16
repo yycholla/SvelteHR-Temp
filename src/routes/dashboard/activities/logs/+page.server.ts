@@ -31,7 +31,7 @@ export const load: PageServerLoad = async (event) => {
 	}
 
 	// Get user credentials for GraphQL operations
-	const token = cookies.get('hr_token') || cookies.get('auth-token');
+	// Token retrieval removed - session auth handled by server hooks
 	if (!token) {
 		throw redirect(303, `/login?redirectTo=${url.pathname}`);
 	}

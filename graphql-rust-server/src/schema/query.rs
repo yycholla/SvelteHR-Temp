@@ -253,6 +253,51 @@ impl QueryRoot {
         Ok(log)
     }
 
+    /// Get current authenticated user information
+    async fn me(&self, ctx: &Context<'_>) -> Result<Option<user::Model>> {
+        let auth_session = ctx.data::<AuthSession<crate::auth::AuthBackend>>()?;
+
+        match &auth_session.user {
+            Some(auth_user) => {
+                let db = get_db_from_context(ctx)?;
+                let user = UserEntity::find_by_id(auth_user.id)
+                    .filter(user::Column::DeletedAt.is_null())
+                    .one(&db)
+                    .await?;
+                Ok(user)
+            }
+            None => Ok(None),
+        }
+    }
+
+    /// Get current user's session information
+    async fn my_session(&self, ctx: &Context<'_>) -> Result<Option<SessionInfo>> {
+        let auth_session = ctx.data::<AuthSession<crate::auth::AuthBackend>>()?;
+
+        match &auth_session.user {
+            Some(user) => {
+                // For now, return a basic session info since we don't have access to the actual session details
+                // This would need to be enhanced when we implement proper session store integration
+                Ok(Some(SessionInfo {
+                    id: "current".to_string(), // Placeholder
+                    created_at: chrono::Utc::now(), // Placeholder
+                    expires_at: chrono::Utc::now() + chrono::Duration::minutes(30), // Placeholder
+                    last_activity: chrono::Utc::now(),
+                    ip_address: None,
+                    user_agent: None,
+                    is_current_session: true,
+                }))
+            }
+            None => Ok(None),
+        }
+    }
+
+    /// Check authentication status
+    async fn auth_status(&self, ctx: &Context<'_>) -> Result<bool> {
+        let auth_session = ctx.data::<AuthSession<crate::auth::AuthBackend>>()?;
+        Ok(auth_session.user.is_some())
+    }
+
     /// Get active sessions for the current user
     async fn sessions(&self, ctx: &Context<'_>) -> Result<Vec<SessionInfo>> {
         let db = get_db_from_context(ctx)?;

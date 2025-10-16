@@ -40,7 +40,7 @@ export const load: PageServerLoad = async (event) => {
 					userId: locals.user.id,
 					userEmail: locals.user.email || '',
 					role: locals.user.role || 'employee',
-					accessToken: cookies.get('hr_token') || cookies.get('auth-token') || ''
+					accessToken: '' // Session-based auth doesn't use access tokens
 				},
 				leaveRequests: [],
 				totalRequests: 0,
@@ -221,7 +221,7 @@ export const load: PageServerLoad = async (event) => {
 				userId: locals.user.id,
 				userEmail: locals.user.email || '',
 				role: locals.user.role || 'employee',
-				accessToken: cookies.get('hr_token') || cookies.get('auth-token') || ''
+				accessToken: '' // Session-based auth doesn't use access tokens
 			},
 			leaveRequests: paginatedRequests,
 			totalRequests,
@@ -289,7 +289,7 @@ export const load: PageServerLoad = async (event) => {
 				userId: locals.user.id,
 				userEmail: locals.user.email || '',
 				role: locals.user.role || 'employee',
-				accessToken: cookies.get('hr_token') || cookies.get('auth-token') || ''
+				accessToken: '' // Session-based auth doesn't use access tokens
 			},
 			leaveRequests: [],
 			totalRequests: 0,

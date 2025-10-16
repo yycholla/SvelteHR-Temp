@@ -93,6 +93,9 @@ pub fn assert_field_exists(
     );
 }
 
+mod test_security;
+mod test_session_persistence;
+
 #[cfg(test)]
 mod tests {
     use super::*;

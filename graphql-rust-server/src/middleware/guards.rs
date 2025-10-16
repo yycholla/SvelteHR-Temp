@@ -8,9 +8,11 @@
 //!
 //! # Usage
 //!
-//! ```rust,ignore
+//! ```ignore
 //! use async_graphql::*;
 //! use hr_graphql_server::middleware::guards::*;
+//! use hr_graphql_server::schema::QueryRoot;
+//! use hr_graphql_server::models::User;
 //!
 //! #[Object]
 //! impl QueryRoot {

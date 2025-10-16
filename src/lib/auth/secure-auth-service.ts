@@ -337,11 +337,11 @@ class SecureAuthService {
 	}
 
 	/**
-	 * Private: Validate token
+	 * Validate token
 	 */
 	private async validateToken(token: string): Promise<boolean> {
 		try {
-			const validationResult = verifyJWTToken(token);
+			const validationResult = await verifyJWTToken(token);
 			return validationResult.isValid;
 		} catch (error) {
 			console.error('Token validation failed:', error);
@@ -354,7 +354,7 @@ class SecureAuthService {
 	 */
 	private async setupAuthState(token: string): Promise<void> {
 		try {
-			const validationResult = verifyJWTToken(token);
+			const validationResult = await verifyJWTToken(token);
 			if (!validationResult.isValid || !validationResult.payload) {
 				throw new Error('Invalid token');
 			}
@@ -366,7 +366,7 @@ class SecureAuthService {
 				user: {
 					id: payload.user_id,
 					email: payload.email,
-					displayName: payload.display_name || payload.email.split('@')[0],
+					displayName: (payload as any).display_name || payload.email.split('@')[0],
 					role: payload.role || 'employee'
 				},
 				permissions: payload.permissions || [],

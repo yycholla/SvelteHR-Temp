@@ -16,7 +16,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		throw redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
 
-	const token = cookies.get('hr_token') || cookies.get('auth-token');
+	// Token retrieval removed - session auth handled by server hooks
 	if (!token) {
 		throw redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
@@ -67,7 +67,7 @@ export const actions = {
 			throw error(401, 'Unauthorized');
 		}
 
-		const token = cookies.get('hr_token') || cookies.get('auth-token');
+		// Token retrieval removed - session auth handled by server hooks
 		if (!token) {
 			throw error(401, 'Unauthorized');
 		}

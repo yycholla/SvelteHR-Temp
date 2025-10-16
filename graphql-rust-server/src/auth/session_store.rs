@@ -1,41 +1,32 @@
 //! SeaORM-based session store for axum-login
 //!
 //! This module provides a session store implementation that uses SeaORM
-//! to persist session data in the PostgreSQL database.
+//! to persist session data in the PostgreSQL database using the standard
+//! tower-sessions table structure.
 
 use async_trait::async_trait;
-use axum_login::{AuthnBackend, UserId};
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
-    QueryOrder, QuerySelect, prelude::Expr,
+    ActiveModelBehavior, ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection,
+    DeriveEntityModel, EntityTrait, EnumIter, DeriveRelation, QueryFilter,
+    prelude::Expr,
 };
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use tower_sessions::{session::Id, session_store, Session, SessionStore};
-use uuid::Uuid;
+use tower_sessions::{session::Id, session_store, SessionStore};
+use std::sync::Arc;
 
-use crate::{
-    models::{user, user_session},
-};
+use crate::models::session as session;
 
-/// Session data stored in the database
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SessionData {
-    pub user_id: Uuid,
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    pub last_activity: chrono::DateTime<chrono::Utc>,
-}
+use time::OffsetDateTime;
 
-/// SeaORM-based session store for axum-login
-#[derive(Debug)]
+/// SeaORM-based session store for axum-login using tower-sessions standard table
+#[derive(Debug, Clone)]
 pub struct SeaOrmSessionStore {
-    db: DatabaseConnection,
+    db: Arc<DatabaseConnection>,
 }
 
 impl SeaOrmSessionStore {
     /// Create a new SeaORM session store
     pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+        Self { db: Arc::new(db) }
     }
 
     /// Get the database connection
@@ -44,51 +35,41 @@ impl SeaOrmSessionStore {
     }
 }
 
+
+
 #[async_trait]
 impl SessionStore for SeaOrmSessionStore {
     async fn save(&self, session: &tower_sessions::session::Record) -> session_store::Result<()> {
         let session_id = session.id.to_string();
-
-        // Extract user_id from session data if present
-        let user_id = session
-            .data
-            .get("auth")
-            .and_then(|v| serde_json::from_value::<SessionData>(v.clone()).ok())
-            .map(|data| data.user_id);
-
-        let now = chrono::Utc::now();
+        let data = serde_json::to_vec(&session.data)
+            .map_err(|e| session_store::Error::Backend(format!("Serialization error: {}", e)))?;
 
         // Check if session already exists
-        let existing = user_session::Entity::find()
-            .filter(user_session::Column::SessionToken.eq(&session_id))
-            .one(&self.db)
+        let existing = session::Entity::find()
+            .filter(session::Column::Id.eq(&session_id))
+            .one(&*self.db)
             .await
             .map_err(|e| session_store::Error::Backend(e.to_string()))?;
 
-        if let Some(existing_session) = existing {
+        if let Some(_) = existing {
             // Update existing session
-            let mut active_session: user_session::ActiveModel = existing_session.into();
-            active_session.last_activity = ActiveValue::Set(now.into());
+            let mut active_session: session::ActiveModel = existing.unwrap().into();
+            active_session.data = ActiveValue::Set(data);
+            active_session.expiry_date = ActiveValue::Set(chrono::DateTime::from_timestamp(session.expiry_date.unix_timestamp(), 0).unwrap_or_else(|| chrono::Utc::now()));
             active_session
-                .update(&self.db)
+                .update(&*self.db)
                 .await
                 .map_err(|e| session_store::Error::Backend(e.to_string()))?;
-        } else if let Some(user_id) = user_id {
+        } else {
             // Create new session
-            let new_session = user_session::ActiveModel {
-                id: ActiveValue::Set(Uuid::new_v4()),
-                user_id: ActiveValue::Set(user_id),
-                session_token: ActiveValue::Set(session_id),
-                created_at: ActiveValue::Set(now.into()),
-                expires_at: ActiveValue::Set((now + chrono::Duration::minutes(30)).into()),
-                last_activity: ActiveValue::Set(now.into()),
-                ip_address: ActiveValue::NotSet,
-                user_agent: ActiveValue::NotSet,
-                is_active: ActiveValue::Set(true),
+            let new_session = session::ActiveModel {
+                id: ActiveValue::Set(session_id),
+                data: ActiveValue::Set(data),
+                expiry_date: ActiveValue::Set(chrono::DateTime::from_timestamp(session.expiry_date.unix_timestamp(), 0).unwrap_or_else(|| chrono::Utc::now())),
             };
 
             new_session
-                .insert(&self.db)
+                .insert(&*self.db)
                 .await
                 .map_err(|e| session_store::Error::Backend(e.to_string()))?;
         }
@@ -96,17 +77,39 @@ impl SessionStore for SeaOrmSessionStore {
         Ok(())
     }
 
-    async fn load(&self, _session_id: &Id) -> session_store::Result<Option<tower_sessions::session::Record>> {
-        // TODO: Implement session loading
-        Ok(None)
+    async fn load(&self, session_id: &Id) -> session_store::Result<Option<tower_sessions::session::Record>> {
+        let session_id_str = session_id.to_string();
+
+        // Find the session in database
+        let session_model = session::Entity::find()
+            .filter(session::Column::Id.eq(&session_id_str))
+            .filter(session::Column::ExpiryDate.gt(chrono::Utc::now()))
+            .one(&*self.db)
+            .await
+            .map_err(|e| session_store::Error::Backend(e.to_string()))?;
+
+        if let Some(model) = session_model {
+            let data: std::collections::HashMap<String, serde_json::Value> = serde_json::from_slice(&model.data)
+                .map_err(|e| session_store::Error::Backend(format!("Deserialization error: {}", e)))?;
+
+            let record = tower_sessions::session::Record {
+                id: session_id.clone(),
+                data,
+                expiry_date: OffsetDateTime::from_unix_timestamp(model.expiry_date.timestamp()).unwrap_or_else(|_| OffsetDateTime::now_utc()),
+            };
+
+            Ok(Some(record))
+        } else {
+            Ok(None)
+        }
     }
 
     async fn delete(&self, session_id: &Id) -> session_store::Result<()> {
         let session_id_str = session_id.to_string();
 
-        user_session::Entity::delete_many()
-            .filter(user_session::Column::SessionToken.eq(session_id_str))
-            .exec(&self.db)
+        session::Entity::delete_many()
+            .filter(session::Column::Id.eq(session_id_str))
+            .exec(&*self.db)
             .await
             .map_err(|e| session_store::Error::Backend(e.to_string()))?;
 
@@ -118,41 +121,24 @@ impl SessionStore for SeaOrmSessionStore {
 pub async fn cleanup_expired_sessions(db: &DatabaseConnection) -> Result<u64, sea_orm::DbErr> {
     let now = chrono::Utc::now();
 
-    let delete_result = user_session::Entity::delete_many()
-        .filter(
-            user_session::Column::ExpiresAt.lt(now)
-                .or(user_session::Column::IsActive.eq(false))
-        )
+    let delete_result = session::Entity::delete_many()
+        .filter(session::Column::ExpiryDate.lt(now))
         .exec(db)
         .await?;
 
     Ok(delete_result.rows_affected)
 }
 
-/// Get active session count for a user
-pub async fn get_active_session_count(
-    db: &DatabaseConnection,
-    user_id: Uuid,
-) -> Result<i64, sea_orm::DbErr> {
-    let count = user_session::Entity::find()
-        .filter(user_session::Column::UserId.eq(user_id))
-        .filter(user_session::Column::IsActive.eq(true))
-        .filter(user_session::Column::ExpiresAt.gt(chrono::Utc::now()))
-        .count(db)
-        .await?;
-
-    Ok(count as i64)
-}
-
-/// Deactivate all sessions for a user (for logout or security)
-pub async fn deactivate_user_sessions(
-    db: &DatabaseConnection,
-    user_id: Uuid,
-) -> Result<u64, sea_orm::DbErr> {
-    let update_result = user_session::Entity::update_many()
-        .col_expr(user_session::Column::IsActive, Expr::value(false))
-        .filter(user_session::Column::UserId.eq(user_id))
-        .filter(user_session::Column::IsActive.eq(true))
+/// Deactivate all sessions for a specific user (used during logout)
+pub async fn deactivate_user_sessions(db: &DatabaseConnection, user_id: uuid::Uuid) -> Result<u64, sea_orm::DbErr> {
+    // Deactivate user sessions by setting is_active to false
+    // This works with the user_session table, not the tower-sessions table
+    let update_result = crate::models::user_session::Entity::update_many()
+        .col_expr(
+            crate::models::user_session::Column::IsActive,
+            sea_orm::prelude::Expr::value(false)
+        )
+        .filter(crate::models::user_session::Column::UserId.eq(user_id))
         .exec(db)
         .await?;
 

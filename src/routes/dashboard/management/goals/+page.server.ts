@@ -128,7 +128,7 @@ export const load: PageServerLoad = async (event) => {
 				userId: locals.user?.id || '',
 				userEmail: locals.user?.email || '',
 				role: locals.user?.role || 'employee',
-				accessToken: cookies.get('hr_token') || ''
+				accessToken: '' // Session-based auth doesn't use access tokens
 			},
 			teamGoals: transformedGoals,
 			totalGoals,
@@ -186,7 +186,7 @@ export const load: PageServerLoad = async (event) => {
 				userId: locals.user?.id || '',
 				userEmail: locals.user?.email || '',
 				role: locals.user?.role || 'employee',
-				accessToken: cookies.get('hr_token') || ''
+				accessToken: '' // Session-based auth doesn't use access tokens
 			},
 			teamGoals: [],
 			totalGoals: 0,

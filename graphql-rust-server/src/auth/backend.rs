@@ -9,6 +9,8 @@ use bcrypt::verify;
 use password_hash::PasswordHash;
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use serde::{Deserialize, Serialize};
+
+use super::session_store::SeaOrmSessionStore;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -16,7 +18,6 @@ use tower_sessions::Session;
 use uuid::Uuid;
 
 use crate::{
-    auth::session_store::{deactivate_user_sessions, get_active_session_count, SeaOrmSessionStore},
     models::user,
     error::{AppError, DbError},
 };
@@ -25,21 +26,33 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct RateLimiter {
     attempts: Arc<RwLock<HashMap<String, Vec<chrono::DateTime<chrono::Utc>>>>>,
-    max_attempts: u32,
+    max_attempts_per_ip: u32,
+    max_attempts_per_account: u32,
     window_seconds: i64,
 }
 
 impl RateLimiter {
-    pub fn new(max_attempts: u32, window_seconds: i64) -> Self {
+    pub fn new(max_attempts_per_ip: u32, max_attempts_per_account: u32, window_seconds: i64) -> Self {
         Self {
             attempts: Arc::new(RwLock::new(HashMap::new())),
-            max_attempts,
+            max_attempts_per_ip,
+            max_attempts_per_account,
             window_seconds,
         }
     }
 
-    /// Check if the key is rate limited
-    pub async fn is_rate_limited(&self, key: &str) -> bool {
+    /// Check if the IP is rate limited
+    pub async fn is_ip_rate_limited(&self, ip: &str) -> bool {
+        self.is_rate_limited(ip, self.max_attempts_per_ip).await
+    }
+
+    /// Check if the account is rate limited
+    pub async fn is_account_rate_limited(&self, email: &str) -> bool {
+        self.is_rate_limited(email, self.max_attempts_per_account).await
+    }
+
+    /// Check if the key is rate limited with specified max attempts
+    async fn is_rate_limited(&self, key: &str, max_attempts: u32) -> bool {
         let mut attempts = self.attempts.write().await;
         let now = chrono::Utc::now();
 
@@ -53,14 +66,24 @@ impl RateLimiter {
 
         // Check if rate limited
         if let Some(times) = attempts.get(key) {
-            times.len() >= self.max_attempts as usize
+            times.len() >= max_attempts as usize
         } else {
             false
         }
     }
 
+    /// Record an IP-based attempt
+    pub async fn record_ip_attempt(&self, ip: &str) {
+        self.record_attempt(ip).await;
+    }
+
+    /// Record an account-based attempt
+    pub async fn record_account_attempt(&self, email: &str) {
+        self.record_attempt(email).await;
+    }
+
     /// Record an attempt for the key
-    pub async fn record_attempt(&self, key: &str) {
+    async fn record_attempt(&self, key: &str) {
         let mut attempts = self.attempts.write().await;
         let now = chrono::Utc::now();
 
@@ -134,8 +157,8 @@ pub struct AuthBackend {
 impl AuthBackend {
     /// Create a new authentication backend
     pub fn new(db: DatabaseConnection) -> Self {
-        // Rate limit: max 10 attempts per IP per 15 minutes
-        let rate_limiter = RateLimiter::new(10, 900); // 15 minutes = 900 seconds
+        // Rate limit: max 10 attempts per IP, 5 per account per 15 minutes
+        let rate_limiter = RateLimiter::new(10, 5, 900); // 15 minutes = 900 seconds
         Self { db, rate_limiter }
     }
 
@@ -196,8 +219,20 @@ impl AuthnBackend for AuthBackend {
             return Ok(None);
         }
 
+        // Check if account is currently locked
+        if let Some(locked_until) = db_user.locked_until {
+            if chrono::Utc::now() < locked_until {
+                tracing::warn!("Login attempt for locked account: {}", creds.email);
+                return Ok(None);
+            }
+        }
+
         // Special case for admin user in development
         if creds.email == "admin@mountainhr.dev" && creds.password == "admin" {
+            // Reset failed attempts on successful login
+            if db_user.failed_login_attempts > 0 {
+                self.reset_failed_attempts(db_user.id).await?;
+            }
             tracing::info!("Admin user authenticated via development shortcut");
             return Ok(Some(AuthUser::from_db_user(&db_user)));
         }
@@ -210,34 +245,46 @@ impl AuthnBackend for AuthBackend {
             })?;
 
         if !password_valid {
-        // Record failed login attempt
-        self.record_failed_login(&db_user).await?;
+            // Log failed login attempt
+            self.log_security_event(
+                Some(db_user.id),
+                "failed_login",
+                "user",
+                Some(db_user.id),
+                Some(serde_json::json!({
+                    "reason": "invalid_password",
+                    "attempt_count": db_user.failed_login_attempts + 1
+                })),
+                None, // IP address would be passed from handler
+                None, // User agent would be passed from handler
+            ).await;
+
+            // Record failed attempt and apply progressive delay/lockout
+            self.handle_failed_login(&db_user).await?;
             tracing::warn!("Invalid password for user: {}", creds.email);
             return Ok(None);
         }
 
-        // Check for account lockout
-        if self.is_account_locked(&db_user).await? {
-            tracing::warn!("Account locked due to failed attempts: {}", creds.email);
-            return Ok(None);
+        // Successful login - reset failed attempts
+        if db_user.failed_login_attempts > 0 {
+            self.reset_failed_attempts(db_user.id).await?;
         }
 
-        // Check single session constraint
-        let active_sessions = get_active_session_count(&self.db, db_user.id).await
-            .map_err(|e| AppError::Database(DbError::Query(e.to_string())))?;
+        // Note: Multiple concurrent sessions are allowed with tower-sessions
+        // Session management is handled by the session store
 
-        if active_sessions > 0 {
-            // Deactivate existing sessions for this user
-            deactivate_user_sessions(&self.db, db_user.id).await
-                .map_err(|e| AppError::Database(DbError::Query(e.to_string())))?;
-            tracing::info!("Deactivated {} existing sessions for user: {}", active_sessions, creds.email);
-        }
-
-        // Reset failed login attempts on successful login
-        self.reset_failed_login_attempts(&db_user).await?;
-
-        // Update last login
-        self.update_last_login(&db_user).await?;
+        // Log successful login
+        self.log_security_event(
+            Some(db_user.id),
+            "successful_login",
+            "user",
+            Some(db_user.id),
+            Some(serde_json::json!({
+                "method": "password"
+            })),
+            None, // IP address will be added by handler
+            None, // User agent will be added by handler
+        ).await;
 
         tracing::info!("User authenticated successfully: {}", creds.email);
         Ok(Some(AuthUser::from_db_user(&db_user)))
@@ -369,6 +416,108 @@ impl AuthBackend {
 
         tracing::info!("Updated last login timestamp for user: {}", db_user.email);
         Ok(())
+    }
+
+    /// Handle failed login attempt with progressive delays and account lockout
+    async fn handle_failed_login(&self, db_user: &user::Model) -> Result<(), AppError> {
+        let now = chrono::Utc::now();
+        let new_attempt_count = db_user.failed_login_attempts + 1;
+        let max_attempts = 5; // Lock account after 5 failed attempts
+        let lockout_duration_minutes = 15; // Lock for 15 minutes
+
+        // Calculate progressive delay based on attempt count
+        let delay_ms = match new_attempt_count {
+            1 => 0,      // No delay for first attempt
+            2 => 500,    // 0.5 second delay
+            3 => 1000,   // 1 second delay
+            4 => 2000,   // 2 second delay
+            _ => 4000,   // 4 second delay for subsequent attempts
+        };
+
+        // Add artificial delay for progressive rate limiting
+        if delay_ms > 0 {
+            tokio::time::sleep(tokio::time::Duration::from_millis(delay_ms)).await;
+        }
+
+        // Update user record with failed attempt
+        let mut user_active: user::ActiveModel = db_user.clone().into();
+        user_active.failed_login_attempts = sea_orm::ActiveValue::Set(new_attempt_count);
+
+        // Lock account if max attempts reached
+        if new_attempt_count >= max_attempts {
+            let locked_until = now + chrono::Duration::minutes(lockout_duration_minutes);
+            user_active.locked_until = sea_orm::ActiveValue::Set(Some(locked_until.into()));
+
+            tracing::warn!(
+                "Account locked for user {} after {} failed attempts. Locked until: {}",
+                db_user.email,
+                new_attempt_count,
+                locked_until
+            );
+        }
+
+        user_active.update(&self.db).await.map_err(|e| {
+            tracing::error!("Failed to update user after failed login: {:?}", e);
+            AppError::Database(DbError::Query(e.to_string()))
+        })?;
+
+        Ok(())
+    }
+
+    /// Reset failed login attempts on successful authentication
+    async fn reset_failed_attempts(&self, user_id: Uuid) -> Result<(), AppError> {
+        let user_active = user::ActiveModel {
+            id: sea_orm::ActiveValue::Set(user_id),
+            failed_login_attempts: sea_orm::ActiveValue::Set(0),
+            locked_until: sea_orm::ActiveValue::Set(None),
+            ..Default::default()
+        };
+
+        user::Entity::update(user_active)
+            .filter(user::Column::Id.eq(user_id))
+            .exec(&self.db)
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to reset failed attempts for user {}: {:?}", user_id, e);
+                AppError::Database(DbError::Query(e.to_string()))
+            })?;
+
+        Ok(())
+    }
+
+    /// Log security events to activity log
+    async fn log_security_event(
+        &self,
+        user_id: Option<Uuid>,
+        action: &str,
+        resource_type: &str,
+        resource_id: Option<Uuid>,
+        details: Option<serde_json::Value>,
+        ip_address: Option<&str>,
+        user_agent: Option<&str>,
+    ) {
+        let activity_log = crate::models::system::activity_log::ActiveModel {
+            id: sea_orm::ActiveValue::Set(Uuid::new_v4()),
+            user_id: sea_orm::ActiveValue::Set(user_id.unwrap_or_else(|| Uuid::nil())),
+            employee_id: sea_orm::ActiveValue::NotSet,
+            action: sea_orm::ActiveValue::Set(action.to_string()),
+            resource_type: sea_orm::ActiveValue::Set(resource_type.to_string()),
+            resource_id: sea_orm::ActiveValue::Set(resource_id),
+            details: sea_orm::ActiveValue::Set(details),
+            before_snapshot: sea_orm::ActiveValue::NotSet,
+            after_snapshot: sea_orm::ActiveValue::NotSet,
+            is_rollback: sea_orm::ActiveValue::Set(false),
+            rolled_back_log_id: sea_orm::ActiveValue::NotSet,
+            ip_address: sea_orm::ActiveValue::Set(ip_address.map(|s| s.to_string())),
+            user_agent: sea_orm::ActiveValue::Set(user_agent.map(|s| s.to_string())),
+            signature_id: sea_orm::ActiveValue::NotSet,
+            batch_id: sea_orm::ActiveValue::NotSet,
+            created_at: sea_orm::ActiveValue::Set(chrono::Utc::now().into()),
+        };
+
+        if let Err(e) = activity_log.insert(&self.db).await {
+            tracing::error!("Failed to log security event: {:?}", e);
+        }
     }
 }
 

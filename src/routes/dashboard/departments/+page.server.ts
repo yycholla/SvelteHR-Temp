@@ -19,7 +19,7 @@ export const load: PageServerLoad = async (event) => {
 	// Create user session from server locals
 	const userSession = createUserSession({
 		userId: locals.user.id,
-		jwtToken: cookies.get('hr_token') || '',
+		jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
 		roles: [locals.user.role || 'employee'],
 		permissions: locals.permissions || [],
 		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes from now
@@ -66,18 +66,11 @@ export const load: PageServerLoad = async (event) => {
 		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
-		// Get JWT token for PostGraphile authentication
-		const jwtToken = cookies.get('hr_token') || cookies.get('postgraphile-jwt-token') || '';
 		console.log(
 			'[Departments] Using JWT token for PostGraphile:',
 			jwtToken ? `${jwtToken.substring(0, 50)}...` : 'No token'
 		);
 
-		// Decode JWT token to get user context for PostGraphile
-		let jwtClaims = null;
-		if (jwtToken) {
-			try {
-				const { decodeJWTTokenUnsafe } = await import('$lib/auth/jwt-utils');
 				jwtClaims = await decodeJWTTokenUnsafe(jwtToken);
 				console.log('[Departments] JWT claims:', jwtClaims);
 			} catch (error) {
@@ -85,14 +78,13 @@ export const load: PageServerLoad = async (event) => {
 			}
 		}
 
-		// Set up proper headers for PostGraphile with JWT context
+		// Headers for session-based authentication
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json'
 		};
 
 		// If we have JWT claims, set up PostGraphile context
 		if (jwtClaims) {
-			headers['Authorization'] = `Bearer ${jwtToken}`;
 			// PostGraphile expects role and user_id in specific format
 			headers['X-JWT-Claims-Role'] = jwtClaims.role || 'employee';
 			headers['X-JWT-Claims-User-Id'] = jwtClaims.user_id;

@@ -30,7 +30,7 @@ export const load: PageServerLoad = async (event) => {
 	// Create user session from server locals
 	const userSession = createUserSession({
 		userId: locals.user.id,
-		jwtToken: cookies.get('hr_token') || '',
+		jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
 		roles: [locals.user.role || 'employee'],
 		permissions: locals.permissions || [],
 		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes from now
@@ -72,7 +72,7 @@ export const load: PageServerLoad = async (event) => {
 			userEmail: userSession.metadata.userEmail as string,
 			roles: userSession.roles,
 			permissions: userSession.permissions,
-			jwtToken: userSession.jwtToken,
+			jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
 			isAuthenticated: Boolean(userSession.isAuthenticated)
 		},
 		timeoutMs: 5000,
@@ -85,16 +85,12 @@ export const load: PageServerLoad = async (event) => {
 		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
-		// Get JWT token from cookies for authentication
-		const jwtToken = cookies.get('hr_token') || '';
-
-		// Headers with JWT authentication for Rust GraphQL server
+		// Headers for session-based authentication (cookies sent automatically)
 		const headers: Record<string, string> = {
-			'Content-Type': 'application/json',
-			'Authorization': `Bearer ${jwtToken}`
+			'Content-Type': 'application/json'
 		};
 
-		console.log('[Tasks Dashboard] User role:', locals.user?.role);
+		console.log('[Tasks Dashboard] User role:', locals.user?.role, '(session-based auth)');
 		console.log('[Tasks Dashboard] Filters:', {
 			searchTerm,
 			statusFilter,

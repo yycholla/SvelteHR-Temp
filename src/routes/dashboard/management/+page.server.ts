@@ -31,7 +31,7 @@ export const load: PageServerLoad = async (event) => {
 					userId: locals.user.id,
 					userEmail: locals.user.email || '',
 					role: locals.user.role || 'employee',
-					accessToken: cookies.get('hr_token') || cookies.get('auth-token') || ''
+					accessToken: '' // Session-based auth doesn't use access tokens
 				},
 				dashboardAnalytics: {
 					leaveRequests: { pending: 0, approved: 0, rejected: 0, totalThisMonth: 0 },
@@ -69,7 +69,7 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		// Get JWT token for authenticated GraphQL queries
-		const token = cookies.get('hr_token') || cookies.get('auth-token');
+		// Token retrieval removed - session auth handled by server hooks
 		if (!token) {
 			throw error(401, 'Authentication required');
 		}
@@ -347,7 +347,7 @@ export const load: PageServerLoad = async (event) => {
 				userId: locals.user.id,
 				userEmail: locals.user.email || '',
 				role: locals.user.role || 'employee',
-				accessToken: cookies.get('hr_token') || cookies.get('auth-token') || ''
+				accessToken: '' // Session-based auth doesn't use access tokens
 			},
 			dashboardAnalytics,
 			recentActivities,
@@ -387,7 +387,7 @@ export const load: PageServerLoad = async (event) => {
 				userId: locals.user.id,
 				userEmail: locals.user.email || '',
 				role: locals.user.role || 'employee',
-				accessToken: cookies.get('hr_token') || cookies.get('auth-token') || ''
+				accessToken: '' // Session-based auth doesn't use access tokens
 			},
 			dashboardAnalytics: {
 				leaveRequests: { pending: 0, approved: 0, rejected: 0, totalThisMonth: 0 },

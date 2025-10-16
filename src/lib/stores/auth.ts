@@ -1,6 +1,6 @@
 /**
  * Authentication and Authorization Store
- * Manages user authentication state and role-based permissions for PostGraphile
+ * Manages user authentication state and role-based permissions for session-based auth
  */
 
 import { writable, derived, get } from 'svelte/store';
@@ -8,14 +8,12 @@ import { browser } from '$app/environment';
 import { createUrqlClient } from '$lib/graphql/client';
 import { GET_USER_BY_ID, GET_USER_ROLES } from '$lib/graphql/postgraphile-operations';
 import { createRBACManager, type UserRoleAssignment, type RBACManager } from '$lib/auth/rbac';
-import { login as authServiceLogin } from '$lib/services/authService';
+import { secureAuthService } from '$lib/auth/secure-auth-service';
 
-// Rate limiting for auth validation
+// Session validation management
 let _lastValidation = 0;
-
-// Token refresh management
-let _refreshInterval: NodeJS.Timeout | null = null;
 let _refreshPromise: Promise<boolean> | null = null;
+let _refreshInterval: NodeJS.Timeout | null = null;
 
 // User interface
 export interface User {
@@ -46,20 +44,22 @@ const initialState: AuthState = {
 };
 
 // Create the main auth store
-export const authStore = writable<AuthState>(initialState);
+const authStoreInternal = writable<AuthState>(initialState);
 
-// Helper methods for authStore
-authStore.setUser = (user: User) => {
-	authStore.update((state) => ({
-		...state,
-		isAuthenticated: true,
-		user,
-		isLoading: false
-	}));
-};
-
-authStore.clearUser = () => {
-	authStore.set({ ...initialState, isLoading: false });
+// Create a store with methods
+export const authStore = {
+	...authStoreInternal,
+	setUser: (user: User) => {
+		authStoreInternal.update((state) => ({
+			...state,
+			isAuthenticated: true,
+			user,
+			isLoading: false
+		}));
+	},
+	clearUser: () => {
+		authStoreInternal.set({ ...initialState, isLoading: false });
+	}
 };
 
 // Derived stores for convenience
@@ -128,9 +128,11 @@ export const canManageCompliance = derived(rbac, ($rbac) => {
 // User role information
 export const userHighestRole = derived(rbac, ($rbac) => {
 	try {
+		const roleNames = $rbac.getRoleNames();
+		const highestLevel = $rbac.getHighestRoleLevel();
 		return {
-			name: $rbac.getHighestRoleName(),
-			level: $rbac.getHighestRoleLevel()
+			name: roleNames.length > 0 ? roleNames[0] : 'hr_guest',
+			level: highestLevel
 		};
 	} catch {
 		return {
@@ -164,10 +166,17 @@ export const authActions = {
 		authActions.setError(null);
 
 		try {
-			const result = await authServiceLogin({ email, password });
+			const result = await secureAuthService.login({ email, password });
 
 			if (result.success && result.user) {
-				await authActions.setUser(result.user);
+				const user: User = {
+					id: result.user.id,
+					email: result.user.email,
+					displayName: result.user.displayName,
+					onboardingStatus: 'Active',
+					isActive: true
+				};
+				await authActions.setUser(user);
 				// Start automatic token refresh
 				authActions.startTokenRefresh();
 				return true;
@@ -385,7 +394,7 @@ export const authActions = {
 	 */
 	canManageUser: (targetUserId: string, requiredPermission: string): boolean => {
 		const rbacManager = get(rbac);
-		return rbacManager.canManageUser(targetUserId, requiredPermission);
+		return rbacManager.canManage(requiredPermission.split(':')[0]);
 	},
 
 	/**

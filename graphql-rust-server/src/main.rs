@@ -7,7 +7,7 @@ use std::net::SocketAddr;
 
 use axum::{
     extract::Request,
-    http::{header, Method},
+    http::{header, HeaderValue, Method},
     middleware as axum_middleware,
     response::IntoResponse,
     routing::{get, post},
@@ -17,7 +17,7 @@ use axum_login::AuthManagerLayerBuilder;
 use sea_orm::DatabaseConnection;
 use tower::ServiceBuilder;
 use tower_http::{
-    cors::{Any, CorsLayer},
+    cors::CorsLayer,
     trace::TraceLayer,
 };
 use tower_sessions::{cookie::SameSite, Expiry, SessionManagerLayer};
@@ -28,6 +28,7 @@ use crate::{
     handlers::{graphql_handler, graphql_playground, login_handler, logout_handler, me_handler, refresh_handler, sessions_handler},
     middleware::{optional_session_auth_middleware, security_headers_middleware, session_auth_middleware, admin_session_auth_middleware},
 };
+use hr_graphql_server::config::Config;
 
 mod auth;
 mod database;
@@ -46,36 +47,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Load configuration
     dotenv::dotenv().ok();
-    let host = std::env::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
+    let config = Config::from_env()?;
+    let host = std::env::var("HOST").unwrap_or_else(|_| config.host);
     let port = std::env::var("PORT")
-        .unwrap_or_else(|_| "4000".to_string())
+        .unwrap_or_else(|_| config.port.to_string())
         .parse::<u16>()?;
     let database_url = std::env::var("DATABASE_URL")
-        .expect("DATABASE_URL must be set");
+        .unwrap_or_else(|_| config.database_url);
 
     // Create database connection
     let db = create_db_connection(&database_url).await?;
     tracing::info!("Connected to database");
 
-    // Create session store (using memory store for now - TODO: implement proper SeaORM session store)
-    let session_store = tower_sessions::MemoryStore::default();
+    // Create SeaORM session store for persistent sessions
+    let session_store = crate::auth::SeaOrmSessionStore::new(db.clone());
 
     // Configure session layer with secure cookie settings
-    let session_layer = SessionManagerLayer::new(session_store.clone())
+    let session_layer = SessionManagerLayer::new(session_store)
         .with_secure(true) // HTTPS only in production
         .with_http_only(true) // Prevent JavaScript access
-        .with_same_site(SameSite::Strict) // Strict same-site policy
-        .with_expiry(Expiry::OnInactivity(time::Duration::minutes(30))); // 30 minute inactivity
-
-    // Create session store
-    let session_store = tower_sessions::MemoryStore::default();
-
-    // Configure session layer with secure cookie settings
-    let session_layer = SessionManagerLayer::new(session_store.clone())
-        .with_secure(true) // HTTPS only in production
-        .with_http_only(true) // Prevent JavaScript access
-        .with_same_site(SameSite::Strict) // Strict same-site policy
-        .with_expiry(Expiry::OnInactivity(time::Duration::minutes(30))); // 30 minute inactivity
+        .with_same_site(SameSite::Lax) // Lax same-site policy for better compatibility
+        .with_expiry(Expiry::OnInactivity(time::Duration::hours(24))); // 24 hour inactivity
 
     // Create authentication backend
     let auth_backend = AuthBackend::new(db.clone());
@@ -83,11 +75,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create authentication layer
     let auth_layer = AuthManagerLayerBuilder::new(auth_backend, session_layer.clone()).build();
 
-    // Build CORS layer
+    // Build CORS layer - allow specific origins for credentials
     let cors = CorsLayer::new()
         .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
         .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION])
-        .allow_origin(Any); // Configure appropriately for production
+        .allow_credentials(true)
+        .allow_origin([
+            HeaderValue::from_static("http://localhost:5173"),
+            HeaderValue::from_static("http://localhost:3000"),
+        ]);
 
     // Build the application
     let app = Router::new()
@@ -115,11 +111,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .layer(auth_layer)
         )
         // Store database connection for handlers
-        .with_state(db);
+        .with_state(db.clone());
 
     // Start server
     let addr = format!("{}:{}", host, port)
         .parse::<SocketAddr>()?;
+
+    // Start session cleanup task
+    let cleanup_db = db.clone();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(3600)); // Run every hour
+        loop {
+            interval.tick().await;
+            match crate::auth::session_store::cleanup_expired_sessions(&cleanup_db).await {
+                Ok(count) => {
+                    if count > 0 {
+                        tracing::info!("Cleaned up {} expired sessions", count);
+                    }
+                }
+                Err(e) => {
+                    tracing::error!("Failed to cleanup expired sessions: {:?}", e);
+                }
+            }
+        }
+    });
 
     tracing::info!("🚀 Server starting on http://{}", addr);
     tracing::info!("📊 GraphQL playground: http://{}", addr);

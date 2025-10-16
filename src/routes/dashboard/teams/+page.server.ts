@@ -19,7 +19,7 @@ export const load: PageServerLoad = async (event) => {
 	// Create user session from server locals
 	const userSession = createUserSession({
 		userId: locals.user.id,
-		jwtToken: cookies.get('hr_token') || '',
+		jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
 		roles: [locals.user.role || 'employee'],
 		permissions: locals.permissions || [],
 		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes from now
@@ -113,12 +113,10 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		// Get JWT token from cookies for Rust GraphQL server authentication
-		const jwtToken = cookies.get('hr_token') || '';
 
-		// Headers with JWT Bearer token for Rust server authorization
+		// Headers for session-based authentication (cookies sent automatically)
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json',
-			Authorization: `Bearer ${jwtToken}`
 		};
 
 		// Fetch departments (teams) data

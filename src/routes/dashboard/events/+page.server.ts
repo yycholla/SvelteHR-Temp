@@ -23,14 +23,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		throw redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
 
-	// Get user credentials for GraphQL operations
-	const token = cookies.get('hr_token') || cookies.get('auth-token');
-	if (!token) {
-		throw redirect(303, `/login?redirectTo=${url.pathname}`);
-	}
-
 	const userCredentials = {
-		jwtToken: token,
+		jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
 		userId: locals.user.id,
 		roles: locals.roles || [],
 		permissions: locals.permissions || [],
@@ -107,18 +101,20 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		// Calculate statistics
 		const stats = {
 			total: eventsResult.totalCount,
-			upcoming: upcomingEventsResult.events.filter(
-				(e: any) => new Date(e.startTime) > new Date()
-			).length,
+			upcoming: upcomingEventsResult.events.filter((e: any) => new Date(e.startTime) > new Date())
+				.length,
 			myEvents: userEventsResult.events.length,
 			accepted: userEventsResult.events.filter((e: any) =>
-				e.eventAttendeesByEventId?.nodes?.some((a: any) => a.employeeId === locals.user.id && a.responseStatus === 'accepted')
+				e.eventAttendeesByEventId?.nodes?.some(
+					(a: any) => a.employeeId === locals.user.id && a.responseStatus === 'accepted'
+				)
 			).length
 		};
 
 		// Check if user has manager or admin privileges for event creation
 		// Permissions come from JWT token in locals.permissions
-		const canCreateEvents = locals.permissions?.includes('*') || locals.permissions?.includes('manage_events') || false;
+		const canCreateEvents =
+			locals.permissions?.includes('*') || locals.permissions?.includes('manage_events') || false;
 
 		// Feature 027: Fetch all employees for attendee picker in event creation
 		const FETCH_ALL_EMPLOYEES = gql`
@@ -147,10 +143,12 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			displayName: user.displayName,
 			email: user.email,
 			jobTitle: user.profileByUserId?.jobTitle,
-			department: user.profileByUserId?.department ? {
-				id: user.departmentId,
-				name: user.profileByUserId.department
-			} : undefined
+			department: user.profileByUserId?.department
+				? {
+						id: user.departmentId,
+						name: user.profileByUserId.department
+					}
+				: undefined
 		}));
 
 		// Feature 026: Helper functions are available at module level
@@ -321,7 +319,7 @@ export const actions: Actions = {
 			return fail(401, { error: 'Authentication required' });
 		}
 
-		const token = cookies.get('hr_token') || cookies.get('auth-token');
+		// Token retrieval removed - session auth handled by server hooks
 		if (!token) {
 			return fail(401, { error: 'Authentication required' });
 		}
@@ -349,7 +347,7 @@ export const actions: Actions = {
 			const eventsOps = new EventsOperations(urqlClient);
 
 			const userCredentials = {
-				jwtToken: token,
+				jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
 				userId: locals.user.id,
 				roles: locals.roles || [],
 				permissions: locals.permissions || [],
@@ -399,7 +397,7 @@ export const actions: Actions = {
 			return fail(401, { error: 'Authentication required' });
 		}
 
-		const token = cookies.get('hr_token') || cookies.get('auth-token');
+		// Token retrieval removed - session auth handled by server hooks
 		if (!token) {
 			return fail(401, { error: 'Authentication required' });
 		}
@@ -434,7 +432,7 @@ export const actions: Actions = {
 			const eventsOps = new EventsOperations(urqlClient);
 
 			const userCredentials = {
-				jwtToken: token,
+				jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
 				userId: locals.user.id,
 				roles: locals.roles || [],
 				permissions: locals.permissions || [],
@@ -450,13 +448,15 @@ export const actions: Actions = {
 				const [, year, month, day, hours, minutes] = match;
 
 				// Create Date in UTC
-				const date = new Date(Date.UTC(
-					parseInt(year),
-					parseInt(month) - 1,
-					parseInt(day),
-					parseInt(hours),
-					parseInt(minutes)
-				));
+				const date = new Date(
+					Date.UTC(
+						parseInt(year),
+						parseInt(month) - 1,
+						parseInt(day),
+						parseInt(hours),
+						parseInt(minutes)
+					)
+				);
 
 				// Adjust for user's timezone offset
 				date.setMinutes(date.getMinutes() + offsetMinutes);
@@ -504,7 +504,7 @@ export const actions: Actions = {
 			return fail(401, { error: 'Authentication required' });
 		}
 
-		const token = cookies.get('hr_token') || cookies.get('auth-token');
+		// Token retrieval removed - session auth handled by server hooks
 		if (!token) {
 			return fail(401, { error: 'Authentication required' });
 		}
@@ -532,7 +532,7 @@ export const actions: Actions = {
 			const eventsOps = new EventsOperations(urqlClient);
 
 			const userCredentials = {
-				jwtToken: token,
+				jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
 				userId: locals.user.id,
 				roles: locals.roles || [],
 				permissions: locals.permissions || [],
@@ -547,13 +547,15 @@ export const actions: Actions = {
 
 				const [, year, month, day, hours, minutes] = match;
 
-				const date = new Date(Date.UTC(
-					parseInt(year),
-					parseInt(month) - 1,
-					parseInt(day),
-					parseInt(hours),
-					parseInt(minutes)
-				));
+				const date = new Date(
+					Date.UTC(
+						parseInt(year),
+						parseInt(month) - 1,
+						parseInt(day),
+						parseInt(hours),
+						parseInt(minutes)
+					)
+				);
 
 				date.setMinutes(date.getMinutes() + offsetMinutes);
 				return date;
@@ -597,7 +599,7 @@ export const actions: Actions = {
 			return fail(401, { error: 'Authentication required' });
 		}
 
-		const token = cookies.get('hr_token') || cookies.get('auth-token');
+		// Token retrieval removed - session auth handled by server hooks
 		if (!token) {
 			return fail(401, { error: 'Authentication required' });
 		}
@@ -623,7 +625,7 @@ export const actions: Actions = {
 			const eventsOps = new EventsOperations(urqlClient);
 
 			const userCredentials = {
-				jwtToken: token,
+				jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
 				userId: locals.user.id,
 				roles: locals.roles || [],
 				permissions: locals.permissions || [],
@@ -654,7 +656,7 @@ export const actions: Actions = {
 			return fail(401, { error: 'Authentication required' });
 		}
 
-		const token = cookies.get('hr_token') || cookies.get('auth-token');
+		// Token retrieval removed - session auth handled by server hooks
 		if (!token) {
 			console.error('[SERVER] No token found');
 			return fail(401, { error: 'Authentication required' });
@@ -687,7 +689,7 @@ export const actions: Actions = {
 			const eventsOps = new EventsOperations(urqlClient);
 
 			const userCredentials = {
-				jwtToken: token,
+				jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
 				userId: locals.user.id,
 				roles: locals.roles || [],
 				permissions: locals.permissions || [],
@@ -743,7 +745,8 @@ export const actions: Actions = {
 					console.error('[SERVER] GraphQL error creating attendee:', result.error);
 
 					// Check if it's a duplicate key error (user is already an attendee)
-					const isDuplicateKey = result.error.message?.includes('event_attendees_unique') ||
+					const isDuplicateKey =
+						result.error.message?.includes('event_attendees_unique') ||
 						result.error.message?.includes('duplicate key');
 
 					if (isDuplicateKey) {
@@ -774,7 +777,10 @@ export const actions: Actions = {
 						throw new Error(result.error.message);
 					}
 				} else {
-					console.log('[SERVER] Created attendee:', result.data?.createEventAttendee?.eventAttendee);
+					console.log(
+						'[SERVER] Created attendee:',
+						result.data?.createEventAttendee?.eventAttendee
+					);
 				}
 			}
 
@@ -795,7 +801,7 @@ export const actions: Actions = {
 			return fail(401, { error: 'Authentication required' });
 		}
 
-		const token = cookies.get('hr_token') || cookies.get('auth-token');
+		// Token retrieval removed - session auth handled by server hooks
 		if (!token) {
 			return fail(401, { error: 'Authentication required' });
 		}
@@ -814,7 +820,7 @@ export const actions: Actions = {
 			const eventsOps = new EventsOperations(urqlClient);
 
 			const userCredentials = {
-				jwtToken: token,
+				jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
 				userId: locals.user.id,
 				roles: locals.roles || [],
 				permissions: locals.permissions || [],
