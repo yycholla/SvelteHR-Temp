@@ -110,7 +110,7 @@ impl Model {
         let db = get_db_from_context(ctx)?;
         let document = super::document::Entity::find_by_id(self.document_id)
             .filter(super::document::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Document not found".to_string()))?;
 
@@ -121,7 +121,7 @@ impl Model {
     async fn uploader(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::User> {
         let db = get_db_from_context(ctx)?;
         let user = crate::models::user::Entity::find_by_id(self.uploader_id)
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 

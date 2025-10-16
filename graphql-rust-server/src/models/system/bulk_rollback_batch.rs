@@ -6,6 +6,7 @@ use async_graphql::{InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
 use sea_orm::{entity::prelude::*, QueryFilter};
 use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
 use uuid::Uuid;
 
 use crate::{database::get_db_from_context, error::AppError};
@@ -124,7 +125,7 @@ impl Model {
         let db = get_db_from_context(ctx)?;
         let user = crate::models::user::Entity::find_by_id(self.requester_id)
             .filter(crate::models::user::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Requester not found".to_string()))?;
 
@@ -139,7 +140,7 @@ impl Model {
         let db = get_db_from_context(ctx)?;
         let items = super::bulk_rollback_item::Entity::find()
             .filter(super::bulk_rollback_item::Column::BatchId.eq(self.id))
-            .all(db)
+            .all(&db)
             .await?;
 
         Ok(items)

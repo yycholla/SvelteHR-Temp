@@ -1,0 +1,84 @@
+# SvelteHR Authentication GraphQL Schema Extensions
+# Extends the main GraphQL schema with authentication-related types and resolvers
+
+type User {
+	id: ID!
+	email: String!
+	role: UserRole!
+	isActive: Boolean!
+	lastLogin: DateTime
+	createdAt: DateTime!
+	updatedAt: DateTime!
+}
+
+enum UserRole {
+	EMPLOYEE
+	MANAGER
+	HR_ADMIN
+	SYSTEM_ADMIN
+}
+
+type AuthSession {
+	id: ID!
+	user: User!
+	createdAt: DateTime!
+	expiresAt: DateTime!
+	lastActivity: DateTime!
+	ipAddress: String
+	userAgent: String
+}
+
+type AuthResult {
+	user: User!
+	session: AuthSession!
+}
+
+type LogoutResult {
+	success: Boolean!
+	message: String!
+}
+
+type AuthError {
+	code: String!
+	message: String!
+	retryAfter: Int
+}
+
+union AuthResponse = AuthResult | AuthError
+
+extend type Query {
+	# Get current authenticated user information
+	me: User! @auth(requires: "authenticated")
+
+	# Get current user's active session info
+	mySession: AuthSession! @auth(requires: "authenticated")
+
+	# Check authentication status (for frontend state management)
+	authStatus: Boolean!
+}
+
+extend type Mutation {
+	# Login with email and password
+	login(email: String!, password: String!): AuthResponse!
+
+	# Logout current session
+	logout: LogoutResult! @auth(requires: "authenticated")
+
+	# Refresh session (extend expiration)
+	refreshSession: AuthSession! @auth(requires: "authenticated")
+}
+
+# Authentication directives
+directive @auth(requires: String!) on FIELD_DEFINITION
+
+# Error handling for authentication failures
+type LoginError implements Error {
+	message: String!
+	code: String!
+	retryAfter: Int
+}
+
+interface Error {
+	message: String!
+	code: String!
+}

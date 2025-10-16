@@ -81,7 +81,7 @@ impl Model {
     ) -> GqlResult<crate::models::system::encryption_key::Model> {
         let db = get_db_from_context(ctx)?;
         let key = crate::models::system::encryption_key::Entity::find_by_id(self.encryption_key_id)
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Encryption key not found".to_string()))?;
 

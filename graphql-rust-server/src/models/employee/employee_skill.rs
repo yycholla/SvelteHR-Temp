@@ -23,6 +23,17 @@ pub enum ProficiencyLevel {
     Expert,
 }
 
+impl ProficiencyLevel {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ProficiencyLevel::Beginner => "beginner",
+            ProficiencyLevel::Intermediate => "intermediate",
+            ProficiencyLevel::Advanced => "advanced",
+            ProficiencyLevel::Expert => "expert",
+        }
+    }
+}
+
 /// Employee skill with proficiency tracking
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "employee_skills")]
@@ -113,7 +124,7 @@ impl Model {
     async fn employee(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::User> {
         let db = get_db_from_context(ctx)?;
         let user = crate::models::user::Entity::find_by_id(self.employee_id)
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
@@ -125,7 +136,7 @@ impl Model {
         if let Some(verifier_id) = self.verifier_id {
             let db = get_db_from_context(ctx)?;
             let user = crate::models::user::Entity::find_by_id(verifier_id)
-                .one(db)
+                .one(&db)
                 .await?;
 
             Ok(user)

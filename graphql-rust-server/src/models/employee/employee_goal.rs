@@ -23,6 +23,17 @@ pub enum GoalStatus {
     Cancelled,
 }
 
+impl GoalStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            GoalStatus::NotStarted => "not_started",
+            GoalStatus::InProgress => "in_progress",
+            GoalStatus::Completed => "completed",
+            GoalStatus::Cancelled => "cancelled",
+        }
+    }
+}
+
 /// Employee goal tracking
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "employee_goals")]
@@ -133,7 +144,7 @@ impl Model {
     async fn employee(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::User> {
         let db = get_db_from_context(ctx)?;
         let user = crate::models::user::Entity::find_by_id(self.employee_id)
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 

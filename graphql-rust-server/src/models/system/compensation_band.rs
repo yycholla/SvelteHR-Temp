@@ -6,6 +6,7 @@ use async_graphql::{InputObject, Object};
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
 use uuid::Uuid;
 
 /// SeaORM Compensation band entity

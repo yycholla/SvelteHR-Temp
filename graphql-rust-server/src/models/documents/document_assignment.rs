@@ -18,6 +18,16 @@ pub enum DocumentAccessLevel {
     Admin,
 }
 
+impl DocumentAccessLevel {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            DocumentAccessLevel::Read => "read",
+            DocumentAccessLevel::Write => "write",
+            DocumentAccessLevel::Admin => "admin",
+        }
+    }
+}
+
 /// Input for creating a new document assignment
 #[derive(Debug, Clone, InputObject)]
 pub struct CreateDocumentAssignmentInput {
@@ -119,7 +129,7 @@ impl Model {
         let db = get_db_from_context(ctx)?;
         let document = super::document::Entity::find_by_id(self.document_id)
             .filter(super::document::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Document not found".to_string()))?;
 
@@ -131,7 +141,7 @@ impl Model {
         if let Some(user_id) = self.user_id {
             let db = get_db_from_context(ctx)?;
             let user = crate::models::user::Entity::find_by_id(user_id)
-                .one(db)
+                .one(&db)
                 .await?;
 
             Ok(user)
@@ -148,7 +158,7 @@ impl Model {
         if let Some(dept_id) = self.department_id {
             let db = get_db_from_context(ctx)?;
             let dept = crate::models::department::Entity::find_by_id(dept_id)
-                .one(db)
+                .one(&db)
                 .await?;
 
             Ok(dept)
@@ -162,7 +172,7 @@ impl Model {
     async fn assigned_by(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::User> {
         let db = get_db_from_context(ctx)?;
         let user = crate::models::user::Entity::find_by_id(self.assigned_by_id)
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 

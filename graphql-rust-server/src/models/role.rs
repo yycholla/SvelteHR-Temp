@@ -94,7 +94,7 @@ impl Model {
 
         let permissions = Entity::find_by_id(self.id)
             .find_with_related(super::permission::Entity)
-            .all(db)
+            .all(&db)
             .await?
             .into_iter()
             .flat_map(|(_, perms)| perms)
@@ -119,7 +119,7 @@ impl Model {
         let count = super::user_role_assignment::Entity::find()
             .filter(super::user_role_assignment::Column::RoleId.eq(self.id))
             .filter(super::user_role_assignment::Column::DeletedAt.is_null())
-            .count(db)
+            .count(&db)
             .await?;
 
         Ok(count as i64)
@@ -132,7 +132,7 @@ impl Model {
         let count = super::role_permission::Entity::find()
             .filter(super::role_permission::Column::RoleId.eq(self.id))
             .filter(super::role_permission::Column::DeletedAt.is_null())
-            .count(db)
+            .count(&db)
             .await?;
 
         Ok(count as i64)
@@ -158,6 +158,7 @@ pub struct UpdateRoleInput {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::Model as Role;
 
     #[test]
     fn test_role_model_compiles() {

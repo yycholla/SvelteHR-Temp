@@ -1,24 +1,26 @@
-use async_graphql::{Context, Object, Result};
+use async_graphql::{Context, Object, Result, SimpleObject};
+use axum_login::AuthSession;
 use chrono::Utc;
-use sea_orm::{DatabaseConnection, Set, ActiveModelTrait};
+use sea_orm::{DatabaseConnection, EntityTrait, Set, ActiveModelTrait, QueryFilter, ColumnTrait};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
-    auth::context::UserContext,
+    auth::{context::UserContext, AuthBackend, Credentials, AuthUser},
     database::get_db_from_context,
     error::AppError,
     models::{
         generated::prelude::*,
         task_audit_entry,
-        ApproveLeaveRequestInput, AssignRoleInput, AssignTaskInput, AuditAction,
+        ApproveLeaveRequestInput, AssignRoleInput, AssignTaskInput, AssigneeRole, AuditAction,
         ChangeTaskStatusInput, CreateDepartmentInput, CreateEventAttendeeInput, CreateEventInput,
         CreateLeaveBalanceInput, CreateLeaveRequestInput, CreateLeaveTypeInput,
         CreateLinkedResourceInput, CreatePerformanceReviewInput, CreatePermissionInput,
         CreateReviewCycleInput, CreateReviewFeedbackInput, CreateReviewGoalInput, CreateRoleInput,
-        CreateTaskDependencyInput, CreateTaskInput, CreateUserInput, Department, Event,
-        EventAttendee, LeaveBalance, LeaveRequest, LeaveRequestStatus, LeaveType, LinkedResource,
-        PerformanceReview, PerformanceReviewStatus, Permission, RejectLeaveRequestInput, ReviewCycle, ReviewFeedback,
-        ReviewGoal, Role, RsvpStatus, Task, TaskAssignee, TaskAuditEntry, TaskDependency,
+        CreateTaskDependencyInput, CreateTaskInput, CreateUserInput, Department, DependencyType, Event,
+        EventAttendee, FeedbackType, LeaveBalance, LeaveRequest, LeaveRequestStatus, LeaveType, LinkedResource,
+        PerformanceReview, PerformanceReviewStatus, Permission, RejectLeaveRequestInput, ResourceType, ReviewCycle, ReviewCycleStatus, ReviewFeedback,
+        ReviewGoal, GoalCompletionStatus, ReviewType, Role, RsvpStatus, Task, TaskAssignee, TaskAuditEntry, TaskDependency,
         TaskPriority, TaskStatus, UpdateDepartmentInput, UpdateEventAttendeeInput, UpdateEventInput,
         UpdateLeaveBalanceInput, UpdateLeaveRequestInput, UpdateLeaveTypeInput,
         UpdateLinkedResourceInput, UpdatePerformanceReviewInput, UpdatePermissionInput,
@@ -44,9 +46,9 @@ use crate::{
         ActivityLog, BulkRollbackBatch, BulkRollbackItem, CompensationBand,
         CreateActivityLogInput, CreateBulkRollbackBatchInput, CreateBulkRollbackItemInput,
         CreateCompensationBandInput, CreateEncryptionKeyInput, CreateHRReportInput,
-        CreatePayrollRecordInput, CreateRollbackRequestInput, EncryptionKey, HRReport,
-        PayrollRecord, RollbackRequest, RollbackStatus, UpdateBulkRollbackBatchInput,
-        UpdateBulkRollbackItemInput, UpdateCompensationBandInput, UpdateRollbackRequestInput,
+        CreatePayrollRecordInput, CreateRollbackRequestInput, EncryptionKey, HRReport, PayrollRecord,
+        RollbackRequest, RollbackRequestCondition, RollbackRequestsConnection, RollbackRequestsOrderBy, RollbackStatus, UpdateBulkRollbackBatchInput, UpdateBulkRollbackItemInput,
+        UpdateCompensationBandInput, UpdateRollbackRequestInput,
         // Events domain (new models)
         CreateEventCommentInput, CreateEventHistoryInput, CreateEventWaitlistInput, EventComment,
         EventHistory, EventWaitlist, UpdateEventCommentInput, UpdateEventWaitlistInput,
@@ -57,10 +59,72 @@ use crate::{
     },
 };
 
+
+
+/// User information returned by login
+#[derive(SimpleObject)]
+pub struct UserInfo {
+    pub id: String,
+    pub email: String,
+    pub role: String,
+    pub is_active: bool,
+}
+
+/// Refresh session response
+#[derive(SimpleObject)]
+pub struct RefreshSessionResponse {
+    pub success: bool,
+    pub session_expires_at: Option<String>,
+    pub message: String,
+}
+
 pub struct MutationRoot;
 
 #[Object]
 impl MutationRoot {
+
+
+    /// Refresh current session to extend its lifetime
+    async fn refresh_session(&self, ctx: &Context<'_>) -> Result<RefreshSessionResponse> {
+        let auth_session = ctx.data::<AuthSession<AuthBackend>>()?;
+
+        match &auth_session.user {
+            Some(_user) => {
+                // Session is valid, it will be automatically refreshed by the session store
+                // when accessed. The session store updates last_activity on each access.
+                Ok(RefreshSessionResponse {
+                    success: true,
+                    session_expires_at: Some((chrono::Utc::now() + chrono::Duration::minutes(30)).to_rfc3339()),
+                    message: "Session refreshed successfully".to_string(),
+                })
+            }
+            None => {
+                Ok(RefreshSessionResponse {
+                    success: false,
+                    session_expires_at: None,
+                    message: "No active session to refresh".to_string(),
+                })
+            }
+        }
+    }
+
+    /// Get current authenticated user information
+    async fn me(&self, ctx: &Context<'_>) -> Result<Option<UserInfo>> {
+        let auth_session = ctx.data::<AuthSession<AuthBackend>>()?;
+
+        match &auth_session.user {
+            Some(user) => {
+                Ok(Some(UserInfo {
+                    id: user.id.to_string(),
+                    email: user.email.clone(),
+                    role: user.role.clone(),
+                    is_active: user.is_active,
+                }))
+            }
+            None => Ok(None),
+        }
+    }
+
     /// Create a new event attendee
     async fn create_event_attendee(
         &self,
@@ -80,7 +144,7 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let attendee = attendee.insert(db).await?;
+        let attendee = attendee.insert(&db).await?;
 
         // Convert SeaORM model to legacy EventAttendee struct for compatibility
         let attendee = EventAttendee {
@@ -109,7 +173,7 @@ impl MutationRoot {
 
         // Find existing attendee
         let existing_attendee = crate::models::event_attendee::Entity::find_by_id(id)
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Event attendee not found".to_string()))?;
 
@@ -121,15 +185,15 @@ impl MutationRoot {
         }
 
         if let Some(reminder_time) = input.reminder_time {
-            attendee.reminder_time = Set(reminder_time);
+            attendee.reminder_time = Set(Some(reminder_time));
         }
 
         if let Some(scope) = input.scope {
-            attendee.scope = Set(scope);
+            attendee.scope = Set(Some(scope));
         }
 
         // Save changes
-        let updated_attendee = attendee.update(db).await?;
+        let updated_attendee = attendee.update(&db).await?;
 
         // Convert to legacy EventAttendee struct for compatibility
         let attendee = EventAttendee {
@@ -152,7 +216,7 @@ impl MutationRoot {
         let db = get_db_from_context(ctx)?;
 
         let result = crate::models::event_attendee::Entity::delete_by_id(id)
-            .exec(db)
+            .exec(&db)
             .await?;
 
         Ok(result.rows_affected > 0)
@@ -182,17 +246,18 @@ impl MutationRoot {
             department_id: Set(input.department_id),
             manager_id: Set(input.manager_id),
             hire_date: Set(input.hire_date),
-            status: Set(input.status.unwrap_or("active".to_string())),
+            status: Set(Some(input.status.as_str().to_string())),
             is_active: Set(true),
             ..Default::default()
         };
 
-        let user = user.insert(db).await?;
+        let user = user.insert(&db).await?;
 
         // Convert SeaORM model to legacy User struct for compatibility
         let user = User {
             id: user.id,
             email: user.email,
+            password_hash: user.password_hash,
             first_name: user.first_name,
             last_name: user.last_name,
             display_name: user.display_name,
@@ -205,16 +270,17 @@ impl MutationRoot {
             department_id: user.department_id,
             manager_id: user.manager_id,
             hire_date: user.hire_date,
+            termination_date: user.termination_date,
             is_active: user.is_active,
+            failed_login_attempts: user.failed_login_attempts,
+            locked_until: user.locked_until,
+            last_login: user.last_login,
             created_at: user.created_at,
             updated_at: user.updated_at,
+            deleted_at: user.deleted_at,
         };
 
         Ok(user)
-            .map_err(|e| {
-                tracing::error!("Failed to create user: {}", e);
-                AppError::new("Failed to create user")
-            })
     }
 
     /// Update an existing user
@@ -229,9 +295,13 @@ impl MutationRoot {
         // Find existing user
         let existing_user = crate::models::user::Entity::find_by_id(id)
             .filter(crate::models::user::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
+
+        // Store existing values for full_name calculation
+        let existing_first_name = existing_user.first_name.clone();
+        let existing_last_name = existing_user.last_name.clone();
 
         // Build active model with updates
         let mut user: crate::models::user::ActiveModel = existing_user.into();
@@ -240,18 +310,22 @@ impl MutationRoot {
             user.email = Set(email);
         }
 
-        if let Some(first_name) = input.first_name {
-            user.first_name = Set(first_name);
+        // Store references to avoid moving
+        let new_first_name = input.first_name.as_ref();
+        let new_last_name = input.last_name.as_ref();
+
+        if let Some(first_name) = &input.first_name {
+            user.first_name = Set(first_name.clone());
         }
 
-        if let Some(last_name) = input.last_name {
-            user.last_name = Set(last_name);
+        if let Some(last_name) = &input.last_name {
+            user.last_name = Set(last_name.clone());
         }
 
         // Recalculate full_name if first or last name changed
-        if input.first_name.is_some() || input.last_name.is_some() {
-            let first_name = input.first_name.as_ref().unwrap_or(&existing_user.first_name);
-            let last_name = input.last_name.as_ref().unwrap_or(&existing_user.last_name);
+        if new_first_name.is_some() || new_last_name.is_some() {
+            let first_name = new_first_name.unwrap_or(&existing_first_name);
+            let last_name = new_last_name.unwrap_or(&existing_last_name);
             let full_name = format!("{} {}", first_name, last_name);
             user.full_name = Set(full_name);
         }
@@ -277,19 +351,20 @@ impl MutationRoot {
         }
 
         if let Some(status) = input.status {
-            user.status = Set(status);
+            user.status = Set(Some(status.as_str().to_string()));
         }
 
         // Update timestamp
-        user.updated_at = Set(Utc::now().naive_utc());
+        user.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_user = user.update(db).await?;
+        let updated_user = user.update(&db).await?;
 
         // Convert to legacy User struct for compatibility
         let user = User {
             id: updated_user.id,
             email: updated_user.email,
+            password_hash: updated_user.password_hash,
             first_name: updated_user.first_name,
             last_name: updated_user.last_name,
             display_name: updated_user.display_name,
@@ -302,9 +377,14 @@ impl MutationRoot {
             department_id: updated_user.department_id,
             manager_id: updated_user.manager_id,
             hire_date: updated_user.hire_date,
+            termination_date: updated_user.termination_date,
             is_active: updated_user.is_active,
+            failed_login_attempts: updated_user.failed_login_attempts,
+            locked_until: updated_user.locked_until,
+            last_login: updated_user.last_login,
             created_at: updated_user.created_at,
             updated_at: updated_user.updated_at,
+            deleted_at: updated_user.deleted_at,
         };
 
         Ok(user)
@@ -317,7 +397,7 @@ impl MutationRoot {
         // Find the user first to ensure it exists
         let user = crate::models::user::Entity::find_by_id(id)
             .filter(crate::models::user::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?;
 
         if user.is_none() {
@@ -326,9 +406,9 @@ impl MutationRoot {
 
         // Soft delete by setting deleted_at
         let mut user: crate::models::user::ActiveModel = user.unwrap().into();
-        user.deleted_at = Set(Some(Utc::now().naive_utc()));
+        user.deleted_at = Set(Some(Utc::now()));
 
-        user.update(db).await?;
+        user.update(&db).await?;
 
         Ok(true)
     }
@@ -352,7 +432,7 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let department = department.insert(db).await?;
+        let department = department.insert(&db).await?;
 
         // Convert SeaORM model to legacy Department struct for compatibility
         let department = Department {
@@ -363,13 +443,10 @@ impl MutationRoot {
             manager_id: department.manager_id,
             created_at: department.created_at,
             updated_at: department.updated_at,
+            deleted_at: department.deleted_at,
         };
 
         Ok(department)
-            .map_err(|e| {
-                tracing::error!("Failed to create department: {}", e);
-                AppError::new("Failed to create department")
-            })
     }
 
     /// Update an existing department
@@ -383,7 +460,7 @@ impl MutationRoot {
 
         // Find existing department
         let existing_dept = crate::models::department::Entity::find_by_id(id)
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Department not found".to_string()))?;
 
@@ -403,10 +480,10 @@ impl MutationRoot {
         }
 
         // Update timestamp
-        dept.updated_at = Set(Utc::now().naive_utc());
+        dept.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_dept = dept.update(db).await?;
+        let updated_dept = dept.update(&db).await?;
 
         // Convert to legacy Department struct for compatibility
         let department = Department {
@@ -417,6 +494,7 @@ impl MutationRoot {
             manager_id: updated_dept.manager_id,
             created_at: updated_dept.created_at,
             updated_at: updated_dept.updated_at,
+            deleted_at: updated_dept.deleted_at,
         };
 
         Ok(department)
@@ -429,7 +507,7 @@ impl MutationRoot {
         // Find the department first to ensure it exists
         let dept = crate::models::department::Entity::find_by_id(id)
             .filter(crate::models::department::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?;
 
         if dept.is_none() {
@@ -438,9 +516,9 @@ impl MutationRoot {
 
         // Soft delete by setting deleted_at
         let mut dept: crate::models::department::ActiveModel = dept.unwrap().into();
-        dept.deleted_at = Set(Some(Utc::now().naive_utc()));
+        dept.deleted_at = Set(Some(Utc::now()));
 
-        dept.update(db).await?;
+        dept.update(&db).await?;
 
         Ok(true)
     }
@@ -460,7 +538,7 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let role = role.insert(db).await?;
+        let role = role.insert(&db).await?;
 
         // Convert SeaORM model to legacy Role struct for compatibility
         let role = Role {
@@ -483,7 +561,7 @@ impl MutationRoot {
         // Find existing role
         let existing_role = crate::models::role::Entity::find_by_id(id)
             .filter(crate::models::role::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Role not found".to_string()))?;
 
@@ -503,10 +581,10 @@ impl MutationRoot {
         }
 
         // Update timestamp
-        role.updated_at = Set(Utc::now().naive_utc());
+        role.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_role = role.update(db).await?;
+        let updated_role = role.update(&db).await?;
 
         // Convert to legacy Role struct for compatibility
         let role = Role {
@@ -529,7 +607,7 @@ impl MutationRoot {
         // Find the role first to ensure it exists
         let role = crate::models::role::Entity::find_by_id(id)
             .filter(crate::models::role::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?;
 
         if role.is_none() {
@@ -538,9 +616,9 @@ impl MutationRoot {
 
         // Soft delete by setting deleted_at
         let mut role: crate::models::role::ActiveModel = role.unwrap().into();
-        role.deleted_at = Set(Some(Utc::now().naive_utc()));
+        role.deleted_at = Set(Some(Utc::now()));
 
-        role.update(db).await?;
+        role.update(&db).await?;
 
         Ok(true)
     }
@@ -560,7 +638,7 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let permission = permission.insert(db).await?;
+        let permission = permission.insert(&db).await?;
 
         // Convert SeaORM model to legacy Permission struct for compatibility
         let permission = Permission {
@@ -583,7 +661,7 @@ impl MutationRoot {
         // Find existing permission
         let existing_permission = crate::models::permission::Entity::find_by_id(id)
             .filter(crate::models::permission::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Permission not found".to_string()))?;
 
@@ -599,14 +677,14 @@ impl MutationRoot {
         }
 
         if let Some(description) = input.description {
-            permission.description = Set(description);
+            permission.description = Set(Some(description));
         }
 
         // Update timestamp
-        permission.updated_at = Set(Utc::now().naive_utc());
+        permission.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_permission = permission.update(db).await?;
+        let updated_permission = permission.update(&db).await?;
 
         // Convert to legacy Permission struct for compatibility
         let permission = Permission {
@@ -629,7 +707,7 @@ impl MutationRoot {
         // Find the permission first to ensure it exists
         let permission = crate::models::permission::Entity::find_by_id(id)
             .filter(crate::models::permission::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?;
 
         if permission.is_none() {
@@ -638,9 +716,9 @@ impl MutationRoot {
 
         // Soft delete by setting deleted_at
         let mut permission: crate::models::permission::ActiveModel = permission.unwrap().into();
-        permission.deleted_at = Set(Some(Utc::now().naive_utc()));
+        permission.deleted_at = Set(Some(Utc::now()));
 
-        permission.update(db).await?;
+        permission.update(&db).await?;
 
         Ok(true)
     }
@@ -660,11 +738,11 @@ impl MutationRoot {
             user_id: Set(input.user_id),
             role_id: Set(input.role_id),
             assigned_by: Set(assigner_id),
-            assigned_at: Set(Utc::now().naive_utc()),
+            assigned_at: Set(Utc::now()),
             ..Default::default()
         };
 
-        let assignment = assignment.insert(db).await?;
+        let assignment = assignment.insert(&db).await?;
 
         // Convert SeaORM model to legacy UserRoleAssignment struct for compatibility
         let assignment = UserRoleAssignment {
@@ -690,15 +768,15 @@ impl MutationRoot {
             .filter(crate::models::user_role_assignment::Column::UserId.eq(user_id))
             .filter(crate::models::user_role_assignment::Column::RoleId.eq(role_id))
             .filter(crate::models::user_role_assignment::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?;
 
         if let Some(assignment) = assignment {
             // Soft delete by setting deleted_at
             let mut assignment: crate::models::user_role_assignment::ActiveModel = assignment.into();
-            assignment.deleted_at = Set(Some(Utc::now().naive_utc()));
+            assignment.deleted_at = Set(Some(Utc::now()));
 
-            assignment.update(db).await?;
+            assignment.update(&db).await?;
             Ok(true)
         } else {
             Ok(false)
@@ -714,7 +792,7 @@ impl MutationRoot {
             .filter(crate::models::role_permission::Column::RoleId.eq(role_id))
             .filter(crate::models::role_permission::Column::PermissionId.eq(permission_id))
             .filter(crate::models::role_permission::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?;
 
         if existing.is_some() {
@@ -727,7 +805,7 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        assignment.insert(db).await?;
+        assignment.insert(&db).await?;
         Ok(true)
     }
 
@@ -740,15 +818,15 @@ impl MutationRoot {
             .filter(crate::models::role_permission::Column::RoleId.eq(role_id))
             .filter(crate::models::role_permission::Column::PermissionId.eq(permission_id))
             .filter(crate::models::role_permission::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?;
 
         if let Some(assignment) = assignment {
             // Soft delete by setting deleted_at
             let mut assignment: crate::models::role_permission::ActiveModel = assignment.into();
-            assignment.deleted_at = Set(Some(Utc::now().naive_utc()));
+            assignment.deleted_at = Set(Some(Utc::now()));
 
-            assignment.update(db).await?;
+            assignment.update(&db).await?;
             Ok(true)
         } else {
             Ok(false)
@@ -785,27 +863,7 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let event = event.insert(db).await?;
-
-        // Convert SeaORM model to legacy Event struct for compatibility
-        let event = Event {
-            id: event.id,
-            title: event.title,
-            description: event.description,
-            location: event.location,
-            start_time: event.start_time,
-            end_time: event.end_time,
-            is_all_day: event.is_all_day,
-            recurrence_rule: event.recurrence_rule,
-            recurrence_end_date: event.recurrence_end_date,
-            capacity: event.capacity,
-            image_url: event.image_url,
-            image_aspect_ratio: event.image_aspect_ratio,
-            created_by: event.organizer_id,
-            created_at: event.created_at,
-            updated_at: event.updated_at,
-            deleted_at: event.deleted_at,
-        };
+        let event = event.insert(&db).await?;
 
         Ok(event)
     }
@@ -822,7 +880,7 @@ impl MutationRoot {
         // Find existing event
         let existing_event = crate::models::event::Entity::find_by_id(id)
             .filter(crate::models::event::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Event not found".to_string()))?;
 
@@ -834,11 +892,11 @@ impl MutationRoot {
         }
 
         if let Some(description) = input.description {
-            event.description = Set(description);
+            event.description = Set(Some(description));
         }
 
         if let Some(location) = input.location {
-            event.location = Set(location);
+            event.location = Set(Some(location));
         }
 
         if let Some(start_time) = input.start_time {
@@ -854,52 +912,32 @@ impl MutationRoot {
         }
 
         if let Some(recurrence_rule) = input.recurrence_rule {
-            event.recurrence_rule = Set(recurrence_rule);
+            event.recurrence_rule = Set(Some(recurrence_rule));
         }
 
         if let Some(recurrence_end_date) = input.recurrence_end_date {
-            event.recurrence_end_date = Set(recurrence_end_date);
+            event.recurrence_end_date = Set(Some(recurrence_end_date));
         }
 
         if let Some(capacity) = input.capacity {
-            event.capacity = Set(capacity);
+            event.capacity = Set(Some(capacity));
         }
 
         if let Some(image_url) = input.image_url {
-            event.image_url = Set(image_url);
+            event.image_url = Set(Some(image_url));
         }
 
         if let Some(image_aspect_ratio) = input.image_aspect_ratio {
-            event.image_aspect_ratio = Set(image_aspect_ratio);
+            event.image_aspect_ratio = Set(Some(image_aspect_ratio));
         }
 
         // Update timestamp
-        event.updated_at = Set(Utc::now().naive_utc());
+        event.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_event = event.update(db).await?;
+        let updated_event = event.update(&db).await?;
 
-        // Convert to legacy Event struct for compatibility
-        let event = Event {
-            id: updated_event.id,
-            title: updated_event.title,
-            description: updated_event.description,
-            location: updated_event.location,
-            start_time: updated_event.start_time,
-            end_time: updated_event.end_time,
-            is_all_day: updated_event.is_all_day,
-            recurrence_rule: updated_event.recurrence_rule,
-            recurrence_end_date: updated_event.recurrence_end_date,
-            capacity: updated_event.capacity,
-            image_url: updated_event.image_url,
-            image_aspect_ratio: updated_event.image_aspect_ratio,
-            created_by: updated_event.organizer_id,
-            created_at: updated_event.created_at,
-            updated_at: updated_event.updated_at,
-            deleted_at: updated_event.deleted_at,
-        };
-
-        Ok(event)
+        Ok(updated_event)
     }
 
     /// Soft delete an event (sets deleted_at timestamp)
@@ -909,7 +947,7 @@ impl MutationRoot {
         // Find the event first to ensure it exists
         let event = crate::models::event::Entity::find_by_id(id)
             .filter(crate::models::event::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?;
 
         if event.is_none() {
@@ -918,9 +956,9 @@ impl MutationRoot {
 
         // Soft delete by setting deleted_at
         let mut event: crate::models::event::ActiveModel = event.unwrap().into();
-        event.deleted_at = Set(Some(Utc::now().naive_utc()));
+        event.deleted_at = Set(Some(Utc::now()));
 
-        event.update(db).await?;
+        event.update(&db).await?;
 
         Ok(true)
     }
@@ -949,7 +987,7 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let leave_type = leave_type.insert(db).await?;
+        let leave_type = leave_type.insert(&db).await?;
 
         // Convert SeaORM model to legacy LeaveType struct for compatibility
         let leave_type = LeaveType {
@@ -982,7 +1020,7 @@ impl MutationRoot {
         // Find existing leave type
         let existing_leave_type = crate::models::leave_type::Entity::find_by_id(id)
             .filter(crate::models::leave_type::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Leave type not found".to_string()))?;
 
@@ -994,7 +1032,7 @@ impl MutationRoot {
         }
 
         if let Some(description) = input.description {
-            leave_type.description = Set(description);
+            leave_type.description = Set(Some(description));
         }
 
         if let Some(default_days) = input.default_days_per_year {
@@ -1006,7 +1044,7 @@ impl MutationRoot {
         }
 
         if let Some(max_days) = input.max_consecutive_days {
-            leave_type.max_consecutive_days = Set(max_days);
+            leave_type.max_consecutive_days = Set(Some(max_days));
         }
 
         if let Some(is_paid) = input.is_paid {
@@ -1014,18 +1052,18 @@ impl MutationRoot {
         }
 
         if let Some(color) = input.color {
-            leave_type.color = Set(color);
+            leave_type.color = Set(Some(color));
         }
 
         if let Some(icon) = input.icon {
-            leave_type.icon = Set(icon);
+            leave_type.icon = Set(Some(icon));
         }
 
         // Update timestamp
-        leave_type.updated_at = Set(Utc::now().naive_utc());
+        leave_type.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_leave_type = leave_type.update(db).await?;
+        let updated_leave_type = leave_type.update(&db).await?;
 
         // Convert to legacy LeaveType struct for compatibility
         let leave_type = LeaveType {
@@ -1053,7 +1091,7 @@ impl MutationRoot {
         // Find the leave type first to ensure it exists
         let leave_type = crate::models::leave_type::Entity::find_by_id(id)
             .filter(crate::models::leave_type::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?;
 
         if leave_type.is_none() {
@@ -1062,9 +1100,9 @@ impl MutationRoot {
 
         // Soft delete by setting deleted_at
         let mut leave_type: crate::models::leave_type::ActiveModel = leave_type.unwrap().into();
-        leave_type.deleted_at = Set(Some(Utc::now().naive_utc()));
+        leave_type.deleted_at = Set(Some(Utc::now()));
 
-        leave_type.update(db).await?;
+        leave_type.update(&db).await?;
 
         Ok(true)
     }
@@ -1090,7 +1128,7 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let balance = balance.insert(db).await?;
+        let balance = balance.insert(&db).await?;
 
         // Convert SeaORM model to legacy LeaveBalance struct for compatibility
         let balance = LeaveBalance {
@@ -1100,8 +1138,11 @@ impl MutationRoot {
             year: balance.year,
             balance_days: balance.balance_days,
             used_days: balance.used_days,
+            pending_days: balance.pending_days,
+            carried_over_days: balance.carried_over_days,
             created_at: balance.created_at,
             updated_at: balance.updated_at,
+            deleted_at: balance.deleted_at,
         };
 
         Ok(balance)
@@ -1118,7 +1159,7 @@ impl MutationRoot {
 
         // Find existing leave balance
         let existing_balance = crate::models::leave_balance::Entity::find_by_id(id)
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Leave balance not found".to_string()))?;
 
@@ -1134,10 +1175,10 @@ impl MutationRoot {
         }
 
         // Update timestamp
-        balance.updated_at = Set(Utc::now().naive_utc());
+        balance.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_balance = balance.update(db).await?;
+        let updated_balance = balance.update(&db).await?;
 
         // Convert to legacy LeaveBalance struct for compatibility
         let balance = LeaveBalance {
@@ -1147,8 +1188,11 @@ impl MutationRoot {
             year: updated_balance.year,
             balance_days: updated_balance.balance_days,
             used_days: updated_balance.used_days,
+            pending_days: updated_balance.pending_days,
+            carried_over_days: updated_balance.carried_over_days,
             created_at: updated_balance.created_at,
             updated_at: updated_balance.updated_at,
+            deleted_at: updated_balance.deleted_at,
         };
 
         Ok(balance)
@@ -1187,30 +1231,9 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let request = request.insert(db).await?;
-
-        // Convert SeaORM model to legacy LeaveRequest struct for compatibility
-        let request = LeaveRequest {
-            id: request.id,
-            employee_id: request.employee_id,
-            manager_id: request.manager_id,
-            leave_type: request.leave_type,
-            start_date: request.start_date,
-            end_date: request.end_date,
-            days_requested: request.days_requested,
-            status: LeaveRequestStatus::from_str(&request.status).unwrap_or(LeaveRequestStatus::Pending),
-            reason: request.reason,
-            manager_comments: request.manager_comments,
-            created_at: request.created_at,
-            updated_at: request.updated_at,
-            deleted_at: request.deleted_at,
-        };
+        let request = request.insert(&db).await?;
 
         Ok(request)
-            .map_err(|e| {
-                tracing::error!("Failed to create leave request: {}", e);
-                AppError::new("Failed to create leave request")
-            })
     }
 
     /// Update an existing leave request (only for pending requests)
@@ -1226,7 +1249,7 @@ impl MutationRoot {
         let existing_request = crate::models::leave_request::Entity::find_by_id(id)
             .filter(crate::models::leave_request::Column::Status.eq("pending"))
             .filter(crate::models::leave_request::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Leave request not found or not pending".to_string()))?;
 
@@ -1246,33 +1269,16 @@ impl MutationRoot {
         }
 
         if let Some(reason) = input.reason {
-            request.reason = Set(reason);
+            request.reason = Set(Some(reason));
         }
 
         // Update timestamp
-        request.updated_at = Set(Utc::now().naive_utc());
+        request.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_request = request.update(db).await?;
+        let updated_request = request.update(&db).await?;
 
-        // Convert to legacy LeaveRequest struct for compatibility
-        let request = LeaveRequest {
-            id: updated_request.id,
-            employee_id: updated_request.employee_id,
-            manager_id: updated_request.manager_id,
-            leave_type: updated_request.leave_type,
-            start_date: updated_request.start_date,
-            end_date: updated_request.end_date,
-            days_requested: updated_request.days_requested,
-            status: LeaveRequestStatus::from_str(&updated_request.status).unwrap_or(LeaveRequestStatus::Pending),
-            reason: updated_request.reason,
-            manager_comments: updated_request.manager_comments,
-            created_at: updated_request.created_at,
-            updated_at: updated_request.updated_at,
-            deleted_at: updated_request.deleted_at,
-        };
-
-        Ok(request)
+        Ok(updated_request)
     }
 
     /// Approve a leave request
@@ -1293,7 +1299,7 @@ impl MutationRoot {
         let existing_request = crate::models::leave_request::Entity::find_by_id(input.request_id)
             .filter(crate::models::leave_request::Column::Status.eq("pending"))
             .filter(crate::models::leave_request::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Leave request not found or not pending".to_string()))?;
 
@@ -1301,29 +1307,12 @@ impl MutationRoot {
         let mut request: crate::models::leave_request::ActiveModel = existing_request.into();
         request.status = Set("approved".to_string());
         request.manager_id = Set(Some(approver_id));
-        request.updated_at = Set(Utc::now().naive_utc());
+        request.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_request = request.update(db).await?;
+        let updated_request = request.update(&db).await?;
 
-        // Convert to legacy LeaveRequest struct for compatibility
-        let request = LeaveRequest {
-            id: updated_request.id,
-            employee_id: updated_request.employee_id,
-            manager_id: updated_request.manager_id,
-            leave_type: updated_request.leave_type,
-            start_date: updated_request.start_date,
-            end_date: updated_request.end_date,
-            days_requested: updated_request.days_requested,
-            status: LeaveRequestStatus::Approved,
-            reason: updated_request.reason,
-            manager_comments: updated_request.manager_comments,
-            created_at: updated_request.created_at,
-            updated_at: updated_request.updated_at,
-            deleted_at: updated_request.deleted_at,
-        };
-
-        Ok(request)
+        Ok(updated_request)
     }
 
     /// Reject a leave request
@@ -1344,7 +1333,7 @@ impl MutationRoot {
         let existing_request = crate::models::leave_request::Entity::find_by_id(input.request_id)
             .filter(crate::models::leave_request::Column::Status.eq("pending"))
             .filter(crate::models::leave_request::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Leave request not found or not pending".to_string()))?;
 
@@ -1353,10 +1342,10 @@ impl MutationRoot {
         request.status = Set("rejected".to_string());
         request.manager_id = Set(Some(approver_id));
         request.manager_comments = Set(Some(input.rejection_reason.clone()));
-        request.updated_at = Set(Utc::now().naive_utc());
+        request.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_request = request.update(db).await?;
+        let updated_request = request.update(&db).await?;
 
         // Convert to legacy LeaveRequest struct for compatibility
         let request = LeaveRequest {
@@ -1367,7 +1356,7 @@ impl MutationRoot {
             start_date: updated_request.start_date,
             end_date: updated_request.end_date,
             days_requested: updated_request.days_requested,
-            status: LeaveRequestStatus::Rejected,
+            status: LeaveRequestStatus::Rejected.as_str().to_string(),
             reason: updated_request.reason,
             manager_comments: updated_request.manager_comments,
             created_at: updated_request.created_at,
@@ -1390,17 +1379,17 @@ impl MutationRoot {
                     .or(crate::models::leave_request::Column::Status.eq("approved"))
             )
             .filter(crate::models::leave_request::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Leave request not found or cannot be cancelled".to_string()))?;
 
         // Build active model with cancellation
         let mut request: crate::models::leave_request::ActiveModel = existing_request.into();
         request.status = Set("cancelled".to_string());
-        request.updated_at = Set(Utc::now().naive_utc());
+        request.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_request = request.update(db).await?;
+        let updated_request = request.update(&db).await?;
 
         // Convert to legacy LeaveRequest struct for compatibility
         let request = LeaveRequest {
@@ -1411,7 +1400,7 @@ impl MutationRoot {
             start_date: updated_request.start_date,
             end_date: updated_request.end_date,
             days_requested: updated_request.days_requested,
-            status: LeaveRequestStatus::Cancelled,
+            status: LeaveRequestStatus::Cancelled.as_str().to_string(),
             reason: updated_request.reason,
             manager_comments: updated_request.manager_comments,
             created_at: updated_request.created_at,
@@ -1429,7 +1418,7 @@ impl MutationRoot {
         // Find the leave request first to ensure it exists
         let request = crate::models::leave_request::Entity::find_by_id(id)
             .filter(crate::models::leave_request::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?;
 
         if request.is_none() {
@@ -1438,9 +1427,9 @@ impl MutationRoot {
 
         // Soft delete by setting deleted_at
         let mut request: crate::models::leave_request::ActiveModel = request.unwrap().into();
-        request.deleted_at = Set(Some(Utc::now().naive_utc()));
+        request.deleted_at = Set(Some(Utc::now()));
 
-        request.update(db).await?;
+        request.update(&db).await?;
 
         Ok(true)
     }
@@ -1472,61 +1461,21 @@ impl MutationRoot {
             created_by: Set(creator_id),
             assignee_id: Set(input.assignee_id),
             parent_task_id: Set(input.parent_task_id),
-            requires_manual_reassignment: Set(input.requires_manual_reassignment.unwrap_or(false)),
+            requires_manual_reassignment: Set(Some(input.requires_manual_reassignment.unwrap_or(false))),
             ..Default::default()
         };
 
-        let task = task.insert(db).await?;
+        let task = task.insert(&db).await?;
 
         // Create audit entry for task creation
         let audit_entry = crate::models::task_audit_entry::ActiveModel {
             task_id: Set(task.id),
-            changed_by: Set(creator_id),
-            change_type: Set("created".to_string()),
-            new_value: Set(serde_json::to_value(&task).unwrap_or_default()),
+            user_id: Set(creator_id),
+            action: Set("created".to_string()),
+            new_value: Set(Some(serde_json::to_string(&task).unwrap_or_default())),
             ..Default::default()
         };
-        let _ = audit_entry.insert(db).await;
-
-        // Convert SeaORM model to legacy Task struct for compatibility
-        let task = Task {
-            id: task.id,
-            title: task.title,
-            description: task.description,
-            task_type_id: task.task_type_id,
-            status: match task.status.as_str() {
-                "todo" => TaskStatus::Todo,
-                "in_progress" => TaskStatus::InProgress,
-                "blocked" => TaskStatus::Blocked,
-                "review" => TaskStatus::Review,
-                "done" => TaskStatus::Done,
-                "cancelled" => TaskStatus::Cancelled,
-                _ => TaskStatus::Todo,
-            },
-            priority: match task.priority.as_str() {
-                "low" => TaskPriority::Low,
-                "medium" => TaskPriority::Medium,
-                "high" => TaskPriority::High,
-                "urgent" => TaskPriority::Urgent,
-                _ => TaskPriority::Medium,
-            },
-            due_date: task.due_date,
-            completed_at: task.completed_at,
-            estimated_hours: task.estimated_hours,
-            actual_hours: task.actual_hours,
-            tags: task.tags,
-            department_id: task.department_id,
-            created_by: task.created_by,
-            assignee_id: task.assignee_id,
-            parent_task_id: task.parent_task_id,
-            requires_manual_reassignment: task.requires_manual_reassignment,
-            archived: task.archived,
-            archived_at: task.archived_at,
-            archived_by: task.archived_by,
-            created_at: task.created_at,
-            updated_at: task.updated_at,
-            deleted_at: task.deleted_at,
-        };
+        let _ = audit_entry.insert(&db).await;
 
         Ok(task)
     }
@@ -1549,7 +1498,7 @@ impl MutationRoot {
         // Find existing task
         let existing_task = crate::models::task::Entity::find_by_id(id)
             .filter(crate::models::task::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Task not found".to_string()))?;
 
@@ -1561,14 +1510,14 @@ impl MutationRoot {
         }
 
         if let Some(description) = input.description {
-            task.description = Set(description);
+            task.description = Set(Some(description));
         }
 
         if let Some(status) = input.status {
             task.status = Set(status.as_str().to_string());
             // Set completed_at if status changed to done
             if status == TaskStatus::Done {
-                task.completed_at = Set(Some(Utc::now().naive_utc()));
+                task.completed_at = Set(Some(Utc::now()));
             }
         }
 
@@ -1577,39 +1526,39 @@ impl MutationRoot {
         }
 
         if let Some(due_date) = input.due_date {
-            task.due_date = Set(due_date);
+            task.due_date = Set(Some(due_date));
         }
 
         if let Some(estimated_hours) = input.estimated_hours {
-            task.estimated_hours = Set(estimated_hours);
+            task.estimated_hours = Set(Some(estimated_hours));
         }
 
         if let Some(actual_hours) = input.actual_hours {
-            task.actual_hours = Set(actual_hours);
+            task.actual_hours = Set(Some(actual_hours));
         }
 
         if let Some(tags) = input.tags {
-            task.tags = Set(tags);
+            task.tags = Set(Some(tags));
         }
 
         if let Some(department_id) = input.department_id {
-            task.department_id = Set(department_id);
+            task.department_id = Set(Some(department_id));
         }
 
         if let Some(task_type_id) = input.task_type_id {
-            task.task_type_id = Set(task_type_id);
+            task.task_type_id = Set(Some(task_type_id));
         }
 
         if let Some(assignee_id) = input.assignee_id {
-            task.assignee_id = Set(assignee_id);
+            task.assignee_id = Set(Some(assignee_id));
         }
 
         if let Some(parent_task_id) = input.parent_task_id {
-            task.parent_task_id = Set(parent_task_id);
+            task.parent_task_id = Set(Some(parent_task_id));
         }
 
         if let Some(requires_manual_reassignment) = input.requires_manual_reassignment {
-            task.requires_manual_reassignment = Set(requires_manual_reassignment);
+            task.requires_manual_reassignment = Set(Some(requires_manual_reassignment));
         }
 
         if let Some(archived) = input.archived {
@@ -1617,62 +1566,22 @@ impl MutationRoot {
         }
 
         // Update timestamp
-        task.updated_at = Set(Utc::now().naive_utc());
+        task.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_task = task.update(db).await?;
+        let updated_task = task.update(&db).await?;
 
         // Create audit entry for task update
         let audit_entry = crate::models::task_audit_entry::ActiveModel {
             task_id: Set(updated_task.id),
-            changed_by: Set(user_id),
-            change_type: Set("updated".to_string()),
-            new_value: Set(serde_json::to_value(&updated_task).unwrap_or_default()),
+            user_id: Set(user_id),
+            action: Set("updated".to_string()),
+            new_value: Set(Some(serde_json::to_string(&updated_task).unwrap_or_default())),
             ..Default::default()
         };
-        let _ = audit_entry.insert(db).await;
+        let _ = audit_entry.insert(&db).await;
 
-        // Convert to legacy Task struct for compatibility
-        let task = Task {
-            id: updated_task.id,
-            title: updated_task.title,
-            description: updated_task.description,
-            task_type_id: updated_task.task_type_id,
-            status: match updated_task.status.as_str() {
-                "todo" => TaskStatus::Todo,
-                "in_progress" => TaskStatus::InProgress,
-                "blocked" => TaskStatus::Blocked,
-                "review" => TaskStatus::Review,
-                "done" => TaskStatus::Done,
-                "cancelled" => TaskStatus::Cancelled,
-                _ => TaskStatus::Todo,
-            },
-            priority: match updated_task.priority.as_str() {
-                "low" => TaskPriority::Low,
-                "medium" => TaskPriority::Medium,
-                "high" => TaskPriority::High,
-                "urgent" => TaskPriority::Urgent,
-                _ => TaskPriority::Medium,
-            },
-            due_date: updated_task.due_date,
-            completed_at: updated_task.completed_at,
-            estimated_hours: updated_task.estimated_hours,
-            actual_hours: updated_task.actual_hours,
-            tags: updated_task.tags,
-            department_id: updated_task.department_id,
-            created_by: updated_task.created_by,
-            assignee_id: updated_task.assignee_id,
-            parent_task_id: updated_task.parent_task_id,
-            requires_manual_reassignment: updated_task.requires_manual_reassignment,
-            archived: updated_task.archived,
-            archived_at: updated_task.archived_at,
-            archived_by: updated_task.archived_by,
-            created_at: updated_task.created_at,
-            updated_at: updated_task.updated_at,
-            deleted_at: updated_task.deleted_at,
-        };
-
-        Ok(task)
+        Ok(updated_task)
     }
 
     /// Change task status with optional comment
@@ -1691,7 +1600,7 @@ impl MutationRoot {
         // Find existing task
         let existing_task = crate::models::task::Entity::find_by_id(input.task_id)
             .filter(crate::models::task::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Task not found".to_string()))?;
 
@@ -1703,68 +1612,28 @@ impl MutationRoot {
 
         // If changing to done, set completed_at
         if input.status == TaskStatus::Done {
-            task.completed_at = Set(Some(Utc::now().naive_utc()));
+            task.completed_at = Set(Some(Utc::now()));
         }
 
-        task.updated_at = Set(Utc::now().naive_utc());
+        task.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_task = task.update(db).await?;
+        let updated_task = task.update(&db).await?;
 
         // Create audit entry
         let audit_entry = crate::models::task_audit_entry::ActiveModel {
             task_id: Set(updated_task.id),
-            changed_by: Set(user_id),
-            change_type: Set("status_changed".to_string()),
+            user_id: Set(user_id),
+            action: Set("status_changed".to_string()),
             field_name: Set(Some("status".to_string())),
             old_value: Set(Some(old_status)),
             new_value: Set(Some(input.status.as_str().to_string())),
             comment: Set(input.comment),
             ..Default::default()
         };
-        let _ = audit_entry.insert(db).await;
+        let _ = audit_entry.insert(&db).await;
 
-        // Convert to legacy Task struct for compatibility
-        let task = Task {
-            id: updated_task.id,
-            title: updated_task.title,
-            description: updated_task.description,
-            task_type_id: updated_task.task_type_id,
-            status: match updated_task.status.as_str() {
-                "todo" => TaskStatus::Todo,
-                "in_progress" => TaskStatus::InProgress,
-                "blocked" => TaskStatus::Blocked,
-                "review" => TaskStatus::Review,
-                "done" => TaskStatus::Done,
-                "cancelled" => TaskStatus::Cancelled,
-                _ => TaskStatus::Todo,
-            },
-            priority: match updated_task.priority.as_str() {
-                "low" => TaskPriority::Low,
-                "medium" => TaskPriority::Medium,
-                "high" => TaskPriority::High,
-                "urgent" => TaskPriority::Urgent,
-                _ => TaskPriority::Medium,
-            },
-            due_date: updated_task.due_date,
-            completed_at: updated_task.completed_at,
-            estimated_hours: updated_task.estimated_hours,
-            actual_hours: updated_task.actual_hours,
-            tags: updated_task.tags,
-            department_id: updated_task.department_id,
-            created_by: updated_task.created_by,
-            assignee_id: updated_task.assignee_id,
-            parent_task_id: updated_task.parent_task_id,
-            requires_manual_reassignment: updated_task.requires_manual_reassignment,
-            archived: updated_task.archived,
-            archived_at: updated_task.archived_at,
-            archived_by: updated_task.archived_by,
-            created_at: updated_task.created_at,
-            updated_at: updated_task.updated_at,
-            deleted_at: updated_task.deleted_at,
-        };
-
-        Ok(task)
+        Ok(updated_task)
     }
 
     /// Soft delete a task
@@ -1776,7 +1645,7 @@ impl MutationRoot {
         // Find the task first to ensure it exists
         let task = crate::models::task::Entity::find_by_id(id)
             .filter(crate::models::task::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?;
 
         if task.is_none() {
@@ -1785,26 +1654,23 @@ impl MutationRoot {
 
         // Soft delete by setting deleted_at
         let mut task: crate::models::task::ActiveModel = task.unwrap().into();
-        task.deleted_at = Set(Some(Utc::now().naive_utc()));
+        task.deleted_at = Set(Some(Utc::now()));
 
-        task.update(db).await?;
+        task.update(&db).await?;
 
         // Create audit entry if user context available
         if let Some(uid) = user_id {
             let audit_entry = crate::models::task_audit_entry::ActiveModel {
                 task_id: Set(id),
-                changed_by: Set(uid),
-                change_type: Set("deleted".to_string()),
+                user_id: Set(uid),
+                action: Set("deleted".to_string()),
                 comment: Set(Some("Task deleted".to_string())),
                 ..Default::default()
             };
-            let _ = audit_entry.insert(db).await;
+            let _ = audit_entry.insert(&db).await;
         }
 
         Ok(true)
-    }
-
-        Ok(result.rows_affected() > 0)
     }
 
     // ============================================================
@@ -1828,35 +1694,29 @@ impl MutationRoot {
             task_id: Set(input.task_id),
             user_id: Set(input.user_id),
             role: Set(input.role.as_str().to_string()),
-            assigned_at: Set(Utc::now().naive_utc()),
+            assigned_at: Set(Utc::now()),
             assigned_by: Set(assigner_id),
             ..Default::default()
         };
 
-        let assignee = assignee.insert(db).await?;
+        let assignee = assignee.insert(&db).await?;
 
         // Create audit entry
         let audit_entry = crate::models::task_audit_entry::ActiveModel {
             task_id: Set(input.task_id),
-            changed_by: Set(assigner_id),
-            change_type: Set("assigned".to_string()),
+            user_id: Set(assigner_id),
+            action: Set("assigned".to_string()),
             comment: Set(Some("User assigned to task".to_string())),
             ..Default::default()
         };
-        let _ = audit_entry.insert(db).await;
+        let _ = audit_entry.insert(&db).await;
 
         // Convert SeaORM model to legacy TaskAssignee struct for compatibility
         let assignee = TaskAssignee {
             id: assignee.id,
             task_id: assignee.task_id,
             user_id: assignee.user_id,
-            role: match assignee.role.as_str() {
-                "owner" => AssigneeRole::Owner,
-                "assignee" => AssigneeRole::Assignee,
-                "reviewer" => AssigneeRole::Reviewer,
-                "collaborator" => AssigneeRole::Collaborator,
-                _ => AssigneeRole::Assignee,
-            },
+            role: assignee.role.clone(),
             assigned_at: assignee.assigned_at,
             assigned_by: assignee.assigned_by,
             created_at: assignee.created_at,
@@ -1879,7 +1739,7 @@ impl MutationRoot {
         // Find existing task assignee
         let existing_assignee = crate::models::task_assignee::Entity::find_by_id(id)
             .filter(crate::models::task_assignee::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Task assignee not found".to_string()))?;
 
@@ -1891,23 +1751,17 @@ impl MutationRoot {
         }
 
         // Update timestamp
-        assignee.updated_at = Set(Utc::now().naive_utc());
+        assignee.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_assignee = assignee.update(db).await?;
+        let updated_assignee = assignee.update(&db).await?;
 
         // Convert to legacy TaskAssignee struct for compatibility
         let assignee = TaskAssignee {
             id: updated_assignee.id,
             task_id: updated_assignee.task_id,
             user_id: updated_assignee.user_id,
-            role: match updated_assignee.role.as_str() {
-                "owner" => AssigneeRole::Owner,
-                "assignee" => AssigneeRole::Assignee,
-                "reviewer" => AssigneeRole::Reviewer,
-                "collaborator" => AssigneeRole::Collaborator,
-                _ => AssigneeRole::Assignee,
-            },
+            role: updated_assignee.role.clone(),
             assigned_at: updated_assignee.assigned_at,
             assigned_by: updated_assignee.assigned_by,
             created_at: updated_assignee.created_at,
@@ -1934,7 +1788,7 @@ impl MutationRoot {
             .filter(crate::models::task_assignee::Column::TaskId.eq(task_id))
             .filter(crate::models::task_assignee::Column::UserId.eq(user_id))
             .filter(crate::models::task_assignee::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?;
 
         if assignee.is_none() {
@@ -1943,20 +1797,20 @@ impl MutationRoot {
 
         // Soft delete by setting deleted_at
         let mut assignee: crate::models::task_assignee::ActiveModel = assignee.unwrap().into();
-        assignee.deleted_at = Set(Some(Utc::now().naive_utc()));
+        assignee.deleted_at = Set(Some(Utc::now()));
 
-        assignee.update(db).await?;
+        assignee.update(&db).await?;
 
         // Create audit entry if user context available
         if let Some(uid) = unassigner_id {
             let audit_entry = crate::models::task_audit_entry::ActiveModel {
                 task_id: Set(task_id),
-                changed_by: Set(uid),
-                change_type: Set("unassigned".to_string()),
+                user_id: Set(uid),
+                action: Set("unassigned".to_string()),
                 comment: Set(Some("User unassigned from task".to_string())),
                 ..Default::default()
             };
-            let _ = audit_entry.insert(db).await;
+            let _ = audit_entry.insert(&db).await;
         }
 
         Ok(true)
@@ -1988,20 +1842,14 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let dependency = dependency.insert(db).await?;
+        let dependency = dependency.insert(&db).await?;
 
         // Convert SeaORM model to legacy TaskDependency struct for compatibility
         let dependency = TaskDependency {
             id: dependency.id,
             task_id: dependency.task_id,
             depends_on_task_id: dependency.depends_on_task_id,
-            dependency_type: match dependency.dependency_type.as_str() {
-                "finish_to_start" => DependencyType::FinishToStart,
-                "finish_to_finish" => DependencyType::FinishToFinish,
-                "start_to_start" => DependencyType::StartToStart,
-                "start_to_finish" => DependencyType::StartToFinish,
-                _ => DependencyType::FinishToStart,
-            },
+            dependency_type: dependency.dependency_type.clone(),
             lag_days: dependency.lag_days,
             created_by: dependency.created_by,
             created_at: dependency.created_at,
@@ -2024,7 +1872,7 @@ impl MutationRoot {
         // Find existing task dependency
         let existing_dependency = crate::models::task_dependency::Entity::find_by_id(id)
             .filter(crate::models::task_dependency::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Task dependency not found".to_string()))?;
 
@@ -2036,27 +1884,21 @@ impl MutationRoot {
         }
 
         if let Some(lag_days) = input.lag_days {
-            dependency.lag_days = Set(lag_days);
+            dependency.lag_days = Set(Some(lag_days));
         }
 
         // Update timestamp
-        dependency.updated_at = Set(Utc::now().naive_utc());
+        dependency.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_dependency = dependency.update(db).await?;
+        let updated_dependency = dependency.update(&db).await?;
 
         // Convert to legacy TaskDependency struct for compatibility
         let dependency = TaskDependency {
             id: updated_dependency.id,
             task_id: updated_dependency.task_id,
             depends_on_task_id: updated_dependency.depends_on_task_id,
-            dependency_type: match updated_dependency.dependency_type.as_str() {
-                "finish_to_start" => DependencyType::FinishToStart,
-                "finish_to_finish" => DependencyType::FinishToFinish,
-                "start_to_start" => DependencyType::StartToStart,
-                "start_to_finish" => DependencyType::StartToFinish,
-                _ => DependencyType::FinishToStart,
-            },
+            dependency_type: updated_dependency.dependency_type.clone(),
             lag_days: updated_dependency.lag_days,
             created_by: updated_dependency.created_by,
             created_at: updated_dependency.created_at,
@@ -2074,7 +1916,7 @@ impl MutationRoot {
         // Find the task dependency first to ensure it exists
         let dependency = crate::models::task_dependency::Entity::find_by_id(id)
             .filter(crate::models::task_dependency::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?;
 
         if dependency.is_none() {
@@ -2083,9 +1925,9 @@ impl MutationRoot {
 
         // Soft delete by setting deleted_at
         let mut dependency: crate::models::task_dependency::ActiveModel = dependency.unwrap().into();
-        dependency.deleted_at = Set(Some(Utc::now().naive_utc()));
+        dependency.deleted_at = Set(Some(Utc::now()));
 
-        dependency.update(db).await?;
+        dependency.update(&db).await?;
 
         Ok(true)
     }
@@ -2120,20 +1962,13 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let resource = resource.insert(db).await?;
+        let resource = resource.insert(&db).await?;
 
         // Convert SeaORM model to legacy LinkedResource struct for compatibility
         let resource = LinkedResource {
             id: resource.id,
             task_id: resource.task_id,
-            resource_type: match resource.resource_type.as_str() {
-                "file" => ResourceType::File,
-                "link" => ResourceType::Link,
-                "document" => ResourceType::Document,
-                "image" => ResourceType::Image,
-                "video" => ResourceType::Video,
-                _ => ResourceType::File,
-            },
+            resource_type: resource.resource_type.clone(),
             title: resource.title,
             url: resource.url,
             file_path: resource.file_path,
@@ -2161,7 +1996,7 @@ impl MutationRoot {
         // Find existing linked resource
         let existing_resource = crate::models::linked_resource::Entity::find_by_id(id)
             .filter(crate::models::linked_resource::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Linked resource not found".to_string()))?;
 
@@ -2173,31 +2008,24 @@ impl MutationRoot {
         }
 
         if let Some(url) = input.url {
-            resource.url = Set(url);
+            resource.url = Set(Some(url));
         }
 
         if let Some(description) = input.description {
-            resource.description = Set(description);
+            resource.description = Set(Some(description));
         }
 
         // Update timestamp
-        resource.updated_at = Set(Utc::now().naive_utc());
+        resource.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_resource = resource.update(db).await?;
+        let updated_resource = resource.update(&db).await?;
 
         // Convert to legacy LinkedResource struct for compatibility
         let resource = LinkedResource {
             id: updated_resource.id,
             task_id: updated_resource.task_id,
-            resource_type: match updated_resource.resource_type.as_str() {
-                "file" => ResourceType::File,
-                "link" => ResourceType::Link,
-                "document" => ResourceType::Document,
-                "image" => ResourceType::Image,
-                "video" => ResourceType::Video,
-                _ => ResourceType::File,
-            },
+            resource_type: updated_resource.resource_type.clone(),
             title: updated_resource.title,
             url: updated_resource.url,
             file_path: updated_resource.file_path,
@@ -2220,7 +2048,7 @@ impl MutationRoot {
         // Find the linked resource first to ensure it exists
         let resource = crate::models::linked_resource::Entity::find_by_id(id)
             .filter(crate::models::linked_resource::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?;
 
         if resource.is_none() {
@@ -2229,9 +2057,9 @@ impl MutationRoot {
 
         // Soft delete by setting deleted_at
         let mut resource: crate::models::linked_resource::ActiveModel = resource.unwrap().into();
-        resource.deleted_at = Set(Some(Utc::now().naive_utc()));
+        resource.deleted_at = Set(Some(Utc::now()));
 
-        resource.update(db).await?;
+        resource.update(&db).await?;
 
         Ok(true)
     }
@@ -2264,34 +2092,17 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let cycle = cycle.insert(db).await?;
+        let cycle = cycle.insert(&db).await?;
 
         // Convert SeaORM model to legacy ReviewCycle struct for compatibility
         let cycle = ReviewCycle {
             id: cycle.id,
             name: cycle.name,
             description: cycle.description,
-            review_type: match cycle.review_type.as_str() {
-                "annual_review" => ReviewType::AnnualReview,
-                "mid_year_review" => ReviewType::MidYearReview,
-                "quarterly_review" => ReviewType::QuarterlyReview,
-                "probationary_review" => ReviewType::ProbationaryReview,
-                "performance_improvement_plan" => ReviewType::PerformanceImprovementPlan,
-                "ninety_day_review" => ReviewType::NinetyDayReview,
-                "project_based_review" => ReviewType::ProjectBasedReview,
-                "promotion_review" => ReviewType::PromotionReview,
-                "exit_review" => ReviewType::ExitReview,
-                "self_review" => ReviewType::SelfReview,
-                _ => ReviewType::AnnualReview,
-            },
+            review_type: cycle.review_type.clone(),
             start_date: cycle.start_date,
             end_date: cycle.end_date,
-            status: match cycle.status.as_str() {
-                "draft" => ReviewCycleStatus::Draft,
-                "active" => ReviewCycleStatus::Active,
-                "closed" => ReviewCycleStatus::Closed,
-                _ => ReviewCycleStatus::Draft,
-            },
+            status: cycle.status.clone(),
             created_by: cycle.created_by,
             created_at: cycle.created_at,
             updated_at: cycle.updated_at,
@@ -2313,7 +2124,7 @@ impl MutationRoot {
         // Find existing review cycle
         let existing_cycle = crate::models::review_cycle::Entity::find_by_id(id)
             .filter(crate::models::review_cycle::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Review cycle not found".to_string()))?;
 
@@ -2325,7 +2136,7 @@ impl MutationRoot {
         }
 
         if let Some(description) = input.description {
-            cycle.description = Set(description);
+            cycle.description = Set(Some(description));
         }
 
         if let Some(start_date) = input.start_date {
@@ -2341,37 +2152,20 @@ impl MutationRoot {
         }
 
         // Update timestamp
-        cycle.updated_at = Set(Utc::now().naive_utc());
+        cycle.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_cycle = cycle.update(db).await?;
+        let updated_cycle = cycle.update(&db).await?;
 
         // Convert to legacy ReviewCycle struct for compatibility
         let cycle = ReviewCycle {
             id: updated_cycle.id,
             name: updated_cycle.name,
             description: updated_cycle.description,
-            review_type: match updated_cycle.review_type.as_str() {
-                "annual_review" => ReviewType::AnnualReview,
-                "mid_year_review" => ReviewType::MidYearReview,
-                "quarterly_review" => ReviewType::QuarterlyReview,
-                "probationary_review" => ReviewType::ProbationaryReview,
-                "performance_improvement_plan" => ReviewType::PerformanceImprovementPlan,
-                "ninety_day_review" => ReviewType::NinetyDayReview,
-                "project_based_review" => ReviewType::ProjectBasedReview,
-                "promotion_review" => ReviewType::PromotionReview,
-                "exit_review" => ReviewType::ExitReview,
-                "self_review" => ReviewType::SelfReview,
-                _ => ReviewType::AnnualReview,
-            },
+            review_type: updated_cycle.review_type.clone(),
             start_date: updated_cycle.start_date,
             end_date: updated_cycle.end_date,
-            status: match updated_cycle.status.as_str() {
-                "draft" => ReviewCycleStatus::Draft,
-                "active" => ReviewCycleStatus::Active,
-                "closed" => ReviewCycleStatus::Closed,
-                _ => ReviewCycleStatus::Draft,
-            },
+            status: updated_cycle.status.clone(),
             created_by: updated_cycle.created_by,
             created_at: updated_cycle.created_at,
             updated_at: updated_cycle.updated_at,
@@ -2388,7 +2182,7 @@ impl MutationRoot {
         // Find the review cycle first to ensure it exists
         let cycle = crate::models::review_cycle::Entity::find_by_id(id)
             .filter(crate::models::review_cycle::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?;
 
         if cycle.is_none() {
@@ -2397,9 +2191,9 @@ impl MutationRoot {
 
         // Soft delete by setting deleted_at
         let mut cycle: crate::models::review_cycle::ActiveModel = cycle.unwrap().into();
-        cycle.deleted_at = Set(Some(Utc::now().naive_utc()));
+        cycle.deleted_at = Set(Some(Utc::now()));
 
-        cycle.update(db).await?;
+        cycle.update(&db).await?;
 
         Ok(true)
     }
@@ -2424,7 +2218,7 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let review = review.insert(db).await?;
+        let review = review.insert(&db).await?;
 
         // Convert SeaORM model to legacy PerformanceReview struct for compatibility
         let review = PerformanceReview {
@@ -2432,13 +2226,7 @@ impl MutationRoot {
             employee_id: review.employee_id,
             reviewer_id: review.reviewer_id,
             review_period: review.review_period,
-            status: match review.status.as_str() {
-                "draft" => PerformanceReviewStatus::Draft,
-                "not_started" => PerformanceReviewStatus::NotStarted,
-                "in_progress" => PerformanceReviewStatus::InProgress,
-                "completed" => PerformanceReviewStatus::Completed,
-                _ => PerformanceReviewStatus::Draft,
-            },
+            status: review.status.clone(),
             overall_rating: review.overall_rating,
             goals: review.goals,
             achievements: review.achievements,
@@ -2450,13 +2238,14 @@ impl MutationRoot {
             review_period_end: review.review_period_end,
             review_type: review.review_type,
             notes: review.notes,
+            deleted_at: review.deleted_at,
         };
 
-        Ok(review)
-            .map_err(|e| {
+        Ok(Ok(review)
+            .map_err(|e: sea_orm::DbErr| {
                 tracing::error!("Failed to create performance review: {}", e);
-                AppError::new("Failed to create performance review")
-            })
+                AppError::Internal("Failed to create performance review".to_string())
+            })?)
     }
 
     /// Update an existing performance review
@@ -2470,7 +2259,7 @@ impl MutationRoot {
 
         // Find existing performance review
         let existing_review = crate::models::performance_review::Entity::find_by_id(id)
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Performance review not found".to_string()))?;
 
@@ -2521,10 +2310,10 @@ impl MutationRoot {
         }
 
         // Update timestamp
-        review.updated_at = Set(Utc::now().naive_utc());
+        review.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_review = review.update(db).await?;
+        let updated_review = review.update(&db).await?;
 
         // Convert to legacy PerformanceReview struct for compatibility
         let review = PerformanceReview {
@@ -2532,14 +2321,8 @@ impl MutationRoot {
             employee_id: updated_review.employee_id,
             reviewer_id: updated_review.reviewer_id,
             review_period: updated_review.review_period,
-            status: match updated_review.status.as_str() {
-                "draft" => PerformanceReviewStatus::Draft,
-                "in_progress" => PerformanceReviewStatus::InProgress,
-                "completed" => PerformanceReviewStatus::Completed,
-                "cancelled" => PerformanceReviewStatus::Cancelled,
-                _ => PerformanceReviewStatus::Draft,
-            },
-            overall_rating: updated_review.overall_rating.map(|r| r.to_string()),
+            status: updated_review.status.clone(),
+            overall_rating: updated_review.overall_rating,
             goals: updated_review.goals,
             achievements: updated_review.achievements,
             areas_for_improvement: updated_review.areas_for_improvement,
@@ -2550,6 +2333,7 @@ impl MutationRoot {
             review_period_end: updated_review.review_period_end,
             review_type: updated_review.review_type,
             notes: updated_review.notes,
+            deleted_at: updated_review.deleted_at,
         };
 
         Ok(review)
@@ -2562,7 +2346,7 @@ impl MutationRoot {
         // Find the performance review first to ensure it exists
         let review = crate::models::performance_review::Entity::find_by_id(id)
             .filter(crate::models::performance_review::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?;
 
         if review.is_none() {
@@ -2571,9 +2355,9 @@ impl MutationRoot {
 
         // Soft delete by setting deleted_at
         let mut review: crate::models::performance_review::ActiveModel = review.unwrap().into();
-        review.deleted_at = Set(Some(Utc::now().naive_utc()));
+        review.deleted_at = Set(Some(Utc::now()));
 
-        review.update(db).await?;
+        review.update(&db).await?;
 
         Ok(true)
     }
@@ -2600,7 +2384,7 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let goal = goal.insert(db).await?;
+        let goal = goal.insert(&db).await?;
 
         // Convert SeaORM model to legacy ReviewGoal struct for compatibility
         let goal = ReviewGoal {
@@ -2609,13 +2393,7 @@ impl MutationRoot {
             title: goal.title,
             description: goal.description,
             target_date: goal.target_date,
-            completion_status: match goal.completion_status.as_str() {
-                "not_started" => CompletionStatus::NotStarted,
-                "in_progress" => CompletionStatus::InProgress,
-                "completed" => CompletionStatus::Completed,
-                "cancelled" => CompletionStatus::Cancelled,
-                _ => CompletionStatus::NotStarted,
-            },
+            completion_status: goal.completion_status.clone(),
             weight: goal.weight,
             created_at: goal.created_at,
             updated_at: goal.updated_at,
@@ -2637,7 +2415,7 @@ impl MutationRoot {
         // Find existing review goal
         let existing_goal = crate::models::review_goal::Entity::find_by_id(id)
             .filter(crate::models::review_goal::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Review goal not found".to_string()))?;
 
@@ -2649,11 +2427,11 @@ impl MutationRoot {
         }
 
         if let Some(description) = input.description {
-            goal.description = Set(description);
+            goal.description = Set(Some(description));
         }
 
         if let Some(target_date) = input.target_date {
-            goal.target_date = Set(target_date);
+            goal.target_date = Set(Some(target_date));
         }
 
         if let Some(completion_status) = input.completion_status {
@@ -2661,14 +2439,14 @@ impl MutationRoot {
         }
 
         if let Some(weight) = input.weight {
-            goal.weight = Set(weight);
+            goal.weight = Set(Some(weight));
         }
 
         // Update timestamp
-        goal.updated_at = Set(Utc::now().naive_utc());
+        goal.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_goal = goal.update(db).await?;
+        let updated_goal = goal.update(&db).await?;
 
         // Convert to legacy ReviewGoal struct for compatibility
         let goal = ReviewGoal {
@@ -2677,13 +2455,7 @@ impl MutationRoot {
             title: updated_goal.title,
             description: updated_goal.description,
             target_date: updated_goal.target_date,
-            completion_status: match updated_goal.completion_status.as_str() {
-                "not_started" => CompletionStatus::NotStarted,
-                "in_progress" => CompletionStatus::InProgress,
-                "completed" => CompletionStatus::Completed,
-                "cancelled" => CompletionStatus::Cancelled,
-                _ => CompletionStatus::NotStarted,
-            },
+            completion_status: updated_goal.completion_status.clone(),
             weight: updated_goal.weight,
             created_at: updated_goal.created_at,
             updated_at: updated_goal.updated_at,
@@ -2700,7 +2472,7 @@ impl MutationRoot {
         // Find the review goal first to ensure it exists
         let goal = crate::models::review_goal::Entity::find_by_id(id)
             .filter(crate::models::review_goal::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?;
 
         if goal.is_none() {
@@ -2709,9 +2481,9 @@ impl MutationRoot {
 
         // Soft delete by setting deleted_at
         let mut goal: crate::models::review_goal::ActiveModel = goal.unwrap().into();
-        goal.deleted_at = Set(Some(Utc::now().naive_utc()));
+        goal.deleted_at = Set(Some(Utc::now()));
 
-        goal.update(db).await?;
+        goal.update(&db).await?;
 
         Ok(true)
     }
@@ -2742,20 +2514,14 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let feedback = feedback.insert(db).await?;
+        let feedback = feedback.insert(&db).await?;
 
         // Convert SeaORM model to legacy ReviewFeedback struct for compatibility
         let feedback = ReviewFeedback {
             id: feedback.id,
             performance_review_id: feedback.performance_review_id,
             provider_id: feedback.provider_id,
-            feedback_type: match feedback.feedback_type.as_str() {
-                "manager_feedback" => FeedbackType::ManagerFeedback,
-                "peer_feedback" => FeedbackType::PeerFeedback,
-                "self_assessment" => FeedbackType::SelfAssessment,
-                "hr_feedback" => FeedbackType::HrFeedback,
-                _ => FeedbackType::ManagerFeedback,
-            },
+            feedback_type: feedback.feedback_type.clone(),
             content: feedback.content,
             is_visible_to_employee: feedback.is_visible_to_employee,
             created_at: feedback.created_at,
@@ -2778,7 +2544,7 @@ impl MutationRoot {
         // Find existing review feedback
         let existing_feedback = crate::models::review_feedback::Entity::find_by_id(id)
             .filter(crate::models::review_feedback::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Review feedback not found".to_string()))?;
 
@@ -2794,23 +2560,17 @@ impl MutationRoot {
         }
 
         // Update timestamp
-        feedback.updated_at = Set(Utc::now().naive_utc());
+        feedback.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_feedback = feedback.update(db).await?;
+        let updated_feedback = feedback.update(&db).await?;
 
         // Convert to legacy ReviewFeedback struct for compatibility
         let feedback = ReviewFeedback {
             id: updated_feedback.id,
             performance_review_id: updated_feedback.performance_review_id,
             provider_id: updated_feedback.provider_id,
-            feedback_type: match updated_feedback.feedback_type.as_str() {
-                "manager_feedback" => FeedbackType::ManagerFeedback,
-                "peer_feedback" => FeedbackType::PeerFeedback,
-                "self_assessment" => FeedbackType::SelfAssessment,
-                "hr_feedback" => FeedbackType::HrFeedback,
-                _ => FeedbackType::ManagerFeedback,
-            },
+            feedback_type: updated_feedback.feedback_type.clone(),
             content: updated_feedback.content,
             is_visible_to_employee: updated_feedback.is_visible_to_employee,
             created_at: updated_feedback.created_at,
@@ -2828,7 +2588,7 @@ impl MutationRoot {
         // Find the review feedback first to ensure it exists
         let feedback = crate::models::review_feedback::Entity::find_by_id(id)
             .filter(crate::models::review_feedback::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?;
 
         if feedback.is_none() {
@@ -2837,9 +2597,9 @@ impl MutationRoot {
 
         // Soft delete by setting deleted_at
         let mut feedback: crate::models::review_feedback::ActiveModel = feedback.unwrap().into();
-        feedback.deleted_at = Set(Some(Utc::now().naive_utc()));
+        feedback.deleted_at = Set(Some(Utc::now()));
 
-        feedback.update(db).await?;
+        feedback.update(&db).await?;
 
         Ok(true)
     }
@@ -2858,7 +2618,7 @@ impl MutationRoot {
 
         let verified = input.verified.unwrap_or(false);
 
-        let skill = crate::models::employee_skill::ActiveModel {
+        let skill = crate::models::employee::employee_skill::ActiveModel {
             employee_id: Set(input.employee_id),
             skill_name: Set(input.skill_name.clone()),
             proficiency_level: Set(input.proficiency_level.as_str().to_string()),
@@ -2867,20 +2627,14 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let skill = skill.insert(db).await?;
+        let skill = skill.insert(&db).await?;
 
         // Convert SeaORM model to legacy EmployeeSkill struct for compatibility
         let skill = EmployeeSkill {
             id: skill.id,
             employee_id: skill.employee_id,
             skill_name: skill.skill_name,
-            proficiency_level: match skill.proficiency_level.as_str() {
-                "beginner" => ProficiencyLevel::Beginner,
-                "intermediate" => ProficiencyLevel::Intermediate,
-                "advanced" => ProficiencyLevel::Advanced,
-                "expert" => ProficiencyLevel::Expert,
-                _ => ProficiencyLevel::Beginner,
-            },
+            proficiency_level: skill.proficiency_level.clone(),
             years_experience: skill.years_experience,
             verified: skill.verified,
             verifier_id: skill.verifier_id,
@@ -2901,13 +2655,13 @@ impl MutationRoot {
         let db = get_db_from_context(ctx)?;
 
         // Find existing employee skill
-        let existing_skill = crate::models::employee_skill::Entity::find_by_id(id)
-            .one(db)
+        let existing_skill = crate::models::employee::employee_skill::Entity::find_by_id(id)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Employee skill not found".to_string()))?;
 
         // Build active model with updates
-        let mut skill: crate::models::employee_skill::ActiveModel = existing_skill.into();
+        let mut skill: crate::models::employee::employee_skill::ActiveModel = existing_skill.into();
 
         if let Some(skill_name) = input.skill_name {
             skill.skill_name = Set(skill_name);
@@ -2918,7 +2672,7 @@ impl MutationRoot {
         }
 
         if let Some(years_experience) = input.years_experience {
-            skill.years_experience = Set(years_experience);
+            skill.years_experience = Set(Some(years_experience));
         }
 
         if let Some(verified) = input.verified {
@@ -2930,23 +2684,17 @@ impl MutationRoot {
         }
 
         // Update timestamp
-        skill.updated_at = Set(Utc::now().naive_utc());
+        skill.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_skill = skill.update(db).await?;
+        let updated_skill = skill.update(&db).await?;
 
         // Convert to legacy EmployeeSkill struct for compatibility
         let skill = EmployeeSkill {
             id: updated_skill.id,
             employee_id: updated_skill.employee_id,
             skill_name: updated_skill.skill_name,
-            proficiency_level: match updated_skill.proficiency_level.as_str() {
-                "beginner" => ProficiencyLevel::Beginner,
-                "intermediate" => ProficiencyLevel::Intermediate,
-                "advanced" => ProficiencyLevel::Advanced,
-                "expert" => ProficiencyLevel::Expert,
-                _ => ProficiencyLevel::Beginner,
-            },
+            proficiency_level: updated_skill.proficiency_level.clone(),
             years_experience: updated_skill.years_experience,
             verified: updated_skill.verified,
             verifier_id: updated_skill.verifier_id,
@@ -2961,8 +2709,8 @@ impl MutationRoot {
     async fn delete_employee_skill(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
         let db = get_db_from_context(ctx)?;
 
-        let result = crate::models::employee_skill::Entity::delete_by_id(id)
-            .exec(db)
+        let result = crate::models::employee::employee_skill::Entity::delete_by_id(id)
+            .exec(&db)
             .await?;
 
         Ok(result.rows_affected > 0)
@@ -2976,7 +2724,7 @@ impl MutationRoot {
     ) -> Result<EmployeeCertification> {
         let db = get_db_from_context(ctx)?;
 
-        let cert = crate::models::employee_certification::ActiveModel {
+        let cert = crate::models::employee::employee_certification::ActiveModel {
             employee_id: Set(input.employee_id),
             certification_name: Set(input.certification_name.clone()),
             issuing_organization: Set(input.issuing_organization.clone()),
@@ -2986,7 +2734,7 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let cert = cert.insert(db).await?;
+        let cert = cert.insert(&db).await?;
 
         // Convert SeaORM model to legacy EmployeeCertification struct for compatibility
         let cert = EmployeeCertification {
@@ -3008,8 +2756,8 @@ impl MutationRoot {
     async fn delete_employee_certification(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
         let db = get_db_from_context(ctx)?;
 
-        let result = crate::models::employee_certification::Entity::delete_by_id(id)
-            .exec(db)
+        let result = crate::models::employee::employee_certification::Entity::delete_by_id(id)
+            .exec(&db)
             .await?;
 
         Ok(result.rows_affected > 0)
@@ -3023,7 +2771,7 @@ impl MutationRoot {
     ) -> Result<EmployeeVehicle> {
         let db = get_db_from_context(ctx)?;
 
-        let vehicle = crate::models::employee_vehicle::ActiveModel {
+        let vehicle = crate::models::employee::employee_vehicle::ActiveModel {
             employee_id: Set(input.employee_id),
             make: Set(input.make.clone()),
             model: Set(input.model.clone()),
@@ -3033,7 +2781,7 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let vehicle = vehicle.insert(db).await?;
+        let vehicle = vehicle.insert(&db).await?;
 
         // Convert SeaORM model to legacy EmployeeVehicle struct for compatibility
         let vehicle = EmployeeVehicle {
@@ -3061,13 +2809,13 @@ impl MutationRoot {
         let db = get_db_from_context(ctx)?;
 
         // Find existing employee vehicle
-        let existing_vehicle = crate::models::employee_vehicle::Entity::find_by_id(id)
-            .one(db)
+        let existing_vehicle = crate::models::employee::employee_vehicle::Entity::find_by_id(id)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Employee vehicle not found".to_string()))?;
 
         // Build active model with updates
-        let mut vehicle: crate::models::employee_vehicle::ActiveModel = existing_vehicle.into();
+        let mut vehicle: crate::models::employee::employee_vehicle::ActiveModel = existing_vehicle.into();
 
         if let Some(make) = input.make {
             vehicle.make = Set(make);
@@ -3086,14 +2834,14 @@ impl MutationRoot {
         }
 
         if let Some(color) = input.color {
-            vehicle.color = Set(color);
+            vehicle.color = Set(Some(color));
         }
 
         // Update timestamp
-        vehicle.updated_at = Set(Utc::now().naive_utc());
+        vehicle.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_vehicle = vehicle.update(db).await?;
+        let updated_vehicle = vehicle.update(&db).await?;
 
         // Convert to legacy EmployeeVehicle struct for compatibility
         let vehicle = EmployeeVehicle {
@@ -3115,8 +2863,8 @@ impl MutationRoot {
     async fn delete_employee_vehicle(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
         let db = get_db_from_context(ctx)?;
 
-        let result = crate::models::employee_vehicle::Entity::delete_by_id(id)
-            .exec(db)
+        let result = crate::models::employee::employee_vehicle::Entity::delete_by_id(id)
+            .exec(&db)
             .await?;
 
         Ok(result.rows_affected > 0)
@@ -3130,7 +2878,7 @@ impl MutationRoot {
     ) -> Result<EmergencyContact> {
         let db = get_db_from_context(ctx)?;
 
-        let contact = crate::models::emergency_contact::ActiveModel {
+        let contact = crate::models::employee::emergency_contact::ActiveModel {
             employee_id: Set(input.employee_id),
             contact_name: Set(input.contact_name.clone()),
             relationship: Set(input.relationship.clone()),
@@ -3140,7 +2888,7 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let contact = contact.insert(db).await?;
+        let contact = contact.insert(&db).await?;
 
         // Convert SeaORM model to legacy EmergencyContact struct for compatibility
         let contact = EmergencyContact {
@@ -3168,13 +2916,13 @@ impl MutationRoot {
         let db = get_db_from_context(ctx)?;
 
         // Find existing emergency contact
-        let existing_contact = crate::models::emergency_contact::Entity::find_by_id(id)
-            .one(db)
+        let existing_contact = crate::models::employee::emergency_contact::Entity::find_by_id(id)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Emergency contact not found".to_string()))?;
 
         // Build active model with updates
-        let mut contact: crate::models::emergency_contact::ActiveModel = existing_contact.into();
+        let mut contact: crate::models::employee::emergency_contact::ActiveModel = existing_contact.into();
 
         if let Some(contact_name) = input.contact_name {
             contact.contact_name = Set(contact_name);
@@ -3189,7 +2937,7 @@ impl MutationRoot {
         }
 
         if let Some(email) = input.email {
-            contact.email = Set(email);
+            contact.email = Set(Some(email));
         }
 
         if let Some(is_primary) = input.is_primary {
@@ -3197,10 +2945,10 @@ impl MutationRoot {
         }
 
         // Update timestamp
-        contact.updated_at = Set(Utc::now().naive_utc());
+        contact.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_contact = contact.update(db).await?;
+        let updated_contact = contact.update(&db).await?;
 
         // Convert to legacy EmergencyContact struct for compatibility
         let contact = EmergencyContact {
@@ -3222,8 +2970,8 @@ impl MutationRoot {
     async fn delete_emergency_contact(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
         let db = get_db_from_context(ctx)?;
 
-        let result = crate::models::emergency_contact::Entity::delete_by_id(id)
-            .exec(db)
+        let result = crate::models::employee::emergency_contact::Entity::delete_by_id(id)
+            .exec(&db)
             .await?;
 
         Ok(result.rows_affected > 0)
@@ -3239,32 +2987,26 @@ impl MutationRoot {
         let status = input.status.unwrap_or(GoalStatus::NotStarted);
         let progress = input.progress_percentage.unwrap_or(0);
 
-        let goal = crate::models::employee_goal::ActiveModel {
+        let goal = crate::models::employee::employee_goal::ActiveModel {
             employee_id: Set(input.employee_id),
-            goal_title: Set(input.title.clone()),
-            goal_description: Set(input.description.clone()),
+            title: Set(input.title.clone()),
+            description: Set(input.description.clone()),
             target_date: Set(input.target_date),
             status: Set(status.as_str().to_string()),
             progress_percentage: Set(progress),
             ..Default::default()
         };
 
-        let goal = goal.insert(db).await?;
+        let goal = goal.insert(&db).await?;
 
         // Convert SeaORM model to legacy EmployeeGoal struct for compatibility
         let goal = EmployeeGoal {
             id: goal.id,
             employee_id: goal.employee_id,
-            goal_title: goal.goal_title,
-            goal_description: goal.goal_description,
+            title: goal.title.clone(),
+            description: goal.description.clone(),
             target_date: goal.target_date,
-            status: match goal.status.as_str() {
-                "not_started" => GoalStatus::NotStarted,
-                "in_progress" => GoalStatus::InProgress,
-                "completed" => GoalStatus::Completed,
-                "cancelled" => GoalStatus::Cancelled,
-                _ => GoalStatus::NotStarted,
-            },
+            status: goal.status.clone(),
             progress_percentage: goal.progress_percentage,
             created_at: goal.created_at,
             updated_at: goal.updated_at,
@@ -3283,24 +3025,24 @@ impl MutationRoot {
         let db = get_db_from_context(ctx)?;
 
         // Find existing employee goal
-        let existing_goal = crate::models::employee_goal::Entity::find_by_id(id)
-            .one(db)
+        let existing_goal = crate::models::employee::employee_goal::Entity::find_by_id(id)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Employee goal not found".to_string()))?;
 
         // Build active model with updates
-        let mut goal: crate::models::employee_goal::ActiveModel = existing_goal.into();
+        let mut goal: crate::models::employee::employee_goal::ActiveModel = existing_goal.into();
 
         if let Some(title) = input.title {
-            goal.goal_title = Set(title);
+            goal.title = Set(title);
         }
 
         if let Some(description) = input.description {
-            goal.goal_description = Set(description);
+            goal.description = Set(Some(description));
         }
 
         if let Some(target_date) = input.target_date {
-            goal.target_date = Set(target_date);
+            goal.target_date = Set(Some(target_date));
         }
 
         if let Some(status) = input.status {
@@ -3312,25 +3054,19 @@ impl MutationRoot {
         }
 
         // Update timestamp
-        goal.updated_at = Set(Utc::now().naive_utc());
+        goal.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_goal = goal.update(db).await?;
+        let updated_goal = goal.update(&db).await?;
 
         // Convert to legacy EmployeeGoal struct for compatibility
         let goal = EmployeeGoal {
             id: updated_goal.id,
             employee_id: updated_goal.employee_id,
-            goal_title: updated_goal.goal_title,
-            goal_description: updated_goal.goal_description,
+            title: updated_goal.title.clone(),
+            description: updated_goal.description.clone(),
             target_date: updated_goal.target_date,
-            status: match updated_goal.status.as_str() {
-                "not_started" => GoalStatus::NotStarted,
-                "in_progress" => GoalStatus::InProgress,
-                "completed" => GoalStatus::Completed,
-                "cancelled" => GoalStatus::Cancelled,
-                _ => GoalStatus::NotStarted,
-            },
+            status: updated_goal.status.clone(),
             progress_percentage: updated_goal.progress_percentage,
             created_at: updated_goal.created_at,
             updated_at: updated_goal.updated_at,
@@ -3343,8 +3079,8 @@ impl MutationRoot {
     async fn delete_employee_goal(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
         let db = get_db_from_context(ctx)?;
 
-        let result = crate::models::employee_goal::Entity::delete_by_id(id)
-            .exec(db)
+        let result = crate::models::employee::employee_goal::Entity::delete_by_id(id)
+            .exec(&db)
             .await?;
 
         Ok(result.rows_affected > 0)
@@ -3359,10 +3095,10 @@ impl MutationRoot {
         &self,
         ctx: &Context<'_>,
         input: CreateDocumentInput,
-    ) -> Result<Document> {
+    ) -> Result<crate::models::documents::document::Model> {
         let db = get_db_from_context(ctx)?;
 
-        let document = crate::models::document::ActiveModel {
+        let document = crate::models::documents::document::ActiveModel {
             title: Set(input.title.clone()),
             description: Set(input.description.clone()),
             category_id: Set(input.category_id),
@@ -3373,22 +3109,7 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let document = document.insert(db).await?;
-
-        // Convert SeaORM model to legacy Document struct for compatibility
-        let document = Document {
-            id: document.id,
-            title: document.title,
-            description: document.description,
-            category_id: document.category_id,
-            file_path: document.file_path,
-            file_size: document.file_size,
-            mime_type: document.mime_type,
-            uploader_id: document.uploader_id,
-            created_at: document.created_at,
-            updated_at: document.updated_at,
-            deleted_at: document.deleted_at,
-        };
+        let document = document.insert(&db).await?;
 
         Ok(document)
     }
@@ -3399,53 +3120,38 @@ impl MutationRoot {
         ctx: &Context<'_>,
         id: Uuid,
         input: UpdateDocumentInput,
-    ) -> Result<Document> {
+    ) -> Result<crate::models::documents::document::Model> {
         let db = get_db_from_context(ctx)?;
 
         // Find existing document
-        let existing_document = crate::models::document::Entity::find_by_id(id)
-            .filter(crate::models::document::Column::DeletedAt.is_null())
-            .one(db)
+        let existing_document = crate::models::documents::document::Entity::find_by_id(id)
+            .filter(crate::models::documents::document::Column::DeletedAt.is_null())
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Document not found".to_string()))?;
 
         // Build active model with updates
-        let mut document: crate::models::document::ActiveModel = existing_document.into();
+        let mut document: crate::models::documents::document::ActiveModel = existing_document.into();
 
         if let Some(title) = input.title {
             document.title = Set(title);
         }
 
         if let Some(description) = input.description {
-            document.description = Set(description);
+            document.description = Set(Some(description));
         }
 
         if let Some(category_id) = input.category_id {
-            document.category_id = Set(category_id);
+            document.category_id = Set(Some(category_id));
         }
 
         // Update timestamp
-        document.updated_at = Set(Utc::now().naive_utc());
+        document.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_document = document.update(db).await?;
+        let updated_document = document.update(&db).await?;
 
-        // Convert to legacy Document struct for compatibility
-        let document = Document {
-            id: updated_document.id,
-            title: updated_document.title,
-            description: updated_document.description,
-            category_id: updated_document.category_id,
-            file_path: updated_document.file_path,
-            file_size: updated_document.file_size,
-            mime_type: updated_document.mime_type,
-            uploader_id: updated_document.uploader_id,
-            created_at: updated_document.created_at,
-            updated_at: updated_document.updated_at,
-            deleted_at: updated_document.deleted_at,
-        };
-
-        Ok(document)
+        Ok(updated_document)
     }
 
     /// Delete a document (soft delete)
@@ -3453,9 +3159,9 @@ impl MutationRoot {
         let db = get_db_from_context(ctx)?;
 
         // Find the document first to ensure it exists
-        let document = crate::models::document::Entity::find_by_id(id)
-            .filter(crate::models::document::Column::DeletedAt.is_null())
-            .one(db)
+        let document = crate::models::documents::document::Entity::find_by_id(id)
+            .filter(crate::models::documents::document::Column::DeletedAt.is_null())
+            .one(&db)
             .await?;
 
         if document.is_none() {
@@ -3463,10 +3169,10 @@ impl MutationRoot {
         }
 
         // Soft delete by setting deleted_at
-        let mut document: crate::models::document::ActiveModel = document.unwrap().into();
-        document.deleted_at = Set(Some(Utc::now().naive_utc()));
+        let mut document: crate::models::documents::document::ActiveModel = document.unwrap().into();
+        document.deleted_at = Set(Some(Utc::now()));
 
-        document.update(db).await?;
+        document.update(&db).await?;
 
         Ok(true)
     }
@@ -3479,14 +3185,14 @@ impl MutationRoot {
     ) -> Result<DocumentCategory> {
         let db = get_db_from_context(ctx)?;
 
-        let category = crate::models::document_category::ActiveModel {
+        let category = crate::models::documents::document_category::ActiveModel {
             name: Set(input.name.clone()),
             description: Set(input.description.clone()),
             parent_category_id: Set(input.parent_category_id),
             ..Default::default()
         };
 
-        let category = category.insert(db).await?;
+        let category = category.insert(&db).await?;
 
         // Convert SeaORM model to legacy DocumentCategory struct for compatibility
         let category = DocumentCategory {
@@ -3512,32 +3218,32 @@ impl MutationRoot {
         let db = get_db_from_context(ctx)?;
 
         // Find existing document category
-        let existing_category = crate::models::document_category::Entity::find_by_id(id)
-            .filter(crate::models::document_category::Column::DeletedAt.is_null())
-            .one(db)
+        let existing_category = crate::models::documents::document_category::Entity::find_by_id(id)
+            .filter(crate::models::documents::document_category::Column::DeletedAt.is_null())
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Document category not found".to_string()))?;
 
         // Build active model with updates
-        let mut category: crate::models::document_category::ActiveModel = existing_category.into();
+        let mut category: crate::models::documents::document_category::ActiveModel = existing_category.into();
 
         if let Some(name) = input.name {
             category.name = Set(name);
         }
 
         if let Some(description) = input.description {
-            category.description = Set(description);
+            category.description = Set(Some(description));
         }
 
         if let Some(parent_category_id) = input.parent_category_id {
-            category.parent_category_id = Set(parent_category_id);
+            category.parent_category_id = Set(Some(parent_category_id));
         }
 
         // Update timestamp
-        category.updated_at = Set(Utc::now().naive_utc());
+        category.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_category = category.update(db).await?;
+        let updated_category = category.update(&db).await?;
 
         // Convert to legacy DocumentCategory struct for compatibility
         let category = DocumentCategory {
@@ -3558,9 +3264,9 @@ impl MutationRoot {
         let db = get_db_from_context(ctx)?;
 
         // Find the document category first to ensure it exists
-        let category = crate::models::document_category::Entity::find_by_id(id)
-            .filter(crate::models::document_category::Column::DeletedAt.is_null())
-            .one(db)
+        let category = crate::models::documents::document_category::Entity::find_by_id(id)
+            .filter(crate::models::documents::document_category::Column::DeletedAt.is_null())
+            .one(&db)
             .await?;
 
         if category.is_none() {
@@ -3568,10 +3274,10 @@ impl MutationRoot {
         }
 
         // Soft delete by setting deleted_at
-        let mut category: crate::models::document_category::ActiveModel = category.unwrap().into();
-        category.deleted_at = Set(Some(Utc::now().naive_utc()));
+        let mut category: crate::models::documents::document_category::ActiveModel = category.unwrap().into();
+        category.deleted_at = Set(Some(Utc::now()));
 
-        category.update(db).await?;
+        category.update(&db).await?;
 
         Ok(true)
     }
@@ -3584,7 +3290,7 @@ impl MutationRoot {
     ) -> Result<DocumentVersion> {
         let db = get_db_from_context(ctx)?;
 
-        let version = crate::models::document_version::ActiveModel {
+        let version = crate::models::documents::document_version::ActiveModel {
             document_id: Set(input.document_id),
             version_number: Set(input.version_number),
             file_path: Set(input.file_path.clone()),
@@ -3594,7 +3300,7 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let version = version.insert(db).await?;
+        let version = version.insert(&db).await?;
 
         // Convert SeaORM model to legacy DocumentVersion struct for compatibility
         let version = DocumentVersion {
@@ -3619,16 +3325,21 @@ impl MutationRoot {
     ) -> Result<DocumentAssignment> {
         let db = get_db_from_context(ctx)?;
 
-        let assignment = crate::models::document_assignment::ActiveModel {
+        let assigner_id = ctx
+            .data_opt::<UserContext>()
+            .map(|uc| uc.user_id)
+            .ok_or("User context not found - authentication required")?;
+
+        let assignment = crate::models::documents::document_assignment::ActiveModel {
             document_id: Set(input.document_id),
             user_id: Set(input.user_id),
             department_id: Set(input.department_id),
             access_level: Set(input.access_level.as_str().to_string()),
-            assigned_by_id: Set(input.assigned_by_id),
+            assigned_by_id: Set(assigner_id),
             ..Default::default()
         };
 
-        let assignment = assignment.insert(db).await?;
+        let assignment = assignment.insert(&db).await?;
 
         // Convert SeaORM model to legacy DocumentAssignment struct for compatibility
         let assignment = DocumentAssignment {
@@ -3636,12 +3347,7 @@ impl MutationRoot {
             document_id: assignment.document_id,
             user_id: assignment.user_id,
             department_id: assignment.department_id,
-            access_level: match assignment.access_level.as_str() {
-                "read" => DocumentAccessLevel::Read,
-                "write" => DocumentAccessLevel::Write,
-                "admin" => DocumentAccessLevel::Admin,
-                _ => DocumentAccessLevel::Read,
-            },
+            access_level: assignment.access_level.clone(),
             assigned_at: assignment.assigned_at,
             assigned_by_id: assignment.assigned_by_id,
         };
@@ -3653,8 +3359,8 @@ impl MutationRoot {
     async fn delete_document_assignment(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
         let db = get_db_from_context(ctx)?;
 
-        let result = crate::models::document_assignment::Entity::delete_by_id(id)
-            .exec(db)
+        let result = crate::models::documents::document_assignment::Entity::delete_by_id(id)
+            .exec(&db)
             .await?;
 
         Ok(result.rows_affected > 0)
@@ -3668,7 +3374,7 @@ impl MutationRoot {
     ) -> Result<DocumentAccessLog> {
         let db = get_db_from_context(ctx)?;
 
-        let log = crate::models::document_access_log::ActiveModel {
+        let log = crate::models::documents::document_access_log::ActiveModel {
             document_id: Set(input.document_id),
             user_id: Set(input.user_id),
             access_type: Set(input.access_type.as_str().to_string()),
@@ -3676,20 +3382,14 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let log = log.insert(db).await?;
+        let log = log.insert(&db).await?;
 
         // Convert SeaORM model to legacy DocumentAccessLog struct for compatibility
         let log = DocumentAccessLog {
             id: log.id,
             document_id: log.document_id,
             user_id: log.user_id,
-            access_type: match log.access_type.as_str() {
-                "view" => DocumentAccessType::View,
-                "download" => DocumentAccessType::Download,
-                "edit" => DocumentAccessType::Edit,
-                "delete" => DocumentAccessType::Delete,
-                _ => DocumentAccessType::View,
-            },
+            access_type: log.access_type.clone(),
             accessed_at: log.accessed_at,
             ip_address: log.ip_address,
         };
@@ -3705,13 +3405,13 @@ impl MutationRoot {
     ) -> Result<EncryptedFileStorage> {
         let db = get_db_from_context(ctx)?;
 
-        let storage = crate::models::encrypted_file_storage::ActiveModel {
+        let storage = crate::models::documents::encrypted_file_storage::ActiveModel {
             document_id: Set(input.document_id),
             encryption_key_id: Set(input.encryption_key_id),
             ..Default::default()
         };
 
-        let storage = storage.insert(db).await?;
+        let storage = storage.insert(&db).await?;
 
         // Convert SeaORM model to legacy EncryptedFileStorage struct for compatibility
         let storage = EncryptedFileStorage {
@@ -3728,116 +3428,117 @@ impl MutationRoot {
     // NEW MODELS - Time Domain Mutations
     // ============================================================
 
-    /// Create a new time-off policy
-    async fn create_time_off_policy(
-        &self,
-        ctx: &Context<'_>,
-        input: CreateTimeOffPolicyInput,
-    ) -> Result<TimeOffPolicy> {
-        let db = get_db_from_context(ctx)?;
+    // TODO: Implement time-off policy mutations when SeaORM entities are available
+    // /// Create a new time-off policy
+    // async fn create_time_off_policy(
+    //     &self,
+    //     ctx: &Context<'_>,
+    //     input: CreateTimeOffPolicyInput,
+    // ) -> Result<TimeOffPolicy> {
+    //     let db = get_db_from_context(ctx)?;
+    //
+    //     let policy = crate::models::time_off_policy::ActiveModel {
+    //         policy_name: Set(input.policy_name.clone()),
+    //         leave_type: Set(input.leave_type.clone()),
+    //         accrual_rate: Set(input.accrual_rate),
+    //         max_balance: Set(input.max_balance),
+    //         carryover_limit: Set(input.carryover_limit),
+    //         effective_date: Set(input.effective_date),
+    //         ..Default::default()
+    //     };
+    //
+    //     let policy = policy.insert(&db).await?;
+    //
+    //     // Convert SeaORM model to legacy TimeOffPolicy struct for compatibility
+    //     let policy = TimeOffPolicy {
+    //         id: policy.id,
+    //         policy_name: policy.policy_name,
+    //         leave_type: policy.leave_type,
+    //         accrual_rate: policy.accrual_rate,
+    //         max_balance: policy.max_balance,
+    //         carryover_limit: policy.carryover_limit,
+    //         effective_date: policy.effective_date,
+    //         created_at: policy.created_at,
+    //         updated_at: policy.updated_at,
+    //     };
+    //
+    //     Ok(policy)
+    // }
 
-        let policy = crate::models::time_off_policy::ActiveModel {
-            policy_name: Set(input.policy_name.clone()),
-            leave_type: Set(input.leave_type.clone()),
-            accrual_rate: Set(input.accrual_rate),
-            max_balance: Set(input.max_balance),
-            carryover_limit: Set(input.carryover_limit),
-            effective_date: Set(input.effective_date),
-            ..Default::default()
-        };
+    // /// Update an existing time-off policy
+    // async fn update_time_off_policy(
+    //     &self,
+    //     ctx: &Context<'_>,
+    //     id: Uuid,
+    //     input: UpdateTimeOffPolicyInput,
+    // ) -> Result<TimeOffPolicy> {
+    //     let db = get_db_from_context(ctx)?;
+    //
+    //     // Find existing time-off policy
+    //     let existing_policy = crate::models::time_off_policy::Entity::find_by_id(id)
+    //         .one(&db)
+    //         .await?
+    //         .ok_or_else(|| AppError::NotFound("Time-off policy not found".to_string()))?;
+    //
+    //     // Build active model with updates
+    //     let mut policy: crate::models::time_off_policy::ActiveModel = existing_policy.into();
+    //
+    //     if let Some(policy_name) = input.policy_name {
+    //         policy.policy_name = Set(policy_name);
+    //     }
+    //
+    //     if let Some(leave_type) = input.leave_type {
+    //         policy.leave_type = Set(leave_type);
+    //     }
+    //
+    //     if let Some(accrual_rate) = input.accrual_rate {
+    //         policy.accrual_rate = Set(accrual_rate);
+    //     }
+    //
+    //     if let Some(max_balance) = input.max_balance {
+    //         policy.max_balance = Set(max_balance);
+    //     }
+    //
+    //     if let Some(carryover_limit) = input.carryover_limit {
+    //         policy.carryover_limit = Set(carryover_limit);
+    //     }
+    //
+    //     if let Some(effective_date) = input.effective_date {
+    //         policy.effective_date = Set(effective_date);
+    //     }
+    //
+    //     // Update timestamp
+    //     policy.updated_at = Set(Utc::now());
+    //
+    //     // Save changes
+    //     let updated_policy = policy.update(&db).await?;
+    //
+    //     // Convert to legacy TimeOffPolicy struct for compatibility
+    //     let policy = TimeOffPolicy {
+    //         id: updated_policy.id,
+    //         policy_name: updated_policy.policy_name,
+    //         leave_type: updated_policy.leave_type,
+    //         accrual_rate: updated_policy.accrual_rate,
+    //         max_balance: updated_policy.max_balance,
+    //         carryover_limit: updated_policy.carryover_limit,
+    //         effective_date: updated_policy.effective_date,
+    //         created_at: updated_policy.created_at,
+    //         updated_at: updated_policy.updated_at,
+    //     };
+    //
+    //     Ok(policy)
+    // }
 
-        let policy = policy.insert(db).await?;
-
-        // Convert SeaORM model to legacy TimeOffPolicy struct for compatibility
-        let policy = TimeOffPolicy {
-            id: policy.id,
-            policy_name: policy.policy_name,
-            leave_type: policy.leave_type,
-            accrual_rate: policy.accrual_rate,
-            max_balance: policy.max_balance,
-            carryover_limit: policy.carryover_limit,
-            effective_date: policy.effective_date,
-            created_at: policy.created_at,
-            updated_at: policy.updated_at,
-        };
-
-        Ok(policy)
-    }
-
-    /// Update an existing time-off policy
-    async fn update_time_off_policy(
-        &self,
-        ctx: &Context<'_>,
-        id: Uuid,
-        input: UpdateTimeOffPolicyInput,
-    ) -> Result<TimeOffPolicy> {
-        let db = get_db_from_context(ctx)?;
-
-        // Find existing time-off policy
-        let existing_policy = crate::models::time_off_policy::Entity::find_by_id(id)
-            .one(db)
-            .await?
-            .ok_or_else(|| AppError::NotFound("Time-off policy not found".to_string()))?;
-
-        // Build active model with updates
-        let mut policy: crate::models::time_off_policy::ActiveModel = existing_policy.into();
-
-        if let Some(policy_name) = input.policy_name {
-            policy.policy_name = Set(policy_name);
-        }
-
-        if let Some(leave_type) = input.leave_type {
-            policy.leave_type = Set(leave_type);
-        }
-
-        if let Some(accrual_rate) = input.accrual_rate {
-            policy.accrual_rate = Set(accrual_rate);
-        }
-
-        if let Some(max_balance) = input.max_balance {
-            policy.max_balance = Set(max_balance);
-        }
-
-        if let Some(carryover_limit) = input.carryover_limit {
-            policy.carryover_limit = Set(carryover_limit);
-        }
-
-        if let Some(effective_date) = input.effective_date {
-            policy.effective_date = Set(effective_date);
-        }
-
-        // Update timestamp
-        policy.updated_at = Set(Utc::now().naive_utc());
-
-        // Save changes
-        let updated_policy = policy.update(db).await?;
-
-        // Convert to legacy TimeOffPolicy struct for compatibility
-        let policy = TimeOffPolicy {
-            id: updated_policy.id,
-            policy_name: updated_policy.policy_name,
-            leave_type: updated_policy.leave_type,
-            accrual_rate: updated_policy.accrual_rate,
-            max_balance: updated_policy.max_balance,
-            carryover_limit: updated_policy.carryover_limit,
-            effective_date: updated_policy.effective_date,
-            created_at: updated_policy.created_at,
-            updated_at: updated_policy.updated_at,
-        };
-
-        Ok(policy)
-    }
-
-    /// Delete a time-off policy (hard delete)
-    async fn delete_time_off_policy(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let db = get_db_from_context(ctx)?;
-
-        let result = crate::models::time_off_policy::Entity::delete_by_id(id)
-            .exec(db)
-            .await?;
-
-        Ok(result.rows_affected > 0)
-    }
+    // /// Delete a time-off policy (hard delete)
+    // async fn delete_time_off_policy(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
+    //     let db = get_db_from_context(ctx)?;
+    //
+    //     let result = crate::models::time_off_policy::Entity::delete_by_id(id)
+    //         .exec(db)
+    //         .await?;
+    //
+    //     Ok(result.rows_affected > 0)
+    // }
 
     /// Create a new attendance record
     async fn create_attendance_record(
@@ -3847,7 +3548,7 @@ impl MutationRoot {
     ) -> Result<AttendanceRecord> {
         let db = get_db_from_context(ctx)?;
 
-        let record = crate::models::attendance_record::ActiveModel {
+        let record = crate::models::time::attendance_record::ActiveModel {
             user_id: Set(input.user_id),
             date: Set(input.date),
             clock_in: Set(input.clock_in),
@@ -3858,7 +3559,7 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let record = record.insert(db).await?;
+        let record = record.insert(&db).await?;
 
         // Convert SeaORM model to legacy AttendanceRecord struct for compatibility
         let record = AttendanceRecord {
@@ -3868,13 +3569,7 @@ impl MutationRoot {
             clock_in: record.clock_in,
             clock_out: record.clock_out,
             hours_worked: record.hours_worked,
-            status: match record.status.as_str() {
-                "present" => AttendanceStatus::Present,
-                "absent" => AttendanceStatus::Absent,
-                "late" => AttendanceStatus::Late,
-                "half_day" => AttendanceStatus::HalfDay,
-                _ => AttendanceStatus::Present,
-            },
+            status: record.status.clone(),
             notes: record.notes,
             created_at: record.created_at,
             updated_at: record.updated_at,
@@ -3893,24 +3588,24 @@ impl MutationRoot {
         let db = get_db_from_context(ctx)?;
 
         // Find existing attendance record
-        let existing_record = crate::models::attendance_record::Entity::find_by_id(id)
-            .one(db)
+        let existing_record = crate::models::time::attendance_record::Entity::find_by_id(id)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Attendance record not found".to_string()))?;
 
         // Build active model with updates
-        let mut record: crate::models::attendance_record::ActiveModel = existing_record.into();
+        let mut record: crate::models::time::attendance_record::ActiveModel = existing_record.into();
 
         if let Some(clock_in) = input.clock_in {
-            record.clock_in = Set(clock_in);
+            record.clock_in = Set(Some(clock_in));
         }
 
         if let Some(clock_out) = input.clock_out {
-            record.clock_out = Set(clock_out);
+            record.clock_out = Set(Some(clock_out));
         }
 
         if let Some(hours_worked) = input.hours_worked {
-            record.hours_worked = Set(hours_worked);
+            record.hours_worked = Set(Some(hours_worked));
         }
 
         if let Some(status) = input.status {
@@ -3918,14 +3613,14 @@ impl MutationRoot {
         }
 
         if let Some(notes) = input.notes {
-            record.notes = Set(notes);
+            record.notes = Set(Some(notes));
         }
 
         // Update timestamp
-        record.updated_at = Set(Utc::now().naive_utc());
+        record.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_record = record.update(db).await?;
+        let updated_record = record.update(&db).await?;
 
         // Convert to legacy AttendanceRecord struct for compatibility
         let record = AttendanceRecord {
@@ -3935,13 +3630,7 @@ impl MutationRoot {
             clock_in: updated_record.clock_in,
             clock_out: updated_record.clock_out,
             hours_worked: updated_record.hours_worked,
-            status: match updated_record.status.as_str() {
-                "present" => AttendanceStatus::Present,
-                "absent" => AttendanceStatus::Absent,
-                "late" => AttendanceStatus::Late,
-                "half_day" => AttendanceStatus::HalfDay,
-                _ => AttendanceStatus::Present,
-            },
+            status: updated_record.status.clone(),
             notes: updated_record.notes,
             created_at: updated_record.created_at,
             updated_at: updated_record.updated_at,
@@ -3954,8 +3643,8 @@ impl MutationRoot {
     async fn delete_attendance_record(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
         let db = get_db_from_context(ctx)?;
 
-        let result = crate::models::attendance_record::Entity::delete_by_id(id)
-            .exec(db)
+        let result = crate::models::time::attendance_record::Entity::delete_by_id(id)
+            .exec(&db)
             .await?;
 
         Ok(result.rows_affected > 0)
@@ -3978,7 +3667,7 @@ impl MutationRoot {
             None
         };
 
-        let log = crate::models::activity_log::ActiveModel {
+        let log = crate::models::system::activity_log::ActiveModel {
             user_id: Set(input.user_id),
             employee_id: Set(input.employee_id),
             action: Set(input.action.clone()),
@@ -3988,7 +3677,7 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let log = log.insert(db).await?;
+        let log = log.insert(&db).await?;
 
         // Convert SeaORM model to legacy ActivityLog struct for compatibility
         let log = ActivityLog {
@@ -3999,6 +3688,14 @@ impl MutationRoot {
             resource_type: log.resource_type,
             resource_id: log.resource_id,
             details: log.details,
+            before_snapshot: log.before_snapshot,
+            after_snapshot: log.after_snapshot,
+            is_rollback: log.is_rollback,
+            rolled_back_log_id: log.rolled_back_log_id,
+            ip_address: log.ip_address,
+            user_agent: log.user_agent,
+            signature_id: log.signature_id,
+            batch_id: log.batch_id,
             created_at: log.created_at,
         };
 
@@ -4013,7 +3710,7 @@ impl MutationRoot {
     ) -> Result<CompensationBand> {
         let db = get_db_from_context(ctx)?;
 
-        let band = crate::models::compensation_band::ActiveModel {
+        let band = crate::models::system::compensation_band::ActiveModel {
             band_name: Set(input.band_name.clone()),
             min_salary: Set(input.min_salary),
             max_salary: Set(input.max_salary),
@@ -4021,7 +3718,7 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let band = band.insert(db).await?;
+        let band = band.insert(&db).await?;
 
         // Convert SeaORM model to legacy CompensationBand struct for compatibility
         let band = CompensationBand {
@@ -4047,13 +3744,13 @@ impl MutationRoot {
         let db = get_db_from_context(ctx)?;
 
         // Find existing compensation band
-        let existing_band = crate::models::compensation_band::Entity::find_by_id(id)
-            .one(db)
+        let existing_band = crate::models::system::compensation_band::Entity::find_by_id(id)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Compensation band not found".to_string()))?;
 
         // Build active model with updates
-        let mut band: crate::models::compensation_band::ActiveModel = existing_band.into();
+        let mut band: crate::models::system::compensation_band::ActiveModel = existing_band.into();
 
         if let Some(band_name) = input.band_name {
             band.band_name = Set(band_name);
@@ -4072,10 +3769,10 @@ impl MutationRoot {
         }
 
         // Update timestamp
-        band.updated_at = Set(Utc::now().naive_utc());
+        band.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_band = band.update(db).await?;
+        let updated_band = band.update(&db).await?;
 
         // Convert to legacy CompensationBand struct for compatibility
         let band = CompensationBand {
@@ -4095,8 +3792,8 @@ impl MutationRoot {
     async fn delete_compensation_band(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
         let db = get_db_from_context(ctx)?;
 
-        let result = crate::models::compensation_band::Entity::delete_by_id(id)
-            .exec(db)
+        let result = crate::models::system::compensation_band::Entity::delete_by_id(id)
+            .exec(&db)
             .await?;
 
         Ok(result.rows_affected > 0)
@@ -4113,18 +3810,15 @@ impl MutationRoot {
         // Parse data JSON string
         let data_json = serde_json::from_str::<serde_json::Value>(&input.data)?;
 
-        let report = crate::models::hr_report::ActiveModel {
+        let report = crate::models::system::hr_report::ActiveModel {
             title: Set(input.title.clone()),
             report_type: Set(input.report_type.clone()),
-            category: Set(input.category.clone()),
             data: Set(data_json),
             creator_id: Set(input.creator_id),
-            department_id: Set(input.department_id),
-            generated_at: Set(Utc::now().naive_utc()),
             ..Default::default()
         };
 
-        let report = report.insert(db).await?;
+        let report = report.insert(&db).await?;
 
         // Convert SeaORM model to legacy HRReport struct for compatibility
         let report = HRReport {
@@ -4153,7 +3847,7 @@ impl MutationRoot {
             .map(|uc| uc.user_id)
             .ok_or("User context not found - authentication required")?;
 
-        let request = crate::models::rollback_request::ActiveModel {
+        let request = crate::models::system::rollback_request::ActiveModel {
             activity_log_id: Set(input.activity_log_id),
             requested_by: Set(user_id),
             reason: Set(input.reason.clone()),
@@ -4161,7 +3855,7 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let request = request.insert(db).await?;
+        let request = request.insert(&db).await?;
 
         // Convert SeaORM model to legacy RollbackRequest struct for compatibility
         let request = RollbackRequest {
@@ -4170,13 +3864,7 @@ impl MutationRoot {
             requested_by: request.requested_by,
             requested_at: request.requested_at,
             reason: request.reason,
-            status: match request.status.as_str() {
-                "pending" => RollbackStatus::Pending,
-                "approved" => RollbackStatus::Approved,
-                "rejected" => RollbackStatus::Rejected,
-                "completed" => RollbackStatus::Completed,
-                _ => RollbackStatus::Pending,
-            },
+            status: request.status.clone(),
             reviewed_by: request.reviewed_by,
             reviewed_at: request.reviewed_at,
             review_reason: request.review_reason,
@@ -4197,19 +3885,19 @@ impl MutationRoot {
         let db = get_db_from_context(ctx)?;
 
         // Find existing rollback request
-        let existing_request = crate::models::rollback_request::Entity::find_by_id(id)
-            .one(db)
+        let existing_request = crate::models::system::rollback_request::Entity::find_by_id(id)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Rollback request not found".to_string()))?;
 
         // Build active model with updates
-        let mut request: crate::models::rollback_request::ActiveModel = existing_request.into();
+        let mut request: crate::models::system::rollback_request::ActiveModel = existing_request.into();
 
         if let Some(status) = input.status {
             request.status = Set(status.as_str().to_string());
             // If status is 'completed', set reviewed_at
             if status == RollbackStatus::Completed {
-                request.reviewed_at = Set(Some(Utc::now().naive_utc()));
+                request.reviewed_at = Set(Some(Utc::now()));
             }
         }
 
@@ -4222,10 +3910,10 @@ impl MutationRoot {
         }
 
         // Update timestamp
-        request.updated_at = Set(Utc::now().naive_utc());
+        request.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_request = request.update(db).await?;
+        let updated_request = request.update(&db).await?;
 
         // Convert to legacy RollbackRequest struct for compatibility
         let request = RollbackRequest {
@@ -4234,13 +3922,7 @@ impl MutationRoot {
             requested_by: updated_request.requested_by,
             requested_at: updated_request.requested_at,
             reason: updated_request.reason,
-            status: match updated_request.status.as_str() {
-                "pending" => RollbackStatus::Pending,
-                "approved" => RollbackStatus::Approved,
-                "rejected" => RollbackStatus::Rejected,
-                "completed" => RollbackStatus::Completed,
-                _ => RollbackStatus::Pending,
-            },
+            status: updated_request.status.clone(),
             reviewed_by: updated_request.reviewed_by,
             reviewed_at: updated_request.reviewed_at,
             review_reason: updated_request.review_reason,
@@ -4259,7 +3941,7 @@ impl MutationRoot {
     ) -> Result<BulkRollbackBatch> {
         let db = get_db_from_context(ctx)?;
 
-        let batch = crate::models::bulk_rollback_batch::ActiveModel {
+        let batch = crate::models::system::bulk_rollback_batch::ActiveModel {
             batch_name: Set(input.batch_name.clone()),
             requester_id: Set(input.requester_id),
             total_items: Set(input.total_items),
@@ -4268,7 +3950,7 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let batch = batch.insert(db).await?;
+        let batch = batch.insert(&db).await?;
 
         // Convert SeaORM model to legacy BulkRollbackBatch struct for compatibility
         let batch = BulkRollbackBatch {
@@ -4296,13 +3978,16 @@ impl MutationRoot {
         let db = get_db_from_context(ctx)?;
 
         // Find existing bulk rollback batch
-        let existing_batch = crate::models::bulk_rollback_batch::Entity::find_by_id(id)
-            .one(db)
+        let existing_batch = crate::models::system::bulk_rollback_batch::Entity::find_by_id(id)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Bulk rollback batch not found".to_string()))?;
 
+        // Store needed fields before moving
+        let started_at = existing_batch.started_at;
+
         // Build active model with updates
-        let mut batch: crate::models::bulk_rollback_batch::ActiveModel = existing_batch.into();
+        let mut batch: crate::models::system::bulk_rollback_batch::ActiveModel = existing_batch.into();
 
         if let Some(completed_items) = input.completed_items {
             batch.completed_items = Set(completed_items);
@@ -4313,17 +3998,17 @@ impl MutationRoot {
             // If status is 'processing', set started_at if not already set
             // If status is 'completed' or 'failed', set completed_at
             if status == "processing" {
-                if existing_batch.started_at.is_none() {
-                    batch.started_at = Set(Some(Utc::now().naive_utc()));
+                if started_at.is_none() {
+                    batch.started_at = Set(Some(Utc::now()));
                 }
             }
             if status == "completed" || status == "failed" {
-                batch.completed_at = Set(Some(Utc::now().naive_utc()));
+                batch.completed_at = Set(Some(Utc::now()));
             }
         }
 
         // Save changes
-        let updated_batch = batch.update(db).await?;
+        let updated_batch = batch.update(&db).await?;
 
         // Convert to legacy BulkRollbackBatch struct for compatibility
         let batch = BulkRollbackBatch {
@@ -4349,7 +4034,7 @@ impl MutationRoot {
     ) -> Result<BulkRollbackItem> {
         let db = get_db_from_context(ctx)?;
 
-        let item = crate::models::bulk_rollback_item::ActiveModel {
+        let item = crate::models::system::bulk_rollback_item::ActiveModel {
             batch_id: Set(input.batch_id),
             resource_type: Set(input.resource_type.clone()),
             resource_id: Set(input.resource_id),
@@ -4358,7 +4043,7 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let item = item.insert(db).await?;
+        let item = item.insert(&db).await?;
 
         // Convert SeaORM model to legacy BulkRollbackItem struct for compatibility
         let item = BulkRollbackItem {
@@ -4385,19 +4070,19 @@ impl MutationRoot {
         let db = get_db_from_context(ctx)?;
 
         // Find existing bulk rollback item
-        let existing_item = crate::models::bulk_rollback_item::Entity::find_by_id(id)
-            .one(db)
+        let existing_item = crate::models::system::bulk_rollback_item::Entity::find_by_id(id)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Bulk rollback item not found".to_string()))?;
 
         // Build active model with updates
-        let mut item: crate::models::bulk_rollback_item::ActiveModel = existing_item.into();
+        let mut item: crate::models::system::bulk_rollback_item::ActiveModel = existing_item.into();
 
         if let Some(status) = input.status {
             item.status = Set(status.clone());
             // If status is 'completed' or 'failed', set completed_at
             if status == "completed" || status == "failed" {
-                item.completed_at = Set(Some(Utc::now().naive_utc()));
+                item.completed_at = Set(Some(Utc::now()));
             }
         }
 
@@ -4406,7 +4091,7 @@ impl MutationRoot {
         }
 
         // Save changes
-        let updated_item = item.update(db).await?;
+        let updated_item = item.update(&db).await?;
 
         // Convert to legacy BulkRollbackItem struct for compatibility
         let item = BulkRollbackItem {
@@ -4444,7 +4129,7 @@ impl MutationRoot {
             None
         };
 
-        let record = crate::models::payroll_record::ActiveModel {
+        let record = crate::models::system::payroll_record::ActiveModel {
             employee_id: Set(input.employee_id),
             pay_period_start: Set(input.pay_period_start),
             pay_period_end: Set(input.pay_period_end),
@@ -4452,12 +4137,12 @@ impl MutationRoot {
             net_pay: Set(input.net_pay),
             deductions: Set(deductions_json),
             bonuses: Set(bonuses_json),
-            processed_at: Set(Utc::now().naive_utc()),
+            processed_at: Set(Utc::now()),
             processor_id: Set(input.processor_id),
             ..Default::default()
         };
 
-        let record = record.insert(db).await?;
+        let record = record.insert(&db).await?;
 
         // Convert SeaORM model to legacy PayrollRecord struct for compatibility
         let record = PayrollRecord {
@@ -4485,14 +4170,14 @@ impl MutationRoot {
     ) -> Result<EncryptionKey> {
         let db = get_db_from_context(ctx)?;
 
-        let key = crate::models::encryption_key::ActiveModel {
+        let key = crate::models::system::encryption_key::ActiveModel {
             key_name: Set(input.key_name.clone()),
             algorithm: Set(input.algorithm.clone()),
             active: Set(true),
             ..Default::default()
         };
 
-        let key = key.insert(db).await?;
+        let key = key.insert(&db).await?;
 
         // Convert SeaORM model to legacy EncryptionKey struct for compatibility
         let key = EncryptionKey {
@@ -4517,14 +4202,14 @@ impl MutationRoot {
     ) -> Result<EventComment> {
         let db = get_db_from_context(ctx)?;
 
-        let comment = crate::models::event_comment::ActiveModel {
+        let comment = crate::models::events::event_comment::ActiveModel {
             event_id: Set(input.event_id),
             user_id: Set(input.user_id),
             comment_text: Set(input.comment_text.clone()),
             ..Default::default()
         };
 
-        let comment = comment.insert(db).await?;
+        let comment = comment.insert(&db).await?;
 
         // Convert SeaORM model to legacy EventComment struct for compatibility
         let comment = EventComment {
@@ -4550,24 +4235,24 @@ impl MutationRoot {
         let db = get_db_from_context(ctx)?;
 
         // Find existing comment
-        let existing_comment = crate::models::event_comment::Entity::find_by_id(id)
-            .filter(crate::models::event_comment::Column::DeletedAt.is_null())
-            .one(db)
+        let existing_comment = crate::models::events::event_comment::Entity::find_by_id(id)
+            .filter(crate::models::events::event_comment::Column::DeletedAt.is_null())
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Event comment not found".to_string()))?;
 
         // Build active model with updates
-        let mut comment: crate::models::event_comment::ActiveModel = existing_comment.into();
+        let mut comment: crate::models::events::event_comment::ActiveModel = existing_comment.into();
 
         if let Some(comment_text) = input.comment_text {
             comment.comment_text = Set(comment_text);
         }
 
         // Update timestamp
-        comment.updated_at = Set(Utc::now().naive_utc());
+        comment.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_comment = comment.update(db).await?;
+        let updated_comment = comment.update(&db).await?;
 
         // Convert to legacy EventComment struct for compatibility
         let comment = EventComment {
@@ -4588,18 +4273,18 @@ impl MutationRoot {
         let db = get_db_from_context(ctx)?;
 
         // Find existing comment
-        let existing_comment = crate::models::event_comment::Entity::find_by_id(id)
-            .filter(crate::models::event_comment::Column::DeletedAt.is_null())
-            .one(db)
+        let existing_comment = crate::models::events::event_comment::Entity::find_by_id(id)
+            .filter(crate::models::events::event_comment::Column::DeletedAt.is_null())
+            .one(&db)
             .await?;
 
         if let Some(comment) = existing_comment {
             // Build active model for soft delete
-            let mut comment: crate::models::event_comment::ActiveModel = comment.into();
-            comment.deleted_at = Set(Some(Utc::now().naive_utc()));
+            let mut comment: crate::models::events::event_comment::ActiveModel = comment.into();
+            comment.deleted_at = Set(Some(Utc::now()));
 
             // Save changes
-            comment.update(db).await?;
+            comment.update(&db).await?;
             Ok(true)
         } else {
             Ok(false)
@@ -4627,7 +4312,7 @@ impl MutationRoot {
             None
         };
 
-        let history = crate::models::event_history::ActiveModel {
+        let history = crate::models::events::event_history::ActiveModel {
             event_id: Set(input.event_id),
             changed_by_id: Set(input.changed_by_id),
             change_type: Set(input.change_type.clone()),
@@ -4636,7 +4321,7 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let history = history.insert(db).await?;
+        let history = history.insert(&db).await?;
 
         // Convert SeaORM model to legacy EventHistory struct for compatibility
         let history = EventHistory {
@@ -4660,7 +4345,7 @@ impl MutationRoot {
     ) -> Result<EventWaitlist> {
         let db = get_db_from_context(ctx)?;
 
-        let waitlist = crate::models::event_waitlist::ActiveModel {
+        let waitlist = crate::models::events::event_waitlist::ActiveModel {
             event_id: Set(input.event_id),
             user_id: Set(input.user_id),
             position: Set(input.position),
@@ -4668,7 +4353,7 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let waitlist = waitlist.insert(db).await?;
+        let waitlist = waitlist.insert(&db).await?;
 
         // Convert SeaORM model to legacy EventWaitlist struct for compatibility
         let waitlist = EventWaitlist {
@@ -4694,24 +4379,24 @@ impl MutationRoot {
         let db = get_db_from_context(ctx)?;
 
         // Find existing waitlist entry
-        let existing_waitlist = crate::models::event_waitlist::Entity::find_by_id(id)
-            .one(db)
+        let existing_waitlist = crate::models::events::event_waitlist::Entity::find_by_id(id)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Event waitlist entry not found".to_string()))?;
 
         // Build active model with updates
-        let mut waitlist: crate::models::event_waitlist::ActiveModel = existing_waitlist.into();
+        let mut waitlist: crate::models::events::event_waitlist::ActiveModel = existing_waitlist.into();
 
         if let Some(promoted) = input.promoted {
             waitlist.promoted = Set(promoted);
             // If promoting, set promoted_at
             if promoted {
-                waitlist.promoted_at = Set(Some(Utc::now().naive_utc()));
+                waitlist.promoted_at = Set(Some(Utc::now()));
             }
         }
 
         // Save changes
-        let updated_waitlist = waitlist.update(db).await?;
+        let updated_waitlist = waitlist.update(&db).await?;
 
         // Convert to legacy EventWaitlist struct for compatibility
         let waitlist = EventWaitlist {
@@ -4731,8 +4416,8 @@ impl MutationRoot {
     async fn delete_event_waitlist(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
         let db = get_db_from_context(ctx)?;
 
-        let result = crate::models::event_waitlist::Entity::delete_by_id(id)
-            .exec(db)
+        let result = crate::models::events::event_waitlist::Entity::delete_by_id(id)
+            .exec(&db)
             .await?;
 
         Ok(result.rows_affected > 0)
@@ -4748,7 +4433,7 @@ impl MutationRoot {
     ) -> Result<TaskType> {
         let db = get_db_from_context(ctx)?;
 
-        let task_type = crate::models::task_type::ActiveModel {
+        let task_type = crate::models::tasks::task_type::ActiveModel {
             name: Set(input.name.clone()),
             description: Set(input.description.clone()),
             default_priority: Set(input.default_priority.clone()),
@@ -4757,7 +4442,7 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let task_type = task_type.insert(db).await?;
+        let task_type = task_type.insert(&db).await?;
 
         // Convert SeaORM model to legacy TaskType struct for compatibility
         let task_type = TaskType {
@@ -4784,35 +4469,35 @@ impl MutationRoot {
         let db = get_db_from_context(ctx)?;
 
         // Find existing task type
-        let existing_task_type = crate::models::task_type::Entity::find_by_id(id)
-            .one(db)
+        let existing_task_type = crate::models::tasks::task_type::Entity::find_by_id(id)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Task type not found".to_string()))?;
 
         // Build active model with updates
-        let mut task_type: crate::models::task_type::ActiveModel = existing_task_type.into();
+        let mut task_type: crate::models::tasks::task_type::ActiveModel = existing_task_type.into();
 
         if let Some(name) = input.name {
             task_type.name = Set(name);
         }
         if let Some(description) = input.description {
-            task_type.description = Set(description);
+            task_type.description = Set(Some(description));
         }
         if let Some(default_priority) = input.default_priority {
-            task_type.default_priority = Set(default_priority);
+            task_type.default_priority = Set(Some(default_priority));
         }
         if let Some(color_code) = input.color_code {
-            task_type.color_code = Set(color_code);
+            task_type.color_code = Set(Some(color_code));
         }
         if let Some(is_active) = input.is_active {
             task_type.is_active = Set(is_active);
         }
 
         // Update timestamp
-        task_type.updated_at = Set(Utc::now().naive_utc());
+        task_type.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_task_type = task_type.update(db).await?;
+        let updated_task_type = task_type.update(&db).await?;
 
         // Convert to legacy TaskType struct for compatibility
         let task_type = TaskType {
@@ -4834,18 +4519,18 @@ impl MutationRoot {
         let db = get_db_from_context(ctx)?;
 
         // Find existing task type
-        let existing_task_type = crate::models::task_type::Entity::find_by_id(id)
-            .one(db)
+        let existing_task_type = crate::models::tasks::task_type::Entity::find_by_id(id)
+            .one(&db)
             .await?;
 
         if let Some(task_type) = existing_task_type {
             // Build active model for soft delete
-            let mut task_type: crate::models::task_type::ActiveModel = task_type.into();
+            let mut task_type: crate::models::tasks::task_type::ActiveModel = task_type.into();
             task_type.is_active = Set(false);
-            task_type.updated_at = Set(Utc::now().naive_utc());
+            task_type.updated_at = Set(Utc::now());
 
             // Save changes
-            task_type.update(db).await?;
+            task_type.update(&db).await?;
             Ok(true)
         } else {
             Ok(false)
@@ -4867,7 +4552,7 @@ impl MutationRoot {
             None
         };
 
-        let template = crate::models::review_template::ActiveModel {
+        let template = crate::models::reviews::review_template::ActiveModel {
             name: Set(input.name.clone()),
             description: Set(input.description.clone()),
             sections: Set(sections_json),
@@ -4876,7 +4561,7 @@ impl MutationRoot {
             ..Default::default()
         };
 
-        let template = template.insert(db).await?;
+        let template = template.insert(&db).await?;
 
         // Convert SeaORM model to legacy ReviewTemplate struct for compatibility
         let template = ReviewTemplate {
@@ -4903,19 +4588,19 @@ impl MutationRoot {
         let db = get_db_from_context(ctx)?;
 
         // Find existing review template
-        let existing_template = crate::models::review_template::Entity::find_by_id(id)
-            .one(db)
+        let existing_template = crate::models::reviews::review_template::Entity::find_by_id(id)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Review template not found".to_string()))?;
 
         // Build active model with updates
-        let mut template: crate::models::review_template::ActiveModel = existing_template.into();
+        let mut template: crate::models::reviews::review_template::ActiveModel = existing_template.into();
 
         if let Some(name) = input.name {
             template.name = Set(name);
         }
         if let Some(description) = input.description {
-            template.description = Set(description);
+            template.description = Set(Some(description));
         }
         if let Some(sections) = input.sections {
             let sections_json = serde_json::from_str::<serde_json::Value>(&sections)?;
@@ -4926,10 +4611,10 @@ impl MutationRoot {
         }
 
         // Update timestamp
-        template.updated_at = Set(Utc::now().naive_utc());
+        template.updated_at = Set(Utc::now());
 
         // Save changes
-        let updated_template = template.update(db).await?;
+        let updated_template = template.update(&db).await?;
 
         // Convert to legacy ReviewTemplate struct for compatibility
         let template = ReviewTemplate {
@@ -4951,18 +4636,18 @@ impl MutationRoot {
         let db = get_db_from_context(ctx)?;
 
         // Find existing review template
-        let existing_template = crate::models::review_template::Entity::find_by_id(id)
-            .one(db)
+        let existing_template = crate::models::reviews::review_template::Entity::find_by_id(id)
+            .one(&db)
             .await?;
 
         if let Some(template) = existing_template {
             // Build active model for soft delete
-            let mut template: crate::models::review_template::ActiveModel = template.into();
+            let mut template: crate::models::reviews::review_template::ActiveModel = template.into();
             template.is_active = Set(false);
-            template.updated_at = Set(Utc::now().naive_utc());
+            template.updated_at = Set(Utc::now());
 
             // Save changes
-            template.update(db).await?;
+            template.update(&db).await?;
             Ok(true)
         } else {
             Ok(false)

@@ -8,7 +8,7 @@ use crate::database::get_db_from_context;
 
 /// RSVP status for event attendees
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum, EnumIter, DeriveActiveEnum)]
-#[sea_orm(rs_type = "String", db_type = "String(StringLen::None)")]
+#[sea_orm(rs_type = "String", db_type = "Text")]
 #[graphql(rename_items = "lowercase")]
 pub enum RsvpStatus {
     #[sea_orm(string_value = "pending")]
@@ -23,7 +23,7 @@ pub enum RsvpStatus {
 
 /// RSVP scope for recurring events
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum, EnumIter, DeriveActiveEnum)]
-#[sea_orm(rs_type = "String", db_type = "String(StringLen::None)")]
+#[sea_orm(rs_type = "String", db_type = "Text")]
 #[graphql(rename_items = "lowercase")]
 pub enum RsvpScope {
     #[sea_orm(string_value = "this_event")]
@@ -131,7 +131,7 @@ impl Model {
         let db = crate::database::get_db_from_context(ctx)?;
         let event = super::event::Entity::find_by_id(self.event_id)
             .filter(super::event::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?;
         Ok(event)
     }
@@ -140,7 +140,7 @@ impl Model {
     async fn employee(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
         let employee = super::user::Entity::find_by_id(self.employee_id)
-            .one(db)
+            .one(&db)
             .await?;
         Ok(employee)
     }

@@ -19,6 +19,17 @@ pub enum LeaveRequestStatus {
     Cancelled,
 }
 
+impl LeaveRequestStatus {
+    pub fn as_str(&self) -> &str {
+        match self {
+            LeaveRequestStatus::Pending => "pending",
+            LeaveRequestStatus::Approved => "approved",
+            LeaveRequestStatus::Rejected => "rejected",
+            LeaveRequestStatus::Cancelled => "cancelled",
+        }
+    }
+}
+
 /// LeaveRequest entity - maps to hr_public.leave_requests table
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "leave_requests")]
@@ -140,7 +151,7 @@ impl Model {
     /// Employee requesting leave
     async fn employee(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let employee = super::user::Entity::find_by_id(self.employee_id).one(db).await?;
+        let employee = super::user::Entity::find_by_id(self.employee_id).one(&db).await?;
         Ok(employee)
     }
 
@@ -148,7 +159,7 @@ impl Model {
     async fn manager(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         if let Some(manager_id) = self.manager_id {
             let db = get_db_from_context(ctx)?;
-            let manager = super::user::Entity::find_by_id(manager_id).one(db).await?;
+            let manager = super::user::Entity::find_by_id(manager_id).one(&db).await?;
             Ok(manager)
         } else {
             Ok(None)
@@ -158,7 +169,7 @@ impl Model {
     /// Employee requesting leave (legacy resolver for compatibility)
     async fn user_by_employee_id(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let user = super::user::Entity::find_by_id(self.employee_id).one(db).await?;
+        let user = super::user::Entity::find_by_id(self.employee_id).one(&db).await?;
         Ok(user)
     }
 
@@ -166,7 +177,7 @@ impl Model {
     async fn user_by_manager_id(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         if let Some(manager_id) = self.manager_id {
             let db = get_db_from_context(ctx)?;
-            let manager = super::user::Entity::find_by_id(manager_id).one(db).await?;
+            let manager = super::user::Entity::find_by_id(manager_id).one(&db).await?;
             Ok(manager)
         } else {
             Ok(None)

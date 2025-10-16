@@ -21,6 +21,19 @@ pub enum TaskStatus {
     Cancelled,
 }
 
+impl TaskStatus {
+    pub fn as_str(&self) -> &str {
+        match self {
+            TaskStatus::Todo => "todo",
+            TaskStatus::InProgress => "in_progress",
+            TaskStatus::Blocked => "blocked",
+            TaskStatus::Review => "review",
+            TaskStatus::Done => "done",
+            TaskStatus::Cancelled => "cancelled",
+        }
+    }
+}
+
 /// Task priority
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 pub enum TaskPriority {
@@ -28,6 +41,17 @@ pub enum TaskPriority {
     Medium,
     High,
     Urgent,
+}
+
+impl TaskPriority {
+    pub fn as_str(&self) -> &str {
+        match self {
+            TaskPriority::Low => "low",
+            TaskPriority::Medium => "medium",
+            TaskPriority::High => "high",
+            TaskPriority::Urgent => "urgent",
+        }
+    }
 }
 
 /// Task entity - maps to hr_public.tasks table
@@ -85,8 +109,12 @@ pub enum Relation {
         to = "Column::Id"
     )]
     Parent,
-    #[sea_orm(has_many = "Entity")]
-    Children,
+    #[sea_orm(
+        belongs_to = "super::tasks::task_type::Entity",
+        from = "Column::TaskTypeId",
+        to = "super::tasks::task_type::Column::Id"
+    )]
+    TaskType,
 }
 
 impl Related<super::user::Entity> for Entity {
@@ -98,6 +126,12 @@ impl Related<super::user::Entity> for Entity {
 impl Related<Entity> for super::user::Entity {
     fn to() -> RelationDef {
         Relation::Assignee.def().rev()
+    }
+}
+
+impl Related<super::tasks::task_type::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::TaskType.def()
     }
 }
 
@@ -233,7 +267,7 @@ impl Model {
     /// User who created the task
     async fn creator(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let creator = super::user::Entity::find_by_id(self.created_by).one(db).await?;
+        let creator = super::user::Entity::find_by_id(self.created_by).one(&db).await?;
         Ok(creator)
     }
 
@@ -241,7 +275,7 @@ impl Model {
     async fn assignee(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         if let Some(assignee_id) = self.assignee_id {
             let db = get_db_from_context(ctx)?;
-            let assignee = super::user::Entity::find_by_id(assignee_id).one(db).await?;
+            let assignee = super::user::Entity::find_by_id(assignee_id).one(&db).await?;
             Ok(assignee)
         } else {
             Ok(None)
@@ -252,7 +286,7 @@ impl Model {
     async fn parent_task(&self, ctx: &Context<'_>) -> GqlResult<Option<Model>> {
         if let Some(parent_id) = self.parent_task_id {
             let db = get_db_from_context(ctx)?;
-            let parent = Entity::find_by_id(parent_id).one(db).await?;
+            let parent = Entity::find_by_id(parent_id).one(&db).await?;
             Ok(parent)
         } else {
             Ok(None)
@@ -283,7 +317,7 @@ impl Model {
     async fn archived_by_user(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         if let Some(archived_by_id) = self.archived_by {
             let db = get_db_from_context(ctx)?;
-            let user = super::user::Entity::find_by_id(archived_by_id).one(db).await?;
+            let user = super::user::Entity::find_by_id(archived_by_id).one(&db).await?;
             Ok(user)
         } else {
             Ok(None)
@@ -294,7 +328,7 @@ impl Model {
     async fn department(&self, ctx: &Context<'_>) -> GqlResult<Option<super::department::Model>> {
         if let Some(dept_id) = self.department_id {
             let db = get_db_from_context(ctx)?;
-            let dept = super::department::Entity::find_by_id(dept_id).one(db).await?;
+            let dept = super::department::Entity::find_by_id(dept_id).one(&db).await?;
             Ok(dept)
         } else {
             Ok(None)
@@ -314,7 +348,7 @@ impl Model {
             .filter(Column::ParentTaskId.eq(self.id))
             .filter(Column::DeletedAt.is_null())
             .order_by_asc(Column::CreatedAt)
-            .all(db)
+            .all(&db)
             .await?;
         Ok(subtasks)
     }

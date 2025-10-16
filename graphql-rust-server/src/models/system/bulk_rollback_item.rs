@@ -6,6 +6,7 @@ use async_graphql::{InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
 use sea_orm::{entity::prelude::*, QueryFilter};
 use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
 use uuid::Uuid;
 
 use crate::{database::get_db_from_context, error::AppError};
@@ -36,6 +37,12 @@ pub enum Relation {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
+
+impl Related<super::bulk_rollback_batch::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Batch.def()
+    }
+}
 
 /// SQLx-compatible BulkRollbackItem struct for backward compatibility during migration
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -119,7 +126,7 @@ impl Model {
     ) -> GqlResult<super::bulk_rollback_batch::Model> {
         let db = get_db_from_context(ctx)?;
         let batch = super::bulk_rollback_batch::Entity::find_by_id(self.batch_id)
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Batch not found".to_string()))?;
 

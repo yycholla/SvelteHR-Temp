@@ -114,7 +114,7 @@ impl Model {
         let db = get_db_from_context(ctx)?;
         let event = crate::models::event::Entity::find_by_id(self.event_id)
             .filter(crate::models::event::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Event not found".to_string()))?;
 
@@ -126,7 +126,7 @@ impl Model {
         let db = get_db_from_context(ctx)?;
         let user = crate::models::user::Entity::find_by_id(self.user_id)
             .filter(crate::models::user::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 

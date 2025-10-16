@@ -21,6 +21,19 @@ pub enum FeedbackType {
     Customer,
 }
 
+impl FeedbackType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            FeedbackType::Manager => "manager",
+            FeedbackType::Peer => "peer",
+            FeedbackType::SelfReview => "self_review",
+            FeedbackType::SkipLevel => "skip_level",
+            FeedbackType::DirectReport => "direct_report",
+            FeedbackType::Customer => "customer",
+        }
+    }
+}
+
 /// ReviewFeedback entity - maps to hr_public.review_feedback table
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "review_feedback")]
@@ -129,14 +142,14 @@ impl Model {
         ctx: &Context<'_>,
     ) -> GqlResult<Option<super::performance_review::Model>> {
         let db = get_db_from_context(ctx)?;
-        let review = super::performance_review::Entity::find_by_id(self.performance_review_id).one(db).await?;
+        let review = super::performance_review::Entity::find_by_id(self.performance_review_id).one(&db).await?;
         Ok(review)
     }
 
     /// User who provided the feedback
     async fn provider(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let user = super::user::Entity::find_by_id(self.provider_id).one(db).await?;
+        let user = super::user::Entity::find_by_id(self.provider_id).one(&db).await?;
         Ok(user)
     }
 

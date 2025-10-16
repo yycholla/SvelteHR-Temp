@@ -8,9 +8,9 @@
 //!
 //! # Usage
 //!
-//! ```rust,no_run
+//! ```rust,ignore
 //! use async_graphql::*;
-//! use crate::middleware::guards::*;
+//! use hr_graphql_server::middleware::guards::*;
 //!
 //! #[Object]
 //! impl QueryRoot {

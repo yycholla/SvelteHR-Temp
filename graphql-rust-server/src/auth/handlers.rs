@@ -10,6 +10,7 @@ use chrono::{Duration, Utc};
 use jsonwebtoken::{encode, EncodingKey, Header};
 use sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, ColumnTrait};
 use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
 use uuid::Uuid;
 
 use super::context::UserContext;
@@ -112,7 +113,6 @@ pub async fn login_handler(
     // 1. Query user from database
     let user = match crate::models::user::Entity::find()
         .filter(crate::models::user::Column::Email.eq(&login_request.email))
-        .filter(crate::models::user::Column::DeletedAt.is_null())
         .one(&db)
         .await
     {
@@ -120,9 +120,9 @@ pub async fn login_handler(
             id: user.id,
             email: user.email,
             password_hash: user.password_hash,
-            first_name: user.first_name,
-            last_name: user.last_name,
-            display_name: user.display_name,
+            first_name: Some(user.first_name),
+            last_name: Some(user.last_name),
+            display_name: Some(user.display_name),
             is_active: user.is_active,
         },
         Ok(None) => {
@@ -238,7 +238,7 @@ pub async fn login_handler(
         user: UserInfo {
             id: user.id.to_string(),
             email: user.email,
-            first_name: user.first_name.clone(),
+            first_name: user.first_name,
             last_name: user.last_name,
             display_name: user.display_name,
             roles,

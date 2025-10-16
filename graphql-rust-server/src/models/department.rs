@@ -78,6 +78,7 @@ pub struct Model {
     pub manager_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -88,8 +89,6 @@ pub enum Relation {
         to = "Column::Id"
     )]
     Parent,
-    #[sea_orm(has_many = "Entity")]
-    Children,
     #[sea_orm(
         belongs_to = "super::user::Entity",
         from = "Column::ManagerId",
@@ -146,7 +145,7 @@ impl Model {
     async fn manager(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         if let Some(manager_id) = self.manager_id {
             let db = get_db_from_context(ctx)?;
-            let manager = super::user::Entity::find_by_id(manager_id).one(db).await?;
+            let manager = super::user::Entity::find_by_id(manager_id).one(&db).await?;
             Ok(manager)
         } else {
             Ok(None)
@@ -158,7 +157,8 @@ impl Model {
         let db = get_db_from_context(ctx)?;
         let employees = super::user::Entity::find()
             .filter(super::user::Column::DepartmentId.eq(self.id))
-            .all(db)
+            .filter(super::user::Column::DeletedAt.is_null())
+            .all(&db)
             .await?;
 
         Ok(employees)
@@ -169,7 +169,8 @@ impl Model {
         let db = get_db_from_context(ctx)?;
         let count = super::user::Entity::find()
             .filter(super::user::Column::DepartmentId.eq(self.id))
-            .count(db)
+            .filter(super::user::Column::DeletedAt.is_null())
+            .count(&db)
             .await?;
 
         Ok(count as i64)
@@ -195,6 +196,7 @@ pub struct UpdateDepartmentInput {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::Model as Department;
 
     #[test]
     fn test_department_model_compiles() {
@@ -207,6 +209,7 @@ mod tests {
             manager_id: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
+            deleted_at: None,
         };
 
         assert_eq!(dept.name, "Engineering");

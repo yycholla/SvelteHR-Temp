@@ -2,11 +2,14 @@
 //!
 //! Maps to hr_public.rollback_requests table
 
-use async_graphql::{Enum, InputObject, Object, Result as GqlResult};
+use async_graphql::{Enum, InputObject, Object, Result as GqlResult, SimpleObject};
 use chrono::{DateTime, Utc};
 use sea_orm::{entity::prelude::*, QueryFilter};
 use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
 use uuid::Uuid;
+
+use crate::schema::PageInfo;
 
 use crate::{database::get_db_from_context, error::AppError};
 
@@ -21,6 +24,17 @@ pub enum RollbackStatus {
     Rejected,
     #[graphql(name = "completed")]
     Completed,
+}
+
+impl RollbackStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            RollbackStatus::Pending => "pending",
+            RollbackStatus::Approved => "approved",
+            RollbackStatus::Rejected => "rejected",
+            RollbackStatus::Completed => "completed",
+        }
+    }
 }
 
 /// SeaORM Rollback request entity
@@ -67,7 +81,7 @@ pub enum Relation {
 impl ActiveModelBehavior for ActiveModel {}
 
 /// SQLx-compatible RollbackRequest struct for backward compatibility during migration
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, SimpleObject, FromRow)]
 pub struct RollbackRequest {
     pub id: Uuid,
     pub activity_log_id: Uuid,
@@ -154,7 +168,7 @@ impl RollbackRequestsOrderBy {
 pub struct RollbackRequestsConnection {
     pub nodes: Vec<RollbackRequest>,
     pub total_count: i64,
-    pub page_info: crate::schema::PageInfo,
+    pub page_info: PageInfo,
 }
 
 #[Object]
@@ -167,7 +181,7 @@ impl RollbackRequestsConnection {
         self.total_count
     }
 
-    async fn page_info(&self) -> &crate::schema::PageInfo {
+    async fn page_info(&self) -> &PageInfo {
         &self.page_info
     }
 }
@@ -252,7 +266,7 @@ impl Model {
     async fn requester(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::user::Model> {
         let db = get_db_from_context(ctx)?;
         let user = crate::models::user::Entity::find_by_id(self.requested_by)
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Requester not found".to_string()))?;
 
@@ -273,7 +287,7 @@ impl Model {
 
         let db = get_db_from_context(ctx)?;
         let user = crate::models::user::Entity::find_by_id(reviewed_by)
-            .one(db)
+            .one(&db)
             .await?;
 
         Ok(user)
@@ -290,7 +304,7 @@ impl Model {
     async fn activity_log_simple(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::system::activity_log::Model> {
         let db = get_db_from_context(ctx)?;
         let log = crate::models::system::activity_log::Entity::find_by_id(self.activity_log_id)
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Activity log not found".to_string()))?;
 

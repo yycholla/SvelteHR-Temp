@@ -33,8 +33,11 @@ RUN apt-get update && apt-get install -y \
     mold \
     && rm -rf /var/lib/apt/lists/*
 
-# Install cargo-watch for hot-reloading
-RUN cargo install cargo-watch
+# Install additional Rust components
+RUN rustup component add clippy
+
+# Install cargo-watch for hot-reloading and sea-orm-cli for entity generation
+RUN cargo install cargo-watch sea-orm-cli
 
 # Copy dependency recipe from planner
 COPY --from=planner /app/recipe.json recipe.json

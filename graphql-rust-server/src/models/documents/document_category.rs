@@ -4,7 +4,7 @@
 
 use async_graphql::{InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
-use sea_orm::{entity::prelude::*, QueryFilter};
+use sea_orm::{entity::prelude::*, QueryFilter, QueryOrder, QuerySelect};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -111,7 +111,7 @@ impl Model {
             let db = get_db_from_context(ctx)?;
             let category = Entity::find_by_id(parent_id)
                 .filter(Column::DeletedAt.is_null())
-                .one(db)
+                .one(&db)
                 .await?;
 
             Ok(category)
@@ -131,7 +131,7 @@ impl Model {
             .filter(Column::ParentCategoryId.eq(self.id))
             .filter(Column::DeletedAt.is_null())
             .order_by_asc(Column::Name)
-            .all(db)
+            .all(&db)
             .await?;
 
         Ok(categories)
@@ -147,7 +147,7 @@ impl Model {
             .filter(super::document::Column::CategoryId.eq(self.id))
             .filter(super::document::Column::DeletedAt.is_null())
             .order_by_asc(super::document::Column::Title)
-            .all(db)
+            .all(&db)
             .await?;
 
         Ok(documents)

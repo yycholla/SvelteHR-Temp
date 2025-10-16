@@ -55,8 +55,8 @@ services:
       - ~/.ssh/id_rsa.pub:/home/dev/.ssh/authorized_keys:ro
     ports:
       - '2222:22' # SSH access
-      - '4000:4000' # Backend API
-      - '5000:5000' # GraphiQL interface
+      - '4001:4000' # Backend API (Node.js - moved to avoid conflict)
+      - '5001:5000' # GraphiQL interface (Node.js - moved to avoid conflict)
     environment:
       NODE_ENV: development
       DATABASE_URL: postgresql://postgres:postgres123@postgres-dev:5432/hr_system
@@ -80,11 +80,13 @@ services:
   hr-graphql-rust:
     build:
       context: ../graphql-rust-server
-      dockerfile: Dockerfile.dev  # Use development Dockerfile with cargo-watch
+      dockerfile: Dockerfile.dev # Use development Dockerfile with cargo-watch
     container_name: sveltehr-graphql-rust
     volumes:
       # Mount source code for hot-reloading
       - ../graphql-rust-server/src:/app/src:ro
+      - ../graphql-rust-server/tests:/app/tests:ro
+      - ../graphql-rust-server/models:/app/models
       - ../graphql-rust-server/Cargo.toml:/app/Cargo.toml
       - ../graphql-rust-server/Cargo.lock:/app/Cargo.lock
       - ../graphql-rust-server/.cargo:/app/.cargo:ro
@@ -100,12 +102,15 @@ services:
       DATABASE_URL: postgresql://postgres:postgres123@postgres-dev:5432/hr_system
       HOST: 0.0.0.0
       PORT: 4000
-      RUST_LOG: info,hr_graphql_server=debug
+      RUST_LOG: info,hr_graphql_server=debug,sea_orm=info
       CORS_ALLOWED_ORIGINS: http://localhost:5173,http://localhost:3000
       JWT_SECRET: dev-jwt-secret-change-in-production
       SERVICE_AUTH_KEY: dev-service-key-change-in-production-use-strong-random-key
       # Enable backtrace for better debugging
       RUST_BACKTRACE: 1
+      # SeaORM-specific environment variables for development
+      SEA_ORM_LOG_QUERIES: true
+      SEA_ORM_LOG_LEVEL: info
     networks:
       - sveltehr-dev
     depends_on:

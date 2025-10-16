@@ -4,8 +4,9 @@
 
 use async_graphql::{InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
-use sea_orm::{entity::prelude::*, FromQueryResult, QueryFilter};
+use sea_orm::{entity::prelude::*, FromQueryResult, QueryFilter, QueryOrder, QuerySelect};
 use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
 use uuid::Uuid;
 
 use crate::{database::get_db_from_context, error::AppError};
@@ -152,7 +153,7 @@ impl Model {
             let db = get_db_from_context(ctx)?;
             let category = super::document_category::Entity::find_by_id(category_id)
                 .filter(super::document_category::Column::DeletedAt.is_null())
-                .one(db)
+                .one(&db)
                 .await?;
 
             Ok(category)
@@ -165,7 +166,7 @@ impl Model {
     async fn uploader(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::User> {
         let db = get_db_from_context(ctx)?;
         let user = crate::models::user::Entity::find_by_id(self.uploader_id)
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
@@ -181,7 +182,7 @@ impl Model {
         let versions = super::document_version::Entity::find()
             .filter(super::document_version::Column::DocumentId.eq(self.id))
             .order_by_desc(super::document_version::Column::VersionNumber)
-            .all(db)
+            .all(&db)
             .await?;
 
         Ok(versions)
@@ -195,7 +196,7 @@ impl Model {
         let db = get_db_from_context(ctx)?;
         let assignments = super::document_assignment::Entity::find()
             .filter(super::document_assignment::Column::DocumentId.eq(self.id))
-            .all(db)
+            .all(&db)
             .await?;
 
         Ok(assignments)
@@ -211,7 +212,7 @@ impl Model {
             .filter(super::document_access_log::Column::DocumentId.eq(self.id))
             .order_by_desc(super::document_access_log::Column::AccessedAt)
             .limit(100)
-            .all(db)
+            .all(&db)
             .await?;
 
         Ok(logs)

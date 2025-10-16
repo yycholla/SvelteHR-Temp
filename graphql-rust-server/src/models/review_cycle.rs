@@ -18,6 +18,16 @@ pub enum ReviewCycleStatus {
     Closed,
 }
 
+impl ReviewCycleStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ReviewCycleStatus::Draft => "draft",
+            ReviewCycleStatus::Active => "active",
+            ReviewCycleStatus::Closed => "closed",
+        }
+    }
+}
+
 /// Review type/frequency
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
 pub enum ReviewType {
@@ -31,6 +41,23 @@ pub enum ReviewType {
     PromotionReview,
     ExitReview,
     SelfReview,
+}
+
+impl ReviewType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ReviewType::AnnualReview => "annual_review",
+            ReviewType::MidYearReview => "mid_year_review",
+            ReviewType::QuarterlyReview => "quarterly_review",
+            ReviewType::ProbationaryReview => "probationary_review",
+            ReviewType::PerformanceImprovementPlan => "performance_improvement_plan",
+            ReviewType::NinetyDayReview => "ninety_day_review",
+            ReviewType::ProjectBasedReview => "project_based_review",
+            ReviewType::PromotionReview => "promotion_review",
+            ReviewType::ExitReview => "exit_review",
+            ReviewType::SelfReview => "self_review",
+        }
+    }
 }
 
 /// ReviewCycle entity - maps to hr_public.review_cycles table
@@ -147,7 +174,7 @@ impl Model {
     /// User who created the cycle
     async fn creator(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let user = super::user::Entity::find_by_id(self.created_by).one(db).await?;
+        let user = super::user::Entity::find_by_id(self.created_by).one(&db).await?;
         Ok(user)
     }
 

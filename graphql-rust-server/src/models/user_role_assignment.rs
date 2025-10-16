@@ -101,7 +101,7 @@ impl Model {
     /// Role name (loaded from role relationship)
     async fn role_name(&self, ctx: &Context<'_>) -> GqlResult<String> {
         let db = get_db_from_context(ctx)?;
-        let role = super::role::Entity::find_by_id(self.role_id).one(db).await?;
+        let role = super::role::Entity::find_by_id(self.role_id).one(&db).await?;
         Ok(role.map(|r| r.name).unwrap_or_else(|| "Unknown".to_string()))
     }
 
@@ -133,14 +133,14 @@ impl Model {
     /// User who has this role assignment
     async fn user(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let user = super::user::Entity::find_by_id(self.user_id).one(db).await?;
+        let user = super::user::Entity::find_by_id(self.user_id).one(&db).await?;
         Ok(user)
     }
 
     /// Role that was assigned
     async fn role(&self, ctx: &Context<'_>) -> GqlResult<Option<super::role::Model>> {
         let db = get_db_from_context(ctx)?;
-        let role = super::role::Entity::find_by_id(self.role_id).one(db).await?;
+        let role = super::role::Entity::find_by_id(self.role_id).one(&db).await?;
         Ok(role)
     }
 
@@ -150,7 +150,7 @@ impl Model {
     async fn assigned_by_user(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         if let Some(assigner_id) = self.assigned_by {
             let db = get_db_from_context(ctx)?;
-            let user = super::user::Entity::find_by_id(assigner_id).one(db).await?;
+            let user = super::user::Entity::find_by_id(assigner_id).one(&db).await?;
             Ok(user)
         } else {
             Ok(None)

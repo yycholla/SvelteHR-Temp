@@ -7,6 +7,7 @@ use async_graphql::{Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
 use sea_orm::{entity::prelude::*, FromQueryResult, QueryFilter};
 use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
 use uuid::Uuid;
 
 use crate::{database::get_db_from_context, error::AppError};
@@ -97,7 +98,7 @@ impl Model {
         let db = get_db_from_context(ctx)?;
         let user = crate::models::user::Entity::find_by_id(self.user_id)
             .filter(crate::models::user::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 

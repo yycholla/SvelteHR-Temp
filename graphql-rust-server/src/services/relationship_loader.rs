@@ -51,6 +51,7 @@ impl<'a> UserRelationLoader<'a> {
     pub async fn load_direct_reports(&self, user: &user::Model) -> Result<Vec<user::Model>, Error> {
         user::Entity::find()
             .filter(user::Column::ManagerId.eq(user.id))
+            .filter(user::Column::DeletedAt.is_null())
             .all(self.db)
             .await
             .map_err(|e| Error::new(format!("Failed to load direct reports: {}", e)))
@@ -59,6 +60,7 @@ impl<'a> UserRelationLoader<'a> {
     pub async fn load_tasks(&self, user: &user::Model) -> Result<Vec<task::Model>, Error> {
         task::Entity::find()
             .filter(task::Column::AssigneeId.eq(user.id))
+            .filter(task::Column::DeletedAt.is_null())
             .all(self.db)
             .await
             .map_err(|e| Error::new(format!("Failed to load tasks: {}", e)))
@@ -67,6 +69,7 @@ impl<'a> UserRelationLoader<'a> {
     pub async fn load_leave_requests(&self, user: &user::Model) -> Result<Vec<leave_request::Model>, Error> {
         leave_request::Entity::find()
             .filter(leave_request::Column::EmployeeId.eq(user.id))
+            .filter(leave_request::Column::DeletedAt.is_null())
             .all(self.db)
             .await
             .map_err(|e| Error::new(format!("Failed to load leave requests: {}", e)))
@@ -75,6 +78,7 @@ impl<'a> UserRelationLoader<'a> {
     pub async fn load_performance_reviews(&self, user: &user::Model) -> Result<Vec<performance_review::Model>, Error> {
         performance_review::Entity::find()
             .filter(performance_review::Column::EmployeeId.eq(user.id))
+            .filter(performance_review::Column::DeletedAt.is_null())
             .all(self.db)
             .await
             .map_err(|e| Error::new(format!("Failed to load performance reviews: {}", e)))
@@ -94,6 +98,7 @@ impl<'a> DepartmentRelationLoader<'a> {
     pub async fn load_parent(&self, dept: &department::Model) -> Result<Option<department::Model>, Error> {
         if let Some(parent_id) = dept.parent_department_id {
             department::Entity::find_by_id(parent_id)
+                .filter(department::Column::DeletedAt.is_null())
                 .one(self.db)
                 .await
                 .map_err(|e| Error::new(format!("Failed to load parent department: {}", e)))
@@ -105,6 +110,7 @@ impl<'a> DepartmentRelationLoader<'a> {
     pub async fn load_children(&self, dept: &department::Model) -> Result<Vec<department::Model>, Error> {
         department::Entity::find()
             .filter(department::Column::ParentDepartmentId.eq(dept.id))
+            .filter(department::Column::DeletedAt.is_null())
             .all(self.db)
             .await
             .map_err(|e| Error::new(format!("Failed to load child departments: {}", e)))
@@ -113,6 +119,7 @@ impl<'a> DepartmentRelationLoader<'a> {
     pub async fn load_manager(&self, dept: &department::Model) -> Result<Option<user::Model>, Error> {
         if let Some(manager_id) = dept.manager_id {
             user::Entity::find_by_id(manager_id)
+                .filter(user::Column::DeletedAt.is_null())
                 .one(self.db)
                 .await
                 .map_err(|e| Error::new(format!("Failed to load manager: {}", e)))
@@ -124,6 +131,7 @@ impl<'a> DepartmentRelationLoader<'a> {
     pub async fn load_members(&self, dept: &department::Model) -> Result<Vec<user::Model>, Error> {
         user::Entity::find()
             .filter(user::Column::DepartmentId.eq(dept.id))
+            .filter(user::Column::DeletedAt.is_null())
             .all(self.db)
             .await
             .map_err(|e| Error::new(format!("Failed to load department members: {}", e)))
@@ -143,6 +151,7 @@ impl<'a> TaskRelationLoader<'a> {
     pub async fn load_assignee(&self, task: &task::Model) -> Result<Option<user::Model>, Error> {
         if let Some(assignee_id) = task.assignee_id {
             user::Entity::find_by_id(assignee_id)
+                .filter(user::Column::DeletedAt.is_null())
                 .one(self.db)
                 .await
                 .map_err(|e| Error::new(format!("Failed to load assignee: {}", e)))
@@ -152,31 +161,30 @@ impl<'a> TaskRelationLoader<'a> {
     }
 
     pub async fn load_creator(&self, task: &task::Model) -> Result<Option<user::Model>, Error> {
-        if let Some(created_by) = task.created_by {
-            user::Entity::find_by_id(created_by)
-                .one(self.db)
-                .await
-                .map_err(|e| Error::new(format!("Failed to load creator: {}", e)))
-        } else {
-            Ok(None)
-        }
+        user::Entity::find_by_id(task.created_by)
+            .filter(user::Column::DeletedAt.is_null())
+            .one(self.db)
+            .await
+            .map_err(|e| Error::new(format!("Failed to load creator: {}", e)))
     }
 
     pub async fn load_assignees(&self, task: &task::Model) -> Result<Vec<user::Model>, Error> {
         let assignee_records = task_assignee::Entity::find()
             .filter(task_assignee::Column::TaskId.eq(task.id))
+            .filter(task_assignee::Column::DeletedAt.is_null())
             .all(self.db)
             .await
             .map_err(|e| Error::new(format!("Failed to load assignees: {}", e)))?;
 
         let user_ids: Vec<Uuid> = assignee_records.iter().map(|a| a.user_id).collect();
-        
+
         if user_ids.is_empty() {
             return Ok(Vec::new());
         }
 
         user::Entity::find()
             .filter(user::Column::Id.is_in(user_ids))
+            .filter(user::Column::DeletedAt.is_null())
             .all(self.db)
             .await
             .map_err(|e| Error::new(format!("Failed to load assignee users: {}", e)))
@@ -185,18 +193,20 @@ impl<'a> TaskRelationLoader<'a> {
     pub async fn load_dependencies(&self, task: &task::Model) -> Result<Vec<task::Model>, Error> {
         let dependency_records = task_dependency::Entity::find()
             .filter(task_dependency::Column::TaskId.eq(task.id))
+            .filter(task_dependency::Column::DeletedAt.is_null())
             .all(self.db)
             .await
             .map_err(|e| Error::new(format!("Failed to load dependencies: {}", e)))?;
 
         let task_ids: Vec<Uuid> = dependency_records.iter().map(|d| d.depends_on_task_id).collect();
-        
+
         if task_ids.is_empty() {
             return Ok(Vec::new());
         }
 
         task::Entity::find()
             .filter(task::Column::Id.is_in(task_ids))
+            .filter(task::Column::DeletedAt.is_null())
             .all(self.db)
             .await
             .map_err(|e| Error::new(format!("Failed to load dependency tasks: {}", e)))
@@ -223,6 +233,7 @@ impl<'a> LeaveRequestRelationLoader<'a> {
 
     pub async fn load_employee(&self, leave: &leave_request::Model) -> Result<user::Model, Error> {
         user::Entity::find_by_id(leave.employee_id)
+            .filter(user::Column::DeletedAt.is_null())
             .one(self.db)
             .await
             .map_err(|e| Error::new(format!("Failed to load employee: {}", e)))?
@@ -230,8 +241,9 @@ impl<'a> LeaveRequestRelationLoader<'a> {
     }
 
     pub async fn load_approver(&self, leave: &leave_request::Model) -> Result<Option<user::Model>, Error> {
-        if let Some(approver_id) = leave.approved_by {
+        if let Some(approver_id) = leave.manager_id {
             user::Entity::find_by_id(approver_id)
+                .filter(user::Column::DeletedAt.is_null())
                 .one(self.db)
                 .await
                 .map_err(|e| Error::new(format!("Failed to load approver: {}", e)))
@@ -253,6 +265,7 @@ impl<'a> PerformanceReviewRelationLoader<'a> {
 
     pub async fn load_employee(&self, review: &performance_review::Model) -> Result<user::Model, Error> {
         user::Entity::find_by_id(review.employee_id)
+            .filter(user::Column::DeletedAt.is_null())
             .one(self.db)
             .await
             .map_err(|e| Error::new(format!("Failed to load employee: {}", e)))?
@@ -260,14 +273,11 @@ impl<'a> PerformanceReviewRelationLoader<'a> {
     }
 
     pub async fn load_reviewer(&self, review: &performance_review::Model) -> Result<Option<user::Model>, Error> {
-        if let Some(reviewer_id) = review.reviewer_id {
-            user::Entity::find_by_id(reviewer_id)
-                .one(self.db)
-                .await
-                .map_err(|e| Error::new(format!("Failed to load reviewer: {}", e)))
-        } else {
-            Ok(None)
-        }
+        user::Entity::find_by_id(review.reviewer_id)
+            .filter(user::Column::DeletedAt.is_null())
+            .one(self.db)
+            .await
+            .map_err(|e| Error::new(format!("Failed to load reviewer: {}", e)))
     }
 }
 
@@ -284,6 +294,7 @@ impl<'a> BatchLoader<'a> {
     pub async fn load_users_by_ids(&self, ids: Vec<Uuid>) -> Result<HashMap<Uuid, user::Model>, Error> {
         let users = user::Entity::find()
             .filter(user::Column::Id.is_in(ids))
+            .filter(user::Column::DeletedAt.is_null())
             .all(self.db)
             .await
             .map_err(|e| Error::new(format!("Failed to batch load users: {}", e)))?;
@@ -294,6 +305,7 @@ impl<'a> BatchLoader<'a> {
     pub async fn load_departments_by_ids(&self, ids: Vec<Uuid>) -> Result<HashMap<Uuid, department::Model>, Error> {
         let depts = department::Entity::find()
             .filter(department::Column::Id.is_in(ids))
+            .filter(department::Column::DeletedAt.is_null())
             .all(self.db)
             .await
             .map_err(|e| Error::new(format!("Failed to batch load departments: {}", e)))?;
@@ -304,6 +316,7 @@ impl<'a> BatchLoader<'a> {
     pub async fn load_tasks_by_ids(&self, ids: Vec<Uuid>) -> Result<HashMap<Uuid, task::Model>, Error> {
         let tasks = task::Entity::find()
             .filter(task::Column::Id.is_in(ids))
+            .filter(task::Column::DeletedAt.is_null())
             .all(self.db)
             .await
             .map_err(|e| Error::new(format!("Failed to batch load tasks: {}", e)))?;

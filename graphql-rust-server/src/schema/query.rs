@@ -4,10 +4,12 @@
 //! All queries follow idiomatic Rust patterns with proper error handling.
 
 use async_graphql::{Context, Object, Result};
-use sea_orm::{EntityTrait, QueryFilter, QueryOrder, ColumnTrait};
+use axum_login::AuthSession;
+use sea_orm::{EntityTrait, QueryFilter, QueryOrder, QuerySelect, ColumnTrait};
 use uuid::Uuid;
 
 use crate::{
+    auth::backend::AuthBackend,
     database::get_db_from_context,
     models::{
         // SeaORM entities
@@ -17,8 +19,21 @@ use crate::{
         leave_request::{self, Entity as LeaveRequestEntity},
         performance_review::{self, Entity as PerformanceReviewEntity},
         system::activity_log::{self, Entity as ActivityLogEntity},
+        user_session::{self, Entity as UserSessionEntity},
     },
 };
+
+/// Session information for GraphQL responses
+#[derive(async_graphql::SimpleObject)]
+pub struct SessionInfo {
+    pub id: String,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub expires_at: chrono::DateTime<chrono::Utc>,
+    pub last_activity: chrono::DateTime<chrono::Utc>,
+    pub ip_address: Option<String>,
+    pub user_agent: Option<String>,
+    pub is_current_session: bool,
+}
 
 #[derive(Default)]
 pub struct QueryRoot;
@@ -42,10 +57,11 @@ impl QueryRoot {
 
         let users = UserEntity::find()
             .filter(user::Column::IsActive.eq(true))
+            .filter(user::Column::DeletedAt.is_null())
             .order_by_desc(user::Column::CreatedAt)
             .limit(Some(limit as u64))
             .offset(offset as u64)
-            .all(db)
+            .all(&db)
             .await?;
 
         Ok(users)
@@ -54,7 +70,10 @@ impl QueryRoot {
     /// Get a single user by ID
     async fn user(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let user = UserEntity::find_by_id(id).one(db).await?;
+        let user = UserEntity::find_by_id(id)
+            .filter(user::Column::DeletedAt.is_null())
+            .one(&db)
+            .await?;
         Ok(user)
     }
 
@@ -74,10 +93,11 @@ impl QueryRoot {
         let offset = offset.unwrap_or(0).max(0);
 
         let departments = DepartmentEntity::find()
+            .filter(department::Column::DeletedAt.is_null())
             .order_by_asc(department::Column::Name)
             .limit(Some(limit as u64))
             .offset(offset as u64)
-            .all(db)
+            .all(&db)
             .await?;
 
         Ok(departments)
@@ -86,7 +106,10 @@ impl QueryRoot {
     /// Get a single department by ID
     async fn department(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<department::Model>> {
         let db = get_db_from_context(ctx)?;
-        let dept = DepartmentEntity::find_by_id(id).one(db).await?;
+        let dept = DepartmentEntity::find_by_id(id)
+            .filter(department::Column::DeletedAt.is_null())
+            .one(&db)
+            .await?;
         Ok(dept)
     }
 
@@ -106,10 +129,11 @@ impl QueryRoot {
         let offset = offset.unwrap_or(0).max(0);
 
         let tasks = TaskEntity::find()
+            .filter(task::Column::DeletedAt.is_null())
             .order_by_desc(task::Column::CreatedAt)
             .limit(Some(limit as u64))
             .offset(offset as u64)
-            .all(db)
+            .all(&db)
             .await?;
 
         Ok(tasks)
@@ -118,7 +142,10 @@ impl QueryRoot {
     /// Get a single task by ID
     async fn task(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<task::Model>> {
         let db = get_db_from_context(ctx)?;
-        let task = TaskEntity::find_by_id(id).one(db).await?;
+        let task = TaskEntity::find_by_id(id)
+            .filter(task::Column::DeletedAt.is_null())
+            .one(&db)
+            .await?;
         Ok(task)
     }
 
@@ -138,10 +165,11 @@ impl QueryRoot {
         let offset = offset.unwrap_or(0).max(0);
 
         let requests = LeaveRequestEntity::find()
+            .filter(leave_request::Column::DeletedAt.is_null())
             .order_by_desc(leave_request::Column::CreatedAt)
             .limit(Some(limit as u64))
             .offset(offset as u64)
-            .all(db)
+            .all(&db)
             .await?;
 
         Ok(requests)
@@ -150,7 +178,10 @@ impl QueryRoot {
     /// Get a single leave request by ID
     async fn leave_request(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<leave_request::Model>> {
         let db = get_db_from_context(ctx)?;
-        let request = LeaveRequestEntity::find_by_id(id).one(db).await?;
+        let request = LeaveRequestEntity::find_by_id(id)
+            .filter(leave_request::Column::DeletedAt.is_null())
+            .one(&db)
+            .await?;
         Ok(request)
     }
 
@@ -170,10 +201,11 @@ impl QueryRoot {
         let offset = offset.unwrap_or(0).max(0);
 
         let reviews = PerformanceReviewEntity::find()
+            .filter(performance_review::Column::DeletedAt.is_null())
             .order_by_desc(performance_review::Column::CreatedAt)
             .limit(Some(limit as u64))
             .offset(offset as u64)
-            .all(db)
+            .all(&db)
             .await?;
 
         Ok(reviews)
@@ -182,7 +214,10 @@ impl QueryRoot {
     /// Get a single performance review by ID
     async fn performance_review(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<performance_review::Model>> {
         let db = get_db_from_context(ctx)?;
-        let review = PerformanceReviewEntity::find_by_id(id).one(db).await?;
+        let review = PerformanceReviewEntity::find_by_id(id)
+            .filter(performance_review::Column::DeletedAt.is_null())
+            .one(&db)
+            .await?;
         Ok(review)
     }
 
@@ -205,7 +240,7 @@ impl QueryRoot {
             .order_by_desc(activity_log::Column::CreatedAt)
             .limit(Some(limit as u64))
             .offset(offset as u64)
-            .all(db)
+            .all(&db)
             .await?;
 
         Ok(logs)
@@ -214,7 +249,53 @@ impl QueryRoot {
     /// Get a single activity log by ID
     async fn activity_log(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<activity_log::Model>> {
         let db = get_db_from_context(ctx)?;
-        let log = ActivityLogEntity::find_by_id(id).one(db).await?;
+        let log = ActivityLogEntity::find_by_id(id).one(&db).await?;
         Ok(log)
+    }
+
+    /// Get active sessions for the current user
+    async fn sessions(&self, ctx: &Context<'_>) -> Result<Vec<SessionInfo>> {
+        let db = get_db_from_context(ctx)?;
+        let auth_session = ctx.data::<AuthSession<crate::auth::AuthBackend>>()?;
+
+        let Some(user) = &auth_session.user else {
+            return Err(async_graphql::Error::new("Authentication required"));
+        };
+
+        let sessions = UserSessionEntity::find()
+            .filter(user_session::Column::UserId.eq(user.id))
+            .filter(user_session::Column::IsActive.eq(true))
+            .filter(user_session::Column::ExpiresAt.gt(chrono::Utc::now()))
+            .all(&db)
+            .await?;
+
+        let current_session_id = None; // TODO: Get current session ID when using proper session store
+
+        let session_infos = sessions
+            .into_iter()
+            .map(|session| SessionInfo {
+                id: session.id.to_string(),
+                created_at: session.created_at.into(),
+                expires_at: session.expires_at.into(),
+                last_activity: session.last_activity.into(),
+                ip_address: session.ip_address,
+                user_agent: session.user_agent,
+                is_current_session: current_session_id.as_ref() == Some(&session.session_token),
+            })
+            .collect();
+
+        Ok(session_infos)
+    }
+
+    /// Get CSRF token for the current session
+    async fn csrf_token(&self, ctx: &Context<'_>) -> Result<String> {
+        let auth_session = ctx.data::<AuthSession<crate::auth::AuthBackend>>()?;
+
+        // Only authenticated users can get CSRF tokens
+        let _user = auth_session.user.as_ref()
+            .ok_or_else(|| async_graphql::Error::new("Authentication required"))?;
+
+        let token = auth_session.backend.generate_csrf_token();
+        Ok(token)
     }
 }

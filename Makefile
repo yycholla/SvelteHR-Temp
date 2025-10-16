@@ -27,6 +27,15 @@ help: ## Show available commands
 	@echo "  make db-status     - Show migration status"
 	@echo "  make db-migrate    - Run database migrations"
 	@echo "  make db-reset      - Reset database (WARNING: deletes all data)"
+	@echo "  make db-entities   - Regenerate SeaORM entities from schema"
+	@echo ""
+	@echo "🦀 Rust GraphQL Server:"
+	@echo "  make rust-check    - Run cargo check"
+	@echo "  make rust-clippy   - Run clippy lints"
+	@echo "  make rust-test     - Run Rust tests"
+	@echo "  make rust-build    - Build in release mode"
+	@echo "  make rust-logs     - View Rust server logs"
+	@echo "  make rust-shell    - Open shell in Rust container"
 	@echo ""
 	@echo "📦 Installation:"
 	@echo "  make install       - Install all dependencies"
@@ -40,11 +49,10 @@ help: ## Show available commands
 	@echo "  make clean         - Stop containers and clean build artifacts"
 	@echo ""
 	@echo "📍 Service URLs:"
-	@echo "  Frontend:    http://localhost:5173"
-	@echo "  Backend API: http://localhost:4000/graphql"
-	@echo "  GraphiQL:    http://localhost:5000/graphiql"
-	@echo "  PostgreSQL:  localhost:5433"
-	@echo "  Redis:       localhost:6380"
+	@echo "  Frontend:      http://localhost:5173"
+	@echo "  GraphQL API:   http://localhost:4000/graphql"
+	@echo "  PostgreSQL:    localhost:5433"
+	@echo "  Redis:         localhost:6380"
 
 # =============================================================================
 # Development Workflow
@@ -139,6 +147,9 @@ db-status: ## Show applied migrations
 	@docker exec sveltehr-postgres-dev psql -U postgres -d hr_system -c \
 		"SELECT id, name, applied_at FROM migrations ORDER BY applied_at DESC LIMIT 10;" \
 		2>/dev/null || echo "Migrations table not found. Run 'make db-migrate'"
+	@echo ""
+	@echo "📊 SeaORM Entity Status:"
+	@echo "   Run 'make db-entities' to regenerate SeaORM entities from schema"
 
 db-migrate: ## Run database migrations
 	@echo "📋 Running database migrations..."
@@ -163,6 +174,14 @@ db-reset: ## Reset database (WARNING: deletes all data)
 	else \
 		echo "❌ Operation cancelled"; \
 	fi
+
+db-entities: ## Regenerate SeaORM entities from database schema
+	@echo "🔄 Regenerating SeaORM entities..."
+	@docker exec sveltehr-graphql-rust sea-orm-cli generate entity \
+		--database-url postgresql://postgres:postgres123@postgres-dev:5432/hr_system \
+		--output-dir models/generated \
+		--with-serde both
+	@echo "✅ SeaORM entities regenerated"
 
 # =============================================================================
 # Installation
@@ -189,6 +208,32 @@ test-unit: ## Run unit tests
 
 test-e2e: ## Run E2E tests
 	@npm run test:e2e
+
+# =============================================================================
+# Rust GraphQL Server Commands
+# =============================================================================
+
+rust-check: ## Run cargo check on Rust GraphQL server
+	@echo "🔍 Running cargo check..."
+	@docker exec sveltehr-graphql-rust cargo check
+
+rust-clippy: ## Run clippy on Rust GraphQL server
+	@echo "🔧 Running cargo clippy..."
+	@docker exec sveltehr-graphql-rust cargo clippy -- -D warnings
+
+rust-test: ## Run tests on Rust GraphQL server
+	@echo "🧪 Running cargo test..."
+	@docker exec sveltehr-graphql-rust cargo test
+
+rust-build: ## Build Rust GraphQL server in release mode
+	@echo "🔨 Building Rust GraphQL server..."
+	@docker exec sveltehr-graphql-rust cargo build --release
+
+rust-logs: ## View Rust GraphQL server logs
+	@docker logs -f sveltehr-graphql-rust
+
+rust-shell: ## Open shell in Rust GraphQL container
+	@docker exec -it sveltehr-graphql-rust bash
 
 # =============================================================================
 # Maintenance

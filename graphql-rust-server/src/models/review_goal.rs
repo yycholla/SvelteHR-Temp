@@ -20,6 +20,18 @@ pub enum GoalCompletionStatus {
     Cancelled,
 }
 
+impl GoalCompletionStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            GoalCompletionStatus::NotStarted => "not_started",
+            GoalCompletionStatus::InProgress => "in_progress",
+            GoalCompletionStatus::Completed => "completed",
+            GoalCompletionStatus::Deferred => "deferred",
+            GoalCompletionStatus::Cancelled => "cancelled",
+        }
+    }
+}
+
 /// ReviewGoal entity - maps to hr_public.review_goals table
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "review_goals")]
@@ -121,7 +133,7 @@ impl Model {
         ctx: &Context<'_>,
     ) -> GqlResult<Option<super::performance_review::Model>> {
         let db = get_db_from_context(ctx)?;
-        let review = super::performance_review::Entity::find_by_id(self.performance_review_id).one(db).await?;
+        let review = super::performance_review::Entity::find_by_id(self.performance_review_id).one(&db).await?;
         Ok(review)
     }
 

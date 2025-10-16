@@ -297,14 +297,14 @@ impl Model {
     /// User who created this event
     async fn creator(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let user = super::user::Entity::find_by_id(self.organizer_id).one(db).await?;
+        let user = super::user::Entity::find_by_id(self.organizer_id).one(&db).await?;
         Ok(user)
     }
 
     /// PostGraphile alias: userByOrganizerId
     async fn user_by_organizer_id(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let user = super::user::Entity::find_by_id(self.organizer_id).one(db).await?;
+        let user = super::user::Entity::find_by_id(self.organizer_id).one(&db).await?;
         Ok(user)
     }
 
@@ -321,7 +321,7 @@ impl Model {
             .filter(super::event_attendee::Column::EventId.eq(self.id))
             .order_by_desc(super::event_attendee::Column::CreatedAt)
             .limit(limit)
-            .all(db)
+            .all(&db)
             .await?;
 
         Ok(attendees)
@@ -342,12 +342,12 @@ impl Model {
             .filter(super::event_attendee::Column::EventId.eq(self.id))
             .order_by_desc(super::event_attendee::Column::CreatedAt)
             .limit(limit)
-            .all(db)
+            .all(&db)
             .await?;
 
         let total_count = super::event_attendee::Entity::find()
             .filter(super::event_attendee::Column::EventId.eq(self.id))
-            .count(db)
+            .count(&db)
             .await?;
 
         Ok(EventAttendeesConnection {
@@ -361,7 +361,7 @@ impl Model {
         let db = get_db_from_context(ctx)?;
         let count = super::event_attendee::Entity::find()
             .filter(super::event_attendee::Column::EventId.eq(self.id))
-            .count(db)
+            .count(&db)
             .await?;
         Ok(count as i64)
     }
@@ -372,7 +372,7 @@ impl Model {
         let count = super::event_attendee::Entity::find()
             .filter(super::event_attendee::Column::EventId.eq(self.id))
             .filter(super::event_attendee::Column::ResponseStatus.eq(super::event_attendee::RsvpStatus::Accepted))
-            .count(db)
+            .count(&db)
             .await?;
         Ok(count as i64)
     }
@@ -383,7 +383,7 @@ impl Model {
         let count = super::event_attendee::Entity::find()
             .filter(super::event_attendee::Column::EventId.eq(self.id))
             .filter(super::event_attendee::Column::ResponseStatus.eq(super::event_attendee::RsvpStatus::Accepted))
-            .count(db)
+            .count(&db)
             .await?;
         Ok(count as i64)
     }
@@ -395,7 +395,7 @@ impl Model {
             let count = super::event_attendee::Entity::find()
                 .filter(super::event_attendee::Column::EventId.eq(self.id))
                 .filter(super::event_attendee::Column::ResponseStatus.eq(super::event_attendee::RsvpStatus::Accepted))
-                .count(db)
+                .count(&db)
                 .await?;
             Ok(count >= cap as u64)
         } else {
@@ -410,7 +410,7 @@ impl Model {
             let count = super::event_attendee::Entity::find()
                 .filter(super::event_attendee::Column::EventId.eq(self.id))
                 .filter(super::event_attendee::Column::ResponseStatus.eq(super::event_attendee::RsvpStatus::Accepted))
-                .count(db)
+                .count(&db)
                 .await?;
             let available = cap - count as i32;
             Ok(Some(available.max(0)))
@@ -470,6 +470,7 @@ pub struct UpdateEventInput {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::Model as Event;
 
     #[test]
     fn test_event_model_compiles() {
@@ -477,16 +478,17 @@ mod tests {
             id: Uuid::new_v4(),
             title: "Team Meeting".to_string(),
             description: Some("Weekly sync".to_string()),
-            event_type: EventType::Meeting,
+            event_type: "meeting".to_string(),
             location: Some("Conference Room A".to_string()),
             start_time: Utc::now(),
             end_time: Utc::now(),
             is_all_day: false,
-            status: EventStatus::Scheduled,
+            status: "scheduled".to_string(),
             is_public: true,
             color: Some("#3b82f6".to_string()),
             organizer_id: Uuid::new_v4(),
             recurrence_rule: Some("FREQ=WEEKLY;BYDAY=MO".to_string()),
+            recurrence_id: None,
             recurrence_end_date: None,
             capacity: Some(10),
             image_url: None,
@@ -497,8 +499,8 @@ mod tests {
         };
 
         assert_eq!(event.title, "Team Meeting");
-        assert_eq!(event.status, EventStatus::Scheduled);
-        assert_eq!(event.event_type, EventType::Meeting);
+        assert_eq!(event.status, "scheduled");
+        assert_eq!(event.event_type, "meeting");
         assert!(event.is_public);
         assert!(event.capacity.is_some());
         assert!(event.recurrence_rule.is_some());

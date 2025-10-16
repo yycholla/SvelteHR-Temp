@@ -108,7 +108,7 @@ impl Model {
         let db = get_db_from_context(ctx)?;
 
         let user = super::user::Entity::find_by_id(self.employee_id)
-            .one(db)
+            .one(&db)
             .await?;
 
         Ok(user)
@@ -120,7 +120,7 @@ impl Model {
 
         let leave_type = super::leave_type::Entity::find_by_id(self.policy_id)
             .filter(super::leave_type::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?;
 
         Ok(leave_type)
@@ -155,6 +155,7 @@ pub struct UpdateLeaveBalanceInput {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::Model as LeaveBalance;
 
     #[test]
     fn test_leave_balance_model_compiles() {

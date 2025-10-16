@@ -23,6 +23,17 @@ pub enum AttendanceStatus {
     HalfDay,
 }
 
+impl AttendanceStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            AttendanceStatus::Present => "present",
+            AttendanceStatus::Absent => "absent",
+            AttendanceStatus::Late => "late",
+            AttendanceStatus::HalfDay => "half_day",
+        }
+    }
+}
+
 /// Daily attendance record
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "attendance_records")]
@@ -140,7 +151,7 @@ impl Model {
     async fn user(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::User> {
         let db = get_db_from_context(ctx)?;
         let user = crate::models::user::Entity::find_by_id(self.user_id)
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 

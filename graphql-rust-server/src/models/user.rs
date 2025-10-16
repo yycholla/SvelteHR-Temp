@@ -124,12 +124,14 @@ pub struct Model {
     pub department_id: Option<Uuid>,
     pub manager_id: Option<Uuid>,
     pub hire_date: Option<DateTime<Utc>>,
+    pub termination_date: Option<DateTime<Utc>>,
     pub is_active: bool,
     pub failed_login_attempts: i32,
     pub locked_until: Option<DateTime<Utc>>,
     pub last_login: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -148,6 +150,8 @@ pub enum Relation {
     Manager,
     #[sea_orm(has_many = "crate::models::task::Entity")]
     Tasks,
+    #[sea_orm(has_many = "super::user_session::Entity")]
+    UserSessions,
     #[sea_orm(has_many = "super::leave_request::Entity")]
     LeaveRequests,
     #[sea_orm(has_many = "super::performance_review::Entity")]
@@ -260,7 +264,7 @@ impl Model {
     async fn department(&self, ctx: &Context<'_>) -> GqlResult<Option<super::department::Model>> {
         if let Some(dept_id) = self.department_id {
             let db = get_db_from_context(ctx)?;
-            let dept = super::department::Entity::find_by_id(dept_id).one(db).await?;
+            let dept = super::department::Entity::find_by_id(dept_id).one(&db).await?;
             Ok(dept)
         } else {
             Ok(None)
@@ -271,7 +275,7 @@ impl Model {
     async fn manager(&self, ctx: &Context<'_>) -> GqlResult<Option<Model>> {
         if let Some(manager_id) = self.manager_id {
             let db = get_db_from_context(ctx)?;
-            let manager = Entity::find_by_id(manager_id).one(db).await?;
+            let manager = Entity::find_by_id(manager_id).one(&db).await?;
             Ok(manager)
         } else {
             Ok(None)
@@ -284,7 +288,8 @@ impl Model {
         let reports = Entity::find()
             .filter(Column::ManagerId.eq(self.id))
             .filter(Column::IsActive.eq(true))
-            .all(db)
+            .filter(Column::DeletedAt.is_null())
+            .all(&db)
             .await?;
 
         Ok(reports)

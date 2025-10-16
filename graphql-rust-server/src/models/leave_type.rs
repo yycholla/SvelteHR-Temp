@@ -8,6 +8,8 @@ use sea_orm::{entity::prelude::*, DbBackend, Statement};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::database::get_db_from_context;
+
 /// LeaveType entity - maps to hr_public.leave_types table
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "leave_types")]
@@ -100,10 +102,10 @@ impl Model {
         let db = get_db_from_context(ctx)?;
 
         let count = crate::models::leave_request::Entity::find()
-            .filter(crate::models::leave_request::Column::LeaveTypeId.eq(self.id))
+            .filter(crate::models::leave_request::Column::LeaveType.eq(self.id))
             .filter(crate::models::leave_request::Column::Status.is_in(["pending", "approved"]))
             .filter(crate::models::leave_request::Column::DeletedAt.is_null())
-            .count(db)
+            .count(&db)
             .await?;
 
         Ok(count as i64)
@@ -167,6 +169,7 @@ pub struct UpdateLeaveTypeInput {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::Model as LeaveType;
 
     #[test]
     fn test_leave_type_model_compiles() {

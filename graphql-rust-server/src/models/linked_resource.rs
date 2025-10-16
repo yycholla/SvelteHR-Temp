@@ -20,6 +20,18 @@ pub enum ResourceType {
     Video,
 }
 
+impl ResourceType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ResourceType::File => "file",
+            ResourceType::Link => "link",
+            ResourceType::Document => "document",
+            ResourceType::Image => "image",
+            ResourceType::Video => "video",
+        }
+    }
+}
+
 /// LinkedResource entity - maps to hr_public.linked_resources table
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "linked_resources")]
@@ -148,14 +160,14 @@ impl Model {
     /// Task associated with this resource
     async fn task(&self, ctx: &Context<'_>) -> GqlResult<Option<super::task::Model>> {
         let db = get_db_from_context(ctx)?;
-        let task = super::task::Entity::find_by_id(self.task_id).one(db).await?;
+        let task = super::task::Entity::find_by_id(self.task_id).one(&db).await?;
         Ok(task)
     }
 
     /// User who uploaded the resource
     async fn uploader(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let user = super::user::Entity::find_by_id(self.uploaded_by).one(db).await?;
+        let user = super::user::Entity::find_by_id(self.uploaded_by).one(&db).await?;
         Ok(user)
     }
 

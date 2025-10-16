@@ -47,9 +47,9 @@ impl UserContext {
         self.roles.contains(&"system".to_string())
     }
 
-    /// Check if user has a specific role
+    /// Check if user has a specific role (case insensitive)
     pub fn has_role(&self, role: &str) -> bool {
-        self.roles.iter().any(|r| r == role)
+        self.roles.iter().any(|r| r.eq_ignore_ascii_case(role))
     }
 
     /// Check if user has a specific permission

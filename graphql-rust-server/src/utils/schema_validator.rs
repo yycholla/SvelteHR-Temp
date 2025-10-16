@@ -186,7 +186,7 @@ impl<'a> SchemaValidator<'a> {
                         self.validate_table_structure(&table_info, &mut result);
                     }
                     Err(e) => {
-                        result.add_error(format!("Failed to get info for table {}: {}", table_name, e));
+                        result.add_error(format!("Failed to get info for table {}: {:?}", table_name, e));
                     }
                 }
             }

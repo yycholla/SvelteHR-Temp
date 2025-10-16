@@ -19,6 +19,9 @@ pub enum AppError {
     NotFound(String),
     Conflict(String),
     Internal(String),
+    SessionExpired,
+    AccountLocked,
+    RateLimited,
 }
 
 impl fmt::Display for AppError {
@@ -31,6 +34,9 @@ impl fmt::Display for AppError {
             AppError::NotFound(msg) => write!(f, "Not found: {}", msg),
             AppError::Conflict(msg) => write!(f, "Conflict: {}", msg),
             AppError::Internal(msg) => write!(f, "Internal error: {}", msg),
+            AppError::SessionExpired => write!(f, "Session expired"),
+            AppError::AccountLocked => write!(f, "Account temporarily locked"),
+            AppError::RateLimited => write!(f, "Too many requests"),
         }
     }
 }

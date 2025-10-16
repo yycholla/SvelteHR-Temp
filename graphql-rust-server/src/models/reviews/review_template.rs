@@ -119,7 +119,7 @@ impl Model {
         let db = get_db_from_context(ctx)?;
         let user = crate::models::user::Entity::find_by_id(self.created_by_id)
             .filter(crate::models::user::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 

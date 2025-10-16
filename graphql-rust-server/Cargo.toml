@@ -24,18 +24,23 @@ anyhow = "1.0"
 async-graphql-axum = "7.0"
 async-trait = "0.1"
 axum = "0.8"
-base64 = "0.22"
-bcrypt = "0.15"
+ axum-login = "0.18"
+ base64 = "0.22"
+ bcrypt = "0.15"
+ password-hash = "0.5"
 dataloader = "0.17"
 dotenv = "0.15"
 envy = "0.4"
 futures = "0.3"
 http-body-util = "0.1"
 jsonwebtoken = "9.0"
-rust_decimal = "1.35"
-serde_json = "1.0"
-thiserror = "1.0"
-tracing = "0.1"
+ rust_decimal = "1.35"
+ serde_json = "1.0"
+ sqlx = { version = "0.7", features = ["postgres", "runtime-tokio-rustls", "macros", "uuid", "chrono", "json"] }
+ thiserror = "1.0"
+ tower-sessions = "0.14"
+ time = "0.3"
+ tracing = "0.1"
 
 [dependencies.async-graphql]
 version = "7.0"
@@ -47,7 +52,7 @@ features = ["serde"]
 
 [dependencies.sea-orm]
 version = "0.12"
-features = ["sqlx-postgres", "runtime-tokio-rustls", "macros"]
+features = ["sqlx-postgres", "runtime-tokio-rustls", "macros", "with-uuid", "with-chrono"]
 
 [dependencies.serde]
 version = "1.0"

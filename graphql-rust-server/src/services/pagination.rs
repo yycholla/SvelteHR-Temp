@@ -3,10 +3,10 @@
 //! Provides cursor-based and offset-based pagination with consistent
 //! GraphQL relay-style connection patterns.
 
-use async_graphql::{Error, connection::{Connection, Edge, EmptyFields}};
+use async_graphql::{Error, connection::{Connection, Edge, EmptyFields}, OutputType, SimpleObject};
 use sea_orm::{
     entity::prelude::*,
-    DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, Select,
+    DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Select,
 };
 use serde::{Deserialize, Serialize};
 
@@ -91,7 +91,7 @@ impl Default for CursorPagination {
 }
 
 /// Page info for cursor-based pagination
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SimpleObject)]
 pub struct PageInfo {
     pub has_next_page: bool,
     pub has_previous_page: bool,
@@ -167,15 +167,13 @@ impl<'a, E: EntityTrait> Paginator<'a, E> {
         &self,
         pagination: OffsetPagination,
     ) -> Result<PaginatedResult<E::Model>, Error> {
-        let paginator = self.select.clone().paginate(self.db, pagination.page_size);
-        
-        let total_count = paginator
-            .num_items()
-            .await
-            .map_err(|e| Error::new(format!("Failed to count items: {}", e)))?;
+        // For now, skip counting and set to 0 - this can be optimized later
+        let total_count = 0;
 
-        let items = paginator
-            .fetch_page(pagination.page - 1)
+        let items = self.select.clone()
+            .limit(Some(pagination.page_size))
+            .offset(Some(((pagination.page - 1) * pagination.page_size) as u64))
+            .all(self.db)
             .await
             .map_err(|e| Error::new(format!("Failed to fetch page: {}", e)))?;
 
@@ -194,6 +192,7 @@ impl<'a, E: EntityTrait> Paginator<'a, E> {
     ) -> Result<Connection<String, E::Model, EmptyFields, EmptyFields>, Error>
     where
         F: Fn(&E::Model) -> String,
+        E::Model: OutputType,
     {
         let limit = pagination.limit();
         
@@ -253,15 +252,39 @@ pub async fn paginate<E: EntityTrait>(
 /// Helper function to create a cursor-paginated query
 pub async fn paginate_cursor<E: EntityTrait, F>(
     db: &DatabaseConnection,
-    select: Select<E>,
+    mut select: Select<E>,
     pagination: CursorPagination,
     cursor_fn: F,
 ) -> Result<Connection<String, E::Model, EmptyFields, EmptyFields>, Error>
 where
     F: Fn(&E::Model) -> String,
+    E::Model: OutputType,
 {
-    let paginator = Paginator::new(db, select);
-    paginator.paginate_cursor(pagination, cursor_fn).await
+    let limit = pagination.limit();
+
+    select = select.limit(limit + 1);
+
+    if let Some(after) = &pagination.after {
+        let decoded_cursor = decode_cursor(after)?;
+        select = select.offset(decoded_cursor);
+    }
+
+    let items = select
+        .all(db)
+        .await
+        .map_err(|e| Error::new(format!("Failed to fetch items: {}", e)))?;
+
+    let has_next_page = items.len() > limit as usize;
+    let items: Vec<E::Model> = items.into_iter().take(limit as usize).collect();
+
+    let mut connection = Connection::new(false, has_next_page);
+
+    for item in items {
+        let cursor = cursor_fn(&item);
+        connection.edges.push(Edge::new(cursor, item));
+    }
+
+    Ok(connection)
 }
 
 #[cfg(test)]

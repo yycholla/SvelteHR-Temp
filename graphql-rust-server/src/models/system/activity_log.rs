@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use uuid::Uuid;
 
-use crate::{database::get_db_from_context, error::AppError, models::generated::prelude::*};
+use crate::{database::get_db_from_context, error::AppError, models::generated::prelude::*, schema::PageInfo};
 
 /// ActivityLog entity - maps to hr_public.activity_logs table
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
@@ -144,7 +144,7 @@ impl Model {
     /// User who performed the action
     async fn user(&self, ctx: &Context<'_>) -> GqlResult<Option<crate::models::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let user = crate::models::user::Entity::find_by_id(self.user_id).one(db).await?;
+        let user = crate::models::user::Entity::find_by_id(self.user_id).one(&db).await?;
         Ok(user)
     }
 
@@ -152,7 +152,7 @@ impl Model {
     async fn employee(&self, ctx: &Context<'_>) -> GqlResult<Option<crate::models::user::Model>> {
         if let Some(employee_id) = self.employee_id {
             let db = get_db_from_context(ctx)?;
-            let employee = crate::models::user::Entity::find_by_id(employee_id).one(db).await?;
+            let employee = crate::models::user::Entity::find_by_id(employee_id).one(&db).await?;
             Ok(employee)
         } else {
             Ok(None)
@@ -253,7 +253,7 @@ impl ActivityLogsOrderBy {
 pub struct ActivityLogsConnection {
     pub nodes: Vec<Model>,
     pub total_count: i64,
-    pub page_info: crate::schema::PageInfo,
+    pub page_info: PageInfo,
 }
 
 #[Object]
@@ -266,7 +266,7 @@ impl ActivityLogsConnection {
         self.total_count
     }
 
-    async fn page_info(&self) -> &crate::schema::PageInfo {
+    async fn page_info(&self) -> &PageInfo {
         &self.page_info
     }
 }

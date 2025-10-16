@@ -20,6 +20,17 @@ pub enum PerformanceReviewStatus {
     Completed,
 }
 
+impl PerformanceReviewStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            PerformanceReviewStatus::Draft => "draft",
+            PerformanceReviewStatus::NotStarted => "not_started",
+            PerformanceReviewStatus::InProgress => "in_progress",
+            PerformanceReviewStatus::Completed => "completed",
+        }
+    }
+}
+
 /// PerformanceReview entity - maps to hr_public.performance_reviews table
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "performance_reviews")]
@@ -41,6 +52,7 @@ pub struct Model {
     pub review_period_end: Option<chrono::NaiveDate>,
     pub review_type: Option<String>,
     pub notes: Option<String>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -159,28 +171,28 @@ impl Model {
     /// Employee being reviewed
     async fn employee(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let employee = super::user::Entity::find_by_id(self.employee_id).one(db).await?;
+        let employee = super::user::Entity::find_by_id(self.employee_id).one(&db).await?;
         Ok(employee)
     }
 
     /// Reviewer (manager conducting the review)
     async fn reviewer(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let reviewer = super::user::Entity::find_by_id(self.reviewer_id).one(db).await?;
+        let reviewer = super::user::Entity::find_by_id(self.reviewer_id).one(&db).await?;
         Ok(reviewer)
     }
 
     /// Employee being reviewed (legacy resolver for compatibility)
     async fn user_by_employee_id(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let user = super::user::Entity::find_by_id(self.employee_id).one(db).await?;
+        let user = super::user::Entity::find_by_id(self.employee_id).one(&db).await?;
         Ok(user)
     }
 
     /// Reviewer (manager conducting the review) (legacy resolver for compatibility)
     async fn user_by_reviewer_id(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let reviewer = super::user::Entity::find_by_id(self.reviewer_id).one(db).await?;
+        let reviewer = super::user::Entity::find_by_id(self.reviewer_id).one(&db).await?;
         Ok(reviewer)
     }
 
@@ -244,6 +256,7 @@ mod tests {
             review_period_end: Some(chrono::NaiveDate::from_ymd_opt(2025, 12, 31).unwrap()),
             review_type: Some("annual".to_string()),
             notes: Some("Additional notes here".to_string()),
+            deleted_at: None,
         };
 
         assert_eq!(review.status, "in_progress");

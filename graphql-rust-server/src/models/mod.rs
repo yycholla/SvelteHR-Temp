@@ -22,6 +22,7 @@ pub mod task_assignee;
 pub mod task_audit_entry;
 pub mod task_dependency;
 pub mod user;
+pub mod user_session;
 
 // Re-export generated entities for easy access
 pub use generated::*;

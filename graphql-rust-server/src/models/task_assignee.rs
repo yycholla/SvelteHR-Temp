@@ -19,6 +19,17 @@ pub enum AssigneeRole {
     Collaborator,
 }
 
+impl AssigneeRole {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            AssigneeRole::Owner => "owner",
+            AssigneeRole::Assignee => "assignee",
+            AssigneeRole::Reviewer => "reviewer",
+            AssigneeRole::Collaborator => "collaborator",
+        }
+    }
+}
+
 /// TaskAssignee entity - maps to hr_public.task_assignees table
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "task_assignees")]
@@ -128,21 +139,21 @@ impl Model {
     /// Task associated with this assignment
     async fn task(&self, ctx: &Context<'_>) -> GqlResult<Option<super::task::Model>> {
         let db = get_db_from_context(ctx)?;
-        let task = super::task::Entity::find_by_id(self.task_id).one(db).await?;
+        let task = super::task::Entity::find_by_id(self.task_id).one(&db).await?;
         Ok(task)
     }
 
     /// User assigned to the task
     async fn user(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let user = super::user::Entity::find_by_id(self.user_id).one(db).await?;
+        let user = super::user::Entity::find_by_id(self.user_id).one(&db).await?;
         Ok(user)
     }
 
     /// User who made the assignment
     async fn assigner(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let user = super::user::Entity::find_by_id(self.assigned_by).one(db).await?;
+        let user = super::user::Entity::find_by_id(self.assigned_by).one(&db).await?;
         Ok(user)
     }
 

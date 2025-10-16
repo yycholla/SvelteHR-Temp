@@ -3,10 +3,11 @@
 //! Maps to hr_public.payroll_records table
 
 use async_graphql::{InputObject, Object, Result as GqlResult};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use rust_decimal::Decimal;
-use sea_orm::{entity::prelude::*, QueryFilter};
+use sea_orm::{entity::prelude::*, JsonValue, QueryFilter};
 use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
 use uuid::Uuid;
 
 use crate::{database::get_db_from_context, error::AppError};
@@ -142,7 +143,7 @@ impl Model {
         let db = get_db_from_context(ctx)?;
         let user = crate::models::user::Entity::find_by_id(self.employee_id)
             .filter(crate::models::user::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Employee not found".to_string()))?;
 
@@ -154,7 +155,7 @@ impl Model {
         let db = get_db_from_context(ctx)?;
         let user = crate::models::user::Entity::find_by_id(self.processor_id)
             .filter(crate::models::user::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Processor not found".to_string()))?;
 

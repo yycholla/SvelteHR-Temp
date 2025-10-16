@@ -19,6 +19,17 @@ pub enum DocumentAccessType {
     Delete,
 }
 
+impl DocumentAccessType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            DocumentAccessType::View => "view",
+            DocumentAccessType::Download => "download",
+            DocumentAccessType::Edit => "edit",
+            DocumentAccessType::Delete => "delete",
+        }
+    }
+}
+
 /// Document access audit log
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "document_access_logs")]
@@ -109,7 +120,7 @@ impl Model {
         let db = get_db_from_context(ctx)?;
         let document = super::document::Entity::find_by_id(self.document_id)
             .filter(super::document::Column::DeletedAt.is_null())
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Document not found".to_string()))?;
 
@@ -120,7 +131,7 @@ impl Model {
     async fn user(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::User> {
         let db = get_db_from_context(ctx)?;
         let user = crate::models::user::Entity::find_by_id(self.user_id)
-            .one(db)
+            .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 

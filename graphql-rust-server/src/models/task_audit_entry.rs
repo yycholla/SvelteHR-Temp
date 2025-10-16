@@ -132,14 +132,14 @@ impl Model {
     /// Task associated with this audit entry
     async fn task(&self, ctx: &Context<'_>) -> GqlResult<Option<super::task::Model>> {
         let db = get_db_from_context(ctx)?;
-        let task = super::task::Entity::find_by_id(self.task_id).one(db).await?;
+        let task = super::task::Entity::find_by_id(self.task_id).one(&db).await?;
         Ok(task)
     }
 
     /// User who performed the action
     async fn user(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
-        let user = super::user::Entity::find_by_id(self.user_id).one(db).await?;
+        let user = super::user::Entity::find_by_id(self.user_id).one(&db).await?;
         Ok(user)
     }
 
