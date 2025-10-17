@@ -51,6 +51,8 @@
 		"db:snapshot": "tsx scripts/db/create-baseline-snapshot.ts",
 		"db:verify": "tsx scripts/db/verify-schema.ts --environment development --database-url ${DATABASE_URL:-postgresql://postgres:postgres123@localhost:5433/hr_system}",
 		"db:new-migration": "bash scripts/db/new-migration.sh",
+		"db:migrate": "bash scripts/db/apply-pending-migrations.sh",
+		"db:migrate:status": "bash scripts/db/migration-status.sh",
 		"db:rebuild": "cd dev-containers && docker compose -f docker-compose.dev.yml down postgres-dev && docker volume rm sveltehr_postgres_dev_data && docker compose -f docker-compose.dev.yml up -d postgres-dev",
 		"db:logs": "docker logs sveltehr-postgres-dev 2>&1 | grep -A50 'Starting Database Initialization'",
 		"db:check": "docker exec sveltehr-postgres-dev psql -U postgres -d hr_system -c 'SELECT count(*) FROM pg_tables WHERE schemaname = '\"'\"'hr_public'\"'\"''",

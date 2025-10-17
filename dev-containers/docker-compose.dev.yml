@@ -3,7 +3,9 @@ version: '3.8'
 services:
   # PostgreSQL Database
   postgres-dev:
-    image: postgres:15-alpine
+    build:
+      context: ../
+      dockerfile: dev-containers/postgres/Dockerfile
     container_name: sveltehr-postgres-dev
     environment:
       POSTGRES_DB: hr_system
@@ -17,16 +19,17 @@ services:
       - postgres_dev_data:/var/lib/postgresql/data
       - ../db/init:/docker-entrypoint-initdb.d:ro
       - ../db/migrations:/migrations:ro
+      - ../db/scripts:/usr/local/bin/db-scripts:ro
     ports:
       - '5433:5432' # Use different port to avoid conflicts
     networks:
       - sveltehr-dev
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres -d hr_system']
-      interval: 5s
-      timeout: 10s
+      test: ['CMD-SHELL', '/usr/local/bin/healthcheck.sh']
+      interval: 10s
+      timeout: 15s
       retries: 6
-      start_period: 30s
+      start_period: 45s
 
   # Redis Cache
   redis-dev:

@@ -2,17 +2,35 @@
 
 This directory contains all database initialization and migration scripts.
 
+## 🚀 Automatic Migrations
+
+**NEW**: Migrations now run automatically on every PostgreSQL container start!
+
+- ✅ **Zero manual intervention** - migrations apply automatically
+- ✅ **Multi-PC sync** - consistent database state across machines
+- ✅ **Migration tracking** - prevents duplicate applications
+- ✅ **Docker-native** - leverages healthchecks and init scripts
+
+**Quick Start**: See [MIGRATION_QUICKSTART.md](./MIGRATION_QUICKSTART.md)
+
+**Full Documentation**: See [AUTOMATIC_MIGRATIONS.md](./AUTOMATIC_MIGRATIONS.md)
+
 ## Directory Structure
 
 ```
 db/
-├── init/                    # Initialization scripts (run once on container creation)
-│   └── 00_run_migrations.sh # Entrypoint that runs all migrations
-├── migrations/              # SQL migration files (versioned schema changes)
+├── init/                                # Initialization scripts (run once on container creation)
+│   ├── 01_create_migration_tracking.sh  # Setup migration tracking table
+│   └── 02_run_migrations.sh             # Apply all pending migrations
+├── migrations/                          # SQL migration files (versioned schema changes)
 │   ├── 20250925_001_create_roles.sql
 │   ├── 20250925_002_create_schema.sql
-│   └── ...
-└── README.md               # This file
+│   └── ... (40+ migrations)
+├── scripts/                             # Runtime scripts (run on every container start)
+│   └── check-and-apply-migrations.sh    # Auto-detects and applies pending migrations
+├── AUTOMATIC_MIGRATIONS.md              # Complete automatic migration documentation
+├── MIGRATION_QUICKSTART.md              # Quick start guide
+└── README.md                            # This file
 ```
 
 ## Migration Naming Convention
@@ -27,19 +45,31 @@ Example: `20251010_001_events_system.sql`
 
 ## How It Works
 
-### Docker Container Initialization
+### Automatic Migration System
 
-The Docker Compose configuration mounts:
-- `db/init/` → `/docker-entrypoint-initdb.d/` (for init scripts)
-- `db/migrations/` → `/docker-entrypoint-initdb.d/migrations/` (for migration files)
+The system runs migrations automatically using Docker healthchecks:
 
-When the Postgres container starts **for the first time**, it:
+**On First Container Creation:**
+1. PostgreSQL initializes
+2. Init scripts run (`01_create_migration_tracking.sh`, `02_run_migrations.sh`)
+3. Migration tracking table created
+4. All migrations applied in order
+5. Recorded in `hr_public.schema_migrations`
 
-1. Runs all executable scripts in `/docker-entrypoint-initdb.d/` in alphabetical order
-2. Our `00_run_migrations.sh` script runs first (due to `00_` prefix)
-3. The script finds all `.sql` files in the `migrations/` subdirectory
-4. Executes them in alphabetical order (timestamp-based sorting)
-5. Stops on first error and provides detailed error messages
+**On Every Subsequent Start:**
+1. PostgreSQL starts
+2. Healthcheck runs after 45s
+3. `check-and-apply-migrations.sh` detects pending migrations
+4. Only new/missing migrations are applied
+5. Container marked healthy
+
+**Benefits:**
+- ✅ Automatic sync across development machines
+- ✅ No manual `npm run migrate` needed
+- ✅ Idempotent - migrations only run once
+- ✅ Tracked with checksums and execution time
+
+See [AUTOMATIC_MIGRATIONS.md](./AUTOMATIC_MIGRATIONS.md) for complete details.
 
 ### Adding New Migrations
 

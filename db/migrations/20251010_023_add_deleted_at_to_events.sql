@@ -33,7 +33,6 @@ CREATE POLICY events_select_policy ON hr_public.events
                 SELECT 1 FROM hr_public.event_attendees ea
                 WHERE ea.event_id = events.id
                 AND ea.employee_id = current_setting('rls.user_id', true)::uuid
-                AND ea.deleted_at IS NULL
             )
         )
     );
