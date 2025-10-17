@@ -1,9 +1,9 @@
 // Document list page server-side loader (Feature 024)
-// Server-side data loading with RBAC filtering
+// Server-side data loading with session-based authentication
 
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { transaction, setJWTClaims } from '$lib/server/db';
+import { transaction } from '$lib/server/db';
 
 export const load: PageServerLoad = async ({ url, locals }) => {
 	// Step 1: Validate authentication
@@ -12,7 +12,8 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	}
 
 	const userId = locals.user.id;
-	const userRole = locals.user.role || 'employee';
+	const userPermissions = locals.permissions || [];
+	const isAdmin = userPermissions.includes('*') || userPermissions.includes('documents:*');
 
 	try {
 		// Step 2: Parse query parameters
@@ -23,15 +24,19 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		const filterCategory = url.searchParams.get('category') || null;
 		const searchQuery = url.searchParams.get('search') || '';
 
-		// Step 3: Query database directly with RBAC filtering
+		// Step 3: Query database with session-based filtering
 		const { documents, totalCount } = await transaction(async (client) => {
-			// Set JWT claims for RLS policy enforcement
-			await setJWTClaims(client, userId, userRole);
-
 			// Build WHERE clause with filters
 			const whereConditions = [];
 			const queryParams: any[] = [];
 			let paramIndex = 1;
+
+			// Session-based access control: Non-admins can only see documents assigned to them
+			if (!isAdmin) {
+				whereConditions.push(`da.employee_id = $${paramIndex}`);
+				queryParams.push(userId);
+				paramIndex++;
+			}
 
 			if (filterCategory) {
 				whereConditions.push(`dc.name = $${paramIndex}`);
@@ -87,6 +92,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 				`SELECT COUNT(*) as count
 				FROM hr_public.documents d
 				LEFT JOIN hr_public.document_categories dc ON d.category_id = dc.id
+				${!isAdmin ? 'LEFT JOIN hr_public.document_assignments da ON d.id = da.document_id' : ''}
 				${whereClause}`,
 				queryParams
 			);
@@ -97,16 +103,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			};
 		});
 
-		// Step 4: Determine user permissions
-		const userPermissions: string[] = [];
-
-		if (userRole === 'super_admin' || userRole === 'admin') {
-			userPermissions.push('documents:upload', 'documents:delete', 'documents:assign');
-		} else if (userRole === 'manager') {
-			userPermissions.push('documents:upload');
-		}
-
-		// Step 5: Return data for the page
+		// Step 4: Return data for the page
 		return {
 			documents,
 			totalCount,

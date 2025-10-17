@@ -3,7 +3,6 @@
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { createUrqlClient } from '$lib/graphql/client';
 import { ensureBackendReady } from '$lib/server/backend-init';
 
 export const load: PageServerLoad = async (event) => {
@@ -68,18 +67,18 @@ export const load: PageServerLoad = async (event) => {
 			};
 		}
 
-		// Get JWT token for authenticated GraphQL queries
-		// Token retrieval removed - session auth handled by server hooks
-		if (!token) {
-			throw error(401, 'Authentication required');
-		}
-
-		// Create GraphQL client with authentication
-		const graphqlClient = createUrqlClient(fetch, token);
+		// Session-based authentication - GraphQL queries use cookies automatically
+		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
+		const graphqlEndpoint = getGraphQLEndpoint();
 
 		// Extract search parameters for filtering
 		const selectedPeriod = url.searchParams.get('period') || 'this-month';
 		const selectedTeamId = url.searchParams.get('team') || '';
+
+		// Headers for session-based authentication (cookies sent automatically)
+		const headers: Record<string, string> = {
+			'Content-Type': 'application/json'
+		};
 
 		// Simplified GraphQL queries for management dashboard using Rust GraphQL server schema
 		const usersQuery = `
@@ -114,10 +113,30 @@ export const load: PageServerLoad = async (event) => {
 			}
 		`;
 
-		// Execute queries with variables
-		const { executeQuery } = await import('$lib/graphql/client');
-		const usersData = await executeQuery(graphqlClient, usersQuery, { limit: 1000 });
-		const departmentsData = await executeQuery(graphqlClient, departmentsQuery, { limit: 100 });
+		// Execute queries with direct fetch
+		const usersResponse = await fetch(graphqlEndpoint, {
+			method: 'POST',
+			headers,
+			body: JSON.stringify({
+				query: usersQuery,
+				variables: { limit: 1000 }
+			})
+		});
+		const usersResult = await usersResponse.json();
+
+		const departmentsResponse = await fetch(graphqlEndpoint, {
+			method: 'POST',
+			headers,
+			body: JSON.stringify({
+				query: departmentsQuery,
+				variables: { limit: 100 }
+			})
+		});
+		const departmentsResult = await departmentsResponse.json();
+
+		// Extract data with fallbacks (Rust GraphQL server returns direct arrays, no nodes wrapper)
+		const usersData = usersResult.data;
+		const departmentsData = departmentsResult.data;
 
 		// Extract data with fallbacks (Rust GraphQL server returns direct arrays, no nodes wrapper)
 		const users = usersData?.users || [];

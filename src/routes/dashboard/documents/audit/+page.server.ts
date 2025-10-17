@@ -1,9 +1,9 @@
 // Audit log page server-side loader (Feature 024)
-// Server-side data loading for audit logs with RBAC checks (HR/Admin only)
+// Server-side data loading for audit logs with session-based authentication (HR/Admin only)
 
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { transaction, setJWTClaims } from '$lib/server/db';
+import { transaction } from '$lib/server/db';
 
 export const load: PageServerLoad = async ({ url, locals, fetch }) => {
 	// Step 1: Validate authentication
@@ -12,7 +12,6 @@ export const load: PageServerLoad = async ({ url, locals, fetch }) => {
 	}
 
 	const userId = locals.user.id;
-	const userRole = locals.user.role || 'employee';
 	const userPermissions = locals.permissions || [];
 
 	// Step 2: Check user permissions - users with audit log permissions can access
@@ -37,11 +36,8 @@ export const load: PageServerLoad = async ({ url, locals, fetch }) => {
 		const dateFrom = url.searchParams.get('dateFrom') || null;
 		const dateTo = url.searchParams.get('dateTo') || null;
 
-		// Step 4: Query access logs from database
+		// Step 4: Query access logs from database (no RLS needed - permission already checked)
 		const { accessLogs, totalCount } = await transaction(async (client) => {
-			// Set JWT claims for RLS
-			await setJWTClaims(client, userId, userRole);
-
 			// Build WHERE clause dynamically
 			const conditions: string[] = [];
 			const params: any[] = [];
