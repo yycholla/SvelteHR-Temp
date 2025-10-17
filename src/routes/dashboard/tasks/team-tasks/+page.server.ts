@@ -21,7 +21,7 @@ export const load: PageServerLoad = async (event) => {
 	// Create user session
 	const userSession = createUserSession({
 		userId: locals.user.id,
-		jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
+		// jwtToken is optional for session-based authentication
 		roles: [locals.user.role || 'employee'],
 		permissions: locals.permissions || [],
 		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
@@ -99,44 +99,37 @@ export const load: PageServerLoad = async (event) => {
 
 		console.log('[Team Tasks] Found team members:', teamMemberIds.length);
 
-		// Build task filter condition
-		const condition: any = {};
+		// Build task filter condition for server-side filtering (status/priority only)
+		let filterCondition: any = null;
 
-		if (statusFilter) {
-			condition.status = statusFilter;
-		}
+		if (statusFilter || priorityFilter) {
+			filterCondition = {};
 
-		if (priorityFilter) {
-			condition.priority = priorityFilter;
-		}
+			if (statusFilter) {
+				filterCondition.status = { equalTo: statusFilter };
+			}
 
-		if (assigneeFilter) {
-			condition.assigneeId = assigneeFilter;
+			if (priorityFilter) {
+				filterCondition.priority = { equalTo: priorityFilter };
+			}
 		}
 
 		// Load team tasks
-		// NOTE: Query updated to match Rust GraphQL schema (idiomatic naming)
+		// NOTE: Using Rust GraphQL schema conventions (same as other task pages)
 		const tasksResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
-				query: `
-					query GetTeamTasks($limit: Int, $filter: TaskFilter) {
-						tasks(
-							limit: $limit
-							filter: $filter
-							orderBy: "due_date_asc"
-						) {
+				query: filterCondition
+					? `
+					query GetTeamTasks($limit: Int!, $offset: Int!, $filter: TaskFilter!) {
+						tasks(limit: $limit, offset: $offset, filter: $filter) {
 							id
 							title
 							description
 							status
 							priority
 							dueDate
-							assigneeId
-							createdBy
-							taskTypeId
-							parentTaskId
 							requiresManualReassignment
 							archived
 							createdAt
@@ -145,12 +138,50 @@ export const load: PageServerLoad = async (event) => {
 								id
 								displayName
 								email
-								departmentId
 							}
 							creator {
 								id
 								displayName
 								email
+							}
+							taskType {
+								id
+								name
+							}
+							parentTask {
+								id
+								title
+								status
+							}
+						}
+					}
+				`
+					: `
+					query GetTeamTasks($limit: Int!, $offset: Int!) {
+						tasks(limit: $limit, offset: $offset) {
+							id
+							title
+							description
+							status
+							priority
+							dueDate
+							requiresManualReassignment
+							archived
+							createdAt
+							updatedAt
+							assignee {
+								id
+								displayName
+								email
+							}
+							creator {
+								id
+								displayName
+								email
+							}
+							taskType {
+								id
+								name
 							}
 							parentTask {
 								id
@@ -160,10 +191,16 @@ export const load: PageServerLoad = async (event) => {
 						}
 					}
 				`,
-				variables: {
-					limit: 200,
-					filter: Object.keys(condition).length > 0 ? condition : null
-				}
+				variables: filterCondition
+					? {
+							limit: 200,
+							offset: 0,
+							filter: filterCondition
+						}
+					: {
+							limit: 200,
+							offset: 0
+						}
 			})
 		});
 
@@ -179,8 +216,13 @@ export const load: PageServerLoad = async (event) => {
 
 		// Filter to only team members' tasks
 		tasks = tasks.filter((task: any) => {
-			return teamMemberIds.includes(task.assigneeId);
+			return teamMemberIds.includes(task.assignee?.id);
 		});
+
+		// Client-side filtering for assignee filter
+		if (assigneeFilter) {
+			tasks = tasks.filter((task: any) => task.assignee?.id === assigneeFilter);
+		}
 
 		// Client-side search filtering
 		if (searchTerm) {

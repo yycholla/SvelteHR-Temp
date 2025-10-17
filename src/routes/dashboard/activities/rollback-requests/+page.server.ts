@@ -59,112 +59,113 @@ export const load: PageServerLoad = async (event) => {
 		// Create GraphQL client with authentication
 		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
-		// Build condition for rollback requests query
-		const condition: any = {};
+		// Build filter for rollback requests query using Rust GraphQL schema
+		let filterCondition: any = {};
 
 		if (status) {
-			condition.status = status;
+			filterCondition.status = { equalTo: status };
 		}
 
 		// Non-super_admin users can only see their own requests
 		if (!canReview) {
-			condition.requestedBy = locals.user.id;
+			filterCondition.requestedBy = { equalTo: locals.user.id };
 		} else if (requesterId) {
 			// Super_admin can filter by specific requester
-			condition.requestedBy = requesterId;
+			filterCondition.requestedBy = { equalTo: requesterId };
 		}
 
 		// Load rollback requests from database
+		// NOTE: Using Rust GraphQL schema (filter pattern, direct arrays, no orderBy)
 		const requestsQuery = `
 			query GetRollbackRequests(
-				$condition: RollbackRequestCondition
+				$filter: RollbackRequestFilter!
 				$limit: Int!
 				$offset: Int!
 			) {
-				allRollbackRequests(
-					condition: $condition
-					orderBy: [REQUESTED_AT_DESC]
-					first: $limit
+				rollbackRequests(
+					filter: $filter
+					limit: $limit
 					offset: $offset
 				) {
-					totalCount
-					nodes {
+					id
+					activityLogId
+					requestedBy
+					requestedAt
+					reason
+					status
+					reviewedBy
+					reviewedAt
+					reviewReason
+					requester {
 						id
-						activityLogId
-						requestedBy
-						requestedAt
-						reason
-						status
-						reviewedBy
-						reviewedAt
-						reviewReason
-						userByRequestedBy {
-							id
-							firstName
-							lastName
-							email
-						}
-						userByReviewedBy {
-							id
-							firstName
-							lastName
-						}
-						activityLogByActivityLogId {
-							id
-							action
-							resourceType
-							resourceId
-							details
-							beforeSnapshot
-							afterSnapshot
-							createdAt
-						}
+						displayName
+						email
+					}
+					reviewer {
+						id
+						displayName
+					}
+					activityLog {
+						id
+						action
+						resourceType
+						resourceId
+						details
+						beforeSnapshot
+						afterSnapshot
+						createdAt
 					}
 				}
+				rollbackRequestsCount(filter: $filter)
 			}
 		`;
 
 		const requestsData = await graphqlClient.query(requestsQuery, {
-			condition,
+			filter: filterCondition,
 			limit: pageSize,
 			offset
 		});
 
-		const allRequests = requestsData.data?.allRollbackRequests?.nodes || [];
-		const totalCount = requestsData.data?.allRollbackRequests?.totalCount || 0;
+		let allRequests = requestsData.data?.rollbackRequests || [];
+		const totalCount = requestsData.data?.rollbackRequestsCount || 0;
+
+		// Sort by requestedAt DESC (client-side since Rust schema doesn't support orderBy)
+		allRequests = allRequests.sort((a: any, b: any) =>
+			new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
+		);
 
 		// Map requests to expected format
 		const formattedRequests = allRequests.map((req: any) => ({
 			id: req.id,
 			activityLogId: req.activityLogId,
-			activityLog: req.activityLogByActivityLogId
+			activityLog: req.activityLog
 				? {
-						id: req.activityLogByActivityLogId.id,
-						action: req.activityLogByActivityLogId.action,
-						resourceType: req.activityLogByActivityLogId.resourceType,
-						resourceId: req.activityLogByActivityLogId.resourceId,
-						details: req.activityLogByActivityLogId.details,
-					beforeSnapshot: req.activityLogByActivityLogId.beforeSnapshot,
-					afterSnapshot: req.activityLogByActivityLogId.afterSnapshot,
-						createdAt: req.activityLogByActivityLogId.createdAt
+						id: req.activityLog.id,
+						action: req.activityLog.action,
+						resourceType: req.activityLog.resourceType,
+						resourceId: req.activityLog.resourceId,
+						details: req.activityLog.details,
+						beforeSnapshot: req.activityLog.beforeSnapshot,
+						afterSnapshot: req.activityLog.afterSnapshot,
+						createdAt: req.activityLog.createdAt
 					}
 				: null,
 			requestedBy: req.requestedBy,
-			requester: req.userByRequestedBy
+			requester: req.requester
 				? {
-						id: req.userByRequestedBy.id,
-						name: `${req.userByRequestedBy.firstName} ${req.userByRequestedBy.lastName}`,
-						email: req.userByRequestedBy.email
+						id: req.requester.id,
+						name: req.requester.displayName,
+						email: req.requester.email
 					}
 				: null,
 			requestedAt: req.requestedAt,
 			reason: req.reason,
 			status: req.status,
 			reviewedBy: req.reviewedBy,
-			reviewer: req.userByReviewedBy
+			reviewer: req.reviewer
 				? {
-						id: req.userByReviewedBy.id,
-						name: `${req.userByReviewedBy.firstName} ${req.userByReviewedBy.lastName}`
+						id: req.reviewer.id,
+						name: req.reviewer.displayName
 					}
 				: null,
 			reviewedAt: req.reviewedAt,
@@ -174,30 +175,31 @@ export const load: PageServerLoad = async (event) => {
 		// Calculate statistics for super_admin
 		let statistics = null;
 		if (canReview) {
+			// NOTE: Using Rust GraphQL schema - must make separate count queries
 			const statsQuery = `
-				query GetRollbackRequestStats {
-					allRollbackRequests {
-						totalCount
-					}
-					pendingRequests: allRollbackRequests(condition: { status: "pending" }) {
-						totalCount
-					}
-					approvedRequests: allRollbackRequests(condition: { status: "approved" }) {
-						totalCount
-					}
-					rejectedRequests: allRollbackRequests(condition: { status: "rejected" }) {
-						totalCount
-					}
+				query GetRollbackRequestStats(
+					$pendingFilter: RollbackRequestFilter!
+					$approvedFilter: RollbackRequestFilter!
+					$rejectedFilter: RollbackRequestFilter!
+				) {
+					totalCount: rollbackRequestsCount
+					pendingCount: rollbackRequestsCount(filter: $pendingFilter)
+					approvedCount: rollbackRequestsCount(filter: $approvedFilter)
+					rejectedCount: rollbackRequestsCount(filter: $rejectedFilter)
 				}
 			`;
 
-			const statsData = await graphqlClient.query(statsQuery);
+			const statsData = await graphqlClient.query(statsQuery, {
+				pendingFilter: { status: { equalTo: 'pending' } },
+				approvedFilter: { status: { equalTo: 'approved' } },
+				rejectedFilter: { status: { equalTo: 'rejected' } }
+			});
 
 			statistics = {
-				totalCount: statsData.data?.allRollbackRequests?.totalCount || 0,
-				pendingCount: statsData.data?.pendingRequests?.totalCount || 0,
-				approvedCount: statsData.data?.approvedRequests?.totalCount || 0,
-				rejectedCount: statsData.data?.rejectedRequests?.totalCount || 0
+				totalCount: statsData.data?.totalCount || 0,
+				pendingCount: statsData.data?.pendingCount || 0,
+				approvedCount: statsData.data?.approvedCount || 0,
+				rejectedCount: statsData.data?.rejectedCount || 0
 			};
 		}
 

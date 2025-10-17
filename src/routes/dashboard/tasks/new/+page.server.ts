@@ -27,7 +27,7 @@ export const load: PageServerLoad = async (event) => {
 	// Create user session
 	const userSession = createUserSession({
 		userId: locals.user.id,
-		jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
+		// jwtToken is optional for session-based authentication
 		roles: [locals.user.role || 'employee'],
 		permissions: locals.permissions || [],
 		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
@@ -59,27 +59,25 @@ export const load: PageServerLoad = async (event) => {
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetUsersForAssignment($first: Int) {
-						allUsers(first: $first) {
-							nodes {
-								id
-								displayName
-								email
-								role
-								isActive
-							}
+					query GetUsersForAssignment($limit: Int!) {
+						users(limit: $limit) {
+							id
+							displayName
+							email
+							role
+							isActive
 						}
 					}
 				`,
-				variables: { first: 100 }
+				variables: { limit: 100 }
 			})
 		});
 
 		const assigneesData = await assigneesResponse.json();
 		console.log('[Task Create] Assignees GraphQL response:', {
 			hasData: !!assigneesData.data,
-			hasAllUsers: !!assigneesData.data?.allUsers,
-			nodesLength: assigneesData.data?.allUsers?.nodes?.length || 0,
+			hasUsers: !!assigneesData.data?.users,
+			usersLength: assigneesData.data?.users?.length || 0,
 			errors: assigneesData.errors
 		});
 
@@ -114,24 +112,22 @@ export const load: PageServerLoad = async (event) => {
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetTaskTypes($first: Int) {
-						allTaskTypes(first: $first) {
-							nodes {
-								id
-								name
-								description
-							}
+					query GetTaskTypes($limit: Int!) {
+						taskTypes(limit: $limit) {
+							id
+							name
+							description
 						}
 					}
 				`,
-				variables: { first: 100 }
+				variables: { limit: 100 }
 			})
 		});
 
 		const taskTypesData = await taskTypesResponse.json();
 		console.log('[Task Create] Task types GraphQL response:', {
 			hasData: !!taskTypesData.data,
-			nodesLength: taskTypesData.data?.allTaskTypes?.nodes?.length || 0,
+			typesLength: taskTypesData.data?.taskTypes?.length || 0,
 			errors: taskTypesData.errors
 		});
 
@@ -141,18 +137,16 @@ export const load: PageServerLoad = async (event) => {
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetPotentialParentTasks($first: Int) {
-						allTasks(first: $first, orderBy: CREATED_AT_DESC) {
-							nodes {
-								id
-								title
-								status
-								priority
-							}
+					query GetPotentialParentTasks($limit: Int!, $offset: Int!) {
+						tasks(limit: $limit, offset: $offset) {
+							id
+							title
+							status
+							priority
 						}
 					}
 				`,
-				variables: { first: 200 }
+				variables: { limit: 200, offset: 0 }
 			})
 		});
 
@@ -190,12 +184,12 @@ export const load: PageServerLoad = async (event) => {
 		const userPermissions = getUserPermissions(locals);
 
 		// Extract and filter data
-		const allUsers = assigneesData?.data?.allUsers?.nodes || [];
+		const allUsers = assigneesData?.data?.users || [];
 		// Filter to only active users client-side
 		const assignees = allUsers.filter((user: any) => user.isActive === true);
 		const departments = departmentsData?.data?.departments || [];
-		const taskTypes = taskTypesData?.data?.allTaskTypes?.nodes || [];
-		const parentTasks = parentTasksData?.data?.allTasks?.nodes || [];
+		const taskTypes = taskTypesData?.data?.taskTypes || [];
+		const parentTasks = parentTasksData?.data?.tasks || [];
 
 		console.log('[Task Create] Returning data:', {
 			totalUsers: allUsers.length,

@@ -28,7 +28,7 @@ export const load: PageServerLoad = async (event) => {
 	// Create user session
 	const userSession = createUserSession({
 		userId: locals.user.id,
-		jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
+		// jwtToken is optional for session-based authentication
 		roles: [locals.user.role || 'employee'],
 		permissions: locals.permissions || [],
 		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
@@ -47,7 +47,7 @@ export const load: PageServerLoad = async (event) => {
 			userEmail: userSession.metadata.userEmail as string,
 			roles: userSession.roles,
 			permissions: userSession.permissions,
-			jwtToken: userSession.jwtToken,
+			// jwtToken omitted for session-based auth
 			isAuthenticated: Boolean(userSession.isAuthenticated)
 		},
 		timeoutMs: 5000,
@@ -66,118 +66,48 @@ export const load: PageServerLoad = async (event) => {
 		console.log('[Task Details] Loading task:', taskId);
 
 		// Load task with full relationships
-		// NOTE: Query updated to match new task schema (Feature 028)
-		// Removed: reminderTime, organizationId (fields don't exist in new schema)
+		// NOTE: Using simpler Rust GraphQL schema (similar to departments pattern)
+		// Query single task by filtering tasks with id
 		const taskResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
 					query GetTaskDetails($taskId: UUID!) {
-						taskById(id: $taskId) {
+						tasks(limit: 1, filter: { id: { equalTo: $taskId } }) {
 							id
-							nodeId
 							title
 							description
 							status
 							priority
 							dueDate
-							assigneeId
-							creatorId
-							taskTypeId
-							parentTaskId
 							requiresManualReassignment
 							archived
-							archivedAt
-							archivedBy
 							createdAt
 							updatedAt
-							userByAssigneeId {
+							assignee {
 								id
 								displayName
 								email
 								role
 							}
-							userByCreatorId {
+							creator {
 								id
 								displayName
 								email
 								role
 							}
-							taskTypeByTaskTypeId {
+							taskType {
 								id
 								name
 								description
-								isSystem
 							}
-							taskByParentTaskId {
+							parentTask {
 								id
 								title
 								status
 								priority
 								dueDate
-							}
-							tasksByParentTaskId(orderBy: CREATED_AT_ASC) {
-								totalCount
-								nodes {
-									id
-									title
-									status
-									priority
-									dueDate
-									assigneeId
-									userByAssigneeId {
-										id
-										displayName
-									}
-									tasksByParentTaskId {
-										totalCount
-									}
-								}
-							}
-							taskDependenciesByBlockingTaskId {
-								totalCount
-								nodes {
-									id
-									blockedTaskId
-									dependencyType
-									createdAt
-									taskByBlockedTaskId {
-										id
-										title
-										status
-										priority
-										dueDate
-									}
-								}
-							}
-							taskDependenciesByBlockedTaskId {
-								totalCount
-								nodes {
-									id
-									blockingTaskId
-									dependencyType
-									createdAt
-									taskByBlockingTaskId {
-										id
-										title
-										status
-										priority
-										dueDate
-									}
-								}
-							}
-							linkedResourcesByTaskId(orderBy: CREATED_AT_DESC) {
-								totalCount
-								nodes {
-									id
-									resourceId
-									resourceType
-									resourceTitle
-									availabilityStatus
-									lastChecked
-									createdAt
-								}
 							}
 						}
 					}
@@ -194,57 +124,18 @@ export const load: PageServerLoad = async (event) => {
 			throw new Error(taskData.errors[0]?.message || 'Failed to load task');
 		}
 
-		const task = taskData?.data?.taskById;
+		const tasks = taskData?.data?.tasks || [];
+		const task = tasks.length > 0 ? tasks[0] : null;
 
 		if (!task) {
 			throw error(404, { message: 'Task not found' });
 		}
 
-		// Load audit trail
-		const auditResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetTaskAuditTrail($taskId: UUID!, $first: Int) {
-						allTaskAuditTrails(
-							condition: { taskId: $taskId }
-							orderBy: TIMESTAMP_DESC
-							first: $first
-						) {
-							totalCount
-							nodes {
-								id
-								taskId
-								userId
-								actionType
-								changedFields
-								newValues
-								timestamp
-								userByUserId {
-									id
-									displayName
-									email
-								}
-							}
-							pageInfo {
-								hasNextPage
-								endCursor
-							}
-						}
-					}
-				`,
-				variables: {
-					taskId,
-					first: 20
-				}
-			})
-		});
-
-		const auditData = await auditResponse.json();
-		const auditTrail = auditData?.data?.allTaskAuditTrails?.nodes || [];
-		const auditTotalCount = auditData?.data?.allTaskAuditTrails?.totalCount || 0;
-		const auditHasMore = auditData?.data?.allTaskAuditTrails?.pageInfo?.hasNextPage || false;
+		// Note: Audit trail functionality not available in current schema
+		// Skipping audit trail query for now
+		const auditTrail: any[] = [];
+		const auditTotalCount = 0;
+		const auditHasMore = false;
 
 		// Load available assignees for reassignment
 		const assigneesResponse = await fetch(graphqlEndpoint, {
@@ -252,18 +143,16 @@ export const load: PageServerLoad = async (event) => {
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetUsersForReassignment($first: Int) {
-						allUsers(first: $first, condition: { is_active: true }) {
-							nodes {
-								id
-								displayName
-								email
-								role
-							}
+					query GetUsersForReassignment($limit: Int!) {
+						users(limit: $limit) {
+							id
+							displayName
+							email
+							role
 						}
 					}
 				`,
-				variables: { first: 100 }
+				variables: { limit: 100 }
 			})
 		});
 
@@ -275,17 +164,15 @@ export const load: PageServerLoad = async (event) => {
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetTaskTypes($first: Int) {
-						allTaskTypes(first: $first) {
-							nodes {
-								id
-								name
-								description
-							}
+					query GetTaskTypes($limit: Int!) {
+						taskTypes(limit: $limit) {
+							id
+							name
+							description
 						}
 					}
 				`,
-				variables: { first: 100 }
+				variables: { limit: 100 }
 			})
 		});
 
@@ -297,20 +184,21 @@ export const load: PageServerLoad = async (event) => {
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetAllTasksForSelection($first: Int) {
-						allTasks(first: $first, orderBy: CREATED_AT_DESC) {
-							nodes {
+					query GetAllTasksForSelection($limit: Int!, $offset: Int!) {
+						tasks(limit: $limit, offset: $offset) {
+							id
+							title
+							status
+							priority
+							dueDate
+							assignee {
 								id
-								title
-								status
-								priority
-								dueDate
-								assigneeId
+								displayName
 							}
 						}
 					}
 				`,
-				variables: { first: 200 }
+				variables: { limit: 200, offset: 0 }
 			})
 		});
 
@@ -322,27 +210,25 @@ export const load: PageServerLoad = async (event) => {
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetAvailableResources {
-						allUsers(first: 100, condition: { is_active: true }) {
-							nodes {
-								id
-								displayName
-							}
+					query GetAvailableResources($limit: Int!) {
+						users(limit: $limit) {
+							id
+							displayName
 						}
 					}
 				`,
-				variables: {}
+				variables: { limit: 100 }
 			})
 		});
 
 		const resourcesData = await resourcesResponse.json();
 
 		// Build available resources list (for now just employees)
-		const availableResources = resourcesData?.data?.allUsers?.nodes.map((user: any) => ({
+		const availableResources = (resourcesData?.data?.users || []).map((user: any) => ({
 			id: user.id,
 			type: 'Employee',
 			title: user.displayName
-		})) || [];
+		}));
 
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);
@@ -355,9 +241,9 @@ export const load: PageServerLoad = async (event) => {
 			auditTrail,
 			auditTotalCount,
 			auditHasMore,
-			assignees: assigneesData?.data?.allUsers?.nodes || [],
-			taskTypes: taskTypesData?.data?.allTaskTypes?.nodes || [],
-			availableTasks: allTasksData?.data?.allTasks?.nodes || [],
+			assignees: assigneesData?.data?.users || [],
+			taskTypes: taskTypesData?.data?.taskTypes || [],
+			availableTasks: allTasksData?.data?.tasks || [],
 			availableResources,
 			...userPermissions,
 			loadedAt: new Date().toISOString()

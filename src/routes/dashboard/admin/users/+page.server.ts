@@ -27,88 +27,94 @@ export const load: PageServerLoad = async ({ locals, url, parent, cookies, fetch
 		// Create GraphQL client with server-side fetch (session-based auth)
 		const client = createUrqlClient(fetchFn);
 
-		// Build condition object for server-side filtering
-		const condition: any = {};
-		if (statusFilter === 'active') {
-			condition.isActive = true;
-		} else if (statusFilter === 'inactive') {
-			condition.isActive = false;
-		}
-		if (departmentFilter) {
-			condition.departmentId = departmentFilter;
+		// Build filter condition for server-side filtering
+		// Using Rust GraphQL schema pattern: filter: { field: { equalTo: value } }
+		let filterCondition: any = null;
+
+		if (statusFilter || departmentFilter) {
+			filterCondition = {};
+			if (statusFilter === 'active') {
+				filterCondition.isActive = { equalTo: true };
+			} else if (statusFilter === 'inactive') {
+				filterCondition.isActive = { equalTo: false };
+			}
+			if (departmentFilter) {
+				filterCondition.departmentId = { equalTo: departmentFilter };
+			}
 		}
 
 		// Query users with server-side filtering and pagination
-		const usersQuery = `
-			query GetAllUsers($first: Int!, $offset: Int!, $condition: UserCondition) {
-				allUsers(first: $first, offset: $offset, orderBy: ID_DESC, condition: $condition) {
-					nodes {
+		// NOTE: Using Rust GraphQL schema (users query, no nested relationships)
+		const usersQuery = filterCondition
+			? `
+			query GetAllUsers($limit: Int!, $offset: Int!, $filter: UserFilter!) {
+				users(limit: $limit, offset: $offset, filter: $filter) {
+					id
+					email
+					displayName
+					role
+					isActive
+					createdAt
+					updatedAt
+					department {
 						id
-						email
-						displayName
-						role
-						isActive
-						createdAt
-						updatedAt
-						departmentByDepartmentId {
-							id
-							name
-						}
-						userRoleAssignmentsByUserId {
-							nodes {
-								roleName
-							}
-						}
+						name
 					}
-					totalCount
+				}
+			}
+		`
+			: `
+			query GetAllUsers($limit: Int!, $offset: Int!) {
+				users(limit: $limit, offset: $offset) {
+					id
+					email
+					displayName
+					role
+					isActive
+					createdAt
+					updatedAt
+					department {
+						id
+						name
+					}
 				}
 			}
 		`;
 
 		// Simplified queries - fetch only essential fields
 		const departmentsQuery = `
-			query GetAllDepartments {
-				departments(orderBy: NAME_ASC) {
+			query GetAllDepartments($limit: Int!, $offset: Int!) {
+				departments(limit: $limit, offset: $offset) {
 					id
 					name
 				}
 			}
 		`;
 
-		// Get distinct role names from user role assignments
-		const rolesQuery = `
-			query GetAllRoleNames {
-				allUserRoleAssignments {
-					nodes {
-						roleName
-					}
-				}
-			}
-		`;
+		// Execute queries in parallel with executeQuery helper
+		const variables = filterCondition
+			? { limit, offset, filter: filterCondition }
+			: { limit, offset };
 
-		// Execute all queries in parallel with executeQuery helper
-		const [usersData, departmentsData, rolesData] = await Promise.all([
-			executeQuery(client, usersQuery, { first: limit, offset, condition }),
-			executeQuery(client, departmentsQuery, {}),
-			executeQuery(client, rolesQuery, {})
+		const [usersData, departmentsData] = await Promise.all([
+			executeQuery(client, usersQuery, variables),
+			executeQuery(client, departmentsQuery, { limit: 100, offset: 0 })
 		]);
 
-		const users = usersData?.allUsers?.nodes || [];
-		const totalCount = usersData?.allUsers?.totalCount || 0;
+		let users = usersData?.users || [];
 		const departments = departmentsData?.departments || [];
 
-		// Extract unique role names from user role assignments
-		const roleAssignments = rolesData?.allUserRoleAssignments?.nodes || [];
-		const uniqueRoleNames = [...new Set(roleAssignments.map((r: any) => r.roleName))];
-		const roles = uniqueRoleNames.map((name) => ({ id: name, name }));
+		// Build roles list from user data (unique role values)
+		const uniqueRoles = [...new Set(users.map((u: any) => u.role))];
+		const roles = uniqueRoles.filter(Boolean).map((name) => ({ id: name, name }));
 
-		// Apply remaining client-side filter for role (if PostGraphile doesn't support nested filtering)
+		// Apply client-side filter for role
 		let filteredUsers = users;
 		if (roleFilter) {
-			filteredUsers = filteredUsers.filter((u) =>
-				u.userRoleAssignmentsByUserId?.nodes?.some((ur: any) => ur.roleName === roleFilter)
-			);
+			filteredUsers = filteredUsers.filter((u: any) => u.role === roleFilter);
 		}
+
+		const totalCount = filteredUsers.length;
 
 		return {
 			users: filteredUsers,

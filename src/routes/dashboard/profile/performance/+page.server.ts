@@ -24,16 +24,16 @@ export const load: PageServerLoad = async (event) => {
 		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
 		// Load user details using new GraphQL client
+		// NOTE: Using Rust GraphQL schema (filter pattern, direct arrays)
 		const userQuery = `
 			query GetUser($id: UUID!) {
-				userById(id: $id) {
+				users(limit: 1, filter: { id: { equalTo: $id } }) {
 					id
 					email
-					firstName
-					lastName
+					displayName
 					departmentId
 					isActive
-					departmentByDepartmentId {
+					department {
 						id
 						name
 						managerId
@@ -43,36 +43,37 @@ export const load: PageServerLoad = async (event) => {
 		`;
 
 		const userData = await graphqlClient.query(userQuery, { id: userId });
-		const user = userData.data?.userById;
+		const users = userData.data?.users || [];
+		const user = users.length > 0 ? users[0] : null;
 
 		if (!user) {
 			throw error(404, 'User not found');
 		}
 
 		// Load actual goals for this specific user
+		// NOTE: Using Rust GraphQL schema (filter pattern, direct arrays)
 		const userGoalsQuery = `
-			query GetUserGoals($employeeId: UUID!) {
-				allEmployeeGoals(condition: { employeeId: $employeeId }) {
-					totalCount
-					nodes {
-						id
-						title
-						description
-						status
-						progressPercentage
-						targetDate
-						createdAt
-						updatedAt
-					}
+			query GetUserGoals($employeeId: UUID!, $limit: Int!) {
+				employeeGoals(limit: $limit, filter: { employeeId: { equalTo: $employeeId } }) {
+					id
+					title
+					description
+					status
+					progressPercentage
+					targetDate
+					createdAt
+					updatedAt
 				}
+				employeeGoalsCount(filter: { employeeId: { equalTo: $employeeId } })
 			}
 		`;
 
 		const goalsResult = await graphqlClient.query(userGoalsQuery, {
-			employeeId: userId
+			employeeId: userId,
+			limit: 100
 		});
 
-		const goals = goalsResult.data?.allEmployeeGoals?.nodes || [];
+		const goals = goalsResult.data?.employeeGoals || [];
 
 		// Calculate date ranges for current quarter
 		const currentDate = new Date();

@@ -143,7 +143,7 @@ export const load: PageServerLoad = async (event) => {
 					hasData: !!employeesData.data,
 					hasErrors: !!employeesData.errors,
 					errorCount: employeesData.errors?.length || 0,
-					nodeCount: employeesData.data?.allUsers?.nodes?.length || 0
+					usersCount: employeesData.data?.users?.length || 0
 				});
 
 				// Check for GraphQL errors

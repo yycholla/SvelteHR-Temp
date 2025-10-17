@@ -28,7 +28,7 @@ export const load: PageServerLoad = async (event) => {
 	// Create user session
 	const userSession = createUserSession({
 		userId: locals.user.id,
-		jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
+		// jwtToken is optional for session-based authentication
 		roles: [locals.user.role || 'employee'],
 		permissions: locals.permissions || [],
 		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
@@ -52,30 +52,33 @@ export const load: PageServerLoad = async (event) => {
 		console.log('[Task Edit] Loading task for editing:', taskId);
 
 		// Load task data
-		// NOTE: Query updated to match new task schema (Feature 028)
-		// Removed: reminderTime, organizationId (fields don't exist in new schema)
+		// NOTE: Using Rust GraphQL schema (filter pattern, no foreign key IDs)
 		const taskResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
 					query GetTaskForEdit($taskId: UUID!) {
-						taskById(id: $taskId) {
+						tasks(limit: 1, filter: { id: { equalTo: $taskId } }) {
 							id
-							nodeId
 							title
 							description
 							status
 							priority
 							dueDate
-							assigneeId
-							creatorId
-							taskTypeId
-							parentTaskId
 							requiresManualReassignment
 							archived
 							createdAt
 							updatedAt
+							assignee {
+								id
+							}
+							taskType {
+								id
+							}
+							parentTask {
+								id
+							}
 						}
 					}
 				`,
@@ -90,7 +93,8 @@ export const load: PageServerLoad = async (event) => {
 			throw new Error(taskData.errors[0]?.message || 'Failed to load task');
 		}
 
-		const task = taskData?.data?.taskById;
+		const tasks = taskData?.data?.tasks || [];
+		const task = tasks.length > 0 ? tasks[0] : null;
 
 		if (!task) {
 			throw error(404, { message: 'Task not found' });
@@ -102,18 +106,16 @@ export const load: PageServerLoad = async (event) => {
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetUsersForAssignment($first: Int) {
-						allUsers(first: $first, condition: { is_active: true }) {
-							nodes {
-								id
-								displayName
-								email
-								role
-							}
+					query GetUsersForAssignment($limit: Int!) {
+						users(limit: $limit) {
+							id
+							displayName
+							email
+							role
 						}
 					}
 				`,
-				variables: { first: 100 }
+				variables: { limit: 100 }
 			})
 		});
 
@@ -145,17 +147,15 @@ export const load: PageServerLoad = async (event) => {
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetTaskTypes($first: Int) {
-						allTaskTypes(first: $first) {
-							nodes {
-								id
-								name
-								description
-							}
+					query GetTaskTypes($limit: Int!) {
+						taskTypes(limit: $limit) {
+							id
+							name
+							description
 						}
 					}
 				`,
-				variables: { first: 100 }
+				variables: { limit: 100 }
 			})
 		});
 
@@ -167,25 +167,23 @@ export const load: PageServerLoad = async (event) => {
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetPotentialParentTasks($first: Int) {
-						allTasks(first: $first, orderBy: CREATED_AT_DESC) {
-							nodes {
-								id
-								title
-								status
-								priority
-							}
+					query GetPotentialParentTasks($limit: Int!, $offset: Int!) {
+						tasks(limit: $limit, offset: $offset) {
+							id
+							title
+							status
+							priority
 						}
 					}
 				`,
-				variables: { first: 200 }
+				variables: { limit: 200, offset: 0 }
 			})
 		});
 
 		const parentTasksData = await parentTasksResponse.json();
 
 		// Filter out current task and prevent circular hierarchy
-		let potentialParents = parentTasksData?.data?.allTasks?.nodes || [];
+		let potentialParents = parentTasksData?.data?.tasks || [];
 		potentialParents = potentialParents.filter((t: any) => t.id !== taskId);
 
 		// Get standardized user permissions
@@ -196,9 +194,9 @@ export const load: PageServerLoad = async (event) => {
 			user: userPermissions.user,
 			userSession: userSession.toJSON(),
 			task,
-			assignees: assigneesData?.data?.allUsers?.nodes || [],
+			assignees: assigneesData?.data?.users || [],
 			departments: departmentsData?.data?.departments || [],
-			taskTypes: taskTypesData?.data?.allTaskTypes?.nodes || [],
+			taskTypes: taskTypesData?.data?.taskTypes || [],
 			parentTasks: potentialParents,
 			...userPermissions,
 			loadedAt: new Date().toISOString()

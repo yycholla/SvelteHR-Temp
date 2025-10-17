@@ -63,13 +63,14 @@ export const load: PageServerLoad = async (event) => {
 		);
 
 		// Load department data with Rust GraphQL schema
+		// NOTE: Using Rust GraphQL schema (filter pattern, direct arrays)
 		const departmentResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
 					query GetDepartmentById($id: UUID!) {
-						departmentById(id: $id) {
+						departments(limit: 1, filter: { id: { equalTo: $id } }) {
 							id
 							name
 							description
@@ -90,13 +91,15 @@ export const load: PageServerLoad = async (event) => {
 		console.log('[Department Detail] Department data:', departmentData);
 
 		// Check if department exists
-		if (!departmentData?.data?.departmentById) {
+		const departments = departmentData?.data?.departments || [];
+		if (departments.length === 0) {
 			throw error(404, 'Department not found');
 		}
 
-		const department = departmentData.data.departmentById;
+		const department = departments[0];
 
 		// Get manager data separately if managerId exists
+		// NOTE: Using Rust GraphQL schema (filter pattern, direct arrays)
 		let manager = null;
 		if (department.managerId) {
 			const managerResponse = await fetch(graphqlEndpoint, {
@@ -105,11 +108,9 @@ export const load: PageServerLoad = async (event) => {
 				body: JSON.stringify({
 					query: `
 						query GetUserById($id: UUID!) {
-							userById(id: $id) {
+							users(limit: 1, filter: { id: { equalTo: $id } }) {
 								id
 								email
-								firstName
-								lastName
 								displayName
 								role
 								hireDate
@@ -124,7 +125,8 @@ export const load: PageServerLoad = async (event) => {
 			});
 
 			const managerData = await managerResponse.json();
-			manager = managerData?.data?.userById || null;
+			const users = managerData?.data?.users || [];
+			manager = users.length > 0 ? users[0] : null;
 		}
 
 		// Get employees for this department

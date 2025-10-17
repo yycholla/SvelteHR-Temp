@@ -37,6 +37,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		const graphqlEndpoint = getGraphQLEndpoint();
 
 		// Query 1: Get all employees for employee selector
+		// NOTE: Using Rust GraphQL schema (direct arrays, no .nodes wrapper)
 		const employeesResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers: {
@@ -44,25 +45,22 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			},
 			body: JSON.stringify({
 				query: `
-					query GetEmployeesForReview($first: Int) {
-						allUsers(first: $first) {
-							nodes {
+					query GetEmployeesForReview($limit: Int!) {
+						users(limit: $limit) {
+							id
+							email
+							displayName
+							role
+							departmentId
+							department {
 								id
-								email
-								displayName
-								role
-								departmentId
-								departmentByDepartmentId {
-									id
-									name
-								}
+								name
 							}
-							totalCount
 						}
 					}
 				`,
 				variables: {
-					first: 200
+					limit: 200
 				}
 			})
 		});
@@ -80,9 +78,10 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			});
 		}
 
-		const employees = employeesData.data?.allUsers?.nodes || [];
+		const employees = employeesData.data?.users || [];
 
 		// Query 1.5: Get available goals for the selected employee (if provided)
+		// NOTE: Using Rust GraphQL schema (direct arrays, no .nodes wrapper)
 		let availableGoals: any[] = [];
 		if (employeeId) {
 			const goalsResponse = await fetch(graphqlEndpoint, {
@@ -92,25 +91,26 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 				},
 				body: JSON.stringify({
 					query: `
-						query GetEmployeeGoals($employeeId: UUID!) {
-							allGoals(
-								condition: { employeeId: $employeeId, deleted: false }
-								filter: { status: { in: [ACTIVE] } }
-								orderBy: CREATED_AT_DESC
-							) {
-								nodes {
-									id
-									title
-									description
-									targetDate
-									status
-									progressPercentage
-									createdAt
+						query GetEmployeeGoals($employeeId: UUID!, $limit: Int!) {
+							goals(
+								limit: $limit,
+								filter: {
+									employeeId: { equalTo: $employeeId },
+									deleted: { equalTo: false },
+									status: { equalTo: ACTIVE }
 								}
+							) {
+								id
+								title
+								description
+								targetDate
+								status
+								progressPercentage
+								createdAt
 							}
 						}
 					`,
-					variables: { employeeId }
+					variables: { employeeId, limit: 100 }
 				})
 			});
 
@@ -127,10 +127,11 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 				});
 			}
 
-			availableGoals = goalsData.data?.allGoals?.nodes || [];
+			availableGoals = goalsData.data?.goals || [];
 		}
 
 		// Query 2: Get selected employee details if provided
+		// NOTE: Using Rust GraphQL schema (direct arrays, no .nodes wrapper)
 		let selectedEmployee = null;
 		if (employeeId) {
 			const employeeResponse = await fetch(graphqlEndpoint, {
@@ -141,17 +142,15 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 				body: JSON.stringify({
 					query: `
 						query GetEmployee($employeeId: UUID!) {
-							allUsers(condition: { id: $employeeId }, first: 1) {
-								nodes {
+							users(limit: 1, filter: { id: { equalTo: $employeeId } }) {
+								id
+								displayName
+								email
+								role
+								departmentId
+								department {
 									id
-									displayName
-									email
-									role
-									departmentId
-									departmentByDepartmentId {
-										id
-										name
-									}
+									name
 								}
 							}
 						}
@@ -162,36 +161,33 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 
 			const employeeData = await employeeResponse.json();
 
-			if (employeeData.data?.allUsers?.nodes.length > 0) {
-				selectedEmployee = employeeData.data.allUsers.nodes[0];
+			if (employeeData.data?.users && employeeData.data.users.length > 0) {
+				selectedEmployee = employeeData.data.users[0];
 			}
 		}
 
 		// Query 3: Get review types metadata
+		// NOTE: Using Rust GraphQL schema (direct arrays, no .nodes wrapper)
 		const client = GraphQLClient.fromCookies(cookies);
 		const metadataResponse = await client.query<{
-			reviewTypesMetadata: {
-				nodes: Array<{
-					value: string;
-					label: string;
-					description: string;
-					displayOrder: number;
-				}>;
-			};
+			reviewTypesMetadata: Array<{
+				value: string;
+				label: string;
+				description: string;
+				displayOrder: number;
+			}>;
 		}>(
 			`
-			query GetReviewTypesMetadata {
-				reviewTypesMetadata {
-					nodes {
-						value
-						label
-						description
-						displayOrder
-					}
+			query GetReviewTypesMetadata($limit: Int!) {
+				reviewTypesMetadata(limit: $limit) {
+					value
+					label
+					description
+					displayOrder
 				}
 			}
 		`,
-			{}
+			{ limit: 100 }
 		);
 
 		const metadataData = metadataResponse.data;
@@ -205,7 +201,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			},
 			employees,
 			selectedEmployee,
-			reviewTypesMetadata: metadataData.reviewTypesMetadata?.nodes || [],
+			reviewTypesMetadata: metadataData?.reviewTypesMetadata || [],
 			availableGoals
 		};
 	} catch (err) {

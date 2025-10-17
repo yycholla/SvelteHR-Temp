@@ -18,7 +18,7 @@ INSERT INTO hr_public.users (
     crypt('admin123', gen_salt('bf')),
     'System',
     'Administrator',
-    'super_admin',
+    'system_admin',
     true,
     NOW(),
     NOW()
@@ -55,14 +55,14 @@ INSERT INTO hr_public.user_role_assignments (
 )
 SELECT
     u.id,
-    'super_admin',
+    'system_admin',
     u.id,
     NOW()
 FROM hr_public.users u
 WHERE u.email = 'admin@mountainhr.dev'
 AND NOT EXISTS (
     SELECT 1 FROM hr_public.user_role_assignments ura
-    WHERE ura.user_id = u.id AND ura.role_name = 'super_admin'
+    WHERE ura.user_id = u.id AND ura.role_name = 'system_admin'
 );
 
 -- Enable Row Level Security on all public tables

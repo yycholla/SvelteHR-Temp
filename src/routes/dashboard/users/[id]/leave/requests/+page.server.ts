@@ -50,16 +50,16 @@ export const load: PageServerLoad = async (event) => {
 		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
 		// Load user details using new GraphQL client
+		// NOTE: Using Rust GraphQL schema (filter pattern, direct arrays)
 		const userQuery = `
 			query GetUser($id: UUID!) {
-				userById(id: $id) {
+				users(limit: 1, filter: { id: { equalTo: $id } }) {
 					id
 					email
-					firstName
-					lastName
+					displayName
 					departmentId
 					isActive
-					departmentByDepartmentId {
+					department {
 						id
 						name
 						managerId
@@ -69,80 +69,63 @@ export const load: PageServerLoad = async (event) => {
 		`;
 
 		const userData = await graphqlClient.query(userQuery, { id: userId });
-		const user = userData.data?.userById;
+		const users = userData.data?.users || [];
+		const user = users.length > 0 ? users[0] : null;
 
 		if (!user) {
 			throw error(404, 'User not found');
 		}
 
 		// Load leave requests from database
+		// NOTE: Using Rust GraphQL schema (filter pattern, direct arrays)
 		const leaveRequestsQuery = `
-			query GetUserLeaveRequests($employeeId: UUID!) {
-				allLeaveRequests(
-					condition: { employeeId: $employeeId }
-					orderBy: [CREATED_AT_DESC]
+			query GetUserLeaveRequests($employeeId: UUID!, $limit: Int!) {
+				leaveRequests(
+					limit: $limit,
+					filter: { employeeId: { equalTo: $employeeId } }
 				) {
-					nodes {
+					id
+					employeeId
+					managerId
+					leaveType
+					startDate
+					endDate
+					daysRequested
+					status
+					reason
+					managerComments
+					createdAt
+					updatedAt
+					manager {
 						id
-						employeeId
-						managerId
-						leaveType
-						startDate
-						endDate
-						daysRequested
-						status
-						reason
-						managerComments
-						createdAt
-						updatedAt
-						userByManagerId {
-							id
-							firstName
-							lastName
-						}
+						displayName
 					}
 				}
 			}
 		`;
 
-		const leaveRequestsData = await graphqlClient.query(leaveRequestsQuery, { employeeId: userId });
-		const leaveRequests = leaveRequestsData.data?.allLeaveRequests?.nodes || [];
+		const leaveRequestsData = await graphqlClient.query(leaveRequestsQuery, { employeeId: userId, limit: 100 });
+		const leaveRequests = leaveRequestsData.data?.leaveRequests || [];
 
 		// Load time off balances
+		// NOTE: Using Rust GraphQL schema (filter pattern, direct arrays)
 		const currentYear = new Date().getFullYear();
 		const timeOffBalancesQuery = `
-			query GetUserTimeOffBalances($employeeId: UUID!, $year: Int!) {
-				allTimeOffBalances(
-					condition: { employeeId: $employeeId, year: $year }
-				) {
-					nodes {
-						id
-						employeeId
-						policyId
-						balanceDays
-						usedDays
-						year
-						timeOffPolicyByPolicyId {
-							id
-							policyName
-							policyType
-						}
+			query GetUserTimeOffBalances($employeeId: UUID!, $year: Int!, $limit: Int!) {
+				timeOffBalances(
+					limit: $limit,
+					filter: {
+						employeeId: { equalTo: $employeeId },
+						year: { equalTo: $year }
 					}
-				}
-			}
-		`;
-
-		const balancesData = await graphqlClient.query(timeOffBalancesQuery, {
-			employeeId: userId,
-			year: currentYear
-		});
-		const timeOffBalances = balancesData.data?.allTimeOffBalances?.nodes || [];
-
-		// Load all time off policies for the leave types dropdown
-		const policiesQuery = `
-			query GetTimeOffPolicies {
-				allTimeOffPolicies {
-					nodes {
+				) {
+					id
+					employeeId
+					policyId
+					balanceDays
+					usedDays
+					year
+					policy {
 						id
 						policyName
 						policyType
@@ -151,24 +134,43 @@ export const load: PageServerLoad = async (event) => {
 			}
 		`;
 
-		const policiesData = await graphqlClient.query(policiesQuery);
-		const leaveTypes = policiesData.data?.allTimeOffPolicies?.nodes || [];
+		const balancesData = await graphqlClient.query(timeOffBalancesQuery, {
+			employeeId: userId,
+			year: currentYear,
+			limit: 50
+		});
+		const timeOffBalances = balancesData.data?.timeOffBalances || [];
+
+		// Load all time off policies for the leave types dropdown
+		// NOTE: Using Rust GraphQL schema (direct arrays)
+		const policiesQuery = `
+			query GetTimeOffPolicies($limit: Int!) {
+				timeOffPolicies(limit: $limit) {
+					id
+					policyName
+					policyType
+				}
+			}
+		`;
+
+		const policiesData = await graphqlClient.query(policiesQuery, { limit: 100 });
+		const leaveTypes = policiesData.data?.timeOffPolicies || [];
 
 		// Calculate leave balances with pending requests
 		const leaveBalances = timeOffBalances.map(balance => {
 			const pending = leaveRequests
 				.filter(req =>
 					req.status === 'pending' &&
-					balance.timeOffPolicyByPolicyId?.policyType === req.leaveType
+					balance.policy?.policyType === req.leaveType
 				)
 				.reduce((sum, req) => sum + (req.daysRequested || 0), 0);
 
 			return {
 				leaveType: {
-					id: balance.timeOffPolicyByPolicyId?.id || balance.policyId,
-					name: balance.timeOffPolicyByPolicyId?.policyName || 'Unknown',
-					code: balance.timeOffPolicyByPolicyId?.policyType || 'UNKNOWN',
-					color: getLeaveTypeColor(balance.timeOffPolicyByPolicyId?.policyType || '')
+					id: balance.policy?.id || balance.policyId,
+					name: balance.policy?.policyName || 'Unknown',
+					code: balance.policy?.policyType || 'UNKNOWN',
+					color: getLeaveTypeColor(balance.policy?.policyType || '')
 				},
 				allocated: balance.balanceDays || 0,
 				used: balance.usedDays || 0,
@@ -191,9 +193,9 @@ export const load: PageServerLoad = async (event) => {
 			reason: req.reason || '',
 			status: req.status,
 			requestedAt: req.createdAt,
-			approvedBy: req.userByManagerId ? {
-				id: req.userByManagerId.id,
-				name: `${req.userByManagerId.firstName} ${req.userByManagerId.lastName}`
+			approvedBy: req.manager ? {
+				id: req.manager.id,
+				name: req.manager.displayName
 			} : null,
 			comments: req.managerComments,
 			totalDays: req.daysRequested || 0

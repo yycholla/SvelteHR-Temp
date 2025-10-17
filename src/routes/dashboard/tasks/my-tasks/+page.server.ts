@@ -21,7 +21,7 @@ export const load: PageServerLoad = async (event) => {
 	// Create user session
 	const userSession = createUserSession({
 		userId: locals.user.id,
-		jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
+		// jwtToken is optional for session-based authentication
 		roles: [locals.user.role || 'employee'],
 		permissions: locals.permissions || [],
 		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
@@ -49,43 +49,39 @@ export const load: PageServerLoad = async (event) => {
 
 		console.log('[My Tasks] Loading tasks for user:', locals.user.id);
 
-		// Build filter condition - always filter by current user
-		const condition: any = {
-			assigneeId: locals.user.id
-		};
+		// Build filter condition for server-side filtering (status/priority only)
+		// Assignee filtering will be done client-side since schema doesn't expose assigneeId
+		let filterCondition: any = null;
 
-		if (statusFilter) {
-			condition.status = statusFilter;
-		}
+		if (statusFilter || priorityFilter) {
+			filterCondition = {};
 
-		if (priorityFilter) {
-			condition.priority = priorityFilter;
+			if (statusFilter) {
+				filterCondition.status = { equalTo: statusFilter };
+			}
+
+			if (priorityFilter) {
+				filterCondition.priority = { equalTo: priorityFilter };
+			}
 		}
 
 		// Load user's tasks
-		// NOTE: Query updated to match Rust GraphQL schema (idiomatic naming)
-		// Rust GraphQL returns direct arrays (no .nodes wrapper)
+		// NOTE: Using Rust GraphQL schema conventions (same as main tasks dashboard)
+		// Returns direct arrays (no .nodes wrapper), no foreign key IDs exposed
 		const tasksResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
-				query: `
-					query GetMyTasks($limit: Int, $filter: TaskFilter) {
-						tasks(
-							limit: $limit
-							filter: $filter
-							orderBy: "due_date_asc"
-						) {
+				query: filterCondition
+					? `
+					query GetMyTasks($limit: Int!, $offset: Int!, $filter: TaskFilter!) {
+						tasks(limit: $limit, offset: $offset, filter: $filter) {
 							id
 							title
 							description
 							status
 							priority
 							dueDate
-							assigneeId
-							createdBy
-							taskTypeId
-							parentTaskId
 							requiresManualReassignment
 							archived
 							createdAt
@@ -100,6 +96,45 @@ export const load: PageServerLoad = async (event) => {
 								displayName
 								email
 							}
+							taskType {
+								id
+								name
+							}
+							parentTask {
+								id
+								title
+								status
+							}
+						}
+					}
+				`
+					: `
+					query GetMyTasks($limit: Int!, $offset: Int!) {
+						tasks(limit: $limit, offset: $offset) {
+							id
+							title
+							description
+							status
+							priority
+							dueDate
+							requiresManualReassignment
+							archived
+							createdAt
+							updatedAt
+							assignee {
+								id
+								displayName
+								email
+							}
+							creator {
+								id
+								displayName
+								email
+							}
+							taskType {
+								id
+								name
+							}
 							parentTask {
 								id
 								title
@@ -108,10 +143,16 @@ export const load: PageServerLoad = async (event) => {
 						}
 					}
 				`,
-				variables: {
-					limit: 100,
-					filter: Object.keys(condition).length > 0 ? condition : null
-				}
+				variables: filterCondition
+					? {
+							limit: 100,
+							offset: 0,
+							filter: filterCondition
+						}
+					: {
+							limit: 100,
+							offset: 0
+						}
 			})
 		});
 
@@ -124,6 +165,10 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		let tasks = tasksData?.data?.tasks || [];
+
+		// Client-side filtering for current user (assignee)
+		// Filter to only tasks assigned to the current user
+		tasks = tasks.filter((task: any) => task.assignee?.id === locals.user.id);
 
 		// Client-side search filtering
 		if (searchTerm) {

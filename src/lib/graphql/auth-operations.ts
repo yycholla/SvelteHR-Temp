@@ -213,7 +213,7 @@ export class AuthenticationOperations {
 		// Create anonymous user credentials for login request
 		const anonymousCredentials: UserCredentials = {
 			userId: 'anonymous',
-			jwtToken: '',
+			// jwtToken omitted - not yet authenticated
 			roles: [],
 			permissions: [],
 			isAuthenticated: false,

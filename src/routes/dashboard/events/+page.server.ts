@@ -100,13 +100,14 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		});
 
 		// Calculate statistics
+		// NOTE: Using Rust GraphQL schema - direct array access (no .nodes wrapper)
 		const stats = {
 			total: eventsResult.totalCount,
 			upcoming: upcomingEventsResult.events.filter((e: any) => new Date(e.startTime) > new Date())
 				.length,
 			myEvents: userEventsResult.events.length,
 			accepted: userEventsResult.events.filter((e: any) =>
-				e.eventAttendeesByEventId?.nodes?.some(
+				(e.eventAttendees || e.attendees || []).some(
 					(a: any) => a.employeeId === locals.user.id && a.responseStatus === 'accepted'
 				)
 			).length
@@ -232,11 +233,13 @@ async function fetchEventComments(
 			return { comments: [], totalCount: 0, hasMore: false };
 		}
 
-		const data = result.data.eventComments;
+		// NOTE: Using Rust GraphQL schema - direct array access (no .nodes wrapper)
+		const comments = result.data.eventComments || [];
+		const totalCount = result.data.eventCommentsCount || comments.length;
 		return {
-			comments: data.nodes || [],
-			totalCount: data.totalCount || 0,
-			hasMore: data.pageInfo?.hasNextPage || false
+			comments,
+			totalCount,
+			hasMore: comments.length >= limit
 		};
 	} catch (err) {
 		console.error('Failed to fetch event comments:', err);
@@ -265,11 +268,13 @@ async function fetchEventHistory(
 			return { history: [], totalCount: 0, hasMore: false };
 		}
 
-		const data = result.data.eventHistories;
+		// NOTE: Using Rust GraphQL schema - direct array access (no .nodes wrapper)
+		const history = result.data.eventHistories || [];
+		const totalCount = result.data.eventHistoriesCount || history.length;
 		return {
-			history: data.nodes || [],
-			totalCount: data.totalCount || 0,
-			hasMore: data.pageInfo?.hasNextPage || false
+			history,
+			totalCount,
+			hasMore: history.length >= limit
 		};
 	} catch (err) {
 		console.error('Failed to fetch event history:', err);
@@ -296,9 +301,10 @@ async function fetchUserWaitlistStatus(
 			return { isOnWaitlist: false, position: null };
 		}
 
-		const nodes = result.data.eventWaitlists?.nodes || [];
-		if (nodes.length > 0) {
-			const waitlistEntry = nodes[0];
+		// NOTE: Using Rust GraphQL schema - direct array access (no .nodes wrapper)
+		const waitlistEntries = result.data.eventWaitlists || [];
+		if (waitlistEntries.length > 0) {
+			const waitlistEntry = waitlistEntries[0];
 			return {
 				isOnWaitlist: true,
 				position: waitlistEntry.position || null,
@@ -739,7 +745,8 @@ export const actions: Actions = {
 							userCredentials
 						});
 
-						const existingAttendee = event.eventAttendeesByEventId?.nodes?.find(
+						// NOTE: Using Rust GraphQL schema - direct array access (no .nodes wrapper)
+						const existingAttendee = (event.eventAttendees || event.attendees || []).find(
 							(a: any) => a.employeeId === locals.user.id
 						);
 
@@ -816,7 +823,8 @@ export const actions: Actions = {
 			}
 
 			// Find the user's attendee record
-			const attendee = event.eventAttendeesByEventId?.nodes?.find(
+			// NOTE: Using Rust GraphQL schema - direct array access (no .nodes wrapper)
+			const attendee = (event.eventAttendees || event.attendees || []).find(
 				(a: any) => a.employeeId === locals.user.id
 			);
 

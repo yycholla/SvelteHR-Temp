@@ -60,16 +60,16 @@ export const load: PageServerLoad = async (event) => {
 		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
 		// Load user details using new GraphQL client
+		// NOTE: Using Rust GraphQL schema (filter pattern, direct arrays)
 		const userQuery = `
 			query GetUser($id: UUID!) {
-				userById(id: $id) {
+				users(limit: 1, filter: { id: { equalTo: $id } }) {
 					id
 					email
-					firstName
-					lastName
+					displayName
 					departmentId
 					isActive
-					departmentByDepartmentId {
+					department {
 						id
 						name
 						managerId
@@ -79,45 +79,42 @@ export const load: PageServerLoad = async (event) => {
 		`;
 
 		const userData = await graphqlClient.query(userQuery, { id: userId });
-		const user = userData.data?.userById;
+		const users = userData.data?.users || [];
+		const user = users.length > 0 ? users[0] : null;
 
 		if (!user) {
 			throw error(404, 'User not found');
 		}
 
 		// Load performance reviews from database
+		// NOTE: Using Rust GraphQL schema (filter pattern, direct arrays)
 		const reviewsQuery = `
-			query GetUserPerformanceReviews($employeeId: UUID!) {
-				allPerformanceReviews(
-					condition: { employeeId: $employeeId }
-					orderBy: [CREATED_AT_DESC]
+			query GetUserPerformanceReviews($employeeId: UUID!, $limit: Int!) {
+				performanceReviews(
+					limit: $limit,
+					filter: { employeeId: { equalTo: $employeeId } }
 				) {
-					nodes {
+					id
+					reviewPeriod
+					status
+					overallRating
+					goals
+					achievements
+					areasForImprovement
+					managerFeedback
+					createdAt
+					updatedAt
+					reviewer {
 						id
-						employeeId
-						reviewerId
-						reviewPeriod
-						status
-						overallRating
-						goals
-						achievements
-						areasForImprovement
-						managerFeedback
-						createdAt
-						updatedAt
-						userByReviewerId {
-							id
-							firstName
-							lastName
-							email
-						}
+						displayName
+						email
 					}
 				}
 			}
 		`;
 
-		const reviewsData = await graphqlClient.query(reviewsQuery, { employeeId: userId });
-		const rawReviews = reviewsData.data?.allPerformanceReviews?.nodes || [];
+		const reviewsData = await graphqlClient.query(reviewsQuery, { employeeId: userId, limit: 100 });
+		const rawReviews = reviewsData.data?.performanceReviews || [];
 
 		// Static competency areas for display
 		const competencyAreas = [
@@ -158,10 +155,10 @@ export const load: PageServerLoad = async (event) => {
 				},
 				scheduledDate: review.createdAt?.split('T')[0],
 				completedDate: review.status === 'completed' ? review.updatedAt?.split('T')[0] : null,
-				reviewer: review.userByReviewerId ? {
-					id: review.userByReviewerId.id,
-					displayName: `${review.userByReviewerId.firstName} ${review.userByReviewerId.lastName}`,
-					email: review.userByReviewerId.email
+				reviewer: review.reviewer ? {
+					id: review.reviewer.id,
+					displayName: review.reviewer.displayName,
+					email: review.reviewer.email
 				} : null,
 				overallRating: review.overallRating || 0,
 				competencies: [], // Not stored in current schema

@@ -20,9 +20,10 @@ export const load: PageServerLoad = async ({ locals, parent, cookies }) => {
 		const client = GraphQLClient.fromCookies(cookies);
 
 		// Query actual system settings from database
+		// NOTE: Using Rust GraphQL schema (direct arrays, no .nodes wrapper)
 		const settingsQuery = `
-			query GetSystemSettings {
-				systemSettings {
+			query GetSystemSettings($limit: Int!) {
+				systemSettings(limit: $limit) {
 					id
 					category
 					settings
@@ -30,22 +31,29 @@ export const load: PageServerLoad = async ({ locals, parent, cookies }) => {
 					createdAt
 					updatedAt
 				}
-				departmentsCount
-				allUsers {
-					totalCount
+				departments(limit: $limit) {
+					id
+					name
 				}
-				allUserRoleAssignments {
-					totalCount
+				users(limit: $limit) {
+					id
+					role
 				}
 			}
 		`;
 
-		const result = await client.query(settingsQuery, {});
+		const result = await client.query(settingsQuery, { limit: 1000 });
 
 		// Parse settings from database (JSONB format)
 		const settingsData = result.data?.systemSettings || [];
 
 		// Convert array of settings to object by category
+		const departments = result.data?.departments || [];
+		const users = result.data?.users || [];
+
+		// Calculate unique roles from users
+		const uniqueRoles = [...new Set(users.map((u: any) => u.role).filter(Boolean))];
+
 		const settings: any = {
 			general: {},
 			authentication: {},
@@ -53,9 +61,9 @@ export const load: PageServerLoad = async ({ locals, parent, cookies }) => {
 			security: {},
 			developer: {},
 			stats: {
-				totalDepartments: result.data?.departmentsCount || 0,
-				totalUsers: result.data?.allUsers?.totalCount || 0,
-				totalRoles: result.data?.allUserRoleAssignments?.totalCount || 0
+				totalDepartments: departments.length,
+				totalUsers: users.length,
+				totalRoles: uniqueRoles.length
 			}
 		};
 

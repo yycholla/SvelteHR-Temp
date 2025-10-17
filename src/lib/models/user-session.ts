@@ -63,7 +63,7 @@ export interface SessionSecurity {
 export class UserSession {
 	readonly id: string;
 	readonly userId: string;
-	readonly jwtToken: string;
+	readonly jwtToken?: string; // Optional for session-based auth
 	readonly refreshToken?: string;
 	readonly permissions: string[];
 	readonly roles: string[];
@@ -85,7 +85,7 @@ export class UserSession {
 	constructor(config: {
 		id?: string;
 		userId: string;
-		jwtToken: string;
+		jwtToken?: string; // Optional for session-based auth
 		refreshToken?: string;
 		permissions: string[];
 		roles: string[];
@@ -336,7 +336,7 @@ export class UserSession {
 	toUserCredentials(): UserCredentials {
 		return {
 			userId: this.userId,
-			jwtToken: this.jwtToken,
+			jwtToken: this.jwtToken || '', // Empty string for session-based auth
 			roles: this.roles,
 			permissions: this.permissions,
 			departmentId: this.extractDepartmentId(),
@@ -377,7 +377,7 @@ export class UserSession {
 	 */
 	private validateConfig(config: {
 		userId: string;
-		jwtToken: string;
+		jwtToken?: string;
 		permissions: string[];
 		roles: string[];
 		expiresAt: string;
@@ -387,15 +387,13 @@ export class UserSession {
 			throw new Error('userId must be non-empty');
 		}
 
-		// Validation Rule: jwtToken (valid JWT when authenticated)
-		if (!config.jwtToken || config.jwtToken.trim().length === 0) {
-			throw new Error('jwtToken must be non-empty');
-		}
-
-		// Basic JWT format validation (header.payload.signature)
-		const jwtParts = config.jwtToken.split('.');
-		if (jwtParts.length !== 3) {
-			throw new Error('jwtToken must be a valid JWT format');
+		// Validation Rule: jwtToken (optional - only validate if provided)
+		if (config.jwtToken && config.jwtToken.trim().length > 0) {
+			// Basic JWT format validation (header.payload.signature)
+			const jwtParts = config.jwtToken.split('.');
+			if (jwtParts.length !== 3) {
+				throw new Error('jwtToken must be a valid JWT format');
+			}
 		}
 
 		// Validation Rule: permissions (non-empty when authenticated)
@@ -425,7 +423,6 @@ export class UserSession {
 	 */
 	private determineAuthenticationStatus(): boolean {
 		return (
-			this.jwtToken.length > 0 &&
 			this.userId.length > 0 &&
 			!this.isExpired &&
 			this.permissions.length > 0
@@ -436,8 +433,8 @@ export class UserSession {
 	 * Check if this is a secure session
 	 */
 	private isSecureSession(): boolean {
-		// Consider secure if JWT token is valid and permissions are present
-		return this.jwtToken.length > 0 && this.permissions.length > 0 && !this.isExpired;
+		// Consider secure if user is authenticated with permissions
+		return this.permissions.length > 0 && !this.isExpired;
 	}
 
 	/**
@@ -492,15 +489,18 @@ export class UserSession {
 	 * Extract department ID from JWT payload or metadata
 	 */
 	private extractDepartmentId(): string | undefined {
-		try {
-			// Try to extract from JWT payload
-			const payloadPart = this.jwtToken.split('.')[1];
-			const payload = JSON.parse(atob(payloadPart)) as Partial<JWTPayload>;
-			return payload.departmentId;
-		} catch {
-			// Fallback to metadata
-			return this._metadata.departmentId as string | undefined;
+		// Try to extract from JWT payload if JWT token exists
+		if (this.jwtToken && this.jwtToken.length > 0) {
+			try {
+				const payloadPart = this.jwtToken.split('.')[1];
+				const payload = JSON.parse(atob(payloadPart)) as Partial<JWTPayload>;
+				return payload.departmentId;
+			} catch {
+				// Fallback to metadata
+			}
 		}
+		// Fallback to metadata
+		return this._metadata.departmentId as string | undefined;
 	}
 
 	/**
@@ -538,7 +538,7 @@ export class UserSession {
  */
 export function createUserSession(authResult: {
 	userId: string;
-	jwtToken: string;
+	jwtToken?: string; // Optional for session-based auth
 	refreshToken?: string;
 	roles: string[];
 	permissions: string[];
@@ -576,7 +576,7 @@ export function isUserSession(obj: unknown): obj is UserSession {
 export function createAnonymousSession(): UserSession {
 	return new UserSession({
 		userId: 'anonymous',
-		jwtToken: 'anonymous.session.token', // Placeholder token
+		jwtToken: undefined, // No token for anonymous session
 		permissions: [],
 		roles: [],
 		expiresAt: new Date(Date.now() + 1000).toISOString() // Expire immediately

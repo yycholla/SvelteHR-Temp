@@ -65,17 +65,16 @@ export const load: PageServerLoad = async (event) => {
 		const isViewingSelf = locals.user.id === employeeId;
 
 		// Load employee data with all related information
+		// NOTE: Using Rust GraphQL schema (filter pattern, direct arrays)
 		const employeeResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
 					query GetEmployeeById($id: UUID!) {
-						employee: userById(id: $id) {
+						users(limit: 1, filter: { id: { equalTo: $id } }) {
 							id
 							displayName
-							firstName
-							lastName
 							email
 							role
 							hireDate
@@ -92,90 +91,15 @@ export const load: PageServerLoad = async (event) => {
 							createdAt
 							updatedAt
 							lastLogin
-							departmentByDepartmentId {
+							department {
 								id
 								name
 								description
 								managerId
-								userByManagerId {
+								manager {
 									id
 									displayName
 									role
-								}
-							}
-							emergencyContactsByEmployeeId {
-								nodes {
-									id
-									fullName
-									relationship
-									phoneNumber
-									alternatePhone
-									email
-									addressLine1
-									addressLine2
-									city
-									stateProvince
-									postalCode
-									country
-									isPrimary
-									notes
-								}
-							}
-							employeeVehiclesByEmployeeId {
-								nodes {
-									id
-									make
-									model
-									year
-									color
-									licensePlate
-									stateProvince
-									parkingSpot
-									insuranceCompany
-									insurancePolicyNumber
-									insuranceExpiry
-									isPrimary
-									notes
-								}
-							}
-							leaveRequestsByEmployeeId {
-								nodes {
-									id
-									leaveType
-									startDate
-									endDate
-									status
-									reason
-									createdAt
-								}
-								totalCount
-							}
-							performanceReviewsByEmployeeId {
-								nodes {
-									id
-									reviewPeriod
-									overallRating
-									status
-									createdAt
-									userByReviewerId {
-										id
-										displayName
-									}
-								}
-								totalCount
-							}
-							timeOffBalancesByEmployeeId {
-								nodes {
-									id
-									year
-									balanceDays
-									usedDays
-									policyId
-									timeOffPolicyByPolicyId {
-										id
-										name
-										daysPerYear
-									}
 								}
 							}
 						}
@@ -190,14 +114,154 @@ export const load: PageServerLoad = async (event) => {
 		const employeeData = await employeeResponse.json();
 
 		// Check if employee exists
-		if (!employeeData?.data?.employee) {
+		const users = employeeData?.data?.users || [];
+		if (users.length === 0) {
 			throw error(404, 'Employee not found');
 		}
 
-		const employee = employeeData.data.employee;
+		const employee = users[0];
+
+		// Load additional related data separately
+		// Emergency contacts
+		const emergencyContactsResponse = await fetch(graphqlEndpoint, {
+			method: 'POST',
+			headers,
+			body: JSON.stringify({
+				query: `
+					query GetEmergencyContacts($employeeId: UUID!, $limit: Int!) {
+						emergencyContacts(limit: $limit, filter: { employeeId: { equalTo: $employeeId } }) {
+							id
+							fullName
+							relationship
+							phoneNumber
+							alternatePhone
+							email
+							addressLine1
+							addressLine2
+							city
+							stateProvince
+							postalCode
+							country
+							isPrimary
+							notes
+						}
+					}
+				`,
+				variables: { employeeId, limit: 50 }
+			})
+		});
+		const emergencyContactsData = await emergencyContactsResponse.json();
+		const emergencyContacts = emergencyContactsData?.data?.emergencyContacts || [];
+
+		// Employee vehicles
+		const vehiclesResponse = await fetch(graphqlEndpoint, {
+			method: 'POST',
+			headers,
+			body: JSON.stringify({
+				query: `
+					query GetEmployeeVehicles($employeeId: UUID!, $limit: Int!) {
+						employeeVehicles(limit: $limit, filter: { employeeId: { equalTo: $employeeId } }) {
+							id
+							make
+							model
+							year
+							color
+							licensePlate
+							stateProvince
+							parkingSpot
+							insuranceCompany
+							insurancePolicyNumber
+							insuranceExpiry
+							isPrimary
+							notes
+						}
+					}
+				`,
+				variables: { employeeId, limit: 50 }
+			})
+		});
+		const vehiclesData = await vehiclesResponse.json();
+		const vehicles = vehiclesData?.data?.employeeVehicles || [];
+
+		// Leave requests
+		const leaveRequestsResponse = await fetch(graphqlEndpoint, {
+			method: 'POST',
+			headers,
+			body: JSON.stringify({
+				query: `
+					query GetLeaveRequests($employeeId: UUID!, $limit: Int!) {
+						leaveRequests(limit: $limit, filter: { employeeId: { equalTo: $employeeId } }) {
+							id
+							leaveType
+							startDate
+							endDate
+							status
+							reason
+							createdAt
+						}
+					}
+				`,
+				variables: { employeeId, limit: 50 }
+			})
+		});
+		const leaveRequestsData = await leaveRequestsResponse.json();
+		const leaveRequests = leaveRequestsData?.data?.leaveRequests || [];
+
+		// Performance reviews
+		const reviewsResponse = await fetch(graphqlEndpoint, {
+			method: 'POST',
+			headers,
+			body: JSON.stringify({
+				query: `
+					query GetPerformanceReviews($employeeId: UUID!, $limit: Int!) {
+						performanceReviews(limit: $limit, filter: { employeeId: { equalTo: $employeeId } }) {
+							id
+							reviewPeriod
+							overallRating
+							status
+							createdAt
+							reviewer {
+								id
+								displayName
+							}
+						}
+					}
+				`,
+				variables: { employeeId, limit: 50 }
+			})
+		});
+		const reviewsData = await reviewsResponse.json();
+		const performanceReviews = reviewsData?.data?.performanceReviews || [];
+
+		// Time off balances
+		const balancesResponse = await fetch(graphqlEndpoint, {
+			method: 'POST',
+			headers,
+			body: JSON.stringify({
+				query: `
+					query GetTimeOffBalances($employeeId: UUID!, $limit: Int!) {
+						timeOffBalances(limit: $limit, filter: { employeeId: { equalTo: $employeeId } }) {
+							id
+							year
+							balanceDays
+							usedDays
+							policyId
+							policy {
+								id
+								name
+								daysPerYear
+							}
+						}
+					}
+				`,
+				variables: { employeeId, limit: 50 }
+			})
+		});
+		const balancesData = await balancesResponse.json();
+		const timeOffBalances = balancesData?.data?.timeOffBalances || [];
 
 		// Check if user is the employee's manager
-		const isEmployeeManager = employee.departmentByDepartmentId?.managerId === locals.user.id;
+		const isEmployeeManager = employee.department?.managerId === locals.user.id;
 
 		// Determine access permissions
 		const canViewContactInfo = isViewingSelf || isEmployeeManager || isAdmin;
@@ -303,8 +367,8 @@ export const load: PageServerLoad = async (event) => {
 			employee: {
 				id: employee.id,
 				displayName: employee.displayName,
-				firstName: employee.firstName,
-				lastName: employee.lastName,
+				firstName: employee.displayName?.split(' ')[0] || '',
+				lastName: employee.displayName?.split(' ').slice(1).join(' ') || '',
 				email: employee.email,
 				role: employee.role,
 				hireDate: employee.hireDate,
@@ -322,34 +386,30 @@ export const load: PageServerLoad = async (event) => {
 				createdAt: employee.createdAt,
 				updatedAt: employee.updatedAt,
 				lastLogin: employee.lastLogin,
-				department: employee.departmentByDepartmentId,
+				department: employee.department,
 				// Emergency contacts - only if authorized
-				emergencyContacts: canViewEmergencyContacts
-					? (employee.emergencyContactsByEmployeeId?.nodes || [])
-					: [],
+				emergencyContacts: canViewEmergencyContacts ? emergencyContacts : [],
 				// Vehicles - only if authorized
-				vehicles: canViewVehicles
-					? (employee.employeeVehiclesByEmployeeId?.nodes || [])
-					: [],
-				leaveRequests: employee.leaveRequestsByEmployeeId?.nodes || [],
-				leaveRequestCount: employee.leaveRequestsByEmployeeId?.totalCount || 0,
-				performanceReviews: (employee.performanceReviewsByEmployeeId?.nodes || []).map((review: any) => ({
+				vehicles: canViewVehicles ? vehicles : [],
+				leaveRequests: leaveRequests,
+				leaveRequestCount: leaveRequests.length,
+				performanceReviews: performanceReviews.map((review: any) => ({
 					id: review.id,
 					reviewPeriod: review.reviewPeriod,
 					overallRating: review.overallRating,
 					status: review.status,
 					createdAt: review.createdAt,
-					reviewer: review.userByReviewerId
+					reviewer: review.reviewer
 				})),
-				performanceReviewCount: employee.performanceReviewsByEmployeeId?.totalCount || 0,
-				timeOffBalances: (employee.timeOffBalancesByEmployeeId?.nodes || []).map((balance: any) => ({
+				performanceReviewCount: performanceReviews.length,
+				timeOffBalances: timeOffBalances.map((balance: any) => ({
 					id: balance.id,
 					year: balance.year,
 					balanceDays: balance.balanceDays,
 					usedDays: balance.usedDays,
 					remainingDays: balance.balanceDays - balance.usedDays,
-					policyName: balance.timeOffPolicyByPolicyId?.name || 'Unknown Policy',
-					totalDays: balance.timeOffPolicyByPolicyId?.daysPerYear || balance.balanceDays
+					policyName: balance.policy?.name || 'Unknown Policy',
+					totalDays: balance.policy?.daysPerYear || balance.balanceDays
 				})),
 				// Assigned documents
 				assignedDocuments: assignedDocuments.map((doc: any) => ({

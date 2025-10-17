@@ -62,55 +62,77 @@ export const load: PageServerLoad = async (event) => {
 		// Create GraphQL client with authentication
 		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
-		// Build condition for activity logs query
-		const condition: any = {};
+		// Build filter for activity logs query using Rust GraphQL schema
+		let filterCondition: any = null;
 
-		if (resourceType) {
-			condition.resourceType = resourceType;
-		}
-
-		if (action) {
-			condition.action = action;
+		if (resourceType || action) {
+			filterCondition = {};
+			if (resourceType) {
+				filterCondition.resourceType = { equalTo: resourceType };
+			}
+			if (action) {
+				filterCondition.action = { equalTo: action };
+			}
 		}
 
 		// Load rollbackable activity logs from database (max 100)
-		const logsQuery = `
-			query GetRollbackableLogs(
-				$condition: ActivityLogCondition
-				$limit: Int = 100
-			) {
-				allActivityLogs(
-					condition: $condition
-					orderBy: [CREATED_AT_DESC]
-					first: $limit
-				) {
-					nodes {
+		// NOTE: Using Rust GraphQL schema (filter pattern, direct arrays)
+		// orderBy not supported - will sort client-side
+		const logsQuery = filterCondition
+			? `
+			query GetRollbackableLogs($filter: ActivityLogFilter!, $limit: Int!) {
+				activityLogs(filter: $filter, limit: $limit) {
+					id
+					employeeId
+					action
+					resourceType
+					resourceId
+					details
+					beforeSnapshot
+					afterSnapshot
+					isRollback
+					createdAt
+					employee {
 						id
-						employeeId
-						action
-						resourceType
-						resourceId
-						details
-						beforeSnapshot
-						afterSnapshot
-						isRollback
-						createdAt
-						userByEmployeeId {
-							id
-							firstName
-							lastName
-							email
-						}
+						displayName
+						email
+					}
+				}
+			}
+		`
+			: `
+			query GetRollbackableLogs($limit: Int!) {
+				activityLogs(limit: $limit) {
+					id
+					employeeId
+					action
+					resourceType
+					resourceId
+					details
+					beforeSnapshot
+					afterSnapshot
+					isRollback
+					createdAt
+					employee {
+						id
+						displayName
+						email
 					}
 				}
 			}
 		`;
 
-		const logsData = await graphqlClient.query(logsQuery, {
-			condition: Object.keys(condition).length > 0 ? condition : undefined,
-			limit: 100
-		});
-		let availableLogs = logsData.data?.allActivityLogs?.nodes || [];
+		const logsData = await graphqlClient.query(logsQuery,
+			filterCondition
+				? { filter: filterCondition, limit: 100 }
+				: { limit: 100 }
+		);
+		let availableLogs = logsData.data?.activityLogs || [];
+
+		// Sort by createdAt DESC (client-side since Rust schema doesn't support orderBy)
+		availableLogs = availableLogs.sort((a: any, b: any) =>
+			new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+		);
 
 		// Filter out rollback logs (client-side filtering since isRollback not in ActivityLogCondition)
 		availableLogs = availableLogs.filter((log: any) => !log.isRollback);
@@ -126,25 +148,21 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		// Load recent bulk rollback batches
+		// NOTE: Using Rust GraphQL schema (direct arrays, no orderBy)
 		const batchesQuery = `
-			query GetRecentBulkRollbackBatches($limit: Int = 100) {
-				allBulkRollbackBatches(
-					orderBy: [ID_DESC]
-					first: $limit
-				) {
-					nodes {
-						id
-						initiatedBy
-						activityLogIds
-						startedAt
-						completedAt
-						status
-						totalCount
-						processedCount
-						successfulCount
-						failedCount
-						failureDetails
-					}
+			query GetRecentBulkRollbackBatches($limit: Int!) {
+				bulkRollbackBatches(limit: $limit) {
+					id
+					initiatedBy
+					activityLogIds
+					startedAt
+					completedAt
+					status
+					totalCount
+					processedCount
+					successfulCount
+					failedCount
+					failureDetails
 				}
 			}
 		`;
@@ -153,7 +171,10 @@ export const load: PageServerLoad = async (event) => {
 			limit: 100
 		});
 
-		let recentBatches = batchesData.data?.allBulkRollbackBatches?.nodes || [];
+		let recentBatches = batchesData.data?.bulkRollbackBatches || [];
+
+		// Sort by ID DESC (client-side since Rust schema doesn't support orderBy)
+		recentBatches = recentBatches.sort((a: any, b: any) => b.id - a.id);
 
 		// Filter to user's batches (client-side since initiatedBy not in condition)
 		recentBatches = recentBatches.filter((batch: any) => batch.initiatedBy === locals.user.id);
@@ -168,11 +189,11 @@ export const load: PageServerLoad = async (event) => {
 		const formattedLogs = availableLogs.map((log: any) => ({
 			id: log.id,
 			employeeId: log.employeeId,
-			employee: log.userByEmployeeId
+			employee: log.employee
 				? {
-						id: log.userByEmployeeId.id,
-						name: `${log.userByEmployeeId.firstName} ${log.userByEmployeeId.lastName}`,
-						email: log.userByEmployeeId.email
+						id: log.employee.id,
+						name: log.employee.displayName,
+						email: log.employee.email
 					}
 				: null,
 			action: log.action,

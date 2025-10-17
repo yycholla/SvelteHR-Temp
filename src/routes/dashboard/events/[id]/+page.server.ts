@@ -49,7 +49,8 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 		}
 
 		// Determine user's RSVP status
-		const attendees = event.eventAttendeesByEventId?.nodes || [];
+		// NOTE: Using Rust GraphQL schema - direct array access (no .nodes wrapper)
+		const attendees = event.eventAttendees || event.attendees || [];
 		const userAttendee = attendees.find((a: any) => a.employeeId === locals.user.id);
 		const userRsvpStatus = userAttendee?.responseStatus || 'no_response';
 

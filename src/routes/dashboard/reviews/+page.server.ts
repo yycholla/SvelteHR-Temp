@@ -60,88 +60,89 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		}
 
 		// Query 1: Get performance reviews
-		const reviewsResponse = await client.query<{
-			allPerformanceReviews: {
-				nodes: Array<{
-					id: string;
-					employeeId: string;
-					reviewerId: string;
-					reviewType: string;
-					status: string;
-					reviewPeriodStart: string | null;
-					reviewPeriodEnd: string | null;
-					notes: string | null;
-					createdAt: string;
-					updatedAt: string;
-					userByEmployeeId: {
-						id: string;
-						displayName: string;
-						email: string;
-					};
-					userByReviewerId: {
-						id: string;
-						displayName: string;
-						email: string;
-					};
-				}>;
-				totalCount: number;
-				pageInfo: {
-					hasNextPage: boolean;
-					hasPreviousPage: boolean;
-				};
-			};
-		}>(
-			`
-			query GetPerformanceReviews(
-				$first: Int = 50
-				$offset: Int = 0
-				$orderBy: [PerformanceReviewsOrderBy!] = [ID_DESC]
-				$condition: PerformanceReviewCondition
-			) {
-				allPerformanceReviews(
-					first: $first
-					offset: $offset
-					orderBy: $orderBy
-					condition: $condition
-				) {
-					nodes {
+		// NOTE: Using Rust GraphQL schema (direct arrays, no .nodes wrapper)
+		// Build filter for server-side filtering
+		let filterCondition: any = null;
+		if (statusFilter && ['DRAFT', 'IN_PROGRESS', 'COMPLETED'].includes(statusFilter.toUpperCase())) {
+			filterCondition = { status: { equalTo: statusFilter.toUpperCase() } };
+		}
+
+		const reviewsQuery = filterCondition
+			? `
+			query GetPerformanceReviews($limit: Int!, $offset: Int!, $filter: PerformanceReviewFilter!) {
+				performanceReviews(limit: $limit, offset: $offset, filter: $filter) {
+					id
+					reviewType
+					status
+					reviewPeriodStart
+					reviewPeriodEnd
+					notes
+					createdAt
+					updatedAt
+					employee {
 						id
-						employeeId
-						reviewerId
-						reviewType
-						status
-						reviewPeriodStart
-						reviewPeriodEnd
-						notes
-						createdAt
-						updatedAt
-						userByEmployeeId {
-							id
-							displayName
-							email
-						}
-						userByReviewerId {
-							id
-							displayName
-							email
-						}
+						displayName
+						email
 					}
-					totalCount
-					pageInfo {
-						hasNextPage
-						hasPreviousPage
-						startCursor
-						endCursor
+					reviewer {
+						id
+						displayName
+						email
 					}
 				}
 			}
-		`,
-			{
-				first: limit,
-				offset,
-				orderBy: ['ID_DESC'],
-				condition
+		`
+			: `
+			query GetPerformanceReviews($limit: Int!, $offset: Int!) {
+				performanceReviews(limit: $limit, offset: $offset) {
+					id
+					reviewType
+					status
+					reviewPeriodStart
+					reviewPeriodEnd
+					notes
+					createdAt
+					updatedAt
+					employee {
+						id
+						displayName
+						email
+					}
+					reviewer {
+						id
+						displayName
+						email
+					}
+				}
 			}
+		`;
+
+		const reviewsResponse = await client.query<{
+			performanceReviews: Array<{
+				id: string;
+				reviewType: string;
+				status: string;
+				reviewPeriodStart: string | null;
+				reviewPeriodEnd: string | null;
+				notes: string | null;
+				createdAt: string;
+				updatedAt: string;
+				employee: {
+					id: string;
+					displayName: string;
+					email: string;
+				};
+				reviewer: {
+					id: string;
+					displayName: string;
+					email: string;
+				};
+			}>;
+		}>(
+			reviewsQuery,
+			filterCondition
+				? { limit, offset, filter: filterCondition }
+				: { limit, offset }
 		);
 
 		// Log any GraphQL errors
@@ -158,40 +159,33 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 
 		const reviewsData = reviewsResponse.data;
 
-		// Map PostGraphile field names to expected format for backward compatibility
-		const mappedReviews = reviewsData?.allPerformanceReviews?.nodes.map((review: any) => ({
-			...review,
-			employee: review.userByEmployeeId,
-			reviewer: review.userByReviewerId
-		})) || [];
+		// Extract reviews directly (no .nodes wrapper)
+		let mappedReviews = reviewsData?.performanceReviews || [];
 
 		// Query 2: Get review types metadata
+		// NOTE: Using Rust GraphQL schema (direct arrays, no .nodes wrapper)
 		const metadataResponse = await client.query<{
-			reviewTypesMetadata: {
-				nodes: Array<{
-					value: string;
-					label: string;
-					description: string;
-					displayOrder: number;
-				}>;
-			};
+			reviewTypesMetadata: Array<{
+				value: string;
+				label: string;
+				description: string;
+				displayOrder: number;
+			}>;
 		}>(
 			`
-			query GetReviewTypesMetadata {
-				reviewTypesMetadata {
-					nodes {
-						value
-						label
-						description
-						displayOrder
-					}
+			query GetReviewTypesMetadata($limit: Int!) {
+				reviewTypesMetadata(limit: $limit) {
+					value
+					label
+					description
+					displayOrder
 				}
 			}
 		`,
-			{}
+			{ limit: 100 }
 		);
 
-		const metadataData = metadataResponse.data;
+		const metadataData = reviewsResponse.data;
 
 		// Query 3: Get all employees for employee selector (if user can create reviews)
 		let employees = [];
@@ -207,21 +201,18 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 					},
 					body: JSON.stringify({
 						query: `
-							query GetEmployeesForSelector($first: Int) {
-								allUsers(first: $first) {
-									nodes {
-										id
-										email
-										displayName
-										role
-										departmentId
-									}
-									totalCount
+							query GetEmployeesForSelector($limit: Int!) {
+								users(limit: $limit) {
+									id
+									email
+									displayName
+									role
+									departmentId
 								}
 							}
 						`,
 						variables: {
-							first: 200
+							limit: 200
 						}
 					})
 				});
@@ -239,7 +230,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 					});
 				}
 
-				employees = employeesData.data?.allUsers?.nodes || [];
+				employees = employeesData.data?.users || [];
 			} catch (empError) {
 				console.error('❌ Error loading employees:', empError);
 				employees = [];
@@ -261,14 +252,12 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 					body: JSON.stringify({
 						query: `
 							query GetEmployee($employeeId: UUID!) {
-								allUsers(condition: { id: $employeeId }, first: 1) {
-									nodes {
-										id
-										displayName
-										email
-										role
-										departmentId
-									}
+								users(limit: 1, filter: { id: { equalTo: $employeeId } }) {
+									id
+									displayName
+									email
+									role
+									departmentId
 								}
 							}
 						`,
@@ -289,8 +278,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 					});
 				}
 
-				if (employeeData.data?.allUsers?.nodes.length > 0) {
-					selectedEmployee = employeeData.data.allUsers.nodes[0];
+				if (employeeData.data?.users && employeeData.data.users.length > 0) {
+					selectedEmployee = employeeData.data.users[0];
 				}
 			} catch (empError) {
 				console.error('❌ Error loading employee:', empError);
@@ -313,7 +302,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		}
 
 		// Calculate statistics
-		const totalReviews = reviewsData?.allPerformanceReviews?.totalCount || 0;
+		const totalReviews = mappedReviews.length;
 		const draftCount = reviews.filter((r) => r.status === 'DRAFT').length;
 		const inProgressCount = reviews.filter((r) => r.status === 'IN_PROGRESS').length;
 		const completedCount = reviews.filter((r) => r.status === 'COMPLETED').length;
@@ -337,7 +326,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			},
 			reviews,
 			employees,
-			reviewTypesMetadata: metadataData.reviewTypesMetadata?.nodes || [],
+			reviewTypesMetadata: metadataData?.reviewTypesMetadata || [],
 			selectedEmployee,
 			stats: {
 				total: totalReviews,
@@ -355,8 +344,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 				limit,
 				total: totalReviews,
 				totalPages,
-				hasNextPage: reviewsData?.allPerformanceReviews?.pageInfo.hasNextPage || false,
-				hasPreviousPage: reviewsData?.allPerformanceReviews?.pageInfo.hasPreviousPage || false
+				hasNextPage: page < totalPages,
+				hasPreviousPage: page > 1
 			},
 			permissions: {
 				canCreate,

@@ -166,17 +166,20 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Add updated_at triggers to new tables
+-- Add updated_at triggers to new tables (drop first if exists for idempotency)
+DROP TRIGGER IF EXISTS update_emergency_contacts_updated_at ON hr_public.emergency_contacts;
 CREATE TRIGGER update_emergency_contacts_updated_at
     BEFORE UPDATE ON hr_public.emergency_contacts
     FOR EACH ROW
     EXECUTE FUNCTION hr_hidden.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_employee_vehicles_updated_at ON hr_public.employee_vehicles;
 CREATE TRIGGER update_employee_vehicles_updated_at
     BEFORE UPDATE ON hr_public.employee_vehicles
     FOR EACH ROW
     EXECUTE FUNCTION hr_hidden.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_compensation_records_updated_at ON hr_private.compensation_records;
 CREATE TRIGGER update_compensation_records_updated_at
     BEFORE UPDATE ON hr_private.compensation_records
     FOR EACH ROW

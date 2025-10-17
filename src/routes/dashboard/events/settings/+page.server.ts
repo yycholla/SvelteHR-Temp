@@ -36,7 +36,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		}
 
 		// Extract preferences or use defaults
-		const preferences: EventNotificationPreferences = result.data?.userById?.eventNotificationPreferences || {
+		// NOTE: Using Rust GraphQL schema - direct access (no userById wrapper)
+		const preferences: EventNotificationPreferences = result.data?.user?.eventNotificationPreferences || {
 			emailNotifications: true,
 			pushNotifications: false,
 			reminderDefaults: {

@@ -28,6 +28,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch: fet
 		const client = createUrqlClient(fetchFn);
 
 		// Query: Get performance review by ID
+		// NOTE: Using Rust GraphQL schema (direct arrays, no .nodes wrapper)
 		const reviewData = await executeQuery<{
 			performanceReview: {
 				id: string;
@@ -52,26 +53,24 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch: fet
 					displayName: string;
 					email: string;
 				};
-				reviewGoals: {
-					nodes: Array<{
+				reviewGoals: Array<{
+					id: string;
+					goalId: string;
+					createdAt: string;
+					goal: {
 						id: string;
-						goalId: string;
+						employeeId: string;
+						title: string;
+						description: string;
+						targetDate: string;
+						status: string;
+						progressPercentage: number | null;
+						deleted: boolean;
+						deletedAt: string | null;
 						createdAt: string;
-						goal: {
-							id: string;
-							employeeId: string;
-							title: string;
-							description: string;
-							targetDate: string;
-							status: string;
-							progressPercentage: number | null;
-							deleted: boolean;
-							deletedAt: string | null;
-							createdAt: string;
-							updatedAt: string;
-						};
-					}>;
-				};
+						updatedAt: string;
+					};
+				}>;
 			};
 		}>(client, GET_PERFORMANCE_REVIEW, {
 			id: reviewId
@@ -101,18 +100,17 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch: fet
 		const hasEditPermission = canEditReview(userId, userRole, review.reviewerId, review.status);
 
 		// Get all goals for the employee (for adding more goals)
+		// NOTE: Using Rust GraphQL schema (direct arrays, no .nodes wrapper)
 		const goalsData = await executeQuery<{
-			employeeGoals: {
-				nodes: Array<{
-					id: string;
-					title: string;
-					description: string;
-					targetDate: string;
-					status: string;
-					progressPercentage: number | null;
-					createdAt: string;
-				}>;
-			};
+			employeeGoals: Array<{
+				id: string;
+				title: string;
+				description: string;
+				targetDate: string;
+				status: string;
+				progressPercentage: number | null;
+				createdAt: string;
+			}>;
 		}>(client, GET_EMPLOYEE_GOALS, {
 			employeeId: review.employeeId,
 			first: 50,
@@ -120,14 +118,14 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch: fet
 		});
 
 		// Process associated goals
-		const associatedGoals = review.reviewGoals.nodes.map((rg) => ({
+		const associatedGoals = (review.reviewGoals || []).map((rg) => ({
 			...rg.goal,
 			linkedAt: rg.createdAt
 		}));
 
 		// Get available goals (not yet linked to this review)
 		const linkedGoalIds = associatedGoals.map((g) => g.id);
-		const availableGoals = goalsData.employeeGoals.nodes.filter(
+		const availableGoals = (goalsData.employeeGoals || []).filter(
 			(goal) => !linkedGoalIds.includes(goal.id)
 		);
 

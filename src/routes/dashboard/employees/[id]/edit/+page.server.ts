@@ -65,6 +65,7 @@ export const load: PageServerLoad = async (event) => {
 		const isViewingSelf = locals.user.id === employeeId;
 
 		// Load employee data and departments in parallel
+		// NOTE: Using Rust GraphQL schema (filter pattern, direct arrays)
 		const [employeeResponse, departmentsResponse] = await Promise.all([
 			fetch(graphqlEndpoint, {
 				method: 'POST',
@@ -72,11 +73,9 @@ export const load: PageServerLoad = async (event) => {
 				body: JSON.stringify({
 					query: `
 						query GetEmployeeById($id: UUID!) {
-							employee: userById(id: $id) {
+							users(limit: 1, filter: { id: { equalTo: $id } }) {
 								id
 								displayName
-								firstName
-								lastName
 								email
 								role
 								hireDate
@@ -90,45 +89,10 @@ export const load: PageServerLoad = async (event) => {
 								stateProvince
 								postalCode
 								country
-								departmentByDepartmentId {
+								department {
 									id
 									name
 									managerId
-								}
-								emergencyContactsByEmployeeId {
-									nodes {
-										id
-										fullName
-										relationship
-										phoneNumber
-										alternatePhone
-										email
-										addressLine1
-										addressLine2
-										city
-										stateProvince
-										postalCode
-										country
-										isPrimary
-										notes
-									}
-								}
-								employeeVehiclesByEmployeeId {
-									nodes {
-										id
-										make
-										model
-										year
-										color
-										licensePlate
-										stateProvince
-										parkingSpot
-										insuranceCompany
-										insurancePolicyNumber
-										insuranceExpiry
-										isPrimary
-										notes
-									}
 								}
 							}
 						}
@@ -158,14 +122,80 @@ export const load: PageServerLoad = async (event) => {
 		]);
 
 		// Check if employee exists
-		if (!employeeData?.data?.employee) {
+		const users = employeeData?.data?.users || [];
+		if (users.length === 0) {
 			throw error(404, 'Employee not found');
 		}
 
-		const employee = employeeData.data.employee;
+		const employee = users[0];
+
+		// Load related data separately (emergency contacts and vehicles)
+		const [emergencyContactsResponse, vehiclesResponse] = await Promise.all([
+			fetch(graphqlEndpoint, {
+				method: 'POST',
+				headers,
+				body: JSON.stringify({
+					query: `
+						query GetEmergencyContacts($employeeId: UUID!, $limit: Int!) {
+							emergencyContacts(limit: $limit, filter: { employeeId: { equalTo: $employeeId } }) {
+								id
+								fullName
+								relationship
+								phoneNumber
+								alternatePhone
+								email
+								addressLine1
+								addressLine2
+								city
+								stateProvince
+								postalCode
+								country
+								isPrimary
+								notes
+							}
+						}
+					`,
+					variables: { employeeId, limit: 50 }
+				})
+			}),
+			fetch(graphqlEndpoint, {
+				method: 'POST',
+				headers,
+				body: JSON.stringify({
+					query: `
+						query GetEmployeeVehicles($employeeId: UUID!, $limit: Int!) {
+							employeeVehicles(limit: $limit, filter: { employeeId: { equalTo: $employeeId } }) {
+								id
+								make
+								model
+								year
+								color
+								licensePlate
+								stateProvince
+								parkingSpot
+								insuranceCompany
+								insurancePolicyNumber
+								insuranceExpiry
+								isPrimary
+								notes
+							}
+						}
+					`,
+					variables: { employeeId, limit: 50 }
+				})
+			})
+		]);
+
+		const [emergencyContactsData, vehiclesData] = await Promise.all([
+			emergencyContactsResponse.json(),
+			vehiclesResponse.json()
+		]);
+
+		const emergencyContacts = emergencyContactsData?.data?.emergencyContacts || [];
+		const vehicles = vehiclesData?.data?.employeeVehicles || [];
 
 		// Check if user is the employee's manager
-		const isEmployeeManager = employee.departmentByDepartmentId?.managerId === locals.user.id;
+		const isEmployeeManager = employee.department?.managerId === locals.user.id;
 
 		// Determine edit permissions
 		const canEditContactInfo = isViewingSelf || isEmployeeManager || isAdmin;
@@ -182,38 +212,39 @@ export const load: PageServerLoad = async (event) => {
 					headers,
 					body: JSON.stringify({
 						query: `
-							query GetCurrentCompensation($employeeId: UUID!) {
-								allCompensationRecords(
-									condition: { employeeId: $employeeId }
-									orderBy: EFFECTIVE_DATE_DESC
-									first: 1
+							query GetCurrentCompensation($employeeId: UUID!, $limit: Int!) {
+								compensationRecords(
+									limit: $limit,
+									filter: { employeeId: { equalTo: $employeeId } }
 								) {
-									nodes {
-										id
-										salaryAmount
-										salaryCurrency
-										payFrequency
-										payType
-										hourlyRate
-										effectiveDate
-										endDate
-										bankName
-										bankAccountType
-										bankAccountNumberLast4
-										bankRoutingNumber
-										paymentMethod
-										taxIdLast4
-										notes
-									}
+									id
+									salaryAmount
+									salaryCurrency
+									payFrequency
+									payType
+									hourlyRate
+									effectiveDate
+									endDate
+									bankName
+									bankAccountType
+									bankAccountNumberLast4
+									bankRoutingNumber
+									paymentMethod
+									taxIdLast4
+									notes
 								}
 							}
 						`,
-						variables: { employeeId }
+						variables: { employeeId, limit: 1 }
 					})
 				});
 				const compensationData = await compensationResponse.json();
-				if (compensationData?.data?.allCompensationRecords?.nodes?.[0]) {
-					currentCompensation = compensationData.data.allCompensationRecords.nodes[0];
+				const compensationRecords = compensationData?.data?.compensationRecords || [];
+				if (compensationRecords.length > 0) {
+					// Get most recent by effectiveDate
+					currentCompensation = compensationRecords.sort((a: any, b: any) =>
+						new Date(b.effectiveDate).getTime() - new Date(a.effectiveDate).getTime()
+					)[0];
 				}
 			} catch (error) {
 				console.warn('[Employee Edit] Failed to load compensation data:', error);
@@ -229,8 +260,8 @@ export const load: PageServerLoad = async (event) => {
 			employee: {
 				id: employee.id,
 				displayName: employee.displayName,
-				firstName: employee.firstName,
-				lastName: employee.lastName,
+				firstName: employee.displayName?.split(' ')[0] || '',
+				lastName: employee.displayName?.split(' ').slice(1).join(' ') || '',
 				email: employee.email,
 				role: employee.role,
 				hireDate: employee.hireDate,
@@ -245,13 +276,11 @@ export const load: PageServerLoad = async (event) => {
 				stateProvince: canEditContactInfo ? employee.stateProvince : null,
 				postalCode: canEditContactInfo ? employee.postalCode : null,
 				country: canEditContactInfo ? employee.country : null,
-				department: employee.departmentByDepartmentId,
+				department: employee.department,
 				// Emergency contacts - only if authorized
-				emergencyContacts: canEditEmergencyContacts
-					? employee.emergencyContactsByEmployeeId?.nodes || []
-					: [],
+				emergencyContacts: canEditEmergencyContacts ? emergencyContacts : [],
 				// Vehicles - only if authorized
-				vehicles: canEditVehicles ? employee.employeeVehiclesByEmployeeId?.nodes || [] : [],
+				vehicles: canEditVehicles ? vehicles : [],
 				// Compensation - only if admin
 				compensation: canEditCompensation ? currentCompensation : null
 			},

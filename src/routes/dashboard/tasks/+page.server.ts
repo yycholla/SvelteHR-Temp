@@ -27,10 +27,10 @@ export const load: PageServerLoad = async (event) => {
 	const { createErrorResponse } = await import('$lib/models/error-response');
 	const { createUserSession } = await import('$lib/models/user-session');
 
-	// Create user session from server locals
+	// Create user session from server locals (session-based auth, no JWT token)
 	const userSession = createUserSession({
 		userId: locals.user.id,
-		jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
+		// jwtToken is optional for session-based authentication
 		roles: [locals.user.role || 'employee'],
 		permissions: locals.permissions || [],
 		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes from now
@@ -72,7 +72,7 @@ export const load: PageServerLoad = async (event) => {
 			userEmail: userSession.metadata.userEmail as string,
 			roles: userSession.roles,
 			permissions: userSession.permissions,
-			jwtToken: '', // Session-based auth doesn't use client-side JWT tokens
+			// jwtToken omitted for session-based auth
 			isAuthenticated: Boolean(userSession.isAuthenticated)
 		},
 		timeoutMs: 5000,
@@ -102,86 +102,90 @@ export const load: PageServerLoad = async (event) => {
 			hasParent
 		});
 
-		// Build filter condition
-		const condition: any = {};
+		// Build filter condition for GraphQL query (if filters are applied)
+		// Use the same pattern as the teams page: filter: { field: { equalTo: value } }
+		// Note: Can only filter on direct fields (status, priority), not foreign keys
+		// Foreign key filtering (assignee, taskType) will be done client-side
+		let filterCondition: any = null;
 
-		if (statusFilter) {
-			condition.status = statusFilter;
-		}
+		if (statusFilter || priorityFilter) {
+			filterCondition = {};
 
-		if (priorityFilter) {
-			condition.priority = priorityFilter;
-		}
+			if (statusFilter) {
+				filterCondition.status = { equalTo: statusFilter };
+			}
 
-		if (assigneeFilter) {
-			condition.assigneeId = assigneeFilter;
-		}
-
-		if (taskTypeFilter) {
-			condition.taskTypeId = taskTypeFilter;
-		}
-
-		// Handle parent task filter
-		if (hasParent === 'true') {
-			// Only subtasks (has parent)
-			condition.parentTaskId = { isNull: false };
-		} else if (hasParent === 'false') {
-			// Only top-level tasks (no parent)
-			condition.parentTaskId = { isNull: true };
+			if (priorityFilter) {
+				filterCondition.priority = { equalTo: priorityFilter };
+			}
 		}
 
 		// Load tasks with full relationships
-		// NOTE: Query updated to match Rust GraphQL schema (idiomatic naming)
-		// Removed: reminderTime, organizationId (fields don't exist in new schema)
+		// NOTE: Using Rust GraphQL schema conventions (similar to departments query)
+		// Returns direct array, not wrapped in .nodes
+		// Build query conditionally based on whether we have filters
+		// Note: Schema only exposes relationship objects, not the foreign key IDs directly
+		const taskFields = `
+			id
+			title
+			description
+			status
+			priority
+			dueDate
+			requiresManualReassignment
+			archived
+			createdAt
+			updatedAt
+			assignee {
+				id
+				displayName
+				email
+			}
+			creator {
+				id
+				displayName
+				email
+			}
+			taskType {
+				id
+				name
+			}
+			parentTask {
+				id
+				title
+				status
+			}
+		`;
+
 		const tasksResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
-				query: `
-					query GetTasksForDashboard($limit: Int, $offset: Int, $filter: TaskFilter) {
-						tasks(
-							limit: $limit
-							offset: $offset
-							filter: $filter
-							orderBy: "due_date_asc"
-						) {
-							id
-							title
-							description
-							status
-							priority
-							dueDate
-							assigneeId
-							createdBy
-							taskTypeId
-							parentTaskId
-							requiresManualReassignment
-							archived
-							createdAt
-							updatedAt
-							assignee {
-								id
-								displayName
-								email
-							}
-							creator {
-								id
-								displayName
-								email
-							}
-							parentTask {
-								id
-								title
-								status
-							}
+				query: filterCondition
+					? `
+					query GetTasksForDashboard($limit: Int!, $offset: Int!, $filter: TaskFilter!) {
+						tasks(limit: $limit, offset: $offset, filter: $filter) {
+							${taskFields}
+						}
+					}
+				`
+					: `
+					query GetTasksForDashboard($limit: Int!, $offset: Int!) {
+						tasks(limit: $limit, offset: $offset) {
+							${taskFields}
 						}
 					}
 				`,
-				variables: {
-					limit: limit,
-					offset: 0,
-					filter: Object.keys(condition).length > 0 ? condition : null
-				}
+				variables: filterCondition
+					? {
+							limit: limit,
+							offset: (page - 1) * limit,
+							filter: filterCondition
+						}
+					: {
+							limit: limit,
+							offset: (page - 1) * limit
+						}
 			})
 		});
 
@@ -216,14 +220,33 @@ export const load: PageServerLoad = async (event) => {
 			});
 		}
 
+		// Client-side filtering for parent task
+		if (hasParent === 'true') {
+			// Only subtasks (has parent)
+			tasks = tasks.filter((task: any) => task.parentTask != null);
+		} else if (hasParent === 'false') {
+			// Only top-level tasks (no parent)
+			tasks = tasks.filter((task: any) => task.parentTask == null);
+		}
+
+		// Client-side filtering for assignee
+		if (assigneeFilter) {
+			tasks = tasks.filter((task: any) => task.assignee?.id === assigneeFilter);
+		}
+
+		// Client-side filtering for task type
+		if (taskTypeFilter) {
+			tasks = tasks.filter((task: any) => task.taskType?.id === taskTypeFilter);
+		}
+
 		// Load assignees (users) for filter dropdown
 		const assigneesResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetUsersForAssigneeFilter($limit: Int) {
-						users(limit: $limit, filter: { is_active: true }) {
+					query GetUsersForAssigneeFilter($limit: Int!) {
+						users(limit: $limit) {
 							id
 							displayName
 							email
@@ -245,8 +268,8 @@ export const load: PageServerLoad = async (event) => {
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetTaskTypesForFilter($limit: Int) {
-						task_types(limit: $limit) {
+					query GetTaskTypesForFilter($limit: Int!) {
+						taskTypes(limit: $limit) {
 							id
 							name
 							description
@@ -284,7 +307,7 @@ export const load: PageServerLoad = async (event) => {
 			tasks,
 			totalTasks: tasks.length,
 			assignees: assigneesData?.data?.users || [],
-			taskTypes: taskTypesData?.data?.task_types || [],
+			taskTypes: taskTypesData?.data?.taskTypes || [],
 			taskStats,
 			filters: {
 				searchTerm,
