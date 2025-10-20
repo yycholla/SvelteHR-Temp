@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "user_sessions")]
+#[sea_orm(table_name = "user_sessions", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: Uuid,

@@ -12,7 +12,7 @@ use crate::{database::get_db_from_context, error::AppError};
 
 /// Permission entity - maps to hr_public.permissions table
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "permissions")]
+#[sea_orm(table_name = "permissions", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,

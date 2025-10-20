@@ -12,22 +12,23 @@ use crate::{database::get_db_from_context, error::AppError};
 
 /// Generated HR report
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "hr_reports")]
+#[sea_orm(table_name = "hr_reports", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub title: String,
     pub report_type: String,
-    pub data: JsonValue,
-    pub creator_id: Uuid,
-    pub generated_at: DateTime<Utc>,
+    pub generated_by: Uuid,
+    pub parameters: Option<JsonValue>,
+    pub file_path: Option<String>,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
         belongs_to = "crate::models::user::Entity",
-        from = "Column::CreatorId",
+        from = "Column::GeneratedBy",
         to = "crate::models::user::Column::Id"
     )]
     Creator,
@@ -42,14 +43,12 @@ pub struct CreateHRReportInput {
     pub title: String,
     #[graphql(name = "reportType")]
     pub report_type: String,
-    #[graphql(name = "category")]
-    pub category: String,
-    #[graphql(name = "data")]
-    pub data: String, // JSON string
-    #[graphql(name = "creatorId")]
-    pub creator_id: Uuid,
-    #[graphql(name = "departmentId")]
-    pub department_id: Uuid,
+    #[graphql(name = "parameters")]
+    pub parameters: Option<String>, // JSON string
+    #[graphql(name = "filePath")]
+    pub file_path: Option<String>,
+    #[graphql(name = "generatedBy")]
+    pub generated_by: Uuid,
 }
 
 /// GraphQL Object implementation with camelCase field names
@@ -69,25 +68,30 @@ impl Model {
         &self.report_type
     }
 
-    #[graphql(name = "data")]
-    async fn data(&self) -> String {
-        self.data.to_string()
+    #[graphql(name = "generatedBy")]
+    async fn generated_by(&self) -> Uuid {
+        self.generated_by
     }
 
-    #[graphql(name = "creatorId")]
-    async fn creator_id(&self) -> Uuid {
-        self.creator_id
+    #[graphql(name = "parameters")]
+    async fn parameters(&self) -> Option<String> {
+        self.parameters.as_ref().map(|v| v.to_string())
     }
 
-    #[graphql(name = "generatedAt")]
-    async fn generated_at(&self) -> DateTime<Utc> {
-        self.generated_at
+    #[graphql(name = "filePath")]
+    async fn file_path(&self) -> Option<&str> {
+        self.file_path.as_deref()
+    }
+
+    #[graphql(name = "createdAt")]
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
     }
 
     /// Creator relationship (lazy-loaded)
     async fn creator(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::User> {
         let db = get_db_from_context(ctx)?;
-        let user = crate::models::user::Entity::find_by_id(self.creator_id)
+        let user = crate::models::user::Entity::find_by_id(self.generated_by)
             .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;

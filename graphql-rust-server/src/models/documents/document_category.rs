@@ -12,7 +12,7 @@ use crate::{database::get_db_from_context, error::AppError};
 
 /// Document category for hierarchical organization
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "document_categories")]
+#[sea_orm(table_name = "document_categories", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,

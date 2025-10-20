@@ -4,6 +4,7 @@
 	 * Allows users to manage their profile settings, notification preferences, and theme
 	 */
 
+	import { onMount } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { toast } from 'svelte-sonner';
 	import * as Card from '$lib/components/ui/card';
@@ -13,6 +14,8 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Switch } from '$lib/components/ui/switch';
+	import { themeStore } from '$lib/stores/theme';
+	import type { Theme } from '$lib/stores/theme';
 	import {
 		User,
 		Bell,
@@ -62,6 +65,14 @@
 	let notificationPrefs = $state({ ...data.notificationPreferences });
 	let selectedTheme = $state(data.themePreference);
 
+	// Initialize theme store with database value on mount
+	onMount(() => {
+		// Sync theme store with database value
+		if (data.themePreference && data.themePreference !== $themeStore.current) {
+			themeStore.setTheme(data.themePreference as Theme);
+		}
+	});
+
 	// Check if there are any changes
 	const hasChanges = $derived(
 		profileChanges.firstName !== (data.profile.firstName || '') ||
@@ -78,16 +89,51 @@
 			profileChanges.country !== (data.profile.country || 'United States')
 	);
 
-	// Handle form success
-	$effect(() => {
-		if (form?.success) {
-			toast.success(form.message);
-			// Reset reason field after successful submission
-			profileChanges.reason = '';
-		} else if (form?.error) {
-			toast.error(form.error);
+	// Handle theme update manually to avoid infinite loops
+	async function handleThemeSubmit(event: Event) {
+		event.preventDefault();
+
+		const form = event.target as HTMLFormElement;
+		const formData = new FormData(form);
+		const theme = formData.get('theme') as string;
+
+		console.log('[Settings] Submitting theme:', theme);
+
+		try {
+			const response = await fetch(form.action, {
+				method: 'POST',
+				body: formData,
+				headers: {
+					'Accept': 'application/json'
+				}
+			});
+
+			// SvelteKit form actions return JSON with type and data properties
+			const result = await response.json();
+			console.log('[Settings] Server response:', result);
+
+			if (result.type === 'success' || (response.ok && result.data?.success)) {
+				console.log('[Settings] Theme update successful');
+				toast.success(`Theme updated to ${theme}`);
+
+				// Apply theme immediately via theme store
+				themeStore.setTheme(theme as Theme);
+				console.log(
+					'[Settings] Theme applied. Current:',
+					$themeStore.current,
+					'Resolved:',
+					$themeStore.resolved
+				);
+			} else {
+				const errorMsg = result.data?.error || result.error || 'Failed to update theme';
+				console.error('[Settings] Theme update failed:', result);
+				toast.error(errorMsg);
+			}
+		} catch (error) {
+			console.error('[Settings] Theme update error:', error);
+			toast.error('Failed to update theme preference');
 		}
-	});
+	}
 </script>
 
 <svelte:head>
@@ -541,7 +587,7 @@
 					<Card.Description>Customize the look and feel of the application</Card.Description>
 				</Card.Header>
 				<Card.Content>
-					<form method="POST" action="?/updateTheme" use:enhance>
+					<form method="POST" action="?/updateTheme" onsubmit={handleThemeSubmit}>
 						<div class="space-y-6">
 							<div class="space-y-4">
 								<Label for="theme">Theme</Label>

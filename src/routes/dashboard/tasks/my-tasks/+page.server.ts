@@ -49,68 +49,16 @@ export const load: PageServerLoad = async (event) => {
 
 		console.log('[My Tasks] Loading tasks for user:', locals.user.id);
 
-		// Build filter condition for server-side filtering (status/priority only)
-		// Assignee filtering will be done client-side since schema doesn't expose assigneeId
-		let filterCondition: any = null;
-
-		if (statusFilter || priorityFilter) {
-			filterCondition = {};
-
-			if (statusFilter) {
-				filterCondition.status = { equalTo: statusFilter };
-			}
-
-			if (priorityFilter) {
-				filterCondition.priority = { equalTo: priorityFilter };
-			}
-		}
-
 		// Load user's tasks
-		// NOTE: Using Rust GraphQL schema conventions (same as main tasks dashboard)
-		// Returns direct arrays (no .nodes wrapper), no foreign key IDs exposed
+		// NOTE: Rust GraphQL schema supports assigneeId as a direct parameter
+		// Status/priority filtering will be done client-side
 		const tasksResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
-				query: filterCondition
-					? `
-					query GetMyTasks($limit: Int!, $offset: Int!, $filter: TaskFilter!) {
-						tasks(limit: $limit, offset: $offset, filter: $filter) {
-							id
-							title
-							description
-							status
-							priority
-							dueDate
-							requiresManualReassignment
-							archived
-							createdAt
-							updatedAt
-							assignee {
-								id
-								displayName
-								email
-							}
-							creator {
-								id
-								displayName
-								email
-							}
-							taskType {
-								id
-								name
-							}
-							parentTask {
-								id
-								title
-								status
-							}
-						}
-					}
-				`
-					: `
-					query GetMyTasks($limit: Int!, $offset: Int!) {
-						tasks(limit: $limit, offset: $offset) {
+				query: `
+					query GetMyTasks($userId: UUID!, $limit: Int!, $offset: Int!) {
+						tasks(assigneeId: $userId, limit: $limit, offset: $offset) {
 							id
 							title
 							description
@@ -143,16 +91,11 @@ export const load: PageServerLoad = async (event) => {
 						}
 					}
 				`,
-				variables: filterCondition
-					? {
-							limit: 100,
-							offset: 0,
-							filter: filterCondition
-						}
-					: {
-							limit: 100,
-							offset: 0
-						}
+				variables: {
+					userId: locals.user.id,
+					limit: 100,
+					offset: 0
+				}
 			})
 		});
 
@@ -166,9 +109,19 @@ export const load: PageServerLoad = async (event) => {
 
 		let tasks = tasksData?.data?.tasks || [];
 
-		// Client-side filtering for current user (assignee)
-		// Filter to only tasks assigned to the current user
-		tasks = tasks.filter((task: any) => task.assignee?.id === locals.user.id);
+		// Client-side filtering for status
+		if (statusFilter) {
+			// NOTE: Rust GraphQL returns enum values in SCREAMING_SNAKE_CASE
+			// Convert filter to uppercase to match
+			const statusUpper = statusFilter.toUpperCase().replace('-', '_');
+			tasks = tasks.filter((task: any) => task.status === statusUpper);
+		}
+
+		// Client-side filtering for priority
+		if (priorityFilter) {
+			const priorityUpper = priorityFilter.toUpperCase();
+			tasks = tasks.filter((task: any) => task.priority === priorityUpper);
+		}
 
 		// Client-side search filtering
 		if (searchTerm) {

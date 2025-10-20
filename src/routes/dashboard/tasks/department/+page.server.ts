@@ -4,8 +4,8 @@
 
 import type { PageServerLoad } from './$types';
 import { error, redirect } from '@sveltejs/kit';
-import { TasksOperations } from '$lib/graphql/tasks-operations';
-import { createUrqlClient } from '$lib/graphql/client';
+import { GraphQLClient } from '$lib/server/graphql-client';
+import { ensureBackendReady } from '$lib/server/backend-init';
 import type { TaskStatus, TaskPriority } from '$lib/graphql/types';
 
 export const load: PageServerLoad = async ({ locals, url, cookies }) => {
@@ -13,21 +13,6 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	if (!locals.user) {
 		throw redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
-
-	// Get user credentials for GraphQL operations
-	// Token retrieval removed - session auth handled by server hooks
-	if (!token) {
-		throw redirect(303, `/login?redirectTo=${url.pathname}`);
-	}
-
-	const userCredentials = {
-		jwtToken: token,
-		userId: locals.user.id,
-		roles: locals.roles || [],
-		permissions: locals.permissions || [],
-		isAuthenticated: true,
-		expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-	};
 
 	// Check if user has manager or higher privileges
 	const userPermissions = locals.permissions || [];
@@ -43,10 +28,11 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	}
 
 	try {
-		// Initialize GraphQL client and operations
-		// For server-side: createUrqlClient(fetchFn?, authToken?)
-		const urqlClient = createUrqlClient(undefined, token);
-		const tasksOps = new TasksOperations(urqlClient);
+		// Ensure backend is ready before proceeding
+		await ensureBackendReady();
+
+		// Create GraphQL client with authentication
+		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
 		// Get query parameters for filtering
 		const departmentId = url.searchParams.get('department');
@@ -56,24 +42,22 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		const page = parseInt(url.searchParams.get('page') || '1');
 		const limit = parseInt(url.searchParams.get('limit') || '50');
 
-		// Determine sort order for GraphQL
-		const orderByMap: Record<string, string> = {
-			priority: 'PRIORITY_DESC',
-			dueDate: 'DUE_DATE_ASC',
-			created: 'CREATED_AT_DESC',
-			status: 'STATUS_ASC'
-		};
-		const orderBy = orderByMap[sortBy] || 'PRIORITY_DESC';
-
 		// If no department selected and user manages only one department, auto-select it
 		let selectedDepartmentId = departmentId;
 		if (!selectedDepartmentId && locals.user.department_id) {
 			selectedDepartmentId = locals.user.department_id;
 		}
 
-		// For admins without department, show message prompting to select department
+		// Check if user is admin (can view all departments)
+		const userRoles = locals.roles || [];
+		const isAdmin =
+			userPermissions.includes('*') ||
+			userPermissions.includes('admin:read') ||
+			userRoles.includes('system_admin') ||
+			userRoles.includes('admin') ||
+			locals.user.role === 'system_admin' ||
+			locals.user.role === 'admin';
 
-		const isAdmin = userPermissions.includes('*') || userPermissions.includes('admin:read');
 		if (!selectedDepartmentId && !isAdmin) {
 			throw error(400, {
 				message:
@@ -81,39 +65,80 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			});
 		}
 
-		// Build filter for department tasks (only if department selected)
-		const filter: any = {};
+		// NOTE: Using Rust GraphQL schema - fetch all and filter client-side
+		let tasks: any[] = [];
+		let allTasks: any[] = [];
 
 		if (selectedDepartmentId) {
-			filter.departmentId = selectedDepartmentId;
-		}
+			// Fetch tasks for department
+			const tasksQuery = `
+				query GetDepartmentTasks($limit: Int!) {
+					tasks(limit: $limit) {
+						id
+						title
+						description
+						status
+						priority
+						dueDate
+						assigneeId
+						departmentId
+						creatorId
+						createdAt
+						updatedAt
+						assignee {
+							id
+							displayName
+							email
+						}
+						creator {
+							id
+							displayName
+							email
+						}
+					}
+				}
+			`;
 
-		if (statusFilter) {
-			filter.status = statusFilter;
-		}
+			const tasksData = await graphqlClient.query(tasksQuery, { limit: 1000 });
+			let allTasksFromQuery = tasksData.data?.tasks || [];
 
-		if (priorityFilter) {
-			filter.priority = priorityFilter;
-		}
+			// Client-side filtering for department
+			allTasksFromQuery = allTasksFromQuery.filter(
+				(task: any) => task.departmentId === selectedDepartmentId
+			);
 
-		// Fetch department tasks (or empty if no department selected)
-		let tasksResult = { tasks: [], totalCount: 0, hasNextPage: false };
-		let allTasksResult = { tasks: [], totalCount: 0, hasNextPage: false };
+			// Client-side filtering for status
+			if (statusFilter) {
+				allTasksFromQuery = allTasksFromQuery.filter((task: any) => task.status === statusFilter);
+			}
 
-		if (selectedDepartmentId) {
-			tasksResult = await tasksOps.getDepartmentTasks({
-				first: limit,
-				offset: (page - 1) * limit,
-				filter,
-				userCredentials
-			});
+			// Client-side filtering for priority
+			if (priorityFilter) {
+				allTasksFromQuery = allTasksFromQuery.filter(
+					(task: any) => task.priority === priorityFilter
+				);
+			}
 
-			// Fetch all tasks without pagination for statistics
-			allTasksResult = await tasksOps.getDepartmentTasks({
-				first: 1000, // Reasonable max for statistics
-				filter: { departmentId: selectedDepartmentId },
-				userCredentials
-			});
+			// Client-side sorting (since Rust schema doesn't support orderBy)
+			const sortFunctions: Record<string, (a: any, b: any) => number> = {
+				priority: (a, b) => {
+					const priorityOrder = { HIGH: 3, MEDIUM: 2, LOW: 1 };
+					return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
+				},
+				dueDate: (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
+				created: (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+				status: (a, b) => a.status.localeCompare(b.status)
+			};
+
+			const sortFn = sortFunctions[sortBy] || sortFunctions.priority;
+			allTasksFromQuery.sort(sortFn);
+
+			// Store all filtered tasks for statistics
+			allTasks = allTasksFromQuery;
+
+			// Paginate client-side
+			const offset = (page - 1) * limit;
+			tasks = allTasksFromQuery.slice(offset, offset + limit);
 		}
 
 		// Get user's managed departments (for department selector)
@@ -121,19 +146,23 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 
 		if (isAdmin) {
 			// Admins can see all departments - fetch from database
+			// NOTE: Using Rust GraphQL schema - fetch and sort client-side
 			try {
 				const departmentsQuery = `
-					query GetAllDepartments {
-						departments(orderBy: NAME_ASC) {
+					query GetAllDepartments($limit: Int!) {
+						departments(limit: $limit) {
 							id
 							name
 						}
 					}
 				`;
-				const deptResult = await urqlClient.query(departmentsQuery, {}).toPromise();
+				const deptResult = await graphqlClient.query(departmentsQuery, { limit: 100 });
 
 				if (deptResult.data?.departments) {
-					managedDepartments = deptResult.data.departments;
+					// Client-side sorting by name (Rust schema doesn't support orderBy)
+					managedDepartments = deptResult.data.departments.sort((a: any, b: any) =>
+						a.name.localeCompare(b.name)
+					);
 				}
 			} catch (err) {
 				console.error('Error fetching departments for admin:', err);
@@ -162,11 +191,15 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		// Show department selector if admin or multiple departments available
 		const showDepartmentSelector = isAdmin || managedDepartments.length > 1;
 
+		// Calculate pagination info
+		const totalCount = allTasks.length;
+		const hasNextPage = page * limit < totalCount;
+
 		return {
-			tasks: tasksResult.tasks,
-			allTasks: allTasksResult.tasks,
-			totalCount: tasksResult.totalCount,
-			hasNextPage: tasksResult.hasNextPage,
+			tasks,
+			allTasks,
+			totalCount,
+			hasNextPage,
 			currentPage: page,
 			limit,
 			filters: {

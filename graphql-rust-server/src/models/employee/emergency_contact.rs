@@ -12,13 +12,13 @@ use crate::{database::get_db_from_context, error::AppError};
 
 /// Employee emergency contact information
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "emergency_contacts")]
+#[sea_orm(table_name = "emergency_contacts", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub employee_id: Uuid,
-    pub contact_name: String,
-    pub relationship: String,
+    pub name: String,
+    pub relationship: Option<String>,
     pub phone_number: String,
     pub email: Option<String>,
     pub is_primary: bool,
@@ -43,9 +43,8 @@ impl ActiveModelBehavior for ActiveModel {}
 pub struct CreateEmergencyContactInput {
     #[graphql(name = "employeeId")]
     pub employee_id: Uuid,
-    #[graphql(name = "contactName")]
-    pub contact_name: String,
-    pub relationship: String,
+    pub name: String,
+    pub relationship: Option<String>,
     #[graphql(name = "phoneNumber")]
     pub phone_number: String,
     pub email: Option<String>,
@@ -56,8 +55,7 @@ pub struct CreateEmergencyContactInput {
 /// Input for updating an emergency contact
 #[derive(Debug, Clone, InputObject)]
 pub struct UpdateEmergencyContactInput {
-    #[graphql(name = "contactName")]
-    pub contact_name: Option<String>,
+    pub name: Option<String>,
     pub relationship: Option<String>,
     #[graphql(name = "phoneNumber")]
     pub phone_number: Option<String>,
@@ -78,13 +76,12 @@ impl Model {
         self.employee_id
     }
 
-    #[graphql(name = "contactName")]
-    async fn contact_name(&self) -> &str {
-        &self.contact_name
+    async fn name(&self) -> &str {
+        &self.name
     }
 
-    async fn relationship(&self) -> &str {
-        &self.relationship
+    async fn relationship(&self) -> Option<&str> {
+        self.relationship.as_deref()
     }
 
     #[graphql(name = "phoneNumber")]

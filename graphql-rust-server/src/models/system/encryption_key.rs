@@ -13,7 +13,7 @@ use crate::{database::get_db_from_context, error::AppError};
 
 /// SeaORM Encryption key entity
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "encryption_keys")]
+#[sea_orm(table_name = "encryption_keys", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,

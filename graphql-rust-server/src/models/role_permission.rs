@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 /// Role-Permission junction entity - maps to hr_public.role_permissions table
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "role_permissions")]
+#[sea_orm(table_name = "role_permissions", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,

@@ -18,10 +18,14 @@ pub struct Document {
     pub title: String,
     pub description: Option<String>,
     pub category_id: Option<Uuid>,
+    pub uploaded_by: Uuid,
     pub file_path: String,
-    pub file_size: i32,
+    pub file_size: i64,
     pub mime_type: String,
-    pub uploader_id: Uuid,
+    pub access_level: String,
+    pub is_encrypted: bool,
+    pub expiry_date: Option<DateTime<Utc>>,
+    pub version_number: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
@@ -29,17 +33,22 @@ pub struct Document {
 
 /// Core document metadata
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "documents")]
+#[sea_orm(table_name = "documents", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub title: String,
     pub description: Option<String>,
     pub category_id: Option<Uuid>,
-    pub file_path: String,
-    pub file_size: i32,
-    pub mime_type: String,
+    #[sea_orm(column_name = "uploaded_by")]
     pub uploader_id: Uuid,
+    pub file_path: String,
+    pub file_size: i64,
+    pub mime_type: String,
+    pub access_level: String,
+    pub is_encrypted: bool,
+    pub expiry_date: Option<DateTime<Utc>>,
+    pub version_number: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
@@ -73,11 +82,19 @@ pub struct CreateDocumentInput {
     #[graphql(name = "filePath")]
     pub file_path: String,
     #[graphql(name = "fileSize")]
-    pub file_size: i32,
+    pub file_size: i64,
     #[graphql(name = "mimeType")]
     pub mime_type: String,
     #[graphql(name = "uploaderId")]
     pub uploader_id: Uuid,
+    #[graphql(name = "accessLevel")]
+    pub access_level: String,
+    #[graphql(name = "isEncrypted")]
+    pub is_encrypted: bool,
+    #[graphql(name = "expiryDate")]
+    pub expiry_date: Option<DateTime<Utc>>,
+    #[graphql(name = "versionNumber")]
+    pub version_number: Option<i32>,
 }
 
 /// Input for updating a document
@@ -87,6 +104,14 @@ pub struct UpdateDocumentInput {
     pub description: Option<String>,
     #[graphql(name = "categoryId")]
     pub category_id: Option<Uuid>,
+    #[graphql(name = "accessLevel")]
+    pub access_level: Option<String>,
+    #[graphql(name = "isEncrypted")]
+    pub is_encrypted: Option<bool>,
+    #[graphql(name = "expiryDate")]
+    pub expiry_date: Option<DateTime<Utc>>,
+    #[graphql(name = "versionNumber")]
+    pub version_number: Option<i32>,
 }
 
 /// GraphQL Object implementation with camelCase field names
@@ -115,7 +140,7 @@ impl Model {
     }
 
     #[graphql(name = "fileSize")]
-    async fn file_size(&self) -> i32 {
+    async fn file_size(&self) -> i64 {
         self.file_size
     }
 
@@ -124,9 +149,29 @@ impl Model {
         &self.mime_type
     }
 
+    #[graphql(name = "accessLevel")]
+    async fn access_level(&self) -> &str {
+        &self.access_level
+    }
+
+    #[graphql(name = "isEncrypted")]
+    async fn is_encrypted(&self) -> bool {
+        self.is_encrypted
+    }
+
     #[graphql(name = "uploaderId")]
     async fn uploader_id(&self) -> Uuid {
         self.uploader_id
+    }
+
+    #[graphql(name = "expiryDate")]
+    async fn expiry_date(&self) -> Option<DateTime<Utc>> {
+        self.expiry_date
+    }
+
+    #[graphql(name = "versionNumber")]
+    async fn version_number(&self) -> i32 {
+        self.version_number
     }
 
     #[graphql(name = "createdAt")]

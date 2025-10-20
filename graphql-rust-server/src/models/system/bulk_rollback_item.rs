@@ -13,7 +13,7 @@ use crate::{database::get_db_from_context, error::AppError};
 
 /// SeaORM Bulk rollback item entity
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "bulk_rollback_items")]
+#[sea_orm(table_name = "bulk_rollback_items", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,

@@ -27,7 +27,7 @@ export const load: PageServerLoad = async (event) => {
 		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
 		// Load actual goals from database using Rust GraphQL server
-		// Now that DB columns are renamed to match Rust expectations
+		// NOTE: Rust backend doesn't provide employeeGoalsCount query, use array length instead
 		const goalsQuery = `
 			query GetEmployeeGoals($limit: Int!, $offset: Int!) {
 				employeeGoals(limit: $limit, offset: $offset) {
@@ -41,13 +41,12 @@ export const load: PageServerLoad = async (event) => {
 					createdAt
 					updatedAt
 				}
-				employeeGoalsCount
 			}
 		`;
 
 		const result = await graphqlClient.query(goalsQuery, {
-			limit,
-			offset
+			limit: 1000, // Fetch large dataset for accurate count
+			offset: 0
 		});
 
 		if (!result.data) {
@@ -55,7 +54,7 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		const goals = result.data.employeeGoals || [];
-		const totalGoals = result.data.employeeGoalsCount || 0;
+		const totalGoals = goals.length; // Use array length instead of count query
 
 		// Transform goals data to expected format
 		const transformedGoals = goals.map((goal) => ({

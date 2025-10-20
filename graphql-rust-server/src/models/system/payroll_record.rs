@@ -14,7 +14,7 @@ use crate::{database::get_db_from_context, error::AppError};
 
 /// SeaORM Payroll record entity
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "payroll_records")]
+#[sea_orm(table_name = "payroll_records", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,

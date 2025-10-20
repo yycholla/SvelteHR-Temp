@@ -96,7 +96,7 @@ impl EventsOrderBy {
 
 /// Event entity - maps to hr_public.events table
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "events")]
+#[sea_orm(table_name = "events", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,

@@ -34,7 +34,7 @@ pub enum RsvpScope {
 
 /// Event attendee entity - maps to hr_public.event_attendees table
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "event_attendees")]
+#[sea_orm(table_name = "event_attendees", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,

@@ -7,8 +7,7 @@
 	import {
 		getTaskStatusColor,
 		getTaskPriorityColor,
-		isTaskOverdue,
-		calculateSubtaskProgress
+		isTaskOverdue
 	} from '$lib/graphql/tasks-operations';
 	import { formatDistance } from 'date-fns';
 

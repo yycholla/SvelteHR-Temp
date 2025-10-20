@@ -12,7 +12,7 @@ use crate::{database::get_db_from_context, error::AppError};
 
 /// SeaORM Event comment entity
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "event_comments")]
+#[sea_orm(table_name = "event_comments", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,

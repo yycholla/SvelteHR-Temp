@@ -55,9 +55,11 @@ COPY . .
 
 # Default command: run cargo-watch with automatic restart on changes
 # Watches Rust files and Cargo.toml, ignores target directory
+# Runs the GraphQL server binary specifically (not the migration CLI)
 CMD ["cargo", "watch", \
-    "-x", "run", \
+    "-x", "run --bin hr-graphql-server", \
     "--watch", "src", \
+    "--watch", "migration", \
     "--watch", "Cargo.toml", \
     "--watch", ".cargo", \
     "--ignore", "target/*", \

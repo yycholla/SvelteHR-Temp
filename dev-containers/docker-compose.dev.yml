@@ -17,8 +17,10 @@ services:
       POSTGRES_LOG_MIN_MESSAGES: 'info'
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
-      - ../db/init:/docker-entrypoint-initdb.d:ro
-      - ../db/migrations:/migrations:ro
+      # Note: Database schema now managed by SeaORM Rust migrations
+      # Old SQL init scripts disabled - migrations run from GraphQL server
+      # - ../db/init:/docker-entrypoint-initdb.d:ro
+      # - ../db/migrations:/migrations:ro
       - ../db/scripts:/usr/local/bin/db-scripts:ro
     ports:
       - '5433:5432' # Use different port to avoid conflicts
@@ -54,6 +56,7 @@ services:
       - ../graphql-rust-server/src:/app/src:ro
       - ../graphql-rust-server/tests:/app/tests:ro
       - ../graphql-rust-server/models:/app/models
+      - ../graphql-rust-server/migration:/app/migration:ro
       - ../graphql-rust-server/Cargo.toml:/app/Cargo.toml
       - ../graphql-rust-server/Cargo.lock:/app/Cargo.lock
       - ../graphql-rust-server/.cargo:/app/.cargo:ro

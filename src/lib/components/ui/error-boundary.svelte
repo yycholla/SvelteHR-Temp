@@ -63,10 +63,10 @@
 	let errorMessage = $derived(
 		!error ? 'Unknown error occurred' :
 		typeof error === 'string' ? error :
-		error?.message || 'Unknown error occurred'
+		error?.message ?? 'Unknown error occurred'
 	);
-	let errorStack = $derived(error ? (error?.stack || '') : '');
-	let errorName = $derived(error ? (error?.name || 'Error') : 'Error');
+	let errorStack = $derived(error ? (error?.stack ?? '') : '');
+	let errorName = $derived(error ? (error?.name ?? 'Error') : 'Error');
 </script>
 
 {#if error}

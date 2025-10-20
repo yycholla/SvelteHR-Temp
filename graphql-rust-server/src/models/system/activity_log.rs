@@ -13,7 +13,7 @@ use crate::{database::get_db_from_context, error::AppError, models::generated::p
 
 /// ActivityLog entity - maps to hr_public.activity_logs table
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "activity_logs")]
+#[sea_orm(table_name = "activity_logs", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,

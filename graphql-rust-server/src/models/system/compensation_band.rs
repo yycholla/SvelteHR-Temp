@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 /// SeaORM Compensation band entity
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "compensation_bands")]
+#[sea_orm(table_name = "compensation_bands", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,

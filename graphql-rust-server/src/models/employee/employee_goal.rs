@@ -36,20 +36,22 @@ impl GoalStatus {
 
 /// Employee goal tracking
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "employee_goals")]
+#[sea_orm(table_name = "employee_goals", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub employee_id: Uuid,
-    #[sea_orm(column_name = "goal_title")]
+    #[sea_orm(column_name = "title")]
     pub title: String,
-    #[sea_orm(column_name = "goal_description")]
+    #[sea_orm(column_name = "description")]
     pub description: Option<String>,
     pub target_date: Option<NaiveDate>,
     pub status: String, // Will be converted to enum in GraphQL
+    #[sea_orm(column_name = "progress")]
     pub progress_percentage: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

@@ -145,7 +145,15 @@ export const GET_PENDING_APPROVALS = gql`
 			leaveRequests {
 				id
 				employeeName
-				leaveType
+				leaveType {
+					id
+					name
+					color
+					icon
+					defaultDaysPerYear
+					requiresApproval
+					isPaid
+				}
 				startDate
 				endDate
 				reason
@@ -243,7 +251,12 @@ export const GET_TEAM_DASHBOARD = gql`
 				employees {
 					id
 					name
-					leaveType
+					leaveType {
+						id
+						name
+						color
+						icon
+					}
 				}
 			}
 		}

@@ -13,18 +13,36 @@ export const load: PageServerLoad = async ({ url, locals, fetch }) => {
 
 	const userId = locals.user.id;
 	const userPermissions = locals.permissions || [];
+	const userRoles = locals.roles || [];
 
-	// Step 2: Check user permissions - users with audit log permissions can access
-	const canAccessAuditLog =
+	// Step 2: Check user role - only system_admin can access audit logs
+	const isSystemAdmin =
 		userPermissions.includes('*') ||
-		userPermissions.includes('documents:audit') ||
-		userPermissions.includes('audit:read');
+		userRoles.includes('system_admin') ||
+		locals.user.role === 'system_admin';
 
-	if (!canAccessAuditLog) {
+	if (!isSystemAdmin) {
+		// Log access attempt for audit purposes
+		console.warn('[DOCUMENT AUDIT ACCESS DENIED]', {
+			userId: locals.user.id,
+			userEmail: locals.user.email,
+			userRole: locals.user.role,
+			roles: userRoles,
+			permissions: userPermissions,
+			timestamp: new Date().toISOString()
+		});
+
 		throw error(403, {
-			message: 'Access denied. Only administrators can view audit logs.'
+			message: 'Insufficient permissions. Document audit logs require system administrator access.'
 		});
 	}
+
+	// Log successful access
+	console.info('[DOCUMENT AUDIT ACCESS GRANTED]', {
+		userId: locals.user.id,
+		userEmail: locals.user.email,
+		timestamp: new Date().toISOString()
+	});
 
 	try {
 		// Step 3: Parse query parameters
@@ -54,19 +72,19 @@ export const load: PageServerLoad = async ({ url, locals, fetch }) => {
 			}
 
 			if (accessType) {
-				conditions.push(`dal.action = $${paramIndex++}`);
+				conditions.push(`dal.access_type = $${paramIndex++}`);
 				params.push(accessType);
 			}
 
 			if (dateFrom) {
-				conditions.push(`dal.accessed_at >= $${paramIndex++}`);
+				conditions.push(`dal.created_at >= $${paramIndex++}`);
 				params.push(new Date(dateFrom));
 			}
 
 			if (dateTo) {
 				const endDate = new Date(dateTo);
 				endDate.setHours(23, 59, 59, 999); // End of day
-				conditions.push(`dal.accessed_at <= $${paramIndex++}`);
+				conditions.push(`dal.created_at <= $${paramIndex++}`);
 				params.push(endDate);
 			}
 
@@ -91,18 +109,19 @@ export const load: PageServerLoad = async ({ url, locals, fetch }) => {
 					dal.id,
 					dal.document_id,
 					dal.user_id,
-					dal.action,
-					dal.accessed_at,
+					dal.access_type,
+					dal.created_at as accessed_at,
 					dal.ip_address,
-					dal.user_agent,
 					u.email as user_email,
+					u.first_name,
+					u.last_name,
 					d.title as document_title,
 					d.mime_type as document_type
 				 FROM hr_public.document_access_logs dal
 				 LEFT JOIN hr_public.users u ON dal.user_id = u.id
 				 LEFT JOIN hr_public.documents d ON dal.document_id = d.id
 				 ${whereClause}
-				 ORDER BY dal.accessed_at DESC
+				 ORDER BY dal.created_at DESC
 				 LIMIT $${paramIndex++} OFFSET $${paramIndex++}`,
 				params
 			);
@@ -127,7 +146,9 @@ export const load: PageServerLoad = async ({ url, locals, fetch }) => {
 				dateTo
 			},
 			user: locals.user,
-			userPermissions
+			userPermissions,
+			userRoles,
+			isSystemAdmin
 		};
 	} catch (err) {
 		console.error('Audit log load error:', err);

@@ -51,30 +51,26 @@ export const load: PageServerLoad = async (event) => {
 		console.log('[Team Tasks] Loading team tasks for user:', locals.user.id);
 
 		// First, get team members (users in the same department)
-		// NOTE: Query updated to match Rust GraphQL schema
-		// The users query only supports limit, offset, and status parameters
-		// We'll filter by department client-side
+		// NOTE: Rust GraphQL schema only supports limit and offset
+		// We'll filter by department and active status client-side
 		const teamMembersResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetTeamMembers($limit: Int, $status: UserStatus) {
-						users(
-							limit: $limit
-							status: $status
-						) {
+					query GetTeamMembers($limit: Int!) {
+						users(limit: $limit) {
 							id
 							displayName
 							email
 							role
 							departmentId
+							isActive
 						}
 					}
 				`,
 				variables: {
-					limit: 200,
-					status: 'active'
+					limit: 200
 				}
 			})
 		});
@@ -87,76 +83,28 @@ export const load: PageServerLoad = async (event) => {
 			throw new Error(teamMembersData.errors[0]?.message || 'Failed to load team members');
 		}
 
-		// Get all active users and filter to same department
+		// Get all users and filter to same department + active status
 		let teamMembers = teamMembersData?.data?.users || [];
 
-		// Filter to only users in the same department
+		// Filter to only active users in the same department
 		if (locals.user.departmentId) {
-			teamMembers = teamMembers.filter((m: any) => m.departmentId === locals.user.departmentId);
+			teamMembers = teamMembers.filter(
+				(m: any) => m.departmentId === locals.user.departmentId && m.isActive
+			);
 		}
 
 		const teamMemberIds = teamMembers.map((m: any) => m.id);
 
 		console.log('[Team Tasks] Found team members:', teamMemberIds.length);
 
-		// Build task filter condition for server-side filtering (status/priority only)
-		let filterCondition: any = null;
-
-		if (statusFilter || priorityFilter) {
-			filterCondition = {};
-
-			if (statusFilter) {
-				filterCondition.status = { equalTo: statusFilter };
-			}
-
-			if (priorityFilter) {
-				filterCondition.priority = { equalTo: priorityFilter };
-			}
-		}
-
 		// Load team tasks
-		// NOTE: Using Rust GraphQL schema conventions (same as other task pages)
+		// NOTE: Rust GraphQL schema doesn't support complex filters
+		// We'll do all filtering client-side
 		const tasksResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
-				query: filterCondition
-					? `
-					query GetTeamTasks($limit: Int!, $offset: Int!, $filter: TaskFilter!) {
-						tasks(limit: $limit, offset: $offset, filter: $filter) {
-							id
-							title
-							description
-							status
-							priority
-							dueDate
-							requiresManualReassignment
-							archived
-							createdAt
-							updatedAt
-							assignee {
-								id
-								displayName
-								email
-							}
-							creator {
-								id
-								displayName
-								email
-							}
-							taskType {
-								id
-								name
-							}
-							parentTask {
-								id
-								title
-								status
-							}
-						}
-					}
-				`
-					: `
+				query: `
 					query GetTeamTasks($limit: Int!, $offset: Int!) {
 						tasks(limit: $limit, offset: $offset) {
 							id
@@ -191,16 +139,10 @@ export const load: PageServerLoad = async (event) => {
 						}
 					}
 				`,
-				variables: filterCondition
-					? {
-							limit: 200,
-							offset: 0,
-							filter: filterCondition
-						}
-					: {
-							limit: 200,
-							offset: 0
-						}
+				variables: {
+					limit: 200,
+					offset: 0
+				}
 			})
 		});
 
@@ -218,6 +160,19 @@ export const load: PageServerLoad = async (event) => {
 		tasks = tasks.filter((task: any) => {
 			return teamMemberIds.includes(task.assignee?.id);
 		});
+
+		// Client-side filtering for status
+		if (statusFilter) {
+			// NOTE: Rust GraphQL returns enum values in SCREAMING_SNAKE_CASE
+			const statusUpper = statusFilter.toUpperCase().replace('-', '_');
+			tasks = tasks.filter((task: any) => task.status === statusUpper);
+		}
+
+		// Client-side filtering for priority
+		if (priorityFilter) {
+			const priorityUpper = priorityFilter.toUpperCase();
+			tasks = tasks.filter((task: any) => task.priority === priorityUpper);
+		}
 
 		// Client-side filtering for assignee filter
 		if (assigneeFilter) {

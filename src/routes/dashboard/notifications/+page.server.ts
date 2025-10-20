@@ -32,29 +32,15 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		console.log('[Notifications] Loading notifications for user:', locals.user.id);
 
 		// Fetch user's notifications using Rust GraphQL backend
-		// NOTE: Query updated to match Rust GraphQL schema (idiomatic naming: user_id, unread_only)
-		// NOTE: Rust uses lowercase for enum values: "info", "task_assigned", etc.
+		// Migration: ✅ Use idiomatic Rust pattern (fetch all, filter client-side)
+		// Backend only supports userId, limit, offset - no type/category filtering
 		const notificationsResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetUserNotifications(
-						$userId: UUID
-						$unreadOnly: Boolean
-						$notificationType: NotificationType
-						$category: NotificationCategory
-						$limit: Int
-						$offset: Int
-					) {
-						notifications(
-							userId: $userId
-							unreadOnly: $unreadOnly
-							notificationType: $notificationType
-							category: $category
-							limit: $limit
-							offset: $offset
-						) {
+					query GetUserNotifications($userId: UUID!, $limit: Int!, $offset: Int!) {
+						notifications(userId: $userId, limit: $limit, offset: $offset) {
 							id
 							recipientId
 							type
@@ -72,11 +58,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 				`,
 				variables: {
 					userId: locals.user.id,
-					unreadOnly: readStatus ? readStatus === 'false' : null,
-					notificationType: typeFilter || null,
-					category: categoryFilter || null,
-					limit: limit,
-					offset: (page - 1) * limit
+					limit: 1000, // Fetch large set for client-side filtering
+					offset: 0
 				}
 			})
 		});
@@ -89,7 +72,30 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			throw new Error(notificationsData.errors[0]?.message || 'Failed to load notifications');
 		}
 
-		const notifications = notificationsData?.data?.notifications || [];
+		let notifications = notificationsData?.data?.notifications || [];
+
+		// Client-side filtering for category
+		if (categoryFilter) {
+			notifications = notifications.filter((n: any) => n.category === categoryFilter);
+		}
+
+		// Client-side filtering for type
+		if (typeFilter) {
+			notifications = notifications.filter((n: any) => n.type === typeFilter);
+		}
+
+		// Client-side filtering for read status
+		if (readStatus === 'true') {
+			notifications = notifications.filter((n: any) => n.readStatus === true);
+		} else if (readStatus === 'false') {
+			notifications = notifications.filter((n: any) => n.readStatus === false);
+		}
+
+		// Client-side pagination
+		const totalCount = notifications.length;
+		const startIndex = (page - 1) * limit;
+		const endIndex = startIndex + limit;
+		notifications = notifications.slice(startIndex, endIndex);
 
 		// Fetch unread count
 		const unreadCountResponse = await fetch(graphqlEndpoint, {
@@ -112,10 +118,11 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 
 		return {
 			notifications,
-			totalCount: notifications.length,
+			totalCount, // Total after filtering, before pagination
 			unreadCount,
 			currentPage: page,
 			limit,
+			hasNextPage: endIndex < totalCount,
 			filters: {
 				category: categoryFilter,
 				type: typeFilter,

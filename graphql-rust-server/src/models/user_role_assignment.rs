@@ -13,7 +13,7 @@ use crate::{database::get_db_from_context, error::AppError, models::generated::p
 
 /// UserRoleAssignment entity - maps to hr_public.user_role_assignments table
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "user_role_assignments")]
+#[sea_orm(table_name = "user_role_assignments", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,

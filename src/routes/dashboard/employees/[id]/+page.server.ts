@@ -42,12 +42,12 @@ export const load: PageServerLoad = async (event) => {
 	};
 
 	try {
-		// Make direct GraphQL calls to PostGraphile backend
+		// Make direct GraphQL calls to Rust GraphQL backend
 		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
 		// Headers for session-based authentication
-		// Forward session cookies to PostGraphile backend
+		// Forward session cookies to Rust GraphQL backend
 		const cookieHeader = event.request.headers.get('cookie') || '';
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json',
@@ -55,13 +55,17 @@ export const load: PageServerLoad = async (event) => {
 		};
 
 		console.log(
-			'[Employee Detail] Using PostGraphile with session-based auth, user role:',
+			'[Employee Detail] Using Rust GraphQL backend with session-based auth, user role:',
 			locals.user?.role
 		);
 
 		// Determine if user can view detailed employee information
-		const userRole = locals.user.role?.toLowerCase().replace('-', '_') || 'employee';
-		const isAdmin = ['super_admin', 'admin', 'hr_manager'].includes(userRole);
+		// Note: Role names from database: "system_admin", "Admin", "HR Manager", "Manager", "Employee"
+		const userRole = locals.user.role || '';
+		const isAdmin =
+			userRole === 'system_admin' ||
+			userRole === 'Admin' ||
+			userRole === 'HR Manager';
 		const isViewingSelf = locals.user.id === employeeId;
 
 		// Load employee data with all related information
@@ -72,35 +76,36 @@ export const load: PageServerLoad = async (event) => {
 			body: JSON.stringify({
 				query: `
 					query GetEmployeeById($id: UUID!) {
-						users(limit: 1, filter: { id: { equalTo: $id } }) {
+						user(id: $id) {
 							id
+							firstName
+							lastName
 							displayName
+							fullName
 							email
 							role
+							phone
+							alternatePhone
+							jobTitle
+							status
 							hireDate
 							isActive
 							departmentId
-							phoneNumber
-							mobileNumber
-							addressLine1
-							addressLine2
-							city
-							stateProvince
-							postalCode
-							country
 							createdAt
 							updatedAt
-							lastLogin
 							department {
 								id
 								name
 								description
-								managerId
-								manager {
-									id
-									displayName
-									role
-								}
+							}
+							primaryAddress {
+								id
+								addressLine1
+								addressLine2
+								city
+								stateProvince
+								postalCode
+								country
 							}
 						}
 					}
@@ -114,36 +119,28 @@ export const load: PageServerLoad = async (event) => {
 		const employeeData = await employeeResponse.json();
 
 		// Check if employee exists
-		const users = employeeData?.data?.users || [];
-		if (users.length === 0) {
+		const employee = employeeData?.data?.user;
+		if (!employee) {
 			throw error(404, 'Employee not found');
 		}
 
-		const employee = users[0];
-
 		// Load additional related data separately
-		// Emergency contacts
+		// Emergency contacts - migrated to Rust GraphQL backend
 		const emergencyContactsResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
 					query GetEmergencyContacts($employeeId: UUID!, $limit: Int!) {
-						emergencyContacts(limit: $limit, filter: { employeeId: { equalTo: $employeeId } }) {
+						emergencyContacts(employeeId: $employeeId, limit: $limit) {
 							id
-							fullName
+							name
 							relationship
 							phoneNumber
-							alternatePhone
 							email
-							addressLine1
-							addressLine2
-							city
-							stateProvince
-							postalCode
-							country
 							isPrimary
-							notes
+							createdAt
+							updatedAt
 						}
 					}
 				`,
@@ -153,27 +150,22 @@ export const load: PageServerLoad = async (event) => {
 		const emergencyContactsData = await emergencyContactsResponse.json();
 		const emergencyContacts = emergencyContactsData?.data?.emergencyContacts || [];
 
-		// Employee vehicles
+		// Employee vehicles - migrated to Rust GraphQL backend
 		const vehiclesResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
 					query GetEmployeeVehicles($employeeId: UUID!, $limit: Int!) {
-						employeeVehicles(limit: $limit, filter: { employeeId: { equalTo: $employeeId } }) {
+						employeeVehicles(employeeId: $employeeId, limit: $limit) {
 							id
 							make
 							model
 							year
 							color
 							licensePlate
-							stateProvince
-							parkingSpot
-							insuranceCompany
-							insurancePolicyNumber
-							insuranceExpiry
-							isPrimary
-							notes
+							createdAt
+							updatedAt
 						}
 					}
 				`,
@@ -183,14 +175,14 @@ export const load: PageServerLoad = async (event) => {
 		const vehiclesData = await vehiclesResponse.json();
 		const vehicles = vehiclesData?.data?.employeeVehicles || [];
 
-		// Leave requests
+		// Leave requests - migrated to Rust GraphQL backend
 		const leaveRequestsResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
 					query GetLeaveRequests($employeeId: UUID!, $limit: Int!) {
-						leaveRequests(limit: $limit, filter: { employeeId: { equalTo: $employeeId } }) {
+						leaveRequests(employeeId: $employeeId, limit: $limit) {
 							id
 							leaveType
 							startDate
@@ -207,14 +199,14 @@ export const load: PageServerLoad = async (event) => {
 		const leaveRequestsData = await leaveRequestsResponse.json();
 		const leaveRequests = leaveRequestsData?.data?.leaveRequests || [];
 
-		// Performance reviews
+		// Performance reviews - migrated to Rust GraphQL backend
 		const reviewsResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
 					query GetPerformanceReviews($employeeId: UUID!, $limit: Int!) {
-						performanceReviews(limit: $limit, filter: { employeeId: { equalTo: $employeeId } }) {
+						performanceReviews(employeeId: $employeeId, limit: $limit) {
 							id
 							reviewPeriod
 							overallRating
@@ -233,23 +225,24 @@ export const load: PageServerLoad = async (event) => {
 		const reviewsData = await reviewsResponse.json();
 		const performanceReviews = reviewsData?.data?.performanceReviews || [];
 
-		// Time off balances
+		// Leave balances - migrated to Rust GraphQL backend
 		const balancesResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetTimeOffBalances($employeeId: UUID!, $limit: Int!) {
-						timeOffBalances(limit: $limit, filter: { employeeId: { equalTo: $employeeId } }) {
+					query GetLeaveBalances($employeeId: UUID!, $limit: Int!) {
+						leaveBalances(employeeId: $employeeId, limit: $limit) {
 							id
 							year
-							balanceDays
+							totalDays
 							usedDays
-							policyId
-							policy {
+							remainingDays
+							leaveTypeId
+							leaveType {
 								id
 								name
-								daysPerYear
+								defaultDays
 							}
 						}
 					}
@@ -258,7 +251,7 @@ export const load: PageServerLoad = async (event) => {
 			})
 		});
 		const balancesData = await balancesResponse.json();
-		const timeOffBalances = balancesData?.data?.timeOffBalances || [];
+		const leaveBalances = balancesData?.data?.leaveBalances || [];
 
 		// Check if user is the employee's manager
 		const isEmployeeManager = employee.department?.managerId === locals.user.id;
@@ -269,6 +262,9 @@ export const load: PageServerLoad = async (event) => {
 		const canViewVehicles = isViewingSelf || isEmployeeManager || isAdmin;
 		const canViewCompensation = isAdmin; // Only admins and HR managers can view compensation
 
+		// Documents (licenses, contracts, employment docs) - management and above only
+		const canViewDocuments = isAdmin || isEmployeeManager;
+
 		// RBAC: Check if user can create reviews for this employee
 		// Admins and HR managers can create reviews for anyone
 		// Managers can create reviews for their direct reports
@@ -277,38 +273,42 @@ export const load: PageServerLoad = async (event) => {
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);
 
-		// Fetch documents assigned to this employee
+		// Fetch documents assigned to this employee (only if authorized)
 		const { transaction, setJWTClaims } = await import('$lib/server/db');
 		let assignedDocuments: any[] = [];
 		let availableDocuments: any[] = [];
 
-		try {
+		// Only load documents if user has permission to view them
+		if (canViewDocuments) {
+			try {
 			assignedDocuments = await transaction(async (client) => {
 				await setJWTClaims(client, locals.user.id, locals.user.role || 'employee');
 
 				const result = await client.query(
 					`SELECT
 						d.id,
-						d.filename,
-						d.file_type,
-						d.file_size_bytes,
-						d.category,
-						d.sensitivity_level,
-						d.uploaded_at,
+						d.title as filename,
+						d.mime_type as file_type,
+						d.file_size as file_size_bytes,
+						dc.name as category,
+						d.access_level as sensitivity_level,
+						d.created_at as uploaded_at,
 						d.uploaded_by,
 						u.email as uploaded_by_email,
-						da.assigned_at,
-						da.assignment_reason
+						da.created_at as assigned_at,
+						NULL as assignment_reason
 					 FROM hr_public.documents d
 					 INNER JOIN hr_public.document_assignments da ON d.id = da.document_id
 					 LEFT JOIN hr_public.users u ON d.uploaded_by = u.id
-					 WHERE da.employee_id = $1 AND d.is_deleted = false
-					 ORDER BY da.assigned_at DESC`,
+					 LEFT JOIN hr_public.document_categories dc ON d.category_id = dc.id
+					 WHERE da.user_id = $1 AND d.deleted_at IS NULL
+					 ORDER BY da.created_at DESC`,
 					[employeeId]
 				);
 
 				return result.rows;
 			});
+			console.log(`[Employee Detail] Loaded ${assignedDocuments.length} assigned documents for employee ${employeeId}`);
 		} catch (err) {
 			console.error('Failed to fetch employee documents:', err);
 			assignedDocuments = [];
@@ -323,7 +323,7 @@ export const load: PageServerLoad = async (event) => {
 
 					// First, get total count of documents
 					const countResult = await client.query(
-						`SELECT COUNT(*) as total FROM hr_public.documents WHERE is_deleted = false`
+						`SELECT COUNT(*) as total FROM hr_public.documents WHERE deleted_at IS NULL`
 					);
 					console.log(`[Employee Detail] Total documents in system: ${countResult.rows[0].total}`);
 
@@ -331,22 +331,23 @@ export const load: PageServerLoad = async (event) => {
 					const result = await client.query(
 						`SELECT
 							d.id,
-							d.filename,
-							d.file_type,
-							d.file_size_bytes,
-							d.category,
-							d.sensitivity_level,
-							d.uploaded_at,
+							d.title as filename,
+							d.mime_type as file_type,
+							d.file_size as file_size_bytes,
+							dc.name as category,
+							d.access_level as sensitivity_level,
+							d.created_at as uploaded_at,
 							d.uploaded_by,
 							u.email as uploaded_by_email
 						 FROM hr_public.documents d
 						 LEFT JOIN hr_public.users u ON d.uploaded_by = u.id
-						 WHERE d.is_deleted = false
+						 LEFT JOIN hr_public.document_categories dc ON d.category_id = dc.id
+						 WHERE d.deleted_at IS NULL
 						   AND NOT EXISTS (
 						       SELECT 1 FROM hr_public.document_assignments da
-						       WHERE da.document_id = d.id AND da.employee_id = $1
+						       WHERE da.document_id = d.id AND da.user_id = $1
 						   )
-						 ORDER BY d.uploaded_at DESC`,
+						 ORDER BY d.created_at DESC`,
 						[employeeId]
 					);
 
@@ -358,7 +359,10 @@ export const load: PageServerLoad = async (event) => {
 				availableDocuments = [];
 			}
 		} else {
-			console.log(`[Employee Detail] User is not admin, skipping available documents fetch`);
+			console.log(`[Employee Detail] User is not admin, skipping available documents for assignment (assigned documents still loaded)`);
+		}
+		} else {
+			console.log(`[Employee Detail] User does not have permission to view documents for employee ${employeeId}`);
 		}
 
 		// Return server-side loaded data
@@ -366,26 +370,29 @@ export const load: PageServerLoad = async (event) => {
 			userSession: userSession.toJSON(),
 			employee: {
 				id: employee.id,
+				firstName: employee.firstName,
+				lastName: employee.lastName,
 				displayName: employee.displayName,
-				firstName: employee.displayName?.split(' ')[0] || '',
-				lastName: employee.displayName?.split(' ').slice(1).join(' ') || '',
+				fullName: employee.fullName,
 				email: employee.email,
 				role: employee.role,
+				jobTitle: employee.jobTitle,
+				status: employee.status,
 				hireDate: employee.hireDate,
 				isActive: employee.isActive,
 				departmentId: employee.departmentId,
 				// Contact information - only if authorized
-				phoneNumber: canViewContactInfo ? employee.phoneNumber : null,
-				mobileNumber: canViewContactInfo ? employee.mobileNumber : null,
-				addressLine1: canViewContactInfo ? employee.addressLine1 : null,
-				addressLine2: canViewContactInfo ? employee.addressLine2 : null,
-				city: canViewContactInfo ? employee.city : null,
-				stateProvince: canViewContactInfo ? employee.stateProvince : null,
-				postalCode: canViewContactInfo ? employee.postalCode : null,
-				country: canViewContactInfo ? employee.country : null,
+				phoneNumber: canViewContactInfo ? employee.phone : null,
+				mobileNumber: canViewContactInfo ? employee.alternatePhone : null,
+				addressLine1: canViewContactInfo ? employee.primaryAddress?.addressLine1 : null,
+				addressLine2: canViewContactInfo ? employee.primaryAddress?.addressLine2 : null,
+				city: canViewContactInfo ? employee.primaryAddress?.city : null,
+				stateProvince: canViewContactInfo ? employee.primaryAddress?.stateProvince : null,
+				postalCode: canViewContactInfo ? employee.primaryAddress?.postalCode : null,
+				country: canViewContactInfo ? employee.primaryAddress?.country : null,
 				createdAt: employee.createdAt,
 				updatedAt: employee.updatedAt,
-				lastLogin: employee.lastLogin,
+				lastLogin: null, // Not in current GraphQL schema
 				department: employee.department,
 				// Emergency contacts - only if authorized
 				emergencyContacts: canViewEmergencyContacts ? emergencyContacts : [],
@@ -402,14 +409,14 @@ export const load: PageServerLoad = async (event) => {
 					reviewer: review.reviewer
 				})),
 				performanceReviewCount: performanceReviews.length,
-				timeOffBalances: timeOffBalances.map((balance: any) => ({
+				leaveBalances: leaveBalances.map((balance: any) => ({
 					id: balance.id,
 					year: balance.year,
-					balanceDays: balance.balanceDays,
+					totalDays: balance.totalDays,
 					usedDays: balance.usedDays,
-					remainingDays: balance.balanceDays - balance.usedDays,
-					policyName: balance.policy?.name || 'Unknown Policy',
-					totalDays: balance.policy?.daysPerYear || balance.balanceDays
+					remainingDays: balance.remainingDays,
+					leaveTypeName: balance.leaveType?.name || 'Unknown Leave Type',
+					leaveTypeDefaultDays: balance.leaveType?.defaultDays || balance.totalDays
 				})),
 				// Assigned documents
 				assignedDocuments: assignedDocuments.map((doc: any) => ({
@@ -444,7 +451,7 @@ export const load: PageServerLoad = async (event) => {
 				canViewVehicles,
 				canViewCompensation,
 				canCreateReviews,
-				canViewDocuments: isViewingSelf || isEmployeeManager || isAdmin,
+				canViewDocuments, // Management and above only
 				canAssignDocuments: isAdmin,
 				isEmployeeManager,
 				isViewingSelf,

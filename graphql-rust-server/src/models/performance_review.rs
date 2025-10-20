@@ -4,7 +4,6 @@
 
 use async_graphql::{Context, Enum, InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
-use rust_decimal::Decimal;
 use sea_orm::{entity::prelude::*, FromQueryResult, Related};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -33,25 +32,19 @@ impl PerformanceReviewStatus {
 
 /// PerformanceReview entity - maps to hr_public.performance_reviews table
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "performance_reviews")]
+#[sea_orm(table_name = "performance_reviews", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub employee_id: Uuid,
     pub reviewer_id: Uuid,
-    pub review_period: String,
+    pub cycle_id: Option<Uuid>,
+    pub template_id: Option<Uuid>,
     pub status: String,
-    pub overall_rating: Option<Decimal>,
-    pub goals: Option<String>,
-    pub achievements: Option<String>,
-    pub areas_for_improvement: Option<String>,
-    pub manager_feedback: Option<String>,
+    pub overall_rating: Option<i32>,
+    pub submitted_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    pub review_period_start: Option<chrono::NaiveDate>,
-    pub review_period_end: Option<chrono::NaiveDate>,
-    pub review_type: Option<String>,
-    pub notes: Option<String>,
     pub deleted_at: Option<DateTime<Utc>>,
 }
 
@@ -87,19 +80,28 @@ impl Model {
         self.id
     }
 
+    #[graphql(name = "employeeId")]
     /// Employee being reviewed
     async fn employee_id(&self) -> Uuid {
         self.employee_id
     }
 
+    #[graphql(name = "reviewerId")]
     /// Reviewer (usually manager)
     async fn reviewer_id(&self) -> Uuid {
         self.reviewer_id
     }
 
-    /// Review period (e.g., "2025-Q1", "2025-Annual")
-    async fn review_period(&self) -> &str {
-        &self.review_period
+    #[graphql(name = "cycleId")]
+    /// Review cycle ID
+    async fn cycle_id(&self) -> Option<Uuid> {
+        self.cycle_id
+    }
+
+    #[graphql(name = "templateId")]
+    /// Review template ID
+    async fn template_id(&self) -> Option<Uuid> {
+        self.template_id
     }
 
     /// Current status of the review
@@ -113,56 +115,25 @@ impl Model {
         }
     }
 
+    #[graphql(name = "overallRating")]
     /// Overall rating (1-5 scale)
-    async fn overall_rating(&self) -> Option<String> {
-        self.overall_rating.map(|d| d.to_string())
+    async fn overall_rating(&self) -> Option<i32> {
+        self.overall_rating
     }
 
-    /// Goals text
-    async fn goals(&self) -> Option<&str> {
-        self.goals.as_deref()
+    #[graphql(name = "submittedAt")]
+    /// When the review was submitted
+    async fn submitted_at(&self) -> Option<DateTime<Utc>> {
+        self.submitted_at
     }
 
-    /// Achievements text
-    async fn achievements(&self) -> Option<&str> {
-        self.achievements.as_deref()
-    }
-
-    /// Areas for improvement
-    async fn areas_for_improvement(&self) -> Option<&str> {
-        self.areas_for_improvement.as_deref()
-    }
-
-    /// Manager's feedback
-    async fn manager_feedback(&self) -> Option<&str> {
-        self.manager_feedback.as_deref()
-    }
-
-    /// Review period start date
-    async fn review_period_start(&self) -> Option<chrono::NaiveDate> {
-        self.review_period_start
-    }
-
-    /// Review period end date
-    async fn review_period_end(&self) -> Option<chrono::NaiveDate> {
-        self.review_period_end
-    }
-
-    /// Review type (annual, quarterly, probationary, etc.)
-    async fn review_type(&self) -> Option<&str> {
-        self.review_type.as_deref()
-    }
-
-    /// Additional notes
-    async fn notes(&self) -> Option<&str> {
-        self.notes.as_deref()
-    }
-
+    #[graphql(name = "createdAt")]
     /// Record creation timestamp
     async fn created_at(&self) -> DateTime<Utc> {
         self.created_at
     }
 
+    #[graphql(name = "updatedAt")]
     /// Record last update timestamp
     async fn updated_at(&self) -> DateTime<Utc> {
         self.updated_at
@@ -182,28 +153,59 @@ impl Model {
         Ok(reviewer)
     }
 
-    /// Employee being reviewed (legacy resolver for compatibility)
-    async fn user_by_employee_id(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
+    /// Review goals associated with this review
+    async fn goals(&self, ctx: &Context<'_>) -> GqlResult<Vec<super::review_goal::Model>> {
         let db = get_db_from_context(ctx)?;
-        let user = super::user::Entity::find_by_id(self.employee_id).one(&db).await?;
-        Ok(user)
+        let goals = super::review_goal::Entity::find()
+            .filter(super::review_goal::Column::PerformanceReviewId.eq(self.id))
+            .filter(super::review_goal::Column::DeletedAt.is_null())
+            .all(&db)
+            .await?;
+        Ok(goals)
     }
 
-    /// Reviewer (manager conducting the review) (legacy resolver for compatibility)
-    async fn user_by_reviewer_id(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
+    /// Review feedback associated with this review
+    async fn feedback(&self, ctx: &Context<'_>) -> GqlResult<Vec<super::review_feedback::Model>> {
         let db = get_db_from_context(ctx)?;
-        let reviewer = super::user::Entity::find_by_id(self.reviewer_id).one(&db).await?;
-        Ok(reviewer)
+        let feedback = super::review_feedback::Entity::find()
+            .filter(super::review_feedback::Column::PerformanceReviewId.eq(self.id))
+            .filter(super::review_feedback::Column::DeletedAt.is_null())
+            .all(&db)
+            .await?;
+        Ok(feedback)
     }
 
+    /// Manager feedback (convenience method - filters feedback by type)
+    #[graphql(name = "managerFeedback")]
+    async fn manager_feedback(&self, ctx: &Context<'_>) -> GqlResult<Option<String>> {
+        let db = get_db_from_context(ctx)?;
+        let feedback = super::review_feedback::Entity::find()
+            .filter(super::review_feedback::Column::PerformanceReviewId.eq(self.id))
+            .filter(super::review_feedback::Column::FeedbackType.eq("manager"))
+            .filter(super::review_feedback::Column::DeletedAt.is_null())
+            .one(&db)
+            .await?;
+        Ok(feedback.map(|f| f.content))
+    }
+
+    /// Review cycle this review belongs to
+    async fn cycle(&self, ctx: &Context<'_>) -> GqlResult<Option<super::review_cycle::Model>> {
+        if let Some(cycle_id) = self.cycle_id {
+            let db = get_db_from_context(ctx)?;
+            let cycle = super::review_cycle::Entity::find_by_id(cycle_id)
+                .filter(super::review_cycle::Column::DeletedAt.is_null())
+                .one(&db)
+                .await?;
+            Ok(cycle)
+        } else {
+            Ok(None)
+        }
+    }
+
+    #[graphql(name = "isCompleted")]
     /// Whether the review is completed
     async fn is_completed(&self) -> bool {
         self.status == "completed"
-    }
-
-    /// Whether manager review is complete
-    async fn has_manager_review(&self) -> bool {
-        self.manager_feedback.is_some() && self.overall_rating.is_some()
     }
 }
 
@@ -212,25 +214,26 @@ impl Model {
 /// PerformanceReview creation input
 #[derive(Debug, Clone, InputObject)]
 pub struct CreatePerformanceReviewInput {
+    #[graphql(name = "employeeId")]
     pub employee_id: Uuid,
+    #[graphql(name = "reviewerId")]
     pub reviewer_id: Uuid,
-    pub review_period: String,
+    #[graphql(name = "cycleId")]
+    pub cycle_id: Option<Uuid>,
+    #[graphql(name = "templateId")]
+    pub template_id: Option<Uuid>,
 }
 
 /// PerformanceReview update input
 #[derive(Debug, Clone, InputObject)]
 pub struct UpdatePerformanceReviewInput {
     pub status: Option<PerformanceReviewStatus>,
-    /// Overall rating as string (e.g., "4.5") - will be converted to Decimal
-    pub overall_rating: Option<String>,
-    pub goals: Option<String>,
-    pub achievements: Option<String>,
-    pub areas_for_improvement: Option<String>,
-    pub manager_feedback: Option<String>,
-    pub review_period_start: Option<chrono::NaiveDate>,
-    pub review_period_end: Option<chrono::NaiveDate>,
-    pub review_type: Option<String>,
-    pub notes: Option<String>,
+    #[graphql(name = "overallRating")]
+    pub overall_rating: Option<i32>,
+    #[graphql(name = "cycleId")]
+    pub cycle_id: Option<Uuid>,
+    #[graphql(name = "templateId")]
+    pub template_id: Option<Uuid>,
 }
 
 #[cfg(test)]
@@ -243,25 +246,17 @@ mod tests {
             id: Uuid::new_v4(),
             employee_id: Uuid::new_v4(),
             reviewer_id: Uuid::new_v4(),
-            review_period: "2025-Annual".to_string(),
+            cycle_id: Some(Uuid::new_v4()),
+            template_id: Some(Uuid::new_v4()),
             status: "in_progress".to_string(),
-            overall_rating: Some(Decimal::new(40, 1)), // 4.0
-            goals: Some("Complete project X".to_string()),
-            achievements: Some("Delivered feature Y ahead of schedule".to_string()),
-            areas_for_improvement: Some("Communication could improve".to_string()),
-            manager_feedback: Some("Excellent performance overall".to_string()),
+            overall_rating: Some(4),
+            submitted_at: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
-            review_period_start: Some(chrono::NaiveDate::from_ymd_opt(2025, 1, 1).unwrap()),
-            review_period_end: Some(chrono::NaiveDate::from_ymd_opt(2025, 12, 31).unwrap()),
-            review_type: Some("annual".to_string()),
-            notes: Some("Additional notes here".to_string()),
             deleted_at: None,
         };
 
         assert_eq!(review.status, "in_progress");
-        assert_eq!(review.overall_rating, Some(Decimal::new(40, 1)));
-        assert_eq!(review.review_type, Some("annual".to_string()));
-        assert_eq!(review.review_period, "2025-Annual".to_string());
+        assert_eq!(review.overall_rating, Some(4));
     }
 }

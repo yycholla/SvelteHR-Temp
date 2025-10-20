@@ -8,7 +8,7 @@ use chrono::{DateTime, Utc};
 
 /// Sessions table model for tower-sessions
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
-#[sea_orm(table_name = "sessions")]
+#[sea_orm(table_name = "sessions", schema_name = "public")]
 pub struct Model {
     #[sea_orm(primary_key, column_type = "Text")]
     pub id: String,

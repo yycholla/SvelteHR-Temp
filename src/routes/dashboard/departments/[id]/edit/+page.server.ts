@@ -66,7 +66,7 @@ export const load: PageServerLoad = async (event) => {
 			body: JSON.stringify({
 				query: `
 					query GetDepartmentById($id: UUID!) {
-						departmentById(id: $id) {
+						department(id: $id) {
 							id
 							name
 							description
@@ -84,11 +84,11 @@ export const load: PageServerLoad = async (event) => {
 		const departmentData = await departmentResponse.json();
 
 		// Check if department exists
-		if (!departmentData?.data?.departmentById) {
+		if (!departmentData?.data?.department) {
 			throw error(404, 'Department not found');
 		}
 
-		const department = departmentData.data.departmentById;
+		const department = departmentData.data.department;
 
 		// Get manager data if managerId exists
 		let manager = null;
@@ -99,7 +99,7 @@ export const load: PageServerLoad = async (event) => {
 				body: JSON.stringify({
 					query: `
 						query GetUserById($id: UUID!) {
-							userById(id: $id) {
+							user(id: $id) {
 								id
 								displayName
 							}
@@ -110,17 +110,18 @@ export const load: PageServerLoad = async (event) => {
 			});
 
 			const managerData = await managerResponse.json();
-			manager = managerData?.data?.userById || null;
+			manager = managerData?.data?.user || null;
 		}
 
 		// Get active users for department assignment
+		// NOTE: Rust GraphQL doesn't support filter parameters, fetch all and filter server-side
 		const usersResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
 					query GetActiveUsers {
-						users(isActive: true) {
+						users(limit: 1000) {
 							id
 							displayName
 							role

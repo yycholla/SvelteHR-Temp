@@ -9,13 +9,11 @@ interface PerformanceReview {
 	id: string;
 	employeeId: string;
 	reviewerId: string;
-	reviewPeriod: string;
+	cycleId: string | null;
+	templateId: string | null;
 	status: string;
-	overallRating: number;
-	goals: string;
-	achievements: string;
-	areasForImprovement: string;
-	managerFeedback: string;
+	overallRating: number | null;
+	submittedAt: string | null;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -49,24 +47,45 @@ export const load: PageServerLoad = async (event) => {
 	const offset = (page - 1) * limit;
 	try {
 		// Query 1: Get performance reviews with pagination and filtering
-		// Using Rust GraphQL server schema
+		// Using Rust GraphQL server schema with normalized relationships
 		const reviewsQuery = `
 			query GetPerformanceReviews($limit: Int!, $offset: Int!) {
 				performanceReviews(limit: $limit, offset: $offset) {
 					id
 					employeeId
 					reviewerId
-					reviewPeriod
+					cycleId
+					templateId
 					status
 					overallRating
-					goals
-					achievements
-					areasForImprovement
-					managerFeedback
+					submittedAt
 					createdAt
 					updatedAt
+					employee {
+						id
+						email
+						displayName
+					}
+					reviewer {
+						id
+						email
+						displayName
+					}
+					cycle {
+						id
+						name
+						review_type
+						start_date
+						end_date
+					}
+					goals {
+						id
+						title
+						description
+						completionStatus
+					}
+					managerFeedback
 				}
-				performanceReviewsCount
 			}
 		`;
 
@@ -77,30 +96,11 @@ export const load: PageServerLoad = async (event) => {
 
 		const reviewsResponse = await client.query<{
 			performanceReviews: PerformanceReview[];
-			performanceReviewsCount: number;
 		}>(reviewsQuery, reviewsVariables);
 
 		const reviewsData = reviewsResponse.data;
 		if (!reviewsData) {
 			throw new Error('Failed to fetch performance reviews data');
-		}
-
-		// Query 2: Get performance review statistics using Rust GraphQL schema
-		// Note: overduePerformanceReviews query is failing due to missing due_date column
-		// We'll calculate overdue reviews client-side instead
-		const statsQuery = `
-			query GetPerformanceReviewStats {
-				performanceReviewsCount
-			}
-		`;
-
-		const statsResponse = await client.query<{
-			performanceReviewsCount: number;
-		}>(statsQuery, {});
-
-		const statsData = statsResponse.data;
-		if (!statsData) {
-			throw new Error('Failed to fetch performance review statistics');
 		}
 
 		// Query 3: Get all employees for employee selector (if user can create reviews)
@@ -173,35 +173,38 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		// Process performance reviews data (Rust GraphQL server returns status in lowercase)
-		const performanceReviews = reviewsData.performanceReviews.map((review) => ({
-			id: review.id.toString(),
-			nodeId: `node${review.id}`,
-			employeeId: review.employeeId,
-			reviewerId: review.reviewerId,
-			reviewPeriod: review.reviewPeriod,
-			status: review.status.toLowerCase(), // Ensure lowercase for UI
-			overallRating: review.overallRating,
-			goals: review.goals,
-			achievements: review.achievements,
-			areasForImprovement: review.areasForImprovement,
-			managerFeedback: review.managerFeedback,
-			createdAt: review.createdAt,
-			updatedAt: review.updatedAt,
-			employee: {
-				id: review.employeeId,
-				email: `employee${review.employeeId}@company.com`, // Placeholder
-				displayName: `Employee ${review.employeeId}`, // Placeholder
-				departmentId: null, // TODO: Get from separate query
-				department: null // TODO: Get from separate query
-			},
-			reviewer: review.reviewerId
-				? {
-						id: review.reviewerId,
-						email: `reviewer${review.reviewerId}@company.com`, // Placeholder
-						displayName: `Reviewer ${review.reviewerId}` // Placeholder
-					}
-				: null
-		}));
+		const performanceReviews = reviewsData.performanceReviews.map((review: any) => {
+			// Extract goals text from goals array
+			const goalsText = review.goals?.map((g: any) => g.title).join('; ') || '';
+
+			return {
+				id: review.id.toString(),
+				nodeId: `node${review.id}`,
+				employeeId: review.employeeId,
+				reviewerId: review.reviewerId,
+				cycleId: review.cycleId,
+				templateId: review.templateId,
+				reviewPeriod: review.cycleId ? `Cycle ${review.cycleId.slice(0, 8)}` : 'No cycle', // Fallback for now
+				status: review.status.toLowerCase(), // Ensure lowercase for UI
+				overallRating: review.overallRating || 0,
+				goals: goalsText,
+				achievements: '', // Not available in normalized structure
+				areasForImprovement: '', // Not available in normalized structure
+				managerFeedback: review.managerFeedback || '',
+				submittedAt: review.submittedAt,
+				createdAt: review.createdAt,
+				updatedAt: review.updatedAt,
+				employee: review.employee || {
+					id: review.employeeId,
+					email: 'unknown@company.com',
+					displayName: 'Unknown Employee',
+					departmentId: null,
+					department: null
+				},
+				reviewer: review.reviewer || null,
+				goalsArray: review.goals || [] // Keep full goals array for detailed view
+			};
+		});
 
 		// Client-side search filtering (PostGraphile doesn't support text search natively)
 		let filteredReviews = performanceReviews;
@@ -216,7 +219,7 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		// Calculate statistics from the reviews data
-		const totalCount = reviewsData.performanceReviewsCount;
+		const totalCount = performanceReviews.length;
 		const completedCount = performanceReviews.filter((r) => r.status === 'completed').length;
 		const inProgressCount = performanceReviews.filter((r) => r.status === 'in_progress').length;
 		const notStartedCount = performanceReviews.filter((r) => r.status === 'not_started').length;
@@ -232,17 +235,18 @@ export const load: PageServerLoad = async (event) => {
 		// Calculate completion rate
 		const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-		// Calculate overdue reviews client-side (reviews not completed with past period)
+		// Calculate overdue reviews client-side
+		// Reviews without submission date that are older than 30 days are considered overdue
 		const overdueReviews = performanceReviews.filter((review) => {
-			if (review.status === 'completed') return false;
-			// Simple logic: Q1-Q4 2024 or earlier are overdue
-			const periodYear = parseInt(review.reviewPeriod.match(/\d{4}/)?.[0] || '0');
-			const currentYear = new Date().getFullYear();
-			return periodYear < currentYear;
+			if (review.status === 'completed' || review.submittedAt) return false;
+			const createdDate = new Date(review.createdAt);
+			const now = new Date();
+			const daysDiff = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+			return daysDiff > 30;
 		}).length;
 
 		// Pagination info
-		const totalPages = Math.ceil(reviewsData.performanceReviewsCount / limit);
+		const totalPages = Math.ceil(totalCount / limit);
 
 		return {
 			user: {
@@ -258,7 +262,7 @@ export const load: PageServerLoad = async (event) => {
 				accessToken: '' // Session-based auth doesn't use access tokens
 			},
 			performanceReviews: filteredReviews,
-			totalReviews: reviewsData.performanceReviewsCount,
+			totalReviews: totalCount,
 			employees,
 			reviewAnalytics: {
 				totalReviews: totalCount,
@@ -281,9 +285,9 @@ export const load: PageServerLoad = async (event) => {
 			pagination: {
 				page,
 				limit,
-				total: reviewsData.performanceReviewsCount,
+				total: totalCount,
 				totalPages,
-				hasNextPage: page * limit < reviewsData.performanceReviewsCount,
+				hasNextPage: page * limit < totalCount,
 				hasPreviousPage: page > 1
 			},
 			permissions: locals.permissions || [],

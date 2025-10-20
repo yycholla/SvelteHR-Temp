@@ -39,31 +39,23 @@ impl RollbackStatus {
 
 /// SeaORM Rollback request entity
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "rollback_requests")]
+#[sea_orm(table_name = "rollback_requests", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
-    pub activity_log_id: Uuid,
+    pub entity_type: String,
+    pub entity_id: Uuid,
     pub requested_by: Uuid,
-    pub requested_at: DateTime<Utc>,
     pub reason: String,
     #[sea_orm(column_type = "Text")]
     pub status: String, // Will be converted to enum in GraphQL
-    pub reviewed_by: Option<Uuid>,
-    pub reviewed_at: Option<DateTime<Utc>>,
-    pub review_reason: Option<String>,
+    pub approved_by: Option<Uuid>,
+    pub processed_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(
-        belongs_to = "crate::models::system::activity_log::Entity",
-        from = "Column::ActivityLogId",
-        to = "crate::models::system::activity_log::Column::Id"
-    )]
-    ActivityLog,
     #[sea_orm(
         belongs_to = "crate::models::user::Entity",
         from = "Column::RequestedBy",
@@ -72,10 +64,10 @@ pub enum Relation {
     RequestedBy,
     #[sea_orm(
         belongs_to = "crate::models::user::Entity",
-        from = "Column::ReviewedBy",
+        from = "Column::ApprovedBy",
         to = "crate::models::user::Column::Id"
     )]
-    ReviewedBy,
+    ApprovedBy,
 }
 
 impl ActiveModelBehavior for ActiveModel {}
@@ -84,23 +76,23 @@ impl ActiveModelBehavior for ActiveModel {}
 #[derive(Debug, Clone, Serialize, Deserialize, SimpleObject, FromRow)]
 pub struct RollbackRequest {
     pub id: Uuid,
-    pub activity_log_id: Uuid,
+    pub entity_type: String,
+    pub entity_id: Uuid,
     pub requested_by: Uuid,
-    pub requested_at: DateTime<Utc>,
     pub reason: String,
     pub status: RollbackStatus,
-    pub reviewed_by: Option<Uuid>,
-    pub reviewed_at: Option<DateTime<Utc>>,
-    pub review_reason: Option<String>,
+    pub approved_by: Option<Uuid>,
+    pub processed_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
 }
 
 /// Input for creating a new rollback request
 #[derive(Debug, Clone, InputObject)]
 pub struct CreateRollbackRequestInput {
-    #[graphql(name = "activityLogId")]
-    pub activity_log_id: Uuid,
+    #[graphql(name = "entityType")]
+    pub entity_type: String,
+    #[graphql(name = "entityId")]
+    pub entity_id: Uuid,
     pub reason: String,
 }
 
@@ -108,23 +100,23 @@ pub struct CreateRollbackRequestInput {
 #[derive(Debug, Clone, InputObject)]
 pub struct UpdateRollbackRequestInput {
     pub status: Option<RollbackStatus>,
-    #[graphql(name = "reviewedBy")]
-    pub reviewed_by: Option<Uuid>,
-    #[graphql(name = "reviewReason")]
-    pub review_reason: Option<String>,
+    #[graphql(name = "approvedBy")]
+    pub approved_by: Option<Uuid>,
 }
 
 /// Condition input for filtering rollback requests (PostGraphile-style)
 #[derive(Debug, Clone, InputObject)]
 pub struct RollbackRequestCondition {
     pub id: Option<Uuid>,
-    #[graphql(name = "activityLogId")]
-    pub activity_log_id: Option<Uuid>,
+    #[graphql(name = "entityType")]
+    pub entity_type: Option<String>,
+    #[graphql(name = "entityId")]
+    pub entity_id: Option<Uuid>,
     #[graphql(name = "requestedBy")]
     pub requested_by: Option<Uuid>,
     pub status: Option<RollbackStatus>,
-    #[graphql(name = "reviewedBy")]
-    pub reviewed_by: Option<Uuid>,
+    #[graphql(name = "approvedBy")]
+    pub approved_by: Option<Uuid>,
 }
 
 /// Ordering options for rollback requests
@@ -134,18 +126,14 @@ pub enum RollbackRequestsOrderBy {
     IdAsc,
     #[graphql(name = "ID_DESC")]
     IdDesc,
-    #[graphql(name = "REQUESTED_AT_ASC")]
-    RequestedAtAsc,
-    #[graphql(name = "REQUESTED_AT_DESC")]
-    RequestedAtDesc,
-    #[graphql(name = "STATUS_ASC")]
-    StatusAsc,
-    #[graphql(name = "STATUS_DESC")]
-    StatusDesc,
     #[graphql(name = "CREATED_AT_ASC")]
     CreatedAtAsc,
     #[graphql(name = "CREATED_AT_DESC")]
     CreatedAtDesc,
+    #[graphql(name = "STATUS_ASC")]
+    StatusAsc,
+    #[graphql(name = "STATUS_DESC")]
+    StatusDesc,
 }
 
 impl RollbackRequestsOrderBy {
@@ -153,12 +141,10 @@ impl RollbackRequestsOrderBy {
         match self {
             RollbackRequestsOrderBy::IdAsc => "id ASC",
             RollbackRequestsOrderBy::IdDesc => "id DESC",
-            RollbackRequestsOrderBy::RequestedAtAsc => "requested_at ASC",
-            RollbackRequestsOrderBy::RequestedAtDesc => "requested_at DESC",
-            RollbackRequestsOrderBy::StatusAsc => "status ASC",
-            RollbackRequestsOrderBy::StatusDesc => "status DESC",
             RollbackRequestsOrderBy::CreatedAtAsc => "created_at ASC",
             RollbackRequestsOrderBy::CreatedAtDesc => "created_at DESC",
+            RollbackRequestsOrderBy::StatusAsc => "status ASC",
+            RollbackRequestsOrderBy::StatusDesc => "status DESC",
         }
     }
 }
@@ -193,9 +179,14 @@ impl Model {
         self.id
     }
 
-    #[graphql(name = "activityLogId")]
-    async fn activity_log_id(&self) -> Uuid {
-        self.activity_log_id
+    #[graphql(name = "entityType")]
+    async fn entity_type(&self) -> &str {
+        &self.entity_type
+    }
+
+    #[graphql(name = "entityId")]
+    async fn entity_id(&self) -> Uuid {
+        self.entity_id
     }
 
     #[graphql(name = "requestedBy")]
@@ -210,7 +201,7 @@ impl Model {
 
     #[graphql(name = "requestedAt")]
     async fn requested_at(&self) -> DateTime<Utc> {
-        self.requested_at
+        self.created_at
     }
 
     async fn reason(&self) -> &str {
@@ -227,29 +218,29 @@ impl Model {
         }
     }
 
+    #[graphql(name = "approvedBy")]
+    async fn approved_by(&self) -> Option<Uuid> {
+        self.approved_by
+    }
+
     #[graphql(name = "reviewedBy")]
     async fn reviewed_by(&self) -> Option<Uuid> {
-        self.reviewed_by
+        self.approved_by
     }
 
     #[graphql(name = "reviewerId")]
     async fn reviewer_id(&self) -> Option<Uuid> {
-        self.reviewed_by
+        self.approved_by
+    }
+
+    #[graphql(name = "processedAt")]
+    async fn processed_at(&self) -> Option<DateTime<Utc>> {
+        self.processed_at
     }
 
     #[graphql(name = "reviewedAt")]
     async fn reviewed_at(&self) -> Option<DateTime<Utc>> {
-        self.reviewed_at
-    }
-
-    #[graphql(name = "reviewReason")]
-    async fn review_reason(&self) -> Option<&str> {
-        self.review_reason.as_deref()
-    }
-
-    #[graphql(name = "reviewNotes")]
-    async fn review_notes(&self) -> Option<&str> {
-        self.review_reason.as_deref()
+        self.processed_at
     }
 
     #[graphql(name = "createdAt")]
@@ -259,7 +250,7 @@ impl Model {
 
     #[graphql(name = "updatedAt")]
     async fn updated_at(&self) -> DateTime<Utc> {
-        self.updated_at
+        self.created_at
     }
 
     /// Requester relationship (simple name for frontend compatibility)
@@ -281,12 +272,12 @@ impl Model {
 
     /// Reviewer relationship (simple name for frontend compatibility)
     async fn reviewer(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<Option<crate::models::user::Model>> {
-        let Some(reviewed_by) = self.reviewed_by else {
+        let Some(approved_by) = self.approved_by else {
             return Ok(None);
         };
 
         let db = get_db_from_context(ctx)?;
-        let user = crate::models::user::Entity::find_by_id(reviewed_by)
+        let user = crate::models::user::Entity::find_by_id(approved_by)
             .one(&db)
             .await?;
 
@@ -299,26 +290,9 @@ impl Model {
         self.reviewer(ctx).await?
     }
 
-    /// Activity log relationship (simple name for frontend compatibility)
-    #[graphql(name = "activityLog")]
-    async fn activity_log_simple(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::system::activity_log::Model> {
-        let db = get_db_from_context(ctx)?;
-        let log = crate::models::system::activity_log::Entity::find_by_id(self.activity_log_id)
-            .one(&db)
-            .await?
-            .ok_or_else(|| AppError::NotFound("Activity log not found".to_string()))?;
-
-        Ok(log)
-    }
-
-    /// Activity log relationship (lazy-loaded)
-    async fn activity_log(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::ActivityLog> {
-        self.activity_log_simple(ctx).await?
-    }
-
-    /// PostGraphile-style alias for activity log
-    #[graphql(name = "activityLogByActivityLogId")]
-    async fn activity_log_by_activity_log_id(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::ActivityLog> {
-        self.activity_log_simple(ctx).await?
+    /// PostGraphile-style alias for approver
+    #[graphql(name = "userByApprovedBy")]
+    async fn user_by_approved_by(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<Option<crate::models::User>> {
+        self.reviewer(ctx).await?
     }
 }

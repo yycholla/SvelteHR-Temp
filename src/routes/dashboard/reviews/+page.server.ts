@@ -21,6 +21,13 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	const userId = locals.user.id;
 	const userRole = locals.user.role || 'employee';
 
+	// Check if user can create reviews (used later for employee loading)
+	const canCreate =
+		userRole === 'admin' ||
+		userRole === 'super_admin' ||
+		userRole === 'hr_manager' ||
+		userRole === 'manager';
+
 	// Extract search parameters
 	const page = parseInt(url.searchParams.get('page') || '1', 10);
 	const limit = parseInt(url.searchParams.get('limit') || '20', 10);
@@ -55,52 +62,18 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		}
 
 		// Apply type filter
-		if (typeFilter) {
-			condition.reviewType = typeFilter.toUpperCase();
-		}
+		// NOTE: Type filtering is done client-side after fetching, using cycle.review_type
+		// (condition object is not used by Rust GraphQL backend)
 
 		// Query 1: Get performance reviews
-		// NOTE: Using Rust GraphQL schema (direct arrays, no .nodes wrapper)
-		// Build filter for server-side filtering
-		let filterCondition: any = null;
-		if (statusFilter && ['DRAFT', 'IN_PROGRESS', 'COMPLETED'].includes(statusFilter.toUpperCase())) {
-			filterCondition = { status: { equalTo: statusFilter.toUpperCase() } };
-		}
-
-		const reviewsQuery = filterCondition
-			? `
-			query GetPerformanceReviews($limit: Int!, $offset: Int!, $filter: PerformanceReviewFilter!) {
-				performanceReviews(limit: $limit, offset: $offset, filter: $filter) {
-					id
-					reviewType
-					status
-					reviewPeriodStart
-					reviewPeriodEnd
-					notes
-					createdAt
-					updatedAt
-					employee {
-						id
-						displayName
-						email
-					}
-					reviewer {
-						id
-						displayName
-						email
-					}
-				}
-			}
-		`
-			: `
+		// NOTE: Rust GraphQL backend does NOT support filter parameter
+		// Fetch all reviews and filter client-side
+		const reviewsQuery = `
 			query GetPerformanceReviews($limit: Int!, $offset: Int!) {
 				performanceReviews(limit: $limit, offset: $offset) {
 					id
-					reviewType
 					status
-					reviewPeriodStart
-					reviewPeriodEnd
-					notes
+					overallRating
 					createdAt
 					updatedAt
 					employee {
@@ -112,6 +85,13 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 						id
 						displayName
 						email
+					}
+					cycle {
+						id
+						name
+						review_type
+						start_date
+						end_date
 					}
 				}
 			}
@@ -120,11 +100,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		const reviewsResponse = await client.query<{
 			performanceReviews: Array<{
 				id: string;
-				reviewType: string;
 				status: string;
-				reviewPeriodStart: string | null;
-				reviewPeriodEnd: string | null;
-				notes: string | null;
+				overallRating: number | null;
 				createdAt: string;
 				updatedAt: string;
 				employee: {
@@ -137,13 +114,15 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 					displayName: string;
 					email: string;
 				};
+				cycle: {
+					id: string;
+					name: string;
+					review_type: string;
+					start_date: string;
+					end_date: string;
+				} | null;
 			}>;
-		}>(
-			reviewsQuery,
-			filterCondition
-				? { limit, offset, filter: filterCondition }
-				: { limit, offset }
-		);
+		}>(reviewsQuery, { limit: 1000, offset: 0 });
 
 		// Log any GraphQL errors
 		if (reviewsResponse.errors && reviewsResponse.errors.length > 0) {
@@ -161,6 +140,16 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 
 		// Extract reviews directly (no .nodes wrapper)
 		let mappedReviews = reviewsData?.performanceReviews || [];
+
+		// Client-side filtering for status (Rust backend doesn't support filter parameter)
+		if (statusFilter && ['DRAFT', 'IN_PROGRESS', 'COMPLETED'].includes(statusFilter.toUpperCase())) {
+			mappedReviews = mappedReviews.filter(r => r.status === statusFilter.toUpperCase());
+		}
+
+		// Client-side filtering for type (using cycle.review_type)
+		if (typeFilter) {
+			mappedReviews = mappedReviews.filter(r => r.cycle?.review_type === typeFilter.toLowerCase());
+		}
 
 		// Query 2: Get review types metadata
 		// NOTE: Using Rust GraphQL schema (direct arrays, no .nodes wrapper)
@@ -238,38 +227,36 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		}
 
 		// Query 4: Get employee data if employee ID is provided (for create dialog)
+		// NOTE: Using Rust GraphQL schema - singular query for ID lookup
 		let selectedEmployee = null;
 		if (employeeId) {
 			try {
-				const { getGraphQLEndpoint } = await import('$lib/server/api-url');
-				const graphqlEndpoint = getGraphQLEndpoint();
+				const employeeResponse = await client.query<{
+					user: {
+						id: string;
+						displayName: string;
+						email: string;
+						role: string;
+						departmentId: string | null;
+					} | null;
+				}>(
+					`
+					query GetEmployee($employeeId: UUID!) {
+						user(id: $employeeId) {
+							id
+							displayName
+							email
+							role
+							departmentId
+						}
+					}
+				`,
+					{ employeeId }
+				);
 
-				const employeeResponse = await fetch(graphqlEndpoint, {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify({
-						query: `
-							query GetEmployee($employeeId: UUID!) {
-								users(limit: 1, filter: { id: { equalTo: $employeeId } }) {
-									id
-									displayName
-									email
-									role
-									departmentId
-								}
-							}
-						`,
-						variables: { employeeId }
-					})
-				});
-
-				const employeeData = await employeeResponse.json();
-
-				if (employeeData.errors && employeeData.errors.length > 0) {
+				if (employeeResponse.errors && employeeResponse.errors.length > 0) {
 					console.error('❌ GraphQL Errors in GetEmployee:');
-					employeeData.errors.forEach((err: any, idx: number) => {
+					employeeResponse.errors.forEach((err, idx) => {
 						console.error(`  Error ${idx + 1}:`, {
 							message: err.message,
 							path: err.path,
@@ -278,9 +265,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 					});
 				}
 
-				if (employeeData.data?.users && employeeData.data.users.length > 0) {
-					selectedEmployee = employeeData.data.users[0];
-				}
+				selectedEmployee = employeeResponse.data?.user || null;
 			} catch (empError) {
 				console.error('❌ Error loading employee:', empError);
 			}
@@ -297,7 +282,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 					review.employee?.displayName?.toLowerCase().includes(query) ||
 					review.employee?.email?.toLowerCase().includes(query) ||
 					review.reviewer?.displayName?.toLowerCase().includes(query) ||
-					review.notes?.toLowerCase().includes(query)
+					review.cycle?.name?.toLowerCase().includes(query)
 			);
 		}
 
@@ -309,13 +294,6 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 
 		// Pagination info
 		const totalPages = Math.ceil(totalReviews / limit);
-
-		// Check if user can create reviews
-		const canCreate =
-			userRole === 'admin' ||
-			userRole === 'super_admin' ||
-			userRole === 'hr_manager' ||
-			userRole === 'manager';
 
 		return {
 			user: {

@@ -161,7 +161,7 @@ export const load: PageServerLoad = async (event) => {
 				body: JSON.stringify({
 					query: `
 						query GetParentTaskInfo($taskId: UUID!) {
-							taskById(id: $taskId) {
+							task(id: $taskId) {
 								id
 								title
 								status
@@ -177,7 +177,7 @@ export const load: PageServerLoad = async (event) => {
 			});
 
 			const parentData = await parentResponse.json();
-			parentTask = parentData?.data?.taskById || null;
+			parentTask = parentData?.data?.task || null;
 		}
 
 		// Get standardized user permissions

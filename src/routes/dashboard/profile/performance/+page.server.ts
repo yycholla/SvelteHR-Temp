@@ -24,10 +24,10 @@ export const load: PageServerLoad = async (event) => {
 		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
 		// Load user details using new GraphQL client
-		// NOTE: Using Rust GraphQL schema (filter pattern, direct arrays)
+		// NOTE: Using Rust GraphQL schema - singular query for ID lookup
 		const userQuery = `
 			query GetUser($id: UUID!) {
-				users(limit: 1, filter: { id: { equalTo: $id } }) {
+				user(id: $id) {
 					id
 					email
 					displayName
@@ -43,28 +43,26 @@ export const load: PageServerLoad = async (event) => {
 		`;
 
 		const userData = await graphqlClient.query(userQuery, { id: userId });
-		const users = userData.data?.users || [];
-		const user = users.length > 0 ? users[0] : null;
+		const user = userData.data?.user || null;
 
 		if (!user) {
 			throw error(404, 'User not found');
 		}
 
 		// Load actual goals for this specific user
-		// NOTE: Using Rust GraphQL schema (filter pattern, direct arrays)
+		// NOTE: Using Rust GraphQL schema - direct parameter instead of filter
 		const userGoalsQuery = `
 			query GetUserGoals($employeeId: UUID!, $limit: Int!) {
-				employeeGoals(limit: $limit, filter: { employeeId: { equalTo: $employeeId } }) {
+				employeeGoals(employeeId: $employeeId, limit: $limit) {
 					id
-					title
-					description
+					goalTitle
+					goalDescription
 					status
 					progressPercentage
 					targetDate
 					createdAt
 					updatedAt
 				}
-				employeeGoalsCount(filter: { employeeId: { equalTo: $employeeId } })
 			}
 		`;
 
@@ -73,7 +71,18 @@ export const load: PageServerLoad = async (event) => {
 			limit: 100
 		});
 
-		const goals = goalsResult.data?.employeeGoals || [];
+		// Transform employeeGoals to match expected format
+		const rawGoals = goalsResult.data?.employeeGoals || [];
+		const goals = rawGoals.map((goal: any) => ({
+			id: goal.id,
+			title: goal.goalTitle,
+			description: goal.goalDescription,
+			status: goal.status,
+			progressPercentage: goal.progressPercentage,
+			targetDate: goal.targetDate,
+			createdAt: goal.createdAt,
+			updatedAt: goal.updatedAt
+		}));
 
 		// Calculate date ranges for current quarter
 		const currentDate = new Date();

@@ -36,19 +36,23 @@ impl AttendanceStatus {
 
 /// Daily attendance record
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "attendance_records")]
+#[sea_orm(table_name = "attendance_records", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
+    #[sea_orm(column_name = "employee_id")]
     pub user_id: Uuid,
     pub date: NaiveDate,
+    #[sea_orm(column_name = "check_in")]
     pub clock_in: Option<DateTime<Utc>>,
+    #[sea_orm(column_name = "check_out")]
     pub clock_out: Option<DateTime<Utc>>,
     pub hours_worked: Option<f64>,
     pub status: String, // Will be converted to enum in GraphQL
     pub notes: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

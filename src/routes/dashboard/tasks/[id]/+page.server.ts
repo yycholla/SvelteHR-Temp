@@ -66,15 +66,14 @@ export const load: PageServerLoad = async (event) => {
 		console.log('[Task Details] Loading task:', taskId);
 
 		// Load task with full relationships
-		// NOTE: Using simpler Rust GraphQL schema (similar to departments pattern)
-		// Query single task by filtering tasks with id
+		// NOTE: Using Rust GraphQL schema - singular query for ID lookup
 		const taskResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
 					query GetTaskDetails($taskId: UUID!) {
-						tasks(limit: 1, filter: { id: { equalTo: $taskId } }) {
+						task(id: $taskId) {
 							id
 							title
 							description
@@ -124,8 +123,7 @@ export const load: PageServerLoad = async (event) => {
 			throw new Error(taskData.errors[0]?.message || 'Failed to load task');
 		}
 
-		const tasks = taskData?.data?.tasks || [];
-		const task = tasks.length > 0 ? tasks[0] : null;
+		const task = taskData?.data?.task || null;
 
 		if (!task) {
 			throw error(404, { message: 'Task not found' });

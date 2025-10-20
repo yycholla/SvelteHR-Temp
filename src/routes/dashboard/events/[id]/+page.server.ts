@@ -161,9 +161,9 @@ export const actions: Actions = {
 				});
 			}
 
-			// Delete the event using nodeId
+			// Migration: ✅ Use idiomatic Rust pattern (eventId, not nodeId)
 			await eventsOps.deleteEvent({
-				nodeId: event.nodeId,
+				eventId: params.id,
 				userCredentials
 			});
 

@@ -375,13 +375,12 @@ export const actions: Actions = {
 			const endTimeUTC = endTime;
 
 			// Update the event using event ID
+			// Migration: ✅ Use idiomatic Rust pattern (id param, direct input fields)
 			await eventsOps.updateEvent({
+				id: eventId,
 				input: {
-					id: eventId,
-					eventPatch: {
-						startTime: startTimeUTC,
-						endTime: endTimeUTC
-					}
+					startTime: startTimeUTC,
+					endTime: endTimeUTC
 				},
 				userCredentials
 			});
@@ -471,20 +470,19 @@ export const actions: Actions = {
 			const startTimeUTC = startDate.toISOString();
 			const endTimeUTC = endDate.toISOString();
 
+			// Migration: ✅ Use idiomatic Rust pattern (direct input, no nested wrapper)
 			await eventsOps.createEvent({
 				input: {
-					event: {
-						title,
-						description,
-						eventType,
-						startTime: startTimeUTC,
-						endTime: endTimeUTC,
-						allDay: isAllDay,
-						location,
-						organizerId: locals.user.id,
-						isPublic,
-						status: 'scheduled'
-					}
+					title,
+					description,
+					eventType,
+					startTime: startTimeUTC,
+					endTime: endTimeUTC,
+					isAllDay: isAllDay,
+					location,
+					organizerId: locals.user.id,
+					isPublic,
+					status: 'scheduled'
 				},
 				userCredentials
 			});
@@ -563,19 +561,18 @@ export const actions: Actions = {
 			const startTimeUTC = startDate.toISOString();
 			const endTimeUTC = endDate.toISOString();
 
+			// Migration: ✅ Use idiomatic Rust pattern (id param, direct input fields)
 			await eventsOps.updateEvent({
+				id: eventId,
 				input: {
-					id: eventId,
-					eventPatch: {
-						title,
-						description,
-						eventType,
-						startTime: startTimeUTC,
-						endTime: endTimeUTC,
-						allDay: isAllDay,
-						location,
-						isPublic
-					}
+					title,
+					description,
+					eventType,
+					startTime: startTimeUTC,
+					endTime: endTimeUTC,
+					isAllDay: isAllDay,
+					location,
+					isPublic
 				},
 				userCredentials
 			});
@@ -697,29 +694,24 @@ export const actions: Actions = {
 				// Create new attendee record with RSVP status directly
 				console.log('[SERVER] Creating new attendee with RSVP status:', status);
 
-				// Use the createEventAttendee mutation directly with the desired status
+				// Migration: ✅ Use idiomatic Rust pattern (direct input, no nested wrapper)
 				const CREATE_ATTENDEE_WITH_STATUS = gql`
 					mutation CreateAttendeeWithStatus($input: CreateEventAttendeeInput!) {
 						createEventAttendee(input: $input) {
-							eventAttendee {
-								id
-								eventId
-								employeeId
-								responseStatus
-								respondedAt
-							}
+							id
+							eventId
+							employeeId
+							responseStatus
 						}
 					}
 				`;
 
 				const input = {
-					eventAttendee: {
-						eventId,
-						employeeId: locals.user.id,
-						responseStatus: status,
-						respondedAt: new Date().toISOString()
-						// Note: isOrganizer and isRequired are NOT part of EventAttendeeInput schema
-					}
+					eventId,
+					employeeId: locals.user.id,
+					responseStatus: status,
+					isOrganizer: false,
+					isRequired: false
 				};
 
 				console.log('[SERVER] Creating attendee with input:', input);
@@ -765,9 +757,10 @@ export const actions: Actions = {
 						throw new Error(result.error.message);
 					}
 				} else {
+					// Migration: ✅ Direct return value (no nested wrapper)
 					console.log(
 						'[SERVER] Created attendee:',
-						result.data?.createEventAttendee?.eventAttendee
+						result.data?.createEventAttendee
 					);
 				}
 			}

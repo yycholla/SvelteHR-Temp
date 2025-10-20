@@ -12,15 +12,36 @@ export const load: PageServerLoad = async ({ locals, fetch }) => {
 
 	const userId = locals.user.id;
 	const userPermissions = locals.permissions || [];
+	const userRoles = locals.roles || [];
 
-	// Step 2: Check user permissions - users with document upload permissions can upload
-	const canUpload = userPermissions.includes('*') || userPermissions.includes('documents:write');
+	// Step 2: Check user role - only system_admin can upload documents
+	const isSystemAdmin =
+		userPermissions.includes('*') ||
+		userRoles.includes('system_admin') ||
+		locals.user.role === 'system_admin';
 
-	if (!canUpload) {
+	if (!isSystemAdmin) {
+		// Log access attempt for audit purposes
+		console.warn('[DOCUMENT UPLOAD ACCESS DENIED]', {
+			userId: locals.user.id,
+			userEmail: locals.user.email,
+			userRole: locals.user.role,
+			roles: userRoles,
+			permissions: userPermissions,
+			timestamp: new Date().toISOString()
+		});
+
 		throw error(403, {
-			message: 'Insufficient permissions. You do not have permission to upload documents.'
+			message: 'Insufficient permissions. Document upload requires system administrator access.'
 		});
 	}
+
+	// Log successful access
+	console.info('[DOCUMENT UPLOAD ACCESS GRANTED]', {
+		userId: locals.user.id,
+		userEmail: locals.user.email,
+		timestamp: new Date().toISOString()
+	});
 
 	try {
 		// Step 3: Load document categories (would come from database)
@@ -35,41 +56,28 @@ export const load: PageServerLoad = async ({ locals, fetch }) => {
 			{ id: 'other', name: 'Other' }
 		];
 
-		// Step 4: Load employees for assignment (if admin/manager)
+		// Step 4: Load employees for assignment (system_admin can assign to all employees)
 		// TODO: Call GET /api/employees when integrated
-		let employees: any[] = [];
-		if (userPermissions.includes('*') || userPermissions.includes('documents:assign_all')) {
-			// Admin can assign to all employees
-			employees = []; // Would be populated from API
-		} else if (userPermissions.includes('documents:assign_team')) {
-			// Manager can assign to direct reports
-			// TODO: Call GET /api/employees/direct-reports
-			employees = []; // Would be populated from API
-		}
+		const employees: any[] = []; // Would be populated from API
 
 		// Step 5: Load departments for department-wide assignment
 		// TODO: Call GET /api/departments when integrated
-		let departments: any[] = [];
-		if (userPermissions.includes('*') || userPermissions.includes('departments:read')) {
-			departments = []; // Would be populated from API
-		}
+		const departments: any[] = []; // Would be populated from API
 
 		// Step 6: Load teams for team assignment
 		// TODO: Call GET /api/teams when integrated
-		let teams: any[] = [];
-		if (userPermissions.includes('*') || userPermissions.includes('teams:read')) {
-			teams = []; // Would be populated from API
-		}
+		const teams: any[] = []; // Would be populated from API
 
 		// Step 7: Return data for upload page
 		return {
 			user: locals.user,
 			userPermissions,
+			userRoles,
+			isSystemAdmin,
 			categories,
 			employees,
 			departments,
-			teams,
-			canUpload: true
+			teams
 		};
 	} catch (err) {
 		console.error('Upload page load error:', err);

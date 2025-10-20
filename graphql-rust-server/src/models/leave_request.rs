@@ -3,7 +3,8 @@
 //! Represents time-off requests with approval workflow.
 
 use async_graphql::{Context, Enum, InputObject, Object, Result as GqlResult};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
+use rust_decimal::Decimal;
 use sea_orm::{entity::prelude::*, FromQueryResult, Related};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -32,18 +33,22 @@ impl LeaveRequestStatus {
 
 /// LeaveRequest entity - maps to hr_public.leave_requests table
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "leave_requests")]
+#[sea_orm(table_name = "leave_requests", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub employee_id: Uuid,
-    pub manager_id: Option<Uuid>,
-    pub leave_type: String,
-    pub start_date: DateTime<Utc>,
-    pub end_date: DateTime<Utc>,
-    pub days_requested: i32,
+    pub leave_type_id: Uuid,
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
+    #[sea_orm(column_name = "total_days")]
+    pub days_requested: Decimal,
     pub status: String,
     pub reason: Option<String>,
+    #[sea_orm(column_name = "approved_by")]
+    pub manager_id: Option<Uuid>,
+    pub approved_at: Option<DateTime<Utc>>,
+    #[sea_orm(column_name = "rejection_reason")]
     pub manager_comments: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -92,24 +97,33 @@ impl Model {
         self.manager_id
     }
 
-    /// Leave type (enum value)
-    async fn leave_type(&self) -> &str {
-        &self.leave_type
+    /// Leave type ID (foreign key to leave_types)
+    async fn leave_type_id(&self) -> Uuid {
+        self.leave_type_id
+    }
+
+    /// Leave type details (relationship resolver)
+    async fn leave_type(&self, ctx: &Context<'_>) -> GqlResult<Option<super::leave_type::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let leave_type = super::leave_type::Entity::find_by_id(self.leave_type_id)
+            .one(&db)
+            .await?;
+        Ok(leave_type)
     }
 
     /// Leave start date
-    async fn start_date(&self) -> DateTime<Utc> {
+    async fn start_date(&self) -> NaiveDate {
         self.start_date
     }
 
     /// Leave end date
-    async fn end_date(&self) -> DateTime<Utc> {
+    async fn end_date(&self) -> NaiveDate {
         self.end_date
     }
 
-    /// Number of days requested
-    async fn days_requested(&self) -> i32 {
-        self.days_requested
+    /// Number of days requested (including fractional days like 0.5 for half-day)
+    async fn days_requested(&self) -> String {
+        self.days_requested.to_string()
     }
 
     /// Current status of the request
@@ -195,8 +209,8 @@ impl Model {
     }
 
     /// Duration in days (calculated from start/end dates)
-    async fn duration_days(&self) -> i32 {
-        self.days_requested
+    async fn duration_days(&self) -> String {
+        self.days_requested.to_string()
     }
 }
 
@@ -208,7 +222,8 @@ pub struct CreateLeaveRequestInput {
     pub leave_type_id: Uuid,
     pub start_date: DateTime<Utc>,
     pub end_date: DateTime<Utc>,
-    pub days_requested: i32,
+    /// Number of days (can be fractional like "0.5" for half-day)
+    pub days_requested: String,
     pub reason: Option<String>,
 }
 
@@ -217,7 +232,8 @@ pub struct CreateLeaveRequestInput {
 pub struct UpdateLeaveRequestInput {
     pub start_date: Option<DateTime<Utc>>,
     pub end_date: Option<DateTime<Utc>>,
-    pub days_requested: Option<i32>,
+    /// Number of days (can be fractional like "0.5" for half-day)
+    pub days_requested: Option<String>,
     pub reason: Option<String>,
 }
 
@@ -243,13 +259,14 @@ mod tests {
         let request = Model {
             id: Uuid::new_v4(),
             employee_id: Uuid::new_v4(),
-            manager_id: Some(Uuid::new_v4()),
-            leave_type: "annual".to_string(),
-            start_date: Utc::now(),
-            end_date: Utc::now(),
-            days_requested: 5,
+            leave_type_id: Uuid::new_v4(),
+            start_date: chrono::Utc::now().date_naive(),
+            end_date: chrono::Utc::now().date_naive(),
+            days_requested: Decimal::from(5),
             status: "pending".to_string(),
             reason: Some("Family vacation".to_string()),
+            manager_id: Some(Uuid::new_v4()),
+            approved_at: None,
             manager_comments: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
@@ -257,6 +274,6 @@ mod tests {
         };
 
         assert_eq!(request.status, "pending");
-        assert_eq!(request.days_requested, 5);
+        assert_eq!(request.days_requested, Decimal::from(5));
     }
 }

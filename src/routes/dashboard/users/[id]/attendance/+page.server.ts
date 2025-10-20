@@ -82,14 +82,12 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		// Load attendance records from database
+		// Migration: ✅ Use idiomatic Rust pattern (attendanceRecords with employeeId)
 		const attendanceQuery = `
-			query GetAttendanceRecords($userId: UUID!, $limit: Int) {
-				attendanceRecordsByEmployee(
-					userId: $userId
-					limit: $limit
-				) {
+			query GetAttendanceRecords($employeeId: UUID!, $limit: Int!, $offset: Int!) {
+				attendanceRecords(employeeId: $employeeId, limit: $limit, offset: $offset) {
 					id
-					userId
+					employeeId
 					date
 					clockIn
 					clockOut
@@ -101,15 +99,16 @@ export const load: PageServerLoad = async (event) => {
 		`;
 
 		const attendanceData = await graphqlClient.query(attendanceQuery, {
-			userId: userId,
-			limit: 90
+			employeeId: userId,
+			limit: 90,
+			offset: 0
 		});
 
 		console.log('[Attendance] GraphQL response:', JSON.stringify(attendanceData, null, 2));
 		console.log('[Attendance] Employee ID:', userId);
-		console.log('[Attendance] Records found:', attendanceData.data?.attendanceRecordsByEmployee?.length);
+		console.log('[Attendance] Records found:', attendanceData.data?.attendanceRecords?.length);
 
-		const attendanceRecords = (attendanceData.data?.attendanceRecordsByEmployee || []).map((record: any) => ({
+		const attendanceRecords = (attendanceData.data?.attendanceRecords || []).map((record: any) => ({
 			id: record.id,
 			date: record.date,
 			clockIn: record.clockIn,

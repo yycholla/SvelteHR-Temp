@@ -120,7 +120,11 @@ export const load: PageServerLoad = async (event) => {
 			query GetUserLeaveRequests {
 				leaveRequests(limit: 10) {
 					id
-					leaveType
+					leaveType {
+						id
+						name
+						color
+					}
 					startDate
 					endDate
 					daysRequested
@@ -212,9 +216,15 @@ export const load: PageServerLoad = async (event) => {
 			query GetRollbackRequests {
 				rollbackRequests(limit: 5, offset: 0) {
 					id
+					entityType
 					status
 					reason
 					createdAt
+					requester {
+						id
+						firstName
+						lastName
+					}
 				}
 			}
 		`;
@@ -383,7 +393,7 @@ export const load: PageServerLoad = async (event) => {
 		// Calculate remaining vacation days (sum approved + pending leave days)
 		const usedVacationDays = leaveRequests
 			.filter(
-				(r) => r.leaveType === 'vacation' && (r.status === 'approved' || r.status === 'pending')
+				(r) => r.leaveType?.name === 'vacation' && (r.status === 'approved' || r.status === 'pending')
 			)
 			.reduce((sum, r) => sum + (r.daysRequested || 0), 0);
 		const totalVacationDays = 20; // TODO: Get from user's time_off_balances table
@@ -517,13 +527,13 @@ export const load: PageServerLoad = async (event) => {
 			rollbackRequests: isSuperAdmin
 				? rollbackRequests.map((req) => ({
 						id: req.id,
-						requesterName: req.userByRequestedBy
-							? `${req.userByRequestedBy.firstName} ${req.userByRequestedBy.lastName}`
+						requesterName: req.requester
+							? `${req.requester.firstName} ${req.requester.lastName}`
 							: 'Unknown',
 						reason: req.reason || '',
-						resourceType: req.activityLogByActivityLogId?.resourceType || 'unknown',
+						resourceType: req.entityType || 'unknown',
 						status: req.status,
-						createdAt: req.requestedAt
+						createdAt: req.createdAt
 					}))
 				: [],
 			rollbackStats: isSuperAdmin ? rollbackStats : null,
@@ -727,7 +737,7 @@ function generateRecentActivities(
 		activities.push({
 			id: `leave-${leave.id}`,
 			title: `Leave request ${leave.status}`,
-			description: `${leave.leaveType} leave from ${leave.startDate} to ${leave.endDate}`,
+			description: `${leave.leaveType?.name || 'Unknown'} leave from ${leave.startDate} to ${leave.endDate}`,
 			icon: 'Calendar',
 			color: leave.status === 'approved' ? 'green' : leave.status === 'pending' ? 'orange' : 'red',
 			type: 'leave_request',
@@ -822,7 +832,7 @@ function generateRecentActivitiesFromLogs(
 			activities.push({
 				id: `leave-${leave.id}`,
 				title: `Leave request ${leave.status}`,
-				description: `${leave.leaveType} leave from ${leave.startDate} to ${leave.endDate}`,
+				description: `${leave.leaveType?.name || 'Unknown'} leave from ${leave.startDate} to ${leave.endDate}`,
 				icon: 'Calendar',
 				color:
 					leave.status === 'approved' ? 'green' : leave.status === 'pending' ? 'orange' : 'red',

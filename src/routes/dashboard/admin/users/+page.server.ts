@@ -27,43 +27,9 @@ export const load: PageServerLoad = async ({ locals, url, parent, cookies, fetch
 		// Create GraphQL client with server-side fetch (session-based auth)
 		const client = createUrqlClient(fetchFn);
 
-		// Build filter condition for server-side filtering
-		// Using Rust GraphQL schema pattern: filter: { field: { equalTo: value } }
-		let filterCondition: any = null;
-
-		if (statusFilter || departmentFilter) {
-			filterCondition = {};
-			if (statusFilter === 'active') {
-				filterCondition.isActive = { equalTo: true };
-			} else if (statusFilter === 'inactive') {
-				filterCondition.isActive = { equalTo: false };
-			}
-			if (departmentFilter) {
-				filterCondition.departmentId = { equalTo: departmentFilter };
-			}
-		}
-
-		// Query users with server-side filtering and pagination
-		// NOTE: Using Rust GraphQL schema (users query, no nested relationships)
-		const usersQuery = filterCondition
-			? `
-			query GetAllUsers($limit: Int!, $offset: Int!, $filter: UserFilter!) {
-				users(limit: $limit, offset: $offset, filter: $filter) {
-					id
-					email
-					displayName
-					role
-					isActive
-					createdAt
-					updatedAt
-					department {
-						id
-						name
-					}
-				}
-			}
-		`
-			: `
+		// NOTE: Rust GraphQL backend does NOT support complex filter parameter
+		// Fetch all users and filter client-side for department, status, and role
+		const usersQuery = `
 			query GetAllUsers($limit: Int!, $offset: Int!) {
 				users(limit: $limit, offset: $offset) {
 					id
@@ -92,12 +58,10 @@ export const load: PageServerLoad = async ({ locals, url, parent, cookies, fetch
 		`;
 
 		// Execute queries in parallel with executeQuery helper
-		const variables = filterCondition
-			? { limit, offset, filter: filterCondition }
-			: { limit, offset };
-
+		// NOTE: Rust backend uses offset-based pagination (limit/offset), not cursor-based (first/after)
+		// Fetch large dataset for client-side filtering
 		const [usersData, departmentsData] = await Promise.all([
-			executeQuery(client, usersQuery, variables),
+			executeQuery(client, usersQuery, { limit: 1000, offset: 0 }),
 			executeQuery(client, departmentsQuery, { limit: 100, offset: 0 })
 		]);
 
@@ -108,16 +72,34 @@ export const load: PageServerLoad = async ({ locals, url, parent, cookies, fetch
 		const uniqueRoles = [...new Set(users.map((u: any) => u.role))];
 		const roles = uniqueRoles.filter(Boolean).map((name) => ({ id: name, name }));
 
-		// Apply client-side filter for role
+		// Client-side filtering for all criteria (Rust backend doesn't support complex filters)
 		let filteredUsers = users;
+
+		// Filter by role
 		if (roleFilter) {
 			filteredUsers = filteredUsers.filter((u: any) => u.role === roleFilter);
 		}
 
+		// Filter by department
+		if (departmentFilter) {
+			filteredUsers = filteredUsers.filter((u: any) => u.department?.id === departmentFilter);
+		}
+
+		// Filter by status
+		if (statusFilter === 'active') {
+			filteredUsers = filteredUsers.filter((u: any) => u.isActive === true);
+		} else if (statusFilter === 'inactive') {
+			filteredUsers = filteredUsers.filter((u: any) => u.isActive === false);
+		}
+
+		// Client-side pagination
 		const totalCount = filteredUsers.length;
+		const startIndex = (page - 1) * limit;
+		const endIndex = startIndex + limit;
+		const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
 
 		return {
-			users: filteredUsers,
+			users: paginatedUsers,
 			totalCount,
 			departments,
 			roles,

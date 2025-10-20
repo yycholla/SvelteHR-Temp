@@ -12,7 +12,7 @@ use crate::{database::get_db_from_context, error::AppError};
 
 /// Document version tracking
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "document_versions")]
+#[sea_orm(table_name = "document_versions", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,

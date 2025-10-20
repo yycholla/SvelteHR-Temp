@@ -34,7 +34,7 @@ impl ResourceType {
 
 /// LinkedResource entity - maps to hr_public.linked_resources table
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "linked_resources")]
+#[sea_orm(table_name = "linked_resources", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,

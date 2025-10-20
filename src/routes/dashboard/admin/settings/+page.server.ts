@@ -23,7 +23,7 @@ export const load: PageServerLoad = async ({ locals, parent, cookies }) => {
 		// NOTE: Using Rust GraphQL schema (direct arrays, no .nodes wrapper)
 		const settingsQuery = `
 			query GetSystemSettings($limit: Int!) {
-				systemSettings(limit: $limit) {
+				systemSettings {
 					id
 					category
 					settings

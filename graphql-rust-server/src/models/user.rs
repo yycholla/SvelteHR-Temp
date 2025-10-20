@@ -129,6 +129,7 @@ pub struct Model {
     pub failed_login_attempts: i32,
     pub locked_until: Option<DateTime<Utc>>,
     pub last_login: Option<DateTime<Utc>>,
+    pub theme_preference: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
@@ -156,6 +157,8 @@ pub enum Relation {
     LeaveRequests,
     #[sea_orm(has_many = "super::performance_review::Entity")]
     PerformanceReviews,
+    #[sea_orm(has_many = "crate::models::employee::user_address::Entity")]
+    UserAddresses,
 }
 
 impl Related<super::department::Entity> for Entity {
@@ -250,6 +253,12 @@ impl Model {
         self.is_active
     }
 
+    /// User theme preference (light, dark, or system)
+    #[graphql(name = "themePreference")]
+    async fn theme_preference(&self) -> &str {
+        &self.theme_preference
+    }
+
     /// Record creation timestamp
     async fn created_at(&self) -> DateTime<Utc> {
         self.created_at
@@ -293,6 +302,31 @@ impl Model {
             .await?;
 
         Ok(reports)
+    }
+
+    /// User addresses (lazy-loaded)
+    async fn addresses(&self, ctx: &Context<'_>) -> GqlResult<Vec<crate::models::employee::user_address::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let addresses = crate::models::employee::user_address::Entity::find()
+            .filter(crate::models::employee::user_address::Column::UserId.eq(self.id))
+            .filter(crate::models::employee::user_address::Column::DeletedAt.is_null())
+            .all(&db)
+            .await?;
+
+        Ok(addresses)
+    }
+
+    /// Primary address (lazy-loaded)
+    async fn primary_address(&self, ctx: &Context<'_>) -> GqlResult<Option<crate::models::employee::user_address::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let address = crate::models::employee::user_address::Entity::find()
+            .filter(crate::models::employee::user_address::Column::UserId.eq(self.id))
+            .filter(crate::models::employee::user_address::Column::IsPrimary.eq(true))
+            .filter(crate::models::employee::user_address::Column::DeletedAt.is_null())
+            .one(&db)
+            .await?;
+
+        Ok(address)
     }
 }
 
@@ -354,6 +388,8 @@ pub struct UpdateUserInput {
     pub hire_date: Option<DateTime<Utc>>,
     pub termination_date: Option<DateTime<Utc>>,
     pub status: Option<UserStatus>,
+    #[graphql(name = "themePreference")]
+    pub theme_preference: Option<String>,
 }
 
 #[cfg(test)]

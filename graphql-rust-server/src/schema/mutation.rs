@@ -2,6 +2,7 @@ use async_graphql::{Context, Object, Result, SimpleObject};
 use axum_login::{AuthSession, AuthnBackend};
 use chrono::Utc;
 use sea_orm::{DatabaseConnection, EntityTrait, Set, ActiveModelTrait, QueryFilter, ColumnTrait};
+use sea_orm::prelude::Expr;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -338,19 +339,28 @@ impl MutationRoot {
     async fn create_user(&self, ctx: &Context<'_>, input: CreateUserInput) -> Result<User> {
         let db = get_db_from_context(ctx)?;
 
-        // Generate computed fields
-        let display_name = format!("{} {}", input.first_name, input.last_name);
-        let full_name = display_name.clone();
+        // Generate a temporary secure password hash
+        // Users should reset their password on first login
+        let temp_password = format!("TempPass{}", uuid::Uuid::new_v4().to_string()[..8].to_uppercase());
+        let password_hash = bcrypt::hash(&temp_password, bcrypt::DEFAULT_COST)
+            .map_err(|e| AppError::Internal(format!("Failed to hash password: {}", e)))?;
+
+        // Log the temporary password (in production, this should be sent via email)
+        tracing::info!("Created user {} with temporary password: {}", input.email, temp_password);
 
         // Create SeaORM active model
+        // Note: display_name and full_name are GENERATED columns in the database
+        // and must NOT be set explicitly - they are automatically computed from first_name + last_name
         let user = crate::models::user::ActiveModel {
             email: Set(input.email.clone()),
+            password_hash: Set(password_hash),
             first_name: Set(input.first_name.clone()),
             last_name: Set(input.last_name.clone()),
-            display_name: Set(display_name.clone()),
-            full_name: Set(full_name.clone()),
+            // display_name: NotSet - generated column, don't set
+            // full_name: NotSet - generated column, don't set
             role: Set("hr_employee".to_string()), // Default role
             phone_number: Set(input.phone.clone()),
+            job_title: Set(input.job_title.clone()),
             department_id: Set(input.department_id),
             manager_id: Set(input.manager_id),
             hire_date: Set(input.hire_date),
@@ -383,6 +393,7 @@ impl MutationRoot {
             failed_login_attempts: user.failed_login_attempts,
             locked_until: user.locked_until,
             last_login: user.last_login,
+            theme_preference: user.theme_preference,
             created_at: user.created_at,
             updated_at: user.updated_at,
             deleted_at: user.deleted_at,
@@ -407,20 +418,12 @@ impl MutationRoot {
             .await?
             .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
-        // Store existing values for full_name calculation
-        let existing_first_name = existing_user.first_name.clone();
-        let existing_last_name = existing_user.last_name.clone();
-
         // Build active model with updates
         let mut user: crate::models::user::ActiveModel = existing_user.into();
 
         if let Some(email) = input.email {
             user.email = Set(email);
         }
-
-        // Store references to avoid moving
-        let new_first_name = input.first_name.as_ref();
-        let new_last_name = input.last_name.as_ref();
 
         if let Some(first_name) = &input.first_name {
             user.first_name = Set(first_name.clone());
@@ -430,13 +433,8 @@ impl MutationRoot {
             user.last_name = Set(last_name.clone());
         }
 
-        // Recalculate full_name if first or last name changed
-        if new_first_name.is_some() || new_last_name.is_some() {
-            let first_name = new_first_name.unwrap_or(&existing_first_name);
-            let last_name = new_last_name.unwrap_or(&existing_last_name);
-            let full_name = format!("{} {}", first_name, last_name);
-            user.full_name = Set(full_name);
-        }
+        // Note: display_name and full_name are GENERATED columns in the database
+        // They are automatically computed from first_name + last_name, so we don't set them
 
         if let Some(phone) = input.phone {
             user.phone_number = Set(Some(phone));
@@ -460,6 +458,10 @@ impl MutationRoot {
 
         if let Some(status) = input.status {
             user.status = Set(Some(status.as_str().to_string()));
+        }
+
+        if let Some(theme_preference) = input.theme_preference {
+            user.theme_preference = Set(theme_preference);
         }
 
         // Update timestamp
@@ -490,6 +492,7 @@ impl MutationRoot {
             failed_login_attempts: updated_user.failed_login_attempts,
             locked_until: updated_user.locked_until,
             last_login: updated_user.last_login,
+            theme_preference: updated_user.theme_preference,
             created_at: updated_user.created_at,
             updated_at: updated_user.updated_at,
             deleted_at: updated_user.deleted_at,
@@ -1086,12 +1089,10 @@ impl MutationRoot {
         let leave_type = crate::models::leave_type::ActiveModel {
             name: Set(input.name.clone()),
             description: Set(input.description.clone()),
-            default_days_per_year: Set(input.default_days_per_year),
+            default_days: Set(input.default_days),
             requires_approval: Set(input.requires_approval),
-            max_consecutive_days: Set(input.max_consecutive_days),
             is_paid: Set(input.is_paid),
             color: Set(input.color.clone()),
-            icon: Set(input.icon.clone()),
             ..Default::default()
         };
 
@@ -1102,12 +1103,10 @@ impl MutationRoot {
             id: leave_type.id,
             name: leave_type.name,
             description: leave_type.description,
-            default_days_per_year: leave_type.default_days_per_year,
+            default_days: leave_type.default_days,
             requires_approval: leave_type.requires_approval,
-            max_consecutive_days: leave_type.max_consecutive_days,
             is_paid: leave_type.is_paid,
             color: leave_type.color,
-            icon: leave_type.icon,
             created_at: leave_type.created_at,
             updated_at: leave_type.updated_at,
             deleted_at: leave_type.deleted_at,
@@ -1143,16 +1142,12 @@ impl MutationRoot {
             leave_type.description = Set(Some(description));
         }
 
-        if let Some(default_days) = input.default_days_per_year {
-            leave_type.default_days_per_year = Set(default_days);
+        if let Some(default_days) = input.default_days {
+            leave_type.default_days = Set(default_days);
         }
 
         if let Some(requires_approval) = input.requires_approval {
             leave_type.requires_approval = Set(requires_approval);
-        }
-
-        if let Some(max_days) = input.max_consecutive_days {
-            leave_type.max_consecutive_days = Set(Some(max_days));
         }
 
         if let Some(is_paid) = input.is_paid {
@@ -1161,10 +1156,6 @@ impl MutationRoot {
 
         if let Some(color) = input.color {
             leave_type.color = Set(Some(color));
-        }
-
-        if let Some(icon) = input.icon {
-            leave_type.icon = Set(Some(icon));
         }
 
         // Update timestamp
@@ -1178,12 +1169,10 @@ impl MutationRoot {
             id: updated_leave_type.id,
             name: updated_leave_type.name,
             description: updated_leave_type.description,
-            default_days_per_year: updated_leave_type.default_days_per_year,
+            default_days: updated_leave_type.default_days,
             requires_approval: updated_leave_type.requires_approval,
-            max_consecutive_days: updated_leave_type.max_consecutive_days,
             is_paid: updated_leave_type.is_paid,
             color: updated_leave_type.color,
-            icon: updated_leave_type.icon,
             created_at: updated_leave_type.created_at,
             updated_at: updated_leave_type.updated_at,
             deleted_at: updated_leave_type.deleted_at,
@@ -1227,12 +1216,17 @@ impl MutationRoot {
     ) -> Result<LeaveBalance> {
         let db = get_db_from_context(ctx)?;
 
+        // Parse decimal values from strings
+        let total_days = input.total_days.parse::<rust_decimal::Decimal>()
+            .map_err(|_| AppError::Validation("Invalid total_days format".to_string()))?;
+
         let balance = crate::models::leave_balance::ActiveModel {
             employee_id: Set(input.employee_id),
-            policy_id: Set(input.policy_id),
+            leave_type_id: Set(input.leave_type_id),
             year: Set(input.year),
-            balance_days: Set(input.balance_days),
-            used_days: Set(0.0),
+            total_days: Set(total_days),
+            used_days: Set(rust_decimal::Decimal::ZERO),
+            remaining_days: Set(total_days),
             ..Default::default()
         };
 
@@ -1242,12 +1236,11 @@ impl MutationRoot {
         let balance = LeaveBalance {
             id: balance.id,
             employee_id: balance.employee_id,
-            policy_id: balance.policy_id,
+            leave_type_id: balance.leave_type_id,
             year: balance.year,
-            balance_days: balance.balance_days,
+            total_days: balance.total_days,
             used_days: balance.used_days,
-            pending_days: balance.pending_days,
-            carried_over_days: balance.carried_over_days,
+            remaining_days: balance.remaining_days,
             created_at: balance.created_at,
             updated_at: balance.updated_at,
             deleted_at: balance.deleted_at,
@@ -1274,12 +1267,22 @@ impl MutationRoot {
         // Build active model with updates
         let mut balance: crate::models::leave_balance::ActiveModel = existing_balance.into();
 
-        if let Some(balance_days) = input.balance_days {
-            balance.balance_days = Set(balance_days);
+        if let Some(total_days_str) = input.total_days {
+            let total_days = total_days_str.parse::<rust_decimal::Decimal>()
+                .map_err(|_| AppError::Validation("Invalid total_days format".to_string()))?;
+            balance.total_days = Set(total_days);
         }
 
-        if let Some(used_days) = input.used_days {
+        if let Some(used_days_str) = input.used_days {
+            let used_days = used_days_str.parse::<rust_decimal::Decimal>()
+                .map_err(|_| AppError::Validation("Invalid used_days format".to_string()))?;
             balance.used_days = Set(used_days);
+        }
+
+        if let Some(remaining_days_str) = input.remaining_days {
+            let remaining_days = remaining_days_str.parse::<rust_decimal::Decimal>()
+                .map_err(|_| AppError::Validation("Invalid remaining_days format".to_string()))?;
+            balance.remaining_days = Set(remaining_days);
         }
 
         // Update timestamp
@@ -1292,12 +1295,11 @@ impl MutationRoot {
         let balance = LeaveBalance {
             id: updated_balance.id,
             employee_id: updated_balance.employee_id,
-            policy_id: updated_balance.policy_id,
+            leave_type_id: updated_balance.leave_type_id,
             year: updated_balance.year,
-            balance_days: updated_balance.balance_days,
+            total_days: updated_balance.total_days,
             used_days: updated_balance.used_days,
-            pending_days: updated_balance.pending_days,
-            carried_over_days: updated_balance.carried_over_days,
+            remaining_days: updated_balance.remaining_days,
             created_at: updated_balance.created_at,
             updated_at: updated_balance.updated_at,
             deleted_at: updated_balance.deleted_at,
@@ -1324,16 +1326,17 @@ impl MutationRoot {
             .map(|uc| uc.user_id)
             .ok_or("User context not found - authentication required")?;
 
-        // For now, we'll use a placeholder - this should be updated to fetch the actual leave type name
-        // TODO: Fetch leave type name from database using leave_type_id
-        let leave_type_name = "vacation".to_string(); // Placeholder
+        // Parse days_requested from string to Decimal
+        use std::str::FromStr;
+        let days = rust_decimal::Decimal::from_str(&input.days_requested)
+            .map_err(|_| "Invalid days_requested format")?;
 
         let request = crate::models::leave_request::ActiveModel {
             employee_id: Set(user_id),
-            leave_type: Set(leave_type_name),
-            start_date: Set(input.start_date),
-            end_date: Set(input.end_date),
-            days_requested: Set(input.days_requested),
+            leave_type_id: Set(input.leave_type_id),
+            start_date: Set(input.start_date.date_naive()),
+            end_date: Set(input.end_date.date_naive()),
+            days_requested: Set(days),
             status: Set("pending".to_string()),
             reason: Set(input.reason.clone()),
             ..Default::default()
@@ -1365,15 +1368,18 @@ impl MutationRoot {
         let mut request: crate::models::leave_request::ActiveModel = existing_request.into();
 
         if let Some(start_date) = input.start_date {
-            request.start_date = Set(start_date);
+            request.start_date = Set(start_date.date_naive());
         }
 
         if let Some(end_date) = input.end_date {
-            request.end_date = Set(end_date);
+            request.end_date = Set(end_date.date_naive());
         }
 
-        if let Some(days_requested) = input.days_requested {
-            request.days_requested = Set(days_requested);
+        if let Some(days_requested_str) = input.days_requested {
+            use std::str::FromStr;
+            let days = rust_decimal::Decimal::from_str(&days_requested_str)
+                .map_err(|_| "Invalid days_requested format")?;
+            request.days_requested = Set(days);
         }
 
         if let Some(reason) = input.reason {
@@ -1459,13 +1465,14 @@ impl MutationRoot {
         let request = LeaveRequest {
             id: updated_request.id,
             employee_id: updated_request.employee_id,
-            manager_id: updated_request.manager_id,
-            leave_type: updated_request.leave_type,
+            leave_type_id: updated_request.leave_type_id,
             start_date: updated_request.start_date,
             end_date: updated_request.end_date,
             days_requested: updated_request.days_requested,
             status: LeaveRequestStatus::Rejected.as_str().to_string(),
             reason: updated_request.reason,
+            manager_id: updated_request.manager_id,
+            approved_at: updated_request.approved_at,
             manager_comments: updated_request.manager_comments,
             created_at: updated_request.created_at,
             updated_at: updated_request.updated_at,
@@ -1503,13 +1510,14 @@ impl MutationRoot {
         let request = LeaveRequest {
             id: updated_request.id,
             employee_id: updated_request.employee_id,
-            manager_id: updated_request.manager_id,
-            leave_type: updated_request.leave_type,
+            leave_type_id: updated_request.leave_type_id,
             start_date: updated_request.start_date,
             end_date: updated_request.end_date,
             days_requested: updated_request.days_requested,
             status: LeaveRequestStatus::Cancelled.as_str().to_string(),
             reason: updated_request.reason,
+            manager_id: updated_request.manager_id,
+            approved_at: updated_request.approved_at,
             manager_comments: updated_request.manager_comments,
             created_at: updated_request.created_at,
             updated_at: updated_request.updated_at,
@@ -2315,45 +2323,20 @@ impl MutationRoot {
         &self,
         ctx: &Context<'_>,
         input: CreatePerformanceReviewInput,
-    ) -> Result<PerformanceReview> {
+    ) -> Result<crate::models::performance_review::Model> {
         let db = get_db_from_context(ctx)?;
 
         let review = crate::models::performance_review::ActiveModel {
             employee_id: Set(input.employee_id),
             reviewer_id: Set(input.reviewer_id),
-            review_period: Set(input.review_period.clone()),
+            cycle_id: Set(input.cycle_id),
+            template_id: Set(input.template_id),
             status: Set("draft".to_string()),
             ..Default::default()
         };
 
         let review = review.insert(&db).await?;
-
-        // Convert SeaORM model to legacy PerformanceReview struct for compatibility
-        let review = PerformanceReview {
-            id: review.id,
-            employee_id: review.employee_id,
-            reviewer_id: review.reviewer_id,
-            review_period: review.review_period,
-            status: review.status.clone(),
-            overall_rating: review.overall_rating,
-            goals: review.goals,
-            achievements: review.achievements,
-            areas_for_improvement: review.areas_for_improvement,
-            manager_feedback: review.manager_feedback,
-            created_at: review.created_at,
-            updated_at: review.updated_at,
-            review_period_start: review.review_period_start,
-            review_period_end: review.review_period_end,
-            review_type: review.review_type,
-            notes: review.notes,
-            deleted_at: review.deleted_at,
-        };
-
-        Ok(Ok(review)
-            .map_err(|e: sea_orm::DbErr| {
-                tracing::error!("Failed to create performance review: {}", e);
-                AppError::Internal("Failed to create performance review".to_string())
-            })?)
+        Ok(review)
     }
 
     /// Update an existing performance review
@@ -2362,7 +2345,7 @@ impl MutationRoot {
         ctx: &Context<'_>,
         id: Uuid,
         input: UpdatePerformanceReviewInput,
-    ) -> Result<PerformanceReview> {
+    ) -> Result<crate::models::performance_review::Model> {
         let db = get_db_from_context(ctx)?;
 
         // Find existing performance review
@@ -2378,43 +2361,16 @@ impl MutationRoot {
             review.status = Set(status.as_str().to_string());
         }
 
-        if let Some(rating_str) = input.overall_rating {
-            use std::str::FromStr;
-            let rating = rust_decimal::Decimal::from_str(&rating_str)
-                .map_err(|_| "Invalid rating format - must be a valid decimal number")?;
+        if let Some(rating) = input.overall_rating {
             review.overall_rating = Set(Some(rating));
         }
 
-        if let Some(goals) = input.goals {
-            review.goals = Set(Some(goals));
+        if let Some(cycle_id) = input.cycle_id {
+            review.cycle_id = Set(Some(cycle_id));
         }
 
-        if let Some(achievements) = input.achievements {
-            review.achievements = Set(Some(achievements));
-        }
-
-        if let Some(areas) = input.areas_for_improvement {
-            review.areas_for_improvement = Set(Some(areas));
-        }
-
-        if let Some(feedback) = input.manager_feedback {
-            review.manager_feedback = Set(Some(feedback));
-        }
-
-        if let Some(start) = input.review_period_start {
-            review.review_period_start = Set(Some(start));
-        }
-
-        if let Some(end) = input.review_period_end {
-            review.review_period_end = Set(Some(end));
-        }
-
-        if let Some(review_type) = input.review_type {
-            review.review_type = Set(Some(review_type));
-        }
-
-        if let Some(notes) = input.notes {
-            review.notes = Set(Some(notes));
+        if let Some(template_id) = input.template_id {
+            review.template_id = Set(Some(template_id));
         }
 
         // Update timestamp
@@ -2422,29 +2378,7 @@ impl MutationRoot {
 
         // Save changes
         let updated_review = review.update(&db).await?;
-
-        // Convert to legacy PerformanceReview struct for compatibility
-        let review = PerformanceReview {
-            id: updated_review.id,
-            employee_id: updated_review.employee_id,
-            reviewer_id: updated_review.reviewer_id,
-            review_period: updated_review.review_period,
-            status: updated_review.status.clone(),
-            overall_rating: updated_review.overall_rating,
-            goals: updated_review.goals,
-            achievements: updated_review.achievements,
-            areas_for_improvement: updated_review.areas_for_improvement,
-            manager_feedback: updated_review.manager_feedback,
-            created_at: updated_review.created_at,
-            updated_at: updated_review.updated_at,
-            review_period_start: updated_review.review_period_start,
-            review_period_end: updated_review.review_period_end,
-            review_type: updated_review.review_type,
-            notes: updated_review.notes,
-            deleted_at: updated_review.deleted_at,
-        };
-
-        Ok(review)
+        Ok(updated_review)
     }
 
     /// Soft delete a performance review
@@ -2988,7 +2922,7 @@ impl MutationRoot {
 
         let contact = crate::models::employee::emergency_contact::ActiveModel {
             employee_id: Set(input.employee_id),
-            contact_name: Set(input.contact_name.clone()),
+            name: Set(input.name.clone()),
             relationship: Set(input.relationship.clone()),
             phone_number: Set(input.phone_number.clone()),
             email: Set(input.email.clone()),
@@ -3002,7 +2936,7 @@ impl MutationRoot {
         let contact = EmergencyContact {
             id: contact.id,
             employee_id: contact.employee_id,
-            contact_name: contact.contact_name,
+            name: contact.name,
             relationship: contact.relationship,
             phone_number: contact.phone_number,
             email: contact.email,
@@ -3032,12 +2966,12 @@ impl MutationRoot {
         // Build active model with updates
         let mut contact: crate::models::employee::emergency_contact::ActiveModel = existing_contact.into();
 
-        if let Some(contact_name) = input.contact_name {
-            contact.contact_name = Set(contact_name);
+        if let Some(name) = input.name {
+            contact.name = Set(name);
         }
 
         if let Some(relationship) = input.relationship {
-            contact.relationship = Set(relationship);
+            contact.relationship = Set(Some(relationship));
         }
 
         if let Some(phone_number) = input.phone_number {
@@ -3062,7 +2996,7 @@ impl MutationRoot {
         let contact = EmergencyContact {
             id: updated_contact.id,
             employee_id: updated_contact.employee_id,
-            contact_name: updated_contact.contact_name,
+            name: updated_contact.name,
             relationship: updated_contact.relationship,
             phone_number: updated_contact.phone_number,
             email: updated_contact.email,
@@ -3116,6 +3050,7 @@ impl MutationRoot {
             target_date: goal.target_date,
             status: goal.status.clone(),
             progress_percentage: goal.progress_percentage,
+            deleted_at: goal.deleted_at,
             created_at: goal.created_at,
             updated_at: goal.updated_at,
         };
@@ -3176,6 +3111,7 @@ impl MutationRoot {
             target_date: updated_goal.target_date,
             status: updated_goal.status.clone(),
             progress_percentage: updated_goal.progress_percentage,
+            deleted_at: updated_goal.deleted_at,
             created_at: updated_goal.created_at,
             updated_at: updated_goal.updated_at,
         };
@@ -3678,6 +3614,7 @@ impl MutationRoot {
             clock_out: record.clock_out,
             hours_worked: record.hours_worked,
             status: record.status.clone(),
+            deleted_at: record.deleted_at,
             notes: record.notes,
             created_at: record.created_at,
             updated_at: record.updated_at,
@@ -3736,6 +3673,7 @@ impl MutationRoot {
             user_id: updated_record.user_id,
             date: updated_record.date,
             clock_in: updated_record.clock_in,
+            deleted_at: updated_record.deleted_at,
             clock_out: updated_record.clock_out,
             hours_worked: updated_record.hours_worked,
             status: updated_record.status.clone(),
@@ -3915,28 +3853,23 @@ impl MutationRoot {
     ) -> Result<HRReport> {
         let db = get_db_from_context(ctx)?;
 
-        // Parse data JSON string
-        let data_json = serde_json::from_str::<serde_json::Value>(&input.data)?;
+        // Parse parameters JSON string if provided
+        let params_json = if let Some(params) = input.parameters {
+            Some(serde_json::from_str::<serde_json::Value>(&params)?)
+        } else {
+            None
+        };
 
         let report = crate::models::system::hr_report::ActiveModel {
             title: Set(input.title.clone()),
             report_type: Set(input.report_type.clone()),
-            data: Set(data_json),
-            creator_id: Set(input.creator_id),
+            generated_by: Set(input.generated_by),
+            parameters: Set(params_json),
+            file_path: Set(input.file_path.clone()),
             ..Default::default()
         };
 
         let report = report.insert(&db).await?;
-
-        // Convert SeaORM model to legacy HRReport struct for compatibility
-        let report = HRReport {
-            id: report.id,
-            title: report.title,
-            report_type: report.report_type,
-            data: report.data,
-            creator_id: report.creator_id,
-            generated_at: report.generated_at,
-        };
 
         Ok(report)
     }
@@ -3956,7 +3889,8 @@ impl MutationRoot {
             .ok_or("User context not found - authentication required")?;
 
         let request = crate::models::system::rollback_request::ActiveModel {
-            activity_log_id: Set(input.activity_log_id),
+            entity_type: Set(input.entity_type.clone()),
+            entity_id: Set(input.entity_id),
             requested_by: Set(user_id),
             reason: Set(input.reason.clone()),
             status: Set("pending".to_string()),
@@ -3965,21 +3899,7 @@ impl MutationRoot {
 
         let request = request.insert(&db).await?;
 
-        // Convert SeaORM model to legacy RollbackRequest struct for compatibility
-        let request = RollbackRequest {
-            id: request.id,
-            activity_log_id: request.activity_log_id,
-            requested_by: request.requested_by,
-            requested_at: request.requested_at,
-            reason: request.reason,
-            status: request.status.clone(),
-            reviewed_by: request.reviewed_by,
-            reviewed_at: request.reviewed_at,
-            review_reason: request.review_reason,
-            created_at: request.created_at,
-            updated_at: request.updated_at,
-        };
-
+        // Return the SeaORM Model directly (exported as RollbackRequest)
         Ok(request)
     }
 
@@ -4003,42 +3923,21 @@ impl MutationRoot {
 
         if let Some(status) = input.status {
             request.status = Set(status.as_str().to_string());
-            // If status is 'completed', set reviewed_at
+            // If status is 'completed', set processed_at
             if status == RollbackStatus::Completed {
-                request.reviewed_at = Set(Some(Utc::now()));
+                request.processed_at = Set(Some(Utc::now()));
             }
         }
 
-        if let Some(reviewed_by) = input.reviewed_by {
-            request.reviewed_by = Set(Some(reviewed_by));
+        if let Some(approved_by) = input.approved_by {
+            request.approved_by = Set(Some(approved_by));
         }
-
-        if let Some(review_reason) = input.review_reason {
-            request.review_reason = Set(Some(review_reason));
-        }
-
-        // Update timestamp
-        request.updated_at = Set(Utc::now());
 
         // Save changes
         let updated_request = request.update(&db).await?;
 
-        // Convert to legacy RollbackRequest struct for compatibility
-        let request = RollbackRequest {
-            id: updated_request.id,
-            activity_log_id: updated_request.activity_log_id,
-            requested_by: updated_request.requested_by,
-            requested_at: updated_request.requested_at,
-            reason: updated_request.reason,
-            status: updated_request.status.clone(),
-            reviewed_by: updated_request.reviewed_by,
-            reviewed_at: updated_request.reviewed_at,
-            review_reason: updated_request.review_reason,
-            created_at: updated_request.created_at,
-            updated_at: updated_request.updated_at,
-        };
-
-        Ok(request)
+        // Return the SeaORM Model directly (exported as RollbackRequest)
+        Ok(updated_request)
     }
 
     /// Create a new bulk rollback batch
@@ -4050,29 +3949,16 @@ impl MutationRoot {
         let db = get_db_from_context(ctx)?;
 
         let batch = crate::models::system::bulk_rollback_batch::ActiveModel {
-            batch_name: Set(input.batch_name.clone()),
-            requester_id: Set(input.requester_id),
+            requested_by: Set(input.requested_by),
             total_items: Set(input.total_items),
-            completed_items: Set(0),
+            processed_items: Set(0),
             status: Set("pending".to_string()),
             ..Default::default()
         };
 
         let batch = batch.insert(&db).await?;
 
-        // Convert SeaORM model to legacy BulkRollbackBatch struct for compatibility
-        let batch = BulkRollbackBatch {
-            id: batch.id,
-            batch_name: batch.batch_name,
-            requester_id: batch.requester_id,
-            total_items: batch.total_items,
-            completed_items: batch.completed_items,
-            status: batch.status,
-            started_at: batch.started_at,
-            completed_at: batch.completed_at,
-            created_at: batch.created_at,
-        };
-
+        // Return the SeaORM Model directly (exported as BulkRollbackBatch)
         Ok(batch)
     }
 
@@ -4091,25 +3977,16 @@ impl MutationRoot {
             .await?
             .ok_or_else(|| AppError::NotFound("Bulk rollback batch not found".to_string()))?;
 
-        // Store needed fields before moving
-        let started_at = existing_batch.started_at;
-
         // Build active model with updates
         let mut batch: crate::models::system::bulk_rollback_batch::ActiveModel = existing_batch.into();
 
-        if let Some(completed_items) = input.completed_items {
-            batch.completed_items = Set(completed_items);
+        if let Some(processed_items) = input.processed_items {
+            batch.processed_items = Set(processed_items);
         }
 
         if let Some(status) = input.status {
             batch.status = Set(status.clone());
-            // If status is 'processing', set started_at if not already set
             // If status is 'completed' or 'failed', set completed_at
-            if status == "processing" {
-                if started_at.is_none() {
-                    batch.started_at = Set(Some(Utc::now()));
-                }
-            }
             if status == "completed" || status == "failed" {
                 batch.completed_at = Set(Some(Utc::now()));
             }
@@ -4118,20 +3995,8 @@ impl MutationRoot {
         // Save changes
         let updated_batch = batch.update(&db).await?;
 
-        // Convert to legacy BulkRollbackBatch struct for compatibility
-        let batch = BulkRollbackBatch {
-            id: updated_batch.id,
-            batch_name: updated_batch.batch_name,
-            requester_id: updated_batch.requester_id,
-            total_items: updated_batch.total_items,
-            completed_items: updated_batch.completed_items,
-            status: updated_batch.status,
-            started_at: updated_batch.started_at,
-            completed_at: updated_batch.completed_at,
-            created_at: updated_batch.created_at,
-        };
-
-        Ok(batch)
+        // Return the SeaORM Model directly (exported as BulkRollbackBatch)
+        Ok(updated_batch)
     }
 
     /// Create a new bulk rollback item
@@ -4300,7 +4165,7 @@ impl MutationRoot {
         Ok(key)
     }
 
-    /// Update system settings by category (requires system_admin role)
+    /// Update system settings by category (requires system_admin role with system_settings:write permission)
     #[graphql(guard = "crate::middleware::guards::RequireRole::new(\"system_admin\")")]
     async fn update_system_settings(
         &self,
@@ -4782,6 +4647,150 @@ impl MutationRoot {
 
             // Save changes
             template.update(&db).await?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    // ============================================================================
+    // USER ADDRESS MUTATIONS
+    // ============================================================================
+
+    /// Create a new user address
+    async fn create_user_address(
+        &self,
+        ctx: &Context<'_>,
+        input: crate::models::employee::user_address::CreateUserAddressInput,
+    ) -> Result<crate::models::employee::user_address::Model> {
+        let db = get_db_from_context(ctx)?;
+
+        // If this is marked as primary, unset any existing primary addresses for this user
+        if input.is_primary {
+            crate::models::employee::user_address::Entity::update_many()
+                .filter(crate::models::employee::user_address::Column::UserId.eq(input.user_id))
+                .filter(crate::models::employee::user_address::Column::IsPrimary.eq(true))
+                .filter(crate::models::employee::user_address::Column::DeletedAt.is_null())
+                .col_expr(
+                    crate::models::employee::user_address::Column::IsPrimary,
+                    Expr::value(false),
+                )
+                .exec(&db)
+                .await?;
+        }
+
+        // Create new address
+        let address = crate::models::employee::user_address::ActiveModel {
+            user_id: Set(input.user_id),
+            address_type: Set(input.address_type),
+            is_primary: Set(input.is_primary),
+            address_line1: Set(input.address_line1),
+            address_line2: Set(input.address_line2),
+            city: Set(input.city),
+            state_province: Set(input.state_province),
+            postal_code: Set(input.postal_code),
+            country: Set(input.country),
+            latitude: Set(input.latitude),
+            longitude: Set(input.longitude),
+            created_at: Set(Utc::now()),
+            updated_at: Set(Utc::now()),
+            ..Default::default()
+        };
+
+        let address = address.insert(&db).await?;
+        Ok(address)
+    }
+
+    /// Update an existing user address
+    async fn update_user_address(
+        &self,
+        ctx: &Context<'_>,
+        id: Uuid,
+        input: crate::models::employee::user_address::UpdateUserAddressInput,
+    ) -> Result<crate::models::employee::user_address::Model> {
+        let db = get_db_from_context(ctx)?;
+
+        // Find existing address
+        let existing_address = crate::models::employee::user_address::Entity::find_by_id(id)
+            .one(&db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Address not found".to_string()))?;
+
+        // If setting this as primary, unset any existing primary addresses for this user
+        if let Some(true) = input.is_primary {
+            crate::models::employee::user_address::Entity::update_many()
+                .filter(crate::models::employee::user_address::Column::UserId.eq(existing_address.user_id))
+                .filter(crate::models::employee::user_address::Column::IsPrimary.eq(true))
+                .filter(crate::models::employee::user_address::Column::DeletedAt.is_null())
+                .filter(crate::models::employee::user_address::Column::Id.ne(id))
+                .col_expr(
+                    crate::models::employee::user_address::Column::IsPrimary,
+                    Expr::value(false),
+                )
+                .exec(&db)
+                .await?;
+        }
+
+        // Build active model for update
+        let mut address: crate::models::employee::user_address::ActiveModel = existing_address.into();
+
+        // Update fields if provided
+        if let Some(address_type) = input.address_type {
+            address.address_type = Set(address_type);
+        }
+        if let Some(is_primary) = input.is_primary {
+            address.is_primary = Set(is_primary);
+        }
+        if let Some(address_line1) = input.address_line1 {
+            address.address_line1 = Set(address_line1);
+        }
+        if let Some(address_line2) = input.address_line2 {
+            address.address_line2 = Set(Some(address_line2));
+        }
+        if let Some(city) = input.city {
+            address.city = Set(city);
+        }
+        if let Some(state_province) = input.state_province {
+            address.state_province = Set(state_province);
+        }
+        if let Some(postal_code) = input.postal_code {
+            address.postal_code = Set(postal_code);
+        }
+        if let Some(country) = input.country {
+            address.country = Set(country);
+        }
+        if let Some(latitude) = input.latitude {
+            address.latitude = Set(Some(latitude));
+        }
+        if let Some(longitude) = input.longitude {
+            address.longitude = Set(Some(longitude));
+        }
+
+        // Update timestamp
+        address.updated_at = Set(Utc::now());
+
+        // Save changes
+        let updated_address = address.update(&db).await?;
+        Ok(updated_address)
+    }
+
+    /// Delete a user address (soft delete)
+    async fn delete_user_address(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
+        let db = get_db_from_context(ctx)?;
+
+        // Find existing address
+        let existing_address = crate::models::employee::user_address::Entity::find_by_id(id)
+            .one(&db)
+            .await?;
+
+        if let Some(address) = existing_address {
+            // Build active model for soft delete
+            let mut address: crate::models::employee::user_address::ActiveModel = address.into();
+            address.deleted_at = Set(Some(Utc::now()));
+            address.updated_at = Set(Utc::now());
+
+            // Save changes
+            address.update(&db).await?;
             Ok(true)
         } else {
             Ok(false)

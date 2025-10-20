@@ -12,18 +12,16 @@ use crate::database::get_db_from_context;
 
 /// LeaveType entity - maps to hr_public.leave_types table
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "leave_types")]
+#[sea_orm(table_name = "leave_types", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub name: String,
     pub description: Option<String>,
-    pub default_days_per_year: i32,
+    pub default_days: i32,
     pub requires_approval: bool,
-    pub max_consecutive_days: Option<i32>,
     pub is_paid: bool,
     pub color: Option<String>, // Hex color for calendar display
-    pub icon: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
@@ -53,18 +51,13 @@ impl Model {
     }
 
     /// Default number of days allocated per year
-    async fn default_days_per_year(&self) -> i32 {
-        self.default_days_per_year
+    async fn default_days(&self) -> i32 {
+        self.default_days
     }
 
     /// Whether this leave type requires manager approval
     async fn requires_approval(&self) -> bool {
         self.requires_approval
-    }
-
-    /// Maximum consecutive days allowed for this leave type
-    async fn max_consecutive_days(&self) -> Option<i32> {
-        self.max_consecutive_days
     }
 
     /// Whether this is paid time off
@@ -75,11 +68,6 @@ impl Model {
     /// Hex color code for calendar display
     async fn color(&self) -> Option<&str> {
         self.color.as_deref()
-    }
-
-    /// Icon identifier for UI display
-    async fn icon(&self) -> Option<&str> {
-        self.icon.as_deref()
     }
 
     /// Record creation timestamp
@@ -102,7 +90,7 @@ impl Model {
         let db = get_db_from_context(ctx)?;
 
         let count = crate::models::leave_request::Entity::find()
-            .filter(crate::models::leave_request::Column::LeaveType.eq(self.id))
+            .filter(crate::models::leave_request::Column::LeaveTypeId.eq(self.id))
             .filter(crate::models::leave_request::Column::Status.is_in(["pending", "approved"]))
             .filter(crate::models::leave_request::Column::DeletedAt.is_null())
             .count(&db)
@@ -145,12 +133,10 @@ impl Model {
 pub struct CreateLeaveTypeInput {
     pub name: String,
     pub description: Option<String>,
-    pub default_days_per_year: i32,
+    pub default_days: i32,
     pub requires_approval: bool,
-    pub max_consecutive_days: Option<i32>,
     pub is_paid: bool,
     pub color: Option<String>,
-    pub icon: Option<String>,
 }
 
 /// LeaveType update input
@@ -158,12 +144,10 @@ pub struct CreateLeaveTypeInput {
 pub struct UpdateLeaveTypeInput {
     pub name: Option<String>,
     pub description: Option<String>,
-    pub default_days_per_year: Option<i32>,
+    pub default_days: Option<i32>,
     pub requires_approval: Option<bool>,
-    pub max_consecutive_days: Option<i32>,
     pub is_paid: Option<bool>,
     pub color: Option<String>,
-    pub icon: Option<String>,
 }
 
 #[cfg(test)]
@@ -177,19 +161,17 @@ mod tests {
             id: Uuid::new_v4(),
             name: "Vacation".to_string(),
             description: Some("Annual vacation leave".to_string()),
-            default_days_per_year: 15,
+            default_days: 15,
             requires_approval: true,
-            max_consecutive_days: Some(10),
             is_paid: true,
             color: Some("#4CAF50".to_string()),
-            icon: Some("beach".to_string()),
             created_at: Utc::now(),
             updated_at: Utc::now(),
             deleted_at: None,
         };
 
         assert_eq!(leave_type.name, "Vacation");
-        assert_eq!(leave_type.default_days_per_year, 15);
+        assert_eq!(leave_type.default_days, 15);
         assert!(leave_type.is_paid);
     }
 }

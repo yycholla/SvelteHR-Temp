@@ -265,20 +265,19 @@ export const actions: Actions = {
 			const startTimeUTC = startDate.toISOString();
 			const endTimeUTC = endDate.toISOString();
 
+			// Migration: ✅ Use idiomatic Rust pattern (direct input, no nested wrapper)
 			const result = await eventsOps.createEvent({
 				input: {
-					event: {
-						title,
-						description,
-						eventType,
-						startTime: startTimeUTC,
-						endTime: endTimeUTC,
-						allDay: isAllDay,
-						location,
-						organizerId: locals.user.id,
-						isPublic,
-						status: 'scheduled'
-					}
+					title,
+					description,
+					eventType,
+					startTime: startTimeUTC,
+					endTime: endTimeUTC,
+					isAllDay: isAllDay,
+					location,
+					organizerId: locals.user.id,
+					isPublic,
+					status: 'scheduled'
 				},
 				userCredentials
 			});

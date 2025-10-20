@@ -36,7 +36,7 @@ impl ProficiencyLevel {
 
 /// Employee skill with proficiency tracking
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "employee_skills")]
+#[sea_orm(table_name = "employee_skills", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,

@@ -9,6 +9,39 @@ export const load: PageServerLoad = async (event) => {
 	const { params, locals, cookies } = event;
 	const departmentId = params.id;
 
+	// Handle "new" department creation route
+	if (departmentId === 'new') {
+		// RBAC: Check department write permissions for creating new department
+		PermissionChecks.departmentWrite(event);
+
+		if (!locals.user) {
+			throw error(401, 'Authentication required');
+		}
+
+		// Get standardized user permissions
+		const { getUserPermissions } = await import('$lib/server/rbac-utils');
+		const userPermissions = getUserPermissions(locals);
+
+		// Return empty department data for new department form
+		return {
+			userSession: {
+				userId: locals.user.id,
+				roles: [locals.user.role || 'employee'],
+				permissions: locals.permissions || [],
+				isAuthenticated: true,
+				expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+				metadata: {
+					userEmail: locals.user.email,
+					displayName: locals.user.display_name || locals.user.email
+				}
+			},
+			department: null,
+			isNewDepartment: true,
+			...userPermissions,
+			loadedAt: new Date().toISOString()
+		};
+	}
+
 	// RBAC: Check department read permissions
 	PermissionChecks.departmentRead(event);
 
@@ -63,14 +96,14 @@ export const load: PageServerLoad = async (event) => {
 		);
 
 		// Load department data with Rust GraphQL schema
-		// NOTE: Using Rust GraphQL schema (filter pattern, direct arrays)
+		// NOTE: Using Rust GraphQL schema - use singular department query with ID
 		const departmentResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
 					query GetDepartmentById($id: UUID!) {
-						departments(limit: 1, filter: { id: { equalTo: $id } }) {
+						department(id: $id) {
 							id
 							name
 							description
@@ -91,15 +124,13 @@ export const load: PageServerLoad = async (event) => {
 		console.log('[Department Detail] Department data:', departmentData);
 
 		// Check if department exists
-		const departments = departmentData?.data?.departments || [];
-		if (departments.length === 0) {
+		const department = departmentData?.data?.department;
+		if (!department) {
 			throw error(404, 'Department not found');
 		}
 
-		const department = departments[0];
-
 		// Get manager data separately if managerId exists
-		// NOTE: Using Rust GraphQL schema (filter pattern, direct arrays)
+		// NOTE: Using Rust GraphQL schema - use singular user query with ID
 		let manager = null;
 		if (department.managerId) {
 			const managerResponse = await fetch(graphqlEndpoint, {
@@ -108,7 +139,7 @@ export const load: PageServerLoad = async (event) => {
 				body: JSON.stringify({
 					query: `
 						query GetUserById($id: UUID!) {
-							users(limit: 1, filter: { id: { equalTo: $id } }) {
+							user(id: $id) {
 								id
 								email
 								displayName
@@ -125,18 +156,18 @@ export const load: PageServerLoad = async (event) => {
 			});
 
 			const managerData = await managerResponse.json();
-			const users = managerData?.data?.users || [];
-			manager = users.length > 0 ? users[0] : null;
+			manager = managerData?.data?.user || null;
 		}
 
 		// Get employees for this department
+		// NOTE: Rust GraphQL doesn't support departmentId filter, so fetch all and filter server-side
 		const employeesResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetDepartmentEmployees($departmentId: UUID!) {
-						users(departmentId: $departmentId) {
+					query GetAllUsers {
+						users(limit: 1000) {
 							id
 							email
 							firstName
@@ -148,15 +179,14 @@ export const load: PageServerLoad = async (event) => {
 							departmentId
 						}
 					}
-				`,
-				variables: {
-					departmentId: departmentId
-				}
+				`
 			})
 		});
 
 		const employeesData = await employeesResponse.json();
-		const employees = employeesData?.data?.users || [];
+		const allUsers = employeesData?.data?.users || [];
+		// Filter users by department ID server-side
+		const employees = allUsers.filter((user: any) => user.departmentId === departmentId);
 
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);

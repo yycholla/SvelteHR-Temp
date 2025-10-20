@@ -32,7 +32,7 @@ impl AssigneeRole {
 
 /// TaskAssignee entity - maps to hr_public.task_assignees table
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "task_assignees")]
+#[sea_orm(table_name = "task_assignees", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,

@@ -13,7 +13,7 @@ use crate::{database::get_db_from_context, error::AppError};
 
 /// SeaORM Review template entity
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "review_templates")]
+#[sea_orm(table_name = "review_templates", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,

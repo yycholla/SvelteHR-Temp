@@ -29,18 +29,14 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		console.log('[Activities] Loading activities for user:', locals.user.id);
 
 		// Fetch user's activity logs using Rust GraphQL backend
-		// NOTE: Query updated to match Rust GraphQL schema (idiomatic naming)
-		// Note: activityLogsByUser only supports limit, not offset (no pagination)
+		// Migration: ✅ Use idiomatic Rust pattern (activityLogs with userId parameter)
 		const activitiesResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetUserActivities($userId: UUID!, $limit: Int) {
-						activityLogsByUser(
-							userId: $userId
-							limit: $limit
-						) {
+					query GetUserActivities($userId: UUID!, $limit: Int!, $offset: Int!) {
+						activityLogs(userId: $userId, limit: $limit, offset: $offset) {
 							id
 							userId
 							employeeId
@@ -49,7 +45,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 							resourceId
 							details
 							createdAt
-							user {
+							employee {
 								id
 								displayName
 								email
@@ -59,7 +55,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 				`,
 				variables: {
 					userId: locals.user.id,
-					limit: limit
+					limit: limit,
+					offset: (page - 1) * limit
 				}
 			})
 		});
@@ -72,7 +69,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			throw new Error(activitiesData.errors[0]?.message || 'Failed to load activities');
 		}
 
-		const activities = activitiesData?.data?.activityLogsByUser || [];
+		const activities = activitiesData?.data?.activityLogs || [];
 
 		return {
 			activities,

@@ -186,22 +186,27 @@ impl async_graphql::ScalarType for NotificationResourceType {
 
 /// Notification entity - maps to hr_public.notifications table
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "notifications")]
+#[sea_orm(table_name = "notifications", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
+    #[sea_orm(column_name = "user_id")]
     pub recipient_id: Uuid,
     #[sea_orm(column_name = "type")]
     pub notification_type: String, // Will be converted to enum in GraphQL
-    pub category: String, // Will be converted to enum in GraphQL
+    pub category: Option<String>, // Will be converted to enum in GraphQL
     pub title: String,
     pub message: String,
-    pub related_resource_type: Option<String>, // Will be converted to enum in GraphQL
-    pub related_resource_id: Option<Uuid>,
+    #[sea_orm(column_name = "is_read")]
     pub read_status: bool,
-    pub delivered_at: DateTime<Utc>,
     pub read_at: Option<DateTime<Utc>>,
+    pub delivered_at: Option<DateTime<Utc>>,
+    #[sea_orm(column_name = "related_entity_type")]
+    pub related_resource_type: Option<String>, // Will be converted to enum in GraphQL
+    #[sea_orm(column_name = "related_entity_id")]
+    pub related_resource_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -247,9 +252,9 @@ impl Model {
         }
     }
 
-    /// Notification category (system, task, leave, etc.)
-    async fn category(&self) -> NotificationCategory {
-        match self.category.as_str() {
+    /// Notification category (event_invitation, task_assignment, etc.)
+    async fn category(&self) -> Option<NotificationCategory> {
+        self.category.as_ref().map(|cat| match cat.as_str() {
             "system" => NotificationCategory::System,
             "task" => NotificationCategory::Task,
             "leave" => NotificationCategory::Leave,
@@ -258,7 +263,7 @@ impl Model {
             "document" => NotificationCategory::Document,
             "compliance" => NotificationCategory::Compliance,
             _ => NotificationCategory::System, // Default fallback
-        }
+        })
     }
 
     /// Notification title
@@ -295,14 +300,14 @@ impl Model {
         self.read_status
     }
 
-    /// Timestamp when notification was delivered
-    async fn delivered_at(&self) -> DateTime<Utc> {
-        self.delivered_at
-    }
-
     /// Timestamp when notification was read (if read)
     async fn read_at(&self) -> Option<DateTime<Utc>> {
         self.read_at
+    }
+
+    /// Timestamp when notification was delivered
+    async fn delivered_at(&self) -> Option<DateTime<Utc>> {
+        self.delivered_at
     }
 
     /// Record creation timestamp

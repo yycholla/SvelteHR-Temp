@@ -99,9 +99,10 @@ export const load: PageServerLoad = async (event) => {
 					id
 					title
 					reportType
-					data
-					creatorId
-					generatedAt
+					generatedBy
+					parameters
+					filePath
+					createdAt
 				}
 			}
 		`;
@@ -116,47 +117,48 @@ export const load: PageServerLoad = async (event) => {
 
 		// Map reports to expected HrReport interface format
 		const reports = hrReports.map((report: any) => {
-			// Parse JSONB data field
-			const data = report.data
-				? typeof report.data === 'string'
-					? JSON.parse(report.data)
-					: report.data
+			// Parse JSONB parameters field
+			const params = report.parameters
+				? typeof report.parameters === 'string'
+					? JSON.parse(report.parameters)
+					: report.parameters
 				: {};
 
 			return {
 				id: report.id,
-				creatorId: report.creatorId,
+				creatorId: report.generatedBy,
 				creator: {
-					id: report.creatorId,
+					id: report.generatedBy,
 					displayName: 'Report Creator', // User info not joined in current Rust schema
-					email: `creator-${report.creatorId}@company.com`
+					email: `creator-${report.generatedBy}@company.com`
 				},
 				departmentId: null, // Department not in current Rust schema
 				department: null, // Department not in current Rust schema
 				title: report.title,
 				reportType: report.reportType,
 				category: 'General', // Category not in current Rust schema
-				filters: data.filters || {},
-				data: data,
+				filters: params.filters || {},
+				data: params,
 				status: 'completed', // Status not in current Rust schema, assume completed
 				scheduledAt: null, // Not in current Rust schema
-				generatedAt: report.generatedAt,
-				createdAt: report.generatedAt,
-				updatedAt: report.generatedAt,
+				generatedAt: report.createdAt,
+				createdAt: report.createdAt,
+				updatedAt: report.createdAt,
 				// Additional fields for frontend compatibility
-				description: data.description || '',
+				description: params.description || '',
 				type: report.reportType,
-				runDate: report.generatedAt,
-				completedAt: report.generatedAt,
+				runDate: report.createdAt,
+				completedAt: report.createdAt,
 				createdBy: {
-					id: report.creatorId,
+					id: report.generatedBy,
 					name: 'Report Creator',
 					role: 'Manager'
 				},
-				parameters: data.filters || {},
-				fileSize: data.fileSize || null,
-				downloadCount: data.downloadCount || 0,
-				runtime: data.runtime || null,
+				parameters: params.filters || {},
+				filePath: report.filePath || null,
+				fileSize: params.fileSize || null,
+				downloadCount: params.downloadCount || 0,
+				runtime: params.runtime || null,
 				lastError: null
 			};
 		});

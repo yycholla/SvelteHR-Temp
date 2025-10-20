@@ -92,12 +92,12 @@ export const load: PageServerLoad = async (event) => {
 
 		// GraphQL query for leave requests using Rust GraphQL server schema
 		const leaveRequestsQuery = `
-			query GetLeaveRequests($startDate: String!, $endDate: String!, $limit: Int!) {
-				leaveRequestsByDateRange(startDate: $startDate, endDate: $endDate, limit: $limit) {
+			query GetLeaveRequests($limit: Int!, $offset: Int!) {
+				leaveRequests(limit: $limit, offset: $offset) {
 					id
 					employeeId
 					managerId
-					leaveType
+					leaveTypeId
 					startDate
 					endDate
 					daysRequested
@@ -106,16 +106,29 @@ export const load: PageServerLoad = async (event) => {
 					managerComments
 					createdAt
 					updatedAt
+					employee {
+						id
+						email
+						displayName
+					}
+					manager {
+						id
+						email
+						displayName
+					}
+					leaveType {
+						id
+						name
+						description
+					}
 				}
 			}
 		`;
 
-		// Use a wide date range to get all leave requests
-		// TODO: Implement proper pagination and filtering in Rust GraphQL server
+		// Fetch all leave requests with pagination
 		const result = await graphqlClient.query(leaveRequestsQuery, {
-			startDate: '2020-01-01T00:00:00Z',
-			endDate: '2030-12-31T23:59:59Z',
-			limit: 1000 // Get a large number for now since pagination isn't supported
+			limit: 1000,
+			offset: 0
 		});
 
 		// Handle potential GraphQL errors
@@ -124,40 +137,51 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		// Extract data from Rust GraphQL server response (direct array)
-		const leaveRequestsData = result.data?.leaveRequestsByDateRange || [];
-		const totalRequests = leaveRequestsData.length; // TODO: Implement proper total count in Rust GraphQL server
+		const leaveRequestsData = result.data?.leaveRequests || [];
+		const totalRequests = leaveRequestsData.length;
 
 		// Transform GraphQL data to expected format
-		// TODO: Make separate queries to get employee and manager details
 		const leaveRequests = leaveRequestsData.map((request) => ({
 			id: request.id.toString(),
 			nodeId: `node${request.id}`,
 			employeeId: request.employeeId,
 			managerId: request.managerId,
-			leaveType: request.leaveType.toLowerCase(),
+			leaveTypeId: request.leaveTypeId,
+			leaveType: request.leaveType?.name || 'Unknown',
 			startDate: request.startDate,
 			endDate: request.endDate,
-			daysRequested: parseInt(request.daysRequested),
+			daysRequested: parseFloat(request.daysRequested),
 			status: request.status.toLowerCase(),
-			reason: request.reason,
-			managerComments: request.managerComments,
+			reason: request.reason || '',
+			managerComments: request.managerComments || '',
 			createdAt: request.createdAt,
 			updatedAt: request.updatedAt,
-			employee: {
-				id: request.employeeId,
-				email: `employee${request.employeeId}@company.com`, // Placeholder
-				displayName: `Employee ${request.employeeId}`, // Placeholder
-				departmentId: null, // TODO: Get from separate query
-				department: {
-					id: 0,
-					name: 'Unknown' // TODO: Get from separate query
-				}
-			},
-			manager: request.managerId
+			employee: request.employee
 				? {
-						id: request.managerId,
-						email: `manager${request.managerId}@company.com`, // Placeholder
-						displayName: `Manager ${request.managerId}` // Placeholder
+						id: request.employee.id,
+						email: request.employee.email,
+						displayName: request.employee.displayName,
+						departmentId: null,
+						department: {
+							id: 0,
+							name: 'Unknown'
+						}
+					}
+				: {
+						id: request.employeeId,
+						email: 'unknown@company.com',
+						displayName: 'Unknown Employee',
+						departmentId: null,
+						department: {
+							id: 0,
+							name: 'Unknown'
+						}
+					},
+			manager: request.manager
+				? {
+						id: request.manager.id,
+						email: request.manager.email,
+						displayName: request.manager.displayName
 					}
 				: null
 		}));
@@ -334,7 +358,6 @@ export const actions: Actions = {
 	approve: async ({ request, cookies, locals }) => {
 		const formData = await request.formData();
 		const leaveRequestId = formData.get('id') as string;
-		const managerComments = formData.get('comments') as string;
 
 		if (!locals.user?.id) {
 			return fail(401, { message: 'Unauthorized' });
@@ -342,17 +365,14 @@ export const actions: Actions = {
 
 		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
+		// Use Rust GraphQL backend mutation: approveLeaveRequest
 		const mutation = `
-			mutation UpdateLeaveRequest($id: UUID!, $status: String!, $comments: String, $managerId: UUID!) {
-				updateLeaveRequest(
-					id: $id
-					status: $status
-					managerComments: $comments
-					managerId: $managerId
-				) {
+			mutation ApproveLeaveRequest($input: ApproveLeaveRequestInput!) {
+				approveLeaveRequest(input: $input) {
 					id
 					status
-					managerComments
+					managerId
+					updatedAt
 				}
 			}
 		`;
@@ -360,10 +380,9 @@ export const actions: Actions = {
 		try {
 			console.log('[Server] Executing approve mutation for:', leaveRequestId);
 			const result = await graphqlClient.query(mutation, {
-				id: leaveRequestId,
-				status: 'APPROVED',
-				comments: managerComments || 'Approved',
-				managerId: locals.user.id
+				input: {
+					requestId: leaveRequestId
+				}
 			});
 
 			if (result.errors) {
@@ -390,17 +409,15 @@ export const actions: Actions = {
 
 		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
+		// Use Rust GraphQL backend mutation: rejectLeaveRequest
 		const mutation = `
-			mutation UpdateLeaveRequest($id: UUID!, $status: String!, $comments: String!, $managerId: UUID!) {
-				updateLeaveRequest(
-					id: $id
-					status: $status
-					managerComments: $comments
-					managerId: $managerId
-				) {
+			mutation RejectLeaveRequest($input: RejectLeaveRequestInput!) {
+				rejectLeaveRequest(input: $input) {
 					id
 					status
+					managerId
 					managerComments
+					updatedAt
 				}
 			}
 		`;
@@ -408,10 +425,10 @@ export const actions: Actions = {
 		try {
 			console.log('[Server] Executing deny mutation for:', leaveRequestId);
 			const result = await graphqlClient.query(mutation, {
-				id: leaveRequestId,
-				status: 'REJECTED',
-				comments: managerComments,
-				managerId: locals.user.id
+				input: {
+					requestId: leaveRequestId,
+					rejectionReason: managerComments || 'Denied'
+				}
 			});
 
 			if (result.errors) {
@@ -427,54 +444,16 @@ export const actions: Actions = {
 		}
 	},
 
+	// TODO: Revert to pending action requires backend support
+	// The current Rust GraphQL backend doesn't have a mutation to change
+	// approved/rejected requests back to pending status. This would require:
+	// 1. Adding a new mutation: revertLeaveRequestToPending(input: RevertLeaveRequestInput)
+	// 2. Or extending updateLeaveRequest to allow status changes for approved/rejected requests
 	revertToPending: async ({ request, cookies, locals }) => {
-		const formData = await request.formData();
-		const leaveRequestId = formData.get('id') as string;
-		const managerComments = formData.get('comments') as string;
-
-		console.log('[Server] Revert to pending action called for:', leaveRequestId);
-
-		if (!locals.user?.id) {
-			console.error('[Server] Revert failed: No user ID');
-			return fail(401, { message: 'Unauthorized' });
-		}
-
-		const graphqlClient = GraphQLClient.fromCookies(cookies);
-
-		const mutation = `
-			mutation UpdateLeaveRequest($id: UUID!, $status: String!, $comments: String, $managerId: UUID!) {
-				updateLeaveRequest(
-					id: $id
-					status: $status
-					managerComments: $comments
-					managerId: $managerId
-				) {
-					id
-					status
-					managerComments
-				}
-			}
-		`;
-
-		try {
-			console.log('[Server] Executing revert mutation for:', leaveRequestId);
-			const result = await graphqlClient.query(mutation, {
-				id: leaveRequestId,
-				status: 'PENDING',
-				comments: managerComments || 'Reverted to pending for reconsideration',
-				managerId: locals.user.id
-			});
-
-			if (result.errors) {
-				console.error('[Server] GraphQL errors:', result.errors);
-				return fail(500, { message: 'Failed to revert leave request' });
-			}
-
-			console.log('[Server] Revert successful for:', leaveRequestId);
-			return { success: true, message: 'Leave request reverted to pending' };
-		} catch (err) {
-			console.error('[Server] Error reverting leave request:', err);
-			return fail(500, { message: 'Failed to revert leave request' });
-		}
+		console.log('[Server] Revert to pending action not yet implemented in Rust backend');
+		return fail(501, {
+			message:
+				'Revert to pending functionality is not yet available. This feature requires backend support.'
+		});
 	}
 };

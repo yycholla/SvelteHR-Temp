@@ -17,13 +17,18 @@ use crate::{
         user::{self, Entity as UserEntity},
         task::{self, Entity as TaskEntity},
         leave_request::{self, Entity as LeaveRequestEntity},
+        leave_balance::{self, Entity as LeaveBalanceEntity},
+        leave_type::{self, Entity as LeaveTypeEntity},
         performance_review::{self, Entity as PerformanceReviewEntity},
         system::activity_log::{self, Entity as ActivityLogEntity},
         system::rollback_request::{self as rollback_request, Entity as RollbackRequestEntity, RollbackStatus},
         system::system_settings::{self as system_settings, Entity as SystemSettingsEntity},
+        system::hr_report::{self as hr_report, Entity as HrReportEntity},
         user_session::{self, Entity as UserSessionEntity},
         time::attendance_record::{self as attendance_record, Entity as AttendanceRecordEntity},
         employee::employee_goal::{self as employee_goal, Entity as EmployeeGoalEntity},
+        employee::emergency_contact::{self as emergency_contact, Entity as EmergencyContactEntity},
+        employee::employee_vehicle::{self as employee_vehicle, Entity as EmployeeVehicleEntity},
         event::{self, Entity as EventEntity},
         event_attendee::{self, Entity as EventAttendeeEntity},
         notification::{self, Entity as NotificationEntity},
@@ -172,6 +177,7 @@ impl QueryRoot {
     async fn leave_requests(
         &self,
         ctx: &Context<'_>,
+        employee_id: Option<Uuid>,
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<leave_request::Model>> {
@@ -179,8 +185,15 @@ impl QueryRoot {
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
 
-        let requests = LeaveRequestEntity::find()
-            .filter(leave_request::Column::DeletedAt.is_null())
+        let mut query = LeaveRequestEntity::find()
+            .filter(leave_request::Column::DeletedAt.is_null());
+
+        // Add employee filter if provided
+        if let Some(eid) = employee_id {
+            query = query.filter(leave_request::Column::EmployeeId.eq(eid));
+        }
+
+        let requests = query
             .order_by_desc(leave_request::Column::CreatedAt)
             .limit(Some(limit as u64))
             .offset(offset as u64)
@@ -201,6 +214,143 @@ impl QueryRoot {
     }
 
     // =========================================================================
+    // Leave Balance Queries
+    // =========================================================================
+
+    /// Get leave balances with optional employee filtering and pagination
+    async fn leave_balances(
+        &self,
+        ctx: &Context<'_>,
+        employee_id: Option<Uuid>,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<leave_balance::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let limit = limit.unwrap_or(100).clamp(1, 1000);
+        let offset = offset.unwrap_or(0).max(0);
+
+        let mut query = LeaveBalanceEntity::find()
+            .filter(leave_balance::Column::DeletedAt.is_null());
+
+        // Add employee filter if provided
+        if let Some(eid) = employee_id {
+            query = query.filter(leave_balance::Column::EmployeeId.eq(eid));
+        }
+
+        let balances = query
+            .order_by_desc(leave_balance::Column::Year)
+            .limit(Some(limit as u64))
+            .offset(offset as u64)
+            .all(&db)
+            .await?;
+
+        Ok(balances)
+    }
+
+    // =========================================================================
+    // Leave Type Queries
+    // =========================================================================
+
+    /// Get all leave types with pagination (active types only by default)
+    async fn leave_types(
+        &self,
+        ctx: &Context<'_>,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<leave_type::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let limit = limit.unwrap_or(100).clamp(1, 1000);
+        let offset = offset.unwrap_or(0).max(0);
+
+        let types = LeaveTypeEntity::find()
+            .filter(leave_type::Column::DeletedAt.is_null())
+            .order_by_asc(leave_type::Column::Name)
+            .limit(Some(limit as u64))
+            .offset(offset as u64)
+            .all(&db)
+            .await?;
+
+        Ok(types)
+    }
+
+    /// Get a single leave type by ID
+    async fn leave_type(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<leave_type::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let leave_type = LeaveTypeEntity::find_by_id(id)
+            .filter(leave_type::Column::DeletedAt.is_null())
+            .one(&db)
+            .await?;
+        Ok(leave_type)
+    }
+
+    // =========================================================================
+    // Emergency Contact Queries
+    // =========================================================================
+
+    /// Get emergency contacts with optional employee filtering and pagination
+    async fn emergency_contacts(
+        &self,
+        ctx: &Context<'_>,
+        employee_id: Option<Uuid>,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<emergency_contact::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let limit = limit.unwrap_or(100).clamp(1, 1000);
+        let offset = offset.unwrap_or(0).max(0);
+
+        let mut query = EmergencyContactEntity::find();
+
+        // Add employee filter if provided
+        if let Some(eid) = employee_id {
+            query = query.filter(emergency_contact::Column::EmployeeId.eq(eid));
+        }
+
+        let contacts = query
+            .order_by_desc(emergency_contact::Column::IsPrimary)
+            .order_by_desc(emergency_contact::Column::CreatedAt)
+            .limit(Some(limit as u64))
+            .offset(offset as u64)
+            .all(&db)
+            .await?;
+
+        Ok(contacts)
+    }
+
+    // =========================================================================
+    // Employee Vehicle Queries
+    // =========================================================================
+
+    /// Get employee vehicles with optional employee filtering and pagination
+    async fn employee_vehicles(
+        &self,
+        ctx: &Context<'_>,
+        employee_id: Option<Uuid>,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<employee_vehicle::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let limit = limit.unwrap_or(100).clamp(1, 1000);
+        let offset = offset.unwrap_or(0).max(0);
+
+        let mut query = EmployeeVehicleEntity::find();
+
+        // Add employee filter if provided
+        if let Some(eid) = employee_id {
+            query = query.filter(employee_vehicle::Column::EmployeeId.eq(eid));
+        }
+
+        let vehicles = query
+            .order_by_desc(employee_vehicle::Column::CreatedAt)
+            .limit(Some(limit as u64))
+            .offset(offset as u64)
+            .all(&db)
+            .await?;
+
+        Ok(vehicles)
+    }
+
+    // =========================================================================
     // Performance Review Queries
     // =========================================================================
     
@@ -208,6 +358,7 @@ impl QueryRoot {
     async fn performance_reviews(
         &self,
         ctx: &Context<'_>,
+        employee_id: Option<Uuid>,
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<performance_review::Model>> {
@@ -215,8 +366,15 @@ impl QueryRoot {
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
 
-        let reviews = PerformanceReviewEntity::find()
-            .filter(performance_review::Column::DeletedAt.is_null())
+        let mut query = PerformanceReviewEntity::find()
+            .filter(performance_review::Column::DeletedAt.is_null());
+
+        // Add employee filter if provided
+        if let Some(eid) = employee_id {
+            query = query.filter(performance_review::Column::EmployeeId.eq(eid));
+        }
+
+        let reviews = query
             .order_by_desc(performance_review::Column::CreatedAt)
             .limit(Some(limit as u64))
             .offset(offset as u64)
@@ -455,10 +613,10 @@ impl QueryRoot {
         // Add upcoming filter if requested
         if upcoming_only.unwrap_or(false) {
             let now = chrono::Utc::now();
-            // Use custom SQL to cast the string literal to event_status enum
+            // Filter for scheduled events (status is varchar, not enum)
             query = query
                 .filter(event::Column::StartTime.gte(now))
-                .filter(Expr::cust("status = 'scheduled'::event_status"));
+                .filter(event::Column::Status.eq("scheduled"));
         }
 
         let events = query
@@ -593,7 +751,7 @@ impl QueryRoot {
         }
 
         let requests = query
-            .order_by_desc(rollback_request::Column::RequestedAt)
+            .order_by_desc(rollback_request::Column::CreatedAt)
             .limit(Some(limit as u64))
             .offset(offset as u64)
             .all(&db)
@@ -623,10 +781,44 @@ impl QueryRoot {
     }
 
     // =========================================================================
-    // System Settings Queries (system_admin only)
+    // HR Reports Queries
     // =========================================================================
 
-    /// Get all system settings (requires system_admin role)
+    /// Get all HR reports with optional pagination
+    async fn hr_reports(
+        &self,
+        ctx: &Context<'_>,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<hr_report::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let limit = limit.unwrap_or(100).clamp(1, 1000);
+        let offset = offset.unwrap_or(0).max(0);
+
+        let reports = HrReportEntity::find()
+            .order_by_desc(hr_report::Column::CreatedAt)
+            .limit(Some(limit as u64))
+            .offset(offset as u64)
+            .all(&db)
+            .await?;
+
+        Ok(reports)
+    }
+
+    /// Get a single HR report by ID
+    async fn hr_report(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<hr_report::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let report = HrReportEntity::find_by_id(id)
+            .one(&db)
+            .await?;
+        Ok(report)
+    }
+
+    // =========================================================================
+    // System Settings Queries (system_admin role only)
+    // =========================================================================
+
+    /// Get all system settings (requires system_admin role with system_settings:read permission)
     #[graphql(guard = "crate::middleware::guards::RequireRole::new(\"system_admin\")")]
     async fn system_settings(&self, ctx: &Context<'_>) -> Result<Vec<system_settings::Model>> {
         let db = get_db_from_context(ctx)?;
@@ -634,7 +826,7 @@ impl QueryRoot {
         Ok(settings)
     }
 
-    /// Get system settings by category (requires system_admin role)
+    /// Get system settings by category (requires system_admin role with system_settings:read permission)
     #[graphql(guard = "crate::middleware::guards::RequireRole::new(\"system_admin\")")]
     async fn system_settings_by_category(
         &self,
@@ -644,5 +836,58 @@ impl QueryRoot {
         let db = get_db_from_context(ctx)?;
         let settings = system_settings::Model::find_by_category(&db, &category).await?;
         Ok(settings)
+    }
+
+    // =========================================================================
+    // User Address Queries
+    // =========================================================================
+
+    /// Get all addresses for a specific user
+    async fn user_addresses(
+        &self,
+        ctx: &Context<'_>,
+        user_id: Uuid,
+    ) -> Result<Vec<crate::models::employee::user_address::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let addresses = crate::models::employee::user_address::Entity::find()
+            .filter(crate::models::employee::user_address::Column::UserId.eq(user_id))
+            .filter(crate::models::employee::user_address::Column::DeletedAt.is_null())
+            .order_by_asc(crate::models::employee::user_address::Column::IsPrimary)
+            .all(&db)
+            .await?;
+
+        Ok(addresses)
+    }
+
+    /// Get a single user address by ID
+    async fn user_address(
+        &self,
+        ctx: &Context<'_>,
+        id: Uuid,
+    ) -> Result<Option<crate::models::employee::user_address::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let address = crate::models::employee::user_address::Entity::find_by_id(id)
+            .filter(crate::models::employee::user_address::Column::DeletedAt.is_null())
+            .one(&db)
+            .await?;
+
+        Ok(address)
+    }
+
+    /// Get primary address for a specific user
+    async fn user_primary_address(
+        &self,
+        ctx: &Context<'_>,
+        user_id: Uuid,
+    ) -> Result<Option<crate::models::employee::user_address::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let address = crate::models::employee::user_address::Entity::find()
+            .filter(crate::models::employee::user_address::Column::UserId.eq(user_id))
+            .filter(crate::models::employee::user_address::Column::IsPrimary.eq(true))
+            .filter(crate::models::employee::user_address::Column::DeletedAt.is_null())
+            .one(&db)
+            .await?;
+
+        Ok(address)
     }
 }

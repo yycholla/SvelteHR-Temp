@@ -102,90 +102,52 @@ export const load: PageServerLoad = async (event) => {
 			hasParent
 		});
 
-		// Build filter condition for GraphQL query (if filters are applied)
-		// Use the same pattern as the teams page: filter: { field: { equalTo: value } }
-		// Note: Can only filter on direct fields (status, priority), not foreign keys
-		// Foreign key filtering (assignee, taskType) will be done client-side
-		let filterCondition: any = null;
-
-		if (statusFilter || priorityFilter) {
-			filterCondition = {};
-
-			if (statusFilter) {
-				filterCondition.status = { equalTo: statusFilter };
-			}
-
-			if (priorityFilter) {
-				filterCondition.priority = { equalTo: priorityFilter };
-			}
-		}
-
 		// Load tasks with full relationships
-		// NOTE: Using Rust GraphQL schema conventions (similar to departments query)
-		// Returns direct array, not wrapped in .nodes
-		// Build query conditionally based on whether we have filters
-		// Note: Schema only exposes relationship objects, not the foreign key IDs directly
-		const taskFields = `
-			id
-			title
-			description
-			status
-			priority
-			dueDate
-			requiresManualReassignment
-			archived
-			createdAt
-			updatedAt
-			assignee {
-				id
-				displayName
-				email
-			}
-			creator {
-				id
-				displayName
-				email
-			}
-			taskType {
-				id
-				name
-			}
-			parentTask {
-				id
-				title
-				status
-			}
-		`;
-
+		// NOTE: Rust GraphQL backend does NOT support filter parameter
+		// Fetch all tasks and filter client-side
 		const tasksResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
-				query: filterCondition
-					? `
-					query GetTasksForDashboard($limit: Int!, $offset: Int!, $filter: TaskFilter!) {
-						tasks(limit: $limit, offset: $offset, filter: $filter) {
-							${taskFields}
-						}
-					}
-				`
-					: `
+				query: `
 					query GetTasksForDashboard($limit: Int!, $offset: Int!) {
 						tasks(limit: $limit, offset: $offset) {
-							${taskFields}
+							id
+							title
+							description
+							status
+							priority
+							dueDate
+							requiresManualReassignment
+							archived
+							createdAt
+							updatedAt
+							assignee {
+								id
+								displayName
+								email
+							}
+							creator {
+								id
+								displayName
+								email
+							}
+							taskType {
+								id
+								name
+							}
+							parentTask {
+								id
+								title
+								status
+							}
 						}
 					}
 				`,
-				variables: filterCondition
-					? {
-							limit: limit,
-							offset: (page - 1) * limit,
-							filter: filterCondition
-						}
-					: {
-							limit: limit,
-							offset: (page - 1) * limit
-						}
+				variables: {
+					limit: 1000, // Fetch large dataset for client-side filtering
+					offset: 0
+				}
 			})
 		});
 
@@ -198,6 +160,18 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		let tasks = tasksData?.data?.tasks || [];
+
+		// Client-side filtering for status (Rust backend doesn't support filter parameter)
+		if (statusFilter) {
+			const statusUpper = statusFilter.toUpperCase().replace('-', '_');
+			tasks = tasks.filter((task: any) => task.status === statusUpper);
+		}
+
+		// Client-side filtering for priority
+		if (priorityFilter) {
+			const priorityUpper = priorityFilter.toUpperCase();
+			tasks = tasks.filter((task: any) => task.priority === priorityUpper);
+		}
 
 		// Client-side filtering for search term
 		if (searchTerm) {

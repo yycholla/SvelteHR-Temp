@@ -11,7 +11,7 @@ DB_PORT="${DB_PORT:-5433}"
 DB_NAME="${DB_NAME:-hr_system}"
 DB_USER="${DB_USER:-postgres}"
 DB_PASSWORD="${DB_PASSWORD:-postgres123}"
-MIGRATIONS_DIR="${MIGRATIONS_DIR:-$(dirname "$0")/../migrations}"
+MIGRATIONS_DIR="${MIGRATIONS_DIR:-$(dirname "$0")/../db/migrations}"
 
 # Colors for output
 RED='\033[0;31m'

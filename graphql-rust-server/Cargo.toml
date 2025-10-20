@@ -6,6 +6,10 @@ proc-macro = false
 edition = "2021"
 required-features = []
 
+[[bin]]
+name = "migration"
+path = "migration/main.rs"
+
 [[test]]
 path = "tests/contract_tests.rs"
 name = "contract_tests"
@@ -53,6 +57,10 @@ features = ["serde"]
 [dependencies.sea-orm]
 version = "0.12"
 features = ["sqlx-postgres", "runtime-tokio-rustls", "macros", "with-uuid", "with-chrono"]
+
+[dependencies.sea-orm-migration]
+version = "0.12"
+features = ["runtime-tokio-rustls", "sqlx-postgres"]
 
 [dependencies.serde]
 version = "1.0"

@@ -13,16 +13,14 @@ use crate::{database::get_db_from_context, error::AppError};
 
 /// SeaORM Bulk rollback batch entity
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "bulk_rollback_batches")]
+#[sea_orm(table_name = "bulk_rollback_batches", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
-    pub batch_name: String,
-    pub requester_id: Uuid,
+    pub requested_by: Uuid,
     pub total_items: i32,
-    pub completed_items: i32,
+    pub processed_items: i32,
     pub status: String,
-    pub started_at: Option<DateTime<Utc>>,
     pub completed_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
 }
@@ -31,7 +29,7 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(
         belongs_to = "crate::models::user::Entity",
-        from = "Column::RequesterId",
+        from = "Column::RequestedBy",
         to = "crate::models::user::Column::Id"
     )]
     Requester,
@@ -45,12 +43,10 @@ impl ActiveModelBehavior for ActiveModel {}
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct BulkRollbackBatch {
     pub id: Uuid,
-    pub batch_name: String,
-    pub requester_id: Uuid,
+    pub requested_by: Uuid,
     pub total_items: i32,
-    pub completed_items: i32,
+    pub processed_items: i32,
     pub status: String,
-    pub started_at: Option<DateTime<Utc>>,
     pub completed_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
 }
@@ -58,10 +54,8 @@ pub struct BulkRollbackBatch {
 /// Input for creating a new bulk rollback batch
 #[derive(Debug, Clone, InputObject)]
 pub struct CreateBulkRollbackBatchInput {
-    #[graphql(name = "batchName")]
-    pub batch_name: String,
-    #[graphql(name = "requesterId")]
-    pub requester_id: Uuid,
+    #[graphql(name = "requestedBy")]
+    pub requested_by: Uuid,
     #[graphql(name = "totalItems")]
     pub total_items: i32,
 }
@@ -69,8 +63,8 @@ pub struct CreateBulkRollbackBatchInput {
 /// Input for updating a bulk rollback batch (progress/status)
 #[derive(Debug, Clone, InputObject)]
 pub struct UpdateBulkRollbackBatchInput {
-    #[graphql(name = "completedItems")]
-    pub completed_items: Option<i32>,
+    #[graphql(name = "processedItems")]
+    pub processed_items: Option<i32>,
     pub status: Option<String>,
 }
 
@@ -81,14 +75,9 @@ impl Model {
         self.id
     }
 
-    #[graphql(name = "batchName")]
-    async fn batch_name(&self) -> &str {
-        &self.batch_name
-    }
-
-    #[graphql(name = "requesterId")]
-    async fn requester_id(&self) -> Uuid {
-        self.requester_id
+    #[graphql(name = "requestedBy")]
+    async fn requested_by(&self) -> Uuid {
+        self.requested_by
     }
 
     #[graphql(name = "totalItems")]
@@ -96,18 +85,13 @@ impl Model {
         self.total_items
     }
 
-    #[graphql(name = "completedItems")]
-    async fn completed_items(&self) -> i32 {
-        self.completed_items
+    #[graphql(name = "processedItems")]
+    async fn processed_items(&self) -> i32 {
+        self.processed_items
     }
 
     async fn status(&self) -> &str {
         &self.status
-    }
-
-    #[graphql(name = "startedAt")]
-    async fn started_at(&self) -> Option<DateTime<Utc>> {
-        self.started_at
     }
 
     #[graphql(name = "completedAt")]
@@ -123,7 +107,7 @@ impl Model {
     /// Requester relationship (lazy-loaded)
     async fn requester(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::user::Model> {
         let db = get_db_from_context(ctx)?;
-        let user = crate::models::user::Entity::find_by_id(self.requester_id)
+        let user = crate::models::user::Entity::find_by_id(self.requested_by)
             .filter(crate::models::user::Column::DeletedAt.is_null())
             .one(&db)
             .await?

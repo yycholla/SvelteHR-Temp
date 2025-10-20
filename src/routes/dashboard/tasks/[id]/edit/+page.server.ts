@@ -52,14 +52,14 @@ export const load: PageServerLoad = async (event) => {
 		console.log('[Task Edit] Loading task for editing:', taskId);
 
 		// Load task data
-		// NOTE: Using Rust GraphQL schema (filter pattern, no foreign key IDs)
+		// NOTE: Using Rust GraphQL schema - singular query for ID lookup
 		const taskResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
 					query GetTaskForEdit($taskId: UUID!) {
-						tasks(limit: 1, filter: { id: { equalTo: $taskId } }) {
+						task(id: $taskId) {
 							id
 							title
 							description
@@ -93,8 +93,7 @@ export const load: PageServerLoad = async (event) => {
 			throw new Error(taskData.errors[0]?.message || 'Failed to load task');
 		}
 
-		const tasks = taskData?.data?.tasks || [];
-		const task = tasks.length > 0 ? tasks[0] : null;
+		const task = taskData?.data?.task || null;
 
 		if (!task) {
 			throw error(404, { message: 'Task not found' });
@@ -287,6 +286,7 @@ export const actions: Actions = {
 			};
 
 			// Execute update mutation
+			// Migration: ✅ Use idiomatic Rust pattern (direct id/input parameters, no nested wrapper)
 			const updateResponse = await fetch(graphqlEndpoint, {
 				method: 'POST',
 				headers: {
@@ -294,19 +294,17 @@ export const actions: Actions = {
 				},
 				body: JSON.stringify({
 					query: `
-						mutation UpdateTask($taskId: UUID!, $input: TaskPatch!) {
-							updateTaskById(input: { id: $taskId, taskPatch: $input }) {
-								task {
-									id
-									title
-									status
-									updatedAt
-								}
+						mutation UpdateTask($id: UUID!, $input: UpdateTaskInput!) {
+							updateTask(id: $id, input: $input) {
+								id
+								title
+								status
+								updatedAt
 							}
 						}
 					`,
 					variables: {
-						taskId,
+						id: taskId,
 						input: updateInput
 					}
 				})
@@ -322,7 +320,7 @@ export const actions: Actions = {
 				});
 			}
 
-			const updatedTask = updateData?.data?.updateTaskById?.task;
+			const updatedTask = updateData?.data?.updateTask;
 
 			if (!updatedTask) {
 				return fail(400, {

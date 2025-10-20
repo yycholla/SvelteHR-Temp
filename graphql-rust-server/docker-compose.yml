@@ -13,8 +13,9 @@ services:
       - "5433:5432"  # Use 5433 to avoid conflicts with local PostgreSQL
     volumes:
       - sveltehr_postgres_data:/var/lib/postgresql/data
-      # TODO: Update this path to point to your database init schema file
-      # - /home/chanway/Projects/SvelteHR/database/init/001-complete-schema.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
+      # Note: Database schema is managed by SeaORM Rust migrations
+      # Migrations run automatically when hr-graphql-rust container starts
+      # See: graphql-rust-server/migration/README.md
     networks:
       - sveltehr-dev-network
     restart: unless-stopped

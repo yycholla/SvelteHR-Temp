@@ -92,17 +92,10 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 				body: JSON.stringify({
 					query: `
 						query GetEmployeeGoals($employeeId: UUID!, $limit: Int!) {
-							goals(
-								limit: $limit,
-								filter: {
-									employeeId: { equalTo: $employeeId },
-									deleted: { equalTo: false },
-									status: { equalTo: ACTIVE }
-								}
-							) {
+							employeeGoals(employeeId: $employeeId, limit: $limit) {
 								id
-								title
-								description
+								goalTitle
+								goalDescription
 								targetDate
 								status
 								progressPercentage
@@ -127,7 +120,17 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 				});
 			}
 
-			availableGoals = goalsData.data?.goals || [];
+			// Transform employeeGoals response to match expected format
+			const employeeGoals = goalsData.data?.employeeGoals || [];
+			availableGoals = employeeGoals.map((goal: any) => ({
+				id: goal.id,
+				title: goal.goalTitle,
+				description: goal.goalDescription,
+				targetDate: goal.targetDate,
+				status: goal.status,
+				progressPercentage: goal.progressPercentage,
+				createdAt: goal.createdAt
+			}));
 		}
 
 		// Query 2: Get selected employee details if provided
@@ -142,7 +145,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 				body: JSON.stringify({
 					query: `
 						query GetEmployee($employeeId: UUID!) {
-							users(limit: 1, filter: { id: { equalTo: $employeeId } }) {
+							user(id: $employeeId) {
 								id
 								displayName
 								email
@@ -161,8 +164,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 
 			const employeeData = await employeeResponse.json();
 
-			if (employeeData.data?.users && employeeData.data.users.length > 0) {
-				selectedEmployee = employeeData.data.users[0];
+			if (employeeData.data?.user) {
+				selectedEmployee = employeeData.data.user;
 			}
 		}
 

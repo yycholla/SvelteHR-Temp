@@ -36,7 +36,7 @@ impl DependencyType {
 
 /// TaskDependency entity - maps to hr_public.task_dependencies table
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "task_dependencies")]
+#[sea_orm(table_name = "task_dependencies", schema_name = "hr_public")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,

@@ -13,9 +13,13 @@ export const load: PageServerLoad = async (event) => {
 		throw error(401, 'Authentication required');
 	}
 
-	// RBAC: Check if user is admin or super_admin
-	const userRole = locals.user.role?.toLowerCase().replace('-', '_') || 'employee';
-	if (!['super_admin', 'admin', 'hr_manager'].includes(userRole)) {
+	// RBAC: Use proper permission checking
+	const userPermissions = getUserPermissions(locals);
+
+	// Check if user has employee management permissions
+	// This checks for both 'employees:write' permission AND admin/system_admin role
+	if (!userPermissions.canManageEmployees) {
+		console.log('[Employee New] Access denied. User role:', locals.user.role, 'Permissions:', locals.permissions, 'Roles:', locals.roles);
 		throw error(403, 'Access denied. Admin privileges required to create employees.');
 	}
 
@@ -102,9 +106,11 @@ export const actions: Actions = {
 	default: async (event) => {
 		const { request, cookies, locals } = event;
 
-		// RBAC: Check if user is admin or super_admin
-		const userRole = locals.user?.role?.toLowerCase().replace('-', '_') || 'employee';
-		if (!['super_admin', 'admin', 'hr_manager'].includes(userRole)) {
+		// RBAC: Use proper permission checking
+		const userPermissions = getUserPermissions(locals);
+
+		if (!userPermissions.canManageEmployees) {
+			console.log('[Employee New] Create denied. User role:', locals.user?.role, 'Permissions:', locals.permissions);
 			return fail(403, {
 				error: 'Access denied. Admin privileges required to create employees.'
 			});
@@ -115,7 +121,8 @@ export const actions: Actions = {
 			const firstName = formData.get('firstName')?.toString();
 			const lastName = formData.get('lastName')?.toString();
 			const email = formData.get('email')?.toString();
-			const role = formData.get('role')?.toString() || 'employee';
+			const phone = formData.get('phone')?.toString();
+			const jobTitle = formData.get('jobTitle')?.toString();
 			const departmentId = formData.get('departmentId')?.toString();
 			const hireDate = formData.get('hireDate')?.toString();
 
@@ -137,23 +144,34 @@ export const actions: Actions = {
 				'Cookie': cookieHeader
 			};
 
-			// Generate a temporary password for the new employee
-			// In production, this should trigger a password reset email
-			const tempPassword = `Welcome${Math.random().toString(36).slice(2, 10)}!`;
+			// Create user via GraphQL mutation
+			// Note: Password will be set separately via password reset flow
+			// Note: Role is hardcoded to "hr_employee" in the backend
 
-			// Hash the password (using bcrypt would be better, but for now use a simple hash)
-			const crypto = await import('crypto');
-			const passwordHash = crypto.createHash('sha256').update(tempPassword).digest('hex');
+			// Build input object, only including fields that have values
+			const input: any = {
+				email,
+				firstName,
+				lastName,
+				status: 'active'
+			};
 
-			// Note: Rust GraphQL backend may not have createUser mutation yet
-			// TODO: Implement user creation mutation in Rust backend
+			// Only add optional fields if they have values
+			if (phone) input.phone = phone;
+			if (jobTitle) input.jobTitle = jobTitle;
+			if (departmentId) input.departmentId = departmentId;
+			if (hireDate) {
+				// Ensure hire date is in ISO 8601 format
+				input.hireDate = new Date(hireDate).toISOString();
+			}
+
 			const createResponse = await fetch(graphqlEndpoint, {
 				method: 'POST',
 				headers,
 				body: JSON.stringify({
 					query: `
-						mutation CreateEmployee($firstName: String!, $lastName: String!, $email: String!, $role: String!, $departmentId: UUID, $hireDate: String, $passwordHash: String!) {
-							createUser(firstName: $firstName, lastName: $lastName, email: $email, role: $role, departmentId: $departmentId, hireDate: $hireDate, passwordHash: $passwordHash) {
+						mutation CreateEmployee($input: CreateUserInput!) {
+							createUser(input: $input) {
 								id
 								firstName
 								lastName
@@ -164,19 +182,11 @@ export const actions: Actions = {
 							}
 						}
 					`,
-					variables: {
-						firstName,
-						lastName,
-						email,
-						role,
-						departmentId: departmentId || null,
-						hireDate: hireDate || new Date().toISOString().split('T')[0],
-						passwordHash: passwordHash
-					}
+					variables: { input }
 				})
 			});
 
-			console.log(`[Employee New] Created employee with temporary password: ${tempPassword}`);
+			console.log('[Employee New] User creation request sent');
 
 			if (!createResponse.ok) {
 				console.error('[Employee New] Create failed:', createResponse.statusText);
@@ -202,8 +212,10 @@ export const actions: Actions = {
 				});
 			}
 
-			// Redirect to the new employee's profile page
-			throw redirect(303, `/dashboard/employees/${newEmployeeId}`);
+			console.log(`[Employee New] Successfully created employee with ID: ${newEmployeeId}`);
+
+			// Redirect to the employees list page with success message
+			throw redirect(303, `/dashboard/employees?success=created`);
 		} catch (err: any) {
 			console.error('[Employee New] Error creating employee:', err);
 

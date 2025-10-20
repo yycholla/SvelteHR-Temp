@@ -33,7 +33,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 
 			// Session-based access control: Non-admins can only see documents assigned to them
 			if (!isAdmin) {
-				whereConditions.push(`da.employee_id = $${paramIndex}`);
+				whereConditions.push(`da.user_id = $${paramIndex}`);
 				queryParams.push(userId);
 				paramIndex++;
 			}
@@ -60,7 +60,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 				file_size_bytes: 'file_size',
 				expiration_date: 'expiry_date'
 			};
-			const dbSortBy = sortColumnMap[sortBy] || sortBy;
+			const dbSortBy = sortColumnMap[sortBy] || 'created_at';
 
 			// Query documents with pagination and assignments
 			const offset = (page - 1) * limit;
@@ -68,20 +68,22 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 				`SELECT
 					d.id, d.title as filename, d.mime_type as file_type, d.file_size as file_size_bytes,
 					dc.name as category, d.created_at as uploaded_at, d.uploaded_by,
+					d.access_level, d.is_encrypted, d.description,
 					d.expiry_date as expiration_date, d.version_number,
 					COALESCE(
 						json_agg(
-							DISTINCT jsonb_build_object('email', u.email, 'id', da.employee_id)
-						) FILTER (WHERE da.employee_id IS NOT NULL),
+							DISTINCT jsonb_build_object('email', u.email, 'id', da.user_id)
+						) FILTER (WHERE da.user_id IS NOT NULL),
 						'[]'::json
 					) as assigned_users
 				FROM hr_public.documents d
 				LEFT JOIN hr_public.document_categories dc ON d.category_id = dc.id
 				LEFT JOIN hr_public.document_assignments da ON d.id = da.document_id
-				LEFT JOIN hr_public.users u ON da.employee_id = u.id
+				LEFT JOIN hr_public.users u ON da.user_id = u.id
 				${whereClause}
 				GROUP BY d.id, d.title, d.mime_type, d.file_size, dc.name,
-				         d.created_at, d.uploaded_by, d.expiry_date, d.version_number
+				         d.created_at, d.uploaded_by, d.access_level, d.is_encrypted, d.description,
+				         d.expiry_date, d.version_number
 				ORDER BY d.${dbSortBy} ${sortOrder.toUpperCase()}
 				LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
 				[...queryParams, limit, offset]

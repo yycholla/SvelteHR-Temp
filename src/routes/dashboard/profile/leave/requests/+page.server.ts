@@ -97,13 +97,22 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		// Load leave requests from database
+		// Migration: ✅ Use idiomatic Rust pattern (leaveRequests with employeeId)
 		const leaveRequestsQuery = `
-			query GetUserLeaveRequests($userId: UUID!) {
-				leaveRequestsByUser(userId: $userId) {
+			query GetUserLeaveRequests($employeeId: UUID!, $limit: Int!, $offset: Int!) {
+				leaveRequests(employeeId: $employeeId, limit: $limit, offset: $offset) {
 					id
 					employeeId
 					managerId
-					leaveType
+					leaveType {
+						id
+						name
+						description
+						defaultDays
+						requiresApproval
+						isPaid
+						color
+					}
 					startDate
 					endDate
 					daysRequested
@@ -120,10 +129,7 @@ export const load: PageServerLoad = async (event) => {
 						displayName
 						fullName
 						role
-						phone
-						alternatePhone
 						jobTitle
-						status
 						departmentId
 						managerId
 						hireDate
@@ -139,10 +145,7 @@ export const load: PageServerLoad = async (event) => {
 						displayName
 						fullName
 						role
-						phone
-						alternatePhone
 						jobTitle
-						status
 						departmentId
 						managerId
 						hireDate
@@ -154,22 +157,26 @@ export const load: PageServerLoad = async (event) => {
 			}
 		`;
 
-		const leaveRequestsData = await graphqlClient.query(leaveRequestsQuery, { userId });
-		const rawLeaveRequests = leaveRequestsData.data?.leaveRequestsByUser || [];
+		const leaveRequestsData = await graphqlClient.query(leaveRequestsQuery, {
+			employeeId: userId,
+			limit: 100,
+			offset: 0
+		});
+		const rawLeaveRequests = leaveRequestsData.data?.leaveRequests || [];
 
 		// Load time off balances
+		// Migration: ✅ Use idiomatic Rust pattern (leaveBalances with employeeId, filter year client-side)
 		const currentYear = new Date().getFullYear();
 		const timeOffBalancesQuery = `
-			query GetUserTimeOffBalances($userId: UUID!, $year: Int!) {
-				leaveBalancesByUser(userId: $userId, year: $year) {
+			query GetUserTimeOffBalances($employeeId: UUID!, $limit: Int!, $offset: Int!) {
+				leaveBalances(employeeId: $employeeId, limit: $limit, offset: $offset) {
 					id
 					employeeId
-					policyId
+					leaveTypeId
 					year
 					totalDays
 					usedDays
-					pendingDays
-					carriedOverDays
+					remainingDays
 					createdAt
 					updatedAt
 				}
@@ -177,10 +184,14 @@ export const load: PageServerLoad = async (event) => {
 		`;
 
 		const balancesData = await graphqlClient.query(timeOffBalancesQuery, {
-			userId,
-			year: currentYear
+			employeeId: userId,
+			limit: 50,
+			offset: 0
 		});
-		const timeOffBalances = balancesData.data?.leaveBalancesByUser || [];
+		const allBalances = balancesData.data?.leaveBalances || [];
+
+		// Filter to current year client-side (backend doesn't support year parameter)
+		const timeOffBalances = allBalances.filter((balance: any) => balance.year === currentYear);
 
 		// For now, skip loading policies and use hardcoded mappings
 		const timeOffPolicies: Array<{ id: string; policyName: string; leaveType: string }> = [
@@ -189,27 +200,29 @@ export const load: PageServerLoad = async (event) => {
 			{ id: 'personal-policy', policyName: 'Personal Leave', leaveType: 'personal' }
 		];
 
-		// Calculate leave balances (simplified for now - pending calculation disabled)
+		// Calculate leave balances
 		const leaveBalances = timeOffBalances.map((balance: any) => {
+			// Parse decimal strings to numbers
+			const totalDays = parseFloat(balance.totalDays || '0');
+			const usedDays = parseFloat(balance.usedDays || '0');
+			const remainingDays = parseFloat(balance.remainingDays || '0');
+
 			// For now, assume all balances are for annual leave
-			// TODO: Fix when backend schema includes policy names in balance queries
+			// TODO: Load actual leave type from balance.leaveType relationship
 			const leaveTypeCode = 'annual';
 			const policyName = 'Annual Leave';
 
-			// Skip pending calculation for now due to schema issues
-			const pending = 0;
-
 			return {
 				leaveType: {
-					id: balance.policyId,
+					id: balance.leaveTypeId, // Migration: policyId → leaveTypeId
 					name: policyName,
 					code: leaveTypeCode,
 					color: getLeaveTypeColor(leaveTypeCode)
 				},
-				allocated: balance.totalDays || 0,
-				used: balance.usedDays || 0,
-				pending,
-				remaining: (balance.totalDays || 0) - (balance.usedDays || 0) - pending
+				allocated: totalDays,
+				used: usedDays,
+				pending: 0, // Not tracked in current schema
+				remaining: remainingDays
 			};
 		});
 
@@ -219,10 +232,10 @@ export const load: PageServerLoad = async (event) => {
 			startDate: req.startDate,
 			endDate: req.endDate,
 			leaveType: {
-				id: req.leaveType,
-				name: req.leaveType,
-				code: req.leaveType.toLowerCase(),
-				color: getLeaveTypeColor(req.leaveType)
+				id: req.leaveType?.id || req.leaveType,
+				name: req.leaveType?.name || (typeof req.leaveType === 'string' ? getLeaveTypeName(req.leaveType) : 'Unknown'),
+				code: typeof req.leaveType === 'string' ? req.leaveType.toLowerCase() : (req.leaveType?.name?.toLowerCase().replace(/\s+/g, '_') || 'annual'),
+				color: req.leaveType?.color || getLeaveTypeColor(req.leaveType?.name?.toLowerCase() || 'annual')
 			},
 			reason: req.reason || '',
 			status: req.status.toString().toLowerCase(),
