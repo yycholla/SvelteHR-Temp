@@ -12,63 +12,60 @@ export const load: PageServerLoad = async (event) => {
 	// RBAC: Check employee write permissions
 	PermissionChecks.employeeWrite(event);
 
-	// Import required models
-	const { createUserSession } = await import('$lib/models/user-session');
-
 	// Ensure user is authenticated
 	if (!locals.user) {
 		throw error(401, 'Authentication required');
 	}
 
-	// Create user session from server locals
-	const userSession = createUserSession({
+	// Create simple user session object (session-based auth doesn't use JWT)
+	const userSession = {
 		userId: locals.user.id,
-		jwtToken: cookies.get('hr_token') || '',
 		roles: [locals.user.role || 'employee'],
 		permissions: locals.permissions || [],
+		isAuthenticated: true,
 		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
 		metadata: {
 			userEmail: locals.user.email,
 			displayName: locals.user.display_name || locals.user.email
-		}
-	});
+		},
+		toJSON: () => ({
+			userId: locals.user.id,
+			roles: [locals.user.role || 'employee'],
+			permissions: locals.permissions || [],
+			isAuthenticated: true,
+			expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+			metadata: {
+				userEmail: locals.user.email,
+				displayName: locals.user.display_name || locals.user.email
+			}
+		})
+	};
 
 	try {
-		// Make direct GraphQL calls to PostGraphile backend
+		// Make direct GraphQL calls to Rust GraphQL backend
 		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
-		// Get JWT token for PostGraphile authentication
-		const jwtToken = cookies.get('hr_token') || cookies.get('postgraphile-jwt-token') || '';
-
-		// Decode JWT token to get user context
-		let jwtClaims = null;
-		if (jwtToken) {
-			try {
-				const { decodeJWTTokenUnsafe } = await import('$lib/auth/jwt-utils');
-				jwtClaims = await decodeJWTTokenUnsafe(jwtToken);
-			} catch (error) {
-				console.warn('[Employee Edit] Failed to decode JWT:', error);
-			}
-		}
-
-		// Set up proper headers for PostGraphile with JWT context
+		// Headers for session-based authentication
+		// Forward session cookies to Rust GraphQL backend
+		const cookieHeader = event.request.headers.get('cookie') || '';
 		const headers: Record<string, string> = {
-			'Content-Type': 'application/json'
+			'Content-Type': 'application/json',
+			'Cookie': cookieHeader
 		};
 
-		if (jwtClaims) {
-			headers['Authorization'] = `Bearer ${jwtToken}`;
-			headers['X-JWT-Claims-Role'] = jwtClaims.role || 'employee';
-			headers['X-JWT-Claims-User-Id'] = jwtClaims.user_id;
-		}
+		console.log(
+			'[Employee Edit] Using Rust GraphQL backend with session-based auth, user role:',
+			locals.user?.role
+		);
 
 		// Determine if user can edit detailed employee information
 		const userRole = locals.user.role?.toLowerCase().replace('-', '_') || 'employee';
-		const isAdmin = ['super_admin', 'admin', 'hr_manager'].includes(userRole);
+		const isAdmin = userRole === 'system_admin' || userRole === 'Admin' || userRole === 'HR Manager';
 		const isViewingSelf = locals.user.id === employeeId;
 
 		// Load employee data and departments in parallel
+		// NOTE: Using Rust GraphQL schema (filter pattern, direct arrays)
 		const [employeeResponse, departmentsResponse] = await Promise.all([
 			fetch(graphqlEndpoint, {
 				method: 'POST',
@@ -76,63 +73,33 @@ export const load: PageServerLoad = async (event) => {
 				body: JSON.stringify({
 					query: `
 						query GetEmployeeById($id: UUID!) {
-							employee: userById(id: $id) {
+							user(id: $id) {
 								id
-								displayName
 								firstName
 								lastName
+								displayName
+								fullName
 								email
 								role
+								phone
+								alternatePhone
+								jobTitle
+								status
 								hireDate
 								isActive
 								departmentId
-								phoneNumber
-								mobileNumber
-								addressLine1
-								addressLine2
-								city
-								stateProvince
-								postalCode
-								country
-								departmentByDepartmentId {
+								department {
 									id
 									name
-									managerId
 								}
-								emergencyContactsByEmployeeId {
-									nodes {
-										id
-										fullName
-										relationship
-										phoneNumber
-										alternatePhone
-										email
-										addressLine1
-										addressLine2
-										city
-										stateProvince
-										postalCode
-										country
-										isPrimary
-										notes
-									}
-								}
-								employeeVehiclesByEmployeeId {
-									nodes {
-										id
-										make
-										model
-										year
-										color
-										licensePlate
-										stateProvince
-										parkingSpot
-										insuranceCompany
-										insurancePolicyNumber
-										insuranceExpiry
-										isPrimary
-										notes
-									}
+								primaryAddress {
+									id
+									addressLine1
+									addressLine2
+									city
+									stateProvince
+									postalCode
+									country
 								}
 							}
 						}
@@ -146,11 +113,9 @@ export const load: PageServerLoad = async (event) => {
 				body: JSON.stringify({
 					query: `
 						query GetDepartments {
-							allDepartments(first: 100) {
-								nodes {
-									id
-									name
-								}
+							departments(limit: 100) {
+								id
+								name
 							}
 						}
 					`
@@ -164,14 +129,67 @@ export const load: PageServerLoad = async (event) => {
 		]);
 
 		// Check if employee exists
-		if (!employeeData?.data?.employee) {
+		const employee = employeeData?.data?.user;
+		if (!employee) {
 			throw error(404, 'Employee not found');
 		}
 
-		const employee = employeeData.data.employee;
+		// Load related data separately (emergency contacts and vehicles) - migrated to Rust GraphQL
+		const [emergencyContactsResponse, vehiclesResponse] = await Promise.all([
+			fetch(graphqlEndpoint, {
+				method: 'POST',
+				headers,
+				body: JSON.stringify({
+					query: `
+						query GetEmergencyContacts($employeeId: UUID!, $limit: Int!) {
+							emergencyContacts(employeeId: $employeeId, limit: $limit) {
+								id
+								name
+								relationship
+								phoneNumber
+								email
+								isPrimary
+								createdAt
+								updatedAt
+							}
+						}
+					`,
+					variables: { employeeId, limit: 50 }
+				})
+			}),
+			fetch(graphqlEndpoint, {
+				method: 'POST',
+				headers,
+				body: JSON.stringify({
+					query: `
+						query GetEmployeeVehicles($employeeId: UUID!, $limit: Int!) {
+							employeeVehicles(employeeId: $employeeId, limit: $limit) {
+								id
+								make
+								model
+								year
+								color
+								licensePlate
+								createdAt
+								updatedAt
+							}
+						}
+					`,
+					variables: { employeeId, limit: 50 }
+				})
+			})
+		]);
+
+		const [emergencyContactsData, vehiclesData] = await Promise.all([
+			emergencyContactsResponse.json(),
+			vehiclesResponse.json()
+		]);
+
+		const emergencyContacts = emergencyContactsData?.data?.emergencyContacts || [];
+		const vehicles = vehiclesData?.data?.employeeVehicles || [];
 
 		// Check if user is the employee's manager
-		const isEmployeeManager = employee.departmentByDepartmentId?.managerId === locals.user.id;
+		const isEmployeeManager = employee.department?.managerId === locals.user.id;
 
 		// Determine edit permissions
 		const canEditContactInfo = isViewingSelf || isEmployeeManager || isAdmin;
@@ -188,38 +206,39 @@ export const load: PageServerLoad = async (event) => {
 					headers,
 					body: JSON.stringify({
 						query: `
-							query GetCurrentCompensation($employeeId: UUID!) {
-								allCompensationRecords(
-									condition: { employeeId: $employeeId }
-									orderBy: EFFECTIVE_DATE_DESC
-									first: 1
+							query GetCurrentCompensation($employeeId: UUID!, $limit: Int!) {
+								compensationRecords(
+									limit: $limit,
+									filter: { employeeId: { equalTo: $employeeId } }
 								) {
-									nodes {
-										id
-										salaryAmount
-										salaryCurrency
-										payFrequency
-										payType
-										hourlyRate
-										effectiveDate
-										endDate
-										bankName
-										bankAccountType
-										bankAccountNumberLast4
-										bankRoutingNumber
-										paymentMethod
-										taxIdLast4
-										notes
-									}
+									id
+									salaryAmount
+									salaryCurrency
+									payFrequency
+									payType
+									hourlyRate
+									effectiveDate
+									endDate
+									bankName
+									bankAccountType
+									bankAccountNumberLast4
+									bankRoutingNumber
+									paymentMethod
+									taxIdLast4
+									notes
 								}
 							}
 						`,
-						variables: { employeeId }
+						variables: { employeeId, limit: 1 }
 					})
 				});
 				const compensationData = await compensationResponse.json();
-				if (compensationData?.data?.allCompensationRecords?.nodes?.[0]) {
-					currentCompensation = compensationData.data.allCompensationRecords.nodes[0];
+				const compensationRecords = compensationData?.data?.compensationRecords || [];
+				if (compensationRecords.length > 0) {
+					// Get most recent by effectiveDate
+					currentCompensation = compensationRecords.sort((a: any, b: any) =>
+						new Date(b.effectiveDate).getTime() - new Date(a.effectiveDate).getTime()
+					)[0];
 				}
 			} catch (error) {
 				console.warn('[Employee Edit] Failed to load compensation data:', error);
@@ -234,36 +253,35 @@ export const load: PageServerLoad = async (event) => {
 			userSession: userSession.toJSON(),
 			employee: {
 				id: employee.id,
-				displayName: employee.displayName,
 				firstName: employee.firstName,
 				lastName: employee.lastName,
+				displayName: employee.displayName,
+				fullName: employee.fullName,
 				email: employee.email,
 				role: employee.role,
+				jobTitle: employee.jobTitle,
+				status: employee.status,
 				hireDate: employee.hireDate,
 				isActive: employee.isActive,
 				departmentId: employee.departmentId,
 				// Contact information - only if authorized
-				phoneNumber: canEditContactInfo ? employee.phoneNumber : null,
-				mobileNumber: canEditContactInfo ? employee.mobileNumber : null,
-				addressLine1: canEditContactInfo ? employee.addressLine1 : null,
-				addressLine2: canEditContactInfo ? employee.addressLine2 : null,
-				city: canEditContactInfo ? employee.city : null,
-				stateProvince: canEditContactInfo ? employee.stateProvince : null,
-				postalCode: canEditContactInfo ? employee.postalCode : null,
-				country: canEditContactInfo ? employee.country : null,
-				department: employee.departmentByDepartmentId,
+				phoneNumber: canEditContactInfo ? employee.phone : null,
+				mobileNumber: canEditContactInfo ? employee.alternatePhone : null,
+				addressLine1: canEditContactInfo ? employee.primaryAddress?.addressLine1 : null,
+				addressLine2: canEditContactInfo ? employee.primaryAddress?.addressLine2 : null,
+				city: canEditContactInfo ? employee.primaryAddress?.city : null,
+				stateProvince: canEditContactInfo ? employee.primaryAddress?.stateProvince : null,
+				postalCode: canEditContactInfo ? employee.primaryAddress?.postalCode : null,
+				country: canEditContactInfo ? employee.primaryAddress?.country : null,
+				department: employee.department,
 				// Emergency contacts - only if authorized
-				emergencyContacts: canEditEmergencyContacts
-					? (employee.emergencyContactsByEmployeeId?.nodes || [])
-					: [],
+				emergencyContacts: canEditEmergencyContacts ? emergencyContacts : [],
 				// Vehicles - only if authorized
-				vehicles: canEditVehicles
-					? (employee.employeeVehiclesByEmployeeId?.nodes || [])
-					: [],
+				vehicles: canEditVehicles ? vehicles : [],
 				// Compensation - only if admin
 				compensation: canEditCompensation ? currentCompensation : null
 			},
-			departments: departmentsData?.data?.allDepartments?.nodes || [],
+			departments: departmentsData?.data?.departments || [],
 			// RBAC: Permission flags for UI
 			permissions: {
 				canEditContactInfo,
@@ -324,79 +342,60 @@ export const actions: Actions = {
 				});
 			}
 
-			// Make GraphQL update mutation
+			// Make GraphQL update mutation with session-based authentication
 			const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 			const graphqlEndpoint = getGraphQLEndpoint();
 
-			const jwtToken = cookies.get('hr_token') || '';
-			let jwtClaims = null;
-			if (jwtToken) {
-				try {
-					const { decodeJWTTokenUnsafe } = await import('$lib/auth/jwt-utils');
-					jwtClaims = await decodeJWTTokenUnsafe(jwtToken);
-				} catch (error) {
-					console.warn('[Employee Update] Failed to decode JWT:', error);
-				}
-			}
-
+			// Headers for session-based authentication
+			const cookieHeader = request.headers.get('cookie') || '';
 			const headers: Record<string, string> = {
-				'Content-Type': 'application/json'
+				'Content-Type': 'application/json',
+				'Cookie': cookieHeader
 			};
 
-			if (jwtClaims) {
-				headers['Authorization'] = `Bearer ${jwtToken}`;
-				headers['X-JWT-Claims-Role'] = jwtClaims.role || 'employee';
-				headers['X-JWT-Claims-User-Id'] = jwtClaims.user_id;
-			}
+			console.log('[Employee Update] Using session-based auth for mutation');
+
+			// Build update input - only include fields that have values
+			const updateInput: any = {};
+
+			if (firstName) updateInput.firstName = firstName;
+			if (lastName) updateInput.lastName = lastName;
+			if (email) updateInput.email = email;
+			if (phoneNumber) updateInput.phone = phoneNumber;
+			if (mobileNumber) updateInput.alternatePhone = mobileNumber;
+			if (departmentId) updateInput.departmentId = departmentId;
+			if (hireDate) updateInput.hireDate = new Date(hireDate).toISOString();
+
+			// Note: Address fields are NOT on User model - they need to be updated via user_addresses table
+			// For now, we'll skip address updates and focus on User fields only
 
 			const updateResponse = await fetch(graphqlEndpoint, {
 				method: 'POST',
 				headers,
 				body: JSON.stringify({
 					query: `
-						mutation UpdateEmployee($id: UUID!, $userPatch: UserPatch!) {
-							updateUserById(input: { id: $id, userPatch: $userPatch }) {
-								user {
-									id
-									displayName
-									firstName
-									lastName
-									email
-									role
-									hireDate
-									isActive
-									departmentId
-									phoneNumber
-									mobileNumber
-									addressLine1
-									addressLine2
-									city
-									stateProvince
-									postalCode
-									country
-								}
+						mutation UpdateEmployee($id: UUID!, $input: UpdateUserInput!) {
+							updateUser(id: $id, input: $input) {
+								id
+								firstName
+								lastName
+								displayName
+								fullName
+								email
+								role
+								phone
+								alternatePhone
+								jobTitle
+								status
+								hireDate
+								isActive
+								departmentId
 							}
 						}
 					`,
 					variables: {
 						id: employeeId,
-						userPatch: {
-							firstName,
-							lastName,
-							email,
-							role,
-							hireDate: hireDate || null,
-							departmentId: departmentId || null,
-							isActive,
-							phoneNumber: phoneNumber || null,
-							mobileNumber: mobileNumber || null,
-							addressLine1: addressLine1 || null,
-							addressLine2: addressLine2 || null,
-							city: city || null,
-							stateProvince: stateProvince || null,
-							postalCode: postalCode || null,
-							country: country || null
-						}
+						input: updateInput
 					}
 				})
 			});
@@ -424,14 +423,15 @@ export const actions: Actions = {
 				}
 			}
 
-			// Process emergency contacts (create/update each)
-			for (const contact of emergencyContacts.filter(c => c)) {
+			// Process emergency contacts (create/update each) - migrated to Rust GraphQL
+			for (const contact of emergencyContacts.filter((c) => c)) {
 				if (contact.id) {
 					// Update existing contact
 					const updateContactMutation = `
-						mutation UpdateEmergencyContact($id: UUID!, $patch: EmergencyContactPatch!) {
-							updateEmergencyContactById(input: { id: $id, emergencyContactPatch: $patch }) {
-								emergencyContact { id }
+						mutation UpdateEmergencyContact($id: UUID!, $input: UpdateEmergencyContactInput!) {
+							updateEmergencyContact(id: $id, input: $input) {
+								id
+								name
 							}
 						}
 					`;
@@ -442,23 +442,23 @@ export const actions: Actions = {
 							query: updateContactMutation,
 							variables: {
 								id: contact.id,
-								patch: {
-									fullName: contact.fullName,
-									relationship: contact.relationship,
+								input: {
+									name: contact.name || contact.fullName,
+									relationship: contact.relationship || null,
 									phoneNumber: contact.phoneNumber,
-									alternatePhone: contact.alternatePhone || null,
 									email: contact.email || null,
 									isPrimary: contact.isPrimary === 'true'
 								}
 							}
 						})
 					});
-				} else if (contact.fullName && contact.phoneNumber) {
+				} else if ((contact.name || contact.fullName) && contact.phoneNumber) {
 					// Create new contact
 					const createContactMutation = `
 						mutation CreateEmergencyContact($input: CreateEmergencyContactInput!) {
 							createEmergencyContact(input: $input) {
-								emergencyContact { id }
+								id
+								name
 							}
 						}
 					`;
@@ -469,15 +469,12 @@ export const actions: Actions = {
 							query: createContactMutation,
 							variables: {
 								input: {
-									emergencyContact: {
-										employeeId: employeeId,
-										fullName: contact.fullName,
-										relationship: contact.relationship,
-										phoneNumber: contact.phoneNumber,
-										alternatePhone: contact.alternatePhone || null,
-										email: contact.email || null,
-										isPrimary: contact.isPrimary === 'true'
-									}
+									employeeId: employeeId,
+									name: contact.name || contact.fullName,
+									relationship: contact.relationship || null,
+									phoneNumber: contact.phoneNumber,
+									email: contact.email || null,
+									isPrimary: contact.isPrimary === 'true'
 								}
 							}
 						})
@@ -499,14 +496,16 @@ export const actions: Actions = {
 				}
 			}
 
-			// Process vehicles (create/update each)
-			for (const vehicle of vehicles.filter(v => v)) {
+			// Process vehicles (create/update each) - migrated to Rust GraphQL
+			for (const vehicle of vehicles.filter((v) => v)) {
 				if (vehicle.id) {
 					// Update existing vehicle
 					const updateVehicleMutation = `
-						mutation UpdateVehicle($id: UUID!, $patch: EmployeeVehiclePatch!) {
-							updateEmployeeVehicleById(input: { id: $id, employeeVehiclePatch: $patch }) {
-								employeeVehicle { id }
+						mutation UpdateVehicle($id: UUID!, $input: UpdateEmployeeVehicleInput!) {
+							updateEmployeeVehicle(id: $id, input: $input) {
+								id
+								make
+								model
 							}
 						}
 					`;
@@ -517,18 +516,12 @@ export const actions: Actions = {
 							query: updateVehicleMutation,
 							variables: {
 								id: vehicle.id,
-								patch: {
-									make: vehicle.make,
-									model: vehicle.model,
+								input: {
+									make: vehicle.make || null,
+									model: vehicle.model || null,
 									year: vehicle.year ? parseInt(vehicle.year) : null,
 									color: vehicle.color || null,
-									licensePlate: vehicle.licensePlate,
-									stateProvince: vehicle.stateProvince || null,
-									parkingSpot: vehicle.parkingSpot || null,
-									insuranceCompany: vehicle.insuranceCompany || null,
-									insurancePolicyNumber: vehicle.insurancePolicyNumber || null,
-									insuranceExpiry: vehicle.insuranceExpiry || null,
-									isPrimary: vehicle.isPrimary === 'true'
+									licensePlate: vehicle.licensePlate || null
 								}
 							}
 						})
@@ -538,7 +531,9 @@ export const actions: Actions = {
 					const createVehicleMutation = `
 						mutation CreateVehicle($input: CreateEmployeeVehicleInput!) {
 							createEmployeeVehicle(input: $input) {
-								employeeVehicle { id }
+								id
+								make
+								model
 							}
 						}
 					`;
@@ -549,20 +544,12 @@ export const actions: Actions = {
 							query: createVehicleMutation,
 							variables: {
 								input: {
-									employeeVehicle: {
-										employeeId: employeeId,
-										make: vehicle.make,
-										model: vehicle.model,
-										year: vehicle.year ? parseInt(vehicle.year) : null,
-										color: vehicle.color || null,
-										licensePlate: vehicle.licensePlate,
-										stateProvince: vehicle.stateProvince || null,
-										parkingSpot: vehicle.parkingSpot || null,
-										insuranceCompany: vehicle.insuranceCompany || null,
-										insurancePolicyNumber: vehicle.insurancePolicyNumber || null,
-										insuranceExpiry: vehicle.insuranceExpiry || null,
-										isPrimary: vehicle.isPrimary === 'true'
-									}
+									employeeId: employeeId,
+									make: vehicle.make,
+									model: vehicle.model,
+									year: vehicle.year ? parseInt(vehicle.year) : 0,
+									licensePlate: vehicle.licensePlate,
+									color: vehicle.color || null
 								}
 							}
 						})
@@ -572,7 +559,7 @@ export const actions: Actions = {
 
 			// Handle compensation (admin only)
 			const userRole = event.locals.user.role?.toLowerCase().replace('-', '_') || 'employee';
-			const isAdminUser = ['super_admin', 'admin', 'hr_manager'].includes(userRole);
+			const isAdminUser = userRole === 'system_admin' || userRole === 'Admin' || userRole === 'HR Manager';
 
 			if (isAdminUser) {
 				const compensationId = formData.get('compensationId')?.toString();

@@ -1,6 +1,23 @@
+/**
+ * DEPRECATED: JWT Debugging Utilities
+ *
+ * This file is deprecated as the application has migrated to session-based authentication.
+ * JWT tokens are no longer used - authentication is handled via HTTP-only session cookies
+ * managed by the axum-login backend.
+ *
+ * Session cookies are managed server-side by the Rust backend and cannot be inspected
+ * from JavaScript for security reasons (HTTP-only flag).
+ *
+ * For debugging authentication issues, check:
+ * 1. Browser DevTools → Application → Cookies → hr_token cookie
+ * 2. Server logs in hooks.server.ts for session validation
+ * 3. Backend /auth/me endpoint for session verification
+ */
+
 import { dev } from '$app/environment';
 import type { Cookies } from '@sveltejs/kit';
 
+/** @deprecated Use session-based authentication debugging instead */
 export interface JWTDebugInfo {
 	hasToken: boolean;
 	tokenSource: string;
@@ -10,6 +27,7 @@ export interface JWTDebugInfo {
 	payload?: any;
 }
 
+/** @deprecated JWT debugging no longer needed with session-based auth */
 export function debugJWTToken(cookies: Cookies): JWTDebugInfo {
 	const hrToken = cookies.get('hr_token');
 	const postgraphileToken = cookies.get('postgraphile-jwt-token');
@@ -58,21 +76,8 @@ export function debugJWTToken(cookies: Cookies): JWTDebugInfo {
 	return debugInfo;
 }
 
+/** @deprecated Session-based auth doesn't use JWT tokens */
 export function createTestJWT(): string {
-	// Create a simple test JWT for debugging (only in dev)
-	if (!dev) return '';
-
-	const header = btoa(JSON.stringify({ typ: 'JWT', alg: 'HS256' }));
-	const payload = btoa(JSON.stringify({
-		role: 'hr_admin',
-		user_id: 1,
-		employee_id: 1,
-		exp: Math.floor(Date.now() / 1000) + (60 * 60), // 1 hour
-		iat: Math.floor(Date.now() / 1000),
-		aud: 'postgraphile',
-		iss: 'postgraphile'
-	}));
-	const signature = 'fake_signature_for_testing';
-
-	return `${header}.${payload}.${signature}`;
+	console.warn('createTestJWT is deprecated - use session-based authentication');
+	return '';
 }

@@ -1,167 +1,146 @@
-// Authentication endpoint - Login with database verification
+// Authentication endpoint - Login with Rust GraphQL API
 import type { RequestHandler } from './$types';
 import { json } from '@sveltejs/kit';
-import { GraphQLClient } from '$lib/server/graphql-client';
-import { generateJWTToken } from '$lib/auth/jwt-utils.js';
 import { getAccessTokenName, getCookieOptions } from '$lib/auth/config.js';
-import bcrypt from 'bcryptjs';
+import { getApiBaseUrl } from '$lib/server/api-url.js';
+import { isRateLimited, recordFailedLogin, clearRateLimit } from '$lib/../hooks.server.js';
 
-export const POST: RequestHandler = async ({ request, cookies }) => {
+export const POST: RequestHandler = async ({ request, cookies, getClientAddress }) => {
 	try {
 		console.log('[Login] === LOGIN ATTEMPT START ===');
+
+		// Get client IP for rate limiting
+		const clientIp = getClientAddress();
+
+		// Check rate limiting
+		if (isRateLimited(clientIp)) {
+			console.warn(`[Login] Rate limit exceeded for IP: ${clientIp}`);
+			return json(
+				{
+					success: false,
+					error: 'Too many login attempts',
+					message: 'Your account has been temporarily locked due to too many failed login attempts. Please try again in 1 hour.'
+				},
+				{ status: 429 } // Too Many Requests
+			);
+		}
+
 		const { email, password } = await request.json();
 		console.log('[Login] Credentials received:', { email, hasPassword: !!password });
 
 		if (!email || !password) {
 			console.log('[Login] Missing credentials');
-			return json({
-				success: false,
-				error: 'Email and password are required'
-			}, { status: 400 });
-		}
-
-		// Query database for user via PostGraphile GraphQL endpoint
-		console.log('[Login] Creating GraphQL client...');
-		const graphqlClient = new GraphQLClient();
-		console.log('[Login] GraphQL client created successfully');
-
-		const userQuery = `
-			query GetUserByEmail($email: String!) {
-				allUsers(condition: { email: $email }) {
-					nodes {
-						id
-						email
-						passwordHash
-						firstName
-						lastName
-						displayName
-						role
-						isActive
-					}
-				}
-			}
-		`;
-
-		console.log('[Login] Executing GraphQL query for email:', email);
-		const userData = await graphqlClient.query(userQuery, { email });
-		console.log('[Login] GraphQL response received:', JSON.stringify(userData, null, 2));
-
-		const user = userData.data?.allUsers?.nodes?.[0];
-		console.log('[Login] User query result:', { found: !!user, email, userDataKeys: Object.keys(userData) });
-
-		if (!user) {
-			return json({
-				success: false,
-				error: 'Invalid credentials',
-				message: 'User not found'
-			}, { status: 401 });
-		}
-
-		console.log('[Login] User found:', { id: user.id, email: user.email, hasHash: !!user.passwordHash });
-
-		// Verify password
-		let passwordValid = false;
-
-		try {
-			// In development, allow simple password match for testing
-			const isDevelopment = process.env.NODE_ENV !== 'production';
-
-			if (isDevelopment && password === 'admin123') {
-				console.log('[Login] Development mode: accepting admin123 password');
-				passwordValid = true;
-			} else {
-				passwordValid = await bcrypt.compare(password, user.passwordHash);
-			}
-
-			console.log('[Login] Password validation:', { valid: passwordValid });
-
-			if (!passwordValid) {
-				return json({
+			recordFailedLogin(clientIp); // Record failed attempt
+			return json(
+				{
 					success: false,
-					error: 'Invalid credentials',
-					message: 'Password mismatch'
-				}, { status: 401 });
-			}
-		} catch (bcryptError) {
-			console.error('[Login] Bcrypt error:', bcryptError);
-			return json({
-				success: false,
-				error: 'Authentication error',
-				message: 'Password verification failed'
-			}, { status: 500 });
+					error: 'Email and password are required'
+				},
+				{ status: 400 }
+			);
 		}
 
-		// Check if user is active
-		if (!user.isActive) {
-			return json({
-				success: false,
-				error: 'Account is inactive'
-			}, { status: 403 });
-		}
+		// Call Rust GraphQL API login endpoint
+		console.log('[Login] Calling Rust API /auth/login...');
+		const apiBaseUrl = getApiBaseUrl();
+		const loginUrl = `${apiBaseUrl}/auth/login`;
+		console.log('[Login] Login URL:', loginUrl);
 
-		// Create JWT token
-		console.log('[Login] Creating JWT token for user:', user.id);
-		const tokenPayload = {
-			user_id: user.id,
-			email: user.email,
-			role: user.role,
-			permissions: user.role === 'super_admin' || user.role === 'admin' ? ['*'] : [],
-			iat: Math.floor(Date.now() / 1000),
-			exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
-		};
-		console.log('[Login] Token payload prepared:', tokenPayload);
-
-		console.log('[Login] Generating JWT token...');
-		const token = await generateJWTToken(tokenPayload);
-		console.log('[Login] JWT token generated successfully, length:', token.length);
-
-		// Set cookie
-		console.log('[Login] Setting authentication cookie...');
-		const tokenName = getAccessTokenName();
-		const cookieOptions = getCookieOptions();
-		console.log('[Login] Cookie name:', tokenName);
-
-		cookies.set(tokenName, token, {
-			...cookieOptions,
-			path: '/',
-			httpOnly: true,
-			secure: process.env.NODE_ENV === 'production',
-			sameSite: 'lax',
-			maxAge: 24 * 60 * 60 // 24 hours
+		const loginResponse = await fetch(loginUrl, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({ email, password })
 		});
-		console.log('[Login] Cookie set successfully');
 
-		// Return response
-		console.log('[Login] Preparing success response...');
+		console.log('[Login] API response status:', loginResponse.status);
+
+		if (!loginResponse.ok) {
+			const errorData = await loginResponse.json();
+			console.log('[Login] API error response:', errorData);
+
+			// Record failed login attempt
+			recordFailedLogin(clientIp);
+
+			return json(
+				{
+					success: false,
+					error: errorData.error || 'Authentication failed',
+					message: errorData.message
+				},
+				{ status: loginResponse.status }
+			);
+		}
+
+		const loginData = await loginResponse.json();
+		console.log('[Login] Login successful, user:', loginData.user.email);
+
+		// Clear rate limit on successful login
+		clearRateLimit(clientIp);
+
+		// Extract Set-Cookie headers from Rust backend response and forward to browser
+		const setCookieHeaders = loginResponse.headers.getSetCookie?.() || [];
+		console.log('[Login] Forwarding', setCookieHeaders.length, 'session cookies from Rust backend');
+
+		// Parse and set each cookie in SvelteKit
+		for (const cookieHeader of setCookieHeaders) {
+			// Parse cookie string: "name=value; Path=/; HttpOnly; Secure; SameSite=Lax"
+			const match = cookieHeader.match(/^([^=]+)=([^;]+)/);
+			if (match) {
+				const [, name, value] = match;
+
+				// Extract cookie attributes
+				const options: any = {
+					path: '/',
+					httpOnly: cookieHeader.includes('HttpOnly'),
+					secure: cookieHeader.includes('Secure'),
+					sameSite: cookieHeader.includes('SameSite=Strict') ? 'strict'
+						: cookieHeader.includes('SameSite=Lax') ? 'lax'
+						: cookieHeader.includes('SameSite=None') ? 'none'
+						: 'lax'
+				};
+
+				// Extract Max-Age or Expires
+				const maxAgeMatch = cookieHeader.match(/Max-Age=(\d+)/);
+				if (maxAgeMatch) {
+					options.maxAge = parseInt(maxAgeMatch[1]);
+				}
+
+				console.log(`[Login] Setting cookie: ${name} (HttpOnly: ${options.httpOnly}, Secure: ${options.secure})`);
+				cookies.set(name, value, options);
+			}
+		}
+
+		// Return response with user data
+		console.log('[Login] === LOGIN ATTEMPT SUCCESSFUL ===');
 		return json({
 			success: true,
-			token,
-			user: {
-				id: user.id,
-				email: user.email,
-				displayName: user.displayName,
-				firstName: user.firstName,
-				lastName: user.lastName,
-				role: user.role,
-				isActive: user.isActive,
-				roles: [user.role]
-			},
+			user: loginData.user,
+			sessionExpires: loginData.session_expires,
 			message: 'Login successful'
 		});
-		console.log('[Login] === LOGIN ATTEMPT SUCCESSFUL ===');
-
 	} catch (error) {
 		console.log('[Login] === LOGIN ATTEMPT FAILED ===');
 		console.error('[Login] FATAL ERROR:', error);
 		console.error('[Login] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-		return json({
-			success: false,
-			error: 'Authentication failed',
-			message: error instanceof Error ? error.message : 'Unknown error',
-			debug: process.env.NODE_ENV !== 'production' ? {
-				error: String(error),
-				stack: error instanceof Error ? error.stack : undefined
-			} : undefined
-		}, { status: 500 });
+
+		// Security: Don't expose internal errors in production
+		const isProduction = process.env.NODE_ENV === 'production';
+
+		return json(
+			{
+				success: false,
+				error: 'Authentication failed',
+				message: isProduction ? 'An unexpected error occurred. Please try again later.' : (error instanceof Error ? error.message : 'Unknown error'),
+				debug: !isProduction
+						? {
+								error: String(error),
+								stack: error instanceof Error ? error.stack : undefined
+							}
+						: undefined
+			},
+			{ status: 500 }
+		);
 	}
 };

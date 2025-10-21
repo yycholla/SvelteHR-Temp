@@ -1,5 +1,5 @@
 // User Leave Requests - Server-Side Data Loading
-// Implements proper PostGraphile GraphQL queries with backend initialization
+// Fully migrated to Rust GraphQL backend with idiomatic query patterns
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
@@ -49,17 +49,16 @@ export const load: PageServerLoad = async (event) => {
 		// Create GraphQL client with authentication
 		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
-		// Load user details using new GraphQL client
+		// Load user details using Rust GraphQL backend (idiomatic pattern)
 		const userQuery = `
 			query GetUser($id: UUID!) {
-				userById(id: $id) {
+				user(id: $id) {
 					id
 					email
-					firstName
-					lastName
+					displayName
 					departmentId
 					isActive
-					departmentByDepartmentId {
+					department {
 						id
 						name
 						managerId
@@ -69,111 +68,108 @@ export const load: PageServerLoad = async (event) => {
 		`;
 
 		const userData = await graphqlClient.query(userQuery, { id: userId });
-		const user = userData.data?.userById;
+		const user = userData.data?.user;
 
 		if (!user) {
 			throw error(404, 'User not found');
 		}
 
-		// Load leave requests from database
+		// Load leave requests from Rust GraphQL backend (idiomatic pattern with employeeId parameter)
 		const leaveRequestsQuery = `
-			query GetUserLeaveRequests($employeeId: UUID!) {
-				allLeaveRequests(
-					condition: { employeeId: $employeeId }
-					orderBy: [CREATED_AT_DESC]
-				) {
-					nodes {
+			query GetUserLeaveRequests($employeeId: UUID!, $limit: Int!) {
+				leaveRequests(employeeId: $employeeId, limit: $limit) {
+					id
+					employeeId
+					managerId
+					leaveTypeId
+					startDate
+					endDate
+					daysRequested
+					status
+					reason
+					managerComments
+					createdAt
+					updatedAt
+					manager {
 						id
-						employeeId
-						managerId
-						leaveType
-						startDate
-						endDate
-						daysRequested
-						status
-						reason
-						managerComments
-						createdAt
-						updatedAt
-						userByManagerId {
-							id
-							firstName
-							lastName
-						}
+						displayName
 					}
 				}
 			}
 		`;
 
-		const leaveRequestsData = await graphqlClient.query(leaveRequestsQuery, { employeeId: userId });
-		const leaveRequests = leaveRequestsData.data?.allLeaveRequests?.nodes || [];
+		const leaveRequestsData = await graphqlClient.query(leaveRequestsQuery, { employeeId: userId, limit: 100 });
+		const leaveRequests = leaveRequestsData.data?.leaveRequests || [];
 
-		// Load time off balances
+		// Load leave balances - migrated to Rust GraphQL backend
 		const currentYear = new Date().getFullYear();
-		const timeOffBalancesQuery = `
-			query GetUserTimeOffBalances($employeeId: UUID!, $year: Int!) {
-				allTimeOffBalances(
-					condition: { employeeId: $employeeId, year: $year }
-				) {
-					nodes {
+		const leaveBalancesQuery = `
+			query GetUserLeaveBalances($employeeId: UUID!, $limit: Int!) {
+				leaveBalances(employeeId: $employeeId, limit: $limit) {
+					id
+					employeeId
+					leaveTypeId
+					totalDays
+					usedDays
+					remainingDays
+					year
+					leaveType {
 						id
-						employeeId
-						policyId
-						balanceDays
-						usedDays
-						year
-						timeOffPolicyByPolicyId {
-							id
-							policyName
-							policyType
-						}
+						name
+						defaultDays
+						color
 					}
 				}
 			}
 		`;
 
-		const balancesData = await graphqlClient.query(timeOffBalancesQuery, {
+		const balancesData = await graphqlClient.query(leaveBalancesQuery, {
 			employeeId: userId,
-			year: currentYear
+			limit: 50
 		});
-		const timeOffBalances = balancesData.data?.allTimeOffBalances?.nodes || [];
+		const leaveBalances = balancesData.data?.leaveBalances || [];
 
-		// Load all time off policies for the leave types dropdown
-		const policiesQuery = `
-			query GetTimeOffPolicies {
-				allTimeOffPolicies {
-					nodes {
-						id
-						policyName
-						policyType
-					}
+		// Filter to current year on client side since backend doesn't support year filtering yet
+		const currentYearBalances = leaveBalances.filter((b: any) => b.year === currentYear);
+
+		// Load all leave types for the leave types dropdown - migrated to Rust GraphQL backend
+		const leaveTypesQuery = `
+			query GetLeaveTypes($limit: Int!) {
+				leaveTypes(limit: $limit) {
+					id
+					name
+					description
+					defaultDays
+					requiresApproval
+					isPaid
+					color
 				}
 			}
 		`;
 
-		const policiesData = await graphqlClient.query(policiesQuery);
-		const leaveTypes = policiesData.data?.allTimeOffPolicies?.nodes || [];
+		const leaveTypesData = await graphqlClient.query(leaveTypesQuery, { limit: 100 });
+		const leaveTypes = leaveTypesData.data?.leaveTypes || [];
 
-		// Calculate leave balances with pending requests
-		const leaveBalances = timeOffBalances.map(balance => {
+		// Calculate leave balances with pending requests - updated for Rust backend
+		const formattedLeaveBalances = currentYearBalances.map((balance: any) => {
 			const pending = leaveRequests
-				.filter(req =>
+				.filter((req: any) =>
 					req.status === 'pending' &&
-					balance.timeOffPolicyByPolicyId?.policyType === req.leaveType
+					balance.leaveType?.id === req.leaveTypeId
 				)
-				.reduce((sum, req) => sum + (req.daysRequested || 0), 0);
+				.reduce((sum: number, req: any) => sum + (req.daysRequested || 0), 0);
 
 			return {
 				leaveType: {
-					id: balance.timeOffPolicyByPolicyId?.id || balance.policyId,
-					name: balance.timeOffPolicyByPolicyId?.policyName || 'Unknown',
-					code: balance.timeOffPolicyByPolicyId?.policyType || 'UNKNOWN',
-					color: getLeaveTypeColor(balance.timeOffPolicyByPolicyId?.policyType || '')
+					id: balance.leaveType?.id || balance.leaveTypeId,
+					name: balance.leaveType?.name || 'Unknown',
+					code: balance.leaveType?.name || 'UNKNOWN',
+					color: balance.leaveType?.color || getLeaveTypeColor(balance.leaveType?.name || '')
 				},
-				allocated: balance.balanceDays || 0,
-				used: balance.usedDays || 0,
+				allocated: parseFloat(balance.totalDays) || 0,
+				used: parseFloat(balance.usedDays) || 0,
 				pending,
-				remaining: (balance.balanceDays || 0) - (balance.usedDays || 0) - pending
+				remaining: parseFloat(balance.remainingDays) || 0
 			};
 		});
 
@@ -183,17 +179,17 @@ export const load: PageServerLoad = async (event) => {
 			startDate: req.startDate,
 			endDate: req.endDate,
 			leaveType: {
-				id: req.leaveType,
-				name: getLeaveTypeName(req.leaveType),
-				code: req.leaveType,
-				color: getLeaveTypeColor(req.leaveType)
+				id: req.leaveTypeId,
+				name: getLeaveTypeName(req.leaveTypeId),
+				code: req.leaveTypeId,
+				color: getLeaveTypeColor(req.leaveTypeId)
 			},
 			reason: req.reason || '',
 			status: req.status,
 			requestedAt: req.createdAt,
-			approvedBy: req.userByManagerId ? {
-				id: req.userByManagerId.id,
-				name: `${req.userByManagerId.firstName} ${req.userByManagerId.lastName}`
+			approvedBy: req.manager ? {
+				id: req.manager.id,
+				name: req.manager.displayName
 			} : null,
 			comments: req.managerComments,
 			totalDays: req.daysRequested || 0
@@ -203,12 +199,12 @@ export const load: PageServerLoad = async (event) => {
 			user,
 			userId,
 			leaveRequests: formattedLeaveRequests,
-			leaveBalances,
-			leaveTypes: leaveTypes.map(type => ({
+			leaveBalances: formattedLeaveBalances,
+			leaveTypes: leaveTypes.map((type: any) => ({
 				id: type.id,
-				name: type.policyName,
-				code: type.policyType,
-				color: getLeaveTypeColor(type.policyType)
+				name: type.name,
+				code: type.name,
+				color: type.color || getLeaveTypeColor(type.name)
 			})),
 			canManageLeave: canViewOthers,
 			isOwnLeave: locals.user?.id === userId,

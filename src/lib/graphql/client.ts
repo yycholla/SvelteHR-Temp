@@ -6,73 +6,72 @@ import { browser } from '$app/environment';
 import { createPerformanceExchange } from '$lib/performance/graphql-performance-exchange';
 
 /**
- * PostGraphile GraphQL Client Configuration for SvelteHR
+ * GraphQL Client Configuration for SvelteHR
  *
  * Provides authenticated GraphQL client with:
- * - JWT authentication with PostGraphile permissions
+ * - Session-based authentication with HTTP-only cookies
  * - Real-time subscriptions via WebSocket
  * - Intelligent caching and error handling
  * - Retry logic and rate limiting
  */
 
-// Default GraphQL endpoint for browser
+// Default GraphQL endpoint for browser (Rust GraphQL API with session authentication)
 const DEFAULT_GRAPHQL_URL = 'http://localhost:4000/graphql';
-const POSTGRAPHILE_GRAPHQL_WS_URL = 'ws://localhost:4000/graphql'; // Direct to PostGraphile for WebSockets if needed
+const GRAPHQL_WS_URL = 'ws://localhost:4000/graphql'; // WebSocket endpoint for subscriptions
 
-// WebSocket subscriptions are disabled for PostGraphile (doesn't support WebSockets by default)
+// Rust GraphQL server uses session-based authorization with HTTP-only cookies
+// All GraphQL queries require authentication via session cookies (sent automatically)
 
-// Note: PostGraphile doesn't support WebSocket subscriptions out of the box
-// Enable this only if you have added WebSocket support to your PostGraphile setup
-// if (browser) {
-//   wsClient = createWSClient({
-//     url: POSTGRAPHILE_GRAPHQL_WS_URL,
-//     connectionParams: () => {
-//       const token = localStorage.getItem('auth-token');
-//       return token ? {
-//         Authorization: `Bearer ${token}`
-//       } : {};
-//     },
-//     shouldRetry: () => true,
-//   });
-// }
-
-// Authentication state management for PostGraphile JWT
+// Authentication state management for session-based auth
 interface AuthState {
-	token: string | null;
+	token: string | null; // Kept for backwards compatibility, but not used for session auth
 }
+
+// Session expiration is handled by the server and browser cookies
+// No client-side expiration checking needed for session-based auth
+let expirationCheckInterval: NodeJS.Timeout | null = null;
+
+const startExpirationCheck = () => {
+	// Session-based auth doesn't require client-side expiration checking
+	// Server handles session validation and cookie expiration
+};
+
+const stopExpirationCheck = () => {
+	if (expirationCheckInterval) {
+		clearInterval(expirationCheckInterval);
+		expirationCheckInterval = null;
+	}
+};
 
 const getAuthState = (): AuthState => {
 	if (!browser) {
 		return { token: null };
 	}
 
-	// Get JWT token from localStorage
-	const token = localStorage.getItem('postgraphile-jwt-token');
-	return { token };
+	// Session-based auth doesn't use client-side tokens
+	// Authentication is handled via HTTP-only cookies automatically
+	// This function is kept for backwards compatibility
+	return { token: null };
 };
 
 const setAuthState = (authState: Partial<AuthState>) => {
 	if (!browser) return;
 
-	if (authState.token !== undefined) {
-		if (authState.token) {
-			localStorage.setItem('postgraphile-jwt-token', authState.token);
-		} else {
-			localStorage.removeItem('postgraphile-jwt-token');
-		}
-	}
+	// Session-based auth doesn't store tokens client-side
+	// This function is kept for backwards compatibility but does nothing
+	// Authentication state is managed server-side via sessions
 };
 
-// Token validation via REST API endpoint (PostGraphile uses longer-lived JWTs)
+// Session validation via REST API endpoint
 const validateTokenViaAPI = async () => {
 	const response = await fetch('/api/auth/refresh', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' }
-		// No body needed - the JWT is in httpOnly cookie
+		// No body needed - session cookies are sent automatically
 	});
 
 	if (!response.ok) {
-		throw new Error('Token validation failed');
+		throw new Error('Session validation failed');
 	}
 
 	return response.json();
@@ -81,22 +80,25 @@ const validateTokenViaAPI = async () => {
 // Error exchange for handling GraphQL errors
 const customErrorExchange = errorExchange({
 	onError: (error, operation) => {
-		// Handle authentication errors
-		if (error.graphQLErrors.some((e) => e.extensions?.code === 'UNAUTHENTICATED')) {
-			console.warn('GraphQL UNAUTHENTICATED error:', error.graphQLErrors);
+		// Handle authentication errors (session expired/invalid)
+		if (
+			error.graphQLErrors.some(
+				(e) =>
+					e.extensions?.code === 'UNAUTHENTICATED' ||
+					e.message?.includes('expired') ||
+					e.message?.includes('invalid')
+			)
+		) {
+			console.warn('GraphQL authentication error (session expired/invalid):', error.graphQLErrors);
 
-			// Only redirect if we're not already on a login/auth related page
-			// This prevents redirect loops when the user is already authenticated
-			if (
-				browser &&
-				!window.location.pathname.includes('/login') &&
-				!window.location.pathname.includes('/admin')
-			) {
-				console.log('🔴 REDIRECT: GraphQL client UNAUTHENTICATED error calling goto("/login")');
-				setAuthState({ token: null });
-				goto('/login?returnUrl=' + encodeURIComponent(window.location.pathname));
-			} else {
-				console.log('Not redirecting - already on auth-related page or admin page');
+			// Session authentication - redirect to login (server hooks will handle session cleanup)
+			if (browser) {
+				console.log('🔴 REDIRECT: Session expired/invalid, redirecting to login');
+
+				// Only redirect if we're not already on a login/auth related page
+				if (!window.location.pathname.includes('/login')) {
+					goto('/login?returnUrl=' + encodeURIComponent(window.location.pathname));
+				}
 			}
 		}
 
@@ -126,38 +128,36 @@ const customErrorExchange = errorExchange({
 	}
 });
 
-// Auth exchange configuration for PostGraphile
-const authConfig = authExchange(async (utils) => {
-	return {
-		addAuthToOperation(operation) {
-			const authState = getAuthState();
-			if (!authState.token) return operation;
+// Auth exchange configuration factory (session-based authentication)
+const createAuthExchange = (serverSideToken?: string) => {
+	return authExchange(async (utils) => {
+		return {
+			addAuthToOperation(operation) {
+				// Session-based authentication uses HTTP-only cookies automatically sent by browser
+				// No need to add Authorization headers - cookies are sent automatically
+				return operation;
+			},
 
-			return utils.appendHeaders(operation, {
-				Authorization: `Bearer ${authState.token}`
-			});
-		},
+			didAuthError(error) {
+				return error.graphQLErrors.some((e) => e.extensions?.code === 'UNAUTHENTICATED');
+			},
 
-		didAuthError(error) {
-			return error.graphQLErrors.some((e) => e.extensions?.code === 'UNAUTHENTICATED');
-		},
+			async refreshAuth() {
+				// Session authentication - if auth fails, redirect to login
+				// Session cookies will be cleared by the server hooks
+				if (browser) {
+					console.log('🔴 REDIRECT: Session authentication failed, redirecting to login');
+					goto('/login');
+				}
+			},
 
-		async refreshAuth() {
-			// With PostGraphile, JWT tokens are self-contained and don't refresh
-			// If authentication fails, clear token and redirect to login
-			setAuthState({ token: null });
-			if (browser) {
-				console.log('🔴 REDIRECT: GraphQL client refreshAuth function calling goto("/login")');
-				goto('/login');
+			willAuthError() {
+				// Let server handle session validation
+				return false;
 			}
-		},
-
-		willAuthError() {
-			// Let PostGraphile handle JWT validation
-			return false;
-		}
-	};
-});
+		};
+	});
+};
 
 // Retry exchange configuration
 const retryConfig = retryExchange({
@@ -204,7 +204,7 @@ export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string, url
 		cacheExchange,
 		customErrorExchange,
 		retryConfig,
-		authConfig,
+		createAuthExchange(authToken), // Pass authToken for server-side support
 		createPerformanceExchange({
 			enabled: true,
 			trackAllOperations: true,
@@ -240,10 +240,8 @@ export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string, url
 				'Content-Type': 'application/json'
 			};
 
-			// For server-side requests, add auth token directly to headers
-			if (!browser && authToken) {
-				headers['Authorization'] = `Bearer ${authToken}`;
-			}
+			// Session-based authentication - no need to add Authorization headers
+			// Cookies are sent automatically for both client and server requests
 
 			return {
 				method: 'POST',
@@ -257,49 +255,31 @@ export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string, url
 // Default client instance
 export const client = createUrqlClient();
 
-// Authentication helpers for PostGraphile JWT
+// Authentication helpers for session-based auth (backwards compatibility)
 export const setJwtToken = (jwtToken: string) => {
-	setAuthState({ token: jwtToken });
-
-	// Reinitialize WebSocket connection with new token (disabled for PostGraphile)
-	// if (browser && wsClient) {
-	//   wsClient.dispose();
-	//   wsClient = createWSClient({
-	//     url: POSTGRAPHILE_GRAPHQL_WS_URL,
-	//     connectionParams: () => ({
-	//       Authorization: `Bearer ${jwtToken}`
-	//     }),
-	//     shouldRetry: () => true,
-	//   });
-	// }
+	// Session-based auth doesn't use client-side tokens
+	// This function is kept for backwards compatibility
+	console.warn('setJwtToken called - session-based auth does not use client-side tokens');
 };
 
 export const clearAuthTokens = () => {
-	setAuthState({ token: null });
-
-	// Dispose WebSocket connection (disabled for PostGraphile)
-	// if (browser && wsClient) {
-	//   wsClient.dispose();
-	//   wsClient = null;
-	// }
+	// Session cleanup is handled server-side
+	stopExpirationCheck();
 };
 
 export const getAuthToken = (): string | null => {
-	return getAuthState().token;
+	// Session-based auth doesn't expose tokens client-side
+	return null;
 };
 
 export const isAuthenticated = (): boolean => {
 	if (!browser) return false;
 
-	const token = getAuthState().token;
-	if (!token) return false;
-
+	// For session-based auth, we can't easily check authentication status client-side
+	// The server hooks handle authentication validation
+	// This is a best-effort check - assume authenticated if we have a session cookie
 	try {
-		const [, payload] = token.split('.');
-		const decodedPayload = JSON.parse(atob(payload));
-		const currentTime = Math.floor(Date.now() / 1000);
-
-		return decodedPayload.exp ? decodedPayload.exp > currentTime : false;
+		return document.cookie.includes('hr_session');
 	} catch {
 		return false;
 	}
@@ -362,3 +342,6 @@ export const executeMutation = async (client: Client, mutation: string, variable
 export const executeSubscription = (client: Client, subscription: string, variables?: any) => {
 	return client.subscription(subscription, variables);
 };
+
+// Session-based authentication doesn't require client-side expiration checking
+// Authentication is handled server-side via session validation

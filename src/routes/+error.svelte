@@ -1,38 +1,79 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
+	import { untrack } from 'svelte';
 	import ErrorBoundary from '$lib/components/ui/error-boundary.svelte';
 
+	// Safe getter functions that never throw
+	function safeGet<T>(fn: () => T, fallback: T): T {
+		try {
+			const result = fn();
+			return result ?? fallback;
+		} catch (e) {
+			console.warn('Safe getter caught error:', e);
+			return fallback;
+		}
+	}
+
+	// Get initial page data non-reactively to avoid circular dependencies
+	let initialPageData = untrack(() => {
+		try {
+			return $page;
+		} catch {
+			return { error: null, status: 500, data: {}, url: { pathname: 'unknown' } };
+		}
+	});
+
 	// SvelteKit provides error details in the page store
-	// Access page store values reactively
-	let pageData = $derived($page);
-	let error = $derived(pageData.error);
-	let status = $derived(pageData.status);
-	let userData = $derived(pageData.data?.user);
+	// Access page store values reactively with safe fallbacks
+	let pageData = $derived.by(() => {
+		try {
+			return $page;
+		} catch {
+			return initialPageData;
+		}
+	});
+
+	let error = $derived.by(() => safeGet(() => pageData?.error, null));
+	let status = $derived.by(() => safeGet(() => pageData?.status, 500));
+	let userData = $derived.by(() => safeGet(() => pageData?.data?.user, null));
 
 	// Create a proper Error object from SvelteKit error
-	let errorObject = $derived(
-		!error ? null :
-		error instanceof Error ? error :
-		new Error(typeof error === 'string' ? error : (error?.message || `HTTP ${status}`))
-	);
+	let errorObject = $derived.by(() => {
+		try {
+			if (!error) return null;
+			if (error instanceof Error) return error;
+			const msg = typeof error === 'string' ? error : (error?.message ?? `HTTP ${status}`);
+			return new Error(msg);
+		} catch {
+			return new Error('An error occurred');
+		}
+	});
 
 	// Customize title and description based on error status
-	let title = $derived(
-		status === 404 ? 'Page Not Found' :
-		status === 403 ? 'Access Forbidden' :
-		status === 401 ? 'Unauthorized' :
-		status === 500 ? 'Internal Server Error' :
-		'Something Went Wrong'
-	);
+	let title = $derived.by(() => {
+		try {
+			return status === 404 ? 'Page Not Found' :
+				status === 403 ? 'Access Forbidden' :
+				status === 401 ? 'Unauthorized' :
+				status === 500 ? 'Internal Server Error' :
+				'Something Went Wrong';
+		} catch {
+			return 'Error';
+		}
+	});
 
-	let description = $derived(
-		status === 404 ? "The page you're looking for doesn't exist or has been moved." :
-		status === 403 ? "You don't have permission to access this resource." :
-		status === 401 ? 'Please log in to access this page.' :
-		status === 500 ? 'We encountered a server error. Our team has been notified.' :
-		'An unexpected error occurred. Please try again or contact support if the problem persists.'
-	);
+	let description = $derived.by(() => {
+		try {
+			return status === 404 ? "The page you're looking for doesn't exist or has been moved." :
+				status === 403 ? "You don't have permission to access this resource." :
+				status === 401 ? 'Please log in to access this page.' :
+				status === 500 ? 'We encountered a server error. Our team has been notified.' :
+				'An unexpected error occurred. Please try again or contact support if the problem persists.';
+		} catch {
+			return 'An error occurred.';
+		}
+	});
 
 	function handleRetry() {
 		// Reload the current page
@@ -46,12 +87,24 @@
 
 	// Log error details for debugging (in development)
 	$effect(() => {
-		if (typeof window !== 'undefined' && import.meta.env.DEV && error) {
-			console.error('SvelteKit Error Page:', {
-				status,
-				error,
-				url: $page.url.pathname
-			});
+		try {
+			if (typeof window !== 'undefined' && import.meta.env.DEV) {
+				const errorToLog = safeGet(() => error, null);
+				if (errorToLog) {
+					console.error('SvelteKit Error Page:', {
+						status: safeGet(() => status, 500),
+						error: errorToLog,
+						url: safeGet(() => pageData?.url?.pathname, 'unknown')
+					});
+				}
+			}
+		} catch (e) {
+			// Silently ignore logging errors to prevent cascading failures
+			try {
+				console.error('Error logging failed:', e);
+			} catch {
+				// Really can't log, give up
+			}
 		}
 	});
 </script>
@@ -104,8 +157,8 @@
 </div>
 
 <!-- Additional context for specific error types -->
-{#if status === 404}
+{#if status === 404 && pageData?.url?.pathname}
 	<div class="fixed bottom-4 right-4 text-xs text-muted-foreground">
-		URL: {$page.url.pathname}
+		URL: {pageData.url.pathname}
 	</div>
 {/if}

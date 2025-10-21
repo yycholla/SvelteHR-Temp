@@ -1,172 +1,231 @@
+<!--
+  TaskList Component
+  Feature: 028-task-system-expansion - Task T027
+
+  Display list of tasks with filtering, sorting, and view modes
+-->
+
 <script lang="ts">
-	// TaskList Component
-	// Feature: 019-we-need-to - Task T023
-	// Purpose: Sortable and filterable task list
-
-	import type { Task, TaskStatus, TaskPriority } from '$lib/graphql/types';
 	import TaskCard from './TaskCard.svelte';
-	import {
-		sortTasksByPriority,
-		sortTasksByDueDate,
-		sortTasksByCreatedDate,
-		filterTasksByStatus,
-		filterTasksByPriority,
-		getTaskStatistics
-	} from '$lib/utils/tasks';
-
-	interface Props {
-		tasks: Task[];
-		onTaskClick?: (task: Task) => void;
-		onStatusChange?: (taskId: string, newStatus: TaskStatus) => void;
-		sortBy?: 'priority' | 'dueDate' | 'created' | 'status';
-		filterStatus?: TaskStatus | 'all';
-		filterPriority?: TaskPriority | 'all';
-		compact?: boolean;
-		showStatistics?: boolean;
-		emptyMessage?: string;
-	}
+	import type { Task, TaskStatus, TaskPriority } from '$lib/types/task';
+	import * as Select from '$lib/components/ui/select';
+	import { Button } from '$lib/components/ui/button';
+	import { Badge } from '$lib/components/ui/badge';
+	import { CheckSquare, List, GitBranch, Columns, Filter, SortAsc } from 'lucide-svelte';
 
 	let {
 		tasks,
+		userId,
+		showFilters = true,
+		viewMode = $bindable('list'),
 		onTaskClick,
 		onStatusChange,
-		sortBy = 'priority',
-		filterStatus = 'all',
-		filterPriority = 'all',
-		compact = false,
-		showStatistics = false,
-		emptyMessage = 'No tasks found'
-	}: Props = $props();
+		loading = false
+	}: {
+		tasks: Task[];
+		userId?: string;
+		showFilters?: boolean;
+		viewMode?: 'list' | 'hierarchy' | 'kanban';
+		onTaskClick?: (taskId: string) => void;
+		onStatusChange?: (taskId: string, newStatus: TaskStatus) => void;
+		loading?: boolean;
+	} = $props();
 
-	// Derived filtered and sorted tasks
+	let statusFilter = $state<TaskStatus | 'all'>('all');
+	let priorityFilter = $state<TaskPriority | 'all'>('all');
+	let sortBy = $state<'created_at' | 'due_date' | 'priority' | 'title'>('created_at');
+	let sortOrder = $state<'asc' | 'desc'>('desc');
+
 	let filteredTasks = $derived(() => {
 		let result = tasks;
-
-		// Apply status filter
-		if (filterStatus !== 'all') {
-			result = filterTasksByStatus(result, filterStatus);
-		}
-
-		// Apply priority filter
-		if (filterPriority !== 'all') {
-			result = filterTasksByPriority(result, filterPriority);
-		}
-
-		// Apply sorting
-		switch (sortBy) {
-			case 'priority':
-				result = sortTasksByPriority(result, false); // High priority first
-				break;
-			case 'dueDate':
-				result = sortTasksByDueDate(result, true); // Earliest due date first
-				break;
-			case 'created':
-				result = sortTasksByCreatedDate(result, false); // Most recent first
-				break;
-			case 'status':
-				// Sort by status: todo, in_progress, completed, cancelled
-				result = [...result].sort((a, b) => {
-					const statusOrder = { todo: 0, in_progress: 1, completed: 2, cancelled: 3 };
-					return statusOrder[a.status] - statusOrder[b.status];
-				});
-				break;
-		}
-
+		if (statusFilter !== 'all') result = result.filter(t => t.status === statusFilter);
+		if (priorityFilter !== 'all') result = result.filter(t => t.priority === priorityFilter);
 		return result;
 	});
 
-	// Task statistics
-	let statistics = $derived(getTaskStatistics(tasks));
+	let sortedTasks = $derived(() => {
+		const sorted = [...filteredTasks()];
+		sorted.sort((a, b) => {
+			let comparison = 0;
+			switch (sortBy) {
+				case 'created_at':
+					comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+					break;
+				case 'due_date':
+					if (!a.dueDate && !b.dueDate) comparison = 0;
+					else if (!a.dueDate) comparison = 1;
+					else if (!b.dueDate) comparison = -1;
+					else comparison = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+					break;
+				case 'priority':
+					const priorityOrder = { 'URGENT': 4, 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 };
+					comparison = (priorityOrder[a.priority] || 0) - (priorityOrder[b.priority] || 0);
+					break;
+				case 'title':
+					comparison = a.title.localeCompare(b.title);
+					break;
+			}
+			return sortOrder === 'asc' ? comparison : -comparison;
+		});
+		return sorted;
+	});
 
-	function handleTaskClick(task: Task) {
-		if (onTaskClick) {
-			onTaskClick(task);
-		}
+	// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
+	let statusCounts = $derived(() => ({
+		all: tasks.length,
+		'TO_DO': tasks.filter(t => t.status === 'TO_DO').length,
+		'IN_PROGRESS': tasks.filter(t => t.status === 'IN_PROGRESS').length,
+		'BLOCKED': tasks.filter(t => t.status === 'BLOCKED').length,
+		'DEFERRED': tasks.filter(t => t.status === 'DEFERRED').length,
+		'COMPLETED': tasks.filter(t => t.status === 'COMPLETED').length
+	}));
+
+	let tasksByStatus = $derived(() => ({
+		'TO_DO': sortedTasks().filter(t => t.status === 'TO_DO'),
+		'IN_PROGRESS': sortedTasks().filter(t => t.status === 'IN_PROGRESS'),
+		'BLOCKED': sortedTasks().filter(t => t.status === 'BLOCKED'),
+		'DEFERRED': sortedTasks().filter(t => t.status === 'DEFERRED'),
+		'COMPLETED': sortedTasks().filter(t => t.status === 'COMPLETED')
+	}));
+
+	let topLevelTasks = $derived(() => {
+		if (viewMode !== 'hierarchy') return sortedTasks();
+		return sortedTasks().filter(t => !t.parentTaskId);
+	});
+
+	function handleTaskClick(taskId: string) {
+		if (onTaskClick) onTaskClick(taskId);
 	}
 
-	function handleStatusChange(task: Task, newStatus: TaskStatus) {
-		if (onStatusChange) {
-			onStatusChange(task.id, newStatus);
-		}
+	function handleStatusChange(taskId: string, newStatus: TaskStatus) {
+		if (onStatusChange) onStatusChange(taskId, newStatus);
+	}
+
+	function toggleSortOrder() {
+		sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
 	}
 </script>
 
-<div class="task-list">
-	<!-- Statistics Bar -->
-	{#if showStatistics && tasks.length > 0}
-		<div class="mb-4 rounded-lg border border-border bg-card p-4 shadow-sm">
-			<div class="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-7">
-				<!-- Total -->
-				<div class="text-center">
-					<div class="text-2xl font-bold text-foreground">{statistics.total}</div>
-					<div class="text-xs text-muted-foreground">Total</div>
+<div class="task-list space-y-4">
+	{#if showFilters}
+		<div class="flex flex-col gap-4">
+			<div class="flex items-center justify-between">
+				<div class="flex items-center gap-2">
+					<CheckSquare class="h-5 w-5 text-muted-foreground" />
+					<h3 class="text-lg font-semibold">Tasks ({sortedTasks().length})</h3>
 				</div>
-
-				<!-- Todo -->
-				<div class="text-center">
-					<div class="text-2xl font-bold text-muted-foreground">{statistics.todo}</div>
-					<div class="text-xs text-muted-foreground">To Do</div>
+				<div class="flex items-center gap-1 rounded-lg border p-1">
+					<Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="sm" onclick={() => viewMode = 'list'}>
+						<List class="h-4 w-4" />
+					</Button>
+					<Button variant={viewMode === 'hierarchy' ? 'secondary' : 'ghost'} size="sm" onclick={() => viewMode = 'hierarchy'}>
+						<GitBranch class="h-4 w-4" />
+					</Button>
+					<Button variant={viewMode === 'kanban' ? 'secondary' : 'ghost'} size="sm" onclick={() => viewMode = 'kanban'}>
+						<Columns class="h-4 w-4" />
+					</Button>
 				</div>
-
-				<!-- In Progress -->
-				<div class="text-center">
-					<div class="text-2xl font-bold text-primary">{statistics.inProgress}</div>
-					<div class="text-xs text-muted-foreground">In Progress</div>
-				</div>
-
-				<!-- Completed -->
-				<div class="text-center">
-					<div class="text-2xl font-bold text-green-600 dark:text-green-400">{statistics.completed}</div>
-					<div class="text-xs text-muted-foreground">Completed</div>
-				</div>
-
-				<!-- Overdue -->
-				<div class="text-center">
-					<div class="text-2xl font-bold text-destructive">{statistics.overdue}</div>
-					<div class="text-xs text-muted-foreground">Overdue</div>
-				</div>
-
-				<!-- Due Soon -->
-				<div class="text-center">
-					<div class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{statistics.dueSoon}</div>
-					<div class="text-xs text-muted-foreground">Due Soon</div>
-				</div>
-
-				<!-- Completion Rate -->
-				<div class="text-center">
-					<div class="text-2xl font-bold text-primary">{statistics.completionRate}%</div>
-					<div class="text-xs text-muted-foreground">Complete</div>
-				</div>
+			</div>
+			<div class="flex flex-wrap items-center gap-2">
+				<Select.Root bind:value={statusFilter}>
+					<Select.Trigger class="w-44">
+						<Filter class="mr-2 h-3 w-3" />
+						<Select.Value placeholder="Filter by status" />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="all">All Status ({statusCounts().all})</Select.Item>
+						<Select.Item value="TO_DO">To Do ({statusCounts()['TO_DO']})</Select.Item>
+						<Select.Item value="IN_PROGRESS">In Progress ({statusCounts()['IN_PROGRESS']})</Select.Item>
+						<Select.Item value="BLOCKED">Blocked ({statusCounts()['BLOCKED']})</Select.Item>
+						<Select.Item value="COMPLETED">Completed ({statusCounts()['COMPLETED']})</Select.Item>
+						<Select.Item value="DEFERRED">Deferred ({statusCounts()['DEFERRED']})</Select.Item>
+					</Select.Content>
+				</Select.Root>
+				<Select.Root bind:value={priorityFilter}>
+					<Select.Trigger class="w-40">
+						<Filter class="mr-2 h-3 w-3" />
+						<Select.Value placeholder="Filter by priority" />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="all">All Priority</Select.Item>
+						<Select.Item value="URGENT">Urgent</Select.Item>
+						<Select.Item value="HIGH">High</Select.Item>
+						<Select.Item value="MEDIUM">Medium</Select.Item>
+						<Select.Item value="LOW">Low</Select.Item>
+					</Select.Content>
+				</Select.Root>
+				<Select.Root bind:value={sortBy}>
+					<Select.Trigger class="w-40">
+						<SortAsc class="mr-2 h-3 w-3" />
+						<Select.Value placeholder="Sort by" />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="created_at">Created Date</Select.Item>
+						<Select.Item value="due_date">Due Date</Select.Item>
+						<Select.Item value="priority">Priority</Select.Item>
+						<Select.Item value="title">Title</Select.Item>
+					</Select.Content>
+				</Select.Root>
+				<Button variant="outline" size="sm" onclick={toggleSortOrder}>
+					{sortOrder === 'asc' ? '↑' : '↓'} {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+				</Button>
+				{#if statusFilter !== 'all' || priorityFilter !== 'all'}
+					<Badge variant="secondary">
+						{[statusFilter !== 'all' ? 1 : 0, priorityFilter !== 'all' ? 1 : 0].reduce((a, b) => a + b, 0)} filter{(statusFilter !== 'all' || priorityFilter !== 'all') ? 's' : ''} active
+					</Badge>
+				{/if}
 			</div>
 		</div>
 	{/if}
 
-	<!-- Task List -->
-	{#if filteredTasks().length > 0}
+	{#if loading}
+		<div class="flex flex-col items-center justify-center py-12 text-center">
+			<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+			<p class="text-sm text-muted-foreground">Loading tasks...</p>
+		</div>
+	{:else if sortedTasks().length === 0}
+		<div class="flex flex-col items-center justify-center py-12 text-center">
+			<CheckSquare class="mb-4 h-16 w-16 text-muted-foreground" />
+			<p class="text-lg font-medium mb-1">No tasks found</p>
+			<p class="text-sm text-muted-foreground">
+				{statusFilter !== 'all' || priorityFilter !== 'all' ? 'Try adjusting your filters' : 'Create your first task to get started'}
+			</p>
+		</div>
+	{:else if viewMode === 'list'}
 		<div class="space-y-3">
-			{#each filteredTasks() as task (task.id)}
-				<TaskCard
-					{task}
-					{compact}
-					onClick={() => handleTaskClick(task)}
-					onStatusChange={onStatusChange ? (newStatus) => handleStatusChange(task, newStatus) : undefined}
-				/>
+			{#each sortedTasks() as task (task.id)}
+				<TaskCard {task} {userId} onClick={() => handleTaskClick(task.id)} onStatusChange={(newStatus) => handleStatusChange(task.id, newStatus)} showProgress={true} />
 			{/each}
 		</div>
-	{:else}
-		<!-- Empty State -->
-		<div class="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border bg-card p-12">
-			<svg class="mb-4 h-16 w-16 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-			</svg>
-			<h3 class="mb-2 text-lg font-medium text-foreground">No tasks</h3>
-			<p class="text-sm text-muted-foreground">{emptyMessage}</p>
+	{:else if viewMode === 'hierarchy'}
+		<div class="space-y-3">
+			{#each topLevelTasks() as task (task.id)}
+				<TaskCard {task} {userId} onClick={() => handleTaskClick(task.id)} onStatusChange={(newStatus) => handleStatusChange(task.id, newStatus)} showProgress={true} level={0} />
+				{#if task.tasksByParentTaskId && task.tasksByParentTaskId.nodes.length > 0}
+					{#each task.tasksByParentTaskId.nodes as subtask (subtask.id)}
+						<TaskCard task={subtask} {userId} onClick={() => handleTaskClick(subtask.id)} onStatusChange={(newStatus) => handleStatusChange(subtask.id, newStatus)} compact={true} level={1} />
+					{/each}
+				{/if}
+			{/each}
+		</div>
+	{:else if viewMode === 'kanban'}
+		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+			{#each Object.entries(tasksByStatus()) as [status, statusTasks]}
+				<div class="flex flex-col gap-3">
+					<div class="flex items-center justify-between p-3 bg-muted rounded-lg">
+						<h4 class="font-medium text-sm">{status}</h4>
+						<Badge variant="secondary">{statusTasks.length}</Badge>
+					</div>
+					<div class="space-y-2">
+						{#each statusTasks as task (task.id)}
+							<TaskCard {task} {userId} onClick={() => handleTaskClick(task.id)} onStatusChange={(newStatus) => handleStatusChange(task.id, newStatus)} compact={true} />
+						{/each}
+						{#if statusTasks.length === 0}
+							<div class="p-4 text-center text-sm text-muted-foreground border-2 border-dashed rounded-lg">No tasks</div>
+						{/if}
+					</div>
+				</div>
+			{/each}
 		</div>
 	{/if}
 </div>
-
-<style>
-	.task-list {
-		@apply w-full;
-	}
-</style>

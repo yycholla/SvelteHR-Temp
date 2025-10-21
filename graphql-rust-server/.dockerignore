@@ -1,0 +1,48 @@
+# Rust build artifacts - these will be rebuilt in the container
+target/
+**/target/
+
+# Cargo cache and lock files - managed by Docker volumes
+.cargo/registry/
+.cargo/git/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git files
+.git/
+.gitignore
+.gitattributes
+
+# Documentation and non-essential files
+README.md
+docs/
+*.md
+!Cargo.toml
+
+# Test and benchmark artifacts
+tests/
+benches/
+
+# CI/CD files
+.github/
+.gitlab-ci.yml
+
+# Local environment files
+.env
+.env.local
+.env.*.local
+
+# Docker files (not needed in build context when building)
+docker-compose*.yml
+Dockerfile.dev
+
+# Logs and temporary files
+*.log
+tmp/
+temp/

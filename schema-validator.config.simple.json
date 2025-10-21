@@ -1,0 +1,26 @@
+{
+  "databaseUrl": "${DATABASE_URL}",
+  "apiUrl": "http://localhost:4000/graphql",
+  "graphqlPaths": [
+    "src/**/*.ts",
+    "src/**/*.svelte"
+  ],
+  "cacheDir": ".schema-cache",
+  "cacheTtl": 3600,
+  "computedFields": [],
+  "strict": false,
+  "ignore": [
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/node_modules/**",
+    "**/.svelte-kit/**",
+    "**/dist/**"
+  ],
+  "typeMappings": {
+    "citext": "String",
+    "uuid": "ID",
+    "timestamptz": "DateTime",
+    "jsonb": "JSON",
+    "int8": "String"
+  }
+}

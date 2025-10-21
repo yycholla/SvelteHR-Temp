@@ -13,12 +13,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		throw redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
 
-	// Get user credentials for GraphQL operations
-	const token = cookies.get('hr_token') || cookies.get('auth-token');
-	if (!token) {
-		throw redirect(303, `/login?redirectTo=${url.pathname}`);
-	}
-
+	// T036: Session-based authentication - no token checks needed
 	// Check if user has manager or admin privileges to create events
 	// Allow if user has wildcard permission or sufficient role level
 	const hasWildcardPermission = locals.permissions?.includes('*');
@@ -44,17 +39,18 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 
 		if (startParam && endParam) {
 			// Use start and end times from calendar selection (drag)
-			defaultStartTime = formatDateTimeLocal(new Date(startParam));
-			defaultEndTime = formatDateTimeLocal(new Date(endParam));
+			// Parse as local time (not UTC)
+			defaultStartTime = parseLocalDateTime(startParam);
+			defaultEndTime = parseLocalDateTime(endParam);
 		} else if (dateParam) {
 			// Use the single date from calendar click
-			const clickedDate = new Date(dateParam);
-			defaultStartTime = formatDateTimeLocal(clickedDate);
+			// Parse as local time (not UTC)
+			defaultStartTime = parseLocalDateTime(dateParam);
 
 			// Default end time is 30 minutes after start (matches calendar slot)
-			const endDate = new Date(clickedDate);
-			endDate.setMinutes(endDate.getMinutes() + 30);
-			defaultEndTime = formatDateTimeLocal(endDate);
+			const clickedDate = parseLocalDateTimeAsDate(dateParam);
+			clickedDate.setMinutes(clickedDate.getMinutes() + 30);
+			defaultEndTime = formatDateTimeLocal(clickedDate);
 		} else {
 			// Use default times (next hour)
 			defaultStartTime = getDefaultStartTime();
@@ -110,6 +106,54 @@ function getRoleLevel(role: string | undefined): number {
 	return roleLevels[role?.toLowerCase() || 'employee'] || 20;
 }
 
+// Helper to parse datetime string as local time and return datetime-local format
+function parseLocalDateTime(dateTimeStr: string): string {
+	// If already in correct format, return as-is
+	if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(dateTimeStr)) {
+		return dateTimeStr;
+	}
+
+	// Remove trailing seconds and timezone info
+	const normalized = dateTimeStr.replace(/Z$/, '').split('.')[0];
+
+	// Parse components manually to create Date in local timezone
+	const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
+
+	if (match) {
+		const [, year, month, day, hours, minutes] = match;
+		// Return in datetime-local format
+		return `${year}-${month}-${day}T${hours}:${minutes}`;
+	}
+
+	// Fallback: return as-is
+	return dateTimeStr;
+}
+
+// Helper to parse datetime string as a Date object in local time (for calculations)
+function parseLocalDateTimeAsDate(dateTimeStr: string): Date {
+	// Remove any trailing seconds or timezone info
+	const normalized = dateTimeStr.replace(/Z$/, '').split('.')[0];
+
+	// Parse components manually to avoid timezone conversion
+	const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
+
+	if (match) {
+		const [, year, month, day, hours, minutes, seconds = '0'] = match;
+		// Create Date in local timezone using individual components
+		return new Date(
+			parseInt(year),
+			parseInt(month) - 1, // Month is 0-indexed
+			parseInt(day),
+			parseInt(hours),
+			parseInt(minutes),
+			parseInt(seconds)
+		);
+	}
+
+	// Fallback: parse normally (will be UTC)
+	return new Date(dateTimeStr);
+}
+
 // Helper to format Date to datetime-local input format (local time)
 function formatDateTimeLocal(date: Date): string {
 	// Get local time components
@@ -148,11 +192,7 @@ export const actions: Actions = {
 			throw redirect(303, '/login');
 		}
 
-		const token = cookies.get('hr_token') || cookies.get('auth-token');
-		if (!token) {
-			throw redirect(303, '/login');
-		}
-
+		// T036: Session-based authentication - no token checks needed
 		// Check permissions
 		const hasWildcardPermission = locals.permissions?.includes('*');
 		const roleLevel = getRoleLevel(locals.user.role);
@@ -171,6 +211,7 @@ export const actions: Actions = {
 		const location = formData.get('location') as string;
 		const eventType = formData.get('eventType') as string;
 		const isPublic = formData.get('visibilityType') === 'company';
+		const timezoneOffset = parseInt(formData.get('timezoneOffset') as string);
 
 		// Validate required fields
 		if (!title || !startTime || !endTime) {
@@ -178,11 +219,12 @@ export const actions: Actions = {
 		}
 
 		try {
-			const urqlClient = createUrqlClient(undefined, token);
+			// T036: Session-based authentication
+			const urqlClient = createUrqlClient();
 			const eventsOps = new EventsOperations(urqlClient);
 
+			// T036: Session-based authentication - jwtToken not needed
 			const userCredentials = {
-				jwtToken: token,
 				userId: locals.user.id,
 				roles: locals.roles || [],
 				permissions: locals.permissions || [],
@@ -191,20 +233,51 @@ export const actions: Actions = {
 			};
 
 			// Create the event
-			const event = await eventsOps.createEvent({
+			// Parse datetime-local as user's local time and convert to UTC
+			// Parse datetime-local and adjust for user's timezone
+			const parseLocalTime = (timeStr: string, offsetMinutes: number): Date => {
+				const match = timeStr.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+				if (!match) throw new Error('Invalid datetime format');
+
+				const [, year, month, day, hours, minutes] = match;
+
+				// Create Date in UTC (server timezone)
+				const date = new Date(Date.UTC(
+					parseInt(year),
+					parseInt(month) - 1, // 0-indexed
+					parseInt(day),
+					parseInt(hours),
+					parseInt(minutes)
+				));
+
+				// Adjust for user's timezone offset
+				// getTimezoneOffset() returns positive for west of UTC (e.g., 360 for MDT)
+				// So we ADD the offset to convert from user's local time to UTC
+				date.setMinutes(date.getMinutes() + offsetMinutes);
+
+				return date;
+			};
+
+			const startDate = parseLocalTime(startTime, timezoneOffset);
+			const endDate = parseLocalTime(endTime, timezoneOffset);
+
+			// Convert to UTC ISO strings
+			const startTimeUTC = startDate.toISOString();
+			const endTimeUTC = endDate.toISOString();
+
+			// Migration: ✅ Use idiomatic Rust pattern (direct input, no nested wrapper)
+			const result = await eventsOps.createEvent({
 				input: {
-					event: {
-						title,
-						description,
-						eventType,
-						startTime: new Date(startTime).toISOString(),
-						endTime: new Date(endTime).toISOString(),
-						allDay: isAllDay,
-						location,
-						organizerId: locals.user.id,
-						isPublic,
-						status: 'scheduled'
-					}
+					title,
+					description,
+					eventType,
+					startTime: startTimeUTC,
+					endTime: endTimeUTC,
+					isAllDay: isAllDay,
+					location,
+					organizerId: locals.user.id,
+					isPublic,
+					status: 'scheduled'
 				},
 				userCredentials
 			});

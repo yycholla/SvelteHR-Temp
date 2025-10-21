@@ -19,62 +19,66 @@ export const load: PageServerLoad = async ({ locals, parent, cookies }) => {
 
 		const client = GraphQLClient.fromCookies(cookies);
 
-		// Query system settings
-		// Note: This is a placeholder - actual system settings would depend on your schema
+		// Query actual system settings from database
+		// NOTE: Using Rust GraphQL schema (direct arrays, no .nodes wrapper)
 		const settingsQuery = `
-			query GetSystemSettings {
-				allDepartments {
-					totalCount
+			query GetSystemSettings($limit: Int!) {
+				systemSettings {
+					id
+					category
+					settings
+					updatedBy
+					createdAt
+					updatedAt
 				}
-				allUsers {
-					totalCount
+				departments(limit: $limit) {
+					id
+					name
 				}
-				allUserRoleAssignments {
-					totalCount
+				users(limit: $limit) {
+					id
+					role
 				}
 			}
 		`;
 
-		const result = await client.query(settingsQuery, {});
+		const result = await client.query(settingsQuery, { limit: 1000 });
 
-		// Mock settings data - replace with actual settings from database
-		const settings = {
-			general: {
-				systemName: 'SvelteHR',
-				systemEmail: 'admin@sveltehr.com',
-				timezone: 'UTC',
-				dateFormat: 'YYYY-MM-DD',
-				language: 'en'
-			},
-			authentication: {
-				sessionTimeout: 3600,
-				passwordMinLength: 8,
-				requireUppercase: true,
-				requireNumbers: true,
-				requireSpecialChars: true,
-				maxLoginAttempts: 5
-			},
-			notifications: {
-				emailEnabled: true,
-				slackEnabled: false,
-				webhooksEnabled: false,
-				notifyOnUserCreate: true,
-				notifyOnRoleChange: true
-			},
-			security: {
-				enforceHttps: true,
-				allowApiAccess: true,
-				ipWhitelist: '',
-				corsOrigins: '*',
-				rateLimitEnabled: true,
-				maxRequestsPerMinute: 60
-			},
+		// Parse settings from database (JSONB format)
+		const settingsData = result.data?.systemSettings || [];
+
+		// Convert array of settings to object by category
+		const departments = result.data?.departments || [];
+		const users = result.data?.users || [];
+
+		// Calculate unique roles from users
+		const uniqueRoles = [...new Set(users.map((u: any) => u.role).filter(Boolean))];
+
+		const settings: any = {
+			general: {},
+			authentication: {},
+			notifications: {},
+			security: {},
+			developer: {},
 			stats: {
-				totalDepartments: result.data?.allDepartments?.totalCount || 0,
-				totalUsers: result.data?.allUsers?.totalCount || 0,
-				totalRoles: result.data?.allUserRoleAssignments?.totalCount || 0
+				totalDepartments: departments.length,
+				totalUsers: users.length,
+				totalRoles: uniqueRoles.length
 			}
 		};
+
+		// Parse JSON settings for each category
+		for (const setting of settingsData) {
+			try {
+				const parsed = typeof setting.settings === 'string'
+					? JSON.parse(setting.settings)
+					: setting.settings;
+				settings[setting.category] = parsed;
+			} catch (parseError) {
+				console.error(`[ADMIN SETTINGS] Failed to parse ${setting.category}:`, parseError);
+				// Keep empty object for this category
+			}
+		}
 
 		return {
 			settings

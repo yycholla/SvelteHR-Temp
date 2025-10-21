@@ -59,145 +59,102 @@ export const load: PageServerLoad = async (event) => {
 		// Create GraphQL client with authentication
 		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
-		// Build condition for rollback requests query
-		const condition: any = {};
-
-		if (status) {
-			condition.status = status;
-		}
-
-		// Non-super_admin users can only see their own requests
-		if (!canReview) {
-			condition.requestedBy = locals.user.id;
-		} else if (requesterId) {
-			// Super_admin can filter by specific requester
-			condition.requestedBy = requesterId;
-		}
-
 		// Load rollback requests from database
+		// NOTE: Using Rust GraphQL schema - fetch all and filter client-side
 		const requestsQuery = `
-			query GetRollbackRequests(
-				$condition: RollbackRequestCondition
-				$limit: Int!
-				$offset: Int!
-			) {
-				allRollbackRequests(
-					condition: $condition
-					orderBy: [REQUESTED_AT_DESC]
-					first: $limit
-					offset: $offset
-				) {
-					totalCount
-					nodes {
+			query GetRollbackRequests($limit: Int!) {
+				rollbackRequests(limit: $limit) {
+					id
+					entityType
+					entityId
+					requestedBy
+					reason
+					status
+					approvedBy
+					processedAt
+					createdAt
+					requester {
 						id
-						activityLogId
-						requestedBy
-						requestedAt
-						reason
-						status
-						reviewedBy
-						reviewedAt
-						reviewReason
-						userByRequestedBy {
-							id
-							firstName
-							lastName
-							email
-						}
-						userByReviewedBy {
-							id
-							firstName
-							lastName
-						}
-						activityLogByActivityLogId {
-							id
-							action
-							resourceType
-							resourceId
-							details
-							beforeSnapshot
-							afterSnapshot
-							createdAt
-						}
+						displayName
+						email
+					}
+					reviewer {
+						id
+						displayName
 					}
 				}
 			}
 		`;
 
 		const requestsData = await graphqlClient.query(requestsQuery, {
-			condition,
-			limit: pageSize,
-			offset
+			limit: 1000
 		});
 
-		const allRequests = requestsData.data?.allRollbackRequests?.nodes || [];
-		const totalCount = requestsData.data?.allRollbackRequests?.totalCount || 0;
+		let allRequests = requestsData.data?.rollbackRequests || [];
 
-		// Map requests to expected format
+		// Sort by createdAt DESC (client-side since Rust schema doesn't support orderBy)
+		allRequests = allRequests.sort((a: any, b: any) =>
+			new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+		);
+
+		// Client-side filtering for status
+		if (status) {
+			allRequests = allRequests.filter((req: any) => req.status === status);
+		}
+
+		// Client-side filtering for requestedBy (RBAC)
+		// Non-super_admin users can only see their own requests
+		if (!canReview) {
+			allRequests = allRequests.filter((req: any) => req.requestedBy === locals.user.id);
+		} else if (requesterId) {
+			// Super_admin can filter by specific requester
+			allRequests = allRequests.filter((req: any) => req.requestedBy === requesterId);
+		}
+
+		// Use array length for total count
+		const totalCount = allRequests.length;
+
+		// Map requests to expected format (mapping new schema to UI expectations)
 		const formattedRequests = allRequests.map((req: any) => ({
 			id: req.id,
-			activityLogId: req.activityLogId,
-			activityLog: req.activityLogByActivityLogId
-				? {
-						id: req.activityLogByActivityLogId.id,
-						action: req.activityLogByActivityLogId.action,
-						resourceType: req.activityLogByActivityLogId.resourceType,
-						resourceId: req.activityLogByActivityLogId.resourceId,
-						details: req.activityLogByActivityLogId.details,
-					beforeSnapshot: req.activityLogByActivityLogId.beforeSnapshot,
-					afterSnapshot: req.activityLogByActivityLogId.afterSnapshot,
-						createdAt: req.activityLogByActivityLogId.createdAt
-					}
-				: null,
+			entityType: req.entityType,
+			entityId: req.entityId,
+			// Map for backward compatibility with UI
+			activityLogId: req.entityId, // Assuming UI expects this field
 			requestedBy: req.requestedBy,
-			requester: req.userByRequestedBy
+			requester: req.requester
 				? {
-						id: req.userByRequestedBy.id,
-						name: `${req.userByRequestedBy.firstName} ${req.userByRequestedBy.lastName}`,
-						email: req.userByRequestedBy.email
+						id: req.requester.id,
+						name: req.requester.displayName,
+						email: req.requester.email
 					}
 				: null,
-			requestedAt: req.requestedAt,
+			requestedAt: req.createdAt, // Map createdAt to requestedAt for UI
 			reason: req.reason,
 			status: req.status,
-			reviewedBy: req.reviewedBy,
-			reviewer: req.userByReviewedBy
+			reviewedBy: req.approvedBy, // Map approvedBy to reviewedBy for UI
+			reviewer: req.reviewer
 				? {
-						id: req.userByReviewedBy.id,
-						name: `${req.userByReviewedBy.firstName} ${req.userByReviewedBy.lastName}`
+						id: req.reviewer.id,
+						name: req.reviewer.displayName
 					}
 				: null,
-			reviewedAt: req.reviewedAt,
-			reviewReason: req.reviewReason
+			reviewedAt: req.processedAt, // Map processedAt to reviewedAt for UI
+			reviewReason: null, // This field no longer exists in database
+			createdAt: req.createdAt
 		}));
 
-		// Calculate statistics for super_admin
+		// Calculate statistics for super_admin from filtered data
 		let statistics = null;
 		if (canReview) {
-			const statsQuery = `
-				query GetRollbackRequestStats {
-					allRollbackRequests {
-						totalCount
-					}
-					pendingRequests: allRollbackRequests(condition: { status: "pending" }) {
-						totalCount
-					}
-					approvedRequests: allRollbackRequests(condition: { status: "approved" }) {
-						totalCount
-					}
-					rejectedRequests: allRollbackRequests(condition: { status: "rejected" }) {
-						totalCount
-					}
-				}
-			`;
-
-			const statsData = await graphqlClient.query(statsQuery);
+			// Client-side statistics calculation from all requests
+			const allRequestsForStats = requestsData.data?.rollbackRequests || [];
 
 			statistics = {
-				totalCount: statsData.data?.allRollbackRequests?.totalCount || 0,
-				pendingCount: statsData.data?.pendingRequests?.totalCount || 0,
-				approvedCount: statsData.data?.approvedRequests?.totalCount || 0,
-				rejectedCount: statsData.data?.rejectedRequests?.totalCount || 0
+				totalCount: allRequestsForStats.length,
+				pendingCount: allRequestsForStats.filter((req: any) => req.status === 'pending').length,
+				approvedCount: allRequestsForStats.filter((req: any) => req.status === 'approved').length,
+				rejectedCount: allRequestsForStats.filter((req: any) => req.status === 'rejected').length
 			};
 		}
 

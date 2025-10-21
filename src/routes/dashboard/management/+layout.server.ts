@@ -1,5 +1,5 @@
 // Management Routes - Centralized RBAC Authorization
-// Requires manager, admin, or super_admin role for all management pages
+// Requires manager role or above (manager, hr_manager, system_admin, admin) for all management pages
 
 import type { LayoutServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
@@ -10,11 +10,26 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 		throw error(401, 'Authentication required');
 	}
 
-	// Check if user has manager or admin role for management pages
+	// Check if user has management access permissions
+	const userPermissions = locals.permissions || [];
+	const userRoles = locals.roles || [];
+
+	// Management access granted to:
+	// 1. system_admin role
+	// 2. manager role
+	// 3. hr_manager role
+	// 4. Users with wildcard (*) permission
+	// 5. Users with management:read permission
 	const hasManagerAccess =
-		locals.roles?.includes('super_admin') ||
-		locals.roles?.includes('admin') ||
-		locals.roles?.includes('manager');
+		userPermissions.includes('*') ||
+		userPermissions.includes('management:read') ||
+		userRoles.includes('system_admin') ||
+		userRoles.includes('manager') ||
+		userRoles.includes('hr_manager') ||
+		userRoles.includes('admin') ||
+		locals.user.role === 'system_admin' ||
+		locals.user.role === 'manager' ||
+		locals.user.role === 'hr_manager';
 
 	if (!hasManagerAccess) {
 		// Log access denial for audit purposes
@@ -22,11 +37,12 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 			userId: locals.user.id,
 			userEmail: locals.user.email,
 			userRole: locals.user.role,
-			roles: locals.roles,
+			roles: userRoles,
+			permissions: userPermissions,
 			timestamp: new Date().toISOString()
 		});
 
-		throw error(403, 'Manager or Admin role required');
+		throw error(403, 'Management access required - Manager role or above required');
 	}
 
 	// Log successful management access
@@ -40,9 +56,17 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	// Return common data for all management child pages
 	return {
 		hasManagerAccess: true,
-		isAdmin: locals.roles?.includes('super_admin') || locals.roles?.includes('admin') || false,
+		isAdmin:
+			userRoles.includes('system_admin') ||
+			userRoles.includes('admin') ||
+			userRoles.includes('super_admin'),
+		isManager:
+			userRoles.includes('manager') ||
+			userRoles.includes('hr_manager') ||
+			userRoles.includes('system_admin') ||
+			userRoles.includes('admin'),
 		user: locals.user,
-		roles: locals.roles || [],
-		permissions: locals.permissions || []
+		roles: userRoles,
+		permissions: userPermissions
 	};
 };

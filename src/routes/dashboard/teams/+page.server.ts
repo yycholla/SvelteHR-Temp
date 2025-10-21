@@ -19,7 +19,7 @@ export const load: PageServerLoad = async (event) => {
 	// Create user session from server locals
 	const userSession = createUserSession({
 		userId: locals.user.id,
-		jwtToken: cookies.get('hr_token') || '',
+		// jwtToken is optional for session-based authentication
 		roles: [locals.user.role || 'employee'],
 		permissions: locals.permissions || [],
 		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes from now
@@ -55,7 +55,7 @@ export const load: PageServerLoad = async (event) => {
 			userEmail: userSession.metadata.userEmail as string,
 			roles: userSession.roles,
 			permissions: userSession.permissions,
-			jwtToken: userSession.jwtToken,
+			// jwtToken omitted for session-based auth
 			isAuthenticated: Boolean(userSession.isAuthenticated)
 		},
 		timeoutMs: 5000,
@@ -75,17 +75,13 @@ export const load: PageServerLoad = async (event) => {
 		if (!isAdmin && userSession.roles.includes('manager')) {
 			const deptResponse = await fetch(graphqlEndpoint, {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers,
 				body: JSON.stringify({
 					query: `
 						query GetManagerDepartment($userId: UUID!) {
-							userById(id: $userId) {
+							user(id: $userId) {
 								id
-								departmentByDepartmentId {
-									id
-									name
-									managerId
-								}
+								departmentId
 							}
 						}
 					`,
@@ -94,15 +90,38 @@ export const load: PageServerLoad = async (event) => {
 			});
 
 			const deptData = await deptResponse.json();
-			const userDept = deptData?.data?.userById?.departmentByDepartmentId;
+			const userData = deptData?.data?.user;
 
-			// Only set managedDepartmentId if user is actually the manager of their department
-			if (userDept && userDept.managerId === userSession.userId) {
-				managedDepartmentId = userDept.id;
+			// If user has a department ID, fetch the department to check if they're the manager
+			if (userData?.departmentId) {
+				const deptDetailResponse = await fetch(graphqlEndpoint, {
+					method: 'POST',
+					headers,
+					body: JSON.stringify({
+						query: `
+							query GetDepartment($deptId: UUID!) {
+								department(id: $deptId) {
+									id
+									name
+									managerId
+								}
+							}
+						`,
+						variables: { deptId: userData.departmentId }
+					})
+				});
+
+				const deptDetailData = await deptDetailResponse.json();
+				const userDept = deptDetailData?.data?.department;
+
+				// Only set managedDepartmentId if user is actually the manager of their department
+				if (userDept && userDept.managerId === userSession.userId) {
+					managedDepartmentId = userDept.id;
+				}
 			}
 		}
 
-		// Build GraphQL query for departments (teams)
+		// Build GraphQL query for departments (teams) using Rust GraphQL server schema
 		// Determine department filter
 		let filterDepartmentId: string | undefined = undefined;
 		if (parentFilter) {
@@ -111,97 +130,120 @@ export const load: PageServerLoad = async (event) => {
 			filterDepartmentId = managedDepartmentId;
 		}
 
+		// Get JWT token from cookies for Rust GraphQL server authentication
+
+		// Headers for session-based authentication (cookies sent automatically)
+		const headers: Record<string, string> = {
+			'Content-Type': 'application/json',
+		};
+
 		// Fetch departments (teams) data
-		// Build query based on whether we're filtering by department
-		const query = filterDepartmentId
-			? `
-				query GetDepartments($limit: Int!, $offset: Int!, $departmentId: UUID!) {
-					allDepartments(first: $limit, offset: $offset, condition: { id: $departmentId }) {
-						nodes {
-							id
-							name
-							description
-							managerId
-							createdAt
-							updatedAt
-							userByManagerId {
+		// When filtering by single department ID, use singular query; otherwise use plural
+		let departments: any[] = [];
+
+		if (filterDepartmentId) {
+			// Use singular query for single department
+			const singleDeptResponse = await fetch(graphqlEndpoint, {
+				method: 'POST',
+				headers,
+				body: JSON.stringify({
+					query: `
+						query GetDepartment($departmentId: UUID!) {
+							department(id: $departmentId) {
 								id
-								displayName
-								email
-							}
-							usersByDepartmentId {
-								totalCount
+								name
+								description
+								managerId
+								createdAt
+								updatedAt
 							}
 						}
-						totalCount
-					}
-				}
-			`
-			: `
-				query GetDepartments($limit: Int!, $offset: Int!) {
-					allDepartments(first: $limit, offset: $offset) {
-						nodes {
-							id
-							name
-							description
-							managerId
-							createdAt
-							updatedAt
-							userByManagerId {
+					`,
+					variables: { departmentId: filterDepartmentId }
+				})
+			});
+
+			const singleDeptData = await singleDeptResponse.json();
+			const dept = singleDeptData?.data?.department;
+			departments = dept ? [dept] : [];
+		} else {
+			// Use plural query for all departments
+			const allDeptsResponse = await fetch(graphqlEndpoint, {
+				method: 'POST',
+				headers,
+				body: JSON.stringify({
+					query: `
+						query GetDepartments($limit: Int!, $offset: Int!) {
+							departments(limit: $limit, offset: $offset) {
 								id
-								displayName
-								email
-							}
-							usersByDepartmentId {
-								totalCount
+								name
+								description
+								managerId
+								createdAt
+								updatedAt
 							}
 						}
-						totalCount
+					`,
+					variables: {
+						limit,
+						offset: (page - 1) * limit
 					}
+				})
+			});
+
+			const allDeptsData = await allDeptsResponse.json();
+			departments = allDeptsData?.data?.departments || [];
+		}
+
+		// Fetch manager details for each department
+		// NOTE: Rust backend doesn't support PostGraphile's userByManagerId relationship
+		// We need to fetch managers separately
+		const managersMap = new Map();
+		const managerIds = [...new Set(departments.map((d: any) => d.managerId).filter(Boolean))];
+
+		if (managerIds.length > 0) {
+			// Fetch all managers in parallel
+			const managerPromises = managerIds.map(managerId =>
+				fetch(graphqlEndpoint, {
+					method: 'POST',
+					headers,
+					body: JSON.stringify({
+						query: `
+							query GetUser($id: UUID!) {
+								user(id: $id) {
+									id
+									displayName
+									email
+								}
+							}
+						`,
+						variables: { id: managerId }
+					})
+				}).then(r => r.json())
+			);
+
+			const managerResponses = await Promise.all(managerPromises);
+			managerResponses.forEach(response => {
+				const manager = response?.data?.user;
+				if (manager) {
+					managersMap.set(manager.id, manager);
 				}
-			`;
-
-		const variables = filterDepartmentId
-			? {
-					limit,
-					offset: (page - 1) * limit,
-					departmentId: filterDepartmentId
-				}
-			: {
-					limit,
-					offset: (page - 1) * limit
-				};
-
-		const teamsResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				query,
-				variables
-			})
-		});
-
-		const teamsData = await teamsResponse.json();
+			});
+		}
 
 		// Debug logging
-		console.log('[Teams Page] GraphQL Response:', JSON.stringify(teamsData, null, 2));
 		console.log('[Teams Page] Filter Department ID:', filterDepartmentId);
 		console.log('[Teams Page] Is Admin:', isAdmin);
-
-		const departments = teamsData?.data?.allDepartments?.nodes || [];
-		const totalCount = teamsData?.data?.allDepartments?.totalCount || 0;
+		console.log('[Teams Page] Departments found:', departments.length);
+		const totalCount = departments.length; // Rust server doesn't provide totalCount in this format
 
 		console.log('[Teams Page] Departments found:', departments.length);
 		console.log('[Teams Page] Total count:', totalCount);
 
-		// Calculate team statistics
-		const totalEmployees = departments.reduce(
-			(sum: number, dept: any) => sum + (dept.usersByDepartmentId?.totalCount || 0),
-			0
-		);
+		// Calculate team statistics (employee counts not available in current Rust GraphQL schema)
+		const totalEmployees = 0; // TODO: Implement separate query for employee counts per department
 		const teamsWithHeads = departments.filter((dept: any) => dept.managerId).length;
-		const averageTeamSize =
-			departments.length > 0 ? Math.round(totalEmployees / departments.length) : 0;
+		const averageTeamSize = 0; // TODO: Calculate when employee counts are available
 
 		// Return server-side loaded data
 		// Get standardized user permissions
@@ -210,27 +252,30 @@ export const load: PageServerLoad = async (event) => {
 		return {
 			user: userPermissions.user,
 			userSession: userSession.toJSON(), // Convert UserSession to serializable object
-			teams: departments.map((dept: any) => ({
-				id: dept.id,
-				name: dept.name,
-				description: dept.description,
-				departmentHead: dept.userByManagerId
-					? {
-							id: dept.userByManagerId.id,
-							displayName: dept.userByManagerId.displayName,
-							email: dept.userByManagerId.email
-						}
-					: null,
-				parentDepartment: null, // Not available in current schema
-				employees: {
-					totalCount: dept.usersByDepartmentId?.totalCount || 0
-				},
-				subDepartments: {
-					totalCount: 0 // Not available in current schema
-				},
-				createdAt: dept.createdAt,
-				updatedAt: dept.updatedAt
-			})),
+			teams: departments.map((dept: any) => {
+				const manager = dept.managerId ? managersMap.get(dept.managerId) : null;
+				return {
+					id: dept.id,
+					name: dept.name,
+					description: dept.description,
+					departmentHead: manager
+						? {
+								id: manager.id,
+								displayName: manager.displayName,
+								email: manager.email
+							}
+						: null,
+					parentDepartment: null, // Not available in current schema
+					employees: {
+						totalCount: 0 // TODO: Implement separate query for employee counts
+					},
+					subDepartments: {
+						totalCount: 0 // Not available in current schema
+					},
+					createdAt: dept.createdAt,
+					updatedAt: dept.updatedAt
+				};
+			}),
 			totalTeams: totalCount,
 			hierarchy: [],
 			teamStats: {

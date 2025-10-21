@@ -13,14 +13,8 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 		throw redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
 
-	// Get user credentials for GraphQL operations
-	const token = cookies.get('hr_token') || cookies.get('auth-token');
-	if (!token) {
-		throw redirect(303, `/login?redirectTo=${url.pathname}`);
-	}
-
+	// T036: Session-based authentication - jwtToken not needed
 	const userCredentials = {
-		jwtToken: token,
 		userId: locals.user.id,
 		roles: locals.roles || [],
 		permissions: locals.permissions || [],
@@ -30,8 +24,8 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 
 	try {
 		// Initialize GraphQL client and operations
-		// For server-side: createUrqlClient(fetchFn?, authToken?)
-		const urqlClient = createUrqlClient(undefined, token);
+		// T036: Session-based authentication
+		const urqlClient = createUrqlClient();
 		const eventsOps = new EventsOperations(urqlClient);
 
 		// Fetch event details
@@ -40,6 +34,14 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 			userCredentials
 		});
 
+		console.log('[Event Detail] Retrieved event:', JSON.stringify({
+			id: event?.id,
+			title: event?.title,
+			startTime: event?.startTime,
+			endTime: event?.endTime,
+			startTimeType: typeof event?.startTime
+		}, null, 2));
+
 		if (!event) {
 			throw error(404, {
 				message: 'Event not found or you do not have permission to view it.'
@@ -47,7 +49,8 @@ export const load: PageServerLoad = async ({ params, locals, url, cookies }) => 
 		}
 
 		// Determine user's RSVP status
-		const attendees = event.eventAttendeesByEventId?.nodes || [];
+		// NOTE: Using Rust GraphQL schema - direct array access (no .nodes wrapper)
+		const attendees = event.eventAttendees || event.attendees || [];
 		const userAttendee = attendees.find((a: any) => a.employeeId === locals.user.id);
 		const userRsvpStatus = userAttendee?.responseStatus || 'no_response';
 
@@ -120,13 +123,8 @@ export const actions: Actions = {
 			throw redirect(303, '/login');
 		}
 
-		const token = cookies.get('hr_token') || cookies.get('auth-token');
-		if (!token) {
-			throw redirect(303, '/login');
-		}
-
+		// T036: Session-based authentication - jwtToken not needed
 		const userCredentials = {
-			jwtToken: token,
 			userId: locals.user.id,
 			roles: locals.roles || [],
 			permissions: locals.permissions || [],
@@ -136,7 +134,8 @@ export const actions: Actions = {
 
 		try {
 			// Initialize GraphQL client and operations
-			const urqlClient = createUrqlClient(undefined, token);
+			// T036: Session-based authentication
+			const urqlClient = createUrqlClient();
 			const eventsOps = new EventsOperations(urqlClient);
 
 			// First, get the event to check permissions
@@ -162,9 +161,9 @@ export const actions: Actions = {
 				});
 			}
 
-			// Delete the event using nodeId
+			// Migration: ✅ Use idiomatic Rust pattern (eventId, not nodeId)
 			await eventsOps.deleteEvent({
-				nodeId: event.nodeId,
+				eventId: params.id,
 				userCredentials
 			});
 

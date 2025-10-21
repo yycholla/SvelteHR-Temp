@@ -29,16 +29,16 @@ export const load: PageServerLoad = async (event) => {
 		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
 		// Load user details using new GraphQL client
+		// NOTE: Using Rust GraphQL schema - singular query for ID lookup
 		const userQuery = `
 			query GetUser($id: UUID!) {
-				userById(id: $id) {
+				user(id: $id) {
 					id
 					email
-					firstName
-					lastName
+					displayName
 					departmentId
 					isActive
-					departmentByDepartmentId {
+					department {
 						id
 						name
 						managerId
@@ -48,36 +48,37 @@ export const load: PageServerLoad = async (event) => {
 		`;
 
 		const userData = await graphqlClient.query(userQuery, { id: userId });
-		const user = userData.data?.userById;
+		const user = userData.data?.user || null;
 
 		if (!user) {
 			throw error(404, 'User not found');
 		}
 
 		// Load actual goals for this specific user
+		// NOTE: Using Rust GraphQL schema - employeeId as direct parameter
 		const userGoalsQuery = `
-			query GetUserGoals($employeeId: UUID!) {
-				allEmployeeGoals(condition: { employeeId: $employeeId }) {
-					totalCount
-					nodes {
-						id
-						title
-						description
-						status
-						progressPercentage
-						targetDate
-						createdAt
-						updatedAt
-					}
+			query GetUserGoals($employeeId: UUID!, $limit: Int!) {
+				employeeGoals(employeeId: $employeeId, limit: $limit) {
+					id
+					title
+					description
+					status
+					progressPercentage
+					targetDate
+					createdAt
+					updatedAt
 				}
 			}
 		`;
 
 		const goalsResult = await graphqlClient.query(userGoalsQuery, {
-			employeeId: userId
+			employeeId: userId,
+			limit: 100
 		});
 
-		const goals = goalsResult.data?.allEmployeeGoals?.nodes || [];
+		const goals = goalsResult.data?.employeeGoals || [];
+		// NOTE: Rust backend doesn't provide count query, use array length
+		const goalsCount = goals.length;
 
 		// Calculate date ranges for current quarter
 		const currentDate = new Date();
@@ -110,7 +111,7 @@ export const load: PageServerLoad = async (event) => {
 		return {
 			user,
 			userId,
-			goals: goals.sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()),
+			goals: goals.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
 			goalCategories,
 			goalStats,
 			currentQuarter: {

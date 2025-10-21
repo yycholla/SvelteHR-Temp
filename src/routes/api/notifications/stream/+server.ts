@@ -1,49 +1,30 @@
 // SSE endpoint for real-time notification updates
 import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { GraphQLClient } from '$lib/server/graphql-client';
-import { decodeJWTTokenUnsafe } from '$lib/auth/jwt-utils';
 
-export const GET: RequestHandler = async ({ locals, cookies }) => {
-	// Get auth token
-	const authToken = cookies.get('hr_token') || cookies.get('auth-token');
-	if (!authToken) {
-		console.error('SSE: No authentication token found');
-		throw error(401, 'No authentication token');
+export const GET: RequestHandler = async ({ locals, cookies, request }) => {
+	const cookieHeader = request.headers.get('cookie');
+
+	// Session-based authentication - user must be authenticated via hooks.server.ts
+	if (!locals.user?.id) {
+		// Only log debug info on authentication errors
+		console.error('❌ SSE: No authenticated user found in session');
+		console.error('❌ SSE: Cookie header:', cookieHeader || 'NO COOKIES SENT');
+		console.error('❌ SSE: Cookies parsed by SvelteKit:', {
+			'id.session': cookies.get('id.session'),
+			'session': cookies.get('session'),
+			'hr_token': cookies.get('hr_token'),
+			'auth-token': cookies.get('auth-token')
+		});
+		console.error('❌ SSE: locals.user:', locals.user);
+		throw error(401, 'Authentication required');
 	}
 
-	// Manually verify token if locals.user is not set
-	let userId = locals.user?.id;
-	if (!userId) {
-		try {
-			const payload = await decodeJWTTokenUnsafe(authToken);
-			console.log('🔍 SSE decoded payload:', payload);
+	const userId = locals.user.id;
 
-			// JWT uses user_id (snake_case), not userId (camelCase)
-			const userIdFromToken = payload?.user_id || payload?.userId;
-			if (!payload || !userIdFromToken) {
-				console.error('SSE: Invalid token payload - no user_id found');
-				throw error(401, 'Invalid authentication token');
-			}
-
-			// Check expiration
-			const currentTime = Math.floor(Date.now() / 1000);
-			if (payload.exp && payload.exp < currentTime) {
-				console.error('SSE: Token expired');
-				throw error(401, 'Token expired');
-			}
-
-			userId = userIdFromToken;
-			console.log('✅ SSE: Authenticated user:', userId);
-		} catch (err) {
-			console.error('SSE: Token validation failed:', err);
-			throw error(401, 'Authentication failed');
-		}
-	}
-
-	// Create GraphQL client with token
-	const graphqlClient = new GraphQLClient();
-	graphqlClient.setToken(authToken);
+	// Create GraphQL endpoint URL
+	const { getGraphQLEndpoint } = await import('$lib/server/api-url');
+	const graphqlEndpoint = getGraphQLEndpoint();
 
 	// Create a readable stream for SSE
 	let intervalId: NodeJS.Timeout | null = null;
@@ -82,36 +63,54 @@ export const GET: RequestHandler = async ({ locals, cookies }) => {
 				}
 
 				try {
+					// Updated to use Rust GraphQL API idiomatic syntax (userId, unreadOnly)
 					const notificationsQuery = `
-						query GetUserNotifications($recipientId: UUID!) {
-							allNotifications(
-								condition: { recipientId: $recipientId, readStatus: false }
-								orderBy: [CREATED_AT_DESC]
-								first: 20
+						query GetUserNotifications($userId: UUID!, $unreadOnly: Boolean) {
+							notifications(
+								userId: $userId,
+								unreadOnly: $unreadOnly,
+								limit: 20
 							) {
-								totalCount
-								nodes {
-									id
-									type
-									category
-									title
-									message
-									relatedResourceType
-									relatedResourceId
-									readStatus
-									deliveredAt
-									readAt
-									createdAt
-								}
+								id
+								type
+								category
+								title
+								message
+								relatedResourceType
+								relatedResourceId
+								readStatus
+								deliveredAt
+								readAt
+								createdAt
 							}
 						}
 					`;
 
-					const result = await graphqlClient.query(notificationsQuery, {
-						recipientId: userId
+					// Make direct fetch request with session cookie forwarded
+					const graphqlResponse = await fetch(graphqlEndpoint, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							'Cookie': cookieHeader || '' // Forward all cookies from the original request
+						},
+						body: JSON.stringify({
+							query: notificationsQuery,
+							variables: {
+								userId: userId,
+								unreadOnly: true
+							}
+						})
 					});
 
-					const notifications = result.data?.allNotifications?.nodes || [];
+					const result = await graphqlResponse.json();
+
+					if (result.errors) {
+						console.error('❌ SSE: GraphQL errors:', result.errors);
+						sendEvent({ type: 'error', message: 'Failed to fetch notifications' });
+						return;
+					}
+
+					const notifications = result.data?.notifications || [];
 
 					// Send notification update
 					sendEvent({

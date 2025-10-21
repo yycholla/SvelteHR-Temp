@@ -16,27 +16,26 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 		const client = createUrqlClient();
 
 		// Query data for compliance metrics
+		// NOTE: Using Rust GraphQL schema (direct arrays, no .nodes wrapper)
 		const complianceQuery = `
-			query GetComplianceData {
-				allUsers {
-					totalCount
-					nodes {
-						id
-						isActive
-						createdAt
-						updatedAt
-					}
+			query GetComplianceData($limit: Int!) {
+				users(limit: $limit) {
+					id
+					isActive
+					createdAt
+					updatedAt
 				}
-				allDepartments {
-					totalCount
+				departments(limit: $limit) {
+					id
+					name
 				}
 			}
 		`;
 
-		const result = await client.query(complianceQuery, {});
+		const result = await client.query(complianceQuery, { limit: 1000 });
 
-		const users = result.data?.allUsers?.nodes || [];
-		const totalUsers = result.data?.allUsers?.totalCount || 0;
+		const users = result.data?.users || [];
+		const totalUsers = users.length;
 
 		// Calculate compliance metrics
 		const now = new Date();

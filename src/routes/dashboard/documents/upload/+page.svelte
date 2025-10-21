@@ -1,0 +1,206 @@
+<script lang="ts">
+	// Document upload page (Feature 024)
+	// Upload page with file selection and metadata form
+
+	import { goto } from '$app/navigation';
+	import FileUploader from '$lib/components/documents/FileUploader.svelte';
+	import DocumentMetadataForm from '$lib/components/documents/DocumentMetadataForm.svelte';
+	import { Button } from '$lib/components/ui/button';
+	import * as Card from '$lib/components/ui/card';
+	import * as Alert from '$lib/components/ui/alert';
+	import { X, CheckCircle2, Lock, Upload } from 'lucide-svelte';
+	import type { PageData } from './$types';
+	import type { DocumentMetadata, UploadResult } from '$lib/types/document';
+
+	let { data }: { data: PageData } = $props();
+
+	// Component references and reactive state
+	let fileUploader: FileUploader;
+	let metadataForm: DocumentMetadataForm;
+
+	// Svelte 5 state
+	let metadata = $state<DocumentMetadata>({
+		filename: '',
+		category: 'Other',
+		sensitivityLevel: 'Internal',
+		metadataTags: {}
+	});
+
+	let uploadComplete = $state(false);
+	let uploadError = $state<string | null>(null);
+	let uploadedDocumentId = $state<string | null>(null);
+	let isUploading = $state(false);
+
+	// Reactive state bound from child components
+	let hasFile = $state(false);
+
+	// Derive metadata validation directly from metadata object
+	// Note: filename is set automatically when file is selected, so we only check the user-entered fields
+	let hasRequiredMetadata = $derived(
+		metadata.category !== '' &&
+		metadata.sensitivityLevel !== ''
+	);
+
+	// Derived state for upload button
+	let canUpload = $derived(hasFile && hasRequiredMetadata && !isUploading && !uploadComplete);
+
+	// Debug logging
+	$effect(() => {
+		console.log('[Parent] State update - hasFile:', hasFile,
+			'metadata.filename:', metadata.filename,
+			'metadata.category:', metadata.category,
+			'metadata.sensitivityLevel:', metadata.sensitivityLevel,
+			'hasRequiredMetadata:', hasRequiredMetadata,
+			'isUploading:', isUploading, 'uploadComplete:', uploadComplete, 'canUpload:', canUpload);
+	});
+
+	// Handle successful upload
+	function handleUploadSuccess(result: UploadResult) {
+		console.log('Upload successful:', result);
+		uploadComplete = true;
+		uploadedDocumentId = result.documentId;
+
+		// Show success message and redirect after 2 seconds
+		setTimeout(() => {
+			goto('/dashboard/documents');
+		}, 2000);
+	}
+
+	// Handle upload error
+	function handleUploadError(error: Error) {
+		console.error('Upload failed:', error);
+		uploadError = error.message;
+		isUploading = false;
+	}
+
+	// Handle unified upload button click
+	async function handleUpload() {
+		uploadError = null;
+
+		// Validate metadata
+		if (!metadataForm.validateMetadata()) {
+			uploadError = 'Please fill in all required metadata fields';
+			return;
+		}
+
+		try {
+			isUploading = true;
+			await fileUploader.triggerUpload();
+		} catch (error) {
+			console.error('Upload error:', error);
+			uploadError = error instanceof Error ? error.message : 'Upload failed';
+		} finally {
+			isUploading = false;
+		}
+	}
+
+	// Handle cancel
+	function handleCancel() {
+		goto('/dashboard/documents');
+	}
+</script>
+
+<svelte:head>
+	<title>Upload Document | HR System</title>
+</svelte:head>
+
+<div class="container mx-auto max-w-4xl py-6 space-y-6">
+	<!-- Page header -->
+	<div class="space-y-1">
+		<h1 class="text-3xl font-bold tracking-tight">Upload Document</h1>
+		<p class="text-muted-foreground">
+			Upload a new document with end-to-end encryption. All files are encrypted on your device before upload.
+		</p>
+	</div>
+
+	<!-- Success message -->
+	{#if uploadComplete}
+		<Alert.Root class="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
+			<CheckCircle2 class="h-5 w-5 text-green-600 dark:text-green-400" />
+			<Alert.Title>Upload Successful!</Alert.Title>
+			<Alert.Description>
+				Your document has been encrypted and uploaded securely.
+				<span class="block mt-1 text-sm italic">Redirecting to documents page...</span>
+			</Alert.Description>
+		</Alert.Root>
+	{:else}
+		<!-- Upload form -->
+		<div class="space-y-6">
+			<!-- Combined Upload Card -->
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>Upload Document</Card.Title>
+					<Card.Description>Select a file and provide metadata for classification</Card.Description>
+				</Card.Header>
+				<Card.Content>
+					<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+						<!-- Left: File Upload -->
+						<div class="space-y-4">
+							<h3 class="text-sm font-semibold text-foreground">File Selection</h3>
+							<FileUploader
+								bind:this={fileUploader}
+								bind:metadata
+								bind:hasFile
+								onUpload={handleUploadSuccess}
+								onError={handleUploadError}
+								maxSizeMB={50}
+								allowedTypes={['PDF', 'JPEG', 'PNG', 'GIF', 'DOCX', 'XLSX', 'TXT', 'CSV']}
+							/>
+						</div>
+
+						<!-- Right: Metadata -->
+						<div class="space-y-4">
+							<h3 class="text-sm font-semibold text-foreground">Document Information</h3>
+							<DocumentMetadataForm
+								bind:this={metadataForm}
+								bind:metadata
+							/>
+						</div>
+					</div>
+
+					<!-- Upload Actions -->
+					<div class="mt-8 pt-6 border-t">
+						<div class="flex items-center gap-4">
+							<Button
+								variant="outline"
+								onclick={handleCancel}
+								disabled={isUploading}
+								class="flex-1"
+							>
+								<X class="h-4 w-4 mr-2" />
+								Cancel
+							</Button>
+							<Button
+								onclick={handleUpload}
+								disabled={!canUpload}
+								class="flex-1"
+								size="lg"
+							>
+								<Upload class="h-5 w-5 mr-2" />
+								{isUploading ? 'Uploading...' : 'Upload Document'}
+							</Button>
+						</div>
+
+						{#if uploadError}
+							<Alert.Root variant="destructive" class="mt-4">
+								<Alert.Title>Upload Error</Alert.Title>
+								<Alert.Description>{uploadError}</Alert.Description>
+							</Alert.Root>
+						{/if}
+					</div>
+				</Card.Content>
+			</Card.Root>
+
+			<!-- Security notice -->
+			<Alert.Root class="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
+				<Lock class="h-5 w-5 text-blue-600 dark:text-blue-400" />
+				<Alert.Title>End-to-End Encryption</Alert.Title>
+				<Alert.Description>
+					Your document is encrypted using AES-GCM-256 on your device before upload.
+					The server never has access to your unencrypted files. Only authorized users
+					with the decryption key can access the document content.
+				</Alert.Description>
+			</Alert.Root>
+		</div>
+	{/if}
+</div>

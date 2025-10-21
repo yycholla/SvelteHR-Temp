@@ -1,0 +1,9 @@
+Migration Status - Tue Oct 14 07:34:48 PM MDT 2025
+========================================
+
+ filename | applied_at | execution_time_ms 
+----------+------------+-------------------
+(0 rows)
+
+
+Total migrations applied:      0

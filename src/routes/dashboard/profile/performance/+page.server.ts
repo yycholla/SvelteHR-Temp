@@ -24,16 +24,16 @@ export const load: PageServerLoad = async (event) => {
 		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
 		// Load user details using new GraphQL client
+		// NOTE: Using Rust GraphQL schema - singular query for ID lookup
 		const userQuery = `
 			query GetUser($id: UUID!) {
-				userById(id: $id) {
+				user(id: $id) {
 					id
 					email
-					firstName
-					lastName
+					displayName
 					departmentId
 					isActive
-					departmentByDepartmentId {
+					department {
 						id
 						name
 						managerId
@@ -43,36 +43,46 @@ export const load: PageServerLoad = async (event) => {
 		`;
 
 		const userData = await graphqlClient.query(userQuery, { id: userId });
-		const user = userData.data?.userById;
+		const user = userData.data?.user || null;
 
 		if (!user) {
 			throw error(404, 'User not found');
 		}
 
 		// Load actual goals for this specific user
+		// NOTE: Using Rust GraphQL schema - direct parameter instead of filter
 		const userGoalsQuery = `
-			query GetUserGoals($employeeId: UUID!) {
-				allEmployeeGoals(condition: { employeeId: $employeeId }) {
-					totalCount
-					nodes {
-						id
-						title
-						description
-						status
-						progressPercentage
-						targetDate
-						createdAt
-						updatedAt
-					}
+			query GetUserGoals($employeeId: UUID!, $limit: Int!) {
+				employeeGoals(employeeId: $employeeId, limit: $limit) {
+					id
+					goalTitle
+					goalDescription
+					status
+					progressPercentage
+					targetDate
+					createdAt
+					updatedAt
 				}
 			}
 		`;
 
 		const goalsResult = await graphqlClient.query(userGoalsQuery, {
-			employeeId: userId
+			employeeId: userId,
+			limit: 100
 		});
 
-		const goals = goalsResult.data?.allEmployeeGoals?.nodes || [];
+		// Transform employeeGoals to match expected format
+		const rawGoals = goalsResult.data?.employeeGoals || [];
+		const goals = rawGoals.map((goal: any) => ({
+			id: goal.id,
+			title: goal.goalTitle,
+			description: goal.goalDescription,
+			status: goal.status,
+			progressPercentage: goal.progressPercentage,
+			targetDate: goal.targetDate,
+			createdAt: goal.createdAt,
+			updatedAt: goal.updatedAt
+		}));
 
 		// Calculate date ranges for current quarter
 		const currentDate = new Date();

@@ -1,0 +1,42 @@
+# Rust
+/target/
+**/*.rs.bk
+*.pdb
+
+# Cargo
+Cargo.lock
+.cargo/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+mutants.out/
+mutants.json
+*.profraw
+*.profdata
+
+# Coverage
+cobertura.xml
+lcov.info
+tarpaulin-report.html
+
+# Benchmarks
+target/criterion/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+
+# Temporary files
+tmp/
+temp/

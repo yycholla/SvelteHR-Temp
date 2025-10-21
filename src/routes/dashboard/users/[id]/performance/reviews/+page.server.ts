@@ -60,16 +60,16 @@ export const load: PageServerLoad = async (event) => {
 		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
 		// Load user details using new GraphQL client
+		// NOTE: Using Rust GraphQL schema - singular query for ID lookup
 		const userQuery = `
 			query GetUser($id: UUID!) {
-				userById(id: $id) {
+				user(id: $id) {
 					id
 					email
-					firstName
-					lastName
+					displayName
 					departmentId
 					isActive
-					departmentByDepartmentId {
+					department {
 						id
 						name
 						managerId
@@ -79,45 +79,55 @@ export const load: PageServerLoad = async (event) => {
 		`;
 
 		const userData = await graphqlClient.query(userQuery, { id: userId });
-		const user = userData.data?.userById;
+		const user = userData.data?.user || null;
 
 		if (!user) {
 			throw error(404, 'User not found');
 		}
 
 		// Load performance reviews from database
+		// NOTE: Using Rust GraphQL schema - fetch all and filter client-side
 		const reviewsQuery = `
-			query GetUserPerformanceReviews($employeeId: UUID!) {
-				allPerformanceReviews(
-					condition: { employeeId: $employeeId }
-					orderBy: [CREATED_AT_DESC]
-				) {
-					nodes {
+			query GetUserPerformanceReviews($limit: Int!) {
+				performanceReviews(limit: $limit) {
+					id
+					employeeId
+					reviewerId
+					cycleId
+					templateId
+					status
+					overallRating
+					submittedAt
+					createdAt
+					updatedAt
+					reviewer {
 						id
-						employeeId
-						reviewerId
-						reviewPeriod
-						status
-						overallRating
-						goals
-						achievements
-						areasForImprovement
-						managerFeedback
-						createdAt
-						updatedAt
-						userByReviewerId {
-							id
-							firstName
-							lastName
-							email
-						}
+						displayName
+						email
 					}
+					cycle {
+						id
+						name
+						reviewType
+						startDate
+						endDate
+					}
+					goals {
+						id
+						title
+						description
+						completionStatus
+					}
+					managerFeedback
 				}
 			}
 		`;
 
-		const reviewsData = await graphqlClient.query(reviewsQuery, { employeeId: userId });
-		const rawReviews = reviewsData.data?.allPerformanceReviews?.nodes || [];
+		const reviewsData = await graphqlClient.query(reviewsQuery, { limit: 1000 });
+		const allReviews = reviewsData.data?.performanceReviews || [];
+
+		// Client-side filtering for employeeId
+		const rawReviews = allReviews.filter((review: any) => review.employeeId === userId);
 
 		// Static competency areas for display
 		const competencyAreas = [
@@ -143,36 +153,38 @@ export const load: PageServerLoad = async (event) => {
 
 		// Map reviews to expected format
 		const reviews = rawReviews.map((review: any) => {
-			// Parse JSONB fields
-			const goals = review.goals ? (typeof review.goals === 'string' ? JSON.parse(review.goals) : review.goals) : [];
-			const achievements = review.achievements ? (typeof review.achievements === 'string' ? JSON.parse(review.achievements) : review.achievements) : [];
-			const improvements = review.areasForImprovement ? (typeof review.areasForImprovement === 'string' ? JSON.parse(review.areasForImprovement) : review.areasForImprovement) : [];
+			// Extract cycle information for review type and period
+			const cycleType = review.cycle?.reviewType || 'annual_review';
+			const matchingType = reviewTypes.find(t => t.id === cycleType.replace('_review', '')) || reviewTypes[0];
+
+			// Map goals from review_goal relationships
+			const goals = Array.isArray(review.goals) ? review.goals : [];
 
 			return {
 				id: review.id,
-				type: reviewTypes.find(t => t.id === (review.reviewPeriod || 'annual')) || reviewTypes[0],
+				type: matchingType,
 				status: review.status || 'scheduled',
 				reviewPeriod: {
-					start: review.reviewPeriod || new Date().toISOString().split('T')[0],
-					end: review.reviewPeriod || new Date().toISOString().split('T')[0]
+					start: review.cycle?.startDate || new Date().toISOString().split('T')[0],
+					end: review.cycle?.endDate || new Date().toISOString().split('T')[0]
 				},
 				scheduledDate: review.createdAt?.split('T')[0],
-				completedDate: review.status === 'completed' ? review.updatedAt?.split('T')[0] : null,
-				reviewer: review.userByReviewerId ? {
-					id: review.userByReviewerId.id,
-					displayName: `${review.userByReviewerId.firstName} ${review.userByReviewerId.lastName}`,
-					email: review.userByReviewerId.email
+				completedDate: review.status === 'completed' && review.submittedAt ? review.submittedAt.split('T')[0] : null,
+				reviewer: review.reviewer ? {
+					id: review.reviewer.id,
+					displayName: review.reviewer.displayName,
+					email: review.reviewer.email
 				} : null,
 				overallRating: review.overallRating || 0,
-				competencies: [], // Not stored in current schema
-				goals: Array.isArray(goals) ? goals : [],
+				competencies: [], // Would need to query review_feedback or review_template
+				goals: goals,
 				feedback: {
-					strengths: Array.isArray(achievements) ? achievements : [],
-					improvements: Array.isArray(improvements) ? improvements : [],
+					strengths: [], // Would need to query review_feedback with feedback_type='strengths'
+					improvements: [], // Would need to query review_feedback with feedback_type='improvements'
 					managerComments: review.managerFeedback || '',
-					employeeComments: null // Not in current schema
+					employeeComments: null // Would need to query review_feedback with feedback_type='self_review'
 				},
-				developmentPlan: [], // Not in current schema
+				developmentPlan: [], // Would need to query review_goals with goal_type='development'
 				createdAt: review.createdAt,
 				lastUpdated: review.updatedAt
 			};

@@ -1,134 +1,103 @@
-// GraphQL Operations: Leave Management (Manager Department-Scoped)
-// Feature: 016-repair-management-pages - Task T014
-// Purpose: Manager CRUD operations for leave requests with department-scoped RLS
+/**
+ * Leave Management Operations - Migrated to Rust Idiomatic GraphQL
+ *
+ * Simplified to use only backend-supported features.
+ * Backend: Rust async-graphql with SeaORM
+ */
 
 import { gql } from '@urql/svelte';
-import type { DataRequest, UserCredentials } from '$lib/models/data-request';
+import type { Client } from '@urql/core';
+import type { UserCredentials } from '$lib/models/data-request';
 
 // ============================================================================
 // QUERIES
 // ============================================================================
 
 /**
- * Query: Get pending leave requests for manager's department only
- * RLS Policy: manager_view_department_leave_requests
- * Covers: FR-001, FR-008
+ * Query: Get leave requests with pagination
+ * Backend: Rust idiomatic - leaveRequests(employeeId, limit, offset) returns direct array
  */
-export const GET_PENDING_LEAVE_REQUESTS = gql`
-	query GetPendingLeaveRequests(
-		$first: Int = 20
-		$offset: Int = 0
-		$orderBy: [LeaveRequestsOrderBy!] = [CREATED_AT_DESC]
-		$filter: LeaveRequestFilter
-	) {
-		leaveRequests(first: $first, offset: $offset, orderBy: $orderBy, filter: $filter) {
-			nodes {
-				id
-				employeeId
-				employee {
-					id
-					displayName
-					email
-					jobTitle
-					department {
-						id
-						name
-					}
-				}
-				leaveType
-				startDate
-				endDate
-				totalDays
-				reason
-				status
-				reviewedBy
-				reviewer {
-					id
-					displayName
-					email
-				}
-				reviewNotes
-				reviewedAt
-				createdAt
-				updatedAt
-			}
-			totalCount
-			pageInfo {
-				hasNextPage
-				hasPreviousPage
-				startCursor
-				endCursor
-			}
-		}
-	}
-`;
-
-/**
- * Query: Get leave request by ID (department-scoped)
- * RLS Policy: manager_view_department_leave_requests
- */
-export const GET_LEAVE_REQUEST_BY_ID = gql`
-	query GetLeaveRequestById($id: UUID!) {
-		leaveRequest(id: $id) {
+export const GET_LEAVE_REQUESTS_QUERY = gql`
+	query GetLeaveRequests($employeeId: UUID, $limit: Int = 100, $offset: Int = 0) {
+		leaveRequests(employeeId: $employeeId, limit: $limit, offset: $offset) {
 			id
 			employeeId
+			leaveTypeId
+			startDate
+			endDate
+			daysRequested
+			reason
+			status
+			managerId
+			approvedAt
+			managerComments
+			createdAt
+			updatedAt
 			employee {
 				id
 				displayName
+				fullName
 				email
-				jobTitle
 				department {
 					id
 					name
 				}
 			}
-			leaveType
-			startDate
-			endDate
-			totalDays
-			reason
-			status
-			reviewedBy
-			reviewer {
+			manager {
 				id
 				displayName
+				fullName
 				email
 			}
-			reviewNotes
-			reviewedAt
-			createdAt
-			updatedAt
+			leaveType {
+				id
+				name
+				color
+			}
 		}
 	}
 `;
 
 /**
- * Query: Get leave statistics for manager's department
- * Covers: FR-009
+ * Query: Get single leave request by ID
+ * Backend: Rust idiomatic - leaveRequest(id) not leaveRequestById
  */
-export const GET_LEAVE_STATISTICS = gql`
-	query GetLeaveStatistics($departmentId: UUID!) {
-		pendingLeaveRequests: leaveRequests(
-			filter: { status: { equalTo: "pending" }, employee: { departmentId: { equalTo: $departmentId } } }
-		) {
-			totalCount
-		}
-		approvedLeaveRequests: leaveRequests(
-			filter: { status: { equalTo: "approved" }, employee: { departmentId: { equalTo: $departmentId } } }
-		) {
-			totalCount
-		}
-		rejectedLeaveRequests: leaveRequests(
-			filter: { status: { equalTo: "rejected" }, employee: { departmentId: { equalTo: $departmentId } } }
-		) {
-			totalCount
-		}
-		allLeaveRequests: leaveRequests(
-			filter: { employee: { departmentId: { equalTo: $departmentId } } }
-		) {
-			totalCount
-			nodes {
-				totalDays
+export const GET_LEAVE_REQUEST_BY_ID_QUERY = gql`
+	query GetLeaveRequestById($id: UUID!) {
+		leaveRequest(id: $id) {
+			id
+			employeeId
+			leaveTypeId
+			startDate
+			endDate
+			daysRequested
+			reason
+			status
+			managerId
+			approvedAt
+			managerComments
+			createdAt
+			updatedAt
+			employee {
+				id
+				displayName
+				fullName
+				email
+				department {
+					id
+					name
+				}
+			}
+			manager {
+				id
+				displayName
+				fullName
+				email
+			}
+			leaveType {
+				id
+				name
+				color
 			}
 		}
 	}
@@ -140,74 +109,96 @@ export const GET_LEAVE_STATISTICS = gql`
 
 /**
  * Mutation: Approve leave request
- * RLS Policy: manager_update_department_leave_requests
- * Covers: FR-001, FR-002
+ * Backend: Rust idiomatic - approveLeaveRequest(input) returns LeaveRequest directly
+ * Note: Approver ID comes from JWT context automatically
  */
-export const APPROVE_LEAVE_REQUEST = gql`
-	mutation ApproveLeaveRequest($input: UpdateLeaveRequestInput!) {
-		updateLeaveRequest(input: $input) {
-			leaveRequest {
+export const APPROVE_LEAVE_REQUEST_MUTATION = gql`
+	mutation ApproveLeaveRequest($input: ApproveLeaveRequestInput!) {
+		approveLeaveRequest(input: $input) {
+			id
+			employeeId
+			status
+			managerId
+			approvedAt
+			managerComments
+			updatedAt
+			employee {
 				id
-				employeeId
-				employee {
-					id
-					displayName
-					email
-				}
-				leaveType
-				startDate
-				endDate
-				totalDays
-				status
-				reviewedBy
-				reviewer {
-					id
-					displayName
-					email
-				}
-				reviewNotes
-				reviewedAt
-				updatedAt
+				displayName
+				email
 			}
-			clientMutationId
 		}
 	}
 `;
 
 /**
  * Mutation: Reject leave request
- * RLS Policy: manager_update_department_leave_requests
- * Covers: FR-001, FR-002
- * Note: reviewNotes is REQUIRED when rejecting (enforced in UI)
+ * Backend: Rust idiomatic - rejectLeaveRequest(input) returns LeaveRequest directly
+ * Note: Approver ID comes from JWT context, rejectionReason is REQUIRED
  */
-export const REJECT_LEAVE_REQUEST = gql`
-	mutation RejectLeaveRequest($input: UpdateLeaveRequestInput!) {
-		updateLeaveRequest(input: $input) {
-			leaveRequest {
+export const REJECT_LEAVE_REQUEST_MUTATION = gql`
+	mutation RejectLeaveRequest($input: RejectLeaveRequestInput!) {
+		rejectLeaveRequest(input: $input) {
+			id
+			employeeId
+			status
+			managerId
+			approvedAt
+			managerComments
+			updatedAt
+			employee {
 				id
-				employeeId
-				employee {
-					id
-					displayName
-					email
-				}
-				leaveType
-				startDate
-				endDate
-				totalDays
-				status
-				reviewedBy
-				reviewer {
-					id
-					displayName
-					email
-				}
-				reviewNotes
-				reviewedAt
-				updatedAt
+				displayName
+				email
 			}
-			clientMutationId
 		}
+	}
+`;
+
+/**
+ * Mutation: Create leave request
+ * Backend: Rust idiomatic - createLeaveRequest(input) returns LeaveRequest directly
+ */
+export const CREATE_LEAVE_REQUEST_MUTATION = gql`
+	mutation CreateLeaveRequest($input: CreateLeaveRequestInput!) {
+		createLeaveRequest(input: $input) {
+			id
+			employeeId
+			leaveTypeId
+			startDate
+			endDate
+			daysRequested
+			reason
+			status
+			createdAt
+		}
+	}
+`;
+
+/**
+ * Mutation: Update leave request
+ * Backend: Rust idiomatic - updateLeaveRequest(id, input) returns LeaveRequest directly
+ */
+export const UPDATE_LEAVE_REQUEST_MUTATION = gql`
+	mutation UpdateLeaveRequest($id: UUID!, $input: UpdateLeaveRequestInput!) {
+		updateLeaveRequest(id: $id, input: $input) {
+			id
+			startDate
+			endDate
+			daysRequested
+			reason
+			updatedAt
+		}
+	}
+`;
+
+/**
+ * Mutation: Delete leave request
+ * Backend: Rust idiomatic - deleteLeaveRequest(id) returns Boolean
+ */
+export const DELETE_LEAVE_REQUEST_MUTATION = gql`
+	mutation DeleteLeaveRequest($id: UUID!) {
+		deleteLeaveRequest(id: $id)
 	}
 `;
 
@@ -215,80 +206,73 @@ export const REJECT_LEAVE_REQUEST = gql`
 // TYPESCRIPT INTERFACES
 // ============================================================================
 
-export interface LeaveRequestFilter {
-	status?: {
-		equalTo?: 'pending' | 'approved' | 'rejected';
-		in?: Array<'pending' | 'approved' | 'rejected'>;
-	};
-	leaveType?: {
-		equalTo?: string;
-		in?: string[];
-	};
-	employeeId?: {
-		equalTo?: string;
-	};
-	startDate?: {
-		greaterThanOrEqualTo?: string;
-		lessThanOrEqualTo?: string;
-	};
-	endDate?: {
-		greaterThanOrEqualTo?: string;
-		lessThanOrEqualTo?: string;
-	};
-	createdAt?: {
-		greaterThanOrEqualTo?: string;
-		lessThanOrEqualTo?: string;
-	};
-	employee?: {
-		departmentId?: {
-			equalTo?: string;
-		};
-		displayName?: {
-			includesInsensitive?: string;
-		};
-	};
-}
-
-export interface UpdateLeaveRequestInput {
-	clientMutationId?: string;
-	id: string;
-	patch: {
-		status?: 'pending' | 'approved' | 'rejected';
-		reviewedBy?: string;
-		reviewNotes?: string;
-		reviewedAt?: string;
-	};
-}
-
 export interface LeaveRequest {
 	id: string;
 	employeeId: string;
-	employee: {
+	leaveTypeId: string;
+	startDate: string;
+	endDate: string;
+	daysRequested: string; // Decimal as string
+	reason?: string;
+	status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+	managerId?: string;
+	approvedAt?: string;
+	managerComments?: string;
+	createdAt: string;
+	updatedAt: string;
+	employee?: {
 		id: string;
 		displayName: string;
+		fullName: string;
 		email: string;
-		jobTitle?: string;
-		department: {
+		department?: {
 			id: string;
 			name: string;
 		};
 	};
-	leaveType: string;
-	startDate: string;
-	endDate: string;
-	totalDays: number;
-	reason?: string;
-	status: 'pending' | 'approved' | 'rejected';
-	reviewedBy?: string;
-	reviewer?: {
+	manager?: {
 		id: string;
 		displayName: string;
+		fullName: string;
 		email: string;
 	};
-	reviewNotes?: string;
-	reviewedAt?: string;
-	createdAt: string;
-	updatedAt: string;
+	leaveType?: {
+		id: string;
+		name: string;
+		color?: string;
+	};
+}
+
+export interface LeaveRequestFilter {
+	status?: 'pending' | 'approved' | 'rejected' | 'cancelled';
+	employeeId?: string;
+	startDate?: string;
+	endDate?: string;
+	employeeName?: string;
+}
+
+export interface CreateLeaveRequestInput {
+	leaveTypeId: string;
+	startDate: string; // ISO date string
+	endDate: string; // ISO date string
+	daysRequested: string; // Decimal as string
+	reason?: string;
+}
+
+export interface UpdateLeaveRequestInput {
+	startDate?: string;
+	endDate?: string;
+	daysRequested?: string;
+	reason?: string;
+}
+
+export interface ApproveLeaveRequestInput {
+	requestId: string;
+}
+
+export interface RejectLeaveRequestInput {
+	requestId: string;
+	rejectionReason: string; // REQUIRED
 }
 
 export interface LeaveStatistics {
@@ -302,126 +286,508 @@ export interface LeaveStatistics {
 }
 
 // ============================================================================
-// UTILITY FUNCTIONS
+// OPERATIONS CLASS
 // ============================================================================
 
 /**
- * Helper: Build leave request filter safely
+ * Leave Management Operations with Idiomatic Rust GraphQL Patterns
  */
-export function buildLeaveRequestFilter({
-	status,
-	leaveType,
-	employeeId,
-	employeeName,
-	startDate,
-	endDate,
-	departmentId
-}: {
-	status?: 'pending' | 'approved' | 'rejected';
-	leaveType?: string;
-	employeeId?: string;
-	employeeName?: string;
-	startDate?: string;
-	endDate?: string;
-	departmentId?: string;
-}): LeaveRequestFilter {
-	const filter: LeaveRequestFilter = {};
+export class LeaveManagementOperations {
+	private client: Client;
 
-	if (status) {
-		filter.status = { equalTo: status };
+	constructor(client: Client) {
+		this.client = client;
 	}
 
-	if (leaveType) {
-		filter.leaveType = { equalTo: leaveType };
+	/**
+	 * Get leave requests with optional employee filtering
+	 * Backend filters are limited - additional filtering done client-side
+	 */
+	async getLeaveRequests(params: {
+		employeeId?: string;
+		limit?: number;
+		offset?: number;
+		filter?: LeaveRequestFilter;
+		userCredentials: UserCredentials;
+	}): Promise<{
+		requests: LeaveRequest[];
+		totalCount: number;
+		hasNextPage: boolean;
+	}> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+		const { createErrorResponse } = await import('$lib/models/error-response');
+
+		const limit = params.limit || 100;
+		const dataRequest = createDataRequest({
+			operationName: 'GetLeaveRequests',
+			variables: {
+				employeeId: params.employeeId,
+				limit,
+				offset: params.offset || 0
+			},
+			userCredentials: params.userCredentials,
+			timeoutMs: 5000
+		});
+
+		try {
+			const result = await this.client
+				.query(GET_LEAVE_REQUESTS_QUERY, dataRequest.variables)
+				.toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to load leave requests. Please check your permissions and try again.'
+				});
+				throw errorResponse;
+			}
+
+			if (!result.data?.leaveRequests) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No leave request data returned. Please try again.'
+				});
+			}
+
+			const requests = result.data.leaveRequests;
+
+			// Apply client-side filtering if needed
+			let filteredRequests = requests;
+			if (params.filter) {
+				filteredRequests = this.applyClientFilter(requests, params.filter);
+			}
+
+			return {
+				requests: filteredRequests,
+				totalCount: filteredRequests.length,
+				hasNextPage: requests.length === limit
+			};
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error;
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to load leave requests. Please try again.'
+			});
+		}
 	}
 
-	if (employeeId) {
-		filter.employeeId = { equalTo: employeeId };
+	/**
+	 * Get single leave request by ID
+	 */
+	async getLeaveRequestById(params: {
+		id: string;
+		userCredentials: UserCredentials;
+	}): Promise<LeaveRequest> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+		const { createErrorResponse } = await import('$lib/models/error-response');
+
+		const dataRequest = createDataRequest({
+			operationName: 'GetLeaveRequestById',
+			variables: { id: params.id },
+			userCredentials: params.userCredentials,
+			timeoutMs: 4000
+		});
+
+		try {
+			const result = await this.client
+				.query(GET_LEAVE_REQUEST_BY_ID_QUERY, dataRequest.variables)
+				.toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to load leave request details. Please check the ID and try again.'
+				});
+				throw errorResponse;
+			}
+
+			if (!result.data?.leaveRequest) {
+				throw createErrorResponse(new Error('Leave request not found'), {
+					type: 'validation',
+					userMessage: 'Leave request not found. Please check the ID.'
+				});
+			}
+
+			return result.data.leaveRequest;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error;
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to load leave request details. Please try again.'
+			});
+		}
 	}
 
-	if (employeeName) {
-		filter.employee = {
-			displayName: { includesInsensitive: employeeName }
+	/**
+	 * Approve leave request
+	 * Note: Approver ID is automatically set from JWT context by backend
+	 */
+	async approveLeaveRequest(params: {
+		requestId: string;
+		userCredentials: UserCredentials;
+	}): Promise<LeaveRequest> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+		const { createErrorResponse } = await import('$lib/models/error-response');
+
+		const input: ApproveLeaveRequestInput = {
+			requestId: params.requestId
+		};
+
+		const dataRequest = createDataRequest({
+			operationName: 'ApproveLeaveRequest',
+			variables: { input },
+			userCredentials: params.userCredentials,
+			timeoutMs: 5000
+		});
+
+		try {
+			const result = await this.client
+				.mutation(APPROVE_LEAVE_REQUEST_MUTATION, dataRequest.variables)
+				.toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'validation',
+					userMessage: 'Unable to approve leave request. Please check permissions and try again.'
+				});
+				throw errorResponse;
+			}
+
+			if (!result.data?.approveLeaveRequest) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No leave request data returned. Please try again.'
+				});
+			}
+
+			return result.data.approveLeaveRequest;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error;
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to approve leave request. Please try again.'
+			});
+		}
+	}
+
+	/**
+	 * Reject leave request
+	 * Note: Approver ID is automatically set from JWT context by backend
+	 * rejectionReason is REQUIRED
+	 */
+	async rejectLeaveRequest(params: {
+		requestId: string;
+		rejectionReason: string;
+		userCredentials: UserCredentials;
+	}): Promise<LeaveRequest> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+		const { createErrorResponse } = await import('$lib/models/error-response');
+
+		// Validate rejection reason
+		if (!params.rejectionReason || params.rejectionReason.trim().length === 0) {
+			throw createErrorResponse(new Error('Rejection reason is required'), {
+				type: 'validation',
+				userMessage: 'Rejection reason is required when rejecting a leave request'
+			});
+		}
+
+		const input: RejectLeaveRequestInput = {
+			requestId: params.requestId,
+			rejectionReason: params.rejectionReason
+		};
+
+		const dataRequest = createDataRequest({
+			operationName: 'RejectLeaveRequest',
+			variables: { input },
+			userCredentials: params.userCredentials,
+			timeoutMs: 5000
+		});
+
+		try {
+			const result = await this.client
+				.mutation(REJECT_LEAVE_REQUEST_MUTATION, dataRequest.variables)
+				.toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'validation',
+					userMessage: 'Unable to reject leave request. Please check permissions and try again.'
+				});
+				throw errorResponse;
+			}
+
+			if (!result.data?.rejectLeaveRequest) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No leave request data returned. Please try again.'
+				});
+			}
+
+			return result.data.rejectLeaveRequest;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error;
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to reject leave request. Please try again.'
+			});
+		}
+	}
+
+	/**
+	 * Create new leave request
+	 */
+	async createLeaveRequest(params: {
+		input: CreateLeaveRequestInput;
+		userCredentials: UserCredentials;
+	}): Promise<LeaveRequest> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+		const { createErrorResponse } = await import('$lib/models/error-response');
+
+		const dataRequest = createDataRequest({
+			operationName: 'CreateLeaveRequest',
+			variables: { input: params.input },
+			userCredentials: params.userCredentials,
+			timeoutMs: 8000
+		});
+
+		try {
+			const result = await this.client
+				.mutation(CREATE_LEAVE_REQUEST_MUTATION, dataRequest.variables)
+				.toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'validation',
+					userMessage: 'Unable to create leave request. Please check the information and try again.'
+				});
+				throw errorResponse;
+			}
+
+			if (!result.data?.createLeaveRequest) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No leave request data returned. Please try again.'
+				});
+			}
+
+			return result.data.createLeaveRequest;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error;
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to create leave request. Please try again.'
+			});
+		}
+	}
+
+	/**
+	 * Update existing leave request
+	 */
+	async updateLeaveRequest(params: {
+		id: string;
+		input: UpdateLeaveRequestInput;
+		userCredentials: UserCredentials;
+	}): Promise<LeaveRequest> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+		const { createErrorResponse } = await import('$lib/models/error-response');
+
+		const dataRequest = createDataRequest({
+			operationName: 'UpdateLeaveRequest',
+			variables: { id: params.id, input: params.input },
+			userCredentials: params.userCredentials,
+			timeoutMs: 6000
+		});
+
+		try {
+			const result = await this.client
+				.mutation(UPDATE_LEAVE_REQUEST_MUTATION, dataRequest.variables)
+				.toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'validation',
+					userMessage: 'Unable to update leave request. Please check the information and try again.'
+				});
+				throw errorResponse;
+			}
+
+			if (!result.data?.updateLeaveRequest) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No leave request data returned. Please try again.'
+				});
+			}
+
+			return result.data.updateLeaveRequest;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error;
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to update leave request. Please try again.'
+			});
+		}
+	}
+
+	/**
+	 * Delete leave request
+	 * Returns: Boolean indicating success
+	 */
+	async deleteLeaveRequest(params: {
+		id: string;
+		userCredentials: UserCredentials;
+	}): Promise<boolean> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+		const { createErrorResponse } = await import('$lib/models/error-response');
+
+		const dataRequest = createDataRequest({
+			operationName: 'DeleteLeaveRequest',
+			variables: { id: params.id },
+			userCredentials: params.userCredentials,
+			timeoutMs: 10000
+		});
+
+		try {
+			const result = await this.client
+				.mutation(DELETE_LEAVE_REQUEST_MUTATION, dataRequest.variables)
+				.toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'permission',
+					userMessage: 'Unable to delete leave request. Please check your permissions.'
+				});
+				throw errorResponse;
+			}
+
+			return result.data?.deleteLeaveRequest || false;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error;
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to delete leave request. Please try again.'
+			});
+		}
+	}
+
+	/**
+	 * Get leave statistics
+	 * Note: Backend doesn't support complex filters - all filtering done client-side
+	 */
+	async getLeaveStatistics(params: {
+		departmentId?: string;
+		userCredentials: UserCredentials;
+	}): Promise<LeaveStatistics> {
+		// Fetch all leave requests and calculate statistics client-side
+		const { requests } = await this.getLeaveRequests({
+			limit: 1000,
+			offset: 0,
+			userCredentials: params.userCredentials
+		});
+
+		// Filter by department if specified
+		let filteredRequests = requests;
+		if (params.departmentId) {
+			filteredRequests = requests.filter(
+				(req) => req.employee?.department?.id === params.departmentId
+			);
+		}
+
+		const pendingCount = filteredRequests.filter((req) => req.status === 'pending').length;
+		const approvedCount = filteredRequests.filter((req) => req.status === 'approved').length;
+		const rejectedCount = filteredRequests.filter((req) => req.status === 'rejected').length;
+		const totalCount = filteredRequests.length;
+
+		const totalDaysRequested = filteredRequests.reduce(
+			(sum, req) => sum + parseFloat(req.daysRequested),
+			0
+		);
+
+		const averageRequestDays =
+			totalCount > 0 ? Math.round(totalDaysRequested / totalCount) : 0;
+
+		const totalReviewed = approvedCount + rejectedCount;
+		const approvalRate =
+			totalReviewed > 0 ? Math.round((approvedCount / totalReviewed) * 100) : 0;
+
+		return {
+			pendingCount,
+			approvedCount,
+			rejectedCount,
+			totalCount,
+			totalDaysRequested: Math.round(totalDaysRequested),
+			averageRequestDays,
+			approvalRate
 		};
 	}
 
-	if (departmentId) {
-		filter.employee = {
-			...filter.employee,
-			departmentId: { equalTo: departmentId }
-		};
-	}
+	/**
+	 * Apply client-side filtering (temporary until backend supports filters)
+	 */
+	private applyClientFilter(
+		requests: LeaveRequest[],
+		filter: LeaveRequestFilter
+	): LeaveRequest[] {
+		return requests.filter((req) => {
+			// Filter by status
+			if (filter.status && req.status !== filter.status) {
+				return false;
+			}
 
-	if (startDate) {
-		filter.startDate = { greaterThanOrEqualTo: startDate };
-	}
+			// Filter by employee ID
+			if (filter.employeeId && req.employeeId !== filter.employeeId) {
+				return false;
+			}
 
-	if (endDate) {
-		filter.endDate = { lessThanOrEqualTo: endDate };
-	}
+			// Filter by employee name
+			if (filter.employeeName) {
+				const searchLower = filter.employeeName.toLowerCase();
+				const matchesName =
+					req.employee?.displayName?.toLowerCase().includes(searchLower) ||
+					req.employee?.fullName?.toLowerCase().includes(searchLower);
 
-	return filter;
+				if (!matchesName) {
+					return false;
+				}
+			}
+
+			// Filter by date range
+			if (filter.startDate && req.startDate < filter.startDate) {
+				return false;
+			}
+
+			if (filter.endDate && req.endDate > filter.endDate) {
+				return false;
+			}
+
+			return true;
+		});
+	}
 }
 
 /**
- * Helper: Calculate leave statistics from raw data
+ * Factory function to create LeaveManagementOperations instance
  */
-export function calculateLeaveStatistics(data: {
-	pendingLeaveRequests: { totalCount: number };
-	approvedLeaveRequests: { totalCount: number };
-	rejectedLeaveRequests: { totalCount: number };
-	allLeaveRequests: { totalCount: number; nodes: Array<{ totalDays: number }> };
-}): LeaveStatistics {
-	const totalDaysRequested = data.allLeaveRequests.nodes.reduce(
-		(sum, request) => sum + request.totalDays,
-		0
-	);
-	const averageRequestDays =
-		data.allLeaveRequests.totalCount > 0
-			? Math.round(totalDaysRequested / data.allLeaveRequests.totalCount)
-			: 0;
-
-	const totalReviewed =
-		data.approvedLeaveRequests.totalCount + data.rejectedLeaveRequests.totalCount;
-	const approvalRate =
-		totalReviewed > 0
-			? Math.round((data.approvedLeaveRequests.totalCount / totalReviewed) * 100)
-			: 0;
-
-	return {
-		pendingCount: data.pendingLeaveRequests.totalCount,
-		approvedCount: data.approvedLeaveRequests.totalCount,
-		rejectedCount: data.rejectedLeaveRequests.totalCount,
-		totalCount: data.allLeaveRequests.totalCount,
-		totalDaysRequested,
-		averageRequestDays,
-		approvalRate
-	};
+export function createLeaveManagementOperations(client: Client): LeaveManagementOperations {
+	return new LeaveManagementOperations(client);
 }
 
-/**
- * Helper: Validate approval/rejection input
- */
-export function validateLeaveReview(
-	action: 'approve' | 'reject',
-	reviewNotes?: string
-): { valid: boolean; error?: string } {
-	if (action === 'reject' && (!reviewNotes || reviewNotes.trim().length === 0)) {
-		return {
-			valid: false,
-			error: 'Review notes are required when rejecting a leave request'
-		};
-	}
-
-	if (reviewNotes && reviewNotes.length > 1000) {
-		return {
-			valid: false,
-			error: 'Review notes must be less than 1000 characters'
-		};
-	}
-
-	return { valid: true };
-}
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
 
 /**
  * Helper: Format leave date range
@@ -450,307 +816,38 @@ export function formatLeaveDateRange(startDate: string, endDate: string): string
 }
 
 /**
- * Helper: Get leave type badge color
- */
-export function getLeaveTypeBadgeColor(leaveType: string): string {
-	const leaveTypeColors: Record<string, string> = {
-		vacation: 'blue',
-		sick: 'red',
-		personal: 'purple',
-		bereavement: 'gray',
-		parental: 'green',
-		unpaid: 'orange'
-	};
-
-	return leaveTypeColors[leaveType.toLowerCase()] || 'gray';
-}
-
-/**
  * Helper: Get status badge color
  */
-export function getStatusBadgeColor(status: string): string {
+export function getStatusBadgeColor(
+	status: 'pending' | 'approved' | 'rejected' | 'cancelled'
+): string {
 	const statusColors: Record<string, string> = {
 		pending: 'yellow',
 		approved: 'green',
-		rejected: 'red'
+		rejected: 'red',
+		cancelled: 'gray'
 	};
 
 	return statusColors[status.toLowerCase()] || 'gray';
 }
 
-// ============================================================================
-// OPERATIONS CLASS (Standardized Error Handling)
-// ============================================================================
-
 /**
- * T014: Manager Leave Management Operations with Department-Scoped RLS
- * This class follows TDD principles - tests are written first in
- * tests/contract/manager-leave-operations.test.ts
+ * Helper: Validate rejection reason
  */
-export class LeaveManagementOperations {
-	private client: Client;
-
-	constructor(client: Client) {
-		this.client = client;
-	}
-
-	/**
-	 * Get pending leave requests for manager's department
-	 * RLS automatically filters to department only via JWT claims
-	 */
-	async getPendingLeaveRequests(params: {
-		first?: number;
-		offset?: number;
-		filter?: LeaveRequestFilter;
-		userCredentials: UserCredentials;
-	}): Promise<{
-		requests: LeaveRequest[];
-		totalCount: number;
-		hasNextPage: boolean;
-	}> {
-		const { createDataRequest } = await import('$lib/models/data-request');
-		const { createErrorResponse } = await import('$lib/models/error-response');
-
-		const dataRequest = createDataRequest({
-			operationName: 'GetPendingLeaveRequests',
-			variables: {
-				first: params.first || 20,
-				offset: params.offset || 0,
-				filter: params.filter || {}
-			},
-			userCredentials: params.userCredentials,
-			timeoutMs: 5000
-		});
-
-		try {
-			// Server-side query using toPromise()
-			const result = await this.client.query(GET_PENDING_LEAVE_REQUESTS, dataRequest.variables).toPromise();
-
-			if (result.error) {
-				const errorResponse = createErrorResponse(result.error, {
-					type: 'graphql',
-					userMessage: 'Unable to load leave requests. Please try again.'
-				});
-				throw errorResponse;
-			}
-
-			if (!result.data) {
-				throw createErrorResponse(new Error('No data returned'), {
-					type: 'graphql',
-					userMessage: 'No leave requests data returned. Please try again.'
-				});
-			}
-
-			return {
-				requests: result.data.leaveRequests.nodes,
-				totalCount: result.data.leaveRequests.totalCount,
-				hasNextPage: result.data.leaveRequests.pageInfo.hasNextPage
-			};
-		} catch (error: any) {
-			if (error.userMessage) {
-				throw error; // Already formatted error
-			}
-			throw createErrorResponse(error, {
-				type: 'graphql',
-				userMessage: 'Failed to load leave requests. Please try again.'
-			});
-		}
-	}
-
-	/**
-	 * Get leave statistics for manager's department
-	 */
-	async getLeaveStatistics(params: {
-		departmentId: string;
-		userCredentials: UserCredentials;
-	}): Promise<LeaveStatistics> {
-		const { createDataRequest } = await import('$lib/models/data-request');
-		const { createErrorResponse } = await import('$lib/models/error-response');
-
-		const dataRequest = createDataRequest({
-			operationName: 'GetLeaveStatistics',
-			variables: { departmentId: params.departmentId },
-			userCredentials: params.userCredentials,
-			timeoutMs: 5000
-		});
-
-		try {
-			// Server-side query using toPromise()
-			const result = await this.client.query(GET_LEAVE_STATISTICS, dataRequest.variables).toPromise();
-
-			if (result.error) {
-				const errorResponse = createErrorResponse(result.error, {
-					type: 'graphql',
-					userMessage: 'Unable to load statistics. Please try again.'
-				});
-				throw errorResponse;
-			}
-
-			if (!result.data) {
-				throw createErrorResponse(new Error('No data returned'), {
-					type: 'graphql',
-					userMessage: 'No statistics data returned. Please try again.'
-				});
-			}
-
-			const stats = calculateLeaveStatistics(result.data);
-			return stats;
-		} catch (error: any) {
-			if (error.userMessage) {
-				throw error; // Already formatted error
-			}
-			throw createErrorResponse(error, {
-				type: 'graphql',
-				userMessage: 'Failed to load leave statistics. Please try again.'
-			});
-		}
-	}
-
-	/**
-	 * Approve leave request (manager department-scoped)
-	 * RLS policy enforces department membership
-	 */
-	async approveLeaveRequest(params: {
-		leaveRequestId: string;
-		managerId: string;
-		reviewNotes?: string;
-		userCredentials: UserCredentials;
-	}): Promise<LeaveRequest> {
-		const { createDataRequest } = await import('$lib/models/data-request');
-		const { createErrorResponse } = await import('$lib/models/error-response');
-
-		// Validate input
-		const validation = validateLeaveReview('approve', params.reviewNotes);
-		if (!validation.valid) {
-			throw createErrorResponse(new Error(validation.error), {
-				type: 'validation',
-				userMessage: validation.error!
-			});
-		}
-
-		const input: UpdateLeaveRequestInput = {
-			id: params.leaveRequestId,
-			patch: {
-				status: 'approved',
-				reviewedBy: params.managerId,
-				reviewNotes: params.reviewNotes,
-				reviewedAt: new Date().toISOString()
-			}
+export function validateRejectionReason(reason?: string): { valid: boolean; error?: string } {
+	if (!reason || reason.trim().length === 0) {
+		return {
+			valid: false,
+			error: 'Rejection reason is required when rejecting a leave request'
 		};
-
-		const dataRequest = createDataRequest({
-			operationName: 'ApproveLeaveRequest',
-			variables: { input },
-			userCredentials: params.userCredentials,
-			timeoutMs: 5000
-		});
-
-		try {
-			// Server-side query using toPromise()
-			const result = await this.client.query(APPROVE_LEAVE_REQUEST, dataRequest.variables).toPromise();
-
-			if (result.error) {
-				const errorResponse = createErrorResponse(result.error, {
-					type: 'graphql',
-					userMessage: 'Unable to approve leave request. Please try again.'
-				});
-				throw errorResponse;
-			}
-
-			if (!result.data) {
-				throw createErrorResponse(new Error('No data returned'), {
-					type: 'graphql',
-					userMessage: 'No leave request data returned. Please try again.'
-				});
-			}
-
-			return result.data.updateLeaveRequest.leaveRequest;
-		} catch (error: any) {
-			if (error.userMessage) {
-				throw error; // Already formatted error
-			}
-			throw createErrorResponse(error, {
-				type: 'graphql',
-				userMessage: 'Failed to approve leave request. Please try again.'
-			});
-		}
 	}
 
-	/**
-	 * Reject leave request (manager department-scoped)
-	 * RLS policy enforces department membership
-	 * Review notes are REQUIRED
-	 */
-	async rejectLeaveRequest(params: {
-		leaveRequestId: string;
-		managerId: string;
-		reviewNotes: string;
-		userCredentials: UserCredentials;
-	}): Promise<LeaveRequest> {
-		const { createDataRequest } = await import('$lib/models/data-request');
-		const { createErrorResponse } = await import('$lib/models/error-response');
-
-		// Validate input - review notes REQUIRED for rejection
-		const validation = validateLeaveReview('reject', params.reviewNotes);
-		if (!validation.valid) {
-			throw createErrorResponse(new Error(validation.error), {
-				type: 'validation',
-				userMessage: validation.error!
-			});
-		}
-
-		const input: UpdateLeaveRequestInput = {
-			id: params.leaveRequestId,
-			patch: {
-				status: 'rejected',
-				reviewedBy: params.managerId,
-				reviewNotes: params.reviewNotes,
-				reviewedAt: new Date().toISOString()
-			}
+	if (reason.length > 1000) {
+		return {
+			valid: false,
+			error: 'Rejection reason must be less than 1000 characters'
 		};
-
-		const dataRequest = createDataRequest({
-			operationName: 'RejectLeaveRequest',
-			variables: { input },
-			userCredentials: params.userCredentials,
-			timeoutMs: 5000
-		});
-
-		try {
-			// Server-side query using toPromise()
-			const result = await this.client.query(REJECT_LEAVE_REQUEST, dataRequest.variables).toPromise();
-
-			if (result.error) {
-				const errorResponse = createErrorResponse(result.error, {
-					type: 'graphql',
-					userMessage: 'Unable to reject leave request. Please try again.'
-				});
-				throw errorResponse;
-			}
-
-			if (!result.data) {
-				throw createErrorResponse(new Error('No data returned'), {
-					type: 'graphql',
-					userMessage: 'No leave request data returned. Please try again.'
-				});
-			}
-
-			return result.data.updateLeaveRequest.leaveRequest;
-		} catch (error: any) {
-			if (error.userMessage) {
-				throw error; // Already formatted error
-			}
-			throw createErrorResponse(error, {
-				type: 'graphql',
-				userMessage: 'Failed to reject leave request. Please try again.'
-			});
-		}
 	}
-}
 
-/**
- * Factory function to create LeaveManagementOperations instance
- */
-export function createLeaveManagementOperations(client: Client): LeaveManagementOperations {
-	return new LeaveManagementOperations(client);
+	return { valid: true };
 }

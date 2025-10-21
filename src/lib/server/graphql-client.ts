@@ -44,26 +44,13 @@ export class GraphQLClient {
 	}
 
 	/**
-	 * Set token from cookies
+	 * Set all cookies to forward to GraphQL backend
+	 * Rust backend uses tower-sessions for session-based auth
 	 */
-	setTokenFromCookies(cookies: Cookies): void {
-		const hrToken = cookies.get('hr_token');
-		const postgraphileToken = cookies.get('postgraphile-jwt-token');
-		const authToken = cookies.get('auth-token');
+	private cookies: Cookies | null = null;
 
-		const token = hrToken || postgraphileToken || authToken;
-		this.token = token || null;
-
-		// Debug JWT token selection
-		if (dev) {
-			console.log('🔐 JWT Token Debug:', {
-				hr_token: hrToken ? 'present' : 'missing',
-				postgraphile_jwt_token: postgraphileToken ? 'present' : 'missing',
-				auth_token: authToken ? 'present' : 'missing',
-				selected: token ? 'token found' : 'no token',
-				tokenPrefix: token ? token.substring(0, 20) + '...' : 'none'
-			});
-		}
+	setCookies(cookies: Cookies): void {
+		this.cookies = cookies;
 	}
 
 	/**
@@ -103,11 +90,18 @@ export class GraphQLClient {
 					'Accept': 'application/json'
 				};
 
-				// TODO: The backend currently rejects JWT tokens, but works without authentication
-				// For now, skip JWT token until backend JWT verification is configured properly
-				// if (this.token) {
-				//     headers['Authorization'] = `Bearer ${this.token}`;
-				// }
+				// Forward session cookies for tower-sessions authentication
+				if (this.cookies) {
+					const cookieHeader = this.serializeCookies();
+					if (cookieHeader) {
+						headers['Cookie'] = cookieHeader;
+					}
+				}
+
+				// Also support Bearer token authentication (legacy)
+				if (this.token) {
+					headers['Authorization'] = `Bearer ${this.token}`;
+				}
 
 				const response = await fetch(this.endpoint, {
 					method: 'POST',
@@ -257,11 +251,29 @@ export class GraphQLClient {
 	}
 
 	/**
-	 * Create a client instance with token from cookies
+	 * Serialize cookies object to Cookie header format
+	 */
+	private serializeCookies(): string {
+		if (!this.cookies) return '';
+
+		const cookieStrings: string[] = [];
+
+		// Get all cookies using getAll() method
+		const allCookies = this.cookies.getAll();
+
+		for (const cookie of allCookies) {
+			cookieStrings.push(`${cookie.name}=${cookie.value}`);
+		}
+
+		return cookieStrings.join('; ');
+	}
+
+	/**
+	 * Create a client instance with cookies for session authentication
 	 */
 	static fromCookies(cookies: Cookies, options?: GraphQLClientOptions): GraphQLClient {
 		const client = new GraphQLClient(options);
-		client.setTokenFromCookies(cookies);
+		client.setCookies(cookies);
 		return client;
 	}
 }

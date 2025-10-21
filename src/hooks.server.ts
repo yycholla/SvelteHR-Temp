@@ -1,276 +1,368 @@
 import type { Handle } from '@sveltejs/kit';
 import { serverPerformanceMonitor } from '$lib/performance/server-monitor.js';
+import { createStandardError } from '$lib/utils/error-handling.js';
 import { redirect } from '@sveltejs/kit';
-import {
-	authConfig,
-	getAccessTokenName,
-	getCookieOptions,
-	isDevelopment
-} from '$lib/auth/config.js';
-import {
-	verifyJWTToken,
-	extractUserFromPayload,
-	decodeJWTTokenUnsafe
-} from '$lib/auth/jwt-utils.js';
-import { createStandardError, type StandardErrorResponse } from '$lib/utils/error-handling.js';
+import { authConfig } from '$lib/auth/config.js';
 
 /**
- * Server-side hooks for RBAC authentication, performance optimization and monitoring
+ * Server-side hooks for session-based authentication, performance optimization and monitoring
  */
 
-// Define public routes that don't require authentication
-const PUBLIC_ROUTES = [
+// Define public routes that don't require authentication (using Set for O(1) lookups)
+const PUBLIC_ROUTES = new Set([
 	'/',
 	'/login',
 	'/login-simple',
 	'/login-working',
 	'/privacy',
 	'/terms',
-	'/api'
-];
+	'/api/auth/login',
+	'/api/health'
+]);
 
-// Helper function to authenticate user with proper JWT verification
-async function authenticateUser(
-	token: string
-): Promise<{ user: any; roles: string[]; permissions: string[] } | null> {
+// Static file extensions to skip authentication for
+const STATIC_EXTENSIONS = new Set([
+	'.js', '.css', '.woff', '.woff2', '.ttf', '.eot',
+	'.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp',
+	'.ico', '.json', '.map'
+]);
+
+/**
+ * Session Cache Implementation
+ * Caches validated sessions to reduce backend API calls
+ */
+interface CachedSession {
+	user: any;
+	roles: string[];
+	permissions: string[];
+	expiresAt: number;
+}
+
+const SESSION_CACHE = new Map<string, CachedSession>();
+const SESSION_CACHE_TTL = 60 * 1000; // 60 seconds cache TTL
+
+/**
+ * Clean expired sessions from cache periodically
+ */
+setInterval(() => {
+	const now = Date.now();
+	for (const [key, value] of SESSION_CACHE.entries()) {
+		if (value.expiresAt < now) {
+			SESSION_CACHE.delete(key);
+		}
+	}
+}, 5 * 60 * 1000); // Cleanup every 5 minutes
+
+/**
+ * Rate Limiting for Login Attempts
+ * Prevents brute force attacks by limiting login attempts per IP
+ */
+interface RateLimitEntry {
+	attempts: number;
+	firstAttempt: number;
+	blockedUntil?: number;
+}
+
+const RATE_LIMIT_MAP = new Map<string, RateLimitEntry>();
+const MAX_LOGIN_ATTEMPTS = 5;
+const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
+const BLOCK_DURATION = 60 * 60 * 1000; // 1 hour block after max attempts
+
+/**
+ * Check if IP is rate limited for login attempts
+ */
+export function isRateLimited(ip: string): boolean {
+	const entry = RATE_LIMIT_MAP.get(ip);
+	if (!entry) return false;
+
+	const now = Date.now();
+
+	// Check if currently blocked
+	if (entry.blockedUntil && now < entry.blockedUntil) {
+		return true;
+	}
+
+	// Reset if window expired
+	if (now - entry.firstAttempt > RATE_LIMIT_WINDOW) {
+		RATE_LIMIT_MAP.delete(ip);
+		return false;
+	}
+
+	// Check if attempts exceeded
+	return entry.attempts >= MAX_LOGIN_ATTEMPTS;
+}
+
+/**
+ * Record failed login attempt
+ */
+export function recordFailedLogin(ip: string): void {
+	const now = Date.now();
+	const entry = RATE_LIMIT_MAP.get(ip);
+
+	if (!entry) {
+		// First attempt
+		RATE_LIMIT_MAP.set(ip, {
+			attempts: 1,
+			firstAttempt: now
+		});
+		return;
+	}
+
+	// Reset if window expired
+	if (now - entry.firstAttempt > RATE_LIMIT_WINDOW) {
+		RATE_LIMIT_MAP.set(ip, {
+			attempts: 1,
+			firstAttempt: now
+		});
+		return;
+	}
+
+	// Increment attempts
+	entry.attempts++;
+
+	// Block if max attempts reached
+	if (entry.attempts >= MAX_LOGIN_ATTEMPTS) {
+		entry.blockedUntil = now + BLOCK_DURATION;
+		console.warn(`🚨 IP ${ip} blocked for ${BLOCK_DURATION / 1000}s after ${MAX_LOGIN_ATTEMPTS} failed login attempts`);
+	}
+}
+
+/**
+ * Clear rate limit for IP (on successful login)
+ */
+export function clearRateLimit(ip: string): void {
+	RATE_LIMIT_MAP.delete(ip);
+}
+
+/**
+ * Clean expired rate limit entries periodically
+ */
+setInterval(() => {
+	const now = Date.now();
+	for (const [ip, entry] of RATE_LIMIT_MAP.entries()) {
+		// Remove if block expired and window expired
+		if (
+			(!entry.blockedUntil || now > entry.blockedUntil) &&
+			now - entry.firstAttempt > RATE_LIMIT_WINDOW
+		) {
+			RATE_LIMIT_MAP.delete(ip);
+		}
+	}
+}, 10 * 60 * 1000); // Cleanup every 10 minutes
+
+/**
+ * Extract session ID from cookie header for cache key
+ */
+function extractSessionId(cookieHeader: string): string | null {
+	const match = cookieHeader.match(/hr_token=([^;]+)/);
+	return match ? match[1] : null;
+}
+
+// Helper function to authenticate user via session validation with caching
+async function authenticateUser(event: any, pathname: string): Promise<{
+	user: any;
+	roles: string[];
+	permissions: string[];
+} | null> {
 	try {
-		console.log(`🔐 Authenticating token: ${token.substring(0, 100)}...`);
+		// Extract session cookie from the incoming request
+		const cookieHeader = event.request.headers.get('cookie') || '';
+		const sessionId = extractSessionId(cookieHeader);
 
-		// Use proper JWT verification in production, fallback to basic parsing in development
-		let validationResult;
-
-		if (isDevelopment()) {
-			console.log(`🧪 Development mode: using basic JWT parsing`);
-			// Development: Use basic parsing for ease of testing
-			const decodedPayload = await decodeJWTTokenUnsafe(token);
-			console.log(`🔍 Decoded payload:`, decodedPayload);
-			if (!decodedPayload) {
-				console.log(`❌ Failed to decode JWT payload`);
-				return null;
-			}
-
-			// Check expiration
-			const currentTime = Math.floor(Date.now() / 1000);
-			console.log(`⏰ Token expiration check:`, {
-				currentTime,
-				tokenExp: decodedPayload.exp,
-				isExpired: decodedPayload.exp && decodedPayload.exp < currentTime
-			});
-			if (decodedPayload.exp && decodedPayload.exp < currentTime) {
-				console.log(`❌ Token expired at ${new Date(decodedPayload.exp * 1000).toISOString()}`);
-				return null;
-			}
-
-			validationResult = { isValid: true, payload: decodedPayload };
-		} else {
-			// Production: Use proper JWT signature verification
-			validationResult = await verifyJWTToken(token);
-			if (!validationResult.isValid || !validationResult.payload) {
-				console.warn('JWT verification failed:', validationResult.error);
-				return null;
+		// Check cache first (if we have a session ID)
+		if (sessionId) {
+			const cached = SESSION_CACHE.get(sessionId);
+			if (cached && cached.expiresAt > Date.now()) {
+				// Concise: only log for non-verify endpoints to avoid spam
+				if (!pathname.includes('/api/auth/verify') && !pathname.includes('/api/notifications')) {
+					console.log(`✓ ${pathname} | Cache hit`);
+				}
+				return {
+					user: cached.user,
+					roles: cached.roles,
+					permissions: cached.permissions
+				};
 			}
 		}
 
-		const payload = validationResult.payload;
-		const user = extractUserFromPayload(payload);
+		// Get backend URL from environment variable (handles both local and Docker networking)
+		const backendUrl = process.env.PUBLIC_API_URL || 'http://localhost:4000';
+		const authUrl = `${backendUrl}/auth/me`;
 
-		// ALL permissions MUST come from JWT token (database-driven)
-		// No fallback to hardcoded role permissions
-		const permissions = payload.permissions || [];
-
-		console.log(`🔑 Permissions for ${user.email}:`, permissions);
-
-		const authResult = {
-			user: {
-				id: user.id,
-				email: user.email,
-				display_name: payload.display_name || user.email.split('@')[0],
-				role: user.role
+		// Call the Rust backend's session verification endpoint with forwarded cookies
+		const response = await fetch(authUrl, {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+				'Cookie': cookieHeader, // Forward session cookies from browser
+				'Connection': 'keep-alive' // Enable connection reuse
 			},
-			roles: [user.role],
-			permissions: permissions
+			credentials: 'include'
+		});
+
+		if (!response.ok) {
+			if (response.status === 401) {
+				console.error(`✗ ${pathname} | Session invalid`);
+				// Clear cache for this session if it exists
+				if (sessionId) SESSION_CACHE.delete(sessionId);
+				return null;
+			}
+			console.error(`✗ ${pathname} | Validation failed (${response.status})`);
+			return null;
+		}
+
+		const userData = await response.json();
+
+		// Transform to expected format
+		const authResult = {
+			user: userData,
+			roles: [userData.role],
+			permissions: userData.permissions || [] // Permissions from backend session
 		};
 
-		console.log(`✅ authenticateUser returning:`, {
-			userId: authResult.user.id,
-			userEmail: authResult.user.email,
-			userRole: authResult.user.role,
-			roles: authResult.roles,
-			permissionsCount: authResult.permissions.length
-		});
+		// Cache the validated session
+		if (sessionId) {
+			SESSION_CACHE.set(sessionId, {
+				...authResult,
+				expiresAt: Date.now() + SESSION_CACHE_TTL
+			});
+		}
+
+		// Concise: only log for non-verify endpoints to avoid spam
+		if (!pathname.includes('/api/auth/verify') && !pathname.includes('/api/notifications')) {
+			console.log(`✓ ${pathname} | Cache miss | ${userData.email}`);
+		}
 
 		return authResult;
 	} catch (error) {
-		console.error('Authentication error:', error);
+		console.error(`✗ ${pathname} | Error:`, error instanceof Error ? error.message : error);
 		return null;
 	}
 }
 
-// NOTE: Role permissions are now 100% database-driven via JWT tokens
-// The login endpoint sets permissions in the JWT based on user role from database
-// No hardcoded role-to-permission mappings exist in this file
-
-// Initialize server performance monitoring
-const performanceHandle = serverPerformanceMonitor.createHandle();
-
-// Combine RBAC, authentication, and performance monitoring
 export const handle: Handle = async ({ event, resolve }) => {
-	// First, run performance monitoring
-	const performanceResponse = await performanceHandle({
-		event,
-		resolve: async (evt) => {
-			// Then run our RBAC and existing logic
-			const start = Date.now();
-			const url = event.url.pathname;
-			const method = event.request.method;
+	// Start performance monitoring
+	const startTime = Date.now();
 
-			// RBAC Authentication Logic
-			// Check if route is public
-			const isPublicRoute = PUBLIC_ROUTES.some(
-				(route) => url === route || url.startsWith(`${route}/`) || url.startsWith('/api/')
-			);
+	try {
+		const pathname = event.url.pathname;
 
-			// Extract JWT token from cookies using centralized config
-			const primaryTokenName = getAccessTokenName();
-			const token =
-				event.cookies.get(primaryTokenName) || event.cookies.get('postgraphile-jwt-token');
-
-			if (!isPublicRoute) {
-				// Protected route - verify authentication
-				if (!token) {
-					console.log(`🔒 No token found for protected route: ${url}`);
-					// Redirect to login with return URL
-					const redirectTo = url === '/' ? '' : `?redirectTo=${encodeURIComponent(url)}`;
-					throw redirect(303, `/login${redirectTo}`);
-				}
-
-				console.log(`🔍 Authenticating token for route: ${url}, token: ${token.substring(0, 50)}...`);
-
-				// Verify and decode JWT token
-				const authResult = await authenticateUser(token);
-				if (!authResult) {
-					console.log(`❌ Authentication failed for route: ${url}`);
-					// Invalid token - redirect to login
-					event.cookies.delete(primaryTokenName, { path: '/' });
-					event.cookies.delete('postgraphile-jwt-token', { path: '/' });
-					const redirectTo = url === '/' ? '' : `?redirectTo=${encodeURIComponent(url)}`;
-					throw redirect(303, `/login${redirectTo}`);
-				}
-
-				console.log(`✅ Authentication successful for route: ${url}, user: ${authResult.user.email}`);
-
-
-				// Set user information in locals for use in load functions
-				event.locals.user = authResult.user;
-				event.locals.roles = authResult.roles;
-				event.locals.permissions = authResult.permissions;
-			}
-
-			// Add security headers
-			const response = await resolve(event, {
-				transformPageChunk: ({ html, done }) => {
-					// Inject performance monitoring script early
-					if (done && html.includes('</head>')) {
-						html = html.replace(
-							'</head>',
-							`
-          <script>
-            // Early performance markers
-            performance.mark('html_received');
-            window.__PERFORMANCE_START__ = performance.now();
-            
-            // Critical resource hints
-            const link = document.createElement('link');
-            link.rel = 'preconnect';
-            link.href = 'http://localhost:4000'; // PostGraphile endpoint
-            document.head.appendChild(link);
-          </script>
-          </head>`
-						);
-					}
-					return html;
-				}
-			});
-
-			// Calculate request duration
-			const duration = Date.now() - start;
-			const status = response.status;
-
-			// Log slow requests (>1s)
-			if (duration > 1000) {
-				console.warn(`🐌 Slow request: ${method} ${url} - ${duration}ms (${status})`);
-			}
-
-			// Add performance and security headers
-			response.headers.set('X-Response-Time', `${duration}ms`);
-			response.headers.set('X-Frame-Options', 'DENY');
-			response.headers.set('X-Content-Type-Options', 'nosniff');
-			response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-			response.headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
-
-			// Add CSP for security and performance
-			response.headers.set(
-				'Content-Security-Policy',
-				[
-					"default-src 'self'",
-					"script-src 'self' 'unsafe-inline' 'unsafe-eval'", // SvelteKit needs unsafe-inline/eval
-					"style-src 'self' 'unsafe-inline'",
-					"img-src 'self' data: https:",
-					"font-src 'self' data: https://1.www.s81c.com", // Allow IBM Plex fonts from Carbon CDN
-					"connect-src 'self' http://localhost:4000 ws://localhost:4000 http://localhost:4001 ws://localhost:4001", // PostGraphile endpoints
-					"frame-ancestors 'none'",
-					"base-uri 'self'",
-					"form-action 'self'"
-				].join('; ')
-			);
-
-			// Add cache control for static assets
-			if (url.includes('/static/') || url.includes('/_app/')) {
-				response.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
-			} else if (url.includes('/api/')) {
-				// API responses should not be cached by default
-				response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-			} else {
-				// HTML pages can be cached briefly
-				response.headers.set('Cache-Control', 'public, max-age=60');
-			}
-
-			// Compress responses for better performance
-			const contentType = response.headers.get('content-type') || '';
-			if (contentType.includes('text/') || contentType.includes('application/json')) {
-				response.headers.set('Content-Encoding', 'gzip');
-			}
-
-			// Track metrics for monitoring (in production, send to monitoring service)
-			if (duration > 100) {
-				// Only track significant requests
-				// In production, you'd send this to your monitoring service
-				// For now, we'll just log it
-				const userAgent = event.request.headers.get('user-agent') || 'unknown';
-				const isBot = /bot|crawler|spider/i.test(userAgent);
-
-				if (!isBot) {
-					// Exclude bots from performance metrics
-					// This would typically go to your metrics service
-					console.log(
-						JSON.stringify({
-							timestamp: new Date().toISOString(),
-							type: 'server_request',
-							method,
-							url,
-							status,
-							duration,
-							userAgent: userAgent.slice(0, 100) // Truncate for privacy
-						})
-					);
-				}
-			}
-
-			return response;
+		// Performance optimization: Skip authentication for static files
+		const isStaticFile = STATIC_EXTENSIONS.has(pathname.substring(pathname.lastIndexOf('.')));
+		if (isStaticFile) {
+			return resolve(event);
 		}
-	});
 
-	return performanceResponse;
+		// Check if this is a public route (O(1) lookup with Set)
+		const isPublicRoute = PUBLIC_ROUTES.has(pathname) ||
+			(pathname !== '/' && Array.from(PUBLIC_ROUTES).some(route =>
+				route !== '/' && pathname.startsWith(route)
+			));
+
+		let authResult = null;
+
+		// Try to authenticate user if not a public route
+		if (!isPublicRoute) {
+			authResult = await authenticateUser(event, pathname);
+
+			if (!authResult) {
+				// Special handling for SSE endpoints - return 401 instead of redirecting
+				// EventSource connections can't handle redirects properly
+				if (pathname.includes('/stream') || event.request.headers.get('accept') === 'text/event-stream') {
+					console.error(`✗ ${pathname} | SSE auth failed`);
+					return new Response(JSON.stringify({ error: 'Authentication required', code: 'AUTH_REQUIRED' }), {
+						status: 401,
+						headers: { 'Content-Type': 'application/json' }
+					});
+				}
+
+				console.error(`✗ ${pathname} | Unauthorized → /login`);
+				const redirectTo = encodeURIComponent(pathname + event.url.search);
+				throw redirect(303, `/login?redirectTo=${redirectTo}`);
+			}
+		}
+
+		// Add user context to locals if authenticated
+		if (authResult) {
+			event.locals.user = authResult.user;
+			event.locals.roles = authResult.roles;
+			event.locals.permissions = authResult.permissions;
+		}
+
+		// Resolve the request
+		const response = await resolve(event);
+
+		// Record performance metrics
+		const duration = Date.now() - startTime;
+		serverPerformanceMonitor.recordAPIEndpoint(
+			event.url.pathname,
+			event.request.method,
+			duration,
+			response.status,
+			event
+		);
+
+		// Security headers
+		const isProduction = process.env.NODE_ENV === 'production';
+
+		// Prevent clickjacking attacks
+		response.headers.set('X-Frame-Options', 'DENY');
+
+		// Prevent MIME type sniffing
+		response.headers.set('X-Content-Type-Options', 'nosniff');
+
+		// XSS protection (legacy browsers)
+		response.headers.set('X-XSS-Protection', '1; mode=block');
+
+		// Referrer policy - only send origin for cross-origin requests
+		response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+		// Permissions policy - restrict dangerous features
+		response.headers.set(
+			'Permissions-Policy',
+			'camera=(), microphone=(), geolocation=(), payment=()'
+		);
+
+		// Content Security Policy (CSP) - strict policy
+		const cspDirectives = [
+			"default-src 'self'",
+			"script-src 'self' 'unsafe-inline' 'unsafe-eval'", // TODO: Remove unsafe-eval once app is CSP-compliant
+			"style-src 'self' 'unsafe-inline'",
+			"img-src 'self' data: https:",
+			"font-src 'self' data:",
+			"connect-src 'self' http://localhost:4000 ws://localhost:*", // Backend API and WebSocket
+			"frame-ancestors 'none'",
+			"base-uri 'self'",
+			"form-action 'self'"
+		];
+		response.headers.set('Content-Security-Policy', cspDirectives.join('; '));
+
+		// Strict Transport Security (HSTS) - enforce HTTPS in production
+		if (isProduction) {
+			response.headers.set(
+				'Strict-Transport-Security',
+				'max-age=31536000; includeSubDomains; preload'
+			);
+		}
+
+		// Performance metrics header
+		response.headers.set('X-Response-Time', `${duration}ms`);
+
+		return response;
+	} catch (error) {
+		// Handle authentication errors
+		if (error instanceof Response && error.status === 303) {
+			throw error; // Re-throw redirects
+		}
+
+		console.error('Handle error:', error);
+
+		// Return error response
+		return new Response(JSON.stringify({ error: 'Internal server error', code: 'SERVER_ERROR' }), {
+			status: 500,
+			headers: { 'Content-Type': 'application/json' }
+		});
+	}
 };
 
 // Error handling hook with standardized error responses
@@ -322,3 +414,21 @@ export const handleError = ({ error, event }: { error: any; event: any }) => {
 };
 
 console.log('🛡️  Server performance optimization and monitoring initialized');
+console.log(`⚡ Session caching enabled (TTL: ${SESSION_CACHE_TTL}ms, cleanup: 5min intervals)`);
+console.log(`📁 Static file optimization: ${STATIC_EXTENSIONS.size} extensions`);
+console.log(`🔒 Security hardening enabled:`);
+console.log(`   - Rate limiting: ${MAX_LOGIN_ATTEMPTS} attempts per ${RATE_LIMIT_WINDOW / 1000 / 60}min`);
+console.log(`   - Block duration: ${BLOCK_DURATION / 1000 / 60}min after max attempts`);
+console.log(`   - Security headers: CSP, HSTS, X-Frame-Options, etc.`);
+console.log(`   - CSRF protection: ${authConfig.security.enableCSRF ? 'enabled' : 'disabled'}`);
+
+// Initialize event reminder scheduler
+import { ReminderScheduler } from '$lib/server/reminder-scheduler';
+
+// Start the reminder scheduler on server startup
+if (process.env.ENABLE_REMINDER_SCHEDULER !== 'false') {
+	ReminderScheduler.start();
+	console.log('⏰ Event reminder scheduler started');
+} else {
+	console.log('⏰ Event reminder scheduler disabled (ENABLE_REMINDER_SCHEDULER=false)');
+}

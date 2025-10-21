@@ -1,0 +1,185 @@
+# SvelteHR Development Commands - Streamlined Makefile
+SHELL := /bin/bash
+.PHONY: help dev dev-down dev-logs dev-rebuild frontend backend ssh-backend ssh-frontend
+.PHONY: db-shell db-status db-reset db-migrate clean install test
+
+# =============================================================================
+# Help
+# =============================================================================
+help: ## Show available commands
+	@echo "🏢 SvelteHR Development Commands"
+	@echo "================================"
+	@echo ""
+	@echo "🚀 Development (Recommended):"
+	@echo "  make dev           - Start all containers (backend + database + redis)"
+	@echo "  make frontend      - Start SvelteKit frontend (requires 'make dev' first)"
+	@echo "  make dev-logs      - View container logs"
+	@echo "  make dev-down      - Stop all containers"
+	@echo "  make dev-rebuild   - Rebuild containers (when Dockerfile changes)"
+	@echo ""
+	@echo "🔌 SSH Access (Optional):"
+	@echo "  make ssh-backend   - SSH into backend container (user: dev, pass: dev)"
+	@echo "  make ssh-frontend  - SSH into frontend container (user: dev, pass: dev)"
+	@echo ""
+	@echo "💾 Database:"
+	@echo "  make db-shell      - Open PostgreSQL shell"
+	@echo "  make db-status     - Show migration status"
+	@echo "  make db-migrate    - Run database migrations"
+	@echo "  make db-reset      - Reset database (WARNING: deletes all data)"
+	@echo ""
+	@echo "📦 Installation:"
+	@echo "  make install       - Install all dependencies"
+	@echo ""
+	@echo "🧪 Testing:"
+	@echo "  make test          - Run all tests"
+	@echo "  make test-unit     - Run unit tests"
+	@echo "  make test-e2e      - Run E2E tests"
+	@echo ""
+	@echo "🧹 Maintenance:"
+	@echo "  make clean         - Stop containers and clean build artifacts"
+	@echo ""
+	@echo "📍 Service URLs:"
+	@echo "  Frontend:    http://localhost:5173"
+	@echo "  Backend API: http://localhost:4000/graphql"
+	@echo "  GraphiQL:    http://localhost:5000/graphiql"
+	@echo "  PostgreSQL:  localhost:5433"
+	@echo "  Redis:       localhost:6380"
+
+# =============================================================================
+# Development Workflow
+# =============================================================================
+
+dev: ## Start all development containers (backend, database, redis)
+	@echo "🚀 Starting SvelteHR Development Containers..."
+	@cd dev-containers && docker-compose -f docker-compose.dev.yml up -d
+	@echo ""
+	@echo "✅ Containers started!"
+	@echo ""
+	@echo "📍 Services available:"
+	@echo "   🔹 Backend API:  http://localhost:4000/graphql"
+	@echo "   🔹 GraphiQL:     http://localhost:5000/graphiql"
+	@echo "   🔹 PostgreSQL:   localhost:5433 (user: postgres, pass: postgres123)"
+	@echo "   🔹 Redis:        localhost:6380"
+	@echo ""
+	@echo "💡 Next: Run 'make frontend' to start the SvelteKit frontend"
+
+backend: dev ## Alias for 'make dev' (starts backend containers)
+
+frontend: ## Start SvelteKit frontend development server
+	@echo "🎨 Starting SvelteKit Frontend..."
+	@echo ""
+	@if ! docker ps | grep -q sveltehr-backend-dev; then \
+		echo "❌ Backend not running. Start it first with 'make dev'"; \
+		exit 1; \
+	fi
+	@echo "🌐 Frontend will be available at: http://localhost:5173"
+	@echo ""
+	@npm run dev
+
+dev-down: ## Stop all development containers
+	@echo "⏹️ Stopping development containers..."
+	@cd dev-containers && docker-compose -f docker-compose.dev.yml down
+	@echo "✅ Containers stopped"
+
+dev-logs: ## View container logs (Ctrl+C to exit)
+	@cd dev-containers && docker-compose -f docker-compose.dev.yml logs -f
+
+dev-rebuild: ## Rebuild containers (run after Dockerfile changes)
+	@echo "🔨 Rebuilding development containers..."
+	@cd dev-containers && docker-compose -f docker-compose.dev.yml build --no-cache
+	@echo "✅ Rebuild complete. Run 'make dev' to start."
+
+# =============================================================================
+# SSH Access to Containers
+# =============================================================================
+
+ssh-backend: ## SSH into backend container
+	@echo "🔌 Connecting to Backend Container..."
+	@echo "   User: dev | Password: dev"
+	@echo "   Backend code: /home/dev/backend"
+	@echo ""
+	@ssh -o StrictHostKeyChecking=no dev@localhost -p 2222
+
+ssh-frontend: ## SSH into frontend container
+	@echo "🔌 Connecting to Frontend Container..."
+	@echo "   User: dev | Password: dev"
+	@echo "   Frontend code: /home/dev/frontend"
+	@echo ""
+	@ssh -o StrictHostKeyChecking=no dev@localhost -p 2223
+
+# =============================================================================
+# Database Operations
+# =============================================================================
+
+db-shell: ## Open PostgreSQL shell
+	@echo "🔧 Opening PostgreSQL shell..."
+	@docker exec -it sveltehr-postgres-dev psql -U postgres -d hr_system
+
+db-status: ## Show applied migrations
+	@echo "📊 Database Migration Status:"
+	@echo ""
+	@docker exec sveltehr-postgres-dev psql -U postgres -d hr_system -c \
+		"SELECT id, name, applied_at FROM migrations ORDER BY applied_at DESC LIMIT 10;" \
+		2>/dev/null || echo "Migrations table not found. Run 'make db-migrate'"
+
+db-migrate: ## Run database migrations
+	@echo "📋 Running database migrations..."
+	@if [ -f "scripts/init-db.sh" ]; then \
+		bash scripts/init-db.sh; \
+	else \
+		echo "⚠️  Migration script not found"; \
+		echo "Migrations in /migrations will auto-apply on container start"; \
+	fi
+
+db-reset: ## Reset database (WARNING: deletes all data)
+	@echo "⚠️  WARNING: This will DELETE ALL DATA!"
+	@read -p "Are you sure? [y/N] " -n 1 -r; echo; \
+	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+		echo "🔄 Resetting database..."; \
+		cd dev-containers && docker-compose -f docker-compose.dev.yml down -v; \
+		docker volume rm sveltehr_postgres_dev_data sveltehr_redis_dev_data 2>/dev/null || true; \
+		make dev; \
+		echo "⏳ Waiting for database initialization..."; \
+		sleep 10; \
+		echo "✅ Database reset complete"; \
+	else \
+		echo "❌ Operation cancelled"; \
+	fi
+
+# =============================================================================
+# Installation
+# =============================================================================
+
+install: ## Install all dependencies
+	@echo "📦 Installing dependencies..."
+	@npm install
+	@if [ -d "backend" ]; then \
+		echo "📦 Installing backend dependencies..."; \
+		cd backend && npm install; \
+	fi
+	@echo "✅ All dependencies installed"
+
+# =============================================================================
+# Testing
+# =============================================================================
+
+test: ## Run all tests
+	@npm run test
+
+test-unit: ## Run unit tests
+	@npm run test:unit
+
+test-e2e: ## Run E2E tests
+	@npm run test:e2e
+
+# =============================================================================
+# Maintenance
+# =============================================================================
+
+clean: ## Clean containers and build artifacts
+	@echo "🧹 Cleaning up..."
+	@cd dev-containers && docker-compose -f docker-compose.dev.yml down -v 2>/dev/null || true
+	@docker system prune -f
+	@rm -rf .svelte-kit build dist node_modules/.vite
+	@rm -rf backend/dist backend/logs 2>/dev/null || true
+	@echo "✅ Cleanup complete"

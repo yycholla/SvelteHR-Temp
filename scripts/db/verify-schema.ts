@@ -13,7 +13,8 @@ import { Command } from 'commander';
 import { randomUUID } from 'crypto';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
-import { captureSchema } from './lib/capture-schema';
+import { existsSync } from 'fs';
+import { captureSchema, loadSchemaFromFile } from './lib/capture-schema';
 import { compareSchemas } from './lib/diff';
 import { generateDetailedReport } from './lib/diff/summary';
 import type { VerificationReport, Environment } from './types/verification';
@@ -78,13 +79,21 @@ async function main() {
 			process.exit(2);
 		}
 
-		spinner.text = 'Capturing source schema from version control...';
+		spinner.text = 'Loading baseline schema from version control...';
 
-		// TODO: For now, we'll capture from a live database as source
-		// In production, this should load from init script + migrations simulation
-		const sourceSchema = await captureSchema(options.databaseUrl, options.schemaName);
+		// Load baseline schema from snapshot file
+		const baselinePath = join(process.cwd(), 'schema-snapshots', 'baseline-schema.json');
 
-		spinner.text = 'Capturing target schema from live database...';
+		if (!existsSync(baselinePath)) {
+			spinner.fail(chalk.red('Baseline schema snapshot not found!'));
+			console.log(chalk.yellow('\nPlease create a baseline snapshot first:'));
+			console.log(chalk.gray('  npm run db:snapshot\n'));
+			process.exit(2);
+		}
+
+		const sourceSchema = await loadSchemaFromFile(baselinePath);
+
+		spinner.text = 'Capturing current schema from live database...';
 
 		const targetSchema = await captureSchema(options.databaseUrl, options.schemaName);
 

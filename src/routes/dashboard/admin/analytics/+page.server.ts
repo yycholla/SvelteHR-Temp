@@ -4,7 +4,6 @@
 import type { PageServerLoad } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { ensureBackendReady } from '$lib/server/backend-init';
-import { debugJWTToken } from '$lib/server/jwt-debug';
 
 export const load: PageServerLoad = async ({ locals, parent, cookies }) => {
 	// Auth check already done by admin +layout.server.ts
@@ -18,50 +17,39 @@ export const load: PageServerLoad = async ({ locals, parent, cookies }) => {
 		// Ensure backend is ready before proceeding
 		await ensureBackendReady();
 
-		// Debug JWT token issues
-		const jwtDebug = debugJWTToken(cookies);
-		console.log('🔐 Analytics Dashboard JWT Debug:', jwtDebug);
-
 		const client = GraphQLClient.fromCookies(cookies);
 
 		// Query real system statistics
+		// NOTE: Using Rust GraphQL schema (direct arrays, no .nodes wrapper)
 		const statsQuery = `
-			query GetSystemStats {
-				allUsers {
-					totalCount
-					nodes {
-						id
-						email
-						firstName
-						lastName
-						isActive
-						departmentId
-					}
+			query GetSystemStats($limit: Int!) {
+				users(limit: $limit) {
+					id
+					email
+					displayName
+					isActive
+					departmentId
+					role
 				}
-				allDepartments {
-					totalCount
-					nodes {
-						id
-						name
-					}
-				}
-				allUserRoleAssignments {
-					totalCount
-					nodes {
-						id
-						roleName
-						userId
-					}
+				departments(limit: $limit) {
+					id
+					name
 				}
 			}
 		`;
 
-		const result = await client.query(statsQuery, {});
+		const result = await client.query(statsQuery, { limit: 1000 });
 
 		// Calculate analytics from real data
-		const users = result.data?.allUsers?.nodes || [];
-		const departments = result.data?.allDepartments?.nodes || [];
-		const userRoles = result.data?.allUserRoleAssignments?.nodes || [];
+		const users = result.data?.users || [];
+		const departments = result.data?.departments || [];
+
+		// Extract unique roles from users (role is a direct field)
+		const userRoles = users.map((u: any) => ({
+			id: u.id,
+			roleName: u.role,
+			userId: u.id
+		}));
 
 		// Calculate active users from real data
 		const activeUsers = users.filter(user => user.isActive).length;
@@ -104,10 +92,10 @@ export const load: PageServerLoad = async ({ locals, parent, cookies }) => {
 
 		const analytics = {
 			overview: {
-				totalUsers: result.data?.allUsers?.totalCount || 0,
+				totalUsers: users.length,
 				activeUsers: activeUsers,
-				totalDepartments: result.data?.allDepartments?.totalCount || 0,
-				totalRoles: result.data?.allUserRoleAssignments?.totalCount || 0
+				totalDepartments: departments.length,
+				totalRoles: userRoles.length
 			},
 			growth: {
 				// Calculate from real data - these would ideally come from historical data

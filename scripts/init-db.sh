@@ -11,7 +11,7 @@ DB_PORT="${DB_PORT:-5433}"
 DB_NAME="${DB_NAME:-hr_system}"
 DB_USER="${DB_USER:-postgres}"
 DB_PASSWORD="${DB_PASSWORD:-postgres123}"
-MIGRATIONS_DIR="${MIGRATIONS_DIR:-$(dirname "$0")/../migrations}"
+MIGRATIONS_DIR="${MIGRATIONS_DIR:-$(dirname "$0")/../db/migrations}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -112,47 +112,72 @@ apply_migration() {
 
 # Get list of migration files in correct order
 get_migration_files() {
-    # Define the correct migration order
-    # Base schema files (01-07)
-    local base_migrations=(
-        "01-roles.sql"
-        "02-schema.sql"
-        "03-data.sql"
-        "03_create_tasks_table.sql"
-        "04-indexes.sql"
-        "04_create_current_user_function.sql"
-        "05_add_missing_tables.sql"
-        "06_create_event_attendees.sql"
-        "07_add_employee_details.sql"
-    )
+    # Automatically discover and order migration files
+    # Priority order: main directory, then remediation, then _archive (for historical reference)
 
-    # Feature migrations (sorted by date/name)
-    local feature_migrations=(
-        "20250930_add_performance_indexes.sql"
-        "20250930_add_rls_policies.sql"
-        "20250930_create_hr_reports_table.sql"
-        "20250930_create_notifications_table.sql"
-        "20250930_validate_schema.sql"
-        "20251002_001_create_activity_logs.sql"
-        "20251002_002_create_rollback_requests.sql"
-        "20251002_003_create_bulk_rollback_batches.sql"
-        "20251002_004_comprehensive_audit_logging.sql"
-        "20251003_001_execute_rollback_function.sql"
-        "20251003_002_fix_rollback_requests_schema.sql"
-        "20251003_003_add_rollback_requests_requested_at_index.sql"
-        "20251003_add_historical_data.sql"
-        "20251002_003_remove_hr_prefix_from_roles.sql"
-        "20251002_004_cleanup_old_roles.sql"
-        "20251007_001_add_review_types_metadata.sql"
-    )
+    local all_files=()
 
-    # Seed data (always last)
-    local seed_migrations=(
-        "seed-development-data.sql"
-    )
+    # Find all .sql files (excluding .bak files) in main migrations directory
+    while IFS= read -r -d '' file; do
+        # Skip backup files and disabled files
+        if [[ "$file" != *.bak && "$file" != *.disabled ]]; then
+            all_files+=("$file")
+        fi
+    done < <(find "$MIGRATIONS_DIR" -maxdepth 1 -name "*.sql" -print0 2>/dev/null | sort -z)
 
-    # Combine all migrations
-    echo "${base_migrations[@]}" "${feature_migrations[@]}" "${seed_migrations[@]}"
+    # Find files in remediation directory (higher priority than archive)
+    while IFS= read -r -d '' file; do
+        if [[ "$file" != *.bak && "$file" != *.disabled ]]; then
+            all_files+=("$file")
+        fi
+    done < <(find "$MIGRATIONS_DIR/remediation" -name "*.sql" -print0 2>/dev/null | sort -z)
+
+    # Find files in _archive directory (lowest priority)
+    while IFS= read -r -d '' file; do
+        if [[ "$file" != *.bak && "$file" != *.disabled ]]; then
+            all_files+=("$file")
+        fi
+    done < <(find "$MIGRATIONS_DIR/_archive" -name "*.sql" -print0 2>/dev/null | sort -z)
+
+    # Sort all files by their migration key (date + sequence)
+    local sorted_files=()
+    while IFS= read -r file; do
+        sorted_files+=("$file")
+    done < <(printf '%s\n' "${all_files[@]}" | awk -F'/' '
+    {
+        filename = $NF
+        dirname = ""
+        for (i=1; i<NF; i++) {
+            if (dirname) dirname = dirname "/"
+            dirname = dirname $i
+        }
+
+        # Extract migration key from filename
+        key = "99999999_999"  # Default fallback
+
+        # Handle remediation files: remediation/YYYYMMDD_HHMMSS_NNN_description.sql
+        if (match(filename, /^([0-9]{8}_[0-9]{6})_([0-9]+)_.*\.sql$/, arr) && dirname ~ /remediation/) {
+            key = arr[1] "_" arr[2]
+        }
+        # Handle standard date files: YYYYMMDD_NNN_description.sql
+        else if (match(filename, /^([0-9]{8})_([0-9]+)_.*\.sql$/, arr)) {
+            key = arr[1] "_" arr[2]
+        }
+        # Handle sequence-only files: NNN_description.sql
+        else if (match(filename, /^([0-9]+)_.*\.sql$/, arr)) {
+            key = "20240101_" sprintf("%03d", arr[1])  # Put sequence-only files early
+        }
+
+        printf "%s\t%s\n", key, $0
+    }' | sort | cut -f2)
+
+    # Return just the filenames (not full paths)
+    local result=()
+    for file in "${sorted_files[@]}"; do
+        result+=("$(basename "$file")")
+    done
+
+    echo "${result[@]}"
 }
 
 # Apply all migrations
@@ -168,9 +193,15 @@ apply_all_migrations() {
     local failed=0
 
     for migration_file in "${migrations[@]}"; do
-        local filepath="$MIGRATIONS_DIR/$migration_file"
-
-        if [ ! -f "$filepath" ]; then
+        # Handle files from subdirectories (remediation/, _archive/)
+        local filepath=""
+        if [ -f "$MIGRATIONS_DIR/$migration_file" ]; then
+            filepath="$MIGRATIONS_DIR/$migration_file"
+        elif [ -f "$MIGRATIONS_DIR/remediation/$migration_file" ]; then
+            filepath="$MIGRATIONS_DIR/remediation/$migration_file"
+        elif [ -f "$MIGRATIONS_DIR/_archive/$migration_file" ]; then
+            filepath="$MIGRATIONS_DIR/_archive/$migration_file"
+        else
             print_warning "Migration file not found: $migration_file"
             continue
         fi

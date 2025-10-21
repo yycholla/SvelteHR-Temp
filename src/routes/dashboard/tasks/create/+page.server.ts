@@ -13,7 +13,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	}
 
 	// Get user credentials for GraphQL operations
-	const token = cookies.get('hr_token') || cookies.get('auth-token');
+	// Token retrieval removed - session auth handled by server hooks
 	if (!token) {
 		throw redirect(303, `/login?redirectTo=${url.pathname}`);
 	}

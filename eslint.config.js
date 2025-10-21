@@ -125,6 +125,52 @@ export default ts.config(
 			]
 		}
 	},
+	// Authentication modules: Security-critical code with strict rules
+	{
+		files: ['src/lib/auth/**/*.ts', 'src/lib/stores/auth.ts', 'src/hooks.server.ts'],
+		rules: {
+			// Enforce no 'any' types in security-critical auth code
+			'@typescript-eslint/no-explicit-any': 'error',
+
+			// Require explicit return types for auth functions
+			'@typescript-eslint/explicit-function-return-type': [
+				'error',
+				{
+					allowExpressions: false,
+					allowTypedFunctionExpressions: true
+				}
+			],
+
+			// Enforce proper error handling patterns
+			'@typescript-eslint/no-floating-promises': 'error',
+			'@typescript-eslint/promise-function-async': 'error',
+
+			// Prevent console.log in production auth code (use proper logging)
+			'no-console': 'error',
+
+			// Enforce safe type assertions
+			'@typescript-eslint/consistent-type-assertions': [
+				'error',
+				{
+					assertionStyle: 'as',
+					objectLiteralTypeAssertions: 'never'
+				}
+			],
+
+			// Naming conventions for auth operations
+			'@typescript-eslint/naming-convention': [
+				'error',
+				{
+					selector: 'function',
+					format: ['camelCase'],
+					custom: {
+						regex: '^(login|logout|authenticate|authorize|validate)[A-Z]',
+						match: true
+					}
+				}
+			]
+		}
+	},
 	{
 		files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
 		languageOptions: {

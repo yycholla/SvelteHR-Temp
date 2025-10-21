@@ -1,0 +1,67 @@
+# Development Dockerfile with hot-reloading support
+# Features:
+# - Mold linker for 5-10x faster linking
+# - cargo-watch for automatic recompilation on file changes
+# - Separated target directory in Docker volume for better I/O performance
+# - cargo-chef for optimal Docker layer caching
+
+# Stage 1: Base chef image with cargo-chef installed
+FROM rust:1.90-slim AS chef
+
+# Install cargo-chef
+RUN cargo install cargo-chef
+
+WORKDIR /app
+
+# Stage 2: Planner - generates recipe.json from project dependencies
+FROM chef AS planner
+
+# Copy entire project to analyze dependencies
+COPY . .
+
+# Generate dependency recipe
+RUN cargo chef prepare --recipe-path recipe.json
+
+# Stage 3: Development builder with mold linker and cargo-watch
+FROM chef AS dev-builder
+
+# Install build dependencies including mold linker
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    # Mold linker for significantly faster linking
+    mold \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install additional Rust components
+RUN rustup component add clippy
+
+# Install cargo-watch for hot-reloading and sea-orm-cli for entity generation
+RUN cargo install cargo-watch sea-orm-cli
+
+# Copy dependency recipe from planner
+COPY --from=planner /app/recipe.json recipe.json
+
+# Build dependencies (this layer will be cached unless dependencies change)
+# This uses mold linker automatically via .cargo/config.toml
+RUN cargo chef cook --release --recipe-path recipe.json
+
+# Copy actual source code
+COPY . .
+
+# The container will run cargo-watch which monitors for file changes
+# and automatically recompiles. The target directory should be mounted
+# as a Docker volume (not bind-mounted) for optimal I/O performance.
+
+# Default command: run cargo-watch with automatic restart on changes
+# Watches Rust files and Cargo.toml, ignores target directory
+# Runs the GraphQL server binary specifically (not the migration CLI)
+CMD ["cargo", "watch", \
+    "-x", "run --bin hr-graphql-server", \
+    "--watch", "src", \
+    "--watch", "migration", \
+    "--watch", "Cargo.toml", \
+    "--watch", ".cargo", \
+    "--ignore", "target/*", \
+    "--delay", "1", \
+    "--no-gitignore"]

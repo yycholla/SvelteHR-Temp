@@ -41,7 +41,6 @@ function createNotificationStore() {
 			eventSource = new EventSource('/api/notifications/stream');
 
 			eventSource.onopen = () => {
-				console.log('📡 Notification stream connected');
 				update((state) => ({ ...state, connected: true, error: null }));
 			};
 
@@ -50,14 +49,13 @@ function createNotificationStore() {
 					const data = JSON.parse(event.data);
 
 					if (data.type === 'connected') {
-						console.log('✅ Notification stream authenticated');
+						// Stream authenticated
 					} else if (data.type === 'notifications') {
 						update((state) => ({
 							...state,
 							notifications: data.data
 						}));
 					} else if (data.type === 'error') {
-						console.error('❌ Notification stream error:', data.message);
 						update((state) => ({
 							...state,
 							error: data.message
@@ -69,11 +67,8 @@ function createNotificationStore() {
 			};
 
 			eventSource.onerror = (err) => {
-				console.error('SSE connection error:', err);
-
 				// Check if it's an auth error (readyState 2 = CLOSED)
 				if (eventSource?.readyState === 2) {
-					console.error('❌ SSE connection closed, likely authentication issue');
 					update((state) => ({
 						...state,
 						connected: false,
@@ -95,7 +90,6 @@ function createNotificationStore() {
 
 				// Auto-reconnect after 5 seconds for non-auth errors
 				setTimeout(() => {
-					console.log('🔄 Attempting to reconnect...');
 					createNotificationStore().connect();
 				}, 5000);
 			};

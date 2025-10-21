@@ -1,0 +1,168 @@
+[[bin]]
+path = "src/main.rs"
+name = "hr-graphql-server"
+plugin = false
+proc-macro = false
+edition = "2021"
+required-features = []
+
+[[bin]]
+name = "migration"
+path = "migration/main.rs"
+
+[[test]]
+path = "tests/contract_tests.rs"
+name = "contract_tests"
+plugin = false
+proc-macro = false
+edition = "2021"
+required-features = []
+
+[[test]]
+path = "tests/load/basic_queries_load.rs"
+name = "basic_queries_load"
+required-features = ["test-utils"]
+
+[[test]]
+path = "tests/load/mutation_load.rs"
+name = "mutation_load"
+required-features = ["test-utils"]
+
+[[test]]
+path = "tests/load/mixed_workload_load.rs"
+name = "mixed_workload_load"
+required-features = ["test-utils"]
+
+[[test]]
+path = "tests/load/stress_test_load.rs"
+name = "stress_test_load"
+required-features = ["test-utils"]
+
+[package]
+name = "hr-graphql-server"
+edition = "2021"
+version = "0.0.1"
+
+[dependencies]
+anyhow = "1.0"
+async-graphql-axum = "7.0"
+async-trait = "0.1"
+axum = "0.8"
+ axum-login = "0.18"
+ base64 = "0.22"
+ bcrypt = "0.15"
+ password-hash = "0.5"
+dataloader = "0.17"
+dotenv = "0.15"
+envy = "0.4"
+futures = "0.3"
+http-body-util = "0.1"
+jsonwebtoken = "9.0"
+ rust_decimal = "1.35"
+ serde_json = "1.0"
+ sqlx = { version = "0.7", features = ["postgres", "runtime-tokio-rustls", "macros", "uuid", "chrono", "json"] }
+ thiserror = "1.0"
+ tower-sessions = "0.14"
+ time = "0.3"
+ tracing = "0.1"
+
+[dependencies.async-graphql]
+version = "7.0"
+features = ["chrono", "uuid", "dataloader", "boxed-trait"]
+
+[dependencies.chrono]
+version = "0.4"
+features = ["serde"]
+
+[dependencies.sea-orm]
+version = "0.12"
+features = ["sqlx-postgres", "runtime-tokio-rustls", "macros", "with-uuid", "with-chrono"]
+
+[dependencies.sea-orm-migration]
+version = "0.12"
+features = ["runtime-tokio-rustls", "sqlx-postgres"]
+
+[dependencies.serde]
+version = "1.0"
+features = ["derive"]
+
+
+
+[dependencies.tokio]
+version = "1"
+features = ["full"]
+
+[dependencies.tower]
+version = "=0.4.13"
+features = ["util"]
+
+[dependencies.tower-http]
+version = "0.5"
+features = ["cors", "trace"]
+
+[dependencies.tracing-subscriber]
+version = "0.3"
+features = ["env-filter"]
+
+[dependencies.uuid]
+version = "1.0"
+features = ["serde", "v4"]
+
+[dependencies.testcontainers]
+version = "0.15"
+optional = true
+
+[dependencies.testcontainers-modules]
+version = "0.3"
+features = ["postgres"]
+optional = true
+
+[dependencies.reqwest]
+version = "0.11"
+features = ["json"]
+optional = true
+
+[dependencies.hdrhistogram]
+version = "7.5"
+optional = true
+
+[dependencies.rand]
+version = "0.8"
+optional = true
+
+[features]
+# Feature for enabling test utilities in integration tests
+test-utils = ["dep:testcontainers", "dep:testcontainers-modules", "dep:reqwest", "dep:hdrhistogram", "dep:rand"]
+
+# Default features - includes test-utils for development
+# Production builds can use --no-default-features to exclude testing dependencies
+default = ["test-utils"]
+
+[dev-dependencies]
+# Core testing
+tokio = { version = "1.35", features = ["test-util", "macros", "rt-multi-thread"] }
+serial_test = "3.0"
+
+# Benchmarking
+criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
+
+# Assertions & Mocking
+mockito = "1.2"
+assert_matches = "1.5"
+pretty_assertions = "1.4"
+
+[build-dependencies]
+sea-orm-codegen = "1.1.17"
+
+[[bench]]
+name = "resolver_benchmarks"
+harness = false
+
+[lib]
+path = "src/lib.rs"
+name = "hr_graphql_server"
+plugin = false
+proc-macro = false
+edition = "2021"
+required-features = []
+crate-type = ["lib"]

@@ -1,21 +1,12 @@
-// Secure Authentication service with token refresh and secure storage
-// T053: Security Hardening - JWT & Token Management
+// Secure Authentication service for session-based authentication
+// Session management using axum-login backend with HTTP-only cookies
 
 import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
 import {
 	authConfig,
-	getAccessTokenName,
-	getRefreshTokenName,
-	getCookieOptions,
 	getAuthEndpoints
 } from './config.js';
-import {
-	verifyJWTToken,
-	tokenNeedsRefresh,
-	getTokenTimeRemaining,
-	type JWTPayload
-} from './jwt-utils.js';
 
 export interface AuthState {
 	isAuthenticated: boolean;
@@ -26,8 +17,7 @@ export interface AuthState {
 		role: string;
 	} | null;
 	permissions: string[];
-	tokenExpiry: Date | null;
-	needsRefresh: boolean;
+	sessionExpires: Date | null;
 }
 
 export interface LoginCredentials {
@@ -37,14 +27,12 @@ export interface LoginCredentials {
 
 export interface LoginResponse {
 	success: boolean;
-	accessToken?: string;
-	refreshToken?: string;
 	user?: {
 		id: string;
 		email: string;
-		displayName: string;
 		role: string;
 	};
+	sessionExpires?: string;
 	error?: string;
 }
 
@@ -53,29 +41,32 @@ class SecureAuthService {
 		isAuthenticated: false,
 		user: null,
 		permissions: [],
-		tokenExpiry: null,
-		needsRefresh: false
+		sessionExpires: null
 	};
 
-	private refreshTimer: NodeJS.Timeout | null = null;
 	private readonly endpoints = getAuthEndpoints();
 	private rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
 	/**
-	 * Initialize the auth service and check for existing tokens
+	 * Initialize the auth service and check for existing session
 	 */
 	async initialize(): Promise<void> {
 		if (!browser) return;
 
 		try {
-			const token = this.getStoredToken();
-			if (token) {
-				const isValid = await this.validateToken(token);
-				if (isValid) {
-					await this.setupAuthState(token);
-					this.scheduleTokenRefresh();
-				} else {
-					await this.logout();
+			// Check if we have a valid session by calling the verify endpoint
+			const response = await fetch('/api/auth/verify', {
+				method: 'GET',
+				credentials: 'include'
+			});
+
+			if (response.ok) {
+				const data = await response.json();
+				if (data.user) {
+					this.authState.isAuthenticated = true;
+					this.authState.user = data.user;
+					this.authState.permissions = data.permissions || [];
+					this.authState.sessionExpires = data.sessionExpires ? new Date(data.sessionExpires) : null;
 				}
 			}
 		} catch (error) {
@@ -119,24 +110,16 @@ class SecureAuthService {
 			// Clear rate limit on successful login
 			this.clearRateLimit(credentials.email);
 
-			// Store tokens securely
-			if (data.accessToken) {
-				this.storeToken(data.accessToken, 'access');
-			}
-
-			if (data.refreshToken) {
-				this.storeToken(data.refreshToken, 'refresh');
-			}
-
-			// Set up auth state
-			await this.setupAuthState(data.accessToken);
-			this.scheduleTokenRefresh();
+			// For session-based auth, the session cookie is automatically handled by the browser
+			// We don't need to store tokens - just update the auth state
+			this.authState.isAuthenticated = true;
+			this.authState.user = data.user;
+			this.authState.sessionExpires = data.sessionExpires ? new Date(data.sessionExpires) : null;
 
 			return {
 				success: true,
-				accessToken: data.accessToken,
-				refreshToken: data.refreshToken,
-				user: this.authState.user || undefined
+				user: data.user,
+				sessionExpires: data.sessionExpires
 			};
 		} catch (error) {
 			console.error('Login error:', error);
@@ -148,28 +131,22 @@ class SecureAuthService {
 	}
 
 	/**
-	 * Logout and clean up tokens with server-side invalidation
+	 * Logout and clear session with server-side invalidation
 	 */
 	async logout(): Promise<void> {
 		try {
-			// Call logout endpoint if token exists
-			const token = this.getStoredToken();
-			if (token) {
-				fetch(this.endpoints.logout, {
-					method: 'POST',
-					headers: {
-						Authorization: `Bearer ${token}`,
-						'Content-Type': 'application/json'
-					},
-					credentials: 'include'
-				}).catch((err) => console.warn('Logout endpoint failed:', err));
-			}
+			// Call logout endpoint to clear session
+			fetch(this.endpoints.logout, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				credentials: 'include'
+			}).catch((err) => console.warn('Logout endpoint failed:', err));
 		} catch (error) {
 			console.warn('Logout request failed:', error);
 		} finally {
 			// Always clean up local state
-			this.clearStoredTokens();
-			this.clearRefreshTimer();
 			this.resetAuthState();
 			this.clearAllRateLimits();
 
@@ -181,44 +158,12 @@ class SecureAuthService {
 	}
 
 	/**
-	 * Refresh the access token using refresh token
+	 * Refresh session (no-op for session-based auth - sessions are automatically refreshed by backend)
 	 */
-	async refreshToken(): Promise<boolean> {
-		try {
-			const refreshToken = this.getStoredToken('refresh');
-			if (!refreshToken) {
-				throw new Error('No refresh token available');
-			}
-
-			const response = await fetch(this.endpoints.refresh, {
-				method: 'POST',
-				headers: {
-					Authorization: `Bearer ${refreshToken}`,
-					'Content-Type': 'application/json'
-				},
-				credentials: 'include'
-			});
-
-			const data = await response.json();
-
-			if (!response.ok) {
-				throw new Error(data.message || 'Token refresh failed');
-			}
-
-			// Store new access token
-			if (data.accessToken) {
-				this.storeToken(data.accessToken, 'access');
-				await this.setupAuthState(data.accessToken);
-				this.scheduleTokenRefresh();
-				return true;
-			}
-
-			throw new Error('No access token in refresh response');
-		} catch (error) {
-			console.error('Token refresh failed:', error);
-			await this.logout();
-			return false;
-		}
+	async refreshSession(): Promise<boolean> {
+		// Session-based auth automatically refreshes sessions on the backend
+		// No client-side action required
+		return true;
 	}
 
 	/**
@@ -267,116 +212,13 @@ class SecureAuthService {
 	}
 
 	/**
-	 * Get time remaining until token expiry (in minutes)
+	 * Get time remaining until session expiry (in minutes)
 	 */
-	getTokenTimeRemaining(): number {
-		if (!this.authState.tokenExpiry) return 0;
+	getSessionTimeRemaining(): number {
+		if (!this.authState.sessionExpires) return 0;
 		const now = new Date();
-		const diff = this.authState.tokenExpiry.getTime() - now.getTime();
+		const diff = this.authState.sessionExpires.getTime() - now.getTime();
 		return Math.max(0, Math.floor(diff / (1000 * 60)));
-	}
-
-	/**
-	 * Private: Store token securely
-	 */
-	private storeToken(token: string, type: 'access' | 'refresh' = 'access'): void {
-		if (!browser) return;
-
-		const tokenName = type === 'access' ? getAccessTokenName() : getRefreshTokenName();
-		const cookieOptions = getCookieOptions();
-
-		// For secure storage, we rely on httpOnly cookies set by the server
-		// This is a fallback for client-side token management
-		if (cookieOptions.httpOnly) {
-			// In production with httpOnly cookies, tokens are managed server-side
-			// We just store a flag to indicate authentication state
-			localStorage.setItem('auth_state', 'authenticated');
-		} else {
-			// Development mode: store in secure cookie
-			const secure = cookieOptions.secure ? 'secure;' : '';
-			document.cookie = `${tokenName}=${token}; path=${cookieOptions.path}; max-age=${cookieOptions.maxAge}; ${secure} samesite=${cookieOptions.sameSite}`;
-		}
-	}
-
-	/**
-	 * Private: Get stored token
-	 */
-	private getStoredToken(type: 'access' | 'refresh' = 'access'): string | null {
-		if (!browser) return null;
-
-		const tokenName = type === 'access' ? getAccessTokenName() : getRefreshTokenName();
-
-		// Try to get from cookie first
-		const cookies = document.cookie.split(';');
-		for (const cookie of cookies) {
-			const [name, value] = cookie.trim().split('=');
-			if (name === tokenName) {
-				return decodeURIComponent(value);
-			}
-		}
-
-		return null;
-	}
-
-	/**
-	 * Private: Clear stored tokens
-	 */
-	private clearStoredTokens(): void {
-		if (!browser) return;
-
-		const accessTokenName = getAccessTokenName();
-		const refreshTokenName = getRefreshTokenName();
-
-		// Clear cookies
-		document.cookie = `${accessTokenName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-		document.cookie = `${refreshTokenName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-		document.cookie = `postgraphile-jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-
-		// Clear localStorage
-		localStorage.removeItem('auth_state');
-	}
-
-	/**
-	 * Private: Validate token
-	 */
-	private async validateToken(token: string): Promise<boolean> {
-		try {
-			const validationResult = verifyJWTToken(token);
-			return validationResult.isValid;
-		} catch (error) {
-			console.error('Token validation failed:', error);
-			return false;
-		}
-	}
-
-	/**
-	 * Private: Setup auth state from token
-	 */
-	private async setupAuthState(token: string): Promise<void> {
-		try {
-			const validationResult = verifyJWTToken(token);
-			if (!validationResult.isValid || !validationResult.payload) {
-				throw new Error('Invalid token');
-			}
-
-			const payload = validationResult.payload;
-
-			this.authState = {
-				isAuthenticated: true,
-				user: {
-					id: payload.user_id,
-					email: payload.email,
-					displayName: payload.display_name || payload.email.split('@')[0],
-					role: payload.role || 'employee'
-				},
-				permissions: payload.permissions || [],
-				tokenExpiry: new Date(payload.exp * 1000),
-				needsRefresh: validationResult.needsRefresh || false
-			};
-		} catch (error) {
-			console.error('Failed to setup auth state:', error);
-			throw error;
-		}
 	}
 
 	/**
@@ -387,42 +229,8 @@ class SecureAuthService {
 			isAuthenticated: false,
 			user: null,
 			permissions: [],
-			tokenExpiry: null,
-			needsRefresh: false
+			sessionExpires: null
 		};
-	}
-
-	/**
-	 * Private: Schedule token refresh
-	 */
-	private scheduleTokenRefresh(): void {
-		this.clearRefreshTimer();
-
-		if (!this.authState.tokenExpiry) return;
-
-		const timeRemaining = this.getTokenTimeRemaining();
-		const refreshThreshold = authConfig.jwt.refreshThreshold;
-
-		// Schedule refresh when we're within the refresh threshold
-		if (timeRemaining > refreshThreshold) {
-			const refreshIn = (timeRemaining - refreshThreshold) * 60 * 1000; // Convert to milliseconds
-			this.refreshTimer = setTimeout(() => {
-				this.refreshToken();
-			}, refreshIn);
-		} else if (timeRemaining > 0) {
-			// Token expires soon, try to refresh immediately
-			setTimeout(() => this.refreshToken(), 1000);
-		}
-	}
-
-	/**
-	 * Private: Clear refresh timer
-	 */
-	private clearRefreshTimer(): void {
-		if (this.refreshTimer) {
-			clearTimeout(this.refreshTimer);
-			this.refreshTimer = null;
-		}
 	}
 
 	/**

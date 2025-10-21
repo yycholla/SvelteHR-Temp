@@ -16,39 +16,61 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 	try {
 		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
-		// Load user data with all profile fields
+		// Load user data with all profile fields including addresses and theme preference
 		const userQuery = `
 			query GetUserSettings($userId: UUID!) {
-				userById(id: $userId) {
+				user(id: $userId) {
 					id
 					firstName
 					lastName
 					displayName
+					fullName
 					email
-					phoneNumber
-					mobileNumber
-					addressLine1
-					addressLine2
-					city
-					stateProvince
-					postalCode
-					country
+					phone
+					alternatePhone
+					jobTitle
+					status
 					hireDate
 					departmentId
+					managerId
 					role
 					isActive
+					themePreference
 					createdAt
 					updatedAt
-					departmentByDepartmentId {
+					department {
 						id
 						name
+					}
+					addresses {
+						id
+						addressType
+						isPrimary
+						addressLine1
+						addressLine2
+						city
+						stateProvince
+						postalCode
+						country
+						latitude
+						longitude
+					}
+					primaryAddress {
+						id
+						addressType
+						addressLine1
+						addressLine2
+						city
+						stateProvince
+						postalCode
+						country
 					}
 				}
 			}
 		`;
 
 		const userResult = await graphqlClient.query(userQuery, { userId });
-		const user = userResult.data?.userById;
+		const user = userResult.data?.user;
 
 		if (!user) {
 			throw error(404, 'User profile not found');
@@ -67,8 +89,11 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 			weeklyDigest: false
 		};
 
-		// Get theme preference from cookie or default to system
-		const themeCookie = cookies.get('theme-preference') || 'system';
+		// Extract primary address fields
+		const primaryAddress = user.primaryAddress;
+
+		// Use theme from database, fallback to cookie, default to system
+		const themePreference = user.themePreference || cookies.get('theme-preference') || 'system';
 
 		return {
 			user: {
@@ -82,24 +107,30 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 				firstName: user.firstName,
 				lastName: user.lastName,
 				displayName: user.displayName,
+				fullName: user.fullName,
 				email: user.email,
-				phoneNumber: user.phoneNumber,
-				mobileNumber: user.mobileNumber,
-				addressLine1: user.addressLine1,
-				addressLine2: user.addressLine2,
-				city: user.city,
-				stateProvince: user.stateProvince,
-				postalCode: user.postalCode,
-				country: user.country,
+				phoneNumber: user.phone || null,
+				alternatePhone: user.alternatePhone || null,
+				jobTitle: user.jobTitle || null,
+				status: user.status || null,
+				// Address fields from primaryAddress relationship
+				addressLine1: primaryAddress?.addressLine1 || null,
+				addressLine2: primaryAddress?.addressLine2 || null,
+				city: primaryAddress?.city || null,
+				stateProvince: primaryAddress?.stateProvince || null,
+				postalCode: primaryAddress?.postalCode || null,
+				country: primaryAddress?.country || null,
 				hireDate: user.hireDate,
-				department: user.departmentByDepartmentId,
+				department: user.department,
+				managerId: user.managerId || null,
 				role: user.role,
 				isActive: user.isActive,
 				createdAt: user.createdAt,
 				updatedAt: user.updatedAt
 			},
+			addresses: user.addresses || [],
 			notificationPreferences,
-			themePreference: themeCookie
+			themePreference
 		};
 	} catch (err) {
 		console.error('[Settings Load Error]', err);
@@ -129,8 +160,6 @@ export const actions: Actions = {
 
 			// TODO: Save to notification_preferences table when it's created
 			// For now, just return success
-			console.log('[Notification Preferences Updated]', { userId: locals.user.id, preferences });
-
 			return { success: true, message: 'Notification preferences updated successfully' };
 		} catch (err) {
 			console.error('[Update Notifications Error]', err);
@@ -148,17 +177,42 @@ export const actions: Actions = {
 			const formData = await request.formData();
 			const theme = formData.get('theme') as string;
 
+			console.log('[Update Theme] User:', locals.user.id, 'Theme:', theme);
+
 			if (!['light', 'dark', 'system'].includes(theme)) {
 				return fail(400, { error: 'Invalid theme selection' });
 			}
 
-			// Save theme preference to cookie
+			const graphqlClient = GraphQLClient.fromCookies(cookies);
+
+			// Update theme in database via GraphQL
+			const updateMutation = `
+				mutation UpdateUserTheme($userId: UUID!, $input: UpdateUserInput!) {
+					updateUser(id: $userId, input: $input) {
+						id
+						themePreference
+					}
+				}
+			`;
+
+			const result = await graphqlClient.query(updateMutation, {
+				userId: locals.user.id,
+				input: {
+					themePreference: theme
+				}
+			});
+
+			console.log('[Update Theme] GraphQL result:', result);
+
+			// Also save to cookie for server-side rendering
 			cookies.set('theme-preference', theme, {
 				path: '/',
 				maxAge: 60 * 60 * 24 * 365, // 1 year
 				httpOnly: false, // Allow client-side JavaScript to read
 				sameSite: 'lax'
 			});
+
+			console.log('[Update Theme] Success! Theme updated to:', theme);
 
 			return { success: true, message: `Theme updated to ${theme}` };
 		} catch (err) {
@@ -181,7 +235,7 @@ export const actions: Actions = {
 				return fail(400, { error: 'Reason must be at least 10 characters' });
 			}
 
-			// Collect all changed fields
+			// Collect all changed fields (only fields that exist in User model)
 			const changes: Record<string, { current: string; new: string }> = {};
 			const fields = [
 				'firstName',
@@ -189,13 +243,8 @@ export const actions: Actions = {
 				'displayName',
 				'email',
 				'phoneNumber',
-				'mobileNumber',
-				'addressLine1',
-				'addressLine2',
-				'city',
-				'stateProvince',
-				'postalCode',
-				'country'
+				'alternatePhone',
+				'jobTitle'
 			];
 
 			for (const field of fields) {
@@ -223,28 +272,24 @@ export const actions: Actions = {
 			const logMutation = `
 				mutation CreateChangeRequest($input: CreateActivityLogInput!) {
 					createActivityLog(input: $input) {
-						activityLog {
-							id
-						}
+						id
 					}
 				}
 			`;
 
 			await graphqlClient.query(logMutation, {
 				input: {
-					activityLog: {
-						employeeId: locals.user.id,
-						userId: locals.user.id,
-						action: 'request',
-						resourceType: 'profile_change',
-						resourceId: locals.user.id,
-						details: {
-							changes,
-							reason,
-							status: 'pending',
-							requestedAt: new Date().toISOString()
-						}
-					}
+					employeeId: locals.user.id,
+					userId: locals.user.id,
+					action: 'request',
+					resourceType: 'profile_change',
+					resourceId: locals.user.id,
+					details: JSON.stringify({
+						changes,
+						reason,
+						status: 'pending',
+						requestedAt: new Date().toISOString()
+					})
 				}
 			});
 

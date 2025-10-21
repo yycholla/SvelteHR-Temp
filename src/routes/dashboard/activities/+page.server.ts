@@ -1,12 +1,10 @@
 // My Activities Page Server-Side Data Loading
 // Feature: 019-we-need-to - Task T030
 // Purpose: Load user's activity logs with server-side GraphQL queries
+// Updated: Migrated to Rust GraphQL backend
 
 import type { PageServerLoad } from './$types';
 import { error, redirect } from '@sveltejs/kit';
-import { ActivityLogsOperations } from '$lib/graphql/activity-logs-operations';
-import { createUrqlClient } from '$lib/graphql/client';
-import type { ActivityAction, ResourceType } from '$lib/graphql/types';
 
 export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	// Check authentication
@@ -14,75 +12,80 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		throw redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
 
-	// Get user credentials for GraphQL operations
-	const token = cookies.get('hr_token') || cookies.get('auth-token');
-	if (!token) {
-		throw redirect(303, `/login?redirectTo=${url.pathname}`);
-	}
-
-	const userCredentials = {
-		jwtToken: token,
-		userId: locals.user.id,
-		roles: locals.roles || [],
-		permissions: locals.permissions || [],
-		isAuthenticated: true,
-		expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-	};
-
 	try {
-		// Initialize GraphQL client and operations
-		// For server-side: createUrqlClient(fetchFn?, authToken?)
-		const urqlClient = createUrqlClient(undefined, token);
-		const activityOps = new ActivityLogsOperations(urqlClient);
+		// Get GraphQL endpoint
+		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
+		const graphqlEndpoint = getGraphQLEndpoint();
 
 		// Get query parameters for filtering
-		const actionFilter = url.searchParams.get('action') as ActivityAction | null;
-		const resourceTypeFilter = url.searchParams.get('resourceType') as ResourceType | null;
-		const daysBack = parseInt(url.searchParams.get('days') || '30');
 		const page = parseInt(url.searchParams.get('page') || '1');
 		const limit = parseInt(url.searchParams.get('limit') || '50');
 
-		// Build filter for user's activities
-		// PostGraphile's condition expects direct values, not wrapped in equalTo
-		const filter: any = {};
+		// Headers for session-based authentication (cookies sent automatically)
+		const headers: Record<string, string> = {
+			'Content-Type': 'application/json'
+		};
 
-		if (actionFilter) {
-			filter.action = actionFilter;
-		}
+		console.log('[Activities] Loading activities for user:', locals.user.id);
 
-		if (resourceTypeFilter) {
-			filter.resourceType = resourceTypeFilter;
-		}
-
-		// Note: PostGraphile date range filtering may require different approach
-		// For now, we'll fetch all and filter server-side if needed
-		const startDate = new Date();
-		startDate.setDate(startDate.getDate() - daysBack);
-
-		// Fetch user's activities (RLS will filter to user's own activities)
-		const activitiesResult = await activityOps.getUserActivities({
-			employeeId: locals.user.id,
-			first: limit,
-			offset: (page - 1) * limit,
-			filter,
-			userCredentials
+		// Fetch user's activity logs using Rust GraphQL backend
+		// Migration: ✅ Use idiomatic Rust pattern (activityLogs with userId parameter)
+		const activitiesResponse = await fetch(graphqlEndpoint, {
+			method: 'POST',
+			headers,
+			body: JSON.stringify({
+				query: `
+					query GetUserActivities($userId: UUID!, $limit: Int!, $offset: Int!) {
+						activityLogs(userId: $userId, limit: $limit, offset: $offset) {
+							id
+							userId
+							employeeId
+							action
+							resourceType
+							resourceId
+							details
+							createdAt
+							employee {
+								id
+								displayName
+								email
+							}
+						}
+					}
+				`,
+				variables: {
+					userId: locals.user.id,
+					limit: limit,
+					offset: (page - 1) * limit
+				}
+			})
 		});
 
+		const activitiesData = await activitiesResponse.json();
+		console.log('[Activities] Response:', activitiesData);
+
+		if (activitiesData.errors) {
+			console.error('[Activities] GraphQL errors:', activitiesData.errors);
+			throw new Error(activitiesData.errors[0]?.message || 'Failed to load activities');
+		}
+
+		const activities = activitiesData?.data?.activityLogs || [];
+
 		return {
-			activities: activitiesResult.activities,
-			totalCount: activitiesResult.totalCount,
-			hasNextPage: activitiesResult.hasNextPage,
+			activities,
+			totalCount: activities.length,
+			hasNextPage: activities.length === limit,
 			currentPage: page,
 			limit,
 			filters: {
-				action: actionFilter,
-				resourceType: resourceTypeFilter,
-				daysBack
+				action: null,
+				resourceType: null,
+				daysBack: 30
 			},
 			user: locals.user
 		};
 	} catch (err: any) {
-		console.error('Error loading activities:', err);
+		console.error('[Activities] Error loading activities:', err);
 
 		// Handle specific error cases
 		if (err.message?.includes('unauthorized') || err.message?.includes('authentication')) {

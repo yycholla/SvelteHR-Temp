@@ -19,7 +19,7 @@ export const load: PageServerLoad = async (event) => {
 	// Create user session from server locals
 	const userSession = createUserSession({
 		userId: locals.user.id,
-		jwtToken: cookies.get('hr_token') || '',
+		// jwtToken is optional for session-based authentication
 		roles: [locals.user.role || 'employee'],
 		permissions: locals.permissions || [],
 		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes from now
@@ -44,7 +44,7 @@ export const load: PageServerLoad = async (event) => {
 			userEmail: userSession.metadata.userEmail as string,
 			roles: userSession.roles,
 			permissions: userSession.permissions,
-			jwtToken: userSession.jwtToken,
+			// jwtToken omitted for session-based auth
 			isAuthenticated: Boolean(userSession.isAuthenticated)
 		},
 		timeoutMs: 5000,

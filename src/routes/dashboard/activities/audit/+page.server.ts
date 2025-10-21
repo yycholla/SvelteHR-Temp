@@ -1,12 +1,12 @@
 // Audit Logs Page Server-Side Data Loading (Admin Only)
 // Feature: 019-we-need-to - Task T031
 // Purpose: Load system-wide activity logs for administrators
+// NOTE: Rust GraphQL backend migration - uses session-based auth and client-side filtering
 
 import type { PageServerLoad } from './$types';
 import { error, redirect } from '@sveltejs/kit';
-import { ActivityLogsOperations } from '$lib/graphql/activity-logs-operations';
-import { createUrqlClient } from '$lib/graphql/client';
-import type { ActivityAction, ResourceType } from '$lib/graphql/types';
+import { GraphQLClient } from '$lib/server/graphql-client';
+import { ensureBackendReady } from '$lib/server/backend-init';
 
 export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	// Check authentication
@@ -14,30 +14,14 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		throw redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
 
-	// Get user credentials for GraphQL operations
-	const token = cookies.get('hr_token') || cookies.get('auth-token');
-	if (!token) {
-		throw redirect(303, `/login?redirectTo=${url.pathname}`);
-	}
-
-	const userCredentials = {
-		jwtToken: token,
-		userId: locals.user.id,
-		roles: locals.roles || [],
-		permissions: locals.permissions || [],
-		isAuthenticated: true,
-		expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-	};
-
 	// Check if user has admin privileges
-	// Check both single role and roles array
-	const userRoles = locals.roles || [];
-	const hasAdminRole = userRoles.some(role =>
-		['admin', 'super_admin', 'hr_admin'].includes(role.toLowerCase())
-	);
-	const roleLevel = getRoleLevel(locals.user.role);
+	const userPermissions = locals.permissions || [];
+	const hasAdminAccess =
+		userPermissions.includes('*') ||
+		userPermissions.includes('admin:read') ||
+		userPermissions.includes('audit:read');
 
-	if (!hasAdminRole && roleLevel < 100) {
+	if (!hasAdminAccess) {
 		// Only admins can access audit logs
 		throw error(403, {
 			message: 'Access denied. Administrator privileges required to view audit logs.'
@@ -45,126 +29,135 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	}
 
 	try {
-		// Initialize GraphQL client and operations
-		const urqlClient = createUrqlClient(undefined, token);
-		const activityOps = new ActivityLogsOperations(urqlClient);
+		// Ensure backend is ready before proceeding
+		await ensureBackendReady();
+
+		// Create GraphQL client with authentication
+		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
 		// Get query parameters for filtering
-		const employeeId = url.searchParams.get('employee');
-		const actionFilter = url.searchParams.get('action') as ActivityAction | null;
-		const resourceTypeFilter = url.searchParams.get('resourceType') as ResourceType | null;
+		const employeeIdFilter = url.searchParams.get('employee');
+		const actionFilter = url.searchParams.get('action');
+		const resourceTypeFilter = url.searchParams.get('resourceType');
 		const daysBack = parseInt(url.searchParams.get('days') || '7');
 		const searchQuery = url.searchParams.get('search') || '';
 		const page = parseInt(url.searchParams.get('page') || '1');
 		const limit = parseInt(url.searchParams.get('limit') || '100');
 
-		// Build filter for audit logs
-		// Note: PostGraphile's 'condition' parameter only supports exact matches
-		const filter: any = {};
-
-		if (employeeId) {
-			filter.employeeId = employeeId;
-		}
-
-		if (actionFilter) {
-			filter.action = actionFilter;
-		}
-
-		if (resourceTypeFilter) {
-			filter.resourceType = resourceTypeFilter;
-		}
-
-		// Date range filtering will be done client-side
+		// Date range for filtering
 		const startDate = new Date();
 		startDate.setDate(startDate.getDate() - daysBack);
 
-		// If search query provided, add resource ID or description filter
-		// This is a simplified search - could be enhanced with full-text search
-		if (searchQuery) {
-			// Search in details JSONB field or description
-			// Note: This would need to be implemented in the GraphQL operation
-			// For now, we'll just pass it to the client for filtering
+		// NOTE: Rust GraphQL backend only supports user_id filtering directly
+		// All other filtering (action, resourceType, date, search) must be done client-side
+		const activityLogsQuery = `
+			query GetActivityLogs($userId: UUID, $limit: Int!, $offset: Int!) {
+				activityLogs(userId: $userId, limit: $limit, offset: $offset) {
+					id
+					employeeId
+					userId
+					action
+					resourceType
+					resourceId
+					details
+					beforeSnapshot
+					afterSnapshot
+					isRollback
+					rolledBackLogId
+					ipAddress
+					userAgent
+					createdAt
+					employee {
+						id
+						displayName
+						email
+						departmentId
+						department {
+							id
+							name
+						}
+					}
+				}
+			}
+		`;
+
+		// Fetch all logs (Rust backend doesn't support complex filtering)
+		// We fetch more than needed and filter client-side
+		const logsResult = await graphqlClient.query(activityLogsQuery, {
+			userId: employeeIdFilter || null,
+			limit: 1000, // Fetch large set for client-side filtering
+			offset: 0
+		});
+
+		let allLogs = logsResult.data?.activityLogs || [];
+
+		// Client-side filtering by action
+		if (actionFilter) {
+			allLogs = allLogs.filter((log: any) => log.action === actionFilter);
 		}
 
-		// Fetch system-wide audit logs (admin has access to all)
-		const logsResult = await activityOps.getAuditLogs({
-			first: limit,
-			offset: (page - 1) * limit,
-			filter,
-			userCredentials
-		});
+		// Client-side filtering by resourceType
+		if (resourceTypeFilter) {
+			allLogs = allLogs.filter((log: any) => log.resourceType === resourceTypeFilter);
+		}
 
-		// Get all logs for statistics (without pagination)
-		// Note: Date filtering will be done after fetching
-		const allLogsResult = await activityOps.getAuditLogs({
-			first: 1000,
-			filter: {},
-			userCredentials
-		});
-
-		// Filter logs by date range client-side
-		const filteredLogs = allLogsResult.activities.filter((log: any) => {
+		// Client-side filtering by date range
+		const filteredLogs = allLogs.filter((log: any) => {
 			const logDate = new Date(log.createdAt);
 			return logDate >= startDate;
 		});
 
-		// Calculate statistics from filtered logs
+		// Client-side search filtering (search in resource type, action, or details)
+		let searchFilteredLogs = filteredLogs;
+		if (searchQuery) {
+			const searchLower = searchQuery.toLowerCase();
+			searchFilteredLogs = filteredLogs.filter((log: any) => {
+				const resourceType = log.resourceType?.toLowerCase() || '';
+				const action = log.action?.toLowerCase() || '';
+				const resourceId = log.resourceId?.toLowerCase() || '';
+				const detailsStr = JSON.stringify(log.details || {}).toLowerCase();
+				return resourceType.includes(searchLower) ||
+					   action.includes(searchLower) ||
+					   resourceId.includes(searchLower) ||
+					   detailsStr.includes(searchLower);
+			});
+		}
+
+		// Client-side pagination
+		const totalCount = searchFilteredLogs.length;
+		const startIndex = (page - 1) * limit;
+		const endIndex = startIndex + limit;
+		const paginatedLogs = searchFilteredLogs.slice(startIndex, endIndex);
+
+		// Calculate statistics from all filtered logs (not just current page)
 		const stats = {
-			total: logsResult.totalCount,
-			creates: filteredLogs.filter((l: any) => l.action === 'create').length,
-			updates: filteredLogs.filter((l: any) => l.action === 'update').length,
-			deletes: filteredLogs.filter((l: any) => l.action === 'delete').length,
-			views: filteredLogs.filter((l: any) => l.action === 'view').length,
-			logins: filteredLogs.filter((l: any) => l.action === 'login').length
+			total: totalCount,
+			creates: searchFilteredLogs.filter((l: any) => l.action === 'create').length,
+			updates: searchFilteredLogs.filter((l: any) => l.action === 'update').length,
+			deletes: searchFilteredLogs.filter((l: any) => l.action === 'delete').length,
+			views: searchFilteredLogs.filter((l: any) => l.action === 'view').length,
+			logins: searchFilteredLogs.filter((l: any) => l.action === 'login').length
 		};
 
 		// Get unique employees for filter dropdown (limit to 100 most active)
 		const uniqueEmployees = new Map();
-		filteredLogs.forEach((log: any) => {
+		searchFilteredLogs.forEach((log: any) => {
 			if (log.employeeId && !uniqueEmployees.has(log.employeeId)) {
 				uniqueEmployees.set(log.employeeId, {
 					id: log.employeeId,
-					name: log.userByEmployeeId?.displayName || 'Unknown'
+					name: log.employee?.displayName || 'Unknown'
 				});
 			}
 		});
 
-		// Transform logs to match ActivityLog interface
-		const transformedLogs = logsResult.activities.map((log: any) => ({
-			id: log.id,
-			employeeId: log.employeeId,
-			userId: log.userId,
-			employee: log.userByEmployeeId ? {
-				id: log.userByEmployeeId.id,
-				displayName: log.userByEmployeeId.displayName,
-				email: log.userByEmployeeId.email,
-				departmentId: log.userByEmployeeId.departmentId,
-				department: log.userByEmployeeId.departmentByDepartmentId ? {
-					id: log.userByEmployeeId.departmentByDepartmentId.id,
-					name: log.userByEmployeeId.departmentByDepartmentId.name
-				} : undefined
-			} : undefined,
-			action: log.action,
-			resourceType: log.resourceType,
-			resourceId: log.resourceId,
-			details: log.details,
-			beforeSnapshot: log.beforeSnapshot,
-			afterSnapshot: log.afterSnapshot,
-			isRollback: log.isRollback || false,
-			rolledBackLogId: log.rolledBackLogId,
-			ipAddress: log.ipAddress,
-			userAgent: log.userAgent,
-			createdAt: log.createdAt
-		}));
-
 		return {
-			logs: transformedLogs,
-			totalCount: logsResult.totalCount,
-			hasNextPage: logsResult.hasNextPage,
+			logs: paginatedLogs,
+			totalCount,
+			hasNextPage: endIndex < totalCount,
 			currentPage: page,
 			limit,
 			filters: {
-				employeeId,
+				employeeId: employeeIdFilter,
 				action: actionFilter,
 				resourceType: resourceTypeFilter,
 				daysBack,

@@ -13,41 +13,33 @@ export const load: PageServerLoad = async (event) => {
 		throw error(401, 'Authentication required');
 	}
 
-	// RBAC: Check if user is admin or super_admin
-	const userRole = locals.user.role?.toLowerCase().replace('-', '_') || 'employee';
-	if (!['super_admin', 'admin', 'hr_manager'].includes(userRole)) {
+	// RBAC: Use proper permission checking
+	const userPermissions = getUserPermissions(locals);
+
+	// Check if user has employee management permissions
+	// This checks for both 'employees:write' permission AND admin/system_admin role
+	if (!userPermissions.canManageEmployees) {
+		console.log('[Employee New] Access denied. User role:', locals.user.role, 'Permissions:', locals.permissions, 'Roles:', locals.roles);
 		throw error(403, 'Access denied. Admin privileges required to create employees.');
 	}
 
 	try {
-		// Make direct GraphQL calls to PostGraphile backend
+		// Make direct GraphQL calls to Rust GraphQL backend with session-based authentication
 		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
-		// Get JWT token for PostGraphile authentication
-		const jwtToken = cookies.get('hr_token') || cookies.get('postgraphile-jwt-token') || '';
-
-		// Decode JWT token to get user context
-		let jwtClaims = null;
-		if (jwtToken) {
-			try {
-				const { decodeJWTTokenUnsafe } = await import('$lib/auth/jwt-utils');
-				jwtClaims = await decodeJWTTokenUnsafe(jwtToken);
-			} catch (error) {
-				console.warn('[Employee New] Failed to decode JWT:', error);
-			}
-		}
-
-		// Set up proper headers for PostGraphile with JWT context
+		// Headers for session-based authentication
+		// Forward session cookies to Rust GraphQL backend
+		const cookieHeader = event.request.headers.get('cookie') || '';
 		const headers: Record<string, string> = {
-			'Content-Type': 'application/json'
+			'Content-Type': 'application/json',
+			'Cookie': cookieHeader // Forward all cookies for session authentication
 		};
 
-		if (jwtClaims) {
-			headers['Authorization'] = `Bearer ${jwtToken}`;
-			headers['X-JWT-Claims-Role'] = jwtClaims.role || 'employee';
-			headers['X-JWT-Claims-User-Id'] = jwtClaims.user_id;
-		}
+		console.log(
+			'[Employee New] Using Rust GraphQL with session-based auth, user role:',
+			locals.user?.role
+		);
 
 		// Load departments for dropdown
 		const departmentsResponse = await fetch(graphqlEndpoint, {
@@ -56,12 +48,10 @@ export const load: PageServerLoad = async (event) => {
 			body: JSON.stringify({
 				query: `
 					query GetDepartments {
-						allDepartments(first: 100) {
-							nodes {
-								id
-								name
-								description
-							}
+						departments(limit: 100) {
+							id
+							name
+							description
 						}
 					}
 				`
@@ -82,7 +72,7 @@ export const load: PageServerLoad = async (event) => {
 		const userPermissions = getUserPermissions(locals);
 
 		return {
-			departments: departmentsData.data?.allDepartments?.nodes || [],
+			departments: departmentsData.data?.departments || [],
 			user: {
 				id: locals.user.id,
 				email: locals.user.email || '',
@@ -116,9 +106,11 @@ export const actions: Actions = {
 	default: async (event) => {
 		const { request, cookies, locals } = event;
 
-		// RBAC: Check if user is admin or super_admin
-		const userRole = locals.user?.role?.toLowerCase().replace('-', '_') || 'employee';
-		if (!['super_admin', 'admin', 'hr_manager'].includes(userRole)) {
+		// RBAC: Use proper permission checking
+		const userPermissions = getUserPermissions(locals);
+
+		if (!userPermissions.canManageEmployees) {
+			console.log('[Employee New] Create denied. User role:', locals.user?.role, 'Permissions:', locals.permissions);
 			return fail(403, {
 				error: 'Access denied. Admin privileges required to create employees.'
 			});
@@ -129,7 +121,8 @@ export const actions: Actions = {
 			const firstName = formData.get('firstName')?.toString();
 			const lastName = formData.get('lastName')?.toString();
 			const email = formData.get('email')?.toString();
-			const role = formData.get('role')?.toString() || 'employee';
+			const phone = formData.get('phone')?.toString();
+			const jobTitle = formData.get('jobTitle')?.toString();
 			const departmentId = formData.get('departmentId')?.toString();
 			const hireDate = formData.get('hireDate')?.toString();
 
@@ -140,39 +133,37 @@ export const actions: Actions = {
 				});
 			}
 
-			// Make GraphQL mutation to create employee
+			// Make GraphQL mutation to create employee with session-based authentication
 			const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 			const graphqlEndpoint = getGraphQLEndpoint();
 
-			const jwtToken = cookies.get('hr_token') || cookies.get('postgraphile-jwt-token') || '';
-
-			let jwtClaims = null;
-			if (jwtToken) {
-				try {
-					const { decodeJWTTokenUnsafe } = await import('$lib/auth/jwt-utils');
-					jwtClaims = await decodeJWTTokenUnsafe(jwtToken);
-				} catch (error) {
-					console.warn('[Employee New] Failed to decode JWT:', error);
-				}
-			}
-
+			// Headers for session-based authentication
+			const cookieHeader = request.headers.get('cookie') || '';
 			const headers: Record<string, string> = {
-				'Content-Type': 'application/json'
+				'Content-Type': 'application/json',
+				'Cookie': cookieHeader
 			};
 
-			if (jwtClaims) {
-				headers['Authorization'] = `Bearer ${jwtToken}`;
-				headers['X-JWT-Claims-Role'] = jwtClaims.role || 'employee';
-				headers['X-JWT-Claims-User-Id'] = jwtClaims.user_id;
+			// Create user via GraphQL mutation
+			// Note: Password will be set separately via password reset flow
+			// Note: Role is hardcoded to "hr_employee" in the backend
+
+			// Build input object, only including fields that have values
+			const input: any = {
+				email,
+				firstName,
+				lastName,
+				status: 'active'
+			};
+
+			// Only add optional fields if they have values
+			if (phone) input.phone = phone;
+			if (jobTitle) input.jobTitle = jobTitle;
+			if (departmentId) input.departmentId = departmentId;
+			if (hireDate) {
+				// Ensure hire date is in ISO 8601 format
+				input.hireDate = new Date(hireDate).toISOString();
 			}
-
-			// Generate a temporary password for the new employee
-			// In production, this should trigger a password reset email
-			const tempPassword = `Welcome${Math.random().toString(36).slice(2, 10)}!`;
-
-			// Hash the password (using bcrypt would be better, but for now use a simple hash)
-			const crypto = await import('crypto');
-			const passwordHash = crypto.createHash('sha256').update(tempPassword).digest('hex');
 
 			const createResponse = await fetch(graphqlEndpoint, {
 				method: 'POST',
@@ -181,36 +172,21 @@ export const actions: Actions = {
 					query: `
 						mutation CreateEmployee($input: CreateUserInput!) {
 							createUser(input: $input) {
-								user {
-									id
-									firstName
-									lastName
-									email
-									role
-									hireDate
-									departmentId
-								}
+								id
+								firstName
+								lastName
+								email
+								role
+								hireDate
+								departmentId
 							}
 						}
 					`,
-					variables: {
-						input: {
-							user: {
-								firstName,
-								lastName,
-								email,
-								role,
-								departmentId: departmentId || null,
-								hireDate: hireDate || new Date().toISOString().split('T')[0],
-								isActive: true,
-								passwordHash: passwordHash
-							}
-						}
-					}
+					variables: { input }
 				})
 			});
 
-			console.log(`[Employee New] Created employee with temporary password: ${tempPassword}`);
+			console.log('[Employee New] User creation request sent');
 
 			if (!createResponse.ok) {
 				console.error('[Employee New] Create failed:', createResponse.statusText);
@@ -228,7 +204,7 @@ export const actions: Actions = {
 				});
 			}
 
-			const newEmployeeId = createData.data?.createUser?.user?.id;
+			const newEmployeeId = createData.data?.createUser?.id;
 
 			if (!newEmployeeId) {
 				return fail(500, {
@@ -236,8 +212,10 @@ export const actions: Actions = {
 				});
 			}
 
-			// Redirect to the new employee's profile page
-			throw redirect(303, `/dashboard/employees/${newEmployeeId}`);
+			console.log(`[Employee New] Successfully created employee with ID: ${newEmployeeId}`);
+
+			// Redirect to the employees list page with success message
+			throw redirect(303, `/dashboard/employees?success=created`);
 		} catch (err: any) {
 			console.error('[Employee New] Error creating employee:', err);
 

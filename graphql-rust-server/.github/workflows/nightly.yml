@@ -1,0 +1,158 @@
+name: Nightly Tests
+
+on:
+  schedule:
+    # Run at 2 AM UTC every day
+    - cron: '0 2 * * *'
+  workflow_dispatch:  # Allow manual triggering
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: full
+
+jobs:
+  comprehensive-tests:
+    name: Comprehensive Test Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-nightly-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Run all unit tests
+        run: cargo test --lib --verbose --all-features
+
+      - name: Run all integration tests
+        run: cargo test --test integration_tests --verbose
+
+      - name: Run load tests (basic only)
+        run: cargo test --test basic_queries_load -- --ignored --test-threads=1
+        timeout-minutes: 10
+        continue-on-error: true
+
+      - name: Run benchmarks
+        run: cargo bench --bench resolver_benchmarks
+        timeout-minutes: 15
+
+      - name: Check for dependency updates
+        run: |
+          cargo install cargo-outdated || true
+          cargo outdated || true
+
+  security-full-audit:
+    name: Full Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install audit tools
+        run: |
+          cargo install cargo-audit
+          cargo install cargo-deny
+
+      - name: Run cargo audit
+        run: cargo audit
+
+      - name: Run cargo deny
+        run: cargo deny check
+
+      - name: Check licenses
+        run: cargo deny check licenses
+
+  rustdoc-check:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build documentation
+        run: cargo doc --no-deps --all-features
+        env:
+          RUSTDOCFLAGS: -D warnings
+
+      - name: Upload documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: target/doc/
+          retention-days: 7
+
+  notify-on-failure:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: [comprehensive-tests, security-full-audit, rustdoc-check]
+    if: failure()
+
+    steps:
+      - name: Create issue on failure
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `Nightly Test Failure - ${new Date().toISOString().split('T')[0]}`;
+            const body = `## Nightly Tests Failed
+
+            The nightly test suite has failed. Please investigate:
+
+            - Check the [workflow run](${context.payload.repository.html_url}/actions/runs/${context.runId})
+            - Review failed jobs and error messages
+            - Ensure all dependencies are up to date
+            - Check for any security vulnerabilities
+
+            **Run ID**: ${context.runId}
+            **Triggered by**: ${context.eventName}`;
+
+            // Search for existing open issue
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'nightly-failure'
+            });
+
+            if (issues.data.length === 0) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['nightly-failure', 'automated']
+              });
+            }

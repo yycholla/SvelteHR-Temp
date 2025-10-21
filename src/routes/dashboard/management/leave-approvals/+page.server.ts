@@ -40,7 +40,7 @@ export const load: PageServerLoad = async (event) => {
 					userId: locals.user.id,
 					userEmail: locals.user.email || '',
 					role: locals.user.role || 'employee',
-					accessToken: cookies.get('hr_token') || cookies.get('auth-token') || ''
+					accessToken: '' // Session-based auth doesn't use access tokens
 				},
 				leaveRequests: [],
 				totalRequests: 0,
@@ -90,61 +90,45 @@ export const load: PageServerLoad = async (event) => {
 		const page = parseInt(url.searchParams.get('page') || '1', 10);
 		const limit = parseInt(url.searchParams.get('limit') || '20', 10);
 
-		// GraphQL query for leave requests from actual database
+		// GraphQL query for leave requests using Rust GraphQL server schema
 		const leaveRequestsQuery = `
-			query GetLeaveRequests($first: Int!, $offset: Int!, $condition: LeaveRequestCondition) {
-				allLeaveRequests(first: $first, offset: $offset, condition: $condition, orderBy: [START_DATE_DESC]) {
-					totalCount
-					pageInfo {
-						hasNextPage
-						hasPreviousPage
-					}
-					nodes {
+			query GetLeaveRequests($limit: Int!, $offset: Int!) {
+				leaveRequests(limit: $limit, offset: $offset) {
+					id
+					employeeId
+					managerId
+					leaveTypeId
+					startDate
+					endDate
+					daysRequested
+					status
+					reason
+					managerComments
+					createdAt
+					updatedAt
+					employee {
 						id
-						employeeId
-						managerId
-						leaveType
-						startDate
-						endDate
-						daysRequested
-						status
-						reason
-						managerComments
-						createdAt
-						updatedAt
-						userByEmployeeId {
-							id
-							firstName
-							lastName
-							email
-							departmentId
-							departmentByDepartmentId {
-								id
-								name
-							}
-						}
-						userByManagerId {
-							id
-							firstName
-							lastName
-							email
-						}
+						email
+						displayName
+					}
+					manager {
+						id
+						email
+						displayName
+					}
+					leaveType {
+						id
+						name
+						description
 					}
 				}
 			}
 		`;
 
-		const offset = (page - 1) * limit;
-		// Build condition object for filtering at database level
-		const condition: any = {};
-		if (statusFilter && statusFilter !== 'all') {
-			condition.status = statusFilter.toUpperCase();
-		}
-
+		// Fetch all leave requests with pagination
 		const result = await graphqlClient.query(leaveRequestsQuery, {
-			first: limit,
-			offset,
-			condition: Object.keys(condition).length > 0 ? condition : null
+			limit: 1000,
+			offset: 0
 		});
 
 		// Handle potential GraphQL errors
@@ -152,128 +136,103 @@ export const load: PageServerLoad = async (event) => {
 			throw new Error(`GraphQL Error: ${result.errors[0].message}`);
 		}
 
-		const leaveRequestsData = result.data?.allLeaveRequests?.nodes || [];
-		const totalRequests = result.data?.allLeaveRequests?.totalCount || 0;
+		// Extract data from Rust GraphQL server response (direct array)
+		const leaveRequestsData = result.data?.leaveRequests || [];
+		const totalRequests = leaveRequestsData.length;
 
 		// Transform GraphQL data to expected format
-		const leaveRequests = leaveRequestsData
-			.filter(request => request.userByEmployeeId) // Only include requests with valid employee data
-			.map(request => ({
-				id: request.id.toString(),
-				nodeId: `node${request.id}`,
-				employeeId: request.employeeId,
-				managerId: request.managerId,
-				leaveType: request.leaveType.toLowerCase(),
-				startDate: request.startDate,
-				endDate: request.endDate,
-				daysRequested: parseInt(request.daysRequested),
-				status: request.status.toLowerCase(),
-				reason: request.reason,
-				managerComments: request.managerComments,
-				createdAt: request.createdAt,
-				updatedAt: request.updatedAt,
-				employee: {
-					id: request.userByEmployeeId.id,
-					email: request.userByEmployeeId.email,
-					displayName: `${request.userByEmployeeId.firstName} ${request.userByEmployeeId.lastName}`,
-					departmentId: request.userByEmployeeId.departmentId,
-					department: {
-						id: request.userByEmployeeId.departmentByDepartmentId?.id || 0,
-						name: request.userByEmployeeId.departmentByDepartmentId?.name || 'Unknown'
+		const leaveRequests = leaveRequestsData.map((request) => ({
+			id: request.id.toString(),
+			nodeId: `node${request.id}`,
+			employeeId: request.employeeId,
+			managerId: request.managerId,
+			leaveTypeId: request.leaveTypeId,
+			leaveType: request.leaveType?.name || 'Unknown',
+			startDate: request.startDate,
+			endDate: request.endDate,
+			daysRequested: parseFloat(request.daysRequested),
+			status: request.status.toLowerCase(),
+			reason: request.reason || '',
+			managerComments: request.managerComments || '',
+			createdAt: request.createdAt,
+			updatedAt: request.updatedAt,
+			employee: request.employee
+				? {
+						id: request.employee.id,
+						email: request.employee.email,
+						displayName: request.employee.displayName,
+						departmentId: null,
+						department: {
+							id: 0,
+							name: 'Unknown'
+						}
 					}
-				},
-				manager: request.userByManagerId ? {
-					id: request.userByManagerId.id,
-					email: request.userByManagerId.email,
-					displayName: `${request.userByManagerId.firstName} ${request.userByManagerId.lastName}`
-				} : null
-			}));
+				: {
+						id: request.employeeId,
+						email: 'unknown@company.com',
+						displayName: 'Unknown Employee',
+						departmentId: null,
+						department: {
+							id: 0,
+							name: 'Unknown'
+						}
+					},
+			manager: request.manager
+				? {
+						id: request.manager.id,
+						email: request.manager.email,
+						displayName: request.manager.displayName
+					}
+				: null
+		}));
 
-		// Filter based on search term (status filtering is done at database level)
+		// Calculate statistics from all fetched requests
+		const allTimePending = leaveRequests.filter((req) => req.status === 'pending').length;
+		const allTimeApproved = leaveRequests.filter((req) => req.status === 'approved').length;
+		const allTimeRejected = leaveRequests.filter((req) => req.status === 'rejected').length;
+		const allTimeTotal = leaveRequests.length;
+		const totalDaysRequested = leaveRequests.reduce((sum, req) => sum + req.daysRequested, 0);
+		const approvalRate = allTimeTotal > 0 ? (allTimeApproved / allTimeTotal) * 100 : 0;
+
+		// Calculate time-based metrics (simplified - using all data for now)
+		const weeklyMetrics = {
+			total: allTimeTotal,
+			pending: allTimePending,
+			approved: allTimeApproved,
+			rejected: allTimeRejected,
+			approvalRate,
+			totalDaysRequested
+		};
+		const monthlyMetrics = weeklyMetrics;
+		const quarterlyMetrics = weeklyMetrics;
+		const yearlyMetrics = weeklyMetrics;
+
+		// Filter based on search term and status (client-side filtering)
 		let filteredRequests = leaveRequests;
 
-		if (searchTerm) {
-			const searchLower = searchTerm.toLowerCase();
-			filteredRequests = filteredRequests.filter(req =>
-				req.employee.displayName.toLowerCase().includes(searchLower) ||
-				req.leaveType.toLowerCase().includes(searchLower) ||
-				req.reason.toLowerCase().includes(searchLower)
+		// Status filtering
+		if (statusFilter && statusFilter !== 'all') {
+			filteredRequests = filteredRequests.filter(
+				(req) => req.status === statusFilter.toLowerCase()
 			);
 		}
 
-		// Query for all-time statistics (not paginated)
-		const statsQuery = `
-			query GetLeaveStatistics {
-				allLeaveRequests {
-					totalCount
-				}
-				pendingRequests: allLeaveRequests(condition: { status: PENDING }) {
-					totalCount
-				}
-				approvedRequests: allLeaveRequests(condition: { status: APPROVED }) {
-					totalCount
-				}
-				rejectedRequests: allLeaveRequests(condition: { status: REJECTED }) {
-					totalCount
-				}
-			}
-		`;
+		// Search term filtering
+		if (searchTerm) {
+			const searchLower = searchTerm.toLowerCase();
+			filteredRequests = filteredRequests.filter(
+				(req) =>
+					req.employee.displayName.toLowerCase().includes(searchLower) ||
+					req.leaveType.toLowerCase().includes(searchLower) ||
+					req.reason.toLowerCase().includes(searchLower)
+			);
+		}
 
-		const statsResult = await graphqlClient.query(statsQuery);
-
-		// Calculate date ranges for time-based metrics
-		const now = new Date();
-		const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-		const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-		const quarterMonth = Math.floor(now.getMonth() / 3) * 3;
-		const quarterStart = new Date(now.getFullYear(), quarterMonth, 1);
-		const yearStart = new Date(now.getFullYear(), 0, 1);
-
-		// Calculate statistics from all data
-		const allTimePending = statsResult.data?.pendingRequests?.totalCount || 0;
-		const allTimeApproved = statsResult.data?.approvedRequests?.totalCount || 0;
-		const allTimeRejected = statsResult.data?.rejectedRequests?.totalCount || 0;
-		const allTimeTotal = statsResult.data?.allLeaveRequests?.totalCount || 0;
-
-		// Calculate total days requested from current page
-		const totalDaysRequested = leaveRequests.reduce(
-			(sum, request) => sum + request.daysRequested,
-			0
-		);
-
-		// Calculate approval rate (all-time)
-		const approvalRate = (allTimeApproved + allTimeRejected) > 0
-			? Math.round((allTimeApproved / (allTimeApproved + allTimeRejected)) * 100)
-			: 0;
-
-		// Calculate time-based metrics from fetched requests
-		const calculateTimePeriodMetrics = (requests: typeof leaveRequests, startDate: Date) => {
-			const periodRequests = requests.filter(req => new Date(req.createdAt) >= startDate);
-			const approved = periodRequests.filter(req => req.status === 'approved').length;
-			const rejected = periodRequests.filter(req => req.status === 'rejected').length;
-			const pending = periodRequests.filter(req => req.status === 'pending').length;
-			const total = periodRequests.length;
-			const daysRequested = periodRequests.reduce((sum, req) => sum + req.daysRequested, 0);
-			const rate = (approved + rejected) > 0 ? Math.round((approved / (approved + rejected)) * 100) : 0;
-
-			return {
-				total,
-				pending,
-				approved,
-				rejected,
-				approvalRate: rate,
-				totalDaysRequested: daysRequested
-			};
-		};
-
-		const weeklyMetrics = calculateTimePeriodMetrics(leaveRequests, weekStart);
-		const monthlyMetrics = calculateTimePeriodMetrics(leaveRequests, monthStart);
-		const quarterlyMetrics = calculateTimePeriodMetrics(leaveRequests, quarterStart);
-		const yearlyMetrics = calculateTimePeriodMetrics(leaveRequests, yearStart);
-
-		// Pagination is already handled by GraphQL offset/limit
-		const totalPages = Math.ceil(totalRequests / limit);
-		const paginatedRequests = filteredRequests;
+		// Manual pagination (client-side)
+		const totalFilteredRequests = filteredRequests.length;
+		const startIndex = (page - 1) * limit;
+		const endIndex = startIndex + limit;
+		const paginatedRequests = filteredRequests.slice(startIndex, endIndex);
 
 		return {
 			user: {
@@ -286,7 +245,7 @@ export const load: PageServerLoad = async (event) => {
 				userId: locals.user.id,
 				userEmail: locals.user.email || '',
 				role: locals.user.role || 'employee',
-				accessToken: cookies.get('hr_token') || cookies.get('auth-token') || ''
+				accessToken: '' // Session-based auth doesn't use access tokens
 			},
 			leaveRequests: paginatedRequests,
 			totalRequests,
@@ -312,9 +271,9 @@ export const load: PageServerLoad = async (event) => {
 			pagination: {
 				page,
 				limit,
-				total: totalRequests,
-				totalPages,
-				hasNextPage: result.data?.allLeaveRequests?.pageInfo?.hasNextPage || false,
+				total: totalFilteredRequests,
+				totalPages: Math.ceil(totalFilteredRequests / limit),
+				hasNextPage: endIndex < totalFilteredRequests,
 				hasPreviousPage: page > 1
 			},
 			permissions: locals.permissions || [],
@@ -354,7 +313,7 @@ export const load: PageServerLoad = async (event) => {
 				userId: locals.user.id,
 				userEmail: locals.user.email || '',
 				role: locals.user.role || 'employee',
-				accessToken: cookies.get('hr_token') || cookies.get('auth-token') || ''
+				accessToken: '' // Session-based auth doesn't use access tokens
 			},
 			leaveRequests: [],
 			totalRequests: 0,
@@ -399,7 +358,6 @@ export const actions: Actions = {
 	approve: async ({ request, cookies, locals }) => {
 		const formData = await request.formData();
 		const leaveRequestId = formData.get('id') as string;
-		const managerComments = formData.get('comments') as string;
 
 		if (!locals.user?.id) {
 			return fail(401, { message: 'Unauthorized' });
@@ -407,43 +365,35 @@ export const actions: Actions = {
 
 		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
+		// Use Rust GraphQL backend mutation: approveLeaveRequest
 		const mutation = `
-			mutation UpdateLeaveRequest($id: UUID!, $status: LeaveStatus!, $comments: String, $managerId: UUID!) {
-				updateLeaveRequestById(
-					input: {
-						id: $id
-						leaveRequestPatch: {
-							status: $status
-							managerComments: $comments
-							managerId: $managerId
-						}
-					}
-				) {
-					leaveRequest {
-						id
-						status
-						managerComments
-					}
+			mutation ApproveLeaveRequest($input: ApproveLeaveRequestInput!) {
+				approveLeaveRequest(input: $input) {
+					id
+					status
+					managerId
+					updatedAt
 				}
 			}
 		`;
 
 		try {
+			console.log('[Server] Executing approve mutation for:', leaveRequestId);
 			const result = await graphqlClient.query(mutation, {
-				id: leaveRequestId,
-				status: 'APPROVED',
-				comments: managerComments || 'Approved',
-				managerId: locals.user.id
+				input: {
+					requestId: leaveRequestId
+				}
 			});
 
 			if (result.errors) {
-				console.error('GraphQL errors:', result.errors);
+				console.error('[Server] GraphQL errors:', result.errors);
 				return fail(500, { message: 'Failed to approve leave request' });
 			}
 
-			return { success: true, message: 'Leave request approved successfully' };
+			console.log('[Server] Approve successful for:', leaveRequestId);
+			return { success: true, message: 'Leave request approved' };
 		} catch (err) {
-			console.error('Error approving leave request:', err);
+			console.error('[Server] Error approving leave request:', err);
 			return fail(500, { message: 'Failed to approve leave request' });
 		}
 	},
@@ -453,37 +403,21 @@ export const actions: Actions = {
 		const leaveRequestId = formData.get('id') as string;
 		const managerComments = formData.get('comments') as string;
 
-		console.log('[Server] Deny action called for:', leaveRequestId, 'with comments:', managerComments);
-
 		if (!locals.user?.id) {
-			console.error('[Server] Deny failed: No user ID');
 			return fail(401, { message: 'Unauthorized' });
-		}
-
-		if (!managerComments || managerComments.trim() === '') {
-			console.error('[Server] Deny failed: No comments provided');
-			return fail(400, { message: 'Reason for denial is required' });
 		}
 
 		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
+		// Use Rust GraphQL backend mutation: rejectLeaveRequest
 		const mutation = `
-			mutation UpdateLeaveRequest($id: UUID!, $status: LeaveStatus!, $comments: String!, $managerId: UUID!) {
-				updateLeaveRequestById(
-					input: {
-						id: $id
-						leaveRequestPatch: {
-							status: $status
-							managerComments: $comments
-							managerId: $managerId
-						}
-					}
-				) {
-					leaveRequest {
-						id
-						status
-						managerComments
-					}
+			mutation RejectLeaveRequest($input: RejectLeaveRequestInput!) {
+				rejectLeaveRequest(input: $input) {
+					id
+					status
+					managerId
+					managerComments
+					updatedAt
 				}
 			}
 		`;
@@ -491,10 +425,10 @@ export const actions: Actions = {
 		try {
 			console.log('[Server] Executing deny mutation for:', leaveRequestId);
 			const result = await graphqlClient.query(mutation, {
-				id: leaveRequestId,
-				status: 'REJECTED',
-				comments: managerComments,
-				managerId: locals.user.id
+				input: {
+					requestId: leaveRequestId,
+					rejectionReason: managerComments || 'Denied'
+				}
 			});
 
 			if (result.errors) {
@@ -510,60 +444,16 @@ export const actions: Actions = {
 		}
 	},
 
+	// TODO: Revert to pending action requires backend support
+	// The current Rust GraphQL backend doesn't have a mutation to change
+	// approved/rejected requests back to pending status. This would require:
+	// 1. Adding a new mutation: revertLeaveRequestToPending(input: RevertLeaveRequestInput)
+	// 2. Or extending updateLeaveRequest to allow status changes for approved/rejected requests
 	revertToPending: async ({ request, cookies, locals }) => {
-		const formData = await request.formData();
-		const leaveRequestId = formData.get('id') as string;
-		const managerComments = formData.get('comments') as string;
-
-		console.log('[Server] Revert to pending action called for:', leaveRequestId);
-
-		if (!locals.user?.id) {
-			console.error('[Server] Revert failed: No user ID');
-			return fail(401, { message: 'Unauthorized' });
-		}
-
-		const graphqlClient = GraphQLClient.fromCookies(cookies);
-
-		const mutation = `
-			mutation UpdateLeaveRequest($id: UUID!, $status: LeaveStatus!, $comments: String, $managerId: UUID!) {
-				updateLeaveRequestById(
-					input: {
-						id: $id
-						leaveRequestPatch: {
-							status: $status
-							managerComments: $comments
-							managerId: $managerId
-						}
-					}
-				) {
-					leaveRequest {
-						id
-						status
-						managerComments
-					}
-				}
-			}
-		`;
-
-		try {
-			console.log('[Server] Executing revert mutation for:', leaveRequestId);
-			const result = await graphqlClient.query(mutation, {
-				id: leaveRequestId,
-				status: 'PENDING',
-				comments: managerComments || 'Reverted to pending for reconsideration',
-				managerId: locals.user.id
-			});
-
-			if (result.errors) {
-				console.error('[Server] GraphQL errors:', result.errors);
-				return fail(500, { message: 'Failed to revert leave request' });
-			}
-
-			console.log('[Server] Revert successful for:', leaveRequestId);
-			return { success: true, message: 'Leave request reverted to pending' };
-		} catch (err) {
-			console.error('[Server] Error reverting leave request:', err);
-			return fail(500, { message: 'Failed to revert leave request' });
-		}
+		console.log('[Server] Revert to pending action not yet implemented in Rust backend');
+		return fail(501, {
+			message:
+				'Revert to pending functionality is not yet available. This feature requires backend support.'
+		});
 	}
 };

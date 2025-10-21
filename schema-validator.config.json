@@ -1,0 +1,60 @@
+{
+  "sources": {
+    "directory": "./src/routes",
+    "extensions": [".ts", ".svelte"],
+    "excludePatterns": [
+      "**/*.test.ts",
+      "**/*.spec.ts",
+      "**/node_modules/**",
+      "**/.svelte-kit/**",
+      "**/dist/**"
+    ]
+  },
+  "database": {
+    "connectionString": "${DATABASE_URL}",
+    "schema": "public",
+    "introspectionCache": true,
+    "cacheTTL": 3600,
+    "ssl": false
+  },
+  "api": {
+    "endpoint": "${PUBLIC_GRAPHQL_ENDPOINT}",
+    "headers": {
+      "Content-Type": "application/json",
+      "User-Agent": "schema-validator/1.0"
+    },
+    "introspectionCache": true,
+    "timeout": 30000
+  },
+  "validation": {
+    "strict": true,
+    "allowComputedFields": true,
+    "computedFields": [
+      "User.fullName",
+      "User.displayName",
+      "Employee.displayName",
+      "Employee.yearsOfService",
+      "Department.employeeCount",
+      "Order.total",
+      "Event.attendeeCount",
+      "Event.isUserAttending"
+    ]
+  },
+  "typeMappings": {
+    "citext": "String",
+    "uuid": "ID",
+    "timestamptz": "DateTime",
+    "jsonb": "JSON",
+    "int8": "String"
+  },
+  "output": {
+    "format": "terminal",
+    "colors": true,
+    "verbose": false
+  },
+  "cache": {
+    "enabled": true,
+    "directory": ".schema-cache",
+    "ttl": 3600
+  }
+}

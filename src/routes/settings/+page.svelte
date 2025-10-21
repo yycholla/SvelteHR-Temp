@@ -234,7 +234,6 @@
 			await new Promise((resolve) => setTimeout(resolve, 800));
 
 			updateSuccess = 'Notification preferences updated!';
-			console.log('Notifications updated:', notificationSettings);
 		} catch (error) {
 			updateError = 'Failed to update notification preferences.';
 			console.error('Notifications update error:', error);

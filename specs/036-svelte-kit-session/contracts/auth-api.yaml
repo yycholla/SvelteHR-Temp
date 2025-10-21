@@ -1,0 +1,235 @@
+openapi: 3.0.3
+info:
+  title: SvelteHR Authentication API
+  description: Session-based authentication endpoints for SvelteKit migration
+  version: 1.0.0
+  contact:
+    name: SvelteHR Development Team
+
+servers:
+  - url: http://localhost:3001/api
+    description: Development server
+  - url: https://api.sveltehr.com/api
+    description: Production server
+
+security:
+  - sessionCookie: []
+
+paths:
+  /auth/login:
+    post:
+      summary: Authenticate user and create session
+      description: Validates user credentials and creates a new session with HTTP-only cookie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  description: User's login username
+                  example: 'john.doe'
+                password:
+                  type: string
+                  description: User's password
+                  format: password
+                  example: 'securePassword123'
+      responses:
+        '200':
+          description: Authentication successful, session cookie set
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      username:
+                        type: string
+                      email:
+                        type: string
+                      role:
+                        type: string
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: 'Invalid username or password'
+        '429':
+          description: Too many login attempts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: 'Too many failed attempts. Try again later.'
+
+  /auth/logout:
+    post:
+      summary: Terminate user session
+      description: Invalidates the current session and clears session cookie
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '401':
+          description: No active session
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: 'No active session'
+
+  /auth/verify:
+    get:
+      summary: Verify current session
+      description: Validates the current session cookie and returns user information
+      responses:
+        '200':
+          description: Session valid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      username:
+                        type: string
+                      email:
+                        type: string
+                      role:
+                        type: string
+                      permissions:
+                        type: array
+                        items:
+                          type: string
+        '401':
+          description: Invalid or expired session
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: 'Session expired or invalid'
+
+  /auth/refresh:
+    post:
+      summary: Extend session expiration
+      description: Extends the current session's expiration time
+      responses:
+        '200':
+          description: Session extended
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  expires_at:
+                    type: string
+                    format: date-time
+        '401':
+          description: No active session to refresh
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: 'No active session'
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: session
+      description: HTTP-only session cookie containing session identifier
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [admin, manager, employee]
+        permissions:
+          type: array
+          items:
+            type: string
+      required:
+        - id
+        - username
+        - email
+        - role
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+      required:
+        - success
+        - error

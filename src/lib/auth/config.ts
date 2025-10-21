@@ -1,46 +1,37 @@
-// Centralized authentication configuration
-// T052: Authentication System Unification
+/**
+ * Centralized Authentication Configuration
+ *
+ * PRIMARY: Session-based authentication with HTTP-only cookies
+ * The application uses axum-login backend for secure session management.
+ *
+ * DEPRECATED: JWT token support has been removed. Legacy JWT configuration
+ * is kept for backward compatibility only and should not be used.
+ */
 
 import { browser } from '$app/environment';
 
 export interface AuthConfig {
-	// JWT Configuration
-	jwt: {
-		issuer: string;
-		audience: string;
-		algorithm: string;
-		expirationTime: string;
-		refreshThreshold: number; // Minutes before expiry to refresh
+	// API Configuration
+	api: {
+		baseUrl: string;
+		authEndpoint: string;
+		logoutEndpoint: string;
+		verifyEndpoint: string;
 	};
 
-	// Token Storage Configuration
-	tokens: {
-		accessTokenName: string;
-		refreshTokenName: string;
-		storageType: 'cookie' | 'localStorage' | 'sessionStorage';
+	// Session Cookie Configuration (PRIMARY - session-based auth)
+	sessionCookies: {
+		cookieName: string;
 		cookieOptions: {
 			httpOnly: boolean;
 			secure: boolean;
 			sameSite: 'strict' | 'lax' | 'none';
 			path: string;
-			maxAge: number; // seconds
+			maxAge: number; // seconds (30 minutes default)
+			domain?: string;
 		};
-	};
-
-	// API Configuration
-	api: {
-		baseUrl: string;
-		authEndpoint: string;
-		refreshEndpoint: string;
-		logoutEndpoint: string;
-		verifyEndpoint: string;
-	};
-
-	// Session Configuration
-	session: {
 		timeout: number; // minutes
-		warningTime: number; // minutes before timeout to warn
-		extendOnActivity: boolean;
+		renewalThreshold: number; // minutes before expiry to renew
 	};
 
 	// Security Configuration
@@ -53,46 +44,57 @@ export interface AuthConfig {
 			windowMs: number;
 		};
 	};
+
+	// DEPRECATED: JWT Configuration (kept for backward compatibility only)
+	/** @deprecated Use session-based authentication instead */
+	jwt?: {
+		issuer: string;
+		audience: string;
+		algorithm: string;
+		expirationTime: string;
+		refreshThreshold: number;
+	};
+
+	// DEPRECATED: Token Storage Configuration (kept for backward compatibility only)
+	/** @deprecated Use session cookies instead */
+	tokens?: {
+		accessTokenName: string;
+		refreshTokenName: string;
+		storageType: 'cookie' | 'localStorage' | 'sessionStorage';
+		cookieOptions: {
+			httpOnly: boolean;
+			secure: boolean;
+			sameSite: 'strict' | 'lax' | 'none';
+			path: string;
+			maxAge: number;
+		};
+	};
 }
 
-// Default configuration
+// Default configuration - Session-based auth is PRIMARY
 const defaultConfig: AuthConfig = {
-	jwt: {
-		issuer: 'postgraphile-hr',
-		audience: 'postgraphile-hr',
-		algorithm: 'HS256',
-		expirationTime: '1h',
-		refreshThreshold: 5 // Refresh 5 minutes before expiry
-	},
-
-	tokens: {
-		accessTokenName: 'hr_token',
-		refreshTokenName: 'hr_refresh_token',
-		storageType: 'cookie',
-		cookieOptions: {
-			httpOnly: true,
-			secure: !browser || window.location.protocol === 'https:',
-			sameSite: 'lax',
-			path: '/',
-			maxAge: 60 * 60 * 24 * 7 // 7 days
-		}
-	},
-
 	api: {
 		baseUrl:
 			process.env.NODE_ENV === 'production'
 				? 'https://api.postgraphile-hr.com'
 				: 'http://localhost:4000',
 		authEndpoint: '/auth/login',
-		refreshEndpoint: '/auth/refresh',
 		logoutEndpoint: '/auth/logout',
 		verifyEndpoint: '/auth/verify'
 	},
 
-	session: {
-		timeout: 60 * 8, // 8 hours
-		warningTime: 5, // Warn 5 minutes before timeout
-		extendOnActivity: true
+	// Session Cookie Configuration (PRIMARY - session-based auth)
+	sessionCookies: {
+		cookieName: 'hr_token', // Backend sets this cookie name
+		cookieOptions: {
+			httpOnly: true,
+			secure: !browser || window.location.protocol === 'https:',
+			sameSite: 'lax', // Changed from 'strict' for better compatibility
+			path: '/',
+			maxAge: 24 * 60 * 60 // 24 hours (backend manages actual expiry)
+		},
+		timeout: 24 * 60, // 24 hours
+		renewalThreshold: 60 // Renew 1 hour before expiry
 	},
 
 	security: {
@@ -122,8 +124,8 @@ const environmentConfig: Partial<AuthConfig> = {
 
 	// Test overrides
 	...(process.env.NODE_ENV === 'test' && {
-		session: {
-			...defaultConfig.session,
+		sessionCookies: {
+			...defaultConfig.sessionCookies,
 			timeout: 5 // Short timeout for tests
 		},
 		security: {
@@ -141,17 +143,15 @@ export const authConfig: AuthConfig = {
 	...defaultConfig,
 	...environmentConfig,
 	// Deep merge nested objects
-	jwt: { ...defaultConfig.jwt, ...environmentConfig.jwt },
-	tokens: {
-		...defaultConfig.tokens,
-		...environmentConfig.tokens,
+	api: { ...defaultConfig.api, ...environmentConfig.api },
+	sessionCookies: {
+		...defaultConfig.sessionCookies,
+		...environmentConfig.sessionCookies,
 		cookieOptions: {
-			...defaultConfig.tokens.cookieOptions,
-			...environmentConfig.tokens?.cookieOptions
+			...defaultConfig.sessionCookies.cookieOptions,
+			...environmentConfig.sessionCookies?.cookieOptions
 		}
 	},
-	api: { ...defaultConfig.api, ...environmentConfig.api },
-	session: { ...defaultConfig.session, ...environmentConfig.session },
 	security: {
 		...defaultConfig.security,
 		...environmentConfig.security,
@@ -162,15 +162,22 @@ export const authConfig: AuthConfig = {
 	}
 };
 
-// Configuration validation
+/**
+ * Validate authentication configuration
+ * Focuses on session-based authentication settings
+ */
 export function validateAuthConfig(config: AuthConfig): void {
-	// JWT validation
-	if (!config.jwt.issuer) {
-		throw new Error('JWT issuer is required');
+	// Session Cookie validation (PRIMARY)
+	if (!config.sessionCookies.cookieName) {
+		throw new Error('Session cookie name is required');
 	}
 
-	if (!config.jwt.audience) {
-		throw new Error('JWT audience is required');
+	if (config.sessionCookies.timeout <= 0) {
+		throw new Error('Session timeout must be greater than 0 minutes');
+	}
+
+	if (config.sessionCookies.renewalThreshold >= config.sessionCookies.timeout) {
+		throw new Error('Session renewal threshold must be less than session timeout');
 	}
 
 	// API validation
@@ -188,36 +195,40 @@ export function validateAuthConfig(config: AuthConfig): void {
 	if (config.security.requireHttps && !config.api.baseUrl.startsWith('https://')) {
 		throw new Error('HTTPS is required in production but API base URL is not HTTPS');
 	}
-
-	// Session validation
-	if (config.session.timeout <= config.session.warningTime) {
-		throw new Error('Session timeout must be greater than warning time');
-	}
-
-	if (config.jwt.refreshThreshold >= 60) {
-		throw new Error('JWT refresh threshold must be less than 60 minutes');
-	}
 }
 
 // Validate configuration on module load
 validateAuthConfig(authConfig);
 
-// Token name helpers
-export const getAccessTokenName = () => authConfig.tokens.accessTokenName;
-export const getRefreshTokenName = () => authConfig.tokens.refreshTokenName;
+/**
+ * Helper Functions
+ */
 
 // API endpoint helpers
 export const getAuthEndpoints = () => ({
 	login: `${authConfig.api.baseUrl}${authConfig.api.authEndpoint}`,
-	refresh: `${authConfig.api.baseUrl}${authConfig.api.refreshEndpoint}`,
 	logout: `${authConfig.api.baseUrl}${authConfig.api.logoutEndpoint}`,
 	verify: `${authConfig.api.baseUrl}${authConfig.api.verifyEndpoint}`
 });
 
-// Cookie options helper
-export const getCookieOptions = () => authConfig.tokens.cookieOptions;
+// Session cookie helpers
+export const getSessionCookieName = () => authConfig.sessionCookies.cookieName;
+export const getSessionCookieOptions = () => authConfig.sessionCookies.cookieOptions;
 
 // Environment helpers
 export const isDevelopment = () => process.env.NODE_ENV === 'development';
 export const isProduction = () => process.env.NODE_ENV === 'production';
 export const isTest = () => process.env.NODE_ENV === 'test';
+
+/**
+ * DEPRECATED: JWT-related helpers (kept for backward compatibility)
+ */
+
+/** @deprecated Use session-based authentication instead */
+export const getAccessTokenName = () => authConfig.tokens?.accessTokenName || 'hr_token';
+
+/** @deprecated Use session-based authentication instead */
+export const getRefreshTokenName = () => authConfig.tokens?.refreshTokenName || 'hr_refresh_token';
+
+/** @deprecated Use getSessionCookieOptions() instead */
+export const getCookieOptions = () => authConfig.tokens?.cookieOptions || getSessionCookieOptions();

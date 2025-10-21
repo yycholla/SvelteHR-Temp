@@ -14,6 +14,9 @@
 	let endTime = $state(data.defaultEndTime);
 	let isAllDay = $state(data.defaultAllDay || false);
 
+	// Get user's timezone offset in minutes
+	const timezoneOffset = new Date().getTimezoneOffset();
+
 	// Handle all-day toggle
 	function handleAllDayToggle() {
 		if (isAllDay) {
@@ -61,6 +64,9 @@
 
 	<!-- Event Creation Form -->
 	<form method="POST" use:enhance class="rounded-lg border bg-card p-6 shadow-sm">
+		<!-- Hidden field with user's timezone offset -->
+		<input type="hidden" name="timezoneOffset" value={timezoneOffset} />
+
 		{#if form?.error}
 			<div class="mb-6 rounded-md bg-destructive/10 border border-destructive px-4 py-3 text-sm text-destructive">
 				{form.error}

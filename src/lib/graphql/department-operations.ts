@@ -1,386 +1,161 @@
 /**
- * T028: Department Operations - GraphQL Integration
+ * Department Operations - Migrated to Rust Idiomatic GraphQL
  *
- * Standardized department management operations with comprehensive error handling,
- * timeout enforcement, and retry logic following the T021-T024 entity model patterns.
+ * Simplified to use only backend-supported features.
+ * Advanced features (budget, location, metrics, hierarchy) will be added when backend supports them.
  */
 
 import { gql } from '@urql/svelte';
 import type { Client } from '@urql/core';
-import type { DataRequest, UserCredentials } from '$lib/models/data-request';
-import type { ErrorResponse } from '$lib/models/error-response';
+import type { UserCredentials } from '$lib/models/data-request';
+
+// ============================================================================
+// QUERIES
+// ============================================================================
 
 /**
- * GraphQL Department Queries
+ * Query: Get all departments with pagination
+ * Backend: Rust idiomatic - departments(limit, offset) returns direct array
  */
 export const GET_DEPARTMENTS_QUERY = gql`
-	query GetDepartments(
-		$first: Int
-		$after: Cursor
-		$filter: DepartmentFilter
-		$orderBy: [DepartmentsOrderBy!]
-	) {
-		departments(first: $first, after: $after, filter: $filter, orderBy: $orderBy) {
-			nodes {
+	query GetDepartments($limit: Int = 100, $offset: Int = 0) {
+		departments(limit: $limit, offset: $offset) {
+			id
+			name
+			description
+			managerId
+			createdAt
+			updatedAt
+			manager {
 				id
-				name
-				description
-				code
-				isActive
-				createdAt
-				updatedAt
-				manager {
-					id
-					displayName
-					email
-				}
-				parentDepartment {
-					id
-					name
-				}
-				childDepartments {
-					nodes {
-						id
-						name
-						employeeCount
-					}
-				}
-				employees {
-					totalCount
-				}
-				budget {
-					annual
-					allocated
-					spent
-					remaining
-				}
-				location {
-					building
-					floor
-					address
-				}
-				metrics {
-					employeeCount
-					activeProjects
-					averageSalary
-					turnoverRate
-				}
+				fullName
+				displayName
 			}
-			pageInfo {
-				hasNextPage
-				hasPreviousPage
-				startCursor
-				endCursor
-			}
-			totalCount
 		}
 	}
 `;
 
+/**
+ * Query: Get single department by ID
+ * Backend: Rust idiomatic - department(id) not departmentById
+ */
 export const GET_DEPARTMENT_BY_ID_QUERY = gql`
 	query GetDepartmentById($id: UUID!) {
 		department(id: $id) {
 			id
 			name
 			description
-			code
-			isActive
+			managerId
 			createdAt
 			updatedAt
 			manager {
 				id
+				fullName
 				displayName
 				email
-				profile {
-					firstName
-					lastName
-					avatarUrl
-				}
-			}
-			parentDepartment {
-				id
-				name
-				manager {
-					displayName
-				}
-			}
-			childDepartments {
-				nodes {
-					id
-					name
-					description
-					manager {
-						displayName
-					}
-					employees {
-						totalCount
-					}
-				}
-			}
-			employees(first: 50) {
-				nodes {
-					id
-					displayName
-					email
-					profile {
-						firstName
-						lastName
-						avatarUrl
-						jobTitle
-						hireDate
-					}
-					roles {
-						nodes {
-							name
-						}
-					}
-				}
-				totalCount
-			}
-			budget {
-				annual
-				allocated
-				spent
-				remaining
-				currency
-				lastUpdated
-			}
-			location {
-				building
-				floor
-				address
-				city
-				state
-				zipCode
-			}
-			metrics {
-				employeeCount
-				activeProjects
-				averageSalary
-				turnoverRate
-				performanceScore
-				satisfaction
 			}
 		}
 	}
 `;
 
-export const GET_DEPARTMENT_HIERARCHY_QUERY = gql`
-	query GetDepartmentHierarchy {
-		departments(filter: { isActive: true }, orderBy: [NAME_ASC]) {
-			nodes {
-				id
-				name
-				description
-				code
-				parentDepartment {
-					id
-					name
-				}
-				childDepartments {
-					nodes {
-						id
-						name
-						childDepartments {
-							nodes {
-								id
-								name
-							}
-						}
-					}
-				}
-				manager {
-					id
-					displayName
-				}
-				employees {
-					totalCount
-				}
-			}
-		}
-	}
-`;
+// ============================================================================
+// MUTATIONS
+// ============================================================================
 
 /**
- * GraphQL Department Mutations
+ * Mutation: Create department
+ * Backend: Rust idiomatic - createDepartment(input) returns Department directly
  */
 export const CREATE_DEPARTMENT_MUTATION = gql`
 	mutation CreateDepartment($input: CreateDepartmentInput!) {
 		createDepartment(input: $input) {
-			department {
+			id
+			name
+			description
+			managerId
+			createdAt
+			updatedAt
+			manager {
 				id
-				name
-				description
-				code
-				isActive
-				manager {
-					id
-					displayName
-				}
-				parentDepartment {
-					id
-					name
-				}
-				budget {
-					annual
-					allocated
-				}
-				location {
-					building
-					floor
-					address
-				}
+				fullName
 			}
-			clientMutationId
-		}
-	}
-`;
-
-export const UPDATE_DEPARTMENT_MUTATION = gql`
-	mutation UpdateDepartment($input: UpdateDepartmentInput!) {
-		updateDepartment(input: $input) {
-			department {
-				id
-				name
-				description
-				code
-				isActive
-				updatedAt
-				manager {
-					id
-					displayName
-				}
-				parentDepartment {
-					id
-					name
-				}
-				budget {
-					annual
-					allocated
-					spent
-					remaining
-				}
-				location {
-					building
-					floor
-					address
-				}
-			}
-			clientMutationId
-		}
-	}
-`;
-
-export const DELETE_DEPARTMENT_MUTATION = gql`
-	mutation DeleteDepartment($input: DeleteDepartmentInput!) {
-		deleteDepartment(input: $input) {
-			deletedDepartmentId
-			clientMutationId
 		}
 	}
 `;
 
 /**
- * Department interfaces
+ * Mutation: Update department
+ * Backend: Rust idiomatic - updateDepartment(id, input) returns Department directly
  */
+export const UPDATE_DEPARTMENT_MUTATION = gql`
+	mutation UpdateDepartment($id: UUID!, $input: UpdateDepartmentInput!) {
+		updateDepartment(id: $id, input: $input) {
+			id
+			name
+			description
+			managerId
+			updatedAt
+			manager {
+				id
+				fullName
+			}
+		}
+	}
+`;
+
+/**
+ * Mutation: Delete department
+ * Backend: Rust idiomatic - deleteDepartment(id) returns Boolean
+ */
+export const DELETE_DEPARTMENT_MUTATION = gql`
+	mutation DeleteDepartment($id: UUID!) {
+		deleteDepartment(id: $id)
+	}
+`;
+
+// ============================================================================
+// TYPESCRIPT INTERFACES
+// ============================================================================
+
 export interface Department {
 	id: string;
 	name: string;
 	description?: string;
-	code: string;
-	isActive: boolean;
+	managerId?: string;
 	createdAt: string;
 	updatedAt: string;
 	manager?: {
 		id: string;
-		displayName: string;
+		fullName: string;
+		displayName?: string;
 		email?: string;
-		profile?: {
-			firstName: string;
-			lastName: string;
-			avatarUrl?: string;
-		};
-	};
-	parentDepartment?: {
-		id: string;
-		name: string;
-		manager?: {
-			displayName: string;
-		};
-	};
-	childDepartments: Array<{
-		id: string;
-		name: string;
-		description?: string;
-		manager?: {
-			displayName: string;
-		};
-		employeeCount?: number;
-	}>;
-	employees: {
-		nodes?: Array<{
-			id: string;
-			displayName: string;
-			email: string;
-			profile?: {
-				firstName: string;
-				lastName: string;
-				avatarUrl?: string;
-				jobTitle: string;
-				hireDate: string;
-			};
-			roles: Array<{
-				name: string;
-			}>;
-		}>;
-		totalCount: number;
-	};
-	budget?: {
-		annual: number;
-		allocated: number;
-		spent: number;
-		remaining: number;
-		currency?: string;
-		lastUpdated?: string;
-	};
-	location?: {
-		building?: string;
-		floor?: string;
-		address?: string;
-		city?: string;
-		state?: string;
-		zipCode?: string;
-	};
-	metrics?: {
-		employeeCount: number;
-		activeProjects: number;
-		averageSalary?: number;
-		turnoverRate?: number;
-		performanceScore?: number;
-		satisfaction?: number;
 	};
 }
 
 export interface DepartmentFilter {
 	isActive?: boolean;
-	parentId?: string;
 	managerId?: string;
 	search?: string;
 }
 
-export interface PaginatedDepartments {
-	nodes: Department[];
-	pageInfo: {
-		hasNextPage: boolean;
-		hasPreviousPage: boolean;
-		startCursor?: string;
-		endCursor?: string;
-	};
-	totalCount: number;
+export interface CreateDepartmentInput {
+	name: string;
+	description?: string;
+	managerId?: string;
 }
 
+export interface UpdateDepartmentInput {
+	name?: string;
+	description?: string;
+	managerId?: string;
+}
+
+// ============================================================================
+// OPERATIONS CLASS
+// ============================================================================
+
 /**
- * Standardized department operations with error handling and retry logic
+ * Department Operations with Idiomatic Rust GraphQL Patterns
  */
 export class DepartmentOperations {
 	private client: Client;
@@ -390,36 +165,38 @@ export class DepartmentOperations {
 	}
 
 	/**
-	 * Get paginated list of departments with filtering and sorting
+	 * Get paginated list of departments
 	 */
 	async getDepartments(params: {
-		first?: number;
-		after?: string;
+		limit?: number;
+		offset?: number;
 		filter?: DepartmentFilter;
-		orderBy?: string[];
 		userCredentials: UserCredentials;
-	}): Promise<PaginatedDepartments> {
+	}): Promise<{
+		departments: Department[];
+		totalCount: number;
+		hasNextPage: boolean;
+	}> {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
+		const limit = params.limit || 100;
 		const dataRequest = createDataRequest({
 			operationName: 'GetDepartments',
 			variables: {
-				first: params.first || 20,
-				after: params.after,
-				filter: params.filter,
-				orderBy: params.orderBy
+				limit,
+				offset: params.offset || 0
 			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
 		});
 
 		try {
-			// Server-side query using toPromise()
-			const result = await this.client.query(GET_DEPARTMENTS_QUERY, dataRequest.variables).toPromise();
+			const result = await this.client
+				.query(GET_DEPARTMENTS_QUERY, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
-				console.error('Departments GraphQL error:', result.error);
 				const errorResponse = createErrorResponse(result.error, {
 					type: 'graphql',
 					userMessage: 'Unable to load department list. Please check your permissions and try again.'
@@ -434,11 +211,22 @@ export class DepartmentOperations {
 				});
 			}
 
-			console.log(`Loaded ${result.data.departments.nodes.length} departments`);
-			return result.data.departments;
+			const departments = result.data.departments;
+
+			// Apply client-side filtering if needed
+			let filteredDepartments = departments;
+			if (params.filter) {
+				filteredDepartments = this.applyClientFilter(departments, params.filter);
+			}
+
+			return {
+				departments: filteredDepartments,
+				totalCount: filteredDepartments.length,
+				hasNextPage: departments.length === limit
+			};
 		} catch (error: any) {
 			if (error.userMessage) {
-				throw error; // Already formatted error
+				throw error;
 			}
 			throw createErrorResponse(error, {
 				type: 'graphql',
@@ -448,7 +236,7 @@ export class DepartmentOperations {
 	}
 
 	/**
-	 * Get single department by ID with full details
+	 * Get single department by ID
 	 */
 	async getDepartmentById(params: {
 		id: string;
@@ -465,11 +253,11 @@ export class DepartmentOperations {
 		});
 
 		try {
-			// Server-side query using toPromise()
-			const result = await this.client.query(GET_DEPARTMENT_BY_ID_QUERY, dataRequest.variables).toPromise();
+			const result = await this.client
+				.query(GET_DEPARTMENT_BY_ID_QUERY, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
-				console.error('Department by ID error:', result.error);
 				const errorResponse = createErrorResponse(result.error, {
 					type: 'graphql',
 					userMessage: 'Unable to load department details. Please check the department ID and try again.'
@@ -484,11 +272,10 @@ export class DepartmentOperations {
 				});
 			}
 
-			console.log(`Loaded department: ${result.data.department.name}`);
 			return result.data.department;
 		} catch (error: any) {
 			if (error.userMessage) {
-				throw error; // Already formatted error
+				throw error;
 			}
 			throw createErrorResponse(error, {
 				type: 'graphql',
@@ -498,77 +285,10 @@ export class DepartmentOperations {
 	}
 
 	/**
-	 * Get department hierarchy for organizational chart
-	 */
-	async getDepartmentHierarchy(params: {
-		userCredentials: UserCredentials;
-	}): Promise<Department[]> {
-		const { createDataRequest } = await import('$lib/models/data-request');
-		const { createErrorResponse } = await import('$lib/models/error-response');
-
-		const dataRequest = createDataRequest({
-			operationName: 'GetDepartmentHierarchy',
-			variables: {},
-			userCredentials: params.userCredentials,
-			timeoutMs: 6000
-		});
-
-		try {
-			// Server-side query using toPromise()
-			const result = await this.client.query(GET_DEPARTMENT_HIERARCHY_QUERY, dataRequest.variables).toPromise();
-
-			if (result.error) {
-				console.error('Department hierarchy error:', result.error);
-				const errorResponse = createErrorResponse(result.error, {
-					type: 'graphql',
-					userMessage: 'Unable to load organization chart. Please try refreshing the page.'
-				});
-				throw errorResponse;
-			}
-
-			if (!result.data?.departments) {
-				throw createErrorResponse(new Error('No data returned'), {
-					type: 'graphql',
-					userMessage: 'No department hierarchy data returned. Please try again.'
-				});
-			}
-
-			console.log(`Loaded hierarchy with ${result.data.departments.nodes.length} departments`);
-			return result.data.departments.nodes;
-		} catch (error: any) {
-			if (error.userMessage) {
-				throw error; // Already formatted error
-			}
-			throw createErrorResponse(error, {
-				type: 'graphql',
-				userMessage: 'Failed to load department hierarchy. Please try again.'
-			});
-		}
-	}
-
-	/**
 	 * Create new department
 	 */
 	async createDepartment(params: {
-		input: {
-			name: string;
-			description?: string;
-			code: string;
-			managerId?: string;
-			parentId?: string;
-			budget?: {
-				annual: number;
-				allocated: number;
-			};
-			location?: {
-				building?: string;
-				floor?: string;
-				address?: string;
-				city?: string;
-				state?: string;
-				zipCode?: string;
-			};
-		};
+		input: CreateDepartmentInput;
 		userCredentials: UserCredentials;
 	}): Promise<Department> {
 		const { createDataRequest } = await import('$lib/models/data-request');
@@ -582,11 +302,11 @@ export class DepartmentOperations {
 		});
 
 		try {
-			// Server-side query using toPromise()
-			const result = await this.client.query(CREATE_DEPARTMENT_MUTATION, dataRequest.variables).toPromise();
+			const result = await this.client
+				.mutation(CREATE_DEPARTMENT_MUTATION, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
-				console.error('Create department error:', result.error);
 				const errorResponse = createErrorResponse(result.error, {
 					type: 'validation',
 					userMessage: 'Unable to create department. Please check the information and try again.'
@@ -594,18 +314,17 @@ export class DepartmentOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data?.createDepartment?.department) {
+			if (!result.data?.createDepartment) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'No department data returned. Please try again.'
 				});
 			}
 
-			console.log(`Created department: ${result.data.createDepartment.department.name}`);
-			return result.data.createDepartment.department;
+			return result.data.createDepartment;
 		} catch (error: any) {
 			if (error.userMessage) {
-				throw error; // Already formatted error
+				throw error;
 			}
 			throw createErrorResponse(error, {
 				type: 'graphql',
@@ -618,29 +337,8 @@ export class DepartmentOperations {
 	 * Update existing department
 	 */
 	async updateDepartment(params: {
-		input: {
-			id: string;
-			patch: {
-				name?: string;
-				description?: string;
-				code?: string;
-				isActive?: boolean;
-				managerId?: string;
-				parentId?: string;
-				budget?: {
-					annual?: number;
-					allocated?: number;
-				};
-				location?: {
-					building?: string;
-					floor?: string;
-					address?: string;
-					city?: string;
-					state?: string;
-					zipCode?: string;
-				};
-			};
-		};
+		id: string;
+		input: UpdateDepartmentInput;
 		userCredentials: UserCredentials;
 	}): Promise<Department> {
 		const { createDataRequest } = await import('$lib/models/data-request');
@@ -648,17 +346,17 @@ export class DepartmentOperations {
 
 		const dataRequest = createDataRequest({
 			operationName: 'UpdateDepartment',
-			variables: { input: params.input },
+			variables: { id: params.id, input: params.input },
 			userCredentials: params.userCredentials,
 			timeoutMs: 6000
 		});
 
 		try {
-			// Server-side query using toPromise()
-			const result = await this.client.query(UPDATE_DEPARTMENT_MUTATION, dataRequest.variables).toPromise();
+			const result = await this.client
+				.mutation(UPDATE_DEPARTMENT_MUTATION, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
-				console.error('Update department error:', result.error);
 				const errorResponse = createErrorResponse(result.error, {
 					type: 'validation',
 					userMessage: 'Unable to update department. Please check the information and try again.'
@@ -666,18 +364,17 @@ export class DepartmentOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data?.updateDepartment?.department) {
+			if (!result.data?.updateDepartment) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'No department data returned. Please try again.'
 				});
 			}
 
-			console.log(`Updated department: ${result.data.updateDepartment.department.name}`);
-			return result.data.updateDepartment.department;
+			return result.data.updateDepartment;
 		} catch (error: any) {
 			if (error.userMessage) {
-				throw error; // Already formatted error
+				throw error;
 			}
 			throw createErrorResponse(error, {
 				type: 'graphql',
@@ -687,56 +384,73 @@ export class DepartmentOperations {
 	}
 
 	/**
-	 * Delete department (hard delete - use with caution)
+	 * Delete department - soft delete
+	 * Returns: Boolean indicating success
 	 */
 	async deleteDepartment(params: {
-		input: {
-			id: string;
-			transferEmployeesToId?: string;
-		};
+		id: string;
 		userCredentials: UserCredentials;
-	}): Promise<{ deletedDepartmentId: string }> {
+	}): Promise<boolean> {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		const dataRequest = createDataRequest({
 			operationName: 'DeleteDepartment',
-			variables: { input: params.input },
+			variables: { id: params.id },
 			userCredentials: params.userCredentials,
 			timeoutMs: 10000
 		});
 
 		try {
-			// Server-side query using toPromise()
-			const result = await this.client.query(DELETE_DEPARTMENT_MUTATION, dataRequest.variables).toPromise();
+			const result = await this.client
+				.mutation(DELETE_DEPARTMENT_MUTATION, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
-				console.error('Delete department error:', result.error);
 				const errorResponse = createErrorResponse(result.error, {
 					type: 'permission',
-					userMessage: 'Unable to delete department. Please check your permissions and ensure all employees are reassigned.'
+					userMessage:
+						'Unable to delete department. Please check your permissions and ensure all employees are reassigned.'
 				});
 				throw errorResponse;
 			}
 
-			if (!result.data?.deleteDepartment) {
-				throw createErrorResponse(new Error('No data returned'), {
-					type: 'graphql',
-					userMessage: 'No deletion confirmation returned. Please try again.'
-				});
-			}
-
-			console.log(`Deleted department: ${params.input.id}`);
-			return result.data.deleteDepartment;
+			return result.data?.deleteDepartment || false;
 		} catch (error: any) {
 			if (error.userMessage) {
-				throw error; // Already formatted error
+				throw error;
 			}
 			throw createErrorResponse(error, {
 				type: 'graphql',
 				userMessage: 'Failed to delete department. Please try again.'
 			});
 		}
+	}
+
+	/**
+	 * Apply client-side filtering (temporary until backend supports filters)
+	 */
+	private applyClientFilter(departments: Department[], filter: DepartmentFilter): Department[] {
+		return departments.filter((dept) => {
+			// Filter by manager
+			if (filter.managerId && dept.managerId !== filter.managerId) {
+				return false;
+			}
+
+			// Search across name and description
+			if (filter.search) {
+				const searchLower = filter.search.toLowerCase();
+				const matchesSearch =
+					dept.name?.toLowerCase().includes(searchLower) ||
+					dept.description?.toLowerCase().includes(searchLower);
+
+				if (!matchesSearch) {
+					return false;
+				}
+			}
+
+			return true;
+		});
 	}
 }
 
@@ -745,35 +459,6 @@ export class DepartmentOperations {
  */
 export function createDepartmentOperations(client: Client): DepartmentOperations {
 	return new DepartmentOperations(client);
-}
-
-/**
- * Helper function to build department hierarchy tree
- */
-export function buildDepartmentTree(departments: Department[]): Department[] {
-	const departmentMap = new Map<string, Department>();
-	const rootDepartments: Department[] = [];
-
-	// First pass: create map of all departments
-	for (const dept of departments) {
-		departmentMap.set(dept.id, { ...dept, childDepartments: [] });
-	}
-
-	// Second pass: build tree structure
-	for (const dept of departments) {
-		const currentDept = departmentMap.get(dept.id)!;
-
-		if (dept.parentDepartment) {
-			const parent = departmentMap.get(dept.parentDepartment.id);
-			if (parent) {
-				parent.childDepartments.push(currentDept);
-			}
-		} else {
-			rootDepartments.push(currentDept);
-		}
-	}
-
-	return rootDepartments;
 }
 
 /**

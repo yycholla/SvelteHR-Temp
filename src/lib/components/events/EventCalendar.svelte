@@ -1,6 +1,7 @@
 <!--
   EventCalendar Component
   Feature: 019-we-need-to - Phase 4
+  Feature: 027-we-need-to - RRULE Support
 
   Full-featured calendar view for events with FullCalendar integration
 
@@ -12,13 +13,17 @@
   - Event filtering by visibility type
   - Responsive design for mobile
   - Interactive event details
+  - Recurring events with RRULE (RFC 5545) support
+  - Reminder indicators
 
   Props:
-  - events: Array of event objects
+  - events: Array of event objects (supports RRULE for recurring events)
   - userId: Current user ID for RSVP status
   - canManageEvents: Whether user can create/edit events
+  - localRsvpStatuses: Local RSVP status map for optimistic UI updates
   - onEventClick: Callback when event is clicked
   - onDateClick: Callback when date is clicked (for event creation)
+  - onDateSelect: Callback when date range is selected
   - onEventDrop: Callback when event is dragged to new date
   - visibilityFilter?: Filter events by visibility type
 -->
@@ -33,12 +38,17 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import type { EventInput } from '@fullcalendar/core';
+	import { Bell } from 'lucide-svelte';
+
+	// Feature 027: Import conflict detection utility
+	import { detectConflict } from '$lib/utils/calendar';
 
 	// Props with Svelte 5 runes syntax
 	let {
 		events = [],
 		userId,
 		canManageEvents = false,
+		localRsvpStatuses,
 		onEventClick,
 		onDateClick,
 		onDateSelect,
@@ -48,6 +58,7 @@
 		events: any[];
 		userId: string;
 		canManageEvents?: boolean;
+		localRsvpStatuses: Record<string, any>;
 		onEventClick?: (event: any) => void;
 		onDateClick?: (date: Date) => void;
 		onDateSelect?: (start: Date, end: Date, allDay: boolean) => void;
@@ -59,20 +70,18 @@
 	let calendarEl: HTMLElement;
 	let calendar: any = null;
 
-	// Derived: Filter events by visibility
-	let filteredEvents = $derived(() => {
-		if (visibilityFilter === 'all') {
-			return events;
-		}
-		return events.filter((e: any) => e.visibilityType === visibilityFilter);
-	});
+	// Derived: Filter events by visibility (Fix: removed arrow function)
+	let filteredEvents = $derived(
+		visibilityFilter === 'all'
+			? events
+			: events.filter((e: any) => e.visibilityType === visibilityFilter)
+	);
 
-	// Derived: Convert events to FullCalendar format
-	let calendarEvents = $derived(() => {
-		return filteredEvents().map((event: any) => {
-			// Get user's RSVP status
-			const userAttendee = event.eventAttendeesByEventId?.nodes?.find((a: any) => a.employeeId === userId);
-			const rsvpStatus = userAttendee?.responseStatus || 'no_response';
+	// Derived: Convert events to FullCalendar format (Fix: removed arrow function, use local RSVP status)
+	let calendarEvents = $derived(
+		filteredEvents.map((event: any) => {
+			// Use local RSVP status for instant updates
+			const rsvpStatus = localRsvpStatuses[event.id] || 'no_response';
 
 			// Color based on RSVP status
 			const colorMap: Record<string, string> = {
@@ -83,42 +92,66 @@
 				no_response: '#6b7280' // gray
 			};
 
-			return {
+			// Check if user has actually set a reminder (check reminderTime value)
+			const userAttendee = event.eventAttendeesByEventId?.nodes?.find(
+				(a: any) => a.employeeId === userId
+			);
+			const hasReminder = userAttendee?.reminderTime != null && userAttendee.reminderTime > 0;
+
+			// Feature 027: Handle recurring events with RRULE
+			const calendarEvent: any = {
 				id: event.id,
 				title: event.title,
-				start: event.startTime,
-				end: event.endTime,
-				allDay: event.allDay,
 				backgroundColor: colorMap[rsvpStatus],
 				borderColor: colorMap[rsvpStatus],
+				allDay: event.allDay,
 				extendedProps: {
 					...event,
-					rsvpStatus
+					rsvpStatus,
+					hasReminder
 				}
-			} as EventInput;
-		});
-	});
+			};
+
+			// If event has RRULE, use it instead of start/end dates
+			if (event.rrule) {
+				calendarEvent.rrule = event.rrule;
+				// For RRULE events, duration is calculated from start/end of first occurrence
+				const duration = event.endTime && event.startTime
+					? new Date(event.endTime).getTime() - new Date(event.startTime).getTime()
+					: 3600000; // Default 1 hour
+				calendarEvent.duration = duration;
+			} else {
+				// Non-recurring event uses start/end dates
+				calendarEvent.start = event.startTime;
+				calendarEvent.end = event.endTime;
+			}
+
+			return calendarEvent as EventInput;
+		})
+	);
 
 	// Initialize calendar on mount (client-side only)
 	onMount(async () => {
 		if (!browser) return;
 
-		console.log('[EventCalendar] Initializing calendar...');
-		console.log('[EventCalendar] Calendar element:', calendarEl);
-
 		try {
-			// Dynamically import FullCalendar modules (client-side only)
-			const [{ Calendar }, { default: dayGridPlugin }, { default: timeGridPlugin }, { default: interactionPlugin }] = await Promise.all([
+			// Feature 027: Import RRULE plugin for recurring events support
+			const [
+				{ Calendar },
+				{ default: dayGridPlugin },
+				{ default: timeGridPlugin },
+				{ default: interactionPlugin },
+				{ default: rrulePlugin }
+			] = await Promise.all([
 				import('@fullcalendar/core'),
 				import('@fullcalendar/daygrid'),
 				import('@fullcalendar/timegrid'),
-				import('@fullcalendar/interaction')
+				import('@fullcalendar/interaction'),
+				import('@fullcalendar/rrule')
 			]);
 
-			console.log('[EventCalendar] Modules loaded, creating calendar instance...');
-
 			calendar = new Calendar(calendarEl, {
-				plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
+				plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, rrulePlugin],
 				initialView: 'dayGridMonth',
 				headerToolbar: {
 					left: 'prev,next today',
@@ -130,7 +163,110 @@
 				selectMirror: true,
 				dayMaxEvents: true,
 				weekends: true,
-				events: calendarEvents(),
+				events: [],
+				eventDidMount: (info) => {
+					const currentEvent = info.event.extendedProps;
+					const hasReminder = currentEvent.hasReminder;
+
+					// Feature 027: Detect conflicts with other accepted events
+					let hasConflict = false;
+					if (localRsvpStatuses[info.event.id] === 'accepted') {
+						// Check if this event conflicts with other accepted events
+						for (const otherEvent of events) {
+							if (otherEvent.id === info.event.id) continue;
+							if (localRsvpStatuses[otherEvent.id] !== 'accepted') continue;
+
+							const conflict = detectConflict(
+								{
+									id: info.event.id,
+									startDate: info.event.start || new Date(),
+									endDate: info.event.end || new Date()
+								},
+								{
+									id: otherEvent.id,
+									startDate: new Date(otherEvent.startTime),
+									endDate: new Date(otherEvent.endTime)
+								}
+							);
+
+							if (conflict) {
+								hasConflict = true;
+								break;
+							}
+						}
+					}
+
+					// Find the event title element
+					const titleEl = info.el.querySelector('.fc-event-title, .fc-event-title-container');
+
+					if (titleEl) {
+						// Add reminder icon if reminder is set
+						if (hasReminder) {
+							const bellIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+							bellIcon.setAttribute('width', '12');
+							bellIcon.setAttribute('height', '12');
+							bellIcon.setAttribute('viewBox', '0 0 24 24');
+							bellIcon.setAttribute('fill', 'none');
+							bellIcon.setAttribute('stroke', 'currentColor');
+							bellIcon.setAttribute('stroke-width', '2');
+							bellIcon.setAttribute('stroke-linecap', 'round');
+							bellIcon.setAttribute('stroke-linejoin', 'round');
+							bellIcon.style.marginLeft = '0.25rem';
+							bellIcon.style.display = 'inline-block';
+							bellIcon.style.verticalAlign = 'middle';
+
+							const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+							path.setAttribute('d', 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9');
+							bellIcon.appendChild(path);
+
+							const path2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+							path2.setAttribute('d', 'M10.3 21a1.94 1.94 0 0 0 3.4 0');
+							bellIcon.appendChild(path2);
+
+							titleEl.appendChild(bellIcon);
+						}
+
+						// Feature 027: Add conflict warning icon if conflicts detected
+						if (hasConflict) {
+							const conflictIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+							conflictIcon.setAttribute('width', '12');
+							conflictIcon.setAttribute('height', '12');
+							conflictIcon.setAttribute('viewBox', '0 0 24 24');
+							conflictIcon.setAttribute('fill', 'none');
+							conflictIcon.setAttribute('stroke', '#ef4444'); // red color
+							conflictIcon.setAttribute('stroke-width', '2');
+							conflictIcon.setAttribute('stroke-linecap', 'round');
+							conflictIcon.setAttribute('stroke-linejoin', 'round');
+							conflictIcon.style.marginLeft = '0.25rem';
+							conflictIcon.style.display = 'inline-block';
+							conflictIcon.style.verticalAlign = 'middle';
+							conflictIcon.setAttribute('title', 'Schedule conflict detected');
+
+							const triangle = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+							triangle.setAttribute('d', 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z');
+							conflictIcon.appendChild(triangle);
+
+							const exclamation = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+							exclamation.setAttribute('x1', '12');
+							exclamation.setAttribute('y1', '9');
+							exclamation.setAttribute('x2', '12');
+							exclamation.setAttribute('y2', '13');
+							conflictIcon.appendChild(exclamation);
+
+							const dot = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+							dot.setAttribute('x1', '12');
+							dot.setAttribute('y1', '17');
+							dot.setAttribute('x2', '12.01');
+							dot.setAttribute('y2', '17');
+							conflictIcon.appendChild(dot);
+
+							titleEl.appendChild(conflictIcon);
+
+							// Add striped pattern to conflicting events
+							info.el.style.backgroundImage = 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(239, 68, 68, 0.1) 10px, rgba(239, 68, 68, 0.1) 20px)';
+						}
+					}
+				},
 				eventClick: (info) => {
 					if (onEventClick) {
 						onEventClick(info.event.extendedProps);
@@ -146,22 +282,32 @@
 						onDateSelect(info.start, info.end, info.allDay);
 					}
 				},
-				eventDrop: (info) => {
+				eventDrop: async (info) => {
 					if (canManageEvents && onEventDrop) {
-						onEventDrop(
-							info.event.id,
-							info.event.start || new Date(),
-							info.event.end || new Date()
-						);
+						try {
+							await onEventDrop(
+								info.event.id,
+								info.event.start || new Date(),
+								info.event.end || new Date()
+							);
+						} catch (error) {
+							// Revert the event if the update fails
+							info.revert();
+						}
 					}
 				},
-				eventResize: (info) => {
+				eventResize: async (info) => {
 					if (canManageEvents && onEventDrop) {
-						onEventDrop(
-							info.event.id,
-							info.event.start || new Date(),
-							info.event.end || new Date()
-						);
+						try {
+							await onEventDrop(
+								info.event.id,
+								info.event.start || new Date(),
+								info.event.end || new Date()
+							);
+						} catch (error) {
+							// Revert the event if the update fails
+							info.revert();
+						}
 					}
 				},
 				height: 'auto',
@@ -169,19 +315,37 @@
 				aspectRatio: 1.8
 			});
 
-			console.log('[EventCalendar] Calendar instance created, rendering...');
 			calendar.render();
-			console.log('[EventCalendar] Calendar rendered successfully!');
+
+			// Add initial events after render
+			console.log('[EventCalendar] Adding initial events:', calendarEvents.length);
+			calendar.addEventSource(calendarEvents);
 		} catch (error) {
 			console.error('[EventCalendar] Error initializing calendar:', error);
 		}
 	});
 
+	// Track previous calendar events to avoid redundant updates
+	let previousCalendarEvents: any[] = [];
+
 	// Update calendar events when they change
 	$effect(() => {
-		if (calendar) {
-			calendar.removeAllEvents();
-			calendar.addEventSource(calendarEvents());
+		console.log('[EventCalendar] $effect triggered - calendarEvents updated:', calendarEvents.length);
+		if (calendar && calendarEvents.length > 0) {
+			// Check if events actually changed (deep comparison of relevant properties)
+			const eventsChanged = JSON.stringify(calendarEvents.map(e => ({ id: e.id, backgroundColor: e.backgroundColor }))) !==
+			                      JSON.stringify(previousCalendarEvents.map(e => ({ id: e.id, backgroundColor: e.backgroundColor })));
+
+			if (eventsChanged) {
+				console.log('[EventCalendar] Events actually changed, updating calendar');
+				previousCalendarEvents = [...calendarEvents];
+
+				// Use FullCalendar's setOption to update events
+				calendar.getEventSources().forEach(source => source.remove());
+				calendar.addEventSource(calendarEvents);
+			} else {
+				console.log('[EventCalendar] Events unchanged, skipping update');
+			}
 		}
 	});
 
@@ -249,27 +413,55 @@
 
 	<!-- Legend -->
 	<div class="calendar-legend">
-		<h4 class="text-sm font-semibold mb-2 text-foreground">RSVP Status Legend</h4>
-		<div class="flex flex-wrap gap-3">
-			<div class="flex items-center gap-1.5">
-				<div class="w-3 h-3 rounded-sm" style="background-color: hsl(var(--chart-2))"></div>
-				<span class="text-xs text-muted-foreground">Accepted</span>
+		<h4 class="text-sm font-semibold mb-2 text-foreground">Legend</h4>
+		<div class="space-y-2">
+			<!-- RSVP Colors -->
+			<div class="flex flex-wrap gap-3">
+				<div class="flex items-center gap-1.5">
+					<div class="w-3 h-3 rounded-sm" style="background-color: #10b981"></div>
+					<span class="text-xs text-muted-foreground">Accepted</span>
+				</div>
+				<div class="flex items-center gap-1.5">
+					<div class="w-3 h-3 rounded-sm" style="background-color: #ef4444"></div>
+					<span class="text-xs text-muted-foreground">Declined</span>
+				</div>
+				<div class="flex items-center gap-1.5">
+					<div class="w-3 h-3 rounded-sm" style="background-color: #f59e0b"></div>
+					<span class="text-xs text-muted-foreground">Tentative</span>
+				</div>
+				<div class="flex items-center gap-1.5">
+					<div class="w-3 h-3 rounded-sm" style="background-color: #3b82f6"></div>
+					<span class="text-xs text-muted-foreground">Pending</span>
+				</div>
+				<div class="flex items-center gap-1.5">
+					<div class="w-3 h-3 rounded-sm" style="background-color: #6b7280"></div>
+					<span class="text-xs text-muted-foreground">No Response</span>
+				</div>
 			</div>
-			<div class="flex items-center gap-1.5">
-				<div class="w-3 h-3 rounded-sm bg-destructive"></div>
-				<span class="text-xs text-muted-foreground">Declined</span>
-			</div>
-			<div class="flex items-center gap-1.5">
-				<div class="w-3 h-3 rounded-sm" style="background-color: hsl(var(--chart-4))"></div>
-				<span class="text-xs text-muted-foreground">Tentative</span>
-			</div>
-			<div class="flex items-center gap-1.5">
-				<div class="w-3 h-3 rounded-sm bg-primary"></div>
-				<span class="text-xs text-muted-foreground">Pending</span>
-			</div>
-			<div class="flex items-center gap-1.5">
-				<div class="w-3 h-3 rounded-sm bg-muted"></div>
-				<span class="text-xs text-muted-foreground">No Response</span>
+			<!-- Icons -->
+			<div class="flex flex-col gap-1">
+				<div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+					<Bell class="h-3 w-3" />
+					<span>Reminder set</span>
+				</div>
+				<!-- Feature 027: Conflict indicator -->
+				<div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+					<svg
+						width="12"
+						height="12"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="#ef4444"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+						<line x1="12" y1="9" x2="12" y2="13"></line>
+						<line x1="12" y1="17" x2="12.01" y2="17"></line>
+					</svg>
+					<span>Schedule conflict</span>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -383,8 +575,13 @@
 		transition: background-color 0.2s ease;
 	}
 
+	/* Day hover - light mode uses accent, dark mode uses darker shade */
 	:global(.fc-daygrid-day:hover) {
 		background-color: hsl(var(--accent));
+	}
+
+	:global(.dark .fc-daygrid-day:hover) {
+		background-color: hsl(225 15% 8%);
 	}
 
 	/* Events with rounded corners */
@@ -398,9 +595,12 @@
 		box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 	}
 
-	:global(.fc-event:hover) {
-		transform: translateY(-1px);
-		box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+	:global(.fc-event:hover),
+	:global(.fc-daygrid-event:hover),
+	:global(.fc-timegrid-event:hover) {
+		transform: translateY(-1px) !important;
+		box-shadow: 0 6px 12px -2px rgb(0 0 0 / 0.4) !important;
+		filter: brightness(1.35) !important;
 	}
 
 	/* Today highlight */

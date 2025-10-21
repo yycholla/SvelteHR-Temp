@@ -114,7 +114,7 @@ query GetRollbackRequestById($id: UUID!) {
 # Query: Get pending rollback requests (for reviewers)
 query GetPendingRollbackRequests($first: Int, $offset: Int) {
 	rollbackRequests(
-		condition: { status: "PENDING" }
+		condition: { status: "pending" }
 		orderBy: CREATED_AT_ASC
 		first: $first
 		offset: $offset

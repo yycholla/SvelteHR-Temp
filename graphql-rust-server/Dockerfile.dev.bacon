@@ -1,0 +1,76 @@
+# Development Dockerfile with bacon for advanced hot-reloading
+# Features:
+# - Mold linker for 5-10x faster linking
+# - bacon for smart recompilation with beautiful output
+# - Separated target directory in Docker volume for better I/O performance
+# - cargo-chef for optimal Docker layer caching
+#
+# Bacon advantages over cargo-watch:
+# - Better terminal output with syntax highlighting
+# - Smarter rebuild detection
+# - Built-in support for check, clippy, test, etc.
+# - More efficient resource usage
+
+# Stage 1: Base chef image with cargo-chef installed
+FROM rust:1.90-slim AS chef
+
+# Install cargo-chef
+RUN cargo install cargo-chef
+
+WORKDIR /app
+
+# Stage 2: Planner - generates recipe.json from project dependencies
+FROM chef AS planner
+
+# Copy entire project to analyze dependencies
+COPY . .
+
+# Generate dependency recipe
+RUN cargo chef prepare --recipe-path recipe.json
+
+# Stage 3: Development builder with mold linker and bacon
+FROM chef AS dev-builder
+
+# Install build dependencies including mold linker
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    # Mold linker for significantly faster linking
+    mold \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install bacon for advanced hot-reloading
+RUN cargo install bacon
+
+# Copy dependency recipe from planner
+COPY --from=planner /app/recipe.json recipe.json
+
+# Build dependencies (this layer will be cached unless dependencies change)
+# This uses mold linker automatically via .cargo/config.toml
+RUN cargo chef cook --release --recipe-path recipe.json
+
+# Copy actual source code
+COPY . .
+
+# Create default bacon configuration if it doesn't exist
+RUN echo '[jobs]\n\
+[jobs.run]\n\
+command = ["cargo", "run", "--color", "always"]\n\
+need_stdout = true\n\
+watch = ["src", "Cargo.toml", ".cargo"]\n\
+\n\
+[jobs.check]\n\
+command = ["cargo", "check", "--color", "always"]\n\
+need_stdout = false\n\
+\n\
+[jobs.clippy]\n\
+command = ["cargo", "clippy", "--color", "always"]\n\
+need_stdout = false\n\
+\n\
+[jobs.test]\n\
+command = ["cargo", "test", "--color", "always"]\n\
+need_stdout = true' > /app/bacon.toml
+
+# Default command: run bacon in run mode
+# Bacon will automatically detect changes and recompile
+CMD ["bacon", "run"]

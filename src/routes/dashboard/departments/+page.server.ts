@@ -12,22 +12,31 @@ export const load: PageServerLoad = async (event) => {
 	PermissionChecks.departmentRead(event);
 
 	// Import required models for standardized error handling
-	const { createDataRequest } = await import('$lib/models/data-request');
 	const { createErrorResponse } = await import('$lib/models/error-response');
-	const { createUserSession } = await import('$lib/models/user-session');
 
-	// Create user session from server locals
-	const userSession = createUserSession({
+	// Create simple user session object (session-based auth doesn't use JWT)
+	const userSession = {
 		userId: locals.user.id,
-		jwtToken: cookies.get('hr_token') || '',
 		roles: [locals.user.role || 'employee'],
 		permissions: locals.permissions || [],
-		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes from now
+		isAuthenticated: true,
+		expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
 		metadata: {
 			userEmail: locals.user.email,
 			displayName: locals.user.display_name || locals.user.email
-		}
-	});
+		},
+		toJSON: () => ({
+			userId: locals.user.id,
+			roles: [locals.user.role || 'employee'],
+			permissions: locals.permissions || [],
+			isAuthenticated: true,
+			expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+			metadata: {
+				userEmail: locals.user.email,
+				displayName: locals.user.display_name || locals.user.email
+			}
+		})
+	};
 
 	// Extract search parameters from URL
 	const searchTerm = url.searchParams.get('search') || '';
@@ -35,64 +44,29 @@ export const load: PageServerLoad = async (event) => {
 	const hasHeadFilter = url.searchParams.get('hasHead') || '';
 	const page = parseInt(url.searchParams.get('page') || '1', 10);
 	const limit = parseInt(url.searchParams.get('limit') || '20', 10);
+	const offset = (page - 1) * limit;
 
-	// Create data request for departments
-	const dataRequest = createDataRequest({
-		operationName: 'GetDepartments',
-		variables: {
-			searchTerm,
-			parentFilter,
-			hasHeadFilter,
-			page,
-			limit,
-			includeStats: true
-		},
-		userCredentials: {
-			userId: userSession.userId,
-			userEmail: userSession.metadata.userEmail as string,
-			roles: userSession.roles,
-			permissions: userSession.permissions,
-			jwtToken: userSession.jwtToken,
-			isAuthenticated: Boolean(userSession.isAuthenticated)
-		},
-		timeoutMs: 5000,
-		retryAttempts: 0,
-		maxRetries: 3
-	});
+	// Note: dataRequest is not needed for session-based auth
+	// We fetch data directly with session cookies
 
 	try {
-		// Make direct GraphQL calls to PostGraphile backend
+		// Make direct GraphQL calls to Rust GraphQL backend with session-based authentication
 		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
-		// Get JWT token for PostGraphile authentication
-		const jwtToken = cookies.get('hr_token') || cookies.get('postgraphile-jwt-token') || '';
-		console.log('[Departments] Using JWT token for PostGraphile:', jwtToken ? `${jwtToken.substring(0, 50)}...` : 'No token');
-
-		// Decode JWT token to get user context for PostGraphile
-		let jwtClaims = null;
-		if (jwtToken) {
-			try {
-				const { decodeJWTTokenUnsafe } = await import('$lib/auth/jwt-utils');
-				jwtClaims = await decodeJWTTokenUnsafe(jwtToken);
-				console.log('[Departments] JWT claims:', jwtClaims);
-			} catch (error) {
-				console.warn('[Departments] Failed to decode JWT:', error);
-			}
-		}
-
-		// Set up proper headers for PostGraphile with JWT context
+		// Headers for session-based authentication
+		// Forward session cookies to Rust GraphQL backend
+		const cookieHeader = event.request.headers.get('cookie') || '';
 		const headers: Record<string, string> = {
-			'Content-Type': 'application/json'
+			'Content-Type': 'application/json',
+			'Cookie': cookieHeader // Forward all cookies for session authentication
 		};
 
-		// If we have JWT claims, set up PostGraphile context
-		if (jwtClaims) {
-			headers['Authorization'] = `Bearer ${jwtToken}`;
-			// PostGraphile expects role and user_id in specific format
-			headers['X-JWT-Claims-Role'] = jwtClaims.role || 'employee';
-			headers['X-JWT-Claims-User-Id'] = jwtClaims.user_id;
-		}
+		console.log(
+			'[Departments] Using Rust GraphQL with session-based auth, user role:',
+			locals.user?.role
+		);
+		console.log('[Departments] Filters:', { searchTerm, parentFilter, hasHeadFilter });
 
 		// Load departments data with linked employee relationships
 		const departmentsResponse = await fetch(graphqlEndpoint, {
@@ -100,45 +74,21 @@ export const load: PageServerLoad = async (event) => {
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetDepartmentsWithEmployees($first: Int) {
-						allDepartments(first: $first) {
-							nodes {
-								id
-								name
-								description
-								managerId
-								createdAt
-								updatedAt
-								userByManagerId {
-									id
-									displayName
-									email
-									role
-								}
-								usersByDepartmentId {
-									nodes {
-										id
-										displayName
-										email
-										role
-										hireDate
-										isActive
-									}
-									totalCount
-								}
-							}
-							pageInfo {
-								hasNextPage
-								hasPreviousPage
-								startCursor
-								endCursor
-							}
-							totalCount
+					query GetDepartments($limit: Int, $offset: Int) {
+						departments(limit: $limit, offset: $offset) {
+							id
+							name
+							description
+							managerId
+							parentDepartmentId
+							createdAt
+							updatedAt
 						}
 					}
 				`,
 				variables: {
-					first: limit
+					limit: limit,
+					offset: offset
 				}
 			})
 		});
@@ -149,20 +99,17 @@ export const load: PageServerLoad = async (event) => {
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);
 
-		// Transform department data to match expected structure
-		const departments = (departmentsData?.data?.allDepartments?.nodes || []).map((dept: any) => {
-			// Filter to only active employees
-			const activeEmployees = (dept.usersByDepartmentId?.nodes || []).filter((user: any) => user.isActive);
-
+		// Extract departments from Rust GraphQL response (direct array, no nodes wrapper)
+		const departments = (departmentsData?.data?.departments || []).map((dept: any) => {
 			return {
 				...dept,
-				// Map usersByDepartmentId to employees for consistency, with active count only
+				// Employee data not available in current Rust GraphQL schema
 				employees: {
-					nodes: activeEmployees,
-					totalCount: activeEmployees.length
+					nodes: [], // TODO: Implement separate query for employees
+					totalCount: 0
 				},
-				// Map userByManagerId to departmentHead for consistency
-				departmentHead: dept.userByManagerId
+				// Department head not available in current Rust GraphQL schema
+				departmentHead: null
 			};
 		});
 
@@ -171,7 +118,7 @@ export const load: PageServerLoad = async (event) => {
 			user: userPermissions.user,
 			userSession: userSession.toJSON(), // Convert UserSession to serializable object
 			departments,
-			totalDepartments: departmentsData?.data?.allDepartments?.totalCount || 0,
+			totalDepartments: departments.length, // Use actual count from results
 			hierarchy: [], // For now, return empty hierarchy
 			filters: {
 				searchTerm,

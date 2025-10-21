@@ -2,39 +2,21 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
-import { decodeJWTTokenUnsafe } from '$lib/auth/jwt-utils';
 
 export const POST: RequestHandler = async ({ request, locals, cookies }) => {
-	// Get auth token
-	const authToken = cookies.get('hr_token') || cookies.get('auth-token');
-	if (!authToken) {
-		console.error('Delete notification: No authentication token found');
-		throw error(401, 'No authentication token');
+	// Session-based authentication - user must be authenticated via hooks.server.ts
+	if (!locals.user?.id) {
+		console.error('Delete notification: No authenticated user found in session');
+		throw error(401, 'Authentication required');
 	}
 
-	// Manually verify token if locals.user is not set
-	let userId = locals.user?.id;
-	if (!userId) {
-		try {
-			const payload = await decodeJWTTokenUnsafe(authToken);
-			const userIdFromToken = payload?.user_id || payload?.userId;
-			if (!payload || !userIdFromToken) {
-				console.error('Delete notification: Invalid token payload - no user_id found');
-				throw error(401, 'Invalid authentication token');
-			}
+	const userId = locals.user.id;
 
-			// Check expiration
-			const currentTime = Math.floor(Date.now() / 1000);
-			if (payload.exp && payload.exp < currentTime) {
-				console.error('Delete notification: Token expired');
-				throw error(401, 'Token expired');
-			}
-
-			userId = userIdFromToken;
-		} catch (err) {
-			console.error('Delete notification: Token validation failed:', err);
-			throw error(401, 'Authentication failed');
-		}
+	// Get session cookie for GraphQL client (handled by browser automatically)
+	const authToken = cookies.get('hr_token') || cookies.get('auth-token');
+	if (!authToken) {
+		console.error('Delete notification: No session cookie found');
+		throw error(401, 'Session cookie required');
 	}
 
 	try {

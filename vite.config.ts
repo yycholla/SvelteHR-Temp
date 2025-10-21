@@ -42,7 +42,8 @@ export default defineConfig({
 		optimizeCss({
 			verbose: true, // Enable size logging for development
 			preserveAllIBMFonts: true // Preserve all IBM Plex font face rules
-		})
+		}),
+		devtoolsJson()
 	],
 
 	// Performance optimizations

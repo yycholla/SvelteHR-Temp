@@ -8,7 +8,7 @@
 import { browser } from '$app/environment';
 import { writable } from 'svelte/store';
 
-export type Theme = 'light' | 'dark' | 'auto';
+export type Theme = 'light' | 'dark' | 'system';
 
 interface ThemeState {
 	current: Theme;
@@ -19,7 +19,7 @@ interface ThemeState {
 // Create the theme store
 function createThemeStore() {
 	const defaultState: ThemeState = {
-		current: 'auto',
+		current: 'system',
 		resolved: 'light',
 		isSystemDark: false
 	};
@@ -30,15 +30,15 @@ function createThemeStore() {
 	function initialize() {
 		if (!browser) return;
 
-		// Get saved theme or default to 'auto'
-		const savedTheme = (localStorage.getItem('theme') as Theme) || 'auto';
+		// Get saved theme or default to 'system'
+		const savedTheme = (localStorage.getItem('theme') as Theme) || 'system';
 
 		// Detect system preference
 		const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 		const isSystemDark = mediaQuery.matches;
 
 		// Resolve the actual theme
-		const resolvedTheme = savedTheme === 'auto' ? (isSystemDark ? 'dark' : 'light') : savedTheme;
+		const resolvedTheme = savedTheme === 'system' ? (isSystemDark ? 'dark' : 'light') : savedTheme;
 
 		// Update store state
 		set({
@@ -55,9 +55,9 @@ function createThemeStore() {
 			update((state) => {
 				const newSystemDark = e.matches;
 				const newResolved =
-					state.current === 'auto' ? (newSystemDark ? 'dark' : 'light') : state.resolved;
+					state.current === 'system' ? (newSystemDark ? 'dark' : 'light') : state.resolved;
 
-				if (state.current === 'auto') {
+				if (state.current === 'system') {
 					applyTheme(newResolved);
 				}
 
@@ -92,7 +92,7 @@ function createThemeStore() {
 		localStorage.setItem('theme', theme);
 
 		update((state) => {
-			const resolvedTheme = theme === 'auto' ? (state.isSystemDark ? 'dark' : 'light') : theme;
+			const resolvedTheme = theme === 'system' ? (state.isSystemDark ? 'dark' : 'light') : theme;
 
 			applyTheme(resolvedTheme);
 
@@ -104,7 +104,7 @@ function createThemeStore() {
 		});
 	}
 
-	// Toggle between light and dark (skipping auto)
+	// Toggle between light and dark (skipping system)
 	function toggle() {
 		update((state) => {
 			const newTheme = state.resolved === 'light' ? 'dark' : 'light';

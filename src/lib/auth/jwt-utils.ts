@@ -1,5 +1,19 @@
-// JWT utility functions with proper signature verification
-// T052: Authentication System Unification & T053: Security Hardening
+/**
+ * ⚠️ DEPRECATED: JWT Utility Functions
+ *
+ * This file is deprecated as the application has migrated to session-based authentication.
+ * JWT tokens are no longer used - authentication is handled via HTTP-only session cookies
+ * managed by the axum-login backend.
+ *
+ * Session-based authentication flow:
+ * 1. User logs in via /api/auth/login
+ * 2. Backend creates session with axum-login and sets HTTP-only cookie
+ * 3. Browser automatically sends session cookie with each request
+ * 4. hooks.server.ts validates session and populates event.locals.user
+ *
+ * These functions remain for reference only and should not be used in new code.
+ * If you need authentication functionality, use the session-based endpoints instead.
+ */
 
 import { browser } from '$app/environment';
 import { authConfig } from './config.js';
@@ -8,6 +22,7 @@ export interface JWTPayload {
 	user_id: string;
 	email: string;
 	role?: string;
+	roles?: string[]; // Array format used by Rust server
 	permissions?: string[];
 	exp: number;
 	iat: number;
@@ -185,10 +200,20 @@ export async function generateJWTToken(payload: Partial<JWTPayload>): Promise<st
  * Extract user information from a verified JWT payload
  */
 export function extractUserFromPayload(payload: JWTPayload) {
+	// Handle both singular 'role' and plural 'roles' array formats
+	let role: string;
+	if (payload.roles && Array.isArray(payload.roles) && payload.roles.length > 0) {
+		// Use first role from roles array (Rust server format)
+		role = payload.roles[0];
+	} else {
+		// Fallback to singular role field or default to employee
+		role = payload.role || 'employee';
+	}
+
 	return {
 		id: payload.user_id,
 		email: payload.email,
-		role: payload.role || 'employee',
+		role,
 		permissions: payload.permissions || []
 	};
 }
@@ -262,6 +287,7 @@ export function validateJWTPayloadStructure(payload: any): payload is JWTPayload
 		typeof payload.iss === 'string' &&
 		typeof payload.aud === 'string' &&
 		(payload.role === undefined || typeof payload.role === 'string') &&
+		(payload.roles === undefined || Array.isArray(payload.roles)) &&
 		(payload.permissions === undefined || Array.isArray(payload.permissions))
 	);
 }

@@ -1,0 +1,26 @@
+{
+  "databaseUrl": "",
+  "apiUrl": "",
+  "graphqlPaths": [
+    "src/**/*.ts"
+  ],
+  "cacheDir": ".schema-cache",
+  "cacheTtl": 3600,
+  "computedFields": [
+    {
+      "fieldPath": "User.fullName",
+      "sourceColumns": [
+        "users.first_name",
+        "users.last_name"
+      ],
+      "resolverLocation": {
+        "file": "user.rs",
+        "line": 10
+      },
+      "description": "test",
+      "returnType": "String"
+    }
+  ],
+  "strict": false,
+  "ignore": []
+}

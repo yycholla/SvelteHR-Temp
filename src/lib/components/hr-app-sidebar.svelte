@@ -23,28 +23,47 @@
 		LayoutDashboard,
 		Bell,
 		Activity,
-		CheckSquare
+		CheckSquare,
+		FolderOpen,
+		Upload,
+		ScrollText
 	} from 'lucide-svelte';
 	import { currentUser, hasRole, authActions } from '$lib/stores/auth';
 	import { page } from '$app/stores';
 	import { themeStore } from '$lib/stores/theme';
 	import { notificationStore } from '$lib/stores/notifications';
 	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
+	import { debugSettings } from '$lib/stores/debug-settings';
 	import NotificationDropdown from '$lib/components/notifications/NotificationDropdown.svelte';
+	import DebugInfo from '$lib/components/DebugInfo.svelte';
 
 	// Subscribe to notification store
 	const notifications = $derived($notificationStore.notifications);
 
 	// Check user roles
 	const isSuperAdmin = hasRole('super_admin');
-	const isAdmin = hasRole('admin') || isSuperAdmin;
+	const isSystemAdmin = hasRole('system_admin');
+	const isAdmin = hasRole('admin') || isSuperAdmin || isSystemAdmin;
 	const isHR = hasRole('hr_admin') || isAdmin;
 	const isManager = hasRole('manager') || isHR;
+
+	// Load debug settings on mount (system_admin only)
+	onMount(() => {
+		if (isSystemAdmin) {
+			debugSettings.load();
+		}
+	});
+
+	// Derived: Check if debug info should be shown
+	const showDebugInfo = $derived(isSystemAdmin && $debugSettings.show_debug_info);
 
 	// Track which sections are expanded
 	let expandedSections = $state({
 		leave: false,
 		performance: false,
+		documents: false,
+		tasks: false,
 		management: false,
 		administration: false
 	});
@@ -75,6 +94,10 @@
 			expandedSections.leave = true;
 		if (currentPath.includes('/performance') && currentPath.includes('/users/'))
 			expandedSections.performance = true;
+		if (currentPath.includes('/documents'))
+			expandedSections.documents = true;
+		if (currentPath.includes('/tasks') && !currentPath.includes('/tasks/department'))
+			expandedSections.tasks = true;
 		if (
 			currentPath.includes('/management') ||
 			currentPath.includes('/employees/new') ||
@@ -120,10 +143,16 @@
 			standalone: true // Events list page
 		},
 		{
-			title: 'My Tasks',
-			url: '/dashboard/tasks/my-tasks',
-			icon: CheckSquare,
-			standalone: true // My tasks page
+			title: 'Tasks',
+			url: '/dashboard/tasks',
+			icon: ListTodo,
+			standalone: false, // Has submenu
+			section: 'tasks',
+			items: [
+				{ title: 'All Tasks', url: '/dashboard/tasks' },
+				{ title: 'My Tasks', url: '/dashboard/tasks/my-tasks' },
+				{ title: 'Team Tasks', url: '/dashboard/tasks/team-tasks' }
+			]
 		},
 		{
 			title: 'Activities',
@@ -155,6 +184,17 @@
 			items: [
 				{ title: 'My Goals', url: `/dashboard/profile/performance` },
 				{ title: 'Reviews', url: `/dashboard/profile/performance/reviews` }
+			]
+		},
+		{
+			title: 'Documents',
+			url: '/dashboard/documents',
+			icon: FolderOpen,
+			section: 'documents',
+			items: [
+				{ title: 'My Documents', url: '/dashboard/documents' },
+				...(isManager ? [{ title: 'Upload Document', url: '/dashboard/documents/upload' }] : []),
+				...(isAdmin ? [{ title: 'Audit Logs', url: '/dashboard/documents/audit' }] : [])
 			]
 		}
 	];
@@ -264,6 +304,12 @@
 								if (item.section === 'performance') {
 									return currentPath.includes('/performance');
 								}
+								if (item.section === 'documents') {
+									return currentPath.includes('/documents');
+								}
+								if (item.section === 'tasks') {
+									return currentPath.includes('/tasks') && !currentPath.includes('/tasks/department');
+								}
 								return false;
 							})()}
 							class:text-primary-foreground={(() => {
@@ -273,6 +319,12 @@
 								}
 								if (item.section === 'performance') {
 									return currentPath.includes('/performance');
+								}
+								if (item.section === 'documents') {
+									return currentPath.includes('/documents');
+								}
+								if (item.section === 'tasks') {
+									return currentPath.includes('/tasks') && !currentPath.includes('/tasks/department');
 								}
 								return false;
 							})()}
@@ -413,6 +465,13 @@
 					{/each}
 				</div>
 			{/if}
+		</div>
+	{/if}
+
+	<!-- Debug Info (system_admin only) -->
+	{#if showDebugInfo}
+		<div class="px-3 pb-3">
+			<DebugInfo />
 		</div>
 	{/if}
 

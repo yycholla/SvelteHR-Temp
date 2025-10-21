@@ -1,12 +1,10 @@
 // Notifications Center Page Server-Side Data Loading
 // Feature: 019-we-need-to - Task T032
 // Purpose: Load user's notifications with server-side GraphQL queries
+// Updated: Migrated to Rust GraphQL backend
 
 import type { PageServerLoad } from './$types';
 import { error, redirect } from '@sveltejs/kit';
-import { NotificationsOperations } from '$lib/graphql/notifications-operations';
-import { createUrqlClient } from '$lib/graphql/client';
-import type { NotificationCategory, NotificationType } from '$lib/graphql/types';
 
 export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	// Check authentication
@@ -14,71 +12,117 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		throw redirect(303, `/login?redirectTo=${url.pathname}`);
 	}
 
-	// Get user credentials for GraphQL operations
-	const token = cookies.get('hr_token') || cookies.get('auth-token');
-	if (!token) {
-		throw redirect(303, `/login?redirectTo=${url.pathname}`);
-	}
-
-	const userCredentials = {
-		jwtToken: token,
-		userId: locals.user.id,
-		roles: locals.roles || [],
-		permissions: locals.permissions || [],
-		isAuthenticated: true,
-		expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-	};
-
 	try {
-		// Initialize GraphQL client and operations
-		// For server-side: createUrqlClient(fetchFn?, authToken?)
-		const urqlClient = createUrqlClient(undefined, token);
-		const notificationsOps = new NotificationsOperations(urqlClient);
+		// Get GraphQL endpoint
+		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
+		const graphqlEndpoint = getGraphQLEndpoint();
 
 		// Get query parameters for filtering
-		const categoryFilter = url.searchParams.get('category') as NotificationCategory | null;
-		const typeFilter = url.searchParams.get('type') as NotificationType | null;
+		const categoryFilter = url.searchParams.get('category');
+		const typeFilter = url.searchParams.get('type');
 		const readStatus = url.searchParams.get('read');
 		const page = parseInt(url.searchParams.get('page') || '1');
 		const limit = parseInt(url.searchParams.get('limit') || '50');
 
-		// Build filter for user's notifications
-		// PostGraphile's condition expects direct values, not wrapped in equalTo
-		const filter: any = {};
+		// Headers for session-based authentication (cookies sent automatically)
+		const headers: Record<string, string> = {
+			'Content-Type': 'application/json'
+		};
 
+		console.log('[Notifications] Loading notifications for user:', locals.user.id);
+
+		// Fetch user's notifications using Rust GraphQL backend
+		// Migration: ✅ Use idiomatic Rust pattern (fetch all, filter client-side)
+		// Backend only supports userId, limit, offset - no type/category filtering
+		const notificationsResponse = await fetch(graphqlEndpoint, {
+			method: 'POST',
+			headers,
+			body: JSON.stringify({
+				query: `
+					query GetUserNotifications($userId: UUID!, $limit: Int!, $offset: Int!) {
+						notifications(userId: $userId, limit: $limit, offset: $offset) {
+							id
+							recipientId
+							type
+							category
+							title
+							message
+							relatedResourceType
+							relatedResourceId
+							readStatus
+							deliveredAt
+							readAt
+							createdAt
+						}
+					}
+				`,
+				variables: {
+					userId: locals.user.id,
+					limit: 1000, // Fetch large set for client-side filtering
+					offset: 0
+				}
+			})
+		});
+
+		const notificationsData = await notificationsResponse.json();
+		console.log('[Notifications] Response:', notificationsData);
+
+		if (notificationsData.errors) {
+			console.error('[Notifications] GraphQL errors:', notificationsData.errors);
+			throw new Error(notificationsData.errors[0]?.message || 'Failed to load notifications');
+		}
+
+		let notifications = notificationsData?.data?.notifications || [];
+
+		// Client-side filtering for category
 		if (categoryFilter) {
-			filter.category = categoryFilter;
+			notifications = notifications.filter((n: any) => n.category === categoryFilter);
 		}
 
+		// Client-side filtering for type
 		if (typeFilter) {
-			filter.type = typeFilter;
+			notifications = notifications.filter((n: any) => n.type === typeFilter);
 		}
 
-		if (readStatus !== null) {
-			filter.readStatus = readStatus === 'true';
+		// Client-side filtering for read status
+		if (readStatus === 'true') {
+			notifications = notifications.filter((n: any) => n.readStatus === true);
+		} else if (readStatus === 'false') {
+			notifications = notifications.filter((n: any) => n.readStatus === false);
 		}
 
-		// Fetch user's notifications
-		const notificationsResult = await notificationsOps.getUserNotifications({
-			recipientId: locals.user.id,
-			first: limit,
-			offset: (page - 1) * limit,
-			filter,
-			userCredentials
+		// Client-side pagination
+		const totalCount = notifications.length;
+		const startIndex = (page - 1) * limit;
+		const endIndex = startIndex + limit;
+		notifications = notifications.slice(startIndex, endIndex);
+
+		// Fetch unread count
+		const unreadCountResponse = await fetch(graphqlEndpoint, {
+			method: 'POST',
+			headers,
+			body: JSON.stringify({
+				query: `
+					query GetUnreadCount($recipientId: UUID) {
+						unreadNotificationsCount(recipientId: $recipientId)
+					}
+				`,
+				variables: {
+					recipientId: locals.user.id
+				}
+			})
 		});
 
-		// Get unread count
-		const unreadCount = await notificationsOps.getUnreadCount({
-			recipientId: locals.user.id,
-			userCredentials
-		});
+		const unreadCountData = await unreadCountResponse.json();
+		const unreadCount = unreadCountData?.data?.unreadNotificationsCount || 0;
 
 		return {
-			notifications: notificationsResult.notifications,
-			totalCount: notificationsResult.totalCount,
+			notifications,
+			totalCount, // Total after filtering, before pagination
 			unreadCount,
 			currentPage: page,
 			limit,
+			hasNextPage: endIndex < totalCount,
 			filters: {
 				category: categoryFilter,
 				type: typeFilter,
@@ -87,7 +131,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			user: locals.user
 		};
 	} catch (err: any) {
-		console.error('Error loading notifications:', err);
+		console.error('[Notifications] Error loading notifications:', err);
 
 		// Handle specific error cases
 		if (err.message?.includes('unauthorized') || err.message?.includes('authentication')) {

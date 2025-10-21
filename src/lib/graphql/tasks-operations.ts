@@ -1,155 +1,98 @@
-// GraphQL Operations: Tasks Management (Manager Department-Scoped)
-// Feature: 016-repair-management-pages - Task T017
-// Purpose: Manager CRUD operations for task assignment with department-scoped RLS
+// GraphQL Operations: Task Management with Hierarchy and Dependencies
+// Migrated to Rust idiomatic GraphQL patterns (PostGraphile removed)
+import type { Client } from '@urql/core';
 
 import { gql } from '@urql/svelte';
-import type { Client } from '@urql/core';
 import type { UserCredentials } from '$lib/models/data-request';
+import type {
+	Task,
+	TaskDependency,
+	TaskStatus,
+	TaskPriority
+} from '$lib/types/task';
 
 // ============================================================================
 // QUERIES
 // ============================================================================
 
 /**
- * Query: Get tasks for manager's department only
- * RLS Policy: manager_view_department_tasks
- * Covers: FR-005, FR-038
+ * Query: Get all tasks with filtering, sorting, and pagination
+ * Backend: Rust idiomatic pattern - direct array return
+ * RLS: Automatic RBAC filtering
  */
-export const GET_DEPARTMENT_TASKS = gql`
-	query GetDepartmentTasks(
-		$first: Int = 20
-		$offset: Int = 0
-		$condition: TaskCondition
-	) {
-		allTasks(first: $first, offset: $offset, condition: $condition, orderBy: DUE_DATE_ASC) {
-			nodes {
-				id
-				assigneeId
-				userByAssigneeId {
-					id
-					displayName
-					email
-				}
-				assignerId
-				userByAssignerId {
-					id
-					displayName
-					email
-				}
-				departmentId
-				departmentByDepartmentId {
-					id
-					name
-				}
-				assignedToDepartmentId
-				departmentByAssignedToDepartmentId {
-					id
-					name
-				}
-				title
-				description
-				priority
-				status
-				dueDate
-				category
-				createdAt
-				updatedAt
-				completedAt
-			}
-			totalCount
-			pageInfo {
-				hasNextPage
-				hasPreviousPage
-			}
-		}
-	}
-`;
-
-/**
- * Query: Get single task by ID (department-scoped)
- * RLS Policy: manager_view_department_tasks
- */
-export const GET_TASK_BY_ID = gql`
-	query GetTaskById($id: UUID!) {
-		taskById(id: $id) {
+export const GET_ALL_TASKS = gql`
+	query GetAllTasks($assigneeId: UUID, $limit: Int = 20, $offset: Int = 0) {
+		tasks(assigneeId: $assigneeId, limit: $limit, offset: $offset) {
 			id
-			assigneeId
-			userByAssigneeId {
-				id
-				displayName
-				email
-			}
-			assignerId
-			userByAssignerId {
-				id
-				displayName
-				email
-			}
-			departmentId
-			departmentByDepartmentId {
-				id
-				name
-			}
-			assignedToDepartmentId
-			departmentByAssignedToDepartmentId {
-				id
-				name
-			}
 			title
 			description
-			priority
+			assigneeId
+			departmentId
 			status
+			priority
 			dueDate
-			category
+			estimatedHours
+			actualHours
+			tags
 			createdAt
 			updatedAt
-			completedAt
+			assignee {
+				id
+				displayName
+				email
+			}
 		}
 	}
 `;
 
 /**
- * Query: Get task statistics for manager's department
- * Covers: FR-038
+ * Query: Get single task by ID
+ * Backend: Rust idiomatic pattern - task(id) not taskById
  */
-export const GET_TASK_STATISTICS = gql`
-	query GetTaskStatistics($departmentId: UUID!) {
-		totalTasks: tasks(filter: { departmentId: { equalTo: $departmentId } }) {
-			totalCount
-		}
-		todoTasks: tasks(
-			filter: { status: { equalTo: "todo" }, departmentId: { equalTo: $departmentId } }
-		) {
-			totalCount
-		}
-		inProgressTasks: tasks(
-			filter: { status: { equalTo: "in_progress" }, departmentId: { equalTo: $departmentId } }
-		) {
-			totalCount
-		}
-		completedTasks: tasks(
-			filter: { status: { equalTo: "completed" }, departmentId: { equalTo: $departmentId } }
-		) {
-			totalCount
-		}
-		overdueTasks: tasks(
-			filter: {
-				status: { in: ["todo", "in_progress"] }
-				dueDate: { lessThan: "now()" }
-				departmentId: { equalTo: $departmentId }
+export const GET_TASK = gql`
+	query GetTask($id: UUID!) {
+		task(id: $id) {
+			id
+			title
+			description
+			assigneeId
+			departmentId
+			projectId
+			status
+			priority
+			dueDate
+			estimatedHours
+			actualHours
+			tags
+			createdAt
+			updatedAt
+			assignee {
+				id
+				displayName
+				email
 			}
-		) {
-			totalCount
 		}
-		highPriorityTasks: tasks(
-			filter: { priority: { equalTo: "high" }, departmentId: { equalTo: $departmentId } }
-		) {
-			totalCount
-		}
-		urgentTasks: tasks(
-			filter: { priority: { equalTo: "urgent" }, departmentId: { equalTo: $departmentId } }
-		) {
-			totalCount
+	}
+`;
+
+/**
+ * Query: Get current user's tasks
+ * Note: Use assigneeId filter with current user's ID
+ */
+export const GET_MY_TASKS = gql`
+	query GetMyTasks($assigneeId: UUID!, $limit: Int = 20, $offset: Int = 0) {
+		tasks(assigneeId: $assigneeId, limit: $limit, offset: $offset) {
+			id
+			title
+			description
+			status
+			priority
+			dueDate
+			estimatedHours
+			actualHours
+			tags
+			createdAt
+			updatedAt
 		}
 	}
 `;
@@ -160,44 +103,29 @@ export const GET_TASK_STATISTICS = gql`
 
 /**
  * Mutation: Create task
- * RLS Policy: manager_create_department_tasks
- * Covers: FR-005, FR-038
- * Note: Cannot assign task to self (CHECK constraint)
+ * Backend: Rust idiomatic - createTask not create_task
+ * RLS: Automatic permission checking
  */
 export const CREATE_TASK = gql`
 	mutation CreateTask($input: CreateTaskInput!) {
 		createTask(input: $input) {
-			task {
+			id
+			title
+			description
+			status
+			priority
+			dueDate
+			assigneeId
+			departmentId
+			projectId
+			estimatedHours
+			tags
+			createdAt
+			updatedAt
+			assignee {
 				id
-				assigneeId
-				userByAssigneeId {
-					id
-					displayName
-					email
-				}
-				assignerId
-				userByAssignerId {
-					id
-					displayName
-					email
-				}
-				departmentId
-				departmentByDepartmentId {
-					id
-					name
-				}
-				assignedToDepartmentId
-				departmentByAssignedToDepartmentId {
-					id
-					name
-				}
-				title
-				description
-				priority
-				status
-				dueDate
-				category
-				createdAt
+				displayName
+				email
 			}
 		}
 	}
@@ -205,45 +133,26 @@ export const CREATE_TASK = gql`
 
 /**
  * Mutation: Update task
- * RLS Policy: manager_update_department_tasks
- * Covers: FR-005, FR-038
- * Note: Auto-timestamps completedAt when status changes to 'completed'
+ * Backend: Rust idiomatic - updateTask(id, input) not update_task
  */
 export const UPDATE_TASK = gql`
-	mutation UpdateTask($input: UpdateTaskInput!) {
-		updateTask(input: $input) {
-			task {
+	mutation UpdateTask($id: UUID!, $input: UpdateTaskInput!) {
+		updateTask(id: $id, input: $input) {
+			id
+			title
+			description
+			status
+			priority
+			dueDate
+			assigneeId
+			estimatedHours
+			actualHours
+			tags
+			updatedAt
+			assignee {
 				id
-				assigneeId
-				userByAssigneeId {
-					id
-					displayName
-					email
-				}
-				assignerId
-				userByAssignerId {
-					id
-					displayName
-					email
-				}
-				departmentId
-				departmentByDepartmentId {
-					id
-					name
-				}
-				assignedToDepartmentId
-				departmentByAssignedToDepartmentId {
-					id
-					name
-				}
-				title
-				description
-				priority
-				status
-				dueDate
-				category
-				updatedAt
-				completedAt
+				displayName
+				email
 			}
 		}
 	}
@@ -251,15 +160,67 @@ export const UPDATE_TASK = gql`
 
 /**
  * Mutation: Delete task
- * RLS Policy: manager_delete_department_tasks
- * Covers: FR-005
+ * Backend: Rust idiomatic - deleteTask(id) returns Boolean
  */
 export const DELETE_TASK = gql`
-	mutation DeleteTask($input: DeleteTaskInput!) {
-		deleteTask(input: $input) {
-			deletedTaskId
-			clientMutationId
+	mutation DeleteTask($id: UUID!) {
+		deleteTask(id: $id)
+	}
+`;
+
+/**
+ * Mutation: Change task status
+ * Backend: Dedicated mutation for status changes
+ */
+export const CHANGE_TASK_STATUS = gql`
+	mutation ChangeTaskStatus($input: ChangeTaskStatusInput!) {
+		changeTaskStatus(input: $input) {
+			id
+			status
+			updatedAt
 		}
+	}
+`;
+
+/**
+ * Mutation: Assign task to user
+ * Backend: Dedicated mutation for task assignment
+ */
+export const ASSIGN_TASK = gql`
+	mutation AssignTaskToUser($input: AssignTaskInput!) {
+		assignTaskToUser(input: $input) {
+			id
+			taskId
+			userId
+			role
+			assignedAt
+		}
+	}
+`;
+
+/**
+ * Mutation: Create task dependency
+ * Backend: Rust idiomatic - createTaskDependency
+ */
+export const CREATE_TASK_DEPENDENCY = gql`
+	mutation CreateTaskDependency($input: CreateTaskDependencyInput!) {
+		createTaskDependency(input: $input) {
+			id
+			taskId
+			dependsOnTaskId
+			dependencyType
+			createdAt
+		}
+	}
+`;
+
+/**
+ * Mutation: Delete task dependency
+ * Backend: Rust idiomatic - deleteTaskDependency(id) returns Boolean
+ */
+export const DELETE_TASK_DEPENDENCY = gql`
+	mutation DeleteTaskDependency($id: UUID!) {
+		deleteTaskDependency(id: $id)
 	}
 `;
 
@@ -267,115 +228,47 @@ export const DELETE_TASK = gql`
 // TYPESCRIPT INTERFACES
 // ============================================================================
 
-export interface TaskFilter {
-	status?: {
-		equalTo?: 'todo' | 'in_progress' | 'completed' | 'cancelled';
-		in?: Array<'todo' | 'in_progress' | 'completed' | 'cancelled'>;
-	};
-	priority?: {
-		equalTo?: 'low' | 'medium' | 'high' | 'urgent';
-		in?: Array<'low' | 'medium' | 'high' | 'urgent'>;
-	};
-	assigneeId?: {
-		equalTo?: string;
-	};
-	assignerId?: {
-		equalTo?: string;
-	};
-	departmentId?: {
-		equalTo?: string;
-	};
-	assignedToDepartmentId?: {
-		equalTo?: string;
-		isNull?: boolean;
-	};
-	dueDate?: {
-		greaterThanOrEqualTo?: string;
-		lessThanOrEqualTo?: string;
-		lessThan?: string;
-	};
-	title?: {
-		includesInsensitive?: string;
-	};
-}
-
 export interface CreateTaskInput {
-	clientMutationId?: string;
-	task: {
-		assigneeId?: string; // Either assigneeId OR assignedToDepartmentId (mutually exclusive)
-		assignedToDepartmentId?: string; // Either assigneeId OR assignedToDepartmentId (mutually exclusive)
-		assignerId: string;
-		departmentId: string;
-		title: string;
-		description?: string;
-		priority?: 'low' | 'medium' | 'high' | 'urgent';
-		status?: 'todo' | 'in_progress';
-		dueDate?: string;
-	};
+	title: string;
+	description?: string;
+	status: TaskStatus;
+	priority: TaskPriority;
+	dueDate?: string;
+	assigneeId?: string;
+	departmentId?: string;
+	projectId?: string;
+	estimatedHours?: number;
+	tags?: string[];
 }
 
 export interface UpdateTaskInput {
-	clientMutationId?: string;
-	id: string;
-	patch: {
-		title?: string;
-		description?: string;
-		priority?: 'low' | 'medium' | 'high' | 'urgent';
-		status?: 'todo' | 'in_progress' | 'completed' | 'cancelled';
-		dueDate?: string;
-		assigneeId?: string;
-	};
-}
-
-export interface DeleteTaskInput {
-	clientMutationId?: string;
-	id: string;
-}
-
-export interface Task {
-	id: string;
-	assigneeId?: string; // Optional - mutually exclusive with assignedToDepartmentId
-	assignee?: {
-		id: string;
-		displayName: string;
-		email: string;
-		jobTitle?: string;
-	};
-	assignerId: string;
-	assigner: {
-		id: string;
-		displayName: string;
-		email: string;
-	};
-	departmentId: string;
-	department: {
-		id: string;
-		name: string;
-	};
-	assignedToDepartmentId?: string; // Optional - mutually exclusive with assigneeId
-	assignedToDepartment?: {
-		id: string;
-		name: string;
-	};
-	title: string;
+	title?: string;
 	description?: string;
-	priority: 'low' | 'medium' | 'high' | 'urgent';
-	status: 'todo' | 'in_progress' | 'completed' | 'cancelled';
+	status?: TaskStatus;
+	priority?: TaskPriority;
 	dueDate?: string;
-	createdAt: string;
-	updatedAt: string;
-	completedAt?: string;
+	assigneeId?: string;
+	estimatedHours?: number;
+	actualHours?: number;
+	tags?: string[];
 }
 
-export interface TaskStatistics {
-	totalTasks: number;
-	todoTasks: number;
-	inProgressTasks: number;
-	completedTasks: number;
-	overdueTasks: number;
-	highPriorityTasks: number;
-	urgentTasks: number;
-	completionRate: number;
+export interface ChangeTaskStatusInput {
+	taskId: string;
+	newStatus: TaskStatus;
+	comment?: string;
+}
+
+export interface AssignTaskInput {
+	taskId: string;
+	userId: string;
+	role: string;
+}
+
+export interface CreateTaskDependencyInput {
+	taskId: string;
+	dependsOnTaskId: string;
+	dependencyType: string;
 }
 
 // ============================================================================
@@ -383,112 +276,14 @@ export interface TaskStatistics {
 // ============================================================================
 
 /**
- * Helper: Build task filter safely
- */
-export function buildTaskFilter({
-	status,
-	priority,
-	assigneeId,
-	assignerId,
-	departmentId,
-	searchTerm,
-	includeOverdue
-}: {
-	status?: 'todo' | 'in_progress' | 'completed' | 'cancelled';
-	priority?: 'low' | 'medium' | 'high' | 'urgent';
-	assigneeId?: string;
-	assignerId?: string;
-	departmentId?: string;
-	searchTerm?: string;
-	includeOverdue?: boolean;
-}): TaskFilter {
-	const filter: TaskFilter = {};
-
-	if (status) {
-		filter.status = { equalTo: status };
-	}
-
-	if (priority) {
-		filter.priority = { equalTo: priority };
-	}
-
-	if (assigneeId) {
-		filter.assigneeId = { equalTo: assigneeId };
-	}
-
-	if (assignerId) {
-		filter.assignerId = { equalTo: assignerId };
-	}
-
-	if (departmentId) {
-		filter.departmentId = { equalTo: departmentId };
-	}
-
-	if (searchTerm) {
-		filter.title = { includesInsensitive: searchTerm };
-	}
-
-	if (includeOverdue) {
-		filter.dueDate = { lessThan: new Date().toISOString() };
-		filter.status = { in: ['todo', 'in_progress'] };
-	}
-
-	return filter;
-}
-
-/**
- * Helper: Calculate task statistics from raw data
- */
-export function calculateTaskStatistics(data: {
-	totalTasks: { totalCount: number };
-	todoTasks: { totalCount: number };
-	inProgressTasks: { totalCount: number };
-	completedTasks: { totalCount: number };
-	overdueTasks: { totalCount: number };
-	highPriorityTasks: { totalCount: number };
-	urgentTasks: { totalCount: number };
-}): TaskStatistics {
-	const totalCount = data.totalTasks.totalCount;
-	const completedCount = data.completedTasks.totalCount;
-	const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-
-	return {
-		totalTasks: totalCount,
-		todoTasks: data.todoTasks.totalCount,
-		inProgressTasks: data.inProgressTasks.totalCount,
-		completedTasks: completedCount,
-		overdueTasks: data.overdueTasks.totalCount,
-		highPriorityTasks: data.highPriorityTasks.totalCount,
-		urgentTasks: data.urgentTasks.totalCount,
-		completionRate
-	};
-}
-
-/**
- * Helper: Validate task input (no self-assignment, mutually exclusive assignment)
+ * Helper: Validate task input
  */
 export function validateTaskInput(input: {
-	assigneeId?: string;
-	assignedToDepartmentId?: string;
-	assignerId: string;
 	title: string;
 	description?: string;
+	dueDate?: string;
 }): { valid: boolean; errors: string[] } {
 	const errors: string[] = [];
-
-	// Must have either assigneeId OR assignedToDepartmentId (mutually exclusive)
-	if (!input.assigneeId && !input.assignedToDepartmentId) {
-		errors.push('Task must be assigned to either an employee or a department');
-	}
-
-	if (input.assigneeId && input.assignedToDepartmentId) {
-		errors.push('Task cannot be assigned to both an employee and a department');
-	}
-
-	// No self-assignment for employee tasks
-	if (input.assigneeId && input.assigneeId === input.assignerId) {
-		errors.push('Cannot assign task to yourself');
-	}
 
 	if (!input.title || input.title.trim().length === 0) {
 		errors.push('Title is required');
@@ -498,8 +293,16 @@ export function validateTaskInput(input: {
 		errors.push('Title must be less than 255 characters');
 	}
 
-	if (input.description && input.description.length > 2000) {
-		errors.push('Description must be less than 2000 characters');
+	if (input.description && input.description.length > 5000) {
+		errors.push('Description must be less than 5000 characters');
+	}
+
+	if (input.dueDate) {
+		const dueDate = new Date(input.dueDate);
+		const now = new Date();
+		if (dueDate < now) {
+			errors.push('Due date cannot be in the past');
+		}
 	}
 
 	return {
@@ -512,99 +315,47 @@ export function validateTaskInput(input: {
  * Helper: Check if task is overdue
  */
 export function isTaskOverdue(task: Task): boolean {
-	if (!task.dueDate) return false;
-	if (task.status === 'completed' || task.status === 'cancelled') return false;
-	return new Date(task.dueDate) < new Date();
-}
-
-/**
- * Helper: Get priority badge color
- */
-export function getTaskPriorityBadgeColor(priority: string): string {
-	const priorityColors: Record<string, string> = {
-		low: 'gray',
-		medium: 'blue',
-		high: 'orange',
-		urgent: 'red'
-	};
-	return priorityColors[priority.toLowerCase()] || 'gray';
-}
-
-/**
- * Helper: Get status badge color
- */
-export function getTaskStatusBadgeColor(status: string): string {
-	const statusColors: Record<string, string> = {
-		todo: 'gray',
-		in_progress: 'blue',
-		completed: 'green',
-		cancelled: 'red'
-	};
-	return statusColors[status.toLowerCase()] || 'gray';
-}
-
-/**
- * Helper: Format due date relative to today
- */
-export function formatDueDateRelative(dueDate: string): string {
-	const due = new Date(dueDate);
+	if (!task.dueDate || task.status === 'COMPLETED') {
+		return false;
+	}
+	const dueDate = new Date(task.dueDate);
 	const now = new Date();
-	const diffDays = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-	if (diffDays < 0) {
-		return `Overdue by ${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? '' : 's'}`;
-	} else if (diffDays === 0) {
-		return 'Due today';
-	} else if (diffDays === 1) {
-		return 'Due tomorrow';
-	} else if (diffDays <= 7) {
-		return `Due in ${diffDays} days`;
-	} else {
-		return due.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-	}
+	return dueDate < now;
 }
 
 /**
- * Helper: Get task assignee display (employee name or department name)
+ * Helper: Get task status color
  */
-export function getTaskAssigneeDisplay(task: Task): string {
-	if (task.assigneeId && task.assignee) {
-		return task.assignee.displayName;
-	} else if (task.assignedToDepartmentId && task.assignedToDepartment) {
-		return `Department: ${task.assignedToDepartment.name}`;
-	} else {
-		return 'Unassigned';
-	}
+export function getTaskStatusColor(status: TaskStatus): string {
+	const statusColors: Record<TaskStatus, string> = {
+		TODO: 'gray',
+		IN_PROGRESS: 'blue',
+		BLOCKED: 'red',
+		DEFERRED: 'yellow',
+		COMPLETED: 'green'
+	};
+	return statusColors[status] || 'gray';
 }
 
 /**
- * Helper: Check if task is assigned to department
+ * Helper: Get task priority color
  */
-export function isTaskDepartmentAssigned(task: Task): boolean {
-	return !!task.assignedToDepartmentId;
-}
-
-/**
- * Helper: Filter tasks by department assignment
- */
-export function filterTasksByDepartment(
-	tasks: Task[],
-	departmentId: string | null
-): Task[] {
-	if (!departmentId) {
-		return tasks.filter((task) => !task.assignedToDepartmentId);
-	}
-	return tasks.filter((task) => task.assignedToDepartmentId === departmentId);
+export function getTaskPriorityColor(priority: TaskPriority): string {
+	const priorityColors: Record<TaskPriority, string> = {
+		LOW: 'gray',
+		MEDIUM: 'blue',
+		HIGH: 'orange',
+		URGENT: 'red'
+	};
+	return priorityColors[priority] || 'gray';
 }
 
 // ============================================================================
-// OPERATIONS CLASS (Standardized Error Handling)
+// OPERATIONS CLASS
 // ============================================================================
 
 /**
- * T017: Manager Tasks Operations with Department-Scoped RLS
- * This class follows TDD principles - tests are written first in
- * tests/contract/manager-tasks-operations.test.ts
+ * Tasks Operations with Idiomatic Rust GraphQL Patterns
  */
 export class TasksOperations {
 	private client: Client;
@@ -614,13 +365,12 @@ export class TasksOperations {
 	}
 
 	/**
-	 * Get tasks for manager's department
-	 * RLS automatically filters to department only via JWT claims
+	 * Get all tasks (RBAC-filtered)
 	 */
-	async getDepartmentTasks(params: {
-		first?: number;
+	async getAllTasks(params: {
+		assigneeId?: string;
+		limit?: number;
 		offset?: number;
-		filter?: any;
 		userCredentials: UserCredentials;
 	}): Promise<{
 		tasks: Task[];
@@ -630,20 +380,20 @@ export class TasksOperations {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
+		const limit = params.limit || 20;
 		const dataRequest = createDataRequest({
-			operationName: 'GetDepartmentTasks',
+			operationName: 'GetAllTasks',
 			variables: {
-				first: params.first || 20,
-				offset: params.offset || 0,
-				condition: params.filter || {}
+				assigneeId: params.assigneeId,
+				limit,
+				offset: params.offset || 0
 			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
 		});
 
 		try {
-			// Server-side query using toPromise()
-			const result = await this.client.query(GET_DEPARTMENT_TASKS, dataRequest.variables).toPromise();
+			const result = await this.client.query(GET_ALL_TASKS, dataRequest.variables).toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -653,82 +403,136 @@ export class TasksOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data) {
+			if (!result.data || !result.data.tasks) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'No tasks data returned. Please try again.'
 				});
 			}
 
+			const tasks = result.data.tasks;
 			return {
-				tasks: result.data.allTasks.nodes,
-				totalCount: result.data.allTasks.totalCount,
-				hasNextPage: result.data.allTasks.pageInfo.hasNextPage
+				tasks,
+				totalCount: tasks.length,
+				hasNextPage: tasks.length === limit
 			};
 		} catch (error: any) {
 			if (error.userMessage) {
-				throw error; // Already formatted error
+				throw error;
 			}
 			throw createErrorResponse(error, {
 				type: 'graphql',
-				userMessage: 'Failed to load department tasks. Please try again.'
+				userMessage: 'Failed to load tasks. Please try again.'
 			});
 		}
 	}
 
 	/**
-	 * Get task statistics for manager's department
+	 * Get single task by ID
 	 */
-	async getTaskStatistics(params: {
-		departmentId: string;
+	async getTask(params: {
+		taskId: string;
 		userCredentials: UserCredentials;
-	}): Promise<TaskStatistics> {
+	}): Promise<Task> {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		const dataRequest = createDataRequest({
-			operationName: 'GetTaskStatistics',
-			variables: { departmentId: params.departmentId },
+			operationName: 'GetTask',
+			variables: { id: params.taskId },
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
 		});
 
 		try {
-			// Server-side query using toPromise()
-			const result = await this.client.query(GET_TASK_STATISTICS, dataRequest.variables).toPromise();
+			const result = await this.client.query(GET_TASK, dataRequest.variables).toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
 					type: 'graphql',
-					userMessage: 'Unable to load statistics. Please try again.'
+					userMessage: 'Unable to load task. Please try again.'
 				});
 				throw errorResponse;
 			}
 
-			if (!result.data) {
-				throw createErrorResponse(new Error('No data returned'), {
+			if (!result.data || !result.data.task) {
+				throw createErrorResponse(new Error('Task not found'), {
 					type: 'graphql',
-					userMessage: 'No statistics data returned. Please try again.'
+					userMessage: 'Task not found. Please try again.'
 				});
 			}
 
-			const stats = calculateTaskStatistics(result.data);
-			return stats;
+			return result.data.task;
 		} catch (error: any) {
 			if (error.userMessage) {
-				throw error; // Already formatted error
+				throw error;
 			}
 			throw createErrorResponse(error, {
 				type: 'graphql',
-				userMessage: 'Failed to load task statistics. Please try again.'
+				userMessage: 'Failed to load task. Please try again.'
 			});
 		}
 	}
 
 	/**
-	 * Create task (manager department-scoped)
-	 * RLS policy enforces department membership
-	 * Cannot assign task to self (CHECK constraint)
+	 * Get current user's tasks (RBAC-aware)
+	 */
+	async getMyTasks(params: {
+		userId: string;
+		limit?: number;
+		offset?: number;
+		userCredentials: UserCredentials;
+	}): Promise<{ tasks: Task[]; totalCount: number }> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+		const { createErrorResponse } = await import('$lib/models/error-response');
+
+		const dataRequest = createDataRequest({
+			operationName: 'GetMyTasks',
+			variables: {
+				assigneeId: params.userId,
+				limit: params.limit || 20,
+				offset: params.offset || 0
+			},
+			userCredentials: params.userCredentials,
+			timeoutMs: 5000
+		});
+
+		try {
+			const result = await this.client.query(GET_MY_TASKS, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to load your tasks. Please try again.'
+				});
+				throw errorResponse;
+			}
+
+			if (!result.data || !result.data.tasks) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'No tasks data returned. Please try again.'
+				});
+			}
+
+			const tasks = result.data.tasks;
+			return {
+				tasks,
+				totalCount: tasks.length
+			};
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error;
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to load tasks. Please try again.'
+			});
+		}
+	}
+
+	/**
+	 * Create task
 	 */
 	async createTask(params: {
 		input: CreateTaskInput;
@@ -738,7 +542,7 @@ export class TasksOperations {
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		// Validate input
-		const validation = validateTaskInput(params.input.task);
+		const validation = validateTaskInput(params.input);
 		if (!validation.valid) {
 			throw createErrorResponse(new Error(validation.errors.join(', ')), {
 				type: 'validation',
@@ -754,8 +558,7 @@ export class TasksOperations {
 		});
 
 		try {
-			// Server-side query using toPromise()
-			const result = await this.client.query(CREATE_TASK, dataRequest.variables).toPromise();
+			const result = await this.client.mutation(CREATE_TASK, dataRequest.variables).toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -765,17 +568,17 @@ export class TasksOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data) {
+			if (!result.data || !result.data.createTask) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
-					userMessage: 'No task data returned. Please try again.'
+					userMessage: 'Task creation failed. Please try again.'
 				});
 			}
 
-			return result.data.createTask.task;
+			return result.data.createTask;
 		} catch (error: any) {
 			if (error.userMessage) {
-				throw error; // Already formatted error
+				throw error;
 			}
 			throw createErrorResponse(error, {
 				type: 'graphql',
@@ -785,11 +588,10 @@ export class TasksOperations {
 	}
 
 	/**
-	 * Update task (manager department-scoped)
-	 * RLS policy enforces department membership
-	 * Auto-timestamps completedAt when status changes to 'completed'
+	 * Update task
 	 */
 	async updateTask(params: {
+		id: string;
 		input: UpdateTaskInput;
 		userCredentials: UserCredentials;
 	}): Promise<Task> {
@@ -798,14 +600,13 @@ export class TasksOperations {
 
 		const dataRequest = createDataRequest({
 			operationName: 'UpdateTask',
-			variables: { input: params.input },
+			variables: { id: params.id, input: params.input },
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
 		});
 
 		try {
-			// Server-side query using toPromise()
-			const result = await this.client.query(UPDATE_TASK, dataRequest.variables).toPromise();
+			const result = await this.client.mutation(UPDATE_TASK, dataRequest.variables).toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -815,17 +616,17 @@ export class TasksOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data) {
+			if (!result.data || !result.data.updateTask) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
-					userMessage: 'No task data returned. Please try again.'
+					userMessage: 'Task update failed. Please try again.'
 				});
 			}
 
-			return result.data.updateTask.task;
+			return result.data.updateTask;
 		} catch (error: any) {
 			if (error.userMessage) {
-				throw error; // Already formatted error
+				throw error;
 			}
 			throw createErrorResponse(error, {
 				type: 'graphql',
@@ -835,30 +636,25 @@ export class TasksOperations {
 	}
 
 	/**
-	 * Delete task (manager department-scoped)
-	 * RLS policy enforces department membership
+	 * Delete task
+	 * Returns: Boolean indicating success
 	 */
 	async deleteTask(params: {
 		taskId: string;
 		userCredentials: UserCredentials;
-	}): Promise<string> {
+	}): Promise<boolean> {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
-		const input: DeleteTaskInput = {
-			id: params.taskId
-		};
-
 		const dataRequest = createDataRequest({
 			operationName: 'DeleteTask',
-			variables: { input },
+			variables: { id: params.taskId },
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
 		});
 
 		try {
-			// Server-side query using toPromise()
-			const result = await this.client.query(DELETE_TASK, dataRequest.variables).toPromise();
+			const result = await this.client.mutation(DELETE_TASK, dataRequest.variables).toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
@@ -868,17 +664,10 @@ export class TasksOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data) {
-				throw createErrorResponse(new Error('No data returned'), {
-					type: 'graphql',
-					userMessage: 'No data returned. Please try again.'
-				});
-			}
-
-			return result.data.deleteTask.deletedTaskId;
+			return result.data?.deleteTask || false;
 		} catch (error: any) {
 			if (error.userMessage) {
-				throw error; // Already formatted error
+				throw error;
 			}
 			throw createErrorResponse(error, {
 				type: 'graphql',
@@ -888,59 +677,215 @@ export class TasksOperations {
 	}
 
 	/**
-	 * Get single task by ID (department-scoped)
-	 * RLS automatically filters to department only via JWT claims
+	 * Change task status
 	 */
-	async getTaskById(params: {
+	async changeTaskStatus(params: {
 		taskId: string;
+		newStatus: TaskStatus;
+		comment?: string;
 		userCredentials: UserCredentials;
-	}): Promise<Task | null> {
+	}): Promise<Task> {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
+		const input: ChangeTaskStatusInput = {
+			taskId: params.taskId,
+			newStatus: params.newStatus,
+			comment: params.comment
+		};
+
 		const dataRequest = createDataRequest({
-			operationName: 'GetTaskById',
-			variables: { id: params.taskId },
+			operationName: 'ChangeTaskStatus',
+			variables: { input },
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
 		});
 
 		try {
-			// Server-side query using toPromise()
-			const result = await this.client.query(GET_TASK_BY_ID, dataRequest.variables).toPromise();
+			const result = await this.client
+				.mutation(CHANGE_TASK_STATUS, dataRequest.variables)
+				.toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
 					type: 'graphql',
-					userMessage: 'Unable to load task. Please try again.'
+					userMessage: 'Unable to change task status. Please try again.'
 				});
 				throw errorResponse;
 			}
 
-			if (!result.data || !result.data.taskById) {
-				return null;
+			if (!result.data || !result.data.changeTaskStatus) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'Status change failed. Please try again.'
+				});
 			}
 
-			return result.data.taskById;
+			return result.data.changeTaskStatus;
 		} catch (error: any) {
 			if (error.userMessage) {
-				throw error; // Already formatted error
+				throw error;
 			}
 			throw createErrorResponse(error, {
 				type: 'graphql',
-				userMessage: 'Failed to load task. Please try again.'
+				userMessage: 'Failed to change status. Please try again.'
 			});
 		}
 	}
 
-	// Legacy method for backwards compatibility
-	async getTasks(params: any) {
-		return this.getDepartmentTasks({
-			first: params.first,
-			offset: params.offset,
-			filter: params.filter,
-			userCredentials: params.userCredentials
+	/**
+	 * Assign task to user
+	 */
+	async assignTaskToUser(params: {
+		taskId: string;
+		userId: string;
+		role: string;
+		userCredentials: UserCredentials;
+	}): Promise<any> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+		const { createErrorResponse } = await import('$lib/models/error-response');
+
+		const input: AssignTaskInput = {
+			taskId: params.taskId,
+			userId: params.userId,
+			role: params.role
+		};
+
+		const dataRequest = createDataRequest({
+			operationName: 'AssignTaskToUser',
+			variables: { input },
+			userCredentials: params.userCredentials,
+			timeoutMs: 5000
 		});
+
+		try {
+			const result = await this.client.mutation(ASSIGN_TASK, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to assign task. Please try again.'
+				});
+				throw errorResponse;
+			}
+
+			if (!result.data || !result.data.assignTaskToUser) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'Task assignment failed. Please try again.'
+				});
+			}
+
+			return result.data.assignTaskToUser;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error;
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to assign task. Please try again.'
+			});
+		}
+	}
+
+	/**
+	 * Create task dependency
+	 */
+	async createTaskDependency(params: {
+		input: CreateTaskDependencyInput;
+		userCredentials: UserCredentials;
+	}): Promise<{ taskDependency: TaskDependency }> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+		const { createErrorResponse } = await import('$lib/models/error-response');
+
+		const dataRequest = createDataRequest({
+			operationName: 'CreateTaskDependency',
+			variables: { input: params.input },
+			userCredentials: params.userCredentials,
+			timeoutMs: 5000
+		});
+
+		try {
+			const result = await this.client
+				.mutation(CREATE_TASK_DEPENDENCY, dataRequest.variables)
+				.toPromise();
+
+			if (result.error) {
+				// Check for circular dependency error
+				if (result.error.message.includes('Circular dependency')) {
+					throw createErrorResponse(result.error, {
+						type: 'validation',
+						userMessage: 'Circular dependency detected. Cannot create this dependency.'
+					});
+				}
+
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to create dependency. Please try again.'
+				});
+				throw errorResponse;
+			}
+
+			if (!result.data || !result.data.createTaskDependency) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'Dependency creation failed. Please try again.'
+				});
+			}
+
+			return { taskDependency: result.data.createTaskDependency };
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error;
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to create dependency. Please try again.'
+			});
+		}
+	}
+
+	/**
+	 * Delete task dependency
+	 * Returns: Boolean indicating success
+	 */
+	async deleteTaskDependency(params: {
+		id: string;
+		userCredentials: UserCredentials;
+	}): Promise<boolean> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+		const { createErrorResponse } = await import('$lib/models/error-response');
+
+		const dataRequest = createDataRequest({
+			operationName: 'DeleteTaskDependency',
+			variables: { id: params.id },
+			userCredentials: params.userCredentials,
+			timeoutMs: 5000
+		});
+
+		try {
+			const result = await this.client
+				.mutation(DELETE_TASK_DEPENDENCY, dataRequest.variables)
+				.toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to delete dependency. Please try again.'
+				});
+				throw errorResponse;
+			}
+
+			return result.data?.deleteTaskDependency || false;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error;
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to delete dependency. Please try again.'
+			});
+		}
 	}
 }
 

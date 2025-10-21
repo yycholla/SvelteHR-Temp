@@ -1,0 +1,109 @@
+# Mutation Testing Configuration for cargo-mutants
+# https://github.com/sourcefrog/cargo-mutants
+
+# Exclude directories from mutation testing
+exclude_dirs = [
+    "target/",
+    "tests/",
+    "benches/",
+    "migration/",
+    ".github/",
+]
+
+# Exclude specific files from mutation testing
+exclude_files = [
+    # Generated code
+    "src/models/generated/",
+
+    # Build scripts
+    "build.rs",
+
+    # Main entry points (low value for mutation testing)
+    "src/main.rs",
+    "migration/main.rs",
+]
+
+# Focus mutation testing on critical business logic
+# Prioritize these modules for mutation testing
+include_dirs = [
+    "src/schema/",
+    "src/auth/",
+    "src/models/",
+]
+
+# Timeout for each test run (default: 300s)
+# Increase if tests are slow
+timeout = 600
+
+# Minimum timeout (default: 20s)
+# Tests must complete within this time to be considered valid
+minimum_test_timeout = 30
+
+# Test command to run
+# Default is "cargo test", but we can customize
+test_command = "cargo test --lib"
+
+# Build command
+build_command = "cargo build --lib"
+
+# Number of mutants to test in parallel
+# Default is number of CPUs
+# jobs = 4
+
+# Skip mutants that are unlikely to be caught
+# These are mutations that are known to be hard to detect
+skip_calls = [
+    # Logging/tracing calls - mutations unlikely to be caught
+    "tracing::debug",
+    "tracing::info",
+    "tracing::warn",
+    "tracing::error",
+    "tracing::trace",
+    "log::debug",
+    "log::info",
+    "log::warn",
+    "log::error",
+    "log::trace",
+
+    # Assertion messages - mutations won't change behavior
+    "assert",
+    "assert_eq",
+    "assert_ne",
+    "panic",
+
+    # Format strings - low value mutations
+    "format",
+    "println",
+    "eprintln",
+]
+
+# Regex patterns for functions to skip
+skip_functions = [
+    # Skip test functions themselves
+    ".*::tests::.*",
+
+    # Skip Display/Debug implementations
+    ".*::fmt",
+
+    # Skip From/Into trait implementations (usually trivial)
+    ".*::from",
+    ".*::into",
+]
+
+# Generate detailed report
+output = "mutants.out"
+
+# Generate JSON report for CI integration
+json = true
+
+# Automatically open HTML report after completion
+# open = true
+
+# Show diff of each mutant
+# in_diff = true
+
+# List mutants without running tests (dry run)
+# list = true
+
+# Continue testing even after finding caught mutants
+# all = true

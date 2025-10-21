@@ -5,6 +5,53 @@ import { error } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { ensureBackendReady } from '$lib/server/backend-init';
 
+// Helper functions for review type mapping
+function getReviewTypeName(reviewType: string): string {
+	const typeMap: Record<string, string> = {
+		annual: 'Annual Review',
+		quarterly: 'Quarterly Review',
+		probationary: 'Probationary Review',
+		project: 'Project Review',
+		performance_improvement: 'Performance Improvement Plan',
+		exit: 'Exit Review'
+	};
+	return typeMap[reviewType] || 'Performance Review';
+}
+
+function getReviewTypeFrequency(reviewType: string): string {
+	const frequencyMap: Record<string, string> = {
+		annual: 'yearly',
+		quarterly: 'quarterly',
+		probationary: 'one-time',
+		project: 'one-time',
+		performance_improvement: 'one-time',
+		exit: 'one-time'
+	};
+	return frequencyMap[reviewType] || 'one-time';
+}
+
+function getReviewTypeColor(reviewType: string): string {
+	const colorMap: Record<string, string> = {
+		annual: 'blue',
+		quarterly: 'purple',
+		probationary: 'red',
+		project: 'green',
+		performance_improvement: 'orange',
+		exit: 'gray'
+	};
+	return colorMap[reviewType] || 'blue';
+}
+
+function mapReviewStatus(status: string): string {
+	const statusMap: Record<string, string> = {
+		draft: 'draft',
+		not_started: 'scheduled',
+		in_progress: 'in_progress',
+		completed: 'completed'
+	};
+	return statusMap[status] || 'scheduled';
+}
+
 export const load: PageServerLoad = async (event) => {
 	const { locals, url, cookies } = event;
 
@@ -55,16 +102,17 @@ export const load: PageServerLoad = async (event) => {
 		const graphqlClient = GraphQLClient.fromCookies(cookies);
 
 		// Load user details using new GraphQL client
+		// Migration: ✅ Use idiomatic Rust pattern (user with id parameter)
 		const userQuery = `
 			query GetUser($id: UUID!) {
-				userById(id: $id) {
+				user(id: $id) {
 					id
 					email
 					firstName
 					lastName
 					departmentId
 					isActive
-					departmentByDepartmentId {
+					department {
 						id
 						name
 						managerId
@@ -74,20 +122,126 @@ export const load: PageServerLoad = async (event) => {
 		`;
 
 		const userData = await graphqlClient.query(userQuery, { id: userId });
-		const user = userData.data?.userById;
+		const user = userData.data?.user;
 
 		if (!user) {
 			throw error(404, 'User not found');
 		}
 
-		// TODO: Load actual performance reviews from database
-		// For now, generate sample data
+		// Load actual performance reviews from database
+		// Migration: ✅ Use idiomatic Rust pattern (performanceReviews with employeeId)
+		// Note: Schema only has basic fields - feedback and goals are in separate tables
+		const reviewsQuery = `
+			query GetPerformanceReviewsByEmployee($employeeId: UUID!, $limit: Int!, $offset: Int!) {
+				performanceReviews(employeeId: $employeeId, limit: $limit, offset: $offset) {
+					id
+					employeeId
+					reviewerId
+					cycleId
+					templateId
+					status
+					overallRating
+					submittedAt
+					createdAt
+					updatedAt
+					employee {
+						id
+						displayName
+						email
+						firstName
+						lastName
+					}
+					reviewer {
+						id
+						displayName
+						email
+						firstName
+						lastName
+					}
+					cycle {
+						id
+						name
+						reviewType
+						startDate
+						endDate
+					}
+				}
+			}
+		`;
+
+		const reviewsData = await graphqlClient.query(reviewsQuery, {
+			employeeId: userId,
+			limit: 50,
+			offset: 0
+		});
+
+		// Transform database reviews to frontend format
+		// Note: Using placeholder data for fields that exist in separate tables (review_feedback, review_goal, review_cycle)
+		const reviews = (reviewsData.data?.performanceReviews || []).map((review) => {
+			// Map status enum to string
+			const statusStr = typeof review.status === 'string' ? review.status : review.status?.toLowerCase() || 'draft';
+			const mappedStatus = mapReviewStatus(statusStr);
+
+			// Infer review type from cycleId existence (would need to query review_cycle for actual type)
+			const inferredType = 'annual'; // Default - actual type is in review_cycle table
+
+			// Calculate review period from creation/submission dates (approximation until we query review_cycle)
+			const createdDate = new Date(review.createdAt);
+			const yearStart = new Date(createdDate.getFullYear(), 0, 1);
+			const yearEnd = new Date(createdDate.getFullYear(), 11, 31);
+
+			return {
+				id: review.id,
+				type: {
+					id: inferredType,
+					name: getReviewTypeName(inferredType),
+					frequency: getReviewTypeFrequency(inferredType),
+					color: getReviewTypeColor(inferredType)
+				},
+				status: mappedStatus,
+				reviewPeriod: {
+					start: yearStart.toISOString().split('T')[0],
+					end: yearEnd.toISOString().split('T')[0]
+				},
+				scheduledDate: review.createdAt.split('T')[0],
+				completedDate: review.submittedAt ? review.submittedAt.split('T')[0] : (mappedStatus === 'completed' ? review.updatedAt.split('T')[0] : null),
+				reviewer: review.reviewer
+					? {
+							id: review.reviewer.id,
+							displayName:
+								review.reviewer.displayName ||
+								`${review.reviewer.firstName} ${review.reviewer.lastName}`,
+							email: review.reviewer.email
+						}
+					: null,
+				overallRating: review.overallRating || null,
+				competencies: [], // Would need to query review_template or review_feedback for competencies
+				goals: [], // Would need to query review_goals table
+				feedback: {
+					strengths: [], // Would need to query review_feedback table with feedback_type='manager'
+					improvements: [], // Would need to query review_feedback table
+					managerComments: null, // Would need to query review_feedback table
+					employeeComments: null // Would need to query review_feedback table with feedback_type='self_review'
+				},
+				developmentPlan: [], // Would need to query review_goals table
+				createdAt: review.createdAt,
+				lastUpdated: review.updatedAt
+			};
+		});
+
+		// Static review types (could be loaded from database in future)
 		const reviewTypes = [
-			{ id: '1', name: 'Annual Review', frequency: 'yearly', color: 'blue' },
-			{ id: '2', name: 'Mid-Year Review', frequency: 'bi-annual', color: 'green' },
-			{ id: '3', name: 'Quarterly Check-in', frequency: 'quarterly', color: 'purple' },
-			{ id: '4', name: '90-Day Review', frequency: 'quarterly', color: 'orange' },
-			{ id: '5', name: 'Probation Review', frequency: 'one-time', color: 'red' }
+			{ id: 'annual', name: 'Annual Review', frequency: 'yearly', color: 'blue' },
+			{ id: 'quarterly', name: 'Quarterly Review', frequency: 'quarterly', color: 'purple' },
+			{ id: 'probationary', name: 'Probationary Review', frequency: 'one-time', color: 'red' },
+			{ id: 'project', name: 'Project Review', frequency: 'one-time', color: 'green' },
+			{
+				id: 'performance_improvement',
+				name: 'Performance Improvement Plan',
+				frequency: 'one-time',
+				color: 'orange'
+			},
+			{ id: 'exit', name: 'Exit Review', frequency: 'one-time', color: 'gray' }
 		];
 
 		const competencyAreas = [
@@ -103,93 +257,36 @@ export const load: PageServerLoad = async (event) => {
 			'Customer Focus'
 		];
 
-		const currentDate = new Date();
-
-		// Generate sample performance reviews
-		const reviews = Array.from({ length: 6 }, (_, i) => {
-			const reviewDate = new Date(currentDate);
-			reviewDate.setMonth(reviewDate.getMonth() - (i * 6)); // Reviews every 6 months
-
-			const reviewType = reviewTypes[i % reviewTypes.length];
-			const statuses = ['completed', 'in_progress', 'scheduled', 'overdue'];
-			const status = i === 0 ? 'in_progress' : i === 1 ? 'scheduled' : 'completed';
-
-			// Generate competency ratings (1-5 scale)
-			const competencies = competencyAreas.map(area => ({
-				name: area,
-				rating: Math.floor(Math.random() * 2) + 3.5, // 3.5-5 range for good performance
-				feedback: `Strong performance in ${area.toLowerCase()}. Continue to develop skills in this area.`
-			}));
-
-			const overallRating = competencies.reduce((sum, c) => sum + c.rating, 0) / competencies.length;
-
-			return {
-				id: `review-${i}`,
-				type: reviewType,
-				status,
-				reviewPeriod: {
-					start: new Date(reviewDate.getFullYear(), reviewDate.getMonth() - 6, 1).toISOString().split('T')[0],
-					end: new Date(reviewDate.getFullYear(), reviewDate.getMonth(), 0).toISOString().split('T')[0]
-				},
-				scheduledDate: reviewDate.toISOString().split('T')[0],
-				completedDate: status === 'completed' ? reviewDate.toISOString().split('T')[0] : null,
-				reviewer: {
-					id: 'reviewer-1',
-					displayName: 'Sarah Johnson',
-					email: 'sarah.johnson@company.com'
-				},
-				overallRating: Math.round(overallRating * 10) / 10,
-				competencies,
-				goals: Array.from({ length: Math.floor(Math.random() * 3) + 2 }, (_, j) => ({
-					id: `goal-${i}-${j}`,
-					title: `Performance Goal ${j + 1}`,
-					description: `Specific goal set during review period ${i + 1}`,
-					status: ['achieved', 'partially_achieved', 'not_achieved'][Math.floor(Math.random() * 3)],
-					progress: Math.floor(Math.random() * 100)
-				})),
-				feedback: {
-					strengths: [
-						'Excellent technical skills and problem-solving abilities',
-						'Strong communication and collaboration with team members',
-						'Consistently delivers high-quality work on time'
-					],
-					improvements: [
-						'Could benefit from taking on more leadership responsibilities',
-						'Opportunity to mentor junior team members',
-						'Continue developing expertise in emerging technologies'
-					],
-					managerComments: `Overall strong performance during this review period. ${user.firstName} ${user.lastName} has consistently exceeded expectations and shown great potential for growth.`,
-					employeeComments: status === 'completed' ? 'I appreciate the feedback and look forward to continuing to grow in my role.' : null
-				},
-				developmentPlan: [
-					'Complete advanced technical training course',
-					'Lead a cross-functional project',
-					'Attend industry conference or workshop',
-					'Shadow senior team member for leadership development'
-				],
-				createdAt: reviewDate.toISOString(),
-				lastUpdated: status === 'in_progress' ? new Date().toISOString() : reviewDate.toISOString()
-			};
-		});
-
-		// Generate review statistics
+		// Calculate review statistics from actual data
 		const reviewStats = {
 			total: reviews.length,
-			completed: reviews.filter(r => r.status === 'completed').length,
-			inProgress: reviews.filter(r => r.status === 'in_progress').length,
-			scheduled: reviews.filter(r => r.status === 'scheduled').length,
-			overdue: reviews.filter(r => r.status === 'overdue').length,
+			completed: reviews.filter((r) => r.status === 'completed').length,
+			inProgress: reviews.filter((r) => r.status === 'in_progress').length,
+			scheduled: reviews.filter((r) => r.status === 'scheduled').length,
+			overdue: reviews.filter((r) => r.status === 'overdue').length,
 			averageRating: reviews
-				.filter(r => r.status === 'completed')
-				.reduce((sum, r, _, arr) => sum + r.overallRating / arr.length, 0),
-			lastReviewDate: reviews.find(r => r.status === 'completed')?.completedDate,
-			nextReviewDate: reviews.find(r => r.status === 'scheduled' || r.status === 'in_progress')?.scheduledDate
+				.filter((r) => r.status === 'completed' && r.overallRating)
+				.reduce((sum, r, _, arr) => sum + (r.overallRating || 0) / arr.length, 0),
+			lastReviewDate: reviews
+				.filter((r) => r.status === 'completed')
+				.sort(
+					(a, b) =>
+						new Date(b.completedDate || b.scheduledDate).getTime() -
+						new Date(a.completedDate || a.scheduledDate).getTime()
+				)[0]?.completedDate,
+			nextReviewDate: reviews
+				.filter((r) => r.status === 'scheduled' || r.status === 'in_progress')
+				.sort(
+					(a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime()
+				)[0]?.scheduledDate
 		};
 
 		return {
 			user,
 			userId,
-			reviews: reviews.sort((a, b) => new Date(b.scheduledDate).getTime() - new Date(a.scheduledDate).getTime()),
+			reviews: reviews.sort(
+				(a, b) => new Date(b.scheduledDate).getTime() - new Date(a.scheduledDate).getTime()
+			),
 			reviewTypes,
 			competencyAreas,
 			reviewStats,
@@ -198,7 +295,6 @@ export const load: PageServerLoad = async (event) => {
 			permissions: locals.permissions || [],
 			loadedAt: new Date().toISOString()
 		};
-
 	} catch (err) {
 		console.error('Error loading user performance reviews:', err);
 

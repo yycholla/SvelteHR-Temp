@@ -10,12 +10,20 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 		throw error(401, 'Authentication required');
 	}
 
-	// Check if user has admin or super_admin role
+	// Check if user has admin access permissions
+	const userPermissions = locals.permissions || [];
+	const userRoles = locals.roles || [];
+
+	// Admin access granted if:
+	// 1. User has wildcard (*) permission
+	// 2. User has admin:read permission
+	// 3. User has system_admin role
+	// 4. User has admin role
 	const isAdmin =
-		locals.roles?.includes('super_admin') ||
-		locals.roles?.includes('admin') ||
-		locals.user.role === 'super_admin' ||
-		locals.user.role === 'admin';
+		userPermissions.includes('*') ||
+		userPermissions.includes('admin:read') ||
+		userRoles.includes('system_admin') ||
+		userRoles.includes('admin');
 
 	if (!isAdmin) {
 		// Log admin access attempt for audit purposes
@@ -23,7 +31,8 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 			userId: locals.user.id,
 			userEmail: locals.user.email,
 			userRole: locals.user.role,
-			roles: locals.roles,
+			roles: userRoles,
+			permissions: userPermissions,
 			timestamp: new Date().toISOString()
 		});
 

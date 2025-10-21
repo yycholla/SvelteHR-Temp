@@ -1,21 +1,8 @@
-// Authentication service with token refresh and secure storage
-// T053: Security Hardening - JWT & Token Management
+// Authentication service for session-based authentication
+// Session management using axum-login backend with HTTP-only cookies
 
 import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
-import {
-	authConfig,
-	getAccessTokenName,
-	getRefreshTokenName,
-	getCookieOptions,
-	getAuthEndpoints
-} from '$lib/auth/config.js';
-import {
-	verifyJWTToken,
-	tokenNeedsRefresh,
-	getTokenTimeRemaining,
-	type JWTPayload
-} from '$lib/auth/jwt-utils.js';
 
 // Authentication interfaces
 export interface LoginCredentials {
@@ -46,82 +33,62 @@ export interface AuthUser {
 	onboardingStatus: string;
 }
 
-// Auth service configuration
+// Auth service configuration for session-based authentication
 const AUTH_CONFIG = {
 	apiBaseUrl: browser ? window.location.origin : 'http://localhost:4000',
 	endpoints: {
 		login: '/api/auth/login',
 		logout: '/api/auth/logout',
-		verify: '/api/auth/verify',
-		refresh: '/api/auth/refresh'
-	},
-	tokenStorage: {
-		key: 'postgraphile-jwt-token',
-		cookieName: 'hr_token'
+		verify: '/api/auth/verify'
 	}
 };
 
 /**
- * Login function that authenticates with PostGraphile backend
+ * Login function that authenticates with session-based backend
  */
 export async function login(credentials: LoginCredentials): Promise<LoginResponse> {
 	try {
-		// For now, return a mock successful login response
-		// In a real implementation, this would make an API call to PostGraphile
 		console.log('🔐 AuthService: Attempting login for', credentials.email);
 
-		// Make actual API call to authenticate against database
-		if (credentials.email && credentials.password) {
-			// Call authentication endpoint to verify credentials and get user data
-			try {
-				const response = await fetch('/api/auth/login', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(credentials)
-				});
-
-				if (!response.ok) {
-					const errorData = await response.json().catch(() => ({}));
-					return {
-						success: false,
-						error: errorData.error || 'Authentication failed',
-						message: errorData.message || 'Invalid credentials'
-					};
-				}
-
-				const authData = await response.json();
-
-				// Use the token and user data from backend
-				const token = authData.token;
-				const user = authData.user;
-
-				// Store token if in browser - both localStorage and cookie
-				if (browser) {
-					localStorage.setItem(AUTH_CONFIG.tokenStorage.key, token);
-
-					// Also set cookie for server-side authentication
-					document.cookie = `${AUTH_CONFIG.tokenStorage.cookieName}=${token}; path=/; max-age=${24 * 60 * 60}; secure=${window.location.protocol === 'https:'}; samesite=lax`;
-				}
-
-				return {
-					success: true,
-					token: token,
-					user: user,
-					message: 'Login successful'
-				};
-			} catch (apiError) {
-				console.error('Authentication API error:', apiError);
-				return {
-					success: false,
-					error: 'Unable to connect to authentication service',
-					message: 'Please try again later'
-				};
-			}
-		} else {
+		if (!credentials.email || !credentials.password) {
 			return {
 				success: false,
 				error: 'Invalid credentials',
 				message: 'Email and password are required'
+			};
+		}
+
+		try {
+			const response = await fetch('/api/auth/login', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(credentials),
+				credentials: 'include' // Include session cookies
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return {
+					success: false,
+					error: errorData.error || 'Authentication failed',
+					message: errorData.message || 'Invalid credentials'
+				};
+			}
+
+			const authData = await response.json();
+
+			// Session cookie is automatically set by backend - no client-side storage needed
+			return {
+				success: true,
+				user: authData.user,
+				message: 'Login successful'
+			};
+		} catch (apiError) {
+			console.error('Authentication API error:', apiError);
+			return {
+				success: false,
+				error: 'Unable to connect to authentication service',
+				message: 'Please try again later'
 			};
 		}
 	} catch (error) {
@@ -135,22 +102,17 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
 }
 
 /**
- * Logout function that clears authentication state
+ * Logout function that clears session server-side
  */
 export async function logout(): Promise<{ success: boolean; message?: string }> {
 	try {
 		console.log('🔓 AuthService: Logging out');
 
-		// Clear stored token
-		if (browser) {
-			localStorage.removeItem(AUTH_CONFIG.tokenStorage.key);
-
-			// Clear any auth cookies
-			document.cookie = `${AUTH_CONFIG.tokenStorage.cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
-		}
-
-		// In a real implementation, this would also call the backend logout endpoint
-		// await fetch(AUTH_CONFIG.endpoints.logout, { method: 'POST' });
+		// Call backend logout endpoint to clear session
+		await fetch(AUTH_CONFIG.endpoints.logout, {
+			method: 'POST',
+			credentials: 'include' // Include session cookies for server-side session clearing
+		}).catch((err) => console.warn('Logout endpoint failed:', err));
 
 		return {
 			success: true,
@@ -166,118 +128,64 @@ export async function logout(): Promise<{ success: boolean; message?: string }> 
 }
 
 /**
- * Verify current authentication token
+ * Verify current session
  */
-export async function verifyToken(token?: string): Promise<{
+export async function verifySession(): Promise<{
 	valid: boolean;
 	user?: AuthUser;
 	error?: string;
 }> {
 	try {
-		const authToken =
-			token || (browser ? localStorage.getItem(AUTH_CONFIG.tokenStorage.key) : null);
+		console.log('🔍 AuthService: Verifying session');
 
-		if (!authToken) {
+		const response = await fetch(AUTH_CONFIG.endpoints.verify, {
+			method: 'GET',
+			credentials: 'include' // Include session cookies
+		});
+
+		if (!response.ok) {
 			return {
 				valid: false,
-				error: 'No token provided'
+				error: 'Session invalid or expired'
 			};
 		}
 
-		// For now, return a mock verification response
-		// In a real implementation, this would validate the JWT token
-		console.log('🔍 AuthService: Verifying token');
+		const data = await response.json();
 
-		// Mock token validation - check if it's a valid JWT format
-		try {
-			const tokenParts = authToken.split('.');
-			if (tokenParts.length === 3) {
-				// Decode payload to check if it's valid
-				const payload = JSON.parse(atob(tokenParts[1]));
-				const currentTime = Math.floor(Date.now() / 1000);
-
-				// Check if token is expired
-				if (payload.exp && payload.exp > currentTime) {
-					return {
-						valid: true,
-						user: {
-							id: payload.user_id, // No fallback - user_id must be in token
-							email: payload.email || 'user@example.com',
-							displayName: payload.email?.split('@')[0] || 'Mock User',
-							firstName: 'Mock',
-							lastName: 'User',
-							isActive: true,
-							onboardingStatus: 'completed'
-						}
-					};
-				}
-			}
-		} catch (error) {
-			console.warn('Token parsing error:', error);
-		}
-
-		return {
-			valid: false,
-			error: 'Invalid token format'
-		};
-	} catch (error) {
-		console.error('🔴 AuthService: Token verification error:', error);
-		return {
-			valid: false,
-			error: error instanceof Error ? error.message : 'Token verification failed'
-		};
-	}
-}
-
-/**
- * Get current authentication token
- */
-export function getAuthToken(): string | null {
-	if (!browser) return null;
-	return localStorage.getItem(AUTH_CONFIG.tokenStorage.key);
-}
-
-/**
- * Check if user is currently authenticated
- */
-export function isAuthenticated(): boolean {
-	const token = getAuthToken();
-	return !!token;
-}
-
-/**
- * Refresh authentication token
- */
-export async function refreshToken(): Promise<{
-	success: boolean;
-	token?: string;
-	error?: string;
-}> {
-	try {
-		console.log('🔄 AuthService: Refreshing token');
-
-		// For now, return the existing token
-		// In a real implementation, this would call the refresh endpoint
-		const currentToken = getAuthToken();
-
-		if (currentToken) {
+		if (data.user) {
 			return {
-				success: true,
-				token: currentToken
+				valid: true,
+				user: {
+					id: data.user.id,
+					email: data.user.email,
+					displayName: data.user.displayName || data.user.email.split('@')[0],
+					firstName: data.user.firstName,
+					lastName: data.user.lastName,
+					isActive: data.user.isActive !== false,
+					onboardingStatus: data.user.onboardingStatus || 'active'
+				}
 			};
 		}
 
 		return {
-			success: false,
-			error: 'No token to refresh'
+			valid: false,
+			error: 'No user data in response'
 		};
 	} catch (error) {
-		console.error('🔴 AuthService: Token refresh error:', error);
+		console.error('🔴 AuthService: Session verification error:', error);
 		return {
-			success: false,
-			error: error instanceof Error ? error.message : 'Token refresh failed'
+			valid: false,
+			error: error instanceof Error ? error.message : 'Session verification failed'
 		};
 	}
+}
+
+/**
+ * Check if user is currently authenticated (via session)
+ */
+export async function isAuthenticated(): Promise<boolean> {
+	const result = await verifySession();
+	return result.valid;
 }
 
 /**
@@ -285,11 +193,6 @@ export async function refreshToken(): Promise<{
  */
 export function handleAuthError(error: any, redirectToLogin = true): void {
 	console.error('🔴 AuthService: Authentication error:', error);
-
-	// Clear invalid tokens
-	if (browser) {
-		localStorage.removeItem(AUTH_CONFIG.tokenStorage.key);
-	}
 
 	// Redirect to login page if requested and in browser
 	if (redirectToLogin && browser) {
@@ -302,18 +205,17 @@ export function handleAuthError(error: any, redirectToLogin = true): void {
 /**
  * Initialize authentication state
  */
-export function initializeAuth(): {
+export async function initializeAuth(): Promise<{
 	isAuthenticated: boolean;
-	token: string | null;
-} {
-	const token = getAuthToken();
-	const authenticated = isAuthenticated();
+	user: AuthUser | null;
+}> {
+	const result = await verifySession();
 
-	console.log('🔧 AuthService: Initialized', { authenticated, hasToken: !!token });
+	console.log('🔧 AuthService: Initialized', { authenticated: result.valid, user: result.user });
 
 	return {
-		isAuthenticated: authenticated,
-		token
+		isAuthenticated: result.valid,
+		user: result.user || null
 	};
 }
 

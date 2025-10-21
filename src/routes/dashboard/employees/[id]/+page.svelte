@@ -6,6 +6,13 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import * as Table from '$lib/components/ui/table';
 	import * as Tabs from '$lib/components/ui/tabs';
+	import AssignDocumentsModal from '$lib/components/employees/AssignDocumentsModal.svelte';
+	import AddEmergencyContactModal, {
+		type EmergencyContactInput
+	} from '$lib/components/employees/AddEmergencyContactModal.svelte';
+	import AddVehicleModal, {
+		type VehicleInput
+	} from '$lib/components/employees/AddVehicleModal.svelte';
 	import {
 		User,
 		ArrowLeft,
@@ -25,7 +32,9 @@
 		Car,
 		Shield,
 		DollarSign,
-	FileBarChart
+		FileBarChart,
+		FileText,
+		Plus
 	} from 'lucide-svelte';
 
 	interface Props {
@@ -37,6 +46,141 @@
 	// Extract data
 	const employee = $derived(data.employee);
 	const permissions = $derived(data.permissions);
+
+	// Debug: Log permissions to console
+	$effect(() => {
+		console.log('[Employee Detail Page] Permissions:', permissions);
+		console.log('[Employee Detail Page] canViewContactInfo:', permissions?.canViewContactInfo);
+		console.log('[Employee Detail Page] canViewEmergencyContacts:', permissions?.canViewEmergencyContacts);
+		console.log('[Employee Detail Page] canViewVehicles:', permissions?.canViewVehicles);
+		console.log('[Employee Detail Page] canViewDocuments:', permissions?.canViewDocuments);
+	});
+
+	// Modal state
+	let isAssignDocsModalOpen = $state(false);
+	let isAssigningDocs = $state(false);
+	let isAddEmergencyContactModalOpen = $state(false);
+	let isAddingEmergencyContact = $state(false);
+	let isAddVehicleModalOpen = $state(false);
+	let isAddingVehicle = $state(false);
+
+	// Handle document assignment
+	async function handleAssignDocuments(documentIds: string[]) {
+		isAssigningDocs = true;
+		try {
+			const response = await fetch(`/api/employees/${employee.id}/assign-documents`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ documentIds })
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to assign documents');
+			}
+
+			const result = await response.json();
+			alert(`${result.message}\n\nAssigned: ${result.assignedCount}\nSkipped (already assigned): ${result.skippedCount}`);
+
+			// Close modal and reload page
+			isAssignDocsModalOpen = false;
+			window.location.reload();
+		} catch (error) {
+			console.error('Assignment error:', error);
+			alert('Failed to assign documents. Please try again.');
+		} finally {
+			isAssigningDocs = false;
+		}
+	}
+
+	// Handle emergency contact creation
+	async function handleAddEmergencyContact(contact: EmergencyContactInput) {
+		isAddingEmergencyContact = true;
+		try {
+			const response = await fetch(`/api/graphql`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					query: `
+						mutation CreateEmergencyContact($input: CreateEmergencyContactInput!) {
+							createEmergencyContact(input: $input) {
+								id
+								name
+								relationship
+								phoneNumber
+								email
+								isPrimary
+								createdAt
+								updatedAt
+							}
+						}
+					`,
+					variables: {
+						input: contact
+					}
+				})
+			});
+
+			const result = await response.json();
+
+			if (result.errors) {
+				throw new Error(result.errors[0].message);
+			}
+
+			alert('Emergency contact added successfully!');
+			isAddEmergencyContactModalOpen = false;
+			window.location.reload();
+		} catch (error) {
+			console.error('Failed to add emergency contact:', error);
+			alert('Failed to add emergency contact. Please try again.');
+		} finally {
+			isAddingEmergencyContact = false;
+		}
+	}
+
+	// Handle vehicle creation
+	async function handleAddVehicle(vehicle: VehicleInput) {
+		isAddingVehicle = true;
+		try {
+			const response = await fetch(`/api/graphql`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					query: `
+						mutation CreateEmployeeVehicle($input: CreateEmployeeVehicleInput!) {
+							createEmployeeVehicle(input: $input) {
+								id
+								make
+								model
+								year
+								licensePlate
+								color
+								createdAt
+								updatedAt
+							}
+						}
+					`,
+					variables: {
+						input: vehicle
+					}
+				})
+			});
+
+			const result = await response.json();
+
+			if (result.errors) {
+				throw new Error(result.errors[0].message);
+			}
+
+			alert('Vehicle added successfully!');
+			isAddVehicleModalOpen = false;
+			window.location.reload();
+		} catch (error) {
+			console.error('Failed to add vehicle:', error);
+			alert('Failed to add vehicle. Please try again.');
+		} finally {
+			isAddingVehicle = false;
+		}
+	}
 
 	// Format date helper
 	function formatDate(dateString: string | null): string {
@@ -102,7 +246,7 @@
 
 	<!-- Tabs for Different Sections -->
 	<Tabs.Root value="overview" class="w-full">
-		<Tabs.List class="grid w-full grid-cols-3 lg:grid-cols-7">
+		<Tabs.List class="grid w-full grid-cols-3 lg:grid-cols-8">
 			<Tabs.Trigger value="overview">Overview</Tabs.Trigger>
 			{#if permissions.canViewContactInfo}
 				<Tabs.Trigger value="contact">Contact</Tabs.Trigger>
@@ -116,6 +260,9 @@
 			<Tabs.Trigger value="leave">Leave</Tabs.Trigger>
 			<Tabs.Trigger value="reviews">Reviews</Tabs.Trigger>
 			<Tabs.Trigger value="timeoff">Time Off</Tabs.Trigger>
+			{#if permissions.canViewDocuments}
+				<Tabs.Trigger value="documents">Documents</Tabs.Trigger>
+			{/if}
 		</Tabs.List>
 
 		<!-- Overview Tab -->
@@ -261,10 +408,18 @@
 			<Tabs.Content value="emergency" class="mt-6">
 				<Card.Root>
 					<Card.Header>
-						<Card.Title class="flex items-center gap-2">
-							<Shield class="h-5 w-5" />
-							Emergency Contacts
-						</Card.Title>
+						<div class="flex items-center justify-between">
+							<Card.Title class="flex items-center gap-2">
+								<Shield class="h-5 w-5" />
+								Emergency Contacts
+							</Card.Title>
+							{#if permissions.canManageEmployees || permissions.isViewingSelf}
+								<Button onclick={() => (isAddEmergencyContactModalOpen = true)} size="sm">
+									<Plus class="mr-2 h-4 w-4" />
+									Add Contact
+								</Button>
+							{/if}
+						</div>
 					</Card.Header>
 					<Card.Content>
 						{#if employee.emergencyContacts && employee.emergencyContacts.length > 0}
@@ -272,26 +427,22 @@
 								{#each employee.emergencyContacts as contact}
 									<div class="rounded-lg border border-border p-4">
 										<div class="mb-3 flex items-center justify-between">
-											<h3 class="text-lg font-semibold text-foreground">{contact.fullName}</h3>
+											<h3 class="text-lg font-semibold text-foreground">{contact.name}</h3>
 											{#if contact.isPrimary}
 												<Badge variant="default">Primary</Badge>
 											{/if}
 										</div>
 										<div class="grid gap-3 md:grid-cols-2">
-											<div>
-												<p class="text-sm font-medium text-foreground">Relationship</p>
-												<p class="text-sm text-muted-foreground">{contact.relationship}</p>
-											</div>
+											{#if contact.relationship}
+												<div>
+													<p class="text-sm font-medium text-foreground">Relationship</p>
+													<p class="text-sm text-muted-foreground">{contact.relationship}</p>
+												</div>
+											{/if}
 											<div>
 												<p class="text-sm font-medium text-foreground">Phone</p>
 												<p class="text-sm text-muted-foreground">{contact.phoneNumber}</p>
 											</div>
-											{#if contact.alternatePhone}
-												<div>
-													<p class="text-sm font-medium text-foreground">Alternate Phone</p>
-													<p class="text-sm text-muted-foreground">{contact.alternatePhone}</p>
-												</div>
-											{/if}
 											{#if contact.email}
 												<div>
 													<p class="text-sm font-medium text-foreground">Email</p>
@@ -299,12 +450,6 @@
 												</div>
 											{/if}
 										</div>
-										{#if contact.notes}
-											<div class="mt-3">
-												<p class="text-sm font-medium text-foreground">Notes</p>
-												<p class="text-sm text-muted-foreground">{contact.notes}</p>
-											</div>
-										{/if}
 									</div>
 								{/each}
 							</div>
@@ -321,68 +466,39 @@
 			<Tabs.Content value="vehicles" class="mt-6">
 				<Card.Root>
 					<Card.Header>
-						<Card.Title class="flex items-center gap-2">
-							<Car class="h-5 w-5" />
-							Vehicles
-						</Card.Title>
+						<div class="flex items-center justify-between">
+							<Card.Title class="flex items-center gap-2">
+								<Car class="h-5 w-5" />
+								Vehicles
+							</Card.Title>
+							{#if permissions.canManageEmployees || permissions.isViewingSelf}
+								<Button onclick={() => (isAddVehicleModalOpen = true)} size="sm">
+									<Plus class="mr-2 h-4 w-4" />
+									Add Vehicle
+								</Button>
+							{/if}
+						</div>
 					</Card.Header>
 					<Card.Content>
 						{#if employee.vehicles && employee.vehicles.length > 0}
 							<div class="space-y-6">
 								{#each employee.vehicles as vehicle}
 									<div class="rounded-lg border border-border p-4">
-										<div class="mb-3 flex items-center justify-between">
-											<h3 class="text-lg font-semibold text-foreground">
-												{vehicle.year} {vehicle.make} {vehicle.model}
-											</h3>
-											{#if vehicle.isPrimary}
-												<Badge variant="default">Primary</Badge>
+										<h3 class="mb-3 text-lg font-semibold text-foreground">
+											{vehicle.year} {vehicle.make} {vehicle.model}
+										</h3>
+										<div class="grid gap-3 md:grid-cols-2">
+											{#if vehicle.color}
+												<div>
+													<p class="text-sm font-medium text-foreground">Color</p>
+													<p class="text-sm text-muted-foreground">{vehicle.color}</p>
+												</div>
 											{/if}
-										</div>
-										<div class="grid gap-3 md:grid-cols-3">
-											<div>
-												<p class="text-sm font-medium text-foreground">Color</p>
-												<p class="text-sm text-muted-foreground">{vehicle.color || 'N/A'}</p>
-											</div>
 											<div>
 												<p class="text-sm font-medium text-foreground">License Plate</p>
 												<p class="text-sm text-muted-foreground">{vehicle.licensePlate}</p>
 											</div>
-											{#if vehicle.parkingSpot}
-												<div>
-													<p class="text-sm font-medium text-foreground">Parking Spot</p>
-													<p class="text-sm text-muted-foreground">{vehicle.parkingSpot}</p>
-												</div>
-											{/if}
-											{#if vehicle.insuranceCompany}
-												<div>
-													<p class="text-sm font-medium text-foreground">Insurance Company</p>
-													<p class="text-sm text-muted-foreground">{vehicle.insuranceCompany}</p>
-												</div>
-											{/if}
-											{#if vehicle.insurancePolicyNumber}
-												<div>
-													<p class="text-sm font-medium text-foreground">Policy Number</p>
-													<p class="text-sm text-muted-foreground">
-														{vehicle.insurancePolicyNumber}
-													</p>
-												</div>
-											{/if}
-											{#if vehicle.insuranceExpiry}
-												<div>
-													<p class="text-sm font-medium text-foreground">Insurance Expiry</p>
-													<p class="text-sm text-muted-foreground">
-														{formatDate(vehicle.insuranceExpiry)}
-													</p>
-												</div>
-											{/if}
 										</div>
-										{#if vehicle.notes}
-											<div class="mt-3">
-												<p class="text-sm font-medium text-foreground">Notes</p>
-												<p class="text-sm text-muted-foreground">{vehicle.notes}</p>
-											</div>
-										{/if}
 									</div>
 								{/each}
 							</div>
@@ -484,21 +600,21 @@
 			</Card.Root>
 		</Tabs.Content>
 
-		<!-- Time Off Balances Tab -->
+		<!-- Leave Balances Tab -->
 		<Tabs.Content value="timeoff" class="mt-6">
 			<Card.Root>
 				<Card.Header>
 					<Card.Title class="flex items-center gap-2">
 						<Calendar class="h-5 w-5" />
-						Time Off Balances
+						Leave Balances
 					</Card.Title>
 				</Card.Header>
 				<Card.Content>
-					{#if employee.timeOffBalances && employee.timeOffBalances.length > 0}
+					{#if employee.leaveBalances && employee.leaveBalances.length > 0}
 						<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-							{#each employee.timeOffBalances as balance}
+							{#each employee.leaveBalances as balance}
 								<div class="rounded-lg border border-border p-4">
-									<h3 class="mb-2 text-sm font-semibold text-foreground">{balance.policyName}</h3>
+									<h3 class="mb-2 text-sm font-semibold text-foreground">{balance.leaveTypeName}</h3>
 									<div class="space-y-2">
 										<div class="flex justify-between">
 											<span class="text-sm text-muted-foreground">Year</span>
@@ -524,10 +640,134 @@
 							{/each}
 						</div>
 					{:else}
-						<p class="text-center text-sm text-muted-foreground">No time off balances</p>
+						<p class="text-center text-sm text-muted-foreground">No leave balances</p>
 					{/if}
 				</Card.Content>
 			</Card.Root>
 		</Tabs.Content>
+
+		<!-- Documents Tab -->
+		{#if permissions.canViewDocuments}
+			<Tabs.Content value="documents" class="mt-6">
+				<Card.Root>
+					<Card.Header>
+						<div class="flex items-center justify-between">
+							<Card.Title class="flex items-center gap-2">
+								<FileText class="h-5 w-5" />
+								Assigned Documents ({employee.documentsCount})
+							</Card.Title>
+							{#if permissions.canAssignDocuments}
+								<Button onclick={() => isAssignDocsModalOpen = true} size="sm">
+									Assign Documents
+								</Button>
+							{/if}
+						</div>
+					</Card.Header>
+					<Card.Content>
+						{#if employee.assignedDocuments && employee.assignedDocuments.length > 0}
+							<div class="border rounded-lg overflow-hidden">
+								<Table.Root>
+									<Table.Header>
+										<Table.Row>
+											<Table.Head>Filename</Table.Head>
+											<Table.Head>Category</Table.Head>
+											<Table.Head>Sensitivity</Table.Head>
+											<Table.Head>Assigned Date</Table.Head>
+											<Table.Head class="text-right">Actions</Table.Head>
+										</Table.Row>
+									</Table.Header>
+									<Table.Body>
+										{#each employee.assignedDocuments as document}
+											<Table.Row class="cursor-pointer hover:bg-muted/50" onclick={() => goto(`/dashboard/documents/${document.id}`)}>
+												<Table.Cell class="font-medium">
+													<div class="flex items-center gap-2">
+														<FileText class="h-4 w-4 text-muted-foreground" />
+														{document.filename}
+													</div>
+												</Table.Cell>
+												<Table.Cell>
+													<span class="text-sm text-muted-foreground">{document.category}</span>
+												</Table.Cell>
+												<Table.Cell>
+													<Badge variant={document.sensitivityLevel === 'Public' ? 'secondary' : 'default'}>
+														{document.sensitivityLevel}
+													</Badge>
+												</Table.Cell>
+												<Table.Cell class="text-sm text-muted-foreground">
+													{new Date(document.assignedAt).toLocaleDateString()}
+												</Table.Cell>
+												<Table.Cell class="text-right">
+													<Button
+														href="/dashboard/documents/{document.id}"
+														size="sm"
+														variant="outline"
+														onclick={(e) => {
+															e.stopPropagation();
+															goto(`/dashboard/documents/${document.id}`);
+														}}
+													>
+														View
+													</Button>
+												</Table.Cell>
+											</Table.Row>
+										{/each}
+									</Table.Body>
+								</Table.Root>
+							</div>
+						{:else}
+							<div class="text-center py-12">
+								<FileText class="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
+								<h3 class="text-lg font-semibold mb-2">No documents assigned</h3>
+								<p class="text-sm text-muted-foreground mb-4">
+									This employee hasn't been assigned any documents yet.
+								</p>
+								{#if permissions.canAssignDocuments}
+									<Button onclick={() => isAssignDocsModalOpen = true} size="sm">
+										Assign Documents
+									</Button>
+								{/if}
+							</div>
+						{/if}
+					</Card.Content>
+				</Card.Root>
+			</Tabs.Content>
+		{/if}
 	</Tabs.Root>
 </div>
+
+<!-- Assign Documents Modal -->
+{#if permissions.canAssignDocuments}
+	<AssignDocumentsModal
+		isOpen={isAssignDocsModalOpen}
+		employeeId={employee.id}
+		employeeName={employee.displayName}
+		availableDocuments={data.availableDocuments || []}
+		onAssign={handleAssignDocuments}
+		onClose={() => (isAssignDocsModalOpen = false)}
+		isSubmitting={isAssigningDocs}
+	/>
+{/if}
+
+<!-- Add Emergency Contact Modal -->
+{#if permissions.canViewEmergencyContacts && (permissions.canManageEmployees || permissions.isViewingSelf)}
+	<AddEmergencyContactModal
+		isOpen={isAddEmergencyContactModalOpen}
+		employeeId={employee.id}
+		employeeName={employee.displayName}
+		onSave={handleAddEmergencyContact}
+		onClose={() => (isAddEmergencyContactModalOpen = false)}
+		isSubmitting={isAddingEmergencyContact}
+	/>
+{/if}
+
+<!-- Add Vehicle Modal -->
+{#if permissions.canViewVehicles && (permissions.canManageEmployees || permissions.isViewingSelf)}
+	<AddVehicleModal
+		isOpen={isAddVehicleModalOpen}
+		employeeId={employee.id}
+		employeeName={employee.displayName}
+		onSave={handleAddVehicle}
+		onClose={() => (isAddVehicleModalOpen = false)}
+		isSubmitting={isAddingVehicle}
+	/>
+{/if}

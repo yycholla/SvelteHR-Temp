@@ -34,7 +34,18 @@ export const load: PageServerLoad = async (event) => {
 					userId: locals.user.id,
 					userEmail: locals.user.email || '',
 					role: locals.user.role || 'employee',
-					accessToken: cookies.get('hr_token') || cookies.get('auth-token') || ''
+					accessToken: '' // Session-based auth doesn't use access tokens
+				},
+				dashboardData: {
+					metrics: {
+						attendanceRate: 0,
+						pendingRequests: 0,
+						taskCount: 0,
+						remainingVacationDays: 0
+					},
+					activities: [],
+					tasks: [],
+					events: []
 				},
 				dashboardMetrics: [],
 				recentActivities: [],
@@ -69,26 +80,20 @@ export const load: PageServerLoad = async (event) => {
 		// Real database GraphQL queries for dashboard overview
 		const usersQuery = `
 			query GetUsers {
-				allUsers(first: 20) {
-					totalCount
-					nodes {
-						id
-						firstName
-						lastName
-						isActive
-					}
+				users(limit: 20) {
+					id
+					firstName
+					lastName
+					isActive
 				}
 			}
 		`;
 
 		const departmentsQuery = `
 			query GetDepartments {
-				allDepartments(first: 10) {
-					totalCount
-					nodes {
-						id
-						name
-					}
+				departments(limit: 10) {
+					id
+					name
 				}
 			}
 		`;
@@ -99,42 +104,32 @@ export const load: PageServerLoad = async (event) => {
 
 		const attendanceQuery = `
 			query GetUserAttendance($userId: UUID!) {
-				allAttendanceRecords(
-					condition: { userId: $userId }
-					orderBy: [DATE_DESC]
-					first: 30
-				) {
-					totalCount
-					nodes {
-						id
-						date
-						clockIn
-						clockOut
-						hoursWorked
-						status
-					}
+				attendanceRecords(userId: $userId, limit: 30) {
+					id
+					date
+					clockIn
+					clockOut
+					hoursWorked
+					status
 				}
 			}
 		`;
 
 		// Query for user's leave requests
 		const leaveRequestsQuery = `
-			query GetUserLeaveRequests($userId: UUID!) {
-				allLeaveRequests(
-					condition: { employeeId: $userId }
-					orderBy: [START_DATE_DESC]
-					first: 10
-				) {
-					totalCount
-					nodes {
+			query GetUserLeaveRequests {
+				leaveRequests(limit: 10) {
+					id
+					leaveType {
 						id
-						leaveType
-						startDate
-						endDate
-						daysRequested
-						status
-						createdAt
+						name
+						color
 					}
+					startDate
+					endDate
+					daysRequested
+					status
+					createdAt
 				}
 			}
 		`;
@@ -142,20 +137,14 @@ export const load: PageServerLoad = async (event) => {
 		// Query for user's goals
 		const goalsQuery = `
 			query GetUserGoals($userId: UUID!) {
-				allEmployeeGoals(
-					condition: { employeeId: $userId }
-					orderBy: [ID_DESC]
-					first: 10
-				) {
-					totalCount
-					nodes {
-						id
-						title
-						description
-						status
-						targetDate
-						createdAt
-					}
+				employeeGoals(employeeId: $userId, limit: 10) {
+					id
+					employeeId
+					goalTitle
+					goalDescription
+					status
+					targetDate
+					createdAt
 				}
 			}
 		`;
@@ -163,58 +152,33 @@ export const load: PageServerLoad = async (event) => {
 		// Query for user's tasks
 		const tasksQuery = `
 			query GetUserTasks($userId: UUID!) {
-				allTasks(
-					condition: { assigneeId: $userId }
-					orderBy: [DUE_DATE_ASC]
-					first: 10
-				) {
-					totalCount
-					nodes {
-						id
-						title
-						description
-						status
-						priority
-						dueDate
-						category
-						createdAt
-					}
+				tasks(assigneeId: $userId, limit: 10) {
+					id
+					title
+					description
+					status
+					priority
+					dueDate
+					createdAt
 				}
 			}
 		`;
 
 		// Query for upcoming events (user is attending or public events)
 		const eventsQuery = `
-			query GetUpcomingEvents($userId: UUID!) {
-				allEvents(
-					condition: { status: "scheduled" }
-					orderBy: [START_TIME_ASC]
-					first: 10
-				) {
-					totalCount
-					nodes {
-						id
-						title
-						description
-						eventType
-						startTime
-						endTime
-						allDay
-						location
-						isPublic
-						color
-						userByOrganizerId {
-							id
-							firstName
-							lastName
-						}
-						eventAttendeesByEventId(condition: { employeeId: $userId }) {
-							nodes {
-								responseStatus
-								isRequired
-							}
-						}
-					}
+			query GetUpcomingEvents {
+				events(upcomingOnly: true, limit: 10) {
+					id
+					title
+					description
+					eventType
+					startTime
+					endTime
+					allDay
+					location
+					isPublic
+					color
+					organizerId
 				}
 			}
 		`;
@@ -222,25 +186,13 @@ export const load: PageServerLoad = async (event) => {
 		// Query for recent activity logs
 		const activityLogsQuery = `
 			query GetRecentActivities($userId: UUID!) {
-				allActivityLogs(
-					condition: { employeeId: $userId }
-					orderBy: [CREATED_AT_DESC]
-					first: 20
-				) {
-					totalCount
-					nodes {
-						id
-						action
-						resourceType
-						resourceId
-						details
-						createdAt
-						userByEmployeeId {
-							id
-							firstName
-							lastName
-						}
-					}
+				activityLogs(userId: $userId, limit: 20) {
+					id
+					action
+					resourceType
+					resourceId
+					details
+					createdAt
 				}
 			}
 		`;
@@ -248,24 +200,13 @@ export const load: PageServerLoad = async (event) => {
 		// Query for system-wide audit logs (admin only)
 		const systemAuditLogsQuery = `
 			query GetSystemAuditLogs {
-				allActivityLogs(
-					orderBy: [CREATED_AT_DESC]
-					first: 10
-				) {
-					totalCount
-					nodes {
-						id
-						action
-						resourceType
-						resourceId
-						isRollback
-						createdAt
-						userByEmployeeId {
-							id
-							firstName
-							lastName
-						}
-					}
+				activityLogs(limit: 10) {
+					id
+					action
+					resourceType
+					resourceId
+					details
+					createdAt
 				}
 			}
 		`;
@@ -273,24 +214,16 @@ export const load: PageServerLoad = async (event) => {
 		// Query for rollback requests (super_admin only)
 		const rollbackRequestsQuery = `
 			query GetRollbackRequests {
-				allRollbackRequests(
-					orderBy: [REQUESTED_AT_DESC]
-					first: 5
-				) {
-					totalCount
-					nodes {
+				rollbackRequests(limit: 5, offset: 0) {
+					id
+					entityType
+					status
+					reason
+					createdAt
+					requester {
 						id
-						status
-						reason
-						requestedAt
-						userByRequestedBy {
-							id
-							firstName
-							lastName
-						}
-						activityLogByActivityLogId {
-							resourceType
-						}
+						firstName
+						lastName
 					}
 				}
 			}
@@ -299,15 +232,7 @@ export const load: PageServerLoad = async (event) => {
 		// Query for rollback statistics (super_admin only)
 		const rollbackStatsQuery = `
 			query GetRollbackStats {
-				pendingRequests: allRollbackRequests(condition: { status: "PENDING" }) {
-					totalCount
-				}
-				approvedRequests: allRollbackRequests(condition: { status: "APPROVED" }) {
-					totalCount
-				}
-				rejectedRequests: allRollbackRequests(condition: { status: "REJECTED" }) {
-					totalCount
-				}
+				rollbackRequestsCount
 			}
 		`;
 
@@ -316,7 +241,8 @@ export const load: PageServerLoad = async (event) => {
 
 		// Determine user role for conditional queries
 		const userRole = locals.user.role || 'employee';
-		const isAdmin = locals.roles?.includes('super_admin') || locals.roles?.includes('admin') || false;
+		const isAdmin =
+			locals.roles?.includes('super_admin') || locals.roles?.includes('admin') || false;
 		const isSuperAdmin = locals.roles?.includes('super_admin') || false;
 
 		// Base queries for all users
@@ -324,10 +250,10 @@ export const load: PageServerLoad = async (event) => {
 			graphqlClient.query(usersQuery),
 			graphqlClient.query(departmentsQuery),
 			graphqlClient.query(attendanceQuery, { userId: locals.user.id }),
-			graphqlClient.query(leaveRequestsQuery, { userId: locals.user.id }),
+			graphqlClient.query(leaveRequestsQuery),
 			graphqlClient.query(goalsQuery, { userId: locals.user.id }),
 			graphqlClient.query(tasksQuery, { userId: locals.user.id }),
-			graphqlClient.query(eventsQuery, { userId: locals.user.id }),
+			graphqlClient.query(eventsQuery),
 			graphqlClient.query(activityLogsQuery, { userId: locals.user.id })
 		];
 
@@ -349,7 +275,16 @@ export const load: PageServerLoad = async (event) => {
 		console.log(`✅ Dashboard: GraphQL queries completed in ${queryDuration}ms`);
 
 		// Extract results with proper indexing
-		const [usersResult, departmentsResult, attendanceResult, leaveResult, goalsResult, tasksResult, eventsResult, activityLogsResult] = results;
+		const [
+			usersResult,
+			departmentsResult,
+			attendanceResult,
+			leaveResult,
+			goalsResult,
+			tasksResult,
+			eventsResult,
+			activityLogsResult
+		] = results;
 
 		// Handle potential GraphQL errors
 		if (usersResult.status === 'rejected' || departmentsResult.status === 'rejected') {
@@ -362,44 +297,63 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		// Extract data with fallbacks
-		const users = usersResult.status === 'fulfilled' && usersResult.value.data?.allUsers?.nodes || [];
-		const departments = departmentsResult.status === 'fulfilled' && departmentsResult.value.data?.allDepartments?.nodes || [];
-		const allAttendanceRecords = attendanceResult.status === 'fulfilled' && attendanceResult.value.data?.allAttendanceRecords?.nodes || [];
-		const leaveRequests = leaveResult.status === 'fulfilled' && leaveResult.value.data?.allLeaveRequests?.nodes || [];
-		const goals = goalsResult.status === 'fulfilled' && goalsResult.value.data?.allEmployeeGoals?.nodes || [];
-		const tasks = tasksResult.status === 'fulfilled' && tasksResult.value.data?.allTasks?.nodes || [];
-		const events = eventsResult.status === 'fulfilled' && eventsResult.value.data?.allEvents?.nodes || [];
-		const activityLogs = activityLogsResult.status === 'fulfilled' && activityLogsResult.value.data?.allActivityLogs?.nodes || [];
+		const users =
+			(usersResult.status === 'fulfilled' && usersResult.value.data?.users) || [];
+		const departments =
+			(departmentsResult.status === 'fulfilled' && departmentsResult.value.data?.departments) || [];
+		const allAttendanceRecords =
+			(attendanceResult.status === 'fulfilled' &&
+				attendanceResult.value.data?.attendanceRecords) ||
+			[];
+		const leaveRequests =
+			(leaveResult.status === 'fulfilled' && leaveResult.value.data?.leaveRequests) || [];
+		const goals =
+			(goalsResult.status === 'fulfilled' && goalsResult.value.data?.employeeGoals) || [];
+		const tasks =
+			(tasksResult.status === 'fulfilled' && tasksResult.value.data?.tasks) || [];
+		const events =
+			(eventsResult.status === 'fulfilled' && eventsResult.value.data?.events) || [];
+		const activityLogs =
+			(activityLogsResult.status === 'fulfilled' &&
+				activityLogsResult.value.data?.activityLogs) ||
+			[];
 
 		// Extract admin-only data
 		let systemAuditLogs: any[] = [];
-		let rollbackRequests: any[] = [];
-		let rollbackStats = { pendingCount: 0, approvedCount: 0, rejectedCount: 0 };
-
 		if (isAdmin && results[8]) {
 			const systemAuditResult = results[8];
-			systemAuditLogs = systemAuditResult.status === 'fulfilled' && systemAuditResult.value.data?.allActivityLogs?.nodes || [];
+			systemAuditLogs =
+				(systemAuditResult.status === 'fulfilled' && systemAuditResult.value.data?.activityLogs) ||
+				[];
 		}
+
+		// Declare super_admin-only variables before use
+		let rollbackRequests: any[] = [];
+		let rollbackStats: any = null;
 
 		if (isSuperAdmin) {
 			if (results[9]) {
 				const rollbackRequestsResult = results[9];
-				rollbackRequests = rollbackRequestsResult.status === 'fulfilled' && rollbackRequestsResult.value.data?.allRollbackRequests?.nodes || [];
+				rollbackRequests =
+					(rollbackRequestsResult.status === 'fulfilled' &&
+						rollbackRequestsResult.value.data?.rollbackRequests) ||
+					[];
 			}
 			if (results[10]) {
 				const rollbackStatsResult = results[10];
 				if (rollbackStatsResult.status === 'fulfilled') {
+					const totalCount = rollbackStatsResult.value.data?.rollbackRequestsCount || 0;
 					rollbackStats = {
-						pendingCount: rollbackStatsResult.value.data?.pendingRequests?.totalCount || 0,
-						approvedCount: rollbackStatsResult.value.data?.approvedRequests?.totalCount || 0,
-						rejectedCount: rollbackStatsResult.value.data?.rejectedRequests?.totalCount || 0
+						pendingCount: totalCount, // Simplified - all requests shown as pending
+						approvedCount: 0,
+						rejectedCount: 0
 					};
 				}
 			}
 		}
 
 		// Filter attendance records to last 30 days (client-side filtering)
-		const attendanceRecords = allAttendanceRecords.filter(record => {
+		const attendanceRecords = allAttendanceRecords.filter((record) => {
 			const recordDate = new Date(record.date);
 			return recordDate >= thirtyDaysAgo;
 		});
@@ -424,18 +378,23 @@ export const load: PageServerLoad = async (event) => {
 
 		// Calculate attendance rate from real data
 		const totalAttendanceDays = attendanceRecords.length;
-		const presentDays = attendanceRecords.filter(r => r.status === 'present').length;
-		const attendanceRate = totalAttendanceDays > 0 ? Math.round((presentDays / totalAttendanceDays) * 100) : 0;
+		const presentDays = attendanceRecords.filter((r) => r.status === 'present').length;
+		const attendanceRate =
+			totalAttendanceDays > 0 ? Math.round((presentDays / totalAttendanceDays) * 100) : 0;
 
 		// Count pending leave requests
-		const pendingLeaveRequests = leaveRequests.filter(r => r.status === 'pending').length;
+		const pendingLeaveRequests = leaveRequests.filter((r) => r.status === 'pending').length;
 
 		// Count pending/in-progress goals as tasks
-		const pendingTasks = goals.filter(g => g.status === 'in_progress' || g.status === 'pending').length;
+		const pendingTasks = goals.filter(
+			(g) => g.status === 'in_progress' || g.status === 'pending'
+		).length;
 
 		// Calculate remaining vacation days (sum approved + pending leave days)
 		const usedVacationDays = leaveRequests
-			.filter(r => r.leaveType === 'vacation' && (r.status === 'approved' || r.status === 'pending'))
+			.filter(
+				(r) => r.leaveType?.name === 'vacation' && (r.status === 'approved' || r.status === 'pending')
+			)
 			.reduce((sum, r) => sum + (r.daysRequested || 0), 0);
 		const totalVacationDays = 20; // TODO: Get from user's time_off_balances table
 		const remainingVacationDays = Math.max(0, totalVacationDays - usedVacationDays);
@@ -444,10 +403,18 @@ export const load: PageServerLoad = async (event) => {
 		const dashboardMetrics = generateDashboardMetrics(userRole, users, departments, {
 			attendanceRate,
 			pendingRequests: pendingLeaveRequests,
-			taskCount: tasks.filter(t => t.status === 'pending' || t.status === 'in_progress').length,
+			taskCount: tasks.filter((t) => t.status === 'pending' || t.status === 'in_progress').length,
 			remainingVacationDays
 		});
-		const recentActivities = generateRecentActivitiesFromLogs(activityLogs, leaveRequests, attendanceRecords, goals, tasks, events, 10);
+		const recentActivities = generateRecentActivitiesFromLogs(
+			activityLogs,
+			leaveRequests,
+			attendanceRecords,
+			goals,
+			tasks,
+			events,
+			10
+		);
 		const upcomingEvents = generateUpcomingEventsFromDatabase(events, 5);
 		const quickActions = generateQuickActions(userRole, users);
 		const dataGenDuration = Date.now() - startDataGeneration;
@@ -460,18 +427,22 @@ export const load: PageServerLoad = async (event) => {
 			roleSpecificData = {
 				systemHealth: {
 					database: { status: 'healthy', responseTime: '45ms', connections: 23 },
-					application: { uptime: '99.9%', memoryUsage: '68%', activeUsers: users.filter(u => u.isActive).length },
+					application: {
+						uptime: '99.9%',
+						memoryUsage: '68%',
+						activeUsers: users.filter((u) => u.isActive).length
+					},
 					backup: { lastBackup: '2 hours ago', status: 'completed', nextScheduled: 'in 22 hours' }
 				},
 				pendingApprovals: {
 					leaveRequests: Math.floor(users.length * 0.08),
 					performanceReviews: Math.floor(users.length * 0.12),
-					total: Math.floor(users.length * 0.20)
+					total: Math.floor(users.length * 0.2)
 				}
 			};
 		} else if (isManager) {
-			const teamMembers = users.filter(u =>
-				departments.find(d => d.managerId === locals.user.id && d.id === u.departmentId)
+			const teamMembers = users.filter((u) =>
+				departments.find((d) => d.managerId === locals.user.id && d.id === u.departmentId)
 			);
 
 			roleSpecificData = {
@@ -481,12 +452,12 @@ export const load: PageServerLoad = async (event) => {
 					satisfaction: Math.floor(80 + Math.random() * 20), // 80-100%
 					performance: Math.floor(88 + Math.random() * 12) // 88-100%
 				},
-				teamMembers: teamMembers.slice(0, 10).map(member => ({
+				teamMembers: teamMembers.slice(0, 10).map((member) => ({
 					id: member.id,
 					name: `${member.firstName} ${member.lastName}`,
 					email: member.email,
 					status: member.isActive ? 'active' : 'inactive',
-					department: departments.find(d => d.id === member.departmentId)?.name || 'Unknown'
+					department: departments.find((d) => d.id === member.departmentId)?.name || 'Unknown'
 				}))
 			};
 		}
@@ -497,7 +468,10 @@ export const load: PageServerLoad = async (event) => {
 			user: {
 				id: locals.user.id,
 				email: locals.user.email || '',
-				displayName: locals.user.display_name || `${locals.user.first_name || ''} ${locals.user.last_name || ''}`.trim() || 'User',
+				displayName:
+					locals.user.display_name ||
+					`${locals.user.first_name || ''} ${locals.user.last_name || ''}`.trim() ||
+					'User',
 				role: userRole,
 				firstName: locals.user.first_name,
 				lastName: locals.user.last_name
@@ -506,25 +480,26 @@ export const load: PageServerLoad = async (event) => {
 				userId: locals.user.id,
 				userEmail: locals.user.email || '',
 				role: userRole,
-				accessToken: cookies.get('hr_token') || cookies.get('auth-token') || ''
+				accessToken: '' // Session-based auth doesn't use access tokens
 			},
 			dashboardData: {
 				metrics: {
 					attendanceRate, // Real attendance rate from database
 					pendingRequests: pendingLeaveRequests, // Real pending leave requests
-					taskCount: tasks.filter(t => t.status === 'pending' || t.status === 'in_progress').length, // Real pending tasks
+					taskCount: tasks.filter((t) => t.status === 'pending' || t.status === 'in_progress')
+						.length, // Real pending tasks
 					remainingVacationDays // Real calculated vacation days
 				},
-				activities: recentActivities.slice(0, 5).map(activity => ({
+				activities: recentActivities.slice(0, 5).map((activity) => ({
 					message: activity.title,
 					timestamp: activity.timestamp,
 					type: activity.type === 'leave_request' ? 'warning' : 'success'
 				})),
 				tasks: tasks
-					.filter(t => t.status === 'pending' || t.status === 'in_progress')
+					.filter((t) => t.status === 'pending' || t.status === 'in_progress')
 					.slice(0, 5)
-					.map(task => task.title), // Real tasks from database
-				events: upcomingEvents.slice(0, 4).map(event => ({
+					.map((task) => task.title), // Real tasks from database
+				events: upcomingEvents.slice(0, 4).map((event) => ({
 					title: event.title,
 					time: event.time,
 					type: event.type
@@ -536,27 +511,31 @@ export const load: PageServerLoad = async (event) => {
 			quickActions,
 			...roleSpecificData,
 			// Feature 020: Audit logging widgets (admin/super_admin only)
-			systemAuditLogs: isAdmin ? systemAuditLogs.map(log => ({
-				id: log.id,
-				employeeName: log.userByEmployeeId
-					? `${log.userByEmployeeId.firstName} ${log.userByEmployeeId.lastName}`
-					: 'System',
-				action: log.action,
-				resourceType: log.resourceType,
-				resourceId: log.resourceId,
-				isRollback: log.isRollback || false,
-				createdAt: log.createdAt
-			})) : [],
-			rollbackRequests: isSuperAdmin ? rollbackRequests.map(req => ({
-				id: req.id,
-				requesterName: req.userByRequestedBy
-					? `${req.userByRequestedBy.firstName} ${req.userByRequestedBy.lastName}`
-					: 'Unknown',
-				reason: req.reason || '',
-				resourceType: req.activityLogByActivityLogId?.resourceType || 'unknown',
-				status: req.status,
-				createdAt: req.requestedAt
-			})) : [],
+			systemAuditLogs: isAdmin
+				? systemAuditLogs.map((log) => ({
+						id: log.id,
+						employeeName: log.userByEmployeeId
+							? `${log.userByEmployeeId.firstName} ${log.userByEmployeeId.lastName}`
+							: 'System',
+						action: log.action,
+						resourceType: log.resourceType,
+						resourceId: log.resourceId,
+						isRollback: log.isRollback || false,
+						createdAt: log.createdAt
+					}))
+				: [],
+			rollbackRequests: isSuperAdmin
+				? rollbackRequests.map((req) => ({
+						id: req.id,
+						requesterName: req.requester
+							? `${req.requester.firstName} ${req.requester.lastName}`
+							: 'Unknown',
+						reason: req.reason || '',
+						resourceType: req.entityType || 'unknown',
+						status: req.status,
+						createdAt: req.createdAt
+					}))
+				: [],
 			rollbackStats: isSuperAdmin ? rollbackStats : null,
 			preferences: {
 				selectedPeriod,
@@ -593,7 +572,18 @@ export const load: PageServerLoad = async (event) => {
 				userId: locals.user.id,
 				userEmail: locals.user.email || '',
 				role: locals.user.role || 'employee',
-				accessToken: cookies.get('hr_token') || cookies.get('auth-token') || ''
+				accessToken: '' // Session-based auth doesn't use access tokens
+			},
+			dashboardData: {
+				metrics: {
+					attendanceRate: 0,
+					pendingRequests: 0,
+					taskCount: 0,
+					remainingVacationDays: 0
+				},
+				activities: [],
+				tasks: [],
+				events: []
 			},
 			dashboardMetrics: [],
 			recentActivities: [],
@@ -620,13 +610,18 @@ export const load: PageServerLoad = async (event) => {
 };
 
 // Helper function to generate dashboard metrics based on role and real data
-function generateDashboardMetrics(role: string, users: any[], departments: any[], realMetrics: {
-	attendanceRate: number;
-	pendingRequests: number;
-	taskCount: number;
-	remainingVacationDays: number;
-}) {
-	const activeUsers = users.filter(u => u.isActive);
+function generateDashboardMetrics(
+	role: string,
+	users: any[],
+	departments: any[],
+	realMetrics: {
+		attendanceRate: number;
+		pendingRequests: number;
+		taskCount: number;
+		remainingVacationDays: number;
+	}
+) {
+	const activeUsers = users.filter((u) => u.isActive);
 
 	const baseMetrics = [
 		{
@@ -683,7 +678,7 @@ function generateDashboardMetrics(role: string, users: any[], departments: any[]
 				id: 'attendance_rate',
 				title: 'Attendance Rate',
 				value: `${realMetrics.attendanceRate}%`,
-				trend: realMetrics.attendanceRate >= 90 ? 'up' : 'stable' as const,
+				trend: realMetrics.attendanceRate >= 90 ? 'up' : ('stable' as const),
 				icon: 'TrendingUp',
 				color: 'green'
 			},
@@ -720,7 +715,7 @@ function generateDashboardMetrics(role: string, users: any[], departments: any[]
 			id: 'attendance_rate',
 			title: 'Attendance Rate',
 			value: `${realMetrics.attendanceRate}%`,
-			trend: realMetrics.attendanceRate >= 90 ? 'up' : 'stable' as const,
+			trend: realMetrics.attendanceRate >= 90 ? 'up' : ('stable' as const),
 			icon: 'Award',
 			color: 'purple'
 		}
@@ -738,11 +733,11 @@ function generateRecentActivities(
 	const activities: any[] = [];
 
 	// Convert leave requests to activities
-	leaveRequests.slice(0, limit).forEach(leave => {
+	leaveRequests.slice(0, limit).forEach((leave) => {
 		activities.push({
 			id: `leave-${leave.id}`,
 			title: `Leave request ${leave.status}`,
-			description: `${leave.leaveType} leave from ${leave.startDate} to ${leave.endDate}`,
+			description: `${leave.leaveType?.name || 'Unknown'} leave from ${leave.startDate} to ${leave.endDate}`,
 			icon: 'Calendar',
 			color: leave.status === 'approved' ? 'green' : leave.status === 'pending' ? 'orange' : 'red',
 			type: 'leave_request',
@@ -752,7 +747,7 @@ function generateRecentActivities(
 	});
 
 	// Convert attendance records to activities
-	attendanceRecords.slice(0, Math.min(3, limit)).forEach(attendance => {
+	attendanceRecords.slice(0, Math.min(3, limit)).forEach((attendance) => {
 		activities.push({
 			id: `attendance-${attendance.id}`,
 			title: `Clocked ${attendance.status}`,
@@ -766,7 +761,7 @@ function generateRecentActivities(
 	});
 
 	// Convert goals to activities
-	goals.slice(0, Math.min(2, limit)).forEach(goal => {
+	goals.slice(0, Math.min(2, limit)).forEach((goal) => {
 		activities.push({
 			id: `goal-${goal.id}`,
 			title: `Goal: ${goal.title}`,
@@ -798,7 +793,7 @@ function generateRecentActivitiesFromLogs(
 	const activities: any[] = [];
 
 	// Process activity logs (most authoritative source)
-	activityLogs.forEach(log => {
+	activityLogs.forEach((log) => {
 		const actionMap: Record<string, { title: string; icon: string; color: string }> = {
 			create: { title: 'created', icon: 'Plus', color: 'green' },
 			update: { title: 'updated', icon: 'Edit', color: 'blue' },
@@ -808,7 +803,11 @@ function generateRecentActivitiesFromLogs(
 			submit: { title: 'submitted', icon: 'Send', color: 'blue' }
 		};
 
-		const actionInfo = actionMap[log.action] || { title: log.action, icon: 'Activity', color: 'gray' };
+		const actionInfo = actionMap[log.action] || {
+			title: log.action,
+			icon: 'Activity',
+			color: 'gray'
+		};
 
 		activities.push({
 			id: `log-${log.id}`,
@@ -829,13 +828,14 @@ function generateRecentActivitiesFromLogs(
 
 	// Supplement with recent leave requests if activity logs are sparse
 	if (activities.length < limit) {
-		leaveRequests.slice(0, Math.min(3, limit - activities.length)).forEach(leave => {
+		leaveRequests.slice(0, Math.min(3, limit - activities.length)).forEach((leave) => {
 			activities.push({
 				id: `leave-${leave.id}`,
 				title: `Leave request ${leave.status}`,
-				description: `${leave.leaveType} leave from ${leave.startDate} to ${leave.endDate}`,
+				description: `${leave.leaveType?.name || 'Unknown'} leave from ${leave.startDate} to ${leave.endDate}`,
 				icon: 'Calendar',
-				color: leave.status === 'approved' ? 'green' : leave.status === 'pending' ? 'orange' : 'red',
+				color:
+					leave.status === 'approved' ? 'green' : leave.status === 'pending' ? 'orange' : 'red',
 				type: 'leave_request',
 				timestamp: leave.createdAt,
 				user: { id: 'user', name: 'You' }
@@ -845,7 +845,7 @@ function generateRecentActivitiesFromLogs(
 
 	// Supplement with recent tasks if still sparse
 	if (activities.length < limit && tasks.length > 0) {
-		tasks.slice(0, Math.min(2, limit - activities.length)).forEach(task => {
+		tasks.slice(0, Math.min(2, limit - activities.length)).forEach((task) => {
 			activities.push({
 				id: `task-${task.id}`,
 				title: `Task: ${task.title}`,
@@ -861,7 +861,7 @@ function generateRecentActivitiesFromLogs(
 
 	// Supplement with upcoming events if still sparse
 	if (activities.length < limit && events.length > 0) {
-		events.slice(0, Math.min(2, limit - activities.length)).forEach(event => {
+		events.slice(0, Math.min(2, limit - activities.length)).forEach((event) => {
 			activities.push({
 				id: `event-${event.id}`,
 				title: `Event: ${event.title}`,
@@ -887,12 +887,12 @@ function generateUpcomingEventsFromDatabase(events: any[], limit: number) {
 
 	// Filter and transform events
 	return events
-		.filter(event => {
+		.filter((event) => {
 			const startTime = new Date(event.startTime);
 			return startTime >= now && event.status === 'scheduled';
 		})
 		.slice(0, limit)
-		.map(event => {
+		.map((event) => {
 			const startTime = new Date(event.startTime);
 			const endTime = new Date(event.endTime);
 
@@ -924,7 +924,8 @@ function generateUpcomingEventsFromDatabase(events: any[], limit: number) {
 				location: event.location || 'TBD',
 				icon: iconMap[event.eventType as keyof typeof iconMap] || 'Calendar',
 				color: event.color || '#3B82F6',
-				priority: event.eventType === 'review' || event.eventType === 'interview' ? 'high' : 'medium',
+				priority:
+					event.eventType === 'review' || event.eventType === 'interview' ? 'high' : 'medium',
 				organizer: event.userByOrganizerId
 					? `${event.userByOrganizerId.firstName} ${event.userByOrganizerId.lastName}`
 					: 'Unknown',
@@ -1002,4 +1003,3 @@ function generateQuickActions(role: string, users: any[]) {
 
 	return baseActions;
 }
-

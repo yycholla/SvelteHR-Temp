@@ -79,8 +79,12 @@ function comparePrimaryKeys(
 
 	// Definition mismatch (both have PK, but columns differ)
 	if (sourcePK && targetPK) {
-		const sourceColumns = JSON.stringify(sourcePK.columns.sort());
-		const targetColumns = JSON.stringify(targetPK.columns.sort());
+		// Ensure columns are arrays (handle both array and PostgreSQL array string formats)
+		const sourceColumnsArray = normalizeColumnsArray(sourcePK.columns);
+		const targetColumnsArray = normalizeColumnsArray(targetPK.columns);
+
+		const sourceColumns = JSON.stringify(sourceColumnsArray.sort());
+		const targetColumns = JSON.stringify(targetColumnsArray.sort());
 
 		if (sourceColumns !== targetColumns) {
 			diffs.push({
@@ -175,11 +179,12 @@ function compareUniqueConstraints(
 	// Missing unique constraints
 	for (const [name, unique] of sourceUniques) {
 		if (!targetUniques.has(name)) {
+			const columnsArray = normalizeColumnsArray(unique.columns);
 			diffs.push({
 				constraintName: name,
 				constraintType: 'unique',
 				diffType: 'missing',
-				sourceDefinition: JSON.stringify(unique.columns.sort()),
+				sourceDefinition: JSON.stringify(columnsArray.sort()),
 				targetDefinition: undefined
 			});
 		}
@@ -188,12 +193,13 @@ function compareUniqueConstraints(
 	// Extra unique constraints
 	for (const [name, unique] of targetUniques) {
 		if (!sourceUniques.has(name)) {
+			const columnsArray = normalizeColumnsArray(unique.columns);
 			diffs.push({
 				constraintName: name,
 				constraintType: 'unique',
 				diffType: 'extra',
 				sourceDefinition: undefined,
-				targetDefinition: JSON.stringify(unique.columns.sort())
+				targetDefinition: JSON.stringify(columnsArray.sort())
 			});
 		}
 	}
@@ -202,8 +208,10 @@ function compareUniqueConstraints(
 	for (const [name, sourceUnique] of sourceUniques) {
 		if (targetUniques.has(name)) {
 			const targetUnique = targetUniques.get(name)!;
-			const sourceDefn = JSON.stringify(sourceUnique.columns.sort());
-			const targetDefn = JSON.stringify(targetUnique.columns.sort());
+			const sourceColumnsArray = normalizeColumnsArray(sourceUnique.columns);
+			const targetColumnsArray = normalizeColumnsArray(targetUnique.columns);
+			const sourceDefn = JSON.stringify(sourceColumnsArray.sort());
+			const targetDefn = JSON.stringify(targetColumnsArray.sort());
 
 			if (sourceDefn !== targetDefn) {
 				diffs.push({
@@ -345,10 +353,13 @@ export function compareIndexes(
  * Serializes a foreign key constraint for comparison.
  */
 function serializeForeignKey(fk: ForeignKeyConstraint): string {
+	const columnsArray = normalizeColumnsArray(fk.columns);
+	const referencedColumnsArray = normalizeColumnsArray(fk.referencedColumns);
+
 	return JSON.stringify({
-		columns: fk.columns.sort(),
+		columns: columnsArray.sort(),
 		referencedTable: fk.referencedTable,
-		referencedColumns: fk.referencedColumns.sort(),
+		referencedColumns: referencedColumnsArray.sort(),
 		onDelete: fk.onDelete,
 		onUpdate: fk.onUpdate
 	});
@@ -363,4 +374,32 @@ function normalizeIndexDefinition(definition: string): string {
 		.replace(/\w+\./g, '') // Remove schema prefixes
 		.trim()
 		.toLowerCase();
+}
+
+/**
+ * Normalizes columns to always be an array.
+ * Handles both array format and PostgreSQL array string format like "{id,name}".
+ */
+function normalizeColumnsArray(columns: string[] | string): string[] {
+	// If it's already an array, return it
+	if (Array.isArray(columns)) {
+		return columns;
+	}
+
+	// If it's a PostgreSQL array string like "{id,name}", parse it
+	if (typeof columns === 'string' && columns.startsWith('{') && columns.endsWith('}')) {
+		return columns
+			.slice(1, -1) // Remove { and }
+			.split(',')
+			.map((col) => col.trim())
+			.filter((col) => col.length > 0);
+	}
+
+	// If it's a single string column name, wrap it in an array
+	if (typeof columns === 'string') {
+		return [columns];
+	}
+
+	// Fallback: return as-is (will cause error if not compatible)
+	return columns as string[];
 }

@@ -2,85 +2,33 @@
 import type { Client } from '@urql/core';
 // Feature: 019-we-need-to - Task T013
 // Purpose: Event CRUD operations with multi-tier visibility (company/department/specific)
+// Migration: PostGraphile → Rust Idiomatic GraphQL (Phase 1, Task 1.1)
 
 import { gql } from '@urql/svelte';
 import type { UserCredentials } from '$lib/models/data-request';
 
 // ============================================================================
-// QUERIES
+// QUERIES - Idiomatic Rust GraphQL Patterns
 // ============================================================================
 
 /**
  * Query: Get all events with visibility filtering (RLS-enforced)
  * RLS Policy: event_company_visibility, event_department_visibility, event_specific_visibility
- * Note: Using PostGraphile conventions - condition instead of filter
+ * Migration: ✅ Uses idiomatic Rust patterns (events, not allEvents)
  */
 export const GET_ALL_EVENTS = gql`
-	query GetAllEvents(
-		$first: Int = 20
-		$offset: Int = 0
-		$orderBy: [EventsOrderBy!] = [START_TIME_ASC]
-		$condition: EventCondition
-	) {
-		allEvents(first: $first, offset: $offset, orderBy: $orderBy, condition: $condition) {
-			nodes {
-				id
-				nodeId
-				title
-				description
-				eventType
-				startTime
-				endTime
-				allDay
-				location
-				organizerId
-				userByOrganizerId {
-					id
-					displayName
-					email
-				}
-				status
-				color
-				isPublic
-				createdAt
-				updatedAt
-				eventAttendeesByEventId {
-					nodes {
-						id
-						employeeId
-						responseStatus
-					}
-				}
-			}
-			totalCount
-			pageInfo {
-				hasNextPage
-				hasPreviousPage
-				startCursor
-				endCursor
-			}
-		}
-	}
-`;
-
-/**
- * Query: Get single event by ID with attendees
- * Note: Using UUID for id parameter (not Int)
- */
-export const GET_EVENT_BY_ID = gql`
-	query GetEventById($id: UUID!) {
-		eventById(id: $id) {
+	query GetAllEvents($limit: Int = 20, $offset: Int = 0, $upcomingOnly: Boolean) {
+		events(limit: $limit, offset: $offset, upcomingOnly: $upcomingOnly) {
 			id
-			nodeId
 			title
 			description
 			eventType
 			startTime
 			endTime
-			allDay
+			isAllDay
 			location
 			organizerId
-			userByOrganizerId {
+			organizer {
 				id
 				displayName
 				email
@@ -90,18 +38,58 @@ export const GET_EVENT_BY_ID = gql`
 			isPublic
 			createdAt
 			updatedAt
-			eventAttendeesByEventId {
-				nodes {
+			attendees(limit: 100) {
+				id
+				employeeId
+				responseStatus
+				reminderTime
+				employee {
 					id
-					employeeId
-					responseStatus
-					isRequired
-					createdAt
-					userByEmployeeId {
-						id
-						displayName
-						email
-					}
+					displayName
+					email
+				}
+			}
+		}
+	}
+`;
+
+/**
+ * Query: Get single event by ID with attendees
+ * Migration: ✅ Uses event(id:), organizer, attendees(limit:)
+ */
+export const GET_EVENT_BY_ID = gql`
+	query GetEventById($id: UUID!) {
+		event(id: $id) {
+			id
+			title
+			description
+			eventType
+			startTime
+			endTime
+			isAllDay
+			location
+			organizerId
+			organizer {
+				id
+				displayName
+				email
+			}
+			status
+			color
+			isPublic
+			createdAt
+			updatedAt
+			attendees(limit: 100) {
+				id
+				employeeId
+				responseStatus
+				isRequired
+				reminderTime
+				createdAt
+				employee {
+					id
+					displayName
+					email
 				}
 			}
 		}
@@ -110,99 +98,78 @@ export const GET_EVENT_BY_ID = gql`
 
 /**
  * Query: Get user's events with RSVP status
- * Note: Using UUID for employeeId, condition instead of filter
+ * Migration: ✅ Idiomatic pattern
+ * Note: Backend gap - userId filter not available, must filter client-side
  */
 export const GET_USER_EVENTS = gql`
-	query GetUserEvents(
-		$employeeId: UUID!
-		$first: Int = 50
-		$offset: Int = 0
-	) {
-		allEvents(
-			first: $first
-			offset: $offset
-			orderBy: [START_TIME_ASC]
-		) {
-			nodes {
+	query GetUserEvents($limit: Int = 50, $offset: Int = 0) {
+		events(limit: $limit, offset: $offset) {
+			id
+			title
+			description
+			eventType
+			startTime
+			endTime
+			isAllDay
+			location
+			organizerId
+			status
+			color
+			attendees(limit: 100) {
 				id
-				nodeId
-				title
-				description
-				eventType
-				startTime
-				endTime
-				allDay
-				location
-				organizerId
-				status
-				color
-				eventAttendeesByEventId(condition: { employeeId: $employeeId }) {
-					nodes {
-						responseStatus
-						isRequired
-						createdAt
-					}
-				}
+				employeeId
+				responseStatus
+				isRequired
+				createdAt
 			}
-			totalCount
 		}
 	}
 `;
 
 /**
  * Query: Get upcoming events (next 30 days)
- * Note: Using condition instead of filter
+ * Migration: ✅ Uses upcomingOnly filter
  */
 export const GET_UPCOMING_EVENTS = gql`
-	query GetUpcomingEvents($first: Int = 10, $condition: EventCondition) {
-		allEvents(
-			first: $first
-			condition: $condition
-			orderBy: [START_TIME_ASC]
-		) {
-			nodes {
-				id
-				nodeId
-				title
-				startTime
-				endTime
-				location
-				status
-				isPublic
-			}
-			totalCount
+	query GetUpcomingEvents($limit: Int = 10, $upcomingOnly: Boolean) {
+		events(limit: $limit, upcomingOnly: $upcomingOnly) {
+			id
+			title
+			startTime
+			endTime
+			location
+			status
+			isPublic
 		}
 	}
 `;
 
 // ============================================================================
-// MUTATIONS
+// MUTATIONS - Idiomatic Rust GraphQL Patterns
 // ============================================================================
 
 /**
  * Mutation: Create event
  * RLS Policy: event_manager_admin_access (manager/admin only)
+ * Migration: ✅ Uses createEvent(input:) without nested wrapper
  */
 export const CREATE_EVENT = gql`
 	mutation CreateEvent($input: CreateEventInput!) {
 		createEvent(input: $input) {
-			event {
-				id
-				title
-				description
-				eventType
-				startTime
-				endTime
-				allDay
-				location
-				organizerId
-				isPublic
-				status
-				color
-				createdAt
-				updatedAt
-			}
-			clientMutationId
+			id
+			title
+			description
+			eventType
+			startTime
+			endTime
+			isAllDay
+			location
+			organizerId
+			isPublic
+			status
+			color
+			createdAt
+			updatedAt
 		}
 	}
 `;
@@ -210,25 +177,23 @@ export const CREATE_EVENT = gql`
 /**
  * Mutation: Update event
  * RLS Policy: event_manager_admin_access (organizer or admin)
+ * Migration: ✅ Uses updateEvent(id, input) - idiomatic pattern
  */
 export const UPDATE_EVENT = gql`
-	mutation UpdateEvent($input: UpdateEventInput!) {
-		updateEvent(input: $input) {
-			event {
-				id
-				title
-				description
-				eventType
-				startTime
-				endTime
-				allDay
-				location
-				isPublic
-				status
-				color
-				updatedAt
-			}
-			clientMutationId
+	mutation UpdateEvent($id: UUID!, $input: UpdateEventInput!) {
+		updateEvent(id: $id, input: $input) {
+			id
+			title
+			description
+			eventType
+			startTime
+			endTime
+			isAllDay
+			location
+			isPublic
+			status
+			color
+			updatedAt
 		}
 	}
 `;
@@ -236,56 +201,110 @@ export const UPDATE_EVENT = gql`
 /**
  * Mutation: Delete event
  * RLS Policy: event_manager_admin_access (organizer or admin)
+ * Migration: ✅ Uses deleteEvent(id) - returns Boolean
  */
 export const DELETE_EVENT = gql`
-	mutation DeleteEvent($input: DeleteEventInput!) {
-		deleteEvent(input: $input) {
-			deletedEventId
-			clientMutationId
-		}
+	mutation DeleteEvent($id: UUID!) {
+		deleteEvent(id: $id)
 	}
 `;
 
 /**
  * Mutation: Update RSVP status
  * RLS Policy: event_attendees_own_access (employee updates own RSVP)
+ * Migration: ✅ Uses updateEventAttendee(id, input)
  */
 export const UPDATE_RSVP_STATUS = gql`
-	mutation UpdateRsvpStatus($input: UpdateEventAttendeeInput!) {
-		updateEventAttendee(input: $input) {
-			eventAttendee {
-				id
-				eventId
-				employeeId
-				responseStatus
-				respondedAt
-			}
-			clientMutationId
+	mutation UpdateRsvpStatus($id: UUID!, $input: UpdateEventAttendeeInput!) {
+		updateEventAttendee(id: $id, input: $input) {
+			id
+			eventId
+			employeeId
+			responseStatus
 		}
 	}
 `;
 
 /**
  * Mutation: Invite attendees to event
+ * Migration: ✅ Uses createEventAttendee(input)
  */
 export const INVITE_ATTENDEES = gql`
 	mutation InviteAttendees($input: CreateEventAttendeeInput!) {
 		createEventAttendee(input: $input) {
-			eventAttendee {
+			id
+			eventId
+			employeeId
+			responseStatus
+			isRequired
+			createdAt
+		}
+	}
+`;
+
+/**
+ * Mutation: Update event reminder for an attendee
+ * Migration: ✅ Idiomatic pattern
+ */
+export const UPDATE_EVENT_REMINDER = gql`
+	mutation UpdateEventReminder($id: UUID!, $input: UpdateEventAttendeeInput!) {
+		updateEventAttendee(id: $id, input: $input) {
+			id
+			eventId
+			employeeId
+			responseStatus
+		}
+	}
+`;
+
+/**
+ * Query: Get pending event reminders for scheduler
+ * Migration: ✅ Uses eventAttendees query
+ * Note: Backend gap - responseStatus filter not available, filter client-side
+ */
+export const GET_PENDING_REMINDERS = gql`
+	query GetPendingReminders($limit: Int) {
+		eventAttendees(reminderTimeIsNull: false, limit: $limit) {
+			id
+			employeeId
+			eventId
+			reminderTime
+			responseStatus
+			event {
 				id
-				eventId
-				employeeId
-				responseStatus
-				isRequired
-				createdAt
+				title
+				startTime
+				endTime
+				status
 			}
-			clientMutationId
+			employee {
+				id
+				displayName
+				email
+			}
+		}
+	}
+`;
+
+/**
+ * Mutation: Create event notification
+ * Migration: ✅ Idiomatic pattern
+ */
+export const CREATE_EVENT_NOTIFICATION = gql`
+	mutation CreateEventNotification($input: CreateNotificationInput!) {
+		createNotification(input: $input) {
+			id
+			recipientId
+			title
+			message
+			readStatus
+			createdAt
 		}
 	}
 `;
 
 // ============================================================================
-// TYPESCRIPT INTERFACES
+// TYPESCRIPT INTERFACES - Updated for Idiomatic Patterns
 // ============================================================================
 
 export type EventVisibilityType = 'company' | 'department' | 'specific';
@@ -319,77 +338,83 @@ export interface EventFilter {
 	};
 }
 
+/**
+ * CreateEventInput - Updated to match Rust backend
+ * Migration: ✅ Removed nested wrapper
+ */
 export interface CreateEventInput {
-	clientMutationId?: string;
-	event: {
-		title: string;
-		description?: string;
-		eventType: string;
-		startTime: string;
-		endTime: string;
-		allDay?: boolean;
-		location?: string;
-		organizerId: string;
-		isPublic?: boolean;
-		status?: EventStatus;
-		color?: string;
-	};
-}
-
-export interface UpdateEventInput {
-	clientMutationId?: string;
-	id: string;
-	patch: {
-		title?: string;
-		description?: string;
-		eventType?: string;
-		startTime?: string;
-		endTime?: string;
-		allDay?: boolean;
-		location?: string;
-		isPublic?: boolean;
-		status?: EventStatus;
-		color?: string;
-	};
-}
-
-export interface DeleteEventInput {
-	clientMutationId?: string;
-	nodeId: string;
-}
-
-export interface UpdateEventAttendeeInput {
-	clientMutationId?: string;
-	id: string;
-	patch: {
-		responseStatus: RsvpStatus;
-		respondedAt?: string;
-	};
-}
-
-export interface CreateEventAttendeeInput {
-	clientMutationId?: string;
-	eventAttendee: {
-		eventId: string;
-		employeeId: string;
-		responseStatus?: RsvpStatus;
-		isOrganizer?: boolean;
-		isRequired?: boolean;
-	};
-}
-
-export interface Event {
-	id: string;
-	nodeId: string;
 	title: string;
 	description?: string;
 	eventType: string;
 	startTime: string;
 	endTime: string;
-	allDay: boolean;
+	isAllDay: boolean;
 	location?: string;
 	organizerId: string;
-	userByOrganizerId?: {
+	isPublic: boolean;
+	status: EventStatus;
+	color?: string;
+	capacity?: number;
+	recurrenceRule?: string;
+	recurrenceEndDate?: string;
+	imageUrl?: string;
+	imageAspectRatio?: '16:9' | '9:16';
+}
+
+/**
+ * UpdateEventInput - Updated to match Rust backend
+ * Migration: ✅ Removed patch wrapper, uses direct fields
+ */
+export interface UpdateEventInput {
+	title?: string;
+	description?: string;
+	eventType?: string;
+	startTime?: string;
+	endTime?: string;
+	isAllDay?: boolean;
+	location?: string;
+	isPublic?: boolean;
+	status?: EventStatus;
+	color?: string;
+}
+
+/**
+ * UpdateEventAttendeeInput - Updated to match Rust backend
+ * Migration: ✅ Simplified structure
+ */
+export interface UpdateEventAttendeeInput {
+	responseStatus?: RsvpStatus;
+	reminderTime?: string;
+	scope?: string;
+}
+
+/**
+ * CreateEventAttendeeInput - Updated to match Rust backend
+ * Migration: ✅ Removed nested wrapper
+ */
+export interface CreateEventAttendeeInput {
+	eventId: string;
+	employeeId: string;
+	responseStatus: RsvpStatus;
+	isOrganizer: boolean;
+	isRequired: boolean;
+}
+
+/**
+ * Event - Updated interface
+ * Migration: ✅ Removed nodeId, updated relationship names
+ */
+export interface Event {
+	id: string;
+	title: string;
+	description?: string;
+	eventType: string;
+	startTime: string;
+	endTime: string;
+	isAllDay: boolean;
+	location?: string;
+	organizerId: string;
+	organizer?: {
 		id: string;
 		displayName: string;
 		email: string;
@@ -399,15 +424,22 @@ export interface Event {
 	color?: string;
 	createdAt: string;
 	updatedAt: string;
-	eventAttendeesByEventId?: {
-		nodes: Array<{
+	attendees?: Array<{
+		id: string;
+		employeeId: string;
+		responseStatus: string;
+		employee?: {
 			id: string;
-			employeeId: string;
-			responseStatus: string;
-		}>;
-	};
+			displayName: string;
+			email: string;
+		};
+	}>;
 }
 
+/**
+ * EventAttendee - Updated interface
+ * Migration: ✅ Updated to match Rust backend
+ */
 export interface EventAttendee {
 	id: string;
 	eventId: string;
@@ -421,7 +453,6 @@ export interface EventAttendee {
 	responseStatus: RsvpStatus;
 	isOrganizer: boolean;
 	isRequired: boolean;
-	respondedAt?: string;
 	createdAt: string;
 }
 
@@ -583,11 +614,12 @@ export function getEventVisibilityLabel(visibilityType: EventVisibilityType): st
 }
 
 // ============================================================================
-// OPERATIONS CLASS
+// OPERATIONS CLASS - Updated for Idiomatic Patterns
 // ============================================================================
 
 /**
  * T013: Events Operations with Multi-Tier Visibility and RSVP
+ * Migration: ✅ Fully migrated to Rust idiomatic patterns
  */
 export class EventsOperations {
 	private client: Client;
@@ -598,6 +630,7 @@ export class EventsOperations {
 
 	/**
 	 * Get all events (RLS-filtered by visibility)
+	 * Migration: ✅ Updated to use direct array access (no .nodes)
 	 */
 	async getAllEvents(params: {
 		first?: number;
@@ -616,17 +649,15 @@ export class EventsOperations {
 		const dataRequest = createDataRequest({
 			operationName: 'GetAllEvents',
 			variables: {
-				first: params.first || 20,
+				limit: params.first || 20,
 				offset: params.offset || 0,
-				condition: params.filter || {},
-				orderBy: params.orderBy ? [params.orderBy] : ['START_TIME_ASC']
+				upcomingOnly: params.filter?.upcomingOnly || false
 			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
 		});
 
 		try {
-			// Server-side query using toPromise()
 			const result = await this.client.query(GET_ALL_EVENTS, dataRequest.variables).toPromise();
 
 			if (result.error) {
@@ -645,13 +676,13 @@ export class EventsOperations {
 			}
 
 			return {
-				events: result.data.allEvents.nodes,
-				totalCount: result.data.allEvents.totalCount,
-				hasNextPage: result.data.allEvents.pageInfo.hasNextPage
+				events: result.data.events || [],
+				totalCount: result.data.events?.length || 0,
+				hasNextPage: false
 			};
 		} catch (error: any) {
 			if (error.userMessage) {
-				throw error; // Already formatted error
+				throw error;
 			}
 			throw createErrorResponse(error, {
 				type: 'graphql',
@@ -662,6 +693,7 @@ export class EventsOperations {
 
 	/**
 	 * Get single event by ID with attendees
+	 * Migration: ✅ Updated to use direct access (no nesting)
 	 */
 	async getEventById(params: {
 		eventId: string;
@@ -678,7 +710,6 @@ export class EventsOperations {
 		});
 
 		try {
-			// Server-side query using toPromise()
 			const result = await this.client.query(GET_EVENT_BY_ID, dataRequest.variables).toPromise();
 
 			if (result.error) {
@@ -689,18 +720,17 @@ export class EventsOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data || !result.data.eventById) {
+			if (!result.data || !result.data.event) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'Event not found. Please try again.'
 				});
 			}
 
-			// Extract return data from result.data.eventById
-			return result.data.eventById;
+			return result.data.event;
 		} catch (error: any) {
 			if (error.userMessage) {
-				throw error; // Already formatted error
+				throw error;
 			}
 			throw createErrorResponse(error, {
 				type: 'graphql',
@@ -711,6 +741,7 @@ export class EventsOperations {
 
 	/**
 	 * Get user's events with RSVP status
+	 * Migration: ✅ Updated client-side filtering for attendees array
 	 */
 	async getUserEvents(params: {
 		employeeId: string;
@@ -725,8 +756,7 @@ export class EventsOperations {
 		const dataRequest = createDataRequest({
 			operationName: 'GetUserEvents',
 			variables: {
-				employeeId: params.employeeId, // Keep as UUID string
-				first: params.first || params.limit || 50,
+				limit: params.first || params.limit || 50,
 				offset: params.offset || 0
 			},
 			userCredentials: params.userCredentials,
@@ -734,7 +764,6 @@ export class EventsOperations {
 		});
 
 		try {
-			// Server-side query using toPromise()
 			const result = await this.client.query(GET_USER_EVENTS, dataRequest.variables).toPromise();
 
 			if (result.error) {
@@ -752,14 +781,21 @@ export class EventsOperations {
 				});
 			}
 
-			// Extract return data from result.data
+			// Filter events by employeeId client-side (backend gap)
+			const allEvents = result.data.events || [];
+			const filteredEvents = params.employeeId
+				? allEvents.filter((e: any) =>
+						e.attendees?.some((a: any) => a.employeeId === params.employeeId)
+					)
+				: allEvents;
+
 			return {
-				events: result.data.allEvents.nodes,
-				totalCount: result.data.allEvents.totalCount
+				events: filteredEvents,
+				totalCount: filteredEvents.length
 			};
 		} catch (error: any) {
 			if (error.userMessage) {
-				throw error; // Already formatted error
+				throw error;
 			}
 			throw createErrorResponse(error, {
 				type: 'graphql',
@@ -770,6 +806,7 @@ export class EventsOperations {
 
 	/**
 	 * Get upcoming events (next 30 days)
+	 * Migration: ✅ Direct array access
 	 */
 	async getUpcomingEvents(params: {
 		first?: number;
@@ -783,15 +820,14 @@ export class EventsOperations {
 		const dataRequest = createDataRequest({
 			operationName: 'GetUpcomingEvents',
 			variables: {
-				first: params.first || params.limit || 10,
-				condition: params.filter || {}
+				limit: params.first || params.limit || 10,
+				upcomingOnly: true
 			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
 		});
 
 		try {
-			// Server-side query using toPromise()
 			const result = await this.client.query(GET_UPCOMING_EVENTS, dataRequest.variables).toPromise();
 
 			if (result.error) {
@@ -809,14 +845,13 @@ export class EventsOperations {
 				});
 			}
 
-			// Extract return data from result.data
 			return {
-				events: result.data.allEvents.nodes,
-				totalCount: result.data.allEvents.totalCount
+				events: result.data.events || [],
+				totalCount: result.data.events?.length || 0
 			};
 		} catch (error: any) {
 			if (error.userMessage) {
-				throw error; // Already formatted error
+				throw error;
 			}
 			throw createErrorResponse(error, {
 				type: 'graphql',
@@ -827,6 +862,7 @@ export class EventsOperations {
 
 	/**
 	 * Create event (manager/admin only)
+	 * Migration: ✅ Updated to use direct input (no nesting)
 	 */
 	async createEvent(params: {
 		input: CreateEventInput;
@@ -836,7 +872,7 @@ export class EventsOperations {
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		// Validate input
-		const validation = validateEventInput(params.input.event);
+		const validation = validateEventInput(params.input);
 		if (!validation.valid) {
 			throw createErrorResponse(new Error(validation.errors.join(', ')), {
 				type: 'validation',
@@ -852,7 +888,6 @@ export class EventsOperations {
 		});
 
 		try {
-			// Server-side mutation using toPromise()
 			const result = await this.client.mutation(CREATE_EVENT, dataRequest.variables).toPromise();
 
 			if (result.error) {
@@ -863,18 +898,17 @@ export class EventsOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data) {
+			if (!result.data || !result.data.createEvent) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'No data returned. Please try again.'
 				});
 			}
 
-			// Extract return data from result.data
-			return result.data;
+			return result.data.createEvent;
 		} catch (error: any) {
 			if (error.userMessage) {
-				throw error; // Already formatted error
+				throw error;
 			}
 			throw createErrorResponse(error, {
 				type: 'graphql',
@@ -885,8 +919,10 @@ export class EventsOperations {
 
 	/**
 	 * Update event (organizer or admin)
+	 * Migration: ✅ Updated to use id param (not nodeId)
 	 */
 	async updateEvent(params: {
+		id: string;
 		input: UpdateEventInput;
 		userCredentials: UserCredentials;
 	}): Promise<Event> {
@@ -895,13 +931,12 @@ export class EventsOperations {
 
 		const dataRequest = createDataRequest({
 			operationName: 'UpdateEvent',
-			variables: { input: params.input },
+			variables: { id: params.id, input: params.input },
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
 		});
 
 		try {
-			// Server-side mutation using toPromise()
 			const result = await this.client.mutation(UPDATE_EVENT, dataRequest.variables).toPromise();
 
 			if (result.error) {
@@ -912,18 +947,17 @@ export class EventsOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data) {
+			if (!result.data || !result.data.updateEvent) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
 					userMessage: 'No data returned. Please try again.'
 				});
 			}
 
-			// Extract return data from result.data
-			return result.data;
+			return result.data.updateEvent;
 		} catch (error: any) {
 			if (error.userMessage) {
-				throw error; // Already formatted error
+				throw error;
 			}
 			throw createErrorResponse(error, {
 				type: 'graphql',
@@ -934,27 +968,23 @@ export class EventsOperations {
 
 	/**
 	 * Delete event (organizer or admin)
+	 * Migration: ✅ Updated to use id param, returns Boolean
 	 */
 	async deleteEvent(params: {
-		nodeId: string;
+		id: string;
 		userCredentials: UserCredentials;
-	}): Promise<string> {
+	}): Promise<boolean> {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
-		const input: DeleteEventInput = {
-			nodeId: params.nodeId
-		};
-
 		const dataRequest = createDataRequest({
 			operationName: 'DeleteEvent',
-			variables: { input },
+			variables: { id: params.id },
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
 		});
 
 		try {
-			// Server-side mutation using toPromise()
 			const result = await this.client.mutation(DELETE_EVENT, dataRequest.variables).toPromise();
 
 			if (result.error) {
@@ -965,18 +995,10 @@ export class EventsOperations {
 				throw errorResponse;
 			}
 
-			if (!result.data) {
-				throw createErrorResponse(new Error('No data returned'), {
-					type: 'graphql',
-					userMessage: 'No data returned. Please try again.'
-				});
-			}
-
-			// Extract return data from result.data
-			return result.data;
+			return result.data?.deleteEvent || false;
 		} catch (error: any) {
 			if (error.userMessage) {
-				throw error; // Already formatted error
+				throw error;
 			}
 			throw createErrorResponse(error, {
 				type: 'graphql',
@@ -986,7 +1008,62 @@ export class EventsOperations {
 	}
 
 	/**
+	 * Set event reminder for the current user
+	 * Migration: ✅ Updated to use id param
+	 */
+	async setEventReminder(params: {
+		attendeeId: string;
+		reminderMinutes: number | null;
+		userCredentials: UserCredentials;
+	}): Promise<any> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+		const { createErrorResponse} = await import('$lib/models/error-response');
+
+		const dataRequest = createDataRequest({
+			operationName: 'UpdateEventReminder',
+			variables: {
+				id: params.attendeeId,
+				input: {
+					reminderTime: params.reminderMinutes?.toString()
+				}
+			},
+			userCredentials: params.userCredentials,
+			timeoutMs: 5000
+		});
+
+		try {
+			const result = await this.client.mutation(UPDATE_EVENT_REMINDER, dataRequest.variables).toPromise();
+
+			if (result.error) {
+				const errorResponse = createErrorResponse(result.error, {
+					type: 'graphql',
+					userMessage: 'Unable to set reminder. Please try again.'
+				});
+				throw errorResponse;
+			}
+
+			if (!result.data || !result.data.updateEventAttendee) {
+				throw createErrorResponse(new Error('No data returned'), {
+					type: 'graphql',
+					userMessage: 'Failed to set reminder. Please try again.'
+				});
+			}
+
+			return result.data.updateEventAttendee;
+		} catch (error: any) {
+			if (error.userMessage) {
+				throw error;
+			}
+			throw createErrorResponse(error, {
+				type: 'graphql',
+				userMessage: 'Failed to set event reminder. Please try again.'
+			});
+		}
+	}
+
+	/**
 	 * Update RSVP status (employee updates own RSVP)
+	 * Migration: ✅ Updated to use id param
 	 */
 	async updateRsvpStatus(params: {
 		attendeeId: string;
@@ -996,55 +1073,51 @@ export class EventsOperations {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
-		const input: UpdateEventAttendeeInput = {
-			id: params.attendeeId,
-			patch: {
-				responseStatus: params.status,
-				respondedAt: new Date().toISOString()
-			}
-		};
-
 		const dataRequest = createDataRequest({
 			operationName: 'UpdateRsvpStatus',
-			variables: { input },
+			variables: {
+				id: params.attendeeId,
+				input: {
+					responseStatus: params.status
+				}
+			},
 			userCredentials: params.userCredentials,
 			timeoutMs: 5000
 		});
 
 		try {
-			// Server-side mutation using toPromise()
 			const result = await this.client.mutation(UPDATE_RSVP_STATUS, dataRequest.variables).toPromise();
 
 			if (result.error) {
 				const errorResponse = createErrorResponse(result.error, {
 					type: 'graphql',
-					userMessage: 'Unable to complete operation. Please try again.'
+					userMessage: 'Unable to update RSVP. Please try again.'
 				});
 				throw errorResponse;
 			}
 
-			if (!result.data) {
+			if (!result.data || !result.data.updateEventAttendee) {
 				throw createErrorResponse(new Error('No data returned'), {
 					type: 'graphql',
-					userMessage: 'No data returned. Please try again.'
+					userMessage: 'Failed to update RSVP. Please try again.'
 				});
 			}
 
-			// Extract return data from result.data
-			return result.data;
+			return result.data.updateEventAttendee;
 		} catch (error: any) {
 			if (error.userMessage) {
-				throw error; // Already formatted error
+				throw error;
 			}
 			throw createErrorResponse(error, {
 				type: 'graphql',
-				userMessage: 'Operation failed. Please try again.'
+				userMessage: 'Failed to update RSVP. Please try again.'
 			});
 		}
 	}
 
 	/**
 	 * Invite attendees to event
+	 * Migration: ✅ Updated to use direct input
 	 */
 	async inviteAttendees(params: {
 		eventId: string;
@@ -1057,16 +1130,13 @@ export class EventsOperations {
 
 		const results: EventAttendee[] = [];
 
-		// Create attendee records for each employee
 		for (const employeeId of params.employeeIds) {
 			const input: CreateEventAttendeeInput = {
-				eventAttendee: {
-					eventId: params.eventId,
-					employeeId: employeeId,
-					responseStatus: 'pending',
-					isOrganizer: false,
-					isRequired: params.isRequired || false
-				}
+				eventId: params.eventId,
+				employeeId: employeeId,
+				responseStatus: 'pending',
+				isOrganizer: false,
+				isRequired: params.isRequired || false
 			};
 
 			const dataRequest = createDataRequest({
@@ -1077,7 +1147,6 @@ export class EventsOperations {
 			});
 
 			try {
-				// Server-side mutation using toPromise()
 				const result = await this.client.mutation(INVITE_ATTENDEES, dataRequest.variables).toPromise();
 
 				if (result.error) {
@@ -1088,18 +1157,18 @@ export class EventsOperations {
 					throw errorResponse;
 				}
 
-				if (!result.data) {
+				if (!result.data || !result.data.createEventAttendee) {
 					throw createErrorResponse(new Error('No data returned'), {
 						type: 'graphql',
 						userMessage: 'No attendee data returned. Please try again.'
 					});
 				}
 
-				const attendee = result.data.createEventAttendee.eventAttendee;
-				results.push(attendee);
+				const attendee = result.data.createEventAttendee;
+				results.push(attendee as EventAttendee);
 			} catch (error: any) {
 				if (error.userMessage) {
-					throw error; // Already formatted error
+					throw error;
 				}
 				throw createErrorResponse(error, {
 					type: 'graphql',
@@ -1110,6 +1179,110 @@ export class EventsOperations {
 
 		return results;
 	}
+
+	/**
+	 * Invite single attendee to event (convenience method)
+	 */
+	async inviteAttendee(params: {
+		eventId: string;
+		employeeId: string;
+		isRequired?: boolean;
+		userCredentials: UserCredentials;
+	}): Promise<EventAttendee> {
+		const results = await this.inviteAttendees({
+			eventId: params.eventId,
+			employeeIds: [params.employeeId],
+			isRequired: params.isRequired,
+			userCredentials: params.userCredentials
+		});
+		return results[0];
+	}
+
+	/**
+	 * Get pending event reminders for scheduler
+	 * Migration: ✅ Updated to filter client-side
+	 */
+	async getPendingReminders(params: {
+		userCredentials: UserCredentials;
+	}): Promise<any[]> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+
+		const dataRequest = createDataRequest({
+			operationName: 'GetPendingReminders',
+			variables: {
+				limit: 1000
+			},
+			userCredentials: params.userCredentials,
+			timeoutMs: 5000
+		});
+
+		const result = await this.client.query(GET_PENDING_REMINDERS, dataRequest.variables).toPromise();
+
+		if (result.error) {
+			console.error('[EventsOperations] Error fetching pending reminders:', result.error);
+			return [];
+		}
+
+		// Filter client-side for accepted/tentative status
+		const allAttendees = result.data?.eventAttendees || [];
+		return allAttendees.filter(
+			(attendee: any) =>
+				attendee.responseStatus === 'accepted' || attendee.responseStatus === 'tentative'
+		);
+	}
+
+	/**
+	 * Create event notification
+	 * Migration: ✅ Updated input structure
+	 */
+	async createEventNotification(params: {
+		userId: string;
+		eventId: string;
+		type: string;
+		message: string;
+		userCredentials: UserCredentials;
+	}): Promise<{ success: boolean; notificationId?: string; error?: string }> {
+		const { createDataRequest } = await import('$lib/models/data-request');
+
+		try {
+			const dataRequest = createDataRequest({
+				operationName: 'CreateEventNotification',
+				variables: {
+					input: {
+						recipientId: params.userId,
+						title: 'Event Reminder',
+						message: params.message,
+						readStatus: false
+					}
+				},
+				userCredentials: params.userCredentials,
+				timeoutMs: 5000
+			});
+
+			const result = await this.client
+				.mutation(CREATE_EVENT_NOTIFICATION, dataRequest.variables)
+				.toPromise();
+
+			if (result.error) {
+				console.error('[EventsOperations] Error creating notification:', result.error);
+				return {
+					success: false,
+					error: result.error.message
+				};
+			}
+
+			return {
+				success: true,
+				notificationId: result.data?.createNotification?.id
+			};
+		} catch (error) {
+			console.error('[EventsOperations] Error creating notification:', error);
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : 'Unknown error'
+			};
+		}
+	}
 }
 
 /**
@@ -1118,3 +1291,213 @@ export class EventsOperations {
 export function createEventsOperations(client: Client): EventsOperations {
 	return new EventsOperations(client);
 }
+
+// ============================================================================
+// EVENT COMMENTS, HISTORY, AND WAITLIST (Feature 026)
+// ============================================================================
+
+/**
+ * EventComment interface
+ */
+export interface EventComment {
+	id: string;
+	eventId: string;
+	userId: string;
+	commentText: string;
+	createdAt: string;
+	updatedAt: string;
+	deletedAt?: string | null;
+	user?: {
+		id: string;
+		displayName: string;
+		email: string;
+	};
+}
+
+/**
+ * EventHistoryEntry interface
+ */
+export interface EventHistoryEntry {
+	id: string;
+	eventId: string;
+	changedById: string;
+	changeType: string;
+	oldValues?: any;
+	newValues?: any;
+	createdAt: string;
+	changedBy?: {
+		id: string;
+		displayName: string;
+		email: string;
+	};
+}
+
+/**
+ * UserWaitlistStatus interface
+ */
+export interface UserWaitlistStatus {
+	isOnWaitlist: boolean;
+	position?: number | null;
+	waitlistEntryId?: string | null;
+}
+
+/**
+ * Query: Get event comments
+ * TODO: Backend query doesn't exist yet - using placeholder
+ */
+export const GET_EVENT_COMMENTS = gql`
+	query GetEventComments($eventId: UUID!, $limit: Int = 50, $offset: Int = 0) {
+		allEventComments(
+			filter: { eventId: { equalTo: $eventId } }
+			orderBy: CREATED_AT_DESC
+			first: $limit
+			offset: $offset
+		) {
+			nodes {
+				id
+				eventId
+				userId
+				commentText
+				createdAt
+				updatedAt
+				user {
+					id
+					displayName
+					email
+				}
+			}
+			totalCount
+			pageInfo {
+				hasNextPage
+				hasPreviousPage
+			}
+		}
+	}
+`;
+
+/**
+ * Query: Get event history
+ * TODO: Backend query doesn't exist yet - using placeholder
+ */
+export const GET_EVENT_HISTORY = gql`
+	query GetEventHistory($eventId: UUID!, $limit: Int = 50) {
+		allEventHistories(
+			filter: { eventId: { equalTo: $eventId } }
+			orderBy: CREATED_AT_DESC
+			first: $limit
+		) {
+			nodes {
+				id
+				eventId
+				changedById
+				changeType
+				oldValues
+				newValues
+				createdAt
+				changedBy {
+					id
+					displayName
+					email
+				}
+			}
+		}
+	}
+`;
+
+/**
+ * Query: Get user waitlist status for an event
+ * TODO: Backend query doesn't exist yet - using placeholder
+ */
+export const GET_USER_WAITLIST_STATUS = gql`
+	query GetUserWaitlistStatus($eventId: UUID!, $userId: UUID!) {
+		allEventWaitlists(
+			filter: { eventId: { equalTo: $eventId }, userId: { equalTo: $userId } }
+			first: 1
+		) {
+			nodes {
+				id
+				position
+				promoted
+			}
+		}
+	}
+`;
+
+/**
+ * Mutation: Create event comment
+ */
+export const CREATE_EVENT_COMMENT = gql`
+	mutation CreateEventComment($input: CreateEventCommentInput!) {
+		createEventComment(input: $input) {
+			eventComment {
+				id
+				eventId
+				userId
+				commentText
+				createdAt
+				updatedAt
+				user {
+					id
+					displayName
+					email
+				}
+			}
+		}
+	}
+`;
+
+/**
+ * Mutation: Update event comment
+ */
+export const UPDATE_EVENT_COMMENT = gql`
+	mutation UpdateEventComment($id: UUID!, $input: UpdateEventCommentInput!) {
+		updateEventCommentById(input: { id: $id, patch: $input }) {
+			eventComment {
+				id
+				eventId
+				userId
+				commentText
+				createdAt
+				updatedAt
+			}
+		}
+	}
+`;
+
+/**
+ * Mutation: Delete event comment
+ */
+export const DELETE_EVENT_COMMENT = gql`
+	mutation DeleteEventComment($id: UUID!) {
+		deleteEventComment(id: $id)
+	}
+`;
+
+/**
+ * Mutation: Join event waitlist
+ * Maps to createEventWaitlist backend mutation
+ */
+export const JOIN_EVENT_WAITLIST = gql`
+	mutation JoinEventWaitlist($input: CreateEventWaitlistInput!) {
+		createEventWaitlist(input: $input) {
+			eventWaitlist {
+				id
+				eventId
+				userId
+				position
+				promoted
+				createdAt
+			}
+		}
+	}
+`;
+
+/**
+ * Mutation: Leave event waitlist
+ * Maps to deleteEventWaitlist backend mutation
+ */
+export const LEAVE_EVENT_WAITLIST = gql`
+	mutation LeaveEventWaitlist($id: UUID!) {
+		deleteEventWaitlist(id: $id)
+	}
+`;

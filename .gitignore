@@ -1,16 +1,6 @@
 test-results
 node_modules
 
-# Lock files (keep them out since we use different package managers across team)
-package-lock.json
-pnpm-lock.yaml
-yarn.lock
-
-# Logs
-*.log
-logs/
-backend/logs/
-
 # Verification reports (generated during schema checks)
 verification-reports/
 
@@ -28,6 +18,35 @@ Thumbs.db
 
 # Env
 .env
+
+# Rust
+target/
+Cargo.lock
+*.pdb
+*.exe
+*.rlib
+*.dll
+*.so
+*.dylib
+*.profraw
+*.profdata
+*.gcda
+*.gcno
+*.gcov
+**/target/
+**/*.rs.bk
+*.pdb
+**/*.pdb
+**/*.exe
+**/*.rlib
+**/*.dll
+**/*.so
+**/*.dylib
+**/*.profraw
+**/*.profdata
+**/*.gcda
+**/*.gcno
+**/*.gcov
 .env.*
 !.env.example
 !.env.test
@@ -66,3 +85,17 @@ claude-flow
 claude-flow.bat
 claude-flow.ps1
 hive-mind-prompt-*.txt
+
+# Logs and Locks
+backend/logs/combined.log
+backend/logs/error.log
+backend/package-lock.json
+package-lock.json
+*.log
+logs/
+backend/logs/
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+graphql-rust-server/target
+graphql-rust-server/target
