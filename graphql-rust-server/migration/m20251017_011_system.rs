@@ -35,10 +35,12 @@ impl MigrationTrait for Migration {
             .col(ColumnDef::new(Notifications::Id).uuid().not_null().primary_key().extra("DEFAULT gen_random_uuid()"))
             .col(ColumnDef::new(Notifications::UserId).uuid().not_null())
             .col(ColumnDef::new(Notifications::Type).string().not_null())
+            .col(ColumnDef::new(Notifications::Category).string())
             .col(ColumnDef::new(Notifications::Title).string().not_null())
             .col(ColumnDef::new(Notifications::Message).text().not_null())
             .col(ColumnDef::new(Notifications::IsRead).boolean().not_null().default(false))
             .col(ColumnDef::new(Notifications::ReadAt).timestamp_with_time_zone())
+            .col(ColumnDef::new(Notifications::DeliveredAt).timestamp_with_time_zone())
             .col(ColumnDef::new(Notifications::RelatedEntityType).string())
             .col(ColumnDef::new(Notifications::RelatedEntityId).uuid())
             .col(ColumnDef::new(Notifications::CreatedAt).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
@@ -168,7 +170,7 @@ impl MigrationTrait for Migration {
 
 #[derive(Iden)] enum S { HrPublic }
 #[derive(Iden)] enum ActivityLogs { Table, Id, UserId, EmployeeId, Action, ResourceType, ResourceId, Details, BeforeSnapshot, AfterSnapshot, IsRollback, RolledBackLogId, IpAddress, UserAgent, SignatureId, BatchId, CreatedAt }
-#[derive(Iden)] enum Notifications { Table, Id, UserId, Type, Title, Message, IsRead, ReadAt, RelatedEntityType, RelatedEntityId, CreatedAt, DeletedAt }
+#[derive(Iden)] enum Notifications { Table, Id, UserId, Type, Category, Title, Message, IsRead, ReadAt, DeliveredAt, RelatedEntityType, RelatedEntityId, CreatedAt, DeletedAt }
 #[derive(Iden)] enum LinkedResources { Table, Id, ResourceType, ResourceId, LinkedType, LinkedId, CreatedBy, CreatedAt, DeletedAt }
 #[derive(Iden)] enum RollbackRequests { Table, Id, EntityType, EntityId, RequestedBy, Reason, Status, ApprovedBy, ProcessedAt, CreatedAt }
 #[derive(Iden)] enum BulkRollbackBatches { Table, Id, RequestedBy, TotalItems, ProcessedItems, Status, CreatedAt, CompletedAt }
