@@ -58,9 +58,9 @@ export const load: PageServerLoad = async ({ params, locals, cookies, fetch: fet
 							cycle {
 								id
 								name
-								review_type
-								start_date
-								end_date
+								reviewType
+								startDate
+								endDate
 							}
 						}
 					}

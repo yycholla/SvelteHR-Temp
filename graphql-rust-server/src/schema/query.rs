@@ -533,7 +533,8 @@ impl QueryRoot {
     async fn attendance_records(
         &self,
         ctx: &Context<'_>,
-        user_id: Option<Uuid>,
+        #[graphql(name = "userId")] user_id: Option<Uuid>,
+        #[graphql(name = "employeeId")] employee_id: Option<Uuid>,
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<attendance_record::Model>> {
@@ -543,8 +544,9 @@ impl QueryRoot {
 
         let mut query = AttendanceRecordEntity::find();
 
-        // Add user filter if provided
-        if let Some(uid) = user_id {
+        // Add user/employee filter if provided (employeeId takes precedence)
+        let filter_id = employee_id.or(user_id);
+        if let Some(uid) = filter_id {
             query = query.filter(attendance_record::Column::UserId.eq(uid));
         }
 

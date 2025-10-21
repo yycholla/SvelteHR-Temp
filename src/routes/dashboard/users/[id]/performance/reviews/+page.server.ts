@@ -108,9 +108,9 @@ export const load: PageServerLoad = async (event) => {
 					cycle {
 						id
 						name
-						review_type
-						start_date
-						end_date
+						reviewType
+						startDate
+						endDate
 					}
 					goals {
 						id
@@ -154,7 +154,7 @@ export const load: PageServerLoad = async (event) => {
 		// Map reviews to expected format
 		const reviews = rawReviews.map((review: any) => {
 			// Extract cycle information for review type and period
-			const cycleType = review.cycle?.review_type || 'annual_review';
+			const cycleType = review.cycle?.reviewType || 'annual_review';
 			const matchingType = reviewTypes.find(t => t.id === cycleType.replace('_review', '')) || reviewTypes[0];
 
 			// Map goals from review_goal relationships
@@ -165,8 +165,8 @@ export const load: PageServerLoad = async (event) => {
 				type: matchingType,
 				status: review.status || 'scheduled',
 				reviewPeriod: {
-					start: review.cycle?.start_date || new Date().toISOString().split('T')[0],
-					end: review.cycle?.end_date || new Date().toISOString().split('T')[0]
+					start: review.cycle?.startDate || new Date().toISOString().split('T')[0],
+					end: review.cycle?.endDate || new Date().toISOString().split('T')[0]
 				},
 				scheduledDate: review.createdAt?.split('T')[0],
 				completedDate: review.status === 'completed' && review.submittedAt ? review.submittedAt.split('T')[0] : null,

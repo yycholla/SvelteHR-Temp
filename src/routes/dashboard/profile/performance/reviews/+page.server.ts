@@ -161,9 +161,9 @@ export const load: PageServerLoad = async (event) => {
 					cycle {
 						id
 						name
-						review_type
-						start_date
-						end_date
+						reviewType
+						startDate
+						endDate
 					}
 				}
 			}

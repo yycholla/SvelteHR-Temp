@@ -150,10 +150,23 @@ impl MigrationTrait for Migration {
             .col(ColumnDef::new(EncryptionKeys::RotatedAt).timestamp_with_time_zone())
             .to_owned()).await?;
 
+        // system_settings
+        manager.create_table(Table::create().table((S::HrPublic, SystemSettings::Table)).if_not_exists()
+            .col(ColumnDef::new(SystemSettings::Id).uuid().not_null().primary_key().extra("DEFAULT gen_random_uuid()"))
+            .col(ColumnDef::new(SystemSettings::Category).string().not_null())
+            .col(ColumnDef::new(SystemSettings::Settings).json().not_null())
+            .col(ColumnDef::new(SystemSettings::UpdatedBy).uuid())
+            .col(ColumnDef::new(SystemSettings::CreatedAt).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
+            .col(ColumnDef::new(SystemSettings::UpdatedAt).timestamp_with_time_zone().not_null().default(Expr::current_timestamp()))
+            .col(ColumnDef::new(SystemSettings::DeletedAt).timestamp_with_time_zone())
+            .foreign_key(ForeignKey::create().name("fk_system_settings_updated_by").from((S::HrPublic, SystemSettings::Table), SystemSettings::UpdatedBy).to((S::HrPublic, Users::Table), Users::Id).on_delete(ForeignKeyAction::SetNull))
+            .to_owned()).await?;
+
         Ok(())
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager.drop_table(Table::drop().table((S::HrPublic, SystemSettings::Table)).to_owned()).await?;
         manager.drop_table(Table::drop().table((S::HrPublic, EncryptionKeys::Table)).to_owned()).await?;
         manager.drop_table(Table::drop().table((S::HrPublic, HrReports::Table)).to_owned()).await?;
         manager.drop_table(Table::drop().table((S::HrPublic, CompensationBands::Table)).to_owned()).await?;
@@ -179,4 +192,5 @@ impl MigrationTrait for Migration {
 #[derive(Iden)] enum CompensationBands { Table, Id, Name, MinSalary, MaxSalary, Currency, CreatedAt, UpdatedAt, DeletedAt }
 #[derive(Iden)] enum HrReports { Table, Id, Title, ReportType, GeneratedBy, Parameters, FilePath, CreatedAt }
 #[derive(Iden)] enum EncryptionKeys { Table, Id, KeyName, EncryptedKey, IsActive, CreatedAt, RotatedAt }
+#[derive(Iden)] enum SystemSettings { Table, Id, Category, Settings, UpdatedBy, CreatedAt, UpdatedAt, DeletedAt }
 #[derive(Iden)] enum Users { Table, Id }

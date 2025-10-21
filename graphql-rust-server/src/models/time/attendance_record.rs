@@ -108,6 +108,12 @@ impl Model {
         self.user_id
     }
 
+    /// Employee ID (alias for userId for frontend compatibility)
+    #[graphql(name = "employeeId")]
+    async fn employee_id(&self) -> Uuid {
+        self.user_id
+    }
+
     async fn date(&self) -> NaiveDate {
         self.date
     }

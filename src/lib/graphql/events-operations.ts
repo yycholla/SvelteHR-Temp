@@ -1291,3 +1291,213 @@ export class EventsOperations {
 export function createEventsOperations(client: Client): EventsOperations {
 	return new EventsOperations(client);
 }
+
+// ============================================================================
+// EVENT COMMENTS, HISTORY, AND WAITLIST (Feature 026)
+// ============================================================================
+
+/**
+ * EventComment interface
+ */
+export interface EventComment {
+	id: string;
+	eventId: string;
+	userId: string;
+	commentText: string;
+	createdAt: string;
+	updatedAt: string;
+	deletedAt?: string | null;
+	user?: {
+		id: string;
+		displayName: string;
+		email: string;
+	};
+}
+
+/**
+ * EventHistoryEntry interface
+ */
+export interface EventHistoryEntry {
+	id: string;
+	eventId: string;
+	changedById: string;
+	changeType: string;
+	oldValues?: any;
+	newValues?: any;
+	createdAt: string;
+	changedBy?: {
+		id: string;
+		displayName: string;
+		email: string;
+	};
+}
+
+/**
+ * UserWaitlistStatus interface
+ */
+export interface UserWaitlistStatus {
+	isOnWaitlist: boolean;
+	position?: number | null;
+	waitlistEntryId?: string | null;
+}
+
+/**
+ * Query: Get event comments
+ * TODO: Backend query doesn't exist yet - using placeholder
+ */
+export const GET_EVENT_COMMENTS = gql`
+	query GetEventComments($eventId: UUID!, $limit: Int = 50, $offset: Int = 0) {
+		allEventComments(
+			filter: { eventId: { equalTo: $eventId } }
+			orderBy: CREATED_AT_DESC
+			first: $limit
+			offset: $offset
+		) {
+			nodes {
+				id
+				eventId
+				userId
+				commentText
+				createdAt
+				updatedAt
+				user {
+					id
+					displayName
+					email
+				}
+			}
+			totalCount
+			pageInfo {
+				hasNextPage
+				hasPreviousPage
+			}
+		}
+	}
+`;
+
+/**
+ * Query: Get event history
+ * TODO: Backend query doesn't exist yet - using placeholder
+ */
+export const GET_EVENT_HISTORY = gql`
+	query GetEventHistory($eventId: UUID!, $limit: Int = 50) {
+		allEventHistories(
+			filter: { eventId: { equalTo: $eventId } }
+			orderBy: CREATED_AT_DESC
+			first: $limit
+		) {
+			nodes {
+				id
+				eventId
+				changedById
+				changeType
+				oldValues
+				newValues
+				createdAt
+				changedBy {
+					id
+					displayName
+					email
+				}
+			}
+		}
+	}
+`;
+
+/**
+ * Query: Get user waitlist status for an event
+ * TODO: Backend query doesn't exist yet - using placeholder
+ */
+export const GET_USER_WAITLIST_STATUS = gql`
+	query GetUserWaitlistStatus($eventId: UUID!, $userId: UUID!) {
+		allEventWaitlists(
+			filter: { eventId: { equalTo: $eventId }, userId: { equalTo: $userId } }
+			first: 1
+		) {
+			nodes {
+				id
+				position
+				promoted
+			}
+		}
+	}
+`;
+
+/**
+ * Mutation: Create event comment
+ */
+export const CREATE_EVENT_COMMENT = gql`
+	mutation CreateEventComment($input: CreateEventCommentInput!) {
+		createEventComment(input: $input) {
+			eventComment {
+				id
+				eventId
+				userId
+				commentText
+				createdAt
+				updatedAt
+				user {
+					id
+					displayName
+					email
+				}
+			}
+		}
+	}
+`;
+
+/**
+ * Mutation: Update event comment
+ */
+export const UPDATE_EVENT_COMMENT = gql`
+	mutation UpdateEventComment($id: UUID!, $input: UpdateEventCommentInput!) {
+		updateEventCommentById(input: { id: $id, patch: $input }) {
+			eventComment {
+				id
+				eventId
+				userId
+				commentText
+				createdAt
+				updatedAt
+			}
+		}
+	}
+`;
+
+/**
+ * Mutation: Delete event comment
+ */
+export const DELETE_EVENT_COMMENT = gql`
+	mutation DeleteEventComment($id: UUID!) {
+		deleteEventComment(id: $id)
+	}
+`;
+
+/**
+ * Mutation: Join event waitlist
+ * Maps to createEventWaitlist backend mutation
+ */
+export const JOIN_EVENT_WAITLIST = gql`
+	mutation JoinEventWaitlist($input: CreateEventWaitlistInput!) {
+		createEventWaitlist(input: $input) {
+			eventWaitlist {
+				id
+				eventId
+				userId
+				position
+				promoted
+				createdAt
+			}
+		}
+	}
+`;
+
+/**
+ * Mutation: Leave event waitlist
+ * Maps to deleteEventWaitlist backend mutation
+ */
+export const LEAVE_EVENT_WAITLIST = gql`
+	mutation LeaveEventWaitlist($id: UUID!) {
+		deleteEventWaitlist(id: $id)
+	}
+`;

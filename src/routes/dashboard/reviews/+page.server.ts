@@ -62,7 +62,7 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		}
 
 		// Apply type filter
-		// NOTE: Type filtering is done client-side after fetching, using cycle.review_type
+		// NOTE: Type filtering is done client-side after fetching, using cycle.reviewType
 		// (condition object is not used by Rust GraphQL backend)
 
 		// Query 1: Get performance reviews
@@ -89,9 +89,9 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 					cycle {
 						id
 						name
-						review_type
-						start_date
-						end_date
+						reviewType
+						startDate
+						endDate
 					}
 				}
 			}
@@ -146,9 +146,9 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			mappedReviews = mappedReviews.filter(r => r.status === statusFilter.toUpperCase());
 		}
 
-		// Client-side filtering for type (using cycle.review_type)
+		// Client-side filtering for type (using cycle.reviewType)
 		if (typeFilter) {
-			mappedReviews = mappedReviews.filter(r => r.cycle?.review_type === typeFilter.toLowerCase());
+			mappedReviews = mappedReviews.filter(r => r.cycle?.reviewType === typeFilter.toLowerCase());
 		}
 
 		// Query 2: Get review types metadata

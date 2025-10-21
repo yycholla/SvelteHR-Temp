@@ -294,7 +294,14 @@ impl Model {
         self.deleted_at
     }
 
-    /// User who created this event
+    /// Event organizer (User who created the event)
+    async fn organizer(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let user = super::user::Entity::find_by_id(self.organizer_id).one(&db).await?;
+        Ok(user)
+    }
+
+    /// User who created this event (alias for organizer)
     async fn creator(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         let db = get_db_from_context(ctx)?;
         let user = super::user::Entity::find_by_id(self.organizer_id).one(&db).await?;
