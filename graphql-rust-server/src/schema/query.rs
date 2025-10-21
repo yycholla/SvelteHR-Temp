@@ -893,3 +893,280 @@ impl QueryRoot {
         Ok(address)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::testing::{TestContext, TestUserRole};
+
+    /// T017 Pattern: Test not found error with random UUID
+    #[tokio::test]
+    async fn test_user_query_not_found() {
+        // Arrange
+        let ctx = TestContext::new()
+            .await
+            .expect("Failed to create test context");
+
+        let random_id = uuid::Uuid::new_v4();
+
+        let query = format!(
+            r#"
+            query {{
+                user(id: "{}") {{
+                    id
+                    email
+                    firstName
+                    lastName
+                }}
+            }}
+            "#,
+            random_id
+        );
+
+        // Act
+        let response = ctx.execute_query(&query).await;
+
+        // Assert - Should return null for non-existent user
+        let data = ctx.extract_data(&response);
+        // Note: async_graphql::Value formats without quotes around keys
+        assert_eq!(data.to_string(), "{user: null}");
+
+        // Should have no errors
+        let errors = ctx.extract_errors(&response);
+        assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
+    }
+
+    /// T018 Pattern: Test success case - Create test user, fetch by ID, assert match
+    #[tokio::test]
+    async fn test_user_query_success() {
+        // Arrange
+        let ctx = TestContext::new()
+            .await
+            .expect("Failed to create test context");
+
+        // Get a test user created by TestContext
+        let test_user = ctx.user(TestUserRole::Employee);
+
+        let query = format!(
+            r#"
+            query {{
+                user(id: "{}") {{
+                    id
+                    email
+                    firstName
+                    lastName
+                    role
+                    isActive
+                }}
+            }}
+            "#,
+            test_user.id
+        );
+
+        // Act
+        let response = ctx.execute_query(&query).await;
+
+        // Assert - No errors
+        let errors = ctx.extract_errors(&response);
+        assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
+
+        // Assert - User data matches
+        let data = ctx.extract_data(&response);
+        let data_str = data.to_string();
+
+        assert!(data_str.contains(&test_user.id.to_string()),
+            "Response should contain user ID");
+        assert!(data_str.contains(&test_user.email),
+            "Response should contain user email");
+        assert!(data_str.contains(&test_user.role),
+            "Response should contain user role");
+    }
+
+    /// T021 Pattern: Test async execution with authenticated user
+    ///
+    /// Note: The `me` query requires AuthSession which is provided by axum middleware.
+    /// For now, we test that the query fails gracefully without AuthSession data.
+    /// Full integration tests with AuthSession will be in Phase 4.
+    #[tokio::test]
+    async fn test_me_query_authenticated() {
+        // Arrange
+        let ctx = TestContext::new()
+            .await
+            .expect("Failed to create test context");
+
+        let test_user = ctx.user(TestUserRole::HrManager);
+
+        let query = r#"
+            query {
+                me {
+                    id
+                    email
+                    firstName
+                    lastName
+                    role
+                }
+            }
+        "#;
+
+        // Act - Execute as authenticated user
+        // Note: This will fail because AuthSession is not available in test context
+        let response = ctx.execute_query_as(query, test_user).await;
+
+        // Assert - Should have error about missing AuthSession
+        let errors = ctx.extract_errors(&response);
+        assert!(!errors.is_empty(), "Expected AuthSession error");
+        assert!(errors[0].contains("AuthSession") || errors[0].contains("does not exist"),
+            "Expected AuthSession-related error, got: {:?}", errors);
+    }
+
+    /// T020 Pattern: Test authorization failure - unauthenticated access
+    #[tokio::test]
+    async fn test_me_query_unauthenticated() {
+        // Arrange
+        let ctx = TestContext::new()
+            .await
+            .expect("Failed to create test context");
+
+        let query = r#"
+            query {
+                me {
+                    id
+                    email
+                }
+            }
+        "#;
+
+        // Act - Execute without authentication
+        let response = ctx.execute_query(query).await;
+
+        // Assert - Should return null for unauthenticated request
+        let data = ctx.extract_data(&response);
+        let data_str = data.to_string();
+
+        // Me query returns null when not authenticated
+        assert!(data_str.contains("null"),
+            "Unauthenticated request should return null");
+    }
+
+    /// Test users query with pagination
+    #[tokio::test]
+    async fn test_users_query_with_pagination() {
+        // Arrange
+        let ctx = TestContext::new()
+            .await
+            .expect("Failed to create test context");
+
+        let query = r#"
+            query {
+                users(limit: 10, offset: 0) {
+                    id
+                    email
+                    role
+                    isActive
+                }
+            }
+        "#;
+
+        // Act
+        let response = ctx.execute_query(&query).await;
+
+        // Assert - No errors
+        let errors = ctx.extract_errors(&response);
+        assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
+
+        // Assert - Should return array of users (at least our test users)
+        let data = ctx.extract_data(&response);
+        let data_str = data.to_string();
+
+        assert!(data_str.contains("users"), "Response should contain users field");
+
+        // Should contain at least one of our test users
+        let test_users = ctx.users();
+        let has_test_user = data_str.contains(&test_users.employee.email)
+            || data_str.contains(&test_users.hr_manager.email)
+            || data_str.contains(&test_users.admin.email);
+
+        assert!(has_test_user, "Response should contain at least one test user");
+    }
+
+    /// Test users query with variables
+    #[tokio::test]
+    async fn test_users_query_with_variables() {
+        // Arrange
+        let ctx = TestContext::new()
+            .await
+            .expect("Failed to create test context");
+
+        let query = r#"
+            query GetUsers($limit: Int, $offset: Int) {
+                users(limit: $limit, offset: $offset) {
+                    id
+                    email
+                    role
+                }
+            }
+        "#;
+
+        // Create variables using async_graphql::Variables
+        use async_graphql::Variables;
+        use serde_json::json;
+
+        let variables = Variables::from_json(json!({
+            "limit": 5,
+            "offset": 0
+        }));
+
+        // Act
+        let response = ctx.execute_with_variables(query, variables).await;
+
+        // Assert - No errors
+        let errors = ctx.extract_errors(&response);
+        assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
+
+        // Assert - Returns users
+        let data = ctx.extract_data(&response);
+        assert!(data.to_string().contains("users"), "Response should contain users field");
+    }
+
+    /// Test authenticated query with variables
+    #[tokio::test]
+    async fn test_authenticated_query_with_variables() {
+        // Arrange
+        let ctx = TestContext::new()
+            .await
+            .expect("Failed to create test context");
+
+        let test_user = ctx.user(TestUserRole::Admin);
+
+        let query = r#"
+            query GetUser($id: UUID!) {
+                user(id: $id) {
+                    id
+                    email
+                    role
+                }
+            }
+        "#;
+
+        use async_graphql::Variables;
+        use serde_json::json;
+
+        let variables = Variables::from_json(json!({
+            "id": test_user.id.to_string()
+        }));
+
+        // Act
+        let response = ctx.execute_with_variables_as(query, variables, test_user).await;
+
+        // Assert - No errors
+        let errors = ctx.extract_errors(&response);
+        assert!(errors.is_empty(), "Expected no errors, got: {:?}", errors);
+
+        // Assert - Returns correct user
+        let data = ctx.extract_data(&response);
+        let data_str = data.to_string();
+
+        assert!(data_str.contains(&test_user.id.to_string()),
+            "Response should contain requested user ID");
+    }
+}

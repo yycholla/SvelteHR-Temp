@@ -18,6 +18,26 @@ proc-macro = false
 edition = "2021"
 required-features = []
 
+[[test]]
+path = "tests/load/basic_queries_load.rs"
+name = "basic_queries_load"
+required-features = ["test-utils"]
+
+[[test]]
+path = "tests/load/mutation_load.rs"
+name = "mutation_load"
+required-features = ["test-utils"]
+
+[[test]]
+path = "tests/load/mixed_workload_load.rs"
+name = "mixed_workload_load"
+required-features = ["test-utils"]
+
+[[test]]
+path = "tests/load/stress_test_load.rs"
+name = "stress_test_load"
+required-features = ["test-utils"]
+
 [package]
 name = "hr-graphql-server"
 edition = "2021"
@@ -88,8 +108,55 @@ features = ["env-filter"]
 version = "1.0"
 features = ["serde", "v4"]
 
+[dependencies.testcontainers]
+version = "0.15"
+optional = true
+
+[dependencies.testcontainers-modules]
+version = "0.3"
+features = ["postgres"]
+optional = true
+
+[dependencies.reqwest]
+version = "0.11"
+features = ["json"]
+optional = true
+
+[dependencies.hdrhistogram]
+version = "7.5"
+optional = true
+
+[dependencies.rand]
+version = "0.8"
+optional = true
+
+[features]
+# Feature for enabling test utilities in integration tests
+test-utils = ["dep:testcontainers", "dep:testcontainers-modules", "dep:reqwest", "dep:hdrhistogram", "dep:rand"]
+
+# Default features - includes test-utils for development
+# Production builds can use --no-default-features to exclude testing dependencies
+default = ["test-utils"]
+
+[dev-dependencies]
+# Core testing
+tokio = { version = "1.35", features = ["test-util", "macros", "rt-multi-thread"] }
+serial_test = "3.0"
+
+# Benchmarking
+criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
+
+# Assertions & Mocking
+mockito = "1.2"
+assert_matches = "1.5"
+pretty_assertions = "1.4"
+
 [build-dependencies]
 sea-orm-codegen = "1.1.17"
+
+[[bench]]
+name = "resolver_benchmarks"
+harness = false
 
 [lib]
 path = "src/lib.rs"

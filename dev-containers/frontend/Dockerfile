@@ -81,8 +81,14 @@ RUN echo '#!/bin/bash\n\
 # Start SSH daemon\n\
 service ssh start\n\
 \n\
+# Fix npm cache permissions\n\
+mkdir -p /home/dev/.npm\n\
+chown -R dev:dev /home/dev/.npm\n\
+sudo -u dev npm config set cache /home/dev/.npm\n\
+\n\
 # Source host nvim config if available\n\
 if [ -d "/host-nvim-config" ]; then\n\
+    mkdir -p /home/dev/.config\n\
     sudo -u dev ln -sf /host-nvim-config /home/dev/.config/nvim\n\
 fi\n\
 \n\
