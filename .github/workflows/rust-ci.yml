@@ -1,10 +1,16 @@
-name: CI
+name: CI (Rust Backend)
 
 on:
   push:
     branches: [main, develop]
+    paths:
+      - 'graphql-rust-server/**'
+      - '.github/workflows/rust-ci.yml'
   pull_request:
     branches: [main, develop]
+    paths:
+      - 'graphql-rust-server/**'
+      - '.github/workflows/rust-ci.yml'
 
 env:
   CARGO_TERM_COLOR: always
@@ -14,6 +20,9 @@ jobs:
   test:
     name: Test Suite
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./graphql-rust-server
 
     services:
       postgres:
@@ -58,8 +67,8 @@ jobs:
       - name: Cache cargo build
         uses: actions/cache@v4
         with:
-          path: target
-          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+          path: graphql-rust-server/target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('graphql-rust-server/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-build-target-
 
@@ -83,6 +92,9 @@ jobs:
   docker-tests:
     name: Integration Tests (Docker)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./graphql-rust-server
 
     steps:
       - name: Checkout code
@@ -97,8 +109,8 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-docker-${{ hashFiles('**/Cargo.lock') }}
+            graphql-rust-server/target
+          key: ${{ runner.os }}-cargo-docker-${{ hashFiles('graphql-rust-server/Cargo.lock') }}
 
       - name: Install Docker
         run: |
@@ -113,6 +125,9 @@ jobs:
   security-audit:
     name: Security Audit
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./graphql-rust-server
 
     steps:
       - name: Checkout code
@@ -130,6 +145,9 @@ jobs:
   coverage:
     name: Code Coverage
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./graphql-rust-server
 
     services:
       postgres:

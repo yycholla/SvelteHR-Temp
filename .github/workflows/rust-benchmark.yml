@@ -1,10 +1,16 @@
-name: Benchmark
+name: Benchmark (Rust Backend)
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'graphql-rust-server/**'
+      - '.github/workflows/rust-benchmark.yml'
   pull_request:
     branches: [main]
+    paths:
+      - 'graphql-rust-server/**'
+      - '.github/workflows/rust-benchmark.yml'
   workflow_dispatch:  # Allow manual triggering
 
 env:
@@ -14,6 +20,9 @@ jobs:
   benchmark:
     name: Performance Benchmarks
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./graphql-rust-server
 
     services:
       postgres:
@@ -74,6 +83,9 @@ jobs:
     name: Benchmark Comparison
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    defaults:
+      run:
+        working-directory: ./graphql-rust-server
 
     services:
       postgres:
