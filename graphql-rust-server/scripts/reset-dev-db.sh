@@ -1,15 +1,27 @@
 #!/bin/bash
 # Reset development database to production-ready state from scratch
 # This ensures migrations are the single source of truth
+# Works with Docker containerized setup
 
 set -e
 
 echo "🔄 Resetting development database..."
 echo ""
 
-# Run fresh migrations (drops all tables and reapplies)
-cd "$(dirname "$0")/.."
-cargo run --bin migration -- fresh
+# Check if containers are running
+if ! docker ps | grep -q sveltehr-graphql-rust; then
+    echo "❌ Backend container not running. Start with: make dev"
+    exit 1
+fi
+
+if ! docker ps | grep -q sveltehr-postgres-dev; then
+    echo "❌ PostgreSQL container not running. Start with: make dev"
+    exit 1
+fi
+
+# Run fresh migrations inside the Rust container
+echo "Running migrations inside Docker container..."
+docker exec sveltehr-graphql-rust sh -c 'cd /app && cargo run --bin migration -- fresh'
 
 echo ""
 echo "✅ Database reset complete!"
@@ -34,4 +46,13 @@ SELECT
 "
 
 echo ""
+echo "🔄 Restarting backend to reload schema..."
+docker restart sveltehr-graphql-rust
+
+echo ""
 echo "🚀 Ready to develop!"
+echo ""
+echo "Services:"
+echo "  📊 GraphQL API:  http://localhost:4000"
+echo "  🎨 Frontend:     http://localhost:5173"
+echo "  🗄️  PostgreSQL:   localhost:5433"

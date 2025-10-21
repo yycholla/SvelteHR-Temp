@@ -10,15 +10,28 @@ All database schema must be defined in SeaORM migrations. **NEVER** manually alt
 
 When schema issues arise or you want a clean slate:
 
+**Docker Setup (Recommended):**
+
+```bash
+# From project root - works with containerized setup
+./graphql-rust-server/scripts/reset-dev-db.sh
+```
+
+**Manual Docker Command:**
+
+```bash
+# Run migrations inside the container
+docker exec sveltehr-graphql-rust sh -c 'cd /app && cargo run --bin migration -- fresh'
+
+# Restart backend to reload schema
+docker restart sveltehr-graphql-rust
+```
+
+**Non-Docker Setup:**
+
 ```bash
 # From graphql-rust-server directory
 cargo run --bin migration -- fresh
-```
-
-Or use the convenience script:
-
-```bash
-./graphql-rust-server/scripts/reset-dev-db.sh
 ```
 
 This will:
@@ -29,6 +42,27 @@ This will:
 
 ### Migration Commands
 
+**Docker Setup:**
+
+```bash
+# Check migration status
+docker exec sveltehr-graphql-rust sh -c 'cd /app && cargo run --bin migration -- status'
+
+# Apply pending migrations
+docker exec sveltehr-graphql-rust sh -c 'cd /app && cargo run --bin migration -- up'
+
+# Rollback last migration
+docker exec sveltehr-graphql-rust sh -c 'cd /app && cargo run --bin migration -- down'
+
+# Fresh start (drop + reapply all)
+docker exec sveltehr-graphql-rust sh -c 'cd /app && cargo run --bin migration -- fresh'
+
+# Refresh (rollback all + reapply)
+docker exec sveltehr-graphql-rust sh -c 'cd /app && cargo run --bin migration -- refresh'
+```
+
+**Non-Docker Setup:**
+
 ```bash
 # Check migration status
 cargo run --bin migration -- status
@@ -36,14 +70,8 @@ cargo run --bin migration -- status
 # Apply pending migrations
 cargo run --bin migration -- up
 
-# Rollback last migration
-cargo run --bin migration -- down
-
 # Fresh start (drop + reapply all)
 cargo run --bin migration -- fresh
-
-# Refresh (rollback all + reapply)
-cargo run --bin migration -- refresh
 ```
 
 ## 🔧 Creating New Migrations
@@ -80,12 +108,27 @@ Add your migration to:
 
 ### 4. Test Migration
 
+**Docker Setup:**
+
+```bash
+# Test fresh migration
+docker exec sveltehr-graphql-rust sh -c 'cd /app && cargo run --bin migration -- fresh'
+
+# Restart backend
+docker restart sveltehr-graphql-rust
+
+# Verify schema
+docker exec sveltehr-postgres-dev psql -U postgres -d hr_system -c "\d hr_public.your_table"
+```
+
+**Non-Docker:**
+
 ```bash
 # Test fresh migration
 cargo run --bin migration -- fresh
 
-# Verify schema
-docker exec sveltehr-postgres-dev psql -U postgres -d hr_system -c "\d hr_public.your_table"
+# Verify schema (if using local PostgreSQL)
+psql -U postgres -d hr_system -c "\d hr_public.your_table"
 ```
 
 ## 🚨 Common Issues & Solutions
@@ -134,14 +177,27 @@ Before committing migration changes:
 
 ## 🔄 Development Workflow
 
-**When schema issues occur:**
+**When schema issues occur (Docker):**
+
+```bash
+# 1. Pull latest migrations
+git pull
+
+# 2. Reset database (one command!)
+./graphql-rust-server/scripts/reset-dev-db.sh
+
+# 3. Test frontend
+# Visit http://localhost:5173
+```
+
+**Manual Docker steps:**
 
 ```bash
 # 1. Pull latest migrations
 git pull
 
 # 2. Reset database
-cargo run --bin migration -- fresh
+docker exec sveltehr-graphql-rust sh -c 'cd /app && cargo run --bin migration -- fresh'
 
 # 3. Restart backend
 docker restart sveltehr-graphql-rust
@@ -170,11 +226,19 @@ docker restart sveltehr-graphql-rust
 
 If completely stuck:
 
+**Docker Setup:**
+
 ```bash
 # Nuclear option - completely rebuild
 docker exec sveltehr-postgres-dev psql -U postgres -d hr_system -c "DROP SCHEMA IF EXISTS hr_public CASCADE;"
-cargo run --bin migration -- fresh
+docker exec sveltehr-graphql-rust sh -c 'cd /app && cargo run --bin migration -- fresh'
 docker restart sveltehr-graphql-rust
+```
+
+**Or use the script:**
+
+```bash
+./graphql-rust-server/scripts/reset-dev-db.sh
 ```
 
 ---
