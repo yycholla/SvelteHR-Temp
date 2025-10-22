@@ -13,6 +13,7 @@
 - Q: What specific data volumes should be targeted for each entity type? → A: Small (10-50 records per entity) - Minimal but functional dataset for basic feature testing
 - Q: How should the system prevent accidental production seeding? → A: Environment variable check - Only run if explicit ENABLE_SEED_DATA=true or ENVIRONMENT=development is set
 - Q: How should the system handle partial failures during seeding? → A: No rollback (continue) - Log errors and continue seeding remaining entities, accepting partial state
+- Q: How should developers invoke the seeding? → A: Automatic on startup - Seed process runs automatically when container starts if environment variables allow it
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -26,7 +27,7 @@ As a frontend developer, I need a development environment with realistic data po
 
 **Acceptance Scenarios**:
 
-1. **Given** a fresh database with no data, **When** the development containers start, **Then** all database tables are populated with realistic seed data
+1. **Given** a fresh database with no data and `ENABLE_SEED_DATA=true` is set, **When** the development containers start, **Then** all database tables are automatically populated with realistic seed data
 2. **Given** the seed data has been loaded, **When** a frontend developer navigates to the employee management page, **Then** they see a list of realistic employees with complete profiles
 3. **Given** the development environment is running, **When** a developer accesses the departments page, **Then** they see multiple departments with assigned employees and managers
 4. **Given** seed data exists, **When** a developer tests role-based access control, **Then** they can log in as different user types (Admin, HR Manager, Manager, Employee) with appropriate permissions
@@ -115,7 +116,7 @@ As a product manager, I need seed data that represents realistic business scenar
 
 ### Functional Requirements
 
-- **FR-001**: System MUST provide a seed data module that can be executed during container startup in development environments (controlled by `ENABLE_SEED_DATA` or `ENVIRONMENT` environment variable)
+- **FR-001**: System MUST provide a seed data module that executes automatically during container startup in development environments when `ENABLE_SEED_DATA=true` or `ENVIRONMENT=development` environment variable is set
 - **FR-002**: System MUST populate ALL database tables (except system/audit tables) with realistic test data using SeaORM entity operations
 - **FR-003**: Seed data insertion MUST trigger the existing audit logging system for all create operations, just as normal application operations would
 - **FR-004**: System MUST create seed data in the correct dependency order to satisfy foreign key constraints
@@ -160,7 +161,7 @@ As a product manager, I need seed data that represents realistic business scenar
 - **SC-002**: All database tables (excluding audit/system tables) contain between 10-50 representative records after seeding, providing sufficient data for feature testing without performance overhead
 - **SC-003**: 100% of seed data insertions generate corresponding audit log entries
 - **SC-004**: Seed data process completes successfully in under 30 seconds on standard development hardware
-- **SC-005**: Developers can reset their environment to a clean, seeded state with a single command
+- **SC-005**: Developers can reset their environment to a clean, seeded state by restarting containers with the reset flag enabled
 - **SC-006**: Audit logs from seed data are distinguishable from user-generated audit logs (e.g., via actor field)
 - **SC-007**: All foreign key relationships in seeded data are valid with zero constraint violations
 - **SC-008**: QA engineers can execute end-to-end test suites against seeded data without encountering "no data" scenarios
