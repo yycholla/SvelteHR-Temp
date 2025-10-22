@@ -10,6 +10,7 @@
 ### Session 2025-10-22
 
 - Q: How should the system handle re-running the seed process when data already exists? → A: Skip existing - Check for existing records by unique identifiers and skip insertion if found (preserves any manual changes)
+- Q: What specific data volumes should be targeted for each entity type? → A: Small (10-50 records per entity) - Minimal but functional dataset for basic feature testing
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -125,7 +126,7 @@ As a product manager, I need seed data that represents realistic business scenar
 - **FR-011**: System MUST provide a mechanism to optionally clear existing data before seeding (for environment reset scenarios)
 - **FR-012**: Seed data process MUST handle errors gracefully and provide meaningful error messages for debugging
 - **FR-013**: System MUST create audit log entries with realistic actor attribution (e.g., "system" user or specific admin user performing the seed)
-- **FR-014**: Seed data MUST be representative of real-world data volume sufficient for performance testing (e.g., hundreds of employees, not just 2-3)
+- **FR-014**: Seed data MUST contain 10-50 records per entity type (e.g., 10-50 employees, 10-50 departments) to provide a minimal but functional dataset for basic feature testing and pagination behavior verification
 - **FR-015**: System MUST execute seed data process only in development/testing environments, with safeguards against running in production
 
 ### Key Entities
@@ -154,7 +155,7 @@ As a product manager, I need seed data that represents realistic business scenar
 ### Measurable Outcomes
 
 - **SC-001**: Frontend developers can start development work within 2 minutes of container startup without manual data creation
-- **SC-002**: All database tables (excluding audit/system tables) contain at least 10-50 representative records after seeding
+- **SC-002**: All database tables (excluding audit/system tables) contain between 10-50 representative records after seeding, providing sufficient data for feature testing without performance overhead
 - **SC-003**: 100% of seed data insertions generate corresponding audit log entries
 - **SC-004**: Seed data process completes successfully in under 30 seconds on standard development hardware
 - **SC-005**: Developers can reset their environment to a clean, seeded state with a single command
