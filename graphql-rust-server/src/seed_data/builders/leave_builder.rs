@@ -166,4 +166,102 @@ pub async fn seed_leave_balances(
     Ok(result)
 }
 
-// TODO: seed_leave_requests() in Phase 6
+/// Seed leave requests (30-50 requests with mixed statuses)
+///
+/// Creates leave requests for various users with past, current, and future dates.
+/// Statuses: pending, approved, rejected, cancelled
+pub async fn seed_leave_requests(
+    db: &DatabaseConnection,
+    context: &SeedContext,
+) -> Result<EntitySeedResult> {
+    let mut result = EntitySeedResult::new("leave_requests");
+    let target_count = context.config.get_target_count("leave_requests").min(50);
+
+    // Get all active users
+    let users = crate::models::user::Entity::find()
+        .filter(crate::models::user::Column::IsActive.eq(true))
+        .filter(crate::models::user::Column::DeletedAt.is_null())
+        .all(db)
+        .await?;
+
+    if users.is_empty() {
+        result.errors.push("No users found for leave request creation".to_string());
+        return Ok(result);
+    }
+
+    // Get all active leave types
+    let leave_types = leave_type::Entity::find()
+        .filter(leave_type::Column::IsActive.eq(true))
+        .all(db)
+        .await?;
+
+    if leave_types.is_empty() {
+        result.errors.push("No leave types found for leave request creation".to_string());
+        return Ok(result);
+    }
+
+    let statuses = vec!["pending", "approved", "rejected", "cancelled"];
+    let now = chrono::Utc::now();
+
+    for i in 0..target_count {
+        // Select random user and leave type
+        let user_model = &users[i % users.len()];
+        let leave_type_model = &leave_types[rand::random::<usize>() % leave_types.len()];
+
+        // Generate date range (past 3 months to future 6 months)
+        let days_offset = (rand::random::<i64>() % 270) - 90; // -90 to +180 days
+        let start_date = now + chrono::Duration::days(days_offset);
+        let duration_days = 1 + (rand::random::<i64>() % 10); // 1-10 days
+        let end_date = start_date + chrono::Duration::days(duration_days);
+
+        // Select random status (more approved than others)
+        let status = if i % 4 == 0 {
+            "pending"
+        } else if i % 4 == 1 {
+            "rejected"
+        } else if i % 10 == 9 {
+            "cancelled"
+        } else {
+            "approved"
+        };
+
+        // Create leave request
+        let request_id = Uuid::new_v4();
+        let new_request = crate::models::leave::leave_request::ActiveModel {
+            id: Set(request_id),
+            user_id: Set(user_model.id),
+            leave_type_id: Set(leave_type_model.id),
+            start_date: Set(start_date),
+            end_date: Set(end_date),
+            total_days: Set(duration_days as f64),
+            status: Set(status.to_string()),
+            reason: Set(Some(format!("Seed data leave request {}", i + 1))),
+            notes: Set(None),
+            approved_by: Set(user_model.manager_id),
+            approved_at: Set(if status == "approved" { Some(start_date - chrono::Duration::days(7)) } else { None }),
+            rejected_at: Set(if status == "rejected" { Some(start_date - chrono::Duration::days(7)) } else { None }),
+            cancelled_at: Set(if status == "cancelled" { Some(start_date - chrono::Duration::days(1)) } else { None }),
+            created_at: Set(start_date - chrono::Duration::days(14)),
+            updated_at: Set(now),
+            deleted_at: Set(None),
+        };
+
+        match new_request.insert(db).await {
+            Ok(_) => {
+                result.created_count += 1;
+
+                // Log to audit system
+                if let Err(e) = log_seed_creation(db, context, "leave_request", request_id).await {
+                    tracing::warn!("Failed to log audit entry for leave request: {}", e);
+                }
+            }
+            Err(e) => {
+                result.failed_count += 1;
+                result.errors.push(format!("Failed to create leave request: {}", e));
+            }
+        }
+    }
+
+    tracing::info!("Created {} leave requests", result.created_count);
+    Ok(result)
+}
