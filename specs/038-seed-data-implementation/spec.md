@@ -11,6 +11,7 @@
 
 - Q: How should the system handle re-running the seed process when data already exists? → A: Skip existing - Check for existing records by unique identifiers and skip insertion if found (preserves any manual changes)
 - Q: What specific data volumes should be targeted for each entity type? → A: Small (10-50 records per entity) - Minimal but functional dataset for basic feature testing
+- Q: How should the system prevent accidental production seeding? → A: Environment variable check - Only run if explicit ENABLE_SEED_DATA=true or ENVIRONMENT=development is set
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -113,7 +114,7 @@ As a product manager, I need seed data that represents realistic business scenar
 
 ### Functional Requirements
 
-- **FR-001**: System MUST provide a seed data module that can be executed during container startup in development environments
+- **FR-001**: System MUST provide a seed data module that can be executed during container startup in development environments (controlled by `ENABLE_SEED_DATA` or `ENVIRONMENT` environment variable)
 - **FR-002**: System MUST populate ALL database tables (except system/audit tables) with realistic test data using SeaORM entity operations
 - **FR-003**: Seed data insertion MUST trigger the existing audit logging system for all create operations, just as normal application operations would
 - **FR-004**: System MUST create seed data in the correct dependency order to satisfy foreign key constraints
@@ -127,7 +128,7 @@ As a product manager, I need seed data that represents realistic business scenar
 - **FR-012**: Seed data process MUST handle errors gracefully and provide meaningful error messages for debugging
 - **FR-013**: System MUST create audit log entries with realistic actor attribution (e.g., "system" user or specific admin user performing the seed)
 - **FR-014**: Seed data MUST contain 10-50 records per entity type (e.g., 10-50 employees, 10-50 departments) to provide a minimal but functional dataset for basic feature testing and pagination behavior verification
-- **FR-015**: System MUST execute seed data process only in development/testing environments, with safeguards against running in production
+- **FR-015**: System MUST execute seed data process only when `ENABLE_SEED_DATA=true` or `ENVIRONMENT=development` environment variable is explicitly set, refusing to run otherwise to prevent accidental production seeding
 
 ### Key Entities
 
