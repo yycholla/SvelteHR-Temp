@@ -10,6 +10,10 @@ required-features = []
 name = "migration"
 path = "migration/main.rs"
 
+[[bin]]
+name = "seed-data"
+path = "src/bin/seed_data.rs"
+
 [[test]]
 path = "tests/contract_tests.rs"
 name = "contract_tests"
@@ -107,6 +111,10 @@ features = ["env-filter"]
 [dependencies.uuid]
 version = "1.0"
 features = ["serde", "v4"]
+
+[dependencies.fake]
+version = "2.9"
+features = ["derive", "chrono", "uuid"]
 
 [dependencies.testcontainers]
 version = "0.15"
