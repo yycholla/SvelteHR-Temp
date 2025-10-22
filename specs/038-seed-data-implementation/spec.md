@@ -12,6 +12,7 @@
 - Q: How should the system handle re-running the seed process when data already exists? → A: Skip existing - Check for existing records by unique identifiers and skip insertion if found (preserves any manual changes)
 - Q: What specific data volumes should be targeted for each entity type? → A: Small (10-50 records per entity) - Minimal but functional dataset for basic feature testing
 - Q: How should the system prevent accidental production seeding? → A: Environment variable check - Only run if explicit ENABLE_SEED_DATA=true or ENVIRONMENT=development is set
+- Q: How should the system handle partial failures during seeding? → A: No rollback (continue) - Log errors and continue seeding remaining entities, accepting partial state
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -102,7 +103,7 @@ As a product manager, I need seed data that represents realistic business scenar
 
 ### Edge Cases
 
-- What happens when seed data insertion fails midway through the process? (Rollback strategy)
+- What happens when seed data insertion fails midway through the process? System logs the error and continues seeding remaining entities, accepting partial state. Idempotent re-runs will complete any missing data.
 - How does the system handle seed data when database migrations have changed the schema?
 - What happens if required related entities don't exist when trying to create dependent entities?
 - How does the system behave if seed data references configuration that doesn't exist (e.g., invalid department IDs)?
@@ -125,7 +126,7 @@ As a product manager, I need seed data that represents realistic business scenar
 - **FR-009**: Seed data MUST include examples of different entity states where applicable (active/inactive, pending/approved, etc.)
 - **FR-010**: System MUST use proper SeaORM channels (ActiveModel, Entity operations) rather than raw SQL to ensure consistency with application code
 - **FR-011**: System MUST provide a mechanism to optionally clear existing data before seeding (for environment reset scenarios)
-- **FR-012**: Seed data process MUST handle errors gracefully and provide meaningful error messages for debugging
+- **FR-012**: Seed data process MUST handle errors gracefully by logging failures and continuing with remaining entities, accepting partial state rather than rolling back (idempotent re-runs will complete missing data)
 - **FR-013**: System MUST create audit log entries with realistic actor attribution (e.g., "system" user or specific admin user performing the seed)
 - **FR-014**: Seed data MUST contain 10-50 records per entity type (e.g., 10-50 employees, 10-50 departments) to provide a minimal but functional dataset for basic feature testing and pagination behavior verification
 - **FR-015**: System MUST execute seed data process only when `ENABLE_SEED_DATA=true` or `ENVIRONMENT=development` environment variable is explicitly set, refusing to run otherwise to prevent accidental production seeding
