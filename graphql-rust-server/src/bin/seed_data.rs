@@ -3,14 +3,19 @@
 //! Populates database with realistic test data for development.
 //! Automatically invoked on container startup when ENABLE_SEED_DATA=true.
 
-use graphql_rust_server::database;
-use graphql_rust_server::seed_data::{EntitySeedResult, SeedConfig, SeedError, SeedResult};
+use hr_graphql_server::database;
+use hr_graphql_server::seed_data::{EntitySeedResult, SeedConfig, SeedError, SeedResult};
 use std::process;
 
 #[tokio::main]
 async fn main() {
-    // Initialize logger
-    env_logger::init();
+    // Initialize tracing subscriber
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"))
+        )
+        .init();
 
     // Production safety check
     if let Err(e) = check_production_safety() {
@@ -21,8 +26,12 @@ async fn main() {
     // Load configuration from environment
     let config = SeedConfig::from_env();
 
+    // Get database URL from environment
+    let database_url = std::env::var("DATABASE_URL")
+        .unwrap_or_else(|_| "postgres://postgres:postgres@localhost/hr_dev".to_string());
+
     // Connect to database
-    let db = match database::create_connection().await {
+    let db = match database::create_db_connection(&database_url).await {
         Ok(conn) => conn,
         Err(e) => {
             eprintln!("Database connection failed: {}", e);
@@ -34,7 +43,7 @@ async fn main() {
     tracing::info!("Configuration: {:?}", config);
 
     // Initialize seed context
-    let context = match graphql_rust_server::seed_data::context::initialize_seed_context(&db, config).await {
+    let context = match hr_graphql_server::seed_data::context::initialize_seed_context(&db, config).await {
         Ok(ctx) => {
             tracing::info!("Seed context initialized with batch_id: {}", ctx.batch_id);
             ctx
@@ -46,56 +55,58 @@ async fn main() {
     };
 
     // Execute seeding in dependency order
-    let mut overall_result = SeedResult::new();
+    let mut overall_result = SeedResult::new(context.batch_id);
     let start_time = std::time::Instant::now();
 
     // Phase 1: Foundation entities (no dependencies)
     tracing::info!("=== Phase 1: Foundation Entities ===");
     execute_and_aggregate(&mut overall_result, "roles",
-        graphql_rust_server::seed_data::builders::seed_roles(&db, &context).await);
+        hr_graphql_server::seed_data::builders::seed_roles(&db, &context).await);
     execute_and_aggregate(&mut overall_result, "permissions",
-        graphql_rust_server::seed_data::builders::seed_permissions(&db, &context).await);
+        hr_graphql_server::seed_data::builders::seed_permissions(&db, &context).await);
     execute_and_aggregate(&mut overall_result, "leave_types",
-        graphql_rust_server::seed_data::builders::seed_leave_types(&db, &context).await);
+        hr_graphql_server::seed_data::builders::seed_leave_types(&db, &context).await);
 
     // Phase 2: Core entities (Department ↔ User circular dependency)
     tracing::info!("=== Phase 2: Core Entities ===");
     execute_and_aggregate(&mut overall_result, "departments",
-        graphql_rust_server::seed_data::builders::seed_departments(&db, &context).await);
+        hr_graphql_server::seed_data::builders::seed_departments(&db, &context).await);
     execute_and_aggregate(&mut overall_result, "users",
-        graphql_rust_server::seed_data::builders::seed_users(&db, &context).await);
+        hr_graphql_server::seed_data::builders::seed_users(&db, &context).await);
     execute_and_aggregate(&mut overall_result, "department_managers",
-        graphql_rust_server::seed_data::builders::update_department_managers(&db, &context).await);
+        hr_graphql_server::seed_data::builders::update_department_managers(&db, &context).await);
     execute_and_aggregate(&mut overall_result, "user_managers",
-        graphql_rust_server::seed_data::builders::assign_user_managers(&db, &context).await);
+        hr_graphql_server::seed_data::builders::assign_user_managers(&db, &context).await);
     execute_and_aggregate(&mut overall_result, "user_role_assignments",
-        graphql_rust_server::seed_data::builders::seed_user_role_assignments(&db, &context).await);
+        hr_graphql_server::seed_data::builders::seed_user_role_assignments(&db, &context).await);
 
     // Phase 3: Extended entities (depend on users)
     tracing::info!("=== Phase 3: Extended Entities ===");
     execute_and_aggregate(&mut overall_result, "leave_balances",
-        graphql_rust_server::seed_data::builders::seed_leave_balances(&db, &context).await);
+        hr_graphql_server::seed_data::builders::seed_leave_balances(&db, &context).await);
     execute_and_aggregate(&mut overall_result, "employee_skills",
-        graphql_rust_server::seed_data::builders::seed_employee_skills(&db, &context).await);
+        hr_graphql_server::seed_data::builders::seed_employee_skills(&db, &context).await);
     execute_and_aggregate(&mut overall_result, "employee_certifications",
-        graphql_rust_server::seed_data::builders::seed_employee_certifications(&db, &context).await);
+        hr_graphql_server::seed_data::builders::seed_employee_certifications(&db, &context).await);
     execute_and_aggregate(&mut overall_result, "emergency_contacts",
-        graphql_rust_server::seed_data::builders::seed_emergency_contacts(&db, &context).await);
+        hr_graphql_server::seed_data::builders::seed_emergency_contacts(&db, &context).await);
     execute_and_aggregate(&mut overall_result, "user_addresses",
-        graphql_rust_server::seed_data::builders::seed_user_addresses(&db, &context).await);
+        hr_graphql_server::seed_data::builders::seed_user_addresses(&db, &context).await);
 
     // Phase 4: Operational entities (depend on multiple entities)
     tracing::info!("=== Phase 4: Operational Entities ===");
     execute_and_aggregate(&mut overall_result, "leave_requests",
-        graphql_rust_server::seed_data::builders::seed_leave_requests(&db, &context).await);
+        hr_graphql_server::seed_data::builders::seed_leave_requests(&db, &context).await);
     execute_and_aggregate(&mut overall_result, "events",
-        graphql_rust_server::seed_data::builders::seed_events(&db, &context).await);
+        hr_graphql_server::seed_data::builders::seed_events(&db, &context).await);
     execute_and_aggregate(&mut overall_result, "documents",
-        graphql_rust_server::seed_data::builders::seed_documents(&db, &context).await);
+        hr_graphql_server::seed_data::builders::seed_documents(&db, &context).await);
+    execute_and_aggregate(&mut overall_result, "task_types",
+        hr_graphql_server::seed_data::builders::seed_task_types(&db, &context).await);
     execute_and_aggregate(&mut overall_result, "tasks",
-        graphql_rust_server::seed_data::builders::seed_tasks(&db, &context).await);
+        hr_graphql_server::seed_data::builders::seed_tasks(&db, &context).await);
     execute_and_aggregate(&mut overall_result, "time_entries",
-        graphql_rust_server::seed_data::builders::seed_time_entries(&db, &context).await);
+        hr_graphql_server::seed_data::builders::seed_time_entries(&db, &context).await);
 
     let duration = start_time.elapsed();
 
@@ -146,14 +157,14 @@ fn execute_and_aggregate(
                 entity_result.skipped_count,
                 entity_result.failed_count
             );
-            overall_result.add_entity_result(entity_result);
+            overall_result.add(entity_result);
         }
         Err(e) => {
             tracing::error!("{}: Seed operation failed: {}", entity_name, e);
             let mut error_result = EntitySeedResult::new(entity_name);
             error_result.failed_count = 1;
             error_result.errors.push(e.to_string());
-            overall_result.add_entity_result(error_result);
+            overall_result.add(error_result);
         }
     }
 }

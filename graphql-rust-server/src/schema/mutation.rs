@@ -18,7 +18,7 @@ use crate::{
         CreateLeaveBalanceInput, CreateLeaveRequestInput, CreateLeaveTypeInput,
         CreateLinkedResourceInput, CreatePerformanceReviewInput, CreatePermissionInput,
         CreateReviewCycleInput, CreateReviewFeedbackInput, CreateReviewGoalInput, CreateRoleInput,
-        CreateTaskDependencyInput, CreateTaskInput, CreateUserInput, Department, DependencyType, Event,
+        CreateTaskDependencyInput, CreateTaskInput, CreateTaskTypeInput, CreateUserInput, Department, DependencyType, Event,
         EventAttendee, FeedbackType, LeaveBalance, LeaveRequest, LeaveRequestStatus, LeaveType, LinkedResource,
         PerformanceReview, PerformanceReviewStatus, Permission, RejectLeaveRequestInput, ResourceType, ReviewCycle, ReviewCycleStatus, ReviewFeedback,
         ReviewGoal, GoalCompletionStatus, ReviewType, Role, RsvpStatus, Task, TaskAssignee, TaskAuditEntry, TaskDependency,
@@ -26,7 +26,7 @@ use crate::{
         UpdateLeaveBalanceInput, UpdateLeaveRequestInput, UpdateLeaveTypeInput,
         UpdateLinkedResourceInput, UpdatePerformanceReviewInput, UpdatePermissionInput,
         UpdateReviewCycleInput, UpdateReviewFeedbackInput, UpdateReviewGoalInput, UpdateRoleInput,
-        UpdateTaskAssigneeInput, UpdateTaskDependencyInput, UpdateTaskInput, UpdateUserInput, User,
+        UpdateTaskAssigneeInput, UpdateTaskDependencyInput, UpdateTaskInput, UpdateTaskTypeInput, UpdateUserInput, User,
         UserRoleAssignment, UserStatus,
         // Employee domain new models
         CreateEmployeeCertificationInput, CreateEmployeeGoalInput, CreateEmployeeSkillInput,
@@ -55,7 +55,7 @@ use crate::{
         CreateEventCommentInput, CreateEventHistoryInput, CreateEventWaitlistInput, EventComment,
         EventHistory, EventWaitlist, UpdateEventCommentInput, UpdateEventWaitlistInput,
         // Tasks domain
-        CreateTaskTypeInput, TaskType, UpdateTaskTypeInput,
+        TaskType,
         // Reviews domain
         CreateReviewTemplateInput, ReviewTemplate, UpdateReviewTemplateInput,
     },
@@ -848,8 +848,6 @@ impl MutationRoot {
         let assignment = crate::models::user_role_assignment::ActiveModel {
             user_id: Set(input.user_id),
             role_id: Set(input.role_id),
-            assigned_by: Set(assigner_id),
-            assigned_at: Set(Utc::now()),
             ..Default::default()
         };
 
@@ -860,8 +858,6 @@ impl MutationRoot {
             id: assignment.id,
             user_id: assignment.user_id,
             role_id: assignment.role_id,
-            assigned_by: assignment.assigned_by,
-            assigned_at: assignment.assigned_at,
             created_at: assignment.created_at,
             updated_at: assignment.updated_at,
             deleted_at: assignment.deleted_at,
@@ -2658,14 +2654,11 @@ impl MutationRoot {
     ) -> Result<EmployeeSkill> {
         let db = get_db_from_context(ctx)?;
 
-        let verified = input.verified.unwrap_or(false);
-
         let skill = crate::models::employee::employee_skill::ActiveModel {
             employee_id: Set(input.employee_id),
             skill_name: Set(input.skill_name.clone()),
             proficiency_level: Set(input.proficiency_level.as_str().to_string()),
             years_experience: Set(input.years_experience),
-            verified: Set(verified),
             ..Default::default()
         };
 
@@ -2678,10 +2671,9 @@ impl MutationRoot {
             skill_name: skill.skill_name,
             proficiency_level: skill.proficiency_level.clone(),
             years_experience: skill.years_experience,
-            verified: skill.verified,
-            verifier_id: skill.verifier_id,
             created_at: skill.created_at,
             updated_at: skill.updated_at,
+            deleted_at: skill.deleted_at,
         };
 
         Ok(skill)
@@ -2717,14 +2709,6 @@ impl MutationRoot {
             skill.years_experience = Set(Some(years_experience));
         }
 
-        if let Some(verified) = input.verified {
-            skill.verified = Set(verified);
-        }
-
-        if let Some(verifier_id) = input.verifier_id {
-            skill.verifier_id = Set(Some(verifier_id));
-        }
-
         // Update timestamp
         skill.updated_at = Set(Utc::now());
 
@@ -2738,10 +2722,9 @@ impl MutationRoot {
             skill_name: updated_skill.skill_name,
             proficiency_level: updated_skill.proficiency_level.clone(),
             years_experience: updated_skill.years_experience,
-            verified: updated_skill.verified,
-            verifier_id: updated_skill.verifier_id,
             created_at: updated_skill.created_at,
             updated_at: updated_skill.updated_at,
+            deleted_at: updated_skill.deleted_at,
         };
 
         Ok(skill)
@@ -2789,6 +2772,7 @@ impl MutationRoot {
             certification_number: cert.certification_number,
             created_at: cert.created_at,
             updated_at: cert.updated_at,
+            deleted_at: cert.deleted_at,
         };
 
         Ok(cert)
@@ -3597,7 +3581,7 @@ impl MutationRoot {
             date: Set(input.date),
             clock_in: Set(input.clock_in),
             clock_out: Set(input.clock_out),
-            hours_worked: Set(input.hours_worked),
+            hours_worked: Set(input.hours_worked.and_then(rust_decimal::Decimal::from_f64_retain)),
             status: Set(input.status.as_str().to_string()),
             notes: Set(input.notes.clone()),
             ..Default::default()
@@ -3650,7 +3634,7 @@ impl MutationRoot {
         }
 
         if let Some(hours_worked) = input.hours_worked {
-            record.hours_worked = Set(Some(hours_worked));
+            record.hours_worked = Set(rust_decimal::Decimal::from_f64_retain(hours_worked));
         }
 
         if let Some(status) = input.status {

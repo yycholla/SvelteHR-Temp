@@ -112,15 +112,18 @@ export const load: PageServerLoad = async (event) => {
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetTaskTypes($limit: Int!) {
-						taskTypes(limit: $limit) {
+					query GetTaskTypes($isActive: Boolean) {
+						taskTypes(isActive: $isActive) {
 							id
 							name
 							description
+							defaultPriority
+							colorCode
+							isActive
 						}
 					}
 				`,
-				variables: { limit: 100 }
+				variables: { isActive: true }
 			})
 		});
 
@@ -284,24 +287,23 @@ export const actions: Actions = {
 				parentTaskId
 			});
 
-			// Prepare create input
+			// Prepare create input for Rust GraphQL schema
 			const createInput: any = {
 				title,
-				description: description || null,
-				status,
-				priority,
-				assigneeId: assigneeId || locals.user.id, // Default to current user if not specified
-				taskTypeId: taskTypeId || null,
-				parentTaskId: parentTaskId || null,
-				dueDate: dueDate || null,
-				reminderTime: reminderTime ? parseInt(reminderTime, 10) : null,
-				requiresManualReassignment,
-				organizationId: locals.user.organizationId || null,
-				createdAt: new Date().toISOString(),
-				updatedAt: new Date().toISOString()
+				description: description || undefined,
+				status, // TaskStatus enum
+				priority, // TaskPriority enum
+				assigneeId: assigneeId || locals.user.id, // UUID - default to current user
+				taskTypeId: taskTypeId || undefined, // UUID or undefined
+				parentTaskId: parentTaskId || undefined, // UUID or undefined
+				dueDate: dueDate || undefined, // ISO datetime string or undefined
+				requiresManualReassignment
+				// Note: reminderTime removed - not in CreateTaskInput schema
+				// Note: organizationId, createdAt, updatedAt handled server-side
 			};
 
 			// Execute create mutation
+			// Migration: ✅ Use Rust GraphQL schema (CreateTaskInput, direct return)
 			const createResponse = await fetch(graphqlEndpoint, {
 				method: 'POST',
 				headers: {
@@ -309,14 +311,12 @@ export const actions: Actions = {
 				},
 				body: JSON.stringify({
 					query: `
-						mutation CreateTask($input: TaskInput!) {
-							createTask(input: { task: $input }) {
-								task {
-									id
-									title
-									status
-									createdAt
-								}
+						mutation CreateTask($input: CreateTaskInput!) {
+							createTask(input: $input) {
+								id
+								title
+								status
+								createdAt
 							}
 						}
 					`,
@@ -336,7 +336,7 @@ export const actions: Actions = {
 				});
 			}
 
-			const newTask = createData?.data?.createTask?.task;
+			const newTask = createData?.data?.createTask;
 
 			if (!newTask) {
 				return fail(400, {

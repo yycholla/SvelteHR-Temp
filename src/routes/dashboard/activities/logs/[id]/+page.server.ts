@@ -9,19 +9,17 @@
 
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { ActivityLogsOperations } from '$lib/graphql/activity-logs-operations';
-import { createUrqlClient } from '$lib/graphql/client';
 
 export const load: PageServerLoad = async (event) => {
 	const { locals, params, url, cookies } = event;
 
-	// RBAC: Only super_admin, hr_admin, and admin can access audit logs
+	// RBAC: Only system_admin, super_admin, hr_admin, and admin can access audit logs
 	if (!locals.user) {
 		throw redirect(303, `/login?redirectTo=${encodeURIComponent(url.pathname)}`);
 	}
 
 	const userRole = locals.user.role || 'employee';
-	const allowedRoles = ['super_admin', 'hr_admin', 'admin'];
+	const allowedRoles = ['system_admin', 'super_admin', 'hr_admin', 'admin'];
 
 	if (!allowedRoles.includes(userRole)) {
 		throw error(403, {
@@ -29,33 +27,43 @@ export const load: PageServerLoad = async (event) => {
 		});
 	}
 
-	// Get user credentials for GraphQL operations
-	// Token retrieval removed - session auth handled by server hooks
-	if (!token) {
-		throw redirect(303, `/login?redirectTo=${url.pathname}`);
-	}
-
-	const userCredentials = {
-		jwtToken: token,
-		userId: locals.user.id,
-		roles: locals.roles || [],
-		permissions: locals.permissions || [],
-		isAuthenticated: true,
-		expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-	};
-
 	const logId = params.id;
 
 	try {
-		// Initialize GraphQL client and operations
-		const urqlClient = createUrqlClient(undefined, token);
-		const activityOps = new ActivityLogsOperations(urqlClient);
+		// Initialize GraphQL client with session auth (same approach as list page)
+		const { GraphQLClient } = await import('$lib/server/graphql-client');
+		const client = GraphQLClient.fromCookies(cookies);
 
-		// Fetch the activity log by ID
-		const log = await activityOps.getActivityLogById({
-			logId,
-			userCredentials
-		});
+		// Fetch the activity log by ID using GraphQL query
+		const logQuery = `
+			query GetActivityLog($id: UUID!) {
+				activityLog(id: $id) {
+					id
+					employeeId
+					action
+					resourceType
+					resourceId
+					beforeSnapshot
+					afterSnapshot
+					isRollback
+					rolledBackLogId
+					createdAt
+					ipAddress
+					userAgent
+					employee {
+						id
+						displayName
+						department {
+							id
+							name
+						}
+					}
+				}
+			}
+		`;
+
+		const logResult = await client.query(logQuery, { id: logId });
+		const log = logResult.data?.activityLog;
 
 		if (!log) {
 			throw error(404, {
@@ -109,7 +117,7 @@ export const load: PageServerLoad = async (event) => {
 			userContext: {
 				userId: locals.user.id,
 				role: userRole,
-				departmentId: locals.user.department_id || null
+				departmentId: (locals.user as any).department_id || null
 			}
 		};
 	} catch (err) {

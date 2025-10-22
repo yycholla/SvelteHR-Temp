@@ -23,14 +23,6 @@
 	function handleCancel() {
 		goto(`/dashboard/tasks/${data.task.id}`);
 	}
-
-	// Handle form submit
-	async function handleSubmit(formData: any) {
-		// TaskForm will handle the actual submission via native form action
-		// This is called after validation passes
-		console.log('[Task Edit] Form validated, submitting:', formData);
-		return true;
-	}
 </script>
 
 <svelte:head>
@@ -82,13 +74,10 @@
 			<TaskForm
 				task={data.task}
 				assignees={data.assignees}
-			departments={data.departments}
+				departments={data.departments}
 				taskTypes={data.taskTypes}
 				parentTasks={data.parentTasks}
-				mode="edit"
-				onSubmit={handleSubmit}
 				onCancel={handleCancel}
-				submitLabel="Update Task"
 				initialValues={form?.values}
 			/>
 		</Card.Content>

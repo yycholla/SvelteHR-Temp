@@ -7,18 +7,19 @@ use fake::faker::internet::en::SafeEmail;
 use fake::faker::name::en::{FirstName, LastName};
 use fake::faker::phone_number::en::PhoneNumber;
 use fake::Fake;
-use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
+use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, Set};
 use uuid::Uuid;
 
-use crate::models::{department, rbac::role, user};
+use crate::models::{department, role, user, user_role_assignment};
 use crate::seed_data::audit::log_seed_creation;
+use crate::seed_data::config::EntityType;
 use crate::seed_data::context::{EntitySeedResult, SeedContext};
 use crate::seed_data::Result;
 
-/// Pre-computed bcrypt hash for "password123" (work factor 10)
+/// Pre-computed bcrypt hash for "admin123" (work factor 10)
 /// All seeded users will use this password for easy testing
 const DEFAULT_PASSWORD_HASH: &str =
-    "$2b$10$YPBz4Q8M5J5KqN5X5Z5X5.5X5X5X5X5X5X5X5X5X5X5X5X5X5X5X5X";
+    "$2b$10$RAc0JwycgH8Hpq8lRmmb.OXArEiS5Pklvzm5j4RqdQAw5zsNlH8JG";
 
 /// Seed users with realistic data
 ///
@@ -33,7 +34,7 @@ pub async fn seed_users(
     context: &SeedContext,
 ) -> Result<EntitySeedResult> {
     let mut result = EntitySeedResult::new("users");
-    let target_count = context.config.get_target_count("users");
+    let target_count = context.config.get_target_count(EntityType::Users);
 
     // Get all departments for assignment
     let departments = department::Entity::find()
@@ -90,18 +91,14 @@ pub async fn seed_users(
         let dept_index = i % departments.len();
         let department_id = departments[dept_index].id;
 
-        // Compute display_name and full_name (matches database computed columns)
-        let display_name = format!("{} {}", first_name, last_name);
-        let full_name = display_name.clone();
-
         let new_user = user::ActiveModel {
             id: Set(user_id),
             email: Set(email.clone()),
             password_hash: Set(DEFAULT_PASSWORD_HASH.to_string()),
             first_name: Set(first_name),
             last_name: Set(last_name),
-            display_name: Set(display_name),
-            full_name: Set(full_name),
+            display_name: sea_orm::NotSet, // GENERATED column (computed from first_name + last_name)
+            full_name: sea_orm::NotSet,   // GENERATED column (computed from first_name + last_name)
             role: Set("hr_employee".to_string()), // Will be updated by role assignments
             phone_number: Set(Some(phone)),
             alternate_phone: Set(None),
@@ -297,9 +294,9 @@ pub async fn seed_user_role_assignments(
         };
 
         // Check if user_role_assignment already exists
-        let existing = crate::models::rbac::user_role_assignment::Entity::find()
-            .filter(crate::models::rbac::user_role_assignment::Column::UserId.eq(user_model.id))
-            .filter(crate::models::rbac::user_role_assignment::Column::RoleId.eq(role_id))
+        let existing = user_role_assignment::Entity::find()
+            .filter(user_role_assignment::Column::UserId.eq(user_model.id))
+            .filter(user_role_assignment::Column::RoleId.eq(role_id))
             .one(db)
             .await?;
 
@@ -311,12 +308,10 @@ pub async fn seed_user_role_assignments(
         // Create user_role_assignment
         let assignment_id = Uuid::new_v4();
         let now = Utc::now();
-        let new_assignment = crate::models::rbac::user_role_assignment::ActiveModel {
+        let new_assignment = user_role_assignment::ActiveModel {
             id: Set(assignment_id),
             user_id: Set(user_model.id),
             role_id: Set(role_id),
-            assigned_at: Set(now),
-            assigned_by: Set(context.system_user_id),
             created_at: Set(now),
             updated_at: Set(now),
             deleted_at: Set(None),

@@ -16,6 +16,7 @@ use crate::{
         department::{self, Entity as DepartmentEntity},
         user::{self, Entity as UserEntity},
         task::{self, Entity as TaskEntity},
+        tasks::task_type::{self as task_type, Entity as TaskTypeEntity},
         leave_request::{self, Entity as LeaveRequestEntity},
         leave_balance::{self, Entity as LeaveBalanceEntity},
         leave_type::{self, Entity as LeaveTypeEntity},
@@ -167,6 +168,37 @@ impl QueryRoot {
             .one(&db)
             .await?;
         Ok(task)
+    }
+
+    /// Get all task types (optionally filter by active status)
+    async fn task_types(
+        &self,
+        ctx: &Context<'_>,
+        is_active: Option<bool>,
+    ) -> Result<Vec<task_type::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let mut query = TaskTypeEntity::find();
+
+        // Filter by active status if provided
+        if let Some(active) = is_active {
+            query = query.filter(task_type::Column::IsActive.eq(active));
+        }
+
+        let task_types = query
+            .order_by_asc(task_type::Column::Name)
+            .all(&db)
+            .await?;
+
+        Ok(task_types)
+    }
+
+    /// Get a single task type by ID
+    async fn task_type(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<task_type::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let task_type = TaskTypeEntity::find_by_id(id)
+            .one(&db)
+            .await?;
+        Ok(task_type)
     }
 
     // =========================================================================

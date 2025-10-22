@@ -37,6 +37,7 @@ pub enum EntityType {
     Documents,
     ReviewCycles,
     PerformanceReviews,
+    TaskTypes,
     Tasks,
     TaskAssignees,
     TimeEntries,
@@ -64,6 +65,7 @@ impl EntityType {
             Documents,
             ReviewCycles,
             PerformanceReviews,
+            TaskTypes,
             Tasks,
             TaskAssignees,
             TimeEntries,
@@ -106,6 +108,7 @@ impl Default for SeedConfig {
         target_counts.insert(Documents, 30);
         target_counts.insert(ReviewCycles, 3);
         target_counts.insert(PerformanceReviews, 20);
+        target_counts.insert(TaskTypes, 6); // Fixed - 6 default task types
         target_counts.insert(Tasks, 50);
         target_counts.insert(TaskAssignees, 75);
         target_counts.insert(TimeEntries, 125);

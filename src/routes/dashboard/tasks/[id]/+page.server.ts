@@ -162,15 +162,18 @@ export const load: PageServerLoad = async (event) => {
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetTaskTypes($limit: Int!) {
-						taskTypes(limit: $limit) {
+					query GetTaskTypes($isActive: Boolean) {
+						taskTypes(isActive: $isActive) {
 							id
 							name
 							description
+							defaultPriority
+							colorCode
+							isActive
 						}
 					}
 				`,
-				variables: { limit: 100 }
+				variables: { isActive: true }
 			})
 		});
 

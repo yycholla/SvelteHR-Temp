@@ -2,10 +2,10 @@
 //!
 //! Seeds ~30 core permissions for RBAC system
 
-use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
+use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use uuid::Uuid;
 
-use crate::models::rbac::permission;
+use crate::models::permission;
 use crate::seed_data::audit::log_seed_creation;
 use crate::seed_data::context::{EntitySeedResult, SeedContext};
 use crate::seed_data::Result;
@@ -74,9 +74,13 @@ pub async fn seed_permissions(
     let mut result = EntitySeedResult::new("permissions");
 
     for (name, resource, description) in PERMISSIONS {
+        // Extract action from name (e.g., "employees:read" -> "read")
+        let action = name.split(':').nth(1).unwrap_or("unknown");
+
         // Check if permission already exists (idempotency)
         let existing = permission::Entity::find()
-            .filter(permission::Column::Name.eq(*name))
+            .filter(permission::Column::Resource.eq(*resource))
+            .filter(permission::Column::Action.eq(action))
             .one(db)
             .await?;
 
@@ -88,12 +92,15 @@ pub async fn seed_permissions(
 
         // Create new permission
         let permission_id = Uuid::new_v4();
+        let now = chrono::Utc::now();
         let new_permission = permission::ActiveModel {
             id: Set(permission_id),
-            name: Set(name.to_string()),
             resource: Set(resource.to_string()),
+            action: Set(action.to_string()),
             description: Set(Some(description.to_string())),
-            ..Default::default()
+            created_at: Set(now),
+            updated_at: Set(now),
+            deleted_at: Set(None),
         };
 
         match new_permission.insert(db).await {

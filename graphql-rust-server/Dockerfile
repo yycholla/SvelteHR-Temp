@@ -39,8 +39,8 @@ RUN cargo build --release --bin hr-graphql-server && \
     cargo build --release --bin migration && \
     cargo build --release --bin seed-data
 
-# Runtime stage
-FROM debian:bookworm-slim
+# Runtime stage - use same Debian version as rust:1.90-slim (Debian Sid/Trixie)
+FROM debian:trixie-slim
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \

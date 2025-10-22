@@ -8,7 +8,10 @@ import type {
 	Task,
 	TaskDependency,
 	TaskStatus,
-	TaskPriority
+	TaskPriority,
+	TaskType,
+	CreateTaskTypeInput,
+	UpdateTaskTypeInput
 } from '$lib/types/task';
 
 // ============================================================================
@@ -91,6 +94,45 @@ export const GET_MY_TASKS = gql`
 			estimatedHours
 			actualHours
 			tags
+			createdAt
+			updatedAt
+		}
+	}
+`;
+
+/**
+ * Query: Get all task types
+ * Backend: Rust idiomatic pattern - direct array return
+ * RLS: Automatic RBAC filtering
+ */
+export const GET_TASK_TYPES = gql`
+	query GetTaskTypes($isActive: Boolean) {
+		taskTypes(isActive: $isActive) {
+			id
+			name
+			description
+			defaultPriority
+			colorCode
+			isActive
+			createdAt
+			updatedAt
+		}
+	}
+`;
+
+/**
+ * Query: Get single task type by ID
+ * Backend: Rust idiomatic pattern - taskType(id) not taskTypeById
+ */
+export const GET_TASK_TYPE = gql`
+	query GetTaskType($id: UUID!) {
+		taskType(id: $id) {
+			id
+			name
+			description
+			defaultPriority
+			colorCode
+			isActive
 			createdAt
 			updatedAt
 		}
@@ -224,6 +266,56 @@ export const DELETE_TASK_DEPENDENCY = gql`
 	}
 `;
 
+/**
+ * Mutation: Create task type
+ * Backend: Rust idiomatic - createTaskType
+ * RLS: Automatic permission checking
+ */
+export const CREATE_TASK_TYPE = gql`
+	mutation CreateTaskType($input: CreateTaskTypeInput!) {
+		createTaskType(input: $input) {
+			id
+			name
+			description
+			defaultPriority
+			colorCode
+			isActive
+			createdAt
+			updatedAt
+		}
+	}
+`;
+
+/**
+ * Mutation: Update task type
+ * Backend: Rust idiomatic - updateTaskType(id, input)
+ */
+export const UPDATE_TASK_TYPE = gql`
+	mutation UpdateTaskType($id: UUID!, $input: UpdateTaskTypeInput!) {
+		updateTaskType(id: $id, input: $input) {
+			id
+			name
+			description
+			defaultPriority
+			colorCode
+			isActive
+			createdAt
+			updatedAt
+		}
+	}
+`;
+
+/**
+ * Mutation: Delete task type
+ * Backend: Rust idiomatic - deleteTaskType(id) returns Boolean
+ * Note: This is a soft delete via isActive flag
+ */
+export const DELETE_TASK_TYPE = gql`
+	mutation DeleteTaskType($id: UUID!) {
+		deleteTaskType(id: $id)
+	}
+`;
+
 // ============================================================================
 // TYPESCRIPT INTERFACES
 // ============================================================================
@@ -331,8 +423,9 @@ export function getTaskStatusColor(status: TaskStatus): string {
 		TODO: 'gray',
 		IN_PROGRESS: 'blue',
 		BLOCKED: 'red',
-		DEFERRED: 'yellow',
-		COMPLETED: 'green'
+		REVIEW: 'yellow',
+		DONE: 'green',
+		CANCELLED: 'slate'
 	};
 	return statusColors[status] || 'gray';
 }

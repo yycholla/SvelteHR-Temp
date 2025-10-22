@@ -19,8 +19,6 @@ pub struct Model {
     pub id: Uuid,
     pub user_id: Uuid,
     pub role_id: Uuid,
-    pub assigned_by: Option<Uuid>,
-    pub assigned_at: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
@@ -40,12 +38,6 @@ pub enum Relation {
         to = "super::role::Column::Id"
     )]
     Role,
-    #[sea_orm(
-        belongs_to = "super::user::Entity",
-        from = "Column::AssignedBy",
-        to = "super::user::Column::Id"
-    )]
-    AssignedByUser,
 }
 
 impl Related<super::user::Entity> for Entity {
@@ -105,16 +97,6 @@ impl Model {
         Ok(role.map(|r| r.name).unwrap_or_else(|| "Unknown".to_string()))
     }
 
-    /// User ID who assigned this role (optional)
-    async fn assigned_by(&self) -> Option<Uuid> {
-        self.assigned_by
-    }
-
-    /// When the role was assigned
-    async fn assigned_at(&self) -> DateTime<Utc> {
-        self.assigned_at
-    }
-
     /// Record creation timestamp
     async fn created_at(&self) -> DateTime<Utc> {
         self.created_at
@@ -143,19 +125,6 @@ impl Model {
         let role = super::role::Entity::find_by_id(self.role_id).one(&db).await?;
         Ok(role)
     }
-
-
-
-    /// User who assigned this role (if tracked)
-    async fn assigned_by_user(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
-        if let Some(assigner_id) = self.assigned_by {
-            let db = get_db_from_context(ctx)?;
-            let user = super::user::Entity::find_by_id(assigner_id).one(&db).await?;
-            Ok(user)
-        } else {
-            Ok(None)
-        }
-    }
 }
 
 /// UserRoleAssignment creation input
@@ -175,13 +144,11 @@ mod tests {
             id: Uuid::new_v4(),
             user_id: Uuid::new_v4(),
             role_id: Uuid::new_v4(),
-            assigned_by: Some(Uuid::new_v4()),
-            assigned_at: Utc::now(),
             created_at: Utc::now(),
             updated_at: Utc::now(),
             deleted_at: None,
         };
 
-        assert!(assignment.assigned_by.is_some());
+        assert_eq!(assignment.user_id, assignment.user_id);
     }
 }

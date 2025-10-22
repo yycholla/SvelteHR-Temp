@@ -29,6 +29,7 @@ pub const SEEDING_ORDER: &[&str] = &[
     "documents",
     "review_cycles",
     "performance_reviews",
+    "task_types",
     "tasks",
     "task_assignees",
     "time_entries",

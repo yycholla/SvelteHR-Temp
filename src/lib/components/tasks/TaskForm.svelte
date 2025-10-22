@@ -23,7 +23,7 @@
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Label } from '$lib/components/ui/label';
 	import { Switch } from '$lib/components/ui/switch';
-	import { TagInput } from '$lib/components/ui/tag-input';
+	import { TagInput, TaskTypeTagInput } from '$lib/components/ui/tag-input';
 	import { Calendar, CheckSquare, AlertCircle, User as UserIcon, Clock, Building2 } from 'lucide-svelte';
 	import { format } from 'date-fns';
 
@@ -40,7 +40,7 @@
 		assignees?: User[]; // Alternative name for users (compatibility)
 		departments?: Department[]; // Departments for assignment
 		parentTasks?: Task[]; // Available parent tasks (excluding current task and its children)
-		onSubmit: (data: CreateTaskInput | UpdateTaskInput) => Promise<void>;
+		onSubmit?: (data: CreateTaskInput | UpdateTaskInput) => Promise<void>; // Optional - for custom submission
 		onCancel: () => void;
 		loading?: boolean;
 	}
@@ -72,7 +72,7 @@
 		description: task?.description || '',
 		assignees: task?.assigneeId ? [`user:${task.assigneeId}`] : ([] as string[]),
 		taskTypeId: task?.taskTypeId || '',
-		status: task?.status || ('TO_DO' as TaskStatus),
+		status: task?.status || ('TODO' as TaskStatus),
 		priority: task?.priority || ('MEDIUM' as TaskPriority),
 		dueDate: task?.dueDate ? format(new Date(task.dueDate), 'yyyy-MM-dd') : '',
 		parentTaskId: task?.parentTaskId || '',
@@ -120,12 +120,14 @@
 
 	// Status options
 	// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
+	// Status options - Rust GraphQL schema enums
 	const statusOptions = [
-		{ value: 'TO_DO', label: 'To Do' },
+		{ value: 'TODO', label: 'To Do' },
 		{ value: 'IN_PROGRESS', label: 'In Progress' },
 		{ value: 'BLOCKED', label: 'Blocked' },
-		{ value: 'DEFERRED', label: 'Deferred' },
-		{ value: 'COMPLETED', label: 'Completed' }
+		{ value: 'REVIEW', label: 'Review' },
+		{ value: 'DONE', label: 'Done' },
+		{ value: 'CANCELLED', label: 'Cancelled' }
 	];
 
 	// Priority options with colors
@@ -299,15 +301,18 @@
 		fieldErrors = newFieldErrors;
 	});
 
-	// Handle form submission
-	async function handleSubmit(e: Event) {
-		e.preventDefault();
-
+	// Handle client-side validation before form submission
+	function handleClientSideValidation(e: Event) {
+		// Validate form
 		if (!isValid()) {
-			return;
+			e.preventDefault();
+			return false;
 		}
 
-		try {
+		// Call optional onSubmit callback if provided (for backwards compatibility)
+		if (onSubmit) {
+			e.preventDefault();
+
 			// Extract first assignee ID (temporary until backend supports multiple assignees)
 			// Remove the "user:" or "dept:" prefix
 			const firstAssignee = formData.assignees[0];
@@ -329,7 +334,9 @@
 						requiresManualReassignment: formData.requiresManualReassignment
 					}
 				};
-				await onSubmit(updateData);
+				onSubmit(updateData).catch(error => {
+					console.error('[TaskForm] Submit error:', error);
+				});
 			} else {
 				// Create task
 				const createData: CreateTaskInput = {
@@ -345,12 +352,16 @@
 						requiresManualReassignment: formData.requiresManualReassignment
 					}
 				};
-				await onSubmit(createData);
+				onSubmit(createData).catch(error => {
+					console.error('[TaskForm] Submit error:', error);
+				});
 			}
-		} catch (error) {
-			console.error('[TaskForm] Submit error:', error);
-			// Error handled by parent component
+
+			return false;
 		}
+
+		// If no onSubmit callback, allow native form submission to proceed
+		return true;
 	}
 
 	// Handle cancel
@@ -379,7 +390,7 @@
 				description: '',
 				assignees: [],
 				taskTypeId: '',
-				status: 'TO_DO' as TaskStatus,
+				status: 'TODO' as TaskStatus,
 				priority: 'MEDIUM' as TaskPriority,
 				dueDate: '',
 				parentTaskId: '',
@@ -416,7 +427,7 @@
 		</div>
 	{/if}
 
-	<form onsubmit={handleSubmit} class="space-y-6">
+	<form method="POST" onsubmit={handleClientSideValidation} class="space-y-6">
 		<!-- Basic Information Section -->
 		<div class="space-y-4 rounded-lg border bg-card p-6">
 			<h3 class="border-b pb-2 text-lg font-semibold">Basic Information</h3>
@@ -494,25 +505,21 @@
 					<Label for="taskType">
 						Task Type <span class="text-destructive">*</span>
 					</Label>
-					<Select.Root type="single" bind:value={formData.taskTypeId}>
-						<Select.Trigger
-							id="taskType"
-							class={fieldErrors.taskTypeId ? 'border-destructive' : ''}
-						>
-							{selectedTaskType?.label ?? 'Select task type'}
-						</Select.Trigger>
-						<Select.Content>
-							{#if taskTypeOptions.length === 0}
-								<div class="p-4 text-center text-sm text-muted-foreground">
-									No task types available
-								</div>
-							{:else}
-								{#each taskTypeOptions as type}
-									<Select.Item value={type.value} label={type.label}>{type.label}</Select.Item>
-								{/each}
-							{/if}
-						</Select.Content>
-					</Select.Root>
+				<TaskTypeTagInput
+					bind:taskTypes
+					bind:selected={formData.taskTypeId}
+					placeholder="Select or create task type..."
+					disabled={loading}
+					onSelectedChange={(selected) => {
+						formData.taskTypeId = selected;
+						if (fieldErrors.taskTypeId) {
+							delete fieldErrors.taskTypeId;
+						}
+					}}
+					onCreate={(newTaskType) => {
+						console.log('Created new task type:', newTaskType);
+					}}
+				/>
 					{#if fieldErrors.taskTypeId}
 						<p class="text-sm text-destructive">{fieldErrors.taskTypeId}</p>
 					{/if}
@@ -702,6 +709,21 @@
 				</Button>
 			</div>
 		</div>
+
+		<!-- Hidden inputs for form submission (native HTML forms) -->
+		<input type="hidden" name="title" bind:value={formData.title} />
+		<input type="hidden" name="description" bind:value={formData.description} />
+		<input type="hidden" name="status" bind:value={formData.status} />
+		<input type="hidden" name="priority" bind:value={formData.priority} />
+		<input type="hidden" name="taskTypeId" bind:value={formData.taskTypeId} />
+		<input type="hidden" name="parentTaskId" bind:value={formData.parentTaskId} />
+		<input type="hidden" name="dueDate" bind:value={formData.dueDate} />
+		<input type="hidden" name="reminderTime" bind:value={formData.reminderTime} />
+		<input type="hidden" name="requiresManualReassignment" bind:value={formData.requiresManualReassignment} />
+		<!-- assigneeId derived from first assignee in array -->
+		{#if formData.assignees.length > 0}
+			<input type="hidden" name="assigneeId" value={formData.assignees[0]} />
+		{/if}
 	</form>
 </div>
 

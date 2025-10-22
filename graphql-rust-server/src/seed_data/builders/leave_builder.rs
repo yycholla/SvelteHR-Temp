@@ -2,23 +2,26 @@
 //!
 //! Seeds leave types, leave balances, and leave requests
 
-use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
+use chrono::Datelike;
+use rust_decimal::Decimal;
+use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use uuid::Uuid;
 
-use crate::models::leave::leave_type;
+use crate::models::{leave_balance, leave_request, leave_type};
 use crate::seed_data::audit::log_seed_creation;
+use crate::seed_data::config::EntityType;
 use crate::seed_data::context::{EntitySeedResult, SeedContext};
 use crate::seed_data::Result;
 
 /// Fixed leave types for the system
-const LEAVE_TYPES: &[(&str, f64, &str)] = &[
-    ("Annual Leave", 20.0, "Standard annual vacation days"),
-    ("Sick Leave", 10.0, "Medical and health-related absences"),
-    ("Personal Leave", 5.0, "Personal days for family or personal matters"),
-    ("Parental Leave", 60.0, "Maternity and paternity leave"),
-    ("Bereavement Leave", 3.0, "Time off for family bereavement"),
-    ("Public Holiday", 0.0, "Statutory public holidays"),
-    ("Unpaid Leave", 0.0, "Leave without pay"),
+const LEAVE_TYPES: &[(&str, i32, &str, bool)] = &[
+    ("Annual Leave", 20, "Standard annual vacation days", true),
+    ("Sick Leave", 10, "Medical and health-related absences", true),
+    ("Personal Leave", 5, "Personal days for family or personal matters", true),
+    ("Parental Leave", 60, "Maternity and paternity leave", true),
+    ("Bereavement Leave", 3, "Time off for family bereavement", true),
+    ("Public Holiday", 0, "Statutory public holidays", true),
+    ("Unpaid Leave", 0, "Leave without pay", false),
 ];
 
 /// Seed leave types into the database
@@ -30,7 +33,7 @@ pub async fn seed_leave_types(
 ) -> Result<EntitySeedResult> {
     let mut result = EntitySeedResult::new("leave_types");
 
-    for (name, default_days, description) in LEAVE_TYPES {
+    for (name, default_days, description, is_paid) in LEAVE_TYPES {
         // Check if leave type already exists (idempotency)
         let existing = leave_type::Entity::find()
             .filter(leave_type::Column::Name.eq(*name))
@@ -45,13 +48,18 @@ pub async fn seed_leave_types(
 
         // Create new leave type
         let leave_type_id = Uuid::new_v4();
+        let now = chrono::Utc::now();
         let new_leave_type = leave_type::ActiveModel {
             id: Set(leave_type_id),
             name: Set(name.to_string()),
-            default_days: Set(*default_days),
             description: Set(Some(description.to_string())),
-            is_active: Set(true),
-            ..Default::default()
+            default_days: Set(*default_days),
+            requires_approval: Set(true),
+            is_paid: Set(*is_paid),
+            color: Set(None),
+            created_at: Set(now),
+            updated_at: Set(now),
+            deleted_at: Set(None),
         };
 
         match new_leave_type.insert(db).await {
@@ -97,9 +105,9 @@ pub async fn seed_leave_balances(
         return Ok(result);
     }
 
-    // Get all active leave types
+    // Get all leave types (filter by deleted_at is_null)
     let leave_types = leave_type::Entity::find()
-        .filter(leave_type::Column::IsActive.eq(true))
+        .filter(leave_type::Column::DeletedAt.is_null())
         .all(db)
         .await?;
 
@@ -112,9 +120,9 @@ pub async fn seed_leave_balances(
     for user_model in &users {
         for lt in &leave_types {
             // Check if leave balance already exists (idempotency)
-            let existing = crate::models::leave::leave_balance::Entity::find()
-                .filter(crate::models::leave::leave_balance::Column::UserId.eq(user_model.id))
-                .filter(crate::models::leave::leave_balance::Column::LeaveTypeId.eq(lt.id))
+            let existing = leave_balance::Entity::find()
+                .filter(leave_balance::Column::EmployeeId.eq(user_model.id))
+                .filter(leave_balance::Column::LeaveTypeId.eq(lt.id))
                 .one(db)
                 .await?;
 
@@ -126,14 +134,14 @@ pub async fn seed_leave_balances(
             // Create new leave balance with default days
             let balance_id = Uuid::new_v4();
             let now = chrono::Utc::now();
-            let new_balance = crate::models::leave::leave_balance::ActiveModel {
+            let new_balance = leave_balance::ActiveModel {
                 id: Set(balance_id),
-                user_id: Set(user_model.id),
+                employee_id: Set(user_model.id),
                 leave_type_id: Set(lt.id),
-                total_days: Set(lt.default_days),
-                used_days: Set(0.0),
-                remaining_days: Set(lt.default_days),
                 year: Set(now.year() as i32),
+                total_days: Set(Decimal::from(lt.default_days)),
+                used_days: Set(Decimal::from(0)),
+                remaining_days: Set(Decimal::from(lt.default_days)),
                 created_at: Set(now),
                 updated_at: Set(now),
                 deleted_at: Set(None),
@@ -175,7 +183,7 @@ pub async fn seed_leave_requests(
     context: &SeedContext,
 ) -> Result<EntitySeedResult> {
     let mut result = EntitySeedResult::new("leave_requests");
-    let target_count = context.config.get_target_count("leave_requests").min(50);
+    let target_count = context.config.get_target_count(EntityType::LeaveRequests).min(50);
 
     // Get all active users
     let users = crate::models::user::Entity::find()
@@ -189,9 +197,9 @@ pub async fn seed_leave_requests(
         return Ok(result);
     }
 
-    // Get all active leave types
+    // Get all leave types (filter by deleted_at is_null)
     let leave_types = leave_type::Entity::find()
-        .filter(leave_type::Column::IsActive.eq(true))
+        .filter(leave_type::Column::DeletedAt.is_null())
         .all(db)
         .await?;
 
@@ -227,20 +235,33 @@ pub async fn seed_leave_requests(
 
         // Create leave request
         let request_id = Uuid::new_v4();
-        let new_request = crate::models::leave::leave_request::ActiveModel {
+
+        // Convert DateTime to NaiveDate for start_date and end_date
+        let start_naive = start_date.date_naive();
+        let end_naive = end_date.date_naive();
+
+        // Convert days to Decimal
+        let days_decimal = Decimal::from(duration_days);
+
+        // Set manager comments for rejected requests
+        let manager_comments = if status == "rejected" {
+            Some("Seed data rejection comment".to_string())
+        } else {
+            None
+        };
+
+        let new_request = leave_request::ActiveModel {
             id: Set(request_id),
-            user_id: Set(user_model.id),
+            employee_id: Set(user_model.id),
             leave_type_id: Set(leave_type_model.id),
-            start_date: Set(start_date),
-            end_date: Set(end_date),
-            total_days: Set(duration_days as f64),
+            start_date: Set(start_naive),
+            end_date: Set(end_naive),
+            days_requested: Set(days_decimal),
             status: Set(status.to_string()),
             reason: Set(Some(format!("Seed data leave request {}", i + 1))),
-            notes: Set(None),
-            approved_by: Set(user_model.manager_id),
+            manager_id: Set(user_model.manager_id),
             approved_at: Set(if status == "approved" { Some(start_date - chrono::Duration::days(7)) } else { None }),
-            rejected_at: Set(if status == "rejected" { Some(start_date - chrono::Duration::days(7)) } else { None }),
-            cancelled_at: Set(if status == "cancelled" { Some(start_date - chrono::Duration::days(1)) } else { None }),
+            manager_comments: Set(manager_comments),
             created_at: Set(start_date - chrono::Duration::days(14)),
             updated_at: Set(now),
             deleted_at: Set(None),

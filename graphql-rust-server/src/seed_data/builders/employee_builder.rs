@@ -3,11 +3,11 @@
 //! Seeds employee-related entities: skills, certifications, emergency contacts, addresses
 
 use chrono::Utc;
-use fake::faker::address::en::{CityName, StateAbbr, StreetAddress, ZipCode};
+use fake::faker::address::en::{CityName, StateAbbr, ZipCode};
 use fake::faker::name::en::{FirstName, LastName};
 use fake::faker::phone_number::en::PhoneNumber;
 use fake::Fake;
-use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
+use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use uuid::Uuid;
 
 use crate::models::employee::{
@@ -104,7 +104,7 @@ pub async fn seed_employee_skills(
 
             // Check if skill already exists (idempotency)
             let existing = employee_skill::Entity::find()
-                .filter(employee_skill::Column::UserId.eq(user_model.id))
+                .filter(employee_skill::Column::EmployeeId.eq(user_model.id))
                 .filter(employee_skill::Column::SkillName.eq(skill_name))
                 .one(db)
                 .await?;
@@ -119,10 +119,10 @@ pub async fn seed_employee_skills(
             let now = Utc::now();
             let new_skill = employee_skill::ActiveModel {
                 id: Set(skill_id),
-                user_id: Set(user_model.id),
+                employee_id: Set(user_model.id),
                 skill_name: Set(skill_name.to_string()),
                 proficiency_level: Set(proficiency.to_string()),
-                years_of_experience: Set(Some(1 + (rand::random::<i32>() % 10))), // 1-10 years
+                years_experience: Set(Some(1 + (rand::random::<i32>() % 10))), // 1-10 years
                 created_at: Set(now),
                 updated_at: Set(now),
                 deleted_at: Set(None),
@@ -193,7 +193,7 @@ pub async fn seed_employee_certifications(
 
             // Check if certification already exists (idempotency)
             let existing = employee_certification::Entity::find()
-                .filter(employee_certification::Column::UserId.eq(user_model.id))
+                .filter(employee_certification::Column::EmployeeId.eq(user_model.id))
                 .filter(employee_certification::Column::CertificationName.eq(cert_name))
                 .one(db)
                 .await?;
@@ -211,12 +211,12 @@ pub async fn seed_employee_certifications(
 
             let new_cert = employee_certification::ActiveModel {
                 id: Set(cert_id),
-                user_id: Set(user_model.id),
+                employee_id: Set(user_model.id),
                 certification_name: Set(cert_name.to_string()),
                 issuing_organization: Set(issuing_org.to_string()),
                 issue_date: Set(issue_date),
                 expiration_date: Set(Some(expiration_date)),
-                credential_id: Set(Some(format!("CERT-{}", Uuid::new_v4()))),
+                certification_number: Set(Some(format!("CERT-{}", Uuid::new_v4()))),
                 created_at: Set(now),
                 updated_at: Set(now),
                 deleted_at: Set(None),
@@ -280,7 +280,7 @@ pub async fn seed_emergency_contacts(
             // Check if emergency contact already exists (idempotency)
             // Use combination of user_id and contact_name
             let existing = emergency_contact::Entity::find()
-                .filter(emergency_contact::Column::UserId.eq(user_model.id))
+                .filter(emergency_contact::Column::EmployeeId.eq(user_model.id))
                 .filter(emergency_contact::Column::Name.eq(&contact_name))
                 .one(db)
                 .await?;
@@ -295,11 +295,10 @@ pub async fn seed_emergency_contacts(
             let now = Utc::now();
             let new_contact = emergency_contact::ActiveModel {
                 id: Set(contact_id),
-                user_id: Set(user_model.id),
+                employee_id: Set(user_model.id),
                 name: Set(contact_name.clone()),
-                relationship: Set(relationship.to_string()),
+                relationship: Set(Some(relationship.to_string())),
                 phone_number: Set(phone.clone()),
-                alternate_phone: Set(None),
                 email: Set(Some(format!(
                     "{}@example.com",
                     contact_name.replace(" ", ".").to_lowercase()
@@ -307,7 +306,6 @@ pub async fn seed_emergency_contacts(
                 is_primary: Set(i == 0), // First contact is primary
                 created_at: Set(now),
                 updated_at: Set(now),
-                deleted_at: Set(None),
             };
 
             match new_contact.insert(db).await {
@@ -369,7 +367,12 @@ pub async fn seed_user_addresses(
         }
 
         // Generate realistic address
-        let street: String = StreetAddress().fake();
+        let street_number = 100 + (rand::random::<u32>() % 9900);
+        let street_names = vec!["Main", "Oak", "Elm", "Maple", "Cedar", "Pine", "Washington", "Park"];
+        let street_types = vec!["St", "Ave", "Blvd", "Rd", "Dr", "Ln"];
+        let street_name = street_names[rand::random::<usize>() % street_names.len()];
+        let street_type = street_types[rand::random::<usize>() % street_types.len()];
+        let street = format!("{} {} {}", street_number, street_name, street_type);
         let city: String = CityName().fake();
         let state: String = StateAbbr().fake();
         let zip: String = ZipCode().fake();
@@ -380,13 +383,16 @@ pub async fn seed_user_addresses(
         let new_address = user_address::ActiveModel {
             id: Set(address_id),
             user_id: Set(user_model.id),
+            address_type: Set("home".to_string()),
+            is_primary: Set(true),
             address_line1: Set(street),
             address_line2: Set(None),
             city: Set(city),
             state_province: Set(state),
             postal_code: Set(zip),
             country: Set("USA".to_string()),
-            is_primary: Set(true),
+            latitude: Set(None),
+            longitude: Set(None),
             created_at: Set(now),
             updated_at: Set(now),
             deleted_at: Set(None),

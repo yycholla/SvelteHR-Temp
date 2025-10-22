@@ -14,13 +14,13 @@ import type { ActivityAction, ResourceType } from '$lib/graphql/types';
 export const load: PageServerLoad = async (event) => {
 	const { locals, url, cookies } = event;
 
-	// RBAC: Only system_admin, Admin, and HR Manager can access audit logs
+	// RBAC: Only system_admin, admin, and hr_manager can access audit logs
 	if (!locals.user) {
 		throw redirect(303, `/login?redirectTo=${encodeURIComponent(url.pathname)}`);
 	}
 
-	const userRole = locals.user.role || 'Employee';
-	const allowedRoles = ['system_admin', 'Admin', 'HR Manager'];
+	const userRole = locals.user.role || 'employee';
+	const allowedRoles = ['system_admin', 'admin', 'hr_manager'];
 
 	if (!allowedRoles.includes(userRole)) {
 		throw error(403, {
@@ -174,7 +174,7 @@ export const load: PageServerLoad = async (event) => {
 			userContext: {
 				userId: locals.user.id,
 				role: userRole,
-				departmentId: locals.user.department_id || null
+				departmentId: (locals.user as any).department_id || null
 			}
 		};
 	} catch (err) {

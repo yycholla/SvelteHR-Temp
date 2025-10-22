@@ -2,10 +2,10 @@
 //!
 //! Seeds the 4 fixed roles: Admin, HR Manager, Manager, Employee
 
-use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
+use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use uuid::Uuid;
 
-use crate::models::rbac::role;
+use crate::models::role;
 use crate::seed_data::audit::log_seed_creation;
 use crate::seed_data::context::{EntitySeedResult, SeedContext};
 use crate::seed_data::Result;

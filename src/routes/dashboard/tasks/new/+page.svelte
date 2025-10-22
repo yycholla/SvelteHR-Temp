@@ -44,14 +44,6 @@
 		}
 	}
 
-	// Handle form submit
-	async function handleSubmit(formData: any) {
-		// TaskForm will handle the actual submission via native form action
-		// This is called after validation passes
-		console.log('[Task Create] Form validated, submitting:', formData);
-		return true;
-	}
-
 	// Prepare initial values if creating a subtask
 	let initialValues = $derived(() => {
 		if (data.parentTask && data.parentTaskId) {
@@ -138,13 +130,10 @@
 		<Card.Content>
 			<TaskForm
 				assignees={data.assignees}
-			departments={data.departments}
+				departments={data.departments}
 				taskTypes={data.taskTypes}
 				parentTasks={data.parentTasks}
-				mode="create"
-				onSubmit={handleSubmit}
 				onCancel={handleCancel}
-				submitLabel="Create Task"
 				initialValues={initialValues()}
 			/>
 		</Card.Content>

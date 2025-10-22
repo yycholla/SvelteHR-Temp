@@ -4,10 +4,10 @@
 import type { User } from './user';
 
 // Enumerated Types
-// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
-// Database stores: 'To Do', 'In Progress', 'Medium', etc.
-// GraphQL returns: 'TO_DO', 'IN_PROGRESS', 'MEDIUM', etc.
-export type TaskStatus = 'TO_DO' | 'IN_PROGRESS' | 'BLOCKED' | 'DEFERRED' | 'COMPLETED';
+// NOTE: Rust async-graphql returns enum values in PascalCase GraphQL format
+// Rust backend TaskStatus enum: Todo, InProgress, Blocked, Review, Done, Cancelled
+// GraphQL representation: TODO, IN_PROGRESS, BLOCKED, REVIEW, DONE, CANCELLED
+export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'REVIEW' | 'DONE' | 'CANCELLED';
 
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
@@ -58,10 +58,14 @@ export interface Task {
 export interface TaskType {
 	id: string;
 	name: string;
-	description: string | null;
-	isSystem: boolean;
+	description?: string | null;
+	defaultPriority?: string | null;
+	colorCode?: string | null;
+	isActive: boolean;
+	isSystem?: boolean;
 	createdAt: Date;
-	createdBy: string | null;
+	updatedAt?: Date;
+	createdBy?: string | null;
 }
 
 // Task Audit Entry Interface
@@ -164,4 +168,14 @@ export interface CreateLinkedResourceInput {
 export interface CreateTaskTypeInput {
 	name: string;
 	description?: string;
+	defaultPriority?: string;
+	colorCode?: string;
+}
+
+export interface UpdateTaskTypeInput {
+	name?: string;
+	description?: string;
+	defaultPriority?: string;
+	colorCode?: string;
+	isActive?: boolean;
 }
