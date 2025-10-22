@@ -164,6 +164,7 @@ sea-orm-codegen = "1.1.17"
 
 [[bench]]
 name = "resolver_benchmarks"
+path = "benches/resolver_benchmarks.rs"
 harness = false
 
 [lib]
