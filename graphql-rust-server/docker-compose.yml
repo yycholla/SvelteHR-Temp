@@ -41,6 +41,11 @@ services:
       - CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
       - JWT_SECRET=dev-jwt-secret-change-in-production
       - SERVICE_AUTH_KEY=dev-service-key-change-in-production-use-strong-random-key
+      # Seed Data Configuration
+      - ENABLE_SEED_DATA=true  # Enable seed data for development
+      - SEED_VOLUME_TARGET=small  # small | medium | large
+      - SEED_ENABLE_AUDIT=true
+      - ENVIRONMENT=development
     networks:
       - sveltehr-dev-network
     depends_on:

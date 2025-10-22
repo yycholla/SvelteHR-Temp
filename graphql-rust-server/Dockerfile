@@ -34,9 +34,10 @@ RUN cargo chef cook --release --recipe-path recipe.json
 # Copy actual source code
 COPY . .
 
-# Build both the application and migration binaries (only rebuilds if source changed)
+# Build application, migration, and seed-data binaries (only rebuilds if source changed)
 RUN cargo build --release --bin hr-graphql-server && \
-    cargo build --release --bin migration
+    cargo build --release --bin migration && \
+    cargo build --release --bin seed-data
 
 # Runtime stage
 FROM debian:bookworm-slim
@@ -54,6 +55,7 @@ WORKDIR /app
 # Copy binaries from builder
 COPY --from=builder /app/target/release/hr-graphql-server /app/
 COPY --from=builder /app/target/release/migration /app/
+COPY --from=builder /app/target/release/seed-data /app/
 
 # Copy startup script and set permissions before switching to appuser
 COPY docker-entrypoint.sh /app/
