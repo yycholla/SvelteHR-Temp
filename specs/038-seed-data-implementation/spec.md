@@ -5,6 +5,12 @@
 **Status**: Draft
 **Input**: User description: "I would like to create comprehensive seed data for our development server that adds data to our database when starting our containers. This should add data into each table in order to allow better testing on our frontend with real data. This data should be added through proper and idiomatic Sea-orm channels in our rust code in such a way that it interacts with our audit logging system in order to test that functionality as well."
 
+## Clarifications
+
+### Session 2025-10-22
+
+- Q: How should the system handle re-running the seed process when data already exists? → A: Skip existing - Check for existing records by unique identifiers and skip insertion if found (preserves any manual changes)
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Fresh Development Environment Setup (Priority: P1)
@@ -68,9 +74,9 @@ As a DevOps engineer, I need the seed data process to be idempotent and repeatab
 
 **Acceptance Scenarios**:
 
-1. **Given** seed data has already been loaded, **When** the seed process runs again, **Then** it either skips existing data or cleans and reseeds without errors
+1. **Given** seed data has already been loaded, **When** the seed process runs again, **Then** it skips existing records by checking unique identifiers and only inserts missing records
 2. **Given** a developer wants to reset their environment, **When** they trigger the seed process with a reset flag, **Then** all existing data is cleared and fresh seed data is loaded
-3. **Given** the seed process is running, **When** it encounters existing records, **Then** it provides clear logging about what actions it's taking (skip, update, or replace)
+3. **Given** the seed process is running, **When** it encounters existing records, **Then** it provides clear logging indicating records were skipped due to existing unique identifiers
 4. **Given** seed data needs updating, **When** the seed script is modified, **Then** developers can re-run it to get updated test data without manual cleanup
 
 ---
@@ -112,7 +118,7 @@ As a product manager, I need seed data that represents realistic business scenar
 - **FR-004**: System MUST create seed data in the correct dependency order to satisfy foreign key constraints
 - **FR-005**: System MUST provide seed data for users with different roles (Admin, HR Manager, Manager, Employee) to enable RBAC testing
 - **FR-006**: System MUST create realistic relationships between entities (employees assigned to departments, managers assigned to teams, etc.)
-- **FR-007**: Seed data process MUST be idempotent - running it multiple times should not cause errors or duplicate data
+- **FR-007**: Seed data process MUST be idempotent using skip-existing strategy - check for existing records by unique identifiers (e.g., email for users, name for departments) and skip insertion if found, preserving any manual changes developers may have made
 - **FR-008**: System MUST log clear information about the seeding process (number of records created, any errors, completion status)
 - **FR-009**: Seed data MUST include examples of different entity states where applicable (active/inactive, pending/approved, etc.)
 - **FR-010**: System MUST use proper SeaORM channels (ActiveModel, Entity operations) rather than raw SQL to ensure consistency with application code
