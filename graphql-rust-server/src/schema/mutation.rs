@@ -1,7 +1,8 @@
 use async_graphql::{Context, Object, Result, SimpleObject};
 use axum_login::{AuthSession, AuthnBackend};
+use base64;
 use chrono::Utc;
-use sea_orm::{DatabaseConnection, EntityTrait, Set, ActiveModelTrait, QueryFilter, ColumnTrait};
+use sea_orm::{DatabaseConnection, EntityTrait, Set, ActiveModelTrait, QueryFilter, ColumnTrait, TransactionTrait};
 use sea_orm::prelude::Expr;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -10,6 +11,7 @@ use crate::{
     auth::{context::UserContext, AuthBackend, Credentials, AuthUser},
     database::get_db_from_context,
     error::AppError,
+    schema::mutations::{UserMutations, DepartmentMutations, TaskMutations},
     models::{
         generated::prelude::*,
         task_audit_entry,
@@ -39,7 +41,7 @@ use crate::{
         CreateDocumentInput, CreateDocumentVersionInput, CreateEncryptedFileStorageInput, Document,
         DocumentAccessLevel, DocumentAccessLog, DocumentAccessType, DocumentAssignment,
         DocumentCategory, DocumentVersion, EncryptedFileStorage, UpdateDocumentCategoryInput,
-        UpdateDocumentInput,
+        UpdateDocumentInput, UploadDocumentInput,
         // Time domain
         AttendanceRecord, AttendanceStatus, CreateAttendanceRecordInput, CreateTimeOffPolicyInput,
         TimeOffPolicy, UpdateAttendanceRecordInput, UpdateTimeOffPolicyInput,
@@ -331,308 +333,9 @@ impl MutationRoot {
         Ok(result.rows_affected > 0)
     }
 
-    // ============================================================
-    // User Mutations
-    // ============================================================
 
-    /// Create a new user
-    async fn create_user(&self, ctx: &Context<'_>, input: CreateUserInput) -> Result<User> {
-        let db = get_db_from_context(ctx)?;
 
-        // Generate a temporary secure password hash
-        // Users should reset their password on first login
-        let temp_password = format!("TempPass{}", uuid::Uuid::new_v4().to_string()[..8].to_uppercase());
-        let password_hash = bcrypt::hash(&temp_password, bcrypt::DEFAULT_COST)
-            .map_err(|e| AppError::Internal(format!("Failed to hash password: {}", e)))?;
 
-        // Log the temporary password (in production, this should be sent via email)
-        tracing::info!("Created user {} with temporary password: {}", input.email, temp_password);
-
-        // Create SeaORM active model
-        // Note: display_name and full_name are GENERATED columns in the database
-        // and must NOT be set explicitly - they are automatically computed from first_name + last_name
-        let user = crate::models::user::ActiveModel {
-            email: Set(input.email.clone()),
-            password_hash: Set(password_hash),
-            first_name: Set(input.first_name.clone()),
-            last_name: Set(input.last_name.clone()),
-            // display_name: NotSet - generated column, don't set
-            // full_name: NotSet - generated column, don't set
-            role: Set("hr_employee".to_string()), // Default role
-            phone_number: Set(input.phone.clone()),
-            job_title: Set(input.job_title.clone()),
-            department_id: Set(input.department_id),
-            manager_id: Set(input.manager_id),
-            hire_date: Set(input.hire_date),
-            status: Set(Some(input.status.as_str().to_string())),
-            is_active: Set(true),
-            ..Default::default()
-        };
-
-        let user = user.insert(&db).await?;
-
-        // Convert SeaORM model to legacy User struct for compatibility
-        let user = User {
-            id: user.id,
-            email: user.email,
-            password_hash: user.password_hash,
-            first_name: user.first_name,
-            last_name: user.last_name,
-            display_name: user.display_name,
-            full_name: user.full_name,
-            role: user.role,
-            phone_number: user.phone_number,
-            alternate_phone: user.alternate_phone,
-            job_title: user.job_title,
-            status: user.status,
-            department_id: user.department_id,
-            manager_id: user.manager_id,
-            hire_date: user.hire_date,
-            termination_date: user.termination_date,
-            is_active: user.is_active,
-            failed_login_attempts: user.failed_login_attempts,
-            locked_until: user.locked_until,
-            last_login: user.last_login,
-            theme_preference: user.theme_preference,
-            created_at: user.created_at,
-            updated_at: user.updated_at,
-            deleted_at: user.deleted_at,
-        };
-
-        Ok(user)
-    }
-
-    /// Update an existing user
-    async fn update_user(
-        &self,
-        ctx: &Context<'_>,
-        id: Uuid,
-        input: UpdateUserInput,
-    ) -> Result<User> {
-        let db = get_db_from_context(ctx)?;
-
-        // Find existing user
-        let existing_user = crate::models::user::Entity::find_by_id(id)
-            .filter(crate::models::user::Column::DeletedAt.is_null())
-            .one(&db)
-            .await?
-            .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
-
-        // Build active model with updates
-        let mut user: crate::models::user::ActiveModel = existing_user.into();
-
-        if let Some(email) = input.email {
-            user.email = Set(email);
-        }
-
-        if let Some(first_name) = &input.first_name {
-            user.first_name = Set(first_name.clone());
-        }
-
-        if let Some(last_name) = &input.last_name {
-            user.last_name = Set(last_name.clone());
-        }
-
-        // Note: display_name and full_name are GENERATED columns in the database
-        // They are automatically computed from first_name + last_name, so we don't set them
-
-        if let Some(phone) = input.phone {
-            user.phone_number = Set(Some(phone));
-        }
-
-        if let Some(department_id) = input.department_id {
-            user.department_id = Set(Some(department_id));
-        }
-
-        if let Some(manager_id) = input.manager_id {
-            user.manager_id = Set(Some(manager_id));
-        }
-
-        if let Some(hire_date) = input.hire_date {
-            user.hire_date = Set(Some(hire_date));
-        }
-
-        if let Some(termination_date) = input.termination_date {
-            user.termination_date = Set(Some(termination_date));
-        }
-
-        if let Some(status) = input.status {
-            user.status = Set(Some(status.as_str().to_string()));
-        }
-
-        if let Some(theme_preference) = input.theme_preference {
-            user.theme_preference = Set(theme_preference);
-        }
-
-        // Update timestamp
-        user.updated_at = Set(Utc::now());
-
-        // Save changes
-        let updated_user = user.update(&db).await?;
-
-        // Convert to legacy User struct for compatibility
-        let user = User {
-            id: updated_user.id,
-            email: updated_user.email,
-            password_hash: updated_user.password_hash,
-            first_name: updated_user.first_name,
-            last_name: updated_user.last_name,
-            display_name: updated_user.display_name,
-            full_name: updated_user.full_name,
-            role: updated_user.role,
-            phone_number: updated_user.phone_number,
-            alternate_phone: updated_user.alternate_phone,
-            job_title: updated_user.job_title,
-            status: updated_user.status,
-            department_id: updated_user.department_id,
-            manager_id: updated_user.manager_id,
-            hire_date: updated_user.hire_date,
-            termination_date: updated_user.termination_date,
-            is_active: updated_user.is_active,
-            failed_login_attempts: updated_user.failed_login_attempts,
-            locked_until: updated_user.locked_until,
-            last_login: updated_user.last_login,
-            theme_preference: updated_user.theme_preference,
-            created_at: updated_user.created_at,
-            updated_at: updated_user.updated_at,
-            deleted_at: updated_user.deleted_at,
-        };
-
-        Ok(user)
-    }
-
-    /// Soft delete a user (sets deleted_at timestamp)
-    async fn delete_user(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let db = get_db_from_context(ctx)?;
-
-        // Find the user first to ensure it exists
-        let user = crate::models::user::Entity::find_by_id(id)
-            .filter(crate::models::user::Column::DeletedAt.is_null())
-            .one(&db)
-            .await?;
-
-        if user.is_none() {
-            return Ok(false);
-        }
-
-        // Soft delete by setting deleted_at
-        let mut user: crate::models::user::ActiveModel = user.unwrap().into();
-        user.deleted_at = Set(Some(Utc::now()));
-
-        user.update(&db).await?;
-
-        Ok(true)
-    }
-
-    // ============================================================
-    // Department Mutations
-    // ============================================================
-
-    /// Create a new department
-    async fn create_department(
-        &self,
-        ctx: &Context<'_>,
-        input: CreateDepartmentInput,
-    ) -> Result<Department> {
-        let db = get_db_from_context(ctx)?;
-
-        let department = crate::models::department::ActiveModel {
-            name: Set(input.name.clone()),
-            description: Set(input.description.clone()),
-            manager_id: Set(input.manager_id),
-            ..Default::default()
-        };
-
-        let department = department.insert(&db).await?;
-
-        // Convert SeaORM model to legacy Department struct for compatibility
-        let department = Department {
-            id: department.id,
-            name: department.name,
-            description: department.description,
-            parent_department_id: department.parent_department_id,
-            manager_id: department.manager_id,
-            created_at: department.created_at,
-            updated_at: department.updated_at,
-            deleted_at: department.deleted_at,
-        };
-
-        Ok(department)
-    }
-
-    /// Update an existing department
-    async fn update_department(
-        &self,
-        ctx: &Context<'_>,
-        id: Uuid,
-        input: UpdateDepartmentInput,
-    ) -> Result<Department> {
-        let db = get_db_from_context(ctx)?;
-
-        // Find existing department
-        let existing_dept = crate::models::department::Entity::find_by_id(id)
-            .one(&db)
-            .await?
-            .ok_or_else(|| AppError::NotFound("Department not found".to_string()))?;
-
-        // Build active model with updates
-        let mut dept: crate::models::department::ActiveModel = existing_dept.into();
-
-        if let Some(name) = input.name {
-            dept.name = Set(name);
-        }
-
-        if let Some(description) = input.description {
-            dept.description = Set(Some(description));
-        }
-
-        if let Some(manager_id) = input.manager_id {
-            dept.manager_id = Set(Some(manager_id));
-        }
-
-        // Update timestamp
-        dept.updated_at = Set(Utc::now());
-
-        // Save changes
-        let updated_dept = dept.update(&db).await?;
-
-        // Convert to legacy Department struct for compatibility
-        let department = Department {
-            id: updated_dept.id,
-            name: updated_dept.name,
-            description: updated_dept.description,
-            parent_department_id: updated_dept.parent_department_id,
-            manager_id: updated_dept.manager_id,
-            created_at: updated_dept.created_at,
-            updated_at: updated_dept.updated_at,
-            deleted_at: updated_dept.deleted_at,
-        };
-
-        Ok(department)
-    }
-
-    /// Soft delete a department (sets deleted_at timestamp)
-    async fn delete_department(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
-        let db = get_db_from_context(ctx)?;
-
-        // Find the department first to ensure it exists
-        let dept = crate::models::department::Entity::find_by_id(id)
-            .filter(crate::models::department::Column::DeletedAt.is_null())
-            .one(&db)
-            .await?;
-
-        if dept.is_none() {
-            return Ok(false);
-        }
-
-        // Soft delete by setting deleted_at
-        let mut dept: crate::models::department::ActiveModel = dept.unwrap().into();
-        dept.deleted_at = Set(Some(Utc::now()));
-
-        dept.update(&db).await?;
-
-        Ok(true)
-    }
 
     // ============================================================
     // Role Mutations
@@ -1546,51 +1249,7 @@ impl MutationRoot {
         Ok(true)
     }
 
-    // ============================================================
-    // Task Mutations
-    // ============================================================
 
-    /// Create a new task
-    async fn create_task(&self, ctx: &Context<'_>, input: CreateTaskInput) -> Result<Task> {
-        let db = get_db_from_context(ctx)?;
-
-        // Get creator ID from context
-        let creator_id = ctx
-            .data_opt::<UserContext>()
-            .map(|uc| uc.user_id)
-            .ok_or("User context not found - authentication required")?;
-
-        let task = crate::models::task::ActiveModel {
-            title: Set(input.title.clone()),
-            description: Set(input.description.clone()),
-            task_type_id: Set(input.task_type_id),
-            status: Set(input.status.unwrap_or(TaskStatus::Todo).as_str().to_string()),
-            priority: Set(input.priority.as_str().to_string()),
-            due_date: Set(input.due_date),
-            estimated_hours: Set(input.estimated_hours),
-            tags: Set(input.tags.clone()),
-            department_id: Set(input.department_id),
-            created_by: Set(creator_id),
-            assignee_id: Set(input.assignee_id),
-            parent_task_id: Set(input.parent_task_id),
-            requires_manual_reassignment: Set(Some(input.requires_manual_reassignment.unwrap_or(false))),
-            ..Default::default()
-        };
-
-        let task = task.insert(&db).await?;
-
-        // Create audit entry for task creation
-        let audit_entry = crate::models::task_audit_entry::ActiveModel {
-            task_id: Set(task.id),
-            user_id: Set(creator_id),
-            action: Set("created".to_string()),
-            new_value: Set(Some(serde_json::to_string(&task).unwrap_or_default())),
-            ..Default::default()
-        };
-        let _ = audit_entry.insert(&db).await;
-
-        Ok(task)
-    }
 
     /// Update an existing task
     async fn update_task(
@@ -4128,9 +3787,13 @@ impl MutationRoot {
         let db = get_db_from_context(ctx)?;
 
         let key = crate::models::system::encryption_key::ActiveModel {
-            key_name: Set(input.key_name.clone()),
-            algorithm: Set(input.algorithm.clone()),
-            active: Set(true),
+            key_name: Set(Some(input.key_name.clone())),
+            key_identifier: Set(input.key_name.clone()),
+            key_algorithm: Set(input.algorithm.clone()),
+            is_active: Set(true),
+            // TODO: Generate proper encrypted key data
+            encrypted_key_data: Set(vec![]),
+            created_for_user: Set(Uuid::new_v4()), // TODO: Get from session
             ..Default::default()
         };
 
@@ -4140,10 +3803,14 @@ impl MutationRoot {
         let key = EncryptionKey {
             id: key.id,
             key_name: key.key_name,
-            algorithm: key.algorithm,
+            encrypted_key: key.encrypted_key,
+            key_identifier: key.key_identifier,
+            encrypted_key_data: key.encrypted_key_data,
+            key_algorithm: key.key_algorithm,
+            created_for_user: key.created_for_user,
+            is_active: key.is_active,
             created_at: key.created_at,
             rotated_at: key.rotated_at,
-            active: key.active,
         };
 
         Ok(key)
@@ -4779,5 +4446,106 @@ impl MutationRoot {
         } else {
             Ok(false)
         }
+    }
+
+    /// Upload a document with encrypted data and create assignments
+    async fn upload_document(
+        &self,
+        ctx: &Context<'_>,
+        input: UploadDocumentInput,
+    ) -> Result<crate::models::documents::document::Model> {
+        let db = get_db_from_context(ctx)?;
+        let auth_session = ctx.data::<AuthSession<crate::auth::AuthBackend>>()?;
+        let user = auth_session.user.as_ref().ok_or_else(|| AppError::Authentication("Not authenticated".to_string()))?;
+
+        // Start transaction for atomic operation
+        let txn = db.begin().await?;
+
+        // Generate storage path
+        let storage_path = format!("{}/{}", user.id, uuid::Uuid::new_v4());
+
+        // Decode base64 encrypted data
+        let encrypted_data = base64::decode(&input.encrypted_data)
+            .map_err(|_| AppError::Validation("Invalid base64 encrypted data".to_string()))?;
+
+        // Prepend IV to encrypted data (standard AES-GCM practice)
+        let mut file_data = input.iv.clone();
+        file_data.extend_from_slice(&encrypted_data);
+
+        // Create document record
+        let document = crate::models::documents::document::ActiveModel {
+            id: Set(uuid::Uuid::new_v4()),
+            title: Set(input.filename.clone()),
+            description: Set(None),
+            category_id: Set(None), // TODO: Map category string to ID
+            uploader_id: Set(user.id),
+            file_path: Set(storage_path.clone()),
+            file_size: Set(input.file_size_bytes),
+            mime_type: Set(format!("application/{}", input.file_type.to_lowercase())),
+            access_level: Set(input.sensitivity_level.unwrap_or_else(|| "Internal".to_string())),
+            is_encrypted: Set(true),
+            expiry_date: Set(input.expiration_date),
+            version_number: Set(1),
+            ..Default::default()
+        };
+
+        let document = document.insert(&txn).await?;
+
+        // Store encrypted file data
+        let file_storage = crate::models::documents::encrypted_file_storage::ActiveModel {
+            id: Set(uuid::Uuid::new_v4()),
+            document_id: Set(document.id),
+            encryption_key_id: Set(input.encryption_key_id),
+            created_at: Set(Utc::now()),
+        };
+
+        file_storage.insert(&txn).await?;
+
+        // Create assignments if specified
+        if let Some(employee_ids) = &input.assign_to_employees {
+            for employee_id in employee_ids {
+                let assignment = crate::models::documents::document_assignment::ActiveModel {
+                    id: Set(uuid::Uuid::new_v4()),
+                    document_id: Set(document.id),
+                    user_id: Set(Some(*employee_id)),
+                    department_id: Set(None),
+                    access_level: Set("read".to_string()),
+                    assigned_by_id: Set(user.id),
+                    assigned_at: Set(Utc::now()),
+                };
+                assignment.insert(&txn).await?;
+            }
+        }
+
+        // Log upload in audit trail
+        let audit_log = crate::models::documents::document_access_log::ActiveModel {
+            id: Set(uuid::Uuid::new_v4()),
+            document_id: Set(document.id),
+            user_id: Set(user.id),
+            access_type: Set("upload".to_string()),
+            accessed_at: Set(Utc::now()),
+            ip_address: Set(None), // TODO: Get from request
+        };
+        audit_log.insert(&txn).await?;
+
+        // Commit transaction
+        txn.commit().await?;
+
+        Ok(document)
+    }
+
+    /// User mutations
+    async fn users(&self) -> UserMutations {
+        UserMutations
+    }
+
+    /// Department mutations
+    async fn departments(&self) -> DepartmentMutations {
+        DepartmentMutations
+    }
+
+    /// Task mutations
+    async fn tasks(&self) -> TaskMutations {
+        TaskMutations
     }
 }

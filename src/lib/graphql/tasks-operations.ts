@@ -407,7 +407,7 @@ export function validateTaskInput(input: {
  * Helper: Check if task is overdue
  */
 export function isTaskOverdue(task: Task): boolean {
-	if (!task.dueDate || task.status === 'COMPLETED') {
+	if (!task.dueDate || task.status === 'DONE') {
 		return false;
 	}
 	const dueDate = new Date(task.dueDate);
@@ -523,10 +523,7 @@ export class TasksOperations {
 	/**
 	 * Get single task by ID
 	 */
-	async getTask(params: {
-		taskId: string;
-		userCredentials: UserCredentials;
-	}): Promise<Task> {
+	async getTask(params: { taskId: string; userCredentials: UserCredentials }): Promise<Task> {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
@@ -732,10 +729,7 @@ export class TasksOperations {
 	 * Delete task
 	 * Returns: Boolean indicating success
 	 */
-	async deleteTask(params: {
-		taskId: string;
-		userCredentials: UserCredentials;
-	}): Promise<boolean> {
+	async deleteTask(params: { taskId: string; userCredentials: UserCredentials }): Promise<boolean> {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 

@@ -97,6 +97,35 @@ pub struct CreateDocumentInput {
     pub version_number: Option<i32>,
 }
 
+/// Input for uploading a document with encrypted data
+#[derive(Debug, Clone, InputObject)]
+pub struct UploadDocumentInput {
+    #[graphql(name = "filename")]
+    pub filename: String,
+    #[graphql(name = "fileType")]
+    pub file_type: String,
+    #[graphql(name = "fileSizeBytes")]
+    pub file_size_bytes: i64,
+    #[graphql(name = "encryptedData")]
+    pub encrypted_data: String, // Base64 encoded
+    #[graphql(name = "encryptionKeyId")]
+    pub encryption_key_id: Uuid,
+    #[graphql(name = "iv")]
+    pub iv: Vec<u8>, // Initialization vector
+    #[graphql(name = "category")]
+    pub category: Option<String>,
+    #[graphql(name = "sensitivityLevel")]
+    pub sensitivity_level: Option<String>,
+    #[graphql(name = "expirationDate")]
+    pub expiration_date: Option<DateTime<Utc>>,
+    #[graphql(name = "metadataTags")]
+    pub metadata_tags: Option<serde_json::Value>,
+    #[graphql(name = "assignToEmployees")]
+    pub assign_to_employees: Option<Vec<Uuid>>,
+    #[graphql(name = "assignToDepartments")]
+    pub assign_to_departments: Option<Vec<Uuid>>,
+}
+
 /// Input for updating a document
 #[derive(Debug, Clone, InputObject)]
 pub struct UpdateDocumentInput {

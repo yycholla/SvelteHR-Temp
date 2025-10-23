@@ -2,5 +2,5 @@
 
 pub mod prelude;
 
-pub mod activity_logs;
 pub mod schema_migrations;
+pub mod sessions;

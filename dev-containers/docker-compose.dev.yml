@@ -82,6 +82,11 @@ services:
       # Set to 'true' and change RUST_LOG sea_orm=info for detailed SQL debugging
       SEA_ORM_LOG_QUERIES: false
       SEA_ORM_LOG_LEVEL: warn
+      # Seed Data Configuration - automatically populates development database
+      ENABLE_SEED_DATA: true
+      SEED_VOLUME_TARGET: small
+      SEED_ENABLE_AUDIT: true
+      ENVIRONMENT: development
     networks:
       - sveltehr-dev
     depends_on:

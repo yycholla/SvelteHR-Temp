@@ -25,13 +25,16 @@ use tower_sessions::{cookie::SameSite, Expiry, SessionManagerLayer};
 use crate::{
     auth::AuthBackend,
     database::create_db_connection,
-    handlers::{graphql_handler, graphql_playground, login_handler, logout_handler, me_handler, refresh_handler, sessions_handler},
+    dataloader::DataLoaderContext,
+    handlers::{graphql_handler, graphql_playground, login_handler, logout_handler, me_handler, refresh_handler, sessions_handler, AppState},
     middleware::{optional_session_auth_middleware, security_headers_middleware, session_auth_middleware, admin_session_auth_middleware},
+    schema::create_schema,
 };
 use hr_graphql_server::config::Config;
 
 mod auth;
 mod database;
+mod dataloader;
 mod error;
 mod handlers;
 mod middleware;
@@ -58,6 +61,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create database connection
     let db = create_db_connection(&database_url).await?;
     tracing::info!("Connected to database");
+
+    // Create GraphQL schema singleton
+    let schema = create_schema();
+    tracing::info!("GraphQL schema initialized");
+
+    // Create DataLoader context
+    let dataloaders = DataLoaderContext::new(db.clone());
+
+    // Create application state
+    let app_state = AppState {
+        db: db.clone(),
+        schema,
+        dataloaders,
+    };
 
     // Create SeaORM session store for persistent sessions
     let session_store = crate::auth::SeaOrmSessionStore::new(db.clone());
@@ -118,8 +135,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .layer(session_layer)
                 .layer(auth_layer)
         )
-        // Store database connection for handlers
-        .with_state(db.clone());
+        // Store application state for handlers
+        .with_state(app_state);
 
     // Start server
     let addr = format!("{}:{}", host, port)

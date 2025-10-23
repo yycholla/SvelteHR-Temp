@@ -1,7 +1,7 @@
 // Task System Types
 // Generated from data-model.md for Task System Expansion (028)
 
-import type { User } from './user';
+import type { User } from './index';
 
 // Enumerated Types
 // NOTE: Rust async-graphql returns enum values in PascalCase GraphQL format

@@ -2,7 +2,7 @@
 	// FileUploader component (Feature 024)
 	// Drag-and-drop file upload with client-side encryption
 
-	import { uploadDocument } from '$lib/services/documentService';
+	import { prepareDocumentUpload } from '$lib/services/documentService';
 	import { validateFileType, validateFileSize, MIME_TYPE_MAP } from '$lib/schemas/documentSchemas';
 	import type { DocumentMetadata, UploadProgress, UploadResult } from '$lib/types/document';
 
@@ -14,6 +14,7 @@
 		metadata: DocumentMetadata;
 		hasFile?: boolean;
 		fileName?: string | null;
+		action?: string; // Form action URL for server-side upload
 	}
 
 	let {
@@ -23,7 +24,8 @@
 		allowedTypes = ['PDF', 'JPEG', 'PNG', 'GIF', 'DOCX', 'XLSX', 'TXT', 'CSV'],
 		metadata = $bindable(),
 		hasFile = $bindable(false),
-		fileName = $bindable(null)
+		fileName = $bindable(null),
+		action = '?/upload' // Default to upload action
 	}: Props = $props();
 
 	// Svelte 5 runes state
@@ -132,24 +134,69 @@
 			// Update metadata with filename
 			metadata.filename = selectedFile.name;
 
-			// Upload with progress tracking
-			const result = await uploadDocument(
+			// Prepare document for upload (encrypt and get upload data)
+			const { encryptedData, uploadInput } = await prepareDocumentUpload(
 				selectedFile,
 				metadata,
-				(progress) => {
+				(progress: UploadProgress) => {
 					uploadProgress = progress;
 					isEncrypting = progress.stage === 'encrypting';
 				}
 			);
 
+			// Create form data for server action
+			const formData = new FormData();
+
+			// Add upload input fields
+			formData.append('filename', uploadInput.filename);
+			formData.append('fileType', uploadInput.fileType);
+			formData.append('fileSizeBytes', uploadInput.fileSizeBytes.toString());
+			formData.append('encryptionKeyId', uploadInput.encryptionKeyId);
+			formData.append('category', uploadInput.category);
+			formData.append('sensitivityLevel', uploadInput.sensitivityLevel);
+			if (uploadInput.expirationDate) {
+				formData.append('expirationDate', uploadInput.expirationDate);
+			}
+			formData.append('metadataTags', JSON.stringify(uploadInput.metadataTags));
+			formData.append('assignToEmployees', JSON.stringify(uploadInput.assignToEmployees));
+			formData.append('assignToDepartments', JSON.stringify(uploadInput.assignToDepartments));
+			formData.append('iv', JSON.stringify(uploadInput.iv));
+
+			// Add encrypted file as blob
+			const encryptedBlob = new Blob([encryptedData], { type: 'application/octet-stream' });
+			formData.append('encryptedFile', encryptedBlob, 'encrypted.bin');
+
+			// Submit to server action
+			uploadProgress = { stage: 'uploading', progress: 60 };
+			const response = await fetch(action, {
+				method: 'POST',
+				body: formData
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({ error: 'Upload failed' }));
+				throw new Error(errorData.error || 'Upload failed');
+			}
+
+			const result = await response.json();
+
+			if (result.type === 'error') {
+				throw new Error(result.error.message || 'Upload failed');
+			}
+
+			if (!result.success || !result.result) {
+				throw new Error('Invalid response from server');
+			}
+
 			// Success
-			onUpload(result);
+			uploadProgress = { stage: 'complete', progress: 100 };
+			onUpload(result.result);
 
 			// Reset
 			selectedFile = null;
 			uploadProgress = { stage: 'encrypting', progress: 0 };
 
-			return result;
+			return result.result;
 		} catch (error) {
 			console.error('Upload error:', error);
 			errorMessage = error instanceof Error ? error.message : 'Upload failed';
@@ -202,9 +249,7 @@
 					<div class="file-name">{selectedFile.name}</div>
 					<div class="file-size">{formatFileSize(selectedFile.size)}</div>
 				</div>
-				<button class="clear-button" onclick={clearFile} disabled={isUploading}>
-					✕
-				</button>
+				<button class="clear-button" onclick={clearFile} disabled={isUploading}> ✕ </button>
 			</div>
 		{:else}
 			<!-- Drop zone placeholder -->
@@ -216,7 +261,7 @@
 					Choose File
 					<input
 						type="file"
-						accept={allowedTypes.map(t => MIME_TYPE_MAP[t] || '').join(',')}
+						accept={allowedTypes.map((t) => MIME_TYPE_MAP[t] || '').join(',')}
 						onchange={handleFileSelect}
 						disabled={isUploading}
 					/>
@@ -235,12 +280,11 @@
 				<div class="progress-fill" style="width: {progressPercent}%"></div>
 			</div>
 			<div class="progress-text">
-				{progressMessage()} {progressPercent}%
+				{progressMessage()}
+				{progressPercent}%
 			</div>
 			{#if isEncrypting}
-				<div class="encryption-indicator">
-					🔒 Encrypting with AES-GCM-256...
-				</div>
+				<div class="encryption-indicator">🔒 Encrypting with AES-GCM-256...</div>
 			{/if}
 		</div>
 	{/if}
@@ -355,7 +399,7 @@
 		background: #3182ce;
 	}
 
-	.file-select-button input[type="file"] {
+	.file-select-button input[type='file'] {
 		display: none;
 	}
 

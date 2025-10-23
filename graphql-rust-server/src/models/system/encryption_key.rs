@@ -17,11 +17,18 @@ use crate::{database::get_db_from_context, error::AppError};
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
-    pub key_name: String,
-    pub algorithm: String,
+    // Old columns (nullable for backward compatibility)
+    pub key_name: Option<String>,
+    pub encrypted_key: Option<Vec<u8>>,
+    // New columns (required)
+    pub key_identifier: String,
+    pub encrypted_key_data: Vec<u8>,
+    pub key_algorithm: String,
+    pub created_for_user: Uuid,
+    // Common columns
+    pub is_active: bool,
     pub created_at: DateTime<Utc>,
     pub rotated_at: Option<DateTime<Utc>>,
-    pub active: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -33,11 +40,18 @@ impl ActiveModelBehavior for ActiveModel {}
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct EncryptionKey {
     pub id: Uuid,
-    pub key_name: String,
-    pub algorithm: String,
+    // Old columns (nullable)
+    pub key_name: Option<String>,
+    pub encrypted_key: Option<Vec<u8>>,
+    // New columns (required)
+    pub key_identifier: String,
+    pub encrypted_key_data: Vec<u8>,
+    pub key_algorithm: String,
+    pub created_for_user: Uuid,
+    // Common columns
+    pub is_active: bool,
     pub created_at: DateTime<Utc>,
     pub rotated_at: Option<DateTime<Utc>>,
-    pub active: bool,
 }
 
 /// Input for creating a new encryption key
@@ -56,12 +70,23 @@ impl Model {
     }
 
     #[graphql(name = "keyName")]
-    async fn key_name(&self) -> &str {
-        &self.key_name
+    async fn key_name(&self) -> Option<&str> {
+        self.key_name.as_deref()
     }
 
-    async fn algorithm(&self) -> &str {
-        &self.algorithm
+    #[graphql(name = "keyIdentifier")]
+    async fn key_identifier(&self) -> &str {
+        &self.key_identifier
+    }
+
+    #[graphql(name = "keyAlgorithm")]
+    async fn key_algorithm(&self) -> &str {
+        &self.key_algorithm
+    }
+
+    #[graphql(name = "isActive")]
+    async fn is_active(&self) -> bool {
+        self.is_active
     }
 
     #[graphql(name = "createdAt")]
@@ -72,9 +97,5 @@ impl Model {
     #[graphql(name = "rotatedAt")]
     async fn rotated_at(&self) -> Option<DateTime<Utc>> {
         self.rotated_at
-    }
-
-    async fn active(&self) -> bool {
-        self.active
     }
 }

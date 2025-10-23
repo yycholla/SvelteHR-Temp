@@ -96,7 +96,7 @@ pub use documents::{
     CreateDocumentInput, CreateDocumentVersionInput, CreateEncryptedFileStorageInput, Document,
     DocumentAccessLevel, DocumentAccessLog, DocumentAccessType, DocumentAssignment,
     DocumentCategory, DocumentVersion, EncryptedFileStorage, UpdateDocumentCategoryInput,
-    UpdateDocumentInput,
+    UpdateDocumentInput, UploadDocumentInput,
 };
 pub use time::{
     AttendanceRecord, AttendanceStatus, CreateAttendanceRecordInput, CreateTimeOffPolicyInput,

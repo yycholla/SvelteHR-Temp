@@ -362,11 +362,17 @@ impl UsersConnection {
 /// User creation input
 #[derive(Debug, Clone, InputObject)]
 pub struct CreateUserInput {
+    #[graphql(validator(email))]
     pub email: String,
+    #[graphql(validator(min_length = 1, max_length = 50))]
     pub first_name: String,
+    #[graphql(validator(min_length = 1, max_length = 50))]
     pub last_name: String,
+    #[graphql(validator(regex = r"^\+?[1-9]\d{1,14}$"))]
     pub phone: Option<String>,
+    #[graphql(validator(regex = r"^\+?[1-9]\d{1,14}$"))]
     pub alternate_phone: Option<String>,
+    #[graphql(validator(max_length = 100))]
     pub job_title: Option<String>,
     pub department_id: Option<Uuid>,
     pub manager_id: Option<Uuid>,
@@ -377,18 +383,24 @@ pub struct CreateUserInput {
 /// User update input
 #[derive(Debug, Clone, InputObject)]
 pub struct UpdateUserInput {
+    #[graphql(validator(email))]
     pub email: Option<String>,
+    #[graphql(validator(min_length = 1, max_length = 50))]
     pub first_name: Option<String>,
+    #[graphql(validator(min_length = 1, max_length = 50))]
     pub last_name: Option<String>,
+    #[graphql(validator(regex = r"^\+?[1-9]\d{1,14}$"))]
     pub phone: Option<String>,
+    #[graphql(validator(regex = r"^\+?[1-9]\d{1,14}$"))]
     pub alternate_phone: Option<String>,
+    #[graphql(validator(max_length = 100))]
     pub job_title: Option<String>,
     pub department_id: Option<Uuid>,
     pub manager_id: Option<Uuid>,
     pub hire_date: Option<DateTime<Utc>>,
     pub termination_date: Option<DateTime<Utc>>,
     pub status: Option<UserStatus>,
-    #[graphql(name = "themePreference")]
+    #[graphql(name = "themePreference", validator(max_length = 20))]
     pub theme_preference: Option<String>,
 }
 

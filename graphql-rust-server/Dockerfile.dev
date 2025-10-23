@@ -25,12 +25,14 @@ RUN cargo chef prepare --recipe-path recipe.json
 # Stage 3: Development builder with mold linker and cargo-watch
 FROM chef AS dev-builder
 
-# Install build dependencies including mold linker
+# Install build dependencies including mold linker and postgresql-client
 RUN apt-get update && apt-get install -y \
     pkg-config \
     libssl-dev \
     # Mold linker for significantly faster linking
     mold \
+    # PostgreSQL client for pg_isready (database readiness check)
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Install additional Rust components
@@ -49,19 +51,22 @@ RUN cargo chef cook --release --recipe-path recipe.json
 # Copy actual source code
 COPY . .
 
-# The container will run cargo-watch which monitors for file changes
-# and automatically recompiles. The target directory should be mounted
-# as a Docker volume (not bind-mounted) for optimal I/O performance.
+# Copy entrypoint script and make executable
+COPY docker-entrypoint-dev.sh /app/
+RUN chmod +x /app/docker-entrypoint-dev.sh
 
-# Default command: run cargo-watch with automatic restart on changes
-# Watches Rust files and Cargo.toml, ignores target directory
-# Runs the GraphQL server binary specifically (not the migration CLI)
-CMD ["cargo", "watch", \
-    "-x", "run --bin hr-graphql-server", \
-    "--watch", "src", \
-    "--watch", "migration", \
-    "--watch", "Cargo.toml", \
-    "--watch", ".cargo", \
-    "--ignore", "target/*", \
-    "--delay", "1", \
-    "--no-gitignore"]
+# Pre-build migration and seed-data binaries for faster startup
+# These will be rebuilt by cargo-watch if migration code changes
+RUN cargo build --release --bin migration && \
+    cargo build --release --bin seed-data
+
+# The entrypoint script will:
+# 1. Wait for PostgreSQL to be ready
+# 2. Run SeaORM migrations
+# 3. Run seed data (if ENABLE_SEED_DATA=true)
+# 4. Start cargo-watch for hot-reloading
+#
+# The target directory should be mounted as a Docker volume (not bind-mounted)
+# for optimal I/O performance during hot-reloading.
+
+ENTRYPOINT ["/app/docker-entrypoint-dev.sh"]

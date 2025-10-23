@@ -3,8 +3,8 @@
 //! Validates that the seed data system meets all contract requirements from
 //! specs/038-seed-data-implementation/contracts/seed-binary.md
 
-use graphql_rust_server::database;
-use graphql_rust_server::seed_data::{SeedConfig, SeedError};
+use hr_graphql_server::database;
+use hr_graphql_server::seed_data::{SeedConfig, SeedError};
 use std::env;
 
 /// Helper to set environment variables for tests
