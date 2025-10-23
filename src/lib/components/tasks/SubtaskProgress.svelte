@@ -48,7 +48,7 @@
 	}
 
 	let subtaskStats = $derived<SubtaskStats>(() => {
-		const subtasks = task.tasksByParentTaskId?.nodes || [];
+		const subtasks = task.subtasks || [];
 		const total = subtasks.length;
 
 		if (total === 0) {
@@ -63,12 +63,12 @@
 			};
 		}
 
-		// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
-		const completed = subtasks.filter((t: Task) => t.status === 'COMPLETED').length;
-		const inProgress = subtasks.filter((t: Task) => t.status === 'IN_PROGRESS').length;
-		const notStarted = subtasks.filter((t: Task) => t.status === 'TO_DO').length;
-		const blocked = subtasks.filter((t: Task) => t.status === 'BLOCKED').length;
-		const cancelled = subtasks.filter((t: Task) => t.status === 'DEFERRED').length;
+		// NOTE: Rust GraphQL returns enum values in PascalCase
+		const completed = subtasks.filter((t: Task) => t.status === 'Done').length;
+		const inProgress = subtasks.filter((t: Task) => t.status === 'InProgress').length;
+		const notStarted = subtasks.filter((t: Task) => t.status === 'Todo').length;
+		const blocked = subtasks.filter((t: Task) => t.status === 'Blocked').length;
+		const cancelled = subtasks.filter((t: Task) => t.status === 'Cancelled').length;
 
 		const completionPercentage = Math.round((completed / total) * 100);
 

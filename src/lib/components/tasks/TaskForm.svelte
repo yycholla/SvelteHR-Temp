@@ -506,7 +506,7 @@
 						Task Type <span class="text-destructive">*</span>
 					</Label>
 				<TaskTypeTagInput
-					bind:taskTypes
+					taskTypes={taskTypes}
 					bind:selected={formData.taskTypeId}
 					placeholder="Select or create task type..."
 					disabled={loading}

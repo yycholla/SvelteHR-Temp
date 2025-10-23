@@ -34,8 +34,10 @@ pub struct Model {
     pub user_id: Uuid,
     pub action: String, // Using string to match database enum
     pub field_name: Option<String>,
-    pub old_value: Option<String>,
-    pub new_value: Option<String>,
+    #[sea_orm(column_type = "Json")]
+    pub old_value: Option<serde_json::Value>,
+    #[sea_orm(column_type = "Json")]
+    pub new_value: Option<serde_json::Value>,
     pub comment: Option<String>,
     pub created_at: DateTime<Utc>,
 }
@@ -109,14 +111,14 @@ impl Model {
         self.field_name.as_deref()
     }
 
-    /// Previous value of the field
-    async fn old_value(&self) -> Option<&str> {
-        self.old_value.as_deref()
+    /// Previous value of the field (as JSON string)
+    async fn old_value(&self) -> Option<String> {
+        self.old_value.as_ref().map(|v| v.to_string())
     }
 
-    /// New value of the field
-    async fn new_value(&self) -> Option<&str> {
-        self.new_value.as_deref()
+    /// New value of the field (as JSON string)
+    async fn new_value(&self) -> Option<String> {
+        self.new_value.as_ref().map(|v| v.to_string())
     }
 
     /// Comment or note about the change
@@ -156,7 +158,10 @@ impl Model {
             }
             "status_changed" => {
                 if let (Some(old), Some(new)) = (&self.old_value, &self.new_value) {
-                    format!("Status changed from {} to {}", old, new)
+                    // Extract string values from JSON
+                    let old_str = old.as_str().unwrap_or("unknown");
+                    let new_str = new.as_str().unwrap_or("unknown");
+                    format!("Status changed from {} to {}", old_str, new_str)
                 } else {
                     "Status changed".to_string()
                 }
@@ -184,8 +189,8 @@ mod tests {
             user_id: Uuid::new_v4(),
             action: "status_changed".to_string(),
             field_name: Some("status".to_string()),
-            old_value: Some("todo".to_string()),
-            new_value: Some("in_progress".to_string()),
+            old_value: serde_json::to_value("todo").ok(),
+            new_value: serde_json::to_value("in_progress").ok(),
             comment: None,
             created_at: Utc::now(),
         };

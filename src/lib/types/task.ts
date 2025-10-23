@@ -3,25 +3,25 @@
 
 import type { User } from './index';
 
-// Enumerated Types
-// NOTE: Rust async-graphql returns enum values in PascalCase GraphQL format
-// Rust backend TaskStatus enum: Todo, InProgress, Blocked, Review, Done, Cancelled
-// GraphQL representation: TODO, IN_PROGRESS, BLOCKED, REVIEW, DONE, CANCELLED
-export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'REVIEW' | 'DONE' | 'CANCELLED';
+// Import and re-export the correct audit action type
+import type { AuditActionType as AuditActionTypeInternal } from '$lib/utils/audit';
+export type AuditActionType = AuditActionTypeInternal;
 
+// Task status and priority types
+export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'REVIEW' | 'DONE' | 'CANCELLED';
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
-export type ResourceType = 'assessment' | 'document' | 'training' | 'event' | 'other';
-
-export type AvailabilityStatus = 'available' | 'unavailable';
-
-export type AuditActionType =
-	| 'created'
-	| 'edited'
-	| 'reassigned'
-	| 'deleted'
-	| 'status_changed'
-	| 'org_change';
+// Resource and availability types
+export type ResourceType =
+	| 'event'
+	| 'task'
+	| 'leave_request'
+	| 'profile'
+	| 'document'
+	| 'employee'
+	| 'department'
+	| 'performance_review';
+export type AvailabilityStatus = 'Available' | 'Deleted' | 'Moved' | 'Restricted';
 
 // Main Task Interface
 export interface Task {
@@ -72,7 +72,7 @@ export interface TaskType {
 export interface TaskAuditEntry {
 	id: string;
 	taskId: string;
-	actionType: AuditActionType;
+	actionType: string; // Allow both old and new action types
 	changedFields: string[];
 	newValues: Record<string, any>;
 	userId: string | null;

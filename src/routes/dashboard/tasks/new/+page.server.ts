@@ -48,30 +48,28 @@ export const load: PageServerLoad = async (event) => {
 
 		// Headers for session-based authentication (cookies sent automatically)
 		const headers: Record<string, string> = {
-			'Content-Type': 'application/json',
+			'Content-Type': 'application/json'
 		};
 
 		console.log('[Task Create] Loading form options, parentTaskId:', parentTaskId);
 
 		// Load assignees
-		const assigneesResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetUsersForAssignment($limit: Int!) {
-						users(limit: $limit) {
-							id
-							displayName
-							email
-							role
-							isActive
-						}
+		const assigneesResponse = await authenticatedGraphQLRequest(
+			graphqlEndpoint,
+			`
+				query GetUsersForAssignment($limit: Int!) {
+					users(limit: $limit) {
+						id
+						displayName
+						email
+						role
+						isActive
 					}
-				`,
-				variables: { limit: 100 }
-			})
-		});
+				}
+			`,
+			{ limit: 100 },
+			event.request
+		);
 
 		const assigneesData = await assigneesResponse.json();
 		console.log('[Task Create] Assignees GraphQL response:', {
@@ -82,22 +80,20 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		// Load departments
-		const departmentsResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetDepartments($limit: Int) {
-						departments(limit: $limit) {
-							id
-							name
-							description
-						}
+		const departmentsResponse = await authenticatedGraphQLRequest(
+			graphqlEndpoint,
+			`
+				query GetDepartments($limit: Int) {
+					departments(limit: $limit) {
+						id
+						name
+						description
 					}
-				`,
-				variables: { limit: 100 }
-			})
-		});
+				}
+			`,
+			{ limit: 100 },
+			event.request
+		);
 
 		const departmentsData = await departmentsResponse.json();
 		console.log('[Task Create] Departments GraphQL response:', {
@@ -107,25 +103,23 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		// Load task types
-		const taskTypesResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetTaskTypes($isActive: Boolean) {
-						taskTypes(isActive: $isActive) {
-							id
-							name
-							description
-							defaultPriority
-							colorCode
-							isActive
-						}
+		const taskTypesResponse = await authenticatedGraphQLRequest(
+			graphqlEndpoint,
+			`
+				query GetTaskTypes($isActive: Boolean) {
+					taskTypes(isActive: $isActive) {
+						id
+						name
+						description
+						defaultPriority
+						colorCode
+						isActive
 					}
-				`,
-				variables: { isActive: true }
-			})
-		});
+				}
+			`,
+			{ isActive: true },
+			event.request
+		);
 
 		const taskTypesData = await taskTypesResponse.json();
 		console.log('[Task Create] Task types GraphQL response:', {
@@ -135,49 +129,45 @@ export const load: PageServerLoad = async (event) => {
 		});
 
 		// Load potential parent tasks
-		const parentTasksResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetPotentialParentTasks($limit: Int!, $offset: Int!) {
-						tasks(limit: $limit, offset: $offset) {
-							id
-							title
-							status
-							priority
-						}
+		const parentTasksResponse = await authenticatedGraphQLRequest(
+			graphqlEndpoint,
+			`
+				query GetPotentialParentTasks($limit: Int!, $offset: Int!) {
+					tasks(limit: $limit, offset: $offset) {
+						id
+						title
+						status
+						priority
 					}
-				`,
-				variables: { limit: 200, offset: 0 }
-			})
-		});
+				}
+			`,
+			{ limit: 200, offset: 0 },
+			event.request
+		);
 
 		const parentTasksData = await parentTasksResponse.json();
 
 		// Load parent task details if parentTaskId is provided
 		let parentTask = null;
 		if (parentTaskId) {
-			const parentResponse = await fetch(graphqlEndpoint, {
-				method: 'POST',
-				headers,
-				body: JSON.stringify({
-					query: `
-						query GetParentTaskInfo($taskId: UUID!) {
-							task(id: $taskId) {
-								id
-								title
-								status
-								priority
-								assigneeId
-								taskTypeId
-								organizationId
-							}
+			const parentResponse = await authenticatedGraphQLRequest(
+				graphqlEndpoint,
+				`
+					query GetParentTaskInfo($taskId: UUID!) {
+						task(id: $taskId) {
+							id
+							title
+							status
+							priority
+							assigneeId
+							taskTypeId
+							organizationId
 						}
-					`,
-					variables: { taskId: parentTaskId }
-				})
-			});
+					}
+				`,
+				{ taskId: parentTaskId },
+				event.request
+			);
 
 			const parentData = await parentResponse.json();
 			parentTask = parentData?.data?.task || null;
@@ -252,7 +242,10 @@ export const actions: Actions = {
 
 		try {
 			const formData = await request.formData();
-			const { getGraphQLEndpoint } = await import('$lib/server/api-url');
+			const formDataEntries = Object.fromEntries(formData);
+			const { getGraphQLEndpoint, authenticatedGraphQLRequest } = await import(
+				'$lib/server/api-url'
+			);
 			const graphqlEndpoint = getGraphQLEndpoint();
 
 			// Extract form data
@@ -304,27 +297,21 @@ export const actions: Actions = {
 
 			// Execute create mutation
 			// Migration: ✅ Use Rust GraphQL schema (CreateTaskInput, direct return)
-			const createResponse = await fetch(graphqlEndpoint, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					query: `
-						mutation CreateTask($input: CreateTaskInput!) {
-							createTask(input: $input) {
-								id
-								title
-								status
-								createdAt
-							}
+			const createResponse = await authenticatedGraphQLRequest(
+				graphqlEndpoint,
+				`
+					mutation CreateTask($input: CreateTaskInput!) {
+						createTask(input: $input) {
+							id
+							title
+							status
+							createdAt
 						}
-					`,
-					variables: {
-						input: createInput
 					}
-				})
-			});
+				`,
+				{ input: createInput },
+				event.request
+			);
 
 			const createData = await createResponse.json();
 
@@ -332,7 +319,7 @@ export const actions: Actions = {
 				console.error('[Task Create] Create errors:', createData.errors);
 				return fail(400, {
 					error: createData.errors[0]?.message || 'Failed to create task',
-					values: Object.fromEntries(formData)
+					values: formDataEntries
 				});
 			}
 
@@ -341,7 +328,7 @@ export const actions: Actions = {
 			if (!newTask) {
 				return fail(400, {
 					error: 'Task creation failed',
-					values: Object.fromEntries(formData)
+					values: formDataEntries
 				});
 			}
 
@@ -359,7 +346,7 @@ export const actions: Actions = {
 
 			return fail(500, {
 				error: err instanceof Error ? err.message : 'Failed to create task',
-				values: Object.fromEntries(await request.formData())
+				values: formDataEntries
 			});
 		}
 	}

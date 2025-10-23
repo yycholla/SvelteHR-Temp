@@ -47,27 +47,27 @@
 	// Status configuration
 	// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
 	const statusConfig = {
-		'TO_DO': {
+		TO_DO: {
 			icon: Clock,
 			color: 'text-amber-600',
 			bgColor: 'bg-amber-100 dark:bg-amber-900/30'
 		},
-		'IN_PROGRESS': {
+		IN_PROGRESS: {
 			icon: CheckCircle,
 			color: 'text-blue-600',
 			bgColor: 'bg-blue-100 dark:bg-blue-900/30'
 		},
-		'BLOCKED': {
+		BLOCKED: {
 			icon: AlertCircle,
 			color: 'text-red-600',
 			bgColor: 'bg-red-100 dark:bg-red-900/30'
 		},
-		'COMPLETED': {
+		COMPLETED: {
 			icon: CheckCircle,
 			color: 'text-green-600',
 			bgColor: 'bg-green-100 dark:bg-green-900/30'
 		},
-		'DEFERRED': {
+		DEFERRED: {
 			icon: Clock,
 			color: 'text-gray-500',
 			bgColor: 'bg-gray-100 dark:bg-gray-900/30'
@@ -77,10 +77,10 @@
 	// Priority colors
 	// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
 	const priorityColors = {
-		'LOW': 'bg-gray-500',
-		'MEDIUM': 'bg-blue-500',
-		'HIGH': 'bg-orange-500',
-		'URGENT': 'bg-red-500'
+		LOW: 'bg-gray-500',
+		MEDIUM: 'bg-blue-500',
+		HIGH: 'bg-orange-500',
+		URGENT: 'bg-red-500'
 	};
 
 	// Handle navigation
@@ -131,7 +131,7 @@
 		if (!minutes) return 'None';
 		const hours = minutes / 60;
 		const days = minutes / 1440;
-		
+
 		if (minutes < 60) {
 			return `${minutes} minutes before`;
 		} else if (hours < 24) {
@@ -144,7 +144,21 @@
 	}
 
 	// Get status config
-	let statusConfigForTask = $derived(statusConfig[task.status as keyof typeof statusConfig]);
+	// Transform GraphQL status format to config key format
+	let statusConfigForTask = $derived(() => {
+		// Map GraphQL status values to config keys
+		const statusMap: Record<string, keyof typeof statusConfig> = {
+			TODO: 'TO_DO',
+			IN_PROGRESS: 'IN_PROGRESS',
+			BLOCKED: 'BLOCKED',
+			REVIEW: 'REVIEW',
+			DONE: 'COMPLETED',
+			CANCELLED: 'CANCELLED'
+		};
+
+		const statusKey = statusMap[task.status] || 'TO_DO';
+		return statusConfig[statusKey];
+	});
 </script>
 
 <svelte:head>
@@ -171,7 +185,7 @@
 		<Card.Header>
 			<div class="flex items-start justify-between gap-4">
 				<div class="flex-1">
-					<div class="flex items-center gap-3 mb-2">
+					<div class="mb-2 flex items-center gap-3">
 						<div
 							class="flex h-10 w-10 items-center justify-center rounded-full {statusConfigForTask.bgColor}"
 						>
@@ -182,7 +196,7 @@
 						</div>
 						<div>
 							<Card.Title class="text-2xl">{task.title}</Card.Title>
-							<div class="flex items-center gap-2 mt-1">
+							<div class="mt-1 flex items-center gap-2">
 								<Badge variant="outline">{task.status}</Badge>
 								<div class="flex items-center gap-1">
 									<div class="h-2 w-2 rounded-full {priorityColors[task.priority]}"></div>
@@ -198,13 +212,13 @@
 			<!-- Description -->
 			{#if task.description}
 				<div>
-					<h3 class="text-sm font-medium mb-2">Description</h3>
-					<p class="text-sm text-muted-foreground whitespace-pre-wrap">{task.description}</p>
+					<h3 class="mb-2 text-sm font-medium">Description</h3>
+					<p class="whitespace-pre-wrap text-sm text-muted-foreground">{task.description}</p>
 				</div>
 			{/if}
 
 			<!-- Task Metadata -->
-			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+			<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
 				<!-- Assignee -->
 				<div class="flex items-start gap-3">
 					<div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
@@ -213,10 +227,10 @@
 					<div class="flex-1">
 						<p class="text-xs text-muted-foreground">Assigned to</p>
 						<p class="text-sm font-medium">
-							{task.userByAssigneeId?.displayName || 'Unassigned'}
+							{task.assignee?.displayName || 'Unassigned'}
 						</p>
-						{#if task.userByAssigneeId}
-							<p class="text-xs text-muted-foreground">{task.userByAssigneeId.email}</p>
+						{#if task.assignee}
+							<p class="text-xs text-muted-foreground">{task.assignee.email}</p>
 						{/if}
 					</div>
 				</div>
@@ -229,7 +243,7 @@
 					<div class="flex-1">
 						<p class="text-xs text-muted-foreground">Task Type</p>
 						<p class="text-sm font-medium">
-							{task.taskTypeByTaskTypeId?.name || 'No type'}
+							{task.taskType?.name || 'No type'}
 						</p>
 					</div>
 				</div>
@@ -243,7 +257,7 @@
 						<p class="text-xs text-muted-foreground">Due Date</p>
 						<p class="text-sm font-medium">{formatDate(task.dueDate)}</p>
 						{#if task.reminderTime}
-							<div class="flex items-center gap-1 mt-1">
+							<div class="mt-1 flex items-center gap-1">
 								<Bell class="h-3 w-3 text-muted-foreground" />
 								<p class="text-xs text-muted-foreground">
 									{formatReminderTime(task.reminderTime)}
@@ -269,7 +283,7 @@
 			</div>
 
 			<!-- Parent Task Link -->
-			{#if task.taskByParentTaskId}
+			{#if task.parentTask}
 				<div class="rounded-lg border bg-muted/30 p-3">
 					<div class="flex items-center gap-2">
 						<Target class="h-4 w-4 text-muted-foreground" />
@@ -278,18 +292,18 @@
 							variant="link"
 							size="sm"
 							class="h-auto p-0"
-							onclick={() => goto(`/dashboard/tasks/${task.taskByParentTaskId.id}`)}
+							onclick={() => goto(`/dashboard/tasks/${task.parentTask.id}`)}
 						>
-							{task.taskByParentTaskId.title}
+							{task.parentTask.title}
 						</Button>
 					</div>
 				</div>
 			{/if}
 
 			<!-- Subtask Progress -->
-			{#if task.tasksByParentTaskId?.totalCount > 0}
+			{#if task.subtasks && task.subtasks.length > 0}
 				<div>
-					<h3 class="text-sm font-medium mb-3">Subtask Progress</h3>
+					<h3 class="mb-3 text-sm font-medium">Subtask Progress</h3>
 					<SubtaskProgress {task} showDetails={true} showOnTrack={true} />
 				</div>
 			{/if}
@@ -300,25 +314,22 @@
 	<Tabs.Root value="subtasks" class="w-full">
 		<Tabs.List class="w-full">
 			<Tabs.Trigger value="subtasks">
-				Subtasks ({task.tasksByParentTaskId?.totalCount || 0})
+				Subtasks ({task.subtasks?.length || 0})
 			</Tabs.Trigger>
 			<Tabs.Trigger value="dependencies">
-				Dependencies (
-				{(task.taskDependenciesByBlockingTaskId?.totalCount || 0) +
-					(task.taskDependenciesByBlockedTaskId?.totalCount || 0)}
-				)
+				Dependencies (0)
 			</Tabs.Trigger>
 			<Tabs.Trigger value="resources">
-				Resources ({task.linkedResourcesByTaskId?.totalCount || 0})
+				Resources (0)
 			</Tabs.Trigger>
 			<Tabs.Trigger value="activity">Activity ({data.auditTotalCount})</Tabs.Trigger>
 		</Tabs.List>
 
 		<!-- Subtasks Tab -->
 		<Tabs.Content value="subtasks">
-			{#if task.tasksByParentTaskId?.totalCount > 0}
+			{#if task.subtasks && task.subtasks.length > 0}
 				<div class="space-y-4">
-					{#each task.tasksByParentTaskId.nodes as subtask}
+					{#each task.subtasks as subtask}
 						<TaskHierarchy
 							task={subtask}
 							userId={data.user.id}
@@ -334,9 +345,9 @@
 			{:else}
 				<Card.Root>
 					<Card.Content class="flex flex-col items-center justify-center py-12">
-						<Target class="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
-						<h3 class="text-lg font-medium mb-2">No subtasks</h3>
-						<p class="text-sm text-muted-foreground mb-4">
+						<Target class="mb-4 h-12 w-12 text-muted-foreground opacity-50" />
+						<h3 class="mb-2 text-lg font-medium">No subtasks</h3>
+						<p class="mb-4 text-sm text-muted-foreground">
 							Break this task down into smaller subtasks for better tracking
 						</p>
 						<Button variant="outline" onclick={handleEditClick}>Add Subtasks</Button>
@@ -358,7 +369,7 @@
 		<!-- Resources Tab -->
 		<Tabs.Content value="resources">
 			<LinkedResources
-				resources={task.linkedResourcesByTaskId?.nodes || []}
+				resources={[]}
 				availableResources={data.availableResources}
 				onAddResource={handleAddResource}
 				onRemoveResource={handleRemoveResource}
@@ -379,7 +390,7 @@
 <style>
 	/* Page Layout */
 	.task-details-page {
-		@apply container mx-auto px-4 py-8 space-y-6;
+		@apply container mx-auto space-y-6 px-4 py-8;
 	}
 
 	/* Page Header */

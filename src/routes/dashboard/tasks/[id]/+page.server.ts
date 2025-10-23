@@ -56,64 +56,75 @@ export const load: PageServerLoad = async (event) => {
 	});
 
 	try {
-		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
+		const { getGraphQLEndpoint, authenticatedGraphQLRequest } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
-
-		const headers: Record<string, string> = {
-			'Content-Type': 'application/json'
-		};
 
 		console.log('[Task Details] Loading task:', taskId);
 
 		// Load task with full relationships
 		// NOTE: Using Rust GraphQL schema - singular query for ID lookup
-		const taskResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetTaskDetails($taskId: UUID!) {
-						task(id: $taskId) {
+		const taskResponse = await authenticatedGraphQLRequest(
+			graphqlEndpoint,
+			`
+				query GetTaskDetails($taskId: UUID!) {
+					task(id: $taskId) {
+						id
+						title
+						description
+						status
+						priority
+						dueDate
+						requiresManualReassignment
+						archived
+						createdAt
+						updatedAt
+						assignee {
+							id
+							displayName
+							email
+							role
+						}
+						creator {
+							id
+							displayName
+							email
+							role
+						}
+						taskType {
+							id
+							name
+							description
+							defaultPriority
+							colorCode
+							isActive
+						}
+						parentTask {
+							id
+							title
+							status
+							priority
+							dueDate
+						}
+						subtasks {
 							id
 							title
 							description
 							status
 							priority
 							dueDate
-							requiresManualReassignment
-							archived
-							createdAt
-							updatedAt
 							assignee {
 								id
 								displayName
-								email
-								role
 							}
-							creator {
-								id
-								displayName
-								email
-								role
-							}
-							taskType {
-								id
-								name
-								description
-							}
-							parentTask {
-								id
-								title
-								status
-								priority
-								dueDate
-							}
+							createdAt
+							updatedAt
 						}
 					}
-				`,
-				variables: { taskId }
-			})
-		});
+				}
+			`,
+			{ taskId },
+			event.request
+		);
 
 		const taskData = await taskResponse.json();
 		console.log('[Task Details] Task response:', taskData);
@@ -136,91 +147,83 @@ export const load: PageServerLoad = async (event) => {
 		const auditHasMore = false;
 
 		// Load available assignees for reassignment
-		const assigneesResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetUsersForReassignment($limit: Int!) {
-						users(limit: $limit) {
-							id
-							displayName
-							email
-							role
-						}
+		const assigneesResponse = await authenticatedGraphQLRequest(
+			graphqlEndpoint,
+			`
+				query GetUsersForReassignment($limit: Int!) {
+					users(limit: $limit) {
+						id
+						displayName
+						email
+						role
 					}
-				`,
-				variables: { limit: 100 }
-			})
-		});
+				}
+			`,
+			{ limit: 100 },
+			event.request
+		);
 
 		const assigneesData = await assigneesResponse.json();
 
 		// Load task types
-		const taskTypesResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetTaskTypes($isActive: Boolean) {
-						taskTypes(isActive: $isActive) {
-							id
-							name
-							description
-							defaultPriority
-							colorCode
-							isActive
-						}
+		const taskTypesResponse = await authenticatedGraphQLRequest(
+			graphqlEndpoint,
+			`
+				query GetTaskTypes($isActive: Boolean) {
+					taskTypes(isActive: $isActive) {
+						id
+						name
+						description
+						defaultPriority
+						colorCode
+						isActive
 					}
-				`,
-				variables: { isActive: true }
-			})
-		});
+				}
+			`,
+			{ isActive: true },
+			event.request
+		);
 
 		const taskTypesData = await taskTypesResponse.json();
 
 		// Load all tasks for dependency/parent selection
-		const allTasksResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetAllTasksForSelection($limit: Int!, $offset: Int!) {
-						tasks(limit: $limit, offset: $offset) {
-							id
-							title
-							status
-							priority
-							dueDate
-							assignee {
-								id
-								displayName
-							}
-						}
-					}
-				`,
-				variables: { limit: 200, offset: 0 }
-			})
-		});
-
-		const allTasksData = await allTasksResponse.json();
-
-		// Load available resources for linking
-		const resourcesResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetAvailableResources($limit: Int!) {
-						users(limit: $limit) {
+		const allTasksResponse = await authenticatedGraphQLRequest(
+			graphqlEndpoint,
+			`
+				query GetAllTasksForSelection($limit: Int!, $offset: Int!) {
+					tasks(limit: $limit, offset: $offset) {
+						id
+						title
+						status
+						priority
+						dueDate
+						assignee {
 							id
 							displayName
 						}
 					}
-				`,
-				variables: { limit: 100 }
-			})
-		});
+				}
+			`,
+			{ limit: 200, offset: 0 },
+			event.request
+		);
+
+		const allTasksData = await allTasksResponse.json();
+
+		// Load available resources for linking
+		const resourcesResponse = await authenticatedGraphQLRequest(
+			graphqlEndpoint,
+			`
+				query GetAvailableResources($limit: Int!) {
+					users(limit: $limit) {
+						id
+						displayName
+					}
+				}
+			`,
+			{ limit: 100 },
+			event.request
+		);
 
 		const resourcesData = await resourcesResponse.json();
 

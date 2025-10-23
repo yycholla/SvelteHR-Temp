@@ -214,8 +214,13 @@ async function authenticateUser(event: any, pathname: string): Promise<{
 		const userData = await response.json();
 
 		// Transform to expected format
+		// Normalize user data structure to ensure 'id' property exists
+		// Backend may use 'id', 'user_id', or 'userId' depending on the endpoint
 		const authResult = {
-			user: userData,
+			user: {
+				...userData,
+				id: userData.id || userData.user_id || userData.userId
+			},
 			roles: [userData.role],
 			permissions: userData.permissions || [] // Permissions from backend session
 		};

@@ -43,13 +43,13 @@
 
 	// Derived state
 	let hasSubtasks = $derived(
-		task.tasksByParentTaskId && task.tasksByParentTaskId.nodes.length > 0
+		task.subtasks && task.subtasks.length > 0
 	);
 	let canExpand = $derived(hasSubtasks && currentDepth < maxDepth);
-	let subtasks = $derived(task.tasksByParentTaskId?.nodes || []);
-	let subtaskCount = $derived(task.tasksByParentTaskId?.totalCount || 0);
+	let subtasks = $derived(task.subtasks || []);
+	let subtaskCount = $derived(task.subtasks?.length || 0);
 	let completedSubtasks = $derived(
-		subtasks.filter((t: Task) => t.status === 'COMPLETED').length
+		subtasks.filter((t: Task) => t.status === 'Done').length
 	);
 
 	// Calculate completion percentage for subtasks

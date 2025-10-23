@@ -353,6 +353,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(TaskAuditEntries::TaskId).uuid().not_null())
                     .col(ColumnDef::new(TaskAuditEntries::UserId).uuid().not_null())
                     .col(ColumnDef::new(TaskAuditEntries::Action).string().not_null())
+                    .col(ColumnDef::new(TaskAuditEntries::FieldName).string())
                     .col(ColumnDef::new(TaskAuditEntries::OldValue).json())
                     .col(ColumnDef::new(TaskAuditEntries::NewValue).json())
                     .col(ColumnDef::new(TaskAuditEntries::Comment).text())
@@ -496,6 +497,7 @@ enum TaskAuditEntries {
     TaskId,
     UserId,
     Action,
+    FieldName,
     OldValue,
     NewValue,
     Comment,

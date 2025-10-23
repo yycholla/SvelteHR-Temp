@@ -47,7 +47,7 @@
 	// Filtered task types based on search
 	let filteredTaskTypes = $derived.by(() => {
 		const searchLower = searchTerm.toLowerCase();
-		return taskTypes.filter((tt) => {
+		const filtered = taskTypes.filter((tt) => {
 			// Exclude already selected
 			if (selected === tt.id) return false;
 
@@ -55,6 +55,20 @@
 			if (!searchTerm) return true;
 			return tt.name.toLowerCase().includes(searchLower);
 		});
+
+		// Debug logging
+		console.log('[TaskTypeTagInput] Filtering:', {
+			totalTaskTypes: taskTypes.length,
+			taskTypesArray: taskTypes,
+			selected,
+			selectedType: typeof selected,
+			searchTerm,
+			filteredCount: filtered.length,
+			filteredItems: filtered,
+			isOpen
+		});
+
+		return filtered;
 	});
 
 	// Selected task type for display
@@ -210,6 +224,11 @@
 	// Handle input focus
 	function handleFocus() {
 		if (!disabled) {
+			console.log('[TaskTypeTagInput] Focus - opening dropdown', {
+				taskTypesCount: taskTypes.length,
+				selected,
+				disabled
+			});
 			isOpen = true;
 		}
 	}
@@ -240,6 +259,15 @@
 		}
 	}
 
+	// Debug: Track taskTypes prop changes
+	$effect(() => {
+		console.log('[TaskTypeTagInput] taskTypes prop changed:', {
+			count: taskTypes.length,
+			taskTypes: taskTypes,
+			selected: selected
+		});
+	});
+
 	// Mount/unmount click outside listener
 	$effect(() => {
 		if (isOpen) {
@@ -255,7 +283,10 @@
 		class="flex min-h-10 w-full flex-wrap gap-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 {disabled
 			? 'cursor-not-allowed opacity-50'
 			: ''}"
-		onclick={() => inputElement?.focus()}
+		onclick={() => {
+			console.log('[TaskTypeTagInput] Outer div clicked, focusing input');
+			inputElement?.focus();
+		}}
 	>
 		<!-- Selected task type badge -->
 		{#if selectedTaskType}
@@ -305,12 +336,19 @@
 
 	<!-- Dropdown with filtered options -->
 	{#if isOpen && (filteredTaskTypes.length > 0 || canCreateNew)}
+		{console.log('[TaskTypeTagInput] Rendering dropdown:', {
+			isOpen,
+			filteredCount: filteredTaskTypes.length,
+			canCreateNew,
+			filteredTaskTypes
+		})}
 		<div
 			bind:this={dropdownElement}
 			class="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover p-1 shadow-md"
 		>
 			<!-- Existing task types -->
 			{#each filteredTaskTypes as taskType, index (taskType.id)}
+				{console.log('[TaskTypeTagInput] Rendering option:', taskType.name)}
 				<button
 					type="button"
 					data-option
@@ -354,6 +392,13 @@
 				</button>
 			{/if}
 		</div>
+	{:else}
+		{console.log('[TaskTypeTagInput] Dropdown NOT rendering:', {
+			isOpen,
+			filteredCount: filteredTaskTypes.length,
+			canCreateNew,
+			condition: `isOpen: ${isOpen}, filteredCount: ${filteredTaskTypes.length}, canCreateNew: ${canCreateNew}`
+		})}
 	{/if}
 
 	<!-- Helper text when dropdown is open but no matches and can't create -->

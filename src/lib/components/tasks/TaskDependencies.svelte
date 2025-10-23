@@ -101,7 +101,7 @@
 	// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
 	function getStatusIcon(status: Task['status']) {
 		switch (status) {
-			case 'COMPLETED':
+			case 'DONE':
 				return CheckCircle;
 			case 'IN_PROGRESS':
 				return Circle;
@@ -116,13 +116,13 @@
 	// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
 	function getStatusColor(status: Task['status']) {
 		switch (status) {
-			case 'COMPLETED':
+			case 'DONE':
 				return 'text-green-600 dark:text-green-400';
 			case 'IN_PROGRESS':
 				return 'text-blue-600 dark:text-blue-400';
 			case 'BLOCKED':
 				return 'text-red-600 dark:text-red-400';
-			case 'DEFERRED':
+			case 'REVIEW':
 				return 'text-gray-500';
 			default:
 				return 'text-gray-600';
@@ -214,7 +214,7 @@
 									<p class="font-medium">{blockingTask.title}</p>
 									<p class="text-xs text-muted-foreground">Status: {blockingTask.status}</p>
 								</div>
-								{#if blockingTask.status !== 'COMPLETED'}
+								{#if blockingTask.status !== 'DONE'}
 									<Badge variant="destructive" class="flex-shrink-0">
 										<AlertTriangle class="mr-1 h-3 w-3" />
 										Blocking
@@ -272,7 +272,7 @@
 									<p class="font-medium">{blockedTask.title}</p>
 									<p class="text-xs text-muted-foreground">Status: {blockedTask.status}</p>
 								</div>
-								{#if task.status !== 'COMPLETED'}
+								{#if task.status !== 'DONE'}
 									<Badge variant="outline" class="flex-shrink-0">
 										Waiting on this task
 									</Badge>
@@ -295,7 +295,7 @@
 	</div>
 
 	<!-- Warning: Task is blocked -->
-	{#if blockedByDependencies.some((dep) => dep.taskByBlockingTaskId?.status !== 'COMPLETED')}
+	{#if blockedByDependencies.some((dep) => dep.taskByBlockingTaskId?.status !== 'DONE')}
 		<div class="rounded-lg border border-warning bg-warning/10 p-4">
 			<div class="flex items-start gap-3">
 				<AlertTriangle class="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />

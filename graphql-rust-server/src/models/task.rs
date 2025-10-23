@@ -348,8 +348,15 @@ impl Model {
 
     /// Task type for categorization
     async fn task_type(&self, ctx: &Context<'_>) -> GqlResult<Option<super::tasks::TaskType>> {
-        // TODO: Implement with proper SeaORM relation
-        Ok(None)
+        if let Some(task_type_id) = self.task_type_id {
+            let db = get_db_from_context(ctx)?;
+            let task_type = crate::models::tasks::task_type::Entity::find_by_id(task_type_id)
+                .one(&db)
+                .await?;
+            Ok(task_type)
+        } else {
+            Ok(None)
+        }
     }
 
     /// Child tasks (subtasks) of this task

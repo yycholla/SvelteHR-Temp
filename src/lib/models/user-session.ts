@@ -97,7 +97,8 @@ export class UserSession {
 		// Validation Rules (as specified in T023)
 		this.validateConfig(config);
 
-		this.id = config.id || this.generateSessionId();
+		// IMPORTANT: Assign userId BEFORE generating session ID
+		// generateSessionId() uses this.userId, so it must be set first
 		this.userId = config.userId;
 		this.jwtToken = config.jwtToken;
 		this.refreshToken = config.refreshToken;
@@ -105,6 +106,9 @@ export class UserSession {
 		this.roles = [...config.roles]; // Defensive copy
 		this.expiresAt = config.expiresAt;
 		this.createdAt = new Date().toISOString();
+
+		// Generate session ID after userId is assigned
+		this.id = config.id || this.generateSessionId();
 
 		// Determine authentication status
 		this.isAuthenticated = this.determineAuthenticationStatus();

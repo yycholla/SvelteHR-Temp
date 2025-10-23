@@ -45,3 +45,35 @@ export function getApiBaseUrl(): string {
 export function isContainerized(): boolean {
 	return Boolean(env.VITE_API_URL);
 }
+
+/**
+ * Make an authenticated GraphQL request with session cookies forwarded
+ */
+export async function authenticatedGraphQLRequest(
+	endpoint: string,
+	query: string,
+	variables?: any,
+	request?: Request
+): Promise<Response> {
+	const headers: Record<string, string> = {
+		'Content-Type': 'application/json'
+	};
+
+	// Forward session cookies for authentication
+	// Defensive check: ensure request has headers property with get method
+	if (request && request.headers && typeof request.headers.get === 'function') {
+		const cookieHeader = request.headers.get('cookie');
+		if (cookieHeader) {
+			headers['Cookie'] = cookieHeader;
+		}
+	}
+
+	return fetch(endpoint, {
+		method: 'POST',
+		headers,
+		body: JSON.stringify({
+			query,
+			variables: variables || {}
+		})
+	});
+}

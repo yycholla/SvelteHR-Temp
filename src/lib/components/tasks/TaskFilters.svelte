@@ -75,7 +75,7 @@
 	// Status options - NOTE: Using GraphQL enum format (SCREAMING_SNAKE_CASE)
 	const statusOptions: Array<{ value: TaskStatus; label: string; icon: any; color: string }> = [
 		{
-			value: 'TO_DO',
+			value: 'TODO',
 			label: 'To Do',
 			icon: Clock,
 			color: 'text-amber-600'
@@ -93,13 +93,13 @@
 			color: 'text-red-600'
 		},
 		{
-			value: 'DEFERRED',
+			value: 'REVIEW',
 			label: 'Deferred',
 			icon: XCircle,
 			color: 'text-gray-600'
 		},
 		{
-			value: 'COMPLETED',
+			value: 'DONE',
 			label: 'Completed',
 			icon: CheckCircle,
 			color: 'text-green-600'

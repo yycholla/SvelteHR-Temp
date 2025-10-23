@@ -73,19 +73,19 @@
 	// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
 	let statusCounts = $derived(() => ({
 		all: tasks.length,
-		'TO_DO': tasks.filter(t => t.status === 'TO_DO').length,
+		'TODO': tasks.filter(t => t.status === 'TODO').length,
 		'IN_PROGRESS': tasks.filter(t => t.status === 'IN_PROGRESS').length,
 		'BLOCKED': tasks.filter(t => t.status === 'BLOCKED').length,
-		'DEFERRED': tasks.filter(t => t.status === 'DEFERRED').length,
-		'COMPLETED': tasks.filter(t => t.status === 'COMPLETED').length
+		'REVIEW': tasks.filter(t => t.status === 'REVIEW').length,
+		'DONE': tasks.filter(t => t.status === 'DONE').length
 	}));
 
 	let tasksByStatus = $derived(() => ({
-		'TO_DO': sortedTasks().filter(t => t.status === 'TO_DO'),
+		'TODO': sortedTasks().filter(t => t.status === 'TODO'),
 		'IN_PROGRESS': sortedTasks().filter(t => t.status === 'IN_PROGRESS'),
 		'BLOCKED': sortedTasks().filter(t => t.status === 'BLOCKED'),
-		'DEFERRED': sortedTasks().filter(t => t.status === 'DEFERRED'),
-		'COMPLETED': sortedTasks().filter(t => t.status === 'COMPLETED')
+		'REVIEW': sortedTasks().filter(t => t.status === 'REVIEW'),
+		'DONE': sortedTasks().filter(t => t.status === 'DONE')
 	}));
 
 	let topLevelTasks = $derived(() => {
@@ -134,11 +134,11 @@
 					</Select.Trigger>
 					<Select.Content>
 						<Select.Item value="all">All Status ({statusCounts().all})</Select.Item>
-						<Select.Item value="TO_DO">To Do ({statusCounts()['TO_DO']})</Select.Item>
+						<Select.Item value="TO_DO">To Do ({statusCounts()['TODO']})</Select.Item>
 						<Select.Item value="IN_PROGRESS">In Progress ({statusCounts()['IN_PROGRESS']})</Select.Item>
 						<Select.Item value="BLOCKED">Blocked ({statusCounts()['BLOCKED']})</Select.Item>
-						<Select.Item value="COMPLETED">Completed ({statusCounts()['COMPLETED']})</Select.Item>
-						<Select.Item value="DEFERRED">Deferred ({statusCounts()['DEFERRED']})</Select.Item>
+						<Select.Item value="COMPLETED">Completed ({statusCounts()['DONE']})</Select.Item>
+						<Select.Item value="DEFERRED">Deferred ({statusCounts()['REVIEW']})</Select.Item>
 					</Select.Content>
 				</Select.Root>
 				<Select.Root bind:value={priorityFilter}>
@@ -201,8 +201,8 @@
 		<div class="space-y-3">
 			{#each topLevelTasks() as task (task.id)}
 				<TaskCard {task} {userId} onClick={() => handleTaskClick(task.id)} onStatusChange={(newStatus) => handleStatusChange(task.id, newStatus)} showProgress={true} level={0} />
-				{#if task.tasksByParentTaskId && task.tasksByParentTaskId.nodes.length > 0}
-					{#each task.tasksByParentTaskId.nodes as subtask (subtask.id)}
+				{#if task.subtasks && task.subtasks.length > 0}
+					{#each task.subtasks as subtask (subtask.id)}
 						<TaskCard task={subtask} {userId} onClick={() => handleTaskClick(subtask.id)} onStatusChange={(newStatus) => handleStatusChange(subtask.id, newStatus)} compact={true} level={1} />
 					{/each}
 				{/if}

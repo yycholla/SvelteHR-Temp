@@ -1249,7 +1249,47 @@ impl MutationRoot {
         Ok(true)
     }
 
+    /// Create a new task
+    async fn create_task(&self, ctx: &Context<'_>, input: CreateTaskInput) -> Result<Task> {
+        let db = get_db_from_context(ctx)?;
 
+        // Get creator ID from context
+        let creator_id = ctx
+            .data_opt::<UserContext>()
+            .map(|uc| uc.user_id)
+            .ok_or("User context not found - authentication required")?;
+
+        let task = crate::models::task::ActiveModel {
+            title: Set(input.title.clone()),
+            description: Set(input.description.clone()),
+            task_type_id: Set(input.task_type_id),
+            status: Set(input.status.unwrap_or(TaskStatus::Todo).as_str().to_string()),
+            priority: Set(input.priority.as_str().to_string()),
+            due_date: Set(input.due_date),
+            estimated_hours: Set(input.estimated_hours),
+            tags: Set(input.tags.clone()),
+            department_id: Set(input.department_id),
+            created_by: Set(creator_id),
+            assignee_id: Set(input.assignee_id),
+            parent_task_id: Set(input.parent_task_id),
+            requires_manual_reassignment: Set(Some(input.requires_manual_reassignment.unwrap_or(false))),
+            ..Default::default()
+        };
+
+        let task = task.insert(&db).await?;
+
+        // Create audit entry for task creation
+        let audit_entry = crate::models::task_audit_entry::ActiveModel {
+            task_id: Set(task.id),
+            user_id: Set(creator_id),
+            action: Set("created".to_string()),
+            new_value: Set(serde_json::to_value(&task).ok()),
+            ..Default::default()
+        };
+        let _ = audit_entry.insert(&db).await;
+
+        Ok(task)
+    }
 
     /// Update an existing task
     async fn update_task(
@@ -1347,7 +1387,7 @@ impl MutationRoot {
             task_id: Set(updated_task.id),
             user_id: Set(user_id),
             action: Set("updated".to_string()),
-            new_value: Set(Some(serde_json::to_string(&updated_task).unwrap_or_default())),
+            new_value: Set(serde_json::to_value(&updated_task).ok()),
             ..Default::default()
         };
         let _ = audit_entry.insert(&db).await;
@@ -1397,8 +1437,8 @@ impl MutationRoot {
             user_id: Set(user_id),
             action: Set("status_changed".to_string()),
             field_name: Set(Some("status".to_string())),
-            old_value: Set(Some(old_status)),
-            new_value: Set(Some(input.status.as_str().to_string())),
+            old_value: Set(serde_json::to_value(&old_status).ok()),
+            new_value: Set(serde_json::to_value(input.status.as_str()).ok()),
             comment: Set(input.comment),
             ..Default::default()
         };

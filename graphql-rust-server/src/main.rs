@@ -89,6 +89,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!("Session cookie security: secure={}, http_only=true, same_site=Lax", is_production);
 
     let session_layer = SessionManagerLayer::new(session_store)
+        .with_name("hr_token") // Match frontend expectation
         .with_secure(is_production) // HTTPS only in production
         .with_http_only(true) // Prevent JavaScript access
         .with_same_site(SameSite::Lax) // Lax same-site policy for better compatibility
