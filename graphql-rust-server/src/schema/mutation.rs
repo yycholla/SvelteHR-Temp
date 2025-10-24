@@ -3823,17 +3823,50 @@ impl MutationRoot {
         &self,
         ctx: &Context<'_>,
         input: CreateEncryptionKeyInput,
-    ) -> Result<EncryptionKey> {
+    ) -> Result<crate::models::system::encryption_key::Model> {
+        use base64::{Engine as _, engine::general_purpose};
+
         let db = get_db_from_context(ctx)?;
 
+        // Get user ID from authenticated context (security - don't trust client input)
+        let user_context = ctx
+            .data_opt::<UserContext>()
+            .ok_or_else(|| AppError::Authentication("Authentication required".to_string()))?;
+        let user_id = user_context.user_id;
+
+        // Decode base64 encrypted key data to raw bytes
+        let raw_key_bytes = general_purpose::STANDARD
+            .decode(&input.encrypted_key)
+            .map_err(|e| AppError::Validation(format!("Invalid base64 encrypted key: {}", e)))?;
+
+        // Call pgcrypto function to encrypt the key data server-side
+        use sea_orm::FromQueryResult;
+        use crate::error::DbError;
+        #[derive(FromQueryResult)]
+        struct EncryptedResult {
+            encrypt_key_data: Vec<u8>,
+        }
+
+        let result = EncryptedResult::find_by_statement(sea_orm::Statement::from_sql_and_values(
+            sea_orm::DatabaseBackend::Postgres,
+            "SELECT hr_public.encrypt_key_data($1, $2) as encrypt_key_data",
+            vec![
+                sea_orm::Value::Bytes(Some(Box::new(raw_key_bytes))),
+                sea_orm::Value::String(Some(Box::new(input.key_name.clone()))),
+            ]
+        ))
+        .one(&db)
+        .await
+        .map_err(|e| AppError::Database(DbError::Query(e.to_string())))?
+        .ok_or_else(|| AppError::Database(DbError::Query("Failed to encrypt key data".to_string())))?;
+
+        // Create the encryption key record with encrypted data
         let key = crate::models::system::encryption_key::ActiveModel {
-            key_name: Set(Some(input.key_name.clone())),
-            key_identifier: Set(input.key_name.clone()),
-            key_algorithm: Set(input.algorithm.clone()),
-            is_active: Set(true),
-            // TODO: Generate proper encrypted key data
-            encrypted_key_data: Set(vec![]),
-            created_for_user: Set(Uuid::new_v4()), // TODO: Get from session
+            key_name: Set(input.key_name.clone()),
+            algorithm: Set(input.algorithm.clone()),
+            encrypted_key: Set(result.encrypt_key_data),
+            user_id: Set(user_id),
+            active: Set(true),
             ..Default::default()
         };
 
@@ -3852,7 +3885,6 @@ impl MutationRoot {
             created_at: key.created_at,
             rotated_at: key.rotated_at,
         };
-
         Ok(key)
     }
 

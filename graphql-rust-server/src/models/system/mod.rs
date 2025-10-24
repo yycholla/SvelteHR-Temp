@@ -29,5 +29,5 @@ pub use compensation_band::{
     CreateCompensationBandInput, Model as CompensationBand, UpdateCompensationBandInput,
 };
 pub use payroll_record::{CreatePayrollRecordInput, Model as PayrollRecord};
-pub use encryption_key::{CreateEncryptionKeyInput, Model as EncryptionKey};
+pub use encryption_key::{CreateEncryptionKeyInput, EncryptionKey, Model as EncryptionKeyModel};
 pub use system_settings::{Model as SystemSettings, UpdateSystemSettingsInput};

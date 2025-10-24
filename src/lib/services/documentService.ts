@@ -60,8 +60,8 @@ export async function prepareDocumentUpload(
 		const exportedKey = await exportKey(encryptionKey);
 		const keyId = await registerKey(
 			new TextEncoder().encode(exportedKey).buffer,
-			encryptionResult.keyIdentifier,
-			'current_user' // Will be replaced by actual user ID on server
+			encryptionResult.keyIdentifier
+			// Note: user ID is determined server-side from authenticated session
 		);
 
 		// Step 4: Prepare upload input for GraphQL mutation

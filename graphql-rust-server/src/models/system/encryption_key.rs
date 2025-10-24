@@ -17,22 +17,31 @@ use crate::{database::get_db_from_context, error::AppError};
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
-    // Old columns (nullable for backward compatibility)
-    pub key_name: Option<String>,
-    pub encrypted_key: Option<Vec<u8>>,
-    // New columns (required)
-    pub key_identifier: String,
-    pub encrypted_key_data: Vec<u8>,
-    pub key_algorithm: String,
-    pub created_for_user: Uuid,
-    // Common columns
-    pub is_active: bool,
+    pub key_name: String,
+    pub encrypted_key: Vec<u8>,
+    pub algorithm: String,
+    pub user_id: Uuid,
+    #[sea_orm(column_name = "is_active")]
+    pub active: bool,
     pub created_at: DateTime<Utc>,
     pub rotated_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
+pub enum Relation {
+    #[sea_orm(
+        belongs_to = "crate::models::user::Entity",
+        from = "Column::UserId",
+        to = "crate::models::user::Column::Id"
+    )]
+    User,
+}
+
+impl Related<crate::models::user::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::User.def()
+    }
+}
 
 impl ActiveModelBehavior for ActiveModel {}
 
@@ -60,6 +69,9 @@ pub struct CreateEncryptionKeyInput {
     #[graphql(name = "keyName")]
     pub key_name: String,
     pub algorithm: String,
+    /// Base64-encoded encrypted key data
+    #[graphql(name = "encryptedKey")]
+    pub encrypted_key: String,
 }
 
 /// GraphQL Object implementation with camelCase field names
