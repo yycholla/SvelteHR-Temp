@@ -14,7 +14,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import TaskForm from '$lib/components/tasks/TaskForm.svelte';
-	import { ArrowLeft, Plus } from 'lucide-svelte';
+	import { ArrowLeft, Plus } from '@lucide/svelte';
 
 	// Page data and action result
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -42,14 +42,6 @@
 			// Otherwise go to tasks dashboard
 			goto('/dashboard/tasks');
 		}
-	}
-
-	// Handle form submit
-	async function handleSubmit(formData: any) {
-		// TaskForm will handle the actual submission via native form action
-		// This is called after validation passes
-		console.log('[Task Create] Form validated, submitting:', formData);
-		return true;
 	}
 
 	// Prepare initial values if creating a subtask
@@ -138,27 +130,14 @@
 		<Card.Content>
 			<TaskForm
 				assignees={data.assignees}
-			departments={data.departments}
+				departments={data.departments}
 				taskTypes={data.taskTypes}
 				parentTasks={data.parentTasks}
-				mode="create"
-				onSubmit={handleSubmit}
 				onCancel={handleCancel}
-				submitLabel="Create Task"
 				initialValues={initialValues()}
 			/>
 		</Card.Content>
 	</Card.Root>
 </div>
 
-<style>
-	/* Page Layout */
-	.task-create-page {
-		@apply container mx-auto px-4 py-8;
-	}
 
-	/* Page Header */
-	.page-header {
-		@apply mb-6;
-	}
-</style>

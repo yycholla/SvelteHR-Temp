@@ -2,7 +2,7 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import * as Card from '$lib/components/ui/card';
-	import { Building2 } from 'lucide-svelte';
+	import { Building2 } from '@lucide/svelte';
 
 	/**
 	 * Authentication Layout Component

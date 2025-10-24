@@ -73,32 +73,15 @@ export const load: PageServerLoad = async (event) => {
 		);
 		console.log('[Employee Directory] Filters:', { searchTerm, departmentFilter, statusFilter });
 
-		// Build filter condition based on query parameters
-		const condition: any = {};
-
-		if (departmentFilter) {
-			condition.departmentId = departmentFilter;
-		}
-
-		// Note: We handle isActive filtering differently because PostGraphile doesn't handle
-		// boolean filtering well with null values. We'll filter client-side instead.
-		// if (statusFilter === 'active') {
-		// 	condition.isActive = true;
-		// } else if (statusFilter === 'inactive') {
-		// 	condition.isActive = false;
-		// }
-
-		// Note: searchTerm filtering will be done client-side for now
-		// PostGraphile doesn't support LIKE queries easily in conditions
-
-		// Load employee directory data using Rust GraphQL schema
+		// Load ALL employees first (no pagination) to get accurate total count
+		// We'll apply pagination after filtering
 		const employeesResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetEmployees($limit: Int, $offset: Int) {
-						users(limit: $limit, offset: $offset) {
+					query GetAllEmployees {
+						users {
 							id
 							email
 							firstName
@@ -114,46 +97,57 @@ export const load: PageServerLoad = async (event) => {
 							updatedAt
 						}
 					}
-				`,
-				variables: {
-					limit: limit,
-					offset: (page - 1) * limit
-				}
+				`
 			})
 		});
 
 		const employeesData = await employeesResponse.json();
-		console.log('[Employee Directory] Employees data:', employeesData);
+		console.log('[Employee Directory] Total employees fetched:', employeesData?.data?.users?.length);
 		console.log('[Employee Directory] Status filter:', statusFilter);
 
 		// Extract employees from Rust GraphQL response (direct array, no nodes wrapper)
-		let employees = employeesData?.data?.users || [];
+		let allEmployees = employeesData?.data?.users || [];
+
+		// Calculate statistics from ALL employees BEFORE filtering
+		const totalActiveEmployees = allEmployees.filter((emp: any) => emp.isActive === true).length;
+		const totalInactiveEmployees = allEmployees.filter((emp: any) => emp.isActive === false).length;
 
 		// Debug: Check isActive values
 		console.log(
 			'[Employee Directory] Employee isActive values:',
-			employees.map((e: any) => ({
+			allEmployees.map((e: any) => ({
 				email: e.email,
 				isActive: e.isActive
 			}))
 		);
+		console.log('[Employee Directory] Stats:', {
+			total: allEmployees.length,
+			active: totalActiveEmployees,
+			inactive: totalInactiveEmployees
+		});
 
 		// Server-side filtering for isActive status
 		if (statusFilter === 'active') {
 			// Only show employees where isActive is true
-			employees = employees.filter((emp: any) => emp.isActive === true);
-			console.log('[Employee Directory] After active filter:', employees.length, 'employees');
+			allEmployees = allEmployees.filter((emp: any) => emp.isActive === true);
+			console.log('[Employee Directory] After active filter:', allEmployees.length, 'employees');
 		} else if (statusFilter === 'inactive') {
 			// Only show employees where isActive is false
-			employees = employees.filter((emp: any) => emp.isActive === false);
-			console.log('[Employee Directory] After inactive filter:', employees.length, 'employees');
+			allEmployees = allEmployees.filter((emp: any) => emp.isActive === false);
+			console.log('[Employee Directory] After inactive filter:', allEmployees.length, 'employees');
 		}
 		// If statusFilter is empty string, show all employees (no filtering)
+
+		// Filter by department
+		if (departmentFilter) {
+			allEmployees = allEmployees.filter((emp: any) => emp.departmentId === departmentFilter);
+			console.log('[Employee Directory] After department filter:', allEmployees.length, 'employees');
+		}
 
 		// Client-side filtering for search term
 		if (searchTerm) {
 			const searchLower = searchTerm.toLowerCase();
-			employees = employees.filter((emp: any) => {
+			allEmployees = allEmployees.filter((emp: any) => {
 				const displayName = emp.displayName?.toLowerCase() || '';
 				const firstName = emp.firstName?.toLowerCase() || '';
 				const lastName = emp.lastName?.toLowerCase() || '';
@@ -167,7 +161,25 @@ export const load: PageServerLoad = async (event) => {
 					role.includes(searchLower)
 				);
 			});
+			console.log('[Employee Directory] After search filter:', allEmployees.length, 'employees');
 		}
+
+		// Get total count AFTER all filtering
+		const totalEmployees = allEmployees.length;
+
+		// Apply pagination to filtered results
+		const startIndex = (page - 1) * limit;
+		const endIndex = startIndex + limit;
+		const employees = allEmployees.slice(startIndex, endIndex);
+
+		console.log('[Employee Directory] Pagination:', {
+			totalEmployees,
+			page,
+			limit,
+			startIndex,
+			endIndex,
+			pageEmployees: employees.length
+		});
 
 		// Load departments data with Rust GraphQL schema
 		const departmentsResponse = await fetch(graphqlEndpoint, {
@@ -209,7 +221,9 @@ export const load: PageServerLoad = async (event) => {
 			user: userPermissions.user,
 			userSession: userSession.toJSON(), // Convert UserSession to serializable object
 			employees: employees,
-			totalEmployees: employees.length, // Use filtered count for accurate pagination
+			totalEmployees: totalEmployees, // Total count after all filters, before pagination
+			totalActiveEmployees: totalActiveEmployees, // Total active count from ALL employees
+			totalInactiveEmployees: totalInactiveEmployees, // Total inactive count from ALL employees
 			departments: departmentsData?.data?.departments || [],
 			filters: {
 				searchTerm,

@@ -145,6 +145,44 @@ export const GET_DEPARTMENTS_QUERY = gql`
 	}
 `;
 
+/**
+ * Query: Get employee statistics for a date range (for time-series charts)
+ * Backend: Rust idiomatic - employeeStatistics(startDate, endDate) returns array of daily snapshots
+ */
+export const GET_EMPLOYEE_STATISTICS_QUERY = gql`
+	query GetEmployeeStatistics($startDate: String!, $endDate: String!) {
+		employeeStatistics(startDate: $startDate, endDate: $endDate) {
+			id
+			snapshotDate
+			totalCount
+			activeCount
+			inactiveCount
+			departmentCount
+			createdAt
+			updatedAt
+		}
+	}
+`;
+
+/**
+ * Query: Get the most recent employee statistics snapshot
+ * Backend: Rust idiomatic - latestEmployeeStatistics() returns single snapshot
+ */
+export const GET_LATEST_EMPLOYEE_STATISTICS_QUERY = gql`
+	query GetLatestEmployeeStatistics {
+		latestEmployeeStatistics {
+			id
+			snapshotDate
+			totalCount
+			activeCount
+			inactiveCount
+			departmentCount
+			createdAt
+			updatedAt
+		}
+	}
+`;
+
 // ============================================================================
 // MUTATIONS
 // ============================================================================
@@ -305,6 +343,17 @@ export interface UpdateUserInput {
 	hireDate?: string;
 	terminationDate?: string;
 	status?: string;
+}
+
+export interface EmployeeStatistic {
+	id: string;
+	snapshotDate: string;
+	totalCount: number;
+	activeCount: number;
+	inactiveCount: number;
+	departmentCount: number;
+	createdAt: string;
+	updatedAt: string;
 }
 
 // ============================================================================

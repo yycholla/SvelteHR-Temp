@@ -13,8 +13,17 @@ use std::net::SocketAddr;
 
 use crate::{
     auth::{AuthBackend, Credentials},
-    schema::{MutationRoot, QueryRoot},
+    dataloader::DataLoaderContext,
+    schema::{MutationRoot, QueryRoot, GraphQLSchema},
 };
+
+/// Application state containing shared resources
+#[derive(Clone)]
+pub struct AppState {
+    pub db: DatabaseConnection,
+    pub schema: GraphQLSchema,
+    pub dataloaders: DataLoaderContext,
+}
 
 /// GraphQL playground handler
 pub async fn graphql_playground() -> Html<String> {
@@ -50,7 +59,7 @@ pub struct UserInfo {
 pub async fn login_handler(
     mut auth_session: AuthSession<AuthBackend>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    State(_db): State<DatabaseConnection>,
+    State(app_state): State<AppState>,
     Json(login_req): Json<LoginRequest>,
 ) -> Result<Json<LoginResponse>, StatusCode> {
     let client_ip = addr.ip().to_string();
@@ -98,7 +107,7 @@ pub async fn login_handler(
                     vec![user.id.into()]
                 )
             )
-            .all(&_db)
+            .all(&app_state.db)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .into_iter()
@@ -144,7 +153,7 @@ pub async fn login_handler(
                 batch_id: sea_orm::ActiveValue::NotSet,
                 created_at: sea_orm::ActiveValue::Set(chrono::Utc::now().into()),
             };
-            let _ = activity_log.insert(&_db).await;
+            let _ = activity_log.insert(&app_state.db).await;
 
             tracing::warn!("Failed login attempt from IP: {} for user: {}", client_ip, login_req.email);
             Err(StatusCode::UNAUTHORIZED)
@@ -161,7 +170,7 @@ pub async fn login_handler(
 /// Logout handler
 pub async fn logout_handler(
     mut auth_session: AuthSession<AuthBackend>,
-    State(db): State<DatabaseConnection>,
+    State(app_state): State<AppState>,
 ) -> Result<Redirect, StatusCode> {
     // Get user ID before logout
     let user_id = auth_session.user.as_ref().map(|u| u.id);
@@ -170,7 +179,7 @@ pub async fn logout_handler(
         Ok(_) => {
             // Deactivate all sessions for this user in database
             if let Some(uid) = user_id {
-                if let Err(e) = crate::auth::session_store::deactivate_user_sessions(&db, uid).await {
+                if let Err(e) = crate::auth::session_store::deactivate_user_sessions(&app_state.db, uid).await {
                     tracing::error!("Failed to deactivate user sessions during logout: {:?}", e);
                     // Don't fail logout if session cleanup fails
                 }
@@ -189,7 +198,7 @@ pub async fn logout_handler(
 /// Get current user info handler
 pub async fn me_handler(
     auth_session: AuthSession<AuthBackend>,
-    State(db): State<DatabaseConnection>,
+    State(app_state): State<AppState>,
 ) -> Result<Json<UserInfo>, StatusCode> {
     match &auth_session.user {
         Some(user) => {
@@ -215,7 +224,7 @@ pub async fn me_handler(
                     vec![user.id.into()]
                 )
             )
-            .all(&db)
+            .all(&app_state.db)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
             .into_iter()
@@ -237,7 +246,7 @@ pub async fn me_handler(
 /// Session refresh handler
 pub async fn refresh_handler(
     auth_session: AuthSession<AuthBackend>,
-    State(db): State<DatabaseConnection>,
+    State(app_state): State<AppState>,
 ) -> Result<Json<RefreshResponse>, StatusCode> {
     match &auth_session.user {
         Some(user) => {
@@ -261,7 +270,7 @@ pub async fn refresh_handler(
                 .filter(crate::models::user_session::Column::UserId.eq(user.id))
                 .filter(crate::models::user_session::Column::IsActive.eq(true))
                 .filter(crate::models::user_session::Column::ExpiresAt.gt(now))
-                .exec(&db)
+                .exec(&app_state.db)
                 .await;
 
             match update_result {
@@ -324,7 +333,7 @@ pub struct SessionsResponse {
 /// List active sessions handler
 pub async fn sessions_handler(
     auth_session: AuthSession<AuthBackend>,
-    State(db): State<DatabaseConnection>,
+    State(app_state): State<AppState>,
 ) -> Result<Json<SessionsResponse>, StatusCode> {
     let Some(user) = &auth_session.user else {
         return Err(StatusCode::UNAUTHORIZED);
@@ -334,7 +343,7 @@ pub async fn sessions_handler(
         .filter(crate::models::user_session::Column::UserId.eq(user.id))
         .filter(crate::models::user_session::Column::IsActive.eq(true))
         .filter(crate::models::user_session::Column::ExpiresAt.gt(chrono::Utc::now()))
-        .all(&db)
+        .all(&app_state.db)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -360,14 +369,19 @@ pub async fn sessions_handler(
 
 /// GraphQL handler
 pub async fn graphql_handler(
-    State(db): State<DatabaseConnection>,
+    State(app_state): State<AppState>,
     auth_session: AuthSession<AuthBackend>,
     req: async_graphql_axum::GraphQLRequest,
 ) -> async_graphql_axum::GraphQLResponse {
-    // Build schema with database and auth session
-    let mut schema_builder = async_graphql::Schema::build(QueryRoot, MutationRoot, async_graphql::EmptySubscription)
-        .data(db.clone())
-        .data(auth_session.clone());
+    // Create request context with database and auth session
+    let mut request = req.into_inner();
+
+    // Add database connection to request context
+    request = request.data(app_state.db.clone());
+    request = request.data(auth_session.clone());
+
+    // Add DataLoaders to request context
+    request = request.data(app_state.dataloaders.clone());
 
     // If user is authenticated, create UserContext for guards
     if let Some(user) = &auth_session.user {
@@ -376,10 +390,8 @@ pub async fn graphql_handler(
             vec![user.role.clone()],
             vec![] // TODO: Fetch permissions from database if needed
         );
-        schema_builder = schema_builder.data(user_context);
+        request = request.data(user_context);
     }
 
-    let schema = schema_builder.finish();
-
-    schema.execute(req.into_inner()).await.into()
+    app_state.schema.execute(request).await.into()
 }

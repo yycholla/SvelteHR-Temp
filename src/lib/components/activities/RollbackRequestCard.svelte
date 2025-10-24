@@ -10,7 +10,7 @@
 	 */
 
 	import { createEventDispatcher } from 'svelte';
-	import { Check, X, Loader2, ChevronDown, ChevronUp } from 'lucide-svelte';
+	import { Check, X, Loader2, ChevronDown, ChevronUp } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 	import { formatDistanceToNow } from 'date-fns';
 

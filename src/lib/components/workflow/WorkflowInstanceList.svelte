@@ -255,28 +255,4 @@
 	<WorkflowInstanceDetails instance={selectedInstance} on:close={handleCloseDetails} />
 {/if}
 
-<style>
-	.workflow-instances {
-		@apply mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8;
-	}
 
-	.btn {
-		@apply inline-flex items-center rounded-md border border-transparent px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2;
-	}
-
-	.btn-secondary {
-		@apply border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-blue-500;
-	}
-
-	.btn:disabled {
-		@apply cursor-not-allowed opacity-50;
-	}
-
-	.input {
-		@apply block w-full rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500;
-	}
-
-	.select {
-		@apply block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500;
-	}
-</style>

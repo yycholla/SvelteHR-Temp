@@ -1,7 +1,8 @@
 [target.x86_64-unknown-linux-gnu]
 # Use mold linker for significantly faster linking (5-10x speedup)
 # Mold is a modern, high-performance linker designed for speed
-# Suppress all warnings for cleaner development output
+# Set linker to clang and explicitly use mold to override default lld
+linker = "clang"
 rustflags = [
     "-C", "link-arg=-fuse-ld=mold",
     "-A", "warnings"

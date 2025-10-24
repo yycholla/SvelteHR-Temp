@@ -8,7 +8,7 @@ use std::time::Duration;
 pub async fn create_db_connection(database_url: &str) -> Result<DatabaseConnection, DbErr> {
     // Configure connection options for optimal performance
     let mut opt = ConnectOptions::new(database_url.to_string());
-    opt.max_connections(100)
+    opt.max_connections(20)
         .min_connections(5)
         .connect_timeout(Duration::from_secs(8))
         .acquire_timeout(Duration::from_secs(8))

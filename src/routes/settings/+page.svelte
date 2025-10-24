@@ -27,7 +27,7 @@
 		Download,
 		AlertCircle,
 		CheckCircle
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 	import {
 		profileVisibilityOptions,
 		languageOptions,

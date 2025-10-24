@@ -14,7 +14,7 @@
 		ZoomOut,
 		RotateCcw,
 		Maximize
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 
 	// Props
 	let {

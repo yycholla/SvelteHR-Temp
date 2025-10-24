@@ -26,8 +26,9 @@
 		CheckSquare,
 		FolderOpen,
 		Upload,
-		ScrollText
-	} from 'lucide-svelte';
+		ScrollText,
+		Tags
+	} from '@lucide/svelte';
 	import { currentUser, hasRole, authActions } from '$lib/stores/auth';
 	import { page } from '$app/stores';
 	import { themeStore } from '$lib/stores/theme';
@@ -256,6 +257,7 @@
 	// T044-T046: Added Feature 020 audit logging pages
 	const adminItems = [
 		{ title: 'User Management', url: '/dashboard/admin/users', icon: Users },
+		{ title: 'Task Types', url: '/dashboard/admin/task-types', icon: Tags },
 		{ title: 'System Settings', url: '/dashboard/admin/settings', icon: Settings },
 		{ title: 'Audit Logs', url: '/dashboard/activities/logs', icon: FileText },
 		{ title: 'Rollback Requests', url: '/dashboard/activities/rollback-requests', icon: Clock, superAdminOnly: true },

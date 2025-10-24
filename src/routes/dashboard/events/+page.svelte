@@ -12,7 +12,7 @@
 	import { page } from '$app/stores';
 	import { invalidateAll } from '$app/navigation';
 	import type { EventVisibilityType, EventStatus, EventType, RsvpStatus } from '$lib/graphql/types';
-	import { Calendar, Copy, Check } from 'lucide-svelte';
+	import { Calendar, Copy, Check } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 	import type { EventComment, EventHistoryEntry, UserWaitlistStatus } from '$lib/graphql/events-operations';
 	import {

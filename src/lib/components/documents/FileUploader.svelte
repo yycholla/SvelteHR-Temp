@@ -1,14 +1,12 @@
 <script lang="ts">
 	// FileUploader component (Feature 024)
-	// Drag-and-drop file upload with client-side encryption
+	// Simple drag-and-drop file selection for server-side encryption
+	// Encryption happens on SvelteKit server, not in browser
 
-	import { uploadDocument } from '$lib/services/documentService';
 	import { validateFileType, validateFileSize, MIME_TYPE_MAP } from '$lib/schemas/documentSchemas';
-	import type { DocumentMetadata, UploadProgress, UploadResult } from '$lib/types/document';
+	import type { DocumentMetadata } from '$lib/types/document';
 
 	interface Props {
-		onUpload?: (result: UploadResult) => void;
-		onError?: (error: Error) => void;
 		maxSizeMB?: number;
 		allowedTypes?: string[];
 		metadata: DocumentMetadata;
@@ -17,8 +15,6 @@
 	}
 
 	let {
-		onUpload = () => {},
-		onError = () => {},
 		maxSizeMB = 50,
 		allowedTypes = ['PDF', 'JPEG', 'PNG', 'GIF', 'DOCX', 'XLSX', 'TXT', 'CSV'],
 		metadata = $bindable(),
@@ -28,12 +24,6 @@
 
 	// Svelte 5 runes state
 	let selectedFile = $state<File | null>(null);
-	let uploadProgress = $state<UploadProgress>({
-		stage: 'encrypting',
-		progress: 0
-	});
-	let isUploading = $state(false);
-	let isEncrypting = $state(false);
 	let isDragging = $state(false);
 	let errorMessage = $state<string | null>(null);
 
@@ -44,25 +34,7 @@
 		console.log('[FileUploader] hasFile updated:', hasFile, 'selectedFile:', selectedFile?.name);
 	});
 
-	// Derived state
-	let canUpload = $derived(selectedFile !== null && !isUploading && metadata.category !== '');
-	let progressPercent = $derived(uploadProgress.progress);
-	let progressMessage = $derived(() => {
-		switch (uploadProgress.stage) {
-			case 'encrypting':
-				return 'Encrypting file...';
-			case 'uploading':
-				return 'Uploading encrypted file...';
-			case 'processing':
-				return 'Processing document...';
-			case 'complete':
-				return 'Upload complete!';
-			default:
-				return '';
-		}
-	});
-
-	// Handle file selection
+	// Handle file selection from input
 	function handleFileSelect(event: Event) {
 		const input = event.target as HTMLInputElement;
 		const file = input.files?.[0];
@@ -119,59 +91,13 @@
 		console.log('[FileUploader] metadata.filename set to:', metadata.filename);
 	}
 
-	// Expose upload function for parent component to call
-	export async function triggerUpload() {
-		if (!selectedFile) {
-			throw new Error('No file selected');
-		}
-
-		try {
-			isUploading = true;
-			errorMessage = null;
-
-			// Update metadata with filename
-			metadata.filename = selectedFile.name;
-
-			// Upload with progress tracking
-			const result = await uploadDocument(
-				selectedFile,
-				metadata,
-				(progress) => {
-					uploadProgress = progress;
-					isEncrypting = progress.stage === 'encrypting';
-				}
-			);
-
-			// Success
-			onUpload(result);
-
-			// Reset
-			selectedFile = null;
-			uploadProgress = { stage: 'encrypting', progress: 0 };
-
-			return result;
-		} catch (error) {
-			console.error('Upload error:', error);
-			errorMessage = error instanceof Error ? error.message : 'Upload failed';
-			onError(error instanceof Error ? error : new Error('Upload failed'));
-			throw error;
-		} finally {
-			isUploading = false;
-			isEncrypting = false;
-		}
-	}
-
-	// Expose state for parent component
-	export function getUploadState() {
-		return {
-			hasFile: selectedFile !== null,
-			isUploading,
-			fileName: selectedFile?.name || null
-		};
+	// Expose function to get selected file for parent form submission
+	export function getSelectedFile(): File | null {
+		return selectedFile;
 	}
 
 	// Clear selected file
-	function clearFile() {
+	export function clearFile() {
 		selectedFile = null;
 		errorMessage = null;
 	}
@@ -202,9 +128,7 @@
 					<div class="file-name">{selectedFile.name}</div>
 					<div class="file-size">{formatFileSize(selectedFile.size)}</div>
 				</div>
-				<button class="clear-button" onclick={clearFile} disabled={isUploading}>
-					✕
-				</button>
+				<button class="clear-button" onclick={clearFile} type="button"> ✕ </button>
 			</div>
 		{:else}
 			<!-- Drop zone placeholder -->
@@ -216,9 +140,8 @@
 					Choose File
 					<input
 						type="file"
-						accept={allowedTypes.map(t => MIME_TYPE_MAP[t] || '').join(',')}
+						accept={allowedTypes.map((t) => MIME_TYPE_MAP[t] || '').join(',')}
 						onchange={handleFileSelect}
-						disabled={isUploading}
 					/>
 				</label>
 				<p class="file-constraints">
@@ -228,27 +151,11 @@
 		{/if}
 	</div>
 
-	<!-- Upload progress -->
-	{#if isUploading}
-		<div class="upload-progress">
-			<div class="progress-bar">
-				<div class="progress-fill" style="width: {progressPercent}%"></div>
-			</div>
-			<div class="progress-text">
-				{progressMessage()} {progressPercent}%
-			</div>
-			{#if isEncrypting}
-				<div class="encryption-indicator">
-					🔒 Encrypting with AES-GCM-256...
-				</div>
-			{/if}
-		</div>
-	{/if}
-
-	<!-- Error message -->
+	<!-- Error message display -->
 	{#if errorMessage}
 		<div class="error-message">
-			⚠️ {errorMessage}
+			<span class="error-icon">⚠️</span>
+			<span>{errorMessage}</span>
 		</div>
 	{/if}
 </div>
@@ -260,10 +167,9 @@
 
 	.drop-zone {
 		border: 2px dashed #cbd5e0;
-		border-radius: 8px;
+		border-radius: 0.5rem;
 		padding: 2rem;
-		text-align: center;
-		transition: all 0.2s ease;
+		transition: all 0.2s;
 		background: #f7fafc;
 	}
 
@@ -281,9 +187,6 @@
 		display: flex;
 		align-items: center;
 		gap: 1rem;
-		padding: 1rem;
-		background: white;
-		border-radius: 4px;
 	}
 
 	.file-icon {
@@ -292,7 +195,6 @@
 
 	.file-details {
 		flex: 1;
-		text-align: left;
 	}
 
 	.file-name {
@@ -306,21 +208,26 @@
 	}
 
 	.clear-button {
-		background: #fc8181;
+		background: #f56565;
 		color: white;
 		border: none;
 		border-radius: 50%;
-		width: 28px;
-		height: 28px;
+		width: 2rem;
+		height: 2rem;
 		cursor: pointer;
-		font-size: 1rem;
+		font-size: 1.25rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: background 0.2s;
 	}
 
-	.clear-button:hover:not(:disabled) {
-		background: #f56565;
+	.clear-button:hover {
+		background: #e53e3e;
 	}
 
 	.drop-placeholder {
+		text-align: center;
 		padding: 1rem;
 	}
 
@@ -331,21 +238,22 @@
 
 	.drop-text {
 		font-size: 1.125rem;
+		font-weight: 500;
 		color: #2d3748;
 		margin-bottom: 0.5rem;
 	}
 
 	.or-text {
-		color: #a0aec0;
-		margin: 1rem 0;
+		color: #718096;
+		margin: 0.5rem 0;
 	}
 
 	.file-select-button {
 		display: inline-block;
-		padding: 0.75rem 1.5rem;
 		background: #4299e1;
 		color: white;
-		border-radius: 4px;
+		padding: 0.75rem 1.5rem;
+		border-radius: 0.375rem;
 		cursor: pointer;
 		font-weight: 500;
 		transition: background 0.2s;
@@ -355,58 +263,29 @@
 		background: #3182ce;
 	}
 
-	.file-select-button input[type="file"] {
+	.file-select-button input {
 		display: none;
 	}
 
 	.file-constraints {
-		font-size: 0.75rem;
+		margin-top: 1rem;
+		font-size: 0.875rem;
 		color: #718096;
-		margin-top: 1rem;
-	}
-
-	.upload-progress {
-		margin-top: 1rem;
-	}
-
-	.progress-bar {
-		width: 100%;
-		height: 8px;
-		background: #e2e8f0;
-		border-radius: 4px;
-		overflow: hidden;
-	}
-
-	.progress-fill {
-		height: 100%;
-		background: linear-gradient(90deg, #4299e1, #48bb78);
-		transition: width 0.3s ease;
-	}
-
-	.progress-text {
-		margin-top: 0.5rem;
-		font-size: 0.875rem;
-		color: #4a5568;
-		text-align: center;
-	}
-
-	.encryption-indicator {
-		margin-top: 0.5rem;
-		padding: 0.5rem;
-		background: #edf2f7;
-		border-radius: 4px;
-		font-size: 0.875rem;
-		color: #2d3748;
-		text-align: center;
 	}
 
 	.error-message {
-		margin-top: 1rem;
+		margin-top: 0.75rem;
 		padding: 0.75rem;
 		background: #fff5f5;
 		border: 1px solid #fc8181;
-		border-radius: 4px;
+		border-radius: 0.375rem;
 		color: #c53030;
-		font-size: 0.875rem;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.error-icon {
+		font-size: 1.25rem;
 	}
 </style>

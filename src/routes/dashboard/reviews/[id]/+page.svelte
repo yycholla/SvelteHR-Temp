@@ -21,7 +21,7 @@
 		Target,
 		FileText,
 		AlertTriangle
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 	import {
 		getReviewTypeInfo,
 		getReviewStatusInfo,

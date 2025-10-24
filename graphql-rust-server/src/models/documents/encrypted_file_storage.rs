@@ -3,6 +3,7 @@
 //! Maps to hr_public.encrypted_file_storage table
 
 use async_graphql::{InputObject, Object, Result as GqlResult};
+use base64;
 use chrono::{DateTime, Utc};
 use sea_orm::{entity::prelude::*, QueryFilter};
 use serde::{Deserialize, Serialize};
@@ -17,7 +18,9 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub document_id: Uuid,
+    pub encrypted_data: Vec<u8>,
     pub encryption_key_id: Uuid,
+    pub iv: Vec<u8>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -71,7 +74,14 @@ impl Model {
         self.created_at
     }
 
+    #[graphql(name = "encryptedData")]
+    async fn encrypted_data(&self) -> String {
+        base64::encode(&self.encrypted_data)
+    }
 
+    async fn iv(&self) -> String {
+        base64::encode(&self.iv)
+    }
 
     /// Encryption key relationship (lazy-loaded)
     #[graphql(name = "encryptionKey")]

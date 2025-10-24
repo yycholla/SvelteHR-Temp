@@ -9,7 +9,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
-	import { FileText, Edit, Trash2, Clock } from 'lucide-svelte';
+	import { FileText, Edit, Trash2, Clock } from '@lucide/svelte';
 	import { createEventDispatcher } from 'svelte';
 	import { getReviewTypeInfo, formatReviewPeriod } from '$lib/graphql/graphql/reviews-operations';
 	import type { ReviewType } from '$lib/schemas/reviews';

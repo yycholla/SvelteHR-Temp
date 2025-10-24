@@ -1,6 +1,6 @@
 # SvelteHR Development Commands - Streamlined Makefile
 SHELL := /bin/bash
-.PHONY: help dev dev-down dev-logs dev-rebuild backend frontend ssh-backend ssh-frontend
+.PHONY: help dev dev-down dev-logs dev-rebuild dev-rebuild-full backend frontend ssh-backend ssh-frontend
 .PHONY: db-shell db-status db-reset db-migrate clean install test
 
 # =============================================================================
@@ -11,12 +11,13 @@ help: ## Show available commands
 	@echo "================================"
 	@echo ""
 	@echo "🚀 Development (Recommended):"
-	@echo "  make dev           - Start ALL containers (backend + frontend + database + redis)"
-	@echo "  make backend       - Start only backend containers (database + redis + backend API)"
-	@echo "  make frontend      - Start only frontend container (requires backend running)"
-	@echo "  make dev-logs      - View container logs"
-	@echo "  make dev-down      - Stop all containers"
-	@echo "  make dev-rebuild   - Rebuild containers (when Dockerfile changes)"
+	@echo "  make dev                - Start ALL containers (backend + frontend + database + redis)"
+	@echo "  make backend            - Start only backend containers (database + redis + backend API)"
+	@echo "  make frontend           - Start only frontend container (requires backend running)"
+	@echo "  make dev-logs           - View container logs"
+	@echo "  make dev-down           - Stop all containers"
+	@echo "  make dev-rebuild        - Fast rebuild with cargo-chef caching (~1 min)"
+	@echo "  make dev-rebuild-full   - Full rebuild without cache (~10 min, for Dockerfile/deps changes)"
 	@echo ""
 	@echo "🔌 SSH Access (Optional):"
 	@echo "  make ssh-backend   - SSH into backend container (user: dev, pass: dev)"
@@ -110,10 +111,16 @@ dev-down: ## Stop all development containers
 dev-logs: ## View container logs (Ctrl+C to exit)
 	@cd dev-containers && docker-compose -f docker-compose.dev.yml logs -f
 
-dev-rebuild: ## Rebuild containers (run after Dockerfile changes)
-	@echo "🔨 Rebuilding development containers..."
-	@cd dev-containers && docker-compose -f docker-compose.dev.yml build --no-cache
+dev-rebuild: ## Rebuild containers (leverages cargo-chef dependency caching)
+	@echo "🔨 Rebuilding development containers with cargo-chef caching..."
+	@cd dev-containers && docker-compose -f docker-compose.dev.yml build
 	@echo "✅ Rebuild complete. Run 'make dev' to start."
+	@echo "💡 For full rebuild (no cache), use: make dev-rebuild-full"
+
+dev-rebuild-full: ## Full rebuild without caching (use when Dockerfile or dependencies change)
+	@echo "🔨 Full rebuild (no cache) - this will take 8-12 minutes..."
+	@cd dev-containers && docker-compose -f docker-compose.dev.yml build --no-cache
+	@echo "✅ Full rebuild complete. Run 'make dev' to start."
 
 # =============================================================================
 # SSH Access to Containers

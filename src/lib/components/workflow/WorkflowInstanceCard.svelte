@@ -230,12 +230,4 @@
 	</div>
 </div>
 
-<style>
-	.workflow-instance-card {
-		@apply transition-all duration-200;
-	}
 
-	.workflow-instance-card:hover {
-		@apply shadow-lg;
-	}
-</style>

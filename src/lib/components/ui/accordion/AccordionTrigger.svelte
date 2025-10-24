@@ -4,7 +4,7 @@
 	 * Clickable trigger to expand/collapse accordion item
 	 */
 	import { getContext } from 'svelte';
-	import { ChevronDown } from 'lucide-svelte';
+	import { ChevronDown } from '@lucide/svelte';
 
 	interface Props {
 		class?: string;

@@ -214,8 +214,13 @@ async function authenticateUser(event: any, pathname: string): Promise<{
 		const userData = await response.json();
 
 		// Transform to expected format
+		// Normalize user data structure to ensure 'id' property exists
+		// Backend may use 'id', 'user_id', or 'userId' depending on the endpoint
 		const authResult = {
-			user: userData,
+			user: {
+				...userData,
+				id: userData.id || userData.user_id || userData.userId
+			},
 			roles: [userData.role],
 			permissions: userData.permissions || [] // Permissions from backend session
 		};
@@ -305,8 +310,13 @@ export const handle: Handle = async ({ event, resolve }) => {
 		// Security headers
 		const isProduction = process.env.NODE_ENV === 'production';
 
-		// Prevent clickjacking attacks
-		response.headers.set('X-Frame-Options', 'DENY');
+		// Check if this is the document preview endpoint (needs iframe embedding)
+		const isPreviewEndpoint = pathname.includes('/api/documents/') && pathname.endsWith('/preview/view');
+
+		// Prevent clickjacking attacks (but allow preview endpoint to be embedded)
+		if (!isPreviewEndpoint) {
+			response.headers.set('X-Frame-Options', 'DENY');
+		}
 
 		// Prevent MIME type sniffing
 		response.headers.set('X-Content-Type-Options', 'nosniff');
@@ -324,6 +334,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		);
 
 		// Content Security Policy (CSP) - strict policy
+		// Allow iframe embedding for preview endpoint
 		const cspDirectives = [
 			"default-src 'self'",
 			"script-src 'self' 'unsafe-inline' 'unsafe-eval'", // TODO: Remove unsafe-eval once app is CSP-compliant
@@ -331,7 +342,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 			"img-src 'self' data: https:",
 			"font-src 'self' data:",
 			"connect-src 'self' http://localhost:4000 ws://localhost:*", // Backend API and WebSocket
-			"frame-ancestors 'none'",
+			isPreviewEndpoint ? "frame-ancestors 'self'" : "frame-ancestors 'none'",
 			"base-uri 'self'",
 			"form-action 'self'"
 		];
@@ -422,13 +433,27 @@ console.log(`   - Block duration: ${BLOCK_DURATION / 1000 / 60}min after max att
 console.log(`   - Security headers: CSP, HSTS, X-Frame-Options, etc.`);
 console.log(`   - CSRF protection: ${authConfig.security.enableCSRF ? 'enabled' : 'disabled'}`);
 
-// Initialize event reminder scheduler
+// Initialize event reminder scheduler with backend health check
 import { ReminderScheduler } from '$lib/server/reminder-scheduler';
+import { waitForBackend } from '$lib/server/backend-health';
 
-// Start the reminder scheduler on server startup
+// Start the reminder scheduler after ensuring backend is healthy
 if (process.env.ENABLE_REMINDER_SCHEDULER !== 'false') {
-	ReminderScheduler.start();
-	console.log('⏰ Event reminder scheduler started');
+	// Wait for backend in background, don't block server startup
+	waitForBackend(undefined, {
+		maxRetries: 15,
+		initialDelay: 2000,
+		maxDelay: 30000
+	}).then((result) => {
+		if (result.healthy) {
+			ReminderScheduler.start();
+			console.log('⏰ Event reminder scheduler started');
+		} else {
+			console.error('⏰ Event reminder scheduler disabled - backend not healthy:', result.message);
+		}
+	}).catch((error) => {
+		console.error('⏰ Event reminder scheduler startup error:', error);
+	});
 } else {
 	console.log('⏰ Event reminder scheduler disabled (ENABLE_REMINDER_SCHEDULER=false)');
 }

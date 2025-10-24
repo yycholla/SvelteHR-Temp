@@ -3,8 +3,11 @@
 	// Individual document view with metadata, preview, assignments, and access log
 
 	import { goto } from '$app/navigation';
+	import { Button } from '$lib/components/ui/button';
+	import * as Card from '$lib/components/ui/card';
 	import PreviewModal from '$lib/components/documents/PreviewModal.svelte';
 	import DocumentAssignmentModal from '$lib/components/documents/DocumentAssignmentModal.svelte';
+	import { ArrowLeft, Eye, Download, Users, Trash2 } from '@lucide/svelte';
 	import type { PageData } from './$types';
 	import type { DocumentAssignment } from '$lib/types/document';
 
@@ -17,17 +20,17 @@
 	let previewLoading = $state(false);
 	let previewError = $state<string | null>(null);
 
-	// Sensitivity badge colors
+	// Sensitivity badge colors with dark mode support
 	const sensitivityColors: Record<string, string> = {
-		Public: 'bg-green-100 text-green-800',
-		Internal: 'bg-blue-100 text-blue-800',
-		Confidential: 'bg-yellow-100 text-yellow-800',
-		'Sensitive-PII': 'bg-red-100 text-red-800'
+		Public: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+		Internal: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+		Confidential: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+		'Sensitive-PII': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
 	};
 
 	// Derived state
 	let sensitivityClass = $derived(
-		sensitivityColors[data.document.sensitivity_level] || 'bg-gray-100 text-gray-800'
+		sensitivityColors[data.document.sensitivity_level] || 'bg-muted text-muted-foreground'
 	);
 
 	let uploadDate = $derived(new Date(data.document.uploaded_at).toLocaleString());
@@ -126,137 +129,174 @@
 	<title>{data.document.filename} | HR System</title>
 </svelte:head>
 
-<div class="document-detail-page">
+<div class="container mx-auto py-6 space-y-6">
 	<!-- Page header -->
-	<div class="page-header">
-		<button class="back-button" onclick={() => goto('/dashboard/documents')}>
-			← Back to Documents
-		</button>
+	<div class="mb-6">
+		<Button variant="outline" onclick={() => goto('/dashboard/documents')} class="gap-2">
+			<ArrowLeft class="h-4 w-4" />
+			Back to Documents
+		</Button>
 	</div>
 
 	<!-- Document info card -->
-	<div class="document-card">
-		<div class="card-header">
-			<div class="document-icon">📄</div>
-			<div class="document-info">
-				<h1 class="document-title">{data.document.filename}</h1>
-				<div class="document-meta">
-					<span class="meta-item">{data.document.file_type}</span>
-					<span class="separator">•</span>
-					<span class="meta-item">{formatFileSize(data.document.file_size_bytes)}</span>
-					<span class="separator">•</span>
-					<span class="meta-item">Uploaded {uploadDate}</span>
+	<Card.Root>
+		<Card.Header class="border-b pb-6">
+			<div class="flex gap-6">
+				<div class="text-6xl">📄</div>
+				<div class="flex-1">
+					<h1 class="text-3xl font-bold text-foreground mb-2 break-words">
+						{data.document.filename}
+					</h1>
+					<div class="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
+						<span>{data.document.file_type}</span>
+						<span class="text-border">•</span>
+						<span>{formatFileSize(data.document.file_size_bytes)}</span>
+						<span class="text-border">•</span>
+						<span>Uploaded {uploadDate}</span>
+					</div>
 				</div>
 			</div>
-		</div>
+		</Card.Header>
 
-		<!-- Metadata -->
-		<div class="metadata-grid">
-			<div class="metadata-item">
-				<span class="metadata-label">Category</span>
-				<span class="metadata-value">{data.document.category}</span>
-			</div>
-
-			<div class="metadata-item">
-				<span class="metadata-label">Sensitivity</span>
-				<span class="sensitivity-badge {sensitivityClass}">
-					{data.document.sensitivity_level}
-				</span>
-			</div>
-
-			<div class="metadata-item">
-				<span class="metadata-label">Uploaded By</span>
-				<span class="metadata-value">{data.document.uploaded_by_email || `User ${data.document.uploaded_by.substring(0, 8)}...`}</span>
-			</div>
-
-			{#if data.document.description}
-				<div class="metadata-item full-width">
-					<span class="metadata-label">Description</span>
-					<p class="metadata-description">{data.document.description}</p>
+		<Card.Content class="pt-6">
+			<!-- Metadata -->
+			<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+				<div class="flex flex-col gap-2">
+					<span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+						Category
+					</span>
+					<span class="text-base font-medium text-foreground">
+						{data.document.category}
+					</span>
 				</div>
-			{/if}
-		</div>
 
-		<!-- Actions -->
-		<div class="action-buttons">
-			<button class="action-button preview-button" onclick={handlePreview}>
-				👁️ Preview
-			</button>
-			<button class="action-button download-button" onclick={handleDownload}>
-				⬇️ Download
-			</button>
-			{#if data.canAssign}
-				<button class="action-button assign-button" onclick={() => isAssignmentModalOpen = true}>
-					👥 Assign
-				</button>
-			{/if}
-			{#if data.canDelete}
-				<button class="action-button delete-button" onclick={handleDelete}>
-					🗑️ Delete
-				</button>
-			{/if}
-		</div>
-	</div>
+				<div class="flex flex-col gap-2">
+					<span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+						Sensitivity
+					</span>
+					<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide w-fit {sensitivityClass}">
+						{data.document.sensitivity_level}
+					</span>
+				</div>
+
+				<div class="flex flex-col gap-2">
+					<span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+						Uploaded By
+					</span>
+					<span class="text-base font-medium text-foreground">
+						{data.document.uploaded_by_email || `User ${data.document.uploaded_by.substring(0, 8)}...`}
+					</span>
+				</div>
+
+				{#if data.document.description}
+					<div class="flex flex-col gap-2 md:col-span-3">
+						<span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+							Description
+						</span>
+						<p class="text-sm text-muted-foreground leading-relaxed">
+							{data.document.description}
+						</p>
+					</div>
+				{/if}
+			</div>
+
+			<!-- Actions -->
+			<div class="flex gap-3 flex-wrap">
+				<Button onclick={handlePreview} class="gap-2">
+					<Eye class="h-4 w-4" />
+					Preview
+				</Button>
+				<Button variant="secondary" onclick={handleDownload} class="gap-2">
+					<Download class="h-4 w-4" />
+					Download
+				</Button>
+				{#if data.canAssign}
+					<Button variant="outline" onclick={() => isAssignmentModalOpen = true} class="gap-2">
+						<Users class="h-4 w-4" />
+						Assign
+					</Button>
+				{/if}
+				{#if data.canDelete}
+					<Button variant="destructive" onclick={handleDelete} class="gap-2">
+						<Trash2 class="h-4 w-4" />
+						Delete
+					</Button>
+				{/if}
+			</div>
+		</Card.Content>
+	</Card.Root>
 
 	<!-- Assignments section -->
 	{#if data.assignments && data.assignments.length > 0}
-		<div class="assignments-section">
-			<h2 class="section-title">Assignments</h2>
-			<div class="assignments-list">
-				{#each data.assignments as assignment}
-					<div class="assignment-item">
-						<div class="assignment-type">
-							{#if assignment.employee_id}
-								👤 Employee
-							{:else if assignment.department_id}
-								🏢 Department
-							{/if}
-						</div>
-						<div class="assignment-info">
-							<span class="assignment-target">
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>Assignments</Card.Title>
+			</Card.Header>
+			<Card.Content>
+				<div class="space-y-3">
+					{#each data.assignments as assignment}
+						<div class="flex items-center gap-4 p-4 bg-muted rounded-lg">
+							<div class="text-sm font-semibold text-muted-foreground">
 								{#if assignment.employee_id}
-									{assignment.employee_email || `User ${assignment.employee_id.substring(0, 8)}...`}
+									👤 Employee
 								{:else if assignment.department_id}
-									Department #{assignment.department_id.substring(0, 8)}
+									🏢 Department
 								{/if}
-							</span>
-							<span class="assignment-date">
-								Assigned {new Date(assignment.assigned_at).toLocaleDateString()}
-								{#if assignment.assigned_by_email}
-									by {assignment.assigned_by_email}
+							</div>
+							<div class="flex-1 flex flex-col gap-1">
+								<span class="text-sm font-medium text-foreground">
+									{#if assignment.employee_id}
+										{assignment.employee_email || `User ${assignment.employee_id.substring(0, 8)}...`}
+									{:else if assignment.department_id}
+										Department #{assignment.department_id.substring(0, 8)}
+									{/if}
+								</span>
+								<span class="text-xs text-muted-foreground">
+									Assigned {new Date(assignment.assigned_at).toLocaleDateString()}
+									{#if assignment.assigned_by_email}
+										by {assignment.assigned_by_email}
+									{/if}
+								</span>
+								{#if assignment.assignment_reason}
+									<span class="text-xs text-muted-foreground italic mt-1">
+										{assignment.assignment_reason}
+									</span>
 								{/if}
-							</span>
-							{#if assignment.assignment_reason}
-								<span class="assignment-reason">{assignment.assignment_reason}</span>
-							{/if}
+							</div>
 						</div>
-					</div>
-				{/each}
-			</div>
-		</div>
+					{/each}
+				</div>
+			</Card.Content>
+		</Card.Root>
 	{/if}
 
 	<!-- Access log section (admin/hr only) -->
 	{#if data.accessLogs && data.accessLogs.length > 0}
-		<div class="access-log-section">
-			<h2 class="section-title">Access Log</h2>
-			<div class="access-log-table">
-				<div class="log-header">
-					<span class="log-col">User</span>
-					<span class="log-col">Action</span>
-					<span class="log-col">Outcome</span>
-					<span class="log-col">Timestamp</span>
-				</div>
-				{#each data.accessLogs as log}
-					<div class="log-row">
-						<span class="log-col">{log.user_email || `User ${log.user_id.substring(0, 8)}...`}</span>
-						<span class="log-col">{log.access_type}</span>
-						<span class="log-col outcome-{log.access_outcome}">{log.access_outcome}</span>
-						<span class="log-col">{new Date(log.access_timestamp).toLocaleString()}</span>
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>Access Log</Card.Title>
+			</Card.Header>
+			<Card.Content>
+				<div class="space-y-2">
+					<div class="grid grid-cols-4 gap-4 p-3 bg-muted rounded-lg font-semibold text-xs uppercase tracking-wide text-muted-foreground">
+						<span>User</span>
+						<span>Action</span>
+						<span>Outcome</span>
+						<span>Timestamp</span>
 					</div>
-				{/each}
-			</div>
-		</div>
+					{#each data.accessLogs as log}
+						<div class="grid grid-cols-4 gap-4 p-3 text-sm text-foreground border-b last:border-b-0">
+							<span>{log.user_email || `User ${log.user_id.substring(0, 8)}...`}</span>
+							<span>{log.access_type}</span>
+							<span class="font-semibold {log.access_outcome === 'success' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">
+								{log.access_outcome}
+							</span>
+							<span>{new Date(log.access_timestamp).toLocaleString()}</span>
+						</div>
+					{/each}
+				</div>
+			</Card.Content>
+		</Card.Root>
 	{/if}
 
 	<!-- Preview modal -->
@@ -264,6 +304,7 @@
 		isOpen={isPreviewOpen}
 		documentId={data.document.id}
 		filename={data.document.filename}
+		mimeType={data.document.mime_type}
 		fileType={data.document.file_type}
 		{previewUrl}
 		isLoading={previewLoading}
@@ -286,341 +327,3 @@
 		onClose={() => isAssignmentModalOpen = false}
 	/>
 </div>
-
-<style>
-	.document-detail-page {
-		width: 100%;
-		max-width: 1200px;
-		margin: 0 auto;
-		padding: 2rem;
-	}
-
-	.page-header {
-		margin-bottom: 1.5rem;
-	}
-
-	.back-button {
-		padding: 0.5rem 1rem;
-		background: white;
-		border: 1px solid #cbd5e0;
-		border-radius: 4px;
-		font-size: 0.875rem;
-		color: #4a5568;
-		cursor: pointer;
-		transition: all 0.2s;
-	}
-
-	.back-button:hover {
-		background: #f7fafc;
-	}
-
-	.document-card {
-		background: white;
-		border-radius: 8px;
-		padding: 2rem;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-		margin-bottom: 2rem;
-	}
-
-	.card-header {
-		display: flex;
-		gap: 1.5rem;
-		margin-bottom: 2rem;
-		padding-bottom: 2rem;
-		border-bottom: 1px solid #e2e8f0;
-	}
-
-	.document-icon {
-		font-size: 4rem;
-		line-height: 1;
-	}
-
-	.document-info {
-		flex: 1;
-	}
-
-	.document-title {
-		font-size: 1.75rem;
-		font-weight: 700;
-		color: #2d3748;
-		margin: 0 0 0.5rem 0;
-		word-break: break-word;
-	}
-
-	.document-meta {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		flex-wrap: wrap;
-		font-size: 0.875rem;
-		color: #718096;
-	}
-
-	.separator {
-		color: #cbd5e0;
-	}
-
-	.metadata-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-		gap: 1.5rem;
-		margin-bottom: 2rem;
-	}
-
-	.metadata-item {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-
-	.metadata-item.full-width {
-		grid-column: 1 / -1;
-	}
-
-	.metadata-label {
-		font-size: 0.75rem;
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		color: #a0aec0;
-	}
-
-	.metadata-value {
-		font-size: 1rem;
-		color: #2d3748;
-		font-weight: 500;
-	}
-
-	.metadata-description {
-		font-size: 0.875rem;
-		color: #4a5568;
-		line-height: 1.6;
-		margin: 0;
-	}
-
-	.sensitivity-badge {
-		align-self: flex-start;
-		padding: 0.25rem 0.75rem;
-		border-radius: 9999px;
-		font-size: 0.75rem;
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-
-	.action-buttons {
-		display: flex;
-		gap: 1rem;
-		flex-wrap: wrap;
-	}
-
-	.action-button {
-		padding: 0.75rem 1.5rem;
-		border: none;
-		border-radius: 6px;
-		font-size: 0.875rem;
-		font-weight: 600;
-		cursor: pointer;
-		transition: all 0.2s;
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-
-	.preview-button {
-		background: #4299e1;
-		color: white;
-	}
-
-	.preview-button:hover {
-		background: #3182ce;
-	}
-
-	.download-button {
-		background: #48bb78;
-		color: white;
-	}
-
-	.download-button:hover {
-		background: #38a169;
-	}
-
-	.assign-button {
-		background: #9f7aea;
-		color: white;
-	}
-
-	.assign-button:hover {
-		background: #805ad5;
-	}
-
-	.delete-button {
-		background: #f56565;
-		color: white;
-	}
-
-	.delete-button:hover {
-		background: #e53e3e;
-	}
-
-	.assignments-section,
-	.access-log-section {
-		background: white;
-		border-radius: 8px;
-		padding: 2rem;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-		margin-bottom: 2rem;
-	}
-
-	.section-title {
-		font-size: 1.25rem;
-		font-weight: 700;
-		color: #2d3748;
-		margin: 0 0 1.5rem 0;
-	}
-
-	.assignments-list {
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-
-	.assignment-item {
-		display: flex;
-		align-items: center;
-		gap: 1rem;
-		padding: 1rem;
-		background: #f7fafc;
-		border-radius: 6px;
-	}
-
-	.assignment-type {
-		font-size: 0.875rem;
-		font-weight: 600;
-		color: #4a5568;
-	}
-
-	.assignment-info {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-	}
-
-	.assignment-target {
-		font-size: 0.875rem;
-		color: #2d3748;
-		font-weight: 500;
-	}
-
-	.assignment-date {
-		font-size: 0.75rem;
-		color: #a0aec0;
-	}
-
-	.assignment-reason {
-		display: block;
-		font-size: 0.75rem;
-		color: hsl(var(--muted-foreground));
-		font-style: italic;
-		margin-top: 0.25rem;
-	}
-
-	.assignment-status {
-		padding: 0.25rem 0.75rem;
-		border-radius: 9999px;
-		font-size: 0.75rem;
-		font-weight: 600;
-		text-transform: uppercase;
-	}
-
-	.status-active {
-		background: #c6f6d5;
-		color: #22543d;
-	}
-
-	.status-revoked {
-		background: #fed7d7;
-		color: #742a2a;
-	}
-
-	.access-log-table {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-
-	.log-header,
-	.log-row {
-		display: grid;
-		grid-template-columns: 1fr 1fr 1fr 1.5fr;
-		gap: 1rem;
-		padding: 0.75rem 1rem;
-	}
-
-	.log-header {
-		background: #f7fafc;
-		border-radius: 6px;
-		font-weight: 600;
-		font-size: 0.75rem;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		color: #718096;
-	}
-
-	.log-row {
-		font-size: 0.875rem;
-		color: #4a5568;
-		border-bottom: 1px solid #e2e8f0;
-	}
-
-	.log-row:last-child {
-		border-bottom: none;
-	}
-
-	.outcome-success {
-		color: #38a169;
-		font-weight: 600;
-	}
-
-	.outcome-denied {
-		color: #e53e3e;
-		font-weight: 600;
-	}
-
-	/* Responsive */
-	@media (max-width: 768px) {
-		.document-detail-page {
-			padding: 1rem;
-		}
-
-		.metadata-grid {
-			grid-template-columns: 1fr;
-		}
-
-		.action-buttons {
-			flex-direction: column;
-		}
-
-		.action-button {
-			width: 100%;
-			justify-content: center;
-		}
-
-		.log-header,
-		.log-row {
-			grid-template-columns: 1fr;
-			gap: 0.5rem;
-		}
-
-		.log-header {
-			display: none;
-		}
-
-		.log-col::before {
-			content: attr(data-label);
-			font-weight: 600;
-			margin-right: 0.5rem;
-		}
-	}
-</style>

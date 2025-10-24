@@ -3,12 +3,11 @@
 	// Paginated, filterable, sortable document table with RBAC-aware actions
 
 	import { goto } from '$app/navigation';
-	import DocumentCard from './DocumentCard.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import * as Select from '$lib/components/ui/select';
 	import * as Table from '$lib/components/ui/table';
-	import { Search, Grid, List, ArrowUpDown } from 'lucide-svelte';
+	import { Search, ArrowUpDown } from '@lucide/svelte';
 	import type { Document } from '$lib/types/document';
 	import type {
 		DocumentCategory,
@@ -61,7 +60,6 @@
 	}: Props = $props();
 
 	// Svelte 5 state
-	let viewMode = $state<'grid' | 'list'>('grid');
 	let selectedCategory = $state<string>(filterCategory || 'all');
 	let selectedSensitivity = $state<string>(filterSensitivity || 'all');
 	let search = $state(searchQuery);
@@ -135,15 +133,15 @@
 		return icons[fileType] || '📎';
 	}
 
-	// Sensitivity level badge colors
+	// Sensitivity level badge colors with dark mode support
 	function getSensitivityClass(level: string): string {
 		const classes: Record<string, string> = {
-			Public: 'bg-green-100 text-green-800',
-			Internal: 'bg-blue-100 text-blue-800',
-			Confidential: 'bg-yellow-100 text-yellow-800',
-			'Sensitive-PII': 'bg-red-100 text-red-800'
+			Public: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+			Internal: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+			Confidential: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+			'Sensitive-PII': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
 		};
-		return classes[level] || 'bg-gray-100 text-gray-800';
+		return classes[level] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
 	}
 
 	// Format file size
@@ -155,32 +153,13 @@
 </script>
 
 <div class="document-table">
-	<!-- Header with view toggle -->
+	<!-- Header -->
 	<div class="flex justify-between items-center mb-4">
 		<div>
 			<h2 class="text-xl font-semibold">
 				Documents
 				<span class="text-sm text-muted-foreground ml-2">({totalCount})</span>
 			</h2>
-		</div>
-
-		<div class="flex gap-2">
-			<Button
-				variant={viewMode === 'grid' ? 'default' : 'outline'}
-				size="icon"
-				onclick={() => (viewMode = 'grid')}
-				title="Grid view"
-			>
-				<Grid class="h-4 w-4" />
-			</Button>
-			<Button
-				variant={viewMode === 'list' ? 'default' : 'outline'}
-				size="icon"
-				onclick={() => (viewMode = 'list')}
-				title="List view"
-			>
-				<List class="h-4 w-4" />
-			</Button>
 		</div>
 	</div>
 
@@ -265,97 +244,82 @@
 		</Button>
 	</div>
 
-	<!-- Document list/grid -->
+	<!-- Document table -->
 	{#if hasDocuments}
-		{#if viewMode === 'grid'}
-			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-				{#each documents as document (document.id)}
-					<DocumentCard
-						{document}
-						canPreview={canPreview(document)}
-						canDownload={canDownload(document)}
-						{onPreview}
-						{onDownload}
-					/>
-				{/each}
-			</div>
-		{:else}
-			<!-- Table view -->
-			<div class="border rounded-lg overflow-hidden">
-				<Table.Root>
-					<Table.Header>
-						<Table.Row>
-							<Table.Head class="w-12"></Table.Head>
-							<Table.Head>Filename</Table.Head>
-							<Table.Head>Category</Table.Head>
-							<Table.Head>Sensitivity</Table.Head>
-							<Table.Head>Upload Date</Table.Head>
-							<Table.Head>Size</Table.Head>
-							<Table.Head class="text-right">Actions</Table.Head>
+		<div class="border rounded-lg overflow-hidden">
+			<Table.Root>
+				<Table.Header>
+					<Table.Row>
+						<Table.Head class="w-12"></Table.Head>
+						<Table.Head>Filename</Table.Head>
+						<Table.Head>Category</Table.Head>
+						<Table.Head>Sensitivity</Table.Head>
+						<Table.Head>Upload Date</Table.Head>
+						<Table.Head>Size</Table.Head>
+						<Table.Head class="text-right">Actions</Table.Head>
+					</Table.Row>
+				</Table.Header>
+				<Table.Body>
+					{#each documents as document (document.id)}
+						<Table.Row class="cursor-pointer hover:bg-muted/50" onclick={() => goto(`/dashboard/documents/${document.id}`)}>
+							<Table.Cell class="text-2xl">{getFileIcon(document.file_type)}</Table.Cell>
+							<Table.Cell class="font-medium">{document.filename}</Table.Cell>
+							<Table.Cell>
+								<span class="text-sm text-muted-foreground">{document.category}</span>
+							</Table.Cell>
+							<Table.Cell>
+								<div class="flex gap-2 flex-wrap items-center">
+									<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {getSensitivityClass(document.sensitivity_level)}">
+										{document.sensitivity_level}
+									</span>
+									{#if document.assigned_users && Array.isArray(document.assigned_users) && document.assigned_users.length > 0}
+										{#each document.assigned_users as assignedUser}
+											<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground" title="Assigned to {assignedUser.email}">
+												👤 {assignedUser.email}
+											</span>
+										{/each}
+									{/if}
+								</div>
+							</Table.Cell>
+							<Table.Cell class="text-sm text-muted-foreground">
+								{new Date(document.uploaded_at).toLocaleDateString()}
+							</Table.Cell>
+							<Table.Cell class="text-sm text-muted-foreground">
+								{formatFileSize(document.file_size_bytes)}
+							</Table.Cell>
+							<Table.Cell class="text-right">
+								<div class="flex gap-2 justify-end">
+									{#if canPreview(document)}
+										<Button
+											variant="ghost"
+											size="sm"
+											onclick={(e) => {
+												e.stopPropagation();
+												onPreview(document.id);
+											}}
+										>
+											👁️ Preview
+										</Button>
+									{/if}
+									{#if canDownload(document)}
+										<Button
+											variant="ghost"
+											size="sm"
+											onclick={(e) => {
+												e.stopPropagation();
+												onDownload(document.id);
+											}}
+										>
+											⬇️ Download
+										</Button>
+									{/if}
+								</div>
+							</Table.Cell>
 						</Table.Row>
-					</Table.Header>
-					<Table.Body>
-						{#each documents as document (document.id)}
-							<Table.Row class="cursor-pointer hover:bg-muted/50" onclick={() => goto(`/dashboard/documents/${document.id}`)}>
-								<Table.Cell class="text-2xl">{getFileIcon(document.file_type)}</Table.Cell>
-								<Table.Cell class="font-medium">{document.filename}</Table.Cell>
-								<Table.Cell>
-									<span class="text-sm text-muted-foreground">{document.category}</span>
-								</Table.Cell>
-								<Table.Cell>
-									<div class="flex gap-2 flex-wrap items-center">
-										<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {getSensitivityClass(document.sensitivity_level)}">
-											{document.sensitivity_level}
-										</span>
-										{#if document.assigned_users && Array.isArray(document.assigned_users) && document.assigned_users.length > 0}
-											{#each document.assigned_users as assignedUser}
-												<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700" title="Assigned to {assignedUser.email}">
-													👤 {assignedUser.email}
-												</span>
-											{/each}
-										{/if}
-									</div>
-								</Table.Cell>
-								<Table.Cell class="text-sm text-muted-foreground">
-									{new Date(document.uploaded_at).toLocaleDateString()}
-								</Table.Cell>
-								<Table.Cell class="text-sm text-muted-foreground">
-									{formatFileSize(document.file_size_bytes)}
-								</Table.Cell>
-								<Table.Cell class="text-right">
-									<div class="flex gap-2 justify-end">
-										{#if canPreview(document)}
-											<Button
-												variant="ghost"
-												size="sm"
-												onclick={(e) => {
-													e.stopPropagation();
-													onPreview(document.id);
-												}}
-											>
-												👁️ Preview
-											</Button>
-										{/if}
-										{#if canDownload(document)}
-											<Button
-												variant="ghost"
-												size="sm"
-												onclick={(e) => {
-													e.stopPropagation();
-													onDownload(document.id);
-												}}
-											>
-												⬇️ Download
-											</Button>
-										{/if}
-									</div>
-								</Table.Cell>
-							</Table.Row>
-						{/each}
-					</Table.Body>
-				</Table.Root>
-			</div>
-		{/if}
+					{/each}
+				</Table.Body>
+			</Table.Root>
+		</div>
 	{:else}
 		<div class="text-center py-12">
 			<div class="text-6xl mb-4">📁</div>

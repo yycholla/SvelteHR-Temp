@@ -20,7 +20,7 @@
 		Trophy,
 		Target,
 		Clock
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 
 	// Mock profile data - in real app this would come from GraphQL
 	const profileData = {

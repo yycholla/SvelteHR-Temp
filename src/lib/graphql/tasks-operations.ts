@@ -8,7 +8,10 @@ import type {
 	Task,
 	TaskDependency,
 	TaskStatus,
-	TaskPriority
+	TaskPriority,
+	TaskType,
+	CreateTaskTypeInput,
+	UpdateTaskTypeInput
 } from '$lib/types/task';
 
 // ============================================================================
@@ -17,12 +20,12 @@ import type {
 
 /**
  * Query: Get all tasks with filtering, sorting, and pagination
- * Backend: Rust idiomatic pattern - direct array return
+ * Backend: Rust idiomatic pattern - uses TaskFilter input object
  * RLS: Automatic RBAC filtering
  */
 export const GET_ALL_TASKS = gql`
-	query GetAllTasks($assigneeId: UUID, $limit: Int = 20, $offset: Int = 0) {
-		tasks(assigneeId: $assigneeId, limit: $limit, offset: $offset) {
+	query GetAllTasks($filter: TaskFilter, $limit: Int = 20, $offset: Int = 0) {
+		tasks(filter: $filter, limit: $limit, offset: $offset) {
 			id
 			title
 			description
@@ -77,11 +80,11 @@ export const GET_TASK = gql`
 
 /**
  * Query: Get current user's tasks
- * Note: Use assigneeId filter with current user's ID
+ * Note: Use filter object with assigneeId field
  */
 export const GET_MY_TASKS = gql`
-	query GetMyTasks($assigneeId: UUID!, $limit: Int = 20, $offset: Int = 0) {
-		tasks(assigneeId: $assigneeId, limit: $limit, offset: $offset) {
+	query GetMyTasks($filter: TaskFilter!, $limit: Int = 20, $offset: Int = 0) {
+		tasks(filter: $filter, limit: $limit, offset: $offset) {
 			id
 			title
 			description
@@ -91,6 +94,45 @@ export const GET_MY_TASKS = gql`
 			estimatedHours
 			actualHours
 			tags
+			createdAt
+			updatedAt
+		}
+	}
+`;
+
+/**
+ * Query: Get all task types
+ * Backend: Rust idiomatic pattern - direct array return
+ * RLS: Automatic RBAC filtering
+ */
+export const GET_TASK_TYPES = gql`
+	query GetTaskTypes($isActive: Boolean) {
+		taskTypes(isActive: $isActive) {
+			id
+			name
+			description
+			defaultPriority
+			colorCode
+			isActive
+			createdAt
+			updatedAt
+		}
+	}
+`;
+
+/**
+ * Query: Get single task type by ID
+ * Backend: Rust idiomatic pattern - taskType(id) not taskTypeById
+ */
+export const GET_TASK_TYPE = gql`
+	query GetTaskType($id: UUID!) {
+		taskType(id: $id) {
+			id
+			name
+			description
+			defaultPriority
+			colorCode
+			isActive
 			createdAt
 			updatedAt
 		}
@@ -224,6 +266,56 @@ export const DELETE_TASK_DEPENDENCY = gql`
 	}
 `;
 
+/**
+ * Mutation: Create task type
+ * Backend: Rust idiomatic - createTaskType
+ * RLS: Automatic permission checking
+ */
+export const CREATE_TASK_TYPE = gql`
+	mutation CreateTaskType($input: CreateTaskTypeInput!) {
+		createTaskType(input: $input) {
+			id
+			name
+			description
+			defaultPriority
+			colorCode
+			isActive
+			createdAt
+			updatedAt
+		}
+	}
+`;
+
+/**
+ * Mutation: Update task type
+ * Backend: Rust idiomatic - updateTaskType(id, input)
+ */
+export const UPDATE_TASK_TYPE = gql`
+	mutation UpdateTaskType($id: UUID!, $input: UpdateTaskTypeInput!) {
+		updateTaskType(id: $id, input: $input) {
+			id
+			name
+			description
+			defaultPriority
+			colorCode
+			isActive
+			createdAt
+			updatedAt
+		}
+	}
+`;
+
+/**
+ * Mutation: Delete task type
+ * Backend: Rust idiomatic - deleteTaskType(id) returns Boolean
+ * Note: This is a soft delete via isActive flag
+ */
+export const DELETE_TASK_TYPE = gql`
+	mutation DeleteTaskType($id: UUID!) {
+		deleteTaskType(id: $id)
+	}
+`;
+
 // ============================================================================
 // TYPESCRIPT INTERFACES
 // ============================================================================
@@ -315,7 +407,7 @@ export function validateTaskInput(input: {
  * Helper: Check if task is overdue
  */
 export function isTaskOverdue(task: Task): boolean {
-	if (!task.dueDate || task.status === 'COMPLETED') {
+	if (!task.dueDate || task.status === 'DONE') {
 		return false;
 	}
 	const dueDate = new Date(task.dueDate);
@@ -331,8 +423,9 @@ export function getTaskStatusColor(status: TaskStatus): string {
 		TODO: 'gray',
 		IN_PROGRESS: 'blue',
 		BLOCKED: 'red',
-		DEFERRED: 'yellow',
-		COMPLETED: 'green'
+		REVIEW: 'yellow',
+		DONE: 'green',
+		CANCELLED: 'slate'
 	};
 	return statusColors[status] || 'gray';
 }
@@ -369,6 +462,9 @@ export class TasksOperations {
 	 */
 	async getAllTasks(params: {
 		assigneeId?: string;
+		departmentId?: string;
+		status?: TaskStatus;
+		priority?: TaskPriority;
 		limit?: number;
 		offset?: number;
 		userCredentials: UserCredentials;
@@ -381,10 +477,18 @@ export class TasksOperations {
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		const limit = params.limit || 20;
+
+		// Build filter object from params
+		const filter: any = {};
+		if (params.assigneeId) filter.assigneeId = params.assigneeId;
+		if (params.departmentId) filter.departmentId = params.departmentId;
+		if (params.status) filter.status = params.status;
+		if (params.priority) filter.priority = params.priority;
+
 		const dataRequest = createDataRequest({
 			operationName: 'GetAllTasks',
 			variables: {
-				assigneeId: params.assigneeId,
+				filter: Object.keys(filter).length > 0 ? filter : null,
 				limit,
 				offset: params.offset || 0
 			},
@@ -430,10 +534,7 @@ export class TasksOperations {
 	/**
 	 * Get single task by ID
 	 */
-	async getTask(params: {
-		taskId: string;
-		userCredentials: UserCredentials;
-	}): Promise<Task> {
+	async getTask(params: { taskId: string; userCredentials: UserCredentials }): Promise<Task> {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
@@ -489,7 +590,7 @@ export class TasksOperations {
 		const dataRequest = createDataRequest({
 			operationName: 'GetMyTasks',
 			variables: {
-				assigneeId: params.userId,
+				filter: { assigneeId: params.userId },
 				limit: params.limit || 20,
 				offset: params.offset || 0
 			},
@@ -639,10 +740,7 @@ export class TasksOperations {
 	 * Delete task
 	 * Returns: Boolean indicating success
 	 */
-	async deleteTask(params: {
-		taskId: string;
-		userCredentials: UserCredentials;
-	}): Promise<boolean> {
+	async deleteTask(params: { taskId: string; userCredentials: UserCredentials }): Promise<boolean> {
 		const { createDataRequest } = await import('$lib/models/data-request');
 		const { createErrorResponse } = await import('$lib/models/error-response');
 

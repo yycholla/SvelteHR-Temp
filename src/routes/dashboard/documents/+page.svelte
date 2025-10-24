@@ -7,7 +7,9 @@
 	import PreviewModal from '$lib/components/documents/PreviewModal.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
-	import { Upload } from 'lucide-svelte';
+	import * as Pagination from '$lib/components/ui/pagination';
+	import { Pagination as PaginationPrimitive } from 'bits-ui';
+	import { Upload, ChevronLeft, ChevronRight } from '@lucide/svelte';
 	import type { PageData } from './$types';
 	import type { DocumentFilter } from '$lib/types/document';
 
@@ -172,6 +174,61 @@
 			/>
 		</Card.Content>
 	</Card.Root>
+
+	<!-- Pagination controls -->
+	{#if data.totalPages > 1}
+		<div class="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
+			<!-- Results info -->
+			<div class="text-sm text-muted-foreground">
+				Showing {Math.min((data.page - 1) * data.limit + 1, data.totalCount)} to {Math.min(data.page * data.limit, data.totalCount)} of {data.totalCount} documents
+			</div>
+
+			<!-- Pagination -->
+			<PaginationPrimitive.Root
+				count={data.totalCount}
+				perPage={data.limit}
+				page={data.page}
+				siblingCount={1}
+				onpagechange={(page) => handlePageChange(page)}
+			>
+				{#snippet children({ pages, currentPage })}
+					<Pagination.Content>
+						<Pagination.Item>
+							<Pagination.PrevButton onclick={() => handlePageChange(data.page - 1)}>
+								<ChevronLeft class="h-4 w-4" />
+								<span>Previous</span>
+							</Pagination.PrevButton>
+						</Pagination.Item>
+
+						{#each pages as page (page.key)}
+							{#if page.type === 'ellipsis'}
+								<Pagination.Item>
+									<Pagination.Ellipsis />
+								</Pagination.Item>
+							{:else}
+								<Pagination.Item>
+									<Pagination.Link
+										{page}
+										isActive={currentPage === page.value}
+										onclick={() => handlePageChange(page.value)}
+									>
+										{page.value}
+									</Pagination.Link>
+								</Pagination.Item>
+							{/if}
+						{/each}
+
+						<Pagination.Item>
+							<Pagination.NextButton onclick={() => handlePageChange(data.page + 1)}>
+								<span>Next</span>
+								<ChevronRight class="h-4 w-4" />
+							</Pagination.NextButton>
+						</Pagination.Item>
+					</Pagination.Content>
+				{/snippet}
+			</PaginationPrimitive.Root>
+		</div>
+	{/if}
 
 	<!-- Preview modal -->
 	{#if previewDocument}

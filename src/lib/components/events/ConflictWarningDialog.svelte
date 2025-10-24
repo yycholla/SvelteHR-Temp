@@ -24,7 +24,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Alert from '$lib/components/ui/alert';
 	import { Badge } from '$lib/components/ui/badge';
-	import { AlertTriangle, Calendar, Clock } from 'lucide-svelte';
+	import { AlertTriangle, Calendar, Clock } from '@lucide/svelte';
 	import { formatDate, formatTime } from '$lib/utils/date-formatting';
 
 	// Props with Svelte 5 runes

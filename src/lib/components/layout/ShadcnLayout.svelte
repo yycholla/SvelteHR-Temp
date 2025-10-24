@@ -13,7 +13,7 @@
 		Bell,
 		Search,
 		Menu
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 	import { page } from '$app/stores';
 	import { isAuthenticated, currentUser } from '$lib/stores/auth';
 
@@ -309,22 +309,4 @@
 	</div>
 {/if}
 
-<style>
-	/* Custom styles for active navigation items */
-	:global([data-active='true']) {
-		@apply bg-sidebar-accent text-sidebar-accent-foreground;
-	}
 
-	/* Ensure proper sidebar width and responsiveness */
-	:global(.sidebar-root) {
-		width: 280px;
-	}
-
-	@media (max-width: 768px) {
-		:global(.sidebar-root) {
-			position: fixed;
-			z-index: 50;
-			height: 100vh;
-		}
-	}
-</style>

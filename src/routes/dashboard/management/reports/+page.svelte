@@ -26,7 +26,7 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 		Search,
 		Filter,
 		X
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import type { HRReport, ReportAnalytics } from '$lib/graphql/reports-operations';
 	import {

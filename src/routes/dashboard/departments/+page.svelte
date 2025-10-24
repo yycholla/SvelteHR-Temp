@@ -24,7 +24,7 @@
 		TreePine,
 		Building2,
 		UserCheck
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 	import { buildTeamHierarchy, categorizeTeamSize } from '$lib/graphql/team-management-operations';
 
 	// Subscribe to page store at top level

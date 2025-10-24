@@ -10,7 +10,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Search, Plus, RefreshCw, Grid, List, Users } from 'lucide-svelte';
+	import { Search, Plus, RefreshCw, Grid, List, Users } from '@lucide/svelte';
 
 	/**
 	 * Employee List Component (shadcn-svelte version)

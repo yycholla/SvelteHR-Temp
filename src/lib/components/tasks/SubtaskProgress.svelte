@@ -24,7 +24,7 @@
 		TrendingDown,
 		Minus,
 		Target
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 	import { differenceInDays, isAfter } from 'date-fns';
 
 	interface Props {
@@ -48,7 +48,7 @@
 	}
 
 	let subtaskStats = $derived<SubtaskStats>(() => {
-		const subtasks = task.tasksByParentTaskId?.nodes || [];
+		const subtasks = task.subtasks || [];
 		const total = subtasks.length;
 
 		if (total === 0) {
@@ -63,12 +63,12 @@
 			};
 		}
 
-		// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
-		const completed = subtasks.filter((t: Task) => t.status === 'COMPLETED').length;
-		const inProgress = subtasks.filter((t: Task) => t.status === 'IN_PROGRESS').length;
-		const notStarted = subtasks.filter((t: Task) => t.status === 'TO_DO').length;
-		const blocked = subtasks.filter((t: Task) => t.status === 'BLOCKED').length;
-		const cancelled = subtasks.filter((t: Task) => t.status === 'DEFERRED').length;
+		// NOTE: Rust GraphQL returns enum values in PascalCase
+		const completed = subtasks.filter((t: Task) => t.status === 'Done').length;
+		const inProgress = subtasks.filter((t: Task) => t.status === 'InProgress').length;
+		const notStarted = subtasks.filter((t: Task) => t.status === 'Todo').length;
+		const blocked = subtasks.filter((t: Task) => t.status === 'Blocked').length;
+		const cancelled = subtasks.filter((t: Task) => t.status === 'Cancelled').length;
 
 		const completionPercentage = Math.round((completed / total) * 100);
 
@@ -272,99 +272,4 @@
 	{/if}
 </div>
 
-<style>
-	/* Container */
-	.subtask-progress {
-		@apply w-full;
-	}
 
-	.subtask-progress.compact {
-		@apply space-y-2;
-	}
-
-	/* No Subtasks State */
-	.no-subtasks-state {
-		@apply flex items-center gap-2 p-3 rounded-lg border border-dashed bg-muted/30;
-	}
-
-	/* Progress Container */
-	.progress-container {
-		@apply space-y-3;
-	}
-
-	/* Progress Header */
-	.progress-header {
-		@apply flex items-center justify-between;
-	}
-
-	/* Progress Bar */
-	.progress-bar-container {
-		@apply w-full;
-	}
-
-	.progress-bar-track {
-		@apply h-2 w-full rounded-full bg-muted overflow-hidden;
-	}
-
-	.progress-bar-fill {
-		@apply h-full transition-all duration-300 ease-in-out;
-	}
-
-	/* On-Track Indicator */
-	.on-track-indicator {
-		@apply flex items-center;
-	}
-
-	/* Status Breakdown */
-	.status-breakdown {
-		@apply grid grid-cols-2 gap-2 pt-2 border-t;
-	}
-
-	@media (max-width: 640px) {
-		.status-breakdown {
-			@apply grid-cols-1;
-		}
-	}
-
-	.status-item {
-		@apply flex items-center justify-between gap-2 rounded-lg bg-muted/50 p-2;
-	}
-
-	.status-icon {
-		@apply flex h-6 w-6 items-center justify-center rounded-full flex-shrink-0;
-	}
-
-	/* Compact Summary */
-	.compact-summary {
-		@apply flex items-center justify-between;
-	}
-
-	/* Circular Progress (for future enhancement) */
-	.circular-progress {
-		@apply relative inline-flex items-center justify-center;
-	}
-
-	.circular-progress-svg {
-		transform: rotate(-90deg);
-	}
-
-	.circular-progress-track {
-		@apply stroke-muted;
-	}
-
-	.circular-progress-fill {
-		@apply stroke-primary transition-all duration-300;
-		stroke-linecap: round;
-	}
-
-	/* Animations */
-	@keyframes progress-fill {
-		from {
-			width: 0;
-		}
-	}
-
-	.progress-bar-fill {
-		animation: progress-fill 0.5s ease-out;
-	}
-</style>

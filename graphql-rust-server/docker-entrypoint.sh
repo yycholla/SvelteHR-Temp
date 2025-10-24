@@ -23,6 +23,29 @@ else
     exit 1
 fi
 
+# Run seed data if enabled
+if [ "$ENABLE_SEED_DATA" = "true" ] || [ "$ENVIRONMENT" = "development" ]; then
+    echo "🌱 Running seed data initialization..."
+
+    /app/seed-data
+    SEED_EXIT_CODE=$?
+
+    if [ $SEED_EXIT_CODE -eq 0 ]; then
+        echo "✅ Seed data completed successfully!"
+    elif [ $SEED_EXIT_CODE -eq 1 ]; then
+        echo "⚠️  Production safety block - continuing without seed data"
+    elif [ $SEED_EXIT_CODE -eq 2 ]; then
+        echo "❌ Seed data database connection failed!"
+        exit 2
+    elif [ $SEED_EXIT_CODE -eq 3 ]; then
+        echo "⚠️  Partial seed data failure - continuing anyway"
+    else
+        echo "⚠️  Seed data exited with code $SEED_EXIT_CODE - continuing anyway"
+    fi
+else
+    echo "⏭️  Seed data disabled (ENABLE_SEED_DATA not set)"
+fi
+
 # Start the GraphQL server
 echo "🚀 Starting GraphQL server on $HOST:$PORT..."
 exec "$@"

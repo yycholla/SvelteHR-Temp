@@ -41,9 +41,9 @@
 	let isCreatedByUser = $derived(userId ? task.creatorId === userId : false);
 	let statusColor = $derived(getTaskStatusColor(task.status));
 	let priorityColor = $derived(getTaskPriorityColor(task.priority));
-	let hasSubtasks = $derived(task.tasksByParentTaskId && task.tasksByParentTaskId.totalCount > 0);
-	let hasDependencies = $derived(task.taskDependenciesByBlockedTaskId && task.taskDependenciesByBlockedTaskId.nodes && task.taskDependenciesByBlockedTaskId.nodes.length > 0);
-	let hasLinkedResources = $derived(task.linkedResourcesByTaskId && task.linkedResourcesByTaskId.nodes && task.linkedResourcesByTaskId.nodes.length > 0);
+	let hasSubtasks = $derived(task.subtasks && task.subtasks.length > 0);
+	let hasDependencies = $derived(false); // Backend not implemented yet
+	let hasLinkedResources = $derived(false); // Backend not implemented yet
 
 	let isDueSoon = $derived(() => {
 		if (!task.dueDate || isOverdue) return false;
@@ -62,11 +62,11 @@
 	);
 
 	let subtaskProgress = $derived(() => {
-		if (!hasSubtasks || !task.tasksByParentTaskId) return null;
-		const nodes = task.tasksByParentTaskId.nodes || [];
+		if (!hasSubtasks || !task.subtasks) return null;
+		const subtasks = task.subtasks || [];
 		return {
-			total: task.tasksByParentTaskId.totalCount,
-			completed: nodes.filter((t: any) => t.status === 'COMPLETED').length
+			total: subtasks.length,
+			completed: subtasks.filter((t: any) => t.status === 'Done').length
 		};
 	});
 
@@ -90,14 +90,14 @@
 
 	function handleStatusClick(e: Event) {
 		e.stopPropagation();
-		if (onStatusChange && task.status !== 'COMPLETED') {
+		if (onStatusChange && task.status !== 'DONE') {
 			// Toggle between TO_DO, IN_PROGRESS, and COMPLETED (GraphQL enum format)
 			const nextStatus =
-				task.status === 'TO_DO'
+				task.status === 'TODO'
 					? 'IN_PROGRESS'
 					: task.status === 'IN_PROGRESS'
-						? 'COMPLETED'
-						: 'TO_DO';
+						? 'DONE'
+						: 'TODO';
 			onStatusChange(nextStatus);
 		}
 	}
@@ -110,7 +110,7 @@
 	class:compact
 	class:overdue={isOverdue}
 	class:assigned-to-user={isAssignedToUser}
-	class:opacity-60={task.status === 'COMPLETED' || task.status === 'DEFERRED'}
+	class:opacity-60={task.status === 'DONE' || task.status === 'REVIEW'}
 	style="margin-left: {level * 24}px"
 	role={onClick ? 'button' : 'article'}
 	tabindex={onClick ? 0 : undefined}
@@ -131,7 +131,7 @@
 						onclick={handleStatusClick}
 						aria-label="Toggle task status"
 					>
-						{#if task.status === 'COMPLETED'}
+						{#if task.status === 'DONE'}
 							<svg class="h-5 w-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
 								<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
 							</svg>
@@ -153,7 +153,7 @@
 					<div class="flex items-center gap-2">
 						<h3
 							class="text-base font-semibold text-foreground group-hover:text-primary"
-							class:line-through={task.status === 'COMPLETED' || task.status === 'DEFERRED'}
+							class:line-through={task.status === 'DONE' || task.status === 'REVIEW'}
 						>
 							{task.title}
 						</h3>
@@ -178,9 +178,9 @@
 							</span>
 
 							<!-- Task Type Badge -->
-							{#if task.taskTypeByTaskTypeId}
+							{#if task.taskType}
 								<span class="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-									{task.taskTypeByTaskTypeId.name}
+									{task.taskType.name}
 								</span>
 							{/if}
 
@@ -261,19 +261,19 @@
 		{#if !compact}
 			<div class="flex items-center justify-between border-t pt-3">
 				<!-- Assignee -->
-				{#if showAssignee && task.userByAssigneeId}
+				{#if showAssignee && task.assignee}
 					<div class="flex items-center text-sm text-muted-foreground">
 						<svg class="mr-1.5 h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
 						</svg>
-						<span>Assigned to <span class="font-medium text-foreground">{task.userByAssigneeId.displayName}</span></span>
+						<span>Assigned to <span class="font-medium text-foreground">{task.assignee.displayName}</span></span>
 					</div>
 				{/if}
 
 				<!-- Creator -->
-				{#if task.userByCreatorId}
+				{#if task.creator}
 					<div class="flex items-center text-sm text-muted-foreground">
-						<span>Created by <span class="font-medium text-foreground">{task.userByCreatorId.displayName}</span></span>
+						<span>Created by <span class="font-medium text-foreground">{task.creator.displayName}</span></span>
 					</div>
 				{/if}
 			</div>
@@ -301,23 +301,4 @@
 	</div>
 </div>
 
-<style>
-	.task-card.compact {
-		@apply p-3;
-	}
 
-	.task-card.overdue {
-		@apply border-destructive/50;
-	}
-
-	.task-card.assigned-to-user {
-		@apply bg-accent/5;
-	}
-
-	.line-clamp-2 {
-		display: -webkit-box;
-		-webkit-line-clamp: 2;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
-	}
-</style>

@@ -21,7 +21,7 @@ Modern Svelte 5 implementation with server-side data loading and comprehensive m
 		MapPin,
 		ArrowRight,
 		Plus
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 
 	// Define props interface
 	interface Props {

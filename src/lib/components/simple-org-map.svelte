@@ -3,7 +3,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
-	import { Crown, User, Building2, Mail, ZoomIn, ZoomOut, RotateCcw } from 'lucide-svelte';
+	import { Crown, User, Building2, Mail, ZoomIn, ZoomOut, RotateCcw } from '@lucide/svelte';
 
 	// Props
 	let {

@@ -3,6 +3,7 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import { optimizeCss } from 'carbon-preprocess-svelte';
+import tailwindcss from '@tailwindcss/vite';
 
 // Custom plugin to disable compression completely
 const disableCompression = () => ({
@@ -36,6 +37,7 @@ const disableCompression = () => ({
 
 export default defineConfig({
 	plugins: [
+		tailwindcss(),
 		sveltekit(),
 		// devtoolsJson(), // Disabled to remove debugging UI overlay
 		disableCompression(),

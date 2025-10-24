@@ -151,8 +151,8 @@ export const load: PageServerLoad = async (event) => {
 
 		// Query for user's tasks
 		const tasksQuery = `
-			query GetUserTasks($userId: UUID!) {
-				tasks(assigneeId: $userId, limit: 10) {
+			query GetUserTasks($filter: TaskFilter!) {
+				tasks(filter: $filter, limit: 10) {
 					id
 					title
 					description
@@ -252,7 +252,7 @@ export const load: PageServerLoad = async (event) => {
 			graphqlClient.query(attendanceQuery, { userId: locals.user.id }),
 			graphqlClient.query(leaveRequestsQuery),
 			graphqlClient.query(goalsQuery, { userId: locals.user.id }),
-			graphqlClient.query(tasksQuery, { userId: locals.user.id }),
+			graphqlClient.query(tasksQuery, { filter: { assigneeId: locals.user.id } }),
 			graphqlClient.query(eventsQuery),
 			graphqlClient.query(activityLogsQuery, { userId: locals.user.id })
 		];

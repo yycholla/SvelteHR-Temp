@@ -43,11 +43,11 @@ pub struct Model {
     pub employee_id: Uuid,
     pub skill_name: String,
     pub proficiency_level: String, // Will be converted to enum in GraphQL
-    pub years_experience: Option<f64>,
-    pub verified: bool,
-    pub verifier_id: Option<Uuid>,
+    #[sea_orm(column_name = "years_of_experience")]
+    pub years_experience: Option<i32>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -58,12 +58,6 @@ pub enum Relation {
         to = "crate::models::user::Column::Id"
     )]
     Employee,
-    #[sea_orm(
-        belongs_to = "crate::models::user::Entity",
-        from = "Column::VerifierId",
-        to = "crate::models::user::Column::Id"
-    )]
-    Verifier,
 }
 
 impl ActiveModelBehavior for ActiveModel {}
@@ -97,17 +91,8 @@ impl Model {
     }
 
     #[graphql(name = "yearsExperience")]
-    async fn years_experience(&self) -> Option<f64> {
+    async fn years_experience(&self) -> Option<i32> {
         self.years_experience
-    }
-
-    async fn verified(&self) -> bool {
-        self.verified
-    }
-
-    #[graphql(name = "verifierId")]
-    async fn verifier_id(&self) -> Option<Uuid> {
-        self.verifier_id
     }
 
     #[graphql(name = "createdAt")]
@@ -130,20 +115,6 @@ impl Model {
 
         Ok(user)
     }
-
-    /// Verifier relationship (lazy-loaded)
-    async fn verifier(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<Option<crate::models::User>> {
-        if let Some(verifier_id) = self.verifier_id {
-            let db = get_db_from_context(ctx)?;
-            let user = crate::models::user::Entity::find_by_id(verifier_id)
-                .one(&db)
-                .await?;
-
-            Ok(user)
-        } else {
-            Ok(None)
-        }
-    }
 }
 
 /// Input for creating a new employee skill
@@ -156,8 +127,7 @@ pub struct CreateEmployeeSkillInput {
     #[graphql(name = "proficiencyLevel")]
     pub proficiency_level: ProficiencyLevel,
     #[graphql(name = "yearsExperience")]
-    pub years_experience: Option<f64>,
-    pub verified: Option<bool>,
+    pub years_experience: Option<i32>,
 }
 
 /// Input for updating an employee skill
@@ -169,10 +139,7 @@ pub struct UpdateEmployeeSkillInput {
     #[graphql(name = "proficiencyLevel")]
     pub proficiency_level: Option<ProficiencyLevel>,
     #[graphql(name = "yearsExperience")]
-    pub years_experience: Option<f64>,
-    pub verified: Option<bool>,
-    #[graphql(name = "verifierId")]
-    pub verifier_id: Option<Uuid>,
+    pub years_experience: Option<i32>,
     #[graphql(name = "updatedAt")]
     pub updated_at: DateTime<Utc>,
 }
@@ -186,5 +153,4 @@ pub struct EmployeeSkillFilter {
     pub skill_name: Option<String>,
     #[graphql(name = "proficiencyLevel")]
     pub proficiency_level: Option<ProficiencyLevel>,
-    pub verified: Option<bool>,
 }

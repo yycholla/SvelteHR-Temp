@@ -1,0 +1,68 @@
+# Bacon configuration for Docker-compatible hot-reloading
+# This config runs bacon in export mode to avoid TUI issues with Docker logs
+
+# Default export settings for Docker compatibility
+[export]
+enabled = true
+path = ".bacon-locations"
+line_format = "{kind} {path}:{line}:{column} {message}"
+
+# Job definitions for specific binaries
+# Default job: run the GraphQL server
+[jobs.run]
+command = ["cargo", "run", "--bin", "hr-graphql-server", "--color", "always"]
+need_stdout = true
+watch = ["src", "Cargo.toml", ".cargo", "migration"]
+
+# Run the server (explicit alias)
+[jobs.server]
+command = ["cargo", "run", "--bin", "hr-graphql-server", "--color", "always"]
+need_stdout = true
+watch = ["src", "Cargo.toml", ".cargo", "migration"]
+
+# Run migrations
+[jobs.migration]
+command = ["cargo", "run", "--bin", "migration", "--color", "always"]
+need_stdout = true
+watch = ["migration", "Cargo.toml"]
+
+# Run seed data
+[jobs.seed]
+command = ["cargo", "run", "--bin", "seed-data", "--color", "always"]
+need_stdout = true
+watch = ["src/bin", "Cargo.toml"]
+
+# Check all code
+[jobs.check]
+command = ["cargo", "check", "--all-features", "--color", "always"]
+need_stdout = false
+watch = ["src", "Cargo.toml", ".cargo", "migration"]
+
+# Clippy linting
+[jobs.clippy]
+command = ["cargo", "clippy", "--all-features", "--color", "always", "--", "-D", "warnings"]
+need_stdout = false
+watch = ["src", "Cargo.toml", ".cargo"]
+
+# Run tests
+[jobs.test]
+command = ["cargo", "test", "--color", "always"]
+need_stdout = true
+watch = ["src", "tests", "Cargo.toml"]
+
+# Generate documentation
+[jobs.doc]
+command = ["cargo", "doc", "--color", "always", "--no-deps"]
+need_stdout = false
+watch = ["src", "Cargo.toml"]
+
+# Keybindings (useful if running bacon interactively in the container)
+[keybindings]
+esc = "back"
+g = "scroll-to-top"
+shift-g = "scroll-to-bottom"
+k = "scroll-lines(-1)"
+j = "scroll-lines(1)"
+ctrl-u = "scroll-pages(-1)"
+ctrl-d = "scroll-pages(1)"
+q = "quit"

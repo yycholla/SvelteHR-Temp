@@ -7,7 +7,7 @@
  */
 
 // Re-export generated types from GraphQL Code Generator
-export * from '../generated/types';
+export * from '../generated/graphql';
 
 // =============================================================================
 // Hasura-aligned Entity Types
@@ -353,10 +353,11 @@ export enum OnboardingStatus {
 }
 
 export enum TaskStatus {
-	PENDING = 'PENDING',
+	TODO = 'TODO',
 	IN_PROGRESS = 'IN_PROGRESS',
-	COMPLETED = 'COMPLETED',
-	ON_HOLD = 'ON_HOLD',
+	BLOCKED = 'BLOCKED',
+	REVIEW = 'REVIEW',
+	DONE = 'DONE',
 	CANCELLED = 'CANCELLED'
 }
 

@@ -9,7 +9,7 @@
 
 	import { Progress } from '$lib/components/ui/progress';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Users } from 'lucide-svelte';
+	import { Users } from '@lucide/svelte';
 
 	interface Props {
 		acceptedCount: number;

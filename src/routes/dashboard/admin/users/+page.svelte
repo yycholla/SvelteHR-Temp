@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { Plus, Search, Filter, Edit, Trash2, UserCheck, UserX } from 'lucide-svelte';
+	import { Plus, Search, Filter, Edit, Trash2, UserCheck, UserX } from '@lucide/svelte';
 	import { createUrqlClient } from '$lib/graphql/client';
 
 	let { data } = $props();

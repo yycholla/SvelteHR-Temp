@@ -12,7 +12,7 @@
 		Crown,
 		User,
 		Building2
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 
 	// Props
 	let {

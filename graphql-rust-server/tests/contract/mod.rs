@@ -93,6 +93,7 @@ pub fn assert_field_exists(
     );
 }
 
+mod seed_data_tests;
 mod test_security;
 mod test_session_persistence;
 

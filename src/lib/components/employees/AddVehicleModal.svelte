@@ -3,7 +3,7 @@
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
-	import { Car } from 'lucide-svelte';
+	import { Car } from '@lucide/svelte';
 
 	interface Props {
 		isOpen: boolean;

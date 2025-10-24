@@ -363,39 +363,4 @@
 	{/if}
 </div>
 
-<style>
-	.workflow-task-card {
-		@apply transition-all duration-200;
-	}
 
-	.line-clamp-2 {
-		display: -webkit-box;
-		-webkit-line-clamp: 2;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
-	}
-
-	.btn {
-		@apply inline-flex items-center rounded border border-transparent px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2;
-	}
-
-	.btn-sm {
-		@apply px-2 py-1 text-xs;
-	}
-
-	.btn-primary {
-		@apply bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500;
-	}
-
-	.btn-success {
-		@apply bg-green-600 text-white hover:bg-green-700 focus:ring-green-500;
-	}
-
-	.btn-danger {
-		@apply bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
-	}
-
-	.btn:disabled {
-		@apply cursor-not-allowed opacity-50;
-	}
-</style>

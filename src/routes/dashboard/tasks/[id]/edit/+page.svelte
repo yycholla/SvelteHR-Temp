@@ -14,7 +14,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import TaskForm from '$lib/components/tasks/TaskForm.svelte';
-	import { ArrowLeft, Save } from 'lucide-svelte';
+	import { ArrowLeft, Save } from '@lucide/svelte';
 
 	// Page data and action result
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -22,14 +22,6 @@
 	// Handle cancel
 	function handleCancel() {
 		goto(`/dashboard/tasks/${data.task.id}`);
-	}
-
-	// Handle form submit
-	async function handleSubmit(formData: any) {
-		// TaskForm will handle the actual submission via native form action
-		// This is called after validation passes
-		console.log('[Task Edit] Form validated, submitting:', formData);
-		return true;
 	}
 </script>
 
@@ -82,27 +74,14 @@
 			<TaskForm
 				task={data.task}
 				assignees={data.assignees}
-			departments={data.departments}
+				departments={data.departments}
 				taskTypes={data.taskTypes}
 				parentTasks={data.parentTasks}
-				mode="edit"
-				onSubmit={handleSubmit}
 				onCancel={handleCancel}
-				submitLabel="Update Task"
 				initialValues={form?.values}
 			/>
 		</Card.Content>
 	</Card.Root>
 </div>
 
-<style>
-	/* Page Layout */
-	.task-edit-page {
-		@apply container mx-auto px-4 py-8;
-	}
 
-	/* Page Header */
-	.page-header {
-		@apply mb-6;
-	}
-</style>

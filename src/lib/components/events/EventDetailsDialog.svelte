@@ -14,7 +14,7 @@
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
-	import { X, Edit, Trash2, Calendar as CalendarIcon, MapPin, User, Users, Bell, BellOff } from 'lucide-svelte';
+	import { X, Edit, Trash2, Calendar as CalendarIcon, MapPin, User, Users, Bell, BellOff } from '@lucide/svelte';
 	import RSVPButton from './RSVPButton.svelte';
 	import RecurrenceScopeDialog from './RecurrenceScopeDialog.svelte';
 	import EventCapacityIndicator from './EventCapacityIndicator.svelte';

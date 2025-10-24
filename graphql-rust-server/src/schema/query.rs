@@ -9,31 +9,64 @@ use sea_orm::{EntityTrait, QueryFilter, QueryOrder, QuerySelect, ColumnTrait, Pa
 use uuid::Uuid;
 
 use crate::{
-    auth::backend::AuthBackend,
     database::get_db_from_context,
+    error::AppError,
     models::{
-        // SeaORM entities
-        department::{self, Entity as DepartmentEntity},
-        user::{self, Entity as UserEntity},
-        task::{self, Entity as TaskEntity},
-        leave_request::{self, Entity as LeaveRequestEntity},
-        leave_balance::{self, Entity as LeaveBalanceEntity},
-        leave_type::{self, Entity as LeaveTypeEntity},
-        performance_review::{self, Entity as PerformanceReviewEntity},
-        system::activity_log::{self, Entity as ActivityLogEntity},
-        system::rollback_request::{self as rollback_request, Entity as RollbackRequestEntity, RollbackStatus},
-        system::system_settings::{self as system_settings, Entity as SystemSettingsEntity},
-        system::hr_report::{self as hr_report, Entity as HrReportEntity},
-        user_session::{self, Entity as UserSessionEntity},
-        time::attendance_record::{self as attendance_record, Entity as AttendanceRecordEntity},
-        employee::employee_goal::{self as employee_goal, Entity as EmployeeGoalEntity},
-        employee::emergency_contact::{self as emergency_contact, Entity as EmergencyContactEntity},
-        employee::employee_vehicle::{self as employee_vehicle, Entity as EmployeeVehicleEntity},
-        event::{self, Entity as EventEntity},
-        event_attendee::{self, Entity as EventAttendeeEntity},
-        notification::{self, Entity as NotificationEntity},
+        generated::prelude::*,
+        task::{TaskStatus, TaskPriority, Model as Task, Entity as TaskEntity, Column as TaskColumn},
+        user::{Model as User, Entity as UserEntity, Column as UserColumn},
+        department::{Model as Department, Entity as DepartmentEntity, Column as DepartmentColumn},
+        tasks::{TaskType, task_type::{Model as TaskTypeModel, Entity as TaskTypeEntity, Column as TaskTypeColumn}},
+        event::{Model as Event, Entity as EventEntity, Column as EventColumn},
+        event_attendee::{Model as EventAttendee, Entity as EventAttendeeEntity, Column as EventAttendeeColumn},
+        leave_request::{Model as LeaveRequest, Entity as LeaveRequestEntity, Column as LeaveRequestColumn},
+        leave_balance::{Model as LeaveBalance, Entity as LeaveBalanceEntity, Column as LeaveBalanceColumn},
+        leave_type::{Model as LeaveType, Entity as LeaveTypeEntity, Column as LeaveTypeColumn},
+        performance_review::{Model as PerformanceReview, Entity as PerformanceReviewEntity, Column as PerformanceReviewColumn},
+        review_cycle::Model as ReviewCycle,
+        review_feedback::Model as ReviewFeedback,
+        review_goal::Model as ReviewGoal,
+        employee::{
+            EmployeeCertification,
+            EmployeeGoal,
+            EmployeeSkill,
+            EmployeeVehicle,
+            EmergencyContact,
+            emergency_contact::{Model as EmergencyContactModel, Entity as EmergencyContactEntity, Column as EmergencyContactColumn},
+            employee_vehicle::{Model as EmployeeVehicleModel, Entity as EmployeeVehicleEntity, Column as EmployeeVehicleColumn},
+            UserAddress,
+        },
+        time::{
+            AttendanceRecord,
+            attendance_record::{Model as AttendanceRecordModel, Entity as AttendanceRecordEntity, Column as AttendanceRecordColumn},
+        },
+        documents::Document,
+        documents::DocumentCategory,
+        system::{
+            HRReport,
+            hr_report::{Model as HRReportModel, Entity as HrReportEntity, Column as HrReportColumn},
+            activity_log::{Model as ActivityLogModel, Entity as ActivityLogEntity, Column as ActivityLogColumn},
+            rollback_request::{Model as RollbackRequestModel, Entity as RollbackRequestEntity, Column as RollbackRequestColumn, RollbackStatus},
+            system_settings::{Model as SystemSettingsModel, Entity as SystemSettingsEntity, Column as SystemSettingsColumn},
+        },
+        notification::{Model as Notification, Entity as NotificationEntity, Column as NotificationColumn},
+        user_session::{Model as Session, Entity as UserSessionEntity, Column as UserSessionColumn},
+        employee::employee_goal::{Model as EmployeeGoalModel, Entity as EmployeeGoalEntity, Column as EmployeeGoalColumn},
     },
 };
+
+/// Task filter input for advanced querying
+#[derive(async_graphql::InputObject)]
+pub struct TaskFilter {
+    pub status: Option<TaskStatus>,
+    pub priority: Option<TaskPriority>,
+    pub assignee_id: Option<Uuid>,
+    pub created_by: Option<Uuid>,
+    pub department_id: Option<Uuid>,
+    pub task_type_id: Option<Uuid>,
+    pub parent_task_id: Option<Uuid>,
+    pub archived: Option<bool>,
+}
 
 /// Session information for GraphQL responses
 #[derive(async_graphql::SimpleObject)]
@@ -62,15 +95,15 @@ impl QueryRoot {
         ctx: &Context<'_>,
         limit: Option<i64>,
         offset: Option<i64>,
-    ) -> Result<Vec<user::Model>> {
+    ) -> Result<Vec<User>> {
         let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
 
         let users = UserEntity::find()
-            .filter(user::Column::IsActive.eq(true))
-            .filter(user::Column::DeletedAt.is_null())
-            .order_by_desc(user::Column::CreatedAt)
+            .filter(UserColumn::IsActive.eq(true))
+            .filter(UserColumn::DeletedAt.is_null())
+            .order_by_desc(UserColumn::CreatedAt)
             .limit(Some(limit as u64))
             .offset(offset as u64)
             .all(&db)
@@ -80,10 +113,10 @@ impl QueryRoot {
     }
 
     /// Get a single user by ID
-    async fn user(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<user::Model>> {
+    async fn user(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<User>> {
         let db = get_db_from_context(ctx)?;
         let user = UserEntity::find_by_id(id)
-            .filter(user::Column::DeletedAt.is_null())
+            .filter(UserColumn::DeletedAt.is_null())
             .one(&db)
             .await?;
         Ok(user)
@@ -99,14 +132,14 @@ impl QueryRoot {
         ctx: &Context<'_>,
         limit: Option<i64>,
         offset: Option<i64>,
-    ) -> Result<Vec<department::Model>> {
+    ) -> Result<Vec<Department>> {
         let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
 
         let departments = DepartmentEntity::find()
-            .filter(department::Column::DeletedAt.is_null())
-            .order_by_asc(department::Column::Name)
+            .filter(DepartmentColumn::DeletedAt.is_null())
+            .order_by_asc(DepartmentColumn::Name)
             .limit(Some(limit as u64))
             .offset(offset as u64)
             .all(&db)
@@ -116,10 +149,10 @@ impl QueryRoot {
     }
 
     /// Get a single department by ID
-    async fn department(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<department::Model>> {
+    async fn department(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<Department>> {
         let db = get_db_from_context(ctx)?;
         let dept = DepartmentEntity::find_by_id(id)
-            .filter(department::Column::DeletedAt.is_null())
+            .filter(DepartmentColumn::DeletedAt.is_null())
             .one(&db)
             .await?;
         Ok(dept)
@@ -129,28 +162,67 @@ impl QueryRoot {
     // Task Queries
     // =========================================================================
     
-    /// Get all tasks with optional assignee filtering and pagination
+    /// Get all tasks with advanced filtering, sorting and pagination
     async fn tasks(
         &self,
         ctx: &Context<'_>,
-        assignee_id: Option<Uuid>,
+        filter: Option<TaskFilter>,
+        order_by: Option<String>,
         limit: Option<i64>,
         offset: Option<i64>,
-    ) -> Result<Vec<task::Model>> {
+    ) -> Result<Vec<Task>> {
         let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
 
         let mut query = TaskEntity::find()
-            .filter(task::Column::DeletedAt.is_null());
+            .filter(TaskColumn::DeletedAt.is_null());
 
-        // Add assignee filter if provided
-        if let Some(aid) = assignee_id {
-            query = query.filter(task::Column::AssigneeId.eq(aid));
+        // Apply filters if provided
+        if let Some(f) = &filter {
+            if let Some(status) = &f.status {
+                query = query.filter(TaskColumn::Status.eq(status.as_str()));
+            }
+            if let Some(priority) = &f.priority {
+                query = query.filter(TaskColumn::Priority.eq(priority.as_str()));
+            }
+            if let Some(assignee_id) = f.assignee_id {
+                query = query.filter(TaskColumn::AssigneeId.eq(assignee_id));
+            }
+            if let Some(created_by) = f.created_by {
+                query = query.filter(TaskColumn::CreatedBy.eq(created_by));
+            }
+            if let Some(department_id) = f.department_id {
+                query = query.filter(TaskColumn::DepartmentId.eq(department_id));
+            }
+            if let Some(task_type_id) = f.task_type_id {
+                query = query.filter(TaskColumn::TaskTypeId.eq(task_type_id));
+            }
+            if let Some(parent_task_id) = f.parent_task_id {
+                query = query.filter(TaskColumn::ParentTaskId.eq(parent_task_id));
+            }
+            if let Some(archived) = f.archived {
+                query = query.filter(TaskColumn::Archived.eq(archived));
+            }
+        }
+
+        // Apply ordering
+        let order_by = order_by.as_deref().unwrap_or("created_at_desc");
+        match order_by {
+            "created_at_asc" => query = query.order_by_asc(TaskColumn::CreatedAt),
+            "created_at_desc" => query = query.order_by_desc(TaskColumn::CreatedAt),
+            "due_date_asc" => query = query.order_by_asc(TaskColumn::DueDate),
+            "due_date_desc" => query = query.order_by_desc(TaskColumn::DueDate),
+            "priority_asc" => query = query.order_by_asc(TaskColumn::Priority),
+            "priority_desc" => query = query.order_by_desc(TaskColumn::Priority),
+            "status_asc" => query = query.order_by_asc(TaskColumn::Status),
+            "status_desc" => query = query.order_by_desc(TaskColumn::Status),
+            "title_asc" => query = query.order_by_asc(TaskColumn::Title),
+            "title_desc" => query = query.order_by_desc(TaskColumn::Title),
+            _ => query = query.order_by_desc(TaskColumn::CreatedAt), // Default
         }
 
         let tasks = query
-            .order_by_desc(task::Column::CreatedAt)
             .limit(Some(limit as u64))
             .offset(offset as u64)
             .all(&db)
@@ -160,13 +232,44 @@ impl QueryRoot {
     }
 
     /// Get a single task by ID
-    async fn task(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<task::Model>> {
+    async fn task(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<Task>> {
         let db = get_db_from_context(ctx)?;
         let task = TaskEntity::find_by_id(id)
-            .filter(task::Column::DeletedAt.is_null())
+            .filter(TaskColumn::DeletedAt.is_null())
             .one(&db)
             .await?;
         Ok(task)
+    }
+
+    /// Get all task types (optionally filter by active status)
+    async fn task_types(
+        &self,
+        ctx: &Context<'_>,
+        is_active: Option<bool>,
+    ) -> Result<Vec<TaskTypeModel>> {
+        let db = get_db_from_context(ctx)?;
+        let mut query = TaskTypeEntity::find();
+
+        // Filter by active status if provided
+        if let Some(active) = is_active {
+            query = query.filter(TaskTypeColumn::IsActive.eq(active));
+        }
+
+        let task_types = query
+            .order_by_asc(TaskTypeColumn::Name)
+            .all(&db)
+            .await?;
+
+        Ok(task_types)
+    }
+
+    /// Get a single task type by ID
+    async fn task_type(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<TaskTypeModel>> {
+        let db = get_db_from_context(ctx)?;
+        let task_type = TaskTypeEntity::find_by_id(id)
+            .one(&db)
+            .await?;
+        Ok(task_type)
     }
 
     // =========================================================================
@@ -180,21 +283,21 @@ impl QueryRoot {
         employee_id: Option<Uuid>,
         limit: Option<i64>,
         offset: Option<i64>,
-    ) -> Result<Vec<leave_request::Model>> {
+    ) -> Result<Vec<LeaveRequest>> {
         let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
 
         let mut query = LeaveRequestEntity::find()
-            .filter(leave_request::Column::DeletedAt.is_null());
+            .filter(LeaveRequestColumn::DeletedAt.is_null());
 
         // Add employee filter if provided
         if let Some(eid) = employee_id {
-            query = query.filter(leave_request::Column::EmployeeId.eq(eid));
+            query = query.filter(LeaveRequestColumn::EmployeeId.eq(eid));
         }
 
         let requests = query
-            .order_by_desc(leave_request::Column::CreatedAt)
+            .order_by_desc(LeaveRequestColumn::CreatedAt)
             .limit(Some(limit as u64))
             .offset(offset as u64)
             .all(&db)
@@ -204,10 +307,10 @@ impl QueryRoot {
     }
 
     /// Get a single leave request by ID
-    async fn leave_request(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<leave_request::Model>> {
+    async fn leave_request(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<LeaveRequest>> {
         let db = get_db_from_context(ctx)?;
         let request = LeaveRequestEntity::find_by_id(id)
-            .filter(leave_request::Column::DeletedAt.is_null())
+            .filter(LeaveRequestColumn::DeletedAt.is_null())
             .one(&db)
             .await?;
         Ok(request)
@@ -224,21 +327,21 @@ impl QueryRoot {
         employee_id: Option<Uuid>,
         limit: Option<i64>,
         offset: Option<i64>,
-    ) -> Result<Vec<leave_balance::Model>> {
+    ) -> Result<Vec<LeaveBalance>> {
         let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
 
         let mut query = LeaveBalanceEntity::find()
-            .filter(leave_balance::Column::DeletedAt.is_null());
+            .filter(LeaveBalanceColumn::DeletedAt.is_null());
 
         // Add employee filter if provided
         if let Some(eid) = employee_id {
-            query = query.filter(leave_balance::Column::EmployeeId.eq(eid));
+            query = query.filter(LeaveBalanceColumn::EmployeeId.eq(eid));
         }
 
         let balances = query
-            .order_by_desc(leave_balance::Column::Year)
+            .order_by_desc(LeaveBalanceColumn::Year)
             .limit(Some(limit as u64))
             .offset(offset as u64)
             .all(&db)
@@ -257,14 +360,14 @@ impl QueryRoot {
         ctx: &Context<'_>,
         limit: Option<i64>,
         offset: Option<i64>,
-    ) -> Result<Vec<leave_type::Model>> {
+    ) -> Result<Vec<LeaveType>> {
         let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
 
         let types = LeaveTypeEntity::find()
-            .filter(leave_type::Column::DeletedAt.is_null())
-            .order_by_asc(leave_type::Column::Name)
+            .filter(LeaveTypeColumn::DeletedAt.is_null())
+            .order_by_asc(LeaveTypeColumn::Name)
             .limit(Some(limit as u64))
             .offset(offset as u64)
             .all(&db)
@@ -274,10 +377,10 @@ impl QueryRoot {
     }
 
     /// Get a single leave type by ID
-    async fn leave_type(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<leave_type::Model>> {
+    async fn leave_type(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<LeaveType>> {
         let db = get_db_from_context(ctx)?;
         let leave_type = LeaveTypeEntity::find_by_id(id)
-            .filter(leave_type::Column::DeletedAt.is_null())
+            .filter(LeaveTypeColumn::DeletedAt.is_null())
             .one(&db)
             .await?;
         Ok(leave_type)
@@ -294,7 +397,7 @@ impl QueryRoot {
         employee_id: Option<Uuid>,
         limit: Option<i64>,
         offset: Option<i64>,
-    ) -> Result<Vec<emergency_contact::Model>> {
+    ) -> Result<Vec<EmergencyContactModel>> {
         let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
@@ -303,12 +406,12 @@ impl QueryRoot {
 
         // Add employee filter if provided
         if let Some(eid) = employee_id {
-            query = query.filter(emergency_contact::Column::EmployeeId.eq(eid));
+            query = query.filter(EmergencyContactColumn::EmployeeId.eq(eid));
         }
 
         let contacts = query
-            .order_by_desc(emergency_contact::Column::IsPrimary)
-            .order_by_desc(emergency_contact::Column::CreatedAt)
+            .order_by_desc(EmergencyContactColumn::IsPrimary)
+            .order_by_desc(EmergencyContactColumn::CreatedAt)
             .limit(Some(limit as u64))
             .offset(offset as u64)
             .all(&db)
@@ -328,7 +431,7 @@ impl QueryRoot {
         employee_id: Option<Uuid>,
         limit: Option<i64>,
         offset: Option<i64>,
-    ) -> Result<Vec<employee_vehicle::Model>> {
+    ) -> Result<Vec<EmployeeVehicleModel>> {
         let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
@@ -337,11 +440,11 @@ impl QueryRoot {
 
         // Add employee filter if provided
         if let Some(eid) = employee_id {
-            query = query.filter(employee_vehicle::Column::EmployeeId.eq(eid));
+            query = query.filter(EmployeeVehicleColumn::EmployeeId.eq(eid));
         }
 
         let vehicles = query
-            .order_by_desc(employee_vehicle::Column::CreatedAt)
+            .order_by_desc(EmployeeVehicleColumn::CreatedAt)
             .limit(Some(limit as u64))
             .offset(offset as u64)
             .all(&db)
@@ -361,21 +464,21 @@ impl QueryRoot {
         employee_id: Option<Uuid>,
         limit: Option<i64>,
         offset: Option<i64>,
-    ) -> Result<Vec<performance_review::Model>> {
+    ) -> Result<Vec<PerformanceReview>> {
         let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
 
         let mut query = PerformanceReviewEntity::find()
-            .filter(performance_review::Column::DeletedAt.is_null());
+            .filter(PerformanceReviewColumn::DeletedAt.is_null());
 
         // Add employee filter if provided
         if let Some(eid) = employee_id {
-            query = query.filter(performance_review::Column::EmployeeId.eq(eid));
+            query = query.filter(PerformanceReviewColumn::EmployeeId.eq(eid));
         }
 
         let reviews = query
-            .order_by_desc(performance_review::Column::CreatedAt)
+            .order_by_desc(PerformanceReviewColumn::CreatedAt)
             .limit(Some(limit as u64))
             .offset(offset as u64)
             .all(&db)
@@ -385,10 +488,10 @@ impl QueryRoot {
     }
 
     /// Get a single performance review by ID
-    async fn performance_review(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<performance_review::Model>> {
+    async fn performance_review(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<PerformanceReview>> {
         let db = get_db_from_context(ctx)?;
         let review = PerformanceReviewEntity::find_by_id(id)
-            .filter(performance_review::Column::DeletedAt.is_null())
+            .filter(PerformanceReviewColumn::DeletedAt.is_null())
             .one(&db)
             .await?;
         Ok(review)
@@ -405,7 +508,7 @@ impl QueryRoot {
         user_id: Option<Uuid>,
         limit: Option<i64>,
         offset: Option<i64>,
-    ) -> Result<Vec<activity_log::Model>> {
+    ) -> Result<Vec<ActivityLogModel>> {
         let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
@@ -414,11 +517,11 @@ impl QueryRoot {
 
         // Add user filter if provided
         if let Some(uid) = user_id {
-            query = query.filter(activity_log::Column::EmployeeId.eq(uid));
+            query = query.filter(ActivityLogColumn::EmployeeId.eq(uid));
         }
 
         let logs = query
-            .order_by_desc(activity_log::Column::CreatedAt)
+            .order_by_desc(ActivityLogColumn::CreatedAt)
             .limit(Some(limit as u64))
             .offset(offset as u64)
             .all(&db)
@@ -428,21 +531,21 @@ impl QueryRoot {
     }
 
     /// Get a single activity log by ID
-    async fn activity_log(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<activity_log::Model>> {
+    async fn activity_log(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<ActivityLogModel>> {
         let db = get_db_from_context(ctx)?;
         let log = ActivityLogEntity::find_by_id(id).one(&db).await?;
         Ok(log)
     }
 
     /// Get current authenticated user information
-    async fn me(&self, ctx: &Context<'_>) -> Result<Option<user::Model>> {
+    async fn me(&self, ctx: &Context<'_>) -> Result<Option<User>> {
         let auth_session = ctx.data::<AuthSession<crate::auth::AuthBackend>>()?;
 
         match &auth_session.user {
             Some(auth_user) => {
                 let db = get_db_from_context(ctx)?;
                 let user = UserEntity::find_by_id(auth_user.id)
-                    .filter(user::Column::DeletedAt.is_null())
+                    .filter(UserColumn::DeletedAt.is_null())
                     .one(&db)
                     .await?;
                 Ok(user)
@@ -489,9 +592,9 @@ impl QueryRoot {
         };
 
         let sessions = UserSessionEntity::find()
-            .filter(user_session::Column::UserId.eq(user.id))
-            .filter(user_session::Column::IsActive.eq(true))
-            .filter(user_session::Column::ExpiresAt.gt(chrono::Utc::now()))
+            .filter(UserSessionColumn::UserId.eq(user.id))
+            .filter(UserSessionColumn::IsActive.eq(true))
+            .filter(UserSessionColumn::ExpiresAt.gt(chrono::Utc::now()))
             .all(&db)
             .await?;
 
@@ -537,7 +640,7 @@ impl QueryRoot {
         #[graphql(name = "employeeId")] employee_id: Option<Uuid>,
         limit: Option<i64>,
         offset: Option<i64>,
-    ) -> Result<Vec<attendance_record::Model>> {
+    ) -> Result<Vec<AttendanceRecordModel>> {
         let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
@@ -547,11 +650,11 @@ impl QueryRoot {
         // Add user/employee filter if provided (employeeId takes precedence)
         let filter_id = employee_id.or(user_id);
         if let Some(uid) = filter_id {
-            query = query.filter(attendance_record::Column::UserId.eq(uid));
+            query = query.filter(AttendanceRecordColumn::UserId.eq(uid));
         }
 
         let records = query
-            .order_by_desc(attendance_record::Column::Date)
+            .order_by_desc(AttendanceRecordColumn::Date)
             .limit(Some(limit as u64))
             .offset(offset as u64)
             .all(&db)
@@ -571,7 +674,7 @@ impl QueryRoot {
         employee_id: Option<Uuid>,
         limit: Option<i64>,
         offset: Option<i64>,
-    ) -> Result<Vec<employee_goal::Model>> {
+    ) -> Result<Vec<EmployeeGoalModel>> {
         let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
@@ -580,11 +683,11 @@ impl QueryRoot {
 
         // Add employee filter if provided
         if let Some(eid) = employee_id {
-            query = query.filter(employee_goal::Column::EmployeeId.eq(eid));
+            query = query.filter(EmployeeGoalColumn::EmployeeId.eq(eid));
         }
 
         let goals = query
-            .order_by_desc(employee_goal::Column::CreatedAt)
+            .order_by_desc(EmployeeGoalColumn::CreatedAt)
             .limit(Some(limit as u64))
             .offset(offset as u64)
             .all(&db)
@@ -604,25 +707,25 @@ impl QueryRoot {
         upcoming_only: Option<bool>,
         limit: Option<i64>,
         offset: Option<i64>,
-    ) -> Result<Vec<event::Model>> {
+    ) -> Result<Vec<Event>> {
         let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
 
         let mut query = EventEntity::find()
-            .filter(event::Column::DeletedAt.is_null());
+            .filter(EventColumn::DeletedAt.is_null());
 
         // Add upcoming filter if requested
         if upcoming_only.unwrap_or(false) {
             let now = chrono::Utc::now();
             // Filter for scheduled events (status is varchar, not enum)
             query = query
-                .filter(event::Column::StartTime.gte(now))
-                .filter(event::Column::Status.eq("scheduled"));
+                .filter(EventColumn::StartTime.gte(now))
+                .filter(EventColumn::Status.eq("scheduled"));
         }
 
         let events = query
-            .order_by_asc(event::Column::StartTime)
+            .order_by_asc(EventColumn::StartTime)
             .limit(Some(limit as u64))
             .offset(offset as u64)
             .all(&db)
@@ -632,10 +735,10 @@ impl QueryRoot {
     }
 
     /// Get a single event by ID
-    async fn event(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<event::Model>> {
+    async fn event(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<Event>> {
         let db = get_db_from_context(ctx)?;
         let event = EventEntity::find_by_id(id)
-            .filter(event::Column::DeletedAt.is_null())
+            .filter(EventColumn::DeletedAt.is_null())
             .one(&db)
             .await?;
         Ok(event)
@@ -654,7 +757,7 @@ impl QueryRoot {
         reminder_time_is_null: Option<bool>,
         limit: Option<i64>,
         offset: Option<i64>,
-    ) -> Result<Vec<event_attendee::Model>> {
+    ) -> Result<Vec<EventAttendee>> {
         let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
@@ -663,25 +766,25 @@ impl QueryRoot {
 
         // Add event filter if provided
         if let Some(eid) = event_id {
-            query = query.filter(event_attendee::Column::EventId.eq(eid));
+            query = query.filter(EventAttendeeColumn::EventId.eq(eid));
         }
 
         // Add employee filter if provided
         if let Some(empid) = employee_id {
-            query = query.filter(event_attendee::Column::EmployeeId.eq(empid));
+            query = query.filter(EventAttendeeColumn::EmployeeId.eq(empid));
         }
 
         // Add reminder_time null/not-null filter if provided
         if let Some(is_null) = reminder_time_is_null {
             if is_null {
-                query = query.filter(event_attendee::Column::ReminderTime.is_null());
+                query = query.filter(EventAttendeeColumn::ReminderTime.is_null());
             } else {
-                query = query.filter(event_attendee::Column::ReminderTime.is_not_null());
+                query = query.filter(EventAttendeeColumn::ReminderTime.is_not_null());
             }
         }
 
         let attendees = query
-            .order_by_desc(event_attendee::Column::CreatedAt)
+            .order_by_desc(EventAttendeeColumn::CreatedAt)
             .limit(Some(limit as u64))
             .offset(offset as u64)
             .all(&db)
@@ -702,7 +805,7 @@ impl QueryRoot {
         unread_only: Option<bool>,
         limit: Option<i64>,
         offset: Option<i64>,
-    ) -> Result<Vec<notification::Model>> {
+    ) -> Result<Vec<Notification>> {
         let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
@@ -711,16 +814,16 @@ impl QueryRoot {
 
         // Add user filter if provided
         if let Some(uid) = user_id {
-            query = query.filter(notification::Column::RecipientId.eq(uid));
+            query = query.filter(NotificationColumn::RecipientId.eq(uid));
         }
 
         // Add unread filter if requested
         if unread_only.unwrap_or(false) {
-            query = query.filter(notification::Column::ReadStatus.eq(false));
+            query = query.filter(NotificationColumn::ReadStatus.eq(false));
         }
 
         let notifications = query
-            .order_by_desc(notification::Column::CreatedAt)
+            .order_by_desc(NotificationColumn::CreatedAt)
             .limit(Some(limit as u64))
             .offset(offset as u64)
             .all(&db)
@@ -740,7 +843,7 @@ impl QueryRoot {
         status: Option<RollbackStatus>,
         limit: Option<i64>,
         offset: Option<i64>,
-    ) -> Result<Vec<rollback_request::Model>> {
+    ) -> Result<Vec<RollbackRequestModel>> {
         let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
@@ -749,11 +852,11 @@ impl QueryRoot {
 
         // Add status filter if provided
         if let Some(s) = status {
-            query = query.filter(rollback_request::Column::Status.eq(s.as_str()));
+            query = query.filter(RollbackRequestColumn::Status.eq(s.as_str()));
         }
 
         let requests = query
-            .order_by_desc(rollback_request::Column::CreatedAt)
+            .order_by_desc(RollbackRequestColumn::CreatedAt)
             .limit(Some(limit as u64))
             .offset(offset as u64)
             .all(&db)
@@ -774,7 +877,7 @@ impl QueryRoot {
 
         // Add status filter if provided
         if let Some(s) = status {
-            query = query.filter(rollback_request::Column::Status.eq(s.as_str()));
+            query = query.filter(RollbackRequestColumn::Status.eq(s.as_str()));
         }
 
         let count = query.count(&db).await?;
@@ -792,13 +895,13 @@ impl QueryRoot {
         ctx: &Context<'_>,
         limit: Option<i64>,
         offset: Option<i64>,
-    ) -> Result<Vec<hr_report::Model>> {
+    ) -> Result<Vec<HRReportModel>> {
         let db = get_db_from_context(ctx)?;
         let limit = limit.unwrap_or(100).clamp(1, 1000);
         let offset = offset.unwrap_or(0).max(0);
 
         let reports = HrReportEntity::find()
-            .order_by_desc(hr_report::Column::CreatedAt)
+            .order_by_desc(HrReportColumn::CreatedAt)
             .limit(Some(limit as u64))
             .offset(offset as u64)
             .all(&db)
@@ -808,7 +911,7 @@ impl QueryRoot {
     }
 
     /// Get a single HR report by ID
-    async fn hr_report(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<hr_report::Model>> {
+    async fn hr_report(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<HRReportModel>> {
         let db = get_db_from_context(ctx)?;
         let report = HrReportEntity::find_by_id(id)
             .one(&db)
@@ -822,9 +925,9 @@ impl QueryRoot {
 
     /// Get all system settings (requires system_admin role with system_settings:read permission)
     #[graphql(guard = "crate::middleware::guards::RequireRole::new(\"system_admin\")")]
-    async fn system_settings(&self, ctx: &Context<'_>) -> Result<Vec<system_settings::Model>> {
+    async fn system_settings(&self, ctx: &Context<'_>) -> Result<Vec<SystemSettingsModel>> {
         let db = get_db_from_context(ctx)?;
-        let settings = system_settings::Model::find_all(&db).await?;
+        let settings = SystemSettingsModel::find_all(&db).await?;
         Ok(settings)
     }
 
@@ -834,9 +937,9 @@ impl QueryRoot {
         &self,
         ctx: &Context<'_>,
         category: String,
-    ) -> Result<Option<system_settings::Model>> {
+    ) -> Result<Option<SystemSettingsModel>> {
         let db = get_db_from_context(ctx)?;
-        let settings = system_settings::Model::find_by_category(&db, &category).await?;
+        let settings = SystemSettingsModel::find_by_category(&db, &category).await?;
         Ok(settings)
     }
 
@@ -892,12 +995,107 @@ impl QueryRoot {
 
         Ok(address)
     }
+
+    // =========================================================================
+    // Document Queries
+    // =========================================================================
+
+    /// Get all documents with pagination
+    async fn documents(
+        &self,
+        ctx: &Context<'_>,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<crate::models::documents::document::Model>> {
+        use crate::models::documents::document::{Entity as DocumentEntity, Column as DocumentColumn};
+
+        let db = get_db_from_context(ctx)?;
+        let limit = limit.unwrap_or(20).clamp(1, 100);
+        let offset = offset.unwrap_or(0).max(0);
+
+        let documents = DocumentEntity::find()
+            .filter(DocumentColumn::DeletedAt.is_null())
+            .order_by_desc(DocumentColumn::CreatedAt)
+            .limit(Some(limit as u64))
+            .offset(offset as u64)
+            .all(&db)
+            .await?;
+
+        Ok(documents)
+    }
+
+    /// Get a single document by ID
+    async fn document(
+        &self,
+        ctx: &Context<'_>,
+        id: Uuid,
+    ) -> Result<Option<crate::models::documents::document::Model>> {
+        use crate::models::documents::document::{Entity as DocumentEntity, Column as DocumentColumn};
+
+        let db = get_db_from_context(ctx)?;
+
+        let document = DocumentEntity::find_by_id(id)
+            .filter(DocumentColumn::DeletedAt.is_null())
+            .one(&db)
+            .await?;
+
+        Ok(document)
+    }
+
+    // =========================================================================
+    // Analytics - Employee Statistics Queries
+    // =========================================================================
+
+    /// Get employee statistics for a date range (for trend analysis and charts)
+    ///
+    /// Returns daily snapshots of employee counts within the specified date range.
+    /// Useful for generating historical trend charts showing employee growth over time.
+    async fn employee_statistics(
+        &self,
+        ctx: &Context<'_>,
+        #[graphql(name = "startDate")] start_date: String,
+        #[graphql(name = "endDate")] end_date: String,
+    ) -> Result<Vec<crate::models::analytics::EmployeeStatistic>> {
+        use crate::models::analytics::EmployeeStatisticEntity;
+        use chrono::NaiveDate;
+
+        let db = get_db_from_context(ctx)?;
+
+        // Parse dates
+        let start = NaiveDate::parse_from_str(&start_date, "%Y-%m-%d")
+            .map_err(|e| AppError::Validation(format!("Invalid start_date format: {}", e)))?;
+        let end = NaiveDate::parse_from_str(&end_date, "%Y-%m-%d")
+            .map_err(|e| AppError::Validation(format!("Invalid end_date format: {}", e)))?;
+
+        // Validate date range
+        if start > end {
+            return Err(AppError::Validation("start_date must be before or equal to end_date".to_string()).into());
+        }
+
+        // Query statistics
+        let statistics = EmployeeStatisticEntity::get_statistics_range(&db, start, end).await?;
+
+        Ok(statistics)
+    }
+
+    /// Get the most recent employee statistics snapshot
+    async fn latest_employee_statistics(
+        &self,
+        ctx: &Context<'_>,
+    ) -> Result<Option<crate::models::analytics::EmployeeStatistic>> {
+        use crate::models::analytics::EmployeeStatisticEntity;
+
+        let db = get_db_from_context(ctx)?;
+        let latest = EmployeeStatisticEntity::get_latest(&db).await?;
+
+        Ok(latest)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testing::{TestContext, TestUserRole};
+    use hr_graphql_server::testing::{TestContext, TestUserRole};
 
     /// T017 Pattern: Test not found error with random UUID
     #[tokio::test]

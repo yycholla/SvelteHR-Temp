@@ -13,7 +13,7 @@
 <script lang="ts">
 	import type { Task } from '$lib/types/task';
 	import TaskCard from './TaskCard.svelte';
-	import { ChevronDown, ChevronRight, GitBranch, Minus } from 'lucide-svelte';
+	import { ChevronDown, ChevronRight, GitBranch, Minus } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 
 	interface Props {
@@ -43,13 +43,13 @@
 
 	// Derived state
 	let hasSubtasks = $derived(
-		task.tasksByParentTaskId && task.tasksByParentTaskId.nodes.length > 0
+		task.subtasks && task.subtasks.length > 0
 	);
 	let canExpand = $derived(hasSubtasks && currentDepth < maxDepth);
-	let subtasks = $derived(task.tasksByParentTaskId?.nodes || []);
-	let subtaskCount = $derived(task.tasksByParentTaskId?.totalCount || 0);
+	let subtasks = $derived(task.subtasks || []);
+	let subtaskCount = $derived(task.subtasks?.length || 0);
 	let completedSubtasks = $derived(
-		subtasks.filter((t: Task) => t.status === 'COMPLETED').length
+		subtasks.filter((t: Task) => t.status === 'Done').length
 	);
 
 	// Calculate completion percentage for subtasks
@@ -165,52 +165,4 @@
 	{/if}
 </div>
 
-<style>
-	/* Task Hierarchy Node Container */
-	.task-hierarchy-node {
-		@apply mb-3;
-	}
 
-	/* Subtasks Container */
-	.subtasks-container {
-		@apply ml-8 mt-3 space-y-3 relative;
-	}
-
-	/* Connection Line (visual indicator of hierarchy) */
-	.subtasks-container.has-connection-line::before {
-		content: '';
-		@apply absolute left-0 top-0 bottom-0 w-px bg-border;
-		margin-left: -16px;
-	}
-
-	.connection-line {
-		@apply absolute left-0 w-4 h-px bg-border;
-		top: 24px; /* Aligns with middle of task card */
-		margin-left: -16px;
-	}
-
-	/* Depth-based styling (optional visual feedback) */
-	.task-hierarchy-node[data-depth='0'] {
-		@apply mb-4;
-	}
-
-	.task-hierarchy-node[data-depth='1'] .subtasks-container {
-		@apply ml-6;
-	}
-
-	.task-hierarchy-node[data-depth='2'] .subtasks-container {
-		@apply ml-4;
-	}
-
-	/* Responsive adjustments */
-	@media (max-width: 768px) {
-		.subtasks-container {
-			@apply ml-4;
-		}
-
-		.task-hierarchy-node[data-depth='1'] .subtasks-container,
-		.task-hierarchy-node[data-depth='2'] .subtasks-container {
-			@apply ml-3;
-		}
-	}
-</style>

@@ -34,7 +34,7 @@
 		User,
 		Target,
 		GitBranch
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 	import { format } from 'date-fns';
 
 	// Filter state interface
@@ -75,7 +75,7 @@
 	// Status options - NOTE: Using GraphQL enum format (SCREAMING_SNAKE_CASE)
 	const statusOptions: Array<{ value: TaskStatus; label: string; icon: any; color: string }> = [
 		{
-			value: 'TO_DO',
+			value: 'TODO',
 			label: 'To Do',
 			icon: Clock,
 			color: 'text-amber-600'
@@ -93,13 +93,13 @@
 			color: 'text-red-600'
 		},
 		{
-			value: 'DEFERRED',
+			value: 'REVIEW',
 			label: 'Deferred',
 			icon: XCircle,
 			color: 'text-gray-600'
 		},
 		{
-			value: 'COMPLETED',
+			value: 'DONE',
 			label: 'Completed',
 			icon: CheckCircle,
 			color: 'text-green-600'
@@ -564,48 +564,4 @@
 	{/if}
 </div>
 
-<style>
-	/* Container */
-	.task-filters {
-		@apply rounded-lg border bg-card p-4 space-y-4;
-	}
 
-	.task-filters.compact {
-		@apply p-3;
-	}
-
-	/* Filter Header */
-	.filter-header {
-		@apply flex items-center justify-between;
-	}
-
-	/* Filter Content */
-	.filter-content {
-		@apply space-y-4;
-	}
-
-	/* Filter Group */
-	.filter-group {
-		@apply space-y-2;
-	}
-
-	/* Filter Checkbox Grid */
-	.filter-checkbox-grid {
-		@apply grid grid-cols-2 gap-2;
-	}
-
-	@media (max-width: 640px) {
-		.filter-checkbox-grid {
-			@apply grid-cols-1;
-		}
-	}
-
-	.filter-checkbox-item {
-		@apply flex items-center gap-2 cursor-pointer;
-	}
-
-	/* Active Filters */
-	.active-filters {
-		@apply flex flex-wrap gap-2 pt-2 border-t;
-	}
-</style>

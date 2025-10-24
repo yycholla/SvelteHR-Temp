@@ -1,47 +1,43 @@
 <script lang="ts">
-	import { cn } from '$lib/utils';
+	import { ScrollArea as ScrollAreaPrimitive } from "bits-ui";
+	import { Scrollbar } from "./index.js";
+	import { cn, type WithoutChild } from "$lib/utils.js";
 
-	// Props
 	let {
-		class: className = '',
+		ref = $bindable(null),
+		viewportRef = $bindable(null),
+		class: className,
+		orientation = "vertical",
+		scrollbarXClasses = "",
+		scrollbarYClasses = "",
 		children,
 		...restProps
-	}: {
-		class?: string;
-		children?: any;
-		[key: string]: any;
+	}: WithoutChild<ScrollAreaPrimitive.RootProps> & {
+		orientation?: "vertical" | "horizontal" | "both" | undefined;
+		scrollbarXClasses?: string | undefined;
+		scrollbarYClasses?: string | undefined;
+		viewportRef?: HTMLElement | null;
 	} = $props();
 </script>
 
-<div
-	class={cn('relative overflow-auto', className)}
+<ScrollAreaPrimitive.Root
+	bind:ref
+	data-slot="scroll-area"
+	class={cn("relative", className)}
 	{...restProps}
 >
-	{@render children?.()}
-</div>
-
-<style>
-	/* Custom scrollbar styling for better UX */
-	div {
-		scrollbar-width: thin;
-		scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
-	}
-
-	div::-webkit-scrollbar {
-		width: 8px;
-		height: 8px;
-	}
-
-	div::-webkit-scrollbar-track {
-		background: transparent;
-	}
-
-	div::-webkit-scrollbar-thumb {
-		background-color: hsl(var(--muted-foreground) / 0.3);
-		border-radius: 4px;
-	}
-
-	div::-webkit-scrollbar-thumb:hover {
-		background-color: hsl(var(--muted-foreground) / 0.5);
-	}
-</style>
+	<ScrollAreaPrimitive.Viewport
+		bind:ref={viewportRef}
+		data-slot="scroll-area-viewport"
+		class="ring-ring/10 dark:ring-ring/20 dark:outline-ring/40 outline-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] focus-visible:outline-1 focus-visible:ring-4"
+	>
+		{@render children?.()}
+	</ScrollAreaPrimitive.Viewport>
+	{#if orientation === "vertical" || orientation === "both"}
+		<Scrollbar orientation="vertical" class={scrollbarYClasses} />
+	{/if}
+	{#if orientation === "horizontal" || orientation === "both"}
+		<Scrollbar orientation="horizontal" class={scrollbarXClasses} />
+	{/if}
+	<ScrollAreaPrimitive.Corner />
+</ScrollAreaPrimitive.Root>

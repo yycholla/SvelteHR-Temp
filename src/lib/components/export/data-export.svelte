@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { Download, FileText, Table2 } from 'lucide-svelte';
+	import { Download, FileText, Table2 } from '@lucide/svelte';
 
 	let {
 		data = [],

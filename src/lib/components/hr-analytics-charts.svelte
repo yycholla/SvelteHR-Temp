@@ -8,7 +8,7 @@
 	import { AreaChart, Area, ChartClipPath } from 'layerchart';
 	import { curveNatural } from 'd3-shape';
 	import { cubicInOut } from 'svelte/easing';
-	import TrendingUpIcon from 'lucide-svelte/icons/trending-up';
+	import TrendingUpIcon from '@lucide/svelte/icons/trending-up';
 	import { onMount } from 'svelte';
 
 	interface User {

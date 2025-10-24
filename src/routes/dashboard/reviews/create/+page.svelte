@@ -16,7 +16,7 @@
 	import { Textarea } from '$lib/components/ui/textarea';
 	import * as Select from '$lib/components/ui/select';
 	import { Badge } from '$lib/components/ui/badge';
-	import { ArrowLeft, Send, User, Calendar, FileText, Search, ChevronDown, Check, Target } from 'lucide-svelte';
+	import { ArrowLeft, Send, User, Calendar, FileText, Search, ChevronDown, Check, Target } from '@lucide/svelte';
 	import GoalAssociationTabs from '$lib/components/reviews/GoalAssociationTabs.svelte';
 	import type { CreateGoalInput } from '$lib/schemas/reviews';
 

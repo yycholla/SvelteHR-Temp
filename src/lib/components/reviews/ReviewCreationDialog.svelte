@@ -15,7 +15,7 @@
 	import { Label } from '$lib/components/ui/label';
 	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Save, FileText, Calendar, Target, AlertCircle } from 'lucide-svelte';
+	import { Save, FileText, Calendar, Target, AlertCircle } from '@lucide/svelte';
 	import ReviewTypeDropdown from './ReviewTypeDropdown.svelte';
 	import GoalAssociationTabs from './GoalAssociationTabs.svelte';
 	import {

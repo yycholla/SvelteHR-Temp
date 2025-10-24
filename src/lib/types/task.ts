@@ -1,27 +1,27 @@
 // Task System Types
 // Generated from data-model.md for Task System Expansion (028)
 
-import type { User } from './user';
+import type { User } from './index';
 
-// Enumerated Types
-// NOTE: PostGraphile returns enum values in GraphQL format (SCREAMING_SNAKE_CASE)
-// Database stores: 'To Do', 'In Progress', 'Medium', etc.
-// GraphQL returns: 'TO_DO', 'IN_PROGRESS', 'MEDIUM', etc.
-export type TaskStatus = 'TO_DO' | 'IN_PROGRESS' | 'BLOCKED' | 'DEFERRED' | 'COMPLETED';
+// Import and re-export the correct audit action type
+import type { AuditActionType as AuditActionTypeInternal } from '$lib/utils/audit';
+export type AuditActionType = AuditActionTypeInternal;
 
+// Task status and priority types
+export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'REVIEW' | 'DONE' | 'CANCELLED';
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
-export type ResourceType = 'assessment' | 'document' | 'training' | 'event' | 'other';
-
-export type AvailabilityStatus = 'available' | 'unavailable';
-
-export type AuditActionType =
-	| 'created'
-	| 'edited'
-	| 'reassigned'
-	| 'deleted'
-	| 'status_changed'
-	| 'org_change';
+// Resource and availability types
+export type ResourceType =
+	| 'event'
+	| 'task'
+	| 'leave_request'
+	| 'profile'
+	| 'document'
+	| 'employee'
+	| 'department'
+	| 'performance_review';
+export type AvailabilityStatus = 'Available' | 'Deleted' | 'Moved' | 'Restricted';
 
 // Main Task Interface
 export interface Task {
@@ -58,17 +58,21 @@ export interface Task {
 export interface TaskType {
 	id: string;
 	name: string;
-	description: string | null;
-	isSystem: boolean;
+	description?: string | null;
+	defaultPriority?: string | null;
+	colorCode?: string | null;
+	isActive: boolean;
+	isSystem?: boolean;
 	createdAt: Date;
-	createdBy: string | null;
+	updatedAt?: Date;
+	createdBy?: string | null;
 }
 
 // Task Audit Entry Interface
 export interface TaskAuditEntry {
 	id: string;
 	taskId: string;
-	actionType: AuditActionType;
+	actionType: string; // Allow both old and new action types
 	changedFields: string[];
 	newValues: Record<string, any>;
 	userId: string | null;
@@ -164,4 +168,14 @@ export interface CreateLinkedResourceInput {
 export interface CreateTaskTypeInput {
 	name: string;
 	description?: string;
+	defaultPriority?: string;
+	colorCode?: string;
+}
+
+export interface UpdateTaskTypeInput {
+	name?: string;
+	description?: string;
+	defaultPriority?: string;
+	colorCode?: string;
+	isActive?: boolean;
 }

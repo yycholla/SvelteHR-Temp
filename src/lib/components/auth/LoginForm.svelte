@@ -2,7 +2,7 @@
 	import { createEventDispatcher } from 'svelte';
 	import { authStore, authActions, isLoading, authError } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
-	import { Eye, EyeOff, Mail, Lock, AlertCircle, Loader2 } from 'lucide-svelte';
+	import { Eye, EyeOff, Mail, Lock, AlertCircle, Loader2 } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';

@@ -21,7 +21,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Select from '$lib/components/ui/select';
 	import { Avatar } from '$lib/components/ui/avatar';
-	import { Users, Crown } from 'lucide-svelte';
+	import { Users, Crown } from '@lucide/svelte';
 	import type { RsvpStatus } from '$lib/graphql/events-operations';
 
 	// Props with Svelte 5 runes

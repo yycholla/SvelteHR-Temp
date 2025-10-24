@@ -12,7 +12,7 @@
 		Shield,
 		UserCog,
 		Building
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 
 	/**
 	 * User Menu Component

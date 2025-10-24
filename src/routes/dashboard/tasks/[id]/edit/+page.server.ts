@@ -10,10 +10,20 @@ export const load: PageServerLoad = async (event) => {
 	const { locals, cookies, params } = event;
 	const { id: taskId } = params;
 
-	// RBAC: Check task edit permissions
+	// RBAC: Check task edit permissions and user session validity
 	try {
 		if (!locals.user) {
 			throw error(401, { message: 'Authentication required' });
+		}
+
+		// Validate user ID exists - required for UserSession creation
+		if (!locals.user.id) {
+			console.error('[Task Edit] User ID missing from locals.user:', {
+				user: locals.user,
+				hasUser: !!locals.user,
+				userId: locals.user.id
+			});
+			throw error(401, { message: 'Invalid user session - please login again' });
 		}
 	} catch (err) {
 		console.error('[Task Edit] Permission check failed:', err);
@@ -39,52 +49,58 @@ export const load: PageServerLoad = async (event) => {
 	});
 
 	try {
-		const { getGraphQLEndpoint } = await import('$lib/server/api-url');
+		const { getGraphQLEndpoint, authenticatedGraphQLRequest } = await import('$lib/server/api-url');
 		const graphqlEndpoint = getGraphQLEndpoint();
 
 		// Get JWT token from cookies for Rust GraphQL server authentication
 
 		// Headers for session-based authentication (cookies sent automatically)
 		const headers: Record<string, string> = {
-			'Content-Type': 'application/json',
+			'Content-Type': 'application/json'
 		};
 
 		console.log('[Task Edit] Loading task for editing:', taskId);
 
 		// Load task data
 		// NOTE: Using Rust GraphQL schema - singular query for ID lookup
-		const taskResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetTaskForEdit($taskId: UUID!) {
-						task(id: $taskId) {
+		const taskResponse = await authenticatedGraphQLRequest(
+			graphqlEndpoint,
+			`
+				query GetTaskForEdit($taskId: UUID!) {
+					task(id: $taskId) {
+						id
+						title
+						description
+						status
+						priority
+						dueDate
+						requiresManualReassignment
+						archived
+						createdAt
+						updatedAt
+						assignee {
+							id
+							displayName
+							email
+						}
+						taskType {
+							id
+							name
+							description
+							defaultPriority
+							colorCode
+							isActive
+						}
+						parentTask {
 							id
 							title
-							description
-							status
-							priority
-							dueDate
-							requiresManualReassignment
-							archived
-							createdAt
-							updatedAt
-							assignee {
-								id
-							}
-							taskType {
-								id
-							}
-							parentTask {
-								id
-							}
 						}
 					}
-				`,
-				variables: { taskId }
-			})
-		});
+				}
+			`,
+			{ taskId },
+			event.request
+		);
 
 		const taskData = await taskResponse.json();
 
@@ -99,85 +115,102 @@ export const load: PageServerLoad = async (event) => {
 			throw error(404, { message: 'Task not found' });
 		}
 
-		// Load assignees for dropdown
-		const assigneesResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetUsersForAssignment($limit: Int!) {
-						users(limit: $limit) {
-							id
-							displayName
-							email
-							role
-						}
-					}
-				`,
-				variables: { limit: 100 }
-			})
+		console.log('[Task Edit] Raw task data from GraphQL:', {
+			taskId: task.id,
+			title: task.title,
+			assignee: task.assignee,
+			taskType: task.taskType,
+			parentTask: task.parentTask
 		});
+
+		// Flatten nested GraphQL structure to match form expectations
+		// GraphQL returns: task.assignee.id, task.taskType.id, task.parentTask.id
+		// Form expects: task.assigneeId, task.taskTypeId, task.parentTaskId
+		const flattenedTask = {
+			...task,
+			assigneeId: task.assignee?.id || null,
+			taskTypeId: task.taskType?.id || null,
+			parentTaskId: task.parentTask?.id || null
+		};
+
+		// Load assignees for dropdown
+		const assigneesResponse = await authenticatedGraphQLRequest(
+			graphqlEndpoint,
+			`
+				query GetUsersForAssignment($limit: Int!) {
+					users(limit: $limit) {
+						id
+						displayName
+						email
+						role
+					}
+				}
+			`,
+			{ limit: 100 },
+			event.request
+		);
 
 		const assigneesData = await assigneesResponse.json();
 
 		// Load departments
-		const departmentsResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetDepartments($limit: Int) {
-						departments(limit: $limit) {
-							id
-							name
-							description
-						}
+		const departmentsResponse = await authenticatedGraphQLRequest(
+			graphqlEndpoint,
+			`
+				query GetDepartments($limit: Int) {
+					departments(limit: $limit) {
+						id
+						name
+						description
 					}
-				`,
-				variables: { limit: 100 }
-			})
-		});
+				}
+			`,
+			{ limit: 100 },
+			event.request
+		);
 
 		const departmentsData = await departmentsResponse.json();
 
 		// Load task types
-		const taskTypesResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetTaskTypes($limit: Int!) {
-						taskTypes(limit: $limit) {
-							id
-							name
-							description
-						}
+		const taskTypesResponse = await authenticatedGraphQLRequest(
+			graphqlEndpoint,
+			`
+				query GetTaskTypes($isActive: Boolean) {
+					taskTypes(isActive: $isActive) {
+						id
+						name
+						description
+						defaultPriority
+						colorCode
+						isActive
 					}
-				`,
-				variables: { limit: 100 }
-			})
-		});
+				}
+			`,
+			{ isActive: true },
+			event.request
+		);
 
 		const taskTypesData = await taskTypesResponse.json();
+		console.log('[Task Edit] Task types loaded:', {
+			count: taskTypesData?.data?.taskTypes?.length || 0,
+			taskTypes: taskTypesData?.data?.taskTypes
+		});
 
 		// Load potential parent tasks (exclude current task and its descendants)
-		const parentTasksResponse = await fetch(graphqlEndpoint, {
-			method: 'POST',
-			headers,
-			body: JSON.stringify({
-				query: `
-					query GetPotentialParentTasks($limit: Int!, $offset: Int!) {
-						tasks(limit: $limit, offset: $offset) {
-							id
-							title
-							status
-							priority
-						}
+		const parentTasksResponse = await authenticatedGraphQLRequest(
+			graphqlEndpoint,
+			`
+				query GetPotentialParentTasks($limit: Int!, $offset: Int!) {
+					tasks(limit: $limit, offset: $offset) {
+						id
+						title
+						status
+						priority
 					}
-				`,
-				variables: { limit: 200, offset: 0 }
-			})
-		});
+				}
+			`,
+			{ limit: 200, offset: 0 },
+			event.request
+		);
 
 		const parentTasksData = await parentTasksResponse.json();
 
@@ -188,11 +221,11 @@ export const load: PageServerLoad = async (event) => {
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);
 
-		// Return server-side loaded data
-		return {
+		// Prepare return data
+		const returnData = {
 			user: userPermissions.user,
 			userSession: userSession.toJSON(),
-			task,
+			task: flattenedTask, // Use flattened structure for form compatibility
 			assignees: assigneesData?.data?.users || [],
 			departments: departmentsData?.data?.departments || [],
 			taskTypes: taskTypesData?.data?.taskTypes || [],
@@ -200,6 +233,18 @@ export const load: PageServerLoad = async (event) => {
 			...userPermissions,
 			loadedAt: new Date().toISOString()
 		};
+
+		console.log('[Task Edit] Returning data to page:', {
+			taskId: flattenedTask.id,
+			assigneesCount: returnData.assignees.length,
+			departmentsCount: returnData.departments.length,
+			taskTypesCount: returnData.taskTypes.length,
+			parentTasksCount: returnData.parentTasks.length,
+			taskTypeId: flattenedTask.taskTypeId
+		});
+
+		// Return server-side loaded data
+		return returnData;
 	} catch (err) {
 		console.error('[Task Edit Load Error]', err);
 
@@ -235,9 +280,15 @@ export const actions: Actions = {
 			throw error(401, { message: 'Authentication required' });
 		}
 
+		// Declare formDataEntries outside try block for catch block access
+		let formDataEntries: Record<string, any> = {};
+
 		try {
 			const formData = await request.formData();
-			const { getGraphQLEndpoint } = await import('$lib/server/api-url');
+			formDataEntries = Object.fromEntries(formData);
+			const { getGraphQLEndpoint, authenticatedGraphQLRequest } = await import(
+				'$lib/server/api-url'
+			);
 			const graphqlEndpoint = getGraphQLEndpoint();
 
 			// Extract form data
@@ -267,48 +318,75 @@ export const actions: Actions = {
 				status,
 				priority,
 				assigneeId,
+				taskTypeId,
+				parentTaskId,
+				requiresManualReassignment,
 				dueDate
 			});
 
-			// Prepare update input
-			// NOTE: reminderTime removed - field doesn't exist in new schema (Feature 028)
-			const updateInput: any = {
+			// Prepare update input - all fields supported by UpdateTaskInput GraphQL type
+			// Filter out empty strings and null values to avoid GraphQL parsing errors
+			const updateInput: Record<string, any> = {
 				title,
-				description: description || null,
 				status,
 				priority,
-				assigneeId: assigneeId || null,
-				taskTypeId: taskTypeId || null,
-				parentTaskId: parentTaskId || null,
-				dueDate: dueDate || null,
-				requiresManualReassignment,
-				updatedAt: new Date().toISOString()
+				requiresManualReassignment
 			};
+
+			// Only include optional fields if they have valid values
+			if (description && description.trim()) {
+				updateInput.description = description;
+			}
+			if (assigneeId && assigneeId.trim()) {
+				updateInput.assigneeId = assigneeId;
+			}
+			if (taskTypeId && taskTypeId.trim()) {
+				updateInput.taskTypeId = taskTypeId;
+			}
+			if (parentTaskId && parentTaskId.trim()) {
+				updateInput.parentTaskId = parentTaskId;
+			}
+			if (dueDate && dueDate.trim()) {
+				// Convert date-only format (YYYY-MM-DD) to RFC3339 DateTime (YYYY-MM-DDTHH:MM:SSZ)
+				// HTML date inputs return YYYY-MM-DD, but GraphQL expects full datetime
+				// Use end of day (23:59:59) since this is a due date
+				updateInput.dueDate = `${dueDate}T23:59:59Z`;
+			}
 
 			// Execute update mutation
 			// Migration: ✅ Use idiomatic Rust pattern (direct id/input parameters, no nested wrapper)
-			const updateResponse = await fetch(graphqlEndpoint, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					query: `
-						mutation UpdateTask($id: UUID!, $input: UpdateTaskInput!) {
-							updateTask(id: $id, input: $input) {
+			const updateResponse = await authenticatedGraphQLRequest(
+				graphqlEndpoint,
+				`
+					mutation UpdateTask($id: UUID!, $input: UpdateTaskInput!) {
+						updateTask(id: $id, input: $input) {
+							id
+							title
+							status
+							priority
+							taskType {
+								id
+								name
+							}
+							assignee {
+								id
+								displayName
+							}
+							parentTask {
 								id
 								title
-								status
-								updatedAt
 							}
+							requiresManualReassignment
+							updatedAt
 						}
-					`,
-					variables: {
-						id: taskId,
-						input: updateInput
 					}
-				})
-			});
+				`,
+				{
+					id: taskId,
+					input: updateInput
+				},
+				event.request
+			);
 
 			const updateData = await updateResponse.json();
 
@@ -316,7 +394,7 @@ export const actions: Actions = {
 				console.error('[Task Edit] Update errors:', updateData.errors);
 				return fail(400, {
 					error: updateData.errors[0]?.message || 'Failed to update task',
-					values: Object.fromEntries(formData)
+					values: formDataEntries
 				});
 			}
 
@@ -325,25 +403,39 @@ export const actions: Actions = {
 			if (!updatedTask) {
 				return fail(400, {
 					error: 'Task update failed',
-					values: Object.fromEntries(formData)
+					values: formDataEntries
 				});
 			}
 
-			console.log('[Task Edit] Task updated successfully:', updatedTask.id);
+			console.log('[Task Edit] Task updated successfully:', {
+				id: updatedTask.id,
+				title: updatedTask.title,
+				status: updatedTask.status,
+				priority: updatedTask.priority,
+				taskType: updatedTask.taskType,
+				assignee: updatedTask.assignee,
+				parentTask: updatedTask.parentTask,
+				requiresManualReassignment: updatedTask.requiresManualReassignment
+			});
 
 			// Redirect to task details page
 			throw redirect(303, `/dashboard/tasks/${updatedTask.id}`);
 		} catch (err) {
-			// If it's a redirect, re-throw it
-			if (err instanceof Response) {
+			// SvelteKit redirect() throws an error with status 300-399
+			// Check if this is a redirect by looking for status and location properties
+			const isRedirect = err && typeof err === 'object' && 'status' in err && 'location' in err;
+
+			if (isRedirect) {
+				// This is a successful redirect - re-throw without logging
 				throw err;
 			}
 
+			// Log actual errors only (not redirects)
 			console.error('[Task Edit] Update error:', err);
 
 			return fail(500, {
 				error: err instanceof Error ? err.message : 'Failed to update task',
-				values: Object.fromEntries(await request.formData())
+				values: formDataEntries
 			});
 		}
 	}

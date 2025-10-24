@@ -17,13 +17,18 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub employee_id: Uuid,
+    #[sea_orm(column_name = "name")]
     pub certification_name: String,
     pub issuing_organization: String,
-    pub issue_date: NaiveDate,
-    pub expiration_date: Option<NaiveDate>,
+    #[sea_orm(column_name = "issue_date")]
+    pub issue_date: DateTime<Utc>,
+    #[sea_orm(column_name = "expiry_date")]
+    pub expiration_date: Option<DateTime<Utc>>,
+    #[sea_orm(column_name = "credential_id")]
     pub certification_number: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -61,12 +66,12 @@ impl Model {
     }
 
     #[graphql(name = "issueDate")]
-    async fn issue_date(&self) -> NaiveDate {
+    async fn issue_date(&self) -> DateTime<Utc> {
         self.issue_date
     }
 
     #[graphql(name = "expirationDate")]
-    async fn expiration_date(&self) -> Option<NaiveDate> {
+    async fn expiration_date(&self) -> Option<DateTime<Utc>> {
         self.expiration_date
     }
 
@@ -107,9 +112,9 @@ pub struct CreateEmployeeCertificationInput {
     #[graphql(name = "issuingOrganization")]
     pub issuing_organization: String,
     #[graphql(name = "issueDate")]
-    pub issue_date: NaiveDate,
+    pub issue_date: DateTime<Utc>,
     #[graphql(name = "expirationDate")]
-    pub expiration_date: Option<NaiveDate>,
+    pub expiration_date: Option<DateTime<Utc>>,
     #[graphql(name = "certificationNumber")]
     pub certification_number: Option<String>,
 }
@@ -122,5 +127,5 @@ pub struct EmployeeCertificationFilter {
     #[graphql(name = "certificationName")]
     pub certification_name: Option<String>,
     #[graphql(name = "expirationDate")]
-    pub expiration_date: Option<NaiveDate>,
+    pub expiration_date: Option<DateTime<Utc>>,
 }

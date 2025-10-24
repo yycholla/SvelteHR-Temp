@@ -8,7 +8,15 @@ use sea_orm::{entity::prelude::*, FromQueryResult, QueryOrder, Related};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{database::get_db_from_context, error::AppError, models::generated::prelude::*};
+use crate::{database::get_db_from_context, dataloader::DataLoaderContext, error::AppError, models::generated::prelude::*};
+
+/// Custom validator for future dates
+fn validate_future_date(value: &DateTime<Utc>) -> Result<(), String> {
+    if *value < Utc::now() {
+        return Err("Due date must be in the future".to_string());
+    }
+    Ok(())
+}
 
 /// Task status
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]
@@ -165,6 +173,11 @@ impl Model {
         self.requires_manual_reassignment
     }
 
+    /// User ID assigned to the task (primary assignee)
+    async fn assignee_id(&self) -> Option<Uuid> {
+        self.assignee_id
+    }
+
     /// Current task status
     async fn status(&self) -> TaskStatus {
         match self.status.as_str() {
@@ -220,14 +233,12 @@ impl Model {
     }
 
     /// User ID who created the task
+    #[graphql(name = "creatorId")]
     async fn created_by(&self) -> Uuid {
         self.created_by
     }
 
-    /// User ID assigned to the task
-    async fn assignee_id(&self) -> Option<Uuid> {
-        self.assignee_id
-    }
+
 
     /// Parent task ID (for subtasks)
     async fn parent_task_id(&self) -> Option<Uuid> {
@@ -266,17 +277,17 @@ impl Model {
 
     /// User who created the task
     async fn creator(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
-        let db = get_db_from_context(ctx)?;
-        let creator = super::user::Entity::find_by_id(self.created_by).one(&db).await?;
-        Ok(creator)
+        let dataloaders = ctx.data::<DataLoaderContext>()?;
+        let user = dataloaders.users.load_one(self.created_by).await?;
+        Ok(user)
     }
 
     /// User assigned to the task
     async fn assignee(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         if let Some(assignee_id) = self.assignee_id {
-            let db = get_db_from_context(ctx)?;
-            let assignee = super::user::Entity::find_by_id(assignee_id).one(&db).await?;
-            Ok(assignee)
+            let dataloaders = ctx.data::<DataLoaderContext>()?;
+            let user = dataloaders.users.load_one(assignee_id).await?;
+            Ok(user)
         } else {
             Ok(None)
         }
@@ -316,8 +327,8 @@ impl Model {
     /// User who archived the task
     async fn archived_by_user(&self, ctx: &Context<'_>) -> GqlResult<Option<super::user::Model>> {
         if let Some(archived_by_id) = self.archived_by {
-            let db = get_db_from_context(ctx)?;
-            let user = super::user::Entity::find_by_id(archived_by_id).one(&db).await?;
+            let dataloaders = ctx.data::<DataLoaderContext>()?;
+            let user = dataloaders.users.load_one(archived_by_id).await?;
             Ok(user)
         } else {
             Ok(None)
@@ -327,8 +338,8 @@ impl Model {
     /// Department if task is department-specific
     async fn department(&self, ctx: &Context<'_>) -> GqlResult<Option<super::department::Model>> {
         if let Some(dept_id) = self.department_id {
-            let db = get_db_from_context(ctx)?;
-            let dept = super::department::Entity::find_by_id(dept_id).one(&db).await?;
+            let dataloaders = ctx.data::<DataLoaderContext>()?;
+            let dept = dataloaders.departments.load_one(dept_id).await?;
             Ok(dept)
         } else {
             Ok(None)
@@ -337,8 +348,15 @@ impl Model {
 
     /// Task type for categorization
     async fn task_type(&self, ctx: &Context<'_>) -> GqlResult<Option<super::tasks::TaskType>> {
-        // TODO: Implement with proper SeaORM relation
-        Ok(None)
+        if let Some(task_type_id) = self.task_type_id {
+            let db = get_db_from_context(ctx)?;
+            let task_type = crate::models::tasks::task_type::Entity::find_by_id(task_type_id)
+                .one(&db)
+                .await?;
+            Ok(task_type)
+        } else {
+            Ok(None)
+        }
     }
 
     /// Child tasks (subtasks) of this task
@@ -424,13 +442,18 @@ impl Model {
 /// Task creation input
 #[derive(Debug, Clone, InputObject)]
 pub struct CreateTaskInput {
+    #[graphql(validator(min_length = 1, max_length = 200))]
     pub title: String,
+    #[graphql(validator(max_length = 2000))]
     pub description: Option<String>,
     pub task_type_id: Option<Uuid>,
     pub status: Option<TaskStatus>,
     pub priority: TaskPriority,
+    #[graphql(validator(custom = "validate_future_date"))]
     pub due_date: Option<DateTime<Utc>>,
+    #[graphql(validator(minimum = 1, maximum = 10000))]
     pub estimated_hours: Option<i32>,
+    #[graphql(validator(list, max_items = 10))]
     pub tags: Option<Vec<String>>,
     pub department_id: Option<Uuid>,
     pub assignee_id: Option<Uuid>,
@@ -441,14 +464,20 @@ pub struct CreateTaskInput {
 /// Task update input
 #[derive(Debug, Clone, InputObject)]
 pub struct UpdateTaskInput {
+    #[graphql(validator(min_length = 1, max_length = 200))]
     pub title: Option<String>,
+    #[graphql(validator(max_length = 2000))]
     pub description: Option<String>,
     pub task_type_id: Option<Uuid>,
     pub status: Option<TaskStatus>,
     pub priority: Option<TaskPriority>,
+    #[graphql(validator(custom = "validate_future_date"))]
     pub due_date: Option<DateTime<Utc>>,
+    #[graphql(validator(minimum = 1, maximum = 10000))]
     pub estimated_hours: Option<i32>,
+    #[graphql(validator(minimum = 0, maximum = 10000))]
     pub actual_hours: Option<i32>,
+    #[graphql(validator(list, max_items = 10))]
     pub tags: Option<Vec<String>>,
     pub department_id: Option<Uuid>,
     pub assignee_id: Option<Uuid>,
@@ -462,6 +491,7 @@ pub struct UpdateTaskInput {
 pub struct ChangeTaskStatusInput {
     pub task_id: Uuid,
     pub status: TaskStatus,
+    #[graphql(validator(max_length = 500))]
     pub comment: Option<String>,
 }
 

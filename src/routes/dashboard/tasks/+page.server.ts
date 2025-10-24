@@ -242,11 +242,14 @@ export const load: PageServerLoad = async (event) => {
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetTaskTypesForFilter($limit: Int!) {
-						taskTypes(limit: $limit) {
+					query GetTaskTypesForFilter($isActive: Boolean) {
+						taskTypes(isActive: $isActive) {
 							id
 							name
 							description
+							defaultPriority
+							colorCode
+							isActive
 						}
 					}
 				`,

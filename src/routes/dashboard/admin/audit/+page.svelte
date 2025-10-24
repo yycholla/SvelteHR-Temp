@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { Search, Filter, FileText, Download, Calendar } from 'lucide-svelte';
+	import { Search, Filter, FileText, Download, Calendar } from '@lucide/svelte';
 
 	let { data } = $props();
 

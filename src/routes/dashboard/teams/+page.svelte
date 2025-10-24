@@ -23,7 +23,7 @@
 		Target,
 		TrendingUp,
 		Building2
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 
 	// Helper function to categorize team size
 	function categorizeTeamSize(count: number): { label: string; color: string } {

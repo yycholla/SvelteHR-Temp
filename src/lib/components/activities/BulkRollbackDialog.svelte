@@ -10,7 +10,7 @@
 	 */
 
 	import { createEventDispatcher } from 'svelte';
-	import { Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-svelte';
+	import { Loader2, CheckCircle, XCircle, AlertCircle } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 
 	interface ActivityLogSummary {

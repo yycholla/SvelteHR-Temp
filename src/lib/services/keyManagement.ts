@@ -2,40 +2,39 @@
 // Handles encrypted storage and retrieval of client-side encryption keys
 
 import type { KeyRegistration, KeyRetrievalResponse } from '$lib/types/document';
+import { createUrqlClient } from '$lib/graphql/client';
+import { CREATE_ENCRYPTION_KEY } from '$lib/graphql/encryption-operations';
+import type { CreateEncryptionKeyInput } from '$lib/graphql/encryption-operations';
 
-// Register a new encryption key (server-side encrypted storage)
+// Register a new encryption key via GraphQL (server-side pgcrypto encrypted storage)
+// Note: userId is determined server-side from authenticated session
 export async function registerKey(
 	keyData: ArrayBuffer,
-	keyIdentifier: string,
-	userId: string
+	keyIdentifier: string
 ): Promise<string> {
 	// Convert ArrayBuffer to base64 for transmission
 	const keyBytes = new Uint8Array(keyData);
 	const base64Key = btoa(String.fromCharCode(...keyBytes));
 
-	const payload: KeyRegistration = {
-		keyIdentifier,
-		encryptedKeyData: base64Key,
-		keyAlgorithm: 'AES-GCM-256'
+	const input: CreateEncryptionKeyInput = {
+		keyName: keyIdentifier,
+		algorithm: 'AES-GCM-256',
+		encryptedKey: base64Key
 	};
 
-	// Call server API to register key
-	const response = await fetch('/api/encryption/keys', {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		credentials: 'include', // Include cookies for authentication
-		body: JSON.stringify(payload)
-	});
+	// Create urql client and execute mutation
+	const client = createUrqlClient();
+	const result = await client.mutation(CREATE_ENCRYPTION_KEY, { input }).toPromise();
 
-	if (!response.ok) {
-		const error = await response.json();
-		throw new Error(error.message || 'Failed to register encryption key');
+	if (result.error) {
+		throw new Error(result.error.message || 'Failed to register encryption key');
 	}
 
-	const result = await response.json();
-	return result.keyId;
+	if (!result.data?.createEncryptionKey) {
+		throw new Error('Failed to register encryption key: No data returned');
+	}
+
+	return result.data.createEncryptionKey.id;
 }
 
 // Retrieve an encryption key (server-side decrypted)

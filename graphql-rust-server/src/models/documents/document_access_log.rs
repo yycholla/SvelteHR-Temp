@@ -39,7 +39,8 @@ pub struct Model {
     pub document_id: Uuid,
     pub user_id: Uuid,
     pub access_type: String, // Will be converted to enum in GraphQL
-    pub accessed_at: DateTime<Utc>,
+    pub accessed_at: Option<DateTime<Utc>>, // Only set for actual accesses, not uploads
+    pub created_at: DateTime<Utc>,
     pub ip_address: Option<String>,
 }
 
@@ -103,8 +104,13 @@ impl Model {
     }
 
     #[graphql(name = "accessedAt")]
-    async fn accessed_at(&self) -> DateTime<Utc> {
+    async fn accessed_at(&self) -> Option<DateTime<Utc>> {
         self.accessed_at
+    }
+
+    #[graphql(name = "createdAt")]
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
     }
 
     #[graphql(name = "ipAddress")]

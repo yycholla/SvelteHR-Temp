@@ -10,6 +10,10 @@ required-features = []
 name = "migration"
 path = "migration/main.rs"
 
+[[bin]]
+name = "seed-data"
+path = "src/bin/seed_data.rs"
+
 [[test]]
 path = "tests/contract_tests.rs"
 name = "contract_tests"
@@ -51,6 +55,7 @@ axum = "0.8"
  axum-login = "0.18"
  base64 = "0.22"
  bcrypt = "0.15"
+ bytes = "1.0"
  password-hash = "0.5"
 dataloader = "0.17"
 dotenv = "0.15"
@@ -58,6 +63,7 @@ envy = "0.4"
 futures = "0.3"
 http-body-util = "0.1"
 jsonwebtoken = "9.0"
+ regex = "1.0"
  rust_decimal = "1.35"
  serde_json = "1.0"
  sqlx = { version = "0.7", features = ["postgres", "runtime-tokio-rustls", "macros", "uuid", "chrono", "json"] }
@@ -108,6 +114,10 @@ features = ["env-filter"]
 version = "1.0"
 features = ["serde", "v4"]
 
+[dependencies.fake]
+version = "2.9"
+features = ["derive", "chrono", "uuid"]
+
 [dependencies.testcontainers]
 version = "0.15"
 optional = true
@@ -151,11 +161,15 @@ mockito = "1.2"
 assert_matches = "1.5"
 pretty_assertions = "1.4"
 
+# Self-reference for testing utilities
+hr-graphql-server = { path = ".", features = ["test-utils"] }
+
 [build-dependencies]
 sea-orm-codegen = "1.1.17"
 
 [[bench]]
 name = "resolver_benchmarks"
+path = "benches/resolver_benchmarks.rs"
 harness = false
 
 [lib]

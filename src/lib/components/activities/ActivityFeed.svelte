@@ -14,7 +14,7 @@
 		getActivityActionColor,
 		getRelativeTime
 	} from '$lib/utils/activities';
-	import { Undo2, ExternalLink } from 'lucide-svelte';
+	import { Undo2, ExternalLink } from '@lucide/svelte';
 
 	interface Props {
 		activities: ActivityLog[];
@@ -279,37 +279,4 @@
 	{/if}
 </div>
 
-<style>
-	.activity-feed {
-		@apply w-full;
-	}
 
-	.activity-item.compact {
-		@apply py-2;
-	}
-
-	.activity-item.compact .activity-content {
-		@apply text-xs;
-	}
-
-	/* Timeline connector line */
-	.date-group .activity-item:not(:last-child)::after {
-		content: '';
-		@apply absolute left-4 top-10 h-[calc(100%+0.75rem)] w-px bg-border;
-	}
-
-	/* Feature 020 enhancements - removed yellow background, badge is sufficient */
-
-	.rollback-badge {
-		@apply inline-flex items-center gap-1 px-2 py-0.5 ml-2 rounded text-xs font-semibold;
-		background-color: #fbbf24;
-		color: #78350f;
-	}
-
-	.rolled-back-link {
-		@apply inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline cursor-pointer;
-		background: transparent;
-		border: none;
-		padding: 0;
-	}
-</style>

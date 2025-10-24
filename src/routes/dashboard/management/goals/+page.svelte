@@ -22,7 +22,7 @@
 		Users,
 		AlertCircle,
 		CheckCircle
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 
 	// Modern Svelte 5 props interface
 	interface Props {

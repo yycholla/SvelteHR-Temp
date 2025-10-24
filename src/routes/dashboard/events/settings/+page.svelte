@@ -15,7 +15,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import * as Select from '$lib/components/ui/select';
 	import { Separator } from '$lib/components/ui/separator';
-	import { Bell, Mail, MessageSquare, Users, Calendar, Save } from 'lucide-svelte';
+	import { Bell, Mail, MessageSquare, Users, Calendar, Save } from '@lucide/svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 

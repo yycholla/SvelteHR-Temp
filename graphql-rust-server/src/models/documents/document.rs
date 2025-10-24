@@ -6,30 +6,9 @@ use async_graphql::{InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
 use sea_orm::{entity::prelude::*, FromQueryResult, QueryFilter, QueryOrder, QuerySelect};
 use serde::{Deserialize, Serialize};
-use sqlx::FromRow;
 use uuid::Uuid;
 
 use crate::{database::get_db_from_context, error::AppError};
-
-/// SQLx-compatible Document struct for backward compatibility during migration
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
-pub struct Document {
-    pub id: Uuid,
-    pub title: String,
-    pub description: Option<String>,
-    pub category_id: Option<Uuid>,
-    pub uploaded_by: Uuid,
-    pub file_path: String,
-    pub file_size: i64,
-    pub mime_type: String,
-    pub access_level: String,
-    pub is_encrypted: bool,
-    pub expiry_date: Option<DateTime<Utc>>,
-    pub version_number: i32,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub deleted_at: Option<DateTime<Utc>>,
-}
 
 /// Core document metadata
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
@@ -95,6 +74,35 @@ pub struct CreateDocumentInput {
     pub expiry_date: Option<DateTime<Utc>>,
     #[graphql(name = "versionNumber")]
     pub version_number: Option<i32>,
+}
+
+/// Input for uploading a document with encrypted data
+#[derive(Debug, Clone, InputObject)]
+pub struct UploadDocumentInput {
+    #[graphql(name = "filename")]
+    pub filename: String,
+    #[graphql(name = "fileType")]
+    pub file_type: String,
+    #[graphql(name = "fileSizeBytes")]
+    pub file_size_bytes: i64,
+    #[graphql(name = "encryptedData")]
+    pub encrypted_data: String, // Base64 encoded
+    #[graphql(name = "encryptionKeyId")]
+    pub encryption_key_id: Uuid,
+    #[graphql(name = "iv")]
+    pub iv: Vec<u8>, // Initialization vector
+    #[graphql(name = "category")]
+    pub category: Option<String>,
+    #[graphql(name = "sensitivityLevel")]
+    pub sensitivity_level: Option<String>,
+    #[graphql(name = "expirationDate")]
+    pub expiration_date: Option<DateTime<Utc>>,
+    #[graphql(name = "metadataTags")]
+    pub metadata_tags: Option<serde_json::Value>,
+    #[graphql(name = "assignToEmployees")]
+    pub assign_to_employees: Option<Vec<Uuid>>,
+    #[graphql(name = "assignToDepartments")]
+    pub assign_to_departments: Option<Vec<Uuid>>,
 }
 
 /// Input for updating a document

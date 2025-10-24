@@ -25,17 +25,21 @@ use tower_sessions::{cookie::SameSite, Expiry, SessionManagerLayer};
 use crate::{
     auth::AuthBackend,
     database::create_db_connection,
-    handlers::{graphql_handler, graphql_playground, login_handler, logout_handler, me_handler, refresh_handler, sessions_handler},
+    dataloader::DataLoaderContext,
+    handlers::{graphql_handler, graphql_playground, login_handler, logout_handler, me_handler, refresh_handler, sessions_handler, AppState},
     middleware::{optional_session_auth_middleware, security_headers_middleware, session_auth_middleware, admin_session_auth_middleware},
+    schema::create_schema,
 };
 use hr_graphql_server::config::Config;
 
 mod auth;
 mod database;
+mod dataloader;
 mod error;
 mod handlers;
 mod middleware;
 mod models;
+mod scheduler;
 mod schema;
 
 #[tokio::main]
@@ -59,6 +63,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db = create_db_connection(&database_url).await?;
     tracing::info!("Connected to database");
 
+    // Create GraphQL schema singleton
+    let schema = create_schema();
+    tracing::info!("GraphQL schema initialized");
+
+    // Create DataLoader context
+    let dataloaders = DataLoaderContext::new(db.clone());
+
+    // Create application state
+    let app_state = AppState {
+        db: db.clone(),
+        schema,
+        dataloaders,
+    };
+
     // Create SeaORM session store for persistent sessions
     let session_store = crate::auth::SeaOrmSessionStore::new(db.clone());
 
@@ -72,6 +90,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!("Session cookie security: secure={}, http_only=true, same_site=Lax", is_production);
 
     let session_layer = SessionManagerLayer::new(session_store)
+        .with_name("hr_token") // Match frontend expectation
         .with_secure(is_production) // HTTPS only in production
         .with_http_only(true) // Prevent JavaScript access
         .with_same_site(SameSite::Lax) // Lax same-site policy for better compatibility
@@ -118,8 +137,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .layer(session_layer)
                 .layer(auth_layer)
         )
-        // Store database connection for handlers
-        .with_state(db.clone());
+        // Store application state for handlers
+        .with_state(app_state);
 
     // Start server
     let addr = format!("{}:{}", host, port)
@@ -143,6 +162,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     });
+
+    // Start employee statistics scheduler (captures daily snapshots)
+    scheduler::start_employee_statistics_scheduler(db.clone()).await;
+    tracing::info!("📊 Employee statistics scheduler started");
 
     tracing::info!("🚀 Server starting on http://{}", addr);
     tracing::info!("📊 GraphQL playground: http://{}", addr);

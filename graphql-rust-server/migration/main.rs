@@ -29,7 +29,10 @@ mod m20251020_002_add_missing_permissions;
 mod m20251020_003_add_teams_permissions;
 mod m20251020_004_add_user_addresses;
 mod m20251020_005_add_user_theme_preference;
-
+mod m20251023_003_fix_encryption_keys;
+mod m20251023_004_add_accessed_at_to_document_access_logs;
+mod m20251024_001_fix_document_assignments_schema;
+mod m20251024_002_add_employee_statistics;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -53,6 +56,10 @@ impl MigratorTrait for Migrator {
             Box::new(m20251020_003_add_teams_permissions::Migration),
             Box::new(m20251020_004_add_user_addresses::Migration),
             Box::new(m20251020_005_add_user_theme_preference::Migration),
+            Box::new(m20251023_003_fix_encryption_keys::Migration),
+            Box::new(m20251023_004_add_accessed_at_to_document_access_logs::Migration),
+            Box::new(m20251024_001_fix_document_assignments_schema::Migration),
+            Box::new(m20251024_002_add_employee_statistics::Migration),
         ]
     }
 }

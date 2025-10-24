@@ -4,6 +4,8 @@
 
 use async_graphql::{Enum, InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, NaiveDate, Utc};
+use rust_decimal::Decimal;
+use rust_decimal::prelude::ToPrimitive;
 use sea_orm::{entity::prelude::*, QueryFilter};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -47,7 +49,7 @@ pub struct Model {
     pub clock_in: Option<DateTime<Utc>>,
     #[sea_orm(column_name = "check_out")]
     pub clock_out: Option<DateTime<Utc>>,
-    pub hours_worked: Option<f64>,
+    pub hours_worked: Option<Decimal>,
     pub status: String, // Will be converted to enum in GraphQL
     pub notes: Option<String>,
     pub created_at: DateTime<Utc>,
@@ -130,7 +132,7 @@ impl Model {
 
     #[graphql(name = "hoursWorked")]
     async fn hours_worked(&self) -> Option<f64> {
-        self.hours_worked
+        self.hours_worked.and_then(|d| d.to_f64())
     }
 
     async fn status(&self) -> AttendanceStatus {
