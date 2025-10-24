@@ -75,34 +75,50 @@ RUN npm install -g @sveltejs/kit @sveltejs/adapter-auto vite
 # Switch back to dev user
 USER dev
 
+# Configure npm cache for dev user during build
+RUN npm config set cache /home/dev/.npm \
+    && mkdir -p /home/dev/.npm \
+    && chmod 700 /home/dev/.npm
+
 # Create startup script - NO chown commands to preserve host permissions
 USER root
 RUN echo '#!/bin/bash\n\
+set -e\n\
+\n\
 # Start SSH daemon\n\
 service ssh start\n\
 \n\
-# Fix npm cache permissions\n\
+# Clear ALL npm caches to avoid root-owned conflicts\n\
+rm -rf /root/.npm /home/dev/.npm\n\
 mkdir -p /home/dev/.npm\n\
 chown -R dev:dev /home/dev/.npm\n\
-sudo -u dev npm config set cache /home/dev/.npm\n\
+\n\
+# Configure npm with explicit HOME environment\n\
+export HOME=/home/dev\n\
+sudo -H -u dev npm config set cache /home/dev/.npm\n\
 \n\
 # Source host nvim config if available\n\
 if [ -d "/host-nvim-config" ]; then\n\
     mkdir -p /home/dev/.config\n\
-    sudo -u dev ln -sf /host-nvim-config /home/dev/.config/nvim\n\
+    if [ ! -L "/home/dev/.config/nvim" ]; then\n\
+        sudo -u dev ln -sf /host-nvim-config /home/dev/.config/nvim 2>/dev/null || true\n\
+    fi\n\
 fi\n\
 \n\
-# Change to frontend directory\n\
 cd /home/dev/frontend\n\
 \n\
-# Install/update dependencies if needed (in case package.json changed)\n\
-sudo -E -u dev npm install\n\
+# Clean stale build artifacts completely\n\
+sudo -H -u dev rm -rf .svelte-kit node_modules/.vite 2>/dev/null || true\n\
 \n\
-# Clean any stale build artifacts\n\
-sudo -E -u dev rm -rf .svelte-kit 2>/dev/null || true\n\
+echo "Installing dependencies with npm ci..."\n\
+# Use npm ci for deterministic, clean install\n\
+sudo -H -E -u dev npm ci --legacy-peer-deps || sudo -H -E -u dev npm install --legacy-peer-deps\n\
 \n\
-# Start the frontend application in development mode\n\
-exec sudo -E -u dev npm run dev -- --host 0.0.0.0' > /start.sh \
+echo "Running svelte-kit sync..."\n\
+sudo -H -E -u dev npx svelte-kit sync\n\
+\n\
+echo "Starting Vite development server..."\n\
+exec sudo -H -E -u dev npm run dev -- --host 0.0.0.0' > /start.sh \
     && chmod +x /start.sh
 
 # Expose SSH port and application port

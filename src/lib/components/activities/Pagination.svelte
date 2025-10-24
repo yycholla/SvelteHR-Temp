@@ -9,7 +9,7 @@
 	 * page navigation, and jump-to-page functionality.
 	 */
 
-	import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-svelte';
+	import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from '@lucide/svelte';
 
 	interface Props {
 		currentPage: number;

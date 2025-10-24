@@ -11,7 +11,7 @@
 	 */
 
 	import { createEventDispatcher } from 'svelte';
-	import { Undo2, Loader2 } from 'lucide-svelte';
+	import { Undo2, Loader2 } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 
 	interface Props {

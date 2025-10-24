@@ -14,7 +14,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Input } from '$lib/components/ui/input';
-	import { Plus, FileText, TrendingUp, Clock, CheckCircle, Search, User } from 'lucide-svelte';
+	import { Plus, FileText, TrendingUp, Clock, CheckCircle, Search, User } from '@lucide/svelte';
 	import {
 		ReviewListWithFilters,
 		ReviewCreationDialog

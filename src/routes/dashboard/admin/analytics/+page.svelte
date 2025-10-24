@@ -15,7 +15,7 @@
 		TrendingDown,
 		Activity,
 		BarChart3
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 
 	let { data } = $props();
 

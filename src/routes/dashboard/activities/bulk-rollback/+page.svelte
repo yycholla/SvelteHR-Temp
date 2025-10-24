@@ -15,7 +15,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Input } from '$lib/components/ui/input';
 	import BulkRollbackDialog from '$lib/components/activities/BulkRollbackDialog.svelte';
-	import { RefreshCw, Calendar, Filter, FileText, AlertCircle } from 'lucide-svelte';
+	import { RefreshCw, Calendar, Filter, FileText, AlertCircle } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 	import { formatActivityMessage } from '$lib/utils/activities';
 

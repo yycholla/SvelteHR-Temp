@@ -6,6 +6,15 @@
 	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
+	import * as Accordion from '$lib/components/ui/accordion';
+	import * as ButtonGroup from '$lib/components/ui/button-group';
+	import * as Chart from '$lib/components/ui/chart';
+	import { Slider } from '$lib/components/ui/slider';
+	import { Area, AreaChart } from 'layerchart';
+	import { scaleUtc } from 'd3-scale';
+	import { queryStore, getContextClient } from '@urql/svelte';
+	import { GET_EMPLOYEE_STATISTICS_QUERY } from '$lib/graphql/employee-operations';
+	import type { EmployeeStatistic } from '$lib/graphql/employee-operations';
 	import {
 		Users,
 		Search,
@@ -23,8 +32,9 @@
 		Upload,
 		FileBarChart,
 		Grid,
-		List
-	} from 'lucide-svelte';
+		List,
+		TrendingUp
+	} from '@lucide/svelte';
 	import * as Table from '$lib/components/ui/table';
 
 	// Subscribe to page store at top level
@@ -39,6 +49,8 @@
 			userSession: any;
 			employees: any[];
 			totalEmployees: number;
+			totalActiveEmployees: number;
+			totalInactiveEmployees: number;
 			departments: any[];
 			filters: {
 				searchTerm: string;
@@ -61,6 +73,8 @@
 	const user = $derived(data.user);
 	const employees = $derived(data.employees);
 	const totalEmployees = $derived(data.totalEmployees);
+	const totalActiveEmployees = $derived(data.totalActiveEmployees);
+	const totalInactiveEmployees = $derived(data.totalInactiveEmployees);
 	const departments = $derived(data.departments);
 	const filters = $derived(data.filters);
 	const permissions = $derived(data.permissions);
@@ -102,13 +116,127 @@
 	const hasNextPage = $derived(currentPage < totalPages);
 	const hasPreviousPage = $derived(currentPage > 1);
 
-	// Statistics derived from server data
+	// Statistics from server (calculated from ALL employees, not just current page)
 	const employeeStats = $derived({
-		totalEmployees,
-		activeEmployees: employees.filter((emp) => emp.isActive === true).length,
-		inactiveEmployees: employees.filter((emp) => emp.isActive === false).length,
+		totalEmployees: totalActiveEmployees + totalInactiveEmployees, // Total from server
+		activeEmployees: totalActiveEmployees,
+		inactiveEmployees: totalInactiveEmployees,
 		departmentCount: departments.length
 	});
+
+	// Historical employee statistics query with range slider
+	// Slider positions 0-365 represent chronological time:
+	// Position 0 = 1 year ago (365 days back)
+	// Position 365 = today (0 days back)
+	// Default: all available data
+	let dateRangeSlider = $state([0, 365]);
+
+	const today = new Date();
+
+	// Calculate dates based on slider values
+	// Convert slider position to days back: daysBack = 365 - sliderPosition
+	// Left thumb (index 0) = start date (older)
+	// Right thumb (index 1) = end date (newer)
+	const startDate = $derived.by(() => {
+		const date = new Date(today);
+		const daysBack = 365 - dateRangeSlider[0];
+		date.setDate(today.getDate() - daysBack);
+		return date.toISOString().split('T')[0];
+	});
+
+	const endDate = $derived.by(() => {
+		const date = new Date(today);
+		const daysBack = 365 - dateRangeSlider[1];
+		date.setDate(today.getDate() - daysBack);
+		return date.toISOString().split('T')[0];
+	});
+
+	const client = getContextClient();
+
+	// Create reactive variables for the query
+	const queryVariables = $derived({ startDate, endDate });
+
+	const employeeStatisticsQuery = queryStore({
+		client,
+		query: GET_EMPLOYEE_STATISTICS_QUERY,
+		variables: queryVariables
+	});
+
+	// Transform employee statistics for area chart
+	const historicalChartData = $derived.by(() => {
+		if (!$employeeStatisticsQuery?.data?.employeeStatistics) {
+			return [];
+		}
+		const stats = $employeeStatisticsQuery.data.employeeStatistics;
+		if (!Array.isArray(stats) || stats.length === 0) {
+			return [];
+		}
+		return stats.map((stat: EmployeeStatistic) => ({
+			date: new Date(stat.snapshotDate), // Keep as Date object for time scale
+			active: stat.activeCount,
+			inactive: stat.inactiveCount,
+			total: stat.totalCount
+		}));
+	});
+
+	const isHistoricalDataLoading = $derived($employeeStatisticsQuery?.fetching ?? true);
+	const hasHistoricalData = $derived(historicalChartData.length > 0);
+
+	// Calculate the earliest available date to set slider minimum
+	const earliestDataDate = $derived.by(() => {
+		if (historicalChartData.length === 0) return null;
+		// Find the earliest date in the dataset
+		const earliest = historicalChartData.reduce((earliest, item) => {
+			return item.date < earliest ? item.date : earliest;
+		}, historicalChartData[0].date);
+		return earliest;
+	});
+
+	// Calculate slider minimum based on earliest data
+	// Position 0 = 365 days ago, Position 365 = today
+	const sliderMin = $derived.by(() => {
+		if (!earliestDataDate) return 0;
+		const daysAgo = Math.floor((today.getTime() - earliestDataDate.getTime()) / (1000 * 60 * 60 * 24));
+		// Convert days ago to slider position: position = 365 - daysAgo
+		return Math.max(0, 365 - daysAgo);
+	});
+
+	// Update slider to show all available data when data first loads
+	$effect(() => {
+		if (hasHistoricalData && sliderMin > 0 && dateRangeSlider[0] < sliderMin) {
+			dateRangeSlider = [sliderMin, 365];
+		}
+	});
+
+	// Filter chart data based on slider range for responsive UI
+	const filteredChartData = $derived.by(() => {
+		if (historicalChartData.length === 0) return [];
+
+		// Calculate actual date range from slider positions
+		const startMs = new Date(startDate).getTime();
+		const endMs = new Date(endDate).getTime();
+
+		// Filter data to only show dates within the slider range
+		return historicalChartData.filter((item) => {
+			const itemMs = item.date.getTime();
+			return itemMs >= startMs && itemMs <= endMs;
+		});
+	});
+
+	const historicalChartConfig = {
+		active: {
+			label: 'Active',
+			color: 'var(--chart-1)'
+		},
+		inactive: {
+			label: 'Inactive',
+			color: 'var(--chart-2)'
+		},
+		total: {
+			label: 'Total',
+			color: 'var(--chart-3)'
+		}
+	} satisfies Chart.ChartConfig;
 
 	// Employee status options
 	const statusOptions = [
@@ -187,112 +315,208 @@
 <!-- Page Header -->
 <div class="space-y-6">
 	<div class="flex items-center justify-between">
-		<div>
-			<h1 class="text-3xl font-bold tracking-tight">Employee Directory</h1>
-			<p class="text-muted-foreground">Manage and browse employees in your organization</p>
-		</div>
-
 		{#if canManageEmployees}
-			<div class="flex gap-2">
+			<ButtonGroup.Root>
 				<Button variant="outline" size="sm">
 					<Upload class="mr-2 h-4 w-4" />
-					Import Employees
+					Import
 				</Button>
 				<Button variant="outline" size="sm">
 					<Download class="mr-2 h-4 w-4" />
-					Export Directory
+					Export
 				</Button>
+			</ButtonGroup.Root>
+		{/if}
+
+		<div class="flex gap-2">
+			{#if canManageEmployees}
 				<Button size="sm" href="/dashboard/employees/new">
 					<UserPlus class="mr-2 h-4 w-4" />
 					Add Employee
 				</Button>
-			</div>
-		{/if}
-	</div>
-
-	<!-- Statistics Cards -->
-	<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
-		<Card.Root>
-			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
-				<Card.Title class="text-sm font-medium">Total Employees</Card.Title>
-				<Users class="h-4 w-4 text-muted-foreground" />
-			</Card.Header>
-			<Card.Content>
-				<div class="text-2xl font-bold">{employeeStats.totalEmployees}</div>
-				<p class="text-xs text-muted-foreground">
-					across {employeeStats.departmentCount} departments
-				</p>
-			</Card.Content>
-		</Card.Root>
-
-		<Card.Root>
-			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
-				<Card.Title class="text-sm font-medium">Active Employees</Card.Title>
-				<Users class="h-4 w-4 text-green-600" />
-			</Card.Header>
-			<Card.Content>
-				<div class="text-2xl font-bold text-green-600">{employeeStats.activeEmployees}</div>
-				<p class="text-xs text-muted-foreground">
-					{Math.round((employeeStats.activeEmployees / employeeStats.totalEmployees) * 100)}% of
-					total
-				</p>
-			</Card.Content>
-		</Card.Root>
-
-		{#if canViewInactiveEmployees}
-			<Card.Root>
-				<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
-					<Card.Title class="text-sm font-medium">Inactive Employees</Card.Title>
-					<Users class="h-4 w-4 text-gray-500" />
-				</Card.Header>
-				<Card.Content>
-					<div class="text-2xl font-bold text-gray-600">{employeeStats.inactiveEmployees}</div>
-					<p class="text-xs text-muted-foreground">requires attention</p>
-				</Card.Content>
-			</Card.Root>
-		{/if}
-
-		<Card.Root>
-			<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
-				<Card.Title class="text-sm font-medium">Page Results</Card.Title>
-				<Filter class="h-4 w-4 text-muted-foreground" />
-			</Card.Header>
-			<Card.Content>
-				<div class="text-2xl font-bold">{employees.length}</div>
-				<p class="text-xs text-muted-foreground">
-					showing page {currentPage} of {totalPages}
-				</p>
-			</Card.Content>
-		</Card.Root>
-	</div>
-
-	<!-- View Mode Toggle -->
-	<div class="flex justify-end gap-2">
-		<Button
-			variant={viewMode === 'grid' ? 'default' : 'outline'}
-			size="icon"
-			onclick={() => (viewMode = 'grid')}
-			title="Grid view"
-		>
-			<Grid class="h-4 w-4" />
-		</Button>
-		<Button
-			variant={viewMode === 'list' ? 'default' : 'outline'}
-			size="icon"
-			onclick={() => (viewMode = 'list')}
-			title="Table view"
-		>
-			<List class="h-4 w-4" />
-		</Button>
+			{/if}
+			<ButtonGroup.Root>
+				<Button
+					variant={viewMode === 'grid' ? 'default' : 'outline'}
+					size="icon"
+					onclick={() => (viewMode = 'grid')}
+					title="Grid view"
+				>
+					<Grid class="h-4 w-4" />
+				</Button>
+				<Button
+					variant={viewMode === 'list' ? 'default' : 'outline'}
+					size="icon"
+					onclick={() => (viewMode = 'list')}
+					title="Table view"
+				>
+					<List class="h-4 w-4" />
+				</Button>
+			</ButtonGroup.Root>
+		</div>
 	</div>
 
 	<!-- Search and Filters -->
 	<Card.Root>
 		<Card.Header>
-			<Card.Title>Search & Filter Employees</Card.Title>
-			<Card.Description>Find employees by name, department, or status</Card.Description>
+			<Card.Title>Employee Overview & Filters</Card.Title>
+			<Card.Description>View statistics and search employees</Card.Description>
 		</Card.Header>
 		<Card.Content>
+			<!-- Employee Statistics Summary with Historical Trend -->
+			<div class="mb-6 pb-6 border-b">
+				<!-- Historical Employee Trend Chart -->
+				{#if !isHistoricalDataLoading && hasHistoricalData}
+					<Accordion.Root type="single" collapsible>
+						<Accordion.Item value="trend-chart">
+							<Accordion.Trigger class="hover:no-underline">
+								<div class="flex items-center gap-2">
+									<TrendingUp class="h-5 w-5" />
+									<span class="text-lg font-semibold">
+										Employee Trend ({dateRangeSlider[1] - dateRangeSlider[0]} days)
+									</span>
+								</div>
+							</Accordion.Trigger>
+							<Accordion.Content>
+								<p class="text-sm text-muted-foreground mb-4">Historical employee count over time</p>
+
+								<div class="h-[300px]">
+									<Chart.Container config={historicalChartConfig} class="h-full w-full">
+										<AreaChart
+											data={filteredChartData}
+											x="date"
+											xScale={scaleUtc()}
+											series={[
+												{
+													key: 'active',
+													label: 'Active Employees',
+													color: historicalChartConfig.active.color
+												},
+												{
+													key: 'inactive',
+													label: 'Inactive Employees',
+													color: historicalChartConfig.inactive.color
+												}
+											]}
+											props={{
+												area: {
+													'fill-opacity': 0.4,
+													line: { class: 'stroke-1' },
+													motion: 'tween'
+												},
+												xAxis: {
+													format: (v) => {
+														return v.toLocaleDateString('en-US', {
+															month: 'short',
+															day: 'numeric'
+														});
+													}
+												},
+												yAxis: {
+													format: (v) => v.toString()
+												}
+											}}
+										>
+											{#snippet marks({ series, getAreaProps })}
+												<defs>
+													<linearGradient id="fillActive" x1="0" y1="0" x2="0" y2="1">
+														<stop offset="5%" stop-color="var(--color-active)" stop-opacity={1.0} />
+														<stop offset="95%" stop-color="var(--color-active)" stop-opacity={0.1} />
+													</linearGradient>
+													<linearGradient id="fillInactive" x1="0" y1="0" x2="0" y2="1">
+														<stop offset="5%" stop-color="var(--color-inactive)" stop-opacity={0.8} />
+														<stop offset="95%" stop-color="var(--color-inactive)" stop-opacity={0.1} />
+													</linearGradient>
+												</defs>
+												{#each series as s, i (s.key)}
+													<Area
+														{...getAreaProps(s, i)}
+														fill={s.key === 'active' ? 'url(#fillActive)' : 'url(#fillInactive)'}
+													/>
+												{/each}
+											{/snippet}
+											{#snippet tooltip()}
+												<Chart.Tooltip
+													labelFormatter={(v) => {
+														return v.toLocaleDateString('en-US', {
+															month: 'short',
+															day: 'numeric'
+														});
+													}}
+													indicator="line"
+												/>
+											{/snippet}
+										</AreaChart>
+									</Chart.Container>
+								</div>
+
+								<!-- Date Range Slider -->
+								<div class="mt-6 px-3">
+									<div class="flex items-center justify-between mb-3">
+										<span class="text-sm font-medium">Date Range</span>
+										<span class="text-sm text-muted-foreground">
+											{new Date(startDate).toLocaleDateString('en-US', {
+												month: 'short',
+												day: 'numeric',
+												year: 'numeric'
+											})}
+											-
+											{new Date(endDate).toLocaleDateString('en-US', {
+												month: 'short',
+												day: 'numeric',
+												year: 'numeric'
+											})}
+										</span>
+									</div>
+									<Slider
+										bind:value={dateRangeSlider}
+										min={sliderMin}
+										max={365}
+										step={1}
+										class="w-full"
+									/>
+									<div class="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+										<span>
+											{#if earliestDataDate}
+												{earliestDataDate.toLocaleDateString('en-US', {
+													month: 'short',
+													day: 'numeric'
+												})}
+											{:else}
+												Earliest
+											{/if}
+										</span>
+										<span>Today</span>
+									</div>
+								</div>
+
+								<!-- Stats Summary -->
+								<div class="grid grid-cols-3 gap-4 mt-6">
+									<div>
+										<div class="text-3xl font-bold">{employeeStats.totalEmployees}</div>
+										<p class="text-sm text-muted-foreground">Total Employees</p>
+									</div>
+									<div>
+										<div class="text-2xl font-bold text-green-600">{employeeStats.activeEmployees}</div>
+										<p class="text-xs text-muted-foreground">Active</p>
+									</div>
+									{#if canViewInactiveEmployees}
+										<div>
+											<div class="text-2xl font-bold text-orange-600">{employeeStats.inactiveEmployees}</div>
+											<p class="text-xs text-muted-foreground">Inactive</p>
+										</div>
+									{/if}
+								</div>
+								<p class="text-xs text-muted-foreground mt-4">
+									Across {employeeStats.departmentCount} departments
+								</p>
+							</Accordion.Content>
+						</Accordion.Item>
+					</Accordion.Root>
+				{/if}
+			</div>
+
+			<!-- Search and Filter Form -->
 			<form
 				onsubmit={(e) => {
 					e.preventDefault();
@@ -379,179 +603,351 @@
 	<!-- Employee List/Grid -->
 	{#if viewMode === 'grid'}
 		<!-- Employee Grid -->
-		<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-			{#each employees as employee}
-				<Card.Root class="transition-shadow hover:shadow-md">
-				<Card.Header class="pb-3">
-					<div class="flex items-start justify-between">
-						<div class="flex items-center space-x-3">
-							<div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-								<Users class="h-6 w-6 text-primary" />
+		<div class="space-y-6">
+			<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+				{#each employees as employee}
+					<Card.Root class="transition-shadow hover:shadow-md">
+					<Card.Header class="pb-3">
+						<div class="flex items-start justify-between">
+							<div class="flex items-center space-x-3">
+								<div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+									<Users class="h-6 w-6 text-primary" />
+								</div>
+								<div>
+									<Card.Title class="text-lg">{employee.displayName}</Card.Title>
+									<Card.Description>{employee.role ? formatRole(employee.role) : 'No role'}</Card.Description>
+								</div>
 							</div>
-							<div>
-								<Card.Title class="text-lg">{employee.displayName}</Card.Title>
-								<Card.Description>{employee.role ? formatRole(employee.role) : 'No role'}</Card.Description>
+							<Badge variant={getStatusBadgeVariant(employee.isActive)}>
+								{employee.isActive ? 'Active' : 'Inactive'}
+							</Badge>
+						</div>
+					</Card.Header>
+					<Card.Content class="space-y-3">
+						<!-- Contact Information -->
+						<div class="space-y-2">
+							{#if employee.email}
+								<div class="flex items-center text-sm text-muted-foreground">
+									<Mail class="mr-2 h-4 w-4" />
+									<a href="mailto:{employee.email}" class="hover:text-primary">{employee.email}</a>
+								</div>
+							{/if}
+
+							{#if employee.phone}
+								<div class="flex items-center text-sm text-muted-foreground">
+									<Phone class="mr-2 h-4 w-4" />
+									<a href="tel:{employee.phone}" class="hover:text-primary">{employee.phone}</a>
+								</div>
+							{/if}
+
+							{#if employee.departmentId}
+								<div class="flex items-center text-sm text-muted-foreground">
+									<Building class="mr-2 h-4 w-4" />
+									<span>Dept ID: {employee.departmentId.slice(0, 8)}...</span>
+								</div>
+							{/if}
+
+							{#if employee.role}
+								<div class="flex items-center text-sm">
+									<Badge variant="outline">{formatRole(employee.role)}</Badge>
+								</div>
+							{/if}
+
+							{#if employee.hireDate}
+								<div class="flex items-center text-sm text-muted-foreground">
+									<Calendar class="mr-2 h-4 w-4" />
+									<span>Hired {formatHireDate(employee.hireDate)}</span>
+								</div>
+							{/if}
+						</div>
+
+						<Separator />
+
+						<!-- Actions -->
+						<div class="flex gap-2">
+							<Button variant="outline" size="sm" href="/dashboard/employees/{employee.id}">
+								<Eye class="mr-2 h-4 w-4" />
+								View Profile
+							</Button>
+							{#if canManageEmployees}
+								<Button variant="outline" size="sm" href="/dashboard/employees/{employee.id}/edit">
+									<Edit class="mr-2 h-4 w-4" />
+									Edit
+								</Button>
+							{/if}
+							{#if canCreateReviews}
+								<Button variant="outline" size="sm" href="/dashboard/reviews?employee={employee.id}">
+									<FileBarChart class="mr-2 h-4 w-4" />
+									Start Review
+								</Button>
+							{/if}
+						</div>
+					</Card.Content>
+					</Card.Root>
+				{/each}
+			</div>
+
+			<!-- Pagination for grid view -->
+			{#if totalPages > 1}
+				<Card.Root>
+					<Card.Content class="py-4">
+						<div class="flex items-center justify-between">
+							<div class="text-sm text-muted-foreground">
+								Showing {(currentPage - 1) * pageSize + 1} to {Math.min(
+									currentPage * pageSize,
+									totalEmployees
+								)} of {totalEmployees} employees
+							</div>
+							<div class="flex gap-2">
+								<Button
+									variant="outline"
+									size="sm"
+									disabled={!hasPreviousPage}
+									on:click={() => goToPage(currentPage - 1)}
+								>
+									Previous
+								</Button>
+
+								{#if totalPages <= 7}
+									{#each Array(totalPages) as _, i}
+										<Button
+											variant={currentPage === i + 1 ? 'default' : 'outline'}
+											size="sm"
+											on:click={() => goToPage(i + 1)}
+										>
+											{i + 1}
+										</Button>
+									{/each}
+								{:else}
+									<!-- Complex pagination with ellipsis -->
+									<Button
+										variant={currentPage === 1 ? 'default' : 'outline'}
+										size="sm"
+										on:click={() => goToPage(1)}
+									>
+										1
+									</Button>
+
+									{#if currentPage > 3}
+										<span class="px-2 text-muted-foreground">...</span>
+									{/if}
+
+									{#each Array(Math.min(5, totalPages - 2)) as _, i}
+										{@const pageNum = Math.max(2, Math.min(currentPage - 2 + i, totalPages - 1))}
+										{#if pageNum >= 2 && pageNum <= totalPages - 1}
+											<Button
+												variant={currentPage === pageNum ? 'default' : 'outline'}
+												size="sm"
+												on:click={() => goToPage(pageNum)}
+											>
+												{pageNum}
+											</Button>
+										{/if}
+									{/each}
+
+									{#if currentPage < totalPages - 2}
+										<span class="px-2 text-muted-foreground">...</span>
+									{/if}
+
+									<Button
+										variant={currentPage === totalPages ? 'default' : 'outline'}
+										size="sm"
+										on:click={() => goToPage(totalPages)}
+									>
+										{totalPages}
+									</Button>
+								{/if}
+
+								<Button
+									variant="outline"
+									size="sm"
+									disabled={!hasNextPage}
+									on:click={() => goToPage(currentPage + 1)}
+								>
+									Next
+								</Button>
 							</div>
 						</div>
-						<Badge variant={getStatusBadgeVariant(employee.isActive)}>
-							{employee.isActive ? 'Active' : 'Inactive'}
-						</Badge>
-					</div>
-				</Card.Header>
-				<Card.Content class="space-y-3">
-					<!-- Contact Information -->
-					<div class="space-y-2">
-						{#if employee.email}
-							<div class="flex items-center text-sm text-muted-foreground">
-								<Mail class="mr-2 h-4 w-4" />
-								<a href="mailto:{employee.email}" class="hover:text-primary">{employee.email}</a>
-							</div>
-						{/if}
-
-						{#if employee.phone}
-							<div class="flex items-center text-sm text-muted-foreground">
-								<Phone class="mr-2 h-4 w-4" />
-								<a href="tel:{employee.phone}" class="hover:text-primary">{employee.phone}</a>
-							</div>
-						{/if}
-
-						{#if employee.departmentId}
-							<div class="flex items-center text-sm text-muted-foreground">
-								<Building class="mr-2 h-4 w-4" />
-								<span>Dept ID: {employee.departmentId.slice(0, 8)}...</span>
-							</div>
-						{/if}
-
-						{#if employee.role}
-							<div class="flex items-center text-sm">
-								<Badge variant="outline">{formatRole(employee.role)}</Badge>
-							</div>
-						{/if}
-
-						{#if employee.hireDate}
-							<div class="flex items-center text-sm text-muted-foreground">
-								<Calendar class="mr-2 h-4 w-4" />
-								<span>Hired {formatHireDate(employee.hireDate)}</span>
-							</div>
-						{/if}
-					</div>
-
-					<Separator />
-
-					<!-- Actions -->
-					<div class="flex gap-2">
-						<Button variant="outline" size="sm" href="/dashboard/employees/{employee.id}">
-							<Eye class="mr-2 h-4 w-4" />
-							View Profile
-						</Button>
-						{#if canManageEmployees}
-							<Button variant="outline" size="sm" href="/dashboard/employees/{employee.id}/edit">
-								<Edit class="mr-2 h-4 w-4" />
-								Edit
-							</Button>
-						{/if}
-						{#if canCreateReviews}
-							<Button variant="outline" size="sm" href="/dashboard/reviews?employee={employee.id}">
-								<FileBarChart class="mr-2 h-4 w-4" />
-								Start Review
-							</Button>
-						{/if}
-					</div>
-				</Card.Content>
+					</Card.Content>
 				</Card.Root>
-			{/each}
+			{/if}
 		</div>
 	{:else}
 		<!-- Table View -->
-		<div class="border rounded-lg overflow-hidden">
-			<Table.Root>
-				<Table.Header>
-					<Table.Row>
-						<Table.Head>Name</Table.Head>
-						<Table.Head>Email</Table.Head>
-						<Table.Head>Department</Table.Head>
-						<Table.Head>Role</Table.Head>
-						<Table.Head>Hire Date</Table.Head>
-						<Table.Head>Status</Table.Head>
-						<Table.Head class="text-right">Actions</Table.Head>
-					</Table.Row>
-				</Table.Header>
-				<Table.Body>
-					{#each employees as employee (employee.id)}
-						<Table.Row class="cursor-pointer hover:bg-muted/50" onclick={() => goto(`/dashboard/employees/${employee.id}`)}>
-							<Table.Cell>
-								<div class="flex items-center gap-3">
-									<div class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-										<Users class="h-5 w-5 text-primary" />
-									</div>
-									<div>
-										<div class="font-medium">{employee.displayName}</div>
-										{#if employee.role}
-											<div class="text-sm text-muted-foreground">{formatRole(employee.role)}</div>
+		<Card.Root>
+			<Card.Content class="p-0">
+				<div class="border-b">
+					<Table.Root>
+						<Table.Header>
+							<Table.Row>
+								<Table.Head>Name</Table.Head>
+								<Table.Head>Email</Table.Head>
+								<Table.Head>Department</Table.Head>
+								<Table.Head>Role</Table.Head>
+								<Table.Head>Hire Date</Table.Head>
+								<Table.Head>Status</Table.Head>
+								<Table.Head class="text-right">Actions</Table.Head>
+							</Table.Row>
+						</Table.Header>
+						<Table.Body>
+							{#each employees as employee (employee.id)}
+								<Table.Row class="cursor-pointer hover:bg-muted/50" onclick={() => goto(`/dashboard/employees/${employee.id}`)}>
+									<Table.Cell>
+										<div class="flex items-center gap-3">
+											<div class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+												<Users class="h-5 w-5 text-primary" />
+											</div>
+											<div>
+												<div class="font-medium">{employee.displayName}</div>
+												{#if employee.role}
+													<div class="text-sm text-muted-foreground">{formatRole(employee.role)}</div>
+												{/if}
+											</div>
+										</div>
+									</Table.Cell>
+									<Table.Cell>
+										{#if employee.email}
+											<a href="mailto:{employee.email}" class="text-sm hover:text-primary" onclick={(e) => e.stopPropagation()}>
+												{employee.email}
+											</a>
+										{:else}
+											<span class="text-sm text-muted-foreground">N/A</span>
 										{/if}
-									</div>
-								</div>
-							</Table.Cell>
-							<Table.Cell>
-								{#if employee.email}
-									<a href="mailto:{employee.email}" class="text-sm hover:text-primary" onclick={(e) => e.stopPropagation()}>
-										{employee.email}
-									</a>
-								{:else}
-									<span class="text-sm text-muted-foreground">N/A</span>
-								{/if}
-							</Table.Cell>
-							<Table.Cell>
-								{#if employee.departmentId}
-									<span class="text-sm">{employee.departmentId.slice(0, 8)}...</span>
-								{:else}
-									<span class="text-sm text-muted-foreground">N/A</span>
-								{/if}
-							</Table.Cell>
-							<Table.Cell>
-								{#if employee.role}
-									<Badge variant="outline">{formatRole(employee.role)}</Badge>
-								{:else}
-									<span class="text-sm text-muted-foreground">N/A</span>
-								{/if}
-							</Table.Cell>
-							<Table.Cell>
-								<span class="text-sm text-muted-foreground">
-									{employee.hireDate ? formatHireDate(employee.hireDate) : 'N/A'}
-								</span>
-							</Table.Cell>
-							<Table.Cell>
-								<Badge variant={getStatusBadgeVariant(employee.isActive)}>
-									{employee.isActive ? 'Active' : 'Inactive'}
-								</Badge>
-							</Table.Cell>
-							<Table.Cell class="text-right">
-								<div class="flex gap-1 justify-end">
+									</Table.Cell>
+									<Table.Cell>
+										{#if employee.departmentId}
+											<span class="text-sm">{employee.departmentId.slice(0, 8)}...</span>
+										{:else}
+											<span class="text-sm text-muted-foreground">N/A</span>
+										{/if}
+									</Table.Cell>
+									<Table.Cell>
+										{#if employee.role}
+											<Badge variant="outline">{formatRole(employee.role)}</Badge>
+										{:else}
+											<span class="text-sm text-muted-foreground">N/A</span>
+										{/if}
+									</Table.Cell>
+									<Table.Cell>
+										<span class="text-sm text-muted-foreground">
+											{employee.hireDate ? formatHireDate(employee.hireDate) : 'N/A'}
+										</span>
+									</Table.Cell>
+									<Table.Cell>
+										<Badge variant={getStatusBadgeVariant(employee.isActive)}>
+											{employee.isActive ? 'Active' : 'Inactive'}
+										</Badge>
+									</Table.Cell>
+									<Table.Cell class="text-right">
+										<div class="flex gap-1 justify-end">
+											<Button
+												variant="ghost"
+												size="sm"
+												href="/dashboard/employees/{employee.id}"
+												onclick={(e) => e.stopPropagation()}
+											>
+												<Eye class="h-4 w-4" />
+											</Button>
+											{#if canManageEmployees}
+												<Button
+													variant="ghost"
+													size="sm"
+													href="/dashboard/employees/{employee.id}/edit"
+													onclick={(e) => e.stopPropagation()}
+												>
+													<Edit class="h-4 w-4" />
+												</Button>
+											{/if}
+										</div>
+									</Table.Cell>
+								</Table.Row>
+							{/each}
+						</Table.Body>
+					</Table.Root>
+				</div>
+
+				<!-- Pagination integrated with table -->
+				{#if totalPages > 1}
+					<div class="flex items-center justify-between px-6 py-4">
+						<div class="text-sm text-muted-foreground">
+							Showing {(currentPage - 1) * pageSize + 1} to {Math.min(
+								currentPage * pageSize,
+								totalEmployees
+							)} of {totalEmployees} employees
+						</div>
+						<div class="flex gap-2">
+							<Button
+								variant="outline"
+								size="sm"
+								disabled={!hasPreviousPage}
+								on:click={() => goToPage(currentPage - 1)}
+							>
+								Previous
+							</Button>
+
+							{#if totalPages <= 7}
+								{#each Array(totalPages) as _, i}
 									<Button
-										variant="ghost"
+										variant={currentPage === i + 1 ? 'default' : 'outline'}
 										size="sm"
-										href="/dashboard/employees/{employee.id}"
-										onclick={(e) => e.stopPropagation()}
+										on:click={() => goToPage(i + 1)}
 									>
-										<Eye class="h-4 w-4" />
+										{i + 1}
 									</Button>
-									{#if canManageEmployees}
+								{/each}
+							{:else}
+								<!-- Complex pagination with ellipsis -->
+								<Button
+									variant={currentPage === 1 ? 'default' : 'outline'}
+									size="sm"
+									on:click={() => goToPage(1)}
+								>
+									1
+								</Button>
+
+								{#if currentPage > 3}
+									<span class="px-2 text-muted-foreground">...</span>
+								{/if}
+
+								{#each Array(Math.min(5, totalPages - 2)) as _, i}
+									{@const pageNum = Math.max(2, Math.min(currentPage - 2 + i, totalPages - 1))}
+									{#if pageNum >= 2 && pageNum <= totalPages - 1}
 										<Button
-											variant="ghost"
+											variant={currentPage === pageNum ? 'default' : 'outline'}
 											size="sm"
-											href="/dashboard/employees/{employee.id}/edit"
-											onclick={(e) => e.stopPropagation()}
+											on:click={() => goToPage(pageNum)}
 										>
-											<Edit class="h-4 w-4" />
+											{pageNum}
 										</Button>
 									{/if}
-								</div>
-							</Table.Cell>
-						</Table.Row>
-					{/each}
-				</Table.Body>
-			</Table.Root>
-		</div>
+								{/each}
+
+								{#if currentPage < totalPages - 2}
+									<span class="px-2 text-muted-foreground">...</span>
+								{/if}
+
+								<Button
+									variant={currentPage === totalPages ? 'default' : 'outline'}
+									size="sm"
+									on:click={() => goToPage(totalPages)}
+								>
+									{totalPages}
+								</Button>
+							{/if}
+
+							<Button
+								variant="outline"
+								size="sm"
+								disabled={!hasNextPage}
+								on:click={() => goToPage(currentPage + 1)}
+							>
+								Next
+							</Button>
+						</div>
+					</div>
+				{/if}
+			</Card.Content>
+		</Card.Root>
 	{/if}
 
 	<!-- Empty State -->
@@ -574,91 +970,6 @@
 							Add First Employee
 						</Button>
 					{/if}
-				</div>
-			</Card.Content>
-		</Card.Root>
-	{/if}
-
-	<!-- Pagination -->
-	{#if totalPages > 1}
-		<Card.Root>
-			<Card.Content class="py-4">
-				<div class="flex items-center justify-between">
-					<div class="text-sm text-muted-foreground">
-						Showing {(currentPage - 1) * pageSize + 1} to {Math.min(
-							currentPage * pageSize,
-							totalEmployees
-						)} of {totalEmployees} employees
-					</div>
-					<div class="flex gap-2">
-						<Button
-							variant="outline"
-							size="sm"
-							disabled={!hasPreviousPage}
-							on:click={() => goToPage(currentPage - 1)}
-						>
-							Previous
-						</Button>
-
-						{#if totalPages <= 7}
-							{#each Array(totalPages) as _, i}
-								<Button
-									variant={currentPage === i + 1 ? 'default' : 'outline'}
-									size="sm"
-									on:click={() => goToPage(i + 1)}
-								>
-									{i + 1}
-								</Button>
-							{/each}
-						{:else}
-							<!-- Complex pagination with ellipsis -->
-							<Button
-								variant={currentPage === 1 ? 'default' : 'outline'}
-								size="sm"
-								on:click={() => goToPage(1)}
-							>
-								1
-							</Button>
-
-							{#if currentPage > 3}
-								<span class="px-2 text-muted-foreground">...</span>
-							{/if}
-
-							{#each Array(Math.min(5, totalPages - 2)) as _, i}
-								{@const pageNum = Math.max(2, Math.min(currentPage - 2 + i, totalPages - 1))}
-								{#if pageNum >= 2 && pageNum <= totalPages - 1}
-									<Button
-										variant={currentPage === pageNum ? 'default' : 'outline'}
-										size="sm"
-										on:click={() => goToPage(pageNum)}
-									>
-										{pageNum}
-									</Button>
-								{/if}
-							{/each}
-
-							{#if currentPage < totalPages - 2}
-								<span class="px-2 text-muted-foreground">...</span>
-							{/if}
-
-							<Button
-								variant={currentPage === totalPages ? 'default' : 'outline'}
-								size="sm"
-								on:click={() => goToPage(totalPages)}
-							>
-								{totalPages}
-							</Button>
-						{/if}
-
-						<Button
-							variant="outline"
-							size="sm"
-							disabled={!hasNextPage}
-							on:click={() => goToPage(currentPage + 1)}
-						>
-							Next
-						</Button>
-					</div>
 				</div>
 			</Card.Content>
 		</Card.Root>

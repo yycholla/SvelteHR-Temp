@@ -27,7 +27,7 @@
 		MapPin,
 		Briefcase,
 		AlertCircle
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 
 	interface Props {
 		data: {

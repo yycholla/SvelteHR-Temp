@@ -8,7 +8,7 @@
 	 */
 
 	import { Button } from '$lib/components/ui/button';
-	import { Clock, X } from 'lucide-svelte';
+	import { Clock, X } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 
 	interface Props {

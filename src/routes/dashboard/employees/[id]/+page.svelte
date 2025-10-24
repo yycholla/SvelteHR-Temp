@@ -35,7 +35,7 @@
 		FileBarChart,
 		FileText,
 		Plus
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 
 	interface Props {
 		data: any;

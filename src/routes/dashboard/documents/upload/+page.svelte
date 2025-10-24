@@ -9,7 +9,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import * as Alert from '$lib/components/ui/alert';
-	import { X, CheckCircle2, Lock, Upload } from 'lucide-svelte';
+	import { X, CheckCircle2, Lock, Upload } from '@lucide/svelte';
 	import type { PageData, ActionData } from './$types';
 	import type { DocumentMetadata, UploadResult } from '$lib/types/document';
 

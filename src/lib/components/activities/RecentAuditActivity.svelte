@@ -19,7 +19,7 @@
 		ChevronRight,
 		Activity,
 		AlertCircle
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 
 	interface ActivityLog {
 		id: string;

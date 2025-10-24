@@ -14,7 +14,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import TaskForm from '$lib/components/tasks/TaskForm.svelte';
-	import { ArrowLeft, Plus } from 'lucide-svelte';
+	import { ArrowLeft, Plus } from '@lucide/svelte';
 
 	// Page data and action result
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -140,14 +140,4 @@
 	</Card.Root>
 </div>
 
-<style>
-	/* Page Layout */
-	.task-create-page {
-		@apply container mx-auto px-4 py-8;
-	}
 
-	/* Page Header */
-	.page-header {
-		@apply mb-6;
-	}
-</style>

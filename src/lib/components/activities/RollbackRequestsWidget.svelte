@@ -11,7 +11,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Clock, CheckSquare, XSquare, ChevronRight, AlertCircle } from 'lucide-svelte';
+	import { Clock, CheckSquare, XSquare, ChevronRight, AlertCircle } from '@lucide/svelte';
 
 	interface RollbackRequest {
 		id: string;

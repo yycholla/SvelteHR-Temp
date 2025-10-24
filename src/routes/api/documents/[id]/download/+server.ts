@@ -1,8 +1,9 @@
 // Document download API endpoint (Feature 024)
-// GET /api/documents/[id]/download - Download encrypted document
+// GET /api/documents/[id]/download - Download document (with decryption if encrypted)
 
 import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { retrieveAndDecryptFile } from '$lib/server/encryption';
 
 export const GET: RequestHandler = async ({ params, locals }) => {
 	// Step 1: Validate authentication
@@ -15,70 +16,83 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 	const userRole = locals.user.role || 'employee';
 
 	try {
-		// Step 2: TODO: Check RBAC access using can_access_document() function
-		// SELECT can_access_document(userId, documentId)
-		// For now, implement basic role-based logic
+		// Step 2: Retrieve document and check RBAC access
+		const { transaction, setJWTClaims } = await import('$lib/server/db');
 
-		let canAccess = false;
+		const { document, canAccess } = await transaction(async (client) => {
+			// Set JWT claims for RLS
+			await setJWTClaims(client, userId, userRole);
 
-		if (userRole === 'super_admin') {
-			canAccess = true; // Admin can access all documents
-		} else if (userRole === 'admin') {
-			// TODO: Check if document is not soft-deleted
-			canAccess = true;
-		} else {
-			// TODO: Check document_assignments table
-			// SELECT EXISTS (
-			//   SELECT 1 FROM hr_public.document_assignments da
-			//   WHERE da.document_id = ? AND da.assignment_status = 'active'
-			//   AND (da.employee_id = ? OR da.department_id IN (
-			//     SELECT department_id FROM hr_public.users WHERE id = ?
-			//   ))
-			// )
-			canAccess = false; // Would come from database query
-		}
+			// Query document with RLS policy enforcement
+			const docResult = await client.query(
+				`SELECT id, title, mime_type, file_size, file_path,
+				        deleted_at, uploaded_by, is_encrypted
+				 FROM hr_public.documents
+				 WHERE id = $1`,
+				[documentId]
+			);
 
-		if (!canAccess) {
-			// Log denied access
-			// TODO: INSERT INTO document_access_logs (
-			//   document_id, user_id, access_type, access_outcome, denial_reason
-			// ) VALUES (?, ?, 'download', 'denied', 'Insufficient permissions')
+			if (docResult.rows.length === 0) {
+				return { document: null, canAccess: false };
+			}
 
-			throw error(403, { message: 'Access denied. You do not have permission to download this document.' });
-		}
+			const doc = docResult.rows[0];
 
-		// Step 3: TODO: Retrieve document metadata
-		// SELECT id, filename, file_type, file_size_bytes, storage_path, is_deleted
-		// FROM hr_public.documents
-		// WHERE id = ?
+			// Check if deleted
+			if (doc.deleted_at && userRole !== 'super_admin') {
+				return { document: null, canAccess: false };
+			}
 
-		const document = {
-			id: documentId,
-			filename: 'sample_document.pdf',
-			file_type: 'PDF',
-			file_size_bytes: 1024000,
-			storage_path: `/encrypted/${documentId}.enc`,
-			is_deleted: false
-		};
+			// Check access permissions
+			let hasAccess = false;
+			if (userRole === 'super_admin' || userRole === 'admin') {
+				hasAccess = true;
+			} else if (doc.uploaded_by === userId) {
+				hasAccess = true; // User can download their own uploads
+			} else {
+				// Check document assignments
+				const assignmentResult = await client.query(
+					`SELECT EXISTS (
+						SELECT 1 FROM hr_public.document_assignments
+						WHERE document_id = $1 AND user_id = $2
+						  AND deleted_at IS NULL
+					) as assigned`,
+					[documentId, userId]
+				);
+				hasAccess = assignmentResult.rows[0]?.assigned || false;
+			}
 
-		// Check if document exists
+			return { document: doc, canAccess: hasAccess };
+		});
+
 		if (!document) {
 			throw error(404, { message: 'Document not found' });
 		}
 
-		// Check if document is deleted
-		if (document.is_deleted && userRole !== 'super_admin') {
-			throw error(404, { message: 'Document not found' });
+		if (!canAccess) {
+			// Log denied access
+			console.log(`Access denied for user ${userId} to document ${documentId}`);
+			throw error(403, { message: 'Access denied. You do not have permission to download this document.' });
 		}
 
-		// Step 4: TODO: Retrieve encrypted file from storage
-		// This would read from PostgreSQL BYTEA or S3
-		// SELECT encrypted_data FROM hr_public.document_storage WHERE document_id = ?
-		// OR fetch from S3 using storage_path
+		// Step 4: Retrieve and decrypt file if encrypted
+		let fileData: Buffer;
 
-		// For demonstration, create a mock encrypted file
-		const encryptedFileData = new Uint8Array(document.file_size_bytes);
-		// In production, this would be: await storageService.retrieveFile(document.storage_path)
+		if (document.is_encrypted) {
+			// Retrieve encrypted file and decrypt it
+			const { transaction: fileTransaction } = await import('$lib/server/db');
+
+			fileData = await fileTransaction(async (client) => {
+				return await retrieveAndDecryptFile(client, documentId);
+			});
+
+			console.log(`Encrypted document ${documentId} decrypted for user ${userId}`);
+		} else {
+			// For non-encrypted files, read from file system
+			// TODO: Implement file system or S3 retrieval
+			// For now, return error for non-encrypted files
+			throw error(501, { message: 'Non-encrypted file download not yet implemented' });
+		}
 
 		// Step 5: Log successful download
 		// TODO: INSERT INTO document_access_logs (
@@ -88,17 +102,15 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 
 		console.log(`Document ${documentId} downloaded by user ${userId}`);
 
-		// Step 6: Stream encrypted file to client
-		// Client will handle decryption using stored encryption key
-		return new Response(encryptedFileData.buffer, {
+		// Step 6: Stream decrypted file to client
+		return new Response(fileData, {
 			status: 200,
 			headers: {
-				'Content-Type': 'application/octet-stream',
-				'Content-Disposition': `attachment; filename="${document.filename}.encrypted"`,
-				'Content-Length': document.file_size_bytes.toString(),
+				'Content-Type': document.mime_type,
+				'Content-Disposition': `attachment; filename="${document.title}"`,
+				'Content-Length': fileData.length.toString(),
 				'X-Document-ID': documentId,
-				'X-File-Type': document.file_type,
-				'X-Original-Filename': document.filename
+				'X-Original-Filename': document.title
 			}
 		});
 

@@ -26,7 +26,7 @@
 		ChevronUp,
 		SortAsc,
 		SortDesc
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 	import {
 		getReviewTypeInfo,
 		getReviewStatusInfo,

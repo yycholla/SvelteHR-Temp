@@ -11,7 +11,7 @@
 -->
 
 <script lang="ts">
-	import { X, Plus } from 'lucide-svelte';
+	import { X, Plus } from '@lucide/svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import { createUrqlClient } from '$lib/graphql/client';
 	import { CREATE_TASK_TYPE } from '$lib/graphql/tasks-operations';

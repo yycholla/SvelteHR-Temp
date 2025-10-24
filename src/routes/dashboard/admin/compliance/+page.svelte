@@ -8,7 +8,7 @@
 		RefreshCw,
 		FileText,
 		TrendingUp
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 
 	export let data;
 

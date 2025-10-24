@@ -9,7 +9,7 @@
 	 * Displays field-by-field comparison and supports 3 resolution strategies.
 	 */
 
-	import { AlertTriangle, Loader2, X } from 'lucide-svelte';
+	import { AlertTriangle, Loader2, X } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 
 	interface ConflictDetail {

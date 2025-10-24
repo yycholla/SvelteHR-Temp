@@ -33,7 +33,7 @@
 		XCircle,
 		AlertCircle,
 		Clock
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 	import { formatDistance } from 'date-fns';
 
 	interface Props {
@@ -401,8 +401,4 @@
 	</Dialog.Root>
 </div>
 
-<style>
-	.linked-resources {
-		@apply p-6 rounded-lg border bg-card;
-	}
-</style>
+

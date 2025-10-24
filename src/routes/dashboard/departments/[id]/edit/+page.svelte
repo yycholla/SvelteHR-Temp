@@ -6,7 +6,7 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import * as Card from '$lib/components/ui/card';
-	import { ArrowLeft, Save, X, AlertCircle, Search, ChevronDown, Check } from 'lucide-svelte';
+	import { ArrowLeft, Save, X, AlertCircle, Search, ChevronDown, Check } from '@lucide/svelte';
 
 	interface Props {
 		data: {

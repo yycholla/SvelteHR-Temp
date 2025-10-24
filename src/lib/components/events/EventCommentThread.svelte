@@ -10,7 +10,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Avatar, AvatarFallback, AvatarImage } from '$lib/components/ui/avatar';
-	import { MessageSquare, Edit2, Trash2, Send } from 'lucide-svelte';
+	import { MessageSquare, Edit2, Trash2, Send } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 	import { formatDistanceToNow } from 'date-fns';
 
@@ -278,8 +278,4 @@
 	{/if}
 </div>
 
-<style>
-	:global(.mention) {
-		@apply text-primary font-medium;
-	}
-</style>
+

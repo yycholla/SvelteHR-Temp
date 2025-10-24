@@ -24,7 +24,7 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Switch } from '$lib/components/ui/switch';
 	import { TagInput, TaskTypeTagInput } from '$lib/components/ui/tag-input';
-	import { Calendar, CheckSquare, AlertCircle, User as UserIcon, Clock, Building2 } from 'lucide-svelte';
+	import { Calendar, CheckSquare, AlertCircle, User as UserIcon, Clock, Building2 } from '@lucide/svelte';
 	import { format } from 'date-fns';
 
 	interface Department {
@@ -727,8 +727,4 @@
 	</form>
 </div>
 
-<style>
-	.task-form {
-		@apply mx-auto max-w-4xl p-6;
-	}
-</style>
+

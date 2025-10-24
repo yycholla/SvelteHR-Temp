@@ -1041,6 +1041,55 @@ impl QueryRoot {
 
         Ok(document)
     }
+
+    // =========================================================================
+    // Analytics - Employee Statistics Queries
+    // =========================================================================
+
+    /// Get employee statistics for a date range (for trend analysis and charts)
+    ///
+    /// Returns daily snapshots of employee counts within the specified date range.
+    /// Useful for generating historical trend charts showing employee growth over time.
+    async fn employee_statistics(
+        &self,
+        ctx: &Context<'_>,
+        #[graphql(name = "startDate")] start_date: String,
+        #[graphql(name = "endDate")] end_date: String,
+    ) -> Result<Vec<crate::models::analytics::EmployeeStatistic>> {
+        use crate::models::analytics::EmployeeStatisticEntity;
+        use chrono::NaiveDate;
+
+        let db = get_db_from_context(ctx)?;
+
+        // Parse dates
+        let start = NaiveDate::parse_from_str(&start_date, "%Y-%m-%d")
+            .map_err(|e| AppError::Validation(format!("Invalid start_date format: {}", e)))?;
+        let end = NaiveDate::parse_from_str(&end_date, "%Y-%m-%d")
+            .map_err(|e| AppError::Validation(format!("Invalid end_date format: {}", e)))?;
+
+        // Validate date range
+        if start > end {
+            return Err(AppError::Validation("start_date must be before or equal to end_date".to_string()).into());
+        }
+
+        // Query statistics
+        let statistics = EmployeeStatisticEntity::get_statistics_range(&db, start, end).await?;
+
+        Ok(statistics)
+    }
+
+    /// Get the most recent employee statistics snapshot
+    async fn latest_employee_statistics(
+        &self,
+        ctx: &Context<'_>,
+    ) -> Result<Option<crate::models::analytics::EmployeeStatistic>> {
+        use crate::models::analytics::EmployeeStatisticEntity;
+
+        let db = get_db_from_context(ctx)?;
+        let latest = EmployeeStatisticEntity::get_latest(&db).await?;
+
+        Ok(latest)
+    }
 }
 
 #[cfg(test)]

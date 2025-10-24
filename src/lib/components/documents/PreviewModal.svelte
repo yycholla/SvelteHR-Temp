@@ -2,13 +2,12 @@
 	// PreviewModal component (Feature 024)
 	// Full-screen modal for document preview with download option
 
-	import type { FileType } from '$lib/types/document';
-
 	interface Props {
 		isOpen?: boolean;
 		documentId: string;
 		filename: string;
-		fileType: FileType;
+		mimeType?: string;
+		fileType?: string; // Legacy support
 		previewUrl?: string | null;
 		isLoading?: boolean;
 		error?: string | null;
@@ -21,7 +20,8 @@
 		isOpen = false,
 		documentId,
 		filename,
-		fileType,
+		mimeType = '',
+		fileType = '',
 		previewUrl = null,
 		isLoading = false,
 		error = null,
@@ -30,12 +30,38 @@
 		onDownload = () => {}
 	}: Props = $props();
 
-	// Derived state
-	let isPDF = $derived(fileType === 'PDF');
-	let isImage = $derived(['JPEG', 'PNG', 'GIF'].includes(fileType));
-	let isText = $derived(['TXT', 'CSV'].includes(fileType));
-	let isOfficeDoc = $derived(['DOCX', 'XLSX'].includes(fileType));
+	// Determine actual MIME type from either mimeType or legacy fileType
+	let actualMimeType = $derived(mimeType || convertFileTypeToMimeType(fileType));
+
+	// Helper to convert legacy FileType to MIME type
+	function convertFileTypeToMimeType(type: string): string {
+		const mimeMap: Record<string, string> = {
+			'PDF': 'application/pdf',
+			'JPEG': 'image/jpeg',
+			'PNG': 'image/png',
+			'GIF': 'image/gif',
+			'TXT': 'text/plain',
+			'CSV': 'text/csv',
+			'DOCX': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+			'XLSX': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+		};
+		return mimeMap[type] || type;
+	}
+
+	// Derived state based on MIME type
+	let isPDF = $derived(actualMimeType === 'application/pdf');
+	let isImage = $derived(actualMimeType.startsWith('image/'));
+	let isText = $derived(actualMimeType === 'text/plain' || actualMimeType === 'text/csv');
+	let isOfficeDoc = $derived(
+		actualMimeType.includes('wordprocessingml') ||
+		actualMimeType.includes('spreadsheetml')
+	);
 	let canPreview = $derived(isPDF || isImage || isText);
+
+	// Get display file type
+	let displayFileType = $derived(
+		fileType || actualMimeType.split('/').pop()?.toUpperCase() || 'FILE'
+	);
 
 	// Handle escape key
 	function handleKeydown(event: KeyboardEvent) {
@@ -61,7 +87,7 @@
 			<div class="modal-header">
 				<div class="header-info">
 					<h2 class="modal-title">{filename}</h2>
-					<span class="file-type-badge">{fileType}</span>
+					<span class="file-type-badge">{displayFileType}</span>
 				</div>
 
 				<div class="header-actions">
@@ -101,7 +127,7 @@
 					<div class="unsupported-state">
 						<div class="unsupported-icon">📄</div>
 						<h3>Preview Not Available</h3>
-						<p>This file type ({fileType}) cannot be previewed in the browser.</p>
+						<p>This file type ({displayFileType}) cannot be previewed in the browser.</p>
 						{#if isOfficeDoc}
 							<p class="conversion-note">
 								Office documents require conversion to PDF. This may take a few moments.

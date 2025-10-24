@@ -14,7 +14,7 @@
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Plus, X, Search, Target, Calendar } from 'lucide-svelte';
+	import { Plus, X, Search, Target, Calendar } from '@lucide/svelte';
 	import { CreateGoalSchema, type CreateGoalInput } from '$lib/schemas/reviews';
 	import type { GoalFilter } from '$lib/schemas/reviews';
 

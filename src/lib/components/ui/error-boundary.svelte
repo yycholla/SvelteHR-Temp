@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { AlertTriangle, RefreshCw, Home, Bug } from 'lucide-svelte';
+	import { AlertTriangle, RefreshCw, Home, Bug } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import {
 		Card,

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { InboxIcon } from 'lucide-svelte';
+	import { InboxIcon } from '@lucide/svelte';
 
 	interface Props {
 		title?: string;

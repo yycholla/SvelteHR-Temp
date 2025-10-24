@@ -1,7 +1,7 @@
 //! SeaORM Migration Library
 //!
 //! Complete migration system for HR GraphQL server with comprehensive table creation.
-
+// WARN!!!: Ensure to add migrations to main.rs as well.
 pub use sea_orm_migration::prelude::*;
 
 // Migration modules - order determines execution sequence

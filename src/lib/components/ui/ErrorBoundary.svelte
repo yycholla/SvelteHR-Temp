@@ -4,7 +4,7 @@
 <script lang="ts">
 	import { createErrorBoundary, type StandardErrorResponse } from '$lib/utils/error-handling.js';
 	import { onMount } from 'svelte';
-	import { AlertCircle, RefreshCw, Home, ChevronDown, ChevronUp } from 'lucide-svelte';
+	import { AlertCircle, RefreshCw, Home, ChevronDown, ChevronUp } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import {
 		Card,

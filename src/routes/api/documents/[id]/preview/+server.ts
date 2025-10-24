@@ -1,8 +1,10 @@
 // Document preview API endpoint (Feature 024)
-// GET /api/documents/[id]/preview - Generate document preview URL
+// GET /api/documents/[id]/preview - Generate document preview (with decryption if encrypted)
 
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { SERVICE_AUTH_KEY } from '$env/static/private';
+import { retrieveAndDecryptFile } from '$lib/server/encryption';
 
 export const GET: RequestHandler = async ({ params, locals, url }) => {
 	// Step 1: Validate authentication
@@ -24,10 +26,10 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 
 			// Query document with RLS policy enforcement
 			const docResult = await client.query(
-				`SELECT id, filename, file_type, file_size_bytes, storage_path,
-				        is_deleted, uploaded_by, category, sensitivity_level
+				`SELECT id, title, mime_type, file_size, file_path,
+				        deleted_at, uploaded_by, category_id, access_level
 				 FROM hr_public.documents
-				 WHERE id = $1 AND is_deleted = FALSE`,
+				 WHERE id = $1 AND deleted_at IS NULL`,
 				[documentId]
 			);
 
@@ -48,7 +50,8 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 				const assignmentResult = await client.query(
 					`SELECT EXISTS (
 						SELECT 1 FROM hr_public.document_assignments
-						WHERE document_id = $1 AND employee_id = $2
+						WHERE document_id = $1 AND user_id = $2
+						  AND deleted_at IS NULL
 					) as assigned`,
 					[documentId, userId]
 				);
@@ -72,32 +75,24 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 		let previewFormat: 'PDF' | 'inline' = 'inline';
 		let requiresConversion = false;
 
-		const imageTypes = ['JPEG', 'PNG', 'GIF'];
-		const officeTypes = ['DOCX', 'XLSX'];
+		const imageTypes = ['image/jpeg', 'image/png', 'image/gif'];
+		const officeTypes = ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
 
-		if (document.file_type === 'PDF') {
+		if (document.mime_type === 'application/pdf') {
 			previewFormat = 'PDF';
-		} else if (imageTypes.includes(document.file_type)) {
+		} else if (imageTypes.includes(document.mime_type)) {
 			previewFormat = 'inline';
-		} else if (officeTypes.includes(document.file_type)) {
+		} else if (officeTypes.includes(document.mime_type)) {
 			// Office documents need conversion to PDF
 			previewFormat = 'PDF';
 			requiresConversion = true;
-		} else if (['TXT', 'CSV'].includes(document.file_type)) {
+		} else if (['text/plain', 'text/csv'].includes(document.mime_type)) {
 			previewFormat = 'inline';
 		}
 
-		// Step 5: Generate signed preview URL with expiration
-		// In production, this would create a signed JWT or temporary token
-		const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
-		const previewToken = crypto.randomUUID(); // Simplified - would be signed JWT
-
-		// TODO: Store preview token in cache/database with expiration
-		// INSERT INTO preview_tokens (token, document_id, user_id, expires_at)
-		// VALUES (?, ?, ?, ?)
-
+		// Step 5: Generate preview URL (points to view endpoint)
 		const baseUrl = url.origin;
-		const previewUrl = `${baseUrl}/api/documents/${documentId}/preview/view?token=${previewToken}`;
+		const previewUrl = `${baseUrl}/api/documents/${documentId}/preview/view`;
 
 		// Step 6: If Office doc, trigger async conversion (TODO)
 		if (requiresConversion) {
@@ -106,23 +101,18 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 			// - Convert to PDF using LibreOffice headless
 			// - Re-encrypt PDF
 			// - Store converted version
-			// - Update preview URL when ready
 			console.log(`Office document conversion queued for ${documentId}`);
 		}
 
-		// Step 7: Log preview access
-		// TODO: INSERT INTO document_access_logs
-		console.log(`Document ${documentId} preview generated for user ${userId}`);
-
-		// Step 8: Return preview metadata
+		// Step 7: Return preview metadata
 		return json({
 			previewUrl,
-			expiresAt: expiresAt.toISOString(),
 			previewFormat,
 			documentId,
-			filename: document.filename,
+			filename: document.title,
 			requiresConversion,
-			conversionStatus: requiresConversion ? 'pending' : 'ready'
+			conversionStatus: requiresConversion ? 'pending' : 'ready',
+			mimeType: document.mime_type
 		});
 
 	} catch (err) {

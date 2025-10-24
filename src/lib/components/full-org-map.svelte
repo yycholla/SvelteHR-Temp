@@ -19,7 +19,7 @@
 		Maximize,
 		Grid,
 		Eye
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 
 	// Props
 	let {

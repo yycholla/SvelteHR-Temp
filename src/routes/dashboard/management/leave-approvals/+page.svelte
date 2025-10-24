@@ -15,7 +15,7 @@
 		FileText,
 		Search,
 		Filter
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 
 	import { Button } from '$lib/components/ui/button';

@@ -6,7 +6,7 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import * as Select from '$lib/components/ui/select';
-	import { ArrowLeft, Building2 } from 'lucide-svelte';
+	import { ArrowLeft, Building2 } from '@lucide/svelte';
 
 	// Get page data
 	let { data } = $props();

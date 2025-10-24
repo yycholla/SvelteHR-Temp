@@ -28,7 +28,7 @@
 		Plus,
 		Search,
 		Trash2
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 
 	interface Props {
 		task: Task; // Current task with populated dependencies
@@ -383,8 +383,4 @@
 	</Dialog.Root>
 </div>
 
-<style>
-	.task-dependencies {
-		@apply p-6 rounded-lg border bg-card;
-	}
-</style>
+

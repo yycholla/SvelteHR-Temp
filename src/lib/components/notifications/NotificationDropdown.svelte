@@ -4,7 +4,7 @@
 	 * Displays unread notifications with badge counter and dropdown list
 	 */
 
-	import { Bell, Check, Clock, AlertCircle } from 'lucide-svelte';
+	import { Bell, Check, Clock, AlertCircle } from '@lucide/svelte';
 	import { formatDistanceToNow } from 'date-fns';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { Badge } from '$lib/components/ui/badge';

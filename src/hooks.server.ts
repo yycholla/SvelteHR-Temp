@@ -310,8 +310,13 @@ export const handle: Handle = async ({ event, resolve }) => {
 		// Security headers
 		const isProduction = process.env.NODE_ENV === 'production';
 
-		// Prevent clickjacking attacks
-		response.headers.set('X-Frame-Options', 'DENY');
+		// Check if this is the document preview endpoint (needs iframe embedding)
+		const isPreviewEndpoint = pathname.includes('/api/documents/') && pathname.endsWith('/preview/view');
+
+		// Prevent clickjacking attacks (but allow preview endpoint to be embedded)
+		if (!isPreviewEndpoint) {
+			response.headers.set('X-Frame-Options', 'DENY');
+		}
 
 		// Prevent MIME type sniffing
 		response.headers.set('X-Content-Type-Options', 'nosniff');
@@ -329,6 +334,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		);
 
 		// Content Security Policy (CSP) - strict policy
+		// Allow iframe embedding for preview endpoint
 		const cspDirectives = [
 			"default-src 'self'",
 			"script-src 'self' 'unsafe-inline' 'unsafe-eval'", // TODO: Remove unsafe-eval once app is CSP-compliant
@@ -336,7 +342,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 			"img-src 'self' data: https:",
 			"font-src 'self' data:",
 			"connect-src 'self' http://localhost:4000 ws://localhost:*", // Backend API and WebSocket
-			"frame-ancestors 'none'",
+			isPreviewEndpoint ? "frame-ancestors 'self'" : "frame-ancestors 'none'",
 			"base-uri 'self'",
 			"form-action 'self'"
 		];

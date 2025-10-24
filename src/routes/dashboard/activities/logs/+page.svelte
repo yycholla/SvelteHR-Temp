@@ -15,7 +15,7 @@
 	import AuditLogFilters from '$lib/components/activities/AuditLogFilters.svelte';
 	import ActivityFeed from '$lib/components/activities/ActivityFeed.svelte';
 	import Pagination from '$lib/components/activities/Pagination.svelte';
-	import { Download, RefreshCw, FileText } from 'lucide-svelte';
+	import { Download, RefreshCw, FileText } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 
 	interface Props {

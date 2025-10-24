@@ -24,7 +24,7 @@
 		TrendingDown,
 		Minus,
 		Target
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 	import { differenceInDays, isAfter } from 'date-fns';
 
 	interface Props {
@@ -272,99 +272,4 @@
 	{/if}
 </div>
 
-<style>
-	/* Container */
-	.subtask-progress {
-		@apply w-full;
-	}
 
-	.subtask-progress.compact {
-		@apply space-y-2;
-	}
-
-	/* No Subtasks State */
-	.no-subtasks-state {
-		@apply flex items-center gap-2 p-3 rounded-lg border border-dashed bg-muted/30;
-	}
-
-	/* Progress Container */
-	.progress-container {
-		@apply space-y-3;
-	}
-
-	/* Progress Header */
-	.progress-header {
-		@apply flex items-center justify-between;
-	}
-
-	/* Progress Bar */
-	.progress-bar-container {
-		@apply w-full;
-	}
-
-	.progress-bar-track {
-		@apply h-2 w-full rounded-full bg-muted overflow-hidden;
-	}
-
-	.progress-bar-fill {
-		@apply h-full transition-all duration-300 ease-in-out;
-	}
-
-	/* On-Track Indicator */
-	.on-track-indicator {
-		@apply flex items-center;
-	}
-
-	/* Status Breakdown */
-	.status-breakdown {
-		@apply grid grid-cols-2 gap-2 pt-2 border-t;
-	}
-
-	@media (max-width: 640px) {
-		.status-breakdown {
-			@apply grid-cols-1;
-		}
-	}
-
-	.status-item {
-		@apply flex items-center justify-between gap-2 rounded-lg bg-muted/50 p-2;
-	}
-
-	.status-icon {
-		@apply flex h-6 w-6 items-center justify-center rounded-full flex-shrink-0;
-	}
-
-	/* Compact Summary */
-	.compact-summary {
-		@apply flex items-center justify-between;
-	}
-
-	/* Circular Progress (for future enhancement) */
-	.circular-progress {
-		@apply relative inline-flex items-center justify-center;
-	}
-
-	.circular-progress-svg {
-		transform: rotate(-90deg);
-	}
-
-	.circular-progress-track {
-		@apply stroke-muted;
-	}
-
-	.circular-progress-fill {
-		@apply stroke-primary transition-all duration-300;
-		stroke-linecap: round;
-	}
-
-	/* Animations */
-	@keyframes progress-fill {
-		from {
-			width: 0;
-		}
-	}
-
-	.progress-bar-fill {
-		animation: progress-fill 0.5s ease-out;
-	}
-</style>

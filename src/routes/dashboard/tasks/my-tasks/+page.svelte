@@ -26,7 +26,7 @@
 		User,
 		Search,
 		AlertTriangle
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 
 	// Page data from server
 	let { data }: { data: PageData } = $props();
@@ -250,30 +250,4 @@
 	</div>
 </div>
 
-<style>
-	/* Page Layout */
-	.my-tasks-page {
-		@apply container mx-auto px-4 py-8 space-y-6;
-	}
 
-	/* Page Header */
-	.page-header {
-		@apply flex items-start justify-between gap-4;
-	}
-
-	@media (max-width: 640px) {
-		.page-header {
-			@apply flex-col items-stretch;
-		}
-	}
-
-	/* Statistics Grid */
-	.stats-grid {
-		@apply grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4;
-	}
-
-	/* Tasks List Section */
-	.tasks-list-section {
-		@apply space-y-4;
-	}
-</style>

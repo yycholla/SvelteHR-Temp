@@ -28,7 +28,7 @@
 		Upload,
 		ScrollText,
 		Tags
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 	import { currentUser, hasRole, authActions } from '$lib/stores/auth';
 	import { page } from '$app/stores';
 	import { themeStore } from '$lib/stores/theme';

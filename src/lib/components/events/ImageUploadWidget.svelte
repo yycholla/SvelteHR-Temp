@@ -23,7 +23,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import { validateImageFile } from '$lib/utils/image-validation';
-	import { Upload, X, Image as ImageIcon } from 'lucide-svelte';
+	import { Upload, X, Image as ImageIcon } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 

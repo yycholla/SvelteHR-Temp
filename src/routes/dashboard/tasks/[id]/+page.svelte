@@ -35,7 +35,7 @@
 		Target,
 		Building,
 		Bell
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 	import { format } from 'date-fns';
 
 	// Page data from server
@@ -387,20 +387,4 @@
 	</Tabs.Root>
 </div>
 
-<style>
-	/* Page Layout */
-	.task-details-page {
-		@apply container mx-auto space-y-6 px-4 py-8;
-	}
 
-	/* Page Header */
-	.page-header {
-		@apply flex items-center justify-between gap-4;
-	}
-
-	@media (max-width: 640px) {
-		.page-header {
-			@apply flex-col items-stretch;
-		}
-	}
-</style>

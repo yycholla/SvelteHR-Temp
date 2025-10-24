@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { FileText, Star, Clock, CheckCircle, Calendar, User, TrendingUp, MessageSquare, Target, Award, BookOpen } from 'lucide-svelte';
+	import { FileText, Star, Clock, CheckCircle, Calendar, User, TrendingUp, MessageSquare, Target, Award, BookOpen } from '@lucide/svelte';
 	import { format, parseISO } from 'date-fns';
 
 	let { data } = $props();

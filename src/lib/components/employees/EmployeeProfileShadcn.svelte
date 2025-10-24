@@ -25,7 +25,7 @@
 		User as UserIcon,
 		Users,
 		Shield
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 	import type { User as UserType } from '$lib/types';
 
 	const dispatch = createEventDispatcher();

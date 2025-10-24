@@ -11,7 +11,7 @@
 	import * as Select from '$lib/components/ui/select';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
-	import { CheckSquare, List, GitBranch, Columns, Filter, SortAsc } from 'lucide-svelte';
+	import { CheckSquare, List, GitBranch, Columns, Filter, SortAsc } from '@lucide/svelte';
 
 	let {
 		tasks,

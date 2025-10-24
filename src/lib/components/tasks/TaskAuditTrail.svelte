@@ -48,7 +48,7 @@
 		Calendar,
 		FileText,
 		GitBranch
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 	import { formatDistance } from 'date-fns';
 
 	interface Props {
@@ -309,8 +309,4 @@
 	{/if}
 </div>
 
-<style>
-	.task-audit-trail {
-		@apply rounded-lg border bg-card p-6;
-	}
-</style>
+

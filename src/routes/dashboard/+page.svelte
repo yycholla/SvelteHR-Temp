@@ -23,7 +23,7 @@
 		FileText,
 		Settings,
 		UserCheck
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 	// Feature 020: Audit logging widgets
 	import RecentAuditActivity from '$lib/components/activities/RecentAuditActivity.svelte';
 	import RollbackRequestsWidget from '$lib/components/activities/RollbackRequestsWidget.svelte';

@@ -38,7 +38,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import type { EventInput } from '@fullcalendar/core';
-	import { Bell } from 'lucide-svelte';
+	import { Bell } from '@lucide/svelte';
 
 	// Feature 027: Import conflict detection utility
 	import { detectConflict } from '$lib/utils/calendar';

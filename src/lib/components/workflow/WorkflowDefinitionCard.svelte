@@ -190,42 +190,4 @@
 	</div>
 </div>
 
-<style>
-	.workflow-card {
-		@apply transition-all duration-200;
-	}
 
-	.workflow-card:hover {
-		@apply shadow-lg;
-	}
-
-	.line-clamp-2 {
-		display: -webkit-box;
-		-webkit-line-clamp: 2;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
-	}
-
-	.line-clamp-3 {
-		display: -webkit-box;
-		-webkit-line-clamp: 3;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
-	}
-
-	.btn {
-		@apply inline-flex items-center rounded border border-transparent px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2;
-	}
-
-	.btn-sm {
-		@apply px-2 py-1 text-xs;
-	}
-
-	.btn-primary {
-		@apply bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500;
-	}
-
-	.btn-secondary {
-		@apply border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-blue-500;
-	}
-</style>

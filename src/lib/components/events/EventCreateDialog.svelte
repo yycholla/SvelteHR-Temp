@@ -13,7 +13,7 @@
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
-	import { X, Repeat, Users as UsersIcon, Image as ImageIcon } from 'lucide-svelte';
+	import { X, Repeat, Users as UsersIcon, Image as ImageIcon } from '@lucide/svelte';
 	import ImageUploadWidget from './ImageUploadWidget.svelte';
 	import AttendeePickerModal from './AttendeePickerModal.svelte';
 	import { generateRRule, validate5YearLimit } from '$lib/utils/rrule';

@@ -7,7 +7,7 @@
 	import * as Card from '$lib/components/ui/card';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import { Checkbox } from '$lib/components/ui/checkbox';
-	import { ArrowLeft, Save, X, AlertCircle, User, Phone, Shield, Car, DollarSign, Plus, Trash2 } from 'lucide-svelte';
+	import { ArrowLeft, Save, X, AlertCircle, User, Phone, Shield, Car, DollarSign, Plus, Trash2 } from '@lucide/svelte';
 
 	interface EmergencyContact {
 		id?: string;

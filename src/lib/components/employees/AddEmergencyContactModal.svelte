@@ -4,7 +4,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import * as Checkbox from '$lib/components/ui/checkbox';
-	import { Shield } from 'lucide-svelte';
+	import { Shield } from '@lucide/svelte';
 
 	interface Props {
 		isOpen: boolean;

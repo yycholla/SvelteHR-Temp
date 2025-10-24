@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { Plus, Search, Edit, Trash2, Check, X } from 'lucide-svelte';
+	import { Plus, Search, Edit, Trash2, Check, X } from '@lucide/svelte';
 	import { createUrqlClient } from '$lib/graphql/client';
 	import {
 		CREATE_TASK_TYPE,

@@ -15,7 +15,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import RollbackRequestCard from '$lib/components/activities/RollbackRequestCard.svelte';
 	import Pagination from '$lib/components/activities/Pagination.svelte';
-	import { RefreshCw, Filter, CheckSquare, XSquare, Clock } from 'lucide-svelte';
+	import { RefreshCw, Filter, CheckSquare, XSquare, Clock } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 
 	interface Props {

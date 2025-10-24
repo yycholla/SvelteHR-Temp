@@ -25,18 +25,18 @@ export const load: PageServerLoad = async ({ params, locals, fetch }) => {
 			const docResult = await client.query(
 				`SELECT
 					d.id,
-					d.filename,
-					d.file_type,
-					d.file_size_bytes,
-					d.storage_path,
-					d.encryption_key_id,
+					d.title as filename,
+					d.mime_type as file_type,
+					d.mime_type,
+					d.file_size as file_size_bytes,
+					d.file_path as storage_path,
 					d.uploaded_by,
-					d.uploaded_at,
-					d.category,
-					d.sensitivity_level,
-					d.is_deleted,
-					d.expiration_date,
-					d.metadata_tags,
+					d.created_at as uploaded_at,
+					d.category_id as category,
+					d.access_level as sensitivity_level,
+					d.deleted_at as is_deleted,
+					d.expiry_date as expiration_date,
+					d.is_encrypted,
 					u.email as uploaded_by_email
 				FROM hr_public.documents d
 				LEFT JOIN hr_public.users u ON d.uploaded_by = u.id
@@ -66,7 +66,8 @@ export const load: PageServerLoad = async ({ params, locals, fetch }) => {
 				const assignmentResult = await client.query(
 					`SELECT EXISTS (
 						SELECT 1 FROM hr_public.document_assignments
-						WHERE document_id = $1 AND employee_id = $2
+						WHERE document_id = $1 AND user_id = $2
+						  AND deleted_at IS NULL
 					) as assigned`,
 					[documentId, userId]
 				);
@@ -94,18 +95,18 @@ export const load: PageServerLoad = async ({ params, locals, fetch }) => {
 				`SELECT
 					da.id,
 					da.document_id,
-					da.employee_id,
+					da.user_id as employee_id,
 					da.department_id,
 					da.assigned_by,
-					da.assigned_at,
-					da.assignment_reason,
+					da.created_at as assigned_at,
+					da.access_level as assignment_reason,
 					u_employee.email as employee_email,
 					u_assigned_by.email as assigned_by_email
 				FROM hr_public.document_assignments da
-				LEFT JOIN hr_public.users u_employee ON da.employee_id = u_employee.id
+				LEFT JOIN hr_public.users u_employee ON da.user_id = u_employee.id
 				LEFT JOIN hr_public.users u_assigned_by ON da.assigned_by = u_assigned_by.id
-				WHERE da.document_id = $1
-				ORDER BY da.assigned_at DESC`,
+				WHERE da.document_id = $1 AND da.deleted_at IS NULL
+				ORDER BY da.created_at DESC`,
 				[documentId]
 			);
 

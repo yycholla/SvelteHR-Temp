@@ -43,7 +43,22 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 			});
 		}
 
-		// Step 5: Transform GraphQL response to match page format
+		// Step 5: Get total count from database
+		const { transaction: dbTransaction, setJWTClaims: setDbClaims } = await import('$lib/server/db');
+
+		const totalCount = await dbTransaction(async (dbClient) => {
+			await setDbClaims(dbClient, userId, userPermissions);
+
+			const countResult = await dbClient.query(
+				`SELECT COUNT(*) as count
+				 FROM hr_public.documents
+				 WHERE deleted_at IS NULL`
+			);
+
+			return parseInt(countResult.rows[0].count, 10);
+		});
+
+		// Step 6: Transform GraphQL response to match page format
 		const documents = (response.data?.documents || []).map((doc: any) => ({
 			id: doc.id,
 			filename: doc.title,
@@ -62,8 +77,6 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 				email: 'Unknown' // User relationship is lazy-loaded
 			}))
 		}));
-
-		const totalCount = documents.length; // Simple count for now
 
 		// Step 7: Return data for the page
 		return {

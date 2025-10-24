@@ -15,7 +15,7 @@
 		Database,
 		Lock,
 		BarChart3
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 
 	// Admin dashboard metrics
 	let adminMetrics = [

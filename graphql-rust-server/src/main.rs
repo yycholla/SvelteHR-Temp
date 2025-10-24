@@ -39,6 +39,7 @@ mod error;
 mod handlers;
 mod middleware;
 mod models;
+mod scheduler;
 mod schema;
 
 #[tokio::main]
@@ -161,6 +162,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     });
+
+    // Start employee statistics scheduler (captures daily snapshots)
+    scheduler::start_employee_statistics_scheduler(db.clone()).await;
+    tracing::info!("📊 Employee statistics scheduler started");
 
     tracing::info!("🚀 Server starting on http://{}", addr);
     tracing::info!("📊 GraphQL playground: http://{}", addr);

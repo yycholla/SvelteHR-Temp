@@ -22,7 +22,7 @@
 		Phone,
 		Shield,
 		DollarSign
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 	import type { ValidationResult } from '$lib/utils/validation';
 	import type { User, CreateUserInput, UpdateUserInput } from '$lib/types';
 

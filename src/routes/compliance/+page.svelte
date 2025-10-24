@@ -15,7 +15,7 @@
 		ArrowLeft,
 		Eye,
 		RefreshCw
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 
 	// Mock compliance data
 	const complianceOverview = {

@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { authStore, isAuthenticated, isLoading, userRoles } from '$lib/stores/auth';
-	import { Loader2, AlertTriangle } from 'lucide-svelte';
+	import { Loader2, AlertTriangle } from '@lucide/svelte';
 
 	/**
 	 * Protected Route Component

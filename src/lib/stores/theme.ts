@@ -6,7 +6,7 @@
  */
 
 import { browser } from '$app/environment';
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 
 export type Theme = 'light' | 'dark' | 'system';
 
@@ -106,11 +106,9 @@ function createThemeStore() {
 
 	// Toggle between light and dark (skipping system)
 	function toggle() {
-		update((state) => {
-			const newTheme = state.resolved === 'light' ? 'dark' : 'light';
-			setTheme(newTheme);
-			return state; // setTheme will update the state
-		});
+		const state = get({ subscribe });
+		const newTheme = state.resolved === 'light' ? 'dark' : 'light';
+		setTheme(newTheme);
 	}
 
 	return {

@@ -301,23 +301,4 @@
 	</div>
 </div>
 
-<style>
-	.task-card.compact {
-		@apply p-3;
-	}
 
-	.task-card.overdue {
-		@apply border-destructive/50;
-	}
-
-	.task-card.assigned-to-user {
-		@apply bg-accent/5;
-	}
-
-	.line-clamp-2 {
-		display: -webkit-box;
-		-webkit-line-clamp: 2;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
-	}
-</style>

@@ -26,7 +26,7 @@
 	import * as Select from '$lib/components/ui/select';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Search, Users, X } from 'lucide-svelte';
+	import { Search, Users, X } from '@lucide/svelte';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 
 	// Props with Svelte 5 runes

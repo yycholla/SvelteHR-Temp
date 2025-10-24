@@ -9,7 +9,7 @@
 
 	import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '$lib/components/ui/accordion';
 	import { Badge } from '$lib/components/ui/badge';
-	import { History, User, Calendar, MapPin, Users } from 'lucide-svelte';
+	import { History, User, Calendar, MapPin, Users } from '@lucide/svelte';
 	import { formatDistanceToNow, format } from 'date-fns';
 
 	type ChangeType = 'created' | 'updated' | 'deleted' | 'ownership_transfer' | 'attendee_added' | 'attendee_removed';

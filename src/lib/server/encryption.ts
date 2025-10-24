@@ -232,3 +232,74 @@ export function unpackageEncryptedData(packagedData: Buffer): {
 
 	return { iv, authTag, encrypted };
 }
+
+/**
+ * Retrieve and decrypt file from database
+ *
+ * @param client - PostgreSQL client for database queries
+ * @param documentId - UUID of document to retrieve
+ * @returns Decrypted file data as Buffer
+ *
+ * @example
+ * ```typescript
+ * import { retrieveAndDecryptFile } from '$lib/server/encryption';
+ *
+ * const decryptedFile = await retrieveAndDecryptFile(client, documentId);
+ * ```
+ */
+export async function retrieveAndDecryptFile(
+	client: any,
+	documentId: string
+): Promise<Buffer> {
+	// Step 1: Get encrypted file data and encryption key ID
+	const fileResult = await client.query(
+		`SELECT encrypted_data, iv, encryption_key_id
+		 FROM hr_public.encrypted_file_storage
+		 WHERE document_id = $1`,
+		[documentId]
+	);
+
+	if (fileResult.rows.length === 0) {
+		throw new Error('Encrypted file not found in storage');
+	}
+
+	const { encrypted_data, iv, encryption_key_id } = fileResult.rows[0];
+
+	// Step 2: Decrypt the encryption key using hr_public.decrypt_key_data function
+	// This function uses: key_name || '_SERVER_SECRET_KEY_PLACEHOLDER' as the encryption password
+	const keyResult = await client.query(
+		`SELECT hr_public.decrypt_key_data(encrypted_key, key_name) as decrypted_key
+		 FROM hr_public.encryption_keys
+		 WHERE id = $1 AND is_active = true`,
+		[encryption_key_id]
+	);
+
+	if (keyResult.rows.length === 0) {
+		throw new Error('Encryption key not found or inactive');
+	}
+
+	const decryptedKeyBuffer = Buffer.from(keyResult.rows[0].decrypted_key);
+	const ivBuffer = Buffer.from(iv);
+	const encryptedDataBuffer = Buffer.from(encrypted_data);
+
+	// Step 3: Unpackage encrypted data
+	// IMPORTANT: Rust backend prepends IV before storing, so encrypted_data format is:
+	// [IV_prepended (12)][IV_original (12)][Auth Tag (16)][Encrypted Data]
+	// We need to skip the prepended IV and unpackage the rest
+
+	if (encryptedDataBuffer.length < IV_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH) {
+		throw new Error('Encrypted data is too small');
+	}
+
+	// Skip the prepended IV (first 12 bytes)
+	const packagedData = encryptedDataBuffer.subarray(IV_LENGTH);
+
+	// Unpackage: [IV_original (12)][Auth Tag (16)][Encrypted Data]
+	const { iv: packagedIv, authTag, encrypted: actualEncrypted } = unpackageEncryptedData(packagedData);
+
+	// Step 4: Decrypt the file using AES-256-GCM
+	// Use IV from database column (not from package, though they should match)
+	const decrypted = decryptFile(actualEncrypted, decryptedKeyBuffer, ivBuffer, authTag);
+
+	return decrypted;
+}
