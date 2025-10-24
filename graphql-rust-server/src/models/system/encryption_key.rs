@@ -82,23 +82,18 @@ impl Model {
     }
 
     #[graphql(name = "keyName")]
-    async fn key_name(&self) -> Option<&str> {
-        self.key_name.as_deref()
+    async fn key_name(&self) -> &str {
+        &self.key_name
     }
 
-    #[graphql(name = "keyIdentifier")]
-    async fn key_identifier(&self) -> &str {
-        &self.key_identifier
-    }
-
-    #[graphql(name = "keyAlgorithm")]
-    async fn key_algorithm(&self) -> &str {
-        &self.key_algorithm
+    #[graphql(name = "algorithm")]
+    async fn algorithm(&self) -> &str {
+        &self.algorithm
     }
 
     #[graphql(name = "isActive")]
     async fn is_active(&self) -> bool {
-        self.is_active
+        self.active
     }
 
     #[graphql(name = "createdAt")]

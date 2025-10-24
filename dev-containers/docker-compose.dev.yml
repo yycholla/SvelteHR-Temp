@@ -49,7 +49,7 @@ services:
   hr-graphql-rust:
     build:
       context: ../graphql-rust-server
-      dockerfile: Dockerfile.dev # Use development Dockerfile with cargo-watch
+      dockerfile: Dockerfile.dev.bacon # Use development Dockerfile with bacon (faster, smarter hot-reload)
     container_name: sveltehr-graphql-rust
     volumes:
       # Mount source code for hot-reloading

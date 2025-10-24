@@ -54,9 +54,9 @@ impl MigrationTrait for Migration {
                     .add_foreign_key(
                         TableForeignKey::new()
                             .name("fk_encryption_keys_user_id")
-                            .from_tbl(EncryptionKeys::Table)
+                            .from_tbl((Schema::HrPublic, EncryptionKeys::Table))
                             .from_col(EncryptionKeys::UserId)
-                            .to_tbl(Users::Table)
+                            .to_tbl((Schema::HrPublic, Users::Table))
                             .to_col(Users::Id)
                             .on_delete(ForeignKeyAction::Cascade)
                     )
@@ -123,18 +123,18 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // Grant execute permissions on functions
+        // Grant execute permissions on functions (to PUBLIC for development)
         manager
             .get_connection()
             .execute_unprepared(
-                "GRANT EXECUTE ON FUNCTION hr_public.encrypt_key_data(BYTEA, VARCHAR) TO authenticated"
+                "GRANT EXECUTE ON FUNCTION hr_public.encrypt_key_data(BYTEA, VARCHAR) TO PUBLIC"
             )
             .await?;
 
         manager
             .get_connection()
             .execute_unprepared(
-                "GRANT EXECUTE ON FUNCTION hr_public.decrypt_key_data(BYTEA, VARCHAR) TO authenticated"
+                "GRANT EXECUTE ON FUNCTION hr_public.decrypt_key_data(BYTEA, VARCHAR) TO PUBLIC"
             )
             .await?;
 

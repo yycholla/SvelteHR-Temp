@@ -58,7 +58,7 @@ impl TaskMutations {
             task_id: Set(task.id),
             user_id: Set(creator_id),
             action: Set("created".to_string()),
-            new_value: Set(Some(serde_json::to_string(&task).unwrap_or_default())),
+            new_value: Set(serde_json::to_value(&task).ok()),
             ..Default::default()
         };
         audit_entry.insert(&txn).await?;
@@ -168,7 +168,7 @@ impl TaskMutations {
             task_id: Set(updated_task.id),
             user_id: Set(user_id),
             action: Set("updated".to_string()),
-            new_value: Set(Some(serde_json::to_string(&updated_task).unwrap_or_default())),
+            new_value: Set(serde_json::to_value(&updated_task).ok()),
             ..Default::default()
         };
         audit_entry.insert(&txn).await?;
@@ -224,8 +224,8 @@ impl TaskMutations {
             user_id: Set(user_id),
             action: Set("status_changed".to_string()),
             field_name: Set(Some("status".to_string())),
-            old_value: Set(Some(old_status)),
-            new_value: Set(Some(input.status.as_str().to_string())),
+            old_value: Set(Some(serde_json::Value::String(old_status))),
+            new_value: Set(Some(serde_json::Value::String(input.status.as_str().to_string()))),
             comment: Set(input.comment),
             ..Default::default()
         };

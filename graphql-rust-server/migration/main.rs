@@ -29,9 +29,7 @@ mod m20251020_002_add_missing_permissions;
 mod m20251020_003_add_teams_permissions;
 mod m20251020_004_add_user_addresses;
 mod m20251020_005_add_user_theme_preference;
-mod m20251023_001_fix_encryption_keys_schema;
-mod m20251023_002_add_encryption_functions;
-mod m20251023_001_fix_encryption_keys;
+mod m20251023_003_fix_encryption_keys;
 
 pub struct Migrator;
 
@@ -56,9 +54,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20251020_003_add_teams_permissions::Migration),
             Box::new(m20251020_004_add_user_addresses::Migration),
             Box::new(m20251020_005_add_user_theme_preference::Migration),
-            Box::new(m20251023_001_fix_encryption_keys_schema::Migration),
-            Box::new(m20251023_002_add_encryption_functions::Migration),
-            Box::new(m20251023_001_fix_encryption_keys::Migration),
+            Box::new(m20251023_003_fix_encryption_keys::Migration),
         ]
     }
 }

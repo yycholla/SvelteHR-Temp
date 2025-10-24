@@ -3872,19 +3872,6 @@ impl MutationRoot {
 
         let key = key.insert(&db).await?;
 
-        // Convert SeaORM model to legacy EncryptionKey struct for compatibility
-        let key = EncryptionKey {
-            id: key.id,
-            key_name: key.key_name,
-            encrypted_key: key.encrypted_key,
-            key_identifier: key.key_identifier,
-            encrypted_key_data: key.encrypted_key_data,
-            key_algorithm: key.key_algorithm,
-            created_for_user: key.created_for_user,
-            is_active: key.is_active,
-            created_at: key.created_at,
-            rotated_at: key.rotated_at,
-        };
         Ok(key)
     }
 
