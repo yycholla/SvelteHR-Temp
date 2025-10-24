@@ -101,7 +101,7 @@ export const load: PageServerLoad = async ({ locals, fetch }) => {
 
 // Server-side actions for document upload
 export const actions: Actions = {
-	upload: async ({ request, locals, cookies }) => {
+	upload: async ({ request, locals, cookies, fetch }) => {
 		// Step 1: Validate authentication
 		if (!locals.user) {
 			throw redirect(303, '/login?redirectTo=/dashboard/documents/upload');
@@ -304,7 +304,7 @@ export const actions: Actions = {
 			}
 
 			// Step 9: Log successful upload
-			await logSuccessfulAccess(document.id, userId, 'upload', createAccessMetadata());
+			await logSuccessfulAccess(document.id, userId, 'view', createAccessMetadata(), fetch);
 
 			console.log('[UPLOAD ACTION] Document uploaded successfully:', {
 				documentId: document.id,

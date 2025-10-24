@@ -170,8 +170,8 @@ export async function listDocuments(filters: DocumentFilter): Promise<PaginatedD
 }
 
 // Download document (encrypted)
-export async function downloadDocument(documentId: string): Promise<Blob> {
-	const response = await fetch(`/api/documents/${documentId}/download`, {
+export async function downloadDocument(documentId: string, fetchFn: typeof fetch = fetch): Promise<Blob> {
+	const response = await fetchFn(`/api/documents/${documentId}/download`, {
 		method: 'GET',
 		credentials: 'include' // Include cookies for authentication
 	});
@@ -182,7 +182,7 @@ export async function downloadDocument(documentId: string): Promise<Blob> {
 	}
 
 	// Log successful download
-	await logSuccessfulAccess(documentId, 'current_user', 'download', createAccessMetadata());
+	await logSuccessfulAccess(documentId, 'current_user', 'download', createAccessMetadata(), fetchFn);
 
 	return await response.blob();
 }

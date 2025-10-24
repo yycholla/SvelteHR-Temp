@@ -427,13 +427,27 @@ console.log(`   - Block duration: ${BLOCK_DURATION / 1000 / 60}min after max att
 console.log(`   - Security headers: CSP, HSTS, X-Frame-Options, etc.`);
 console.log(`   - CSRF protection: ${authConfig.security.enableCSRF ? 'enabled' : 'disabled'}`);
 
-// Initialize event reminder scheduler
+// Initialize event reminder scheduler with backend health check
 import { ReminderScheduler } from '$lib/server/reminder-scheduler';
+import { waitForBackend } from '$lib/server/backend-health';
 
-// Start the reminder scheduler on server startup
+// Start the reminder scheduler after ensuring backend is healthy
 if (process.env.ENABLE_REMINDER_SCHEDULER !== 'false') {
-	ReminderScheduler.start();
-	console.log('⏰ Event reminder scheduler started');
+	// Wait for backend in background, don't block server startup
+	waitForBackend(undefined, {
+		maxRetries: 15,
+		initialDelay: 2000,
+		maxDelay: 30000
+	}).then((result) => {
+		if (result.healthy) {
+			ReminderScheduler.start();
+			console.log('⏰ Event reminder scheduler started');
+		} else {
+			console.error('⏰ Event reminder scheduler disabled - backend not healthy:', result.message);
+		}
+	}).catch((error) => {
+		console.error('⏰ Event reminder scheduler startup error:', error);
+	});
 } else {
 	console.log('⏰ Event reminder scheduler disabled (ENABLE_REMINDER_SCHEDULER=false)');
 }

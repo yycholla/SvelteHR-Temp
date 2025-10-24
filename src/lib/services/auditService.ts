@@ -19,7 +19,8 @@ export async function logAccess(
 	userId: string,
 	accessType: AccessType,
 	outcome: AccessOutcome,
-	metadata?: AccessMetadata & { denialReason?: string }
+	metadata?: AccessMetadata & { denialReason?: string },
+	fetchFn: typeof fetch = fetch
 ): Promise<void> {
 	const logEntry: AccessLogEntry = {
 		documentId,
@@ -32,7 +33,7 @@ export async function logAccess(
 	};
 
 	try {
-		const response = await fetch('/api/audit/log', {
+		const response = await fetchFn('/api/audit/log', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
@@ -53,9 +54,10 @@ export async function logSuccessfulAccess(
 	documentId: string,
 	userId: string,
 	accessType: AccessType,
-	metadata?: AccessMetadata
+	metadata?: AccessMetadata,
+	fetchFn: typeof fetch = fetch
 ): Promise<void> {
-	return logAccess(documentId, userId, accessType, 'success', metadata);
+	return logAccess(documentId, userId, accessType, 'success', metadata, fetchFn);
 }
 
 // Log denied access
@@ -64,26 +66,28 @@ export async function logDeniedAccess(
 	userId: string,
 	accessType: AccessType,
 	denialReason: string,
-	metadata?: AccessMetadata
+	metadata?: AccessMetadata,
+	fetchFn: typeof fetch = fetch
 ): Promise<void> {
 	return logAccess(documentId, userId, accessType, 'denied', {
 		...metadata,
 		denialReason
-	});
+	}, fetchFn);
 }
 
 // Get access logs for a document
 export async function getDocumentAccessLogs(
 	documentId: string,
 	page: number = 1,
-	limit: number = 50
+	limit: number = 50,
+	fetchFn: typeof fetch = fetch
 ): Promise<{
 	logs: AccessLogEntry[];
 	totalCount: number;
 	page: number;
 	limit: number;
 }> {
-	const response = await fetch(
+	const response = await fetchFn(
 		`/api/audit/logs/${documentId}?page=${page}&limit=${limit}`,
 		{
 			method: 'GET'
@@ -102,14 +106,15 @@ export async function getDocumentAccessLogs(
 export async function getUserAccessLogs(
 	userId: string,
 	page: number = 1,
-	limit: number = 50
+	limit: number = 50,
+	fetchFn: typeof fetch = fetch
 ): Promise<{
 	logs: AccessLogEntry[];
 	totalCount: number;
 	page: number;
 	limit: number;
 }> {
-	const response = await fetch(
+	const response = await fetchFn(
 		`/api/audit/user/${userId}?page=${page}&limit=${limit}`,
 		{
 			method: 'GET'
@@ -127,7 +132,8 @@ export async function getUserAccessLogs(
 // Get audit trail summary
 export async function getAuditSummary(
 	startDate?: Date,
-	endDate?: Date
+	endDate?: Date,
+	fetchFn: typeof fetch = fetch
 ): Promise<{
 	totalAccesses: number;
 	successfulAccesses: number;
@@ -140,7 +146,7 @@ export async function getAuditSummary(
 	if (startDate) params.set('startDate', startDate.toISOString());
 	if (endDate) params.set('endDate', endDate.toISOString());
 
-	const response = await fetch(`/api/audit/summary?${params.toString()}`, {
+	const response = await fetchFn(`/api/audit/summary?${params.toString()}`, {
 		method: 'GET'
 	});
 
@@ -161,7 +167,8 @@ export async function exportAuditLogs(
 		accessOutcome?: AccessOutcome;
 		startDate?: Date;
 		endDate?: Date;
-	}
+	},
+	fetchFn: typeof fetch = fetch
 ): Promise<Blob> {
 	const params = new URLSearchParams();
 	if (filters?.documentId) params.set('documentId', filters.documentId);
@@ -171,7 +178,7 @@ export async function exportAuditLogs(
 	if (filters?.startDate) params.set('startDate', filters.startDate.toISOString());
 	if (filters?.endDate) params.set('endDate', filters.endDate.toISOString());
 
-	const response = await fetch(`/api/audit/export?${params.toString()}`, {
+	const response = await fetchFn(`/api/audit/export?${params.toString()}`, {
 		method: 'GET'
 	});
 
@@ -186,7 +193,8 @@ export async function exportAuditLogs(
 // Check for suspicious access patterns
 export async function checkSuspiciousActivity(
 	userId: string,
-	documentId?: string
+	documentId?: string,
+	fetchFn: typeof fetch = fetch
 ): Promise<{
 	isSuspicious: boolean;
 	reasons: string[];
@@ -195,7 +203,7 @@ export async function checkSuspiciousActivity(
 	const params = new URLSearchParams({ userId });
 	if (documentId) params.set('documentId', documentId);
 
-	const response = await fetch(`/api/audit/suspicious?${params.toString()}`, {
+	const response = await fetchFn(`/api/audit/suspicious?${params.toString()}`, {
 		method: 'GET'
 	});
 

@@ -8,6 +8,7 @@
  */
 
 import cron from 'node-cron';
+import { withExponentialBackoff } from './backend-health';
 
 export interface PendingReminder {
 	attendeeId: string;
@@ -107,50 +108,64 @@ export class ReminderScheduler {
 				? `${process.env.VITE_API_URL}/graphql`
 				: 'http://localhost:4000/graphql';
 
-			// Fetch all attendees with reminders set using Rust GraphQL
-			// NOTE: Updated to match Rust GraphQL schema (idiomatic naming)
-			// NOTE: Rust doesn't have a direct "pending reminders" query, so we fetch all attendees with reminders
-			const response = await fetch(graphqlEndpoint, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${serviceKey}`
-				},
-				body: JSON.stringify({
-					query: `
-						query GetEventAttendeesWithReminders($reminderTimeIsNull: Boolean, $limit: Int) {
-							eventAttendees(
-								reminderTimeIsNull: $reminderTimeIsNull
-								limit: $limit
-							) {
-								id
-								employeeId
-								eventId
-								reminderTime
-								responseStatus
-								event {
-									id
-									title
-									startTime
-									endTime
-									status
+			// Fetch with exponential backoff to handle backend startup delays
+			const data = await withExponentialBackoff(
+				async () => {
+					// Fetch all attendees with reminders set using Rust GraphQL
+					// NOTE: Updated to match Rust GraphQL schema (idiomatic naming)
+					// NOTE: Rust doesn't have a direct "pending reminders" query, so we fetch all attendees with reminders
+					const response = await fetch(graphqlEndpoint, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							'Authorization': `Bearer ${serviceKey}`
+						},
+						body: JSON.stringify({
+							query: `
+								query GetEventAttendeesWithReminders($reminderTimeIsNull: Boolean, $limit: Int) {
+									eventAttendees(
+										reminderTimeIsNull: $reminderTimeIsNull
+										limit: $limit
+									) {
+										id
+										employeeId
+										eventId
+										reminderTime
+										responseStatus
+										event {
+											id
+											title
+											startTime
+											endTime
+											status
+										}
+										employee {
+											id
+											displayName
+											email
+										}
+									}
 								}
-								employee {
-									id
-									displayName
-									email
-								}
+							`,
+							variables: {
+								reminderTimeIsNull: false,
+								limit: 1000
 							}
-						}
-					`,
-					variables: {
-						reminderTimeIsNull: false,
-						limit: 1000
-					}
-				})
-			});
+						})
+					});
 
-			const data = await response.json();
+					if (!response.ok) {
+						throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+					}
+
+					return await response.json();
+				},
+				{
+					maxRetries: 5,
+					initialDelay: 2000,
+					maxDelay: 30000
+				}
+			);
 
 			if (data.errors) {
 				console.error('[ReminderScheduler] GraphQL errors:', data.errors);
@@ -194,6 +209,7 @@ export class ReminderScheduler {
 			return pendingReminders;
 		} catch (error) {
 			console.error('[ReminderScheduler] Error fetching pending reminders:', error);
+			// Return empty array instead of throwing - scheduler will try again next minute
 			return [];
 		}
 	}
@@ -274,48 +290,62 @@ export class ReminderScheduler {
 				? `${process.env.VITE_API_URL}/graphql`
 				: 'http://localhost:4000/graphql';
 
-			// Create the notification using Rust GraphQL
-			// NOTE: Updated to match Rust GraphQL schema (idiomatic naming)
-			// NOTE: Rust uses lowercase enum values for notification types
-			const response = await fetch(graphqlEndpoint, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${serviceKey}`
-				},
-				body: JSON.stringify({
-					query: `
-						mutation CreateEventReminder($input: CreateNotificationInput!) {
-							createNotification(input: $input) {
-								notification {
-									id
-									recipientId
-									type
-									category
-									title
-									message
+			// Create notification with retry logic
+			const data = await withExponentialBackoff(
+				async () => {
+					// Create the notification using Rust GraphQL
+					// NOTE: Updated to match Rust GraphQL schema (idiomatic naming)
+					// NOTE: Rust uses lowercase enum values for notification types
+					const response = await fetch(graphqlEndpoint, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							'Authorization': `Bearer ${serviceKey}`
+						},
+						body: JSON.stringify({
+							query: `
+								mutation CreateEventReminder($input: CreateNotificationInput!) {
+									createNotification(input: $input) {
+										notification {
+											id
+											recipientId
+											type
+											category
+											title
+											message
+										}
+									}
+								}
+							`,
+							variables: {
+								input: {
+									notification: {
+										recipientId: options.userId,
+										type: 'event_reminder',
+										category: 'event',
+										title: 'Event Reminder',
+										message: options.message,
+										relatedResourceType: 'event',
+										relatedResourceId: options.eventId,
+										readStatus: false
+									}
 								}
 							}
-						}
-					`,
-					variables: {
-						input: {
-							notification: {
-								recipientId: options.userId,
-								type: 'event_reminder',
-								category: 'event',
-								title: 'Event Reminder',
-								message: options.message,
-								relatedResourceType: 'event',
-								relatedResourceId: options.eventId,
-								readStatus: false
-							}
-						}
-					}
-				})
-			});
+						})
+					});
 
-			const data = await response.json();
+					if (!response.ok) {
+						throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+					}
+
+					return await response.json();
+				},
+				{
+					maxRetries: 3,
+					initialDelay: 1000,
+					maxDelay: 10000
+				}
+			);
 
 			if (data.errors) {
 				console.error('[ReminderScheduler] GraphQL errors:', data.errors);
