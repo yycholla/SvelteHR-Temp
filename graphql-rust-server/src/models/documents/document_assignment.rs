@@ -51,8 +51,12 @@ pub struct Model {
     pub user_id: Option<Uuid>,
     pub department_id: Option<Uuid>,
     pub access_level: String, // Will be converted to enum in GraphQL
-    pub assigned_by_id: Uuid,
-    pub assigned_at: DateTime<Utc>,
+    pub assigned_by: Uuid,
+    pub due_date: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -111,14 +115,34 @@ impl Model {
         }
     }
 
-    #[graphql(name = "assignedAt")]
-    async fn assigned_at(&self) -> DateTime<Utc> {
-        self.assigned_at
+    #[graphql(name = "assignedBy")]
+    async fn assigned_by(&self) -> Uuid {
+        self.assigned_by
     }
 
-    #[graphql(name = "assignedById")]
-    async fn assigned_by_id(&self) -> Uuid {
-        self.assigned_by_id
+    #[graphql(name = "dueDate")]
+    async fn due_date(&self) -> Option<DateTime<Utc>> {
+        self.due_date
+    }
+
+    #[graphql(name = "completedAt")]
+    async fn completed_at(&self) -> Option<DateTime<Utc>> {
+        self.completed_at
+    }
+
+    #[graphql(name = "createdAt")]
+    async fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    #[graphql(name = "updatedAt")]
+    async fn updated_at(&self) -> DateTime<Utc> {
+        self.updated_at
+    }
+
+    #[graphql(name = "deletedAt")]
+    async fn deleted_at(&self) -> Option<DateTime<Utc>> {
+        self.deleted_at
     }
 
     /// Document relationship (lazy-loaded)
@@ -168,10 +192,10 @@ impl Model {
     }
 
     /// Assigner relationship (lazy-loaded)
-    #[graphql(name = "assignedBy")]
-    async fn assigned_by(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::User> {
+    #[graphql(name = "assigner")]
+    async fn assigner(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::User> {
         let db = get_db_from_context(ctx)?;
-        let user = crate::models::user::Entity::find_by_id(self.assigned_by_id)
+        let user = crate::models::user::Entity::find_by_id(self.assigned_by)
             .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;

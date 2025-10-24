@@ -995,6 +995,52 @@ impl QueryRoot {
 
         Ok(address)
     }
+
+    // =========================================================================
+    // Document Queries
+    // =========================================================================
+
+    /// Get all documents with pagination
+    async fn documents(
+        &self,
+        ctx: &Context<'_>,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<crate::models::documents::document::Model>> {
+        use crate::models::documents::document::{Entity as DocumentEntity, Column as DocumentColumn};
+
+        let db = get_db_from_context(ctx)?;
+        let limit = limit.unwrap_or(20).clamp(1, 100);
+        let offset = offset.unwrap_or(0).max(0);
+
+        let documents = DocumentEntity::find()
+            .filter(DocumentColumn::DeletedAt.is_null())
+            .order_by_desc(DocumentColumn::CreatedAt)
+            .limit(Some(limit as u64))
+            .offset(offset as u64)
+            .all(&db)
+            .await?;
+
+        Ok(documents)
+    }
+
+    /// Get a single document by ID
+    async fn document(
+        &self,
+        ctx: &Context<'_>,
+        id: Uuid,
+    ) -> Result<Option<crate::models::documents::document::Model>> {
+        use crate::models::documents::document::{Entity as DocumentEntity, Column as DocumentColumn};
+
+        let db = get_db_from_context(ctx)?;
+
+        let document = DocumentEntity::find_by_id(id)
+            .filter(DocumentColumn::DeletedAt.is_null())
+            .one(&db)
+            .await?;
+
+        Ok(document)
+    }
 }
 
 #[cfg(test)]

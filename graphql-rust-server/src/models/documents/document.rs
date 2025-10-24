@@ -6,30 +6,9 @@ use async_graphql::{InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
 use sea_orm::{entity::prelude::*, FromQueryResult, QueryFilter, QueryOrder, QuerySelect};
 use serde::{Deserialize, Serialize};
-use sqlx::FromRow;
 use uuid::Uuid;
 
 use crate::{database::get_db_from_context, error::AppError};
-
-/// SQLx-compatible Document struct for backward compatibility during migration
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
-pub struct Document {
-    pub id: Uuid,
-    pub title: String,
-    pub description: Option<String>,
-    pub category_id: Option<Uuid>,
-    pub uploaded_by: Uuid,
-    pub file_path: String,
-    pub file_size: i64,
-    pub mime_type: String,
-    pub access_level: String,
-    pub is_encrypted: bool,
-    pub expiry_date: Option<DateTime<Utc>>,
-    pub version_number: i32,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub deleted_at: Option<DateTime<Utc>>,
-}
 
 /// Core document metadata
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]

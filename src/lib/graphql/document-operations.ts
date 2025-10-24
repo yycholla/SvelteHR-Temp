@@ -18,46 +18,36 @@ export const UPLOAD_DOCUMENT = `
 	}
 `;
 
-// Get documents query
+// Get documents query with simple list (no Relay connection)
 export const GET_DOCUMENTS = `
-	query GetDocuments($first: Int, $after: String, $filter: DocumentFilter) {
-		documents(first: $first, after: $after, filter: $filter) {
-			edges {
-				node {
-					id
-					title
-					description
-					categoryId
-					filePath
-					fileSize
-					mimeType
-					accessLevel
-					isEncrypted
-					expiryDate
-					createdAt
-					updatedAt
-					uploaderId
-					category {
-						id
-						name
-					}
-					assignments {
-						id
-						userId
-						assignedBy
-						dueDate
-						completedAt
-					}
-				}
-				cursor
+	query GetDocuments($limit: Int, $offset: Int) {
+		documents(limit: $limit, offset: $offset) {
+			id
+			title
+			description
+			categoryId
+			filePath
+			fileSize
+			mimeType
+			accessLevel
+			isEncrypted
+			expiryDate
+			versionNumber
+			createdAt
+			updatedAt
+			uploaderId
+			category {
+				id
+				name
 			}
-			pageInfo {
-				hasNextPage
-				hasPreviousPage
-				startCursor
-				endCursor
+			assignments {
+				id
+				userId
+				assignedBy
+				dueDate
+				completedAt
+				createdAt
 			}
-			totalCount
 		}
 	}
 `;

@@ -2531,7 +2531,7 @@ impl MutationRoot {
             user_id: Set(input.user_id),
             department_id: Set(input.department_id),
             access_level: Set(input.access_level.as_str().to_string()),
-            assigned_by_id: Set(assigner_id),
+            assigned_by: Set(assigner_id),
             ..Default::default()
         };
 
@@ -3784,8 +3784,8 @@ impl MutationRoot {
                     user_id: Set(Some(*employee_id)),
                     department_id: Set(None),
                     access_level: Set("read".to_string()),
-                    assigned_by_id: Set(user.id),
-                    assigned_at: Set(Utc::now()),
+                    assigned_by: Set(user.id),
+                    ..Default::default()
                 };
                 assignment.insert(&txn).await?;
             }
