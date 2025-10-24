@@ -90,25 +90,31 @@
 		isUploading = false;
 	}
 
-	// Handle unified upload button click
-	async function handleUpload() {
+	// Handle cancel
+	function handleCancel() {
+		goto('/dashboard/documents');
+	}
+
+	// Handle form submit - now much simpler with server-side encryption
+	async function handleSubmit(event: SubmitEvent) {
 		uploadError = null;
 
 		// Validate metadata
 		if (!metadataForm.validateMetadata()) {
 			uploadError = 'Please fill in all required metadata fields';
+			event.preventDefault();
 			return;
 		}
 
-		try {
-			isUploading = true;
-			await fileUploader.triggerUpload();
-		} catch (error) {
-			console.error('Upload error:', error);
-			uploadError = error instanceof Error ? error.message : 'Upload failed';
-		} finally {
-			isUploading = false;
+		// Get selected file
+		const file = fileUploader.getSelectedFile();
+		if (!file) {
+			uploadError = 'Please select a file';
+			event.preventDefault();
+			return;
 		}
+
+		isUploading = true;
 	}
 
 	// Handle form action response
@@ -123,11 +129,6 @@
 			isUploading = false;
 		}
 	}
-
-	// Handle cancel
-	function handleCancel() {
-		goto('/dashboard/documents');
-	}
 </script>
 
 <svelte:head>
@@ -139,8 +140,8 @@
 	<div class="space-y-1">
 		<h1 class="text-3xl font-bold tracking-tight">Upload Document</h1>
 		<p class="text-muted-foreground">
-			Upload a new document with end-to-end encryption. All files are encrypted on your device
-			before upload.
+			Upload a new document with server-side encryption. Files are encrypted securely before
+			storage using AES-256-GCM.
 		</p>
 	</div>
 
@@ -155,32 +156,69 @@
 			</Alert.Description>
 		</Alert.Root>
 	{:else}
-		<!-- Upload form -->
+		<!-- Upload form with server-side encryption -->
 		<form
 			method="POST"
 			action="?/upload"
-			use:enhance={() => {
-				// Custom enhancement to handle the upload process
-				return async ({ formData }) => {
-					uploadError = null;
+			enctype="multipart/form-data"
+			onsubmit={handleSubmit}
+			use:enhance={({ formData, cancel }) => {
+				uploadError = null;
 
-					// Validate metadata
-					if (!metadataForm.validateMetadata()) {
-						uploadError = 'Please fill in all required metadata fields';
-						return;
-					}
+				// Get selected file and add to FormData
+				const file = fileUploader.getSelectedFile();
+				if (!file) {
+					uploadError = 'Please select a file';
+					cancel();
+					return;
+				}
 
-					try {
-						isUploading = true;
-						await fileUploader.triggerUpload();
-						// The actual form submission will happen in triggerUpload
-						return { success: false }; // Prevent default form submission
-					} catch (error) {
-						console.error('Upload error:', error);
-						uploadError = error instanceof Error ? error.message : 'Upload failed';
+				// Validate metadata before submission
+				if (!metadataForm.validateMetadata()) {
+					uploadError = 'Please fill in all required metadata fields';
+					cancel();
+					return;
+				}
+
+				// Add file to form data
+				formData.set('file', file);
+
+				// Add metadata to form data
+				formData.set('category', metadata.category);
+				formData.set('sensitivityLevel', metadata.sensitivityLevel);
+				if (metadata.expirationDate) {
+					// Convert date-only format (YYYY-MM-DD) to RFC3339 DateTime
+					// HTML date inputs return YYYY-MM-DD, but GraphQL expects full datetime
+					formData.set('expirationDate', `${metadata.expirationDate}T23:59:59Z`);
+				}
+				// Send metadata tags as JSON string
+				formData.set('metadataTags', JSON.stringify(metadata.metadataTags || {}));
+
+				console.log('[Upload] Starting upload...', {
+					filename: file.name,
+					size: file.size,
+					type: file.type,
+					category: metadata.category,
+					sensitivityLevel: metadata.sensitivityLevel
+				});
+
+				// Set uploading state
+				isUploading = true;
+
+				return async ({ result, update }) => {
+					console.log('[Upload] Form submission result:', result);
+
+					if (result.type === 'success' && result.data?.success) {
+						handleUploadSuccess(result.data.result);
+					} else if (result.type === 'failure') {
+						uploadError = result.data?.error || 'Upload failed';
 						isUploading = false;
-						return { success: false };
+					} else if (result.type === 'error') {
+						uploadError = 'Upload failed. Please try again.';
+						isUploading = false;
 					}
+
+					// Don't call update() to prevent default invalidation
 				};
 			}}
 		>

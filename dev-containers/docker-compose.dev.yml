@@ -60,6 +60,7 @@ services:
       - ../graphql-rust-server/Cargo.toml:/app/Cargo.toml
       - ../graphql-rust-server/Cargo.lock:/app/Cargo.lock
       - ../graphql-rust-server/.cargo:/app/.cargo:ro
+      - ../graphql-rust-server/bacon.toml:/app/bacon.toml:ro
       # CRITICAL: Use Docker volume for target directory (NOT bind-mounted)
       # This avoids I/O overhead and significantly speeds up compilation
       - rust_target_cache:/app/target

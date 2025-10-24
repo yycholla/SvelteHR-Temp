@@ -50,15 +50,15 @@ export const load: PageServerLoad = async (event) => {
 		console.log('[My Tasks] Loading tasks for user:', locals.user.id);
 
 		// Load user's tasks
-		// NOTE: Rust GraphQL schema supports assigneeId as a direct parameter
+		// NOTE: Rust GraphQL schema uses TaskFilter input object
 		// Status/priority filtering will be done client-side
 		const tasksResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetMyTasks($userId: UUID!, $limit: Int!, $offset: Int!) {
-						tasks(assigneeId: $userId, limit: $limit, offset: $offset) {
+					query GetMyTasks($filter: TaskFilter!, $limit: Int!, $offset: Int!) {
+						tasks(filter: $filter, limit: $limit, offset: $offset) {
 							id
 							title
 							description
@@ -92,7 +92,7 @@ export const load: PageServerLoad = async (event) => {
 					}
 				`,
 				variables: {
-					userId: locals.user.id,
+					filter: { assigneeId: locals.user.id },
 					limit: 100,
 					offset: 0
 				}

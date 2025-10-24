@@ -5,6 +5,7 @@
 
 use hr_graphql_server::database;
 use hr_graphql_server::seed_data::{SeedConfig, SeedError};
+use hr_graphql_server::seed_data::config::EntityType;
 use std::env;
 
 /// Helper to set environment variables for tests
@@ -105,7 +106,7 @@ fn test_seed_config_from_env_defaults() {
 
     // Should have default volume target
     assert!(
-        config.get_target_count("users") > 0,
+        config.get_target_count(EntityType::Users) > 0,
         "Should have default user count"
     );
 

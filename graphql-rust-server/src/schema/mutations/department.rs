@@ -33,19 +33,6 @@ impl DepartmentMutations {
         };
 
         let department = department.insert(&db).await?;
-
-        // Convert SeaORM model to legacy Department struct for compatibility
-        let department = Department {
-            id: department.id,
-            name: department.name,
-            description: department.description,
-            parent_department_id: department.parent_department_id,
-            manager_id: department.manager_id,
-            created_at: department.created_at,
-            updated_at: department.updated_at,
-            deleted_at: department.deleted_at,
-        };
-
         Ok(department)
     }
 
@@ -84,20 +71,7 @@ impl DepartmentMutations {
 
         // Save changes
         let updated_dept = dept.update(&db).await?;
-
-        // Convert to legacy Department struct for compatibility
-        let department = Department {
-            id: updated_dept.id,
-            name: updated_dept.name,
-            description: updated_dept.description,
-            parent_department_id: updated_dept.parent_department_id,
-            manager_id: updated_dept.manager_id,
-            created_at: updated_dept.created_at,
-            updated_at: updated_dept.updated_at,
-            deleted_at: updated_dept.deleted_at,
-        };
-
-        Ok(department)
+        Ok(updated_dept)
     }
 
     /// Soft delete a department (sets deleted_at timestamp)

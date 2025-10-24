@@ -313,20 +313,6 @@ impl TaskMutations {
             ..Default::default()
         };
         let _ = audit_entry.insert(&db).await;
-
-        // Convert SeaORM model to legacy TaskAssignee struct for compatibility
-        let assignee = TaskAssignee {
-            id: assignee.id,
-            task_id: assignee.task_id,
-            user_id: assignee.user_id,
-            role: assignee.role.clone(),
-            assigned_at: assignee.assigned_at,
-            assigned_by: assignee.assigned_by,
-            created_at: assignee.created_at,
-            updated_at: assignee.updated_at,
-            deleted_at: assignee.deleted_at,
-        };
-
         Ok(assignee)
     }
 
@@ -358,21 +344,7 @@ impl TaskMutations {
 
         // Save changes
         let updated_assignee = assignee.update(&db).await?;
-
-        // Convert to legacy TaskAssignee struct for compatibility
-        let assignee = TaskAssignee {
-            id: updated_assignee.id,
-            task_id: updated_assignee.task_id,
-            user_id: updated_assignee.user_id,
-            role: updated_assignee.role.clone(),
-            assigned_at: updated_assignee.assigned_at,
-            assigned_by: updated_assignee.assigned_by,
-            created_at: updated_assignee.created_at,
-            updated_at: updated_assignee.updated_at,
-            deleted_at: updated_assignee.deleted_at,
-        };
-
-        Ok(assignee)
+        Ok(updated_assignee)
     }
 
     /// Remove a user from a task (soft delete)
@@ -442,20 +414,6 @@ impl TaskMutations {
         };
 
         let dependency = dependency.insert(&db).await?;
-
-        // Convert SeaORM model to legacy TaskDependency struct for compatibility
-        let dependency = TaskDependency {
-            id: dependency.id,
-            task_id: dependency.task_id,
-            depends_on_task_id: dependency.depends_on_task_id,
-            dependency_type: dependency.dependency_type.clone(),
-            lag_days: dependency.lag_days,
-            created_by: dependency.created_by,
-            created_at: dependency.created_at,
-            updated_at: dependency.updated_at,
-            deleted_at: dependency.deleted_at,
-        };
-
         Ok(dependency)
     }
 
@@ -491,21 +449,7 @@ impl TaskMutations {
 
         // Save changes
         let updated_dependency = dependency.update(&db).await?;
-
-        // Convert to legacy TaskDependency struct for compatibility
-        let dependency = TaskDependency {
-            id: updated_dependency.id,
-            task_id: updated_dependency.task_id,
-            depends_on_task_id: updated_dependency.depends_on_task_id,
-            dependency_type: updated_dependency.dependency_type.clone(),
-            lag_days: updated_dependency.lag_days,
-            created_by: updated_dependency.created_by,
-            created_at: updated_dependency.created_at,
-            updated_at: updated_dependency.updated_at,
-            deleted_at: updated_dependency.deleted_at,
-        };
-
-        Ok(dependency)
+        Ok(updated_dependency)
     }
 
     /// Delete a task dependency (soft delete)
@@ -558,24 +502,6 @@ impl TaskMutations {
         };
 
         let resource = resource.insert(&db).await?;
-
-        // Convert SeaORM model to legacy LinkedResource struct for compatibility
-        let resource = LinkedResource {
-            id: resource.id,
-            task_id: resource.task_id,
-            resource_type: resource.resource_type.clone(),
-            title: resource.title,
-            url: resource.url,
-            file_path: resource.file_path,
-            file_size: resource.file_size,
-            mime_type: resource.mime_type,
-            description: resource.description,
-            uploaded_by: resource.uploaded_by,
-            created_at: resource.created_at,
-            updated_at: resource.updated_at,
-            deleted_at: resource.deleted_at,
-        };
-
         Ok(resource)
     }
 
@@ -615,25 +541,7 @@ impl TaskMutations {
 
         // Save changes
         let updated_resource = resource.update(&db).await?;
-
-        // Convert to legacy LinkedResource struct for compatibility
-        let resource = LinkedResource {
-            id: updated_resource.id,
-            task_id: updated_resource.task_id,
-            resource_type: updated_resource.resource_type.clone(),
-            title: updated_resource.title,
-            url: updated_resource.url,
-            file_path: updated_resource.file_path,
-            file_size: updated_resource.file_size,
-            mime_type: updated_resource.mime_type,
-            description: updated_resource.description,
-            uploaded_by: updated_resource.uploaded_by,
-            created_at: updated_resource.created_at,
-            updated_at: updated_resource.updated_at,
-            deleted_at: updated_resource.deleted_at,
-        };
-
-        Ok(resource)
+        Ok(updated_resource)
     }
 
     /// Delete a linked resource (soft delete)
@@ -672,19 +580,6 @@ impl TaskMutations {
         };
 
         let task_type = task_type.insert(&db).await?;
-
-        // Convert SeaORM model to legacy TaskType struct for compatibility
-        let task_type = TaskType {
-            id: task_type.id,
-            name: task_type.name,
-            description: task_type.description,
-            default_priority: task_type.default_priority,
-            color_code: task_type.color_code,
-            is_active: task_type.is_active,
-            created_at: task_type.created_at,
-            updated_at: task_type.updated_at,
-        };
-
         Ok(task_type)
     }
 
@@ -731,20 +626,7 @@ impl TaskMutations {
 
         // Save changes
         let updated_task_type = task_type.update(&db).await?;
-
-        // Convert to legacy TaskType struct for compatibility
-        let task_type = TaskType {
-            id: updated_task_type.id,
-            name: updated_task_type.name,
-            description: updated_task_type.description,
-            default_priority: updated_task_type.default_priority,
-            color_code: updated_task_type.color_code,
-            is_active: updated_task_type.is_active,
-            created_at: updated_task_type.created_at,
-            updated_at: updated_task_type.updated_at,
-        };
-
-        Ok(task_type)
+        Ok(updated_task_type)
     }
 
     /// Soft delete a task type

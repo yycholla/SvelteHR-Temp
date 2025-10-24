@@ -281,19 +281,33 @@ export const actions: Actions = {
 			});
 
 			// Prepare create input for Rust GraphQL schema
-			const createInput: any = {
+			// Filter out empty strings and null values to avoid GraphQL parsing errors
+			const createInput: Record<string, any> = {
 				title,
-				description: description || undefined,
 				status, // TaskStatus enum
 				priority, // TaskPriority enum
 				assigneeId: assigneeId || locals.user.id, // UUID - default to current user
-				taskTypeId: taskTypeId || undefined, // UUID or undefined
-				parentTaskId: parentTaskId || undefined, // UUID or undefined
-				dueDate: dueDate || undefined, // ISO datetime string or undefined
 				requiresManualReassignment
-				// Note: reminderTime removed - not in CreateTaskInput schema
-				// Note: organizationId, createdAt, updatedAt handled server-side
 			};
+
+			// Only include optional fields if they have valid values
+			if (description && description.trim()) {
+				createInput.description = description;
+			}
+			if (taskTypeId && taskTypeId.trim()) {
+				createInput.taskTypeId = taskTypeId;
+			}
+			if (parentTaskId && parentTaskId.trim()) {
+				createInput.parentTaskId = parentTaskId;
+			}
+			if (dueDate && dueDate.trim()) {
+				// Convert date-only format (YYYY-MM-DD) to RFC3339 DateTime (YYYY-MM-DDTHH:MM:SSZ)
+				// HTML date inputs return YYYY-MM-DD, but GraphQL expects full datetime
+				// Use end of day (23:59:59) since this is a due date
+				createInput.dueDate = `${dueDate}T23:59:59Z`;
+			}
+			// Note: reminderTime removed - not in CreateTaskInput schema
+			// Note: organizationId, createdAt, updatedAt handled server-side
 
 			// Execute create mutation
 			// Migration: ✅ Use Rust GraphQL schema (CreateTaskInput, direct return)

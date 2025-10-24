@@ -325,17 +325,33 @@ export const actions: Actions = {
 			});
 
 			// Prepare update input - all fields supported by UpdateTaskInput GraphQL type
-			const updateInput = {
+			// Filter out empty strings and null values to avoid GraphQL parsing errors
+			const updateInput: Record<string, any> = {
 				title,
-				description: description || undefined,
 				status,
 				priority,
-				assigneeId: assigneeId || undefined,
-				taskTypeId: taskTypeId || undefined,
-				parentTaskId: parentTaskId || undefined,
-				requiresManualReassignment: requiresManualReassignment,
-				dueDate: dueDate || undefined
+				requiresManualReassignment
 			};
+
+			// Only include optional fields if they have valid values
+			if (description && description.trim()) {
+				updateInput.description = description;
+			}
+			if (assigneeId && assigneeId.trim()) {
+				updateInput.assigneeId = assigneeId;
+			}
+			if (taskTypeId && taskTypeId.trim()) {
+				updateInput.taskTypeId = taskTypeId;
+			}
+			if (parentTaskId && parentTaskId.trim()) {
+				updateInput.parentTaskId = parentTaskId;
+			}
+			if (dueDate && dueDate.trim()) {
+				// Convert date-only format (YYYY-MM-DD) to RFC3339 DateTime (YYYY-MM-DDTHH:MM:SSZ)
+				// HTML date inputs return YYYY-MM-DD, but GraphQL expects full datetime
+				// Use end of day (23:59:59) since this is a due date
+				updateInput.dueDate = `${dueDate}T23:59:59Z`;
+			}
 
 			// Execute update mutation
 			// Migration: ✅ Use idiomatic Rust pattern (direct id/input parameters, no nested wrapper)

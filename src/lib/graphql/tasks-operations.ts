@@ -20,12 +20,12 @@ import type {
 
 /**
  * Query: Get all tasks with filtering, sorting, and pagination
- * Backend: Rust idiomatic pattern - direct array return
+ * Backend: Rust idiomatic pattern - uses TaskFilter input object
  * RLS: Automatic RBAC filtering
  */
 export const GET_ALL_TASKS = gql`
-	query GetAllTasks($assigneeId: UUID, $limit: Int = 20, $offset: Int = 0) {
-		tasks(assigneeId: $assigneeId, limit: $limit, offset: $offset) {
+	query GetAllTasks($filter: TaskFilter, $limit: Int = 20, $offset: Int = 0) {
+		tasks(filter: $filter, limit: $limit, offset: $offset) {
 			id
 			title
 			description
@@ -80,11 +80,11 @@ export const GET_TASK = gql`
 
 /**
  * Query: Get current user's tasks
- * Note: Use assigneeId filter with current user's ID
+ * Note: Use filter object with assigneeId field
  */
 export const GET_MY_TASKS = gql`
-	query GetMyTasks($assigneeId: UUID!, $limit: Int = 20, $offset: Int = 0) {
-		tasks(assigneeId: $assigneeId, limit: $limit, offset: $offset) {
+	query GetMyTasks($filter: TaskFilter!, $limit: Int = 20, $offset: Int = 0) {
+		tasks(filter: $filter, limit: $limit, offset: $offset) {
 			id
 			title
 			description
@@ -462,6 +462,9 @@ export class TasksOperations {
 	 */
 	async getAllTasks(params: {
 		assigneeId?: string;
+		departmentId?: string;
+		status?: TaskStatus;
+		priority?: TaskPriority;
 		limit?: number;
 		offset?: number;
 		userCredentials: UserCredentials;
@@ -474,10 +477,18 @@ export class TasksOperations {
 		const { createErrorResponse } = await import('$lib/models/error-response');
 
 		const limit = params.limit || 20;
+
+		// Build filter object from params
+		const filter: any = {};
+		if (params.assigneeId) filter.assigneeId = params.assigneeId;
+		if (params.departmentId) filter.departmentId = params.departmentId;
+		if (params.status) filter.status = params.status;
+		if (params.priority) filter.priority = params.priority;
+
 		const dataRequest = createDataRequest({
 			operationName: 'GetAllTasks',
 			variables: {
-				assigneeId: params.assigneeId,
+				filter: Object.keys(filter).length > 0 ? filter : null,
 				limit,
 				offset: params.offset || 0
 			},
@@ -579,7 +590,7 @@ export class TasksOperations {
 		const dataRequest = createDataRequest({
 			operationName: 'GetMyTasks',
 			variables: {
-				assigneeId: params.userId,
+				filter: { assigneeId: params.userId },
 				limit: params.limit || 20,
 				offset: params.offset || 0
 			},

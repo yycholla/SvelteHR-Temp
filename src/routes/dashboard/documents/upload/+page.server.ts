@@ -133,46 +133,134 @@ export const actions: Actions = {
 		}
 
 		try {
-			// Step 3: Parse form data
+			// Step 3: Parse form data (now expecting raw file, not encrypted)
 			const formData = await request.formData();
 
-			const filename = formData.get('filename') as string;
-			const fileType = formData.get('fileType') as string;
-			const fileSizeBytes = parseInt(formData.get('fileSizeBytes') as string);
-			const encryptionKeyId = formData.get('encryptionKeyId') as string;
+			console.log('[UPLOAD ACTION] FormData entries:', Array.from(formData.entries()).map(([key, value]) => ({
+				key,
+				valueType: typeof value,
+				isFile: value instanceof File,
+				fileName: value instanceof File ? value.name : 'N/A'
+			})));
+
+			const file = formData.get('file') as File;
 			const category = formData.get('category') as string;
 			const sensitivityLevel = formData.get('sensitivityLevel') as string;
 			const expirationDate = formData.get('expirationDate') as string | null;
-			const metadataTags = JSON.parse((formData.get('metadataTags') as string) || '{}');
-			const assignToEmployees = JSON.parse((formData.get('assignToEmployees') as string) || '[]');
-			const assignToDepartments = JSON.parse(
-				(formData.get('assignToDepartments') as string) || '[]'
-			);
-			const iv = JSON.parse(formData.get('iv') as string);
-			const encryptedFile = formData.get('encryptedFile') as File;
+			const metadataTags = formData.get('metadataTags')
+				? JSON.parse(formData.get('metadataTags') as string)
+				: {};
+			const assignToEmployees = formData.get('assignToEmployees')
+				? JSON.parse(formData.get('assignToEmployees') as string)
+				: [];
+			const assignToDepartments = formData.get('assignToDepartments')
+				? JSON.parse(formData.get('assignToDepartments') as string)
+				: [];
 
-			if (!encryptedFile || !filename || !encryptionKeyId) {
+			console.log('[UPLOAD ACTION] Parsed form data:', {
+				hasFile: !!file,
+				fileType: file ? typeof file : 'undefined',
+				isFileInstance: file instanceof File,
+				fileName: file?.name,
+				fileSize: file?.size,
+				category,
+				sensitivityLevel
+			});
+
+			if (!file || !(file instanceof File)) {
 				return fail(400, {
-					error: 'Missing required upload data'
+					error: 'No valid file provided'
 				});
 			}
 
-			// Step 4: Read encrypted file data and convert to base64
-			console.log('[UPLOAD ACTION] Reading encrypted file data...');
-			const encryptedData = await encryptedFile.arrayBuffer();
-			const encryptedDataBase64 = Buffer.from(encryptedData).toString('base64');
+			// Step 4: Validate file
+			const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+			if (file.size > MAX_FILE_SIZE) {
+				return fail(400, {
+					error: `File size exceeds 50MB limit (${Math.round(file.size / 1024 / 1024)}MB)`
+				});
+			}
 
-			// Step 5: Create GraphQL client and execute upload mutation
-			console.log('[UPLOAD ACTION] Executing GraphQL upload mutation...');
+			const ALLOWED_TYPES = ['PDF', 'JPEG', 'PNG', 'GIF', 'DOCX', 'XLSX', 'TXT', 'CSV'];
+			const fileExtension = file.name.split('.').pop()?.toUpperCase() || '';
+			if (!ALLOWED_TYPES.includes(fileExtension)) {
+				return fail(400, {
+					error: `Invalid file type. Allowed: ${ALLOWED_TYPES.join(', ')}`
+				});
+			}
+
+			console.log('[UPLOAD ACTION] Server-side encryption starting:', {
+				filename: file.name,
+				size: file.size,
+				type: file.type
+			});
+
+			// Step 5: Read file data and encrypt server-side
+			const fileBuffer = Buffer.from(await file.arrayBuffer());
+
+			// Import encryption utilities (dynamic to ensure server-side only)
+			const { encryptFileWithNewKey, packageEncryptedData, encodeKey } = await import(
+				'$lib/server/encryption'
+			);
+
+			const encryptionResult = encryptFileWithNewKey(fileBuffer);
+
+			// Step 6: Register encryption key with Rust backend
+			console.log('[UPLOAD ACTION] Registering encryption key...');
 			const graphqlClient = GraphQLClient.fromCookies(cookies);
 
+			const keyInput = {
+				keyName: `doc_${file.name}_${Date.now()}`,
+				algorithm: 'AES-GCM-256',
+				encryptedKey: encryptionResult.keyBase64
+			};
+
+			const keyResponse = await graphqlClient.mutation(
+				`
+					mutation CreateEncryptionKey($input: CreateEncryptionKeyInput!) {
+						createEncryptionKey(input: $input) {
+							id
+							keyName
+							algorithm
+							createdAt
+							isActive
+						}
+					}
+				`,
+				{ input: keyInput }
+			);
+
+			if (keyResponse.errors?.length) {
+				console.error('[UPLOAD ACTION] Key registration failed:', keyResponse.errors);
+				return fail(500, {
+					error: keyResponse.errors[0].message || 'Failed to register encryption key'
+				});
+			}
+
+			const encryptionKeyId = keyResponse.data?.createEncryptionKey?.id;
+			if (!encryptionKeyId) {
+				return fail(500, {
+					error: 'Failed to register encryption key: No ID returned'
+				});
+			}
+
+			// Step 7: Package encrypted data (IV + AuthTag + EncryptedData)
+			const packagedData = packageEncryptedData(
+				encryptionResult.encryptedData,
+				encryptionResult.iv,
+				encryptionResult.authTag
+			);
+			const encryptedDataBase64 = packagedData.toString('base64');
+
+			// Step 8: Upload to Rust GraphQL backend
+			console.log('[UPLOAD ACTION] Uploading encrypted document to Rust backend...');
 			const uploadInput = {
-				filename,
-				fileType,
-				fileSizeBytes,
+				filename: file.name,
+				fileType: fileExtension,
+				fileSizeBytes: file.size,
 				encryptedData: encryptedDataBase64,
 				encryptionKeyId,
-				iv,
+				iv: Array.from(encryptionResult.iv), // Convert Buffer to array for GraphQL
 				category,
 				sensitivityLevel,
 				expirationDate,
@@ -181,31 +269,51 @@ export const actions: Actions = {
 				assignToDepartments
 			};
 
-			const response = await graphqlClient.mutation(UPLOAD_DOCUMENT, {
-				input: uploadInput
+			console.log('[UPLOAD ACTION] Upload input prepared:', {
+				filename: uploadInput.filename,
+				fileType: uploadInput.fileType,
+				fileSizeBytes: uploadInput.fileSizeBytes,
+				encryptedDataLength: encryptedDataBase64?.length || 0,
+				encryptedDataPreview: encryptedDataBase64?.substring(0, 50) || 'NULL',
+				encryptionKeyId: uploadInput.encryptionKeyId,
+				ivLength: uploadInput.iv?.length || 0,
+				category: uploadInput.category,
+				sensitivityLevel: uploadInput.sensitivityLevel,
+				hasExpirationDate: !!uploadInput.expirationDate,
+				hasMetadataTags: !!uploadInput.metadataTags
 			});
 
+			// Log the exact GraphQL request being sent
+			const mutationVariables = { input: uploadInput };
+			console.log('[UPLOAD ACTION] GraphQL mutation variables:', JSON.stringify(mutationVariables, null, 2).substring(0, 1000));
+
+			const response = await graphqlClient.mutation(UPLOAD_DOCUMENT, mutationVariables);
+
 			if (response.errors?.length) {
-				console.error('[UPLOAD ACTION] GraphQL errors:', response.errors);
+				console.error('[UPLOAD ACTION] GraphQL upload errors:', response.errors);
 				return fail(500, {
-					error: response.errors[0].message || 'Failed to create document record'
+					error: response.errors[0].message || 'Failed to upload document'
 				});
 			}
 
 			const document = response.data?.uploadDocument;
 			if (!document) {
-				console.error('[UPLOAD ACTION] No document returned from GraphQL mutation');
 				return fail(500, {
-					error: 'Failed to create document record'
+					error: 'Failed to upload document: No document returned'
 				});
 			}
 
-			// Step 6: Log successful upload
+			// Step 9: Log successful upload
 			await logSuccessfulAccess(document.id, userId, 'upload', createAccessMetadata());
 
-			console.log('[UPLOAD ACTION] Document uploaded successfully:', document.id);
+			console.log('[UPLOAD ACTION] Document uploaded successfully:', {
+				documentId: document.id,
+				filename: file.name,
+				size: file.size,
+				encrypted: true
+			});
 
-			// Step 7: Return success result
+			// Step 10: Return success result
 			const uploadResult: UploadResult = {
 				documentId: document.id,
 				uploadedAt: new Date(document.createdAt),

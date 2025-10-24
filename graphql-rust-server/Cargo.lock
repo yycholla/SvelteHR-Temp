@@ -1750,6 +1750,7 @@ dependencies = [
  "fake",
  "futures",
  "hdrhistogram",
+ "hr-graphql-server",
  "http-body-util",
  "jsonwebtoken",
  "mockito",

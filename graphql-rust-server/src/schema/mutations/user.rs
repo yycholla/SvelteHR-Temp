@@ -54,35 +54,6 @@ impl UserMutations {
         };
 
         let user = user.insert(&db).await?;
-
-        // Convert SeaORM model to legacy User struct for compatibility
-        let user = User {
-            id: user.id,
-            email: user.email,
-            password_hash: user.password_hash,
-            first_name: user.first_name,
-            last_name: user.last_name,
-            display_name: user.display_name,
-            full_name: user.full_name,
-            role: user.role,
-            phone_number: user.phone_number,
-            alternate_phone: user.alternate_phone,
-            job_title: user.job_title,
-            status: user.status,
-            department_id: user.department_id,
-            manager_id: user.manager_id,
-            hire_date: user.hire_date,
-            termination_date: user.termination_date,
-            is_active: user.is_active,
-            failed_login_attempts: user.failed_login_attempts,
-            locked_until: user.locked_until,
-            last_login: user.last_login,
-            theme_preference: user.theme_preference,
-            created_at: user.created_at,
-            updated_at: user.updated_at,
-            deleted_at: user.deleted_at,
-        };
-
         Ok(user)
     }
 
@@ -153,36 +124,7 @@ impl UserMutations {
 
         // Save changes
         let updated_user = user.update(&db).await?;
-
-        // Convert to legacy User struct for compatibility
-        let user = User {
-            id: updated_user.id,
-            email: updated_user.email,
-            password_hash: updated_user.password_hash,
-            first_name: updated_user.first_name,
-            last_name: updated_user.last_name,
-            display_name: updated_user.display_name,
-            full_name: updated_user.full_name,
-            role: updated_user.role,
-            phone_number: updated_user.phone_number,
-            alternate_phone: updated_user.alternate_phone,
-            job_title: updated_user.job_title,
-            status: updated_user.status,
-            department_id: updated_user.department_id,
-            manager_id: updated_user.manager_id,
-            hire_date: updated_user.hire_date,
-            termination_date: updated_user.termination_date,
-            is_active: updated_user.is_active,
-            failed_login_attempts: updated_user.failed_login_attempts,
-            locked_until: updated_user.locked_until,
-            last_login: updated_user.last_login,
-            theme_preference: updated_user.theme_preference,
-            created_at: updated_user.created_at,
-            updated_at: updated_user.updated_at,
-            deleted_at: updated_user.deleted_at,
-        };
-
-        Ok(user)
+        Ok(updated_user)
     }
 
     /// Soft delete a user (sets deleted_at timestamp)

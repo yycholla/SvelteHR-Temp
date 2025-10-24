@@ -256,20 +256,6 @@ impl MutationRoot {
         };
 
         let attendee = attendee.insert(&db).await?;
-
-        // Convert SeaORM model to legacy EventAttendee struct for compatibility
-        let attendee = EventAttendee {
-            id: attendee.id,
-            event_id: attendee.event_id,
-            employee_id: attendee.employee_id,
-            response_status: attendee.response_status,
-            is_required: attendee.is_required,
-            created_at: attendee.created_at,
-            reminder_time: attendee.reminder_time,
-            scope: attendee.scope,
-            is_organizer: attendee.is_organizer,
-        };
-
         Ok(attendee)
     }
 
@@ -305,21 +291,7 @@ impl MutationRoot {
 
         // Save changes
         let updated_attendee = attendee.update(&db).await?;
-
-        // Convert to legacy EventAttendee struct for compatibility
-        let attendee = EventAttendee {
-            id: updated_attendee.id,
-            event_id: updated_attendee.event_id,
-            employee_id: updated_attendee.employee_id,
-            response_status: updated_attendee.response_status,
-            is_required: updated_attendee.is_required,
-            created_at: updated_attendee.created_at,
-            reminder_time: updated_attendee.reminder_time,
-            scope: updated_attendee.scope,
-            is_organizer: updated_attendee.is_organizer,
-        };
-
-        Ok(attendee)
+        Ok(updated_attendee)
     }
 
     /// Delete an event attendee
@@ -353,18 +325,6 @@ impl MutationRoot {
         };
 
         let role = role.insert(&db).await?;
-
-        // Convert SeaORM model to legacy Role struct for compatibility
-        let role = Role {
-            id: role.id,
-            name: role.name,
-            description: role.description,
-            level: role.level,
-            created_at: role.created_at,
-            updated_at: role.updated_at,
-            deleted_at: role.deleted_at,
-        };
-
         Ok(role)
     }
 
@@ -399,19 +359,7 @@ impl MutationRoot {
 
         // Save changes
         let updated_role = role.update(&db).await?;
-
-        // Convert to legacy Role struct for compatibility
-        let role = Role {
-            id: updated_role.id,
-            name: updated_role.name,
-            description: updated_role.description,
-            level: updated_role.level,
-            created_at: updated_role.created_at,
-            updated_at: updated_role.updated_at,
-            deleted_at: updated_role.deleted_at,
-        };
-
-        Ok(role)
+        Ok(updated_role)
     }
 
     /// Soft delete a role
@@ -453,18 +401,6 @@ impl MutationRoot {
         };
 
         let permission = permission.insert(&db).await?;
-
-        // Convert SeaORM model to legacy Permission struct for compatibility
-        let permission = Permission {
-            id: permission.id,
-            resource: permission.resource,
-            action: permission.action,
-            description: permission.description,
-            created_at: permission.created_at,
-            updated_at: permission.updated_at,
-            deleted_at: permission.deleted_at,
-        };
-
         Ok(permission)
     }
 
@@ -499,19 +435,7 @@ impl MutationRoot {
 
         // Save changes
         let updated_permission = permission.update(&db).await?;
-
-        // Convert to legacy Permission struct for compatibility
-        let permission = Permission {
-            id: updated_permission.id,
-            resource: updated_permission.resource,
-            action: updated_permission.action,
-            description: updated_permission.description,
-            created_at: updated_permission.created_at,
-            updated_at: updated_permission.updated_at,
-            deleted_at: updated_permission.deleted_at,
-        };
-
-        Ok(permission)
+        Ok(updated_permission)
     }
 
     /// Soft delete a permission
@@ -555,17 +479,6 @@ impl MutationRoot {
         };
 
         let assignment = assignment.insert(&db).await?;
-
-        // Convert SeaORM model to legacy UserRoleAssignment struct for compatibility
-        let assignment = UserRoleAssignment {
-            id: assignment.id,
-            user_id: assignment.user_id,
-            role_id: assignment.role_id,
-            created_at: assignment.created_at,
-            updated_at: assignment.updated_at,
-            deleted_at: assignment.deleted_at,
-        };
-
         Ok(assignment)
     }
 
@@ -796,21 +709,6 @@ impl MutationRoot {
         };
 
         let leave_type = leave_type.insert(&db).await?;
-
-        // Convert SeaORM model to legacy LeaveType struct for compatibility
-        let leave_type = LeaveType {
-            id: leave_type.id,
-            name: leave_type.name,
-            description: leave_type.description,
-            default_days: leave_type.default_days,
-            requires_approval: leave_type.requires_approval,
-            is_paid: leave_type.is_paid,
-            color: leave_type.color,
-            created_at: leave_type.created_at,
-            updated_at: leave_type.updated_at,
-            deleted_at: leave_type.deleted_at,
-        };
-
         Ok(leave_type)
     }
 
@@ -862,22 +760,7 @@ impl MutationRoot {
 
         // Save changes
         let updated_leave_type = leave_type.update(&db).await?;
-
-        // Convert to legacy LeaveType struct for compatibility
-        let leave_type = LeaveType {
-            id: updated_leave_type.id,
-            name: updated_leave_type.name,
-            description: updated_leave_type.description,
-            default_days: updated_leave_type.default_days,
-            requires_approval: updated_leave_type.requires_approval,
-            is_paid: updated_leave_type.is_paid,
-            color: updated_leave_type.color,
-            created_at: updated_leave_type.created_at,
-            updated_at: updated_leave_type.updated_at,
-            deleted_at: updated_leave_type.deleted_at,
-        };
-
-        Ok(leave_type)
+        Ok(updated_leave_type)
     }
 
     /// Soft delete a leave type
@@ -930,21 +813,6 @@ impl MutationRoot {
         };
 
         let balance = balance.insert(&db).await?;
-
-        // Convert SeaORM model to legacy LeaveBalance struct for compatibility
-        let balance = LeaveBalance {
-            id: balance.id,
-            employee_id: balance.employee_id,
-            leave_type_id: balance.leave_type_id,
-            year: balance.year,
-            total_days: balance.total_days,
-            used_days: balance.used_days,
-            remaining_days: balance.remaining_days,
-            created_at: balance.created_at,
-            updated_at: balance.updated_at,
-            deleted_at: balance.deleted_at,
-        };
-
         Ok(balance)
     }
 
@@ -989,22 +857,7 @@ impl MutationRoot {
 
         // Save changes
         let updated_balance = balance.update(&db).await?;
-
-        // Convert to legacy LeaveBalance struct for compatibility
-        let balance = LeaveBalance {
-            id: updated_balance.id,
-            employee_id: updated_balance.employee_id,
-            leave_type_id: updated_balance.leave_type_id,
-            year: updated_balance.year,
-            total_days: updated_balance.total_days,
-            used_days: updated_balance.used_days,
-            remaining_days: updated_balance.remaining_days,
-            created_at: updated_balance.created_at,
-            updated_at: updated_balance.updated_at,
-            deleted_at: updated_balance.deleted_at,
-        };
-
-        Ok(balance)
+        Ok(updated_balance)
     }
 
     // ============================================================
@@ -1159,26 +1012,7 @@ impl MutationRoot {
 
         // Save changes
         let updated_request = request.update(&db).await?;
-
-        // Convert to legacy LeaveRequest struct for compatibility
-        let request = LeaveRequest {
-            id: updated_request.id,
-            employee_id: updated_request.employee_id,
-            leave_type_id: updated_request.leave_type_id,
-            start_date: updated_request.start_date,
-            end_date: updated_request.end_date,
-            days_requested: updated_request.days_requested,
-            status: LeaveRequestStatus::Rejected.as_str().to_string(),
-            reason: updated_request.reason,
-            manager_id: updated_request.manager_id,
-            approved_at: updated_request.approved_at,
-            manager_comments: updated_request.manager_comments,
-            created_at: updated_request.created_at,
-            updated_at: updated_request.updated_at,
-            deleted_at: updated_request.deleted_at,
-        };
-
-        Ok(request)
+        Ok(updated_request)
     }
 
     /// Cancel a leave request (by the user who created it)
@@ -1204,26 +1038,7 @@ impl MutationRoot {
 
         // Save changes
         let updated_request = request.update(&db).await?;
-
-        // Convert to legacy LeaveRequest struct for compatibility
-        let request = LeaveRequest {
-            id: updated_request.id,
-            employee_id: updated_request.employee_id,
-            leave_type_id: updated_request.leave_type_id,
-            start_date: updated_request.start_date,
-            end_date: updated_request.end_date,
-            days_requested: updated_request.days_requested,
-            status: LeaveRequestStatus::Cancelled.as_str().to_string(),
-            reason: updated_request.reason,
-            manager_id: updated_request.manager_id,
-            approved_at: updated_request.approved_at,
-            manager_comments: updated_request.manager_comments,
-            created_at: updated_request.created_at,
-            updated_at: updated_request.updated_at,
-            deleted_at: updated_request.deleted_at,
-        };
-
-        Ok(request)
+        Ok(updated_request)
     }
 
     /// Soft delete a leave request
@@ -1521,20 +1336,6 @@ impl MutationRoot {
             ..Default::default()
         };
         let _ = audit_entry.insert(&db).await;
-
-        // Convert SeaORM model to legacy TaskAssignee struct for compatibility
-        let assignee = TaskAssignee {
-            id: assignee.id,
-            task_id: assignee.task_id,
-            user_id: assignee.user_id,
-            role: assignee.role.clone(),
-            assigned_at: assignee.assigned_at,
-            assigned_by: assignee.assigned_by,
-            created_at: assignee.created_at,
-            updated_at: assignee.updated_at,
-            deleted_at: assignee.deleted_at,
-        };
-
         Ok(assignee)
     }
 
@@ -1566,21 +1367,7 @@ impl MutationRoot {
 
         // Save changes
         let updated_assignee = assignee.update(&db).await?;
-
-        // Convert to legacy TaskAssignee struct for compatibility
-        let assignee = TaskAssignee {
-            id: updated_assignee.id,
-            task_id: updated_assignee.task_id,
-            user_id: updated_assignee.user_id,
-            role: updated_assignee.role.clone(),
-            assigned_at: updated_assignee.assigned_at,
-            assigned_by: updated_assignee.assigned_by,
-            created_at: updated_assignee.created_at,
-            updated_at: updated_assignee.updated_at,
-            deleted_at: updated_assignee.deleted_at,
-        };
-
-        Ok(assignee)
+        Ok(updated_assignee)
     }
 
     /// Remove a user from a task (soft delete)
@@ -1654,20 +1441,6 @@ impl MutationRoot {
         };
 
         let dependency = dependency.insert(&db).await?;
-
-        // Convert SeaORM model to legacy TaskDependency struct for compatibility
-        let dependency = TaskDependency {
-            id: dependency.id,
-            task_id: dependency.task_id,
-            depends_on_task_id: dependency.depends_on_task_id,
-            dependency_type: dependency.dependency_type.clone(),
-            lag_days: dependency.lag_days,
-            created_by: dependency.created_by,
-            created_at: dependency.created_at,
-            updated_at: dependency.updated_at,
-            deleted_at: dependency.deleted_at,
-        };
-
         Ok(dependency)
     }
 
@@ -1703,21 +1476,7 @@ impl MutationRoot {
 
         // Save changes
         let updated_dependency = dependency.update(&db).await?;
-
-        // Convert to legacy TaskDependency struct for compatibility
-        let dependency = TaskDependency {
-            id: updated_dependency.id,
-            task_id: updated_dependency.task_id,
-            depends_on_task_id: updated_dependency.depends_on_task_id,
-            dependency_type: updated_dependency.dependency_type.clone(),
-            lag_days: updated_dependency.lag_days,
-            created_by: updated_dependency.created_by,
-            created_at: updated_dependency.created_at,
-            updated_at: updated_dependency.updated_at,
-            deleted_at: updated_dependency.deleted_at,
-        };
-
-        Ok(dependency)
+        Ok(updated_dependency)
     }
 
     /// Delete a task dependency (soft delete)
@@ -1774,24 +1533,6 @@ impl MutationRoot {
         };
 
         let resource = resource.insert(&db).await?;
-
-        // Convert SeaORM model to legacy LinkedResource struct for compatibility
-        let resource = LinkedResource {
-            id: resource.id,
-            task_id: resource.task_id,
-            resource_type: resource.resource_type.clone(),
-            title: resource.title,
-            url: resource.url,
-            file_path: resource.file_path,
-            file_size: resource.file_size,
-            mime_type: resource.mime_type,
-            description: resource.description,
-            uploaded_by: resource.uploaded_by,
-            created_at: resource.created_at,
-            updated_at: resource.updated_at,
-            deleted_at: resource.deleted_at,
-        };
-
         Ok(resource)
     }
 
@@ -1831,25 +1572,7 @@ impl MutationRoot {
 
         // Save changes
         let updated_resource = resource.update(&db).await?;
-
-        // Convert to legacy LinkedResource struct for compatibility
-        let resource = LinkedResource {
-            id: updated_resource.id,
-            task_id: updated_resource.task_id,
-            resource_type: updated_resource.resource_type.clone(),
-            title: updated_resource.title,
-            url: updated_resource.url,
-            file_path: updated_resource.file_path,
-            file_size: updated_resource.file_size,
-            mime_type: updated_resource.mime_type,
-            description: updated_resource.description,
-            uploaded_by: updated_resource.uploaded_by,
-            created_at: updated_resource.created_at,
-            updated_at: updated_resource.updated_at,
-            deleted_at: updated_resource.deleted_at,
-        };
-
-        Ok(resource)
+        Ok(updated_resource)
     }
 
     /// Delete a linked resource (soft delete)
@@ -1904,22 +1627,6 @@ impl MutationRoot {
         };
 
         let cycle = cycle.insert(&db).await?;
-
-        // Convert SeaORM model to legacy ReviewCycle struct for compatibility
-        let cycle = ReviewCycle {
-            id: cycle.id,
-            name: cycle.name,
-            description: cycle.description,
-            review_type: cycle.review_type.clone(),
-            start_date: cycle.start_date,
-            end_date: cycle.end_date,
-            status: cycle.status.clone(),
-            created_by: cycle.created_by,
-            created_at: cycle.created_at,
-            updated_at: cycle.updated_at,
-            deleted_at: cycle.deleted_at,
-        };
-
         Ok(cycle)
     }
 
@@ -1967,23 +1674,7 @@ impl MutationRoot {
 
         // Save changes
         let updated_cycle = cycle.update(&db).await?;
-
-        // Convert to legacy ReviewCycle struct for compatibility
-        let cycle = ReviewCycle {
-            id: updated_cycle.id,
-            name: updated_cycle.name,
-            description: updated_cycle.description,
-            review_type: updated_cycle.review_type.clone(),
-            start_date: updated_cycle.start_date,
-            end_date: updated_cycle.end_date,
-            status: updated_cycle.status.clone(),
-            created_by: updated_cycle.created_by,
-            created_at: updated_cycle.created_at,
-            updated_at: updated_cycle.updated_at,
-            deleted_at: updated_cycle.deleted_at,
-        };
-
-        Ok(cycle)
+        Ok(updated_cycle)
     }
 
     /// Soft delete a review cycle
@@ -2122,21 +1813,6 @@ impl MutationRoot {
         };
 
         let goal = goal.insert(&db).await?;
-
-        // Convert SeaORM model to legacy ReviewGoal struct for compatibility
-        let goal = ReviewGoal {
-            id: goal.id,
-            performance_review_id: goal.performance_review_id,
-            title: goal.title,
-            description: goal.description,
-            target_date: goal.target_date,
-            completion_status: goal.completion_status.clone(),
-            weight: goal.weight,
-            created_at: goal.created_at,
-            updated_at: goal.updated_at,
-            deleted_at: goal.deleted_at,
-        };
-
         Ok(goal)
     }
 
@@ -2184,22 +1860,7 @@ impl MutationRoot {
 
         // Save changes
         let updated_goal = goal.update(&db).await?;
-
-        // Convert to legacy ReviewGoal struct for compatibility
-        let goal = ReviewGoal {
-            id: updated_goal.id,
-            performance_review_id: updated_goal.performance_review_id,
-            title: updated_goal.title,
-            description: updated_goal.description,
-            target_date: updated_goal.target_date,
-            completion_status: updated_goal.completion_status.clone(),
-            weight: updated_goal.weight,
-            created_at: updated_goal.created_at,
-            updated_at: updated_goal.updated_at,
-            deleted_at: updated_goal.deleted_at,
-        };
-
-        Ok(goal)
+        Ok(updated_goal)
     }
 
     /// Soft delete a review goal
@@ -2252,20 +1913,6 @@ impl MutationRoot {
         };
 
         let feedback = feedback.insert(&db).await?;
-
-        // Convert SeaORM model to legacy ReviewFeedback struct for compatibility
-        let feedback = ReviewFeedback {
-            id: feedback.id,
-            performance_review_id: feedback.performance_review_id,
-            provider_id: feedback.provider_id,
-            feedback_type: feedback.feedback_type.clone(),
-            content: feedback.content,
-            is_visible_to_employee: feedback.is_visible_to_employee,
-            created_at: feedback.created_at,
-            updated_at: feedback.updated_at,
-            deleted_at: feedback.deleted_at,
-        };
-
         Ok(feedback)
     }
 
@@ -2301,21 +1948,7 @@ impl MutationRoot {
 
         // Save changes
         let updated_feedback = feedback.update(&db).await?;
-
-        // Convert to legacy ReviewFeedback struct for compatibility
-        let feedback = ReviewFeedback {
-            id: updated_feedback.id,
-            performance_review_id: updated_feedback.performance_review_id,
-            provider_id: updated_feedback.provider_id,
-            feedback_type: updated_feedback.feedback_type.clone(),
-            content: updated_feedback.content,
-            is_visible_to_employee: updated_feedback.is_visible_to_employee,
-            created_at: updated_feedback.created_at,
-            updated_at: updated_feedback.updated_at,
-            deleted_at: updated_feedback.deleted_at,
-        };
-
-        Ok(feedback)
+        Ok(updated_feedback)
     }
 
     /// Soft delete review feedback
@@ -2362,19 +1995,6 @@ impl MutationRoot {
         };
 
         let skill = skill.insert(&db).await?;
-
-        // Convert SeaORM model to legacy EmployeeSkill struct for compatibility
-        let skill = EmployeeSkill {
-            id: skill.id,
-            employee_id: skill.employee_id,
-            skill_name: skill.skill_name,
-            proficiency_level: skill.proficiency_level.clone(),
-            years_experience: skill.years_experience,
-            created_at: skill.created_at,
-            updated_at: skill.updated_at,
-            deleted_at: skill.deleted_at,
-        };
-
         Ok(skill)
     }
 
@@ -2413,20 +2033,7 @@ impl MutationRoot {
 
         // Save changes
         let updated_skill = skill.update(&db).await?;
-
-        // Convert to legacy EmployeeSkill struct for compatibility
-        let skill = EmployeeSkill {
-            id: updated_skill.id,
-            employee_id: updated_skill.employee_id,
-            skill_name: updated_skill.skill_name,
-            proficiency_level: updated_skill.proficiency_level.clone(),
-            years_experience: updated_skill.years_experience,
-            created_at: updated_skill.created_at,
-            updated_at: updated_skill.updated_at,
-            deleted_at: updated_skill.deleted_at,
-        };
-
-        Ok(skill)
+        Ok(updated_skill)
     }
 
     /// Delete an employee skill (hard delete - no soft delete for skills)
@@ -2459,21 +2066,6 @@ impl MutationRoot {
         };
 
         let cert = cert.insert(&db).await?;
-
-        // Convert SeaORM model to legacy EmployeeCertification struct for compatibility
-        let cert = EmployeeCertification {
-            id: cert.id,
-            employee_id: cert.employee_id,
-            certification_name: cert.certification_name,
-            issuing_organization: cert.issuing_organization,
-            issue_date: cert.issue_date,
-            expiration_date: cert.expiration_date,
-            certification_number: cert.certification_number,
-            created_at: cert.created_at,
-            updated_at: cert.updated_at,
-            deleted_at: cert.deleted_at,
-        };
-
         Ok(cert)
     }
 
@@ -2507,20 +2099,6 @@ impl MutationRoot {
         };
 
         let vehicle = vehicle.insert(&db).await?;
-
-        // Convert SeaORM model to legacy EmployeeVehicle struct for compatibility
-        let vehicle = EmployeeVehicle {
-            id: vehicle.id,
-            employee_id: vehicle.employee_id,
-            make: vehicle.make,
-            model: vehicle.model,
-            year: vehicle.year,
-            license_plate: vehicle.license_plate,
-            color: vehicle.color,
-            created_at: vehicle.created_at,
-            updated_at: vehicle.updated_at,
-        };
-
         Ok(vehicle)
     }
 
@@ -2567,21 +2145,7 @@ impl MutationRoot {
 
         // Save changes
         let updated_vehicle = vehicle.update(&db).await?;
-
-        // Convert to legacy EmployeeVehicle struct for compatibility
-        let vehicle = EmployeeVehicle {
-            id: updated_vehicle.id,
-            employee_id: updated_vehicle.employee_id,
-            make: updated_vehicle.make,
-            model: updated_vehicle.model,
-            year: updated_vehicle.year,
-            license_plate: updated_vehicle.license_plate,
-            color: updated_vehicle.color,
-            created_at: updated_vehicle.created_at,
-            updated_at: updated_vehicle.updated_at,
-        };
-
-        Ok(vehicle)
+        Ok(updated_vehicle)
     }
 
     /// Delete an employee vehicle (hard delete)
@@ -2614,20 +2178,6 @@ impl MutationRoot {
         };
 
         let contact = contact.insert(&db).await?;
-
-        // Convert SeaORM model to legacy EmergencyContact struct for compatibility
-        let contact = EmergencyContact {
-            id: contact.id,
-            employee_id: contact.employee_id,
-            name: contact.name,
-            relationship: contact.relationship,
-            phone_number: contact.phone_number,
-            email: contact.email,
-            is_primary: contact.is_primary,
-            created_at: contact.created_at,
-            updated_at: contact.updated_at,
-        };
-
         Ok(contact)
     }
 
@@ -2674,21 +2224,7 @@ impl MutationRoot {
 
         // Save changes
         let updated_contact = contact.update(&db).await?;
-
-        // Convert to legacy EmergencyContact struct for compatibility
-        let contact = EmergencyContact {
-            id: updated_contact.id,
-            employee_id: updated_contact.employee_id,
-            name: updated_contact.name,
-            relationship: updated_contact.relationship,
-            phone_number: updated_contact.phone_number,
-            email: updated_contact.email,
-            is_primary: updated_contact.is_primary,
-            created_at: updated_contact.created_at,
-            updated_at: updated_contact.updated_at,
-        };
-
-        Ok(contact)
+        Ok(updated_contact)
     }
 
     /// Delete an emergency contact (hard delete)
@@ -2723,21 +2259,6 @@ impl MutationRoot {
         };
 
         let goal = goal.insert(&db).await?;
-
-        // Convert SeaORM model to legacy EmployeeGoal struct for compatibility
-        let goal = EmployeeGoal {
-            id: goal.id,
-            employee_id: goal.employee_id,
-            title: goal.title.clone(),
-            description: goal.description.clone(),
-            target_date: goal.target_date,
-            status: goal.status.clone(),
-            progress_percentage: goal.progress_percentage,
-            deleted_at: goal.deleted_at,
-            created_at: goal.created_at,
-            updated_at: goal.updated_at,
-        };
-
         Ok(goal)
     }
 
@@ -2784,22 +2305,7 @@ impl MutationRoot {
 
         // Save changes
         let updated_goal = goal.update(&db).await?;
-
-        // Convert to legacy EmployeeGoal struct for compatibility
-        let goal = EmployeeGoal {
-            id: updated_goal.id,
-            employee_id: updated_goal.employee_id,
-            title: updated_goal.title.clone(),
-            description: updated_goal.description.clone(),
-            target_date: updated_goal.target_date,
-            status: updated_goal.status.clone(),
-            progress_percentage: updated_goal.progress_percentage,
-            deleted_at: updated_goal.deleted_at,
-            created_at: updated_goal.created_at,
-            updated_at: updated_goal.updated_at,
-        };
-
-        Ok(goal)
+        Ok(updated_goal)
     }
 
     /// Delete an employee goal (hard delete)
@@ -2920,18 +2426,6 @@ impl MutationRoot {
         };
 
         let category = category.insert(&db).await?;
-
-        // Convert SeaORM model to legacy DocumentCategory struct for compatibility
-        let category = DocumentCategory {
-            id: category.id,
-            name: category.name,
-            description: category.description,
-            parent_category_id: category.parent_category_id,
-            created_at: category.created_at,
-            updated_at: category.updated_at,
-            deleted_at: category.deleted_at,
-        };
-
         Ok(category)
     }
 
@@ -2971,19 +2465,7 @@ impl MutationRoot {
 
         // Save changes
         let updated_category = category.update(&db).await?;
-
-        // Convert to legacy DocumentCategory struct for compatibility
-        let category = DocumentCategory {
-            id: updated_category.id,
-            name: updated_category.name,
-            description: updated_category.description,
-            parent_category_id: updated_category.parent_category_id,
-            created_at: updated_category.created_at,
-            updated_at: updated_category.updated_at,
-            deleted_at: updated_category.deleted_at,
-        };
-
-        Ok(category)
+        Ok(updated_category)
     }
 
     /// Delete a document category (soft delete)
@@ -3028,19 +2510,6 @@ impl MutationRoot {
         };
 
         let version = version.insert(&db).await?;
-
-        // Convert SeaORM model to legacy DocumentVersion struct for compatibility
-        let version = DocumentVersion {
-            id: version.id,
-            document_id: version.document_id,
-            version_number: version.version_number,
-            file_path: version.file_path,
-            file_size: version.file_size,
-            uploader_id: version.uploader_id,
-            change_summary: version.change_summary,
-            created_at: version.created_at,
-        };
-
         Ok(version)
     }
 
@@ -3067,18 +2536,6 @@ impl MutationRoot {
         };
 
         let assignment = assignment.insert(&db).await?;
-
-        // Convert SeaORM model to legacy DocumentAssignment struct for compatibility
-        let assignment = DocumentAssignment {
-            id: assignment.id,
-            document_id: assignment.document_id,
-            user_id: assignment.user_id,
-            department_id: assignment.department_id,
-            access_level: assignment.access_level.clone(),
-            assigned_at: assignment.assigned_at,
-            assigned_by_id: assignment.assigned_by_id,
-        };
-
         Ok(assignment)
     }
 
@@ -3111,16 +2568,7 @@ impl MutationRoot {
 
         let log = log.insert(&db).await?;
 
-        // Convert SeaORM model to legacy DocumentAccessLog struct for compatibility
-        let log = DocumentAccessLog {
-            id: log.id,
-            document_id: log.document_id,
-            user_id: log.user_id,
-            access_type: log.access_type.clone(),
-            accessed_at: log.accessed_at,
-            ip_address: log.ip_address,
-        };
-
+        // Return the SeaORM model directly
         Ok(log)
     }
 
@@ -3133,21 +2581,17 @@ impl MutationRoot {
         let db = get_db_from_context(ctx)?;
 
         let storage = crate::models::documents::encrypted_file_storage::ActiveModel {
+            id: Set(uuid::Uuid::new_v4()),
             document_id: Set(input.document_id),
+            encrypted_data: Set(vec![]),  // TODO: This mutation needs to be updated to accept encrypted data
             encryption_key_id: Set(input.encryption_key_id),
-            ..Default::default()
+            iv: Set(vec![]),  // TODO: This mutation needs to be updated to accept IV
+            created_at: Set(Utc::now()),
         };
 
         let storage = storage.insert(&db).await?;
 
-        // Convert SeaORM model to legacy EncryptedFileStorage struct for compatibility
-        let storage = EncryptedFileStorage {
-            id: storage.id,
-            document_id: storage.document_id,
-            encryption_key_id: storage.encryption_key_id,
-            created_at: storage.created_at,
-        };
-
+        // Return the inserted model directly
         Ok(storage)
     }
 
@@ -3287,22 +2731,6 @@ impl MutationRoot {
         };
 
         let record = record.insert(&db).await?;
-
-        // Convert SeaORM model to legacy AttendanceRecord struct for compatibility
-        let record = AttendanceRecord {
-            id: record.id,
-            user_id: record.user_id,
-            date: record.date,
-            clock_in: record.clock_in,
-            clock_out: record.clock_out,
-            hours_worked: record.hours_worked,
-            status: record.status.clone(),
-            deleted_at: record.deleted_at,
-            notes: record.notes,
-            created_at: record.created_at,
-            updated_at: record.updated_at,
-        };
-
         Ok(record)
     }
 
@@ -3349,23 +2777,7 @@ impl MutationRoot {
 
         // Save changes
         let updated_record = record.update(&db).await?;
-
-        // Convert to legacy AttendanceRecord struct for compatibility
-        let record = AttendanceRecord {
-            id: updated_record.id,
-            user_id: updated_record.user_id,
-            date: updated_record.date,
-            clock_in: updated_record.clock_in,
-            deleted_at: updated_record.deleted_at,
-            clock_out: updated_record.clock_out,
-            hours_worked: updated_record.hours_worked,
-            status: updated_record.status.clone(),
-            notes: updated_record.notes,
-            created_at: updated_record.created_at,
-            updated_at: updated_record.updated_at,
-        };
-
-        Ok(record)
+        Ok(updated_record)
     }
 
     /// Delete an attendance record (hard delete)
@@ -3407,27 +2819,6 @@ impl MutationRoot {
         };
 
         let log = log.insert(&db).await?;
-
-        // Convert SeaORM model to legacy ActivityLog struct for compatibility
-        let log = ActivityLog {
-            id: log.id,
-            user_id: log.user_id,
-            employee_id: log.employee_id,
-            action: log.action,
-            resource_type: log.resource_type,
-            resource_id: log.resource_id,
-            details: log.details,
-            before_snapshot: log.before_snapshot,
-            after_snapshot: log.after_snapshot,
-            is_rollback: log.is_rollback,
-            rolled_back_log_id: log.rolled_back_log_id,
-            ip_address: log.ip_address,
-            user_agent: log.user_agent,
-            signature_id: log.signature_id,
-            batch_id: log.batch_id,
-            created_at: log.created_at,
-        };
-
         Ok(log)
     }
 
@@ -3448,18 +2839,6 @@ impl MutationRoot {
         };
 
         let band = band.insert(&db).await?;
-
-        // Convert SeaORM model to legacy CompensationBand struct for compatibility
-        let band = CompensationBand {
-            id: band.id,
-            band_name: band.band_name,
-            min_salary: band.min_salary,
-            max_salary: band.max_salary,
-            currency: band.currency,
-            created_at: band.created_at,
-            updated_at: band.updated_at,
-        };
-
         Ok(band)
     }
 
@@ -3502,19 +2881,7 @@ impl MutationRoot {
 
         // Save changes
         let updated_band = band.update(&db).await?;
-
-        // Convert to legacy CompensationBand struct for compatibility
-        let band = CompensationBand {
-            id: updated_band.id,
-            band_name: updated_band.band_name,
-            min_salary: updated_band.min_salary,
-            max_salary: updated_band.max_salary,
-            currency: updated_band.currency,
-            created_at: updated_band.created_at,
-            updated_at: updated_band.updated_at,
-        };
-
-        Ok(band)
+        Ok(updated_band)
     }
 
     /// Delete a compensation band (hard delete)
@@ -3700,19 +3067,6 @@ impl MutationRoot {
         };
 
         let item = item.insert(&db).await?;
-
-        // Convert SeaORM model to legacy BulkRollbackItem struct for compatibility
-        let item = BulkRollbackItem {
-            id: item.id,
-            batch_id: item.batch_id,
-            resource_type: item.resource_type,
-            resource_id: item.resource_id,
-            rollback_to_timestamp: item.rollback_to_timestamp,
-            status: item.status,
-            error_message: item.error_message,
-            completed_at: item.completed_at,
-        };
-
         Ok(item)
     }
 
@@ -3748,20 +3102,7 @@ impl MutationRoot {
 
         // Save changes
         let updated_item = item.update(&db).await?;
-
-        // Convert to legacy BulkRollbackItem struct for compatibility
-        let item = BulkRollbackItem {
-            id: updated_item.id,
-            batch_id: updated_item.batch_id,
-            resource_type: updated_item.resource_type,
-            resource_id: updated_item.resource_id,
-            rollback_to_timestamp: updated_item.rollback_to_timestamp,
-            status: updated_item.status,
-            error_message: updated_item.error_message,
-            completed_at: updated_item.completed_at,
-        };
-
-        Ok(item)
+        Ok(updated_item)
     }
 
     /// Create a new payroll record (immutable record)
@@ -3799,22 +3140,6 @@ impl MutationRoot {
         };
 
         let record = record.insert(&db).await?;
-
-        // Convert SeaORM model to legacy PayrollRecord struct for compatibility
-        let record = PayrollRecord {
-            id: record.id,
-            employee_id: record.employee_id,
-            pay_period_start: record.pay_period_start,
-            pay_period_end: record.pay_period_end,
-            gross_pay: record.gross_pay,
-            net_pay: record.net_pay,
-            deductions: record.deductions,
-            bonuses: record.bonuses,
-            processed_at: record.processed_at,
-            processor_id: record.processor_id,
-            created_at: record.created_at,
-        };
-
         Ok(record)
     }
 
@@ -3919,18 +3244,6 @@ impl MutationRoot {
         };
 
         let comment = comment.insert(&db).await?;
-
-        // Convert SeaORM model to legacy EventComment struct for compatibility
-        let comment = EventComment {
-            id: comment.id,
-            event_id: comment.event_id,
-            user_id: comment.user_id,
-            comment_text: comment.comment_text,
-            created_at: comment.created_at,
-            updated_at: comment.updated_at,
-            deleted_at: comment.deleted_at,
-        };
-
         Ok(comment)
     }
 
@@ -3962,19 +3275,7 @@ impl MutationRoot {
 
         // Save changes
         let updated_comment = comment.update(&db).await?;
-
-        // Convert to legacy EventComment struct for compatibility
-        let comment = EventComment {
-            id: updated_comment.id,
-            event_id: updated_comment.event_id,
-            user_id: updated_comment.user_id,
-            comment_text: updated_comment.comment_text,
-            created_at: updated_comment.created_at,
-            updated_at: updated_comment.updated_at,
-            deleted_at: updated_comment.deleted_at,
-        };
-
-        Ok(comment)
+        Ok(updated_comment)
     }
 
     /// Delete an event comment (soft delete)
@@ -4031,18 +3332,6 @@ impl MutationRoot {
         };
 
         let history = history.insert(&db).await?;
-
-        // Convert SeaORM model to legacy EventHistory struct for compatibility
-        let history = EventHistory {
-            id: history.id,
-            event_id: history.event_id,
-            changed_by_id: history.changed_by_id,
-            change_type: history.change_type,
-            old_values: history.old_values,
-            new_values: history.new_values,
-            created_at: history.created_at,
-        };
-
         Ok(history)
     }
 
@@ -4063,18 +3352,6 @@ impl MutationRoot {
         };
 
         let waitlist = waitlist.insert(&db).await?;
-
-        // Convert SeaORM model to legacy EventWaitlist struct for compatibility
-        let waitlist = EventWaitlist {
-            id: waitlist.id,
-            event_id: waitlist.event_id,
-            user_id: waitlist.user_id,
-            position: waitlist.position,
-            promoted: waitlist.promoted,
-            promoted_at: waitlist.promoted_at,
-            created_at: waitlist.created_at,
-        };
-
         Ok(waitlist)
     }
 
@@ -4106,19 +3383,7 @@ impl MutationRoot {
 
         // Save changes
         let updated_waitlist = waitlist.update(&db).await?;
-
-        // Convert to legacy EventWaitlist struct for compatibility
-        let waitlist = EventWaitlist {
-            id: updated_waitlist.id,
-            event_id: updated_waitlist.event_id,
-            user_id: updated_waitlist.user_id,
-            position: updated_waitlist.position,
-            promoted: updated_waitlist.promoted,
-            promoted_at: updated_waitlist.promoted_at,
-            created_at: updated_waitlist.created_at,
-        };
-
-        Ok(waitlist)
+        Ok(updated_waitlist)
     }
 
     /// Delete an event waitlist entry (hard delete)
@@ -4152,19 +3417,6 @@ impl MutationRoot {
         };
 
         let task_type = task_type.insert(&db).await?;
-
-        // Convert SeaORM model to legacy TaskType struct for compatibility
-        let task_type = TaskType {
-            id: task_type.id,
-            name: task_type.name,
-            description: task_type.description,
-            default_priority: task_type.default_priority,
-            color_code: task_type.color_code,
-            is_active: task_type.is_active,
-            created_at: task_type.created_at,
-            updated_at: task_type.updated_at,
-        };
-
         Ok(task_type)
     }
 
@@ -4207,20 +3459,7 @@ impl MutationRoot {
 
         // Save changes
         let updated_task_type = task_type.update(&db).await?;
-
-        // Convert to legacy TaskType struct for compatibility
-        let task_type = TaskType {
-            id: updated_task_type.id,
-            name: updated_task_type.name,
-            description: updated_task_type.description,
-            default_priority: updated_task_type.default_priority,
-            color_code: updated_task_type.color_code,
-            is_active: updated_task_type.is_active,
-            created_at: updated_task_type.created_at,
-            updated_at: updated_task_type.updated_at,
-        };
-
-        Ok(task_type)
+        Ok(updated_task_type)
     }
 
     /// Delete a task type (soft delete by setting is_active = false)
@@ -4271,19 +3510,6 @@ impl MutationRoot {
         };
 
         let template = template.insert(&db).await?;
-
-        // Convert SeaORM model to legacy ReviewTemplate struct for compatibility
-        let template = ReviewTemplate {
-            id: template.id,
-            name: template.name,
-            description: template.description,
-            sections: template.sections,
-            is_active: template.is_active,
-            created_by_id: template.created_by_id,
-            created_at: template.created_at,
-            updated_at: template.updated_at,
-        };
-
         Ok(template)
     }
 
@@ -4324,20 +3550,7 @@ impl MutationRoot {
 
         // Save changes
         let updated_template = template.update(&db).await?;
-
-        // Convert to legacy ReviewTemplate struct for compatibility
-        let template = ReviewTemplate {
-            id: updated_template.id,
-            name: updated_template.name,
-            description: updated_template.description,
-            sections: updated_template.sections,
-            is_active: updated_template.is_active,
-            created_by_id: updated_template.created_by_id,
-            created_at: updated_template.created_at,
-            updated_at: updated_template.updated_at,
-        };
-
-        Ok(template)
+        Ok(updated_template)
     }
 
     /// Delete a review template (soft delete by setting is_active = false)
@@ -4554,7 +3767,9 @@ impl MutationRoot {
         let file_storage = crate::models::documents::encrypted_file_storage::ActiveModel {
             id: Set(uuid::Uuid::new_v4()),
             document_id: Set(document.id),
+            encrypted_data: Set(file_data),  // Combined IV + encrypted data
             encryption_key_id: Set(input.encryption_key_id),
+            iv: Set(input.iv),  // Store IV separately for reference
             created_at: Set(Utc::now()),
         };
 
@@ -4576,14 +3791,15 @@ impl MutationRoot {
             }
         }
 
-        // Log upload in audit trail
+        // Log upload in audit trail (accessed_at is None for uploads)
         let audit_log = crate::models::documents::document_access_log::ActiveModel {
             id: Set(uuid::Uuid::new_v4()),
             document_id: Set(document.id),
             user_id: Set(user.id),
             access_type: Set("upload".to_string()),
-            accessed_at: Set(Utc::now()),
+            accessed_at: Set(None), // Only set when document is actually accessed (view/download)
             ip_address: Set(None), // TODO: Get from request
+            ..Default::default()
         };
         audit_log.insert(&txn).await?;
 

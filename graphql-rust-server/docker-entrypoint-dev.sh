@@ -27,38 +27,33 @@ fi
 if [ "$ENABLE_SEED_DATA" = "true" ] || [ "$ENVIRONMENT" = "development" ]; then
     echo "🌱 Running seed data initialization..."
 
-    cargo build --release --bin seed-data
-    ./target/release/seed-data
-    SEED_EXIT_CODE=$?
+    if cargo build --release --bin seed-data >/dev/null 2>&1; then
+        ./target/release/seed-data
+        SEED_EXIT_CODE=$?
 
-    if [ $SEED_EXIT_CODE -eq 0 ]; then
-        echo "✅ Seed data completed successfully!"
-    elif [ $SEED_EXIT_CODE -eq 1 ]; then
-        echo "⚠️  Production safety block - continuing without seed data"
-    elif [ $SEED_EXIT_CODE -eq 2 ]; then
-        echo "❌ Seed data database connection failed!"
-        exit 2
-    elif [ $SEED_EXIT_CODE -eq 3 ]; then
-        echo "⚠️  Partial seed data failure - continuing anyway"
+        if [ $SEED_EXIT_CODE -eq 0 ]; then
+            echo "✅ Seed data completed successfully!"
+        elif [ $SEED_EXIT_CODE -eq 1 ]; then
+            echo "⚠️  Production safety block - continuing without seed data"
+        elif [ $SEED_EXIT_CODE -eq 2 ]; then
+            echo "❌ Seed data database connection failed!"
+            exit 2
+        elif [ $SEED_EXIT_CODE -eq 3 ]; then
+            echo "⚠️  Partial seed data failure - continuing anyway"
+        else
+            echo "⚠️  Seed data exited with code $SEED_EXIT_CODE - continuing anyway"
+        fi
     else
-        echo "⚠️  Seed data exited with code $SEED_EXIT_CODE - continuing anyway"
+        echo "⚠️  Seed data binary failed to compile - skipping seed data (database should already be seeded)"
     fi
 else
     echo "⏭️  Seed data disabled (ENABLE_SEED_DATA not set)"
 fi
 
-# Start cargo-watch for hot-reloading
-echo "🔥 Starting cargo-watch with hot-reloading..."
+# Start bacon for hot-reloading
+echo "🔥 Starting bacon with hot-reloading..."
 echo "   Watching: src/, migration/, Cargo.toml"
 echo "   GraphQL API will be available at http://0.0.0.0:$PORT"
 echo ""
 
-exec cargo watch \
-    -x "run --bin hr-graphql-server" \
-    --watch src \
-    --watch migration \
-    --watch Cargo.toml \
-    --watch .cargo \
-    --ignore "target/*" \
-    --delay 1 \
-    --no-gitignore
+exec bacon --headless run

@@ -161,6 +161,9 @@ mockito = "1.2"
 assert_matches = "1.5"
 pretty_assertions = "1.4"
 
+# Self-reference for testing utilities
+hr-graphql-server = { path = ".", features = ["test-utils"] }
+
 [build-dependencies]
 sea-orm-codegen = "1.1.17"
 

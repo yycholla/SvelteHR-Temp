@@ -21,7 +21,7 @@ export const CREATE_ENCRYPTION_KEY = gql`
 			algorithm
 			createdAt
 			rotatedAt
-			active
+			isActive
 		}
 	}
 `;
@@ -45,5 +45,5 @@ export interface EncryptionKeyResponse {
 	algorithm: string;
 	createdAt: string;
 	rotatedAt: string | null;
-	active: boolean;
+	isActive: boolean;
 }
