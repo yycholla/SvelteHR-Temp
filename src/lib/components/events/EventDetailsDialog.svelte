@@ -705,6 +705,7 @@
 				role="dialog"
 				aria-modal="true"
 				aria-labelledby="dialog-title"
+				data-testid="event-details-dialog"
 			>
 				<!-- Header -->
 				<div class="sticky top-0 z-10 flex items-center justify-between border-b bg-card px-6 py-4">

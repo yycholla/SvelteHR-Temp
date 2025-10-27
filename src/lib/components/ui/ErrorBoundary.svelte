@@ -135,7 +135,7 @@
 	{#if fallback}
 		{@render fallback()}
 	{:else}
-		<div class="flex min-h-[400px] items-center justify-center p-6">
+		<div class="flex min-h-[400px] items-center justify-center p-6" data-testid="error-boundary">
 			<Card class="mx-auto w-full max-w-lg {getErrorTypeColor(errorBoundary.error!.type)}">
 				<CardHeader class="text-center">
 					<div class="mb-4 flex justify-center">

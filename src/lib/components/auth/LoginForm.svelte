@@ -112,7 +112,7 @@
 </script>
 
 <div class="mx-auto w-full max-w-md">
-	<form onsubmit={handleSubmit} class="space-y-6" novalidate>
+	<form onsubmit={handleSubmit} class="space-y-6" novalidate data-testid="login-form">
 		<!-- Header -->
 		<div class="text-center">
 			<h1 class="text-2xl font-semibold text-foreground">Sign in to SvelteHR</h1>
@@ -123,7 +123,7 @@
 
 		<!-- Global Error Message -->
 		{#if $authError}
-			<Alert variant="destructive">
+			<Alert variant="destructive" data-testid="login-error-message">
 				<AlertCircle class="h-4 w-4" />
 				<AlertTitle>Authentication Error</AlertTitle>
 				<AlertDescription>{$authError}</AlertDescription>
@@ -152,6 +152,7 @@
 						if (error) formErrors.email = error;
 					}}
 					disabled={isSubmitting || $isLoading}
+				data-testid="login-username-input"
 				/>
 			</div>
 			{#if formErrors.email}
@@ -181,6 +182,7 @@
 						if (error) formErrors.password = error;
 					}}
 					disabled={isSubmitting || $isLoading}
+				data-testid="login-password-input"
 				/>
 				<div class="absolute inset-y-0 right-0 flex items-center pr-3">
 					<button
@@ -210,6 +212,7 @@
 					checked={rememberMe}
 					onCheckedChange={(checked) => (rememberMe = checked || false)}
 					disabled={isSubmitting || $isLoading}
+					data-testid="login-remember-me"
 				/>
 				<Label for="remember-me" class="text-sm font-normal">Remember me</Label>
 			</div>
@@ -230,6 +233,7 @@
 				type="submit"
 				disabled={isSubmitting || $isLoading || hasSucceeded || Object.keys(formErrors).length > 0}
 				class="w-full"
+				data-testid="login-submit-button"
 			>
 				{#if isSubmitting || $isLoading}
 					<Loader2 class="mr-2 h-4 w-4 animate-spin" />

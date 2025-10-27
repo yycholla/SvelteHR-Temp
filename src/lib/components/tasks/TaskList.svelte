@@ -106,9 +106,9 @@
 	}
 </script>
 
-<div class="task-list space-y-4">
+<div class="task-list space-y-4" data-testid="task-list">
 	{#if showFilters}
-		<div class="flex flex-col gap-4">
+		<div class="flex flex-col gap-4" data-testid="task-list-filters">
 			<div class="flex items-center justify-between">
 				<div class="flex items-center gap-2">
 					<CheckSquare class="h-5 w-5 text-muted-foreground" />

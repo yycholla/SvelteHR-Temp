@@ -606,7 +606,7 @@
 
 			<TabsContent value={selectedView} class="mt-4">
 				<!-- Leave Requests List -->
-				<div class="space-y-4">
+				<div class="space-y-4" data-testid="hr-leave-requests-table">
 					{#if filteredRequests.length === 0}
 						<Card>
 							<CardContent class="p-8 text-center">
@@ -690,6 +690,7 @@
 														variant="outline"
 														onclick={() => handleApprove(request)}
 														class="border-green-200 text-green-600 hover:border-green-300 hover:text-green-700"
+												data-testid="hr-approve-button"
 													>
 														<Check class="mr-1 h-4 w-4" />
 														Approve
@@ -699,6 +700,7 @@
 														variant="outline"
 														onclick={() => handleDeny(request)}
 														class="border-red-200 text-red-600 hover:border-red-300 hover:text-red-700"
+												data-testid="hr-reject-button"
 													>
 														<X class="mr-1 h-4 w-4" />
 														Deny

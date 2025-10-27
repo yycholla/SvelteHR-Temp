@@ -89,6 +89,7 @@
 		onclick={handleLeaveWaitlist}
 		{disabled}
 		class="gap-2"
+		data-testid="event-waitlist-button"
 	>
 		<Clock class="h-4 w-4" />
 		{buttonText}
@@ -101,6 +102,7 @@
 		onclick={handleJoinWaitlist}
 		{disabled}
 		class="gap-2"
+		data-testid="event-waitlist-button"
 	>
 		<Clock class="h-4 w-4" />
 		{buttonText}

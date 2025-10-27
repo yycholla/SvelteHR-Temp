@@ -794,7 +794,7 @@
 	</div>
 
 	<!-- Events Calendar -->
-	<div class="mb-6">
+	<div class="mb-6" data-testid="events-calendar">
 		<!-- Always show calendar view, even with no events -->
 		<EventCalendar
 				events={events}

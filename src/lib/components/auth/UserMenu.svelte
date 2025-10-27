@@ -253,6 +253,7 @@
 						class="flex w-full items-center px-4 py-2 text-left text-sm text-red-700 transition-colors duration-150 hover:bg-red-50 focus:bg-red-50 focus:outline-none"
 						role="menuitem"
 						on:click={handleLogout}
+						data-testid="logout-button"
 					>
 						<LogOut class="mr-3 h-4 w-4 text-red-400" />
 						Sign out

@@ -55,6 +55,7 @@
 	tabindex={onClick ? 0 : undefined}
 	onclick={handleClick}
 	onkeypress={handleKeyPress}
+	data-testid="event-card"
 >
 	<!-- Event Color Indicator -->
 	<div class="absolute left-0 top-0 h-full w-1 rounded-l-lg" style="background-color: {event.color}"></div>

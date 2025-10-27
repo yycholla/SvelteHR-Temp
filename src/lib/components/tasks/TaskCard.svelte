@@ -116,6 +116,7 @@
 	tabindex={onClick ? 0 : undefined}
 	onclick={handleClick}
 	onkeypress={handleKeyPress}
+	data-testid="task-card"
 >
 	<!-- Priority Indicator Strip -->
 	<div class="absolute left-0 top-0 h-full w-1 rounded-l-lg {priorityColor}"></div>
