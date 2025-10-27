@@ -4,7 +4,7 @@
 
 use async_graphql::{Context, Enum, InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
-use sea_orm::{entity::prelude::*, FromQueryResult, Related};
+use sea_orm::{entity::prelude::*, FromQueryResult, QueryOrder, Related};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -159,6 +159,8 @@ pub enum Relation {
     PerformanceReviews,
     #[sea_orm(has_many = "crate::models::employee::user_address::Entity")]
     UserAddresses,
+    #[sea_orm(has_many = "super::user_role_assignment::Entity")]
+    UserRoleAssignments,
 }
 
 impl Related<super::department::Entity> for Entity {
@@ -327,6 +329,37 @@ impl Model {
             .await?;
 
         Ok(address)
+    }
+
+    /// RBAC roles assigned to this user (many-to-many via user_role_assignments)
+    async fn roles(&self, ctx: &Context<'_>) -> GqlResult<Vec<super::role::Model>> {
+        use super::user_role_assignment::{Entity as UserRoleEntity, Column as UserRoleColumn};
+        use super::role::{Entity as RoleEntity, Column as RoleColumn};
+
+        let db = get_db_from_context(ctx)?;
+
+        // Get role IDs from user_role_assignments
+        let assignments = UserRoleEntity::find()
+            .filter(UserRoleColumn::UserId.eq(self.id))
+            .filter(UserRoleColumn::DeletedAt.is_null())
+            .all(&db)
+            .await?;
+
+        let role_ids: Vec<Uuid> = assignments.iter().map(|a| a.role_id).collect();
+
+        if role_ids.is_empty() {
+            return Ok(vec![]);
+        }
+
+        // Load roles by IDs
+        let roles = RoleEntity::find()
+            .filter(RoleColumn::Id.is_in(role_ids))
+            .filter(RoleColumn::DeletedAt.is_null())
+            .order_by_asc(RoleColumn::Level)
+            .all(&db)
+            .await?;
+
+        Ok(roles)
     }
 }
 

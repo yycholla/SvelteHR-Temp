@@ -10,16 +10,23 @@ export const load: PageServerLoad = async (event) => {
 	const { locals, cookies, url } = event;
 
 	// RBAC: Check task read permissions
-	// Note: PermissionChecks will throw error if user doesn't have permission
-	try {
-		// For now, we'll allow all authenticated users to read tasks
-		// Later, implement specific task permission checks
-		if (!locals.user) {
-			throw error(401, { message: 'Authentication required' });
-		}
-	} catch (err) {
-		console.error('[Tasks Dashboard] Permission check failed:', err);
-		throw error(403, { message: 'Insufficient permissions to view tasks' });
+	// All Tasks page is restricted to hr_admin and system_admin only
+	// Managers and employees should use My Tasks and Team Tasks instead
+	if (!locals.user) {
+		throw error(401, { message: 'Authentication required' });
+	}
+
+	// Check if user has hr_admin or system_admin role
+	const userRoles = locals.roles || [];
+	const canAccessAllTasks =
+		userRoles.includes('hr_admin') ||
+		userRoles.includes('system_admin') ||
+		userRoles.includes('super_admin');
+
+	if (!canAccessAllTasks) {
+		throw error(403, {
+			message: 'Access denied. All Tasks is restricted to administrators. Please use My Tasks or Team Tasks instead.'
+		});
 	}
 
 	// Import required models for standardized error handling

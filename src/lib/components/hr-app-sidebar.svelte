@@ -48,6 +48,8 @@
 	const isAdmin = hasRole('admin') || isSuperAdmin || isSystemAdmin;
 	const isHR = hasRole('hr_admin') || isAdmin;
 	const isManager = hasRole('manager') || isHR;
+	// Administration section access - restricted to hr_admin and system_admin only
+	const canAccessAdministration = hasRole('hr_admin') || isSystemAdmin || isSuperAdmin;
 
 	// Load debug settings on mount (system_admin only)
 	onMount(() => {
@@ -111,7 +113,8 @@
 		if (
 			currentPath.includes('/admin') ||
 			currentPath.includes('/dashboard/activities/logs') ||
-			currentPath.includes('/dashboard/activities/rollback')
+			currentPath.includes('/dashboard/activities/rollback') ||
+			currentPath === '/dashboard/tasks'
 		) {
 			expandedSections.administration = true;
 		}
@@ -145,12 +148,11 @@
 		},
 		{
 			title: 'Tasks',
-			url: '/dashboard/tasks',
+			url: '/dashboard/tasks/my-tasks',
 			icon: ListTodo,
 			standalone: false, // Has submenu
 			section: 'tasks',
 			items: [
-				{ title: 'All Tasks', url: '/dashboard/tasks' },
 				{ title: 'My Tasks', url: '/dashboard/tasks/my-tasks' },
 				{ title: 'Team Tasks', url: '/dashboard/tasks/team-tasks' }
 			]
@@ -256,6 +258,7 @@
 	// T024: Updated admin navigation per specifications
 	// T044-T046: Added Feature 020 audit logging pages
 	const adminItems = [
+		{ title: 'All Tasks', url: '/dashboard/tasks', icon: ListTodo },
 		{ title: 'User Management', url: '/dashboard/admin/users', icon: Users },
 		{ title: 'Task Types', url: '/dashboard/admin/task-types', icon: Tags },
 		{ title: 'System Settings', url: '/dashboard/admin/settings', icon: Settings },
@@ -425,14 +428,14 @@
 		</div>
 	{/if}
 
-	<!-- Administration Section (Bottom) - Only for admins -->
-	{#if isAdmin}
+	<!-- Administration Section (Bottom) - Only for hr_admin and system_admin -->
+	{#if canAccessAdministration}
 		<div class="px-3 pb-3">
 			<button
 				onclick={() => toggleSection('administration')}
 				class="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-primary hover:text-primary-foreground hover:opacity-80"
-				class:bg-primary={$page.url.pathname.includes('/admin')}
-				class:text-primary-foreground={$page.url.pathname.includes('/admin')}
+				class:bg-primary={$page.url.pathname.includes('/admin') || $page.url.pathname === '/dashboard/tasks'}
+				class:text-primary-foreground={$page.url.pathname.includes('/admin') || $page.url.pathname === '/dashboard/tasks'}
 				data-testid="nav-admin"
 			>
 				<div class="flex items-center gap-3">

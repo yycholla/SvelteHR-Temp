@@ -142,13 +142,21 @@
 		actionResult = null;
 	}
 
-	function handleFormResult() {
+	async function handleFormResult() {
 		loading = false;
-		invalidateAll();
+
+		// Close the dialog and clear selected role to prevent null reference errors during reload
+		showPermissionDialog = false;
+		selectedRole = null;
+		permissionsSelection.clear();
+
+		// Reload data to reflect the changes
+		await invalidateAll();
 	}
 
 	function hasPermission(role: any, permissionId: string): boolean {
-		return role.permissions?.some((p: any) => p.id === permissionId) || false;
+		// Add null-safe access for role parameter
+		return role?.permissions?.some((p: any) => p.id === permissionId) || false;
 	}
 
 	function userHasRole(user: any, roleId: string): boolean {
@@ -166,7 +174,7 @@
 	<!-- Header -->
 	<div class="flex items-center justify-between">
 		<div>
-			<h1 class="text-3xl font-bold">Permissions Management</h1>
+			<h1 class="text-3xl font-bold text-foreground">Permissions Management</h1>
 			<p class="text-muted-foreground">
 				Manage roles, permissions, and user access control
 			</p>
@@ -295,7 +303,7 @@
 					{#if expandedRoles.has(role.id)}
 						<Card.CardContent>
 							<div class="space-y-2">
-								<h4 class="text-sm font-medium">Assigned Permissions:</h4>
+								<h4 class="text-sm font-medium text-foreground">Assigned Permissions:</h4>
 								{#if role.permissions && role.permissions.length > 0}
 									<div class="flex flex-wrap gap-2">
 										{#each role.permissions as permission (permission.id)}
@@ -392,6 +400,7 @@
 		</Dialog.Header>
 
 		<form
+			id="create-role-form"
 			method="POST"
 			action="?/createRole"
 			use:enhance={() => {
@@ -407,7 +416,7 @@
 			class="space-y-4"
 		>
 			<div>
-				<label for="role-name" class="block text-sm font-medium">Role Name *</label>
+				<label for="role-name" class="block text-sm font-medium text-foreground">Role Name *</label>
 				<input
 					id="role-name"
 					name="name"
@@ -420,7 +429,7 @@
 			</div>
 
 			<div>
-				<label for="role-description" class="block text-sm font-medium">Description</label>
+				<label for="role-description" class="block text-sm font-medium text-foreground">Description</label>
 				<textarea
 					id="role-description"
 					name="description"
@@ -430,14 +439,24 @@
 					placeholder="Describe the role's responsibilities..."
 				></textarea>
 			</div>
-
-			<Dialog.Footer>
-				<Button type="button" variant="outline" onclick={closeDialogs}>Cancel</Button>
-				<Button type="submit" disabled={loading}>
-					{loading ? 'Creating...' : 'Create Role'}
-				</Button>
-			</Dialog.Footer>
 		</form>
+
+		<Dialog.Footer>
+			<Button
+				type="button"
+				variant="outline"
+				onclick={closeDialogs}
+			>
+				Cancel
+			</Button>
+			<Button
+				type="submit"
+				form="create-role-form"
+				disabled={loading}
+			>
+				{loading ? 'Creating...' : 'Create Role'}
+			</Button>
+		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>
 
@@ -450,6 +469,7 @@
 		</Dialog.Header>
 
 		<form
+			id="edit-role-form"
 			method="POST"
 			action="?/updateRole"
 			use:enhance={() => {
@@ -467,7 +487,7 @@
 			<input type="hidden" name="id" value={selectedRole?.id} />
 
 			<div>
-				<label for="edit-role-name" class="block text-sm font-medium">Role Name *</label>
+				<label for="edit-role-name" class="block text-sm font-medium text-foreground">Role Name *</label>
 				<input
 					id="edit-role-name"
 					name="name"
@@ -479,7 +499,7 @@
 			</div>
 
 			<div>
-				<label for="edit-role-description" class="block text-sm font-medium">Description</label>
+				<label for="edit-role-description" class="block text-sm font-medium text-foreground">Description</label>
 				<textarea
 					id="edit-role-description"
 					name="description"
@@ -488,14 +508,24 @@
 					class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 				></textarea>
 			</div>
-
-			<Dialog.Footer>
-				<Button type="button" variant="outline" onclick={closeDialogs}>Cancel</Button>
-				<Button type="submit" disabled={loading}>
-					{loading ? 'Updating...' : 'Update Role'}
-				</Button>
-			</Dialog.Footer>
 		</form>
+
+		<Dialog.Footer>
+			<Button
+				type="button"
+				variant="outline"
+				onclick={closeDialogs}
+			>
+				Cancel
+			</Button>
+			<Button
+				type="submit"
+				form="edit-role-form"
+				disabled={loading}
+			>
+				{loading ? 'Updating...' : 'Update Role'}
+			</Button>
+		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>
 
@@ -510,6 +540,7 @@
 		</Dialog.Header>
 
 		<form
+			id="permissions-form"
 			method="POST"
 			action="?/bulkAssignPermissions"
 			use:enhance={() => {
@@ -534,7 +565,7 @@
 			<div class="space-y-4">
 				{#each Object.entries(permissionsByResource) as [resource, permissions]}
 					<div class="rounded-md border p-3">
-						<h4 class="mb-2 font-medium capitalize">{resource}</h4>
+						<h4 class="mb-2 font-medium capitalize text-foreground">{resource}</h4>
 						<div class="space-y-2">
 							{#each permissions as permission}
 								<label class="flex items-center gap-2 cursor-pointer hover:bg-accent rounded p-2">
@@ -545,7 +576,7 @@
 										class="h-4 w-4 rounded border-gray-300"
 									/>
 									<div class="flex-1">
-										<span class="text-sm font-medium">
+										<span class="text-sm font-medium text-foreground">
 											{permission.resource}:{permission.action}
 										</span>
 										{#if permission.description}
@@ -561,14 +592,29 @@
 					</div>
 				{/each}
 			</div>
-
-			<Dialog.Footer>
-				<Button type="button" variant="outline" onclick={closeDialogs}>Cancel</Button>
-				<Button type="submit" disabled={loading}>
-					{loading ? 'Applying...' : 'Apply Changes'}
-				</Button>
-			</Dialog.Footer>
 		</form>
+
+		<div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end mt-4">
+			<button
+				type="button"
+				class="inline-flex items-center justify-center h-9 px-4 py-2 rounded-md border border-input bg-background text-foreground text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors shadow-xs"
+				onclick={() => {
+					showPermissionDialog = false;
+					selectedRole = null;
+					permissionsSelection.clear();
+				}}
+			>
+				Cancel
+			</button>
+			<button
+				type="submit"
+				form="permissions-form"
+				disabled={loading}
+				class="inline-flex items-center justify-center h-9 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 shadow-xs"
+			>
+				{loading ? 'Applying...' : 'Apply Changes'}
+			</button>
+		</div>
 	</Dialog.Content>
 </Dialog.Root>
 
@@ -583,12 +629,12 @@
 		<div class="space-y-4">
 			<div class="rounded-md border">
 				<div class="p-4">
-					<h4 class="mb-3 text-sm font-medium">Available Roles</h4>
+					<h4 class="mb-3 text-sm font-medium text-foreground">Available Roles</h4>
 					<div class="space-y-2">
 						{#each data.roles as role}
 							<div class="flex items-center justify-between rounded-md border p-3">
 								<div>
-									<p class="font-medium">{role.name}</p>
+									<p class="font-medium text-foreground">{role.name}</p>
 									{#if role.description}
 										<p class="text-xs text-muted-foreground">{role.description}</p>
 									{/if}
@@ -640,7 +686,13 @@
 		</div>
 
 		<Dialog.Footer>
-			<Button type="button" variant="outline" onclick={closeDialogs}>Close</Button>
+			<Button
+				type="button"
+				variant="outline"
+				onclick={closeDialogs}
+			>
+				Close
+			</Button>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>

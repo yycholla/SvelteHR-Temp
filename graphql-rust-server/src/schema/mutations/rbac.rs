@@ -4,9 +4,9 @@
 //! Includes CRUD operations for roles, permissions, role-permission assignments,
 //! and user-role assignments with proper soft-delete support.
 
-use async_graphql::{Context, Result, SimpleObject};
+use async_graphql::{Context, InputObject, Result, SimpleObject};
 use chrono::Utc;
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
+use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter, Set};
 use uuid::Uuid;
 
 use crate::{
@@ -36,6 +36,36 @@ pub struct SuccessResponse {
 pub struct BulkOperationResponse {
     pub success: bool,
     pub count: i64,
+    pub message: String,
+}
+
+/// Bulk assign permissions input
+#[derive(Debug, Clone, InputObject)]
+pub struct BulkAssignPermissionsInput {
+    pub role_id: Uuid,
+    pub permission_ids: Vec<Uuid>,
+}
+
+/// Bulk assign permissions response
+#[derive(SimpleObject)]
+pub struct BulkAssignPermissionsResponse {
+    pub success: bool,
+    pub assigned_count: i64,
+    pub message: String,
+}
+
+/// Bulk remove permissions input
+#[derive(Debug, Clone, InputObject)]
+pub struct BulkRemovePermissionsInput {
+    pub role_id: Uuid,
+    pub permission_ids: Vec<Uuid>,
+}
+
+/// Bulk remove permissions response
+#[derive(SimpleObject)]
+pub struct BulkRemovePermissionsResponse {
+    pub success: bool,
+    pub removed_count: i64,
     pub message: String,
 }
 
@@ -434,13 +464,12 @@ impl RbacMutations {
     async fn bulk_assign_permissions(
         &self,
         ctx: &Context<'_>,
-        role_id: Uuid,
-        permission_ids: Vec<Uuid>,
-    ) -> Result<BulkOperationResponse> {
+        input: BulkAssignPermissionsInput,
+    ) -> Result<BulkAssignPermissionsResponse> {
         let db = get_db_from_context(ctx)?;
 
         // Verify role exists
-        let _ = crate::models::role::Entity::find_by_id(role_id)
+        let _ = crate::models::role::Entity::find_by_id(input.role_id)
             .filter(crate::models::role::Column::DeletedAt.is_null())
             .one(&db)
             .await?
@@ -448,7 +477,7 @@ impl RbacMutations {
 
         let mut assigned_count = 0;
 
-        for permission_id in permission_ids {
+        for permission_id in input.permission_ids {
             // Verify permission exists
             let permission = crate::models::permission::Entity::find_by_id(permission_id)
                 .filter(crate::models::permission::Column::DeletedAt.is_null())
@@ -461,7 +490,7 @@ impl RbacMutations {
 
             // Check if assignment already exists
             let existing = crate::models::role_permission::Entity::find()
-                .filter(crate::models::role_permission::Column::RoleId.eq(role_id))
+                .filter(crate::models::role_permission::Column::RoleId.eq(input.role_id))
                 .filter(crate::models::role_permission::Column::PermissionId.eq(permission_id))
                 .one(&db)
                 .await?;
@@ -480,7 +509,7 @@ impl RbacMutations {
             } else {
                 // Create new assignment
                 let role_permission = crate::models::role_permission::ActiveModel {
-                    role_id: Set(role_id),
+                    role_id: Set(input.role_id),
                     permission_id: Set(permission_id),
                     ..Default::default()
                 };
@@ -489,9 +518,9 @@ impl RbacMutations {
             }
         }
 
-        Ok(BulkOperationResponse {
+        Ok(BulkAssignPermissionsResponse {
             success: true,
-            count: assigned_count,
+            assigned_count,
             message: format!(
                 "{} permission(s) assigned to role successfully",
                 assigned_count
@@ -503,17 +532,16 @@ impl RbacMutations {
     async fn bulk_remove_permissions(
         &self,
         ctx: &Context<'_>,
-        role_id: Uuid,
-        permission_ids: Vec<Uuid>,
-    ) -> Result<BulkOperationResponse> {
+        input: BulkRemovePermissionsInput,
+    ) -> Result<BulkRemovePermissionsResponse> {
         let db = get_db_from_context(ctx)?;
 
         let mut removed_count = 0;
 
-        for permission_id in permission_ids {
+        for permission_id in input.permission_ids {
             // Find and soft delete the assignment
             let role_permission = crate::models::role_permission::Entity::find()
-                .filter(crate::models::role_permission::Column::RoleId.eq(role_id))
+                .filter(crate::models::role_permission::Column::RoleId.eq(input.role_id))
                 .filter(crate::models::role_permission::Column::PermissionId.eq(permission_id))
                 .filter(crate::models::role_permission::Column::DeletedAt.is_null())
                 .one(&db)
@@ -527,9 +555,9 @@ impl RbacMutations {
             }
         }
 
-        Ok(BulkOperationResponse {
+        Ok(BulkRemovePermissionsResponse {
             success: true,
-            count: removed_count,
+            removed_count,
             message: format!(
                 "{} permission(s) removed from role successfully",
                 removed_count

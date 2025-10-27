@@ -7,6 +7,11 @@ enabled = true
 path = ".bacon-locations"
 line_format = "{kind} {path}:{line}:{column} {message}"
 
+# Use polling for Docker compatibility (inotify events don't cross container boundary)
+[prefs]
+files_poll = true
+files_poll_interval_ms = 1000  # Check for changes every 1 second
+
 # Job definitions for specific binaries
 # Default job: run the GraphQL server
 [jobs.run]

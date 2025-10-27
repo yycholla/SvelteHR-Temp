@@ -680,13 +680,11 @@
 
 						<!-- Actions -->
 						<div class="flex gap-2">
-							{#if canViewEmployees}
-								<Button variant="outline" size="sm" href="/dashboard/employees/{employee.id}">
-									<Eye class="mr-2 h-4 w-4" />
-									View Profile
-								</Button>
-							{/if}
-							{#if canEditEmployees}
+							<Button variant="outline" size="sm" href="/dashboard/employees/{employee.id}">
+								<Eye class="mr-2 h-4 w-4" />
+								View Profile
+							</Button>
+							{#if canManageEmployees}
 								<Button variant="outline" size="sm" href="/dashboard/employees/{employee.id}/edit">
 									<Edit class="mr-2 h-4 w-4" />
 									Edit
@@ -857,17 +855,15 @@
 									</Table.Cell>
 									<Table.Cell class="text-right">
 										<div class="flex gap-1 justify-end">
-											{#if canViewEmployees}
-												<Button
-													variant="ghost"
-													size="sm"
-													href="/dashboard/employees/{employee.id}"
-													onclick={(e) => e.stopPropagation()}
-												>
-													<Eye class="h-4 w-4" />
-												</Button>
-											{/if}
-											{#if canEditEmployees}
+											<Button
+												variant="ghost"
+												size="sm"
+												href="/dashboard/employees/{employee.id}"
+												onclick={(e) => e.stopPropagation()}
+											>
+												<Eye class="h-4 w-4" />
+											</Button>
+											{#if canManageEmployees}
 												<Button
 													variant="ghost"
 													size="sm"

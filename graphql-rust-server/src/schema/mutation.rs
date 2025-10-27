@@ -556,6 +556,104 @@ impl MutationRoot {
         }
     }
 
+    /// Bulk assign multiple permissions to a role
+    async fn bulk_assign_permissions(
+        &self,
+        ctx: &Context<'_>,
+        input: crate::schema::mutations::rbac::BulkAssignPermissionsInput,
+    ) -> Result<crate::schema::mutations::rbac::BulkAssignPermissionsResponse> {
+        let db = get_db_from_context(ctx)?;
+
+        // Verify role exists
+        let _ = crate::models::role::Entity::find_by_id(input.role_id)
+            .filter(crate::models::role::Column::DeletedAt.is_null())
+            .one(&db)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Role not found".to_string()))?;
+
+        let mut assigned_count = 0;
+
+        for permission_id in input.permission_ids {
+            // Verify permission exists
+            let permission = crate::models::permission::Entity::find_by_id(permission_id)
+                .filter(crate::models::permission::Column::DeletedAt.is_null())
+                .one(&db)
+                .await?;
+
+            if permission.is_none() {
+                continue; // Skip invalid permissions
+            }
+
+            // Check if assignment already exists
+            let existing = crate::models::role_permission::Entity::find()
+                .filter(crate::models::role_permission::Column::RoleId.eq(input.role_id))
+                .filter(crate::models::role_permission::Column::PermissionId.eq(permission_id))
+                .one(&db)
+                .await?;
+
+            if let Some(existing) = existing {
+                // If soft-deleted, restore it
+                if existing.deleted_at.is_some() {
+                    let mut role_perm: crate::models::role_permission::ActiveModel = existing.into();
+                    role_perm.deleted_at = Set(None);
+                    role_perm.updated_at = Set(Utc::now());
+                    role_perm.update(&db).await?;
+                    assigned_count += 1;
+                }
+                // If already active, skip
+            } else {
+                // Create new assignment
+                let role_permission = crate::models::role_permission::ActiveModel {
+                    role_id: Set(input.role_id),
+                    permission_id: Set(permission_id),
+                    ..Default::default()
+                };
+                role_permission.insert(&db).await?;
+                assigned_count += 1;
+            }
+        }
+
+        Ok(crate::schema::mutations::rbac::BulkAssignPermissionsResponse {
+            success: true,
+            assigned_count,
+            message: format!("{} permission(s) assigned to role successfully", assigned_count),
+        })
+    }
+
+    /// Bulk remove multiple permissions from a role
+    async fn bulk_remove_permissions(
+        &self,
+        ctx: &Context<'_>,
+        input: crate::schema::mutations::rbac::BulkRemovePermissionsInput,
+    ) -> Result<crate::schema::mutations::rbac::BulkRemovePermissionsResponse> {
+        let db = get_db_from_context(ctx)?;
+
+        let mut removed_count = 0;
+
+        for permission_id in input.permission_ids {
+            // Find and soft delete the assignment
+            let role_permission = crate::models::role_permission::Entity::find()
+                .filter(crate::models::role_permission::Column::RoleId.eq(input.role_id))
+                .filter(crate::models::role_permission::Column::PermissionId.eq(permission_id))
+                .filter(crate::models::role_permission::Column::DeletedAt.is_null())
+                .one(&db)
+                .await?;
+
+            if let Some(rp) = role_permission {
+                let mut rp: crate::models::role_permission::ActiveModel = rp.into();
+                rp.deleted_at = Set(Some(Utc::now()));
+                rp.update(&db).await?;
+                removed_count += 1;
+            }
+        }
+
+        Ok(crate::schema::mutations::rbac::BulkRemovePermissionsResponse {
+            success: true,
+            removed_count,
+            message: format!("{} permission(s) removed from role successfully", removed_count),
+        })
+    }
+
     // ============================================================
     // Event Mutations
     // ============================================================

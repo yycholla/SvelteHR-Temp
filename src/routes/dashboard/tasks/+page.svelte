@@ -94,13 +94,67 @@
 		}
 	];
 
-	// Handle filter changes - update URL params
-	async function handleFiltersChange(newFilters: TaskFilterState) {
+	// Client-side filtered tasks based on filter state
+	let filteredTasks = $derived(() => {
+		let result = data.tasks;
+
+		// Search filter
+		if (filters.search) {
+			const searchLower = filters.search.toLowerCase();
+			result = result.filter((task: any) => {
+				const title = task.title?.toLowerCase() || '';
+				const description = task.description?.toLowerCase() || '';
+				return title.includes(searchLower) || description.includes(searchLower);
+			});
+		}
+
+		// Status filter
+		if (filters.statuses.length > 0) {
+			result = result.filter((task: any) => filters.statuses.includes(task.status));
+		}
+
+		// Priority filter
+		if (filters.priorities.length > 0) {
+			result = result.filter((task: any) => filters.priorities.includes(task.priority));
+		}
+
+		// Assignee filter
+		if (filters.assigneeId) {
+			result = result.filter((task: any) => task.assignee?.id === filters.assigneeId);
+		}
+
+		// Task type filter
+		if (filters.taskTypeId) {
+			result = result.filter((task: any) => task.taskType?.id === filters.taskTypeId);
+		}
+
+		// Due date range filter
+		if (filters.dueDateStart || filters.dueDateEnd) {
+			result = result.filter((task: any) => {
+				if (!task.dueDate) return false;
+				const taskDate = new Date(task.dueDate);
+				if (filters.dueDateStart && taskDate < new Date(filters.dueDateStart)) return false;
+				if (filters.dueDateEnd && taskDate > new Date(filters.dueDateEnd)) return false;
+				return true;
+			});
+		}
+
+		// Parent task filter
+		if (filters.hasParent === true) {
+			result = result.filter((task: any) => task.parentTask != null);
+		} else if (filters.hasParent === false) {
+			result = result.filter((task: any) => task.parentTask == null);
+		}
+
+		return result;
+	});
+
+	// Handle filter changes - update state only (no page reload)
+	function handleFiltersChange(newFilters: TaskFilterState) {
 		filters = newFilters;
 
-		// Build URL params
+		// Update URL for bookmarkability without reloading
 		const params = new URLSearchParams();
-
 		if (newFilters.search) params.set('search', newFilters.search);
 		if (newFilters.statuses.length > 0) params.set('status', newFilters.statuses[0]);
 		if (newFilters.priorities.length > 0) params.set('priority', newFilters.priorities[0]);
@@ -110,12 +164,11 @@
 		if (newFilters.dueDateEnd) params.set('dueDateEnd', newFilters.dueDateEnd);
 		if (newFilters.hasParent !== null) params.set('hasParent', String(newFilters.hasParent));
 
-		// Navigate with new params
 		const queryString = params.toString();
-		await goto(queryString ? `?${queryString}` : '/dashboard/tasks', {
-			replaceState: true,
-			keepFocus: true
-		});
+		const newUrl = queryString ? `?${queryString}` : '/dashboard/tasks';
+
+		// Use history API directly to avoid page reload
+		window.history.replaceState({}, '', newUrl);
 	}
 
 	// Handle task click - navigate to task details
@@ -134,15 +187,9 @@
 	<meta name="description" content="View and manage all tasks in your organization" />
 </svelte:head>
 
-<div class="tasks-dashboard" data-testid="tasks-dashboard">
+<div class="space-y-6" data-testid="tasks-dashboard">
 	<!-- Page Header -->
-	<div class="page-header">
-		<div>
-			<h1 class="text-3xl font-bold tracking-tight">Tasks Dashboard</h1>
-			<p class="text-muted-foreground mt-2">
-				View and manage tasks across your organization
-			</p>
-		</div>
+	<div class="flex items-start justify-end gap-4">
 		<Button onclick={handleCreateTask} class="flex-shrink-0" data-testid="tasks-create-button">
 			<Plus class="mr-2 h-4 w-4" />
 			New Task
@@ -150,7 +197,7 @@
 	</div>
 
 	<!-- Statistics Cards -->
-	<div class="stats-grid" data-testid="tasks-stats-grid">
+	<div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6" data-testid="tasks-stats-grid">
 		{#each statsCards as stat}
 			<Card.Root>
 				<Card.Header class="flex flex-row items-center justify-between pb-2">
@@ -179,15 +226,8 @@
 	/>
 
 	<!-- Tasks List -->
-	<div class="tasks-list-section" data-testid="tasks-list-section">
-		<div class="flex items-center justify-between mb-4">
-			<div class="flex items-center gap-2">
-				<h2 class="text-xl font-semibold">Tasks</h2>
-				<Badge variant="secondary">{data.totalTasks}</Badge>
-			</div>
-		</div>
-
-		{#if data.tasks.length === 0}
+	<div class="space-y-4" data-testid="tasks-list-section">
+		{#if filteredTasks().length === 0}
 			<Card.Root>
 				<Card.Content class="flex flex-col items-center justify-center py-12">
 					<Target class="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
@@ -207,7 +247,7 @@
 			</Card.Root>
 		{:else}
 			<TaskList
-				tasks={data.tasks}
+				tasks={filteredTasks()}
 				userId={data.user.id}
 				onTaskClick={handleTaskClick}
 				showProgress={true}

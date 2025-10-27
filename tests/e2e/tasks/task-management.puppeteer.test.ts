@@ -22,7 +22,7 @@ import {
 describe('Tasks - Dashboard & Overview (Puppeteer)', () => {
 	// Setup: Login before tests
 	beforeEach(async () => {
-		await login('admin@example.com', 'admin');
+		await login('admin@mountainhr.dev', 'admin123');
 	});
 
 	test('user can access tasks dashboard', async () => {
@@ -111,7 +111,7 @@ describe('Tasks - Dashboard & Overview (Puppeteer)', () => {
 
 describe('Tasks - Task List & Filtering (Puppeteer)', () => {
 	beforeEach(async () => {
-		await login('admin@example.com', 'admin');
+		await login('admin@mountainhr.dev', 'admin123');
 	});
 
 	test('tasks list section is visible', async () => {
@@ -207,7 +207,7 @@ describe('Tasks - Task List & Filtering (Puppeteer)', () => {
 
 describe('Tasks - Task Cards & Interactions (Puppeteer)', () => {
 	beforeEach(async () => {
-		await login('admin@example.com', 'admin');
+		await login('admin@mountainhr.dev', 'admin123');
 	});
 
 	test('task cards are displayed in list', async () => {
@@ -307,7 +307,7 @@ describe('Tasks - Task Cards & Interactions (Puppeteer)', () => {
 
 describe('Tasks - View Modes (Puppeteer)', () => {
 	beforeEach(async () => {
-		await login('admin@example.com', 'admin');
+		await login('admin@mountainhr.dev', 'admin123');
 	});
 
 	test('task list supports different view modes', async () => {
@@ -351,7 +351,7 @@ describe('Tasks - View Modes (Puppeteer)', () => {
 
 describe('Tasks - User Assignment & Ownership (Puppeteer)', () => {
 	beforeEach(async () => {
-		await login('admin@example.com', 'admin');
+		await login('admin@mountainhr.dev', 'admin123');
 	});
 
 	test('tasks show assignment information', async () => {
@@ -386,7 +386,7 @@ describe('Tasks - User Assignment & Ownership (Puppeteer)', () => {
 
 describe('Tasks - Data Validation (Puppeteer)', () => {
 	beforeEach(async () => {
-		await login('admin@example.com', 'admin');
+		await login('admin@mountainhr.dev', 'admin123');
 	});
 
 	test('task statistics show valid numbers', async () => {
@@ -444,7 +444,7 @@ describe('Tasks - Data Validation (Puppeteer)', () => {
 
 describe('Tasks - Performance & Responsiveness (Puppeteer)', () => {
 	beforeEach(async () => {
-		await login('admin@example.com', 'admin');
+		await login('admin@mountainhr.dev', 'admin123');
 	});
 
 	test('tasks page loads within reasonable time', async () => {

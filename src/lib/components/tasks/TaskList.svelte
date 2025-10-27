@@ -8,7 +8,7 @@
 <script lang="ts">
 	import TaskCard from './TaskCard.svelte';
 	import type { Task, TaskStatus, TaskPriority } from '$lib/types/task';
-	import * as Select from '$lib/components/ui/select';
+	import * as NativeSelect from '$lib/components/ui/native-select';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import { CheckSquare, List, GitBranch, Columns, Filter, SortAsc } from '@lucide/svelte';
@@ -108,64 +108,29 @@
 
 <div class="task-list space-y-4" data-testid="task-list">
 	{#if showFilters}
-		<div class="flex flex-col gap-4" data-testid="task-list-filters">
-			<div class="flex items-center justify-between">
-				<div class="flex items-center gap-2">
-					<CheckSquare class="h-5 w-5 text-muted-foreground" />
-					<h3 class="text-lg font-semibold">Tasks ({sortedTasks().length})</h3>
-				</div>
-				<div class="flex items-center gap-1 rounded-lg border p-1">
-					<Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="sm" onclick={() => viewMode = 'list'}>
-						<List class="h-4 w-4" />
-					</Button>
-					<Button variant={viewMode === 'hierarchy' ? 'secondary' : 'ghost'} size="sm" onclick={() => viewMode = 'hierarchy'}>
-						<GitBranch class="h-4 w-4" />
-					</Button>
-					<Button variant={viewMode === 'kanban' ? 'secondary' : 'ghost'} size="sm" onclick={() => viewMode = 'kanban'}>
-						<Columns class="h-4 w-4" />
-					</Button>
-				</div>
-			</div>
+		<div class="flex items-center justify-between gap-4 flex-wrap" data-testid="task-list-filters">
 			<div class="flex flex-wrap items-center gap-2">
-				<Select.Root bind:value={statusFilter}>
-					<Select.Trigger class="w-44">
-						<Filter class="mr-2 h-3 w-3" />
-						<Select.Value placeholder="Filter by status" />
-					</Select.Trigger>
-					<Select.Content>
-						<Select.Item value="all">All Status ({statusCounts().all})</Select.Item>
-						<Select.Item value="TO_DO">To Do ({statusCounts()['TODO']})</Select.Item>
-						<Select.Item value="IN_PROGRESS">In Progress ({statusCounts()['IN_PROGRESS']})</Select.Item>
-						<Select.Item value="BLOCKED">Blocked ({statusCounts()['BLOCKED']})</Select.Item>
-						<Select.Item value="COMPLETED">Completed ({statusCounts()['DONE']})</Select.Item>
-						<Select.Item value="DEFERRED">Deferred ({statusCounts()['REVIEW']})</Select.Item>
-					</Select.Content>
-				</Select.Root>
-				<Select.Root bind:value={priorityFilter}>
-					<Select.Trigger class="w-40">
-						<Filter class="mr-2 h-3 w-3" />
-						<Select.Value placeholder="Filter by priority" />
-					</Select.Trigger>
-					<Select.Content>
-						<Select.Item value="all">All Priority</Select.Item>
-						<Select.Item value="URGENT">Urgent</Select.Item>
-						<Select.Item value="HIGH">High</Select.Item>
-						<Select.Item value="MEDIUM">Medium</Select.Item>
-						<Select.Item value="LOW">Low</Select.Item>
-					</Select.Content>
-				</Select.Root>
-				<Select.Root bind:value={sortBy}>
-					<Select.Trigger class="w-40">
-						<SortAsc class="mr-2 h-3 w-3" />
-						<Select.Value placeholder="Sort by" />
-					</Select.Trigger>
-					<Select.Content>
-						<Select.Item value="created_at">Created Date</Select.Item>
-						<Select.Item value="due_date">Due Date</Select.Item>
-						<Select.Item value="priority">Priority</Select.Item>
-						<Select.Item value="title">Title</Select.Item>
-					</Select.Content>
-				</Select.Root>
+				<NativeSelect.Root bind:value={statusFilter}>
+					<NativeSelect.Option value="all">All Status ({statusCounts().all})</NativeSelect.Option>
+					<NativeSelect.Option value="TO_DO">To Do ({statusCounts()['TODO']})</NativeSelect.Option>
+					<NativeSelect.Option value="IN_PROGRESS">In Progress ({statusCounts()['IN_PROGRESS']})</NativeSelect.Option>
+					<NativeSelect.Option value="BLOCKED">Blocked ({statusCounts()['BLOCKED']})</NativeSelect.Option>
+					<NativeSelect.Option value="COMPLETED">Completed ({statusCounts()['DONE']})</NativeSelect.Option>
+					<NativeSelect.Option value="DEFERRED">Deferred ({statusCounts()['REVIEW']})</NativeSelect.Option>
+				</NativeSelect.Root>
+				<NativeSelect.Root bind:value={priorityFilter}>
+					<NativeSelect.Option value="all">All Priority</NativeSelect.Option>
+					<NativeSelect.Option value="URGENT">Urgent</NativeSelect.Option>
+					<NativeSelect.Option value="HIGH">High</NativeSelect.Option>
+					<NativeSelect.Option value="MEDIUM">Medium</NativeSelect.Option>
+					<NativeSelect.Option value="LOW">Low</NativeSelect.Option>
+				</NativeSelect.Root>
+				<NativeSelect.Root bind:value={sortBy}>
+					<NativeSelect.Option value="created_at">Created Date</NativeSelect.Option>
+					<NativeSelect.Option value="due_date">Due Date</NativeSelect.Option>
+					<NativeSelect.Option value="priority">Priority</NativeSelect.Option>
+					<NativeSelect.Option value="title">Title</NativeSelect.Option>
+				</NativeSelect.Root>
 				<Button variant="outline" size="sm" onclick={toggleSortOrder}>
 					{sortOrder === 'asc' ? '↑' : '↓'} {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
 				</Button>
@@ -174,6 +139,32 @@
 						{[statusFilter !== 'all' ? 1 : 0, priorityFilter !== 'all' ? 1 : 0].reduce((a, b) => a + b, 0)} filter{(statusFilter !== 'all' || priorityFilter !== 'all') ? 's' : ''} active
 					</Badge>
 				{/if}
+			</div>
+			<div class="flex items-center gap-1 rounded-lg border p-1 bg-muted/30">
+				<Button
+					variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+					size="sm"
+					onclick={() => viewMode = 'list'}
+					class={viewMode === 'list' ? 'bg-background shadow-sm' : 'hover:bg-background/50'}
+				>
+					<List class="h-4 w-4" />
+				</Button>
+				<Button
+					variant={viewMode === 'hierarchy' ? 'secondary' : 'ghost'}
+					size="sm"
+					onclick={() => viewMode = 'hierarchy'}
+					class={viewMode === 'hierarchy' ? 'bg-background shadow-sm' : 'hover:bg-background/50'}
+				>
+					<GitBranch class="h-4 w-4" />
+				</Button>
+				<Button
+					variant={viewMode === 'kanban' ? 'secondary' : 'ghost'}
+					size="sm"
+					onclick={() => viewMode = 'kanban'}
+					class={viewMode === 'kanban' ? 'bg-background shadow-sm' : 'hover:bg-background/50'}
+				>
+					<Columns class="h-4 w-4" />
+				</Button>
 			</div>
 		</div>
 	{/if}

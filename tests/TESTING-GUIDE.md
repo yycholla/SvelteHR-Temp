@@ -10,9 +10,10 @@
    - Wait properly for navigation after login (3 seconds + network idle)
    - Handle already-completed navigation gracefully
 
-2. Updated all test files to use valid email format:
-   - Changed from `login('admin', 'admin')` to `login('admin@example.com', 'admin')`
+2. Updated all test files to use valid email format and correct credentials:
+   - Changed from `login('admin', 'admin')` to `login('admin@mountainhr.dev', 'admin123')`
    - The login form validates email format and requires `user@domain.com` format
+   - Using system_admin role credentials for full test access
 
 ## Prerequisites for Running E2E Tests
 
@@ -66,13 +67,14 @@ curl http://localhost:5173
 ### 4. Test User Credentials
 
 The tests use these credentials:
-- **Email**: `admin@example.com`
-- **Password**: `admin`
+- **Email**: `admin@mountainhr.dev`
+- **Password**: `admin123`
+- **Role**: `system_admin`
 
-**Ensure this user exists in your backend database with appropriate permissions.**
+**This user must exist in your backend database with system_admin role and appropriate permissions.**
 
 If the user doesn't exist, you need to either:
-1. Create the user in your backend database
+1. Create the user in your backend database with system_admin role
 2. Update your backend seed data to include this test user
 3. Or modify the tests to use existing credentials from your backend
 
@@ -156,17 +158,17 @@ npm run test:coverage:ci
 
 ### Issue: "Session invalid" / "Unauthorized → /login"
 
-**Cause**: The test credentials (`admin@example.com` / `admin`) don't exist or are invalid.
+**Cause**: The test credentials (`admin@mountainhr.dev` / `admin123`) don't exist or are invalid.
 
 **Solutions**:
-1. Check if the user exists in your backend database
+1. Check if the user exists in your backend database with system_admin role
 2. Verify the backend authentication endpoint is working:
    ```bash
    curl -X POST http://localhost:8080/api/v2/auth/login \
      -H "Content-Type: application/json" \
-     -d '{"email":"admin@example.com","password":"admin"}'
+     -d '{"email":"admin@mountainhr.dev","password":"admin123"}'
    ```
-3. Create the test user if it doesn't exist
+3. Create the test user if it doesn't exist (must have system_admin role)
 4. Check backend logs for authentication errors
 
 ### Issue: "Connection refused" to PostgreSQL
@@ -284,15 +286,15 @@ psql -U postgres -d sveltehr
 -- Create test user (adjust based on your schema)
 INSERT INTO users (email, password_hash, full_name, role, created_at)
 VALUES (
-  'admin@example.com',
-  '$2a$10$...',  -- bcrypt hash of 'admin'
-  'Test Admin',
-  'Admin',
+  'admin@mountainhr.dev',
+  '$2a$10$...',  -- bcrypt hash of 'admin123'
+  'System Admin',
+  'system_admin',
   NOW()
 );
 ```
 
-**Note**: You need to generate a proper bcrypt hash for the password. The hash above is just a placeholder.
+**Note**: You need to generate a proper bcrypt hash for the password 'admin123'. The hash above is just a placeholder.
 
 Or use your backend's user creation API/CLI if available.
 

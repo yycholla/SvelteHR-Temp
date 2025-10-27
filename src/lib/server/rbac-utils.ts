@@ -372,10 +372,13 @@ export function getUserPermissions(locals: App.Locals) {
 		roles: locals.roles || [],
 
 		// Computed permission checks
+		// Employee permissions - purely permission-based (no role checks)
 		canViewEmployees: hasPermission(locals.permissions || [], ['employees:read']),
-		canManageEmployees:
-			hasPermission(locals.permissions || [], ['employees:write']) &&
-			hasRole(locals.roles || [], ['system_admin', 'admin']), // Restrict to admin+ only
+		canEditEmployees: hasPermission(locals.permissions || [], ['employees:write']),
+		canDeleteEmployees: hasPermission(locals.permissions || [], ['employees:delete']),
+		canCreateEmployees: hasPermission(locals.permissions || [], ['employees:write']),
+		// Legacy permission for backward compatibility
+		canManageEmployees: hasPermission(locals.permissions || [], ['employees:write']),
 		canViewDepartments: hasPermission(locals.permissions || [], ['departments:read']),
 		canManageDepartments:
 			hasPermission(locals.permissions || [], ['departments:write']) &&

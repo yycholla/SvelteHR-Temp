@@ -89,16 +89,33 @@ impl Model {
     }
 
     /// Permissions associated with this role
+    /// Only returns permissions where the role_permission join record is NOT soft-deleted
     async fn permissions(&self, ctx: &Context<'_>) -> GqlResult<Vec<super::permission::Model>> {
         let db = get_db_from_context(ctx)?;
 
-        let permissions = Entity::find_by_id(self.id)
-            .find_with_related(super::permission::Entity)
+        // Query role_permissions join table, filtering out soft-deleted assignments
+        let role_permissions = super::role_permission::Entity::find()
+            .filter(super::role_permission::Column::RoleId.eq(self.id))
+            .filter(super::role_permission::Column::DeletedAt.is_null())
             .all(&db)
-            .await?
-            .into_iter()
-            .flat_map(|(_, perms)| perms)
+            .await?;
+
+        // Extract permission IDs from active role_permission records
+        let permission_ids: Vec<Uuid> = role_permissions
+            .iter()
+            .map(|rp| rp.permission_id)
             .collect();
+
+        if permission_ids.is_empty() {
+            return Ok(vec![]);
+        }
+
+        // Fetch permissions by IDs, also filtering out soft-deleted permissions
+        let permissions = super::permission::Entity::find()
+            .filter(super::permission::Column::Id.is_in(permission_ids))
+            .filter(super::permission::Column::DeletedAt.is_null())
+            .all(&db)
+            .await?;
 
         Ok(permissions)
     }

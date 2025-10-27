@@ -22,7 +22,7 @@ import {
 describe('Admin - User Management (Puppeteer)', () => {
 	// Setup: Login as admin before tests
 	beforeEach(async () => {
-		await login('admin@example.com', 'admin');
+		await login('admin@mountainhr.dev', 'admin123');
 	});
 
 	test('admin can access user management page', async () => {
@@ -157,7 +157,7 @@ describe('Admin - User Management (Puppeteer)', () => {
 
 describe('Admin - Settings Management (Puppeteer)', () => {
 	beforeEach(async () => {
-		await login('admin@example.com', 'admin');
+		await login('admin@mountainhr.dev', 'admin123');
 	});
 
 	test('admin can access settings page', async () => {
@@ -250,7 +250,7 @@ describe('Admin - Settings Management (Puppeteer)', () => {
 
 describe('Admin - Main Dashboard (Puppeteer)', () => {
 	beforeEach(async () => {
-		await login('admin@example.com', 'admin');
+		await login('admin@mountainhr.dev', 'admin123');
 	});
 
 	test('admin can access main admin dashboard', async () => {
@@ -314,7 +314,7 @@ describe('Admin - Main Dashboard (Puppeteer)', () => {
 
 describe('Admin - Permission Checks (Puppeteer)', () => {
 	beforeEach(async () => {
-		await login('admin@example.com', 'admin');
+		await login('admin@mountainhr.dev', 'admin123');
 	});
 
 	test('admin has access to all admin routes', async () => {
@@ -382,7 +382,7 @@ describe('Admin - Permission Checks (Puppeteer)', () => {
 
 describe('Admin - Data Integrity (Puppeteer)', () => {
 	beforeEach(async () => {
-		await login('admin@example.com', 'admin');
+		await login('admin@mountainhr.dev', 'admin123');
 	});
 
 	test('user data persists across page refreshes', async () => {

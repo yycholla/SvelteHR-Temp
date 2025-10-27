@@ -26,7 +26,7 @@ import {
 describe('Event RSVP Workflow (Puppeteer)', () => {
 	// Setup: Login before each test
 	beforeEach(async () => {
-		await login('admin@example.com', 'admin');
+		await login('admin@mountainhr.dev', 'admin123');
 	});
 
 	test('user can view events list and navigate to event details', async () => {

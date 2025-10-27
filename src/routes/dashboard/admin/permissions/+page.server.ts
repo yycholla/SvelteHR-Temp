@@ -19,6 +19,20 @@ import {
 } from '$lib/graphql/permissions-operations';
 import { error, fail } from '@sveltejs/kit';
 
+/**
+ * Check if user has admin access permissions
+ */
+function checkAdminAccess(locals: App.Locals): boolean {
+	const userPermissions = locals.permissions || [];
+	const userRoles = locals.roles || [];
+	return (
+		userPermissions.includes('*') ||
+		userPermissions.includes('admin:read') ||
+		userRoles.includes('system_admin') ||
+		userRoles.includes('admin')
+	);
+}
+
 export const load: PageServerLoad = async ({ locals, parent, fetch: fetchFn }) => {
 	// Get isAdmin flag from parent layout
 	const { isAdmin } = await parent();
@@ -59,8 +73,7 @@ export const actions: Actions = {
 	 * Create new role
 	 */
 	createRole: async ({ request, fetch: fetchFn, locals }) => {
-		const { isAdmin } = locals;
-		if (!isAdmin) {
+		if (!checkAdminAccess(locals)) {
 			return fail(403, { error: 'Admin access required' });
 		}
 
@@ -89,8 +102,7 @@ export const actions: Actions = {
 	 * Update existing role
 	 */
 	updateRole: async ({ request, fetch: fetchFn, locals }) => {
-		const { isAdmin } = locals;
-		if (!isAdmin) {
+		if (!checkAdminAccess(locals)) {
 			return fail(403, { error: 'Admin access required' });
 		}
 
@@ -120,8 +132,7 @@ export const actions: Actions = {
 	 * Delete role
 	 */
 	deleteRole: async ({ request, fetch: fetchFn, locals }) => {
-		const { isAdmin } = locals;
-		if (!isAdmin) {
+		if (!checkAdminAccess(locals)) {
 			return fail(403, { error: 'Admin access required' });
 		}
 
@@ -147,8 +158,7 @@ export const actions: Actions = {
 	 * Assign permission to role
 	 */
 	assignPermission: async ({ request, fetch: fetchFn, locals }) => {
-		const { isAdmin } = locals;
-		if (!isAdmin) {
+		if (!checkAdminAccess(locals)) {
 			return fail(403, { error: 'Admin access required' });
 		}
 
@@ -177,8 +187,7 @@ export const actions: Actions = {
 	 * Remove permission from role
 	 */
 	removePermission: async ({ request, fetch: fetchFn, locals }) => {
-		const { isAdmin } = locals;
-		if (!isAdmin) {
+		if (!checkAdminAccess(locals)) {
 			return fail(403, { error: 'Admin access required' });
 		}
 
@@ -205,10 +214,10 @@ export const actions: Actions = {
 
 	/**
 	 * Bulk assign permissions to role
+	 * This action handles both adding AND removing permissions by comparing current vs desired state
 	 */
 	bulkAssignPermissions: async ({ request, fetch: fetchFn, locals }) => {
-		const { isAdmin } = locals;
-		if (!isAdmin) {
+		if (!checkAdminAccess(locals)) {
 			return fail(403, { error: 'Admin access required' });
 		}
 
@@ -222,16 +231,70 @@ export const actions: Actions = {
 
 		try {
 			const client = createUrqlClient(fetchFn);
-			const permissionIdArray = JSON.parse(permissionIds);
+			const desiredPermissionIds = JSON.parse(permissionIds) as string[];
 
-			await executeMutation(client, BULK_ASSIGN_PERMISSIONS, {
-				input: { roleId, permissionIds: permissionIdArray }
+			// Get current permissions for the role
+			const rolesData = await executeQuery(client, GET_ROLES_WITH_PERMISSIONS, {
+				limit: 100,
+				offset: 0
 			});
+			const role = rolesData.roles.find((r: any) => r.id === roleId);
 
-			return { success: true, message: 'Permissions assigned successfully' };
+			if (!role) {
+				return fail(404, { error: 'Role not found' });
+			}
+
+			// Calculate current permission IDs
+			const currentPermissionIds = role.permissions?.map((p: any) => p.id) || [];
+
+			// Calculate permissions to add (in desired but not in current)
+			const permissionsToAdd = desiredPermissionIds.filter(
+				(id) => !currentPermissionIds.includes(id)
+			);
+
+			// Calculate permissions to remove (in current but not in desired)
+			const permissionsToRemove = currentPermissionIds.filter(
+				(id: string) => !desiredPermissionIds.includes(id)
+			);
+
+			// Execute mutations in parallel if needed
+			const mutations = [];
+
+			if (permissionsToAdd.length > 0) {
+				mutations.push(
+					executeMutation(client, BULK_ASSIGN_PERMISSIONS, {
+						input: { roleId, permissionIds: permissionsToAdd }
+					})
+				);
+			}
+
+			if (permissionsToRemove.length > 0) {
+				mutations.push(
+					executeMutation(client, BULK_REMOVE_PERMISSIONS, {
+						input: { roleId, permissionIds: permissionsToRemove }
+					})
+				);
+			}
+
+			if (mutations.length > 0) {
+				await Promise.all(mutations);
+			}
+
+			// Create a summary message
+			const messages = [];
+			if (permissionsToAdd.length > 0) {
+				messages.push(`${permissionsToAdd.length} permission(s) added`);
+			}
+			if (permissionsToRemove.length > 0) {
+				messages.push(`${permissionsToRemove.length} permission(s) removed`);
+			}
+			const message =
+				messages.length > 0 ? messages.join(', ') : 'No permissions changed';
+
+			return { success: true, message };
 		} catch (err) {
 			console.error('[BULK ASSIGN PERMISSIONS] Error:', err);
-			return fail(500, { error: 'Failed to assign permissions' });
+			return fail(500, { error: 'Failed to update permissions' });
 		}
 	},
 
@@ -239,8 +302,7 @@ export const actions: Actions = {
 	 * Bulk remove permissions from role
 	 */
 	bulkRemovePermissions: async ({ request, fetch: fetchFn, locals }) => {
-		const { isAdmin } = locals;
-		if (!isAdmin) {
+		if (!checkAdminAccess(locals)) {
 			return fail(403, { error: 'Admin access required' });
 		}
 
@@ -271,8 +333,7 @@ export const actions: Actions = {
 	 * Assign role to user
 	 */
 	assignRoleToUser: async ({ request, fetch: fetchFn, locals }) => {
-		const { isAdmin } = locals;
-		if (!isAdmin) {
+		if (!checkAdminAccess(locals)) {
 			return fail(403, { error: 'Admin access required' });
 		}
 
@@ -301,8 +362,7 @@ export const actions: Actions = {
 	 * Remove role from user
 	 */
 	removeRoleFromUser: async ({ request, fetch: fetchFn, locals }) => {
-		const { isAdmin } = locals;
-		if (!isAdmin) {
+		if (!checkAdminAccess(locals)) {
 			return fail(403, { error: 'Admin access required' });
 		}
 

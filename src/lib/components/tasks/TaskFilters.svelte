@@ -18,7 +18,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { Badge } from '$lib/components/ui/badge';
-	import * as Select from '$lib/components/ui/select';
+	import * as NativeSelect from '$lib/components/ui/native-select';
 	import * as Popover from '$lib/components/ui/popover';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import {
@@ -239,9 +239,9 @@
 	}
 </script>
 
-<div class="task-filters" class:compact>
+<div class="rounded-lg border bg-card text-card-foreground shadow-sm p-4 space-y-4">
 	<!-- Filter Header -->
-	<div class="filter-header">
+	<div class="flex items-center justify-between">
 		<div class="flex items-center gap-2">
 			<Filter class="h-4 w-4 text-primary" />
 			<span class="font-medium">Filters</span>
@@ -267,9 +267,9 @@
 
 	<!-- Filter Content -->
 	{#if isExpanded}
-		<div class="filter-content">
-			<!-- Search -->
-			<div class="filter-group">
+		<div class="space-y-4">
+			<!-- Search - Full Width -->
+			<div class="space-y-2">
 				<Label for="search">Search</Label>
 				<div class="relative">
 					<Search
@@ -286,97 +286,83 @@
 				</div>
 			</div>
 
-			<!-- Status Filter -->
-			<div class="filter-group">
-				<Label>Status</Label>
-				<div class="filter-checkbox-grid">
-					{#each statusOptions as option}
-						<label class="filter-checkbox-item">
-							<Checkbox
-								checked={filters.statuses.includes(option.value)}
-								onCheckedChange={() => toggleStatus(option.value)}
-							/>
-							<div class="flex items-center gap-2">
-								<svelte:component this={option.icon} class="h-3 w-3 {option.color}" />
-								<span class="text-sm">{option.label}</span>
-							</div>
-						</label>
-					{/each}
+			<!-- Status and Priority in Grid -->
+			<div class="grid gap-4 md:grid-cols-2">
+				<!-- Status Filter -->
+				<div class="space-y-2">
+					<Label>Status</Label>
+					<div class="grid grid-cols-2 gap-2">
+						{#each statusOptions as option}
+							<label class="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent transition-colors" class:bg-accent={filters.statuses.includes(option.value)}>
+								<Checkbox
+									checked={filters.statuses.includes(option.value)}
+									onCheckedChange={() => toggleStatus(option.value)}
+								/>
+								<div class="flex items-center gap-1.5 flex-1 min-w-0">
+									<svelte:component this={option.icon} class="h-3 w-3 flex-shrink-0 {option.color}" />
+									<span class="text-sm truncate">{option.label}</span>
+								</div>
+							</label>
+						{/each}
+					</div>
+				</div>
+
+				<!-- Priority Filter -->
+				<div class="space-y-2">
+					<Label>Priority</Label>
+					<div class="grid grid-cols-2 gap-2">
+						{#each priorityOptions as option}
+							<label class="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent transition-colors" class:bg-accent={filters.priorities.includes(option.value)}>
+								<Checkbox
+									checked={filters.priorities.includes(option.value)}
+									onCheckedChange={() => togglePriority(option.value)}
+								/>
+								<div class="flex items-center gap-1.5 flex-1 min-w-0">
+									<div class="h-2 w-2 rounded-full flex-shrink-0 {option.color}"></div>
+									<span class="text-sm truncate">{option.label}</span>
+								</div>
+							</label>
+						{/each}
+					</div>
 				</div>
 			</div>
 
-			<!-- Priority Filter -->
-			<div class="filter-group">
-				<Label>Priority</Label>
-				<div class="filter-checkbox-grid">
-					{#each priorityOptions as option}
-						<label class="filter-checkbox-item">
-							<Checkbox
-								checked={filters.priorities.includes(option.value)}
-								onCheckedChange={() => togglePriority(option.value)}
-							/>
-							<div class="flex items-center gap-2">
-								<div class="h-2 w-2 rounded-full {option.color}"></div>
-								<span class="text-sm">{option.label}</span>
-							</div>
-						</label>
-					{/each}
-				</div>
-			</div>
-
-			<!-- Assignee Filter -->
-			<div class="filter-group">
-				<Label for="assignee">Assignee</Label>
-				<Select.Root
-					selected={filters.assigneeId ? { value: filters.assigneeId } : undefined}
-					onSelectedChange={(selected) => updateAssignee(selected?.value || null)}
-				>
-					<Select.Trigger id="assignee">
-						<Select.Value placeholder="All assignees" />
-					</Select.Trigger>
-					<Select.Content>
-						<Select.Item value="">All assignees</Select.Item>
+			<!-- Assignee and Task Type in Grid -->
+			<div class="grid gap-4 md:grid-cols-2">
+				<!-- Assignee Filter -->
+				<div class="space-y-2">
+					<Label for="assignee">Assignee</Label>
+					<NativeSelect.Root
+						value={filters.assigneeId || ''}
+						onchange={(e) => updateAssignee(e.currentTarget.value || null)}
+					>
+						<NativeSelect.Option value="">All assignees</NativeSelect.Option>
 						{#each availableAssignees as assignee}
-							<Select.Item value={assignee.id}>
-								<div class="flex items-center gap-2">
-									<User class="h-3 w-3" />
-									<span>{assignee.displayName}</span>
-								</div>
-							</Select.Item>
+							<NativeSelect.Option value={assignee.id}>{assignee.displayName}</NativeSelect.Option>
 						{/each}
-					</Select.Content>
-				</Select.Root>
-			</div>
+					</NativeSelect.Root>
+				</div>
 
-			<!-- Task Type Filter -->
-			<div class="filter-group">
-				<Label for="taskType">Task Type</Label>
-				<Select.Root
-					selected={filters.taskTypeId ? { value: filters.taskTypeId } : undefined}
-					onSelectedChange={(selected) => updateTaskType(selected?.value || null)}
-				>
-					<Select.Trigger id="taskType">
-						<Select.Value placeholder="All types" />
-					</Select.Trigger>
-					<Select.Content>
-						<Select.Item value="">All types</Select.Item>
+				<!-- Task Type Filter -->
+				<div class="space-y-2">
+					<Label for="taskType">Task Type</Label>
+					<NativeSelect.Root
+						value={filters.taskTypeId || ''}
+						onchange={(e) => updateTaskType(e.currentTarget.value || null)}
+					>
+						<NativeSelect.Option value="">All types</NativeSelect.Option>
 						{#each availableTaskTypes as type}
-							<Select.Item value={type.id}>
-								<div class="flex items-center gap-2">
-									<Target class="h-3 w-3" />
-									<span>{type.name}</span>
-								</div>
-							</Select.Item>
+							<NativeSelect.Option value={type.id}>{type.name}</NativeSelect.Option>
 						{/each}
-					</Select.Content>
-				</Select.Root>
+					</NativeSelect.Root>
+				</div>
 			</div>
 
 			<!-- Due Date Range -->
-			<div class="filter-group">
+			<div class="space-y-2">
 				<Label>Due Date Range</Label>
 				<div class="grid grid-cols-2 gap-2">
-					<div class="space-y-1">
+					<div class="space-y-1.5">
 						<Label for="startDate" class="text-xs text-muted-foreground">From</Label>
 						<Input
 							id="startDate"
@@ -385,7 +371,7 @@
 							oninput={(e) => updateDateRange(e.currentTarget.value || null, filters.dueDateEnd)}
 						/>
 					</div>
-					<div class="space-y-1">
+					<div class="space-y-1.5">
 						<Label for="endDate" class="text-xs text-muted-foreground">To</Label>
 						<Input
 							id="endDate"
@@ -414,22 +400,22 @@
 							<!-- Hierarchy Filter -->
 							<div class="space-y-2">
 								<Label>Task Hierarchy</Label>
-								<div class="space-y-1">
-									<label class="filter-checkbox-item">
+								<div class="space-y-2">
+									<label class="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent transition-colors" class:bg-accent={filters.hasParent === null}>
 										<Checkbox
 											checked={filters.hasParent === null}
 											onCheckedChange={() => updateHasParent(null)}
 										/>
 										<span class="text-sm">All tasks</span>
 									</label>
-									<label class="filter-checkbox-item">
+									<label class="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent transition-colors" class:bg-accent={filters.hasParent === false}>
 										<Checkbox
 											checked={filters.hasParent === false}
 											onCheckedChange={() => updateHasParent(false)}
 										/>
 										<span class="text-sm">Top-level tasks only</span>
 									</label>
-									<label class="filter-checkbox-item">
+									<label class="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent transition-colors" class:bg-accent={filters.hasParent === true}>
 										<Checkbox
 											checked={filters.hasParent === true}
 											onCheckedChange={() => updateHasParent(true)}
@@ -442,25 +428,25 @@
 							<!-- Dependencies Filter -->
 							<div class="space-y-2">
 								<Label>Dependencies</Label>
-								<div class="space-y-1">
-									<label class="filter-checkbox-item">
+								<div class="space-y-2">
+									<label class="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent transition-colors" class:bg-accent={filters.hasDependencies === null}>
 										<Checkbox
 											checked={filters.hasDependencies === null}
 											onCheckedChange={() => updateHasDependencies(null)}
 										/>
 										<span class="text-sm">All tasks</span>
 									</label>
-									<label class="filter-checkbox-item">
+									<label class="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent transition-colors" class:bg-accent={filters.hasDependencies === true}>
 										<Checkbox
 											checked={filters.hasDependencies === true}
 											onCheckedChange={() => updateHasDependencies(true)}
 										/>
-										<div class="flex items-center gap-2">
+										<div class="flex items-center gap-1.5">
 											<GitBranch class="h-3 w-3" />
 											<span class="text-sm">With dependencies</span>
 										</div>
 									</label>
-									<label class="filter-checkbox-item">
+									<label class="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent transition-colors" class:bg-accent={filters.hasDependencies === false}>
 										<Checkbox
 											checked={filters.hasDependencies === false}
 											onCheckedChange={() => updateHasDependencies(false)}
@@ -477,83 +463,83 @@
 
 		<!-- Active Filter Badges -->
 		{#if hasActiveFilters}
-			<div class="active-filters">
+			<div class="flex flex-wrap gap-2 pt-2 border-t">
 				{#if filters.search}
-					<Badge variant="secondary">
-						<Search class="mr-1 h-3 w-3" />
+					<Badge variant="secondary" class="flex items-center gap-1">
+						<Search class="h-3 w-3" />
 						Search: {filters.search}
-						<button onclick={() => clearFilter('search')} class="ml-1 hover:text-destructive">
+						<button onclick={() => clearFilter('search')} class="ml-1 hover:text-destructive transition-colors">
 							<X class="h-3 w-3" />
 						</button>
 					</Badge>
 				{/if}
 
 				{#if filters.statuses.length > 0}
-					<Badge variant="secondary">
+					<Badge variant="secondary" class="flex items-center gap-1">
 						Status: {filters.statuses.join(', ')}
-						<button onclick={() => clearFilter('statuses')} class="ml-1 hover:text-destructive">
+						<button onclick={() => clearFilter('statuses')} class="ml-1 hover:text-destructive transition-colors">
 							<X class="h-3 w-3" />
 						</button>
 					</Badge>
 				{/if}
 
 				{#if filters.priorities.length > 0}
-					<Badge variant="secondary">
+					<Badge variant="secondary" class="flex items-center gap-1">
 						Priority: {filters.priorities.join(', ')}
-						<button onclick={() => clearFilter('priorities')} class="ml-1 hover:text-destructive">
+						<button onclick={() => clearFilter('priorities')} class="ml-1 hover:text-destructive transition-colors">
 							<X class="h-3 w-3" />
 						</button>
 					</Badge>
 				{/if}
 
 				{#if filters.assigneeId}
-					<Badge variant="secondary">
-						<User class="mr-1 h-3 w-3" />
+					<Badge variant="secondary" class="flex items-center gap-1">
+						<User class="h-3 w-3" />
 						{getAssigneeName(filters.assigneeId)}
-						<button onclick={() => clearFilter('assigneeId')} class="ml-1 hover:text-destructive">
+						<button onclick={() => clearFilter('assigneeId')} class="ml-1 hover:text-destructive transition-colors">
 							<X class="h-3 w-3" />
 						</button>
 					</Badge>
 				{/if}
 
 				{#if filters.taskTypeId}
-					<Badge variant="secondary">
-						<Target class="mr-1 h-3 w-3" />
+					<Badge variant="secondary" class="flex items-center gap-1">
+						<Target class="h-3 w-3" />
 						{getTaskTypeName(filters.taskTypeId)}
-						<button onclick={() => clearFilter('taskTypeId')} class="ml-1 hover:text-destructive">
+						<button onclick={() => clearFilter('taskTypeId')} class="ml-1 hover:text-destructive transition-colors">
 							<X class="h-3 w-3" />
 						</button>
 					</Badge>
 				{/if}
 
 				{#if filters.dueDateStart || filters.dueDateEnd}
-					<Badge variant="secondary">
-						<Calendar class="mr-1 h-3 w-3" />
+					<Badge variant="secondary" class="flex items-center gap-1">
+						<Calendar class="h-3 w-3" />
 						{filters.dueDateStart ? format(new Date(filters.dueDateStart), 'MMM d') : 'Start'}
 						-
 						{filters.dueDateEnd ? format(new Date(filters.dueDateEnd), 'MMM d') : 'End'}
-						<button onclick={() => clearFilter('dueDateStart')} class="ml-1 hover:text-destructive">
+						<button onclick={() => clearFilter('dueDateStart')} class="ml-1 hover:text-destructive transition-colors">
 							<X class="h-3 w-3" />
 						</button>
 					</Badge>
 				{/if}
 
 				{#if filters.hasParent !== null}
-					<Badge variant="secondary">
+					<Badge variant="secondary" class="flex items-center gap-1">
 						{filters.hasParent ? 'Subtasks only' : 'Top-level only'}
-						<button onclick={() => clearFilter('hasParent')} class="ml-1 hover:text-destructive">
+						<button onclick={() => clearFilter('hasParent')} class="ml-1 hover:text-destructive transition-colors">
 							<X class="h-3 w-3" />
 						</button>
 					</Badge>
 				{/if}
 
 				{#if filters.hasDependencies !== null}
-					<Badge variant="secondary">
-						<GitBranch class="mr-1 h-3 w-3" />
+					<Badge variant="secondary" class="flex items-center gap-1">
+						<GitBranch class="h-3 w-3" />
 						{filters.hasDependencies ? 'With dependencies' : 'Without dependencies'}
 						<button
 							onclick={() => clearFilter('hasDependencies')}
-							class="ml-1 hover:text-destructive"
+							class="ml-1 hover:text-destructive transition-colors"
 						>
 							<X class="h-3 w-3" />
 						</button>

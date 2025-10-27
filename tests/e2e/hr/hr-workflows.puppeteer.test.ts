@@ -21,7 +21,7 @@ import {
 describe('HR Workflows - Leave Management (Puppeteer)', () => {
 	// Setup: Login as manager before tests
 	beforeEach(async () => {
-		await login('admin@example.com', 'admin');
+		await login('admin@mountainhr.dev', 'admin123');
 	});
 
 	test('manager can view leave requests table', async () => {
@@ -106,7 +106,7 @@ describe('HR Workflows - Leave Management (Puppeteer)', () => {
 
 describe('HR Workflows - Employee Leave Requests (Puppeteer)', () => {
 	beforeEach(async () => {
-		await login('admin@example.com', 'admin');
+		await login('admin@mountainhr.dev', 'admin123');
 	});
 
 	test('employee can view leave balance cards', async () => {
@@ -158,7 +158,7 @@ describe('HR Workflows - Employee Leave Requests (Puppeteer)', () => {
 
 describe('HR Workflows - Attendance Tracking (Puppeteer)', () => {
 	beforeEach(async () => {
-		await login('admin@example.com', 'admin');
+		await login('admin@mountainhr.dev', 'admin123');
 	});
 
 	test('employee can view attendance statistics', async () => {
@@ -227,7 +227,7 @@ describe('HR Workflows - Attendance Tracking (Puppeteer)', () => {
 
 describe('HR Workflows - Performance Reviews (Puppeteer)', () => {
 	beforeEach(async () => {
-		await login('admin@example.com', 'admin');
+		await login('admin@mountainhr.dev', 'admin123');
 	});
 
 	test('employee can view performance statistics', async () => {
@@ -296,7 +296,7 @@ describe('HR Workflows - Performance Reviews (Puppeteer)', () => {
 
 describe('HR Workflows - Cross-Feature Integration (Puppeteer)', () => {
 	beforeEach(async () => {
-		await login('admin@example.com', 'admin');
+		await login('admin@mountainhr.dev', 'admin123');
 	});
 
 	test('can navigate between HR workflow pages', async () => {

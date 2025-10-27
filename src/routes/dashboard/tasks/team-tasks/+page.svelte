@@ -15,7 +15,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Input } from '$lib/components/ui/input';
 	import * as Card from '$lib/components/ui/card';
-	import * as Select from '$lib/components/ui/select';
+	import * as NativeSelect from '$lib/components/ui/native-select';
 	import TaskList from '$lib/components/tasks/TaskList.svelte';
 	import {
 		Plus,
@@ -185,41 +185,26 @@
 				</div>
 
 				<!-- Assignee Filter -->
-				<Select.Root selected={{ value: selectedAssignee }} onSelectedChange={(v) => { selectedAssignee = v?.value || ''; updateFilters(); }}>
-					<Select.Trigger>
-						<Select.Value placeholder="All Team Members" />
-					</Select.Trigger>
-					<Select.Content>
-						<Select.Item value="">All Team Members</Select.Item>
-						{#each data.teamMembers as member}
-							<Select.Item value={member.id}>{member.displayName}</Select.Item>
-						{/each}
-					</Select.Content>
-				</Select.Root>
+				<NativeSelect.Root value={selectedAssignee} onchange={(e) => { selectedAssignee = e.currentTarget.value; updateFilters(); }}>
+					<NativeSelect.Option value="">All Team Members</NativeSelect.Option>
+					{#each data.teamMembers as member}
+						<NativeSelect.Option value={member.id}>{member.displayName}</NativeSelect.Option>
+					{/each}
+				</NativeSelect.Root>
 
 				<!-- Status Filter -->
-				<Select.Root selected={{ value: selectedStatus }} onSelectedChange={(v) => { selectedStatus = v?.value || ''; updateFilters(); }}>
-					<Select.Trigger>
-						<Select.Value placeholder="All Statuses" />
-					</Select.Trigger>
-					<Select.Content>
-						{#each statusOptions as option}
-							<Select.Item value={option.value}>{option.label}</Select.Item>
-						{/each}
-					</Select.Content>
-				</Select.Root>
+				<NativeSelect.Root value={selectedStatus} onchange={(e) => { selectedStatus = e.currentTarget.value; updateFilters(); }}>
+					{#each statusOptions as option}
+						<NativeSelect.Option value={option.value}>{option.label}</NativeSelect.Option>
+					{/each}
+				</NativeSelect.Root>
 
 				<!-- Priority Filter -->
-				<Select.Root selected={{ value: selectedPriority }} onSelectedChange={(v) => { selectedPriority = v?.value || ''; updateFilters(); }}>
-					<Select.Trigger>
-						<Select.Value placeholder="All Priorities" />
-					</Select.Trigger>
-					<Select.Content>
-						{#each priorityOptions as option}
-							<Select.Item value={option.value}>{option.label}</Select.Item>
-						{/each}
-					</Select.Content>
-				</Select.Root>
+				<NativeSelect.Root value={selectedPriority} onchange={(e) => { selectedPriority = e.currentTarget.value; updateFilters(); }}>
+					{#each priorityOptions as option}
+						<NativeSelect.Option value={option.value}>{option.label}</NativeSelect.Option>
+					{/each}
+				</NativeSelect.Root>
 			</div>
 		</Card.Content>
 	</Card.Root>
