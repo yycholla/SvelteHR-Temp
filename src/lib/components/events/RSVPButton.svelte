@@ -117,6 +117,7 @@
 		onclick={toggleDropdown}
 		aria-haspopup="true"
 		aria-expanded={isOpen}
+		data-testid="event-rsvp-button"
 	>
 		<span class="flex items-center gap-1.5">
 			{#if loading}

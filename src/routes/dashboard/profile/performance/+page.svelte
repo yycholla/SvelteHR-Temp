@@ -139,7 +139,7 @@
 	</div>
 
 	<!-- Goal Statistics -->
-	<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+	<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4" data-testid="hr-performance-stats">
 		<div class="rounded-lg bg-card p-6 shadow-sm border">
 			<div class="flex items-center justify-between">
 				<div>
@@ -330,7 +330,7 @@
 	{/if}
 
 	<!-- Goals Grid -->
-	<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+	<div class="grid grid-cols-1 gap-6 lg:grid-cols-2" data-testid="hr-performance-tab">
 		{#each filteredGoals as goal}
 			<div class="rounded-lg bg-card p-6 shadow-sm border">
 				<!-- Goal Header -->

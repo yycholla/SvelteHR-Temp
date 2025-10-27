@@ -132,7 +132,7 @@
 	</div>
 
 	<!-- Settings Content -->
-	<div class="rounded-lg border bg-card p-6">
+	<div class="rounded-lg border bg-card p-6" data-testid="admin-settings-form">
 		{#if activeTab === 'general'}
 			<div class="space-y-4">
 				<h2 class="text-xl font-semibold">General Settings</h2>

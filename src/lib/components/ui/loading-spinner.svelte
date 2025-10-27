@@ -34,6 +34,7 @@
 	class={cn('flex items-center justify-center', className)}
 	role="status"
 	aria-label={label}
+	data-testid="loading-spinner"
 	{...restProps}
 >
 	<div

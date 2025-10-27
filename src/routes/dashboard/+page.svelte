@@ -139,8 +139,17 @@
 
 	<!-- Personal Metrics Cards -->
 	<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-		{#each employeeMetrics as metric}
-			<Card.Root class="cursor-pointer transition-shadow hover:shadow-md">
+		{#each employeeMetrics as metric, index}
+			<Card.Root
+				class="cursor-pointer transition-shadow hover:shadow-md"
+				data-testid={index === 0
+					? 'dashboard-attendance-metric'
+					: index === 1
+						? 'dashboard-leave-requests-metric'
+						: index === 2
+							? 'dashboard-tasks-metric'
+							: 'dashboard-days-off-metric'}
+			>
 				<Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
 					<Card.Title class="text-sm font-medium">{metric.title}</Card.Title>
 					{@const IconComponent = metric.icon}
@@ -174,7 +183,7 @@
 	<!-- Personal Activity and Tasks -->
 	<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
 		<!-- My Recent Activity -->
-		<Card.Root>
+		<Card.Root data-testid="dashboard-recent-activity">
 			<Card.Header>
 				<div class="flex items-center justify-between">
 					<Card.Title>My Recent Activity</Card.Title>
@@ -247,7 +256,7 @@
 		</Card.Root>
 
 		<!-- Upcoming Events -->
-		<Card.Root>
+		<Card.Root data-testid="dashboard-upcoming-events">
 			<Card.Header>
 				<div class="flex items-center justify-between">
 					<Card.Title>Upcoming Events</Card.Title>

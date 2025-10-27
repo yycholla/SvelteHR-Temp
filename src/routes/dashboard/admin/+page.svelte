@@ -95,7 +95,7 @@
 	<meta name="description" content="System administration dashboard for SvelteHR" />
 </svelte:head>
 
-<div class="space-y-6">
+<div class="space-y-6" data-testid="admin-page">
 	<!-- Page Header -->
 	<div class="flex items-center justify-between">
 		<div>

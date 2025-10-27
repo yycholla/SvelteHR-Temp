@@ -134,7 +134,7 @@
 	<meta name="description" content="View and manage all tasks in your organization" />
 </svelte:head>
 
-<div class="tasks-dashboard">
+<div class="tasks-dashboard" data-testid="tasks-dashboard">
 	<!-- Page Header -->
 	<div class="page-header">
 		<div>
@@ -143,14 +143,14 @@
 				View and manage tasks across your organization
 			</p>
 		</div>
-		<Button onclick={handleCreateTask} class="flex-shrink-0">
+		<Button onclick={handleCreateTask} class="flex-shrink-0" data-testid="tasks-create-button">
 			<Plus class="mr-2 h-4 w-4" />
 			New Task
 		</Button>
 	</div>
 
 	<!-- Statistics Cards -->
-	<div class="stats-grid">
+	<div class="stats-grid" data-testid="tasks-stats-grid">
 		{#each statsCards as stat}
 			<Card.Root>
 				<Card.Header class="flex flex-row items-center justify-between pb-2">
@@ -179,7 +179,7 @@
 	/>
 
 	<!-- Tasks List -->
-	<div class="tasks-list-section">
+	<div class="tasks-list-section" data-testid="tasks-list-section">
 		<div class="flex items-center justify-between mb-4">
 			<div class="flex items-center gap-2">
 				<h2 class="text-xl font-semibold">Tasks</h2>

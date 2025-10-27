@@ -119,7 +119,7 @@
 	</div>
 
 	<!-- Leave Balances -->
-	<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+	<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3" data-testid="hr-leave-balance-card">
 		{#each leaveBalances as balance}
 			<div class="rounded-lg bg-card p-6 shadow-sm border">
 				<div class="flex items-center justify-between mb-4">
@@ -244,7 +244,7 @@
 		</div>
 		<div class="overflow-hidden">
 			<div class="overflow-x-auto">
-				<table class="w-full text-sm">
+				<table class="w-full text-sm" data-testid="hr-leave-requests-table">
 					<thead class="bg-muted/50">
 						<tr>
 							<th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">

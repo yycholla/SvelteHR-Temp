@@ -288,6 +288,10 @@
 						class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-primary hover:text-primary-foreground hover:opacity-80"
 						class:bg-primary={$page.url.pathname === item.url}
 						class:text-primary-foreground={$page.url.pathname === item.url}
+						data-testid={item.title === 'Dashboard' ? 'nav-dashboard' :
+										item.title === 'Employees' ? 'nav-employees' :
+										item.title === 'Events' ? 'nav-events' :
+										null}
 					>
 						<svelte:component this={item.icon} class="h-4 w-4" />
 						{item.title}
@@ -330,6 +334,7 @@
 								}
 								return false;
 							})()}
+							data-testid={item.title === "Tasks" ? "nav-tasks" : null}
 						>
 							<div class="flex items-center gap-3">
 								<svelte:component this={item.icon} class="h-4 w-4" />
@@ -428,6 +433,7 @@
 				class="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-primary hover:text-primary-foreground hover:opacity-80"
 				class:bg-primary={$page.url.pathname.includes('/admin')}
 				class:text-primary-foreground={$page.url.pathname.includes('/admin')}
+				data-testid="nav-admin"
 			>
 				<div class="flex items-center gap-3">
 					<Shield class="h-4 w-4" />
@@ -486,6 +492,7 @@
 					href="/dashboard/profile"
 					class="flex items-center gap-2 rounded-md pr-2 transition-colors hover:bg-sidebar-accent/50"
 					title="My Profile"
+					data-testid="nav-profile"
 				>
 					<div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
 						<User class="h-4 w-4" />
@@ -529,6 +536,7 @@
 						href="/dashboard/profile/settings"
 						class="flex items-center justify-center rounded-md p-2 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
 						title="Settings"
+						data-testid="nav-settings"
 					>
 						<Settings class="h-4 w-4" />
 					</a>

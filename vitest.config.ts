@@ -361,6 +361,37 @@ export default defineConfig({
 						GRAPHQL_MESSAGE_ORDERING_VALIDATION: 'true'
 					}
 				}
+			},
+
+			// E2E Puppeteer Tests (better Arch Linux support than Playwright)
+			{
+				name: 'e2e-puppeteer',
+				test: {
+					name: 'e2e-puppeteer',
+					globals: true,
+					environment: 'node',
+					include: ['tests/e2e/**/*.puppeteer.{test,spec}.{js,ts}'],
+					exclude: [
+						'tests/e2e/**/*.stagehand.spec.ts',
+						'tests/e2e/**/*.browser.{test,spec}.{js,ts}',
+						'tests/unit/**',
+						'tests/integration/**',
+						'tests/contract/**'
+					],
+					setupFiles: ['./tests/setup/vitest-setup-e2e-puppeteer.ts'],
+					testTimeout: 60000,
+					hookTimeout: 30000,
+					// Disable coverage for E2E tests
+					coverage: {
+						enabled: false
+					},
+					env: {
+						NODE_ENV: 'test',
+						VITEST: 'true',
+						BASE_URL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173',
+						BROWSER_HEADLESS: process.env.HEADED ? 'false' : 'true'
+					}
+				}
 			}
 		],
 

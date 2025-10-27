@@ -313,7 +313,7 @@
 </svelte:head>
 
 <!-- Page Header -->
-<div class="space-y-6">
+<div class="space-y-6" data-testid="employee-directory">
 	<div class="flex items-center justify-between">
 		{#if canManageEmployees}
 			<ButtonGroup.Root>
@@ -330,7 +330,7 @@
 
 		<div class="flex gap-2">
 			{#if canManageEmployees}
-				<Button size="sm" href="/dashboard/employees/new">
+				<Button size="sm" href="/dashboard/employees/new" data-testid="employee-add-button">
 					<UserPlus class="mr-2 h-4 w-4" />
 					Add Employee
 				</Button>
@@ -538,6 +538,7 @@
 								placeholder="Search by name or email..."
 								bind:value={searchTerm}
 								class="pl-9"
+								data-testid="employee-search-input"
 							/>
 						</div>
 					</div>
@@ -549,6 +550,7 @@
 							id="department"
 							bind:value={selectedDepartment}
 							class="shadow-xs flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base outline-none ring-offset-background transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/80 md:text-sm focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+							data-testid="employee-department-filter"
 						>
 							<option value="">All Departments</option>
 							{#each departments as dept}
@@ -582,6 +584,7 @@
 							bind:checked={showInactive}
 							onchange={handleSearch}
 							class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+							data-testid="employee-status-filter"
 						/>
 						<label for="showInactive" class="text-sm font-medium cursor-pointer">
 							Show Inactive Employees
@@ -603,10 +606,10 @@
 	<!-- Employee List/Grid -->
 	{#if viewMode === 'grid'}
 		<!-- Employee Grid -->
-		<div class="space-y-6">
+		<div class="space-y-6" data-testid="employee-list-container">
 			<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
 				{#each employees as employee}
-					<Card.Root class="transition-shadow hover:shadow-md">
+					<Card.Root class="transition-shadow hover:shadow-md" data-testid="employee-card">
 					<Card.Header class="pb-3">
 						<div class="flex items-start justify-between">
 							<div class="flex items-center space-x-3">
@@ -689,7 +692,7 @@
 
 			<!-- Pagination for grid view -->
 			{#if totalPages > 1}
-				<Card.Root>
+				<Card.Root data-testid="employee-pagination">
 					<Card.Content class="py-4">
 						<div class="flex items-center justify-between">
 							<div class="text-sm text-muted-foreground">
@@ -774,7 +777,7 @@
 		</div>
 	{:else}
 		<!-- Table View -->
-		<Card.Root>
+		<Card.Root data-testid="employee-list-container">
 			<Card.Content class="p-0">
 				<div class="border-b">
 					<Table.Root>
@@ -868,7 +871,7 @@
 
 				<!-- Pagination integrated with table -->
 				{#if totalPages > 1}
-					<div class="flex items-center justify-between px-6 py-4">
+					<div class="flex items-center justify-between px-6 py-4" data-testid="employee-pagination">
 						<div class="text-sm text-muted-foreground">
 							Showing {(currentPage - 1) * pageSize + 1} to {Math.min(
 								currentPage * pageSize,

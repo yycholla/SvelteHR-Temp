@@ -279,6 +279,7 @@
 		<button
 			onclick={openCreateModal}
 			class="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+			data-testid="admin-add-user-button"
 		>
 			<Plus class="h-4 w-4" />
 			Create User
@@ -358,7 +359,7 @@
 
 	<!-- Users Table -->
 	<div class="overflow-x-auto rounded-md border">
-		<table class="w-full text-sm">
+		<table class="w-full text-sm" data-testid="admin-users-table">
 			<thead class="border-b bg-muted/50">
 				<tr>
 					<th class="px-4 py-3 text-left font-medium">Email</th>
@@ -404,6 +405,7 @@
 									disabled={loading}
 									class="rounded-md p-2 hover:bg-accent"
 									title="Edit user"
+									data-testid="admin-edit-user-button"
 								>
 									<Edit class="h-4 w-4" />
 								</button>
@@ -412,6 +414,7 @@
 									disabled={loading}
 									class="rounded-md p-2 text-destructive hover:bg-destructive/10"
 									title="Delete user"
+									data-testid="admin-delete-user-button"
 								>
 									<Trash2 class="h-4 w-4" />
 								</button>
