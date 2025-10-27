@@ -11,7 +11,7 @@ use crate::{
     auth::{context::UserContext, AuthBackend, Credentials, AuthUser},
     database::get_db_from_context,
     error::AppError,
-    schema::mutations::{UserMutations, DepartmentMutations, TaskMutations},
+    schema::mutations::{UserMutations, DepartmentMutations, TaskMutations, RbacMutations},
     models::{
         generated::prelude::*,
         task_audit_entry,
@@ -3822,5 +3822,10 @@ impl MutationRoot {
     /// Task mutations
     async fn tasks(&self) -> TaskMutations {
         TaskMutations
+    }
+
+    /// RBAC mutations - roles, permissions, and assignments
+    async fn rbac(&self) -> RbacMutations {
+        RbacMutations
     }
 }
