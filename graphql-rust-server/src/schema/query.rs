@@ -1090,6 +1090,230 @@ impl QueryRoot {
 
         Ok(latest)
     }
+
+    // =========================================================================
+    // RBAC Queries - Roles, Permissions, and Assignments
+    // =========================================================================
+
+    /// Get all roles with optional filtering and pagination
+    async fn roles(
+        &self,
+        ctx: &Context<'_>,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<crate::models::role::Model>> {
+        use crate::models::role::{Entity as RoleEntity, Column as RoleColumn};
+
+        let db = get_db_from_context(ctx)?;
+        let limit = limit.unwrap_or(100).clamp(1, 1000);
+        let offset = offset.unwrap_or(0).max(0);
+
+        let roles = RoleEntity::find()
+            .filter(RoleColumn::DeletedAt.is_null())
+            .order_by_asc(RoleColumn::Level)
+            .order_by_asc(RoleColumn::Name)
+            .limit(Some(limit as u64))
+            .offset(offset as u64)
+            .all(&db)
+            .await?;
+
+        Ok(roles)
+    }
+
+    /// Get a single role by ID
+    async fn role(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<crate::models::role::Model>> {
+        use crate::models::role::{Entity as RoleEntity, Column as RoleColumn};
+
+        let db = get_db_from_context(ctx)?;
+        let role = RoleEntity::find_by_id(id)
+            .filter(RoleColumn::DeletedAt.is_null())
+            .one(&db)
+            .await?;
+
+        Ok(role)
+    }
+
+    /// Get role by name
+    async fn role_by_name(&self, ctx: &Context<'_>, name: String) -> Result<Option<crate::models::role::Model>> {
+        use crate::models::role::{Entity as RoleEntity, Column as RoleColumn};
+
+        let db = get_db_from_context(ctx)?;
+        let role = RoleEntity::find()
+            .filter(RoleColumn::Name.eq(name))
+            .filter(RoleColumn::DeletedAt.is_null())
+            .one(&db)
+            .await?;
+
+        Ok(role)
+    }
+
+    /// Get all permissions with optional filtering and pagination
+    async fn permissions(
+        &self,
+        ctx: &Context<'_>,
+        limit: Option<i64>,
+        offset: Option<i64>,
+        resource: Option<String>,
+    ) -> Result<Vec<crate::models::permission::Model>> {
+        use crate::models::permission::{Entity as PermissionEntity, Column as PermissionColumn};
+
+        let db = get_db_from_context(ctx)?;
+        let limit = limit.unwrap_or(200).clamp(1, 1000);
+        let offset = offset.unwrap_or(0).max(0);
+
+        let mut query = PermissionEntity::find()
+            .filter(PermissionColumn::DeletedAt.is_null());
+
+        // Filter by resource if provided
+        if let Some(res) = resource {
+            query = query.filter(PermissionColumn::Resource.eq(res));
+        }
+
+        let permissions = query
+            .order_by_asc(PermissionColumn::Resource)
+            .order_by_asc(PermissionColumn::Action)
+            .limit(Some(limit as u64))
+            .offset(offset as u64)
+            .all(&db)
+            .await?;
+
+        Ok(permissions)
+    }
+
+    /// Get a single permission by ID
+    async fn permission(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<crate::models::permission::Model>> {
+        use crate::models::permission::{Entity as PermissionEntity, Column as PermissionColumn};
+
+        let db = get_db_from_context(ctx)?;
+        let permission = PermissionEntity::find_by_id(id)
+            .filter(PermissionColumn::DeletedAt.is_null())
+            .one(&db)
+            .await?;
+
+        Ok(permission)
+    }
+
+    /// Get users assigned to a specific role
+    async fn users_by_role(
+        &self,
+        ctx: &Context<'_>,
+        role_id: Uuid,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<crate::models::user::Model>> {
+        use crate::models::user::{Entity as UserEntity, Column as UserColumn};
+        use crate::models::user_role_assignment::{Entity as UserRoleEntity, Column as UserRoleColumn};
+
+        let db = get_db_from_context(ctx)?;
+        let limit = limit.unwrap_or(100).clamp(1, 1000);
+        let offset = offset.unwrap_or(0).max(0);
+
+        // Get user IDs from role assignments
+        let assignments = UserRoleEntity::find()
+            .filter(UserRoleColumn::RoleId.eq(role_id))
+            .filter(UserRoleColumn::DeletedAt.is_null())
+            .all(&db)
+            .await?;
+
+        let user_ids: Vec<Uuid> = assignments.iter().map(|a| a.user_id).collect();
+
+        if user_ids.is_empty() {
+            return Ok(vec![]);
+        }
+
+        // Get users
+        let users = UserEntity::find()
+            .filter(UserColumn::Id.is_in(user_ids))
+            .filter(UserColumn::DeletedAt.is_null())
+            .limit(Some(limit as u64))
+            .offset(offset as u64)
+            .all(&db)
+            .await?;
+
+        Ok(users)
+    }
+
+    /// Get roles assigned to a specific user
+    async fn user_roles(
+        &self,
+        ctx: &Context<'_>,
+        user_id: Uuid,
+    ) -> Result<Vec<crate::models::role::Model>> {
+        use crate::models::role::{Entity as RoleEntity};
+        use crate::models::user_role_assignment::{Entity as UserRoleEntity, Column as UserRoleColumn};
+
+        let db = get_db_from_context(ctx)?;
+
+        // Get role IDs from user role assignments
+        let assignments = UserRoleEntity::find()
+            .filter(UserRoleColumn::UserId.eq(user_id))
+            .filter(UserRoleColumn::DeletedAt.is_null())
+            .all(&db)
+            .await?;
+
+        let role_ids: Vec<Uuid> = assignments.iter().map(|a| a.role_id).collect();
+
+        if role_ids.is_empty() {
+            return Ok(vec![]);
+        }
+
+        // Get roles
+        let roles = RoleEntity::find()
+            .filter(crate::models::role::Column::Id.is_in(role_ids))
+            .filter(crate::models::role::Column::DeletedAt.is_null())
+            .all(&db)
+            .await?;
+
+        Ok(roles)
+    }
+
+    /// Get all permissions for a specific user (aggregated from all their roles)
+    async fn user_permissions(
+        &self,
+        ctx: &Context<'_>,
+        user_id: Uuid,
+    ) -> Result<Vec<crate::models::permission::Model>> {
+        use crate::models::permission::{Entity as PermissionEntity};
+        use crate::models::role_permission::{Entity as RolePermEntity, Column as RolePermColumn};
+        use crate::models::user_role_assignment::{Entity as UserRoleEntity, Column as UserRoleColumn};
+
+        let db = get_db_from_context(ctx)?;
+
+        // Get role IDs for the user
+        let user_roles = UserRoleEntity::find()
+            .filter(UserRoleColumn::UserId.eq(user_id))
+            .filter(UserRoleColumn::DeletedAt.is_null())
+            .all(&db)
+            .await?;
+
+        let role_ids: Vec<Uuid> = user_roles.iter().map(|ur| ur.role_id).collect();
+
+        if role_ids.is_empty() {
+            return Ok(vec![]);
+        }
+
+        // Get permission IDs from role permissions
+        let role_perms = RolePermEntity::find()
+            .filter(RolePermColumn::RoleId.is_in(role_ids))
+            .filter(RolePermColumn::DeletedAt.is_null())
+            .all(&db)
+            .await?;
+
+        let permission_ids: Vec<Uuid> = role_perms.iter().map(|rp| rp.permission_id).collect();
+
+        if permission_ids.is_empty() {
+            return Ok(vec![]);
+        }
+
+        // Get unique permissions
+        let permissions = PermissionEntity::find()
+            .filter(crate::models::permission::Column::Id.is_in(permission_ids))
+            .filter(crate::models::permission::Column::DeletedAt.is_null())
+            .all(&db)
+            .await?;
+
+        Ok(permissions)
+    }
 }
 
 #[cfg(test)]
