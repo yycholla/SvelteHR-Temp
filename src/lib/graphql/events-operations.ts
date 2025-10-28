@@ -1343,33 +1343,21 @@ export interface UserWaitlistStatus {
 
 /**
  * Query: Get event comments
- * TODO: Backend query doesn't exist yet - using placeholder
+ * Migration: ✅ Updated to idiomatic Rust pattern
  */
 export const GET_EVENT_COMMENTS = gql`
 	query GetEventComments($eventId: UUID!, $limit: Int = 50, $offset: Int = 0) {
-		allEventComments(
-			filter: { eventId: { equalTo: $eventId } }
-			orderBy: CREATED_AT_DESC
-			first: $limit
-			offset: $offset
-		) {
-			nodes {
+		eventComments(eventId: $eventId, limit: $limit, offset: $offset) {
+			id
+			eventId
+			userId
+			commentText
+			createdAt
+			updatedAt
+			user {
 				id
-				eventId
-				userId
-				commentText
-				createdAt
-				updatedAt
-				user {
-					id
-					displayName
-					email
-				}
-			}
-			totalCount
-			pageInfo {
-				hasNextPage
-				hasPreviousPage
+				displayName
+				email
 			}
 		}
 	}
@@ -1377,28 +1365,22 @@ export const GET_EVENT_COMMENTS = gql`
 
 /**
  * Query: Get event history
- * TODO: Backend query doesn't exist yet - using placeholder
+ * Migration: ✅ Updated to idiomatic Rust pattern
  */
 export const GET_EVENT_HISTORY = gql`
 	query GetEventHistory($eventId: UUID!, $limit: Int = 50) {
-		allEventHistories(
-			filter: { eventId: { equalTo: $eventId } }
-			orderBy: CREATED_AT_DESC
-			first: $limit
-		) {
-			nodes {
+		eventHistories(eventId: $eventId, limit: $limit) {
+			id
+			eventId
+			changedById
+			changeType
+			oldValues
+			newValues
+			createdAt
+			changedBy {
 				id
-				eventId
-				changedById
-				changeType
-				oldValues
-				newValues
-				createdAt
-				changedBy {
-					id
-					displayName
-					email
-				}
+				displayName
+				email
 			}
 		}
 	}
@@ -1406,41 +1388,35 @@ export const GET_EVENT_HISTORY = gql`
 
 /**
  * Query: Get user waitlist status for an event
- * TODO: Backend query doesn't exist yet - using placeholder
+ * Migration: ✅ Updated to idiomatic Rust pattern
  */
 export const GET_USER_WAITLIST_STATUS = gql`
 	query GetUserWaitlistStatus($eventId: UUID!, $userId: UUID!) {
-		allEventWaitlists(
-			filter: { eventId: { equalTo: $eventId }, userId: { equalTo: $userId } }
-			first: 1
-		) {
-			nodes {
-				id
-				position
-				promoted
-			}
+		eventWaitlists(eventId: $eventId, userId: $userId, limit: 1) {
+			id
+			position
+			promoted
 		}
 	}
 `;
 
 /**
  * Mutation: Create event comment
+ * Migration: ✅ Updated to idiomatic Rust pattern (direct return)
  */
 export const CREATE_EVENT_COMMENT = gql`
 	mutation CreateEventComment($input: CreateEventCommentInput!) {
 		createEventComment(input: $input) {
-			eventComment {
+			id
+			eventId
+			userId
+			commentText
+			createdAt
+			updatedAt
+			user {
 				id
-				eventId
-				userId
-				commentText
-				createdAt
-				updatedAt
-				user {
-					id
-					displayName
-					email
-				}
+				displayName
+				email
 			}
 		}
 	}
@@ -1448,18 +1424,17 @@ export const CREATE_EVENT_COMMENT = gql`
 
 /**
  * Mutation: Update event comment
+ * Migration: ✅ Updated to idiomatic Rust pattern (direct return, id as param)
  */
 export const UPDATE_EVENT_COMMENT = gql`
 	mutation UpdateEventComment($id: UUID!, $input: UpdateEventCommentInput!) {
-		updateEventCommentById(input: { id: $id, patch: $input }) {
-			eventComment {
-				id
-				eventId
-				userId
-				commentText
-				createdAt
-				updatedAt
-			}
+		updateEventComment(id: $id, input: $input) {
+			id
+			eventId
+			userId
+			commentText
+			createdAt
+			updatedAt
 		}
 	}
 `;
@@ -1475,19 +1450,17 @@ export const DELETE_EVENT_COMMENT = gql`
 
 /**
  * Mutation: Join event waitlist
- * Maps to createEventWaitlist backend mutation
+ * Migration: ✅ Updated to idiomatic Rust pattern (direct return)
  */
 export const JOIN_EVENT_WAITLIST = gql`
 	mutation JoinEventWaitlist($input: CreateEventWaitlistInput!) {
 		createEventWaitlist(input: $input) {
-			eventWaitlist {
-				id
-				eventId
-				userId
-				position
-				promoted
-				createdAt
-			}
+			id
+			eventId
+			userId
+			position
+			promoted
+			createdAt
 		}
 	}
 `;

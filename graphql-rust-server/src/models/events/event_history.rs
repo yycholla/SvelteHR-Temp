@@ -18,10 +18,9 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub event_id: Uuid,
-    pub changed_by_id: Uuid,
-    pub change_type: String,
-    pub old_values: Option<JsonValue>,
-    pub new_values: Option<JsonValue>,
+    pub user_id: Uuid,
+    pub action: String,
+    pub changes: Option<JsonValue>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -35,10 +34,10 @@ pub enum Relation {
     Event,
     #[sea_orm(
         belongs_to = "crate::models::user::Entity",
-        from = "Column::ChangedById",
+        from = "Column::UserId",
         to = "crate::models::user::Column::Id"
     )]
-    ChangedBy,
+    User,
 }
 
 impl ActiveModelBehavior for ActiveModel {}
@@ -48,10 +47,9 @@ impl ActiveModelBehavior for ActiveModel {}
 pub struct EventHistory {
     pub id: Uuid,
     pub event_id: Uuid,
-    pub changed_by_id: Uuid,
-    pub change_type: String,
-    pub old_values: Option<JsonValue>,
-    pub new_values: Option<JsonValue>,
+    pub user_id: Uuid,
+    pub action: String,
+    pub changes: Option<JsonValue>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -60,14 +58,12 @@ pub struct EventHistory {
 pub struct CreateEventHistoryInput {
     #[graphql(name = "eventId")]
     pub event_id: Uuid,
-    #[graphql(name = "changedById")]
-    pub changed_by_id: Uuid,
-    #[graphql(name = "changeType")]
-    pub change_type: String,
-    #[graphql(name = "oldValues")]
-    pub old_values: Option<String>, // JSON string
-    #[graphql(name = "newValues")]
-    pub new_values: Option<String>, // JSON string
+    #[graphql(name = "userId")]
+    pub user_id: Uuid,
+    #[graphql(name = "action")]
+    pub action: String,
+    #[graphql(name = "changes")]
+    pub changes: Option<String>, // JSON string
 }
 
 /// GraphQL Object implementation with camelCase field names
@@ -84,22 +80,28 @@ impl Model {
 
     #[graphql(name = "changedById")]
     async fn changed_by_id(&self) -> Uuid {
-        self.changed_by_id
+        self.user_id
     }
 
     #[graphql(name = "changeType")]
     async fn change_type(&self) -> &str {
-        &self.change_type
+        &self.action
     }
 
     #[graphql(name = "oldValues")]
     async fn old_values(&self) -> Option<String> {
-        self.old_values.as_ref().map(|v| v.to_string())
+        // For backward compatibility, try to extract oldValues from changes JSON
+        self.changes.as_ref()
+            .and_then(|v| v.get("oldValues"))
+            .map(|v| v.to_string())
     }
 
     #[graphql(name = "newValues")]
     async fn new_values(&self) -> Option<String> {
-        self.new_values.as_ref().map(|v| v.to_string())
+        // For backward compatibility, try to extract newValues from changes JSON
+        self.changes.as_ref()
+            .and_then(|v| v.get("newValues"))
+            .map(|v| v.to_string())
     }
 
     #[graphql(name = "createdAt")]
@@ -123,7 +125,7 @@ impl Model {
     #[graphql(name = "changedBy")]
     async fn changed_by(&self, ctx: &async_graphql::Context<'_>) -> GqlResult<crate::models::user::Model> {
         let db = get_db_from_context(ctx)?;
-        let user = crate::models::user::Entity::find_by_id(self.changed_by_id)
+        let user = crate::models::user::Entity::find_by_id(self.user_id)
             .filter(crate::models::user::Column::DeletedAt.is_null())
             .one(&db)
             .await?

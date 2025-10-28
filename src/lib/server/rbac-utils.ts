@@ -379,6 +379,8 @@ export function getUserPermissions(locals: App.Locals) {
 		canCreateEmployees: hasPermission(locals.permissions || [], ['employees:write']),
 		// Legacy permission for backward compatibility
 		canManageEmployees: hasPermission(locals.permissions || [], ['employees:write']),
+		// Managers and above can view inactive employees
+		canViewInactiveEmployees: hasRole(locals.roles || [], ['system_admin', 'admin', 'manager', 'hr_manager']),
 		canViewDepartments: hasPermission(locals.permissions || [], ['departments:read']),
 		canManageDepartments:
 			hasPermission(locals.permissions || [], ['departments:write']) &&

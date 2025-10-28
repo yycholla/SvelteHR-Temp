@@ -244,18 +244,37 @@ impl MutationRoot {
     ) -> Result<EventAttendee> {
         let db = get_db_from_context(ctx)?;
 
-        let attendee = crate::models::event_attendee::ActiveModel {
-            event_id: Set(input.event_id),
-            employee_id: Set(input.employee_id),
-            response_status: Set(input.response_status),
-            is_required: Set(input.is_required),
-            reminder_time: Set(input.reminder_time),
-            scope: Set(input.scope),
-            is_organizer: Set(input.is_organizer),
-            ..Default::default()
+        // Check if attendee already exists (upsert pattern)
+        let existing = crate::models::event_attendee::Entity::find()
+            .filter(crate::models::event_attendee::Column::EventId.eq(input.event_id))
+            .filter(crate::models::event_attendee::Column::EmployeeId.eq(input.employee_id))
+            .one(&db)
+            .await?;
+
+        let attendee = if let Some(existing_attendee) = existing {
+            // Update existing attendee
+            let mut active: crate::models::event_attendee::ActiveModel = existing_attendee.into();
+            active.response_status = Set(input.response_status);
+            active.is_required = Set(input.is_required);
+            active.reminder_time = Set(input.reminder_time);
+            active.scope = Set(input.scope);
+            active.is_organizer = Set(input.is_organizer);
+            active.update(&db).await?
+        } else {
+            // Create new attendee
+            let attendee = crate::models::event_attendee::ActiveModel {
+                event_id: Set(input.event_id),
+                employee_id: Set(input.employee_id),
+                response_status: Set(input.response_status),
+                is_required: Set(input.is_required),
+                reminder_time: Set(input.reminder_time),
+                scope: Set(input.scope),
+                is_organizer: Set(input.is_organizer),
+                ..Default::default()
+            };
+            attendee.insert(&db).await?
         };
 
-        let attendee = attendee.insert(&db).await?;
         Ok(attendee)
     }
 
@@ -3337,7 +3356,7 @@ impl MutationRoot {
         let comment = crate::models::events::event_comment::ActiveModel {
             event_id: Set(input.event_id),
             user_id: Set(input.user_id),
-            comment_text: Set(input.comment_text.clone()),
+            comment: Set(input.comment.clone()),
             ..Default::default()
         };
 
@@ -3364,8 +3383,8 @@ impl MutationRoot {
         // Build active model with updates
         let mut comment: crate::models::events::event_comment::ActiveModel = existing_comment.into();
 
-        if let Some(comment_text) = input.comment_text {
-            comment.comment_text = Set(comment_text);
+        if let Some(comment_text) = input.comment {
+            comment.comment = Set(comment_text);
         }
 
         // Update timestamp
@@ -3407,25 +3426,18 @@ impl MutationRoot {
     ) -> Result<EventHistory> {
         let db = get_db_from_context(ctx)?;
 
-        // Parse JSON strings if provided
-        let old_values_json = if let Some(old_values) = &input.old_values {
-            Some(serde_json::from_str::<serde_json::Value>(old_values)?)
-        } else {
-            None
-        };
-
-        let new_values_json = if let Some(new_values) = &input.new_values {
-            Some(serde_json::from_str::<serde_json::Value>(new_values)?)
+        // Parse JSON string if provided
+        let changes_json = if let Some(changes) = &input.changes {
+            Some(serde_json::from_str::<serde_json::Value>(changes)?)
         } else {
             None
         };
 
         let history = crate::models::events::event_history::ActiveModel {
             event_id: Set(input.event_id),
-            changed_by_id: Set(input.changed_by_id),
-            change_type: Set(input.change_type.clone()),
-            old_values: Set(old_values_json),
-            new_values: Set(new_values_json),
+            user_id: Set(input.user_id),
+            action: Set(input.action.clone()),
+            changes: Set(changes_json),
             ..Default::default()
         };
 

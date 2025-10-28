@@ -10,11 +10,14 @@
 	import * as ButtonGroup from '$lib/components/ui/button-group';
 	import * as Chart from '$lib/components/ui/chart';
 	import { Slider } from '$lib/components/ui/slider';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { Area, AreaChart } from 'layerchart';
 	import { scaleUtc } from 'd3-scale';
 	import { queryStore, getContextClient } from '@urql/svelte';
 	import { GET_EMPLOYEE_STATISTICS_QUERY } from '$lib/graphql/employee-operations';
 	import type { EmployeeStatistic } from '$lib/graphql/employee-operations';
+	import EmployeeDataTable from '$lib/components/ui/employee-datatable.svelte';
+	import MultiSearchInput from '$lib/components/ui/tag-input/MultiSearchInput.svelte';
 	import {
 		Users,
 		Search,
@@ -33,7 +36,9 @@
 		FileBarChart,
 		Grid,
 		List,
-		TrendingUp
+		TrendingUp,
+		ChevronDown,
+		Settings2
 	} from '@lucide/svelte';
 	import * as Table from '$lib/components/ui/table';
 
@@ -52,9 +57,11 @@
 			totalActiveEmployees: number;
 			totalInactiveEmployees: number;
 			departments: any[];
+			employeeAutocompleteOptions: Array<{ value: string; label: string; email?: string }>;
 			filters: {
 				searchTerm: string;
 				departmentFilter: string;
+				roleFilter: string;
 				statusFilter: string;
 				page: number;
 				limit: number;
@@ -95,20 +102,51 @@
 	const canCreateReviews = $derived(data.canCreateReviews);
 
 	// Local state for filters and search
-	let searchTerm = $state('');
+	let searchTerms = $state<string[]>([]);
 	let selectedDepartment = $state('');
+	let selectedRole = $state('');
 	let selectedStatus = $state('active'); // Default to active only
 	let showInactive = $state(false); // Checkbox state - default to NOT showing inactive (unchecked)
 	let currentPage = $state(1);
 	let pageSize = $state(20);
 	let viewMode = $state<'grid' | 'list'>('list'); // Default to table view
 
+	// Column visibility state for datatable
+	// Managers and above can see all columns, employees see limited columns
+	let columnVisibility = $state<Record<string, boolean>>({
+		displayName: true,
+		email: true,
+		departmentId: true,
+		role: true,
+		hireDate: canViewInactiveEmployees, // Managers+ only
+		isActive: canViewInactiveEmployees // Managers+ only
+	});
+
+	// Debounce timer for search
+	let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+	// Use server-provided autocomplete options (includes ALL employees, not just current page)
+	const employeeSearchOptions = $derived(data.employeeAutocompleteOptions || []);
+
+	// Check if any filters are active (for select-all checkbox enablement)
+	const hasActiveFilters = $derived(
+		searchTerms.length > 0 ||
+		selectedDepartment !== '' ||
+		selectedRole !== '' ||
+		selectedStatus !== 'active' // Default is 'active', so any change means filter is active
+	);
+
 	// Sync with filters data using effects
 	$effect(() => {
-		searchTerm = filters.searchTerm || '';
+		// Parse comma-separated search terms from URL
+		const searchParam = filters.searchTerm || '';
+		searchTerms = searchParam ? searchParam.split(',').map((t) => t.trim()).filter(Boolean) : [];
 	});
 	$effect(() => {
 		selectedDepartment = filters.departmentFilter || '';
+	});
+	$effect(() => {
+		selectedRole = filters.roleFilter || '';
 	});
 	$effect(() => {
 		const status = filters.statusFilter || 'active';
@@ -260,20 +298,38 @@
 	// Handle search form submission
 	function handleSearch() {
 		const searchParams = new URLSearchParams();
-		if (searchTerm) searchParams.set('search', searchTerm);
-		if (selectedDepartment) searchParams.set('department', selectedDepartment);
-
-		// Set status based on showInactive checkbox
-		if (showInactive) {
-			searchParams.set('status', ''); // Show all employees
-		} else {
-			searchParams.set('status', 'active'); // Show only active employees
+		// Join multiple search terms with commas
+		if (searchTerms.length > 0) {
+			searchParams.set('search', searchTerms.join(','));
 		}
+		if (selectedDepartment) searchParams.set('department', selectedDepartment);
+		if (selectedRole) searchParams.set('role', selectedRole);
+
+		// Use selectedStatus dropdown value directly
+		searchParams.set('status', selectedStatus);
 
 		searchParams.set('page', '1'); // Reset to first page on new search
 		if (pageSize !== 20) searchParams.set('limit', pageSize.toString());
 
-		goto(`${currentPathname}?${searchParams.toString()}`);
+		// Use goto with keepFocus to preserve input focus
+		goto(`${currentPathname}?${searchParams.toString()}`, {
+			replaceState: true,
+			noScroll: true,
+			keepFocus: true
+		});
+	}
+
+	// Debounced search handler for live filtering
+	function handleDebouncedSearch() {
+		// Clear existing timer
+		if (searchDebounceTimer) {
+			clearTimeout(searchDebounceTimer);
+		}
+
+		// Set new timer to trigger search after 500ms of inactivity
+		searchDebounceTimer = setTimeout(() => {
+			handleSearch();
+		}, 500);
 	}
 
 	// Handle pagination
@@ -287,8 +343,9 @@
 
 	// Handle clear filters
 	function clearFilters() {
-		searchTerm = '';
+		searchTerms = [];
 		selectedDepartment = '';
+		selectedRole = '';
 		selectedStatus = 'active';
 		showInactive = false;
 		pageSize = 20;
@@ -296,7 +353,11 @@
 		// Navigate with status=active (show only active employees)
 		const searchParams = new URLSearchParams();
 		searchParams.set('status', 'active');
-		goto(`${currentPathname}?${searchParams.toString()}`);
+		goto(`${currentPathname}?${searchParams.toString()}`, {
+			replaceState: true,
+			noScroll: true,
+			keepFocus: true
+		});
 	}
 
 	// Get employee status badge variant
@@ -368,7 +429,8 @@
 		</div>
 	</div>
 
-	<!-- Search and Filters -->
+	<!-- Search and Filters (Grid View Only) -->
+	{#if viewMode === 'grid'}
 	<Card.Root>
 		<Card.Header>
 			<Card.Title>Employee Overview & Filters</Card.Title>
@@ -529,30 +591,18 @@
 			</div>
 
 			<!-- Search and Filter Form -->
-			<form
-				onsubmit={(e) => {
-					e.preventDefault();
-					handleSearch(e);
-				}}
-				class="space-y-4"
-			>
+			<div class="space-y-4">
 				<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
 					<!-- Search Input -->
 					<div class="space-y-2">
 						<label for="search" class="text-sm font-medium">Search</label>
-						<div class="relative">
-							<Search
-								class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-							/>
-							<Input
-								id="search"
-								type="text"
-								placeholder="Search by name or email..."
-								bind:value={searchTerm}
-								class="pl-9"
-								data-testid="employee-search-input"
-							/>
-						</div>
+						<MultiSearchInput
+							bind:searchTerms={searchTerms}
+							options={employeeSearchOptions}
+							onSearchChange={handleSearch}
+							debounceMs={500}
+							allowCustomTerms={true}
+						/>
 					</div>
 
 					<!-- Department Filter -->
@@ -605,15 +655,12 @@
 				{/if}
 
 				<div class="flex gap-2">
-					<Button type="submit">
-						<Search class="mr-2 h-4 w-4" />
-						Search
-					</Button>
-					<Button type="button" variant="outline" on:click={clearFilters}>Clear Filters</Button>
+					<Button type="button" variant="outline" onclick={clearFilters}>Clear Filters</Button>
 				</div>
-			</form>
+			</div>
 		</Card.Content>
 	</Card.Root>
+	{/if}
 
 	<!-- Employee List/Grid -->
 	{#if viewMode === 'grid'}
@@ -656,9 +703,10 @@
 							{/if}
 
 							{#if employee.departmentId}
+								{@const deptName = departments.find(d => d.id === employee.departmentId)?.name}
 								<div class="flex items-center text-sm text-muted-foreground">
 									<Building class="mr-2 h-4 w-4" />
-									<span>Dept ID: {employee.departmentId.slice(0, 8)}...</span>
+									<span>{deptName || 'Unknown Department'}</span>
 								</div>
 							{/if}
 
@@ -790,183 +838,212 @@
 			{/if}
 		</div>
 	{:else}
-		<!-- Table View -->
-		<Card.Root data-testid="employee-list-container">
-			<Card.Content class="p-0">
-				<div class="border-b">
-					<Table.Root>
-						<Table.Header>
-							<Table.Row>
-								<Table.Head>Name</Table.Head>
-								<Table.Head>Email</Table.Head>
-								<Table.Head>Department</Table.Head>
-								<Table.Head>Role</Table.Head>
-								<Table.Head>Hire Date</Table.Head>
-								<Table.Head>Status</Table.Head>
-								<Table.Head class="text-right">Actions</Table.Head>
-							</Table.Row>
-						</Table.Header>
-						<Table.Body>
-							{#each employees as employee (employee.id)}
-								<Table.Row class="cursor-pointer hover:bg-muted/50" onclick={() => goto(`/dashboard/employees/${employee.id}`)}>
-									<Table.Cell>
-										<div class="flex items-center gap-3">
-											<div class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-												<Users class="h-5 w-5 text-primary" />
-											</div>
-											<div>
-												<div class="font-medium">{employee.displayName}</div>
-												{#if employee.role}
-													<div class="text-sm text-muted-foreground">{formatRole(employee.role)}</div>
-												{/if}
-											</div>
-										</div>
-									</Table.Cell>
-									<Table.Cell>
-										{#if employee.email}
-											<a href="mailto:{employee.email}" class="text-sm hover:text-primary" onclick={(e) => e.stopPropagation()}>
-												{employee.email}
-											</a>
-										{:else}
-											<span class="text-sm text-muted-foreground">N/A</span>
-										{/if}
-									</Table.Cell>
-									<Table.Cell>
-										{#if employee.departmentId}
-											<span class="text-sm">{employee.departmentId.slice(0, 8)}...</span>
-										{:else}
-											<span class="text-sm text-muted-foreground">N/A</span>
-										{/if}
-									</Table.Cell>
-									<Table.Cell>
-										{#if employee.role}
-											<Badge variant="outline">{formatRole(employee.role)}</Badge>
-										{:else}
-											<span class="text-sm text-muted-foreground">N/A</span>
-										{/if}
-									</Table.Cell>
-									<Table.Cell>
-										<span class="text-sm text-muted-foreground">
-											{employee.hireDate ? formatHireDate(employee.hireDate) : 'N/A'}
-										</span>
-									</Table.Cell>
-									<Table.Cell>
-										<Badge variant={getStatusBadgeVariant(employee.isActive)}>
-											{employee.isActive ? 'Active' : 'Inactive'}
-										</Badge>
-									</Table.Cell>
-									<Table.Cell class="text-right">
-										<div class="flex gap-1 justify-end">
-											{#if canViewEmployees}
-												<Button
-													variant="ghost"
-													size="sm"
-													href="/dashboard/employees/{employee.id}"
-													onclick={(e) => e.stopPropagation()}
-												>
-													<Eye class="h-4 w-4" />
-												</Button>
-											{/if}
-											{#if canEditEmployees}
-												<Button
-													variant="ghost"
-													size="sm"
-													href="/dashboard/employees/{employee.id}/edit"
-													onclick={(e) => e.stopPropagation()}
-												>
-													<Edit class="h-4 w-4" />
-												</Button>
-											{/if}
-										</div>
-									</Table.Cell>
-								</Table.Row>
+		<!-- DataTable View -->
+		<div data-testid="employee-list-container" class="space-y-4">
+			<!-- Filters and Controls Row -->
+			<div class="flex items-end gap-3 justify-between">
+				<!-- Left: Filters -->
+				<div class="flex items-end gap-3">
+					<!-- Search Input -->
+					<div class="space-y-2 w-96">
+						<label for="search-inline" class="text-sm font-medium">Search</label>
+						<MultiSearchInput
+							bind:searchTerms={searchTerms}
+							options={employeeSearchOptions}
+							onSearchChange={handleSearch}
+							debounceMs={500}
+							allowCustomTerms={true}
+						/>
+					</div>
+
+					<!-- Department Filter -->
+					<div class="space-y-2 w-40">
+						<label for="department-inline" class="text-sm font-medium">Department</label>
+						<select
+							id="department-inline"
+							bind:value={selectedDepartment}
+							onchange={handleSearch}
+							class="shadow-xs flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base outline-none ring-offset-background transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/80 md:text-sm focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+							data-testid="employee-department-filter"
+						>
+							<option value="">All Departments</option>
+							{#each departments as dept}
+								<option value={dept.id}>{dept.name}</option>
 							{/each}
-						</Table.Body>
-					</Table.Root>
+						</select>
+					</div>
+
+					<!-- Role Filter -->
+					<div class="space-y-2 w-36">
+						<label for="role-inline" class="text-sm font-medium">Role</label>
+						<select
+							id="role-inline"
+							bind:value={selectedRole}
+							onchange={handleSearch}
+							class="shadow-xs flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base outline-none ring-offset-background transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/80 md:text-sm focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+						>
+							<option value="">All Roles</option>
+							<option value="admin">Admin</option>
+							<option value="manager">Manager</option>
+							<option value="employee">Employee</option>
+						</select>
+					</div>
+
+					<!-- Status Filter (Managers and above only) -->
+					{#if canViewInactiveEmployees}
+						<div class="space-y-2 w-36">
+							<label for="status-inline" class="text-sm font-medium">Status</label>
+							<select
+								id="status-inline"
+								bind:value={selectedStatus}
+								onchange={handleSearch}
+								class="shadow-xs flex h-9 w-full min-w-0 rounded-md border border-input bg-muted px-3 py-1 text-base outline-none ring-offset-background transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/80 md:text-sm focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+								data-testid="employee-status-filter"
+							>
+								<option value="active">Active Only</option>
+								<option value="">All Employees</option>
+								<option value="inactive">Inactive Only</option>
+							</select>
+						</div>
+					{/if}
+
+					<!-- Clear Button -->
+					<div class="space-y-2">
+						<label class="text-sm font-medium invisible">Clear</label>
+						<Button type="button" variant="outline" size="sm" onclick={clearFilters}>
+							Clear
+						</Button>
+					</div>
 				</div>
 
-				<!-- Pagination integrated with table -->
-				{#if totalPages > 1}
-					<div class="flex items-center justify-between px-6 py-4" data-testid="employee-pagination">
-						<div class="text-sm text-muted-foreground">
-							Showing {(currentPage - 1) * pageSize + 1} to {Math.min(
-								currentPage * pageSize,
-								totalEmployees
-							)} of {totalEmployees} employees
-						</div>
-						<div class="flex gap-2">
-							<Button
-								variant="outline"
-								size="sm"
-								disabled={!hasPreviousPage}
-								on:click={() => goToPage(currentPage - 1)}
-							>
-								Previous
-							</Button>
-
-							{#if totalPages <= 7}
-								{#each Array(totalPages) as _, i}
-									<Button
-										variant={currentPage === i + 1 ? 'default' : 'outline'}
-										size="sm"
-										on:click={() => goToPage(i + 1)}
-									>
-										{i + 1}
+				<!-- Right: Controls -->
+				<div class="flex items-end gap-2">
+					<!-- Per Page Dropdown -->
+					<div class="space-y-2">
+						<label class="text-sm font-medium invisible">Per Page</label>
+						<DropdownMenu.Root>
+							<DropdownMenu.Trigger>
+								{#snippet child({ props })}
+									<Button variant="outline" size="sm" {...props}>
+										Per Page: {pageSize}
+										<ChevronDown class="ml-2 h-4 w-4" />
 									</Button>
+								{/snippet}
+							</DropdownMenu.Trigger>
+							<DropdownMenu.Content align="end" class="w-32">
+								<DropdownMenu.Label>Rows per page</DropdownMenu.Label>
+								<DropdownMenu.Separator />
+								{#each [10, 20, 50, 100] as size}
+									<DropdownMenu.Item
+										onclick={() => {
+											pageSize = size;
+											handleSearch();
+										}}
+										class={pageSize === size ? 'bg-accent' : ''}
+									>
+										{size}
+									</DropdownMenu.Item>
 								{/each}
-							{:else}
-								<!-- Complex pagination with ellipsis -->
-								<Button
-									variant={currentPage === 1 ? 'default' : 'outline'}
-									size="sm"
-									on:click={() => goToPage(1)}
-								>
-									1
-								</Button>
-
-								{#if currentPage > 3}
-									<span class="px-2 text-muted-foreground">...</span>
-								{/if}
-
-								{#each Array(Math.min(5, totalPages - 2)) as _, i}
-									{@const pageNum = Math.max(2, Math.min(currentPage - 2 + i, totalPages - 1))}
-									{#if pageNum >= 2 && pageNum <= totalPages - 1}
-										<Button
-											variant={currentPage === pageNum ? 'default' : 'outline'}
-											size="sm"
-											on:click={() => goToPage(pageNum)}
-										>
-											{pageNum}
-										</Button>
-									{/if}
-								{/each}
-
-								{#if currentPage < totalPages - 2}
-									<span class="px-2 text-muted-foreground">...</span>
-								{/if}
-
-								<Button
-									variant={currentPage === totalPages ? 'default' : 'outline'}
-									size="sm"
-									on:click={() => goToPage(totalPages)}
-								>
-									{totalPages}
-								</Button>
-							{/if}
-
-							<Button
-								variant="outline"
-								size="sm"
-								disabled={!hasNextPage}
-								on:click={() => goToPage(currentPage + 1)}
-							>
-								Next
-							</Button>
-						</div>
+							</DropdownMenu.Content>
+						</DropdownMenu.Root>
 					</div>
-				{/if}
-			</Card.Content>
-		</Card.Root>
+
+					<!-- Column Visibility Dropdown -->
+					<div class="space-y-2">
+						<label class="text-sm font-medium invisible">Columns</label>
+						<DropdownMenu.Root>
+							<DropdownMenu.Trigger>
+								{#snippet child({ props })}
+									<Button variant="outline" size="sm" {...props}>
+										<Settings2 class="mr-2 h-4 w-4" />
+										Columns
+										<ChevronDown class="ml-2 h-4 w-4" />
+									</Button>
+								{/snippet}
+							</DropdownMenu.Trigger>
+							<DropdownMenu.Content align="end" class="w-48">
+								<DropdownMenu.Label>Toggle Columns</DropdownMenu.Label>
+								<DropdownMenu.Separator />
+								<DropdownMenu.CheckboxItem
+									checked={columnVisibility.displayName}
+									onCheckedChange={(value) => {
+										columnVisibility = { ...columnVisibility, displayName: !!value };
+									}}
+								>
+									Name
+								</DropdownMenu.CheckboxItem>
+								<DropdownMenu.CheckboxItem
+									checked={columnVisibility.email}
+									onCheckedChange={(value) => {
+										columnVisibility = { ...columnVisibility, email: !!value };
+									}}
+								>
+									Email
+								</DropdownMenu.CheckboxItem>
+								<DropdownMenu.CheckboxItem
+									checked={columnVisibility.departmentId}
+									onCheckedChange={(value) => {
+										columnVisibility = { ...columnVisibility, departmentId: !!value };
+									}}
+								>
+									Department
+								</DropdownMenu.CheckboxItem>
+								<DropdownMenu.CheckboxItem
+									checked={columnVisibility.role}
+									onCheckedChange={(value) => {
+										columnVisibility = { ...columnVisibility, role: !!value };
+									}}
+								>
+									Role
+								</DropdownMenu.CheckboxItem>
+								{#if canViewInactiveEmployees}
+									<DropdownMenu.CheckboxItem
+										checked={columnVisibility.hireDate}
+										onCheckedChange={(value) => {
+											columnVisibility = { ...columnVisibility, hireDate: !!value };
+										}}
+									>
+										Hire Date
+									</DropdownMenu.CheckboxItem>
+									<DropdownMenu.CheckboxItem
+										checked={columnVisibility.isActive}
+										onCheckedChange={(value) => {
+											columnVisibility = { ...columnVisibility, isActive: !!value };
+										}}
+									>
+										Status
+									</DropdownMenu.CheckboxItem>
+								{/if}
+							</DropdownMenu.Content>
+						</DropdownMenu.Root>
+					</div>
+				</div>
+			</div>
+
+			<EmployeeDataTable
+				{employees}
+				{departments}
+				{canViewEmployees}
+				{canEditEmployees}
+				{canViewInactiveEmployees}
+				{hasActiveFilters}
+				userDepartmentId={user?.departmentId}
+				isManager={user?.role === 'manager'}
+				{currentPage}
+				{pageSize}
+				{totalPages}
+				onPageChange={goToPage}
+				onPageSizeChange={(newSize) => {
+					pageSize = newSize;
+					handleSearch();
+				}}
+				showPerPageControl={false}
+				columnVisibilityState={columnVisibility}
+				onColumnVisibilityChange={(newVisibility) => {
+					columnVisibility = newVisibility;
+				}}
+			/>
+		</div>
 	{/if}
 
 	<!-- Empty State -->

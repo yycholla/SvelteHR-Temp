@@ -73,7 +73,7 @@
 		const updatesToClear: string[] = [];
 
 		events.forEach(event => {
-			const userAttendee = event.eventAttendeesByEventId?.nodes?.find(
+			const userAttendee = event.attendees?.find(
 				(a: any) => a.employeeId === data.user.id
 			);
 			const serverStatus = userAttendee?.responseStatus || 'no_response';
@@ -149,11 +149,11 @@
 	// Handle event click (open details dialog)
 	async function handleEventClick(event: any) {
 		console.log('🔔 Event clicked - full data:', event);
-		console.log('🔔 Event attendees raw:', event.eventAttendeesByEventId);
+		console.log('🔔 Event attendees raw:', event.attendees);
 
 		selectedEvent = event;
 		// Calculate RSVP stats
-		const attendees = event.eventAttendeesByEventId?.nodes || [];
+		const attendees = event.attendees || [];
 		console.log('🔔 Attendees array:', attendees);
 
 		selectedEventRsvpStats = {
@@ -194,20 +194,20 @@
 				return;
 			}
 
-			const rawComments = result.data.allEventComments?.nodes || [];
-			const totalCount = result.data.allEventComments?.totalCount || 0;
-			const hasMore = result.data.allEventComments?.pageInfo?.hasNextPage || false;
+			const rawComments = result.data.eventComments || [];
+			const totalCount = rawComments.length;
+			const hasMore = rawComments.length >= 20;
 
 			// Transform GraphQL response to match component's expected format
 			const comments = rawComments.map((c: any) => ({
 				id: c.id,
-				content: c.content,
+				content: c.commentText,
 				author: {
-					id: c.userByEmployeeId?.id || c.employeeId,
-					name: c.userByEmployeeId?.displayName || 'Unknown User',
+					id: c.user?.id || c.userId,
+					name: c.user?.displayName || 'Unknown User',
 					avatarUrl: undefined // Users table doesn't have avatarUrl field
 				},
-				mentions: c.mentions || [],
+				mentions: [],
 				createdAt: c.createdAt,
 				updatedAt: c.updatedAt
 			}));
@@ -247,20 +247,20 @@
 				return;
 			}
 
-			const rawHistory = result.data.allEventHistories?.nodes || [];
-			const hasMore = result.data.allEventHistories?.pageInfo?.hasNextPage || false;
+			const rawHistory = result.data.eventHistories || [];
+			const hasMore = rawHistory.length >= 25;
 
 			// Transform GraphQL response to match component's expected format
 			const history = rawHistory.map((h: any) => ({
 				id: h.id,
 				changedBy: {
-					id: h.userByChangedBy?.id || h.changedBy,
-					name: h.userByChangedBy?.displayName || 'Unknown User'
+					id: h.changedBy?.id || h.changedById,
+					name: h.changedBy?.displayName || 'Unknown User'
 				},
 				changeType: h.changeType,
 				fieldName: h.fieldName,
-				oldValue: h.oldValue,
-				newValue: h.newValue,
+				oldValue: h.oldValues,
+				newValue: h.newValues,
 				changedAt: h.createdAt // GraphQL has createdAt, component expects changedAt
 			}));
 
@@ -296,9 +296,9 @@
 				return;
 			}
 
-			const nodes = result.data.allEventWaitlists?.nodes || [];
-			if (nodes.length > 0) {
-				const waitlistEntry = nodes[0];
+			const waitlists = result.data.eventWaitlists || [];
+			if (waitlists.length > 0) {
+				const waitlistEntry = waitlists[0];
 				userWaitlistStatus = {
 					isOnWaitlist: true,
 					position: waitlistEntry.position || null,
@@ -324,10 +324,11 @@
 		try {
 			const result = await urqlClient
 				.mutation(CREATE_EVENT_COMMENT, {
-					eventId: selectedEvent.id,
-					employeeId: data.user.id,
-					content: sanitized,
-					mentions: []
+					input: {
+						eventId: selectedEvent.id,
+						userId: data.user.id,
+						commentText: sanitized
+					}
 				})
 				.toPromise();
 
@@ -337,18 +338,18 @@
 			}
 
 			// Use the returned comment data directly instead of refetching
-			const newComment = result.data.createEventComment.eventComment;
+			const newComment = result.data.createEventComment;
 			const transformedComment = {
 				id: newComment.id,
-				content: newComment.content,
+				content: newComment.commentText,
 				author: {
-					id: newComment.userByEmployeeId?.id || data.user.id,
-					name: newComment.userByEmployeeId?.displayName || data.user.display_name || 'Unknown User',
+					id: newComment.user?.id || data.user.id,
+					name: newComment.user?.displayName || data.user.display_name || 'Unknown User',
 					avatarUrl: undefined
 				},
-				mentions: newComment.mentions || [],
+				mentions: [],
 				createdAt: newComment.createdAt,
-				updatedAt: newComment.createdAt
+				updatedAt: newComment.updatedAt
 			};
 
 			// Add the new comment to the beginning of the list (most recent first)
@@ -374,9 +375,10 @@
 		try {
 			const result = await urqlClient
 				.mutation(UPDATE_EVENT_COMMENT, {
-					commentId,
-					content: sanitized,
-					mentions: []
+					id: commentId,
+					input: {
+						commentText: sanitized
+					}
 				})
 				.toPromise();
 
@@ -386,13 +388,13 @@
 			}
 
 			// Update the comment in the local state directly
-			const updatedComment = result.data.updateEventCommentById.eventComment;
+			const updatedComment = result.data.updateEventComment;
 			eventComments = eventComments.map(comment => {
 				if (comment.id === commentId) {
 					return {
 						...comment,
-						content: updatedComment.content,
-						mentions: updatedComment.mentions || [],
+						content: updatedComment.commentText,
+						mentions: [],
 						updatedAt: updatedComment.updatedAt
 					};
 				}
@@ -413,7 +415,7 @@
 		try {
 			const result = await urqlClient
 				.mutation(DELETE_EVENT_COMMENT, {
-					commentId
+					id: commentId
 				})
 				.toPromise();
 
@@ -878,6 +880,7 @@
 		isOpen={showDetailsDialog}
 		event={selectedEvent}
 		userId={data.user.id}
+		userRole={data.user.role}
 		canManageEvent={data.canCreateEvents && selectedEvent?.organizerId === data.user.id}
 		mode={detailsDialogMode}
 		rsvpStats={selectedEventRsvpStats}

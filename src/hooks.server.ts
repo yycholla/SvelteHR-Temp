@@ -338,7 +338,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		const cspDirectives = [
 			"default-src 'self'",
 			"script-src 'self' 'unsafe-inline' 'unsafe-eval'", // TODO: Remove unsafe-eval once app is CSP-compliant
-			"style-src 'self' 'unsafe-inline'",
+			"style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net", // Allow FullCalendar CSS from CDN
 			"img-src 'self' data: https:",
 			"font-src 'self' data:",
 			"connect-src 'self' http://localhost:4000 ws://localhost:*", // Backend API and WebSocket

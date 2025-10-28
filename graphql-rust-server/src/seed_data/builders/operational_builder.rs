@@ -42,19 +42,25 @@ pub async fn seed_events(
     for i in 0..target_count {
         let creator = &users[i % users.len()];
 
-        // Generate event date (past 2 months to future 4 months)
-        let days_offset = (rand::random::<i64>() % 180) - 60; // -60 to +120 days
-        let start_time = now + Duration::days(days_offset) + Duration::hours((rand::random::<i64>() % 8) + 9); // 9 AM to 5 PM
-        let end_time = start_time + Duration::hours(1 + (rand::random::<i64>() % 3)); // 1-3 hours
+        // Generate event date with predictable distribution around current date
+        // Creates events: 1 month back to 2 months forward (90 day window centered on today)
+        let days_offset = ((i as i64) * 180 / (target_count as i64)) - 30; // Evenly distributed -30 to +150 days
+
+        // Add some randomization to avoid all events being at exact intervals
+        let random_adjustment = (rand::random::<i64>() % 5) - 2; // -2 to +2 days variance
+        let final_offset = days_offset + random_adjustment;
+
+        let start_time = now + Duration::days(final_offset) + Duration::hours((i as i64 % 8) + 9); // 9 AM to 5 PM
+        let end_time = start_time + Duration::hours(1 + (i as i64 % 3)); // 1-3 hours
 
         let title: String = Sentence(3..6).fake();
 
         // Event types and statuses
         let event_types = vec!["meeting", "training", "social", "company_event", "team_building"];
         let event_type = event_types[i % event_types.len()];
-        let status = if days_offset < -7 {
+        let status = if final_offset < -7 {
             "completed"
-        } else if days_offset < 0 {
+        } else if final_offset < 0 {
             "in_progress"
         } else {
             "scheduled"

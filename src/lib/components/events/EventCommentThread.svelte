@@ -31,26 +31,64 @@
 		eventId: string;
 		comments: Comment[];
 		currentUserId: string;
+		currentUserRole?: string;
+		eventOrganizerId?: string;
 		onAddComment?: (content: string, mentions: string[]) => Promise<void>;
 		onUpdateComment?: (commentId: string, content: string) => Promise<void>;
 		onDeleteComment?: (commentId: string) => Promise<void>;
 		readonly?: boolean;
+		hasMore?: boolean;
+		onLoadMore?: () => Promise<void>;
 	}
 
 	let {
 		eventId,
 		comments = [],
 		currentUserId,
+		currentUserRole,
+		eventOrganizerId,
 		onAddComment,
 		onUpdateComment,
 		onDeleteComment,
-		readonly = false
+		readonly = false,
+		hasMore = false,
+		onLoadMore
 	}: Props = $props();
 
 	let newCommentContent = $state('');
 	let editingCommentId = $state<string | null>(null);
 	let editContent = $state('');
 	let loading = $state(false);
+
+	/**
+	 * Check if the current user can delete a comment.
+	 * Users can delete comments if they are:
+	 * - The comment author (comment.author.id === currentUserId)
+	 * - The event organizer/creator (currentUserId === eventOrganizerId)
+	 * - HR Manager (role: hr_manager)
+	 * - Admin (role: admin or super_admin)
+	 */
+	function canDeleteComment(comment: Comment): boolean {
+		// Comment author can always delete their own comment
+		if (comment.author.id === currentUserId) {
+			return true;
+		}
+
+		// Event organizer can delete any comment on their event
+		if (eventOrganizerId && currentUserId === eventOrganizerId) {
+			return true;
+		}
+
+		// HR managers and admins can delete any comment
+		if (currentUserRole) {
+			const role = currentUserRole.toLowerCase();
+			if (role === 'hr_manager' || role === 'admin' || role === 'super_admin') {
+				return true;
+			}
+		}
+
+		return false;
+	}
 
 	function getInitials(name: string): string {
 		return name
@@ -176,24 +214,30 @@
 								{/if}
 							</div>
 
-							{#if comment.author.id === currentUserId && !readonly}
+							{#if !readonly && (comment.author.id === currentUserId || canDeleteComment(comment))}
 								<div class="flex gap-1">
-									<Button
-										variant="ghost"
-										size="sm"
-										onclick={() => startEditing(comment)}
-										disabled={loading}
-									>
-										<Edit2 class="h-4 w-4" />
-									</Button>
-									<Button
-										variant="ghost"
-										size="sm"
-										onclick={() => handleDeleteComment(comment.id)}
-										disabled={loading}
-									>
-										<Trash2 class="h-4 w-4" />
-									</Button>
+									<!-- Edit button only for comment author -->
+									{#if comment.author.id === currentUserId}
+										<Button
+											variant="ghost"
+											size="sm"
+											onclick={() => startEditing(comment)}
+											disabled={loading}
+										>
+											<Edit2 class="h-4 w-4" />
+										</Button>
+									{/if}
+									<!-- Delete button for authorized users -->
+									{#if canDeleteComment(comment)}
+										<Button
+											variant="ghost"
+											size="sm"
+											onclick={() => handleDeleteComment(comment.id)}
+											disabled={loading}
+										>
+											<Trash2 class="h-4 w-4" />
+										</Button>
+									{/if}
 								</div>
 							{/if}
 						</div>

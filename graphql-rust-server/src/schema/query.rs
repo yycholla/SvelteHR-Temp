@@ -705,6 +705,8 @@ impl QueryRoot {
         &self,
         ctx: &Context<'_>,
         upcoming_only: Option<bool>,
+        start_time_after: Option<chrono::DateTime<chrono::Utc>>,
+        start_time_before: Option<chrono::DateTime<chrono::Utc>>,
         limit: Option<i64>,
         offset: Option<i64>,
     ) -> Result<Vec<Event>> {
@@ -722,6 +724,14 @@ impl QueryRoot {
             query = query
                 .filter(EventColumn::StartTime.gte(now))
                 .filter(EventColumn::Status.eq("scheduled"));
+        }
+
+        // Add date range filtering
+        if let Some(after) = start_time_after {
+            query = query.filter(EventColumn::StartTime.gte(after));
+        }
+        if let Some(before) = start_time_before {
+            query = query.filter(EventColumn::StartTime.lte(before));
         }
 
         let events = query
@@ -791,6 +801,94 @@ impl QueryRoot {
             .await?;
 
         Ok(attendees)
+    }
+
+    // =========================================================================
+    // Event Comment Queries
+    // =========================================================================
+
+    /// Get event comments for a specific event
+    async fn event_comments(
+        &self,
+        ctx: &Context<'_>,
+        event_id: Uuid,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<crate::models::events::event_comment::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let limit = limit.unwrap_or(50).clamp(1, 500);
+        let offset = offset.unwrap_or(0).max(0);
+
+        let comments = crate::models::events::event_comment::Entity::find()
+            .filter(crate::models::events::event_comment::Column::EventId.eq(event_id))
+            .filter(crate::models::events::event_comment::Column::DeletedAt.is_null())
+            .order_by_desc(crate::models::events::event_comment::Column::CreatedAt)
+            .limit(Some(limit as u64))
+            .offset(offset as u64)
+            .all(&db)
+            .await?;
+
+        Ok(comments)
+    }
+
+    // =========================================================================
+    // Event History Queries
+    // =========================================================================
+
+    /// Get event history for a specific event
+    async fn event_histories(
+        &self,
+        ctx: &Context<'_>,
+        event_id: Uuid,
+        limit: Option<i64>,
+    ) -> Result<Vec<crate::models::events::event_history::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let limit = limit.unwrap_or(50).clamp(1, 500);
+
+        let histories = crate::models::events::event_history::Entity::find()
+            .filter(crate::models::events::event_history::Column::EventId.eq(event_id))
+            .order_by_desc(crate::models::events::event_history::Column::CreatedAt)
+            .limit(Some(limit as u64))
+            .all(&db)
+            .await?;
+
+        Ok(histories)
+    }
+
+    // =========================================================================
+    // Event Waitlist Queries
+    // =========================================================================
+
+    /// Get event waitlist entries
+    async fn event_waitlists(
+        &self,
+        ctx: &Context<'_>,
+        event_id: Option<Uuid>,
+        user_id: Option<Uuid>,
+        limit: Option<i64>,
+    ) -> Result<Vec<crate::models::events::event_waitlist::Model>> {
+        let db = get_db_from_context(ctx)?;
+        let limit = limit.unwrap_or(100).clamp(1, 500);
+
+        let mut query = crate::models::events::event_waitlist::Entity::find();
+
+        // Filter by event_id if provided
+        if let Some(eid) = event_id {
+            query = query.filter(crate::models::events::event_waitlist::Column::EventId.eq(eid));
+        }
+
+        // Filter by user_id if provided
+        if let Some(uid) = user_id {
+            query = query.filter(crate::models::events::event_waitlist::Column::UserId.eq(uid));
+        }
+
+        let waitlists = query
+            .order_by_asc(crate::models::events::event_waitlist::Column::Position)
+            .limit(Some(limit as u64))
+            .all(&db)
+            .await?;
+
+        Ok(waitlists)
     }
 
     // =========================================================================

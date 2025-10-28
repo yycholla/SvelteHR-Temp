@@ -14,6 +14,16 @@ export const load: PageServerLoad = async (event) => {
 		throw error(401, 'Authentication required');
 	}
 
+	// Fetch weather data from wttr.in as a promise (non-blocking)
+	const weatherPromise = fetch('https://wttr.in/Boise?format=3', {
+		headers: { 'User-Agent': 'SvelteHR-Dashboard' }
+	})
+		.then((response) => (response.ok ? response.text() : null))
+		.catch((err) => {
+			console.warn('Failed to fetch weather:', err);
+			return null;
+		});
+
 	try {
 		// Check backend services are ready before proceeding
 		const backendReady = await ensureBackendReady();
@@ -61,6 +71,7 @@ export const load: PageServerLoad = async (event) => {
 				canManageUsers: false,
 				canViewReports: false,
 				canApproveLeave: false,
+				weatherPromise,
 				loadedAt: new Date().toISOString(),
 				error: {
 					message: 'Backend services are initializing. Please try again in a moment.',
@@ -165,9 +176,17 @@ export const load: PageServerLoad = async (event) => {
 		`;
 
 		// Query for upcoming events (user is attending or public events)
+		// Note: We fetch events for the next month and filter server-side to handle complex logic:
+		// - Show public events
+		// - Show events where user is invited
+		// - Exclude events where user declined
+		const now = new Date();
+		const oneMonthLater = new Date(now);
+		oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
+
 		const eventsQuery = `
-			query GetUpcomingEvents {
-				events(upcomingOnly: true, limit: 10) {
+			query GetUpcomingEvents($startTimeAfter: DateTime!, $startTimeBefore: DateTime!) {
+				events(startTimeAfter: $startTimeAfter, startTimeBefore: $startTimeBefore, limit: 20) {
 					id
 					title
 					description
@@ -177,8 +196,14 @@ export const load: PageServerLoad = async (event) => {
 					allDay
 					location
 					isPublic
+					status
 					color
 					organizerId
+					attendees {
+						id
+						employeeId
+						responseStatus
+					}
 				}
 			}
 		`;
@@ -270,7 +295,10 @@ export const load: PageServerLoad = async (event) => {
 			graphqlClient.query(leaveRequestsQuery),
 			graphqlClient.query(goalsQuery, { userId: locals.user.id }),
 			graphqlClient.query(tasksQuery, { filter: { assigneeId: locals.user.id } }),
-			graphqlClient.query(eventsQuery),
+			graphqlClient.query(eventsQuery, {
+				startTimeAfter: now.toISOString(),
+				startTimeBefore: oneMonthLater.toISOString()
+			}),
 			graphqlClient.query(activityLogsQuery, { userId: locals.user.id }),
 			...(isAdmin ? [graphqlClient.query(systemAuditLogsQuery)] : []),
 			...(isSuperAdmin
@@ -307,6 +335,18 @@ export const load: PageServerLoad = async (event) => {
 				(activityLogsResult.status === 'fulfilled' &&
 					activityLogsResult.value.data?.activityLogs) ||
 				[];
+
+			console.log('📅 Dashboard: Raw events from GraphQL:', events.length);
+			if (events.length > 0) {
+				console.log('📅 First event sample:', {
+					id: events[0].id,
+					title: events[0].title,
+					startTime: events[0].startTime,
+					isPublic: events[0].isPublic,
+					status: events[0].status,
+					attendeesCount: events[0].attendees?.length || 0
+				});
+			}
 
 			// Extract admin-only data
 			let systemAuditLogs: any[] = [];
@@ -407,7 +447,11 @@ export const load: PageServerLoad = async (event) => {
 				events,
 				10
 			);
-			const upcomingEvents = generateUpcomingEventsFromDatabase(events, 5);
+			const upcomingEvents = generateUpcomingEventsFromDatabase(events, locals.user.id, 5);
+			console.log(`📅 Dashboard: upcomingEvents after generation:`, upcomingEvents.length);
+			if (upcomingEvents.length > 0) {
+				console.log(`📅 First upcoming event:`, upcomingEvents[0]);
+			}
 			const quickActions = generateQuickActions(userRole, users);
 			const dataGenDuration = Date.now() - startDataGeneration;
 			console.log(`📊 Dashboard: Data generation completed in ${dataGenDuration}ms`);
@@ -480,11 +524,18 @@ export const load: PageServerLoad = async (event) => {
 					tasks: tasks
 						.filter((t) => t.status === 'TODO' || t.status === 'IN_PROGRESS')
 						.slice(0, 5), // Return full task objects
-					events: upcomingEvents.slice(0, 4).map((event) => ({
-						title: event.title,
-						time: event.time,
-						type: event.type
-					}))
+					events: (() => {
+						const eventData = upcomingEvents.slice(0, 4).map((event) => ({
+							id: event.id,
+							title: event.title,
+							date: event.date,
+							time: event.time,
+							type: event.type,
+							rsvpStatus: event.rsvpStatus
+						}));
+						console.log(`📅 Dashboard: Final events data for frontend:`, eventData.length, eventData);
+						return eventData;
+					})()
 				},
 				dashboardMetrics,
 				recentActivities,
@@ -559,6 +610,7 @@ export const load: PageServerLoad = async (event) => {
 			canApproveLeave: isAdmin || isHR || isManager,
 			isAdmin,
 			isSuperAdmin,
+			weatherPromise,
 			loadedAt: new Date().toISOString(),
 			// STREAMING DATA: This promise will be streamed to the browser and resolved progressively
 			// The dashboard component can use {#await} blocks to show loading states for individual widgets
@@ -612,6 +664,7 @@ export const load: PageServerLoad = async (event) => {
 			canManageUsers: false,
 			canViewReports: false,
 			canApproveLeave: false,
+			weatherPromise,
 			loadedAt: new Date().toISOString(),
 			error: {
 				message: 'Unable to load dashboard. Please try again later.',
@@ -895,24 +948,88 @@ function generateRecentActivitiesFromLogs(
 }
 
 // Helper function to generate upcoming events from real database data
-function generateUpcomingEventsFromDatabase(events: any[], limit: number) {
+function generateUpcomingEventsFromDatabase(events: any[], userId: string, limit: number) {
 	const now = new Date();
 
+	console.log('📅 generateUpcomingEventsFromDatabase called with:', {
+		totalEvents: events.length,
+		userId,
+		limit,
+		now: now.toISOString()
+	});
+
 	// Filter and transform events
-	return events
-		.filter((event) => {
-			const startTime = new Date(event.startTime);
-			return startTime >= now && event.status === 'scheduled';
-		})
-		.slice(0, limit)
-		.map((event) => {
+	const filtered = events.filter((event) => {
+		const startTime = new Date(event.startTime);
+
+		console.log(`📅 Filtering event "${event.title}":`, {
+			startTime: event.startTime,
+			isFuture: startTime >= now,
+			status: event.status,
+			isPublic: event.isPublic,
+			attendeesCount: event.attendees?.length || 0
+		});
+
+		// Event must be scheduled and in the future (case-insensitive check)
+		if (!(startTime >= now && event.status?.toUpperCase() === 'SCHEDULED')) {
+			console.log(`  ❌ Filtered out - not scheduled or not future (status: ${event.status})`);
+			return false;
+		}
+
+		// Show public events
+		if (event.isPublic) {
+			console.log(`  ✅ Included - public event`);
+			return true;
+		}
+
+		// Show events where user is invited (has attendee record)
+		const userAttendee = event.attendees?.find((a: any) => a.employeeId === userId);
+		if (!userAttendee) {
+			console.log(`  ❌ Filtered out - user not invited`);
+			return false; // User not invited
+		}
+
+		// Exclude events where user has declined
+		if (userAttendee.responseStatus === 'declined') {
+			console.log(`  ❌ Filtered out - user declined (status: ${userAttendee.responseStatus})`);
+			return false;
+		}
+
+		console.log(`  ✅ Included - user invited with status: ${userAttendee.responseStatus}`);
+		return true;
+	});
+
+	console.log(`📅 After filtering: ${filtered.length} events`);
+
+	const sorted = filtered.sort((a, b) => {
+		// Sort by proximity (soonest first)
+		const startTimeA = new Date(a.startTime).getTime();
+		const startTimeB = new Date(b.startTime).getTime();
+		return startTimeA - startTimeB;
+	});
+
+	const limited = sorted.slice(0, limit);
+	console.log(`📅 After limiting to ${limit}: ${limited.length} events`);
+
+	return limited.map((event) => {
 			const startTime = new Date(event.startTime);
 			const endTime = new Date(event.endTime);
+
+			// Format date for display
+			const dateStr = startTime.toLocaleDateString('en-US', {
+				weekday: 'short',
+				month: 'short',
+				day: 'numeric'
+			});
 
 			// Format time for display
 			const timeStr = event.allDay
 				? 'All Day'
 				: startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+			// Get user's RSVP status
+			const userAttendee = event.attendees?.find((a: any) => a.employeeId === userId);
+			const rsvpStatus = userAttendee?.responseStatus || 'no_response';
 
 			// Map event type to icon
 			const iconMap = {
@@ -932,7 +1049,7 @@ function generateUpcomingEventsFromDatabase(events: any[], limit: number) {
 				title: event.title,
 				description: event.description || '',
 				type: event.eventType,
-				date: event.startTime,
+				date: dateStr,
 				time: timeStr,
 				location: event.location || 'TBD',
 				icon: iconMap[event.eventType as keyof typeof iconMap] || 'Calendar',
@@ -942,7 +1059,8 @@ function generateUpcomingEventsFromDatabase(events: any[], limit: number) {
 				organizer: event.userByOrganizerId
 					? `${event.userByOrganizerId.firstName} ${event.userByOrganizerId.lastName}`
 					: 'Unknown',
-				isPublic: event.isPublic
+				isPublic: event.isPublic,
+				rsvpStatus: rsvpStatus
 			};
 		});
 }

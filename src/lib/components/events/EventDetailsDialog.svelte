@@ -41,32 +41,32 @@
 		eventType: EventType;
 		visibilityType?: EventVisibilityType;
 		status: string;
+		organizerId?: string; // Event organizer/creator ID
 		rrule?: string | null; // Recurring event rule
 		maxCapacity?: number | null; // Event capacity limit
 		acceptedCount?: number; // Current accepted attendees
 		waitlistCount?: number; // Current waitlist size
 		waitlistEnabled?: boolean; // Whether waitlist is enabled
 		isFull?: boolean; // Whether event is at capacity
-		userByOrganizerId?: {
+		organizer?: {
 			displayName: string;
 		};
-		eventAttendeesByEventId?: {
-			nodes: Array<{
-				id: string;
-				employeeId: string;
-				responseStatus: RsvpStatus;
-				reminderTime?: number | null;
-				userByEmployeeId?: {
-					displayName: string;
-				};
-			}>;
-		};
+		attendees?: Array<{
+			id: string;
+			employeeId: string;
+			responseStatus: RsvpStatus;
+			reminderTime?: number | null;
+			employee?: {
+				displayName: string;
+			};
+		}>;
 	}
 
 	interface Props {
 		isOpen: boolean;
 		event: EventData | null;
 		userId: string;
+		userRole?: string;
 		canManageEvent?: boolean;
 		mode?: 'view' | 'edit';
 		rsvpStats?: {
@@ -104,6 +104,7 @@
 		isOpen = false,
 		event = null,
 		userId,
+		userRole,
 		canManageEvent = false,
 		mode = 'view',
 		rsvpStats,
@@ -142,11 +143,11 @@
 
 	// Reactively calculate RSVP stats from event data
 	let displayRsvpStats = $derived.by(() => {
-		if (!event?.eventAttendeesByEventId?.nodes) {
+		if (!event?.attendees) {
 			return rsvpStats || { total: 0, accepted: 0, declined: 0, tentative: 0, pending: 0 };
 		}
 
-		const attendees = event.eventAttendeesByEventId.nodes;
+		const attendees = event.attendees;
 		return {
 			total: attendees.length,
 			accepted: attendees.filter((a: any) => a.responseStatus === 'accepted').length,
@@ -159,8 +160,8 @@
 	// Filter attendees based on active tab
 	let filteredAttendees = $derived(
 		activeAttendeeTab === 'all'
-			? event?.eventAttendeesByEventId?.nodes || []
-			: (event?.eventAttendeesByEventId?.nodes || []).filter(
+			? event?.attendees || []
+			: (event?.attendees || []).filter(
 				(a: any) => a.responseStatus === activeAttendeeTab
 			)
 	);
@@ -195,9 +196,9 @@
 
 	// Get user's RSVP status
 	const userRsvpStatus: RsvpStatus = $derived(
-		!event || !event.eventAttendeesByEventId
+		!event || !event.attendees
 			? 'no_response'
-			: (event.eventAttendeesByEventId.nodes.find(
+			: (event.attendees.find(
 					(a) => a.employeeId === userId
 			  )?.responseStatus || 'no_response')
 	);
@@ -347,13 +348,13 @@
 			return;
 		}
 
-		const userAttendee = event.eventAttendeesByEventId?.nodes.find(
+		const userAttendee = event.attendees?.find(
 			(a) => a.employeeId === userId
 		);
 
 		console.log('[RSVP] userAttendee:', userAttendee);
 		console.log('[RSVP] userId:', userId);
-		console.log('[RSVP] attendees:', event.eventAttendeesByEventId?.nodes);
+		console.log('[RSVP] attendees:', event.attendees);
 
 		const formData = new FormData();
 		formData.append('eventId', event.id);
@@ -405,41 +406,32 @@
 
 				// Find or create the attendee record in the local event data
 				// IMPORTANT: Create new array reference for Svelte 5 reactivity
-				if (event.eventAttendeesByEventId) {
-					const existingAttendeeIndex = event.eventAttendeesByEventId.nodes.findIndex(
+				if (event.attendees) {
+					const existingAttendeeIndex = event.attendees.findIndex(
 						(a) => a.employeeId === userId
 					);
 
-					if (existingAttendeeIndex >= 0) {
-						// Update existing attendee - create new array with updated object
-						event.eventAttendeesByEventId.nodes = event.eventAttendeesByEventId.nodes.map((attendee, idx) =>
-							idx === existingAttendeeIndex
-								? { ...attendee, responseStatus: newStatus }
-								: attendee
-						);
-					} else {
-						// Add new attendee to the list - create new array
-						event.eventAttendeesByEventId.nodes = [
-							...event.eventAttendeesByEventId.nodes,
-							{
-								id: crypto.randomUUID(), // Temporary ID until reload
-								employeeId: userId,
-								responseStatus: newStatus
-							}
-						];
-					}
+				if (existingAttendeeIndex >= 0) {
+					// Update existing attendee - mutate in place for Svelte 5 proxy
+					event.attendees[existingAttendeeIndex].responseStatus = newStatus;
 				} else {
-					// Initialize the attendees structure if it doesn't exist
-					event.eventAttendeesByEventId = {
-						nodes: [
-							{
-								id: crypto.randomUUID(), // Temporary ID until reload
-								employeeId: userId,
-								responseStatus: newStatus
-							}
-						]
-					};
+					// Add new attendee to the list - mutate array in place
+					event.attendees.push({
+						id: crypto.randomUUID(), // Temporary ID until reload
+						employeeId: userId,
+						responseStatus: newStatus
+					});
 				}
+			} else {
+				// Initialize the attendees structure if it doesn't exist
+				event.attendees = [
+					{
+						id: crypto.randomUUID(), // Temporary ID until reload
+						employeeId: userId,
+						responseStatus: newStatus
+					}
+				];
+			}
 
 				toast.success('RSVP updated successfully');
 
@@ -557,7 +549,7 @@
 			waitlistError = null;
 
 			// Load saved reminder time from attendee record
-			const userAttendee = event.eventAttendeesByEventId?.nodes?.find(
+			const userAttendee = event.attendees?.find(
 				(a: any) => a.employeeId === userId
 			);
 
@@ -827,7 +819,7 @@
 										<div>
 											<div class="text-sm font-medium text-foreground mb-1">Organizer</div>
 											<div class="text-sm text-muted-foreground">
-												{event.userByOrganizerId?.displayName || 'Unknown'}
+												{event.organizer?.displayName || 'Unknown'}
 											</div>
 										</div>
 									</div>
@@ -928,7 +920,7 @@
 								{/if}
 
 								<!-- Attendee List with Tabs -->
-								{#if event.eventAttendeesByEventId?.nodes && event.eventAttendeesByEventId.nodes.length > 0}
+								{#if event.attendees && event.attendees.length > 0}
 									<div class="border-t pt-6">
 										<h3 class="text-sm font-medium text-foreground mb-4">Attendee List ({displayRsvpStats?.total || 0})</h3>
 
@@ -990,11 +982,11 @@
 														<div class="flex items-center gap-2">
 															<div class="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
 																<span class="text-xs font-medium text-muted-foreground">
-																	{attendee.userByEmployeeId?.displayName?.charAt(0)?.toUpperCase() || '?'}
+																	{attendee.employee?.displayName?.charAt(0)?.toUpperCase() || '?'}
 																</span>
 															</div>
 															<div class="text-sm font-medium text-foreground">
-																{attendee.userByEmployeeId?.displayName || 'Unknown'}
+																{attendee.employee?.displayName || 'Unknown'}
 																{#if attendee.employeeId === userId}
 																	<span class="ml-1.5 text-xs text-primary">(You)</span>
 																{/if}
@@ -1021,6 +1013,8 @@
 									eventId={event.id}
 									comments={eventComments}
 									currentUserId={userId}
+									currentUserRole={userRole}
+									eventOrganizerId={event.organizerId}
 									onAddComment={handleAddComment}
 									onUpdateComment={handleUpdateComment}
 									onDeleteComment={handleDeleteComment}

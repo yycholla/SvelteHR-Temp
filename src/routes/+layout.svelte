@@ -1,10 +1,17 @@
 <script lang="ts">
+	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/stores';
 	import { authActions } from '$lib/stores/auth';
 	import ToastContainer from '$lib/components/ui/toast-container.svelte';
+	import { Toaster } from 'svelte-sonner';
 	import { setContextClient } from '@urql/svelte';
 	import { createUrqlClient } from '$lib/graphql/client';
 	import { themeStore } from '$lib/stores/theme';
+	import { toast } from 'svelte-sonner';
+	import {
+		initSessionTimeout,
+		type SessionTimeoutManager
+	} from '$lib/services/session-timeout';
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
 
@@ -13,21 +20,27 @@
 
 	let { children, data } = $props();
 
+	// Session timeout state
+	let sessionTimeoutManager: SessionTimeoutManager | null = null;
+	let showTimeoutBlur = $state(false);
+	let timeoutToastId: string | number | undefined;
+	let countdownInterval: ReturnType<typeof setInterval> | null = null;
+
 	// Sync server-validated user to client store immediately
 	// This runs BEFORE any rendering happens
 	if (data?.user?.id) {
 		authActions.setUser({
 			id: data.user.id,
 			email: data.user.email,
-			displayName: data.user.displayName || data.user.display_name || data.user.email?.split('@')[0] || 'User',
+			displayName: data.user.display_name || data.user.email?.split('@')[0] || 'User',
 			onboardingStatus: 'Active',
 			isActive: true
 		});
 	}
 
 	// Simplify layout logic to prevent reactive re-mounting issues
-	const isAuthPage = $derived($page.url.pathname === '/login' || $page.url.pathname === '/login-simple' || $page.url.pathname === '/login-working');
-	const isPublicPage = $derived(isAuthPage || $page.url.pathname === '/' || $page.url.pathname === '/privacy' || $page.url.pathname === '/terms');
+	const isAuthPage = $derived($page.url.pathname === '/login');
+	const isPublicPage = $derived(isAuthPage || $page.url.pathname === '/');
 
 	// Apply theme to document
 	$effect(() => {
@@ -35,6 +48,120 @@
 			const root = document.documentElement;
 			root.classList.remove('light', 'dark');
 			root.classList.add($themeStore.resolved);
+		}
+	});
+
+	// Show timeout warning with Sonner
+	function showTimeoutSonner(remainingSeconds: number) {
+		const minutes = Math.floor(remainingSeconds / 60);
+		const seconds = remainingSeconds % 60;
+
+		timeoutToastId = toast.warning(
+			`Session expiring in ${minutes}:${seconds.toString().padStart(2, '0')}`,
+			{
+				description: 'Click anywhere or press Continue to stay logged in',
+				duration: Infinity,
+				action: {
+					label: 'Continue',
+					onClick: () => {
+						showTimeoutBlur = false;
+						if (countdownInterval) {
+							clearInterval(countdownInterval);
+							countdownInterval = null;
+						}
+						sessionTimeoutManager?.refreshSession();
+					}
+				}
+			}
+		);
+
+		// Update countdown every second
+		countdownInterval = setInterval(() => {
+			const remaining = sessionTimeoutManager?.getRemainingTime() || 0;
+			if (remaining <= 0) {
+				if (countdownInterval) {
+					clearInterval(countdownInterval);
+					countdownInterval = null;
+				}
+				return;
+			}
+
+			const min = Math.floor(remaining / 60);
+			const sec = remaining % 60;
+			toast.warning(
+				`Session expiring in ${min}:${sec.toString().padStart(2, '0')}`,
+				{
+					id: timeoutToastId,
+					description: 'Click anywhere or press Continue to stay logged in',
+					duration: Infinity,
+					action: {
+						label: 'Continue',
+						onClick: () => {
+							showTimeoutBlur = false;
+							if (countdownInterval) {
+								clearInterval(countdownInterval);
+								countdownInterval = null;
+							}
+							sessionTimeoutManager?.refreshSession();
+						}
+					}
+				}
+			);
+		}, 1000);
+	}
+
+	// Initialize session timeout on mount (only for authenticated pages)
+	onMount(() => {
+		// Only initialize if user is logged in
+		if (data?.user?.id && !isPublicPage) {
+			sessionTimeoutManager = initSessionTimeout(
+				{
+					inactivityTimeout: 30, // 30 minutes
+					warningTime: 5, // 5 minutes warning
+					refreshInterval: 10, // Refresh every 10 minutes
+					enabled: true
+				},
+				{
+					onWarning: (remainingSeconds) => {
+						showTimeoutBlur = true;
+						showTimeoutSonner(remainingSeconds);
+					},
+					onTimeout: async () => {
+						// Cleanup will happen in the logout
+					},
+					onActivityDetected: () => {
+						// Clear blur and dismiss toast on ANY activity
+						if (showTimeoutBlur) {
+							showTimeoutBlur = false;
+							if (timeoutToastId) {
+								toast.dismiss(timeoutToastId);
+								timeoutToastId = undefined;
+							}
+							if (countdownInterval) {
+								clearInterval(countdownInterval);
+								countdownInterval = null;
+							}
+						}
+					},
+					onSessionRefreshed: () => {
+						console.log('⏱️ Session refreshed successfully');
+					}
+				}
+			);
+		}
+	});
+
+	// Cleanup on unmount
+	onDestroy(() => {
+		if (sessionTimeoutManager) {
+			sessionTimeoutManager.stop();
+			sessionTimeoutManager = null;
+		}
+		if (timeoutToastId) {
+			toast.dismiss(timeoutToastId);
+		}
+		if (countdownInterval) {
+			clearInterval(countdownInterval);
 		}
 	});
 </script>
@@ -51,8 +178,14 @@
 	{@render children?.()}
 </main>
 
+<!-- Session timeout blur overlay -->
+{#if showTimeoutBlur}
+	<div class="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm" />
+{/if}
+
 <!-- Global toast notifications -->
 <ToastContainer />
+<Toaster position="bottom-center" />
 
 <style global>
 	:global(.app-main) {

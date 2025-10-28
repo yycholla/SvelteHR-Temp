@@ -46,6 +46,7 @@ export const load: PageServerLoad = async (event) => {
 	// Extract search parameters from URL
 	const searchTerm = url.searchParams.get('search') || '';
 	const departmentFilter = url.searchParams.get('department') || '';
+	const roleFilter = url.searchParams.get('role') || '';
 	// Default to 'active' to show only active employees by default
 	const statusFilter = url.searchParams.get('status') || 'active';
 	const page = parseInt(url.searchParams.get('page') || '1', 10);
@@ -144,28 +145,49 @@ export const load: PageServerLoad = async (event) => {
 			console.log('[Employee Directory] After department filter:', allEmployees.length, 'employees');
 		}
 
-		// Client-side filtering for search term
+		// Filter by role
+		if (roleFilter) {
+			allEmployees = allEmployees.filter((emp: any) => emp.role === roleFilter);
+			console.log('[Employee Directory] After role filter:', allEmployees.length, 'employees');
+		}
+
+		// Client-side filtering for search term (supports multiple comma-separated terms)
 		if (searchTerm) {
-			const searchLower = searchTerm.toLowerCase();
+			// Split by comma and trim each term
+			const searchTerms = searchTerm.split(',').map(term => term.trim().toLowerCase()).filter(Boolean);
+
 			allEmployees = allEmployees.filter((emp: any) => {
 				const displayName = emp.displayName?.toLowerCase() || '';
 				const firstName = emp.firstName?.toLowerCase() || '';
 				const lastName = emp.lastName?.toLowerCase() || '';
 				const email = emp.email?.toLowerCase() || '';
 				const role = emp.role?.toLowerCase() || '';
-				return (
-					displayName.includes(searchLower) ||
-					firstName.includes(searchLower) ||
-					lastName.includes(searchLower) ||
-					email.includes(searchLower) ||
-					role.includes(searchLower)
-				);
+
+				// Employee must match ANY search term (OR logic)
+				return searchTerms.some(searchLower => {
+					return (
+						displayName.includes(searchLower) ||
+						firstName.includes(searchLower) ||
+						lastName.includes(searchLower) ||
+						email.includes(searchLower) ||
+						role.includes(searchLower)
+					);
+				});
 			});
 			console.log('[Employee Directory] After search filter:', allEmployees.length, 'employees');
 		}
 
 		// Get total count AFTER all filtering
 		const totalEmployees = allEmployees.length;
+
+		// Create autocomplete suggestions from ALL employees (before filtering and pagination)
+		// This allows the search autocomplete to suggest any employee, not just those on current page
+		const allEmployeesForAutocomplete = employeesData?.data?.users || [];
+		const employeeAutocompleteOptions = allEmployeesForAutocomplete.map((emp: any) => ({
+			value: emp.displayName || emp.email,
+			label: emp.displayName || emp.email,
+			email: emp.email
+		}));
 
 		// Apply pagination to filtered results
 		const startIndex = (page - 1) * limit;
@@ -225,9 +247,11 @@ export const load: PageServerLoad = async (event) => {
 			totalActiveEmployees: totalActiveEmployees, // Total active count from ALL employees
 			totalInactiveEmployees: totalInactiveEmployees, // Total inactive count from ALL employees
 			departments: departmentsData?.data?.departments || [],
+			employeeAutocompleteOptions: employeeAutocompleteOptions, // All employee names for search autocomplete
 			filters: {
 				searchTerm,
 				departmentFilter,
+				roleFilter,
 				statusFilter,
 				page,
 				limit

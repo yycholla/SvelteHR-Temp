@@ -5,6 +5,7 @@
 	import { page } from '$app/stores';
 	import { get } from 'svelte/store';
 	import { isAuthenticated, currentUser, authActions, isLoading, hasRole } from '$lib/stores/auth';
+	import { toast } from 'svelte-sonner';
 	import AuthLayout from '$lib/components/auth/AuthLayout.svelte';
 	import LoginForm from '$lib/components/auth/LoginForm.svelte';
 
@@ -18,6 +19,19 @@
 
 	// Check if user is already authenticated on mount
 	onMount(async () => {
+		// Check for session timeout parameter
+		const isTimeout = $page.url.searchParams.get('timeout') === 'true';
+		if (isTimeout && browser) {
+			toast.info('Your session expired due to inactivity', {
+				description: 'Please log in again to continue',
+				duration: 5000
+			});
+			// Clear the timeout parameter from URL
+			const url = new URL(window.location.href);
+			url.searchParams.delete('timeout');
+			window.history.replaceState({}, '', url);
+		}
+
 		// Check if we've already redirected in this session
 		if (browser && sessionStorage.getItem(LOGIN_REDIRECT_KEY)) return;
 

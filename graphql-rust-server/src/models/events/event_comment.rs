@@ -18,7 +18,7 @@ pub struct Model {
     pub id: Uuid,
     pub event_id: Uuid,
     pub user_id: Uuid,
-    pub comment_text: String,
+    pub comment: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
@@ -48,7 +48,7 @@ pub struct EventComment {
     pub id: Uuid,
     pub event_id: Uuid,
     pub user_id: Uuid,
-    pub comment_text: String,
+    pub comment: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
@@ -62,14 +62,14 @@ pub struct CreateEventCommentInput {
     #[graphql(name = "userId")]
     pub user_id: Uuid,
     #[graphql(name = "commentText")]
-    pub comment_text: String,
+    pub comment: String,
 }
 
 /// Input for updating an event comment
 #[derive(Debug, Clone, InputObject)]
 pub struct UpdateEventCommentInput {
     #[graphql(name = "commentText")]
-    pub comment_text: Option<String>,
+    pub comment: Option<String>,
 }
 
 /// GraphQL Object implementation with camelCase field names
@@ -90,8 +90,8 @@ impl Model {
     }
 
     #[graphql(name = "commentText")]
-    async fn comment_text(&self) -> &str {
-        &self.comment_text
+    async fn comment(&self) -> &str {
+        &self.comment
     }
 
     #[graphql(name = "createdAt")]

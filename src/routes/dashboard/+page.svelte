@@ -8,6 +8,7 @@
 	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { Separator } from '$lib/components/ui/separator';
 	import {
 		Calendar,
@@ -28,9 +29,30 @@
 	import RecentAuditActivity from '$lib/components/activities/RecentAuditActivity.svelte';
 	import RollbackRequestsWidget from '$lib/components/activities/RollbackRequestsWidget.svelte';
 	import QuickAddTask from '$lib/components/tasks/QuickAddTask.svelte';
+	import TaskCard from '$lib/components/tasks/TaskCard.svelte';
 	import { invalidateAll } from '$app/navigation';
+	import { goto } from '$app/navigation';
 	import * as Chart from '$lib/components/ui/chart';
 	import { ArcChart } from 'layerchart';
+	// Event details dialog
+	import EventDetailsDialog from '$lib/components/events/EventDetailsDialog.svelte';
+	import { createUrqlClient } from '$lib/graphql/client';
+	import { browser } from '$app/environment';
+	import { toast } from 'svelte-sonner';
+	import type { EventComment, EventHistoryEntry, UserWaitlistStatus } from '$lib/graphql/events-operations';
+	import {
+		GET_EVENT_COMMENTS,
+		GET_EVENT_HISTORY,
+		GET_USER_WAITLIST_STATUS,
+		CREATE_EVENT_COMMENT,
+		UPDATE_EVENT_COMMENT,
+		DELETE_EVENT_COMMENT,
+		JOIN_EVENT_WAITLIST,
+		LEAVE_EVENT_WAITLIST
+	} from '$lib/graphql/events-operations';
+	import { sanitizeCommentContent } from '$lib/utils/sanitize';
+	import { CHANGE_TASK_STATUS, getTaskStatusColor, getTaskPriorityColor } from '$lib/graphql/tasks-operations';
+	import { formatDistance } from 'date-fns';
 
 	// Props from server-side load function
 	interface Props {
@@ -52,6 +74,98 @@
 
 	// Extract server-loaded data
 	const user = $derived(data.user);
+
+	// Create client-side urqlClient for fetching event details
+	let urqlClient: any = null;
+	if (browser) {
+		const token = document.cookie
+			.split('; ')
+			.find(row => row.startsWith('hr_token='))
+			?.split('=')[1];
+
+		if (token) {
+			localStorage.setItem('postgraphile-jwt-token', token);
+		}
+
+		urqlClient = createUrqlClient();
+	}
+
+	// Event details dialog state
+	let showDetailsDialog = $state(false);
+	let selectedEvent = $state<any>(null);
+	let selectedEventRsvpStats = $state<any>(null);
+
+	// Local tasks state for optimistic updates
+	let localTasks = $state<any[]>([]);
+	let totalCompletedTasks = $state(0);
+	let totalTasksCount = $state(0);
+
+	// Local events state for optimistic updates
+	let localEvents = $state<any[]>([]);
+
+	// Effect to initialize local state from dashboard data
+	$effect(() => {
+		data.dashboardDataPromise.then((resolvedData) => {
+			// Initialize tasks if empty
+			if (localTasks.length === 0) {
+				const tasks = resolvedData.dashboardData.tasks || [];
+				localTasks = [...tasks].sort((a, b) => {
+					const priorityA = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 4;
+					const priorityB = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 4;
+					const priorityDiff = priorityA - priorityB;
+					if (priorityDiff !== 0) return priorityDiff;
+
+					if (a.dueDate && b.dueDate) {
+						return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+					}
+					if (a.dueDate) return -1;
+					if (b.dueDate) return 1;
+
+					return a.title.localeCompare(b.title);
+				});
+				totalCompletedTasks = resolvedData.dashboardData.metrics?.completedTaskCount || 0;
+				totalTasksCount = resolvedData.dashboardData.metrics?.totalTaskCount || 0;
+			}
+
+			// Initialize events if empty
+			if (localEvents.length === 0) {
+				localEvents = resolvedData.dashboardData.events || [];
+			}
+		});
+	});
+
+	// Derived task completion data based on total metrics
+	let taskCompletion = $derived.by(() => {
+		const taskCompletionPercentage =
+			totalTasksCount === 0 ? 0 : Math.round((totalCompletedTasks / totalTasksCount) * 100);
+
+		const taskChartData = [
+			{
+				status: 'completed',
+				count: totalCompletedTasks,
+				color: 'var(--color-completed)'
+			},
+			{
+				status: 'incomplete',
+				count: totalTasksCount - totalCompletedTasks,
+				color: 'var(--color-incomplete)'
+			}
+		];
+
+		return { completedTaskCount: totalCompletedTasks, totalTaskCount: totalTasksCount, taskCompletionPercentage, taskChartData };
+	});
+
+	// Event comments, history, waitlist state
+	let eventComments = $state<EventComment[]>([]);
+	let commentCount = $state(0);
+	let commentOffset = $state(0);
+	let hasMoreComments = $state(false);
+
+	let eventHistory = $state<EventHistoryEntry[]>([]);
+	let historyOffset = $state(0);
+	let hasMoreHistory = $state(false);
+
+	let userWaitlistStatus = $state<UserWaitlistStatus>({ isOnWaitlist: false, position: null });
 
 	// Helper function to build employee metrics from dashboard data
 	function buildEmployeeMetrics(dashboardData: any): DashboardMetric[] {
@@ -188,6 +302,393 @@
 		'Good day'
 	];
 	const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
+
+	// Handle event click from dashboard widget
+	async function handleEventClick(eventId: string) {
+		if (!urqlClient) return;
+
+		try {
+			// Fetch full event details from GraphQL
+			const result = await urqlClient.query(`
+				query GetEventDetails($eventId: UUID!) {
+					event(id: $eventId) {
+						id
+						title
+						description
+						eventType
+						startTime
+						endTime
+						allDay
+						location
+						isPublic
+						status
+						color
+						organizerId
+						capacity
+						attendees {
+							id
+							employeeId
+							responseStatus
+						}
+					}
+				}
+			`, { eventId }).toPromise();
+
+			if (result.error || !result.data?.event) {
+				console.error('Error fetching event details:', result.error);
+				toast.error('Failed to load event details');
+				return;
+			}
+
+			const event = result.data.event;
+			selectedEvent = event;
+
+			// Calculate RSVP stats
+			const attendees = event.attendees || [];
+			selectedEventRsvpStats = {
+				total: attendees.length,
+				accepted: attendees.filter((a: any) => a.responseStatus === 'accepted').length,
+				declined: attendees.filter((a: any) => a.responseStatus === 'declined').length,
+				tentative: attendees.filter((a: any) => a.responseStatus === 'tentative').length,
+				pending: attendees.filter((a: any) => a.responseStatus === 'pending').length
+			};
+
+			// Fetch comments, history, and waitlist status
+			await Promise.all([
+				fetchEventComments(event.id, true),
+				fetchEventHistory(event.id, true),
+				fetchUserWaitlistStatus(event.id)
+			]);
+
+			showDetailsDialog = true;
+		} catch (err) {
+			console.error('Failed to fetch event:', err);
+			toast.error('Failed to load event details');
+		}
+	}
+
+	// Fetch event comments
+	async function fetchEventComments(eventId: string, reset: boolean = false) {
+		if (!urqlClient) return;
+
+		try {
+			const offset = reset ? 0 : commentOffset;
+			const result = await urqlClient.query(GET_EVENT_COMMENTS, { eventId, limit: 20, offset }).toPromise();
+
+			if (result.error || !result.data) {
+				console.error('Error fetching event comments:', result.error);
+				return;
+			}
+
+			const rawComments = result.data.eventComments || [];
+			const comments = rawComments.map((c: any) => ({
+				id: c.id,
+				content: c.commentText,
+				author: {
+					id: c.user?.id || c.userId,
+					name: c.user?.displayName || 'Unknown User',
+					avatarUrl: undefined
+				},
+				mentions: [],
+				createdAt: c.createdAt,
+				updatedAt: c.updatedAt
+			}));
+
+			if (reset) {
+				eventComments = comments;
+				commentOffset = comments.length;
+			} else {
+				eventComments = [...eventComments, ...comments];
+				commentOffset += comments.length;
+			}
+
+			commentCount = rawComments.length;
+			hasMoreComments = rawComments.length >= 20;
+		} catch (err) {
+			console.error('Failed to fetch event comments:', err);
+		}
+	}
+
+	// Fetch event history
+	async function fetchEventHistory(eventId: string, reset: boolean = false) {
+		if (!urqlClient) return;
+
+		try {
+			const offset = reset ? 0 : historyOffset;
+			const result = await urqlClient.query(GET_EVENT_HISTORY, { eventId, limit: 25, offset }).toPromise();
+
+			if (result.error || !result.data) {
+				console.error('Error fetching event history:', result.error);
+				return;
+			}
+
+			const rawHistory = result.data.eventHistories || [];
+			const history = rawHistory.map((h: any) => ({
+				id: h.id,
+				changedBy: {
+					id: h.changedBy?.id || h.changedById,
+					name: h.changedBy?.displayName || 'Unknown User'
+				},
+				changeType: h.changeType,
+				fieldName: h.fieldName,
+				oldValue: h.oldValues,
+				newValue: h.newValues,
+				changedAt: h.createdAt
+			}));
+
+			if (reset) {
+				eventHistory = history;
+				historyOffset = history.length;
+			} else {
+				eventHistory = [...eventHistory, ...history];
+				historyOffset += history.length;
+			}
+
+			hasMoreHistory = rawHistory.length >= 25;
+		} catch (err) {
+			console.error('Failed to fetch event history:', err);
+		}
+	}
+
+	// Fetch user waitlist status
+	async function fetchUserWaitlistStatus(eventId: string) {
+		if (!urqlClient) return;
+
+		try {
+			const result = await urqlClient.query(GET_USER_WAITLIST_STATUS, {
+				eventId,
+				userId: data.user.id
+			}).toPromise();
+
+			if (result.error || !result.data) {
+				console.error('Error fetching waitlist status:', result.error);
+				return;
+			}
+
+			const waitlists = result.data.eventWaitlists || [];
+			if (waitlists.length > 0) {
+				const waitlistEntry = waitlists[0];
+				userWaitlistStatus = {
+					isOnWaitlist: true,
+					position: waitlistEntry.position || null,
+					joinedAt: waitlistEntry.joinedAt
+				};
+			} else {
+				userWaitlistStatus = { isOnWaitlist: false, position: null };
+			}
+		} catch (err) {
+			console.error('Failed to fetch waitlist status:', err);
+		}
+	}
+
+	// Handle comment mutations
+	async function handleAddComment(content: string, mentions: string[]) {
+		if (!selectedEvent || !urqlClient) return;
+
+		const sanitized = sanitizeCommentContent(content);
+
+		try {
+			const result = await urqlClient.mutation(CREATE_EVENT_COMMENT, {
+				input: {
+					eventId: selectedEvent.id,
+					userId: data.user.id,
+					commentText: sanitized
+				}
+			}).toPromise();
+
+			if (result.error || !result.data) {
+				throw new Error(result.error?.message || 'Failed to create comment');
+			}
+
+			const newComment = result.data.createEventComment;
+			eventComments = [{
+				id: newComment.id,
+				content: newComment.commentText,
+				author: {
+					id: newComment.user?.id || data.user.id,
+					name: newComment.user?.displayName || data.user.display_name || 'Unknown User',
+					avatarUrl: undefined
+				},
+				mentions: [],
+				createdAt: newComment.createdAt,
+				updatedAt: newComment.updatedAt
+			}, ...eventComments];
+			commentCount += 1;
+		} catch (err: any) {
+			console.error('Failed to add comment:', err);
+			throw err;
+		}
+	}
+
+	async function handleUpdateComment(commentId: string, content: string) {
+		if (!selectedEvent || !urqlClient) return;
+
+		const sanitized = sanitizeCommentContent(content);
+
+		try {
+			const result = await urqlClient.mutation(UPDATE_EVENT_COMMENT, {
+				id: commentId,
+				input: { commentText: sanitized }
+			}).toPromise();
+
+			if (result.error || !result.data) {
+				throw new Error(result.error?.message || 'Failed to update comment');
+			}
+
+			const updatedComment = result.data.updateEventComment;
+			eventComments = eventComments.map(comment =>
+				comment.id === commentId
+					? { ...comment, content: updatedComment.commentText, updatedAt: updatedComment.updatedAt }
+					: comment
+			);
+		} catch (err: any) {
+			console.error('Failed to update comment:', err);
+			throw err;
+		}
+	}
+
+	async function handleDeleteComment(commentId: string) {
+		if (!selectedEvent || !urqlClient) return;
+
+		try {
+			const result = await urqlClient.mutation(DELETE_EVENT_COMMENT, { id: commentId }).toPromise();
+
+			if (result.error || !result.data) {
+				throw new Error(result.error?.message || 'Failed to delete comment');
+			}
+
+			eventComments = eventComments.filter(comment => comment.id !== commentId);
+			commentCount -= 1;
+		} catch (err: any) {
+			console.error('Failed to delete comment:', err);
+			throw err;
+		}
+	}
+
+	// Handle waitlist mutations
+	async function handleJoinWaitlist(eventId: string) {
+		if (!urqlClient) return;
+
+		try {
+			const result = await urqlClient.mutation(JOIN_EVENT_WAITLIST, {
+				eventId,
+				employeeId: data.user.id
+			}).toPromise();
+
+			if (result.error || !result.data) {
+				throw new Error(result.error?.message || 'Failed to join waitlist');
+			}
+
+			await fetchUserWaitlistStatus(eventId);
+			toast.success('Joined waitlist successfully');
+		} catch (err: any) {
+			console.error('Failed to join waitlist:', err);
+			throw err;
+		}
+	}
+
+	async function handleLeaveWaitlist(eventId: string) {
+		if (!urqlClient) return;
+
+		try {
+			const result = await urqlClient.mutation(LEAVE_EVENT_WAITLIST, {
+				eventId,
+				employeeId: data.user.id
+			}).toPromise();
+
+			if (result.error || !result.data) {
+				throw new Error(result.error?.message || 'Failed to leave waitlist');
+			}
+
+			await fetchUserWaitlistStatus(eventId);
+			toast.success('Left waitlist successfully');
+		} catch (err: any) {
+			console.error('Failed to leave waitlist:', err);
+			throw err;
+		}
+	}
+
+	// Handle pagination
+	async function handleLoadMoreComments() {
+		if (selectedEvent) {
+			await fetchEventComments(selectedEvent.id, false);
+		}
+	}
+
+	async function handleLoadMoreHistory() {
+		if (selectedEvent) {
+			await fetchEventHistory(selectedEvent.id, false);
+		}
+	}
+
+	// Handle task click - navigate to task details
+	function handleTaskClick(taskId: string) {
+		goto(`/dashboard/tasks/${taskId}`);
+	}
+
+	// Handle task status change with optimistic update
+	async function handleStatusChange(taskId: string, newStatus: string) {
+		if (!urqlClient) return;
+
+		// Optimistically update local state
+		const taskIndex = localTasks.findIndex(t => t.id === taskId);
+		if (taskIndex === -1) return;
+
+		const oldStatus = localTasks[taskIndex].status;
+
+		// Update task status
+		localTasks[taskIndex].status = newStatus;
+
+		// Update total metrics
+		const wasCompleted = oldStatus === 'DONE';
+		const isNowCompleted = newStatus === 'DONE';
+
+		if (!wasCompleted && isNowCompleted) {
+			totalCompletedTasks++;
+		} else if (wasCompleted && !isNowCompleted) {
+			totalCompletedTasks--;
+		}
+
+		try {
+			const result = await urqlClient.mutation(CHANGE_TASK_STATUS, {
+				input: {
+					taskId,
+					status: newStatus
+				}
+			}).toPromise();
+
+			if (result.error) {
+				throw result.error;
+			}
+
+			// Show success message
+			toast.success('Task status updated successfully');
+		} catch (error) {
+			console.error('Failed to change task status:', error);
+			// Revert optimistic updates on error
+			localTasks[taskIndex].status = oldStatus;
+			if (!wasCompleted && isNowCompleted) {
+				totalCompletedTasks--;
+			} else if (wasCompleted && !isNowCompleted) {
+				totalCompletedTasks++;
+			}
+			toast.error('Failed to update task status');
+		}
+	}
+
+	// Handler for optimistic RSVP updates
+	function handleRsvpUpdate(eventId: string, newRsvpStatus: string) {
+		const eventIndex = localEvents.findIndex(e => e.id === eventId);
+		if (eventIndex !== -1) {
+			// Update local event state optimistically
+			localEvents[eventIndex].rsvpStatus = newRsvpStatus;
+		}
+
+		// Also update selected event if it's currently open
+		if (selectedEvent && selectedEvent.id === eventId) {
+			selectedEvent = { ...selectedEvent, rsvpStatus: newRsvpStatus };
+		}
+	}
 </script>
 
 <svelte:head>
@@ -201,11 +702,17 @@
 		<h1 class="text-3xl font-bold tracking-tight">
 			{randomGreeting}, {user?.firstName || user?.displayName || user?.email || 'User'}!
 		</h1>
-		{#if data.weather}
-			<div class="flex items-center gap-2 text-sm text-muted-foreground">
-				<span class="whitespace-pre">{data.weather}</span>
-			</div>
-		{/if}
+		{#await data.weatherPromise}
+			<!-- Loading weather -->
+		{:then weather}
+			{#if weather}
+				<div class="flex items-center gap-2 text-sm text-muted-foreground">
+					<span class="whitespace-pre">{weather}</span>
+				</div>
+			{/if}
+		{:catch}
+			<!-- Weather fetch failed, silently ignore -->
+		{/await}
 	</div>
 
 	<!-- Personal Metrics Cards -->
@@ -371,37 +878,146 @@
 						{/each}
 					</div>
 				{:then resolvedData}
-					{@const myTasks = sortTasks(resolvedData.dashboardData)}
-					{#if myTasks.length > 0}
+					{#if localTasks.length > 0}
 						<div class="space-y-3">
-							{#each myTasks as task}
-								<a
-									href="/dashboard/tasks/{task.id}"
-									class="flex items-start space-x-3 rounded-lg p-2 transition-colors hover:bg-accent"
+							{#each localTasks as task}
+								<div 
+									class="task-card group relative rounded-lg border border-border bg-card p-4 shadow-sm transition-all hover:shadow-md cursor-pointer hover:border-primary"
+									onclick={() => handleTaskClick(task.id)}
+									role="button"
+									tabindex="0"
 								>
-									<div class="flex h-5 w-5 items-center justify-center">
-										{#if task.status === 'TODO'}
-											<div class="h-2 w-2 rounded-full bg-amber-500"></div>
-										{:else if task.status === 'IN_PROGRESS'}
-											<div class="h-2 w-2 rounded-full bg-blue-500"></div>
-										{:else}
-											<div class="h-2 w-2 rounded-full bg-gray-400"></div>
-										{/if}
+									<!-- Task Title and Status Dropdown Row -->
+									<div class="flex items-center gap-3">
+										<!-- Status Dropdown (from TaskCard) -->
+										<DropdownMenu.Root>
+											<DropdownMenu.Trigger
+												class="mt-0.5 flex-shrink-0 transition-transform hover:scale-110 focus:outline-none"
+												onclick={(e) => e.stopPropagation()}
+												aria-label="Change task status"
+											>
+												{#if task.status === 'DONE'}
+													<svg class="h-5 w-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+														<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+													</svg>
+												{:else if task.status === 'IN_PROGRESS'}
+													<svg class="h-5 w-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
+														<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd" />
+														<circle cx="10" cy="10" r="3" fill="currentColor" />
+													</svg>
+												{:else if task.status === 'REVIEW'}
+													<svg class="h-5 w-5 text-yellow-600 dark:text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+														<path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+														<path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
+													</svg>
+												{:else if task.status === 'BLOCKED'}
+													<svg class="h-5 w-5 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 20 20">
+														<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+													</svg>
+												{:else}
+													<svg class="h-5 w-5 text-muted-foreground hover:text-foreground" fill="none" stroke="currentColor" viewBox="0 0 20 20">
+														<circle cx="10" cy="10" r="8" stroke-width="2" />
+													</svg>
+												{/if}
+											</DropdownMenu.Trigger>
+											<DropdownMenu.Content align="start" class="w-48">
+												<DropdownMenu.Label>Change Status</DropdownMenu.Label>
+												<DropdownMenu.Separator />
+												<DropdownMenu.Item
+													onclick={(e) => {
+														e.stopPropagation();
+														handleStatusChange(task.id, 'TODO');
+													}}
+													disabled={task.status === 'TODO'}
+												>
+													<svg class="h-4 w-4 text-muted-foreground mr-2" fill="none" stroke="currentColor" viewBox="0 0 20 20">
+														<circle cx="10" cy="10" r="8" stroke-width="2" />
+													</svg>
+													To Do
+												</DropdownMenu.Item>
+												<DropdownMenu.Item
+													onclick={(e) => {
+														e.stopPropagation();
+														handleStatusChange(task.id, 'IN_PROGRESS');
+													}}
+													disabled={task.status === 'IN_PROGRESS'}
+												>
+													<svg class="h-4 w-4 text-primary mr-2" fill="currentColor" viewBox="0 0 20 20">
+														<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd" />
+														<circle cx="10" cy="10" r="3" fill="currentColor" />
+													</svg>
+													In Progress
+												</DropdownMenu.Item>
+												<DropdownMenu.Item
+													onclick={(e) => {
+														e.stopPropagation();
+														handleStatusChange(task.id, 'REVIEW');
+													}}
+													disabled={task.status === 'REVIEW'}
+												>
+													<svg class="h-4 w-4 text-yellow-600 dark:text-yellow-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+														<path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+														<path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
+													</svg>
+													Review
+												</DropdownMenu.Item>
+												<DropdownMenu.Item
+													onclick={(e) => {
+														e.stopPropagation();
+														handleStatusChange(task.id, 'BLOCKED');
+													}}
+													disabled={task.status === 'BLOCKED'}
+												>
+													<svg class="h-4 w-4 text-red-600 dark:text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+														<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+													</svg>
+													Blocked
+												</DropdownMenu.Item>
+												<DropdownMenu.Item
+													onclick={(e) => {
+														e.stopPropagation();
+														handleStatusChange(task.id, 'DONE');
+													}}
+													disabled={task.status === 'DONE'}
+												>
+													<svg class="h-4 w-4 text-green-600 dark:text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+														<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+													</svg>
+													Done
+												</DropdownMenu.Item>
+											</DropdownMenu.Content>
+										</DropdownMenu.Root>
+										
+										<!-- Task Title -->
+										<h3 class="text-base font-semibold text-foreground group-hover:text-primary flex-1">
+											{task.title}
+										</h3>
 									</div>
-									<div class="flex-1 space-y-1">
-										<p class="text-sm font-medium leading-none">{task.title}</p>
+									
+									<!-- Badges and Due Date inline -->
+									<div class="mt-2 flex flex-wrap items-center gap-2 text-xs ml-8">
+										<!-- Status Badge -->
+										<span class="inline-flex items-center rounded-full px-2 py-0.5 {getTaskStatusColor(task.status)}">
+											{task.status}
+										</span>
+										<!-- Priority Badge -->
+										<span class="inline-flex items-center rounded-full px-2 py-0.5 {getTaskPriorityColor(task.priority)}">
+											{task.priority}
+										</span>
+										<!-- Task Type Badge -->
+										{#if task.taskType}
+											<span class="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
+												{task.taskType.name}
+											</span>
+										{/if}
+										<!-- Due Date inline with badges -->
 										{#if task.dueDate}
-											<p class="text-xs text-muted-foreground">
-												Due {new Date(task.dueDate).toLocaleDateString()}
-											</p>
+											<span class="text-muted-foreground">
+												• Due {formatDistance(new Date(), new Date(task.dueDate))}
+											</span>
 										{/if}
 									</div>
-									{#if task.priority === 'HIGH' || task.priority === 'URGENT'}
-										<Badge variant="destructive" class="text-xs">
-											{task.priority === 'URGENT' ? 'Urgent' : 'High'}
-										</Badge>
-									{/if}
-								</a>
+								</div>
 							{/each}
 						</div>
 					{:else}
@@ -411,7 +1027,6 @@
 						<p class="text-xs text-muted-foreground">No pending tasks</p>
 					</div>
 					{/if}
-					{@const taskCompletion = getTaskCompletionData(resolvedData.dashboardData)}
 					{#if taskCompletion.totalTaskCount > 0}
 						<div class="mt-4 pt-4 border-t">
 							<div class="flex items-center justify-between w-full">
@@ -468,7 +1083,7 @@
 			<Card.Header>
 				<div class="flex items-center justify-between">
 					<Card.Title>Upcoming Events</Card.Title>
-					<Button variant="ghost" size="sm" href="/calendar">View Calendar</Button>
+					<Button variant="ghost" size="sm" href="/dashboard/events">View Events</Button>
 				</div>
 				<Card.Description>Your scheduled meetings and events</Card.Description>
 			</Card.Header>
@@ -487,33 +1102,72 @@
 						{/each}
 					</div>
 				{:then resolvedData}
-					{@const upcomingEvents = getUpcomingEvents(resolvedData.dashboardData)}
-					<div class="space-y-4">
-						{#each upcomingEvents as event, index}
-							<div class="flex items-center space-x-3">
-								<div
-									class="flex h-8 w-8 items-center justify-center rounded-full {event.type ===
-									'meeting'
-										? 'bg-blue-100'
-										: event.type === 'review'
-											? 'bg-orange-100'
-											: 'bg-green-100'}"
+					{#if localEvents.length === 0}
+						<div class="flex flex-col items-center justify-center py-8 text-center">
+							<Calendar class="h-12 w-12 text-muted-foreground mb-2" />
+							<p class="text-sm text-muted-foreground">No upcoming events in the next month</p>
+						</div>
+					{:else}
+						<div class="space-y-4">
+							{#each localEvents as event, index}
+								<button
+									type="button"
+									onclick={() => handleEventClick(event.id)}
+									class="flex w-full items-start space-x-3 rounded-lg p-2 text-left transition-colors hover:bg-accent"
 								>
-									{#if event.type === 'meeting'}
-										<User class="h-4 w-4 text-blue-600" />
-									{:else if event.type === 'review'}
-										<Target class="h-4 w-4 text-orange-600" />
-									{:else}
-										<Award class="h-4 w-4 text-green-600" />
-									{/if}
-								</div>
-								<div class="flex-1">
-									<p class="text-sm font-medium">{event.title}</p>
-									<p class="text-xs text-muted-foreground">{event.time}</p>
-								</div>
-							</div>
-						{/each}
-					</div>
+									<div
+										class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full {event.type ===
+										'meeting'
+											? 'bg-blue-100'
+											: event.type === 'review'
+												? 'bg-orange-100'
+												: event.type === 'training'
+													? 'bg-purple-100'
+													: 'bg-green-100'}"
+									>
+										{#if event.type === 'meeting'}
+											<User class="h-4 w-4 text-blue-600" />
+										{:else if event.type === 'review'}
+											<Target class="h-4 w-4 text-orange-600" />
+										{:else}
+											<Award class="h-4 w-4 text-green-600" />
+										{/if}
+									</div>
+									<div class="flex-1 min-w-0">
+										<p class="text-sm font-medium truncate">{event.title}</p>
+										<div class="flex items-center gap-2 mt-1 flex-wrap">
+											<p class="text-xs text-muted-foreground">{event.date}</p>
+											<span class="text-xs text-muted-foreground">•</span>
+											<p class="text-xs text-muted-foreground">{event.time}</p>
+											<span class="text-xs text-muted-foreground">•</span>
+											<Badge variant="outline" class="text-xs">
+												{event.type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+											</Badge>
+											{#if event.rsvpStatus && event.rsvpStatus !== 'no_response'}
+												<Badge
+													class="text-xs {event.rsvpStatus === 'accepted'
+														? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+														: event.rsvpStatus === 'declined'
+															? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+															: event.rsvpStatus === 'tentative'
+																? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+																: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'}"
+												>
+													{event.rsvpStatus === 'accepted'
+														? '✓ Going'
+														: event.rsvpStatus === 'declined'
+															? '✗ Not Going'
+															: event.rsvpStatus === 'tentative'
+																? '? Maybe'
+																: 'Pending'}
+												</Badge>
+											{/if}
+										</div>
+									</div>
+								</button>
+							{/each}
+						</div>
+					{/if}
 				{:catch}
 					<div class="p-4 text-center text-muted-foreground">
 						<p>Failed to load events</p>
@@ -522,65 +1176,6 @@
 			</Card.Content>
 		</Card.Root>
 	</div>
-
-	<!-- Quick Actions -->
-	<Card.Root>
-		<Card.Header>
-			<Card.Title>Quick Actions</Card.Title>
-			<Card.Description>Common personal tasks and self-service options</Card.Description>
-		</Card.Header>
-		<Card.Content>
-			<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-				<Button
-					variant="outline"
-					class="flex h-auto flex-col items-center gap-2 p-4"
-					href="/dashboard/profile/leave/new"
-				>
-					<Calendar class="h-5 w-5" />
-					<div class="text-center">
-						<div class="font-medium">Request Leave</div>
-						<div class="text-xs text-muted-foreground">Apply for time off</div>
-					</div>
-				</Button>
-
-				<Button
-					variant="outline"
-					class="flex h-auto flex-col items-center gap-2 p-4"
-					href="/dashboard/profile/attendance"
-				>
-					<Clock class="h-5 w-5" />
-					<div class="text-center">
-						<div class="font-medium">View Attendance</div>
-						<div class="text-xs text-muted-foreground">Check my hours</div>
-					</div>
-				</Button>
-
-				<Button
-					variant="outline"
-					class="flex h-auto flex-col items-center gap-2 p-4"
-					href="/dashboard/employees/directory"
-				>
-					<User class="h-5 w-5" />
-					<div class="text-center">
-						<div class="font-medium">Employee Directory</div>
-						<div class="text-xs text-muted-foreground">Find colleagues</div>
-					</div>
-				</Button>
-
-				<Button
-					variant="outline"
-					class="flex h-auto flex-col items-center gap-2 p-4"
-					href="/dashboard/profile"
-				>
-					<Settings class="h-5 w-5" />
-					<div class="text-center">
-						<div class="font-medium">My Profile</div>
-						<div class="text-xs text-muted-foreground">Update information</div>
-					</div>
-				</Button>
-			</div>
-		</Card.Content>
-	</Card.Root>
 
 	<!-- Admin-Only Audit Logging Widgets (Feature 020) -->
 	{#if data.isAdmin}
@@ -635,3 +1230,29 @@
 		{/await}
 	{/if}
 </div>
+
+<!-- Event Details Dialog -->
+{#if showDetailsDialog && selectedEvent}
+	<EventDetailsDialog
+		isOpen={showDetailsDialog}
+		mode="view"
+		event={selectedEvent}
+		userId={data.user.id}
+		userRole={data.user.role}
+		rsvpStats={selectedEventRsvpStats}
+		comments={eventComments}
+		history={eventHistory}
+		waitlistStatus={userWaitlistStatus}
+		onClose={() => (showDetailsDialog = false)}
+		onAddComment={handleAddComment}
+		onUpdateComment={handleUpdateComment}
+		onDeleteComment={handleDeleteComment}
+		onJoinWaitlist={handleJoinWaitlist}
+		onLeaveWaitlist={handleLeaveWaitlist}
+		onLoadMoreComments={handleLoadMoreComments}
+		onLoadMoreHistory={handleLoadMoreHistory}
+		onRsvpUpdate={handleRsvpUpdate}
+		hasMoreComments={hasMoreComments}
+		hasMoreHistory={hasMoreHistory}
+	/>
+{/if}
