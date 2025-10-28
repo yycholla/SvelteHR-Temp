@@ -18,6 +18,11 @@ export interface User {
 	id: string;
 	email: string;
 	displayName: string;
+	firstName?: string;
+	lastName?: string;
+	first_name?: string; // Support snake_case from backend API
+	last_name?: string; // Support snake_case from backend API
+	display_name?: string; // Support snake_case from backend API
 	onboardingStatus: string;
 	isActive: boolean;
 	role?: string; // User's role from backend session

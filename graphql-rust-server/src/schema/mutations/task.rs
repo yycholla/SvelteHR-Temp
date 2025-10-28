@@ -31,6 +31,21 @@ impl TaskMutations {
             .map(|uc| uc.user_id)
             .ok_or_else(|| AppError::Authentication("Authentication required to create tasks".to_string()))?;
 
+        // Validate exclusive assignment: either assignee_id OR department_id, but not both
+        match (input.assignee_id, input.department_id) {
+            (None, None) => {
+                return Err(AppError::Validation(
+                    "Task must be assigned to either a user or a department".to_string()
+                ).into());
+            }
+            (Some(_), Some(_)) => {
+                return Err(AppError::Validation(
+                    "Task cannot be assigned to both a user and a department".to_string()
+                ).into());
+            }
+            _ => {} // Valid: exactly one is set
+        }
+
         // Start transaction for atomic operation
         let txn = db.begin().await?;
 
@@ -94,6 +109,26 @@ impl TaskMutations {
             .await?
             .ok_or_else(|| AppError::NotFound("Task not found".to_string()))?;
 
+        // Validate exclusive assignment if either field is being updated
+        if input.assignee_id.is_some() || input.department_id.is_some() {
+            let new_assignee = input.assignee_id.or(existing_task.assignee_id);
+            let new_department = input.department_id.or(existing_task.department_id);
+
+            match (new_assignee, new_department) {
+                (None, None) => {
+                    return Err(AppError::Validation(
+                        "Task must be assigned to either a user or a department".to_string()
+                    ).into());
+                }
+                (Some(_), Some(_)) => {
+                    return Err(AppError::Validation(
+                        "Task cannot be assigned to both a user and a department".to_string()
+                    ).into());
+                }
+                _ => {} // Valid: exactly one is set
+            }
+        }
+
         // Build active model with updates
         let mut task: crate::models::task::ActiveModel = existing_task.into();
 
@@ -135,6 +170,8 @@ impl TaskMutations {
 
         if let Some(department_id) = input.department_id {
             task.department_id = Set(Some(department_id));
+            // Clear assignee_id when setting department_id (exclusive assignment)
+            task.assignee_id = Set(None);
         }
 
         if let Some(task_type_id) = input.task_type_id {
@@ -143,6 +180,8 @@ impl TaskMutations {
 
         if let Some(assignee_id) = input.assignee_id {
             task.assignee_id = Set(Some(assignee_id));
+            // Clear department_id when setting assignee_id (exclusive assignment)
+            task.department_id = Set(None);
         }
 
         if let Some(parent_task_id) = input.parent_task_id {

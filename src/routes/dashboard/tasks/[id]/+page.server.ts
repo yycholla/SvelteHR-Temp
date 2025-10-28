@@ -84,6 +84,11 @@ export const load: PageServerLoad = async (event) => {
 							email
 							role
 						}
+						department {
+							id
+							name
+							description
+						}
 						creator {
 							id
 							displayName
@@ -115,6 +120,10 @@ export const load: PageServerLoad = async (event) => {
 							assignee {
 								id
 								displayName
+							}
+							department {
+								id
+								name
 							}
 							createdAt
 							updatedAt

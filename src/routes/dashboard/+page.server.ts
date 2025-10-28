@@ -237,7 +237,6 @@ export const load: PageServerLoad = async (event) => {
 		`;
 
 		console.log('🔍 Dashboard: Starting database GraphQL queries for user:', locals.user.id);
-		const startQueryTime = Date.now();
 
 		// Determine user role for conditional queries
 		const userRole = locals.user.role || 'employee';
@@ -245,225 +244,291 @@ export const load: PageServerLoad = async (event) => {
 			locals.roles?.includes('super_admin') || locals.roles?.includes('admin') || false;
 		const isSuperAdmin = locals.roles?.includes('super_admin') || false;
 
-		// Base queries for all users
-		const baseQueries = [
+		// **STREAMING PATTERN**: Await critical data immediately, stream slow data as promises
+		// Critical: users, departments (needed for UI structure)
+		// Streamable: tasks, events, activities (can load progressively)
+		const startQueryTime = Date.now();
+
+		const [usersResult, departmentsResult] = await Promise.allSettled([
 			graphqlClient.query(usersQuery),
-			graphqlClient.query(departmentsQuery),
+			graphqlClient.query(departmentsQuery)
+		]);
+
+		const criticalDuration = Date.now() - startQueryTime;
+		console.log(`✅ Dashboard: Critical queries completed in ${criticalDuration}ms`);
+
+		// Extract critical data immediately (needed for page structure)
+		const users =
+			(usersResult.status === 'fulfilled' && usersResult.value.data?.users) || [];
+		const departments =
+			(departmentsResult.status === 'fulfilled' && departmentsResult.value.data?.departments) ||
+			[];
+
+		// Stream slow queries as promises (won't block page render)
+		const dashboardDataPromise = Promise.allSettled([
 			graphqlClient.query(attendanceQuery, { userId: locals.user.id }),
 			graphqlClient.query(leaveRequestsQuery),
 			graphqlClient.query(goalsQuery, { userId: locals.user.id }),
 			graphqlClient.query(tasksQuery, { filter: { assigneeId: locals.user.id } }),
 			graphqlClient.query(eventsQuery),
-			graphqlClient.query(activityLogsQuery, { userId: locals.user.id })
-		];
+			graphqlClient.query(activityLogsQuery, { userId: locals.user.id }),
+			...(isAdmin ? [graphqlClient.query(systemAuditLogsQuery)] : []),
+			...(isSuperAdmin
+				? [graphqlClient.query(rollbackRequestsQuery), graphqlClient.query(rollbackStatsQuery)]
+				: [])
+		]).then((results) => {
+			const queryDuration = Date.now() - startQueryTime;
+			console.log(`✅ Dashboard: All queries completed in ${queryDuration}ms`);
 
-		// Add admin-only queries
-		if (isAdmin) {
-			baseQueries.push(graphqlClient.query(systemAuditLogsQuery));
-		}
+			// Extract results with proper indexing
+			const [
+				attendanceResult,
+				leaveResult,
+				goalsResult,
+				tasksResult,
+				eventsResult,
+				activityLogsResult
+			] = results;
 
-		// Add super_admin-only queries
-		if (isSuperAdmin) {
-			baseQueries.push(
-				graphqlClient.query(rollbackRequestsQuery),
-				graphqlClient.query(rollbackStatsQuery)
-			);
-		}
-
-		const results = await Promise.allSettled(baseQueries);
-		const queryDuration = Date.now() - startQueryTime;
-		console.log(`✅ Dashboard: GraphQL queries completed in ${queryDuration}ms`);
-
-		// Extract results with proper indexing
-		const [
-			usersResult,
-			departmentsResult,
-			attendanceResult,
-			leaveResult,
-			goalsResult,
-			tasksResult,
-			eventsResult,
-			activityLogsResult
-		] = results;
-
-		// Handle potential GraphQL errors
-		if (usersResult.status === 'rejected' || departmentsResult.status === 'rejected') {
-			console.error('❌ Dashboard GraphQL query failed:', {
-				users: usersResult.status === 'rejected' ? usersResult.reason : 'success',
-				departments: departmentsResult.status === 'rejected' ? departmentsResult.reason : 'success'
-			});
-		} else {
-			console.log('✅ Dashboard: Both GraphQL queries succeeded');
-		}
-
-		// Extract data with fallbacks
-		const users =
-			(usersResult.status === 'fulfilled' && usersResult.value.data?.users) || [];
-		const departments =
-			(departmentsResult.status === 'fulfilled' && departmentsResult.value.data?.departments) || [];
-		const allAttendanceRecords =
-			(attendanceResult.status === 'fulfilled' &&
-				attendanceResult.value.data?.attendanceRecords) ||
-			[];
-		const leaveRequests =
-			(leaveResult.status === 'fulfilled' && leaveResult.value.data?.leaveRequests) || [];
-		const goals =
-			(goalsResult.status === 'fulfilled' && goalsResult.value.data?.employeeGoals) || [];
-		const tasks =
-			(tasksResult.status === 'fulfilled' && tasksResult.value.data?.tasks) || [];
-		const events =
-			(eventsResult.status === 'fulfilled' && eventsResult.value.data?.events) || [];
-		const activityLogs =
-			(activityLogsResult.status === 'fulfilled' &&
-				activityLogsResult.value.data?.activityLogs) ||
-			[];
-
-		// Extract admin-only data
-		let systemAuditLogs: any[] = [];
-		if (isAdmin && results[8]) {
-			const systemAuditResult = results[8];
-			systemAuditLogs =
-				(systemAuditResult.status === 'fulfilled' && systemAuditResult.value.data?.activityLogs) ||
+			// Extract data with fallbacks
+			const allAttendanceRecords =
+				(attendanceResult.status === 'fulfilled' &&
+					attendanceResult.value.data?.attendanceRecords) ||
 				[];
-		}
+			const leaveRequests =
+				(leaveResult.status === 'fulfilled' && leaveResult.value.data?.leaveRequests) || [];
+			const goals =
+				(goalsResult.status === 'fulfilled' && goalsResult.value.data?.employeeGoals) || [];
+			const tasks =
+				(tasksResult.status === 'fulfilled' && tasksResult.value.data?.tasks) || [];
+			const events =
+				(eventsResult.status === 'fulfilled' && eventsResult.value.data?.events) || [];
+			const activityLogs =
+				(activityLogsResult.status === 'fulfilled' &&
+					activityLogsResult.value.data?.activityLogs) ||
+				[];
 
-		// Declare super_admin-only variables before use
-		let rollbackRequests: any[] = [];
-		let rollbackStats: any = null;
-
-		if (isSuperAdmin) {
-			if (results[9]) {
-				const rollbackRequestsResult = results[9];
-				rollbackRequests =
-					(rollbackRequestsResult.status === 'fulfilled' &&
-						rollbackRequestsResult.value.data?.rollbackRequests) ||
+			// Extract admin-only data
+			let systemAuditLogs: any[] = [];
+			if (isAdmin && results[6]) {
+				const systemAuditResult = results[6];
+				systemAuditLogs =
+					(systemAuditResult.status === 'fulfilled' &&
+						systemAuditResult.value.data?.activityLogs) ||
 					[];
 			}
-			if (results[10]) {
-				const rollbackStatsResult = results[10];
-				if (rollbackStatsResult.status === 'fulfilled') {
-					const totalCount = rollbackStatsResult.value.data?.rollbackRequestsCount || 0;
-					rollbackStats = {
-						pendingCount: totalCount, // Simplified - all requests shown as pending
-						approvedCount: 0,
-						rejectedCount: 0
-					};
+
+			// Declare super_admin-only variables before use
+			let rollbackRequests: any[] = [];
+			let rollbackStats: any = null;
+
+			if (isSuperAdmin) {
+				if (results[7]) {
+					const rollbackRequestsResult = results[7];
+					rollbackRequests =
+						(rollbackRequestsResult.status === 'fulfilled' &&
+							rollbackRequestsResult.value.data?.rollbackRequests) ||
+						[];
+				}
+				if (results[8]) {
+					const rollbackStatsResult = results[8];
+					if (rollbackStatsResult.status === 'fulfilled') {
+						const totalCount = rollbackStatsResult.value.data?.rollbackRequestsCount || 0;
+						rollbackStats = {
+							pendingCount: totalCount, // Simplified - all requests shown as pending
+							approvedCount: 0,
+							rejectedCount: 0
+						};
+					}
 				}
 			}
-		}
 
-		// Filter attendance records to last 30 days (client-side filtering)
-		const attendanceRecords = allAttendanceRecords.filter((record) => {
-			const recordDate = new Date(record.date);
-			return recordDate >= thirtyDaysAgo;
+			// Filter attendance records to last 30 days (client-side filtering)
+			const attendanceRecords = allAttendanceRecords.filter((record) => {
+				const recordDate = new Date(record.date);
+				return recordDate >= thirtyDaysAgo;
+			});
+
+			console.log('📊 Dashboard: Extracted data:', {
+				users: users.length,
+				departments: departments.length,
+				attendance: attendanceRecords.length,
+				leaves: leaveRequests.length,
+				goals: goals.length,
+				tasks: tasks.length,
+				events: events.length,
+				activityLogs: activityLogs.length
+			});
+
+			// User role already determined above, no need to redeclare
+			const isManager = locals.roles?.includes('manager') || false;
+			const isHR = locals.roles?.includes('hr_manager') || false;
+
+			// Calculate real metrics from database
+			const startDataGeneration = Date.now();
+
+			// Calculate attendance rate from real data
+			const totalAttendanceDays = attendanceRecords.length;
+			const presentDays = attendanceRecords.filter((r) => r.status === 'present').length;
+			const attendanceRate =
+				totalAttendanceDays > 0 ? Math.round((presentDays / totalAttendanceDays) * 100) : 0;
+
+			// Count pending leave requests
+			const pendingLeaveRequests = leaveRequests.filter((r) => r.status === 'pending').length;
+
+			// Count pending/in-progress goals as tasks
+			const pendingTasks = goals.filter(
+				(g) => g.status === 'in_progress' || g.status === 'pending'
+			).length;
+
+			// Calculate remaining vacation days (sum approved + pending leave days)
+			const usedVacationDays = leaveRequests
+				.filter(
+					(r) =>
+						r.leaveType?.name === 'vacation' && (r.status === 'approved' || r.status === 'pending')
+				)
+				.reduce((sum, r) => sum + (r.daysRequested || 0), 0);
+			const totalVacationDays = 20; // TODO: Get from user's time_off_balances table
+			const remainingVacationDays = Math.max(0, totalVacationDays - usedVacationDays);
+
+			// Generate role-specific dashboard data
+			const dashboardMetrics = generateDashboardMetrics(userRole, users, departments, {
+				attendanceRate,
+				pendingRequests: pendingLeaveRequests,
+				taskCount: tasks.filter((t) => t.status === 'TODO' || t.status === 'IN_PROGRESS').length,
+				remainingVacationDays
+			});
+			const recentActivities = generateRecentActivitiesFromLogs(
+				activityLogs,
+				leaveRequests,
+				attendanceRecords,
+				goals,
+				tasks,
+				events,
+				10
+			);
+			const upcomingEvents = generateUpcomingEventsFromDatabase(events, 5);
+			const quickActions = generateQuickActions(userRole, users);
+			const dataGenDuration = Date.now() - startDataGeneration;
+			console.log(`📊 Dashboard: Data generation completed in ${dataGenDuration}ms`);
+
+			// Role-specific content
+			let roleSpecificData = {};
+
+			if (isAdmin) {
+				roleSpecificData = {
+					systemHealth: {
+						database: { status: 'healthy', responseTime: '45ms', connections: 23 },
+						application: {
+							uptime: '99.9%',
+							memoryUsage: '68%',
+							activeUsers: users.filter((u) => u.isActive).length
+						},
+						backup: {
+							lastBackup: '2 hours ago',
+							status: 'completed',
+							nextScheduled: 'in 22 hours'
+						}
+					},
+					pendingApprovals: {
+						leaveRequests: Math.floor(users.length * 0.08),
+						performanceReviews: Math.floor(users.length * 0.12),
+						total: Math.floor(users.length * 0.2)
+					}
+				};
+			} else if (isManager) {
+				const teamMembers = users.filter((u) =>
+					departments.find((d) => d.managerId === locals.user.id && d.id === u.departmentId)
+				);
+
+				roleSpecificData = {
+					teamMetrics: {
+						teamSize: teamMembers.length,
+						productivity: Math.floor(85 + Math.random() * 15), // 85-100%
+						satisfaction: Math.floor(80 + Math.random() * 20), // 80-100%
+						performance: Math.floor(88 + Math.random() * 12) // 88-100%
+					},
+					teamMembers: teamMembers.slice(0, 10).map((member) => ({
+						id: member.id,
+						name: `${member.firstName} ${member.lastName}`,
+						email: member.email,
+						status: member.isActive ? 'active' : 'inactive',
+						department: departments.find((d) => d.id === member.departmentId)?.name || 'Unknown'
+					}))
+				};
+			}
+
+			console.log('🎉 Dashboard: Successfully processed streaming data');
+
+			// Return all processed dashboard data
+			return {
+				dashboardData: {
+					metrics: {
+						attendanceRate, // Real attendance rate from database
+						pendingRequests: pendingLeaveRequests, // Real pending leave requests
+						taskCount: tasks.filter((t) => t.status === 'TODO' || t.status === 'IN_PROGRESS')
+							.length, // Real pending tasks
+						completedTaskCount: tasks.filter((t) => t.status === 'DONE').length, // Completed tasks
+						totalTaskCount: tasks.length, // Total tasks (for completion percentage)
+						remainingVacationDays // Real calculated vacation days
+					},
+					activities: recentActivities.slice(0, 5).map((activity) => ({
+						message: activity.title,
+						timestamp: activity.timestamp,
+						type: activity.type === 'leave_request' ? 'warning' : 'success'
+					})),
+					tasks: tasks
+						.filter((t) => t.status === 'TODO' || t.status === 'IN_PROGRESS')
+						.slice(0, 5), // Return full task objects
+					events: upcomingEvents.slice(0, 4).map((event) => ({
+						title: event.title,
+						time: event.time,
+						type: event.type
+					}))
+				},
+				dashboardMetrics,
+				recentActivities,
+				upcomingEvents,
+				quickActions,
+				...roleSpecificData,
+				// Feature 020: Audit logging widgets (admin/super_admin only)
+				systemAuditLogs: isAdmin
+					? systemAuditLogs.map((log) => ({
+							id: log.id,
+							employeeName: log.userByEmployeeId
+								? `${log.userByEmployeeId.firstName} ${log.userByEmployeeId.lastName}`
+								: 'System',
+							action: log.action,
+							resourceType: log.resourceType,
+							resourceId: log.resourceId,
+							isRollback: log.isRollback || false,
+							createdAt: log.createdAt
+						}))
+					: [],
+				rollbackRequests: isSuperAdmin
+					? rollbackRequests.map((req) => ({
+							id: req.id,
+							requesterName: req.requester
+								? `${req.requester.firstName} ${req.requester.lastName}`
+								: 'Unknown',
+							reason: req.reason || '',
+							resourceType: req.entityType || 'unknown',
+							status: req.status,
+							createdAt: req.createdAt
+						}))
+					: [],
+				rollbackStats: isSuperAdmin ? rollbackStats : null
+			};
 		});
 
-		console.log('📊 Dashboard: Extracted data:', {
-			users: users.length,
-			departments: departments.length,
-			attendance: attendanceRecords.length,
-			leaves: leaveRequests.length,
-			goals: goals.length,
-			tasks: tasks.length,
-			events: events.length,
-			activityLogs: activityLogs.length
-		});
+		console.log('🎉 Dashboard: Returning immediate data + streaming promise');
 
-		// User role already determined above, no need to redeclare
+		// User role already determined above
 		const isManager = locals.roles?.includes('manager') || false;
 		const isHR = locals.roles?.includes('hr_manager') || false;
 
-		// Calculate real metrics from database
-		const startDataGeneration = Date.now();
-
-		// Calculate attendance rate from real data
-		const totalAttendanceDays = attendanceRecords.length;
-		const presentDays = attendanceRecords.filter((r) => r.status === 'present').length;
-		const attendanceRate =
-			totalAttendanceDays > 0 ? Math.round((presentDays / totalAttendanceDays) * 100) : 0;
-
-		// Count pending leave requests
-		const pendingLeaveRequests = leaveRequests.filter((r) => r.status === 'pending').length;
-
-		// Count pending/in-progress goals as tasks
-		const pendingTasks = goals.filter(
-			(g) => g.status === 'in_progress' || g.status === 'pending'
-		).length;
-
-		// Calculate remaining vacation days (sum approved + pending leave days)
-		const usedVacationDays = leaveRequests
-			.filter(
-				(r) => r.leaveType?.name === 'vacation' && (r.status === 'approved' || r.status === 'pending')
-			)
-			.reduce((sum, r) => sum + (r.daysRequested || 0), 0);
-		const totalVacationDays = 20; // TODO: Get from user's time_off_balances table
-		const remainingVacationDays = Math.max(0, totalVacationDays - usedVacationDays);
-
-		// Generate role-specific dashboard data
-		const dashboardMetrics = generateDashboardMetrics(userRole, users, departments, {
-			attendanceRate,
-			pendingRequests: pendingLeaveRequests,
-			taskCount: tasks.filter((t) => t.status === 'pending' || t.status === 'in_progress').length,
-			remainingVacationDays
-		});
-		const recentActivities = generateRecentActivitiesFromLogs(
-			activityLogs,
-			leaveRequests,
-			attendanceRecords,
-			goals,
-			tasks,
-			events,
-			10
-		);
-		const upcomingEvents = generateUpcomingEventsFromDatabase(events, 5);
-		const quickActions = generateQuickActions(userRole, users);
-		const dataGenDuration = Date.now() - startDataGeneration;
-		console.log(`📊 Dashboard: Data generation completed in ${dataGenDuration}ms`);
-
-		// Role-specific content
-		let roleSpecificData = {};
-
-		if (isAdmin) {
-			roleSpecificData = {
-				systemHealth: {
-					database: { status: 'healthy', responseTime: '45ms', connections: 23 },
-					application: {
-						uptime: '99.9%',
-						memoryUsage: '68%',
-						activeUsers: users.filter((u) => u.isActive).length
-					},
-					backup: { lastBackup: '2 hours ago', status: 'completed', nextScheduled: 'in 22 hours' }
-				},
-				pendingApprovals: {
-					leaveRequests: Math.floor(users.length * 0.08),
-					performanceReviews: Math.floor(users.length * 0.12),
-					total: Math.floor(users.length * 0.2)
-				}
-			};
-		} else if (isManager) {
-			const teamMembers = users.filter((u) =>
-				departments.find((d) => d.managerId === locals.user.id && d.id === u.departmentId)
-			);
-
-			roleSpecificData = {
-				teamMetrics: {
-					teamSize: teamMembers.length,
-					productivity: Math.floor(85 + Math.random() * 15), // 85-100%
-					satisfaction: Math.floor(80 + Math.random() * 20), // 80-100%
-					performance: Math.floor(88 + Math.random() * 12) // 88-100%
-				},
-				teamMembers: teamMembers.slice(0, 10).map((member) => ({
-					id: member.id,
-					name: `${member.firstName} ${member.lastName}`,
-					email: member.email,
-					status: member.isActive ? 'active' : 'inactive',
-					department: departments.find((d) => d.id === member.departmentId)?.name || 'Unknown'
-				}))
-			};
-		}
-
-		console.log('🎉 Dashboard: Successfully returning data');
-
+		// Return immediate data + streaming promise
+		// SvelteKit will automatically stream the promise to the browser
 		return {
 			user: {
 				id: locals.user.id,
@@ -482,61 +547,6 @@ export const load: PageServerLoad = async (event) => {
 				role: userRole,
 				accessToken: '' // Session-based auth doesn't use access tokens
 			},
-			dashboardData: {
-				metrics: {
-					attendanceRate, // Real attendance rate from database
-					pendingRequests: pendingLeaveRequests, // Real pending leave requests
-					taskCount: tasks.filter((t) => t.status === 'pending' || t.status === 'in_progress')
-						.length, // Real pending tasks
-					remainingVacationDays // Real calculated vacation days
-				},
-				activities: recentActivities.slice(0, 5).map((activity) => ({
-					message: activity.title,
-					timestamp: activity.timestamp,
-					type: activity.type === 'leave_request' ? 'warning' : 'success'
-				})),
-				tasks: tasks
-					.filter((t) => t.status === 'pending' || t.status === 'in_progress')
-					.slice(0, 5)
-					.map((task) => task.title), // Real tasks from database
-				events: upcomingEvents.slice(0, 4).map((event) => ({
-					title: event.title,
-					time: event.time,
-					type: event.type
-				}))
-			},
-			dashboardMetrics,
-			recentActivities,
-			upcomingEvents,
-			quickActions,
-			...roleSpecificData,
-			// Feature 020: Audit logging widgets (admin/super_admin only)
-			systemAuditLogs: isAdmin
-				? systemAuditLogs.map((log) => ({
-						id: log.id,
-						employeeName: log.userByEmployeeId
-							? `${log.userByEmployeeId.firstName} ${log.userByEmployeeId.lastName}`
-							: 'System',
-						action: log.action,
-						resourceType: log.resourceType,
-						resourceId: log.resourceId,
-						isRollback: log.isRollback || false,
-						createdAt: log.createdAt
-					}))
-				: [],
-			rollbackRequests: isSuperAdmin
-				? rollbackRequests.map((req) => ({
-						id: req.id,
-						requesterName: req.requester
-							? `${req.requester.firstName} ${req.requester.lastName}`
-							: 'Unknown',
-						reason: req.reason || '',
-						resourceType: req.entityType || 'unknown',
-						status: req.status,
-						createdAt: req.createdAt
-					}))
-				: [],
-			rollbackStats: isSuperAdmin ? rollbackStats : null,
 			preferences: {
 				selectedPeriod,
 				viewMode,
@@ -549,7 +559,10 @@ export const load: PageServerLoad = async (event) => {
 			canApproveLeave: isAdmin || isHR || isManager,
 			isAdmin,
 			isSuperAdmin,
-			loadedAt: new Date().toISOString()
+			loadedAt: new Date().toISOString(),
+			// STREAMING DATA: This promise will be streamed to the browser and resolved progressively
+			// The dashboard component can use {#await} blocks to show loading states for individual widgets
+			dashboardDataPromise
 		};
 	} catch (err) {
 		console.error('Error loading dashboard:', err);

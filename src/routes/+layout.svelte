@@ -1,8 +1,6 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import { isAuthenticated, authActions } from '$lib/stores/auth';
-	import AuthGuard from '$lib/components/auth/AuthGuard.svelte';
+	import { authActions } from '$lib/stores/auth';
 	import ToastContainer from '$lib/components/ui/toast-container.svelte';
 	import { setContextClient } from '@urql/svelte';
 	import { createUrqlClient } from '$lib/graphql/client';
@@ -13,35 +11,32 @@
 	// Initialize PostGraphile GraphQL client for the entire app
 	setContextClient(createUrqlClient());
 
-	let { children } = $props();
+	let { children, data } = $props();
+
+	// Sync server-validated user to client store immediately
+	// This runs BEFORE any rendering happens
+	if (data?.user?.id) {
+		authActions.setUser({
+			id: data.user.id,
+			email: data.user.email,
+			displayName: data.user.displayName || data.user.display_name || data.user.email?.split('@')[0] || 'User',
+			onboardingStatus: 'Active',
+			isActive: true
+		});
+	}
 
 	// Simplify layout logic to prevent reactive re-mounting issues
-	const isAuthPage = $derived($page.url.pathname === '/login');
-	const shouldShowLayout = $derived(!isAuthPage);
-
-	// Debug layout changes
-	$effect(() => {
-		console.log(`🔵 Root layout reactive update:`, {
-			pathname: $page.url.pathname,
-			isAuthPage,
-			shouldShowLayout,
-			isAuthenticated: $isAuthenticated
-		});
-	});
+	const isAuthPage = $derived($page.url.pathname === '/login' || $page.url.pathname === '/login-simple' || $page.url.pathname === '/login-working');
+	const isPublicPage = $derived(isAuthPage || $page.url.pathname === '/' || $page.url.pathname === '/privacy' || $page.url.pathname === '/terms');
 
 	// Apply theme to document
 	$effect(() => {
 		if (typeof document !== 'undefined') {
 			const root = document.documentElement;
 			root.classList.remove('light', 'dark');
-
-			// Theme store handles the resolution, just apply the resolved theme
 			root.classList.add($themeStore.resolved);
 		}
 	});
-
-	// Removed token refresh interval since PostGraphile uses long-lived JWTs
-	// The AuthGuard component handles initial session validation
 </script>
 
 <svelte:head>
@@ -51,16 +46,13 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-<!-- Wrap entire app with AuthGuard for auth initialization -->
-<AuthGuard>
-	<!-- Always render children - let individual routes handle their own layout -->
-	<main class="app-main">
-		{@render children?.()}
-	</main>
+<!-- Render app - server has already validated auth via hooks.server.ts -->
+<main class="app-main">
+	{@render children?.()}
+</main>
 
-	<!-- Global toast notifications -->
-	<ToastContainer />
-</AuthGuard>
+<!-- Global toast notifications -->
+<ToastContainer />
 
 <style global>
 	:global(.app-main) {

@@ -4,7 +4,6 @@
 	import { isAuthenticated } from '$lib/stores/auth';
 	import { notificationStore } from '$lib/stores/notifications';
 	import { goto } from '$app/navigation';
-	import { navigating } from '$app/stores';
 	import { onMount, onDestroy } from 'svelte';
 	import type { LayoutData } from './$types';
 
@@ -29,9 +28,6 @@
 	onDestroy(() => {
 		notificationStore.disconnect();
 	});
-
-	// Show loading state during navigation
-	const isNavigating = $derived(Boolean($navigating));
 </script>
 
 {#if $isAuthenticated}
@@ -49,17 +45,10 @@
 					class="min-h-[calc(100vh-3rem)] rounded-xl bg-background shadow-sm"
 					aria-live="polite"
 				>
-					{#if isNavigating}
-						<!-- Navigation loading state -->
-						<div class="flex h-full items-center justify-center">
-							<PageLoading title="Loading page" description="Please wait..." variant="minimal" />
-						</div>
-					{:else}
-						<!-- Page content with padding -->
-						<div class="p-6">
-							{@render children()}
-						</div>
-					{/if}
+					<!-- Page content with padding -->
+					<div class="p-6">
+						{@render children()}
+					</div>
 				</main>
 			</div>
 		</div>

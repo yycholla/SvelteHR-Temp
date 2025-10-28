@@ -5,7 +5,7 @@
 	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
-	import * as Select from '$lib/components/ui/select';
+	import NativeSelect from '$lib/components/ui/native-select/native-select.svelte';
 	import * as Table from '$lib/components/ui/table';
 	import { Search, ArrowUpDown } from '@lucide/svelte';
 	import type { Document } from '$lib/types/document';
@@ -176,41 +176,25 @@
 			/>
 		</div>
 
-		<Select.Root
-			type="single"
-			bind:value={() => selectedCategory, (v) => {
-				selectedCategory = v ?? 'all';
-				applyFilters();
-			}}
+		<NativeSelect
+			bind:value={selectedCategory}
+			onchange={applyFilters}
 		>
-			<Select.Trigger>
-				<Select.Value placeholder="All Categories" />
-			</Select.Trigger>
-			<Select.Content>
-				<Select.Item value="all">All Categories</Select.Item>
-				{#each categories as category}
-					<Select.Item value={category}>{category}</Select.Item>
-				{/each}
-			</Select.Content>
-		</Select.Root>
+			<option value="all">All Categories</option>
+			{#each categories as category}
+				<option value={category}>{category}</option>
+			{/each}
+		</NativeSelect>
 
-		<Select.Root
-			type="single"
-			bind:value={() => selectedSensitivity, (v) => {
-				selectedSensitivity = v ?? 'all';
-				applyFilters();
-			}}
+		<NativeSelect
+			bind:value={selectedSensitivity}
+			onchange={applyFilters}
 		>
-			<Select.Trigger>
-				<Select.Value placeholder="All Sensitivity Levels" />
-			</Select.Trigger>
-			<Select.Content>
-				<Select.Item value="all">All Levels</Select.Item>
-				{#each sensitivityLevels as level}
-					<Select.Item value={level}>{level}</Select.Item>
-				{/each}
-			</Select.Content>
-		</Select.Root>
+			<option value="all">All Sensitivity Levels</option>
+			{#each sensitivityLevels as level}
+				<option value={level}>{level}</option>
+			{/each}
+		</NativeSelect>
 
 		<Button variant="outline" onclick={clearFilters}>Clear Filters</Button>
 	</div>

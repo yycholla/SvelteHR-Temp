@@ -10,6 +10,7 @@
 		isTaskOverdue
 	} from '$lib/graphql/tasks-operations';
 	import { formatDistance } from 'date-fns';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 
 	interface Props {
 		task: Task;
@@ -88,17 +89,34 @@
 		}
 	}
 
-	function handleStatusClick(e: Event) {
-		e.stopPropagation();
-		if (onStatusChange && task.status !== 'DONE') {
-			// Toggle between TO_DO, IN_PROGRESS, and COMPLETED (GraphQL enum format)
-			const nextStatus =
-				task.status === 'TODO'
-					? 'IN_PROGRESS'
-					: task.status === 'IN_PROGRESS'
-						? 'DONE'
-						: 'TODO';
-			onStatusChange(nextStatus);
+	// Status options with display labels and colors
+	const statusOptions = [
+		{ value: 'TODO', label: 'To Do', icon: 'circle' },
+		{ value: 'IN_PROGRESS', label: 'In Progress', icon: 'circle-dot' },
+		{ value: 'REVIEW', label: 'Review', icon: 'eye' },
+		{ value: 'BLOCKED', label: 'Blocked', icon: 'x-circle' },
+		{ value: 'DONE', label: 'Done', icon: 'check-circle' }
+	];
+
+	function handleStatusChange(newStatus: Task['status']) {
+		if (onStatusChange) {
+			onStatusChange(newStatus);
+		}
+	}
+
+	// Get status icon SVG
+	function getStatusIconSVG(status: Task['status']) {
+		switch (status) {
+			case 'DONE':
+				return '<svg class="h-5 w-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>';
+			case 'IN_PROGRESS':
+				return '<svg class="h-5 w-5 text-primary" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd" /><circle cx="10" cy="10" r="3" fill="currentColor" /></svg>';
+			case 'REVIEW':
+				return '<svg class="h-5 w-5 text-yellow-600 dark:text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>';
+			case 'BLOCKED':
+				return '<svg class="h-5 w-5 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg>';
+			default: // TODO
+				return '<svg class="h-5 w-5 text-muted-foreground hover:text-foreground" fill="none" stroke="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" stroke-width="2" /></svg>';
 		}
 	}
 </script>
@@ -125,28 +143,83 @@
 		<!-- Task Header -->
 		<div class="mb-2 flex items-start justify-between gap-3">
 			<div class="flex flex-1 items-start gap-3">
-				<!-- Status Checkbox -->
+				<!-- Status Dropdown -->
 				{#if onStatusChange}
-					<button
-						class="mt-0.5 flex-shrink-0 transition-transform hover:scale-110"
-						onclick={handleStatusClick}
-						aria-label="Toggle task status"
-					>
-						{#if task.status === 'DONE'}
-							<svg class="h-5 w-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
-								<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-							</svg>
-						{:else if task.status === 'IN_PROGRESS'}
-							<svg class="h-5 w-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
-								<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd" />
-								<circle cx="10" cy="10" r="3" fill="currentColor" />
-							</svg>
-						{:else}
-							<svg class="h-5 w-5 text-muted-foreground hover:text-foreground" fill="none" stroke="currentColor" viewBox="0 0 20 20">
-								<circle cx="10" cy="10" r="8" stroke-width="2" />
-							</svg>
-						{/if}
-					</button>
+					<DropdownMenu.Root>
+						<DropdownMenu.Trigger
+							class="mt-0.5 flex-shrink-0 transition-transform hover:scale-110 focus:outline-none"
+							onclick={(e) => e.stopPropagation()}
+							aria-label="Change task status"
+						>
+								{#if task.status === 'DONE'}
+									<svg class="h-5 w-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+										<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+									</svg>
+								{:else if task.status === 'IN_PROGRESS'}
+									<svg class="h-5 w-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
+										<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd" />
+										<circle cx="10" cy="10" r="3" fill="currentColor" />
+									</svg>
+								{:else if task.status === 'REVIEW'}
+									<svg class="h-5 w-5 text-yellow-600 dark:text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+										<path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+										<path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
+									</svg>
+								{:else if task.status === 'BLOCKED'}
+									<svg class="h-5 w-5 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 20 20">
+										<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+									</svg>
+								{:else}
+									<svg class="h-5 w-5 text-muted-foreground hover:text-foreground" fill="none" stroke="currentColor" viewBox="0 0 20 20">
+										<circle cx="10" cy="10" r="8" stroke-width="2" />
+									</svg>
+								{/if}
+						</DropdownMenu.Trigger>
+						<DropdownMenu.Content align="start" class="w-48">
+							<DropdownMenu.Label>Change Status</DropdownMenu.Label>
+							<DropdownMenu.Separator />
+							{#each statusOptions as statusOption}
+								<DropdownMenu.Item
+									onclick={(e) => {
+										e.stopPropagation();
+										handleStatusChange(statusOption.value as Task['status']);
+									}}
+									class="flex items-center gap-2"
+									disabled={task.status === statusOption.value}
+								>
+									{#if statusOption.value === 'DONE'}
+										<svg class="h-4 w-4 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+											<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+										</svg>
+									{:else if statusOption.value === 'IN_PROGRESS'}
+										<svg class="h-4 w-4 text-primary" fill="currentColor" viewBox="0 0 20 20">
+											<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd" />
+											<circle cx="10" cy="10" r="3" fill="currentColor" />
+										</svg>
+									{:else if statusOption.value === 'REVIEW'}
+										<svg class="h-4 w-4 text-yellow-600 dark:text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+											<path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+											<path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
+										</svg>
+									{:else if statusOption.value === 'BLOCKED'}
+										<svg class="h-4 w-4 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 20 20">
+											<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+										</svg>
+									{:else}
+										<svg class="h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 20 20">
+											<circle cx="10" cy="10" r="8" stroke-width="2" />
+										</svg>
+									{/if}
+									<span class="flex-1">{statusOption.label}</span>
+									{#if task.status === statusOption.value}
+										<svg class="h-4 w-4 text-primary" fill="currentColor" viewBox="0 0 20 20">
+											<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+										</svg>
+									{/if}
+								</DropdownMenu.Item>
+							{/each}
+						</DropdownMenu.Content>
+					</DropdownMenu.Root>
 				{/if}
 
 				<!-- Title and Badges -->
@@ -261,14 +334,25 @@
 		<!-- Task Footer -->
 		{#if !compact}
 			<div class="flex items-center justify-between border-t pt-3">
-				<!-- Assignee -->
-				{#if showAssignee && task.assignee}
-					<div class="flex items-center text-sm text-muted-foreground">
-						<svg class="mr-1.5 h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-						</svg>
-						<span>Assigned to <span class="font-medium text-foreground">{task.assignee.displayName}</span></span>
-					</div>
+				<!-- Assignment (Department or User) -->
+				{#if showAssignee}
+					{#if task.department}
+						<!-- Department Task -->
+						<div class="flex items-center text-sm text-muted-foreground">
+							<svg class="mr-1.5 h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+							</svg>
+							<span>Assigned to <span class="font-medium text-foreground">{task.department.name}</span></span>
+						</div>
+					{:else if task.assignee}
+						<!-- User Task -->
+						<div class="flex items-center text-sm text-muted-foreground">
+							<svg class="mr-1.5 h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+							</svg>
+							<span>Assigned to <span class="font-medium text-foreground">{task.assignee.displayName}</span></span>
+						</div>
+					{/if}
 				{/if}
 
 				<!-- Creator -->

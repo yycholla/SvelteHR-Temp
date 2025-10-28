@@ -242,10 +242,12 @@ export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string, url
 
 			// Session-based authentication - no need to add Authorization headers
 			// Cookies are sent automatically for both client and server requests
+			// IMPORTANT: credentials: 'include' is required to send HTTP-only cookies
 
 			return {
 				method: 'POST',
-				headers
+				headers,
+				credentials: 'include' as RequestCredentials
 			};
 		},
 		preferGetMethod: false

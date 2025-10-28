@@ -13,12 +13,15 @@
 	import type { PageData } from './$types';
 	import type { TaskFilterState } from '$lib/components/tasks/TaskFilters.svelte';
 	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
+	import { goto, replaceState } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
+	import { Separator } from '$lib/components/ui/separator';
 	import * as Card from '$lib/components/ui/card';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import TaskList from '$lib/components/tasks/TaskList.svelte';
 	import TaskFilters from '$lib/components/tasks/TaskFilters.svelte';
+	import QuickAddTask from '$lib/components/tasks/QuickAddTask.svelte';
 	import {
 		Plus,
 		CheckCircle,
@@ -32,6 +35,15 @@
 
 	// Page data from server
 	let { data }: { data: PageData } = $props();
+
+	// Determine user permissions for assignee selection
+	let canAssignToAnyone = $derived(
+		data.user.role === 'hr_admin' ||
+		data.user.role === 'system_admin' ||
+		data.user.role === 'super_admin'
+	);
+	let canAssignToTeam = $derived(data.user.role === 'manager');
+	let canAssign = $derived(canAssignToAnyone || canAssignToTeam);
 
 	// Filter state from URL params
 	let filters = $state<TaskFilterState>({
@@ -95,7 +107,7 @@
 	];
 
 	// Client-side filtered tasks based on filter state
-	let filteredTasks = $derived(() => {
+	let filteredTasks = $derived.by(() => {
 		let result = data.tasks;
 
 		// Search filter
@@ -167,8 +179,8 @@
 		const queryString = params.toString();
 		const newUrl = queryString ? `?${queryString}` : '/dashboard/tasks';
 
-		// Use history API directly to avoid page reload
-		window.history.replaceState({}, '', newUrl);
+		// Use SvelteKit's replaceState to update URL without page reload
+		replaceState(newUrl, {});
 	}
 
 	// Handle task click - navigate to task details
@@ -176,9 +188,9 @@
 		goto(`/dashboard/tasks/${taskId}`);
 	}
 
-	// Handle create new task
+	// Handle create new task (open popover)
 	function handleCreateTask() {
-		goto('/dashboard/tasks/new');
+		// Handled by QuickAddTask component
 	}
 </script>
 
@@ -190,22 +202,24 @@
 <div class="space-y-6" data-testid="tasks-dashboard">
 	<!-- Page Header -->
 	<div class="flex items-start justify-end gap-4">
-		<Button onclick={handleCreateTask} class="flex-shrink-0" data-testid="tasks-create-button">
-			<Plus class="mr-2 h-4 w-4" />
-			New Task
-		</Button>
+		<QuickAddTask
+			currentUser={data.user}
+			assignees={data.assignees}
+			taskTypes={data.taskTypes}
+			canAssign={canAssign}
+		/>
 	</div>
 
 	<!-- Statistics Cards -->
 	<div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6" data-testid="tasks-stats-grid">
-		{#each statsCards as stat}
+		{#each statsCards as stat (stat.label)}
 			<Card.Root>
 				<Card.Header class="flex flex-row items-center justify-between pb-2">
 					<Card.Title class="text-sm font-medium text-muted-foreground">
 						{stat.label}
 					</Card.Title>
 					<div class="flex h-8 w-8 items-center justify-center rounded-full {stat.bgColor}">
-						<svelte:component this={stat.icon} class="h-4 w-4 {stat.color}" />
+						<stat.icon class="h-4 w-4 {stat.color}" />
 					</div>
 				</Card.Header>
 				<Card.Content>
@@ -227,7 +241,7 @@
 
 	<!-- Tasks List -->
 	<div class="space-y-4" data-testid="tasks-list-section">
-		{#if filteredTasks().length === 0}
+		{#if filteredTasks.length === 0}
 			<Card.Root>
 				<Card.Content class="flex flex-col items-center justify-center py-12">
 					<Target class="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
@@ -247,7 +261,7 @@
 			</Card.Root>
 		{:else}
 			<TaskList
-				tasks={filteredTasks()}
+				tasks={filteredTasks}
 				userId={data.user.id}
 				onTaskClick={handleTaskClick}
 				showProgress={true}

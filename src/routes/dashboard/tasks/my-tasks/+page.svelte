@@ -11,14 +11,14 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { goto } from '$app/navigation';
-	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Input } from '$lib/components/ui/input';
 	import * as Card from '$lib/components/ui/card';
 	import * as NativeSelect from '$lib/components/ui/native-select';
+	import * as Field from '$lib/components/ui/field';
 	import TaskList from '$lib/components/tasks/TaskList.svelte';
+	import QuickAddTask from '$lib/components/tasks/QuickAddTask.svelte';
 	import {
-		Plus,
 		CheckCircle,
 		Clock,
 		AlertCircle,
@@ -27,6 +27,11 @@
 		Search,
 		AlertTriangle
 	} from '@lucide/svelte';
+	import { CHANGE_TASK_STATUS } from '$lib/graphql/tasks-operations';
+	import { client } from '$lib/graphql/client';
+	import { invalidateAll } from '$app/navigation';
+	import type { TaskStatus } from '$lib/types/task';
+	import { toast } from 'svelte-sonner';
 
 	// Page data from server
 	let { data }: { data: PageData } = $props();
@@ -36,8 +41,55 @@
 	let selectedStatus = $state(data.filters.statusFilter);
 	let selectedPriority = $state(data.filters.priorityFilter);
 
-	// Statistics cards configuration
-	const statsCards = [
+	// Priority order for sorting
+	const priorityOrder = { URGENT: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
+
+	// Client-side filtered and sorted tasks
+	let filteredTasks = $derived.by(() => {
+		let result = data.tasks;
+
+		// Search filter
+		if (searchQuery) {
+			const searchLower = searchQuery.toLowerCase();
+			result = result.filter((task: any) => {
+				const title = task.title?.toLowerCase() || '';
+				const description = task.description?.toLowerCase() || '';
+				return title.includes(searchLower) || description.includes(searchLower);
+			});
+		}
+
+		// Status filter
+		if (selectedStatus) {
+			result = result.filter((task: any) => task.status === selectedStatus);
+		}
+
+		// Priority filter
+		if (selectedPriority) {
+			result = result.filter((task: any) => task.priority === selectedPriority);
+		}
+
+		// Sort by priority > due date > rest
+		return [...result].sort((a, b) => {
+			// First, sort by priority (URGENT > HIGH > MEDIUM > LOW)
+			const priorityA = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 4;
+			const priorityB = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 4;
+			const priorityDiff = priorityA - priorityB;
+			if (priorityDiff !== 0) return priorityDiff;
+
+			// Then by due date (ascending - soonest first)
+			if (a.dueDate && b.dueDate) {
+				return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+			}
+			if (a.dueDate) return -1;
+			if (b.dueDate) return 1;
+
+			// Finally by title
+			return a.title.localeCompare(b.title);
+		});
+	});
+
+	// Statistics cards configuration - derived to update reactively
+	let statsCards = $derived([
 		{
 			label: 'Total Tasks',
 			value: data.taskStats.total,
@@ -80,7 +132,7 @@
 			color: 'text-orange-600',
 			bgColor: 'bg-orange-100 dark:bg-orange-900/30'
 		}
-	];
+	]);
 
 	// Status options
 	const statusOptions = [
@@ -100,18 +152,37 @@
 		{ value: 'Urgent', label: 'Urgent' }
 	];
 
-	// Handle filter changes - update URL
-	function updateFilters() {
+	// Debounce timer for URL updates
+	let urlUpdateTimer: any = null;
+
+	// Update URL without navigation (for bookmarking)
+	function updateURL() {
 		const params = new URLSearchParams();
 		if (searchQuery) params.set('search', searchQuery);
 		if (selectedStatus) params.set('status', selectedStatus);
 		if (selectedPriority) params.set('priority', selectedPriority);
 
 		const queryString = params.toString();
-		goto(queryString ? `?${queryString}` : '/dashboard/tasks/my-tasks', {
-			replaceState: true,
-			keepFocus: true
-		});
+		const newUrl = queryString ? `?${queryString}` : '/dashboard/tasks/my-tasks';
+		window.history.replaceState({}, '', newUrl);
+	}
+
+	// Handle search input with debounced URL update
+	function handleSearchInput(e: Event) {
+		searchQuery = (e.target as HTMLInputElement).value;
+
+		// Clear existing timer
+		if (urlUpdateTimer) clearTimeout(urlUpdateTimer);
+
+		// Debounce URL update (500ms after user stops typing)
+		urlUpdateTimer = setTimeout(() => {
+			updateURL();
+		}, 500);
+	}
+
+	// Handle filter changes - update immediately for selects
+	function updateFilters() {
+		updateURL();
 	}
 
 	// Handle task click
@@ -119,9 +190,29 @@
 		goto(`/dashboard/tasks/${taskId}`);
 	}
 
-	// Handle create task
-	function handleCreateTask() {
-		goto('/dashboard/tasks/new');
+	// Handle status change
+	async function handleStatusChange(taskId: string, newStatus: TaskStatus) {
+		try {
+			const result = await client.mutation(CHANGE_TASK_STATUS, {
+				input: {
+					taskId,
+					status: newStatus
+				}
+			}).toPromise();
+
+			if (result.error) {
+				throw result.error;
+			}
+
+			// Show success message
+			toast.success('Task status updated successfully');
+
+			// Refresh the data
+			await invalidateAll();
+		} catch (error) {
+			console.error('Failed to change task status:', error);
+			toast.error('Failed to update task status');
+		}
 	}
 </script>
 
@@ -130,30 +221,26 @@
 	<meta name="description" content="View and manage your assigned tasks" />
 </svelte:head>
 
-<div class="my-tasks-page">
+<div class="space-y-6" data-testid="my-tasks-page">
 	<!-- Page Header -->
-	<div class="page-header">
-		<div>
-			<h1 class="text-3xl font-bold tracking-tight">My Tasks</h1>
-			<p class="text-muted-foreground mt-2">
-				Tasks assigned to you ({data.user.displayName})
-			</p>
-		</div>
-		<Button onclick={handleCreateTask} class="flex-shrink-0">
-			<Plus class="mr-2 h-4 w-4" />
-			New Task
-		</Button>
+	<div class="flex items-start justify-end gap-4">
+		<QuickAddTask
+			currentUser={data.user}
+			assignees={data.assignees}
+			taskTypes={data.taskTypes}
+			canAssign={false}
+		/>
 	</div>
 
 	<!-- Statistics Cards -->
-	<div class="stats-grid">
+	<div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6" data-testid="my-tasks-stats-grid">
 		{#each statsCards as stat}
 			<Card.Root>
 				<Card.Header class="flex flex-row items-center justify-between pb-2">
 					<Card.Title class="text-sm font-medium text-muted-foreground">
 						{stat.label}
 					</Card.Title>
-					<div class="flex h-8 w-8 items-center justify-center rounded-full {stat.bgColor}">
+					<div class="flex h-8 w-8 items-center justify-between rounded-full {stat.bgColor}">
 						<svelte:component this={stat.icon} class="h-4 w-4 {stat.color}" />
 					</div>
 				</Card.Header>
@@ -164,51 +251,55 @@
 		{/each}
 	</div>
 
-	<!-- Simple Filters -->
+	<!-- Filters -->
 	<Card.Root>
 		<Card.Content class="pt-6">
-			<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-				<!-- Search -->
-				<div class="relative">
-					<Search
-						class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
-					/>
-					<Input
-						type="text"
-						placeholder="Search tasks..."
-						bind:value={searchQuery}
-						oninput={updateFilters}
-						class="pl-9"
-					/>
+			<Field.Group>
+				<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+					<!-- Search -->
+					<Field.Field>
+						<Field.Label>Search</Field.Label>
+						<div class="relative">
+							<Search
+								class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+							/>
+							<Input
+								type="text"
+								placeholder="Search tasks..."
+								value={searchQuery}
+								oninput={handleSearchInput}
+								class="pl-9"
+							/>
+						</div>
+					</Field.Field>
+
+					<!-- Status Filter -->
+					<Field.Field>
+						<Field.Label>Status</Field.Label>
+						<NativeSelect.Root value={selectedStatus} onchange={(e) => { selectedStatus = e.currentTarget.value; updateFilters(); }}>
+							{#each statusOptions as option}
+								<NativeSelect.Option value={option.value}>{option.label}</NativeSelect.Option>
+							{/each}
+						</NativeSelect.Root>
+					</Field.Field>
+
+					<!-- Priority Filter -->
+					<Field.Field>
+						<Field.Label>Priority</Field.Label>
+						<NativeSelect.Root value={selectedPriority} onchange={(e) => { selectedPriority = e.currentTarget.value; updateFilters(); }}>
+							{#each priorityOptions as option}
+								<NativeSelect.Option value={option.value}>{option.label}</NativeSelect.Option>
+							{/each}
+						</NativeSelect.Root>
+					</Field.Field>
 				</div>
-
-				<!-- Status Filter -->
-				<NativeSelect.Root value={selectedStatus} onchange={(e) => { selectedStatus = e.currentTarget.value; updateFilters(); }}>
-					{#each statusOptions as option}
-						<NativeSelect.Option value={option.value}>{option.label}</NativeSelect.Option>
-					{/each}
-				</NativeSelect.Root>
-
-				<!-- Priority Filter -->
-				<NativeSelect.Root value={selectedPriority} onchange={(e) => { selectedPriority = e.currentTarget.value; updateFilters(); }}>
-					{#each priorityOptions as option}
-						<NativeSelect.Option value={option.value}>{option.label}</NativeSelect.Option>
-					{/each}
-				</NativeSelect.Root>
-			</div>
+			</Field.Group>
 		</Card.Content>
 	</Card.Root>
 
 	<!-- Tasks List -->
-	<div class="tasks-list-section">
-		<div class="flex items-center justify-between mb-4">
-			<div class="flex items-center gap-2">
-				<h2 class="text-xl font-semibold">Your Tasks</h2>
-				<Badge variant="secondary">{data.totalTasks}</Badge>
-			</div>
-		</div>
-
-		{#if data.tasks.length === 0}
+	<div class="space-y-4" data-testid="my-tasks-list-section">
+		{#if filteredTasks.length === 0}
 			<Card.Root>
 				<Card.Content class="flex flex-col items-center justify-center py-12">
 					<CheckCircle class="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
@@ -220,19 +311,14 @@
 							You have no assigned tasks at the moment
 						{/if}
 					</p>
-					{#if !searchQuery && !selectedStatus && !selectedPriority}
-						<Button variant="outline" onclick={handleCreateTask}>
-							<Plus class="mr-2 h-4 w-4" />
-							Create Task
-						</Button>
-					{/if}
 				</Card.Content>
 			</Card.Root>
 		{:else}
 			<TaskList
-				tasks={data.tasks}
+				tasks={filteredTasks}
 				userId={data.user.id}
 				onTaskClick={handleTaskClick}
+				onStatusChange={handleStatusChange}
 				showProgress={true}
 				compact={false}
 			/>

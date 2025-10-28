@@ -220,6 +220,7 @@
 		"rrule": "^2.8.1",
 		"sharp": "^0.34.4",
 		"svelte-calendar": "^3.1.6",
+		"svelte-dnd-action": "^0.9.64",
 		"svelte-file-dropzone": "^2.0.7",
 		"svelte-notifications": "^0.9.98",
 		"svelte-persisted-store": "^0.11.0",

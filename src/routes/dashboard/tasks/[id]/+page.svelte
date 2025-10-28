@@ -14,7 +14,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import type { Task, TaskStatus } from '$lib/types/task';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Card from '$lib/components/ui/card';
@@ -26,7 +26,6 @@
 	import SubtaskProgress from '$lib/components/tasks/SubtaskProgress.svelte';
 	import {
 		Edit,
-		ArrowLeft,
 		CheckCircle,
 		Clock,
 		AlertCircle,
@@ -37,6 +36,9 @@
 		Bell
 	} from '@lucide/svelte';
 	import { format } from 'date-fns';
+	import { CHANGE_TASK_STATUS } from '$lib/graphql/tasks-operations';
+	import { client } from '$lib/graphql/client';
+	import { toast } from 'svelte-sonner';
 
 	// Page data from server
 	let { data }: { data: PageData } = $props();
@@ -84,18 +86,33 @@
 	};
 
 	// Handle navigation
-	function handleBackClick() {
-		goto('/dashboard/tasks');
-	}
-
 	function handleEditClick() {
 		goto(`/dashboard/tasks/${task.id}/edit`);
 	}
 
-	// Handle status change (placeholder for now)
-	function handleStatusChange(taskId: string, newStatus: TaskStatus) {
-		console.log('[Task Details] Status change:', taskId, newStatus);
-		// TODO: Implement status update mutation
+	// Handle status change
+	async function handleStatusChange(taskId: string, newStatus: TaskStatus) {
+		try {
+			const result = await client.mutation(CHANGE_TASK_STATUS, {
+				input: {
+					taskId,
+					status: newStatus
+				}
+			}).toPromise();
+
+			if (result.error) {
+				throw result.error;
+			}
+
+			// Show success message
+			toast.success('Task status updated successfully');
+
+			// Refresh the task data
+			await invalidateAll();
+		} catch (error) {
+			console.error('Failed to change task status:', error);
+			toast.error('Failed to update task status');
+		}
 	}
 
 	// Handle dependency operations
@@ -169,11 +186,6 @@
 <div class="task-details-page">
 	<!-- Page Header -->
 	<div class="page-header">
-		<Button variant="ghost" size="sm" onclick={handleBackClick}>
-			<ArrowLeft class="mr-2 h-4 w-4" />
-			Back to Tasks
-		</Button>
-
 		<Button onclick={handleEditClick}>
 			<Edit class="mr-2 h-4 w-4" />
 			Edit Task
@@ -219,20 +231,35 @@
 
 			<!-- Task Metadata -->
 			<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-				<!-- Assignee -->
+				<!-- Assignment (Department or User) -->
 				<div class="flex items-start gap-3">
-					<div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-						<User class="h-4 w-4 text-primary" />
-					</div>
-					<div class="flex-1">
-						<p class="text-xs text-muted-foreground">Assigned to</p>
-						<p class="text-sm font-medium">
-							{task.assignee?.displayName || 'Unassigned'}
-						</p>
-						{#if task.assignee}
-							<p class="text-xs text-muted-foreground">{task.assignee.email}</p>
-						{/if}
-					</div>
+					{#if task.department}
+						<!-- Department Assignment -->
+						<div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+							<Building class="h-4 w-4 text-primary" />
+						</div>
+						<div class="flex-1">
+							<p class="text-xs text-muted-foreground">Assigned to</p>
+							<p class="text-sm font-medium">{task.department.name}</p>
+							{#if task.department.description}
+								<p class="text-xs text-muted-foreground">{task.department.description}</p>
+							{/if}
+						</div>
+					{:else}
+						<!-- User Assignment -->
+						<div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+							<User class="h-4 w-4 text-primary" />
+						</div>
+						<div class="flex-1">
+							<p class="text-xs text-muted-foreground">Assigned to</p>
+							<p class="text-sm font-medium">
+								{task.assignee?.displayName || 'Unassigned'}
+							</p>
+							{#if task.assignee}
+								<p class="text-xs text-muted-foreground">{task.assignee.email}</p>
+							{/if}
+						</div>
+					{/if}
 				</div>
 
 				<!-- Task Type -->

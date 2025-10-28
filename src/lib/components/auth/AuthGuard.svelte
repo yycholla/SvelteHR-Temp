@@ -5,60 +5,45 @@
 
 	/**
 	 * Authentication Guard Component
-	 * Initializes auth state from server-loaded data
-	 * Use this at the app root level to ensure auth is initialized
+	 * Syncs server-validated user to client-side auth store
+	 *
+	 * Auth is enforced server-side in:
+	 * - hooks.server.ts (validates session)
+	 * - +layout.server.ts (redirects if not authenticated)
+	 *
+	 * This component just syncs the validated user to the client store
 	 */
 
-	import { browser } from '$app/environment';
 	import { get } from 'svelte/store';
 	import { authStore } from '$lib/stores/auth';
 
-	let initComplete = false;
-
-	onMount(async () => {
+	// Sync server-validated user to client store (non-blocking)
+	onMount(() => {
 		// Check if auth is already initialized
 		const currentState = get(authStore);
 		if (currentState.isAuthenticated && currentState.user) {
-			initComplete = true;
 			return;
 		}
 
-		// Check if user data was loaded server-side via hooks.server.ts
+		// Sync user data from server (already validated by hooks.server.ts + layout.server.ts)
 		const pageData = get(page);
 		const serverUser = pageData?.data?.user;
 
 		if (serverUser?.id) {
-			// Use server-loaded user data instead of making another verification call
-			// This avoids duplicate /api/auth/verify requests since hooks.server.ts already validated
-			await authActions.setUser({
+			// No await needed - this is just syncing to client store
+			authActions.setUser({
 				id: serverUser.id,
 				email: serverUser.email,
 				displayName: serverUser.displayName || serverUser.email.split('@')[0] || 'User',
 				onboardingStatus: 'Active',
 				isActive: true
 			});
-			initComplete = true;
-			return;
 		}
-
-		// No server user data - likely on a public page, just mark as complete
-		initComplete = true;
 	});
 </script>
 
-{#if initComplete}
-	<!-- Auth is initialized, render app -->
-	<slot />
-{:else}
-	<!-- Show loading while initializing auth -->
-	<div class="fixed inset-0 flex items-center justify-center bg-white">
-		<div class="text-center">
-			<!-- Loading Spinner -->
-			<div class="inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600"></div>
-			<p class="mt-4 text-sm text-gray-600">Loading...</p>
-		</div>
-	</div>
-{/if}
+<!-- Render immediately - server already validated auth -->
+<slot />
 
 <style>
 	@keyframes spin {

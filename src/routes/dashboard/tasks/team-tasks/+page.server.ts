@@ -2,8 +2,8 @@
 // Feature: 028-task-system-expansion - Task T045
 // Load tasks assigned to team members in the same department/organization
 
-import type { PageServerLoad } from './$types';
-import { error } from '@sveltejs/kit';
+import type { PageServerLoad, Actions } from './$types';
+import { error, fail } from '@sveltejs/kit';
 import { getUserPermissions } from '$lib/server/rbac-utils';
 
 export const load: PageServerLoad = async (event) => {
@@ -50,52 +50,36 @@ export const load: PageServerLoad = async (event) => {
 
 		console.log('[Team Tasks] Loading team tasks for user:', locals.user.id);
 
-		// First, get team members (users in the same department)
-		// NOTE: Rust GraphQL schema only supports limit and offset
-		// We'll filter by department and active status client-side
-		const teamMembersResponse = await fetch(graphqlEndpoint, {
+		// Load departments for team task assignment
+		const departmentsResponse = await fetch(graphqlEndpoint, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
 				query: `
-					query GetTeamMembers($limit: Int!) {
-						users(limit: $limit) {
+					query GetDepartments($limit: Int) {
+						departments(limit: $limit) {
 							id
-							displayName
-							email
-							role
-							departmentId
-							isActive
+							name
+							description
 						}
 					}
 				`,
 				variables: {
-					limit: 200
+					limit: 100
 				}
 			})
 		});
 
-		const teamMembersData = await teamMembersResponse.json();
-		console.log('[Team Tasks] Team members response:', teamMembersData);
+		const departmentsData = await departmentsResponse.json();
+		console.log('[Team Tasks] Departments response:', departmentsData);
 
-		if (teamMembersData.errors) {
-			console.error('[Team Tasks] Team members GraphQL errors:', teamMembersData.errors);
-			throw new Error(teamMembersData.errors[0]?.message || 'Failed to load team members');
+		if (departmentsData.errors) {
+			console.error('[Team Tasks] Departments GraphQL errors:', departmentsData.errors);
+			throw new Error(departmentsData.errors[0]?.message || 'Failed to load departments');
 		}
 
-		// Get all users and filter to same department + active status
-		let teamMembers = teamMembersData?.data?.users || [];
-
-		// Filter to only active users in the same department
-		if (locals.user.departmentId) {
-			teamMembers = teamMembers.filter(
-				(m: any) => m.departmentId === locals.user.departmentId && m.isActive
-			);
-		}
-
-		const teamMemberIds = teamMembers.map((m: any) => m.id);
-
-		console.log('[Team Tasks] Found team members:', teamMemberIds.length);
+		const departments = departmentsData?.data?.departments || [];
+		console.log('[Team Tasks] Found departments:', departments.length);
 
 		// Load team tasks
 		// NOTE: Rust GraphQL schema doesn't support complex filters
@@ -121,11 +105,18 @@ export const load: PageServerLoad = async (event) => {
 								id
 								displayName
 								email
+								departmentId
+							}
+							department {
+								id
+								name
+								description
 							}
 							creator {
 								id
 								displayName
 								email
+								departmentId
 							}
 							taskType {
 								id
@@ -156,10 +147,9 @@ export const load: PageServerLoad = async (event) => {
 
 		let tasks = tasksData?.data?.tasks || [];
 
-		// Filter to only team members' tasks
-		tasks = tasks.filter((task: any) => {
-			return teamMemberIds.includes(task.assignee?.id);
-		});
+		// For team tasks, we'll show all tasks
+		// Filtering by department will be done client-side via the department filter
+		// NOTE: In a production system, you might want to filter server-side by department
 
 		// Client-side filtering for status
 		if (statusFilter) {
@@ -208,12 +198,38 @@ export const load: PageServerLoad = async (event) => {
 		// Get standardized user permissions
 		const userPermissions = getUserPermissions(locals);
 
+		// Load task types for the form
+		const taskTypesResponse = await fetch(graphqlEndpoint, {
+			method: 'POST',
+			headers,
+			body: JSON.stringify({
+				query: `
+					query GetTaskTypesForFilter($isActive: Boolean) {
+						taskTypes(isActive: $isActive) {
+							id
+							name
+							description
+							defaultPriority
+							colorCode
+							isActive
+						}
+					}
+				`,
+				variables: {
+					isActive: true
+				}
+			})
+		});
+
+		const taskTypesData = await taskTypesResponse.json();
+
 		return {
 			user: userPermissions.user,
 			userSession: userSession.toJSON(),
 			tasks,
 			totalTasks: tasks.length,
-			teamMembers,
+			departments,
+			taskTypes: taskTypesData?.data?.taskTypes || [],
 			taskStats,
 			filters: {
 				searchTerm,
@@ -244,5 +260,110 @@ export const load: PageServerLoad = async (event) => {
 			message: 'Team tasks temporarily unavailable',
 			details: errorResponse.userMessage
 		});
+	}
+};
+
+export const actions: Actions = {
+	default: async (event) => {
+		const { request, locals } = event;
+
+		// Check authentication
+		if (!locals.user) {
+			throw error(401, { message: 'Authentication required' });
+		}
+
+		try {
+			const formData = await request.formData();
+			const { getGraphQLEndpoint, authenticatedGraphQLRequest } = await import(
+				'$lib/server/api-url'
+			);
+			const graphqlEndpoint = getGraphQLEndpoint();
+
+			// Extract form data
+			const title = formData.get('title') as string;
+			const description = formData.get('description') as string | null;
+			const priority = (formData.get('priority') as string) || 'MEDIUM';
+			const departmentId = formData.get('departmentId') as string;
+			const taskTypeId = formData.get('taskTypeId') as string | null;
+			const dueDate = formData.get('dueDate') as string | null;
+
+			console.log('[Team Tasks - Quick Add] Creating team task:', {
+				title,
+				priority,
+				departmentId,
+				dueDate,
+				taskTypeId
+			});
+
+			// Prepare create input for Rust GraphQL schema with department assignment
+			const createInput: Record<string, any> = {
+				title,
+				status: 'TODO', // Default status for quick-add
+				priority,
+				departmentId, // Assign to department (exclusive with assigneeId)
+				requiresManualReassignment: false
+			};
+
+			// Only include optional fields if they have valid values
+			if (taskTypeId && taskTypeId.trim()) {
+				createInput.taskTypeId = taskTypeId;
+			}
+			if (dueDate && dueDate.trim()) {
+				// GraphQL expects full datetime, add end of day
+				createInput.dueDate = `${dueDate}T23:59:59Z`;
+			}
+
+			// Add description if provided
+			if (description && description.trim()) {
+				createInput.description = description;
+			}
+
+			// Execute create mutation
+			const createResponse = await authenticatedGraphQLRequest(
+				graphqlEndpoint,
+				`
+					mutation CreateTask($input: CreateTaskInput!) {
+						createTask(input: $input) {
+							id
+							title
+							status
+							createdAt
+						}
+					}
+				`,
+				{ input: createInput },
+				event.request
+			);
+
+			const createData = await createResponse.json();
+
+			if (createData.errors) {
+				console.error('[Team Tasks - Quick Add] Create errors:', createData.errors);
+				return fail(400, {
+					error: createData.errors[0]?.message || 'Failed to create task'
+				});
+			}
+
+			const newTask = createData?.data?.createTask;
+
+			if (!newTask) {
+				return fail(400, {
+					error: 'Task creation failed'
+				});
+			}
+
+			console.log('[Team Tasks - Quick Add] Task created successfully:', newTask.id);
+
+			return {
+				success: true,
+				taskId: newTask.id
+			};
+		} catch (err) {
+			console.error('[Team Tasks - Quick Add] Create error:', err);
+
+			return fail(500, {
+				error: err instanceof Error ? err.message : 'Failed to create task'
+			});
+		}
 	}
 };

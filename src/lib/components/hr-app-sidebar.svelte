@@ -502,7 +502,7 @@
 					</div>
 					<div class="min-w-0 flex-1">
 						<p class="truncate text-xs font-medium">
-							{$currentUser.display_name || 'User'}
+							{$currentUser.firstName || $currentUser.displayName || 'User'}
 						</p>
 						<p class="truncate text-xs text-sidebar-foreground/60">
 							{$currentUser.email?.split('@')[0] || 'user'}

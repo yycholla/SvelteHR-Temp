@@ -2,14 +2,14 @@
 // Loads notifications and shared data for all dashboard pages
 
 import type { LayoutServerLoad } from './$types';
+import { redirect } from '@sveltejs/kit';
 import { GraphQLClient } from '$lib/server/graphql-client';
 
-export const load: LayoutServerLoad = async ({ locals, cookies }) => {
-	// Only fetch notifications if user is authenticated
+export const load: LayoutServerLoad = async ({ locals, cookies, url }) => {
+	// Require authentication for all dashboard routes
 	if (!locals.user?.id) {
-		return {
-			notifications: []
-		};
+		const redirectTo = url.pathname + url.search;
+		throw redirect(303, `/login?redirectTo=${encodeURIComponent(redirectTo)}`);
 	}
 
 	try {
