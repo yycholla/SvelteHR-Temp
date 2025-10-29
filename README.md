@@ -111,8 +111,8 @@ A comprehensive HR management system built with **SvelteKit 2.22.0**, **Svelte 5
 ### Prerequisites
 
 - Node.js 18+ and npm
-- MountainHR Go backend running on port 8080
-- PostgreSQL 14+ database
+- Rust GraphQL backend running on port 4000
+- PostgreSQL 15+ database
 
 ### Setup
 

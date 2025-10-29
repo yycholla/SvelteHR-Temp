@@ -71,7 +71,7 @@ docs/
 
 ## Backend Setup
 
-- [ ] Ensure Go backend is running on localhost:8080
+- [ ] Ensure Rust GraphQL backend is running on localhost:4000
 - [ ] Test API access with admin/admin credentials
 - [ ] Verify database connection
 

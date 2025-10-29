@@ -1,4 +1,4 @@
-import adapter from '@sveltejs/adapter-auto';
+import adapter from '@sveltejs/adapter-node';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { optimizeImports } from 'carbon-preprocess-svelte';
 
@@ -9,10 +9,12 @@ const config = {
 	preprocess: [vitePreprocess(), optimizeImports()],
 
 	kit: {
-		// adapter-auto only supports some environments, see https://svelte.dev/docs/kit/adapter-auto for a list.
-		// If your environment is not supported, or you settled on a specific environment, switch out the adapter.
+		// Using adapter-node for Docker/Node.js production deployment
 		// See https://svelte.dev/docs/kit/adapters for more information about adapters.
-		adapter: adapter()
+		adapter: adapter({
+			// Output to build directory (adapter-node default)
+			out: 'build'
+		})
 	}
 };
 

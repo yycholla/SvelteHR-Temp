@@ -85,7 +85,7 @@ After completing the code, ask the user if they want a playground link. Only cal
 
 **Backend Integration:**
 
-- Custom **MountainHRApiClient** (`src/lib/api/client.ts`) with Go backend
+- **Rust GraphQL backend** with async-graphql and SeaORM via urql client
 - **JWT authentication** with Better Auth 1.3.4 and automatic token refresh
 - **tRPC 11.4.4** for end-to-end typesafe APIs
 - **GraphQL-like query builder** for flexible data fetching and filtering

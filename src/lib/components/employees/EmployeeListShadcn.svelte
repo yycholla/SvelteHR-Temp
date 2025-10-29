@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { queryStore } from '@urql/svelte';
 	import { createUrqlClient } from '$lib/graphql/client';
-	import { GET_ALL_USERS } from '$lib/graphql/postgraphile-operations';
+	import { GET_EMPLOYEES_QUERY } from '$lib/graphql/employee-operations';
 	import { currentUser, hasPermission } from '$lib/stores/auth';
 	import RoleGuard from '$lib/components/auth/RoleGuard.svelte';
 	import * as Table from '$lib/components/ui/table';
@@ -84,9 +84,9 @@
 			clientReady = true;
 			usersQuery = queryStore({
 				client,
-				query: GET_ALL_USERS,
+				query: GET_EMPLOYEES_QUERY,
 				variables: {
-					first: itemsPerPage,
+					limit: itemsPerPage,
 					offset: 0
 				}
 			});
@@ -131,7 +131,7 @@
 				console.log('URQL Query State:', {
 					fetching: state.fetching,
 					error: state.error,
-					dataNodes: state.data?.users?.nodes?.length || 0
+					dataNodes: state.data?.users?.length || 0
 				});
 			});
 
@@ -142,7 +142,7 @@
 	// Filter results client-side for search
 	const filteredEmployees = $derived(() => {
 		if (!queryState.data) return [];
-		const employees = queryState.data?.users?.nodes || [];
+		const employees = queryState.data?.users || [];
 		if (!searchFilter) return employees;
 		return employees.filter(searchFilter);
 	});

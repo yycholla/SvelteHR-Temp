@@ -6,7 +6,7 @@
 import { writable, derived, get } from 'svelte/store';
 import { browser } from '$app/environment';
 import { createUrqlClient } from '$lib/graphql/client';
-import { GET_USER_BY_ID, GET_USER_ROLES } from '$lib/graphql/postgraphile-operations';
+import { GET_EMPLOYEE_BY_ID_QUERY } from '$lib/graphql/employee-operations';
 import { createRBACManager, type UserRoleAssignment, type RBACManager } from '$lib/auth/rbac';
 import { secureAuthService } from '$lib/auth/secure-auth-service';
 
@@ -337,11 +337,11 @@ export const authActions = {
 		try {
 			const client = createUrqlClient();
 			const userResult = await client
-				.query(GET_USER_BY_ID, { id: currentState.user.id })
+				.query(GET_EMPLOYEE_BY_ID_QUERY, { id: currentState.user.id })
 				.toPromise();
 
-			if (userResult.data?.userById) {
-				await authActions.setUser(userResult.data.userById);
+			if (userResult.data?.user) {
+				await authActions.setUser(userResult.data.user);
 			}
 		} catch (error) {
 			console.error('Error refreshing user data:', error);

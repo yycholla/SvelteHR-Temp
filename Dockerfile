@@ -118,13 +118,9 @@ COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
 # Copy built application from builder stage
-COPY --from=builder --chown=svelte:nodejs /app/.svelte-kit/output ./.svelte-kit/output
+COPY --from=builder --chown=svelte:nodejs /app/build ./build
 COPY --from=builder --chown=svelte:nodejs /app/package.json ./package.json
 COPY --from=builder --chown=svelte:nodejs /app/package-lock.json ./package-lock.json
-
-# Copy any additional runtime files needed by adapter
-COPY --chown=svelte:nodejs svelte.config.js ./
-COPY --chown=svelte:nodejs vite.config.ts ./
 
 # Switch to non-root user
 USER svelte
@@ -137,8 +133,8 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOST=0.0.0.0
 
-# Start the application directly (no Doppler)
-CMD ["node", ".svelte-kit/output/server/index.js"]
+# Start the application directly (adapter-node entry point)
+CMD ["node", "build/index.js"]
 
 # =============================================================================
 # Development Override Stage (Factor X: Dev/Prod Parity)

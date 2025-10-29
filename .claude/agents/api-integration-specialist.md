@@ -2,7 +2,7 @@
 
 ## Role
 
-Expert in API integration, data fetching, and client-server communication for the SvelteHR application with the Go backend API.
+Expert in API integration, data fetching, and client-server communication for the SvelteHR application with the Rust GraphQL backend API.
 
 ## Expertise
 
