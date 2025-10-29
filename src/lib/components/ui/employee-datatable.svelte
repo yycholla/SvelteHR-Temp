@@ -19,7 +19,6 @@
 	import { toast } from 'svelte-sonner';
 	import { writable } from 'svelte/store';
 	import { getContextClient } from '@urql/svelte';
-	import { UPDATE_EMPLOYEE_MUTATION } from '$lib/graphql/employee-operations';
 	import BulkActionsToast from '$lib/components/ui/employee-bulk-actions-toast.svelte';
 
 	// Employee interface matching the data structure
@@ -331,10 +330,19 @@
 		const loadingToastId = toast.loading(`Updating ${count} ${count === 1 ? 'employee' : 'employees'}...`);
 
 		try {
-			// Execute mutations for each employee
+			// Execute mutations for each employee using nested mutation structure
 			const results = await Promise.allSettled(
 				employeeIds.map(async (employeeId) => {
-					const result = await urqlClient.mutation(UPDATE_EMPLOYEE_MUTATION, {
+					const result = await urqlClient.mutation(`
+						mutation UpdateEmployeeStatus($id: UUID!, $input: UpdateUserInput!) {
+							users {
+								updateUser(id: $id, input: $input) {
+									id
+									isActive
+								}
+							}
+						}
+					`, {
 						id: employeeId,
 						input: { isActive: newStatus }
 					});
