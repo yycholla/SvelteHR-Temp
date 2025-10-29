@@ -169,11 +169,9 @@
 		"vitest": "^3.2.3",
 		"vitest-browser-svelte": "^0.1.0",
 		"webdriverio": "^9.20.0",
-		"zod": "^3.25.76"
+		"zod": "^4.0.14"
 	},
 	"dependencies": {
-		"@felte/reporter-svelte": "^1.2.0",
-		"@felte/validator-zod": "^1.0.18",
 		"@fullcalendar/core": "^6.1.19",
 		"@fullcalendar/daygrid": "^6.1.19",
 		"@fullcalendar/interaction": "^6.1.19",

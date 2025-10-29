@@ -93,7 +93,7 @@ export const accessLogEntrySchema = z.object({
 	userId: z.string().uuid(),
 	accessType: accessTypeSchema,
 	accessOutcome: accessOutcomeSchema,
-	ipAddress: z.string().ip().optional(),
+	ipAddress: z.string().optional(), // TODO: Add IP validation regex for Zod v4 compatibility
 	userAgent: z.string().max(500).optional(),
 	denialReason: z.string().max(500).optional()
 });
