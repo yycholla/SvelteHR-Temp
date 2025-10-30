@@ -56,8 +56,16 @@ COPY . .
 # Build application in release mode
 RUN cargo build --release --bin hr-graphql-server
 
-# Verify binary exists
-RUN test -f /app/target/release/hr-graphql-server || (echo "Build failed: binary not found" && exit 1)
+# Build migration binary for production use
+RUN cargo build --release --bin migration
+
+# Build seed-data binary for production admin user creation
+RUN cargo build --release --bin seed-data
+
+# Verify binaries exist
+RUN test -f /app/target/release/hr-graphql-server || (echo "Build failed: hr-graphql-server binary not found" && exit 1)
+RUN test -f /app/target/release/migration || (echo "Build failed: migration binary not found" && exit 1)
+RUN test -f /app/target/release/seed-data || (echo "Build failed: seed-data binary not found" && exit 1)
 
 # =============================================================================
 # Stage 4: Production Runtime
@@ -69,7 +77,8 @@ RUN apk add --no-cache \
     libgcc \
     openssl \
     ca-certificates \
-    curl
+    curl \
+    postgresql-client
 
 # Create non-root user
 RUN addgroup -g 1001 -S rust && \
@@ -78,14 +87,19 @@ RUN addgroup -g 1001 -S rust && \
 # Set working directory
 WORKDIR /app
 
-# Copy binary from builder
+# Copy binaries from builder
 COPY --from=builder /app/target/release/hr-graphql-server ./hr-graphql-server
+COPY --from=builder /app/target/release/migration ./migration-bin
+COPY --from=builder /app/target/release/seed-data ./seed-data-bin
 
 # Copy migration files (required for SeaORM migrations)
 COPY --from=builder /app/migration ./migration
 
-# Verify binary is executable
-RUN chmod +x /app/hr-graphql-server
+# Copy entrypoint script
+COPY docker-entrypoint-prod.sh ./docker-entrypoint-prod.sh
+
+# Make binaries and entrypoint executable
+RUN chmod +x /app/hr-graphql-server /app/migration-bin /app/seed-data-bin /app/docker-entrypoint-prod.sh
 
 # Change ownership to non-root user
 RUN chown -R rust:rust /app
@@ -106,9 +120,8 @@ ENV ENVIRONMENT=production
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:4000/health || exit 1
 
-# Start the application
-# Note: SeaORM migrations run automatically on startup in main.rs
-CMD ["./hr-graphql-server"]
+# Use entrypoint to run migrations before starting server
+ENTRYPOINT ["./docker-entrypoint-prod.sh"]
 
 # =============================================================================
 # Build Instructions

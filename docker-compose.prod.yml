@@ -127,6 +127,9 @@ services:
       # Environment
       ENVIRONMENT: production
 
+      # Admin User Seeding (set to 'true' for first deployment only)
+      SEED_ADMIN_USER: ${SEED_ADMIN_USER:-false}
+
     networks:
       - sveltehr-network
 

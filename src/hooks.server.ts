@@ -336,13 +336,14 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 		// Content Security Policy (CSP) - strict policy
 		// Allow iframe embedding for preview endpoint
+		// Note: connect-src allows 'self' which includes the current origin and all SvelteKit API routes
 		const cspDirectives = [
 			"default-src 'self'",
 			"script-src 'self' 'unsafe-inline' 'unsafe-eval'", // TODO: Remove unsafe-eval once app is CSP-compliant
 			"style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net", // Allow FullCalendar CSS from CDN
 			"img-src 'self' data: https:",
 			"font-src 'self' data:",
-			"connect-src 'self' http://localhost:4000 ws://localhost:*", // Backend API and WebSocket
+			"connect-src 'self'", // Allow connections to same origin (includes /api/* routes)
 			isPreviewEndpoint ? "frame-ancestors 'self'" : "frame-ancestors 'none'",
 			"base-uri 'self'",
 			"form-action 'self'"
