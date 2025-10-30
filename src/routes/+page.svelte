@@ -1,45 +1,12 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { browser } from '$app/environment';
-	import { page } from '$app/stores';
-	import { isAuthenticated, isLoading, currentUser, authActions } from '$lib/stores/auth';
-	import { PermissionsService } from '$lib/services/permissionsService';
 	import { Loading } from 'carbon-components-svelte';
 
-	const permissionsService = new PermissionsService();
-
-	// Use session storage to prevent redirect loops across page reloads
-	const REDIRECT_KEY = 'hr_root_redirected';
-
-	onMount(async () => {
-		// Ensure we only run this on the root page
-		if ($page.url.pathname !== '/') return;
-
-		// Small delay to allow AuthGuard to initialize auth state
-		await new Promise((resolve) => setTimeout(resolve, 300));
-
-		// Now check the auth state (which AuthGuard has already validated)
-		if ($isAuthenticated && $currentUser) {
-			// Clear any lingering redirect flags
-			if (browser) {
-				sessionStorage.removeItem('hr_login_redirected');
-				sessionStorage.removeItem('hr_root_redirected');
-			}
-
-			// Redirect to appropriate default page based on user role
-			const isAdmin = permissionsService.isSuperAdmin($currentUser);
-			await goto(isAdmin ? '/dashboard/admin' : '/dashboard', { replaceState: true });
-		} else {
-			// Not authenticated, redirect to login
-			await goto('/login', { replaceState: true });
-		}
-	});
-
-	// Clear redirect flag when navigating away from root
-	$: if (browser && $page.url.pathname !== '/') {
-		sessionStorage.removeItem(REDIRECT_KEY);
-	}
+	/**
+	 * Root page component - Server-side redirect only
+	 *
+	 * All authentication and redirect logic is handled in +page.server.ts
+	 * This component only shows a loading state during the server-side redirect
+	 */
 </script>
 
 <svelte:head>

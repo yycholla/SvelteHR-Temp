@@ -18,37 +18,49 @@ interface ThemeState {
 
 // Create the theme store
 function createThemeStore() {
-	const defaultState: ThemeState = {
-		current: 'system',
-		resolved: 'light',
-		isSystemDark: false
-	};
+	// Initialize synchronously during module load if in browser
+	let initialState: ThemeState;
 
-	const { subscribe, set, update } = writable<ThemeState>(defaultState);
-
-	// Initialize theme from localStorage and system preference
-	function initialize() {
-		if (!browser) return;
-
-		// Get saved theme or default to 'system'
+	if (browser) {
+		// Synchronous initialization - runs BEFORE any component mounts
 		const savedTheme = (localStorage.getItem('theme') as Theme) || 'system';
-
-		// Detect system preference
 		const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 		const isSystemDark = mediaQuery.matches;
+		const resolvedTheme = savedTheme === 'system'
+			? (isSystemDark ? 'dark' : 'light')
+			: savedTheme;
 
-		// Resolve the actual theme
-		const resolvedTheme = savedTheme === 'system' ? (isSystemDark ? 'dark' : 'light') : savedTheme;
-
-		// Update store state
-		set({
+		initialState = {
 			current: savedTheme,
 			resolved: resolvedTheme,
 			isSystemDark
-		});
+		};
 
-		// Apply theme to document
-		applyTheme(resolvedTheme);
+		// Apply theme immediately to prevent flash
+		const root = document.documentElement;
+		if (resolvedTheme === 'dark') {
+			root.classList.add('dark');
+			root.setAttribute('data-theme', 'dark');
+		} else {
+			root.classList.remove('dark');
+			root.setAttribute('data-theme', 'light');
+		}
+	} else {
+		// Server-side default
+		initialState = {
+			current: 'system',
+			resolved: 'light',
+			isSystemDark: false
+		};
+	}
+
+	const { subscribe, set, update } = writable<ThemeState>(initialState);
+
+	// Initialize is now only for setting up event listeners
+	function initialize() {
+		if (!browser) return;
+
+		const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
 		// Listen for system theme changes
 		mediaQuery.addEventListener('change', (e) => {
@@ -121,7 +133,7 @@ function createThemeStore() {
 
 export const themeStore = createThemeStore();
 
-// Auto-initialize if in browser
+// Set up event listeners for system theme changes
 if (browser) {
 	themeStore.initialize();
 }

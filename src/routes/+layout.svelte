@@ -39,15 +39,17 @@
 	}
 
 	// Simplify layout logic to prevent reactive re-mounting issues
-	const isAuthPage = $derived($page.url.pathname === '/login');
-	const isPublicPage = $derived(isAuthPage || $page.url.pathname === '/');
+	const isAuthPage = $derived($page?.url?.pathname === '/login');
+	const isPublicPage = $derived(isAuthPage || $page?.url?.pathname === '/');
 
 	// Apply theme to document
 	$effect(() => {
-		if (typeof document !== 'undefined') {
+		// Extract theme first to ensure proper null checking with Svelte 5 compiler
+		const theme = $themeStore;
+		if (typeof document !== 'undefined' && theme && theme.resolved) {
 			const root = document.documentElement;
 			root.classList.remove('light', 'dark');
-			root.classList.add($themeStore.resolved);
+			root.classList.add(theme.resolved);
 		}
 	});
 
@@ -175,7 +177,9 @@
 
 <!-- Render app - server has already validated auth via hooks.server.ts -->
 <main class="app-main">
-	{@render children?.()}
+	{#if children}
+		{@render children()}
+	{/if}
 </main>
 
 <!-- Session timeout blur overlay -->

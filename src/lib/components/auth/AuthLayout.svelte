@@ -9,22 +9,30 @@
 	 * Provides consistent layout for auth pages (login, register, forgot password)
 	 */
 
-	export let title = 'SvelteHR';
-	export let subtitle = 'Human Resources Management System';
-	export let showBranding = true;
-	export let showFooter = true;
+	// Svelte 5 props syntax
+	let {
+		title = 'SvelteHR',
+		subtitle = 'Human Resources Management System',
+		showBranding = true,
+		showFooter = true
+	}: {
+		title?: string;
+		subtitle?: string;
+		showBranding?: boolean;
+		showFooter?: boolean;
+	} = $props();
 
 	// Dynamic background patterns
-	let backgroundPattern = 'dots';
+	let backgroundPattern = $state('dots');
 
 	onMount(() => {
 		// Set different patterns based on route
-		const pathname = $page.url.pathname;
-		if (pathname.includes('login')) {
+		const pathname = $page?.url?.pathname;
+		if (pathname?.includes('login')) {
 			backgroundPattern = 'dots';
-		} else if (pathname.includes('register')) {
+		} else if (pathname?.includes('register')) {
 			backgroundPattern = 'grid';
-		} else if (pathname.includes('forgot')) {
+		} else if (pathname?.includes('forgot')) {
 			backgroundPattern = 'waves';
 		}
 	});

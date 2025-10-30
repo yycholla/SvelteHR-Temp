@@ -17,7 +17,8 @@ const PUBLIC_ROUTES = new Set([
 	'/privacy',
 	'/terms',
 	'/api/auth/login',
-	'/api/health'
+	'/api/health',
+	'/api/auth/verify'
 ]);
 
 // Static file extensions to skip authentication for
