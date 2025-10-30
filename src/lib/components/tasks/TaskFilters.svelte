@@ -293,13 +293,14 @@
 					<Label>Status</Label>
 					<div class="grid grid-cols-2 gap-2">
 						{#each statusOptions as option}
+							{@const StatusIcon = option.icon}
 							<label class="flex items-center gap-2 rounded-md border p-2 cursor-pointer hover:bg-accent transition-colors" class:bg-accent={filters.statuses.includes(option.value)}>
 								<Checkbox
 									checked={filters.statuses.includes(option.value)}
 									onCheckedChange={() => toggleStatus(option.value)}
 								/>
 								<div class="flex items-center gap-1.5 flex-1 min-w-0">
-									<svelte:component this={option.icon} class="h-3 w-3 flex-shrink-0 {option.color}" />
+									<StatusIcon class="h-3 w-3 flex-shrink-0 {option.color}" />
 									<span class="text-sm truncate">{option.label}</span>
 								</div>
 							</label>

@@ -197,9 +197,9 @@
 
 		<!-- Assignment Type -->
 		<div class="mb-6">
-			<label class="block text-sm font-medium text-gray-700 mb-2">
+			<div class="block text-sm font-medium text-gray-700 mb-2">
 				Assignment Type <span class="text-red-600">*</span>
-			</label>
+			</div>
 			<div class="flex gap-4">
 				<label class="flex items-center">
 					<input

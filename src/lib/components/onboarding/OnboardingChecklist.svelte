@@ -278,7 +278,7 @@
 		<div class="modal-content">
 			<div class="modal-header">
 				<h3 class="modal-title">Complete Task</h3>
-				<button class="modal-close" on:click={cancelCompletion}>
+				<button class="modal-close" on:click={cancelCompletion} aria-label="Close modal">
 					<i class="icon-x h-5 w-5"></i>
 				</button>
 			</div>

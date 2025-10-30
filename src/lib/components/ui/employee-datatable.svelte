@@ -469,25 +469,19 @@
 							{#if !header.isPlaceholder}
 								<div class="flex items-center gap-2">
 									{#if header.column.id === 'select'}
-										<Tooltip.Provider delayDuration={0}>
-											<Tooltip.Root>
-												<Tooltip.Trigger>
-													<Checkbox
-														checked={table.getIsAllRowsSelected()}
-														indeterminate={table.getIsSomeRowsSelected()}
-														disabled={!hasActiveFilters}
-														onCheckedChange={(value) => {
-															table.toggleAllRowsSelected(!!value);
-														}}
-													/>
-												</Tooltip.Trigger>
-												{#if !hasActiveFilters}
-													<Tooltip.Content>
-														<p>Selecting all employees is blocked</p>
-													</Tooltip.Content>
-												{/if}
-											</Tooltip.Root>
-										</Tooltip.Provider>
+										{@const allSelected = table.getIsAllPageRowsSelected()}
+										{@const someSelected = table.getIsSomePageRowsSelected() && !allSelected}
+										<div class="flex items-center justify-center">
+											<Checkbox
+												checked={allSelected}
+												indeterminate={someSelected}
+												disabled={!hasActiveFilters}
+												onCheckedChange={(value) => {
+													table.toggleAllPageRowsSelected(!!value);
+												}}
+												aria-label="Select all rows"
+											/>
+										</div>
 									{:else if header.column.id === 'actions'}
 										<div class="text-right w-full">Actions</div>
 									{:else}
@@ -522,8 +516,9 @@
 								style={cell.column.columnDef.size ? `width: ${cell.column.columnDef.size}px; min-width: ${cell.column.columnDef.size}px;` : ''}
 							>
 								{#if cell.column.id === 'select'}
+									{@const isRowSelected = row.getIsSelected()}
 									<Checkbox
-										checked={row.getIsSelected()}
+										checked={isRowSelected}
 										disabled={!row.getCanSelect()}
 										onCheckedChange={(value) => {
 											row.toggleSelected(!!value);

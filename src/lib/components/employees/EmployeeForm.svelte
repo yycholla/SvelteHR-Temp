@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { createEventDispatcher, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 	import { userService } from '$lib/services/userService';
 	import { departmentService, departments } from '$lib/services/departmentService';
 	import Button from '../base/Button.svelte';
@@ -11,15 +11,24 @@
 	import type { ValidationResult } from '$lib/utils/validation';
 	import type { User, CreateUserInput, UpdateUserInput } from '$lib/types';
 
-	const dispatch = createEventDispatcher();
-
-	// Props
-	export let employee: User | null = null;
-	export let isEditing: boolean = false;
-	export let loading: boolean = false;
+	let {
+		employee = null,
+		isEditing = false,
+		loading = false,
+		onsuccess = undefined,
+		onerror = undefined,
+		oncancel = undefined
+	}: {
+		employee?: User | null;
+		isEditing?: boolean;
+		loading?: boolean;
+		onsuccess?: ((detail: { employee: User; action: 'create' | 'update' }) => void) | undefined;
+		onerror?: ((detail: { message: string }) => void) | undefined;
+		oncancel?: (() => void) | undefined;
+	} = $props();
 
 	// Form data
-	let formData = {
+	let formData = $state({
 		// Basic Information
 		firstName: '',
 		lastName: '',
@@ -52,11 +61,11 @@
 		password: '',
 		confirmPassword: '',
 		roleIds: []
-	};
+	});
 
 	// Validation
-	let validationErrors: Record<string, string> = {};
-	let isValid = false;
+	let validationErrors = $state<Record<string, string>>({});
+	let isValid = $state(false);
 
 	// Options
 	const employmentTypeOptions = [
@@ -88,15 +97,17 @@
 	];
 
 	// Computed values
-	$: departmentOptions = $departments.map((dept) => ({
-		value: dept.id,
-		label: dept.name
-	}));
+	let departmentOptions = $derived(
+		$departments.map((dept) => ({
+			value: dept.id,
+			label: dept.name
+		}))
+	);
 
-	$: managerOptions = [
+	let managerOptions = $derived([
 		{ value: '', label: 'No Manager' }
 		// TODO: Load actual managers from API
-	];
+	]);
 
 	// Validation rules
 	const validationRules = {
@@ -114,16 +125,18 @@
 	};
 
 	// Load form data if editing
-	$: if (employee && isEditing) {
-		populateFormData();
-	}
+	$effect(() => {
+		if (employee && isEditing) {
+			populateFormData();
+		}
+	});
 
 	// Validate form when data changes
-	$: {
+	$effect(() => {
 		const result = validateForm(formData, validationRules);
 		validationErrors = result.errors;
 		isValid = result.isValid;
-	}
+	});
 
 	function populateFormData() {
 		if (!employee) return;
@@ -190,7 +203,8 @@
 		}
 	}
 
-	async function handleSubmit() {
+	async function handleSubmit(event: Event) {
+		event.preventDefault();
 		if (!isValid) return;
 
 		try {
@@ -201,18 +215,18 @@
 					employee.id,
 					submissionData as UpdateUserInput
 				);
-				dispatch('success', { employee: updatedEmployee, action: 'update' });
+				onsuccess?.({ employee: updatedEmployee, action: 'update' });
 			} else {
 				const newEmployee = await userService.createUser(submissionData as CreateUserInput);
-				dispatch('success', { employee: newEmployee, action: 'create' });
+				onsuccess?.({ employee: newEmployee, action: 'create' });
 			}
 		} catch (error: any) {
-			dispatch('error', { message: error.message });
+			onerror?.({ message: error.message });
 		}
 	}
 
 	function handleCancel() {
-		dispatch('cancel');
+		oncancel?.();
 	}
 
 	function handleReset() {
@@ -239,7 +253,7 @@
 	});
 </script>
 
-<form on:submit|preventDefault={handleSubmit} class="employee-form">
+<form onsubmit={handleSubmit} class="employee-form">
 	<!-- Basic Information -->
 	<Card>
 		<div class="form-section">
@@ -496,11 +510,11 @@
 	<!-- Form Actions -->
 	<div class="form-actions">
 		<div class="form-actions__left">
-			<Button type="button" variant="ghost" on:click={handleReset} disabled={loading}>Reset</Button>
+			<Button type="button" variant="ghost" onclick={handleReset} disabled={loading}>Reset</Button>
 		</div>
 
 		<div class="form-actions__right">
-			<Button type="button" variant="tertiary" on:click={handleCancel} disabled={loading}>
+			<Button type="button" variant="tertiary" onclick={handleCancel} disabled={loading}>
 				Cancel
 			</Button>
 

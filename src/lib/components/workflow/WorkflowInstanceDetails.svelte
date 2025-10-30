@@ -1,13 +1,18 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
 	import type { WorkflowInstance } from '$lib/stores/workflow';
 
-	export let instance: WorkflowInstance;
+	// Props
+	let {
+		instance,
+		onclose = undefined
+	}: {
+		instance: WorkflowInstance;
+		onclose?: (() => void) | undefined;
+	} = $props();
 
-	const dispatch = createEventDispatcher();
-
-	$: statusColor = getStatusColor(instance.status);
-	$: duration = calculateDuration(instance.startedAt, instance.completedAt);
+	// Derived values
+	const statusColor = $derived(getStatusColor(instance.status));
+	const duration = $derived(calculateDuration(instance.startedAt, instance.completedAt));
 
 	function getStatusColor(status: string) {
 		switch (status) {
@@ -58,42 +63,7 @@
 	}
 
 	function handleClose() {
-		dispatch('close');
-	}
-
-	function getStatusIcon(status: string) {
-		switch (status) {
-			case 'running':
-				return `
-          <svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-        `;
-			case 'completed':
-				return `
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        `;
-			case 'failed':
-				return `
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        `;
-			case 'pending':
-				return `
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        `;
-			default:
-				return `
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        `;
-		}
+		onclose?.();
 	}
 </script>
 
@@ -108,11 +78,67 @@
 					<span
 						class={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium ${statusColor}`}
 					>
-						<span class="mr-1">{@html getStatusIcon(instance.status)}</span>
+						<span class="mr-1">
+							{#if instance.status === 'running'}
+								<svg
+									class="h-5 w-5 animate-spin"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+									/>
+								</svg>
+							{:else if instance.status === 'completed'}
+								<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+									/>
+								</svg>
+							{:else if instance.status === 'failed'}
+								<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+									/>
+								</svg>
+							{:else if instance.status === 'pending'}
+								<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+									/>
+								</svg>
+							{:else}
+								<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+									/>
+								</svg>
+							{/if}
+						</span>
 						{instance.status}
 					</span>
 				</div>
-				<button on:click={handleClose} class="text-gray-400 hover:text-gray-600">
+				<button
+					onclick={handleClose}
+					class="text-gray-400 hover:text-gray-600"
+					aria-label="Close dialog"
+				>
 					<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
 							stroke-linecap="round"
@@ -326,7 +352,7 @@
 		<!-- Footer -->
 		<div class="flex justify-end border-t border-gray-200 px-6 py-4">
 			<button
-				on:click={handleClose}
+				onclick={handleClose}
 				class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
 			>
 				Close

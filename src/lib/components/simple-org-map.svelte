@@ -188,10 +188,13 @@
 	<!-- Organization Map -->
 	<Card.Root>
 		<Card.Content class="p-0">
+			<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 			<div
 				class="relative h-[500px] w-full cursor-grab overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 {isDragging
 					? 'cursor-grabbing'
 					: ''}"
+				role="application"
+				aria-label="Interactive organization chart with pan and zoom controls"
 				onmousedown={handleMouseDown}
 				onmousemove={handleMouseMove}
 				onmouseup={handleMouseUp}

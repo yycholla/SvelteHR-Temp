@@ -274,6 +274,7 @@
 					</thead>
 					<tbody class="">
 						{#each leaveRequests as request}
+							{@const StatusIcon = getStatusIcon(request.status)}
 							<tr class="border-b hover:bg-muted/50">
 								<td class="whitespace-nowrap px-6 py-4 text-sm">
 									<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getLeaveTypeColor(request.leaveType.color)}">
@@ -289,10 +290,7 @@
 								<td class="whitespace-nowrap px-6 py-4 text-sm">
 									<div class="flex items-center gap-2">
 										<span class="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium {getStatusColor(request.status)}">
-											<svelte:component
-												this={getStatusIcon(request.status)}
-												class="h-3 w-3"
-											/>
+											<StatusIcon class="h-3 w-3" />
 											{request.status.charAt(0).toUpperCase() + request.status.slice(1)}
 										</span>
 									</div>

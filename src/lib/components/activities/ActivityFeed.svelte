@@ -85,7 +85,7 @@
 									class:cursor-pointer={onActivityClick}
 									class:compact
 									role={onActivityClick ? 'button' : 'article'}
-									tabindex={onActivityClick ? 0 : undefined}
+									{...onActivityClick ? { tabindex: 0 } : {}}
 									onclick={() => handleActivityClick(activity)}
 									onkeypress={(e) => handleKeyPress(e, activity)}
 								>
@@ -185,7 +185,7 @@
 							class:hover:border-primary={onActivityClick && !(activity.isRollback && showRollbackIndicators)}
 							class:compact
 							role={onActivityClick ? 'button' : 'article'}
-							tabindex={onActivityClick ? 0 : undefined}
+							{...onActivityClick ? { tabindex: 0 } : {}}
 							onclick={() => handleActivityClick(activity)}
 							onkeypress={(e) => handleKeyPress(e, activity)}
 						>

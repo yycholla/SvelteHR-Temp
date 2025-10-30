@@ -26,10 +26,10 @@
 			: currentValue === value;
 	});
 
-	// Provide context for trigger and content
+	// Provide context for trigger and content with getter to maintain reactivity
 	setContext('accordion-item', {
 		value,
-		isOpen,
+		get isOpen() { return isOpen; },
 		toggle: () => accordion.toggle(value)
 	});
 </script>

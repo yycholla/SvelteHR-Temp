@@ -39,9 +39,9 @@
 	} from 'carbon-icons-svelte';
 
 	// Main layout state
-	let isSideNavOpen = false;
-	let isUserMenuOpen = false;
-	let isNotificationPanelOpen = false;
+	let isSideNavOpen = $state(false);
+	let isUserMenuOpen = $state(false);
+	let isNotificationPanelOpen = $state(false);
 
 	let user = $state({
 		name: '',

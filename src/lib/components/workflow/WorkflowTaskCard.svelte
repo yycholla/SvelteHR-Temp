@@ -1,19 +1,27 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
 	import { workflowActions } from '$lib/stores/workflow';
 	import { user, canManageWorkflows } from '$lib/stores/auth';
 	import type { WorkflowTask } from '$lib/stores/workflow';
 
-	export let task: WorkflowTask;
+	// Props
+	let {
+		task,
+		onupdate = undefined
+	}: {
+		task: WorkflowTask;
+		onupdate?: ((detail: { task: WorkflowTask; newStatus: string }) => void) | undefined;
+	} = $props();
 
-	const dispatch = createEventDispatcher();
+	// Local state
+	let isUpdating = $state(false);
 
-	let isUpdating = false;
-
-	$: statusColor = getStatusColor(task.status);
-	$: priorityColor = getPriorityColor(task.priority);
-	$: canUpdate = canUpdateTask();
-	$: isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'completed';
+	// Derived values
+	const statusColor = $derived(getStatusColor(task.status));
+	const priorityColor = $derived(getPriorityColor(task.priority));
+	const canUpdate = $derived(canUpdateTask());
+	const isOverdue = $derived(
+		task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'completed'
+	);
 
 	function getStatusColor(status: string) {
 		switch (status) {
@@ -75,80 +83,10 @@
 		const success = await workflowActions.updateTask(task.id, patch);
 
 		if (success) {
-			dispatch('update', { task, newStatus });
+			onupdate?.({ task, newStatus });
 		}
 
 		isUpdating = false;
-	}
-
-	function getStatusIcon(status: string) {
-		switch (status) {
-			case 'pending':
-				return `
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        `;
-			case 'in_progress':
-				return `
-          <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-        `;
-			case 'completed':
-				return `
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        `;
-			case 'failed':
-				return `
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        `;
-			default:
-				return `
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        `;
-		}
-	}
-
-	function getPriorityIcon(priority: string) {
-		switch (priority?.toLowerCase()) {
-			case 'critical':
-				return `
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L4.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
-          </svg>
-        `;
-			case 'high':
-				return `
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12" />
-          </svg>
-        `;
-			case 'medium':
-				return `
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4" />
-          </svg>
-        `;
-			case 'low':
-				return `
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6" />
-          </svg>
-        `;
-			default:
-				return `
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        `;
-		}
 	}
 </script>
 
@@ -191,7 +129,54 @@
 		<span
 			class={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor}`}
 		>
-			<span class="mr-1">{@html getStatusIcon(task.status)}</span>
+			<span class="mr-1">
+				{#if task.status === 'pending'}
+					<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+						/>
+					</svg>
+				{:else if task.status === 'in_progress'}
+					<svg class="h-4 w-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+						/>
+					</svg>
+				{:else if task.status === 'completed'}
+					<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+						/>
+					</svg>
+				{:else if task.status === 'failed'}
+					<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+						/>
+					</svg>
+				{:else}
+					<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+						/>
+					</svg>
+				{/if}
+			</span>
 			{task.status.replace('_', ' ')}
 		</span>
 	</div>
@@ -205,7 +190,54 @@
 				<span
 					class={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${priorityColor}`}
 				>
-					<span class="mr-1">{@html getPriorityIcon(task.priority)}</span>
+					<span class="mr-1">
+						{#if task.priority?.toLowerCase() === 'critical'}
+							<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L4.34 16.5c-.77.833.192 2.5 1.732 2.5z"
+								/>
+							</svg>
+						{:else if task.priority?.toLowerCase() === 'high'}
+							<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M7 11l5-5m0 0l5 5m-5-5v12"
+								/>
+							</svg>
+						{:else if task.priority?.toLowerCase() === 'medium'}
+							<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M9 12l2 2 4-4"
+								/>
+							</svg>
+						{:else if task.priority?.toLowerCase() === 'low'}
+							<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M17 13l-5 5m0 0l-5-5m5 5V6"
+								/>
+							</svg>
+						{:else}
+							<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M4 6h16M4 12h16M4 18h16"
+								/>
+							</svg>
+						{/if}
+					</span>
 					{task.priority}
 				</span>
 			</dd>
@@ -292,7 +324,7 @@
 			<div class="flex gap-2">
 				{#if task.status === 'pending'}
 					<button
-						on:click={() => updateTaskStatus('in_progress')}
+						onclick={() => updateTaskStatus('in_progress')}
 						disabled={isUpdating}
 						class="btn btn-primary btn-sm"
 					>
@@ -317,7 +349,7 @@
 					</button>
 				{:else if task.status === 'in_progress'}
 					<button
-						on:click={() => updateTaskStatus('completed')}
+						onclick={() => updateTaskStatus('completed')}
 						disabled={isUpdating}
 						class="btn btn-success btn-sm"
 					>
@@ -342,7 +374,7 @@
 					</button>
 
 					<button
-						on:click={() => updateTaskStatus('failed')}
+						onclick={() => updateTaskStatus('failed')}
 						disabled={isUpdating}
 						class="btn btn-danger btn-sm"
 					>

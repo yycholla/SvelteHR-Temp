@@ -1,67 +1,94 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
-
-	const dispatch = createEventDispatcher();
-
-	export let type:
-		| 'text'
-		| 'email'
-		| 'password'
-		| 'number'
-		| 'tel'
-		| 'url'
-		| 'search'
-		| 'date'
-		| 'datetime-local'
-		| 'time' = 'text';
-	export let value: string | number = '';
-	export let placeholder: string = '';
-	export let disabled: boolean = false;
-	export let readonly: boolean = false;
-	export let required: boolean = false;
-	export let autocomplete: string | null = null;
-	export let name: string | null = null;
-	export let id: string | null = null;
-	export let size: 'sm' | 'md' | 'lg' = 'md';
-	export let variant: 'default' | 'error' | 'success' = 'default';
-	export let fullWidth: boolean = false;
-	export let leftIcon: string | null = null;
-	export let rightIcon: string | null = null;
-	export let label: string | null = null;
-	export let helperText: string | null = null;
-	export let errorText: string | null = null;
-	export let min: number | string | null = null;
-	export let max: number | string | null = null;
-	export let step: number | string | null = null;
-	export let maxlength: number | null = null;
-	export let pattern: string | null = null;
+	let {
+		type = 'text',
+		value = $bindable(''),
+		placeholder = '',
+		disabled = false,
+		readonly = false,
+		required = false,
+		autocomplete = null,
+		name = null,
+		id = null,
+		size = 'md',
+		variant = 'default',
+		fullWidth = false,
+		leftIcon = null,
+		rightIcon = null,
+		label = null,
+		helperText = null,
+		errorText = null,
+		min = null,
+		max = null,
+		step = null,
+		maxlength = null,
+		pattern = null,
+		oninput = undefined,
+		onchange = undefined,
+		onfocus = undefined,
+		onblur = undefined,
+		onkeydown = undefined,
+		onkeyup = undefined
+	}: {
+		type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search' | 'date' | 'datetime-local' | 'time';
+		value?: string | number;
+		placeholder?: string;
+		disabled?: boolean;
+		readonly?: boolean;
+		required?: boolean;
+		autocomplete?: string | null;
+		name?: string | null;
+		id?: string | null;
+		size?: 'sm' | 'md' | 'lg';
+		variant?: 'default' | 'error' | 'success';
+		fullWidth?: boolean;
+		leftIcon?: string | null;
+		rightIcon?: string | null;
+		label?: string | null;
+		helperText?: string | null;
+		errorText?: string | null;
+		min?: number | string | null;
+		max?: number | string | null;
+		step?: number | string | null;
+		maxlength?: number | null;
+		pattern?: string | null;
+		oninput?: ((detail: { value: string | number; event: Event }) => void) | undefined;
+		onchange?: ((detail: { value: string | number; event: Event }) => void) | undefined;
+		onfocus?: ((detail: { value: string | number; event: FocusEvent }) => void) | undefined;
+		onblur?: ((detail: { value: string | number; event: FocusEvent }) => void) | undefined;
+		onkeydown?: ((detail: { value: string | number; event: KeyboardEvent }) => void) | undefined;
+		onkeyup?: ((detail: { value: string | number; event: KeyboardEvent }) => void) | undefined;
+	} = $props();
 
 	// Internal state
-	let focused = false;
+	let focused = $state(false);
 	let inputElement: HTMLInputElement;
 
 	// Computed classes
-	$: containerClasses = [
-		'input-container',
-		`input-container--${size}`,
-		fullWidth && 'input-container--full-width',
-		focused && 'input-container--focused',
-		disabled && 'input-container--disabled',
-		variant === 'error' && 'input-container--error',
-		variant === 'success' && 'input-container--success'
-	]
-		.filter(Boolean)
-		.join(' ');
+	let containerClasses = $derived(
+		[
+			'input-container',
+			`input-container--${size}`,
+			fullWidth && 'input-container--full-width',
+			focused && 'input-container--focused',
+			disabled && 'input-container--disabled',
+			variant === 'error' && 'input-container--error',
+			variant === 'success' && 'input-container--success'
+		]
+			.filter(Boolean)
+			.join(' ')
+	);
 
-	$: inputClasses = [
-		'input',
-		`input--${size}`,
-		`input--${variant}`,
-		leftIcon && 'input--with-left-icon',
-		rightIcon && 'input--with-right-icon'
-	]
-		.filter(Boolean)
-		.join(' ');
+	let inputClasses = $derived(
+		[
+			'input',
+			`input--${size}`,
+			`input--${variant}`,
+			leftIcon && 'input--with-left-icon',
+			rightIcon && 'input--with-right-icon'
+		]
+			.filter(Boolean)
+			.join(' ')
+	);
 
 	// Event handlers
 	function handleInput(event: Event) {
@@ -71,29 +98,29 @@
 		} else {
 			value = target.value;
 		}
-		dispatch('input', { value, event });
+		oninput?.({ value, event });
 	}
 
 	function handleChange(event: Event) {
-		dispatch('change', { value, event });
+		onchange?.({ value, event });
 	}
 
 	function handleFocus(event: FocusEvent) {
 		focused = true;
-		dispatch('focus', { value, event });
+		onfocus?.({ value, event });
 	}
 
 	function handleBlur(event: FocusEvent) {
 		focused = false;
-		dispatch('blur', { value, event });
+		onblur?.({ value, event });
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
-		dispatch('keydown', { value, event });
+		onkeydown?.({ value, event });
 	}
 
 	function handleKeyup(event: KeyboardEvent) {
-		dispatch('keyup', { value, event });
+		onkeyup?.({ value, event });
 	}
 
 	// Public methods
@@ -144,12 +171,12 @@
 			{pattern}
 			value={type === 'number' ? value : value.toString()}
 			class={inputClasses}
-			on:input={handleInput}
-			on:change={handleChange}
-			on:focus={handleFocus}
-			on:blur={handleBlur}
-			on:keydown={handleKeydown}
-			on:keyup={handleKeyup}
+			oninput={handleInput}
+			onchange={handleChange}
+			onfocus={handleFocus}
+			onblur={handleBlur}
+			onkeydown={handleKeydown}
+			onkeyup={handleKeyup}
 		/>
 
 		{#if rightIcon}

@@ -1,38 +1,53 @@
 <script lang="ts">
-	export let variant:
-		| 'primary'
-		| 'secondary'
-		| 'tertiary'
-		| 'danger'
-		| 'success'
-		| 'warning'
-		| 'ghost' = 'primary';
-	export let size: 'xs' | 'sm' | 'md' | 'lg' | 'xl' = 'md';
-	export let type: 'button' | 'submit' | 'reset' = 'button';
-	export let disabled: boolean = false;
-	export let loading: boolean = false;
-	export let fullWidth: boolean = false;
-	export let rounded: boolean = false;
-	export let href: string | null = null;
-	export let target: string | null = null;
-	export let rel: string | null = null;
-	export let leftIcon: string | null = null;
-	export let rightIcon: string | null = null;
-	export let iconOnly: boolean = false;
+	import type { Snippet } from 'svelte';
+
+	let {
+		variant = 'primary',
+		size = 'md',
+		type = 'button',
+		disabled = false,
+		loading = false,
+		fullWidth = false,
+		rounded = false,
+		href = null,
+		target = null,
+		rel = null,
+		leftIcon = null,
+		rightIcon = null,
+		iconOnly = false,
+		children
+	}: {
+		variant?: 'primary' | 'secondary' | 'tertiary' | 'danger' | 'success' | 'warning' | 'ghost';
+		size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+		type?: 'button' | 'submit' | 'reset';
+		disabled?: boolean;
+		loading?: boolean;
+		fullWidth?: boolean;
+		rounded?: boolean;
+		href?: string | null;
+		target?: string | null;
+		rel?: string | null;
+		leftIcon?: string | null;
+		rightIcon?: string | null;
+		iconOnly?: boolean;
+		children?: Snippet;
+	} = $props();
 
 	// Class computation
-	$: buttonClasses = [
-		'btn',
-		`btn--${variant}`,
-		`btn--${size}`,
-		fullWidth && 'btn--full-width',
-		rounded && 'btn--rounded',
-		iconOnly && 'btn--icon-only',
-		disabled && 'btn--disabled',
-		loading && 'btn--loading'
-	]
-		.filter(Boolean)
-		.join(' ');
+	let buttonClasses = $derived(
+		[
+			'btn',
+			`btn--${variant}`,
+			`btn--${size}`,
+			fullWidth && 'btn--full-width',
+			rounded && 'btn--rounded',
+			iconOnly && 'btn--icon-only',
+			disabled && 'btn--disabled',
+			loading && 'btn--loading'
+		]
+			.filter(Boolean)
+			.join(' ')
+	);
 
 	// Event handlers
 	function handleClick(event: MouseEvent) {
@@ -52,11 +67,6 @@
 		{rel}
 		class={buttonClasses}
 		role="button"
-		on:click
-		on:mouseenter
-		on:mouseleave
-		on:focus
-		on:blur
 	>
 		{#if leftIcon && !iconOnly}
 			<span class="btn__icon btn__icon--left">
@@ -70,7 +80,7 @@
 			</span>
 		{:else}
 			<span class="btn__text">
-				<slot />
+				{@render children?.()}
 			</span>
 		{/if}
 
@@ -106,11 +116,7 @@
 		{type}
 		{disabled}
 		class={buttonClasses}
-		on:click={handleClick}
-		on:mouseenter
-		on:mouseleave
-		on:focus
-		on:blur
+		onclick={handleClick}
 	>
 		{#if leftIcon && !iconOnly}
 			<span class="btn__icon btn__icon--left">
@@ -124,7 +130,7 @@
 			</span>
 		{:else}
 			<span class="btn__text">
-				<slot />
+				{@render children?.()}
 			</span>
 		{/if}
 

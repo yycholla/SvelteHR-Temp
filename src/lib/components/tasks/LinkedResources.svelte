@@ -250,7 +250,7 @@
 						<div class="flex items-start gap-3 flex-1">
 							<!-- Type Icon -->
 							<div class="flex h-10 w-10 items-center justify-center rounded-full flex-shrink-0 {getResourceTypeColor(resource.resourceType)}">
-								<svelte:component this={TypeIcon} class="h-5 w-5" />
+								<TypeIcon class="h-5 w-5" />
 							</div>
 
 							<!-- Resource Info -->
@@ -259,10 +259,7 @@
 									<Badge variant="outline" class="text-xs">
 										{formatResourceType(resource.resourceType)}
 									</Badge>
-									<svelte:component 
-										this={StatusIcon} 
-										class="h-4 w-4 flex-shrink-0 {getAvailabilityColor(resource.availabilityStatus)}" 
-									/>
+									<StatusIcon class="h-4 w-4 flex-shrink-0 {getAvailabilityColor(resource.availabilityStatus)}" />
 								</div>
 								<p class="font-medium text-foreground truncate">{resource.resourceTitle}</p>
 								<div class="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
@@ -339,9 +336,10 @@
 						</Select.Trigger>
 						<Select.Content>
 							{#each resourceTypeOptions as type}
+								{@const TypeIcon = type.icon}
 								<Select.Item value={type.value}>
 									<div class="flex items-center gap-2">
-										<svelte:component this={type.icon} class="h-4 w-4" />
+										<TypeIcon class="h-4 w-4" />
 										<span>{type.label}</span>
 									</div>
 								</Select.Item>

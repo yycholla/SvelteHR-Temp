@@ -617,6 +617,7 @@
 				<button
 					onclick={() => (showICalDialog = false)}
 					class="text-muted-foreground hover:text-foreground"
+					aria-label="Close dialog"
 				>
 					<svg
 						class="h-5 w-5"
@@ -638,11 +639,12 @@
 			<div class="space-y-4">
 				<!-- Copy Link Section -->
 				<div>
-					<label class="mb-2 block text-sm font-medium text-card-foreground"
+					<label for="ical-feed-url" class="mb-2 block text-sm font-medium text-card-foreground"
 						>iCal Feed URL</label
 					>
 					<div class="flex items-center gap-2">
 						<input
+							id="ical-feed-url"
 							type="text"
 							readonly
 							value={iCalLink}

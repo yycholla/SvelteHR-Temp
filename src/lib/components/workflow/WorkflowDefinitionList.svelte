@@ -12,27 +12,34 @@
 	import CreateWorkflowDefinition from './CreateWorkflowDefinition.svelte';
 	import WorkflowStatsCards from './WorkflowStatsCards.svelte';
 
-	export let showCreateButton = true;
-	export let showStats = true;
-	export let limit = 50;
+	// Props
+	let {
+		showCreateButton = true,
+		showStats = true,
+		limit = 50
+	}: {
+		showCreateButton?: boolean;
+		showStats?: boolean;
+		limit?: number;
+	} = $props();
 
-	let showCreateDialog = false;
-	let statusFilter = '';
-	let categoryFilter = '';
-	let searchTerm = '';
+	// Local state
+	let showCreateDialog = $state(false);
+	let statusFilter = $state('');
+	let categoryFilter = $state('');
+	let searchTerm = $state('');
 
-	// Filter categories from definitions
-	$: categories = [...new Set($filteredDefinitions.map((def) => def.category).filter(Boolean))];
+	// Derived values
+	const categories = $derived([...new Set($filteredDefinitions.map((def) => def.category).filter(Boolean))]);
 
-	// Apply client-side filtering
-	$: filteredBySearch = $filteredDefinitions.filter((definition) => {
+	const filteredBySearch = $derived($filteredDefinitions.filter((definition) => {
 		const matchesSearch =
 			!searchTerm ||
 			definition.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
 			definition.description?.toLowerCase().includes(searchTerm.toLowerCase());
 
 		return matchesSearch;
-	});
+	}));
 
 	onMount(() => {
 		workflowActions.loadDefinitions(limit);
@@ -67,7 +74,7 @@
 		</div>
 
 		<div class="flex gap-2">
-			<button on:click={handleRefresh} class="btn btn-secondary" disabled={$isWorkflowLoading}>
+			<button onclick={handleRefresh} class="btn btn-secondary" disabled={$isWorkflowLoading}>
 				<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path
 						stroke-linecap="round"
@@ -80,7 +87,7 @@
 			</button>
 
 			{#if showCreateButton && $canManageWorkflows}
-				<button on:click={() => (showCreateDialog = true)} class="btn btn-primary">
+				<button onclick={() => (showCreateDialog = true)} class="btn btn-primary">
 					<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
 							stroke-linecap="round"
@@ -123,7 +130,7 @@
 				<select
 					id="status-filter"
 					bind:value={statusFilter}
-					on:change={() => handleStatusFilter(statusFilter)}
+					onchange={() => handleStatusFilter(statusFilter)}
 					class="select"
 				>
 					<option value="">All Statuses</option>
@@ -141,11 +148,11 @@
 				<select
 					id="category-filter"
 					bind:value={categoryFilter}
-					on:change={() => handleCategoryFilter(categoryFilter)}
+					onchange={() => handleCategoryFilter(categoryFilter)}
 					class="select"
 				>
 					<option value="">All Categories</option>
-					{#each categories as category}
+					{#each categories as category (category)}
 						<option value={category}>{category}</option>
 					{/each}
 				</select>
@@ -156,7 +163,7 @@
 		{#if statusFilter || categoryFilter || searchTerm}
 			<div class="mt-4">
 				<button
-					on:click={() => {
+					onclick={() => {
 						statusFilter = '';
 						categoryFilter = '';
 						searchTerm = '';
@@ -192,7 +199,7 @@
 	<!-- Loading State -->
 	{#if $isWorkflowLoading}
 		<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-			{#each Array(6) as _}
+			{#each Array(6) as _, i (i)}
 				<div class="animate-pulse rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
 					<div class="mb-4 h-4 w-3/4 rounded bg-gray-200"></div>
 					<div class="mb-2 h-3 w-full rounded bg-gray-200"></div>
@@ -238,7 +245,7 @@
 				</p>
 				{#if $canManageWorkflows && !searchTerm && !statusFilter && !categoryFilter}
 					<div class="mt-6">
-						<button on:click={() => (showCreateDialog = true)} class="btn btn-primary">
+						<button onclick={() => (showCreateDialog = true)} class="btn btn-primary">
 							<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path
 									stroke-linecap="round"
@@ -259,9 +266,7 @@
 <!-- Create Workflow Dialog -->
 {#if showCreateDialog}
 	<CreateWorkflowDefinition
-		on:success={handleCreateSuccess}
-		on:cancel={() => (showCreateDialog = false)}
+		onsuccess={handleCreateSuccess}
+		oncancel={() => (showCreateDialog = false)}
 	/>
 {/if}
-
-

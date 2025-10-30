@@ -203,8 +203,25 @@
 	</button>
 
 	{#if showConfirmDialog}
-		<div class="modal-backdrop" onclick={handleCancel}>
-			<div class="modal-dialog" onclick={(e) => e.stopPropagation()}>
+		<div
+			class="modal-backdrop"
+			role="button"
+			tabindex="0"
+			onclick={handleCancel}
+			onkeydown={(e) => {
+				if (e.key === 'Escape' || e.key === 'Enter') {
+					handleCancel();
+				}
+			}}
+		>
+			<div
+				class="modal-dialog"
+				role="dialog"
+			tabindex="-1"
+				aria-modal="true"
+				onclick={(e) => e.stopPropagation()}
+				onkeydown={(e) => e.stopPropagation()}
+			>
 				<div class="modal-header">
 					<h3>{confirmTitle}</h3>
 				</div>

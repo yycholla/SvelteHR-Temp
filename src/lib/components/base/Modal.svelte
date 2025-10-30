@@ -1,21 +1,37 @@
 <script lang="ts">
-	import { createEventDispatcher, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 
-	const dispatch = createEventDispatcher();
+	let {
+		open = $bindable(false),
+		title = '',
+		size = 'md',
+		closeOnEscape = true,
+		closeOnBackdrop = true,
+		showCloseButton = true,
+		persistent = false,
+		loading = false,
+		maxHeight = null,
+		onclose = undefined,
+		children,
+		footer
+	}: {
+		open?: boolean;
+		title?: string;
+		size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
+		closeOnEscape?: boolean;
+		closeOnBackdrop?: boolean;
+		showCloseButton?: boolean;
+		persistent?: boolean;
+		loading?: boolean;
+		maxHeight?: string | null;
+		onclose?: (() => void) | undefined;
+		children?: import('svelte').Snippet;
+		footer?: import('svelte').Snippet;
+	} = $props();
 
-	export let open: boolean = false;
-	export let title: string = '';
-	export let size: 'sm' | 'md' | 'lg' | 'xl' | 'full' = 'md';
-	export let closeOnEscape: boolean = true;
-	export let closeOnBackdrop: boolean = true;
-	export let showCloseButton: boolean = true;
-	export let persistent: boolean = false; // Prevents closing
-	export let loading: boolean = false;
-	export let maxHeight: string | null = null;
-
-	let modalElement: HTMLDivElement;
-	let previouslyFocused: HTMLElement | null = null;
+	let modalElement = $state<HTMLDivElement>();
+	let previouslyFocused = $state<HTMLElement | null>(null);
 
 	// Size classes mapping
 	const sizeClasses = {
@@ -26,9 +42,9 @@
 		full: 'modal--full'
 	};
 
-	$: modalClasses = ['modal', sizeClasses[size], loading && 'modal--loading']
-		.filter(Boolean)
-		.join(' ');
+	let modalClasses = $derived(
+		['modal', sizeClasses[size], loading && 'modal--loading'].filter(Boolean).join(' ')
+	);
 
 	// Handle escape key
 	function handleKeydown(event: KeyboardEvent) {
@@ -48,7 +64,7 @@
 	function handleClose() {
 		if (persistent) return;
 
-		dispatch('close');
+		onclose?.();
 		open = false;
 	}
 
@@ -87,39 +103,41 @@
 	});
 
 	// Handle open state changes
-	$: if (open) {
-		// Save currently focused element
-		previouslyFocused = document.activeElement as HTMLElement;
+	$effect(() => {
+		if (open) {
+			// Save currently focused element
+			previouslyFocused = document.activeElement as HTMLElement;
 
-		// Prevent body scroll
-		document.body.style.overflow = 'hidden';
+			// Prevent body scroll
+			document.body.style.overflow = 'hidden';
 
-		// Focus first focusable element in modal
-		setTimeout(() => {
-			const firstFocusable = modalElement?.querySelector(
-				'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-			) as HTMLElement;
-			firstFocusable?.focus();
-		}, 100);
-	} else {
-		// Restore body scroll
-		document.body.style.overflow = '';
+			// Focus first focusable element in modal
+			setTimeout(() => {
+				const firstFocusable = modalElement?.querySelector(
+					'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+				) as HTMLElement;
+				firstFocusable?.focus();
+			}, 100);
+		} else {
+			// Restore body scroll
+			document.body.style.overflow = '';
 
-		// Restore focus
-		if (previouslyFocused) {
-			previouslyFocused.focus();
-			previouslyFocused = null;
+			// Restore focus
+			if (previouslyFocused) {
+				previouslyFocused.focus();
+				previouslyFocused = null;
+			}
 		}
-	}
+	});
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} />
 
 {#if open}
 	<div
 		class="modal-backdrop"
-		on:click={handleBackdropClick}
-		on:keydown={trapFocus}
+		onclick={handleBackdropClick}
+		onkeydown={trapFocus}
 		role="presentation"
 		transition:fade={{ duration: 200 }}
 	>
@@ -164,7 +182,7 @@
 					{/if}
 
 					{#if showCloseButton && !persistent}
-						<button type="button" class="modal__close" on:click={handleClose}>
+						<button type="button" class="modal__close" onclick={handleClose}>
 							<span class="sr-only">Close modal</span>
 							<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 								<path
@@ -180,12 +198,12 @@
 			{/if}
 
 			<div class="modal__content">
-				<slot />
+				{@render children?.()}
 			</div>
 
-			{#if $$slots.footer}
+			{#if footer}
 				<div class="modal__footer">
-					<slot name="footer" />
+					{@render footer()}
 				</div>
 			{/if}
 		</div>

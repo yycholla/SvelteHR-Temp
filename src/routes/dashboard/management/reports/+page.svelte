@@ -653,7 +653,14 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 		>
 			<div
 				class="fixed inset-0 bg-muted dark:bg-muted0 bg-opacity-75 transition-opacity"
+				role="button"
+				tabindex="0"
 				onclick={closeModals}
+				onkeydown={(e) => {
+					if (e.key === 'Escape' || e.key === 'Enter') {
+						closeModals();
+					}
+				}}
 			></div>
 
 			<div
@@ -748,7 +755,14 @@ Modern Svelte 5 implementation with server-side data loading, comprehensive anal
 		>
 			<div
 				class="fixed inset-0 bg-muted dark:bg-muted0 bg-opacity-75 transition-opacity"
+				role="button"
+				tabindex="0"
 				onclick={closeModals}
+				onkeydown={(e) => {
+					if (e.key === 'Escape' || e.key === 'Enter') {
+						closeModals();
+					}
+				}}
 			></div>
 
 			<div

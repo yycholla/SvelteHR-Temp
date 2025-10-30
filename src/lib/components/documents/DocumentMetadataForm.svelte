@@ -247,8 +247,7 @@
 		box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
 	}
 
-	.field-input.error,
-	.field-textarea.error {
+	.field-input.error {
 		border-color: #f56565;
 	}
 

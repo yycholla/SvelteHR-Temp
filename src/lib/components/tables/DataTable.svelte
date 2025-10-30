@@ -1,9 +1,6 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
 	import Button from '../base/Button.svelte';
 	import Badge from '../base/Badge.svelte';
-
-	const dispatch = createEventDispatcher();
 
 	// Generic type for table data
 	type TableData = Record<string, any>;
@@ -22,33 +19,50 @@
 	}
 
 	// Props
-	export let data: TableData[] = [];
-	export let columns: Column[] = [];
-	export let loading: boolean = false;
-	export let selectable: boolean = false;
-	export let sortable: boolean = true;
-	export let hoverable: boolean = true;
-	export let striped: boolean = false;
-	export let compact: boolean = false;
-	export let emptyMessage: string = 'No data available';
-	export let loadingMessage: string = 'Loading...';
-	export let currentSort: { key: string; direction: 'asc' | 'desc' } | null = null;
-	export let selectedRows: any[] = [];
+	let {
+		data = [],
+		columns = [],
+		loading = false,
+		selectable = false,
+		sortable = true,
+		hoverable = true,
+		striped = false,
+		compact = false,
+		emptyMessage = 'No data available',
+		loadingMessage = 'Loading...',
+		currentSort = null,
+		selectedRows = $bindable([]),
+		onsort = undefined,
+		onrowClick = undefined,
+		onselectionChange = undefined
+	}: {
+		data?: TableData[];
+		columns?: Column[];
+		loading?: boolean;
+		selectable?: boolean;
+		sortable?: boolean;
+		hoverable?: boolean;
+		striped?: boolean;
+		compact?: boolean;
+		emptyMessage?: string;
+		loadingMessage?: string;
+		currentSort?: { key: string; direction: 'asc' | 'desc' } | null;
+		selectedRows?: any[];
+		onsort?: ((detail: { key: string; direction: 'asc' | 'desc' }) => void) | undefined;
+		onrowClick?: ((detail: { row: TableData; index: number }) => void) | undefined;
+		onselectionChange?: ((detail: any[]) => void) | undefined;
+	} = $props();
 
-	// Internal state
-	let allSelected = false;
-	$: allSelected = data.length > 0 && selectedRows.length === data.length;
-	$: someSelected = selectedRows.length > 0 && selectedRows.length < data.length;
+	// Computed selection states
+	let allSelected = $derived(data.length > 0 && selectedRows.length === data.length);
+	let someSelected = $derived(selectedRows.length > 0 && selectedRows.length < data.length);
 
 	// Computed classes
-	$: tableClasses = [
-		'data-table',
-		hoverable && 'data-table--hoverable',
-		striped && 'data-table--striped',
-		compact && 'data-table--compact'
-	]
-		.filter(Boolean)
-		.join(' ');
+	let tableClasses = $derived(
+		['data-table', hoverable && 'data-table--hoverable', striped && 'data-table--striped', compact && 'data-table--compact']
+			.filter(Boolean)
+			.join(' ')
+	);
 
 	// Event handlers
 	function handleSort(column: Column) {
@@ -60,11 +74,11 @@
 			direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
 		}
 
-		dispatch('sort', { key: column.key, direction });
+		onsort?.({ key: column.key, direction });
 	}
 
 	function handleRowClick(row: TableData, index: number) {
-		dispatch('rowClick', { row, index });
+		onrowClick?.({ row, index });
 	}
 
 	function handleSelectAll(checked: boolean) {
@@ -73,7 +87,7 @@
 		} else {
 			selectedRows = [];
 		}
-		dispatch('selectionChange', selectedRows);
+		onselectionChange?.(selectedRows);
 	}
 
 	function handleRowSelect(row: TableData, checked: boolean) {
@@ -82,7 +96,7 @@
 		} else {
 			selectedRows = selectedRows.filter((r) => r !== row);
 		}
-		dispatch('selectionChange', selectedRows);
+		onselectionChange?.(selectedRows);
 	}
 
 	function isRowSelected(row: TableData): boolean {
@@ -136,12 +150,12 @@
 								class="data-table__checkbox"
 								checked={allSelected}
 								indeterminate={someSelected}
-								on:change={(e) => handleSelectAll(e.currentTarget.checked)}
+								onchange={(e) => handleSelectAll(e.currentTarget.checked)}
 							/>
 						</th>
 					{/if}
 
-					{#each columns as column}
+					{#each columns as column (column.key)}
 						<th
 							class="data-table__head-cell"
 							class:data-table__head-cell--sortable={sortable && column.sortable}
@@ -149,7 +163,7 @@
 							class:data-table__head-cell--center={column.align === 'center'}
 							class:data-table__head-cell--right={column.align === 'right'}
 							style:width={column.width}
-							on:click={() => handleSort(column)}
+							onclick={() => handleSort(column)}
 						>
 							<div class="data-table__head-content">
 								<span class="data-table__head-label">{column.label}</span>
@@ -203,11 +217,11 @@
 						</td>
 					</tr>
 				{:else}
-					{#each data as row, index}
+					{#each data as row, index (row.id || index)}
 						<tr
 							class="data-table__body-row"
 							class:data-table__body-row--selected={isRowSelected(row)}
-							on:click={() => handleRowClick(row, index)}
+							onclick={() => handleRowClick(row, index)}
 						>
 							{#if selectable}
 								<td class="data-table__body-cell data-table__body-cell--select">
@@ -215,13 +229,13 @@
 										type="checkbox"
 										class="data-table__checkbox"
 										checked={isRowSelected(row)}
-										on:change={(e) => handleRowSelect(row, e.currentTarget.checked)}
-										on:click={(e) => e.stopPropagation()}
+										onchange={(e) => handleRowSelect(row, e.currentTarget.checked)}
+										onclick={(e) => e.stopPropagation()}
 									/>
 								</td>
 							{/if}
 
-							{#each columns as column}
+							{#each columns as column (column.key)}
 								<td
 									class="data-table__body-cell"
 									class:data-table__body-cell--center={column.align === 'center'}
@@ -232,12 +246,8 @@
 											{formatCellValue(column, row[column.key], row)}
 										</Badge>
 									{:else if column.component}
-										<svelte:component
-											this={column.component}
-											value={row[column.key]}
-											{row}
-											{column}
-										/>
+										{@const Component = column.component}
+										<Component value={row[column.key]} {row} {column} />
 									{:else}
 										<span class="data-table__cell-content">
 											{formatCellValue(column, row[column.key], row)}

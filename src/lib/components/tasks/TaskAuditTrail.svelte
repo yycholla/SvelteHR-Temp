@@ -202,7 +202,7 @@
 								entry.actionType
 							)}"
 						>
-							<svelte:component this={ActionIcon} class="h-5 w-5" />
+							<ActionIcon class="h-5 w-5" />
 						</div>
 						<!-- Vertical line (not shown for last item) -->
 						{#if entry !== entries[entries.length - 1]}
@@ -278,7 +278,15 @@
 									{entry.changedFields.length} field{entry.changedFields.length > 1 ? 's' : ''} changed
 									<span
 										class="cursor-pointer text-primary hover:underline"
+										role="button"
+										tabindex="0"
 										onclick={() => toggleEntry(entry.id)}
+										onkeydown={(e) => {
+											if (e.key === 'Enter' || e.key === ' ') {
+												e.preventDefault();
+												toggleEntry(entry.id);
+											}
+										}}
 									>
 										(show details)
 									</span>

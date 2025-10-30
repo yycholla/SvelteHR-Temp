@@ -1,15 +1,21 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
 	import { workflowActions } from '$lib/stores/workflow';
 	import { user } from '$lib/stores/auth';
 
-	const dispatch = createEventDispatcher();
+	// Props
+	let {
+		onsuccess = undefined,
+		oncancel = undefined
+	}: {
+		onsuccess?: (() => void) | undefined;
+		oncancel?: (() => void) | undefined;
+	} = $props();
 
-	let isLoading = false;
-	let error = '';
+	let isLoading = $state(false);
+	let error = $state('');
 
 	// Form data
-	let formData = {
+	let formData = $state({
 		name: '',
 		description: '',
 		category: '',
@@ -22,7 +28,7 @@
 		retryDelayMinutes: 5,
 		status: 'draft',
 		departmentId: null
-	};
+	});
 
 	const categories = [
 		'Onboarding',
@@ -42,10 +48,10 @@
 		{ value: 'webhook', label: 'Webhook' }
 	];
 
-	let isValidJson = {
+	let isValidJson = $state({
 		triggerConditions: true,
 		definition: true
-	};
+	});
 
 	// Validate JSON fields
 	function validateJson(field: 'triggerConditions' | 'definition', value: string) {
@@ -58,7 +64,9 @@
 	}
 
 	// Handle form submission
-	async function handleSubmit() {
+	async function handleSubmit(event: Event) {
+		event.preventDefault();
+
 		// Validate required fields
 		if (!formData.name.trim()) {
 			error = 'Name is required';
@@ -102,7 +110,7 @@
 			const success = await workflowActions.createDefinition(input);
 
 			if (success) {
-				dispatch('success');
+				onsuccess?.();
 			} else {
 				error = 'Failed to create workflow definition';
 			}
@@ -114,7 +122,7 @@
 	}
 
 	function handleCancel() {
-		dispatch('cancel');
+		oncancel?.();
 	}
 
 	// JSON formatting helpers
@@ -136,7 +144,11 @@
 		<div class="border-b border-gray-200 px-6 py-4">
 			<div class="flex items-center justify-between">
 				<h3 class="text-lg font-medium text-gray-900">Create Workflow Definition</h3>
-				<button on:click={handleCancel} class="text-gray-400 hover:text-gray-600">
+				<button
+					onclick={handleCancel}
+					class="text-gray-400 hover:text-gray-600"
+					aria-label="Close dialog"
+				>
 					<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
 							stroke-linecap="round"
@@ -150,7 +162,7 @@
 		</div>
 
 		<!-- Form -->
-		<form on:submit|preventDefault={handleSubmit} class="space-y-6 px-6 py-4">
+		<form onsubmit={handleSubmit} class="space-y-6 px-6 py-4">
 			<!-- Error Display -->
 			{#if error}
 				<div class="rounded-md border border-red-200 bg-red-50 p-4">
@@ -206,7 +218,7 @@
 						class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
 					>
 						<option value="">Select category</option>
-						{#each categories as category}
+						{#each categories as category (category)}
 							<option value={category}>{category}</option>
 						{/each}
 					</select>
@@ -222,7 +234,7 @@
 						required
 						class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
 					>
-						{#each triggerTypes as trigger}
+						{#each triggerTypes as trigger (trigger.value)}
 							<option value={trigger.value}>{trigger.label}</option>
 						{/each}
 					</select>
@@ -309,7 +321,7 @@
 					</label>
 					<button
 						type="button"
-						on:click={() => formatJson('triggerConditions')}
+						onclick={() => formatJson('triggerConditions')}
 						class="text-xs text-blue-600 hover:text-blue-800"
 					>
 						Format JSON
@@ -318,7 +330,7 @@
 				<textarea
 					id="triggerConditions"
 					bind:value={formData.triggerConditions}
-					on:input={() => validateJson('triggerConditions', formData.triggerConditions)}
+					oninput={() => validateJson('triggerConditions', formData.triggerConditions)}
 					rows="4"
 					class={`mt-1 block w-full rounded-md border font-mono text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 ${isValidJson.triggerConditions ? 'border-gray-300' : 'border-red-300'}`}
 					placeholder={`{"condition": "example"}`}
@@ -336,7 +348,7 @@
 					</label>
 					<button
 						type="button"
-						on:click={() => formatJson('definition')}
+						onclick={() => formatJson('definition')}
 						class="text-xs text-blue-600 hover:text-blue-800"
 					>
 						Format JSON
@@ -345,7 +357,7 @@
 				<textarea
 					id="definition"
 					bind:value={formData.definition}
-					on:input={() => validateJson('definition', formData.definition)}
+					oninput={() => validateJson('definition', formData.definition)}
 					rows="6"
 					class={`mt-1 block w-full rounded-md border font-mono text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 ${isValidJson.definition ? 'border-gray-300' : 'border-red-300'}`}
 					placeholder={`{"steps": [{"name": "step1", "type": "action", "config": {}}]}`}
@@ -360,14 +372,14 @@
 		<div class="flex justify-end space-x-3 border-t border-gray-200 px-6 py-4">
 			<button
 				type="button"
-				on:click={handleCancel}
+				onclick={handleCancel}
 				class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
 			>
 				Cancel
 			</button>
 			<button
 				type="submit"
-				on:click={handleSubmit}
+				onclick={handleSubmit}
 				disabled={isLoading || !isValidJson.triggerConditions || !isValidJson.definition}
 				class="rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
 			>

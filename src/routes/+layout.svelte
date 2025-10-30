@@ -184,7 +184,7 @@
 
 <!-- Session timeout blur overlay -->
 {#if showTimeoutBlur}
-	<div class="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm" />
+	<div class="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm"></div>
 {/if}
 
 <!-- Global toast notifications -->
@@ -218,11 +218,4 @@
 		height: 100%;
 	}
 
-	.auth-layout {
-		min-height: 100vh;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background-color: #f9fafb;
-	}
 </style>

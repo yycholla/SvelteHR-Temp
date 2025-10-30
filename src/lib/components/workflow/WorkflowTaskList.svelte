@@ -9,14 +9,23 @@
 	import { user, canManageWorkflows } from '$lib/stores/auth';
 	import WorkflowTaskCard from './WorkflowTaskCard.svelte';
 
-	export let showFilters = true;
-	export let limit = 50;
-	export let instanceId: string | null = null;
-	export let assignedToId: string | null = null;
+	// Props
+	let {
+		showFilters = true,
+		limit = 50,
+		instanceId = null,
+		assignedToId = null
+	}: {
+		showFilters?: boolean;
+		limit?: number;
+		instanceId?: string | null;
+		assignedToId?: string | null;
+	} = $props();
 
-	let statusFilter = '';
-	let priorityFilter = '';
-	let searchTerm = '';
+	// Local state
+	let statusFilter = $state('');
+	let priorityFilter = $state('');
+	let searchTerm = $state('');
 
 	// Filter options
 	const statusOptions = [
@@ -37,28 +46,30 @@
 	];
 
 	// Apply client-side filtering
-	$: filteredBySearch = $filteredTasks.filter((task) => {
-		const matchesSearch =
-			!searchTerm ||
-			task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-			task.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-			task.id.toLowerCase().includes(searchTerm.toLowerCase());
+	const filteredBySearch = $derived(
+		$filteredTasks.filter((task) => {
+			const matchesSearch =
+				!searchTerm ||
+				task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+				task.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+				task.id.toLowerCase().includes(searchTerm.toLowerCase());
 
-		const matchesInstance = !instanceId || task.workflowInstanceId === instanceId;
-		const matchesPriority = !priorityFilter || task.priority === priorityFilter;
-		const matchesAssignee = !assignedToId || task.assignedToId === assignedToId;
+			const matchesInstance = !instanceId || task.workflowInstanceId === instanceId;
+			const matchesPriority = !priorityFilter || task.priority === priorityFilter;
+			const matchesAssignee = !assignedToId || task.assignedToId === assignedToId;
 
-		return matchesSearch && matchesInstance && matchesPriority && matchesAssignee;
-	});
+			return matchesSearch && matchesInstance && matchesPriority && matchesAssignee;
+		})
+	);
 
 	// Group tasks by status
-	$: groupedTasks = {
+	const groupedTasks = $derived({
 		pending: filteredBySearch.filter((task) => task.status === 'pending'),
 		in_progress: filteredBySearch.filter((task) => task.status === 'in_progress'),
 		completed: filteredBySearch.filter((task) => task.status === 'completed'),
 		failed: filteredBySearch.filter((task) => task.status === 'failed'),
 		cancelled: filteredBySearch.filter((task) => task.status === 'cancelled')
-	};
+	});
 
 	onMount(() => {
 		const condition = instanceId
@@ -83,50 +94,9 @@
 		workflowActions.loadTasks(limit, condition);
 	}
 
-	function handleTaskUpdate(event: CustomEvent) {
+	function handleTaskUpdate() {
 		// Task was updated, refresh the list
 		handleRefresh();
-	}
-
-	function getStatusIcon(status: string) {
-		switch (status) {
-			case 'pending':
-				return `
-          <svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        `;
-			case 'in_progress':
-				return `
-          <svg class="w-5 h-5 text-blue-500 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-        `;
-			case 'completed':
-				return `
-          <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        `;
-			case 'failed':
-				return `
-          <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        `;
-			case 'cancelled':
-				return `
-          <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
-          </svg>
-        `;
-			default:
-				return `
-          <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        `;
-		}
 	}
 </script>
 
@@ -141,7 +111,7 @@
 		</div>
 
 		<div class="flex gap-2">
-			<button on:click={handleRefresh} class="btn btn-secondary" disabled={$isWorkflowLoading}>
+			<button onclick={handleRefresh} class="btn btn-secondary" disabled={$isWorkflowLoading}>
 				<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path
 						stroke-linecap="round"
@@ -157,7 +127,7 @@
 
 	<!-- Stats Summary -->
 	<div class="mb-6 grid grid-cols-2 gap-4 md:grid-cols-5">
-		{#each Object.entries(groupedTasks) as [status, tasks]}
+		{#each Object.entries(groupedTasks) as [status, tasks] (status)}
 			<div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
 				<div class="flex items-center justify-between">
 					<div>
@@ -167,7 +137,66 @@
 						<p class="text-2xl font-bold text-gray-900">{tasks.length}</p>
 					</div>
 					<div class="rounded-full bg-gray-50 p-2">
-						{@html getStatusIcon(status)}
+						{#if status === 'pending'}
+							<svg class="h-5 w-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+								/>
+							</svg>
+						{:else if status === 'in_progress'}
+							<svg
+								class="h-5 w-5 animate-spin text-blue-500"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+								/>
+							</svg>
+						{:else if status === 'completed'}
+							<svg class="h-5 w-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+								/>
+							</svg>
+						{:else if status === 'failed'}
+							<svg class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+								/>
+							</svg>
+						{:else if status === 'cancelled'}
+							<svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728"
+								/>
+							</svg>
+						{:else}
+							<svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+								/>
+							</svg>
+						{/if}
 					</div>
 				</div>
 			</div>
@@ -198,10 +227,10 @@
 					<select
 						id="status-filter"
 						bind:value={statusFilter}
-						on:change={() => handleStatusFilter(statusFilter)}
+						onchange={() => handleStatusFilter(statusFilter)}
 						class="select"
 					>
-						{#each statusOptions as option}
+						{#each statusOptions as option (option.value)}
 							<option value={option.value}>{option.label}</option>
 						{/each}
 					</select>
@@ -213,7 +242,7 @@
 						Priority
 					</label>
 					<select id="priority-filter" bind:value={priorityFilter} class="select">
-						{#each priorityOptions as option}
+						{#each priorityOptions as option (option.value)}
 							<option value={option.value}>{option.label}</option>
 						{/each}
 					</select>
@@ -224,7 +253,7 @@
 			{#if statusFilter || priorityFilter || searchTerm}
 				<div class="mt-4">
 					<button
-						on:click={() => {
+						onclick={() => {
 							statusFilter = '';
 							priorityFilter = '';
 							searchTerm = '';
@@ -261,7 +290,7 @@
 	<!-- Loading State -->
 	{#if $isWorkflowLoading}
 		<div class="space-y-4">
-			{#each Array(6) as _}
+			{#each Array(6) as _, i (i)}
 				<div class="animate-pulse rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
 					<div class="mb-4 flex items-start justify-between">
 						<div class="flex-1">
@@ -283,7 +312,7 @@
 		{#if filteredBySearch.length > 0}
 			<div class="space-y-4">
 				{#each filteredBySearch as task (task.id)}
-					<WorkflowTaskCard {task} on:update={handleTaskUpdate} />
+					<WorkflowTaskCard {task} onupdate={handleTaskUpdate} />
 				{/each}
 			</div>
 		{:else}

@@ -131,7 +131,7 @@
 	class:opacity-60={task.status === 'DONE' || task.status === 'REVIEW'}
 	style="margin-left: {level * 24}px"
 	role={onClick ? 'button' : 'article'}
-	tabindex={onClick ? 0 : undefined}
+	{...onClick ? { tabindex: 0 } : {}}
 	onclick={handleClick}
 	onkeypress={handleKeyPress}
 	data-testid="task-card"

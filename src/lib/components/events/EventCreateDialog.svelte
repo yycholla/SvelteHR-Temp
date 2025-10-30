@@ -449,9 +449,9 @@
 								<!-- Weekly: Day Selection -->
 								{#if recurrenceFrequency === 'weekly'}
 									<div>
-										<label class="block text-sm font-medium text-foreground mb-2">
+										<div class="block text-sm font-medium text-foreground mb-2">
 											Repeat on <span class="text-destructive">*</span>
-										</label>
+										</div>
 										<div class="flex flex-wrap gap-2">
 											{#each WEEKDAYS as day}
 												<button
@@ -642,7 +642,7 @@
 						</label>
 
 						<div class="mb-4">
-							<label class="text-sm text-muted-foreground mr-4">Aspect Ratio:</label>
+							<span class="text-sm text-muted-foreground mr-4">Aspect Ratio:</span>
 							<label class="inline-flex items-center mr-4">
 								<input
 									type="radio"

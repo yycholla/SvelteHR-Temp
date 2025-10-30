@@ -59,37 +59,9 @@ export default defineConfig({
 				manualChunks: {
 					// Only include packages that are not treated as external by SvelteKit
 					vendor: ['svelte']
-				},
-
-				// Optimize chunk file names
-				chunkFileNames: (chunkInfo) => {
-					const facadeModuleId = chunkInfo.facadeModuleId || '';
-
-					if (facadeModuleId.includes('node_modules')) {
-						return 'vendor/[name]-[hash].js';
-					} else if (facadeModuleId.includes('src/routes')) {
-						return 'routes/[name]-[hash].js';
-					} else if (facadeModuleId.includes('src/lib/components')) {
-						return 'components/[name]-[hash].js';
-					}
-
-					return 'chunks/[name]-[hash].js';
-				},
-
-				assetFileNames: (assetInfo) => {
-					const info = assetInfo.name!.split('.');
-					const ext = info[info.length - 1];
-
-					if (/png|jpe?g|svg|gif|tiff|bmp|ico/i.test(ext)) {
-						return 'images/[name]-[hash][extname]';
-					} else if (/woff2?|eot|ttf|otf/i.test(ext)) {
-						return 'fonts/[name]-[hash][extname]';
-					} else if (ext === 'css') {
-						return 'styles/[name]-[hash][extname]';
-					}
-
-					return 'assets/[name]-[hash][extname]';
 				}
+				// Note: chunkFileNames and assetFileNames are managed by SvelteKit
+				// and should not be overridden here to avoid conflicts
 			},
 
 			// Optimize tree shaking

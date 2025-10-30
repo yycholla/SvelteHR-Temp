@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
+	import type { Snippet } from 'svelte';
 	import * as Card from '$lib/components/ui/card';
 	import { Building2 } from '@lucide/svelte';
 
@@ -14,12 +15,14 @@
 		title = 'SvelteHR',
 		subtitle = 'Human Resources Management System',
 		showBranding = true,
-		showFooter = true
+		showFooter = true,
+		children
 	}: {
 		title?: string;
 		subtitle?: string;
 		showBranding?: boolean;
 		showFooter?: boolean;
+		children?: Snippet;
 	} = $props();
 
 	// Dynamic background patterns
@@ -89,7 +92,7 @@
 		<div class="sm:mx-auto sm:w-full sm:max-w-md">
 			<Card.Root class="p-8">
 				<Card.Content class="p-0">
-					<slot />
+					{@render children?.()}
 				</Card.Content>
 			</Card.Root>
 		</div>

@@ -205,7 +205,7 @@
 
 		<!-- Attendees Section (TODO) -->
 		<div class="mb-6">
-			<label class="block text-sm font-medium text-foreground mb-2">Attendees</label>
+			<div class="block text-sm font-medium text-foreground mb-2">Attendees</div>
 			<div
 				class="rounded-md border bg-muted px-4 py-3 text-sm text-muted-foreground"
 			>

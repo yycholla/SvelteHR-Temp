@@ -10,14 +10,22 @@
 	import WorkflowInstanceCard from './WorkflowInstanceCard.svelte';
 	import WorkflowInstanceDetails from './WorkflowInstanceDetails.svelte';
 
-	export let showFilters = true;
-	export let limit = 50;
-	export let definitionId: string | null = null;
+	// Props
+	let {
+		showFilters = true,
+		limit = 50,
+		definitionId = null
+	}: {
+		showFilters?: boolean;
+		limit?: number;
+		definitionId?: string | null;
+	} = $props();
 
-	let statusFilter = '';
-	let searchTerm = '';
-	let selectedInstance: any = null;
-	let showDetails = false;
+	// Local state
+	let statusFilter = $state('');
+	let searchTerm = $state('');
+	let selectedInstance = $state<any>(null);
+	let showDetails = $state(false);
 
 	// Filter options
 	const statusOptions = [
@@ -30,18 +38,20 @@
 	];
 
 	// Apply client-side filtering
-	$: filteredBySearch = $filteredInstances.filter((instance) => {
-		const matchesSearch =
-			!searchTerm ||
-			instance.workflowDefinitionByWorkflowDefinitionId?.name
-				.toLowerCase()
-				.includes(searchTerm.toLowerCase()) ||
-			instance.id.toLowerCase().includes(searchTerm.toLowerCase());
+	const filteredBySearch = $derived(
+		$filteredInstances.filter((instance) => {
+			const matchesSearch =
+				!searchTerm ||
+				instance.workflowDefinitionByWorkflowDefinitionId?.name
+					.toLowerCase()
+					.includes(searchTerm.toLowerCase()) ||
+				instance.id.toLowerCase().includes(searchTerm.toLowerCase());
 
-		const matchesDefinition = !definitionId || instance.workflowDefinitionId === definitionId;
+			const matchesDefinition = !definitionId || instance.workflowDefinitionId === definitionId;
 
-		return matchesSearch && matchesDefinition;
-	});
+			return matchesSearch && matchesDefinition;
+		})
+	);
 
 	onMount(() => {
 		workflowActions.loadInstances(limit);
@@ -56,8 +66,8 @@
 		workflowActions.loadInstances(limit);
 	}
 
-	function handleViewDetails(event: CustomEvent) {
-		selectedInstance = event.detail;
+	function handleViewDetails(instance: any) {
+		selectedInstance = instance;
 		showDetails = true;
 	}
 
@@ -105,7 +115,7 @@
 		</div>
 
 		<div class="flex gap-2">
-			<button on:click={handleRefresh} class="btn btn-secondary" disabled={$isWorkflowLoading}>
+			<button onclick={handleRefresh} class="btn btn-secondary" disabled={$isWorkflowLoading}>
 				<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path
 						stroke-linecap="round"
@@ -143,10 +153,10 @@
 					<select
 						id="status-filter"
 						bind:value={statusFilter}
-						on:change={() => handleStatusFilter(statusFilter)}
+						onchange={() => handleStatusFilter(statusFilter)}
 						class="select"
 					>
-						{#each statusOptions as option}
+						{#each statusOptions as option (option.value)}
 							<option value={option.value}>{option.label}</option>
 						{/each}
 					</select>
@@ -157,7 +167,7 @@
 			{#if statusFilter || searchTerm}
 				<div class="mt-4">
 					<button
-						on:click={() => {
+						onclick={() => {
 							statusFilter = '';
 							searchTerm = '';
 							workflowActions.clearFilters();
@@ -193,7 +203,7 @@
 	<!-- Loading State -->
 	{#if $isWorkflowLoading}
 		<div class="space-y-4">
-			{#each Array(6) as _}
+			{#each Array(6) as _, i (i)}
 				<div class="animate-pulse rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
 					<div class="mb-4 flex items-start justify-between">
 						<div class="flex-1">
@@ -216,7 +226,7 @@
 		{#if filteredBySearch.length > 0}
 			<div class="space-y-4">
 				{#each filteredBySearch as instance (instance.id)}
-					<WorkflowInstanceCard {instance} on:viewDetails={handleViewDetails} />
+					<WorkflowInstanceCard {instance} onviewDetails={handleViewDetails} />
 				{/each}
 			</div>
 		{:else}
@@ -252,7 +262,7 @@
 
 <!-- Instance Details Modal -->
 {#if showDetails && selectedInstance}
-	<WorkflowInstanceDetails instance={selectedInstance} on:close={handleCloseDetails} />
+	<WorkflowInstanceDetails instance={selectedInstance} onclose={handleCloseDetails} />
 {/if}
 
 

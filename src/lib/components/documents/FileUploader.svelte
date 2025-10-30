@@ -116,9 +116,17 @@
 		class="drop-zone"
 		class:dragging={isDragging}
 		class:has-file={selectedFile !== null}
+		role="button"
+		tabindex="0"
 		ondrop={handleDrop}
 		ondragover={handleDragOver}
 		ondragleave={handleDragLeave}
+		onkeydown={(e) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				fileInput?.click();
+			}
+		}}
 	>
 		{#if selectedFile}
 			<!-- Selected file display -->

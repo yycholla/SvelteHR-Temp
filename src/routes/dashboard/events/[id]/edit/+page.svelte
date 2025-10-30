@@ -274,7 +274,7 @@
 
 		<!-- Attendees Information -->
 		<div class="mb-6">
-			<label class="block text-sm font-medium text-gray-700 mb-2">Attendees</label>
+			<div class="block text-sm font-medium text-gray-700 mb-2">Attendees</div>
 			<div
 				class="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800"
 			>

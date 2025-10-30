@@ -67,11 +67,11 @@
 	const canViewEmployees = $derived(data.canViewEmployees);
 
 	// Local state for filters and search
-	let searchTerm = $state(filters.searchTerm);
-	let selectedParent = $state(filters.parentFilter);
-	let selectedHasHead = $state(filters.hasHeadFilter);
-	let currentPage = $state(filters.page);
-	let pageSize = $state(filters.limit);
+	let searchTerm = $state(data.filters.searchTerm);
+	let selectedParent = $state(data.filters.parentFilter);
+	let selectedHasHead = $state(data.filters.hasHeadFilter);
+	let currentPage = $state(data.filters.page);
+	let pageSize = $state(data.filters.limit);
 
 	// Hierarchy display state
 	let expandedNodes = $state<Set<string>>(new Set());
@@ -228,7 +228,7 @@
 			<Card.Description>Find departments by name, parent, or leadership status</Card.Description>
 		</Card.Header>
 		<Card.Content>
-			<form on:submit|preventDefault={handleSearch} class="space-y-4">
+			<form onsubmit={(e) => { e.preventDefault(); handleSearch(); }} class="space-y-4">
 				<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
 					<!-- Search Input -->
 					<div class="space-y-2">

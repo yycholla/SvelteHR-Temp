@@ -204,12 +204,10 @@
 				{#each blockedByDependencies as dependency (dependency.id)}
 					{@const blockingTask = dependency.taskByBlockingTaskId}
 					{#if blockingTask}
+						{@const StatusIcon = getStatusIcon(blockingTask.status)}
 						<div class="flex items-center justify-between rounded-lg border bg-card p-3">
 							<div class="flex items-center gap-3 flex-1">
-								<svelte:component
-									this={getStatusIcon(blockingTask.status)}
-									class="h-5 w-5 flex-shrink-0 {getStatusColor(blockingTask.status)}"
-								/>
+								<StatusIcon class="h-5 w-5 flex-shrink-0 {getStatusColor(blockingTask.status)}" />
 								<div class="flex-1">
 									<p class="font-medium">{blockingTask.title}</p>
 									<p class="text-xs text-muted-foreground">Status: {blockingTask.status}</p>
@@ -262,12 +260,10 @@
 				{#each blockingDependencies as dependency (dependency.id)}
 					{@const blockedTask = dependency.taskByBlockedTaskId}
 					{#if blockedTask}
+						{@const StatusIcon = getStatusIcon(blockedTask.status)}
 						<div class="flex items-center justify-between rounded-lg border bg-card p-3">
 							<div class="flex items-center gap-3 flex-1">
-								<svelte:component
-									this={getStatusIcon(blockedTask.status)}
-									class="h-5 w-5 flex-shrink-0 {getStatusColor(blockedTask.status)}"
-								/>
+								<StatusIcon class="h-5 w-5 flex-shrink-0 {getStatusColor(blockedTask.status)}" />
 								<div class="flex-1">
 									<p class="font-medium">{blockedTask.title}</p>
 									<p class="text-xs text-muted-foreground">Status: {blockedTask.status}</p>

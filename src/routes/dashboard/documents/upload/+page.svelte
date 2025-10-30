@@ -16,8 +16,8 @@
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	// Component references and reactive state
-	let fileUploader: FileUploader;
-	let metadataForm: DocumentMetadataForm;
+	let fileUploader = $state<FileUploader>();
+	let metadataForm = $state<DocumentMetadataForm>();
 
 	// Svelte 5 state
 	let metadata = $state<DocumentMetadata>({

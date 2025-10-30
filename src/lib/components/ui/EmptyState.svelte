@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { InboxIcon } from '@lucide/svelte';
 
 	interface Props {
@@ -7,6 +8,7 @@
 		icon?: any;
 		class?: string;
 		showIcon?: boolean;
+		actions?: Snippet;
 	}
 
 	let {
@@ -14,7 +16,8 @@
 		description = 'There are no items to display at this time.',
 		icon = InboxIcon,
 		class: className = '',
-		showIcon = true
+		showIcon = true,
+		actions
 	}: Props = $props();
 </script>
 
@@ -23,8 +26,9 @@
 	data-testid="empty-state"
 >
 	{#if showIcon}
+		{@const Icon = icon}
 		<div class="mb-4 rounded-full bg-muted p-4">
-			<svelte:component this={icon} class="h-8 w-8 text-muted-foreground" />
+			<Icon class="h-8 w-8 text-muted-foreground" />
 		</div>
 	{/if}
 
@@ -36,5 +40,5 @@
 		{description}
 	</p>
 
-	<slot name="actions" />
+	{@render actions?.()}
 </div>

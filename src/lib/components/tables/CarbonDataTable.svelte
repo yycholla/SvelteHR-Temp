@@ -12,10 +12,6 @@
 		Tag
 	} from 'carbon-components-svelte';
 	import { Search, FilterEdit, Download, Add } from 'carbon-icons-svelte';
-	// Removed @vincjo/datatables - using pure Carbon DataTable
-	import { createEventDispatcher } from 'svelte';
-
-	const dispatch = createEventDispatcher();
 
 	// Import contract types
 	import type {
@@ -25,94 +21,125 @@
 	} from '../../../contracts/component-interface';
 
 	// Props
-	export let data: any[] = [];
-	export let columns: CarbonColumn[] = [];
-	export let loading: boolean = false;
-	export let selectable: boolean = false;
-	export let sortable: boolean = true;
-	export let filterable: boolean = true;
-	export let searchable: boolean = true;
-	export let paginated: boolean = true;
-	export let pageSize: number = 10;
-	export let pageSizes: number[] = [10, 25, 50, 100];
-	export let title: string = '';
-	export let description: string = '';
-	export let emptyStateTitle: string = 'No data';
-	export let emptyStateDescription: string = 'No data to display';
-	export let batchActions: BatchAction[] = [];
-	export let toolbarActions: ToolbarAction[] = [];
-	export let exportable: boolean = false;
-	export let selectedRowIds: any[] = [];
-
-	// Accessibility configuration
-	export let accessibility: {
-		tableLabel: string;
-		sortAnnouncements: boolean;
-		selectionAnnouncements: boolean;
-		paginationAnnouncements: boolean;
-	} = {
-		tableLabel: 'Data table',
-		sortAnnouncements: true,
-		selectionAnnouncements: true,
-		paginationAnnouncements: true
-	};
-
-	// Enhanced event handlers
-	export let onRowClick: ((row: any) => void) | undefined = undefined;
-	export let onSelectionChange: ((selectedRows: any[]) => void) | undefined = undefined;
-	export let onBatchAction: ((action: string, selectedRows: any[]) => void) | undefined = undefined;
-	export let onToolbarAction: ((action: string) => void) | undefined = undefined;
-	export let onExport: ((data: any[]) => void) | undefined = undefined;
+	let {
+		data = [],
+		columns = [],
+		loading = false,
+		selectable = false,
+		sortable = true,
+		filterable = true,
+		searchable = true,
+		paginated = true,
+		pageSize = $bindable(10),
+		pageSizes = [10, 25, 50, 100],
+		title = '',
+		description = '',
+		emptyStateTitle = 'No data',
+		emptyStateDescription = 'No data to display',
+		batchActions = [],
+		toolbarActions = [],
+		exportable = false,
+		selectedRowIds = $bindable([]),
+		accessibility = {
+			tableLabel: 'Data table',
+			sortAnnouncements: true,
+			selectionAnnouncements: true,
+			paginationAnnouncements: true
+		},
+		onRowClick = undefined,
+		onSelectionChange = undefined,
+		onBatchAction = undefined,
+		onToolbarAction = undefined,
+		onExport = undefined
+	}: {
+		data?: any[];
+		columns?: CarbonColumn[];
+		loading?: boolean;
+		selectable?: boolean;
+		sortable?: boolean;
+		filterable?: boolean;
+		searchable?: boolean;
+		paginated?: boolean;
+		pageSize?: number;
+		pageSizes?: number[];
+		title?: string;
+		description?: string;
+		emptyStateTitle?: string;
+		emptyStateDescription?: string;
+		batchActions?: BatchAction[];
+		toolbarActions?: ToolbarAction[];
+		exportable?: boolean;
+		selectedRowIds?: any[];
+		accessibility?: {
+			tableLabel: string;
+			sortAnnouncements: boolean;
+			selectionAnnouncements: boolean;
+			paginationAnnouncements: boolean;
+		};
+		onRowClick?: ((row: any) => void) | undefined;
+		onSelectionChange?: ((selectedRows: any[]) => void) | undefined;
+		onBatchAction?: ((action: string, selectedRows: any[]) => void) | undefined;
+		onToolbarAction?: ((action: string) => void) | undefined;
+		onExport?: ((data: any[]) => void) | undefined;
+	} = $props();
 
 	// Pure Carbon data handling
-	let currentPage = 1;
-	let searchValue = '';
-	let sortKey = '';
-	let sortDirection: 'asc' | 'desc' = 'asc';
+	let currentPage = $state(1);
+	let searchValue = $state('');
+	let sortKey = $state('');
+	let sortDirection = $state<'asc' | 'desc'>('asc');
 
 	// Filter and search logic
-	$: filteredData = data.filter((row) => {
-		if (!searchValue) return true;
-		return Object.values(row).some((value) =>
-			String(value).toLowerCase().includes(searchValue.toLowerCase())
-		);
-	});
+	let filteredData = $derived(
+		data.filter((row) => {
+			if (!searchValue) return true;
+			return Object.values(row).some((value) =>
+				String(value).toLowerCase().includes(searchValue.toLowerCase())
+			);
+		})
+	);
 
 	// Sort logic
-	$: sortedData = sortKey
-		? [...filteredData].sort((a, b) => {
-				const aVal = a[sortKey];
-				const bVal = b[sortKey];
+	let sortedData = $derived(
+		sortKey
+			? [...filteredData].sort((a, b) => {
+					const aVal = a[sortKey];
+					const bVal = b[sortKey];
 
-				if (aVal === bVal) return 0;
+					if (aVal === bVal) return 0;
 
-				const comparison = aVal < bVal ? -1 : 1;
-				return sortDirection === 'asc' ? comparison : -comparison;
-			})
-		: filteredData;
+					const comparison = aVal < bVal ? -1 : 1;
+					return sortDirection === 'asc' ? comparison : -comparison;
+				})
+			: filteredData
+	);
 
 	// Pagination logic
-	$: totalItems = sortedData.length;
-	$: totalPages = Math.ceil(totalItems / pageSize);
-	$: startIndex = (currentPage - 1) * pageSize;
-	$: endIndex = Math.min(startIndex + pageSize, totalItems);
-	$: paginatedData = sortedData.slice(startIndex, endIndex);
+	let totalItems = $derived(sortedData.length);
+	let totalPages = $derived(Math.ceil(totalItems / pageSize));
+	let startIndex = $derived((currentPage - 1) * pageSize);
+	let endIndex = $derived(Math.min(startIndex + pageSize, totalItems));
+	let paginatedData = $derived(sortedData.slice(startIndex, endIndex));
 
 	// Carbon table headers
-	$: headers = columns.map((col) => ({
-		key: col.key,
-		value: col.label,
-		sort: col.sortable !== false,
-		columnMenu: false,
-		width: col.width,
-		...col.carbonProps
-	}));
+	let headers = $derived(
+		columns.map((col) => ({
+			key: col.key,
+			value: col.label,
+			sort: col.sortable !== false,
+			columnMenu: false,
+			width: col.width,
+			...col.carbonProps
+		}))
+	);
 
 	// Carbon table rows
-	$: carbonRows = paginatedData.map((row, index) => ({
-		id: row.id || (startIndex + index).toString(),
-		...row
-	}));
+	let carbonRows = $derived(
+		paginatedData.map((row, index) => ({
+			id: row.id || (startIndex + index).toString(),
+			...row
+		}))
+	);
 
 	// Accessibility helper functions
 	function announceToScreenReader(message: string) {
@@ -135,7 +162,6 @@
 	// Enhanced event handlers
 	function handleRowClick(row: any) {
 		onRowClick?.(row);
-		dispatch('rowClick', { row });
 	}
 
 	function handleSelect(selectedRows: any[]) {
@@ -147,25 +173,20 @@
 			const total = carbonRows.length;
 			announceToScreenReader(`${count} of ${total} rows selected`);
 		}
-
-		dispatch('selectionChange', { selectedRows, selectedRowIds });
 	}
 
 	function handleBatchAction(actionKey: string) {
 		const selectedRows = carbonRows.filter((row) => selectedRowIds.includes(row.id));
 		onBatchAction?.(actionKey, selectedRows);
-		dispatch('batchAction', { action: actionKey, selectedRows });
 	}
 
 	function handleToolbarAction(actionKey: string) {
 		onToolbarAction?.(actionKey);
-		dispatch('toolbarAction', { action: actionKey });
 	}
 
 	function handleExport() {
 		const exportData = carbonRows;
 		onExport?.(exportData);
-		dispatch('export', { data: exportData });
 	}
 
 	function handleSearch(event: CustomEvent) {
@@ -255,7 +276,7 @@
 					{/if}
 
 					{#if toolbarActions.length > 0}
-						{#each toolbarActions as action}
+						{#each toolbarActions as action (action.key)}
 							<Button
 								kind="ghost"
 								icon={action.icon || Add}
@@ -282,7 +303,7 @@
 
 					{#if batchActions.length > 0 && selectedRowIds.length > 0}
 						<ToolbarMenu>
-							{#each batchActions as action}
+							{#each batchActions as action (action.key)}
 								<ToolbarMenuItem primaryFocus on:click={() => handleBatchAction(action.key)}>
 									{action.label}
 								</ToolbarMenuItem>
@@ -302,7 +323,7 @@
 									<!-- Carbon handles this automatically -->
 								</th>
 							{/if}
-							{#each columns as column}
+							{#each columns as column (column.key)}
 								<th
 									class="bx--table-header-cell"
 									class:bx--table-sort={sortable && column.sortable !== false}
@@ -316,7 +337,7 @@
 									{#if sortable && column.sortable !== false}
 										<button
 											class="bx--table-sort__flex"
-											on:click={() => handleSort(column.key)}
+											onclick={() => handleSort(column.key)}
 											aria-label="Sort by {column.label}"
 										>
 											<span class="bx--table-header-label">{column.label}</span>
@@ -337,11 +358,11 @@
 						</tr>
 					</thead>
 					<tbody>
-						{#each carbonRows as row}
+						{#each carbonRows as row (row.id)}
 							<tr
 								class="bx--table-row"
 								class:bx--table-row--selected={selectedRowIds.includes(row.id)}
-								on:click={() => handleRowClick(row)}
+								onclick={() => handleRowClick(row)}
 							>
 								{#if selectable}
 									<td class="bx--table-column-checkbox">
@@ -349,7 +370,7 @@
 											type="checkbox"
 											class="bx--checkbox"
 											checked={selectedRowIds.includes(row.id)}
-											on:change={(e) => {
+											onchange={(e) => {
 												if (e.target.checked) {
 													selectedRowIds = [...selectedRowIds, row.id];
 												} else {
@@ -360,7 +381,7 @@
 										/>
 									</td>
 								{/if}
-								{#each columns as column}
+								{#each columns as column (column.key)}
 									<td
 										class="bx--table-cell carbon-table-cell"
 										class:text-center={column.align === 'center'}
@@ -371,12 +392,8 @@
 												{formatCellValue(column, row[column.key], row)}
 											</Tag>
 										{:else if column.component}
-											<svelte:component
-												this={column.component}
-												value={row[column.key]}
-												{row}
-												{column}
-											/>
+											{@const Component = column.component}
+											<Component value={row[column.key]} {row} {column} />
 										{:else}
 											<span class="carbon-cell-content">
 												{formatCellValue(column, row[column.key], row)}
@@ -442,14 +459,6 @@
 <style>
 	.carbon-data-table-wrapper {
 		width: 100%;
-	}
-
-	.carbon-th-content {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		width: 100%;
-		gap: var(--cds-spacing-03);
 	}
 
 	.carbon-table-cell {

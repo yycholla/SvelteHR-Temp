@@ -1,36 +1,42 @@
 <script lang="ts">
-	export let variant:
-		| 'primary'
-		| 'secondary'
-		| 'success'
-		| 'warning'
-		| 'danger'
-		| 'info'
-		| 'light'
-		| 'dark' = 'primary';
-	export let size: 'xs' | 'sm' | 'md' | 'lg' = 'sm';
-	export let rounded: boolean = true;
-	export let outline: boolean = false;
-	export let dot: boolean = false;
-	export let removable: boolean = false;
+	let {
+		variant = 'primary',
+		size = 'sm',
+		rounded = true,
+		outline = false,
+		dot = false,
+		removable = false,
+		onremove = undefined,
+		children
+	}: {
+		variant?: 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'info' | 'light' | 'dark';
+		size?: 'xs' | 'sm' | 'md' | 'lg';
+		rounded?: boolean;
+		outline?: boolean;
+		dot?: boolean;
+		removable?: boolean;
+		onremove?: (() => void) | undefined;
+		children?: import('svelte').Snippet;
+	} = $props();
 
 	// Computed classes
-	$: badgeClasses = [
-		'badge',
-		`badge--${variant}`,
-		`badge--${size}`,
-		rounded && 'badge--rounded',
-		outline && 'badge--outline',
-		dot && 'badge--dot',
-		removable && 'badge--removable'
-	]
-		.filter(Boolean)
-		.join(' ');
+	let badgeClasses = $derived(
+		[
+			'badge',
+			`badge--${variant}`,
+			`badge--${size}`,
+			rounded && 'badge--rounded',
+			outline && 'badge--outline',
+			dot && 'badge--dot',
+			removable && 'badge--removable'
+		]
+			.filter(Boolean)
+			.join(' ')
+	);
 
 	function handleRemove() {
 		if (removable) {
-			const event = new CustomEvent('remove');
-			document.dispatchEvent(event);
+			onremove?.();
 		}
 	}
 </script>
@@ -41,11 +47,11 @@
 	{/if}
 
 	<span class="badge__content">
-		<slot />
+		{@render children?.()}
 	</span>
 
 	{#if removable}
-		<button type="button" class="badge__remove" on:click={handleRemove}>
+		<button type="button" class="badge__remove" onclick={handleRemove}>
 			<span class="sr-only">Remove</span>
 			<svg class="badge__remove-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 				<path

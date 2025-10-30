@@ -176,10 +176,11 @@
 	{:else}
 		<Accordion type="multiple" class="w-full">
 			{#each sortedHistory as entry (entry.id)}
+				{@const ChangeIcon = getChangeIcon(entry.changeType)}
 				<AccordionItem value={entry.id}>
 					<AccordionTrigger class="hover:no-underline">
 						<div class="flex items-center gap-3 flex-1">
-							<svelte:component this={getChangeIcon(entry.changeType)} class="h-4 w-4" />
+							<ChangeIcon class="h-4 w-4" />
 							<div class="flex-1 text-left">
 								<div class="font-medium">{getChangeDescription(entry)}</div>
 								<div class="text-sm text-muted-foreground">

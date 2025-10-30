@@ -23,7 +23,7 @@
 		description: '',
 		categoryId: '',
 		priority: 'medium',
-		targetDate: currentQuarter.end
+		targetDate: data.currentQuarter.end
 	});
 
 	// Filter goals based on selected filters
@@ -96,7 +96,7 @@
 			description: '',
 			categoryId: '',
 			priority: 'medium',
-			targetDate: currentQuarter.end
+			targetDate: data.currentQuarter.end
 		};
 	}
 
@@ -332,6 +332,7 @@
 	<!-- Goals Grid -->
 	<div class="grid grid-cols-1 gap-6 lg:grid-cols-2" data-testid="hr-performance-tab">
 		{#each filteredGoals as goal}
+			{@const StatusIcon = getStatusIcon(goal.status)}
 			<div class="rounded-lg bg-card p-6 shadow-sm border">
 				<!-- Goal Header -->
 				<div class="flex items-start justify-between mb-4">
@@ -352,10 +353,7 @@
 						{goal.category.name}
 					</span>
 					<span class="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium {getStatusColor(goal.status)}">
-						<svelte:component
-							this={getStatusIcon(goal.status)}
-							class="h-3 w-3"
-						/>
+						<StatusIcon class="h-3 w-3" />
 						{goal.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
 					</span>
 				</div>

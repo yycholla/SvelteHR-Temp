@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, createEventDispatcher } from 'svelte';
+	import { onMount } from 'svelte';
 	import { userService, currentUser as userServiceCurrentUser } from '$lib/services/userService';
 	import { currentUser, hasPermission } from '$lib/services/auth';
 	import Button from '../base/Button.svelte';
@@ -8,26 +8,33 @@
 	import Modal from '../base/Modal.svelte';
 	import type { User } from '$lib/types';
 
-	const dispatch = createEventDispatcher();
-
 	// Props
-	export let employeeId: string;
-	export let showActions: boolean = true;
+	let {
+		employeeId,
+		showActions = true,
+		onedit = undefined,
+		ondeactivated = undefined
+	}: {
+		employeeId: string;
+		showActions?: boolean;
+		onedit?: ((detail: { employee: User }) => void) | undefined;
+		ondeactivated?: ((detail: { employee: User }) => void) | undefined;
+	} = $props();
 
 	// State
-	let employee: User | null = null;
-	let loading = true;
-	let error: string | null = null;
-	let showDeactivateModal = false;
-	let deactivateReason = '';
-	let deactivating = false;
+	let employee = $state<User | null>(null);
+	let loading = $state(true);
+	let error = $state<string | null>(null);
+	let showDeactivateModal = $state(false);
+	let deactivateReason = $state('');
+	let deactivating = $state(false);
 
 	// Computed values
-	$: isOwnProfile = employee?.id === $currentUser?.id;
-	$: canEdit = $currentUser && (isOwnProfile || hasPermission('user:update'));
-	$: canDeactivate = $currentUser && hasPermission('user:delete') && !isOwnProfile;
-	$: statusVariant = employee?.isActive ? 'success' : 'secondary';
-	$: statusText = employee?.isActive ? 'Active' : 'Inactive';
+	let isOwnProfile = $derived(employee?.id === $currentUser?.id);
+	let canEdit = $derived($currentUser && (isOwnProfile || hasPermission('user:update')));
+	let canDeactivate = $derived($currentUser && hasPermission('user:delete') && !isOwnProfile);
+	let statusVariant = $derived(employee?.isActive ? 'success' : 'secondary');
+	let statusText = $derived(employee?.isActive ? 'Active' : 'Inactive');
 
 	async function loadEmployee() {
 		try {
@@ -52,7 +59,7 @@
 			deactivateReason = '';
 			// Reload employee data
 			await loadEmployee();
-			dispatch('deactivated', { employee });
+			ondeactivated?.({ employee });
 		} catch (err: any) {
 			error = err.message;
 		} finally {
@@ -62,7 +69,7 @@
 
 	function handleEdit() {
 		if (employee) {
-			dispatch('edit', { employee });
+			onedit?.({ employee });
 		}
 	}
 
@@ -130,7 +137,7 @@
 				<div class="error-content">
 					<h3>Error Loading Profile</h3>
 					<p>{error}</p>
-					<Button variant="secondary" size="sm" leftIcon="refresh-cw" on:click={loadEmployee}>
+					<Button variant="secondary" size="sm" leftIcon="refresh-cw" onclick={loadEmployee}>
 						Try Again
 					</Button>
 				</div>
@@ -188,14 +195,14 @@
 				{#if showActions}
 					<div class="profile-actions">
 						{#if canEdit}
-							<Button variant="primary" leftIcon="edit" on:click={handleEdit}>Edit Profile</Button>
+							<Button variant="primary" leftIcon="edit" onclick={handleEdit}>Edit Profile</Button>
 						{/if}
 
 						{#if canDeactivate && employee.isActive}
 							<Button
 								variant="danger"
 								leftIcon="user-x"
-								on:click={() => (showDeactivateModal = true)}
+								onclick={() => (showDeactivateModal = true)}
 							>
 								Deactivate
 							</Button>
@@ -328,7 +335,7 @@
 					<h3 class="detail-section__title">Roles & Permissions</h3>
 					<div class="roles-list">
 						{#if employee.roles && employee.roles.length > 0}
-							{#each employee.roles as role}
+							{#each employee.roles as role (role.id)}
 								<Badge variant="primary" size="sm">
 									{role.displayName || role.name}
 								</Badge>
@@ -365,19 +372,19 @@
 		</div>
 	</div>
 
-	<svelte:fragment slot="footer">
+	{#snippet footer()}
 		<Button
 			variant="tertiary"
-			on:click={() => (showDeactivateModal = false)}
+			onclick={() => (showDeactivateModal = false)}
 			disabled={deactivating}
 		>
 			Cancel
 		</Button>
 
-		<Button variant="danger" on:click={handleDeactivate} loading={deactivating}>
+		<Button variant="danger" onclick={handleDeactivate} loading={deactivating}>
 			Deactivate Employee
 		</Button>
-	</svelte:fragment>
+	{/snippet}
 </Modal>
 
 

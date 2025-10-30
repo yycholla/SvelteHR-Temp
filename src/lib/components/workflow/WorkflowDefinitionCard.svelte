@@ -1,15 +1,26 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
 	import { canManageWorkflows } from '$lib/stores/auth';
 	import { workflowActions } from '$lib/stores/workflow';
 	import type { WorkflowDefinitionWithStats } from '$lib/stores/workflow';
 
-	export let definition: WorkflowDefinitionWithStats;
+	// Props
+	let {
+		definition,
+		onview = undefined,
+		onedit = undefined,
+		onstart = undefined,
+		onstatusChanged = undefined
+	}: {
+		definition: WorkflowDefinitionWithStats;
+		onview?: ((detail: WorkflowDefinitionWithStats) => void) | undefined;
+		onedit?: ((detail: WorkflowDefinitionWithStats) => void) | undefined;
+		onstart?: ((detail: WorkflowDefinitionWithStats) => void) | undefined;
+		onstatusChanged?: ((detail: { definition: WorkflowDefinitionWithStats; newStatus: string }) => void) | undefined;
+	} = $props();
 
-	const dispatch = createEventDispatcher();
-
-	$: statusColor = getStatusColor(definition.status);
-	$: categoryColor = getCategoryColor(definition.category);
+	// Derived values
+	const statusColor = $derived(getStatusColor(definition.status));
+	const categoryColor = $derived(getCategoryColor(definition.category));
 
 	function getStatusColor(status: string) {
 		switch (status) {
@@ -50,22 +61,22 @@
 	}
 
 	function handleView() {
-		dispatch('view', definition);
+		onview?.(definition);
 	}
 
 	function handleEdit() {
-		dispatch('edit', definition);
+		onedit?.(definition);
 	}
 
 	function handleStartInstance() {
-		dispatch('start', definition);
+		onstart?.(definition);
 	}
 
 	async function handleToggleStatus() {
 		const newStatus = definition.status === 'active' ? 'inactive' : 'active';
 		const success = await workflowActions.updateDefinition(definition.id, { status: newStatus });
 		if (success) {
-			dispatch('statusChanged', { definition, newStatus });
+			onstatusChanged?.({ definition, newStatus });
 		}
 	}
 </script>
@@ -158,13 +169,13 @@
 		<!-- Actions -->
 		<div class="flex items-center justify-between gap-2">
 			<div class="flex gap-2">
-				<button on:click={handleView} class="text-sm font-medium text-blue-600 hover:text-blue-800">
+				<button onclick={handleView} class="text-sm font-medium text-blue-600 hover:text-blue-800">
 					View Details
 				</button>
 
 				{#if $canManageWorkflows}
 					<button
-						on:click={handleEdit}
+						onclick={handleEdit}
 						class="text-sm font-medium text-gray-600 hover:text-gray-800"
 					>
 						Edit
@@ -174,12 +185,12 @@
 
 			<div class="flex gap-2">
 				{#if definition.status === 'active'}
-					<button on:click={handleStartInstance} class="btn btn-primary btn-sm"> Start </button>
+					<button onclick={handleStartInstance} class="btn btn-primary btn-sm"> Start </button>
 				{/if}
 
 				{#if $canManageWorkflows}
 					<button
-						on:click={handleToggleStatus}
+						onclick={handleToggleStatus}
 						class={`btn btn-sm ${definition.status === 'active' ? 'btn-secondary' : 'btn-primary'}`}
 					>
 						{definition.status === 'active' ? 'Deactivate' : 'Activate'}
@@ -189,5 +200,3 @@
 		</div>
 	</div>
 </div>
-
-

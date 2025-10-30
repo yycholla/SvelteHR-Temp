@@ -118,8 +118,8 @@
 		email: true,
 		departmentId: true,
 		role: true,
-		hireDate: canViewInactiveEmployees, // Managers+ only
-		isActive: canViewInactiveEmployees // Managers+ only
+		hireDate: data.canViewInactiveEmployees, // Managers+ only
+		isActive: data.canViewInactiveEmployees // Managers+ only
 	});
 
 	// Debounce timer for search
@@ -139,26 +139,26 @@
 	// Sync with filters data using effects
 	$effect(() => {
 		// Parse comma-separated search terms from URL
-		const searchParam = filters.searchTerm || '';
+		const searchParam = data.filters.searchTerm || '';
 		searchTerms = searchParam ? searchParam.split(',').map((t) => t.trim()).filter(Boolean) : [];
 	});
 	$effect(() => {
-		selectedDepartment = filters.departmentFilter || '';
+		selectedDepartment = data.filters.departmentFilter || '';
 	});
 	$effect(() => {
-		selectedRole = filters.roleFilter || '';
+		selectedRole = data.filters.roleFilter || '';
 	});
 	$effect(() => {
-		const status = filters.statusFilter || 'active';
+		const status = data.filters.statusFilter || 'active';
 		selectedStatus = status;
 		// Sync checkbox with status - checked when status is '' (all) or 'inactive'
 		showInactive = status === '' || status === 'inactive';
 	});
 	$effect(() => {
-		currentPage = filters.page || 1;
+		currentPage = data.filters.page || 1;
 	});
 	$effect(() => {
-		pageSize = filters.limit || 20;
+		pageSize = data.filters.limit || 20;
 	});
 
 	// Pagination state
@@ -203,14 +203,13 @@
 
 	const client = getContextClient();
 
-	// Create reactive variables for the query
-	const queryVariables = $derived({ startDate, endDate });
-
-	const employeeStatisticsQuery = queryStore({
+	// Create reactive query - urql queryStore is reactive and will update when variables change
+	// Wrap in $derived to signal to Svelte that this tracks startDate/endDate reactively
+	const employeeStatisticsQuery = $derived(queryStore({
 		client,
 		query: GET_EMPLOYEE_STATISTICS_QUERY,
-		variables: queryVariables
-	});
+		variables: { startDate, endDate }
+	}));
 
 	// Transform employee statistics for area chart
 	const historicalChartData = $derived.by(() => {
@@ -909,7 +908,7 @@
 
 					<!-- Clear Button -->
 					<div class="space-y-2">
-						<label class="text-sm font-medium invisible">Clear</label>
+						<div class="text-sm font-medium invisible">Clear</div>
 						<Button type="button" variant="outline" size="sm" onclick={clearFilters}>
 							Clear
 						</Button>
@@ -920,7 +919,7 @@
 				<div class="flex items-end gap-2">
 					<!-- Per Page Dropdown -->
 					<div class="space-y-2">
-						<label class="text-sm font-medium invisible">Per Page</label>
+						<div class="text-sm font-medium invisible">Per Page</div>
 						<DropdownMenu.Root>
 							<DropdownMenu.Trigger>
 								{#snippet child({ props })}
@@ -950,7 +949,7 @@
 
 					<!-- Column Visibility Dropdown -->
 					<div class="space-y-2">
-						<label class="text-sm font-medium invisible">Columns</label>
+						<div class="text-sm font-medium invisible">Columns</div>
 						<DropdownMenu.Root>
 							<DropdownMenu.Trigger>
 								{#snippet child({ props })}

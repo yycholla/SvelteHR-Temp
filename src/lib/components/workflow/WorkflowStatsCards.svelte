@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { workflowStats } from '$lib/stores/workflow';
 
-	$: stats = $workflowStats;
+	// Derived from store
+	const stats = $derived($workflowStats);
 </script>
 
 <div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">

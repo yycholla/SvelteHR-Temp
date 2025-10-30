@@ -266,8 +266,25 @@
 </div>
 
 {#if showApproveDialog}
-	<div class="modal-backdrop" onclick={handleCancelApprove}>
-		<div class="modal-dialog" onclick={(e) => e.stopPropagation()}>
+	<div
+		class="modal-backdrop"
+		role="button"
+		tabindex="0"
+		onclick={handleCancelApprove}
+		onkeydown={(e) => {
+			if (e.key === 'Escape' || e.key === 'Enter') {
+				handleCancelApprove();
+			}
+		}}
+	>
+		<div
+			class="modal-dialog"
+			role="dialog"
+			tabindex="-1"
+			aria-modal="true"
+			onclick={(e) => e.stopPropagation()}
+			onkeydown={(e) => e.stopPropagation()}
+		>
 			<div class="modal-header">
 				<h3>Approve Rollback Request</h3>
 			</div>
@@ -314,8 +331,25 @@
 {/if}
 
 {#if showRejectDialog}
-	<div class="modal-backdrop" onclick={handleCancelReject}>
-		<div class="modal-dialog" onclick={(e) => e.stopPropagation()}>
+	<div
+		class="modal-backdrop"
+		role="button"
+		tabindex="0"
+		onclick={handleCancelReject}
+		onkeydown={(e) => {
+			if (e.key === 'Escape' || e.key === 'Enter') {
+				handleCancelReject();
+			}
+		}}
+	>
+		<div
+			class="modal-dialog"
+			role="dialog"
+			tabindex="-1"
+			aria-modal="true"
+			onclick={(e) => e.stopPropagation()}
+			onkeydown={(e) => e.stopPropagation()}
+		>
 			<div class="modal-header">
 				<h3>Reject Rollback Request</h3>
 			</div>

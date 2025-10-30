@@ -52,7 +52,7 @@
 	class:hover:border-primary={onClick}
 	class:compact
 	role={onClick ? 'button' : 'article'}
-	tabindex={onClick ? 0 : undefined}
+	{...onClick ? { tabindex: 0 } : {}}
 	onclick={handleClick}
 	onkeypress={handleKeyPress}
 	data-testid="event-card"

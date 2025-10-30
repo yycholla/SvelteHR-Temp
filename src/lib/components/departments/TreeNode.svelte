@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
 	import Badge from '../base/Badge.svelte';
+	import TreeNode from './TreeNode.svelte';
 	import type { Department } from '$lib/types';
 
 	// Define the node structure
@@ -10,18 +10,27 @@
 		level: number;
 	}
 
-	export let node: TreeNodeData;
-	export let isExpanded: boolean = false;
-	export let isSelected: boolean = false;
-	export let canEdit: boolean = false;
-	export let expandAll: boolean = false;
-
-	const dispatch = createEventDispatcher<{
-		toggle: string;
-		select: Department;
-		edit: string;
-		view: string;
-	}>();
+	let {
+		node,
+		isExpanded = false,
+		isSelected = false,
+		canEdit = false,
+		expandAll = false,
+		ontoggle = undefined,
+		onselect = undefined,
+		onedit = undefined,
+		onview = undefined
+	}: {
+		node: TreeNodeData;
+		isExpanded?: boolean;
+		isSelected?: boolean;
+		canEdit?: boolean;
+		expandAll?: boolean;
+		ontoggle?: ((detail: string) => void) | undefined;
+		onselect?: ((detail: Department) => void) | undefined;
+		onedit?: ((detail: string) => void) | undefined;
+		onview?: ((detail: string) => void) | undefined;
+	} = $props();
 
 	function hasChildren(node: TreeNodeData): boolean {
 		return node.children.length > 0;
@@ -45,32 +54,35 @@
 		return `${employeeCount} employee${employeeCount === 1 ? '' : 's'}${budgetInfo}`;
 	}
 
-	function handleToggle() {
-		dispatch('toggle', node.department.id);
+	function handleToggle(event: Event) {
+		event.stopPropagation();
+		ontoggle?.(node.department.id);
 	}
 
 	function handleSelect() {
-		dispatch('select', node.department);
+		onselect?.(node.department);
 	}
 
-	function handleEdit() {
-		dispatch('edit', node.department.id);
+	function handleEdit(event: Event) {
+		event.stopPropagation();
+		onedit?.(node.department.id);
 	}
 
-	function handleView() {
-		dispatch('view', node.department.id);
+	function handleView(event: Event) {
+		event.stopPropagation();
+		onview?.(node.department.id);
 	}
 
 	// Check if this node should be expanded (either explicitly or via expandAll)
-	$: shouldExpand = isExpanded || expandAll;
+	let shouldExpand = $derived(isExpanded || expandAll);
 </script>
 
 <div class="tree-node" class:selected={isSelected}>
 	<div
 		class="tree-node-content"
 		style="padding-left: {node.level * 24}px"
-		on:click={handleSelect}
-		on:keydown={(e) => e.key === 'Enter' && handleSelect()}
+		onclick={handleSelect}
+		onkeydown={(e) => e.key === 'Enter' && handleSelect()}
 		role="button"
 		tabindex="0"
 	>
@@ -78,7 +90,7 @@
 			{#if hasChildren(node)}
 				<button
 					class="toggle-button"
-					on:click|stopPropagation={handleToggle}
+					onclick={handleToggle}
 					aria-label={shouldExpand ? 'Collapse' : 'Expand'}
 				>
 					<i class="icon-chevron-{shouldExpand ? 'down' : 'right'} h-4 w-4"></i>
@@ -110,12 +122,22 @@
 		</div>
 
 		<div class="node-actions">
-			<button class="action-button" on:click|stopPropagation={handleView} title="View Details">
+			<button
+				class="action-button"
+				onclick={handleView}
+				title="View Details"
+				aria-label="View Details"
+			>
 				<i class="icon-eye h-4 w-4"></i>
 			</button>
 
 			{#if canEdit}
-				<button class="action-button" on:click|stopPropagation={handleEdit} title="Edit Department">
+				<button
+					class="action-button"
+					onclick={handleEdit}
+					title="Edit Department"
+					aria-label="Edit Department"
+				>
 					<i class="icon-edit h-4 w-4"></i>
 				</button>
 			{/if}
@@ -124,17 +146,17 @@
 
 	{#if hasChildren(node) && shouldExpand}
 		<div class="tree-children">
-			{#each node.children as childNode}
-				<svelte:self
+			{#each node.children as childNode (childNode.department.id)}
+				<TreeNode
 					node={childNode}
 					{isExpanded}
 					isSelected={false}
 					{canEdit}
 					{expandAll}
-					on:toggle
-					on:select
-					on:edit
-					on:view
+					{ontoggle}
+					{onselect}
+					{onedit}
+					{onview}
 				/>
 			{/each}
 		</div>

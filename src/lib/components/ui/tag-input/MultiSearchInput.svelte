@@ -50,8 +50,8 @@
 
 	// Internal state
 	let inputValue = $state('');
-	let inputElement: HTMLInputElement;
-	let dropdownElement: HTMLDivElement;
+	let inputElement = $state<HTMLInputElement>();
+	let dropdownElement = $state<HTMLDivElement>();
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 	let isOpen = $state(false);
 	let highlightedIndex = $state(0);
@@ -240,7 +240,15 @@
 		class="flex min-h-10 w-full flex-wrap gap-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 {disabled
 			? 'cursor-not-allowed opacity-50'
 			: ''}"
+		role="button"
+		tabindex="0"
 		onclick={() => inputElement?.focus()}
+		onkeydown={(e) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				inputElement?.focus();
+			}
+		}}
 	>
 		<!-- Search term badges -->
 		{#each searchTerms as term (term)}

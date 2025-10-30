@@ -235,13 +235,14 @@
 	<!-- Statistics Cards -->
 	<div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6" data-testid="my-tasks-stats-grid">
 		{#each statsCards as stat}
+			{@const Icon = stat.icon}
 			<Card.Root>
 				<Card.Header class="flex flex-row items-center justify-between pb-2">
 					<Card.Title class="text-sm font-medium text-muted-foreground">
 						{stat.label}
 					</Card.Title>
 					<div class="flex h-8 w-8 items-center justify-between rounded-full {stat.bgColor}">
-						<svelte:component this={stat.icon} class="h-4 w-4 {stat.color}" />
+						<Icon class="h-4 w-4 {stat.color}" />
 					</div>
 				</Card.Header>
 				<Card.Content>

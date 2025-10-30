@@ -18,19 +18,27 @@
 	import type { Department, DepartmentFilter } from '$lib/types';
 
 	// Props
-	export let showHeader: boolean = true;
-	export let showFilters: boolean = true;
-	export let showActions: boolean = true;
-	export let selectable: boolean = true;
-	export let compact: boolean = false;
+	let {
+		showHeader = true,
+		showFilters = true,
+		showActions = true,
+		selectable = true,
+		compact = false
+	}: {
+		showHeader?: boolean;
+		showFilters?: boolean;
+		showActions?: boolean;
+		selectable?: boolean;
+		compact?: boolean;
+	} = $props();
 
 	// Internal state
-	let selectedDepartments: Department[] = [];
-	let searchQuery = '';
-	let statusFilter = '';
-	let parentFilter = '';
-	let sortField = 'name';
-	let sortDirection: 'asc' | 'desc' = 'asc';
+	let selectedDepartments = $state<Department[]>([]);
+	let searchQuery = $state('');
+	let statusFilter = $state('');
+	let parentFilter = $state('');
+	let sortField = $state('name');
+	let sortDirection = $state<'asc' | 'desc'>('asc');
 
 	// Filter options
 	const statusOptions = [
@@ -46,7 +54,7 @@
 	];
 
 	// Table columns configuration
-	const columns: Column[] = [
+	let columns = $derived<Column[]>([
 		{
 			key: 'name',
 			label: 'Department Name',
@@ -78,33 +86,34 @@
 			sortable: true,
 			type: 'badge',
 			badgeVariant: (value) => (value ? 'success' : 'secondary')
-		}
-	];
-
-	// Add actions column if permissions allow
-	if (
-		showActions &&
+		},
+		// Add actions column if permissions allow
+		...(showActions &&
 		$currentUser &&
 		(hasPermission('department:update') || hasPermission('department:delete'))
-	) {
-		columns.push({
-			key: 'actions',
-			label: 'Actions',
-			sortable: false,
-			type: 'custom',
-			align: 'center',
-			width: '120px'
-		});
-	}
+			? [
+					{
+						key: 'actions',
+						label: 'Actions',
+						sortable: false,
+						type: 'custom',
+						align: 'center',
+						width: '120px'
+					} as Column
+				]
+			: [])
+	]);
 
 	// Reactive filters
-	$: filters = buildFilters();
-	$: hasFiltersApplied = searchQuery || statusFilter || parentFilter;
+	let filters = $derived(buildFilters());
+	let hasFiltersApplied = $derived(searchQuery || statusFilter || parentFilter);
 
 	// Load data when filters change
-	$: if (filters) {
-		loadDepartments();
-	}
+	$effect(() => {
+		if (filters) {
+			loadDepartments();
+		}
+	});
 
 	function buildFilters(): DepartmentFilter {
 		return {
@@ -233,12 +242,12 @@
 					<Button
 						variant="secondary"
 						leftIcon="eye"
-						on:click={() => goto('/departments/hierarchy')}
+						onclick={() => goto('/departments/hierarchy')}
 					>
 						View Hierarchy
 					</Button>
 
-					<Button variant="primary" leftIcon="plus" on:click={() => goto('/departments/new')}>
+					<Button variant="primary" leftIcon="plus" onclick={() => goto('/departments/new')}>
 						Add Department
 					</Button>
 				{/if}
@@ -255,7 +264,7 @@
 						placeholder="Search departments..."
 						leftIcon="search"
 						bind:value={searchQuery}
-						on:input={() => loadDepartments()}
+						oninput={() => loadDepartments()}
 					/>
 				</div>
 
@@ -277,7 +286,7 @@
 
 				{#if hasFiltersApplied}
 					<div class="filter-item">
-						<Button variant="ghost" size="sm" leftIcon="x" on:click={clearFilters}>
+						<Button variant="ghost" size="sm" leftIcon="x" onclick={clearFilters}>
 							Clear Filters
 						</Button>
 					</div>
@@ -299,7 +308,7 @@
 							variant="secondary"
 							size="sm"
 							leftIcon="check"
-							on:click={() => handleBulkAction('activate')}
+							onclick={() => handleBulkAction('activate')}
 						>
 							Activate
 						</Button>
@@ -308,7 +317,7 @@
 							variant="secondary"
 							size="sm"
 							leftIcon="archive"
-							on:click={() => handleBulkAction('archive')}
+							onclick={() => handleBulkAction('archive')}
 						>
 							Archive
 						</Button>
@@ -318,7 +327,7 @@
 						variant="secondary"
 						size="sm"
 						leftIcon="download"
-						on:click={() => handleBulkAction('export')}
+						onclick={() => handleBulkAction('export')}
 					>
 						Export
 					</Button>
@@ -338,9 +347,9 @@
 			currentSort={{ key: sortField, direction: sortDirection }}
 			bind:selectedRows={selectedDepartments}
 			emptyMessage="No departments found"
-			on:sort={handleSort}
-			on:rowClick={handleRowClick}
-			on:selectionChange={handleSelectionChange}
+			onsort={handleSort}
+			onrowClick={handleRowClick}
+			onselectionChange={handleSelectionChange}
 		>
 			<svelte:fragment slot="cell" let:column let:value let:row>
 				{#if column.key === 'name'}
@@ -371,7 +380,7 @@
 								size="xs"
 								iconOnly
 								leftIcon="edit"
-								on:click={(e) => {
+								onclick={(e) => {
 									e.stopPropagation();
 									goto(`/departments/${row.id}/edit`);
 								}}
@@ -384,7 +393,7 @@
 								size="xs"
 								iconOnly
 								leftIcon="archive"
-								on:click={(e) => {
+								onclick={(e) => {
 									e.stopPropagation();
 									handleDeleteDepartment(row);
 								}}
@@ -409,7 +418,7 @@
 						variant="secondary"
 						size="sm"
 						leftIcon="refresh-cw"
-						on:click={() => loadDepartments()}
+						onclick={() => loadDepartments()}
 					>
 						Retry
 					</Button>
