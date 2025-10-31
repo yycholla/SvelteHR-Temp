@@ -39,51 +39,83 @@ k8s/
 3. **kustomize**: For manifest customization (or kubectl 1.14+)
 4. **Operators**: Install PostgreSQL and Redis operators first
 
-## Quick Start
+## Quick Start (Proxmox K3s) ⚡
+
+**🎯 One-Command Deployment:**
+
+```bash
+# Deploy both dev and prod environments
+./k8s/proxmox-quickstart.sh
+
+# Deploy only development
+./k8s/proxmox-quickstart.sh --dev-only
+
+# Deploy only production
+./k8s/proxmox-quickstart.sh --prod-only
+```
+
+**📋 Prerequisites:**
+- Proxmox VM with K3s installed
+- Docker and local registry running
+- kubectl configured
+
+**📚 For complete Proxmox setup:** See [docs/PROXMOX_DEPLOYMENT.md](../docs/PROXMOX_DEPLOYMENT.md)
+
+---
+
+## Manual Deployment
 
 ### 1. Install Operators
 
 ```bash
-# Install CloudNativePG (PostgreSQL operator)
-kubectl apply -f https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/release-1.22/releases/cnpg-1.22.1.yaml
-
-# Install Redis operator
-kubectl apply -f https://raw.githubusercontent.com/spotahome/redis-operator/master/example/operator/all-redis-operator-resources.yaml
-
-# Install NGINX Ingress Controller
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.9.4/deploy/static/provider/cloud/deploy.yaml
+# Automated operator installation
+./k8s/deploy.sh dev install
 ```
 
-### 2. Create Secrets
+This installs:
+- CloudNativePG (PostgreSQL operator)
+- Redis operator (Spotahome)
+
+### 2. Build and Push Images
 
 ```bash
-# Create secrets for development
-kubectl create secret generic sveltehr-secrets \
-  --namespace=sveltehr-dev \
-  --from-literal=postgres-password=your-db-password \
-  --from-literal=jwt-secret=your-jwt-secret \
-  --from-literal=jwt-refresh-secret=your-refresh-secret \
-  --from-literal=service-auth-key=your-service-key
+# Build for local registry
+./k8s/scripts/build-and-push-local.sh latest
+
+# Build for remote registry
+./k8s/scripts/build-and-push-local.sh v1.0.0 registry.example.com
 ```
 
-### 3. Deploy Development Environment
+### 3. Deploy Environments
 
 ```bash
-# Deploy to development
-kubectl apply -k k8s/overlays/development
+# Deploy development
+./k8s/deploy.sh dev deploy
 
-# Wait for deployments
-kubectl wait --for=condition=available --timeout=300s deployment/sveltehr-backend -n sveltehr-dev
-kubectl wait --for=condition=available --timeout=300s deployment/sveltehr-frontend -n sveltehr-dev
+# Deploy production
+./k8s/deploy.sh prod deploy
 ```
 
-### 4. Access Application
+### 4. Access Applications
+
+**Development:**
 
 ```bash
-# Port forward for local access
-kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8080:80
+# Port forward services
+kubectl port-forward -n sveltehr-dev svc/sveltehr-frontend 3000:3000
+kubectl port-forward -n sveltehr-dev svc/sveltehr-backend 4000:4000
 
-# Access at http://localhost:8080
+# Access at:
+# Frontend: http://localhost:3000
+# Backend GraphQL: http://localhost:4000/graphql
+```
+
+**Production:**
+
+```bash
+# Port forward services
+kubectl port-forward -n sveltehr-prod svc/sveltehr-frontend 3001:3000
+kubectl port-forward -n sveltehr-prod svc/sveltehr-backend 4001:4000
 ```
 
 ## Production Deployment
@@ -201,3 +233,53 @@ kubectl port-forward -n monitoring svc/grafana 3000:3000
 2. Implement CI/CD pipeline updates
 3. Add security policies and compliance checks
 4. Set up log aggregation (Fluent Bit + Elasticsearch)
+
+---
+
+## Quick Reference
+
+### Deployment Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `./k8s/proxmox-quickstart.sh` | One-command deployment for Proxmox K3s |
+| `./k8s/deploy.sh dev install` | Install operators (PostgreSQL, Redis) |
+| `./k8s/deploy.sh dev deploy` | Deploy development environment |
+| `./k8s/deploy.sh prod deploy` | Deploy production environment |
+| `./k8s/scripts/build-and-push-local.sh` | Build and push Docker images |
+| `./k8s/setup-k3s.sh` | Configure kubectl for K3s |
+
+### Common Commands
+
+```bash
+# View all pods
+kubectl get pods -n sveltehr-dev
+kubectl get pods -n sveltehr-prod
+
+# View logs
+kubectl logs -f deployment/sveltehr-frontend -n sveltehr-dev
+kubectl logs -f deployment/sveltehr-backend -n sveltehr-dev
+
+# Check database
+kubectl get cluster -n sveltehr-dev
+kubectl exec -it -n sveltehr-dev sveltehr-postgres-1 -- psql -U app
+
+# Port forwarding
+kubectl port-forward -n sveltehr-dev svc/sveltehr-frontend 3000:3000
+kubectl port-forward -n sveltehr-dev svc/sveltehr-backend 4000:4000
+
+# Resource usage
+kubectl top nodes
+kubectl top pods -n sveltehr-dev
+
+# Restart deployments
+kubectl rollout restart deployment/sveltehr-frontend -n sveltehr-dev
+kubectl rollout restart deployment/sveltehr-backend -n sveltehr-dev
+```
+
+### Documentation
+
+- **[Proxmox Deployment Guide](../docs/PROXMOX_DEPLOYMENT.md)** - Complete setup for Proxmox 8.4
+- **[K8s Base Manifests](./base/)** - Core Kubernetes resources
+- **[Environment Overlays](./overlays/)** - Dev/prod configurations
+- **[Deployment Scripts](./scripts/)** - Helper scripts for deployment
