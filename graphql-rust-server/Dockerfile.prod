@@ -1,0 +1,139 @@
+# =============================================================================
+# Rust GraphQL Server - Production Dockerfile
+# =============================================================================
+# Multi-stage build for optimized production image with SeaORM migrations
+# =============================================================================
+
+# =============================================================================
+# Stage 1: Chef - Prepare recipe for dependency caching
+# =============================================================================
+FROM rust:1.90-alpine AS chef
+
+# Install cargo-chef for dependency caching
+RUN apk add --no-cache musl-dev openssl-dev pkgconfig && \
+    cargo install cargo-chef --version 0.1.73
+
+WORKDIR /app
+
+# =============================================================================
+# Stage 2: Planner - Analyze dependencies
+# =============================================================================
+FROM chef AS planner
+
+# Copy source to analyze dependencies
+COPY . .
+
+# Generate recipe.json for dependency caching
+RUN cargo chef prepare --recipe-path recipe.json
+
+# =============================================================================
+# Stage 3: Builder - Build dependencies and application
+# =============================================================================
+FROM rust:1.90-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache \
+    musl-dev \
+    openssl-dev \
+    openssl-libs-static \
+    pkgconfig \
+    curl
+
+# Install cargo-chef
+RUN cargo install cargo-chef --version 0.1.73
+
+WORKDIR /app
+
+# Copy recipe from planner
+COPY --from=planner /app/recipe.json recipe.json
+
+# Build dependencies only (cached layer)
+RUN cargo chef cook --release --recipe-path recipe.json
+
+# Copy source code
+COPY . .
+
+# Build application in release mode
+RUN cargo build --release --bin hr-graphql-server
+
+# Build migration binary for production use
+RUN cargo build --release --bin migration
+
+# Build seed-data binary for production admin user creation
+RUN cargo build --release --bin seed-data
+
+# Verify binaries exist
+RUN test -f /app/target/release/hr-graphql-server || (echo "Build failed: hr-graphql-server binary not found" && exit 1)
+RUN test -f /app/target/release/migration || (echo "Build failed: migration binary not found" && exit 1)
+RUN test -f /app/target/release/seed-data || (echo "Build failed: seed-data binary not found" && exit 1)
+
+# =============================================================================
+# Stage 4: Production Runtime
+# =============================================================================
+FROM alpine:3.19 AS production
+
+# Install runtime dependencies
+RUN apk add --no-cache \
+    libgcc \
+    openssl \
+    ca-certificates \
+    curl \
+    postgresql-client
+
+# Create non-root user
+RUN addgroup -g 1001 -S rust && \
+    adduser -u 1001 -S rust -G rust
+
+# Set working directory
+WORKDIR /app
+
+# Copy binaries from builder
+COPY --from=builder /app/target/release/hr-graphql-server ./hr-graphql-server
+COPY --from=builder /app/target/release/migration ./migration-bin
+COPY --from=builder /app/target/release/seed-data ./seed-data-bin
+
+# Copy migration files (required for SeaORM migrations)
+COPY --from=builder /app/migration ./migration
+
+# Copy entrypoint script
+COPY docker-entrypoint-prod.sh ./docker-entrypoint-prod.sh
+
+# Make binaries and entrypoint executable
+RUN chmod +x /app/hr-graphql-server /app/migration-bin /app/seed-data-bin /app/docker-entrypoint-prod.sh
+
+# Change ownership to non-root user
+RUN chown -R rust:rust /app
+
+# Switch to non-root user
+USER rust
+
+# Expose GraphQL API port
+EXPOSE 4000
+
+# Environment variables (defaults, override via docker-compose)
+ENV HOST=0.0.0.0
+ENV PORT=4000
+ENV RUST_LOG=info,hr_graphql_server=debug
+ENV ENVIRONMENT=production
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:4000/health || exit 1
+
+# Use entrypoint to run migrations before starting server
+ENTRYPOINT ["./docker-entrypoint-prod.sh"]
+
+# =============================================================================
+# Build Instructions
+# =============================================================================
+#
+# Build:
+#   docker build -f Dockerfile.prod -t sveltehr-backend:latest .
+#
+# Run:
+#   docker run -p 4000:4000 --env-file .env sveltehr-backend:latest
+#
+# With Docker Compose:
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# =============================================================================

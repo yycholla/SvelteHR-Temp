@@ -6,7 +6,7 @@
 import { writable, derived, get } from 'svelte/store';
 import { browser } from '$app/environment';
 import { createUrqlClient } from '$lib/graphql/client';
-import { GET_USER_BY_ID, GET_USER_ROLES } from '$lib/graphql/postgraphile-operations';
+import { GET_EMPLOYEE_BY_ID_QUERY } from '$lib/graphql/employee-operations';
 import { createRBACManager, type UserRoleAssignment, type RBACManager } from '$lib/auth/rbac';
 import { secureAuthService } from '$lib/auth/secure-auth-service';
 
@@ -182,6 +182,12 @@ export const authActions = {
 					isActive: true,
 					role: (result.user as any).role // Include role from login response
 				};
+
+				// CRITICAL: Load settings and apply theme BEFORE setting user
+				// This ensures theme is applied before any UI renders
+				await authActions.applyUserTheme(user.id);
+
+				// Now set user and load roles
 				await authActions.setUser(user);
 				return true;
 			} else {
@@ -222,6 +228,49 @@ export const authActions = {
 		} finally {
 			// Clear local state
 			authStore.set(initialState);
+		}
+	},
+
+	/**
+	 * Apply user theme preference synchronously during login
+	 * This runs BEFORE setUser to ensure theme is applied before any UI renders
+	 */
+	applyUserTheme: async (userId: string): Promise<void> => {
+		if (!browser) return;
+
+		try {
+			// Dynamically import to avoid circular dependencies
+			const { createSettingsOperations } = await import('$lib/graphql/settings-operations');
+			const { themeStore } = await import('$lib/stores/theme');
+
+			// Create settings operations instance
+			const urqlClient = createUrqlClient();
+			const settingsOps = createSettingsOperations(urqlClient);
+
+			// Fetch user settings synchronously
+			const userSettings = await settingsOps.getUserSettings({
+				userId,
+				userCredentials: {
+					userId,
+					sessionId: 'current-session' // Session-based auth
+				}
+			});
+
+			// Apply theme from user preferences IMMEDIATELY
+			if (userSettings?.preferences?.appearance?.darkMode !== undefined) {
+				const theme = userSettings.preferences.appearance.darkMode ? 'dark' : 'light';
+				themeStore.setTheme(theme);
+				console.log(`✓ Applied user theme on login: ${theme}`);
+			} else if (userSettings?.preferences?.theme) {
+				// Fallback to legacy theme field
+				themeStore.setTheme(userSettings.preferences.theme);
+				console.log(`✓ Applied user theme on login: ${userSettings.preferences.theme}`);
+			} else {
+				console.log('ℹ No theme preference found, using system default');
+			}
+		} catch (error) {
+			console.warn('Unable to load theme preference, using system default:', error);
+			// Don't fail login if theme can't be loaded - just use system default
 		}
 	},
 
@@ -307,6 +356,9 @@ export const authActions = {
 					role: data.user.role // Include role from backend
 				};
 
+				// Apply theme preference BEFORE setting user state
+				await authActions.applyUserTheme(user.id);
+
 				// Set user directly without calling loadUserRoles to avoid loops
 				authStore.update((state) => ({
 					...state,
@@ -337,11 +389,11 @@ export const authActions = {
 		try {
 			const client = createUrqlClient();
 			const userResult = await client
-				.query(GET_USER_BY_ID, { id: currentState.user.id })
+				.query(GET_EMPLOYEE_BY_ID_QUERY, { id: currentState.user.id })
 				.toPromise();
 
-			if (userResult.data?.userById) {
-				await authActions.setUser(userResult.data.userById);
+			if (userResult.data?.user) {
+				await authActions.setUser(userResult.data.user);
 			}
 		} catch (error) {
 			console.error('Error refreshing user data:', error);

@@ -50,8 +50,8 @@
 
 	// Internal state
 	let inputValue = $state('');
-	let inputElement: HTMLInputElement;
-	let dropdownElement: HTMLDivElement;
+	let inputElement = $state<HTMLInputElement>();
+	let dropdownElement = $state<HTMLDivElement>();
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 	let isOpen = $state(false);
 	let highlightedIndex = $state(0);
@@ -67,6 +67,14 @@
 
 			// Filter by search term
 			return opt.label.toLowerCase().includes(searchLower);
+		});
+	});
+
+	// Map selected values to labels for display
+	const displayLabels = $derived.by(() => {
+		return searchTerms.map((value) => {
+			const option = options.find((opt) => opt.value === value);
+			return option ? option.label : value; // Fallback to value if not found
 		});
 	});
 
@@ -240,12 +248,20 @@
 		class="flex min-h-10 w-full flex-wrap gap-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 {disabled
 			? 'cursor-not-allowed opacity-50'
 			: ''}"
+		role="button"
+		tabindex="0"
 		onclick={() => inputElement?.focus()}
+		onkeydown={(e) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				inputElement?.focus();
+			}
+		}}
 	>
 		<!-- Search term badges -->
-		{#each searchTerms as term (term)}
+		{#each searchTerms as term, index (term)}
 			<Badge variant="secondary" class="flex items-center gap-1 pr-1 pl-2">
-				<span>{term}</span>
+				<span>{displayLabels[index]}</span>
 				<button
 					type="button"
 					class="ml-1 rounded-sm hover:bg-secondary-foreground/20"

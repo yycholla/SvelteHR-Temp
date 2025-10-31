@@ -81,8 +81,25 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if isOpen}
-	<div class="preview-modal-backdrop" onclick={handleBackdropClick}>
-		<div class="preview-modal">
+	<div
+		class="preview-modal-backdrop"
+		role="button"
+		tabindex="0"
+		onclick={handleBackdropClick}
+		onkeydown={(e) => {
+			if (e.key === 'Escape' || e.key === 'Enter') {
+				handleBackdropClick(e);
+			}
+		}}
+	>
+		<div
+			class="preview-modal"
+			role="dialog"
+			tabindex="-1"
+			aria-modal="true"
+			onclick={(e) => e.stopPropagation()}
+			onkeydown={(e) => e.stopPropagation()}
+		>
 			<!-- Modal header -->
 			<div class="modal-header">
 				<div class="header-info">

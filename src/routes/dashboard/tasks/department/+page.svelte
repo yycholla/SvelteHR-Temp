@@ -104,7 +104,7 @@
 			{:else if data.selectedDepartment}
 				<!-- Show current department if only one -->
 				<div class="flex-1 min-w-[200px]">
-					<label class="block text-sm font-medium text-foreground mb-1">Department</label>
+					<div class="block text-sm font-medium text-foreground mb-1">Department</div>
 					<div
 						class="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground"
 					>

@@ -1,0 +1,30 @@
+---
+# System namespaces for shared infrastructure
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sveltehr-system
+  labels:
+    name: sveltehr-system
+    app.kubernetes.io/name: sveltehr
+    app.kubernetes.io/component: system
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sveltehr-dev
+  labels:
+    name: sveltehr-dev
+    app.kubernetes.io/name: sveltehr
+    app.kubernetes.io/component: development
+    environment: development
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sveltehr-prod
+  labels:
+    name: sveltehr-prod
+    app.kubernetes.io/name: sveltehr
+    app.kubernetes.io/component: production
+    environment: production

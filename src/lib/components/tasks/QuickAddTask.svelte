@@ -147,6 +147,7 @@
 	<Popover.Content class="w-[550px] p-4" align="end">
 		<form
 			method="POST"
+			action="/dashboard/tasks"
 			use:enhance={() => {
 				isSubmitting = true;
 				return async ({ result, update }) => {

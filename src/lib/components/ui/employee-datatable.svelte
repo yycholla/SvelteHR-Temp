@@ -13,8 +13,20 @@
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Checkbox } from '$lib/components/ui/checkbox';
-	import { Users, Eye, Edit, ChevronDown, ChevronUp, ChevronsUpDown, Settings2, X, UserCog, ToggleLeft, ToggleRight } from '@lucide/svelte';
+	import Checkbox from '$lib/components/ui/checkbox/ssr-safe-checkbox.svelte';
+	import {
+		Users,
+		Eye,
+		Edit,
+		ChevronDown,
+		ChevronUp,
+		ChevronsUpDown,
+		Settings2,
+		X,
+		UserCog,
+		ToggleLeft,
+		ToggleRight
+	} from '@lucide/svelte';
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import { writable } from 'svelte/store';
@@ -51,7 +63,24 @@
 		onColumnVisibilityChange?: (visibility: VisibilityState) => void;
 	}
 
-	let { employees, departments = [], canViewEmployees, canEditEmployees, canViewInactiveEmployees = false, userDepartmentId = null, isManager = false, hasActiveFilters = false, currentPage, pageSize, totalPages, onPageChange, onPageSizeChange, showPerPageControl = true, columnVisibilityState, onColumnVisibilityChange }: Props = $props();
+	let {
+		employees,
+		departments = [],
+		canViewEmployees,
+		canEditEmployees,
+		canViewInactiveEmployees = false,
+		userDepartmentId = null,
+		isManager = false,
+		hasActiveFilters = false,
+		currentPage,
+		pageSize,
+		totalPages,
+		onPageChange,
+		onPageSizeChange,
+		showPerPageControl = true,
+		columnVisibilityState,
+		onColumnVisibilityChange
+	}: Props = $props();
 
 	// Get urql client for GraphQL mutations
 	const urqlClient = getContextClient();
@@ -63,10 +92,14 @@
 	let rowSelection = $state<Record<string, boolean>>({});
 
 	// Count selected employees
-	const selectedCount = $derived(Object.keys(rowSelection).filter(key => rowSelection[key]).length);
+	const selectedCount = $derived(
+		Object.keys(rowSelection).filter((key) => rowSelection[key]).length
+	);
 
 	// Get selected employee IDs
-	const selectedEmployeeIds = $derived(Object.keys(rowSelection).filter(key => rowSelection[key]));
+	const selectedEmployeeIds = $derived(
+		Object.keys(rowSelection).filter((key) => rowSelection[key])
+	);
 
 	// Bulk action state - use a store so toast component can reactively update
 	const bulkActionsStore = writable({
@@ -263,13 +296,16 @@
 		console.log('Moving employees to department:', departmentId, 'Employee IDs:', employeeIds);
 
 		// Show loading toast
-		const loadingToastId = toast.loading(`Updating ${count} ${count === 1 ? 'employee' : 'employees'}...`);
+		const loadingToastId = toast.loading(
+			`Updating ${count} ${count === 1 ? 'employee' : 'employees'}...`
+		);
 
 		try {
 			// Execute mutations for each employee using nested mutation structure
 			const results = await Promise.allSettled(
 				employeeIds.map(async (employeeId) => {
-					const result = await urqlClient.mutation(`
+					const result = await urqlClient.mutation(
+						`
 						mutation UpdateEmployeeDepartment($id: UUID!, $input: UpdateUserInput!) {
 							users {
 								updateUser(id: $id, input: $input) {
@@ -278,10 +314,12 @@
 								}
 							}
 						}
-					`, {
-						id: employeeId,
-						input: { departmentId }
-					});
+					`,
+						{
+							id: employeeId,
+							input: { departmentId }
+						}
+					);
 
 					if (result.error) {
 						throw new Error(result.error.message);
@@ -292,17 +330,21 @@
 			);
 
 			// Count successes and failures
-			const successCount = results.filter(r => r.status === 'fulfilled').length;
-			const failureCount = results.filter(r => r.status === 'rejected').length;
+			const successCount = results.filter((r) => r.status === 'fulfilled').length;
+			const failureCount = results.filter((r) => r.status === 'rejected').length;
 
 			// Dismiss loading toast
 			toast.dismiss(loadingToastId);
 
 			// Show result message
 			if (failureCount === 0) {
-				toast.success(`Moved ${successCount} ${successCount === 1 ? 'employee' : 'employees'} to new department`);
+				toast.success(
+					`Moved ${successCount} ${successCount === 1 ? 'employee' : 'employees'} to new department`
+				);
 			} else if (successCount > 0) {
-				toast.warning(`Updated ${successCount} ${successCount === 1 ? 'employee' : 'employees'}, but ${failureCount} failed`);
+				toast.warning(
+					`Updated ${successCount} ${successCount === 1 ? 'employee' : 'employees'}, but ${failureCount} failed`
+				);
 			} else {
 				toast.error(`Failed to update employees. Please try again.`);
 			}
@@ -324,10 +366,17 @@
 	async function handleBulkStatusChange(newStatus: boolean) {
 		const count = selectedCount; // Capture before clearing
 		const employeeIds = [...selectedEmployeeIds]; // Capture employee IDs
-		console.log('Changing employee status to:', newStatus ? 'Active' : 'Inactive', 'Employee IDs:', employeeIds);
+		console.log(
+			'Changing employee status to:',
+			newStatus ? 'Active' : 'Inactive',
+			'Employee IDs:',
+			employeeIds
+		);
 
 		// Show loading toast
-		const loadingToastId = toast.loading(`Updating ${count} ${count === 1 ? 'employee' : 'employees'}...`);
+		const loadingToastId = toast.loading(
+			`Updating ${count} ${count === 1 ? 'employee' : 'employees'}...`
+		);
 
 		try {
 			// Execute mutations for each employee using nested mutation structure
@@ -356,17 +405,21 @@
 			);
 
 			// Count successes and failures
-			const successCount = results.filter(r => r.status === 'fulfilled').length;
-			const failureCount = results.filter(r => r.status === 'rejected').length;
+			const successCount = results.filter((r) => r.status === 'fulfilled').length;
+			const failureCount = results.filter((r) => r.status === 'rejected').length;
 
 			// Dismiss loading toast
 			toast.dismiss(loadingToastId);
 
 			// Show result message
 			if (failureCount === 0) {
-				toast.success(`Set ${successCount} ${successCount === 1 ? 'employee' : 'employees'} as ${newStatus ? 'Active' : 'Inactive'}`);
+				toast.success(
+					`Set ${successCount} ${successCount === 1 ? 'employee' : 'employees'} as ${newStatus ? 'Active' : 'Inactive'}`
+				);
 			} else if (successCount > 0) {
-				toast.warning(`Updated ${successCount} ${successCount === 1 ? 'employee' : 'employees'}, but ${failureCount} failed`);
+				toast.warning(
+					`Updated ${successCount} ${successCount === 1 ? 'employee' : 'employees'}, but ${failureCount} failed`
+				);
 			} else {
 				toast.error(`Failed to update employees. Please try again.`);
 			}
@@ -444,9 +497,7 @@
 				<DropdownMenu.Content align="end" class="w-48">
 					<DropdownMenu.Label>Toggle Columns</DropdownMenu.Label>
 					<DropdownMenu.Separator />
-					{#each table
-						.getAllColumns()
-						.filter((col) => col.getCanHide()) as column (column.id)}
+					{#each table.getAllColumns().filter((col) => col.getCanHide()) as column (column.id)}
 						<DropdownMenu.CheckboxItem
 							class="capitalize"
 							checked={column.getIsVisible()}
@@ -461,250 +512,274 @@
 	{/if}
 
 	<!-- DataTable -->
-	<div class="rounded-md border overflow-auto bg-card text-card-foreground" data-testid="employee-datatable">
-		<Table.Root class="table-auto w-full">
-		<Table.Header>
-			{#each table.getHeaderGroups() as headerGroup (headerGroup.id)}
-				<Table.Row>
-					{#each headerGroup.headers as header (header.id)}
-						<Table.Head
-							class={header.column.getCanSort() ? 'cursor-pointer' : '' + (header.column.id === 'select' ? ' pl-6 pr-2' : header.column.id === 'displayName' ? ' pl-2' : '')}
-							style={header.column.columnDef.size ? `width: ${header.column.columnDef.size}px; min-width: ${header.column.columnDef.size}px;` : ''}
-							onclick={header.column.getCanSort()
-								? () => header.column.toggleSorting()
-								: undefined}
-						>
-							{#if !header.isPlaceholder}
-								<div class="flex items-center gap-2">
-									{#if header.column.id === 'select'}
-										<Tooltip.Provider delayDuration={0}>
-											<Tooltip.Root>
-												<Tooltip.Trigger>
-													<Checkbox
-														checked={table.getIsAllRowsSelected()}
-														indeterminate={table.getIsSomeRowsSelected()}
-														disabled={!hasActiveFilters}
-														onCheckedChange={(value) => {
-															table.toggleAllRowsSelected(!!value);
-														}}
-													/>
-												</Tooltip.Trigger>
-												{#if !hasActiveFilters}
-													<Tooltip.Content>
-														<p>Selecting all employees is blocked</p>
-													</Tooltip.Content>
-												{/if}
-											</Tooltip.Root>
-										</Tooltip.Provider>
-									{:else if header.column.id === 'actions'}
-										<div class="text-right w-full">Actions</div>
-									{:else}
-										<span>{header.column.columnDef.header}</span>
-									{/if}
-									{#if header.column.getCanSort()}
-										{#if header.column.getIsSorted() === 'asc'}
-											<ChevronUp class="h-4 w-4" />
-										{:else if header.column.getIsSorted() === 'desc'}
-											<ChevronDown class="h-4 w-4" />
-										{:else}
-											<ChevronsUpDown class="h-4 w-4 opacity-50" />
-										{/if}
-									{/if}
-								</div>
-							{/if}
-						</Table.Head>
-					{/each}
-				</Table.Row>
-			{/each}
-		</Table.Header>
-		<Table.Body>
-			{#if table.getRowModel().rows?.length}
-				{#each table.getRowModel().rows as row (row.id)}
-					<Table.Row
-						class="cursor-pointer hover:bg-muted/50"
-						onclick={() => handleRowClick(row.original.id)}
-					>
-						{#each row.getVisibleCells() as cell (cell.id)}
-							<Table.Cell
-								class={cell.column.id === 'select' ? 'pl-6 pr-2' : cell.column.id === 'displayName' ? 'pl-2' : ''}
-								style={cell.column.columnDef.size ? `width: ${cell.column.columnDef.size}px; min-width: ${cell.column.columnDef.size}px;` : ''}
+	<div
+		class="overflow-auto rounded-md border bg-card text-card-foreground"
+		data-testid="employee-datatable"
+	>
+		<Table.Root class="w-full table-auto">
+			<Table.Header>
+				{#each table.getHeaderGroups() as headerGroup (headerGroup.id)}
+					<Table.Row>
+						{#each headerGroup.headers as header (header.id)}
+							<Table.Head
+								class={header.column.getCanSort()
+									? 'cursor-pointer'
+									: '' +
+										(header.column.id === 'select'
+											? ' pr-2 pl-6'
+											: header.column.id === 'displayName'
+												? ' pl-2'
+												: '')}
+								style={header.column.columnDef.size
+									? `width: ${header.column.columnDef.size}px; min-width: ${header.column.columnDef.size}px;`
+									: ''}
+								onclick={header.column.getCanSort()
+									? () => header.column.toggleSorting()
+									: undefined}
 							>
-								{#if cell.column.id === 'select'}
-									<Checkbox
-										checked={row.getIsSelected()}
-										disabled={!row.getCanSelect()}
-										onCheckedChange={(value) => {
-											row.toggleSelected(!!value);
-										}}
-										onclick={(e) => e.stopPropagation()}
-									/>
-								{:else if cell.column.id === 'displayName'}
-									<div class="flex items-center gap-1.5">
-										<div class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-											<Users class="h-5 w-5 text-primary" />
-										</div>
-										<div class="font-medium">{row.original.displayName}</div>
-									</div>
-								{:else if cell.column.id === 'email'}
-									{#if row.original.email}
-										<a href="mailto:{row.original.email}" class="text-sm hover:text-primary" onclick={(e) => e.stopPropagation()}>
-											{row.original.email}
-										</a>
-									{:else}
-										<span class="text-sm text-muted-foreground">N/A</span>
-									{/if}
-								{:else if cell.column.id === 'departmentId'}
-									{#if row.original.departmentId}
-										<span class="text-sm">{departmentMap.get(row.original.departmentId) || 'Unknown'}</span>
-									{:else}
-										<span class="text-sm text-muted-foreground">N/A</span>
-									{/if}
-								{:else if cell.column.id === 'role'}
-									{#if row.original.role}
-										<Badge variant="outline">{formatRole(row.original.role)}</Badge>
-									{:else}
-										<span class="text-sm text-muted-foreground">N/A</span>
-									{/if}
-								{:else if cell.column.id === 'hireDate'}
-									<span class="text-sm text-muted-foreground">
-										{formatHireDate(row.original.hireDate)}
-									</span>
-								{:else if cell.column.id === 'isActive'}
-									<Badge variant={getStatusBadgeVariant(row.original.isActive)}>
-										{row.original.isActive ? 'Active' : 'Inactive'}
-									</Badge>
-								{:else if cell.column.id === 'actions'}
-									{@const canManage = canManageEmployee(row.original)}
-									<div class="flex gap-1 justify-end">
-										{#if canViewEmployees}
-											<Button
-												variant="ghost"
-												size="sm"
-												disabled={!canManage}
-												class={!canManage ? 'opacity-50 cursor-not-allowed' : ''}
-												onclick={(e) => {
-													if (canManage) {
-														handleViewEmployee(row.original.id, e);
-													} else {
-														e.stopPropagation();
-													}
-												}}
-											>
-												<Eye class="h-4 w-4" />
-											</Button>
+								{#if !header.isPlaceholder}
+									<div class="flex items-center gap-2">
+										{#if header.column.id === 'select'}
+											{@const allSelected = table?.getIsAllPageRowsSelected() ?? false}
+											{@const someSelected = table?.getIsSomePageRowsSelected() && !allSelected}
+											<div class="flex items-center justify-center">
+												<Checkbox
+													checked={allSelected}
+													indeterminate={someSelected}
+													disabled={!hasActiveFilters}
+													onCheckedChange={(value) => {
+														table?.toggleAllPageRowsSelected(!!value);
+													}}
+													aria-label="Select all rows"
+												/>
+											</div>
+										{:else if header.column.id === 'actions'}
+											<div class="w-full text-right">Actions</div>
+										{:else}
+											<span>{header.column.columnDef.header}</span>
 										{/if}
-										{#if canEditEmployees}
-											<Button
-												variant="ghost"
-												size="sm"
-												disabled={!canManage}
-												class={!canManage ? 'opacity-50 cursor-not-allowed' : ''}
-												onclick={(e) => {
-													if (canManage) {
-														handleEditEmployee(row.original.id, e);
-													} else {
-														e.stopPropagation();
-													}
-												}}
-											>
-												<Edit class="h-4 w-4" />
-											</Button>
+										{#if header.column.getCanSort()}
+											{#if header.column.getIsSorted() === 'asc'}
+												<ChevronUp class="h-4 w-4" />
+											{:else if header.column.getIsSorted() === 'desc'}
+												<ChevronDown class="h-4 w-4" />
+											{:else}
+												<ChevronsUpDown class="h-4 w-4 opacity-50" />
+											{/if}
 										{/if}
 									</div>
 								{/if}
-							</Table.Cell>
+							</Table.Head>
 						{/each}
 					</Table.Row>
 				{/each}
-			{:else}
-				<Table.Row>
-					<Table.Cell colspan={columns.length} class="h-24 text-center">
-						<div class="flex flex-col items-center justify-center gap-2 text-muted-foreground">
-							<Users class="h-8 w-8" />
-							<p>No employees found</p>
-						</div>
-					</Table.Cell>
-				</Table.Row>
-			{/if}
-		</Table.Body>
-	</Table.Root>
-
-	<!-- Pagination -->
-	{#if totalPages > 1}
-		<div class="flex items-center justify-between px-6 py-4 border-t bg-card text-card-foreground" data-testid="employee-pagination">
-			<div class="text-sm text-muted-foreground">
-				Page {currentPage} of {totalPages}
-			</div>
-			<div class="flex gap-2">
-				<Button
-					variant="outline"
-					size="sm"
-					disabled={currentPage <= 1}
-					onclick={() => onPageChange(currentPage - 1)}
-				>
-					Previous
-				</Button>
-
-				{#if totalPages <= 7}
-					{#each Array(totalPages) as _, i}
-						<Button
-							variant={currentPage === i + 1 ? 'default' : 'outline'}
-							size="sm"
-							onclick={() => onPageChange(i + 1)}
+			</Table.Header>
+			<Table.Body>
+				{#if table.getRowModel().rows?.length}
+					{#each table.getRowModel().rows as row (row.id)}
+						<Table.Row
+							class="cursor-pointer hover:bg-muted/50"
+							onclick={() => handleRowClick(row.original.id)}
 						>
-							{i + 1}
-						</Button>
+							{#each row.getVisibleCells() as cell (cell.id)}
+								<Table.Cell
+									class={cell.column.id === 'select'
+										? 'pr-2 pl-6'
+										: cell.column.id === 'displayName'
+											? 'pl-2'
+											: ''}
+									style={cell.column.columnDef.size
+										? `width: ${cell.column.columnDef.size}px; min-width: ${cell.column.columnDef.size}px;`
+										: ''}
+								>
+									{#if cell.column.id === 'select'}
+										{@const isRowSelected = row?.getIsSelected() ?? false}
+										<Checkbox
+											checked={isRowSelected}
+											disabled={!row?.getCanSelect()}
+											onCheckedChange={(value) => {
+												row?.toggleSelected(!!value);
+											}}
+											onclick={(e) => e.stopPropagation()}
+										/>
+									{:else if cell.column.id === 'displayName'}
+										<div class="flex items-center gap-1.5">
+											<div
+												class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10"
+											>
+												<Users class="h-5 w-5 text-primary" />
+											</div>
+											<div class="font-medium">{row.original.displayName}</div>
+										</div>
+									{:else if cell.column.id === 'email'}
+										{#if row.original.email}
+											<a
+												href="mailto:{row.original.email}"
+												class="text-sm hover:text-primary"
+												onclick={(e) => e.stopPropagation()}
+											>
+												{row.original.email}
+											</a>
+										{:else}
+											<span class="text-sm text-muted-foreground">N/A</span>
+										{/if}
+									{:else if cell.column.id === 'departmentId'}
+										{#if row.original.departmentId}
+											<span class="text-sm"
+												>{departmentMap.get(row.original.departmentId) || 'Unknown'}</span
+											>
+										{:else}
+											<span class="text-sm text-muted-foreground">N/A</span>
+										{/if}
+									{:else if cell.column.id === 'role'}
+										{#if row.original.role}
+											<Badge variant="outline">{formatRole(row.original.role)}</Badge>
+										{:else}
+											<span class="text-sm text-muted-foreground">N/A</span>
+										{/if}
+									{:else if cell.column.id === 'hireDate'}
+										<span class="text-sm text-muted-foreground">
+											{formatHireDate(row.original.hireDate)}
+										</span>
+									{:else if cell.column.id === 'isActive'}
+										<Badge variant={getStatusBadgeVariant(row.original.isActive)}>
+											{row.original.isActive ? 'Active' : 'Inactive'}
+										</Badge>
+									{:else if cell.column.id === 'actions'}
+										{@const canManage = canManageEmployee(row.original)}
+										<div class="flex justify-end gap-1">
+											{#if canViewEmployees}
+												<Button
+													variant="ghost"
+													size="sm"
+													disabled={!canManage}
+													class={!canManage ? 'cursor-not-allowed opacity-50' : ''}
+													onclick={(e) => {
+														if (canManage) {
+															handleViewEmployee(row.original.id, e);
+														} else {
+															e.stopPropagation();
+														}
+													}}
+												>
+													<Eye class="h-4 w-4" />
+												</Button>
+											{/if}
+											{#if canEditEmployees}
+												<Button
+													variant="ghost"
+													size="sm"
+													disabled={!canManage}
+													class={!canManage ? 'cursor-not-allowed opacity-50' : ''}
+													onclick={(e) => {
+														if (canManage) {
+															handleEditEmployee(row.original.id, e);
+														} else {
+															e.stopPropagation();
+														}
+													}}
+												>
+													<Edit class="h-4 w-4" />
+												</Button>
+											{/if}
+										</div>
+									{/if}
+								</Table.Cell>
+							{/each}
+						</Table.Row>
 					{/each}
 				{:else}
-					<!-- Complex pagination with ellipsis -->
-					<Button
-						variant={currentPage === 1 ? 'default' : 'outline'}
-						size="sm"
-						onclick={() => onPageChange(1)}
-					>
-						1
-					</Button>
-
-					{#if currentPage > 3}
-						<span class="px-2 text-muted-foreground">...</span>
-					{/if}
-
-					{#each Array(Math.min(5, totalPages - 2)) as _, i}
-						{@const pageNum = Math.max(2, Math.min(currentPage - 2 + i, totalPages - 1))}
-						{#if pageNum >= 2 && pageNum <= totalPages - 1}
-							<Button
-								variant={currentPage === pageNum ? 'default' : 'outline'}
-								size="sm"
-								onclick={() => onPageChange(pageNum)}
-							>
-								{pageNum}
-							</Button>
-						{/if}
-					{/each}
-
-					{#if currentPage < totalPages - 2}
-						<span class="px-2 text-muted-foreground">...</span>
-					{/if}
-
-					<Button
-						variant={currentPage === totalPages ? 'default' : 'outline'}
-						size="sm"
-						onclick={() => onPageChange(totalPages)}
-					>
-						{totalPages}
-					</Button>
+					<Table.Row>
+						<Table.Cell colspan={columns.length} class="h-24 text-center">
+							<div class="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+								<Users class="h-8 w-8" />
+								<p>No employees found</p>
+							</div>
+						</Table.Cell>
+					</Table.Row>
 				{/if}
+			</Table.Body>
+		</Table.Root>
 
-				<Button
-					variant="outline"
-					size="sm"
-					disabled={currentPage >= totalPages}
-					onclick={() => onPageChange(currentPage + 1)}
-				>
-					Next
-				</Button>
+		<!-- Pagination -->
+		{#if totalPages > 1}
+			<div
+				class="flex items-center justify-between border-t bg-card px-6 py-4 text-card-foreground"
+				data-testid="employee-pagination"
+			>
+				<div class="text-sm text-muted-foreground">
+					Page {currentPage} of {totalPages}
+				</div>
+				<div class="flex gap-2">
+					<Button
+						variant="outline"
+						size="sm"
+						disabled={currentPage <= 1}
+						onclick={() => onPageChange(currentPage - 1)}
+					>
+						Previous
+					</Button>
+
+					{#if totalPages <= 7}
+						{#each Array(totalPages) as _, i}
+							<Button
+								variant={currentPage === i + 1 ? 'default' : 'outline'}
+								size="sm"
+								onclick={() => onPageChange(i + 1)}
+							>
+								{i + 1}
+							</Button>
+						{/each}
+					{:else}
+						<!-- Complex pagination with ellipsis -->
+						<Button
+							variant={currentPage === 1 ? 'default' : 'outline'}
+							size="sm"
+							onclick={() => onPageChange(1)}
+						>
+							1
+						</Button>
+
+						{#if currentPage > 3}
+							<span class="px-2 text-muted-foreground">...</span>
+						{/if}
+
+						{#each Array(Math.min(5, totalPages - 2)) as _, i}
+							{@const pageNum = Math.max(2, Math.min(currentPage - 2 + i, totalPages - 1))}
+							{#if pageNum >= 2 && pageNum <= totalPages - 1}
+								<Button
+									variant={currentPage === pageNum ? 'default' : 'outline'}
+									size="sm"
+									onclick={() => onPageChange(pageNum)}
+								>
+									{pageNum}
+								</Button>
+							{/if}
+						{/each}
+
+						{#if currentPage < totalPages - 2}
+							<span class="px-2 text-muted-foreground">...</span>
+						{/if}
+
+						<Button
+							variant={currentPage === totalPages ? 'default' : 'outline'}
+							size="sm"
+							onclick={() => onPageChange(totalPages)}
+						>
+							{totalPages}
+						</Button>
+					{/if}
+
+					<Button
+						variant="outline"
+						size="sm"
+						disabled={currentPage >= totalPages}
+						onclick={() => onPageChange(currentPage + 1)}
+					>
+						Next
+					</Button>
+				</div>
 			</div>
-		</div>
-	{/if}
+		{/if}
 	</div>
 </div>

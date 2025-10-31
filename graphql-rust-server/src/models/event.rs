@@ -447,10 +447,13 @@ pub struct EventCondition {
 pub struct CreateEventInput {
     pub title: String,
     pub description: Option<String>,
+    pub event_type: Option<String>,
     pub location: Option<String>,
     pub start_time: DateTime<Utc>,
     pub end_time: DateTime<Utc>,
     pub is_all_day: bool,
+    pub status: Option<String>,
+    pub is_public: Option<bool>,
     pub recurrence_rule: Option<String>,
     pub recurrence_end_date: Option<DateTime<Utc>>,
     pub capacity: Option<i32>,

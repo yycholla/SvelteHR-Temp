@@ -1,35 +1,51 @@
 <script lang="ts">
 	import { Button } from 'carbon-components-svelte';
 
-	// Carbon Button variants mapping
-	export let variant:
-		| 'primary'
-		| 'secondary'
-		| 'tertiary'
-		| 'danger'
-		| 'success'
-		| 'warning'
-		| 'ghost' = 'primary';
-	export let size: 'sm' | 'md' | 'lg' | 'xl' | 'field' = 'md';
-	export let type: 'button' | 'submit' | 'reset' = 'button';
-	export let disabled: boolean = false;
-	export let loading: boolean = false;
-	export let href: string | null = null;
-	export let target: string | null = null;
-	export let rel: string | null = null;
-	export let icon: any = undefined;
-	export let iconDescription: string = '';
-	export let tooltipAlignment: 'start' | 'center' | 'end' = 'center';
-	export let tooltipPosition: 'top' | 'right' | 'bottom' | 'left' = 'bottom';
-	export let isSelected: boolean = false;
-	export let hasIconOnly: boolean = false;
-	export let iconOnly: boolean = false; // Legacy prop support
-	export let expressive: boolean = false;
-	export let skeleton: boolean = false;
+	let {
+		variant = 'primary',
+		size = 'md',
+		type = 'button',
+		disabled = false,
+		loading = false,
+		href = null,
+		target = null,
+		rel = null,
+		icon = undefined,
+		iconDescription = '',
+		tooltipAlignment = 'center',
+		tooltipPosition = 'bottom',
+		isSelected = false,
+		hasIconOnly = false,
+		iconOnly = false,
+		expressive = false,
+		skeleton = false,
+		children,
+		...restProps
+	}: {
+		variant?: 'primary' | 'secondary' | 'tertiary' | 'danger' | 'success' | 'warning' | 'ghost';
+		size?: 'sm' | 'md' | 'lg' | 'xl' | 'field';
+		type?: 'button' | 'submit' | 'reset';
+		disabled?: boolean;
+		loading?: boolean;
+		href?: string | null;
+		target?: string | null;
+		rel?: string | null;
+		icon?: any;
+		iconDescription?: string;
+		tooltipAlignment?: 'start' | 'center' | 'end';
+		tooltipPosition?: 'top' | 'right' | 'bottom' | 'left';
+		isSelected?: boolean;
+		hasIconOnly?: boolean;
+		iconOnly?: boolean;
+		expressive?: boolean;
+		skeleton?: boolean;
+		children?: import('svelte').Snippet;
+		[key: string]: any;
+	} = $props();
 
 	// Map custom variants to Carbon variants
-	$: carbonKind = mapVariantToKind(variant);
-	$: carbonSize = mapSizeToCarbon(size);
+	let carbonKind = $derived(mapVariantToKind(variant));
+	let carbonSize = $derived(mapSizeToCarbon(size));
 
 	function mapVariantToKind(variant: string): string {
 		switch (variant) {
@@ -70,7 +86,7 @@
 	}
 
 	// Handle iconOnly prop for backward compatibility
-	$: hasIconOnlyComputed = hasIconOnly || iconOnly;
+	let hasIconOnlyComputed = $derived(hasIconOnly || iconOnly);
 </script>
 
 <Button
@@ -89,19 +105,14 @@
 	hasIconOnly={hasIconOnlyComputed}
 	{expressive}
 	{skeleton}
-	on:click
-	on:mouseenter
-	on:mouseleave
-	on:focus
-	on:blur
-	{...$$restProps}
+	{...restProps}
 >
 	{#if loading}
 		<span class="carbon-button-loading">
 			<div class="carbon-spinner"></div>
 		</span>
 	{:else}
-		<slot />
+		{@render children?.()}
 	{/if}
 </Button>
 

@@ -315,7 +315,10 @@
 						class:z-10={node.isDragging}
 						style="transform: translate({node.x * zoom + panX}px, {node.y * zoom +
 							panY}px) scale({zoom}); transform-origin: top left;"
+						role="button"
+						tabindex="0"
 						onmousedown={(e) => handleMouseDown(e, node)}
+						aria-label="Draggable employee node for {node.fullName}"
 					>
 						<div
 							class="h-[120px] w-[200px] rounded-lg border-2 bg-white p-3 {getNodeColor(

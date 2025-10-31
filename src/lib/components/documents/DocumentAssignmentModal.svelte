@@ -498,11 +498,6 @@
 		font-size: 0.875rem;
 	}
 
-	.item-detail {
-		font-size: 0.75rem;
-		color: #718096;
-	}
-
 	.assigned-badge {
 		padding: 0.25rem 0.75rem;
 		background: #edf2f7;

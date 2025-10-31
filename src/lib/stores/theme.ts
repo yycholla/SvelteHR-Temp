@@ -18,37 +18,39 @@ interface ThemeState {
 
 // Create the theme store
 function createThemeStore() {
-	const defaultState: ThemeState = {
-		current: 'system',
-		resolved: 'light',
-		isSystemDark: false
-	};
+	// Initialize state from localStorage or default to system
+	// NOTE: Theme is applied by blocking script in app.html BEFORE this runs
+	let initialState: ThemeState;
 
-	const { subscribe, set, update } = writable<ThemeState>(defaultState);
-
-	// Initialize theme from localStorage and system preference
-	function initialize() {
-		if (!browser) return;
-
-		// Get saved theme or default to 'system'
+	if (browser) {
 		const savedTheme = (localStorage.getItem('theme') as Theme) || 'system';
-
-		// Detect system preference
 		const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 		const isSystemDark = mediaQuery.matches;
+		const resolvedTheme = savedTheme === 'system'
+			? (isSystemDark ? 'dark' : 'light')
+			: savedTheme;
 
-		// Resolve the actual theme
-		const resolvedTheme = savedTheme === 'system' ? (isSystemDark ? 'dark' : 'light') : savedTheme;
-
-		// Update store state
-		set({
+		initialState = {
 			current: savedTheme,
 			resolved: resolvedTheme,
 			isSystemDark
-		});
+		};
+	} else {
+		// Server-side default
+		initialState = {
+			current: 'system',
+			resolved: 'light',
+			isSystemDark: false
+		};
+	}
 
-		// Apply theme to document
-		applyTheme(resolvedTheme);
+	const { subscribe, set, update } = writable<ThemeState>(initialState);
+
+	// Initialize is now only for setting up event listeners
+	function initialize() {
+		if (!browser) return;
+
+		const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
 		// Listen for system theme changes
 		mediaQuery.addEventListener('change', (e) => {
@@ -121,10 +123,8 @@ function createThemeStore() {
 
 export const themeStore = createThemeStore();
 
-// Auto-initialize if in browser
-if (browser) {
-	themeStore.initialize();
-}
+// NOTE: Event listeners are initialized in +layout.svelte via onMount()
+// to ensure they run AFTER hydration completes
 
 // Helper to get current theme class
 export function getThemeClass(resolved: 'light' | 'dark'): string {

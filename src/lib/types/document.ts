@@ -3,6 +3,16 @@
 
 export type FileType = 'PDF' | 'JPEG' | 'PNG' | 'GIF' | 'DOCX' | 'XLSX' | 'TXT' | 'CSV';
 
+export type DocumentCategoryType =
+	| 'Contract'
+	| 'Policy'
+	| 'Report'
+	| 'Invoice'
+	| 'Certificate'
+	| 'Payslip'
+	| 'License'
+	| 'Other';
+
 export type SensitivityLevel = 'Public' | 'Internal' | 'Confidential' | 'Sensitive-PII';
 
 export type AccessType = 'view' | 'download' | 'preview';
@@ -102,7 +112,7 @@ export interface DocumentVersion {
 // Metadata for document upload
 export interface DocumentMetadata {
 	filename: string;
-	category: string;
+	category: DocumentCategoryType;
 	sensitivityLevel: SensitivityLevel;
 	expirationDate?: Date;
 	metadataTags?: Record<string, unknown>;

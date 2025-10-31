@@ -39,8 +39,8 @@
 	let searchTerm = $state('');
 	let isOpen = $state(false);
 	let highlightedIndex = $state(0);
-	let inputElement: HTMLInputElement;
-	let dropdownElement: HTMLDivElement;
+	let inputElement = $state<HTMLInputElement>();
+	let dropdownElement = $state<HTMLDivElement>();
 	let isCreating = $state(false);
 	let createError = $state('');
 
@@ -283,9 +283,17 @@
 		class="flex min-h-10 w-full flex-wrap gap-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 {disabled
 			? 'cursor-not-allowed opacity-50'
 			: ''}"
+		role="button"
+		tabindex="0"
 		onclick={() => {
 			console.log('[TaskTypeTagInput] Outer div clicked, focusing input');
 			inputElement?.focus();
+		}}
+		onkeydown={(e) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				inputElement?.focus();
+			}
 		}}
 	>
 		<!-- Selected task type badge -->

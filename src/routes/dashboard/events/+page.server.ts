@@ -113,10 +113,13 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			).length
 		};
 
-		// Check if user has manager or admin privileges for event creation
-		// Permissions come from JWT token in locals.permissions
+		// Check permissions - manager role and above can create events
+		const hasWildcardPermission = locals.permissions?.includes('*');
+		const roleLevel = getRoleLevel(locals.user.role);
 		const canCreateEvents =
-			locals.permissions?.includes('*') || locals.permissions?.includes('manage_events') || false;
+			hasWildcardPermission ||
+			locals.permissions?.includes('manage_events') ||
+			roleLevel >= 60; // Manager and above
 
 		// Feature 027: Fetch all employees for attendee picker in event creation
 		const FETCH_ALL_EMPLOYEES = gql`
@@ -201,7 +204,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 // Helper function to get role level for authorization
 function getRoleLevel(role: string | undefined): number {
 	const roleLevels: Record<string, number> = {
-		super_admin: 200, // Highest level - system administrator
+		system_admin: 200, // Highest level - system administrator
+		super_admin: 200, // Alias for system_admin
 		admin: 100,
 		hr_manager: 80,
 		manager: 60,
@@ -394,7 +398,7 @@ export const actions: Actions = {
 		}
 	},
 
-	createEvent: async ({ request, locals, cookies }) => {
+	createEvent: async ({ request, locals, cookies, fetch: eventFetch }) => {
 		// Check authentication
 		if (!locals.user) {
 			return fail(401, { error: 'Authentication required' });
@@ -426,8 +430,9 @@ export const actions: Actions = {
 		}
 
 		try {
-			// Session-based auth doesn't use JWT tokens
-			const urqlClient = createUrqlClient();
+			// Session-based auth - pass fetch and cookies to forward session
+			const cookieHeader = request.headers.get('cookie') || '';
+			const urqlClient = createUrqlClient(eventFetch, undefined, undefined, cookieHeader);
 			const eventsOps = new EventsOperations(urqlClient);
 
 			// T036: Session-based authentication - jwtToken not needed
@@ -480,9 +485,9 @@ export const actions: Actions = {
 					endTime: endTimeUTC,
 					isAllDay: isAllDay,
 					location,
-					organizerId: locals.user.id,
-					isPublic,
-					status: 'scheduled'
+					status: 'scheduled',
+					isPublic
+					// organizerId is set automatically from UserContext
 				},
 				userCredentials
 			});

@@ -690,10 +690,13 @@ impl MutationRoot {
         let event = crate::models::event::ActiveModel {
             title: Set(input.title.clone()),
             description: Set(input.description.clone()),
+            event_type: Set(input.event_type.unwrap_or_else(|| "other".to_string())),
             location: Set(input.location.clone()),
             start_time: Set(input.start_time),
             end_time: Set(input.end_time),
             is_all_day: Set(input.is_all_day),
+            status: Set(input.status.unwrap_or_else(|| "scheduled".to_string())),
+            is_public: Set(input.is_public.unwrap_or(false)),
             recurrence_rule: Set(input.recurrence_rule.clone()),
             recurrence_end_date: Set(input.recurrence_end_date),
             capacity: Set(input.capacity),
@@ -3893,6 +3896,22 @@ impl MutationRoot {
                     document_id: Set(document.id),
                     user_id: Set(Some(*employee_id)),
                     department_id: Set(None),
+                    access_level: Set("read".to_string()),
+                    assigned_by: Set(user.id),
+                    ..Default::default()
+                };
+                assignment.insert(&txn).await?;
+            }
+        }
+
+        // Create department assignments if specified
+        if let Some(department_ids) = &input.assign_to_departments {
+            for department_id in department_ids {
+                let assignment = crate::models::documents::document_assignment::ActiveModel {
+                    id: Set(uuid::Uuid::new_v4()),
+                    document_id: Set(document.id),
+                    user_id: Set(None),
+                    department_id: Set(Some(*department_id)),
                     access_level: Set("read".to_string()),
                     assigned_by: Set(user.id),
                     ..Default::default()

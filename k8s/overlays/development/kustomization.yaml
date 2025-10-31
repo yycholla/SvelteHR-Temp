@@ -1,0 +1,64 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Base configuration
+resources:
+  - ../../base
+
+# Namespace override
+namespace: sveltehr-dev
+
+# Development-specific patches
+patches:
+  # File patches
+  - path: configmap-dev.yaml
+  # ingress-dev.yaml - Commented out due to kernel module issue
+
+  # Inline resource limit patches
+  - target:
+      kind: Deployment
+      name: sveltehr-backend
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+  - target:
+      kind: Deployment
+      name: sveltehr-frontend
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+  - target:
+      kind: Cluster
+      name: sveltehr-postgres
+    patch: |-
+      - op: replace
+        path: /spec/instances
+        value: 1
+      - op: replace
+        path: /spec/storage/size
+        value: "5Gi"
+  - target:
+      kind: RedisFailover
+      name: sveltehr-redis
+    patch: |-
+      - op: replace
+        path: /spec/redis/replicas
+        value: 1
+      - op: replace
+        path: /spec/sentinel/replicas
+        value: 1

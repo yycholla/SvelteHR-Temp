@@ -3,12 +3,11 @@
 	import type { ComponentProps } from 'svelte';
 
 	let {
-		checked = false,
-		onCheckedChange = (v) => (checked = v),
+		checked = $bindable(false),
 		...restProps
 	}: ComponentProps<typeof Checkbox> = $props();
 </script>
 
 <div class="flex items-center justify-center">
-	<Checkbox bind:checked={() => checked, onCheckedChange} {...restProps} />
+	<Checkbox bind:checked {...restProps} />
 </div>

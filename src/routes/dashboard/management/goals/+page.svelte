@@ -723,8 +723,9 @@
 			<h2 class="mb-4 text-xl font-bold">Create New Goal</h2>
 			<form class="space-y-4">
 				<div>
-					<label class="mb-1 block text-sm font-medium text-foreground">Goal Title *</label>
+					<label for="goal-title" class="mb-1 block text-sm font-medium text-foreground">Goal Title *</label>
 					<input
+						id="goal-title"
 						type="text"
 						bind:value={goalForm.title}
 						required
@@ -735,8 +736,9 @@
 				</div>
 
 				<div>
-					<label class="mb-1 block text-sm font-medium text-foreground">Description</label>
+					<label for="goal-description" class="mb-1 block text-sm font-medium text-foreground">Description</label>
 					<textarea
+						id="goal-description"
 						bind:value={goalForm.description}
 						rows="3"
 						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
@@ -747,8 +749,9 @@
 
 				<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
 					<div>
-						<label class="mb-1 block text-sm font-medium text-foreground">Type</label>
+						<label for="goal-type" class="mb-1 block text-sm font-medium text-foreground">Type</label>
 						<select
+							id="goal-type"
 							bind:value={goalForm.goalType}
 							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 							data-testid="goal-type-input"
@@ -759,8 +762,9 @@
 						</select>
 					</div>
 					<div>
-						<label class="mb-1 block text-sm font-medium text-foreground">Priority</label>
+						<label for="goal-priority" class="mb-1 block text-sm font-medium text-foreground">Priority</label>
 						<select
+							id="goal-priority"
 							bind:value={goalForm.priority}
 							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 							data-testid="goal-priority-input"
@@ -771,8 +775,9 @@
 						</select>
 					</div>
 					<div>
-						<label class="mb-1 block text-sm font-medium text-foreground">Unit</label>
+						<label for="goal-unit" class="mb-1 block text-sm font-medium text-foreground">Unit</label>
 						<select
+							id="goal-unit"
 							bind:value={goalForm.unit}
 							class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 							data-testid="goal-unit-input"
@@ -787,8 +792,9 @@
 
 				<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 					<div>
-						<label class="mb-1 block text-sm font-medium text-foreground">Target Value</label>
+						<label for="goal-target-value" class="mb-1 block text-sm font-medium text-foreground">Target Value</label>
 						<input
+							id="goal-target-value"
 							type="number"
 							bind:value={goalForm.targetValue}
 							min="0"
@@ -797,8 +803,9 @@
 						/>
 					</div>
 					<div>
-						<label class="mb-1 block text-sm font-medium text-foreground">Current Value</label>
+						<label for="goal-current-value" class="mb-1 block text-sm font-medium text-foreground">Current Value</label>
 						<input
+							id="goal-current-value"
 							type="number"
 							bind:value={goalForm.currentValue}
 							min="0"
@@ -810,8 +817,9 @@
 
 				<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 					<div>
-						<label class="mb-1 block text-sm font-medium text-foreground">Start Date *</label>
+						<label for="goal-start-date" class="mb-1 block text-sm font-medium text-foreground">Start Date *</label>
 						<input
+							id="goal-start-date"
 							type="date"
 							bind:value={goalForm.startDate}
 							required
@@ -820,8 +828,9 @@
 						/>
 					</div>
 					<div>
-						<label class="mb-1 block text-sm font-medium text-foreground">Target Date *</label>
+						<label for="goal-target-date" class="mb-1 block text-sm font-medium text-foreground">Target Date *</label>
 						<input
+							id="goal-target-date"
 							type="date"
 							bind:value={goalForm.targetDate}
 							required
@@ -962,8 +971,9 @@
 
 			<form class="space-y-4">
 				<div>
-					<label class="mb-1 block text-sm font-medium text-foreground">Current Value</label>
+					<label for="progress-current-value" class="mb-1 block text-sm font-medium text-foreground">Current Value</label>
 					<input
+						id="progress-current-value"
 						type="number"
 						bind:value={progressForm.currentValue}
 						min="0"
@@ -990,10 +1000,11 @@
 				</div>
 
 				<div>
-					<label class="mb-1 block text-sm font-medium text-foreground"
+					<label for="progress-notes" class="mb-1 block text-sm font-medium text-foreground"
 						>Progress Notes (Optional)</label
 					>
 					<textarea
+						id="progress-notes"
 						bind:value={progressForm.notes}
 						rows="3"
 						class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"

@@ -15,12 +15,18 @@
 	import type { Department } from '$lib/types';
 
 	// Props
-	export let showControls: boolean = true;
-	export let expandAll: boolean = false;
+	let {
+		showControls = true,
+		expandAll: initialExpandAll = false
+	}: {
+		showControls?: boolean;
+		expandAll?: boolean;
+	} = $props();
 
 	// Internal state
-	let expandedNodes = new Set<string>();
-	let selectedDepartment: Department | null = null;
+	let expandedNodes = $state(new Set<string>());
+	let selectedDepartment = $state<Department | null>(null);
+	let expandAll = $state(initialExpandAll);
 
 	// Hierarchy tree structure
 	interface TreeNodeData {
@@ -30,7 +36,7 @@
 	}
 
 	// Reactive computation for tree structure
-	$: rootNodes = buildHierarchyTree($departmentHierarchy);
+	let rootNodes = $derived(buildHierarchyTree($departmentHierarchy));
 
 	function buildHierarchyTree(departments: Department[]): TreeNodeData[] {
 		if (!departments.length) return [];
@@ -62,12 +68,13 @@
 	}
 
 	function toggleNode(departmentId: string) {
-		if (expandedNodes.has(departmentId)) {
-			expandedNodes.delete(departmentId);
+		const newSet = new Set(expandedNodes);
+		if (newSet.has(departmentId)) {
+			newSet.delete(departmentId);
 		} else {
-			expandedNodes.add(departmentId);
+			newSet.add(departmentId);
 		}
-		expandedNodes = expandedNodes; // Trigger reactivity
+		expandedNodes = newSet;
 	}
 
 	function isExpanded(departmentId: string): boolean {
@@ -110,7 +117,7 @@
 			</div>
 
 			<div class="hierarchy-actions">
-				<Button variant="ghost" size="sm" leftIcon="expand" on:click={expandAllNodes}>
+				<Button variant="ghost" size="sm" leftIcon="expand" onclick={expandAllNodes}>
 					{expandAll ? 'Collapse All' : 'Expand All'}
 				</Button>
 
@@ -119,7 +126,7 @@
 						variant="secondary"
 						size="sm"
 						leftIcon="plus"
-						on:click={() => goto('/departments/new')}
+						onclick={() => goto('/departments/new')}
 					>
 						Add Department
 					</Button>
@@ -146,7 +153,7 @@
 								variant="secondary"
 								size="sm"
 								leftIcon="refresh-cw"
-								on:click={() => departmentService.loadDepartmentHierarchy()}
+								onclick={() => departmentService.loadDepartmentHierarchy()}
 								class="mt-2"
 							>
 								Retry
@@ -165,7 +172,7 @@
 								variant="primary"
 								size="md"
 								leftIcon="plus"
-								on:click={() => goto('/departments/new')}
+								onclick={() => goto('/departments/new')}
 								class="mt-4"
 							>
 								Create Department
@@ -175,17 +182,17 @@
 				</Card>
 			{:else}
 				<div class="tree-nodes">
-					{#each rootNodes as node}
+					{#each rootNodes as node (node.department.id)}
 						<TreeNode
 							{node}
 							isExpanded={isExpanded(node.department.id)}
 							isSelected={selectedDepartment?.id === node.department.id}
 							canEdit={$currentUser && hasPermission('department:update')}
 							{expandAll}
-							on:toggle={(e) => toggleNode(e.detail)}
-							on:select={(e) => selectDepartment(e.detail)}
-							on:edit={(e) => goto(`/departments/${e.detail}/edit`)}
-							on:view={(e) => goto(`/departments/${e.detail}`)}
+							ontoggle={(e) => toggleNode(e.detail)}
+							onselect={(e) => selectDepartment(e.detail)}
+							onedit={(e) => goto(`/departments/${e.detail}/edit`)}
+							onview={(e) => goto(`/departments/${e.detail}`)}
 						/>
 					{/each}
 				</div>
@@ -249,7 +256,7 @@
 							variant="secondary"
 							size="sm"
 							leftIcon="eye"
-							on:click={() => goto(`/departments/${selectedDepartment.id}`)}
+							onclick={() => goto(`/departments/${selectedDepartment.id}`)}
 						>
 							View Details
 						</Button>
@@ -259,7 +266,7 @@
 								variant="primary"
 								size="sm"
 								leftIcon="edit"
-								on:click={() => goto(`/departments/${selectedDepartment.id}/edit`)}
+								onclick={() => goto(`/departments/${selectedDepartment.id}/edit`)}
 							>
 								Edit
 							</Button>

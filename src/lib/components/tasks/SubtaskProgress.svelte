@@ -243,10 +243,11 @@
 					{#each Object.entries(statusConfig) as [status, config]}
 						{@const count = subtaskStats()[status.toLowerCase().replace(' ', '') as keyof SubtaskStats]}
 						{#if typeof count === 'number' && count > 0}
+							{@const StatusIcon = config.icon}
 							<div class="status-item">
 								<div class="flex items-center gap-2 flex-1">
 									<div class="status-icon {config.color}">
-										<svelte:component this={config.icon} class="h-3 w-3" />
+										<StatusIcon class="h-3 w-3" />
 									</div>
 									<span class="text-xs text-muted-foreground">{config.label}</span>
 								</div>

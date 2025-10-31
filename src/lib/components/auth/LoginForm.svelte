@@ -6,7 +6,6 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
-	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
 
 	/**
@@ -207,14 +206,15 @@
 		<!-- Remember Me & Forgot Password -->
 		<div class="flex items-center justify-between">
 			<div class="flex items-center space-x-2">
-				<Checkbox
+				<input
+					type="checkbox"
 					id="remember-me"
-					checked={rememberMe}
-					onCheckedChange={(checked) => (rememberMe = checked || false)}
+					bind:checked={rememberMe}
 					disabled={isSubmitting || $isLoading}
 					data-testid="login-remember-me"
+					class="h-4 w-4 rounded border-input text-primary focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
 				/>
-				<Label for="remember-me" class="text-sm font-normal">Remember me</Label>
+				<Label for="remember-me" class="text-sm font-normal cursor-pointer">Remember me</Label>
 			</div>
 
 			<div class="text-sm">

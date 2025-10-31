@@ -5,7 +5,7 @@
  * Centralized date/time formatting using date-fns
  */
 
-import { format, formatDistance, formatRelative, isToday, isTomorrow, isYesterday } from 'date-fns';
+import { format, formatDistance, isToday, isTomorrow, isYesterday } from 'date-fns';
 
 /**
  * Format date as human-readable string

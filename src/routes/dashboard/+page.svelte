@@ -881,11 +881,17 @@
 					{#if localTasks.length > 0}
 						<div class="space-y-3">
 							{#each localTasks as task}
-								<div 
+								<div
 									class="task-card group relative rounded-lg border border-border bg-card p-4 shadow-sm transition-all hover:shadow-md cursor-pointer hover:border-primary"
 									onclick={() => handleTaskClick(task.id)}
 									role="button"
 									tabindex="0"
+									onkeydown={(e) => {
+										if (e.key === 'Enter' || e.key === ' ') {
+											e.preventDefault();
+											handleTaskClick(task.id);
+										}
+									}}
 								>
 									<!-- Task Title and Status Dropdown Row -->
 									<div class="flex items-center gap-3">

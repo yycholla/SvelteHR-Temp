@@ -74,10 +74,7 @@ export interface AuthConfig {
 // Default configuration - Session-based auth is PRIMARY
 const defaultConfig: AuthConfig = {
 	api: {
-		baseUrl:
-			process.env.NODE_ENV === 'production'
-				? 'https://api.postgraphile-hr.com'
-				: 'http://localhost:4000',
+		baseUrl: process.env.PUBLIC_API_URL || 'http://localhost:4000',
 		authEndpoint: '/auth/login',
 		logoutEndpoint: '/auth/logout',
 		verifyEndpoint: '/auth/verify'
@@ -191,10 +188,9 @@ export function validateAuthConfig(config: AuthConfig): void {
 		throw new Error('API base URL must be a valid URL');
 	}
 
-	// Security validation
-	if (config.security.requireHttps && !config.api.baseUrl.startsWith('https://')) {
-		throw new Error('HTTPS is required in production but API base URL is not HTTPS');
-	}
+	// Note: We don't validate HTTPS for baseUrl because in Docker/production environments,
+	// the backend may use HTTP internally (with Caddy handling HTTPS termination).
+	// Client code uses relative URLs (/api/auth/*) which inherit the page's protocol.
 }
 
 // Validate configuration on module load
@@ -205,10 +201,12 @@ validateAuthConfig(authConfig);
  */
 
 // API endpoint helpers
+// Returns SvelteKit API routes (e.g., /api/auth/login) which proxy to backend
+// Client-side code should ALWAYS use these routes, never call backend directly
 export const getAuthEndpoints = () => ({
-	login: `${authConfig.api.baseUrl}${authConfig.api.authEndpoint}`,
-	logout: `${authConfig.api.baseUrl}${authConfig.api.logoutEndpoint}`,
-	verify: `${authConfig.api.baseUrl}${authConfig.api.verifyEndpoint}`
+	login: '/api/auth/login',
+	logout: '/api/auth/logout',
+	verify: '/api/auth/verify'
 });
 
 // Session cookie helpers

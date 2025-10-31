@@ -287,7 +287,8 @@
 					{#if node.user}
 						{getUserInitials(node.name)}
 					{:else}
-						<svelte:component this={getNodeIcon(node)} class="h-5 w-5" />
+						{@const NodeIcon = getNodeIcon(node)}
+						<NodeIcon class="h-5 w-5" />
 					{/if}
 				</div>
 

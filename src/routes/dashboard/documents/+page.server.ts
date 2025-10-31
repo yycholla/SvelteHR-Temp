@@ -43,28 +43,56 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 			});
 		}
 
-		// Step 5: Get total count from database
+		// Step 5: Load database utilities
 		const { transaction: dbTransaction, setJWTClaims: setDbClaims } = await import('$lib/server/db');
 
-		const totalCount = await dbTransaction(async (dbClient) => {
+		// Step 6: Get total count from database and load assignee data
+		const allAssignments = response.data?.documents?.flatMap((doc: any) => doc.assignments || []) || [];
+		const uniqueUserIds = [...new Set(allAssignments.map((a: any) => a.userId))];
+
+		const [totalCount, assigneeMap] = await dbTransaction(async (dbClient) => {
 			await setDbClaims(dbClient, userId, userPermissions);
 
+			// Get document count
 			const countResult = await dbClient.query(
 				`SELECT COUNT(*) as count
 				 FROM hr_public.documents
 				 WHERE deleted_at IS NULL`
 			);
 
-			return parseInt(countResult.rows[0].count, 10);
+			const count = parseInt(countResult.rows[0].count, 10);
+
+			// Load user data for assignees
+			let userMap = new Map();
+
+			if (uniqueUserIds.length > 0) {
+				const userResult = await dbClient.query(
+					`SELECT id, display_name, email
+					 FROM hr_public.users
+					 WHERE id = ANY($1::uuid[])`,
+					[uniqueUserIds]
+				);
+
+				userResult.rows.forEach((user) => {
+					userMap.set(user.id, {
+						id: user.id,
+						displayName: user.display_name,
+						email: user.email
+					});
+				});
+			}
+
+			return [count, userMap];
 		});
 
-		// Step 6: Transform GraphQL response to match page format
+		// Step 7: Transform GraphQL response to match page format
 		const documents = (response.data?.documents || []).map((doc: any) => ({
 			id: doc.id,
 			filename: doc.title,
 			file_type: doc.mimeType,
 			file_size_bytes: doc.fileSize,
-			category: doc.category?.name || 'Uncategorized',
+			category: doc.category?.name || 'Other',
+			sensitivity_level: doc.sensitivityLevel || 'Internal',
 			uploaded_at: doc.createdAt,
 			uploaded_by: doc.uploaderId,
 			access_level: doc.accessLevel,
@@ -72,13 +100,24 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 			description: doc.description,
 			expiration_date: doc.expiryDate,
 			version_number: doc.versionNumber,
-			assigned_users: (doc.assignments || []).map((a: any) => ({
-				id: a.userId,
-				email: 'Unknown' // User relationship is lazy-loaded
-			}))
+			assigned_users: (doc.assignments || []).map((a: any) => {
+				const userInfo = assigneeMap.get(a.userId);
+				return {
+					id: a.userId,
+					email: userInfo?.email || 'Unknown',
+					displayName: userInfo?.displayName || 'Unknown User'
+				};
+			})
 		}));
 
-		// Step 7: Return data for the page
+		// Step 8: Get all assignee options for MultiSearchInput
+		const assigneeOptions = Array.from(assigneeMap.values()).map((user) => ({
+			id: user.id,
+			displayName: user.displayName,
+			email: user.email
+		}));
+
+		// Step 9: Return data for the page
 		return {
 			documents,
 			totalCount,
@@ -88,6 +127,7 @@ export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 			sortOrder,
 			filterCategory,
 			searchQuery,
+			assigneeOptions,
 			user: locals.user,
 			userPermissions,
 			totalPages: Math.ceil(totalCount / limit) || 0

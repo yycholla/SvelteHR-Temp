@@ -174,6 +174,12 @@
 							role="button"
 							tabindex="0"
 							onclick={() => handleNotificationClick(notification)}
+							onkeydown={(e) => {
+								if (e.key === 'Enter' || e.key === ' ') {
+									e.preventDefault();
+									handleNotificationClick(notification);
+								}
+							}}
 						>
 							<!-- Unread Indicator -->
 							{#if !notification.readStatus}

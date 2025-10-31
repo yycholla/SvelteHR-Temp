@@ -3,7 +3,7 @@
 ## Technology Stack
 
 - **Frontend**: SvelteKit 2.22.0, Svelte 5.0, TypeScript 5.0, Tailwind CSS 4.0, Vite 7.0.4
-- **Backend**: Rust GraphQL (async-graphql + SeaORM + axum-login), Go backend (MountainHR API)
+- **Backend**: Rust GraphQL (async-graphql + SeaORM + axum-login)
 - **Testing**: Vitest 3.2.3, Playwright 1.49.1, Storybook 9.1.1
 - **Auth**: Session-based with axum-login, HTTP-only cookies, RBAC permissions
 

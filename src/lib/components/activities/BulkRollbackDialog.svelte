@@ -244,8 +244,25 @@
 </script>
 
 {#if isOpen}
-	<div class="modal-backdrop" onclick={!isProcessing ? handleClose : undefined}>
-		<div class="modal-dialog" onclick={(e) => e.stopPropagation()}>
+	<div
+		class="modal-backdrop"
+		role="button"
+		tabindex="0"
+		onclick={!isProcessing ? handleClose : undefined}
+		onkeydown={(e) => {
+			if ((e.key === 'Escape' || e.key === 'Enter') && !isProcessing) {
+				handleClose();
+			}
+		}}
+	>
+		<div
+			class="modal-dialog"
+			role="dialog"
+			tabindex="-1"
+			aria-modal="true"
+			onclick={(e) => e.stopPropagation()}
+			onkeydown={(e) => e.stopPropagation()}
+		>
 			<div class="modal-header">
 				<h3>Bulk Rollback</h3>
 				<p class="subtitle">

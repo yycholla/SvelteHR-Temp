@@ -68,10 +68,19 @@ class SecureAuthService {
 					this.authState.permissions = data.permissions || [];
 					this.authState.sessionExpires = data.sessionExpires ? new Date(data.sessionExpires) : null;
 				}
+			} else if (response.status === 401) {
+				// Expected for unauthenticated users - not an error
+				// Just reset state without calling logout (which would navigate away)
+				this.resetAuthState();
+			} else {
+				// Other errors (500, 503, etc.) - log but don't crash
+				console.warn('Auth verification returned unexpected status:', response.status);
+				this.resetAuthState();
 			}
 		} catch (error) {
 			console.error('Auth service initialization failed:', error);
-			await this.logout();
+			// Network error or fetch failed - reset state but don't logout
+			this.resetAuthState();
 		}
 	}
 
@@ -291,11 +300,6 @@ class SecureAuthService {
 
 // Create singleton instance
 export const secureAuthService = new SecureAuthService();
-
-// Initialize on client-side
-if (browser) {
-	secureAuthService.initialize().catch(console.error);
-}
 
 // Export for testing
 export { SecureAuthService };

@@ -1,14 +1,21 @@
+.PHONY: backend clean db-entities db-migrate db-reset db-shell db-status dev-down dev-logs dev-rebuild-full frontend help install prod-down prod-frontend-rebuild prod-frontend-rebuild-full prod-logs prod-rebuild-full rust-build rust-check rust-clippy rust-logs rust-shell rust-test ssh-backend ssh-frontend test test-e2e test-unit
+
 # SvelteHR Development Commands - Streamlined Makefile
 SHELL := /bin/bash
-.PHONY: help dev dev-down dev-logs dev-rebuild dev-rebuild-full backend frontend ssh-backend ssh-frontend
-.PHONY: db-shell db-status db-reset db-migrate clean install test
-
 # =============================================================================
 # Help
 # =============================================================================
 help: ## Show available commands
 	@echo "🏢 SvelteHR Development Commands"
 	@echo "================================"
+	@echo ""
+	@echo "Production"
+	@echo "  make prod 							    - Start all prod containers"
+	@echo "  make prod-logs             - View Production logs"
+	@echo "  make prod-down             - Stop all prod containers"
+	@echo "  make prod-rebuild          - Rebuild all prod containers"
+	@echo "  make prod-rebuild-full     - Rebuild all prod containers without cached builds"
+	@echo "  make prod-frontend-rebuild - Full Rebuild and restart frontend"
 	@echo ""
 	@echo "🚀 Development (Recommended):"
 	@echo "  make dev                - Start ALL containers (backend + frontend + database + redis)"
@@ -59,6 +66,75 @@ help: ## Show available commands
 # Development Workflow
 # =============================================================================
 
+prod: ## Start ALL production containers
+	@echo "🚀 Starting ALL SvelteHR Production Containers..."
+	@docker-compose up -d
+	@echo ""
+	@echo "✅ All containers started!"
+	@echo ""
+	@echo "📍 Services available:"
+	@echo "   🔹 Frontend:     http://localhost"
+	@echo "   🔹 Backend API:  http://localhost:4000/graphql"
+	@echo "   🔹 GraphiQL:     http://localhost:5000/graphiql"
+	@echo "   🔹 PostgreSQL:   localhost:5433 (user: postgres, pass: postgres123)"
+	@echo "   🔹 Redis:        localhost:6380"
+	@echo ""
+	@echo "💡 View logs: make prod-logs"
+	@echo "💡 Stop all:  make prod-down"
+
+prod-down: ## Stop all development containers
+	@echo "⏹️ Stopping Production containers..."
+	@docker-compose down
+	@echo "✅ Containers stopped"
+
+prod-logs: ## View container logs (Ctrl+C to exit)
+	@docker-compose logs -f
+
+prod-rebuild: ## Rebuild containers (leverages cargo-chef dependency caching)
+	@echo "🔨 Rebuilding Production containers with cargo-chef caching..."
+	@docker-compose build
+	@echo "✅ Rebuild complete. Run 'make prod' to start."
+	@echo "💡 For full rebuild (no cache), use: make prod-rebuild-full"
+
+prod-frontend-rebuild: ## Start only frontend container (requires backend to be running)
+	@echo "🎨 Starting Frontend Container..."
+	@echo ""
+	@if ! docker ps | grep -q registry.gitlab.com/chanway/sveltehr/backend; then \
+	echo "❌ Backend not running. Start it first with 'make prod'"; \
+	exit 1; \
+	fi
+	@docker compose build frontend
+	@echo ""
+	@echo "Frontend Container Rebuilt"
+	@docker-compose up -d frontend
+	@echo ""
+	@echo "✅ Frontend container started!"
+	@echo "🌐 Frontend available at: http://localhost"
+	@echo ""
+	@echo "💡 View logs: make prod-logs"
+
+prod-frontend-rebuild-full: ## Start only frontend container (requires backend to be running)
+	@echo "🎨 Starting Frontend Container..."
+	@echo ""
+	@if ! docker ps | grep -q registry.gitlab.com/chanway/sveltehr/backend; then \
+	echo "❌ Backend not running. Start it first with 'make prod'"; \
+	exit 1; \
+	fi
+	@docker compose build frontend --no-cache
+	@echo ""
+	@echo "Frontend Container Rebuilt"
+	@docker-compose up -d frontend
+	@echo ""
+	@echo "✅ Frontend container started!"
+	@echo "🌐 Frontend available at: http://localhost"
+	@echo ""
+	@echo "💡 View logs: make prod-logs"
+
+prod-rebuild-full: ## Full rebuild without caching (use when Dockerfile or dependencies change)
+	@echo "🔨 Full rebuild (no cache) - this will take 8-12 minutes..."
+	@docker-compose build --no-cache
+	@echo "✅ Full rebuild complete. Run 'make prod' to start."
+
 dev: ## Start ALL development containers (backend + frontend + database + redis)
 	@echo "🚀 Starting ALL SvelteHR Development Containers..."
 	@cd dev-containers && docker-compose -f docker-compose.dev.yml up -d
@@ -93,8 +169,8 @@ frontend: ## Start only frontend container (requires backend to be running)
 	@echo "🎨 Starting Frontend Container..."
 	@echo ""
 	@if ! docker ps | grep -q sveltehr-backend-dev; then \
-		echo "❌ Backend not running. Start it first with 'make backend' or 'make dev'"; \
-		exit 1; \
+	echo "❌ Backend not running. Start it first with 'make backend' or 'make dev'"; \
+	exit 1; \
 	fi
 	@cd dev-containers && docker-compose -f docker-compose.dev.yml up -d frontend-dev
 	@echo ""
@@ -152,8 +228,8 @@ db-status: ## Show applied migrations
 	@echo "📊 Database Migration Status:"
 	@echo ""
 	@docker exec sveltehr-postgres-dev psql -U postgres -d hr_system -c \
-		"SELECT id, name, applied_at FROM migrations ORDER BY applied_at DESC LIMIT 10;" \
-		2>/dev/null || echo "Migrations table not found. Run 'make db-migrate'"
+	"SELECT id, name, applied_at FROM migrations ORDER BY applied_at DESC LIMIT 10;" \
+	2>/dev/null || echo "Migrations table not found. Run 'make db-migrate'"
 	@echo ""
 	@echo "📊 SeaORM Entity Status:"
 	@echo "   Run 'make db-entities' to regenerate SeaORM entities from schema"
@@ -185,9 +261,9 @@ db-reset: ## Reset database (WARNING: deletes all data)
 db-entities: ## Regenerate SeaORM entities from database schema
 	@echo "🔄 Regenerating SeaORM entities..."
 	@docker exec sveltehr-graphql-rust sea-orm-cli generate entity \
-		--database-url postgresql://postgres:postgres123@postgres-dev:5432/hr_system \
-		--output-dir models/generated \
-		--with-serde both
+	--database-url postgresql://postgres:postgres123@postgres-dev:5432/hr_system \
+	--output-dir models/generated \
+	--with-serde both
 	@echo "✅ SeaORM entities regenerated"
 
 # =============================================================================

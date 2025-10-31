@@ -13,6 +13,7 @@
 <script lang="ts">
 	import type { Task } from '$lib/types/task';
 	import TaskCard from './TaskCard.svelte';
+	import TaskHierarchy from './TaskHierarchy.svelte';
 	import { ChevronDown, ChevronRight, GitBranch, Minus } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 
@@ -138,7 +139,7 @@
 				{/if}
 
 				<!-- Recursive TaskHierarchy for subtask -->
-				<svelte:self
+				<TaskHierarchy
 					task={subtask}
 					{userId}
 					{onTaskClick}

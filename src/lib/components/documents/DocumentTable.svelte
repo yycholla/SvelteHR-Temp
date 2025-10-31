@@ -78,6 +78,7 @@
 		'Invoice',
 		'Certificate',
 		'Payslip',
+		'License',
 		'Other'
 	];
 

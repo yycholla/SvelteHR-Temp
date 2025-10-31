@@ -51,7 +51,7 @@ ENV NODE_ENV=${NODE_ENV}
 RUN npx vite build
 
 # =============================================================================
-# Stage 2: Production Runtime (Factor V: Release/Run)
+# Stage 2: Production Runtime with Doppler (Factor V: Release/Run)
 # =============================================================================
 FROM node:20-alpine AS runtime
 
@@ -71,10 +71,11 @@ COPY package*.json ./
 RUN npm install --only=production && npm cache clean --force
 
 # Copy built application from builder stage
-COPY --from=builder --chown=svelte:nodejs /app/build ./build
+COPY --from=builder --chown=svelte:nodejs /app/.svelte-kit/output ./.svelte-kit/output
 COPY --from=builder --chown=svelte:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=svelte:nodejs /app/package-lock.json ./package-lock.json
 
-# Copy any additional runtime files
+# Copy any additional runtime files needed by adapter
 COPY --chown=svelte:nodejs svelte.config.js ./
 COPY --chown=svelte:nodejs vite.config.ts ./
 
@@ -95,7 +96,45 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 
 # Start the application (Factor V: Run phase)
 # Configure Doppler for production if token provided, then start app
-CMD ["sh", "-c", "if [ -n \"$DOPPLER_TOKEN\" ]; then doppler configure set project mountainhr-frontend --scope / 2>/dev/null || true; doppler configure set config prd --scope / 2>/dev/null || true; doppler configure set token \"$DOPPLER_TOKEN\" --scope / 2>/dev/null || true; fi && node build/index.js"]
+CMD ["sh", "-c", "if [ -n \"$DOPPLER_TOKEN\" ]; then doppler configure set project mountainhr-frontend --scope / 2>/dev/null || true; doppler configure set config prd --scope / 2>/dev/null || true; doppler configure set token \"$DOPPLER_TOKEN\" --scope / 2>/dev/null || true; fi && node .svelte-kit/output/server/index.js"]
+
+# =============================================================================
+# Stage 3: Production without Doppler (for Docker Compose deployment)
+# =============================================================================
+FROM node:20-alpine AS production
+
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+  adduser -S svelte -u 1001
+
+# Set working directory
+WORKDIR /app
+
+# Install runtime dependencies only
+COPY package*.json ./
+RUN npm ci --omit=dev && npm cache clean --force
+
+# Copy built application from builder stage
+COPY --from=builder --chown=svelte:nodejs /app/build ./build
+COPY --from=builder --chown=svelte:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=svelte:nodejs /app/package-lock.json ./package-lock.json
+
+# Switch to non-root user
+USER svelte
+
+# Expose port (SvelteKit default: 3000 for production)
+EXPOSE 3000
+
+# Environment variables (Factor III: Config from environment)
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOST=0.0.0.0
+
+# Start the application directly (adapter-node entry point)
+CMD ["node", "build/index.js"]
 
 # =============================================================================
 # Development Override Stage (Factor X: Dev/Prod Parity)

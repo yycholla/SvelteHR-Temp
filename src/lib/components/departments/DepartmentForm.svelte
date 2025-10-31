@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
+	import { onMount } from 'svelte';
 	import { departments, departmentService } from '$lib/services/departmentService';
 	import { userService, users } from '$lib/services/userService';
 	import Button from '../base/Button.svelte';
@@ -9,17 +9,23 @@
 	import Card from '../base/Card.svelte';
 	import type { Department, CreateDepartmentInput, UpdateDepartmentInput } from '$lib/types';
 
-	export let department: Department | null = null;
-	export let mode: 'create' | 'edit' = 'create';
-	export let showCancel: boolean = true;
-
-	const dispatch = createEventDispatcher<{
-		submit: Department;
-		cancel: void;
-	}>();
+	// Props
+	let {
+		department = null,
+		mode = 'create',
+		showCancel = true,
+		onsubmit = undefined,
+		oncancel = undefined
+	}: {
+		department?: Department | null;
+		mode?: 'create' | 'edit';
+		showCancel?: boolean;
+		onsubmit?: ((detail: Department) => void) | undefined;
+		oncancel?: (() => void) | undefined;
+	} = $props();
 
 	// Form data
-	let formData = {
+	let formData = $state({
 		name: department?.name || '',
 		code: department?.code || '',
 		description: department?.description || '',
@@ -29,20 +35,20 @@
 		costCenter: department?.costCenter || '',
 		location: department?.location || '',
 		isRemoteEnabled: department?.isRemoteEnabled || false
-	};
+	});
 
-	let isSubmitting = false;
-	let errors: Record<string, string> = {};
+	let isSubmitting = $state(false);
+	let errors = $state<Record<string, string>>({});
 
 	// Options for dropdowns
-	$: parentOptions = [
+	let parentOptions = $derived([
 		{ value: '', label: 'No Parent (Root Department)' },
 		...$departments
 			.filter((dept) => dept.id !== department?.id) // Don't include self as parent
 			.map((dept) => ({ value: dept.id, label: dept.name }))
-	];
+	]);
 
-	$: managerOptions = [
+	let managerOptions = $derived([
 		{ value: '', label: 'No Manager Assigned' },
 		...$users.map((user) => ({
 			value: user.id,
@@ -51,7 +57,7 @@
 				user.displayName ||
 				`${user.firstName || ''} ${user.lastName || ''}`.trim()
 		}))
-	];
+	]);
 
 	function validateForm(): boolean {
 		errors = {};
@@ -73,7 +79,8 @@
 		return Object.keys(errors).length === 0;
 	}
 
-	async function handleSubmit() {
+	async function handleSubmit(event: Event) {
+		event.preventDefault();
 		if (!validateForm()) return;
 
 		isSubmitting = true;
@@ -111,7 +118,7 @@
 				result = await departmentService.updateDepartment(department!.id, input);
 			}
 
-			dispatch('submit', result);
+			onsubmit?.(result);
 		} catch (error: any) {
 			errors.submit = error.message || `Failed to ${mode} department`;
 		} finally {
@@ -120,12 +127,10 @@
 	}
 
 	function handleCancel() {
-		dispatch('cancel');
+		oncancel?.();
 	}
 
 	// Load data on mount
-	import { onMount } from 'svelte';
-
 	onMount(() => {
 		departmentService.loadDepartments({ reset: true });
 		userService.loadUsers({ reset: true });
@@ -144,7 +149,7 @@
 		</p>
 	</div>
 
-	<form on:submit|preventDefault={handleSubmit} class="form-content">
+	<form onsubmit={handleSubmit} class="form-content">
 		<div class="form-grid">
 			<!-- Basic Information -->
 			<div class="form-section">
@@ -263,7 +268,7 @@
 					type="button"
 					variant="secondary"
 					size="md"
-					on:click={handleCancel}
+					onclick={handleCancel}
 					disabled={isSubmitting}
 				>
 					Cancel

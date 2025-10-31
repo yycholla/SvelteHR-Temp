@@ -159,7 +159,7 @@
 					right: 'dayGridMonth,timeGridWeek,timeGridDay'
 				},
 				editable: canManageEvents,
-				selectable: canManageEvents,
+				selectable: true, // Always allow date selection - permission checks on submit
 				selectMirror: true,
 				dayMaxEvents: true,
 				weekends: true,
@@ -273,12 +273,14 @@
 					}
 				},
 				dateClick: (info) => {
-					if (canManageEvents && onDateClick) {
+					// Allow all users to click dates - permission checks happen server-side on submit
+					if (onDateClick) {
 						onDateClick(info.date);
 					}
 				},
 				select: (info) => {
-					if (canManageEvents && onDateSelect) {
+					// Allow all users to select date ranges - permission checks happen server-side on submit
+					if (onDateSelect) {
 						onDateSelect(info.start, info.end, info.allDay);
 					}
 				},

@@ -6,7 +6,7 @@
 	import { Toaster } from 'svelte-sonner';
 	import { setContextClient } from '@urql/svelte';
 	import { createUrqlClient } from '$lib/graphql/client';
-	import { themeStore } from '$lib/stores/theme';
+	import { ModeWatcher } from 'mode-watcher';
 	import { toast } from 'svelte-sonner';
 	import {
 		initSessionTimeout,
@@ -39,17 +39,8 @@
 	}
 
 	// Simplify layout logic to prevent reactive re-mounting issues
-	const isAuthPage = $derived($page.url.pathname === '/login');
-	const isPublicPage = $derived(isAuthPage || $page.url.pathname === '/');
-
-	// Apply theme to document
-	$effect(() => {
-		if (typeof document !== 'undefined') {
-			const root = document.documentElement;
-			root.classList.remove('light', 'dark');
-			root.classList.add($themeStore.resolved);
-		}
-	});
+	const isAuthPage = $derived($page?.url?.pathname === '/login');
+	const isPublicPage = $derived(isAuthPage || $page?.url?.pathname === '/');
 
 	// Show timeout warning with Sonner
 	function showTimeoutSonner(remainingSeconds: number) {
@@ -173,14 +164,19 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
+<!-- Mode Watcher handles theme initialization and prevents hydration flash -->
+<ModeWatcher />
+
 <!-- Render app - server has already validated auth via hooks.server.ts -->
 <main class="app-main">
-	{@render children?.()}
+	{#if children}
+		{@render children()}
+	{/if}
 </main>
 
 <!-- Session timeout blur overlay -->
 {#if showTimeoutBlur}
-	<div class="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm" />
+	<div class="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm"></div>
 {/if}
 
 <!-- Global toast notifications -->
@@ -214,11 +210,4 @@
 		height: 100%;
 	}
 
-	.auth-layout {
-		min-height: 100vh;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background-color: #f9fafb;
-	}
 </style>

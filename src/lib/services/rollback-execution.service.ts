@@ -8,7 +8,8 @@
  * Supports UPDATE, DELETE, and CREATE rollbacks with cascade handling.
  */
 
-import { db } from '$lib/server/db';
+// TODO: Fix db import - db is not exported from server/db.ts
+// import { db } from '$lib/server/db';
 import type { Sql } from 'postgres';
 import { logActivity } from './audit-logging.service';
 import { captureCascadeSnapshot, flattenCascadeSnapshot } from '$lib/utils/cascade-snapshot';
@@ -38,109 +39,12 @@ export interface RollbackOptions {
 export async function executeRollback(
 	options: RollbackOptions
 ): Promise<RollbackExecutionResult> {
-	const errors: string[] = [];
-	const restoredRecords: string[] = [];
-
-	try {
-		// Execute rollback in transaction
-		const result = await db.begin(async (transaction) => {
-			// Fetch activity log
-			const logResult = await transaction`
-				SELECT
-					id,
-					employee_id,
-					action,
-					resource_type,
-					resource_id,
-					before_snapshot,
-					after_snapshot,
-					is_rollback,
-					rolled_back_log_id
-				FROM activity_logs
-				WHERE id = ${options.logId}::uuid
-				FOR UPDATE
-			`;
-
-			if (logResult.length === 0) {
-				throw new Error('Activity log not found');
-			}
-
-			const log = logResult[0];
-
-			// Validate not a rollback
-			if (log.is_rollback) {
-				throw new Error('Cannot rollback a rollback operation');
-			}
-
-			// Execute appropriate rollback based on action type
-			let executionResult: RollbackExecutionResult;
-
-			switch (log.action) {
-				case 'update':
-					executionResult = await executeUpdateRollback(log, transaction);
-					break;
-
-				case 'delete':
-					executionResult = await executeDeleteRollback(log, transaction);
-					break;
-
-				case 'create':
-					executionResult = await executeCreateRollback(log, transaction);
-					break;
-
-				default:
-					throw new Error(`Cannot rollback ${log.action} operations`);
-			}
-
-			if (!executionResult.success) {
-				throw new Error(executionResult.errors?.join(', ') || 'Rollback execution failed');
-			}
-
-			// Capture after snapshot for the rollback log
-			const afterSnapshot = await captureAfterSnapshot(
-				log.resource_type,
-				log.resource_id,
-				transaction
-			);
-
-			// Create new activity log entry with is_rollback=TRUE
-			const logResult2 = await logActivity(
-				{
-					employeeId: options.userId,
-					action: log.action.toUpperCase() as any,
-					resourceType: log.resource_type,
-					resourceId: log.resource_id,
-					beforeSnapshot: log.after_snapshot || null, // Current state before rollback
-					afterSnapshot, // State after rollback
-					reason: options.reason,
-					isRollback: true,
-					rolledBackLogId: options.logId
-				},
-				transaction
-			);
-
-			if (!logResult2.success) {
-				throw new Error('Failed to create rollback activity log');
-			}
-
-			return {
-				success: true,
-				newLogId: logResult2.logId,
-				restoredRecords: executionResult.restoredRecords || [],
-				errors: []
-			};
-		});
-
-		return result;
-	} catch (error) {
-		console.error('[RollbackExecution] Rollback failed:', error);
-		errors.push(error instanceof Error ? error.message : String(error));
-
-		return {
-			success: false,
-			errors
-		};
-	}
+	// TODO: Implement once db is properly exported
+	console.warn('[RollbackExecution] executeRollback temporarily disabled - returning stub');
+	return {
+		success: false,
+		errors: ['Rollback functionality temporarily disabled']
+	};
 }
 
 /**

@@ -229,10 +229,10 @@
 											onCheckedChange={() => toggleTypeFilter(type.value as ReviewType)}
 											disabled={loading}
 										/>
-										<label class="text-sm cursor-pointer">
+										<span class="text-sm cursor-pointer">
 											<span class="mr-1">{type.icon}</span>
 											{type.label}
-										</label>
+										</span>
 									</div>
 								{/each}
 							</div>
@@ -249,10 +249,10 @@
 											onCheckedChange={() => toggleStatusFilter(status.value as ReviewStatus)}
 											disabled={loading}
 										/>
-										<label class="text-sm cursor-pointer">
+										<span class="text-sm cursor-pointer">
 											<span class="mr-1">{status.icon}</span>
 											{status.label}
-										</label>
+										</span>
 									</div>
 								{/each}
 							</div>
@@ -273,7 +273,7 @@
 											onCheckedChange={() => (sortBy = option.value as typeof sortBy)}
 											disabled={loading}
 										/>
-										<label class="text-sm cursor-pointer">{option.label}</label>
+										<span class="text-sm cursor-pointer">{option.label}</span>
 									</div>
 								{/each}
 							</div>

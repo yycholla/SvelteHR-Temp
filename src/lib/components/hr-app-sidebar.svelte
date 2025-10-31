@@ -31,7 +31,7 @@
 	} from '@lucide/svelte';
 	import { currentUser, hasRole, authActions } from '$lib/stores/auth';
 	import { page } from '$app/stores';
-	import { themeStore } from '$lib/stores/theme';
+	import { toggleMode, mode } from 'mode-watcher';
 	import { notificationStore } from '$lib/stores/notifications';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
@@ -286,6 +286,7 @@
 			{#each navMain as item}
 				{#if item.standalone}
 					<!-- Simple link without submenu -->
+					{@const Icon = item.icon}
 					<a
 						href={item.url}
 						class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-primary hover:text-primary-foreground hover:opacity-80"
@@ -296,11 +297,13 @@
 										item.title === 'Events' ? 'nav-events' :
 										null}
 					>
-						<svelte:component this={item.icon} class="h-4 w-4" />
+						<Icon class="h-4 w-4" />
 						{item.title}
 					</a>
 				{:else}
 					<!-- Collapsible section -->
+					{@const Icon = item.icon}
+					{@const ChevronIcon = item.section && expandedSections[item.section] ? ChevronDown : ChevronRight}
 					<div>
 						<button
 							onclick={() => item.section && toggleSection(item.section)}
@@ -340,14 +343,11 @@
 							data-testid={item.title === "Tasks" ? "nav-tasks" : null}
 						>
 							<div class="flex items-center gap-3">
-								<svelte:component this={item.icon} class="h-4 w-4" />
+								<Icon class="h-4 w-4" />
 								{item.title}
 							</div>
 							{#if item.items && item.section}
-								<svelte:component
-									this={expandedSections[item.section] ? ChevronDown : ChevronRight}
-									class="h-3 w-3 text-sidebar-foreground/50"
-								/>
+								<ChevronIcon class="h-3 w-3 text-sidebar-foreground/50" />
 							{/if}
 						</button>
 
@@ -374,6 +374,7 @@
 
 	<!-- Management Section - Only for managers/supervisors -->
 	{#if isManager}
+		{@const ManagementChevron = expandedSections.management ? ChevronDown : ChevronRight}
 		<div class="px-3 pb-3">
 			<button
 				onclick={() => toggleSection('management')}
@@ -385,10 +386,7 @@
 					<UserCheck class="h-4 w-4" />
 					Management
 				</div>
-				<svelte:component
-					this={expandedSections.management ? ChevronDown : ChevronRight}
-					class="h-3 w-3 text-sidebar-foreground/50"
-				/>
+				<ManagementChevron class="h-3 w-3 text-sidebar-foreground/50" />
 			</button>
 
 			{#if expandedSections.management}
@@ -430,6 +428,7 @@
 
 	<!-- Administration Section (Bottom) - Only for hr_admin and system_admin -->
 	{#if canAccessAdministration}
+		{@const AdminChevron = expandedSections.administration ? ChevronDown : ChevronRight}
 		<div class="px-3 pb-3">
 			<button
 				onclick={() => toggleSection('administration')}
@@ -442,16 +441,14 @@
 					<Shield class="h-4 w-4" />
 					Administration
 				</div>
-				<svelte:component
-					this={expandedSections.administration ? ChevronDown : ChevronRight}
-					class="h-3 w-3 text-sidebar-foreground/50"
-				/>
+				<AdminChevron class="h-3 w-3 text-sidebar-foreground/50" />
 			</button>
 
 			{#if expandedSections.administration}
 				<div class="ml-4 mt-1 space-y-0.5 pl-3">
 					{#each adminItems as item}
 						{#if !item.superAdminOnly || isSuperAdmin}
+							{@const ItemIcon = item.icon}
 							<a
 								href={item.url}
 								class="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-primary hover:text-primary-foreground hover:opacity-70"
@@ -459,7 +456,7 @@
 								class:text-primary-foreground={$page.url.pathname === item.url}
 								class:font-medium={$page.url.pathname === item.url}
 							>
-								<svelte:component this={item.icon} class="h-3.5 w-3.5" />
+								<ItemIcon class="h-3.5 w-3.5" />
 								<span class="flex-1">{item.title}</span>
 								<!-- T024: "All" badge for admin items -->
 								{#if item.superAdminOnly}
@@ -523,11 +520,11 @@
 
 					<!-- Dark Mode Toggle -->
 					<button
-						onclick={themeStore.toggle}
+						onclick={toggleMode}
 						class="flex items-center justify-center rounded-md p-2 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
 						title="Toggle theme"
 					>
-						{#if $themeStore.resolved === 'dark'}
+						{#if mode.current === 'dark'}
 							<Sun class="h-4 w-4" />
 						{:else}
 							<Moon class="h-4 w-4" />

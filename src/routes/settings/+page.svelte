@@ -78,17 +78,17 @@
 	let updateSuccess = $state<string | null>(null);
 	let updateError = $state<string | null>(null);
 
-	// Form state for profile
+	// Form state for profile - initialized from data (not derived userSettings)
 	let profileForm = $state({
-		firstName: userSettings.profile.firstName || '',
-		lastName: userSettings.profile.lastName || '',
-		displayName: userSettings.profile.displayName || '',
-		email: userSettings.profile.email || '',
-		phoneNumber: userSettings.profile.phoneNumber || '',
-		jobTitle: userSettings.profile.jobTitle || '',
-		bio: userSettings.profile.bio || '',
-		timezone: userSettings.profile.timezone || 'America/Los_Angeles',
-		locale: userSettings.profile.locale || 'en-US'
+		firstName: data.userSettings.profile.firstName || '',
+		lastName: data.userSettings.profile.lastName || '',
+		displayName: data.userSettings.profile.displayName || '',
+		email: data.userSettings.profile.email || '',
+		phoneNumber: data.userSettings.profile.phoneNumber || '',
+		jobTitle: data.userSettings.profile.jobTitle || '',
+		bio: data.userSettings.profile.bio || '',
+		timezone: data.userSettings.profile.timezone || 'America/Los_Angeles',
+		locale: data.userSettings.profile.locale || 'en-US'
 	});
 
 	// Form state for password change
@@ -98,15 +98,15 @@
 		confirmPassword: ''
 	});
 
-	// Form state for notifications
+	// Form state for notifications - initialized from data (not derived userSettings)
 	let notificationSettings = $state({
-		email: userSettings.notifications.email,
-		push: userSettings.notifications.push,
-		sms: userSettings.notifications.sms,
-		leaveReminders: userSettings.notifications.leaveReminders,
-		performanceUpdates: userSettings.notifications.performanceUpdates,
-		systemAlerts: userSettings.notifications.systemAlerts,
-		teamUpdates: userSettings.notifications.teamUpdates
+		email: data.userSettings.notifications.email,
+		push: data.userSettings.notifications.push,
+		sms: data.userSettings.notifications.sms,
+		leaveReminders: data.userSettings.notifications.leaveReminders,
+		performanceUpdates: data.userSettings.notifications.performanceUpdates,
+		systemAlerts: data.userSettings.notifications.systemAlerts,
+		teamUpdates: data.userSettings.notifications.teamUpdates
 	});
 
 	// Form state for appearance
@@ -120,12 +120,12 @@
 
 	// Sync with userSettings preferences using effect
 	$effect(() => {
-		if (userSettings?.preferences) {
-			appearanceSettings.darkMode = userSettings.preferences.darkMode;
-			appearanceSettings.compactView = userSettings.preferences.compactView;
-			appearanceSettings.language = userSettings.preferences.language;
-			appearanceSettings.fontSize = userSettings.preferences.fontSize;
-			appearanceSettings.colorScheme = userSettings.preferences.colorScheme;
+		if (data.userSettings?.preferences) {
+			appearanceSettings.darkMode = data.userSettings.preferences.darkMode;
+			appearanceSettings.compactView = data.userSettings.preferences.compactView;
+			appearanceSettings.language = data.userSettings.preferences.language;
+			appearanceSettings.fontSize = data.userSettings.preferences.fontSize;
+			appearanceSettings.colorScheme = data.userSettings.preferences.colorScheme;
 		}
 	});
 
@@ -140,12 +140,12 @@
 
 	// Sync with userSettings data using effect
 	$effect(() => {
-		if (userSettings?.privacy) {
-			privacySettings.profileVisibility = userSettings.privacy.profileVisibility;
-			privacySettings.showOnlineStatus = userSettings.privacy.showOnlineStatus;
-			privacySettings.allowDirectMessages = userSettings.privacy.allowDirectMessages;
-			privacySettings.dataSharing = userSettings.privacy.dataSharing;
-			privacySettings.analyticsOptOut = userSettings.privacy.analyticsOptOut;
+		if (data.userSettings?.privacy) {
+			privacySettings.profileVisibility = data.userSettings.privacy.profileVisibility;
+			privacySettings.showOnlineStatus = data.userSettings.privacy.showOnlineStatus;
+			privacySettings.allowDirectMessages = data.userSettings.privacy.allowDirectMessages;
+			privacySettings.dataSharing = data.userSettings.privacy.dataSharing;
+			privacySettings.analyticsOptOut = data.userSettings.privacy.analyticsOptOut;
 		}
 	});
 

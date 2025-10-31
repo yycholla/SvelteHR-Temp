@@ -15,8 +15,12 @@ import { createPerformanceExchange } from '$lib/performance/graphql-performance-
  * - Retry logic and rate limiting
  */
 
-// Default GraphQL endpoint for browser (Rust GraphQL API with session authentication)
-const DEFAULT_GRAPHQL_URL = 'http://localhost:4000/graphql';
+// Default GraphQL endpoint
+// Browser: Use relative path (proxied by Caddy) or PUBLIC_API_URL if set
+// Server: Use PUBLIC_API_URL from environment or fallback to localhost
+const DEFAULT_GRAPHQL_URL = browser
+	? (import.meta.env.PUBLIC_API_URL ? `${import.meta.env.PUBLIC_API_URL}/graphql` : '/api/graphql')
+	: 'http://localhost:4000/graphql';
 const GRAPHQL_WS_URL = 'ws://localhost:4000/graphql'; // WebSocket endpoint for subscriptions
 
 // Rust GraphQL server uses session-based authorization with HTTP-only cookies
@@ -178,7 +182,7 @@ const retryConfig = retryExchange({
 });
 
 // Create the main GraphQL client
-export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string, url?: string) => {
+export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string, url?: string, cookies?: string) => {
 	// Override auth token if provided (for browser)
 	if (authToken && browser) {
 		setAuthState({ token: authToken });
@@ -190,10 +194,10 @@ export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string, url
 	// If running on server without explicit URL, try to get from environment
 	if (!browser && !url) {
 		try {
-			// Use VITE_API_URL if available (containerized environment)
-			const viteApiUrl = process.env.VITE_API_URL;
-			if (viteApiUrl) {
-				graphqlUrl = `${viteApiUrl}/graphql`;
+			// Use PUBLIC_API_URL if available (containerized environment)
+			const publicApiUrl = process.env.PUBLIC_API_URL;
+			if (publicApiUrl) {
+				graphqlUrl = `${publicApiUrl}/graphql`;
 			}
 		} catch {
 			// Use default if environment check fails
@@ -240,9 +244,11 @@ export const createUrqlClient = (fetchFn?: typeof fetch, authToken?: string, url
 				'Content-Type': 'application/json'
 			};
 
-			// Session-based authentication - no need to add Authorization headers
-			// Cookies are sent automatically for both client and server requests
-			// IMPORTANT: credentials: 'include' is required to send HTTP-only cookies
+			// Session-based authentication
+			// For server-side requests, explicitly forward cookies
+			if (!browser && cookies) {
+				headers['Cookie'] = cookies;
+			}
 
 			return {
 				method: 'POST',

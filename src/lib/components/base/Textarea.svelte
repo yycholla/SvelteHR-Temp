@@ -1,60 +1,95 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
-
-	const dispatch = createEventDispatcher();
-
-	export let value: string = '';
-	export let placeholder: string = '';
-	export let disabled: boolean = false;
-	export let readonly: boolean = false;
-	export let required: boolean = false;
-	export let name: string | null = null;
-	export let id: string | null = null;
-	export let rows: number = 4;
-	export let cols: number | null = null;
-	export let size: 'sm' | 'md' | 'lg' = 'md';
-	export let variant: 'default' | 'error' | 'success' = 'default';
-	export let fullWidth: boolean = true;
-	export let label: string | null = null;
-	export let helperText: string | null = null;
-	export let errorText: string | null = null;
-	export let maxlength: number | null = null;
-	export let resize: 'none' | 'both' | 'horizontal' | 'vertical' = 'vertical';
-	export let autoResize: boolean = false;
-	export let minHeight: string | null = null;
-	export let maxHeight: string | null = null;
+	let {
+		value = $bindable(''),
+		placeholder = '',
+		disabled = false,
+		readonly = false,
+		required = false,
+		name = null,
+		id = null,
+		rows = 4,
+		cols = null,
+		size = 'md',
+		variant = 'default',
+		fullWidth = true,
+		label = null,
+		helperText = null,
+		errorText = null,
+		maxlength = null,
+		resize = 'vertical',
+		autoResize = false,
+		minHeight = null,
+		maxHeight = null,
+		oninput = undefined,
+		onchange = undefined,
+		onfocus = undefined,
+		onblur = undefined,
+		onkeydown = undefined,
+		onkeyup = undefined
+	}: {
+		value?: string;
+		placeholder?: string;
+		disabled?: boolean;
+		readonly?: boolean;
+		required?: boolean;
+		name?: string | null;
+		id?: string | null;
+		rows?: number;
+		cols?: number | null;
+		size?: 'sm' | 'md' | 'lg';
+		variant?: 'default' | 'error' | 'success';
+		fullWidth?: boolean;
+		label?: string | null;
+		helperText?: string | null;
+		errorText?: string | null;
+		maxlength?: number | null;
+		resize?: 'none' | 'both' | 'horizontal' | 'vertical';
+		autoResize?: boolean;
+		minHeight?: string | null;
+		maxHeight?: string | null;
+		oninput?: ((detail: { value: string; event: Event }) => void) | undefined;
+		onchange?: ((detail: { value: string; event: Event }) => void) | undefined;
+		onfocus?: ((detail: { value: string; event: FocusEvent }) => void) | undefined;
+		onblur?: ((detail: { value: string; event: FocusEvent }) => void) | undefined;
+		onkeydown?: ((detail: { value: string; event: KeyboardEvent }) => void) | undefined;
+		onkeyup?: ((detail: { value: string; event: KeyboardEvent }) => void) | undefined;
+	} = $props();
 
 	// Internal state
-	let focused = false;
+	let focused = $state(false);
 	let textareaElement: HTMLTextAreaElement;
 
 	// Character count
-	$: characterCount = value.length;
-	$: isOverLimit = maxlength ? characterCount > maxlength : false;
+	let characterCount = $derived(value.length);
+	let isOverLimit = $derived(maxlength ? characterCount > maxlength : false);
 
 	// Computed classes
-	$: containerClasses = [
-		'textarea-container',
-		`textarea-container--${size}`,
-		fullWidth && 'textarea-container--full-width',
-		focused && 'textarea-container--focused',
-		disabled && 'textarea-container--disabled',
-		variant === 'error' && 'textarea-container--error',
-		variant === 'success' && 'textarea-container--success',
-		isOverLimit && 'textarea-container--over-limit'
-	]
-		.filter(Boolean)
-		.join(' ');
+	let containerClasses = $derived(
+		[
+			'textarea-container',
+			`textarea-container--${size}`,
+			fullWidth && 'textarea-container--full-width',
+			focused && 'textarea-container--focused',
+			disabled && 'textarea-container--disabled',
+			variant === 'error' && 'textarea-container--error',
+			variant === 'success' && 'textarea-container--success',
+			isOverLimit && 'textarea-container--over-limit'
+		]
+			.filter(Boolean)
+			.join(' ')
+	);
 
-	$: textareaClasses = [
-		'textarea',
-		`textarea--${size}`,
-		`textarea--${variant}`,
-		`textarea--resize-${resize}`,
-		autoResize && 'textarea--auto-resize'
-	]
-		.filter(Boolean)
-		.join(' ');
+	let textareaClasses = $derived(
+		[
+			'textarea',
+			`textarea--${size}`,
+			`textarea--${variant}`,
+			`textarea--resize-${resize}`,
+			autoResize && 'textarea--auto-resize'
+		]
+			.filter(Boolean)
+			.join(' ')
+	);
 
 	// Event handlers
 	function handleInput(event: Event) {
@@ -65,29 +100,29 @@
 			autoResizeTextarea(target);
 		}
 
-		dispatch('input', { value, event });
+		oninput?.({ value, event });
 	}
 
 	function handleChange(event: Event) {
-		dispatch('change', { value, event });
+		onchange?.({ value, event });
 	}
 
 	function handleFocus(event: FocusEvent) {
 		focused = true;
-		dispatch('focus', { value, event });
+		onfocus?.({ value, event });
 	}
 
 	function handleBlur(event: FocusEvent) {
 		focused = false;
-		dispatch('blur', { value, event });
+		onblur?.({ value, event });
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
-		dispatch('keydown', { value, event });
+		onkeydown?.({ value, event });
 	}
 
 	function handleKeyup(event: KeyboardEvent) {
-		dispatch('keyup', { value, event });
+		onkeyup?.({ value, event });
 	}
 
 	// Auto-resize functionality
@@ -128,9 +163,11 @@
 	}
 
 	// Initialize auto-resize on mount
-	$: if (textareaElement && autoResize) {
-		autoResizeTextarea(textareaElement);
-	}
+	$effect(() => {
+		if (textareaElement && autoResize) {
+			autoResizeTextarea(textareaElement);
+		}
+	});
 </script>
 
 <div class={containerClasses}>
@@ -159,12 +196,12 @@
 			class={textareaClasses}
 			style:min-height={minHeight}
 			style:max-height={maxHeight}
-			on:input={handleInput}
-			on:change={handleChange}
-			on:focus={handleFocus}
-			on:blur={handleBlur}
-			on:keydown={handleKeydown}
-			on:keyup={handleKeyup}
+			oninput={handleInput}
+			onchange={handleChange}
+			onfocus={handleFocus}
+			onblur={handleBlur}
+			onkeydown={handleKeydown}
+			onkeyup={handleKeyup}
 		></textarea>
 	</div>
 

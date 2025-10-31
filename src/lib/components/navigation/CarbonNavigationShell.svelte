@@ -6,6 +6,7 @@
 -->
 <script lang="ts">
 	import { createEventDispatcher, onMount } from 'svelte';
+	import type { Snippet } from 'svelte';
 	import {
 		Header,
 		HeaderNav,
@@ -81,7 +82,8 @@
 		onNavigate = undefined,
 		onUserAction = undefined,
 		onSearch = undefined,
-		onNotificationDismiss = undefined
+		onNotificationDismiss = undefined,
+		children
 	}: {
 		user: UserContext;
 		primaryNavigation?: NavigationItem[];
@@ -98,6 +100,7 @@
 		onUserAction?: ((action: UserAction) => void) | undefined;
 		onSearch?: ((query: string) => void) | undefined;
 		onNotificationDismiss?: ((notification: NotificationItem) => void) | undefined;
+		children?: Snippet;
 	} = $props();
 
 	// Ensure primaryNavigation is always an array
@@ -106,12 +109,12 @@
 	});
 
 	// Internal state
-	let isSideNavOpen = false;
-	let isUserMenuOpen = false;
-	let isNotificationPanelOpen = false;
-	let searchQuery = '';
-	let searchInputRef: HTMLInputElement;
-	let currentBreakpoint = 'large';
+	let isSideNavOpen = $state(false);
+	let isUserMenuOpen = $state(false);
+	let isNotificationPanelOpen = $state(false);
+	let searchQuery = $state('');
+	let searchInputRef = $state<HTMLInputElement>();
+	let currentBreakpoint = $state('large');
 
 	const dispatch = createEventDispatcher();
 
@@ -420,12 +423,13 @@
 					<HeaderPanelDivider />
 
 					{#each userActions as action}
+						{@const ActionIcon = action.icon}
 						<HeaderPanelLink
 							on:click={() => handleUserAction(action)}
 							data-testid="user-action-{action.id}"
 						>
-							{#if action.icon}
-								<svelte:component this={action.icon} />
+							{#if ActionIcon}
+								<ActionIcon />
 							{/if}
 							{action.label}
 						</HeaderPanelLink>
@@ -471,7 +475,7 @@
 
 	<!-- Breadcrumbs -->
 	{#if breadcrumbs.length > 0}
-		<nav role="navigation" aria-label="Breadcrumb" class="breadcrumb-nav" data-testid="breadcrumbs">
+		<nav aria-label="Breadcrumb" class="breadcrumb-nav" data-testid="breadcrumbs">
 			<div class="breadcrumb-container">
 				<Breadcrumb>
 					{#each breadcrumbs as crumb, index}
@@ -489,8 +493,8 @@
 	{/if}
 
 	<!-- Main Content -->
-	<main role="main" id="main-content" class="main-content" tabindex="-1" data-testid="main-content">
-		<slot />
+	<main id="main-content" class="main-content" tabindex="-1" data-testid="main-content">
+		{@render children?.()}
 	</main>
 </div>
 

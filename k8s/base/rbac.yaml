@@ -1,0 +1,81 @@
+---
+# Backend Role - Minimal permissions for backend operations
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: sveltehr-backend-role
+  namespace: sveltehr-dev # Will be patched for prod
+  labels:
+    app: sveltehr-backend
+rules:
+  # Allow reading ConfigMaps for configuration
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list"]
+  # Allow reading Secrets for credentials
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+  # Allow reading Services for service discovery
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list"]
+
+---
+# Backend RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: sveltehr-backend-rolebinding
+  namespace: sveltehr-dev # Will be patched for prod
+  labels:
+    app: sveltehr-backend
+subjects:
+  - kind: ServiceAccount
+    name: sveltehr-backend-sa
+    namespace: sveltehr-dev # Will be patched for prod
+roleRef:
+  kind: Role
+  name: sveltehr-backend-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Frontend Role - Minimal permissions for frontend operations
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: sveltehr-frontend-role
+  namespace: sveltehr-dev # Will be patched for prod
+  labels:
+    app: sveltehr-frontend
+rules:
+  # Allow reading ConfigMaps for configuration
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list"]
+  # Allow reading Secrets for credentials
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+  # Allow reading Services for service discovery
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list"]
+
+---
+# Frontend RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: sveltehr-frontend-rolebinding
+  namespace: sveltehr-dev # Will be patched for prod
+  labels:
+    app: sveltehr-frontend
+subjects:
+  - kind: ServiceAccount
+    name: sveltehr-frontend-sa
+    namespace: sveltehr-dev # Will be patched for prod
+roleRef:
+  kind: Role
+  name: sveltehr-frontend-role
+  apiGroup: rbac.authorization.k8s.io

@@ -149,8 +149,25 @@
 </script>
 
 {#if isOpen}
-	<div class="modal-backdrop" onclick={onCancel}>
-		<div class="modal-dialog" onclick={(e) => e.stopPropagation()}>
+	<div
+		class="modal-backdrop"
+		role="button"
+		tabindex="0"
+		onclick={onCancel}
+		onkeydown={(e) => {
+			if (e.key === 'Escape' || e.key === 'Enter') {
+				onCancel();
+			}
+		}}
+	>
+		<div
+			class="modal-dialog"
+			role="dialog"
+			tabindex="-1"
+			aria-modal="true"
+			onclick={(e) => e.stopPropagation()}
+			onkeydown={(e) => e.stopPropagation()}
+		>
 			<!-- Header -->
 			<div class="modal-header">
 				<div class="header-content">
@@ -274,12 +291,12 @@
 
 										<div class="value-comparison">
 											<div class="value-box">
-												<label class="value-label">Current Value:</label>
+												<span class="value-label">Current Value:</span>
 												<pre class="value-content">{formatValue(conflict.currentValue)}</pre>
 											</div>
 											<div class="arrow">→</div>
 											<div class="value-box">
-												<label class="value-label">Target Value:</label>
+												<span class="value-label">Target Value:</span>
 												<pre class="value-content">{formatValue(conflict.targetValue)}</pre>
 											</div>
 										</div>

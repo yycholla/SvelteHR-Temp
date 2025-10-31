@@ -14,8 +14,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Switch } from '$lib/components/ui/switch';
-	import { themeStore } from '$lib/stores/theme';
-	import type { Theme } from '$lib/stores/theme';
+	import { setMode, userPrefersMode } from 'mode-watcher';
 	import {
 		User,
 		Bell,
@@ -65,11 +64,11 @@
 	let notificationPrefs = $state({ ...data.notificationPreferences });
 	let selectedTheme = $state(data.themePreference);
 
-	// Initialize theme store with database value on mount
+	// Initialize theme with database value on mount
 	onMount(() => {
-		// Sync theme store with database value
-		if (data.themePreference && data.themePreference !== $themeStore.current) {
-			themeStore.setTheme(data.themePreference as Theme);
+		// Sync mode-watcher with database value
+		if (data.themePreference && data.themePreference !== userPrefersMode.current) {
+			setMode(data.themePreference as 'light' | 'dark' | 'system');
 		}
 	});
 
@@ -116,14 +115,9 @@
 				console.log('[Settings] Theme update successful');
 				toast.success(`Theme updated to ${theme}`);
 
-				// Apply theme immediately via theme store
-				themeStore.setTheme(theme as Theme);
-				console.log(
-					'[Settings] Theme applied. Current:',
-					$themeStore.current,
-					'Resolved:',
-					$themeStore.resolved
-				);
+				// Apply theme immediately via mode-watcher
+				setMode(theme as 'light' | 'dark' | 'system');
+				console.log('[Settings] Theme applied:', theme);
 			} else {
 				const errorMsg = result.data?.error || result.error || 'Failed to update theme';
 				console.error('[Settings] Theme update failed:', result);

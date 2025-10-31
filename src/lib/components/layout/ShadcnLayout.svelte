@@ -175,6 +175,7 @@
 						<Sidebar.GroupLabel>Navigation</Sidebar.GroupLabel>
 						<Sidebar.Menu>
 							{#each visibleNavigation as item}
+								{@const ItemIcon = item.icon}
 								<Sidebar.MenuItem>
 									{#if item.children && item.children.length > 0}
 										<Sidebar.MenuSub>
@@ -184,7 +185,7 @@
 													class="flex items-center gap-2"
 													data-active={item.active}
 												>
-													<svelte:component this={item.icon} class="h-4 w-4" />
+													<ItemIcon class="h-4 w-4" />
 													<span>{item.label}</span>
 												</a>
 											</Sidebar.MenuSubButton>
@@ -203,7 +204,7 @@
 									{:else}
 										<Sidebar.MenuButton asChild>
 											<a href={item.href} class="flex items-center gap-2" data-active={item.active}>
-												<svelte:component this={item.icon} class="h-4 w-4" />
+												<ItemIcon class="h-4 w-4" />
 												<span>{item.label}</span>
 											</a>
 										</Sidebar.MenuButton>

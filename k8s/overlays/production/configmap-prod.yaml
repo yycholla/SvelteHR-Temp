@@ -1,0 +1,10 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sveltehr-config
+  namespace: sveltehr-prod
+data:
+  ENVIRONMENT: 'production'
+  SEED_ADMIN_USER: 'false'
+  RUST_LOG: 'warn,hr_graphql_server=info'

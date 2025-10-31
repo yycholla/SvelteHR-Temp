@@ -60,7 +60,8 @@
 	};
 </script>
 
+{@const ExportIcon = getIcon()}
 <Button variant="outline" onclick={exportData} class="gap-2">
-	<svelte:component this={getIcon()} class="h-4 w-4" />
+	<ExportIcon class="h-4 w-4" />
 	Export {format.toUpperCase()}
 </Button>

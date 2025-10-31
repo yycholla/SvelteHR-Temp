@@ -20,7 +20,7 @@
 	// Check if user is already authenticated on mount
 	onMount(async () => {
 		// Check for session timeout parameter
-		const isTimeout = $page.url.searchParams.get('timeout') === 'true';
+		const isTimeout = $page?.url?.searchParams.get('timeout') === 'true';
 		if (isTimeout && browser) {
 			toast.info('Your session expired due to inactivity', {
 				description: 'Please log in again to continue',
@@ -43,7 +43,7 @@
 			// Mark that we're redirecting to prevent loops
 			if (browser) sessionStorage.setItem(LOGIN_REDIRECT_KEY, 'true');
 
-			const redirectTo = $page.url.searchParams.get('redirect');
+			const redirectTo = $page?.url?.searchParams.get('redirect');
 			if (redirectTo) {
 				await goto(redirectTo, { replaceState: true });
 			} else {
@@ -54,9 +54,11 @@
 	});
 
 	// Clear redirect flag when navigating away from login
-	$: if (browser && $page.url.pathname !== '/login') {
-		sessionStorage.removeItem(LOGIN_REDIRECT_KEY);
-	}
+	$effect(() => {
+		if (browser && $page?.url?.pathname !== '/login') {
+			sessionStorage.removeItem(LOGIN_REDIRECT_KEY);
+		}
+	});
 
 	// Handle successful login
 	const handleLoginSuccess = async (event: CustomEvent) => {
@@ -95,7 +97,7 @@
 
 			// Check if user is admin
 			const user = $currentUser;
-			let redirectTo = $page.url.searchParams.get('redirect');
+			let redirectTo = $page?.url?.searchParams.get('redirect');
 
 			// Check for saved return URL from logout (highest priority)
 			if (!redirectTo && browser) {

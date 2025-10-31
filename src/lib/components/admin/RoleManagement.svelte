@@ -420,7 +420,7 @@
 			<div class="modal-content">
 				<div class="modal-header">
 					<h3 class="modal-title">Edit Roles for {modalUser.display_name}</h3>
-					<button class="modal-close" on:click={closeUserRoleModal}>
+					<button class="modal-close" on:click={closeUserRoleModal} aria-label="Close modal">
 						<i class="icon-x h-5 w-5"></i>
 					</button>
 				</div>

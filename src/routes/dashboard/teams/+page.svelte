@@ -82,14 +82,14 @@
 	const canManageTeams = $derived(data.canManageTeams);
 	const canViewEmployees = $derived(data.canViewEmployees);
 
-	// Local state for filters and search
-	let searchTerm = $state(filters.searchTerm);
-	let selectedSize = $state(filters.sizeFilter);
-	let selectedHead = $state(filters.headFilter);
-	let selectedParent = $state(filters.parentFilter);
-	let viewMode = $state<'table' | 'hierarchy'>(filters.viewMode as 'table' | 'hierarchy');
-	let currentPage = $state(filters.page);
-	let pageSize = $state(filters.limit);
+	// Local state for filters and search - initialized from data (not derived filters)
+	let searchTerm = $state(data.filters.searchTerm);
+	let selectedSize = $state(data.filters.sizeFilter);
+	let selectedHead = $state(data.filters.headFilter);
+	let selectedParent = $state(data.filters.parentFilter);
+	let viewMode = $state<'table' | 'hierarchy'>(data.filters.viewMode as 'table' | 'hierarchy');
+	let currentPage = $state(data.filters.page);
+	let pageSize = $state(data.filters.limit);
 
 	// Pagination state
 	const totalPages = $derived(Math.ceil(totalTeams / pageSize));
@@ -265,7 +265,7 @@
 					<Card.Description>Find teams by name, size, or leadership status</Card.Description>
 				</Card.Header>
 				<Card.Content>
-					<form on:submit|preventDefault={handleSearch} class="space-y-4">
+					<form onsubmit={(e) => { e.preventDefault(); handleSearch(); }} class="space-y-4">
 						<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
 							<!-- Search Input -->
 							<div class="space-y-2">

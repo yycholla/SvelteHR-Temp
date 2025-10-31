@@ -381,6 +381,7 @@
 		<!-- Statistics Cards -->
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
 			{#each statsCards as stat}
+				{@const Icon = stat.icon}
 				<Card class={`${stat.color} border`}>
 					<CardContent class="p-6">
 						<div class="flex items-center justify-between">
@@ -390,7 +391,7 @@
 								<p class="mt-1 text-xs opacity-75">{stat.description}</p>
 							</div>
 							<div class={`${stat.iconColor} opacity-75`}>
-								<svelte:component this={stat.icon} class="h-8 w-8" />
+								<Icon class="h-8 w-8" />
 							</div>
 						</div>
 					</CardContent>

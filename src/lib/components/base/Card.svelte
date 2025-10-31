@@ -1,40 +1,50 @@
 <script lang="ts">
-	export let padding: 'none' | 'sm' | 'md' | 'lg' | 'xl' = 'md';
-	export let shadow: 'none' | 'sm' | 'md' | 'lg' | 'xl' = 'sm';
-	export let rounded: 'none' | 'sm' | 'md' | 'lg' | 'xl' | 'full' = 'md';
-	export let border: boolean = true;
-	export let hoverable: boolean = false;
-	export let clickable: boolean = false;
+	let {
+		padding = 'md',
+		shadow = 'sm',
+		rounded = 'md',
+		border = true,
+		hoverable = false,
+		clickable = false,
+		onclick = undefined,
+		children
+	}: {
+		padding?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+		shadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+		rounded?: 'none' | 'sm' | 'md' | 'lg' | 'xl' | 'full';
+		border?: boolean;
+		hoverable?: boolean;
+		clickable?: boolean;
+		onclick?: ((event: MouseEvent | KeyboardEvent) => void) | undefined;
+		children?: import('svelte').Snippet;
+	} = $props();
 
 	// Computed classes
-	$: cardClasses = [
-		'card',
-		`card--padding-${padding}`,
-		`card--shadow-${shadow}`,
-		`card--rounded-${rounded}`,
-		border && 'card--border',
-		hoverable && 'card--hoverable',
-		clickable && 'card--clickable'
-	]
-		.filter(Boolean)
-		.join(' ');
+	let cardClasses = $derived(
+		[
+			'card',
+			`card--padding-${padding}`,
+			`card--shadow-${shadow}`,
+			`card--rounded-${rounded}`,
+			border && 'card--border',
+			hoverable && 'card--hoverable',
+			clickable && 'card--clickable'
+		]
+			.filter(Boolean)
+			.join(' ')
+	);
 
 	// Handle click if clickable
 	function handleClick(event: MouseEvent) {
 		if (clickable) {
-			// Dispatch a custom click event
-			const detail = { originalEvent: event };
-			const clickEvent = new CustomEvent('cardClick', { detail });
-			event.currentTarget?.dispatchEvent(clickEvent);
+			onclick?.(event);
 		}
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
 		if (clickable && (event.key === 'Enter' || event.key === ' ')) {
 			event.preventDefault();
-			const detail = { originalEvent: event };
-			const clickEvent = new CustomEvent('cardClick', { detail });
-			event.currentTarget?.dispatchEvent(clickEvent);
+			onclick?.(event);
 		}
 	}
 </script>
@@ -44,15 +54,14 @@
 		class={cardClasses}
 		role="button"
 		tabindex="0"
-		on:click={handleClick}
-		on:keydown={handleKeydown}
-		on:cardClick
+		onclick={handleClick}
+		onkeydown={handleKeydown}
 	>
-		<slot />
+		{@render children?.()}
 	</div>
 {:else}
-	<div class={cardClasses} on:cardClick>
-		<slot />
+	<div class={cardClasses}>
+		{@render children?.()}
 	</div>
 {/if}
 

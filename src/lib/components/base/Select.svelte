@@ -1,58 +1,86 @@
 <script lang="ts">
-	import { createEventDispatcher, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 
-	const dispatch = createEventDispatcher();
-
-	export let value: string | number | null = null;
-	export let options: Array<{ value: string | number; label: string; disabled?: boolean }> = [];
-	export let placeholder: string = 'Select an option...';
-	export let disabled: boolean = false;
-	export let required: boolean = false;
-	export const name: string | null = null;
-	export let id: string | null = null;
-	export let size: 'sm' | 'md' | 'lg' = 'md';
-	export let variant: 'default' | 'error' | 'success' = 'default';
-	export let fullWidth: boolean = false;
-	export let label: string | null = null;
-	export let helperText: string | null = null;
-	export let errorText: string | null = null;
-	export let searchable: boolean = false;
-	export let clearable: boolean = false;
-	export const multiple: boolean = false;
-	export let maxHeight: string = '300px';
+	let {
+		value = $bindable(null),
+		options = [],
+		placeholder = 'Select an option...',
+		disabled = false,
+		required = false,
+		name = null,
+		id = null,
+		size = 'md',
+		variant = 'default',
+		fullWidth = false,
+		label = null,
+		helperText = null,
+		errorText = null,
+		searchable = false,
+		clearable = false,
+		multiple = false,
+		maxHeight = '300px',
+		onchange = undefined,
+		onfocus = undefined,
+		onblur = undefined
+	}: {
+		value?: string | number | null;
+		options?: Array<{ value: string | number; label: string; disabled?: boolean }>;
+		placeholder?: string;
+		disabled?: boolean;
+		required?: boolean;
+		name?: string | null;
+		id?: string | null;
+		size?: 'sm' | 'md' | 'lg';
+		variant?: 'default' | 'error' | 'success';
+		fullWidth?: boolean;
+		label?: string | null;
+		helperText?: string | null;
+		errorText?: string | null;
+		searchable?: boolean;
+		clearable?: boolean;
+		multiple?: boolean;
+		maxHeight?: string;
+		onchange?: ((detail: { value: string | number | null; option: any }) => void) | undefined;
+		onfocus?: (() => void) | undefined;
+		onblur?: (() => void) | undefined;
+	} = $props();
 
 	// Internal state
-	let isOpen = false;
-	let focused = false;
-	let searchTerm = '';
-	let selectElement: HTMLSelectElement;
-	let dropdownElement: HTMLDivElement;
-	let searchInputElement: HTMLInputElement;
-	let selectedOption: (typeof options)[0] | null = null;
+	let isOpen = $state(false);
+	let focused = $state(false);
+	let searchTerm = $state('');
+	let selectElement = $state<HTMLSelectElement>();
+	let dropdownElement = $state<HTMLDivElement>();
+	let searchInputElement = $state<HTMLInputElement>();
 
 	// Computed values
-	$: filteredOptions =
+	let filteredOptions = $derived(
 		searchable && searchTerm
 			? options.filter((option) => option.label.toLowerCase().includes(searchTerm.toLowerCase()))
-			: options;
+			: options
+	);
 
-	$: selectedOption = options.find((option) => option.value === value) || null;
+	let selectedOption = $derived(options.find((option) => option.value === value) || null);
 
-	$: containerClasses = [
-		'select-container',
-		`select-container--${size}`,
-		fullWidth && 'select-container--full-width',
-		focused && 'select-container--focused',
-		disabled && 'select-container--disabled',
-		variant === 'error' && 'select-container--error',
-		variant === 'success' && 'select-container--success'
-	]
-		.filter(Boolean)
-		.join(' ');
+	let containerClasses = $derived(
+		[
+			'select-container',
+			`select-container--${size}`,
+			fullWidth && 'select-container--full-width',
+			focused && 'select-container--focused',
+			disabled && 'select-container--disabled',
+			variant === 'error' && 'select-container--error',
+			variant === 'success' && 'select-container--success'
+		]
+			.filter(Boolean)
+			.join(' ')
+	);
 
-	$: selectClasses = ['select', `select--${size}`, `select--${variant}`, isOpen && 'select--open']
-		.filter(Boolean)
-		.join(' ');
+	let selectClasses = $derived(
+		['select', `select--${size}`, `select--${variant}`, isOpen && 'select--open']
+			.filter(Boolean)
+			.join(' ')
+	);
 
 	// Event handlers
 	function handleToggle() {
@@ -71,13 +99,13 @@
 		isOpen = false;
 		searchTerm = '';
 
-		dispatch('change', { value, option });
+		onchange?.({ value, option });
 	}
 
 	function handleClear(event: Event) {
 		event.stopPropagation();
 		value = null;
-		dispatch('change', { value: null, option: null });
+		onchange?.({ value: null, option: null });
 	}
 
 	function handleSearchInput(event: Event) {
@@ -87,7 +115,7 @@
 
 	function handleFocus() {
 		focused = true;
-		dispatch('focus');
+		onfocus?.();
 	}
 
 	function handleBlur(event: FocusEvent) {
@@ -103,7 +131,7 @@
 		focused = false;
 		isOpen = false;
 		searchTerm = '';
-		dispatch('blur');
+		onblur?.();
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
@@ -169,10 +197,10 @@
 			class={selectClasses}
 			aria-haspopup="listbox"
 			aria-expanded={isOpen}
-			on:click={handleToggle}
-			on:focus={handleFocus}
-			on:blur={handleBlur}
-			on:keydown={handleKeydown}
+			onclick={handleToggle}
+			onfocus={handleFocus}
+			onblur={handleBlur}
+			onkeydown={handleKeydown}
 		>
 			<span class="select__value">
 				{selectedOption ? selectedOption.label : placeholder}
@@ -187,7 +215,7 @@
 			<button
 				type="button"
 				class="select__clear"
-				on:click={handleClear}
+				onclick={handleClear}
 				aria-label="Clear selection"
 				tabindex="-1"
 			>
@@ -210,7 +238,7 @@
 							class="select__search-input"
 							placeholder="Search options..."
 							bind:value={searchTerm}
-							on:input={handleSearchInput}
+							oninput={handleSearchInput}
 						/>
 					</div>
 				{/if}
@@ -230,7 +258,7 @@
 								disabled={option.disabled}
 								role="option"
 								aria-selected={value === option.value}
-								on:click={() => handleOptionClick(option)}
+								onclick={() => handleOptionClick(option)}
 							>
 								<span class="select__option-label">{option.label}</span>
 								{#if value === option.value}

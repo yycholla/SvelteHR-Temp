@@ -1,0 +1,251 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Manual trigger option
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false  # Don't cancel running deployments
+
+jobs:
+  # ===========================================================================
+  # Job 1: Lint and Type Check
+  # ===========================================================================
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Prettier
+        run: npm run format -- --check
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: TypeScript check
+        run: npm run check
+
+  # ===========================================================================
+  # Job 2: Test Frontend
+  # ===========================================================================
+  test-frontend:
+    needs: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm run test:unit -- --run
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-test-results
+          path: test-results/
+          if-no-files-found: ignore
+
+  # ===========================================================================
+  # Job 3: Test Backend
+  # ===========================================================================
+  test-backend:
+    needs: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            graphql-rust-server/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Run backend tests
+        run: cargo test --manifest-path graphql-rust-server/Cargo.toml
+
+  # ===========================================================================
+  # Job 4: Build and Push Images
+  # ===========================================================================
+  build-push:
+    needs: [test-frontend, test-backend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      frontend-digest: ${{ steps.build-frontend.outputs.digest }}
+      backend-digest: ${{ steps.build-backend.outputs.digest }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitLab Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: registry.gitlab.com
+          username: ${{ secrets.GITLAB_USERNAME }}
+          password: ${{ secrets.GITLAB_TOKEN }}
+
+      - name: Extract metadata (frontend)
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: registry.gitlab.com/${{ secrets.GITLAB_USERNAME }}/sveltehr/frontend
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=sha-
+
+      - name: Build and push frontend
+        id: build-frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          target: production
+
+      - name: Extract metadata (backend)
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: registry.gitlab.com/${{ secrets.GITLAB_USERNAME }}/sveltehr/backend
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=sha-
+
+      - name: Build and push backend
+        id: build-backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./graphql-rust-server
+          file: ./graphql-rust-server/Dockerfile.prod
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          target: production
+
+  # ===========================================================================
+  # Job 5: Deploy to Production
+  # ===========================================================================
+  deploy:
+    needs: build-push
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: https://${{ secrets.PRODUCTION_DOMAIN }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" | base64 -d > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Create .env file
+        run: |
+          echo "${{ secrets.PRODUCTION_ENV }}" | base64 -d > .env.production
+
+      - name: Backup database
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "docker exec sveltehr-postgres-prod pg_dump -U postgres hr_system > /var/backups/postgresql/backup_$(date +%Y%m%d_%H%M%S).sql"
+
+      - name: Copy files to server
+        run: |
+          scp -i ~/.ssh/deploy_key -r \
+            docker-compose.prod.yml \
+            Caddyfile \
+            .env.production \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/sveltehr/
+
+      - name: Deploy
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+            cd /opt/sveltehr
+            mv .env.production .env
+            export IMAGE_TAG=sha-${{ github.sha }}
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d --no-build
+          EOF
+
+      - name: Verify deployment
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "docker compose -f /opt/sveltehr/docker-compose.prod.yml ps --format json"
+
+      - name: Wait for health checks
+        run: |
+          sleep 30
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+            cd /opt/sveltehr
+            # Check all services are healthy
+            for service in postgres redis hr-graphql-rust frontend caddy; do
+              health=$(docker inspect --format='{{.State.Health.Status}}' sveltehr-${service}-prod 2>/dev/null || echo "no-health-check")
+              if [ "$health" != "healthy" ] && [ "$health" != "no-health-check" ]; then
+                echo "Service $service is not healthy: $health"
+                exit 1
+              fi
+            done
+            echo "All services healthy"
+          EOF
+
+      - name: Cleanup old backups
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "find /var/backups/postgresql -name '*.sql' -mtime +7 -delete"
+
+      - name: Cleanup old images
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "docker image prune -af --filter 'until=72h'"

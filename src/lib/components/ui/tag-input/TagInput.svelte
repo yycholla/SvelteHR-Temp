@@ -43,8 +43,8 @@
 	let searchTerm = $state('');
 	let isOpen = $state(false);
 	let highlightedIndex = $state(0);
-	let inputElement: HTMLInputElement;
-	let dropdownElement: HTMLDivElement;
+	let inputElement = $state<HTMLInputElement>();
+	let dropdownElement = $state<HTMLDivElement>();
 
 	// Filtered options based on search and already selected items
 	let filteredOptions = $derived(() => {
@@ -191,7 +191,15 @@
 		class="flex min-h-10 w-full flex-wrap gap-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 {disabled
 			? 'cursor-not-allowed opacity-50'
 			: ''}"
+		role="button"
+		tabindex="0"
 		onclick={() => inputElement?.focus()}
+		onkeydown={(e) => {
+			if (e.key === 'Enter' || e.key === ' ') {
+				e.preventDefault();
+				inputElement?.focus();
+			}
+		}}
 	>
 		<!-- Selected item badges -->
 		{#each selectedOptions as option (option.value)}
@@ -200,7 +208,8 @@
 					{#if typeof option.icon === 'string'}
 						{@html option.icon}
 					{:else}
-						<svelte:component this={option.icon} class="h-3 w-3" />
+						{@const Icon = option.icon}
+						<Icon class="h-3 w-3" />
 					{/if}
 				{/if}
 				<span>{option.label}</span>
@@ -258,7 +267,8 @@
 						{#if typeof option.icon === 'string'}
 							{@html option.icon}
 						{:else}
-							<svelte:component this={option.icon} class="h-4 w-4" />
+							{@const Icon = option.icon}
+							<Icon class="h-4 w-4" />
 						{/if}
 					{/if}
 					<span class="flex-1 text-left">{option.label}</span>

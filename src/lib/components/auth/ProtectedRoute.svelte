@@ -84,13 +84,6 @@
 			goto(redirectUrl);
 		}
 	}
-
-	// Initialize auth on mount
-	onMount(async () => {
-		if (!$isAuthenticated) {
-			await authStore.init();
-		}
-	});
 </script>
 
 {#if $isLoading || !authCheckComplete}

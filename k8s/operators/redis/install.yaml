@@ -1,0 +1,4 @@
+# Redis Operator Installation
+# Install with: kubectl apply -f https://raw.githubusercontent.com/spotahome/redis-operator/master/example/operator/all-redis-operator-resources.yaml
+#
+# This file is for reference only. Use the URL above for installation.

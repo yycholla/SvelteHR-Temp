@@ -41,14 +41,14 @@
 	} = $props();
 
 	// State
-	let fileInput: HTMLInputElement;
-	let dropZone: HTMLDivElement;
+	let fileInput = $state<HTMLInputElement>();
+	let dropZone = $state<HTMLDivElement>();
 	let isDragging = $state(false);
 	let isProcessing = $state(false);
 	let previewUrl = $state<string | null>(null);
 	let errors = $state<string[]>([]);
 	let cropper: any = null;
-	let cropperContainer: HTMLDivElement;
+	let cropperContainer = $state<HTMLDivElement>();
 	let showCropper = $state(false);
 
 	// Derived

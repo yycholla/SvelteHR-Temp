@@ -15,7 +15,7 @@
 	import { toast } from 'svelte-sonner';
 	import { X, Repeat, Users as UsersIcon, Image as ImageIcon } from '@lucide/svelte';
 	import ImageUploadWidget from './ImageUploadWidget.svelte';
-	import AttendeePickerModal from './AttendeePickerModal.svelte';
+	import MultiSearchInput from '$lib/components/ui/tag-input/MultiSearchInput.svelte';
 	import { generateRRule, validate5YearLimit } from '$lib/utils/rrule';
 	import type { RecurrencePattern } from '$lib/utils/rrule';
 
@@ -70,14 +70,18 @@
 	let capacityLimit = $state<number>(50);
 	let hasWaitlist = $state(false);
 
-	// Feature 027: Attendee picker state
-	let showAttendeePicker = $state(false);
+	// Feature 027: Attendee picker state (using tagged search)
 	let selectedAttendeeIds = $state<string[]>([]);
 
 	// Derived
 	let showAttendeeButton = $derived(visibilityType === 'specific');
-	let selectedAttendees = $derived(
-		employees.filter(e => selectedAttendeeIds.includes(e.id))
+
+	// Convert employees to SearchOption format for MultiSearchInput
+	let attendeeOptions = $derived(
+		employees.map(e => ({
+			value: e.id,
+			label: e.displayName
+		}))
 	);
 
 	// Get user's timezone offset in minutes
@@ -449,9 +453,9 @@
 								<!-- Weekly: Day Selection -->
 								{#if recurrenceFrequency === 'weekly'}
 									<div>
-										<label class="block text-sm font-medium text-foreground mb-2">
+										<div class="block text-sm font-medium text-foreground mb-2">
 											Repeat on <span class="text-destructive">*</span>
-										</label>
+										</div>
 										<div class="flex flex-wrap gap-2">
 											{#each WEEKDAYS as day}
 												<button
@@ -551,37 +555,28 @@
 						</div>
 					</div>
 
-					<!-- Feature 027: Attendee Picker for Specific Visibility -->
+					<!-- Feature 027: Attendee Picker for Specific Visibility (Tagged Search) -->
 					{#if showAttendeeButton}
-						<div class="rounded-lg border bg-accent/50 p-4">
-							<div class="flex items-center justify-between mb-3">
-								<label class="text-sm font-medium text-foreground flex items-center gap-2">
-									<UsersIcon class="h-4 w-4" />
-									Attendees <span class="text-destructive">*</span>
-								</label>
-								<button
-									type="button"
-									onclick={() => (showAttendeePicker = true)}
-									disabled={isSubmitting}
-									class="rounded-md bg-primary px-3 py-1 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-								>
-									{selectedAttendeeIds.length > 0 ? 'Edit' : 'Add'} Attendees
-								</button>
-							</div>
-
-							{#if selectedAttendees.length > 0}
-								<div class="space-y-1">
-									{#each selectedAttendees.slice(0, 3) as attendee}
-										<p class="text-sm text-muted-foreground">• {attendee.displayName}</p>
-									{/each}
-									{#if selectedAttendees.length > 3}
-										<p class="text-sm text-muted-foreground">
-											+ {selectedAttendees.length - 3} more
-										</p>
-									{/if}
-								</div>
+						<div class="space-y-2">
+							<label class="text-sm font-medium text-foreground flex items-center gap-2">
+								<UsersIcon class="h-4 w-4" />
+								Attendees <span class="text-destructive">*</span>
+							</label>
+							<MultiSearchInput
+								bind:searchTerms={selectedAttendeeIds}
+								options={attendeeOptions}
+								placeholder="Search and select attendees..."
+								disabled={isSubmitting}
+								allowCustomTerms={false}
+							/>
+							{#if selectedAttendeeIds.length === 0}
+								<p class="text-xs text-muted-foreground">
+									Start typing to search for employees to invite
+								</p>
 							{:else}
-								<p class="text-sm text-muted-foreground">No attendees selected</p>
+								<p class="text-xs text-muted-foreground">
+									{selectedAttendeeIds.length} {selectedAttendeeIds.length === 1 ? 'attendee' : 'attendees'} selected
+								</p>
 							{/if}
 						</div>
 					{/if}
@@ -642,7 +637,7 @@
 						</label>
 
 						<div class="mb-4">
-							<label class="text-sm text-muted-foreground mr-4">Aspect Ratio:</label>
+							<span class="text-sm text-muted-foreground mr-4">Aspect Ratio:</span>
 							<label class="inline-flex items-center mr-4">
 								<input
 									type="radio"
@@ -702,17 +697,4 @@
 			</div>
 		</div>
 	</div>
-
-	<!-- Feature 027: Attendee Picker Modal -->
-	<AttendeePickerModal
-		bind:open={showAttendeePicker}
-		{employees}
-		bind:selectedIds={selectedAttendeeIds}
-		onConfirm={(ids) => {
-			selectedAttendeeIds = ids;
-		}}
-		onCancel={() => {
-			// Keep current selection
-		}}
-	/>
 {/if}
