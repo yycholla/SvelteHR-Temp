@@ -3,6 +3,7 @@ import { serverPerformanceMonitor } from '$lib/performance/server-monitor.js';
 import { createStandardError } from '$lib/utils/error-handling.js';
 import { redirect } from '@sveltejs/kit';
 import { authConfig } from '$lib/auth/config.js';
+import { logger } from '$lib/utils/logger.js';
 
 /**
  * Server-side hooks for session-based authentication, performance optimization and monitoring
@@ -18,14 +19,27 @@ const PUBLIC_ROUTES = new Set([
 	'/terms',
 	'/api/auth/login',
 	'/api/health',
+	'/api/metrics',
 	'/api/auth/verify'
 ]);
 
 // Static file extensions to skip authentication for
 const STATIC_EXTENSIONS = new Set([
-	'.js', '.css', '.woff', '.woff2', '.ttf', '.eot',
-	'.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp',
-	'.ico', '.json', '.map'
+	'.js',
+	'.css',
+	'.woff',
+	'.woff2',
+	'.ttf',
+	'.eot',
+	'.png',
+	'.jpg',
+	'.jpeg',
+	'.gif',
+	'.svg',
+	'.webp',
+	'.ico',
+	'.json',
+	'.map'
 ]);
 
 /**
@@ -45,14 +59,17 @@ const SESSION_CACHE_TTL = 60 * 1000; // 60 seconds cache TTL
 /**
  * Clean expired sessions from cache periodically
  */
-setInterval(() => {
-	const now = Date.now();
-	for (const [key, value] of SESSION_CACHE.entries()) {
-		if (value.expiresAt < now) {
-			SESSION_CACHE.delete(key);
+setInterval(
+	() => {
+		const now = Date.now();
+		for (const [key, value] of SESSION_CACHE.entries()) {
+			if (value.expiresAt < now) {
+				SESSION_CACHE.delete(key);
+			}
 		}
-	}
-}, 5 * 60 * 1000); // Cleanup every 5 minutes
+	},
+	5 * 60 * 1000
+); // Cleanup every 5 minutes
 
 /**
  * Rate Limiting for Login Attempts
@@ -124,7 +141,9 @@ export function recordFailedLogin(ip: string): void {
 	// Block if max attempts reached
 	if (entry.attempts >= MAX_LOGIN_ATTEMPTS) {
 		entry.blockedUntil = now + BLOCK_DURATION;
-		console.warn(`🚨 IP ${ip} blocked for ${BLOCK_DURATION / 1000}s after ${MAX_LOGIN_ATTEMPTS} failed login attempts`);
+		console.warn(
+			`🚨 IP ${ip} blocked for ${BLOCK_DURATION / 1000}s after ${MAX_LOGIN_ATTEMPTS} failed login attempts`
+		);
 	}
 }
 
@@ -138,18 +157,21 @@ export function clearRateLimit(ip: string): void {
 /**
  * Clean expired rate limit entries periodically
  */
-setInterval(() => {
-	const now = Date.now();
-	for (const [ip, entry] of RATE_LIMIT_MAP.entries()) {
-		// Remove if block expired and window expired
-		if (
-			(!entry.blockedUntil || now > entry.blockedUntil) &&
-			now - entry.firstAttempt > RATE_LIMIT_WINDOW
-		) {
-			RATE_LIMIT_MAP.delete(ip);
+setInterval(
+	() => {
+		const now = Date.now();
+		for (const [ip, entry] of RATE_LIMIT_MAP.entries()) {
+			// Remove if block expired and window expired
+			if (
+				(!entry.blockedUntil || now > entry.blockedUntil) &&
+				now - entry.firstAttempt > RATE_LIMIT_WINDOW
+			) {
+				RATE_LIMIT_MAP.delete(ip);
+			}
 		}
-	}
-}, 10 * 60 * 1000); // Cleanup every 10 minutes
+	},
+	10 * 60 * 1000
+); // Cleanup every 10 minutes
 
 /**
  * Extract session ID from cookie header for cache key
@@ -160,7 +182,10 @@ function extractSessionId(cookieHeader: string): string | null {
 }
 
 // Helper function to authenticate user via session validation with caching
-async function authenticateUser(event: any, pathname: string): Promise<{
+async function authenticateUser(
+	event: any,
+	pathname: string
+): Promise<{
 	user: any;
 	roles: string[];
 	permissions: string[];
@@ -195,8 +220,8 @@ async function authenticateUser(event: any, pathname: string): Promise<{
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json',
-				'Cookie': cookieHeader, // Forward session cookies from browser
-				'Connection': 'keep-alive' // Enable connection reuse
+				Cookie: cookieHeader, // Forward session cookies from browser
+				Connection: 'keep-alive' // Enable connection reuse
 			},
 			credentials: 'include'
 		});
@@ -247,11 +272,24 @@ async function authenticateUser(event: any, pathname: string): Promise<{
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
+	// Generate request correlation ID
+	const requestId = crypto.randomUUID();
+	event.locals.requestId = requestId;
+
 	// Start performance monitoring
 	const startTime = Date.now();
 
 	try {
 		const pathname = event.url.pathname;
+
+		// Log request start
+		console.log(`[DEBUG] Logger info call: ${event.request.method} ${pathname}`);
+		logger.info(`Request started: ${event.request.method} ${pathname}`, {
+			requestId,
+			method: event.request.method,
+			url: pathname,
+			userAgent: event.request.headers.get('user-agent')?.slice(0, 100)
+		});
 
 		// Performance optimization: Skip authentication for static files
 		const isStaticFile = STATIC_EXTENSIONS.has(pathname.substring(pathname.lastIndexOf('.')));
@@ -260,10 +298,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 
 		// Check if this is a public route (O(1) lookup with Set)
-		const isPublicRoute = PUBLIC_ROUTES.has(pathname) ||
-			(pathname !== '/' && Array.from(PUBLIC_ROUTES).some(route =>
-				route !== '/' && pathname.startsWith(route)
-			));
+		const isPublicRoute =
+			PUBLIC_ROUTES.has(pathname) ||
+			(pathname !== '/' &&
+				Array.from(PUBLIC_ROUTES).some((route) => route !== '/' && pathname.startsWith(route)));
 
 		let authResult = null;
 
@@ -274,12 +312,18 @@ export const handle: Handle = async ({ event, resolve }) => {
 			if (!authResult) {
 				// Special handling for SSE endpoints - return 401 instead of redirecting
 				// EventSource connections can't handle redirects properly
-				if (pathname.includes('/stream') || event.request.headers.get('accept') === 'text/event-stream') {
+				if (
+					pathname.includes('/stream') ||
+					event.request.headers.get('accept') === 'text/event-stream'
+				) {
 					console.error(`✗ ${pathname} | SSE auth failed`);
-					return new Response(JSON.stringify({ error: 'Authentication required', code: 'AUTH_REQUIRED' }), {
-						status: 401,
-						headers: { 'Content-Type': 'application/json' }
-					});
+					return new Response(
+						JSON.stringify({ error: 'Authentication required', code: 'AUTH_REQUIRED' }),
+						{
+							status: 401,
+							headers: { 'Content-Type': 'application/json' }
+						}
+					);
 				}
 
 				console.error(`✗ ${pathname} | Unauthorized → /login`);
@@ -308,11 +352,21 @@ export const handle: Handle = async ({ event, resolve }) => {
 			event
 		);
 
+		// Add request correlation ID to response headers
+		response.headers.set('X-Request-ID', requestId);
+
+		// Log request completion
+		logger.request(event.request.method, pathname, response.status, duration, {
+			requestId,
+			userId: event.locals.user?.id
+		});
+
 		// Security headers
 		const isProduction = process.env.NODE_ENV === 'production';
 
 		// Check if this is the document preview endpoint (needs iframe embedding)
-		const isPreviewEndpoint = pathname.includes('/api/documents/') && pathname.endsWith('/preview/view');
+		const isPreviewEndpoint =
+			pathname.includes('/api/documents/') && pathname.endsWith('/preview/view');
 
 		// Prevent clickjacking attacks (but allow preview endpoint to be embedded)
 		if (!isPreviewEndpoint) {
@@ -389,17 +443,16 @@ export const handleError = ({ error, event }: { error: any; event: any }) => {
 	});
 
 	// Log structured error for monitoring
-	console.error(`❌ Server Error [${standardError.requestId}]:`, {
+	logger.error(`Server Error: ${standardError.message}`, error, {
+		requestId: standardError.requestId,
 		type: standardError.type,
-		message: standardError.message,
 		userMessage: standardError.userMessage,
 		statusCode: standardError.statusCode,
 		url: event?.url?.pathname,
 		method: event?.request?.method,
 		userId: event?.locals?.user?.id,
 		userAgent: event?.request?.headers?.get('user-agent')?.slice(0, 100),
-		timestamp: standardError.timestamp,
-		stack: error?.stack
+		timestamp: standardError.timestamp
 	});
 
 	// In production, send to error tracking service
@@ -430,7 +483,9 @@ console.log('🛡️  Server performance optimization and monitoring initialized
 console.log(`⚡ Session caching enabled (TTL: ${SESSION_CACHE_TTL}ms, cleanup: 5min intervals)`);
 console.log(`📁 Static file optimization: ${STATIC_EXTENSIONS.size} extensions`);
 console.log(`🔒 Security hardening enabled:`);
-console.log(`   - Rate limiting: ${MAX_LOGIN_ATTEMPTS} attempts per ${RATE_LIMIT_WINDOW / 1000 / 60}min`);
+console.log(
+	`   - Rate limiting: ${MAX_LOGIN_ATTEMPTS} attempts per ${RATE_LIMIT_WINDOW / 1000 / 60}min`
+);
 console.log(`   - Block duration: ${BLOCK_DURATION / 1000 / 60}min after max attempts`);
 console.log(`   - Security headers: CSP, HSTS, X-Frame-Options, etc.`);
 console.log(`   - CSRF protection: ${authConfig.security.enableCSRF ? 'enabled' : 'disabled'}`);
@@ -446,16 +501,21 @@ if (process.env.ENABLE_REMINDER_SCHEDULER !== 'false') {
 		maxRetries: 15,
 		initialDelay: 2000,
 		maxDelay: 30000
-	}).then((result) => {
-		if (result.healthy) {
-			ReminderScheduler.start();
-			console.log('⏰ Event reminder scheduler started');
-		} else {
-			console.error('⏰ Event reminder scheduler disabled - backend not healthy:', result.message);
-		}
-	}).catch((error) => {
-		console.error('⏰ Event reminder scheduler startup error:', error);
-	});
+	})
+		.then((result) => {
+			if (result.healthy) {
+				ReminderScheduler.start();
+				console.log('⏰ Event reminder scheduler started');
+			} else {
+				console.error(
+					'⏰ Event reminder scheduler disabled - backend not healthy:',
+					result.message
+				);
+			}
+		})
+		.catch((error) => {
+			console.error('⏰ Event reminder scheduler startup error:', error);
+		});
 } else {
 	console.log('⏰ Event reminder scheduler disabled (ENABLE_REMINDER_SCHEDULER=false)');
 }

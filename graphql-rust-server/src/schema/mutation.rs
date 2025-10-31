@@ -3901,6 +3901,22 @@ impl MutationRoot {
             }
         }
 
+        // Create department assignments if specified
+        if let Some(department_ids) = &input.assign_to_departments {
+            for department_id in department_ids {
+                let assignment = crate::models::documents::document_assignment::ActiveModel {
+                    id: Set(uuid::Uuid::new_v4()),
+                    document_id: Set(document.id),
+                    user_id: Set(None),
+                    department_id: Set(Some(*department_id)),
+                    access_level: Set("read".to_string()),
+                    assigned_by: Set(user.id),
+                    ..Default::default()
+                };
+                assignment.insert(&txn).await?;
+            }
+        }
+
         // Log upload in audit trail (accessed_at is None for uploads)
         let audit_log = crate::models::documents::document_access_log::ActiveModel {
             id: Set(uuid::Uuid::new_v4()),

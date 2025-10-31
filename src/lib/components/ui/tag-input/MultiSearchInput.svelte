@@ -70,6 +70,14 @@
 		});
 	});
 
+	// Map selected values to labels for display
+	const displayLabels = $derived.by(() => {
+		return searchTerms.map((value) => {
+			const option = options.find((opt) => opt.value === value);
+			return option ? option.label : value; // Fallback to value if not found
+		});
+	});
+
 	// Add a search term
 	function addTerm(term: string) {
 		const trimmed = term.trim();
@@ -251,9 +259,9 @@
 		}}
 	>
 		<!-- Search term badges -->
-		{#each searchTerms as term (term)}
+		{#each searchTerms as term, index (term)}
 			<Badge variant="secondary" class="flex items-center gap-1 pr-1 pl-2">
-				<span>{term}</span>
+				<span>{displayLabels[index]}</span>
 				<button
 					type="button"
 					class="ml-1 rounded-sm hover:bg-secondary-foreground/20"

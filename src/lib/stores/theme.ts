@@ -18,11 +18,11 @@ interface ThemeState {
 
 // Create the theme store
 function createThemeStore() {
-	// Initialize synchronously during module load if in browser
+	// Initialize state from localStorage or default to system
+	// NOTE: Theme is applied by blocking script in app.html BEFORE this runs
 	let initialState: ThemeState;
 
 	if (browser) {
-		// Synchronous initialization - runs BEFORE any component mounts
 		const savedTheme = (localStorage.getItem('theme') as Theme) || 'system';
 		const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 		const isSystemDark = mediaQuery.matches;
@@ -35,16 +35,6 @@ function createThemeStore() {
 			resolved: resolvedTheme,
 			isSystemDark
 		};
-
-		// Apply theme immediately to prevent flash
-		const root = document.documentElement;
-		if (resolvedTheme === 'dark') {
-			root.classList.add('dark');
-			root.setAttribute('data-theme', 'dark');
-		} else {
-			root.classList.remove('dark');
-			root.setAttribute('data-theme', 'light');
-		}
 	} else {
 		// Server-side default
 		initialState = {
@@ -133,10 +123,8 @@ function createThemeStore() {
 
 export const themeStore = createThemeStore();
 
-// Set up event listeners for system theme changes
-if (browser) {
-	themeStore.initialize();
-}
+// NOTE: Event listeners are initialized in +layout.svelte via onMount()
+// to ensure they run AFTER hydration completes
 
 // Helper to get current theme class
 export function getThemeClass(resolved: 'light' | 'dark'): string {

@@ -12,6 +12,7 @@ declare global {
 			};
 			permissions?: string[];
 			roles?: string[];
+			requestId?: string;
 		}
 		// interface PageData {}
 		// interface PageState {}

@@ -6,7 +6,7 @@
 	import { Toaster } from 'svelte-sonner';
 	import { setContextClient } from '@urql/svelte';
 	import { createUrqlClient } from '$lib/graphql/client';
-	import { themeStore } from '$lib/stores/theme';
+	import { ModeWatcher } from 'mode-watcher';
 	import { toast } from 'svelte-sonner';
 	import {
 		initSessionTimeout,
@@ -41,17 +41,6 @@
 	// Simplify layout logic to prevent reactive re-mounting issues
 	const isAuthPage = $derived($page?.url?.pathname === '/login');
 	const isPublicPage = $derived(isAuthPage || $page?.url?.pathname === '/');
-
-	// Apply theme to document
-	$effect(() => {
-		// Extract theme first to ensure proper null checking with Svelte 5 compiler
-		const theme = $themeStore;
-		if (typeof document !== 'undefined' && theme && theme.resolved) {
-			const root = document.documentElement;
-			root.classList.remove('light', 'dark');
-			root.classList.add(theme.resolved);
-		}
-	});
 
 	// Show timeout warning with Sonner
 	function showTimeoutSonner(remainingSeconds: number) {
@@ -174,6 +163,9 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<link rel="icon" href={favicon} />
 </svelte:head>
+
+<!-- Mode Watcher handles theme initialization and prevents hydration flash -->
+<ModeWatcher />
 
 <!-- Render app - server has already validated auth via hooks.server.ts -->
 <main class="app-main">

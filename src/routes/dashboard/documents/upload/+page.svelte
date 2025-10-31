@@ -24,7 +24,9 @@
 		filename: '',
 		category: 'Other',
 		sensitivityLevel: 'Internal',
-		metadataTags: {}
+		metadataTags: {},
+		assignToEmployees: [],
+		assignToDepartments: []
 	});
 
 	let uploadComplete = $state(false);
@@ -34,6 +36,7 @@
 
 	// Reactive state bound from child components
 	let hasFile = $state(false);
+	let assignedEmployeeIds = $state<string[]>([]);
 
 	// Derive metadata validation directly from metadata object
 	// Note: filename is set automatically when file is selected, so we only check the user-entered fields
@@ -173,6 +176,10 @@
 					return;
 				}
 
+				console.log('[Upload] About to validate metadata, metadataForm:', metadataForm);
+				console.log('[Upload] metadataForm.validateMetadata exists?', typeof metadataForm?.validateMetadata);
+				console.log('[Upload] Current metadata:', metadata);
+
 				// Validate metadata before submission
 				if (!metadataForm.validateMetadata()) {
 					uploadError = 'Please fill in all required metadata fields';
@@ -187,12 +194,15 @@
 				formData.set('category', metadata.category);
 				formData.set('sensitivityLevel', metadata.sensitivityLevel);
 				if (metadata.expirationDate) {
-					// Convert date-only format (YYYY-MM-DD) to RFC3339 DateTime
-					// HTML date inputs return YYYY-MM-DD, but GraphQL expects full datetime
-					formData.set('expirationDate', `${metadata.expirationDate}T23:59:59Z`);
+					// Convert Date object to ISO string with end-of-day time
+					// Extract YYYY-MM-DD from Date object and append time
+					const dateStr = metadata.expirationDate.toISOString().split('T')[0];
+					formData.set('expirationDate', `${dateStr}T23:59:59Z`);
 				}
 				// Send metadata tags as JSON string
 				formData.set('metadataTags', JSON.stringify(metadata.metadataTags || {}));
+				// Send employee assignments as JSON string
+				formData.set('assignToEmployees', JSON.stringify(assignedEmployeeIds || []));
 
 				console.log('[Upload] Starting upload...', {
 					filename: file.name,
@@ -250,7 +260,12 @@
 							<!-- Right: Metadata -->
 							<div class="space-y-4">
 								<h3 class="text-sm font-semibold text-foreground">Document Information</h3>
-								<DocumentMetadataForm bind:this={metadataForm} bind:metadata />
+								<DocumentMetadataForm
+									bind:this={metadataForm}
+									bind:metadata
+									bind:assignedEmployeeIds
+									employeeOptions={data.employeeOptions || []}
+								/>
 							</div>
 						</div>
 

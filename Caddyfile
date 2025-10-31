@@ -44,7 +44,6 @@
 
 		# Security headers (all modes)
 		X-Content-Type-Options "nosniff"
-		X-Frame-Options "DENY"
 		X-XSS-Protection "1; mode=block"
 		Referrer-Policy "strict-origin-when-cross-origin"
 
@@ -54,6 +53,13 @@
 		# Remove server identification
 		-Server
 	}
+
+	# X-Frame-Options header (with exception for document preview)
+	# Allow iframe embedding for preview endpoint, deny for all others
+	@not_preview {
+		not path /api/documents/*/preview/view
+	}
+	header @not_preview X-Frame-Options "DENY"
 
 	# Rate limiting (optional, uncomment if needed)
 	# rate_limit {

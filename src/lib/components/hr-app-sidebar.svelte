@@ -31,7 +31,7 @@
 	} from '@lucide/svelte';
 	import { currentUser, hasRole, authActions } from '$lib/stores/auth';
 	import { page } from '$app/stores';
-	import { themeStore } from '$lib/stores/theme';
+	import { toggleMode, mode } from 'mode-watcher';
 	import { notificationStore } from '$lib/stores/notifications';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
@@ -520,11 +520,11 @@
 
 					<!-- Dark Mode Toggle -->
 					<button
-						onclick={themeStore.toggle}
+						onclick={toggleMode}
 						class="flex items-center justify-center rounded-md p-2 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
 						title="Toggle theme"
 					>
-						{#if $themeStore.resolved === 'dark'}
+						{#if mode.current === 'dark'}
 							<Sun class="h-4 w-4" />
 						{:else}
 							<Moon class="h-4 w-4" />

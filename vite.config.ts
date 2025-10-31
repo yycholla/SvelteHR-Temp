@@ -147,14 +147,16 @@ export default defineConfig({
 	},
 
 	// Define custom plugin to disable compression
+	// IMPORTANT: Do NOT define LOG_LEVEL/LOG_FORMAT here - they should be read at runtime, not build time
 	define: {
-		'process.env.VITE_DISABLE_COMPRESSION': 'true'
+		'process.env.VITE_DISABLE_COMPRESSION': JSON.stringify('true')
 	},
 
 	// Performance monitoring
 	esbuild: {
-		// Remove console logs in production
-		drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : []
+		// IMPORTANT: Do NOT drop console logs - we need them for production logging
+		// Only drop debugger statements
+		drop: process.env.NODE_ENV === 'production' ? ['debugger'] : []
 	},
 	test: {
 		expect: { requireAssertions: true },

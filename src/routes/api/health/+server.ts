@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { logger } from '$lib/utils/logger.js';
 
 interface ServiceStatus {
 	database: boolean;
@@ -13,6 +14,14 @@ interface HealthCheckResponse {
 	message?: string;
 	timestamp: string;
 	responseTime: number;
+	system?: {
+		uptime: number;
+		memory: NodeJS.MemoryUsage;
+		version: string;
+		nodeVersion: string;
+		environment: string;
+		pid: number;
+	};
 }
 
 async function checkDatabase(): Promise<boolean> {
@@ -33,10 +42,10 @@ async function checkDatabase(): Promise<boolean> {
 
 		clearTimeout(timeoutId);
 		const result = response.ok;
-		console.log('Database health check:', result, response.status);
+		logger.debug('Database health check', { result, status: response.status });
 		return result;
 	} catch (err) {
-		console.log('Database health check failed:', err.message);
+		logger.warn('Database health check failed', { error: (err as Error).message });
 		return false;
 	}
 }
@@ -60,16 +69,16 @@ async function checkGraphQL(): Promise<boolean> {
 		clearTimeout(timeoutId);
 
 		if (!response.ok) {
-			console.log('GraphQL health check - bad response:', response.status);
+			logger.warn('GraphQL health check - bad response', { status: response.status });
 			return false;
 		}
 
 		const data = await response.json();
 		const result = !!data.data;
-		console.log('GraphQL health check:', result);
+		logger.debug('GraphQL health check', { result });
 		return result;
 	} catch (err) {
-		console.log('GraphQL health check failed:', err.message);
+		logger.warn('GraphQL health check failed', { error: (err as Error).message });
 		return false;
 	}
 }
@@ -78,15 +87,15 @@ async function checkAuth(): Promise<boolean> {
 	try {
 		// Just return true for now - auth is handled by GraphQL
 		// We'll improve this later with a proper auth endpoint check
-		console.log('Auth health check: true (simplified)');
+		logger.debug('Auth health check: true (simplified)');
 		return true;
 	} catch (err) {
-		console.log('Auth health check failed:', err.message);
+		logger.warn('Auth health check failed', { error: (err as Error).message });
 		return false;
 	}
 }
 
-export const GET: RequestHandler = async () => {
+export const GET: RequestHandler = async ({ locals }) => {
 	const startTime = Date.now();
 
 	try {
@@ -110,16 +119,38 @@ export const GET: RequestHandler = async () => {
 					? 'Services initializing'
 					: 'Backend unavailable',
 			timestamp: new Date().toISOString(),
-			responseTime: Date.now() - startTime
+			responseTime: Date.now() - startTime,
+			system: {
+				uptime: process.uptime(),
+				memory: process.memoryUsage(),
+				version: process.env.npm_package_version || 'unknown',
+				nodeVersion: process.version,
+				environment: process.env.NODE_ENV || 'development',
+				pid: process.pid
+			}
 		};
+
+		// Log health check for monitoring
+		logger.info('Health check completed', {
+			requestId: locals.requestId,
+			status: response.status,
+			services,
+			responseTime: response.responseTime
+		});
 
 		return json(response, {
 			status: allHealthy ? 200 : 503,
 			headers: {
-				'Cache-Control': 'no-cache, no-store, must-revalidate'
+				'Cache-Control': 'no-cache, no-store, must-revalidate',
+				'X-Request-ID': locals.requestId || 'unknown'
 			}
 		});
 	} catch (error) {
+		logger.error('Health check failed', error as Error, {
+			requestId: locals.requestId,
+			responseTime: Date.now() - startTime
+		});
+
 		const response: HealthCheckResponse = {
 			status: 'error',
 			services: {

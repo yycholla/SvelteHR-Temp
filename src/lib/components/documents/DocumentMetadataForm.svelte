@@ -2,11 +2,16 @@
 	// DocumentMetadataForm component (Feature 024)
 	// Form for editing document metadata with validation
 
-	import type { DocumentMetadata, DocumentCategory, SensitivityLevel } from '$lib/types/document';
+	import type { DocumentMetadata, DocumentCategoryType, SensitivityLevel } from '$lib/types/document';
 	import { documentMetadataSchema } from '$lib/schemas/documentSchemas';
+	import NativeSelect from '$lib/components/ui/native-select/native-select.svelte';
+	import NativeSelectOption from '$lib/components/ui/native-select/native-select-option.svelte';
+	import MultiSearchInput from '$lib/components/ui/tag-input/MultiSearchInput.svelte';
 
 	interface Props {
 		metadata?: DocumentMetadata;
+		assignedEmployeeIds?: string[];
+		employeeOptions?: Array<{ value: string; label: string }>;
 		onSubmit?: (metadata: DocumentMetadata) => void;
 		onCancel?: () => void;
 		isSubmitting?: boolean;
@@ -19,8 +24,12 @@
 			filename: '',
 			category: 'Other',
 			sensitivityLevel: 'Internal',
-			metadataTags: {}
+			metadataTags: {},
+			assignToEmployees: [],
+			assignToDepartments: []
 		}),
+		assignedEmployeeIds = $bindable<string[]>([]),
+		employeeOptions = [],
 		onSubmit = () => {},
 		onCancel = () => {},
 		isSubmitting = false,
@@ -32,6 +41,7 @@
 	let errors = $state<Record<string, string>>({});
 	let touched = $state<Record<string, boolean>>({});
 	let description = $state<string>((metadata.metadataTags?.description as string) || '');
+	let expirationDateStr = $state<string>(''); // HTML date input value (YYYY-MM-DD)
 
 	// Sync description with metadataTags
 	$effect(() => {
@@ -39,6 +49,21 @@
 			metadata.metadataTags = {};
 		}
 		metadata.metadataTags.description = description;
+	});
+
+	// Sync assignedEmployeeIds with metadata.assignToEmployees
+	$effect(() => {
+		metadata.assignToEmployees = assignedEmployeeIds;
+	});
+
+	// Convert expirationDateStr to Date object for metadata
+	$effect(() => {
+		if (expirationDateStr) {
+			// Convert string to Date object for Zod validation
+			metadata.expirationDate = new Date(expirationDateStr + 'T00:00:00');
+		} else {
+			metadata.expirationDate = undefined;
+		}
 	});
 
 	// Update bindable props when metadata or errors change
@@ -50,13 +75,14 @@
 	});
 
 	// Categories and sensitivity levels
-	const categories: DocumentCategory[] = [
+	const categories: DocumentCategoryType[] = [
 		'Contract',
 		'Policy',
 		'Report',
 		'Invoice',
 		'Certificate',
 		'Payslip',
+		'License',
 		'Other'
 	];
 
@@ -114,11 +140,67 @@
 
 		// Validate all fields
 		try {
-			documentMetadataSchema.parse(metadata);
+			console.log('[DocumentMetadataForm] validateMetadata called with:', {
+				...metadata,
+				expirationDate: metadata.expirationDate,
+				expirationDateType: typeof metadata.expirationDate,
+				expirationDateIsDate: metadata.expirationDate instanceof Date,
+				expirationDateValue: metadata.expirationDate?.toString()
+			});
+
+			// Test 1: Validate schema itself with hardcoded data
+			const testData = {
+				filename: 'test.pdf',
+				category: 'License',
+				sensitivityLevel: 'Internal',
+				metadataTags: {},
+				assignToEmployees: [],
+				assignToDepartments: []
+			};
+
+			console.log('[DocumentMetadataForm] Testing schema with hardcoded data...');
+			try {
+				documentMetadataSchema.parse(testData);
+				console.log('[DocumentMetadataForm] ✅ Schema test with hardcoded data PASSED');
+			} catch (testError: any) {
+				console.error('[DocumentMetadataForm] ❌ Schema test with hardcoded data FAILED:', testError);
+				console.error('[DocumentMetadataForm] Test error stack:', testError.stack);
+			}
+
+			// Test 2: Try manual construction field by field
+			const validationData = {
+				filename: String(metadata.filename || ''),
+				category: String(metadata.category || ''),
+				sensitivityLevel: String(metadata.sensitivityLevel || ''),
+				metadataTags: {},
+				assignToEmployees: [],
+				assignToDepartments: [],
+				expirationDate: metadata.expirationDate ? new Date(metadata.expirationDate) : undefined
+			};
+
+			console.log('[DocumentMetadataForm] Validating manually constructed object:', validationData);
+			console.log('[DocumentMetadataForm] Field types:', {
+				filenameType: typeof validationData.filename,
+				categoryType: typeof validationData.category,
+				sensitivityLevelType: typeof validationData.sensitivityLevel,
+				metadataTagsType: typeof validationData.metadataTags,
+				assignToEmployeesType: typeof validationData.assignToEmployees,
+				assignToEmployeesIsArray: Array.isArray(validationData.assignToEmployees),
+				expirationDateType: typeof validationData.expirationDate,
+				expirationDateIsDate: validationData.expirationDate instanceof Date
+			});
+
+			documentMetadataSchema.parse(validationData);
+			console.log('[DocumentMetadataForm] ✅ Validation PASSED!');
 			errors = {};
 			return true;
 		} catch (error: any) {
+			console.error('[DocumentMetadataForm] ❌ Validation FAILED:', error);
+			console.error('[DocumentMetadataForm] Error name:', error.name);
+			console.error('[DocumentMetadataForm] Error message:', error.message);
+			console.error('[DocumentMetadataForm] Error stack:', error.stack);
 			if (error.errors) {
+				console.error('[DocumentMetadataForm] Zod errors:', JSON.stringify(error.errors, null, 2));
 				errors = error.errors.reduce(
 					(acc: Record<string, string>, err: any) => {
 						acc[err.path[0]] = err.message;
@@ -141,23 +223,37 @@
 </script>
 
 <div class="metadata-form">
+	<!-- Filename -->
+	<div class="form-field">
+		<label for="filename" class="field-label">
+			Filename <span class="optional">(auto-populated from file)</span>
+		</label>
+		<input
+			type="text"
+			id="filename"
+			bind:value={metadata.filename}
+			class="field-input"
+			placeholder="Document filename"
+		/>
+		<p class="field-hint">Auto-filled when you select a file</p>
+	</div>
+
 	<!-- Category -->
 	<div class="form-field">
 		<label for="category" class="field-label">
 			Category <span class="required">*</span>
 		</label>
-		<select
+		<NativeSelect
 			id="category"
 			bind:value={metadata.category}
 			onblur={() => validateField('category')}
-			class="field-input"
-			class:error={touched.category && errors.category}
+			class={touched.category && errors.category ? 'border-red-500' : ''}
 			required
 		>
 			{#each categories as category}
-				<option value={category}>{category}</option>
+				<NativeSelectOption value={category}>{category}</NativeSelectOption>
 			{/each}
-		</select>
+		</NativeSelect>
 		{#if touched.category && errors.category}
 			<p class="field-error">{errors.category}</p>
 		{/if}
@@ -168,22 +264,54 @@
 		<label for="sensitivityLevel" class="field-label">
 			Sensitivity Level <span class="required">*</span>
 		</label>
-		<select
+		<NativeSelect
 			id="sensitivityLevel"
 			bind:value={metadata.sensitivityLevel}
 			onblur={() => validateField('sensitivityLevel')}
-			class="field-input"
-			class:error={touched.sensitivityLevel && errors.sensitivityLevel}
+			class={touched.sensitivityLevel && errors.sensitivityLevel ? 'border-red-500' : ''}
 			required
 		>
 			{#each sensitivityLevels as level}
-				<option value={level.value}>
+				<NativeSelectOption value={level.value}>
 					{level.label} - {level.description}
-				</option>
+				</NativeSelectOption>
 			{/each}
-		</select>
+		</NativeSelect>
 		{#if touched.sensitivityLevel && errors.sensitivityLevel}
 			<p class="field-error">{errors.sensitivityLevel}</p>
+		{/if}
+	</div>
+
+	<!-- Expiration Date (optional) -->
+	<div class="form-field">
+		<label for="expirationDate" class="field-label">
+			Expiration Date <span class="optional">(optional)</span>
+		</label>
+		<input
+			type="date"
+			id="expirationDate"
+			bind:value={expirationDateStr}
+			class="field-input"
+			min={new Date().toISOString().split('T')[0]}
+		/>
+		<p class="field-hint">For time-sensitive documents (e.g., licenses, certificates)</p>
+	</div>
+
+	<!-- Assign to Employees (optional) -->
+	<div class="form-field">
+		<label for="assignEmployees" class="field-label">
+			Assign to Employees <span class="optional">(optional)</span>
+		</label>
+		{#if employeeOptions.length > 0}
+			<MultiSearchInput
+				bind:searchTerms={assignedEmployeeIds}
+				options={employeeOptions}
+				placeholder="Search and select employees..."
+				allowCustomTerms={false}
+			/>
+			<p class="field-hint">Document will be assigned to selected employees with read access</p>
+		{:else}
+			<p class="field-hint text-muted-foreground">Employee list is loading...</p>
 		{/if}
 	</div>
 

@@ -174,21 +174,21 @@
 	}
 
 	.drop-zone {
-		border: 2px dashed #cbd5e0;
+		border: 2px dashed hsl(var(--border));
 		border-radius: 0.5rem;
 		padding: 2rem;
 		transition: all 0.2s;
-		background: #f7fafc;
+		background: hsl(var(--muted));
 	}
 
 	.drop-zone.dragging {
-		border-color: #4299e1;
-		background: #ebf8ff;
+		border-color: hsl(var(--primary));
+		background: hsl(var(--primary) / 0.1);
 	}
 
 	.drop-zone.has-file {
-		border-color: #48bb78;
-		background: #f0fff4;
+		border-color: hsl(var(--success));
+		background: hsl(var(--success) / 0.1);
 	}
 
 	.file-info {
@@ -207,17 +207,17 @@
 
 	.file-name {
 		font-weight: 600;
-		color: #2d3748;
+		color: hsl(var(--foreground));
 	}
 
 	.file-size {
 		font-size: 0.875rem;
-		color: #718096;
+		color: hsl(var(--muted-foreground));
 	}
 
 	.clear-button {
-		background: #f56565;
-		color: white;
+		background: hsl(var(--destructive));
+		color: hsl(var(--destructive-foreground));
 		border: none;
 		border-radius: 50%;
 		width: 2rem;
@@ -231,7 +231,7 @@
 	}
 
 	.clear-button:hover {
-		background: #e53e3e;
+		background: hsl(var(--destructive) / 0.9);
 	}
 
 	.drop-placeholder {
@@ -247,19 +247,19 @@
 	.drop-text {
 		font-size: 1.125rem;
 		font-weight: 500;
-		color: #2d3748;
+		color: hsl(var(--foreground));
 		margin-bottom: 0.5rem;
 	}
 
 	.or-text {
-		color: #718096;
+		color: hsl(var(--muted-foreground));
 		margin: 0.5rem 0;
 	}
 
 	.file-select-button {
 		display: inline-block;
-		background: #4299e1;
-		color: white;
+		background: hsl(var(--primary));
+		color: hsl(var(--primary-foreground));
 		padding: 0.75rem 1.5rem;
 		border-radius: 0.375rem;
 		cursor: pointer;
@@ -268,7 +268,7 @@
 	}
 
 	.file-select-button:hover {
-		background: #3182ce;
+		background: hsl(var(--primary) / 0.9);
 	}
 
 	.file-select-button input {
@@ -278,16 +278,16 @@
 	.file-constraints {
 		margin-top: 1rem;
 		font-size: 0.875rem;
-		color: #718096;
+		color: hsl(var(--muted-foreground));
 	}
 
 	.error-message {
 		margin-top: 0.75rem;
 		padding: 0.75rem;
-		background: #fff5f5;
-		border: 1px solid #fc8181;
+		background: hsl(var(--destructive) / 0.1);
+		border: 1px solid hsl(var(--destructive) / 0.5);
 		border-radius: 0.375rem;
-		color: #c53030;
+		color: hsl(var(--destructive));
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;

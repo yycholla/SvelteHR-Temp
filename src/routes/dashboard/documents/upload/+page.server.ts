@@ -5,11 +5,12 @@ import { error, redirect, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { GraphQLClient } from '$lib/server/graphql-client';
 import { UPLOAD_DOCUMENT } from '$lib/graphql/document-operations';
+import { GET_EMPLOYEES_QUERY } from '$lib/graphql/employee-operations';
 
 import { logSuccessfulAccess, createAccessMetadata } from '$lib/services/auditService';
 import type { UploadResult } from '$lib/types/document';
 
-export const load: PageServerLoad = async ({ locals, fetch }) => {
+export const load: PageServerLoad = async ({ locals, cookies, fetch }) => {
 	// Step 1: Validate authentication
 	if (!locals.user) {
 		throw redirect(303, '/login?redirectTo=/dashboard/documents/upload');
@@ -58,12 +59,46 @@ export const load: PageServerLoad = async ({ locals, fetch }) => {
 			{ id: 'invoice', name: 'Invoice' },
 			{ id: 'certificate', name: 'Certificate' },
 			{ id: 'payslip', name: 'Payslip' },
+			{ id: 'license', name: 'License' },
 			{ id: 'other', name: 'Other' }
 		];
 
 		// Step 4: Load employees for assignment (system_admin can assign to all employees)
-		// TODO: Call GET /api/employees when integrated
-		const employees: any[] = []; // Would be populated from API
+		let employeeOptions: Array<{ value: string; label: string }> = [];
+		try {
+			const graphqlClient = GraphQLClient.fromCookies(cookies);
+
+			// Extract the query string from the gql template
+			const queryString = `
+				query GetEmployees($limit: Int, $offset: Int) {
+					users(limit: $limit, offset: $offset) {
+						id
+						email
+						displayName
+						firstName
+						lastName
+						fullName
+					}
+				}
+			`;
+
+			const employeesResponse = await graphqlClient.query(queryString, {
+				limit: 1000,
+				offset: 0
+			});
+
+			if (employeesResponse.data?.users) {
+				employeeOptions = employeesResponse.data.users.map((user: any) => ({
+					value: user.id,
+					label: user.fullName || user.displayName || user.email
+				}));
+
+				console.log('[UPLOAD PAGE] Loaded employee options:', employeeOptions.length);
+			}
+		} catch (err) {
+			console.error('[UPLOAD PAGE] Failed to load employees:', err);
+			// Continue without employee options - form will still work
+		}
 
 		// Step 5: Load departments for department-wide assignment
 		// TODO: Call GET /api/departments when integrated
@@ -80,7 +115,7 @@ export const load: PageServerLoad = async ({ locals, fetch }) => {
 			userRoles,
 			isSystemAdmin,
 			categories,
-			employees,
+			employeeOptions,
 			departments,
 			teams
 		};
