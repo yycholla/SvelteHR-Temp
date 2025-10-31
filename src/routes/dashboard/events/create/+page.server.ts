@@ -14,15 +14,13 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	}
 
 	// T036: Session-based authentication - no token checks needed
-	// Check if user has manager or admin privileges to create events
-	// Allow if user has wildcard permission or sufficient role level
+	// Check permissions - manager role and above can create events
 	const hasWildcardPermission = locals.permissions?.includes('*');
 	const roleLevel = getRoleLevel(locals.user.role);
 
 	if (!hasWildcardPermission && roleLevel < 60) {
-		// Only managers and above can create events
 		throw error(403, {
-			message: 'Access denied. Manager privileges required to create events.'
+			message: 'Access denied. Manager privileges or higher required to create events.'
 		});
 	}
 
@@ -96,7 +94,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 // Helper function to get role level for authorization
 function getRoleLevel(role: string | undefined): number {
 	const roleLevels: Record<string, number> = {
-		super_admin: 200, // Highest level - system administrator
+		system_admin: 200, // Highest level - system administrator
+		super_admin: 200, // Alias for system_admin
 		admin: 100,
 		hr_manager: 80,
 		manager: 60,
@@ -186,19 +185,28 @@ function getDefaultEndTime(): string {
 
 // Form actions
 export const actions: Actions = {
-	default: async ({ request, locals, cookies }) => {
+	default: async ({ request, locals, cookies, fetch: eventFetch }) => {
 		// Check authentication
 		if (!locals.user) {
 			throw redirect(303, '/login');
 		}
 
 		// T036: Session-based authentication - no token checks needed
-		// Check permissions
+		// Check permissions - manager role and above can create events
 		const hasWildcardPermission = locals.permissions?.includes('*');
 		const roleLevel = getRoleLevel(locals.user.role);
 
+		// Debug logging
+		console.log('[Event Create] User:', {
+			userId: locals.user.id,
+			role: locals.user.role,
+			roleLevel,
+			permissions: locals.permissions,
+			hasWildcard: hasWildcardPermission
+		});
+
 		if (!hasWildcardPermission && roleLevel < 60) {
-			return fail(403, { error: 'Access denied. Manager privileges required.' });
+			return fail(403, { error: 'Access denied. Manager privileges or higher required.' });
 		}
 
 		// Parse form data
@@ -219,8 +227,9 @@ export const actions: Actions = {
 		}
 
 		try {
-			// T036: Session-based authentication
-			const urqlClient = createUrqlClient();
+			// T036: Session-based authentication - pass fetch and cookies to forward session
+			const cookieHeader = request.headers.get('cookie') || '';
+			const urqlClient = createUrqlClient(eventFetch, undefined, undefined, cookieHeader);
 			const eventsOps = new EventsOperations(urqlClient);
 
 			// T036: Session-based authentication - jwtToken not needed
@@ -275,9 +284,9 @@ export const actions: Actions = {
 					endTime: endTimeUTC,
 					isAllDay: isAllDay,
 					location,
-					organizerId: locals.user.id,
-					isPublic,
-					status: 'scheduled'
+					status: 'scheduled',
+					isPublic
+					// organizerId is set automatically from UserContext
 				},
 				userCredentials
 			});

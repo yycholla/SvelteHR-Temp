@@ -133,7 +133,7 @@ prod-frontend-rebuild-full: ## Start only frontend container (requires backend t
 prod-rebuild-full: ## Full rebuild without caching (use when Dockerfile or dependencies change)
 	@echo "🔨 Full rebuild (no cache) - this will take 8-12 minutes..."
 	@docker-compose build --no-cache
-	@echo "✅ Full rebuild complete. Run 'make dev' to start."
+	@echo "✅ Full rebuild complete. Run 'make prod' to start."
 
 dev: ## Start ALL development containers (backend + frontend + database + redis)
 	@echo "🚀 Starting ALL SvelteHR Development Containers..."
