@@ -1,0 +1,15 @@
+---
+apiVersion: databases.spotahome.com/v1
+kind: RedisCluster
+metadata:
+  name: sveltehr-redis
+  namespace: sveltehr-prod
+spec:
+  # Production Redis configuration
+  config:
+    maxmemory: '1gb' # Increased for production
+    maxmemory-policy: 'allkeys-lru'
+    appendonly: 'yes'
+    appendfsync: 'everysec'
+    # Enable persistence for production
+    save: '900 1 300 10 60 10000'

@@ -1,0 +1,25 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sveltehr-config
+  namespace: sveltehr-dev # Will be patched for prod
+data:
+  # Database Configuration
+  POSTGRES_DB: 'hr_system'
+  POSTGRES_USER: 'hr_user'
+
+  # Server Configuration
+  HOST: '0.0.0.0'
+
+  # Logging Configuration
+  RUST_LOG: 'info,hr_graphql_server=debug'
+  RUST_BACKTRACE: '0'
+  LOG_LEVEL: 'info'
+  LOG_FORMAT: 'console'
+
+  # Environment
+  ENVIRONMENT: 'development' # Will be patched for prod
+
+  # Admin User Seeding (set to 'true' for first deployment only)
+  SEED_ADMIN_USER: 'false'

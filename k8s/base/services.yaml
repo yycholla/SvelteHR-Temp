@@ -1,0 +1,72 @@
+---
+# Backend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: sveltehr-backend
+  namespace: sveltehr-dev # Will be patched for prod
+  labels:
+    app: sveltehr-backend
+    component: graphql-api
+spec:
+  selector:
+    app: sveltehr-backend
+  ports:
+    - name: http
+      port: 4000
+      targetPort: 4000
+      protocol: TCP
+  type: ClusterIP
+
+---
+# Frontend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: sveltehr-frontend
+  namespace: sveltehr-dev # Will be patched for prod
+  labels:
+    app: sveltehr-frontend
+    component: web-ui
+spec:
+  selector:
+    app: sveltehr-frontend
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+      protocol: TCP
+  type: ClusterIP
+
+---
+# PostgreSQL Read-Write Service (created by operator)
+# This is automatically created by CloudNativePG
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: sveltehr-postgres-rw
+# spec:
+#   selector:
+#     postgresql.cnpg.io/cluster: sveltehr-postgres
+#   ports:
+#   - name: postgresql
+#     port: 5432
+#     targetPort: 5432
+#   type: ClusterIP
+
+---
+# Redis Service (created by operator)
+# This is automatically created by Redis operator
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: sveltehr-redis
+# spec:
+#   selector:
+#     app: redis-cluster
+#     redis-cluster: sveltehr-redis
+#   ports:
+#   - name: redis
+#     port: 6379
+#     targetPort: 6379
+#   type: ClusterIP

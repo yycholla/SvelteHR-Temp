@@ -1,0 +1,21 @@
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: sveltehr-postgres
+  namespace: sveltehr-prod
+spec:
+  # Enable backups for production
+  backup:
+    barmanObjectStore:
+      destinationPath: 's3://sveltehr-postgres-backups/'
+      endpointURL: 'https://s3.amazonaws.com'
+      s3Credentials:
+        accessKeyId:
+          name: sveltehr-backup-secret
+          key: ACCESS_KEY_ID
+        secretAccessKey:
+          name: sveltehr-backup-secret
+          key: ACCESS_SECRET_KEY
+    retentionPolicy: '30d'
+    schedule: '0 2 * * *' # Daily at 2 AM UTC

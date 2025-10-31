@@ -1,0 +1,40 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sveltehr-ingress
+  namespace: sveltehr-dev # Will be patched for prod
+  labels:
+    app: sveltehr
+  annotations:
+    nginx.ingress.kubernetes.io/rate-limit: '100' # Will be increased for prod
+    nginx.ingress.kubernetes.io/rate-limit-window: '1m'
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+    # For production, add:
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  # For production with TLS:
+  # tls:
+  # - hosts:
+  #   - yourdomain.com
+  #   secretName: sveltehr-tls
+  rules:
+    - host: localhost # Will be patched for prod domain
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sveltehr-frontend
+                port:
+                  number: 3000
+          - path: /graphql
+            pathType: Prefix
+            backend:
+              service:
+                name: sveltehr-backend
+                port:
+                  number: 4000

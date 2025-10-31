@@ -1,0 +1,87 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sveltehr-backend
+  namespace: sveltehr-dev # Will be patched for prod
+  labels:
+    app: sveltehr-backend
+    component: graphql-api
+spec:
+  replicas: 1 # Will be patched for prod
+  selector:
+    matchLabels:
+      app: sveltehr-backend
+  template:
+    metadata:
+      labels:
+        app: sveltehr-backend
+        component: graphql-api
+    spec:
+      serviceAccountName: sveltehr-backend-sa # Will be created
+      containers:
+        - name: graphql-server
+          image: registry.gitlab.com/your-project/sveltehr/backend:latest # Will be patched
+          ports:
+            - containerPort: 4000
+              name: http
+          env:
+            - name: DATABASE_URL
+              value: 'postgresql://hr_user:$(POSTGRES_PASSWORD)@sveltehr-postgres-rw:5432/hr_system'
+            - name: REDIS_URL
+              value: 'redis://sveltehr-redis:6379'
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: sveltehr-secrets
+                  key: jwt-secret
+            - name: JWT_REFRESH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: sveltehr-secrets
+                  key: jwt-refresh-secret
+            - name: SERVICE_AUTH_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: sveltehr-secrets
+                  key: service-auth-key
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sveltehr-secrets
+                  key: postgres-password
+          envFrom:
+            - configMapRef:
+                name: sveltehr-config
+          resources:
+            requests:
+              memory: '128Mi'
+              cpu: '100m'
+            limits:
+              memory: '256Mi'
+              cpu: '200m'
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            # readOnlyRootFilesystem removed - Rust apps need write access to /tmp
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      securityContext:
+        fsGroup: 1000

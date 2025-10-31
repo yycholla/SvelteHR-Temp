@@ -1,0 +1,35 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Include all base resources (namespaces created separately to avoid conflicts)
+resources:
+  - serviceaccounts.yaml
+  - rbac.yaml
+  - configmap.yaml
+  - postgres-cluster.yaml
+  - redis-cluster.yaml
+  - backend-deployment.yaml
+  - frontend-deployment.yaml
+  - services.yaml
+  # ingress.yaml - Commented out due to kernel module issue (xt_comment)
+  # Use port-forwarding for local access instead
+
+# Common labels applied to all resources
+labels:
+  - pairs:
+      app.kubernetes.io/name: sveltehr
+      app.kubernetes.io/version: v1.0.0
+
+# Namespace for all resources (will be overridden by overlays)
+namespace: sveltehr-dev
+
+# Images - configured for local minikube development
+# These will be built locally using the build-images.sh script
+images:
+  - name: registry.gitlab.com/your-project/sveltehr/backend
+    newName: sveltehr-backend
+    newTag: latest
+  - name: registry.gitlab.com/your-project/sveltehr/frontend
+    newName: sveltehr-frontend
+    newTag: latest

@@ -1,0 +1,51 @@
+---
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: sveltehr-redis
+  namespace: sveltehr-dev # Will be patched for prod
+spec:
+  # Redis configuration
+  redis:
+    image: redis:7-alpine
+    imagePullPolicy: IfNotPresent
+    replicas: 1 # Will be patched to 3 for prod
+
+    resources:
+      requests:
+        memory: '128Mi'
+        cpu: '100m'
+      limits:
+        memory: '256Mi'
+        cpu: '200m'
+
+    # Redis configuration
+    customConfig:
+      - "maxmemory 256mb"
+      - "maxmemory-policy allkeys-lru"
+      - "appendonly yes"
+      - "appendfsync everysec"
+
+    storage:
+      persistentVolumeClaim:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi
+          storageClassName: standard # Will be patched for prod
+
+    exporter:
+      enabled: true # Enables Redis exporter for Prometheus
+
+  # Sentinel configuration
+  sentinel:
+    replicas: 1 # Will be patched to 3 for prod
+    resources:
+      requests:
+        memory: '64Mi'
+        cpu: '50m'
+      limits:
+        memory: '128Mi'
+        cpu: '100m'
