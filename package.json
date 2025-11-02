@@ -146,7 +146,7 @@
 		"globals": "^16.0.0",
 		"layerchart": "^2.0.0-next.27",
 		"mode-watcher": "^1.1.0",
-		"ora": "^8.1.0",
+		"ora": "^9.0.0",
 		"paneforge": "^1.0.2",
 		"pg": "^8.16.3",
 		"pg-format": "^1.0.4",
