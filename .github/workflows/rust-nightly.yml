@@ -10,7 +10,6 @@ env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: full
   REGISTRY: ghcr.io
-  IMAGE_NAME: ghcr.io/mountain-care-rx/sveltehr/backend-server:latest
 
 jobs:
   comprehensive-tests:
@@ -20,7 +19,7 @@ jobs:
 
     # Use pre-built container from GHCR
     container:
-      image: ${{ env.IMAGE_NAME }}
+      image: ghcr.io/mountain-care-rx/sveltehr/backend-server:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
@@ -75,7 +74,7 @@ jobs:
 
     # Use pre-built container from GHCR
     container:
-      image: ${{ env.IMAGE_NAME }}
+      image: ghcr.io/mountain-care-rx/sveltehr/backend-server:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
@@ -107,7 +106,7 @@ jobs:
 
     # Use pre-built container from GHCR
     container:
-      image: ${{ env.IMAGE_NAME }}
+      image: ghcr.io/mountain-care-rx/sveltehr/backend-server:latest
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
