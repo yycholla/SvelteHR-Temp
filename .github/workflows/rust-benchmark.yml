@@ -28,13 +28,6 @@ jobs:
     # Skip benchmarks on Dependabot PRs
     if: github.actor != 'dependabot[bot]'
 
-    # Use pre-built container from GHCR
-    container:
-      image: ghcr.io/mountain-care-rx/sveltehr/backend-server:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
     services:
       postgres:
         image: postgres:15-alpine
@@ -54,9 +47,39 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run benchmarks
-        working-directory: ./graphql-rust-server
-        run: cargo bench --bench resolver_benchmarks -- --output-format bencher | tee benchmark_output.txt
+      - name: Convert repository name to lowercase
+        id: repo
+        run: echo "lowercase=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run benchmarks with cached builder stage
+        run: |
+          # Build the builder stage with BuildKit cache
+          docker buildx build \
+            --target builder \
+            --cache-from=type=gha,scope=backend-server \
+            --cache-from=type=registry,ref=ghcr.io/${{ steps.repo.outputs.lowercase }}/backend-server:latest \
+            --load \
+            -t rust-builder:bench \
+            -f ./graphql-rust-server/Dockerfile.prod \
+            ./graphql-rust-server
+
+          # Run benchmarks and save output
+          docker run --rm \
+            --network=host \
+            -v ${{ github.workspace }}/graphql-rust-server:/workspace \
+            -w /workspace \
+            rust-builder:bench \
+            sh -c "cargo bench --bench resolver_benchmarks -- --output-format bencher | tee /workspace/benchmark_output.txt"
 
       - name: Store benchmark result (GitHub Pages)
         uses: benchmark-action/github-action-benchmark@v1
@@ -110,13 +133,6 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
 
-    # Use pre-built container from GHCR
-    container:
-      image: ghcr.io/mountain-care-rx/sveltehr/backend-server:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
     services:
       postgres:
         image: postgres:15-alpine
@@ -136,9 +152,39 @@ jobs:
       - name: Checkout PR code
         uses: actions/checkout@v4
 
+      - name: Convert repository name to lowercase
+        id: repo
+        run: echo "lowercase=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build cached builder image
+        run: |
+          docker buildx build \
+            --target builder \
+            --cache-from=type=gha,scope=backend-server \
+            --cache-from=type=registry,ref=ghcr.io/${{ steps.repo.outputs.lowercase }}/backend-server:latest \
+            --load \
+            -t rust-builder:bench \
+            -f ./graphql-rust-server/Dockerfile.prod \
+            ./graphql-rust-server
+
       - name: Run PR benchmarks
-        working-directory: ./graphql-rust-server
-        run: cargo bench --bench resolver_benchmarks -- --save-baseline pr
+        run: |
+          docker run --rm \
+            --network=host \
+            -v ${{ github.workspace }}/graphql-rust-server:/workspace \
+            -w /workspace \
+            rust-builder:bench \
+            cargo bench --bench resolver_benchmarks -- --save-baseline pr
 
       - name: Checkout main branch
         uses: actions/checkout@v4
@@ -146,12 +192,22 @@ jobs:
           ref: main
 
       - name: Run main benchmarks
-        working-directory: ./graphql-rust-server
-        run: cargo bench --bench resolver_benchmarks -- --save-baseline main
+        run: |
+          docker run --rm \
+            --network=host \
+            -v ${{ github.workspace }}/graphql-rust-server:/workspace \
+            -w /workspace \
+            rust-builder:bench \
+            cargo bench --bench resolver_benchmarks -- --save-baseline main
 
       - name: Compare benchmarks
-        working-directory: ./graphql-rust-server
-        run: cargo bench --bench resolver_benchmarks -- --baseline main --load-baseline pr
+        run: |
+          docker run --rm \
+            --network=host \
+            -v ${{ github.workspace }}/graphql-rust-server:/workspace \
+            -w /workspace \
+            rust-builder:bench \
+            cargo bench --bench resolver_benchmarks -- --baseline main --load-baseline pr
 
       - name: Store PR benchmark result
         uses: benchmark-action/github-action-benchmark@v1
