@@ -59,7 +59,8 @@ const mockGraphQLOperations = {
 // Skip these tests in CI (no backend available)
 const describeOrSkip = process.env.CI ? describe.skip : describe;
 
-describeOrSkip('GraphQL Performance Tests', () => {
+describeOrSkip('GraphQL Backend Performance Tests (requires Rust server on port 4000)', () => {
+	describe('GraphQL Performance Tests', () => {
 	beforeEach(() => {
 		performanceMonitor.startMonitoring();
 	});
@@ -308,9 +309,9 @@ describeOrSkip('GraphQL Performance Tests', () => {
 		// Should include user experience recommendations
 		expect(recommendations.some((r) => r.toLowerCase().includes('rendering'))).toBe(true);
 	});
-});
+	});
 
-describeOrSkip('GraphQL Performance Edge Cases', () => {
+	describe('GraphQL Performance Edge Cases', () => {
 	test('Handles concurrent GraphQL operations efficiently', async () => {
 		console.log('⚡ Testing concurrent GraphQL operations...');
 
@@ -375,6 +376,7 @@ describeOrSkip('GraphQL Performance Edge Cases', () => {
 		expect(errorDuration).toBeLessThan(100);
 
 		performanceMonitor.stopMonitoring();
+	});
 	});
 });
 
