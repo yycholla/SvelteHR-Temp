@@ -14,6 +14,9 @@ import { describe, it, expect, beforeAll } from 'vitest';
  * - 404 responses for non-existent documents
  */
 
+// API base URL for tests
+const API_BASE_URL = process.env.PUBLIC_API_URL || 'http://localhost:8080';
+
 describe('GET /api/documents/{id}/download - Contract Tests', () => {
 	let userToken: string;
 	let otherUserToken: string;
@@ -36,7 +39,7 @@ describe('GET /api/documents/{id}/download - Contract Tests', () => {
 
 	it('should download document with valid permissions (200 + binary stream)', async () => {
 		// Act: Download own document
-		const response = await fetch(`/api/documents/${userDocumentId}/download`, {
+		const response = await fetch(`${API_BASE_URL}/api/documents/${userDocumentId}/download`, {
 			method: 'GET',
 			headers: {
 				'Authorization': `Bearer ${userToken}`
@@ -64,7 +67,7 @@ describe('GET /api/documents/{id}/download - Contract Tests', () => {
 
 	it('should deny download without permissions (403)', async () => {
 		// Act: Attempt to download another user's document
-		const response = await fetch(`/api/documents/${otherUserDocumentId}/download`, {
+		const response = await fetch(`${API_BASE_URL}/api/documents/${otherUserDocumentId}/download`, {
 			method: 'GET',
 			headers: {
 				'Authorization': `Bearer ${userToken}`
@@ -81,7 +84,7 @@ describe('GET /api/documents/{id}/download - Contract Tests', () => {
 
 	it('should return 404 for non-existent document', async () => {
 		// Act: Attempt to download non-existent document
-		const response = await fetch(`/api/documents/${nonExistentDocId}/download`, {
+		const response = await fetch(`${API_BASE_URL}/api/documents/${nonExistentDocId}/download`, {
 			method: 'GET',
 			headers: {
 				'Authorization': `Bearer ${userToken}`
@@ -98,7 +101,7 @@ describe('GET /api/documents/{id}/download - Contract Tests', () => {
 
 	it('should return 401 for unauthenticated requests', async () => {
 		// Act: Download without auth token
-		const response = await fetch(`/api/documents/${userDocumentId}/download`, {
+		const response = await fetch(`${API_BASE_URL}/api/documents/${userDocumentId}/download`, {
 			method: 'GET'
 		});
 
@@ -112,7 +115,7 @@ describe('GET /api/documents/{id}/download - Contract Tests', () => {
 
 	it('should allow admin to download any document', async () => {
 		// Act: Admin downloads any user's document
-		const response = await fetch(`/api/documents/${otherUserDocumentId}/download`, {
+		const response = await fetch(`${API_BASE_URL}/api/documents/${otherUserDocumentId}/download`, {
 			method: 'GET',
 			headers: {
 				'Authorization': `Bearer ${adminToken}`
@@ -126,7 +129,7 @@ describe('GET /api/documents/{id}/download - Contract Tests', () => {
 
 	it('should log download access in audit log', async () => {
 		// Act: Download document
-		const response = await fetch(`/api/documents/${userDocumentId}/download`, {
+		const response = await fetch(`${API_BASE_URL}/api/documents/${userDocumentId}/download`, {
 			method: 'GET',
 			headers: {
 				'Authorization': `Bearer ${userToken}`
@@ -147,7 +150,7 @@ describe('GET /api/documents/{id}/download - Contract Tests', () => {
 
 	it('should log denied download attempts in audit log', async () => {
 		// Act: Attempt unauthorized download
-		const response = await fetch(`/api/documents/${otherUserDocumentId}/download`, {
+		const response = await fetch(`${API_BASE_URL}/api/documents/${otherUserDocumentId}/download`, {
 			method: 'GET',
 			headers: {
 				'Authorization': `Bearer ${userToken}`
@@ -165,7 +168,7 @@ describe('GET /api/documents/{id}/download - Contract Tests', () => {
 		const deletedDocId = 'doc-deleted-123';
 
 		// Act: Non-admin attempts to download deleted document
-		const response = await fetch(`/api/documents/${deletedDocId}/download`, {
+		const response = await fetch(`${API_BASE_URL}/api/documents/${deletedDocId}/download`, {
 			method: 'GET',
 			headers: {
 				'Authorization': `Bearer ${userToken}`
@@ -181,7 +184,7 @@ describe('GET /api/documents/{id}/download - Contract Tests', () => {
 		const deletedDocId = 'doc-deleted-456';
 
 		// Act: Admin downloads soft-deleted document
-		const response = await fetch(`/api/documents/${deletedDocId}/download`, {
+		const response = await fetch(`${API_BASE_URL}/api/documents/${deletedDocId}/download`, {
 			method: 'GET',
 			headers: {
 				'Authorization': `Bearer ${adminToken}`
@@ -197,7 +200,7 @@ describe('GET /api/documents/{id}/download - Contract Tests', () => {
 
 		// Act: Download large document
 		const startTime = Date.now();
-		const response = await fetch(`/api/documents/${userDocumentId}/download`, {
+		const response = await fetch(`${API_BASE_URL}/api/documents/${userDocumentId}/download`, {
 			method: 'GET',
 			headers: {
 				'Authorization': `Bearer ${userToken}`

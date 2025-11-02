@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { describe, it, expect } from 'vitest';
 
 /**
  * Contract test for data loading queries
@@ -67,8 +67,8 @@ interface EmployeeListData {
 
 const GRAPHQL_ENDPOINT = 'http://localhost:4000/graphql';
 
-test.describe('Data Loading GraphQL Contract', () => {
-	test('should load dashboard data with correct schema', async ({ request }) => {
+describe('Data Loading GraphQL Contract', () => {
+	it('should load dashboard data with correct schema', async () => {
 		// This test will initially fail until the query is implemented
 		const query = `
 			query GetDashboardData($userId: ID!, $includeAnalytics: Boolean) {
