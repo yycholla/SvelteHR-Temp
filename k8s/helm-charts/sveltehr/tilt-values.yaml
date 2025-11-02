@@ -1,0 +1,341 @@
+# =============================================================================
+# SvelteHR Helm Chart - Tilt Development Overrides
+# =============================================================================
+#
+# These values override values-dev.yaml specifically for Tilt workflows.
+# They optimize for fast iteration, live updates, and developer experience.
+#
+# Usage: Loaded automatically by Tiltfile alongside values-dev.yaml
+#
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Global Configuration
+# -----------------------------------------------------------------------------
+global:
+  namespace: sveltehr-dev
+  environment: development
+
+# -----------------------------------------------------------------------------
+# Frontend Configuration - Optimized for Tilt Live Updates
+# -----------------------------------------------------------------------------
+frontend:
+  enabled: true
+  replicaCount: 1
+
+  # Image configuration - Tilt will build and inject
+  image:
+    repository: ghcr.io/mountain-care-rx/sveltehr/frontend
+    tag: tilt-dev  # Special tag for Tilt-built images
+    pullPolicy: IfNotPresent  # Use locally built images
+
+  # Service configuration - NodePort for direct access
+  service:
+    type: NodePort  # Changed from ClusterIP for direct browser access
+    port: 5173
+    targetPort: 5173
+    nodePort: 30173  # Fixed NodePort for consistent localhost access
+
+  # Backend URL
+  backendUrl: "http://sveltehr-dev-backend:4000"
+  waitForBackend: true
+
+  # Server configuration
+  host: "0.0.0.0"
+
+  # Environment variables for K8s HMR
+  extraEnv:
+    - name: VITE_K8S_MODE
+      value: "true"
+    - name: VITE_HMR_HOST
+      value: "localhost"
+    - name: VITE_HMR_PORT
+      value: "5173"
+    - name: VITE_HMR_CLIENT_PORT
+      value: "5173"
+    - name: VITE_USE_POLLING
+      value: "false"  # Disable polling for better performance
+
+  # Resources - Minimal for local dev
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 100m
+    limits:
+      memory: 512Mi  # Increased for Vite dev server
+      cpu: 500m
+
+  # Probes - Relaxed for development to prevent restart loops
+  livenessProbe:
+    path: /
+    initialDelaySeconds: 300  # Give plenty of time for dev server startup
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 5  # Be more tolerant
+
+  readinessProbe:
+    path: /
+    initialDelaySeconds: 30  # Increased for Vite dev server
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  startupProbe: {}  # Disabled for faster startup
+
+  # Security context - Relaxed for Tilt file sync
+  securityContext:
+    runAsUser: 1001
+    runAsNonRoot: false  # Allow Tilt to sync files as needed
+
+  podSecurityContext:
+    fsGroup: 1001
+
+  # Deployment strategy - Fast rollout
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+
+  # No node selector for local dev
+  nodeSelector: {}
+  affinity: {}
+  tolerations: []
+
+  # Annotations
+  annotations:
+    tilt.dev/live-update: "true"
+    tilt.dev/environment: "development"
+
+  podAnnotations:
+    tilt.dev/live-update: "true"
+
+  podLabels:
+    tilt.dev/managed: "true"
+
+# -----------------------------------------------------------------------------
+# Backend Configuration - Standard Development Settings
+# -----------------------------------------------------------------------------
+backend:
+  enabled: true
+  replicaCount: 1
+
+  # Image configuration
+  image:
+    repository: ghcr.io/mountain-care-rx/sveltehr/backend-server
+    tag: tilt-dev
+    pullPolicy: IfNotPresent
+
+  # Service configuration - NodePort for direct access
+  service:
+    type: NodePort
+    port: 4000
+    targetPort: 4000
+    nodePort: 30400
+
+  # Server configuration
+  host: "0.0.0.0"
+  rustLog: "info,hr_graphql_server=debug,sqlx=warn"
+
+  # Resources
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 200m
+    limits:
+      memory: 1Gi
+      cpu: 1000m
+
+  # Probes - Relaxed
+  livenessProbe:
+    path: /health
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    path: /health
+    initialDelaySeconds: 20
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  # Security context
+  securityContext:
+    runAsUser: 1001
+    runAsNonRoot: true
+
+  podSecurityContext:
+    fsGroup: 1001
+
+  annotations:
+    tilt.dev/managed: "true"
+
+# -----------------------------------------------------------------------------
+# PostgreSQL Configuration - Minimal Development Setup
+# -----------------------------------------------------------------------------
+postgresql:
+  enabled: true
+  instances: 1  # Single instance for dev
+
+  # Image
+  image:
+    repository: ghcr.io/cloudnative-pg/postgresql
+    tag: "15.6"
+
+  # Database config
+  database: hr_system
+  username: hr_user
+
+  # Storage
+  storage:
+    size: 5Gi
+    storageClass: local-path  # K3s default
+
+  # Server parameters - Optimized for development
+  config:
+    maxConnections: "100"
+    sharedBuffers: "256MB"
+    workMem: "4MB"
+    maintenanceWorkMem: "64MB"
+
+  # Resources - Minimal
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 250m
+    limits:
+      memory: 512Mi
+      cpu: 500m
+
+  # Monitoring
+  monitoring:
+    enabled: true
+
+# -----------------------------------------------------------------------------
+# Redis Configuration - Standalone Development
+# -----------------------------------------------------------------------------
+redis:
+  enabled: true
+  architecture: standalone
+
+  # No auth for dev convenience
+  auth:
+    enabled: false
+
+  # Master configuration
+  master:
+    persistence:
+      enabled: true
+      size: 1Gi
+      storageClass: local-path
+    resources:
+      requests:
+        memory: 128Mi
+        cpu: 100m
+      limits:
+        memory: 256Mi
+        cpu: 200m
+
+# -----------------------------------------------------------------------------
+# Migration Job - Enabled for Initial Setup
+# -----------------------------------------------------------------------------
+migration:
+  enabled: true
+
+  image:
+    repository: ghcr.io/mountain-care-rx/sveltehr/backend-migration
+    tag: latest
+    pullPolicy: Always
+
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 3
+
+  rustLog: "info,migration=debug"
+
+  resources:
+    requests:
+      memory: 64Mi
+      cpu: 50m
+    limits:
+      memory: 128Mi
+      cpu: 200m
+
+# -----------------------------------------------------------------------------
+# Seed Job - Disabled (Run Manually)
+# -----------------------------------------------------------------------------
+seed:
+  enabled: false  # Run manually via helm test
+
+# -----------------------------------------------------------------------------
+# Service Account
+# -----------------------------------------------------------------------------
+serviceAccount:
+  create: true
+  annotations: {}
+
+# -----------------------------------------------------------------------------
+# RBAC
+# -----------------------------------------------------------------------------
+rbac:
+  enabled: false  # Not needed for local dev
+
+# -----------------------------------------------------------------------------
+# External Secrets - Disabled for Dev
+# -----------------------------------------------------------------------------
+externalSecrets:
+  enabled: false  # Use hardcoded secrets in dev
+
+# -----------------------------------------------------------------------------
+# Ingress - Disabled (Use Port Forwarding)
+# -----------------------------------------------------------------------------
+ingress:
+  enabled: false  # Use NodePort and port-forward instead
+
+# -----------------------------------------------------------------------------
+# Pod Disruption Budgets - Disabled
+# -----------------------------------------------------------------------------
+podDisruptionBudget:
+  enabled: false  # Not needed for single-replica dev
+
+# -----------------------------------------------------------------------------
+# Monitoring
+# -----------------------------------------------------------------------------
+monitoring:
+  enabled: true
+  scrapeInterval: 30s
+  scrapeTimeout: 10s
+
+# -----------------------------------------------------------------------------
+# pgAdmin - Disabled
+# -----------------------------------------------------------------------------
+pgadmin:
+  enabled: false  # Use kubectl port-forward if needed
+
+# -----------------------------------------------------------------------------
+# Tailscale - Disabled
+# -----------------------------------------------------------------------------
+tailscale:
+  enabled: false
+
+# =============================================================================
+# Development Notes
+# =============================================================================
+#
+# This file is specifically designed for Tilt development workflows.
+#
+# Key Optimizations:
+#   • NodePort services for direct localhost access
+#   • Relaxed health check timeouts
+#   • Minimal resource requests
+#   • Live update annotations
+#   • No ingress (use port-forward)
+#   • Single-replica deployments
+#
+# Port Mappings:
+#   • Frontend:  http://localhost:5173  (Vite dev server with HMR)
+#   • Backend:   http://localhost:4000  (GraphQL API)
+#   • Tilt UI:   http://localhost:10350 (Tilt dashboard)
+#
+# =============================================================================

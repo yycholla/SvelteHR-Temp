@@ -15,7 +15,7 @@
 # =============================================================================
 # Stage 1: Dependencies - Production Dependencies (most stable layer)
 # =============================================================================
-FROM node:20-alpine AS deps-prod
+FROM node:22-alpine AS deps-prod
 
 WORKDIR /app
 
@@ -30,7 +30,7 @@ RUN --mount=type=cache,target=/root/.npm \
 # =============================================================================
 # Stage 2: Dependencies - All Dependencies (includes dev deps)
 # =============================================================================
-FROM node:20-alpine AS deps-all
+FROM node:22-alpine AS deps-all
 
 WORKDIR /app
 
@@ -44,7 +44,7 @@ RUN --mount=type=cache,target=/root/.npm \
 # =============================================================================
 # Stage 3: Builder - Build the application
 # =============================================================================
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -76,7 +76,7 @@ RUN test -d /app/.svelte-kit/output || \
 # =============================================================================
 # Stage 4: Runtime with Doppler (Factor V: Release/Run)
 # =============================================================================
-FROM node:20-alpine AS runtime
+FROM node:22-alpine AS runtime
 
 # Install Doppler CLI for production secrets management
 RUN apk add --no-cache curl gnupg && \
@@ -123,7 +123,7 @@ CMD ["sh", "-c", "if [ -n \"$DOPPLER_TOKEN\" ]; then doppler configure set proje
 # =============================================================================
 # Stage 5: Production without Doppler (for Docker Compose deployment)
 # =============================================================================
-FROM node:20-alpine AS production
+FROM node:22-alpine AS production
 
 # Install curl for health checks
 RUN apk add --no-cache curl
@@ -165,7 +165,7 @@ CMD ["node", ".svelte-kit/output/server/index.js"]
 # =============================================================================
 # Stage 6: Development Override (Factor X: Dev/Prod Parity)
 # =============================================================================
-FROM node:20-alpine AS development
+FROM node:22-alpine AS development
 
 # Install Doppler CLI for development secrets management
 RUN apk add --no-cache curl gnupg && \
@@ -205,7 +205,12 @@ ENV NODE_ENV=development
 ENV HOST=0.0.0.0
 ENV PORT=5173
 
+# Healthcheck for development mode (Vite dev server)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:5173/ || exit 1
+
 # Start development server with hot reload
+# Note: Tilt will sync source files directly, so changes appear instantly
 CMD ["sh", "-c", "if [ -n \"$DOPPLER_TOKEN\" ]; then doppler configure set project mountainhr-frontend --scope / 2>/dev/null || true; doppler configure set config dev --scope / 2>/dev/null || true; doppler configure set token \"$DOPPLER_TOKEN\" --scope / 2>/dev/null || true; fi && exec npm run dev -- --host 0.0.0.0 --port 5173"]
 
 # =============================================================================

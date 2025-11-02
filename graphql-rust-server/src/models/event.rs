@@ -4,11 +4,11 @@
 
 use async_graphql::{Context, Enum, InputObject, Object, Result as GqlResult, SimpleObject};
 use chrono::{DateTime, Utc};
-use sea_orm::{entity::prelude::*, FromQueryResult, Order, QueryOrder, QuerySelect, Related};
+use sea_orm::{entity::prelude::*, Order, QueryOrder, QuerySelect, Related};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{database::get_db_from_context, error::AppError};
+use crate::database::get_db_from_context;
 
 /// PostGraphile-style connection wrapper for attendees
 #[derive(Debug, Clone)]

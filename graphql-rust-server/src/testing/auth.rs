@@ -139,6 +139,8 @@ impl TestUser {
             email: self.email.clone(),
             role: self.role.clone(),
             is_active: self.is_active,
+            department_id: None, // TestUser doesn't store department_id
+            organization_id: None,
         }
     }
 }

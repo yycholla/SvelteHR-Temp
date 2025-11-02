@@ -10,12 +10,8 @@ use axum::{
     response::{Response, IntoResponse},
 };
 use axum_login::AuthSession;
-use sea_orm::DatabaseConnection;
 
-use crate::{
-    auth::{AuthBackend, AuthUser},
-    database::get_db_from_context,
-};
+use crate::auth::{AuthBackend, AuthUser};
 
 /// Session-based authentication middleware
 ///
@@ -43,12 +39,14 @@ pub async fn session_auth_middleware(
         return StatusCode::UNAUTHORIZED.into_response();
     }
 
-    // Create user context from authenticated user
+    // Create user context from authenticated user with RLS fields
     let user_context = crate::auth::UserContext {
         user_id: user.id,
         email: Some(user.email.clone()),
         roles: vec![user.role.clone()], // Convert single role to vec for compatibility
         permissions: vec![], // TODO: Implement proper permission system
+        department_id: user.department_id,
+        organization_id: user.organization_id,
     };
 
     // Store user context in request extensions
@@ -69,7 +67,7 @@ pub async fn optional_session_auth_middleware(
     mut request: Request,
     next: Next,
 ) -> Response {
-    // If user is authenticated, store context
+    // If user is authenticated, store context with RLS fields
     if let Some(user) = &auth_session.user {
         if user.is_active {
             let user_context = crate::auth::UserContext {
@@ -77,6 +75,8 @@ pub async fn optional_session_auth_middleware(
                 email: Some(user.email.clone()),
                 roles: vec![user.role.clone()],
                 permissions: vec![], // TODO: Implement proper permission system
+                department_id: user.department_id,
+                organization_id: user.organization_id,
             };
             request.extensions_mut().insert(user_context);
         }
@@ -113,12 +113,14 @@ pub async fn admin_session_auth_middleware(
         return StatusCode::FORBIDDEN.into_response();
     }
 
-    // Create user context
+    // Create user context with RLS fields
     let user_context = crate::auth::UserContext {
         user_id: user.id,
         email: Some(user.email.clone()),
         roles: vec![user.role.clone()],
         permissions: vec![], // TODO: Implement proper permission system
+        department_id: user.department_id,
+        organization_id: user.organization_id,
     };
 
     request.extensions_mut().insert(user_context);

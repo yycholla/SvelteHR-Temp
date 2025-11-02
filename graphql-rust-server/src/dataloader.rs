@@ -9,7 +9,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::models::generated::prelude::*;
 use crate::models::task::{Model as Task, Entity as TaskEntity, Column as TaskColumn};
 use crate::models::user::{Model as User, Entity as UserEntity, Column as UserColumn};
 use crate::models::department::{Model as Department, Entity as DepartmentEntity, Column as DepartmentColumn};

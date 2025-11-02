@@ -1,12 +1,11 @@
 import adapter from '@sveltejs/adapter-node';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
-import { optimizeImports } from 'carbon-preprocess-svelte';
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
 	// Consult https://svelte.dev/docs/kit/integrations
 	// for more information about preprocessors
-	preprocess: [vitePreprocess(), optimizeImports()],
+	preprocess: [vitePreprocess()],
 
 	kit: {
 		// Using adapter-node for Docker/Node.js production deployment

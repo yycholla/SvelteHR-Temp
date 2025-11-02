@@ -4,11 +4,11 @@
 
 use async_graphql::{Context, Enum, InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, Utc};
-use sea_orm::{entity::prelude::*, FromQueryResult, QueryOrder, Related};
+use sea_orm::{entity::prelude::*, QueryOrder, Related};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{database::get_db_from_context, dataloader::DataLoaderContext, error::AppError, models::generated::prelude::*};
+use crate::{database::get_db_from_context, dataloader::DataLoaderContext, models::generated::prelude::*};
 
 /// Custom validator for future dates
 fn validate_future_date(value: &DateTime<Utc>) -> Result<(), String> {

@@ -1,7 +1,7 @@
 use async_graphql::{Context, Object, Result, SimpleObject};
 use axum_login::{AuthSession, AuthnBackend};
 use base64;
-use chrono::Utc;
+use chrono::{Datelike, Utc};
 use sea_orm::{DatabaseConnection, EntityTrait, Set, ActiveModelTrait, QueryFilter, ColumnTrait, TransactionTrait};
 use sea_orm::prelude::Expr;
 use serde::{Deserialize, Serialize};
@@ -11,7 +11,11 @@ use crate::{
     auth::{context::UserContext, AuthBackend, Credentials, AuthUser},
     database::get_db_from_context,
     error::AppError,
-    schema::mutations::{UserMutations, DepartmentMutations, TaskMutations, RbacMutations},
+    schema::mutations::{
+        AuthMutations, UserMutations, DepartmentMutations, TaskMutations, RbacMutations, TimeMutations, EmployeeMutations,
+        // Import auth types to avoid naming conflicts
+        auth::{LoginInput, AuthResponse, LogoutResult, RefreshSessionResponse},
+    },
     models::{
         generated::prelude::*,
         task_audit_entry,
@@ -63,70 +67,111 @@ use crate::{
     },
 };
 
+// ==================================================================================
+// REMOVED: Authentication types moved to schema::mutations::auth
+// ==================================================================================
+// The following types are now defined in src/schema/mutations/auth.rs:
+// - UserInfo
+// - AuthSessionInfo
+// - AuthResult
+// - AuthError
+// - AuthResponse (Union)
+// - LogoutResult
+// - RefreshSessionResponse
+// - LoginInput
+//
+// These were removed to eliminate GraphQL naming conflicts during Phase 2
+// mutation.rs decomposition. All authentication logic now lives in the
+// dedicated auth mutations module.
+// ==================================================================================
 
+// ==================================================================================
+// Leave Request Business Logic Validation Functions
+// ==================================================================================
 
-/// User information returned by login
-#[derive(SimpleObject)]
-pub struct UserInfo {
-    pub id: String,
-    pub email: String,
-    pub role: String,
-    pub is_active: bool,
+/// Check if user has overlapping leave requests (same user, same period)
+async fn check_overlapping_requests(
+    db: &DatabaseConnection,
+    user_id: Uuid,
+    start_date: chrono::NaiveDate,
+    end_date: chrono::NaiveDate,
+    exclude_id: Option<Uuid>,
+) -> Result<bool> {
+    use crate::models::leave_request;
+
+    let mut query = leave_request::Entity::find()
+        .filter(leave_request::Column::EmployeeId.eq(user_id))
+        .filter(leave_request::Column::Status.ne("rejected"))
+        .filter(leave_request::Column::Status.ne("cancelled"))
+        .filter(leave_request::Column::DeletedAt.is_null());
+
+    // Exclude current request if updating
+    if let Some(id) = exclude_id {
+        query = query.filter(leave_request::Column::Id.ne(id));
+    }
+
+    let existing_requests = query.all(db).await?;
+
+    // Check for overlap: start1 < end2 AND end1 > start2
+    for request in existing_requests {
+        if start_date < request.end_date && end_date > request.start_date {
+            return Ok(true); // Overlap detected
+        }
+    }
+
+    Ok(false)
 }
 
-/// Refresh session response
-#[derive(SimpleObject)]
-pub struct RefreshSessionResponse {
-    pub success: bool,
-    pub session_expires_at: Option<String>,
-    pub message: String,
+/// Check if user has sufficient leave balance for the requested days
+async fn check_sufficient_balance(
+    db: &DatabaseConnection,
+    user_id: Uuid,
+    leave_type_id: Uuid,
+    days_requested: rust_decimal::Decimal,
+) -> Result<bool> {
+    use crate::models::leave_balance;
+
+    // Get current year
+    let current_year = chrono::Utc::now().year();
+
+    // Find balance for this user, leave type, and year
+    let balance = leave_balance::Entity::find()
+        .filter(leave_balance::Column::EmployeeId.eq(user_id))
+        .filter(leave_balance::Column::LeaveTypeId.eq(leave_type_id))
+        .filter(leave_balance::Column::Year.eq(current_year))
+        .filter(leave_balance::Column::DeletedAt.is_null())
+        .one(db)
+        .await?;
+
+    if let Some(balance) = balance {
+        // Calculate available days: total_days - used_days
+        let available = balance.total_days - balance.used_days;
+        Ok(available >= days_requested)
+    } else {
+        // No balance record found - insufficient balance
+        Ok(false)
+    }
 }
 
-/// Authentication result for successful login
-#[derive(SimpleObject)]
-pub struct AuthResult {
-    pub user: UserInfo,
-    pub session: AuthSessionInfo,
-}
+/// Validate leave request dates
+fn validate_leave_dates(
+    start_date: chrono::NaiveDate,
+    end_date: chrono::NaiveDate,
+    allow_past_dates: bool,
+) -> Result<()> {
+    let today = chrono::Utc::now().date_naive();
 
-/// Session information
-#[derive(SimpleObject)]
-pub struct AuthSessionInfo {
-    pub id: String,
-    pub created_at: String,
-    pub expires_at: String,
-    pub last_activity: String,
-    pub ip_address: Option<String>,
-    pub user_agent: Option<String>,
-}
+    // End date must be after start date
+    if end_date <= start_date {
+        return Err("End date must be after start date".into());
+    }
 
-/// Authentication error
-#[derive(SimpleObject)]
-pub struct AuthError {
-    pub code: String,
-    pub message: String,
-    pub retry_after: Option<i32>,
-}
+    // Start date must not be in the past (unless explicitly allowed)
+    if !allow_past_dates && start_date < today {
+        return Err("Start date cannot be in the past".into());
+    }
 
-/// Logout result
-#[derive(SimpleObject)]
-pub struct LogoutResult {
-    pub success: bool,
-    pub message: String,
-}
-
-/// Login input for authentication
-#[derive(async_graphql::InputObject)]
-pub struct LoginInput {
-    pub email: String,
-    pub password: String,
-}
-
-/// Union type for authentication responses
-#[derive(async_graphql::Union)]
-pub enum AuthResponse {
-    AuthResult(AuthResult),
-    AuthError(AuthError),
+    Ok(())
 }
 
 pub struct MutationRoot;
@@ -134,8 +179,16 @@ pub struct MutationRoot;
 #[Object]
 impl MutationRoot {
 
+    // ============================================================
+    // Authentication Mutations
+    // Types imported from schema::mutations::auth to avoid conflicts
+    // ============================================================
+
     /// Login with email and password
     async fn login(&self, ctx: &Context<'_>, input: LoginInput) -> Result<AuthResponse> {
+        // Delegate to AuthMutations module
+        use crate::schema::mutations::auth::{AuthMutations, UserInfo, AuthSessionInfo, AuthResult, AuthError};
+
         let db = get_db_from_context(ctx)?;
 
         let creds = Credentials {
@@ -143,15 +196,9 @@ impl MutationRoot {
             password: input.password,
         };
 
-        // For GraphQL login, we authenticate but don't create a session
-        // The client should use the REST /auth/login endpoint to establish the session
-        // This GraphQL mutation validates credentials and returns user info
-
         let auth_backend = AuthBackend::new(db.clone());
         match auth_backend.authenticate(creds).await {
             Ok(Some(user)) => {
-                // Authentication successful - return user and session info
-                // Note: This doesn't actually create a session - client must use REST endpoint
                 let session_info = AuthSessionInfo {
                     id: uuid::Uuid::new_v4().to_string(),
                     created_at: chrono::Utc::now().to_rfc3339(),
@@ -174,7 +221,6 @@ impl MutationRoot {
                 }))
             }
             Ok(None) => {
-                // Authentication failed
                 Ok(AuthResponse::AuthError(AuthError {
                     code: "INVALID_CREDENTIALS".to_string(),
                     message: "Invalid email or password".to_string(),
@@ -198,8 +244,6 @@ impl MutationRoot {
 
         match &auth_session.user {
             Some(_user) => {
-                // For GraphQL refresh, we return success but don't actually extend the session
-                // The client should use the REST /auth/refresh endpoint to properly extend the session
                 Ok(RefreshSessionResponse {
                     success: true,
                     session_expires_at: Some((chrono::Utc::now() + chrono::Duration::minutes(30)).to_rfc3339()),
@@ -220,10 +264,7 @@ impl MutationRoot {
     async fn logout(&self, ctx: &Context<'_>) -> Result<LogoutResult> {
         let auth_session = ctx.data::<AuthSession<AuthBackend>>()?;
 
-        // Check if user is authenticated
         if auth_session.user.is_some() {
-            // For GraphQL logout, we return success but don't actually destroy the session
-            // The client should use the REST /auth/logout endpoint to properly destroy the session
             Ok(LogoutResult {
                 success: true,
                 message: "Use REST /auth/logout endpoint to properly end session".to_string(),
@@ -1003,11 +1044,42 @@ impl MutationRoot {
         let days = rust_decimal::Decimal::from_str(&input.days_requested)
             .map_err(|_| "Invalid days_requested format")?;
 
+        let start_date = input.start_date.date_naive();
+        let end_date = input.end_date.date_naive();
+
+        // VALIDATION 1: Date validation (end > start, no past dates)
+        validate_leave_dates(start_date, end_date, false)?;
+
+        // VALIDATION 2: Check for overlapping leave requests
+        let has_overlap = check_overlapping_requests(
+            &db,
+            user_id,
+            start_date,
+            end_date,
+            None, // No exclusion for new requests
+        ).await?;
+
+        if has_overlap {
+            return Err("Cannot create leave request: overlapping dates with existing request".into());
+        }
+
+        // VALIDATION 3: Check sufficient leave balance
+        let has_balance = check_sufficient_balance(
+            &db,
+            user_id,
+            input.leave_type_id,
+            days,
+        ).await?;
+
+        if !has_balance {
+            return Err("Cannot create leave request: insufficient leave balance".into());
+        }
+
         let request = crate::models::leave_request::ActiveModel {
             employee_id: Set(user_id),
             leave_type_id: Set(input.leave_type_id),
-            start_date: Set(input.start_date.date_naive()),
-            end_date: Set(input.end_date.date_naive()),
+            start_date: Set(start_date),
+            end_date: Set(end_date),
             days_requested: Set(days),
             status: Set("pending".to_string()),
             reason: Set(input.reason.clone()),
@@ -1036,26 +1108,64 @@ impl MutationRoot {
             .await?
             .ok_or_else(|| AppError::NotFound("Leave request not found or not pending".to_string()))?;
 
+        // Track whether dates are being updated for validation
+        let mut final_start_date = existing_request.start_date;
+        let mut final_end_date = existing_request.end_date;
+        let mut final_days = existing_request.days_requested;
+        let user_id = existing_request.employee_id;
+        let leave_type_id = existing_request.leave_type_id;
+
         // Build active model with updates
         let mut request: crate::models::leave_request::ActiveModel = existing_request.into();
 
         if let Some(start_date) = input.start_date {
-            request.start_date = Set(start_date.date_naive());
+            final_start_date = start_date.date_naive();
+            request.start_date = Set(final_start_date);
         }
 
         if let Some(end_date) = input.end_date {
-            request.end_date = Set(end_date.date_naive());
+            final_end_date = end_date.date_naive();
+            request.end_date = Set(final_end_date);
         }
 
         if let Some(days_requested_str) = input.days_requested {
             use std::str::FromStr;
             let days = rust_decimal::Decimal::from_str(&days_requested_str)
                 .map_err(|_| "Invalid days_requested format")?;
+            final_days = days;
             request.days_requested = Set(days);
         }
 
         if let Some(reason) = input.reason {
             request.reason = Set(Some(reason));
+        }
+
+        // VALIDATION 1: Date validation (end > start, allow past dates for updates)
+        validate_leave_dates(final_start_date, final_end_date, true)?;
+
+        // VALIDATION 2: Check for overlapping leave requests (exclude this request)
+        let has_overlap = check_overlapping_requests(
+            &db,
+            user_id,
+            final_start_date,
+            final_end_date,
+            Some(id), // Exclude this request from overlap check
+        ).await?;
+
+        if has_overlap {
+            return Err("Cannot update leave request: overlapping dates with existing request".into());
+        }
+
+        // VALIDATION 3: Check sufficient leave balance
+        let has_balance = check_sufficient_balance(
+            &db,
+            user_id,
+            leave_type_id,
+            final_days,
+        ).await?;
+
+        if !has_balance {
+            return Err("Cannot update leave request: insufficient leave balance".into());
         }
 
         // Update timestamp
@@ -1088,6 +1198,11 @@ impl MutationRoot {
             .one(&db)
             .await?
             .ok_or_else(|| AppError::NotFound("Leave request not found or not pending".to_string()))?;
+
+        // VALIDATION 4: Prevent self-approval
+        if existing_request.employee_id == approver_id {
+            return Err("Cannot approve own leave request".into());
+        }
 
         // Build active model with approval
         let mut request: crate::models::leave_request::ActiveModel = existing_request.into();
@@ -3938,6 +4053,11 @@ impl MutationRoot {
         Ok(document)
     }
 
+    /// Authentication operations (login, logout, refresh)
+    async fn auth(&self) -> AuthMutations {
+        AuthMutations
+    }
+
     /// User mutations
     async fn users(&self) -> UserMutations {
         UserMutations
@@ -3956,5 +4076,15 @@ impl MutationRoot {
     /// RBAC mutations - roles, permissions, and assignments
     async fn rbac(&self) -> RbacMutations {
         RbacMutations
+    }
+
+    /// Time and attendance operations
+    async fn time(&self) -> TimeMutations {
+        TimeMutations
+    }
+
+    /// Employee data operations (certifications, goals, skills, contacts, vehicles)
+    async fn employee(&self) -> EmployeeMutations {
+        EmployeeMutations
     }
 }

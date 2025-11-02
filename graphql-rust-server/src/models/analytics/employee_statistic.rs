@@ -9,7 +9,7 @@ use sea_orm::{entity::prelude::*, QueryFilter, QueryOrder};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{database::get_db_from_context, error::AppError};
+use crate::database::get_db_from_context;
 
 /// Daily snapshot of employee statistics
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]

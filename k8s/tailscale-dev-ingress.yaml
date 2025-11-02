@@ -1,0 +1,190 @@
+# =============================================================================
+# Tailscale Access for SvelteHR Development Environment
+# =============================================================================
+#
+# Exposes development services via Tailscale for secure remote access.
+# This uses your existing Tailscale operator in the cluster.
+#
+# Services exposed:
+#   - Frontend (Vite dev server with HMR)
+#   - Backend (GraphQL API)
+#   - Tilt UI Dashboard
+#
+# Prerequisites:
+#   - Tailscale operator installed in cluster ✅ (you have this)
+#   - OAuth client configured ✅ (you have this)
+#
+# =============================================================================
+
+---
+# Frontend - Vite Dev Server via Tailscale
+apiVersion: v1
+kind: Service
+metadata:
+  name: sveltehr-dev-frontend-ts
+  namespace: sveltehr-dev
+  annotations:
+    tailscale.com/expose: "true"
+    tailscale.com/hostname: "sveltehr-dev-frontend"
+    tailscale.com/tags: "tag:dev"
+spec:
+  type: LoadBalancer
+  loadBalancerClass: tailscale
+  selector:
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/instance: sveltehr-dev
+  ports:
+    - name: http
+      port: 5173
+      targetPort: 5173
+      protocol: TCP
+
+---
+# Backend - GraphQL API via Tailscale
+apiVersion: v1
+kind: Service
+metadata:
+  name: sveltehr-dev-backend-ts
+  namespace: sveltehr-dev
+  annotations:
+    tailscale.com/expose: "true"
+    tailscale.com/hostname: "sveltehr-dev-backend"
+    tailscale.com/tags: "tag:dev"
+spec:
+  type: LoadBalancer
+  loadBalancerClass: tailscale
+  selector:
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/instance: sveltehr-dev
+  ports:
+    - name: http
+      port: 4000
+      targetPort: 4000
+      protocol: TCP
+
+---
+# Tilt UI Proxy - Deployment
+# (Tilt runs on host, so we need a proxy in the cluster)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tilt-ui-proxy
+  namespace: sveltehr-dev
+  labels:
+    app: tilt-ui-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tilt-ui-proxy
+  template:
+    metadata:
+      labels:
+        app: tilt-ui-proxy
+    spec:
+      containers:
+        - name: nginx-proxy
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: tilt-ui-proxy-config
+
+---
+# Tilt UI Proxy - ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tilt-ui-proxy-config
+  namespace: sveltehr-dev
+data:
+  nginx.conf: |
+    events {
+      worker_connections 1024;
+    }
+
+    http {
+      server {
+        listen 80;
+
+        # Proxy to Tilt UI running on host machine
+        location / {
+          proxy_pass http://100.98.104.21:10350;  # Your Tailscale IP
+          proxy_http_version 1.1;
+          proxy_set_header Upgrade $http_upgrade;
+          proxy_set_header Connection 'upgrade';
+          proxy_set_header Host $host;
+          proxy_cache_bypass $http_upgrade;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
+        }
+      }
+    }
+
+---
+# Tilt UI - Tailscale Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: tilt-ui-ts
+  namespace: sveltehr-dev
+  annotations:
+    tailscale.com/expose: "true"
+    tailscale.com/hostname: "sveltehr-tilt-ui"
+    tailscale.com/tags: "tag:dev"
+spec:
+  type: LoadBalancer
+  loadBalancerClass: tailscale
+  selector:
+    app: tilt-ui-proxy
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
+
+# =============================================================================
+# Quick Start
+# =============================================================================
+#
+# 1. Create the namespace (if not already created by Tilt):
+#    kubectl create namespace sveltehr-dev
+#
+# 2. Apply this configuration:
+#    kubectl apply -f k8s/tailscale-dev-ingress.yaml
+#
+# 3. Wait for Tailscale to assign hostnames (takes ~30 seconds):
+#    kubectl get svc -n sveltehr-dev | grep tailscale
+#
+# 4. Get your Tailscale URLs:
+#    kubectl get svc sveltehr-dev-frontend-ts -n sveltehr-dev -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+#
+# 5. Access from any device on your Tailnet:
+#    - Frontend: https://sveltehr-dev-frontend.<tailnet>.ts.net
+#    - Backend:  https://sveltehr-dev-backend.<tailnet>.ts.net
+#    - Tilt UI:  https://sveltehr-tilt-ui.<tailnet>.ts.net
+#
+# =============================================================================
+#
+# Troubleshooting:
+#
+# - Services not getting Tailscale IPs?
+#   Check Tailscale operator logs:
+#   kubectl logs -n tailscale-operator -l app=tailscale-operator
+#
+# - Can't access services?
+#   Verify Tailscale is exposing them:
+#   tailscale status
+#
+# - Tilt UI not accessible?
+#   Ensure Tilt is binding to Tailscale interface:
+#   netstat -tlnp | grep 10350
+#
+# =============================================================================

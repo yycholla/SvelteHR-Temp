@@ -1,0 +1,183 @@
+name: Rust Code Quality Gates
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'graphql-rust-server/**/*.rs'
+      - 'graphql-rust-server/Cargo.toml'
+      - 'graphql-rust-server/Cargo.lock'
+      - '.github/workflows/rust-quality-gates.yml'
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+
+jobs:
+  unused-imports-check:
+    name: Check for unused imports
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mold clang
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('graphql-rust-server/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-git-${{ hashFiles('graphql-rust-server/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-git-
+
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: graphql-rust-server/target
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('graphql-rust-server/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-build-
+
+      - name: Run unused imports check
+        id: check_imports
+        working-directory: graphql-rust-server
+        env:
+          RUSTFLAGS: -W unused
+        run: |
+          set +e
+          cargo check --all-features 2>&1 | tee check_output.txt
+          exit_code=$?
+          set -e
+
+          if grep -q "warning: unused import" check_output.txt; then
+            echo "::error::Unused imports detected. Please remove all unused imports."
+            grep "warning: unused import" check_output.txt || true
+            exit 1
+          fi
+
+          if [ $exit_code -ne 0 ]; then
+            echo "::error::cargo check failed"
+            exit $exit_code
+          fi
+
+      - name: Print success message
+        if: success()
+        run: |
+          echo "✅ No unused imports detected"
+
+  clippy-check:
+    name: Clippy linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mold clang
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('graphql-rust-server/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-git-${{ hashFiles('graphql-rust-server/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-git-
+
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: graphql-rust-server/target
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('graphql-rust-server/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-build-
+
+      - name: Run Clippy
+        working-directory: graphql-rust-server
+        run: |
+          cargo clippy --all-features -- -D warnings
+
+      - name: Print success message
+        if: success()
+        run: |
+          echo "✅ Clippy checks passed with no warnings"
+
+  test-compilation:
+    name: Test compilation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mold clang
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('graphql-rust-server/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-git-${{ hashFiles('graphql-rust-server/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-git-
+
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: graphql-rust-server/target
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('graphql-rust-server/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-build-
+
+      - name: Compile tests
+        working-directory: graphql-rust-server
+        run: |
+          cargo test --no-run --all-features
+
+      - name: Print success message
+        if: success()
+        run: |
+          echo "✅ All tests compiled successfully"

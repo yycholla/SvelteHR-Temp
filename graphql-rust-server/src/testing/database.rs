@@ -6,7 +6,7 @@
 
 use sea_orm::{Database, DatabaseConnection, ConnectionTrait};
 use sea_orm_migration::MigratorTrait;
-use testcontainers::{clients::Cli, Container, Image, RunnableImage};
+use testcontainers::{ContainerAsync, runners::AsyncRunner, ImageExt};
 use testcontainers_modules::postgres::Postgres;
 use uuid::Uuid;
 
@@ -25,8 +25,8 @@ pub struct TestDatabase {
     pub name: String,
 
     /// Docker container handle (testcontainers)
-    /// We use 'static lifetime because testcontainers requires it
-    _container: Container<'static, Postgres>,
+    /// testcontainers v0.25 ContainerAsync for async runtime
+    _container: ContainerAsync<Postgres>,
 
     /// Database connection pool
     pool: DatabaseConnection,
@@ -68,10 +68,11 @@ impl TestDatabase {
         tracing::debug!("Creating test database: {}", name);
 
         // Start Docker PostgreSQL container with specified image
-        let docker = Cli::default();
+        // testcontainers v0.25 no longer uses Cli::default()
+        // Instead, we use the SyncRunner trait
 
         // Use the configured PostgreSQL image (default: postgres:15-alpine)
-        // Note: testcontainers-modules v0.3 Postgres::default() uses postgres:11-alpine
+        // Note: testcontainers-modules v0.13 Postgres::default() uses postgres:11-alpine
         // We create a custom image to ensure we use postgres:15
         let tag = config.postgres_image
             .split(':')
@@ -79,14 +80,19 @@ impl TestDatabase {
             .unwrap_or("15-alpine")
             .to_string();
 
-        let postgres_image = RunnableImage::from(Postgres::default())
+        let postgres_image = Postgres::default()
             .with_tag(tag);
 
-        let container = docker.run(postgres_image);
+        let container = postgres_image.start().await.expect("Failed to start PostgreSQL container");
 
         // Get connection details
         let host = "127.0.0.1";
-        let port = container.get_host_port_ipv4(5432);
+        // testcontainers v0.25: get_host_port_ipv4 is now async
+        let port = container.get_host_port_ipv4(5432)
+            .await
+            .map_err(|e| TestDatabaseError::ConnectionFailed(
+                format!("Failed to get container port: {}", e)
+            ))?;
         let database = "postgres"; // Initial connection to postgres database
         let user = "postgres";
         let password = "postgres";
@@ -135,12 +141,7 @@ impl TestDatabase {
         let mut db = Self {
             id,
             name,
-            _container: unsafe {
-                // SAFETY: We need to convert the container to 'static lifetime
-                // This is safe because the container is owned by TestDatabase
-                // and will be dropped when TestDatabase is dropped
-                std::mem::transmute(container)
-            },
+            _container: container,
             pool,
             url: test_db_url,
             config,

@@ -18,6 +18,14 @@ pub struct UserContext {
 
     /// Optional: User email for logging/audit
     pub email: Option<String>,
+
+    /// Optional: Department ID for Row-Level Security (RLS) filtering
+    /// Used to enforce multi-tenant data isolation at the GraphQL resolver level
+    pub department_id: Option<Uuid>,
+
+    /// Optional: Organization ID for Row-Level Security (RLS) filtering
+    /// Used for multi-organization isolation (future-proofing)
+    pub organization_id: Option<Uuid>,
 }
 
 impl UserContext {
@@ -28,6 +36,26 @@ impl UserContext {
             roles,
             permissions,
             email: None,
+            department_id: None,
+            organization_id: None,
+        }
+    }
+
+    /// Create a new UserContext with RLS fields
+    pub fn with_rls(
+        user_id: Uuid,
+        roles: Vec<String>,
+        permissions: Vec<String>,
+        department_id: Option<Uuid>,
+        organization_id: Option<Uuid>,
+    ) -> Self {
+        Self {
+            user_id,
+            roles,
+            permissions,
+            email: None,
+            department_id,
+            organization_id,
         }
     }
 
@@ -39,6 +67,8 @@ impl UserContext {
             roles: vec!["system".to_string()],
             permissions: vec!["*".to_string()],
             email: Some("system@internal".to_string()),
+            department_id: None,
+            organization_id: None,
         }
     }
 

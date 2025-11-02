@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Loading } from 'carbon-components-svelte';
+	import { Loader2 } from '@lucide/svelte';
 
 	/**
 	 * Root page component - Server-side redirect only
@@ -15,24 +15,24 @@
 </svelte:head>
 
 <!-- Loading state while redirecting -->
-<div class="redirect-loading carbon-loading-state">
+<div class="redirect-loading">
 	<div class="loading-spinner">
-		<Loading withOverlay={false} />
+		<Loader2 size={48} strokeWidth={2} class="animate-spin text-primary" />
 	</div>
 	<p class="loading-text">Loading SvelteHR...</p>
 </div>
 
 <style>
-	.carbon-loading-state {
+	.redirect-loading {
 		min-height: 100vh;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		background-color: var(--cds-background);
-		color: var(--cds-text-secondary);
-		padding: var(--cds-spacing-06);
-		gap: var(--cds-spacing-06);
+		background-color: hsl(var(--background));
+		color: hsl(var(--muted-foreground));
+		padding: 2rem;
+		gap: 1.5rem;
 	}
 
 	.loading-spinner {
@@ -42,23 +42,17 @@
 	}
 
 	.loading-text {
-		font-size: var(--cds-body-short-01-font-size);
-		font-weight: var(--cds-body-short-01-font-weight);
-		line-height: var(--cds-body-short-01-line-height);
-		color: var(--cds-text-secondary);
+		font-size: 1rem;
+		font-weight: 400;
+		line-height: 1.5;
+		color: hsl(var(--muted-foreground));
 		text-align: center;
-	}
-
-	/* Ensure Carbon loading component is properly styled */
-	:global(.carbon-loading-state .bx--loading) {
-		position: static;
-		transform: none;
 	}
 
 	/* Responsive adjustments */
 	@media (max-width: 671px) {
-		.carbon-loading-state {
-			padding: var(--cds-spacing-05);
+		.redirect-loading {
+			padding: 1.5rem;
 		}
 	}
 </style>

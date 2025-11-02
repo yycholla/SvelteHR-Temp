@@ -5,11 +5,11 @@
 use async_graphql::{Context, Enum, InputObject, Object, Result as GqlResult};
 use chrono::{DateTime, NaiveDate, Utc};
 use rust_decimal::Decimal;
-use sea_orm::{entity::prelude::*, FromQueryResult, Related};
+use sea_orm::{entity::prelude::*, Related};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{database::get_db_from_context, error::AppError, models::generated::prelude::*};
+use crate::{database::get_db_from_context, models::generated::prelude::*};
 
 /// Leave request status
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Enum)]

@@ -112,6 +112,10 @@ pub struct AuthUser {
     pub email: String,
     pub role: String,
     pub is_active: bool,
+    /// Department ID for Row-Level Security (RLS) filtering
+    pub department_id: Option<uuid::Uuid>,
+    /// Organization ID for Row-Level Security (future-proofing)
+    pub organization_id: Option<uuid::Uuid>,
 }
 
 impl axum_login::AuthUser for AuthUser {
@@ -136,6 +140,8 @@ impl AuthUser {
             email: db_user.email.clone(),
             role: db_user.role.clone(),
             is_active: db_user.is_active,
+            department_id: db_user.department_id,
+            organization_id: None, // TODO: Extract from department when organization support is added
         }
     }
 }

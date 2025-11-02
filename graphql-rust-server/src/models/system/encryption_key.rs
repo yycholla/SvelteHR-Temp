@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-use crate::{database::get_db_from_context, error::AppError};
+use crate::database::get_db_from_context;
 
 /// SeaORM Encryption key entity
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]

@@ -21,7 +21,7 @@ maintainers:
 dependencies:
   # Bitnami Redis - High-performance key-value store with HA support
   - name: redis
-    version: "18.6.1"
+    version: "20.5.0"
     repository: https://charts.bitnami.com/bitnami
     condition: redis.enabled
     tags:

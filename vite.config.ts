@@ -2,7 +2,6 @@ import devtoolsJson from 'vite-plugin-devtools-json';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
-import { optimizeCss } from 'carbon-preprocess-svelte';
 import tailwindcss from '@tailwindcss/vite';
 
 // Custom plugin to disable compression completely
@@ -41,10 +40,6 @@ export default defineConfig({
 		sveltekit(),
 		// devtoolsJson(), // Disabled to remove debugging UI overlay
 		disableCompression(),
-		optimizeCss({
-			verbose: true, // Enable size logging for development
-			preserveAllIBMFonts: true // Preserve all IBM Plex font face rules
-		}),
 		devtoolsJson()
 	],
 
@@ -94,8 +89,6 @@ export default defineConfig({
 			'svelte/animate',
 			'svelte/easing',
 			'svelte/transition',
-			'carbon-components-svelte',
-			'carbon-icons-svelte',
 			'@vincjo/datatables'
 		],
 		exclude: ['@sveltejs/kit', 'jsonwebtoken']
@@ -122,6 +115,7 @@ export default defineConfig({
 	// Development server optimizations
 	server: {
 		port: 5173, // Fixed port to match Docker mapping
+		host: '0.0.0.0', // Bind to all interfaces for K8s access
 
 		// Allow Tailscale MagicDNS hostnames for remote development access
 		allowedHosts: [
@@ -143,9 +137,25 @@ export default defineConfig({
 		// Enable HTTP/2 for development
 		https: false, // Set to true with cert/key for HTTPS
 
-		// Optimize HMR
+		// Optimize HMR for both local and Kubernetes environments
 		hmr: {
-			overlay: true
+			overlay: true,
+			// K8s-specific HMR configuration (set via environment variables)
+			...(process.env.VITE_K8S_MODE === 'true' && {
+				protocol: 'ws',
+				host: process.env.VITE_HMR_HOST || 'localhost',
+				port: parseInt(process.env.VITE_HMR_PORT || '5173'),
+				clientPort: parseInt(process.env.VITE_HMR_CLIENT_PORT || '5173')
+			})
+		},
+
+		// Watch options for container file systems
+		watch: {
+			// Enable polling in K8s or when explicitly requested
+			usePolling: process.env.VITE_USE_POLLING === 'true',
+			interval: 1000, // Poll every second if polling is enabled
+			// Ignore node_modules and build artifacts for performance
+			ignored: ['**/node_modules/**', '**/.svelte-kit/**', '**/build/**', '**/dist/**']
 		},
 
 		// Faster rebuilds

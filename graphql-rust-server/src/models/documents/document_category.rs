@@ -8,7 +8,7 @@ use sea_orm::{entity::prelude::*, QueryFilter, QueryOrder, QuerySelect};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{database::get_db_from_context, error::AppError};
+use crate::database::get_db_from_context;
 
 /// Document category for hierarchical organization
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]

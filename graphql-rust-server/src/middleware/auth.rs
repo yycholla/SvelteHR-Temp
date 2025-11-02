@@ -10,12 +10,10 @@ use axum::{
     response::{Response, IntoResponse},
 };
 use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
-use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::{auth::UserContext, database::get_db_from_context};
+use crate::auth::UserContext;
 
 /// JWT claims structure matching the token issued by the backend
 #[derive(Debug, Serialize, Deserialize)]
@@ -34,6 +32,12 @@ struct Claims {
     /// Optional: User email
     #[serde(default)]
     email: Option<String>,
+    /// Optional: Department ID for Row-Level Security (RLS) filtering
+    #[serde(default)]
+    department_id: Option<String>,
+    /// Optional: Organization ID for Row-Level Security (future-proofing)
+    #[serde(default)]
+    organization_id: Option<String>,
 }
 
 /// JWT authentication middleware
@@ -89,11 +93,22 @@ pub async fn jwt_auth_middleware(
             (StatusCode::UNAUTHORIZED, "Invalid user_id format in token")
         })?;
 
-    // Create UserContext from claims
-    let mut user_context = UserContext::new(
+    // Parse optional department_id and organization_id as UUIDs
+    let department_id = token_data.claims.department_id
+        .as_ref()
+        .and_then(|id| Uuid::parse_str(id).ok());
+
+    let organization_id = token_data.claims.organization_id
+        .as_ref()
+        .and_then(|id| Uuid::parse_str(id).ok());
+
+    // Create UserContext from claims with RLS fields
+    let mut user_context = UserContext::with_rls(
         user_id,
         token_data.claims.roles,
         token_data.claims.permissions,
+        department_id,
+        organization_id,
     );
     user_context.email = token_data.claims.email;
 
@@ -136,6 +151,8 @@ mod tests {
             },
             permissions: vec![],
             email: None,
+            department_id: None,
+            organization_id: None,
         };
 
         encode(
@@ -225,6 +242,8 @@ mod tests {
             exp: (Utc::now() + Duration::hours(1)).timestamp(),
             permissions: vec![],
             email: None,
+            department_id: None,
+            organization_id: None,
         };
 
         // Sign with wrong secret

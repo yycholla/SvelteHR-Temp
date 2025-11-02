@@ -8,7 +8,7 @@ use sea_orm::{entity::prelude::*, QueryFilter};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{database::get_db_from_context, error::AppError};
+use crate::database::get_db_from_context;
 
 /// LeaveBalance entity - maps to hr_public.leave_balances table
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
