@@ -19,7 +19,10 @@ import { gql } from '@urql/core';
 // Test configuration
 const GRAPHQL_ENDPOINT = process.env.GRAPHQL_ENDPOINT || 'http://localhost:4000/graphql';
 
-describe('Migration Smoke Tests - Idiomatic Rust Patterns', () => {
+// Skip these tests in CI (no backend available)
+const describeOrSkip = process.env.CI ? describe.skip : describe;
+
+describeOrSkip('Migration Smoke Tests - Idiomatic Rust Patterns', () => {
 	let client: Client;
 
 	beforeAll(() => {

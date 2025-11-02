@@ -65,7 +65,10 @@ afterAll(() => {
 	console.log('Testing Framework Schema Test Performance Report:', perfReport);
 });
 
-describe('Testing Framework GraphQL Schema Introspection', () => {
+// Skip these tests in CI (no backend available)
+const describeOrSkip = process.env.CI ? describe.skip : describe;
+
+describeOrSkip('Testing Framework GraphQL Schema Introspection', () => {
 	test('should connect to Rust GraphQL endpoint and fetch schema introspection', async () => {
 		const startTime = Date.now();
 
