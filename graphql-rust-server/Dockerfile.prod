@@ -10,13 +10,26 @@
 # =============================================================================
 
 # =============================================================================
+# Stage 0: Chef Installer - Install cargo-chef ONCE and reuse
+# =============================================================================
+FROM rust:1.90-alpine AS chef-installer
+
+# Install system dependencies
+RUN apk add --no-cache musl-dev openssl-dev pkgconfig
+
+# Install cargo-chef once (cached across all builds)
+RUN cargo install cargo-chef --version 0.1.73
+
+# =============================================================================
 # Stage 1: Chef - Prepare recipe for dependency caching
 # =============================================================================
 FROM rust:1.90-alpine AS chef
 
-# Install cargo-chef for dependency caching
-RUN apk add --no-cache musl-dev openssl-dev pkgconfig && \
-    cargo install cargo-chef --version 0.1.73
+# Install system dependencies
+RUN apk add --no-cache musl-dev openssl-dev pkgconfig
+
+# Copy cargo-chef binary from installer (avoid reinstalling)
+COPY --from=chef-installer /usr/local/cargo/bin/cargo-chef /usr/local/cargo/bin/cargo-chef
 
 WORKDIR /app
 
@@ -45,8 +58,8 @@ RUN apk add --no-cache \
     mold \
     curl
 
-# Install cargo-chef
-RUN cargo install cargo-chef --version 0.1.73
+# Copy cargo-chef binary from installer (avoid reinstalling)
+COPY --from=chef-installer /usr/local/cargo/bin/cargo-chef /usr/local/cargo/bin/cargo-chef
 
 WORKDIR /app
 
