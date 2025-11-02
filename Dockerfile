@@ -20,12 +20,13 @@ FROM node:20-alpine AS deps-prod
 WORKDIR /app
 
 # Copy package files for dependency installation
-COPY package*.json ./
+# Note: package-lock.json is gitignored, so we only copy package.json
+COPY package.json ./
 
 # Install all dependencies first, then prune dev dependencies
-# This avoids peer dependency and postinstall script issues
+# Using npm install since package-lock.json is gitignored
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci && \
+    npm install && \
     npm prune --omit=dev
 
 # =============================================================================
@@ -36,9 +37,10 @@ FROM node:20-alpine AS deps-all
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY package.json ./
 
 # Install all dependencies (including dev) with BuildKit cache
+# package-lock.json is gitignored, so we use npm install
 RUN --mount=type=cache,target=/root/.npm \
     npm install
 
@@ -94,7 +96,6 @@ COPY --from=deps-prod --chown=svelte:nodejs /app/node_modules ./node_modules
 
 # Copy package files
 COPY --from=builder --chown=svelte:nodejs /app/package.json ./package.json
-COPY --from=builder --chown=svelte:nodejs /app/package-lock.json ./package-lock.json
 
 # Copy built application from builder
 COPY --from=builder --chown=svelte:nodejs /app/.svelte-kit/output ./.svelte-kit/output
@@ -140,7 +141,6 @@ COPY --from=deps-prod --chown=svelte:nodejs /app/node_modules ./node_modules
 
 # Copy package files
 COPY --from=builder --chown=svelte:nodejs /app/package.json ./package.json
-COPY --from=builder --chown=svelte:nodejs /app/package-lock.json ./package-lock.json
 
 # Copy built application (use consistent output directory)
 COPY --from=builder --chown=svelte:nodejs /app/.svelte-kit/output ./.svelte-kit/output
@@ -185,9 +185,10 @@ RUN chown -R svelte:nodejs /app
 USER svelte
 
 # Copy package files
-COPY --chown=svelte:nodejs package*.json ./
+COPY --chown=svelte:nodejs package.json ./
 
 # Install all dependencies with cache mount
+# package-lock.json is gitignored
 RUN --mount=type=cache,target=/home/svelte/.npm \
     npm install
 
