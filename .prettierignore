@@ -12,3 +12,19 @@ bun.lockb
 **/*.rs
 **/target/
 Cargo.lock
+
+# OpenCode/Specify templates (MD files with custom syntax)
+.opencode/**
+.specify/**
+
+# Storybook (MDX files may have SQL/custom syntax)
+.storybook/**
+
+# MCP config (JSON with comments)
+.mcp.json
+
+# GitHub workflows (YAML formatting managed separately)
+.github/**
+
+# Kubernetes docs (may contain SQL and other embedded code)
+k8s/**/*.md
