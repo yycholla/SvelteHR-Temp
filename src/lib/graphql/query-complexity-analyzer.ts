@@ -472,25 +472,6 @@ export class QueryComplexityAnalyzer {
 }
 
 /**
- * Utility function to create analyzer with PostGraphile optimizations
- */
-export function createPostGraphileAnalyzer(
-	config: Partial<QueryComplexityConfig> = {},
-	schema?: GraphQLSchema
-): QueryComplexityAnalyzer {
-	const optimizedConfig = {
-		...DEFAULT_COMPLEXITY_CONFIG,
-		// PostGraphile optimizations
-		maximumComplexity: 2000, // Higher limit for connection queries
-		depthLimit: 20, // Deeper nesting for connections
-		listFactor: 5, // Lower factor since connections handle pagination well
-		...config
-	};
-
-	return new QueryComplexityAnalyzer(optimizedConfig, schema);
-}
-
-/**
  * Express middleware for query complexity validation
  */
 export function createComplexityMiddleware(analyzer: QueryComplexityAnalyzer) {

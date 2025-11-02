@@ -625,22 +625,4 @@ const ${batchKey}Loader = new DataLoader(async (keys) => {
 	}
 }
 
-/**
- * Create detector optimized for PostGraphile
- */
-export function createPostGraphileNPlusOneDetector(
-	config: Partial<NPlusOneDetectorConfig> = {},
-	schema?: GraphQLSchema
-): NPlusOneDetector {
-	const postGraphileConfig: NPlusOneDetectorConfig = {
-		...DEFAULT_CONFIG,
-		maxNestedDepth: 15, // PostGraphile supports deeper nesting
-		listFieldThreshold: 20, // Higher threshold for connection queries
-		performanceThreshold: 200, // More lenient for complex queries
-		...config
-	};
-
-	return new NPlusOneDetector(postGraphileConfig, schema);
-}
-
 export default NPlusOneDetector;

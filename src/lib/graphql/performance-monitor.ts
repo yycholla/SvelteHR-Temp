@@ -810,27 +810,4 @@ export class GraphQLPerformanceMonitor {
 	}
 }
 
-/**
- * Create performance monitor optimized for PostGraphile
- */
-export function createPostGraphilePerformanceMonitor(
-	config: Partial<PerformanceMonitorConfig> = {}
-): GraphQLPerformanceMonitor {
-	const postGraphileConfig: PerformanceMonitorConfig = {
-		...DEFAULT_CONFIG,
-		thresholds: {
-			warningTime: 150, // PostGraphile is typically faster
-			criticalTime: 400,
-			complexityWarning: 800, // Higher threshold for connection queries
-			complexityCritical: 1500,
-			cacheHitRateWarning: 70, // PostGraphile has built-in optimizations
-			slowQueryPercentile: 95
-		},
-		sampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0, // Sample 10% in prod
-		...config
-	};
-
-	return new GraphQLPerformanceMonitor(postGraphileConfig);
-}
-
 export default GraphQLPerformanceMonitor;

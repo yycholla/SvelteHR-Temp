@@ -727,24 +727,4 @@ export class FieldAuthorizationValidator {
 	}
 }
 
-/**
- * Create validator optimized for PostGraphile RLS
- */
-export function createPostGraphileAuthorizationValidator(
-	config: Partial<FieldAuthorizationConfig> = {},
-	schema?: GraphQLSchema,
-	customRules: FieldPermissionRule[] = []
-): FieldAuthorizationValidator {
-	const postGraphileConfig: FieldAuthorizationConfig = {
-		...DEFAULT_CONFIG,
-		allowPartialQueries: true, // PostGraphile filters at row level
-		strictMode: false, // RLS handles much of the security
-		logUnauthorizedAccess: true,
-		enableSensitivityAnalysis: true,
-		...config
-	};
-
-	return new FieldAuthorizationValidator(postGraphileConfig, schema, customRules);
-}
-
 export default FieldAuthorizationValidator;

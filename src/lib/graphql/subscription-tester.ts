@@ -781,25 +781,4 @@ class SubscriptionOrderingTestRunner {
 	}
 }
 
-/**
- * Create PostGraphile-optimized subscription tester
- */
-export function createPostGraphileSubscriptionTester(
-	client: Client,
-	config: Partial<SubscriptionTestConfig> = {}
-): GraphQLSubscriptionTester {
-	const postGraphileConfig: SubscriptionTestConfig = {
-		...DEFAULT_CONFIG,
-		// PostGraphile subscriptions may have different characteristics
-		maxWaitTime: 45000, // Longer wait for PostGraphile subscriptions
-		heartbeatInterval: 10000, // Less frequent heartbeats
-		reconnectAttempts: 5, // More reconnection attempts
-		messageOrderingEnabled: true,
-		performanceMonitoring: true,
-		...config
-	};
-
-	return new GraphQLSubscriptionTester(client, postGraphileConfig);
-}
-
 export default GraphQLSubscriptionTester;
