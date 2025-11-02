@@ -22,9 +22,11 @@ WORKDIR /app
 # Copy package files for dependency installation
 COPY package*.json ./
 
-# Install production dependencies with BuildKit cache
+# Install all dependencies first, then prune dev dependencies
+# This avoids peer dependency and postinstall script issues
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --omit=dev
+    npm ci && \
+    npm prune --omit=dev
 
 # =============================================================================
 # Stage 2: Dependencies - All Dependencies (includes dev deps)
