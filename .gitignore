@@ -97,15 +97,14 @@ claude-flow.bat
 claude-flow.ps1
 hive-mind-prompt-*.txt
 
-# Logs and Locks
+# Logs
 backend/logs/combined.log
 backend/logs/error.log
-backend/package-lock.json
-package-lock.json
 *.log
 logs/
 backend/logs/
-package-lock.json
+
+# Alternative package managers (we use npm with package-lock.json)
 pnpm-lock.yaml
 yarn.lock
 graphql-rust-server/target
