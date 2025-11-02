@@ -1,27 +1,25 @@
 #!/bin/bash
 
-# SvelteHR Kubernetes Deployment Script
-# Usage: ./deploy.sh [dev|prod] [install|deploy|cleanup]
+# =============================================================================
+# SvelteHR Helm Deployment Script
+# =============================================================================
+# Usage: ./deploy.sh [dev|prod] [deploy|upgrade|test|cleanup]
+#
+# Features:
+# - Helm-based deployment with dependency management
+# - Environment-specific values files
+# - Automatic PostgreSQL and Redis setup
+# - Health checking and validation
+# =============================================================================
 
 set -e
 
 ENVIRONMENT=${1:-dev}
 ACTION=${2:-deploy}
 
-# Map short names to full overlay directory names
-case $ENVIRONMENT in
-    dev)
-        OVERLAY_ENV="development"
-        ;;
-    prod)
-        OVERLAY_ENV="production"
-        ;;
-    *)
-        OVERLAY_ENV=$ENVIRONMENT
-        ;;
-esac
-
 NAMESPACE="sveltehr-${ENVIRONMENT}"
+CHART_PATH="helm-charts/sveltehr"
+RELEASE_NAME="sveltehr"
 
 # Colors for output
 RED='\033[0;31m'
@@ -55,190 +53,254 @@ check_prerequisites() {
         exit 1
     fi
 
-    if ! command -v kustomize &> /dev/null && ! kubectl kustomize --help &> /dev/null; then
-        warn "kustomize not found. Using kubectl built-in kustomize support."
+    if ! command -v helm &> /dev/null; then
+        error "Helm is not installed. Please install Helm 3.x first."
+        error "Visit: https://helm.sh/docs/intro/install/"
+        exit 1
+    fi
+
+    # Verify Helm chart exists
+    if [ ! -d "$CHART_PATH" ]; then
+        error "Helm chart not found at: $CHART_PATH"
+        exit 1
+    fi
+
+    # Verify values file exists
+    VALUES_FILE="$CHART_PATH/values-${ENVIRONMENT}.yaml"
+    if [ ! -f "$VALUES_FILE" ]; then
+        error "Values file not found: $VALUES_FILE"
+        exit 1
     fi
 
     log "Prerequisites check passed."
 }
 
-# Install operators and dependencies
-install_dependencies() {
-    log "Installing operators and dependencies..."
+# Update Helm dependencies
+update_dependencies() {
+    log "Updating Helm chart dependencies..."
 
-    # Create system namespace
-    kubectl apply -f k8s/base/namespaces.yaml
+    cd "$CHART_PATH"
 
-    # NOTE: Skipping cert-manager for local development
-    # It's only needed for production TLS certificates
-    log "Skipping cert-manager (not needed for local dev)"
+    # Add required Helm repositories
+    log "Adding Helm repositories..."
+    helm repo add cloudnative-pg https://cloudnative-pg.github.io/charts 2>/dev/null || true
+    helm repo add bitnami https://charts.bitnami.com/bitnami 2>/dev/null || true
+    helm repo update
 
-    # NOTE: For minikube, ingress may or may not be available
-    # depending on kernel module availability (xt_comment)
-    if kubectl get namespace ingress-nginx &>/dev/null; then
-        log "Ingress controller already installed"
+    # Update chart dependencies
+    helm dependency update
+
+    cd - > /dev/null
+
+    log "Dependencies updated successfully."
+}
+
+# Install CloudNativePG operator (required for PostgreSQL)
+install_operator() {
+    log "Installing CloudNativePG operator..."
+
+    # Check if operator is already installed
+    if helm list -n cnpg-system | grep -q cloudnative-pg; then
+        log "CloudNativePG operator already installed. Upgrading..."
+        helm upgrade cloudnative-pg cloudnative-pg/cloudnative-pg \
+            --namespace cnpg-system \
+            --wait --timeout 5m
     else
-        warn "Ingress controller not available (kernel module issue)"
-        warn "You can access services via port-forwarding"
+        log "Installing CloudNativePG operator..."
+        helm install cloudnative-pg cloudnative-pg/cloudnative-pg \
+            --namespace cnpg-system \
+            --create-namespace \
+            --wait --timeout 5m
     fi
 
-    # Install PostgreSQL operator
-    log "Installing CloudNativePG operator..."
-    kubectl apply -f https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/release-1.22/releases/cnpg-1.22.1.yaml
-
-    # Wait for CNPG operator CRD to be ready
+    # Wait for CNPG CRDs
     log "Waiting for CloudNativePG CRDs..."
     kubectl wait --for condition=established --timeout=120s crd/clusters.postgresql.cnpg.io || warn "CNPG CRD may not be ready"
 
-    # Install Redis operator
-    log "Installing Redis operator..."
-    kubectl apply -f https://raw.githubusercontent.com/spotahome/redis-operator/master/example/operator/all-redis-operator-resources.yaml
-
-    # The Redis operator manifest also installs the CRD, wait for it
-    log "Waiting for Redis operator CRDs..."
-
-    # First check if CRD exists, if not, install it manually
-    if ! kubectl get crd redisfailovers.databases.spotahome.com &>/dev/null; then
-        log "Installing Redis CRD manually..."
-        kubectl apply -f https://raw.githubusercontent.com/spotahome/redis-operator/master/manifests/databases.spotahome.com_redisfailovers.yaml || warn "Redis CRD installation failed"
-    fi
-
-    kubectl wait --for condition=established --timeout=120s crd/redisfailovers.databases.spotahome.com 2>/dev/null || warn "Redis CRD may not be ready"
-
-    # Wait for PostgreSQL webhook to be ready
-    log "Waiting for PostgreSQL operator webhook..."
-    kubectl wait --for=condition=available --timeout=120s deployment/cnpg-controller-manager -n cnpg-system || warn "PostgreSQL webhook may not be ready"
-
-    # Wait for Redis operator to be ready
-    log "Waiting for Redis operator to be ready..."
-    kubectl wait --for=condition=available --timeout=120s deployment/redisoperator -n operators 2>/dev/null || warn "Redis operator may not be ready"
-
-    log "Waiting for operators to fully initialize..."
-    sleep 15
-
-    log "Dependencies installation completed."
+    log "CloudNativePG operator ready."
 }
 
-# Create secrets
-create_secrets() {
-    log "Creating secrets for ${ENVIRONMENT} environment..."
-
-    # Use the new create-secrets.sh script for proper CloudNativePG secret structure
-    if [ -f "./k8s/scripts/create-secrets.sh" ]; then
-        ./k8s/scripts/create-secrets.sh $ENVIRONMENT
-    else
-        error "create-secrets.sh script not found. Please ensure k8s/scripts/create-secrets.sh exists"
-        exit 1
-    fi
-
-    log "Secrets created."
-}
-
-# Deploy application
+# Deploy or upgrade application using Helm
 deploy_application() {
-    log "Deploying SvelteHR to ${ENVIRONMENT} environment..."
+    log "Deploying SvelteHR to ${ENVIRONMENT} environment using Helm..."
 
-    # Create namespaces first (separate from kustomization to avoid conflicts)
-    log "Creating namespaces..."
-    kubectl apply -f k8s/base/namespaces.yaml
+    VALUES_FILE="$CHART_PATH/values-${ENVIRONMENT}.yaml"
 
-    # Apply kustomization
-    kubectl apply -k "k8s/overlays/${OVERLAY_ENV}"
+    # Check if release exists
+    if helm list -n $NAMESPACE | grep -q $RELEASE_NAME; then
+        log "Release '$RELEASE_NAME' exists. Performing upgrade..."
 
-    # Wait for PostgreSQL cluster
+        helm upgrade $RELEASE_NAME ./$CHART_PATH \
+            --namespace $NAMESPACE \
+            --values $VALUES_FILE \
+            --wait \
+            --timeout 10m \
+            --debug
+
+        log "Application upgraded successfully!"
+    else
+        log "Installing new release '$RELEASE_NAME'..."
+
+        helm install $RELEASE_NAME ./$CHART_PATH \
+            --namespace $NAMESPACE \
+            --create-namespace \
+            --values $VALUES_FILE \
+            --wait \
+            --timeout 10m \
+            --debug
+
+        log "Application deployed successfully!"
+    fi
+
+    # Wait for key components
+    log "Verifying deployment..."
+
+    # PostgreSQL cluster (from CloudNativePG)
     log "Waiting for PostgreSQL cluster..."
-    kubectl wait --for=condition=ready --timeout=600s cluster/sveltehr-postgres -n $NAMESPACE
+    kubectl wait --for=condition=ready --timeout=300s cluster/${RELEASE_NAME}-postgres -n $NAMESPACE || warn "PostgreSQL may still be initializing"
 
-    # Wait for Redis cluster
-    log "Waiting for Redis cluster..."
-    kubectl wait --for=condition=ready --timeout=300s redisfailover/sveltehr-redis -n $NAMESPACE 2>/dev/null || warn "Redis may still be initializing"
-
-    # Wait for backend deployment
+    # Backend deployment
     log "Waiting for backend deployment..."
-    kubectl wait --for=condition=available --timeout=300s deployment/sveltehr-backend -n $NAMESPACE
+    kubectl wait --for=condition=available --timeout=300s deployment/${RELEASE_NAME}-backend -n $NAMESPACE || warn "Backend may still be starting"
 
-    # Wait for frontend deployment
+    # Frontend deployment
     log "Waiting for frontend deployment..."
-    kubectl wait --for=condition=available --timeout=300s deployment/sveltehr-frontend -n $NAMESPACE
+    kubectl wait --for=condition=available --timeout=300s deployment/${RELEASE_NAME}-frontend -n $NAMESPACE || warn "Frontend may still be starting"
 
-    log "Application deployed successfully!"
+    log "All components ready!"
+}
+
+# Test Helm deployment (dry-run)
+test_deployment() {
+    log "Testing Helm deployment for ${ENVIRONMENT} environment..."
+
+    VALUES_FILE="$CHART_PATH/values-${ENVIRONMENT}.yaml"
+
+    helm install $RELEASE_NAME ./$CHART_PATH \
+        --namespace $NAMESPACE \
+        --values $VALUES_FILE \
+        --dry-run \
+        --debug
+
+    log "Dry-run test completed successfully!"
 }
 
 # Get access information
 show_access_info() {
     log "Access information for ${ENVIRONMENT} environment:"
 
+    echo ""
+    echo "Helm Release Information:"
+    echo "  Release: $RELEASE_NAME"
+    echo "  Namespace: $NAMESPACE"
+    echo "  Chart: $CHART_PATH"
+    echo ""
+
     if [ "$ENVIRONMENT" = "dev" ]; then
-        echo ""
-        echo "Local Development Access (Minikube):"
-        echo ""
-        echo "Option 1 - Use minikube tunnel (recommended):"
-        echo "  minikube tunnel"
-        echo "  Then access at: http://localhost"
-        echo ""
-        echo "Option 2 - Port forward ingress controller:"
-        echo "  kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8080:80"
-        echo "  Then access at: http://localhost:8080"
-        echo ""
-        echo "Option 3 - Direct service access:"
-        echo "  Backend GraphQL: kubectl port-forward -n $NAMESPACE svc/sveltehr-backend 4000:4000"
-        echo "  Frontend: kubectl port-forward -n $NAMESPACE svc/sveltehr-frontend 3000:3000"
-        echo ""
-        echo "Get minikube IP: minikube ip"
+        echo "Development Access:"
+        echo "  Frontend (Vite dev): kubectl port-forward -n $NAMESPACE svc/${RELEASE_NAME}-frontend 5173:5173"
+        echo "  Backend (GraphQL): kubectl port-forward -n $NAMESPACE svc/${RELEASE_NAME}-backend 4000:4000"
+        echo "  Access at: http://localhost:5173 (frontend) or http://localhost:4000 (backend)"
     else
-        INGRESS_IP=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
-        if [ -n "$INGRESS_IP" ]; then
-            echo "Application URL: http://$INGRESS_IP"
+        INGRESS_HOST=$(kubectl get ingress -n $NAMESPACE -o jsonpath='{.items[0].spec.rules[0].host}' 2>/dev/null || echo "")
+        if [ -n "$INGRESS_HOST" ]; then
+            echo "Production Access:"
+            echo "  Application URL: https://$INGRESS_HOST"
         else
-            echo "Ingress service is not yet assigned an external IP. Check with:"
-            echo "kubectl get svc ingress-nginx-controller -n ingress-nginx"
+            echo "Production Access (no ingress configured):"
+            echo "  Frontend: kubectl port-forward -n $NAMESPACE svc/${RELEASE_NAME}-frontend 3000:3000"
+            echo "  Backend: kubectl port-forward -n $NAMESPACE svc/${RELEASE_NAME}-backend 4000:4000"
         fi
     fi
 
     echo ""
     echo "Useful commands:"
+    echo "  Check all resources: kubectl get all -n $NAMESPACE"
     echo "  Check pod status: kubectl get pods -n $NAMESPACE"
-    echo "  View backend logs: kubectl logs -f deployment/sveltehr-backend -n $NAMESPACE"
-    echo "  View frontend logs: kubectl logs -f deployment/sveltehr-frontend -n $NAMESPACE"
-    echo "  Check ingress: kubectl get ingress -n $NAMESPACE"
+    echo "  View backend logs: kubectl logs -f deployment/${RELEASE_NAME}-backend -n $NAMESPACE"
+    echo "  View frontend logs: kubectl logs -f deployment/${RELEASE_NAME}-frontend -n $NAMESPACE"
+    echo "  Check PostgreSQL: kubectl get cluster -n $NAMESPACE"
+    echo "  Check Redis: kubectl get pods -n $NAMESPACE -l app.kubernetes.io/name=redis"
+    echo "  Helm status: helm status $RELEASE_NAME -n $NAMESPACE"
+    echo "  Helm values: helm get values $RELEASE_NAME -n $NAMESPACE"
+    echo ""
 }
 
 # Cleanup function
 cleanup() {
     log "Cleaning up ${ENVIRONMENT} environment..."
 
+    # Uninstall Helm release
+    if helm list -n $NAMESPACE | grep -q $RELEASE_NAME; then
+        log "Uninstalling Helm release '$RELEASE_NAME'..."
+        helm uninstall $RELEASE_NAME -n $NAMESPACE --wait
+    else
+        warn "Release '$RELEASE_NAME' not found in namespace '$NAMESPACE'"
+    fi
+
+    # Delete namespace
     kubectl delete namespace $NAMESPACE --ignore-not-found=true
 
     if [ "$ENVIRONMENT" = "dev" ]; then
-        warn "Development cleanup completed. System components (operators, ingress) preserved."
+        warn "Development cleanup completed. CloudNativePG operator preserved."
     else
         warn "Production cleanup completed. System components preserved for safety."
+        warn "To remove CloudNativePG operator: helm uninstall cloudnative-pg -n cnpg-system"
     fi
 }
 
 # Main execution
 main() {
+    echo "SvelteHR Helm Deployment"
+    echo "========================"
+    echo "Environment: $ENVIRONMENT"
+    echo "Action: $ACTION"
+    echo "Namespace: $NAMESPACE"
+    echo "Chart: $CHART_PATH"
+    echo ""
+
     case $ACTION in
-        install)
-            check_prerequisites
-            install_dependencies
-            ;;
         deploy)
             check_prerequisites
-            create_secrets
+            update_dependencies
+            install_operator
             deploy_application
             show_access_info
+            ;;
+        upgrade)
+            check_prerequisites
+            update_dependencies
+            deploy_application
+            show_access_info
+            ;;
+        test)
+            check_prerequisites
+            update_dependencies
+            test_deployment
             ;;
         cleanup)
             cleanup
             ;;
         *)
             error "Invalid action: $ACTION"
-            echo "Usage: $0 [dev|prod] [install|deploy|cleanup]"
-            echo "  dev/prod: Environment to deploy to"
-            echo "  install: Install operators and dependencies"
-            echo "  deploy: Deploy the application"
-            echo "  cleanup: Remove the application"
+            echo ""
+            echo "Usage: $0 [dev|prod] [deploy|upgrade|test|cleanup]"
+            echo ""
+            echo "Arguments:"
+            echo "  dev/prod    - Environment to deploy to (default: dev)"
+            echo ""
+            echo "Actions:"
+            echo "  deploy      - Install operator, update dependencies, and deploy application"
+            echo "  upgrade     - Update dependencies and upgrade existing deployment"
+            echo "  test        - Test deployment with dry-run (no actual deployment)"
+            echo "  cleanup     - Remove the application and clean up resources"
+            echo ""
+            echo "Examples:"
+            echo "  $0 dev deploy      - Deploy to development environment"
+            echo "  $0 prod upgrade    - Upgrade production deployment"
+            echo "  $0 dev test        - Test development configuration"
+            echo "  $0 dev cleanup     - Remove development deployment"
+            echo ""
             exit 1
             ;;
     esac

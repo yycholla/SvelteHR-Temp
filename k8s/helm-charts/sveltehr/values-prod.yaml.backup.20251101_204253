@@ -1,0 +1,99 @@
+# Production values for sveltehr
+# Override default values for production deployment
+
+global:
+  namespace: sveltehr-prod
+  environment: production
+
+# Frontend configuration
+frontend:
+  replicaCount: 2
+
+  image:
+    target: production  # Use production Dockerfile target
+
+  service:
+    port: 3000  # Production uses built SvelteKit app
+    targetPort: 3000
+
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "200m"
+
+  env:
+    PUBLIC_API_URL: "http://sveltehr-backend:4000"
+
+  # Tailscale configuration for remote access
+  tailscale:
+    enabled: true
+    hostname: "sveltehr-frontend"
+
+# Backend configuration
+backend:
+  replicaCount: 3
+
+  image:
+    target: production
+
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+
+# ConfigMap data
+config:
+  NODE_ENV: "production"
+  LOG_LEVEL: "info"
+
+# Ingress configuration (Traefik for local network)
+ingress:
+  enabled: true
+  className: traefik
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  host: hr.local  # Will be overridden with actual domain
+  tls:
+    enabled: true
+    secretName: sveltehr-tls
+
+# pgAdmin configuration
+pgadmin:
+  enabled: true
+  password: "changeme-secure-password"
+
+  tailscale:
+    enabled: true
+    hostname: "pgadmin"
+
+# External Secrets Operator with Doppler (production)
+externalSecrets:
+  enabled: false  # Set to true after configuring Doppler
+  refreshInterval: 15m  # Sync from Doppler every 15 minutes
+
+  doppler:
+    # Instructions:
+    # 1. Go to https://dashboard.doppler.com/
+    # 2. Create a service token (Settings -> Service Tokens -> Create)
+    # 3. Use read-only token for security
+    # 4. Set these values when enabling
+    serviceToken: ""  # TODO: Add Doppler service token (dp.st.prod.xxxx)
+    project: "sveltehr"
+    config: "prod"
+
+# Pod Disruption Budgets (production HA)
+podDisruptionBudget:
+  enabled: true  # Enabled for production high availability
+
+  frontend:
+    minAvailable: 1  # Keep at least 1 frontend pod during node drains
+
+  backend:
+    minAvailable: 2  # Keep at least 2 backend pods during maintenance

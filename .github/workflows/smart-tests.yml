@@ -1,0 +1,210 @@
+name: Smart Test Selection
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+# Cancel in-progress runs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Detect which parts of the codebase changed
+  detect-changes:
+    name: Detect Changed Files
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+      tests: ${{ steps.filter.outputs.tests }}
+      frontend_files: ${{ steps.filter.outputs.frontend_files }}
+      backend_files: ${{ steps.filter.outputs.backend_files }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'src/**'
+              - 'static/**'
+              - 'package*.json'
+              - 'vite.config.ts'
+              - 'svelte.config.js'
+            backend:
+              - 'graphql-rust-server/**'
+            tests:
+              - 'tests/**'
+              - 'playwright.config.ts'
+              - 'vitest.config.ts'
+          list-files: json
+
+  # Run only frontend tests if frontend changed
+  smart-frontend-tests:
+    name: Frontend Tests (Smart Selection)
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        test-suite: [unit, integration, contract, graphql]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for git diff
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Detect affected test files
+        id: affected
+        run: |
+          # Get changed files
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+          # Find related test files
+          AFFECTED_TESTS=""
+          while IFS= read -r file; do
+            # For each changed file, find corresponding test files
+            if [[ "$file" == src/* ]]; then
+              # Convert src/lib/components/Button.svelte -> tests/**/*Button*.test.ts
+              basename=$(basename "$file" | sed 's/\.[^.]*$//')
+              pattern="tests/**/*${basename}*.{test,spec}.{ts,js}"
+              echo "Looking for tests matching: $pattern"
+
+              # Find matching test files
+              found=$(find tests -name "*${basename}*.test.ts" -o -name "*${basename}*.spec.ts" 2>/dev/null || true)
+              if [ -n "$found" ]; then
+                AFFECTED_TESTS="$AFFECTED_TESTS $found"
+              fi
+            fi
+          done <<< "$CHANGED_FILES"
+
+          if [ -z "$AFFECTED_TESTS" ]; then
+            echo "No specific tests affected, running full suite"
+            echo "affected=all" >> $GITHUB_OUTPUT
+          else
+            echo "Affected tests: $AFFECTED_TESTS"
+            echo "affected=$AFFECTED_TESTS" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run affected ${{ matrix.test-suite }} tests
+        run: |
+          if [ "${{ steps.affected.outputs.affected }}" = "all" ]; then
+            npm run test:${{ matrix.test-suite }} -- --run --coverage
+          else
+            # Run only affected tests
+            npm run test:${{ matrix.test-suite }} -- --run --coverage ${{ steps.affected.outputs.affected }}
+          fi
+
+      - name: Upload coverage
+        if: matrix.test-suite == 'unit'
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          flags: ${{ matrix.test-suite }}-smart
+          name: ${{ matrix.test-suite }}-smart-coverage
+
+  # Run only backend tests if backend changed
+  smart-backend-tests:
+    name: Rust Tests (Smart Selection)
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: ./graphql-rust-server
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Detect affected Rust modules
+        id: affected
+        run: |
+          # Get changed Rust files
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '\.rs$' || true)
+
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No Rust files changed, skipping tests"
+            echo "affected=none" >> $GITHUB_OUTPUT
+          else
+            echo "Changed Rust files:"
+            echo "$CHANGED_FILES"
+
+            # Detect affected packages/modules
+            AFFECTED_PACKAGES=$(echo "$CHANGED_FILES" | xargs -I {} dirname {} | sort -u | head -5)
+            echo "Affected packages: $AFFECTED_PACKAGES"
+            echo "affected=all" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run affected Rust tests
+        if: steps.affected.outputs.affected != 'none'
+        run: cargo test --all-features
+
+  # Summary job
+  smart-tests-summary:
+    name: Smart Tests Summary
+    needs: [detect-changes, smart-frontend-tests, smart-backend-tests]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## 🎯 Smart Test Selection Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Changes Detected" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend changed: ${{ needs.detect-changes.outputs.frontend }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend changed: ${{ needs.detect-changes.outputs.backend }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Tests changed: ${{ needs.detect-changes.outputs.tests }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend tests: ${{ needs.smart-frontend-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend tests: ${{ needs.smart-backend-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.detect-changes.outputs.frontend }}" != "true" ] && [ "${{ needs.detect-changes.outputs.backend }}" != "true" ]; then
+            echo "✅ No application code changes detected - tests skipped" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ Only affected tests were executed" >> $GITHUB_STEP_SUMMARY
+          fi

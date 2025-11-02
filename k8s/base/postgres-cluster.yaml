@@ -15,14 +15,15 @@ spec:
       shared_buffers: '256MB'
       work_mem: '4MB'
       maintenance_work_mem: '64MB'
-      wal_level: logical
+      # wal_level is a fixed parameter in CloudNativePG - cannot be overridden
+      # It's automatically set to 'logical' for proper replication support
       max_wal_senders: '10'
       max_replication_slots: '10'
 
   # Storage configuration
   storage:
     size: '10Gi' # Will be patched for prod
-    storageClass: standard # Will be patched for prod
+    storageClass: local-path # k3s default, will be patched for prod
 
   # Monitoring
   monitoring:

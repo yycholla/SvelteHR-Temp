@@ -34,7 +34,7 @@ spec:
           resources:
             requests:
               storage: 1Gi
-          storageClassName: standard # Will be patched for prod
+          storageClassName: local-path # k3s default, will be patched for prod
 
     exporter:
       enabled: true # Enables Redis exporter for Prometheus

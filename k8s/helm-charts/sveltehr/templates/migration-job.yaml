@@ -1,0 +1,168 @@
+{{- if and .Values.migration .Values.migration.enabled -}}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "sveltehr.fullname" . }}-migration
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "sveltehr.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migration
+  annotations:
+    # Helm hooks: Run this job before install/upgrade
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    {{- with .Values.migration.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  # Cleanup completed job after specified time
+  ttlSecondsAfterFinished: {{ .Values.migration.ttlSecondsAfterFinished }}
+  backoffLimit: {{ .Values.migration.backoffLimit }}
+
+  template:
+    metadata:
+      labels:
+        {{- include "sveltehr.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: migration
+      {{- with .Values.migration.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      restartPolicy: OnFailure
+
+      # Service account for database access
+      {{- if .Values.serviceAccount.create }}
+      serviceAccountName: {{ include "sveltehr.serviceAccountName" . }}-backend
+      {{- end }}
+
+      # Init container: Wait for PostgreSQL availability
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:16-alpine
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for PostgreSQL to be ready..."
+              until pg_isready -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER); do
+                echo "  PostgreSQL is unavailable - sleeping 2s"
+                sleep 2
+              done
+              echo "PostgreSQL is ready!"
+          env:
+            - name: DB_HOST
+              value: {{ .Values.postgresql.service.name | default (printf "%s-postgres-rw" (include "sveltehr.fullname" .)) }}
+            - name: DB_PORT
+              value: {{ .Values.postgresql.service.port | default "5432" | quote }}
+            - name: DB_USER
+              value: {{ .Values.postgresql.username }}
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sveltehr.fullname" . }}-postgres-app-secret
+                  key: password
+
+      # Main migration container
+      containers:
+        - name: migration
+          image: "{{ .Values.migration.image.repository }}:{{ .Values.migration.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.migration.image.pullPolicy }}
+
+          # Migration command
+          command:
+            - sh
+            - -c
+            - |
+              echo "================================================================"
+              echo "  SvelteHR Database Migration"
+              echo "================================================================"
+              echo "Database: ${DB_NAME}"
+              echo "Host: ${DB_HOST}:${DB_PORT}"
+              echo "Environment: ${ENVIRONMENT}"
+              echo "================================================================"
+              echo ""
+
+              # Run SeaORM migrations
+              echo "Running database migrations..."
+              ./migration up
+
+              MIGRATION_EXIT_CODE=$?
+
+              if [ $MIGRATION_EXIT_CODE -eq 0 ]; then
+                echo ""
+                echo "================================================================"
+                echo "  Migration completed successfully!"
+                echo "================================================================"
+              else
+                echo ""
+                echo "================================================================"
+                echo "  Migration FAILED with exit code: $MIGRATION_EXIT_CODE"
+                echo "================================================================"
+                exit $MIGRATION_EXIT_CODE
+              fi
+
+          env:
+            # Database connection components
+            - name: DB_HOST
+              value: {{ .Values.postgresql.service.name | default (printf "%s-postgres-rw" (include "sveltehr.fullname" .)) }}
+            - name: DB_PORT
+              value: {{ .Values.postgresql.service.port | default "5432" | quote }}
+            - name: DB_NAME
+              value: {{ .Values.postgresql.database }}
+            - name: DB_USER
+              value: {{ .Values.postgresql.username }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sveltehr.fullname" . }}-postgres-app-secret
+                  key: password
+
+            # Construct DATABASE_URL
+            - name: DATABASE_URL
+              value: "postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)"
+
+            # Logging and environment
+            - name: RUST_LOG
+              value: {{ .Values.migration.rustLog | default "info,migration=debug" }}
+            - name: ENVIRONMENT
+              value: {{ .Values.global.environment }}
+
+            {{- with .Values.migration.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+
+          # Resource limits
+          resources:
+            {{- toYaml .Values.migration.resources | nindent 12 }}
+
+          # Security context
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1001
+            capabilities:
+              drop:
+                - ALL
+            {{- with .Values.migration.securityContext }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+
+      {{- with .Values.migration.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.migration.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.migration.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+{{- end }}

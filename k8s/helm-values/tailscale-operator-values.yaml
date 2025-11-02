@@ -1,0 +1,35 @@
+---
+# Tailscale Kubernetes Operator Helm Values
+# Documentation: https://tailscale.com/kb/1236/kubernetes-operator
+
+# OAuth credentials
+# Note: The secret 'operator-oauth' was pre-created with these credentials
+# We're leaving this empty to use the existing secret instead of creating a new one
+oauth: {}
+  # clientId: ""
+  # clientSecret: ""
+
+# Use the pre-created secret instead
+# The operator will look for a secret named 'operator-oauth' by default
+# which contains files 'client_id' and 'client_secret'
+
+# Operator configuration
+operatorConfig:
+  # Hostname for the operator itself
+  hostname: "tailscale-operator"
+
+  # ACL tags that the operator will be tagged with
+  defaultTags:
+    - "tag:k8s"
+
+  # Logging level (info, debug, dev)
+  logging: "info"
+
+  # Resource limits for the operator pod
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi

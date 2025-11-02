@@ -25,9 +25,9 @@ docs/
 *.md
 !Cargo.toml
 
-# Test and benchmark artifacts
-tests/
-benches/
+# Test and benchmark artifacts - INCLUDED in CI builds for testing
+# tests/
+# benches/
 
 # CI/CD files
 .github/

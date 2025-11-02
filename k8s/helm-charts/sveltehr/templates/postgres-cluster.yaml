@@ -1,0 +1,152 @@
+{{- if and .Values.postgresql .Values.postgresql.enabled -}}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ include "sveltehr.fullname" . }}-postgres
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "sveltehr.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database
+spec:
+  imageName: {{ .Values.postgresql.image.repository }}:{{ .Values.postgresql.image.tag }}
+  instances: {{ .Values.postgresql.instances }}
+
+  # PostgreSQL configuration
+  postgresql:
+    parameters:
+      max_connections: {{ .Values.postgresql.config.maxConnections | quote }}
+      shared_buffers: {{ .Values.postgresql.config.sharedBuffers | quote }}
+      work_mem: {{ .Values.postgresql.config.workMem | quote }}
+      maintenance_work_mem: {{ .Values.postgresql.config.maintenanceWorkMem | quote }}
+      max_wal_senders: {{ .Values.postgresql.config.maxWalSenders | quote }}
+      max_replication_slots: {{ .Values.postgresql.config.maxReplicationSlots | quote }}
+      {{- with .Values.postgresql.config.additionalParameters }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+
+  # Storage configuration
+  storage:
+    size: {{ .Values.postgresql.storage.size }}
+    storageClass: {{ .Values.postgresql.storage.storageClass }}
+    {{- with .Values.postgresql.storage.pvcTemplate }}
+    pvcTemplate:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+
+  # Monitoring
+  monitoring:
+    enablePodMonitor: {{ .Values.postgresql.monitoring.enabled }}
+    {{- with .Values.postgresql.monitoring.podMonitorLabels }}
+    podMonitorLabels:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+
+  {{- if .Values.postgresql.backup.enabled }}
+  # Backup configuration
+  backup:
+    barmanObjectStore:
+      destinationPath: {{ .Values.postgresql.backup.destinationPath }}
+      {{- if .Values.postgresql.backup.endpointURL }}
+      endpointURL: {{ .Values.postgresql.backup.endpointURL }}
+      {{- end }}
+      {{- if .Values.postgresql.backup.s3Credentials }}
+      s3Credentials:
+        accessKeyId:
+          name: {{ .Values.postgresql.backup.s3Credentials.secretName }}
+          key: {{ .Values.postgresql.backup.s3Credentials.accessKeyIdKey }}
+        secretAccessKey:
+          name: {{ .Values.postgresql.backup.s3Credentials.secretName }}
+          key: {{ .Values.postgresql.backup.s3Credentials.secretAccessKeyKey }}
+      {{- end }}
+      {{- with .Values.postgresql.backup.wal }}
+      wal:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.postgresql.backup.data }}
+      data:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    retentionPolicy: {{ .Values.postgresql.backup.retentionPolicy | quote }}
+    {{- if .Values.postgresql.backup.schedule }}
+    schedule: {{ .Values.postgresql.backup.schedule | quote }}
+    {{- end }}
+  {{- end }}
+
+  # Bootstrap configuration
+  bootstrap:
+    initdb:
+      database: {{ .Values.postgresql.database }}
+      owner: {{ .Values.postgresql.username }}
+      secret:
+        name: {{ include "sveltehr.fullname" . }}-postgres-app-secret
+
+  # Superuser configuration
+  superuserSecret:
+    name: {{ include "sveltehr.fullname" . }}-postgres-superuser-secret
+
+  # High availability configuration
+  {{- if gt (int .Values.postgresql.instances) 1 }}
+  # Automatic failover enabled for HA setup
+  primaryUpdateStrategy: unsupervised
+  primaryUpdateMethod: switchover
+  {{- end }}
+
+  # Resources
+  resources:
+    requests:
+      memory: {{ .Values.postgresql.resources.requests.memory }}
+      cpu: {{ .Values.postgresql.resources.requests.cpu }}
+    limits:
+      memory: {{ .Values.postgresql.resources.limits.memory }}
+      cpu: {{ .Values.postgresql.resources.limits.cpu }}
+
+  {{- with .Values.postgresql.affinity }}
+  # Pod affinity rules
+  affinity:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+  {{- with .Values.postgresql.nodeSelector }}
+  # Node selector
+  nodeSelector:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+  {{- with .Values.postgresql.tolerations }}
+  # Tolerations
+  tolerations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+---
+# PostgreSQL application user secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "sveltehr.fullname" . }}-postgres-app-secret
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "sveltehr.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database
+type: Opaque
+stringData:
+  username: {{ .Values.postgresql.username }}
+  password: {{ .Values.postgresql.password | default (randAlphaNum 32) }}
+
+---
+# PostgreSQL superuser secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "sveltehr.fullname" . }}-postgres-superuser-secret
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "sveltehr.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database
+type: Opaque
+stringData:
+  username: postgres
+  password: {{ .Values.postgresql.superuserPassword | default (randAlphaNum 32) }}
+
+{{- end }}

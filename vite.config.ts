@@ -123,6 +123,14 @@ export default defineConfig({
 	server: {
 		port: 5173, // Fixed port to match Docker mapping
 
+		// Allow Tailscale MagicDNS hostnames for remote development access
+		allowedHosts: [
+			'.ts.net', // Allow all Tailscale MagicDNS domains
+			'localhost',
+			'127.0.0.1',
+			'192.168.1.129' // Local network IP (Traefik)
+		],
+
 		proxy: {
 			// Note: GraphQL requests now handled by SvelteKit API route at /api/graphql
 			// No proxy needed as we have a custom GraphQL server implementation

@@ -1,0 +1,51 @@
+apiVersion: v2
+name: sveltehr
+description: A Helm chart for SvelteHR - Modern HR Management System
+type: application
+version: 2.0.0
+appVersion: "2.0.0"
+
+keywords:
+  - hr
+  - sveltekit
+  - graphql
+  - rust
+  - postgresql
+  - redis
+
+maintainers:
+  - name: SvelteHR Team
+
+# Helm chart dependencies
+# These will be installed automatically when deploying the sveltehr chart
+dependencies:
+  # Bitnami Redis - High-performance key-value store with HA support
+  - name: redis
+    version: "18.6.1"
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled
+    tags:
+      - cache
+      - session
+
+# Note: CloudNativePG operator is installed cluster-wide in cnpg-system namespace
+# We create PostgreSQL Cluster resources via templates/postgres-cluster.yaml
+
+# Annotations for improved chart discovery
+annotations:
+  # Container optimizations
+  build.optimizations: "BuildKit cache mounts, multi-stage builds, multi-target Rust builds"
+  rust.cargo-chef: "true"
+  frontend.vite: "7.0.4"
+  backend.rust: "1.90"
+
+  # Deployment features
+  deployment.features: "Helm hooks for migrations, dependency management, GitOps ready"
+  argocd.enabled: "true"
+
+  # Security
+  security.secrets: "External Secrets Operator (Doppler integration)"
+  security.rbac: "true"
+
+  # License
+  license: "MIT"

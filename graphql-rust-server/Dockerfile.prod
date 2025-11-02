@@ -1,7 +1,12 @@
 # =============================================================================
-# Rust GraphQL Server - Production Dockerfile
+# Rust GraphQL Server - Multi-Target Production Dockerfile
 # =============================================================================
-# Multi-stage build for optimized production image with SeaORM migrations
+# Optimized multi-stage build with 3 separate targets:
+#   - server: Main GraphQL API server (hr-graphql-server)
+#   - migration: Database migration binary
+#   - seed: Database seeding binary
+#
+# Build with: docker build --target <server|migration|seed> ...
 # =============================================================================
 
 # =============================================================================
@@ -16,7 +21,7 @@ RUN apk add --no-cache musl-dev openssl-dev pkgconfig && \
 WORKDIR /app
 
 # =============================================================================
-# Stage 2: Planner - Analyze dependencies
+# Stage 2: Planner - Analyze dependencies (shared by all targets)
 # =============================================================================
 FROM chef AS planner
 
@@ -27,7 +32,7 @@ COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
 
 # =============================================================================
-# Stage 3: Builder - Build dependencies and application
+# Stage 3: Builder - Build dependencies only (shared by all targets)
 # =============================================================================
 FROM rust:1.90-alpine AS builder
 
@@ -37,6 +42,7 @@ RUN apk add --no-cache \
     openssl-dev \
     openssl-libs-static \
     pkgconfig \
+    mold \
     curl
 
 # Install cargo-chef
@@ -47,59 +53,85 @@ WORKDIR /app
 # Copy recipe from planner
 COPY --from=planner /app/recipe.json recipe.json
 
-# Build dependencies only (cached layer)
-RUN cargo chef cook --release --recipe-path recipe.json
+# Build dependencies only (cached layer) with BuildKit cache mount
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    cargo chef cook --release --recipe-path recipe.json
 
-# Copy source code
+# Copy source code for all subsequent build stages
 COPY . .
 
-# Build application in release mode
-RUN cargo build --release --bin hr-graphql-server
+# =============================================================================
+# Stage 4a: Server Builder - Build hr-graphql-server binary
+# =============================================================================
+FROM builder AS server-builder
 
-# Build migration binary for production use
-RUN cargo build --release --bin migration
+# Build server binary with BuildKit cache
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    --mount=type=cache,target=/app/target \
+    cargo build --release --bin hr-graphql-server && \
+    cp /app/target/release/hr-graphql-server /app/hr-graphql-server
 
-# Build seed-data binary for production admin user creation
-RUN cargo build --release --bin seed-data
-
-# Verify binaries exist
-RUN test -f /app/target/release/hr-graphql-server || (echo "Build failed: hr-graphql-server binary not found" && exit 1)
-RUN test -f /app/target/release/migration || (echo "Build failed: migration binary not found" && exit 1)
-RUN test -f /app/target/release/seed-data || (echo "Build failed: seed-data binary not found" && exit 1)
+# Verify binary exists
+RUN test -f /app/hr-graphql-server || \
+    (echo "Build failed: hr-graphql-server binary not found" && exit 1)
 
 # =============================================================================
-# Stage 4: Production Runtime
+# Stage 4b: Migration Builder - Build migration binary
 # =============================================================================
-FROM alpine:3.19 AS production
+FROM builder AS migration-builder
+
+# Build migration binary with BuildKit cache
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    --mount=type=cache,target=/app/target \
+    cargo build --release --bin migration && \
+    cp /app/target/release/migration /app/migration-bin
+
+# Verify binary exists
+RUN test -f /app/migration-bin || \
+    (echo "Build failed: migration binary not found" && exit 1)
+
+# =============================================================================
+# Stage 4c: Seed Builder - Build seed-data binary
+# =============================================================================
+FROM builder AS seed-builder
+
+# Build seed-data binary with BuildKit cache
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    --mount=type=cache,target=/app/target \
+    cargo build --release --bin seed-data && \
+    cp /app/target/release/seed-data /app/seed-data-bin
+
+# Verify binary exists
+RUN test -f /app/seed-data-bin || \
+    (echo "Build failed: seed-data binary not found" && exit 1)
+
+# =============================================================================
+# Stage 5a: Server Runtime (TARGET: server)
+# =============================================================================
+FROM alpine:3.19 AS server
 
 # Install runtime dependencies
 RUN apk add --no-cache \
     libgcc \
     openssl \
     ca-certificates \
-    curl \
-    postgresql-client
+    curl
 
 # Create non-root user
 RUN addgroup -g 1001 -S rust && \
     adduser -u 1001 -S rust -G rust
 
-# Set working directory
 WORKDIR /app
 
-# Copy binaries from builder
-COPY --from=builder /app/target/release/hr-graphql-server ./hr-graphql-server
-COPY --from=builder /app/target/release/migration ./migration-bin
-COPY --from=builder /app/target/release/seed-data ./seed-data-bin
+# Copy server binary from server-builder
+COPY --from=server-builder /app/hr-graphql-server ./hr-graphql-server
 
-# Copy migration files (required for SeaORM migrations)
-COPY --from=builder /app/migration ./migration
-
-# Copy entrypoint script
-COPY docker-entrypoint-prod.sh ./docker-entrypoint-prod.sh
-
-# Make binaries and entrypoint executable
-RUN chmod +x /app/hr-graphql-server /app/migration-bin /app/seed-data-bin /app/docker-entrypoint-prod.sh
+# Make binary executable
+RUN chmod +x /app/hr-graphql-server
 
 # Change ownership to non-root user
 RUN chown -R rust:rust /app
@@ -110,7 +142,7 @@ USER rust
 # Expose GraphQL API port
 EXPOSE 4000
 
-# Environment variables (defaults, override via docker-compose)
+# Environment variables
 ENV HOST=0.0.0.0
 ENV PORT=4000
 ENV RUST_LOG=info,hr_graphql_server=debug
@@ -120,20 +152,100 @@ ENV ENVIRONMENT=production
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:4000/health || exit 1
 
-# Use entrypoint to run migrations before starting server
-ENTRYPOINT ["./docker-entrypoint-prod.sh"]
+# Start server directly (no migrations here)
+CMD ["./hr-graphql-server"]
+
+# =============================================================================
+# Stage 5b: Migration Runtime (TARGET: migration)
+# =============================================================================
+FROM alpine:3.19 AS migration
+
+# Install runtime dependencies
+RUN apk add --no-cache \
+    libgcc \
+    openssl \
+    ca-certificates \
+    postgresql-client
+
+# Create non-root user
+RUN addgroup -g 1001 -S rust && \
+    adduser -u 1001 -S rust -G rust
+
+WORKDIR /app
+
+# Copy migration binary from migration-builder
+COPY --from=migration-builder /app/migration-bin ./migration
+
+# Copy migration files (required for SeaORM migrations)
+COPY --from=builder /app/migration ./migration-files
+
+# Make binary executable
+RUN chmod +x /app/migration
+
+# Change ownership to non-root user
+RUN chown -R rust:rust /app
+
+# Switch to non-root user
+USER rust
+
+# Environment variables
+ENV RUST_LOG=info
+ENV ENVIRONMENT=production
+
+# Run migrations (expects DATABASE_URL env var)
+CMD ["./migration", "up"]
+
+# =============================================================================
+# Stage 5c: Seed Runtime (TARGET: seed)
+# =============================================================================
+FROM alpine:3.19 AS seed
+
+# Install runtime dependencies
+RUN apk add --no-cache \
+    libgcc \
+    openssl \
+    ca-certificates \
+    postgresql-client
+
+# Create non-root user
+RUN addgroup -g 1001 -S rust && \
+    adduser -u 1001 -S rust -G rust
+
+WORKDIR /app
+
+# Copy seed-data binary from seed-builder
+COPY --from=seed-builder /app/seed-data-bin ./seed-data
+
+# Make binary executable
+RUN chmod +x /app/seed-data
+
+# Change ownership to non-root user
+RUN chown -R rust:rust /app
+
+# Switch to non-root user
+USER rust
+
+# Environment variables
+ENV RUST_LOG=info
+ENV ENVIRONMENT=production
+
+# Run seed data (expects DATABASE_URL env var)
+CMD ["./seed-data"]
 
 # =============================================================================
 # Build Instructions
 # =============================================================================
 #
-# Build:
-#   docker build -f Dockerfile.prod -t sveltehr-backend:latest .
+# Build server image:
+#   docker build --target server -f Dockerfile.prod -t sveltehr-backend:latest .
 #
-# Run:
-#   docker run -p 4000:4000 --env-file .env sveltehr-backend:latest
+# Build migration image:
+#   docker build --target migration -f Dockerfile.prod -t sveltehr-migration:latest .
 #
-# With Docker Compose:
-#   docker compose -f docker-compose.prod.yml up -d
+# Build seed image:
+#   docker build --target seed -f Dockerfile.prod -t sveltehr-seed:latest .
+#
+# With BuildKit (recommended):
+#   DOCKER_BUILDKIT=1 docker build --target server -f Dockerfile.prod -t sveltehr-backend:latest .
 #
 # =============================================================================

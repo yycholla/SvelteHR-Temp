@@ -1,0 +1,51 @@
+# cert-manager Helm values for SvelteHR deployment
+# Manages TLS certificates with Let's Encrypt integration
+
+# Install CRDs with Helm (recommended for easy upgrades)
+installCRDs: true
+
+global:
+  # Use higher priority class for critical cert-manager pods
+  priorityClassName: "system-cluster-critical"
+
+# Resource limits for production stability
+resources:
+  requests:
+    cpu: 10m
+    memory: 32Mi
+  limits:
+    cpu: 100m
+    memory: 128Mi
+
+# Webhook configuration
+webhook:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+# CA injector configuration
+cainjector:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+# Prometheus monitoring integration
+prometheus:
+  enabled: true
+  servicemonitor:
+    enabled: true
+    prometheusInstance: default
+    interval: 60s
+
+# Security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000

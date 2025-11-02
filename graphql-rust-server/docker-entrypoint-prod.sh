@@ -2,6 +2,11 @@
 set -e
 
 echo "🚀 Starting SvelteHR GraphQL Rust Server (PRODUCTION MODE)..."
+echo ""
+echo "⚠️  NOTE: This entrypoint is DEPRECATED for Kubernetes deployments."
+echo "   For Kubernetes: Migrations run as separate Job (k8s/base/migration-job.yaml)"
+echo "   This script is maintained for Docker Compose and local development only."
+echo ""
 
 # Wait for PostgreSQL to be ready
 echo "⏳ Waiting for PostgreSQL..."
@@ -25,14 +30,21 @@ fi
 
 echo "✅ PostgreSQL is ready!"
 
-# Run SeaORM migrations (ONLY 'up' - non-destructive, applies pending migrations)
-echo "📦 Running SeaORM database migrations..."
+# Run SeaORM migrations (ONLY for Docker Compose/local development)
+# For Kubernetes: Use k8s/base/migration-job.yaml instead
+if [ "$RUN_MIGRATIONS" = "true" ]; then
+    echo "📦 Running SeaORM database migrations..."
+    echo "   (Set RUN_MIGRATIONS=false to skip)"
 
-if ./migration-bin up; then
-    echo "✅ Migrations completed successfully!"
+    if ./migration-bin up; then
+        echo "✅ Migrations completed successfully!"
+    else
+        echo "❌ Migration failed! Exiting..."
+        exit 1
+    fi
 else
-    echo "❌ Migration failed! Exiting..."
-    exit 1
+    echo "⏭️  Migrations skipped (RUN_MIGRATIONS not set to 'true')"
+    echo "   For Kubernetes: Migrations run as pre-install Job"
 fi
 
 # Optional: Seed admin user if SEED_ADMIN_USER is enabled

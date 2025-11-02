@@ -47,6 +47,7 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     libssl3 \
     curl \
+    clang \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 

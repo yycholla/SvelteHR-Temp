@@ -1,0 +1,244 @@
+{{- if and .Values.rbac .Values.rbac.enabled -}}
+---
+# Backend Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "sveltehr.serviceAccountName" . }}-backend
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "sveltehr.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+  {{- with .Values.serviceAccount.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+automountServiceAccountToken: true
+
+---
+# Frontend Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "sveltehr.serviceAccountName" . }}-frontend
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "sveltehr.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+  {{- with .Values.serviceAccount.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+automountServiceAccountToken: true
+
+---
+# Backend Role - Database access and configuration reading
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "sveltehr.fullname" . }}-backend
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "sveltehr.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+rules:
+  # Read ConfigMaps for application configuration
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+
+  # Read Secrets for credentials
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+    resourceNames:
+      - {{ include "sveltehr.fullname" . }}-postgres-app-secret
+      - {{ include "sveltehr.fullname" . }}-secrets
+
+  # Read Pod information for service discovery
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+
+  # Read Services for internal service discovery
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list"]
+
+  {{- if and .Values.rbac.backend .Values.rbac.backend.additionalRules }}
+  {{- toYaml .Values.rbac.backend.additionalRules | nindent 2 }}
+  {{- end }}
+
+---
+# Backend RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "sveltehr.fullname" . }}-backend
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "sveltehr.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "sveltehr.fullname" . }}-backend
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "sveltehr.serviceAccountName" . }}-backend
+    namespace: {{ .Values.global.namespace }}
+
+---
+# Frontend Role - Basic read access
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "sveltehr.fullname" . }}-frontend
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "sveltehr.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+rules:
+  # Read ConfigMaps for frontend configuration
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list"]
+
+  # Read Services for backend discovery
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list"]
+
+  {{- if and .Values.rbac.frontend .Values.rbac.frontend.additionalRules }}
+  {{- toYaml .Values.rbac.frontend.additionalRules | nindent 2 }}
+  {{- end }}
+
+---
+# Frontend RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "sveltehr.fullname" . }}-frontend
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "sveltehr.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "sveltehr.fullname" . }}-frontend
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "sveltehr.serviceAccountName" . }}-frontend
+    namespace: {{ .Values.global.namespace }}
+
+---
+# Migration Job Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "sveltehr.serviceAccountName" . }}-migration
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "sveltehr.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migration
+  {{- with .Values.serviceAccount.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+automountServiceAccountToken: true
+
+---
+# Migration Role - Database migration permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "sveltehr.fullname" . }}-migration
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "sveltehr.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migration
+rules:
+  # Read Secrets for database credentials
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+    resourceNames:
+      - {{ include "sveltehr.fullname" . }}-postgres-app-secret
+
+  # Read ConfigMaps for migration configuration
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list"]
+
+  # Read Services for database discovery
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get"]
+
+  {{- if and .Values.rbac.migration .Values.rbac.migration.additionalRules }}
+  {{- toYaml .Values.rbac.migration.additionalRules | nindent 2 }}
+  {{- end }}
+
+---
+# Migration RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "sveltehr.fullname" . }}-migration
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "sveltehr.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migration
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "sveltehr.fullname" . }}-migration
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "sveltehr.serviceAccountName" . }}-migration
+    namespace: {{ .Values.global.namespace }}
+
+{{- if .Values.rbac.createClusterRole }}
+---
+# Optional ClusterRole for cross-namespace access
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "sveltehr.fullname" . }}-cluster
+  labels:
+    {{- include "sveltehr.labels" . | nindent 4 }}
+rules:
+  # Read nodes for node discovery (useful for distributed systems)
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list"]
+
+  # Read namespaces for multi-tenant scenarios
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list"]
+
+  {{- if .Values.rbac.clusterRole.additionalRules }}
+  {{- toYaml .Values.rbac.clusterRole.additionalRules | nindent 2 }}
+  {{- end }}
+
+---
+# ClusterRoleBinding for backend
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "sveltehr.fullname" . }}-backend-cluster
+  labels:
+    {{- include "sveltehr.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "sveltehr.fullname" . }}-cluster
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "sveltehr.serviceAccountName" . }}-backend
+    namespace: {{ .Values.global.namespace }}
+{{- end }}
+
+{{- end }}

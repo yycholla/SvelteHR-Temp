@@ -1,0 +1,119 @@
+{{- if and .Values.pgadmin .Values.pgadmin.enabled }}
+{{- if not .Values.externalSecrets.enabled }}
+---
+# pgAdmin password secret (only created if External Secrets is disabled)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pgadmin-secret
+  namespace: {{ .Values.global.namespace }}
+type: Opaque
+stringData:
+  pgadmin-password: {{ .Values.pgadmin.password | quote }}
+{{- end }}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pgadmin-config
+  namespace: {{ .Values.global.namespace }}
+data:
+  servers.json: |
+    {
+      "Servers": {
+        "1": {
+          "Name": "SvelteHR PostgreSQL Primary",
+          "Group": "Production",
+          "Host": "sveltehr-postgres-rw",
+          "Port": 5432,
+          "MaintenanceDB": "hr_system",
+          "Username": "hr_user",
+          "SSLMode": "prefer"
+        },
+        "2": {
+          "Name": "SvelteHR PostgreSQL Replica",
+          "Group": "Production",
+          "Host": "sveltehr-postgres-ro",
+          "Port": 5432,
+          "MaintenanceDB": "hr_system",
+          "Username": "hr_user",
+          "SSLMode": "prefer"
+        }
+      }
+    }
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pgadmin
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: pgadmin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pgadmin
+  template:
+    metadata:
+      labels:
+        app: pgadmin
+    spec:
+      containers:
+      - name: pgadmin
+        image: "{{ .Values.pgadmin.image.repository }}:{{ .Values.pgadmin.image.tag }}"
+        imagePullPolicy: {{ .Values.pgadmin.image.pullPolicy }}
+        ports:
+        - containerPort: 80
+          name: http
+        env:
+        - name: PGADMIN_DEFAULT_EMAIL
+          value: {{ .Values.pgadmin.email | quote }}
+        - name: PGADMIN_DEFAULT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: pgadmin-secret
+              key: pgadmin-password
+        - name: PGADMIN_CONFIG_SERVER_MODE
+          value: "True"
+        - name: PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED
+          value: "False"
+        volumeMounts:
+        - name: pgadmin-config
+          mountPath: /pgadmin4/servers.json
+          subPath: servers.json
+          readOnly: true
+        resources:
+          {{- toYaml .Values.pgadmin.resources | nindent 10 }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: false  # pgAdmin needs root
+      volumes:
+      - name: pgadmin-config
+        configMap:
+          name: pgadmin-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pgadmin
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: pgadmin
+  annotations:
+    {{- if .Values.pgadmin.tailscale.enabled }}
+    tailscale.com/expose: "true"
+    tailscale.com/hostname: {{ .Values.pgadmin.tailscale.hostname | quote }}
+    {{- end }}
+spec:
+  selector:
+    app: pgadmin
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+  type: ClusterIP
+{{- end }}

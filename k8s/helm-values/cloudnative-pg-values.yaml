@@ -1,0 +1,37 @@
+# CloudNativePG Operator Helm Values
+# https://github.com/cloudnative-pg/charts
+
+# Operator configuration
+replicaCount: 1
+
+# CRDs management
+crds:
+  create: true
+
+# Monitoring (enabled with Prometheus Operator)
+monitoring:
+  podMonitorEnabled: true  # Creates PodMonitor for Prometheus
+  grafanaDashboard:
+    create: true  # Create Grafana dashboard ConfigMap
+
+# Resources
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Webhook configuration
+webhook:
+  port: 9443
+  mutating:
+    create: true
+  validating:
+    create: true
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 8080

@@ -8,7 +8,8 @@ resources:
   - rbac.yaml
   - configmap.yaml
   - postgres-cluster.yaml
-  - redis-cluster.yaml
+  # redis-cluster.yaml - Redis now deployed via Bitnami Helm chart (not custom resource)
+  - migration-job.yaml  # Database migration Job (pre-install/pre-upgrade)
   - backend-deployment.yaml
   - frontend-deployment.yaml
   - services.yaml
@@ -25,11 +26,25 @@ labels:
 namespace: sveltehr-dev
 
 # Images - configured for local minikube development
-# These will be built locally using the build-images.sh script
+# These will be built locally using the build-and-push-local.sh script
+# Multi-target Rust builds: server, migration, seed
 images:
+  # Backend server (GraphQL API)
   - name: registry.gitlab.com/your-project/sveltehr/backend
-    newName: sveltehr-backend
+    newName: localhost:5000/sveltehr-backend
     newTag: latest
+
+  # Database migration Job
+  - name: registry.gitlab.com/your-project/sveltehr/migration
+    newName: localhost:5000/sveltehr-migration
+    newTag: latest
+
+  # Database seed Job (optional, manual execution)
+  - name: registry.gitlab.com/your-project/sveltehr/seed
+    newName: localhost:5000/sveltehr-seed
+    newTag: latest
+
+  # Frontend (SvelteKit)
   - name: registry.gitlab.com/your-project/sveltehr/frontend
-    newName: sveltehr-frontend
+    newName: localhost:5000/sveltehr-frontend
     newTag: latest

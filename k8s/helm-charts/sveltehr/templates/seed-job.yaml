@@ -1,0 +1,212 @@
+{{- if and .Values.seed .Values.seed.enabled -}}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "sveltehr.fullname" . }}-seed
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "sveltehr.labels" . | nindent 4 }}
+    app.kubernetes.io/component: seed
+  annotations:
+    # Manual execution only - NOT a Helm hook
+    # Run with: kubectl create job --from=cronjob/sveltehr-seed sveltehr-seed-manual
+    # Or: helm test sveltehr --filter name=seed
+    "helm.sh/hook": test
+    "helm.sh/hook-weight": "10"
+    "helm.sh/hook-delete-policy": hook-succeeded
+    manual-execution: "true"
+    {{- with .Values.seed.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ttlSecondsAfterFinished: {{ .Values.seed.ttlSecondsAfterFinished }}
+  backoffLimit: {{ .Values.seed.backoffLimit }}
+
+  template:
+    metadata:
+      labels:
+        {{- include "sveltehr.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: seed
+      {{- with .Values.seed.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      restartPolicy: OnFailure
+
+      # Service account
+      {{- if .Values.serviceAccount.create }}
+      serviceAccountName: {{ include "sveltehr.serviceAccountName" . }}-backend
+      {{- end }}
+
+      # Init container: Wait for PostgreSQL and migrations
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:16-alpine
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for PostgreSQL and migrations to complete..."
+              until pg_isready -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER); do
+                echo "  PostgreSQL is unavailable - sleeping 2s"
+                sleep 2
+              done
+              echo "PostgreSQL is ready!"
+
+              # Additional wait to ensure migrations have run
+              sleep 5
+          env:
+            - name: DB_HOST
+              value: {{ .Values.postgresql.service.name | default (printf "%s-postgres-rw" (include "sveltehr.fullname" .)) }}
+            - name: DB_PORT
+              value: {{ .Values.postgresql.service.port | default "5432" | quote }}
+            - name: DB_USER
+              value: {{ .Values.postgresql.username }}
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sveltehr.fullname" . }}-postgres-app-secret
+                  key: password
+
+      # Seed data container
+      containers:
+        - name: seed
+          image: "{{ .Values.seed.image.repository }}:{{ .Values.seed.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.seed.image.pullPolicy }}
+
+          command:
+            - sh
+            - -c
+            - |
+              echo "================================================================"
+              echo "  SvelteHR Database Seeding"
+              echo "================================================================"
+              echo "Database: ${DB_NAME}"
+              echo "Environment: ${ENVIRONMENT}"
+              echo "================================================================"
+              echo ""
+              echo "Creating initial admin user and seed data..."
+              echo ""
+
+              # Run seed-data binary
+              ./seed-data
+
+              SEED_EXIT_CODE=$?
+
+              if [ $SEED_EXIT_CODE -eq 0 ]; then
+                echo ""
+                echo "================================================================"
+                echo "  Seed data created successfully!"
+                echo "================================================================"
+                {{- if .Values.seed.adminEmail }}
+                echo "Admin email: {{ .Values.seed.adminEmail }}"
+                {{- end }}
+              else
+                echo ""
+                echo "================================================================"
+                echo "  Seed data failed with exit code: $SEED_EXIT_CODE"
+                echo "  (This may be expected if seed data already exists)"
+                echo "================================================================"
+
+                # Exit code 1 typically means data already exists - not a fatal error
+                if [ $SEED_EXIT_CODE -eq 1 ]; then
+                  echo "Seed data appears to already exist. Continuing..."
+                  exit 0
+                fi
+
+                exit $SEED_EXIT_CODE
+              fi
+
+          env:
+            # Database connection
+            - name: DB_HOST
+              value: {{ .Values.postgresql.service.name | default (printf "%s-postgres-rw" (include "sveltehr.fullname" .)) }}
+            - name: DB_PORT
+              value: {{ .Values.postgresql.service.port | default "5432" | quote }}
+            - name: DB_NAME
+              value: {{ .Values.postgresql.database }}
+            - name: DB_USER
+              value: {{ .Values.postgresql.username }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sveltehr.fullname" . }}-postgres-app-secret
+                  key: password
+
+            # Construct DATABASE_URL
+            - name: DATABASE_URL
+              value: "postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)"
+
+            # Admin credentials (optional)
+            {{- if .Values.seed.adminEmail }}
+            - name: ADMIN_EMAIL
+              value: {{ .Values.seed.adminEmail }}
+            {{- end }}
+            {{- if .Values.seed.adminPassword }}
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sveltehr.fullname" . }}-seed-admin
+                  key: password
+            {{- end }}
+
+            # Environment
+            - name: RUST_LOG
+              value: {{ .Values.seed.rustLog | default "info,seed_data=debug" }}
+            - name: ENVIRONMENT
+              value: {{ .Values.global.environment }}
+            - name: ENABLE_SEED_DATA
+              value: "true"
+
+            {{- with .Values.seed.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+
+          resources:
+            {{- toYaml .Values.seed.resources | nindent 12 }}
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1001
+            capabilities:
+              drop:
+                - ALL
+            {{- with .Values.seed.securityContext }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+
+      {{- with .Values.seed.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.seed.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.seed.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+{{- if .Values.seed.adminPassword }}
+---
+# Admin password secret (if provided)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "sveltehr.fullname" . }}-seed-admin
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "sveltehr.labels" . | nindent 4 }}
+    app.kubernetes.io/component: seed
+type: Opaque
+stringData:
+  password: {{ .Values.seed.adminPassword }}
+{{- end }}
+
+{{- end }}

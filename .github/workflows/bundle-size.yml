@@ -1,0 +1,149 @@
+name: Bundle Size Check
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'src/**'
+      - 'static/**'
+      - 'package*.json'
+      - 'vite.config.ts'
+      - 'svelte.config.js'
+  pull_request:
+    branches: [main, develop]
+
+# Cancel in-progress runs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  size-limit:
+    name: Check Bundle Size
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Analyze bundle size
+        run: |
+          # Get build directory size
+          BUILD_SIZE=$(du -sb build | cut -f1)
+          BUILD_SIZE_KB=$((BUILD_SIZE / 1024))
+          BUILD_SIZE_MB=$((BUILD_SIZE_KB / 1024))
+
+          echo "📦 Build directory size: ${BUILD_SIZE_MB}MB (${BUILD_SIZE_KB}KB)"
+
+          # Analyze JavaScript bundles
+          echo "## JavaScript Bundles" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| File | Size (KB) | Gzipped (KB) |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-----------|--------------|" >> $GITHUB_STEP_SUMMARY
+
+          # Find and analyze JS files
+          find build/_app/immutable -name "*.js" -type f | while read file; do
+            size=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file")
+            size_kb=$((size / 1024))
+            gzip_size=$(gzip -c "$file" | wc -c)
+            gzip_kb=$((gzip_size / 1024))
+            filename=$(basename "$file")
+            echo "| $filename | $size_kb | $gzip_kb |" >> $GITHUB_STEP_SUMMARY
+          done
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Total Build Size:** ${BUILD_SIZE_MB}MB" >> $GITHUB_STEP_SUMMARY
+
+      - name: Check size limits
+        run: |
+          BUILD_SIZE=$(du -sb build | cut -f1)
+          BUILD_SIZE_MB=$((BUILD_SIZE / 1024 / 1024))
+
+          # Set size limit (50MB for now, adjust as needed)
+          SIZE_LIMIT_MB=50
+
+          if [ $BUILD_SIZE_MB -gt $SIZE_LIMIT_MB ]; then
+            echo "❌ Build size ($BUILD_SIZE_MB MB) exceeds limit ($SIZE_LIMIT_MB MB)"
+            exit 1
+          else
+            echo "✅ Build size ($BUILD_SIZE_MB MB) is within limit ($SIZE_LIMIT_MB MB)"
+          fi
+
+      - name: Save size metrics
+        run: |
+          BUILD_SIZE=$(du -sb build | cut -f1)
+          BUILD_SIZE_KB=$((BUILD_SIZE / 1024))
+
+          mkdir -p size-metrics
+          cat > size-metrics/bundle-size.json <<EOF
+          [{
+            "name": "Bundle Size",
+            "unit": "KB",
+            "value": $BUILD_SIZE_KB
+          }]
+          EOF
+
+      - name: Upload size metrics
+        uses: actions/upload-artifact@v4
+        with:
+          name: size-metrics
+          path: size-metrics/
+          retention-days: 30
+
+      - name: Compare with base branch
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const { execSync } = require('child_process');
+
+            // Get current size
+            const currentSize = parseInt(execSync('du -sb build').toString().split('\\t')[0]);
+            const currentSizeKB = Math.round(currentSize / 1024);
+            const currentSizeMB = (currentSizeKB / 1024).toFixed(2);
+
+            // Checkout base branch and build
+            execSync(\`git fetch origin \${context.payload.pull_request.base.ref}\`);
+            execSync(\`git checkout origin/\${context.payload.pull_request.base.ref}\`);
+            execSync('npm ci');
+            execSync('npm run build');
+
+            const baseSize = parseInt(execSync('du -sb build').toString().split('\\t')[0]);
+            const baseSizeKB = Math.round(baseSize / 1024);
+            const baseSizeMB = (baseSizeKB / 1024).toFixed(2);
+
+            const diff = currentSize - baseSize;
+            const diffKB = Math.round(diff / 1024);
+            const diffPercent = ((diff / baseSize) * 100).toFixed(2);
+
+            const emoji = diff > 0 ? '📈' : diff < 0 ? '📉' : '➡️';
+            const sign = diff > 0 ? '+' : '';
+
+            let comment = \`## \${emoji} Bundle Size Report\\n\\n\`;
+            comment += \`| Metric | Base | Current | Diff |\\n\`;
+            comment += \`|--------|------|---------|------|\\n\`;
+            comment += \`| Size | \${baseSizeMB}MB | \${currentSizeMB}MB | \${sign}\${diffKB}KB (\${sign}\${diffPercent}%) |\\n\`;
+
+            if (Math.abs(diffPercent) > 5) {
+              comment += \`\\n⚠️ **Warning:** Bundle size changed by more than 5%\`;
+            }
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

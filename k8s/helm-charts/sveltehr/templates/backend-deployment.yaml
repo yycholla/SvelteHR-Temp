@@ -1,0 +1,243 @@
+{{- if and .Values.backend .Values.backend.enabled -}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "sveltehr.fullname" . }}-backend
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "sveltehr.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+  annotations:
+    # Container optimization annotations
+    build.method: "multi-stage Docker build with cargo-chef"
+    build.target: "server"
+    buildkit.enabled: "true"
+    cache.cargo-registry: "BuildKit cache mount"
+    cache.cargo-git: "BuildKit cache mount"
+    cache.target: "BuildKit cache mount"
+    {{- with .Values.backend.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  replicas: {{ .Values.backend.replicaCount }}
+  {{- with .Values.backend.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "sveltehr.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backend
+  template:
+    metadata:
+      labels:
+        {{- include "sveltehr.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: backend
+        {{- with .Values.backend.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.backend.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- if .Values.serviceAccount.create }}
+      serviceAccountName: {{ include "sveltehr.serviceAccountName" . }}-backend
+      {{- end }}
+
+      {{- with .Values.backend.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      # Init container: Wait for PostgreSQL (CloudNativePG service)
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:16-alpine
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for PostgreSQL cluster to be ready..."
+              until pg_isready -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER); do
+                echo "  PostgreSQL is unavailable - sleeping 2s"
+                sleep 2
+              done
+              echo "PostgreSQL is ready!"
+          env:
+            - name: DB_HOST
+              value: {{ .Values.postgresql.service.name | default (printf "%s-postgres-rw" (include "sveltehr.fullname" .)) }}
+            - name: DB_PORT
+              value: {{ .Values.postgresql.service.port | default "5432" | quote }}
+            - name: DB_USER
+              value: {{ .Values.postgresql.username }}
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sveltehr.fullname" . }}-postgres-app-secret
+                  key: password
+
+      containers:
+        - name: graphql-server
+          # Server image from multi-target build
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.backend.service.targetPort }}
+              name: http
+              protocol: TCP
+
+          # Direct server execution (no entrypoint script)
+          # Migration runs separately as Helm pre-install hook
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "================================================================"
+              echo "  SvelteHR GraphQL Server"
+              echo "================================================================"
+              echo "Environment: ${ENVIRONMENT}"
+              echo "Host: ${HOST}"
+              echo "Port: ${PORT}"
+              echo "Database: ${DB_NAME}@${DB_HOST}:${DB_PORT}"
+              echo "Redis: ${REDIS_URL}"
+              echo "================================================================"
+              echo ""
+              echo "Note: Migrations run as separate Helm pre-install hook"
+              echo ""
+
+              # Construct DATABASE_URL from components
+              export DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+
+              # Start server directly
+              exec ./hr-graphql-server
+
+          env:
+            # PostgreSQL connection (CloudNativePG service)
+            - name: DB_HOST
+              value: {{ .Values.postgresql.service.name | default (printf "%s-postgres-rw" (include "sveltehr.fullname" .)) }}
+            - name: DB_PORT
+              value: {{ .Values.postgresql.service.port | default "5432" | quote }}
+            - name: DB_NAME
+              value: {{ .Values.postgresql.database }}
+            - name: DB_USER
+              value: {{ .Values.postgresql.username }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sveltehr.fullname" . }}-postgres-app-secret
+                  key: password
+
+            # Redis connection (Bitnami Redis service)
+            - name: REDIS_URL
+              value: {{ .Values.redis.url | default (printf "redis://%s-redis-master:6379" (include "sveltehr.fullname" .)) }}
+
+            # JWT and auth secrets
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sveltehr.fullname" . }}-secrets
+                  key: jwt-secret
+            - name: JWT_REFRESH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sveltehr.fullname" . }}-secrets
+                  key: jwt-refresh-secret
+            - name: SERVICE_AUTH_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sveltehr.fullname" . }}-secrets
+                  key: service-auth-key
+
+            # Server configuration
+            - name: HOST
+              value: {{ .Values.backend.host | default "0.0.0.0" | quote }}
+            - name: PORT
+              value: {{ .Values.backend.service.targetPort | quote }}
+            - name: RUST_LOG
+              value: {{ .Values.backend.rustLog | default "info,hr_graphql_server=debug" }}
+            - name: ENVIRONMENT
+              value: {{ .Values.global.environment }}
+
+            {{- with .Values.backend.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+
+          {{- if .Values.backend.envFrom }}
+          envFrom:
+            {{- toYaml .Values.backend.envFrom | nindent 12 }}
+          {{- end }}
+
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.backend.livenessProbe.path | default "/health" }}
+              port: {{ .Values.backend.service.targetPort }}
+            initialDelaySeconds: {{ .Values.backend.livenessProbe.initialDelaySeconds | default 30 }}
+            periodSeconds: {{ .Values.backend.livenessProbe.periodSeconds | default 10 }}
+            timeoutSeconds: {{ .Values.backend.livenessProbe.timeoutSeconds | default 5 }}
+            failureThreshold: {{ .Values.backend.livenessProbe.failureThreshold | default 3 }}
+
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.backend.readinessProbe.path | default "/health" }}
+              port: {{ .Values.backend.service.targetPort }}
+            initialDelaySeconds: {{ .Values.backend.readinessProbe.initialDelaySeconds | default 5 }}
+            periodSeconds: {{ .Values.backend.readinessProbe.periodSeconds | default 5 }}
+            timeoutSeconds: {{ .Values.backend.readinessProbe.timeoutSeconds | default 3 }}
+            failureThreshold: {{ .Values.backend.readinessProbe.failureThreshold | default 3 }}
+
+          {{- with .Values.backend.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: {{ .Values.backend.securityContext.runAsUser | default 1001 }}
+            capabilities:
+              drop:
+                - ALL
+            {{- with .Values.backend.securityContext }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            {{- with .Values.backend.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        {{- with .Values.backend.volumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+
+      {{- with .Values.backend.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.backend.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.backend.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      securityContext:
+        fsGroup: {{ .Values.backend.podSecurityContext.fsGroup | default 1001 }}
+        {{- with .Values.backend.podSecurityContext }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+
+{{- end }}

@@ -170,6 +170,37 @@ export default defineConfig({
 				baseURL: process.env.API_BASE_URL || 'http://localhost:4000'
 			},
 			testMatch: '**/api/**/*.spec.ts'
+		},
+
+		// Visual regression testing
+		{
+			name: 'visual-regression',
+			use: {
+				...devices['Desktop Chrome'],
+				channel: 'chrome',
+				// Consistent viewport for visual comparisons
+				viewport: { width: 1920, height: 1080 },
+				// Disable animations for consistent screenshots
+				reducedMotion: 'reduce',
+				// Force color scheme for consistency
+				colorScheme: 'light'
+			},
+			testMatch: '**/visual/**/*.spec.ts',
+			// Visual tests should have specific config
+			expect: {
+				// Looser timeout for visual comparisons
+				timeout: 15 * 1000,
+				toHaveScreenshot: {
+					// Tolerate minor pixel differences
+					maxDiffPixels: 100,
+					// Threshold for considering pixels different
+					threshold: 0.2,
+					// Animation handling
+					animations: 'disabled',
+					// CSS animations
+					caret: 'hide'
+				}
+			}
 		}
 	],
 

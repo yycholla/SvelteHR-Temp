@@ -1,0 +1,463 @@
+# =============================================================================
+# SvelteHR Helm Chart - Production Values
+# =============================================================================
+# Production overrides for high availability, performance, and security
+# Use with: helm install sveltehr . -f values.yaml -f values-prod.yaml
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Global Configuration
+# -----------------------------------------------------------------------------
+global:
+  namespace: sveltehr-prod
+  environment: production
+
+# -----------------------------------------------------------------------------
+# PostgreSQL Configuration (CloudNativePG) - High Availability
+# -----------------------------------------------------------------------------
+postgresql:
+  enabled: true
+
+  # Image configuration
+  image:
+    repository: ghcr.io/cloudnative-pg/postgresql
+    tag: "16"
+
+  # Database and user configuration
+  database: hr_system
+  username: hr_user
+
+  # Service configuration
+  service:
+    name: sveltehr-prod-postgres-rw
+    port: 5432
+
+  # Production: 1-instance for resource-constrained environment
+  instances: 1
+
+  # Production storage
+  storage:
+    size: 100Gi
+    storageClass: local-path  # Using local-path for now
+
+  # Production passwords (override with External Secrets)
+  password: ""  # Will be populated from Doppler
+  superuserPassword: ""  # Will be populated from Doppler
+
+  # Monitoring
+  monitoring:
+    enabled: true
+
+  # PostgreSQL parameters (scaled for 512Mi limit)
+  config:
+    maxConnections: "100"
+    sharedBuffers: "128MB"  # Must be less than memory request
+    workMem: "4MB"
+    maintenanceWorkMem: "32MB"
+    maxWalSenders: "5"
+    maxReplicationSlots: "5"
+    effectiveCacheSize: "256MB"
+    randomPageCost: "1.1"  # For SSD storage
+    additionalParameters:
+      checkpoint_completion_target: "0.9"
+      wal_buffers: "4MB"
+      default_statistics_target: "100"
+      effective_io_concurrency: "200"
+
+  # Backup configuration (S3/MinIO)
+  backup:
+    enabled: false  # Disable for initial setup
+    destinationPath: "s3://sveltehr-backups/postgresql"
+    endpointURL: "https://s3.amazonaws.com"  # Or MinIO endpoint
+    retentionPolicy: "30d"
+    schedule: "0 2 * * *"  # Daily at 2 AM
+    s3Credentials:
+      secretName: sveltehr-s3-backup-secret
+      accessKeyIdKey: ACCESS_KEY_ID
+      secretAccessKeyKey: SECRET_ACCESS_KEY
+
+  # Production resources (scaled for 8GB node)
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 200m
+    limits:
+      memory: 512Mi
+      cpu: 500m
+
+  # Anti-affinity for pod distribution
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                    - postgresql
+            topologyKey: kubernetes.io/hostname
+
+# -----------------------------------------------------------------------------
+# Redis Configuration (Bitnami Redis) - High Availability
+# -----------------------------------------------------------------------------
+redis:
+  enabled: true
+
+  # Standalone mode for resource-constrained environment
+  architecture: standalone
+
+  # Authentication enabled for production
+  auth:
+    enabled: true
+    password: ""  # Will be populated from Doppler
+
+  # Master configuration
+  master:
+    persistence:
+      enabled: true
+      size: 5Gi
+      storageClass: local-path
+    resources:
+      requests:
+        memory: 128Mi
+        cpu: 100m
+      limits:
+        memory: 256Mi
+        cpu: 200m
+
+# -----------------------------------------------------------------------------
+# Backend Configuration (Rust GraphQL Server) - Production
+# -----------------------------------------------------------------------------
+backend:
+  enabled: true
+  name: sveltehr-backend
+
+  # Production: 1 replica for resource-constrained environment
+  replicaCount: 1
+
+  # Image configuration
+  image:
+    repository: localhost:5000/sveltehr-backend
+    tag: "latest"  # Use latest for now
+    pullPolicy: Always
+    target: production
+
+  # Production resources
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 250m
+    limits:
+      memory: 1Gi
+      cpu: 500m
+
+  # Logging
+  rustLog: "info,hr_graphql_server=info"  # Less verbose in production
+
+  # Deployment strategy (rolling update)
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0  # Zero downtime deployments
+
+  # Production probes (more conservative)
+  livenessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+
+  readinessProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  # Startup probe for slow starts
+  startupProbe:
+    httpGet:
+      path: /health
+      port: 4000
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30  # Allow up to 5 minutes for startup
+
+  # Security context
+  securityContext:
+    runAsUser: 1001
+    runAsNonRoot: true
+    readOnlyRootFilesystem: false  # Rust apps need /tmp
+
+  podSecurityContext:
+    fsGroup: 1001
+
+  # Anti-affinity for pod distribution
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values:
+                    - backend
+            topologyKey: kubernetes.io/hostname
+
+# -----------------------------------------------------------------------------
+# Frontend Configuration (SvelteKit) - Production
+# -----------------------------------------------------------------------------
+frontend:
+  enabled: true
+  name: sveltehr-frontend
+
+  # Production: 1 replica for resource-constrained environment
+  replicaCount: 1
+
+  # Image configuration
+  image:
+    repository: localhost:5000/sveltehr-frontend
+    tag: "latest"  # Use latest for now
+    pullPolicy: Always
+    target: production
+
+  # Service configuration (production build)
+  service:
+    port: 3000
+    targetPort: 3000
+
+  # Production resources
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 100m
+    limits:
+      memory: 512Mi
+      cpu: 200m
+
+  # Wait for backend before starting (dependency ordering)
+  waitForBackend: true
+
+  # Backend URL for init container health check
+  backendUrl: http://sveltehr-backend:4000/health
+
+  # Production probes
+  livenessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 30
+
+  readinessProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+
+  # Security context (enforce non-root)
+  securityContext:
+    runAsUser: 1001
+    runAsNonRoot: true
+
+  podSecurityContext:
+    fsGroup: 1001
+
+  # Deployment strategy
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  # Anti-affinity
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values:
+                    - frontend
+            topologyKey: kubernetes.io/hostname
+
+  # Tailscale for remote access
+  tailscale:
+    enabled: true
+    hostname: "sveltehr-frontend"
+
+# -----------------------------------------------------------------------------
+# Migration Job Configuration
+# -----------------------------------------------------------------------------
+migration:
+  enabled: false  # Migrations run as init container in backend
+
+  # Image configuration
+  image:
+    tag: "stable"
+    pullPolicy: IfNotPresent
+
+  # Production: More retries
+  backoffLimit: 5
+
+  # Less verbose logging
+  rustLog: "info,migration=info"
+
+  # Production resources
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 100m
+    limits:
+      memory: 256Mi
+      cpu: 200m
+
+# -----------------------------------------------------------------------------
+# Seed Job Configuration
+# -----------------------------------------------------------------------------
+seed:
+  # Disabled in production (data should already exist)
+  enabled: false
+
+  # If needed, admin credentials from Doppler
+  adminEmail: ""  # From External Secrets
+  adminPassword: ""  # From External Secrets
+
+# -----------------------------------------------------------------------------
+# External Secrets Operator (Doppler Integration) - REQUIRED IN PRODUCTION
+# -----------------------------------------------------------------------------
+externalSecrets:
+  enabled: true
+  refreshInterval: 15m  # Sync every 15 minutes
+
+  doppler:
+    # IMPORTANT: Set this value when deploying
+    # Get from: https://dashboard.doppler.com/
+    serviceToken: "dp.st.prod.u0Lf9L1XapvzYmykQNlHuJm9nV2ez0p7ibi1umqV3Nr"
+    project: "sveltehr"
+    config: "prod"
+
+# -----------------------------------------------------------------------------
+# Ingress Configuration (Cloudflare Tunnel)
+# -----------------------------------------------------------------------------
+ingress:
+  enabled: true
+  className: traefik
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+    # Cloudflare provides HTTPS at edge, sends HTTP to cluster
+  host: hr.yycholla.com
+  tls:
+    enabled: false  # TLS terminated at Cloudflare edge
+
+# -----------------------------------------------------------------------------
+# Pod Disruption Budgets (High Availability)
+# -----------------------------------------------------------------------------
+podDisruptionBudget:
+  enabled: true
+
+  frontend:
+    minAvailable: 1  # Keep at least 1 frontend pod during disruptions
+
+  backend:
+    minAvailable: 2  # Keep at least 2 backend pods during maintenance
+
+# -----------------------------------------------------------------------------
+# Monitoring Configuration
+# -----------------------------------------------------------------------------
+monitoring:
+  enabled: true
+  scrapeInterval: 15s  # More frequent scraping in production
+  scrapeTimeout: 10s
+
+# -----------------------------------------------------------------------------
+# pgAdmin Configuration
+# -----------------------------------------------------------------------------
+pgadmin:
+  enabled: false  # Disabled to save resources
+  email: "admin@sveltehr.com"
+  password: ""  # From External Secrets
+
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 250m
+    limits:
+      memory: 1Gi
+      cpu: 500m
+
+  tailscale:
+    enabled: true
+    hostname: "pgadmin"
+
+# -----------------------------------------------------------------------------
+# Tailscale Configuration
+# -----------------------------------------------------------------------------
+tailscale:
+  enabled: true  # Enable for production remote access
+
+# =============================================================================
+# Production Deployment Notes
+# =============================================================================
+#
+# Pre-Deployment Checklist:
+#   1. ✅ Configure Doppler service token
+#   2. ✅ Set up S3/MinIO backup credentials
+#   3. ✅ Verify storage classes (fast-ssd) exist
+#   4. ✅ Review resource limits for your cluster
+#   5. ✅ Configure Cloudflare Tunnel for ingress
+#
+# Deployment:
+#   helm install sveltehr . \
+#     -f values.yaml \
+#     -f values-prod.yaml \
+#     -n sveltehr-prod \
+#     --create-namespace \
+#     --wait --timeout 10m
+#
+# Update:
+#   helm upgrade sveltehr . \
+#     -f values.yaml \
+#     -f values-prod.yaml \
+#     -n sveltehr-prod \
+#     --wait --timeout 10m
+#
+# Rollback:
+#   helm rollback sveltehr <revision> -n sveltehr-prod
+#
+# Monitoring:
+#   kubectl get all -n sveltehr-prod
+#   kubectl get pods -n sveltehr-prod -w
+#   kubectl logs -n sveltehr-prod -l app.kubernetes.io/component=backend -f
+#
+# Check PostgreSQL cluster:
+#   kubectl get cluster -n sveltehr-prod
+#   kubectl describe cluster sveltehr-postgres -n sveltehr-prod
+#
+# Check Redis:
+#   kubectl get statefulset -n sveltehr-prod -l app.kubernetes.io/name=redis
+#
+# Backup verification:
+#   kubectl get backup -n sveltehr-prod
+#
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# RBAC Configuration
+# -----------------------------------------------------------------------------
+rbac:
+  enabled: true
+  backend:
+    additionalRules: []
+  frontend:
+    additionalRules: []
+
+# -----------------------------------------------------------------------------
+# Service Account Configuration
+# -----------------------------------------------------------------------------
+serviceAccount:
+  create: true
+  annotations: {}

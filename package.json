@@ -42,6 +42,8 @@
 		"test:e2e:performance": "PLAYWRIGHT_PERFORMANCE_REPORT=true playwright test --project=chromium-performance",
 		"test:e2e:a11y": "playwright test --project=chromium-a11y",
 		"test:api": "playwright test --project=api-tests",
+		"test:visual": "playwright test --project=visual-regression",
+		"test:visual:update": "playwright test --project=visual-regression --update-snapshots",
 		"test:auth": "playwright test tests/e2e/auth",
 		"test:dashboard": "playwright test tests/e2e/dashboard",
 		"test:employees": "playwright test tests/e2e/employees",

@@ -1,0 +1,101 @@
+# Velero Helm values for Kubernetes backups
+# Uses MinIO as S3-compatible backup storage
+# Credentials managed via Doppler
+
+# Image configuration
+image:
+  repository: velero/velero
+  tag: v1.15.0
+  pullPolicy: IfNotPresent
+
+# Init containers
+initContainers:
+  - name: velero-plugin-for-aws
+    image: velero/velero-plugin-for-aws:v1.10.0
+    imagePullPolicy: IfNotPresent
+    volumeMounts:
+      - mountPath: /target
+        name: plugins
+
+# Resource limits
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Backup storage location (MinIO S3)
+configuration:
+  backupStorageLocation:
+    - name: default
+      provider: aws
+      bucket: velero-backups
+      default: true
+      config:
+        region: us-east-1
+        s3ForcePathStyle: "true"
+        s3Url: http://minio.backup-system.svc.cluster.local:9000
+        publicUrl: http://minio.backup-system.svc.cluster.local:9000
+
+  # Volume snapshot location (for PVC backups)
+  volumeSnapshotLocation:
+    - name: default
+      provider: aws
+      config:
+        region: us-east-1
+
+# Credentials from Doppler via External Secrets
+credentials:
+  useSecret: true
+  existingSecret: velero-credentials
+
+# Backup schedules
+schedules:
+  # Daily full cluster backup at 2 AM
+  daily-backup:
+    disabled: false
+    schedule: "0 2 * * *"
+    template:
+      ttl: "720h"  # 30 days retention
+      includedNamespaces:
+        - sveltehr-prod
+        - backup-system
+        - cnpg-system
+        - monitoring
+      snapshotVolumes: true
+
+  # Weekly full cluster backup on Sunday at 3 AM
+  weekly-backup:
+    disabled: false
+    schedule: "0 3 * * 0"
+    template:
+      ttl: "2160h"  # 90 days retention
+      includedNamespaces:
+        - "*"
+      snapshotVolumes: true
+
+# Metrics
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    namespace: monitoring
+
+# Security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+# Enable file system backup with restic
+deployNodeAgent: true
+nodeAgent:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi

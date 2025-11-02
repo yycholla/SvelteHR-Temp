@@ -1,0 +1,315 @@
+name: Docker Build and Push
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'graphql-rust-server/**'
+      - 'src/**'
+      - 'Dockerfile'
+      - 'package*.json'
+      - '.github/workflows/docker-build.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+    inputs:
+      push_images:
+        description: 'Push images to registry'
+        required: false
+        default: 'true'
+
+env:
+  REGISTRY: ghcr.io
+  REGISTRY_USER: ${{ github.actor }}
+  REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  # Detect which services have changed
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'graphql-rust-server/**'
+              - '.github/workflows/docker-build.yml'
+            frontend:
+              - 'src/**'
+              - 'Dockerfile'
+              - 'package*.json'
+              - '.github/workflows/docker-build.yml'
+
+  # Build Rust backend images (3 targets in parallel)
+  build-backend:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [server, migration, seed]
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            network=host
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ env.REGISTRY_USER }}
+          password: ${{ env.REGISTRY_PASSWORD }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ github.repository }}/backend-${{ matrix.target }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Record build start time
+        id: build-start
+        run: echo "start_time=$(date +%s)" >> $GITHUB_OUTPUT
+
+      - name: Build and push backend (${{ matrix.target }})
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ./graphql-rust-server
+          file: ./graphql-rust-server/Dockerfile.prod
+          target: ${{ matrix.target }}
+          push: ${{ (github.event_name != 'pull_request') && (github.event.inputs.push_images != 'false') }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: |
+            type=gha,scope=backend-${{ matrix.target }}
+            type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}/backend-${{ matrix.target }}:latest
+          cache-to: type=gha,mode=max,scope=backend-${{ matrix.target }}
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+
+      - name: Calculate build time
+        id: build-time
+        run: |
+          end_time=$(date +%s)
+          start_time=${{ steps.build-start.outputs.start_time }}
+          duration=$((end_time - start_time))
+          echo "duration=$duration" >> $GITHUB_OUTPUT
+          echo "⏱️ Backend ${{ matrix.target }} build took ${duration}s"
+
+      - name: Save build metrics
+        run: |
+          mkdir -p build-metrics
+          cat > build-metrics/backend-${{ matrix.target }}.json <<EOF
+          [{
+            "name": "Backend ${{ matrix.target }} Build Time",
+            "unit": "seconds",
+            "value": ${{ steps.build-time.outputs.duration }}
+          }]
+          EOF
+
+      - name: Upload build metrics
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-metrics-backend-${{ matrix.target }}
+          path: build-metrics/
+          retention-days: 30
+
+      - name: Image digest
+        run: echo ${{ steps.meta.outputs.digest }}
+
+  # Build frontend image
+  build-frontend:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            network=host
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ env.REGISTRY_USER }}
+          password: ${{ env.REGISTRY_PASSWORD }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ github.repository }}/frontend
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Record build start time
+        id: build-start
+        run: echo "start_time=$(date +%s)" >> $GITHUB_OUTPUT
+
+      - name: Build and push frontend
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          target: runtime
+          push: ${{ (github.event_name != 'pull_request') && (github.event.inputs.push_images != 'false') }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: |
+            type=gha,scope=frontend
+            type=registry,ref=${{ env.REGISTRY }}/${{ github.repository }}/frontend:latest
+          cache-to: type=gha,mode=max,scope=frontend
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+            NODE_ENV=production
+
+      - name: Calculate build time
+        id: build-time
+        run: |
+          end_time=$(date +%s)
+          start_time=${{ steps.build-start.outputs.start_time }}
+          duration=$((end_time - start_time))
+          echo "duration=$duration" >> $GITHUB_OUTPUT
+          echo "⏱️ Frontend build took ${duration}s"
+
+      - name: Save build metrics
+        run: |
+          mkdir -p build-metrics
+          cat > build-metrics/frontend.json <<EOF
+          [{
+            "name": "Frontend Build Time",
+            "unit": "seconds",
+            "value": ${{ steps.build-time.outputs.duration }}
+          }]
+          EOF
+
+      - name: Upload build metrics
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-metrics-frontend
+          path: build-metrics/
+          retention-days: 30
+
+      - name: Image digest
+        run: echo ${{ steps.meta.outputs.digest }}
+
+  # Helm chart validation and linting
+  helm-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'v3.14.0'
+
+      - name: Update Helm dependencies
+        run: |
+          cd k8s/helm-charts/sveltehr
+          helm dependency update
+
+      - name: Lint Helm chart
+        run: |
+          cd k8s/helm-charts/sveltehr
+          helm lint . -f values-dev.yaml
+          helm lint . -f values.yaml -f values-prod.yaml
+
+      - name: Template validation (dev)
+        run: |
+          helm template sveltehr ./k8s/helm-charts/sveltehr \
+            -f k8s/helm-charts/sveltehr/values-dev.yaml \
+            --namespace sveltehr-dev \
+            --debug > /tmp/helm-dev-template.yaml
+          echo "✓ Dev template validation passed"
+
+      - name: Template validation (prod)
+        run: |
+          helm template sveltehr ./k8s/helm-charts/sveltehr \
+            -f k8s/helm-charts/sveltehr/values.yaml \
+            -f k8s/helm-charts/sveltehr/values-prod.yaml \
+            --namespace sveltehr-prod \
+            --debug > /tmp/helm-prod-template.yaml
+          echo "✓ Prod template validation passed"
+
+      - name: Upload Helm templates
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-templates
+          path: /tmp/helm-*.yaml
+          retention-days: 7
+
+  # Summary job
+  build-summary:
+    needs: [detect-changes, build-backend, build-frontend, helm-lint]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build summary
+        run: |
+          echo "## Docker Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Changes Detected" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend: ${{ needs.detect-changes.outputs.backend }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend: ${{ needs.detect-changes.outputs.frontend }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Build Status" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend: ${{ needs.build-backend.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend: ${{ needs.build-frontend.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Helm Chart: ${{ needs.helm-lint.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Images Built" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${{ env.REGISTRY }}/${{ github.repository }}/backend-server:${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${{ env.REGISTRY }}/${{ github.repository }}/backend-migration:${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${{ env.REGISTRY }}/${{ github.repository }}/backend-seed:${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${{ env.REGISTRY }}/${{ github.repository }}/frontend:${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Helm Chart" >> $GITHUB_STEP_SUMMARY
+          echo "- Version: 2.0.0" >> $GITHUB_STEP_SUMMARY
+          echo "- Chart validated for dev and prod environments" >> $GITHUB_STEP_SUMMARY
+          echo "- Templates available as workflow artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Cache Benefits" >> $GITHUB_STEP_SUMMARY
+          echo "- Rust builds: cargo-chef + BuildKit target cache" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend builds: npm cache + Vite cache mounts" >> $GITHUB_STEP_SUMMARY
+          echo "- GitHub Actions cache: Layer caching between runs" >> $GITHUB_STEP_SUMMARY

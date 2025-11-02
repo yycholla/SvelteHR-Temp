@@ -21,15 +21,42 @@ spec:
       serviceAccountName: sveltehr-backend-sa # Will be created
       containers:
         - name: graphql-server
+          # Server image - migration runs separately as Job
           image: registry.gitlab.com/your-project/sveltehr/backend:latest # Will be patched
           ports:
             - containerPort: 4000
               name: http
+          # Build DATABASE_URL and start server directly (no entrypoint needed)
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              export DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+              exec ./hr-graphql-server
           env:
-            - name: DATABASE_URL
-              value: 'postgresql://hr_user:$(POSTGRES_PASSWORD)@sveltehr-postgres-rw:5432/hr_system'
+            # PostgreSQL connection components
+            - name: DB_HOST
+              value: 'sveltehr-postgres-rw'
+            - name: DB_PORT
+              value: '5432'
+            - name: DB_NAME
+              value: 'hr_system'
+            - name: DB_USER
+              value: 'hr_user'
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sveltehr-secrets
+                  key: postgres-password
+            # Legacy POSTGRES_PASSWORD for compatibility
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sveltehr-secrets
+                  key: postgres-password
+            # Redis connection (using Bitnami Redis service name)
             - name: REDIS_URL
-              value: 'redis://sveltehr-redis:6379'
+              value: 'redis://redis:6379'
+            # JWT and auth secrets
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
@@ -45,11 +72,6 @@ spec:
                 secretKeyRef:
                   name: sveltehr-secrets
                   key: service-auth-key
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: sveltehr-secrets
-                  key: postgres-password
           envFrom:
             - configMapRef:
                 name: sveltehr-config

@@ -1,0 +1,59 @@
+{{- if and .Values.podDisruptionBudget .Values.podDisruptionBudget.enabled }}
+{{- if and .Values.frontend .Values.frontend.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Values.frontend.name }}-pdb
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: {{ .Values.frontend.name }}
+    component: web-ui
+spec:
+  {{- if .Values.podDisruptionBudget.frontend.minAvailable }}
+  minAvailable: {{ .Values.podDisruptionBudget.frontend.minAvailable }}
+  {{- else }}
+  maxUnavailable: {{ .Values.podDisruptionBudget.frontend.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: {{ .Values.frontend.name }}
+{{- end }}
+
+{{- if and .Values.backend .Values.backend.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Values.backend.name }}-pdb
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: {{ .Values.backend.name }}
+    component: graphql-api
+spec:
+  {{- if .Values.podDisruptionBudget.backend.minAvailable }}
+  minAvailable: {{ .Values.podDisruptionBudget.backend.minAvailable }}
+  {{- else }}
+  maxUnavailable: {{ .Values.podDisruptionBudget.backend.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: {{ .Values.backend.name }}
+{{- end }}
+
+{{- if and .Values.pgadmin .Values.pgadmin.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pgadmin-pdb
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: pgadmin
+spec:
+  minAvailable: 0  # pgAdmin is not critical, can be temporarily unavailable
+  selector:
+    matchLabels:
+      app: pgadmin
+{{- end }}
+{{- end }}

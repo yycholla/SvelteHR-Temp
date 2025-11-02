@@ -1,27 +1,67 @@
 version: 2
 updates:
-  # Cargo dependencies
-  - package-ecosystem: "cargo"
+  # Frontend dependencies (npm)
+  - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
-      time: "03:00"
+      time: "09:00"
     open-pull-requests-limit: 10
-    reviewers:
-      - "team/backend-engineers"
-    assignees:
-      - "team/backend-engineers"
+    labels:
+      - "dependencies"
+      - "frontend"
+      - "automated"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    groups:
+      svelte:
+        patterns:
+          - "svelte*"
+          - "@sveltejs/*"
+      vite:
+        patterns:
+          - "vite*"
+          - "@vitejs/*"
+      testing:
+        patterns:
+          - "vitest*"
+          - "@vitest/*"
+          - "playwright*"
+          - "@playwright/*"
+      minor-patches:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Rust backend dependencies (Cargo)
+  - package-ecosystem: "cargo"
+    directory: "/graphql-rust-server"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
     labels:
       - "dependencies"
       - "rust"
+      - "backend"
       - "automated"
     commit-message:
-      prefix: "chore"
-      prefix-development: "chore"
+      prefix: "chore(deps)"
       include: "scope"
-    # Group patch updates to reduce PR noise
     groups:
+      graphql:
+        patterns:
+          - "async-graphql*"
+      database:
+        patterns:
+          - "sea-orm*"
+          - "sqlx*"
+      tokio:
+        patterns:
+          - "tokio*"
       patch-updates:
         patterns:
           - "*"
@@ -37,14 +77,55 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "monthly"
+      interval: "weekly"
       day: "monday"
-      time: "03:00"
+      time: "09:00"
     open-pull-requests-limit: 5
     labels:
       - "dependencies"
       - "github-actions"
+      - "ci/cd"
       - "automated"
     commit-message:
-      prefix: "ci"
+      prefix: "chore(ci)"
+      include: "scope"
+    groups:
+      actions:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Docker dependencies (frontend)
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "docker"
+      - "automated"
+    commit-message:
+      prefix: "chore(docker)"
+      include: "scope"
+
+  # Docker dependencies (Rust backend)
+  - package-ecosystem: "docker"
+    directory: "/graphql-rust-server"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "docker"
+      - "backend"
+      - "automated"
+    commit-message:
+      prefix: "chore(docker)"
       include: "scope"

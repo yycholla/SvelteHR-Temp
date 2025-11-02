@@ -1,0 +1,216 @@
+{{- if and .Values.frontend .Values.frontend.enabled -}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "sveltehr.fullname" . }}-frontend
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "sveltehr.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+  annotations:
+    # Container optimization annotations
+    build.method: "multi-stage Docker build with separate dependency layers"
+    build.target: {{ .Values.global.environment | eq "development" | ternary "development" "runtime" }}
+    buildkit.enabled: "true"
+    cache.npm: "BuildKit cache mount"
+    cache.vite: "BuildKit cache mount"
+    optimization.vite: "7.0.4"
+    optimization.deps: "Separate production/dev dependency layers"
+    {{- with .Values.frontend.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  replicas: {{ .Values.frontend.replicaCount }}
+  {{- with .Values.frontend.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "sveltehr.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: frontend
+  template:
+    metadata:
+      labels:
+        {{- include "sveltehr.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: frontend
+        {{- with .Values.frontend.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.frontend.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- if .Values.serviceAccount.create }}
+      serviceAccountName: {{ include "sveltehr.serviceAccountName" . }}-frontend
+      {{- end }}
+
+      {{- with .Values.frontend.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      # Init container: Wait for backend API
+      {{- if .Values.frontend.waitForBackend }}
+      initContainers:
+        - name: wait-for-backend
+          image: curlimages/curl:latest
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for backend API to be ready..."
+              until curl -sf {{ .Values.frontend.backendUrl | default (printf "http://%s-backend:%d/health" (include "sveltehr.fullname" .) (.Values.backend.service.port | int)) }}; do
+                echo "  Backend API is unavailable - sleeping 2s"
+                sleep 2
+              done
+              echo "Backend API is ready!"
+      {{- end }}
+
+      containers:
+        - name: sveltekit-app
+          # Frontend image (dev: port 5173, prod: port 3000)
+          image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.frontend.service.targetPort }}
+              name: http
+              protocol: TCP
+
+          env:
+            # Backend API URL
+            - name: PUBLIC_API_URL
+              value: {{ .Values.frontend.backendUrl | default (printf "http://%s-backend:%d" (include "sveltehr.fullname" .) (.Values.backend.service.port | int)) }}
+
+            # Database connection (for SSR)
+            - name: DB_HOST
+              value: {{ .Values.postgresql.service.name | default (printf "%s-postgres-rw" (include "sveltehr.fullname" .)) }}
+            - name: DB_PORT
+              value: {{ .Values.postgresql.service.port | default "5432" | quote }}
+            - name: DB_NAME
+              value: {{ .Values.postgresql.database }}
+            - name: DB_USER
+              value: {{ .Values.postgresql.username }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sveltehr.fullname" . }}-postgres-app-secret
+                  key: password
+
+            # Service authentication
+            - name: SERVICE_AUTH_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sveltehr.fullname" . }}-secrets
+                  key: service-auth-key
+
+            # Node.js configuration
+            - name: NODE_ENV
+              value: {{ .Values.global.environment | eq "development" | ternary "development" "production" }}
+            - name: PORT
+              value: {{ .Values.frontend.service.targetPort | quote }}
+            - name: HOST
+              value: {{ .Values.frontend.host | default "0.0.0.0" | quote }}
+
+            {{- with .Values.frontend.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+
+          {{- if .Values.frontend.envFrom }}
+          envFrom:
+            {{- toYaml .Values.frontend.envFrom | nindent 12 }}
+          {{- end }}
+
+          resources:
+            {{- toYaml .Values.frontend.resources | nindent 12 }}
+
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.frontend.livenessProbe.path | default "/" }}
+              port: {{ .Values.frontend.service.targetPort }}
+            initialDelaySeconds: {{ .Values.frontend.livenessProbe.initialDelaySeconds | default 30 }}
+            periodSeconds: {{ .Values.frontend.livenessProbe.periodSeconds | default 30 }}
+            timeoutSeconds: {{ .Values.frontend.livenessProbe.timeoutSeconds | default 5 }}
+            failureThreshold: {{ .Values.frontend.livenessProbe.failureThreshold | default 3 }}
+
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.frontend.readinessProbe.path | default "/" }}
+              port: {{ .Values.frontend.service.targetPort }}
+            initialDelaySeconds: {{ .Values.frontend.readinessProbe.initialDelaySeconds | default 5 }}
+            periodSeconds: {{ .Values.frontend.readinessProbe.periodSeconds | default 5 }}
+            timeoutSeconds: {{ .Values.frontend.readinessProbe.timeoutSeconds | default 3 }}
+            failureThreshold: {{ .Values.frontend.readinessProbe.failureThreshold | default 3 }}
+
+          {{- with .Values.frontend.startupProbe }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: {{ .Values.frontend.securityContext.runAsNonRoot | default true }}
+            runAsUser: {{ .Values.frontend.securityContext.runAsUser | default 1001 }}
+            capabilities:
+              drop:
+                - ALL
+            {{- with .Values.frontend.securityContext }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+
+          volumeMounts:
+            # Temporary files
+            - name: tmp
+              mountPath: /tmp
+
+            # npm cache (BuildKit benefits at runtime)
+            - name: npm-cache
+              mountPath: /home/svelte/.npm
+
+            # Vite cache (for dev mode hot reload)
+            {{- if eq .Values.global.environment "development" }}
+            - name: vite-cache
+              mountPath: /app/node_modules/.vite
+            {{- end }}
+
+            {{- with .Values.frontend.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: npm-cache
+          emptyDir: {}
+        {{- if eq .Values.global.environment "development" }}
+        - name: vite-cache
+          emptyDir: {}
+        {{- end }}
+        {{- with .Values.frontend.volumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+
+      {{- with .Values.frontend.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.frontend.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.frontend.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      securityContext:
+        fsGroup: {{ .Values.frontend.podSecurityContext.fsGroup | default 1001 }}
+        {{- with .Values.frontend.podSecurityContext }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+
+{{- end }}

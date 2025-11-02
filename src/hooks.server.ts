@@ -17,6 +17,7 @@ const PUBLIC_ROUTES = new Set([
 	'/login-working',
 	'/privacy',
 	'/terms',
+	'/health',
 	'/api/auth/login',
 	'/api/health',
 	'/api/metrics',

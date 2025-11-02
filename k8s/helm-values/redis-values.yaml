@@ -1,0 +1,132 @@
+# Bitnami Redis Helm Values (replaces Redis Operator)
+# https://github.com/bitnami/charts/tree/main/bitnami/redis
+#
+# This chart provides Redis with Sentinel for high availability
+# without the complexity of an operator
+
+# Redis architecture (replication with Sentinel for HA)
+architecture: replication  # Options: standalone, replication
+
+# Authentication
+auth:
+  enabled: true
+  password: "redis-dev-password"  # Change in production via secrets
+
+# Redis master configuration
+master:
+  count: 1
+
+  # Persistence
+  persistence:
+    enabled: true
+    storageClass: local-path
+    size: 1Gi
+
+  # Resources
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+  # Service configuration
+  service:
+    type: ClusterIP
+    ports:
+      redis: 6379
+
+# Redis replica configuration
+replica:
+  replicaCount: 1  # Will be increased to 2 for prod
+
+  # Persistence
+  persistence:
+    enabled: true
+    storageClass: local-path
+    size: 1Gi
+
+  # Resources
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# Redis Sentinel configuration (for automatic failover)
+sentinel:
+  enabled: true
+
+  # Sentinel instances
+  quorum: 1  # Will be 2 for prod (majority of sentinels)
+
+  # Resources
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+  # Persistence
+  persistence:
+    enabled: false  # Sentinel doesn't need persistence
+
+# Metrics (Prometheus integration)
+metrics:
+  enabled: true
+
+  # Prometheus ServiceMonitor
+  serviceMonitor:
+    enabled: true
+    namespace: monitoring
+    interval: 30s
+
+  # Resources for metrics exporter
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+# Redis configuration
+commonConfiguration: |-
+  # Enable AOF persistence
+  appendonly yes
+  appendfsync everysec
+
+  # Memory management
+  maxmemory 256mb
+  maxmemory-policy allkeys-lru
+
+  # Snapshotting
+  save 900 1
+  save 300 10
+  save 60 10000
+
+# Volume permissions (for k3s)
+volumePermissions:
+  enabled: true
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+# Security context
+podSecurityContext:
+  enabled: true
+  fsGroup: 1001
+
+containerSecurityContext:
+  enabled: true
+  runAsUser: 1001
+  runAsNonRoot: true

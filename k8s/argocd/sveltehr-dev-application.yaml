@@ -1,0 +1,100 @@
+# ArgoCD Application for SvelteHR Development Deployment
+# This configures ArgoCD to manage the sveltehr Helm chart from Git for dev environment
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sveltehr-dev
+  namespace: argocd
+  # Finalizer ensures cascade deletion (removes all deployed resources)
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  # Project (default = unrestricted access)
+  project: default
+
+  # Source: Git repository containing Helm chart
+  source:
+    repoURL: https://github.com/Mountain-Care-Rx/SvelteHR.git
+    targetRevision: develop  # Track develop branch for dev environment
+    path: k8s/helm-charts/sveltehr
+    helm:
+      # Use development values
+      valueFiles:
+        - values.yaml
+        - values-dev.yaml
+
+      # Skip CRDs (CloudNativePG operator should be installed separately)
+      skipCrds: true
+
+      # Pass release name and namespace to Helm
+      releaseName: sveltehr
+
+      # Optional: Override specific values for testing
+      # parameters:
+      #   - name: backend.image.tag
+      #     value: "develop-latest"
+      #   - name: frontend.image.tag
+      #     value: "develop-latest"
+
+  # Destination: Where to deploy
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: sveltehr-dev
+
+  # Sync policy: How ArgoCD manages the application
+  syncPolicy:
+    # Auto-create namespace if it doesn't exist
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+
+    # Manual sync for dev (no automated sync)
+    # Developers can trigger sync manually when ready
+    # automated:
+    #   prune: false
+    #   selfHeal: false
+
+    # Retry strategy for failed syncs
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m
+
+  # Ignore differences (prevents constant out-of-sync status)
+  ignoreDifferences:
+    # Ignore Helm release secrets (managed by Helm)
+    - group: ""
+      kind: Secret
+      name: sh.helm.release.*
+      jsonPointers:
+        - /data
+
+    # Ignore replicas for dev environment
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
+
+# =============================================================================
+# Development Environment Notes
+# =============================================================================
+#
+# Deployment:
+#   kubectl apply -f k8s/argocd/sveltehr-dev-application.yaml
+#
+# Manual Sync:
+#   argocd app sync sveltehr-dev
+#
+# Watch Status:
+#   argocd app get sveltehr-dev --watch
+#
+# Delete:
+#   argocd app delete sveltehr-dev
+#
+# Enable Auto-Sync (optional):
+#   Uncomment the 'automated' section in syncPolicy
+#
+# =============================================================================

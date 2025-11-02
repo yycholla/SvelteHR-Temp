@@ -15,6 +15,52 @@ patches:
   - path: configmap-dev.yaml
   # ingress-dev.yaml - Commented out due to kernel module issue
 
+  # Frontend Vite dev server patches
+  - target:
+      kind: Deployment
+      name: sveltehr-frontend
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/ports/0/containerPort
+        value: 5173
+      - op: replace
+        path: /spec/template/spec/containers/0/livenessProbe/httpGet/port
+        value: 5173
+      - op: replace
+        path: /spec/template/spec/containers/0/livenessProbe/initialDelaySeconds
+        value: 90
+      - op: replace
+        path: /spec/template/spec/containers/0/livenessProbe/timeoutSeconds
+        value: 10
+      - op: replace
+        path: /spec/template/spec/containers/0/readinessProbe/httpGet/path
+        value: /health
+      - op: replace
+        path: /spec/template/spec/containers/0/readinessProbe/httpGet/port
+        value: 5173
+      - op: replace
+        path: /spec/template/spec/containers/0/readinessProbe/initialDelaySeconds
+        value: 30
+      - op: replace
+        path: /spec/template/spec/containers/0/readinessProbe/timeoutSeconds
+        value: 30
+      - op: replace
+        path: /spec/template/spec/containers/0/readinessProbe/periodSeconds
+        value: 10
+      - op: replace
+        path: /spec/template/spec/containers/0/securityContext/runAsNonRoot
+        value: false
+      - op: replace
+        path: /spec/template/spec/containers/0/securityContext/runAsUser
+        value: 0
+  - target:
+      kind: Service
+      name: sveltehr-frontend
+    patch: |-
+      - op: replace
+        path: /spec/ports/0/targetPort
+        value: 5173
+
   # Inline resource limit patches
   - target:
       kind: Deployment
@@ -37,11 +83,11 @@ patches:
         path: /spec/template/spec/containers/0/resources
         value:
           requests:
-            memory: "64Mi"
-            cpu: "50m"
+            memory: "1Gi"  # Vite dev mode needs more memory for initial compilation
+            cpu: "200m"
           limits:
-            memory: "128Mi"
-            cpu: "100m"
+            memory: "2Gi"  # Vite + HMR + first compilation can use significant memory
+            cpu: "500m"
   - target:
       kind: Cluster
       name: sveltehr-postgres

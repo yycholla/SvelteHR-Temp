@@ -1,0 +1,78 @@
+# ArgoCD Application for SvelteHR Production Deployment
+# This configures ArgoCD to manage the sveltehr Helm chart from Git
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sveltehr-prod
+  namespace: argocd
+  # Finalizer ensures cascade deletion (removes all deployed resources)
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  # Project (default = unrestricted access)
+  project: default
+
+  # Source: Git repository containing Helm chart
+  source:
+    repoURL: https://github.com/Mountain-Care-Rx/SvelteHR.git
+    targetRevision: main  # Track main branch (or use specific tag/commit)
+    path: k8s/helm-charts/sveltehr
+    helm:
+      # Use production values
+      valueFiles:
+        - values.yaml
+        - values-prod.yaml
+
+      # Skip CRDs (CloudNativePG operator should be installed separately)
+      skipCrds: true
+
+      # Pass release name and namespace to Helm
+      releaseName: sveltehr
+
+      # Optional: Override specific values without committing to Git
+      # parameters:
+      #   - name: backend.replicaCount
+      #     value: "5"
+
+  # Destination: Where to deploy
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: sveltehr-prod
+
+  # Sync policy: How ArgoCD manages the application
+  syncPolicy:
+    # Auto-create namespace if it doesn't exist
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+
+    # Automated sync (optional - remove for manual sync)
+    automated:
+      # Automatically sync when Git changes detected
+      prune: true        # Delete resources no longer in Git
+      selfHeal: true     # Revert manual kubectl changes
+      allowEmpty: false  # Don't sync if no resources found
+
+    # Retry strategy for failed syncs
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  # Ignore differences (prevents constant out-of-sync status)
+  ignoreDifferences:
+    # Ignore Helm release secrets (managed by Helm)
+    - group: ""
+      kind: Secret
+      name: sh.helm.release.*
+      jsonPointers:
+        - /data
+
+    # Ignore replicas if HPA is managing them (when HPA enabled later)
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas

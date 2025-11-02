@@ -19,6 +19,18 @@ Thumbs.db
 # Env
 .env
 
+# Secrets and credentials (NEVER commit these!)
+**/secrets.yaml
+**/*secret*.yaml
+**/*-secret.yaml
+k8s/secrets/
+*.key
+*.pem
+credentials.json
+**/credentials/
+oauth-credentials.txt
+tailscale-oauth.txt
+
 # Rust
 target/
 Cargo.lock

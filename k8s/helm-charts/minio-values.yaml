@@ -1,0 +1,64 @@
+# MinIO Helm values for Velero backup storage
+# Credentials managed via Doppler and External Secrets Operator
+
+# Deployment mode
+mode: standalone
+
+# MinIO root credentials (from existing secret)
+existingSecret: minio-secret
+
+# Persistence for backup data
+persistence:
+  enabled: true
+  size: 50Gi  # Adjust based on backup needs
+  storageClass: ""  # Use default storage class
+
+# Resource limits
+resources:
+  requests:
+    memory: 512Mi
+    cpu: 100m
+  limits:
+    memory: 2Gi
+    cpu: 1000m
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 9000
+
+# Console service (MinIO web UI)
+consoleService:
+  type: ClusterIP
+  port: 9001
+
+# Security context
+securityContext:
+  enabled: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+# Buckets to create on startup
+buckets:
+  - name: velero-backups
+    policy: none
+    purge: false
+
+# Users to create (for Velero)
+users:
+  - accessKey: velero
+    existingSecret: velero-minio-secret
+    existingSecretKey: VELERO_MINIO_SECRET_KEY
+    policy: readwrite
+
+# Prometheus monitoring
+metrics:
+  serviceMonitor:
+    enabled: true
+    namespace: monitoring
+    interval: 30s
+
+# Network policies (optional security hardening)
+networkPolicy:
+  enabled: false
