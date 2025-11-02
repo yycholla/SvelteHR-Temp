@@ -7,7 +7,7 @@
  * This test MUST FAIL initially (TDD requirement) until the testing framework implementation exists.
  *
  * Performance Target: < 200ms for introspection queries
- * PostGraphile 4.14 compatibility required
+ * Rust GraphQL server compatibility required
  * RBAC field authorization integration
  *
  * Created: 2025-09-24
@@ -66,7 +66,7 @@ afterAll(() => {
 });
 
 describe('Testing Framework GraphQL Schema Introspection', () => {
-	test('should connect to PostGraphile endpoint and fetch schema introspection', async () => {
+	test('should connect to Rust GraphQL endpoint and fetch schema introspection', async () => {
 		const startTime = Date.now();
 
 		// Fetch full introspection query with all metadata
@@ -98,10 +98,10 @@ describe('Testing Framework GraphQL Schema Introspection', () => {
 		console.log(`✅ Schema introspection completed in ${duration}ms`);
 	});
 
-	test('should validate PostGraphile 4.14 compatibility patterns', () => {
+	test('should validate Rust GraphQL server compatibility patterns', () => {
 		expect(schema).toBeDefined();
 
-		// Validate PostGraphile-specific patterns
+		// Validate Rust GraphQL-specific patterns
 		const queryType = schema.getQueryType();
 		expect(queryType).toBeDefined();
 		expect(queryType!.name).toBe('Query');
@@ -114,7 +114,7 @@ describe('Testing Framework GraphQL Schema Introspection', () => {
 		expect(subscriptionType).toBeDefined();
 		expect(subscriptionType!.name).toBe('Subscription');
 
-		// Check for PostGraphile conventions
+		// Check for Rust GraphQL conventions
 		const types = schema.getTypeMap();
 
 		// Should have PageInfo type for pagination
@@ -644,13 +644,13 @@ describe('Testing Framework GraphQL Schema Introspection', () => {
 		}
 	});
 
-	test('should validate PostGraphile-specific features', () => {
+	test('should validate Rust GraphQL-specific features', () => {
 		expect(schema).toBeDefined();
 
-		// Check for PostGraphile-specific patterns
+		// Check for Rust GraphQL-specific patterns
 		const types = schema.getTypeMap();
 
-		// PostGraphile generates these automatically
+		// Rust GraphQL generates these automatically
 		expect(types['Node']).toBeDefined(); // Relay Node interface
 		expect(types['PageInfo']).toBeDefined(); // Pagination info
 
@@ -659,7 +659,7 @@ describe('Testing Framework GraphQL Schema Introspection', () => {
 		expect(types['DateTime']).toBeDefined();
 		expect(types['JSON']).toBeDefined();
 
-		console.log('✅ PostGraphile 4.14 compatibility validated');
+		console.log('✅ Rust GraphQL server compatibility validated');
 	});
 
 	test('should validate schema matches testing framework specification completely', () => {

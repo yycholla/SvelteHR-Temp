@@ -4,12 +4,12 @@
  * Task: T023
  *
  * Integration tests for employee_skills and employee_certifications tables
- * Tests full stack: PostgreSQL → PostGraphile → GraphQL → urql client
+ * Tests full stack: PostgreSQL → Rust GraphQL → urql → urql client
  * Validates proficiency levels, endorsements, expiry tracking, and full-text search
  *
  * Prerequisites:
  * - PostgreSQL database with migrations 20251010_010 and 20251010_011 applied
- * - PostGraphile running on http://localhost:4000/graphql
+ * - Rust GraphQL server running on http://localhost:4000/graphql
  * - employee_skills table with proficiency_level (1-5) and endorsed_by UUID[]
  * - employee_certifications table with expiry_date tracking
  */
@@ -28,7 +28,7 @@ beforeAll(() => {
 		fetch: fetch as any,
 		exchanges: [cacheExchange, fetchExchange],
 		requestPolicy: 'network-only',
-		preferGetMethod: false // Force POST for all operations (PostGraphile requirement)
+		preferGetMethod: false // Force POST for all operations (for GraphQL server)
 	});
 });
 

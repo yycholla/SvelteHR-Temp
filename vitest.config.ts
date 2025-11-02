@@ -215,7 +215,6 @@ export default defineConfig({
 						VITEST: 'true',
 						GRAPHQL_ENDPOINT: 'http://localhost:4000/graphql',
 						GRAPHQL_WS_ENDPOINT: 'ws://localhost:4000/graphql',
-						POSTGRAPHILE_URL: 'http://localhost:4000',
 						TEST_DATABASE_URL:
 							process.env.TEST_DATABASE_URL ||
 							'postgresql://test:test@localhost:5432/sveltehr_test',
@@ -261,7 +260,6 @@ export default defineConfig({
 						NODE_ENV: 'test',
 						VITEST: 'true',
 						GRAPHQL_ENDPOINT: 'http://localhost:4000/graphql',
-						POSTGRAPHILE_URL: 'http://localhost:4000',
 						// Schema validation settings
 						GRAPHQL_SCHEMA_VALIDATION_ENABLED: 'true',
 						GRAPHQL_INTROSPECTION_ENABLED: 'true',

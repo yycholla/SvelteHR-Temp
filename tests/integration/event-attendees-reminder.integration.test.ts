@@ -4,11 +4,11 @@
  * Task: T005
  *
  * Integration tests for event_attendees.reminder_time field with REAL GraphQL queries
- * Tests full stack: PostgreSQL → PostGraphile → GraphQL → urql client
+ * Tests full stack: PostgreSQL → Rust GraphQL → urql → urql client
  *
  * Prerequisites:
  * - PostgreSQL database with migration 20251010_006 applied
- * - PostGraphile running on http://localhost:4000/graphql
+ * - Rust GraphQL server running on http://localhost:4000/graphql
  * - event_attendees table with reminder_time column
  */
 
@@ -27,7 +27,7 @@ beforeAll(() => {
 		fetch: fetch as any,
 		exchanges: [cacheExchange, fetchExchange],
 		requestPolicy: 'network-only', // Always fetch fresh data for integration tests
-		preferGetMethod: false // Force POST for all operations (PostGraphile requirement)
+		preferGetMethod: false // Force POST for all operations (for GraphQL server)
 	});
 });
 
@@ -95,8 +95,8 @@ describe('Event Attendees Reminder Time Integration (P0 Hotfix)', () => {
 		});
 
 		test.skip('should filter attendees with reminders set (NOT SUPPORTED: condition cannot filter isNull: false)', async () => {
-			// Note: PostGraphile 'condition' only supports exact equality, not null checks like isNull: false
-			// This test is skipped until postgraphile-plugin-connection-filter properly includes reminderTime in EventAttendeeFilter
+			// Note: Rust GraphQL server 'condition' only supports exact equality, not null checks like isNull: false
+			// This test is skipped until GraphQL server connection filter properly includes reminderTime in EventAttendeeFilter
 			const query = `
 				query GetAttendeesWithReminders {
 					allEventAttendees(
@@ -281,8 +281,8 @@ describe('Event Attendees Reminder Time Integration (P0 Hotfix)', () => {
 		});
 
 		test.skip('should query attendees with reminder time range (NOT SUPPORTED: condition cannot do range queries)', async () => {
-			// Note: PostGraphile 'condition' only supports exact equality, not range operators like greaterThanOrEqualTo
-			// This test is skipped until postgraphile-plugin-connection-filter properly includes reminderTime in EventAttendeeFilter
+			// Note: Rust GraphQL server 'condition' only supports exact equality, not range operators like greaterThanOrEqualTo
+			// This test is skipped until GraphQL server connection filter properly includes reminderTime in EventAttendeeFilter
 			const query = `
 				query GetAttendeesInReminderRange($min: Int!, $max: Int!) {
 					allEventAttendees(
@@ -407,8 +407,8 @@ describe('Event Attendees Reminder Time Integration (P0 Hotfix)', () => {
 
 	describe('Performance Integration', () => {
 		test.skip('should query large result set efficiently (NOT SUPPORTED: condition cannot filter isNull: false)', async () => {
-			// Note: PostGraphile 'condition' only supports exact equality, not null checks like isNull: false
-			// This test is skipped until postgraphile-plugin-connection-filter properly includes reminderTime in EventAttendeeFilter
+			// Note: Rust GraphQL server 'condition' only supports exact equality, not null checks like isNull: false
+			// This test is skipped until GraphQL server connection filter properly includes reminderTime in EventAttendeeFilter
 			const query = `
 				query GetAllAttendeesWithReminders {
 					allEventAttendees(

@@ -4,12 +4,12 @@
  * Task: T013
  *
  * Integration tests for users.manager_id field with REAL GraphQL queries
- * Tests full stack: PostgreSQL → PostGraphile → GraphQL → urql client
+ * Tests full stack: PostgreSQL → Rust GraphQL → urql → urql client
  * Validates circular reference prevention and reporting chain queries
  *
  * Prerequisites:
  * - PostgreSQL database with migration 20251010_007 applied
- * - PostGraphile running on http://localhost:4000/graphql
+ * - Rust GraphQL server running on http://localhost:4000/graphql
  * - users table with manager_id self-referencing FK
  * - Circular reference prevention trigger active
  */
@@ -28,7 +28,7 @@ beforeAll(() => {
 		fetch: fetch as any,
 		exchanges: [cacheExchange, fetchExchange],
 		requestPolicy: 'network-only',
-		preferGetMethod: false // Force POST for all operations (PostGraphile requirement)
+		preferGetMethod: false // Force POST for all operations (for GraphQL server)
 	});
 });
 
