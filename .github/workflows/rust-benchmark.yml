@@ -27,9 +27,13 @@ jobs:
     runs-on: ubuntu-latest
     # Skip benchmarks on Dependabot PRs
     if: github.actor != 'dependabot[bot]'
-    defaults:
-      run:
-        working-directory: ./graphql-rust-server
+
+    # Use pre-built container from GHCR
+    container:
+      image: ghcr.io/${{ github.repository }}/backend-server:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     services:
       postgres:
@@ -50,19 +54,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-bench-${{ hashFiles('**/Cargo.lock') }}
-
       - name: Run benchmarks
+        working-directory: ./graphql-rust-server
         run: cargo bench --bench resolver_benchmarks -- --output-format bencher | tee benchmark_output.txt
 
       - name: Store benchmark result (GitHub Pages)
@@ -116,9 +109,13 @@ jobs:
     name: Benchmark Comparison
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    defaults:
-      run:
-        working-directory: ./graphql-rust-server
+
+    # Use pre-built container from GHCR
+    container:
+      image: ghcr.io/${{ github.repository }}/backend-server:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     services:
       postgres:
@@ -139,19 +136,8 @@ jobs:
       - name: Checkout PR code
         uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-bench-pr-${{ hashFiles('**/Cargo.lock') }}
-
       - name: Run PR benchmarks
+        working-directory: ./graphql-rust-server
         run: cargo bench --bench resolver_benchmarks -- --save-baseline pr
 
       - name: Checkout main branch
@@ -160,9 +146,11 @@ jobs:
           ref: main
 
       - name: Run main benchmarks
+        working-directory: ./graphql-rust-server
         run: cargo bench --bench resolver_benchmarks -- --save-baseline main
 
       - name: Compare benchmarks
+        working-directory: ./graphql-rust-server
         run: cargo bench --bench resolver_benchmarks -- --baseline main --load-baseline pr
 
       - name: Store PR benchmark result

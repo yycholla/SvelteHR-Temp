@@ -9,15 +9,20 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: full
+  REGISTRY: ghcr.io
 
 jobs:
   comprehensive-tests:
     name: Comprehensive Test Suite
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    defaults:
-      run:
-        working-directory: ./graphql-rust-server
+
+    # Use pre-built container from GHCR
+    container:
+      image: ghcr.io/${{ github.repository }}/backend-server:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     services:
       postgres:
@@ -38,51 +43,45 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-nightly-${{ hashFiles('**/Cargo.lock') }}
-
       - name: Run all unit tests
+        working-directory: ./graphql-rust-server
         run: cargo test --lib --verbose --all-features
 
       - name: Run all integration tests
+        working-directory: ./graphql-rust-server
         run: cargo test --test integration_tests --verbose
 
       - name: Run load tests (basic only)
+        working-directory: ./graphql-rust-server
         run: cargo test --test basic_queries_load -- --ignored --test-threads=1
         timeout-minutes: 10
         continue-on-error: true
 
       - name: Run benchmarks
+        working-directory: ./graphql-rust-server
         run: cargo bench --bench resolver_benchmarks
         timeout-minutes: 15
 
       - name: Check for dependency updates
+        working-directory: ./graphql-rust-server
         run: |
           cargo install cargo-outdated || true
           cargo outdated || true
 
   security-full-audit:
-    defaults:
-      run:
-        working-directory: ./graphql-rust-server
     name: Full Security Audit
     runs-on: ubuntu-latest
+
+    # Use pre-built container from GHCR
+    container:
+      image: ghcr.io/${{ github.repository }}/backend-server:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
 
       - name: Install audit tools
         run: |
@@ -90,29 +89,34 @@ jobs:
           cargo install cargo-deny
 
       - name: Run cargo audit
+        working-directory: ./graphql-rust-server
         run: cargo audit
 
       - name: Run cargo deny
+        working-directory: ./graphql-rust-server
         run: cargo deny check
 
       - name: Check licenses
+        working-directory: ./graphql-rust-server
         run: cargo deny check licenses
 
   rustdoc-check:
-    defaults:
-      run:
-        working-directory: ./graphql-rust-server
     name: Documentation Check
     runs-on: ubuntu-latest
+
+    # Use pre-built container from GHCR
+    container:
+      image: ghcr.io/${{ github.repository }}/backend-server:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
       - name: Build documentation
+        working-directory: ./graphql-rust-server
         run: cargo doc --no-deps --all-features
         env:
           RUSTDOCFLAGS: -D warnings
@@ -121,7 +125,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: documentation
-          path: target/doc/
+          path: graphql-rust-server/target/doc/
           retention-days: 7
 
   notify-on-failure:
