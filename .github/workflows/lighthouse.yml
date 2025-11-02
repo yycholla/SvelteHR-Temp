@@ -22,6 +22,8 @@ jobs:
     name: Lighthouse Performance Audit
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Skip Lighthouse on Dependabot PRs (expensive)
+    if: github.actor != 'dependabot[bot]'
     steps:
       - uses: actions/checkout@v4
 

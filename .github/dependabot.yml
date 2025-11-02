@@ -7,7 +7,7 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "09:00"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 3
     labels:
       - "dependencies"
       - "frontend"
@@ -16,24 +16,19 @@ updates:
       prefix: "chore(deps)"
       include: "scope"
     groups:
-      svelte:
-        patterns:
-          - "svelte*"
-          - "@sveltejs/*"
-      vite:
-        patterns:
-          - "vite*"
-          - "@vitejs/*"
-      testing:
-        patterns:
-          - "vitest*"
-          - "@vitest/*"
-          - "playwright*"
-          - "@playwright/*"
-      minor-patches:
+      # Group ALL minor and patch updates into a single PR
+      production-dependencies:
+        dependency-type: "production"
         update-types:
           - "minor"
           - "patch"
+      dev-dependencies:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+      # Major updates get separate PRs (need review)
+      # No group defined - creates individual PRs for major updates
 
   # Rust backend dependencies (Cargo)
   - package-ecosystem: "cargo"
@@ -42,7 +37,7 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "09:00"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 2
     labels:
       - "dependencies"
       - "rust"
@@ -52,26 +47,14 @@ updates:
       prefix: "chore(deps)"
       include: "scope"
     groups:
-      graphql:
-        patterns:
-          - "async-graphql*"
-      database:
-        patterns:
-          - "sea-orm*"
-          - "sqlx*"
-      tokio:
-        patterns:
-          - "tokio*"
-      patch-updates:
-        patterns:
-          - "*"
-        update-types:
-          - "patch"
-      minor-updates:
+      # Group all minor and patch updates together
+      rust-minor-patches:
         patterns:
           - "*"
         update-types:
           - "minor"
+          - "patch"
+      # Major updates get separate PRs (need review)
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
@@ -80,7 +63,7 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "09:00"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 1
     labels:
       - "dependencies"
       - "github-actions"
@@ -90,12 +73,10 @@ updates:
       prefix: "chore(ci)"
       include: "scope"
     groups:
-      actions:
+      # Group ALL Actions updates into a single PR
+      all-actions:
         patterns:
           - "*"
-        update-types:
-          - "minor"
-          - "patch"
 
   # Docker dependencies (frontend)
   - package-ecosystem: "docker"
@@ -104,7 +85,7 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "09:00"
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 1
     labels:
       - "dependencies"
       - "docker"
@@ -112,6 +93,10 @@ updates:
     commit-message:
       prefix: "chore(docker)"
       include: "scope"
+    groups:
+      all-docker:
+        patterns:
+          - "*"
 
   # Docker dependencies (Rust backend)
   - package-ecosystem: "docker"
@@ -120,7 +105,7 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "09:00"
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 1
     labels:
       - "dependencies"
       - "docker"
@@ -129,3 +114,7 @@ updates:
     commit-message:
       prefix: "chore(docker)"
       include: "scope"
+    groups:
+      all-docker-backend:
+        patterns:
+          - "*"

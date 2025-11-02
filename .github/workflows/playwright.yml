@@ -17,6 +17,8 @@ jobs:
     name: Build Backend Image
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Skip expensive E2E tests on Dependabot PRs
+    if: github.actor != 'dependabot[bot]'
     steps:
       - uses: actions/checkout@v4
 

@@ -25,6 +25,8 @@ jobs:
   benchmark:
     name: Performance Benchmarks
     runs-on: ubuntu-latest
+    # Skip benchmarks on Dependabot PRs
+    if: github.actor != 'dependabot[bot]'
     defaults:
       run:
         working-directory: ./graphql-rust-server
