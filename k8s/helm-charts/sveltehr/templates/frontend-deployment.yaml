@@ -62,7 +62,7 @@ spec:
             - -c
             - |
               echo "Waiting for backend API to be ready..."
-              until curl -sf {{ .Values.frontend.backendUrl | default (printf "http://%s-backend:%d/health" (include "sveltehr.fullname" .) (.Values.backend.service.port | int)) }}; do
+              until curl -sf {{ .Values.frontend.backendUrl | default (printf "http://%s-backend:%d" (include "sveltehr.fullname" .) (.Values.backend.service.port | int)) }}/health; do
                 echo "  Backend API is unavailable - sleeping 2s"
                 sleep 2
               done
