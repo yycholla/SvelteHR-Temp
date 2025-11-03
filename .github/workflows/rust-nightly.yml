@@ -34,7 +34,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install mold linker
         run: |
@@ -87,7 +87,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install mold linker
         run: |
@@ -133,7 +133,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install mold linker
         run: |
@@ -162,7 +162,7 @@ jobs:
           RUSTDOCFLAGS: -D warnings
 
       - name: Upload documentation
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: documentation
           path: graphql-rust-server/target/doc/
@@ -176,7 +176,7 @@ jobs:
 
     steps:
       - name: Create issue on failure
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const title = `Nightly Test Failure - ${new Date().toISOString().split('T')[0]}`;
