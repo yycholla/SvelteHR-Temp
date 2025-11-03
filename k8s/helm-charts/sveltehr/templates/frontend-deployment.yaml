@@ -126,23 +126,31 @@ spec:
           resources:
             {{- toYaml .Values.frontend.resources | nindent 12 }}
 
+          {{- with .Values.frontend.livenessProbe }}
+          {{- if .path }}
           livenessProbe:
             httpGet:
-              path: {{ .Values.frontend.livenessProbe.path | default "/" }}
-              port: {{ .Values.frontend.service.targetPort }}
-            initialDelaySeconds: {{ .Values.frontend.livenessProbe.initialDelaySeconds | default 30 }}
-            periodSeconds: {{ .Values.frontend.livenessProbe.periodSeconds | default 30 }}
-            timeoutSeconds: {{ .Values.frontend.livenessProbe.timeoutSeconds | default 5 }}
-            failureThreshold: {{ .Values.frontend.livenessProbe.failureThreshold | default 3 }}
+              path: {{ .path | default "/" }}
+              port: {{ $.Values.frontend.service.targetPort }}
+            initialDelaySeconds: {{ .initialDelaySeconds | default 30 }}
+            periodSeconds: {{ .periodSeconds | default 30 }}
+            timeoutSeconds: {{ .timeoutSeconds | default 5 }}
+            failureThreshold: {{ .failureThreshold | default 3 }}
+          {{- end }}
+          {{- end }}
 
+          {{- with .Values.frontend.readinessProbe }}
+          {{- if .path }}
           readinessProbe:
             httpGet:
-              path: {{ .Values.frontend.readinessProbe.path | default "/" }}
-              port: {{ .Values.frontend.service.targetPort }}
-            initialDelaySeconds: {{ .Values.frontend.readinessProbe.initialDelaySeconds | default 5 }}
-            periodSeconds: {{ .Values.frontend.readinessProbe.periodSeconds | default 5 }}
-            timeoutSeconds: {{ .Values.frontend.readinessProbe.timeoutSeconds | default 3 }}
-            failureThreshold: {{ .Values.frontend.readinessProbe.failureThreshold | default 3 }}
+              path: {{ .path | default "/" }}
+              port: {{ $.Values.frontend.service.targetPort }}
+            initialDelaySeconds: {{ .initialDelaySeconds | default 5 }}
+            periodSeconds: {{ .periodSeconds | default 5 }}
+            timeoutSeconds: {{ .timeoutSeconds | default 3 }}
+            failureThreshold: {{ .failureThreshold | default 3 }}
+          {{- end }}
+          {{- end }}
 
           {{- with .Values.frontend.startupProbe }}
           startupProbe:

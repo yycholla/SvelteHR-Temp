@@ -282,15 +282,21 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	try {
 		const pathname = event.url.pathname;
+		const userAgent = event.request.headers.get('user-agent');
 
-		// Log request start
-		console.log(`[DEBUG] Logger info call: ${event.request.method} ${pathname}`);
-		logger.info(`Request started: ${event.request.method} ${pathname}`, {
-			requestId,
-			method: event.request.method,
-			url: pathname,
-			userAgent: event.request.headers.get('user-agent')?.slice(0, 100)
-		});
+		// Skip logging for Kubernetes health probes to reduce noise
+		const isHealthProbe = userAgent?.includes('kube-probe');
+
+		// Log request start (skip kube-probe requests)
+		if (!isHealthProbe) {
+			console.log(`[DEBUG] Logger info call: ${event.request.method} ${pathname}`);
+			logger.info(`Request started: ${event.request.method} ${pathname}`, {
+				requestId,
+				method: event.request.method,
+				url: pathname,
+				userAgent: userAgent?.slice(0, 100)
+			});
+		}
 
 		// Performance optimization: Skip authentication for static files
 		const isStaticFile = STATIC_EXTENSIONS.has(pathname.substring(pathname.lastIndexOf('.')));
@@ -356,11 +362,13 @@ export const handle: Handle = async ({ event, resolve }) => {
 		// Add request correlation ID to response headers
 		response.headers.set('X-Request-ID', requestId);
 
-		// Log request completion
-		logger.request(event.request.method, pathname, response.status, duration, {
-			requestId,
-			userId: event.locals.user?.id
-		});
+		// Log request completion (skip kube-probe requests)
+		if (!isHealthProbe) {
+			logger.request(event.request.method, pathname, response.status, duration, {
+				requestId,
+				userId: event.locals.user?.id
+			});
+		}
 
 		// Security headers
 		const isProduction = process.env.NODE_ENV === 'production';

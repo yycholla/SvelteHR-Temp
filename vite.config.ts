@@ -117,9 +117,15 @@ export default defineConfig({
 		port: 5173, // Fixed port to match Docker mapping
 		host: '0.0.0.0', // Bind to all interfaces for K8s access
 
+		// Explicitly set origin to stabilize Vite 7.x module runner in K8s
+		origin: process.env.VITE_K8S_MODE === 'true'
+			? `http://${process.env.VITE_HMR_HOST || 'localhost'}:${process.env.VITE_HMR_PORT || '5173'}`
+			: undefined,
+
 		// Allow Tailscale MagicDNS hostnames for remote development access
 		allowedHosts: [
 			'.ts.net', // Allow all Tailscale MagicDNS domains
+			'.svc.cluster.local', // Allow all Kubernetes service DNS names
 			'localhost',
 			'127.0.0.1',
 			'192.168.1.129' // Local network IP (Traefik)

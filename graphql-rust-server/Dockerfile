@@ -22,6 +22,7 @@ FROM chef AS builder
 RUN apt-get update && apt-get install -y \
     pkg-config \
     libssl-dev \
+    clang \
     mold \
     && rm -rf /var/lib/apt/lists/*
 
@@ -60,7 +61,7 @@ COPY --from=builder /app/target/release/seed-data /app/
 
 # Copy startup script and set permissions before switching to appuser
 COPY docker-entrypoint.sh /app/
-RUN chmod +x /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh /app/hr-graphql-server /app/migration /app/seed-data
 
 # Create non-root user and transfer ownership
 RUN useradd -m -u 1000 appuser && \

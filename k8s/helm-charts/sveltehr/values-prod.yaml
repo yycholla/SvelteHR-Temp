@@ -108,6 +108,12 @@ redis:
   # Standalone mode for resource-constrained environment
   architecture: standalone
 
+  # Override chart's image tag with latest stable
+  image:
+    registry: docker.io
+    repository: bitnami/redis
+    tag: latest
+
   # Authentication enabled for production
   auth:
     enabled: true
@@ -139,10 +145,15 @@ backend:
 
   # Image configuration
   image:
-    repository: localhost:5000/sveltehr-backend
-    tag: "latest"  # Use latest for now
+    repository: ghcr.io/mountain-care-rx/sveltehr/backend-server
+    tag: "latest"  # Use latest for production deployments
     pullPolicy: Always
     target: production
+
+  # Image pull secrets for private GHCR registry
+  # Apply secret first: kubectl apply -f k8s/secrets/ghcr-pull-secret.yaml
+  imagePullSecrets:
+    - name: ghcr-pull-secret
 
   # Production resources
   resources:
@@ -221,10 +232,15 @@ frontend:
 
   # Image configuration
   image:
-    repository: localhost:5000/sveltehr-frontend
-    tag: "latest"  # Use latest for now
+    repository: ghcr.io/mountain-care-rx/sveltehr/frontend
+    tag: "latest"  # Use latest for production deployments
     pullPolicy: Always
     target: production
+
+  # Image pull secrets for private GHCR registry
+  # Apply secret first: kubectl apply -f k8s/secrets/ghcr-pull-secret.yaml
+  imagePullSecrets:
+    - name: ghcr-pull-secret
 
   # Service configuration (production build)
   service:

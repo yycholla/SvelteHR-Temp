@@ -88,8 +88,7 @@ spec:
               name: http
               protocol: TCP
 
-          # Direct server execution (no entrypoint script)
-          # Migration runs separately as Helm pre-install hook
+          # Run migrations on startup, then start server
           command: ["/bin/sh", "-c"]
           args:
             - |
@@ -103,13 +102,38 @@ spec:
               echo "Redis: ${REDIS_URL}"
               echo "================================================================"
               echo ""
-              echo "Note: Migrations run as separate Helm pre-install hook"
-              echo ""
 
               # Construct DATABASE_URL from components
               export DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
 
-              # Start server directly
+              # Run migrations
+              echo "Running database migrations..."
+              if [ -f "./hr-migration" ]; then
+                ./hr-migration
+                echo "✓ Migrations completed successfully"
+              else
+                echo "⚠ Migration binary not found, skipping migrations"
+              fi
+              echo ""
+
+              # Skip seed in production
+              {{- if ne .Values.global.environment "production" }}
+              # Run seed data (dev/staging only)
+              echo "Running seed data..."
+              if [ -f "./hr-seed" ]; then
+                ./hr-seed
+                echo "✓ Seed data completed successfully"
+              else
+                echo "⚠ Seed binary not found, skipping seed"
+              fi
+              echo ""
+              {{- else }}
+              echo "⚠ Skipping seed data in production environment"
+              echo ""
+              {{- end }}
+
+              # Start server
+              echo "Starting GraphQL server..."
               exec ./hr-graphql-server
 
           env:
@@ -125,8 +149,15 @@ spec:
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
+                  {{- if .Values.externalSecrets.enabled }}
+                  # Use Doppler password in production
+                  name: {{ include "sveltehr.fullname" . }}-secrets
+                  key: password
+                  {{- else }}
+                  # Use Helm-generated password in dev
                   name: {{ include "sveltehr.fullname" . }}-postgres-app-secret
                   key: password
+                  {{- end }}
 
             # Redis connection (Bitnami Redis service)
             - name: REDIS_URL

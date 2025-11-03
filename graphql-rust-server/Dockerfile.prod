@@ -123,16 +123,17 @@ RUN test -f /app/seed-data-bin || \
     (echo "Build failed: seed-data binary not found" && exit 1)
 
 # =============================================================================
-# Stage 5a: Server Runtime (TARGET: server)
+# Stage 5a: Server Runtime (TARGET: server) - Includes all binaries
 # =============================================================================
 FROM alpine:3.19 AS server
 
-# Install runtime dependencies
+# Install runtime dependencies (including postgresql-client for migrations)
 RUN apk add --no-cache \
     libgcc \
     openssl \
     ca-certificates \
-    curl
+    curl \
+    postgresql-client
 
 # Create non-root user
 RUN addgroup -g 1001 -S rust && \
@@ -140,11 +141,16 @@ RUN addgroup -g 1001 -S rust && \
 
 WORKDIR /app
 
-# Copy server binary from server-builder
+# Copy ALL binaries into single image
 COPY --from=server-builder /app/hr-graphql-server ./hr-graphql-server
+COPY --from=migration-builder /app/migration-bin ./hr-migration
+COPY --from=seed-builder /app/seed-data-bin ./hr-seed
 
-# Make binary executable
-RUN chmod +x /app/hr-graphql-server
+# Copy migration files (required for SeaORM migrations)
+COPY --from=builder /app/migration ./migration-files
+
+# Make binaries executable
+RUN chmod +x /app/hr-graphql-server /app/hr-migration /app/hr-seed
 
 # Change ownership to non-root user
 RUN chown -R rust:rust /app
@@ -165,7 +171,7 @@ ENV ENVIRONMENT=production
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:4000/health || exit 1
 
-# Start server directly (no migrations here)
+# Start server (migrations run via Helm startup script)
 CMD ["./hr-graphql-server"]
 
 # =============================================================================

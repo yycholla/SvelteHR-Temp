@@ -24,6 +24,9 @@
 # Safe for local development (cluster is running on localhost)
 allow_k8s_contexts('default')
 
+# Use local Docker registry for K3s development
+default_registry('localhost:5000')
+
 # Update settings for optimal performance
 update_settings(
     max_parallel_updates=3,        # Build up to 3 resources in parallel
@@ -71,7 +74,7 @@ k8s_yaml(helm(
 
 # Custom Docker build with live update for instant feedback
 docker_build(
-    'ghcr.io/mountain-care-rx/sveltehr/frontend',
+    'sveltehr-frontend',
     context='.',
     dockerfile='./Dockerfile',
     target='development',  # Use development stage from multi-stage build
@@ -151,25 +154,21 @@ k8s_resource(
 # Backend - Rust GraphQL Server
 # -----------------------------------------------------------------------------
 
-# Backend Docker build (optional: add live update for Rust if needed)
+# Backend Docker build
 docker_build(
-    'ghcr.io/mountain-care-rx/sveltehr/backend-server',
+    'sveltehr-backend',
     context='./graphql-rust-server',
     dockerfile='./graphql-rust-server/Dockerfile',
-    # Note: No target specified - builds the entire Dockerfile (final unnamed stage)
 
-    # Optional: Live update for Rust (slower than frontend, rebuilds required)
-    # Uncomment if you want to enable Rust hot reload
-    # live_update=[
-    #     sync('./graphql-rust-server/src', '/app/src'),
-    #     run('cargo build --release', trigger=['./graphql-rust-server/src']),
-    # ],
-
-    only=[
-        './src',
-        './Cargo.toml',
-        './Cargo.lock',
-        './Dockerfile',
+    # Include all necessary files for Rust build
+    ignore=[
+        '.git',
+        '.github',
+        'target',
+        'coverage',
+        'docs',
+        '*.log',
+        '.env*',
     ]
 )
 
@@ -252,6 +251,61 @@ local_resource(
     auto_init=False,
     trigger_mode=TRIGGER_MODE_MANUAL,
 )
+
+# -----------------------------------------------------------------------------
+# Tailscale Access (Optional - requires Tailscale operator installed)
+# -----------------------------------------------------------------------------
+
+# Check if Tailscale operator is installed (check both common namespace names)
+tailscale_enabled = (
+    str(local('kubectl get deploy operator -n tailscale 2>/dev/null || echo "NotFound"')).find('NotFound') == -1 or
+    str(local('kubectl get deploy operator -n tailscale-operator 2>/dev/null || echo "NotFound"')).find('NotFound') == -1
+)
+
+if tailscale_enabled:
+    # Note: Tailscale services will be created by running:
+    # ./scripts/setup-tailscale.sh
+    #
+    # They are NOT deployed automatically by Tilt to avoid conflicts.
+    # Run the script separately when you want to enable Tailscale access.
+
+    print("""
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                  🌐 Tailscale Operator Detected                           ║
+╠═══════════════════════════════════════════════════════════════════════════╣
+║                                                                           ║
+║  To enable remote access via Tailscale:                                  ║
+║                                                                           ║
+║  1. Run: ./scripts/setup-tailscale.sh                                    ║
+║                                                                           ║
+║  2. Access from any device on your Tailnet:                              ║
+║     • Frontend: https://sveltehr-dev-frontend.<tailnet>.ts.net          ║
+║     • Backend:  https://sveltehr-dev-backend.<tailnet>.ts.net           ║
+║     • Tilt UI:  https://sveltehr-tilt-ui.<tailnet>.ts.net               ║
+║                                                                           ║
+║  See: TAILSCALE_QUICK_START.md for instructions                          ║
+║                                                                           ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+    """)
+else:
+    print("""
+╔═══════════════════════════════════════════════════════════════════════════╗
+║              Tailscale Operator Not Detected (Optional)                   ║
+╠═══════════════════════════════════════════════════════════════════════════╣
+║                                                                           ║
+║  To enable remote access via Tailscale:                                  ║
+║                                                                           ║
+║  1. Install Tailscale operator:                                          ║
+║     https://tailscale.com/kb/1236/kubernetes-operator                    ║
+║                                                                           ║
+║  2. Run: ./scripts/setup-tailscale.sh                                    ║
+║                                                                           ║
+║  3. Restart Tilt: tilt down && tilt up                                   ║
+║                                                                           ║
+║  See: TAILSCALE_QUICK_START.md for full instructions                     ║
+║                                                                           ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+    """)
 
 # -----------------------------------------------------------------------------
 # Helper Functions

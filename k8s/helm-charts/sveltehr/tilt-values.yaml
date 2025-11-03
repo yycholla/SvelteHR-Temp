@@ -25,8 +25,8 @@ frontend:
 
   # Image configuration - Tilt will build and inject
   image:
-    repository: ghcr.io/mountain-care-rx/sveltehr/frontend
-    tag: tilt-dev  # Special tag for Tilt-built images
+    repository: sveltehr-frontend
+    tag: latest
     pullPolicy: IfNotPresent  # Use locally built images
 
   # Service configuration - NodePort for direct access
@@ -36,8 +36,8 @@ frontend:
     targetPort: 5173
     nodePort: 30173  # Fixed NodePort for consistent localhost access
 
-  # Backend URL
-  backendUrl: "http://sveltehr-dev-backend:4000"
+  # Backend URL (includes /health for init container health check)
+  backendUrl: "http://sveltehr-backend:4000/health"
   waitForBackend: true
 
   # Server configuration
@@ -54,31 +54,21 @@ frontend:
     - name: VITE_HMR_CLIENT_PORT
       value: "5173"
     - name: VITE_USE_POLLING
-      value: "false"  # Disable polling for better performance
+      value: "true"  # Enable polling to avoid inotify limits in K8s
 
-  # Resources - Minimal for local dev
+  # Resources - Increased for Vite dev server with HMR
   resources:
     requests:
-      memory: 128Mi
+      memory: 256Mi
       cpu: 100m
     limits:
-      memory: 512Mi  # Increased for Vite dev server
-      cpu: 500m
+      memory: 2Gi  # Vite dev server needs substantial memory for HMR
+      cpu: 1000m
 
-  # Probes - Relaxed for development to prevent restart loops
-  livenessProbe:
-    path: /
-    initialDelaySeconds: 300  # Give plenty of time for dev server startup
-    periodSeconds: 30
-    timeoutSeconds: 10
-    failureThreshold: 5  # Be more tolerant
+  # Probes - Disabled for Tilt development (Vite dev mode first request is too slow)
+  livenessProbe: {}  # Disabled - Tilt handles container lifecycle
 
-  readinessProbe:
-    path: /
-    initialDelaySeconds: 30  # Increased for Vite dev server
-    periodSeconds: 10
-    timeoutSeconds: 5
-    failureThreshold: 3
+  readinessProbe: {}  # Disabled - Vite on-demand compilation makes first request too slow
 
   startupProbe: {}  # Disabled for faster startup
 
@@ -118,12 +108,13 @@ frontend:
 # -----------------------------------------------------------------------------
 backend:
   enabled: true
+  name: sveltehr-dev-backend  # Match release name for service discovery
   replicaCount: 1
 
   # Image configuration
   image:
-    repository: ghcr.io/mountain-care-rx/sveltehr/backend-server
-    tag: tilt-dev
+    repository: sveltehr-backend
+    tag: latest
     pullPolicy: IfNotPresent
 
   # Service configuration - NodePort for direct access
@@ -220,6 +211,12 @@ redis:
   enabled: true
   architecture: standalone
 
+  # Override chart's broken default tag with a simpler rolling tag
+  image:
+    registry: docker.io
+    repository: bitnami/redis
+    tag: latest  # Use latest stable build
+
   # No auth for dev convenience
   auth:
     enabled: false
@@ -239,13 +236,14 @@ redis:
         cpu: 200m
 
 # -----------------------------------------------------------------------------
-# Migration Job - Enabled for Initial Setup
+# Migration Job - Uses backend image (contains migration binary)
 # -----------------------------------------------------------------------------
 migration:
   enabled: true
 
+  # Use backend image (contains migration binary)
   image:
-    repository: ghcr.io/mountain-care-rx/sveltehr/backend-migration
+    repository: localhost:5000/sveltehr-backend
     tag: latest
     pullPolicy: Always
 

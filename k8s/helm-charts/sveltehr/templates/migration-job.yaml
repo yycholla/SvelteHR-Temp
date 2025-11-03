@@ -87,7 +87,7 @@ spec:
 
               # Run SeaORM migrations
               echo "Running database migrations..."
-              ./migration up
+              /app/migration up
 
               MIGRATION_EXIT_CODE=$?
 

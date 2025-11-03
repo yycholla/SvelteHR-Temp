@@ -186,8 +186,8 @@ USER svelte
 # Copy package files
 COPY --chown=svelte:nodejs package*.json ./
 
-# Install all dependencies with cache mount
-RUN --mount=type=cache,target=/home/svelte/.npm \
+# Install all dependencies with cache mount (specify uid/gid for correct permissions)
+RUN --mount=type=cache,target=/home/svelte/.npm,uid=1001,gid=1001 \
     npm ci
 
 # Copy source code

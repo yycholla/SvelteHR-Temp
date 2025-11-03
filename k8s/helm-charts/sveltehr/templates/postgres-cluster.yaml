@@ -78,8 +78,15 @@ spec:
     initdb:
       database: {{ .Values.postgresql.database }}
       owner: {{ .Values.postgresql.username }}
+      {{- if .Values.externalSecrets.enabled }}
+      # Use Doppler password for production
+      secret:
+        name: {{ include "sveltehr.fullname" . }}-secrets
+      {{- else }}
+      # Use Helm-generated password for dev
       secret:
         name: {{ include "sveltehr.fullname" . }}-postgres-app-secret
+      {{- end }}
 
   # Superuser configuration
   superuserSecret:

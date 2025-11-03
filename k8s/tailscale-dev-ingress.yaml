@@ -26,7 +26,7 @@ metadata:
   annotations:
     tailscale.com/expose: "true"
     tailscale.com/hostname: "sveltehr-dev-frontend"
-    tailscale.com/tags: "tag:dev"
+    tailscale.com/tags: "tag:k8s"
 spec:
   type: LoadBalancer
   loadBalancerClass: tailscale
@@ -49,7 +49,7 @@ metadata:
   annotations:
     tailscale.com/expose: "true"
     tailscale.com/hostname: "sveltehr-dev-backend"
-    tailscale.com/tags: "tag:dev"
+    tailscale.com/tags: "tag:k8s"
 spec:
   type: LoadBalancer
   loadBalancerClass: tailscale
@@ -60,94 +60,6 @@ spec:
     - name: http
       port: 4000
       targetPort: 4000
-      protocol: TCP
-
----
-# Tilt UI Proxy - Deployment
-# (Tilt runs on host, so we need a proxy in the cluster)
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: tilt-ui-proxy
-  namespace: sveltehr-dev
-  labels:
-    app: tilt-ui-proxy
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: tilt-ui-proxy
-  template:
-    metadata:
-      labels:
-        app: tilt-ui-proxy
-    spec:
-      containers:
-        - name: nginx-proxy
-          image: nginx:alpine
-          ports:
-            - containerPort: 80
-          volumeMounts:
-            - name: nginx-config
-              mountPath: /etc/nginx/nginx.conf
-              subPath: nginx.conf
-      volumes:
-        - name: nginx-config
-          configMap:
-            name: tilt-ui-proxy-config
-
----
-# Tilt UI Proxy - ConfigMap
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: tilt-ui-proxy-config
-  namespace: sveltehr-dev
-data:
-  nginx.conf: |
-    events {
-      worker_connections 1024;
-    }
-
-    http {
-      server {
-        listen 80;
-
-        # Proxy to Tilt UI running on host machine
-        location / {
-          proxy_pass http://100.98.104.21:10350;  # Your Tailscale IP
-          proxy_http_version 1.1;
-          proxy_set_header Upgrade $http_upgrade;
-          proxy_set_header Connection 'upgrade';
-          proxy_set_header Host $host;
-          proxy_cache_bypass $http_upgrade;
-          proxy_set_header X-Real-IP $remote_addr;
-          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-          proxy_set_header X-Forwarded-Proto $scheme;
-        }
-      }
-    }
-
----
-# Tilt UI - Tailscale Service
-apiVersion: v1
-kind: Service
-metadata:
-  name: tilt-ui-ts
-  namespace: sveltehr-dev
-  annotations:
-    tailscale.com/expose: "true"
-    tailscale.com/hostname: "sveltehr-tilt-ui"
-    tailscale.com/tags: "tag:dev"
-spec:
-  type: LoadBalancer
-  loadBalancerClass: tailscale
-  selector:
-    app: tilt-ui-proxy
-  ports:
-    - name: http
-      port: 80
-      targetPort: 80
       protocol: TCP
 
 # =============================================================================
@@ -161,7 +73,7 @@ spec:
 #    kubectl apply -f k8s/tailscale-dev-ingress.yaml
 #
 # 3. Wait for Tailscale to assign hostnames (takes ~30 seconds):
-#    kubectl get svc -n sveltehr-dev | grep tailscale
+#    kubectl get svc -n sveltehr-dev | grep -ts
 #
 # 4. Get your Tailscale URLs:
 #    kubectl get svc sveltehr-dev-frontend-ts -n sveltehr-dev -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
@@ -169,7 +81,6 @@ spec:
 # 5. Access from any device on your Tailnet:
 #    - Frontend: https://sveltehr-dev-frontend.<tailnet>.ts.net
 #    - Backend:  https://sveltehr-dev-backend.<tailnet>.ts.net
-#    - Tilt UI:  https://sveltehr-tilt-ui.<tailnet>.ts.net
 #
 # =============================================================================
 #
@@ -177,14 +88,13 @@ spec:
 #
 # - Services not getting Tailscale IPs?
 #   Check Tailscale operator logs:
-#   kubectl logs -n tailscale-operator -l app=tailscale-operator
+#   kubectl logs -n tailscale -l app=operator
 #
 # - Can't access services?
-#   Verify Tailscale is exposing them:
-#   tailscale status
+#   Check if Vite is blocking the hostname:
+#   kubectl logs -n sveltehr-dev -l app.kubernetes.io/component=frontend
 #
-# - Tilt UI not accessible?
-#   Ensure Tilt is binding to Tailscale interface:
-#   netstat -tlnp | grep 10350
+# - Verify Tailscale proxy pods are running:
+#   kubectl get pods -n tailscale | grep sveltehr
 #
 # =============================================================================
