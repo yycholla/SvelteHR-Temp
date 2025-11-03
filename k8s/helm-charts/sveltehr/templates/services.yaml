@@ -19,7 +19,9 @@ metadata:
     {{- end }}
 spec:
   selector:
-    app: {{ .Values.backend.name }}
+    app.kubernetes.io/name: {{ include "sveltehr.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: backend
   ports:
     - name: http
       port: {{ .Values.backend.service.port }}
@@ -53,7 +55,9 @@ metadata:
     {{- end }}
 spec:
   selector:
-    app: {{ .Values.frontend.name }}
+    app.kubernetes.io/name: {{ include "sveltehr.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: frontend
   ports:
     - name: http
       port: {{ .Values.frontend.service.port }}
