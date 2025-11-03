@@ -29,7 +29,7 @@ postgresql:
 
   # Service configuration
   service:
-    name: sveltehr-prod-postgres-rw
+    name: sveltehr-postgres-rw
     port: 5432
 
   # Production: 1-instance for resource-constrained environment
