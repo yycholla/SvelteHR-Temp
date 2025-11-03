@@ -13,18 +13,18 @@ spec:
 
   # Multi-source configuration (ArgoCD 2.6+)
   sources:
-    # Source 1: Helm chart from prometheus-community
+    # Source 1: Values from Git repository (MUST be first for $values reference)
+    - repoURL: https://github.com/Mountain-Care-Rx/SvelteHR.git
+      targetRevision: main
+      ref: values
+
+    # Source 2: Helm chart from prometheus-community
     - repoURL: https://prometheus-community.github.io/helm-charts
       chart: kube-prometheus-stack
       targetRevision: 65.x
       helm:
         valueFiles:
           - $values/k8s/helm-values/kube-prometheus-stack-values.yaml
-
-    # Source 2: Values from Git repository
-    - repoURL: https://github.com/Mountain-Care-Rx/SvelteHR.git
-      targetRevision: main
-      ref: values
 
   destination:
     server: https://kubernetes.default.svc
