@@ -260,7 +260,7 @@ frontend:
   waitForBackend: true
 
   # Backend URL for init container health check
-  backendUrl: http://sveltehr-backend:4000/health
+  backendUrl: http://sveltehr-backend:4000
 
   # Production probes
   livenessProbe:
