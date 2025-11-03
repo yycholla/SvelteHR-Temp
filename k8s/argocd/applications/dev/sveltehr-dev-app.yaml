@@ -1,25 +1,18 @@
-# ⚠️ DEPRECATED ⚠️
-# This file is DEPRECATED and will be removed after migration to the new GitOps structure.
-# New location: k8s/argocd/applications/dev/sveltehr-dev-app.yaml
-#
-# Migration completed: 2025-11-03
-# After verifying the new structure works, delete this file.
-#
-# ============================================================================
-
+---
 # ArgoCD Application for SvelteHR Development Deployment
-# This configures ArgoCD to manage the sveltehr Helm chart from Git for dev environment
+# Migrated to new GitOps structure with app-of-apps pattern
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: sveltehr-dev
   namespace: argocd
-  # Finalizer ensures cascade deletion (removes all deployed resources)
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"  # After infrastructure (wave 0-2)
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  # Project (default = unrestricted access)
-  project: default
+  # Use applications AppProject (RBAC and resource restrictions)
+  project: applications
 
   # Source: Git repository containing Helm chart
   source:
@@ -32,7 +25,7 @@ spec:
         - values.yaml
         - values-dev.yaml
 
-      # Skip CRDs (CloudNativePG operator should be installed separately)
+      # Skip CRDs (CloudNativePG operator installed separately)
       skipCrds: true
 
       # Pass release name and namespace to Helm
@@ -50,7 +43,7 @@ spec:
     server: https://kubernetes.default.svc
     namespace: sveltehr-dev
 
-  # Sync policy: How ArgoCD manages the application
+  # Sync policy: MANUAL SYNC during migration (as requested)
   syncPolicy:
     # Auto-create namespace if it doesn't exist
     syncOptions:
@@ -58,11 +51,9 @@ spec:
       - PrunePropagationPolicy=foreground
       - PruneLast=true
 
-    # Manual sync for dev (no automated sync)
-    # Developers can trigger sync manually when ready
-    # automated:
-    #   prune: false
-    #   selfHeal: false
+    # MANUAL SYNC (no automated sync during migration)
+    # Developers trigger sync manually when ready
+    automated: null
 
     # Retry strategy for failed syncs
     retry:
@@ -81,18 +72,26 @@ spec:
       jsonPointers:
         - /data
 
-    # Ignore replicas for dev environment
+    # Ignore replicas if HPA manages them
     - group: apps
       kind: Deployment
       jsonPointers:
         - /spec/replicas
+
+    # Ignore CloudNativePG cluster status updates
+    - group: postgresql.cnpg.io
+      kind: Cluster
+      jsonPointers:
+        - /status
+
+  revisionHistoryLimit: 10
 
 # =============================================================================
 # Development Environment Notes
 # =============================================================================
 #
 # Deployment:
-#   kubectl apply -f k8s/argocd/sveltehr-dev-application.yaml
+#   kubectl apply -f k8s/argocd/applications/dev/sveltehr-dev-app.yaml
 #
 # Manual Sync:
 #   argocd app sync sveltehr-dev
@@ -104,6 +103,9 @@ spec:
 #   argocd app delete sveltehr-dev
 #
 # Enable Auto-Sync (optional):
-#   Uncomment the 'automated' section in syncPolicy
+#   Change 'automated: null' to:
+#   automated:
+#     prune: true
+#     selfHeal: true
 #
 # =============================================================================

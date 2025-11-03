@@ -1,0 +1,192 @@
+# Velero Configuration for Kubernetes Backup and Restore
+# Integrates with MinIO (S3-compatible) for backup storage
+
+# Image configuration
+image:
+  repository: velero/velero
+  tag: v1.15.0  # Latest stable
+  pullPolicy: IfNotPresent
+
+# Init containers
+initContainers:
+  - name: velero-plugin-for-aws
+    image: velero/velero-plugin-for-aws:v1.11.0
+    volumeMounts:
+      - mountPath: /target
+        name: plugins
+
+# Resource configuration
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+# Backup configuration
+configuration:
+  # Backup storage location (MinIO S3-compatible)
+  backupStorageLocation:
+    - name: default
+      provider: aws
+      bucket: velero
+      default: true
+      config:
+        region: minio  # Dummy region for MinIO
+        s3ForcePathStyle: "true"  # Required for MinIO
+        s3Url: http://minio.backup.svc.cluster.local:9000
+        publicUrl: http://minio.backup.svc.cluster.local:9000
+
+  # Volume snapshot location (optional - for persistent volume snapshots)
+  # volumeSnapshotLocation:
+  #   - name: default
+  #     provider: aws
+
+  # Default backup retention
+  defaultBackupTTL: 720h  # 30 days
+
+  # Upload and download concurrency
+  uploaderType: restic  # Options: restic, kopia
+  defaultVolumesToFsBackup: true  # Backup PV contents by default
+
+# Credentials for MinIO
+credentials:
+  useSecret: true
+  secretContents:
+    cloud: |
+      [default]
+      aws_access_key_id=velero
+      aws_secret_access_key=changeme123
+
+# Schedules (automated backups)
+schedules:
+  # Daily full cluster backup
+  daily-backup:
+    disabled: false
+    schedule: "0 2 * * *"  # 2 AM daily
+    useOwnerReferencesInBackup: false
+    template:
+      ttl: 720h  # 30 days retention
+      includedNamespaces:
+        - "*"
+      excludedNamespaces:
+        - kube-system
+        - kube-public
+        - kube-node-lease
+      includedResources:
+        - "*"
+      storageLocation: default
+
+  # Weekly cluster state backup (metadata only)
+  weekly-metadata:
+    disabled: false
+    schedule: "0 3 * * 0"  # 3 AM every Sunday
+    useOwnerReferencesInBackup: false
+    template:
+      ttl: 2160h  # 90 days retention
+      includedNamespaces:
+        - "*"
+      snapshotVolumes: false  # Metadata only, no volumes
+      storageLocation: default
+
+# Metrics for Prometheus
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: kube-prometheus-stack
+
+# Security context
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  capabilities:
+    drop:
+      - ALL
+
+# Service account
+serviceAccount:
+  server:
+    create: true
+    name: velero
+
+# RBAC
+rbac:
+  create: true
+  clusterAdministrator: true  # Required for cluster-wide backups
+
+# Node-agent (formerly Restic) for filesystem backups
+deployNodeAgent: true
+
+nodeAgent:
+  podVolumePath: /var/lib/kubelet/pods
+  privileged: false
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+  # Security context for node agent
+  podSecurityContext:
+    runAsUser: 0  # Root required for volume access
+  containerSecurityContext:
+    privileged: false  # Don't use privileged mode
+
+# Cleanup CRDs on uninstall
+cleanUpCRDs: false  # Keep CRDs for safety
+
+# =============================================================================
+# Post-Installation Configuration
+# =============================================================================
+#
+# 1. Verify Velero installation:
+#    velero version
+#    velero backup-location get
+#
+# 2. Create a test backup:
+#    velero backup create test-backup --wait
+#
+# 3. Check backup status:
+#    velero backup describe test-backup
+#    velero backup logs test-backup
+#
+# 4. List all backups:
+#    velero backup get
+#
+# 5. Restore from backup:
+#    velero restore create --from-backup test-backup
+#
+# 6. Create namespace-specific backup:
+#    velero backup create sveltehr-prod-backup \
+#      --include-namespaces sveltehr-prod \
+#      --wait
+#
+# 7. Disaster Recovery:
+#    # Install Velero on new cluster (same configuration)
+#    # Restore all resources:
+#    velero restore create --from-backup daily-backup-20250101020000
+#
+# 8. Security Notes:
+#    - Update MinIO credentials via External Secrets
+#    - Encrypt backups at rest (MinIO server-side encryption)
+#    - Limit RBAC permissions in production
+#    - Test restore procedures regularly
+#    - Monitor backup sizes and retention policies
+#
+# 9. Monitoring:
+#    - Prometheus metrics: velero_backup_*
+#    - Alert on failed backups
+#    - Grafana dashboard: Import ID 11055
+#
+# =============================================================================

@@ -1,0 +1,106 @@
+---
+# Root App-of-Apps
+# The top-level Application that manages all other app-of-apps
+# This creates a hierarchical structure:
+#   root-app
+#   ├── infrastructure (app-of-apps)
+#   │   ├── monitoring
+#   │   ├── cloudnative-pg
+#   │   ├── ingress-nginx
+#   │   ├── cert-manager
+#   │   ├── tailscale
+#   │   ├── external-secrets
+#   │   ├── minio
+#   │   └── velero
+#   ├── dev-apps (app-of-apps)
+#   │   └── sveltehr-dev
+#   └── prod-apps (app-of-apps)
+#       └── sveltehr-prod
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-app
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default  # Root app uses default project (unrestricted)
+
+  # Source: All app-of-apps manifests from Git
+  source:
+    repoURL: https://github.com/Mountain-Care-Rx/SvelteHR.git
+    targetRevision: main
+    path: k8s/argocd/apps
+    directory:
+      # Include only app-of-apps files, not this root-app.yaml
+      exclude: 'root-app.yaml'
+
+  # Destination: Deploy to in-cluster
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  # Sync policy: MANUAL (critical - never auto-sync the root!)
+  syncPolicy:
+    automated: null  # NEVER enable automated sync for root app
+
+    syncOptions:
+      - CreateNamespace=false  # argocd namespace already exists
+
+    retry:
+      limit: 2
+      backoff:
+        duration: 10s
+        maxDuration: 3m
+
+  # Ignore differences in child Application status
+  ignoreDifferences:
+    - group: argoproj.io
+      kind: Application
+      jsonPointers:
+        - /status
+        - /operation
+
+  revisionHistoryLimit: 10
+
+# =============================================================================
+# Root App-of-Apps Notes
+# =============================================================================
+#
+# WARNING: This is the ROOT application that manages everything.
+# DO NOT enable automated sync on this application!
+#
+# Deployment (after all other apps are tested):
+#   kubectl apply -f k8s/argocd/apps/root-app.yaml
+#
+# Sync the root (creates all app-of-apps):
+#   argocd app sync root-app
+#
+# View the entire application tree:
+#   argocd app tree root-app
+#
+# This will create 3 app-of-apps Applications:
+#   1. infrastructure - Manages platform components
+#   2. dev-apps - Manages dev environment
+#   3. prod-apps - Manages prod environment
+#
+# Each app-of-apps must be synced individually:
+#   argocd app sync infrastructure
+#   argocd app sync dev-apps
+#   argocd app sync prod-apps
+#
+# Then, each child application can be synced:
+#   argocd app sync monitoring
+#   argocd app sync cloudnative-pg
+#   argocd app sync sveltehr-dev
+#   argocd app sync sveltehr-prod
+#
+# View all applications:
+#   argocd app list
+#
+# Migration Strategy:
+#   1. First apply individual Applications manually (done)
+#   2. Then apply app-of-apps (infrastructure, dev-apps, prod-apps)
+#   3. Finally apply root-app once everything is stable
+#
+# =============================================================================

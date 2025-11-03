@@ -1,0 +1,64 @@
+---
+# App-of-Apps: Development Environment
+# Manages all applications in the dev environment
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dev-apps
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: applications
+
+  # Source: Dev application manifests from Git
+  source:
+    repoURL: https://github.com/Mountain-Care-Rx/SvelteHR.git
+    targetRevision: main  # App definitions on main, apps track develop branch
+    path: k8s/argocd/applications/dev
+
+  # Destination: Deploy to in-cluster
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  # Sync policy: MANUAL (as requested)
+  syncPolicy:
+    automated: null  # Manual sync for dev environment
+
+    syncOptions:
+      - CreateNamespace=false  # argocd namespace already exists
+
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        maxDuration: 2m
+
+  # Ignore differences in Application status
+  ignoreDifferences:
+    - group: argoproj.io
+      kind: Application
+      jsonPointers:
+        - /status
+
+  revisionHistoryLimit: 10
+
+# =============================================================================
+# Development Apps Notes
+# =============================================================================
+#
+# This Application manages all dev environment applications:
+#   - sveltehr-dev (tracks develop branch)
+#
+# Deployment:
+#   kubectl apply -f k8s/argocd/apps/dev-apps.yaml
+#
+# Sync dev apps:
+#   argocd app sync dev-apps
+#
+# This creates child Application: sveltehr-dev
+# The child application must be synced separately:
+#   argocd app sync sveltehr-dev
+#
+# =============================================================================

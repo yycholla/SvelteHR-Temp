@@ -1,3 +1,12 @@
+# ⚠️ DEPRECATED ⚠️
+# This file is DEPRECATED and will be removed after migration to the new GitOps structure.
+# New location: k8s/argocd/applications/prod/sveltehr-prod-app.yaml
+#
+# Migration completed: 2025-11-03
+# After verifying the new structure works, delete this file.
+#
+# ============================================================================
+
 # ArgoCD Application for SvelteHR Production Deployment
 # This configures ArgoCD to manage the sveltehr Helm chart from Git
 apiVersion: argoproj.io/v1alpha1

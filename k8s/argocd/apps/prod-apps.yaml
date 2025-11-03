@@ -1,0 +1,71 @@
+---
+# App-of-Apps: Production Environment
+# Manages all applications in the production environment
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prod-apps
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: applications
+
+  # Source: Prod application manifests from Git
+  source:
+    repoURL: https://github.com/Mountain-Care-Rx/SvelteHR.git
+    targetRevision: main
+    path: k8s/argocd/applications/prod
+
+  # Destination: Deploy to in-cluster
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  # Sync policy: MANUAL (as requested)
+  syncPolicy:
+    automated: null  # Manual sync for production safety
+
+    syncOptions:
+      - CreateNamespace=false  # argocd namespace already exists
+
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        maxDuration: 2m
+
+  # Ignore differences in Application status
+  ignoreDifferences:
+    - group: argoproj.io
+      kind: Application
+      jsonPointers:
+        - /status
+
+  revisionHistoryLimit: 10
+
+# =============================================================================
+# Production Apps Notes
+# =============================================================================
+#
+# This Application manages all production environment applications:
+#   - sveltehr-prod (tracks main branch)
+#
+# Deployment:
+#   kubectl apply -f k8s/argocd/apps/prod-apps.yaml
+#
+# Sync prod apps:
+#   argocd app sync prod-apps
+#
+# This creates child Application: sveltehr-prod
+# The child application has auto-sync enabled (selfHeal=true, prune=false)
+# Changes to main branch will automatically deploy to production
+#
+# Manual sync if needed:
+#   argocd app sync sveltehr-prod
+#
+# Rollback production:
+#   argocd app history sveltehr-prod
+#   argocd app rollback sveltehr-prod <revision>
+#
+# =============================================================================

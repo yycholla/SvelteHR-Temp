@@ -1,0 +1,61 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: infrastructure
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: Platform infrastructure components (operators, monitoring, ingress, backups)
+
+  # Source repositories allowed for this project
+  sourceRepos:
+    - https://github.com/Mountain-Care-Rx/SvelteHR.git
+    - https://prometheus-community.github.io/helm-charts
+    - https://cloudnative-pg.github.io/charts
+    - https://kubernetes.github.io/ingress-nginx
+    - https://charts.jetstack.io
+    - https://pkgs.tailscale.com/helmcharts
+    - https://charts.external-secrets.io
+    - https://charts.bitnami.com/bitnami
+    - https://vmware-tanzu.github.io/helm-charts
+
+  # Allowed destinations for infrastructure
+  destinations:
+    - namespace: monitoring
+      server: https://kubernetes.default.svc
+    - namespace: cnpg-system
+      server: https://kubernetes.default.svc
+    - namespace: ingress-nginx
+      server: https://kubernetes.default.svc
+    - namespace: cert-manager
+      server: https://kubernetes.default.svc
+    - namespace: tailscale
+      server: https://kubernetes.default.svc
+    - namespace: external-secrets
+      server: https://kubernetes.default.svc
+    - namespace: backup
+      server: https://kubernetes.default.svc
+
+  # Cluster-scoped resources allowed (operators need CRDs, ClusterRoles, etc.)
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+
+  # Namespace-scoped resources
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+
+  # Orphaned resources monitoring
+  orphanedResources:
+    warn: true
+
+  # Sync windows (optional - can restrict when syncs happen)
+  # syncWindows:
+  #   - kind: allow
+  #     schedule: '0 0 * * *'  # Daily at midnight
+  #     duration: 12h
+  #     applications:
+  #       - '*'

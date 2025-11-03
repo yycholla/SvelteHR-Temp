@@ -1,0 +1,74 @@
+---
+# App-of-Apps: Infrastructure
+# Manages all infrastructure components (operators, monitoring, ingress, backups)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: infrastructure
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: infrastructure
+
+  # Source: Infrastructure application manifests from Git
+  source:
+    repoURL: https://github.com/Mountain-Care-Rx/SvelteHR.git
+    targetRevision: main
+    path: k8s/argocd/infrastructure
+
+  # Destination: Deploy to in-cluster
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  # Sync policy: MANUAL (as requested for infrastructure)
+  syncPolicy:
+    automated: null  # Manual sync - carefully control infrastructure changes
+
+    syncOptions:
+      # Don't create namespace (argocd namespace already exists)
+      - CreateNamespace=false
+
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        maxDuration: 5m
+
+  # Ignore differences in Application status
+  ignoreDifferences:
+    - group: argoproj.io
+      kind: Application
+      jsonPointers:
+        - /status
+
+  revisionHistoryLimit: 10
+
+# =============================================================================
+# Infrastructure App-of-Apps Notes
+# =============================================================================
+#
+# This Application manages all infrastructure components:
+#   - monitoring (Prometheus stack) - Wave 0
+#   - cloudnative-pg (PostgreSQL operator) - Wave 1
+#   - ingress-nginx (Ingress controller) - Wave 1
+#   - cert-manager (Certificate manager) - Wave 1
+#   - tailscale (Tailscale operator) - Wave 1
+#   - external-secrets (External Secrets Operator) - Wave 1
+#   - minio (Backup storage) - Wave 2
+#   - velero (Backup operator) - Wave 2
+#
+# Deployment:
+#   kubectl apply -f k8s/argocd/apps/infrastructure.yaml
+#
+# Sync all infrastructure components:
+#   argocd app sync infrastructure
+#
+# This will create child Applications for each component above.
+# Individual components can be synced separately:
+#   argocd app sync monitoring
+#   argocd app sync cloudnative-pg
+#   etc.
+#
+# =============================================================================

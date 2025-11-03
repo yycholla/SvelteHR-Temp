@@ -1,0 +1,136 @@
+# MinIO Configuration for Kubernetes Backup Storage
+# S3-compatible object storage for Velero backups
+
+# Deployment mode
+mode: standalone  # Options: standalone, distributed (distributed requires 4+ nodes)
+
+# Image configuration
+image:
+  registry: docker.io
+  repository: bitnami/minio
+  tag: 2024  # Use latest 2024.x version
+
+# Authentication
+auth:
+  # Root user credentials (CHANGE IN PRODUCTION!)
+  # In production, use external secrets or Sealed Secrets
+  rootUser: admin
+  rootPassword: changeme123  # CHANGE THIS!
+
+# Persistence
+persistence:
+  enabled: true
+  storageClass: ""  # Use default storage class
+  size: 100Gi
+  mountPath: /bitnami/minio/data
+
+# Service configuration
+service:
+  type: ClusterIP
+  ports:
+    api: 9000
+    console: 9001
+
+# Ingress (disabled by default)
+ingress:
+  enabled: false
+  # Uncomment and configure if external access needed:
+  # enabled: true
+  # hostname: minio.example.com
+  # ingressClassName: nginx
+  # tls: true
+
+# Resources
+resources:
+  limits:
+    cpu: 500m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+# Default buckets to create
+defaultBuckets: "velero"
+
+# Provisioning (create initial buckets, users, policies)
+provisioning:
+  enabled: true
+  policies:
+    # Policy for Velero to access backup bucket
+    - name: velero-policy
+      statements:
+        - resources:
+            - "arn:aws:s3:::velero"
+            - "arn:aws:s3:::velero/*"
+          actions:
+            - "s3:*"
+  users:
+    # Service account for Velero
+    - username: velero
+      password: changeme123  # CHANGE THIS!
+      disabled: false
+      policies:
+        - velero-policy
+        - readwrite
+  buckets:
+    # Backup bucket for Velero
+    - name: velero
+      versioning: true  # Enable versioning for safety
+
+# ServiceMonitor for Prometheus
+metrics:
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    labels:
+      release: kube-prometheus-stack
+
+# Security context
+podSecurityContext:
+  enabled: true
+  fsGroup: 1001
+  runAsUser: 1001
+  runAsNonRoot: true
+
+containerSecurityContext:
+  enabled: true
+  runAsUser: 1001
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+
+# Affinity (optional - for production)
+# affinity:
+#   podAntiAffinity:
+#     preferredDuringSchedulingIgnoredDuringExecution:
+#       - weight: 100
+#         podAffinityTerm:
+#           labelSelector:
+#             matchLabels:
+#               app.kubernetes.io/name: minio
+#           topologyKey: kubernetes.io/hostname
+
+# =============================================================================
+# Post-Installation Configuration
+# =============================================================================
+#
+# 1. Get MinIO credentials:
+#    kubectl get secret minio -n backup -o jsonpath='{.data.root-user}' | base64 -d
+#    kubectl get secret minio -n backup -o jsonpath='{.data.root-password}' | base64 -d
+#
+# 2. Access MinIO Console (port-forward):
+#    kubectl port-forward svc/minio 9001:9001 -n backup
+#    Open: http://localhost:9001
+#
+# 3. Configure Velero to use MinIO:
+#    - Service: minio.backup.svc.cluster.local:9000
+#    - Bucket: velero
+#    - Credentials: velero/changeme123 (from provisioning.users)
+#
+# 4. Security Best Practices:
+#    - Change default passwords via External Secrets or Sealed Secrets
+#    - Enable TLS for production (requires cert-manager)
+#    - Restrict network policies
+#    - Regular backup verification
+#
+# =============================================================================

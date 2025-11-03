@@ -1,0 +1,80 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"  # First - provides CRDs (PodMonitor, ServiceMonitor, etc.)
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: infrastructure
+
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: 65.x  # Pin to major version
+    helm:
+      valuesObject:
+        # Reference existing values file from Git repo
+        # We'll use a two-source approach to get values from Git
+        values: |
+          # Placeholder - actual values come from Git repo via plugin or manual merge
+
+  # Alternative: Use plugin to fetch values from Git
+  # This requires argocd-vault-plugin or similar
+  # For now, we'll create a simple approach with direct Helm values
+
+  sources:
+    # Source 1: Helm chart from prometheus-community
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      targetRevision: 65.x
+      helm:
+        valueFiles:
+          - $values/k8s/helm-values/kube-prometheus-stack-values.yaml
+    # Source 2: Values from Git repository
+    - repoURL: https://github.com/Mountain-Care-Rx/SvelteHR.git
+      targetRevision: main
+      ref: values
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+
+  syncPolicy:
+    # MANUAL SYNC during migration (as requested)
+    automated: null
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true  # Better for CRDs and large manifests
+      - Replace=false
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  # Ignore differences for common drift scenarios
+  ignoreDifferences:
+    # Ignore Helm hooks that get modified
+    - group: batch
+      kind: Job
+      jsonPointers:
+        - /status
+
+    # Ignore mutating webhook injected CA bundles
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+      jqPathExpressions:
+        - '.webhooks[]?.clientConfig.caBundle'
+
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+      jqPathExpressions:
+        - '.webhooks[]?.clientConfig.caBundle'
+
+  # Health assessment
+  revisionHistoryLimit: 10

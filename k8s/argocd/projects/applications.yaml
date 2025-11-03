@@ -1,0 +1,61 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: applications
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: SvelteHR applications (frontend, backend, databases) across dev and prod environments
+
+  # Source repositories
+  sourceRepos:
+    - https://github.com/Mountain-Care-Rx/SvelteHR.git
+    - https://charts.bitnami.com/bitnami  # For Redis dependency
+
+  # Allowed destinations
+  destinations:
+    - namespace: sveltehr-dev
+      server: https://kubernetes.default.svc
+    - namespace: sveltehr-prod
+      server: https://kubernetes.default.svc
+
+  # Cluster-scoped resources (limited for applications)
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+
+  # Namespace-scoped resources allowed
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+
+  # Deny certain dangerous resources
+  namespaceResourceBlacklist:
+    - group: ''
+      kind: ResourceQuota
+    - group: ''
+      kind: LimitRange
+
+  # Orphaned resources
+  orphanedResources:
+    warn: true
+    ignore:
+      # Ignore Helm release secrets (managed by Helm)
+      - group: ''
+        kind: Secret
+        name: 'sh.helm.release.*'
+
+  # Roles for RBAC (optional - can add team-specific roles later)
+  # roles:
+  #   - name: dev-team
+  #     description: Developers can sync dev environment
+  #     policies:
+  #       - p, proj:applications:dev-team, applications, sync, applications/sveltehr-dev, allow
+  #     groups:
+  #       - dev-team

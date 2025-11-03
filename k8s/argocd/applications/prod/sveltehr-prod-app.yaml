@@ -1,0 +1,121 @@
+---
+# ArgoCD Application for SvelteHR Production Deployment
+# Migrated to new GitOps structure with app-of-apps pattern
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sveltehr-prod
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"  # After infrastructure (wave 0-2)
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  # Use applications AppProject (RBAC and resource restrictions)
+  project: applications
+
+  # Source: Git repository containing Helm chart
+  source:
+    repoURL: https://github.com/Mountain-Care-Rx/SvelteHR.git
+    targetRevision: main  # Track main branch for production
+    path: k8s/helm-charts/sveltehr
+    helm:
+      # Use production values (includes new health probe fixes)
+      valueFiles:
+        - values.yaml
+        - values-prod.yaml
+
+      # Skip CRDs (CloudNativePG operator installed separately)
+      skipCrds: true
+
+      # Pass release name and namespace to Helm
+      releaseName: sveltehr
+
+      # Optional: Override specific values without committing to Git
+      # parameters:
+      #   - name: backend.replicaCount
+      #     value: "3"
+
+  # Destination: Where to deploy
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: sveltehr-prod
+
+  # Sync policy: AUTOMATED with selfHeal but NO prune (as requested)
+  syncPolicy:
+    # Auto-create namespace if it doesn't exist
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+
+    # Automated sync: selfHeal enabled, prune DISABLED for safety
+    automated:
+      prune: false       # Don't auto-delete resources (manual approval required)
+      selfHeal: true     # Revert manual kubectl changes to match Git
+      allowEmpty: false  # Don't sync if no resources found
+
+    # Retry strategy for failed syncs
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  # Ignore differences (prevents constant out-of-sync status)
+  ignoreDifferences:
+    # Ignore Helm release secrets (managed by Helm)
+    - group: ""
+      kind: Secret
+      name: sh.helm.release.*
+      jsonPointers:
+        - /data
+
+    # Ignore replicas if HPA manages them
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
+
+    # Ignore CloudNativePG cluster status updates
+    - group: postgresql.cnpg.io
+      kind: Cluster
+      jsonPointers:
+        - /status
+
+    # Ignore external-secrets managed secrets
+    - group: ''
+      kind: Secret
+      jsonPointers:
+        - /data
+      managedFieldsManagers:
+        - external-secrets
+
+  revisionHistoryLimit: 10
+
+# =============================================================================
+# Production Environment Notes
+# =============================================================================
+#
+# Deployment:
+#   kubectl apply -f k8s/argocd/applications/prod/sveltehr-prod-app.yaml
+#
+# Manual Sync (if needed):
+#   argocd app sync sveltehr-prod
+#
+# Watch Status:
+#   argocd app get sveltehr-prod --watch
+#
+# Rollback to Previous Version:
+#   argocd app rollback sveltehr-prod <revision-number>
+#   argocd app history sveltehr-prod  # See revision history
+#
+# Delete (DANGEROUS):
+#   argocd app delete sveltehr-prod
+#
+# Health Check Fix:
+#   This deployment includes updated values-prod.yaml with health probe fixes
+#   Frontend pod should now run continuously instead of completing immediately
+#
+# =============================================================================
