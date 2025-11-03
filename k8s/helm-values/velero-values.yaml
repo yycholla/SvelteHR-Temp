@@ -35,8 +35,8 @@ configuration:
       config:
         region: minio  # Dummy region for MinIO
         s3ForcePathStyle: "true"  # Required for MinIO
-        s3Url: http://minio.backup.svc.cluster.local:9000
-        publicUrl: http://minio.backup.svc.cluster.local:9000
+        s3Url: http://minio.backup-system.svc.cluster.local:9000
+        publicUrl: http://minio.backup-system.svc.cluster.local:9000
 
   # Volume snapshot location (optional - for persistent volume snapshots)
   # volumeSnapshotLocation:
@@ -47,7 +47,7 @@ configuration:
   defaultBackupTTL: 720h  # 30 days
 
   # Upload and download concurrency
-  uploaderType: restic  # Options: restic, kopia
+  uploaderType: kopia  # Kopia is the new default uploader (restic was removed in v11.x)
   defaultVolumesToFsBackup: true  # Backup PV contents by default
 
 # Credentials for MinIO
