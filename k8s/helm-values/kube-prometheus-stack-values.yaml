@@ -54,10 +54,10 @@ prometheus:
     resources:
       requests:
         cpu: 200m
-        memory: 512Mi
+        memory: 2Gi
       limits:
-        cpu: 500m
-        memory: 1Gi
+        cpu: 1000m
+        memory: 3Gi
 
     # Service monitors
     serviceMonitorSelectorNilUsesHelmValues: false
