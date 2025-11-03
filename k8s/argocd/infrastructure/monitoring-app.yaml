@@ -9,7 +9,7 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: infrastructure
+  project: default  # Temporarily use default until repo is added to infrastructure project
 
   # Multi-source configuration (ArgoCD 2.6+)
   sources:
@@ -23,6 +23,7 @@ spec:
       chart: kube-prometheus-stack
       targetRevision: 65.x
       helm:
+        releaseName: kube-prometheus-stack  # CRITICAL: Match existing Helm release name
         valueFiles:
           - $values/k8s/helm-values/kube-prometheus-stack-values.yaml
 
