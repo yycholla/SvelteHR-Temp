@@ -2,10 +2,12 @@
 # S3-compatible object storage for Velero backups
 # Chart version: 17.x
 
-# Authentication
+# Authentication (using External Secrets from Doppler)
 auth:
-  rootUser: admin
-  rootPassword: changeme123  # CHANGE IN PRODUCTION!
+  rootUser: ""  # Ignored when existingSecret is set
+  rootPassword: ""  # Ignored when existingSecret is set
+  existingSecret: minio-secret  # Created by ExternalSecret from Doppler
+  # Secret must contain keys: root-user, root-password
 
 # Persistence
 persistence:

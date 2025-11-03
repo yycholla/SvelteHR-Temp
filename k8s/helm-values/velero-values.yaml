@@ -50,14 +50,10 @@ configuration:
   uploaderType: kopia  # Kopia is the new default uploader (restic was removed in v11.x)
   defaultVolumesToFsBackup: true  # Backup PV contents by default
 
-# Credentials for MinIO
+# Credentials for MinIO (using External Secrets from Doppler)
 credentials:
-  useSecret: true
-  secretContents:
-    cloud: |
-      [default]
-      aws_access_key_id=velero
-      aws_secret_access_key=changeme123
+  useSecret: false  # Use existingSecret instead
+  existingSecret: velero-credentials  # Created by ExternalSecret from Doppler
 
 # Schedules (automated backups)
 schedules:
