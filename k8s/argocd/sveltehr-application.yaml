@@ -27,7 +27,7 @@ spec:
       skipCrds: true
 
       # Pass release name and namespace to Helm
-      releaseName: sveltehr-prod
+      releaseName: sveltehr
 
       # Optional: Override specific values without committing to Git
       # parameters:
