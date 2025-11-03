@@ -12,21 +12,23 @@ spec:
   project: infrastructure
 
   sources:
-    # Source 1: Helm chart from Bitnami
-    - repoURL: https://charts.bitnami.com/bitnami
-      chart: minio
-      targetRevision: 14.x  # Latest stable 14.x
-      helm:
-        valueFiles:
-          - $values/k8s/helm-values/minio-values.yaml
-    # Source 2: Values from Git repository
+    # Source 1: Values from Git repository (MUST be first for $values reference)
     - repoURL: https://github.com/Mountain-Care-Rx/SvelteHR.git
       targetRevision: main
       ref: values
 
+    # Source 2: Helm chart from Bitnami
+    - repoURL: https://charts.bitnami.com/bitnami
+      chart: minio
+      targetRevision: 5.4.0  # Match existing installation
+      helm:
+        releaseName: minio  # Match existing Helm release
+        valueFiles:
+          - $values/k8s/helm-values/minio-values.yaml
+
   destination:
     server: https://kubernetes.default.svc
-    namespace: backup
+    namespace: backup-system  # Correct namespace
 
   syncPolicy:
     # MANUAL SYNC during migration
