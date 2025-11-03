@@ -23,16 +23,10 @@ spec:
     - namespace: sveltehr-prod
       server: https://kubernetes.default.svc
 
-  # Cluster-scoped resources (External Secrets needs CRDs)
+  # Cluster-scoped resources (External Secrets needs CRDs, webhooks, etc.)
   clusterResourceWhitelist:
-    - group: apiextensions.k8s.io
-      kind: CustomResourceDefinition
-    - group: external-secrets.io
-      kind: '*'
-    - group: rbac.authorization.k8s.io
-      kind: ClusterRole
-    - group: rbac.authorization.k8s.io
-      kind: ClusterRoleBinding
+    - group: '*'
+      kind: '*'  # Allow all cluster resources for operators
 
   # Namespace-scoped resources
   namespaceResourceWhitelist:

@@ -21,9 +21,10 @@ Thumbs.db
 
 # Secrets and credentials (NEVER commit these!)
 **/secrets.yaml
-**/*secret*.yaml
 **/*-secret.yaml
 k8s/secrets/
+# Note: Removed **/*secret*.yaml wildcard for private repo
+# ArgoCD external-secrets configuration is safe to commit
 *.key
 *.pem
 credentials.json
