@@ -1,28 +1,20 @@
 # MinIO Configuration for Kubernetes Backup Storage
 # S3-compatible object storage for Velero backups
-
-# Deployment mode
-mode: standalone  # Options: standalone, distributed (distributed requires 4+ nodes)
-
-# Image configuration
-image:
-  registry: docker.io
-  repository: bitnami/minio
-  tag: 2024  # Use latest 2024.x version
+# Chart version: 17.x
 
 # Authentication
 auth:
-  # Root user credentials (CHANGE IN PRODUCTION!)
-  # In production, use external secrets or Sealed Secrets
   rootUser: admin
-  rootPassword: changeme123  # CHANGE THIS!
+  rootPassword: changeme123  # CHANGE IN PRODUCTION!
 
 # Persistence
 persistence:
   enabled: true
-  storageClass: ""  # Use default storage class
+  storageClass: ""  # Use default storage class (local-path)
   size: 100Gi
   mountPath: /bitnami/minio/data
+  accessModes:
+    - ReadWriteOnce
 
 # Service configuration
 service:
@@ -31,14 +23,11 @@ service:
     api: 9000
     console: 9001
 
-# Ingress (disabled by default)
-ingress:
-  enabled: false
-  # Uncomment and configure if external access needed:
-  # enabled: true
-  # hostname: minio.example.com
-  # ingressClassName: nginx
-  # tls: true
+# Default buckets (comma-separated list for standalone mode)
+defaultBuckets: "velero"
+
+# Deployment mode
+mode: standalone  # standalone or distributed
 
 # Resources
 resources:
@@ -48,34 +37,6 @@ resources:
   requests:
     cpu: 250m
     memory: 512Mi
-
-# Default buckets to create
-defaultBuckets: "velero"
-
-# Provisioning (create initial buckets, users, policies)
-provisioning:
-  enabled: true
-  policies:
-    # Policy for Velero to access backup bucket
-    - name: velero-policy
-      statements:
-        - resources:
-            - "arn:aws:s3:::velero"
-            - "arn:aws:s3:::velero/*"
-          actions:
-            - "s3:*"
-  users:
-    # Service account for Velero
-    - username: velero
-      password: changeme123  # CHANGE THIS!
-      disabled: false
-      policies:
-        - velero-policy
-        - readwrite
-  buckets:
-    # Backup bucket for Velero
-    - name: velero
-      versioning: true  # Enable versioning for safety
 
 # ServiceMonitor for Prometheus
 metrics:
@@ -89,48 +50,50 @@ metrics:
 podSecurityContext:
   enabled: true
   fsGroup: 1001
-  runAsUser: 1001
-  runAsNonRoot: true
+  fsGroupChangePolicy: "OnRootMismatch"
 
 containerSecurityContext:
   enabled: true
   runAsUser: 1001
   runAsNonRoot: true
   allowPrivilegeEscalation: false
-  readOnlyRootFilesystem: true
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
 
-# Affinity (optional - for production)
-# affinity:
-#   podAntiAffinity:
-#     preferredDuringSchedulingIgnoredDuringExecution:
-#       - weight: 100
-#         podAffinityTerm:
-#           labelSelector:
-#             matchLabels:
-#               app.kubernetes.io/name: minio
-#           topologyKey: kubernetes.io/hostname
+# Ingress (disabled)
+ingress:
+  enabled: false
 
 # =============================================================================
-# Post-Installation Configuration
+# Post-Installation: Manual Velero User Configuration
 # =============================================================================
 #
-# 1. Get MinIO credentials:
-#    kubectl get secret minio -n backup -o jsonpath='{.data.root-user}' | base64 -d
-#    kubectl get secret minio -n backup -o jsonpath='{.data.root-password}' | base64 -d
+# After MinIO is deployed, create Velero user and policy manually:
 #
-# 2. Access MinIO Console (port-forward):
-#    kubectl port-forward svc/minio 9001:9001 -n backup
-#    Open: http://localhost:9001
+# 1. Port-forward to MinIO Console:
+#    kubectl port-forward svc/minio -n backup-system 9001:9001
 #
-# 3. Configure Velero to use MinIO:
-#    - Service: minio.backup.svc.cluster.local:9000
-#    - Bucket: velero
-#    - Credentials: velero/changeme123 (from provisioning.users)
+# 2. Login to MinIO Console at http://localhost:9001
+#    Username: admin
+#    Password: changeme123
 #
-# 4. Security Best Practices:
-#    - Change default passwords via External Secrets or Sealed Secrets
-#    - Enable TLS for production (requires cert-manager)
-#    - Restrict network policies
-#    - Regular backup verification
+# 3. Create Velero service account:
+#    - Navigate to: Identity > Service Accounts
+#    - Click "Create Service Account"
+#    - Name: velero
+#    - Policy: readwrite (or create custom policy for "velero" bucket only)
+#    - Save Access Key and Secret Key
+#
+# 4. Update Velero credentials with the generated keys:
+#    - Edit velero-values.yaml with the service account credentials
+#    - Or create a Kubernetes secret manually
+#
+# Alternative: Use mc (MinIO Client) CLI:
+#    kubectl run mc --image=bitnami/minio-client:latest --rm -it -- /bin/bash
+#    mc alias set minio http://minio.backup-system.svc.cluster.local:9000 admin changeme123
+#    mc admin user add minio velero VELERO_PASSWORD
+#    mc admin policy attach minio readwrite --user velero
 #
 # =============================================================================

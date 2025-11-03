@@ -20,9 +20,9 @@ spec:
     # Source 2: Helm chart from Bitnami
     - repoURL: https://charts.bitnami.com/bitnami
       chart: minio
-      targetRevision: 5.4.0  # Match existing installation
+      targetRevision: 17.0.21  # Latest chart version
       helm:
-        releaseName: minio  # Match existing Helm release
+        releaseName: minio
         valueFiles:
           - $values/k8s/helm-values/minio-values.yaml
 
